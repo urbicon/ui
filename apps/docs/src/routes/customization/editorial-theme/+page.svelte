@@ -178,7 +178,7 @@
           <tr>
             <td class="px-4 py-3"><code>--font-mono</code></td>
             <td class="px-4 py-3">JetBrains Mono · system mono</td>
-            <td class="px-4 py-3">Code, kbd, meta labels (loaded via Google Fonts).</td>
+            <td class="px-4 py-3">Code, kbd, meta labels (self-hosted via @fontsource).</td>
           </tr>
         </tbody>
       </table>

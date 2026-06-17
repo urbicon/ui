@@ -2,11 +2,6 @@
   import SeoMeta from '$lib/SeoMeta.svelte';
 </script>
 
-<!--
-  TODO before launch: replace the [placeholder] entries below (postal address,
-  hosting provider, log retention) with the real details.
--->
-
 <SeoMeta
   title="Datenschutz"
   description="Datenschutzerklärung / privacy policy for ui.urbicon.de"

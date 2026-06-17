@@ -2,12 +2,6 @@
   import SeoMeta from '$lib/SeoMeta.svelte';
 </script>
 
-<!--
-  TODO before launch: replace the [placeholder] entries below with the legally
-  valid postal address. Under German law (§ 5 DDG) the site must not go public
-  without a complete imprint.
--->
-
 <SeoMeta
   title="Impressum"
   description="Impressum / legal notice for ui.urbicon.de"

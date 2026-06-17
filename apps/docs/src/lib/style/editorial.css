@@ -17,8 +17,9 @@
  */
 
 .docs-editorial {
-  /* Mono meta font (loaded in app.html via Google Fonts). Falls back
-   * to the system mono if the network blocks the request. */
+  /* Mono meta font — JetBrains Mono, self-hosted via @fontsource
+   * (loaded in +layout.svelte), no third-party requests. Falls back
+   * to the system mono if the font fails to load. */
   --font-mono: 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
 
   /* Editorial type voice (Lighter-Refactor, Programme A — typography).
