@@ -59,6 +59,7 @@
     "bump:minor": "bash scripts/bump.sh minor",
     "bump:major": "bash scripts/bump.sh major",
     "changelog": "git-cliff --output CHANGELOG.md",
+    "release:publish": "bash scripts/publish.sh",
     "dev": "bun --filter='*' run dev",
     "dev:blocks": "bun --filter='@urbicon-ui/blocks' run dev",
     "dev:docs": "bun --filter='@urbicon-ui/docs' run dev",
