@@ -1,6 +1,6 @@
 # DateGrid-Core, Calendar-Re-Base & Planner — Umsetzungsplan
 
-> **Status:** Vorhaben (geplant, noch nicht umgesetzt).
+> **Status:** In Umsetzung (Branch `feat/dategrid-planner`). **Phase 0–2 erledigt**: Schicht 0 (`@urbicon-ui/blocks/date`) + Schicht 1 (headless `DateGridController`/`DateGridScaffold`, internal). Phase 3–7 offen.
 > **Sprache:** Internes Strategie-/Umsetzungsdokument (Deutsch). Nach Abschluss in ein englisches As-built in `docs/ARCHITECTURE.md` überführen.
 > **Rahmen:** Greenfield. Kein Consumer nutzt `Calendar` produktiv ([[project_pre_release_status]]). **Keine** Migrations-, Kompatibilitäts- oder Breaking-Change-Rücksichten — wir bauen die saubere Zielarchitektur direkt.
 
@@ -354,18 +354,18 @@ export interface PlannerHeaderContext {
 
 Jede Phase ist eigenständig grün (`bun run check && bun run lint && bun run test`) und für sich mergebar.
 
-### Phase 0 — Inventar & Klassifikation
+### Phase 0 — Inventar & Klassifikation ✅
 - `calendar.engine.ts` Funktionen in **Geometrie** vs. **Event-Layout** markieren (Kommentar-Tags), gegen `calendar.engine.test.ts` (40 KB) abgleichen — welche Tests wandern in Schicht 0.
 - `calendar.context.ts` Felder Core vs. Event annotieren (Vorlage in §4 Schicht 2a).
 - **Akzeptanz:** Klassifikations-Tabelle als PR-Beschreibung; keine Code-Änderung.
 
-### Phase 1 — Schicht 0 `lib/date/`
+### Phase 1 — Schicht 0 `lib/date/` ✅
 - Geometrie/Format/Compare-Funktionen nach `lib/date/` verschieben; `calendar.engine.ts` importiert von dort.
 - Geometrie-Tests aus `calendar.engine.test.ts` → `lib/date/*.test.ts`; neue Tests für `eachDayOfRange`, `isoToDate`/`toIso` (lokal, DST-Grenzen).
 - package.json `./date`-Export ergänzen; `svelte-package` build prüfen (`dist/date/`).
 - **Akzeptanz:** `bun run build` erzeugt `dist/date/index.js`; `import { getWeekNumber } from '@urbicon-ui/blocks/date'` typecheckt; Calendar unverändert grün.
 
-### Phase 2 — Schicht 1 `DateGridController` + Scaffold
+### Phase 2 — Schicht 1 `DateGridController` + Scaffold ✅
 - Controller + Context + Keyboard + Scaffold neu in `lib/internal/date-grid/`.
 - Unit-Tests für Controller (navigate über Monats-/Wochen-/Range-Grenzen, `cells`-Geometrie je View, focus-Roving-Logik, selection).
 - **Akzeptanz:** Controller-Tests grün; Scaffold rendert ein nacktes Grid in einem Smoke-Test (cell-Snippet zählt Tage).
