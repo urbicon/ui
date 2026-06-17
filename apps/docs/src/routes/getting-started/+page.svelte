@@ -1,7 +1,8 @@
 <script lang="ts">
   import SeoMeta from '$lib/SeoMeta.svelte';
   import { resolve } from '$app/paths';
-  import { Button, Badge, Card } from '@urbicon-ui/blocks';
+  import { REPO_URL } from '$lib/seo';
+  import { ArrowRightIcon, Badge, Button, Card, CheckCircleIcon, Input } from '@urbicon-ui/blocks';
   import { CodeExample } from '@urbicon-ui/docs';
 
   const installExample = `bun add @urbicon-ui/blocks`;
@@ -14,34 +15,23 @@
   const firstComponentExample =
     `<script>
   import { Button, Input, Badge } from '@urbicon-ui/blocks';
-  
+
   let name = $state('');
+  let greeted = $state(false);
 </scr` +
     `ipt>
 
 <div class="space-y-4">
-  <Input 
-    label="Your name" 
-    bind:value={name} 
-    placeholder="Enter your name" 
-  />
-  
-  <Button onclick={() => alert(\`Hello \${name}!\`)}>
-    Say Hello
+  <Input label="Your name" bind:value={name} placeholder="Enter your name" />
+
+  <Button onclick={() => (greeted = true)} disabled={!name}>
+    Say hello
   </Button>
-  
-  {#if name}
-    <Badge intent="success">Welcome {name}!</Badge>
+
+  {#if greeted && name}
+    <Badge intent="success">Hello {name}!</Badge>
   {/if}
 </div>`;
-
-  const _svelteConfigExample = `// svelte.config.js
-import { vitePreprocess } from '@sveltejs/vite-plugin-svelte';
-
-export default {
-  preprocess: [vitePreprocess()],
-  // ... other config
-};`;
 
   const viteConfigExample = `// vite.config.js
 import { sveltekit } from '@sveltejs/kit/vite';
@@ -55,12 +45,11 @@ export default {
 @import '@urbicon-ui/blocks/style/index.css';
 
 @theme {
-  /* Override default colors */
-  --color-primary-500: oklch(0.6 0.2 280); /* Purple primary */
-  --color-success-500: oklch(0.7 0.15 140); /* Custom green */
-  
-  /* Add custom colors */
-  --color-brand-500: oklch(0.5 0.25 45); /* Orange brand color */
+  /* Override the primary ramp — every component follows it */
+  --color-primary-500: oklch(0.64 0.16 40); /* warm terracotta */
+
+  /* Add a custom color of your own */
+  --color-brand-500: oklch(0.55 0.13 250);
 }
 
 /* Custom component styles */
@@ -70,6 +59,7 @@ export default {
 }`;
 
   let demoName = $state('');
+  let demoGreeted = $state(false);
 </script>
 
 <SeoMeta
@@ -79,62 +69,94 @@ export default {
 
 <div class="mx-auto max-w-4xl px-6 py-12">
   <!-- Header -->
-  <div class="mb-12">
-    <h1 class="mb-4 text-4xl font-bold text-slate-900 dark:text-white">Getting Started</h1>
-    <p class="text-xl text-slate-600 dark:text-slate-300">
-      Get up and running with Urbicon UI in minutes. This guide covers installation, basic setup,
-      and creating your first components.
+  <div class="mb-14">
+    <p class="meta-marker">Getting started — install · setup · first component</p>
+    <h1 class="text-text-primary mt-4 text-4xl font-bold tracking-tight sm:text-5xl">
+      Getting started<span class="pipe" aria-hidden="true">|</span>
+    </h1>
+    <p class="text-text-secondary mt-4 max-w-2xl text-lg">
+      Get up and running with Urbicon&nbsp;UI in minutes. This guide covers installation, basic
+      setup, and creating your first components.
     </p>
   </div>
 
   <!-- Prerequisites -->
-  <section class="mb-12">
-    <h2 class="mb-6 text-2xl font-bold text-slate-900 dark:text-white">Prerequisites</h2>
+  <section class="mb-14">
+    <h2 class="text-text-primary mb-6 text-2xl font-bold tracking-tight">
+      Prerequisites<span class="pipe" aria-hidden="true">|</span>
+    </h2>
 
     <div
-      class="rounded-xl border border-amber-200 bg-amber-50 p-6 dark:border-amber-800 dark:bg-amber-900/20"
+      class="border-border-subtle bg-surface-elevated rounded-[var(--docs-radius-card,1rem)] border p-6"
     >
-      <h3 class="mb-3 font-semibold text-amber-900 dark:text-amber-100">Requirements</h3>
-      <ul class="space-y-2 text-amber-800 dark:text-amber-200">
-        <li>• <strong>Svelte 5.0+</strong> with runes support</li>
-        <li>• <strong>Tailwind CSS 4.0+</strong> for styling</li>
-        <li>• <strong>TypeScript</strong> (recommended)</li>
-        <li>• <strong>Node.js 18+</strong> or <strong>Bun 1.0+</strong></li>
+      <p class="meta-marker">Requirements</p>
+      <ul class="text-text-secondary mt-4 space-y-2.5 text-sm">
+        <li class="flex gap-2.5">
+          <span class="text-primary" aria-hidden="true">·</span>
+          <span
+            ><strong class="text-text-primary font-semibold">Svelte 5.0+</strong> with runes support</span
+          >
+        </li>
+        <li class="flex gap-2.5">
+          <span class="text-primary" aria-hidden="true">·</span>
+          <span
+            ><strong class="text-text-primary font-semibold">Tailwind CSS 4.0+</strong> for styling</span
+          >
+        </li>
+        <li class="flex gap-2.5">
+          <span class="text-primary" aria-hidden="true">·</span>
+          <span
+            ><strong class="text-text-primary font-semibold">TypeScript</strong> (recommended)</span
+          >
+        </li>
+        <li class="flex gap-2.5">
+          <span class="text-primary" aria-hidden="true">·</span>
+          <span
+            ><strong class="text-text-primary font-semibold">Node.js 18+</strong> or
+            <strong class="text-text-primary font-semibold">Bun 1.0+</strong></span
+          >
+        </li>
       </ul>
     </div>
   </section>
 
   <!-- Installation -->
-  <section class="mb-12">
-    <h2 class="mb-6 text-2xl font-bold text-slate-900 dark:text-white">Installation</h2>
+  <section class="mb-14">
+    <h2 class="text-text-primary mb-6 text-2xl font-bold tracking-tight">
+      Installation<span class="pipe" aria-hidden="true">|</span>
+    </h2>
 
     <CodeExample title="Install Urbicon UI" code={installExample} language="bash" preview={false} />
 
     <div class="mt-6 grid grid-cols-1 gap-4 md:grid-cols-2">
-      <Card padding="md">
-        <h3 class="mb-2 font-semibold">📦 Package Managers</h3>
-        <p class="text-sm text-slate-600 dark:text-slate-300">
-          Works with npm, yarn, pnpm, and bun
+      <div
+        class="border-border-subtle bg-surface-elevated rounded-[var(--docs-radius-card,1rem)] border p-5"
+      >
+        <h3 class="text-text-primary font-semibold">Package managers</h3>
+        <p class="text-text-secondary mt-1.5 text-sm leading-relaxed">
+          Works with npm, yarn, pnpm and bun.
         </p>
-      </Card>
-      <Card padding="md">
-        <h3 class="mb-2 font-semibold">🌳 Tree Shaking</h3>
-        <p class="text-sm text-slate-600 dark:text-slate-300">
-          Only import what you use (~90% efficiency)
+      </div>
+      <div
+        class="border-border-subtle bg-surface-elevated rounded-[var(--docs-radius-card,1rem)] border p-5"
+      >
+        <h3 class="text-text-primary font-semibold">Tree shaking</h3>
+        <p class="text-text-secondary mt-1.5 text-sm leading-relaxed">
+          Only import what you use — nothing else ships.
         </p>
-      </Card>
+      </div>
     </div>
   </section>
 
   <!-- Basic Setup -->
-  <section class="mb-12">
-    <h2 class="mb-6 text-2xl font-bold text-slate-900 dark:text-white">Basic Setup</h2>
+  <section class="mb-14">
+    <h2 class="text-text-primary mb-6 text-2xl font-bold tracking-tight">
+      Basic setup<span class="pipe" aria-hidden="true">|</span>
+    </h2>
 
     <div class="space-y-6">
       <div>
-        <h3 class="mb-4 text-lg font-semibold text-slate-900 dark:text-white">
-          1. Import Design Tokens
-        </h3>
+        <h3 class="text-text-primary mb-3 text-lg font-semibold">1. Import design tokens</h3>
         <CodeExample
           title="Import CSS Tokens"
           code={basicSetupExample}
@@ -144,8 +166,8 @@ export default {
       </div>
 
       <div>
-        <h3 class="mb-4 text-lg font-semibold text-slate-900 dark:text-white">
-          2. Configure Tailwind (if not already setup)
+        <h3 class="text-text-primary mb-3 text-lg font-semibold">
+          2. Configure Tailwind (if not already set up)
         </h3>
         <CodeExample
           title="Vite Config"
@@ -158,43 +180,35 @@ export default {
   </section>
 
   <!-- First Component -->
-  <section class="mb-12">
-    <h2 class="mb-6 text-2xl font-bold text-slate-900 dark:text-white">Your First Component</h2>
+  <section class="mb-14">
+    <h2 class="text-text-primary mb-6 text-2xl font-bold tracking-tight">
+      Your first component<span class="pipe" aria-hidden="true">|</span>
+    </h2>
 
-    <CodeExample title="Hello World Example" code={firstComponentExample}>
+    <CodeExample title="Hello world" code={firstComponentExample}>
       <div class="w-full max-w-sm space-y-4">
-        <div>
-          <label
-            for="demoName"
-            class="mb-1 block text-sm font-medium text-slate-700 dark:text-slate-300"
-            >Your name</label
-          >
-          <input
-            id="demoName"
-            bind:value={demoName}
-            placeholder="Enter your name"
-            class="w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-slate-900 dark:border-slate-600 dark:bg-slate-800 dark:text-white"
-          />
-        </div>
+        <Input label="Your name" bind:value={demoName} placeholder="Enter your name" />
 
-        <Button onclick={() => alert(`Hello ${demoName}!`)}>Say Hello</Button>
+        <Button onclick={() => (demoGreeted = true)} disabled={!demoName}>Say hello</Button>
 
-        {#if demoName}
-          <Badge intent="success">Welcome {demoName}!</Badge>
+        {#if demoGreeted && demoName}
+          <Badge intent="success">Hello {demoName}!</Badge>
         {/if}
       </div>
     </CodeExample>
   </section>
 
   <!-- Theme Customization -->
-  <section class="mb-12">
-    <h2 class="mb-6 text-2xl font-bold text-slate-900 dark:text-white">Theme Customization</h2>
+  <section class="mb-14">
+    <h2 class="text-text-primary mb-6 text-2xl font-bold tracking-tight">
+      Theme customization<span class="pipe" aria-hidden="true">|</span>
+    </h2>
 
-    <p class="mb-6 text-slate-600 dark:text-slate-300">
-      Urbicon UI uses Tailwind 4's new <code
-        class="rounded bg-slate-100 px-2 py-1 text-sm dark:bg-slate-800">@theme</code
-      >
-      directive for easy customization. Override design tokens to match your brand.
+    <p class="text-text-secondary mb-6 max-w-2xl leading-relaxed">
+      Urbicon UI uses Tailwind 4's
+      <code class="bg-surface-elevated rounded-modify px-1.5 py-0.5 font-mono text-xs">@theme</code>
+      directive for customization. Override design tokens to match your brand — every component follows
+      them automatically.
     </p>
 
     <CodeExample
@@ -206,72 +220,50 @@ export default {
   </section>
 
   <!-- Next Steps -->
-  <section class="mb-12">
-    <h2 class="mb-6 text-2xl font-bold text-slate-900 dark:text-white">Next Steps</h2>
+  <section class="mb-14">
+    <h2 class="text-text-primary mb-6 text-2xl font-bold tracking-tight">
+      Next steps<span class="pipe" aria-hidden="true">|</span>
+    </h2>
 
-    <div class="grid grid-cols-1 gap-6 md:grid-cols-2">
+    <div class="grid grid-cols-1 gap-4 md:grid-cols-2">
       <Card href={resolve('/blocks')} class="group h-full">
-        <h3
-          class="mb-2 font-semibold text-slate-900 transition-colors group-hover:text-blue-600 dark:text-white"
-        >
-          Explore Components
+        <h3 class="text-text-primary group-hover:text-primary mb-2 font-semibold transition-colors">
+          Explore components
         </h3>
-        <p class="mb-4 text-sm text-slate-600 dark:text-slate-300">
+        <p class="text-text-secondary mb-4 text-sm leading-relaxed">
           Browse all available components with live examples and detailed API documentation.
         </p>
-        <div class="flex items-center text-sm font-medium text-blue-600 dark:text-blue-400">
-          View Components
-          <svg
-            class="ml-1 h-4 w-4 transition-transform group-hover:translate-x-1"
-            fill="none"
-            viewBox="0 0 24 24"
-            stroke="currentColor"
-          >
-            <path
-              stroke-linecap="round"
-              stroke-linejoin="round"
-              stroke-width="2"
-              d="M9 5l7 7-7 7"
-            />
-          </svg>
-        </div>
+        <span
+          class="text-text-tertiary group-hover:text-primary inline-flex items-center gap-1.5 text-sm font-medium transition-colors"
+        >
+          View components
+          <ArrowRightIcon class="h-4 w-4 transition-transform group-hover:translate-x-0.5" />
+        </span>
       </Card>
 
       <Card href={resolve('/customization/tokens')} class="group h-full">
-        <h3
-          class="mb-2 font-semibold text-slate-900 transition-colors group-hover:text-blue-600 dark:text-white"
-        >
-          Design Tokens
+        <h3 class="text-text-primary group-hover:text-primary mb-2 font-semibold transition-colors">
+          Design tokens
         </h3>
-        <p class="mb-4 text-sm text-slate-600 dark:text-slate-300">
-          Learn about the comprehensive design token system for colors, typography, and spacing.
+        <p class="text-text-secondary mb-4 text-sm leading-relaxed">
+          Learn about the comprehensive design token system for colors, typography and spacing.
         </p>
-        <div class="flex items-center text-sm font-medium text-blue-600 dark:text-blue-400">
-          View Tokens
-          <svg
-            class="ml-1 h-4 w-4 transition-transform group-hover:translate-x-1"
-            fill="none"
-            viewBox="0 0 24 24"
-            stroke="currentColor"
-          >
-            <path
-              stroke-linecap="round"
-              stroke-linejoin="round"
-              stroke-width="2"
-              d="M9 5l7 7-7 7"
-            />
-          </svg>
-        </div>
+        <span
+          class="text-text-tertiary group-hover:text-primary inline-flex items-center gap-1.5 text-sm font-medium transition-colors"
+        >
+          View tokens
+          <ArrowRightIcon class="h-4 w-4 transition-transform group-hover:translate-x-0.5" />
+        </span>
       </Card>
 
-      <Card>
-        <h3 class="mb-2 font-semibold text-slate-900 dark:text-white">Need Help?</h3>
-        <p class="mb-4 text-sm text-slate-600 dark:text-slate-300">
+      <Card class="h-full md:col-span-2">
+        <h3 class="text-text-primary mb-2 font-semibold">Need help?</h3>
+        <p class="text-text-secondary mb-4 text-sm leading-relaxed">
           Browse the source and report issues on Codeberg, or point your AI tooling at the llms.txt
           reference and MCP server.
         </p>
         <div class="flex gap-2">
-          <a href="https://codeberg.org/urbicon/ui">
+          <a href={REPO_URL} target="_blank" rel="noopener">
             <Badge variant="soft" intent="primary">Codeberg</Badge>
           </a>
           <a href={resolve('/ai')}>
@@ -283,45 +275,49 @@ export default {
   </section>
 
   <!-- Performance Tips -->
-  <section class="mb-12">
-    <h2 class="mb-6 text-2xl font-bold text-slate-900 dark:text-white">Performance Tips</h2>
+  <section class="mb-4">
+    <h2 class="text-text-primary mb-6 text-2xl font-bold tracking-tight">
+      Performance tips<span class="pipe" aria-hidden="true">|</span>
+    </h2>
 
-    <div class="space-y-4">
-      <Card
-        padding="md"
-        class="border-green-200 bg-green-50 dark:border-green-800 dark:bg-green-900/20"
+    <div class="space-y-3">
+      <div
+        class="border-border-subtle bg-surface-elevated flex gap-3 rounded-[var(--docs-radius-card,1rem)] border p-5"
       >
-        <h3 class="mb-2 font-semibold text-green-900 dark:text-green-100">
-          ✅ Import only what you need
-        </h3>
-        <p class="text-sm text-green-800 dark:text-green-200">
-          <!-- eslint-disable-next-line svelte/no-at-html-tags -->
-          <code>{@html `import { Button, Input } from '@urbicon-ui/blocks'`}</code> instead of importing
-          everything.
-        </p>
-      </Card>
+        <CheckCircleIcon class="text-success mt-0.5 h-5 w-5 shrink-0" />
+        <div>
+          <h3 class="text-text-primary font-semibold">Import only what you need</h3>
+          <p class="text-text-secondary mt-1 text-sm leading-relaxed">
+            <code class="bg-surface-base rounded-modify px-1.5 py-0.5 font-mono text-xs"
+              >{"import { Button, Input } from '@urbicon-ui/blocks'"}</code
+            > instead of importing everything.
+          </p>
+        </div>
+      </div>
 
-      <Card
-        padding="md"
-        class="border-green-200 bg-green-50 dark:border-green-800 dark:bg-green-900/20"
+      <div
+        class="border-border-subtle bg-surface-elevated flex gap-3 rounded-[var(--docs-radius-card,1rem)] border p-5"
       >
-        <h3 class="mb-2 font-semibold text-green-900 dark:text-green-100">✅ Use design tokens</h3>
-        <p class="text-sm text-green-800 dark:text-green-200">
-          Leverage CSS custom properties for consistent theming and better performance.
-        </p>
-      </Card>
+        <CheckCircleIcon class="text-success mt-0.5 h-5 w-5 shrink-0" />
+        <div>
+          <h3 class="text-text-primary font-semibold">Use design tokens</h3>
+          <p class="text-text-secondary mt-1 text-sm leading-relaxed">
+            Leverage CSS custom properties for consistent theming and better performance.
+          </p>
+        </div>
+      </div>
 
-      <Card
-        padding="md"
-        class="border-green-200 bg-green-50 dark:border-green-800 dark:bg-green-900/20"
+      <div
+        class="border-border-subtle bg-surface-elevated flex gap-3 rounded-[var(--docs-radius-card,1rem)] border p-5"
       >
-        <h3 class="mb-2 font-semibold text-green-900 dark:text-green-100">
-          ✅ Progressive enhancement
-        </h3>
-        <p class="text-sm text-green-800 dark:text-green-200">
-          Start with simple components and add complexity only when needed.
-        </p>
-      </Card>
+        <CheckCircleIcon class="text-success mt-0.5 h-5 w-5 shrink-0" />
+        <div>
+          <h3 class="text-text-primary font-semibold">Progressive enhancement</h3>
+          <p class="text-text-secondary mt-1 text-sm leading-relaxed">
+            Start with simple components and add complexity only when needed.
+          </p>
+        </div>
+      </div>
     </div>
   </section>
 </div>

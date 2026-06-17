@@ -11,8 +11,8 @@
         "@playwright/test": "^1.60.0",
         "@types/bun": "catalog:",
         "@types/node": "catalog:",
-        "@urbicon/biome-config": "^0.2.6",
-        "@urbicon/commitlint-config": "^0.2.6",
+        "@urbicon/biome-config": "^0.2.7",
+        "@urbicon/commitlint-config": "^0.2.7",
         "git-cliff": "catalog:",
         "lefthook": "catalog:",
         "prettier": "^3.8.3",
@@ -25,6 +25,8 @@
       "name": "@urbicon-ui/docs-app",
       "version": "0.0.1",
       "dependencies": {
+        "@fontsource-variable/newsreader": "^5.2.10",
+        "@fontsource-variable/public-sans": "^5.2.7",
         "@urbicon-ui/auth": "workspace:*",
         "@urbicon-ui/blocks": "workspace:*",
         "@urbicon-ui/docs": "workspace:*",
@@ -412,6 +414,10 @@
 
     "@esbuild/win32-x64": ["@esbuild/win32-x64@0.27.7", "", { "os": "win32", "cpu": "x64" }, "sha512-56hiAJPhwQ1R4i+21FVF7V8kSD5zZTdHcVuRFMW0hn753vVfQN8xlx4uOPT4xoGH0Z/oVATuR82AiqSTDIpaHg=="],
 
+    "@fontsource-variable/newsreader": ["@fontsource-variable/newsreader@5.2.10", "", {}, "sha512-MdI2iRwrqWpMOU/2aV2BgfZ4dJNlj/XlYaY8Zb7t87mWqHskYW0XiUANkt1cyOCiEfW2VQ0bQ5vZgGPp6B2B4w=="],
+
+    "@fontsource-variable/public-sans": ["@fontsource-variable/public-sans@5.2.7", "", {}, "sha512-4mvade2J3slKkvwRkS+p8T3szet/0vhWoSnuUJTVU81Uo2pRpSZY/Y8bSLRqpSwzIPxjVmRJ53oq6JKP/l/PSg=="],
+
     "@fontsource/jetbrains-mono": ["@fontsource/jetbrains-mono@5.2.8", "", {}, "sha512-6w8/SG4kqvIMu7xd7wt6x3idn1Qux3p9N62s6G3rfldOUYHpWcc2FKrqf+Vo44jRvqWj2oAtTHrZXEP23oSKwQ=="],
 
     "@hono/node-server": ["@hono/node-server@1.19.14", "", { "peerDependencies": { "hono": "^4" } }, "sha512-GwtvgtXxnWsucXvbQXkRgqksiH2Qed37H9xHZocE5sA3N8O8O8/8FA3uclQXxXVzc9XBZuEOMK7+r02FmSpHtw=="],
@@ -580,9 +586,9 @@
 
     "@urbicon-ui/table": ["@urbicon-ui/table@workspace:packages/table"],
 
-    "@urbicon/biome-config": ["@urbicon/biome-config@0.2.6", "https://codeberg.org/api/packages/urbicon/npm/%40urbicon%2Fbiome-config/-/0.2.6/biome-config-0.2.6.tgz", {}, "sha512-L68uM3Afiu0e5RKD5EEozRDUPB1Vd+bIZC6ECBkxIzQZMeWDcoiLvICaI6K8LXrHp266pCfqPR3TpkN+5LA9kQ=="],
+    "@urbicon/biome-config": ["@urbicon/biome-config@0.2.8", "https://codeberg.org/api/packages/urbicon/npm/%40urbicon%2Fbiome-config/-/0.2.8/biome-config-0.2.8.tgz", {}, "sha512-cz1IgS1rLq50UWbfTfls0csvmpFyR1OYeJlZ2mTloWiINSlfS2a1s52s1EmjDh0myLDFFtg4DKdTE1H6kK6BLQ=="],
 
-    "@urbicon/commitlint-config": ["@urbicon/commitlint-config@0.2.6", "https://codeberg.org/api/packages/urbicon/npm/%40urbicon%2Fcommitlint-config/-/0.2.6/commitlint-config-0.2.6.tgz", { "dependencies": { "@commitlint/config-conventional": "^21.0.2", "@commitlint/types": "^21.0.1" } }, "sha512-vlZ3jBatmRmcrTZ9CZPQg+dPl8G0viPkPQ/ORuI5t/UbJ/jIAsHmAHtv7fyMote/bzqnFPN1GJLUXkHbOax9IA=="],
+    "@urbicon/commitlint-config": ["@urbicon/commitlint-config@0.2.8", "https://codeberg.org/api/packages/urbicon/npm/%40urbicon%2Fcommitlint-config/-/0.2.8/commitlint-config-0.2.8.tgz", { "dependencies": { "@commitlint/config-conventional": "^21.0.2", "@commitlint/types": "^21.0.1" } }, "sha512-Tsmf+lvJUlFEEPxkst6z+y2D530Y8FY5enTDsg7pJNTJxI5gibHjW576037v3Hw5bIdMRJEA5JeroqGL6/OCUw=="],
 
     "@vitest/expect": ["@vitest/expect@4.1.7", "", { "dependencies": { "@standard-schema/spec": "^1.1.0", "@types/chai": "^5.2.2", "@vitest/spy": "4.1.7", "@vitest/utils": "4.1.7", "chai": "^6.2.2", "tinyrainbow": "^3.1.0" } }, "sha512-1R+tw0ortHEbZDGMymm+pN7/AFQ/RkFFdtd7EN+VBpynKmLbP8A3rpEXdshBJ7+8hQ9zBJh/i1s0yKNtxAnU7w=="],
 

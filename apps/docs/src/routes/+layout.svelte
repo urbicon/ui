@@ -11,6 +11,7 @@
     ThemeSwitcher,
     SidebarLayout,
     MenuIcon,
+    SearchIcon,
     registerDefaultMints
   } from '@urbicon-ui/blocks';
   import { provideI18n } from '@urbicon-ui/i18n';
@@ -21,6 +22,10 @@
   import '@fontsource/jetbrains-mono/400.css';
   import '@fontsource/jetbrains-mono/500.css';
   import '@fontsource/jetbrains-mono/600.css';
+  // Editorial display (Newsreader) + body (Public Sans), self-hosted like the
+  // mono above — no third-party requests (see /privacy, PUBLISH-READINESS.md E.2).
+  import '@fontsource-variable/newsreader';
+  import '@fontsource-variable/public-sans';
   import '../app.css';
 
   registerDefaultMints();
@@ -108,19 +113,7 @@
           onclick={() => commandSearch?.toggle()}
           class="border-border-hairline text-text-tertiary hover:border-text-primary hover:text-text-primary flex w-full items-center gap-2 border-b bg-transparent px-3 py-2 text-sm transition-colors"
         >
-          <svg
-            class="h-4 w-4 shrink-0"
-            fill="none"
-            viewBox="0 0 24 24"
-            stroke="currentColor"
-            stroke-width="2"
-          >
-            <path
-              stroke-linecap="round"
-              stroke-linejoin="round"
-              d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
-            />
-          </svg>
+          <SearchIcon class="h-4 w-4 shrink-0" />
           <span class="font-meta"
             ><span aria-hidden="true">// </span>{ta(
               'chrome.search' as Parameters<typeof ta>[0]

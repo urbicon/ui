@@ -4,6 +4,8 @@
     Accordion,
     AccordionItem,
     Alert,
+    ArrowRightIcon,
+    ArrowUpRightIcon,
     Avatar,
     Badge,
     Breadcrumb,
@@ -42,13 +44,9 @@
   const inner = 'relative z-[2] flex h-full flex-col pointer-events-none';
   const demo = 'flex flex-1 items-center justify-center';
 
+  // Clears the entrance animation once it finishes so each card keeps its
+  // final resting state. (The cursor-spotlight tracking was removed — C.3.)
   function bento(node: HTMLElement) {
-    function onMove(e: MouseEvent) {
-      const r = node.getBoundingClientRect();
-      node.style.setProperty('--mx', `${e.clientX - r.left}px`);
-      node.style.setProperty('--my', `${e.clientY - r.top}px`);
-    }
-    node.addEventListener('mousemove', onMove);
     node.addEventListener(
       'animationend',
       () => {
@@ -57,7 +55,6 @@
       },
       { once: true }
     );
-    return () => node.removeEventListener('mousemove', onMove);
   }
 </script>
 
@@ -66,16 +63,7 @@
   description="23 Svelte 5 + Tailwind 4 primitives. Interactive, accessible, token-driven."
 />
 
-<div class="relative mx-auto max-w-7xl px-4 py-12 sm:px-6 lg:px-8">
-  <div class="pointer-events-none absolute inset-0 -z-10 overflow-hidden" aria-hidden="true">
-    <div
-      class="bg-primary/6 absolute -top-32 left-1/4 h-[420px] w-[420px] rounded-full blur-[100px]"
-    ></div>
-    <div
-      class="bg-success/4 absolute top-1/3 right-1/4 h-[320px] w-[320px] rounded-full blur-[80px]"
-    ></div>
-  </div>
-
+<div class="mx-auto max-w-7xl px-4 py-12 sm:px-6 lg:px-8">
   <div class="mb-14">
     <p class="meta-marker">Primitives — Svelte 5 · Tailwind 4 · zero deps</p>
     <div class="mt-4 flex items-center gap-3">
@@ -93,15 +81,9 @@
   </div>
 
   {#snippet arrowStd()}
-    <svg
+    <ArrowUpRightIcon
       class="text-text-quaternary h-3.5 w-3.5 -translate-x-1 opacity-0 transition-all duration-200 group-hover:translate-x-0 group-hover:opacity-100"
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      stroke-width="2"
-      stroke-linecap="round"
-      stroke-linejoin="round"><path d="m7 17 10-10M7 7h10v10" /></svg
-    >
+    />
   {/snippet}
 
   {#snippet heading(name: string)}
@@ -663,15 +645,7 @@
       class="text-text-tertiary hover:text-primary mt-6 inline-flex items-center gap-1.5 text-sm font-medium transition-colors"
     >
       Read the customization guide
-      <svg
-        class="h-4 w-4 transition-transform group-hover:translate-x-0.5"
-        fill="none"
-        viewBox="0 0 24 24"
-        stroke="currentColor"
-        stroke-width="2"
-      >
-        <path stroke-linecap="round" stroke-linejoin="round" d="M13 7l5 5-5 5M6 12h12" />
-      </svg>
+      <ArrowRightIcon class="h-4 w-4 transition-transform group-hover:translate-x-0.5" />
     </a>
   </section>
 
@@ -709,26 +683,6 @@
       opacity: 1;
       transform: translateY(0) scale(1);
     }
-  }
-
-  .bento-card::before {
-    content: '';
-    position: absolute;
-    inset: 0;
-    border-radius: inherit;
-    background: radial-gradient(
-      400px circle at var(--mx, 50%) var(--my, 50%),
-      color-mix(in oklab, var(--color-primary) 8%, transparent),
-      transparent 60%
-    );
-    opacity: 0;
-    transition: opacity var(--blocks-duration-normal, 200ms);
-    pointer-events: none;
-    z-index: 1;
-  }
-
-  .bento-card:hover::before {
-    opacity: 1;
   }
 
   @media (prefers-reduced-motion: reduce) {

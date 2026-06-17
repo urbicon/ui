@@ -118,7 +118,7 @@
 
   <div class="mt-6 text-right">
     <a
-      class="text-sm text-slate-500 underline hover:text-slate-700"
+      class="text-text-tertiary hover:text-text-secondary text-sm underline"
       href={asset('/docs/components/code-example/llm.txt')}
       rel="noopener">llm.txt</a
     >
