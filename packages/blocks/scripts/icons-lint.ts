@@ -180,12 +180,15 @@ function lintSvg(file: string, raw: string): void {
 // → info-circle.svg), so the registry is verified through the component, never by
 // assuming key === filename. Keys must stay symmetric across the three tables.
 function lintRegistry(svgNames: string[]): void {
-  const ctx = readFileSync(join(ICONS_DIR, 'icon.context.ts'), 'utf8');
+  // Since the icon module split: DEFAULT_ICONS + ICON_METADATA live in
+  // icon-registry.ts, the IconName union in icon-types.ts.
+  const registry = readFileSync(join(ICONS_DIR, 'icon-registry.ts'), 'utf8');
+  const types = readFileSync(join(ICONS_DIR, 'icon-types.ts'), 'utf8');
   const index = readFileSync(join(ICONS_DIR, 'index.ts'), 'utf8');
 
-  const defaultBlock = ctx.match(RE_DEFAULT_BLOCK)?.[1] ?? '';
-  const metaBlock = ctx.match(RE_META_BLOCK)?.[1] ?? '';
-  const unionBlock = ctx.match(RE_UNION_BLOCK)?.[1] ?? '';
+  const defaultBlock = registry.match(RE_DEFAULT_BLOCK)?.[1] ?? '';
+  const metaBlock = registry.match(RE_META_BLOCK)?.[1] ?? '';
+  const unionBlock = types.match(RE_UNION_BLOCK)?.[1] ?? '';
   const defaultMap = new Map(
     [...defaultBlock.matchAll(RE_DEFAULT_ENTRY)].map((m): [string, string] => [m[1], m[2]])
   );

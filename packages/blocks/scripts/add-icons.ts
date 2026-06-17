@@ -405,10 +405,12 @@ const icons: IconDef[] = [
 
 await mkdir(svgDir, { recursive: true });
 
-const contextPath = join(iconsDir, 'icon.context.ts');
+const registryPath = join(iconsDir, 'icon-registry.ts');
+const typesPath = join(iconsDir, 'icon-types.ts');
 const indexPath = join(iconsDir, 'index.ts');
 
-let contextFile = await readFile(contextPath, 'utf-8');
+let registryFile = await readFile(registryPath, 'utf-8');
+let typesFile = await readFile(typesPath, 'utf-8');
 let indexFile = await readFile(indexPath, 'utf-8');
 
 for (const icon of icons) {
@@ -427,7 +429,7 @@ for (const icon of icons) {
 
   // 2. Create Svelte component
   const svelteContent = `<script lang="ts">
-  import type { IconProps } from './icon.context';
+  import type { IconProps } from './icon-types';
   import IconWrapper from './IconWrapper.svelte';
   import content from './svg/${kebab}.svg?raw';
 
@@ -438,36 +440,39 @@ for (const icon of icons) {
 `;
   await writeFile(join(iconsDir, `${componentName}.svelte`), svelteContent);
 
-  // 3. Add import to icon.context.ts (before "const ICON_CTX_KEY")
+  // 3. Add icon import to icon-registry.ts (before the getIconOverrides import)
   const importLine = `import ${componentName} from './${componentName}.svelte';`;
-  if (!contextFile.includes(importLine)) {
-    contextFile = contextFile.replace('const ICON_CTX_KEY', `${importLine}\n\nconst ICON_CTX_KEY`);
+  if (!registryFile.includes(importLine)) {
+    registryFile = registryFile.replace(
+      "import { getIconOverrides } from './icon.context';",
+      `${importLine}\nimport { getIconOverrides } from './icon.context';`
+    );
   }
 
-  // 4. Add to IconName union (before the closing semicolon)
-  if (!contextFile.includes(`'${icon.name}'`)) {
-    contextFile = contextFile.replace(
+  // 4. Add to the IconName union in icon-types.ts (before the closing semicolon)
+  if (!typesFile.includes(`'${icon.name}'`)) {
+    typesFile = typesFile.replace(
       /(\| '[^']+');\s*\n\nexport interface IconProps/,
       `$1\n  | '${icon.name}';\n\nexport interface IconProps`
     );
   }
 
-  // 5. Add to DEFAULT_ICONS (before closing brace+semicolon)
-  if (!contextFile.includes(`${icon.name}: ${componentName}`)) {
-    contextFile = contextFile.replace(
+  // 5. Add to DEFAULT_ICONS in icon-registry.ts (before closing brace+semicolon)
+  if (!registryFile.includes(`${icon.name}: ${componentName}`)) {
+    registryFile = registryFile.replace(
       /(\w+: \w+Icon),?\n};\n\nexport const ICON_METADATA/,
       `$1,\n  ${icon.name}: ${componentName},\n};\n\nexport const ICON_METADATA`
     );
   }
 
-  // 6. Add to ICON_METADATA (before closing brace+semicolon before setIcons)
+  // 6. Add to ICON_METADATA in icon-registry.ts (before the getIcon helper that follows it)
   const cats = icon.categories.map((c) => `'${c}'`).join(', ');
   const kws = icon.keywords.map((k) => `'${k}'`).join(', ');
   const metaEntry = `  ${icon.name}: {\n    label: '${icon.label}',\n    categories: [${cats}],\n    keywords: [${kws}]\n  },`;
-  if (!contextFile.includes(`  ${icon.name}: {\n    label:`)) {
-    contextFile = contextFile.replace(
-      /},?\n};\n\n\/\*\*\n \* Provide icon overrides/,
-      `},\n${metaEntry}\n};\n\n/**\n * Provide icon overrides`
+  if (!registryFile.includes(`  ${icon.name}: {\n    label:`)) {
+    registryFile = registryFile.replace(
+      /},?\n};\n\n\/\*\*\n \* Resolve an icon by name from the built-in/,
+      `},\n${metaEntry}\n};\n\n/**\n * Resolve an icon by name from the built-in`
     );
   }
 
@@ -480,7 +485,8 @@ for (const icon of icons) {
   console.log(`✓ ${componentName} → svg/${svgFileName}`);
 }
 
-await writeFile(contextPath, contextFile);
+await writeFile(registryPath, registryFile);
+await writeFile(typesPath, typesFile);
 await writeFile(indexPath, indexFile);
 
 console.log(`\nAdded ${icons.length} icons.`);
