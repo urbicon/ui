@@ -21,6 +21,15 @@
    * to the system mono if the network blocks the request. */
   --font-mono: 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
 
+  /* Editorial type voice (Lighter-Refactor, Programme A — typography).
+   * Display = Newsreader (a redaktionelle Antiqua) for headings; body =
+   * Public Sans (humanist sans). Both self-hosted via @fontsource-variable
+   * (loaded in +layout.svelte) — no third-party requests. The mono above
+   * stays the meta/code voice; the Serif↔Mono contrast is the brand's
+   * "editorial docs for a precise dev tool" duality. */
+  --font-display: 'Newsreader Variable', Georgia, 'Times New Roman', serif;
+  --font-sans: 'Public Sans Variable', ui-sans-serif, system-ui, sans-serif;
+
   /* Paper hierarchy — two stops for depth. `bg` is the ground (the
    * page outside content blocks), `paper` is what content sits on.
    * Light: warm cream → lighter cream. Dark: warm coffee → slightly
@@ -264,6 +273,7 @@
   /* Apply to root surfaces. */
   background: var(--docs-bg);
   color: var(--docs-ink);
+  font-family: var(--font-sans);
 
   /* Library semantic token overrides — bind the most consumed tokens
    * to the editorial ramps so library components rendered inside
@@ -334,7 +344,18 @@
   --color-neutral-hover: light-dark(var(--color-warm-neutral-600), var(--color-warm-neutral-300));
   --color-neutral-active: light-dark(var(--color-warm-neutral-700), var(--color-warm-neutral-200));
   --color-neutral-subtle: light-dark(var(--color-warm-neutral-50), var(--color-warm-neutral-900));
-  --color-neutral-emphasis: light-dark(var(--color-warm-neutral-800), var(--color-warm-neutral-200));
+  --color-neutral-emphasis: light-dark(
+    var(--color-warm-neutral-800),
+    var(--color-warm-neutral-200)
+  );
+}
+
+/* Editorial headings wear the display face (Newsreader). Body text
+ * inherits --font-sans from `.docs-editorial` above. The mono rule
+ * below has higher specificity, so meta/code/kbd stay on JetBrains
+ * Mono even when nested inside a heading. */
+.docs-editorial :is(h1, h2, h3) {
+  font-family: var(--font-display);
 }
 
 /* Mono meta font — applied via the `font-meta` utility on crumb,
@@ -396,4 +417,23 @@
  * the controls beneath it. */
 .docs-editorial [data-docs-stage] {
   background-color: transparent;
+}
+
+/* Inverted accent block (Cluster F) — one dominant brand-green "moment",
+ * used on the landing's closing CTA. Forest ground (primary-800) with
+ * cream ink; the semantic ink/border/surface tokens are re-pointed to
+ * light values inside the scope so nested editorial elements (meta-marker,
+ * headings, body, faint cards) invert automatically. Buttons get explicit
+ * contrast overrides at the call site. */
+.docs-editorial .cta-invert {
+  background: var(--color-primary-800);
+  --color-text-primary: #f9f7f2;
+  --color-text-secondary: rgb(249 247 242 / 0.82);
+  --color-text-tertiary: rgb(249 247 242 / 0.72);
+  --color-text-quaternary: rgb(249 247 242 / 0.55);
+  --color-border-hairline: rgb(249 247 242 / 0.18);
+  --color-border-subtle: rgb(249 247 242 / 0.22);
+  --color-surface-elevated: rgb(249 247 242 / 0.07);
+  --docs-soft: rgb(249 247 242 / 0.82);
+  --docs-softer: rgb(249 247 242 / 0.55);
 }

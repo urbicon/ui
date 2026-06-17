@@ -91,7 +91,7 @@
             ? [{ text: 'New', variant: 'soft', intent: 'primary' }]
             : undefined}
         >
-          <div class="text-sm text-slate-700 dark:text-slate-200">
+          <div class="text-text-secondary text-sm">
             Sections compose docs pages with consistent spacing and headings.
           </div>
           {#snippet footerSnippet()}
@@ -119,7 +119,7 @@
 
   <div class="mt-6 w-full text-right">
     <a
-      class="text-sm text-slate-500 underline hover:text-slate-700"
+      class="text-text-tertiary hover:text-text-secondary text-sm underline"
       href={asset('/docs/components/section/llm.txt')}
       rel="noopener">llm.txt</a
     >

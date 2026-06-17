@@ -9,7 +9,17 @@
   import SeoMeta from '$lib/SeoMeta.svelte';
   import { asset, resolve } from '$app/paths';
   import { REPO_URL } from '$lib/seo';
-  import { Avatar, Badge, Button, LocaleSwitcher, ThemeSwitcher, Toggle } from '@urbicon-ui/blocks';
+  import {
+    ArrowRightIcon,
+    Avatar,
+    Badge,
+    Button,
+    CheckIcon,
+    CopyIcon,
+    LocaleSwitcher,
+    ThemeSwitcher,
+    Toggle
+  } from '@urbicon-ui/blocks';
   import { onMount } from 'svelte';
 
   // One-shot entrance trigger for the staggered hero transitions.
@@ -163,7 +173,7 @@
           { 'translate-y-0 opacity-100': heroVisible, 'translate-y-4 opacity-0': !heroVisible }
         ]}
       >
-        Build on blocks, not on dependencies.<span class="pipe" aria-hidden="true">|</span>
+        A UI library that depends on nothing.<span class="pipe" aria-hidden="true">|</span>
       </h1>
 
       <p
@@ -172,9 +182,9 @@
           { 'translate-y-0 opacity-100': heroVisible, 'translate-y-4 opacity-0': !heroVisible }
         ]}
       >
-        Urbicon UI is a vertically integrated component platform for Svelte 5 — UI blocks, a full
-        data table, complete auth and AI-native tooling. Token-driven, accessible, with zero runtime
-        dependencies.
+        Blocks, a full data table, complete auth and AI-native tooling — written from scratch on
+        Svelte 5 and the web platform. No transitive dependency tree, no supply-chain surprises.
+        Zero runtime deps, and it stays that way.
       </p>
 
       <div
@@ -200,29 +210,9 @@
             class="text-text-quaternary hover:text-text-secondary rounded-modify p-1.5 transition-colors"
           >
             {#if copied}
-              <svg
-                class="text-success h-4 w-4"
-                fill="none"
-                viewBox="0 0 24 24"
-                stroke="currentColor"
-                stroke-width="2"
-              >
-                <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" />
-              </svg>
+              <CheckIcon class="text-success h-4 w-4" />
             {:else}
-              <svg
-                class="h-4 w-4"
-                fill="none"
-                viewBox="0 0 24 24"
-                stroke="currentColor"
-                stroke-width="2"
-              >
-                <path
-                  stroke-linecap="round"
-                  stroke-linejoin="round"
-                  d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"
-                />
-              </svg>
+              <CopyIcon class="h-4 w-4" />
             {/if}
           </button>
         </div>
@@ -261,7 +251,7 @@
       <div class="mx-auto max-w-6xl px-6 py-20">
         <p class="meta-marker">The platform</p>
         <h2 class="text-text-primary mt-4 text-3xl font-bold tracking-tight sm:text-4xl">
-          One system, four products<span class="pipe" aria-hidden="true">|</span>
+          Four products, one system, zero dependencies<span class="pipe" aria-hidden="true">|</span>
         </h2>
         <p class="text-text-secondary mt-4 max-w-2xl">
           Everything is built on the same tokens, the same variant engine and the same i18n — so the
@@ -272,32 +262,29 @@
           {#each products as product (product.index)}
             <a
               href={product.href}
-              class="group border-border-subtle bg-surface-elevated hover:border-border-default block rounded-[var(--docs-radius-card,1rem)] border p-6 transition-colors"
+              class="group border-border-subtle bg-surface-elevated hover:border-border-default flex gap-5 rounded-[var(--docs-radius-card,1rem)] border p-6 transition-colors"
             >
-              <div class="flex items-baseline justify-between gap-4">
-                <div class="flex items-baseline gap-3">
-                  <span class="font-meta text-primary">{product.index}</span>
-                  <h3 class="text-text-primary text-xl font-semibold">{product.name}</h3>
-                </div>
-                <span class="font-meta text-text-quaternary hidden lg:block">{product.meta}</span>
-              </div>
-              <p class="text-text-secondary mt-3 text-sm leading-relaxed">
-                {product.description}
-              </p>
               <span
-                class="text-text-tertiary group-hover:text-primary mt-4 inline-flex items-center gap-1.5 text-sm font-medium transition-colors"
+                class="text-text-quaternary shrink-0 font-[family-name:var(--font-display)] text-5xl leading-none tabular-nums"
+                aria-hidden="true">{product.index}</span
               >
-                {product.cta}
-                <svg
-                  class="h-4 w-4 transition-transform group-hover:translate-x-0.5"
-                  fill="none"
-                  viewBox="0 0 24 24"
-                  stroke="currentColor"
-                  stroke-width="2"
+              <div class="min-w-0 flex-1">
+                <div class="flex items-baseline justify-between gap-4">
+                  <h3 class="text-text-primary text-xl font-semibold">{product.name}</h3>
+                  <span class="font-meta text-text-quaternary hidden lg:block">{product.meta}</span>
+                </div>
+                <p class="text-text-secondary mt-3 text-sm leading-relaxed">
+                  {product.description}
+                </p>
+                <span
+                  class="text-text-tertiary group-hover:text-primary mt-4 inline-flex items-center gap-1.5 text-sm font-medium transition-colors"
                 >
-                  <path stroke-linecap="round" stroke-linejoin="round" d="M13 7l5 5-5 5M6 12h12" />
-                </svg>
-              </span>
+                  {product.cta}
+                  <ArrowRightIcon
+                    class="h-4 w-4 transition-transform group-hover:translate-x-0.5"
+                  />
+                </span>
+              </div>
             </a>
           {/each}
         </div>
@@ -314,8 +301,11 @@
 
         <dl class="divide-border-hairline border-border-hairline mt-12 divide-y border-y">
           {#each principles as principle (principle.index)}
-            <div class="grid grid-cols-1 gap-2 py-6 sm:grid-cols-[3rem_1fr_auto] sm:gap-6">
-              <span class="font-meta text-primary pt-1">{principle.index}</span>
+            <div class="grid grid-cols-1 gap-2 py-6 sm:grid-cols-[4.5rem_1fr_auto] sm:gap-6">
+              <span
+                class="text-text-quaternary font-[family-name:var(--font-display)] text-4xl leading-none tabular-nums"
+                aria-hidden="true">{principle.index}</span
+              >
               <div>
                 <dt class="text-text-primary font-semibold">{principle.title}</dt>
                 <dd class="text-text-secondary mt-1 max-w-2xl text-sm leading-relaxed">
@@ -331,8 +321,23 @@
       </div>
     </section>
 
-    <!-- Closing CTA: same goal, different framing (human vs. agent) -->
+    <!-- Personal note — the person-driven "why" behind the thesis (Cluster G.1). -->
     <section class="border-border-hairline border-t">
+      <div class="mx-auto max-w-6xl px-6 py-20">
+        <p class="meta-marker">Why this exists</p>
+        <p
+          class="text-text-primary mt-6 max-w-3xl font-[family-name:var(--font-display)] text-2xl leading-relaxed sm:text-3xl"
+        >
+          Built because nothing like it existed for Svelte — and because, the way supply-chain
+          attacks are going, the safest dependency is none.
+        </p>
+        <p class="font-meta text-text-tertiary mt-6">— Felix Urban</p>
+      </div>
+    </section>
+
+    <!-- Closing CTA: same goal, different framing (human vs. agent).
+         Inverted brand-green block — the page's single dominant colour moment (Cluster F). -->
+    <section class="cta-invert">
       <div class="mx-auto max-w-6xl px-6 py-20">
         <p class="meta-marker">Start building</p>
         <h2 class="text-text-primary mt-4 text-3xl font-bold tracking-tight sm:text-4xl">
@@ -352,7 +357,11 @@
               >{INSTALL_COMMAND}</code
             >
             <a href={resolve('/getting-started')} class="mt-5 inline-block">
-              <Button intent="primary">Get started</Button>
+              <Button
+                intent="primary"
+                class="!border-transparent !bg-[#f9f7f2] !text-[#1f3d12] hover:!bg-white"
+                >Get started</Button
+              >
             </a>
           </div>
 
@@ -377,7 +386,11 @@
               >
             </div>
             <a href={resolve('/ai')} class="mt-5 inline-block">
-              <Button variant="outlined">Set up the MCP server</Button>
+              <Button
+                variant="outlined"
+                class="!border-[#f9f7f2a6] !text-[#f9f7f2] hover:!bg-[#f9f7f21f]"
+                >Set up the MCP server</Button
+              >
             </a>
           </div>
         </div>

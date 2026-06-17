@@ -1103,11 +1103,11 @@
             <h3 class="text-lg font-semibold">ApiReference</h3>
           </div>
 
-          <p class="mb-4 line-clamp-2 text-sm text-slate-600 dark:text-slate-400">
+          <p class="mb-4 line-clamp-2 text-sm text-text-secondary">
             ApiReference component with comprehensive functionality
           </p>
 
-          <div class="flex items-center justify-between text-xs text-slate-500 dark:text-slate-400">
+          <div class="flex items-center justify-between text-xs text-text-tertiary">
             <span>6 props</span>
           </div>
         </Card>
@@ -1117,11 +1117,11 @@
             <h3 class="text-lg font-semibold">CodeExample</h3>
           </div>
 
-          <p class="mb-4 line-clamp-2 text-sm text-slate-600 dark:text-slate-400">
+          <p class="mb-4 line-clamp-2 text-sm text-text-secondary">
             CodeExample component with comprehensive functionality
           </p>
 
-          <div class="flex items-center justify-between text-xs text-slate-500 dark:text-slate-400">
+          <div class="flex items-center justify-between text-xs text-text-tertiary">
             <span>9 props</span>
           </div>
         </Card>
@@ -1131,11 +1131,11 @@
             <h3 class="text-lg font-semibold">Components</h3>
           </div>
 
-          <p class="mb-4 line-clamp-2 text-sm text-slate-600 dark:text-slate-400">
+          <p class="mb-4 line-clamp-2 text-sm text-text-secondary">
             Components component with comprehensive functionality
           </p>
 
-          <div class="flex items-center justify-between text-xs text-slate-500 dark:text-slate-400">
+          <div class="flex items-center justify-between text-xs text-text-tertiary">
             <span>0 props</span>
           </div>
         </Card>
@@ -1145,11 +1145,11 @@
             <h3 class="text-lg font-semibold">DocsLayout</h3>
           </div>
 
-          <p class="mb-4 line-clamp-2 text-sm text-slate-600 dark:text-slate-400">
+          <p class="mb-4 line-clamp-2 text-sm text-text-secondary">
             DocsLayout component with comprehensive functionality
           </p>
 
-          <div class="flex items-center justify-between text-xs text-slate-500 dark:text-slate-400">
+          <div class="flex items-center justify-between text-xs text-text-tertiary">
             <span>6 props</span>
           </div>
         </Card>
@@ -1159,11 +1159,11 @@
             <h3 class="text-lg font-semibold">InfoCard</h3>
           </div>
 
-          <p class="mb-4 line-clamp-2 text-sm text-slate-600 dark:text-slate-400">
+          <p class="mb-4 line-clamp-2 text-sm text-text-secondary">
             InfoCard component with comprehensive functionality
           </p>
 
-          <div class="flex items-center justify-between text-xs text-slate-500 dark:text-slate-400">
+          <div class="flex items-center justify-between text-xs text-text-tertiary">
             <span>5 props</span>
           </div>
         </Card>
@@ -1173,11 +1173,11 @@
             <h3 class="text-lg font-semibold">PerformanceStats</h3>
           </div>
 
-          <p class="mb-4 line-clamp-2 text-sm text-slate-600 dark:text-slate-400">
+          <p class="mb-4 line-clamp-2 text-sm text-text-secondary">
             PerformanceStats component with comprehensive functionality
           </p>
 
-          <div class="flex items-center justify-between text-xs text-slate-500 dark:text-slate-400">
+          <div class="flex items-center justify-between text-xs text-text-tertiary">
             <span>3 props</span>
           </div>
         </Card>
@@ -1191,11 +1191,11 @@
             <h3 class="text-lg font-semibold">PlaygroundConfigurator</h3>
           </div>
 
-          <p class="mb-4 line-clamp-2 text-sm text-slate-600 dark:text-slate-400">
+          <p class="mb-4 line-clamp-2 text-sm text-text-secondary">
             PlaygroundConfigurator component with comprehensive functionality
           </p>
 
-          <div class="flex items-center justify-between text-xs text-slate-500 dark:text-slate-400">
+          <div class="flex items-center justify-between text-xs text-text-tertiary">
             <span>9 props</span>
           </div>
         </Card>
@@ -1205,11 +1205,11 @@
             <h3 class="text-lg font-semibold">Section</h3>
           </div>
 
-          <p class="mb-4 line-clamp-2 text-sm text-slate-600 dark:text-slate-400">
+          <p class="mb-4 line-clamp-2 text-sm text-text-secondary">
             Section component with comprehensive functionality
           </p>
 
-          <div class="flex items-center justify-between text-xs text-slate-500 dark:text-slate-400">
+          <div class="flex items-center justify-between text-xs text-text-tertiary">
             <span>14 props</span>
           </div>
         </Card>
@@ -1219,11 +1219,11 @@
             <h3 class="text-lg font-semibold">TableOfContents</h3>
           </div>
 
-          <p class="mb-4 line-clamp-2 text-sm text-slate-600 dark:text-slate-400">
+          <p class="mb-4 line-clamp-2 text-sm text-text-secondary">
             TableOfContents component with comprehensive functionality
           </p>
 
-          <div class="flex items-center justify-between text-xs text-slate-500 dark:text-slate-400">
+          <div class="flex items-center justify-between text-xs text-text-tertiary">
             <span>7 props</span>
           </div>
         </Card>
@@ -1233,11 +1233,11 @@
             <h3 class="text-lg font-semibold">TypesReference</h3>
           </div>
 
-          <p class="mb-4 line-clamp-2 text-sm text-slate-600 dark:text-slate-400">
+          <p class="mb-4 line-clamp-2 text-sm text-text-secondary">
             TypesReference component with comprehensive functionality
           </p>
 
-          <div class="flex items-center justify-between text-xs text-slate-500 dark:text-slate-400">
+          <div class="flex items-center justify-between text-xs text-text-tertiary">
             <span>0 props</span>
           </div>
         </Card>
@@ -1246,7 +1246,7 @@
   </div>
 
   <!-- Footer -->
-  <div class="mt-16 text-center text-sm text-slate-500 dark:text-slate-400">
+  <div class="mt-16 text-center text-sm text-text-tertiary">
     Last updated: {new Date('2025-08-29T20:14:35.119Z').toLocaleDateString()}
   </div>
 </DocsPageLayout>
