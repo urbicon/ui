@@ -1,0 +1,37 @@
+import type { AuthLocale } from '../../../i18n/keys.js';
+import type { CsrfClientOptions } from '../../csrf.js';
+import type { AuthPageSlotClasses } from '../types.js';
+
+/**
+ * @description Auto-verifying email confirmation page. Sends GET to `apiPath` (default `/api/auth/verify-email`) on mount.
+ * Pair with `createVerifyEmailHandler(authDeps)` on the server.
+ *
+ * @tag feedback
+ * @related RegisterPage
+ *
+ * @example
+ * ```svelte
+ * <VerifyEmailPage {t} token={$page.url.searchParams.get('token') ?? ''} />
+ * ```
+ */
+export interface VerifyEmailPageProps {
+  /** Locale bundle. Auto-detected from i18n context when omitted. */
+  t?: AuthLocale;
+  /** Verification token from URL query parameter. */
+  token: string;
+  /** API endpoint. @default '/api/auth/verify-email' */
+  apiPath?: string;
+  /** CSRF cookie/header names — only needed when the server overrides the defaults via `config.csrf`. Mutating requests echo the token automatically. */
+  csrf?: CsrfClientOptions;
+  /** Custom fetch implementation for all API calls. Defaults to the global `fetch`. Useful for mock backends in demos/tests or custom retry/auth layers. */
+  fetcher?: typeof globalThis.fetch;
+  /** Strip all default styling. */
+  unstyled?: boolean;
+  /** Per-slot class overrides. Keys: `root`, `card`, `title`, `form`, `field`, `submit`, `error`, `success`, `links`. */
+  slotClasses?: AuthPageSlotClasses;
+  /** Extra classes on the root element. */
+  class?: string;
+}
+
+export type { AuthPageSlotClasses } from '../types.js';
+export { default as VerifyEmailPage } from './VerifyEmailPage.svelte';

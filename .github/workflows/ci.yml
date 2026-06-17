@@ -1,0 +1,81 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  lint:
+    name: Lint
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: oven-sh/setup-bun@v2
+      - run: bun install --frozen-lockfile
+      - run: bun run lint
+
+  typecheck:
+    name: Type Check
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: oven-sh/setup-bun@v2
+      - run: bun install --frozen-lockfile
+      - run: bun run build:ts
+      - run: bun run check
+
+  test:
+    name: Test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: oven-sh/setup-bun@v2
+      - run: bun install --frozen-lockfile
+      - run: bun --filter='@urbicon-ui/blocks' run test:run
+      - run: bun --filter='@urbicon-ui/i18n' run test:run
+      - run: bun --filter='@urbicon-ui/docs-gen' run test
+      - name: Test auth
+        working-directory: packages/auth
+        run: bunx --bun vitest run
+      - name: Test table
+        working-directory: packages/table
+        run: bunx --bun vitest run
+      - name: Test mcp-server
+        working-directory: packages/mcp-server
+        run: bunx --bun vitest run
+      - name: Test docs
+        working-directory: packages/docs
+        run: bunx --bun vitest run
+      - name: Test sveltekit-utils
+        working-directory: packages/sveltekit-utils
+        run: bunx --bun vitest run
+
+  e2e:
+    # Independent of `build` — each job installs + builds its own workspace, so
+    # gating would just serialise two identical installs without sharing the
+    # build artefact. Keeping the job parallel cuts ~3 min off CI.
+    name: E2E (Playwright)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: oven-sh/setup-bun@v2
+      - run: bun install --frozen-lockfile
+      - run: bun run build
+      - run: bunx playwright install --with-deps chromium
+      - run: bunx playwright test
+
+  build:
+    name: Build
+    runs-on: ubuntu-latest
+    needs: [lint, typecheck, test]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: oven-sh/setup-bun@v2
+      - run: bun install --frozen-lockfile
+      - run: bun run build

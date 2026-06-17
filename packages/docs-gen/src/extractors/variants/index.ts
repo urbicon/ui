@@ -1,0 +1,1 @@
+export { VariantsExtractor } from './VariantsExtractor';

@@ -1,0 +1,84 @@
+{
+  "name": "@urbicon-ui/shared-types",
+  "version": "6.1.3",
+  "description": "Shared TypeScript types for the Urbicon UI design system",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://codeberg.org/urbicon/ui.git",
+    "directory": "packages/shared-types"
+  },
+  "homepage": "https://ui.urbicon.de",
+  "bugs": "https://codeberg.org/urbicon/ui/issues",
+  "keywords": [
+    "typescript",
+    "types",
+    "design-system",
+    "urbicon-ui"
+  ],
+  "type": "module",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "sideEffects": false,
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    },
+    "./docs-config": {
+      "types": "./dist/documentation.d.ts",
+      "import": "./dist/documentation.js"
+    },
+    "./documentation": {
+      "types": "./dist/documentation.d.ts",
+      "import": "./dist/documentation.js"
+    },
+    "./documentation-core": {
+      "types": "./dist/documentation.d.ts",
+      "import": "./dist/documentation.js"
+    },
+    "./components": {
+      "types": "./dist/components.d.ts",
+      "import": "./dist/components.js"
+    },
+    "./component-core": {
+      "types": "./dist/component-core.d.ts",
+      "import": "./dist/component-core.js"
+    },
+    "./examples": {
+      "types": "./dist/examples.d.ts",
+      "import": "./dist/examples.js"
+    },
+    "./playground": {
+      "types": "./dist/playground.d.ts",
+      "import": "./dist/playground.js"
+    },
+    "./navigation": {
+      "types": "./dist/navigation.d.ts",
+      "import": "./dist/navigation.js"
+    },
+    "./utilities": {
+      "types": "./dist/utilities.d.ts",
+      "import": "./dist/utilities.js"
+    },
+    "./globals": {
+      "types": "./dist/globals.d.ts",
+      "import": "./dist/globals.js"
+    }
+  },
+  "files": [
+    "dist",
+    "src"
+  ],
+  "scripts": {
+    "build": "tsc -b",
+    "dev": "tsc -b --watch",
+    "clean": "rm -rf dist .svelte-kit tsconfig.tsbuildinfo",
+    "clean-all": "bun run clean && rm -rf node_modules",
+    "check": "tsc -b --noEmit"
+  },
+  "devDependencies": {
+    "typescript": "catalog:"
+  },
+  "author": "Urbicon UI Team"
+}

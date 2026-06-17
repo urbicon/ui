@@ -1,0 +1,179 @@
+<script lang="ts">
+  import SeoMeta from '$lib/SeoMeta.svelte';
+  import {
+    ApiReference,
+    CodeExample,
+    DocsLayout as DocsPageLayout,
+    extractPlaygroundDocs,
+    PlaygroundConfigurator,
+    Section
+  } from '@urbicon-ui/docs';
+  import { Sidebar, Button, CloseIcon } from '@urbicon-ui/blocks';
+  import PrevNextNav from '$lib/PrevNextNav.svelte';
+  import CustomDocs from './Docs.svelte';
+  import { componentData } from './api';
+  import { buildRelatedLinks } from '$lib/component-links';
+  import { asset, resolve } from '$app/paths';
+  import { page } from '$app/state';
+
+  const { propDocs, variantKeys } = extractPlaygroundDocs(componentData?.props ?? []);
+  const relatedLinks = buildRelatedLinks(componentData);
+
+  let playgroundOpen = $state(false);
+
+  const navigation = [
+    { id: 'overview', title: 'Overview', order: 1 },
+    { id: 'playground', title: 'Playground', order: 2 },
+    { id: 'examples', title: 'Examples', order: 3 },
+    { id: 'customization', title: 'Customization', order: 4 },
+    { id: 'accessibility', title: 'Accessibility', order: 5 },
+    { id: 'api', title: 'API Reference', order: 6 },
+    { id: 'installation', title: 'Installation', order: 7 }
+  ];
+</script>
+
+<SeoMeta
+  title="Sidebar Component"
+  description="Responsive sidebar navigation — permanent on desktop, overlay on mobile. Collapsible mode for toggleable sidebars at all viewports."
+/>
+
+<DocsPageLayout
+  title="Sidebar"
+  description="Sidebar primitive — fixed-position panel, permanent on desktop and overlay on mobile. Use directly for detail panels and custom shells. For a standard application chrome (left rail + mobile hamburger), use SidebarLayout."
+  maxWidth="2xl"
+  showToc={true}
+  breadcrumbs={[
+    { label: 'Blocks', href: resolve('/blocks') },
+    { label: 'Primitives', href: resolve('/blocks/primitives') }
+  ]}
+  {navigation}
+  stability={componentData?.stability}
+  sourceHref={componentData?.sourceHref}
+  related={relatedLinks}
+>
+  <Section id="overview">
+    <div class="border-border-subtle bg-surface-elevated rounded-2xl border p-5">
+      <h3 class="text-text-primary text-sm font-semibold">Looking for an app shell?</h3>
+      <p class="text-text-secondary mt-1.5 text-sm leading-relaxed">
+        For the common pattern of a permanent left sidebar with a mobile hamburger and an offset
+        main content area, prefer
+        <a class="text-primary hover:underline" href={resolve('/blocks/components/sidebar-layout')}
+          >SidebarLayout</a
+        >. It wraps this primitive and resolves the CSS-variable scoping that otherwise leaves your
+        main content underneath the sidebar.
+      </p>
+      <p class="text-text-secondary mt-2 text-sm leading-relaxed">
+        Use the <code class="text-text-primary">Sidebar</code> primitive directly for right-side detail
+        panels, custom shells, or any sidebar that opens as an overlay on click.
+      </p>
+    </div>
+  </Section>
+  <Section id="playground" intent="primary">
+    <PlaygroundConfigurator
+      componentName="Sidebar"
+      {propDocs}
+      {variantKeys}
+      controls={[
+        {
+          type: 'dropdown',
+          key: 'side',
+          label: 'Side',
+          items: [
+            { label: 'left', value: 'left' },
+            { label: 'right', value: 'right' }
+          ],
+          defaultValue: 'left'
+        },
+        {
+          type: 'text',
+          key: 'width',
+          label: 'Width',
+          defaultValue: '16rem'
+        },
+        {
+          type: 'checkbox',
+          key: 'closeOnBackdropClick',
+          label: 'Close on Backdrop',
+          defaultValue: true
+        }
+      ]}
+      values={{
+        side: 'left',
+        width: '16rem',
+        closeOnBackdropClick: true
+      }}
+      showHeader={false}
+    >
+      {#snippet children(values)}
+        <Button onclick={() => (playgroundOpen = true)}>Open Sidebar</Button>
+        {#if playgroundOpen}
+          <Sidebar
+            open={true}
+            side={values.side}
+            width={values.width}
+            closeOnBackdropClick={values.closeOnBackdropClick}
+            onOpenChange={(o) => {
+              if (!o) playgroundOpen = false;
+            }}
+          >
+            {#snippet header()}
+              <div class="flex items-center justify-between py-3">
+                <span class="text-text-primary font-semibold">Navigation</span>
+                <Button
+                  variant="ghost"
+                  intent="neutral"
+                  size="xs"
+                  onclick={() => (playgroundOpen = false)}
+                  aria-label="Close sidebar"
+                >
+                  <CloseIcon class="h-4 w-4" />
+                </Button>
+              </div>
+            {/snippet}
+            <nav class="space-y-1 p-4">
+              {#each ['Dashboard', 'Projects', 'Team', 'Settings'] as item (item)}
+                <button
+                  class="text-text-secondary hover:bg-surface-subtle hover:text-text-primary w-full rounded-lg px-3 py-2 text-left text-sm transition-colors"
+                  onclick={() => (playgroundOpen = false)}
+                >
+                  {item}
+                </button>
+              {/each}
+            </nav>
+          </Sidebar>
+        {/if}
+      {/snippet}
+    </PlaygroundConfigurator>
+  </Section>
+
+  <CustomDocs />
+
+  <Section
+    marker="05"
+    id="api"
+    title="API Reference"
+    intent="secondary"
+    meta={`${componentData?.stats?.totalProps ?? 0} props`}
+  >
+    <ApiReference props={componentData?.props ?? []} />
+  </Section>
+
+  <Section marker="06" id="installation" title="Installation">
+    <CodeExample
+      title="Import"
+      code={`import { Sidebar } from '@urbicon-ui/blocks';`}
+      language="svelte"
+      preview={false}
+    />
+  </Section>
+
+  <div class="mt-6 text-right">
+    <a
+      class="text-text-tertiary hover:text-text-secondary text-sm underline"
+      href={asset('/blocks/primitives/sidebar/llm.txt')}
+      rel="noopener">llm.txt</a
+    >
+  </div>
+
+  <PrevNextNav currentPath={page.url.pathname} />
+</DocsPageLayout>

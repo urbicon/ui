@@ -1,0 +1,240 @@
+<script lang="ts">
+  import {
+    Button,
+    Input,
+    Alert,
+    Badge,
+    Checkbox,
+    Select,
+    Separator,
+    Spinner
+  } from '@urbicon-ui/blocks';
+  import { onMount, untrack } from 'svelte';
+  import { useAuthLocale } from '../../../i18n/index.js';
+  import { csrfFetch } from '../../csrf.js';
+  import type { InvitationManagerProps } from './index.js';
+
+  interface InvitationItem {
+    id: string;
+    email: string;
+    role: string;
+    usedAt: string | null;
+    createdAt: string;
+  }
+
+  let {
+    t: tProp,
+    roles,
+    basePath = '/api/invitations',
+    csrf,
+    fetcher,
+    unstyled = false,
+    slotClasses = {},
+    class: className
+  }: InvitationManagerProps = $props();
+
+  const authLocale = useAuthLocale();
+  const t = $derived(tProp ?? authLocale());
+
+  // Wrapped so the default path calls the global fetch unbound-safe; a custom
+  // fetcher (demo mock, test double, retry layer) takes precedence.
+  const doFetch: typeof globalThis.fetch = (input, init) =>
+    fetcher ? fetcher(input, init) : fetch(input, init);
+
+  let invitations = $state<InvitationItem[]>([]);
+  let email = $state('');
+  // Seed the dropdown with the first role once; `roles` is a static prop, so we
+  // untrack the read to make "initial value only" explicit (state_referenced_locally).
+  let role = $state(untrack(() => roles[0]?.value ?? ''));
+  let sendEmail = $state(true);
+  let error = $state('');
+  let loading = $state(true);
+  let submitting = $state(false);
+
+  async function loadInvitations() {
+    loading = true;
+    try {
+      const res = await doFetch(basePath);
+      if (!res.ok) {
+        // A 401/500 must not render as "no invitations yet".
+        error = t.common?.error ?? 'Failed to load invitations.';
+        return;
+      }
+      const data = await res.json();
+      invitations = data.invitations ?? [];
+    } catch {
+      // Surface the failure instead of rendering the empty state, which is
+      // indistinguishable from "no invitations yet".
+      error = t.common?.error ?? 'Failed to load invitations.';
+    } finally {
+      loading = false;
+    }
+  }
+
+  async function handleSendInvitation(e: SubmitEvent) {
+    e.preventDefault();
+    error = '';
+    submitting = true;
+
+    try {
+      const res = await csrfFetch(
+        basePath,
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email, role, sendEmail })
+        },
+        csrf,
+        fetcher
+      );
+      if (!res.ok) {
+        const data = await res.json();
+        error = data.error ?? t.common?.error ?? 'Failed to send invitation';
+        return;
+      }
+      email = '';
+      await loadInvitations();
+    } catch {
+      error = t.common?.error ?? 'An error occurred';
+    } finally {
+      submitting = false;
+    }
+  }
+
+  async function deleteInvitation(id: string) {
+    error = '';
+    try {
+      const res = await csrfFetch(`${basePath}/${id}`, { method: 'DELETE' }, csrf, fetcher);
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        error = data.error ?? t.common?.error ?? 'Failed to delete invitation.';
+        return;
+      }
+      // Drop it locally only once the server confirms — an unchecked optimistic
+      // remove would hide a failed delete that still exists on the server.
+      invitations = invitations.filter((inv) => inv.id !== id);
+    } catch {
+      error = t.common?.error ?? 'Failed to delete invitation.';
+    }
+  }
+
+  // Fire-once load on mount — not an $effect: this must run exactly once, and
+  // re-running on a reactive read would re-fetch the list needlessly.
+  onMount(() => {
+    loadInvitations();
+  });
+</script>
+
+<div
+  class={unstyled
+    ? [slotClasses.root, className].filter(Boolean).join(' ')
+    : ['flex flex-col gap-6', slotClasses.root, className].filter(Boolean).join(' ')}
+>
+  <h2
+    class={unstyled
+      ? slotClasses.title
+      : ['text-text-primary text-xl font-semibold', slotClasses.title].filter(Boolean).join(' ')}
+  >
+    {t.invitations.title}
+  </h2>
+
+  <div aria-live="polite">
+    {#if error}
+      <Alert intent="danger" size="sm" {unstyled} class={slotClasses.error}>
+        {error}
+      </Alert>
+    {/if}
+  </div>
+
+  <form
+    onsubmit={handleSendInvitation}
+    class={unstyled
+      ? slotClasses.form
+      : ['flex flex-col gap-4', slotClasses.form].filter(Boolean).join(' ')}
+  >
+    <div class="grid gap-3 sm:grid-cols-[1fr_auto]">
+      <Input label={t.invitations.email} type="email" bind:value={email} required {unstyled} />
+      <Select
+        label={t.invitations.role}
+        options={roles.map((r) => ({ value: r.value, label: r.label }))}
+        bind:value={role}
+        size="md"
+        {unstyled}
+        class="sm:w-44"
+      />
+    </div>
+
+    <Checkbox
+      bind:checked={sendEmail}
+      label={t.invitations.sendEmail ?? 'Send invitation email'}
+      {unstyled}
+    />
+
+    <Button
+      type="submit"
+      variant="filled"
+      intent="primary"
+      loading={submitting}
+      disabled={submitting}
+      {unstyled}
+      class="w-full sm:w-auto sm:self-start"
+    >
+      {t.invitations.send}
+    </Button>
+  </form>
+
+  <Separator {unstyled} />
+
+  {#if loading}
+    <div class="flex justify-center py-4">
+      <Spinner size="sm" />
+    </div>
+  {:else if invitations.length === 0}
+    <p class="text-text-tertiary py-4 text-center text-sm">
+      {t.invitations.empty ?? 'No invitations yet.'}
+    </p>
+  {:else}
+    <ul
+      class={unstyled
+        ? slotClasses.list
+        : ['flex flex-col gap-2', slotClasses.list].filter(Boolean).join(' ')}
+    >
+      {#each invitations as inv (inv.id)}
+        <li
+          class={unstyled
+            ? slotClasses.item
+            : [
+                'bg-surface-subtle border-border-subtle flex items-center justify-between gap-3 rounded-lg border px-4 py-3',
+                slotClasses.item
+              ]
+                .filter(Boolean)
+                .join(' ')}
+        >
+          <div class="flex min-w-0 flex-col gap-0.5">
+            <span class="text-text-primary truncate text-sm font-medium">{inv.email}</span>
+            <span class="text-text-tertiary text-xs">{inv.role}</span>
+          </div>
+          <div class="flex shrink-0 items-center gap-3">
+            <Badge intent={inv.usedAt ? 'neutral' : 'success'} variant="soft" size="sm" {unstyled}>
+              {inv.usedAt
+                ? (t.invitations.registered ?? t.invitations.used)
+                : t.invitations.pending}
+            </Badge>
+            {#if !inv.usedAt}
+              <Button
+                variant="ghost"
+                intent="danger"
+                size="sm"
+                onclick={() => deleteInvitation(inv.id)}
+                aria-label={`${t.invitations.delete} — ${inv.email}`}
+                {unstyled}
+              >
+                {t.invitations.delete}
+              </Button>
+            {/if}
+          </div>
+        </li>
+      {/each}
+    </ul>
+  {/if}
+</div>

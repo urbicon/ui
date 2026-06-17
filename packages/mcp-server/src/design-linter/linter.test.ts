@@ -1,0 +1,257 @@
+import { describe, expect, it } from 'vitest';
+import { lintDesign, maskComments } from './linter.js';
+import type { Finding } from './types.js';
+
+function ids(findings: Finding[]): string[] {
+  return findings.map((f) => f.ruleId);
+}
+function has(findings: Finding[], ruleId: string): boolean {
+  return findings.some((f) => f.ruleId === ruleId);
+}
+
+describe('raw-tailwind-color', () => {
+  it('flags numbered chromatic palette utilities', () => {
+    const { findings } = lintDesign(
+      '<div class="bg-blue-500 text-red-600 border-l-amber-400">x</div>'
+    );
+    expect(findings.filter((f) => f.ruleId === 'raw-tailwind-color')).toHaveLength(3);
+  });
+  it('flags opacity-suffixed raw colours', () => {
+    expect(has(lintDesign('<div class="bg-green-500/40">').findings, 'raw-tailwind-color')).toBe(
+      true
+    );
+  });
+  it('does NOT flag library tokens (intents, neutral, surfaces)', () => {
+    const { findings } = lintDesign(
+      '<div class="bg-primary-500 bg-neutral-100 bg-surface-base text-success border-border-subtle">'
+    );
+    expect(has(findings, 'raw-tailwind-color')).toBe(false);
+  });
+});
+
+describe('dark-mode-override', () => {
+  it('flags dark: variants', () => {
+    expect(
+      has(
+        lintDesign('<div class="bg-white dark:bg-surface-elevated">').findings,
+        'dark-mode-override'
+      )
+    ).toBe(true);
+  });
+  it('flags the important-modifier form dark:!', () => {
+    expect(
+      has(lintDesign('<div class="dark:!bg-surface-elevated">').findings, 'dark-mode-override')
+    ).toBe(true);
+  });
+  it('does NOT flag plain semantic tokens', () => {
+    expect(
+      has(lintDesign('<div class="bg-surface-elevated">').findings, 'dark-mode-override')
+    ).toBe(false);
+  });
+});
+
+describe('focus-not-visible', () => {
+  it('flags focus: and group-focus:', () => {
+    expect(has(lintDesign('<button class="focus:ring-2">').findings, 'focus-not-visible')).toBe(
+      true
+    );
+    expect(
+      has(lintDesign('<div class="group-focus:opacity-100">').findings, 'focus-not-visible')
+    ).toBe(true);
+  });
+  it('does NOT flag focus-visible: or focus-within:', () => {
+    const { findings } = lintDesign(
+      '<button class="focus-visible:ring-2 focus-within:bg-surface-hover">'
+    );
+    expect(has(findings, 'focus-not-visible')).toBe(false);
+  });
+});
+
+describe('hardcoded-z-index', () => {
+  it('flags numeric and bracketed z-index', () => {
+    expect(has(lintDesign('<div class="z-10">').findings, 'hardcoded-z-index')).toBe(true);
+    expect(has(lintDesign('<div class="z-[999]">').findings, 'hardcoded-z-index')).toBe(true);
+  });
+  it('does NOT flag the z-index token form or z-auto', () => {
+    const { findings } = lintDesign('<div class="z-[var(--z-modal)] z-auto">');
+    expect(has(findings, 'hardcoded-z-index')).toBe(false);
+  });
+});
+
+describe('dynamic-class-interpolation', () => {
+  it('flags interpolated Tailwind utility fragments', () => {
+    expect(
+      has(
+        lintDesign("<div class=\"gap-{isHero ? '4' : '3'}\">").findings,
+        'dynamic-class-interpolation'
+      )
+    ).toBe(true);
+    expect(
+      has(lintDesign('<div class={`py-${pad}`}>').findings, 'dynamic-class-interpolation')
+    ).toBe(true);
+  });
+  it('does NOT flag interpolation that is not a Tailwind root (ids, data keys)', () => {
+    const { findings } = lintDesign('<label for={`field-${id}`}>');
+    expect(has(findings, 'dynamic-class-interpolation')).toBe(false);
+  });
+});
+
+describe('token-hallucination', () => {
+  it('flags invented status-* and -fg tokens', () => {
+    expect(has(lintDesign('<div class="bg-status-danger">').findings, 'token-hallucination')).toBe(
+      true
+    );
+    expect(has(lintDesign('<div class="text-success-fg">').findings, 'token-hallucination')).toBe(
+      true
+    );
+  });
+  it('flags intent-with-bad-suffix and namespace typos', () => {
+    expect(has(lintDesign('<div class="bg-primary-muted">').findings, 'token-hallucination')).toBe(
+      true
+    );
+    expect(has(lintDesign('<div class="bg-surface-raised">').findings, 'token-hallucination')).toBe(
+      true
+    );
+  });
+  it('does NOT flag valid tokens', () => {
+    const valid =
+      '<div class="bg-surface-subtle text-text-primary bg-primary bg-primary-500 text-success bg-feedback-success-subtle border-border-strong">';
+    expect(has(lintDesign(valid).findings, 'token-hallucination')).toBe(false);
+  });
+  it('does NOT flag genuine Tailwind utilities or arbitrary values', () => {
+    const { findings } = lintDesign(
+      '<div class="bg-transparent bg-[#fff] text-sm bg-cover from-transparent">'
+    );
+    expect(has(findings, 'token-hallucination')).toBe(false);
+  });
+  it('does NOT flag font-size cores sharing the text- namespace', () => {
+    const { findings } = lintDesign('<div class="bg-text-sm text-text-2xl border-text-base">');
+    expect(has(findings, 'token-hallucination')).toBe(false);
+  });
+  it('keeps the opacity suffix in the reported match', () => {
+    const f = lintDesign('<div class="bg-surface-raised/50">').findings.find(
+      (x) => x.ruleId === 'token-hallucination'
+    );
+    expect(f?.match).toBe('bg-surface-raised/50');
+  });
+  it('flags shadcn/ui vocabulary — the top hallucination source (round-3 finding)', () => {
+    const code =
+      '<div class="text-foreground bg-accent text-muted-foreground bg-card bg-surface text-fg text-fg-muted border-card-foreground bg-destructive">x</div>';
+    const matches = lintDesign(code)
+      .findings.filter((f) => f.ruleId === 'token-hallucination')
+      .map((f) => f.match);
+    for (const t of [
+      'text-foreground',
+      'bg-accent',
+      'text-muted-foreground',
+      'bg-card',
+      'bg-surface',
+      'text-fg',
+      'text-fg-muted',
+      'border-card-foreground',
+      'bg-destructive'
+    ]) {
+      expect(matches, t).toContain(t);
+    }
+  });
+});
+
+describe('heuristics', () => {
+  it('flags an intent rainbow of ≥4 chromatic background hues', () => {
+    const code =
+      '<div class="bg-primary"></div><div class="bg-success"></div><div class="bg-warning"></div><div class="bg-danger"></div>';
+    expect(has(lintDesign(code).findings, 'intent-rainbow')).toBe(true);
+  });
+  it('does NOT count neutral backgrounds toward the rainbow', () => {
+    const code =
+      '<div class="bg-neutral-100"></div><div class="bg-neutral-200"></div><div class="bg-surface-base"></div><div class="bg-surface-elevated"></div>';
+    expect(has(lintDesign(code).findings, 'intent-rainbow')).toBe(false);
+  });
+  it('flags uniform spacing (one rhythm tier)', () => {
+    const code =
+      '<div class="gap-4"><div class="gap-4"></div><div class="gap-4"></div><div class="gap-4"></div><div class="gap-4"></div><div class="gap-4"></div></div>';
+    expect(has(lintDesign(code).findings, 'spacing-uniform')).toBe(true);
+  });
+  it('does NOT flag two-tier spacing', () => {
+    const code =
+      '<div class="gap-10"><div class="gap-3"></div><div class="gap-3"></div><div class="gap-10"></div><div class="gap-3"></div><div class="gap-10"></div></div>';
+    expect(has(lintDesign(code).findings, 'spacing-uniform')).toBe(false);
+  });
+  it('flags identical Cards (no visual-weight variation)', () => {
+    const card = '<Card variant="elevated" padding="md">x</Card>';
+    expect(has(lintDesign(card.repeat(4)).findings, 'card-monotony')).toBe(true);
+  });
+  it('does NOT flag differentiated Cards', () => {
+    const code =
+      '<Card variant="elevated" padding="lg">x</Card><Card variant="outlined" padding="md">x</Card><Card variant="outlined" padding="md">x</Card><Card variant="quiet" padding="sm">x</Card>';
+    expect(has(lintDesign(code).findings, 'card-monotony')).toBe(false);
+  });
+  it('nudges when surfaces exist but no radius strategy does', () => {
+    const code = '<Card>a</Card><Card>b</Card><Card>c</Card>';
+    expect(has(lintDesign(code).findings, 'no-radius-strategy')).toBe(true);
+  });
+  it('does NOT nudge once a radius override is present', () => {
+    const code =
+      '<Card class="rounded-xl">a</Card><Card class="rounded-xl">b</Card><Card class="rounded-xl">c</Card>';
+    expect(has(lintDesign(code).findings, 'no-radius-strategy')).toBe(false);
+  });
+  it('does NOT treat bordered table rows / dividers as surfaces (no false radius nudge)', () => {
+    const code =
+      '<table><tr class="border-b"><td>a</td></tr><tr class="border-b"><td>b</td></tr><tr class="border-b"><td>c</td></tr></table>';
+    expect(has(lintDesign(code).findings, 'no-radius-strategy')).toBe(false);
+  });
+  it('can be skipped via skipHeuristics', () => {
+    const code = '<Card variant="elevated" padding="md">x</Card>'.repeat(4);
+    const { findings } = lintDesign(code, { skipHeuristics: true });
+    expect(findings.every((f) => f.kind === 'deterministic')).toBe(true);
+  });
+});
+
+describe('comment masking', () => {
+  it('ignores violations inside HTML and block comments', () => {
+    const code =
+      '<!-- class="focus:ring-2 bg-blue-500" --><div class="bg-surface-base">/* z-50 */</div>';
+    const { findings } = lintDesign(code);
+    expect(findings).toHaveLength(0);
+  });
+  it('keeps line numbers correct after masking', () => {
+    const masked = maskComments('a\n<!--\nx\n-->\nfocus:ring');
+    expect(masked.split('\n')).toHaveLength(5);
+  });
+});
+
+describe('scoring', () => {
+  it('scores clean code 100', () => {
+    const { score } = lintDesign('<div class="bg-surface-base text-text-primary">clean</div>');
+    expect(score).toBe(100);
+  });
+  it('deducts per finding and floors at 0', () => {
+    const oneError = lintDesign('<div class="bg-blue-500">');
+    expect(oneError.score).toBe(90);
+    // Per-line dedupe collapses identical hits on one line, so spread distinct hits across lines.
+    const many = lintDesign(
+      Array.from({ length: 12 }, () => '<div class="bg-blue-500">').join('\n')
+    );
+    expect(many.score).toBe(0);
+  });
+  it('reports severity counts', () => {
+    const { counts } = lintDesign('<div class="bg-blue-500 bg-status-x">');
+    expect(counts.error).toBeGreaterThanOrEqual(1);
+    expect(counts.warning).toBeGreaterThanOrEqual(1);
+  });
+});
+
+describe('rule metadata', () => {
+  it('every finding carries a fix hint', () => {
+    const code =
+      '<button class="bg-blue-500 dark:bg-red-500 focus:ring z-50 gap-{x} bg-status-bad">';
+    for (const f of lintDesign(code).findings) {
+      expect(f.fix.length).toBeGreaterThan(0);
+      expect(f.ruleId.length).toBeGreaterThan(0);
+    }
+  });
+  it('produces a stable id ordering for the same input', () => {
+    const code = '<div class="z-50 bg-blue-500">';
+    expect(ids(lintDesign(code).findings)).toEqual(ids(lintDesign(code).findings));
+  });
+});

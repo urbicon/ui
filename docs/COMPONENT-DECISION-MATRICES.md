@@ -1,0 +1,119 @@
+# Component Decision Matrices
+
+> Quick-look tables that answer "which component for this use-case?" — written for both human consumers and LLM agents working through the MCP server.
+>
+> Each matrix lives next to the relevant component docs; this page is the canonical index.
+
+---
+
+## Overlay & Layout Surfaces
+
+Four components occupy overlapping territory: **Sidebar** (primitive, semantic landmark), **Drawer** (primitive, modal sheet), **Popover** (primitive, anchored floating panel), and **SidebarLayout** (component, full app-shell). Picking the right one is mostly about persistence (transient vs. always-present), modality (focus-trapped vs. inline), and the consumer's need to handle the page-shell themselves.
+
+### Decision matrix
+
+| Use-case                                                          | Recommended                                                                       | Why                                                                                                   |
+| ----------------------------------------------------------------- | --------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------- |
+| App-shell with persistent left nav (responsive overlay on mobile) | **`SidebarLayout`**                                                               | App-shell concern. Wires Sidebar + main + mobile hamburger; consumer only supplies items.             |
+| App-shell with custom grid (header bar, multi-region content)     | **`Sidebar`**                                                                     | Use the primitive directly so you own the surrounding layout.                                         |
+| Transient detail panel (click → slide-in → close after action)    | **`Drawer`** with `placement="right"`                                             | Modal semantics, focus trap, backdrop — all the things a sidebar should not do for a transient panel. |
+| Mobile bottom sheet                                               | **`Drawer`** with `placement="bottom"`                                            | Drawer supports all four edges; Sidebar is left/right only.                                           |
+| Filter panel (persistent on desktop, overlay on mobile)           | **`Sidebar`** with `mode="responsive"`                                            | Hybrid lifecycle is exactly Sidebar's purpose.                                                        |
+| Collapsible side panel (toggleable on desktop too)                | **`Sidebar`** with `mode="collapsible"` or **`SidebarLayout`** with the same mode | Width-animation behaviour, no backdrop on desktop.                                                    |
+| Anchored picker (date, action menu, autocomplete)                 | **`Popover`**                                                                     | Floating-UI positioning, not modal.                                                                   |
+| Hover description for an inline target                            | **`Tooltip`**                                                                     | `aria-describedby` pattern, no click trigger.                                                         |
+| Stack of system notifications                                     | **`Toast`**                                                                       | Auto-dismiss, stacking, not modal.                                                                    |
+
+### Sidebar vs. Drawer — semantic difference
+
+- **Sidebar** is `<aside>`. It can be persistent on desktop, slide-in on mobile (`mode="responsive"`), and the desktop variant has no backdrop. Use it when the panel is part of the page shell.
+- **Drawer** is `<dialog>`. It is always modal — backdrop and focus-trap are non-optional. Use it when the panel is transient and should pull attention.
+
+If you find yourself disabling Drawer's backdrop and Escape-key handling, you probably want a Sidebar. If you find yourself adding Escape/backdrop logic to a Sidebar, you probably want a Drawer.
+
+### Code anchors
+
+- App-shell recipe: [/recipes/dashboard](../apps/docs/src/routes/recipes/dashboard/+page.svelte) — `SidebarLayout` with responsive sidebar and mobile hamburger.
+- Detail drawer recipe: [/recipes/trace-drawer](../apps/docs/src/routes/recipes/trace-drawer/+page.svelte) — `Drawer` with recursive payload, `size="lg"` for deep content.
+- Custom-shell sidebar example: `apps/docs/src/routes/blocks/primitives/sidebar/Docs.svelte` — `Sidebar` primitive used standalone.
+
+---
+
+## When the matrix is silent
+
+If you cannot find your use-case here, the choice usually collapses to two questions:
+
+1. **Is the panel part of the page layout, or is it a temporary attention-grabber?** Layout → Sidebar/SidebarLayout. Attention → Drawer.
+2. **Is it anchored to a single element on the page (button, input, icon)?** Yes → Popover. No → one of the above.
+
+Tooltip and Toast almost never collide with the four above — Tooltip is descriptive-only, Toast is system-level.
+
+---
+
+## Related cross-cutting clusters
+
+- **XC-14** in [archive/2026-05/V1-HARDENING-AUDIT.md](archive/2026-05/V1-HARDENING-AUDIT.md) — origin of this matrix.
+- **XC-7** — Combobox / Select / Menu disambiguation (form-input layer, separate concern).
+- **XC-11** — Cross-overlay animation tokens (Dialog/Drawer/Popover/Tooltip/Toast).
+
+---
+
+## Floating / Overlay primitives (architecture cheatsheet)
+
+How the floating components stack up under the hood, so contributors picking patterns or
+adding new primitives know what to mirror:
+
+| Primitive    | Top-layer strategy           | Positioning                 | Composes                   | Notes                                                          |
+| ------------ | ---------------------------- | --------------------------- | -------------------------- | -------------------------------------------------------------- |
+| **Tooltip**  | `popover="manual"`           | Floating UI `strategy:fixed` | —                          | Hover/focus driven; no light dismiss; not click-toggle-able.   |
+| **Popover**  | `popover="auto"` or `"manual"` (derived) | Floating UI `strategy:fixed` | —                          | Auto when `closeOnEscape && closeOnClickOutside` (default); manual otherwise so the consumer can veto either path. |
+| **Menu**     | (inherits from Popover)      | (via Popover)               | wraps **Popover** internally | Owns keyboard nav + item registry; positioning + dismiss come from Popover. |
+| **Select**   | `popover="manual"`           | Floating UI `strategy:fixed` | —                          | Form input with a listbox panel. Manual mode so existing keydown/outside-click handlers stay in control. |
+| **Combobox** | `popover="manual"`           | Floating UI `strategy:fixed` | —                          | Like Select, but the trigger is the `<input>` itself and `aria-activedescendant` keeps DOM focus on the input. |
+
+**Why `popover="manual"` for form inputs (Select/Combobox):** the native light-dismiss in `popover="auto"`
+fights with our pointerdown-on-trigger toggle flow. Manual mode plus our own outside-click /
+Escape listeners is the simplest path that keeps the form-input UX intact.
+
+**Why `popover="auto"` is the Popover default:** the browser provides Escape, light-dismiss, focus
+restoration, and single-stack semantics for free. We only switch to `manual` when the consumer
+disables one of those paths via `closeOnEscape` / `closeOnClickOutside`.
+
+### Unified non-modal dismiss API
+
+All three (Popover / Select / Combobox) accept the same dismiss surface:
+
+| Prop                   | Type            | Default | Effect                                       |
+| ---------------------- | --------------- | ------- | -------------------------------------------- |
+| `closeOnEscape`        | `boolean`       | `true`  | Close on Escape key.                          |
+| `closeOnClickOutside`  | `boolean`       | `true`  | Close on pointerdown outside the panel.       |
+| `onEscape`             | `() => void`    | —       | Fires after Escape closes. Notification only — does **not** govern whether close happens. |
+| `onClickOutside`       | `() => void`    | —       | Fires after an outside click closes. Same semantics as `onEscape`. |
+
+**Modal primitives (Dialog/Drawer/ConfirmDialog/Sidebar)** keep the older `closeOnBackdropClick` + `closeOnEscape`
+naming. The wording reflects the explicit `<backdrop>` element these components render — "click outside" is
+the right abstraction only when no scrim exists.
+
+### Reference patterns
+
+- **Tooltip top-layer migration** ([commit `1d9720c`](https://codeberg.org/urbicon/ui/commit/1d9720c)) — the
+  canonical example of switching a floating component from inline `position: absolute` to native popover
+  top-layer rendering, including the UA-stylesheet pitfalls (overflow:auto clipping the arrow, restProps
+  reordering for load-bearing attributes, `Number.isFinite` guards on Floating UI output).
+- **Popover dismiss-API** ([commit `9443787`](https://codeberg.org/urbicon/ui/commit/9443787)) — derived
+  `popoverMode` (auto/manual) with re-cycle on mode flip, capture-phase pointerdown listener but
+  bubble-phase Escape listener so inner widgets can preventDefault.
+
+### Focus-restoration policy (non-modal)
+
+| Path                     | Tooltip | Popover         | Select / Combobox |
+| ------------------------ | ------- | --------------- | ----------------- |
+| Selection / commit       | —       | (consumer)      | → trigger / input |
+| Escape                   | trigger | → trigger       | → trigger / input |
+| Outside click            | trigger | → trigger       | **stay** (user explicitly clicked elsewhere) |
+| Trigger click while open | —       | stay (no-op)    | → trigger / input |
+
+The "stay on outside click" policy for Select/Combobox is intentional: form inputs are most commonly
+dismissed by clicking another field, and stealing focus back to the trigger would override the user's
+intent. Popover restores focus on outside click because the consumer typically dismisses to return
+to the trigger context.

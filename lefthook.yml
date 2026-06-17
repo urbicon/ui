@@ -1,0 +1,17 @@
+# Git hooks (managed by @urbicon/udx).
+pre-commit:
+  parallel: true
+  commands:
+    biome:
+      glob: '*.{ts,js,mjs,cjs,json,jsonc}'
+      run: bunx biome check --write --no-errors-on-unmatched --files-ignore-unknown=true {staged_files}
+      stage_fixed: true
+    prettier:
+      glob: '*.svelte'
+      run: bunx prettier --write {staged_files}
+      stage_fixed: true
+
+commit-msg:
+  commands:
+    commitlint:
+      run: bunx --no -- commitlint --edit {1}

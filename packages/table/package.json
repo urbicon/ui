@@ -1,0 +1,93 @@
+{
+  "name": "@urbicon-ui/table",
+  "version": "6.1.3",
+  "description": "Data table for Svelte 5 — sorting, filtering, grouping, selection, keyboard navigation, virtualization and live updates",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://codeberg.org/urbicon/ui.git",
+    "directory": "packages/table"
+  },
+  "homepage": "https://ui.urbicon.de",
+  "bugs": "https://codeberg.org/urbicon/ui/issues",
+  "keywords": [
+    "svelte",
+    "table",
+    "data-table",
+    "datagrid",
+    "virtualization"
+  ],
+  "scripts": {
+    "build": "svelte-kit sync && svelte-package",
+    "check": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json",
+    "check:watch": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json --watch",
+    "clean": "rm -rf dist .svelte-kit",
+    "clean-all": "bun --bun run clean && rm -rf node_modules",
+    "dev": "svelte-package --watch",
+    "format": "biome format --write . && prettier --write \"**/*.svelte\"",
+    "lint": "biome check . && svelte-check --tsconfig ./tsconfig.json",
+    "package": "svelte-kit sync && svelte-package",
+    "preview": "vite preview",
+    "test": "vitest run",
+    "test:watch": "vitest"
+  },
+  "files": [
+    "dist",
+    "!dist/**/*.test.*",
+    "!dist/**/*.spec.*"
+  ],
+  "types": "./dist/index.d.ts",
+  "type": "module",
+  "main": "./dist/index.js",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "svelte": "./dist/index.js",
+      "default": "./dist/index.js"
+    },
+    "./style/index.css": "./dist/style/index.css",
+    "./style/table-theme.css": "./dist/style/table-theme.css",
+    "./style/themes/*": "./dist/style/themes/*",
+    "./i18n/en": {
+      "types": "./dist/translations/en.d.ts",
+      "import": "./dist/translations/en.js",
+      "default": "./dist/translations/en.js"
+    },
+    "./i18n/de": {
+      "types": "./dist/translations/de.d.ts",
+      "import": "./dist/translations/de.js",
+      "default": "./dist/translations/de.js"
+    }
+  },
+  "sideEffects": [
+    "./src/lib/style/**",
+    "./dist/style/**",
+    "./dist/i18n/index.js",
+    "./dist/i18n/index.d.ts"
+  ],
+  "peerDependencies": {
+    "svelte": "catalog:",
+    "@sveltejs/kit": "catalog:",
+    "@urbicon-ui/blocks": "^6.0.0",
+    "@urbicon-ui/i18n": "^6.0.0",
+    "@urbicon-ui/shared-types": "^6.0.0"
+  },
+  "devDependencies": {
+    "@sveltejs/kit": "catalog:",
+    "@sveltejs/package": "catalog:",
+    "@sveltejs/vite-plugin-svelte": "catalog:",
+    "@tailwindcss/vite": "catalog:",
+    "@urbicon-ui/blocks": "workspace:*",
+    "@urbicon-ui/i18n": "workspace:*",
+    "@urbicon-ui/shared-types": "workspace:*",
+    "prettier": "catalog:",
+    "prettier-plugin-svelte": "catalog:",
+    "prettier-plugin-tailwindcss": "catalog:",
+    "svelte": "catalog:",
+    "svelte-check": "catalog:",
+    "tailwindcss": "catalog:",
+    "typescript": "catalog:",
+    "vite": "catalog:",
+    "vitest": "catalog:"
+  }
+}

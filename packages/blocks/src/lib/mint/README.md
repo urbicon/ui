@@ -1,0 +1,214 @@
+# Mint System 🌿
+
+Das **Mint-System** ist ein flexibles und erweiterbares Framework für Micro-Interactions in der Urbicon UI-Library. Es bietet eine elegante
+polymorphe API und optimale Performance.
+
+## Konzept
+
+"Mint" steht für **M**icro-**int**eractions und umfasst alle subtilen Animationen und Feedback-Effekte, die eine Benutzeroberfläche lebendig
+und responsiv machen.
+
+## Features
+
+- ✨ **Polymorphe API**: Eine einzige `mint`-Property für alle Anwendungsfälle
+- 🎯 **Type-Safe**: Vollständig typisiert mit TypeScript
+- 🚀 **Performance**: Optimiert für 60fps mit Web Animations API
+- ♿ **Accessibility**: Respektiert `prefers-reduced-motion`
+- 🔧 **Erweiterbar**: Einfache Registrierung neuer Mints
+- 🎨 **Komposition**: Kombiniere mehrere Effekte
+
+## API
+
+### Polymorphe `mint`-Property
+
+```typescript
+type MintProp =
+  | string // Einzelner Mint
+  | { name: string; config?: MintConfig & Record<string, unknown> } // Einzelner Mint mit Config
+  | Array<string> // Mehrere Mints
+  | Array<string | { name: string; config?: MintConfig & Record<string, unknown> }>; // Gemischte Liste mit Configs
+```
+
+Die `config`-Erweiterung mit `Record<string, unknown>` lässt mint-spezifische
+Felder durch (`intensity`, `transformOrigin`, `color`, `opacity`), ohne dass
+der Caller den Typ aufweiten muss.
+
+### Grundlegende Verwendung
+
+```svelte
+<!-- Einzelner Mint -->
+<Button mint="scale">Hover mich</Button>
+
+<!-- Mehrere Mints -->
+<Button mint={['scale', 'glow']}>Multi-Effekt</Button>
+
+<!-- Mit Konfiguration -->
+<Button mint={[{ name: 'scale', config: { intensity: 1.1 } }, 'ripple']}>Konfiguriert</Button>
+
+<!-- Preset verwenden -->
+<Button mint={mintPresets['cta-primary']}>Call to Action</Button>
+```
+
+## Eingebaute Mints
+
+### Micro-Interactions
+
+| Mint        | Trigger | Beschreibung                     |
+| ----------- | ------- | -------------------------------- |
+| `scale`     | hover   | Skaliert das Element leicht hoch |
+| `translate` | hover   | Bewegt Element nach oben         |
+| `rotate`    | hover   | Rotiert Element leicht           |
+| `glow`      | hover   | Fügt einen Glüheffekt hinzu      |
+| `bounce`    | click   | Springende Animation             |
+| `pulse`     | hover   | Pulsierender Effekt              |
+| `shake`     | click   | Schüttel-Animation               |
+| `wiggle`    | hover   | Wackel-Effekt                    |
+
+### Spezial-Effekte
+
+| Mint     | Beschreibung                  |
+| -------- | ----------------------------- |
+| `ripple` | Material Design Ripple-Effekt |
+| `fade`   | Opacity-Übergang              |
+| `slide`  | Slide-Transformation          |
+
+## Konfiguration
+
+```typescript
+interface MintConfig {
+  trigger?: 'hover' | 'click' | 'focus' | 'load';
+  duration?: number;
+  delay?: number;
+  easing?: string;
+  disabled?: boolean;
+}
+
+interface MicroInteractionConfig extends MintConfig {
+  intensity?: number; // Stärke des Effekts
+  transformOrigin?: string; // Transform-Ursprung
+}
+
+interface RippleConfig extends MintConfig {
+  color?: string; // Ripple-Farbe
+  opacity?: number; // Ripple-Transparenz
+  size?: number; // Ripple-Größe
+}
+```
+
+## Presets
+
+```typescript
+import { mintPresets } from '@urbicon/ui';
+
+// Verfügbare Presets
+mintPresets['cta-primary']; // Für primäre Call-to-Action Buttons
+mintPresets['interactive-card']; // Für interaktive Karten
+mintPresets['playful-button']; // Für spielerische Buttons
+mintPresets['subtle-hover']; // Für subtile Hover-Effekte
+mintPresets['error-feedback']; // Für Fehler-Feedback
+```
+
+## Svelte Actions
+
+```svelte
+<script>
+  import { mint } from '@urbicon/ui';
+</script>
+
+<!-- Mit Action -->
+<div use:mint="scale">Hover mich</div>
+
+<!-- Mehrere Mints -->
+<div use:mint={['scale', 'glow']}>Multi-Effekt</div>
+
+<!-- Mit Konfiguration -->
+<div use:mint={{ name: 'bounce', config: { trigger: 'click' } }}>
+  Click mich
+</div>
+```
+
+## Eigene Mints registrieren
+
+```typescript
+import { mintRegistry } from '@urbicon/ui';
+
+// Einfacher Mint
+mintRegistry.register('my-mint', (config) => ({
+  init(el) {
+    el.addEventListener('mouseenter', () => {
+      el.style.filter = 'blur(1px)';
+    });
+
+    el.addEventListener('mouseleave', () => {
+      el.style.filter = '';
+    });
+  },
+  destroy(el) {
+    // Cleanup wenn nötig
+  }
+}));
+
+// Verwenden
+<Button mint="my-mint">Custom Mint</Button>
+```
+
+## Performance-Optimierungen
+
+- **Web Animations API**: Nutzt native Browser-Animationen
+- **will-change**: Optimiert GPU-Beschleunigung
+- **Throttling**: Verhindert Spam bei schnellen Interaktionen
+- **Cleanup**: Automatische Bereinigung bei Component-Unmount
+
+## Accessibility
+
+Das Mint-System respektiert automatisch `prefers-reduced-motion`:
+
+```css
+@media (prefers-reduced-motion: reduce) {
+  .blocks-mint-* {
+    animation: none !important;
+    transition: none !important;
+    transform: none !important;
+  }
+}
+```
+
+## Erweiterte Beispiele
+
+### Komposite Mints
+
+```typescript
+// Mehrere Effekte kombinieren
+const complexMint = [
+  { name: 'scale', config: { intensity: 1.05, duration: 200 } },
+  { name: 'glow', config: { duration: 300 } },
+  { name: 'rotate', config: { trigger: 'click' } }
+];
+
+<Button mint={complexMint}>Komplex</Button>
+```
+
+### Bedingte Mints
+
+```svelte
+<script>
+  let isPlayful = $state(false);
+</script>
+
+<Button mint={isPlayful ? 'bounce' : 'scale'}>
+  {isPlayful ? 'Playful' : 'Professional'}
+</Button>
+```
+
+### Custom Mint Bundle
+
+```typescript
+import { registerPlayfulMints, registerBusinessMints } from '@urbicon/ui';
+
+// Je nach App-Kontext
+if (appTheme === 'playful') {
+  registerPlayfulMints();
+} else {
+  registerBusinessMints();
+}
+```

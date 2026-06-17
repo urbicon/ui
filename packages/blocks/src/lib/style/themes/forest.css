@@ -1,0 +1,105 @@
+/*
+ * @urbicon-ui/blocks – Forest Theme
+ *
+ * Earthy green palette inspired by natural environments.
+ * Import AFTER the base styles:
+ *
+ *   @import '@urbicon-ui/blocks/style/index.css';
+ *   @import '@urbicon-ui/blocks/style/themes/forest.css';
+ */
+
+@theme {
+  --color-primary-50: oklch(0.95 0.03 155);
+  --color-primary-100: oklch(0.9 0.05 155);
+  --color-primary-200: oklch(0.82 0.08 155);
+  --color-primary-300: oklch(0.74 0.1 155);
+  --color-primary-400: oklch(0.66 0.12 155);
+  --color-primary-500: oklch(0.58 0.13 155);
+  --color-primary-600: oklch(0.5 0.13 155);
+  --color-primary-700: oklch(0.42 0.11 155);
+  --color-primary-800: oklch(0.34 0.09 155);
+  --color-primary-900: oklch(0.26 0.06 155);
+  --color-primary-950: oklch(0.17 0.04 155);
+
+  --color-secondary-50: oklch(0.95 0.02 90);
+  --color-secondary-100: oklch(0.9 0.04 90);
+  --color-secondary-200: oklch(0.82 0.06 90);
+  --color-secondary-300: oklch(0.74 0.08 90);
+  --color-secondary-400: oklch(0.66 0.1 90);
+  --color-secondary-500: oklch(0.55 0.08 90);
+  --color-secondary-600: oklch(0.48 0.08 90);
+  --color-secondary-700: oklch(0.4 0.07 90);
+  --color-secondary-800: oklch(0.32 0.05 90);
+  --color-secondary-900: oklch(0.25 0.04 90);
+  --color-secondary-950: oklch(0.18 0.03 90);
+
+  /*
+   * Chassis neutral ramp — re-tinted toward a green-grey stone (Hue 150) so
+   * surfaces, text and borders read as natural/earthy rather than cool blue
+   * (the library default neutral sits at Hue 240). Lightness and chroma
+   * match the foundation ramp one-to-one — only the hue shifts — so WCAG
+   * contrast stays unchanged. surface-*, text-* and border-* pick this up
+   * automatically through semantic.css.
+   */
+  --color-neutral-25: oklch(0.99 0.002 150);
+  --color-neutral-50: oklch(0.98 0.005 150);
+  --color-neutral-100: oklch(0.95 0.008 150);
+  --color-neutral-200: oklch(0.89 0.012 150);
+  --color-neutral-300: oklch(0.83 0.014 150);
+  --color-neutral-400: oklch(0.7 0.015 150);
+  --color-neutral-500: oklch(0.55 0.016 150);
+  --color-neutral-600: oklch(0.42 0.017 150);
+  --color-neutral-650: oklch(0.38 0.016 150);
+  --color-neutral-700: oklch(0.32 0.016 150);
+  --color-neutral-750: oklch(0.28 0.014 150);
+  --color-neutral-800: oklch(0.23 0.015 150);
+  --color-neutral-850: oklch(0.18 0.014 150);
+  --color-neutral-900: oklch(0.15 0.012 150);
+  --color-neutral-950: oklch(0.08 0.008 150);
+
+  /*
+   * Intent re-tuning — the green primary (Hue 155) collides with the default
+   * success (Hue 140), and the lime secondary (Hue 90) collides with the
+   * default warning (Hue 80). Success is pushed to a teal-green (Hue 172) so a
+   * "saved" state reads as verification rather than brand; warning is pulled
+   * to amber (Hue 60) so it leaves the lime register. Same L/C profile as the
+   * foundation ramps; only the hue shifts. Danger (25) and info (220) keep the
+   * library defaults. Derived --color-success / --color-warning re-resolve at
+   * :root automatically (global @theme).
+   */
+  --color-success-50: oklch(0.95 0.03 172);
+  --color-success-100: oklch(0.9 0.05 172);
+  --color-success-200: oklch(0.82 0.08 172);
+  --color-success-300: oklch(0.74 0.11 172);
+  --color-success-400: oklch(0.62 0.14 172);
+  --color-success-500: oklch(0.5 0.15 172);
+  --color-success-600: oklch(0.44 0.14 172);
+  --color-success-700: oklch(0.38 0.12 172);
+  --color-success-800: oklch(0.3 0.1 172);
+  --color-success-900: oklch(0.22 0.08 172);
+  --color-success-950: oklch(0.14 0.05 172);
+
+  --color-warning-50: oklch(0.95 0.05 60);
+  --color-warning-100: oklch(0.9 0.08 60);
+  --color-warning-200: oklch(0.82 0.1 60);
+  --color-warning-300: oklch(0.74 0.12 60);
+  --color-warning-400: oklch(0.66 0.14 60);
+  --color-warning-500: oklch(0.75 0.15 60);
+  --color-warning-600: oklch(0.65 0.15 60);
+  --color-warning-700: oklch(0.55 0.13 60);
+  --color-warning-800: oklch(0.45 0.11 60);
+  --color-warning-900: oklch(0.25 0.08 60);
+  --color-warning-950: oklch(0.15 0.05 60);
+}
+
+/*
+ * Earthy shadow tint — a faint deep green-grey so shadows sit naturally on the
+ * stone chassis. :root (not @theme) to mirror semantic.css; imported after the
+ * base styles, so it wins.
+ */
+:root {
+  --blocks-shadow-tint: 0.2 0.025 150;
+  /* Neutral intent (bg-neutral / text-neutral / borders) follows the stone
+     chassis instead of the library-default cool grey. */
+  --neutral-chrome-hue: 150;
+}

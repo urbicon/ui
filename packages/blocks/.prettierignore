@@ -1,0 +1,19 @@
+# Package Managers
+package-lock.json
+pnpm-lock.yaml
+yarn.lock
+bun.lock
+bun.lockb
+
+# SvelteKit build output
+.svelte-kit/
+
+# Build outputs
+dist/
+
+# Local test artifacts (git-ignored via root .gitignore, which Prettier
+# does not see when running inside this package)
+test-results/
+
+# Dependencies
+node_modules/

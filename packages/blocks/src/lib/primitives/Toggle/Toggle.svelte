@@ -1,0 +1,145 @@
+<script lang="ts">
+  import { useBlocksI18n, mintRegistry } from '$lib';
+  import { getBlocksConfig, mergeSlotClasses, resolvePresetSlotClasses } from '$lib/provider';
+  import { getTierContext, useFormField } from '$lib/utils';
+  import { toggleVariants } from './toggle.variants';
+  import type { ToggleProps } from './index';
+
+  const bt = useBlocksI18n();
+
+  let {
+    checked = $bindable(false),
+    label,
+    helper,
+    tier,
+    size = 'md',
+    intent = 'primary',
+    appearance = 'default',
+    disabled = false,
+    required = false,
+    name,
+    value = 'on',
+    id: idProp,
+    mint = 'none',
+    onCheckedChange,
+    class: className = '',
+    unstyled: unstyledProp = false,
+    slotClasses: slotClassesProp = {},
+    preset,
+    withBorder = false,
+    ...restProps
+  }: ToggleProps = $props();
+
+  // ARIA wiring is shared with every form primitive — see XC-2.
+  const propsId = $props.id();
+  const id = $derived(idProp ?? propsId);
+  const ff = useFormField(() => ({
+    fieldId: id,
+    hint: helper,
+    required,
+    disabled
+  }));
+
+  const blocksConfig = getBlocksConfig();
+  const unstyled = $derived(unstyledProp || blocksConfig?.unstyled || false);
+  const slotClasses = $derived(
+    mergeSlotClasses(
+      blocksConfig?.defaults?.Toggle?.slotClasses,
+      resolvePresetSlotClasses(blocksConfig?.presets, 'Toggle', preset),
+      slotClassesProp
+    )
+  );
+
+  let rootEl = $state<HTMLElement>();
+
+  // Tier precedence (closest wins): own prop → TierContext (Toolbar / ButtonGroup)
+  // → 'commit' default. A bare Toggle is a Pill switch; a Toolbar tier="modify"
+  // re-frames it as a compact rectangular switch.
+  const tierCtx = getTierContext();
+  const effectiveTier = $derived(tier ?? tierCtx?.tier ?? 'commit');
+
+  const styles = $derived(
+    toggleVariants({
+      tier: effectiveTier,
+      size,
+      intent,
+      appearance,
+      checked,
+      disabled,
+      withBorder
+    })
+  );
+
+  const dataState = $derived(checked ? 'checked' : 'unchecked');
+
+  $effect(() => {
+    if (rootEl && mint && mint !== 'none' && !disabled) {
+      return mintRegistry.apply(rootEl, mint);
+    }
+  });
+
+  function handleChange() {
+    if (disabled) return;
+    onCheckedChange?.(checked);
+  }
+</script>
+
+<div
+  class={unstyled
+    ? [slotClasses?.wrapper, className].filter(Boolean).join(' ')
+    : styles.wrapper({ class: [slotClasses?.wrapper, className] })}
+>
+  <label
+    class={unstyled
+      ? (slotClasses?.control ?? '')
+      : styles.control({ class: slotClasses?.control })}
+    bind:this={rootEl}
+    for={ff.fieldId}
+  >
+    <input
+      id={ff.fieldId}
+      type="checkbox"
+      role="switch"
+      {name}
+      {value}
+      bind:checked
+      {disabled}
+      {required}
+      class="peer sr-only"
+      aria-checked={checked}
+      aria-label={label ? undefined : bt('accessibility.toggle') || 'Toggle'}
+      aria-describedby={ff.describedBy}
+      onchange={handleChange}
+      {...restProps}
+    />
+
+    <span
+      class={unstyled ? (slotClasses?.track ?? '') : styles.track({ class: slotClasses?.track })}
+      aria-hidden="true"
+      data-state={dataState}
+    >
+      <span
+        class={unstyled ? (slotClasses?.thumb ?? '') : styles.thumb({ class: slotClasses?.thumb })}
+        data-state={dataState}
+      ></span>
+    </span>
+
+    {#if label}
+      <span
+        class={unstyled ? (slotClasses?.label ?? '') : styles.label({ class: slotClasses?.label })}
+        >{label}</span
+      >
+    {/if}
+  </label>
+
+  {#if ff.hintId}
+    <div
+      id={ff.hintId}
+      class={unstyled
+        ? (slotClasses?.message ?? '')
+        : styles.message({ class: slotClasses?.message })}
+    >
+      {helper}
+    </div>
+  {/if}
+</div>

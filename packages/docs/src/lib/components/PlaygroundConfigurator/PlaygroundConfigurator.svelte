@@ -1,0 +1,347 @@
+<script lang="ts" generics="TValues extends Record<string, unknown>">
+  import { useDocsI18n } from '$lib/i18n';
+  import {
+    Input,
+    SegmentGroup,
+    SegmentItem,
+    Select,
+    Slider,
+    Toggle,
+    Tooltip
+  } from '@urbicon-ui/blocks';
+  import CodePanel from '../CodePanel/CodePanel.svelte';
+  import type { ControlDefinition } from '@urbicon-ui/shared-types/playground';
+  import { playgroundConfiguratorVariants } from './playground-configurator.variants';
+  import type { PlaygroundConfiguratorProps } from './index.js';
+  import {
+    generateDefaultCode,
+    normalizeControls,
+    filterVisibleControls,
+    sortControlsByType,
+    computeComponentDefaults,
+    isDefaultValue as isDefaultValueImpl,
+    countModified
+  } from './code-gen.js';
+
+  const dt = useDocsI18n();
+
+  let {
+    title = dt('interactivePlayground', {}),
+    subtitle = dt('playgroundSubtitle', {}),
+    controls = [],
+    values = $bindable(),
+    onValuesChange,
+    codeGenerator,
+    componentName = 'Component',
+    showHeader = true,
+    size = 'md',
+    propDocs = {},
+    variantKeys = [],
+    children,
+    class: className,
+    unstyled = false,
+    slotClasses = {},
+    ...restProps
+  }: PlaygroundConfiguratorProps<TValues> = $props();
+
+  const styles = $derived(playgroundConfiguratorVariants({ size }));
+  const variantKeySet = $derived(new Set(variantKeys));
+
+  // Knob-Strip uses a uniform `sm` field size across all playground
+  // densities so SegmentGroup/Select/Input/Toggle line up at the same
+  // visual scale. Without this, md/lg playgrounds rendered Input at
+  // text-base while SegmentGroup/Select stayed text-sm — the mismatch
+  // made the strip read as several incompatible UIs glued together.
+  const fieldSize = 'sm' as const;
+
+  // Help toggle: one `?` switch in the
+  // actions-bar replaces per-control `(i)` info icons. Off (default) →
+  // controls render bare with only mono labels; on → each control with
+  // a description shows it as a hint line directly under the row. The
+  // toggle is only rendered if at least one visible control actually
+  // has a description — pages without any docs hide the affordance.
+  let helpVisible = $state(false);
+
+  type SlotName = keyof NonNullable<PlaygroundConfiguratorProps<TValues>['slotClasses']>;
+  function slot(name: SlotName) {
+    if (unstyled) return slotClasses?.[name] ?? '';
+    const slotFns = styles as Record<string, (args: { class?: string }) => string>;
+    return slotFns[name]({ class: slotClasses?.[name] });
+  }
+
+  function getControlDescription(control: ControlDefinition): string | undefined {
+    return control.description || propDocs?.[control.key];
+  }
+
+  let initialized = false;
+  $effect(() => {
+    if (!initialized && (!values || Object.keys(values).length === 0)) {
+      const initialValues: Record<string, unknown> = {};
+      controls.forEach((control) => {
+        if (control.defaultValue !== undefined) {
+          initialValues[control.key] = control.defaultValue;
+        }
+      });
+      values = initialValues as TValues;
+    }
+    initialized = true;
+  });
+
+  function updateValue(key: string, value: unknown) {
+    values = { ...values, [key]: value } as TValues;
+    onValuesChange?.(values);
+  }
+
+  const normalizedControls = $derived(normalizeControls(controls));
+  const visibleControls = $derived(
+    sortControlsByType(filterVisibleControls(normalizedControls, values ?? {}))
+  );
+  const componentDefaults = $derived(computeComponentDefaults(normalizedControls));
+
+  function isDefaultValue(key: string): boolean {
+    return isDefaultValueImpl(key, values, componentDefaults);
+  }
+
+  function resetToDefault(key: string) {
+    if (key in componentDefaults) {
+      updateValue(key, componentDefaults[key]);
+    }
+  }
+
+  const modifiedCount = $derived(countModified(normalizedControls, values, componentDefaults));
+  const hasAnyDescription = $derived(visibleControls.some((c) => !!getControlDescription(c)));
+
+  function resetAll() {
+    const next: Record<string, unknown> = { ...values };
+    for (const [key, def] of Object.entries(componentDefaults)) {
+      next[key] = def;
+    }
+    values = next as TValues;
+    onValuesChange?.(values);
+  }
+
+  const generatedCode = $derived.by(() => {
+    if (!values) return '';
+    if (codeGenerator) return codeGenerator(values);
+    return generateDefaultCode(componentName, values, componentDefaults);
+  });
+
+  let codeExpanded = $state(true);
+</script>
+
+<section class={slot('root')} {...restProps}>
+  {#if showHeader}
+    <div class={slot('header')}>
+      <h2 class={slot('title')}>{title}</h2>
+      {#if subtitle}
+        <p class={slot('subtitle')}>{subtitle}</p>
+      {/if}
+    </div>
+  {/if}
+
+  <div class="{slot('container')} {className ?? ''}" data-docs-stage="playground">
+    <!-- Preview -->
+    <div class={slot('preview')} data-docs-stage-frame>
+      <div class={slot('previewContent')}>
+        {@render children?.(values)}
+      </div>
+    </div>
+
+    <!-- Controls -->
+    <div class={slot('controlsPanel')}>
+      <div class={slot('controlsHeader')}>
+        {#if modifiedCount > 0}
+          <button type="button" class={styles.helpToggle()} onclick={resetAll}>
+            Reset all ({modifiedCount})
+          </button>
+        {/if}
+        {#if hasAnyDescription}
+          <button
+            type="button"
+            class={[styles.helpToggle(), helpVisible && styles.helpToggleActive()]
+              .filter(Boolean)
+              .join(' ')}
+            aria-pressed={helpVisible}
+            onclick={() => (helpVisible = !helpVisible)}
+          >
+            <span aria-hidden="true">?</span>
+            {helpVisible ? 'Hints on' : 'Hints'}
+          </button>
+        {/if}
+      </div>
+      <div class={slot('controlsGrid')}>
+        {#each visibleControls as control (control.key)}
+          {@const description = getControlDescription(control)}
+          {@const isVariantKey = variantKeySet.has(control.key)}
+          <div class={slot('controlItem')}>
+            <label for={control.key} class={slot('controlLabel')}>
+              <span>{control.label}</span>
+              {#if isVariantKey}
+                <Tooltip label="Style variant (tailwind-variants)" placement="top">
+                  <span class={styles.variantBadge()} aria-hidden="true">V</span>
+                </Tooltip>
+              {/if}
+              <!--
+                Dirty-state dot is rendered AFTER the V badge so the badge's
+                horizontal position stays constant across clean/dirty toggles.
+                The per-control (i) info icon was removed in v5.4.0 — descriptions
+                are now surfaced via the single `?` help-toggle in the actions
+                bar below the strip.
+              -->
+              {#if !isDefaultValue(control.key)}
+                <button
+                  class={styles.modifiedDot()}
+                  onclick={() => resetToDefault(control.key)}
+                  title="Default: {componentDefaults[control.key]}. Click to reset."
+                  aria-label="Reset {control.label} to default"
+                ></button>
+              {/if}
+            </label>
+
+            {#if control.type === 'dropdown' || control.type === 'select'}
+              {@const items = control.items ?? []}
+              {#if items.length <= 4 && items.length > 0}
+                <!-- Render an enum with <= 4 options as a text SegmentGroup —
+                     no dropdown click, all options visible inline.
+                     SegmentGroup is naturally compact and does not need the
+                     controlControl wrapper. -->
+                <SegmentGroup
+                  appearance="text"
+                  size="sm"
+                  value={String(values[control.key] ?? '')}
+                  onValueChange={(value: string) =>
+                    updateValue(control.key, value === '' ? null : value)}
+                  ariaLabel={control.label}
+                >
+                  {#each items as item (item.value)}
+                    <SegmentItem value={String(item.value)}>{item.label}</SegmentItem>
+                  {/each}
+                </SegmentGroup>
+              {:else}
+                {#snippet controlSelectItem(
+                  option: { label: string; value: string },
+                  _isSelected: boolean,
+                  _toggle: () => void
+                )}
+                  <span class="flex w-full items-center gap-2">
+                    <span class="flex-1 truncate text-left">{option.label}</span>
+                    {#if String(option.value) === String(control.defaultValue)}
+                      <span class="text-text-tertiary text-[10px] leading-none opacity-50"
+                        >default</span
+                      >
+                    {/if}
+                  </span>
+                {/snippet}
+                <div class={slot('controlControl')}>
+                  <Select
+                    options={items.map((item) => ({
+                      label: item.label,
+                      value: String(item.value)
+                    }))}
+                    variant="ghost"
+                    value={(values[control.key] ?? null) as string | null}
+                    onValueChange={(value: string | null) => updateValue(control.key, value)}
+                    size={fieldSize}
+                    id={control.key}
+                    customItem={controlSelectItem}
+                    selectionIndicator="none"
+                  />
+                </div>
+              {/if}
+            {:else if control.type === 'checkbox' || control.type === 'boolean'}
+              <div class={slot('controlControlCompact')}>
+                <Toggle
+                  appearance="dot"
+                  size="sm"
+                  checked={Boolean(values[control.key])}
+                  onCheckedChange={(val) => updateValue(control.key, val)}
+                  id={`${control.key}-input`}
+                />
+              </div>
+            {:else if control.type === 'text'}
+              <div class={slot('controlControl')}>
+                <Input
+                  id={control.key}
+                  variant="ghost"
+                  size={fieldSize}
+                  value={(values[control.key] as string) ?? ''}
+                  placeholder={control.placeholder}
+                  oninput={(e) => updateValue(control.key, e.currentTarget.value)}
+                />
+              </div>
+            {:else if control.type === 'number'}
+              <div class={slot('controlControl')}>
+                <Input
+                  id={control.key}
+                  type="number"
+                  variant="ghost"
+                  size={fieldSize}
+                  value={(values[control.key] as number | undefined) ??
+                    (control.defaultValue as number | undefined) ??
+                    0}
+                  min={control.min}
+                  max={control.max}
+                  step={control.step}
+                  oninput={(e) => updateValue(control.key, Number(e.currentTarget.value))}
+                />
+              </div>
+            {:else if control.type === 'color'}
+              <div class={slot('controlControlCompact')}>
+                <input
+                  id={control.key}
+                  type="color"
+                  value={values[control.key] || control.defaultValue || '#000000'}
+                  onchange={(e) => updateValue(control.key, e.currentTarget.value)}
+                  class={styles.colorInput()}
+                />
+              </div>
+            {:else if control.type === 'slider' || control.type === 'range'}
+              <!-- Knob-strip slider uses `appearance="rail"` (1px hairline +
+                   8px dot) so its loudness matches the SegmentGroup `text`
+                   and Toggle `dot` siblings on the same row. The default
+                   pill thumb would crowd the strip and re-introduce the
+                   "several incompatible UIs glued together" issue called
+                   out in the v5 polish notes. -->
+              <div class={slot('controlControl')}>
+                <Slider
+                  id={control.key}
+                  appearance="rail"
+                  value={(values[control.key] as number | undefined) ??
+                    (control.defaultValue as number | undefined) ??
+                    control.min ??
+                    0}
+                  min={control.min}
+                  max={control.max}
+                  step={control.step || 1}
+                  showValue
+                  onValueChange={(val) =>
+                    typeof val === 'number' ? updateValue(control.key, val) : undefined}
+                />
+              </div>
+            {/if}
+          </div>
+          {#if helpVisible && description}
+            <div class={slot('controlHint')} id="{control.key}-hint">{description}</div>
+          {/if}
+        {/each}
+      </div>
+    </div>
+
+    <!-- Collapsible Generated Code -->
+    {#if generatedCode}
+      <CodePanel
+        code={generatedCode}
+        language="svelte"
+        {size}
+        expanded={codeExpanded}
+        onToggle={() => (codeExpanded = !codeExpanded)}
+        {unstyled}
+        slotClasses={{
+          root: [slot('codePanel'), slotClasses?.codePanel].filter(Boolean).join(' '),
+          toolbar: slotClasses?.codeToolbar,
+          codeDisplay: slotClasses?.codeDisplay
+        }}
+      />
+    {/if}
+  </div>
+</section>

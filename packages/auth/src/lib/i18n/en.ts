@@ -1,0 +1,197 @@
+import type { AuthLocale } from './keys.js';
+
+export const en = {
+  auth: {
+    login: {
+      title: 'Sign in',
+      email: 'Email address',
+      password: 'Password',
+      rememberMe: 'Remember me',
+      submit: 'Sign in',
+      noAccount: "Don't have an account?",
+      register: 'Create account',
+      forgotPassword: 'Forgot password?',
+      errors: {
+        invalid: 'Invalid email or password',
+        locked: 'Account locked. Please try again later.',
+        unverified: 'Please verify your email first.'
+      }
+    },
+    register: {
+      title: 'Create account',
+      name: 'Full name',
+      email: 'Email address',
+      password: 'Password',
+      confirmPassword: 'Confirm password',
+      submit: 'Create account',
+      hasAccount: 'Already have an account?',
+      login: 'Sign in',
+      requirements: {
+        minLength: 'At least 8 characters',
+        uppercase: 'One uppercase letter',
+        lowercase: 'One lowercase letter',
+        digit: 'One digit',
+        special: 'One special character'
+      },
+      strength: {
+        weak: 'Weak',
+        fair: 'Fair',
+        good: 'Good',
+        strong: 'Strong'
+      },
+      errors: {
+        invitationRequired: 'An invitation is required to register.',
+        emailTaken: 'This email is already registered.',
+        passwordMismatch: 'Passwords do not match'
+      }
+    },
+    forgotPassword: {
+      title: 'Forgot password',
+      description: 'Enter your email address and we will send you a link to reset your password.',
+      email: 'Email address',
+      submit: 'Send reset link',
+      backToLogin: 'Back to sign in',
+      success: 'If an account with that email exists, we sent you a reset link.'
+    },
+    resetPassword: {
+      title: 'Reset password',
+      password: 'New password',
+      confirmPassword: 'Confirm new password',
+      submit: 'Reset password',
+      success: 'Your password has been reset. You can now sign in.',
+      errors: {
+        mismatch: 'Passwords do not match.',
+        invalidToken: 'Invalid or expired reset link.',
+        expired: 'This reset link has expired.'
+      }
+    },
+    verifyEmail: {
+      title: 'Verify email',
+      verifying: 'Verifying your email...',
+      success: 'Your email has been verified.',
+      error: 'Invalid or expired verification link.',
+      resend: 'Resend verification email'
+    }
+  },
+  notifications: {
+    center: {
+      title: 'Notifications',
+      empty: 'No notifications',
+      markAllRead: 'Mark all as read',
+      delete: 'Delete'
+    },
+    push: {
+      prompt: 'Enable push notifications?',
+      enable: 'Enable',
+      dismiss: 'Not now'
+    }
+  },
+  invitations: {
+    title: 'Invitations',
+    invite: 'Send invitation',
+    email: 'Email address',
+    role: 'Role',
+    status: 'Status',
+    pending: 'Pending',
+    used: 'Used',
+    delete: 'Delete',
+    send: 'Send',
+    empty: 'No invitations yet.',
+    sendEmail: 'Send invitation email',
+    registered: 'Registered'
+  },
+  passkeys: {
+    title: 'Passkeys',
+    add: 'Add passkey',
+    empty: 'No passkeys registered.',
+    delete: 'Delete',
+    lastUsed: 'Last used',
+    loginWithPasskey: 'Sign in with passkey',
+    or: 'or'
+  },
+  account: {
+    title: 'Account settings',
+    profile: {
+      title: 'Profile',
+      name: 'Name',
+      save: 'Save',
+      success: 'Profile updated.'
+    },
+    email: {
+      title: 'Email address',
+      current: 'Current email',
+      newEmail: 'New email',
+      currentPassword: 'Current password',
+      submit: 'Change email',
+      success: 'Check your new inbox to confirm the change.'
+    },
+    password: {
+      title: 'Password',
+      currentPassword: 'Current password',
+      newPassword: 'New password',
+      submit: 'Change password',
+      success: 'Your password has been changed.'
+    },
+    delete: {
+      title: 'Delete account',
+      description:
+        'This permanently deletes your account and all associated data. This cannot be undone.',
+      currentPassword: 'Current password',
+      submit: 'Delete account',
+      confirmTitle: 'Delete your account?',
+      confirmBody: 'This permanently erases your account and cannot be undone.',
+      confirm: 'Delete account',
+      cancel: 'Cancel'
+    }
+  },
+  sessions: {
+    title: 'Active sessions',
+    thisDevice: 'This device',
+    lastActive: 'Last active',
+    signOut: 'Sign out',
+    signOutOthers: 'Sign out other devices',
+    unknownDevice: 'Unknown device',
+    empty: 'No active sessions.',
+    unavailable: 'Session history requires refresh-token rotation.'
+  },
+  twoFactor: {
+    title: 'Two-factor authentication',
+    description: 'Add a second step to sign-in using an authenticator app.',
+    statusEnabled: 'Two-factor authentication is on.',
+    statusDisabled: 'Two-factor authentication is off.',
+    enable: 'Enable two-factor authentication',
+    disable: 'Disable two-factor authentication',
+    setupScan: 'Scan this QR code with your authenticator app, or enter the key manually.',
+    setupSecret: 'Setup key',
+    setupCode: 'Enter the 6-digit code',
+    setupConfirm: 'Confirm and enable',
+    cancel: 'Cancel',
+    backupTitle: 'Save your backup codes',
+    backupDescription:
+      'Each code works once if you lose access to your authenticator. Store them somewhere safe — they will not be shown again.',
+    backupDownload: 'Download codes',
+    backupDone: "I've saved my codes",
+    disableTitle: 'Disable two-factor authentication',
+    disableDescription: 'Enter your password to turn off two-factor authentication.',
+    disablePassword: 'Current password',
+    disableConfirm: 'Disable',
+    loginTitle: 'Two-step verification',
+    loginPrompt: 'Enter the code from your authenticator app.',
+    loginCode: 'Authentication code',
+    loginSubmit: 'Verify',
+    loginBackupHint: 'You can also enter one of your backup codes.',
+    invalidCode: 'Invalid code. Please try again.',
+    enabledSuccess: 'Two-factor authentication is now on.',
+    disabledSuccess: 'Two-factor authentication has been turned off.'
+  },
+  common: {
+    loading: 'Loading...',
+    error: 'An error occurred',
+    timeAgo: {
+      now: 'Just now',
+      minutes: '{n} min ago',
+      hours: '{n}h ago',
+      days: '{n}d ago'
+    }
+  }
+} satisfies AuthLocale;

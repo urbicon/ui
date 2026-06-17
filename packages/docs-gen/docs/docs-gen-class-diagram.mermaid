@@ -1,0 +1,452 @@
+classDiagram
+%% ==========================================
+%% UPDATED CLASS DIAGRAM - 2025-08-13
+%% Reflects refactored hybrid docs architecture (docs.svelte + docsConfig)
+%% ==========================================
+
+%% Main Pipeline Classes
+    class PipelineOrchestrator {
+        -config: DocsConfig
+        -startTime: number
+        -errorHandler: ErrorHandler
+        +constructor(config: DocsConfig)
+        +execute(): Promise~GenerationResult~
+        -discoveryPhase(): Promise~ComponentManifest[]~
+        -extractionPhase(manifests: ComponentManifest[]): Promise~RichComponentInfo[]~
+        -enrichmentPhase(richComponents: RichComponentInfo[]): Promise~EnrichedComponentInfo[], APIData~
+        -generationPhase(enrichedComponents: EnrichedComponentInfo[], apiData: APIData): Promise~GenerationResult~
+        +getConfig(): DocsConfig
+        +updateConfig(newConfig: DocsConfig): void
+    }
+
+    class ErrorHandler {
+        -errors: PipelineError[]
+        -warnings: PipelineWarning[]
+        -context: ErrorContext
+        -options: ErrorHandlerOptions
+        +constructor(options?: ErrorHandlerOptions)
+        +reportError(error: PipelineError): void
+        +reportWarning(warning: PipelineWarning): void
+        +handleExtractionError(error: ExtractionError, component?: ComponentInfo, phase?: string): void
+        +setContext(context: Partial~ErrorContext~): void
+        +getSummary(): ErrorSummary
+        +canContinue(): boolean
+        +generateReport(): string
+        +reset(): void
+    }
+
+%% Discovery Classes
+    class ComponentFinder {
+        -cache: Map~string, ComponentManifest[]~
+        +findComponents(packageConfig: PackageConfig): Promise~ComponentManifest[]~
+        +getPackageInfo(packagePath: string): Promise~PackageInfo~
+        +validateManifest(manifest: ComponentManifest): Promise~ExtractionResult~ComponentManifest~~
+        +clearCache(): void
+        -discoverComponents(packageConfig: PackageConfig): Promise~ComponentManifest[]~
+        -findComponentFiles(packageConfig: PackageConfig): Promise~string[]~
+        -createComponentManifest(componentFilePath: string, packageConfig: PackageConfig, packageInfo: PackageInfo): Promise~ComponentManifest | null~
+        -extractComponentName(filePath: string): string | null
+        -discoverRelatedFiles(componentFilePath: string, packageConfig: PackageConfig): Promise~ComponentFiles~
+        -analyzeComponentMetadata(componentFilePath: string, files: ComponentFiles, packageConfig: PackageConfig): Promise~DiscoveredMetadata~
+    }
+
+    class FileStructureAnalyzer {
+        +analyzePackageStructure(packagePath: string): Promise~PackageStructure~
+        +findComponentFiles(packagePath: string, patterns: string[]): Promise~string[]~
+        +detectPackageType(packagePath: string): PackageType
+        +validateFileStructure(files: string[]): StructureValidation
+    }
+
+    class MetadataExtractor {
+        +extractFromPackageJson(packageJsonPath: string): Promise~PackageMetadata~
+        +extractFromTsConfig(tsConfigPath: string): Promise~TypeScriptMetadata~
+        +extractFromDocsConfig(docsConfigPath: string): Promise~DocsMetadata~
+        +extractComponentMetadata(componentPath: string): Promise~ComponentMetadata~
+    }
+
+%% Extraction Classes
+    class ExtractionCoordinator {
+        -extractorFactory: ExtractorFactory
+        -config: ProcessingConfig
+        +constructor(config: ProcessingConfig, errorHandler: ErrorHandler)
+        +extractAllComponents(manifests: ComponentManifest[]): Promise~RichComponentInfo[]~
+        +extractComponent(manifest: ComponentManifest): Promise~RichComponentInfo | null~
+        -extractProps(manifest: ComponentManifest): Promise~ExtractionResult~PropInfo[]~~
+        -extractVariants(manifest: ComponentManifest): Promise~ExtractionResult~VariantInfo[]~~
+        -extractInheritance(manifest: ComponentManifest): Promise~ExtractionResult~InheritanceInfo[]~~
+        -extractDocumentation(manifest: ComponentManifest): Promise~ExtractionResult~ComponentDocumentation~~
+        +generateExtractionStats(richComponents: RichComponentInfo[]): ExtractionStats
+        +clearCache(): void
+    }
+
+    class BaseExtractor~TInput, TOutput~ {
+#program: ts.Program
+#checker: ts.TypeChecker
+#compilerOptions: ts.CompilerOptions
++constructor(tsConfig?: TypeScriptConfig)
++extract(input: TInput): Promise~ExtractionResult~TOutput~~*
+#validateInput(input: TInput): boolean
+#handleError(error: unknown, context?: any): ExtractionResult~TOutput~
+#createSuccessResult(data: TOutput, warnings?: ExtractionWarning[], sourceFile?: string, duration?: number): ExtractionResult~TOutput~
+#getSourceFile(filePath: string): Promise~ts.SourceFile | null~
+#findInterface(sourceFile: ts.SourceFile, interfaceName: string): ts.InterfaceDeclaration | null
+#extractJSDocComment(node: ts.Node): string | null
+#getTypeString(typeNode?: ts.TypeNode): string
++clearCache(): void
+}
+
+class PropsExtractor {
+-config: TypeScriptExtractionConfig
++constructor(tsConfig?: any)
++extract(input: PropsExtractionInput): Promise~ExtractionResult~PropInfo[]~~
+-findPropsInterface(sourceFile: ts.SourceFile, componentName: string): ts.InterfaceDeclaration | null
+-extractPropsFromInterface(propsInterface: ts.InterfaceDeclaration, sourceFile: ts.SourceFile): Promise~PropInfo[]~
+-extractPropFromMember(member: ts.PropertySignature): PropInfo | null
+-extractInheritedProps(heritageType: ts.ExpressionWithTypeArguments, sourceFile: ts.SourceFile): Promise~PropInfo[]~
+-categorizeProperty(propName: string, propType: string): PropCategory
+-sortProps(props: PropInfo[]): PropInfo[]
+}
+
+class InheritanceExtractor {
+-config: TypeScriptExtractionConfig
++constructor(tsConfig?: any)
++extract(input: InheritanceExtractionInput): Promise~ExtractionResult~InheritanceInfo[]~~
+-extractHeritageClause(propsInterface: ts.InterfaceDeclaration): ts.HeritageClause[]
+-processHeritageType(heritageType: ts.ExpressionWithTypeArguments): Promise~InheritanceInfo~
+-resolveExternalType(typeName: string): Promise~InheritanceInfo | null~
+-handleOmitPattern(expression: ts.TypeReferenceNode): InheritanceInfo
+}
+
+class VariantsExtractor {
+-tailwindParser: TailwindVariantsParser
++constructor()
++extract(input: VariantsExtractionInput): Promise~ExtractionResult~VariantInfo[]~~
+-findVariantsDeclaration(sourceFile: ts.SourceFile): ts.VariableDeclaration | null
+-extractVariantConfig(variantCall: ts.CallExpression): VariantInfo[]
+-parseVariantOptions(optionsObject: ts.ObjectLiteralExpression): VariantOption[]
+-extractDefaultValues(defaultsObject: ts.ObjectLiteralExpression): Record~string, string~
+}
+
+class TailwindVariantsParser {
++parseFile(filePath: string, componentName?: string): Promise~VariantInfo[]~*
++validateFile(filePath: string): Promise~ValidationResult~*
+-extractVariantsConfig(fileContent: string): VariantConfig
+-parseVariantValue(value: any): string[]
+-resolveDefaultValue(variants: VariantConfig, variantName: string): string
+}
+
+    %% Legacy DocumentationLoader removed in hybrid architecture
+
+%% NEW: Svelte Docs Parser (Phase 3)
+class SvelteDocsParser {
++parseDocsFile(componentPath: string): Promise~SvelteDocsParseResult~
++hasDocsFile(componentPath: string): Promise~boolean~
++getDocsPath(componentPath: string): string
++parseMultipleDocsFiles(componentPaths: string[]): Promise~SvelteDocsParseResult[]~
+-extractDocsConfig(ast: any, content: string): SvelteDocsConfig
+-extractScriptVariables(content: string): Record~string, any~
+-extractSections(ast: any, content: string): ParsedSvelteSection[]
+-findScriptNode(ast: any): any
+-walkAST(node: any, callback: Function): void
+-parseSectionElement(node: any, content: string): ParsedSvelteSection | null
+-validateConfig(config: SvelteDocsConfig): SvelteDocsConfigValidationResult
+}
+
+%% Enrichment Classes
+class APIDataGenerator {
++generate(richComponents: RichComponentInfo[]): Promise~APIData~
+-processComponents(richComponents: RichComponentInfo[]): ComponentAPIData[]
+-generateTypeDefinitions(richComponents: RichComponentInfo[]): TypeDefinition[]
+-createAPIMetadata(componentData: ComponentAPIData[]): APIMetadata
+}
+
+class CrossReferenceResolver {
++resolveReferences(components: RichComponentInfo[]): Promise~CrossReference[]~
++findComponentReferences(component: RichComponentInfo, allComponents: RichComponentInfo[]): CrossReference[]
++resolveTypeReferences(component: RichComponentInfo): Promise~CrossReference[]~
++validateReferences(references: CrossReference[]): ValidationResult
+}
+
+class ExampleValidator {
++validateExamples(examples: ValidatedExample[]): Promise~ValidationResult[]~
++validateSingleExample(example: ExampleContent): Promise~ValidationResult~
++checkSyntax(code: string): ValidationResult
++checkProps(props: Record~string, any~, componentData: ComponentAPIData): ValidationResult
+}
+
+class MetadataEnricher {
++enrichMetadata(components: RichComponentInfo[]): Promise~EnrichedComponentInfo[]~
++calculateComplexity(component: RichComponentInfo): ComplexityLevel
++assignTiers(components: RichComponentInfo[]): Promise~EnrichedComponentInfo[]~
++generateTags(component: RichComponentInfo): string[]
+}
+
+%% Generation Classes
+class GenerationCoordinator {
+-config: OutputConfig
++constructor(config: OutputConfig, errorHandler: ErrorHandler)
++generateAll(enrichedComponents: EnrichedComponentInfo[], apiData: APIData): Promise~GenerationResult~
+-generateAPI(apiData: APIData): Promise~GeneratedOutput | null~
+-generateSvelte(enrichedComponents: EnrichedComponentInfo[], apiData: APIData): Promise~GeneratedOutput | null~
+-generateLLM(enrichedComponents: EnrichedComponentInfo[], apiData: APIData): Promise~GeneratedOutput | null~
++validateConfiguration(): ConfigValidationResult
++getGenerationPlan(): GenerationPlan
++updateConfig(newConfig: OutputConfig): void
+}
+
+class APIFileGenerator {
+-config: APIOutputConfig
++constructor(config: APIOutputConfig)
++generate(apiData: APIData): Promise~GeneratedOutput~
++validateAPIData(apiData: APIData): void
++createBackup(): Promise~void~
++reportChanges(newAPIData: APIData): Promise~void~
+-generateTypeScriptFile(apiData: APIData): string
+-generateJSONFile(apiData: APIData): string
+-generateYAMLFile(apiData: APIData): string
+-generateComponentInterface(componentName: string, componentData: ComponentAPIData): string[]
+}
+
+    class SveltePageGenerator {
+        -config: SvelteOutputConfig
+        -sectionRenderer: SectionRenderer
+        -templateEngine: TemplateEngine
+        -svelteDocsParser: SvelteDocsParser
+        -sectionMerger: SectionMerger
+        -documentationSectionRenderer: DocumentationSectionRenderer
+        +constructor(config: SvelteOutputConfig)
+        +generate(enrichedComponents: EnrichedComponentInfo[], apiData: APIData): Promise~GeneratedOutput~
+        -generateIndexPage(components: EnrichedComponentInfo[], apiData: APIData): Promise~string~
+        -generateComponentPage(component: EnrichedComponentInfo, componentApiData: ComponentAPIData): Promise~string~
+        -generateNavigationData(components: EnrichedComponentInfo[], apiData: APIData): Promise~string~
+        -generateSections(component: EnrichedComponentInfo, componentApiData: ComponentAPIData): any[]
+        -generateAutoSections(component: EnrichedComponentInfo, componentApiData: ComponentAPIData, docsConfig: SvelteDocsConfig): any[]
+        -collectScriptData(sections: any[]): any
+        -groupComponents(components: EnrichedComponentInfo[], groupBy: string): Record~string, EnrichedComponentInfo[]~
+    }
+
+%% NEW: Section Merger (Phase 3)
+class SectionMerger {
++merge(autoSections: RenderedSection[], customSections: ParsedSvelteSection[], docsConfig: SvelteDocsConfig): SectionMergeResult
++getMergeStats(result: SectionMergeResult): MergeStats
+-applyConfigFilters(sectionMap: Map, docsConfig: SvelteDocsConfig): void
+-sortSections(sections: MergedSection[]): MergedSection[]
+-shouldIncludeInLLM(sectionId: string, sectionType: string, docsConfig: SvelteDocsConfig): boolean
+-createConflict(sectionId: string, type: string, resolution: string, details?: string): SectionConflict
+ }
+
+%% UPDATED: Template Engine (Phase 3)
+class TemplateEngine {
+-config: TemplateConfig
++constructor(config?: TemplateConfig)
++renderIndexPage(data: IndexPageData): string
++renderComponentPage(data: ComponentPageData): string
++renderComponentLayout(component: EnrichedComponentInfo): string
++renderBreadcrumbs(component: EnrichedComponentInfo): string
++renderNextPrevNavigation(currentComponent: EnrichedComponentInfo, allComponents: EnrichedComponentInfo[]): string
++generateMetaTags(title: string, description: string, component?: EnrichedComponentInfo): string
+-renderStatsSection(stats: any): string
+-renderComponentGroup(groupName: string, components: EnrichedComponentInfo[], showTiers: boolean): string
+-renderComponentCard(component: EnrichedComponentInfo, showTiers: boolean): string
+-generateCustomImports(imports: string[]): string
+-generateScriptVariables(data: ComponentPageData): string
+-generateScriptFunctions(functions: Record~string, string~): string
+-escapeTemplate(str: string): string
+}
+
+class SectionRenderer {
+-apiRenderer: ApiRenderer
+-exampleRenderer: ExampleRenderer
+-playgroundRenderer: PlaygroundRenderer
+-variantsRenderer: VariantsRenderer
+-textRenderer: TextRenderer
++constructor()
++renderOverview(component: EnrichedComponentInfo, componentApiData: ComponentAPIData): RenderedSection
++renderPlayground(component: EnrichedComponentInfo, componentApiData: ComponentAPIData): RenderedSection
++renderExamples(component: EnrichedComponentInfo, componentApiData: ComponentAPIData): RenderedSection
++renderVariants(component: EnrichedComponentInfo, componentApiData: ComponentAPIData): RenderedSection
++renderApiReference(component: EnrichedComponentInfo, componentApiData: ComponentAPIData): RenderedSection
++renderUsageNotes(component: EnrichedComponentInfo, componentApiData: ComponentAPIData): RenderedSection
+}
+
+%% NEW: Renderer Classes (Phase 3)
+class ApiRenderer {
++render(component: EnrichedComponentInfo, componentApiData: ComponentAPIData): string
++renderPropsTable(props: PropInfo[]): string
++renderVariantsTable(variants: VariantInfo[]): string
++renderInheritanceSection(inheritance: InheritanceInfo[]): string
+-formatPropType(type: string): string
+-generatePropExamples(prop: PropInfo): string
+ }
+
+class ExampleRenderer {
++render(examples: ValidatedExample[]): string
++renderSingleExample(example: ValidatedExample): string
++renderExampleGroup(examples: ValidatedExample[], groupName: string): string
+-formatExampleCode(code: string): string
+-generateLivePreview(example: ExampleContent): string
+}
+
+class PlaygroundRenderer {
++render(component: EnrichedComponentInfo, componentApiData: ComponentAPIData, config: PlaygroundConfig): string
++generateControls(props: PropInfo[], config: PlaygroundConfig): PlaygroundControl[]
++generateDefaultValues(props: PropInfo[], config: PlaygroundConfig): Record~string, any~
+-createControlForProp(prop: PropInfo): PlaygroundControl
+-generateCodeTemplate(componentName: string): string
+}
+
+class VariantsRenderer {
++render(variants: VariantInfo[], config: VariantsConfig): string
++renderVariantGroup(variant: VariantInfo, config: VariantsConfig): string
++generateVariantMatrix(variants: VariantInfo[]): string
+-createVariantExample(variant: VariantInfo, value: string): string
+-groupVariants(variants: VariantInfo[], groupBy: string): Record~string, VariantInfo[]~
+}
+
+class TextRenderer {
++render(content: TextContent): string
++renderMarkdown(markdown: string): string
++renderPlainText(text: string): string
++applyFormatting(text: string, formatting: TextFormatting): string
+-sanitizeHtml(html: string): string
+}
+
+class DocumentationSectionRenderer {
++renderDocumentationSection(section: DocumentationSection, component: EnrichedComponentInfo, componentApiData: ComponentAPIData): RenderedSection
++shouldRenderSection(section: DocumentationSection, component: EnrichedComponentInfo, componentApiData: ComponentAPIData): boolean
+-renderApiSection(section: DocumentationSection, componentApiData: ComponentAPIData): string
+-renderExamplesSection(section: DocumentationSection, examples: ValidatedExample[]): string
+-renderPlaygroundSection(section: DocumentationSection, component: EnrichedComponentInfo): string
+ }
+
+class LLMDocumentationGenerator {
+-formatter: LLMFormatter
++constructor()
++generate(enrichedComponents: EnrichedComponentInfo[], apiData: APIData): Promise~GeneratedOutput~
++generateComponentDoc(component: EnrichedComponentInfo, componentApiData: ComponentAPIData): string
++generateOverview(components: EnrichedComponentInfo[]): string
+-filterContentForLLM(content: any): any
+-prioritizeSections(sections: any[], config: LLMConfig): any[]
+}
+
+class LLMFormatter {
++formatForLLM(content: any): string
++simplifyContent(content: any): any
++removeInteractiveElements(content: string): string
++formatCodeExamples(examples: any[]): string
++generateSummary(component: EnrichedComponentInfo): string
+}
+
+%% NEW: Utility Classes
+class DeploymentManager {
+-config: DeploymentConfig
++constructor(config: DeploymentConfig)
++deploy(generatedFiles: string[], targetPath: string): Promise~DeploymentResult~
++cleanTarget(targetPath: string): Promise~void~
++copyFiles(sourceFiles: string[], targetPath: string): Promise~void~
++validateDeployment(targetPath: string): Promise~ValidationResult~
++generateDeploymentReport(result: DeploymentResult): string
+}
+
+%% Configuration Classes
+class DocsConfigurationBuilder {
+-config: Partial~DocsConfig~
++addPackage(packageConfig: PackageConfig): ConfigBuilder
++setTypeScript(tsConfig: TypeScriptConfig): ConfigBuilder
++setSchema(schemaConfig: any): ConfigBuilder
++setExtraction(extractionConfig: any): ConfigBuilder
++setEnrichment(enrichmentConfig: any): ConfigBuilder
++setValidation(validationConfig: any): ConfigBuilder
++setSvelteOutput(svelteConfig: any): ConfigBuilder
++setLLMOutput(llmConfig: any): ConfigBuilder
++setAPIOutput(apiConfig: any): ConfigBuilder
++enableWatch(watchConfig?: any): ConfigBuilder
++enableDebug(debugConfig?: any): ConfigBuilder
++validate(): ConfigValidationResult
++build(): DocsConfig
+}
+
+%% CLI Classes
+class DocsGeneratorCLI {
++run(args?: string[]): Promise~void~
+-generateCommand(options: any): Promise~void~
+-watchCommand(options: any): Promise~void~
+-validateCommand(options: any): Promise~void~
+-initCommand(options: any): Promise~void~
+-loadConfig(configPath?: string): Promise~DocsConfig~
+-loadConfigFromPackageJson(packageJsonPath: string): Promise~DocsConfig~
+-parseOptions(args: string[]): any
+-showHelp(): void
+}
+
+%% ==========================================
+%% RELATIONSHIPS
+%% ==========================================
+
+%% Core Pipeline
+PipelineOrchestrator --> ErrorHandler
+PipelineOrchestrator --> ComponentFinder
+PipelineOrchestrator --> ExtractionCoordinator
+PipelineOrchestrator --> APIDataGenerator
+PipelineOrchestrator --> GenerationCoordinator
+
+%% Discovery Phase
+ComponentFinder --> FileStructureAnalyzer
+ComponentFinder --> MetadataExtractor
+
+%% Extraction Phase
+ExtractionCoordinator --> PropsExtractor
+ExtractionCoordinator --> InheritanceExtractor
+ExtractionCoordinator --> VariantsExtractor
+%% ExtractionCoordinator no longer depends on DocumentationLoader
+
+PropsExtractor --|> BaseExtractor
+InheritanceExtractor --|> BaseExtractor
+VariantsExtractor --> TailwindVariantsParser
+
+%% Enrichment Phase
+APIDataGenerator --> CrossReferenceResolver
+APIDataGenerator --> ExampleValidator
+APIDataGenerator --> MetadataEnricher
+
+%% Generation Phase
+GenerationCoordinator --> APIFileGenerator
+GenerationCoordinator --> SveltePageGenerator
+GenerationCoordinator --> LLMDocumentationGenerator
+GenerationCoordinator --> DeploymentManager
+
+%% NEW: Svelte Generation Architecture (Phase 3)
+SveltePageGenerator --> SvelteDocsParser
+SveltePageGenerator --> SectionMerger
+SveltePageGenerator --> TemplateEngine
+SveltePageGenerator --> SectionRenderer
+SveltePageGenerator --> DocumentationSectionRenderer
+
+%% Section Rendering
+SectionRenderer --> ApiRenderer
+SectionRenderer --> ExampleRenderer
+SectionRenderer --> PlaygroundRenderer
+SectionRenderer --> VariantsRenderer
+SectionRenderer --> TextRenderer
+
+%% LLM Generation
+LLMDocumentationGenerator --> LLMFormatter
+
+%% Configuration
+DocsGeneratorCLI --> DocsConfigurationBuilder
+DocsGeneratorCLI --> PipelineOrchestrator
+
+%% Critical Dependencies
+APIFileGenerator ..> SveltePageGenerator
+SvelteDocsParser ..> SectionMerger
+
+%% KEY ARCHITECTURE NOTES (simplified)
+note for SvelteDocsParser "Parses docs.svelte files; extracts config and custom sections"
+note for SectionMerger "Applies docsConfig to auto-sections; custom docs handled separately"
+note for TemplateEngine "Generates Svelte pages; supports script variables and custom imports"
+note for SveltePageGenerator "Hybrid generation with custom section support"
+note for APIFileGenerator "API-FIRST: generate api-props.ts before others"
+note for GenerationCoordinator "Order: API first; then Svelte and LLM in parallel"
+note for BaseExtractor "Template Method Pattern; shared TS infra and error handling"
+
+%% Types omitted for brevity

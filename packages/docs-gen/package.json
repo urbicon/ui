@@ -1,0 +1,74 @@
+{
+  "name": "@urbicon-ui/docs-gen",
+  "version": "6.1.3",
+  "description": "Next-generation documentation generator for UI components with TypeScript extraction and unified schema",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://codeberg.org/urbicon/ui.git",
+    "directory": "packages/docs-gen"
+  },
+  "homepage": "https://ui.urbicon.de",
+  "bugs": "https://codeberg.org/urbicon/ui/issues",
+  "keywords": [
+    "documentation",
+    "typescript",
+    "components",
+    "generator",
+    "svelte",
+    "ui",
+    "docs",
+    "api-extraction"
+  ],
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "sideEffects": false,
+  "bin": {
+    "docs-gen": "./dist/cli/CLI.js"
+  },
+  "exports": {
+    ".": {
+      "import": "./dist/index.js",
+      "types": "./dist/index.d.ts"
+    },
+    "./cli": {
+      "import": "./dist/cli/CLI.js",
+      "types": "./dist/cli/CLI.d.ts"
+    },
+    "./config": {
+      "import": "./dist/schema/ConfigurationBuilder.js",
+      "types": "./dist/schema/ConfigurationBuilder.d.ts"
+    }
+  },
+  "scripts": {
+    "build": "tsc -b",
+    "clean": "rm -rf dist",
+    "clean-all": "bun --bun run clean && rm -rf node_modules",
+    "dev": "tsc -b --watch",
+    "docs:gen": "bun --bun src/cli/CLI.ts generate",
+    "lint": "biome check src",
+    "lint:fix": "biome check src --write",
+    "test": "vitest run",
+    "test:watch": "vitest --watch",
+    "check": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@urbicon-ui/shared-types": "^6.0.0",
+    "glob": "catalog:"
+  },
+  "devDependencies": {
+    "@types/node": "catalog:",
+    "estree-walker": "catalog:",
+    "typescript": "catalog:",
+    "vitest": "catalog:"
+  },
+  "author": "Urbicon UI Team",
+  "files": [
+    "dist",
+    "README.md"
+  ],
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}

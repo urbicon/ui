@@ -1,0 +1,103 @@
+import { SvelteSet } from 'svelte/reactivity';
+import type { TableItem } from '$lib/types/tableTypes';
+import { findColumnById, resolveValueById } from '$lib/utils';
+import type { TableState } from './types';
+
+/**
+ * Grouping concern: manages group-by key, group order, collapse state,
+ * and computes grouped items.
+ * @param state - Shared table state.
+ * @param getSortedItems - Getter for upstream sorted items.
+ */
+export function useGrouping(state: TableState, getSortedItems: () => TableItem[]) {
+  const grouped = $derived.by((): Record<string, TableItem[]> => {
+    const items = getSortedItems();
+    if (!state.groupByKey) return { ungrouped: items };
+
+    // Synthetic columns have no accessor — grouping by them would bucket
+    // every row under 'Unassigned'. Fall back to ungrouped instead.
+    const groupColumn = findColumnById(state.columns, state.groupByKey);
+    if (groupColumn && groupColumn.accessor === undefined) return { ungrouped: items };
+
+    const result: Record<string, TableItem[]> = {};
+
+    for (const item of items) {
+      const groupValue: unknown = resolveValueById(state.columns, item, state.groupByKey);
+      const groupKey =
+        groupValue !== undefined && groupValue !== null ? String(groupValue) : 'Unassigned';
+
+      if (!result[groupKey]) {
+        result[groupKey] = [];
+      }
+      result[groupKey].push(item);
+    }
+
+    if (state.groupOrder && state.groupOrder.length > 0) {
+      const ordered: Record<string, TableItem[]> = {};
+
+      state.groupOrder.forEach((groupKey) => {
+        if (result[groupKey]) {
+          ordered[groupKey] = result[groupKey];
+        }
+      });
+
+      Object.keys(result).forEach((groupKey) => {
+        if (!ordered[groupKey]) {
+          ordered[groupKey] = result[groupKey];
+        }
+      });
+
+      return ordered;
+    }
+
+    return result;
+  });
+
+  function setGroupByKey(key: string | null) {
+    state.groupByKey = key;
+    state.collapsedGroups = new SvelteSet();
+    state.allGroupsExpanded = true;
+    state.currentPage = 1;
+  }
+
+  function setGroupOrder(order: string[]) {
+    state.groupOrder = order;
+  }
+
+  function toggleGroup(groupName: string) {
+    const newGroups = new SvelteSet(state.collapsedGroups);
+
+    if (newGroups.has(groupName)) {
+      newGroups.delete(groupName);
+    } else {
+      newGroups.add(groupName);
+    }
+
+    state.collapsedGroups = newGroups;
+
+    const groupKeys = Object.keys(grouped);
+    if (groupKeys.length > 0) {
+      state.allGroupsExpanded = state.collapsedGroups.size === 0;
+    }
+  }
+
+  function toggleAllGroups() {
+    const isExpanded = state.allGroupsExpanded;
+    if (isExpanded) {
+      state.collapsedGroups = new SvelteSet(Object.keys(grouped));
+    } else {
+      state.collapsedGroups = new SvelteSet();
+    }
+    state.allGroupsExpanded = !state.allGroupsExpanded;
+  }
+
+  return {
+    get grouped() {
+      return grouped;
+    },
+    setGroupByKey,
+    setGroupOrder,
+    toggleGroup,
+    toggleAllGroups
+  };
+}

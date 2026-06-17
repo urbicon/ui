@@ -1,0 +1,168 @@
+<script lang="ts">
+  import type { SvelteDocsConfig } from '@urbicon-ui/shared-types';
+  import { CodeExample, Section } from '@urbicon-ui/docs';
+  import { Separator, Button, Avatar, Card } from '@urbicon-ui/blocks';
+
+  export const docsConfig: SvelteDocsConfig = {
+    generation: {
+      overview: { enabled: false },
+      playground: {
+        featured: ['orientation', 'size', 'decorative', 'unstyled'],
+        defaults: { orientation: 'horizontal', size: 'md', decorative: true },
+        enabled: true,
+        order: 1
+      },
+      variants: { enabled: false },
+      examples: false,
+      api: { showInheritance: true, groupBy: 'category', enabled: true, order: 14 },
+      usage: false
+    },
+    llm: {
+      include: true,
+      maxSections: 8,
+      priority: ['overview', 'examples', 'real-world', 'patterns', 'variants', 'api'],
+      excludeTypes: ['playground']
+    },
+    meta: { title: 'Separator Component', showToc: true }
+  };
+</script>
+
+<!-- ─── Examples ─── -->
+
+<Section marker="01" id="examples" title="Examples">
+  <div class="space-y-8">
+    <CodeExample
+      title="Inline Vertical Separator"
+      description="Vertical separators as dividers between navigation items — a classic breadcrumb pattern."
+      isolate
+    >
+      <nav class="flex items-center text-sm">
+        <a href="#!" class="text-text-tertiary hover:text-text-primary transition-colors">Home</a>
+        <Separator orientation="vertical" size="sm" class="mx-3 h-4" />
+        <a href="#!" class="text-text-tertiary hover:text-text-primary transition-colors"
+          >Products</a
+        >
+        <Separator orientation="vertical" size="sm" class="mx-3 h-4" />
+        <a href="#!" class="text-text-tertiary hover:text-text-primary transition-colors"
+          >Electronics</a
+        >
+        <Separator orientation="vertical" size="sm" class="mx-3 h-4" />
+        <span class="text-text-primary font-medium">Headphones</span>
+      </nav>
+    </CodeExample>
+
+    <CodeExample
+      title="Settings Card"
+      description="Separators structuring a realistic settings panel — as a section divider and between in-list rows."
+      isolate
+      previewClass="flex justify-center w-full"
+    >
+      <div class="w-full max-w-sm">
+        <Card padding="none">
+          <div class="px-5 py-4">
+            <h3 class="text-text-primary text-sm font-semibold">Account</h3>
+            <p class="text-text-tertiary text-xs">Manage your profile and preferences</p>
+          </div>
+          <Separator size="sm" />
+          <div class="divide-border-subtle space-y-0 divide-y">
+            <div class="flex items-center justify-between px-5 py-3">
+              <div class="flex items-center gap-3">
+                <Avatar size="sm" name="JD" />
+                <div>
+                  <p class="text-text-primary text-sm font-medium">Jane Doe</p>
+                  <p class="text-text-tertiary text-xs">jane@example.com</p>
+                </div>
+              </div>
+              <Button variant="ghost" size="sm">Edit</Button>
+            </div>
+            <div class="flex items-center justify-between px-5 py-3">
+              <span class="text-text-secondary text-sm">Language</span>
+              <span class="text-text-tertiary text-sm">English</span>
+            </div>
+            <div class="flex items-center justify-between px-5 py-3">
+              <span class="text-text-secondary text-sm">Timezone</span>
+              <span class="text-text-tertiary text-sm">UTC+1</span>
+            </div>
+          </div>
+          <Separator size="sm" />
+          <div class="px-5 py-3">
+            <Button variant="ghost" intent="danger" size="sm">Delete Account</Button>
+          </div>
+        </Card>
+      </div>
+    </CodeExample>
+  </div>
+</Section>
+
+<!-- ─── Customization ─── -->
+
+<Section marker="02" id="customization" title="Customization">
+  <div class="space-y-8">
+    <CodeExample
+      title="Separator with Label"
+      description="A common pattern: text centered over a horizontal rule — typical for 'OR continue with' auth flows."
+      isolate
+      previewClass="flex flex-col gap-6"
+    >
+      <div class="relative flex items-center">
+        <Separator class="flex-1" />
+        <span class="text-text-tertiary bg-surface-base px-3 text-xs font-medium uppercase"
+          >or continue with</span
+        >
+        <Separator class="flex-1" />
+      </div>
+      <div class="relative flex items-center">
+        <Separator
+          class="!my-0 flex-1"
+          slotClasses={{ base: 'bg-linear-to-r from-transparent to-border-subtle' }}
+        />
+        <span class="text-text-secondary bg-surface-base px-4 text-sm font-semibold tracking-wide"
+          >Chapter 2</span
+        >
+        <Separator
+          class="!my-0 flex-1"
+          slotClasses={{ base: 'bg-linear-to-l from-transparent to-border-subtle' }}
+        />
+      </div>
+    </CodeExample>
+  </div>
+</Section>
+
+<!-- ─── Accessibility ─── -->
+
+<Section marker="03" id="accessibility" title="Accessibility">
+  <div class="border-border-subtle bg-surface-elevated rounded-2xl border p-6">
+    <div class="divide-border-subtle divide-y">
+      <div class="pb-4">
+        <h4 class="text-text-primary mb-1.5 text-sm font-semibold">ARIA Roles</h4>
+        <p class="text-text-secondary text-sm leading-relaxed">
+          By default, <code class="text-text-primary">decorative={'{'}true}</code> renders
+          <code class="text-text-primary">role="none"</code> so screen readers skip the element
+          entirely. Set <code class="text-text-primary">decorative={'{'}false}</code> to use
+          <code class="text-text-primary">role="separator"</code> with
+          <code class="text-text-primary">aria-orientation</code>, announcing it as a meaningful
+          content boundary.
+        </p>
+      </div>
+      <div class="py-4">
+        <h4 class="text-text-primary mb-1.5 text-sm font-semibold">When to use semantic mode</h4>
+        <p class="text-text-secondary text-sm leading-relaxed">
+          Use <code class="text-text-primary">decorative={'{'}false}</code> when the separator marks a
+          thematic shift — e.g. between unrelated content sections. Keep the default for purely visual
+          spacing between related items.
+        </p>
+      </div>
+      <div class="pt-4">
+        <h4 class="text-text-primary mb-1.5 text-sm font-semibold">HTML Semantics</h4>
+        <p class="text-text-secondary text-sm leading-relaxed">
+          Renders as a <code class="text-text-primary">&lt;div&gt;</code> rather than
+          <code class="text-text-primary">&lt;hr&gt;</code> for full ARIA control. The
+          <code class="text-text-primary">role</code> and
+          <code class="text-text-primary">aria-orientation</code> attributes are set automatically
+          based on the <code class="text-text-primary">decorative</code> and
+          <code class="text-text-primary">orientation</code> props.
+        </p>
+      </div>
+    </div>
+  </div>
+</Section>

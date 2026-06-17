@@ -1,0 +1,106 @@
+/*
+ * @urbicon-ui/blocks – Sunset Theme
+ *
+ * Warm orange-amber palette for energetic interfaces.
+ * Import AFTER the base styles:
+ *
+ *   @import '@urbicon-ui/blocks/style/index.css';
+ *   @import '@urbicon-ui/blocks/style/themes/sunset.css';
+ */
+
+@theme {
+  --color-primary-50: oklch(0.95 0.04 55);
+  --color-primary-100: oklch(0.9 0.07 55);
+  --color-primary-200: oklch(0.82 0.1 55);
+  --color-primary-300: oklch(0.74 0.12 55);
+  --color-primary-400: oklch(0.68 0.14 55);
+  --color-primary-500: oklch(0.62 0.16 55);
+  --color-primary-600: oklch(0.55 0.15 55);
+  --color-primary-700: oklch(0.47 0.13 55);
+  --color-primary-800: oklch(0.38 0.1 55);
+  --color-primary-900: oklch(0.28 0.07 55);
+  --color-primary-950: oklch(0.18 0.04 55);
+
+  --color-secondary-50: oklch(0.95 0.03 25);
+  --color-secondary-100: oklch(0.9 0.05 25);
+  --color-secondary-200: oklch(0.82 0.08 25);
+  --color-secondary-300: oklch(0.74 0.1 25);
+  --color-secondary-400: oklch(0.66 0.12 25);
+  --color-secondary-500: oklch(0.55 0.12 25);
+  --color-secondary-600: oklch(0.48 0.12 25);
+  --color-secondary-700: oklch(0.4 0.1 25);
+  --color-secondary-800: oklch(0.32 0.08 25);
+  --color-secondary-900: oklch(0.25 0.06 25);
+  --color-secondary-950: oklch(0.18 0.04 25);
+
+  /*
+   * Chassis neutral ramp — re-tinted warm (Hue 50) so surfaces, text and
+   * borders harmonise with the orange accent instead of reading cool grey
+   * (the library default neutral sits at Hue 240). Lightness and chroma
+   * match the foundation ramp one-to-one — only the hue shifts — so WCAG
+   * contrast stays unchanged. surface-*, text-* and border-* pick this up
+   * automatically through semantic.css; no per-token overrides needed.
+   */
+  --color-neutral-25: oklch(0.99 0.002 50);
+  --color-neutral-50: oklch(0.98 0.005 50);
+  --color-neutral-100: oklch(0.95 0.008 50);
+  --color-neutral-200: oklch(0.89 0.012 50);
+  --color-neutral-300: oklch(0.83 0.014 50);
+  --color-neutral-400: oklch(0.7 0.015 50);
+  --color-neutral-500: oklch(0.55 0.016 50);
+  --color-neutral-600: oklch(0.42 0.017 50);
+  --color-neutral-650: oklch(0.38 0.016 50);
+  --color-neutral-700: oklch(0.32 0.016 50);
+  --color-neutral-750: oklch(0.28 0.014 50);
+  --color-neutral-800: oklch(0.23 0.015 50);
+  --color-neutral-850: oklch(0.18 0.014 50);
+  --color-neutral-900: oklch(0.15 0.012 50);
+  --color-neutral-950: oklch(0.08 0.008 50);
+
+  /*
+   * Intent re-tuning — the amber primary (Hue 55) sits close to the default
+   * warning (Hue 80) and danger (Hue 25). Warning is pushed toward a purer
+   * yellow (92) and danger toward a deeper crimson (16) so status colours stay
+   * distinct from the brand. Same L/C profile as the foundation ramps — only
+   * the hue shifts (WCAG-safe). Success (140) and info (220) keep the library
+   * defaults. The derived --color-warning / --color-danger tokens re-resolve
+   * at :root automatically (global @theme), so no re-declaration is needed.
+   */
+  --color-warning-50: oklch(0.95 0.05 92);
+  --color-warning-100: oklch(0.9 0.08 92);
+  --color-warning-200: oklch(0.82 0.1 92);
+  --color-warning-300: oklch(0.74 0.12 92);
+  --color-warning-400: oklch(0.66 0.14 92);
+  --color-warning-500: oklch(0.75 0.15 92);
+  --color-warning-600: oklch(0.65 0.15 92);
+  --color-warning-700: oklch(0.55 0.13 92);
+  --color-warning-800: oklch(0.45 0.11 92);
+  --color-warning-900: oklch(0.25 0.08 92);
+  --color-warning-950: oklch(0.15 0.05 92);
+
+  --color-danger-50: oklch(0.95 0.05 16);
+  --color-danger-100: oklch(0.9 0.08 16);
+  --color-danger-200: oklch(0.82 0.1 16);
+  --color-danger-300: oklch(0.74 0.12 16);
+  --color-danger-400: oklch(0.62 0.16 16);
+  --color-danger-500: oklch(0.5 0.17 16);
+  --color-danger-600: oklch(0.44 0.16 16);
+  --color-danger-700: oklch(0.38 0.14 16);
+  --color-danger-800: oklch(0.3 0.12 16);
+  --color-danger-900: oklch(0.22 0.1 16);
+  --color-danger-950: oklch(0.14 0.07 16);
+}
+
+/*
+ * Warm shadow tint — shifts shadows from pure black to a dark warm brown so
+ * they blend with the warm chassis instead of reading as cool smudges. An
+ * oklch "L C H" triplet WITHOUT alpha (the shadow tokens supply the alpha).
+ * Declared on :root (not @theme) to mirror semantic.css; imported after the
+ * base styles, so it wins the cascade.
+ */
+:root {
+  --blocks-shadow-tint: 0.22 0.03 55;
+  /* Neutral intent (bg-neutral / text-neutral / borders) follows the warm
+     chassis instead of the library-default cool grey. */
+  --neutral-chrome-hue: 50;
+}

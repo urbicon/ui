@@ -1,0 +1,177 @@
+@theme {
+  --color-neutral-0: oklch(1 0 0);
+  --color-neutral-25: oklch(0.99 0.002 240);
+  --color-neutral-50: oklch(0.98 0.005 240);
+  --color-neutral-100: oklch(0.95 0.008 240);
+  --color-neutral-200: oklch(0.89 0.012 240);
+  --color-neutral-300: oklch(0.83 0.014 240);
+  --color-neutral-400: oklch(0.7 0.015 240);
+  --color-neutral-500: oklch(0.55 0.016 240);
+  --color-neutral-600: oklch(0.42 0.017 240);
+  --color-neutral-650: oklch(0.38 0.016 240);
+  --color-neutral-700: oklch(0.32 0.016 240);
+  --color-neutral-750: oklch(0.28 0.014 240);
+  --color-neutral-800: oklch(0.23 0.015 240);
+  --color-neutral-850: oklch(0.18 0.014 240);
+  --color-neutral-900: oklch(0.15 0.012 240);
+  --color-neutral-950: oklch(0.08 0.008 240);
+
+  --color-primary-50: oklch(0.95 0.03 240);
+  --color-primary-100: oklch(0.9 0.05 240);
+  --color-primary-200: oklch(0.82 0.08 240);
+  --color-primary-300: oklch(0.74 0.11 240);
+  --color-primary-400: oklch(0.66 0.13 240);
+  --color-primary-500: oklch(0.58 0.15 240);
+  --color-primary-600: oklch(0.52 0.15 240);
+  --color-primary-700: oklch(0.44 0.13 240);
+  --color-primary-800: oklch(0.36 0.11 240);
+  --color-primary-900: oklch(0.28 0.08 240);
+  --color-primary-950: oklch(0.18 0.05 240);
+
+  --color-secondary-50: oklch(0.95 0.03 280);
+  --color-secondary-100: oklch(0.9 0.05 280);
+  --color-secondary-200: oklch(0.82 0.08 280);
+  --color-secondary-300: oklch(0.74 0.11 280);
+  --color-secondary-400: oklch(0.66 0.13 280);
+  --color-secondary-500: oklch(0.55 0.12 280);
+  --color-secondary-600: oklch(0.48 0.13 280);
+  --color-secondary-700: oklch(0.4 0.12 280);
+  --color-secondary-800: oklch(0.32 0.1 280);
+  --color-secondary-900: oklch(0.25 0.08 280);
+  --color-secondary-950: oklch(0.18 0.05 280);
+
+  --color-warm-neutral-50: oklch(0.96 0.004 45);
+  --color-warm-neutral-100: oklch(0.92 0.006 45);
+  --color-warm-neutral-200: oklch(0.86 0.008 45);
+  --color-warm-neutral-300: oklch(0.78 0.01 45);
+  --color-warm-neutral-400: oklch(0.65 0.012 45);
+  --color-warm-neutral-500: oklch(0.5 0.008 45);
+  --color-warm-neutral-600: oklch(0.42 0.01 45);
+  --color-warm-neutral-700: oklch(0.35 0.012 45);
+  --color-warm-neutral-800: oklch(0.28 0.01 45);
+  --color-warm-neutral-900: oklch(0.2 0.008 45);
+  --color-warm-neutral-950: oklch(0.12 0.006 45);
+
+  /* Darkened *-500 / *-600 / *-700 so text-on-primary (white) passes WCAG
+     AA (4.5:1) on the solid intent backgrounds. Previous values had
+     L=0.65 which produced ~3:1 contrast — below AA. Warning keeps its
+     yellow hue at L=0.75 because it pairs with text-on-surface (dark),
+     not white. */
+  --color-success-50: oklch(0.95 0.03 140);
+  --color-success-100: oklch(0.9 0.05 140);
+  --color-success-200: oklch(0.82 0.08 140);
+  --color-success-300: oklch(0.74 0.11 140);
+  --color-success-400: oklch(0.62 0.14 140);
+  --color-success-500: oklch(0.5 0.15 140);
+  --color-success-600: oklch(0.44 0.14 140);
+  --color-success-700: oklch(0.38 0.12 140);
+  --color-success-800: oklch(0.3 0.1 140);
+  --color-success-900: oklch(0.22 0.08 140);
+  --color-success-950: oklch(0.14 0.05 140);
+
+  --color-warning-50: oklch(0.95 0.05 80);
+  --color-warning-100: oklch(0.9 0.08 80);
+  --color-warning-200: oklch(0.82 0.1 80);
+  --color-warning-300: oklch(0.74 0.12 80);
+  --color-warning-400: oklch(0.66 0.14 80);
+  --color-warning-500: oklch(0.75 0.15 80);
+  --color-warning-600: oklch(0.65 0.15 80);
+  --color-warning-700: oklch(0.55 0.13 80);
+  --color-warning-800: oklch(0.45 0.11 80);
+  --color-warning-900: oklch(0.25 0.08 80);
+  --color-warning-950: oklch(0.15 0.05 80);
+
+  --color-danger-50: oklch(0.95 0.05 25);
+  --color-danger-100: oklch(0.9 0.08 25);
+  --color-danger-200: oklch(0.82 0.1 25);
+  --color-danger-300: oklch(0.74 0.12 25);
+  --color-danger-400: oklch(0.62 0.16 25);
+  --color-danger-500: oklch(0.5 0.17 25);
+  --color-danger-600: oklch(0.44 0.16 25);
+  --color-danger-700: oklch(0.38 0.14 25);
+  --color-danger-800: oklch(0.3 0.12 25);
+  --color-danger-900: oklch(0.22 0.1 25);
+  --color-danger-950: oklch(0.14 0.07 25);
+
+  /* Info palette — hue 220 sits between cyan and the brand blue (240),
+     giving feedback messages a clearly distinct "informational" identity
+     without colliding with the primary brand color. */
+  --color-info-50: oklch(0.96 0.025 220);
+  --color-info-100: oklch(0.92 0.045 220);
+  --color-info-200: oklch(0.84 0.075 220);
+  --color-info-300: oklch(0.76 0.105 220);
+  --color-info-400: oklch(0.66 0.13 220);
+  --color-info-500: oklch(0.55 0.14 220);
+  --color-info-600: oklch(0.48 0.13 220);
+  --color-info-700: oklch(0.4 0.11 220);
+  --color-info-800: oklch(0.32 0.09 220);
+  --color-info-900: oklch(0.24 0.07 220);
+  --color-info-950: oklch(0.16 0.05 220);
+
+  /* Border Radius Scale — physical sizes */
+  --radius-xs: 0.125rem;
+  --radius-sm: 0.25rem;
+  --radius-md: 0.375rem;
+  --radius-lg: 0.5rem;
+  --radius-xl: 0.75rem;
+  --radius-2xl: 1rem;
+  --radius-3xl: 1.5rem;
+  --radius-4xl: 2rem;
+
+  /* === SEMANTIC RADII (3-tier system) ===
+     A semantic vocabulary on top of the physical scale. Every component
+     lives in one of these three tiers — components do not pick a raw
+     radius. The tokens share the public-API vocabulary (`tier="commit"`,
+     `tier="modify"`, contain) so theming and component props speak the
+     same language.
+
+       r-commit  — round/pill. Action, identity, status declarations.
+                   Soft, inviting, emphatic. (Button, ButtonGroup, Badge,
+                   SegmentGroup, Toggle, …)
+                   Avatar lives *outside* this system — its
+                   `variant="circle|rounded|square"` is an identity-shape
+                   axis (rounded-full / rounded-xl / rounded-none), not a
+                   tier choice. Brands tune Avatar via the foundation
+                   scale, not via the tier tokens.
+       r-modify  — small radius. Editable surfaces, navigation, secondary
+                   actions. Reads as "tap area". (Input, Textarea, Select,
+                   Combobox, Checkbox, Tab, Menu-Item, Stepper, …)
+       r-contain — barely-rounded. Containers, panels, layout surfaces.
+                   Reads as architectural surface. (Card, Alert, Toolbar
+                   surface, Dialog, Drawer, Tooltip, Popover, …)
+
+     Override per brand: a more playful product can bump r-contain up to
+     var(--radius-md); a more austere one can drop r-modify to 0. */
+  --radius-commit: 9999px;
+  --radius-modify: var(--radius-sm);
+  --radius-contain: var(--radius-xs);
+  /* r-bridge — the "between" radius for adjacency cases: a floating
+     panel anchored to a commit-tier (pill) trigger reads disconnected
+     if the panel is r-contain (2 px) and over-sized if it mirrors the
+     pill at r-commit (9999 px). r-bridge sits at r-md (~6 px) to
+     visually pair pill triggers with their dropdown bodies (Menu panel
+     when its trigger Button is commit-tier). Use sparingly — most
+     surfaces should pick one of the three primary tiers above. */
+  --radius-bridge: var(--radius-md);
+
+  /* Container Query Breakpoints */
+  --blocks-container-sm: 480px;
+  --blocks-container-md: 640px;
+  --blocks-container-lg: 768px;
+
+  --z-hide: -1;
+  --z-auto: auto;
+  --z-base: 0;
+  --z-docked: 10;
+  --z-dropdown: 9999;
+  --z-sticky: 1100;
+  --z-banner: 1200;
+  --z-overlay: 1300;
+  --z-sidebar: 1350;
+  --z-modal: 1400;
+  --z-popover: 1500;
+  --z-guide: 1550;
+  --z-skiplink: 1600;
+  --z-toast: 1700;
+  --z-tooltip: 1800;
+}

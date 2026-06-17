@@ -1,0 +1,37 @@
+{
+  "$schema": "https://biomejs.dev/schemas/2.5.0/schema.json",
+  "extends": ["@urbicon/biome-config/biome-base.json"],
+  "files": {
+    "includes": ["!**/*.svelte", "!**/*.svg", "!**/*.css", "!**/CHANGELOG.md", "!**/docs/archive"]
+  },
+  "linter": {
+    "rules": {
+      "performance": { "useTopLevelRegex": "off" },
+      "nursery": { "useExplicitReturnType": "off" },
+      "suspicious": { "noShadow": "warn" }
+    }
+  },
+  "overrides": [
+    {
+      "includes": ["**/*.test.ts", "**/*.spec.ts", "**/conformance.ts", "**/tests/**"],
+      "linter": {
+        "rules": {
+          "style": { "noNonNullAssertion": "off" },
+          "suspicious": { "noExplicitAny": "off", "noTemplateCurlyInString": "off" }
+        }
+      }
+    },
+    {
+      "includes": [
+        "packages/mcp-server/**",
+        "packages/docs-gen/**",
+        "packages/blocks/src/lib/utils/variants.ts"
+      ],
+      "linter": {
+        "rules": {
+          "style": { "noNonNullAssertion": "off" }
+        }
+      }
+    }
+  ]
+}

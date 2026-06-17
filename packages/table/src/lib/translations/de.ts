@@ -1,0 +1,176 @@
+export default {
+  common: {
+    close: 'Schließen'
+  },
+  button: {
+    close: 'Schließen',
+    clear: 'Löschen'
+  },
+  data: {
+    empty: 'Keine Daten verfügbar',
+    loading: 'Daten werden geladen...',
+    refresh: 'Aktualisieren'
+  },
+  filter: {
+    button: {
+      add: 'Filter hinzufügen',
+      remove: 'Filter entfernen',
+      clearAll: 'Alle löschen'
+    },
+    input: {
+      enterValue: 'Wert eingeben...'
+    },
+    menu: {
+      addFilter: 'Filter hinzufügen',
+      title: 'Filter'
+    },
+    operators: {
+      after: 'nach',
+      before: 'vor',
+      contains: 'enthält',
+      endsWith: 'endet mit',
+      equals: 'ist gleich',
+      greaterThan: 'größer als',
+      lessThan: 'kleiner als',
+      onDate: 'am',
+      startsWith: 'beginnt mit'
+    },
+    overflow: {
+      title: 'Weitere Filter'
+    },
+    quickValues: {
+      title: 'Schnellwerte'
+    }
+  },
+  search: {
+    placeholder: 'Suchen...'
+  },
+  summary: {
+    button: {
+      title: 'Zusammenfassung'
+    },
+    menu: {
+      addSummary: 'Zusammenfassung hinzufügen',
+      noColumns: 'Keine summarisierbaren Spalten verfügbar',
+      title: 'Zusammenfassung'
+    },
+    types: {
+      average: 'Durchschnitt',
+      count: 'Anzahl',
+      maximum: 'Maximum',
+      minimum: 'Minimum',
+      sum: 'Summe'
+    }
+  },
+  actions: {
+    delete: 'Löschen',
+    edit: 'Bearbeiten',
+    showDetails: 'Details anzeigen',
+    hideDetails: 'Details ausblenden'
+  },
+  aria: {
+    tableData: 'Tabellendaten',
+    filterBar: 'Filterleiste',
+    searchData: 'Daten durchsuchen',
+    removeItem: '{{content}} entfernen',
+    scrollLeft: 'Nach links scrollen',
+    scrollRight: 'Nach rechts scrollen',
+    interactiveCell: 'Interaktive Zelle'
+  },
+  copy: {
+    button: 'Kopieren',
+    copied: 'Kopiert',
+    failed: 'Fehlgeschlagen'
+  },
+  error: {
+    loadingError: 'Fehler beim Laden',
+    genericMessage: 'Ein Fehler ist aufgetreten. Bitte versuchen Sie es erneut.',
+    retry: 'Erneut versuchen',
+    fetchFailed: 'Daten konnten nicht geladen werden'
+  },
+  columns: {
+    visibility: 'Spaltensichtbarkeit'
+  },
+  grouping: {
+    button: 'Gruppierung',
+    none: 'Keine Gruppierung',
+    placeholder: 'Gruppierung auswählen'
+  },
+  header: {
+    activeFilter: 'Aktiver Filter',
+    activeIndicator: '{{type}} aktiv für diese Spalte',
+    collapseAllGroups: 'Alle Gruppen einklappen',
+    expandAllGroups: 'Alle Gruppen ausklappen',
+    filterActive: 'Filter aktiv',
+    grouped: 'Gruppiert',
+    groupedColumn: 'Gruppierte Spalte',
+    summarized: 'Zusammengefasst',
+    summarizedColumn: 'Zusammengefasste Spalte'
+  },
+  headerMenu: {
+    sortAscending: 'Aufsteigend sortieren',
+    sortDescending: 'Absteigend sortieren',
+    removeFilter: 'Filter entfernen',
+    groupByColumn: 'Nach Spalte gruppieren',
+    removeGrouping: 'Gruppierung aufheben',
+    addSummary: 'Zusammenfassung hinzufügen',
+    removeSummary: 'Zusammenfassung entfernen',
+    hideColumn: 'Spalte ausblenden',
+    showColumn: 'Anzeigen',
+    columnOptions: 'Spaltenoptionen für'
+  },
+  pagination: {
+    previous: 'Zurück',
+    next: 'Weiter',
+    first: 'Erste',
+    last: 'Letzte',
+    page: 'Seite'
+  },
+  group: {
+    noGroup: '(Keine Gruppe)',
+    item: 'Eintrag',
+    items: 'Einträge',
+    summaryFor: 'Zusammenfassung für'
+  },
+  number: {
+    valueLabel: 'Wert: {{value}}'
+  },
+  status: {
+    tooltip: 'Status: {{text}}',
+    clickToChange: '(klicken zum Ändern)',
+    unknown: 'Unbekannt',
+    active: 'Aktiv',
+    inactive: 'Inaktiv',
+    pending: 'Ausstehend',
+    online: 'Online',
+    offline: 'Offline',
+    processing: 'In Bearbeitung',
+    completed: 'Abgeschlossen',
+    failed: 'Fehlgeschlagen',
+    draft: 'Entwurf',
+    published: 'Veröffentlicht',
+    archived: 'Archiviert'
+  },
+  liveUpdates: {
+    newItems: 'neu',
+    updatedItems: 'aktualisiert',
+    deletedItems: 'entfernt',
+    apply: 'Änderungen übernehmen',
+    dismiss: 'Verwerfen'
+  },
+  selection: {
+    selectRow: 'Zeile auswählen',
+    deselectRow: 'Auswahl aufheben',
+    selectAllRows: 'Alle Zeilen auswählen',
+    deselectAllRows: 'Auswahl aller Zeilen aufheben',
+    selectedCount: '{{count}} ausgewählt'
+  },
+  table: {
+    link: {
+      invalid: 'Ungültiger Link'
+    },
+    summary: {
+      totalSummary: 'Gesamtzusammenfassung'
+    }
+  }
+} as const;

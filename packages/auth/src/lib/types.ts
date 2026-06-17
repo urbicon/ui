@@ -1,0 +1,365 @@
+export interface AuthUser<R extends string = string> {
+  id: string;
+  email: string;
+  name: string;
+  role: R;
+  emailVerified: boolean;
+  /**
+   * Whether TOTP two-factor authentication is active on the account. A public
+   * account-status flag in the same spirit as `emailVerified` — it drives the
+   * `TwoFactorManager` UI and the login two-step, and never carries the secret
+   * itself. `false` for every user until they finish 2FA setup, and for
+   * consumers who don't wire 2FA at all (the adapter defaults a missing column
+   * to `false`).
+   */
+  totpEnabled: boolean;
+}
+
+export interface AuthSession<R extends string = string> {
+  userId: string;
+  email: string;
+  role: R;
+  tokenVersion: number;
+}
+
+export interface PasswordConfig {
+  minLength?: number;
+  requireUppercase?: boolean;
+  requireLowercase?: boolean;
+  requireDigit?: boolean;
+  /**
+   * PBKDF2-HMAC-SHA256 work factor for new password hashes. Default `600000`
+   * (current OWASP recommendation). Verification always reads the iteration
+   * count from the stored hash, so changing this only affects newly created
+   * hashes — existing ones are transparently upgraded on the owner's next
+   * login (`needsRehash`). Raise for higher assurance; lowering below the
+   * OWASP minimum weakens brute-force resistance and is warned about in a
+   * production config (see `createAuthDeps`).
+   */
+  pbkdf2Iterations?: number;
+}
+
+export interface JwtConfig {
+  /** Primary secret used for signing new session tokens. */
+  secret: string;
+  /**
+   * Secure attribute for the session cookie. Default `true`; set to `false`
+   * for non-HTTPS development servers or E2E harnesses. Production deployments
+   * should always keep this `true` (or omit it).
+   */
+  cookieSecure?: boolean;
+  /** Override the SameSite attribute for the session cookie. Default `'lax'`. */
+  cookieSameSite?: 'lax' | 'strict' | 'none';
+  /**
+   * Optional identifier written into the token's `kid` header. Required when
+   * `previousSecrets` is set so the verifier can disambiguate old vs new
+   * tokens during key rotation. Safe to leave empty for the single-secret
+   * case — tokens are emitted without a `kid` claim and every secret is
+   * tried on verify.
+   */
+  keyId?: string;
+  /**
+   * Older secrets accepted for verification only. Enables key rotation:
+   * deploy the new `secret` + `keyId` and move the previous values here so
+   * existing sessions keep working until they expire. Entries are tried in
+   * order; remove a secret from this list to permanently invalidate any
+   * session still signed by it.
+   */
+  previousSecrets?: Array<{ secret: string; keyId?: string }>;
+  expiresIn?: string;
+  cookieName?: string;
+}
+
+export interface LockoutConfig {
+  maxAttempts?: number;
+  durationMinutes?: number;
+}
+
+export interface RateLimitConfig {
+  windowMs: number;
+  max: number;
+  /**
+   * Optional persistent store (Redis, Prisma, Upstash, etc.) implementing
+   * `RateLimitStore`. When omitted, defaults to an in-memory Map — suitable
+   * only for single-process deployments.
+   */
+  store?: import('./server/rate-limit.js').RateLimitStore;
+}
+
+/**
+ * Optional Double-Submit-Cookie configuration on top of the always-on
+ * Origin-header CSRF check. When `doubleSubmit` is true, mutating requests
+ * must echo the value of the CSRF cookie in the configured header.
+ */
+export interface CsrfConfig {
+  doubleSubmit?: boolean;
+  cookieName?: string;
+  headerName?: string;
+  /** Secure attribute for the CSRF cookie. Default `true`; set `false` for non-HTTPS dev. */
+  cookieSecure?: boolean;
+  /** Override the SameSite attribute. Default `'lax'`. */
+  cookieSameSite?: 'lax' | 'strict' | 'none';
+  /**
+   * Prefix the CSRF cookie name with `__Host-`, which hardens against
+   * subdomain cookie injection (the browser only accepts such a cookie over
+   * HTTPS with `Path=/` and no `Domain`). Opt-in and HTTPS-only — incompatible
+   * with `cookieSecure: false` (warned about in `createAuthHandle`). The
+   * client must be told too: pass `useHostPrefix: true` in the `csrf` config of
+   * the bundled stores/components (same place as `cookieName`), or to
+   * `csrfFetch`/`readCsrfToken` in custom client code.
+   */
+  useHostPrefix?: boolean;
+}
+
+/**
+ * Opt-in refresh-token rotation. When enabled (and `repos.refreshToken` is
+ * provided), login/register/passkey-auth issue both a short-lived access
+ * token (via the JWT cookie) and a longer-lived refresh token stored as a
+ * SHA-256 hash. The handle hook transparently rotates both cookies once
+ * the access token expires, so client code needs no changes. Reuse of a
+ * *revoked* refresh token invalidates the entire token family.
+ *
+ * Non-breaking: without this config the existing 7-day JWT-only behaviour
+ * stays in place.
+ */
+export interface RefreshTokenConfig {
+  /** TTL for the short-lived access token. Accepts `60s` / `15m` / `2h` / `7d`. Default `15m`. */
+  accessTokenTtl?: string;
+  /** TTL for the long-lived refresh token. Default `30d`. */
+  refreshTokenTtl?: string;
+  /** Cookie name for the refresh token. Default `'refresh'`. */
+  cookieName?: string;
+  /**
+   * Cookie path scope. Default `'/'` so the handle hook can rotate
+   * transparently on any request (the cookie is `httpOnly`+`secure`+
+   * `sameSite=lax`, so scope is the right trade-off). Narrow to
+   * `'/api/auth'` for defense-in-depth — transparent rotation in the hook
+   * is then disabled and consumers must call `createRefreshHandler`
+   * explicitly from the client.
+   */
+  cookiePath?: string;
+  /** Secure attribute for the refresh cookie. Default `true`; set `false` for non-HTTPS dev. */
+  cookieSecure?: boolean;
+  /** Override the SameSite attribute for the refresh cookie. Default `'lax'`. */
+  cookieSameSite?: 'lax' | 'strict' | 'none';
+}
+
+/**
+ * Opt-in TOTP two-factor authentication (RFC 6238). When set (and the
+ * `backupCode` repo is provided), a user can enable an authenticator-app second
+ * factor on top of their password; the login then runs a two-step flow
+ * (password → code). Passkey logins are NOT gated (a passkey is already a strong
+ * factor). Wiring 2FA requires `encryptionKey`; everything else has secure
+ * defaults.
+ */
+export interface TwoFactorConfig {
+  /**
+   * Key material used to encrypt the TOTP secret at rest (AES-256-GCM). MUST be
+   * **high-entropy** (e.g. 32 random bytes, base64) and stable across restarts —
+   * it is hashed to a 32-byte AES key, not stretched like a password, so a weak
+   * value weakens the at-rest protection. Rotating it invalidates every stored
+   * secret (users must re-enrol). Required whenever 2FA is wired.
+   */
+  encryptionKey: string;
+  /**
+   * Issuer label shown in the authenticator app (the `issuer` of the otpauth
+   * URI). Defaults to the host of `appUrl`. Keep it stable — changing it shows
+   * up as a renamed account in existing authenticators.
+   */
+  issuer?: string;
+  /**
+   * TOTP HMAC algorithm. `'SHA-1'` (default) is the RFC-6238 baseline and the
+   * only one Google/Microsoft/etc. authenticators reliably support — not a
+   * weakness given the high-entropy secret. Opt into `'SHA-256'`/`'SHA-512'`
+   * only if your users' apps handle them.
+   */
+  algorithm?: import('./server/totp.js').TotpAlgorithm;
+  /** Number of digits in the code. @default 6 */
+  digits?: number;
+  /** TOTP time-step in seconds. @default 30 */
+  period?: number;
+  /**
+   * Verification drift tolerance, in ± periods. @default 1 (accepts the
+   * previous/next 30s window for clock skew). Raising it widens the brute-force
+   * surface — keep it small and rely on `rateLimit.twoFactor`.
+   */
+  window?: number;
+  /**
+   * TTL of the short-lived pending-2FA token issued between password and code.
+   * Accepts `30s` / `5m` / `1h`. @default '5m'.
+   */
+  pendingTokenTtl?: string;
+  /** How many single-use backup codes to issue at enable. @default 10 */
+  backupCodeCount?: number;
+}
+
+export interface AuthConfig<R extends string = string> {
+  jwt: JwtConfig;
+  /**
+   * Trusted base URL of the deployment, used to build links in outbound
+   * emails (verify-email, password-reset). Required: do NOT derive these
+   * URLs from `request.url` because the Host header is attacker-controlled
+   * and a spoofed value would point reset/verify links at an attacker's
+   * domain, leaking the raw token. Format: scheme + host (+ optional path),
+   * e.g. `'https://app.example.com'`. No trailing slash required.
+   */
+  appUrl: string;
+  password?: PasswordConfig;
+  /**
+   * Account-lockout policy after repeated failed logins. Leave unset to get a
+   * safe default (5 attempts / 15 min) via `createAuthDeps`. Pass `null` to
+   * explicitly opt out — `createAuthDeps` then warns in a production config.
+   */
+  lockout?: LockoutConfig | null;
+  /**
+   * Per-handler rate limits keyed by client IP. `createAuthDeps` guarantees a
+   * safe `login` default is present unless you explicitly opt out with `null`
+   * — even if you only configure other endpoints here, `login` is still
+   * injected (configuring, say, `register` never silently leaves login
+   * unprotected). All token-/credential-accepting handlers can be limited; the
+   * non-`login` keys are opt-in.
+   */
+  rateLimit?: {
+    login?: RateLimitConfig;
+    register?: RateLimitConfig;
+    passwordReset?: RateLimitConfig;
+    /** Limit for the password-reset *consume* handler (`reset-password`). */
+    resetPassword?: RateLimitConfig;
+    /** Limit for the email-verification handler (`verify-email`). */
+    verifyEmail?: RateLimitConfig;
+    /** Limit for the explicit refresh endpoint (`refresh`). */
+    refresh?: RateLimitConfig;
+    /** Limit for passkey authentication (options + verify). */
+    passkeyAuth?: RateLimitConfig;
+    /**
+     * Limit for the authenticated change-password handler. It is re-auth gated,
+     * but still credential-accepting, so limiting it stops a hijacked session
+     * from brute-forcing the current password through this endpoint.
+     */
+    changePassword?: RateLimitConfig;
+    /** Limit for the authenticated change-email request handler. */
+    changeEmail?: RateLimitConfig;
+    /** Limit for the authenticated delete-account handler. */
+    deleteAccount?: RateLimitConfig;
+    /**
+     * Limit for the 2FA verify handler (the second login step). Brute-force
+     * critical — a 6-digit code has only 10^6 combinations — so when `twoFactor`
+     * is configured, `createAuthDeps` injects a strict default here unless you
+     * opt out with `rateLimit: null`. Configure it explicitly to tune the limit.
+     */
+    twoFactor?: RateLimitConfig;
+  } | null;
+  csrf?: CsrfConfig;
+  /**
+   * Optional overrides for the response security headers `createAuthHandle`
+   * applies. The always-on headers (nosniff, X-Frame-Options, Referrer-Policy,
+   * Permissions-Policy) need no config; HSTS (emitted only when
+   * `jwt.cookieSecure !== false`) and CSP carry secure defaults you can tune
+   * or disable here.
+   */
+  securityHeaders?: import('./server/security-headers.js').SecurityHeadersConfig;
+  refreshToken?: RefreshTokenConfig;
+  /**
+   * Active-session listing (the `SessionManager` feature). A "session" is a
+   * refresh-token family, so this **requires `refreshToken` rotation** — without
+   * it there is nothing server-side to list and the endpoints report
+   * unavailable. `storeIp` opts into persisting the client IP alongside the
+   * user-agent on each session row; it is personal data (GDPR), so it defaults
+   * to `false` — the user-agent alone drives device recognition in the UI.
+   */
+  sessions?: { storeIp?: boolean };
+  /**
+   * TOTP two-factor authentication (the `TwoFactorManager` feature + login
+   * two-step). Opt-in: when set, also provide `repos.backupCode`. Requires
+   * `twoFactor.encryptionKey`. See {@link TwoFactorConfig}.
+   */
+  twoFactor?: TwoFactorConfig;
+  routes?: {
+    afterLogin?: string;
+    afterLogout?: string;
+    loginPage?: string;
+  };
+  hooks?: {
+    onUserCreated?: (user: AuthUser<R>) => Promise<void>;
+    onPasswordChanged?: (userId: string) => Promise<void>;
+    onLoginSuccess?: (user: AuthUser<R>) => Promise<void>;
+    onLoginFailed?: (email: string, reason: string) => Promise<void>;
+    /**
+     * Fires when issuing a password-reset email fails. The forgot-password
+     * handler decouples the token write + email send from its response (so the
+     * response time can't reveal whether the account exists), which means such
+     * a failure can't surface as an HTTP error — the user was already told
+     * "if the account exists, an email was sent". Wire this to your error
+     * tracker so a broken mail transport doesn't silently lock users out of
+     * recovery. Note: on serverless/edge runtimes that freeze the worker after
+     * the response, neither this hook nor the internal log may run — use a
+     * queue-backed email transport there for guaranteed delivery.
+     */
+    onPasswordResetFailed?: (email: string, err: unknown) => Promise<void>;
+    /**
+     * Fires when an invitation row was created but its invite email failed to
+     * send (`createInvitationHandlers`). The handler still returns 201 with
+     * `emailSent: false`, so this failure never reaches the invitee — wire it
+     * to your error tracker (or a resend queue) so a broken mail transport
+     * doesn't silently leave invited users unable to register (registration is
+     * invitation-gated). A throwing hook is caught and never breaks the
+     * response.
+     */
+    onInvitationEmailFailed?: (email: string, err: unknown) => Promise<void>;
+    /**
+     * Fires when a user requests an email change (`createChangeEmailHandler`),
+     * once the verification token has been persisted and the confirmation mail
+     * dispatched to the new address. Like forgot-password, this runs decoupled
+     * from the response (so timing can't reveal whether the target address was
+     * already taken), so a throw is caught and logged rather than surfaced.
+     * `newEmail` is the *pending* address — the change is not yet effective.
+     */
+    onEmailChangeRequested?: (userId: string, newEmail: string) => Promise<void>;
+    /**
+     * Fires when issuing an email change fails (`createChangeEmailHandler`).
+     * Like forgot-password, the token write + mails run decoupled from the
+     * response (so timing can't reveal whether the target was taken), so such a
+     * failure can't surface as an HTTP error — the user was already told to
+     * check their new inbox. Wire this to your error tracker so a broken mail
+     * transport doesn't silently leave a user waiting for a mail that never
+     * arrives. Same serverless/edge caveat as `onPasswordResetFailed`.
+     */
+    onEmailChangeFailed?: (userId: string, newEmail: string, err: unknown) => Promise<void>;
+    /**
+     * Fires when an email change is confirmed via the verification link
+     * (`createVerifyEmailChangeHandler`) and the address has actually been
+     * swapped on the row. `newEmail` is now the user's current, verified email.
+     * A throw is caught and logged so it can't roll back a committed change.
+     */
+    onEmailChanged?: (userId: string, newEmail: string) => Promise<void>;
+    /**
+     * Fires immediately **before** a self-service account deletion
+     * (`createDeleteAccountHandler`) removes the row, receiving the sanitized
+     * user so the consumer can archive or anonymise app-owned data while it
+     * still exists. It runs after re-auth and inside the request, so a throw
+     * **aborts** the deletion (fail-closed: don't erase if archiving failed).
+     * Make your handler resilient/idempotent if you don't want a transient
+     * failure to block erasure.
+     */
+    onAccountDeleted?: (user: AuthUser<R>) => Promise<void>;
+    /**
+     * Shape the object placed on `event.locals.user` for every authenticated
+     * request. Runs in the handle hook right after the session is resolved and
+     * the user loaded, receiving the **sanitized** user (the five public
+     * `AuthUser` fields — never the password hash) and the request event. The
+     * return value becomes `event.locals.user`, so type it through your
+     * `App.Locals` declaration. May be async — the result is awaited.
+     *
+     * This is the seam for attaching app-specific data (tenant/household id,
+     * plan, entitlements, locale). `AuthUser` is intentionally fixed and the
+     * loaded row carries no custom columns, so load any extra data here keyed
+     * by `user.id`: doing it in this one hook avoids a second `handle` that
+     * re-resolves the session and keeps `locals.user` consistently typed.
+     *
+     * A throw fails the request (wrap your own logic in try/catch for
+     * resilience). Whatever you return lands on `locals.user`, so don't add
+     * secrets if `locals.user` is serialized to the client.
+     */
+    transformUser?: (user: AuthUser<R>, event: import('@sveltejs/kit').RequestEvent) => unknown;
+  };
+}

@@ -1,0 +1,38 @@
+/* === URBICON-UI DOCS DESIGN SYSTEM === */
+/* Master CSS file that imports all design tokens */
+/*
+ * NOTE: this file does NOT `@import 'tailwindcss'` — that is the consumer
+ * app's responsibility. See `@urbicon-ui/blocks/src/lib/style/index.css`
+ * and `docs/TailwindCaveats.md` → "Library CSS must not import Tailwind"
+ * for the rationale.
+ */
+
+/* Foundation Layer - Base design tokens from blocks package */
+@import '@urbicon-ui/blocks/style/index.css';
+
+/* Docs-specific design tokens and intents */
+@import './docs-theme.css';
+
+@source '../variants';
+
+pre.shiki {
+  white-space: pre-wrap;
+  /* max-width: 100%; */
+  /* overflow-x: scroll; */
+  @apply p-2;
+}
+
+.shiki code {
+  counter-reset: step;
+  counter-increment: step 0;
+}
+
+.shiki code .line::before {
+  content: counter(step);
+  counter-increment: step;
+  width: 1rem;
+  margin-right: 1.5rem;
+  display: inline-block;
+  text-align: right;
+  color: var(--color-text-quaternary);
+}

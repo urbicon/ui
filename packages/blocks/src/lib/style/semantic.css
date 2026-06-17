@@ -1,0 +1,271 @@
+/**
+ * Semantic intent tokens — single source of truth for both light and
+ * dark modes via the CSS-native `light-dark()` function.
+ *
+ * Mode resolution: `:root` declares `color-scheme: light dark` so the
+ * UA picks the matching branch from `light-dark()` automatically. The
+ * manual toggle classes `:root.light` / `:root.dark` only override the
+ * `color-scheme` (no token duplication needed) — `light-dark()` re-
+ * resolves on its own.
+ *
+ * Browser support: Chrome 123+, Firefox 120+, Safari 17.5+ — Baseline
+ * Newly Available since 2024-05.
+ */
+
+@theme {
+  /* === SURFACE ===
+     Four-level elevation ladder (L·0 → L·3). Each step sits visually
+     above the one below — themes can differentiate them by color (e.g.
+     cream → lighter cream → near-white → white) or rely on shadows
+     alone when the palette ceiling is reached (as in the neutral default
+     where base and overlay are both white). */
+  /* L·1 — base: the page itself. Content, cards, and reading surfaces
+     sit at this level. */
+  --color-surface-base: light-dark(var(--color-neutral-0), var(--color-neutral-900));
+  /* L·0 — quiet: the ground/table beneath the page. Softest in-page
+     tint; tint alone signals "own zone" without border or shadow. */
+  --color-surface-quiet: light-dark(var(--color-neutral-25), var(--color-neutral-850));
+  /* L·2 — elevated: lifted surfaces (Popover, Menu, Select dropdown).
+     Sits above the page with shadow + meaningful Z-index. */
+  --color-surface-elevated: light-dark(var(--color-neutral-50), var(--color-neutral-800));
+  /* L·3 — overlay: highest surfaces (Dialog, Drawer, Sheet, Toast).
+     Full shadow + backdrop dimming. */
+  --color-surface-overlay: light-dark(var(--color-neutral-0), var(--color-neutral-850));
+  --color-surface-interactive: light-dark(var(--color-neutral-100), var(--color-neutral-700));
+  --color-surface-hover: light-dark(var(--color-neutral-100), var(--color-neutral-750));
+  --color-surface-active: light-dark(var(--color-neutral-200), var(--color-neutral-700));
+  --color-surface-disabled: light-dark(var(--color-neutral-100), var(--color-neutral-800));
+  --color-surface-selected: light-dark(var(--color-primary-50), var(--color-primary-900));
+  --color-surface-subtle: light-dark(var(--color-neutral-50), var(--color-neutral-800));
+  --color-surface-inverted: light-dark(var(--color-neutral-900), var(--color-neutral-100));
+
+  /* === TEXT ===
+     tertiary/quaternary shifted darker (light) so informative text on
+     surface-base passes WCAG AA 4.5:1. Previous values (neutral-500/400)
+     gave ~3.7/~2.1 respectively. */
+  --color-text-primary: light-dark(var(--color-neutral-900), var(--color-neutral-100));
+  --color-text-inverted: light-dark(var(--color-neutral-0), var(--color-neutral-900));
+  --color-text-secondary: light-dark(var(--color-neutral-700), var(--color-neutral-300));
+  --color-text-tertiary: light-dark(var(--color-neutral-600), var(--color-neutral-300));
+  --color-text-quaternary: light-dark(var(--color-neutral-500), var(--color-neutral-400));
+  --color-text-disabled: light-dark(var(--color-neutral-300), var(--color-neutral-600));
+  --color-text-on-dark: light-dark(var(--color-neutral-0), var(--color-neutral-900));
+  --color-text-on-primary: var(--color-neutral-0);
+  --color-text-on-surface: light-dark(var(--color-neutral-900), var(--color-neutral-100));
+
+  /* === PRIMARY INTENT ===
+     emphasis flips to light shades in dark mode so `text-*-emphasis`
+     stays legible against dark surfaces. */
+  --color-primary: light-dark(var(--color-primary-600), var(--color-primary-500));
+  --color-primary-hover: light-dark(var(--color-primary-700), var(--color-primary-400));
+  --color-primary-active: light-dark(var(--color-primary-800), var(--color-primary-300));
+  --color-primary-subtle: light-dark(var(--color-primary-50), var(--color-primary-900));
+  --color-primary-emphasis: light-dark(var(--color-primary-900), var(--color-primary-200));
+
+  /* === SECONDARY INTENT === */
+  --color-secondary: light-dark(var(--color-secondary-500), var(--color-secondary-400));
+  --color-secondary-hover: light-dark(var(--color-secondary-600), var(--color-secondary-300));
+  --color-secondary-active: light-dark(var(--color-secondary-700), var(--color-secondary-200));
+  --color-secondary-subtle: light-dark(var(--color-secondary-50), var(--color-secondary-900));
+  --color-secondary-emphasis: light-dark(var(--color-secondary-800), var(--color-secondary-200));
+
+  /* === NEUTRAL INTENT ===
+     Themeable chrome. Takes the warm-neutral ramp's lightness + chroma
+     PROFILE — purpose-tuned so that both white-on-fill (bg-neutral) and
+     neutral-on-surface (text-neutral) contrast hold across light/dark — and
+     re-tints only the HUE per theme via `--neutral-chrome-hue`. Because the
+     lightness never moves, every WCAG tradeoff baked into the warm-neutral
+     ramp is preserved exactly; only the temperature follows the theme.
+
+     `--neutral-chrome-hue` defaults to 240 (:root, below), so the library
+     default reads as a cool grey matching its cool chassis. Each theme
+     overrides it to its accent temperature; editorial.css re-pins the neutral
+     intent to the warm ramp directly. Uses the same relative-color syntax
+     already relied on by `--color-interactive-*` below. */
+  --color-neutral: light-dark(
+    oklch(from var(--color-warm-neutral-500) l c var(--neutral-chrome-hue)),
+    oklch(from var(--color-warm-neutral-400) l c var(--neutral-chrome-hue))
+  );
+  --color-neutral-hover: light-dark(
+    oklch(from var(--color-warm-neutral-600) l c var(--neutral-chrome-hue)),
+    oklch(from var(--color-warm-neutral-300) l c var(--neutral-chrome-hue))
+  );
+  --color-neutral-active: light-dark(
+    oklch(from var(--color-warm-neutral-700) l c var(--neutral-chrome-hue)),
+    oklch(from var(--color-warm-neutral-200) l c var(--neutral-chrome-hue))
+  );
+  --color-neutral-subtle: light-dark(
+    oklch(from var(--color-warm-neutral-50) l c var(--neutral-chrome-hue)),
+    oklch(from var(--color-warm-neutral-900) l c var(--neutral-chrome-hue))
+  );
+  --color-neutral-emphasis: light-dark(
+    oklch(from var(--color-warm-neutral-800) l c var(--neutral-chrome-hue)),
+    oklch(from var(--color-warm-neutral-200) l c var(--neutral-chrome-hue))
+  );
+
+  /* === SUCCESS INTENT === */
+  --color-success: light-dark(var(--color-success-500), var(--color-success-400));
+  --color-success-hover: light-dark(var(--color-success-600), var(--color-success-300));
+  --color-success-active: light-dark(var(--color-success-700), var(--color-success-200));
+  --color-success-subtle: light-dark(var(--color-success-50), var(--color-success-900));
+  --color-success-emphasis: light-dark(var(--color-success-800), var(--color-success-200));
+
+  /* === WARNING INTENT === */
+  --color-warning: light-dark(var(--color-warning-500), var(--color-warning-400));
+  --color-warning-hover: light-dark(var(--color-warning-600), var(--color-warning-300));
+  --color-warning-active: light-dark(var(--color-warning-700), var(--color-warning-200));
+  --color-warning-subtle: light-dark(var(--color-warning-50), var(--color-warning-900));
+  --color-warning-emphasis: light-dark(var(--color-warning-800), var(--color-warning-200));
+
+  /* === DANGER INTENT === */
+  --color-danger: light-dark(var(--color-danger-500), var(--color-danger-400));
+  --color-danger-hover: light-dark(var(--color-danger-600), var(--color-danger-300));
+  --color-danger-active: light-dark(var(--color-danger-700), var(--color-danger-200));
+  --color-danger-subtle: light-dark(var(--color-danger-50), var(--color-danger-900));
+  --color-danger-emphasis: light-dark(var(--color-danger-800), var(--color-danger-200));
+
+  /* === INFO INTENT === */
+  --color-info: light-dark(var(--color-info-500), var(--color-info-400));
+  --color-info-hover: light-dark(var(--color-info-600), var(--color-info-300));
+  --color-info-active: light-dark(var(--color-info-700), var(--color-info-200));
+  --color-info-subtle: light-dark(var(--color-info-50), var(--color-info-900));
+  --color-info-emphasis: light-dark(var(--color-info-800), var(--color-info-200));
+
+  /* === CHART CATEGORICAL PALETTE ===
+     An *ordered* series palette for data visualization (the charts/ family),
+     distinct from the single-role intent tokens above: chart series 0 maps to
+     --color-chart-1, series 1 to --color-chart-2, and so on, cycling for more
+     series than colors. Built on the foundation hue ramps so light-dark()
+     resolves dark mode automatically; ordered for maximal adjacent-hue
+     separation (blue → green → amber → violet → cyan → red). Living in the
+     --color-* namespace means Tailwind also generates fill-chart-1 /
+     stroke-chart-1 / bg-chart-1 utilities for legends and static marks. */
+  --color-chart-1: light-dark(var(--color-primary-600), var(--color-primary-400));
+  --color-chart-2: light-dark(var(--color-success-600), var(--color-success-400));
+  --color-chart-3: light-dark(var(--color-warning-500), var(--color-warning-400));
+  --color-chart-4: light-dark(var(--color-secondary-500), var(--color-secondary-400));
+  --color-chart-5: light-dark(var(--color-info-500), var(--color-info-400));
+  --color-chart-6: light-dark(var(--color-danger-500), var(--color-danger-400));
+
+  /* === BORDERS ===
+     border-hairline (Lighter-Refactor) is the quietest tier — structural
+     trennlinien (row dividers, Card header/footer separators, inline
+     section dividers). Sits below border-subtle, which is now reserved
+     for quiet container outlines (e. g. Popover). */
+  --color-border-hairline: light-dark(rgb(0 0 0 / 0.08), rgb(255 255 255 / 0.06));
+  --color-border-subtle: light-dark(var(--color-neutral-200), var(--color-neutral-700));
+  --color-border-default: light-dark(var(--color-neutral-300), var(--color-neutral-600));
+  --color-border-emphasis: light-dark(var(--color-neutral-400), var(--color-neutral-500));
+  --color-border-strong: light-dark(var(--color-neutral-500), var(--color-neutral-400));
+
+  /* === INTERACTIVE STATES === */
+  --color-interactive-hover: oklch(from var(--color-primary-500) l c h / 0.1);
+  --color-interactive-active: oklch(from var(--color-primary-500) l c h / 0.2);
+  --color-interactive-focus: light-dark(var(--color-primary-500), var(--color-primary-400));
+  --color-interactive-disabled: light-dark(var(--color-neutral-200), var(--color-neutral-700));
+
+  /* === FEEDBACK ===
+     Mapped onto the intent palette so they automatically follow the
+     light/dark resolution above. */
+  --color-feedback-info: var(--color-info);
+  --color-feedback-info-subtle: var(--color-info-subtle);
+  --color-feedback-success: var(--color-success);
+  --color-feedback-success-subtle: var(--color-success-subtle);
+  --color-feedback-warning: var(--color-warning);
+  --color-feedback-warning-subtle: var(--color-warning-subtle);
+  --color-feedback-error: var(--color-danger);
+  --color-feedback-error-subtle: var(--color-danger-subtle);
+
+  /* === SHADOWS ===
+     Dark mode uses higher alpha to compensate for low contrast against
+     dark surfaces. light-dark() handles the whole multi-layer shadow.
+
+     The shadow tint (`--blocks-shadow-tint`) is an oklch L C H triplet
+     WITHOUT the alpha channel — declared on `:root` (not inside @theme)
+     because it is a raw partial value, not a standalone design token.
+     Default is pure black (0 0 0). Themes can override the tint to warm
+     their shadow palette — e.g. editorial sets it to a dark brown so
+     shadows blend with cream surfaces instead of reading as cool
+     smudges. */
+  --color-shadow-xs: light-dark(
+    0 1px 2px 0 oklch(var(--blocks-shadow-tint) / 0.05),
+    0 1px 2px 0 oklch(var(--blocks-shadow-tint) / 0.2)
+  );
+  --color-shadow-sm: light-dark(
+    0 1px 3px 0 oklch(var(--blocks-shadow-tint) / 0.1) 0 1px 2px -1px
+      oklch(var(--blocks-shadow-tint) / 0.1),
+    0 1px 3px 0 oklch(var(--blocks-shadow-tint) / 0.3) 0 1px 2px -1px
+      oklch(var(--blocks-shadow-tint) / 0.3)
+  );
+  --color-shadow-base: light-dark(
+    0 4px 6px -1px oklch(var(--blocks-shadow-tint) / 0.1) 0 2px 4px -2px
+      oklch(var(--blocks-shadow-tint) / 0.1),
+    0 4px 6px -1px oklch(var(--blocks-shadow-tint) / 0.4) 0 2px 4px -2px
+      oklch(var(--blocks-shadow-tint) / 0.4)
+  );
+  --color-shadow-md: light-dark(
+    0 10px 15px -3px oklch(var(--blocks-shadow-tint) / 0.1) 0 4px 6px -4px
+      oklch(var(--blocks-shadow-tint) / 0.1),
+    0 10px 15px -3px oklch(var(--blocks-shadow-tint) / 0.4) 0 4px 6px -4px
+      oklch(var(--blocks-shadow-tint) / 0.4)
+  );
+  --color-shadow-lg: light-dark(
+    0 20px 25px -5px oklch(var(--blocks-shadow-tint) / 0.1) 0 8px 10px -6px
+      oklch(var(--blocks-shadow-tint) / 0.1),
+    0 20px 25px -5px oklch(var(--blocks-shadow-tint) / 0.5) 0 8px 10px -6px
+      oklch(var(--blocks-shadow-tint) / 0.5)
+  );
+}
+
+/* Shadow tint — declared on :root rather than inside @theme because
+   it is a raw oklch L C H partial, not a standalone design token.
+   Themes override this to warm their shadow palette. */
+:root {
+  --blocks-shadow-tint: 0 0 0;
+
+  /* Hue of the neutral intent chrome (bg-neutral / text-neutral / borders).
+     The neutral intent (above) keeps the warm-neutral ramp's lightness but
+     takes its hue from here. Default 240 = cool grey, matching the default
+     cool chassis. Each theme overrides this to its accent temperature;
+     editorial.css re-pins the neutral intent to the warm ramp instead. */
+  --neutral-chrome-hue: 240;
+}
+
+/* Body styling — `color-scheme` activates the UA's auto pick between
+   light and dark; the toggle classes only override the scheme. */
+body {
+  color: var(--color-text-primary);
+  background-color: var(--color-surface-base);
+}
+
+:root {
+  color-scheme: light dark;
+}
+
+:root.light {
+  color-scheme: light;
+}
+
+:root.dark {
+  color-scheme: dark;
+}
+
+/* High-contrast media adjustments — runs *in addition* to the
+   light-dark() resolution above. light-dark() within the overrides
+   keeps the high-contrast values mode-aware. */
+@media (prefers-contrast: more) {
+  :root {
+    --color-text-primary: light-dark(var(--color-neutral-900), var(--color-neutral-0));
+    --color-text-secondary: light-dark(var(--color-neutral-800), var(--color-neutral-200));
+    /* hairline becomes a real border in high-contrast — otherwise structural
+       trennlinien (table rows, Card dividers) disappear entirely. */
+    --color-border-hairline: light-dark(var(--color-neutral-700), var(--color-neutral-300));
+    --color-border-default: light-dark(var(--color-neutral-900), var(--color-neutral-900));
+    --color-interactive-focus: light-dark(var(--color-neutral-900), var(--color-neutral-900));
+    --color-secondary: light-dark(var(--color-secondary-700), var(--color-secondary-700));
+    --color-neutral: light-dark(
+      oklch(from var(--color-warm-neutral-700) l c var(--neutral-chrome-hue)),
+      oklch(from var(--color-warm-neutral-700) l c var(--neutral-chrome-hue))
+    );
+  }
+}

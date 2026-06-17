@@ -1,0 +1,110 @@
+/* === FLOWTABLE DESIGN SYSTEM === */
+/* Master CSS file that imports all design tokens */
+/*
+ * NOTE: this file does NOT `@import 'tailwindcss'` — that is the consumer
+ * app's responsibility. A library that re-imports Tailwind produces a
+ * second Tailwind compilation in the consumer bundle: every Tailwind
+ * `@theme {}` block (including the consumer's overrides) is collected
+ * twice, and the second collection — the one without the consumer's
+ * overrides — wins the cascade because both end up in `@layer theme`.
+ * Concretely: a consumer's primary-palette override (e.g. magenta)
+ * silently flips back to the library defaults the moment a route that
+ * uses Table/Blocks components is mounted (or even just hover-preloaded
+ * by SvelteKit). See `docs/TailwindCaveats.md` → "Library CSS must not
+ * import Tailwind".
+ */
+
+/* Foundation Layer - Base design tokens */
+@import './foundation.css';
+
+/* Semantic Layer - Intent-based tokens */
+@import './semantic.css';
+
+/* Interaction Layer - Animation and micro-interaction tokens */
+@import './interaction.css';
+
+/* Mint Layer - Micro-interaction styles */
+@import '../mint/styles.css';
+
+@source '../primitives';
+@source '../components';
+
+/* === GLOBAL DESIGN SYSTEM CLASSES === */
+
+/* Screen reader only content */
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+/* Badge pulse — ring-radius animation that doesn't drop opacity like
+   Tailwind's default `animate-pulse`. An opacity-based pulse drops the
+   fill/text contrast below WCAG AA at mid-animation; the ring-expansion
+   alternative keeps the solid fill static so the label stays readable. */
+@keyframes badge-pulse {
+  0%,
+  100% {
+    box-shadow: 0 0 0 0 currentColor;
+  }
+  50% {
+    box-shadow: 0 0 0 4px transparent;
+  }
+}
+
+/* Guide highlight (Direction B — D5). Toggled by the headless engine
+   (`GuideController.highlight`) on any element carrying `data-guide="<id>"` when
+   a `GuideMention` is hovered/focused. Deliberately *additive*: an `outline`
+   ring (never `border` → no layout shift) plus a soft glow, no scrim — the
+   subtractive full-scrim stays reserved for the guided tour (Phase 6). The ring
+   colour is the `--blocks-guide-highlight-ring` token; the glow derives its
+   alpha from it. */
+[data-guide-highlight] {
+  outline: 2px solid var(--blocks-guide-highlight-ring);
+  outline-offset: 3px;
+  box-shadow: 0 0 0 6px oklch(from var(--blocks-guide-highlight-ring) l c h / 0.16);
+  transition:
+    outline-color var(--blocks-duration-fast, 150ms) var(--blocks-ease-gentle, ease),
+    box-shadow var(--blocks-duration-fast, 150ms) var(--blocks-ease-gentle, ease);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  [data-guide-highlight] {
+    transition: none;
+  }
+}
+
+/* Focus management */
+.blocks-focus-visible:focus-visible {
+  outline: none;
+  box-shadow: var(--blocks-focus-ring);
+  outline-offset: var(--blocks-focus-ring-offset);
+}
+
+/* Skip to content link */
+.blocks-skip-link {
+  position: absolute;
+  top: -40px;
+  left: 6px;
+  background: var(--color-surface-elevated);
+  color: var(--color-text-primary);
+  padding: 8px;
+  text-decoration: none;
+  border-radius: var(--radius-md);
+  z-index: var(--z-modal);
+}
+
+.blocks-skip-link:focus {
+  top: 6px;
+}
+
+/* === DESIGN SYSTEM READY === */
+:root {
+  --blocks-design-system-loaded: true;
+}

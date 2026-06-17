@@ -1,0 +1,190 @@
+@theme {
+  /* === DOCS-SPECIFIC INTENTS === */
+  /* Extend the blocks foundation with documentation-specific colors */
+  /* Code Intent (Slate-based for syntax highlighting) */
+  --color-code-50: var(--color-slate-50);
+  --color-code-100: var(--color-slate-100);
+  --color-code-200: var(--color-slate-200);
+  --color-code-300: var(--color-slate-300);
+  --color-code-400: var(--color-slate-400);
+  --color-code-500: var(--color-slate-500);
+  --color-code-600: var(--color-slate-600);
+  --color-code-700: var(--color-slate-700);
+  --color-code-800: var(--color-slate-800);
+  --color-code-900: var(--color-slate-900);
+
+  --color-code: var(--color-code-600);
+  --color-code-hover: var(--color-code-700);
+  --color-code-active: var(--color-code-800);
+  --color-code-subtle: var(--color-code-50);
+  --color-code-emphasis: var(--color-code-900);
+
+  /* Example Intent (Blue-based for code examples) */
+  --color-example-50: var(--color-blue-50);
+  --color-example-100: var(--color-blue-100);
+  --color-example-200: var(--color-blue-200);
+  --color-example-300: var(--color-blue-300);
+  --color-example-400: var(--color-blue-400);
+  --color-example-500: var(--color-blue-500);
+  --color-example-600: var(--color-blue-600);
+  --color-example-700: var(--color-blue-700);
+  --color-example-800: var(--color-blue-800);
+  --color-example-900: var(--color-blue-900);
+
+  --color-example: var(--color-example-600);
+  --color-example-hover: var(--color-example-700);
+  --color-example-active: var(--color-example-800);
+  --color-example-subtle: var(--color-example-50);
+  --color-example-emphasis: var(--color-example-900);
+
+  /* Playground Intent (Purple-based for interactive elements) */
+  --color-playground-50: var(--color-purple-50);
+  --color-playground-100: var(--color-purple-100);
+  --color-playground-200: var(--color-purple-200);
+  --color-playground-300: var(--color-purple-300);
+  --color-playground-400: var(--color-purple-400);
+  --color-playground-500: var(--color-purple-500);
+  --color-playground-600: var(--color-purple-600);
+  --color-playground-700: var(--color-purple-700);
+  --color-playground-800: var(--color-purple-800);
+  --color-playground-900: var(--color-purple-900);
+
+  --color-playground: var(--color-playground-600);
+  --color-playground-hover: var(--color-playground-700);
+  --color-playground-active: var(--color-playground-800);
+  --color-playground-subtle: var(--color-playground-50);
+  --color-playground-emphasis: var(--color-playground-900);
+
+  /* API Intent (Emerald-based for API reference) */
+  --color-api-50: var(--color-emerald-50);
+  --color-api-100: var(--color-emerald-100);
+  --color-api-200: var(--color-emerald-200);
+  --color-api-300: var(--color-emerald-300);
+  --color-api-400: var(--color-emerald-400);
+  --color-api-500: var(--color-emerald-500);
+  --color-api-600: var(--color-emerald-600);
+  --color-api-700: var(--color-emerald-700);
+  --color-api-800: var(--color-emerald-800);
+  --color-api-900: var(--color-emerald-900);
+
+  --color-api: var(--color-api-600);
+  --color-api-hover: var(--color-api-700);
+  --color-api-active: var(--color-api-800);
+  --color-api-subtle: var(--color-api-50);
+  --color-api-emphasis: var(--color-api-900);
+
+  /* === DOCS-SPECIFIC DESIGN TOKENS === */
+  /* Layout dimensions */
+  --docs-sidebar-width: 16rem;
+  --docs-sidebar-width-collapsed: 3rem;
+  --docs-content-max-width: 65ch;
+  --docs-toc-width: 14rem;
+  --docs-header-height: 4rem;
+
+  /* Content spacing */
+  --docs-section-gap: 3rem;
+  --docs-paragraph-gap: 1.5rem;
+  --docs-list-gap: 0.75rem;
+  --docs-code-padding: 1rem;
+
+  /* Component dimensions */
+  --docs-card-padding: 1.5rem;
+  --docs-card-radius: 0.75rem;
+  --docs-button-height: 2.5rem;
+  --docs-input-height: 2.25rem;
+
+  /* Typography scales - docs specific */
+  --docs-text-hero: 3rem;
+  --docs-text-title: 2.25rem;
+  --docs-text-heading: 1.875rem;
+  --docs-text-subheading: 1.5rem;
+  --docs-text-body: 1rem;
+  --docs-text-small: 0.875rem;
+  --docs-text-micro: 0.75rem;
+
+  /* Code typography */
+  --docs-code-font-size: 0.875rem;
+  --docs-code-line-height: 1.5;
+  --docs-code-font-family:
+    ui-monospace, SFMono-Regular, 'SF Mono', Consolas, 'Liberation Mono', Menlo, monospace;
+
+  /* Surface tokens - docs specific */
+  --docs-surface-playground: var(--color-surface-elevated);
+  --docs-surface-code: var(--color-code-50);
+  --docs-surface-example: var(--color-example-50);
+  --docs-surface-api: var(--color-api-50);
+  --docs-surface-glass: rgba(255, 255, 255, 0.8);
+
+  /* Border tokens */
+  --docs-border-code: var(--color-code-200);
+  --docs-border-example: var(--color-example-200);
+  --docs-border-playground: var(--color-playground-200);
+  --docs-border-api: var(--color-api-200);
+
+  /* Shadow tokens - docs specific */
+  --docs-shadow-card: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+  --docs-shadow-elevated: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+  --docs-shadow-float: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+
+  /* Animation durations - docs specific */
+  --docs-duration-fast: 150ms;
+  --docs-duration-normal: 250ms;
+  --docs-duration-slow: 350ms;
+
+  /* Z-index scale - docs specific */
+  --docs-z-sticky-nav: 50;
+  --docs-z-floating-toc: 40;
+  --docs-z-code-actions: 30;
+  --docs-z-playground-overlay: 20;
+}
+
+/* Class-based dark mode (for manual theme toggle via .dark on <html>) */
+:root.dark {
+  --color-code: var(--color-code-400);
+  --color-code-hover: var(--color-code-300);
+  --color-code-active: var(--color-code-200);
+  --color-code-subtle: var(--color-code-900);
+  --color-code-emphasis: var(--color-code-100);
+
+  --color-example: var(--color-example-400);
+  --color-example-hover: var(--color-example-300);
+  --color-example-active: var(--color-example-200);
+  --color-example-subtle: var(--color-example-900);
+  --color-example-emphasis: var(--color-example-100);
+
+  --color-playground: var(--color-playground-400);
+  --color-playground-hover: var(--color-playground-300);
+  --color-playground-active: var(--color-playground-200);
+  --color-playground-subtle: var(--color-playground-900);
+  --color-playground-emphasis: var(--color-playground-100);
+
+  --color-api: var(--color-api-400);
+  --color-api-hover: var(--color-api-300);
+  --color-api-active: var(--color-api-200);
+  --color-api-subtle: var(--color-api-900);
+  --color-api-emphasis: var(--color-api-100);
+
+  --docs-surface-code: var(--color-code-950);
+  --docs-surface-example: var(--color-example-950);
+  --docs-surface-api: var(--color-api-950);
+  --docs-surface-glass: rgba(0, 0, 0, 0.8);
+
+  --docs-shadow-card: 0 4px 6px -1px rgba(0, 0, 0, 0.3), 0 2px 4px -1px rgba(0, 0, 0, 0.2);
+  --docs-shadow-elevated: 0 10px 15px -3px rgba(0, 0, 0, 0.3), 0 4px 6px -2px rgba(0, 0, 0, 0.2);
+  --docs-shadow-float: 0 20px 25px -5px rgba(0, 0, 0, 0.4), 0 10px 10px -5px rgba(0, 0, 0, 0.3);
+}
+
+/* Responsive design tokens */
+:root {
+  @media (max-width: 768px) {
+    --docs-sidebar-width: 100vw;
+    --docs-content-max-width: 100%;
+    --docs-section-gap: 2rem;
+    --docs-card-padding: 1rem;
+  }
+
+  @media (max-width: 1024px) {
+    --docs-toc-width: 0;
+    --docs-sidebar-width: 14rem;
+  }
+}

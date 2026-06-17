@@ -1,0 +1,77 @@
+{
+  "name": "@urbicon-ui/sveltekit-utils",
+  "version": "6.1.3",
+  "description": "SvelteKit helper utilities — createCronRunner and URL-state runes",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://codeberg.org/urbicon/ui.git",
+    "directory": "packages/sveltekit-utils"
+  },
+  "homepage": "https://ui.urbicon.de",
+  "bugs": "https://codeberg.org/urbicon/ui/issues",
+  "keywords": [
+    "svelte",
+    "sveltekit",
+    "utilities",
+    "cron",
+    "url-state"
+  ],
+  "type": "module",
+  "private": false,
+  "sideEffects": false,
+  "svelte": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "main": "./dist/index.js",
+  "module": "./dist/index.js",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "svelte": "./dist/index.js",
+      "import": "./dist/index.js",
+      "default": "./dist/index.js"
+    },
+    "./url.svelte": {
+      "types": "./dist/url.svelte.d.ts",
+      "svelte": "./dist/url.svelte.js",
+      "import": "./dist/url.svelte.js",
+      "default": "./dist/url.svelte.js"
+    },
+    "./cron": {
+      "types": "./dist/cron.d.ts",
+      "import": "./dist/cron.js"
+    }
+  },
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "dev": "svelte-package --watch",
+    "build": "svelte-kit sync && svelte-package",
+    "clean": "rm -rf dist .svelte-kit",
+    "clean-all": "bun --bun run clean && rm -rf node_modules",
+    "package": "svelte-kit sync && svelte-package",
+    "check": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json",
+    "check:watch": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json --watch",
+    "format": "biome format --write . && prettier --write \"**/*.svelte\"",
+    "lint": "biome check . && svelte-check --tsconfig ./tsconfig.json",
+    "test": "vitest run"
+  },
+  "peerDependencies": {
+    "svelte": "catalog:",
+    "@sveltejs/kit": "catalog:"
+  },
+  "devDependencies": {
+    "@sveltejs/kit": "catalog:",
+    "@sveltejs/package": "catalog:",
+    "@sveltejs/vite-plugin-svelte": "catalog:",
+    "prettier": "catalog:",
+    "prettier-plugin-svelte": "catalog:",
+    "prettier-plugin-tailwindcss": "catalog:",
+    "svelte": "catalog:",
+    "svelte-check": "catalog:",
+    "typescript": "catalog:",
+    "vite": "catalog:",
+    "vitest": "catalog:"
+  }
+}

@@ -1,0 +1,360 @@
+# Urbicon UI – Component API Conventions
+
+This document defines the API conventions for all Urbicon UI components. Follow these guidelines when creating new components or refactoring existing ones.
+
+## Props Pattern
+
+### `intent` (Color Intent)
+
+Controls the semantic color of a component. Use when a component needs to communicate status, importance, or category through color.
+
+**Standard values:** `primary`, `secondary`, `success`, `warning`, `danger`, `neutral`
+
+**Feedback extension:** Components in the `feedback` category (Alert, Toast) additionally accept `info`. `info` is semantically distinct from `primary` — `primary` is the brand color (which the consumer can rebrand to red/green/violet), `info` is a neutral informational blue that should stay stable. Both are backed by independent token palettes (`--color-primary-*` vs `--color-info-*`) so a brand recolor doesn't accidentally repaint info messages. **Do not** add `info` to action or layout components (Button, Pagination, Toggle, etc.) — `intent="info"` on a button has no semantic meaning.
+
+**Default value convention:**
+
+- Standalone action elements (Button, Avatar): default to `neutral`
+- Embedded/decorative elements (Badge, Checkbox, Toggle): default to `primary`
+- Overlay containers (Dialog, Drawer): default to `neutral`
+- Form elements (Input): default to `default` (no intent coloring)
+
+**Components with intent:** Button, Badge, Checkbox, Toggle, Input, Dialog, Tooltip, Alert (`+info`), Toast (`+info`)
+
+### `variant` (Visual Style)
+
+Controls the visual style/weight of a component independently of color.
+
+**Common values:**
+
+- `filled` – solid background (highest emphasis)
+- `outlined` – border only, transparent background
+- `ghost` – no border, no background, color only
+- `underline` – bottom border only, transparent background (Input only)
+- `text` – minimal, text-only (Button only)
+- `soft` – subtle background tint (Badge only)
+
+**Default:** `filled` for action elements, `outlined` for form elements, `elevated` for containers.
+
+### `size`
+
+Controls the physical dimensions. All components should follow a consistent scale:
+
+| Size | Height | Font      | Use case          |
+| ---- | ------ | --------- | ----------------- |
+| `xs` | h-6    | text-xs   | Dense UI, tables  |
+| `sm` | h-8    | text-sm   | Secondary actions |
+| `md` | h-10   | text-base | Default           |
+| `lg` | h-12   | text-lg   | Primary actions   |
+| `xl` | h-14   | text-xl   | Hero sections     |
+
+**Default:** `md` for all components.
+
+Most components support a subset of this scale. Current component sizes:
+
+| Subset       | Sizes            | Components                                                                                     |
+| ------------ | ---------------- | ---------------------------------------------------------------------------------------------- |
+| Compact      | `sm`, `md`, `lg` | Menu, Pagination, Popover, Tab, Tooltip, Alert, Breadcrumb, Accordion, Combobox, Separator |
+| Standard     | `xs`–`xl`        | Input, Spinner, ButtonGroup, Skeleton                                                          |
+| Extended-4   | `xs`–`lg`        | Badge, Checkbox, Toggle                                                                        |
+| Button       | `2xs`–`xl`       | Button                                                                                         |
+| Avatar       | `xs`–`2xl`       | Avatar                                                                                         |
+| Dialog       | `sm`–`full`      | Dialog                                                                                         |
+
+Avoid introducing new size values unless there's a clear use case.
+
+## Discriminated unions for mutually exclusive props
+
+When a variant fundamentally changes which other props are meaningful, split the props type into a discriminated union. Don't paper over the conflict with optional props plus runtime ignoring — that lets `svelte-check` accept `<Badge variant="dot">5 unread</Badge>`, which silently drops the children and looks like a component bug to the consumer.
+
+**Use a discriminated union when:** one prop's value determines that **other props become semantically invalid** (not just unused).
+
+Two vetted vorbilder in the library:
+
+```ts
+// Badge — variant='dot' forbids children/counter/removable/interactive
+interface BadgeDotProps extends BadgeBaseProps {
+  variant: 'dot';
+  children?: never;
+  counter?: never;
+  removable?: never;
+  interactive?: never;
+  onRemove?: never;
+}
+interface BadgeStandardProps extends BadgeBaseProps {
+  variant?: 'filled' | 'outlined' | 'soft';
+  children?: Snippet;
+  counter?: boolean;
+  removable?: boolean;
+  // …
+}
+export type BadgeProps = BadgeDotProps | BadgeStandardProps;
+```
+
+```ts
+// Tab — orientation='vertical' forbids fullWidth (vertical triggers are already w-full)
+interface TabPropsHorizontal extends TabBaseProps {
+  orientation?: 'horizontal';
+  fullWidth?: boolean;
+}
+interface TabPropsVertical extends TabBaseProps {
+  orientation: 'vertical';
+  fullWidth?: never;
+}
+export type TabProps = TabPropsHorizontal | TabPropsVertical;
+```
+
+Rules:
+
+- **Both arms extend a shared `*BaseProps`** so shared fields stay in one place; only the deciding prop plus the forbidden fields differ.
+- The forbidden fields use `?: never`, not `: never` — they remain *optional* (the consumer doesn't have to write them), but passing a value fails type-check.
+- The deciding prop in the **non-default** arm is **required** (`variant: 'dot'`, `orientation: 'vertical'`) so the discriminant narrows reliably. The default arm makes it optional (`variant?: 'filled' | ...`).
+- The exported `*Props` type is the union (`BadgeDotProps | BadgeStandardProps`). docs-gen and the MCP server pick the discriminated union up automatically — both arms appear in the prop table.
+- The JSDoc on the union type lists the discriminant and the trade-off ("variant='dot' forbids children/...") so the API rule is discoverable from autocomplete, not just from this guide.
+
+**Don't reach for this pattern** when a prop is merely unused in some combination (e.g. `intent` has no visual effect on Spinner — Spinner just ignores it). Save discriminated unions for cases where passing the prop would actively mislead.
+
+## Callbacks
+
+### Native DOM Events
+
+Use Svelte 5 lowercase syntax for native DOM events that are forwarded:
+
+```svelte
+<Button onclick={handler} />
+<Card onclick={handler} />
+```
+
+### Custom State Callbacks
+
+Use `on` + PascalCase for callbacks that emit derived/processed state:
+
+```svelte
+<Checkbox onCheckedChange={(checked) => ...} />
+<Toggle onCheckedChange={(checked) => ...} />
+<Menu onValueChange={(value) => ...} />
+<ButtonGroup onSelectionChange={(selected) => ...} />
+<Tab onValueChange={(value) => ...} />
+<Pagination onPageChange={(page) => ...} />
+<PaginationItem onPageClick={(page) => ...} />
+<Accordion onValueChange={(value) => ...} />
+<Combobox onValueChange={(value) => ...} />
+```
+
+**Parameter convention:** Always pass the new state value, not the raw event.
+
+## Styling
+
+### Design Tokens
+
+Always use semantic tokens over primitive Tailwind classes:
+
+| Instead of                                   | Use                     |
+| -------------------------------------------- | ----------------------- |
+| `bg-white dark:bg-neutral-900`               | `bg-surface-base`       |
+| `bg-white dark:bg-neutral-800`               | `bg-surface-elevated`   |
+| `text-neutral-900 dark:text-white`           | `text-text-primary`     |
+| `text-neutral-700 dark:text-neutral-300`     | `text-text-secondary`   |
+| `text-neutral-500 dark:text-neutral-400`     | `text-text-tertiary`    |
+| `border-neutral-200 dark:border-neutral-700` | `border-border-subtle`  |
+| `border-neutral-300 dark:border-neutral-600` | `border-border-default` |
+| `text-white` (on intent bg)                  | `text-text-on-primary`  |
+| `text-neutral-900` (on warning bg)           | `text-text-on-surface`  |
+
+### Z-Index
+
+Always use CSS custom property tokens:
+
+| Layer    | Token                   | Value |
+| -------- | ----------------------- | ----- |
+| Menu | `z-[var(--z-dropdown)]` | 9999  |
+| Overlay  | `z-[var(--z-overlay)]`  | 1300  |
+| Dialog   | `z-[var(--z-modal)]`    | 1400  |
+| Popover  | `z-[var(--z-popover)]`  | 1500  |
+| Tooltip  | `z-[var(--z-tooltip)]`  | 1800  |
+
+### Focus Styles
+
+Always use `focus-visible:` (not `focus:`). This ensures focus rings only show on keyboard navigation, not mouse clicks.
+
+```
+focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50 focus-visible:ring-offset-2
+```
+
+### Border Radius
+
+Components map to **tier tokens**, not raw Tailwind sizes. The tier expresses semantics ("this is an action" vs. "this is a container"); the actual pixel value is set in `foundation.css` and can be re-tuned by a brand without touching component code. See [ARCHITECTURE.md §Tier System](ARCHITECTURE.md#tier-system) for the model.
+
+| Family / Element | Tier | Class |
+| --- | --- | --- |
+| Action — Button, Menu, ButtonGroup, Toolbar, Toggle | commit | `rounded-commit` |
+| Form — Input, Select, Checkbox, Combobox, Textarea, RadioGroup, Slider | modify | `rounded-modify` |
+| Container — Card, Dialog, Drawer, Popover, Accordion, Collapsible | contain | `rounded-contain` |
+| Navigation — SegmentGroup, Stepper, Tab | tier-aware (commit or modify per component) | `rounded-{tier}` |
+| Menu panel (adjacency case) | bridge | `rounded-bridge` |
+| Avatar.circle, Toggle thumb dot, status indicators | shape | `rounded-full` |
+| Feedback — Toast, Spinner, Progress, Skeleton, Badge | fixed per component | (per-component) |
+
+Tier-aware components honour a wrapping `<TierContext>` — a `<Toolbar tier="modify">` pulls its tier-aware children to `rounded-modify`. The per-instance `tier` prop overrides context.
+
+## Bindable State Props
+
+Props that represent user-controlled state support two-way binding via `bind:`. The corresponding custom callback fires after the state changes:
+
+```svelte
+<Checkbox bind:checked onCheckedChange={(val) => log(val)} />
+<Menu bind:value onValueChange={(val) => log(val)} />
+<ButtonGroup bind:value onSelectionChange={(val, all) => log(val, all)} />
+```
+
+When a prop has a visual-only intermediate state, that state is also bindable:
+
+```svelte
+<Checkbox bind:checked bind:indeterminate />
+```
+
+## `data-state` Attribute
+
+Interactive components with distinct visual states expose a `data-state` attribute on their key element. This enables CSS-only custom styling in `unstyled` mode. ~14 primitives expose it (Toggle, Tab, Drawer, Collapsible, RadioGroup, SegmentGroup, Sidebar, …) — the table below is illustrative, not exhaustive:
+
+| Component | Element | Values                                  |
+| --------- | ------- | --------------------------------------- |
+| Checkbox  | box     | `checked`, `unchecked`, `indeterminate` |
+| Dialog    | dialog  | `open`, `closed`                        |
+
+Use `data-[state=checked]:` in `slotClasses` or consumer CSS to style based on state.
+
+## `interactive` Prop Pattern
+
+Components that can be interactive (Badge, Avatar, Card) use an explicit `interactive` boolean. It is also auto-enabled when an `onclick` handler is provided:
+
+```typescript
+let { interactive = false, onclick, ...rest }: BadgeProps = $props();
+const isInteractive = $derived(interactive || !!onclick);
+```
+
+This allows hover/focus/cursor styles to be enabled without requiring a click handler (e.g. for drag targets).
+
+## `slotClasses`
+
+Per-slot class overrides typed as `Partial<Record<slotName, string>>`. Slot names match the keys in the component's `tv()` definition:
+
+```typescript
+slotClasses?: Partial<Record<'wrapper' | 'control' | 'box' | 'icon' | 'label' | 'message', string>>;
+```
+
+When `unstyled` is `false`, `slotClasses` values are merged with default tv() classes. When `unstyled` is `true`, they replace them entirely.
+
+To restyle an embedded component (e.g. make an Input look borderless inside a custom container), override the visual boundary slot:
+
+```svelte
+<Input slotClasses={{ base: 'border-0 bg-transparent focus-visible:ring-0' }} />
+```
+
+## Polymorphic Elements (Link-Buttons, Anchor-as-Card, etc.)
+
+Primitives never accept an `href` / `as` / `component` prop to swap their root element. A `Button` always renders `<button>`, a `Card` always renders `<div>`. The library does not own the choice between `<button>` and `<a>` — that decision depends on app-routing concerns (SvelteKit `resolve()`, external vs. internal URLs, `target`/`rel` policies) that the library cannot see.
+
+When you need a Link-Button, write a thin wrapper in your app and reuse the exported variant function:
+
+```svelte
+<!-- LinkButton.svelte (in your app) -->
+<script lang="ts">
+  import { buttonVariants, type ButtonProps } from '@urbicon-ui/blocks';
+  import type { HTMLAnchorAttributes } from 'svelte/elements';
+
+  let {
+    href,
+    intent = 'neutral',
+    variant = 'filled',
+    size = 'md',
+    class: className,
+    children,
+    ...rest
+  }: HTMLAnchorAttributes & Pick<ButtonProps, 'intent' | 'variant' | 'size' | 'class'> = $props();
+</script>
+
+<a {href} class={buttonVariants({ intent, variant, size }).base({ class: className })} {...rest}>
+  {@render children?.()}
+</a>
+```
+
+This pattern keeps primitives narrow, leaves `resolve()` decisions in app code, and avoids forcing a polymorphic type that splits between `HTMLButtonAttributes` and `HTMLAnchorAttributes`. Apply the same approach if you ever need an anchor styled like a Card or a Badge — call the corresponding `*Variants()` directly.
+
+## Snippet vs. Component Cell Rendering
+
+Components that accept per-row content (most prominently `Table` via `column.cell`) expose two rendering hooks:
+
+- **Snippet (`column.cell`)** — concise, defined inline in the consumer's `.svelte` template. Best for one-off cells that read a couple of fields.
+- **Component (`column.component` + `column.componentProps`)** — pulls a typed Svelte component out into its own file. Best when the cell has more than ~10 lines of logic, gets reused across tables, or needs its own tests.
+
+Prefer the **component** form when:
+
+- The cell is non-trivial (state, effects, lifecycle, deeper trees).
+- You hit `eslint-plugin-svelte` parser bugs on snippet type annotations like `{#snippet name(item: T, _value: unknown)}` (this is a known plugin issue at the time of writing; `svelte-check` accepts the syntax). Component cells sidestep the snippet-arg parser entirely.
+- You want full TypeScript inference on the cell's `Item` generic without leaning on `T`-typed snippet arguments.
+
+Each cell component should accept `item: Item` plus any extra props passed through `componentProps`, and stay agnostic of the table's surrounding context.
+
+## `tier` Prop (Action / Form / Navigation / Container families)
+
+Tier-aware primitives accept an optional `tier` prop that selects the radius semantics of the component. The value comes from the wrapping `<TierContext>` by default; the prop overrides it.
+
+```svelte
+<!-- Default: Button is commit-tier (pill) -->
+<Button>Save</Button>
+
+<!-- Per-instance override -->
+<Button tier="modify">Inline action in a form</Button>
+
+<!-- Context cascade — all tier-aware children pick up modify -->
+<Toolbar tier="modify">
+  <Button>Bold</Button>
+  <Toggle />
+  <Checkbox label="Wrap" />
+</Toolbar>
+```
+
+**Default-Tier by family:** Action `commit` · Form `modify` · Navigation per component (SegmentGroup `commit`, Tab `modify`, Stepper `commit`) · Container `contain`. Full table in [ARCHITECTURE.md §Tier System](ARCHITECTURE.md#tier-system).
+
+**Standard implementation pattern** (in `ComponentName.svelte`):
+
+```ts
+import { getTierContext } from '$lib/utils';
+
+const tierCtx = getTierContext();
+const effectiveTier = $derived(tier ?? tierCtx?.tier ?? 'commit'); // family default
+```
+
+Feedback / Ambient components (Toast, Spinner, Progress, Skeleton) and Identity (Avatar) do **not** take a `tier` prop — they have fixed geometry by design (see [COMPONENT-FAMILIES.md](COMPONENT-FAMILIES.md)). Badge is the lone Feedback exception (Badge inside a `<Toolbar tier="modify">` does want to flatten), but the family-level rule remains: Feedback geometry is per-component.
+
+## Editorial Hooks
+
+`packages/docs` components carry small `data-*` attributes so that an opt-in editorial theme (currently `apps/docs/`) can flatten or hide chrome without forking the components:
+
+| Hook | Attached to | Editorial behaviour |
+| --- | --- | --- |
+| `data-docs-stage="example|playground"` | `CodeExample` and `PlaygroundConfigurator` outer wrappers | Background flattens to transparent in `.docs-editorial` |
+| `data-docs-stage-frame` | Inner preview frame (Code / Playground) | Same — flattens against cream paper |
+| `data-docs-subtitle` | `description` paragraph in `DocsLayout` | `display: none` in editorial scope |
+
+Consumers writing their own theme can hook the same attributes. The library defaults remain unchanged. See [ARCHITECTURE.md §Editorial Theme](ARCHITECTURE.md#editorial-theme-docs-only) for the full theme architecture.
+
+## Common Props
+
+All visible components should support:
+
+- `class` – for external class overrides (via `let { class: className } = $props()`)
+- `unstyled` – boolean to strip all default styles
+- `disabled` – boolean where applicable
+- `...restProps` – spread remaining props to root element
+
+## Accessibility
+
+- All interactive elements must have `focus-visible` styles
+- Form elements need `aria-describedby` linking to error/helper messages
+- Dialog must implement focus trap
+- Use `role`, `aria-label`, `aria-expanded` where semantically appropriate
+- Set `aria-invalid` only when there is an actual error – not as `aria-invalid="false"`
+- For hidden native inputs (Checkbox, Toggle), use `peer` on the input and `peer-focus-visible:` on the visible element to relay the focus ring
+- Compound components: use correct ARIA roles (`radiogroup`/`radio` for single-select, `group`/`checkbox` for multi-select)

@@ -1,0 +1,13 @@
+[install]
+# Bun 1.3 uses the isolated linker (.bun store) for workspaces by default.
+# Platform-specific binary packages (e.g. lefthook-darwin-arm64) then don't land
+# top-level in node_modules. Lefthook's git hook looks for the native binary at
+# node_modules/lefthook-<os>-<arch>/bin/lefthook and otherwise falls back to the
+# node wrapper bin/index.js — which fails in the git-hook shell without node on PATH
+# ("env: node: No such file or directory"). hoisted keeps the binary top-level.
+linker = "hoisted"
+
+# @urbicon dev tooling (biome-config, commitlint-config, udx) from Codeberg's
+# public package registry — anonymous read, no token required.
+[install.scopes]
+"@urbicon" = { url = "https://codeberg.org/api/packages/urbicon/npm/" }

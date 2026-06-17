@@ -1,0 +1,6 @@
+User-agent: *
+Allow: /
+Disallow: /test-fixtures/
+Disallow: /blocks/primitives/_template
+
+Sitemap: https://ui.urbicon.de/sitemap.xml

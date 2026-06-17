@@ -1,0 +1,99 @@
+{
+  "name": "@urbicon-ui/blocks",
+  "version": "6.1.3",
+  "description": "Svelte 5 UI component library with Tailwind CSS 4, OKLCH design tokens and zero runtime dependencies",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://codeberg.org/urbicon/ui.git",
+    "directory": "packages/blocks"
+  },
+  "homepage": "https://ui.urbicon.de",
+  "bugs": "https://codeberg.org/urbicon/ui/issues",
+  "keywords": [
+    "svelte",
+    "sveltekit",
+    "ui",
+    "components",
+    "tailwindcss",
+    "design-system",
+    "oklch"
+  ],
+  "scripts": {
+    "dev": "svelte-package --watch",
+    "build": "svelte-kit sync && svelte-package",
+    "clean": "rm -rf dist .svelte-kit",
+    "clean-all": "bun --bun run clean && rm -rf node_modules",
+    "package": "svelte-kit sync && svelte-package",
+    "preview": "vite preview",
+    "check": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json",
+    "check:watch": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json --watch",
+    "format": "biome format --write . && prettier --write \"**/*.svelte\"",
+    "lint": "biome check . && svelte-check --tsconfig ./tsconfig.json",
+    "test": "vitest",
+    "test:run": "vitest run"
+  },
+  "files": [
+    "dist",
+    "!dist/**/*.test.*",
+    "!dist/**/*.spec.*"
+  ],
+  "svelte": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "type": "module",
+  "main": "./dist/index.js",
+  "module": "./dist/index.js",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "svelte": "./dist/index.js",
+      "import": "./dist/index.js",
+      "default": "./dist/index.js"
+    },
+    "./style/index.css": "./dist/style/index.css",
+    "./style/foundation.css": "./dist/style/foundation.css",
+    "./style/semantic.css": "./dist/style/semantic.css",
+    "./style/interaction.css": "./dist/style/interaction.css",
+    "./style/themes/*": "./dist/style/themes/*",
+    "./i18n/en": {
+      "types": "./dist/translations/en.d.ts",
+      "import": "./dist/translations/en.js",
+      "default": "./dist/translations/en.js"
+    },
+    "./i18n/de": {
+      "types": "./dist/translations/de.d.ts",
+      "import": "./dist/translations/de.js",
+      "default": "./dist/translations/de.js"
+    }
+  },
+  "sideEffects": [
+    "./src/**/*.css",
+    "./dist/**/*.css",
+    "./dist/i18n/index.js",
+    "./dist/i18n/index.d.ts"
+  ],
+  "peerDependencies": {
+    "svelte": "catalog:",
+    "@sveltejs/kit": "catalog:",
+    "@urbicon-ui/i18n": "^6.0.0",
+    "@urbicon-ui/shared-types": "^6.0.0"
+  },
+  "dependencies": {},
+  "devDependencies": {
+    "@sveltejs/kit": "catalog:",
+    "@sveltejs/package": "catalog:",
+    "@sveltejs/vite-plugin-svelte": "catalog:",
+    "@tailwindcss/vite": "catalog:",
+    "@urbicon-ui/i18n": "workspace:*",
+    "@urbicon-ui/shared-types": "workspace:*",
+    "prettier": "catalog:",
+    "prettier-plugin-svelte": "catalog:",
+    "prettier-plugin-tailwindcss": "catalog:",
+    "svelte": "catalog:",
+    "svelte-check": "catalog:",
+    "tailwindcss": "catalog:",
+    "typescript": "catalog:",
+    "vite": "catalog:",
+    "vitest": "catalog:"
+  }
+}

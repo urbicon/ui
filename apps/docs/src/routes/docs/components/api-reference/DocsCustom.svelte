@@ -1,0 +1,49 @@
+<script lang="ts">
+  import type { SvelteDocsConfig } from '@urbicon-ui/shared-types';
+  import { CodeExample, Section, ApiReference, InfoCard } from '@urbicon-ui/docs';
+
+  export const docsConfig: SvelteDocsConfig = {
+    generation: {
+      overview: { enabled: true },
+      playground: { enabled: false },
+      variants: { enabled: false },
+      examples: { enabled: true, order: 3 },
+      api: { enabled: true, order: 9, groupBy: 'category', showInheritance: true },
+      usage: { enabled: true, order: 8 }
+    },
+    llm: { include: true, maxSections: 5, priority: ['overview', 'api'] },
+    meta: { title: 'ApiReference Component', showToc: true }
+  };
+</script>
+
+<Section id="examples" title="Examples" subtitle="Render a simple API table">
+  <CodeExample
+    title="Basic Usage"
+    code={`<ApiReference props={[{ name: 'prop', type: 'string' }]} />`}
+  >
+    <ApiReference props={[{ name: 'prop', type: 'string', description: 'Example' }]} />
+  </CodeExample>
+</Section>
+
+<Section id="use-cases" title="Use Cases" subtitle="Where ApiReference shines">
+  <div class="grid grid-cols-1 gap-4 md:grid-cols-2">
+    <InfoCard title="Component Docs">Automatic API tables for Props, Events and Slots</InfoCard>
+    <InfoCard title="TypeScript Integration">Render TS interfaces as readable docs</InfoCard>
+    <InfoCard title="Living Docs">Always up-to-date via code-sync</InfoCard>
+    <InfoCard title="DX">Fast overview for reviewers and contributors</InfoCard>
+  </div>
+
+  <CodeExample
+    title="Advanced Configuration"
+    language="svelte"
+    preview={false}
+    code={`<ApiReference 
+  componentName="Button"
+  props={buttonProps}
+  events={buttonEvents}
+  slots={buttonSlots}
+/>`}
+  >
+    <!-- no preview -->
+  </CodeExample>
+</Section>

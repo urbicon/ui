@@ -1,0 +1,141 @@
+# Urbicon UI – Cursor Rules
+
+## Framework
+
+Svelte 5 + Tailwind CSS 4 component library monorepo using Bun workspaces.
+Components use Svelte 5 runes ($props, $state, $derived, $effect) and Snippets.
+
+For full architecture details see `docs/ARCHITECTURE.md`.
+
+## Import Rules
+
+ALWAYS import from the package root:
+```svelte
+import { Button, Input, Card, Dialog, Badge, Checkbox, Toggle, Menu, Combobox, Tooltip, Spinner, Avatar, Tab, Pagination, Popover, ButtonGroup, Toolbar, Alert, Toaster, toaster, Accordion, AccordionItem, Breadcrumb, Separator, Skeleton } from '@urbicon-ui/blocks';
+```
+
+NEVER import from internal paths:
+```svelte
+// WRONG
+import Button from '@urbicon-ui/blocks/primitives/Button/Button.svelte';
+import { buttonVariants } from '@urbicon-ui/blocks/primitives/Button/button.variants';
+```
+
+For i18n: wrap the app root in `<I18nProvider locale={…}>`, read via `useI18n()` / `use<Package>I18n()` hooks (call during component init), switch with `<LocaleSwitcher>`. Without a provider, reads resolve the base locale (`en`).
+```ts
+import { I18nProvider, useI18n } from '@urbicon-ui/i18n';
+import { LocaleSwitcher } from '@urbicon-ui/blocks';
+```
+
+## Styling Rules
+
+### USE semantic design tokens:
+- `bg-surface-base`, `bg-surface-elevated`, `bg-surface-overlay`
+- `text-text-primary`, `text-text-secondary`, `text-text-tertiary`
+- `border-border-subtle`, `border-border-default`
+- `bg-primary`, `bg-primary-subtle`, `text-primary` (intent colors)
+- `shadow-[var(--blocks-shadow-sm)]` through `shadow-[var(--blocks-shadow-lg)]`
+- `duration-[var(--blocks-duration-fast)]`, `var(--blocks-ease-confident)`
+- `z-[var(--z-modal)]`, `z-[var(--z-popover)]`, `z-[var(--z-tooltip)]`
+
+### NEVER use:
+- `dark:` prefixed classes (semantic tokens handle dark mode automatically)
+- Hardcoded colors like `bg-white`, `text-neutral-900`, `border-neutral-200`
+- Hardcoded `z-index` values
+- `focus:` (always use `focus-visible:` for keyboard-only focus rings)
+- Hardcoded `cubic-bezier` or durations
+- `shadow-sm` / `shadow-md` (use `shadow-[var(--blocks-shadow-sm)]`)
+
+## Svelte 5 Rules
+
+- Use `$props()` – NEVER `export let`
+- Use `{#snippet}` / `{@render}` – NEVER `<slot>`
+- Use callback props – NEVER `createEventDispatcher()`
+- Native DOM events: lowercase (`onclick`, `onfocus`, `onkeydown`)
+- Custom state callbacks: `on` + PascalCase (`onCheckedChange`, `onValueChange`, `onPageChange`)
+- Always pass the new state value, not the raw DOM event
+
+## Customization Escape Hatch (Presets)
+
+When a component needs a look **outside the semantic `intent` palette** (primary/secondary/success/warning/danger/neutral) — e.g. a dark translucent overlay, a brand color, a "glass" surface:
+
+### USE preset registration at the app root:
+```svelte
+<BlocksProvider
+  presets={{
+    Button: {
+      overlay: {
+        slotClasses: {
+          base: 'bg-black/20 hover:bg-black/30 active:bg-black/40 text-white border-transparent'
+        }
+      }
+    }
+  }}
+>
+  <Button preset="overlay">Reinholen</Button>
+</BlocksProvider>
+```
+
+### NEVER use inline `class` with `!` overrides to force colors:
+```svelte
+<!-- WRONG — defeats hover/active cascade, inconsistent, leaks into every call site -->
+<Button class="bg-black/20! hover:bg-black/30! active:bg-black/40!">Reinholen</Button>
+```
+
+Define all interactive states (`hover:`, `active:`, `focus-visible:`) inside the preset.
+Merge order: tv() defaults → provider `defaults` → provider `presets[name]` → instance `slotClasses` → instance `class`.
+
+## Guide System (in-app help)
+
+The `Guide` family is a bidirectional in-app help system over one headless `GuideController`:
+a non-modal help panel, contextual hints, UI↔guide links, and an opt-in spotlight tour.
+
+### Imports
+```svelte
+import {
+  GuideProvider, GuidePanel, GuideArticle, GuideMarker, GuideMention,
+  GuideHint, Guide, GuideBeacon, GuideController
+} from '@urbicon-ui/blocks';
+import type { GuideTour, GuideStep, GuideStepEvent, GuideEndEvent } from '@urbicon-ui/blocks';
+```
+
+### data-guide namespace
+Mark any element a topic with `data-guide="<id>"` (declarative, framework-agnostic) or
+`{@attach guide.target('<id>', { label, article, direction })}` (programmatic, with metadata).
+One id is shared by tours, hints, markers, and mentions:
+```svelte
+<button data-guide="save">Save</button>             <!-- the target -->
+<GuideMarker for="save" />                            <!-- UI → panel (Direction A) -->
+<GuideMention for="save">Save button</GuideMention>   <!-- panel → UI highlight (Direction B) -->
+```
+
+### DO
+- Mount one `GuideProvider` near the app root and one `<Guide />` (tour renderer) inside it.
+- Create the `GuideController` yourself when you need programmatic control (`startTour`, `openPanel`, `hasSeen`).
+- Use `GuideBeacon` as the gentle, opt-in tour entry; keep the tour itself opt-in.
+- Wire `onStep` / `onComplete` / `onSkip` on the tour — that funnel is the real value of onboarding.
+- Keep guide *content* (steps, articles, selectors) in the consuming app, not the library.
+
+### DON'T
+- Don't auto-start a tour on load without user intent — Guide is "helpful, not intrusive."
+- Don't wrap the panel in a modal / focus-trap — it is non-modal by design (Direction B needs the app interactive behind it).
+- Don't use `Math.random()` for `data-guide` ids; they are author-chosen, stable strings.
+
+## Component Creation
+
+When creating new components, follow the structure and patterns in `docs/ComponentStructureStandard.md`.
+
+Every component must support `unstyled`, `slotClasses`, `class`, and `disabled` props.
+Use `tailwind-variants` (`tv()`) for all variant logic.
+
+## Commits
+
+Follow Conventional Commits: `<type>(<scope>): <description>`
+Types: feat, fix, refactor, docs, style, test, chore, build, ci, perf
+
+## References
+
+- Full API conventions: `docs/COMPONENT-API-CONVENTIONS.md`
+- Component structure: `docs/ComponentStructureStandard.md`
+- Tailwind 4 caveats: `docs/TailwindCaveats.md`
+- Documentation pages: `docs/DocsPageGuide.md`

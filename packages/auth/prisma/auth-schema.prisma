@@ -1,0 +1,162 @@
+// Reference schema for @urbicon-ui/auth
+// Copy the relevant models into your own schema.prisma.
+// Consumer-specific fields (e.g. 'apartment') belong in a separate
+// UserProfile model — NOT here.
+
+model User {
+  id                     String    @id @default(uuid())
+  email                  String    @unique
+  name                   String
+  passwordHash           String
+  role                   String    @default("USER")
+  emailVerified          Boolean   @default(false)
+  tokenVersion           Int       @default(0)
+
+  // Lockout
+  failedLoginAttempts    Int       @default(0)
+  lockedUntil            DateTime?
+  lastFailedLogin        DateTime?
+
+  // Verification
+  verificationToken         String?   @unique
+  verificationTokenExpires  DateTime?
+
+  // Password-Reset
+  passwordResetToken         String?  @unique
+  passwordResetTokenExpires  DateTime?
+
+  // Email-Change (verified to the NEW address; one pending change per user)
+  pendingEmail               String?
+  emailChangeToken           String?   @unique
+  emailChangeTokenExpires    DateTime?
+
+  // Two-Factor (TOTP). The secret is stored ENCRYPTED at rest (AES-256-GCM,
+  // see server/totp.ts). totpEnabled is the only one surfaced publicly
+  // (sanitizeUser); the secret never leaves the server.
+  totpSecret                 String?
+  totpEnabled                Boolean   @default(false)
+  totpConfirmedAt            DateTime?
+
+  // Relations (auth-intern)
+  pushSubscriptions         PushSubscription[]
+  notifications             Notification[]
+  notificationPreferences   NotificationPreference[]
+  passkeys                  Passkey[]
+  refreshTokens             RefreshToken[]
+  twoFactorBackupCodes      TwoFactorBackupCode[]
+  invitationsSent           Invitation[]    @relation("InvitedBy")
+
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+}
+
+model Invitation {
+  id          String    @id @default(uuid())
+  email       String    @unique
+  role        String
+  // onDelete: Cascade so deleting the inviter also removes the invitations they
+  // sent. The shipped adapter's `user.delete` ALSO removes them in a transaction
+  // (portable for schemas without this cascade), so the two are belt-and-braces.
+  invitedBy   User      @relation("InvitedBy", fields: [invitedById], references: [id], onDelete: Cascade)
+  invitedById String
+  usedAt      DateTime?
+  createdAt   DateTime  @default(now())
+}
+
+model PushSubscription {
+  id        String   @id @default(uuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  endpoint  String   @unique
+  keys      Json
+  createdAt DateTime @default(now())
+}
+
+model Notification {
+  id        String    @id @default(uuid())
+  userId    String
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  typeKey   String
+  title     String
+  body      String?
+  url       String?
+  icon      String?
+  readAt    DateTime?
+  createdAt DateTime  @default(now())
+}
+
+model NotificationType {
+  key         String  @id
+  label       String
+  description String?
+}
+
+model NotificationPreference {
+  id      String  @id @default(uuid())
+  userId  String
+  user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  typeKey String
+  sse     Boolean @default(true)
+  push    Boolean @default(true)
+  email   Boolean @default(true)
+
+  @@unique([userId, typeKey])
+}
+
+model Passkey {
+  id            String    @id @default(uuid())
+  userId        String
+  user          User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  credentialId  String    @unique
+  publicKey     Bytes
+  publicKeyAlg  Int
+  counter       Int       @default(0)
+  transports    String[]  @default([])
+  aaguid        String
+  name          String    @default("Passkey")
+  createdAt     DateTime  @default(now())
+  lastUsedAt    DateTime?
+}
+
+// Refresh tokens are stored as SHA-256 hashes (never raw). Each login
+// creates a new `family` UUID; every successful rotation replaces the
+// token inside the same family. If a *revoked* token in a family is ever
+// presented again, the full family is invalidated as a reuse-detection
+// countermeasure (stolen-token-scenario). Opt-in via
+// `AuthConfig.refreshToken`.
+model RefreshToken {
+  id            String    @id @default(uuid())
+  userId        String
+  user          User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  tokenHash     String    @unique
+  family        String
+  expiresAt     DateTime
+  revokedAt     DateTime?
+  replacedById  String?
+  createdAt     DateTime  @default(now())
+
+  // Session-listing metadata (optional). userAgent drives device recognition;
+  // ip is only written when the consumer sets config.sessions.storeIp.
+  userAgent     String?
+  ip            String?
+
+  @@index([userId])
+  @@index([family])
+  @@index([expiresAt])
+}
+
+// Two-factor backup (recovery) codes, stored as SHA-256 hashes (never raw).
+// 8–10 are issued once at 2FA enable; each is single-use (usedAt flips null→now
+// on redemption). Cleared and re-issued on enable, removed on disable; the
+// cascade also clears them when the user is deleted. Opt-in via
+// `AuthConfig.twoFactor`.
+model TwoFactorBackupCode {
+  id        String    @id @default(uuid())
+  userId    String
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  codeHash  String
+  usedAt    DateTime?
+  createdAt DateTime  @default(now())
+
+  @@index([userId])
+}

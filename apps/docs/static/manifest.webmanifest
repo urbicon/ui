@@ -1,0 +1,13 @@
+{
+  "name": "Urbicon UI",
+  "short_name": "Urbicon UI",
+  "description": "Zero-dependency Svelte 5 component library with Tailwind 4, AI-native DX, and OKLCH design tokens.",
+  "start_url": "/",
+  "display": "browser",
+  "background_color": "#f7f5f0",
+  "theme_color": "#f7f5f0",
+  "icons": [
+    { "src": "/icon-192.png", "sizes": "192x192", "type": "image/png" },
+    { "src": "/icon-512.png", "sizes": "512x512", "type": "image/png" }
+  ]
+}

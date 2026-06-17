@@ -1,0 +1,50 @@
+/*
+ * @urbicon-ui/blocks – Theme Index
+ *
+ * This file does NOT import any theme. It exists for documentation purposes.
+ * Import individual themes AFTER the base styles in your app's CSS:
+ *
+ *   @import '@urbicon-ui/blocks/style/index.css';
+ *   @import '@urbicon-ui/blocks/style/themes/ocean.css';
+ *
+ * Available themes:
+ *
+ *   ocean.css    – Cool blue-teal palette (hue 220)
+ *   forest.css   – Earthy green palette (hue 155)
+ *   sunset.css   – Warm orange-amber palette (hue 55)
+ *   rose.css     – Soft pink-rose palette (hue 350)
+ *   neutral.css  – Desaturated grayscale for content-focused UIs
+ *
+ * Each theme overrides three foundation ramps via Tailwind 4 @theme blocks:
+ *
+ *   --color-primary-*    the brand accent
+ *   --color-secondary-*  the supporting accent
+ *   --color-neutral-*    the chassis — re-tinted to the accent's temperature
+ *                        (e.g. Sunset shifts it warm, Ocean cool) so that
+ *                        surfaces, text and borders harmonise instead of
+ *                        reading as a fixed cool grey. Only the hue shifts;
+ *                        lightness and chroma match the foundation ramp, so
+ *                        WCAG contrast is preserved.
+ *
+ * Because surface-*, text-* and border-* all derive from --color-neutral-*
+ * in semantic.css, re-tinting that one ramp flows through the whole chassis
+ * automatically — no per-token surface overrides needed.
+ *
+ * Each colored theme additionally re-tunes only the intent ramps that would
+ * collide with its accent (e.g. Forest pushes success/warning away from its
+ * green/lime, Ocean moves info off the brand blue), sets a matching shadow
+ * tint, and re-tints the NEUTRAL intent (bg-neutral / text-neutral / borders)
+ * to its temperature via `--neutral-chrome-hue` — all on :root. The neutral
+ * intent keeps the warm-neutral ramp's lightness profile (so its WCAG
+ * tradeoffs are preserved); only the hue follows the theme. Other
+ * non-colliding intents (success/warning/danger/info) stay at the library
+ * defaults. The Neutral theme inherits the library-default cool grey chrome
+ * and leaves success/warning/danger/info + shadow tint untouched, by design.
+ *
+ * You can also create your own theme by defining a @theme block that
+ * overrides these ramps. Use the Theme Builder at /customization/theme-builder
+ * in the docs app to generate matched OKLCH palettes (accent + chassis)
+ * interactively. To art-direct further (re-tuned intents, custom surface
+ * stops, warm shadow tint), see apps/docs/src/lib/style/editorial.css for a
+ * fully worked example.
+ */

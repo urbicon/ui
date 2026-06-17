@@ -1,0 +1,42 @@
+{
+  "name": "@urbicon-ui/mcp-server",
+  "version": "6.1.3",
+  "description": "Model Context Protocol server exposing the Urbicon UI component catalog, recipes and design intelligence to LLM agents",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://codeberg.org/urbicon/ui.git",
+    "directory": "packages/mcp-server"
+  },
+  "homepage": "https://ui.urbicon.de",
+  "bugs": "https://codeberg.org/urbicon/ui/issues",
+  "keywords": [
+    "mcp",
+    "model-context-protocol",
+    "design-system",
+    "ai"
+  ],
+  "type": "module",
+  "main": "./src/index.ts",
+  "bin": {
+    "urbicon-mcp": "./src/index.ts"
+  },
+  "scripts": {
+    "build": "echo 'no build needed — Bun runs TypeScript directly'",
+    "dev": "bun run --watch src/index.ts",
+    "start": "bun run src/index.ts",
+    "start:http": "bun run src/index.ts --transport http --port 3001",
+    "check": "tsc --noEmit",
+    "test": "vitest",
+    "test:run": "vitest run"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.29.0",
+    "zod": "^4.3.6"
+  },
+  "devDependencies": {
+    "typescript": "catalog:",
+    "@types/node": "catalog:",
+    "vitest": "catalog:"
+  }
+}

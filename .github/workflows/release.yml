@@ -1,0 +1,115 @@
+name: Release
+
+# Triggered when a `vX.Y.Z` tag lands on main (created by
+# `bun run bump:{patch,minor,major}` followed by `git push --follow-tags`).
+# Runs the full CI gate (lint, typecheck, unit, e2e) before publishing, so a
+# broken tag cannot ship to npm.
+#
+# Required repository secrets:
+#   NPM_REGISTRY_URL  — base URL of the registry (e.g. https://registry.npmjs.org)
+#   NPM_TOKEN         — auth token with publish rights for the @urbicon-ui scope
+#
+# Without these the publish step is a no-op (we still build + verify).
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+jobs:
+  publish:
+    name: Build & publish
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    env:
+      NPM_REGISTRY_URL: ${{ secrets.NPM_REGISTRY_URL }}
+      NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: oven-sh/setup-bun@v2
+
+      - name: Install
+        run: bun install --frozen-lockfile
+
+      - name: Lint
+        run: bun run lint
+
+      - name: Type check
+        run: |
+          bun run build:ts
+          bun run check
+
+      - name: Build packages
+        run: bun run build
+
+      - name: Run unit tests
+        run: |
+          bun --filter='@urbicon-ui/blocks' run test:run
+          bun --filter='@urbicon-ui/i18n' run test:run
+          bun --filter='@urbicon-ui/docs-gen' run test
+          (cd packages/auth && bunx --bun vitest run)
+          (cd packages/table && bunx --bun vitest run)
+          (cd packages/mcp-server && bunx --bun vitest run)
+          (cd packages/docs && bunx --bun vitest run)
+          (cd packages/sveltekit-utils && bunx --bun vitest run)
+
+      - name: Playwright e2e
+        run: |
+          bunx playwright install --with-deps chromium
+          bunx playwright test
+
+      - name: Configure registry
+        if: env.NPM_REGISTRY_URL != ''
+        run: |
+          # Write to $HOME/.npmrc so credentials never land in the repo
+          # workspace (protects against accidental artifact upload / commit).
+          REGISTRY_HOST=$(echo "$NPM_REGISTRY_URL" | sed -E 's|^https?://||')
+          {
+            echo "@urbicon-ui:registry=$NPM_REGISTRY_URL"
+            echo "//$REGISTRY_HOST/:_authToken=$NPM_TOKEN"
+          } > "$HOME/.npmrc"
+
+      - name: Publish packages
+        if: env.NPM_REGISTRY_URL != ''
+        run: |
+          set -e
+          # Each tarball must carry the license text; npm only auto-includes
+          # a LICENSE file from the package directory, not the repo root.
+          for dir in packages/*/; do
+            [ -f "$dir/package.json" ] && cp LICENSE "$dir/LICENSE" || true
+          done
+          # Topological order: dependents come after their dependencies so a
+          # consumer installing `@urbicon-ui/blocks` mid-publish never sees a
+          # range pointing at a not-yet-published `@urbicon-ui/i18n`.
+          for dir in packages/shared-types \
+                     packages/sveltekit-utils \
+                     packages/mcp-server \
+                     packages/i18n \
+                     packages/docs-gen \
+                     packages/blocks \
+                     packages/table \
+                     packages/auth \
+                     packages/docs; do
+            if [ ! -f "$dir/package.json" ]; then
+              echo "::warning::$dir/package.json not found, skipping"
+              continue
+            fi
+            NAME=$(node -p "require('./$dir/package.json').name")
+            VERSION=$(node -p "require('./$dir/package.json').version")
+            echo "::group::Publishing $NAME@$VERSION"
+            # Skip if the exact name@version is already published (re-running
+            # the workflow on a flaky tag should be idempotent).
+            if npm view "$NAME@$VERSION" version --registry "$NPM_REGISTRY_URL" >/dev/null 2>&1; then
+              echo "$NAME@$VERSION already published — skipping"
+            else
+              (cd "$dir" && npm publish --access public --registry "$NPM_REGISTRY_URL")
+            fi
+            echo "::endgroup::"
+          done
+
+      - name: Skip publish notice
+        if: env.NPM_REGISTRY_URL == ''
+        run: |
+          echo "::notice::NPM_REGISTRY_URL secret is not set — packages were built and tested but not published."

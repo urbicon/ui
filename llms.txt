@@ -1,0 +1,49 @@
+# Urbicon UI
+
+> Svelte 5 component library with built-in i18n, OKLCH design tokens, and AI-native developer experience.
+
+## Overview
+
+Urbicon UI is a Svelte 5 + Tailwind CSS 4 component library designed for LLM-assisted development. It uses a custom zero-dependency `tv()` variant engine for styling, a three-layer OKLCH token system for automatic dark mode, and provides production-ready primitives and patterns.
+
+## Quick Start
+
+Packages are published on the public npm registry — no registry configuration needed, just install:
+
+```bash
+bun add @urbicon-ui/blocks
+# or: npm install @urbicon-ui/blocks
+```
+
+```svelte
+<script>
+  import { Button, Input, Card } from '@urbicon-ui/blocks';
+</script>
+
+<Card variant="elevated" padding="md">
+  <Input label="Name" placeholder="Enter name" />
+  <Button intent="primary" variant="filled">Submit</Button>
+</Card>
+```
+
+## Documentation
+
+- [Full API Reference](llms-full.txt): Complete component props, variants, tokens, and patterns
+- [Architecture](docs/ARCHITECTURE.md): Token system, Mint interactions, i18n, docs-gen pipeline
+- [API Conventions](docs/COMPONENT-API-CONVENTIONS.md): Props patterns, callbacks, styling rules
+- [Component Structure](docs/ComponentStructureStandard.md): File layout, index.ts pattern
+
+## Components
+
+- **Layout**: Card, Modal, Dialog, Popover, Tooltip, Separator, Accordion
+- **Actions**: Button, ButtonGroup, Toolbar, Dropdown, Combobox
+- **Forms**: Input, Checkbox, Toggle
+- **Feedback**: Badge, Spinner, Pagination, Alert, Toast, Skeleton
+- **Navigation**: Tab, Breadcrumb
+- **Display**: Avatar
+- **Help / Guidance**: Guide, GuidePanel, GuideHint, GuideMarker, GuideMention, GuideBeacon (bidirectional in-app help: opt-in spotlight tour, contextual hints, non-modal help panel, UI↔guide links)
+
+## Key Patterns
+
+All components share: `intent`, `size`, `variant`, `unstyled`, `slotClasses`, `mint`, `class` props.
+Import from `@urbicon-ui/blocks`. Use semantic tokens (`bg-surface-base`, not `bg-white`). Use `focus-visible:` for focus styles.

@@ -1,0 +1,325 @@
+/* === INTERACTION DESIGN TOKENS === */
+/* Animation, timing, and micro-interaction tokens */
+
+:root {
+  /* Timing Functions */
+  --blocks-duration-instant: 75ms;
+  --blocks-duration-fast: 150ms;
+  --blocks-duration-normal: 250ms;
+  --blocks-duration-slow: 350ms;
+  --blocks-duration-slower: 500ms;
+  --blocks-duration-slowest: 750ms;
+
+  /* Custom Easing Functions */
+  --blocks-ease-linear: linear;
+  --blocks-ease-gentle: cubic-bezier(0.25, 0.1, 0.25, 1);
+  --blocks-ease-springy: cubic-bezier(0.68, -0.55, 0.265, 1.55);
+  --blocks-ease-confident: cubic-bezier(0.4, 0, 0.2, 1);
+  --blocks-ease-bounce: cubic-bezier(0.68, -0.6, 0.32, 1.6);
+  --blocks-ease-smooth: cubic-bezier(0.4, 0, 0.6, 1);
+  --blocks-ease-snappy: cubic-bezier(0.4, 0, 0.2, 1);
+
+  /* Shadow Tokens (mapped from semantic layer) */
+  --blocks-shadow-xs: var(--color-shadow-xs);
+  --blocks-shadow-sm: var(--color-shadow-sm);
+  --blocks-shadow-base: var(--color-shadow-base);
+  --blocks-shadow-md: var(--color-shadow-md);
+  --blocks-shadow-lg: var(--color-shadow-lg);
+
+  /* Transform Tokens */
+  --blocks-scale-hover: 1.025;
+  --blocks-scale-press: 0.975;
+  --blocks-scale-focus: 1.05;
+  --blocks-scale-enter: 0.95;
+  --blocks-translate-hover: translateY(-1px);
+  --blocks-translate-press: translateY(0px);
+  --blocks-translate-enter: translateY(4px);
+
+  /* Focus Ring */
+  --blocks-focus-ring-width: 2px;
+  --blocks-focus-ring-offset: 2px;
+  --blocks-focus-ring-color: var(--color-primary);
+  --blocks-focus-ring: 0 0 0 var(--blocks-focus-ring-width) var(--blocks-focus-ring-color);
+  --blocks-focus-ring-inset: inset 0 0 0 var(--blocks-focus-ring-width)
+    var(--blocks-focus-ring-color);
+
+  /* Guide highlight (Direction B — D5). The additive ring colour the engine's
+     `[data-guide-highlight]` rule (in index.css) paints around a target when a
+     `GuideMention` is hovered/focused. Additive `outline` + soft glow, never a
+     scrim. Override per app via a `BlocksProvider` style block. */
+  --blocks-guide-highlight-ring: var(--color-primary);
+
+  /* Guide spotlight scrim (Phase 6 — D5). The *subtractive* dim the guided
+     `Guide` tour paints around the cut-out hole over the active step's target.
+     This is the one place the Guide system darkens the surroundings — the
+     non-modal Panel/Mention link never does. Mirrors the Dialog backdrop
+     (black 50%); override per app via a `BlocksProvider` style block. */
+  --blocks-guide-scrim: oklch(0 0 0 / 0.5);
+
+  /* Transition Presets */
+  --blocks-transition-base: all var(--blocks-duration-fast) var(--blocks-ease-gentle);
+  --blocks-transition-colors:
+    background-color var(--blocks-duration-fast) var(--blocks-ease-gentle),
+    border-color var(--blocks-duration-fast) var(--blocks-ease-gentle),
+    color var(--blocks-duration-fast) var(--blocks-ease-gentle);
+  --blocks-transition-transform: transform var(--blocks-duration-fast) var(--blocks-ease-gentle);
+  --blocks-transition-shadow: box-shadow var(--blocks-duration-fast) var(--blocks-ease-gentle);
+  --blocks-transition-opacity: opacity var(--blocks-duration-fast) var(--blocks-ease-gentle);
+
+  /* Micro-interaction Presets */
+  --blocks-interaction-hover:
+    transform var(--blocks-duration-fast) var(--blocks-ease-gentle),
+    box-shadow var(--blocks-duration-fast) var(--blocks-ease-gentle),
+    background-color var(--blocks-duration-fast) var(--blocks-ease-gentle);
+
+  --blocks-interaction-press: transform var(--blocks-duration-instant) var(--blocks-ease-snappy);
+
+  --blocks-interaction-focus: box-shadow var(--blocks-duration-fast) var(--blocks-ease-gentle);
+
+  /* === ANIMATION DELAYS === */
+  --blocks-delay-0: 0ms;
+  --blocks-delay-75: 75ms;
+  --blocks-delay-100: 100ms;
+  --blocks-delay-150: 150ms;
+  --blocks-delay-200: 200ms;
+  --blocks-delay-300: 300ms;
+  --blocks-delay-500: 500ms;
+  --blocks-delay-700: 700ms;
+  --blocks-delay-1000: 1000ms;
+
+  /* === STAGGER ANIMATIONS === */
+  --blocks-stagger-children: 50ms;
+  --blocks-stagger-items: 100ms;
+  --blocks-stagger-cards: 150ms;
+
+  /* === OVERLAY ANIMATION TOKENS (XC-11) ===
+     Single source of truth for Dialog / Drawer / Popover / Tooltip /
+     Toast / ConfirmDialog enter/exit motion. Components read these via
+     CSS where they can (CSS-driven transitions) and via the matching
+     JS constants in `utils/overlay-tokens.ts` for Svelte transitions
+     that need numeric input.
+
+     Override globally with a `BlocksProvider` style block, or per
+     instance via the component's `transitionDuration` / `transitionEasing`
+     props. `prefers-reduced-motion` below collapses both enter and exit
+     to 1ms and removes scale/fly distance — kept in one place so motion
+     reduction is consistent across every overlay. */
+  --blocks-overlay-enter-duration: 200ms;
+  --blocks-overlay-exit-duration: 180ms;
+  --blocks-overlay-backdrop-enter-duration: 200ms;
+  --blocks-overlay-backdrop-exit-duration: 180ms;
+  --blocks-overlay-easing: cubic-bezier(0.83, 0, 0.17, 1); /* quintOut */
+  --blocks-overlay-panel-scale-start: 0.96;
+  --blocks-overlay-panel-fly-distance: 320px;
+  --blocks-overlay-backdrop-blur: 4px;
+}
+
+/* ===== TOUCH DEVICE ADAPTATIONS ===== */
+@media (pointer: coarse) {
+  :root {
+    --blocks-touch-target-min: 2.75rem; /* 44px – WCAG 2.5.5 AAA */
+    --blocks-touch-spacing: 0.5rem; /* 8px extra gap between targets */
+  }
+}
+
+@media (pointer: fine) {
+  :root {
+    --blocks-touch-target-min: 0;
+    --blocks-touch-spacing: 0;
+  }
+}
+
+/* ===== REDUCED MOTION SUPPORT ===== */
+@media (prefers-reduced-motion: reduce) {
+  :root {
+    /* Reduce all animation durations */
+    --blocks-duration-instant: 1ms;
+    --blocks-duration-fast: 1ms;
+    --blocks-duration-normal: 1ms;
+    --blocks-duration-slow: 1ms;
+    --blocks-duration-slower: 1ms;
+    --blocks-duration-slowest: 1ms;
+
+    /* Remove transforms that could cause motion sickness */
+    --blocks-scale-hover: 1;
+    --blocks-scale-press: 1;
+    --blocks-translate-hover: translateY(0);
+    --blocks-translate-press: translateY(0);
+
+    /* Collapse overlay enter/exit motion (XC-11) */
+    --blocks-overlay-enter-duration: 1ms;
+    --blocks-overlay-exit-duration: 1ms;
+    --blocks-overlay-backdrop-enter-duration: 1ms;
+    --blocks-overlay-backdrop-exit-duration: 1ms;
+    --blocks-overlay-panel-scale-start: 1;
+    --blocks-overlay-panel-fly-distance: 0px;
+  }
+}
+
+/* ===== HIGH CONTRAST MODE ===== */
+@media (prefers-contrast: high) {
+  :root {
+    /* Increase contrast ratios — overrides the semantic tokens that
+       components actually consume. */
+    --color-text-secondary: var(--color-text-primary);
+    --color-border-default: var(--color-text-primary);
+    --color-border-subtle: var(--color-text-primary);
+
+    /* Make focus indicators more prominent */
+    --blocks-focus-ring-width: 3px;
+    --blocks-focus-ring-color: var(--color-text-primary);
+  }
+}
+
+/* ===== PRINT STYLES ===== */
+@media print {
+  :root {
+    /* Optimize for print — overrides the semantic tokens that components
+       actually consume. */
+    --color-surface-base: white;
+    --color-surface-quiet: white;
+    --color-surface-elevated: white;
+    --color-text-primary: black;
+    --color-text-secondary: #333;
+    --color-border-default: #000;
+    /* hairline at 8 % alpha disappears under most print drivers — promote
+       to a real grey rule for structural trennlinien (rows, dividers). */
+    --color-border-hairline: #999;
+
+    /* Remove shadows and effects */
+    --blocks-shadow-xs: none;
+    --blocks-shadow-sm: none;
+    --blocks-shadow-base: none;
+    --blocks-shadow-md: none;
+    --blocks-shadow-lg: none;
+  }
+}
+
+/* === ANIMATION KEYFRAMES === */
+@keyframes blocks-fade-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes blocks-slide-up {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes blocks-slide-down {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes blocks-scale-in {
+  from {
+    opacity: 0;
+    transform: scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@keyframes blocks-bounce-in {
+  0% {
+    opacity: 0;
+    transform: scale(0.3);
+  }
+  50% {
+    opacity: 1;
+    transform: scale(1.05);
+  }
+  70% {
+    transform: scale(0.9);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@keyframes blocks-shake {
+  0%,
+  100% {
+    transform: translateX(0);
+  }
+  10%,
+  30%,
+  50%,
+  70%,
+  90% {
+    transform: translateX(-2px);
+  }
+  20%,
+  40%,
+  60%,
+  80% {
+    transform: translateX(2px);
+  }
+}
+
+@keyframes blocks-pulse {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.5;
+  }
+}
+
+@keyframes blocks-spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* === ANIMATION UTILITY CLASSES === */
+.blocks-animate-fade-in {
+  animation: blocks-fade-in var(--blocks-duration-normal) var(--blocks-ease-gentle);
+}
+
+.blocks-animate-slide-up {
+  animation: blocks-slide-up var(--blocks-duration-normal) var(--blocks-ease-gentle);
+}
+
+.blocks-animate-slide-down {
+  animation: blocks-slide-down var(--blocks-duration-normal) var(--blocks-ease-gentle);
+}
+
+.blocks-animate-scale-in {
+  animation: blocks-scale-in var(--blocks-duration-normal) var(--blocks-ease-springy);
+}
+
+.blocks-animate-bounce-in {
+  animation: blocks-bounce-in var(--blocks-duration-slow) var(--blocks-ease-bounce);
+}
+
+.blocks-animate-pulse {
+  animation: blocks-pulse 2s var(--blocks-ease-gentle) infinite;
+}
+
+.blocks-animate-spin {
+  animation: blocks-spin 1s linear infinite;
+}

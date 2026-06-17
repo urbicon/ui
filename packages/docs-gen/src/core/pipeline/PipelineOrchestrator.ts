@@ -1,0 +1,304 @@
+import type { ComponentInfo } from '@urbicon-ui/shared-types';
+import type {
+  APIData,
+  ComponentManifest,
+  EnrichedComponentInfo,
+  GenerationResult,
+  GeneratorConfig
+} from '../../types';
+import {
+  ErrorHandler,
+  ExtractionCoordinator,
+  GenerationCoordinator,
+  PipelineException,
+  withErrorHandling
+} from '..';
+
+/**
+ * Main orchestrator for the documentation generation pipeline.
+ * Coordinates all phases: Discovery → Extraction → Enrichment → Generation
+ */
+export class PipelineOrchestrator {
+  private config: GeneratorConfig;
+  private startTime: number = 0;
+  private errorHandler: ErrorHandler;
+
+  constructor(config: GeneratorConfig) {
+    this.config = config;
+    this.errorHandler = new ErrorHandler({
+      failFast: !config.processing?.parallel?.enabled,
+      maxErrors: 50,
+      logLevel: (config.debug?.level as 'error' | 'warn' | 'info' | 'debug') || 'info'
+    });
+  }
+
+  /**
+   * Execute the complete documentation generation pipeline
+   */
+  async execute(): Promise<GenerationResult> {
+    this.startTime = Date.now();
+    this.errorHandler.reset();
+
+    try {
+      console.log('🚀 Starting documentation generation pipeline...');
+
+      // Phase 1: Discovery
+      const manifests = await withErrorHandling(() => this.discoveryPhase(), this.errorHandler, {
+        phase: 'discovery'
+      });
+
+      if (!manifests || manifests.length === 0) {
+        throw new PipelineException('No components discovered');
+      }
+
+      // Phase 2: Extraction
+      const richComponents = await withErrorHandling(
+        () => this.extractionPhase(manifests),
+        this.errorHandler,
+        { phase: 'extraction' }
+      );
+
+      if (!richComponents) {
+        throw new PipelineException('Component extraction failed');
+      }
+
+      // Phase 3: Enrichment
+      const enrichmentResult = await withErrorHandling(
+        () => this.enrichmentPhase(richComponents),
+        this.errorHandler,
+        { phase: 'enrichment' }
+      );
+
+      if (!enrichmentResult) {
+        throw new PipelineException('Component enrichment failed');
+      }
+
+      // Phase 4: Generation (API first, then others)
+      const result = await withErrorHandling(
+        () => this.generationPhase(enrichmentResult.enrichedComponents, enrichmentResult.apiData),
+        this.errorHandler,
+        { phase: 'generation' }
+      );
+
+      if (!result) {
+        throw new PipelineException('Documentation generation failed');
+      }
+
+      // Check if we can continue despite errors
+      if (!this.errorHandler.canContinue()) {
+        console.error('❌ Pipeline completed with blocking errors');
+        console.error(this.errorHandler.generateReport());
+        return this.createErrorResult(new Error('Pipeline had blocking errors'));
+      }
+
+      const summary = this.errorHandler.getSummary();
+      if (summary.totalErrors > 0 || summary.totalWarnings > 0) {
+        console.warn(
+          `⚠️  Pipeline completed with ${summary.totalErrors} errors and ${summary.totalWarnings} warnings`
+        );
+        if (this.config.debug?.enabled) {
+          console.warn(this.errorHandler.generateReport());
+        }
+      } else {
+        console.log('✅ Pipeline completed successfully');
+      }
+
+      return {
+        ...result,
+        errors: result.errors.concat(
+          summary.totalErrors > 0
+            ? [
+                {
+                  type: 'pipeline_warnings',
+                  message: `Pipeline completed with ${summary.totalErrors} errors and ${summary.totalWarnings} warnings`
+                }
+              ]
+            : []
+        )
+      };
+    } catch (error) {
+      console.error('❌ Pipeline failed:', error);
+      console.error(this.errorHandler.generateReport());
+      return this.createErrorResult(error);
+    }
+  }
+
+  /**
+   * Phase 1: Discovery - Find all components and their files
+   */
+  private async discoveryPhase(): Promise<ComponentManifest[]> {
+    console.log('📍 Phase 1: Discovery');
+
+    const { ComponentFinder } = await import('../discovery/ComponentFinder');
+    const componentFinder = new ComponentFinder();
+
+    const allManifests: ComponentManifest[] = [];
+
+    for (const packageConfig of this.config.input.packages) {
+      console.log(`  📦 Processing package: ${packageConfig.name}`);
+
+      try {
+        const manifests = await componentFinder.findComponents(packageConfig);
+        allManifests.push(...manifests);
+
+        console.log(`  ✅ Found ${manifests.length} components in ${packageConfig.name}`);
+
+        // Validate each manifest
+        for (const manifest of manifests) {
+          const validation = await componentFinder.validateManifest(manifest);
+          if (!validation.success) {
+            console.warn(
+              `  ⚠️  Validation issues for ${manifest.component.name}:`,
+              validation.errors.map((e) => e.message).join(', ')
+            );
+          }
+        }
+      } catch (error) {
+        console.error(`  ❌ Failed to process package ${packageConfig.name}:`, error);
+        // Continue with other packages
+      }
+    }
+
+    console.log(`  📊 Discovery complete: ${allManifests.length} total components`);
+    return allManifests;
+  }
+
+  /**
+   * Phase 2: Extraction - Extract props, variants, inheritance, docs
+   */
+  private async extractionPhase(manifests: ComponentManifest[]): Promise<ComponentInfo[]> {
+    console.log('📍 Phase 2: Extraction');
+
+    const extractionCoordinator = new ExtractionCoordinator(
+      this.config.processing,
+      this.errorHandler
+    );
+
+    const richComponents = await extractionCoordinator.extractAllComponents(manifests);
+
+    // Display statistics
+    const stats = extractionCoordinator.generateExtractionStats(richComponents);
+    console.log(`  📊 Extraction statistics:`);
+    console.log(`     Components: ${stats.totalComponents}`);
+    console.log(
+      `     Props: ${stats.totalProps} (avg: ${stats.averagePropsPerComponent}/component)`
+    );
+    console.log(`     Variants: ${stats.totalVariants}`);
+    console.log(`     With Documentation: ${stats.componentsWithDocumentation}`);
+
+    return richComponents;
+  }
+
+  /**
+   * Phase 3: Enrichment - Add cross-references, validate examples, generate API data
+   */
+  private async enrichmentPhase(richComponents: ComponentInfo[]): Promise<{
+    enrichedComponents: EnrichedComponentInfo[];
+    apiData: APIData;
+  }> {
+    console.log('📍 Phase 3: Enrichment');
+
+    // Could be moved into EnrichmentCoordinator, but it is already fairly clean
+    const { APIDataGenerator } = await import('../enrichment/APIDataGenerator');
+
+    // Create enriched components with basic stats for now
+    const enrichedComponents: EnrichedComponentInfo[] = richComponents.map((component) => ({
+      ...component,
+      crossReferences: [],
+      examples: [],
+      stats: {
+        totalProps: component.props.length,
+        directProps: component.props.filter((p) => p.source.type === 'direct').length,
+        variantProps: component.variants.length,
+        inheritedProps: component.props.filter((p) => p.source.type === 'inherited').length
+      }
+    }));
+
+    // Generate API data using APIDataGenerator
+    console.log('  📊 Generating API data...');
+    const apiDataGenerator = new APIDataGenerator();
+    const apiData = await apiDataGenerator.generate(richComponents, {
+      routeBasePath: '/components'
+    });
+
+    console.log(
+      `  ✅ Enrichment complete: ${enrichedComponents.length} components, ${apiData.metadata.totalProps} total props`
+    );
+    // Harmonize stats: prefer API data (single source of truth)
+    const enrichedWithApiStats = enrichedComponents.map((c) => {
+      const api = apiData.components[c.name];
+      return api ? { ...c, stats: api.stats } : c;
+    });
+
+    return { enrichedComponents: enrichedWithApiStats, apiData };
+  }
+
+  /**
+   * Phase 4: Generation - Generate API file, then LLM docs
+   * CRITICAL: API must be generated FIRST, then consumed by LLM
+   */
+  private async generationPhase(
+    enrichedComponents: EnrichedComponentInfo[],
+    apiData: APIData
+  ): Promise<GenerationResult> {
+    console.log('📍 Phase 4: Generation');
+
+    // Dedicated coordinator handles the entire generation logic
+    const generationCoordinator = new GenerationCoordinator(this.config.output, this.errorHandler);
+
+    // Validate configuration
+    const configValidation = generationCoordinator.validateConfiguration();
+    if (!configValidation.valid) {
+      console.warn('⚠️  Generation configuration issues:', configValidation.errors);
+    }
+
+    // Display the generation plan (for debugging)
+    const plan = generationCoordinator.getGenerationPlan();
+    console.log(
+      `  📋 Generation plan: ${plan.totalOutputs} outputs, ${plan.phases.filter((p) => p.enabled).length} active phases`
+    );
+
+    // Run all generations
+    const result = await generationCoordinator.generateAll(enrichedComponents, apiData);
+
+    return result;
+  }
+
+  /**
+   * Create error result for failed pipeline execution
+   */
+  private createErrorResult(error: unknown): GenerationResult {
+    const duration = Date.now() - this.startTime;
+
+    return {
+      success: false,
+      outputs: [],
+      errors: [
+        {
+          type: 'pipeline_error',
+          message: error instanceof Error ? error.message : String(error)
+        }
+      ],
+      stats: {
+        totalComponents: 0,
+        totalProps: 0,
+        apiDataSize: 0
+      },
+      duration
+    };
+  }
+
+  /**
+   * Get current configuration
+   */
+  getConfig(): GeneratorConfig {
+    return this.config;
+  }
+
+  /**
+   * Update configuration (useful for watch mode)
+   */
+  updateConfig(newConfig: GeneratorConfig): void {
+    this.config = newConfig;
+  }
+}

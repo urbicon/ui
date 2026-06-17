@@ -1,0 +1,120 @@
+import { tv, type VariantProps } from '$lib/utils/variants';
+
+export const textareaVariants = tv({
+  slots: {
+    wrapper: ['flex flex-col w-full gap-1.5'],
+    base: [
+      'w-full box-border resize-vertical',
+      'transition-[color,background-color,border-color,box-shadow] duration-[var(--blocks-duration-fast)] ease-out',
+      // Radius driven by `tier` axis below.
+      'focus-visible:outline-none',
+      'border text-text-primary bg-surface-base placeholder:text-text-quaternary',
+      'hover:border-border-default focus-visible:border-primary focus-visible:ring-2 focus-visible:ring-primary/20',
+      'disabled:opacity-50 disabled:cursor-not-allowed disabled:bg-surface-subtle disabled:resize-none',
+      'read-only:bg-surface-subtle read-only:cursor-default read-only:resize-none'
+    ],
+    label: ['block font-medium text-text-secondary text-sm'],
+    footer: ['flex items-center justify-between gap-2'],
+    message: ['text-xs'],
+    counter: ['text-xs text-text-tertiary tabular-nums ml-auto shrink-0']
+  },
+  variants: {
+    // 3-tier semantic radius. Default `modify` (soft). Opt-in `commit`
+    // (pill) is exotic for textareas but kept consistent with Input.
+    tier: {
+      modify: { base: 'rounded-modify' },
+      commit: { base: 'rounded-commit' }
+    },
+    variant: {
+      outlined: {
+        base: 'border-border-subtle'
+      },
+      filled: {
+        base: 'bg-surface-interactive border-transparent hover:bg-surface-hover focus-visible:bg-surface-base'
+      },
+      ghost: {
+        base: 'bg-transparent border-transparent hover:bg-surface-subtle focus-visible:bg-surface-base focus-visible:border-border-subtle'
+      },
+      underline: {
+        base: 'bg-transparent border-0 border-b-2 border-border-subtle rounded-none focus-visible:ring-0'
+      }
+    },
+    size: {
+      sm: { base: 'px-3 py-2 text-sm min-h-[5rem]' },
+      md: { base: 'px-4 py-3 text-base min-h-[7rem]' },
+      lg: { base: 'px-6 py-4 text-lg min-h-[9rem]' }
+    },
+    intent: {
+      default: {},
+      success: {
+        base: 'border-success focus-visible:border-success focus-visible:ring-success/20',
+        message: 'text-success'
+      },
+      warning: {
+        base: 'border-warning focus-visible:border-warning focus-visible:ring-warning/20',
+        message: 'text-warning-emphasis'
+      },
+      danger: {
+        base: 'border-danger focus-visible:border-danger focus-visible:ring-danger/20',
+        message: 'text-danger'
+      }
+    },
+    autoResize: {
+      true: { base: 'resize-none overflow-hidden' }
+    },
+    disabled: {
+      true: {
+        base: 'opacity-50 cursor-not-allowed bg-surface-disabled pointer-events-none',
+        label: 'text-text-disabled'
+      }
+    },
+    readonly: {
+      true: {
+        base: 'bg-surface-subtle cursor-default'
+      }
+    },
+    error: {
+      true: {
+        base: 'border-danger focus-visible:border-danger focus-visible:ring-danger/20',
+        message: 'text-danger'
+      }
+    },
+    required: {
+      true: {
+        label: "after:content-['*'] after:ml-1 after:text-danger"
+      }
+    },
+    messageType: {
+      error: { message: 'text-danger' },
+      helper: { message: 'text-text-tertiary' }
+    },
+    counterState: {
+      normal: {},
+      warning: { counter: 'text-warning-emphasis' },
+      over: { counter: 'text-danger font-medium' }
+    }
+  },
+  compoundVariants: [
+    {
+      variant: 'ghost',
+      intent: ['success', 'warning', 'danger'],
+      error: false,
+      class: { base: 'border-transparent' }
+    }
+  ],
+  defaultVariants: {
+    tier: 'modify',
+    variant: 'outlined',
+    size: 'md',
+    intent: 'default',
+    autoResize: false,
+    disabled: false,
+    readonly: false,
+    error: false,
+    required: false,
+    messageType: 'helper',
+    counterState: 'normal'
+  }
+});
+
+export type TextareaVariants = VariantProps<typeof textareaVariants>;

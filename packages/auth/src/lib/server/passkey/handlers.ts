@@ -1,0 +1,328 @@
+import type { RequestHandler } from '@sveltejs/kit';
+import { json } from '@sveltejs/kit';
+import type { AuthConfig, RateLimitConfig } from '../../types.js';
+import type {
+  PasskeyRepository,
+  RefreshTokenRepository,
+  UserRepository
+} from '../adapters/types.js';
+import { sanitizeUser } from '../auth.js';
+import { base64UrlDecode } from '../notifications/web-push-crypto.js';
+import { enforceRateLimit, makeRateLimiter, type RateLimiter } from '../rate-limit.js';
+import { establishSession, resolveSessionMeta } from '../session.js';
+import {
+  type AuthenticationCredentialJSON,
+  generateAuthenticationOptions,
+  generateChallenge,
+  generateRegistrationOptions,
+  type RegistrationCredentialJSON,
+  verifyAssertion,
+  verifyRegistration,
+  type WebAuthnConfig,
+  WebAuthnError
+} from './webauthn.js';
+
+// Passkey authentication is two endpoints (options + verify) that form one
+// login flow. Building a separate in-memory limiter per handler would split
+// the per-IP budget in two — a consumer asking for "5 attempts" would get 5
+// against each endpoint, doubling the real allowance. Cache the limiter by the
+// identity of the `passkeyAuth` config object so both handlers built from the
+// same config share one counter. (A consumer who supplies a persistent
+// `store` shares server-side regardless; this fixes the in-memory default.)
+const passkeyAuthLimiters = new WeakMap<RateLimitConfig, RateLimiter | null>();
+
+function sharedPasskeyAuthLimiter(config: RateLimitConfig | undefined): RateLimiter | null {
+  if (!config) return null;
+  let limiter = passkeyAuthLimiters.get(config);
+  if (limiter === undefined) {
+    limiter = makeRateLimiter(config);
+    passkeyAuthLimiters.set(config, limiter);
+  }
+  return limiter;
+}
+
+// Cookie carrying the per-ceremony challenge handle for passkey authentication.
+// Discoverable ("usernameless") login can't bind the challenge to a user at
+// options time — the user is unknown until the authenticator returns a
+// credential — so the options handler mints a fresh opaque handle, stores the
+// challenge under it, and pins the handle here; the verify handler reads it
+// back to locate and consume the right challenge. Single-use + short-lived.
+const WEBAUTHN_AUTH_COOKIE = 'urbicon_webauthn_auth';
+
+// The `__Host-` prefix blocks a sibling/parent subdomain from shadowing the
+// handle via cookie-tossing. It mandates Secure + Path=/ + no Domain, so a
+// browser drops such a cookie over plain HTTP — use it only when the
+// deployment is HTTPS (`jwt.cookieSecure !== false`) and fall back to the bare
+// name for non-HTTPS dev. Both handlers derive `secure` from the same config,
+// so the set and the read always agree on the name.
+function webauthnAuthCookieName(secure: boolean): string {
+  return secure ? `__Host-${WEBAUTHN_AUTH_COOKIE}` : WEBAUTHN_AUTH_COOKIE;
+}
+
+export interface PasskeyHandlerDeps<R extends string = string> {
+  webauthn: WebAuthnConfig;
+  authConfig: AuthConfig<R>;
+  repos: {
+    passkey: PasskeyRepository;
+    user: UserRepository<R>;
+    /** Required when `authConfig.refreshToken` is set. */
+    refreshToken?: RefreshTokenRepository;
+  };
+}
+
+// ---- Registration Options ----
+
+export function createPasskeyRegistrationOptionsHandler<R extends string>(
+  deps: PasskeyHandlerDeps<R>
+): { POST: RequestHandler } {
+  return {
+    POST: async ({ locals }) => {
+      const user = (locals as { user?: { id: string; email: string; name: string } }).user;
+      if (!user) {
+        return json({ error: 'Unauthorized' }, { status: 401 });
+      }
+
+      const existing = await deps.repos.passkey.findByUserId(user.id);
+      const existingIds = existing.map((p) => p.credentialId);
+
+      const options = await generateRegistrationOptions(
+        deps.webauthn,
+        { id: user.id, name: user.email, displayName: user.name },
+        existingIds
+      );
+
+      return json({ options });
+    }
+  };
+}
+
+// ---- Registration Verify ----
+
+export function createPasskeyRegistrationVerifyHandler<R extends string>(
+  deps: PasskeyHandlerDeps<R>
+): { POST: RequestHandler } {
+  return {
+    POST: async ({ request, locals }) => {
+      const user = (locals as { user?: { id: string; email: string; name: string } }).user;
+      if (!user) {
+        return json({ error: 'Unauthorized' }, { status: 401 });
+      }
+
+      try {
+        const { credential, name } = (await request.json()) as {
+          credential: RegistrationCredentialJSON;
+          name?: string;
+        };
+
+        if (!credential) {
+          return json({ error: 'Credential is required' }, { status: 400 });
+        }
+
+        const verified = await verifyRegistration(deps.webauthn, user.id, credential);
+
+        const passkey = await deps.repos.passkey.create(user.id, {
+          credentialId: verified.credentialId,
+          publicKey: verified.publicKey,
+          publicKeyAlg: verified.publicKeyAlg,
+          counter: verified.counter,
+          transports: verified.transports,
+          aaguid: verified.aaguid,
+          name
+        });
+
+        return json(
+          {
+            passkey: {
+              credentialId: passkey.credentialId,
+              name: passkey.name,
+              createdAt: passkey.createdAt,
+              aaguid: passkey.aaguid
+            }
+          },
+          { status: 201 }
+        );
+      } catch (err) {
+        if (err instanceof WebAuthnError) {
+          return json({ error: err.message }, { status: 400 });
+        }
+        throw err;
+      }
+    }
+  };
+}
+
+// ---- Authentication Options ----
+
+export function createPasskeyAuthenticationOptionsHandler<R extends string>(
+  deps: PasskeyHandlerDeps<R>
+): { POST: RequestHandler } {
+  const rateLimiter = sharedPasskeyAuthLimiter(deps.authConfig.rateLimit?.passkeyAuth);
+
+  return {
+    POST: async ({ request, cookies, getClientAddress }) => {
+      const limited = await enforceRateLimit(rateLimiter, getClientAddress());
+      if (limited) return limited;
+
+      const body = await request.json().catch(() => ({}));
+      const email = body?.email;
+
+      // `email` is an optional UX hint: when supplied and known, scope the
+      // ceremony to that user's credentials (`allowCredentials`). Absent or
+      // unknown → an empty list, i.e. the discoverable-credential flow where
+      // the authenticator offers any resident credential for this RP. Either
+      // way we do NOT leak whether the email exists.
+      let credentialIds: string[] = [];
+      if (email) {
+        const user = await deps.repos.user.findByEmail(email);
+        if (user) {
+          const passkeys = await deps.repos.passkey.findByUserId(user.id);
+          credentialIds = passkeys.map((p) => p.credentialId);
+        }
+      }
+
+      // Bind the challenge to a fresh, opaque ceremony handle rather than to a
+      // user: discoverable login has no user at this point, so keying by userId
+      // left the challenge unfindable at verify time (Finding M4). Email-first
+      // login benefits too — two overlapping ceremonies no longer clobber each
+      // other's challenge. The handle travels in an HttpOnly cookie the verify
+      // step reads back.
+      //
+      // `ceremonyId` is an independent random token used ONLY as the
+      // challenge-store key — NOT the WebAuthn challenge itself.
+      // `generateAuthenticationOptions` mints the real challenge separately and
+      // stores it under this handle. (We reuse the package's CSPRNG primitive.)
+      const ceremonyId = generateChallenge();
+      const options = await generateAuthenticationOptions(deps.webauthn, ceremonyId, credentialIds);
+
+      const secure = deps.authConfig.jwt.cookieSecure !== false;
+      cookies.set(webauthnAuthCookieName(secure), ceremonyId, {
+        path: '/',
+        httpOnly: true,
+        secure,
+        // `strict`: the whole ceremony is same-origin fetch (options → get() →
+        // verify) with no navigation in between, so the tightest SameSite
+        // applies without any UX cost — unlike the session cookie, this handle
+        // never needs to survive a cross-site top-level navigation.
+        sameSite: 'strict',
+        // Expire the pointer with the challenge it points at (default 5 min).
+        maxAge: Math.ceil((deps.webauthn.challengeTimeout ?? 300_000) / 1000)
+      });
+
+      return json({ options });
+    }
+  };
+}
+
+// ---- Authentication Verify ----
+
+export function createPasskeyAuthenticationVerifyHandler<R extends string>(
+  deps: PasskeyHandlerDeps<R>
+): { POST: RequestHandler } {
+  const rateLimiter = sharedPasskeyAuthLimiter(deps.authConfig.rateLimit?.passkeyAuth);
+
+  return {
+    POST: async (event) => {
+      const { request, cookies, getClientAddress } = event;
+      const limited = await enforceRateLimit(rateLimiter, getClientAddress());
+      if (limited) return limited;
+
+      // Gate on the ceremony handle first — it's the cheapest check and the
+      // flow's precondition. No cookie → the options step never ran for this
+      // browser, or the cookie was stripped/expired. Fail closed (like a
+      // missing challenge) before parsing the body or touching the credential
+      // store, and never fall back to a user-keyed lookup.
+      const secure = deps.authConfig.jwt.cookieSecure !== false;
+      const cookieName = webauthnAuthCookieName(secure);
+      const ceremonyId = cookies.get(cookieName);
+      if (!ceremonyId) {
+        return json({ error: 'Challenge expired or not found' }, { status: 400 });
+      }
+      // Invalidate the single-use handle immediately, so no error path (or
+      // replay) downstream can reuse it.
+      cookies.delete(cookieName, { path: '/' });
+
+      try {
+        const { credential } = (await request.json()) as {
+          credential: AuthenticationCredentialJSON;
+        };
+
+        if (!credential) {
+          return json({ error: 'Credential is required' }, { status: 400 });
+        }
+
+        // Look up the stored credential
+        const stored = await deps.repos.passkey.findByCredentialId(credential.id);
+        if (!stored) {
+          return json({ error: 'Unknown credential' }, { status: 400 });
+        }
+
+        // Verify the assertion. The challenge is consumed under the ceremony
+        // handle (not stored.userId) — that is what makes discoverable login
+        // work; the user is identified by `stored` below.
+        const verified = await verifyAssertion(
+          deps.webauthn,
+          ceremonyId,
+          credential,
+          stored.publicKey,
+          stored.publicKeyAlg,
+          stored.counter
+        );
+
+        // Defense-in-depth (WebAuthn L2 §7.2 step 6): when the authenticator
+        // returns a user handle, it must identify the same user the stored
+        // credential belongs to. We already trust `stored.userId` (our DB), so
+        // a mismatch can't escalate by itself — but rejecting it keeps the
+        // assertion spec-compliant and guards against a future caller that
+        // trusts the returned handle. The handle is base64url(utf8(userId)).
+        if (verified.userHandle) {
+          let handleUserId: string | null = null;
+          try {
+            handleUserId = new TextDecoder().decode(base64UrlDecode(verified.userHandle));
+          } catch {
+            handleUserId = null;
+          }
+          if (handleUserId !== stored.userId) {
+            return json({ error: 'User handle mismatch' }, { status: 400 });
+          }
+        }
+
+        // Update counter (compare-and-set). A false result after a passed
+        // assertion means a concurrent request already advanced the counter —
+        // i.e. a replay slipped through the read→verify gap. Reject it; this
+        // closes the cloned-authenticator window the bare update left open.
+        const advanced = await deps.repos.passkey.updateCounter(credential.id, verified.newCounter);
+        if (!advanced) {
+          return json(
+            { error: 'Counter did not increase — possible cloned authenticator' },
+            { status: 400 }
+          );
+        }
+
+        // Load user and create session
+        const user = await deps.repos.user.findById(stored.userId);
+        if (!user) {
+          return json({ error: 'User not found' }, { status: 400 });
+        }
+
+        // No TOTP 2FA gate here, by design: a passkey is already a strong,
+        // phishing-resistant factor, so a successful assertion establishes the
+        // session directly even when `user.totpEnabled` is set. The 2FA gate
+        // applies only to the password login path (see login.ts).
+        await establishSession(
+          cookies,
+          user,
+          deps.authConfig,
+          deps.repos,
+          resolveSessionMeta(event, deps.authConfig)
+        );
+
+        return json({ user: sanitizeUser(user) });
+      } catch (err) {
+        if (err instanceof WebAuthnError) {
+          return json({ error: err.message }, { status: 400 });
+        }
+        throw err;
+      }
+    }
+  };
+}

@@ -1,0 +1,20 @@
+/*
+ * @urbicon-ui/table – Compact Theme
+ *
+ * Overrides the default table tokens for denser layouts.
+ * Import AFTER the base table styles:
+ *
+ *   @import '@urbicon-ui/table/style/index.css';
+ *   @import '@urbicon-ui/table/style/themes/compact.css';
+ */
+
+@theme {
+  --table-header-height: 2.25rem;
+  --table-row-height: 2.5rem;
+  --table-cell-padding-x: 0.5rem;
+  --table-cell-padding-y: 0.375rem;
+
+  --filter-bar-height: 2.5rem;
+  --filter-bar-padding: 0.5rem;
+  --filter-bar-gap: 0.5rem;
+}

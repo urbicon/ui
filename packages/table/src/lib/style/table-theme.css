@@ -1,0 +1,131 @@
+@theme {
+  /* === TABLE-SPECIFIC INTENTS === */
+  /* Extend the blocks foundation with table-specific colors */
+  /* Filter Intent (Cyan-based) */
+  --color-filter-50: var(--color-cyan-50);
+  --color-filter-100: var(--color-cyan-100);
+  --color-filter-200: var(--color-cyan-200);
+  --color-filter-300: var(--color-cyan-300);
+  --color-filter-400: var(--color-cyan-400);
+  --color-filter-500: var(--color-cyan-500);
+  --color-filter-600: var(--color-cyan-600);
+  --color-filter-700: var(--color-cyan-700);
+  --color-filter-800: var(--color-cyan-800);
+  --color-filter-900: var(--color-cyan-900);
+
+  --color-filter: var(--color-filter-600);
+  --color-filter-hover: var(--color-filter-700);
+  --color-filter-active: var(--color-filter-800);
+  --color-filter-subtle: var(--color-filter-50);
+  --color-filter-emphasis: var(--color-filter-900);
+
+  /* Group Intent (Teal-based) */
+  --color-group-50: var(--color-teal-50);
+  --color-group-100: var(--color-teal-100);
+  --color-group-200: var(--color-teal-200);
+  --color-group-300: var(--color-teal-300);
+  --color-group-400: var(--color-teal-400);
+  --color-group-500: var(--color-teal-500);
+  --color-group-600: var(--color-teal-600);
+  --color-group-700: var(--color-teal-700);
+  --color-group-800: var(--color-teal-800);
+  --color-group-900: var(--color-teal-900);
+
+  --color-group: var(--color-group-600);
+  --color-group-hover: var(--color-group-700);
+  --color-group-active: var(--color-group-800);
+  --color-group-subtle: var(--color-group-50);
+  --color-group-emphasis: var(--color-group-900);
+
+  /* Summary Intent (Emerald-based) */
+  --color-summary-50: var(--color-emerald-50);
+  --color-summary-100: var(--color-emerald-100);
+  --color-summary-200: var(--color-emerald-200);
+  --color-summary-300: var(--color-emerald-300);
+  --color-summary-400: var(--color-emerald-400);
+  --color-summary-500: var(--color-emerald-500);
+  --color-summary-600: var(--color-emerald-600);
+  --color-summary-700: var(--color-emerald-700);
+  --color-summary-800: var(--color-emerald-800);
+  --color-summary-900: var(--color-emerald-900);
+
+  --color-summary: var(--color-summary-600);
+  --color-summary-hover: var(--color-summary-700);
+  --color-summary-active: var(--color-summary-800);
+  --color-summary-subtle: var(--color-summary-50);
+  --color-summary-emphasis: var(--color-summary-900);
+
+  /* === TABLE-SPECIFIC DESIGN TOKENS === */
+  --table-header-height: 3rem;
+  --table-row-height: 3.5rem;
+  --table-cell-padding-x: 1rem;
+  --table-cell-padding-y: 0.75rem;
+
+  --filter-bar-height: 3.5rem;
+  --filter-bar-padding: 0.75rem;
+  --filter-bar-gap: 0.75rem;
+}
+
+:root {
+  @media (prefers-color-scheme: dark) {
+    --color-filter: var(--color-filter-400);
+    --color-filter-hover: var(--color-filter-300);
+    --color-filter-active: var(--color-filter-200);
+    --color-filter-subtle: var(--color-filter-900);
+    --color-filter-emphasis: var(--color-filter-100);
+
+    --color-group: var(--color-group-400);
+    --color-group-hover: var(--color-group-300);
+    --color-group-active: var(--color-group-200);
+    --color-group-subtle: var(--color-group-900);
+    --color-group-emphasis: var(--color-group-100);
+
+    --color-summary: var(--color-summary-400);
+    --color-summary-hover: var(--color-summary-300);
+    --color-summary-active: var(--color-summary-200);
+    --color-summary-subtle: var(--color-summary-900);
+    --color-summary-emphasis: var(--color-summary-100);
+  }
+}
+
+/* Class-based dark mode (for manual theme toggle via .dark on <html>) */
+:root.dark {
+  --color-filter: var(--color-filter-400);
+  --color-filter-hover: var(--color-filter-300);
+  --color-filter-active: var(--color-filter-200);
+  --color-filter-subtle: var(--color-filter-900);
+  --color-filter-emphasis: var(--color-filter-100);
+
+  --color-group: var(--color-group-400);
+  --color-group-hover: var(--color-group-300);
+  --color-group-active: var(--color-group-200);
+  --color-group-subtle: var(--color-group-900);
+  --color-group-emphasis: var(--color-group-100);
+
+  --color-summary: var(--color-summary-400);
+  --color-summary-hover: var(--color-summary-300);
+  --color-summary-active: var(--color-summary-200);
+  --color-summary-subtle: var(--color-summary-900);
+  --color-summary-emphasis: var(--color-summary-100);
+}
+
+/* Class-based light mode override (forces light tokens when OS prefers dark) */
+:root.light {
+  --color-filter: var(--color-filter-600);
+  --color-filter-hover: var(--color-filter-700);
+  --color-filter-active: var(--color-filter-800);
+  --color-filter-subtle: var(--color-filter-50);
+  --color-filter-emphasis: var(--color-filter-900);
+
+  --color-group: var(--color-group-600);
+  --color-group-hover: var(--color-group-700);
+  --color-group-active: var(--color-group-800);
+  --color-group-subtle: var(--color-group-50);
+  --color-group-emphasis: var(--color-group-900);
+
+  --color-summary: var(--color-summary-600);
+  --color-summary-hover: var(--color-summary-700);
+  --color-summary-active: var(--color-summary-800);
+  --color-summary-subtle: var(--color-summary-50);
+  --color-summary-emphasis: var(--color-summary-900);
+}

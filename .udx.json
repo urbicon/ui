@@ -1,0 +1,11 @@
+{
+  "harness": "0.2.7",
+  "declined": {},
+  "adopted": ["git-hooks", "lint-format"],
+  "files": {
+    "cliff.toml": "0a96aa399ae9203c714c99fa1a2b6c4ccdd2c867e5da7b4312742dce2dd6781e",
+    "lefthook.yml": "14b12a5d45de2c811003209929d0f01b7353f05feb1f887fd3959ad13684bd00",
+    "scripts/bump.sh": "dd8326923b6224519cf808982c141d2e63841c5e28026df1407bcd7f5891d106"
+  },
+  "pinned": {}
+}

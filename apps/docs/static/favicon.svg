@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32">
+  <style>
+    .ink { stroke: #2a2926; }
+    .pipe { fill: #3d9420; }
+    @media (prefers-color-scheme: dark) {
+      .ink { stroke: #f0ede5; }
+      .pipe { fill: #58ad3a; }
+    }
+  </style>
+  <!-- U -->
+  <path class="ink" d="M9 6 v11 a6.5 6.5 0 0 0 13 0 V6" fill="none" stroke-width="4.5" stroke-linecap="round" />
+  <!-- cursor pipe -->
+  <rect class="pipe" x="26" y="6" width="3.5" height="20" rx="1" />
+</svg>

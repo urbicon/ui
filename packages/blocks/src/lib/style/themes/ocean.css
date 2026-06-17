@@ -1,0 +1,92 @@
+/*
+ * @urbicon-ui/blocks – Ocean Theme
+ *
+ * Cool blue-teal palette with deeper saturation.
+ * Import AFTER the base styles:
+ *
+ *   @import '@urbicon-ui/blocks/style/index.css';
+ *   @import '@urbicon-ui/blocks/style/themes/ocean.css';
+ */
+
+@theme {
+  --color-primary-50: oklch(0.95 0.03 220);
+  --color-primary-100: oklch(0.9 0.05 220);
+  --color-primary-200: oklch(0.82 0.08 220);
+  --color-primary-300: oklch(0.74 0.11 220);
+  --color-primary-400: oklch(0.66 0.14 220);
+  --color-primary-500: oklch(0.58 0.14 220);
+  --color-primary-600: oklch(0.52 0.14 220);
+  --color-primary-700: oklch(0.44 0.12 220);
+  --color-primary-800: oklch(0.36 0.1 220);
+  --color-primary-900: oklch(0.28 0.07 220);
+  --color-primary-950: oklch(0.18 0.04 220);
+
+  --color-secondary-50: oklch(0.95 0.03 190);
+  --color-secondary-100: oklch(0.9 0.05 190);
+  --color-secondary-200: oklch(0.82 0.08 190);
+  --color-secondary-300: oklch(0.74 0.11 190);
+  --color-secondary-400: oklch(0.66 0.13 190);
+  --color-secondary-500: oklch(0.55 0.12 190);
+  --color-secondary-600: oklch(0.48 0.12 190);
+  --color-secondary-700: oklch(0.4 0.1 190);
+  --color-secondary-800: oklch(0.32 0.08 190);
+  --color-secondary-900: oklch(0.25 0.06 190);
+  --color-secondary-950: oklch(0.18 0.04 190);
+
+  /*
+   * Chassis neutral ramp — re-tinted cool-blue (Hue 220) so surfaces, text
+   * and borders sit in the same temperature family as the blue-teal accent
+   * (the library default neutral sits at Hue 240, a touch more violet).
+   * Lightness and chroma match the foundation ramp one-to-one — only the
+   * hue shifts — so WCAG contrast stays unchanged. surface-*, text-* and
+   * border-* pick this up automatically through semantic.css.
+   */
+  --color-neutral-25: oklch(0.99 0.002 220);
+  --color-neutral-50: oklch(0.98 0.005 220);
+  --color-neutral-100: oklch(0.95 0.008 220);
+  --color-neutral-200: oklch(0.89 0.012 220);
+  --color-neutral-300: oklch(0.83 0.014 220);
+  --color-neutral-400: oklch(0.7 0.015 220);
+  --color-neutral-500: oklch(0.55 0.016 220);
+  --color-neutral-600: oklch(0.42 0.017 220);
+  --color-neutral-650: oklch(0.38 0.016 220);
+  --color-neutral-700: oklch(0.32 0.016 220);
+  --color-neutral-750: oklch(0.28 0.014 220);
+  --color-neutral-800: oklch(0.23 0.015 220);
+  --color-neutral-850: oklch(0.18 0.014 220);
+  --color-neutral-900: oklch(0.15 0.012 220);
+  --color-neutral-950: oklch(0.08 0.008 220);
+
+  /*
+   * Intent re-tuning — the blue primary (Hue 220) is identical to the default
+   * info hue, so info would read as the brand. Info is shifted to a violet-
+   * blue (Hue 255): still cool and clearly "informational", but distinct from
+   * both the primary (220) and the teal secondary (190). Same L/C profile as
+   * the foundation ramp; only the hue shifts. Success, warning and danger keep
+   * the library defaults (far from the cool accent). Derived --color-info
+   * re-resolves at :root automatically (global @theme).
+   */
+  --color-info-50: oklch(0.96 0.025 255);
+  --color-info-100: oklch(0.92 0.045 255);
+  --color-info-200: oklch(0.84 0.075 255);
+  --color-info-300: oklch(0.76 0.105 255);
+  --color-info-400: oklch(0.66 0.13 255);
+  --color-info-500: oklch(0.55 0.14 255);
+  --color-info-600: oklch(0.48 0.13 255);
+  --color-info-700: oklch(0.4 0.11 255);
+  --color-info-800: oklch(0.32 0.09 255);
+  --color-info-900: oklch(0.24 0.07 255);
+  --color-info-950: oklch(0.16 0.05 255);
+}
+
+/*
+ * Cool shadow tint — keeps shadows in the blue-grey family of the chassis
+ * rather than neutral black. :root (not @theme) to mirror semantic.css;
+ * imported after the base styles, so it wins.
+ */
+:root {
+  --blocks-shadow-tint: 0.2 0.02 235;
+  /* Neutral intent (bg-neutral / text-neutral / borders) follows the cool
+     chassis instead of the library-default violet-leaning grey. */
+  --neutral-chrome-hue: 220;
+}

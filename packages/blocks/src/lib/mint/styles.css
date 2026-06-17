@@ -1,0 +1,188 @@
+/* === MINT MICRO-INTERACTION STYLES (XC-12) === */
+
+/* Mint-system tokens. `--blocks-mint-glow-color` is the single source of
+   truth for the `glow` effect — components and consumers set it on
+   themselves to make the glow intent-aware (e.g. red on danger, green
+   on success). Defaults to the primary intent so unannotated buttons
+   still light up sensibly. */
+:root {
+  --blocks-mint-scale-intensity: 1.04;
+  --blocks-mint-glow-color: color-mix(in oklch, var(--color-primary) 50%, transparent);
+  --blocks-mint-glow-radius: 20px;
+
+  /* Legacy aliases retained one minor cycle for downstream code that may
+     still consume the old names; will be dropped before v1.0. */
+  --scale-intensity: var(--blocks-mint-scale-intensity);
+  --glow-color: var(--blocks-mint-glow-color);
+}
+
+/* Per-intent glow color. The `.blocks-intent-{name}` hook is set by
+   components that propagate `intent` to their root element; without
+   that hook the primary default applies. */
+.blocks-intent-primary {
+  --blocks-mint-glow-color: color-mix(in oklch, var(--color-primary) 50%, transparent);
+}
+.blocks-intent-secondary {
+  --blocks-mint-glow-color: color-mix(in oklch, var(--color-secondary) 50%, transparent);
+}
+.blocks-intent-success {
+  --blocks-mint-glow-color: color-mix(in oklch, var(--color-success) 50%, transparent);
+}
+.blocks-intent-warning {
+  --blocks-mint-glow-color: color-mix(in oklch, var(--color-warning) 50%, transparent);
+}
+.blocks-intent-danger {
+  --blocks-mint-glow-color: color-mix(in oklch, var(--color-danger) 50%, transparent);
+}
+.blocks-intent-neutral {
+  --blocks-mint-glow-color: color-mix(in oklch, var(--color-neutral) 40%, transparent);
+}
+
+/* Transform-based interactions */
+.blocks-mint-scale {
+  transform: scale(var(--blocks-mint-scale-intensity, 1.05));
+  transition: transform var(--blocks-duration-fast) var(--blocks-ease-confident);
+}
+
+.blocks-mint-translate {
+  transform: translateY(-2px);
+  transition: transform var(--blocks-duration-fast) var(--blocks-ease-confident);
+}
+
+.blocks-mint-rotate {
+  transform: rotate(2deg);
+  transition: transform var(--blocks-duration-fast) var(--blocks-ease-confident);
+}
+
+/* Visual effects */
+.blocks-mint-glow {
+  box-shadow: 0 0 var(--blocks-mint-glow-radius) var(--blocks-mint-glow-color);
+  transition: box-shadow var(--blocks-duration-normal) var(--blocks-ease-confident);
+}
+
+.blocks-mint-fade {
+  opacity: 0.8;
+  transition: opacity var(--blocks-duration-fast) ease;
+}
+
+.blocks-mint-fade:hover {
+  opacity: 1;
+}
+
+.blocks-mint-slide {
+  transform: translateX(0);
+  transition: transform var(--blocks-duration-normal) ease;
+}
+
+/* Animation-based interactions */
+.blocks-mint-bounce {
+  animation: blocks-mint-bounce var(--blocks-duration-slower) var(--blocks-ease-springy);
+}
+
+.blocks-mint-pulse {
+  animation: blocks-mint-pulse var(--blocks-duration-slowest) var(--blocks-ease-smooth) infinite;
+}
+
+.blocks-mint-shake {
+  animation: blocks-mint-shake var(--blocks-duration-slower) var(--blocks-ease-confident);
+}
+
+.blocks-mint-wiggle {
+  animation: blocks-mint-wiggle var(--blocks-duration-slower) ease-in-out;
+}
+
+/* === KEYFRAME ANIMATIONS === */
+
+@keyframes blocks-mint-bounce {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-10px);
+  }
+}
+
+@keyframes blocks-mint-pulse {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.8;
+  }
+}
+
+@keyframes blocks-mint-shake {
+  0%,
+  100% {
+    transform: translateX(0);
+  }
+  25% {
+    transform: translateX(-5px);
+  }
+  75% {
+    transform: translateX(5px);
+  }
+}
+
+@keyframes blocks-mint-wiggle {
+  0%,
+  100% {
+    transform: rotate(0deg);
+  }
+  25% {
+    transform: rotate(-3deg);
+  }
+  75% {
+    transform: rotate(3deg);
+  }
+}
+
+/* === RIPPLE EFFECT (XC-12) ===
+   The active ripple effect is created dynamically by `mint/ripple.ts` —
+   a `<span class="blocks-mint-ripple">` is appended to the host element
+   on click with inline styles for position/size/opacity, then animated
+   via the Web Animations API. No standing CSS rule is needed; PAG-1
+   removed the previous `.blocks-mint-ripple::before` pseudo-implementation
+   which conflicted with the JS-generated span's class. */
+
+/* === ACCESSIBILITY & REDUCED MOTION === */
+
+@media (prefers-reduced-motion: reduce) {
+  .blocks-mint-scale,
+  .blocks-mint-translate,
+  .blocks-mint-rotate,
+  .blocks-mint-glow,
+  .blocks-mint-fade,
+  .blocks-mint-slide {
+    transition: none !important;
+    transform: none !important;
+    box-shadow: none !important;
+    animation: none !important;
+  }
+
+  .blocks-mint-bounce,
+  .blocks-mint-pulse,
+  .blocks-mint-shake,
+  .blocks-mint-wiggle {
+    animation: none !important;
+  }
+
+  /* JS-generated ripple span — never animate when motion is reduced. */
+  .blocks-mint-ripple {
+    display: none !important;
+  }
+}
+
+/* === HIGH CONTRAST MODE === */
+
+@media (prefers-contrast: high) {
+  .blocks-mint-glow {
+    box-shadow: 0 0 0 2px currentColor;
+  }
+
+  .blocks-mint-fade {
+    opacity: 1;
+  }
+}

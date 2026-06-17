@@ -1,0 +1,45 @@
+{
+  "name": "@urbicon-ui/docs-app",
+  "private": true,
+  "version": "0.0.1",
+  "type": "module",
+  "scripts": {
+    "dev": "vite dev",
+    "build": "svelte-kit sync && vite build",
+    "clean": "rm -rf dist .svelte-kit",
+    "clean-all": "bun --bun run clean && rm -rf node_modules",
+    "preview": "vite preview",
+    "check": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json",
+    "check:watch": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json --watch",
+    "lint": "biome check . && svelte-check --tsconfig ./tsconfig.json",
+    "format": "biome format --write . && prettier --write \"**/*.svelte\""
+  },
+  "dependencies": {
+    "@urbicon-ui/auth": "workspace:*",
+    "@urbicon-ui/blocks": "workspace:*",
+    "@urbicon-ui/docs": "workspace:*",
+    "@urbicon-ui/i18n": "workspace:*",
+    "@urbicon-ui/shared-types": "workspace:*",
+    "@urbicon-ui/table": "workspace:*"
+  },
+  "devDependencies": {
+    "@fontsource/jetbrains-mono": "^5.2.8",
+    "@sveltejs/adapter-static": "catalog:",
+    "@sveltejs/kit": "catalog:",
+    "@sveltejs/vite-plugin-svelte": "catalog:",
+    "@tailwindcss/vite": "catalog:",
+    "@types/node": "catalog:",
+    "chokidar": "catalog:",
+    "glob": "catalog:",
+    "prettier": "catalog:",
+    "prettier-plugin-svelte": "catalog:",
+    "prettier-plugin-tailwindcss": "catalog:",
+    "svelte": "catalog:",
+    "svelte-check": "catalog:",
+    "tailwindcss": "catalog:",
+    "tsx": "catalog:",
+    "typescript": "catalog:",
+    "vite": "catalog:",
+    "vitest": "catalog:"
+  }
+}

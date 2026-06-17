@@ -1,0 +1,11 @@
+# Urbicon UI
+
+> Global LLM resources index.
+
+- [Full API Reference](./llms-full.txt): Complete component props, variants, tokens, and patterns
+
+## Scopes
+- [Blocks](./blocks/llms.txt): Scope index
+- [Docs](./docs/llms.txt): Scope index
+- [Table](./table/llms.txt): Scope index
+- [Auth](./auth/llms.txt): Scope index

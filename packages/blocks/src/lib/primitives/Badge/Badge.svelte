@@ -1,0 +1,170 @@
+<script lang="ts">
+  import { Button, mintRegistry } from '$lib';
+  import { getBlocksConfig, mergeSlotClasses, resolvePresetSlotClasses } from '$lib/provider';
+  import { resolveIcon } from '$lib/icons';
+  import CloseIconDefault from '$lib/icons/CloseIcon.svelte';
+  import { useBlocksI18n } from '$lib';
+
+  const CloseIcon = resolveIcon('close', CloseIconDefault);
+  import { badgeVariants } from '$lib/primitives';
+  import { getTierContext } from '$lib/utils/tier-context';
+  import type { BadgeProps } from './index';
+
+  const bt = useBlocksI18n();
+
+  let {
+    tier,
+    intent = 'primary',
+    variant = 'filled',
+    size = 'md',
+    counter = false,
+    pulse = false,
+    removable = false,
+    interactive = false,
+    disabled = false,
+    mint = 'none',
+    placement,
+    border = false,
+    children,
+    class: className,
+    unstyled: unstyledProp = false,
+    slotClasses: slotClassesProp = {},
+    preset,
+    onRemove,
+    onclick,
+    onHover,
+    role = 'status',
+    ...restProps
+  }: BadgeProps = $props();
+
+  const tierCtx = getTierContext();
+  const effectiveTier = $derived(tier ?? tierCtx?.tier ?? 'commit');
+
+  const blocksConfig = getBlocksConfig();
+  const unstyled = $derived(unstyledProp || blocksConfig?.unstyled || false);
+  const slotClasses = $derived(
+    mergeSlotClasses(
+      blocksConfig?.defaults?.Badge?.slotClasses,
+      resolvePresetSlotClasses(blocksConfig?.presets, 'Badge', preset),
+      slotClassesProp
+    )
+  );
+
+  let badgeElement = $state<HTMLElement>();
+  let isHovered = $state(false);
+
+  const isDot = $derived(variant === 'dot');
+  const isInteractive = $derived(interactive || !!onclick);
+  const isRemovable = $derived(removable && !isDot);
+
+  const styles = $derived(
+    badgeVariants({
+      tier: effectiveTier,
+      intent,
+      variant,
+      size,
+      counter: counter || undefined,
+      pulse: pulse || undefined,
+      removable: isRemovable || undefined,
+      interactive: isInteractive || undefined,
+      disabled: disabled || undefined,
+      placement,
+      border: border || undefined
+    })
+  );
+
+  $effect(() => {
+    if (badgeElement && mint && mint !== 'none' && isInteractive && !disabled) {
+      return mintRegistry.apply(badgeElement, mint);
+    }
+  });
+
+  function handleMouseEnter() {
+    isHovered = true;
+    onHover?.(true);
+  }
+
+  function handleMouseLeave() {
+    isHovered = false;
+    onHover?.(false);
+  }
+
+  function handleClick(event: MouseEvent) {
+    if (disabled) return;
+    onclick?.(event);
+  }
+
+  function handleRemove(event: Event) {
+    event.stopPropagation();
+    onRemove?.();
+  }
+
+  function handleKeydown(event: KeyboardEvent) {
+    if (isRemovable && (event.key === 'Delete' || event.key === 'Backspace')) {
+      handleRemove(event);
+    }
+    if (onclick && (event.key === 'Enter' || event.key === ' ')) {
+      event.preventDefault();
+      onclick?.(event as unknown as MouseEvent);
+    }
+  }
+</script>
+
+<!-- svelte-ignore a11y_no_noninteractive_tabindex -->
+<span
+  bind:this={badgeElement}
+  class={[
+    `blocks-intent-${intent}`,
+    unstyled
+      ? [slotClasses?.base, className].filter(Boolean).join(' ')
+      : styles.base({ class: [slotClasses?.base, className] })
+  ]}
+  {role}
+  tabindex={isInteractive ? 0 : undefined}
+  onmouseenter={handleMouseEnter}
+  onmouseleave={handleMouseLeave}
+  onclick={handleClick}
+  onkeydown={handleKeydown}
+  aria-label={isRemovable ? bt('accessibility.removableBadge') : undefined}
+  aria-disabled={disabled}
+  {...restProps}
+>
+  {#if !isDot}
+    <span
+      class={unstyled
+        ? (slotClasses?.content ?? '')
+        : styles.content({ class: slotClasses?.content })}
+    >
+      {@render children?.()}
+    </span>
+  {/if}
+
+  {#if isRemovable}
+    <Button
+      variant="ghost"
+      size="xs"
+      class={unstyled
+        ? (slotClasses?.removeButton ?? '')
+        : styles.removeButton({ class: slotClasses?.removeButton })}
+      onclick={handleRemove}
+      aria-label={bt('accessibility.removeBadge')}
+    >
+      <CloseIcon
+        class={unstyled
+          ? (slotClasses?.removeIcon ?? '')
+          : styles.removeIcon({ class: slotClasses?.removeIcon })}
+      />
+    </Button>
+  {/if}
+</span>
+
+<style>
+  /* `.blocks-mint-*` rules live in `packages/blocks/src/lib/mint/styles.css`
+     — see XC-12. The local glow override used `currentColor`, which gave
+     the wrong color in the badge's filled variants (white text → white
+     glow → invisible). The global token cascades via `blocks-intent-*`. */
+
+  /* `badge-pulse` keyframes live in blocks/style/index.css so the Tailwind
+     arbitrary-animation utility on the badge (outside this component's
+     Svelte scope) can resolve them. */
+</style>

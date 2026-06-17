@@ -1,0 +1,98 @@
+{
+  "name": "@urbicon-ui/docs",
+  "version": "6.1.3",
+  "description": "Reusable documentation UI components for Urbicon UI docs sites",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://codeberg.org/urbicon/ui.git",
+    "directory": "packages/docs"
+  },
+  "homepage": "https://ui.urbicon.de",
+  "bugs": "https://codeberg.org/urbicon/ui/issues",
+  "keywords": [
+    "svelte",
+    "documentation",
+    "ui",
+    "components"
+  ],
+  "devDependencies": {
+    "@sveltejs/kit": "catalog:",
+    "@sveltejs/package": "catalog:",
+    "@sveltejs/vite-plugin-svelte": "catalog:",
+    "@tailwindcss/vite": "catalog:",
+    "@types/node": "catalog:",
+    "@urbicon-ui/blocks": "workspace:*",
+    "@urbicon-ui/i18n": "workspace:*",
+    "@urbicon-ui/shared-types": "workspace:*",
+    "@urbicon-ui/table": "workspace:*",
+    "chokidar": "catalog:",
+    "prettier": "catalog:",
+    "prettier-plugin-svelte": "catalog:",
+    "prettier-plugin-tailwindcss": "catalog:",
+    "shiki": "catalog:",
+    "svelte": "catalog:",
+    "svelte-check": "catalog:",
+    "tailwindcss": "catalog:",
+    "tsx": "catalog:",
+    "typescript": "catalog:",
+    "vite": "catalog:",
+    "vitest": "catalog:"
+  },
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "svelte": "./dist/index.js",
+      "default": "./dist/index.js"
+    },
+    "./style/index.css": "./dist/style/index.css",
+    "./style/docs-theme.css": "./dist/style/docs-theme.css",
+    "./vite": {
+      "types": "./dist/utils/code-example-plugin.d.ts",
+      "default": "./dist/utils/code-example-plugin.js"
+    }
+  },
+  "files": [
+    "dist",
+    "!dist/**/*.test.*",
+    "!dist/**/*.spec.*"
+  ],
+  "main": "./dist/index.js",
+  "peerDependencies": {
+    "@sveltejs/kit": "catalog:",
+    "svelte": "catalog:",
+    "@urbicon-ui/blocks": "^6.0.0",
+    "@urbicon-ui/table": "^6.0.0",
+    "@urbicon-ui/i18n": "^6.0.0",
+    "@urbicon-ui/shared-types": "^6.0.0"
+  },
+  "scripts": {
+    "dev": "svelte-package --watch",
+    "build": "svelte-kit sync && svelte-package",
+    "clean": "rm -rf dist .svelte-kit",
+    "clean-all": "bun --bun run clean && rm -rf node_modules",
+    "package": "svelte-kit sync && svelte-package",
+    "preview": "vite preview",
+    "check": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json",
+    "check:watch": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json --watch",
+    "format": "biome format --write . && prettier --write \"**/*.svelte\"",
+    "lint": "biome check . && svelte-check --tsconfig ./tsconfig.json",
+    "generate:all": "bun generator/generate-unified-docs.ts",
+    "generate:docs": "bun --bun generator/generate-unified-docs.ts docs",
+    "generate:llm": "bun --bun generator/generate-unified-docs.ts llm",
+    "generate:api-props": "bun --bun generator/generate-unified-docs.ts api-props",
+    "debug:component": "bun generator/generate-unified-docs.ts debug",
+    "docs:build": "bun --bun run generate:all && bun --bun run build",
+    "docs:dev": "bun --bun run generate:docs && bun run dev",
+    "docs:watch": "bun --bun generator/watch-generator.ts",
+    "docs:stats": "bun --bun generator/cli/docs-cli.ts stats",
+    "docs:validate": "bun --bun generator/cli/docs-cli.ts validate"
+  },
+  "sideEffects": [
+    "./src/**/*.css",
+    "./dist/**/*.css"
+  ],
+  "svelte": "./dist/index.js",
+  "type": "module",
+  "types": "./dist/index.d.ts"
+}

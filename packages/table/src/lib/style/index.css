@@ -1,0 +1,137 @@
+/* === FLOWTABLE DESIGN SYSTEM === */
+/* Master CSS file that imports all design tokens */
+/*
+ * NOTE: this file does NOT `@import 'tailwindcss'` — that is the consumer
+ * app's responsibility. See `@urbicon-ui/blocks/src/lib/style/index.css`
+ * and `docs/TailwindCaveats.md` → "Library CSS must not import Tailwind"
+ * for the rationale. Re-importing Tailwind here previously caused every
+ * consumer that mounted a Table to silently lose its `@theme` overrides
+ * to the library defaults.
+ */
+
+/* Foundation Layer - Base design tokens */
+@import '@urbicon-ui/blocks/style/index.css';
+
+/* === TABLE PACKAGE DESIGN SYSTEM === */
+
+/* === TABLE-SPECIFIC THEME === */
+/* Import table-specific theme tokens */
+@import './table-theme.css';
+
+/* === COMPONENT VARIANTS === */
+/* Import tailwind-variants source files for JIT compilation */
+@source '../variants';
+
+/* === MINIMAL COMPONENT STYLES === */
+/* Only complex, non-utility styles that can't be expressed in Tailwind classes */
+
+/* Table Expand Button - Complex interactive component */
+.table-expand-button {
+  color: var(--color-text-secondary);
+  background: transparent;
+  border: none;
+  border-radius: var(--blocks-radius-base);
+  cursor: pointer;
+  transition: var(--blocks-transition-colors);
+  padding: var(--blocks-space-1);
+}
+
+.table-expand-button:hover {
+  color: var(--color-text-primary);
+  background-color: var(--color-surface-hover);
+}
+
+.table-expand-button:focus-visible {
+  outline: none;
+  box-shadow: var(--blocks-focus-ring);
+  outline-offset: var(--blocks-focus-ring-offset);
+}
+
+/* Table Container - Complex layout component */
+.table-container {
+  /* Use blocks foundation tokens */
+  font-family: var(--blocks-font-family);
+  font-size: var(--text-sm);
+  line-height: var(--blocks-leading-normal);
+  color: var(--color-text-primary);
+
+  /* Container styling */
+  background: var(--color-surface-base);
+  border: 1px solid var(--color-border-default);
+  border-radius: var(--blocks-radius-lg);
+  overflow: hidden;
+
+  /* Modern scrolling */
+  container-type: inline-size;
+}
+
+/* === SEARCH HIGHLIGHT === */
+/* Applied via @html injection — must be global */
+.table-search-highlight {
+  background-color: var(--color-warning-subtle, oklch(0.95 0.07 85));
+  color: var(--color-text-primary);
+  padding: 0.1em 0.2em;
+  border-radius: var(--radius-sm, 0.25rem);
+  font-weight: 500;
+}
+
+/* === ACCESSIBILITY HELPERS === */
+
+/* Focus management for interactive elements */
+.table-focusable:focus-visible {
+  outline: none;
+  box-shadow: var(--blocks-focus-ring);
+  outline-offset: var(--blocks-focus-ring-offset);
+  border-radius: var(--blocks-radius-md);
+}
+
+/* Skip to content link */
+.table-skip-link {
+  position: absolute;
+  top: -40px;
+  left: 6px;
+  background: var(--color-surface-elevated);
+  color: var(--color-text-primary);
+  padding: 8px;
+  text-decoration: none;
+  border-radius: var(--blocks-radius-md);
+  z-index: var(--z-modal);
+}
+
+.table-skip-link:focus {
+  top: 6px;
+}
+
+/* === RESPONSIVE HELPERS === */
+/* Complex responsive patterns */
+
+@container (max-width: 768px) {
+  .table-hide-mobile {
+    display: none;
+  }
+
+  .table-mobile-stack {
+    flex-direction: column;
+    gap: var(--spacing-2);
+  }
+}
+
+@container (min-width: 769px) {
+  .table-hide-desktop {
+    display: none;
+  }
+}
+
+/* === PRINT OPTIMIZATIONS === */
+@media print {
+  .table-container {
+    background: white !important;
+    border: 1px solid #000 !important;
+    box-shadow: none !important;
+  }
+
+  .table-expand-button,
+  .table-skip-link {
+    display: none !important;
+  }
+}

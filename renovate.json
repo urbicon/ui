@@ -1,0 +1,35 @@
+{
+  "$schema": "https://docs.renovatebot.com/renovate-schema.json",
+  "extends": ["config:recommended"],
+  "rangeStrategy": "bump",
+  "semanticCommits": "enabled",
+  "semanticCommitScope": "deps",
+  "customManagers": [
+    {
+      "customType": "regex",
+      "description": "Bun catalog (workspaces.catalog + catalogs.*): Renovate only supports pnpm/yarn catalogs natively, not Bun — so capture the version strings in the root package.json via regex (RE2). currentValue must start with ^/~, which excludes the version field (0.1.4) and catalog:/workspace: refs.",
+      "fileMatch": ["^package\\.json$"],
+      "matchStrings": [
+        "\"(?<depName>@?[a-z0-9][\\w.\\-/]*)\"\\s*:\\s*\"(?<currentValue>[\\^~]\\d[\\w.\\-+]*)\""
+      ],
+      "datasourceTemplate": "npm"
+    }
+  ],
+  "packageRules": [
+    {
+      "description": "Catalog is the single source of truth — updates bundled into one PR instead of scattered.",
+      "matchFileNames": ["package.json"],
+      "matchUpdateTypes": ["patch", "minor"],
+      "groupName": "stack (catalog)"
+    },
+    {
+      "description": "udx's own config packages are unified with the CLI version (scripts/bump.sh) — do not let Renovate bump them.",
+      "matchPackageNames": [
+        "@urbicon/biome-config",
+        "@urbicon/commitlint-config",
+        "@urbicon/tsconfig"
+      ],
+      "enabled": false
+    }
+  ]
+}

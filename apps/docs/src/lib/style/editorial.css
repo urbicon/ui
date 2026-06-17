@@ -1,0 +1,399 @@
+/**
+ * Editorial Theme — Lighter-Refactor (Programme A).
+ *
+ * Full light+dark theme using the same `light-dark()` resolution
+ * mechanism as packages/blocks/src/lib/style/semantic.css — the
+ * editorial canvas is active in both modes. The cream-paper / warm-ink
+ * aesthetic inverts to warm-dark-paper / cream-ink in dark mode; the
+ * shape (paper hierarchy, ink hierarchy, accent, mono meta) stays
+ * identical across modes so the Editorial identity is preserved.
+ *
+ * Activation: <body class="docs-editorial"> (see app.html).
+ *
+ * Tokens live on the `--docs-*` namespace so the library identity
+ * (library consumers keep the blocks tokens) stays untouched; the
+ * library token overrides at the end of the block are scoped to
+ * `.docs-editorial`, i.e. opt-in per consumer.
+ */
+
+.docs-editorial {
+  /* Mono meta font (loaded in app.html via Google Fonts). Falls back
+   * to the system mono if the network blocks the request. */
+  --font-mono: 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+
+  /* Paper hierarchy — two stops for depth. `bg` is the ground (the
+   * page outside content blocks), `paper` is what content sits on.
+   * Light: warm cream → lighter cream. Dark: warm coffee → slightly
+   * lighter coffee. */
+  --docs-bg: light-dark(#f7f5f0, #1a1816);
+  --docs-paper: light-dark(#fbfaf6, #232220);
+
+  /* Ink hierarchy — three stops: primary text, meta/body-soft,
+   * decoration (// prefix, etc.). Light: warm dark → warm mid →
+   * warm light-gray. Dark: warm cream → warm tan → warm dark-gray. */
+  --docs-ink: light-dark(#2a2926, #f0ede5);
+  --docs-soft: light-dark(#6e6b64, #a5a299);
+  --docs-softer: light-dark(#b8b5ad, #5a574f);
+
+  /* Elevated surfaces — continuation of the cream ladder above paper.
+   * L·2 (lifted): dropdowns, popovers, selects — one step lighter
+   * than paper, still within the cream family.
+   * L·3 (floating): modals, sheets, command menus — top of the ladder,
+   * approaching pure white in light / warmest lifted dark in dark. */
+  --docs-lifted: light-dark(#fefdfa, #2a2826);
+  --docs-floating: light-dark(#ffffff, #322f2c);
+
+  /* Hairline + line — black-on-paper in light, cream-on-paper in
+   * dark. Same alpha curve in both modes so visual register stays
+   * consistent. */
+  --docs-hair: light-dark(rgb(42 41 38 / 0.08), rgb(240 237 229 / 0.08));
+  --docs-line: light-dark(rgb(42 41 38 / 0.14), rgb(240 237 229 / 0.14));
+
+  /* Brand primary ramp — Editorial-only.
+   *
+   * The library default is a blue ramp (Hue 240) in `foundation.css`;
+   * Editorial pins the 500 stop on the Urbicon brand green (#13ba00 ≈
+   * `oklch(0.69 0.205 138)`) and re-derives the rest of the 11-step
+   * ramp on the same L/C profile as the library curve. `semantic.css`
+   * then resolves `--color-primary`, `-hover`, `-active` and
+   * `-subtle` from these stops via `light-dark()` — so buttons,
+   * toggles, segment-indicators and the editorial pipe/accent all
+   * pick up the green automatically without per-token overrides.
+   *
+   * Library consumers keep the blue default — this
+   * scope only applies inside `<body class="docs-editorial">`. */
+  --color-primary-50: oklch(0.95 0.04 138);
+  --color-primary-100: oklch(0.9 0.07 138);
+  --color-primary-200: oklch(0.82 0.11 138);
+  --color-primary-300: oklch(0.74 0.15 138);
+  --color-primary-400: oklch(0.66 0.18 138);
+  --color-primary-500: oklch(0.69 0.205 138);
+  --color-primary-600: oklch(0.58 0.18 138);
+  --color-primary-700: oklch(0.48 0.15 138);
+  --color-primary-800: oklch(0.38 0.12 138);
+  --color-primary-900: oklch(0.28 0.09 138);
+  --color-primary-950: oklch(0.18 0.06 138);
+
+  /* Re-resolve the semantic primary tokens against the editorial ramp.
+   *
+   * Custom Properties substitute `var()` at the cascade level where
+   * the property is *defined* — `:root` sets `--color-primary:
+   * light-dark(var(--color-primary-600), var(--color-primary-500))`,
+   * so the var() resolves to the blue stops at the `:root` level and
+   * is then inherited as a substituted string. Overriding the 50–950
+   * ramp in `.docs-editorial` alone does not re-trigger that
+   * substitution. Re-declaring the derived tokens here forces a
+   * fresh substitution in the editorial scope using the green stops
+   * above. Mirrors `packages/blocks/src/lib/style/semantic.css:36-61
+   * and 120-122` one-to-one. */
+  --color-surface-selected: light-dark(var(--color-primary-50), var(--color-primary-900));
+  --color-primary: light-dark(var(--color-primary-600), var(--color-primary-500));
+  --color-primary-hover: light-dark(var(--color-primary-700), var(--color-primary-400));
+  --color-primary-active: light-dark(var(--color-primary-800), var(--color-primary-300));
+  --color-primary-subtle: light-dark(var(--color-primary-50), var(--color-primary-900));
+  --color-primary-emphasis: light-dark(var(--color-primary-900), var(--color-primary-200));
+  --color-interactive-hover: oklch(from var(--color-primary-500) l c h / 0.1);
+  --color-interactive-active: oklch(from var(--color-primary-500) l c h / 0.2);
+  --color-interactive-focus: light-dark(var(--color-primary-500), var(--color-primary-400));
+
+  /* Accent — coupled to the library's primary (already mode-aware
+   * via the `light-dark()` declaration in semantic.css). With the
+   * green ramp above this now reads as the editorial green. */
+  --docs-accent: var(--color-primary);
+
+  /* Intent ramps — tuned against the brand-green primary.
+   *
+   * The library defaults to a blue primary (Hue 240) and the intent
+   * palette (Secondary violet 280, Success green 140, Warning yellow
+   * 80, Danger red 25, Info teal 220) was composed against that. With
+   * the editorial primary on Hue 138, two collisions arise:
+   *   - Success (Hue 140) becomes near-indistinguishable from Primary.
+   *   - Warning (Hue 80) sits only ~60° away and reads warm-greenish
+   *     against cream paper.
+   * The retuned ramps push the conflicting hues apart and shift the
+   * other intents into the warm spectrum so they sit naturally on
+   * cream. Info stays library-default (cool teal is a deliberate
+   * contrast against the warm palette).
+   *
+   * Each ramp follows the library L/C curve so density transitions
+   * stay perceptually consistent across light + dark. */
+
+  /* Secondary — burgundy / mahogany (Hue 15). Replaces library violet
+   * (Hue 280) so the complementary against brand green reads warm. */
+  --color-secondary-50: oklch(0.95 0.025 15);
+  --color-secondary-100: oklch(0.9 0.05 15);
+  --color-secondary-200: oklch(0.82 0.07 15);
+  --color-secondary-300: oklch(0.74 0.1 15);
+  --color-secondary-400: oklch(0.62 0.12 15);
+  --color-secondary-500: oklch(0.5 0.12 15);
+  --color-secondary-600: oklch(0.42 0.11 15);
+  --color-secondary-700: oklch(0.34 0.09 15);
+  --color-secondary-800: oklch(0.28 0.08 15);
+  --color-secondary-900: oklch(0.22 0.06 15);
+  --color-secondary-950: oklch(0.14 0.04 15);
+
+  /* Success — forest / sage (Hue 150, darker, lower chroma). Pushed
+   * +12° from primary (Hue 138) and pulled down in L and C so a
+   * "Save successful" toast reads clearly as a verified state rather
+   * than as another brand button. The L=0.42 at 500 is intentionally
+   * darker than the library 0.5 — the brand green already owns the
+   * vibrant green register, success now reads as "completed/verified
+   * green". */
+  --color-success-50: oklch(0.94 0.02 150);
+  --color-success-100: oklch(0.88 0.04 150);
+  --color-success-200: oklch(0.78 0.06 150);
+  --color-success-300: oklch(0.68 0.08 150);
+  --color-success-400: oklch(0.55 0.09 150);
+  --color-success-500: oklch(0.42 0.08 150);
+  --color-success-600: oklch(0.36 0.07 150);
+  --color-success-700: oklch(0.3 0.07 150);
+  --color-success-800: oklch(0.25 0.06 150);
+  --color-success-900: oklch(0.2 0.05 150);
+  --color-success-950: oklch(0.13 0.03 150);
+
+  /* Warning — amber (Hue 55). Pulled out of the green-adjacent yellow
+   * (library Hue 80) so the warning state never overlaps with the
+   * primary register; the warmer hue also harmonises with the cream
+   * paper rather than reading citrus. */
+  --color-warning-50: oklch(0.96 0.04 55);
+  --color-warning-100: oklch(0.92 0.07 55);
+  --color-warning-200: oklch(0.84 0.1 55);
+  --color-warning-300: oklch(0.76 0.13 55);
+  --color-warning-400: oklch(0.7 0.15 55);
+  --color-warning-500: oklch(0.72 0.16 55);
+  --color-warning-600: oklch(0.62 0.16 55);
+  --color-warning-700: oklch(0.52 0.14 55);
+  --color-warning-800: oklch(0.42 0.12 55);
+  --color-warning-900: oklch(0.28 0.09 55);
+  --color-warning-950: oklch(0.18 0.06 55);
+
+  /* Danger — maroon (Hue 22). Pulled from library Hue 25 (vivid red)
+   * toward maroon and slightly darkened at 500 (0.48 vs 0.5) so the
+   * stop sits comfortably on cream paper instead of reading as a
+   * standalone red alert dot. The hue iterated from 12 (rolled into
+   * magenta on the dark-mode 400 stop) → 18 (still slightly pinkish)
+   * → 22 (the sweet spot — clear maroon in light, no magenta cast
+   * in dark while staying noticeably warmer than the library red). */
+  --color-danger-50: oklch(0.95 0.04 22);
+  --color-danger-100: oklch(0.9 0.07 22);
+  --color-danger-200: oklch(0.82 0.09 22);
+  --color-danger-300: oklch(0.74 0.12 22);
+  --color-danger-400: oklch(0.62 0.15 22);
+  --color-danger-500: oklch(0.48 0.17 22);
+  --color-danger-600: oklch(0.42 0.16 22);
+  --color-danger-700: oklch(0.36 0.14 22);
+  --color-danger-800: oklch(0.28 0.11 22);
+  --color-danger-900: oklch(0.2 0.09 22);
+  --color-danger-950: oklch(0.12 0.06 22);
+
+  /* Info — left at library defaults (teal Hue 220). Cool blue against
+   * the warm editorial palette is a deliberate contrast — info banners
+   * need to read as informational chrome, not as part of the brand
+   * voice. */
+
+  /* Re-resolve the semantic intent tokens against the editorial ramps.
+   * Same reasoning as the primary block: var() in a custom property
+   * definition substitutes at the :root cascade level, so overriding
+   * the 50–950 stops alone does not re-trigger substitution for the
+   * derived `--color-{intent}` / -hover / -active / -subtle / -emphasis.
+   * Mirrors `packages/blocks/src/lib/style/semantic.css:66-108`. */
+
+  --color-secondary: light-dark(var(--color-secondary-500), var(--color-secondary-400));
+  --color-secondary-hover: light-dark(var(--color-secondary-600), var(--color-secondary-300));
+  --color-secondary-active: light-dark(var(--color-secondary-700), var(--color-secondary-200));
+  --color-secondary-subtle: light-dark(var(--color-secondary-50), var(--color-secondary-900));
+  --color-secondary-emphasis: light-dark(var(--color-secondary-800), var(--color-secondary-200));
+
+  --color-success: light-dark(var(--color-success-500), var(--color-success-400));
+  --color-success-hover: light-dark(var(--color-success-600), var(--color-success-300));
+  --color-success-active: light-dark(var(--color-success-700), var(--color-success-200));
+  --color-success-subtle: light-dark(var(--color-success-50), var(--color-success-900));
+  --color-success-emphasis: light-dark(var(--color-success-800), var(--color-success-200));
+
+  --color-warning: light-dark(var(--color-warning-500), var(--color-warning-400));
+  --color-warning-hover: light-dark(var(--color-warning-600), var(--color-warning-300));
+  --color-warning-active: light-dark(var(--color-warning-700), var(--color-warning-200));
+  --color-warning-subtle: light-dark(var(--color-warning-50), var(--color-warning-900));
+  --color-warning-emphasis: light-dark(var(--color-warning-800), var(--color-warning-200));
+
+  --color-danger: light-dark(var(--color-danger-500), var(--color-danger-400));
+  --color-danger-hover: light-dark(var(--color-danger-600), var(--color-danger-300));
+  --color-danger-active: light-dark(var(--color-danger-700), var(--color-danger-200));
+  --color-danger-subtle: light-dark(var(--color-danger-50), var(--color-danger-900));
+  --color-danger-emphasis: light-dark(var(--color-danger-800), var(--color-danger-200));
+
+  /* Feedback aliases (semantic.css:130-) point at the intent tokens
+   * via plain `var(--color-X)` so they technically resolve lazily —
+   * re-declaring is defensive but cheap and makes the dependency
+   * graph explicit in the editorial scope. */
+  --color-feedback-success: var(--color-success);
+  --color-feedback-success-subtle: var(--color-success-subtle);
+  --color-feedback-warning: var(--color-warning);
+  --color-feedback-warning-subtle: var(--color-warning-subtle);
+  --color-feedback-danger: var(--color-danger);
+  --color-feedback-danger-subtle: var(--color-danger-subtle);
+
+  /* Editorial geometry tokens — opt-in geometry handles for surfaces
+   * that are specifically Editorial-decorative (Bento-Cards, Recipe-
+   * Stages, TOC-Pills). They default to library tokens but the Editorial
+   * theme can shift them independently. Use as
+   * `class="rounded-[var(--docs-radius-card)]"` or via @apply in
+   * editorial-scoped rules. */
+
+  /* Pill-tag radius — TOC-Crumb-Pills, Editorial-Section-Markers,
+   * meta-chips. Defaults to the commit-tier (full pill) so it visually
+   * separates from rectangle Library content. */
+  --docs-radius-pill: var(--radius-commit);
+
+  /* Editorial-Card radius — Bento-Cards on the Blocks-Landing, Recipe-
+   * Index cards, Theme-Builder demo frames. Defaults to the library's
+   * `--radius-2xl` (= 1rem at brand default) so Editorial stages read
+   * distinctly louder than `--radius-contain` (the library container
+   * default) but stay coupled to the brand's physical radius scale —
+   * if a brand widens `--radius-2xl`, Editorial cards widen with it. To
+   * close the gap to Library shapes entirely, override this to
+   * `var(--radius-contain)` in a brand-specific editorial rule. */
+  --docs-radius-card: var(--radius-2xl);
+
+  /* Editorial page-lift shadow — Bento-Cards, Recipe-Cards,
+   * Showcase-Stages. Defaults to the library's strongest shadow stop
+   * (lg). Editorial can override with a custom value when the cream
+   * palette needs a different separation. */
+  --docs-shadow-page: var(--blocks-shadow-lg);
+
+  /* Apply to root surfaces. */
+  background: var(--docs-bg);
+  color: var(--docs-ink);
+
+  /* Library semantic token overrides — bind the most consumed tokens
+   * to the editorial ramps so library components rendered inside
+   * `.docs-editorial` automatically pick up the warm palette in both
+   * modes. The full surface ladder (L·0–L·3) is now overridden so
+   * floating surfaces (popover, menu, dialog) stay within the warm
+   * cream family instead of falling back to the library's cool
+   * neutrals. Shadow tint shifts the shadow colour from pure black
+   * to a warm dark brown (oklch 0.22 0.04 70) so shadows blend with
+   * the cream palette rather than reading as cool smudges. */
+  --color-surface-base: var(--docs-paper);
+  --color-surface-quiet: var(--docs-bg);
+  --color-surface-elevated: var(--docs-lifted);
+  --color-surface-overlay: var(--docs-floating);
+  --color-border-hairline: var(--docs-hair);
+  --color-text-primary: var(--docs-ink);
+  --color-text-secondary: var(--docs-soft);
+  --color-text-tertiary: var(--docs-soft);
+  --color-text-quaternary: var(--docs-softer);
+  --blocks-shadow-tint: 0.22 0.04 70;
+
+  /* Route the architectural neutral stops through the library's existing
+   * `--color-warm-neutral-*` ramp (Hue 45) so borders, interactive
+   * surface states and the disabled surfaces no longer read as cool
+   * blue-grey against the cream paper. Surfaces L·0–L·3 are already
+   * bound to the `--docs-paper/-bg/-lifted/-floating` family above —
+   * what remains here are the surface mid-states (hover/active/
+   * disabled/subtle/interactive) and the four border tiers.
+   *
+   * `--color-warm-neutral-*` is library default; it ships with 50, 100,
+   * 200, 300, 400, 500, 600, 700, 800, 900, 950 (no -25/-650/-750/-850
+   * steps). Tokens that referenced a missing stop fall back to the
+   * nearest neighbour (e.g. surface-hover went -750 → -800 in dark). */
+  --color-surface-interactive: light-dark(
+    var(--color-warm-neutral-100),
+    var(--color-warm-neutral-700)
+  );
+  --color-surface-hover: light-dark(var(--color-warm-neutral-100), var(--color-warm-neutral-800));
+  --color-surface-active: light-dark(var(--color-warm-neutral-200), var(--color-warm-neutral-700));
+  --color-surface-disabled: light-dark(
+    var(--color-warm-neutral-100),
+    var(--color-warm-neutral-800)
+  );
+  --color-surface-subtle: light-dark(var(--color-warm-neutral-50), var(--color-warm-neutral-800));
+  --color-surface-inverted: light-dark(
+    var(--color-warm-neutral-900),
+    var(--color-warm-neutral-100)
+  );
+
+  --color-border-subtle: light-dark(var(--color-warm-neutral-200), var(--color-warm-neutral-700));
+  --color-border-default: light-dark(var(--color-warm-neutral-300), var(--color-warm-neutral-600));
+  --color-border-emphasis: light-dark(var(--color-warm-neutral-400), var(--color-warm-neutral-500));
+  --color-border-strong: light-dark(var(--color-warm-neutral-500), var(--color-warm-neutral-400));
+
+  --color-text-disabled: light-dark(var(--color-warm-neutral-300), var(--color-warm-neutral-600));
+  --color-interactive-disabled: light-dark(
+    var(--color-warm-neutral-200),
+    var(--color-warm-neutral-700)
+  );
+
+  /* Neutral intent — re-pinned to the warm-neutral ramp. The library default
+     now derives the neutral intent from --neutral-chrome-hue (cool 240); since
+     this scope is a class (not :root), the derived --color-neutral inherits
+     the cool computed value unless re-declared here. Editorial is warm, so we
+     restore the warm-neutral mapping directly — matching the cream palette and
+     mirroring the library's pre-themeable definition exactly. */
+  --color-neutral: light-dark(var(--color-warm-neutral-500), var(--color-warm-neutral-400));
+  --color-neutral-hover: light-dark(var(--color-warm-neutral-600), var(--color-warm-neutral-300));
+  --color-neutral-active: light-dark(var(--color-warm-neutral-700), var(--color-warm-neutral-200));
+  --color-neutral-subtle: light-dark(var(--color-warm-neutral-50), var(--color-warm-neutral-900));
+  --color-neutral-emphasis: light-dark(var(--color-warm-neutral-800), var(--color-warm-neutral-200));
+}
+
+/* Mono meta font — applied via the `font-meta` utility on crumb,
+ * ON THIS PAGE labels, generated code, and chip badges. */
+.docs-editorial .font-meta,
+.docs-editorial code,
+.docs-editorial kbd {
+  font-family: var(--font-mono, 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, monospace);
+}
+
+.docs-editorial .font-meta {
+  font-size: 0.78rem;
+  letter-spacing: 0.01em;
+  color: var(--docs-soft);
+}
+
+/* The // prefix marker for editorial meta-headings. Use as
+ * <h2 class="meta-marker">ON THIS PAGE</h2>. */
+.docs-editorial .meta-marker {
+  font-family: var(--font-mono, ui-monospace, monospace);
+  font-size: 0.78rem;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--docs-soft);
+}
+
+.docs-editorial .meta-marker::before {
+  content: '// ';
+  color: var(--docs-softer);
+}
+
+/* Pipe-Marker for editorial titles — `<h1>Button<span class="pipe">|</span></h1>`.
+ * Horizontal accent that separates the page title from the lede
+ * below, matching the editorial mockup. Decorative (aria-hidden in
+ * markup); the accent colour is the library primary which already
+ * resolves correctly in both modes. */
+.docs-editorial .pipe {
+  display: inline-block;
+  color: var(--docs-accent);
+  font-weight: 400;
+  margin-left: 0.4em;
+  letter-spacing: -0.05em;
+}
+
+/* Editorial collapses the page-title sub-headline. The library still
+ * accepts `description` on `<DocsLayout>` (used by external consumers
+ * and the SEO meta description), but the editorial layout treats the
+ * title-plus-pipe as the only entry point — the description was
+ * reading as a second h2 next to the h1 and added noise. Reverse via
+ * a brand-specific override if a future Editorial wants the lede back. */
+.docs-editorial [data-docs-subtitle] {
+  display: none;
+}
+
+/* The outer stage container is transparent so it sits on the page
+ * paper rather than as a card-on-card. The inner stage-frame (preview
+ * area) keeps its bg-surface-quiet tint from the variant system —
+ * this creates a subtle "stage" that separates the live demo from
+ * the controls beneath it. */
+.docs-editorial [data-docs-stage] {
+  background-color: transparent;
+}

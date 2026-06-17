@@ -1,0 +1,100 @@
+# Dependencies
+node_modules/
+*.pnp
+.pnp.js
+
+# Build Output
+dist/
+out/
+build/
+.output/
+.vercel/
+.netlify/
+.wrangler/
+
+# SvelteKit
+.svelte-kit/
+
+# Package archives
+*.tgz
+
+# Code Coverage
+coverage/
+*.lcov
+
+# Logs
+logs/
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+report.[0-9]*.[0-9]*.[0-9]*.[0-9]*.json
+
+# Environment Variables
+.env
+.env.*
+!.env.example
+!.env.test
+.env.development.local
+.env.test.local
+.env.production.local
+.env.local
+
+# Caches
+.eslintcache
+.cache/
+*.tsbuildinfo
+.turbo/
+
+# IDE & Editor
+.idea/*
+.vscode/
+.claude/worktrees/
+.claude/settings.local.json
+.claude/launch.json
+*.swp
+*.swo
+*~
+
+# OS Files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# Vite
+vite.config.js.timestamp-*
+vite.config.ts.timestamp-*
+
+# Bun
+bun.lockb
+
+# Test artifacts
+test-results/
+e2e/test-results/
+playwright-report/
+playwright/.cache/
+
+# Temporary files
+tmp/
+temp/
+
+# Auto-generated API docs
+apps/docs/src/**/api.ts
+apps/docs/static/**/*.txt
+!apps/docs/static/robots.txt
+apps/docs/static/**/_catalog.json
+apps/docs/static/mcp/
+llms-full.txt
+
+# Internal working docs (strategy, launch, deployment, design) — kept local, not part of the published OSS repo
+docs/internal/
+
+# Internal A/B research artifacts — not build input, not shipped
+experiment/
+
+# Completed plans & audits (historical working docs) — kept local, not part of the published OSS repo
+docs/archive/
