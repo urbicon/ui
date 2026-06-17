@@ -22,7 +22,7 @@ calls the linter surfaces as warnings and a reviewer (or you) decides on.
 ## Icon resolution & tree-shaking
 
 How a component renders a _default_ icon decides whether a consumer who imports that component
-drags in **one** icon or **all ~156**. Two resolvers exist (`icons/icon.context.ts`); pick by call
+drags in **one** icon or **all ~156**. Two resolvers exist (`resolveIcon` in `icons/icon.context.ts`, `getIcon` in `icons/icon-registry.ts`); pick by call
 site:
 
 - **`resolveIcon(name, FallbackIcon)` — use this in every component.** The component imports its
@@ -57,11 +57,11 @@ no `<Icon>` is in the graph. Measured on the built `dist`: `<Input>` bundles **1
 direct import. Never call `getIcon` in a component — the lone exception is `Icon.svelte`. The
 override contract (`IconProvider` / `setIcons`) is identical for both resolvers.
 
-Grep target — a `getIcon(` call outside `icons/Icon.svelte` / `icons/icon.context.ts` is a
-regression:
+Grep target — a `getIcon(` call outside `icons/Icon.svelte` / `icons/icon-registry.ts` /
+`icons/icon.context.ts` is a regression:
 
 ```sh
-rg "getIcon\(" packages/*/src --glob '!**/icon.context.ts' --glob '!**/Icon.svelte'
+rg "getIcon\(" packages/*/src --glob '!**/icon-registry.ts' --glob '!**/icon.context.ts' --glob '!**/Icon.svelte'
 ```
 
 ## 1 · The hard contract (enforced — errors)
@@ -200,10 +200,10 @@ picker, or `find_icons`. `icons:lint` checks every link in this chain.
 
 1. Create `svg/<name>.svg` (the drawing) **and** `<Name>Icon.svelte` (copy an existing wrapper;
    it just imports `./svg/<name>.svg?raw`).
-2. Add `'<name>'` to the `IconName` union in `icon.context.ts`.
-3. Register the component in `DEFAULT_ICONS`.
-4. Add an `ICON_METADATA` entry (`label`, `categories`, `keywords`) — this feeds the MCP
-   `find_icons` tool and the docs icon browser.
+2. Add `'<name>'` to the `IconName` union in `icon-types.ts`.
+3. Register the component in `DEFAULT_ICONS` (`icon-registry.ts`).
+4. Add an `ICON_METADATA` entry (`label`, `categories`, `keywords`) in `icon-registry.ts` — this
+   feeds the MCP `find_icons` tool and the docs icon browser.
 5. Add a named export in `index.ts`.
 
 Semantic aliases are allowed: a `DEFAULT_ICONS` key may map to a differently-named component
@@ -229,4 +229,4 @@ this document — change them together.
 ---
 
 See also: `CLAUDE.md` → *Icon Design Rules* (summary + pointer here),
-`packages/blocks/src/lib/icons/icon.context.ts` (registry & metadata).
+`packages/blocks/src/lib/icons/icon-registry.ts` (registry & metadata), `icon.context.ts` (override context + `resolveIcon`).

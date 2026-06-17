@@ -2,7 +2,7 @@
 
 Record of the icon-set expansion from **156 → 315 icons**, added in three prioritised waves
 following [ICON-DESIGN.md](ICON-DESIGN.md) and verified by `bun run icons:lint`. The live source
-of truth for what exists is `ICON_METADATA` in `packages/blocks/src/lib/icons/icon.context.ts`
+of truth for what exists is `ICON_METADATA` in `packages/blocks/src/lib/icons/icon-registry.ts`
 (and the MCP `find_icons` tool); this file records the *rationale* and the open backlog.
 
 ## Why these icons
