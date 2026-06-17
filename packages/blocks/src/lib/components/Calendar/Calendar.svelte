@@ -14,12 +14,10 @@
     isSameDay,
     isInRange,
     isInMonth,
-    clampMonth,
-    dateKey,
-    stripTime,
-    getEventDayInfo,
-    expandRecurrence
-  } from './calendar.engine';
+    toIso,
+    stripTime
+  } from '$lib/date';
+  import { clampMonth, getEventDayInfo, expandRecurrence } from './calendar.engine';
   import type { CalendarProps } from './index';
   import type {
     CalendarEvent,
@@ -272,7 +270,7 @@
       const endDay = event.end ? stripTime(event.end) : startDay;
       let current = new Date(startDay); // eslint-disable-line svelte/prefer-svelte-reactivity
       while (current <= endDay) {
-        const key = dateKey(current);
+        const key = toIso(current);
         const arr = map.get(key);
         if (arr) {
           arr.push(event);
@@ -296,7 +294,7 @@
   });
 
   // --- Derived: disabled dates set for O(1) lookup ---
-  const disabledDatesSet = $derived(new Set(disabledDates.map((d) => dateKey(d))));
+  const disabledDatesSet = $derived(new Set(disabledDates.map((d) => toIso(d))));
 
   // --- Derived: legend visibility ---
   const effectiveShowLegend = $derived(showLegend ?? categories.length > 0);
@@ -311,7 +309,7 @@
 
   // --- Helpers ---
   function getEventsForDate(date: Date): CalendarEvent[] {
-    return eventsByDate.get(dateKey(date)) ?? [];
+    return eventsByDate.get(toIso(date)) ?? [];
   }
 
   function getEventsWithDayInfo(date: Date): EventDayInfo[] {
@@ -329,7 +327,7 @@
   function checkIsDateDisabled(date: Date): boolean {
     if (disabled) return true;
     if (isDateDisabledProp?.(date)) return true;
-    if (disabledDatesSet.has(dateKey(date))) return true;
+    if (disabledDatesSet.has(toIso(date))) return true;
     if (minDate && stripTime(date) < stripTime(minDate)) return true;
     if (maxDate && stripTime(date) > stripTime(maxDate)) return true;
     return false;

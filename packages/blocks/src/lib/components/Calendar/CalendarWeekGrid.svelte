@@ -3,7 +3,8 @@
   import type { Snippet } from 'svelte';
   import { fly } from 'svelte/transition';
   import { getCalendarContext, createSlotHelper } from './calendar.context';
-  import { getWeekdayNames, isSameDay, dateKey, getContrastTextColor } from './calendar.engine';
+  import { getWeekdayNames, isSameDay, toIso } from '$lib/date';
+  import { getContrastTextColor } from './calendar.engine';
   import { swipeable } from './calendar.swipeable';
   import type { CalendarEvent, EventItemContext } from './calendar.types';
   import CalendarEventRenderer from './CalendarEventRenderer.svelte';
@@ -23,14 +24,14 @@
   const slot = createSlotHelper(ctx);
 
   const weekdayNames = $derived(getWeekdayNames(ctx.locale, ctx.weekStartsOn, 'short'));
-  const weekKey = $derived(dateKey(ctx.weekDates[0]));
+  const weekKey = $derived(toIso(ctx.weekDates[0]));
 
   // All-day events per date (for time grid mode)
   const allDayByDate = $derived.by(() => {
     if (!ctx.showTimeGrid) return null;
     const map = new Map<string, Array<{ event: CalendarEvent; color: string }>>(); // eslint-disable-line svelte/prefer-svelte-reactivity
     for (const date of ctx.weekDates) {
-      const key = dateKey(date);
+      const key = toIso(date);
       const allDay = ctx
         .getEventsForDate(date)
         .filter((e) => e.allDay !== false)
@@ -147,7 +148,7 @@
           {#if hasAnyAllDay && allDayByDate}
             <div class="grid grid-cols-7 {slot('allDayArea')}">
               {#each ctx.weekDates as date (date.toISOString())}
-                {@const key = dateKey(date)}
+                {@const key = toIso(date)}
                 {@const items = allDayByDate.get(key) ?? []}
                 <div class="flex min-h-5 flex-col gap-px px-0.5">
                   {#each items as item (item.event.id)}

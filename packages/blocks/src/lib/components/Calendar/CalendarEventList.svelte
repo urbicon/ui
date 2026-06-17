@@ -3,7 +3,7 @@
   import type { Snippet } from 'svelte';
   import { Button } from '$lib/primitives/Button';
   import { getCalendarContext, createSlotHelper } from './calendar.context';
-  import { formatDate } from './calendar.engine';
+  import { formatDate } from '$lib/date';
   import type { CalendarEvent, EventItemContext } from './calendar.types';
   import CalendarEventRenderer from './CalendarEventRenderer.svelte';
 

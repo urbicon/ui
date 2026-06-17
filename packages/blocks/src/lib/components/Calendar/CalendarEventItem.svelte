@@ -3,7 +3,7 @@
   import { Badge } from '$lib/primitives/Badge';
   import { getCalendarContext, createSlotHelper } from './calendar.context';
   import { draggableEvent } from './calendar.drag';
-  import { stripTime } from './calendar.engine';
+  import { stripTime } from '$lib/date';
   import type { CalendarEvent, CalendarEventCategory } from './calendar.types';
 
   const bt = useBlocksI18n();

@@ -9,7 +9,7 @@
   import ChevronDownIcon from '$lib/icons/ChevronDownIcon.svelte';
   import CalendarIcon from '$lib/icons/CalendarIcon.svelte';
   import { getCalendarContext } from './calendar.context';
-  import { formatMonthShort } from './calendar.engine';
+  import { formatMonthShort } from '$lib/date';
   import type { CalendarHeaderProps, CalendarSlotName, CalendarViewMode } from './index';
 
   const bt = useBlocksI18n();

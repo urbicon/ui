@@ -4,7 +4,7 @@
   import { Popover } from '$lib/primitives/Popover';
   import { getCalendarContext } from './calendar.context';
   import { calendarVariants } from './calendar.variants';
-  import { isSameDay, formatDateFull } from './calendar.engine';
+  import { isSameDay, formatDateFull } from '$lib/date';
   import type { CalendarEvent, DayCellContext } from './calendar.types';
   import CalendarEventPopover from './CalendarEventPopover.svelte';
 

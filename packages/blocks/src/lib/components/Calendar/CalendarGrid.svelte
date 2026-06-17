@@ -3,7 +3,8 @@
   import type { Snippet } from 'svelte';
   import { fly } from 'svelte/transition';
   import { getCalendarContext, createSlotHelper } from './calendar.context';
-  import { getWeekNumber, getMultiDayEventLayout, dateKey } from './calendar.engine';
+  import { getWeekNumber, toIso } from '$lib/date';
+  import { getMultiDayEventLayout } from './calendar.engine';
   import { swipeable } from './calendar.swipeable';
   import type { CalendarEvent, DayCellContext } from './calendar.types';
   import CalendarWeekdayHeader from './CalendarWeekdayHeader.svelte';
@@ -142,7 +143,7 @@
           ? { x: ctx.navDirection === 'forward' ? -40 : 40, duration: 150 }
           : { duration: 0 }}
       >
-        {#each ctx.grid as week, weekIdx (week[0] ? dateKey(week[0]) : weekIdx)}
+        {#each ctx.grid as week, weekIdx (week[0] ? toIso(week[0]) : weekIdx)}
           {@const weekLayout = multiDayLayout[weekIdx]}
           {@const maxBarRow =
             weekLayout?.segments.length > 0

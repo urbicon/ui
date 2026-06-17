@@ -4,7 +4,7 @@
   import { fly } from 'svelte/transition';
   import { Badge } from '$lib/primitives/Badge';
   import { getCalendarContext, createSlotHelper } from './calendar.context';
-  import { formatDateFull, dateKey } from './calendar.engine';
+  import { formatDateFull, toIso } from '$lib/date';
   import { swipeable } from './calendar.swipeable';
   import type { CalendarEvent, EventItemContext } from './calendar.types';
   import CalendarEventRenderer from './CalendarEventRenderer.svelte';
@@ -26,7 +26,7 @@
   const displayedDate = $derived(ctx.displayedDate);
   const eventsWithInfo = $derived(ctx.getEventsWithDayInfo(displayedDate));
   const dateLabel = $derived(formatDateFull(displayedDate, ctx.locale));
-  const dayKey = $derived(dateKey(displayedDate));
+  const dayKey = $derived(toIso(displayedDate));
 
   // Separate all-day vs timed events for time grid mode
   const allDayEvents = $derived(

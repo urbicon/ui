@@ -2,7 +2,7 @@
   import { useBlocksI18n } from '$lib';
   import { fly } from 'svelte/transition';
   import { getCalendarContext, createSlotHelper } from './calendar.context';
-  import { getMonthGrid, formatMonthShort, isSameDay } from './calendar.engine';
+  import { getMonthGrid, formatMonthShort, isSameDay } from '$lib/date';
   import { swipeable } from './calendar.swipeable';
 
   const bt = useBlocksI18n();

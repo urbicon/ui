@@ -50,6 +50,12 @@
       "import": "./dist/index.js",
       "default": "./dist/index.js"
     },
+    "./date": {
+      "types": "./dist/date/index.d.ts",
+      "svelte": "./dist/date/index.js",
+      "import": "./dist/date/index.js",
+      "default": "./dist/date/index.js"
+    },
     "./style/index.css": "./dist/style/index.css",
     "./style/foundation.css": "./dist/style/foundation.css",
     "./style/semantic.css": "./dist/style/semantic.css",

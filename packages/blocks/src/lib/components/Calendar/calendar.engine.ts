@@ -1,158 +1,16 @@
 /**
- * Pure date arithmetic functions for the Calendar component.
- * No Svelte dependencies — fully testable in isolation.
- * Uses native Intl.DateTimeFormat for locale-aware formatting.
+ * Event-layout, recurrence and navigation logic for the Calendar component.
+ *
+ * Pure date geometry (grids, week numbers, ranges, comparison, formatting)
+ * lives in the Svelte-free `$lib/date` layer and is imported from there. This
+ * module keeps only the Calendar-specific concerns: positioning timed and
+ * multi-day events, expanding recurrence rules, time-slot generation and
+ * month navigation clamping. No Svelte dependencies — fully testable in
+ * isolation.
  */
 
+import { daysBetween, stripTime, toIso } from '$lib/date';
 import type { CalendarEvent, PositionedEvent, RecurrenceRule, TimeSlot } from './calendar.types';
-
-/**
- * Generate a 2D grid of dates for a month view.
- * Each row is a 7-element array representing one week.
- * Includes padding days from previous/next months to fill the grid.
- *
- * @param year - Full year (e.g. 2026)
- * @param month - Month index (0-11)
- * @param weekStartsOn - Day the week starts on (0=Sun, 1=Mon, ..., 6=Sat)
- * @returns 2D array of Date objects (4-6 rows of 7 days)
- */
-export function getMonthGrid(year: number, month: number, weekStartsOn: number = 1): Date[][] {
-  const firstOfMonth = new Date(year, month, 1);
-  const firstDayOfWeek = firstOfMonth.getDay();
-
-  // How many days from the previous month we need to show
-  const daysBefore = (firstDayOfWeek - weekStartsOn + 7) % 7;
-
-  // Start date: go back daysBefore days from the 1st
-  const startDate = new Date(year, month, 1 - daysBefore);
-
-  const weeks: Date[][] = [];
-  const current = new Date(startDate);
-
-  // Generate enough weeks to cover the entire month
-  // We need at least enough rows until we've passed the last day of the month
-  const lastOfMonth = new Date(year, month + 1, 0);
-
-  while (weeks.length === 0 || current <= lastOfMonth || weeks[weeks.length - 1].length < 7) {
-    const week: Date[] = [];
-    for (let i = 0; i < 7; i++) {
-      week.push(new Date(current));
-      current.setDate(current.getDate() + 1);
-    }
-    weeks.push(week);
-
-    // Safety: stop after 6 weeks max
-    if (weeks.length >= 6) break;
-  }
-
-  return weeks;
-}
-
-/**
- * Get localized weekday names.
- *
- * @param locale - BCP 47 locale tag (e.g. 'de-DE')
- * @param weekStartsOn - Day the week starts on (0=Sun, 1=Mon)
- * @param format - Name format ('narrow'='M', 'short'='Mo', 'long'='Montag')
- * @returns Array of 7 weekday name strings
- */
-export function getWeekdayNames(
-  locale: string = 'de-DE',
-  weekStartsOn: number = 1,
-  format: 'narrow' | 'short' | 'long' = 'short'
-): string[] {
-  const formatter = new Intl.DateTimeFormat(locale, { weekday: format });
-  const names: string[] = [];
-
-  // Use a known Monday (2026-01-05 is a Monday)
-  // Adjust to the start of the week
-  const baseMonday = new Date(2026, 0, 5); // Monday
-  const baseSunday = new Date(2026, 0, 4); // Sunday
-
-  const baseDate = weekStartsOn === 0 ? baseSunday : new Date(baseMonday);
-  if (weekStartsOn > 1) {
-    baseDate.setDate(baseDate.getDate() + (weekStartsOn - 1));
-  }
-
-  for (let i = 0; i < 7; i++) {
-    const date = new Date(baseDate);
-    date.setDate(date.getDate() + i);
-    names.push(formatter.format(date));
-  }
-
-  return names;
-}
-
-/**
- * Format month and year for header display.
- * e.g. "Maerz 2026", "March 2026"
- */
-export function formatMonthYear(year: number, month: number, locale: string = 'de-DE'): string {
-  const date = new Date(year, month, 1);
-  return new Intl.DateTimeFormat(locale, { month: 'long', year: 'numeric' }).format(date);
-}
-
-/**
- * Format a date for the detail header.
- * e.g. "Do, 12. Maerz", "Thu, March 12"
- */
-export function formatDate(
-  date: Date,
-  locale: string = 'de-DE',
-  options?: Intl.DateTimeFormatOptions
-): string {
-  const defaultOptions: Intl.DateTimeFormatOptions = {
-    weekday: 'short',
-    day: 'numeric',
-    month: 'long'
-  };
-  return new Intl.DateTimeFormat(locale, options ?? defaultOptions).format(date);
-}
-
-/**
- * Format a date for screen reader aria-label.
- * e.g. "Donnerstag, 12. Maerz 2026"
- */
-export function formatDateFull(date: Date, locale: string = 'de-DE'): string {
-  return new Intl.DateTimeFormat(locale, {
-    weekday: 'long',
-    day: 'numeric',
-    month: 'long',
-    year: 'numeric'
-  }).format(date);
-}
-
-/** Check if two dates represent the same calendar day (ignoring time). */
-export function isSameDay(a: Date, b: Date): boolean {
-  return (
-    a.getFullYear() === b.getFullYear() &&
-    a.getMonth() === b.getMonth() &&
-    a.getDate() === b.getDate()
-  );
-}
-
-/** Check if a date falls within a range (inclusive on both ends). */
-export function isInRange(date: Date, start: Date, end: Date): boolean {
-  const d = stripTime(date).getTime();
-  const s = stripTime(start).getTime();
-  const e = stripTime(end).getTime();
-  return d >= Math.min(s, e) && d <= Math.max(s, e);
-}
-
-/** Check if a date belongs to the given month and year. */
-export function isInMonth(date: Date, month: number, year: number): boolean {
-  return date.getMonth() === month && date.getFullYear() === year;
-}
-
-/** Get ISO 8601 week number for a date. */
-export function getWeekNumber(date: Date): number {
-  const d = new Date(Date.UTC(date.getFullYear(), date.getMonth(), date.getDate()));
-  // Set to nearest Thursday: current date + 4 - current day number (Mon=1, Sun=7)
-  const dayNum = d.getUTCDay() || 7;
-  d.setUTCDate(d.getUTCDate() + 4 - dayNum);
-  const yearStart = new Date(Date.UTC(d.getUTCFullYear(), 0, 1));
-  return Math.ceil(((d.getTime() - yearStart.getTime()) / 86400000 + 1) / 7);
-}
 
 /**
  * Clamp month navigation to min/max date boundaries.
@@ -213,26 +71,6 @@ export function getEventDayInfo(
   };
 }
 
-/** Create a date key string for Map indexing (YYYY-MM-DD). */
-export function dateKey(date: Date): string {
-  const y = date.getFullYear();
-  const m = String(date.getMonth() + 1).padStart(2, '0');
-  const d = String(date.getDate()).padStart(2, '0');
-  return `${y}-${m}-${d}`;
-}
-
-/** Strip time from a date, returning midnight of the same day. */
-export function stripTime(date: Date): Date {
-  return new Date(date.getFullYear(), date.getMonth(), date.getDate());
-}
-
-/** DST-safe day difference between two dates. */
-export function daysBetween(a: Date, b: Date): number {
-  const utcA = Date.UTC(a.getFullYear(), a.getMonth(), a.getDate());
-  const utcB = Date.UTC(b.getFullYear(), b.getMonth(), b.getDate());
-  return Math.round((utcB - utcA) / 86400000);
-}
-
 /**
  * Determine whether text on a given background color should be light or dark.
  * Supports hex (#rgb, #rrggbb), rgb(), oklch(), and CSS named colors.
@@ -274,99 +112,6 @@ export function getContrastTextColor(bgColor: string): 'white' | 'black' {
 
   // Default: assume dark background
   return 'white';
-}
-
-/**
- * Get the 7 dates for the week containing the given date.
- *
- * @param date - Any date within the target week
- * @param weekStartsOn - Day the week starts on (0=Sun, 1=Mon, ..., 6=Sat)
- * @returns Array of 7 Date objects starting from the week start day
- */
-export function getWeekDates(date: Date, weekStartsOn: number = 1): Date[] {
-  const dayOfWeek = date.getDay();
-  const diff = (dayOfWeek - weekStartsOn + 7) % 7;
-  const weekStart = new Date(date.getFullYear(), date.getMonth(), date.getDate() - diff);
-
-  const dates: Date[] = [];
-  for (let i = 0; i < 7; i++) {
-    const d = new Date(weekStart);
-    d.setDate(weekStart.getDate() + i);
-    dates.push(d);
-  }
-  return dates;
-}
-
-/**
- * Get metadata for all 12 months of a year.
- *
- * @param year - Full year (e.g. 2026)
- * @returns Array of 12 objects with month index and year
- */
-export function getYearMonths(year: number): { month: number; year: number }[] {
-  return Array.from({ length: 12 }, (_, i) => ({ month: i, year }));
-}
-
-/**
- * Format a week title for the header.
- * e.g. "KW 12 – März 2026" (de-DE) or "Week 12 – March 2026" (en-US)
- *
- * Uses Thursday of the week to determine the month (ISO week convention).
- */
-export function formatWeekTitle(
-  date: Date,
-  weekStartsOn: number = 1,
-  locale: string = 'de-DE'
-): string {
-  const weekDates = getWeekDates(date, weekStartsOn);
-  // ISO convention: use Thursday to determine month/year association
-  const thursday = weekDates[(4 - weekStartsOn + 7) % 7];
-  const weekNum = getWeekNumber(thursday);
-
-  const monthYear = new Intl.DateTimeFormat(locale, {
-    month: 'long',
-    year: 'numeric'
-  }).format(thursday);
-
-  // Use locale-specific week label
-  const weekLabels: Record<string, string> = {
-    de: 'KW',
-    en: 'Week',
-    fr: 'Sem.',
-    es: 'Sem.',
-    it: 'Sett.',
-    nl: 'Week',
-    pt: 'Sem.'
-  };
-  const lang = locale.split('-')[0];
-  const weekLabel = weekLabels[lang] ?? 'Week';
-
-  return `${weekLabel} ${weekNum} – ${monthYear}`;
-}
-
-/**
- * Format a date for the day view header.
- * e.g. "Do, 19. März 2026" (de-DE) or "Thu, March 19, 2026" (en-US)
- */
-export function formatDayTitle(date: Date, locale: string = 'de-DE'): string {
-  return new Intl.DateTimeFormat(locale, {
-    weekday: 'short',
-    day: 'numeric',
-    month: 'long',
-    year: 'numeric'
-  }).format(date);
-}
-
-/**
- * Format an abbreviated month name for the year grid.
- * e.g. "Mär" (de-DE) or "Mar" (en-US)
- *
- * @param month - Month index (0-11)
- * @param locale - BCP 47 locale tag
- */
-export function formatMonthShort(month: number, locale: string = 'de-DE'): string {
-  const date = new Date(2026, month, 1);
-  return new Intl.DateTimeFormat(locale, { month: 'short' }).format(date);
 }
 
 /**
@@ -653,7 +398,7 @@ export function expandRecurrence(
   const interval = rule.interval ?? 1;
   const eventDuration = event.end ? event.end.getTime() - event.start.getTime() : 0;
 
-  const exceptions = new Set((rule.exceptions ?? []).map((d) => dateKey(d)));
+  const exceptions = new Set((rule.exceptions ?? []).map((d) => toIso(d)));
 
   const results: CalendarEvent[] = [];
   let occurrenceCount = 0;
@@ -716,7 +461,7 @@ export function expandRecurrence(
       if (occurrenceCount >= maxOccurrences) break;
       if (untilDate && stripTime(occDate) > untilDate) break;
 
-      const occKey = dateKey(occDate);
+      const occKey = toIso(occDate);
 
       // Skip exceptions — don't count against the occurrence limit
       if (exceptions.has(occKey)) {

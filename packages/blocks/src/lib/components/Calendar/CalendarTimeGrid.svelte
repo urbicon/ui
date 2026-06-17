@@ -1,6 +1,7 @@
 <script lang="ts">
   import { getCalendarContext, createSlotHelper } from './calendar.context';
-  import { generateTimeSlots, positionEvents, isSameDay, dateKey } from './calendar.engine';
+  import { isSameDay, toIso } from '$lib/date';
+  import { generateTimeSlots, positionEvents } from './calendar.engine';
   import type { CalendarEvent, PositionedEvent } from './calendar.types';
   import CalendarTimeEvent from './CalendarTimeEvent.svelte';
 
@@ -30,7 +31,7 @@
     // eslint-disable-next-line svelte/prefer-svelte-reactivity
     const map = new Map<string, PositionedEvent[]>();
     for (const date of dates) {
-      const key = dateKey(date);
+      const key = toIso(date);
       const dayEvents = ctx.getEventsForDate(date).filter((e) => e.allDay === false);
       map.set(key, positionEvents(dayEvents, date, ctx.timeGridStartHour, ctx.timeGridEndHour));
     }
@@ -95,7 +96,7 @@
     <!-- Day columns -->
     <div class="flex flex-1">
       {#each dates as date (date.getTime())}
-        {@const key = dateKey(date)}
+        {@const key = toIso(date)}
         {@const positioned = positionedByDate.get(key) ?? []}
         {@const isToday = isSameDay(date, ctx.today)}
 

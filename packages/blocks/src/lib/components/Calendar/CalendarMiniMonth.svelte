@@ -8,7 +8,7 @@
     formatMonthYear,
     formatDateFull,
     isSameDay
-  } from './calendar.engine';
+  } from '$lib/date';
 
   const bt = useBlocksI18n();
 

@@ -3,7 +3,7 @@
   import type { Snippet } from 'svelte';
   import { fly } from 'svelte/transition';
   import { getCalendarContext, createSlotHelper } from './calendar.context';
-  import { formatDate, dateKey, stripTime } from './calendar.engine';
+  import { formatDate, toIso, stripTime } from '$lib/date';
   import { swipeable } from './calendar.swipeable';
   import type { CalendarEvent, EventDayInfo, EventItemContext } from './calendar.types';
   import CalendarEventRenderer from './CalendarEventRenderer.svelte';
@@ -101,7 +101,7 @@
         {#if agendaEntries.length === 0}
           <div class={slot('empty')}>{bt('calendar.noEvents')}</div>
         {:else}
-          {#each agendaEntries as entry (dateKey(entry.date))}
+          {#each agendaEntries as entry (toIso(entry.date))}
             <section class={slot('agendaDayGroup')}>
               <div
                 class="{slot('agendaDayHeader')} {entry.isToday ? 'text-primary font-bold' : ''}"
