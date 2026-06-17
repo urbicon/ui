@@ -148,22 +148,23 @@ export { default as InboxIcon } from './InboxIcon.svelte';
 export { default as IndentIcon } from './IndentIcon.svelte';
 export { default as InfoCircleIcon } from './InfoCircleIcon.svelte';
 export { default as ItalicIcon } from './ItalicIcon.svelte';
+export { resolveIcon, setIcons } from './icon.context';
 export {
   DEFAULT_ICONS,
   getAllIconNames,
   getIcon,
   getIconMeta,
   getIconsByCategory,
-  ICON_METADATA,
-  type IconCategory,
-  type IconComponent,
-  type IconMeta,
-  type IconName,
-  type IconProps,
-  type IconSet,
-  resolveIcon,
-  setIcons
-} from './icon.context';
+  ICON_METADATA
+} from './icon-registry';
+export type {
+  IconCategory,
+  IconComponent,
+  IconMeta,
+  IconName,
+  IconProps,
+  IconSet
+} from './icon-types';
 export { default as KeyIcon } from './KeyIcon.svelte';
 export { default as KeyRoundIcon } from './KeyRoundIcon.svelte';
 export { default as LandmarkIcon } from './LandmarkIcon.svelte';

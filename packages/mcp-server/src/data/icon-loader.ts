@@ -15,8 +15,10 @@ export interface IconEntry {
 
 let cachedIcons: IconEntry[] | null = null;
 
-function getIconContextPath(): string {
-  return resolve(packageRoot, '..', 'blocks', 'src', 'lib', 'icons', 'icon.context.ts');
+function getIconRegistryPath(): string {
+  // DEFAULT_ICONS + ICON_METADATA live in icon-registry.ts since the icon module
+  // split (icon.context.ts now holds only the override context + resolveIcon).
+  return resolve(packageRoot, '..', 'blocks', 'src', 'lib', 'icons', 'icon-registry.ts');
 }
 
 /** Parse DEFAULT_ICONS to get the real name → ComponentName mapping */
@@ -78,7 +80,7 @@ export async function loadIcons(): Promise<IconEntry[]> {
   if (cachedIcons) return cachedIcons;
 
   try {
-    const content = await readFile(getIconContextPath(), 'utf-8');
+    const content = await readFile(getIconRegistryPath(), 'utf-8');
     cachedIcons = parseIconMetadata(content);
   } catch {
     cachedIcons = [];

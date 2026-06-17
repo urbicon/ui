@@ -1,7 +1,7 @@
 <script lang="ts">
   import type { Snippet } from 'svelte';
-  import type { IconProps } from './icon.context';
-  import { buildSvgTransform } from './icon.context';
+  import type { IconProps } from './icon-types';
+  import { buildSvgTransform } from './icon-transform';
 
   let {
     size,
