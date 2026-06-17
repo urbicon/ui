@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { getMonthGrid, getWeekDates, getWeekNumber, getYearMonths } from './geometry';
+import { clampMonth, getMonthGrid, getWeekDates, getWeekNumber, getYearMonths } from './geometry';
 
 describe('getMonthGrid', () => {
   it('returns rows of 7 days each', () => {
@@ -159,5 +159,49 @@ describe('getYearMonths', () => {
     const months = getYearMonths(2030);
     expect(months[0].year).toBe(2030);
     expect(months[11].year).toBe(2030);
+  });
+});
+
+describe('clampMonth', () => {
+  it('returns the same month/year when no constraints', () => {
+    const result = clampMonth(2, 2026);
+    expect(result).toEqual({ month: 2, year: 2026, canGoBack: true, canGoForward: true });
+  });
+
+  it('clamps to minDate when navigating before it', () => {
+    const minDate = new Date(2026, 2, 1);
+    const result = clampMonth(1, 2026, minDate);
+    expect(result.month).toBe(2);
+    expect(result.year).toBe(2026);
+    expect(result.canGoBack).toBe(false);
+  });
+
+  it('clamps to maxDate when navigating after it', () => {
+    const maxDate = new Date(2026, 5, 30);
+    const result = clampMonth(6, 2026, undefined, maxDate);
+    expect(result.month).toBe(5);
+    expect(result.year).toBe(2026);
+    expect(result.canGoForward).toBe(false);
+  });
+
+  it('sets canGoBack false at minDate boundary', () => {
+    const minDate = new Date(2026, 2, 1);
+    const result = clampMonth(2, 2026, minDate);
+    expect(result.canGoBack).toBe(false);
+    expect(result.canGoForward).toBe(true);
+  });
+
+  it('sets canGoForward false at maxDate boundary', () => {
+    const maxDate = new Date(2026, 5, 30);
+    const result = clampMonth(5, 2026, undefined, maxDate);
+    expect(result.canGoForward).toBe(false);
+    expect(result.canGoBack).toBe(true);
+  });
+
+  it('handles year boundaries for minDate', () => {
+    const minDate = new Date(2025, 11, 1); // Dec 2025
+    const result = clampMonth(10, 2025, minDate); // Nov 2025 → clamped to Dec 2025
+    expect(result.month).toBe(11);
+    expect(result.year).toBe(2025);
   });
 });

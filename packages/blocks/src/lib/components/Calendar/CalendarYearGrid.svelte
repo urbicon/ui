@@ -3,7 +3,7 @@
   import { fly } from 'svelte/transition';
   import { getCalendarContext, createSlotHelper } from './calendar.context';
   import { getMonthGrid, formatMonthShort, isSameDay } from '$lib/date';
-  import { swipeable } from './calendar.swipeable';
+  import { swipeable } from '$lib/utils/swipeable';
 
   const bt = useBlocksI18n();
 

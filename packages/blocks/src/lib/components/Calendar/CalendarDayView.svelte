@@ -5,7 +5,7 @@
   import { Badge } from '$lib/primitives/Badge';
   import { getCalendarContext, createSlotHelper } from './calendar.context';
   import { formatDateFull, toIso } from '$lib/date';
-  import { swipeable } from './calendar.swipeable';
+  import { swipeable } from '$lib/utils/swipeable';
   import type { CalendarEvent, EventItemContext } from './calendar.types';
   import CalendarEventRenderer from './CalendarEventRenderer.svelte';
   import CalendarTimeGrid from './CalendarTimeGrid.svelte';

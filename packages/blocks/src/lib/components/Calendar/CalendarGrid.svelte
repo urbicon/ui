@@ -5,7 +5,7 @@
   import { getCalendarContext, createSlotHelper } from './calendar.context';
   import { getWeekNumber, toIso } from '$lib/date';
   import { getMultiDayEventLayout } from './calendar.engine';
-  import { swipeable } from './calendar.swipeable';
+  import { swipeable } from '$lib/utils/swipeable';
   import type { CalendarEvent, DayCellContext } from './calendar.types';
   import CalendarWeekdayHeader from './CalendarWeekdayHeader.svelte';
   import CalendarDay from './CalendarDay.svelte';

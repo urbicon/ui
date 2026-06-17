@@ -123,6 +123,21 @@ export function formatWeekRange(
 }
 
 /**
+ * Format an arbitrary date span including the year, e.g. "15. Juni – 5. Juli
+ * 2026" (de-DE). Collapses shared month/year parts per the locale via
+ * `Intl.DateTimeFormat.formatRange`. Suited to a multi-week range-view title;
+ * for a single ISO week prefer {@link formatWeekRange}.
+ */
+export function formatDateRange(start: Date, end: Date, locale: string = 'de-DE'): string {
+  const formatter = new Intl.DateTimeFormat(locale, {
+    day: 'numeric',
+    month: 'short',
+    year: 'numeric'
+  });
+  return formatter.formatRange(start, end);
+}
+
+/**
  * Format a day-view header, e.g. "Do, 19. März 2026" (de-DE) or
  * "Thu, March 19, 2026" (en-US).
  */

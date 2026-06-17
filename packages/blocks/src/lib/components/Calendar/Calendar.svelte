@@ -14,10 +14,11 @@
     isSameDay,
     isInRange,
     isInMonth,
+    clampMonth,
     toIso,
     stripTime
   } from '$lib/date';
-  import { clampMonth, getEventDayInfo, expandRecurrence } from './calendar.engine';
+  import { getEventDayInfo, expandRecurrence } from './calendar.engine';
   import type { CalendarProps } from './index';
   import type {
     CalendarEvent,

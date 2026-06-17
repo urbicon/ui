@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import {
   formatDate,
   formatDateFull,
+  formatDateRange,
   formatDayTitle,
   formatMonthShort,
   formatMonthYear,
@@ -115,6 +116,21 @@ describe('formatWeekRange', () => {
     const result = formatWeekRange(new Date(2026, 2, 1), 'en-US', 1);
     expect(result).toMatch(/February/);
     expect(result).toMatch(/March/);
+  });
+});
+
+describe('formatDateRange', () => {
+  it('formats a multi-week span with the year (de-DE)', () => {
+    const result = formatDateRange(new Date(2026, 5, 15), new Date(2026, 6, 5), 'de-DE');
+    expect(result).toMatch(/15/);
+    expect(result).toMatch(/5/);
+    expect(result).toMatch(/2026/);
+  });
+
+  it('spans years', () => {
+    const result = formatDateRange(new Date(2026, 11, 28), new Date(2027, 0, 3), 'en-US');
+    expect(result).toMatch(/2026/);
+    expect(result).toMatch(/2027/);
   });
 });
 

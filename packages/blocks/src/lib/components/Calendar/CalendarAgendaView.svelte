@@ -4,7 +4,7 @@
   import { fly } from 'svelte/transition';
   import { getCalendarContext, createSlotHelper } from './calendar.context';
   import { formatDate, toIso, stripTime } from '$lib/date';
-  import { swipeable } from './calendar.swipeable';
+  import { swipeable } from '$lib/utils/swipeable';
   import type { CalendarEvent, EventDayInfo, EventItemContext } from './calendar.types';
   import CalendarEventRenderer from './CalendarEventRenderer.svelte';
 

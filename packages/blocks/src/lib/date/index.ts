@@ -13,17 +13,11 @@
  * ```
  */
 
-export {
-  daysBetween,
-  isInMonth,
-  isInRange,
-  isSameDay,
-  isWeekend,
-  stripTime
-} from './compare';
+export { daysBetween, isInMonth, isInRange, isSameDay, isWeekend, stripTime } from './compare';
 export {
   formatDate,
   formatDateFull,
+  formatDateRange,
   formatDayTitle,
   formatMonthShort,
   formatMonthYear,
@@ -31,5 +25,5 @@ export {
   formatWeekTitle,
   getWeekdayNames
 } from './format';
-export { getMonthGrid, getWeekDates, getWeekNumber, getYearMonths } from './geometry';
+export { clampMonth, getMonthGrid, getWeekDates, getWeekNumber, getYearMonths } from './geometry';
 export { addDays, eachDayOfRange, endOfWeek, isoToDate, startOfWeek, toIso } from './range';

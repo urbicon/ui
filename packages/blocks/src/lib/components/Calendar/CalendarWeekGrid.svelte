@@ -5,7 +5,7 @@
   import { getCalendarContext, createSlotHelper } from './calendar.context';
   import { getWeekdayNames, isSameDay, toIso } from '$lib/date';
   import { getContrastTextColor } from './calendar.engine';
-  import { swipeable } from './calendar.swipeable';
+  import { swipeable } from '$lib/utils/swipeable';
   import type { CalendarEvent, EventItemContext } from './calendar.types';
   import CalendarEventRenderer from './CalendarEventRenderer.svelte';
   import CalendarTimeGrid from './CalendarTimeGrid.svelte';

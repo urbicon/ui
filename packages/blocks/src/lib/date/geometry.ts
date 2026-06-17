@@ -88,3 +88,40 @@ export function getWeekNumber(date: Date): number {
 export function getYearMonths(year: number): { month: number; year: number }[] {
   return Array.from({ length: 12 }, (_, i) => ({ month: i, year }));
 }
+
+/**
+ * Clamp a month/year to optional min/max date boundaries.
+ * Returns the (possibly adjusted) month/year plus flags for whether navigating
+ * one month back/forward would stay within bounds.
+ */
+export function clampMonth(
+  month: number,
+  year: number,
+  minDate?: Date,
+  maxDate?: Date
+): { month: number; year: number; canGoBack: boolean; canGoForward: boolean } {
+  let canGoBack = true;
+  let canGoForward = true;
+
+  if (minDate) {
+    const minMonth = minDate.getMonth();
+    const minYear = minDate.getFullYear();
+    if (year < minYear || (year === minYear && month < minMonth)) {
+      month = minMonth;
+      year = minYear;
+    }
+    canGoBack = year > minYear || (year === minYear && month > minMonth);
+  }
+
+  if (maxDate) {
+    const maxMonth = maxDate.getMonth();
+    const maxYear = maxDate.getFullYear();
+    if (year > maxYear || (year === maxYear && month > maxMonth)) {
+      month = maxMonth;
+      year = maxYear;
+    }
+    canGoForward = year < maxYear || (year === maxYear && month < maxMonth);
+  }
+
+  return { month, year, canGoBack, canGoForward };
+}

@@ -4,49 +4,12 @@
  * Pure date geometry (grids, week numbers, ranges, comparison, formatting)
  * lives in the Svelte-free `$lib/date` layer and is imported from there. This
  * module keeps only the Calendar-specific concerns: positioning timed and
- * multi-day events, expanding recurrence rules, time-slot generation and
- * month navigation clamping. No Svelte dependencies — fully testable in
- * isolation.
+ * multi-day events, expanding recurrence rules and time-slot generation.
+ * No Svelte dependencies — fully testable in isolation.
  */
 
 import { daysBetween, stripTime, toIso } from '$lib/date';
 import type { CalendarEvent, PositionedEvent, RecurrenceRule, TimeSlot } from './calendar.types';
-
-/**
- * Clamp month navigation to min/max date boundaries.
- * Returns the (possibly adjusted) month/year and navigation flags.
- */
-export function clampMonth(
-  month: number,
-  year: number,
-  minDate?: Date,
-  maxDate?: Date
-): { month: number; year: number; canGoBack: boolean; canGoForward: boolean } {
-  let canGoBack = true;
-  let canGoForward = true;
-
-  if (minDate) {
-    const minMonth = minDate.getMonth();
-    const minYear = minDate.getFullYear();
-    if (year < minYear || (year === minYear && month < minMonth)) {
-      month = minMonth;
-      year = minYear;
-    }
-    canGoBack = year > minYear || (year === minYear && month > minMonth);
-  }
-
-  if (maxDate) {
-    const maxMonth = maxDate.getMonth();
-    const maxYear = maxDate.getFullYear();
-    if (year > maxYear || (year === maxYear && month > maxMonth)) {
-      month = maxMonth;
-      year = maxYear;
-    }
-    canGoForward = year < maxYear || (year === maxYear && month < maxMonth);
-  }
-
-  return { month, year, canGoBack, canGoForward };
-}
 
 /**
  * Get day info for a multi-day event on a specific date.
