@@ -1,23 +1,19 @@
 <script lang="ts">
-  import { SvelteMap } from 'svelte/reactivity';
+  import { SvelteMap, MediaQuery } from 'svelte/reactivity';
   import { getBlocksConfig, mergeSlotClasses, resolvePresetSlotClasses } from '$lib/provider';
   import { calendarVariants } from './calendar.variants';
   import { setCalendarContext, type CalendarContext } from './calendar.context';
   import {
-    getMonthGrid,
-    getWeekdayNames,
-    getWeekDates,
     getYearMonths,
     formatMonthYear,
-    formatWeekTitle,
-    formatDayTitle,
-    isSameDay,
-    isInRange,
     isInMonth,
-    clampMonth,
     toIso,
-    stripTime
+    stripTime,
+    addDays,
+    clampMonth
   } from '$lib/date';
+  import { DateGridController } from '$lib/internal/date-grid';
+  import type { DateGridSelection, DateGridView } from '$lib/internal/date-grid';
   import { getEventDayInfo, expandRecurrence } from './calendar.engine';
   import type { CalendarProps } from './index';
   import type {
@@ -128,130 +124,168 @@
   const styles = $derived(calendarVariants({ variant, size }));
 
   // --- Animation state ---
-  let navDirection = $state<'forward' | 'backward' | null>(null);
-  let prefersReducedMotion = $state(false);
-  $effect(() => {
-    if (typeof window === 'undefined') return;
-    const mq = window.matchMedia('(prefers-reduced-motion: reduce)');
-    prefersReducedMotion = mq.matches;
-    const handler = (e: MediaQueryListEvent) => {
-      prefersReducedMotion = e.matches;
-    };
-    mq.addEventListener('change', handler);
-    return () => mq.removeEventListener('change', handler);
-  });
-  const shouldAnimate = $derived(animated && !prefersReducedMotion);
+  const reducedMotion = new MediaQuery('(prefers-reduced-motion: reduce)');
+  const shouldAnimate = $derived(animated && !reducedMotion.current);
 
-  // --- Time grid ---
-  // Week and day views always show time grid; month/year/agenda respect the prop
-  const showTimeGrid = $derived.by(() => {
-    if (view === 'week' || view === 'day') return true;
-    return showTimeGridProp ?? events.some((e) => e.allDay === false);
-  });
-
-  // --- Internal state ---
-  let today = $state(stripTime(new Date()));
-
-  // The month/year the grid opens on. Priority:
-  //   1. the first selected date — a populated picker opens on its
-  //      selection, never on a stale `defaultMonth`
-  //   2. `defaultMonth` / `defaultYear` props — fallback when no value
+  // --- Reference date: the single anchor the grid is built around ---
+  // Priority:
+  //   1. the first selected date — a populated picker opens on its selection
+  //   2. `defaultMonth` / `defaultYear` — fallback when no value
   //   3. today
-  // Read at mount time only; the user can navigate freely afterwards
-  // without us snapping back. Remount (e.g. via the popover's
-  // open/close cycle in DatePicker) to land on the current selection.
+  // Read at mount time only; the user navigates freely afterwards. Remount (e.g.
+  // via DatePicker's popover open/close) to re-anchor on the current selection.
   function firstDateOf(v: CalendarProps['value']): Date | undefined {
     if (v instanceof Date) return v;
     if (Array.isArray(v) && v.length > 0) return v[0];
     if (v && typeof v === 'object' && 'start' in v) return v.start;
     return undefined;
   }
-  const initialAnchor = firstDateOf(value);
-  let displayedMonth = $state(initialAnchor?.getMonth() ?? defaultMonth ?? today.getMonth());
-  let displayedYear = $state(initialAnchor?.getFullYear() ?? defaultYear ?? today.getFullYear());
-  let displayedDate = $state(new Date(initialAnchor ?? today));
-  let focusedDate = $state(new Date(initialAnchor ?? today));
-  let hoveredDate = $state<Date | null>(null);
+  function resolveInitialReference(
+    v: CalendarProps['value'],
+    month: number | undefined,
+    year: number | undefined
+  ): Date {
+    const anchor = firstDateOf(v);
+    if (anchor) return stripTime(anchor);
+    const today = stripTime(new Date());
+    if (month == null && year == null) return today;
+    return new Date(year ?? today.getFullYear(), month ?? today.getMonth(), 1);
+  }
+  let referenceDate = $state(resolveInitialReference(value, defaultMonth, defaultYear));
 
-  // Midnight update for `today` — re-arms after each update via reactive dependency on `today`
-  $effect(() => {
-    // Reading `today` creates a reactive dependency so the effect re-runs after each midnight update
-    const _current = today;
+  // The month/year derived from the single reference date.
+  const displayedMonth = $derived(referenceDate.getMonth());
+  const displayedYear = $derived(referenceDate.getFullYear());
 
-    const now = new Date();
-    const midnight = new Date(now); // eslint-disable-line svelte/prefer-svelte-reactivity
-    midnight.setHours(24, 0, 0, 0);
-    const msUntilMidnight = midnight.getTime() - now.getTime();
+  // Calendar exposes five views; the headless core handles only cell-based ones.
+  // Map year/agenda onto `month` (they reuse month geometry + month navigation).
+  const gridViewMode = $derived<DateGridView>(
+    view === 'year' || view === 'agenda' ? 'month' : view
+  );
 
-    const timeout = setTimeout(() => {
-      today = stripTime(new Date());
-    }, msUntilMidnight);
-
-    return () => clearTimeout(timeout);
-  });
-
-  // Uncontrolled fallback
+  // --- Uncontrolled fallback ---
   let internalValue = $state<CalendarProps['value']>(undefined);
   const effectiveValue = $derived(value !== undefined ? value : internalValue);
 
-  // --- Derived: showEventList auto-logic ---
-  const effectiveShowEventList = $derived(showEventList ?? events.length > 0);
+  // --- Extra disable predicate (min/max handled by the controller) ---
+  const disabledDatesSet = $derived(new Set(disabledDates.map((d) => toIso(d))));
+  function checkExtraDisabled(date: Date): boolean {
+    if (isDateDisabledProp?.(date)) return true;
+    if (disabledDatesSet.has(toIso(date))) return true;
+    return false;
+  }
 
-  // --- Derived: grid data per view ---
-  const grid = $derived(getMonthGrid(displayedYear, displayedMonth, weekStartsOn));
-  const weekdays = $derived(getWeekdayNames(locale, weekStartsOn, 'short'));
-  const weekDates = $derived(getWeekDates(displayedDate, weekStartsOn));
-  const yearMonths = $derived(getYearMonths(displayedYear));
-
-  // --- Derived: view-aware header title ---
-  const headerTitle = $derived.by(() => {
-    switch (view) {
-      case 'month':
-        return formatMonthYear(displayedYear, displayedMonth, locale);
-      case 'year':
-        return String(displayedYear);
-      case 'week':
-        return formatWeekTitle(displayedDate, weekStartsOn, locale);
-      case 'day':
-        return formatDayTitle(displayedDate, locale);
-      case 'agenda':
-        return formatMonthYear(displayedYear, displayedMonth, locale);
-    }
+  // --- Headless date-grid controller: the shared mechanics engine ---
+  // Calendar owns the source of truth (referenceDate, value); the controller
+  // computes geometry/queries and reports navigation/selection back via callbacks.
+  const controller = new DateGridController({
+    get referenceDate() {
+      return referenceDate;
+    },
+    get view() {
+      return gridViewMode;
+    },
+    get weekStartsOn() {
+      return weekStartsOn;
+    },
+    get locale() {
+      return locale;
+    },
+    get selectionMode() {
+      return selectionMode;
+    },
+    get selection() {
+      return effectiveValue as DateGridSelection | undefined;
+    },
+    get rangeStart() {
+      return undefined;
+    },
+    get rangeEnd() {
+      return undefined;
+    },
+    get minDate() {
+      return minDate;
+    },
+    get maxDate() {
+      return maxDate;
+    },
+    get disabled() {
+      return disabled;
+    },
+    isDateDisabled: checkExtraDisabled,
+    onNavigate: handleNavigate,
+    onSelect: handleSelect
   });
 
-  // --- Derived: navigation constraints ---
-  const navState = $derived(clampMonth(displayedMonth, displayedYear, minDate, maxDate));
+  function handleNavigate(next: Date) {
+    referenceDate = next;
+    if (view === 'week') onWeekChange?.(next);
+    else if (view === 'day') onDayChange?.(next);
+    else onMonthChange?.(next.getMonth(), next.getFullYear());
+  }
+
+  function handleSelect(selection: DateGridSelection, date: Date) {
+    // Date-picker behaviour: clicking an outside (spill) day in the month grid
+    // navigates to that month. Confined to month view — week/day anchors must
+    // not jump when a cell from an adjacent month is picked.
+    if (
+      view === 'month' &&
+      (date.getMonth() !== displayedMonth || date.getFullYear() !== displayedYear)
+    ) {
+      referenceDate = new Date(date.getFullYear(), date.getMonth(), 1);
+      onMonthChange?.(date.getMonth(), date.getFullYear());
+    }
+    onDateClick?.(date);
+    const next = selection as CalendarProps['value'];
+    if (value !== undefined) {
+      value = next;
+    } else {
+      internalValue = next;
+    }
+    onValueChange?.(next!);
+  }
+
+  // Midnight refresh for `today` — re-arms after each update via the reactive read.
+  $effect(() => {
+    const _current = controller.today;
+    if (typeof window === 'undefined') return;
+    const now = new Date(); // eslint-disable-line svelte/prefer-svelte-reactivity
+    const midnight = new Date(now); // eslint-disable-line svelte/prefer-svelte-reactivity
+    midnight.setHours(24, 0, 0, 0);
+    const msUntilMidnight = midnight.getTime() - now.getTime();
+    const timeout = setTimeout(() => controller.refreshToday(), msUntilMidnight);
+    return () => clearTimeout(timeout);
+  });
+
+  // --- Time grid: week/day always show it; month/year/agenda respect the prop ---
+  const showTimeGrid = $derived.by(() => {
+    if (view === 'week' || view === 'day') return true;
+    return showTimeGridProp ?? events.some((e) => e.allDay === false);
+  });
+
+  // --- Derived: view-aware header title (year/agenda are Calendar-specific) ---
+  const headerTitle = $derived.by(() => {
+    if (view === 'year') return String(displayedYear);
+    if (view === 'agenda') return formatMonthYear(displayedYear, displayedMonth, locale);
+    return controller.title; // month / week / day
+  });
+
+  const yearMonths = $derived(getYearMonths(displayedYear));
 
   // --- Derived: visible range for recurrence expansion ---
   const visibleRange = $derived.by(() => {
-    switch (view) {
-      case 'month': {
-        // grid covers padding days from prev/next month
-        const first = grid[0]?.[0] ?? new Date(displayedYear, displayedMonth, 1);
-        const lastWeek = grid[grid.length - 1] ?? [];
-        const last =
-          lastWeek[lastWeek.length - 1] ?? new Date(displayedYear, displayedMonth + 1, 0);
-        return { start: first, end: last };
-      }
-      case 'year': {
-        return {
-          start: new Date(displayedYear, 0, 1),
-          end: new Date(displayedYear, 11, 31)
-        };
-      }
-      case 'week': {
-        return { start: weekDates[0], end: weekDates[6] };
-      }
-      case 'day': {
-        return { start: displayedDate, end: displayedDate };
-      }
-      case 'agenda': {
-        const start = new Date(displayedYear, displayedMonth, 1);
-        const end = new Date(start); // eslint-disable-line svelte/prefer-svelte-reactivity
-        end.setDate(end.getDate() + agendaDays);
-        return { start, end };
-      }
+    if (view === 'year') {
+      // eslint-disable-next-line svelte/prefer-svelte-reactivity
+      return { start: new Date(displayedYear, 0, 1), end: new Date(displayedYear, 11, 31) };
     }
+    if (view === 'agenda') {
+      const start = new Date(displayedYear, displayedMonth, 1); // eslint-disable-line svelte/prefer-svelte-reactivity
+      const end = new Date(start); // eslint-disable-line svelte/prefer-svelte-reactivity
+      end.setDate(end.getDate() + agendaDays);
+      return { start, end };
+    }
+    // month / week / day: the controller's cell-edge range
+    return { start: controller.rangeStart, end: controller.rangeEnd };
   });
 
   // --- Derived: expand recurring events for the visible range ---
@@ -269,7 +303,7 @@
     for (const event of expandedEvents) {
       const startDay = stripTime(event.start);
       const endDay = event.end ? stripTime(event.end) : startDay;
-      let current = new Date(startDay); // eslint-disable-line svelte/prefer-svelte-reactivity
+      let current = startDay;
       while (current <= endDay) {
         const key = toIso(current);
         const arr = map.get(key);
@@ -278,8 +312,7 @@
         } else {
           map.set(key, [event]);
         }
-        current = new Date(current);
-        current.setDate(current.getDate() + 1);
+        current = addDays(current, 1);
       }
     }
     return map;
@@ -294,10 +327,8 @@
     return map;
   });
 
-  // --- Derived: disabled dates set for O(1) lookup ---
-  const disabledDatesSet = $derived(new Set(disabledDates.map((d) => toIso(d))));
-
-  // --- Derived: legend visibility ---
+  // --- Derived: legend / event-list visibility ---
+  const effectiveShowEventList = $derived(showEventList ?? events.length > 0);
   const effectiveShowLegend = $derived(showLegend ?? categories.length > 0);
 
   // --- Derived: selected date for event list ---
@@ -308,14 +339,13 @@
     return effectiveValue.start;
   });
 
-  // --- Helpers ---
+  // --- Event helpers ---
   function getEventsForDate(date: Date): CalendarEvent[] {
     return eventsByDate.get(toIso(date)) ?? [];
   }
 
   function getEventsWithDayInfo(date: Date): EventDayInfo[] {
-    const evts = getEventsForDate(date);
-    return evts.map((event) => {
+    return getEventsForDate(date).map((event) => {
       const info = getEventDayInfo(event, date);
       return { event, ...info };
     });
@@ -325,212 +355,75 @@
     return categoryMap.get(id);
   }
 
-  function checkIsDateDisabled(date: Date): boolean {
-    if (disabled) return true;
-    if (isDateDisabledProp?.(date)) return true;
-    if (disabledDatesSet.has(toIso(date))) return true;
-    if (minDate && stripTime(date) < stripTime(minDate)) return true;
-    if (maxDate && stripTime(date) > stripTime(maxDate)) return true;
-    return false;
-  }
-
-  function checkIsDateSelected(date: Date): boolean {
-    if (!effectiveValue) return false;
-    if (effectiveValue instanceof Date) return isSameDay(effectiveValue, date);
-    if (Array.isArray(effectiveValue)) return effectiveValue.some((d) => isSameDay(d, date));
-    return isSameDay(effectiveValue.start, date) || isSameDay(effectiveValue.end, date);
-  }
-
-  function checkIsDateInRange(date: Date): boolean {
-    if (!effectiveValue || selectionMode !== 'range') return false;
-    if (effectiveValue instanceof Date || Array.isArray(effectiveValue)) return false;
-    const range = effectiveValue as DateRange;
-    return (
-      isInRange(date, range.start, range.end) &&
-      !isSameDay(date, range.start) &&
-      !isSameDay(date, range.end)
-    );
-  }
-
-  function checkIsDateInPreviewRange(date: Date): boolean {
-    if (selectionMode !== 'range' || !hoveredDate) return false;
-    if (!effectiveValue || effectiveValue instanceof Date || Array.isArray(effectiveValue))
-      return false;
-    const range = effectiveValue as DateRange;
-    // Only show preview when range start is set but not completed (start === end)
-    if (!isSameDay(range.start, range.end)) return false;
-    return isInRange(date, range.start, hoveredDate) && !isSameDay(date, range.start);
-  }
-
-  function checkIsDateRangeStart(date: Date): boolean {
-    if (!effectiveValue || selectionMode !== 'range') return false;
-    if (effectiveValue instanceof Date || Array.isArray(effectiveValue)) return false;
-    return isSameDay((effectiveValue as DateRange).start, date);
-  }
-
-  function checkIsDateRangeEnd(date: Date): boolean {
-    if (!effectiveValue || selectionMode !== 'range') return false;
-    if (effectiveValue instanceof Date || Array.isArray(effectiveValue)) return false;
-    const range = effectiveValue as DateRange;
-    return !isSameDay(range.start, range.end) && isSameDay(range.end, date);
-  }
-
   // --- Navigation ---
+  // `navigate` is view-aware (header + swipe). The named navigators are the
+  // explicit header-snippet/mini-calendar API and mutate the reference date
+  // directly so they work regardless of the active view.
+  function navigate(delta: number) {
+    if (view === 'year') {
+      navigateYear(delta);
+    } else {
+      controller.navigate(delta); // month / week / day (agenda maps to month)
+    }
+  }
+
   function navigateMonth(delta: number) {
     const total = displayedYear * 12 + displayedMonth + delta;
-    let newYear = Math.floor(total / 12);
-    let newMonth = ((total % 12) + 12) % 12;
-    const clamped = clampMonth(newMonth, newYear, minDate, maxDate);
-    displayedMonth = clamped.month;
-    displayedYear = clamped.year;
-    displayedDate = new Date(displayedYear, displayedMonth, 1);
-    onMonthChange?.(displayedMonth, displayedYear);
+    const targetYear = Math.floor(total / 12);
+    const targetMonth = ((total % 12) + 12) % 12;
+    const clamped = clampMonth(targetMonth, targetYear, minDate, maxDate);
+    controller.navDirection = delta > 0 ? 'forward' : 'backward';
+    referenceDate = new Date(clamped.year, clamped.month, 1);
+    onMonthChange?.(clamped.month, clamped.year);
   }
 
   function navigateWeek(delta: number) {
-    const d = new Date(displayedDate); // eslint-disable-line svelte/prefer-svelte-reactivity
-    d.setDate(d.getDate() + delta * 7);
-    displayedDate = d;
-    displayedMonth = d.getMonth();
-    displayedYear = d.getFullYear();
-    onWeekChange?.(d);
+    controller.navDirection = delta > 0 ? 'forward' : 'backward';
+    referenceDate = addDays(referenceDate, delta * 7);
+    onWeekChange?.(referenceDate);
   }
 
   function navigateDay(delta: number) {
-    const d = new Date(displayedDate); // eslint-disable-line svelte/prefer-svelte-reactivity
-    d.setDate(d.getDate() + delta);
-    displayedDate = d;
-    displayedMonth = d.getMonth();
-    displayedYear = d.getFullYear();
-    onDayChange?.(d);
+    controller.navDirection = delta > 0 ? 'forward' : 'backward';
+    referenceDate = addDays(referenceDate, delta);
+    onDayChange?.(referenceDate);
   }
 
   function navigateYear(delta: number) {
-    displayedYear += delta;
-    onMonthChange?.(displayedMonth, displayedYear);
-  }
-
-  function navigate(delta: number) {
-    navDirection = delta > 0 ? 'forward' : 'backward';
-    switch (view) {
-      case 'month':
-      case 'agenda':
-        navigateMonth(delta);
-        break;
-      case 'year':
-        navigateYear(delta);
-        break;
-      case 'week':
-        navigateWeek(delta);
-        break;
-      case 'day':
-        navigateDay(delta);
-        break;
-    }
+    controller.navDirection = delta > 0 ? 'forward' : 'backward';
+    referenceDate = new Date(displayedYear + delta, displayedMonth, 1);
+    onMonthChange?.(displayedMonth, displayedYear + delta);
   }
 
   function goToToday() {
-    const now = new Date();
-    displayedMonth = now.getMonth();
-    displayedYear = now.getFullYear();
-    displayedDate = new Date(now);
-    focusedDate = new Date(now);
-    onMonthChange?.(displayedMonth, displayedYear);
+    controller.goToToday();
   }
 
   function goToMonth(month: number, year: number) {
-    displayedMonth = month;
-    displayedYear = year;
-    displayedDate = new Date(year, month, 1);
-  }
-
-  // --- Selection ---
-  function selectDate(date: Date) {
-    if (checkIsDateDisabled(date)) return;
-
-    // Navigate to clicked month if outside current displayed month
-    const clickedMonth = date.getMonth();
-    const clickedYear = date.getFullYear();
-    if (clickedMonth !== displayedMonth || clickedYear !== displayedYear) {
-      displayedMonth = clickedMonth;
-      displayedYear = clickedYear;
-      onMonthChange?.(displayedMonth, displayedYear);
-    }
-
-    onDateClick?.(date);
-
-    let newValue: CalendarProps['value'];
-
-    switch (selectionMode) {
-      case 'single':
-        newValue = date;
-        break;
-      case 'multiple': {
-        const current = Array.isArray(effectiveValue) ? effectiveValue : [];
-        const existingIdx = current.findIndex((d) => isSameDay(d, date));
-        if (existingIdx >= 0) {
-          newValue = current.filter((_, i) => i !== existingIdx);
-        } else {
-          newValue = [...current, date];
-        }
-        break;
-      }
-      case 'range': {
-        const current =
-          effectiveValue && !Array.isArray(effectiveValue) && !(effectiveValue instanceof Date)
-            ? (effectiveValue as DateRange)
-            : null;
-        const hasCompleteRange = current && !isSameDay(current.start, current.end);
-        if (!current || hasCompleteRange) {
-          // New range start
-          newValue = { start: date, end: date };
-        } else {
-          // Complete the range
-          newValue =
-            date < current.start
-              ? { start: date, end: current.start }
-              : { start: current.start, end: date };
-        }
-        break;
-      }
-    }
-
-    if (newValue !== undefined) {
-      if (value !== undefined) {
-        value = newValue;
-      } else {
-        internalValue = newValue;
-      }
-      onValueChange?.(newValue!);
-    }
-  }
-
-  function setFocusedDate(date: Date) {
-    focusedDate = date;
-    if (!isInMonth(date, displayedMonth, displayedYear)) {
-      displayedMonth = date.getMonth();
-      displayedYear = date.getFullYear();
-      onMonthChange?.(displayedMonth, displayedYear);
-    }
-  }
-
-  function setHoveredDate(date: Date | null) {
-    hoveredDate = date;
+    referenceDate = new Date(year, month, 1);
   }
 
   function setView(v: CalendarViewMode) {
     view = v;
-    // Sync displayedDate from month/year when switching to week/day
-    // Clamp day-of-month to prevent overflow (e.g. 31 Feb → 28 Feb)
-    if (v === 'week' || v === 'day') {
-      const maxDay = new Date(displayedYear, displayedMonth + 1, 0).getDate();
-      const day = Math.min(displayedDate.getDate(), maxDay);
-      displayedDate = new Date(displayedYear, displayedMonth, day);
-    }
     onViewChange?.(v);
   }
 
-  // --- Context ---
+  // --- Selection / focus / hover delegate straight to the controller ---
+  function selectDate(date: Date) {
+    controller.selectDate(date);
+  }
+
+  function setFocusedDate(date: Date) {
+    controller.setFocusedDate(date);
+  }
+
+  function setHoveredDate(date: Date | null) {
+    controller.setHoveredDate(date);
+  }
+
+  // --- Context: a facade over the controller (mechanics) + Calendar-specific
+  // state (events, view chrome, time grid, drag, styling). Sub-components keep
+  // reading one context; the mechanics are now sourced from the shared engine. ---
   const ctx: CalendarContext = {
     get displayedMonth() {
       return displayedMonth;
@@ -539,10 +432,10 @@
       return displayedYear;
     },
     get displayedDate() {
-      return displayedDate;
+      return referenceDate;
     },
     get today() {
-      return today;
+      return controller.today;
     },
     get view() {
       return view;
@@ -601,31 +494,31 @@
       return disabled;
     },
     get canGoBack() {
-      return navState.canGoBack;
+      return controller.canGoBack;
     },
     get canGoForward() {
-      return navState.canGoForward;
+      return controller.canGoForward;
     },
     get grid() {
-      return grid;
+      return controller.cells;
     },
     get weekdays() {
-      return weekdays;
+      return controller.weekdayNames;
     },
     get headerTitle() {
       return headerTitle;
     },
     get weekDates() {
-      return weekDates;
+      return controller.weekDates;
     },
     get yearMonths() {
       return yearMonths;
     },
     get focusedDate() {
-      return focusedDate;
+      return controller.focusedDate;
     },
     get hoveredDate() {
-      return hoveredDate;
+      return controller.hoveredDate;
     },
     navigate,
     navigateMonth,
@@ -638,16 +531,18 @@
     setFocusedDate,
     setHoveredDate,
     setView,
-    isDateDisabled: checkIsDateDisabled,
-    isDateSelected: checkIsDateSelected,
-    isDateToday: (date: Date) => isSameDay(date, today),
-    isDateInRange: checkIsDateInRange,
-    isDateRangeStart: checkIsDateRangeStart,
-    isDateRangeEnd: checkIsDateRangeEnd,
-    isDateInPreviewRange: checkIsDateInPreviewRange,
+    isDateDisabled: (date: Date) => controller.isDisabled(date),
+    isDateSelected: (date: Date) => controller.isSelected(date),
+    isDateToday: (date: Date) => controller.isToday(date),
+    isDateInRange: (date: Date) => controller.isInSelectedRange(date),
+    isDateRangeStart: (date: Date) => controller.isRangeStart(date),
+    isDateRangeEnd: (date: Date) => controller.isRangeEnd(date),
+    isDateInPreviewRange: (date: Date) => controller.isInPreviewRange(date),
+    // View-independent (always relative to the displayed month), unlike the
+    // controller's view-aware `isOutside` — the mini-calendar relies on this.
     isDateInMonth: (date: Date) => isInMonth(date, displayedMonth, displayedYear),
     get navDirection() {
-      return navDirection;
+      return controller.navDirection;
     },
     get shouldAnimate() {
       return shouldAnimate;
@@ -736,8 +631,8 @@
         navigate,
         navigateMonth,
         goToToday,
-        canGoBack: navState.canGoBack,
-        canGoForward: navState.canGoForward
+        canGoBack: controller.canGoBack,
+        canGoForward: controller.canGoForward
       })}
     {:else}
       <CalendarHeader {showViewSwitcher} />
@@ -748,7 +643,7 @@
         <CalendarMiniMonth />
         <div class="min-w-0 flex-1">
           {#if view === 'week'}
-            <CalendarWeekGrid {eventItem} {onEventClick} />
+            <CalendarWeekGrid {onEventClick} />
           {:else if view === 'day'}
             <CalendarDayView {eventItem} {onEventClick} />
           {:else if view === 'agenda'}
@@ -761,7 +656,7 @@
     {:else if view === 'year'}
       <CalendarYearGrid />
     {:else if view === 'week'}
-      <CalendarWeekGrid {eventItem} {onEventClick} />
+      <CalendarWeekGrid {onEventClick} />
     {:else if view === 'day'}
       <CalendarDayView {eventItem} {onEventClick} />
     {:else if view === 'agenda'}

@@ -1,24 +1,23 @@
 <script lang="ts">
   import { useBlocksI18n } from '$lib';
-  import type { Snippet } from 'svelte';
   import { fly } from 'svelte/transition';
   import { getCalendarContext, createSlotHelper } from './calendar.context';
   import { getWeekdayNames, isSameDay, toIso } from '$lib/date';
   import { getContrastTextColor } from './calendar.engine';
   import { swipeable } from '$lib/utils/swipeable';
-  import type { CalendarEvent, EventItemContext } from './calendar.types';
-  import CalendarEventRenderer from './CalendarEventRenderer.svelte';
+  import type { CalendarEvent } from './calendar.types';
   import CalendarTimeGrid from './CalendarTimeGrid.svelte';
 
   const bt = useBlocksI18n();
 
+  // The week view renders only as an hour grid (showTimeGrid is always true for
+  // week), so events flow through CalendarTimeGrid — no custom `eventItem` here.
   interface CalendarWeekGridInternalProps {
-    eventItem?: Snippet<[EventItemContext]>;
     onEventClick?: (event: CalendarEvent) => void;
     class?: string;
   }
 
-  let { eventItem, onEventClick, class: className = '' }: CalendarWeekGridInternalProps = $props();
+  let { onEventClick, class: className = '' }: CalendarWeekGridInternalProps = $props();
 
   const ctx = getCalendarContext();
   const slot = createSlotHelper(ctx);
@@ -26,9 +25,8 @@
   const weekdayNames = $derived(getWeekdayNames(ctx.locale, ctx.weekStartsOn, 'short'));
   const weekKey = $derived(toIso(ctx.weekDates[0]));
 
-  // All-day events per date (for time grid mode)
+  // All-day events per date, drawn in the band above the hour grid.
   const allDayByDate = $derived.by(() => {
-    if (!ctx.showTimeGrid) return null;
     const map = new Map<string, Array<{ event: CalendarEvent; color: string }>>(); // eslint-disable-line svelte/prefer-svelte-reactivity
     for (const date of ctx.weekDates) {
       const key = toIso(date);
@@ -46,7 +44,7 @@
     return map;
   });
 
-  const hasAnyAllDay = $derived(ctx.showTimeGrid && allDayByDate !== null && allDayByDate.size > 0);
+  const hasAnyAllDay = $derived(allDayByDate.size > 0);
 
   function handleDayClick(date: Date) {
     ctx.selectDate(date);
@@ -94,7 +92,7 @@
 </script>
 
 <div
-  class={ctx.showTimeGrid ? slot('weekTimeLayout', className) : slot('weekGrid', className)}
+  class={slot('weekTimeLayout', className)}
   role="grid"
   tabindex={0}
   aria-label={bt('calendar.weekView')}
@@ -116,102 +114,59 @@
           ? { x: ctx.navDirection === 'forward' ? -40 : 40, duration: 150 }
           : { duration: 0 }}
       >
-        {#if ctx.showTimeGrid}
-          <!-- Time grid mode: headers row + all-day area + time grid -->
-          <div class="grid grid-cols-7">
-            {#each ctx.weekDates as date, dayIdx (date.toISOString())}
-              {@const isToday = isSameDay(date, ctx.today)}
-              {@const isSelected = ctx.isDateSelected(date)}
-              <button
-                type="button"
-                class="{slot('weekColumnHeader')} {isToday
-                  ? 'bg-primary text-text-on-primary'
-                  : ''} {isSelected && !isToday ? 'bg-primary-subtle' : ''}"
-                data-weekday={dayIdx}
-                onclick={() => handleDayClick(date)}
-                tabindex={dayIdx === 0 ? 0 : -1}
-                aria-label="{weekdayNames[dayIdx]} {date.getDate()}"
-                aria-selected={isSelected || undefined}
-                aria-current={isToday ? 'date' : undefined}
-              >
-                <span class="{slot('weekColumnDayName')} {isToday ? 'text-text-on-primary' : ''}">
-                  {weekdayNames[dayIdx]}
-                </span>
-                <span class="{slot('weekColumnDayNumber')} {isToday ? 'text-text-on-primary' : ''}">
-                  {date.getDate()}
-                </span>
-              </button>
-            {/each}
-          </div>
+        <!-- Day headers row -->
+        <div class="grid grid-cols-7">
+          {#each ctx.weekDates as date, dayIdx (toIso(date))}
+            {@const isToday = isSameDay(date, ctx.today)}
+            {@const isSelected = ctx.isDateSelected(date)}
+            <button
+              type="button"
+              class="{slot('weekColumnHeader')} {isToday
+                ? 'bg-primary text-text-on-primary'
+                : ''} {isSelected && !isToday ? 'bg-primary-subtle' : ''}"
+              data-weekday={dayIdx}
+              onclick={() => handleDayClick(date)}
+              tabindex={dayIdx === 0 ? 0 : -1}
+              aria-label="{weekdayNames[dayIdx]} {date.getDate()}"
+              aria-current={isToday ? 'date' : undefined}
+            >
+              <span class="{slot('weekColumnDayName')} {isToday ? 'text-text-on-primary' : ''}">
+                {weekdayNames[dayIdx]}
+              </span>
+              <span class="{slot('weekColumnDayNumber')} {isToday ? 'text-text-on-primary' : ''}">
+                {date.getDate()}
+              </span>
+            </button>
+          {/each}
+        </div>
 
-          <!-- All-day events area -->
-          {#if hasAnyAllDay && allDayByDate}
-            <div class="grid grid-cols-7 {slot('allDayArea')}">
-              {#each ctx.weekDates as date (date.toISOString())}
-                {@const key = toIso(date)}
-                {@const items = allDayByDate.get(key) ?? []}
-                <div class="flex min-h-5 flex-col gap-px px-0.5">
-                  {#each items as item (item.event.id)}
-                    <button
-                      type="button"
-                      class={slot('weekAllDayEvent')}
-                      style="background-color: {item.color}; color: {getContrastTextColor(
-                        item.color
-                      )};"
-                      onclick={() => onEventClick?.(item.event)}
-                      title={item.event.title}
-                    >
-                      {item.event.title}
-                    </button>
-                  {/each}
-                </div>
-              {/each}
-            </div>
-          {/if}
-
-          <!-- Time grid -->
-          <CalendarTimeGrid dates={ctx.weekDates} {onEventClick} />
-        {:else}
-          <!-- Original column layout (no time grid) -->
-          <div class="col-span-7 grid grid-cols-subgrid">
-            {#each ctx.weekDates as date, dayIdx (date.toISOString())}
-              {@const isToday = isSameDay(date, ctx.today)}
-              {@const isSelected = ctx.isDateSelected(date)}
-              {@const eventsWithInfo = ctx.getEventsWithDayInfo(date)}
-              <div class={slot('weekColumn')} role="gridcell">
-                <button
-                  type="button"
-                  class="{slot('weekColumnHeader')} {isToday
-                    ? 'bg-primary text-text-on-primary'
-                    : ''} {isSelected && !isToday ? 'bg-primary-subtle' : ''}"
-                  data-weekday={dayIdx}
-                  onclick={() => handleDayClick(date)}
-                  tabindex={dayIdx === 0 ? 0 : -1}
-                  aria-label="{weekdayNames[dayIdx]} {date.getDate()}"
-                  aria-selected={isSelected || undefined}
-                  aria-current={isToday ? 'date' : undefined}
-                >
-                  <span class="{slot('weekColumnDayName')} {isToday ? 'text-text-on-primary' : ''}">
-                    {weekdayNames[dayIdx]}
-                  </span>
-                  <span
-                    class="{slot('weekColumnDayNumber')} {isToday ? 'text-text-on-primary' : ''}"
+        <!-- All-day events band -->
+        {#if hasAnyAllDay}
+          <div class="grid grid-cols-7 {slot('allDayArea')}">
+            {#each ctx.weekDates as date (toIso(date))}
+              {@const key = toIso(date)}
+              {@const items = allDayByDate.get(key) ?? []}
+              <div class="flex min-h-5 flex-col gap-px px-0.5">
+                {#each items as item (item.event.id)}
+                  <button
+                    type="button"
+                    class={slot('weekAllDayEvent')}
+                    style="background-color: {item.color}; color: {getContrastTextColor(
+                      item.color
+                    )};"
+                    onclick={() => onEventClick?.(item.event)}
+                    title={item.event.title}
                   >
-                    {date.getDate()}
-                  </span>
-                </button>
-
-                {#if eventsWithInfo.length > 0}
-                  <div class={slot('weekEventList')}>
-                    {#each eventsWithInfo as info (info.event.id)}
-                      <CalendarEventRenderer {info} {eventItem} {onEventClick} />
-                    {/each}
-                  </div>
-                {/if}
+                    {item.event.title}
+                  </button>
+                {/each}
               </div>
             {/each}
           </div>
         {/if}
+
+        <!-- Hour grid -->
+        <CalendarTimeGrid dates={ctx.weekDates} {onEventClick} />
       </div>
     {/key}
   </div>

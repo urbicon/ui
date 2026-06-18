@@ -1,6 +1,6 @@
 # DateGrid-Core, Calendar-Re-Base & Planner — Umsetzungsplan
 
-> **Status:** In Umsetzung (Branch `feat/dategrid-planner`). **Phase 0–2 erledigt**: Schicht 0 (`@urbicon-ui/blocks/date`) + Schicht 1 (headless `DateGridController`/`DateGridScaffold`, internal). Phase 3–7 offen.
+> **Status:** In Umsetzung (Branch `feat/dategrid-planner`). **Phase 0–3 erledigt**: Schicht 0 (`@urbicon-ui/blocks/date`) + Schicht 1 (headless `DateGridController`/`DateGridScaffold`, internal) + Calendar-Re-Base auf den Controller (Fassade-Ansatz, siehe Phase 3). Phase 4–7 offen.
 > **Sprache:** Internes Strategie-/Umsetzungsdokument (Deutsch). Nach Abschluss in ein englisches As-built in `docs/ARCHITECTURE.md` überführen.
 > **Rahmen:** Greenfield. Kein Consumer nutzt `Calendar` produktiv ([[project_pre_release_status]]). **Keine** Migrations-, Kompatibilitäts- oder Breaking-Change-Rücksichten — wir bauen die saubere Zielarchitektur direkt.
 
@@ -370,11 +370,19 @@ Jede Phase ist eigenständig grün (`bun run check && bun run lint && bun run te
 - Unit-Tests für Controller (navigate über Monats-/Wochen-/Range-Grenzen, `cells`-Geometrie je View, focus-Roving-Logik, selection).
 - **Akzeptanz:** Controller-Tests grün; Scaffold rendert ein nacktes Grid in einem Smoke-Test (cell-Snippet zählt Tage).
 
-### Phase 3 — Schicht 2a Calendar Re-Base
-- `Calendar.svelte` auf `DateGridController` + `dateGridContext` + `calendarEventContext` umstellen; `CalendarGrid`/`CalendarWeekGrid` auf `DateGridScaffold` + `weekOverlay`.
-- Dead `{:else}`-Zweig auflösen; month/week-Zellkonsistenz herstellen.
-- `svelte-autofixer` auf jede geänderte `.svelte` bis 0 Issues (Repo-Pflicht).
-- **Akzeptanz:** bestehende Calendar-Tests grün (Verhalten erhalten); visuelle Stichprobe month/week/day/agenda/year in der docs-app; `bun run check`.
+### Phase 3 — Schicht 2a Calendar Re-Base ✅
+
+**Umgesetzt (As-built):** `Calendar.svelte` instanziiert den `DateGridController` als geteilten **Mechanik-Motor** (Geometrie, Navigation für month/week/day, Roving-Focus, Hover, Selektion, today, navDirection). Die ~150 Zeilen duplizierte Logik (`navigateMonth/Week/Day`, `selectDate`-Selektion, `checkIsDate*`, `clampMonth`/`grid`/`weekDates`-derives, `focusedDate`/`hoveredDate`-state, today-Effekt) sind entfallen. Eine einzige SSoT `referenceDate` (displayedMonth/Year `$derived`). Der `CalendarContext` bleibt als **delegierende Fassade** (Subkomponenten unverändert); seine Mechanik-Getter lesen den Controller. Dead `{:else}`-Spaltenzweig in `CalendarWeekGrid` entfernt (week ist immer Time-Grid). Schicht-1-Verfeinerung: `onSelect(selection, date)` — der Trigger-Tag ermöglicht Calendars `onDateClick`/Spill-Navigation (+ Planners `onDateSelect`, D5). Neues Test-Netz: `Calendar.smoke.test.ts` (SSR-Render aller 5 Views + Selektion/Geometrie/Seeding, 17 Tests) — Calendar hatte zuvor **keine** Component-Tests.
+
+**Bewusste Abweichungen vom ursprünglichen Plan-Wortlaut (begründet):**
+- **Kein `DateGridScaffold` für Calendars month-view.** `CalendarDay` ist ein reicher interaktiver `<button>` (Popover mit Hover/Focus-Timer, Drag-Target, `ondblclick`→`onDateCreate`, `aria-label`/`aria-current`, `data-state`, `dayState`-tv()-Styling, roving-`tabindex`). Das Scaffold-Modell macht hingegen das `gridcell`-`div` **selbst** interaktiv (onclick/keyboard/tabindex/data-date) — beide würden die `gridcell`-Rolle tragen. Ein Zwang würde entweder CalendarDay-Features/a11y brechen **oder** das Scaffold mit Calendar-Spezifika überladen (genau das D3-Risiko „Über-Abstraktion"). Das Scaffold wird in Phase 4 an **Planner** validiert, dessen Zellen tatsächlich einfache `cell`-Container sind.
+- **Kein Subkomponenten-Context-Split** (getrennte `dateGridContext` + `calendarEventContext` für die 17 Subkomponenten). 8/14 brauchen beide; die Methodennamen divergieren stark (`isDateToday`↔`isToday`, `isDateInMonth`↔`isOutside` invertiert, `grid`↔`cells`); ohne DOM-Test-Netz wäre ein Big-Bang-Split aller 17 Dateien fahrlässig. Der SSoT-Zweck ist über die Fassade erfüllt (der Controller IST die geteilte, getestete Mechanik; Planner braucht den `CalendarContext` nie).
+
+**Bewusste Verhaltens-Verfeinerungen (Konsistenz-Fixes, kein Feature-Verlust):** `goToToday` feuert jetzt den view-passenden Callback (`onWeekChange`/`onDayChange`/`onMonthChange` statt immer `onMonthChange` — konsistent mit `navigate`); Keyboard-Monatswechsel animiert in korrekter Richtung; Spill-Tag-Navigation auf month-view beschränkt (verhindert Anker-Sprünge in week/day). Per Reviews als äquivalent/verbessert bestätigt.
+
+**Notiert für später:** `CalendarDayView` hat einen analogen toten Nicht-Time-Grid-Zweig (XC-16 in `docs/internal/TODO.md`).
+
+- **Akzeptanz erfüllt:** `bun run check` 0 Errors (−6 Warnungen ggü. main); Engine-Tests + neue Smoke-Tests grün; `svelte-autofixer` 0 Issues auf beiden geänderten `.svelte`; zwei Review-Agenten (keine High-Confidence-Bugs); visuelle Stichprobe month/week/year + Navigation in der docs-app, keine Konsolenfehler.
 
 ### Phase 4 — Schicht 2b Planner
 - Komponente, Views (week zuerst, dann month, dann range), Variants, Context, `index.ts` mit JSDoc.

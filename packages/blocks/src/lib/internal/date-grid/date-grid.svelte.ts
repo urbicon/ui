@@ -76,8 +76,11 @@ export interface DateGridOptions {
   isDateDisabled?: (date: Date) => boolean;
   /** Called when navigation wants a new reference date; the wrapper materialises it. */
   onNavigate?: (date: Date, range: DateGridRange) => void;
-  /** Called with the next selection value; the wrapper materialises it. */
-  onSelect?: (selection: DateGridSelection) => void;
+  /** Called with the next selection value and the date that triggered it; the
+   * wrapper materialises the selection. The trigger date lets consumers run
+   * per-click side effects (Calendar's `onDateClick` / spill-day navigation,
+   * Planner's `onDateSelect`) that the computed selection alone can't express. */
+  onSelect?: (selection: DateGridSelection, date: Date) => void;
 }
 
 export class DateGridController {
@@ -397,7 +400,7 @@ export class DateGridController {
         break;
       }
     }
-    this.#opts.onSelect?.(next);
+    this.#opts.onSelect?.(next, date);
   }
 
   // ─── Internals ───────────────────────────────────────────────────────────
