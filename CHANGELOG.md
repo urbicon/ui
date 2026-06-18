@@ -4,6 +4,15 @@ All notable changes to this project will be documented in this file.
 This changelog is automatically generated from [Conventional Commits](https://www.conventionalcommits.org).
 
 
+## [6.1.5] - 2026-06-18
+
+### Documentation
+- Surface Planner in navigation + MCP, complete the recipe nav
+- Add ChartFrame doc page (was catalog-only / 404) and link it
+
+### Features
+- **blocks**: Anchor Calendar week/day views on a real day, not the 1st
+
 ## [6.1.4] - 2026-06-18
 
 ### Bug Fixes
