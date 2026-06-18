@@ -1,9 +1,8 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-  <line x1="12" y1="2.5" x2="12" y2="21.5" />
-  <path d="M3.75 7.25L20.25 16.75" />
-  <path d="M20.25 7.25L3.75 16.75" />
-  <path d="M9.5 5l2.5 2 2.5-2" />
-  <path d="M9.5 19l2.5-2 2.5 2" />
-  <path d="M5 9.5l.75 2.5L5 14.5" />
-  <path d="M19 9.5l-.75 2.5.75 2.5" />
+  <g transform="rotate(0 12 12)"><path d="M12 12V3.5" /><path d="M12 6.5l-2-1.8" /><path d="M12 6.5l2-1.8" /></g>
+  <g transform="rotate(60 12 12)"><path d="M12 12V3.5" /><path d="M12 6.5l-2-1.8" /><path d="M12 6.5l2-1.8" /></g>
+  <g transform="rotate(120 12 12)"><path d="M12 12V3.5" /><path d="M12 6.5l-2-1.8" /><path d="M12 6.5l2-1.8" /></g>
+  <g transform="rotate(180 12 12)"><path d="M12 12V3.5" /><path d="M12 6.5l-2-1.8" /><path d="M12 6.5l2-1.8" /></g>
+  <g transform="rotate(240 12 12)"><path d="M12 12V3.5" /><path d="M12 6.5l-2-1.8" /><path d="M12 6.5l2-1.8" /></g>
+  <g transform="rotate(300 12 12)"><path d="M12 12V3.5" /><path d="M12 6.5l-2-1.8" /><path d="M12 6.5l2-1.8" /></g>
 </svg>
