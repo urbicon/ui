@@ -180,6 +180,15 @@
       components: ['ConfirmDialog'],
       category: 'Forms',
       difficulty: 'Intermediate'
+    },
+    {
+      title: 'Meal Planner',
+      description:
+        'Weekly meal plan on the Planner grid — meals bucketed by day, sorted by type, with an "Add" affordance on every day, including empty ones.',
+      href: '/recipes/meal-planner',
+      components: ['Planner', 'Button', 'Badge'],
+      category: 'Display',
+      difficulty: 'Intermediate'
     }
   ];
 

@@ -91,10 +91,13 @@ export type CalendarSlotName =
 // ─── CalendarProps ────────────────────────────────────────────
 
 /**
- * @description Flexible calendar component with month, year, week, and day views,
- * event display, date selection, and configurable layout.
+ * @description Flexible calendar component with month, year, week, and day views.
+ * Renders timed appointments, multi-day spans and recurrence on a time grid, with
+ * event display, date selection and configurable layout. For a headless grid that
+ * buckets your own domain content (meals, shifts, bookings) per day, use `Planner`.
  *
  * @tag display
+ * @related Planner
  * @related DatePicker
  * @related DateRangePicker
  *

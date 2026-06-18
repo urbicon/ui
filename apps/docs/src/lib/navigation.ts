@@ -123,6 +123,7 @@ export const navigationItems: NavItem[] = [
           { name: 'CompositionBar', href: '/blocks/components/composition-bar' },
           { name: 'DonutChart', href: '/blocks/components/donut-chart' },
           { name: 'LineChart', href: '/blocks/components/line-chart' },
+          { name: 'Planner', href: '/blocks/components/planner' },
           { name: 'Sankey', href: '/blocks/components/sankey' },
           { name: 'Sparkline', href: '/blocks/components/sparkline' },
           { name: 'Tooltip', href: '/blocks/primitives/tooltip' }
@@ -264,20 +265,30 @@ export const navigationItems: NavItem[] = [
     nameKey: 'nav.recipes',
     href: '/recipes',
     children: [
-      { name: 'Login Form', nameKey: 'nav.loginForm', href: '/recipes/login' },
+      { name: 'Clickable Card', href: '/recipes/clickable-card' },
       { name: 'Dashboard', nameKey: 'nav.dashboard', href: '/recipes/dashboard' },
-      { name: 'Settings Page', nameKey: 'nav.settingsPage', href: '/recipes/settings' },
+      { name: 'Decision Tree Wizard', href: '/recipes/decision-tree-wizard' },
+      { name: 'Help Tooltip', href: '/recipes/help-tooltip' },
+      { name: 'Invitation-Gated Registration', href: '/recipes/auth-invitation-register' },
+      { name: 'Login Form', nameKey: 'nav.loginForm', href: '/recipes/login' },
+      { name: 'Meal Planner', href: '/recipes/meal-planner' },
       { name: 'Multi-Step Wizard', nameKey: 'nav.wizard', href: '/recipes/wizard' },
       {
         name: 'Notification Center',
         nameKey: 'nav.notificationCenter',
         href: '/recipes/notification-center'
       },
+      { name: 'Onboarding Flow', href: '/recipes/onboarding-flow' },
+      { name: 'Page Header', href: '/recipes/page-header' },
+      { name: 'Passkey Login', href: '/recipes/auth-passkey-login' },
+      { name: 'Password Reset Flow', href: '/recipes/auth-password-reset' },
       { name: 'Pricing Cards', nameKey: 'nav.pricingCards', href: '/recipes/pricing' },
       { name: 'Profile Card', nameKey: 'nav.profileCard', href: '/recipes/profile-card' },
+      { name: 'Range Hint Input', href: '/recipes/range-hint-input' },
+      { name: 'Settings Page', nameKey: 'nav.settingsPage', href: '/recipes/settings' },
+      { name: 'Stat Tile', href: '/recipes/stat-tile' },
       { name: 'Trace Drawer', href: '/recipes/trace-drawer' },
-      { name: 'Decision Tree Wizard', href: '/recipes/decision-tree-wizard' },
-      { name: 'Range Hint Input', href: '/recipes/range-hint-input' }
+      { name: 'Unsaved Changes Guard', href: '/recipes/unsaved-changes-guard' }
     ]
   },
   { name: 'Showcase', nameKey: 'nav.showcase', href: '/showcase' },
