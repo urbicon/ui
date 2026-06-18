@@ -39,6 +39,35 @@ If you find yourself disabling Drawer's backdrop and Escape-key handling, you pr
 
 ---
 
+## Date Surfaces — Calendar vs. Planner
+
+Two components lay things out on dates, and the MCP used to steer day-content boards toward `Calendar` (a timed-event scheduler). They do not overlap: **Calendar** schedules timed `CalendarEvent`s (clock times, multi-day bars, recurrence, drag-resize, a time grid); **Planner** buckets your own `T[]` onto calendar days and hands each day to a `cell` snippet.
+
+### Decision matrix
+
+| Question                                            | → Calendar                          | → Planner                                            |
+| --------------------------------------------------- | ----------------------------------- | --------------------------------------------------- |
+| Does the content have a **clock time**?             | yes (a 14:00–15:00 appointment)     | no (a meal / shift / day note)                      |
+| Should items **span multiple days**?                | yes (holiday, trip)                 | no (single-date bucketing)                          |
+| Is the cell content **your** domain markup + actions? | no — event list / bars            | yes — a `cell` snippet over your `T`                |
+| Do you need **time-grid / recurrence / drag-resize**? | yes                               | no                                                   |
+| Datatype in the snippet                             | `CalendarEvent`                     | your `T`                                             |
+| Typical cases                                       | booking calendar, bin collection, appointments | weekly meal / menu plan, shift roster, occupancy, content calendar |
+
+### When it's still ambiguous
+
+- If you are about to cram a meal/task/shift into `CalendarEvent.meta` and cast it back out per cell, you want **Planner** — it carries your real type end to end.
+- If you are disabling Planner's single-date model to fake a multi-day bar, you want **Calendar** — spanning is its event-layout job.
+- Both share the headless `DateGridController` under the hood (geometry, navigation, ISO weeks, roving-focus a11y), so neither is "lighter" — pick on the data model, not on weight.
+
+### Code anchors
+
+- Planner board recipe: [/recipes/meal-planner](../apps/docs/src/routes/recipes/meal-planner/+page.svelte) — weekly plan with bucketed cards and an add affordance.
+- Planner doc page: `apps/docs/src/routes/blocks/components/planner/Docs.svelte` — week, month, slotClasses, server-safe weeks.
+- Pattern: `get_pattern("planning-board")` — composition rules for date-indexed boards.
+
+---
+
 ## When the matrix is silent
 
 If you cannot find your use-case here, the choice usually collapses to two questions:

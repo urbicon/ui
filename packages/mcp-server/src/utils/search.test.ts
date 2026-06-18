@@ -103,3 +103,39 @@ describe('matchComponents', () => {
     expect(results).toEqual([]);
   });
 });
+
+// Regression for the DateGrid/Planner discovery fix: planning-board queries
+// used to steer toward Calendar (a timed-event scheduler). With Planner in the
+// catalog they must land on Planner instead — driven purely by its catalog
+// description/tags/slug, no hardcoded keyword map.
+describe('matchComponents — Planner discovery', () => {
+  const Calendar = makeEntry({
+    name: 'Calendar',
+    slug: 'calendar',
+    description: 'Event display and date selection with month, week and day views.',
+    tags: ['display'],
+    relatedComponents: ['DatePicker']
+  });
+  const Planner = makeEntry({
+    name: 'Planner',
+    slug: 'planner',
+    description:
+      'Date-indexed planning board — a week, month or custom-range grid whose cells hold your domain content (meals, shifts, bookings, content slots) via a generic cell snippet.',
+    tags: ['display', 'layout'],
+    keyProps: ['items', 'getDate', 'view', 'cell'],
+    relatedComponents: ['Calendar', 'DatePicker']
+  });
+  const dateCatalog = [Calendar, Planner];
+
+  for (const query of ['planner', 'meal planner', 'weekly plan', 'shift schedule', 'week board']) {
+    it(`ranks Planner first for "${query}"`, () => {
+      const results = matchComponents(dateCatalog, query);
+      expect(results[0]?.name).toBe('Planner');
+    });
+  }
+
+  it('still ranks Calendar first for an event/appointment query', () => {
+    const results = matchComponents(dateCatalog, 'event calendar');
+    expect(results[0]?.name).toBe('Calendar');
+  });
+});

@@ -43,6 +43,11 @@ const SKELETON_HINTS: Record<string, { attrs: string; children?: string; selfClo
     Tooltip: { attrs: 'label="Tooltip text"', children: '...' },
     Popover: { attrs: '', children: '...' },
     Calendar: { attrs: 'bind:value={date}', selfClosing: true },
+    Planner: {
+      attrs: 'view="week" items={items} getDate={(item) => item.date}',
+      children:
+        '  {#snippet cell({ items, isoDate })}\n    <!-- your own per-day content; items are bucketed + typed -->\n  {/snippet}'
+    },
     CommandPalette: { attrs: 'bind:open={showPalette} items={commands}', selfClosing: true },
     Table: { attrs: 'data={rows} columns={columns}', selfClosing: true },
     ButtonGroup: { attrs: 'selection="single" bind:value={selected}', children: '...' },

@@ -11,9 +11,9 @@ import type {
 import type { PlannerVariants } from './planner.variants';
 
 /**
- * @description Date-indexed planning grid — week, month or custom range — whose
- * cells hold YOUR domain content (meals, shifts, bookings, content slots) via a
- * generic `cell` snippet. Buckets `items` by calendar day, then handles
+ * @description Date-indexed planning board — a week, month or custom-range grid
+ * whose cells hold YOUR domain content (meals, shifts, bookings, content slots)
+ * via a generic `cell` snippet. Buckets `items` by calendar day, then handles
  * navigation, ISO week numbers, keyboard a11y and a responsive column→stack
  * layout. For timed appointments, multi-day spans or recurrence use `Calendar`
  * instead.

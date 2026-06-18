@@ -23,6 +23,14 @@ describe.skipIf(!recipesAvailable)('recipe-loader pattern annotations', () => {
     expect(profile?.pattern).toBeUndefined();
   });
 
+  it('loads the meal-planner recipe with its planning-board pattern + Planner code', async () => {
+    const mealPlanner = await getRecipeById('meal-planner');
+    expect(mealPlanner?.title).toBe('Meal Planner');
+    expect(mealPlanner?.pattern).toBe('planning-board');
+    expect(mealPlanner?.components).toContain('Planner');
+    expect(mealPlanner?.code).toContain('<Planner');
+  });
+
   it('every annotated pattern names an existing pattern file', async () => {
     const recipes = await loadRecipes();
     const known = new Set([
@@ -30,7 +38,8 @@ describe.skipIf(!recipesAvailable)('recipe-loader pattern annotations', () => {
       'form-page',
       'settings-page',
       'tab-navigation',
-      'onboarding-guide'
+      'onboarding-guide',
+      'planning-board'
     ]);
     for (const r of recipes) {
       if (r.pattern)
