@@ -434,9 +434,9 @@ Jede Phase ist eigenständig grün (`bun run check && bun run lint && bun run te
 
 ## 9. Definition of Done
 
-- [ ] `@urbicon-ui/blocks/date` öffentlich, Svelte-frei, getestet (DST/lokal).
-- [ ] `DateGridController` + `DateGridScaffold` internal, unit-getestet.
-- [ ] `Calendar` auf den Core re-based, alle Bestands-Tests grün, month/week-Asymmetrie weg.
+- [x] `@urbicon-ui/blocks/date` öffentlich, Svelte-frei, getestet (DST/lokal).
+- [x] `DateGridController` + `DateGridScaffold` internal, unit-getestet.
+- [x] `Calendar` auf den Core re-based (Fassade-Ansatz), Bestands- + neue Smoke-Tests grün, dead `{:else}`-Week-Zweig weg. (Scaffold-Re-Base von Calendars month-view bewusst nicht — siehe Phase 3.)
 - [ ] `Planner<T>` mit `view=week|month|range`, generischem `cell`-Snippet, Doc-Seite, MCP-Catalog-Eintrag.
 - [ ] MCP: `find_components`/`suggest_implementation`/`get_pattern` führen zum Planner statt weg.
 - [ ] cookery-Wochenplan auf Planner portiert (Validierung), `src/lib/date.ts` gelöscht.
