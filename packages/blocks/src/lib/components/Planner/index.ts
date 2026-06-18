@@ -45,9 +45,12 @@ export interface PlannerProps<T = unknown>
   /** The items to lay out. Each is bucketed onto a day via {@link getDate}. */
   items?: T[];
   /**
-   * Map an item to its calendar day. Return a `Date` or a local ISO date string
-   * (`'2026-06-16'`) — the latter is taken verbatim, never UTC-parsed, so a day
-   * never shifts across timezones. Required.
+   * Map an item to its calendar day. Return a `Date`, or a local date string
+   * (`'2026-06-16'`) taken verbatim — never UTC-parsed, so a plain date never
+   * shifts across timezones. A date-*time* string is bucketed by its written
+   * date part too; if your value is a UTC instant whose local day matters
+   * (`'…T23:00:00Z'`), return `new Date(value)` so the local timezone applies.
+   * Required.
    */
   getDate: (item: T) => Date | string;
   /** Comparator for items within a day cell (e.g. by meal type or start label). */
@@ -102,9 +105,17 @@ export interface PlannerProps<T = unknown>
   header?: Snippet<[PlannerHeaderContext]>;
   /** Customise each weekday/column header. */
   dayHeader?: Snippet<[PlannerDayContext]>;
-  /** Render a day's content — the core of the API. Receives bucketed `items: T[]`. */
+  /**
+   * Render a day's content — the core of the API. Receives bucketed `items: T[]`.
+   * Called for **every** day, including empty ones (`items: []`) — unless an
+   * `empty` snippet is given, which then handles empty days instead. Put an
+   * "add" affordance here to keep it available on empty days.
+   */
   cell?: Snippet<[PlannerCellContext<T>]>;
-  /** Shown in a cell that has no items (falls back to nothing when omitted). */
+  /**
+   * Placeholder rendered **instead of** `cell` for days with no items. Omit it
+   * to let `cell` render empty days too.
+   */
   empty?: Snippet<[PlannerCellContext<T>]>;
 
   // ── Styling / a11y ───────────────────────────────────

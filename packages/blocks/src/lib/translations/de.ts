@@ -90,7 +90,8 @@ export default {
     nextRange: 'Nächster Zeitraum',
     today: 'Heute',
     grid: 'Planer',
-    weekNumber: 'Kalenderwoche'
+    weekNumber: 'Kalenderwoche',
+    itemCount: '{{count}} Einträge'
   },
   commandPalette: {
     noResults: 'Keine Ergebnisse gefunden.',

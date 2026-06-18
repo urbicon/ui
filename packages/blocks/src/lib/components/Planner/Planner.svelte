@@ -281,9 +281,9 @@
     swipeable={swipeableProp && !disabled}
     {animated}
     ariaLabel={bt('planner.grid')}
-    headerRowClass={isWeek ? 'gap-2 max-md:hidden' : ''}
+    headerRowClass={slot('weekdayHeader', isWeek ? 'gap-2 max-md:hidden' : '')}
     headerClass={slot('weekday')}
-    rowClass={isWeek ? 'gap-2 max-md:grid-cols-1' : ''}
+    rowClass={slot('week', isWeek ? 'gap-2 max-md:grid-cols-1' : '')}
     cellClass="h-auto"
     weekNumberClass={slot('weekNumber')}
     cell={gridCell}
@@ -321,16 +321,18 @@
     </div>
 
     {#if p.items.length === 0 && empty}
-      <!-- Empty day, and the consumer gave a dedicated placeholder. -->
+      <!-- Empty day, and the consumer supplied a dedicated placeholder, which
+           takes precedence over `cell` for empty days. -->
       <div class={slot('empty')}>{@render empty(p)}</div>
     {:else if cell}
-      <!-- The cell snippet drives content — called for empty days too, so an
-           "add" affordance can live there (its `items` is simply `[]`). -->
+      <!-- `cell` drives content. With no `empty` snippet it is called for empty
+           days too (`items` is `[]`), so an "add" affordance can live here. -->
       <div class={slot('cellItems')}>{@render cell(p)}</div>
     {:else if p.items.length > 0}
       <!-- No cell snippet: a language-neutral count so bucketing is visible. -->
       <span
         class="bg-primary-subtle text-primary inline-flex h-5 min-w-5 items-center justify-center rounded-full px-1 text-xs font-medium tabular-nums"
+        aria-label={bt('planner.itemCount', { count: p.items.length })}
       >
         {p.items.length}
       </span>

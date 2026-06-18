@@ -15,16 +15,18 @@ export type GetItemDate<T> = (item: T) => Date | string;
 /**
  * Derive the local `YYYY-MM-DD` bucket key for an item's date.
  *
- * A plain date string (`'2026-06-16'`, optionally with a time suffix) is sliced
- * to its date part **without** parsing — `new Date('2026-06-16')` would read it
- * as UTC midnight and shift a day west of Greenwich. Only non-ISO strings fall
- * back to `Date` parsing. A `Date` is reduced to its local calendar day. This
- * preserves the "everything local, never UTC" contract Planner inherits from
- * `@urbicon-ui/blocks/date`.
+ * A date-first string (`'2026-06-16'`, optionally with a time suffix) is sliced
+ * to its **written** date part without parsing — `new Date('2026-06-16')` would
+ * read it as UTC midnight and shift a day west of Greenwich. This preserves the
+ * "everything local, never UTC" contract Planner inherits from
+ * `@urbicon-ui/blocks/date`. The trade-off: a UTC *instant* string
+ * (`'2026-06-16T23:00:00Z'`) buckets on its written day (16 Jun), not the local
+ * day it may fall on — callers who need instant→local conversion pass a `Date`.
+ * A `Date` is always reduced to its local calendar day.
  */
 export function toDateKey(raw: Date | string): string {
   if (typeof raw === 'string') {
-    // Fast path: already a local ISO date (date-first) → take the day part verbatim.
+    // Fast path: a date-first string → take the written day part verbatim.
     if (/^\d{4}-\d{2}-\d{2}/.test(raw)) return raw.slice(0, 10);
     return toIso(new Date(raw));
   }

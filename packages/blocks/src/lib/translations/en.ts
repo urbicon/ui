@@ -90,7 +90,8 @@ export default {
     nextRange: 'Next range',
     today: 'Today',
     grid: 'Planner',
-    weekNumber: 'Week number'
+    weekNumber: 'Week number',
+    itemCount: '{{count}} items'
   },
   commandPalette: {
     noResults: 'No results found.',

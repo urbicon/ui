@@ -109,6 +109,17 @@
     }
   }
 
+  // Interactive content inside a cell (a Planner cell's buttons/links/inputs)
+  // owns its own clicks — only a click on the cell body itself selects the day.
+  // Mirrors the keydown guard, but the cell content fills the gridcell, so a
+  // strict target===currentTarget check would make selection unreachable.
+  const INTERACTIVE_SELECTOR =
+    'button, a[href], input, select, textarea, label, [role="button"], [role="link"], [role="menuitem"], [role="checkbox"]';
+  function onCellClick(event: MouseEvent, date: Date) {
+    if ((event.target as HTMLElement).closest(INTERACTIVE_SELECTOR)) return;
+    ctx.selectDate(date);
+  }
+
   const transitionIn = $derived(
     shouldAnimate && ctx.navDirection
       ? { x: ctx.navDirection === 'forward' ? 40 : -40, duration: 200 }
@@ -175,7 +186,7 @@
                 aria-disabled={info.isDisabled || undefined}
                 tabindex={info.isFocused ? 0 : -1}
                 class="focus-visible:outline-primary focus-visible:outline-2 focus-visible:outline-offset-[-2px] {cellClass}"
-                onclick={() => ctx.selectDate(date)}
+                onclick={(event) => onCellClick(event, date)}
                 onkeydown={onKeydown}
                 onmouseenter={() => ctx.setHoveredDate(date)}
               >
