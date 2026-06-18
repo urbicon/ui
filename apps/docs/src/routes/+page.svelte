@@ -182,9 +182,8 @@
           { 'translate-y-0 opacity-100': heroVisible, 'translate-y-4 opacity-0': !heroVisible }
         ]}
       >
-        Blocks, a full data table, complete auth and AI-native tooling — written from scratch on
-        Svelte 5 and the web platform. No transitive dependency tree, no supply-chain surprises.
-        Zero runtime deps, and it stays that way.
+        Written from scratch on Svelte 5 and the web platform. No transitive dependency tree, no
+        supply-chain surprises. Zero runtime deps, and it stays that way.
       </p>
 
       <div
