@@ -57,6 +57,16 @@ export * from './LineChart';
 export type { LocaleSwitcherProps } from './LocaleSwitcher';
 export * from './LocaleSwitcher';
 export type {
+  PlannerCellContext,
+  PlannerDayContext,
+  PlannerHeaderContext,
+  PlannerProps,
+  PlannerRange,
+  PlannerSlotName,
+  PlannerView
+} from './Planner';
+export * from './Planner';
+export type {
   SankeyIntent,
   SankeyLaidOutLinkWithMeta,
   SankeyLaidOutNodeWithMeta,

@@ -37,9 +37,11 @@
     ariaLabel?: string;
     /** Class for the grid container. */
     class?: string;
+    /** Class for the weekday-header row (e.g. `max-md:hidden` to stack on mobile). */
+    headerRowClass?: string;
     /** Class for each weekday-header cell. */
     headerClass?: string;
-    /** Class for each week row. */
+    /** Class for each week row (e.g. `max-md:grid-cols-1` to stack on mobile). */
     rowClass?: string;
     /** Class for each day gridcell. */
     cellClass?: string;
@@ -56,6 +58,7 @@
     swipeable: swipeEnabled = true,
     ariaLabel = 'Date grid',
     class: className = '',
+    headerRowClass = '',
     headerClass = '',
     rowClass = '',
     cellClass = '',
@@ -69,8 +72,12 @@
 
   // A stable identity for the visible window — drives the navigate transition.
   const navKey = $derived(toIso(ctx.rangeStart) + '|' + ctx.view);
-  const gridTemplate = $derived(
-    `${showWeekNumber ? 'minmax(2rem, auto) ' : ''}repeat(7, minmax(0, 1fr))`
+  // Static Tailwind column classes (not an inline grid-template) so a consumer
+  // can override them per breakpoint — e.g. Planner stacks the week on mobile
+  // via `rowClass="max-md:grid-cols-1"`. Both literals must appear verbatim so
+  // Tailwind emits them.
+  const gridColsClass = $derived(
+    showWeekNumber ? 'grid-cols-[minmax(2rem,auto)_repeat(7,minmax(0,1fr))]' : 'grid-cols-7'
   );
 
   const headerInfos = $derived.by<DayHeaderInfo[]>(() => {
@@ -90,6 +97,9 @@
   let gridEl = $state<HTMLElement | null>(null);
 
   function onKeydown(event: KeyboardEvent) {
+    // Drive grid navigation only from the cell itself; interactive children
+    // (a Planner cell's buttons/inputs) keep their own Enter/Space/arrow keys.
+    if (event.target !== event.currentTarget) return;
     if (handleDateGridKeydown(event, ctx)) {
       // Move DOM focus to follow the controller's roving focus.
       const target = toIso(ctx.focusedDate);
@@ -127,7 +137,7 @@
   })}
 >
   <!-- Weekday header -->
-  <div role="row" class="grid" style="grid-template-columns: {gridTemplate};">
+  <div role="row" class="grid {gridColsClass} {headerRowClass}">
     {#if showWeekNumber}
       <span role="columnheader" aria-hidden="true" class={weekNumberClass}></span>
     {/if}
@@ -150,7 +160,7 @@
           {#if weekOverlay}
             {@render weekOverlay({ week, weekIndex })}
           {/if}
-          <div role="row" class="grid {rowClass}" style="grid-template-columns: {gridTemplate};">
+          <div role="row" class="grid {gridColsClass} {rowClass}">
             {#if showWeekNumber}
               <span role="rowheader" class={weekNumberClass}>
                 {ctx.weekNumberFor(week[3] ?? week[0])}

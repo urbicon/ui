@@ -81,6 +81,17 @@ export default {
     viewAgenda: 'Agenda',
     viewSwitcher: 'View mode'
   },
+  planner: {
+    previousWeek: 'Previous week',
+    nextWeek: 'Next week',
+    previousMonth: 'Previous month',
+    nextMonth: 'Next month',
+    previousRange: 'Previous range',
+    nextRange: 'Next range',
+    today: 'Today',
+    grid: 'Planner',
+    weekNumber: 'Week number'
+  },
   commandPalette: {
     noResults: 'No results found.',
     search: 'Search...',
