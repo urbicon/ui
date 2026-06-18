@@ -315,7 +315,12 @@
       {#if isWeek}
         <span class={slot('cellWeekday')}>{p.weekday}</span>
       {/if}
-      <span class={[slot('cellDate'), highlightToday && p.isToday && todayDateMark]}>
+      <span
+        class={[
+          slot('cellDate'),
+          highlightToday && p.isToday ? todayDateMark : 'text-text-secondary'
+        ]}
+      >
         {info.date.getDate()}
       </span>
     </div>

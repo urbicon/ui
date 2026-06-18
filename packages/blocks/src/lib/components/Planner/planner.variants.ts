@@ -41,7 +41,7 @@ export const plannerVariants = tv({
     cellHeader: 'flex items-baseline justify-between gap-1',
     cellWeekday: 'text-text-tertiary font-medium select-none',
     cellDate:
-      'inline-flex items-center justify-center font-medium text-text-secondary tabular-nums leading-none select-none',
+      'inline-flex items-center justify-center font-medium tabular-nums leading-none select-none',
     cellItems: 'flex flex-col gap-1 min-w-0',
     empty: 'text-text-quaternary select-none'
   },
