@@ -13,6 +13,16 @@ import type { ChartMargin, ChartPlot, ChartSlotClasses } from '$lib/internal/cha
  * @related BarChart
  * @related Sankey
  * @stability beta
+ *
+ * @example
+ * ```svelte
+ * <ChartFrame height={200} ariaLabel="Weekly revenue">
+ *   {#snippet children({ innerWidth, innerHeight })}
+ *     <!-- map your data onto innerWidth / innerHeight, then draw SVG marks -->
+ *     <polyline points={pts} fill="none" class="stroke-primary" stroke-width="2" />
+ *   {/snippet}
+ * </ChartFrame>
+ * ```
  */
 export interface ChartFrameProps extends Omit<HTMLAttributes<HTMLElement>, 'children'> {
   /** Fixed SVG height in px. @default 240 */

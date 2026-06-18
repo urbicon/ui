@@ -120,6 +120,7 @@ export const navigationItems: NavItem[] = [
           { name: 'Avatar', href: '/blocks/primitives/avatar' },
           { name: 'BarChart', href: '/blocks/components/bar-chart' },
           { name: 'Calendar', href: '/blocks/components/calendar' },
+          { name: 'ChartFrame', href: '/blocks/components/chart-frame' },
           { name: 'CompositionBar', href: '/blocks/components/composition-bar' },
           { name: 'DonutChart', href: '/blocks/components/donut-chart' },
           { name: 'LineChart', href: '/blocks/components/line-chart' },
