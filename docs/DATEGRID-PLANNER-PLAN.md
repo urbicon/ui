@@ -1,6 +1,6 @@
 # DateGrid-Core, Calendar-Re-Base & Planner — Umsetzungsplan
 
-> **Status:** In Umsetzung (Branch `feat/dategrid-planner`). **Phase 0–3 erledigt**: Schicht 0 (`@urbicon-ui/blocks/date`) + Schicht 1 (headless `DateGridController`/`DateGridScaffold`, internal) + Calendar-Re-Base auf den Controller (Fassade-Ansatz, siehe Phase 3). Phase 4–7 offen.
+> **Status:** In Umsetzung (Branch `feat/dategrid-planner`). **Phase 0–5 erledigt**: Schicht 0 (`@urbicon-ui/blocks/date`) + Schicht 1 (headless `DateGridController`/`DateGridScaffold`, internal) + Calendar-Re-Base (Fassade) + **Schicht 2b `Planner<T>`** (Phase 4: Komponente, Doc-Seite, MCP-Catalog) + **DX/Discovery** (Phase 5: `planning-board`-Pattern, `meal-planner`-Recipe, `suggest_implementation`-Skelett, Calendar-vs-Planner-Matrix). Offen: Phase 6 (cookery-Validierung, **separates Repo**) + Phase 7 (Release).
 > **Sprache:** Internes Strategie-/Umsetzungsdokument (Deutsch). Nach Abschluss in ein englisches As-built in `docs/ARCHITECTURE.md` überführen.
 > **Rahmen:** Greenfield. Kein Consumer nutzt `Calendar` produktiv ([[project_pre_release_status]]). **Keine** Migrations-, Kompatibilitäts- oder Breaking-Change-Rücksichten — wir bauen die saubere Zielarchitektur direkt.
 
@@ -384,17 +384,25 @@ Jede Phase ist eigenständig grün (`bun run check && bun run lint && bun run te
 
 - **Akzeptanz erfüllt:** `bun run check` 0 Errors (−6 Warnungen ggü. main); Engine-Tests + neue Smoke-Tests grün; `svelte-autofixer` 0 Issues auf beiden geänderten `.svelte`; zwei Review-Agenten (keine High-Confidence-Bugs); visuelle Stichprobe month/week/year + Navigation in der docs-app, keine Konsolenfehler.
 
-### Phase 4 — Schicht 2b Planner
-- Komponente, Views (week zuerst, dann month, dann range), Variants, Context, `index.ts` mit JSDoc.
-- Tests: Bucketing (ISO-String & Date-Input, lokal), view-Wechsel, `selectedDate`-Highlight, leere Zelle → `empty`-Snippet.
-- `docs:scaffold Planner --group components` → Doc-Seite; `docs:gen:all` (Catalog + llm.txt + MCP-Catalog).
-- **Akzeptanz:** Planner-Tests grün; Doc-Seite rendert; `Planner` erscheint in `mcp/component-catalog.json`.
+### Phase 4 — Schicht 2b Planner ✅
 
-### Phase 5 — DX / Discovery-Reparatur
-- `design-system/patterns/planning-board.md` (für `get_pattern`); `docs/COMPONENT-DECISION-MATRICES.md` um **Calendar vs. Planner** ergänzen (siehe §7).
-- MCP `suggest_implementation`-Matcher: bei „planner/meal/shift/board/week grid" → `Planner` + Card/Button; bei niedrigem Score **ehrlich** „kein direkter Fit, komponiere aus X" statt Junk-Skelett.
-- Recipe `week-board` / `meal-planner` (`packages/mcp-server` recipe-Set + docs-recipe-Seite).
-- **Akzeptanz:** `find_components("meal planner")` listet Planner zuerst; `suggest_implementation` liefert ein kohärentes Planner-Skelett; `get_pattern("planning-board")` antwortet.
+**Umgesetzt (As-built):** Generischer `Planner<T>` (`components/Planner/`) als **erster echter Konsument** von `DateGridController` + `DateGridScaffold`. Der Controller IST der `dateGridContext`, den das Scaffold liest (er erfüllt das Interface strukturell); `PlannerHeader` liest einen schlankeren `plannerContext`. Reine `planner.bucket.ts` (`bucketItemsByDate` — local-ISO-Key, nie UTC-geparst, Date+String, intra-Tag-`sort`). Drei Views (week/month/range) über **das eine Scaffold** (keine separaten Grid-Komponenten — view-Unterschiede sind Styling + view-aware Default-Zelle). Single-Selektion (`selectedDate`, D5). Tests: `planner.bucket.test.ts` (9) + `Planner.smoke.test.ts` (11 SSR: Geometrie, Bucketing end-to-end via `createRawSnippet`, Selektion, empty/cell). Doc-Seite + 3 Beispiele (Wochenplan/Schichtplan/slotClasses), `docs:gen:all` → MCP-Catalog-Eintrag.
+
+**Bewusste Abweichungen (begründet):**
+- **Kein `mint`-Prop** (Calendar/EmptyState haben es auch nicht — Display-Komponente, kein Form-Control).
+- **`cell` läuft für leere Tage** (`items: []`), `empty` ist die opt-in-Alternative — so bleibt eine „Add"-Affordance auf leeren Tagen erreichbar (cookery-Kern-Use-Case).
+- **Scaffold-Verfeinerungen** (internal, nur Planner-Konsument): inline `grid-template-columns` → responsive Tailwind grid-cols-Klassen (week column→stack auf Mobile) + `headerRowClass`; Klick/Keydown-Guard, sodass interaktive Zell-Kinder ihre eigenen Events behalten.
+- **`onItemClick` entfernt** (vestigial — der `cell`-Snippet verdrahtet Klicks selbst).
+
+**Review-Funde behoben:** fehlender Click-Guard (Button-Klick selektierte den Tag mit), tote `weekdayHeader`/`week`-Slots verdrahtet, Fallback-Badge-a11y-Label, today-Datumszahl-Kontrast (CSS-Cascade-Konflikt zweier `text-color`-Utilities — visuell im gerenderten Doc gefangen).
+
+- **Akzeptanz erfüllt:** 20 Planner-Tests grün; `bun run check` 0 Errors; `svelte-autofixer` 0 Issues; Doc-Seite + Recipe rendern (visuell verifiziert, keine Konsolenfehler); `Planner` in `mcp/component-catalog.json`.
+
+### Phase 5 — DX / Discovery-Reparatur ✅
+
+**Umgesetzt (As-built):** `design-system/patterns/planning-board.md` (auto-registriert via Loader; korrekt als **datums-indexiertes** Board, kein Kanban) → `get_pattern("planning-board")` antwortet. `suggest_implementation`-`SKELETON_HINTS` um Planner ergänzt (kohärentes `items`/`getDate`/`view` + `cell`-Snippet statt nacktem Tag). `recipes/meal-planner/` (Wochenplan, pattern-annotiert) → `get_recipe("meal-planner")`. `COMPONENT-DECISION-MATRICES.md` um **Calendar vs. Planner** ergänzt. `find_components` braucht **keine** Matcher-Änderung — generisches `matchComponents` rankt Planner via Catalog (slug/tags/description); zusätzlich `@description` um „board" angereichert, damit `week board`/`planning board` Planner zuerst ranken. Tests: `search.test.ts` (planner/meal planner/weekly plan/week board → Planner #1; event calendar → Calendar #1) + `recipe-loader.test.ts` (meal-planner).
+
+- **Akzeptanz erfüllt** (gegen die **lokale** mcp-server-Logik verifiziert): `find_components("meal planner")` → Planner #1; `suggest_implementation` liefert ein Planner-Skelett; `get_pattern("planning-board")` + `get_recipe("meal-planner")` antworten. ⚠️ Der in dieser Session laufende `urbicon-ui`-MCP-Server cached einen älteren Catalog — er spiegelt das erst nach Neustart/Deploy.
 
 ### Phase 6 — Validierung am echten Consumer (cookery)
 - In `~/Workspace/cookery` (separates Repo, **nicht** Teil dieses PRs): `src/lib/date.ts` durch `@urbicon-ui/blocks/date` ersetzen; `routes/plan/+page.svelte`-Grid durch `<Planner>` ersetzen.
@@ -437,10 +445,10 @@ Jede Phase ist eigenständig grün (`bun run check && bun run lint && bun run te
 - [x] `@urbicon-ui/blocks/date` öffentlich, Svelte-frei, getestet (DST/lokal).
 - [x] `DateGridController` + `DateGridScaffold` internal, unit-getestet.
 - [x] `Calendar` auf den Core re-based (Fassade-Ansatz), Bestands- + neue Smoke-Tests grün, dead `{:else}`-Week-Zweig weg. (Scaffold-Re-Base von Calendars month-view bewusst nicht — siehe Phase 3.)
-- [ ] `Planner<T>` mit `view=week|month|range`, generischem `cell`-Snippet, Doc-Seite, MCP-Catalog-Eintrag.
-- [ ] MCP: `find_components`/`suggest_implementation`/`get_pattern` führen zum Planner statt weg.
-- [ ] cookery-Wochenplan auf Planner portiert (Validierung), `src/lib/date.ts` gelöscht.
-- [ ] `bun run check && bun run lint && bun run test` grün; `svelte-autofixer` 0 Issues auf allen neuen `.svelte`.
+- [x] `Planner<T>` mit `view=week|month|range`, generischem `cell`-Snippet, Doc-Seite, MCP-Catalog-Eintrag.
+- [x] MCP: `find_components`/`suggest_implementation`/`get_pattern` führen zum Planner statt weg. (Lokal verifiziert; laufender MCP-Server braucht Neustart/Deploy.)
+- [ ] cookery-Wochenplan auf Planner portiert (Validierung), `src/lib/date.ts` gelöscht. **(Phase 6 — separates Repo, nicht Teil dieses PRs.)**
+- [x] `bun run check && bun run lint && bun run test` grün; `svelte-autofixer` 0 Issues auf allen neuen `.svelte`.
 
 ---
 
