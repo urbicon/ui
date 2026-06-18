@@ -10,7 +10,8 @@
     toIso,
     stripTime,
     addDays,
-    clampMonth
+    clampMonth,
+    daysInMonth
   } from '$lib/date';
   import { DateGridController } from '$lib/internal/date-grid';
   import type { DateGridSelection, DateGridView } from '$lib/internal/date-grid';
@@ -43,6 +44,7 @@
     // Selection
     selectionMode = 'single',
     value = $bindable(undefined),
+    defaultDate,
     defaultMonth,
     defaultYear,
     // Locale
@@ -130,8 +132,12 @@
   // --- Reference date: the single anchor the grid is built around ---
   // Priority:
   //   1. the first selected date — a populated picker opens on its selection
-  //   2. `defaultMonth` / `defaultYear` — fallback when no value
-  //   3. today
+  //   2. `defaultDate` — an explicit day anchor (the only one that anchors a
+  //      week/day view on a specific week without also selecting that day)
+  //   3. `defaultMonth` / `defaultYear` — month/year anchor (resolves to the 1st;
+  //      fine for month/year views, but a week/day view then opens on the 1st's
+  //      week, which can fall mostly in the prior month — use `defaultDate` there)
+  //   4. today
   // Read at mount time only; the user navigates freely afterwards. Remount (e.g.
   // via DatePicker's popover open/close) to re-anchor on the current selection.
   function firstDateOf(v: CalendarProps['value']): Date | undefined {
@@ -142,16 +148,19 @@
   }
   function resolveInitialReference(
     v: CalendarProps['value'],
+    date: Date | undefined,
     month: number | undefined,
     year: number | undefined
   ): Date {
-    const anchor = firstDateOf(v);
+    const anchor = firstDateOf(v) ?? date;
     if (anchor) return stripTime(anchor);
     const today = stripTime(new Date());
     if (month == null && year == null) return today;
     return new Date(year ?? today.getFullYear(), month ?? today.getMonth(), 1);
   }
-  let referenceDate = $state(resolveInitialReference(value, defaultMonth, defaultYear));
+  let referenceDate = $state(
+    resolveInitialReference(value, defaultDate, defaultMonth, defaultYear)
+  );
 
   // The month/year derived from the single reference date.
   const displayedMonth = $derived(referenceDate.getMonth());
@@ -373,7 +382,15 @@
     const targetMonth = ((total % 12) + 12) % 12;
     const clamped = clampMonth(targetMonth, targetYear, minDate, maxDate);
     controller.navDirection = delta > 0 ? 'forward' : 'backward';
-    referenceDate = new Date(clamped.year, clamped.month, 1);
+    // Preserve the day-of-month (clamped) so a later switch to week/day view
+    // anchors on a real in-month day, not the 1st's (possibly prior-month) week.
+    const day = Math.min(referenceDate.getDate(), daysInMonth(clamped.year, clamped.month));
+    let next = new Date(clamped.year, clamped.month, day);
+    // clampMonth bounds the month; clamp the day too so it never lands before
+    // minDate / after maxDate within that boundary month.
+    if (minDate && next < stripTime(minDate)) next = stripTime(minDate);
+    if (maxDate && next > stripTime(maxDate)) next = stripTime(maxDate);
+    referenceDate = next;
     onMonthChange?.(clamped.month, clamped.year);
   }
 
@@ -391,8 +408,10 @@
 
   function navigateYear(delta: number) {
     controller.navDirection = delta > 0 ? 'forward' : 'backward';
-    referenceDate = new Date(displayedYear + delta, displayedMonth, 1);
-    onMonthChange?.(displayedMonth, displayedYear + delta);
+    const targetYear = displayedYear + delta;
+    const day = Math.min(referenceDate.getDate(), daysInMonth(targetYear, displayedMonth));
+    referenceDate = new Date(targetYear, displayedMonth, day);
+    onMonthChange?.(displayedMonth, targetYear);
   }
 
   function goToToday() {
@@ -400,7 +419,8 @@
   }
 
   function goToMonth(month: number, year: number) {
-    referenceDate = new Date(year, month, 1);
+    const day = Math.min(referenceDate.getDate(), daysInMonth(year, month));
+    referenceDate = new Date(year, month, day);
   }
 
   function setView(v: CalendarViewMode) {

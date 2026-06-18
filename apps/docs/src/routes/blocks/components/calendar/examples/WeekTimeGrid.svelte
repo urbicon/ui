@@ -177,6 +177,5 @@
   timeGridEndHour={18}
   timeGridInterval={30}
   locale="de-DE"
-  defaultMonth={2}
-  defaultYear={2026}
+  defaultDate={monday}
 />

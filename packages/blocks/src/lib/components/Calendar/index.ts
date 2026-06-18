@@ -146,8 +146,17 @@ export interface CalendarProps
   /** Currently selected date(s). Supports bind:value. */
   value?: CalendarSelection;
   /**
-   * Initial displayed month (0–11). Used only when `value` is unset;
-   * when `value` is provided, the calendar opens on the value's month.
+   * Initial reference day the grid is anchored on, without selecting it. Use
+   * this to open a **week** or **day** view on a specific week — `defaultMonth`/
+   * `defaultYear` resolve to the 1st, whose week can fall mostly in the previous
+   * month. Ignored when `value` is set (the selection anchors instead); takes
+   * priority over `defaultMonth`/`defaultYear`. Read at mount only.
+   */
+  defaultDate?: Date;
+  /**
+   * Initial displayed month (0–11). Used only when `value` and `defaultDate`
+   * are unset; when `value` is provided, the calendar opens on the value's
+   * month. Best for month/year views — for week/day views prefer `defaultDate`.
    * Defaults to current month.
    */
   defaultMonth?: number;

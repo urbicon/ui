@@ -208,7 +208,7 @@ describe('DateGridController — navigation', () => {
     h.controller.navigate(1);
     expect(h.navigations).toHaveLength(1);
     expect(h.navigations[0].date.getMonth()).toBe(6); // July
-    expect(h.navigations[0].date.getDate()).toBe(1); // first of month
+    expect(h.navigations[0].date.getDate()).toBe(16); // day-of-month preserved (16 Jun → 16 Jul)
     expect(h.controller.navDirection).toBe('forward');
     // reference materialised → geometry now reflects July
     expect(h.controller.title).toBe('Juli 2026');
@@ -220,6 +220,14 @@ describe('DateGridController — navigation', () => {
     expect(h.navigations[0].date.getFullYear()).toBe(2025);
     expect(h.navigations[0].date.getMonth()).toBe(11); // December
     expect(h.controller.navDirection).toBe('backward');
+  });
+
+  it('preserves the day-of-month across month navigation, clamping to shorter months', () => {
+    const h = new Harness({ referenceDate: new Date(2026, 0, 31) }); // Jan 31
+    h.controller.navigate(1); // → February 2026 (28 days)
+    // Clamped to the last valid day, never snapped to the 1st — so a week/day view
+    // sharing this reference anchors on a real in-month day, not the prior month's tail.
+    expect(iso(h.navigations[0].date)).toBe('2026-2-28');
   });
 
   it('navigates weeks by 7 days', () => {
@@ -265,6 +273,24 @@ describe('DateGridController — navigation', () => {
     expect(h.controller.canGoForward).toBe(true);
     h.controller.navigate(-5); // try far past min → clamps to June
     expect(h.navigations[0].date.getMonth()).toBe(5); // June
+  });
+
+  it('clamps the preserved day up to a mid-month minDate when navigating into the min month', () => {
+    const h = new Harness({
+      referenceDate: new Date(2026, 2, 15), // Mar 15
+      minDate: new Date(2026, 1, 20) // Feb 20
+    });
+    h.controller.navigate(-1); // → February; preserved day 15 < minDate day 20
+    expect(iso(h.navigations[0].date)).toBe('2026-2-20'); // clamped to minDate, not Feb 15
+  });
+
+  it('clamps the preserved day down to a mid-month maxDate when navigating into the max month', () => {
+    const h = new Harness({
+      referenceDate: new Date(2026, 5, 25), // Jun 25
+      maxDate: new Date(2026, 6, 10) // Jul 10
+    });
+    h.controller.navigate(1); // → July; preserved day 25 > maxDate day 10
+    expect(iso(h.navigations[0].date)).toBe('2026-7-10'); // clamped to maxDate
   });
 
   it('reports day-granular bounds for week view', () => {

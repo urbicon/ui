@@ -90,6 +90,24 @@ describe('Calendar SSR smoke', () => {
     expect(body).toContain('2030');
   });
 
+  it('anchors a week view on defaultDate without selecting it', () => {
+    const { body } = render(Calendar, {
+      props: { view: 'week', defaultDate: new Date(2026, 2, 9) } // Mon 9 Mar 2026
+    });
+    // The week of 9 Mar is 9–15 Mar → a March title, not the 1st-of-month's KW9
+    // (23 Feb–1 Mar) that defaultMonth/defaultYear would have produced for a week.
+    expect(body).toContain('März');
+    expect(body).not.toContain('Februar');
+  });
+
+  it('prefers defaultDate over defaultMonth/defaultYear', () => {
+    const { body } = render(Calendar, {
+      props: { view: 'week', defaultDate: new Date(2026, 2, 9), defaultMonth: 0, defaultYear: 2030 }
+    });
+    expect(body).toContain('März'); // defaultDate wins (not January 2030)
+    expect(body).not.toContain('2030');
+  });
+
   // End-to-end wiring: controller geometry/selection must reach the DOM through
   // the context facade, not just render without throwing.
   it('month view renders the anchor month grid down to day cells', () => {

@@ -90,6 +90,14 @@ export function getYearMonths(year: number): { month: number; year: number }[] {
 }
 
 /**
+ * Number of days in a month, leap years included. `month` is 0-based
+ * (0 = January). Day 0 of the next month is the last day of this one.
+ */
+export function daysInMonth(year: number, month: number): number {
+  return new Date(year, month + 1, 0).getDate();
+}
+
+/**
  * Clamp a month/year to optional min/max date boundaries.
  * Returns the (possibly adjusted) month/year plus flags for whether navigating
  * one month back/forward would stay within bounds.

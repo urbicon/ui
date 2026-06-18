@@ -1,5 +1,12 @@
 import { describe, expect, it } from 'vitest';
-import { clampMonth, getMonthGrid, getWeekDates, getWeekNumber, getYearMonths } from './geometry';
+import {
+  clampMonth,
+  daysInMonth,
+  getMonthGrid,
+  getWeekDates,
+  getWeekNumber,
+  getYearMonths
+} from './geometry';
 
 describe('getMonthGrid', () => {
   it('returns rows of 7 days each', () => {
@@ -159,6 +166,20 @@ describe('getYearMonths', () => {
     const months = getYearMonths(2030);
     expect(months[0].year).toBe(2030);
     expect(months[11].year).toBe(2030);
+  });
+});
+
+describe('daysInMonth', () => {
+  it('returns the length of 31- and 30-day months', () => {
+    expect(daysInMonth(2026, 0)).toBe(31); // January
+    expect(daysInMonth(2026, 3)).toBe(30); // April
+  });
+
+  it('handles February in common and leap years', () => {
+    expect(daysInMonth(2026, 1)).toBe(28); // common year
+    expect(daysInMonth(2024, 1)).toBe(29); // leap year
+    expect(daysInMonth(2000, 1)).toBe(29); // century leap year
+    expect(daysInMonth(1900, 1)).toBe(28); // century non-leap year
   });
 });
 

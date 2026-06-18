@@ -25,5 +25,12 @@ export {
   formatWeekTitle,
   getWeekdayNames
 } from './format';
-export { clampMonth, getMonthGrid, getWeekDates, getWeekNumber, getYearMonths } from './geometry';
+export {
+  clampMonth,
+  daysInMonth,
+  getMonthGrid,
+  getWeekDates,
+  getWeekNumber,
+  getYearMonths
+} from './geometry';
 export { addDays, eachDayOfRange, endOfWeek, isoToDate, startOfWeek, toIso } from './range';

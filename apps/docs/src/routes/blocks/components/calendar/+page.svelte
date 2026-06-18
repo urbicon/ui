@@ -235,8 +235,7 @@
             showLegend
             showEventList
             locale="de-DE"
-            defaultMonth={2}
-            defaultYear={2026}
+            defaultDate={new Date(2026, 2, 9)}
           />
         </div>
       {/snippet}

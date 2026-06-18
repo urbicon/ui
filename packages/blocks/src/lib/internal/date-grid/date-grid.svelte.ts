@@ -18,6 +18,7 @@ import {
   addDays,
   clampMonth,
   daysBetween,
+  daysInMonth,
   endOfWeek,
   formatDateRange,
   formatDayTitle,
@@ -320,7 +321,19 @@ export class DateGridController {
         const targetYear = Math.floor(total / 12);
         const targetMonth = ((total % 12) + 12) % 12;
         const clamped = clampMonth(targetMonth, targetYear, minDate, maxDate);
-        next = new Date(clamped.year, clamped.month, 1);
+        // Preserve the day-of-month (clamped to the target month's length, e.g.
+        // 31 Jan → 28 Feb) rather than snapping to the 1st. Month view ignores the
+        // day, but a week/day view sharing this reference then anchors on a real
+        // in-month day — anchoring on the 1st can land its week mostly in the prior
+        // month (1 Mar 2026 is a Sunday → its Monday-week is 23 Feb–1 Mar). Matches
+        // the keyboard PageUp/PageDown month step, which already clamps the day.
+        const day = Math.min(referenceDate.getDate(), daysInMonth(clamped.year, clamped.month));
+        next = new Date(clamped.year, clamped.month, day);
+        // clampMonth bounds the month; clamp the preserved day too so it never lands
+        // before minDate / after maxDate within that boundary month (a week view
+        // would otherwise open on an all-disabled week just outside the range).
+        if (minDate && next < stripTime(minDate)) next = stripTime(minDate);
+        if (maxDate && next > stripTime(maxDate)) next = stripTime(maxDate);
         break;
       }
       case 'week':
