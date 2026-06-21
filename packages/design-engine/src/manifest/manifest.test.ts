@@ -156,6 +156,17 @@ describe('review hardening', () => {
     expect(updated).toContain('## Design Decisions'); // following section preserved
   });
 
+  it('replaces an intact old-tail usages block (both markers present) — backward-compat', () => {
+    // A manifest written by an earlier version: old marker tail, BOTH markers intact.
+    // Prefix detection must find and replace it, not append a second block.
+    const oldStyle =
+      '## Pattern Usages\n\n<!-- AUTO-GENERATED pattern usages — managed by sync_design_manifest; do not edit by hand -->\n\n- `dashboard` — old.svelte\n\n<!-- END pattern usages -->\n\n## Design Decisions\n';
+    const updated = upsertUsagesSection(oldStyle, [{ pattern: 'form-page', file: 'new.svelte' }]);
+    expect(parseManifest(updated).usages).toEqual([{ pattern: 'form-page', file: 'new.svelte' }]);
+    expect(updated).not.toContain('old.svelte'); // stale entry replaced, not duplicated
+    expect(updated).toContain('## Design Decisions'); // following section preserved
+  });
+
   it('collapses multi-line decision/rationale text to a single line (no truncation on re-parse)', () => {
     const updated = appendDecision(createManifestTemplate({}), {
       date: '2026-06-13',
