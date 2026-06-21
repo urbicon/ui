@@ -8,7 +8,7 @@
  */
 
 export { HEURISTIC_THRESHOLDS } from './heuristics.js';
-export { lintDesign, maskComments, SCORE_WEIGHTS } from './linter.js';
+export { lintDesign, maskComments, SCORE_WEIGHTS, SLOP_WEIGHT } from './linter.js';
 export { RULES } from './rules.js';
 export { VALID_TOKEN_CORES } from './tokens.js';
 export type {
@@ -17,6 +17,7 @@ export type {
   LintContext,
   LintOptions,
   LintReport,
+  LintScores,
   Rule,
   Severity
 } from './types.js';

@@ -67,11 +67,33 @@ export interface Rule {
   check(lines: string[], raw: string, ctx?: LintContext): Finding[];
 }
 
+/**
+ * Two-axis design score (DESIGN-MCP-V2 §6: "two tracks, never mixed"). Each axis
+ * is an independent 0–100 so a correctness defect never hides behind a clean slop
+ * axis, and a generic-looking page never passes just because its tokens are valid.
+ */
+export interface LintScores {
+  /**
+   * Stage 1 — "is it correct Urbicon?". Deducts the deterministic-rule findings
+   * (the `error`/`warning` defects: raw colours, `dark:`/`focus:`, hardcoded
+   * z-index, broken dynamic classes, hallucinated tokens). Counted per occurrence —
+   * every defect is its own fix.
+   */
+  correctness: number;
+  /**
+   * Stage 2 — "does it look generic?". Deducts the system-agnostic slop-floor
+   * heuristics (the `heuristic`-kind findings). Each heuristic is one holistic
+   * judgement about the page, so it costs a flat weight once, regardless of how
+   * many times the pattern repeats.
+   */
+  slop: number;
+}
+
 /** Aggregate result of linting one code unit. */
 export interface LintReport {
   findings: Finding[];
-  /** Deterministic 0–100 design-quality score. 100 = no findings. */
-  score: number;
+  /** Two-axis 0–100 score; 100/100 = no findings on that axis. See {@link LintScores}. */
+  scores: LintScores;
   counts: { error: number; warning: number; info: number };
   /** Optional label (e.g. filename) echoed back in the report. */
   filename?: string;

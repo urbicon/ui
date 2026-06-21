@@ -20,10 +20,10 @@ function formatFinding(f: Finding): string {
 
 /** Human-readable report for a single linted unit. */
 export function formatReport(report: LintReport): string {
-  const { score, counts, findings, filename } = report;
+  const { scores, counts, findings, filename } = report;
   const head =
-    `${filename ?? '<stdin>'} — score ${score}/100 · ` +
-    `${counts.error} error(s), ${counts.warning} warning(s), ${counts.info} note(s)`;
+    `${filename ?? '<stdin>'} — correctness ${scores.correctness}/100 · slop ${scores.slop}/100 · ` +
+    `${counts.error} error(s), ${counts.warning} warning(s), ${counts.info} slop note(s)`;
   if (findings.length === 0) return `${head}\n  ✓ no issues`;
   return `${head}\n${findings.map(formatFinding).join('\n')}`;
 }

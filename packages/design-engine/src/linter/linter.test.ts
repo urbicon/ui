@@ -256,19 +256,33 @@ describe('comment masking', () => {
   });
 });
 
-describe('scoring', () => {
-  it('scores clean code 100', () => {
-    const { score } = lintDesign('<div class="bg-surface-base text-text-primary">clean</div>');
-    expect(score).toBe(100);
+describe('scoring (two axes)', () => {
+  it('scores clean code 100/100 on both axes', () => {
+    const { scores } = lintDesign('<div class="bg-surface-base text-text-primary">clean</div>');
+    expect(scores.correctness).toBe(100);
+    expect(scores.slop).toBe(100);
   });
-  it('deducts per finding and floors at 0', () => {
+  it('deducts correctness per finding and floors at 0', () => {
     const oneError = lintDesign('<div class="bg-blue-500">');
-    expect(oneError.score).toBe(90);
+    expect(oneError.scores.correctness).toBe(90);
     // Per-line dedupe collapses identical hits on one line, so spread distinct hits across lines.
     const many = lintDesign(
       Array.from({ length: 12 }, () => '<div class="bg-blue-500">').join('\n')
     );
-    expect(many.score).toBe(0);
+    expect(many.scores.correctness).toBe(0);
+  });
+  it('scores slop on its own axis, leaving correctness untouched', () => {
+    // An intent rainbow is pure slop — the tokens are all valid, so correctness stays 100.
+    const code =
+      '<div class="bg-primary"></div><div class="bg-success"></div><div class="bg-warning"></div><div class="bg-danger"></div>';
+    const { scores } = lintDesign(code);
+    expect(scores.correctness).toBe(100);
+    expect(scores.slop).toBeLessThan(100);
+  });
+  it('does not let a clean slop axis hide a correctness defect (never mixed)', () => {
+    const { scores } = lintDesign('<div class="bg-blue-500">solo defect</div>');
+    expect(scores.correctness).toBeLessThan(100);
+    expect(scores.slop).toBe(100);
   });
   it('reports severity counts', () => {
     const { counts } = lintDesign('<div class="bg-blue-500 bg-status-x">');

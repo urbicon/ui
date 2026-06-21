@@ -28,14 +28,15 @@ describe('eval briefs', () => {
 });
 
 describe('scoreImplementation', () => {
-  it('scores clean code 100 with no findings', () => {
+  it('scores clean code 100/100 with no findings', () => {
     const s = scoreImplementation('<div class="bg-surface-base text-text-primary">ok</div>');
-    expect(s.score).toBe(100);
+    expect(s.correctness).toBe(100);
+    expect(s.slop).toBe(100);
     expect(s.errors).toBe(0);
   });
-  it('penalises hallucinated tokens and raw colours', () => {
+  it('penalises hallucinated tokens and raw colours on the correctness axis', () => {
     const s = scoreImplementation('<div class="bg-blue-500 text-status-bad">x</div>');
-    expect(s.score).toBeLessThan(100);
+    expect(s.correctness).toBeLessThan(100);
     expect(s.errors + s.warnings).toBeGreaterThan(0);
   });
 });
@@ -61,12 +62,12 @@ describe('formatAbReport edge cases', () => {
       {
         briefId: 'x',
         condition: 'baseline',
-        score: { linter: { score: 100, errors: 0, warnings: 0, infos: 0 } }
+        score: { linter: { correctness: 100, slop: 100, errors: 0, warnings: 0, infos: 0 } }
       },
       {
         briefId: 'x',
         condition: 'design-mcp',
-        score: { linter: { score: 100, errors: 0, warnings: 0, infos: 0 } }
+        score: { linter: { correctness: 100, slop: 100, errors: 0, warnings: 0, infos: 0 } }
       }
     ];
     const report = formatAbReport(entries, 'baseline', 'design-mcp');
@@ -79,12 +80,18 @@ describe('formatAbReport', () => {
     {
       briefId: 'a',
       condition: 'baseline',
-      score: { linter: { score: 70, errors: 1, warnings: 2, infos: 0 }, rubricTotal: 22 }
+      score: {
+        linter: { correctness: 70, slop: 80, errors: 1, warnings: 2, infos: 0 },
+        rubricTotal: 22
+      }
     },
     {
       briefId: 'a',
       condition: 'design-mcp',
-      score: { linter: { score: 95, errors: 0, warnings: 0, infos: 1 }, rubricTotal: 31 }
+      score: {
+        linter: { correctness: 95, slop: 90, errors: 0, warnings: 0, infos: 1 },
+        rubricTotal: 31
+      }
     }
   ];
   const report = formatAbReport(entries, 'baseline', 'design-mcp');

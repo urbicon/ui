@@ -11,8 +11,14 @@ import { lintDesign } from '@urbicon-ui/design-engine/linter';
 import { MAX_RUBRIC_SCORE, RUBRIC_CRITERIA } from '@urbicon-ui/design-engine/rubric';
 
 export interface LinterScore {
-  /** 0–100 deterministic design-linter score. */
-  score: number;
+  /**
+   * Stage-1 correctness axis, 0–100 (deterministic defects only). The stable A/B
+   * headline metric: unaffected by the slop-floor heuristics, so it stays directly
+   * comparable to the pre-slop-floor baseline (the +33.8% measurement).
+   */
+  correctness: number;
+  /** Stage-2 slop-floor axis, 0–100 (system-agnostic "looks generic" heuristics). */
+  slop: number;
   errors: number;
   warnings: number;
   infos: number;
@@ -35,7 +41,8 @@ export interface EvalEntry {
 export function scoreImplementation(code: string): LinterScore {
   const r = lintDesign(code);
   return {
-    score: r.score,
+    correctness: r.scores.correctness,
+    slop: r.scores.slop,
     errors: r.counts.error,
     warnings: r.counts.warning,
     infos: r.counts.info
@@ -76,29 +83,38 @@ export function formatAbReport(entries: EvalEntry[], baseline: string, treatment
 
   let md = `# Eval A/B — ${baseline} vs ${treatment}\n\n`;
   md += '## Per-brief\n\n';
-  md += `| Brief | ${baseline} linter | ${treatment} linter | ${baseline} rubric | ${treatment} rubric |\n`;
+  md += `| Brief | ${baseline} correctness | ${treatment} correctness | ${baseline} rubric | ${treatment} rubric |\n`;
   md += '|---|---|---|---|---|\n';
 
   const baseLint: number[] = [];
   const treatLint: number[] = [];
+  const baseSlop: number[] = [];
+  const treatSlop: number[] = [];
   const baseRub: number[] = [];
   const treatRub: number[] = [];
 
   for (const id of briefIds) {
     const b = pick(id, baseline);
     const t = pick(id, treatment);
-    if (b) baseLint.push(b.linter.score);
-    if (t) treatLint.push(t.linter.score);
+    if (b) {
+      baseLint.push(b.linter.correctness);
+      baseSlop.push(b.linter.slop);
+    }
+    if (t) {
+      treatLint.push(t.linter.correctness);
+      treatSlop.push(t.linter.slop);
+    }
     if (b?.rubricTotal !== undefined) baseRub.push(b.rubricTotal);
     if (t?.rubricTotal !== undefined) treatRub.push(t.rubricTotal);
     const rub = (s?: ImplementationScore) =>
       s?.rubricTotal !== undefined ? `${s.rubricTotal}/${MAX_RUBRIC_SCORE}` : '—';
-    md += `| ${id} | ${b?.linter.score ?? '—'} | ${t?.linter.score ?? '—'} | ${rub(b)} | ${rub(t)} |\n`;
+    md += `| ${id} | ${b?.linter.correctness ?? '—'} | ${t?.linter.correctness ?? '—'} | ${rub(b)} | ${rub(t)} |\n`;
   }
 
   md += '\n## Aggregate\n\n';
   md += `| Metric | ${baseline} | ${treatment} | Δ |\n|---|---|---|---|\n`;
-  md += `| Mean linter score | ${mean(baseLint).toFixed(1)} | ${mean(treatLint).toFixed(1)} | ${pct(mean(baseLint), mean(treatLint))} |\n`;
+  md += `| Mean correctness | ${mean(baseLint).toFixed(1)} | ${mean(treatLint).toFixed(1)} | ${pct(mean(baseLint), mean(treatLint))} |\n`;
+  md += `| Mean slop-floor | ${mean(baseSlop).toFixed(1)} | ${mean(treatSlop).toFixed(1)} | ${pct(mean(baseSlop), mean(treatSlop))} |\n`;
   if (baseRub.length && treatRub.length) {
     md += `| Mean rubric /${MAX_RUBRIC_SCORE} | ${mean(baseRub).toFixed(1)} | ${mean(treatRub).toFixed(1)} | ${pct(mean(baseRub), mean(treatRub))} |\n`;
   }

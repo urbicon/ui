@@ -8,14 +8,34 @@
 import { runHeuristics } from './heuristics.js';
 import { RULES } from './rules.js';
 import { resolveValidTokenCores } from './tokens.js';
-import type { Finding, LintContext, LintOptions, LintReport, Severity } from './types.js';
+import type {
+  Finding,
+  LintContext,
+  LintOptions,
+  LintReport,
+  LintScores,
+  Severity
+} from './types.js';
 
-/** Per-severity score deduction. Errors dominate (they are real defects). Centralised for tuning. */
+/**
+ * Per-severity deduction on the **correctness** axis. Errors dominate (real
+ * defects), warnings are softer (likely-but-not-certain). Centralised for tuning.
+ */
 export const SCORE_WEIGHTS: Record<Severity, number> = {
   error: 10,
   warning: 5,
   info: 2
 };
+
+/**
+ * Flat deduction per slop-floor heuristic on the **slop** axis. Unlike correctness
+ * defects (counted per occurrence — every raw colour is its own bug), each slop
+ * heuristic fires at most once and is one holistic judgement about the page, so
+ * one flat weight regardless of repetition. Tuned so a page tripping ~5 distinct
+ * slop signals lands mid-scale (≈50). Kept separate from SCORE_WEIGHTS so the two
+ * axes can be tuned independently.
+ */
+export const SLOP_WEIGHT = 10;
 
 /**
  * Blank out comment bodies while preserving newlines (so line numbers stay
@@ -55,13 +75,22 @@ export function lintDesign(code: string, opts: LintOptions = {}): LintReport {
     return SEVERITY_ORDER[a.severity] - SEVERITY_ORDER[b.severity];
   });
 
+  // Two axes, never mixed (§6): deterministic findings deduct from correctness
+  // (per occurrence, weighted by severity), heuristic findings from slop (flat per
+  // finding). `kind`, not `severity`, decides the axis — so a future deterministic
+  // `info` would still score against correctness, where it belongs.
   const counts = { error: 0, warning: 0, info: 0 };
-  let deduction = 0;
+  let correctnessDeduction = 0;
+  let slopDeduction = 0;
   for (const f of findings) {
     counts[f.severity]++;
-    deduction += SCORE_WEIGHTS[f.severity];
+    if (f.kind === 'heuristic') slopDeduction += SLOP_WEIGHT;
+    else correctnessDeduction += SCORE_WEIGHTS[f.severity];
   }
-  const score = Math.max(0, 100 - deduction);
+  const scores: LintScores = {
+    correctness: Math.max(0, 100 - correctnessDeduction),
+    slop: Math.max(0, 100 - slopDeduction)
+  };
 
-  return { findings, score, counts, filename: opts.filename };
+  return { findings, scores, counts, filename: opts.filename };
 }
