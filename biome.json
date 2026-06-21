@@ -26,6 +26,7 @@
         "packages/mcp-server/**",
         "packages/design-engine/**",
         "packages/design/**",
+        "packages/design-content/**",
         "packages/docs-gen/**",
         "packages/blocks/src/lib/utils/variants.ts"
       ],

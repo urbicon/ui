@@ -31,6 +31,7 @@ PACKAGES=(
   packages/shared-types
   packages/sveltekit-utils
   packages/design-engine
+  packages/design-content
   packages/design
   packages/mcp-server
   packages/i18n
