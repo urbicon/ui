@@ -45,6 +45,19 @@ describe('history parse tolerance', () => {
     expect(parseHistory('{"foo":1}\n[1,2,3]\n"a string"\nnull')).toEqual([]);
   });
 
+  it('skips an entry whose numeric fields are malformed (not rendered as NaN)', () => {
+    const bad = JSON.stringify({
+      date: '2026-06-21T00:00:00.000Z',
+      files: 'NaN',
+      errors: 0,
+      warnings: 0,
+      infos: 0,
+      correctness: 100,
+      slop: 50
+    });
+    expect(parseHistory(bad)).toEqual([]);
+  });
+
   it('returns [] for an empty blob', () => {
     expect(parseHistory('')).toEqual([]);
     expect(parseHistory('   \n\n')).toEqual([]);

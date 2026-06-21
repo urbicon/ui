@@ -139,10 +139,11 @@ function parseIntent(body: string): ProductIntent {
     return items;
   };
 
-  const voice = inlineField('Voice');
+  // Voice shares the list grammar (inline comma list and/or bullets) — a user who
+  // mirrors the bullet style of the reference lists still gets parsed, not silently dropped.
   return {
     audience: inlineField('Audience'),
-    voice: voice ? splitList(voice) : [],
+    voice: listField('Voice'),
     references: listField('References'),
     antiReferences: listField('Anti-references')
   };

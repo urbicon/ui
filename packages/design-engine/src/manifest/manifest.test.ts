@@ -161,6 +161,11 @@ describe('parseManifest — product intent', () => {
     expect(parseManifest(md).intent.references).toEqual(['Linear', 'Stripe', 'Vercel']);
   });
 
+  it('also parses voice written as bullets, not only the inline comma form', () => {
+    const md = '## Product Intent\n\n**Voice:**\n- calm\n- precise\n- trustworthy\n';
+    expect(parseManifest(md).intent.voice).toEqual(['calm', 'precise', 'trustworthy']);
+  });
+
   it('returns an empty intent when the section is absent', () => {
     const intent = parseManifest('# Bare\n\nsome prose\n').intent;
     expect(intent).toEqual({ voice: [], references: [], antiReferences: [] });

@@ -17,12 +17,23 @@ export function serializeHistoryEntry(entry: ValidationHistoryEntry): string {
   return JSON.stringify(entry);
 }
 
-/** True when a parsed value has the minimal shape of a history entry. */
+/**
+ * True when a parsed value has the full shape of a history entry. Strict on the
+ * numeric fields (not just date/correctness/slop) so a hand-corrupted line —
+ * `files: "NaN"` — is skipped rather than rendered verbatim into the drift summary;
+ * the sidecar is machine-written, so a real entry always carries every field.
+ */
 function isEntry(value: unknown): value is ValidationHistoryEntry {
   if (typeof value !== 'object' || value === null) return false;
   const e = value as Record<string, unknown>;
   return (
-    typeof e.date === 'string' && typeof e.correctness === 'number' && typeof e.slop === 'number'
+    typeof e.date === 'string' &&
+    typeof e.files === 'number' &&
+    typeof e.errors === 'number' &&
+    typeof e.warnings === 'number' &&
+    typeof e.infos === 'number' &&
+    typeof e.correctness === 'number' &&
+    typeof e.slop === 'number'
   );
 }
 
