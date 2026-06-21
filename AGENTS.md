@@ -13,7 +13,7 @@ Svelte 5 + Tailwind CSS 4 UI component library monorepo. Uses Bun workspaces.
   - `table`: Data table (sorting, filtering, grouping, selection, keyboard-nav, virtualization, column reorder, remote-mode, live updates)
   - `docs`: Reusable documentation UI components
   - `docs-gen`: Documentation generator (TypeScript CLI, extracts props/variants from AST)
-  - `mcp-server`: Model Context Protocol server (13 tools, 7 guide resources, 2 design prompts) for LLM-driven development
+  - `mcp-server`: Model Context Protocol server (10 read-only tools, 7 guide resources, 2 design prompts) for LLM-driven development; manifest read/write lives in the `urbicon` CLI (`@urbicon-ui/design`), not the remote server
   - `i18n`: Localization (Svelte 5 runes-based)
   - `shared-types`: Shared TypeScript types
   - `sveltekit-utils`: SvelteKit helper utilities (`createCronRunner`, URL-state runes)
@@ -133,9 +133,9 @@ Conventional commits are parsed by git-cliff to auto-generate the changelog. Use
 
 - `llms.txt` / `llms-full.txt` – LLM-readable API reference (llms.txt standard)
 - `.cursorrules` – Cursor IDE rules (imports, API grammar, tokens, do/don't)
-- **MCP Server** (`packages/mcp-server`) – Streamable HTTP transport, tools: `find_components`, `get_component`, `get_recipe`, `suggest_implementation`, `get_implementation_checklist`, `get_css_reference`, `find_icons`, `get_design_principles`, `get_pattern`, `validate_design`, `get_design_context`, `record_design_decision`, `sync_design_manifest`. Includes auth package components (filterable via `auth` tag).
+- **MCP Server** (`packages/mcp-server`) – Streamable HTTP transport, tools: `find_components`, `get_component`, `get_recipe`, `suggest_implementation`, `get_implementation_checklist`, `get_css_reference`, `find_icons`, `get_design_principles`, `get_pattern`, `validate_design`. All read-only; includes auth package components (filterable via `auth` tag). Manifest read/write (context / record-decision / sync-manifest) moved to the `urbicon` CLI in `@urbicon-ui/design`.
 - **Design System Intelligence** (`design-system/`) – Layer 4+5 of the 5-layer design model: `principles.md` (heuristics, paradigm profiles, change decision tree) + `patterns/*.md` (composition patterns: settings-page, dashboard, form-page, tab-navigation, onboarding-guide). Consumed by MCP tools `get_design_principles` and `get_pattern`.
-- **Closed design loop** – Beyond serving knowledge: `validate_design` lints generated markup (deterministic rules + token whitelist + heuristics); `data-design-pattern` markers + `design.manifest.md` (`get_design_context`/`record_design_decision`/`sync_design_manifest`) persist design intent per consumer project; `get_design_principles(as="rubric")` serves the 1–5 judge rubric; the `design-page`/`redesign` MCP prompts ship the generate → validate → judge → synthesise process.
+- **Closed design loop** – Beyond serving knowledge: `validate_design` lints generated markup (deterministic rules + token whitelist + heuristics); `data-design-pattern` markers + `design.manifest.md` (maintained consumer-side via the `urbicon` CLI: context / record-decision / sync-manifest) persist design intent per consumer project; `get_design_principles(as="rubric")` serves the 1–5 judge rubric; the `design-page`/`redesign` MCP prompts ship the generate → validate → judge → synthesise process.
 
 ## Icon Design Rules
 
