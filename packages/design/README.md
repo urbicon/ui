@@ -48,8 +48,8 @@ Exit codes — designed for hooks and CI:
 | Code | Meaning |
 | --- | --- |
 | `0` | Clean, or only warnings/notes |
-| `1` | Design gate failed — errors present (with `--strict`, warnings too) |
-| `2` | Usage error / unreadable input |
+| `1` | Failed — `validate` found errors (with `--strict`, warnings too), or a command could not complete (e.g. a manifest write error) |
+| `2` | Usage error — bad flags / unreadable input |
 
 `--skip-heuristics` runs only the deterministic rules (no distribution notes).
 

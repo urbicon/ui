@@ -51,8 +51,8 @@ Commands:
 
 Exit codes:
   0  ok (clean, or only warnings/notes)
-  1  design gate failed (errors; with --strict, warnings too)
-  2  usage error / unreadable input
+  1  failed — validate found errors (--strict: warnings too), or a command could not complete
+  2  usage error — bad flags / unreadable input
 
 Examples:
   urbicon validate src/                 # CI: lint a whole tree
@@ -112,6 +112,9 @@ async function main(argv: string[]): Promise<number> {
 main(process.argv.slice(2))
   .then((code) => process.exit(code))
   .catch((err) => {
+    // Recognised usage mistakes are handled (exit 2) inside the command bodies;
+    // reaching here means an unexpected failure, so exit 1 ("could not complete"),
+    // never 2 — a crash is not a usage error.
     printError(err instanceof Error ? err.message : String(err));
-    process.exit(EXIT.USAGE);
+    process.exit(EXIT.FAIL);
   });
