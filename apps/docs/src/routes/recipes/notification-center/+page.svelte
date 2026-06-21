@@ -237,13 +237,13 @@
                 <div class="flex shrink-0 items-start gap-1">
                   {#if !notification.read}
                     <Tooltip label="Mark as read">
-                      <button class="rounded p-1 text-text-tertiary transition-colors hover:bg-surface-hover hover:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50" onclick={() => markAsRead(notification.id)}>
+                      <button class="rounded p-1 text-text-tertiary transition-colors hover:bg-surface-hover hover:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50" aria-label="Mark as read" onclick={() => markAsRead(notification.id)}>
                         <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5" /></svg>
                       </button>
                     </Tooltip>
                   {/if}
                   <Tooltip label="Archive">
-                    <button class="rounded p-1 text-text-tertiary transition-colors hover:bg-surface-hover hover:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50" onclick={() => archiveNotification(notification.id)}>
+                    <button class="rounded p-1 text-text-tertiary transition-colors hover:bg-surface-hover hover:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50" aria-label="Archive" onclick={() => archiveNotification(notification.id)}>
                       <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="4" width="20" height="5" rx="1" /><path d="M4 9v9a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9" /><line x1="10" y1="13" x2="14" y2="13" /></svg>
                     </button>
                   </Tooltip>
@@ -450,6 +450,7 @@
                     <button
                       class="text-text-tertiary hover:bg-surface-hover hover:text-primary focus-visible:ring-primary/50 rounded p-1 transition-colors focus-visible:ring-2 focus-visible:outline-none"
                       onclick={() => markAsRead(notification.id)}
+                      aria-label="Mark as read"
                     >
                       <svg
                         class="h-4 w-4"
@@ -467,6 +468,7 @@
                   <button
                     class="text-text-tertiary hover:bg-surface-hover hover:text-primary focus-visible:ring-primary/50 rounded p-1 transition-colors focus-visible:ring-2 focus-visible:outline-none"
                     onclick={() => archiveNotification(notification.id)}
+                    aria-label="Archive"
                   >
                     <svg
                       class="h-4 w-4"
@@ -532,6 +534,7 @@
                     <button
                       class="text-text-tertiary hover:bg-surface-hover hover:text-primary focus-visible:ring-primary/50 rounded p-1 transition-colors focus-visible:ring-2 focus-visible:outline-none"
                       onclick={() => markAsRead(notification.id)}
+                      aria-label="Mark as read"
                     >
                       <svg
                         class="h-4 w-4"
@@ -548,6 +551,7 @@
                     <button
                       class="text-text-tertiary hover:bg-surface-hover hover:text-primary focus-visible:ring-primary/50 rounded p-1 transition-colors focus-visible:ring-2 focus-visible:outline-none"
                       onclick={() => archiveNotification(notification.id)}
+                      aria-label="Archive"
                     >
                       <svg
                         class="h-4 w-4"
