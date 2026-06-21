@@ -156,6 +156,42 @@ describe('token-hallucination', () => {
   });
 });
 
+describe('extraTokens (per-call whitelist)', () => {
+  it('whitelists an otherwise-hallucinated core so it is not flagged', () => {
+    // `surface-brand` sits in our namespace but is not a built-in token → normally flagged.
+    const code = '<div class="bg-surface-brand">';
+    expect(has(lintDesign(code).findings, 'token-hallucination')).toBe(true);
+    expect(
+      has(lintDesign(code, { extraTokens: ['surface-brand'] }).findings, 'token-hallucination')
+    ).toBe(false);
+  });
+
+  it('whitelists only the supplied cores, still flagging the rest on the same line', () => {
+    const code = '<div class="bg-surface-brand bg-surface-imaginary">';
+    const matches = lintDesign(code, { extraTokens: ['surface-brand'] })
+      .findings.filter((f) => f.ruleId === 'token-hallucination')
+      .map((f) => f.match);
+    expect(matches).toContain('bg-surface-imaginary');
+    expect(matches).not.toContain('bg-surface-brand');
+  });
+
+  it('cannot weaken the raw-palette gate — extraTokens is scoped to hallucination only', () => {
+    // A consumer must not be able to whitelist a raw Tailwind palette colour; a
+    // different, error-severity rule owns that and does not consult the whitelist.
+    const code = '<div class="bg-blue-500">';
+    expect(
+      has(lintDesign(code, { extraTokens: ['blue-500'] }).findings, 'raw-tailwind-color')
+    ).toBe(true);
+  });
+
+  it('ignores blank/whitespace entries (nothing whitelisted → still flagged)', () => {
+    const code = '<div class="bg-surface-brand">';
+    expect(has(lintDesign(code, { extraTokens: ['  ', ''] }).findings, 'token-hallucination')).toBe(
+      true
+    );
+  });
+});
+
 describe('heuristics', () => {
   it('flags an intent rainbow of ≥4 chromatic background hues', () => {
     const code =

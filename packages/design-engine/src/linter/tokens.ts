@@ -142,6 +142,33 @@ export const VALID_TOKEN_CORES: ReadonlySet<string> = new Set([
 ]);
 
 /**
+ * Normalise raw per-call extra-token input: trim each, drop blanks. These are
+ * token *cores* (e.g. `surface-brand`), matching {@link VALID_TOKEN_CORES} — not
+ * full utilities (`bg-surface-brand`) and not CSS variables. Deliberately tolerant
+ * on read (trim/drop) but it never rewrites a value, so the whitelist contract
+ * stays predictable and a caller's `surface-brand` means exactly that.
+ */
+function normalizeExtraTokens(extra: readonly string[]): string[] {
+  return extra.map((token) => token.trim()).filter((token) => token.length > 0);
+}
+
+/**
+ * The effective valid-core set for one lint run: the built-in
+ * {@link VALID_TOKEN_CORES} plus any project-specific cores passed per call. The
+ * base set is hot and never mutated — so when there are no usable extras this
+ * returns it by reference (no allocation), and otherwise returns a fresh merged
+ * Set. Powers the `extraTokens` "context as parameter" path (see LintOptions).
+ */
+export function resolveValidTokenCores(extra?: readonly string[]): ReadonlySet<string> {
+  if (!extra || extra.length === 0) return VALID_TOKEN_CORES;
+  const normalized = normalizeExtraTokens(extra);
+  if (normalized.length === 0) return VALID_TOKEN_CORES;
+  const merged = new Set(VALID_TOKEN_CORES);
+  for (const core of normalized) merged.add(core);
+  return merged;
+}
+
+/**
  * Namespaces that mark a utility core as "intended to be semantic". A core that
  * starts with one of these but is NOT in {@link VALID_TOKEN_CORES} is a
  * hallucinated token. Kept deliberately narrow so we never flag genuine Tailwind

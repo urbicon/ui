@@ -7,7 +7,8 @@
 
 import { runHeuristics } from './heuristics.js';
 import { RULES } from './rules.js';
-import type { Finding, LintOptions, LintReport, Severity } from './types.js';
+import { resolveValidTokenCores } from './tokens.js';
+import type { Finding, LintContext, LintOptions, LintReport, Severity } from './types.js';
 
 /** Per-severity score deduction. Errors dominate (they are real defects). Centralised for tuning. */
 export const SCORE_WEIGHTS: Record<Severity, number> = {
@@ -36,9 +37,13 @@ export function lintDesign(code: string, opts: LintOptions = {}): LintReport {
   const masked = maskComments(code);
   const lines = masked.split('\n');
 
+  // Resolve the effective whitelist once per call (built-in cores + opts.extraTokens),
+  // then hand every rule the same context. Rules that need no context ignore it.
+  const ctx: LintContext = { validTokenCores: resolveValidTokenCores(opts.extraTokens) };
+
   const findings: Finding[] = [];
   for (const rule of RULES) {
-    findings.push(...rule.check(lines, masked));
+    findings.push(...rule.check(lines, masked, ctx));
   }
   if (!opts.skipHeuristics) {
     findings.push(...runHeuristics(masked));

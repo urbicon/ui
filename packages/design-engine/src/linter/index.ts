@@ -11,4 +11,12 @@ export { HEURISTIC_THRESHOLDS } from './heuristics.js';
 export { lintDesign, maskComments, SCORE_WEIGHTS } from './linter.js';
 export { RULES } from './rules.js';
 export { VALID_TOKEN_CORES } from './tokens.js';
-export type { Finding, FindingKind, LintOptions, LintReport, Rule, Severity } from './types.js';
+export type {
+  Finding,
+  FindingKind,
+  LintContext,
+  LintOptions,
+  LintReport,
+  Rule,
+  Severity
+} from './types.js';

@@ -34,6 +34,22 @@ export interface Finding {
   match?: string;
 }
 
+/**
+ * Per-run context threaded into every {@link Rule.check}. Holds values that
+ * depend on the call options rather than the source under lint — today only the
+ * effective token whitelist (the built-in cores merged with any
+ * {@link LintOptions.extraTokens}). This is the seam future per-call rule inputs
+ * (e.g. project-tuned thresholds) hang off, so rules never reach for module-global
+ * state that a caller cannot influence.
+ */
+export interface LintContext {
+  /**
+   * The valid semantic token cores for this run: the built-in whitelist plus any
+   * project-specific cores supplied via {@link LintOptions.extraTokens}.
+   */
+  validTokenCores: ReadonlySet<string>;
+}
+
 /** A deterministic rule: scans the source and emits findings. */
 export interface Rule {
   id: string;
@@ -44,8 +60,11 @@ export interface Rule {
    * Run the rule over the already-prepared source lines.
    * @param lines source split by `\n`, with comments masked (see linter.ts)
    * @param raw the original source (for rules that need cross-line context)
+   * @param ctx per-run context (e.g. the effective token whitelist). Always supplied
+   *   by {@link lintDesign}; optional so a rule stays callable standalone, in which
+   *   case it falls back to its own built-in defaults.
    */
-  check(lines: string[], raw: string): Finding[];
+  check(lines: string[], raw: string, ctx?: LintContext): Finding[];
 }
 
 /** Aggregate result of linting one code unit. */
@@ -63,4 +82,16 @@ export interface LintOptions {
   filename?: string;
   /** Skip the distribution heuristics (the `info`-level checks). Default: false. */
   skipHeuristics?: boolean;
+  /**
+   * Project-specific semantic token cores to treat as valid for this run, merged
+   * into the built-in whitelist so the `token-hallucination` rule does not flag
+   * them (the "context as parameter" trick — lets a consumer on a customised or
+   * newer token set avoid false positives without the engine reading their CSS).
+   *
+   * A "core" is the part after the utility prefix, matching {@link VALID_TOKEN_CORES}:
+   * pass `surface-brand` (for `bg-surface-brand`), not `bg-surface-brand` and not the
+   * `--color-surface-brand` CSS variable. Only affects cores that already look
+   * semantic; raw-palette and `dark:`/`focus:` gates are unaffected.
+   */
+  extraTokens?: readonly string[];
 }

@@ -2,7 +2,7 @@ import { existsSync, readFileSync } from 'node:fs';
 import { dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { describe, expect, it } from 'vitest';
-import { VALID_TOKEN_CORES } from './tokens.js';
+import { resolveValidTokenCores, VALID_TOKEN_CORES } from './tokens.js';
 
 /**
  * Drift guard: the hardcoded {@link VALID_TOKEN_CORES} is the design-engine's
@@ -76,5 +76,36 @@ describe('token whitelist shape', () => {
     ]) {
       expect(VALID_TOKEN_CORES.has(core), core).toBe(true);
     }
+  });
+});
+
+describe('resolveValidTokenCores', () => {
+  it('returns the built-in set by reference when there are no extras (no allocation)', () => {
+    expect(resolveValidTokenCores()).toBe(VALID_TOKEN_CORES);
+    expect(resolveValidTokenCores([])).toBe(VALID_TOKEN_CORES);
+  });
+
+  it('merges extra cores on top of the built-in whitelist', () => {
+    const resolved = resolveValidTokenCores(['surface-brand', 'primary-vivid']);
+    expect(resolved.has('surface-brand')).toBe(true);
+    expect(resolved.has('primary-vivid')).toBe(true);
+    expect(resolved.has('surface-base'), 'built-ins still present').toBe(true);
+  });
+
+  it('normalises input — trims surrounding whitespace and drops blanks', () => {
+    const resolved = resolveValidTokenCores(['  surface-brand  ', '', '   ']);
+    expect(resolved.has('surface-brand')).toBe(true);
+    expect(resolved.has('')).toBe(false);
+  });
+
+  it('treats an all-blank list as no extras (built-in set by reference)', () => {
+    expect(resolveValidTokenCores(['', '  '])).toBe(VALID_TOKEN_CORES);
+  });
+
+  it('never mutates the shared built-in set', () => {
+    const before = VALID_TOKEN_CORES.size;
+    resolveValidTokenCores(['surface-brand']);
+    expect(VALID_TOKEN_CORES.size).toBe(before);
+    expect(VALID_TOKEN_CORES.has('surface-brand')).toBe(false);
   });
 });

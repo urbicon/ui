@@ -271,7 +271,10 @@ const tokenHallucination: Rule = {
   severity: 'warning',
   description:
     'Colour utility referencing a non-existent semantic token (e.g. `bg-status-danger`).',
-  check(lines) {
+  check(lines, _raw, ctx) {
+    // The effective whitelist for this run: per-call project tokens merged in by
+    // lintDesign, or the built-in set when the rule is invoked standalone.
+    const validCores = ctx?.validTokenCores ?? VALID_TOKEN_CORES;
     const prefixAlt = COLOR_PREFIXES.join('|');
     // capture: prefix, then the core up to a class boundary / opacity / end
     const re = new RegExp(`\\b(${prefixAlt})-([a-z][a-z0-9-]*)(?:\\/\\d{1,3})?\\b`, 'g');
@@ -281,7 +284,7 @@ const tokenHallucination: Rule = {
       for (const m of line.matchAll(re)) {
         const core = m[2]!;
         if (!looksSemantic(core)) continue;
-        if (VALID_TOKEN_CORES.has(core)) continue;
+        if (validCores.has(core)) continue;
 
         findings.push({
           ruleId: this.id,

@@ -57,7 +57,7 @@ function renderReport(report: LintReport): string {
 export function registerValidateDesignTool(server: McpServer): void {
   server.tool(
     'validate_design',
-    'Lint generated Svelte/HTML markup against the Urbicon UI design rules. Deterministic checks (raw Tailwind colours, `dark:`/`focus:` misuse, hardcoded z-index, broken dynamic classes, hallucinated tokens) plus distribution heuristics (intent-colour rainbow, uniform spacing, identical Cards, missing radius strategy). Returns a 0–100 score (each error −10, warning −5, heuristic −2, floored at 0) and per-finding fixes. Run this in a generate → validate → fix loop after producing UI code.',
+    'Lint generated Svelte/HTML markup against the Urbicon UI design rules. Deterministic checks (raw Tailwind colours, `dark:`/`focus:` misuse, hardcoded z-index, broken dynamic classes, hallucinated tokens) plus distribution heuristics (intent-colour rainbow, uniform spacing, identical Cards, missing radius strategy). Returns a 0–100 score (each error −10, warning −5, heuristic −2, floored at 0) and per-finding fixes. Run this in a generate → validate → fix loop after producing UI code. Pass `extraTokens` to whitelist semantic tokens your project defines on top of Urbicon’s so they are not flagged as hallucinated.',
     {
       code: z
         .string()
@@ -73,11 +73,17 @@ export function registerValidateDesignTool(server: McpServer): void {
         .optional()
         .describe(
           'Skip the advisory distribution heuristics; report only deterministic violations. Default: false.'
+        ),
+      extraTokens: z
+        .array(z.string())
+        .optional()
+        .describe(
+          'Project-specific semantic token cores to treat as valid for this call, merged into the built-in whitelist so they are not flagged as hallucinated. A "core" is the part after the utility prefix: pass "surface-brand" (for `bg-surface-brand`), not "bg-surface-brand" and not the "--color-surface-brand" CSS variable. Use when your project extends the Urbicon token set or runs a newer library version than this server. This server is stateless and cannot read your CSS, so supply the cores explicitly.'
         )
     },
     { readOnlyHint: true },
-    async ({ code, filename, skipHeuristics }) => {
-      const report = lintDesign(code, { filename, skipHeuristics });
+    async ({ code, filename, skipHeuristics, extraTokens }) => {
+      const report = lintDesign(code, { filename, skipHeuristics, extraTokens });
       return { content: [{ type: 'text' as const, text: renderReport(report) }] };
     }
   );
