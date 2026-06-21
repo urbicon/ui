@@ -16,6 +16,7 @@ import { readFile } from 'node:fs/promises';
 import { resolve } from 'node:path';
 import { parseArgs } from './args.js';
 import { runContext } from './commands/context.js';
+import { runHook } from './commands/hook.js';
 import { runRecordDecision } from './commands/record-decision.js';
 import { runSyncManifest } from './commands/sync-manifest.js';
 import { runValidate } from './commands/validate.js';
@@ -41,6 +42,11 @@ Commands:
                         --record           Append a drift entry to the sidecar history (CI).
                         --manifest <path>  Manifest for token overrides + history
                                            (default ./design.manifest.md).
+  hook                  Editor-hook adapter: read a Claude Code PostToolUse event on
+                        stdin, validate the edited .svelte file, and exit 2 with the
+                        findings on stderr so the agent self-corrects. Takes the same
+                        gate flags as validate (--strict, --slop-floor, --manifest).
+                        Wire it via .claude/settings.json (see templates/).
   context               Print the project's design.manifest.md summary.
                         --manifest <path>  Manifest file (default ./design.manifest.md).
                         --json             Emit the parsed manifest as JSON.
@@ -101,6 +107,8 @@ async function main(argv: string[]): Promise<number> {
   switch (command) {
     case 'validate':
       return runValidate(positionals, flags);
+    case 'hook':
+      return runHook(positionals, flags);
     case 'context':
       return runContext(positionals, flags);
     case 'record-decision':
