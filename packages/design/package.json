@@ -24,6 +24,7 @@
   },
   "files": [
     "dist",
+    "skill",
     "README.md"
   ],
   "sideEffects": false,
