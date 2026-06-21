@@ -26,6 +26,7 @@
 
 import { readFile } from 'node:fs/promises';
 import { resolve } from 'node:path';
+import type { LintReport } from '@urbicon-ui/design-engine/linter';
 import { lintDesign } from '@urbicon-ui/design-engine/linter';
 import { boolFlag, type Flags, stringFlag } from '../args.js';
 import { evaluateGate, parseSlopFloor } from '../gate.js';
@@ -94,8 +95,14 @@ export async function runHook(_positionals: string[], flags: Flags): Promise<num
   const gate = evaluateGate(reports, { strict, slopFloor });
   if (!gate.failed) return EXIT.OK; // silent on success — no noise on every clean edit
 
-  // Block: write the findings to stderr so the harness feeds them to the agent.
-  for (const report of reports) console.error(formatReport(report));
+  // Block: write only the failing files' findings to stderr (a PostToolUse event
+  // carries one edit today, but keep the feedback tight if it ever carries more —
+  // never dump a clean "✓ no issues" report at the agent).
+  const blocking = (r: LintReport): boolean =>
+    r.counts.error > 0 ||
+    (strict && r.counts.warning > 0) ||
+    (slopFloor !== null && r.scores.slop < slopFloor);
+  for (const report of reports.filter(blocking)) console.error(formatReport(report));
   if (gate.slopBreaches.length > 0) {
     console.error(
       `\nBelow the slop floor (${slopFloor}): ` +

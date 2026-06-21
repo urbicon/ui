@@ -165,7 +165,7 @@ to an existing workflow:
 
 ```bash
 bunx urbicon validate src/ --json              # correctness gate (blocking)
-bunx urbicon validate src/ --slop-floor 40     # also gate the slop axis
+# add --slop-floor 40 to also gate the slop axis — one run, correctness is always on
 ```
 
 ## Notes
