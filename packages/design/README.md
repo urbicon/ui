@@ -24,7 +24,8 @@ Bun required at the consumer side).
 
 | Command | What it does | Replaces (remote) |
 | --- | --- | --- |
-| `urbicon validate [paths...]` | Lint `.svelte` markup against the design rules. The hook/CI gate. | mirror of `validate_design` |
+| `urbicon validate [paths...]` | Lint `.svelte` markup against the design rules. The CI gate. | mirror of `validate_design` |
+| `urbicon hook` | PostToolUse adapter — validate the just-edited file, block on failure. | — (local only) |
 | `urbicon context` | Print the project's `design.manifest.md` summary. | `get_design_context` |
 | `urbicon record-decision …` | Append an ADR to the manifest. | `record_design_decision` |
 | `urbicon sync-manifest` | Re-index `data-design-pattern` markers into the manifest. | `sync_design_manifest` |
@@ -39,11 +40,12 @@ on the consumer side (this CLI, or the agent's own write tools). See
 ### validate
 
 ```bash
-urbicon validate src/                 # lint a whole tree (CI)
-urbicon validate App.svelte --strict  # fail on warnings too, not just errors
-cat Page.svelte | urbicon validate -  # lint stdin (editor hook)
-urbicon validate src/ --json          # machine-readable: { ok, extraTokens, results }
-urbicon validate src/ --record        # also append a drift entry to the history (CI)
+urbicon validate src/                    # lint a whole tree (CI)
+urbicon validate App.svelte --strict     # fail on warnings too, not just errors
+urbicon validate src/ --slop-floor 40    # also fail files scoring < 40/100 on slop
+cat Page.svelte | urbicon validate -     # lint stdin
+urbicon validate src/ --json             # machine-readable: { ok, slopFloor, results }
+urbicon validate src/ --record           # also append a drift entry to the history (CI)
 ```
 
 `validate` reads `## Token Overrides` from your `design.manifest.md` (if present)
@@ -53,6 +55,13 @@ to the remote `validate_design(extraTokens)`. It only relaxes the
 token-hallucination warning, never the error gates. `--record` appends one
 `ValidationHistoryEntry` per run to the sidecar `design.manifest.history.ndjson`
 so drift is measurable over time (CI opts in; the editor hook stays silent).
+
+The linter scores two independent axes (DESIGN-MCP-V2 §6): **correctness** (raw
+colours, `dark:`/`focus:`, hallucinated tokens — deterministic, always the
+blocking gate) and **slop** (20 "looks generic" heuristics — advisory by default,
+because they are FP-prone). `--slop-floor <n>` opts the slop axis into the gate:
+any file scoring below `n` fails, checked per file so one generic page cannot hide
+behind clean ones. Leave it off and slop stays informational.
 
 Exit codes — designed for hooks and CI:
 
@@ -123,25 +132,50 @@ urbicon verb compose     # print one recipe — pipe it to an agent, or read it 
 `skill/SKILL.md` is the router (intent → verb). Every recipe opens by reading the
 manifest and closes by writing the decision back.
 
-## Use in a hook / CI
+## Enforcement — hook + CI
 
-```jsonc
-// CI: fail the build on design errors
-// package.json → "scripts": { "design:lint": "urbicon validate src/" }
+The gate runs in two places a stateless remote server structurally cannot reach:
+at edit time (a Claude Code hook) and in CI. Ready-to-copy templates ship in
+[`templates/`](./templates/).
+
+**Edit-time hook.** Wire `urbicon hook` as a `PostToolUse` hook so every edited
+`.svelte` file is validated the moment it is written — the loop becomes enforced,
+not something the agent must remember. On a failure the hook exits 2 and the
+findings are fed back to the agent to fix; a clean edit is silent. Merge
+[`templates/claude-settings.json`](./templates/claude-settings.json) into your
+`.claude/settings.json`:
+
+```json
+{
+  "hooks": {
+    "PostToolUse": [
+      { "matcher": "Edit|MultiEdit|Write", "hooks": [{ "type": "command", "command": "urbicon hook" }] }
+    ]
+  }
+}
 ```
 
-A Claude Code `PostToolUse` hook can pipe changed `.svelte` files through
-`urbicon validate -` to enforce the loop at edit time rather than asking the agent
-to remember it.
+Add `--slop-floor 40` to the command to gate the slop axis too. (`urbicon hook`
+reads the edited path from the hook event on stdin — it does not take path
+arguments.)
+
+**CI.** Run `urbicon validate` over your source tree; a non-zero exit fails the
+build. Copy [`templates/ci-github.yml`](./templates/ci-github.yml), or add one step
+to an existing workflow:
+
+```bash
+bunx urbicon validate src/ --json              # correctness gate (blocking)
+bunx urbicon validate src/ --slop-floor 40     # also gate the slop axis
+```
 
 ## Notes
 
 - Bundled to `dist/cli.js` at publish time (`bun build --target node`, shebang
   preserved). In the monorepo, run the TypeScript source directly:
   `bun run packages/design/src/cli/index.ts <command>`.
-- `validate` / `context` / `record-decision` / `sync-manifest` are content-free
-  (engine + your repo only); `verbs` / `verb` read the recipes shipped under
-  `skill/` (package-relative, still no content-bundle dependency).
+- `validate` / `hook` / `context` / `record-decision` / `sync-manifest` are
+  content-free (engine + your repo only); `verbs` / `verb` read the recipes shipped
+  under `skill/` (package-relative, still no content-bundle dependency).
 - `find` (component/icon search) and `init` (onboarding interview) are planned for
   a later step — they depend on the version-pinned content bundle.
 

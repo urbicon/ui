@@ -25,6 +25,7 @@
   "files": [
     "dist",
     "skill",
+    "templates",
     "README.md"
   ],
   "sideEffects": false,

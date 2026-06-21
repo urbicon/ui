@@ -1,0 +1,26 @@
+# Urbicon UI design gate — fail the build when generated/edited markup drifts
+# from the design rules. Copy into .github/workflows/, or merge the `design` job
+# into an existing workflow. Requires @urbicon-ui/design in devDependencies.
+#
+# Using npm/pnpm + Node instead of Bun? Swap the setup-bun step for setup-node +
+# your install, and `bunx` for `npx` — the `urbicon` bin is plain Node-runnable.
+name: Design Gate
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+jobs:
+  design:
+    name: Design gate
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: oven-sh/setup-bun@v2
+      - run: bun install --frozen-lockfile
+      # Correctness is the blocking gate — deterministic, false-positive free.
+      # Add --slop-floor 40 to also gate the slop axis (a generic-looking page
+      # fails below the floor); add --record to append a drift point to the
+      # design.manifest.history.ndjson sidecar.
+      - run: bunx urbicon validate src/ --json
