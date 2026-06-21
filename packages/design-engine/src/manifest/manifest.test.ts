@@ -166,6 +166,12 @@ describe('parseManifest — product intent', () => {
     expect(parseManifest(md).intent.voice).toEqual(['calm', 'precise', 'trustworthy']);
   });
 
+  it('parses bullet lists that put a blank line between the label and the bullets', () => {
+    // The Markdown-idiomatic form (and what `prettier` produces) — must parse too.
+    const md = '## Product Intent\n\n**References:**\n\n- Linear\n- Stripe\n';
+    expect(parseManifest(md).intent.references).toEqual(['Linear', 'Stripe']);
+  });
+
   it('returns an empty intent when the section is absent', () => {
     const intent = parseManifest('# Bare\n\nsome prose\n').intent;
     expect(intent).toEqual({ voice: [], references: [], antiReferences: [] });
