@@ -6,6 +6,7 @@
  * (token hallucination, dynamic Tailwind classes).
  */
 
+import { MARKUP_RULES } from './markup-rules.js';
 import {
   INTENT_NAMES,
   INTENT_PREFIXES,
@@ -340,12 +341,14 @@ function suggestForBadCore(core: string): string {
   return 'Check `get_css_reference()` for the exact token name.';
 }
 
-/** All deterministic rules, in report order. */
+/** All deterministic rules, in report order. The line-based regex rules first, then
+ * the AST-pass rules (which read whole elements, not single lines). */
 export const RULES: Rule[] = [
   rawTailwindColor,
   darkModeOverride,
   focusNotVisible,
   hardcodedZIndex,
   dynamicClassInterpolation,
-  tokenHallucination
+  tokenHallucination,
+  ...MARKUP_RULES
 ];
