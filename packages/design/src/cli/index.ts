@@ -13,14 +13,15 @@
  */
 
 import { readFile } from 'node:fs/promises';
-import { dirname, resolve } from 'node:path';
-import { fileURLToPath } from 'node:url';
+import { resolve } from 'node:path';
 import { parseArgs } from './args.js';
 import { runContext } from './commands/context.js';
 import { runRecordDecision } from './commands/record-decision.js';
 import { runSyncManifest } from './commands/sync-manifest.js';
 import { runValidate } from './commands/validate.js';
+import { runVerb, runVerbList } from './commands/verb.js';
 import { EXIT, printError } from './output.js';
+import { findPackageRoot } from './package-root.js';
 
 const HELP = `urbicon — design validation & manifest tooling for Urbicon UI projects
 
@@ -52,6 +53,8 @@ Commands:
                         --src <dir>        Source tree to scan (default ./src).
                         --manifest <path>  Manifest file (default ./design.manifest.md).
                         --json             Emit the scan result as JSON.
+  verbs                 List the design verbs (recipes over the design loop).
+  verb <name>           Print one verb recipe, e.g. "urbicon verb compose".
   help                  Show this help.
 
 Exit codes:
@@ -66,24 +69,18 @@ Examples:
   urbicon record-decision --title "Tabs for settings" --decision "Use Tab over Sidebar"
 `;
 
-/** Read this package's own version by walking up to its package.json (works from src/ and dist/). */
+/** Read this package's own version from its package.json (works from src/ and dist/). */
 async function readVersion(): Promise<string> {
-  let dir = dirname(fileURLToPath(import.meta.url));
-  for (let i = 0; i < 5; i++) {
-    try {
-      const pkg = JSON.parse(await readFile(resolve(dir, 'package.json'), 'utf-8')) as {
-        name?: string;
-        version?: string;
-      };
-      if (pkg.name === '@urbicon-ui/design') return pkg.version ?? 'unknown';
-    } catch {
-      // not this directory — keep walking up
-    }
-    const parent = dirname(dir);
-    if (parent === dir) break;
-    dir = parent;
+  const root = await findPackageRoot();
+  if (!root) return 'unknown';
+  try {
+    const pkg = JSON.parse(await readFile(resolve(root, 'package.json'), 'utf-8')) as {
+      version?: string;
+    };
+    return pkg.version ?? 'unknown';
+  } catch {
+    return 'unknown';
   }
-  return 'unknown';
 }
 
 async function main(argv: string[]): Promise<number> {
@@ -107,6 +104,10 @@ async function main(argv: string[]): Promise<number> {
       return runRecordDecision(positionals, flags);
     case 'sync-manifest':
       return runSyncManifest(positionals, flags);
+    case 'verbs':
+      return runVerbList(positionals, flags);
+    case 'verb':
+      return runVerb(positionals, flags);
     default:
       printError(`unknown command "${command}"`);
       console.log(`\n${HELP}`);
