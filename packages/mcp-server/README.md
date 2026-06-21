@@ -72,7 +72,7 @@ All tools are read-only (`readOnlyHint: true`) — this server never touches the
 | `suggest_implementation`       | Takes a natural-language goal and returns a component-tree suggestion, relevant recipes, Style-Patterns guide, and the implementation checklist.                                                                                                                       |
 | `get_implementation_checklist` | Design-Quality checklist (visual weight, intent semantics, spacing, radius, data-driven styling, dominance, identity) — embedded directly so the LLM can self-verify.                                                                                                  |
 | `get_css_reference`            | Full token reference — surface, text, border, intent, feedback tokens, radii, z-index. Includes an explicit "do not invent tokens" guardrail.                                                                                                                          |
-| `find_icons`                   | Browse the 156-icon catalog by keyword, category, or name.                                                                                                                                                                                                             |
+| `find_icons`                   | Browse the 315-icon catalog by keyword, category, or name.                                                                                                                                                                                                             |
 | `get_design_principles`        | Design heuristics (Layer 5): visual hierarchy, interaction, component selection, layout, accessibility, theming (paradigms, change decision tree). Call first when generating UI. `as="rubric"` returns the 8-criterion 1–5 scoring rubric for judging a generated UI. |
 | `get_pattern`                  | Composition patterns (Layer 4) for page archetypes — settings-page, dashboard, form-page, tab-navigation, onboarding-guide.                                                                                                                                            |
 | `validate_design`              | Lint generated markup against the design rules — raw colours, `dark:`/`focus:` misuse, hardcoded z-index, broken dynamic classes, hallucinated tokens, plus distribution heuristics. Returns a 0–100 score and per-finding fixes for a generate → validate → fix loop. |
@@ -99,20 +99,20 @@ Client-agnostic workflows (Option E of the design loop) — invoke them from any
 ## CLI Options
 
 ```
-urbicon-mcp [--transport <stdio|http>] [--port <n>] [--data-dir <path>]
+urbicon-mcp [--transport <stdio|http>] [--port <n>] [--content-dir <path>]
 ```
 
-| Flag          | Default       | Purpose                                                      |
-| ------------- | ------------- | ------------------------------------------------------------ |
-| `--transport` | `stdio`       | Transport mode                                               |
-| `--port`      | `3001`        | HTTP port (ignored for stdio)                                |
-| `--data-dir`  | auto-discover | Override the path to the generated catalog/templates/recipes |
+| Flag            | Default       | Purpose                                                        |
+| --------------- | ------------- | -------------------------------------------------------------- |
+| `--transport`   | `stdio`       | Transport mode                                                 |
+| `--port`        | `3001`        | HTTP port (ignored for stdio)                                  |
+| `--content-dir` | auto-discover | Override the design-content bundle dir (`URBICON_CONTENT_DIR`) |
 
 ## Architecture
 
 ```
 src/
-├── index.ts                 CLI entry + arg parsing, pre-loads catalog/templates/recipes
+├── index.ts                 CLI entry + arg parsing, pre-loads catalog/templates/principles
 ├── server.ts                MCP server construction (registers resources + tools)
 ├── transports/
 │   ├── stdio.ts             Stdio transport
@@ -120,17 +120,16 @@ src/
 ├── tools/                   10 tools, each self-contained
 │                            (validate_design calls @urbicon-ui/design-engine)
 ├── resources/               Catalog + guide resources
-├── data/                    Loaders with in-process caching
-│   ├── catalog-loader.ts    component-catalog.json
-│   ├── template-loader.ts   llms.txt sections
-│   ├── recipe-loader.ts     Recipes
+├── data/                    Loaders with in-process caching (read the design-content bundle)
+│   ├── catalog-loader.ts    component-catalog.json (components + recipes)
+│   ├── template-loader.ts   guide template sections
 │   ├── design-system-loader.ts  principles.md + patterns/*.md
-│   ├── component-loader.ts
-│   └── icon-loader.ts
-└── utils/                   search, format-catalog, paths
+│   ├── component-loader.ts  per-component llm.txt
+│   └── icon-loader.ts       icons.json
+└── utils/                   search, format-catalog
 ```
 
-The server reads its data from artifacts produced by [`@urbicon-ui/docs-gen`](../docs-gen/) (`component-catalog.json`, per-component `llms.txt`, recipes). That means JSDoc in a component's `index.ts` is the **single source of truth**: one edit propagates to the docs site, `llms-full.txt`, and every MCP tool.
+The server reads its data from the version-pinned [`@urbicon-ui/design-content`](../design-content/) bundle (built by [`@urbicon-ui/docs-gen`](../docs-gen/): `component-catalog.json` with recipes, per-component `llm.txt`, design-system, guide template, `icons.json`). That means JSDoc in a component's `index.ts` is the **single source of truth**: one edit propagates to the docs site, `llms-full.txt`, and every MCP tool.
 
 ## Development
 

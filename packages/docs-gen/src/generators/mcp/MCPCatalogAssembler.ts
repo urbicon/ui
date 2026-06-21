@@ -125,6 +125,9 @@ export class MCPCatalogAssembler {
       // No page = no code
     }
 
+    // A recipe with no extractable `const recipeCode` is metadata-only — it cannot serve
+    // as a "production-ready code recipe", so it is intentionally excluded from the catalog
+    // (and thus from get_recipe / suggest_implementation, which both read catalog.recipes).
     if (!code) return null;
 
     return { id, title, description, components, code, features, ...(pattern ? { pattern } : {}) };

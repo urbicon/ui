@@ -2,7 +2,8 @@
  * Filesystem glue for the manifest subcommands. The engine
  * (`@urbicon-ui/design-engine/manifest`) is pure string/scan logic; the CLI owns
  * path resolution and read/write — the consumer-side replacement for the
- * remote-incompatible `process.cwd()` dance in the MCP server's `utils/paths.ts`.
+ * remote-incompatible `process.cwd()` manifest resolution the MCP server used to
+ * carry (removed when those tools moved to this CLI).
  *
  * Paths default relative to the current working directory (the consumer's repo
  * when they run `urbicon` or a hook fires). Unlike the MCP write tools — which
