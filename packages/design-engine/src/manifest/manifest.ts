@@ -213,7 +213,7 @@ export function createManifestTemplate(opts: {
   ].join('\n');
 }
 
-/** Human-readable context summary for `get_design_context`. */
+/** Human-readable context summary for `urbicon context`. */
 export function formatContext(manifest: DesignManifest): string {
   let md = '# Design Context\n\n';
 

@@ -144,6 +144,9 @@ describe('review hardening', () => {
   });
 
   it('replaces an orphaned start marker (lost end marker) without duplicating usages', () => {
+    // Intentionally the OLD marker text ("managed by sync_design_manifest") — this
+    // doubles as a backward-compat guard: prefix detection must still find a block
+    // written by an earlier version whose marker tail differs.
     const orphaned =
       '## Pattern Usages\n\n<!-- AUTO-GENERATED pattern usages — managed by sync_design_manifest; do not edit by hand -->\n\n- `dashboard` — old.svelte\n\n## Design Decisions\n';
     const updated = upsertUsagesSection(orphaned, [{ pattern: 'form-page', file: 'new.svelte' }]);
