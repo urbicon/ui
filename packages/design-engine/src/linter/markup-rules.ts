@@ -9,7 +9,7 @@
  * must stay false-positive free.
  */
 
-import { type Element, scanMarkup } from './markup.js';
+import { type Element, innerContent, scanMarkup } from './markup.js';
 import type { Finding, Rule } from './types.js';
 
 /**
@@ -153,5 +153,57 @@ const apiHallucination: Rule = {
   }
 };
 
+/** Attributes that give an interactive control its accessible name. */
+const LABEL_ATTRS: ReadonlySet<string> = new Set(['aria-label', 'aria-labelledby', 'title']);
+/** Controls that are commonly rendered icon-only and then forgotten a label. */
+const ICON_CONTROL_TAGS: ReadonlySet<string> = new Set(['Button', 'button']);
+
+/** Any non-whitespace text once child tags are stripped (catches visible + sr-only labels). */
+function hasTextLabel(inner: string): boolean {
+  return inner.replace(/<[^>]*>/g, '').trim().length > 0;
+}
+/** An icon child — an `<svg>`, an `<Icon>`, or any `<…Icon>` component. */
+function hasIconChild(inner: string): boolean {
+  return /<svg\b/i.test(inner) || /<[A-Za-z][\w.]*Icon\b/.test(inner) || /<Icon\b/.test(inner);
+}
+
+/**
+ * F-G: an icon-only Button/button with no accessible name — a screen reader
+ * announces nothing. Conservative: skips when a spread might carry the label, when
+ * content holds a `{…}` expression (a dynamic label), when any text (visible or
+ * sr-only) is present, and only fires when an actual icon child is the sole
+ * content. Errs toward silence so a labelled control is never flagged.
+ */
+const iconButtonNoLabel: Rule = {
+  id: 'icon-button-no-label',
+  severity: 'warning',
+  description: 'Icon-only Button/button with no accessible name (aria-label / title / text).',
+  check(_lines, raw) {
+    const findings: Finding[] = [];
+    for (const el of scanCached(raw)) {
+      if (!ICON_CONTROL_TAGS.has(el.tag)) continue;
+      if (el.attrs.some((a) => a.kind === 'spread')) continue; // {...rest} may carry aria-label
+      const labelled = el.attrs.some(
+        (a) => LABEL_ATTRS.has(a.name) && a.value !== null && a.value.trim() !== ''
+      );
+      if (labelled) continue;
+      const inner = innerContent(raw, el);
+      if (inner === null) continue; // self-closing / unbalanced — content unknown, skip
+      if (inner.includes('{')) continue; // a dynamic child like {label} might be the name
+      if (hasTextLabel(inner)) continue; // visible or visually-hidden text present
+      if (!hasIconChild(inner)) continue; // only genuine icon-only controls
+      findings.push({
+        ruleId: this.id,
+        severity: this.severity,
+        kind: 'deterministic',
+        message: `Icon-only \`<${el.tag}>\` has no accessible name — a screen reader announces nothing.`,
+        fix: 'Add an `aria-label="…"` (or visually-hidden text) naming the action.',
+        line: el.line
+      });
+    }
+    return findings;
+  }
+};
+
 /** The AST-pass rules, appended to the linter's RULES registry. */
-export const MARKUP_RULES: Rule[] = [apiHallucination];
+export const MARKUP_RULES: Rule[] = [apiHallucination, iconButtonNoLabel];

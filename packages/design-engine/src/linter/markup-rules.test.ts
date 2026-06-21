@@ -63,3 +63,47 @@ describe('api-hallucination (F-J)', () => {
     expect(report.scores.correctness).toBeLessThan(100);
   });
 });
+
+function ariaFindings(code: string) {
+  return lintDesign(code).findings.filter((f) => f.ruleId === 'icon-button-no-label');
+}
+
+describe('icon-button-no-label (F-G)', () => {
+  it('flags an icon-only button with no accessible name', () => {
+    const f = ariaFindings('<button><SearchIcon /></button>');
+    expect(f).toHaveLength(1);
+    expect(f[0]!.severity).toBe('warning');
+    expect(f[0]!.kind).toBe('deterministic');
+    expect(f[0]!.fix).toContain('aria-label');
+  });
+
+  it('flags an icon-only Urbicon <Button> too', () => {
+    expect(ariaFindings('<Button><Icon name="x" /></Button>')).toHaveLength(1);
+  });
+
+  it('does not flag when an accessible name is present', () => {
+    expect(ariaFindings('<button aria-label="Search"><SearchIcon /></button>')).toEqual([]);
+    expect(ariaFindings('<button title="Search"><svg /></button>')).toEqual([]);
+  });
+
+  it('does not flag when visible or sr-only text labels the control', () => {
+    expect(ariaFindings('<button><SearchIcon /> Search</button>')).toEqual([]);
+    expect(
+      ariaFindings('<button><span class="sr-only">Search</span><SearchIcon /></button>')
+    ).toEqual([]);
+  });
+
+  it('skips when a dynamic child or a spread might carry the name', () => {
+    expect(ariaFindings('<button><Icon />{label}</button>')).toEqual([]); // {…} could be the label
+    expect(ariaFindings('<Button {...rest}><Icon /></Button>')).toEqual([]); // spread may add aria-label
+  });
+
+  it('does not flag a button with text but no icon, or a non-button icon holder', () => {
+    expect(ariaFindings('<button>Save</button>')).toEqual([]);
+    expect(ariaFindings('<div><SearchIcon /></div>')).toEqual([]);
+  });
+
+  it('ignores an empty aria-label (still no accessible name)', () => {
+    expect(ariaFindings('<button aria-label=""><SearchIcon /></button>')).toHaveLength(1);
+  });
+});
