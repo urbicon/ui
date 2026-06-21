@@ -83,6 +83,19 @@ describe('scanMarkup', () => {
     const els = scanMarkup('{#if x}<Button />{/if}</wrap>< notATag>');
     expect(els.map((e) => e.tag)).toEqual(['Button']);
   });
+
+  it('keeps an escaped quote from mis-terminating an expression attribute', () => {
+    // The string inside the expression contains an escaped quote then a `}` —
+    // neither must end the attribute early, so the following `y` is still parsed.
+    const els = scanMarkup('<C x={"a\\"}"} y="z" />');
+    const c = tag(els, 'C')!;
+    expect(c.attrs.find((a) => a.name === 'y')?.value).toBe('z');
+  });
+
+  it('ignores tags inside HTML comments (self-contained, no upstream mask needed)', () => {
+    const els = scanMarkup('<!-- <Button tone="x" /> -->\n<Input />');
+    expect(els.map((e) => e.tag)).toEqual(['Input']);
+  });
 });
 
 describe('innerContent', () => {
@@ -114,5 +127,13 @@ describe('innerContent', () => {
     const inner = innerContent(src, el)!;
     expect(inner.includes('SearchIcon')).toBe(true);
     expect(inner.replace(/<[^>]*>/g, '').trim()).toBe(''); // no human text once tags are stripped
+  });
+
+  it('does not count a </tag> inside an HTML comment', () => {
+    // The comment's `</button>` must not close the element early — the real label
+    // after it has to be seen. (Self-contained: innerContent masks comments too.)
+    const src = '<button><!-- </button> -->Save</button>';
+    const el = scanMarkup(src)[0]!;
+    expect(innerContent(src, el)).toContain('Save');
   });
 });

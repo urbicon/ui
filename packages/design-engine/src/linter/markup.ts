@@ -49,11 +49,20 @@ export interface Element {
 const blankRegion = (s: string): string => s.replace(/[^\n]/g, ' ');
 
 /**
- * Blank `<script>`/`<style>` blocks (keeping newlines so line numbers hold) — their
- * bodies are JS/CSS, not markup, and would otherwise feed the tag scanner garbage.
+ * Blank HTML comments and `<script>`/`<style>` blocks (keeping newlines so line
+ * numbers hold) — their bodies are comments/JS/CSS, not markup, and would feed the
+ * tag scanner garbage. Comments are blanked here too (not relying on an upstream
+ * mask) so {@link scanMarkup} and {@link innerContent} are correct on raw input.
+ *
+ * Caveat: the `<script>` match is non-greedy, so a `</script>` literal inside a JS
+ * string ends the blank early and the trailing JS is then scanned as markup. This
+ * is narrower than the line-based rules (which don't blank scripts at all); no real
+ * file hits it, and any mis-scan only ever yields a skipped tag, never a wrong
+ * finding from the curated rules.
  */
-function blankScriptStyle(src: string): string {
+function blankNonMarkup(src: string): string {
   return src
+    .replace(/<!--[\s\S]*?-->/g, blankRegion)
     .replace(/<script[\s\S]*?<\/script>/gi, blankRegion)
     .replace(/<style[\s\S]*?<\/style>/gi, blankRegion);
 }
@@ -74,9 +83,10 @@ function readQuoted(src: string, i: number): { value: string; end: number } {
 
 /**
  * Read a balanced `{…}` expression starting at `src[i]` (`{`). Brace depth counts
- * outside of `"`/`'` strings (so a `}` inside a string literal does not close it);
- * `${…}` in template literals balances naturally through the same counter. Returns
- * the inner text + index past the closing brace, or `end: -1` if never closed.
+ * outside of `"`/`'` strings (so a `}` inside a string literal does not close it,
+ * and a `\"` escape does not end the string early); `${…}` in template literals
+ * balances naturally through the same counter. Returns the inner text + index past
+ * the closing brace, or `end: -1` if never closed.
  */
 function readBraced(src: string, i: number): { value: string; end: number } {
   let depth = 0;
@@ -84,6 +94,10 @@ function readBraced(src: string, i: number): { value: string; end: number } {
   for (let j = i; j < src.length; j++) {
     const c = src[j];
     if (str !== null) {
+      if (c === '\\') {
+        j++; // a backslash escapes the next char — don't let `\"` close the string early
+        continue;
+      }
       if (c === str) str = null;
       continue;
     }
@@ -200,7 +214,7 @@ function parseOpenTag(
 
 /** Scan source for opening element/component tags with their attributes. */
 export function scanMarkup(source: string): Element[] {
-  const src = blankScriptStyle(source);
+  const src = blankNonMarkup(source);
   const elements: Element[] = [];
   let line = 1;
   let i = 0;
@@ -242,7 +256,7 @@ function tagAt(src: string, pos: number, tag: string, closing: boolean): boolean
  */
 export function innerContent(source: string, el: Element): string | null {
   if (el.selfClosing) return null;
-  const src = blankScriptStyle(source);
+  const src = blankNonMarkup(source);
   let depth = 1;
   let i = el.openEnd;
   while (i < src.length) {
