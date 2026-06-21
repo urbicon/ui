@@ -361,10 +361,17 @@ describe('slop-floor rules', () => {
     ).toBe(false);
   });
 
-  it('centered-bodytext: flags a centred <p>, not a centred heading', () => {
+  it('centered-bodytext: flags a centred <p>, incl. a wrapped opening tag, not a heading', () => {
     expect(
       has(
         lintDesign('<p class="text-center text-text-secondary">body copy</p>').findings,
+        'centered-bodytext'
+      )
+    ).toBe(true);
+    // The opening tag often wraps across lines under Prettier — must still match.
+    expect(
+      has(
+        lintDesign('<p\n  class="text-center text-text-secondary"\n>body</p>').findings,
         'centered-bodytext'
       )
     ).toBe(true);
@@ -382,12 +389,15 @@ describe('slop-floor rules', () => {
     ).toBe(false);
   });
 
-  it('emoji-as-icon: flags pictographic emoji, not an icon component or monochrome text glyph', () => {
+  it('emoji-as-icon: flags pictographic + emoji-default glyphs, not icons or monochrome text', () => {
     expect(has(lintDesign('<button>🚀 Launch</button>').findings, 'emoji-as-icon')).toBe(true);
+    // Emoji-presentation-default glyphs render in colour bare → flagged even without VS16.
+    expect(has(lintDesign('<span>✅ Saved</span>').findings, 'emoji-as-icon')).toBe(true);
+    expect(has(lintDesign('<li>⭐ Featured</li>').findings, 'emoji-as-icon')).toBe(true);
     expect(
       has(lintDesign('<button><RocketIcon /> Launch</button>').findings, 'emoji-as-icon')
     ).toBe(false);
-    // Bare monochrome glyphs used as text (no emoji-presentation selector) are not flagged.
+    // Bare monochrome glyphs used as text (text-presentation default, no VS16) are not flagged.
     expect(
       has(lintDesign('<span>✓ done · ⚠ heads up · → next</span>').findings, 'emoji-as-icon')
     ).toBe(false);
@@ -399,13 +409,18 @@ describe('slop-floor rules', () => {
     expect(has(lintDesign('<h2>A</h2><h1>B</h1>').findings, 'heading-skip')).toBe(false);
   });
 
-  it('touch-target-small: flags a tiny interactive element, not a ≥44px one', () => {
+  it('touch-target-small: flags a tiny interactive element, not a ≥44px one or a min/max bound', () => {
     expect(
       has(lintDesign('<button class="h-6 px-2">x</button>').findings, 'touch-target-small')
     ).toBe(true);
     expect(
       has(lintDesign('<button class="h-11 px-4">x</button>').findings, 'touch-target-small')
     ).toBe(false);
+    // `min-h-`/`max-h-` are a floor/cap, not a fixed sub-44 height — `min-h-11` is the fix.
+    expect(
+      has(lintDesign('<button class="min-h-11 px-4">x</button>').findings, 'touch-target-small')
+    ).toBe(false);
+    expect(has(lintDesign('<a class="max-h-6">x</a>').findings, 'touch-target-small')).toBe(false);
   });
 
   it('justified-text: flags text-justify, not text-left', () => {

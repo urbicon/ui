@@ -100,19 +100,28 @@ function classValues(text: string): string[] {
 
 /**
  * Reduce N occurrences to a single slop finding: the first occurrence anchors the
- * line/match, `message` may fold in the total count. Empty hits → no finding.
+ * line/match. `message` is a plain string, or a factory `(count, first) => string`
+ * for rules that fold the total count / first match into the text — the factory is
+ * called only when there is ≥1 hit, so it never reaches for `hits[0]` defensively.
+ * Empty hits → no finding.
  */
-function slop(ruleId: string, hits: Hit[], message: string, fix: string): Finding[] {
+function slop(
+  ruleId: string,
+  hits: Hit[],
+  message: string | ((count: number, first: Hit) => string),
+  fix: string
+): Finding[] {
   if (hits.length === 0) return [];
+  const first = hits[0]!;
   return [
     {
       ruleId,
       severity: 'info',
       kind: 'heuristic',
-      message,
+      message: typeof message === 'function' ? message(hits.length, first) : message,
       fix,
-      line: hits[0]!.line,
-      match: hits[0]!.match
+      line: first.line,
+      match: first.match
     }
   ];
 }
@@ -295,14 +304,26 @@ function checkTransitionAll(lines: string[]): Finding[] {
   );
 }
 
-/** Transitioning a layout dimension — width/height/top/… cannot be GPU-composited, so it janks. */
-const ANIMATED_DIM_RE =
-  /\btransition-\[(?:[^\]]*\b(?:width|height|size|top|left|right|bottom|margin|padding)\b[^\]]*)\]/g;
+/**
+ * Transitioning a layout dimension — width/height/top/… cannot be GPU-composited,
+ * so it janks. The bracket body is captured in a single linear `[^\]]*` pass to the
+ * literal `]` (no overlapping quantifier → no quadratic backtracking on an
+ * unterminated `transition-[…`); the keyword is then tested on the small captured
+ * group.
+ */
+const ANIMATED_DIM_BRACKET_RE = /\btransition-\[([^\]]*)\]/g;
+const ANIMATED_DIM_KEYWORD_RE = /\b(?:width|height|size|top|left|right|bottom|margin|padding)\b/;
 
 function checkAnimatedDimensions(lines: string[]): Finding[] {
+  const hits: Hit[] = [];
+  lines.forEach((line, i) => {
+    for (const m of line.matchAll(ANIMATED_DIM_BRACKET_RE)) {
+      if (ANIMATED_DIM_KEYWORD_RE.test(m[1]!)) hits.push({ line: i + 1, match: m[0] });
+    }
+  });
   return slop(
     'animated-dimensions',
-    collectHits(lines, ANIMATED_DIM_RE),
+    hits,
     'Transitioning a layout dimension (width/height/inset). These trigger layout on every frame and stutter.',
     'Animate `transform` (`scale`/`translate`) or `opacity` instead — they composite on the GPU. For size, use a `grid-template` trick or accept an instant change.'
   );
@@ -329,7 +350,8 @@ function checkMagicDimensions(lines: string[]): Finding[] {
   return slop(
     'magic-dimension',
     hits,
-    `Arbitrary px dimension(s) off the spacing scale (${hits.length} found, first \`${hits[0]?.match}\`). Magic numbers drift from the rhythm.`,
+    (count, first) =>
+      `Arbitrary px dimension(s) off the spacing scale (${count} found, first \`${first.match}\`). Magic numbers drift from the rhythm.`,
     'Use scale utilities (`w-64`, `h-12`, `max-w-md`) or a relative bound (`max-w-prose`, `w-full`). Reserve arbitrary px for true one-offs.'
   );
 }
@@ -343,11 +365,11 @@ function checkMagicDimensions(lines: string[]): Finding[] {
 const IMPORTANT_RE = /(?<=[\s"'`])![a-z][a-z0-9]*-[a-z0-9[]/g;
 
 function checkImportant(lines: string[]): Finding[] {
-  const hits = collectHits(lines, IMPORTANT_RE);
   return slop(
     'important-modifier',
-    hits,
-    `\`!important\` modifier(s) (${hits.length} found, first \`${hits[0]?.match}\`). Overriding the cascade by force is a smell, not a fix.`,
+    collectHits(lines, IMPORTANT_RE),
+    (count, first) =>
+      `\`!important\` modifier(s) (${count} found, first \`${first.match}\`). Overriding the cascade by force is a smell, not a fix.`,
     'Remove the `!` and resolve the specificity conflict at its source (ordering, the component’s own props, or `slotClasses`).'
   );
 }
@@ -369,14 +391,18 @@ function checkInlineStyle(lines: string[]): Finding[] {
   lines.forEach((line, i) => {
     for (const m of line.matchAll(styleRe)) {
       const body = m[1] ?? m[2] ?? m[3] ?? '';
-      if (/\{[^}]*\}|\$\{/.test(body)) continue; // interpolated → dynamic → legitimate
+      // Any interpolation marks the *whole* declaration set dynamic and skips it.
+      // Trade-off: a mixed `color: red; width: {w}%` escapes the static `color` too —
+      // accepted, because suppressing the FP on dynamic styles matters more than that edge.
+      if (/\{[^}]*\}|\$\{/.test(body)) continue;
       if (INLINE_PAINT_RE.test(body)) hits.push({ line: i + 1, match: 'style=…' });
     }
   });
   return slop(
     'inline-style',
     hits,
-    `Inline \`style\` hardcodes colour/typography (${hits.length} found). Bypasses the token system — no theming, no dark-mode adaptation.`,
+    (count) =>
+      `Inline \`style\` hardcodes colour/typography (${count} found). Bypasses the token system — no theming, no dark-mode adaptation.`,
     'Use semantic utilities/tokens (`bg-surface-*`, `text-text-*`, `font-*`). Keep inline `style` for genuinely dynamic values (interpolated sizes/positions, CSS custom properties).'
   );
 }
@@ -421,14 +447,26 @@ function checkGreyOnIntent(lines: string[]): Finding[] {
   );
 }
 
-/** Centred body copy: `text-center` on a `<p>` — hurts readability for anything past one line. */
-const CENTERED_P_RE =
-  /<p\b[^>]*\bclass=(?:"[^"]*\btext-center\b[^"]*"|'[^']*\btext-center\b[^']*'|\{[^}]*\btext-center\b[^}]*\})/g;
+/**
+ * Centred body copy: `text-center` on a `<p>` — hurts readability past one line.
+ * Scanned against the full source: the opening tag routinely wraps across lines
+ * under the repo's Prettier width, so a per-line scan would miss it. The class
+ * value is captured in a single linear pass (no overlapping `[^"]*` around the
+ * keyword → ReDoS-safe) and tested afterwards.
+ */
+const PARA_CLASS_RE = /<p\b[^>]*?\bclass=(?:"([^"]*)"|'([^']*)'|\{([^}]*)\})/g;
 
-function checkCenteredBodyText(lines: string[]): Finding[] {
+function checkCenteredBodyText(code: string): Finding[] {
+  const hits: Hit[] = [];
+  for (const m of code.matchAll(PARA_CLASS_RE)) {
+    const cls = m[1] ?? m[2] ?? m[3] ?? '';
+    if (/\btext-center\b/.test(cls)) {
+      hits.push({ line: lineOf(code, m.index ?? 0), match: '<p … text-center>' });
+    }
+  }
   return slop(
     'centered-bodytext',
-    collectHits(lines, CENTERED_P_RE).map((h) => ({ ...h, match: '<p … text-center>' })),
+    hits,
     'Centred paragraph text. Ragged left edges make multi-line copy hard to scan.',
     'Left-align body copy (`text-left`). Reserve `text-center` for short headings, single labels, or empty states.'
   );
@@ -460,13 +498,17 @@ function checkPlaceholderContent(lines: string[]): Finding[] {
 }
 
 /**
- * Emoji used where the icon system belongs. Pictographic blocks (emoticons,
- * symbols, transport: U+1F300–1FAFF) always count. Misc-symbols / dingbats /
- * arrows count **only with an explicit emoji-presentation selector** (U+FE0F) —
- * so a bare monochrome glyph used as text (`✓`, `⚠`, `→`, `★`) is not flagged,
- * only its deliberate emoji form (`⚠️`). Excludes text symbols (©®™) and maths.
+ * Emoji used where the icon system belongs. Three tiers:
+ * 1. Pictographic blocks (U+1F300–1FAFF: emoticons, symbols, transport) — always.
+ * 2. BMP symbols whose Unicode default presentation is *emoji* (✅❌✨⭐⭕❓❗➕… —
+ *    render in colour with or without VS16, and LLMs emit them bare as status icons) — always.
+ * 3. The remaining misc-symbols / dingbats / arrows — only with an explicit
+ *    emoji-presentation selector (U+FE0F), so a bare monochrome text glyph
+ *    (`✓`, `⚠`, `→`, `★`) is not flagged, only its deliberate emoji form (`⚠️`).
+ * Excludes text symbols (©®™) and maths.
  */
-const EMOJI_RE = /[\u{1F300}-\u{1FAFF}]|[\u{2300}-\u{27BF}\u{2B00}-\u{2BFF}]\u{FE0F}/gu;
+const EMOJI_RE =
+  /[\u{1F300}-\u{1FAFF}\u{2705}\u{2728}\u{274C}\u{274E}\u{2753}-\u{2755}\u{2757}\u{2795}-\u{2797}\u{27B0}\u{27BF}\u{2B1B}\u{2B1C}\u{2B50}\u{2B55}\u{26A1}\u{2614}\u{2615}]|[\u{2300}-\u{27BF}\u{2B00}-\u{2BFF}]\u{FE0F}/gu;
 
 function checkEmojiAsIcon(lines: string[]): Finding[] {
   return slop(
@@ -507,19 +549,26 @@ function checkHeadingSkip(code: string): Finding[] {
   return [];
 }
 
-/** Interactive element pinned to a sub-touch-target height. */
+/**
+ * Interactive element pinned to a sub-touch-target height. Scanned against the
+ * full source so an opening tag wrapping across lines still matches. The
+ * `(?<![\w-])` boundary rejects `min-h-*`/`max-h-*`: a floor/cap is not a fixed
+ * sub-44 height (and `min-h-11` is the idiomatic fix this rule recommends), so
+ * matching the bare `h-` inside them would fire on correct code.
+ */
 const SMALL_TOUCH_RE = new RegExp(
-  `<(?:button|a)\\b[^>]*?\\b(?:h|size)-(?:[1-${HEURISTIC_THRESHOLDS.touchTargetUnitCeil}]|0\\.5|1\\.5|2\\.5|3\\.5)\\b`,
+  `<(?:button|a)\\b[^>]*?(?<![\\w-])(?:h|size)-(?:[1-${HEURISTIC_THRESHOLDS.touchTargetUnitCeil}]|0\\.5|1\\.5|2\\.5|3\\.5)\\b`,
   'g'
 );
 
-function checkTouchTarget(lines: string[]): Finding[] {
+function checkTouchTarget(code: string): Finding[] {
+  const hits: Hit[] = [];
+  for (const m of code.matchAll(SMALL_TOUCH_RE)) {
+    hits.push({ line: lineOf(code, m.index ?? 0), match: m[0].replace(/\s+/g, ' ').slice(0, 40) });
+  }
   return slop(
     'touch-target-small',
-    collectHits(lines, SMALL_TOUCH_RE).map((h) => ({
-      ...h,
-      match: h.match.replace(/\s+/g, ' ').slice(0, 40)
-    })),
+    hits,
     'Interactive element with a fixed sub-44px height. Hard to tap; fails the 44×44 touch-target guideline.',
     'Give tappable controls ≥ `h-11` (44px) or enough padding (`py-2.5`+). Keep tiny sizes for decorative icons only.'
   );
@@ -549,12 +598,12 @@ export function runHeuristics(code: string): Finding[] {
     ...checkGradientText(lines),
     // Group 3 — contrast & content
     ...checkGreyOnIntent(lines),
-    ...checkCenteredBodyText(lines),
+    ...checkCenteredBodyText(code),
     ...checkJustifiedText(lines),
     ...checkPlaceholderContent(lines),
     ...checkEmojiAsIcon(lines),
     // Group 4 — structural
     ...checkHeadingSkip(code),
-    ...checkTouchTarget(lines)
+    ...checkTouchTarget(code)
   ];
 }
