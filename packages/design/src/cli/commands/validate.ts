@@ -14,7 +14,15 @@ import { readdir, readFile, stat } from 'node:fs/promises';
 import { join, relative, resolve, sep } from 'node:path';
 import type { LintReport } from '@urbicon-ui/design-engine/linter';
 import { lintDesign } from '@urbicon-ui/design-engine/linter';
-import { boolFlag, type Flags } from '../args.js';
+import type { ValidationHistoryEntry } from '@urbicon-ui/design-engine/manifest';
+import { serializeHistoryEntry } from '@urbicon-ui/design-engine/manifest';
+import { boolFlag, type Flags, stringFlag } from '../args.js';
+import {
+  appendHistory,
+  readTokenOverrides,
+  resolveHistoryPath,
+  resolveManifestPath
+} from '../manifest-io.js';
 import { EXIT, formatReport, printError } from '../output.js';
 
 const SKIP_DIRS = new Set([
@@ -95,10 +103,35 @@ async function gather(positionals: string[]): Promise<Unit[] | null> {
   return units;
 }
 
+/** Reduce a run's reports to one history entry: summed counts, mean scores, now. */
+function buildHistoryEntry(reports: LintReport[]): ValidationHistoryEntry {
+  const files = reports.length;
+  const sum = (pick: (r: LintReport) => number): number => reports.reduce((a, r) => a + pick(r), 0);
+  const mean = (pick: (r: LintReport) => number): number =>
+    files === 0 ? 100 : Math.round(sum(pick) / files);
+  return {
+    date: new Date().toISOString(),
+    files,
+    errors: sum((r) => r.counts.error),
+    warnings: sum((r) => r.counts.warning),
+    infos: sum((r) => r.counts.info),
+    correctness: mean((r) => r.scores.correctness),
+    slop: mean((r) => r.scores.slop)
+  };
+}
+
 export async function runValidate(positionals: string[], flags: Flags): Promise<number> {
   const asJson = boolFlag(flags, 'json');
   const strict = boolFlag(flags, 'strict');
   const skipHeuristics = boolFlag(flags, 'skip-heuristics');
+  const record = boolFlag(flags, 'record');
+
+  // F-S4-1: feed the linter the project's own token overrides from the manifest,
+  // so a customised token set is not flagged as hallucinated. Best-effort: no
+  // manifest ⇒ no overrides ⇒ identical to before. Only relaxes the
+  // token-hallucination warning; the error gates are unaffected (engine contract).
+  const manifestPath = resolveManifestPath(stringFlag(flags, 'manifest'));
+  const extraTokens = await readTokenOverrides(manifestPath);
 
   const units = await gather(positionals);
   if (units === null) return EXIT.USAGE;
@@ -108,7 +141,7 @@ export async function runValidate(positionals: string[], flags: Flags): Promise<
   }
 
   const reports: LintReport[] = units.map((unit) =>
-    lintDesign(unit.code, { filename: unit.label, skipHeuristics })
+    lintDesign(unit.code, { filename: unit.label, skipHeuristics, extraTokens })
   );
 
   const totals = reports.reduce(
@@ -122,8 +155,22 @@ export async function runValidate(positionals: string[], flags: Flags): Promise<
   );
   const failed = totals.error > 0 || (strict && totals.warning > 0);
 
+  // Append a drift data point when asked. A write failure is loud (stderr) but does
+  // not change the gate verdict — observability must not fail a clean lint, nor
+  // mask a failing one.
+  if (record) {
+    const line = serializeHistoryEntry(buildHistoryEntry(reports));
+    try {
+      await appendHistory(manifestPath, line);
+    } catch (err) {
+      printError(
+        `failed to record history to ${resolveHistoryPath(manifestPath)}: ${(err as Error).message}`
+      );
+    }
+  }
+
   if (asJson) {
-    console.log(JSON.stringify({ ok: !failed, strict, results: reports }, null, 2));
+    console.log(JSON.stringify({ ok: !failed, strict, extraTokens, results: reports }, null, 2));
     return failed ? EXIT.FAIL : EXIT.OK;
   }
 
@@ -132,6 +179,11 @@ export async function runValidate(positionals: string[], flags: Flags): Promise<
     console.log(
       `\n${reports.length} file(s) · ${totals.error} error(s), ` +
         `${totals.warning} warning(s), ${totals.info} note(s)`
+    );
+  }
+  if (extraTokens.length > 0) {
+    console.log(
+      `\n${extraTokens.length} project token override(s) applied from ${relative(process.cwd(), manifestPath).split(sep).join('/')}.`
     );
   }
   if (failed) {

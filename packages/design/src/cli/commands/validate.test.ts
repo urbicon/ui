@@ -1,4 +1,4 @@
-import { mkdir, mkdtemp, rm, writeFile } from 'node:fs/promises';
+import { mkdir, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
@@ -64,5 +64,61 @@ describe('urbicon validate', () => {
 
   it('reports a usage error for a missing path (exit 2)', async () => {
     expect(await runValidate([join(dir, 'nope.svelte')], {})).toBe(2);
+  });
+
+  it('applies ## Token Overrides from the manifest so a project token is not flagged (F-S4-1)', async () => {
+    const file = join(dir, 'Brand.svelte');
+    // `bg-surface-brand` looks semantic but is not a built-in token → hallucination warning.
+    await writeFile(file, '<div class="bg-surface-brand">x</div>\n');
+
+    // No override: the warning fails --strict. (Point at an absent manifest to stay hermetic.)
+    expect(await runValidate([file], { strict: true, manifest: join(dir, 'absent.md') })).toBe(1);
+
+    // Declared in the manifest: the warning is gone → passes even under --strict.
+    const manifest = join(dir, 'design.manifest.md');
+    await writeFile(manifest, '## Token Overrides\n\n- `surface-brand`\n');
+    expect(await runValidate([file], { strict: true, manifest })).toBe(0);
+  });
+
+  it('echoes the applied overrides in the --json envelope', async () => {
+    const file = join(dir, 'Brand.svelte');
+    await writeFile(file, '<div class="bg-surface-brand">x</div>\n');
+    const manifest = join(dir, 'design.manifest.md');
+    await writeFile(manifest, '## Token Overrides\n\n- `surface-brand`\n- `text-brand`\n');
+
+    await runValidate([file], { json: true, manifest });
+    const out = log.mock.calls.map((call: unknown[]) => call[0]).join('\n');
+    const parsed = JSON.parse(out) as { extraTokens: string[] };
+    expect(parsed.extraTokens).toEqual(['surface-brand', 'text-brand']);
+  });
+
+  it('appends a drift entry to the sidecar history with --record', async () => {
+    const file = join(dir, 'Clean.svelte');
+    await writeFile(file, '<button class="px-4 py-2">Save</button>\n');
+    const manifest = join(dir, 'design.manifest.md');
+
+    expect(await runValidate([file], { record: true, manifest })).toBe(0);
+
+    const sidecar = join(dir, 'design.manifest.history.ndjson');
+    const entry = JSON.parse((await readFile(sidecar, 'utf-8')).trim()) as {
+      files: number;
+      correctness: number;
+      date: string;
+    };
+    expect(entry.files).toBe(1);
+    expect(entry.correctness).toBe(100);
+    expect(typeof entry.date).toBe('string');
+
+    // A second run appends, never overwrites.
+    await runValidate([file], { record: true, manifest });
+    const lines = (await readFile(sidecar, 'utf-8')).trim().split('\n');
+    expect(lines).toHaveLength(2);
+  });
+
+  it('does not write history without --record', async () => {
+    const file = join(dir, 'Clean.svelte');
+    await writeFile(file, '<button class="px-4 py-2">Save</button>\n');
+    await runValidate([file], { manifest: join(dir, 'design.manifest.md') });
+    await expect(readFile(join(dir, 'design.manifest.history.ndjson'), 'utf-8')).rejects.toThrow();
   });
 });

@@ -30,9 +30,14 @@ Usage:
 Commands:
   validate [paths...]   Lint .svelte markup against the Urbicon UI design rules.
                         Paths may be files, directories, or "-" (stdin).
-                        --json             Machine-readable report ({ ok, results }).
+                        Reads ## Token Overrides from the manifest (if any) so your
+                        project's own tokens are not flagged as hallucinated.
+                        --json             Machine-readable report ({ ok, extraTokens, results }).
                         --strict           Fail on warnings too, not just errors.
                         --skip-heuristics  Deterministic rules only (no distribution notes).
+                        --record           Append a drift entry to the sidecar history (CI).
+                        --manifest <path>  Manifest for token overrides + history
+                                           (default ./design.manifest.md).
   context               Print the project's design.manifest.md summary.
                         --manifest <path>  Manifest file (default ./design.manifest.md).
                         --json             Emit the parsed manifest as JSON.

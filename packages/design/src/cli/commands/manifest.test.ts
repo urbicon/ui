@@ -79,6 +79,29 @@ describe('urbicon manifest commands', () => {
     expect(parsed.decisions[0]?.title).toBe('Decision A');
   });
 
+  it('context includes the sidecar validation history in its JSON', async () => {
+    const manifest = join(dir, 'design.manifest.md');
+    await runRecordDecision([], { title: 'A', decision: 'Do A', manifest });
+    await writeFile(
+      join(dir, 'design.manifest.history.ndjson'),
+      `${JSON.stringify({
+        date: '2026-06-21T00:00:00.000Z',
+        files: 2,
+        errors: 0,
+        warnings: 0,
+        infos: 1,
+        correctness: 100,
+        slop: 80
+      })}\n`
+    );
+
+    log.mockClear();
+    await runContext([], { manifest, json: true });
+    const out = log.mock.calls.map((call: unknown[]) => call[0]).join('\n');
+    const parsed = JSON.parse(out) as { history: { slop: number }[] };
+    expect(parsed.history[0]?.slop).toBe(80);
+  });
+
   it('sync-manifest indexes data-design-pattern markers', async () => {
     const src = join(dir, 'src');
     await mkdir(src, { recursive: true });

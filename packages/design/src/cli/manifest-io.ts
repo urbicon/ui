@@ -13,9 +13,14 @@
  * extension check at the call sites, so a typo never clobbers a code file.
  */
 
-import { readFile, writeFile } from 'node:fs/promises';
+import { appendFile, readFile, writeFile } from 'node:fs/promises';
 import { resolve } from 'node:path';
-import { createManifestTemplate } from '@urbicon-ui/design-engine/manifest';
+import type { ValidationHistoryEntry } from '@urbicon-ui/design-engine/manifest';
+import {
+  createManifestTemplate,
+  parseHistory,
+  parseManifest
+} from '@urbicon-ui/design-engine/manifest';
 
 /** Resolve the manifest path from `--manifest`, defaulting to ./design.manifest.md. */
 export function resolveManifestPath(flag: string | undefined): string {
@@ -25,6 +30,43 @@ export function resolveManifestPath(flag: string | undefined): string {
 /** Resolve the scan root from `--src`, defaulting to ./src. */
 export function resolveSourceDir(flag: string | undefined): string {
   return resolve(flag ?? 'src');
+}
+
+/** The sidecar validation-history path for a manifest (`*.md` → `*.history.ndjson`). */
+export function resolveHistoryPath(manifestPath: string): string {
+  return manifestPath.endsWith('.md')
+    ? `${manifestPath.slice(0, -'.md'.length)}.history.ndjson`
+    : `${manifestPath}.history.ndjson`;
+}
+
+/**
+ * The project's declared token overrides, read from the manifest best-effort.
+ * Any failure — no manifest, unreadable, malformed — yields `[]`: validation must
+ * never break because the manifest is absent or odd (read tolerant). This is the
+ * local, manifest-sourced feed for the linter's `extraTokens` (DESIGN-MCP-V2 §7,
+ * resolving F-S4-1) — the on-disk counterpart to the remote `validate_design`'s
+ * `extraTokens` parameter.
+ */
+export async function readTokenOverrides(manifestPath: string): Promise<string[]> {
+  try {
+    return parseManifest(await readFile(manifestPath, 'utf-8')).tokenOverrides;
+  } catch {
+    return [];
+  }
+}
+
+/** Read the sidecar validation history, best-effort (`[]` when absent/unreadable). */
+export async function readHistory(manifestPath: string): Promise<ValidationHistoryEntry[]> {
+  try {
+    return parseHistory(await readFile(resolveHistoryPath(manifestPath), 'utf-8'));
+  } catch {
+    return [];
+  }
+}
+
+/** Append one ndjson line to the sidecar history (creates the file on first write). */
+export function appendHistory(manifestPath: string, line: string): Promise<void> {
+  return appendFile(resolveHistoryPath(manifestPath), `${line}\n`, 'utf-8');
 }
 
 /** Read the manifest, or synthesise an empty template when it does not exist yet. */
