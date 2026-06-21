@@ -28,6 +28,8 @@ Bun required at the consumer side).
 | `urbicon context` | Print the project's `design.manifest.md` summary. | `get_design_context` |
 | `urbicon record-decision …` | Append an ADR to the manifest. | `record_design_decision` |
 | `urbicon sync-manifest` | Re-index `data-design-pattern` markers into the manifest. | `sync_design_manifest` |
+| `urbicon verbs` | List the design verbs (recipes over the design loop). | the MCP prompts |
+| `urbicon verb <name>` | Print one verb recipe to stdout. | the MCP prompts |
 
 The three manifest commands move off the remote server deliberately: a public
 remote server has no access to your repo's filesystem, so manifest upkeep belongs
@@ -100,6 +102,27 @@ scaffold on first write):
 ## Design Decisions  # append-only ADRs from record-decision
 ```
 
+## Design verbs
+
+Ten recipes that string the knowledge, the linter, and the manifest into one loop —
+the same single source served remotely as MCP prompts (DESIGN-MCP-V2 §8). They ship
+in this package under `skill/`, so they run offline and version-locked.
+
+```bash
+urbicon verbs            # list them
+urbicon verb compose     # print one recipe — pipe it to an agent, or read it inline
+```
+
+| Verb | Use-case |
+| --- | --- |
+| `onboard` / `adopt` | seed the manifest for a greenfield / brownfield project |
+| `compose` / `redesign` / `polish` | build / rework / tighten a page (gated on linter + rubric) |
+| `critique` / `fix` | judge without changing / repair correctness defects |
+| `retheme` / `audit` / `migrate` | rebrand / check consistency / roll out a change app-wide |
+
+`skill/SKILL.md` is the router (intent → verb). Every recipe opens by reading the
+manifest and closes by writing the decision back.
+
 ## Use in a hook / CI
 
 ```jsonc
@@ -116,9 +139,11 @@ to remember it.
 - Bundled to `dist/cli.js` at publish time (`bun build --target node`, shebang
   preserved). In the monorepo, run the TypeScript source directly:
   `bun run packages/design/src/cli/index.ts <command>`.
+- `validate` / `context` / `record-decision` / `sync-manifest` are content-free
+  (engine + your repo only); `verbs` / `verb` read the recipes shipped under
+  `skill/` (package-relative, still no content-bundle dependency).
 - `find` (component/icon search) and `init` (onboarding interview) are planned for
-  a later step — they depend on the version-pinned content bundle that ships with
-  the package. Today's commands are content-free (engine + your repo only).
+  a later step — they depend on the version-pinned content bundle.
 
 ## Related
 
