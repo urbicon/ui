@@ -45,6 +45,7 @@
   },
   "trustedDependencies": [
     "@urbicon-ui/blocks",
+    "@urbicon-ui/design",
     "@urbicon-ui/design-engine",
     "@urbicon-ui/docs",
     "@urbicon-ui/docs-gen",

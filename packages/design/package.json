@@ -1,0 +1,47 @@
+{
+  "name": "@urbicon-ui/design",
+  "version": "6.1.5",
+  "description": "The urbicon CLI — version-pinned design validation and design-manifest tooling for projects built with Urbicon UI. Wraps @urbicon-ui/design-engine for editor hooks and CI.",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://codeberg.org/urbicon/ui.git",
+    "directory": "packages/design"
+  },
+  "homepage": "https://ui.urbicon.de",
+  "bugs": "https://codeberg.org/urbicon/ui/issues",
+  "keywords": [
+    "design-system",
+    "cli",
+    "linter",
+    "design-tokens",
+    "urbicon-ui",
+    "ai"
+  ],
+  "type": "module",
+  "bin": {
+    "urbicon": "./dist/cli.js"
+  },
+  "files": [
+    "dist",
+    "README.md"
+  ],
+  "sideEffects": false,
+  "scripts": {
+    "build": "bun build ./src/cli/index.ts --target node --outfile dist/cli.js",
+    "dev": "bun run --watch src/cli/index.ts",
+    "start": "bun run src/cli/index.ts",
+    "check": "tsc --noEmit",
+    "test": "vitest",
+    "test:run": "vitest run"
+  },
+  "dependencies": {
+    "@urbicon-ui/design-engine": "workspace:*"
+  },
+  "devDependencies": {
+    "typescript": "catalog:",
+    "@types/node": "catalog:",
+    "vitest": "catalog:"
+  },
+  "author": "Urbicon UI Team"
+}

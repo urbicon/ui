@@ -1,0 +1,117 @@
+#!/usr/bin/env node
+/**
+ * `urbicon` — the version-pinned design CLI for projects built with Urbicon UI.
+ *
+ * One engine (`@urbicon-ui/design-engine`), three entry points: this CLI, the
+ * remote MCP adapter, and editor/CI hooks. The CLI is the local, version-correct
+ * path (the knowledge is the installed library version) and the home of the
+ * filesystem operations a stateless remote server structurally cannot do.
+ * See docs/internal/DESIGN-MCP-V2.md.
+ *
+ * Bundled to `dist/cli.js` (Node-runnable, shebang preserved) so consumers need
+ * no Bun. In the monorepo, run the TypeScript source directly via `bun run`.
+ */
+
+import { readFile } from 'node:fs/promises';
+import { dirname, resolve } from 'node:path';
+import { fileURLToPath } from 'node:url';
+import { parseArgs } from './args.js';
+import { runContext } from './commands/context.js';
+import { runRecordDecision } from './commands/record-decision.js';
+import { runSyncManifest } from './commands/sync-manifest.js';
+import { runValidate } from './commands/validate.js';
+import { EXIT, printError } from './output.js';
+
+const HELP = `urbicon — design validation & manifest tooling for Urbicon UI projects
+
+Usage:
+  urbicon <command> [options]
+
+Commands:
+  validate [paths...]   Lint .svelte markup against the Urbicon UI design rules.
+                        Paths may be files, directories, or "-" (stdin).
+                        --json             Machine-readable report ({ ok, results }).
+                        --strict           Fail on warnings too, not just errors.
+                        --skip-heuristics  Deterministic rules only (no distribution notes).
+  context               Print the project's design.manifest.md summary.
+                        --manifest <path>  Manifest file (default ./design.manifest.md).
+                        --json             Emit the parsed manifest as JSON.
+  record-decision       Append an ADR to the manifest.
+                        --title <t>        (required) Short decision title.
+                        --decision <d>     (required) What was decided.
+                        --rationale <r>    Why — the trade-off.
+                        --status <s>       accepted | proposed | superseded (default accepted).
+                        --date <date>      Decision date, YYYY-MM-DD (default today).
+                        --manifest <path>  Manifest file (default ./design.manifest.md).
+  sync-manifest         Re-index data-design-pattern markers into the manifest.
+                        --src <dir>        Source tree to scan (default ./src).
+                        --manifest <path>  Manifest file (default ./design.manifest.md).
+                        --json             Emit the scan result as JSON.
+  help                  Show this help.
+
+Exit codes:
+  0  ok (clean, or only warnings/notes)
+  1  design gate failed (errors; with --strict, warnings too)
+  2  usage error / unreadable input
+
+Examples:
+  urbicon validate src/                 # CI: lint a whole tree
+  urbicon validate App.svelte --strict  # fail on warnings too
+  cat Page.svelte | urbicon validate -  # editor hook: lint stdin
+  urbicon record-decision --title "Tabs for settings" --decision "Use Tab over Sidebar"
+`;
+
+/** Read this package's own version by walking up to its package.json (works from src/ and dist/). */
+async function readVersion(): Promise<string> {
+  let dir = dirname(fileURLToPath(import.meta.url));
+  for (let i = 0; i < 5; i++) {
+    try {
+      const pkg = JSON.parse(await readFile(resolve(dir, 'package.json'), 'utf-8')) as {
+        name?: string;
+        version?: string;
+      };
+      if (pkg.name === '@urbicon-ui/design') return pkg.version ?? 'unknown';
+    } catch {
+      // not this directory — keep walking up
+    }
+    const parent = dirname(dir);
+    if (parent === dir) break;
+    dir = parent;
+  }
+  return 'unknown';
+}
+
+async function main(argv: string[]): Promise<number> {
+  const { command, positionals, flags } = parseArgs(argv);
+
+  if (flags.version === true || command === 'version') {
+    console.log(await readVersion());
+    return EXIT.OK;
+  }
+  if (command === undefined || command === 'help' || flags.help === true) {
+    console.log(HELP);
+    return EXIT.OK;
+  }
+
+  switch (command) {
+    case 'validate':
+      return runValidate(positionals, flags);
+    case 'context':
+      return runContext(positionals, flags);
+    case 'record-decision':
+      return runRecordDecision(positionals, flags);
+    case 'sync-manifest':
+      return runSyncManifest(positionals, flags);
+    default:
+      printError(`unknown command "${command}"`);
+      console.log(`\n${HELP}`);
+      return EXIT.USAGE;
+  }
+}
+
+main(process.argv.slice(2))
+  .then((code) => process.exit(code))
+  .catch((err) => {
+    printError(err instanceof Error ? err.message : String(err));
+    process.exit(EXIT.USAGE);
+  });

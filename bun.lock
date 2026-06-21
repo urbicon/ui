@@ -107,6 +107,21 @@
         "svelte": "catalog:",
       },
     },
+    "packages/design": {
+      "name": "@urbicon-ui/design",
+      "version": "6.1.5",
+      "bin": {
+        "urbicon": "./dist/cli.js",
+      },
+      "dependencies": {
+        "@urbicon-ui/design-engine": "workspace:*",
+      },
+      "devDependencies": {
+        "@types/node": "catalog:",
+        "typescript": "catalog:",
+        "vitest": "catalog:",
+      },
+    },
     "packages/design-engine": {
       "name": "@urbicon-ui/design-engine",
       "version": "6.1.5",
@@ -275,6 +290,7 @@
     "@urbicon-ui/shared-types",
     "@urbicon-ui/docs",
     "@urbicon-ui/i18n",
+    "@urbicon-ui/design",
     "@urbicon-ui/auth",
     "@urbicon-ui/blocks",
   ],
@@ -580,6 +596,8 @@
     "@urbicon-ui/auth": ["@urbicon-ui/auth@workspace:packages/auth"],
 
     "@urbicon-ui/blocks": ["@urbicon-ui/blocks@workspace:packages/blocks"],
+
+    "@urbicon-ui/design": ["@urbicon-ui/design@workspace:packages/design"],
 
     "@urbicon-ui/design-engine": ["@urbicon-ui/design-engine@workspace:packages/design-engine"],
 

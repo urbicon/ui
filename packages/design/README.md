@@ -1,0 +1,97 @@
+# @urbicon-ui/design
+
+The **`urbicon` CLI** — version-pinned design validation and design-manifest
+tooling for projects built with [Urbicon UI](https://ui.urbicon.de).
+
+It is the local, version-correct half of the Urbicon design loop: the knowledge
+and rules are the ones shipped with the `@urbicon-ui/*` version you installed, and
+the filesystem operations (reading/writing your project's `design.manifest.md`)
+run on your machine — things a public, stateless remote MCP server structurally
+cannot do. Under the hood it wraps the zero-dependency
+[`@urbicon-ui/design-engine`](../design-engine/); the same engine backs the remote
+`validate_design` MCP tool, so local and remote verdicts agree.
+
+## Install
+
+```bash
+bun add -d @urbicon-ui/design   # dev tooling — not a runtime dependency
+```
+
+This exposes the `urbicon` command (a self-contained, Node-runnable bundle — no
+Bun required at the consumer side).
+
+## Commands
+
+| Command | What it does | Replaces (remote) |
+| --- | --- | --- |
+| `urbicon validate [paths...]` | Lint `.svelte` markup against the design rules. The hook/CI gate. | mirror of `validate_design` |
+| `urbicon context` | Print the project's `design.manifest.md` summary. | `get_design_context` |
+| `urbicon record-decision …` | Append an ADR to the manifest. | `record_design_decision` |
+| `urbicon sync-manifest` | Re-index `data-design-pattern` markers into the manifest. | `sync_design_manifest` |
+
+The three manifest commands move off the remote server deliberately: a public
+remote server has no access to your repo's filesystem, so manifest upkeep belongs
+on the consumer side (this CLI, or the agent's own write tools). See
+[docs/internal/DESIGN-MCP-V2.md](../../docs/internal/DESIGN-MCP-V2.md).
+
+### validate
+
+```bash
+urbicon validate src/                 # lint a whole tree (CI)
+urbicon validate App.svelte --strict  # fail on warnings too, not just errors
+cat Page.svelte | urbicon validate -  # lint stdin (editor hook)
+urbicon validate src/ --json          # machine-readable: { ok, results: LintReport[] }
+```
+
+Exit codes — designed for hooks and CI:
+
+| Code | Meaning |
+| --- | --- |
+| `0` | Clean, or only warnings/notes |
+| `1` | Design gate failed — errors present (with `--strict`, warnings too) |
+| `2` | Usage error / unreadable input |
+
+`--skip-heuristics` runs only the deterministic rules (no distribution notes).
+
+### context / record-decision / sync-manifest
+
+```bash
+urbicon context                       # summarise ./design.manifest.md
+urbicon context --json                # the parsed manifest as JSON
+
+urbicon record-decision \
+  --title "Tabs for settings" \
+  --decision "Use Tab over Sidebar" \
+  --rationale "Three groups, shallow nesting"
+
+urbicon sync-manifest                 # scan ./src for data-design-pattern markers
+urbicon sync-manifest --src app --manifest app/design.manifest.md
+```
+
+All three default the manifest to `./design.manifest.md` and the scan root to
+`./src`; override with `--manifest` / `--src`.
+
+## Use in a hook / CI
+
+```jsonc
+// CI: fail the build on design errors
+// package.json → "scripts": { "design:lint": "urbicon validate src/" }
+```
+
+A Claude Code `PostToolUse` hook can pipe changed `.svelte` files through
+`urbicon validate -` to enforce the loop at edit time rather than asking the agent
+to remember it.
+
+## Notes
+
+- Bundled to `dist/cli.js` at publish time (`bun build --target node`, shebang
+  preserved). In the monorepo, run the TypeScript source directly:
+  `bun run packages/design/src/cli/index.ts <command>`.
+- `find` (component/icon search) and `init` (onboarding interview) are planned for
+  a later step — they depend on the version-pinned content bundle that ships with
+  the package. Today's commands are content-free (engine + your repo only).
+
+## Related
+
+- [`@urbicon-ui/design-engine`](../design-engine/) — the deterministic engine this CLI wraps
+- [`@urbicon-ui/mcp-server`](../mcp-server/) — the remote MCP adapter over the same engine
