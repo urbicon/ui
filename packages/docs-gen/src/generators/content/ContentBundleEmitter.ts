@@ -108,15 +108,22 @@ export class ContentBundleEmitter {
     };
   }
 
-  /** Copy every `verbs/<name>.md` recipe into the bundle. Returns the verb count. */
+  /**
+   * Copy every `verbs/<name>.md` recipe into the bundle. Returns the verb count.
+   * Fail-loud like `principles.md`: the verbs are load-bearing (every MCP prompt
+   * serves one), so a missing or empty source dir is a build error, never a silent
+   * zero-verb bundle.
+   */
   private async copyVerbs(srcDir: string, destDir: string): Promise<number> {
-    let verbFiles: string[] = [];
+    let verbFiles: string[];
     try {
       verbFiles = (await fs.readdir(srcDir)).filter((f) => f.endsWith('.md'));
     } catch {
-      verbFiles = [];
+      throw new Error(`Content bundle: missing required verb-recipes dir at ${srcDir}`);
     }
-    if (verbFiles.length === 0) return 0;
+    if (verbFiles.length === 0) {
+      throw new Error(`Content bundle: no verb recipes (*.md) found in ${srcDir}`);
+    }
     await fs.mkdir(destDir, { recursive: true });
     for (const file of verbFiles) {
       await fs.copyFile(path.join(srcDir, file), path.join(destDir, file));

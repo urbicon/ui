@@ -67,7 +67,7 @@ const VERBS: VerbSpec[] = [
     name: 'polish',
     summary:
       'Tighten a near-final page: small token-level fixes that raise the slop-floor score without restructuring.',
-    args: ['brief', 'code', 'variants']
+    args: ['brief', 'code']
   },
   {
     name: 'critique',

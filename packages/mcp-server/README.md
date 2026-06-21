@@ -97,7 +97,7 @@ The full design-verb table (DESIGN-MCP-V2 §8) — client-agnostic workflows you
 | `adopt`    | `brief?`                       | Brownfield: infer the design language from code, measure drift, seed the manifest.         |
 | `compose`  | `brief?`, `variants?`          | New page via generate → validate → judge → synthesise (variants + rubric + linter gate).   |
 | `redesign` | `brief?`, `code?`, `variants?` | Diagnose with linter + rubric, fix exactly the flagged weaknesses, preserve behaviour.     |
-| `polish`   | `brief?`, `code?`, `variants?` | Small token-level fixes that raise the slop-floor score without restructuring.             |
+| `polish`   | `brief?`, `code?`              | Small token-level fixes that raise the slop-floor score without restructuring.             |
 | `critique` | `brief?`, `code?`              | Judge without changing: correctness + slop + rubric → a prioritised, verb-tagged fix-list. |
 | `fix`      | `brief?`, `code?`              | Repair correctness defects (raw colours, `dark:`/`focus:`, z-index, hallucinated tokens).  |
 | `retheme`  | `brief?`                       | Rebrand: change the token layer once, propagate across every affected file.                |
