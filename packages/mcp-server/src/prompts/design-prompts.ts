@@ -1,18 +1,19 @@
 import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { z } from 'zod';
+import { loadVerb } from '../data/verb-loader.js';
 
 /**
- * MCP prompts that ship the *process* — the generate → validate → judge →
- * synthesise loop (docs/DESIGN-MCP.md, Option E). MCP prompts are the
- * client-agnostic way to deliver a workflow: any MCP client (Claude Code,
- * Cursor, …) can invoke them, and they orchestrate the server's read-only tools
- * (get_pattern, validate_design, get_design_principles). Manifest state lives in
- * the consumer's repo — read/written with the agent's own file tools or the
- * `urbicon` CLI, never by this stateless server.
+ * MCP prompts that ship the *process* — the full design-verb table (DESIGN-MCP-V2
+ * §8). MCP prompts are the client-agnostic way to deliver a workflow: any MCP
+ * client (Claude Code, Cursor, …) can invoke them, and they orchestrate the
+ * server's read-only tools (get_pattern, validate_design, get_design_principles).
  *
- * The creative loop itself runs in the consumer's harness (it needs file access
- * and iteration); these prompts encode the steps so a single-shot generation
- * doesn't regress to the mean.
+ * The recipe BODY is the single source authored under `@urbicon-ui/design`'s
+ * `skill/verbs/*.md` and bundled into `@urbicon-ui/design-content` — the same text
+ * the local skill ships, so a verb is maintained once and served two ways (§9).
+ * Here we only wrap that body with the per-invocation header (brief / current code)
+ * and register it. Manifest state lives in the consumer's repo — read/written with
+ * the agent's own file tools or the `urbicon` CLI, never by this stateless server.
  */
 
 /** Clamp the requested variant count to a sane range. Prompt args arrive as strings. */
@@ -22,108 +23,136 @@ export function variantCount(raw: string | undefined): number {
   return Math.min(5, Math.max(2, n));
 }
 
-function patternStep(pattern: string | undefined): string {
-  return pattern
-    ? `call \`get_pattern("${pattern}")\` and follow its layout, component-selection, and behavioural rules`
-    : 'if a composition pattern fits the brief (settings-page, dashboard, form-page, tab-navigation, onboarding-guide), call `get_pattern("<name>")` to load it';
+type VerbArg = 'brief' | 'code' | 'variants';
+
+interface VerbSpec {
+  name: string;
+  /** The prompt description shown to MCP clients. */
+  summary: string;
+  /** Which optional inputs this verb takes (drives the schema + the header). */
+  args: VerbArg[];
 }
 
-const FOOTER =
-  'Output the final code, then a one-line rationale for each major design choice. Keep the rationale honest — name the trade-offs.';
+/**
+ * The full verb table (§8). Names match the `skill/verbs/<name>.md` recipes one to
+ * one; `args` is the precise subset each verb uses (so `onboard` doesn't advertise
+ * a `code` field it ignores). Order = the router's narrow-to-broad reading order.
+ */
+const VERBS: VerbSpec[] = [
+  {
+    name: 'onboard',
+    summary:
+      'Greenfield start: interview the product intent (audience, voice, references) + intake (paradigm/theme/density), then seed design.manifest.md — the anchor every later verb reads.',
+    args: ['brief']
+  },
+  {
+    name: 'adopt',
+    summary:
+      'Brownfield start: infer the design language from existing code (tokens, patterns, intent), measure the drift, and seed design.manifest.md.',
+    args: ['brief']
+  },
+  {
+    name: 'compose',
+    summary:
+      'Design a new page/component with the full generate → validate → judge → synthesise loop (variant exploration + rubric + linter gate). Keeps generation off the generic mean.',
+    args: ['brief', 'variants']
+  },
+  {
+    name: 'redesign',
+    summary:
+      'Redesign an existing page: diagnose with the linter + rubric, then fix exactly the flagged weaknesses through variant exploration. Preserves behaviour and structure.',
+    args: ['brief', 'code', 'variants']
+  },
+  {
+    name: 'polish',
+    summary:
+      'Tighten a near-final page: small token-level fixes that raise the slop-floor score without restructuring.',
+    args: ['brief', 'code', 'variants']
+  },
+  {
+    name: 'critique',
+    summary:
+      'Judge a page without changing it: correctness + slop-floor + rubric → a prioritised fix-list, each item tagged with the verb that repairs it.',
+    args: ['brief', 'code']
+  },
+  {
+    name: 'fix',
+    summary:
+      'Repair correctness defects (raw colours, dark:/focus:, hardcoded z-index, hallucinated tokens) — mechanical, behaviour-preserving.',
+    args: ['brief', 'code']
+  },
+  {
+    name: 'retheme',
+    summary:
+      'Rebrand the system: change the token layer once and propagate across every affected file via the manifest usage-index. Gated per file.',
+    args: ['brief']
+  },
+  {
+    name: 'audit',
+    summary:
+      'App-wide consistency sweep: validate the tree, check each pattern cohort, score a sample, and report drift over time. Recommends repairs, performs none.',
+    args: ['brief']
+  },
+  {
+    name: 'migrate',
+    summary:
+      'Roll out a pattern or library change across every site, file by file, gated per file.',
+    args: ['brief']
+  }
+];
 
-export function designPagePrompt(
-  brief: string,
-  pattern: string | undefined,
-  variants: string | undefined
-): string {
-  const n = variantCount(variants);
-  return `You are designing a new page for a project built on Urbicon UI:
+const ARG_DESCRIPTIONS: Record<VerbArg, string> = {
+  brief:
+    'What to act on — the brief, the page, or the target. Optional; the agent uses the conversation context when omitted.',
+  code: 'The current page source. Optional — omit to have the agent read it first.',
+  variants: 'How many variants to explore (2–5, default 3).'
+};
 
-> **${brief}**
-
-Run this loop. Do not skip steps — a single-shot answer regresses to a generic template.
-
-1. **Context.** Read the project's \`./design.manifest.md\` — your own file tools, or \`urbicon context\` if the package is installed — and honour its paradigm, theme, density, and recorded decisions (ADRs). Then ${patternStep(pattern)}.
-2. **Ground rules.** Call \`get_design_principles\` for the heuristics and \`get_css_reference\` for the exact token names. Note the paradigm's token profile via \`get_design_principles(topic="theming")\`.
-3. **Generate ${n} variants.** Produce ${n} genuinely different implementations, each taking a distinct compositional approach *within* the paradigm — vary density, hierarchy emphasis, and the one signature moment. Do not let them converge. Use only real semantic tokens (no \`bg-status-*\`, no invented names).
-4. **Validate.** Run \`validate_design\` on every variant. Fix each error and warning. A variant that cannot pass is disqualified.
-5. **Judge.** Call \`get_design_principles(as="rubric")\` and score each surviving variant /40. Prefer a panel: judge correctness, hierarchy, paradigm-fidelity, and distinctiveness as separate lenses rather than one overall gut number.
-6. **Synthesise.** Pick the winner, then graft the best ideas from the runners-up. Run \`validate_design\` once more on the merged result — it must come back clean.
-7. **Record.** If the page follows a pattern, add \`data-design-pattern="<name>"\` to its root element and refresh the manifest's Pattern Usages (\`urbicon sync-manifest\`, or edit \`./design.manifest.md\` yourself). If you deviated from a pattern or principle on purpose, append an ADR (\`urbicon record-decision\`, or add it to \`./design.manifest.md\`).
-
-${FOOTER}`;
+/** Per-invocation inputs (all optional); the recipe body carries the channel-agnostic steps. */
+interface VerbArgs {
+  brief?: string;
+  code?: string;
+  variants?: string;
 }
 
-export function redesignPrompt(
-  brief: string,
-  code: string | undefined,
-  variants: string | undefined
-): string {
-  const n = variantCount(variants);
-  const current = code
-    ? `\n\nCurrent implementation:\n\n\`\`\`svelte\n${code}\n\`\`\``
-    : '\n\nFirst read the current implementation of the page in question.';
-  return `You are redesigning an existing page in a project built on Urbicon UI:
+/** Wrap a recipe body with the per-invocation header (verb framing, brief, current code, variant count). */
+export function buildVerbPrompt(name: string, body: string, args: VerbArgs): string {
+  const parts = [
+    `You are running the **${name}** design recipe for a project built on Urbicon UI. Follow it; do not skip steps — a single-shot answer regresses to a generic template.`
+  ];
+  if (args.brief) parts.push(`\n> **${args.brief}**`);
+  if (args.code) parts.push(`\nCurrent implementation:\n\n\`\`\`svelte\n${args.code}\n\`\`\``);
+  parts.push('\n---\n');
+  parts.push(
+    body ||
+      '_Recipe text unavailable — rebuild the design-content bundle with `bun run docs:gen:all`._'
+  );
+  if (args.variants) {
+    parts.push(
+      `\n\nWhere the recipe says "a few variants", explore exactly ${variantCount(args.variants)}.`
+    );
+  }
+  return parts.join('\n');
+}
 
-> **${brief}**${current}
-
-Run a diagnosis-first loop:
-
-1. **Context.** Read \`./design.manifest.md\` — your own file tools, or \`urbicon context\` — to recover the project's paradigm, theme, and prior decisions.
-2. **Diagnose.** Run \`validate_design\` on the current code, then call \`get_design_principles(as="rubric")\` and score the current page /40. Your revision targets are **every linter finding** plus the **two lowest-scoring criteria** — nothing else.
-3. **Generate ${n} variants** that fix exactly those weaknesses. Preserve the page's behaviour, data flow, and overall structure; change only what the diagnosis flagged. Use only real tokens.
-4. **Validate.** Run \`validate_design\` on each; fix every error and warning.
-5. **Judge.** Re-score each variant with the rubric. A redesign that does not beat the original on its target criteria is not shippable.
-6. **Synthesise.** Merge the best result, then run \`validate_design\` once more.
-7. **Record.** Append an ADR for any deliberate deviation (\`urbicon record-decision\`, or edit \`./design.manifest.md\`); refresh Pattern Usages (\`urbicon sync-manifest\`) if pattern usage changed.
-
-End with a before/after table of the targeted criteria (old score → new score) and ${FOOTER.toLowerCase()}`;
+function schemaFor(args: VerbArg[]): Record<string, z.ZodString | z.ZodOptional<z.ZodString>> {
+  const shape: Record<string, z.ZodOptional<z.ZodString>> = {};
+  for (const arg of args) shape[arg] = z.string().optional().describe(ARG_DESCRIPTIONS[arg]);
+  return shape;
 }
 
 export function registerDesignPrompts(server: McpServer): void {
-  server.prompt(
-    'design-page',
-    'Design a new page with the full generate → validate → judge → synthesise loop (variant exploration + rubric selection + linter gate). Keeps generation from regressing to a generic template.',
-    {
-      brief: z.string().describe('What to build, e.g. "a billing settings page for a SaaS admin".'),
-      pattern: z
-        .string()
-        .optional()
-        .describe(
-          'Composition pattern to follow (settings-page, dashboard, form-page, …). Optional.'
-        ),
-      variants: z.string().optional().describe('How many variants to explore (2–5, default 3).')
-    },
-    ({ brief, pattern, variants }) => ({
-      messages: [
-        {
-          role: 'user' as const,
-          content: { type: 'text' as const, text: designPagePrompt(brief, pattern, variants) }
-        }
-      ]
-    })
-  );
-
-  server.prompt(
-    'redesign',
-    'Redesign an existing page: diagnose with validate_design + the rubric, then fix exactly the flagged weaknesses through variant exploration. Preserves behaviour and structure.',
-    {
-      brief: z
-        .string()
-        .describe('What to redesign and why, e.g. "the dashboard feels flat and generic".'),
-      code: z
-        .string()
-        .optional()
-        .describe('The current page source. Optional — omit to have the model read it first.'),
-      variants: z.string().optional().describe('How many variants to explore (2–5, default 3).')
-    },
-    ({ brief, code, variants }) => ({
-      messages: [
-        {
-          role: 'user' as const,
-          content: { type: 'text' as const, text: redesignPrompt(brief, code, variants) }
-        }
-      ]
-    })
-  );
+  for (const verb of VERBS) {
+    server.prompt(verb.name, verb.summary, schemaFor(verb.args), async (args: VerbArgs) => {
+      const body = await loadVerb(verb.name);
+      return {
+        messages: [
+          {
+            role: 'user' as const,
+            content: { type: 'text' as const, text: buildVerbPrompt(verb.name, body, args) }
+          }
+        ]
+      };
+    });
+  }
 }

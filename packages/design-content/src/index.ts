@@ -18,5 +18,6 @@ export {
   getDesignSystemDir,
   getIconsPath,
   getTemplatePath,
+  getVerbsDir,
   loadContentMeta
 } from './content-loader.js';

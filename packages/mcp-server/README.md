@@ -89,12 +89,20 @@ All tools are read-only (`readOnlyHint: true`) — this server never touches the
 
 ## Prompts
 
-Client-agnostic workflows (Option E of the design loop) — invoke them from any MCP client to run the full generate → validate → judge → synthesise process rather than a single-shot generation.
+The full design-verb table (DESIGN-MCP-V2 §8) — client-agnostic workflows you invoke from any MCP client to run a multi-step recipe over the four design planes rather than a single-shot generation. Each recipe is the same text the local `@urbicon-ui/design` skill ships (single source, bundled via `@urbicon-ui/design-content`): it opens by reading the project's `design.manifest.md`, does the work through the read-only tools above, and closes by writing the decision back.
 
-| Prompt        | Arguments                        | Purpose                                                                                                                                                          |
-| ------------- | -------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `design-page` | `brief`, `pattern?`, `variants?` | Design a new page: load context + pattern, explore N variants within the paradigm, gate each on `validate_design`, score with the rubric, synthesise the winner. |
-| `redesign`    | `brief`, `code?`, `variants?`    | Redesign an existing page: diagnose with `validate_design` + the rubric, then fix exactly the flagged weaknesses while preserving behaviour.                     |
+| Prompt     | Arguments                      | Purpose                                                                                    |
+| ---------- | ------------------------------ | ------------------------------------------------------------------------------------------ |
+| `onboard`  | `brief?`                       | Greenfield: interview product intent + intake, seed the manifest.                          |
+| `adopt`    | `brief?`                       | Brownfield: infer the design language from code, measure drift, seed the manifest.         |
+| `compose`  | `brief?`, `variants?`          | New page via generate → validate → judge → synthesise (variants + rubric + linter gate).   |
+| `redesign` | `brief?`, `code?`, `variants?` | Diagnose with linter + rubric, fix exactly the flagged weaknesses, preserve behaviour.     |
+| `polish`   | `brief?`, `code?`, `variants?` | Small token-level fixes that raise the slop-floor score without restructuring.             |
+| `critique` | `brief?`, `code?`              | Judge without changing: correctness + slop + rubric → a prioritised, verb-tagged fix-list. |
+| `fix`      | `brief?`, `code?`              | Repair correctness defects (raw colours, `dark:`/`focus:`, z-index, hallucinated tokens).  |
+| `retheme`  | `brief?`                       | Rebrand: change the token layer once, propagate across every affected file.                |
+| `audit`    | `brief?`                       | App-wide sweep: validate the tree, check pattern cohorts, report drift over time.          |
+| `migrate`  | `brief?`                       | Roll out a pattern/library change across every site, gated per file.                       |
 
 ## CLI Options
 

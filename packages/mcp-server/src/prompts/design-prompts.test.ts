@@ -1,5 +1,20 @@
 import { describe, expect, it } from 'vitest';
-import { designPagePrompt, redesignPrompt, variantCount } from './design-prompts.js';
+import { loadVerb } from '../data/verb-loader.js';
+import { buildVerbPrompt, variantCount } from './design-prompts.js';
+
+/** The full §8 verb table — every recipe must be present in the bundle. */
+const VERB_NAMES = [
+  'onboard',
+  'adopt',
+  'compose',
+  'redesign',
+  'polish',
+  'critique',
+  'fix',
+  'retheme',
+  'audit',
+  'migrate'
+];
 
 describe('variantCount', () => {
   it('defaults to 3 for missing or non-numeric input', () => {
@@ -13,39 +28,52 @@ describe('variantCount', () => {
   });
 });
 
-describe('designPagePrompt', () => {
-  it('embeds the brief and drives the full loop in order', () => {
-    const p = designPagePrompt('a billing settings page', undefined, '4');
-    expect(p).toContain('a billing settings page');
-    for (const marker of [
-      'design.manifest.md',
-      'get_design_principles',
-      'validate_design',
-      'get_design_principles(as="rubric")',
-      'urbicon sync-manifest'
-    ]) {
-      expect(p, marker).toContain(marker);
-    }
-    expect(p).toContain('Generate 4 variants');
+describe('buildVerbPrompt', () => {
+  const body = '1. **Context.** Read the manifest.\n2. **Validate.** Run the linter.';
+
+  it('frames the verb and includes the recipe body', () => {
+    const p = buildVerbPrompt('compose', body, {});
+    expect(p).toContain('**compose** design recipe');
+    expect(p).toContain('Read the manifest');
   });
 
-  it('pins a specific pattern when given one', () => {
-    expect(designPagePrompt('x', 'dashboard', undefined)).toContain('get_pattern("dashboard")');
+  it('embeds the brief as a blockquote when provided', () => {
+    expect(buildVerbPrompt('compose', body, { brief: 'a billing page' })).toContain(
+      '> **a billing page**'
+    );
   });
-  it('offers pattern discovery when none is given', () => {
-    expect(designPagePrompt('x', undefined, undefined)).toContain('if a composition pattern fits');
+
+  it('inlines provided code in a svelte fence', () => {
+    const p = buildVerbPrompt('redesign', body, { code: '<div>old</div>' });
+    expect(p).toContain('```svelte\n<div>old</div>\n```');
+  });
+
+  it('appends a clamped variant instruction when variants are requested', () => {
+    expect(buildVerbPrompt('compose', body, { variants: '9' })).toContain('explore exactly 5');
+    expect(buildVerbPrompt('compose', body, { variants: '1' })).toContain('explore exactly 2');
+  });
+
+  it('degrades to a rebuild hint when the body is empty', () => {
+    expect(buildVerbPrompt('compose', '', {})).toContain('rebuild the design-content bundle');
   });
 });
 
-describe('redesignPrompt', () => {
-  it('is diagnosis-first and preserves behaviour', () => {
-    const p = redesignPrompt('the dashboard feels flat', undefined, undefined);
-    expect(p).toContain('Diagnose');
-    expect(p).toContain('validate_design');
-    expect(p).toContain('two lowest-scoring criteria');
-    expect(p).toContain('read the current implementation');
+describe('loadVerb (against the bundled recipes)', () => {
+  it('loads every verb in the §8 table, non-empty', async () => {
+    for (const name of VERB_NAMES) {
+      const body = await loadVerb(name);
+      expect(body.length, name).toBeGreaterThan(0);
+    }
   });
-  it('inlines provided code', () => {
-    expect(redesignPrompt('x', '<div>old</div>', undefined)).toContain('<div>old</div>');
+
+  it('a recipe opens by reading the manifest and references the real tool surface', async () => {
+    const compose = await loadVerb('compose');
+    expect(compose).toContain('manifest');
+    expect(compose).toContain('validate_design');
+    expect(compose).toContain('get_design_principles(as="rubric")');
+  });
+
+  it('returns the empty string for an unknown verb (read tolerant)', async () => {
+    expect(await loadVerb('does-not-exist')).toBe('');
   });
 });

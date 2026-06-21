@@ -63,7 +63,7 @@ let { variant, intent } = $props();`;
 
 <SeoMeta
   title="AI & Developer Experience"
-  description="AI-native developer experience: MCP server with 10 tools and 2 design prompts, per-component llms.txt, .cursorrules. Built for Claude, Cursor, and AI-assisted workflows."
+  description="AI-native developer experience: MCP server with 10 tools and 10 design prompts, per-component llms.txt, .cursorrules. Built for Claude, Cursor, and AI-assisted workflows."
 />
 
 <div class="mx-auto max-w-4xl px-6 py-12">
@@ -84,7 +84,7 @@ let { variant, intent } = $props();`;
   <section class="mb-12">
     <h2 class="text-text-primary mb-2 text-2xl font-bold">MCP Server</h2>
     <p class="text-text-secondary mb-6">
-      The Model Context Protocol server exposes 10 read-only tools, 2 design prompts and 7 guide
+      The Model Context Protocol server exposes 10 read-only tools, 10 design prompts and 7 guide
       resources. Connect it to your IDE or AI assistant for real-time component discovery, code
       generation, and a closed design loop: generate UI, lint it with <code
         class="bg-surface-elevated rounded px-1.5 py-0.5 font-mono text-xs">validate_design</code
@@ -117,11 +117,12 @@ let { variant, intent } = $props();`;
         </p>
       </Card>
       <Card variant="outlined" padding="md">
-        <h3 class="text-text-primary mb-1 font-semibold">2 Prompts · 7 Guide Resources</h3>
+        <h3 class="text-text-primary mb-1 font-semibold">10 Prompts · 7 Guide Resources</h3>
         <p class="text-text-secondary text-sm">
-          <span class="text-text-tertiary">Prompts:</span> design-page, redesign (the full generate
-          → validate → judge loop) · <span class="text-text-tertiary">Guides:</span> API grammar, component
-          families, design tokens, design quality, customization, style presets, auth setup
+          <span class="text-text-tertiary">Prompts:</span> the design-verb table — onboard, adopt,
+          compose, redesign, polish, critique, fix, retheme, audit, migrate (each a recipe over the
+          design loop) · <span class="text-text-tertiary">Guides:</span> API grammar, component families,
+          design tokens, design quality, customization, style presets, auth setup
         </p>
       </Card>
     </div>

@@ -57,10 +57,22 @@ describe('createServer', () => {
     expect(resourceCount).toBeGreaterThan(0);
   });
 
-  it('registers the design-process prompts', () => {
+  it('registers the full design-verb table as prompts', () => {
     const server = createServer() as unknown as McpServerInternals;
     const promptNames = Object.keys(server._registeredPrompts);
-    expect(promptNames).toContain('design-page');
-    expect(promptNames).toContain('redesign');
+    for (const verb of [
+      'onboard',
+      'adopt',
+      'compose',
+      'redesign',
+      'polish',
+      'critique',
+      'fix',
+      'retheme',
+      'audit',
+      'migrate'
+    ]) {
+      expect(promptNames, verb).toContain(verb);
+    }
   });
 });
