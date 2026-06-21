@@ -66,6 +66,41 @@ describe('urbicon validate', () => {
     expect(await runValidate([join(dir, 'nope.svelte')], {})).toBe(2);
   });
 
+  it('gates the slop axis only when --slop-floor is given (F-S6-3)', async () => {
+    // A token-correct but generic page: many slop notes, zero correctness errors.
+    const file = join(dir, 'Generic.svelte');
+    await writeFile(
+      file,
+      '<div style="font-family: Arial; color: #888">\n' +
+        '  <p style="text-align: center">Lorem ipsum dolor sit amet</p>\n' +
+        '</div>\n'
+    );
+    // Advisory by default: slop notes never fail the gate.
+    expect(await runValidate([file], {})).toBe(0);
+    // With a floor, a low slop score fails — opt-in enforcement.
+    expect(await runValidate([file], { 'slop-floor': '90' })).toBe(1);
+    // A floor the page clears passes.
+    expect(await runValidate([file], { 'slop-floor': '0' })).toBe(0);
+  });
+
+  it('rejects a malformed --slop-floor as a usage error (exit 2)', async () => {
+    const file = join(dir, 'Clean.svelte');
+    await writeFile(file, '<button class="px-4 py-2">Save</button>\n');
+    expect(await runValidate([file], { 'slop-floor': '101' })).toBe(2);
+    expect(await runValidate([file], { 'slop-floor': 'abc' })).toBe(2);
+    expect(await runValidate([file], { 'slop-floor': true })).toBe(2); // bare flag, no number
+  });
+
+  it('carries slopFloor in the --json envelope', async () => {
+    const file = join(dir, 'Clean.svelte');
+    await writeFile(file, '<button class="px-4 py-2">Save</button>\n');
+    await runValidate([file], { json: true, 'slop-floor': '40' });
+    const out = log.mock.calls.map((call: unknown[]) => call[0]).join('\n');
+    const parsed = JSON.parse(out) as { slopFloor: number | null; ok: boolean };
+    expect(parsed.slopFloor).toBe(40);
+    expect(parsed.ok).toBe(true);
+  });
+
   it('applies ## Token Overrides from the manifest so a project token is not flagged (F-S4-1)', async () => {
     const file = join(dir, 'Brand.svelte');
     // `bg-surface-brand` looks semantic but is not a built-in token → hallucination warning.

@@ -33,8 +33,10 @@ Commands:
                         Paths may be files, directories, or "-" (stdin).
                         Reads ## Token Overrides from the manifest (if any) so your
                         project's own tokens are not flagged as hallucinated.
-                        --json             Machine-readable report ({ ok, extraTokens, results }).
+                        --json             Machine-readable report ({ ok, slopFloor, results }).
                         --strict           Fail on warnings too, not just errors.
+                        --slop-floor <n>   Also fail any file scoring below n/100 on the
+                                           slop axis (0–100; off by default — slop is advisory).
                         --skip-heuristics  Deterministic rules only (no distribution notes).
                         --record           Append a drift entry to the sidecar history (CI).
                         --manifest <path>  Manifest for token overrides + history
@@ -63,9 +65,10 @@ Exit codes:
   2  usage error — bad flags / unreadable input
 
 Examples:
-  urbicon validate src/                 # CI: lint a whole tree
-  urbicon validate App.svelte --strict  # fail on warnings too
-  cat Page.svelte | urbicon validate -  # editor hook: lint stdin
+  urbicon validate src/                          # CI: lint a whole tree
+  urbicon validate src/ --slop-floor 40 --json   # CI: gate correctness + slop
+  urbicon validate App.svelte --strict           # fail on warnings too
+  cat Page.svelte | urbicon validate -           # lint stdin
   urbicon record-decision --title "Tabs for settings" --decision "Use Tab over Sidebar"
 `;
 

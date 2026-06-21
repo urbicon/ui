@@ -17,6 +17,7 @@ import { lintDesign } from '@urbicon-ui/design-engine/linter';
 import type { ValidationHistoryEntry } from '@urbicon-ui/design-engine/manifest';
 import { serializeHistoryEntry } from '@urbicon-ui/design-engine/manifest';
 import { boolFlag, type Flags, stringFlag } from '../args.js';
+import { evaluateGate, parseSlopFloor } from '../gate.js';
 import {
   appendHistory,
   readTokenOverrides,
@@ -126,6 +127,15 @@ export async function runValidate(positionals: string[], flags: Flags): Promise<
   const skipHeuristics = boolFlag(flags, 'skip-heuristics');
   const record = boolFlag(flags, 'record');
 
+  // F-S6-3: the slop axis is advisory by default and only gates when the caller
+  // opts in with a floor (slop heuristics are FP-prone). A malformed floor is a
+  // usage error, never a silently skipped gate.
+  const slopFloor = parseSlopFloor(flags['slop-floor']);
+  if (slopFloor === 'invalid') {
+    printError('--slop-floor needs an integer between 0 and 100, e.g. --slop-floor 40');
+    return EXIT.USAGE;
+  }
+
   // F-S4-1: feed the linter the project's own token overrides from the manifest,
   // so a customised token set is not flagged as hallucinated. Best-effort: no
   // manifest ⇒ no overrides ⇒ identical to before. Only relaxes the
@@ -144,16 +154,8 @@ export async function runValidate(positionals: string[], flags: Flags): Promise<
     lintDesign(unit.code, { filename: unit.label, skipHeuristics, extraTokens })
   );
 
-  const totals = reports.reduce(
-    (acc, r) => {
-      acc.error += r.counts.error;
-      acc.warning += r.counts.warning;
-      acc.info += r.counts.info;
-      return acc;
-    },
-    { error: 0, warning: 0, info: 0 }
-  );
-  const failed = totals.error > 0 || (strict && totals.warning > 0);
+  const gate = evaluateGate(reports, { strict, slopFloor });
+  const { totals, failed } = gate;
 
   // Append a drift data point when asked. A write failure is loud (stderr) but does
   // not change the gate verdict — observability must not fail a clean lint, nor
@@ -170,7 +172,9 @@ export async function runValidate(positionals: string[], flags: Flags): Promise<
   }
 
   if (asJson) {
-    console.log(JSON.stringify({ ok: !failed, strict, extraTokens, results: reports }, null, 2));
+    console.log(
+      JSON.stringify({ ok: !failed, strict, slopFloor, extraTokens, results: reports }, null, 2)
+    );
     return failed ? EXIT.FAIL : EXIT.OK;
   }
 
@@ -186,10 +190,17 @@ export async function runValidate(positionals: string[], flags: Flags): Promise<
       `\n${extraTokens.length} project token override(s) applied from ${relative(process.cwd(), manifestPath).split(sep).join('/')}.`
     );
   }
+  if (gate.slopBreaches.length > 0) {
+    console.log(`\n${gate.slopBreaches.length} file(s) below the slop floor (${slopFloor}):`);
+    for (const b of gate.slopBreaches) console.log(`  · ${b.label} — slop ${b.slop}/100`);
+  }
   if (failed) {
-    console.log(
-      strict ? '\nFAIL — errors or warnings present (--strict).' : '\nFAIL — fix the errors above.'
-    );
+    const reason = gate.correctnessFailed
+      ? strict
+        ? 'errors or warnings present (--strict)'
+        : 'fix the errors above'
+      : 'slop floor not met';
+    console.log(`\nFAIL — ${reason}.`);
   }
   return failed ? EXIT.FAIL : EXIT.OK;
 }
