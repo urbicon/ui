@@ -4,6 +4,7 @@
  * (context / record-decision / sync-manifest) in `@urbicon-ui/design`.
  */
 
+export { parseHistory, serializeHistoryEntry } from './history.js';
 export {
   appendDecision,
   createManifestTemplate,
@@ -17,4 +18,10 @@ export {
   upsertUsagesSection
 } from './manifest.js';
 export { scanMarkers } from './scan.js';
-export type { DesignDecision, DesignManifest, PatternUsage } from './types.js';
+export type {
+  DesignDecision,
+  DesignManifest,
+  PatternUsage,
+  ProductIntent,
+  ValidationHistoryEntry
+} from './types.js';

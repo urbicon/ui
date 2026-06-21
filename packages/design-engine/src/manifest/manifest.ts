@@ -5,8 +5,16 @@
  * hand-written prose, ordering, and formatting survive a round-trip.
  */
 
-import type { DesignDecision, DesignManifest, PatternUsage } from './types.js';
+import type {
+  DesignDecision,
+  DesignManifest,
+  PatternUsage,
+  ProductIntent,
+  ValidationHistoryEntry
+} from './types.js';
 
+const INTENT_HEADING = '## Product Intent';
+const TOKEN_OVERRIDES_HEADING = '## Token Overrides';
 const USAGES_HEADING = '## Pattern Usages';
 const DECISIONS_HEADING = '## Design Decisions';
 /**
@@ -83,11 +91,99 @@ function parseDecisions(body: string): DesignDecision[] {
   return decisions;
 }
 
+/** The empty product-intent shape (arrays never undefined). */
+function emptyIntent(): ProductIntent {
+  return { voice: [], references: [], antiReferences: [] };
+}
+
+/**
+ * Parse the `## Product Intent` section. Two field grammars coexist (tolerantly):
+ * an inline `**Label:** value` (audience, voice) and a labelled list — `**Label:**`
+ * followed by `- bullets` and/or an inline comma value (references, anti-references).
+ */
+function parseIntent(body: string): ProductIntent {
+  const section = extractSection(body, INTENT_HEADING);
+  if (section === null) return emptyIntent();
+  const lines = section.split('\n');
+
+  const inlineField = (label: string): string | undefined => {
+    const re = new RegExp(`^\\*\\*${label}:\\*\\*\\s*(.+)$`);
+    for (const l of lines) {
+      const m = l.match(re);
+      if (m) return m[1]!.trim();
+    }
+    return undefined;
+  };
+
+  // Items under a `**Label:**`: an inline comma list on the label line and/or the
+  // bullet lines that follow it, up to the next labelled field. Blank/prose lines
+  // in between are skipped, not treated as terminators.
+  const listField = (label: string): string[] => {
+    const items: string[] = [];
+    const labelRe = new RegExp(`^\\*\\*${label}:\\*\\*\\s*(.*)$`);
+    let capturing = false;
+    for (const l of lines) {
+      if (!capturing) {
+        const m = l.match(labelRe);
+        if (m) {
+          capturing = true;
+          const inline = m[1]!.trim();
+          if (inline) items.push(...splitList(inline));
+        }
+        continue;
+      }
+      if (/^\*\*[^*]+:\*\*/.test(l)) break; // next labelled field ends this one
+      const bullet = l.match(/^\s*[-*]\s+(.+)$/);
+      if (bullet) items.push(bullet[1]!.trim());
+    }
+    return items;
+  };
+
+  const voice = inlineField('Voice');
+  return {
+    audience: inlineField('Audience'),
+    voice: voice ? splitList(voice) : [],
+    references: listField('References'),
+    antiReferences: listField('Anti-references')
+  };
+}
+
+/** Split a comma-separated inline value into trimmed, non-empty parts. */
+function splitList(value: string): string[] {
+  return value
+    .split(',')
+    .map((part) => part.trim())
+    .filter(Boolean);
+}
+
+/**
+ * Parse the `## Token Overrides` section: the backtick-quoted cores in its bullet
+ * list (a trailing `— note` is ignored). Deduplicated, order preserved. Cores only
+ * (`surface-brand`); a full utility like `bg-surface-brand` parses but is inert at
+ * the linter (matching the `extraTokens` contract), so we keep it verbatim.
+ */
+function parseTokenOverrides(body: string): string[] {
+  const section = extractSection(body, TOKEN_OVERRIDES_HEADING);
+  if (!section) return [];
+  const cores: string[] = [];
+  const seen = new Set<string>();
+  for (const m of section.matchAll(/^\s*[-*]\s+`([a-z][a-z0-9-]*)`/gm)) {
+    const core = m[1]!;
+    if (!seen.has(core)) {
+      seen.add(core);
+      cores.push(core);
+    }
+  }
+  return cores;
+}
+
 /** Parse a manifest file into structured form. */
 export function parseManifest(content: string, exists = true): DesignManifest {
   const { data, body } = parseFrontmatter(content);
   return {
     frontmatter: data,
+    intent: parseIntent(body),
+    tokenOverrides: parseTokenOverrides(body),
     usages: parseUsages(body),
     decisions: parseDecisions(body),
     exists
@@ -96,7 +192,14 @@ export function parseManifest(content: string, exists = true): DesignManifest {
 
 /** The empty-manifest sentinel returned when no file exists. */
 export function emptyManifest(): DesignManifest {
-  return { frontmatter: {}, usages: [], decisions: [], exists: false };
+  return {
+    frontmatter: {},
+    intent: emptyIntent(),
+    tokenOverrides: [],
+    usages: [],
+    decisions: [],
+    exists: false
+  };
 }
 
 function renderUsagesBlock(usages: PatternUsage[]): string {
@@ -200,9 +303,32 @@ export function createManifestTemplate(opts: {
     `# Design Manifest${opts.projectName ? ` — ${opts.projectName}` : ''}`,
     '',
     'The persistent design intent for this project. Frontmatter records the enforced intake',
-    'decisions (paradigm, theme, density). `## Pattern Usages` is regenerated from',
-    '`data-design-pattern` markers by `urbicon sync-manifest`. `## Design Decisions` is an',
-    'append-only ADR log written by `urbicon record-decision`.',
+    'decisions (paradigm, theme, density). `## Product Intent` is the target identity.',
+    '`## Token Overrides` lists project-specific tokens `urbicon validate` should accept.',
+    '`## Pattern Usages` is regenerated from `data-design-pattern` markers by',
+    '`urbicon sync-manifest`. `## Design Decisions` is an append-only ADR log written by',
+    '`urbicon record-decision`.',
+    '',
+    INTENT_HEADING,
+    '',
+    '<!-- The identity this project designs toward — read at the start of every design task.',
+    '     Fill each field; an empty field is simply "not set yet". Voice = a few adjectives. -->',
+    '',
+    '**Audience:**',
+    '',
+    '**Voice:**',
+    '',
+    '**References:**',
+    '',
+    '**Anti-references:**',
+    '',
+    TOKEN_OVERRIDES_HEADING,
+    '',
+    '<!-- Project-specific semantic token cores defined on top of Urbicon’s. Listed here as a',
+    '     bullet of `core` (the part after the utility prefix — `surface-brand`, not',
+    '     `bg-surface-brand`), they are treated as valid by `urbicon validate`. -->',
+    '',
+    '_None yet._',
     '',
     USAGES_HEADING,
     '',
@@ -213,8 +339,40 @@ export function createManifestTemplate(opts: {
   ].join('\n');
 }
 
-/** Human-readable context summary for `urbicon context`. */
-export function formatContext(manifest: DesignManifest): string {
+/** Whether a product intent carries any content at all. */
+function intentIsEmpty(intent: ProductIntent): boolean {
+  return (
+    !intent.audience &&
+    intent.voice.length === 0 &&
+    intent.references.length === 0 &&
+    intent.antiReferences.length === 0
+  );
+}
+
+/** Render the recent-validation drift block from the sidecar history (newest entries). */
+function formatDrift(history: ValidationHistoryEntry[]): string {
+  const recent = history.slice(-5);
+  const last = recent[recent.length - 1]!;
+  let md = '## Validation Drift\n\n';
+  md +=
+    `Last run (${last.date}): correctness ${last.correctness}/100 · slop ${last.slop}/100 — ` +
+    `${last.files} file(s), ${last.errors} error(s), ${last.warnings} warning(s).\n`;
+  if (recent.length > 1) {
+    md += `\nRecent correctness: ${recent.map((e) => e.correctness).join(' → ')}\n`;
+    md += `Recent slop-floor:  ${recent.map((e) => e.slop).join(' → ')}\n`;
+  }
+  return md;
+}
+
+/**
+ * Human-readable context summary for `urbicon context`. Pass the sidecar
+ * validation history (when present) to append a drift block; omit it for the
+ * pure-manifest summary.
+ */
+export function formatContext(
+  manifest: DesignManifest,
+  history: ValidationHistoryEntry[] = []
+): string {
   let md = '# Design Context\n\n';
 
   const fm = manifest.frontmatter;
@@ -226,6 +384,26 @@ export function formatContext(manifest: DesignManifest): string {
     if (fm.paradigm) {
       md += `> Stay within the **${fm.paradigm}** paradigm. Call \`get_design_principles(topic="theming")\` for its token profile.\n\n`;
     }
+  }
+
+  md += '## Product Intent\n\n';
+  const intent = manifest.intent;
+  if (intentIsEmpty(intent)) {
+    md +=
+      '_Not set._ Define audience, voice, references and anti-references so design stays consistent with a target identity, not merely generic.\n\n';
+  } else {
+    if (intent.audience) md += `- **Audience:** ${intent.audience}\n`;
+    if (intent.voice.length > 0) md += `- **Voice:** ${intent.voice.join(', ')}\n`;
+    if (intent.references.length > 0) md += `- **References:** ${intent.references.join('; ')}\n`;
+    if (intent.antiReferences.length > 0)
+      md += `- **Anti-references:** ${intent.antiReferences.join('; ')}\n`;
+    md += '\n';
+  }
+
+  if (manifest.tokenOverrides.length > 0) {
+    md += '## Token Overrides\n\n';
+    md += `${manifest.tokenOverrides.map((c) => `\`${c}\``).join(', ')}\n\n`;
+    md += '> Treated as valid by `urbicon validate` (passed as extra tokens for this project).\n\n';
   }
 
   md += '## Pattern Usages\n\n';
@@ -252,6 +430,8 @@ export function formatContext(manifest: DesignManifest): string {
       md += `- **${d.date} — ${d.title}** (${d.status}): ${d.decision}\n`;
     }
   }
+
+  if (history.length > 0) md += `\n${formatDrift(history)}`;
   return md;
 }
 

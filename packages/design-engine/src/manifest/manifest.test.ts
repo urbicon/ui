@@ -7,7 +7,7 @@ import {
   parseManifest,
   upsertUsagesSection
 } from './manifest.js';
-import type { DesignDecision } from './types.js';
+import type { DesignDecision, ValidationHistoryEntry } from './types.js';
 
 describe('parseFrontmatter', () => {
   it('reads flat key:value pairs and strips the block from the body', () => {
@@ -129,6 +129,144 @@ describe('formatContext', () => {
     const out = formatContext(parseManifest(createManifestTemplate({})));
     expect(out).toContain('data-design-pattern');
     expect(out).toContain('urbicon record-decision');
+  });
+});
+
+describe('parseManifest — product intent', () => {
+  it('parses audience, voice, and bulleted references / anti-references', () => {
+    const md = [
+      '## Product Intent',
+      '',
+      '**Audience:** Municipal ops staff — non-technical, time-pressured.',
+      '',
+      '**Voice:** calm, precise, trustworthy',
+      '',
+      '**References:**',
+      '- Linear — focused density',
+      '- Stripe Dashboard',
+      '',
+      '**Anti-references:**',
+      '- Bootstrap admin',
+      '- rainbow SaaS'
+    ].join('\n');
+    const { intent } = parseManifest(md);
+    expect(intent.audience).toBe('Municipal ops staff — non-technical, time-pressured.');
+    expect(intent.voice).toEqual(['calm', 'precise', 'trustworthy']);
+    expect(intent.references).toEqual(['Linear — focused density', 'Stripe Dashboard']);
+    expect(intent.antiReferences).toEqual(['Bootstrap admin', 'rainbow SaaS']);
+  });
+
+  it('tolerates an inline comma list for references (not only bullets)', () => {
+    const md = '## Product Intent\n\n**References:** Linear, Stripe, Vercel\n';
+    expect(parseManifest(md).intent.references).toEqual(['Linear', 'Stripe', 'Vercel']);
+  });
+
+  it('returns an empty intent when the section is absent', () => {
+    const intent = parseManifest('# Bare\n\nsome prose\n').intent;
+    expect(intent).toEqual({ voice: [], references: [], antiReferences: [] });
+  });
+
+  it('does not parse the scaffold’s bare-label placeholders as values', () => {
+    // Regression: empty `**Audience:**` etc. in the template must read as "not set".
+    const intent = parseManifest(createManifestTemplate({})).intent;
+    expect(intent.audience).toBeUndefined();
+    expect(intent.voice).toEqual([]);
+    expect(intent.references).toEqual([]);
+    expect(intent.antiReferences).toEqual([]);
+  });
+});
+
+describe('parseManifest — token overrides', () => {
+  it('parses backtick cores from the bullet list and ignores trailing notes', () => {
+    const md = [
+      '## Token Overrides',
+      '',
+      '- `surface-brand` — the marketing accent surface',
+      '- `text-brand`'
+    ].join('\n');
+    expect(parseManifest(md).tokenOverrides).toEqual(['surface-brand', 'text-brand']);
+  });
+
+  it('deduplicates and preserves first-seen order', () => {
+    const md = '## Token Overrides\n\n- `a-one`\n- `b-two`\n- `a-one`\n';
+    expect(parseManifest(md).tokenOverrides).toEqual(['a-one', 'b-two']);
+  });
+
+  it('returns [] for an absent section and for the scaffold placeholder', () => {
+    expect(parseManifest('# Bare\n').tokenOverrides).toEqual([]);
+    // The template's explanatory comment mentions `surface-brand` / `bg-surface-brand`
+    // but never as a bullet, so nothing is parsed out of the scaffold.
+    expect(parseManifest(createManifestTemplate({})).tokenOverrides).toEqual([]);
+  });
+});
+
+describe('template scaffolds the new sections without breaking the round-trip', () => {
+  it('still parses frontmatter, usages and decisions; adds empty intent + overrides', () => {
+    const m = parseManifest(createManifestTemplate({ paradigm: 'editorial', theme: 'slate' }));
+    expect(m.frontmatter.paradigm).toBe('editorial');
+    expect(m.usages).toEqual([]);
+    expect(m.decisions).toEqual([]);
+    expect(m.tokenOverrides).toEqual([]);
+    expect(m.intent.voice).toEqual([]);
+    expect(m.exists).toBe(true);
+  });
+
+  it('contains all five section headings', () => {
+    const t = createManifestTemplate({});
+    for (const h of [
+      '## Product Intent',
+      '## Token Overrides',
+      '## Pattern Usages',
+      '## Design Decisions'
+    ]) {
+      expect(t).toContain(h);
+    }
+  });
+});
+
+describe('formatContext — intent, overrides, drift', () => {
+  const history = (over: Partial<ValidationHistoryEntry> = {}): ValidationHistoryEntry => ({
+    date: '2026-06-21T10:00:00.000Z',
+    files: 4,
+    errors: 0,
+    warnings: 0,
+    infos: 3,
+    correctness: 100,
+    slop: 70,
+    ...over
+  });
+
+  it('renders the intent and token overrides when set', () => {
+    let md = '## Product Intent\n\n**Audience:** Ops staff\n\n**Voice:** calm, precise\n';
+    md += '\n## Token Overrides\n\n- `surface-brand`\n';
+    const out = formatContext(parseManifest(md));
+    expect(out).toContain('**Audience:** Ops staff');
+    expect(out).toContain('**Voice:** calm, precise');
+    expect(out).toContain('`surface-brand`');
+    expect(out).toContain('passed as extra tokens');
+  });
+
+  it('nudges when the product intent is empty', () => {
+    const out = formatContext(parseManifest(createManifestTemplate({})));
+    expect(out).toContain('## Product Intent');
+    expect(out).toContain('_Not set._');
+  });
+
+  it('appends a drift block with the score trend when history is supplied', () => {
+    const out = formatContext(parseManifest(createManifestTemplate({})), [
+      history({ date: '2026-06-19T00:00:00.000Z', slop: 50 }),
+      history({ date: '2026-06-20T00:00:00.000Z', slop: 60 }),
+      history({ date: '2026-06-21T00:00:00.000Z', slop: 70 })
+    ]);
+    expect(out).toContain('## Validation Drift');
+    expect(out).toContain('correctness 100/100 · slop 70/100');
+    expect(out).toContain('50 → 60 → 70'); // recent slop trend
+  });
+
+  it('omits the drift block when no history is supplied', () => {
+    expect(formatContext(parseManifest(createManifestTemplate({})))).not.toContain(
+      '## Validation Drift'
+    );
   });
 });
 
