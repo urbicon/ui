@@ -1,0 +1,44 @@
+{
+  "name": "@urbicon-ui/design-content",
+  "version": "6.1.5",
+  "description": "Version-pinned bundle of Urbicon UI design knowledge — component catalog, per-component llm.txt, design-system principles + patterns, guide template and icon metadata — plus a package-relative locator. Consumed by the remote MCP server and the urbicon CLI.",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://codeberg.org/urbicon/ui.git",
+    "directory": "packages/design-content"
+  },
+  "homepage": "https://ui.urbicon.de",
+  "bugs": "https://codeberg.org/urbicon/ui/issues",
+  "keywords": [
+    "design-system",
+    "component-catalog",
+    "urbicon-ui",
+    "ai",
+    "llm"
+  ],
+  "type": "module",
+  "main": "./src/index.ts",
+  "types": "./src/index.ts",
+  "sideEffects": false,
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "files": [
+    "src",
+    "content",
+    "README.md"
+  ],
+  "scripts": {
+    "build": "echo 'no build needed — Bun runs TypeScript directly'",
+    "check": "tsc --noEmit",
+    "test": "vitest",
+    "test:run": "vitest run"
+  },
+  "devDependencies": {
+    "typescript": "catalog:",
+    "@types/node": "catalog:",
+    "vitest": "catalog:"
+  },
+  "author": "Urbicon UI Team"
+}
