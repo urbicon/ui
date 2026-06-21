@@ -241,6 +241,193 @@ describe('heuristics', () => {
     const { findings } = lintDesign(code, { skipHeuristics: true });
     expect(findings.every((f) => f.kind === 'deterministic')).toBe(true);
   });
+  it('flags uniform font-weights but not a varied scale', () => {
+    expect(
+      has(lintDesign('<span class="font-bold">x</span>'.repeat(5)).findings, 'font-weight-uniform')
+    ).toBe(true);
+    const varied =
+      '<h1 class="font-bold">A</h1><p class="font-normal">b</p><p class="font-normal">c</p><small class="font-medium">d</small><span class="font-semibold">e</span>';
+    expect(has(lintDesign(varied).findings, 'font-weight-uniform')).toBe(false);
+  });
+});
+
+describe('slop-floor rules', () => {
+  it('generic-font: flags hardcoded stacks, not family tokens', () => {
+    expect(has(lintDesign('<div class="font-[\'Arial\']">x</div>').findings, 'generic-font')).toBe(
+      true
+    );
+    expect(
+      has(
+        lintDesign('<div style="font-family: Helvetica, sans-serif">x</div>').findings,
+        'generic-font'
+      )
+    ).toBe(true);
+    expect(
+      has(lintDesign('<div class="font-sans font-bold">x</div>').findings, 'generic-font')
+    ).toBe(false);
+  });
+
+  it('arbitrary-color: flags hex/rgb literals, not var() token refs', () => {
+    expect(has(lintDesign('<div class="bg-[#3b82f6]">x</div>').findings, 'arbitrary-color')).toBe(
+      true
+    );
+    expect(
+      has(lintDesign('<div class="text-[rgb(0,0,0)]">x</div>').findings, 'arbitrary-color')
+    ).toBe(true);
+    expect(
+      has(
+        lintDesign('<div class="bg-[var(--color-surface-base)]">x</div>').findings,
+        'arbitrary-color'
+      )
+    ).toBe(false);
+  });
+
+  it('transition-all: flags the catch-all, not a specific property', () => {
+    expect(
+      has(lintDesign('<button class="transition-all">x</button>').findings, 'transition-all')
+    ).toBe(true);
+    expect(
+      has(lintDesign('<button class="transition-colors">x</button>').findings, 'transition-all')
+    ).toBe(false);
+  });
+
+  it('animated-dimensions: flags transitioning layout, not transform/opacity', () => {
+    expect(
+      has(lintDesign('<div class="transition-[width]">x</div>').findings, 'animated-dimensions')
+    ).toBe(true);
+    expect(
+      has(
+        lintDesign('<div class="transition-[opacity] transition-transform">x</div>').findings,
+        'animated-dimensions'
+      )
+    ).toBe(false);
+  });
+
+  it('magic-dimension: flags off-scale px, not scale utils, ch bounds, or hairlines', () => {
+    expect(
+      has(lintDesign('<div class="w-[317px] h-[42px]">x</div>').findings, 'magic-dimension')
+    ).toBe(true);
+    expect(
+      has(lintDesign('<div class="w-64 max-w-[65ch] h-[1px]">x</div>').findings, 'magic-dimension')
+    ).toBe(false);
+  });
+
+  it('important-modifier: flags `!util-`, not JS negation', () => {
+    expect(
+      has(lintDesign('<div class="!p-0 !bg-primary">x</div>').findings, 'important-modifier')
+    ).toBe(true);
+    expect(
+      has(lintDesign('<div class={!isOpen ? "p-0" : "p-4"}>x</div>').findings, 'important-modifier')
+    ).toBe(false);
+  });
+
+  it('inline-style: flags static CSS, not a custom property or interpolated value', () => {
+    expect(
+      has(lintDesign('<div style="padding: 12px; color: red">x</div>').findings, 'inline-style')
+    ).toBe(true);
+    expect(has(lintDesign('<div style="--progress: 40%">x</div>').findings, 'inline-style')).toBe(
+      false
+    );
+    // Dynamic, interpolated values have no static utility equivalent → legitimate.
+    expect(
+      has(lintDesign('<div style="left: {x}%; width: {w}%">x</div>').findings, 'inline-style')
+    ).toBe(false);
+  });
+
+  it('gradient-text: flags bg-clip-text', () => {
+    expect(
+      has(lintDesign('<h1 class="bg-clip-text text-transparent">x</h1>').findings, 'gradient-text')
+    ).toBe(true);
+    expect(has(lintDesign('<h1 class="text-text-primary">x</h1>').findings, 'gradient-text')).toBe(
+      false
+    );
+  });
+
+  it('grey-on-intent: flags muted text on an intent bg, not on a neutral surface', () => {
+    expect(
+      has(
+        lintDesign('<div class="bg-primary text-text-tertiary">x</div>').findings,
+        'grey-on-intent'
+      )
+    ).toBe(true);
+    expect(
+      has(lintDesign('<div class="bg-primary text-on-primary">x</div>').findings, 'grey-on-intent')
+    ).toBe(false);
+    expect(
+      has(
+        lintDesign('<div class="bg-surface-base text-text-tertiary">x</div>').findings,
+        'grey-on-intent'
+      )
+    ).toBe(false);
+  });
+
+  it('centered-bodytext: flags a centred <p>, not a centred heading', () => {
+    expect(
+      has(
+        lintDesign('<p class="text-center text-text-secondary">body copy</p>').findings,
+        'centered-bodytext'
+      )
+    ).toBe(true);
+    expect(
+      has(lintDesign('<h1 class="text-center">Title</h1>').findings, 'centered-bodytext')
+    ).toBe(false);
+  });
+
+  it('placeholder-content: flags lorem ipsum, not a real string or input placeholder', () => {
+    expect(
+      has(lintDesign('<p>Lorem ipsum dolor sit amet</p>').findings, 'placeholder-content')
+    ).toBe(true);
+    expect(
+      has(lintDesign('<input placeholder="Email address" />').findings, 'placeholder-content')
+    ).toBe(false);
+  });
+
+  it('emoji-as-icon: flags pictographic emoji, not an icon component or monochrome text glyph', () => {
+    expect(has(lintDesign('<button>🚀 Launch</button>').findings, 'emoji-as-icon')).toBe(true);
+    expect(
+      has(lintDesign('<button><RocketIcon /> Launch</button>').findings, 'emoji-as-icon')
+    ).toBe(false);
+    // Bare monochrome glyphs used as text (no emoji-presentation selector) are not flagged.
+    expect(
+      has(lintDesign('<span>✓ done · ⚠ heads up · → next</span>').findings, 'emoji-as-icon')
+    ).toBe(false);
+  });
+
+  it('heading-skip: flags h1→h3, not a sequential or shallower order', () => {
+    expect(has(lintDesign('<h1>A</h1><h3>B</h3>').findings, 'heading-skip')).toBe(true);
+    expect(has(lintDesign('<h1>A</h1><h2>B</h2><h3>C</h3>').findings, 'heading-skip')).toBe(false);
+    expect(has(lintDesign('<h2>A</h2><h1>B</h1>').findings, 'heading-skip')).toBe(false);
+  });
+
+  it('touch-target-small: flags a tiny interactive element, not a ≥44px one', () => {
+    expect(
+      has(lintDesign('<button class="h-6 px-2">x</button>').findings, 'touch-target-small')
+    ).toBe(true);
+    expect(
+      has(lintDesign('<button class="h-11 px-4">x</button>').findings, 'touch-target-small')
+    ).toBe(false);
+  });
+
+  it('justified-text: flags text-justify, not text-left', () => {
+    expect(
+      has(lintDesign('<p class="text-justify">long copy</p>').findings, 'justified-text')
+    ).toBe(true);
+    expect(has(lintDesign('<p class="text-left">long copy</p>').findings, 'justified-text')).toBe(
+      false
+    );
+  });
+
+  it('scores slop, never correctness — and fires at most once per repeated sin', () => {
+    // Three inline paint styles are one slop verdict (flat SLOP_WEIGHT), not three.
+    const code =
+      '<div style="color: red">a</div><div style="color: blue">b</div><div style="background: green">c</div>';
+    const { findings, scores } = lintDesign(code);
+    const inline = findings.filter((f) => f.ruleId === 'inline-style');
+    expect(inline).toHaveLength(1);
+    expect(inline[0]?.kind).toBe('heuristic');
+    expect(scores.correctness).toBe(100); // pure slop, correctness untouched
+    expect(scores.slop).toBe(90); // one −10, not −30
+  });
 });
 
 describe('comment masking', () => {
