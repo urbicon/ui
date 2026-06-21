@@ -121,8 +121,7 @@ src/
 │   ├── stdio.ts             Stdio transport
 │   └── http.ts              Streamable HTTP transport (per-session)
 ├── tools/                   13 tools, each self-contained
-├── design-linter/           validate_design engine: rules, token whitelist, heuristics (pure, unit-tested)
-├── design-manifest/         design.manifest.md parse/scan/edit for the design-context tools
+│                            (validate_design + design-context tools call @urbicon-ui/design-engine)
 ├── resources/               Catalog + guide resources
 ├── data/                    Loaders with in-process caching
 │   ├── catalog-loader.ts    component-catalog.json
