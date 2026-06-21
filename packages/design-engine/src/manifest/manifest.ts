@@ -9,8 +9,14 @@ import type { DesignDecision, DesignManifest, PatternUsage } from './types.js';
 
 const USAGES_HEADING = '## Pattern Usages';
 const DECISIONS_HEADING = '## Design Decisions';
-const USAGES_START =
-  '<!-- AUTO-GENERATED pattern usages — managed by sync_design_manifest; do not edit by hand -->';
+/**
+ * Stable detection prefix for the auto-generated usages block. The human-readable
+ * tail of the marker (below) may change without breaking `upsertUsagesSection` or
+ * stranding manifests written by an older version — detection keys off this prefix,
+ * not the full string.
+ */
+const USAGES_MARKER_PREFIX = '<!-- AUTO-GENERATED pattern usages';
+const USAGES_START = `${USAGES_MARKER_PREFIX} — regenerated from data-design-pattern markers; do not edit by hand -->`;
 const USAGES_END = '<!-- END pattern usages -->';
 
 /** Split leading `--- … ---` frontmatter from the body. Returns flat key→value pairs. */
@@ -112,7 +118,9 @@ function renderUsagesBlock(usages: PatternUsage[]): string {
 /** Replace the auto-generated usages block (or insert the section) — everything else is untouched. */
 export function upsertUsagesSection(content: string, usages: PatternUsage[]): string {
   const block = renderUsagesBlock(usages);
-  const startIdx = content.indexOf(USAGES_START);
+  // Detect by the stable prefix, not the full marker, so a manifest written by an
+  // older version (different marker tail) is still found and replaced, not doubled.
+  const startIdx = content.indexOf(USAGES_MARKER_PREFIX);
   if (startIdx !== -1) {
     const endIdx = content.indexOf(USAGES_END, startIdx);
     if (endIdx !== -1) {
@@ -193,8 +201,8 @@ export function createManifestTemplate(opts: {
     '',
     'The persistent design intent for this project. Frontmatter records the enforced intake',
     'decisions (paradigm, theme, density). `## Pattern Usages` is regenerated from',
-    '`data-design-pattern` markers by `sync_design_manifest`. `## Design Decisions` is an',
-    'append-only ADR log written by `record_design_decision`.',
+    '`data-design-pattern` markers by `urbicon sync-manifest`. `## Design Decisions` is an',
+    'append-only ADR log written by `urbicon record-decision`.',
     '',
     USAGES_HEADING,
     '',
@@ -223,7 +231,7 @@ export function formatContext(manifest: DesignManifest): string {
   md += '## Pattern Usages\n\n';
   if (manifest.usages.length === 0) {
     md +=
-      '_None recorded._ Add `data-design-pattern="<name>"` to page roots, then run `sync_design_manifest`.\n\n';
+      '_None recorded._ Add `data-design-pattern="<name>"` to page roots, then run `urbicon sync-manifest`.\n\n';
   } else {
     const byPattern = new Map<string, string[]>();
     for (const u of manifest.usages) {
@@ -238,7 +246,7 @@ export function formatContext(manifest: DesignManifest): string {
   md += '## Design Decisions\n\n';
   if (manifest.decisions.length === 0) {
     md +=
-      '_None recorded._ Use `record_design_decision` when you deviate from a pattern or principle.\n';
+      '_None recorded._ Use `urbicon record-decision` when you deviate from a pattern or principle.\n';
   } else {
     for (const d of manifest.decisions) {
       md += `- **${d.date} — ${d.title}** (${d.status}): ${d.decision}\n`;

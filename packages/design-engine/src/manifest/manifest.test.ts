@@ -128,7 +128,7 @@ describe('formatContext', () => {
   it('guides the user when the manifest is empty', () => {
     const out = formatContext(parseManifest(createManifestTemplate({})));
     expect(out).toContain('data-design-pattern');
-    expect(out).toContain('record_design_decision');
+    expect(out).toContain('urbicon record-decision');
   });
 });
 

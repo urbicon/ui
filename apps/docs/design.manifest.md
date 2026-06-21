@@ -8,12 +8,12 @@ density: comfortable
 
 The persistent design intent for this project. Frontmatter records the enforced intake
 decisions (paradigm, theme, density). `## Pattern Usages` is regenerated from
-`data-design-pattern` markers by `sync_design_manifest`. `## Design Decisions` is an
-append-only ADR log written by `record_design_decision`.
+`data-design-pattern` markers by `urbicon sync-manifest`. `## Design Decisions` is an
+append-only ADR log written by `urbicon record-decision`.
 
 ## Pattern Usages
 
-<!-- AUTO-GENERATED pattern usages — managed by sync_design_manifest; do not edit by hand -->
+<!-- AUTO-GENERATED pattern usages — regenerated from data-design-pattern markers; do not edit by hand -->
 
 - `dashboard` — src/routes/recipes/dashboard/+page.svelte
 
