@@ -5,8 +5,7 @@ import {
   getDataDir,
   getRecipeDir,
   getTemplateDir,
-  getTemplatePath,
-  isWithinProjectDir
+  getTemplatePath
 } from './paths.js';
 
 describe('paths', () => {
@@ -18,27 +17,6 @@ describe('paths', () => {
     } else {
       process.env.DATA_DIR = originalDataDir;
     }
-  });
-
-  describe('isWithinProjectDir', () => {
-    const original = process.env.DESIGN_PROJECT_DIR;
-    beforeEach(() => {
-      process.env.DESIGN_PROJECT_DIR = '/home/user/app';
-    });
-    afterEach(() => {
-      if (original === undefined) delete process.env.DESIGN_PROJECT_DIR;
-      else process.env.DESIGN_PROJECT_DIR = original;
-    });
-
-    it('accepts paths inside the project root', () => {
-      expect(isWithinProjectDir('/home/user/app/design.manifest.md')).toBe(true);
-      expect(isWithinProjectDir('/home/user/app/docs/design.manifest.md')).toBe(true);
-    });
-    it('rejects paths outside the project root', () => {
-      expect(isWithinProjectDir('/etc/motd.md')).toBe(false);
-      expect(isWithinProjectDir('/home/user/app/../other/x.md')).toBe(false);
-      expect(isWithinProjectDir('/home/user/application/x.md')).toBe(false); // prefix-but-not-child
-    });
   });
 
   describe('getDataDir', () => {

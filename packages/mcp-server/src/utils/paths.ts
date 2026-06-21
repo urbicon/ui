@@ -1,4 +1,4 @@
-import { dirname, normalize, resolve, sep } from 'node:path';
+import { dirname, normalize, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
@@ -18,37 +18,6 @@ export function getRecipeDir(): string {
 
 export function getDesignSystemDir(): string {
   return process.env.DESIGN_SYSTEM_DIR ?? resolve(packageRoot, '..', '..', 'design-system');
-}
-
-/**
- * Root of the *consumer* project (the app being built with Urbicon UI), used by
- * the design-context tools. Unlike the loaders above — which read the library's
- * own shipped data — these tools read/write the consumer's `design.manifest.md`
- * and scan its source, so the default is the process cwd (the consumer's repo
- * when the server is launched from their editor). Override with env vars.
- */
-export function getProjectDir(): string {
-  return process.env.DESIGN_PROJECT_DIR ?? process.cwd();
-}
-
-export function getProjectManifestPath(): string {
-  return process.env.DESIGN_MANIFEST_PATH ?? resolve(getProjectDir(), 'design.manifest.md');
-}
-
-export function getProjectSourceDir(): string {
-  return process.env.DESIGN_SOURCE_DIR ?? resolve(getProjectDir(), 'src');
-}
-
-/**
- * Containment check for a caller-supplied manifest path. The write tools accept
- * an LLM-supplied `manifestPath`; restrict it to the project root so a model
- * cannot be steered into writing `.md` files elsewhere. (The user-configured
- * `DESIGN_MANIFEST_PATH` env default is trusted and not run through this.)
- */
-export function isWithinProjectDir(targetPath: string): boolean {
-  const resolved = resolve(targetPath);
-  const projectDir = normalize(getProjectDir());
-  return resolved === projectDir || resolved.startsWith(projectDir + sep);
 }
 
 export function getTemplatePath(): string {

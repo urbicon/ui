@@ -5,8 +5,10 @@ import { z } from 'zod';
  * MCP prompts that ship the *process* — the generate → validate → judge →
  * synthesise loop (docs/DESIGN-MCP.md, Option E). MCP prompts are the
  * client-agnostic way to deliver a workflow: any MCP client (Claude Code,
- * Cursor, …) can invoke them, and they orchestrate the server's own tools
- * (get_design_context, get_pattern, validate_design, get_design_principles).
+ * Cursor, …) can invoke them, and they orchestrate the server's read-only tools
+ * (get_pattern, validate_design, get_design_principles). Manifest state lives in
+ * the consumer's repo — read/written with the agent's own file tools or the
+ * `urbicon` CLI, never by this stateless server.
  *
  * The creative loop itself runs in the consumer's harness (it needs file access
  * and iteration); these prompts encode the steps so a single-shot generation
@@ -41,13 +43,13 @@ export function designPagePrompt(
 
 Run this loop. Do not skip steps — a single-shot answer regresses to a generic template.
 
-1. **Context.** Call \`get_design_context\` and honour the project's paradigm, theme, density, and recorded decisions (ADRs). Then ${patternStep(pattern)}.
+1. **Context.** Read the project's \`./design.manifest.md\` — your own file tools, or \`urbicon context\` if the package is installed — and honour its paradigm, theme, density, and recorded decisions (ADRs). Then ${patternStep(pattern)}.
 2. **Ground rules.** Call \`get_design_principles\` for the heuristics and \`get_css_reference\` for the exact token names. Note the paradigm's token profile via \`get_design_principles(topic="theming")\`.
 3. **Generate ${n} variants.** Produce ${n} genuinely different implementations, each taking a distinct compositional approach *within* the paradigm — vary density, hierarchy emphasis, and the one signature moment. Do not let them converge. Use only real semantic tokens (no \`bg-status-*\`, no invented names).
 4. **Validate.** Run \`validate_design\` on every variant. Fix each error and warning. A variant that cannot pass is disqualified.
 5. **Judge.** Call \`get_design_principles(as="rubric")\` and score each surviving variant /40. Prefer a panel: judge correctness, hierarchy, paradigm-fidelity, and distinctiveness as separate lenses rather than one overall gut number.
 6. **Synthesise.** Pick the winner, then graft the best ideas from the runners-up. Run \`validate_design\` once more on the merged result — it must come back clean.
-7. **Record.** If the page follows a pattern, add \`data-design-pattern="<name>"\` to its root element and call \`sync_design_manifest\`. If you deviated from a pattern or principle on purpose, call \`record_design_decision\`.
+7. **Record.** If the page follows a pattern, add \`data-design-pattern="<name>"\` to its root element and refresh the manifest's Pattern Usages (\`urbicon sync-manifest\`, or edit \`./design.manifest.md\` yourself). If you deviated from a pattern or principle on purpose, append an ADR (\`urbicon record-decision\`, or add it to \`./design.manifest.md\`).
 
 ${FOOTER}`;
 }
@@ -67,13 +69,13 @@ export function redesignPrompt(
 
 Run a diagnosis-first loop:
 
-1. **Context.** Call \`get_design_context\` to recover the project's paradigm, theme, and prior decisions.
+1. **Context.** Read \`./design.manifest.md\` — your own file tools, or \`urbicon context\` — to recover the project's paradigm, theme, and prior decisions.
 2. **Diagnose.** Run \`validate_design\` on the current code, then call \`get_design_principles(as="rubric")\` and score the current page /40. Your revision targets are **every linter finding** plus the **two lowest-scoring criteria** — nothing else.
 3. **Generate ${n} variants** that fix exactly those weaknesses. Preserve the page's behaviour, data flow, and overall structure; change only what the diagnosis flagged. Use only real tokens.
 4. **Validate.** Run \`validate_design\` on each; fix every error and warning.
 5. **Judge.** Re-score each variant with the rubric. A redesign that does not beat the original on its target criteria is not shippable.
 6. **Synthesise.** Merge the best result, then run \`validate_design\` once more.
-7. **Record.** Call \`record_design_decision\` for any deliberate deviation; \`sync_design_manifest\` if pattern usage changed.
+7. **Record.** Append an ADR for any deliberate deviation (\`urbicon record-decision\`, or edit \`./design.manifest.md\`); refresh Pattern Usages (\`urbicon sync-manifest\`) if pattern usage changed.
 
 End with a before/after table of the targeted criteria (old score → new score) and ${FOOTER.toLowerCase()}`;
 }

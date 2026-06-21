@@ -7,13 +7,10 @@ import { registerFindIconsTool } from './tools/find-icons.js';
 import { registerGetChecklistTool } from './tools/get-checklist.js';
 import { registerGetComponentTool } from './tools/get-component.js';
 import { registerGetCssReferenceTool } from './tools/get-css-reference.js';
-import { registerGetDesignContextTool } from './tools/get-design-context.js';
 import { registerGetDesignPrinciplesTool } from './tools/get-design-principles.js';
 import { registerGetPatternTool } from './tools/get-pattern.js';
 import { registerGetRecipeTool } from './tools/get-recipe.js';
-import { registerRecordDesignDecisionTool } from './tools/record-design-decision.js';
 import { registerSuggestImplementationTool } from './tools/suggest-implementation.js';
-import { registerSyncDesignManifestTool } from './tools/sync-design-manifest.js';
 import { registerValidateDesignTool } from './tools/validate-design.js';
 
 export function createServer(): McpServer {
@@ -26,7 +23,10 @@ export function createServer(): McpServer {
   registerCatalogResource(server);
   registerGuideResources(server);
 
-  // Tools
+  // Tools — all read-only. Manifest read/write (context · record-decision ·
+  // sync-manifest) lives in the consumer's repo via the `urbicon` CLI or the
+  // agent's own file tools, not on this stateless remote server.
+  // See docs/internal/DESIGN-MCP-V2.md.
   registerFindComponentsTool(server);
   registerGetComponentTool(server);
   registerGetRecipeTool(server);
@@ -37,9 +37,6 @@ export function createServer(): McpServer {
   registerGetDesignPrinciplesTool(server);
   registerGetPatternTool(server);
   registerValidateDesignTool(server);
-  registerGetDesignContextTool(server);
-  registerRecordDesignDecisionTool(server);
-  registerSyncDesignManifestTool(server);
 
   // Prompts — the deliverable design process (Option E)
   registerDesignPrompts(server);

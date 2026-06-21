@@ -62,7 +62,7 @@ For Cursor: see [Cursor's MCP docs](https://docs.cursor.com/context/model-contex
 
 ## Tools
 
-Most tools are read-only (`readOnlyHint: true`). The two manifest-writing tools (`record_design_decision`, `sync_design_manifest`) write `design.manifest.md` in the project root. Queries are Zod-validated.
+All tools are read-only (`readOnlyHint: true`) — this server never touches the consumer's filesystem. Queries are Zod-validated. (Manifest read/write moved to the `urbicon` CLI in [`@urbicon-ui/design`](../design/); a stateless remote server cannot reach a consumer's repo.)
 
 | Tool                           | Purpose                                                                                                                                                                                                                                                                |
 | ------------------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -76,9 +76,6 @@ Most tools are read-only (`readOnlyHint: true`). The two manifest-writing tools 
 | `get_design_principles`        | Design heuristics (Layer 5): visual hierarchy, interaction, component selection, layout, accessibility, theming (paradigms, change decision tree). Call first when generating UI. `as="rubric"` returns the 8-criterion 1–5 scoring rubric for judging a generated UI. |
 | `get_pattern`                  | Composition patterns (Layer 4) for page archetypes — settings-page, dashboard, form-page, tab-navigation, onboarding-guide.                                                                                                                                            |
 | `validate_design`              | Lint generated markup against the design rules — raw colours, `dark:`/`focus:` misuse, hardcoded z-index, broken dynamic classes, hallucinated tokens, plus distribution heuristics. Returns a 0–100 score and per-finding fixes for a generate → validate → fix loop. |
-| `get_design_context`           | Read the project's `design.manifest.md`: chosen paradigm/theme/density, which pages use which composition patterns, and recorded design decisions (ADRs). Call at the start of a UI task to stay consistent with prior decisions.                                      |
-| `record_design_decision`       | Append a design decision (ADR) to the manifest — record a deliberate deviation from a pattern or principle so future sessions honour it. Writes `design.manifest.md`.                                                                                                  |
-| `sync_design_manifest`         | Scan the project source for `data-design-pattern` markers and regenerate the manifest's Pattern Usages index — makes a pattern change tractable (grep the markers → migrate every listed file).                                                                        |
 
 ## Resources
 
@@ -120,8 +117,8 @@ src/
 ├── transports/
 │   ├── stdio.ts             Stdio transport
 │   └── http.ts              Streamable HTTP transport (per-session)
-├── tools/                   13 tools, each self-contained
-│                            (validate_design + design-context tools call @urbicon-ui/design-engine)
+├── tools/                   10 tools, each self-contained
+│                            (validate_design calls @urbicon-ui/design-engine)
 ├── resources/               Catalog + guide resources
 ├── data/                    Loaders with in-process caching
 │   ├── catalog-loader.ts    component-catalog.json

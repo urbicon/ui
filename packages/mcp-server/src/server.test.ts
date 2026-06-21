@@ -25,10 +25,7 @@ const EXPECTED_TOOLS = [
   'find_icons',
   'get_design_principles',
   'get_pattern',
-  'validate_design',
-  'get_design_context',
-  'record_design_decision',
-  'sync_design_manifest'
+  'validate_design'
 ] as const;
 
 describe('createServer', () => {

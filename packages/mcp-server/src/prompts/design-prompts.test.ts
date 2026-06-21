@@ -17,14 +17,14 @@ describe('designPagePrompt', () => {
   it('embeds the brief and drives the full loop in order', () => {
     const p = designPagePrompt('a billing settings page', undefined, '4');
     expect(p).toContain('a billing settings page');
-    for (const tool of [
-      'get_design_context',
+    for (const marker of [
+      'design.manifest.md',
       'get_design_principles',
       'validate_design',
       'get_design_principles(as="rubric")',
-      'sync_design_manifest'
+      'urbicon sync-manifest'
     ]) {
-      expect(p, tool).toContain(tool);
+      expect(p, marker).toContain(marker);
     }
     expect(p).toContain('Generate 4 variants');
   });
