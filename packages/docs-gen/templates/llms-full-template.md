@@ -935,6 +935,17 @@ import { authDeps } from '$lib/server/auth-setup';
 export const handle = createAuthHandle({ config: authDeps.config, repos: authDeps.repos });
 ```
 
+**Note — Origin/CSRF is enforced only for requests routed _through_ the handle.** If you later
+add a cross-origin, form-encoded endpoint (an OAuth 2.1 token endpoint, a webhook) _around_
+`createAuthHandle`, SvelteKit's own built-in `csrf.checkOrigin` — which runs in the request
+kernel before any hook, in production builds only — rejects it with `403 "Cross-site POST form
+submissions are forbidden"` (most visibly the OAuth token endpoint: RFC 6749 mandates
+`application/x-www-form-urlencoded` and its callers send no `Origin` header). Set
+`kit.csrf: { trustedOrigins: ['*'] }` in `svelte.config.js` to disable the kernel check and let
+this package's stricter `validateCsrf` be the single Origin gate — safe only when every
+cookie-authenticated mutating route flows through `createAuthHandle` and the bypassed routes are
+cookieless (bearer/PKCE/API-key). JSON endpoints (e.g. MCP JSON-RPC) are unaffected.
+
 ```typescript
 // src/routes/api/auth/login/+server.ts — one file per handler
 import { createLoginHandler } from '@urbicon-ui/auth/server';

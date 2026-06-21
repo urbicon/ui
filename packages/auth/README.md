@@ -30,7 +30,7 @@ Runtime dependencies: **none**.
 | Two-factor (2FA) | Opt-in TOTP second factor via `config.twoFactor` + `repos.backupCode`: zero-dep RFC-6238/4226 codes, AES-256-GCM-encrypted secret at rest, signed short-lived pending-2FA cookie between password and code, single-use SHA-256 backup codes, strict per-step rate-limit. Login two-step + `TwoFactorManager` UI. Passkey logins are not gated. | RFC 6238, 4226, 4648    |
 | Web Push         | ECDH P-256 + HKDF + AES-128-GCM, VAPID JWT signing, opt-in per-endpoint rate-limit (since v0.10.0)                                                                                                                                                                                                                                             | RFC 8291, 8292, 8188    |
 | Email            | Transport interface, Lettermint adapter + console logger (dev)                                                                                                                                                                                                                                                                                 | —                       |
-| CSRF             | Origin-header validation (always on) + opt-in Double-Submit-Cookie (since v0.8.4), optional `__Host-` cookie prefix (`csrf.useHostPrefix`) against subdomain injection                                                                                                                                                                         | —                       |
+| CSRF             | Origin-header validation (always on for requests routed through `createAuthHandle`) + opt-in Double-Submit-Cookie (since v0.8.4), optional `__Host-` cookie prefix (`csrf.useHostPrefix`) against subdomain injection                                                                                                                          | —                       |
 | Rate-limit       | Pluggable store (in-memory default, optional Redis/Prisma/etc. adapter via `RateLimitStore`), configurable window/max                                                                                                                                                                                                                          | —                       |
 | Security headers | Always on: `nosniff`, `X-Frame-Options: DENY`, `Referrer-Policy`, `Permissions-Policy`. Configurable via `config.securityHeaders`: HSTS (default `max-age=63072000; includeSubDomains`, only when `jwt.cookieSecure !== false`) + CSP hook (default `frame-ancestors 'none'`)                                                                  | —                       |
 
@@ -118,6 +118,12 @@ import { authDeps } from '$lib/server/auth-setup';
 export const handle = createAuthHandle({ config: authDeps.config, repos: authDeps.repos });
 ```
 
+> **Origin/CSRF is enforced only for requests that flow _through_ the handle.** If you
+> later route a cross-origin, form-encoded endpoint (an OAuth 2.1 token endpoint, a webhook)
+> _around_ `createAuthHandle`, SvelteKit's own built-in `csrf.checkOrigin` — which runs in
+> the request kernel before any hook, in production builds only — will `403` it. Resolution
+> and safety preconditions: [docs/AUTH.md → Known Limitations](../../docs/AUTH.md#known-limitations--security-gaps).
+
 **3. API route stubs** — one file per handler, e.g. `src/routes/api/auth/login/+server.ts`:
 
 ```typescript
@@ -165,7 +171,7 @@ export const authDeps = createAuthDeps<AppRole>({
   config: {
     jwt: { secret: env.JWT_SECRET }, // cookieSecure defaults true → HTTPS + auto HSTS
     appUrl: env.PUBLIC_APP_URL, // trusted base for email links — never request.url
-    csrf: { doubleSubmit: true }, // token layer on top of the always-on Origin check
+    csrf: { doubleSubmit: true }, // token layer on top of the handle's always-on Origin check
     refreshToken: { accessTokenTtl: '15m', refreshTokenTtl: '30d' }, // rotating refresh
     rateLimit: {
       login: { windowMs: 900_000, max: 5 },
@@ -198,6 +204,7 @@ Mirrors [docs/AUTH.md → Produktionsreife-Checkliste](../../docs/AUTH.md#produk
 - [ ] **CSP** tuned to your app (`securityHeaders.csp`) — the default only blocks framing.
 - [ ] **`appUrl`** set to the real public origin; **`JWT_SECRET`** from a secret store, with a `keyId` + `previousSecrets` rotation runbook ready.
 - [ ] **Monitoring** on auth-handler latency + error rate; wire `hooks.onPasswordResetFailed` to your error tracker so a broken mail transport doesn't silently lock users out of recovery.
+- [ ] **Cross-origin form-encoded endpoint outside the handle?** (OAuth 2.1 token, webhook) — set `kit.csrf: { trustedOrigins: ['*'] }` in `svelte.config.js` (SvelteKit's kernel CSRF check, production-only, otherwise `403`s it before the hook) and confirm every cookie-auth mutating route still flows through `createAuthHandle`. See [docs/AUTH.md → Known Limitations](../../docs/AUTH.md#known-limitations--security-gaps).
 
 #### CSRF on the client
 
@@ -353,7 +360,7 @@ Setup returns the `otpauth://` URI + Base32 secret (the core ships **no** QR enc
 
 - **`notification.url` is untrusted at navigation time.** It originates from your event registry, but treat it as data: validate/allow-list it before passing it to `goto()` so a crafted URL can't drive an open redirect.
 - **The console email transport is dev-only.** It logs full email bodies (including reset/verify tokens) to stdout — never ship it to production.
-- **`createAuthHandle` is mandatory for CSRF and session hydration.** Route handlers alone don't apply the Origin/Double-Submit checks or set `locals.user`.
+- **`createAuthHandle` is mandatory for CSRF and session hydration.** Route handlers alone don't apply the Origin/Double-Submit checks or set `locals.user`. The Origin check covers only requests routed _through_ the handle; a cross-origin, form-encoded endpoint bypassing it is instead gated by SvelteKit's own kernel CSRF check, which `403`s it before any hook (production only) — see [docs/AUTH.md → Known Limitations](../../docs/AUTH.md#known-limitations--security-gaps).
 - **Notification mark-read / delete must scope by the authenticated user.** In those route handlers derive `userId` from `locals.user`, never from the request body — otherwise one user can mutate another's notifications (IDOR).
 - **`recipients: 'admins'` needs a resolver.** The package has no role model, so pass `resolveAdminRecipients` (e.g. `() => repo.findAdminUserIds()`) to `createNotificationService` for any type that targets admins. Without it `send()` **throws** rather than silently dropping the alert. Push-delivery failures are swallowed (one bad subscription mustn't break a send) — pass `onPushResult` to observe them; dead endpoints (410/404) are pruned automatically.
 
@@ -378,7 +385,7 @@ Summarised here; full catalog with severity and fix-plan in [docs/AUTH.md](../..
 - **Challenge store is pluggable.** Default is an in-memory Map; pass a `ChallengeStore` implementation via `webauthn.challengeStore` for Redis/Prisma/Upstash.
 - **Rate-limit store is pluggable.** Default is in-memory; pass a `RateLimitStore` implementation via `config.rateLimit.*.store` for Redis/Prisma/Upstash.
 - **Refresh-token store is pluggable.** Default is in-memory (single-process only); pass a `RefreshTokenRepository` via `repos.refreshToken` for Prisma / Redis / Upstash. The Prisma adapter is bundled.
-- **Double-Submit-Cookie CSRF is opt-in.** Origin-check is always on; to enable the additional token layer set `config.csrf = { doubleSubmit: true }`. Recommended for production.
+- **Double-Submit-Cookie CSRF is opt-in.** Origin-check is always on for requests routed through `createAuthHandle` (a separate, production-only SvelteKit kernel check guards handle-bypassed cross-origin form posts — see the linked catalog); to enable the additional token layer set `config.csrf = { doubleSubmit: true }`. Recommended for production.
 - **Refresh-token rotation is opt-in.** Without `config.refreshToken` the package keeps the single-cookie 7-day JWT flow. Enable rotation via `config.refreshToken = {}` plus a persistent `repos.refreshToken`.
 - **WebAuthn User-Verification (UV) is opt-in.** UP is always enforced; enable UV by setting `webauthn.requireUserVerification: true`.
 - **Lockout is account-based, rate-limiting is per-IP.** An attacker with many IPs can lock a known account (classic lockout-DoS trade-off). Set `lockout: null` to rely on the per-IP rate-limit alone; the default keeps lockout on as the higher-value protection.

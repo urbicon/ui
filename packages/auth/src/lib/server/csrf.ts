@@ -67,6 +67,15 @@ export function generateCsrfToken(): string {
  * token in the CSRF cookie must match the token sent in the CSRF header.
  * This defends against CORS-related attacks that can satisfy the Origin
  * check but cannot read the cookie set by the server.
+ *
+ * Independent of SvelteKit's built-in `kit.csrf.checkOrigin`, which runs in
+ * the request kernel *before* any hook and so still gates handle-bypassed
+ * routes. This check is stricter — all mutating methods, all content types
+ * (incl. JSON), no `trustedOrigins` allow-list — i.e. a strict superset of
+ * the kernel gate for every request routed through `createAuthHandle`. A
+ * consumer exposing a cross-origin form-encoded endpoint *outside* the handle
+ * must turn the kernel check off (`kit.csrf.trustedOrigins: ['*']`) and rely
+ * on this gate. See docs/AUTH.md → Known Limitations & Security Gaps.
  */
 export function validateCsrf(request: Request, url: URL, options?: CsrfValidateOptions): boolean {
   if (request.method === 'GET' || request.method === 'HEAD') return true;
