@@ -1,11 +1,11 @@
 import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
+import { renderRubric } from '@urbicon-ui/design-engine/rubric';
 import { z } from 'zod';
 import {
   extractPrincipleSection,
   loadPrinciples,
   PRINCIPLE_TOPICS
 } from '../data/design-system-loader.js';
-import { renderRubric } from '../design-rubric/rubric.js';
 
 export function registerGetDesignPrinciplesTool(server: McpServer): void {
   server.tool(

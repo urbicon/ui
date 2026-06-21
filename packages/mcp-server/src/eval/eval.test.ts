@@ -1,5 +1,5 @@
+import { RUBRIC_CRITERIA } from '@urbicon-ui/design-engine/rubric';
 import { describe, expect, it } from 'vitest';
-import { RUBRIC_CRITERIA } from '../design-rubric/rubric.js';
 import { EVAL_BRIEFS, getBriefById } from './briefs.js';
 import type { EvalEntry } from './score.js';
 import { aggregateRubric, formatAbReport, scoreImplementation } from './score.js';

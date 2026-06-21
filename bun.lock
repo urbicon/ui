@@ -107,6 +107,15 @@
         "svelte": "catalog:",
       },
     },
+    "packages/design-engine": {
+      "name": "@urbicon-ui/design-engine",
+      "version": "6.1.5",
+      "devDependencies": {
+        "@types/node": "catalog:",
+        "typescript": "catalog:",
+        "vitest": "catalog:",
+      },
+    },
     "packages/docs": {
       "name": "@urbicon-ui/docs",
       "version": "6.1.5",
@@ -191,6 +200,7 @@
       },
       "dependencies": {
         "@modelcontextprotocol/sdk": "^1.29.0",
+        "@urbicon-ui/design-engine": "workspace:*",
         "zod": "^4.3.6",
       },
       "devDependencies": {
@@ -258,6 +268,7 @@
     },
   },
   "trustedDependencies": [
+    "@urbicon-ui/design-engine",
     "@urbicon-ui/docs-gen",
     "@urbicon-ui/sveltekit-utils",
     "@urbicon-ui/table",
@@ -569,6 +580,8 @@
     "@urbicon-ui/auth": ["@urbicon-ui/auth@workspace:packages/auth"],
 
     "@urbicon-ui/blocks": ["@urbicon-ui/blocks@workspace:packages/blocks"],
+
+    "@urbicon-ui/design-engine": ["@urbicon-ui/design-engine@workspace:packages/design-engine"],
 
     "@urbicon-ui/docs": ["@urbicon-ui/docs@workspace:packages/docs"],
 

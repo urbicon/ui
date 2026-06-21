@@ -5,12 +5,12 @@ import { describe, expect, it } from 'vitest';
 import { VALID_TOKEN_CORES } from './tokens.js';
 
 /**
- * Drift guard: the hardcoded {@link VALID_TOKEN_CORES} is the mcp-server's
+ * Drift guard: the hardcoded {@link VALID_TOKEN_CORES} is the design-engine's
  * standalone copy of the design tokens. When the blocks CSS source is present
  * (i.e. running inside the monorepo) we re-derive the token cores from it and
  * assert the two agree exactly. Any token added to / removed from the CSS that
  * is not mirrored here will fail this test — keeping the hallucination detector
- * honest. The mcp-server ships without the CSS, so this can only run in-repo.
+ * honest. The design-engine ships without the CSS, so this can only run in-repo.
  */
 
 const __dirname = dirname(fileURLToPath(import.meta.url));

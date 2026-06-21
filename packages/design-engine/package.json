@@ -1,0 +1,46 @@
+{
+  "name": "@urbicon-ui/design-engine",
+  "version": "6.1.5",
+  "description": "Deterministic design engine for Urbicon UI — the zero-dependency design linter, manifest parser and quality rubric that power the design loop (validate · context · judge).",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://codeberg.org/urbicon/ui.git",
+    "directory": "packages/design-engine"
+  },
+  "homepage": "https://ui.urbicon.de",
+  "bugs": "https://codeberg.org/urbicon/ui/issues",
+  "keywords": [
+    "design-system",
+    "linter",
+    "design-tokens",
+    "urbicon-ui",
+    "ai"
+  ],
+  "type": "module",
+  "main": "./src/index.ts",
+  "types": "./src/index.ts",
+  "sideEffects": false,
+  "exports": {
+    ".": "./src/index.ts",
+    "./linter": "./src/linter/index.ts",
+    "./manifest": "./src/manifest/index.ts",
+    "./rubric": "./src/rubric/index.ts"
+  },
+  "files": [
+    "src",
+    "README.md"
+  ],
+  "scripts": {
+    "build": "echo 'no build needed — Bun runs TypeScript directly'",
+    "check": "tsc --noEmit",
+    "test": "vitest",
+    "test:run": "vitest run"
+  },
+  "devDependencies": {
+    "typescript": "catalog:",
+    "@types/node": "catalog:",
+    "vitest": "catalog:"
+  },
+  "author": "Urbicon UI Team"
+}

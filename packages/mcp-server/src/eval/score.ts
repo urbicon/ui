@@ -7,8 +7,8 @@
  * tables, so a new run is directly comparable to that +33.8% baseline.
  */
 
-import { lintDesign } from '../design-linter/index.js';
-import { MAX_RUBRIC_SCORE, RUBRIC_CRITERIA } from '../design-rubric/rubric.js';
+import { lintDesign } from '@urbicon-ui/design-engine/linter';
+import { MAX_RUBRIC_SCORE, RUBRIC_CRITERIA } from '@urbicon-ui/design-engine/rubric';
 
 export interface LinterScore {
   /** 0–100 deterministic design-linter score. */

@@ -1,7 +1,11 @@
 import { readFile, writeFile } from 'node:fs/promises';
 import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
+import {
+  appendDecision,
+  createManifestTemplate,
+  parseManifest
+} from '@urbicon-ui/design-engine/manifest';
 import { z } from 'zod';
-import { appendDecision, createManifestTemplate, parseManifest } from '../design-manifest/index.js';
 import { getProjectManifestPath, isWithinProjectDir } from '../utils/paths.js';
 
 export function registerRecordDesignDecisionTool(server: McpServer): void {

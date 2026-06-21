@@ -24,6 +24,7 @@
     {
       "includes": [
         "packages/mcp-server/**",
+        "packages/design-engine/**",
         "packages/docs-gen/**",
         "packages/blocks/src/lib/utils/variants.ts"
       ],

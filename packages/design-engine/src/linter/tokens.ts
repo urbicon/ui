@@ -5,7 +5,7 @@
  * SOURCE OF TRUTH: `packages/blocks/src/lib/style/{foundation,semantic}.css`
  * (the `--color-*` custom properties). This list is hand-maintained but guarded
  * against drift by `tokens.test.ts`, which re-derives the set from the CSS when
- * run inside the monorepo and fails on any mismatch. The mcp-server ships
+ * run inside the monorepo and fails on any mismatch. The design-engine ships
  * standalone (no access to the blocks source at runtime), so the data must live
  * here, not be read from disk.
  *

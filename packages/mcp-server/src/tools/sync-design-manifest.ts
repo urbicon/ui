@@ -1,12 +1,12 @@
 import { readFile, writeFile } from 'node:fs/promises';
 import { dirname } from 'node:path';
 import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
-import { z } from 'zod';
 import {
   createManifestTemplate,
   scanMarkers,
   upsertUsagesSection
-} from '../design-manifest/index.js';
+} from '@urbicon-ui/design-engine/manifest';
+import { z } from 'zod';
 import { getProjectManifestPath, getProjectSourceDir, isWithinProjectDir } from '../utils/paths.js';
 
 export function registerSyncDesignManifestTool(server: McpServer): void {

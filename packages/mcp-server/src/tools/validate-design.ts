@@ -1,7 +1,7 @@
 import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
+import type { Finding, LintReport, Severity } from '@urbicon-ui/design-engine/linter';
+import { lintDesign } from '@urbicon-ui/design-engine/linter';
 import { z } from 'zod';
-import type { Finding, LintReport, Severity } from '../design-linter/index.js';
-import { lintDesign } from '../design-linter/index.js';
 
 const SEVERITY_LABEL: Record<Severity, string> = {
   error: '🔴 Errors',

@@ -1,7 +1,7 @@
 import { readFile } from 'node:fs/promises';
 import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
+import { emptyManifest, formatContext, parseManifest } from '@urbicon-ui/design-engine/manifest';
 import { z } from 'zod';
-import { emptyManifest, formatContext, parseManifest } from '../design-manifest/index.js';
 import { getProjectManifestPath } from '../utils/paths.js';
 
 export function registerGetDesignContextTool(server: McpServer): void {
