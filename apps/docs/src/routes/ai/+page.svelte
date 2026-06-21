@@ -14,7 +14,7 @@
   }
 }`;
 
-  const mcpToolsExample = `// 13 tools via MCP. Discovery & generation:
+  const mcpToolsExample = `// 10 tools via MCP. Discovery & generation:
 
 find_components({ query: "date input", tags: ["form"] })
 // → Fuzzy search with scoring across all components
@@ -36,8 +36,8 @@ validate_design({ code })
 get_design_principles({ as: "rubric" })
 // → 8-criterion scoring rubric to judge a generated UI
 
-get_design_context()
-// → Project paradigm, pattern usages and decisions (design.manifest.md)`;
+// Project memory (design.manifest.md) is maintained locally by the urbicon CLI,
+// not via remote tools — a stateless server can't reach your repo.`;
 
   const llmsTxtExample = `# llms.txt (quick reference)
 # llms-full.txt (complete API for all 40+ components)
@@ -63,7 +63,7 @@ let { variant, intent } = $props();`;
 
 <SeoMeta
   title="AI & Developer Experience"
-  description="AI-native developer experience: MCP server with 13 tools and 2 design prompts, per-component llms.txt, .cursorrules. Built for Claude, Cursor, and AI-assisted workflows."
+  description="AI-native developer experience: MCP server with 10 tools and 2 design prompts, per-component llms.txt, .cursorrules. Built for Claude, Cursor, and AI-assisted workflows."
 />
 
 <div class="mx-auto max-w-4xl px-6 py-12">
@@ -84,14 +84,15 @@ let { variant, intent } = $props();`;
   <section class="mb-12">
     <h2 class="text-text-primary mb-2 text-2xl font-bold">MCP Server</h2>
     <p class="text-text-secondary mb-6">
-      The Model Context Protocol server exposes 13 tools, 2 design prompts and 7 guide resources.
-      Connect it to your IDE or AI assistant for real-time component discovery, code generation, and
-      a closed design loop: generate UI, lint it with <code
+      The Model Context Protocol server exposes 10 read-only tools, 2 design prompts and 7 guide
+      resources. Connect it to your IDE or AI assistant for real-time component discovery, code
+      generation, and a closed design loop: generate UI, lint it with <code
         class="bg-surface-elevated rounded px-1.5 py-0.5 font-mono text-xs">validate_design</code
       >, judge it against a scoring rubric, and keep design intent across sessions in a
       <code class="bg-surface-elevated rounded px-1.5 py-0.5 font-mono text-xs"
         >design.manifest.md</code
-      >.
+      >, maintained locally by the
+      <code class="bg-surface-elevated rounded px-1.5 py-0.5 font-mono text-xs">urbicon</code> CLI.
     </p>
 
     <CodeExample title="Setup" code={mcpSetupExample} language="json" preview={false} />
@@ -107,13 +108,12 @@ let { variant, intent } = $props();`;
 
     <div class="mt-6 grid grid-cols-1 gap-4 md:grid-cols-2">
       <Card variant="elevated" padding="md">
-        <h3 class="text-text-primary mb-1 font-semibold">13 Tools</h3>
+        <h3 class="text-text-primary mb-1 font-semibold">10 Tools</h3>
         <p class="text-text-secondary text-sm">
           <span class="text-text-tertiary">Discover:</span> find_components, get_component,
           find_icons · <span class="text-text-tertiary">Generate:</span> get_recipe,
           suggest_implementation, get_implementation_checklist, get_css_reference ·
-          <span class="text-text-tertiary">Design loop:</span> get_design_principles, get_pattern, validate_design,
-          get_design_context, record_design_decision, sync_design_manifest
+          <span class="text-text-tertiary">Design loop:</span> get_design_principles, get_pattern, validate_design
         </p>
       </Card>
       <Card variant="outlined" padding="md">
