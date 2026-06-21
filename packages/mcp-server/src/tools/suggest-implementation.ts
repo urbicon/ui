@@ -2,7 +2,6 @@ import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { z } from 'zod';
 import type { ComponentCatalogEntry } from '../data/catalog-loader.js';
 import { loadCatalog } from '../data/catalog-loader.js';
-import { loadRecipes } from '../data/recipe-loader.js';
 import { matchComponents } from '../utils/search.js';
 
 /** Default props and skeleton hints per component type */
@@ -104,7 +103,7 @@ export function registerSuggestImplementationTool(server: McpServer): void {
     { readOnlyHint: true, openWorldHint: true },
     async ({ description, components: requestedComponents, style }) => {
       const catalog = await loadCatalog();
-      const recipes = await loadRecipes();
+      const recipes = catalog.recipes;
 
       let matched: ComponentCatalogEntry[];
 

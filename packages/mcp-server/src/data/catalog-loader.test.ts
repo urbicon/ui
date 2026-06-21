@@ -1,6 +1,6 @@
 import { existsSync } from 'node:fs';
+import { getCatalogPath } from '@urbicon-ui/design-content';
 import { describe, expect, it } from 'vitest';
-import { getCatalogPath } from '../utils/paths.js';
 import { getCachedCatalog, loadCatalog } from './catalog-loader.js';
 
 // Integration test: exercises the real catalog JSON produced by docs-gen.

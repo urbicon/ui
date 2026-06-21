@@ -1,6 +1,6 @@
 import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { z } from 'zod';
-import { getRecipeById, loadRecipes } from '../data/recipe-loader.js';
+import { loadCatalog } from '../data/catalog-loader.js';
 
 export function registerGetRecipeTool(server: McpServer): void {
   server.tool(
@@ -15,11 +15,13 @@ export function registerGetRecipeTool(server: McpServer): void {
     },
     { readOnlyHint: true },
     async ({ scenario }) => {
-      const recipe = await getRecipeById(scenario);
+      // Recipes (with code + pattern) travel in the catalog — single source of truth,
+      // no separate read of the recipe source tree.
+      const catalog = await loadCatalog();
+      const recipe = catalog.recipes.find((r) => r.id === scenario);
 
       if (!recipe) {
-        const allRecipes = await loadRecipes();
-        const available = allRecipes.map((r) => r.id).join(', ');
+        const available = catalog.recipes.map((r) => r.id).join(', ');
         return {
           content: [
             {

@@ -1,6 +1,6 @@
 import { watch } from 'node:fs';
 import { readFile } from 'node:fs/promises';
-import { getCatalogPath } from '../utils/paths.js';
+import { getCatalogPath } from '@urbicon-ui/design-content';
 
 export interface ComponentCatalogEntry {
   name: string;

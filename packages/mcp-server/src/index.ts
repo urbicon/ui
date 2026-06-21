@@ -2,7 +2,6 @@
 
 import { loadCatalog } from './data/catalog-loader.js';
 import { loadPatterns, loadPrinciples } from './data/design-system-loader.js';
-import { loadRecipes } from './data/recipe-loader.js';
 import { loadTemplateSections } from './data/template-loader.js';
 import { createServer } from './server.js';
 import { startHttpTransport } from './transports/http.js';
@@ -11,7 +10,7 @@ import { startStdioTransport } from './transports/stdio.js';
 interface CliArgs {
   transport: 'stdio' | 'http';
   port: number;
-  dataDir?: string;
+  contentDir?: string;
 }
 
 function parseArgs(args: string[]): CliArgs {
@@ -32,8 +31,8 @@ function parseArgs(args: string[]): CliArgs {
     } else if (arg === '--port' && next) {
       result.port = parseInt(next, 10);
       i++;
-    } else if (arg === '--data-dir' && next) {
-      result.dataDir = next;
+    } else if (arg === '--content-dir' && next) {
+      result.contentDir = next;
       i++;
     }
   }
@@ -44,19 +43,13 @@ function parseArgs(args: string[]): CliArgs {
 async function main(): Promise<void> {
   const args = parseArgs(process.argv.slice(2));
 
-  if (args.dataDir) {
-    process.env.DATA_DIR = args.dataDir;
+  if (args.contentDir) {
+    process.env.URBICON_CONTENT_DIR = args.contentDir;
   }
 
-  // Pre-load cached data
+  // Pre-load cached data (recipes travel inside the catalog).
   try {
-    await Promise.all([
-      loadCatalog(),
-      loadTemplateSections(),
-      loadRecipes(),
-      loadPrinciples(),
-      loadPatterns()
-    ]);
+    await Promise.all([loadCatalog(), loadTemplateSections(), loadPrinciples(), loadPatterns()]);
   } catch (err) {
     console.error('Warning: Failed to pre-load some data:', err);
   }

@@ -32,6 +32,7 @@
   },
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.29.0",
+    "@urbicon-ui/design-content": "workspace:*",
     "@urbicon-ui/design-engine": "workspace:*",
     "zod": "^4.3.6"
   },

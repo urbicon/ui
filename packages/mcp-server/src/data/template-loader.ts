@@ -1,5 +1,5 @@
 import { readFile } from 'node:fs/promises';
-import { getTemplatePath } from '../utils/paths.js';
+import { getTemplatePath } from '@urbicon-ui/design-content';
 
 export interface TemplateSections {
   'api-grammar': string;

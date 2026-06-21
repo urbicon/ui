@@ -1,6 +1,6 @@
 import { readdir, readFile } from 'node:fs/promises';
 import { resolve } from 'node:path';
-import { getDesignSystemDir } from '../utils/paths.js';
+import { getDesignSystemDir } from '@urbicon-ui/design-content';
 
 export interface PatternEntry {
   name: string;

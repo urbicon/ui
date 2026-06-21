@@ -1,5 +1,5 @@
 import { readFile } from 'node:fs/promises';
-import { getComponentLlmPath } from '../utils/paths.js';
+import { getComponentLlmPath } from '@urbicon-ui/design-content';
 
 const SEARCH_GROUPS = [
   'blocks/primitives',

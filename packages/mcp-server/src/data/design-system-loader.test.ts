@@ -1,7 +1,7 @@
 import { existsSync } from 'node:fs';
 import { resolve } from 'node:path';
+import { getDesignSystemDir } from '@urbicon-ui/design-content';
 import { describe, expect, it } from 'vitest';
-import { getDesignSystemDir } from '../utils/paths.js';
 import {
   extractPrincipleSection,
   getPatternByName,
