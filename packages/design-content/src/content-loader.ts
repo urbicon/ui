@@ -35,6 +35,11 @@ export function getDesignSystemDir(): string {
   return resolve(getContentDir(), 'design-system');
 }
 
+/** The verb-recipe copy: `<verb>.md` per design verb (DESIGN-MCP-V2 §8). */
+export function getVerbsDir(): string {
+  return resolve(getContentDir(), 'verbs');
+}
+
 /** The `llms-full` template that backs the guide resources. */
 export function getTemplatePath(): string {
   return resolve(getContentDir(), 'guides', 'llms-full-template.md');

@@ -173,12 +173,13 @@ export class DocsGeneratorCLI {
         'icons',
         'icon-registry.ts'
       ),
+      verbsDir: resolveFromDocsGen('..', 'design', 'skill', 'verbs'),
       outputDir: resolveFromDocsGen('..', 'design-content', 'content')
     });
 
     const bundleResult = await bundleEmitter.emit();
     console.log(
-      `✅ design-content bundle emitted (v${bundleResult.version}, ${bundleResult.llmTxtCount} llm.txt, ${bundleResult.patternCount} patterns, ${bundleResult.iconCount} icons, hash ${bundleResult.contentHash})`
+      `✅ design-content bundle emitted (v${bundleResult.version}, ${bundleResult.llmTxtCount} llm.txt, ${bundleResult.patternCount} patterns, ${bundleResult.verbCount} verbs, ${bundleResult.iconCount} icons, hash ${bundleResult.contentHash})`
     );
   }
 

@@ -21,6 +21,8 @@ export interface ContentBundleEmitterConfig {
   templatePath: string;
   /** `blocks/src/lib/icons/icon-registry.ts` — parsed into `icons.json`. */
   iconRegistryPath: string;
+  /** `packages/design/skill/verbs` — the single-source verb recipes (DESIGN-MCP-V2 §8). */
+  verbsDir: string;
   /** `packages/design-content/content` — the bundle output (cleaned + rewritten each run). */
   outputDir: string;
 }
@@ -29,6 +31,7 @@ export interface ContentBundleResult {
   outputDir: string;
   llmTxtCount: number;
   patternCount: number;
+  verbCount: number;
   iconCount: number;
   version: string;
   contentHash: string;
@@ -42,7 +45,8 @@ export class ContentBundleEmitter {
   }
 
   async emit(): Promise<ContentBundleResult> {
-    const { staticDir, designSystemDir, templatePath, iconRegistryPath, outputDir } = this.config;
+    const { staticDir, designSystemDir, templatePath, iconRegistryPath, verbsDir, outputDir } =
+      this.config;
 
     // Rebuild from scratch so a removed/renamed component leaves no stale llm.txt.
     await fs.rm(outputDir, { recursive: true, force: true });
@@ -72,18 +76,22 @@ export class ContentBundleEmitter {
       path.join(outputDir, 'design-system')
     );
 
-    // 4. Guide template.
+    // 4. Verb recipes — the single-source design verbs (DESIGN-MCP-V2 §8), copied so
+    //    the remote MCP prompts read the same text the local skill ships.
+    const verbCount = await this.copyVerbs(verbsDir, path.join(outputDir, 'verbs'));
+
+    // 5. Guide template.
     const template = await this.readRequired(templatePath, 'llms-full template');
     await fs.mkdir(path.join(outputDir, 'guides'), { recursive: true });
     await fs.writeFile(path.join(outputDir, 'guides', 'llms-full-template.md'), template, 'utf-8');
 
-    // 5. Icons — parsed from the registry source into JSON (the registry imports
+    // 6. Icons — parsed from the registry source into JSON (the registry imports
     //    `.svelte`, so it can't be module-imported here; we parse the data blocks).
     const registry = await this.readRequired(iconRegistryPath, 'icon registry');
     const icons = parseIconRegistry(registry);
     await fs.writeFile(path.join(outputDir, 'icons.json'), JSON.stringify(icons, null, 2), 'utf-8');
 
-    // 6. Meta — version stamp (DESIGN-MCP-V2 Anhang B) + a content fingerprint.
+    // 7. Meta — version stamp (DESIGN-MCP-V2 Anhang B) + a content fingerprint.
     const version = await this.readVersion(outputDir);
     const contentHash = createHash('sha256').update(catalogRaw).digest('hex').slice(0, 12);
     const meta = { version, builtAt: new Date().toISOString(), contentHash };
@@ -93,10 +101,27 @@ export class ContentBundleEmitter {
       outputDir,
       llmTxtCount: llmFiles.length,
       patternCount,
+      verbCount,
       iconCount: icons.length,
       version,
       contentHash
     };
+  }
+
+  /** Copy every `verbs/<name>.md` recipe into the bundle. Returns the verb count. */
+  private async copyVerbs(srcDir: string, destDir: string): Promise<number> {
+    let verbFiles: string[] = [];
+    try {
+      verbFiles = (await fs.readdir(srcDir)).filter((f) => f.endsWith('.md'));
+    } catch {
+      verbFiles = [];
+    }
+    if (verbFiles.length === 0) return 0;
+    await fs.mkdir(destDir, { recursive: true });
+    for (const file of verbFiles) {
+      await fs.copyFile(path.join(srcDir, file), path.join(destDir, file));
+    }
+    return verbFiles.length;
   }
 
   /** Copy `principles.md` (required) + every `patterns/*.md`. Returns the pattern count. */
