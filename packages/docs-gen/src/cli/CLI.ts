@@ -1,6 +1,7 @@
 import * as fs from 'node:fs/promises';
 import * as path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { ContentBundleEmitter } from '../generators/content/ContentBundleEmitter';
 import { LlmsFullAssembler } from '../generators/llm/LlmsFullAssembler';
 import { MCPCatalogAssembler } from '../generators/mcp/MCPCatalogAssembler';
 import { ConfigurationFactory } from '../schema/ConfigurationBuilder';
@@ -153,6 +154,31 @@ export class DocsGeneratorCLI {
     const catalogResult = await catalogAssembler.assemble();
     console.log(
       `✅ MCP catalog assembled (${catalogResult.componentCount} components, ${catalogResult.recipeCount} recipes)`
+    );
+
+    // Bundle the generated catalog + llm.txt tree + authored design-system, template
+    // and icon metadata into the version-pinned @urbicon-ui/design-content package, so
+    // the MCP server and the urbicon CLI read self-contained content (no sibling paths).
+    console.log('\n🧱 Emitting design-content bundle...');
+
+    const bundleEmitter = new ContentBundleEmitter({
+      staticDir: resolveFromDocsGen('..', '..', 'apps', 'docs', 'static'),
+      designSystemDir: resolveFromDocsGen('..', '..', 'design-system'),
+      templatePath: resolveFromDocsGen('templates', 'llms-full-template.md'),
+      iconRegistryPath: resolveFromDocsGen(
+        '..',
+        'blocks',
+        'src',
+        'lib',
+        'icons',
+        'icon-registry.ts'
+      ),
+      outputDir: resolveFromDocsGen('..', 'design-content', 'content')
+    });
+
+    const bundleResult = await bundleEmitter.emit();
+    console.log(
+      `✅ design-content bundle emitted (v${bundleResult.version}, ${bundleResult.llmTxtCount} llm.txt, ${bundleResult.patternCount} patterns, ${bundleResult.iconCount} icons, hash ${bundleResult.contentHash})`
     );
   }
 

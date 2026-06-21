@@ -90,6 +90,9 @@ apps/docs/static/**/_catalog.json
 apps/docs/static/mcp/
 llms-full.txt
 
+# Generated design-content bundle (built at publish-time by docs-gen, shipped in the package)
+packages/design-content/content/
+
 # Internal working docs (strategy, launch, deployment, design) — kept local, not part of the published OSS repo
 docs/internal/
 

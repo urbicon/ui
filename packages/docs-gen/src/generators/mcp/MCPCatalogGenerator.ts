@@ -27,6 +27,8 @@ export interface RecipeEntry {
   components: string[];
   code: string;
   features: string[];
+  /** Layer-4 composition pattern this recipe instantiates (e.g. "dashboard"). Cross-links to `get_pattern`. */
+  pattern?: string;
 }
 
 export interface ComponentCatalog {

@@ -111,6 +111,9 @@ export class MCPCatalogAssembler {
     const description = this.extractString(metaContent, 'description') || '';
     const components = this.extractArray(metaContent, 'components');
     const features = this.extractArray(metaContent, 'features');
+    // `pattern` cross-links the recipe to its Layer-4 composition pattern (get_pattern).
+    // Carried in the catalog so get_recipe can serve it without re-reading recipe source.
+    const pattern = this.extractString(metaContent, 'pattern');
 
     // Read recipeCode from +page.svelte (still embedded for live preview)
     const pagePath = path.join(recipeDir, '+page.svelte');
@@ -124,7 +127,7 @@ export class MCPCatalogAssembler {
 
     if (!code) return null;
 
-    return { id, title, description, components, code, features };
+    return { id, title, description, components, code, features, ...(pattern ? { pattern } : {}) };
   }
 
   private extractRecipeCode(content: string): string {
