@@ -30,6 +30,7 @@ DRY_RUN="${DRY_RUN:-}"
 PACKAGES=(
   packages/shared-types
   packages/sveltekit-utils
+  packages/design-engine
   packages/mcp-server
   packages/i18n
   packages/docs-gen
