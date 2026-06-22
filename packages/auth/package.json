@@ -1,6 +1,6 @@
 {
   "name": "@urbicon-ui/auth",
-  "version": "6.1.8",
+  "version": "6.2.0",
   "description": "Authentication for SvelteKit — JWT sessions, passkeys/WebAuthn, notifications and email with zero runtime dependencies",
   "license": "MIT",
   "repository": {

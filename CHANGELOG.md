@@ -4,6 +4,11 @@ All notable changes to this project will be documented in this file.
 This changelog is automatically generated from [Conventional Commits](https://www.conventionalcommits.org).
 
 
+## [6.2.0] - 2026-06-22
+
+### Features
+- **blocks**: Add prop-conditional overrides to BlocksProvider
+
 ## [6.1.7] - 2026-06-22
 
 ### CI/CD
