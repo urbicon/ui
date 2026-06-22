@@ -59,10 +59,12 @@ export async function loadCatalog(): Promise<ComponentCatalog> {
 }
 
 /**
- * Load a component's raw `llm.txt`, searching each catalog group in turn. `null`
- * when absent in every group (a genuine "unknown component"); a non-ENOENT error
- * (permission, corrupt mount) is surfaced, not masked as not-found (read tolerant
- * on absence, strict on real faults).
+ * Load a component's raw `llm.txt`, searching each catalog group in turn. `null` when
+ * absent in every group *but the bundle is present* (a genuine "unknown component"); a
+ * non-ENOENT error (permission, corrupt mount) is surfaced; a wholly missing bundle
+ * throws a clear "reinstall" error rather than masquerading as not-found — otherwise
+ * the caller would steer the user to `urbicon find`, which fails the same way (read
+ * tolerant on absence, strict on real faults).
  */
 export async function loadComponentLlm(slug: string): Promise<string | null> {
   ensureContentDir();
@@ -73,6 +75,15 @@ export async function loadComponentLlm(slug: string): Promise<string | null> {
       if ((err as { code?: string }).code === 'ENOENT') continue;
       throw err;
     }
+  }
+  // Absent in every group. If the catalog is gone too, the whole bundle is missing —
+  // surface that instead of reporting a genuine "unknown component".
+  try {
+    await readFile(getCatalogPath(), 'utf-8');
+  } catch {
+    throw new Error(
+      'design-content bundle missing — reinstall @urbicon-ui/design-content, or run `docs:gen:all` in the monorepo'
+    );
   }
   return null;
 }

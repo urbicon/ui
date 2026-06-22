@@ -84,4 +84,20 @@ describe('runInit', () => {
     await runInit([], { ci: true });
     expect(await read('.github/workflows/design-gate.yml')).toContain('urbicon validate');
   });
+
+  it('fails loud on an unterminated urbicon:start marker instead of duplicating', async () => {
+    await writeFile(join(dir, 'AGENTS.md'), '# Mine\n\n<!-- urbicon:start truncated, no end -->\n');
+    const before = await read('AGENTS.md');
+    const code = await runInit([], {});
+    expect(code).toBe(1);
+    expect(await read('AGENTS.md')).toBe(before); // never touched — no second block appended
+  });
+
+  it('--hook refuses a non-object settings.json instead of silently dropping the hook', async () => {
+    await mkdir(join(dir, '.claude'), { recursive: true });
+    await writeFile(join(dir, '.claude/settings.json'), '[]'); // valid JSON, wrong shape
+    const code = await runInit([], { hook: true });
+    expect(code).toBe(0); // init itself succeeds; only the hook step is skipped
+    expect(await read('.claude/settings.json')).toBe('[]'); // left untouched, not rewritten
+  });
 });

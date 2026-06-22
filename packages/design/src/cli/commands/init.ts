@@ -40,14 +40,24 @@ async function readOrNull(path: string): Promise<string | null> {
   }
 }
 
-/** Insert the block, or replace an existing one in place — idempotent across re-runs. */
-function upsertBlock(existing: string, block: string): string {
+/**
+ * Insert the block, or replace an existing one in place. Returns the new content and
+ * whether it replaced an existing block. Throws on a malformed managed region — a
+ * `urbicon:start` with no matching `urbicon:end` — rather than silently appending a
+ * second block (fail loud; the user truncated it, we don't guess the boundary).
+ */
+function upsertBlock(existing: string, block: string): { content: string; replaced: boolean } {
   const startIdx = existing.indexOf(BLOCK_START);
   if (startIdx !== -1) {
     const endIdx = existing.indexOf(BLOCK_END, startIdx);
-    if (endIdx !== -1) {
-      return existing.slice(0, startIdx) + block.trim() + existing.slice(endIdx + BLOCK_END.length);
+    if (endIdx === -1) {
+      throw new Error(
+        `found an unterminated \`${BLOCK_START}\` marker (no \`${BLOCK_END}\`) — remove the partial block and re-run`
+      );
     }
+    const content =
+      existing.slice(0, startIdx) + block.trim() + existing.slice(endIdx + BLOCK_END.length);
+    return { content, replaced: true };
   }
   const sep =
     existing.length === 0
@@ -57,7 +67,7 @@ function upsertBlock(existing: string, block: string): string {
         : existing.endsWith('\n')
           ? '\n'
           : '\n\n';
-  return `${existing}${sep}${block.trim()}\n`;
+  return { content: `${existing}${sep}${block.trim()}\n`, replaced: false };
 }
 
 /** Merge the PostToolUse `urbicon hook` into a settings.json — once, preserving the rest. */
@@ -68,6 +78,13 @@ async function mergeHook(settingsPath: string): Promise<'added' | 'present'> {
     settings = existing ? JSON.parse(existing) : {};
   } catch {
     throw new Error('invalid JSON — merge templates/claude-settings.json by hand');
+  }
+  // A non-object (array, string, null) is valid JSON but the wrong shape: merging into
+  // it would silently drop the hook on serialise. Refuse rather than fail silently.
+  if (typeof settings !== 'object' || settings === null || Array.isArray(settings)) {
+    throw new Error(
+      'unexpected shape (not a JSON object) — merge templates/claude-settings.json by hand'
+    );
   }
   settings.hooks ??= {};
   settings.hooks.PostToolUse ??= [];
@@ -97,12 +114,15 @@ export async function runInit(_positionals: string[], flags: Flags): Promise<num
   }
   const agentsPath = resolve(stringFlag(flags, 'agents-file') ?? 'AGENTS.md');
   const existingAgents = (await readOrNull(agentsPath)) ?? '';
-  const verb = existingAgents.includes(BLOCK_START)
-    ? 'refreshed'
-    : existingAgents
-      ? 'added'
-      : 'created';
-  await writeFile(agentsPath, upsertBlock(existingAgents, block), 'utf-8');
+  let upserted: { content: string; replaced: boolean };
+  try {
+    upserted = upsertBlock(existingAgents, block);
+  } catch (err) {
+    printError(`${rel(agentsPath)}: ${(err as Error).message}`);
+    return EXIT.FAIL;
+  }
+  await writeFile(agentsPath, upserted.content, 'utf-8');
+  const verb = upserted.replaced ? 'refreshed' : existingAgents ? 'added' : 'created';
   done.push(`${rel(agentsPath)} — ${verb} the Urbicon UI context block`);
 
   // 2. design.manifest.md scaffold — never overwrite recorded intent.
