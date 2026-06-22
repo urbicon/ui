@@ -3,7 +3,7 @@ import { buttonVariants } from '../primitives/Button/button.variants';
 import { checkboxVariants } from '../primitives/Checkbox/checkbox.variants';
 import { menuVariants } from '../primitives/Menu/menu.variants';
 import { sidebarVariants } from '../primitives/Sidebar/sidebar.variants';
-import { cx, tv, type VariantProps } from './variants';
+import { cx, matchesCompound, resolveClassChain, tv, type VariantProps } from './variants';
 
 // ─── cx ──────────────────────────────────────────────────────────────────────
 
@@ -945,5 +945,60 @@ describe('tv – edge-cases (documented behaviour)', () => {
     const baseOutput = styles.base({ class: { base: 'override', nonexistent: 'ghost' } as never });
     expect(baseOutput).toContain('base-class');
     expect(baseOutput).not.toContain('ghost');
+  });
+});
+
+// ─── resolveClassChain ──────────────────────────────────────────────────────
+
+describe('resolveClassChain', () => {
+  it('returns empty string for no / falsy sources', () => {
+    expect(resolveClassChain()).toBe('');
+    expect(resolveClassChain(undefined, null, '')).toBe('');
+  });
+
+  it('concatenates non-conflicting classes in source order', () => {
+    expect(resolveClassChain('flex gap-2', 'rounded-md')).toBe('flex gap-2 rounded-md');
+  });
+
+  it('a later source strips an earlier class in the same bucket (later wins)', () => {
+    expect(resolveClassChain('border-4', 'border')).toBe('border');
+    expect(resolveClassChain('p-2 text-sm', 'p-4')).toBe('text-sm p-4');
+  });
+
+  it('orthogonal buckets coexist (border-width vs border-color)', () => {
+    const tokens = resolveClassChain('border-2', 'border-red-500').split(/\s+/);
+    expect(tokens).toContain('border-2');
+    expect(tokens).toContain('border-red-500');
+  });
+
+  it('preserves conflicts within a single source (CSS cascade, like one tv() stage)', () => {
+    expect(resolveClassChain('border-2 border-4')).toBe('border-2 border-4');
+  });
+});
+
+// ─── matchesCompound (exported for the BlocksProvider override resolver) ─────
+
+describe('matchesCompound', () => {
+  it('matches on string equality and ignores class/className keys', () => {
+    expect(
+      matchesCompound({ variant: 'outlined', class: { base: 'x' } }, { variant: 'outlined' })
+    ).toBe(true);
+    expect(matchesCompound({ variant: 'outlined' }, { variant: 'filled' })).toBe(false);
+  });
+
+  it('treats an array constraint as "one of"', () => {
+    expect(matchesCompound({ size: ['sm', 'md'] }, { size: 'md' })).toBe(true);
+    expect(matchesCompound({ size: ['sm', 'md'] }, { size: 'lg' })).toBe(false);
+  });
+
+  it('normalizes booleans (true vs undefined do not match)', () => {
+    expect(matchesCompound({ interactive: true }, { interactive: true })).toBe(true);
+    expect(matchesCompound({ interactive: true }, { interactive: undefined })).toBe(false);
+  });
+
+  it('requires every condition to match (AND semantics)', () => {
+    const cond = { variant: 'outlined', intent: 'primary' };
+    expect(matchesCompound(cond, { variant: 'outlined', intent: 'primary' })).toBe(true);
+    expect(matchesCompound(cond, { variant: 'outlined', intent: 'danger' })).toBe(false);
   });
 });

@@ -3,8 +3,11 @@ export {
   type BlocksConfig,
   type ComponentDefaults,
   type ComponentPreset,
+  type ConditionalOverride,
   getBlocksConfig,
   mergeSlotClasses,
   type PresetMap,
-  resolvePresetSlotClasses
+  resolveOverrideSlotClasses,
+  resolvePresetSlotClasses,
+  resolveSlotClasses
 } from './blocks-context';

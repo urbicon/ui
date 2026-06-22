@@ -570,8 +570,8 @@ Then use across the project:
 
 When defining a preset, specify **all interactive states explicitly** (`hover:`, `active:`,
 and `focus-visible:` where applicable). The preset's `slotClasses.base` is merged *after*
-the `tv()` defaults, so conflicting Tailwind utilities are resolved by `tailwind-merge`
-(last value wins) — no `!` needed.
+the `tv()` defaults, so conflicting Tailwind utilities are resolved by the built-in bucket
+conflict resolver (last source wins) — no `!` needed.
 
 An unknown preset name emits a dev-only console warning, so typos are discoverable.
 
@@ -592,16 +592,31 @@ apply to *every* instance of a component — e.g. "all Buttons should be rounded
 </BlocksProvider>
 ```
 
-`defaults` vs. `presets` — when to use which:
-- **`defaults`**: blanket project style applied to every instance (no opt-in required)
+`defaults` vs. `presets` vs. `overrides` — when to use which:
+- **`defaults.slotClasses`**: blanket project style applied to every instance (no opt-in required)
 - **`presets`**: named alternative look, opt-in via `preset="…"` prop at the call site
+- **`defaults.overrides` / `presets[…].overrides`**: prop-conditional rules targeting only a specific
+  variant/intent/state (e.g. only `variant="outlined"`) — what unconditional `slotClasses` cannot express
 
-Merge priority (lowest → highest):
+```svelte
+<!-- Only outlined badges get a 1px border; the conflict resolver strips the variant's border-2. -->
+<BlocksProvider defaults={{ Badge: { overrides: [{ variant: 'outlined', class: { base: 'border' } }] } }}>
+  <slot />
+</BlocksProvider>
+```
+
+Each `overrides` entry is a `compoundVariant`-shaped matcher (`string` = equals, `string[]` = one-of →
+per-slot `class`); it matches active prop *values*, so it works regardless of whether the library
+defines the conflicting class in a `variant` or a `compoundVariant`.
+
+Merge priority (lowest → highest), conflict-resolved per Tailwind bucket (a later source wins):
 1. `tv()` variant styles (library default)
-2. `BlocksProvider defaults.slotClasses` (global baseline)
-3. `BlocksProvider presets[Component][name].slotClasses` (when `preset` prop is set)
-4. Instance `slotClasses` prop
-5. Instance `class` prop
+2. `defaults.slotClasses` (global baseline)
+3. `defaults.overrides[match]` (prop-conditional)
+4. `presets[Component][name].slotClasses` (when `preset` prop is set)
+5. `presets[Component][name].overrides[match]`
+6. Instance `slotClasses` prop
+7. Instance `class` prop
 
 ### Level 4: Global Unstyled Mode
 

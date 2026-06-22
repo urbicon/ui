@@ -1,6 +1,6 @@
 <script lang="ts">
   import { Button, mintRegistry } from '$lib';
-  import { getBlocksConfig, mergeSlotClasses, resolvePresetSlotClasses } from '$lib/provider';
+  import { getBlocksConfig, resolveSlotClasses } from '$lib/provider';
   import { resolveIcon } from '$lib/icons';
   import CloseIconDefault from '$lib/icons/CloseIcon.svelte';
   import { useBlocksI18n } from '$lib';
@@ -42,13 +42,6 @@
 
   const blocksConfig = getBlocksConfig();
   const unstyled = $derived(unstyledProp || blocksConfig?.unstyled || false);
-  const slotClasses = $derived(
-    mergeSlotClasses(
-      blocksConfig?.defaults?.Badge?.slotClasses,
-      resolvePresetSlotClasses(blocksConfig?.presets, 'Badge', preset),
-      slotClassesProp
-    )
-  );
 
   let badgeElement = $state<HTMLElement>();
   let isHovered = $state(false);
@@ -57,20 +50,24 @@
   const isInteractive = $derived(interactive || !!onclick);
   const isRemovable = $derived(removable && !isDot);
 
-  const styles = $derived(
-    badgeVariants({
-      tier: effectiveTier,
-      intent,
-      variant,
-      size,
-      counter: counter || undefined,
-      pulse: pulse || undefined,
-      removable: isRemovable || undefined,
-      interactive: isInteractive || undefined,
-      disabled: disabled || undefined,
-      placement,
-      border: border || undefined
-    })
+  const variantProps = $derived({
+    tier: effectiveTier,
+    intent,
+    variant,
+    size,
+    counter: counter || undefined,
+    pulse: pulse || undefined,
+    removable: isRemovable || undefined,
+    interactive: isInteractive || undefined,
+    disabled: disabled || undefined,
+    placement,
+    border: border || undefined
+  });
+
+  const styles = $derived(badgeVariants(variantProps));
+
+  const slotClasses = $derived(
+    resolveSlotClasses(blocksConfig, 'Badge', preset, variantProps, slotClassesProp)
   );
 
   $effect(() => {

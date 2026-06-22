@@ -126,13 +126,13 @@ If a future change needs full `twMerge` semantics or slot typing, extend `varian
 
 ## Preset System (since v0.8.0)
 
-Project-defined, named style presets registered through `BlocksProvider`. The override hierarchy is:
+Project-defined, named style presets registered through `BlocksProvider`, plus prop-conditional `overrides`. The full override hierarchy, conflict-resolved per Tailwind bucket so a later source wins:
 
 ```
-Provider-Defaults  →  Preset-SlotClasses  →  Instanz-SlotClasses
+defaults.slotClasses → defaults.overrides[match] → preset.slotClasses → preset.overrides[match] → instance.slotClasses → instance.class
 ```
 
-Registered via `BlocksProvider`, consumed via the `preset` prop on any component:
+`slotClasses` (unconditional) and `presets` (opt-in, named) are registered via `BlocksProvider`; a preset is consumed via the `preset` prop on any component:
 
 ```svelte
 <BlocksProvider
@@ -148,7 +148,19 @@ Registered via `BlocksProvider`, consumed via the `preset` prop on any component
 </BlocksProvider>
 ```
 
-Key files: `packages/blocks/src/lib/provider/BlocksProvider.svelte`, `blocks-context.ts` (`resolvePresetSlotClasses`, `mergeSlotClasses`). Dev-only `console.warn()` on unregistered preset names. The preset system has been rolled out to all primitives and components as of v0.8.0.
+### Conditional `overrides` (since v6.2.0)
+
+Unconditional `slotClasses` apply to every instance regardless of variant. For a rule that must target a specific variant/intent/state — e.g. "give the `outlined` Badge a 1 px border instead of 2 px" — add `overrides` to `defaults.<Component>` or `presets.<Component>.<name>`. Each entry is a `compoundVariant`-shaped matcher (prop conditions → per-slot classes); on a match its classes join the cascade, where the tv() conflict resolver then strips the library's conflicting class (`border-2`):
+
+```svelte
+<BlocksProvider defaults={{ Badge: { overrides: [{ variant: 'outlined', class: { base: 'border' } }] } }}>
+  <!-- every outlined Badge gets a 1px border; filled / soft / dot untouched -->
+</BlocksProvider>
+```
+
+Entries match active **prop values** (via `matchesCompound`), not the library's internal variant/compound structure — so it is irrelevant whether `border-2` lives in a `variant` or a `compoundVariant`. `string` conditions match by equality, `string[]` as "one of"; multiple matching entries merge additively. Unconditional-vs-conditional conflicts in the same bucket resolve deterministically (later source wins) via `resolveClassChain` — not left to stylesheet order.
+
+Key files: `packages/blocks/src/lib/provider/BlocksProvider.svelte`, `blocks-context.ts` (`resolveSlotClasses`, `resolveOverrideSlotClasses`, `resolvePresetSlotClasses`, `mergeSlotClasses`), `utils/variants.ts` (`matchesCompound`, `resolveClassChain`). Dev-only `console.warn()` on unregistered preset names. The preset system has been rolled out to all primitives and components as of v0.8.0; the `overrides` path is wired into `Badge` first and reaches further components via the shared `resolveSlotClasses` helper (swap a component's `mergeSlotClasses(...)` call for `resolveSlotClasses(config, name, preset, activeProps, instanceSlotClasses)`).
 
 ## Mint System (Micro-Interactions)
 

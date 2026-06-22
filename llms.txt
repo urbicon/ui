@@ -45,5 +45,6 @@ bun add @urbicon-ui/blocks
 
 ## Key Patterns
 
-All components share: `intent`, `size`, `variant`, `unstyled`, `slotClasses`, `mint`, `class` props.
+All components share: `intent`, `size`, `variant`, `unstyled`, `slotClasses`, `preset`, `mint`, `class` props.
+For project-wide styling, `BlocksProvider` accepts `defaults` (every instance), named `presets` (opt-in), and prop-conditional `overrides` (e.g. style only `variant="outlined"`).
 Import from `@urbicon-ui/blocks`. Use semantic tokens (`bg-surface-base`, not `bg-white`). Use `focus-visible:` for focus styles.

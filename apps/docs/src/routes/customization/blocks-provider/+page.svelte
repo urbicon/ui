@@ -9,8 +9,9 @@
     { id: 'global-defaults', title: 'Global Defaults', order: 2 },
     { id: 'merge-behavior', title: 'Merge Behavior', order: 3 },
     { id: 'presets', title: 'Presets', order: 4 },
-    { id: 'unstyled-mode', title: 'Unstyled Mode', order: 5 },
-    { id: 'slot-names', title: 'Slot Names', order: 6 }
+    { id: 'conditional-overrides', title: 'Conditional Defaults', order: 5 },
+    { id: 'unstyled-mode', title: 'Unstyled Mode', order: 6 },
+    { id: 'slot-names', title: 'Slot Names', order: 7 }
   ];
 
   const basicExample =
@@ -102,6 +103,21 @@
 
 </BlocksProvider>`;
 
+  const conditionalOverridesExample = `<!-- Conditional: only the outlined Badge gets a 1px border -->
+<BlocksProvider
+  defaults={{
+    Badge: {
+      // unconditional — applies to every Badge
+      slotClasses: { base: 'tracking-wide' },
+      // prop-conditional — only when variant="outlined"
+      overrides: [{ variant: 'outlined', class: { base: 'border' } }]
+    }
+  }}
+>
+  <Badge variant="outlined">1px border</Badge>  <!-- override applies, strips border-2 -->
+  <Badge variant="filled">untouched</Badge>      <!-- override skipped -->
+</BlocksProvider>`;
+
   const slotNamesExample = `// Each component documents its slot names.
 // Check the component's Props type for the slotClasses type:
 
@@ -123,15 +139,15 @@
     },
     {
       name: 'defaults',
-      type: 'Record<string, { slotClasses?: Record<string, string> }>',
+      type: 'Record<string, { slotClasses?: …; overrides?: ConditionalOverride[] }>',
       default: '{}',
-      desc: 'Per-component default slotClasses. Keys are component names (e.g. "Button", "Card"). Values are merged with instance-level slotClasses.'
+      desc: 'Per-component defaults. slotClasses apply to every instance; overrides are prop-conditional rules (e.g. only variant="outlined"). Keys are component names (e.g. "Button", "Card").'
     },
     {
       name: 'presets',
-      type: 'Record<string, Record<string, { slotClasses?: Record<string, string> }>>',
+      type: 'Record<string, Record<string, { slotClasses?: …; overrides?: ConditionalOverride[] }>>',
       default: '{}',
-      desc: 'Named looks per component. Components opt-in via their preset="name" prop. Useful for distinct, reusable variants beyond the semantic intent palette.'
+      desc: 'Named looks per component, opt-in via the preset="name" prop. Each preset may carry its own conditional overrides. Useful for reusable variants beyond the semantic intent palette.'
     },
     {
       name: 'children',
@@ -188,8 +204,14 @@
 
   const presetsTypeExample = `// /packages/blocks/src/lib/provider/blocks-context.ts
 
+export interface ConditionalOverride {
+  class: Record<string, string>;            // slot → classes
+  [propCondition: string]: string | string[] | Record<string, string> | undefined;
+}
+
 export interface ComponentPreset {
-  slotClasses?: Record<string, string>;
+  slotClasses?: Record<string, string>;     // unconditional
+  overrides?: ConditionalOverride[];        // prop-conditional
 }
 
 // Outer key  = component name (e.g. 'Card', 'Spinner', 'Button')
@@ -263,8 +285,10 @@ export type PresetMap = Record<string, Record<string, ComponentPreset>>;`;
   <section class="mb-12">
     <h2 class="text-text-primary mb-4 text-2xl font-bold" id="merge-behavior">Merge Behavior</h2>
     <p class="text-text-secondary mb-6 leading-relaxed">
-      Global defaults and instance overrides are concatenated (not replaced). This means both class
-      lists apply. Tailwind resolves conflicts based on CSS source order.
+      Global defaults and instance overrides are merged per slot. Conflicting Tailwind utilities are
+      resolved by bucket — a later source in the chain wins (e.g. an instance
+      <code class="text-xs">rounded-none</code> defeats a default
+      <code class="text-xs">rounded-full</code>); non-conflicting classes accumulate.
     </p>
     <CodeExample title="Override behavior" code={overrideExample} preview={false} />
     <div
@@ -276,7 +300,14 @@ export type PresetMap = Record<string, Record<string, ComponentPreset>>;`;
           <code class="text-xs">tv()</code> variant styles (library default)
         </li>
         <li>
-          <code class="text-xs">BlocksProvider defaults.slotClasses</code>
+          <code class="text-xs">defaults.slotClasses</code> (unconditional)
+        </li>
+        <li>
+          <code class="text-xs">defaults.overrides</code> (prop-conditional)
+        </li>
+        <li>
+          <code class="text-xs">presets[name].slotClasses</code> /
+          <code class="text-xs">.overrides</code>
         </li>
         <li>
           Instance <code class="text-xs">slotClasses</code> prop
@@ -344,6 +375,50 @@ export type PresetMap = Record<string, Record<string, ComponentPreset>>;`;
       If a component requests <code class="text-xs">preset="foo"</code> but no entry exists in
       <code class="text-xs">presets[ComponentName].foo</code>, the resolver logs a console warning
       (development only). The component falls back to its default look.
+    </div>
+  </section>
+
+  <Separator class="mb-12" />
+
+  <section class="mb-12">
+    <h2 class="text-text-primary mb-4 text-2xl font-bold" id="conditional-overrides">
+      Conditional Defaults (overrides)
+    </h2>
+    <p class="text-text-secondary mb-6 leading-relaxed">
+      <code class="bg-surface-subtle rounded-modify px-1.5 py-0.5 text-sm">slotClasses</code>
+      apply to <em>every</em> instance regardless of variant. When a rule must target a specific
+      variant / intent / state — e.g. a 1px border only on the
+      <code class="bg-surface-subtle rounded-modify px-1.5 py-0.5 text-sm">outlined</code>
+      variant — use
+      <code class="bg-surface-subtle rounded-modify px-1.5 py-0.5 text-sm">overrides</code>. Each
+      entry is a <code class="text-xs">compoundVariant</code>-shaped matcher (prop conditions →
+      per-slot classes); on a match its classes join the cascade, where the
+      <code class="text-xs">tv()</code> conflict resolver strips the library's conflicting class
+      (here the outlined variant's <code class="text-xs">border-2</code>).
+    </p>
+
+    <CodeExample
+      title="Style only the outlined variant"
+      description="Entries match active prop values, so it is irrelevant whether the library defines border-2 in a variant or a compoundVariant. string = equals, string[] = one-of; multiple matches merge additively."
+      code={conditionalOverridesExample}
+      preview={false}
+    />
+
+    <div
+      class="bg-surface-subtle text-text-secondary rounded-contain mt-6 border p-4 text-sm leading-relaxed"
+    >
+      <strong class="text-text-primary">overrides vs. preset vs. slotClasses</strong>
+      <ul class="mt-2 list-inside list-disc space-y-1">
+        <li><code class="text-xs">slotClasses</code> — unconditional, every instance.</li>
+        <li>
+          <code class="text-xs">preset</code> — opt-in per instance via
+          <code class="text-xs">preset="name"</code>; for reusable named looks.
+        </li>
+        <li>
+          <code class="text-xs">overrides</code> — automatic but prop-conditional; for "only this variant/state"
+          rules.
+        </li>
+      </ul>
     </div>
   </section>
 

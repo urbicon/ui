@@ -245,6 +245,8 @@ slotClasses?: Partial<Record<'wrapper' | 'control' | 'box' | 'icon' | 'label' | 
 
 When `unstyled` is `false`, `slotClasses` values are merged with default tv() classes. When `unstyled` is `true`, they replace them entirely.
 
+For **project-wide** overrides, register them on `BlocksProvider` rather than repeating `slotClasses` at each call site: `defaults` (unconditional, every instance), `presets` (opt-in, named), or `overrides` (prop-conditional — e.g. only `variant="outlined"`). See [ARCHITECTURE.md → Preset System](./ARCHITECTURE.md#preset-system-since-v080).
+
 To restyle an embedded component (e.g. make an Input look borderless inside a custom container), override the visual boundary slot:
 
 ```svelte

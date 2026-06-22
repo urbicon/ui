@@ -45,10 +45,10 @@ Available effects: `scale`, `ripple`, `translate`, `glow`, `bounce`, `pulse`, `s
 
 ## Presets & Defaults
 
-`BlocksProvider` registers project-wide defaults and named presets. Override hierarchy:
+`BlocksProvider` registers project-wide defaults, named presets, and prop-conditional `overrides`. Override hierarchy (conflict-resolved per Tailwind bucket — a later source wins):
 
 ```
-tv()-Defaults → BlocksProvider defaults → BlocksProvider presets → Instance slotClasses → Instance class
+tv() defaults → defaults.slotClasses → defaults.overrides → preset.slotClasses → preset.overrides → instance slotClasses → instance class
 ```
 
 ```svelte
@@ -58,6 +58,16 @@ tv()-Defaults → BlocksProvider defaults → BlocksProvider presets → Instanc
   }}
 >
   <Button preset="overlay">Weiter</Button>
+</BlocksProvider>
+```
+
+Use `overrides` for **prop-conditional** rules an unconditional `slotClasses` cannot express (e.g. only the `outlined` variant). Each entry is a `compoundVariant`-shaped matcher; the tv() conflict resolver strips the library's conflicting class:
+
+```svelte
+<BlocksProvider
+  defaults={{ Badge: { overrides: [{ variant: 'outlined', class: { base: 'border' } }] } }}
+>
+  <!-- outlined badges get a 1px border; other variants untouched -->
 </BlocksProvider>
 ```
 

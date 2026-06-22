@@ -31,7 +31,7 @@ Svelte 5 + Tailwind CSS 4 UI component library monorepo. Uses Bun workspaces.
 - **Dark Mode**: Semantic tokens handle dark mode automatically via the CSS `light-dark()` function (follows `color-scheme` / the user's `prefers-color-scheme`); no manual `dark:` overrides
 - **Focus**: `focus-visible:` everywhere (not `focus:`), for keyboard-only focus rings
 - **Z-Index**: CSS custom property tokens (`--z-modal`, `--z-dropdown`, etc.) via `z-[var(--z-*)]`
-- **Components**: All support `unstyled` + `slotClasses` props for style overrides
+- **Components**: All support `unstyled` + `slotClasses` + `preset` props for style overrides; `BlocksProvider` additionally accepts prop-conditional `overrides` (style only a specific variant/intent/state, e.g. the `outlined` variant)
 
 For full details see [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md).
 

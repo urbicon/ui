@@ -1,7 +1,32 @@
 import { createOptionalContext } from '$lib/utils/optional-context';
+import { matchesCompound, resolveClassChain } from '$lib/utils/variants';
+
+/**
+ * A prop-conditional style rule. Its non-`class` keys are matched against a
+ * component's active variant props — exactly like a `tv()` compoundVariant
+ * (`string` = equality, `string[]` = "one of"). On a match, the `class`
+ * record (slot → classes) is merged into the slot-class cascade. Additive:
+ * every matching rule contributes; later sources win per Tailwind bucket.
+ *
+ * @example
+ * { variant: 'outlined', class: { base: 'border' } } // 1px border only on outlined
+ */
+export interface ConditionalOverride {
+  /** Per-slot classes applied when the prop conditions match. */
+  class: Record<string, string>;
+  /** Prop conditions: prop name → required value (or one of several). */
+  [propCondition: string]: string | string[] | Record<string, string> | undefined;
+}
 
 export interface ComponentDefaults {
   slotClasses?: Record<string, string>;
+  /**
+   * Prop-conditional style rules, applied after unconditional `slotClasses`
+   * (so they win per bucket) but before instance-level `slotClasses` / `class`.
+   * Use for surgical per-variant tweaks the unconditional `slotClasses` cannot
+   * express, e.g. `overrides: [{ variant: 'outlined', class: { base: 'border' } }]`.
+   */
+  overrides?: ConditionalOverride[];
 }
 
 /**
@@ -15,6 +40,8 @@ export interface ComponentDefaults {
  */
 export interface ComponentPreset {
   slotClasses?: Record<string, string>;
+  /** Prop-conditional rules scoped to this preset (see {@link ConditionalOverride}). */
+  overrides?: ConditionalOverride[];
 }
 
 /** Map of component name → preset name → preset definition. */
@@ -70,4 +97,69 @@ export function resolvePresetSlotClasses(
   }
 
   return preset.slotClasses;
+}
+
+/**
+ * Collect the per-slot classes of every `overrides` entry whose prop
+ * conditions match `activeProps`. Returns `undefined` when there are no
+ * overrides or none match. Multiple matches merge additively, in order.
+ */
+export function resolveOverrideSlotClasses(
+  overrides: ConditionalOverride[] | undefined,
+  activeProps: Record<string, unknown>
+): Record<string, string> | undefined {
+  if (!overrides || overrides.length === 0) return undefined;
+
+  let result: Record<string, string> | undefined;
+  for (const entry of overrides) {
+    if (!matchesCompound(entry, activeProps)) continue;
+    result ??= {};
+    for (const [slot, value] of Object.entries(entry.class)) {
+      if (!value) continue;
+      result[slot] = result[slot] ? `${result[slot]} ${value}` : value;
+    }
+  }
+  return result;
+}
+
+/**
+ * Resolve the full slot-class cascade for a component instance, honoring
+ * conditional `overrides` from both provider defaults and the active preset.
+ *
+ * Precedence (weak → strong), conflict-resolved per slot so a later source
+ * wins within the same Tailwind bucket:
+ *
+ *   defaults.slotClasses → defaults.overrides[match]
+ *     → preset.slotClasses → preset.overrides[match] → instance.slotClasses
+ *
+ * The result is handed to the component's `tv()` slot fn as the `class`
+ * override, where it additionally strips conflicting library classes.
+ */
+export function resolveSlotClasses(
+  config: BlocksConfig | undefined,
+  component: string,
+  preset: string | undefined,
+  activeProps: Record<string, unknown>,
+  instanceSlotClasses: Record<string, string> | undefined
+): Record<string, string> {
+  const defaults = config?.defaults?.[component];
+  const presetDef = preset ? config?.presets?.[component]?.[preset] : undefined;
+
+  const sources: (Record<string, string> | undefined)[] = [
+    defaults?.slotClasses,
+    resolveOverrideSlotClasses(defaults?.overrides, activeProps),
+    resolvePresetSlotClasses(config?.presets, component, preset),
+    resolveOverrideSlotClasses(presetDef?.overrides, activeProps),
+    instanceSlotClasses
+  ];
+
+  const result: Record<string, string> = {};
+  for (const source of sources) {
+    if (!source) continue;
+    for (const [slot, value] of Object.entries(source)) {
+      if (!value) continue;
+      result[slot] = result[slot] ? resolveClassChain(result[slot], value) : value;
+    }
+  }
+  return result;
 }

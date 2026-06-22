@@ -397,6 +397,30 @@ function tokenize(value: string): string[] {
   return value.split(/\s+/).filter(Boolean);
 }
 
+/**
+ * Merge class strings with the same Tailwind conflict resolution `tv()`
+ * applies between stages: a later source's classes strip any earlier class
+ * that shares their conflict bucket, so the last source wins per bucket.
+ * Within a single source, order is preserved and conflicts fall through to
+ * the CSS cascade. Falsy / empty sources are skipped.
+ *
+ * Reuses `tokenize` + `stripConflicts`. Powers the BlocksProvider slot-class
+ * cascade (`resolveSlotClasses`) so a conditional `overrides` entry
+ * deterministically defeats an unconditional `slotClasses` entry in the same
+ * bucket — instead of emitting both and leaving the winner to stylesheet
+ * order.
+ */
+export function resolveClassChain(...sources: (string | null | undefined)[]): string {
+  let acc: string[] = [];
+  for (const source of sources) {
+    if (!source) continue;
+    const tokens = tokenize(source);
+    if (tokens.length === 0) continue;
+    acc = [...stripConflicts(acc, tokens), ...tokens];
+  }
+  return acc.join(' ');
+}
+
 // ─── Internal Helpers ────────────────────────────────────────────────────────
 
 function falsyToString(value: unknown): string | undefined {
@@ -415,7 +439,7 @@ function stripUndefined(obj: Record<string, unknown>): Record<string, unknown> {
   return result;
 }
 
-function matchesCompound(
+export function matchesCompound(
   compound: Record<string, unknown>,
   effectiveProps: Record<string, unknown>
 ): boolean {
