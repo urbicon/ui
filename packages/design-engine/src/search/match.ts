@@ -1,10 +1,19 @@
-import type { ComponentCatalogEntry } from '../data/catalog-loader.js';
+import type { ComponentCatalogEntry } from './types.js';
 
 interface ScoredEntry {
   entry: ComponentCatalogEntry;
   score: number;
 }
 
+/**
+ * Rank catalog entries against a free-text query — the component-discovery ranker
+ * behind both `find_components` (remote MCP) and `urbicon find` (CLI), so local and
+ * remote discovery agree. Pure and dependency-free: each query keyword scores on an
+ * exact / substring / fuzzy (Levenshtein ≤ 2) name-or-slug hit, a tag hit, a
+ * description hit, and a weak prop-name hit; an explicit `tags` filter adds weight.
+ * Keywords shorter than two characters are dropped. Returns the top `limit` entries
+ * with a positive score, best first; an empty list when nothing matches.
+ */
 export function matchComponents(
   components: ComponentCatalogEntry[],
   query: string,

@@ -1,42 +1,17 @@
 import { watch } from 'node:fs';
 import { readFile } from 'node:fs/promises';
 import { getCatalogPath } from '@urbicon-ui/design-content';
+import type {
+  ComponentCatalog,
+  ComponentCatalogEntry,
+  RecipeEntry
+} from '@urbicon-ui/design-engine/search';
 
-export interface ComponentCatalogEntry {
-  name: string;
-  slug: string;
-  package: string;
-  group: 'primitives' | 'components' | 'core' | 'auth';
-  description: string;
-  tags: string[];
-  import: string;
-  llmTxtPath: string;
-  variants: { name: string; values: string[]; default?: string }[];
-  keyProps: string[];
-  keyPropTypes: Record<string, string>;
-  slots: string[];
-  hasExamples: boolean;
-  relatedComponents: string[];
-}
-
-export interface RecipeEntry {
-  id: string;
-  title: string;
-  description: string;
-  components: string[];
-  code: string;
-  features: string[];
-  /** Layer-4 composition pattern this recipe is an instance of (e.g. "dashboard"). Cross-links to `get_pattern`. */
-  pattern?: string;
-}
-
-export interface ComponentCatalog {
-  generated: string;
-  version: string;
-  components: ComponentCatalogEntry[];
-  recipes: RecipeEntry[];
-  tags: string[];
-}
+// The catalog schema lives in the engine now (DESIGN-MCP-V2 §5) so the `urbicon`
+// CLI's find/get-component and this server share one authoritative type. Imported
+// above for the loader below; re-exported here for the server's many local
+// importers (tools, resources, format-catalog) that still source it from here.
+export type { ComponentCatalog, ComponentCatalogEntry, RecipeEntry };
 
 let cachedCatalog: ComponentCatalog | null = null;
 let watcherInitialized = false;

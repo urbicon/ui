@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
-import type { ComponentCatalogEntry } from '../data/catalog-loader.js';
-import { matchComponents } from './search.js';
+import { matchComponents } from './match.js';
+import { extractSection } from './section.js';
+import type { ComponentCatalogEntry } from './types.js';
 
 function makeEntry(
   overrides: Partial<ComponentCatalogEntry> & Pick<ComponentCatalogEntry, 'name' | 'slug'>
@@ -137,5 +138,58 @@ describe('matchComponents — Planner discovery', () => {
   it('still ranks Calendar first for an event/appointment query', () => {
     const results = matchComponents(dateCatalog, 'event calendar');
     expect(results[0]?.name).toBe('Calendar');
+  });
+});
+
+describe('extractSection', () => {
+  const llm = [
+    '# Button',
+    '',
+    'Click to trigger an action.',
+    '',
+    '### Examples',
+    '',
+    '```svelte',
+    '<Button intent="primary">Save</Button>',
+    '```',
+    '',
+    '### API',
+    '',
+    '| Prop | Type | Default |',
+    '| --- | --- | --- |',
+    '| intent | string | primary |',
+    '',
+    '### Slots (slotClasses keys)',
+    '',
+    '`base`, `label`'
+  ].join('\n');
+
+  it('returns everything before the first ### as the overview', () => {
+    const overview = extractSection(llm, 'overview');
+    expect(overview).toContain('# Button');
+    expect(overview).toContain('Click to trigger an action.');
+    expect(overview).not.toContain('### Examples');
+  });
+
+  it('extracts a named section up to the next heading', () => {
+    const api = extractSection(llm, 'api');
+    expect(api).toContain('### API');
+    expect(api).toContain('| intent | string | primary |');
+    expect(api).not.toContain('### Slots');
+  });
+
+  it('maps the parenthesised slots heading to the slots section', () => {
+    const slots = extractSection(llm, 'slots');
+    expect(slots).toContain('`base`, `label`');
+  });
+
+  it('returns null for a section that is absent', () => {
+    expect(extractSection(llm, 'variants')).toBe(null);
+  });
+
+  it('treats content with no headings as all-overview', () => {
+    expect(extractSection('Just a description, no sections.', 'overview')).toBe(
+      'Just a description, no sections.'
+    );
   });
 });

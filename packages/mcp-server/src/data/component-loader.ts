@@ -27,42 +27,7 @@ export async function loadComponentLlmTxt(slug: string): Promise<string | null> 
   return null;
 }
 
-export type LlmTxtSection = 'overview' | 'examples' | 'variants' | 'api' | 'slots';
-
-const SECTION_HEADING_MAP: Record<string, LlmTxtSection> = {
-  examples: 'examples',
-  variants: 'variants',
-  api: 'api',
-  'slots (slotclasses keys)': 'slots'
-};
-
-export function extractSection(content: string, section: LlmTxtSection): string | null {
-  if (section === 'overview') {
-    const firstH3 = content.indexOf('\n### ');
-    if (firstH3 === -1) return content.trim();
-    return content.slice(0, firstH3).trim();
-  }
-
-  const lines = content.split('\n');
-  let capturing = false;
-  const result: string[] = [];
-
-  for (const line of lines) {
-    if (line.startsWith('### ')) {
-      const heading = line.slice(4).trim().toLowerCase();
-      const mapped = SECTION_HEADING_MAP[heading];
-      if (mapped === section) {
-        capturing = true;
-        result.push(line);
-        continue;
-      } else if (capturing) {
-        break;
-      }
-    }
-    if (capturing) {
-      result.push(line);
-    }
-  }
-
-  return result.length > 0 ? result.join('\n').trim() : null;
-}
+// The section parser lives in the engine now (DESIGN-MCP-V2 §5) so this server and
+// the `urbicon` CLI extract llm.txt sections identically. Re-exported here for the
+// server's local importers (get-component, get-recipe, …).
+export { extractSection, type LlmTxtSection } from '@urbicon-ui/design-engine/search';

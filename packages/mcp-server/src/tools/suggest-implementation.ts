@@ -1,8 +1,8 @@
 import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
+import { matchComponents } from '@urbicon-ui/design-engine/search';
 import { z } from 'zod';
 import type { ComponentCatalogEntry } from '../data/catalog-loader.js';
 import { loadCatalog } from '../data/catalog-loader.js';
-import { matchComponents } from '../utils/search.js';
 
 /** Default props and skeleton hints per component type */
 const SKELETON_HINTS: Record<string, { attrs: string; children?: string; selfClosing?: boolean }> =

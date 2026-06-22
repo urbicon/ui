@@ -25,7 +25,8 @@
     ".": "./src/index.ts",
     "./linter": "./src/linter/index.ts",
     "./manifest": "./src/manifest/index.ts",
-    "./rubric": "./src/rubric/index.ts"
+    "./rubric": "./src/rubric/index.ts",
+    "./search": "./src/search/index.ts"
   },
   "files": [
     "src",

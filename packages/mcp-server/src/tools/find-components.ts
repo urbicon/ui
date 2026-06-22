@@ -1,8 +1,8 @@
 import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
+import { matchComponents } from '@urbicon-ui/design-engine/search';
 import { z } from 'zod';
 import { loadCatalog } from '../data/catalog-loader.js';
 import { formatCompactCatalog } from '../utils/format-catalog.js';
-import { matchComponents } from '../utils/search.js';
 
 export function registerFindComponentsTool(server: McpServer): void {
   server.tool(
