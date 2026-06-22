@@ -19,6 +19,7 @@ import { runContext } from './commands/context.js';
 import { runFind } from './commands/find.js';
 import { runGetComponent } from './commands/get-component.js';
 import { runHook } from './commands/hook.js';
+import { runInit } from './commands/init.js';
 import { runRecordDecision } from './commands/record-decision.js';
 import { runSyncManifest } from './commands/sync-manifest.js';
 import { runValidate } from './commands/validate.js';
@@ -32,6 +33,14 @@ Usage:
   urbicon <command> [options]
 
 Commands:
+  init                  Wire this project into the design loop: insert the AGENTS.md
+                        context block + scaffold design.manifest.md, then print next
+                        steps. Idempotent and non-destructive.
+                        --hook             Also merge the PostToolUse gate into
+                                           .claude/settings.json.
+                        --ci               Also write .github/workflows/design-gate.yml.
+                        --agents-file <p>  Target for the context block (default AGENTS.md).
+                        --manifest <path>  Manifest path (default ./design.manifest.md).
   validate [paths...]   Lint .svelte markup against the Urbicon UI design rules.
                         Paths may be files, directories, or "-" (stdin).
                         Reads ## Token Overrides from the manifest (if any) so your
@@ -115,6 +124,8 @@ async function main(argv: string[]): Promise<number> {
   }
 
   switch (command) {
+    case 'init':
+      return runInit(positionals, flags);
     case 'validate':
       return runValidate(positionals, flags);
     case 'hook':

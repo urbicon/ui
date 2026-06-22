@@ -20,12 +20,40 @@ bun add -d @urbicon-ui/design   # dev tooling — not a runtime dependency
 This exposes the `urbicon` command (a self-contained, Node-runnable bundle — no
 Bun required at the consumer side).
 
+## Onboarding a consumer project
+
+```bash
+bun add -d @urbicon-ui/design   # then:
+bunx urbicon init               # wire the project into the design loop
+```
+
+`urbicon init` is idempotent and non-destructive. It:
+
+1. **Gives the agent context** — inserts a managed `<!-- urbicon:start … -->` block into
+   `AGENTS.md` (or `--agents-file CLAUDE.md`) describing the tools, the design loop, and the
+   token rules. The single biggest lever on whether generated UI stays on-system.
+2. **Seeds the design memory** — scaffolds `design.manifest.md` (never overwriting an existing one).
+3. With `--hook`, merges the PostToolUse [gate](#enforcement--hook--ci) into `.claude/settings.json`;
+   with `--ci`, writes the design-gate workflow.
+
+Then run the guided intake — `bunx urbicon verb adopt` (brownfield) or `onboard` (greenfield) —
+to fill the manifest with this project's design intent. From there an agent can `urbicon context`
+to read the intent, `urbicon find` / `get-component` to discover the catalog, compose, and
+`urbicon validate` what it produced.
+
+> The component knowledge is **local and version-pinned**: `@urbicon-ui/design` pulls in the
+> [`@urbicon-ui/design-content`](../design-content/) bundle, so `find` / `get-component` match the
+> library version you installed — no extra install, no skew against the latest-only hosted MCP.
+
 ## Commands
 
 | Command | What it does | Replaces (remote) |
 | --- | --- | --- |
+| `urbicon init` | Wire a project into the design loop (AGENTS.md block, manifest scaffold, `--hook`/`--ci`). | — (local only) |
 | `urbicon validate [paths...]` | Lint `.svelte` markup against the design rules. The CI gate. | mirror of `validate_design` |
 | `urbicon hook` | PostToolUse adapter — validate the just-edited file, block on failure. | — (local only) |
+| `urbicon find [query]` | Fuzzy component discovery over the version-pinned catalog. | `find_components` |
+| `urbicon get-component <slug>` | A component's API (its `llm.txt`) from the bundle. | `get_component` |
 | `urbicon context` | Print the project's `design.manifest.md` summary. | `get_design_context` |
 | `urbicon record-decision …` | Append an ADR to the manifest. | `record_design_decision` |
 | `urbicon sync-manifest` | Re-index `data-design-pattern` markers into the manifest. | `sync_design_manifest` |
@@ -173,11 +201,13 @@ bunx urbicon validate src/ --json              # correctness gate (blocking)
 - Bundled to `dist/cli.js` at publish time (`bun build --target node`, shebang
   preserved). In the monorepo, run the TypeScript source directly:
   `bun run packages/design/src/cli/index.ts <command>`.
-- `validate` / `hook` / `context` / `record-decision` / `sync-manifest` are
+- `validate` / `hook` / `context` / `record-decision` / `sync-manifest` / `init` are
   content-free (engine + your repo only); `verbs` / `verb` read the recipes shipped
   under `skill/` (package-relative, still no content-bundle dependency).
-- `find` (component/icon search) and `init` (onboarding interview) are planned for
-  a later step — they depend on the version-pinned content bundle.
+- `find` / `get-component` read the version-pinned
+  [`@urbicon-ui/design-content`](../design-content/) bundle (a runtime dependency). Icon
+  search (`find_icons`) and the guided onboarding *interview* stay on the remote MCP and the
+  `adopt` / `onboard` verbs respectively.
 
 ## Related
 

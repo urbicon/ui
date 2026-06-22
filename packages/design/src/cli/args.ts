@@ -17,7 +17,16 @@ export interface ParsedArgs {
 }
 
 /** Flags that take no value — never consume the following token. */
-const BOOLEAN_FLAGS = new Set(['json', 'strict', 'skip-heuristics', 'record', 'help', 'version']);
+const BOOLEAN_FLAGS = new Set([
+  'json',
+  'strict',
+  'skip-heuristics',
+  'record',
+  'hook',
+  'ci',
+  'help',
+  'version'
+]);
 
 export function parseArgs(argv: string[], booleans: Set<string> = BOOLEAN_FLAGS): ParsedArgs {
   let command: string | undefined;
