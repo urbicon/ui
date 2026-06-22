@@ -1,6 +1,6 @@
 <script lang="ts">
-  import { getBlocksConfig, mergeSlotClasses, resolvePresetSlotClasses } from '$lib/provider';
-  import { spinnerVariants } from './spinner.variants';
+  import { getBlocksConfig, resolveSlotClasses } from '$lib/provider';
+  import { spinnerVariants, type SpinnerVariants } from './spinner.variants';
   import type { SpinnerProps } from './index';
 
   let {
@@ -20,15 +20,13 @@
 
   const blocksConfig = getBlocksConfig();
   const unstyled = $derived(unstyledProp || blocksConfig?.unstyled || false);
-  const slotClasses = $derived(
-    mergeSlotClasses(
-      blocksConfig?.defaults?.Spinner?.slotClasses,
-      resolvePresetSlotClasses(blocksConfig?.presets, 'Spinner', preset),
-      slotClassesProp
-    )
-  );
 
-  const styles = $derived(spinnerVariants({ variant, size, intent, speed }));
+  const variantProps: SpinnerVariants = $derived({ variant, size, intent, speed });
+  const styles = $derived(spinnerVariants(variantProps));
+
+  const slotClasses = $derived(
+    resolveSlotClasses(blocksConfig, 'Spinner', preset, variantProps, slotClassesProp)
+  );
 </script>
 
 {#if visible}

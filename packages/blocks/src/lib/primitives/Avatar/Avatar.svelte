@@ -1,7 +1,7 @@
 <script lang="ts">
   import { mintRegistry } from '$lib';
-  import { getBlocksConfig, mergeSlotClasses, resolvePresetSlotClasses } from '$lib/provider';
-  import { avatarVariants } from '$lib/primitives';
+  import { getBlocksConfig, resolveSlotClasses } from '$lib/provider';
+  import { avatarVariants, type AvatarVariants } from '$lib/primitives';
   import { useBlocksI18n } from '$lib';
   import type { AvatarProps } from './index';
 
@@ -35,13 +35,6 @@
 
   const blocksConfig = getBlocksConfig();
   const unstyled = $derived(unstyledProp || blocksConfig?.unstyled || false);
-  const slotClasses = $derived(
-    mergeSlotClasses(
-      blocksConfig?.defaults?.Avatar?.slotClasses,
-      resolvePresetSlotClasses(blocksConfig?.presets, 'Avatar', preset),
-      slotClassesProp
-    )
-  );
 
   let avatarElement = $state<HTMLElement>();
   let imageError = $state(false);
@@ -92,17 +85,21 @@
 
   const randomBg = $derived(randomColor ? getRandomColor(name) : undefined);
 
-  const styles = $derived(
-    avatarVariants({
-      size,
-      variant,
-      intent: randomColor ? undefined : intent,
-      status,
-      statusPosition,
-      ring,
-      ringIntent: ringColor ? undefined : ringIntent,
-      interactive: isInteractive
-    })
+  const variantProps: AvatarVariants = $derived({
+    size,
+    variant,
+    intent: randomColor ? undefined : intent,
+    status,
+    statusPosition,
+    ring,
+    ringIntent: ringColor ? undefined : ringIntent,
+    interactive: isInteractive
+  });
+
+  const styles = $derived(avatarVariants(variantProps));
+
+  const slotClasses = $derived(
+    resolveSlotClasses(blocksConfig, 'Avatar', preset, variantProps, slotClassesProp)
   );
 
   const dynamicStyles = $derived.by(() => {

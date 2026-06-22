@@ -1,7 +1,7 @@
 import type { HTMLInputAttributes } from 'svelte/elements';
 import type { MintProp } from '$lib/mint';
 import type { InteractiveTier } from '$lib/utils';
-import type { ToggleVariants } from './toggle.variants';
+import type { ToggleSlots, ToggleVariants } from './toggle.variants';
 
 /**
  * @description Accessible switch control for boolean on/off states.
@@ -55,10 +55,12 @@ export interface ToggleProps
   /** Strip all default tailwind-variants classes. Use with `slotClasses` for a fully custom look. The track exposes `data-state` for conditional styling. */
   unstyled?: boolean;
 
-  /** Per-slot class overrides merged with (or replacing, when `unstyled`) the default styles. */
-  slotClasses?: Partial<
-    Record<'wrapper' | 'control' | 'track' | 'thumb' | 'label' | 'message', string>
-  >;
+  /**
+   * Per-slot class overrides merged with (or replacing, when `unstyled`) the
+   * default styles. Slots: wrapper (root — what `class` also targets) | control
+   * (the `<label>` wrapping the input) | track | thumb | label | message.
+   */
+  slotClasses?: Partial<Record<ToggleSlots, string>>;
 
   /**
    * Apply a named preset registered via `<BlocksProvider presets={{ Toggle: {...} }}>`.

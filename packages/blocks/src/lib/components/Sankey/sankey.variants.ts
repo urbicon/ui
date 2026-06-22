@@ -1,4 +1,4 @@
-import { tv, type VariantProps } from '$lib/utils/variants';
+import { type SlotNames, tv, type VariantProps } from '$lib/utils/variants';
 
 export const sankeyVariants = tv({
   slots: {
@@ -66,3 +66,5 @@ export const sankeyVariants = tv({
 });
 
 export type SankeyVariants = VariantProps<typeof sankeyVariants>;
+/** Slot names derived from the `tv()` config above — single source of truth for `slotClasses`. */
+export type SankeySlots = SlotNames<typeof sankeyVariants>;

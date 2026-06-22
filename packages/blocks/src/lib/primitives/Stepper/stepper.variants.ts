@@ -1,4 +1,4 @@
-import { tv, type VariantProps } from '$lib/utils/variants';
+import { type SlotNames, tv, type VariantProps } from '$lib/utils/variants';
 
 export const stepperVariants = tv({
   slots: {
@@ -182,3 +182,5 @@ export const stepperVariants = tv({
 });
 
 export type StepperVariants = VariantProps<typeof stepperVariants>;
+/** Slot names derived from the tv() config — single source of truth for slotClasses. */
+export type StepperSlots = SlotNames<typeof stepperVariants>;

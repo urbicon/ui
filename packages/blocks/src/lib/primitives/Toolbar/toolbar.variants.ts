@@ -1,4 +1,4 @@
-import { tv, type VariantProps } from '$lib/utils/variants';
+import { type SlotNames, tv, type VariantProps } from '$lib/utils/variants';
 
 export const toolbarVariants = tv({
   slots: {
@@ -58,3 +58,5 @@ export const toolbarVariants = tv({
 });
 
 export type ToolbarVariants = VariantProps<typeof toolbarVariants>;
+/** Slot names derived from the tv() config — single source of truth for slotClasses. */
+export type ToolbarSlots = SlotNames<typeof toolbarVariants>;

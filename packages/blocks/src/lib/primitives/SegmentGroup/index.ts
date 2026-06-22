@@ -2,7 +2,7 @@ import type { Snippet } from 'svelte';
 import type { HTMLAttributes, HTMLButtonAttributes } from 'svelte/elements';
 import type { MintProp } from '$lib/mint';
 import type { InteractiveTier } from '$lib/utils';
-import type { SegmentGroupVariants } from './segmentgroup.variants';
+import type { SegmentGroupSlots, SegmentGroupVariants } from './segmentgroup.variants';
 
 /**
  * Reactive context exposed to child SegmentItem components.
@@ -59,7 +59,7 @@ export interface SegmentGroupProps
   unstyled?: boolean;
 
   /** Per-slot class overrides merged with tv() styles. */
-  slotClasses?: Partial<Record<'base' | 'indicator' | 'item', string>>;
+  slotClasses?: Partial<Record<SegmentGroupSlots, string>>;
 
   /**
    * Apply a named preset registered via `<BlocksProvider presets={{ SegmentGroup: {...} }}>`.
@@ -112,7 +112,7 @@ export interface SegmentItemProps extends Omit<HTMLButtonAttributes, 'children'>
   unstyled?: boolean;
 
   /** Per-slot class overrides merged with tv() styles. */
-  slotClasses?: Partial<Record<'item', string>>;
+  slotClasses?: Partial<Record<Extract<SegmentGroupSlots, 'item'>, string>>;
 
   /**
    * Apply a named preset registered via `<BlocksProvider presets={{ SegmentItem: {...} }}>`.

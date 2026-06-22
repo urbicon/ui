@@ -1,4 +1,4 @@
-import { tv, type VariantProps } from '$lib/utils/variants';
+import { type SlotNames, tv, type VariantProps } from '$lib/utils/variants';
 
 export const textareaVariants = tv({
   slots: {
@@ -118,3 +118,5 @@ export const textareaVariants = tv({
 });
 
 export type TextareaVariants = VariantProps<typeof textareaVariants>;
+/** Slot names derived from the `tv()` config above — single source of truth for `slotClasses`. */
+export type TextareaSlots = SlotNames<typeof textareaVariants>;

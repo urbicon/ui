@@ -1,7 +1,7 @@
 import type { Snippet } from 'svelte';
 import type { HTMLAttributes } from 'svelte/elements';
 import type { MintProp } from '$lib/mint';
-import type { SelectVariants } from './select.variants';
+import type { SelectSlots, SelectVariants } from './select.variants';
 
 /**
  * Primitive value types accepted by Select / Combobox options.
@@ -266,27 +266,13 @@ interface SelectBaseProps<T extends SelectValue = string>
   /** Remove all default tv() classes. */
   unstyled?: boolean;
 
-  /** Per-slot class overrides merged with tv() styles. */
-  slotClasses?: Partial<
-    Record<
-      | 'wrapper'
-      | 'base'
-      | 'trigger'
-      | 'triggerText'
-      | 'placeholder'
-      | 'chevron'
-      | 'clear'
-      | 'listbox'
-      | 'option'
-      | 'optionCheck'
-      | 'optionCheckbox'
-      | 'group'
-      | 'groupLabel'
-      | 'label'
-      | 'message',
-      string
-    >
-  >;
+  /**
+   * Per-slot class overrides merged with tv() styles. Slots: wrapper (root —
+   * what `class` also targets) | base | trigger | triggerText | placeholder |
+   * chevron | clear | listbox | option | optionLabel | optionCheck |
+   * optionCheckbox | group | groupLabel | label | message.
+   */
+  slotClasses?: Partial<Record<SelectSlots, string>>;
 
   /**
    * Apply a named preset registered via `<BlocksProvider presets={{ Select: {...} }}>`.

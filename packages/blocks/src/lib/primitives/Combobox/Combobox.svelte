@@ -1,8 +1,8 @@
 <script lang="ts" generics="T extends string | number | boolean = string">
   import { useBlocksI18n, mintRegistry } from '$lib';
   import { tick } from 'svelte';
-  import { comboboxVariants } from './combobox.variants';
-  import { getBlocksConfig, mergeSlotClasses, resolvePresetSlotClasses } from '$lib/provider';
+  import { comboboxVariants, type ComboboxVariants } from './combobox.variants';
+  import { getBlocksConfig, resolveSlotClasses } from '$lib/provider';
   import { resolveIcon } from '$lib/icons';
   import CloseIconDefault from '$lib/icons/CloseIcon.svelte';
   import ChevronDownIconDefault from '$lib/icons/ChevronDownIcon.svelte';
@@ -64,13 +64,6 @@
 
   const blocksConfig = getBlocksConfig();
   const unstyled = $derived(unstyledProp || blocksConfig?.unstyled || false);
-  const slotClasses = $derived(
-    mergeSlotClasses(
-      blocksConfig?.defaults?.Combobox?.slotClasses,
-      resolvePresetSlotClasses(blocksConfig?.presets, 'Combobox', preset),
-      slotClassesProp
-    )
-  );
 
   let inputEl = $state<HTMLInputElement>();
   let listboxEl = $state<HTMLElement>();
@@ -95,25 +88,11 @@
     return options.filter((o) => filterFn(o, query.trim()));
   });
 
-  const styles = $derived(
-    unstyled
-      ? {
-          base: () => '',
-          label: () => '',
-          requiredMark: () => '',
-          inputWrapper: () => '',
-          input: () => '',
-          message: () => '',
-          hint: () => '',
-          listbox: () => '',
-          option: () => '',
-          optionActive: () => '',
-          optionSelected: () => '',
-          noResults: () => '',
-          clear: () => '',
-          chevron: () => ''
-        }
-      : comboboxVariants({ tier: effectiveTier, size, open, disabled })
+  const variantProps: ComboboxVariants = $derived({ tier: effectiveTier, size, open, disabled });
+  const styles = $derived(comboboxVariants(variantProps));
+
+  const slotClasses = $derived(
+    resolveSlotClasses(blocksConfig, 'Combobox', preset, variantProps, slotClassesProp)
   );
 
   // Focus-restoration policy follows the ARIA Combobox pattern:
@@ -384,12 +363,22 @@
               data-active={isActive}
               disabled={opt.disabled}
               class={unstyled
-                ? (slotClasses?.option ?? '')
+                ? [
+                    slotClasses?.option,
+                    isActive ? slotClasses?.optionActive : undefined,
+                    isSelected ? slotClasses?.optionSelected : undefined
+                  ]
+                    .filter(Boolean)
+                    .join(' ')
                 : styles.option({
                     class: [
                       slotClasses?.option,
-                      isActive ? styles.optionActive() : undefined,
-                      isSelected ? styles.optionSelected() : undefined
+                      isActive
+                        ? styles.optionActive({ class: slotClasses?.optionActive })
+                        : undefined,
+                      isSelected
+                        ? styles.optionSelected({ class: slotClasses?.optionSelected })
+                        : undefined
                     ].filter(Boolean)
                   })}
               onclick={() => select(opt)}

@@ -1,4 +1,4 @@
-import { tv, type VariantProps } from '$lib/utils/variants';
+import { type SlotNames, tv, type VariantProps } from '$lib/utils/variants';
 
 export const comboboxVariants = tv({
   slots: {
@@ -88,3 +88,5 @@ export const comboboxVariants = tv({
 });
 
 export type ComboboxVariants = VariantProps<typeof comboboxVariants>;
+/** Slot names derived from the tv() config — single source of truth for slotClasses. */
+export type ComboboxSlots = SlotNames<typeof comboboxVariants>;

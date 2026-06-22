@@ -1,6 +1,6 @@
 <script lang="ts" generics="T = unknown">
   import { useBlocksI18n } from '$lib';
-  import { getBlocksConfig, mergeSlotClasses, resolvePresetSlotClasses } from '$lib/provider';
+  import { getBlocksConfig, resolveSlotClasses } from '$lib/provider';
   import { stripTime } from '$lib/date';
   import {
     DateGridController,
@@ -14,7 +14,7 @@
   } from '$lib/internal/date-grid';
   import { bucketItemsByDate } from './planner.bucket';
   import { setPlannerContext } from './planner.context';
-  import { plannerVariants } from './planner.variants';
+  import { plannerVariants, type PlannerVariants } from './planner.variants';
   import type {
     PlannerCellContext,
     PlannerContext,
@@ -70,16 +70,13 @@
   // --- BlocksConfig integration ---
   const blocksConfig = getBlocksConfig();
   const unstyled = $derived(unstyledProp || blocksConfig?.unstyled || false);
-  const slotClasses = $derived(
-    mergeSlotClasses(
-      blocksConfig?.defaults?.Planner?.slotClasses,
-      resolvePresetSlotClasses(blocksConfig?.presets, 'Planner', preset),
-      slotClassesProp
-    )
-  );
 
   // --- Styling: one tv() instance, resolved per slot ---
-  const styles = $derived(plannerVariants({ view, variant, size }));
+  const variantProps: PlannerVariants = $derived({ view, variant, size });
+  const styles = $derived(plannerVariants(variantProps));
+  const slotClasses = $derived(
+    resolveSlotClasses(blocksConfig, 'Planner', preset, variantProps, slotClassesProp)
+  );
   function slot(name: PlannerSlotName, extra?: string): string {
     const overrides = [slotClasses?.[name], extra].filter(Boolean).join(' ');
     if (unstyled) return overrides;

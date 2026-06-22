@@ -1,4 +1,4 @@
-import { tv, type VariantProps } from '$lib/utils/variants';
+import { type SlotNames, tv, type VariantProps } from '$lib/utils/variants';
 
 export const checkboxVariants = tv({
   slots: {
@@ -189,3 +189,5 @@ export const checkboxVariants = tv({
 });
 
 export type CheckboxVariants = VariantProps<typeof checkboxVariants>;
+/** Slot names derived from the `tv()` config above — single source of truth for `slotClasses`. */
+export type CheckboxSlots = SlotNames<typeof checkboxVariants>;

@@ -1,10 +1,10 @@
 <script lang="ts">
   import { onMount } from 'svelte';
-  import { getBlocksConfig, mergeSlotClasses, resolvePresetSlotClasses } from '$lib/provider';
+  import { getBlocksConfig, resolveSlotClasses } from '$lib/provider';
   import { mintRegistry } from '$lib';
   import type { TabItemProps } from './index';
   import { getTabContext } from './tab.context';
-  import { tabVariants } from './tab.variants';
+  import { tabVariants, type TabVariants } from './tab.variants';
 
   let {
     value,
@@ -21,13 +21,6 @@
 
   const blocksConfig = getBlocksConfig();
   const unstyled = $derived(unstyledProp || blocksConfig?.unstyled || false);
-  const slotClasses = $derived(
-    mergeSlotClasses(
-      blocksConfig?.defaults?.TabItem?.slotClasses,
-      resolvePresetSlotClasses(blocksConfig?.presets, 'TabItem', preset),
-      slotClassesProp
-    )
-  );
 
   let tabItemElement = $state<HTMLButtonElement>();
   const tabContext = getTabContext();
@@ -39,13 +32,17 @@
   const isActive = $derived(tabContext.isActive(value));
   const isDisabled = $derived(disabled || tabContext.disabled);
 
-  const styles = $derived(
-    tabVariants({
-      variant: tabContext.variant,
-      orientation: tabContext.orientation,
-      size: tabContext.size,
-      tier: tabContext.tier
-    })
+  const variantProps: TabVariants = $derived({
+    variant: tabContext.variant,
+    orientation: tabContext.orientation,
+    size: tabContext.size,
+    tier: tabContext.tier
+  });
+
+  const styles = $derived(tabVariants(variantProps));
+
+  const slotClasses = $derived(
+    resolveSlotClasses(blocksConfig, 'TabItem', preset, variantProps, slotClassesProp)
   );
 
   onMount(() => {
@@ -85,17 +82,19 @@
   {...restProps}
 >
   {#if icon}
-    <span class={unstyled ? '' : styles.icon()}>
+    <span class={unstyled ? (slotClasses?.icon ?? '') : styles.icon({ class: slotClasses?.icon })}>
       {@render icon()}
     </span>
   {/if}
 
-  <span class={unstyled ? '' : styles.label()}>
+  <span class={unstyled ? (slotClasses?.label ?? '') : styles.label({ class: slotClasses?.label })}>
     {@render children()}
   </span>
 
   {#if badge}
-    <span class={unstyled ? '' : styles.badge()}>
+    <span
+      class={unstyled ? (slotClasses?.badge ?? '') : styles.badge({ class: slotClasses?.badge })}
+    >
       {@render badge()}
     </span>
   {/if}

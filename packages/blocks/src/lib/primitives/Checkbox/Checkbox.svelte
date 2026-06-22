@@ -1,8 +1,8 @@
 <script lang="ts">
   import { mintRegistry } from '$lib';
-  import { getBlocksConfig, mergeSlotClasses, resolvePresetSlotClasses } from '$lib/provider';
+  import { getBlocksConfig, resolveSlotClasses } from '$lib/provider';
   import { getTierContext, useFormField } from '$lib/utils';
-  import { checkboxVariants } from '$lib/primitives';
+  import { checkboxVariants, type CheckboxVariants } from '$lib/primitives';
   import { resolveIcon } from '$lib/icons';
   import CheckIconDefault from '$lib/icons/CheckIcon.svelte';
   import MinusIconDefault from '$lib/icons/MinusIcon.svelte';
@@ -53,30 +53,30 @@
 
   const blocksConfig = getBlocksConfig();
   const unstyled = $derived(unstyledProp || blocksConfig?.unstyled || false);
-  const slotClasses = $derived(
-    mergeSlotClasses(
-      blocksConfig?.defaults?.Checkbox?.slotClasses,
-      resolvePresetSlotClasses(blocksConfig?.presets, 'Checkbox', preset),
-      slotClassesProp
-    )
-  );
 
   let controlElement = $state<HTMLElement>();
   let inputRef = $state<HTMLInputElement>();
 
   const dataState = $derived(indeterminate ? 'indeterminate' : checked ? 'checked' : 'unchecked');
 
-  const styles = $derived(
-    checkboxVariants({
-      tier: effectiveTier,
-      size,
-      intent,
-      variant,
-      checked,
-      indeterminate,
-      disabled,
-      error: !!error
-    })
+  // Variant props feed both the tv() style computation and the slot-class
+  // cascade — extracted into one derived so `resolveSlotClasses` can match
+  // conditional `overrides` against the checkbox's active variants.
+  const variantProps: CheckboxVariants = $derived({
+    tier: effectiveTier,
+    size,
+    intent,
+    variant,
+    checked,
+    indeterminate,
+    disabled,
+    error: !!error
+  });
+
+  const styles = $derived(checkboxVariants(variantProps));
+
+  const slotClasses = $derived(
+    resolveSlotClasses(blocksConfig, 'Checkbox', preset, variantProps, slotClassesProp)
   );
 
   $effect(() => {

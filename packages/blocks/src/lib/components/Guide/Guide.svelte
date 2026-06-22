@@ -3,7 +3,7 @@
   import { MediaQuery } from 'svelte/reactivity';
   import { useBlocksI18n } from '$lib/i18n';
   import { Button } from '$lib/primitives/Button';
-  import { getBlocksConfig, mergeSlotClasses, resolvePresetSlotClasses } from '$lib/provider';
+  import { getBlocksConfig, resolveSlotClasses } from '$lib/provider';
   import {
     computePosition,
     autoUpdate,
@@ -14,7 +14,7 @@
   } from '$lib/utils/floating';
   import { observeTargetResolution } from '$lib/utils/observe-target';
   import { getGuideContext } from './guide.context';
-  import { guideTourVariants } from './guide.variants';
+  import { guideTourVariants, type GuideTourVariants } from './guide.variants';
   import type { GuideProps } from './index';
 
   const bt = useBlocksI18n();
@@ -44,14 +44,11 @@
 
   const blocksConfig = getBlocksConfig();
   const unstyled = $derived(unstyledProp || blocksConfig?.unstyled || false);
+  const variantProps: GuideTourVariants = $derived({});
+  const styles = $derived(guideTourVariants(variantProps));
   const slotClasses = $derived(
-    mergeSlotClasses(
-      blocksConfig?.defaults?.Guide?.slotClasses,
-      resolvePresetSlotClasses(blocksConfig?.presets, 'Guide', preset),
-      slotClassesProp
-    )
+    resolveSlotClasses(blocksConfig, 'Guide', preset, variantProps, slotClassesProp)
   );
-  const styles = $derived(guideTourVariants());
 
   // ── Controller-driven tour state ───────────────────────────────────────────
   const isTourActive = $derived(guide?.isTourActive ?? false);

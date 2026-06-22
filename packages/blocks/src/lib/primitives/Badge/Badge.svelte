@@ -6,7 +6,7 @@
   import { useBlocksI18n } from '$lib';
 
   const CloseIcon = resolveIcon('close', CloseIconDefault);
-  import { badgeVariants } from '$lib/primitives';
+  import { badgeVariants, type BadgeVariants } from '$lib/primitives';
   import { getTierContext } from '$lib/utils/tier-context';
   import type { BadgeProps } from './index';
 
@@ -50,7 +50,7 @@
   const isInteractive = $derived(interactive || !!onclick);
   const isRemovable = $derived(removable && !isDot);
 
-  const variantProps = $derived({
+  const variantProps: BadgeVariants = $derived({
     tier: effectiveTier,
     intent,
     variant,

@@ -1,9 +1,9 @@
 <script lang="ts">
   import { useBlocksI18n } from '$lib';
   import { Dialog, Separator } from '$lib/primitives';
-  import { getBlocksConfig, mergeSlotClasses, resolvePresetSlotClasses } from '$lib/provider';
+  import { getBlocksConfig, resolveSlotClasses } from '$lib/provider';
   import type { CommandPaletteProps, CommandPaletteItem } from './index';
-  import { commandPaletteVariants } from './commandPalette.variants';
+  import { commandPaletteVariants, type CommandPaletteVariants } from './commandPalette.variants';
 
   const bt = useBlocksI18n();
 
@@ -31,25 +31,18 @@
 
   const blocksConfig = getBlocksConfig();
   const unstyled = $derived(unstyledProp || blocksConfig?.unstyled || false);
-  const slotClasses = $derived(
-    mergeSlotClasses(
-      blocksConfig?.defaults?.CommandPalette?.slotClasses,
-      resolvePresetSlotClasses(blocksConfig?.presets, 'CommandPalette', preset),
-      slotClassesProp
-    )
-  );
 
   let query = $state('');
   let selectedIndex = $state(0);
   let inputEl: HTMLInputElement | undefined = $state();
 
-  const styles = $derived(unstyled ? undefined : commandPaletteVariants({ size }));
+  const variantProps: CommandPaletteVariants = $derived({ size });
 
-  function slot(name: keyof NonNullable<typeof styles>) {
-    const base = styles?.[name]?.() ?? '';
-    const override = slotClasses?.[name as keyof typeof slotClasses] ?? '';
-    return override ? `${base} ${override}` : base;
-  }
+  const styles = $derived(commandPaletteVariants(variantProps));
+
+  const slotClasses = $derived(
+    resolveSlotClasses(blocksConfig, 'CommandPalette', preset, variantProps, slotClassesProp)
+  );
 
   const defaultFilter = (item: CommandPaletteItem, q: string) => {
     const lower = q.toLowerCase();
@@ -156,11 +149,21 @@
 <svelte:window onkeydown={handleGlobalKeydown} />
 
 <Dialog bind:open size="md" placement="top" class="mt-[15vh]" onClose={() => setOpen(false)}>
-  <div class="{slot('wrapper')} {className}">
+  <div
+    class={unstyled
+      ? [slotClasses?.wrapper, className].filter(Boolean).join(' ')
+      : styles.wrapper({ class: [slotClasses?.wrapper, className] })}
+  >
     <!-- Search input -->
-    <div class={slot('inputWrapper')}>
+    <div
+      class={unstyled
+        ? (slotClasses?.inputWrapper ?? '')
+        : styles.inputWrapper({ class: slotClasses?.inputWrapper })}
+    >
       <svg
-        class={slot('inputIcon')}
+        class={unstyled
+          ? (slotClasses?.inputIcon ?? '')
+          : styles.inputIcon({ class: slotClasses?.inputIcon })}
         fill="none"
         viewBox="0 0 24 24"
         stroke="currentColor"
@@ -178,7 +181,7 @@
         bind:value={query}
         onkeydown={handleKeydown}
         {placeholder}
-        class={slot('input')}
+        class={unstyled ? (slotClasses?.input ?? '') : styles.input({ class: slotClasses?.input })}
         role="combobox"
         aria-expanded={filtered.length > 0}
         aria-controls="command-palette-list"
@@ -189,7 +192,9 @@
       />
       {#if query}
         <button
-          class={slot('clearButton')}
+          class={unstyled
+            ? (slotClasses?.clearButton ?? '')
+            : styles.clearButton({ class: slotClasses?.clearButton })}
           aria-label={bt('accessibility.clearSearch')}
           onclick={() => {
             query = '';
@@ -210,22 +215,39 @@
     </div>
 
     <!-- Results -->
-    <div id="command-palette-list" role="listbox" class={slot('list')}>
+    <div
+      id="command-palette-list"
+      role="listbox"
+      class={unstyled ? (slotClasses?.list ?? '') : styles.list({ class: slotClasses?.list })}
+    >
       {#if filtered.length === 0}
         {#if customEmpty}
           {@render customEmpty(query)}
         {:else}
-          <div class={slot('empty')}>
+          <div
+            class={unstyled
+              ? (slotClasses?.empty ?? '')
+              : styles.empty({ class: slotClasses?.empty })}
+          >
             {emptyText}{#if query}&nbsp;"{query}"{/if}
           </div>
         {/if}
       {:else}
         {#each grouped as group, groupIdx (group.category)}
           {#if groupIdx > 0}
-            <Separator class={slot('separator')} />
+            <Separator
+              class={unstyled
+                ? (slotClasses?.separator ?? '')
+                : styles.separator({ class: slotClasses?.separator })}
+            />
           {/if}
           {#if group.category}
-            <div class={slot('groupLabel')} role="presentation">
+            <div
+              class={unstyled
+                ? (slotClasses?.groupLabel ?? '')
+                : styles.groupLabel({ class: slotClasses?.groupLabel })}
+              role="presentation"
+            >
               {group.category}
             </div>
           {/if}
@@ -243,6 +265,17 @@
                 (Enter/Space handled in handleKeydown) plus pointer clicks
                 here. tabindex="-1" keeps the items out of the tab sequence.
               -->
+              {@const itemStateClass = isDisabled
+                ? unstyled
+                  ? (slotClasses?.itemDisabled ?? '')
+                  : styles.itemDisabled({ class: slotClasses?.itemDisabled })
+                : isHighlighted
+                  ? unstyled
+                    ? (slotClasses?.itemHighlighted ?? '')
+                    : styles.itemHighlighted({ class: slotClasses?.itemHighlighted })
+                  : unstyled
+                    ? (slotClasses?.itemDefault ?? '')
+                    : styles.itemDefault({ class: slotClasses?.itemDefault })}
               <!-- svelte-ignore a11y_click_events_have_key_events -->
               <div
                 id="command-palette-item-{flatIdx}"
@@ -251,11 +284,12 @@
                 aria-selected={isHighlighted}
                 aria-disabled={isDisabled}
                 data-command-palette-selected={isHighlighted}
-                class="{slot('item')} {isDisabled
-                  ? slot('itemDisabled')
-                  : isHighlighted
-                    ? slot('itemHighlighted')
-                    : slot('itemDefault')}"
+                class={[
+                  unstyled ? (slotClasses?.item ?? '') : styles.item({ class: slotClasses?.item }),
+                  itemStateClass
+                ]
+                  .filter(Boolean)
+                  .join(' ')}
                 onclick={() => {
                   if (!isDisabled) selectItem(item);
                 }}
@@ -265,7 +299,9 @@
               >
                 {#if item.icon}
                   <svg
-                    class={slot('itemIcon')}
+                    class={unstyled
+                      ? (slotClasses?.itemIcon ?? '')
+                      : styles.itemIcon({ class: slotClasses?.itemIcon })}
                     fill="none"
                     viewBox="0 0 24 24"
                     stroke="currentColor"
@@ -274,9 +310,18 @@
                     <path stroke-linecap="round" stroke-linejoin="round" d={item.icon} />
                   </svg>
                 {/if}
-                <span class={slot('itemLabel')}>{item.label}</span>
+                <span
+                  class={unstyled
+                    ? (slotClasses?.itemLabel ?? '')
+                    : styles.itemLabel({ class: slotClasses?.itemLabel })}>{item.label}</span
+                >
                 {#if item.shortcut}
-                  <kbd class={slot('itemShortcut')}>{item.shortcut}</kbd>
+                  <kbd
+                    class={unstyled
+                      ? (slotClasses?.itemShortcut ?? '')
+                      : styles.itemShortcut({ class: slotClasses?.itemShortcut })}
+                    >{item.shortcut}</kbd
+                  >
                 {/if}
               </div>
             {/if}
@@ -287,17 +332,39 @@
 
     <!-- Footer -->
     {#if showFooter}
-      <div class={slot('footer')}>
-        <span class={slot('footerHint')}>
-          <kbd class={slot('kbd')}>&#8593;&#8595;</kbd>
+      <div
+        class={unstyled
+          ? (slotClasses?.footer ?? '')
+          : styles.footer({ class: slotClasses?.footer })}
+      >
+        <span
+          class={unstyled
+            ? (slotClasses?.footerHint ?? '')
+            : styles.footerHint({ class: slotClasses?.footerHint })}
+        >
+          <kbd class={unstyled ? (slotClasses?.kbd ?? '') : styles.kbd({ class: slotClasses?.kbd })}
+            >&#8593;&#8595;</kbd
+          >
           {bt('commandPalette.hints.navigate', {})}
         </span>
-        <span class={slot('footerHint')}>
-          <kbd class={slot('kbd')}>&#8629;</kbd>
+        <span
+          class={unstyled
+            ? (slotClasses?.footerHint ?? '')
+            : styles.footerHint({ class: slotClasses?.footerHint })}
+        >
+          <kbd class={unstyled ? (slotClasses?.kbd ?? '') : styles.kbd({ class: slotClasses?.kbd })}
+            >&#8629;</kbd
+          >
           {bt('commandPalette.hints.select', {})}
         </span>
-        <span class={slot('footerHint')}>
-          <kbd class={slot('kbd')}>esc</kbd>
+        <span
+          class={unstyled
+            ? (slotClasses?.footerHint ?? '')
+            : styles.footerHint({ class: slotClasses?.footerHint })}
+        >
+          <kbd class={unstyled ? (slotClasses?.kbd ?? '') : styles.kbd({ class: slotClasses?.kbd })}
+            >esc</kbd
+          >
           {bt('commandPalette.hints.close', {})}
         </span>
       </div>

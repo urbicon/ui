@@ -1,7 +1,7 @@
 import type { Snippet } from 'svelte';
 import type { HTMLAttributes } from 'svelte/elements';
 import type { InteractiveTier } from '$lib/utils';
-import type { StepperVariants } from './stepper.variants';
+import type { StepperSlots, StepperVariants } from './stepper.variants';
 
 /** Context for Stepper ↔ StepperStep communication */
 export interface StepperContext {
@@ -93,22 +93,8 @@ export interface StepperProps
   class?: string;
   /** Remove all default tv() classes. */
   unstyled?: boolean;
-  /** Per-slot class overrides. */
-  slotClasses?: Partial<
-    Record<
-      | 'base'
-      | 'stepItem'
-      | 'step'
-      | 'indicatorColumn'
-      | 'indicator'
-      | 'labelGroup'
-      | 'label'
-      | 'description'
-      | 'separator'
-      | 'content',
-      string
-    >
-  >;
+  /** Per-slot class overrides. Slots: base | stepItem | step | indicatorColumn | indicator | labelGroup | label | description | separator | content */
+  slotClasses?: Partial<Record<StepperSlots, string>>;
   /**
    * Apply a named preset registered via `<BlocksProvider presets={{ Stepper: {...} }}>`.
    * Prefer this over `class` overrides when the requested look falls outside the
@@ -155,21 +141,8 @@ export interface StepperStepProps extends Omit<HTMLAttributes<HTMLLIElement>, 'c
   class?: string;
   /** Remove all default tv() classes. */
   unstyled?: boolean;
-  /** Per-slot class overrides. */
-  slotClasses?: Partial<
-    Record<
-      | 'stepItem'
-      | 'step'
-      | 'indicatorColumn'
-      | 'indicator'
-      | 'labelGroup'
-      | 'label'
-      | 'description'
-      | 'separator'
-      | 'content',
-      string
-    >
-  >;
+  /** Per-slot class overrides (subset of Stepper's, minus the root `base`). */
+  slotClasses?: Partial<Record<Exclude<StepperSlots, 'base'>, string>>;
   /**
    * Apply a named preset registered via `<BlocksProvider presets={{ StepperStep: {...} }}>`.
    * Prefer this over `class` overrides when the requested look falls outside the

@@ -1,7 +1,7 @@
 import type { Snippet } from 'svelte';
 import type { HTMLButtonAttributes } from 'svelte/elements';
 import type { MintProp } from '$lib/mint';
-import type { ButtonVariants } from './button.variants';
+import type { ButtonSlots, ButtonVariants } from './button.variants';
 
 /**
  * Props interface for Button component
@@ -110,8 +110,8 @@ export interface ButtonProps extends ButtonVariants, Omit<HTMLButtonAttributes, 
 
   /** Remove default tailwind-variants classes. Only user classes apply. */
   unstyled?: boolean;
-  /** Per-slot class overrides merged with tv styles: base | content | spinner */
-  slotClasses?: Partial<Record<'base' | 'content' | 'spinner', string>>;
+  /** Per-slot class overrides merged with tv styles. Slots: base | content | spinner */
+  slotClasses?: Partial<Record<ButtonSlots, string>>;
 
   /**
    * Apply a named preset registered via `<BlocksProvider presets={{ Button: {...} }}>`.

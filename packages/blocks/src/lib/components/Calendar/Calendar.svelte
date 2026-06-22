@@ -1,7 +1,7 @@
 <script lang="ts">
   import { SvelteMap, MediaQuery } from 'svelte/reactivity';
-  import { getBlocksConfig, mergeSlotClasses, resolvePresetSlotClasses } from '$lib/provider';
-  import { calendarVariants } from './calendar.variants';
+  import { getBlocksConfig, resolveSlotClasses } from '$lib/provider';
+  import { calendarVariants, type CalendarVariants } from './calendar.variants';
   import { setCalendarContext, type CalendarContext } from './calendar.context';
   import {
     getYearMonths,
@@ -114,16 +114,18 @@
   // --- BlocksConfig integration ---
   const blocksConfig = getBlocksConfig();
   const unstyled = $derived(unstyledProp || blocksConfig?.unstyled || false);
-  const slotClasses = $derived(
-    mergeSlotClasses(
-      blocksConfig?.defaults?.Calendar?.slotClasses,
-      resolvePresetSlotClasses(blocksConfig?.presets, 'Calendar', preset),
-      slotClassesProp
-    )
-  );
 
-  // --- Variant styles ---
-  const styles = $derived(calendarVariants({ variant, size }));
+  // --- Variant styles + slot-class cascade ---
+  // `variantProps` feeds both the tv() style computation and the slot-class
+  // cascade (so provider `overrides` can match the active variant/size).
+  // Annotation is mandatory: without it the string literals widen to `string`
+  // and tsc rejects the call. The root only drives `variant`/`size`; the
+  // per-cell `dayState`/`hasEvents` axes are applied by sub-components.
+  const variantProps: CalendarVariants = $derived({ variant, size });
+  const styles = $derived(calendarVariants(variantProps));
+  const slotClasses = $derived(
+    resolveSlotClasses(blocksConfig, 'Calendar', preset, variantProps, slotClassesProp)
+  );
 
   // --- Animation state ---
   const reducedMotion = new MediaQuery('(prefers-reduced-motion: reduce)');

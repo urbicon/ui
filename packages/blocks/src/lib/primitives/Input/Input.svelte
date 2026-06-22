@@ -1,9 +1,9 @@
 <script lang="ts">
   import { useBlocksI18n, mintRegistry, createPersistentState } from '$lib';
-  import { getBlocksConfig, mergeSlotClasses, resolvePresetSlotClasses } from '$lib/provider';
+  import { getBlocksConfig, resolveSlotClasses } from '$lib/provider';
   import { useFormField, getTierContext } from '$lib/utils';
   import type { InputProps } from '.';
-  import { inputVariants } from './input.variants';
+  import { inputVariants, type InputVariants } from './input.variants';
   import { resolveIcon } from '$lib/icons';
   import CloseIconDefault from '$lib/icons/CloseIcon.svelte';
 
@@ -50,13 +50,6 @@
 
   const blocksConfig = getBlocksConfig();
   const unstyled = $derived(unstyledProp || blocksConfig?.unstyled || false);
-  const slotClasses = $derived(
-    mergeSlotClasses(
-      blocksConfig?.defaults?.Input?.slotClasses,
-      resolvePresetSlotClasses(blocksConfig?.presets, 'Input', preset),
-      slotClassesProp
-    )
-  );
 
   let inputRef = $state<HTMLInputElement>();
 
@@ -99,20 +92,27 @@
   const hasLeftIcon = $derived(!!leftIcon);
   const hasRightIcon = $derived(!!(effectiveRightIcon || shouldShowClear));
 
-  const styles = $derived(
-    inputVariants({
-      tier: effectiveTier,
-      variant,
-      size,
-      intent,
-      disabled: disabled || undefined,
-      readonly: readonly || undefined,
-      error: !!error || undefined,
-      required: required || undefined,
-      hasLeftIcon: hasLeftIcon || undefined,
-      hasRightIcon: hasRightIcon || undefined,
-      messageType: error ? 'error' : 'helper'
-    })
+  // Variant props feed both the tv() style computation and the slot-class
+  // cascade — extracted into one derived so `resolveSlotClasses` can match
+  // conditional `overrides` against the input's active variants.
+  const variantProps: InputVariants = $derived({
+    tier: effectiveTier,
+    variant,
+    size,
+    intent,
+    disabled: disabled || undefined,
+    readonly: readonly || undefined,
+    error: !!error || undefined,
+    required: required || undefined,
+    hasLeftIcon: hasLeftIcon || undefined,
+    hasRightIcon: hasRightIcon || undefined,
+    messageType: error ? 'error' : 'helper'
+  });
+
+  const styles = $derived(inputVariants(variantProps));
+
+  const slotClasses = $derived(
+    resolveSlotClasses(blocksConfig, 'Input', preset, variantProps, slotClassesProp)
   );
 
   // ARIA wiring is shared with every form primitive — see XC-2.
@@ -179,11 +179,17 @@
       : styles.container({ class: slotClasses?.container })}
   >
     {#if leftIcon}
-      <div class={styles.iconContainer({ iconPosition: 'left' })}>
+      <div
+        class={unstyled
+          ? (slotClasses?.iconContainer ?? '')
+          : styles.iconContainer({ iconPosition: 'left', class: slotClasses?.iconContainer })}
+      >
         {#if onLeftIconClick}
           <button
             type="button"
-            class={styles.iconButton()}
+            class={unstyled
+              ? (slotClasses?.iconButton ?? '')
+              : styles.iconButton({ class: slotClasses?.iconButton })}
             onclick={handleLeftIconClick}
             {disabled}
             aria-label={leftIconAriaLabel}
@@ -191,7 +197,11 @@
             {@render leftIcon()}
           </button>
         {:else}
-          <span class={styles.iconDecoration()}>
+          <span
+            class={unstyled
+              ? (slotClasses?.iconDecoration ?? '')
+              : styles.iconDecoration({ class: slotClasses?.iconDecoration })}
+          >
             {@render leftIcon()}
           </span>
         {/if}
@@ -220,7 +230,9 @@
       >
         <button
           type="button"
-          class={styles.iconButton()}
+          class={unstyled
+            ? (slotClasses?.iconButton ?? '')
+            : styles.iconButton({ class: slotClasses?.iconButton })}
           onclick={handleClear}
           aria-label={bt('accessibility.clearInput')}
         >
@@ -236,7 +248,9 @@
         {#if onRightIconClick}
           <button
             type="button"
-            class={styles.iconButton()}
+            class={unstyled
+              ? (slotClasses?.iconButton ?? '')
+              : styles.iconButton({ class: slotClasses?.iconButton })}
             onclick={handleRightIconClick}
             {disabled}
             aria-label={rightIconAriaLabel}
@@ -244,7 +258,11 @@
             {@render effectiveRightIcon()}
           </button>
         {:else}
-          <span class={styles.iconDecoration()}>
+          <span
+            class={unstyled
+              ? (slotClasses?.iconDecoration ?? '')
+              : styles.iconDecoration({ class: slotClasses?.iconDecoration })}
+          >
             {@render effectiveRightIcon()}
           </span>
         {/if}
@@ -253,7 +271,13 @@
   </div>
 
   {#if ff.errorId}
-    <div id={ff.errorId} class={styles.message()} role="alert">
+    <div
+      id={ff.errorId}
+      class={unstyled
+        ? (slotClasses?.message ?? '')
+        : styles.message({ class: slotClasses?.message })}
+      role="alert"
+    >
       {error}
     </div>
   {:else if ff.hintId}

@@ -1,4 +1,4 @@
-import { tv, type VariantProps } from '$lib/utils/variants';
+import { type SlotNames, tv, type VariantProps } from '$lib/utils/variants';
 
 export const progressVariants = tv({
   slots: {
@@ -84,3 +84,5 @@ export const progressVariants = tv({
 });
 
 export type ProgressVariants = VariantProps<typeof progressVariants>;
+/** Slot names derived from the `tv()` config above — single source of truth for `slotClasses`. */
+export type ProgressSlots = SlotNames<typeof progressVariants>;

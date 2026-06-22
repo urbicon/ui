@@ -1,7 +1,7 @@
 import type { HTMLInputAttributes } from 'svelte/elements';
 import type { MintProp } from '$lib/mint';
 import type { InteractiveTier } from '$lib/utils';
-import type { CheckboxVariants } from './checkbox.variants';
+import type { CheckboxSlots, CheckboxVariants } from './checkbox.variants';
 
 /**
  * @description Accessible checkbox with indeterminate support, semantic intents, and form integration.
@@ -61,10 +61,12 @@ export interface CheckboxProps
   /** Strip all default tailwind-variants classes. Use with `slotClasses` for a fully custom look. The box exposes `data-state` for conditional styling. */
   unstyled?: boolean;
 
-  /** Per-slot class overrides merged with (or replacing, when `unstyled`) the default styles. */
-  slotClasses?: Partial<
-    Record<'wrapper' | 'control' | 'box' | 'icon' | 'label' | 'message', string>
-  >;
+  /**
+   * Per-slot class overrides merged with (or replacing, when `unstyled`) the
+   * default styles. Slots: wrapper (root — what `class` also targets) | control |
+   * box | icon | label | message.
+   */
+  slotClasses?: Partial<Record<CheckboxSlots, string>>;
 
   /**
    * Apply a named preset registered via `<BlocksProvider presets={{ Checkbox: {...} }}>`.

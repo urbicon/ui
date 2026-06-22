@@ -1,4 +1,4 @@
-import type { ThemeSwitcherVariants } from './themeSwitcher.variants';
+import type { ThemeSwitcherSlots, ThemeSwitcherVariants } from './themeSwitcher.variants';
 
 export type Theme = 'light' | 'dark' | 'system';
 
@@ -58,7 +58,7 @@ export interface ThemeSwitcherProps {
   unstyled?: boolean;
 
   /** Per-slot class overrides. */
-  slotClasses?: Partial<Record<'button' | 'icon', string>>;
+  slotClasses?: Partial<Record<ThemeSwitcherSlots, string>>;
 
   /**
    * Apply a named preset registered via `<BlocksProvider presets={{ ThemeSwitcher: {...} }}>`.

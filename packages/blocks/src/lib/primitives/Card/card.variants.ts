@@ -1,4 +1,4 @@
-import { tv, type VariantProps } from '$lib/utils/variants';
+import { type SlotNames, tv, type VariantProps } from '$lib/utils/variants';
 
 export const cardVariants = tv({
   slots: {
@@ -143,3 +143,5 @@ export const cardVariants = tv({
 });
 
 export type CardVariants = VariantProps<typeof cardVariants>;
+/** Slot names derived from the tv() config — single source of truth for slotClasses. */
+export type CardSlots = SlotNames<typeof cardVariants>;

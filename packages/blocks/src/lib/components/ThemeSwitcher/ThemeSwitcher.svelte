@@ -1,8 +1,8 @@
 <script lang="ts">
   import type { ThemeSwitcherProps, Theme } from './index';
-  import { themeSwitcherVariants } from './themeSwitcher.variants';
+  import { themeSwitcherVariants, type ThemeSwitcherVariants } from './themeSwitcher.variants';
   import { onMount } from 'svelte';
-  import { getBlocksConfig, mergeSlotClasses, resolvePresetSlotClasses } from '$lib/provider';
+  import { getBlocksConfig, resolveSlotClasses } from '$lib/provider';
   import { resolveIcon } from '$lib/icons';
   import SunIconDefault from '$lib/icons/SunIcon.svelte';
   import MoonIconDefault from '$lib/icons/MoonIcon.svelte';
@@ -31,25 +31,16 @@
 
   const blocksConfig = getBlocksConfig();
   const unstyled = $derived(unstyledProp || blocksConfig?.unstyled || false);
-  const slotClasses = $derived(
-    mergeSlotClasses(
-      blocksConfig?.defaults?.ThemeSwitcher?.slotClasses,
-      resolvePresetSlotClasses(blocksConfig?.presets, 'ThemeSwitcher', preset),
-      slotClassesProp
-    )
-  );
 
   let mounted = $state(false);
 
-  const styles = $derived(
-    unstyled ? undefined : themeSwitcherVariants({ variant, size, disabled })
-  );
+  const variantProps: ThemeSwitcherVariants = $derived({ variant, size, disabled });
 
-  function slot(name: 'button' | 'icon') {
-    const base = styles?.[name]?.() ?? '';
-    const override = slotClasses?.[name] ?? '';
-    return override ? `${base} ${override}` : base;
-  }
+  const styles = $derived(themeSwitcherVariants(variantProps));
+
+  const slotClasses = $derived(
+    resolveSlotClasses(blocksConfig, 'ThemeSwitcher', preset, variantProps, slotClassesProp)
+  );
 
   const resolvedTheme: Theme = $derived.by(() => {
     if (theme !== 'system' || typeof window === 'undefined') return theme;
@@ -131,16 +122,24 @@
 <button
   type="button"
   onclick={cycle}
-  class="{slot('button')} {className}"
+  class={unstyled
+    ? [slotClasses?.button, className].filter(Boolean).join(' ')
+    : styles.button({ class: [slotClasses?.button, className] })}
   aria-label={label}
   title={label}
   {disabled}
 >
   {#if theme === 'light'}
-    <SunIcon class={slot('icon')} />
+    <SunIcon
+      class={unstyled ? (slotClasses?.icon ?? '') : styles.icon({ class: slotClasses?.icon })}
+    />
   {:else if theme === 'dark'}
-    <MoonIcon class={slot('icon')} />
+    <MoonIcon
+      class={unstyled ? (slotClasses?.icon ?? '') : styles.icon({ class: slotClasses?.icon })}
+    />
   {:else}
-    <MonitorIcon class={slot('icon')} />
+    <MonitorIcon
+      class={unstyled ? (slotClasses?.icon ?? '') : styles.icon({ class: slotClasses?.icon })}
+    />
   {/if}
 </button>

@@ -1,6 +1,6 @@
 import type { Snippet } from 'svelte';
 import type { HTMLAttributes } from 'svelte/elements';
-import type { SpinnerVariants } from './spinner.variants';
+import type { SpinnerSlots, SpinnerVariants } from './spinner.variants';
 
 /**
  * @description Animated loading indicator with multiple animation styles and semantic intents.
@@ -51,27 +51,10 @@ export interface SpinnerProps
   /** Strip all default tv() classes. Combine with `slotClasses` for full control. */
   unstyled?: boolean;
 
-  /** Per-slot class overrides merged with (or replacing, when `unstyled`) tv() output. */
-  slotClasses?: Partial<
-    Record<
-      | 'base'
-      | 'svg'
-      | 'svgCircle'
-      | 'svgPath'
-      | 'dots'
-      | 'dot'
-      | 'pulse'
-      | 'pulseCenter'
-      | 'pulseRing'
-      | 'ring'
-      | 'ringElement'
-      | 'bars'
-      | 'bar'
-      | 'content'
-      | 'srOnly',
-      string
-    >
-  >;
+  /** Per-slot class overrides merged with (or replacing, when `unstyled`) tv() output.
+   *  Slots: base | svg | svgCircle | svgPath | dots | dot | pulse | pulseCenter |
+   *  pulseRing | ring | ringElement | bars | bar | content | srOnly */
+  slotClasses?: Partial<Record<SpinnerSlots, string>>;
   /**
    * Apply a named preset registered via `<BlocksProvider presets={{ Spinner: {...} }}>`.
    * Prefer this over `class` overrides when the requested look falls outside the

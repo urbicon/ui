@@ -1,13 +1,13 @@
 <script lang="ts" generics="T extends string | number | boolean = string">
   import { useBlocksI18n, mintRegistry } from '$lib';
   import { useFormField, getTierContext, useFloatingListbox } from '$lib/utils';
-  import { getBlocksConfig, mergeSlotClasses, resolvePresetSlotClasses } from '$lib/provider';
+  import { getBlocksConfig, resolveSlotClasses } from '$lib/provider';
   import { resolveIcon } from '$lib/icons';
   import ChevronDownIconDefault from '$lib/icons/ChevronDownIcon.svelte';
   import CheckIconDefault from '$lib/icons/CheckIcon.svelte';
   import CloseIconDefault from '$lib/icons/CloseIcon.svelte';
   import type { SelectProps, SelectOption } from './index';
-  import { selectVariants } from './select.variants';
+  import { selectVariants, type SelectVariants } from './select.variants';
 
   const bt = useBlocksI18n();
 
@@ -91,13 +91,6 @@
 
   const blocksConfig = getBlocksConfig();
   const unstyled = $derived(unstyledProp || blocksConfig?.unstyled || false);
-  const slotClasses = $derived(
-    mergeSlotClasses(
-      blocksConfig?.defaults?.Select?.slotClasses,
-      resolvePresetSlotClasses(blocksConfig?.presets, 'Select', preset),
-      slotClassesProp
-    )
-  );
 
   // ARIA wiring is shared with every form primitive — see XC-2.
   // All IDs are `$derived` so they react if the consumer changes `idProp`
@@ -186,17 +179,24 @@
   /** Backward-compatible single-mode accessor. */
   const selectedOption = $derived(multiple ? null : (selectedOptions[0] ?? null));
 
-  const styles = $derived(
-    selectVariants({
-      tier: effectiveTier,
-      variant,
-      size,
-      open: open || undefined,
-      disabled: disabled || undefined,
-      error: !!error || undefined,
-      required: required || undefined,
-      messageType: error ? 'error' : 'helper'
-    })
+  // Variant props feed both the tv() style computation and the slot-class
+  // cascade — extracted into one derived so `resolveSlotClasses` can match
+  // conditional `overrides` against the select's active variants.
+  const variantProps: SelectVariants = $derived({
+    tier: effectiveTier,
+    variant,
+    size,
+    open: open || undefined,
+    disabled: disabled || undefined,
+    error: !!error || undefined,
+    required: required || undefined,
+    messageType: error ? 'error' : 'helper'
+  });
+
+  const styles = $derived(selectVariants(variantProps));
+
+  const slotClasses = $derived(
+    resolveSlotClasses(blocksConfig, 'Select', preset, variantProps, slotClassesProp)
   );
 
   $effect(() => {
@@ -581,7 +581,12 @@
                         <CheckIcon />
                       </span>
                     {/if}
-                    <span class={unstyled ? '' : 'flex-1 truncate text-left'}>{option.label}</span>
+                    <span
+                      class={unstyled
+                        ? (slotClasses?.optionLabel ?? '')
+                        : styles.optionLabel({ class: slotClasses?.optionLabel })}
+                      >{option.label}</span
+                    >
                     {#if effectiveIndicator === 'checkmark'}
                       <CheckIcon
                         class={unstyled
@@ -641,7 +646,11 @@
                     <CheckIcon />
                   </span>
                 {/if}
-                <span class={unstyled ? '' : 'flex-1 truncate text-left'}>{option.label}</span>
+                <span
+                  class={unstyled
+                    ? (slotClasses?.optionLabel ?? '')
+                    : styles.optionLabel({ class: slotClasses?.optionLabel })}>{option.label}</span
+                >
                 {#if effectiveIndicator === 'checkmark'}
                   <CheckIcon
                     class={unstyled

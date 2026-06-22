@@ -1,7 +1,7 @@
 import type { Snippet } from 'svelte';
 import type { HTMLAttributes } from 'svelte/elements';
 import type { Placement } from '$lib/utils/floating';
-import type { TooltipVariants } from './tooltip.variants';
+import type { TooltipSlots, TooltipVariants } from './tooltip.variants';
 
 /**
  * @description Contextual overlay that displays brief, supplementary text on hover or focus.
@@ -55,7 +55,7 @@ export interface TooltipProps
   unstyled?: boolean;
 
   /** Per-slot class overrides merged with (or replacing, when unstyled) tv styles. */
-  slotClasses?: Partial<Record<'base' | 'arrow', string>>;
+  slotClasses?: Partial<Record<TooltipSlots, string>>;
 
   /**
    * Apply a named preset registered via `<BlocksProvider presets={{ Tooltip: {...} }}>`.

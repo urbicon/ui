@@ -1,6 +1,6 @@
 <script lang="ts">
-  import { getBlocksConfig, mergeSlotClasses, resolvePresetSlotClasses } from '$lib/provider';
-  import { accordionVariants } from './accordion.variants';
+  import { getBlocksConfig, resolveSlotClasses } from '$lib/provider';
+  import { accordionVariants, type AccordionVariants } from './accordion.variants';
   import { setAccordionContext } from './accordion.context';
   import type { AccordionProps, AccordionContext } from './index';
 
@@ -23,15 +23,13 @@
 
   const blocksConfig = getBlocksConfig();
   const unstyled = $derived(unstyledProp || blocksConfig?.unstyled || false);
-  const slotClasses = $derived(
-    mergeSlotClasses(
-      blocksConfig?.defaults?.Accordion?.slotClasses,
-      resolvePresetSlotClasses(blocksConfig?.presets, 'Accordion', preset),
-      slotClassesProp
-    )
-  );
 
-  const styles = $derived(unstyled ? { base: () => '' } : accordionVariants({ variant, size }));
+  const variantProps: AccordionVariants = $derived({ variant, size });
+  const styles = $derived(accordionVariants(variantProps));
+
+  const slotClasses = $derived(
+    resolveSlotClasses(blocksConfig, 'Accordion', preset, variantProps, slotClassesProp)
+  );
 
   function normalise(v: string | string[] | undefined): string[] {
     if (v === undefined) return [];

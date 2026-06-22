@@ -1,8 +1,8 @@
 <script lang="ts">
   import { SvelteMap } from 'svelte/reactivity';
-  import { getBlocksConfig, mergeSlotClasses, resolvePresetSlotClasses } from '$lib/provider';
+  import { getBlocksConfig, resolveSlotClasses } from '$lib/provider';
   import { getTierContext } from '$lib/utils';
-  import { tabVariants } from './tab.variants';
+  import { tabVariants, type TabVariants } from './tab.variants';
   import { setTabContext } from './tab.context';
   import type { TabContext, TabProps } from './index';
 
@@ -34,13 +34,6 @@
 
   const blocksConfig = getBlocksConfig();
   const unstyled = $derived(unstyledProp || blocksConfig?.unstyled || false);
-  const slotClasses = $derived(
-    mergeSlotClasses(
-      blocksConfig?.defaults?.Tab?.slotClasses,
-      resolvePresetSlotClasses(blocksConfig?.presets, 'Tab', preset),
-      slotClassesProp
-    )
-  );
 
   let tabListElement = $state<HTMLDivElement>();
   let indicatorStyle = $state('');
@@ -51,14 +44,18 @@
 
   const registeredTabs = new SvelteMap<string, HTMLElement>();
 
-  const styles = $derived(
-    tabVariants({
-      variant,
-      orientation,
-      size,
-      tier: effectiveTier,
-      fullWidth
-    })
+  const variantProps: TabVariants = $derived({
+    variant,
+    orientation,
+    size,
+    tier: effectiveTier,
+    fullWidth
+  });
+
+  const styles = $derived(tabVariants(variantProps));
+
+  const slotClasses = $derived(
+    resolveSlotClasses(blocksConfig, 'Tab', preset, variantProps, slotClassesProp)
   );
 
   function updateIndicator() {

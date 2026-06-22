@@ -1,4 +1,4 @@
-import { tv, type VariantProps } from '$lib/utils/variants';
+import { type SlotNames, tv, type VariantProps } from '$lib/utils/variants';
 
 export const PLACEMENT_VALUES = [
   'top',
@@ -429,4 +429,6 @@ export const badgeVariants = tv({
 });
 
 export type BadgeVariants = VariantProps<typeof badgeVariants>;
+/** Slot names derived from the tv() config — single source of truth for slotClasses. */
+export type BadgeSlots = SlotNames<typeof badgeVariants>;
 export type BadgePlacement = (typeof PLACEMENT_VALUES)[number];

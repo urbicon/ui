@@ -1,9 +1,9 @@
 <script lang="ts">
   import { mintRegistry } from '$lib';
-  import { getBlocksConfig, mergeSlotClasses, resolvePresetSlotClasses } from '$lib/provider';
+  import { getBlocksConfig, resolveSlotClasses } from '$lib/provider';
   import { useFormField, getTierContext } from '$lib/utils';
   import type { TextareaProps } from './index';
-  import { textareaVariants } from './textarea.variants';
+  import { textareaVariants, type TextareaVariants } from './textarea.variants';
 
   let {
     label,
@@ -36,13 +36,6 @@
 
   const blocksConfig = getBlocksConfig();
   const unstyled = $derived(unstyledProp || blocksConfig?.unstyled || false);
-  const slotClasses = $derived(
-    mergeSlotClasses(
-      blocksConfig?.defaults?.Textarea?.slotClasses,
-      resolvePresetSlotClasses(blocksConfig?.presets, 'Textarea', preset),
-      slotClassesProp
-    )
-  );
 
   let textareaRef = $state<HTMLTextAreaElement>();
 
@@ -66,20 +59,27 @@
 
   const showFooter = $derived(!!error || !!helper || (showCounter && maxlength));
 
-  const styles = $derived(
-    textareaVariants({
-      tier: effectiveTier,
-      variant,
-      size,
-      intent,
-      autoResize: autoResize || undefined,
-      disabled: disabled || undefined,
-      readonly: readonly || undefined,
-      error: !!error || undefined,
-      required: required || undefined,
-      messageType: error ? 'error' : 'helper',
-      counterState
-    })
+  // Variant props feed both the tv() style computation and the slot-class
+  // cascade — extracted into one derived so `resolveSlotClasses` can match
+  // conditional `overrides` against the textarea's active variants.
+  const variantProps: TextareaVariants = $derived({
+    tier: effectiveTier,
+    variant,
+    size,
+    intent,
+    autoResize: autoResize || undefined,
+    disabled: disabled || undefined,
+    readonly: readonly || undefined,
+    error: !!error || undefined,
+    required: required || undefined,
+    messageType: error ? 'error' : 'helper',
+    counterState
+  });
+
+  const styles = $derived(textareaVariants(variantProps));
+
+  const slotClasses = $derived(
+    resolveSlotClasses(blocksConfig, 'Textarea', preset, variantProps, slotClassesProp)
   );
 
   const lineHeight = $derived(size === 'sm' ? 20 : size === 'lg' ? 28 : 24);

@@ -1,6 +1,6 @@
 import type { HTMLAttributes } from 'svelte/elements';
 import type { MintProp } from '$lib/mint';
-import type { SliderVariants } from './slider.variants';
+import type { SliderSlots, SliderVariants } from './slider.variants';
 
 /** A labelled tick mark on the slider track. */
 export interface SliderMark {
@@ -140,25 +140,13 @@ export interface SliderProps
   /** Remove all default tv() classes. */
   unstyled?: boolean;
 
-  /** Per-slot class overrides. */
-  slotClasses?: Partial<
-    Record<
-      | 'wrapper'
-      | 'header'
-      | 'label'
-      | 'valueText'
-      | 'base'
-      | 'track'
-      | 'range'
-      | 'thumb'
-      | 'mark'
-      | 'boundaryTick'
-      | 'rangeStatus'
-      | 'rangeStatusIcon'
-      | 'message',
-      string
-    >
-  >;
+  /**
+   * Per-slot class overrides merged with tv() styles. Slots: wrapper (root —
+   * what `class` also targets) | header | label | valueText | base (the
+   * interactive track container) | track | range | thumb | mark | boundaryTick
+   * | rangeStatus | rangeStatusIcon | message.
+   */
+  slotClasses?: Partial<Record<SliderSlots, string>>;
   /**
    * Apply a named preset registered via `<BlocksProvider presets={{ Slider: {...} }}>`.
    * Prefer this over `class` overrides when the requested look falls outside the

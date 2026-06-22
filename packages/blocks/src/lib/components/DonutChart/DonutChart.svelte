@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { getBlocksConfig, mergeSlotClasses, resolvePresetSlotClasses } from '$lib/provider';
+  import { getBlocksConfig, resolveSlotClasses } from '$lib/provider';
   import type { DonutChartProps } from './index';
   import { chartSlotResolver } from '$lib/internal/charts/variants';
   import { arcPath, seriesColor, numberFormatter } from '$lib/internal/charts/utils';
@@ -25,11 +25,7 @@
   const blocksConfig = getBlocksConfig();
   const unstyled = $derived(unstyledProp || blocksConfig?.unstyled || false);
   const slotClasses = $derived(
-    mergeSlotClasses(
-      blocksConfig?.defaults?.DonutChart?.slotClasses,
-      resolvePresetSlotClasses(blocksConfig?.presets, 'DonutChart', preset),
-      slotClassesProp
-    )
+    resolveSlotClasses(blocksConfig, 'DonutChart', preset, {}, slotClassesProp)
   );
   const slot = $derived(chartSlotResolver(unstyled, slotClasses));
 

@@ -1,7 +1,7 @@
 import type { Snippet } from 'svelte';
 import type { HTMLAttributes } from 'svelte/elements';
 import type { InteractiveTier } from '$lib/utils';
-import type { ToolbarVariants } from './toolbar.variants';
+import type { ToolbarSlots, ToolbarVariants } from './toolbar.variants';
 
 /**
  * Props interface for Toolbar component
@@ -61,8 +61,9 @@ export interface ToolbarProps
   /** Remove all default tv() classes. Combine with `slotClasses` to restyle from scratch. */
   unstyled?: boolean;
 
-  /** Per-slot class overrides merged with (or replacing when `unstyled`) the default classes. */
-  slotClasses?: Partial<Record<'base', string>>;
+  /** Per-slot class overrides merged with (or replacing when `unstyled`) the default classes.
+   *  Slots: base */
+  slotClasses?: Partial<Record<ToolbarSlots, string>>;
 
   /**
    * Apply a named preset registered via `<BlocksProvider presets={{ Toolbar: {...} }}>`.

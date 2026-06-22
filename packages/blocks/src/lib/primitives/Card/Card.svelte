@@ -1,7 +1,7 @@
 <script lang="ts">
   import { mintRegistry } from '$lib';
-  import { getBlocksConfig, mergeSlotClasses, resolvePresetSlotClasses } from '$lib/provider';
-  import { cardVariants } from './card.variants';
+  import { getBlocksConfig, resolveSlotClasses } from '$lib/provider';
+  import { cardVariants, type CardVariants } from './card.variants';
   import type { CardProps } from './index';
 
   let {
@@ -26,13 +26,6 @@
 
   const blocksConfig = getBlocksConfig();
   const unstyled = $derived(unstyledProp || blocksConfig?.unstyled || false);
-  const slotClasses = $derived(
-    mergeSlotClasses(
-      blocksConfig?.defaults?.Card?.slotClasses,
-      resolvePresetSlotClasses(blocksConfig?.presets, 'Card', preset),
-      slotClassesProp
-    )
-  );
 
   let cardElement = $state<HTMLElement>();
 
@@ -48,15 +41,19 @@
   // element would falsely signal interactivity (WCAG 3.2 Predictable).
   const isInteractive = $derived(clickable || !!onclick || !!href);
 
-  const styles = $derived(
-    cardVariants({
-      variant,
-      padding,
-      dividers: dividers || undefined,
-      interactive: isInteractive || undefined,
-      elementType,
-      disabled: disabled || undefined
-    })
+  const variantProps: CardVariants = $derived({
+    variant,
+    padding,
+    dividers: dividers || undefined,
+    interactive: isInteractive || undefined,
+    elementType,
+    disabled: disabled || undefined
+  });
+
+  const styles = $derived(cardVariants(variantProps));
+
+  const slotClasses = $derived(
+    resolveSlotClasses(blocksConfig, 'Card', preset, variantProps, slotClassesProp)
   );
 
   const elementProps = $derived.by(() => {

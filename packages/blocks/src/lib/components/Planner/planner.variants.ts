@@ -1,4 +1,4 @@
-import { tv, type VariantProps } from '$lib/utils/variants';
+import { type SlotNames, tv, type VariantProps } from '$lib/utils/variants';
 
 /**
  * Planner styling — the visible chrome layered over the headless `DateGridScaffold`.
@@ -111,3 +111,5 @@ export const plannerVariants = tv({
 });
 
 export type PlannerVariants = VariantProps<typeof plannerVariants>;
+/** Slot names derived from the tv() config — single source of truth for slotClasses. */
+export type PlannerSlots = SlotNames<typeof plannerVariants>;

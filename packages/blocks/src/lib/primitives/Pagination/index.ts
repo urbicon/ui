@@ -2,7 +2,7 @@ import type { Snippet } from 'svelte';
 import type { HTMLAttributes } from 'svelte/elements';
 import type { MintProp } from '$lib/mint';
 import type { InteractiveTier } from '$lib/utils/tier-context';
-import type { PaginationVariants } from './pagination.variants';
+import type { PaginationSlots, PaginationVariants } from './pagination.variants';
 
 export interface PaginationPageItem {
   label: string;
@@ -103,7 +103,7 @@ export interface PaginationProps
   /** Strip all default tailwind-variants classes for a fully custom build. */
   unstyled?: boolean;
   /** Per-slot class overrides merged with (or replacing, when unstyled) tv styles. Slots: base, info, controls, ellipsis. */
-  slotClasses?: Partial<Record<'base' | 'info' | 'controls' | 'ellipsis', string>>;
+  slotClasses?: Partial<Record<PaginationSlots, string>>;
   /**
    * Apply a named preset registered via `<BlocksProvider presets={{ Pagination: {...} }}>`.
    * Prefer this over `class` overrides when the requested look falls outside the

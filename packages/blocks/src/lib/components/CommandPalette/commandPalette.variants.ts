@@ -1,4 +1,4 @@
-import { tv, type VariantProps } from '$lib/utils/variants';
+import { type SlotNames, tv, type VariantProps } from '$lib/utils/variants';
 
 export const commandPaletteVariants = tv({
   slots: {
@@ -15,7 +15,6 @@ export const commandPaletteVariants = tv({
     inputIcon: 'h-4 w-4 shrink-0 text-text-tertiary',
     clearButton: 'text-text-quaternary hover:text-text-secondary',
     list: 'max-h-72 overflow-y-auto p-1.5',
-    group: '',
     groupLabel: [
       'px-2 py-1.5 text-[11px] font-semibold uppercase tracking-wide text-text-quaternary'
     ],
@@ -58,3 +57,5 @@ export const commandPaletteVariants = tv({
 });
 
 export type CommandPaletteVariants = VariantProps<typeof commandPaletteVariants>;
+/** Slot names derived from the `tv()` config above — single source of truth for `slotClasses`. */
+export type CommandPaletteSlots = SlotNames<typeof commandPaletteVariants>;

@@ -1,6 +1,6 @@
 <script lang="ts">
   import { useBlocksI18n } from '$lib';
-  import { getBlocksConfig, mergeSlotClasses, resolvePresetSlotClasses } from '$lib/provider';
+  import { getBlocksConfig, resolveSlotClasses } from '$lib/provider';
   import { resolveIcon } from '$lib/icons';
   import CloseIconDefault from '$lib/icons/CloseIcon.svelte';
   import { onDestroy } from 'svelte';
@@ -14,7 +14,7 @@
   import { overlayStack, getOverlayMotion } from '$lib/utils';
   import Button from '../Button/Button.svelte';
   import type { DrawerProps } from './index';
-  import { drawerVariants } from './drawer.variants';
+  import { drawerVariants, type DrawerVariants } from './drawer.variants';
 
   const bt = useBlocksI18n();
 
@@ -54,13 +54,6 @@
 
   const blocksConfig = getBlocksConfig();
   const unstyled = $derived(unstyledProp || blocksConfig?.unstyled || false);
-  const slotClasses = $derived(
-    mergeSlotClasses(
-      blocksConfig?.defaults?.Drawer?.slotClasses,
-      resolvePresetSlotClasses(blocksConfig?.presets, 'Drawer', preset),
-      slotClassesProp
-    )
-  );
 
   let dialogElement = $state<HTMLDialogElement>();
   let panelElement = $state<HTMLElement>();
@@ -72,7 +65,11 @@
   const bodyId = `drawer-body-${uid}`;
   const overlayId = `drawer-${uid}`;
 
-  const styles = $derived(drawerVariants({ placement, size, intent }));
+  const variantProps: DrawerVariants = $derived({ placement, size, intent });
+  const styles = $derived(drawerVariants(variantProps));
+  const slotClasses = $derived(
+    resolveSlotClasses(blocksConfig, 'Drawer', preset, variantProps, slotClassesProp)
+  );
 
   const motion = $derived(
     getOverlayMotion({

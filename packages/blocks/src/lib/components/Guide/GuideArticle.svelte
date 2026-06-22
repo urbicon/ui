@@ -1,8 +1,8 @@
 <script lang="ts">
-  import { getBlocksConfig, mergeSlotClasses, resolvePresetSlotClasses } from '$lib/provider';
+  import { getBlocksConfig, resolveSlotClasses } from '$lib/provider';
   import { getGuideContext } from './guide.context';
   import { getGuidePanelContext } from './guide-panel.context';
-  import { guideArticleVariants } from './guide.variants';
+  import { guideArticleVariants, type GuideArticleVariants } from './guide.variants';
   import type { GuideArticleProps } from './index';
 
   let {
@@ -28,14 +28,11 @@
 
   const blocksConfig = getBlocksConfig();
   const unstyled = $derived(unstyledProp || blocksConfig?.unstyled || false);
+  const variantProps: GuideArticleVariants = $derived({});
+  const styles = $derived(guideArticleVariants(variantProps));
   const slotClasses = $derived(
-    mergeSlotClasses(
-      blocksConfig?.defaults?.GuideArticle?.slotClasses,
-      resolvePresetSlotClasses(blocksConfig?.presets, 'GuideArticle', preset),
-      slotClassesProp
-    )
+    resolveSlotClasses(blocksConfig, 'GuideArticle', preset, variantProps, slotClassesProp)
   );
-  const styles = $derived(guideArticleVariants());
 
   const isActive = $derived(guide?.activeArticle === id);
 </script>

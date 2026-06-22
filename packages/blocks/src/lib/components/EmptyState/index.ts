@@ -1,8 +1,7 @@
 import type { Component, Snippet } from 'svelte';
 import type { HTMLAttributes } from 'svelte/elements';
 import type { IconProps } from '$lib/icons';
-
-type EmptyStateSlot = 'base' | 'iconWrapper' | 'title' | 'description' | 'children' | 'cta';
+import type { EmptyStateSlots } from './emptyState.variants';
 
 /**
  * @description Centered placeholder block for "no data yet" / "no results"
@@ -58,8 +57,8 @@ export interface EmptyStateProps
   /** Remove all default tv classes. */
   unstyled?: boolean;
 
-  /** Per-slot class overrides. */
-  slotClasses?: Partial<Record<EmptyStateSlot, string>>;
+  /** Per-slot class overrides. Slots: base | iconWrapper | title | description | children | cta */
+  slotClasses?: Partial<Record<EmptyStateSlots, string>>;
 
   /**
    * Apply a named preset registered via `<BlocksProvider presets={{ EmptyState: {...} }}>`.

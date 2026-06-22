@@ -1,6 +1,6 @@
 import type { Snippet } from 'svelte';
 import type { HTMLAttributes } from 'svelte/elements';
-import type { AccordionVariants } from './accordion.variants';
+import type { AccordionSlots, AccordionVariants } from './accordion.variants';
 
 /** Context for Accordion ↔ AccordionItem communication */
 export interface AccordionContext {
@@ -66,10 +66,8 @@ export interface AccordionProps
   class?: string;
   /** Remove default styles */
   unstyled?: boolean;
-  /** Per-slot class overrides */
-  slotClasses?: Partial<
-    Record<'base' | 'item' | 'trigger' | 'chevron' | 'content' | 'contentInner', string>
-  >;
+  /** Per-slot class overrides. Slots: base | item | trigger | chevron | content | contentInner */
+  slotClasses?: Partial<Record<AccordionSlots, string>>;
   /**
    * Apply a named preset registered via `<BlocksProvider presets={{ Accordion: {...} }}>`.
    * Prefer this over `class` overrides when the requested look falls outside the
@@ -113,10 +111,8 @@ export interface AccordionItemProps
   class?: string;
   /** Remove default styles */
   unstyled?: boolean;
-  /** Per-slot class overrides */
-  slotClasses?: Partial<
-    Record<'item' | 'trigger' | 'chevron' | 'content' | 'contentInner', string>
-  >;
+  /** Per-slot class overrides. Slots: item | trigger | chevron | content | contentInner */
+  slotClasses?: Partial<Record<Exclude<AccordionSlots, 'base'>, string>>;
   /**
    * Apply a named preset registered via `<BlocksProvider presets={{ AccordionItem: {...} }}>`.
    * Prefer this over `class` overrides when the requested look falls outside the

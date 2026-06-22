@@ -1,7 +1,7 @@
 <script lang="ts">
-  import { toolbarVariants } from './toolbar.variants';
+  import { toolbarVariants, type ToolbarVariants } from './toolbar.variants';
   import type { ToolbarProps } from './index';
-  import { getBlocksConfig, mergeSlotClasses, resolvePresetSlotClasses } from '$lib/provider';
+  import { getBlocksConfig, resolveSlotClasses } from '$lib/provider';
   import { setTierContext } from '$lib/utils/tier-context';
 
   let {
@@ -30,15 +30,13 @@
 
   const blocksConfig = getBlocksConfig();
   const unstyled = $derived(unstyledProp || blocksConfig?.unstyled || false);
-  const slotClasses = $derived(
-    mergeSlotClasses(
-      blocksConfig?.defaults?.Toolbar?.slotClasses,
-      resolvePresetSlotClasses(blocksConfig?.presets, 'Toolbar', preset),
-      slotClassesProp
-    )
-  );
 
-  const styles = $derived(toolbarVariants({ variant, orientation, gap, padding }));
+  const variantProps: ToolbarVariants = $derived({ variant, orientation, gap, padding });
+  const styles = $derived(toolbarVariants(variantProps));
+
+  const slotClasses = $derived(
+    resolveSlotClasses(blocksConfig, 'Toolbar', preset, variantProps, slotClassesProp)
+  );
 </script>
 
 <div

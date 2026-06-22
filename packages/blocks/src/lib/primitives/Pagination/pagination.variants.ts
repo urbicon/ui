@@ -1,4 +1,4 @@
-import { tv, type VariantProps } from '$lib/utils/variants';
+import { type SlotNames, tv, type VariantProps } from '$lib/utils/variants';
 
 export const paginationVariants = tv({
   slots: {
@@ -62,3 +62,5 @@ export const paginationVariants = tv({
 });
 
 export type PaginationVariants = VariantProps<typeof paginationVariants>;
+/** Slot names derived from the tv() config — single source of truth for slotClasses. */
+export type PaginationSlots = SlotNames<typeof paginationVariants>;

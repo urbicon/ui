@@ -1,4 +1,4 @@
-import { tv, type VariantProps } from '$lib/utils/variants';
+import { type SlotNames, tv, type VariantProps } from '$lib/utils/variants';
 
 export const toggleVariants = tv({
   slots: {
@@ -231,3 +231,5 @@ export const toggleVariants = tv({
 });
 
 export type ToggleVariants = VariantProps<typeof toggleVariants>;
+/** Slot names derived from the `tv()` config above — single source of truth for `slotClasses`. */
+export type ToggleSlots = SlotNames<typeof toggleVariants>;

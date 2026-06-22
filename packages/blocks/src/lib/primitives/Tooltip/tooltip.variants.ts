@@ -1,4 +1,4 @@
-import { tv, type VariantProps } from '$lib/utils/variants';
+import { type SlotNames, tv, type VariantProps } from '$lib/utils/variants';
 
 export const tooltipVariants = tv({
   slots: {
@@ -55,3 +55,5 @@ export const tooltipVariants = tv({
 });
 
 export type TooltipVariants = Omit<VariantProps<typeof tooltipVariants>, 'visible'>;
+/** Slot names derived from the `tv()` config above — single source of truth for `slotClasses`. */
+export type TooltipSlots = SlotNames<typeof tooltipVariants>;

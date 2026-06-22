@@ -1,7 +1,7 @@
 import type { Snippet } from 'svelte';
 import type { HTMLAttributes } from 'svelte/elements';
 import type { MintProp } from '$lib/mint';
-import type { AvatarVariants } from './avatar.variants';
+import type { AvatarSlots, AvatarVariants } from './avatar.variants';
 
 /**
  * @description User profile image component with fallback initials, multiple sizes, and interactive states.
@@ -51,8 +51,8 @@ export interface AvatarProps
   class?: string;
   /** Remove all default tv classes. */
   unstyled?: boolean;
-  /** Per-slot class overrides merged with tv styles. */
-  slotClasses?: Partial<Record<'base' | 'image' | 'fallback' | 'status', string>>;
+  /** Per-slot class overrides merged with tv styles. Slots: base | image | fallback | status */
+  slotClasses?: Partial<Record<AvatarSlots, string>>;
   /**
    * Apply a named preset registered via `<BlocksProvider presets={{ Avatar: {...} }}>`.
    * Prefer this over `class` overrides when the requested look falls outside the

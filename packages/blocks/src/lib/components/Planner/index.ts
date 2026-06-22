@@ -5,10 +5,9 @@ import type {
   PlannerDayContext,
   PlannerHeaderContext,
   PlannerRange,
-  PlannerSlotName,
   PlannerView
 } from './planner.types';
-import type { PlannerVariants } from './planner.variants';
+import type { PlannerSlots, PlannerVariants } from './planner.variants';
 
 /**
  * @description Date-indexed planning board — a week, month or custom-range grid
@@ -123,8 +122,8 @@ export interface PlannerProps<T = unknown>
   class?: string;
   /** Remove all default tv() classes — only user-provided classes apply. @default false */
   unstyled?: boolean;
-  /** Per-slot class overrides merged with tv() styles. */
-  slotClasses?: Partial<Record<PlannerSlotName, string>>;
+  /** Per-slot class overrides merged with tv() styles. Slots: base | header | headerTitle | nav | navButton | grid | weekdayHeader | weekday | weekNumber | week | cell | cellHeader | cellWeekday | cellDate | cellItems | empty */
+  slotClasses?: Partial<Record<PlannerSlots, string>>;
   /** Apply a named preset registered via `<BlocksProvider presets={{ Planner: {...} }}>`. */
   preset?: string;
 }

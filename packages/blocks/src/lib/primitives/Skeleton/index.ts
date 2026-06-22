@@ -1,5 +1,5 @@
 import type { HTMLAttributes } from 'svelte/elements';
-import type { SkeletonVariants } from './skeleton.variants';
+import type { SkeletonSlots, SkeletonVariants } from './skeleton.variants';
 
 /**
  * @description Placeholder loading animation that mimics content layout.
@@ -59,8 +59,8 @@ export interface SkeletonProps extends SkeletonVariants, HTMLAttributes<HTMLDivE
   /** Strip all default tv() classes. Combine with `slotClasses` for full control. */
   unstyled?: boolean;
 
-  /** Per-slot class overrides merged with (or replacing, when `unstyled`) tv() output. */
-  slotClasses?: Partial<Record<'base' | 'wrapper', string>>;
+  /** Per-slot class overrides merged with (or replacing, when `unstyled`) tv() output. Slots: base | wrapper */
+  slotClasses?: Partial<Record<SkeletonSlots, string>>;
   /**
    * Apply a named preset registered via `<BlocksProvider presets={{ Skeleton: {...} }}>`.
    * Prefer this over `class` overrides when the requested look falls outside the

@@ -1,7 +1,8 @@
 <script lang="ts">
   import { tooltipVariants } from './tooltip.variants';
+  import type { VariantProps } from '$lib/utils/variants';
   import type { TooltipProps } from './index';
-  import { getBlocksConfig, mergeSlotClasses, resolvePresetSlotClasses } from '$lib/provider';
+  import { getBlocksConfig, resolveSlotClasses } from '$lib/provider';
   import {
     computePosition,
     autoUpdate,
@@ -31,13 +32,6 @@
 
   const blocksConfig = getBlocksConfig();
   const unstyled = $derived(unstyledProp || blocksConfig?.unstyled || false);
-  const slotClasses = $derived(
-    mergeSlotClasses(
-      blocksConfig?.defaults?.Tooltip?.slotClasses,
-      resolvePresetSlotClasses(blocksConfig?.presets, 'Tooltip', preset),
-      slotClassesProp
-    )
-  );
 
   let visible = $state(false);
   let triggerElement = $state<HTMLElement>();
@@ -48,7 +42,11 @@
   const propsId = $props.id();
   const tooltipId = `tooltip-${propsId}`;
 
-  const styles = $derived(tooltipVariants({ visible, intent, size }));
+  const variantProps: VariantProps<typeof tooltipVariants> = $derived({ visible, intent, size });
+  const styles = $derived(tooltipVariants(variantProps));
+  const slotClasses = $derived(
+    resolveSlotClasses(blocksConfig, 'Tooltip', preset, variantProps, slotClassesProp)
+  );
 
   let showTimeout: number;
   let hideTimeout: number;

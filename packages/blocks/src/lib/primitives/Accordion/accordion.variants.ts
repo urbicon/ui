@@ -1,4 +1,4 @@
-import { tv, type VariantProps } from '$lib/utils/variants';
+import { type SlotNames, tv, type VariantProps } from '$lib/utils/variants';
 
 export const accordionVariants = tv({
   slots: {
@@ -65,3 +65,5 @@ export const accordionVariants = tv({
 });
 
 export type AccordionVariants = VariantProps<typeof accordionVariants>;
+/** Slot names derived from the tv() config — single source of truth for slotClasses. */
+export type AccordionSlots = SlotNames<typeof accordionVariants>;

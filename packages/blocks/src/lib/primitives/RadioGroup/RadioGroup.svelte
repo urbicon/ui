@@ -1,9 +1,9 @@
 <script lang="ts">
-  import { getBlocksConfig, mergeSlotClasses, resolvePresetSlotClasses } from '$lib/provider';
+  import { getBlocksConfig, resolveSlotClasses } from '$lib/provider';
   import { getTierContext, useFormField } from '$lib/utils';
   import type { RadioGroupProps } from './index';
   import { setRadioGroupContext } from './radioGroup.context';
-  import { radioGroupVariants } from './radioGroup.variants';
+  import { radioGroupVariants, type RadioGroupVariants } from './radioGroup.variants';
 
   let {
     children,
@@ -40,13 +40,6 @@
 
   const blocksConfig = getBlocksConfig();
   const unstyled = $derived(unstyledProp || blocksConfig?.unstyled || false);
-  const slotClasses = $derived(
-    mergeSlotClasses(
-      blocksConfig?.defaults?.RadioGroup?.slotClasses,
-      resolvePresetSlotClasses(blocksConfig?.presets, 'RadioGroup', preset),
-      slotClassesProp
-    )
-  );
 
   const groupId = $derived(id || `radiogroup-${propsId}`);
   const labelId = $derived(label ? `${groupId}-label` : undefined);
@@ -59,13 +52,20 @@
     disabled
   }));
 
-  const styles = $derived(
-    radioGroupVariants({
-      orientation,
-      required: required || undefined,
-      error: !!error || undefined,
-      disabled: disabled || undefined
-    })
+  // Variant props feed both the tv() style computation and the slot-class
+  // cascade — extracted into one derived so `resolveSlotClasses` can match
+  // conditional `overrides` against the group's active variants.
+  const variantProps: RadioGroupVariants = $derived({
+    orientation,
+    required: required || undefined,
+    error: !!error || undefined,
+    disabled: disabled || undefined
+  });
+
+  const styles = $derived(radioGroupVariants(variantProps));
+
+  const slotClasses = $derived(
+    resolveSlotClasses(blocksConfig, 'RadioGroup', preset, variantProps, slotClassesProp)
   );
 
   function select(itemValue: string) {

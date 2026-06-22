@@ -1,7 +1,7 @@
 <script lang="ts">
   import { useBlocksI18n } from '$lib/i18n';
   import { CloseIcon } from '$lib/icons';
-  import { getBlocksConfig, mergeSlotClasses, resolvePresetSlotClasses } from '$lib/provider';
+  import { getBlocksConfig, resolveSlotClasses } from '$lib/provider';
   import {
     computePosition,
     autoUpdate,
@@ -12,7 +12,7 @@
   } from '$lib/utils/floating';
   import { observeTargetResolution } from '$lib/utils/observe-target';
   import { getGuideContext } from './guide.context';
-  import { guideHintVariants } from './guide.variants';
+  import { guideHintVariants, type GuideHintVariants } from './guide.variants';
   import type { GuideHintProps } from './index';
 
   const bt = useBlocksI18n();
@@ -45,14 +45,11 @@
 
   const blocksConfig = getBlocksConfig();
   const unstyled = $derived(unstyledProp || blocksConfig?.unstyled || false);
+  const variantProps: GuideHintVariants = $derived({});
+  const styles = $derived(guideHintVariants(variantProps));
   const slotClasses = $derived(
-    mergeSlotClasses(
-      blocksConfig?.defaults?.GuideHint?.slotClasses,
-      resolvePresetSlotClasses(blocksConfig?.presets, 'GuideHint', preset),
-      slotClassesProp
-    )
+    resolveSlotClasses(blocksConfig, 'GuideHint', preset, variantProps, slotClassesProp)
   );
-  const styles = $derived(guideHintVariants());
 
   const seenId = $derived(seenIdProp ?? topicId);
 

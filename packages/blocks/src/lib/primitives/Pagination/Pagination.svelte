@@ -1,8 +1,9 @@
 <script lang="ts">
   import PaginationItem from './PaginationItem.svelte';
   import { useBlocksI18n } from '$lib';
-  import { getBlocksConfig, mergeSlotClasses, resolvePresetSlotClasses } from '$lib/provider';
+  import { getBlocksConfig, resolveSlotClasses } from '$lib/provider';
   import { paginationVariants } from '$lib/primitives';
+  import type { PaginationVariants } from './pagination.variants';
   import { MediaQuery } from 'svelte/reactivity';
   import { computeEllipsisState, computeVisiblePageNumbers } from './pagination.engine';
   import type { PaginationProps } from '.';
@@ -49,21 +50,18 @@
 
   const blocksConfig = getBlocksConfig();
   const unstyled = $derived(unstyledProp || blocksConfig?.unstyled || false);
-  const slotClasses = $derived(
-    mergeSlotClasses(
-      blocksConfig?.defaults?.Pagination?.slotClasses,
-      resolvePresetSlotClasses(blocksConfig?.presets, 'Pagination', preset),
-      slotClassesProp
-    )
-  );
 
-  const styles = $derived(
-    paginationVariants({
-      layout,
-      size,
-      disabled,
-      loading
-    })
+  const variantProps: PaginationVariants = $derived({
+    layout,
+    size,
+    disabled,
+    loading
+  });
+
+  const styles = $derived(paginationVariants(variantProps));
+
+  const slotClasses = $derived(
+    resolveSlotClasses(blocksConfig, 'Pagination', preset, variantProps, slotClassesProp)
   );
 
   // Calculate pagination info for table layout
@@ -264,7 +262,11 @@
     </div>
   {:else}
     <!-- Default Layout: Full pagination -->
-    <div class={styles.controls()}>
+    <div
+      class={unstyled
+        ? (slotClasses?.controls ?? '')
+        : styles.controls({ class: slotClasses?.controls })}
+    >
       {#if showFirstLast && !isFirstPage && showStartEllipsis}
         <PaginationItem
           {size}

@@ -1,9 +1,9 @@
 <script lang="ts">
   import { useBlocksI18n, mintRegistry } from '$lib';
-  import { getBlocksConfig, mergeSlotClasses, resolvePresetSlotClasses } from '$lib/provider';
+  import { getBlocksConfig, resolveSlotClasses } from '$lib/provider';
   import { useFormField } from '$lib/utils';
   import type { SliderProps } from './index';
-  import { sliderVariants } from './slider.variants';
+  import { sliderVariants, type SliderVariants } from './slider.variants';
 
   const bt = useBlocksI18n();
 
@@ -39,13 +39,6 @@
 
   const blocksConfig = getBlocksConfig();
   const unstyled = $derived(unstyledProp || blocksConfig?.unstyled || false);
-  const slotClasses = $derived(
-    mergeSlotClasses(
-      blocksConfig?.defaults?.Slider?.slotClasses,
-      resolvePresetSlotClasses(blocksConfig?.presets, 'Slider', preset),
-      slotClassesProp
-    )
-  );
 
   // ARIA wiring is shared with every form primitive — see XC-2.
   // Slider additionally injects a `statusId` into describedBy when the
@@ -232,16 +225,23 @@
     return '';
   });
 
-  const styles = $derived(
-    sliderVariants({
-      intent,
-      size,
-      appearance,
-      disabled: disabled || undefined,
-      error: !!error || undefined,
-      messageType: error ? 'error' : 'helper',
-      rangeStatus: currentZoneStatus
-    })
+  // Variant props feed both the tv() style computation and the slot-class
+  // cascade — extracted into one derived so `resolveSlotClasses` can match
+  // conditional `overrides` against the slider's active variants.
+  const variantProps: SliderVariants = $derived({
+    intent,
+    size,
+    appearance,
+    disabled: disabled || undefined,
+    error: !!error || undefined,
+    messageType: error ? 'error' : 'helper',
+    rangeStatus: currentZoneStatus
+  });
+
+  const styles = $derived(sliderVariants(variantProps));
+
+  const slotClasses = $derived(
+    resolveSlotClasses(blocksConfig, 'Slider', preset, variantProps, slotClassesProp)
   );
 
   // aria-describedby chain: error > helper, plus rangeStatus when active.

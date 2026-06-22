@@ -1,4 +1,4 @@
-import { tv, type VariantProps } from '$lib/utils/variants';
+import { type SlotNames, tv, type VariantProps } from '$lib/utils/variants';
 
 export const compositionBarVariants = tv({
   slots: {
@@ -138,3 +138,5 @@ export const compositionBarVariants = tv({
 });
 
 export type CompositionBarVariants = VariantProps<typeof compositionBarVariants>;
+/** Slot names derived from the `tv()` config above — single source of truth for `slotClasses`. */
+export type CompositionBarSlots = SlotNames<typeof compositionBarVariants>;

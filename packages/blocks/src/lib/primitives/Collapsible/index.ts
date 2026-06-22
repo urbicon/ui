@@ -1,6 +1,6 @@
 import type { Snippet } from 'svelte';
 import type { HTMLAttributes } from 'svelte/elements';
-import type { CollapsibleVariants } from './collapsible.variants';
+import type { CollapsibleSlots, CollapsibleVariants } from './collapsible.variants';
 
 /**
  * Props interface for the Collapsible component
@@ -65,10 +65,8 @@ export interface CollapsibleProps
   class?: string;
   /** Remove default styles */
   unstyled?: boolean;
-  /** Per-slot class overrides */
-  slotClasses?: Partial<
-    Record<'base' | 'trigger' | 'chevron' | 'content' | 'contentInner', string>
-  >;
+  /** Per-slot class overrides. Slots: base | trigger | chevron | content | contentInner */
+  slotClasses?: Partial<Record<CollapsibleSlots, string>>;
   /**
    * Apply a named preset registered via `<BlocksProvider presets={{ Collapsible: {...} }}>`.
    * Prefer this over `class` overrides when the requested look falls outside the

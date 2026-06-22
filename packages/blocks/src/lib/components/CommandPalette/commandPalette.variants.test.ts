@@ -11,7 +11,6 @@ describe('commandPaletteVariants', () => {
       'inputIcon',
       'clearButton',
       'list',
-      'group',
       'groupLabel',
       'item',
       'itemHighlighted',

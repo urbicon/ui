@@ -39,6 +39,24 @@ export type VariantProps<T extends (...args: never[]) => unknown> = Omit<
   'class' | 'className'
 >;
 
+/**
+ * Extracts the slot-name union from a slotted `tv()` config function — the
+ * companion to {@link VariantProps}. The slot-mode overload returns
+ * `(props?) => { [K in keyof S]: SlotFn }`, so `keyof ReturnType<T>` is exactly
+ * the set of slot names a component declares in `tv({ slots: … })`.
+ *
+ * Use it to type a component's `slotClasses` prop from the single source of
+ * truth (its `*.variants.ts`) instead of hand-maintaining a parallel union
+ * that silently drifts when a slot is added or renamed:
+ *
+ * @example
+ * // button.variants.ts
+ * export type ButtonSlots = SlotNames<typeof buttonVariants>; // 'base' | 'content' | 'spinner'
+ * // index.ts
+ * slotClasses?: Partial<Record<ButtonSlots, string>>;
+ */
+export type SlotNames<T extends (...args: never[]) => unknown> = keyof ReturnType<T> & string;
+
 // ─── cx: class concatenation ─────────────────────────────────────────────────
 
 /**

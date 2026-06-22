@@ -1,8 +1,8 @@
 <script lang="ts">
   import { SvelteMap } from 'svelte/reactivity';
-  import { getBlocksConfig, mergeSlotClasses, resolvePresetSlotClasses } from '$lib/provider';
+  import { getBlocksConfig, resolveSlotClasses } from '$lib/provider';
   import { getTierContext } from '$lib/utils';
-  import { segmentGroupVariants } from './segmentgroup.variants';
+  import { segmentGroupVariants, type SegmentGroupVariants } from './segmentgroup.variants';
   import { setSegmentGroupContext } from './segmentGroup.context';
   import type { SegmentGroupContext, SegmentGroupProps } from './index';
 
@@ -32,13 +32,6 @@
 
   const blocksConfig = getBlocksConfig();
   const unstyled = $derived(unstyledProp || blocksConfig?.unstyled || false);
-  const slotClasses = $derived(
-    mergeSlotClasses(
-      blocksConfig?.defaults?.SegmentGroup?.slotClasses,
-      resolvePresetSlotClasses(blocksConfig?.presets, 'SegmentGroup', preset),
-      slotClassesProp
-    )
-  );
 
   let containerElement = $state<HTMLDivElement>();
   let indicatorStyle = $state('opacity: 0;');
@@ -46,8 +39,18 @@
   // reactive so the indicator updates when new items register.
   const registeredItems = new SvelteMap<string, HTMLElement>();
 
-  const styles = $derived(
-    segmentGroupVariants({ size, appearance, tier: effectiveTier, fullWidth, disabled })
+  const variantProps: SegmentGroupVariants = $derived({
+    size,
+    appearance,
+    tier: effectiveTier,
+    fullWidth,
+    disabled
+  });
+
+  const styles = $derived(segmentGroupVariants(variantProps));
+
+  const slotClasses = $derived(
+    resolveSlotClasses(blocksConfig, 'SegmentGroup', preset, variantProps, slotClassesProp)
   );
 
   function updateIndicator() {

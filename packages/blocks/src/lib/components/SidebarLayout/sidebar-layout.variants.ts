@@ -1,4 +1,4 @@
-import { tv, type VariantProps } from '$lib/utils/variants';
+import { type SlotNames, tv, type VariantProps } from '$lib/utils/variants';
 
 export const sidebarLayoutVariants = tv({
   slots: {
@@ -38,3 +38,5 @@ export const sidebarLayoutVariants = tv({
 });
 
 export type SidebarLayoutVariants = VariantProps<typeof sidebarLayoutVariants>;
+/** Slot names derived from the `tv()` config above — single source of truth for `slotClasses`. */
+export type SidebarLayoutSlots = SlotNames<typeof sidebarLayoutVariants>;

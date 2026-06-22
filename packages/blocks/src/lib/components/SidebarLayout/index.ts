@@ -1,6 +1,6 @@
 import type { Snippet } from 'svelte';
 import type { HTMLAttributes } from 'svelte/elements';
-import type { SidebarLayoutVariants } from './sidebar-layout.variants';
+import type { SidebarLayoutSlots, SidebarLayoutVariants } from './sidebar-layout.variants';
 
 /**
  * Snippet payload for the `mobileHeader` slot. Receives an opener for the
@@ -14,11 +14,14 @@ export interface MobileHeaderContext {
   sidebarOpen: boolean;
 }
 
+/**
+ * Slot keys for `slotClasses`. The tv-driven slots (`SidebarLayoutSlots`:
+ * root | mobileHeader | main | inner) are the layout's own; the `sidebar*`
+ * keys are forwarded to the embedded `<Sidebar>` (mapped to its
+ * `slotClasses.panel`/`backdrop`/`header`/`content`/`footer`).
+ */
 type SidebarLayoutSlot =
-  | 'root'
-  | 'mobileHeader'
-  | 'main'
-  | 'inner'
+  | SidebarLayoutSlots
   | 'sidebar'
   | 'sidebarBackdrop'
   | 'sidebarHeader'

@@ -1,4 +1,4 @@
-import { tv, type VariantProps } from '$lib/utils/variants';
+import { type SlotNames, tv, type VariantProps } from '$lib/utils/variants';
 
 // Tab represents navigation between panels (switch, don't commit). The
 // default tier is `modify` — soft-rounded rectangles read as tap surfaces.
@@ -234,3 +234,5 @@ export const tabVariants = tv({
 });
 
 export type TabVariants = VariantProps<typeof tabVariants>;
+/** Slot names derived from the tv() config — single source of truth for slotClasses. */
+export type TabSlots = SlotNames<typeof tabVariants>;

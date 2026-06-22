@@ -1,6 +1,6 @@
 <script lang="ts">
   import { useBlocksI18n } from '$lib';
-  import { getBlocksConfig, mergeSlotClasses, resolvePresetSlotClasses } from '$lib/provider';
+  import { getBlocksConfig, resolveSlotClasses } from '$lib/provider';
   import { resolveIcon } from '$lib/icons';
   import CloseIconDefault from '$lib/icons/CloseIcon.svelte';
   import { onDestroy } from 'svelte';
@@ -14,7 +14,7 @@
   import { overlayStack, getOverlayMotion } from '$lib/utils';
   import Button from '../Button/Button.svelte';
   import type { DialogProps } from './index';
-  import { dialogVariants } from './dialog.variants';
+  import { dialogVariants, type DialogVariants } from './dialog.variants';
 
   const bt = useBlocksI18n();
 
@@ -62,13 +62,6 @@
 
   const blocksConfig = getBlocksConfig();
   const unstyled = $derived(unstyledProp || blocksConfig?.unstyled || false);
-  const slotClasses = $derived(
-    mergeSlotClasses(
-      blocksConfig?.defaults?.Dialog?.slotClasses,
-      resolvePresetSlotClasses(blocksConfig?.presets, 'Dialog', preset),
-      slotClassesProp
-    )
-  );
 
   let dialogEl = $state<HTMLDialogElement>();
   let panelEl = $state<HTMLElement>();
@@ -82,7 +75,11 @@
   const bodyId = `dialog-body-${uid}`;
   const overlayId = `dialog-${uid}`;
 
-  const styles = $derived(dialogVariants({ size, placement, intent }));
+  const variantProps: DialogVariants = $derived({ size, placement, intent });
+  const styles = $derived(dialogVariants(variantProps));
+  const slotClasses = $derived(
+    resolveSlotClasses(blocksConfig, 'Dialog', preset, variantProps, slotClassesProp)
+  );
 
   function requestClose() {
     if (!isVisible || !open) return;

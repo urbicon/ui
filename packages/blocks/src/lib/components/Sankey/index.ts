@@ -1,7 +1,7 @@
 import type { Snippet } from 'svelte';
 import type { HTMLAttributes } from 'svelte/elements';
 import type { SankeyLaidOutLink, SankeyLaidOutNode } from '$lib/internal/sankey/layout';
-import type { SankeyVariants } from './sankey.variants';
+import type { SankeySlots, SankeyVariants } from './sankey.variants';
 
 export type SankeyIntent = 'primary' | 'secondary' | 'success' | 'warning' | 'danger' | 'neutral';
 
@@ -150,21 +150,7 @@ export interface SankeyProps
   unstyled?: boolean;
 
   /** Per-slot class overrides. */
-  slotClasses?: Partial<
-    Record<
-      | 'wrapper'
-      | 'svg'
-      | 'node'
-      | 'nodeRect'
-      | 'nodeLabel'
-      | 'nodeValue'
-      | 'link'
-      | 'tooltip'
-      | 'tooltipLabel'
-      | 'tooltipDetail',
-      string
-    >
-  >;
+  slotClasses?: Partial<Record<SankeySlots, string>>;
 
   /** Preset name. */
   preset?: string;

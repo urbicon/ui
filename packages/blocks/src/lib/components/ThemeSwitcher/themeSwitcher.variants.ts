@@ -1,4 +1,4 @@
-import { tv, type VariantProps } from '$lib/utils/variants';
+import { type SlotNames, tv, type VariantProps } from '$lib/utils/variants';
 
 export const themeSwitcherVariants = tv({
   slots: {
@@ -36,3 +36,5 @@ export const themeSwitcherVariants = tv({
 });
 
 export type ThemeSwitcherVariants = VariantProps<typeof themeSwitcherVariants>;
+/** Slot names derived from the `tv()` config above — single source of truth for `slotClasses`. */
+export type ThemeSwitcherSlots = SlotNames<typeof themeSwitcherVariants>;

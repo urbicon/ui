@@ -1,7 +1,7 @@
 <script lang="ts">
   import { useBlocksI18n } from '$lib';
-  import { getBlocksConfig, mergeSlotClasses, resolvePresetSlotClasses } from '$lib/provider';
-  import { skeletonVariants } from './skeleton.variants';
+  import { getBlocksConfig, resolveSlotClasses } from '$lib/provider';
+  import { skeletonVariants, type SkeletonVariants } from './skeleton.variants';
   import type { SkeletonProps } from './index';
 
   const bt = useBlocksI18n();
@@ -23,15 +23,13 @@
 
   const blocksConfig = getBlocksConfig();
   const unstyled = $derived(unstyledProp || blocksConfig?.unstyled || false);
-  const slotClasses = $derived(
-    mergeSlotClasses(
-      blocksConfig?.defaults?.Skeleton?.slotClasses,
-      resolvePresetSlotClasses(blocksConfig?.presets, 'Skeleton', preset),
-      slotClassesProp
-    )
-  );
 
-  const styles = $derived(skeletonVariants({ variant, size, animation }));
+  const variantProps: SkeletonVariants = $derived({ variant, size, animation });
+  const styles = $derived(skeletonVariants(variantProps));
+
+  const slotClasses = $derived(
+    resolveSlotClasses(blocksConfig, 'Skeleton', preset, variantProps, slotClassesProp)
+  );
 
   const inlineStyle = $derived(
     [width ? `width:${width}` : '', height ? `height:${height}` : ''].filter(Boolean).join(';') ||

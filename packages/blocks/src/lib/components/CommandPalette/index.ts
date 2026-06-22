@@ -1,5 +1,5 @@
 import type { Snippet } from 'svelte';
-import type { CommandPaletteVariants } from './commandPalette.variants';
+import type { CommandPaletteSlots, CommandPaletteVariants } from './commandPalette.variants';
 
 /**
  * A single item in the command palette.
@@ -130,28 +130,7 @@ export interface CommandPaletteProps {
   unstyled?: boolean;
 
   /** Per-slot class overrides. */
-  slotClasses?: Partial<
-    Record<
-      | 'wrapper'
-      | 'input'
-      | 'inputIcon'
-      | 'clearButton'
-      | 'list'
-      | 'group'
-      | 'groupLabel'
-      | 'item'
-      | 'itemHighlighted'
-      | 'itemDefault'
-      | 'itemDisabled'
-      | 'itemIcon'
-      | 'itemLabel'
-      | 'itemShortcut'
-      | 'empty'
-      | 'footer'
-      | 'kbd',
-      string
-    >
-  >;
+  slotClasses?: Partial<Record<CommandPaletteSlots, string>>;
 
   /**
    * Apply a named preset registered via `<BlocksProvider presets={{ CommandPalette: {...} }}>`.

@@ -1,7 +1,7 @@
 <script lang="ts">
   import { useBlocksI18n } from '$lib';
-  import { alertVariants } from './alert.variants';
-  import { getBlocksConfig, mergeSlotClasses, resolvePresetSlotClasses } from '$lib/provider';
+  import { alertVariants, type AlertVariants } from './alert.variants';
+  import { getBlocksConfig, resolveSlotClasses } from '$lib/provider';
   import { resolveIcon } from '$lib/icons';
   import CloseIconDefault from '$lib/icons/CloseIcon.svelte';
   import type { AlertProps } from './index';
@@ -29,26 +29,12 @@
 
   const blocksConfig = getBlocksConfig();
   const unstyled = $derived(unstyledProp || blocksConfig?.unstyled || false);
-  const slotClasses = $derived(
-    mergeSlotClasses(
-      blocksConfig?.defaults?.Alert?.slotClasses,
-      resolvePresetSlotClasses(blocksConfig?.presets, 'Alert', preset),
-      slotClassesProp
-    )
-  );
 
-  const styles = $derived(
-    unstyled
-      ? {
-          base: () => '',
-          icon: () => '',
-          content: () => '',
-          title: () => '',
-          description: () => '',
-          actions: () => '',
-          dismissButton: () => ''
-        }
-      : alertVariants({ intent, variant, size })
+  const variantProps: AlertVariants = $derived({ intent, variant, size });
+  const styles = $derived(alertVariants(variantProps));
+
+  const slotClasses = $derived(
+    resolveSlotClasses(blocksConfig, 'Alert', preset, variantProps, slotClassesProp)
   );
 </script>
 

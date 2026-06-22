@@ -1,5 +1,5 @@
 import type { HTMLAttributes } from 'svelte/elements';
-import type { ProgressVariants } from './progress.variants';
+import type { ProgressSlots, ProgressVariants } from './progress.variants';
 
 /**
  * @description Progress indicator for determinate and indeterminate loading states.
@@ -61,22 +61,13 @@ export interface ProgressProps
   /** Remove all default tv() classes. */
   unstyled?: boolean;
 
-  /** Per-slot class overrides merged with tv() styles. */
-  slotClasses?: Partial<
-    Record<
-      | 'wrapper'
-      | 'header'
-      | 'label'
-      | 'valueText'
-      | 'track'
-      | 'fill'
-      | 'circularWrapper'
-      | 'circularTrack'
-      | 'circularFill'
-      | 'circularLabel',
-      string
-    >
-  >;
+  /**
+   * Per-slot class overrides merged with tv() styles. Slots: wrapper (linear
+   * root — what `class` targets in linear shape) | header | label | valueText |
+   * track | fill | circularWrapper (circular root — what `class` targets in
+   * circular shape) | circularTrack | circularFill | circularLabel.
+   */
+  slotClasses?: Partial<Record<ProgressSlots, string>>;
   /**
    * Apply a named preset registered via `<BlocksProvider presets={{ Progress: {...} }}>`.
    * Prefer this over `class` overrides when the requested look falls outside the

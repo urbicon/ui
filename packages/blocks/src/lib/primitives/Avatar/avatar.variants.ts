@@ -1,4 +1,4 @@
-import { tv, type VariantProps } from '$lib/utils/variants';
+import { type SlotNames, tv, type VariantProps } from '$lib/utils/variants';
 
 export const avatarVariants = tv({
   slots: {
@@ -192,3 +192,5 @@ export const avatarVariants = tv({
 });
 
 export type AvatarVariants = VariantProps<typeof avatarVariants>;
+/** Slot names derived from the tv() config — single source of truth for slotClasses. */
+export type AvatarSlots = SlotNames<typeof avatarVariants>;

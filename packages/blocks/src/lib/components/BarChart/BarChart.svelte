@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { getBlocksConfig, mergeSlotClasses, resolvePresetSlotClasses } from '$lib/provider';
+  import { getBlocksConfig, resolveSlotClasses } from '$lib/provider';
   import type { BarChartProps } from './index';
   import type { ChartSeries } from '$lib/internal/charts/types';
   import { chartSlotResolver } from '$lib/internal/charts/variants';
@@ -35,11 +35,7 @@
   const blocksConfig = getBlocksConfig();
   const unstyled = $derived(unstyledProp || blocksConfig?.unstyled || false);
   const slotClasses = $derived(
-    mergeSlotClasses(
-      blocksConfig?.defaults?.BarChart?.slotClasses,
-      resolvePresetSlotClasses(blocksConfig?.presets, 'BarChart', preset),
-      slotClassesProp
-    )
+    resolveSlotClasses(blocksConfig, 'BarChart', preset, {}, slotClassesProp)
   );
   const slot = $derived(chartSlotResolver(unstyled, slotClasses));
 

@@ -1,4 +1,4 @@
-import { tv, type VariantProps } from '$lib/utils/variants';
+import { type SlotNames, tv, type VariantProps } from '$lib/utils/variants';
 
 export const collapsibleVariants = tv({
   slots: {
@@ -58,3 +58,5 @@ export const collapsibleVariants = tv({
 });
 
 export type CollapsibleVariants = VariantProps<typeof collapsibleVariants>;
+/** Slot names derived from the tv() config — single source of truth for slotClasses. */
+export type CollapsibleSlots = SlotNames<typeof collapsibleVariants>;

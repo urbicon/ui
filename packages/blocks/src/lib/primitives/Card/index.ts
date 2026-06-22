@@ -1,7 +1,7 @@
 import type { Snippet } from 'svelte';
 import type { HTMLAttributes } from 'svelte/elements';
 import type { MintProp } from '$lib/mint';
-import type { CardVariants } from './card.variants';
+import type { CardSlots, CardVariants } from './card.variants';
 
 /**
  * @description Flexible container for grouping related content with optional header, footer,
@@ -71,8 +71,8 @@ export interface CardProps
   class?: string;
   /** Remove all default tv classes. */
   unstyled?: boolean;
-  /** Per-slot class overrides. */
-  slotClasses?: Partial<Record<'base' | 'header' | 'content' | 'footer', string>>;
+  /** Per-slot class overrides. Slots: base | header | content | footer */
+  slotClasses?: Partial<Record<CardSlots, string>>;
   /**
    * Apply a named preset registered via `<BlocksProvider presets={{ Card: {...} }}>`.
    * Prefer this over `class` overrides when the requested look falls outside the

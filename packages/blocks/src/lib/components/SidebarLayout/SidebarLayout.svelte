@@ -1,9 +1,9 @@
 <script lang="ts">
   import { MediaQuery } from 'svelte/reactivity';
   import { Sidebar } from '$lib/primitives/Sidebar';
-  import { getBlocksConfig, mergeSlotClasses, resolvePresetSlotClasses } from '$lib/provider';
+  import { getBlocksConfig, resolveSlotClasses } from '$lib/provider';
   import type { SidebarLayoutProps } from './index';
-  import { sidebarLayoutVariants } from './sidebar-layout.variants';
+  import { sidebarLayoutVariants, type SidebarLayoutVariants } from './sidebar-layout.variants';
 
   let {
     open = $bindable(false),
@@ -28,15 +28,6 @@
 
   const blocksConfig = getBlocksConfig();
   const unstyled = $derived(unstyledProp || blocksConfig?.unstyled || false);
-  const slotClasses = $derived(
-    mergeSlotClasses(
-      blocksConfig?.defaults?.SidebarLayout?.slotClasses,
-      resolvePresetSlotClasses(blocksConfig?.presets, 'SidebarLayout', preset),
-      slotClassesProp
-    )
-  );
-
-  const styles = $derived(sidebarLayoutVariants({ side, contentMaxWidth }));
 
   // Mirror the Sidebar's effective-width logic so the layout root can expose
   // the value to the main content (the Sidebar's own --sidebar-effective-width
@@ -47,6 +38,18 @@
     open || (mode === 'responsive' && !isMobile) ? sidebarWidth : '0px'
   );
 
+  // Variant props feed both the tv() style computation and the slot-class
+  // cascade — extracted into one derived so `resolveSlotClasses` can match
+  // conditional `overrides` against the layout's active variants. Annotated so
+  // the string-literal `side`/`contentMaxWidth` props stay narrowed.
+  const variantProps: SidebarLayoutVariants = $derived({ side, contentMaxWidth });
+
+  const styles = $derived(sidebarLayoutVariants(variantProps));
+
+  const slotClasses = $derived(
+    resolveSlotClasses(blocksConfig, 'SidebarLayout', preset, variantProps, slotClassesProp)
+  );
+
   // Forward sidebar-related slotClasses to the embedded Sidebar.
   const sidebarSlotClasses = $derived({
     panel: slotClasses?.sidebar,
@@ -55,11 +58,6 @@
     content: slotClasses?.sidebarContent,
     footer: slotClasses?.sidebarFooter
   });
-
-  function rootClass() {
-    if (unstyled) return [slotClasses?.root, className].filter(Boolean).join(' ');
-    return styles.root({ class: [slotClasses?.root, className] });
-  }
 
   function openSidebar() {
     open = true;
@@ -74,7 +72,9 @@
 
 <div
   {...restProps}
-  class={rootClass()}
+  class={unstyled
+    ? [slotClasses?.root, className].filter(Boolean).join(' ')
+    : styles.root({ class: [slotClasses?.root, className] })}
   style:--sidebar-width={sidebarWidth}
   style:--sidebar-effective-width={effectiveWidth}
   data-side={side}

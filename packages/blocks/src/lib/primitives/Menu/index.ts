@@ -5,6 +5,7 @@ import type { ButtonVariants, MenuVariants } from '$lib/primitives';
 import type { AnimationProps } from '$lib/utils';
 import type { Placement } from '$lib/utils/floating';
 import type { InteractiveTier } from '$lib/utils/tier-context';
+import type { MenuSlots } from './menu.variants';
 
 /**
  * @description Action menu (`role="menu"`) triggered by a button. Items are
@@ -73,25 +74,10 @@ export interface MenuSpecificProps<TItem extends MenuItemType = MenuItemType> {
 
   /**
    * Per-slot class overrides merged with tailwind-variants styles.
+   * Slots: base | trigger | triggerText | chevron | content | header | section |
+   * divider | items | item | indicator | submenu | footer
    */
-  slotClasses?: Partial<
-    Record<
-      | 'base'
-      | 'trigger'
-      | 'triggerText'
-      | 'chevron'
-      | 'content'
-      | 'header'
-      | 'section'
-      | 'divider'
-      | 'items'
-      | 'item'
-      | 'indicator'
-      | 'submenu'
-      | 'footer',
-      string
-    >
-  >;
+  slotClasses?: Partial<Record<MenuSlots, string>>;
 
   /**
    * Apply a named preset registered via `<BlocksProvider presets={{ Menu: {...} }}>`.

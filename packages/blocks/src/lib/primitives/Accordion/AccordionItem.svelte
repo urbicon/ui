@@ -1,6 +1,6 @@
 <script lang="ts">
-  import { getBlocksConfig, mergeSlotClasses, resolvePresetSlotClasses } from '$lib/provider';
-  import { accordionVariants } from './accordion.variants';
+  import { getBlocksConfig, resolveSlotClasses } from '$lib/provider';
+  import { accordionVariants, type AccordionVariants } from './accordion.variants';
   import { getAccordionContext } from './accordion.context';
   import { resolveIcon } from '$lib/icons';
   import ChevronDownIconDefault from '$lib/icons/ChevronDownIcon.svelte';
@@ -24,31 +24,19 @@
 
   const blocksConfig = getBlocksConfig();
   const unstyled = $derived(unstyledProp || blocksConfig?.unstyled || false);
-  const slotClasses = $derived(
-    mergeSlotClasses(
-      blocksConfig?.defaults?.AccordionItem?.slotClasses,
-      resolvePresetSlotClasses(blocksConfig?.presets, 'AccordionItem', preset),
-      slotClassesProp
-    )
-  );
 
   const ctx = getAccordionContext();
   const open = $derived(ctx.isOpen(value));
   const isDisabled = $derived(itemDisabled || ctx.disabled);
 
-  const styles = $derived(
-    unstyled
-      ? {
-          item: () => '',
-          trigger: () => '',
-          chevron: () => '',
-          content: () => '',
-          contentInner: () => ''
-        }
-      : accordionVariants({ variant: ctx.variant, size: ctx.size })
+  const variantProps: AccordionVariants = $derived({ variant: ctx.variant, size: ctx.size });
+  const styles = $derived(accordionVariants(variantProps));
+
+  const slotClasses = $derived(
+    resolveSlotClasses(blocksConfig, 'AccordionItem', preset, variantProps, slotClassesProp)
   );
 
-  function slot(key: keyof typeof styles, extra?: string) {
+  function slot(key: Exclude<keyof typeof styles, 'base'>, extra?: string) {
     const overrides = [slotClasses?.[key], extra].filter(Boolean).join(' ');
     if (unstyled) return overrides;
     return styles[key]({ class: overrides });

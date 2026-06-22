@@ -1,4 +1,4 @@
-import { tv, type VariantProps } from '$lib/utils/variants';
+import { type SlotNames, tv, type VariantProps } from '$lib/utils/variants';
 
 export const breadcrumbVariants = tv({
   slots: {
@@ -36,3 +36,5 @@ export const breadcrumbVariants = tv({
 });
 
 export type BreadcrumbVariants = VariantProps<typeof breadcrumbVariants>;
+/** Slot names derived from the `tv()` config above — single source of truth for `slotClasses`. */
+export type BreadcrumbSlots = SlotNames<typeof breadcrumbVariants>;

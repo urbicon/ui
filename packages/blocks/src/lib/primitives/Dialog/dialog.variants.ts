@@ -1,4 +1,4 @@
-import { tv, type VariantProps } from '$lib/utils/variants';
+import { type SlotNames, tv, type VariantProps } from '$lib/utils/variants';
 
 export const dialogVariants = tv({
   slots: {
@@ -90,3 +90,5 @@ export const dialogVariants = tv({
 });
 
 export type DialogVariants = VariantProps<typeof dialogVariants>;
+/** Slot names derived from the `tv()` config above — single source of truth for `slotClasses`. */
+export type DialogSlots = SlotNames<typeof dialogVariants>;

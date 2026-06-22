@@ -1,6 +1,6 @@
 import type { Snippet } from 'svelte';
 import type { HTMLDialogAttributes } from 'svelte/elements';
-import type { DialogVariants } from './dialog.variants';
+import type { DialogSlots, DialogVariants } from './dialog.variants';
 
 /**
  * @description Overlay dialog built on native dialog element. Can be used as a simple
@@ -92,12 +92,7 @@ export interface DialogProps extends Omit<HTMLDialogAttributes, 'children' | 'op
   unstyled?: boolean;
 
   /** Per-slot class overrides merged with variant styles. */
-  slotClasses?: Partial<
-    Record<
-      'dialog' | 'backdrop' | 'panel' | 'content' | 'header' | 'title' | 'body' | 'footer',
-      string
-    >
-  >;
+  slotClasses?: Partial<Record<DialogSlots, string>>;
   /**
    * Apply a named preset registered via `<BlocksProvider presets={{ Dialog: {...} }}>`.
    * Prefer this over `class` overrides when the requested look falls outside the

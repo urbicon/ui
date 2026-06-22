@@ -1,8 +1,8 @@
 <script lang="ts">
-  import { getBlocksConfig, mergeSlotClasses, resolvePresetSlotClasses } from '$lib/provider';
+  import { getBlocksConfig, resolveSlotClasses } from '$lib/provider';
   import type { TabPanelProps } from './index';
   import { getTabContext } from './tab.context';
-  import { tabVariants } from './tab.variants';
+  import { tabVariants, type TabVariants } from './tab.variants';
   import { fade } from 'svelte/transition';
 
   let {
@@ -20,13 +20,6 @@
 
   const blocksConfig = getBlocksConfig();
   const unstyled = $derived(unstyledProp || blocksConfig?.unstyled || false);
-  const slotClasses = $derived(
-    mergeSlotClasses(
-      blocksConfig?.defaults?.TabPanel?.slotClasses,
-      resolvePresetSlotClasses(blocksConfig?.presets, 'TabPanel', preset),
-      slotClassesProp
-    )
-  );
 
   const tabContext = getTabContext();
 
@@ -48,10 +41,14 @@
     return false;
   });
 
-  const styles = $derived(
-    tabVariants({
-      size: tabContext.size
-    })
+  const variantProps: TabVariants = $derived({
+    size: tabContext.size
+  });
+
+  const styles = $derived(tabVariants(variantProps));
+
+  const slotClasses = $derived(
+    resolveSlotClasses(blocksConfig, 'TabPanel', preset, variantProps, slotClassesProp)
   );
 </script>
 

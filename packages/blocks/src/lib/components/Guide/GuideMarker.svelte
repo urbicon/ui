@@ -1,9 +1,9 @@
 <script lang="ts">
   import { useBlocksI18n } from '$lib/i18n';
   import { InfoCircleIcon } from '$lib/icons';
-  import { getBlocksConfig, mergeSlotClasses, resolvePresetSlotClasses } from '$lib/provider';
+  import { getBlocksConfig, resolveSlotClasses } from '$lib/provider';
   import { getGuideContext } from './guide.context';
-  import { guideMarkerVariants } from './guide.variants';
+  import { guideMarkerVariants, type GuideMarkerVariants } from './guide.variants';
   import type { GuideMarkerProps } from './index';
 
   const bt = useBlocksI18n();
@@ -32,14 +32,11 @@
 
   const blocksConfig = getBlocksConfig();
   const unstyled = $derived(unstyledProp || blocksConfig?.unstyled || false);
+  const variantProps: GuideMarkerVariants = $derived({ size });
+  const styles = $derived(guideMarkerVariants(variantProps));
   const slotClasses = $derived(
-    mergeSlotClasses(
-      blocksConfig?.defaults?.GuideMarker?.slotClasses,
-      resolvePresetSlotClasses(blocksConfig?.presets, 'GuideMarker', preset),
-      slotClassesProp
-    )
+    resolveSlotClasses(blocksConfig, 'GuideMarker', preset, variantProps, slotClassesProp)
   );
-  const styles = $derived(guideMarkerVariants({ size }));
 
   // A Marker is the UI→Guide affordance; it is live unless the resolved direction
   // is 'to-ui' only. With no `for` there is no topic to gate on (the prop wins).

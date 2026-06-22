@@ -1,7 +1,7 @@
 import type { Snippet } from 'svelte';
 import type { HTMLInputAttributes } from 'svelte/elements';
 import type { MintProp } from '$lib/mint';
-import type { InputVariants } from './input.variants';
+import type { InputSlots, InputVariants } from './input.variants';
 
 /**
  * @description Text input with labels, validation states, icons, and clearable functionality.
@@ -77,10 +77,12 @@ export interface InputProps
   class?: string;
   /** Remove all default tv() classes — only user-provided classes apply. */
   unstyled?: boolean;
-  /** Per-slot class overrides merged with tv() styles. */
-  slotClasses?: Partial<
-    Record<'wrapper' | 'container' | 'base' | 'label' | 'message' | 'iconContainer', string>
-  >;
+  /**
+   * Per-slot class overrides merged with tv() styles. Slots: wrapper (root —
+   * what `class` also targets) | container | base (the `<input>` element) |
+   * label | message | iconContainer | iconButton | iconDecoration.
+   */
+  slotClasses?: Partial<Record<InputSlots, string>>;
 
   /**
    * Apply a named preset registered via `<BlocksProvider presets={{ Input: {...} }}>`.

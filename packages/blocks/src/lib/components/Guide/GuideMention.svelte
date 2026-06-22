@@ -1,7 +1,7 @@
 <script lang="ts">
-  import { getBlocksConfig, mergeSlotClasses, resolvePresetSlotClasses } from '$lib/provider';
+  import { getBlocksConfig, resolveSlotClasses } from '$lib/provider';
   import { getGuideContext } from './guide.context';
-  import { guideMentionVariants } from './guide.variants';
+  import { guideMentionVariants, type GuideMentionVariants } from './guide.variants';
   import type { GuideMentionProps } from './index';
 
   let {
@@ -26,14 +26,11 @@
 
   const blocksConfig = getBlocksConfig();
   const unstyled = $derived(unstyledProp || blocksConfig?.unstyled || false);
+  const variantProps: GuideMentionVariants = $derived({});
+  const styles = $derived(guideMentionVariants(variantProps));
   const slotClasses = $derived(
-    mergeSlotClasses(
-      blocksConfig?.defaults?.GuideMention?.slotClasses,
-      resolvePresetSlotClasses(blocksConfig?.presets, 'GuideMention', preset),
-      slotClassesProp
-    )
+    resolveSlotClasses(blocksConfig, 'GuideMention', preset, variantProps, slotClassesProp)
   );
-  const styles = $derived(guideMentionVariants());
 
   // A Mention is the Guide→UI affordance; it is interactive unless the resolved
   // direction is 'to-guide' only (then it degrades to plain inline text).

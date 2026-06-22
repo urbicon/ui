@@ -2,7 +2,7 @@ import type { Snippet } from 'svelte';
 import type { HTMLAttributes } from 'svelte/elements';
 import type { MintProp } from '$lib/mint';
 import type { InteractiveTier } from '$lib/utils';
-import type { TabVariants } from './tab.variants';
+import type { TabSlots, TabVariants } from './tab.variants';
 
 export interface TabContext {
   registerTab: (value: string, element: HTMLElement) => () => void;
@@ -67,8 +67,8 @@ interface TabBaseProps
   /** Strip all default tv() styles from the container and children. */
   unstyled?: boolean;
 
-  /** Per-slot class overrides merged with (or replacing when unstyled) tv() styles. */
-  slotClasses?: Partial<Record<'base' | 'list' | 'trigger' | 'panel' | 'indicator', string>>;
+  /** Per-slot class overrides merged with (or replacing when unstyled) tv() styles. Slots: base | list | trigger | icon | label | badge | panel | indicator */
+  slotClasses?: Partial<Record<TabSlots, string>>;
   /**
    * Apply a named preset registered via `<BlocksProvider presets={{ Tab: {...} }}>`.
    * Prefer this over `class` overrides when the requested look falls outside the
@@ -177,8 +177,8 @@ export interface TabItemProps extends Omit<HTMLAttributes<HTMLButtonElement>, 'c
   /** Strip default tv() styles from this trigger. */
   unstyled?: boolean;
 
-  /** Per-slot class overrides for the trigger. */
-  slotClasses?: Partial<Record<'trigger', string>>;
+  /** Per-slot class overrides for the trigger. Slots (subset of Tab's): trigger | icon | label | badge */
+  slotClasses?: Partial<Record<Extract<TabSlots, 'trigger' | 'icon' | 'label' | 'badge'>, string>>;
   /**
    * Apply a named preset registered via `<BlocksProvider presets={{ TabItem: {...} }}>`.
    * Prefer this over `class` overrides when the requested look falls outside the
@@ -218,8 +218,8 @@ export interface TabPanelProps extends Omit<HTMLAttributes<HTMLDivElement>, 'chi
   /** Strip default tv() styles from this panel. */
   unstyled?: boolean;
 
-  /** Per-slot class overrides for the panel. */
-  slotClasses?: Partial<Record<'panel', string>>;
+  /** Per-slot class overrides for the panel. Slot (subset of Tab's): panel */
+  slotClasses?: Partial<Record<Extract<TabSlots, 'panel'>, string>>;
   /**
    * Apply a named preset registered via `<BlocksProvider presets={{ TabPanel: {...} }}>`.
    * Prefer this over `class` overrides when the requested look falls outside the

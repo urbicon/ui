@@ -3,10 +3,10 @@
   import { SvelteMap } from 'svelte/reactivity';
   import { useBlocksI18n } from '$lib/i18n';
   import { CloseIcon, ChevronLeftIcon, ChevronRightIcon } from '$lib/icons';
-  import { getBlocksConfig, mergeSlotClasses, resolvePresetSlotClasses } from '$lib/provider';
+  import { getBlocksConfig, resolveSlotClasses } from '$lib/provider';
   import { getGuideContext } from './guide.context';
   import { setGuidePanelContext } from './guide-panel.context';
-  import { guidePanelVariants } from './guide.variants';
+  import { guidePanelVariants, type GuidePanelVariants } from './guide.variants';
   import type { GuidePanelProps } from './index';
 
   const bt = useBlocksI18n();
@@ -54,14 +54,11 @@
 
   const blocksConfig = getBlocksConfig();
   const unstyled = $derived(unstyledProp || blocksConfig?.unstyled || false);
+  const variantProps: GuidePanelVariants = $derived({ placement, size });
+  const styles = $derived(guidePanelVariants(variantProps));
   const slotClasses = $derived(
-    mergeSlotClasses(
-      blocksConfig?.defaults?.GuidePanel?.slotClasses,
-      resolvePresetSlotClasses(blocksConfig?.presets, 'GuidePanel', preset),
-      slotClassesProp
-    )
+    resolveSlotClasses(blocksConfig, 'GuidePanel', preset, variantProps, slotClassesProp)
   );
-  const styles = $derived(guidePanelVariants({ placement, size }));
 
   const open = $derived(guide?.panelOpen ?? false);
   const activeArticle = $derived(guide?.activeArticle ?? null);

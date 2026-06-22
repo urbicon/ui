@@ -10,10 +10,16 @@ import type {
   EventItemContext,
   HeaderContext
 } from './calendar.types';
-import type { CalendarVariants } from './calendar.variants';
+import type { CalendarSlots, CalendarVariants } from './calendar.variants';
 
 // ─── Slot names ───────────────────────────────────────────────
 
+// `CalendarSlotName` stays the canonical internal key type: the shared
+// `CalendarContext` (`slotClasses` map + `createSlotHelper`) and the
+// per-view sub-components (e.g. `CalendarHeader`'s `slot()` helper) index
+// slots by it. The public `slotClasses` prop below is derived from
+// `CalendarSlots` (`SlotNames<typeof calendarVariants>`, the single source of
+// truth in `calendar.variants.ts`); the two unions are kept in lockstep.
 export type CalendarSlotName =
   | 'base'
   | 'header'
@@ -288,7 +294,7 @@ export interface CalendarProps
   /** Strip all default tv() classes. */
   unstyled?: boolean;
   /** Per-slot class overrides. */
-  slotClasses?: Partial<Record<CalendarSlotName, string>>;
+  slotClasses?: Partial<Record<CalendarSlots, string>>;
   /**
    * Apply a named preset registered via `<BlocksProvider presets={{ Calendar: {...} }}>`.
    * Prefer this over `class` overrides when the requested look falls outside the

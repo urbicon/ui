@@ -1,8 +1,8 @@
 <script lang="ts">
   import { mintRegistry, Spinner } from '$lib';
-  import { getBlocksConfig, mergeSlotClasses, resolvePresetSlotClasses } from '$lib/provider';
+  import { getBlocksConfig, resolveSlotClasses } from '$lib/provider';
   import { getButtonGroupContext } from '../ButtonGroup/buttonGroup.context';
-  import { buttonVariants } from '$lib/primitives';
+  import { buttonVariants, type ButtonVariants } from '$lib/primitives';
   import { getTierContext } from '$lib/utils/tier-context';
   import type { ButtonProps } from './index';
 
@@ -30,13 +30,6 @@
 
   const blocksConfig = getBlocksConfig();
   const unstyled = $derived(unstyledProp || blocksConfig?.unstyled || false);
-  const slotClasses = $derived(
-    mergeSlotClasses(
-      blocksConfig?.defaults?.Button?.slotClasses,
-      resolvePresetSlotClasses(blocksConfig?.presets, 'Button', preset),
-      slotClassesProp
-    )
-  );
 
   let buttonElement = $state<HTMLButtonElement>();
 
@@ -58,18 +51,25 @@
   const effectivePressed = $derived(pressed);
   const ariaProps = $derived(registration?.getButtonProps() ?? {});
 
-  const styles = $derived(
-    buttonVariants({
-      tier: effectiveTier,
-      intent: effectiveIntent,
-      variant: effectiveVariant,
-      size: effectiveSize,
-      loading: loading || undefined,
-      loadingPlacement,
-      pressed: effectivePressed || undefined,
-      active: effectiveActive || undefined,
-      buttonGroupConnected: groupCtx?.connected || undefined
-    })
+  // Variant props feed both the tv() style computation and the slot-class
+  // cascade — extracted into one derived so `resolveSlotClasses` can match
+  // conditional `overrides` against the button's active variants.
+  const variantProps: ButtonVariants = $derived({
+    tier: effectiveTier,
+    intent: effectiveIntent,
+    variant: effectiveVariant,
+    size: effectiveSize,
+    loading: loading || undefined,
+    loadingPlacement,
+    pressed: effectivePressed || undefined,
+    active: effectiveActive || undefined,
+    buttonGroupConnected: groupCtx?.connected || undefined
+  });
+
+  const styles = $derived(buttonVariants(variantProps));
+
+  const slotClasses = $derived(
+    resolveSlotClasses(blocksConfig, 'Button', preset, variantProps, slotClassesProp)
   );
 
   $effect(() => {

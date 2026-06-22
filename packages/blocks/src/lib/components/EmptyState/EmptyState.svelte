@@ -1,7 +1,7 @@
 <script lang="ts">
-  import { getBlocksConfig, mergeSlotClasses, resolvePresetSlotClasses } from '$lib/provider';
+  import { getBlocksConfig, resolveSlotClasses } from '$lib/provider';
   import type { EmptyStateProps } from './index';
-  import { emptyStateVariants } from './emptyState.variants';
+  import { emptyStateVariants, type EmptyStateVariants } from './emptyState.variants';
 
   let {
     icon: IconComponent,
@@ -19,15 +19,14 @@
 
   const blocksConfig = getBlocksConfig();
   const unstyled = $derived(unstyledProp || blocksConfig?.unstyled || false);
-  const slotClasses = $derived(
-    mergeSlotClasses(
-      blocksConfig?.defaults?.EmptyState?.slotClasses,
-      resolvePresetSlotClasses(blocksConfig?.presets, 'EmptyState', preset),
-      slotClassesProp
-    )
-  );
 
-  const styles = $derived(unstyled ? undefined : emptyStateVariants({ density }));
+  const variantProps: EmptyStateVariants = $derived({ density });
+
+  const styles = $derived(unstyled ? undefined : emptyStateVariants(variantProps));
+
+  const slotClasses = $derived(
+    resolveSlotClasses(blocksConfig, 'EmptyState', preset, variantProps, slotClassesProp)
+  );
 
   const iconSize = $derived(density === 'compact' ? 32 : 40);
 

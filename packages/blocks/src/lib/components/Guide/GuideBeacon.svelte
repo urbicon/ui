@@ -1,8 +1,8 @@
 <script lang="ts">
   import { useBlocksI18n } from '$lib/i18n';
-  import { getBlocksConfig, mergeSlotClasses, resolvePresetSlotClasses } from '$lib/provider';
+  import { getBlocksConfig, resolveSlotClasses } from '$lib/provider';
   import { getGuideContext } from './guide.context';
-  import { guideBeaconVariants } from './guide.variants';
+  import { guideBeaconVariants, type GuideBeaconVariants } from './guide.variants';
   import type { GuideBeaconProps } from './index';
 
   const bt = useBlocksI18n();
@@ -30,14 +30,11 @@
 
   const blocksConfig = getBlocksConfig();
   const unstyled = $derived(unstyledProp || blocksConfig?.unstyled || false);
+  const variantProps: GuideBeaconVariants = $derived({ size });
+  const styles = $derived(guideBeaconVariants(variantProps));
   const slotClasses = $derived(
-    mergeSlotClasses(
-      blocksConfig?.defaults?.GuideBeacon?.slotClasses,
-      resolvePresetSlotClasses(blocksConfig?.presets, 'GuideBeacon', preset),
-      slotClassesProp
-    )
+    resolveSlotClasses(blocksConfig, 'GuideBeacon', preset, variantProps, slotClassesProp)
   );
-  const styles = $derived(guideBeaconVariants({ size }));
 
   // Hide once the tour has been seen (gentle, never nags) and while it is running (the
   // tour's own scrim takes over). Both reactive: `hasSeen` reads the controller's seen set,

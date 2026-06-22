@@ -1,7 +1,7 @@
 import type { Snippet } from 'svelte';
 import type { HTMLAttributes } from 'svelte/elements';
 import type { MintProp } from '$lib/mint';
-import type { CompositionBarVariants } from './composition-bar.variants';
+import type { CompositionBarSlots, CompositionBarVariants } from './composition-bar.variants';
 
 export type CompositionBarIntent =
   | 'primary'
@@ -131,26 +131,7 @@ export interface CompositionBarProps
   unstyled?: boolean;
 
   /** Per-slot class overrides. */
-  slotClasses?: Partial<
-    Record<
-      | 'wrapper'
-      | 'barWrapper'
-      | 'bar'
-      | 'segment'
-      | 'segmentRest'
-      | 'tooltip'
-      | 'tooltipLabel'
-      | 'tooltipDetail'
-      | 'legend'
-      | 'legendItem'
-      | 'legendDot'
-      | 'legendLabel'
-      | 'legendValue'
-      | 'total'
-      | 'totalLabel',
-      string
-    >
-  >;
+  slotClasses?: Partial<Record<CompositionBarSlots, string>>;
 
   /** Preset name (registered via `<BlocksProvider presets={{ CompositionBar: {...} }}>`). */
   preset?: string;

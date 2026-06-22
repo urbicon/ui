@@ -1,4 +1,4 @@
-import { tv, type VariantProps } from '$lib/utils/variants';
+import { type SlotNames, tv, type VariantProps } from '$lib/utils/variants';
 
 export const radioGroupVariants = tv({
   slots: {
@@ -193,3 +193,6 @@ export const radioItemVariants = tv({
 
 export type RadioGroupVariants = VariantProps<typeof radioGroupVariants>;
 export type RadioItemVariants = VariantProps<typeof radioItemVariants>;
+/** Slot names derived from the `tv()` config above — single source of truth for `slotClasses`. */
+export type RadioGroupSlots = SlotNames<typeof radioGroupVariants>;
+export type RadioItemSlots = SlotNames<typeof radioItemVariants>;

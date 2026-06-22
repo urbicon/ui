@@ -1,8 +1,8 @@
 <script lang="ts">
   import { useBlocksI18n, mintRegistry } from '$lib';
-  import { getBlocksConfig, mergeSlotClasses, resolvePresetSlotClasses } from '$lib/provider';
+  import { getBlocksConfig, resolveSlotClasses } from '$lib/provider';
   import { getTierContext, useFormField } from '$lib/utils';
-  import { toggleVariants } from './toggle.variants';
+  import { toggleVariants, type ToggleVariants } from './toggle.variants';
   import type { ToggleProps } from './index';
 
   const bt = useBlocksI18n();
@@ -42,13 +42,6 @@
 
   const blocksConfig = getBlocksConfig();
   const unstyled = $derived(unstyledProp || blocksConfig?.unstyled || false);
-  const slotClasses = $derived(
-    mergeSlotClasses(
-      blocksConfig?.defaults?.Toggle?.slotClasses,
-      resolvePresetSlotClasses(blocksConfig?.presets, 'Toggle', preset),
-      slotClassesProp
-    )
-  );
 
   let rootEl = $state<HTMLElement>();
 
@@ -58,16 +51,23 @@
   const tierCtx = getTierContext();
   const effectiveTier = $derived(tier ?? tierCtx?.tier ?? 'commit');
 
-  const styles = $derived(
-    toggleVariants({
-      tier: effectiveTier,
-      size,
-      intent,
-      appearance,
-      checked,
-      disabled,
-      withBorder
-    })
+  // Variant props feed both the tv() style computation and the slot-class
+  // cascade — extracted into one derived so `resolveSlotClasses` can match
+  // conditional `overrides` against the toggle's active variants.
+  const variantProps: ToggleVariants = $derived({
+    tier: effectiveTier,
+    size,
+    intent,
+    appearance,
+    checked,
+    disabled,
+    withBorder
+  });
+
+  const styles = $derived(toggleVariants(variantProps));
+
+  const slotClasses = $derived(
+    resolveSlotClasses(blocksConfig, 'Toggle', preset, variantProps, slotClassesProp)
   );
 
   const dataState = $derived(checked ? 'checked' : 'unchecked');

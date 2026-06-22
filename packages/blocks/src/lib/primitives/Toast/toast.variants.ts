@@ -1,4 +1,4 @@
-import { tv, type VariantProps } from '$lib/utils/variants';
+import { type SlotNames, tv, type VariantProps } from '$lib/utils/variants';
 
 export const toastVariants = tv({
   slots: {
@@ -74,6 +74,8 @@ export const toastVariants = tv({
 });
 
 export type ToastVariants = VariantProps<typeof toastVariants>;
+/** Slot names derived from the tv() config — single source of truth for slotClasses. */
+export type ToasterSlots = SlotNames<typeof toastVariants>;
 
 export type ToastPlacement =
   | 'top-right'

@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { getBlocksConfig, mergeSlotClasses, resolvePresetSlotClasses } from '$lib/provider';
+  import { getBlocksConfig, resolveSlotClasses } from '$lib/provider';
   import { separatorVariants } from './separator.variants';
   import type { SeparatorProps } from './index';
 
@@ -17,11 +17,7 @@
   const blocksConfig = getBlocksConfig();
   const unstyled = $derived(unstyledProp || blocksConfig?.unstyled || false);
   const slotClasses = $derived(
-    mergeSlotClasses(
-      blocksConfig?.defaults?.Separator?.slotClasses,
-      resolvePresetSlotClasses(blocksConfig?.presets, 'Separator', preset),
-      slotClassesProp
-    )
+    resolveSlotClasses(blocksConfig, 'Separator', preset, { orientation, size }, slotClassesProp)
   );
 
   const classes = $derived(

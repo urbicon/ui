@@ -1,4 +1,4 @@
-import { tv, type VariantProps } from '$lib/utils/variants';
+import { type SlotNames, tv, type VariantProps } from '$lib/utils/variants';
 
 export const calendarVariants = tv({
   slots: {
@@ -423,3 +423,4 @@ export const calendarVariants = tv({
 });
 
 export type CalendarVariants = VariantProps<typeof calendarVariants>;
+export type CalendarSlots = SlotNames<typeof calendarVariants>;

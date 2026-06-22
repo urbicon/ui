@@ -7,8 +7,8 @@
     FileUploadError,
     FileUploadSlotName
   } from './index';
-  import { fileUploadVariants } from './fileUpload.variants';
-  import { getBlocksConfig, mergeSlotClasses, resolvePresetSlotClasses } from '$lib/provider';
+  import { fileUploadVariants, type FileUploadVariants } from './fileUpload.variants';
+  import { getBlocksConfig, resolveSlotClasses } from '$lib/provider';
   import { resolveIcon } from '$lib/icons';
   import UploadCloudIconDefault from '$lib/icons/UploadCloudIcon.svelte';
   import FileIconDefault from '$lib/icons/FileIcon.svelte';
@@ -68,13 +68,6 @@
 
   const blocksConfig = getBlocksConfig();
   const unstyled = $derived(unstyledProp || blocksConfig?.unstyled || false);
-  const slotClasses = $derived(
-    mergeSlotClasses(
-      blocksConfig?.defaults?.FileUpload?.slotClasses,
-      resolvePresetSlotClasses(blocksConfig?.presets, 'FileUpload', preset),
-      slotClassesProp
-    )
-  );
 
   // ── State ──────────────────────────────────────────────────────────────────
 
@@ -90,14 +83,21 @@
   const effectiveMultiple = $derived(multiple || maxFiles > 1);
   const acceptString = $derived(Array.isArray(accept) ? accept.join(',') : (accept ?? ''));
 
-  const styles = $derived(
-    fileUploadVariants({
-      size,
-      intent,
-      dragging,
-      invalid: dragInvalid,
-      disabled
-    })
+  // Variant props feed both the tv() style computation and the slot-class
+  // cascade — extracted into one derived so `resolveSlotClasses` can match
+  // conditional `overrides` against the dropzone's active variants.
+  const variantProps: FileUploadVariants = $derived({
+    size,
+    intent,
+    dragging,
+    invalid: dragInvalid,
+    disabled
+  });
+
+  const styles = $derived(fileUploadVariants(variantProps));
+
+  const slotClasses = $derived(
+    resolveSlotClasses(blocksConfig, 'FileUpload', preset, variantProps, slotClassesProp)
   );
 
   const iconSize = $derived({ sm: 24, md: 32, lg: 40 }[size ?? 'md']);

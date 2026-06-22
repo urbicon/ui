@@ -1,6 +1,6 @@
 import type { Snippet } from 'svelte';
 import type { HTMLDialogAttributes } from 'svelte/elements';
-import type { DrawerVariants } from './drawer.variants';
+import type { DrawerSlots, DrawerVariants } from './drawer.variants';
 
 /**
  * @description Slide-in panel overlay from any edge of the viewport.
@@ -82,9 +82,7 @@ export interface DrawerProps extends Omit<HTMLDialogAttributes, 'children' | 'op
   unstyled?: boolean;
 
   /** Per-slot class overrides merged with variant styles. */
-  slotClasses?: Partial<
-    Record<'dialog' | 'backdrop' | 'panel' | 'header' | 'title' | 'body' | 'footer', string>
-  >;
+  slotClasses?: Partial<Record<DrawerSlots, string>>;
   /**
    * Apply a named preset registered via `<BlocksProvider presets={{ Drawer: {...} }}>`.
    * Prefer this over `class` overrides when the requested look falls outside the

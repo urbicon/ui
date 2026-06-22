@@ -1,9 +1,9 @@
 <script lang="ts">
   import { mintRegistry } from '$lib';
-  import { getBlocksConfig, mergeSlotClasses, resolvePresetSlotClasses } from '$lib/provider';
+  import { getBlocksConfig, resolveSlotClasses } from '$lib/provider';
   import type { RadioItemProps } from './index';
   import { getRadioGroupContext } from './radioGroup.context';
-  import { radioItemVariants } from './radioGroup.variants';
+  import { radioItemVariants, type RadioItemVariants } from './radioGroup.variants';
 
   let {
     value,
@@ -23,13 +23,6 @@
 
   const blocksConfig = getBlocksConfig();
   const unstyled = $derived(unstyledProp || blocksConfig?.unstyled || false);
-  const slotClasses = $derived(
-    mergeSlotClasses(
-      blocksConfig?.defaults?.RadioItem?.slotClasses,
-      resolvePresetSlotClasses(blocksConfig?.presets, 'RadioItem', preset),
-      slotClassesProp
-    )
-  );
 
   const ctx = getRadioGroupContext();
 
@@ -37,16 +30,23 @@
   const isDisabled = $derived(ctx.disabled || disabledProp);
   const dataState = $derived(isChecked ? 'checked' : 'unchecked');
 
-  const styles = $derived(
-    radioItemVariants({
-      size: ctx.size,
-      intent: ctx.intent,
-      variant: ctx.variant,
-      tier: ctx.tier,
-      checked: isChecked,
-      disabled: isDisabled || undefined,
-      error: ctx.error || undefined
-    })
+  // Variant props feed both the tv() style computation and the slot-class
+  // cascade — extracted into one derived so `resolveSlotClasses` can match
+  // conditional `overrides` against the item's active variants.
+  const variantProps: RadioItemVariants = $derived({
+    size: ctx.size,
+    intent: ctx.intent,
+    variant: ctx.variant,
+    tier: ctx.tier,
+    checked: isChecked,
+    disabled: isDisabled || undefined,
+    error: ctx.error || undefined
+  });
+
+  const styles = $derived(radioItemVariants(variantProps));
+
+  const slotClasses = $derived(
+    resolveSlotClasses(blocksConfig, 'RadioItem', preset, variantProps, slotClassesProp)
   );
 
   let controlElement = $state<HTMLElement>();

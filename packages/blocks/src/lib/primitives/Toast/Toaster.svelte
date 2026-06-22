@@ -10,7 +10,7 @@
   import SuccessCircleIconDefault from '$lib/icons/SuccessCircleIcon.svelte';
   import WarningTriangleIconDefault from '$lib/icons/WarningTriangleIcon.svelte';
   import DangerCircleIconDefault from '$lib/icons/DangerCircleIcon.svelte';
-  import { getBlocksConfig, mergeSlotClasses, resolvePresetSlotClasses } from '$lib/provider';
+  import { getBlocksConfig, resolveSlotClasses } from '$lib/provider';
   import type { ToastProps } from './index';
 
   const bt = useBlocksI18n();
@@ -38,12 +38,11 @@
 
   const blocksConfig = getBlocksConfig();
   const unstyled = $derived(unstyledProp || blocksConfig?.unstyled || false);
+  // Component-level slot-class cascade. Per-toast `intent` is NOT part of
+  // activeProps — it is applied per row in the `slot(key, intent)` helper via
+  // its own `toastVariants({ placement, intent })` call (see below).
   const slotClasses = $derived(
-    mergeSlotClasses(
-      blocksConfig?.defaults?.Toaster?.slotClasses,
-      resolvePresetSlotClasses(blocksConfig?.presets, 'Toaster', preset),
-      slotClassesProp
-    )
+    resolveSlotClasses(blocksConfig, 'Toaster', preset, { placement }, slotClassesProp)
   );
 
   $effect(() => {

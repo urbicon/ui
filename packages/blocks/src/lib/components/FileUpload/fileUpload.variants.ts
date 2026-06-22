@@ -1,4 +1,4 @@
-import { tv, type VariantProps } from '$lib/utils/variants';
+import { type SlotNames, tv, type VariantProps } from '$lib/utils/variants';
 
 export const fileUploadVariants = tv({
   slots: {
@@ -51,12 +51,6 @@ export const fileUploadVariants = tv({
     fileItemSize: ['text-text-tertiary'],
 
     fileItemProgress: ['w-full'],
-
-    fileItemActions: [
-      'flex flex-shrink-0 items-center gap-1',
-      'opacity-0 group-hover:opacity-100 group-focus-within:opacity-100',
-      'transition-opacity duration-[var(--blocks-duration-fast)]'
-    ],
 
     // tier: modify — small destructive sub-button.
     fileItemRemoveButton: [
@@ -192,3 +186,5 @@ export const fileUploadVariants = tv({
 });
 
 export type FileUploadVariants = VariantProps<typeof fileUploadVariants>;
+/** Slot names derived from the `tv()` config above — single source of truth for `slotClasses`. */
+export type FileUploadSlots = SlotNames<typeof fileUploadVariants>;

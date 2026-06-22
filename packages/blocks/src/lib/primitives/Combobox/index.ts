@@ -2,7 +2,7 @@ import type { Snippet } from 'svelte';
 import type { HTMLAttributes } from 'svelte/elements';
 import type { MintProp } from '$lib/mint';
 import type { SelectValue } from '../Select/index';
-import type { ComboboxVariants } from './combobox.variants';
+import type { ComboboxSlots, ComboboxVariants } from './combobox.variants';
 
 /** A single combobox option with label, value, and optional disabled state. */
 export interface ComboboxOption<T extends SelectValue = string> {
@@ -121,26 +121,10 @@ export interface ComboboxProps<T extends SelectValue = string>
   class?: string;
   /** Remove all default tv() classes — only user-provided classes apply. @default false */
   unstyled?: boolean;
-  /** Per-slot class overrides merged with tv() styles. */
-  slotClasses?: Partial<
-    Record<
-      | 'base'
-      | 'label'
-      | 'requiredMark'
-      | 'inputWrapper'
-      | 'input'
-      | 'message'
-      | 'hint'
-      | 'listbox'
-      | 'option'
-      | 'optionActive'
-      | 'optionSelected'
-      | 'noResults'
-      | 'clear'
-      | 'chevron',
-      string
-    >
-  >;
+  /** Per-slot class overrides merged with tv() styles. Slots: base | label | requiredMark |
+   *  inputWrapper | input | message | hint | listbox | option | optionActive | optionSelected |
+   *  noResults | clear | chevron */
+  slotClasses?: Partial<Record<ComboboxSlots, string>>;
   /**
    * Apply a named preset registered via `<BlocksProvider presets={{ Combobox: {...} }}>`.
    * Prefer this over `class` overrides when the requested look falls outside the

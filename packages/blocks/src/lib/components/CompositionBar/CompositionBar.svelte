@@ -1,9 +1,9 @@
 <script lang="ts">
   import { useBlocksI18n, mintRegistry } from '$lib';
   import { useI18n } from '@urbicon-ui/i18n';
-  import { getBlocksConfig, mergeSlotClasses, resolvePresetSlotClasses } from '$lib/provider';
+  import { getBlocksConfig, resolveSlotClasses } from '$lib/provider';
   import type { CompositionBarProps, CompositionBarIntent, CompositionItem } from './index';
-  import { compositionBarVariants } from './composition-bar.variants';
+  import { compositionBarVariants, type CompositionBarVariants } from './composition-bar.variants';
 
   const bt = useBlocksI18n();
   const i18n = useI18n();
@@ -36,12 +36,17 @@
 
   const blocksConfig = getBlocksConfig();
   const unstyled = $derived(unstyledProp || blocksConfig?.unstyled || false);
+
+  const variantProps: CompositionBarVariants = $derived({
+    orientation,
+    size,
+    legendPlacement
+  });
+
+  const styles = $derived(compositionBarVariants(variantProps));
+
   const slotClasses = $derived(
-    mergeSlotClasses(
-      blocksConfig?.defaults?.CompositionBar?.slotClasses,
-      resolvePresetSlotClasses(blocksConfig?.presets, 'CompositionBar', preset),
-      slotClassesProp
-    )
+    resolveSlotClasses(blocksConfig, 'CompositionBar', preset, variantProps, slotClassesProp)
   );
 
   let barRef = $state<HTMLDivElement>();
@@ -166,14 +171,6 @@
   function getRingClass(item: CompositionItem) {
     return intentRingClass[item.intent ?? intent];
   }
-
-  const styles = $derived(
-    compositionBarVariants({
-      orientation,
-      size,
-      legendPlacement
-    })
-  );
 
   $effect(() => {
     if (barRef && mint && mint !== 'none') {

@@ -1,7 +1,7 @@
 import type { Snippet } from 'svelte';
 import type { HTMLAttributes } from 'svelte/elements';
 import type { MintProp } from '$lib/mint';
-import type { BadgePlacement, BadgeVariants } from './badge.variants';
+import type { BadgePlacement, BadgeSlots, BadgeVariants } from './badge.variants';
 
 /**
  * Shared fields that apply to every Badge variant — `dot` and the
@@ -29,7 +29,7 @@ interface BadgeBaseProps
   /** Remove all default tv classes. */
   unstyled?: boolean;
   /** Per-slot class overrides merged with tv styles. */
-  slotClasses?: Partial<Record<'base' | 'content' | 'removeButton' | 'removeIcon', string>>;
+  slotClasses?: Partial<Record<BadgeSlots, string>>;
 
   /**
    * Apply a named preset registered via `<BlocksProvider presets={{ Badge: {...} }}>`.

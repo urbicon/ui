@@ -1,7 +1,7 @@
 <script lang="ts" generics="TItem extends MenuItemType = MenuItemType">
   import { useBlocksI18n } from '$lib';
-  import { getBlocksConfig, mergeSlotClasses, resolvePresetSlotClasses } from '$lib/provider';
-  import { Button, menuVariants } from '$lib/primitives';
+  import { getBlocksConfig, resolveSlotClasses } from '$lib/provider';
+  import { Button, menuVariants, type MenuVariants } from '$lib/primitives';
   import { resolveIcon } from '$lib/icons';
   import ChevronDownIconDefault from '$lib/icons/ChevronDownIcon.svelte';
   import { getTierContext } from '$lib/utils/tier-context';
@@ -52,13 +52,6 @@
 
   const blocksConfig = getBlocksConfig();
   const unstyled = $derived(unstyledProp || blocksConfig?.unstyled || false);
-  const slotClasses = $derived(
-    mergeSlotClasses(
-      blocksConfig?.defaults?.Menu?.slotClasses,
-      resolvePresetSlotClasses(blocksConfig?.presets, 'Menu', preset),
-      slotClassesProp
-    )
-  );
 
   const propsId = $props.id();
   const rootId = $derived(idProp ?? `menu-${propsId}`);
@@ -230,20 +223,27 @@
     return 'md';
   }
 
-  const styles = $derived(
-    menuVariants({
-      open,
-      itemSize: itemSizeForDepth(0),
-      syncWidth,
-      placement,
-      chevronAnimation,
-      usePortal,
-      // Drives the floating panel's corner radius via the `tier` axis on
-      // menuVariants — keeps the panel visually attached to its trigger
-      // (e.g. pill trigger → rounded-lg panel instead of near-flat
-      // rounded-contain).
-      tier: effectiveTier
-    })
+  // Variant props feed both the tv() style computation and the slot-class
+  // cascade — extracted into one derived so `resolveSlotClasses` can match
+  // conditional `overrides` against the menu's active variants.
+  const variantProps: MenuVariants = $derived({
+    open,
+    itemSize: itemSizeForDepth(0),
+    syncWidth,
+    placement,
+    chevronAnimation,
+    usePortal,
+    // Drives the floating panel's corner radius via the `tier` axis on
+    // menuVariants — keeps the panel visually attached to its trigger
+    // (e.g. pill trigger → rounded-lg panel instead of near-flat
+    // rounded-contain).
+    tier: effectiveTier
+  });
+
+  const styles = $derived(menuVariants(variantProps));
+
+  const slotClasses = $derived(
+    resolveSlotClasses(blocksConfig, 'Menu', preset, variantProps, slotClassesProp)
   );
 
   const ctx: MenuContext = {

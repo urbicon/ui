@@ -1,4 +1,4 @@
-import { tv, type VariantProps } from '$lib/utils/variants';
+import { type SlotNames, tv, type VariantProps } from '$lib/utils/variants';
 
 /**
  * Styling for the non-modal `GuidePanel` (D1). Mirrors the `Drawer` look
@@ -217,3 +217,12 @@ export type GuideArticleVariants = VariantProps<typeof guideArticleVariants>;
 export type GuideMarkerVariants = VariantProps<typeof guideMarkerVariants>;
 export type GuideMentionVariants = VariantProps<typeof guideMentionVariants>;
 export type GuideHintVariants = VariantProps<typeof guideHintVariants>;
+
+/** Slot names derived from each `tv()` config — single source of truth for `slotClasses`. */
+export type GuidePanelSlots = SlotNames<typeof guidePanelVariants>;
+export type GuideTourSlots = SlotNames<typeof guideTourVariants>;
+export type GuideBeaconSlots = SlotNames<typeof guideBeaconVariants>;
+export type GuideArticleSlots = SlotNames<typeof guideArticleVariants>;
+export type GuideMarkerSlots = SlotNames<typeof guideMarkerVariants>;
+export type GuideMentionSlots = SlotNames<typeof guideMentionVariants>;
+export type GuideHintSlots = SlotNames<typeof guideHintVariants>;

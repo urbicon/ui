@@ -1,8 +1,8 @@
 <script lang="ts">
-  import { getBlocksConfig, mergeSlotClasses, resolvePresetSlotClasses } from '$lib/provider';
+  import { getBlocksConfig, resolveSlotClasses } from '$lib/provider';
   import { useBlocksI18n } from '$lib';
   import type { ProgressProps } from './index';
-  import { progressVariants } from './progress.variants';
+  import { progressVariants, type ProgressVariants } from './progress.variants';
 
   const bt = useBlocksI18n();
 
@@ -30,13 +30,6 @@
 
   const blocksConfig = getBlocksConfig();
   const unstyled = $derived(unstyledProp || blocksConfig?.unstyled || false);
-  const slotClasses = $derived(
-    mergeSlotClasses(
-      blocksConfig?.defaults?.Progress?.slotClasses,
-      resolvePresetSlotClasses(blocksConfig?.presets, 'Progress', preset),
-      slotClassesProp
-    )
-  );
 
   const isIndeterminate = $derived(indeterminateProp || value === undefined);
   const clampedValue = $derived(value !== undefined ? Math.min(Math.max(value, min), max) : 0);
@@ -47,14 +40,21 @@
     formatValue ? formatValue(clampedValue, max) : defaultFormat(clampedValue, max)
   );
 
-  const styles = $derived(
-    progressVariants({
-      intent,
-      size,
-      indeterminate: isIndeterminate || undefined,
-      striped: striped || undefined,
-      animated: animated || undefined
-    })
+  // Variant props feed both the tv() style computation and the slot-class
+  // cascade — extracted into one derived so `resolveSlotClasses` can match
+  // conditional `overrides` against the progress bar's active variants.
+  const variantProps: ProgressVariants = $derived({
+    intent,
+    size,
+    indeterminate: isIndeterminate || undefined,
+    striped: striped || undefined,
+    animated: animated || undefined
+  });
+
+  const styles = $derived(progressVariants(variantProps));
+
+  const slotClasses = $derived(
+    resolveSlotClasses(blocksConfig, 'Progress', preset, variantProps, slotClassesProp)
   );
 
   const circularRadius = $derived((circularSize - strokeWidth) / 2);

@@ -7,9 +7,16 @@ import type {
   Placement
 } from '$lib/utils';
 import type {
+  GuideArticleSlots,
+  GuideBeaconSlots,
   GuideBeaconVariants,
+  GuideHintSlots,
+  GuideMarkerSlots,
   GuideMarkerVariants,
-  GuidePanelVariants
+  GuideMentionSlots,
+  GuidePanelSlots,
+  GuidePanelVariants,
+  GuideTourSlots
 } from './guide.variants';
 
 /**
@@ -97,20 +104,7 @@ export interface GuidePanelProps {
   /** Strip all default styles. @default false */
   unstyled?: boolean;
   /** Per-slot class overrides. */
-  slotClasses?: Partial<
-    Record<
-      | 'panel'
-      | 'header'
-      | 'backButton'
-      | 'title'
-      | 'closeButton'
-      | 'body'
-      | 'list'
-      | 'listItem'
-      | 'footer',
-      string
-    >
-  >;
+  slotClasses?: Partial<Record<GuidePanelSlots, string>>;
   /** Apply a named preset registered via `<BlocksProvider presets={{ GuidePanel: {...} }}>`. */
   preset?: string;
 }
@@ -144,7 +138,7 @@ export interface GuideArticleProps {
   /** Strip all default styles. @default false */
   unstyled?: boolean;
   /** Per-slot class overrides. */
-  slotClasses?: Partial<Record<'article', string>>;
+  slotClasses?: Partial<Record<GuideArticleSlots, string>>;
   /** Apply a named preset registered via `<BlocksProvider presets={{ GuideArticle: {...} }}>`. */
   preset?: string;
 }
@@ -196,7 +190,7 @@ export interface GuideMarkerProps {
   /** Strip all default styles. @default false */
   unstyled?: boolean;
   /** Per-slot class overrides. */
-  slotClasses?: Partial<Record<'marker' | 'icon', string>>;
+  slotClasses?: Partial<Record<GuideMarkerSlots, string>>;
   /** Apply a named preset registered via `<BlocksProvider presets={{ GuideMarker: {...} }}>`. */
   preset?: string;
 }
@@ -240,7 +234,7 @@ export interface GuideMentionProps {
   /** Strip all default styles. @default false */
   unstyled?: boolean;
   /** Per-slot class overrides. */
-  slotClasses?: Partial<Record<'mention', string>>;
+  slotClasses?: Partial<Record<GuideMentionSlots, string>>;
   /** Apply a named preset registered via `<BlocksProvider presets={{ GuideMention: {...} }}>`. */
   preset?: string;
 }
@@ -312,7 +306,7 @@ export interface GuideHintProps {
   /** Strip all default styles. @default false */
   unstyled?: boolean;
   /** Per-slot class overrides. */
-  slotClasses?: Partial<Record<'hint' | 'title' | 'body' | 'dismiss' | 'arrow', string>>;
+  slotClasses?: Partial<Record<GuideHintSlots, string>>;
   /** Apply a named preset registered via `<BlocksProvider presets={{ GuideHint: {...} }}>`. */
   preset?: string;
 }
@@ -372,28 +366,11 @@ export interface GuideProps {
   class?: string;
   /** Strip all default styles. @default false */
   unstyled?: boolean;
-  /** Per-slot class overrides. */
-  slotClasses?: Partial<
-    Record<
-      | 'container'
-      | 'scrim'
-      | 'bubble'
-      | 'arrow'
-      | 'title'
-      | 'body'
-      | 'progress'
-      | 'dots'
-      | 'dot'
-      | 'dotActive'
-      | 'stepText'
-      | 'footer'
-      | 'spacer'
-      | 'skip'
-      | 'prev'
-      | 'next',
-      string
-    >
-  >;
+  /**
+   * Per-slot class overrides. Beyond the tour's own `tv()` slots, `skip` / `prev` / `next`
+   * forward to the footer's nested `<Button>`s (which own their internal markup).
+   */
+  slotClasses?: Partial<Record<GuideTourSlots | 'skip' | 'prev' | 'next', string>>;
   /** Apply a named preset registered via `<BlocksProvider presets={{ Guide: {...} }}>`. */
   preset?: string;
 }
@@ -445,7 +422,7 @@ export interface GuideBeaconProps {
   /** Strip all default styles. @default false */
   unstyled?: boolean;
   /** Per-slot class overrides. */
-  slotClasses?: Partial<Record<'beacon' | 'ping' | 'dot', string>>;
+  slotClasses?: Partial<Record<GuideBeaconSlots, string>>;
   /** Apply a named preset registered via `<BlocksProvider presets={{ GuideBeacon: {...} }}>`. */
   preset?: string;
 }

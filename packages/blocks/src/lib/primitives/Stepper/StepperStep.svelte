@@ -1,6 +1,6 @@
 <script lang="ts">
-  import { getBlocksConfig, mergeSlotClasses, resolvePresetSlotClasses } from '$lib/provider';
-  import { stepperVariants } from './stepper.variants';
+  import { getBlocksConfig, resolveSlotClasses } from '$lib/provider';
+  import { stepperVariants, type StepperVariants } from './stepper.variants';
   import { getStepperContext } from './stepper.context';
   import { resolveIcon } from '$lib/icons';
   import CheckIconDefault from '$lib/icons/CheckIcon.svelte';
@@ -29,13 +29,6 @@
 
   const blocksConfig = getBlocksConfig();
   const unstyled = $derived(unstyledProp || blocksConfig?.unstyled || false);
-  const slotClasses = $derived(
-    mergeSlotClasses(
-      blocksConfig?.defaults?.StepperStep?.slotClasses,
-      resolvePresetSlotClasses(blocksConfig?.presets, 'StepperStep', preset),
-      slotClassesProp
-    )
-  );
 
   const ctx = getStepperContext();
   const stepIndex = ctx.registerStep();
@@ -60,6 +53,17 @@
   const isSeparatorComplete = $derived(stepIndex < ctx.activeStep);
   const isActive = $derived(stepIndex === ctx.activeStep);
 
+  const variantProps: StepperVariants = $derived({
+    orientation: ctx.orientation,
+    size: ctx.size,
+    variant: ctx.variant,
+    tier: ctx.tier,
+    stepState: derivedState,
+    clickable: isClickable || undefined,
+    stepDisabled: isDisabled || undefined,
+    separatorComplete: isSeparatorComplete || undefined
+  });
+
   const styles = $derived(
     unstyled
       ? {
@@ -73,16 +77,11 @@
           separator: () => '',
           content: () => ''
         }
-      : stepperVariants({
-          orientation: ctx.orientation,
-          size: ctx.size,
-          variant: ctx.variant,
-          tier: ctx.tier,
-          stepState: derivedState,
-          clickable: isClickable || undefined,
-          stepDisabled: isDisabled || undefined,
-          separatorComplete: isSeparatorComplete || undefined
-        })
+      : stepperVariants(variantProps)
+  );
+
+  const slotClasses = $derived(
+    resolveSlotClasses(blocksConfig, 'StepperStep', preset, variantProps, slotClassesProp)
   );
 
   function slot(key: keyof typeof styles, extra?: string) {

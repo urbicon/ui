@@ -1,6 +1,6 @@
 import type { Snippet } from 'svelte';
 import type { HTMLAttributes } from 'svelte/elements';
-import type { AlertVariants } from './alert.variants';
+import type { AlertSlots, AlertVariants } from './alert.variants';
 
 /**
  * Props interface for Alert component
@@ -53,13 +53,8 @@ export interface AlertProps
   class?: string;
   /** Remove default styles */
   unstyled?: boolean;
-  /** Per-slot class overrides */
-  slotClasses?: Partial<
-    Record<
-      'base' | 'icon' | 'content' | 'title' | 'description' | 'actions' | 'dismissButton',
-      string
-    >
-  >;
+  /** Per-slot class overrides. Slots: base | icon | content | title | description | actions | dismissButton */
+  slotClasses?: Partial<Record<AlertSlots, string>>;
   /**
    * Apply a named preset registered via `<BlocksProvider presets={{ Alert: {...} }}>`.
    * Prefer this over `class` overrides when the requested look falls outside the

@@ -1,6 +1,6 @@
 import type { HTMLTextareaAttributes } from 'svelte/elements';
 import type { MintProp } from '$lib/mint';
-import type { TextareaVariants } from './textarea.variants';
+import type { TextareaSlots, TextareaVariants } from './textarea.variants';
 
 /**
  * @description Multi-line text input with auto-resize, character counter, and validation states.
@@ -77,10 +77,12 @@ export interface TextareaProps
   /** Remove all default tv() classes. Only user-provided classes apply. */
   unstyled?: boolean;
 
-  /** Per-slot class overrides merged with tv() styles. */
-  slotClasses?: Partial<
-    Record<'wrapper' | 'base' | 'label' | 'footer' | 'message' | 'counter', string>
-  >;
+  /**
+   * Per-slot class overrides merged with tv() styles. Slots: wrapper (root —
+   * what `class` also targets) | base (the `<textarea>` element) | label |
+   * footer | message | counter.
+   */
+  slotClasses?: Partial<Record<TextareaSlots, string>>;
   /**
    * Apply a named preset registered via `<BlocksProvider presets={{ Textarea: {...} }}>`.
    * Prefer this over `class` overrides when the requested look falls outside the

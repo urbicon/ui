@@ -1,7 +1,7 @@
 import type { Snippet } from 'svelte';
 import type { HTMLAttributes } from 'svelte/elements';
 import type { MintProp } from '$lib/mint';
-import type { FileUploadVariants } from './fileUpload.variants';
+import type { FileUploadSlots, FileUploadVariants } from './fileUpload.variants';
 
 // ── Error Codes ──────────────────────────────────────────────────────────────
 
@@ -71,23 +71,8 @@ export interface FileItemContext {
 
 // ── Slot Names ───────────────────────────────────────────────────────────────
 
-export type FileUploadSlotName =
-  | 'root'
-  | 'dropzone'
-  | 'dropzoneIcon'
-  | 'dropzoneTitle'
-  | 'dropzoneDescription'
-  | 'fileList'
-  | 'fileItem'
-  | 'fileItemPreview'
-  | 'fileItemInfo'
-  | 'fileItemName'
-  | 'fileItemSize'
-  | 'fileItemProgress'
-  | 'fileItemActions'
-  | 'fileItemError'
-  | 'fileItemRemoveButton'
-  | 'fileItemStatusIcon';
+/** Slot names for `slotClasses` — derived from the `tv()` config (single source of truth). */
+export type FileUploadSlotName = FileUploadSlots;
 
 // ── Props ────────────────────────────────────────────────────────────────────
 
@@ -208,7 +193,7 @@ export interface FileUploadProps
   /** Strip all default styles. */
   unstyled?: boolean;
   /** Per-slot class overrides. */
-  slotClasses?: Partial<Record<FileUploadSlotName, string>>;
+  slotClasses?: Partial<Record<FileUploadSlots, string>>;
   /**
    * Apply a named preset registered via `<BlocksProvider presets={{ FileUpload: {...} }}>`.
    * Prefer this over `class` overrides when the requested look falls outside the

@@ -1,7 +1,7 @@
 <script lang="ts">
   import { useBlocksI18n } from '$lib';
   import { useI18n } from '@urbicon-ui/i18n';
-  import { getBlocksConfig, mergeSlotClasses, resolvePresetSlotClasses } from '$lib/provider';
+  import { getBlocksConfig, resolveSlotClasses } from '$lib/provider';
   import {
     computeSankeyLayout,
     sankeyLinkPath,
@@ -14,7 +14,7 @@
     SankeyLaidOutLinkWithMeta,
     SankeyLaidOutNodeWithMeta
   } from './index';
-  import { sankeyVariants } from './sankey.variants';
+  import { sankeyVariants, type SankeyVariants } from './sankey.variants';
 
   const bt = useBlocksI18n();
   const i18n = useI18n();
@@ -50,12 +50,13 @@
 
   const blocksConfig = getBlocksConfig();
   const unstyled = $derived(unstyledProp || blocksConfig?.unstyled || false);
+
+  const variantProps: SankeyVariants = $derived({ intent });
+
+  const styles = $derived(sankeyVariants(variantProps));
+
   const slotClasses = $derived(
-    mergeSlotClasses(
-      blocksConfig?.defaults?.Sankey?.slotClasses,
-      resolvePresetSlotClasses(blocksConfig?.presets, 'Sankey', preset),
-      slotClassesProp
-    )
+    resolveSlotClasses(blocksConfig, 'Sankey', preset, variantProps, slotClassesProp)
   );
 
   let wrapperRef = $state<HTMLDivElement>();
@@ -194,8 +195,6 @@
     hovered = null;
     tooltipPos = { ...tooltipPos, visible: false };
   }
-
-  const styles = $derived(sankeyVariants({ intent }));
 
   // Tooltip data based on the hovered state
   const tooltipDatum = $derived.by<

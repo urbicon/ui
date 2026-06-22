@@ -1,6 +1,6 @@
 import type { Snippet } from 'svelte';
 import type { HTMLAttributes } from 'svelte/elements';
-import type { BreadcrumbVariants } from './breadcrumb.variants';
+import type { BreadcrumbSlots, BreadcrumbVariants } from './breadcrumb.variants';
 
 /** Single breadcrumb item definition */
 export interface BreadcrumbItem {
@@ -60,9 +60,7 @@ export interface BreadcrumbProps
   /** Remove default styles */
   unstyled?: boolean;
   /** Per-slot class overrides */
-  slotClasses?: Partial<
-    Record<'nav' | 'list' | 'item' | 'link' | 'currentPage' | 'separator', string>
-  >;
+  slotClasses?: Partial<Record<BreadcrumbSlots, string>>;
   /**
    * Apply a named preset registered via `<BlocksProvider presets={{ Breadcrumb: {...} }}>`.
    * Prefer this over `class` overrides when the requested look falls outside the

@@ -4,8 +4,8 @@
   import { quintOut } from 'svelte/easing';
   import { fade } from 'svelte/transition';
   import type { SidebarProps } from './index';
-  import { sidebarVariants } from './sidebar.variants';
-  import { getBlocksConfig, mergeSlotClasses, resolvePresetSlotClasses } from '$lib/provider';
+  import { sidebarVariants, type SidebarVariants } from './sidebar.variants';
+  import { getBlocksConfig, resolveSlotClasses } from '$lib/provider';
   import { lockBodyScroll, unlockBodyScroll } from '$lib/utils/overlay';
   import { overlayStack } from '$lib/utils';
 
@@ -29,15 +29,12 @@
 
   const blocksConfig = getBlocksConfig();
   const unstyled = $derived(unstyledProp || blocksConfig?.unstyled || false);
-  const slotClasses = $derived(
-    mergeSlotClasses(
-      blocksConfig?.defaults?.Sidebar?.slotClasses,
-      resolvePresetSlotClasses(blocksConfig?.presets, 'Sidebar', preset),
-      slotClassesProp
-    )
-  );
 
-  const styles = $derived(sidebarVariants({ side, mode }));
+  const variantProps: SidebarVariants = $derived({ side, mode });
+  const styles = $derived(sidebarVariants(variantProps));
+  const slotClasses = $derived(
+    resolveSlotClasses(blocksConfig, 'Sidebar', preset, variantProps, slotClassesProp)
+  );
 
   const panelTransform = $derived(
     open ? 'translateX(0)' : side === 'left' ? 'translateX(-100%)' : 'translateX(100%)'

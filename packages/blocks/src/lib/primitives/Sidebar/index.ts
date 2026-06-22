@@ -1,6 +1,6 @@
 import type { Snippet } from 'svelte';
 import type { HTMLAttributes } from 'svelte/elements';
-import type { SidebarVariants } from './sidebar.variants';
+import type { SidebarSlots, SidebarVariants } from './sidebar.variants';
 
 /**
  * @description Sidebar primitive — fixed-position panel that is permanent on
@@ -101,7 +101,7 @@ export interface SidebarProps extends Omit<HTMLAttributes<HTMLElement>, 'childre
   unstyled?: boolean;
 
   /** Per-slot class overrides merged with variant styles. */
-  slotClasses?: Partial<Record<'backdrop' | 'panel' | 'header' | 'content' | 'footer', string>>;
+  slotClasses?: Partial<Record<SidebarSlots, string>>;
   /**
    * Apply a named preset registered via `<BlocksProvider presets={{ Sidebar: {...} }}>`.
    * Prefer this over `class` overrides when the requested look falls outside the

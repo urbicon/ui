@@ -1,6 +1,6 @@
 <script lang="ts">
-  import { buttonGroupVariants } from '$lib/primitives';
-  import { getBlocksConfig, mergeSlotClasses, resolvePresetSlotClasses } from '$lib/provider';
+  import { buttonGroupVariants, type ButtonGroupVariants } from '$lib/primitives';
+  import { getBlocksConfig, resolveSlotClasses } from '$lib/provider';
   import { getTierContext, setTierContext } from '$lib/utils/tier-context';
   import type { ButtonGroupContext, ButtonGroupProps } from './index';
   import { setButtonGroupContext } from './buttonGroup.context';
@@ -40,12 +40,17 @@
 
   const blocksConfig = getBlocksConfig();
   const unstyled = $derived(unstyledProp || blocksConfig?.unstyled || false);
+
+  const variantProps: ButtonGroupVariants = $derived({
+    orientation,
+    connected,
+    tier: effectiveTier,
+    disabled
+  });
+  const styles = $derived(buttonGroupVariants(variantProps));
+
   const slotClasses = $derived(
-    mergeSlotClasses(
-      blocksConfig?.defaults?.ButtonGroup?.slotClasses,
-      resolvePresetSlotClasses(blocksConfig?.presets, 'ButtonGroup', preset),
-      slotClassesProp
-    )
+    resolveSlotClasses(blocksConfig, 'ButtonGroup', preset, variantProps, slotClassesProp)
   );
 
   let selectedValues = $state<Set<string>>(new Set());
@@ -59,12 +64,6 @@
       selectedValues = new Set();
     }
   });
-
-  const styles = $derived(
-    unstyled
-      ? { base: ({ class: c }: { class?: string }) => c || '' }
-      : buttonGroupVariants({ orientation, connected, tier: effectiveTier, disabled })
-  );
 
   function registerButton(buttonValue: string | undefined) {
     return {
@@ -138,7 +137,9 @@
 
 <div
   role={ariaRole}
-  class={styles.base({ class: [slotClasses?.base, className].filter(Boolean).join(' ') })}
+  class={unstyled
+    ? [slotClasses?.base, className].filter(Boolean).join(' ')
+    : styles.base({ class: [slotClasses?.base, className] })}
   aria-label={ariaLabel}
   aria-labelledby={ariaLabelledBy}
   aria-disabled={disabled}

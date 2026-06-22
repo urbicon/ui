@@ -2,7 +2,12 @@ import type { Snippet } from 'svelte';
 import type { HTMLAttributes, HTMLInputAttributes } from 'svelte/elements';
 import type { MintProp } from '$lib/mint';
 import type { InteractiveTier } from '$lib/utils';
-import type { RadioItemVariants } from './radioGroup.variants';
+import type {
+  RadioGroupSlots,
+  RadioGroupVariants,
+  RadioItemSlots,
+  RadioItemVariants
+} from './radioGroup.variants';
 
 /**
  * @description Accessible radio group for single-option selection with semantic intents and form integration.
@@ -78,7 +83,7 @@ export interface RadioGroupProps
   unstyled?: boolean;
 
   /** Per-slot class overrides merged with tv() styles. */
-  slotClasses?: Partial<Record<'root' | 'group' | 'label' | 'message', string>>;
+  slotClasses?: Partial<Record<RadioGroupSlots, string>>;
 
   /**
    * Apply a named preset registered via `<BlocksProvider presets={{ RadioGroup: {...} }}>`.
@@ -140,7 +145,7 @@ export interface RadioItemProps
   unstyled?: boolean;
 
   /** Per-slot class overrides for this item. */
-  slotClasses?: Partial<Record<'item' | 'indicator' | 'dot' | 'label' | 'description', string>>;
+  slotClasses?: Partial<Record<RadioItemSlots, string>>;
 
   /**
    * Apply a named preset registered via `<BlocksProvider presets={{ RadioItem: {...} }}>`.

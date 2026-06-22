@@ -1,5 +1,5 @@
 import type { HTMLAttributes } from 'svelte/elements';
-import type { ToastPlacement } from './toast.variants';
+import type { ToasterSlots, ToastPlacement } from './toast.variants';
 
 /**
  * Canonical intents accepted by the toaster. Use as a runtime list when
@@ -95,19 +95,7 @@ export interface ToastProps extends Omit<HTMLAttributes<HTMLDivElement>, 'childr
   /** Strip all default tv classes. Use with `slotClasses` for a fully custom look. */
   unstyled?: boolean;
   /** Per-slot class overrides merged with (or replacing, when `unstyled`) the default styles. */
-  slotClasses?: Partial<
-    Record<
-      | 'container'
-      | 'toast'
-      | 'icon'
-      | 'content'
-      | 'title'
-      | 'description'
-      | 'dismissButton'
-      | 'progress',
-      string
-    >
-  >;
+  slotClasses?: Partial<Record<ToasterSlots, string>>;
   /**
    * Apply a named preset registered via `<BlocksProvider presets={{ Toaster: {...} }}>`.
    * Prefer this over `class` overrides when the requested look falls outside the

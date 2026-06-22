@@ -3,6 +3,7 @@ import type { HTMLAttributes } from 'svelte/elements';
 import type { MintProp } from '$lib/mint';
 import type { ComponentIntent, ComponentSize, ComponentVariant, InteractiveTier } from '$lib/utils';
 import type { ButtonVariants } from '../Button/button.variants';
+import type { ButtonGroupSlots } from './buttongroup.variants';
 
 export type ButtonGroupSelection = 'none' | 'single' | 'multiple';
 export type ButtonGroupOrientation = 'horizontal' | 'vertical';
@@ -76,8 +77,8 @@ export interface ButtonGroupProps extends Omit<HTMLAttributes<HTMLDivElement>, '
   class?: string;
   /** Remove all default tv classes. */
   unstyled?: boolean;
-  /** Per-slot class overrides. */
-  slotClasses?: Partial<Record<'base', string>>;
+  /** Per-slot class overrides. Slots: base */
+  slotClasses?: Partial<Record<ButtonGroupSlots, string>>;
 
   /**
    * Apply a named preset registered via `<BlocksProvider presets={{ ButtonGroup: {...} }}>`.

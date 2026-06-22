@@ -1,6 +1,6 @@
 <script lang="ts">
   import { untrack } from 'svelte';
-  import { getBlocksConfig, mergeSlotClasses, resolvePresetSlotClasses } from '$lib/provider';
+  import { getBlocksConfig, resolveSlotClasses } from '$lib/provider';
   import {
     autoUpdate,
     computePosition,
@@ -51,11 +51,7 @@
   const blocksConfig = getBlocksConfig();
   const unstyled = $derived(unstyledProp || blocksConfig?.unstyled || false);
   const slotClasses = $derived(
-    mergeSlotClasses(
-      blocksConfig?.defaults?.Popover?.slotClasses,
-      resolvePresetSlotClasses(blocksConfig?.presets, 'Popover', preset),
-      slotClassesProp
-    )
+    resolveSlotClasses(blocksConfig, 'Popover', preset, { size }, slotClassesProp)
   );
 
   let internalTriggerElement = $state<HTMLElement | null>(null);
