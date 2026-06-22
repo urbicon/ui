@@ -4,6 +4,11 @@ All notable changes to this project will be documented in this file.
 This changelog is automatically generated from [Conventional Commits](https://www.conventionalcommits.org).
 
 
+## [6.1.7] - 2026-06-22
+
+### CI/CD
+- Release-script
+
 ## [6.1.6] - 2026-06-22
 
 ### Bug Fixes
