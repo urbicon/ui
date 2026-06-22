@@ -10,8 +10,9 @@
     { id: 'spacing', title: 'Spacing', order: 3 },
     { id: 'typography', title: 'Typography', order: 4 },
     { id: 'radius', title: 'Border Radius', order: 5 },
-    { id: 'custom-theming', title: 'Custom Theming', order: 6 },
-    { id: 'dark-mode', title: 'Dark Mode', order: 7 }
+    { id: 'interaction', title: 'Motion & Depth', order: 6 },
+    { id: 'custom-theming', title: 'Custom Theming', order: 7 },
+    { id: 'dark-mode', title: 'Dark Mode', order: 8 }
   ];
 
   const colorTokenExample = `@theme {
@@ -34,15 +35,15 @@
 --color-interactive-hover: var(--color-neutral-100);
 --color-border-focus: var(--color-primary-500);`;
 
-  const componentTokenExample = `/* Interaction Layer – motion & focus */
+  const componentTokenExample = `/* Interaction Layer – motion & depth */
 --blocks-duration-fast: 150ms;
 --blocks-duration-normal: 250ms;
---blocks-ease-confident: cubic-bezier(0.4, 0, 0.2, 1);
+--blocks-ease-gentle: cubic-bezier(0.25, 0.1, 0.25, 1);
 
---blocks-shadow-sm: 0 1px 2px var(--color-shadow-xs);
---blocks-shadow-md: 0 4px 6px var(--color-shadow-sm);`;
+--blocks-shadow-sm: var(--color-shadow-sm);
+--blocks-shadow-md: var(--color-shadow-md);`;
 
-  const customThemeExample = `@import '@urbicon-ui/blocks';
+  const customThemeExample = `@import '@urbicon-ui/blocks/style/index.css';
 
 @theme {
   /* Override primary color */
@@ -60,26 +61,33 @@
   border-radius: var(--radius-lg);
 }`;
 
-  const spacingTokens = [
-    { name: '--blocks-space-0', value: '0', pixels: '0px' },
-    { name: '--blocks-space-1', value: '0.25rem', pixels: '4px' },
-    { name: '--blocks-space-2', value: '0.5rem', pixels: '8px' },
-    { name: '--blocks-space-3', value: '0.75rem', pixels: '12px' },
-    { name: '--blocks-space-4', value: '1rem', pixels: '16px' },
-    { name: '--blocks-space-6', value: '1.5rem', pixels: '24px' },
-    { name: '--blocks-space-8', value: '2rem', pixels: '32px' },
-    { name: '--blocks-space-12', value: '3rem', pixels: '48px' }
+  // Spacing is NOT a custom token layer — Urbicon UI uses Tailwind's built-in
+  // spacing scale directly (utilities like p-4, gap-2, m-6). Each step is
+  // 0.25rem × n, driven by Tailwind's own `--spacing` variable.
+  const spacingScale = [
+    { utility: 'p-0 / gap-0', value: '0', pixels: '0px' },
+    { utility: 'p-1 / gap-1', value: '0.25rem', pixels: '4px' },
+    { utility: 'p-2 / gap-2', value: '0.5rem', pixels: '8px' },
+    { utility: 'p-3 / gap-3', value: '0.75rem', pixels: '12px' },
+    { utility: 'p-4 / gap-4', value: '1rem', pixels: '16px' },
+    { utility: 'p-6 / gap-6', value: '1.5rem', pixels: '24px' },
+    { utility: 'p-8 / gap-8', value: '2rem', pixels: '32px' },
+    { utility: 'p-12 / gap-12', value: '3rem', pixels: '48px' }
   ];
 
-  const typographyTokens = [
-    { name: '--blocks-font-size-xs', value: '0.75rem', pixels: '12px' },
-    { name: '--blocks-font-size-sm', value: '0.875rem', pixels: '14px' },
-    { name: '--blocks-font-size-base', value: '1rem', pixels: '16px' },
-    { name: '--blocks-font-size-lg', value: '1.125rem', pixels: '18px' },
-    { name: '--blocks-font-size-xl', value: '1.25rem', pixels: '20px' },
-    { name: '--blocks-font-size-2xl', value: '1.5rem', pixels: '24px' }
+  // Type sizes are likewise Tailwind's built-in `text-*` utilities — there are
+  // no custom font-size CSS variables to import or override.
+  const typographyScale = [
+    { utility: 'text-xs', value: '0.75rem', pixels: '12px' },
+    { utility: 'text-sm', value: '0.875rem', pixels: '14px' },
+    { utility: 'text-base', value: '1rem', pixels: '16px' },
+    { utility: 'text-lg', value: '1.125rem', pixels: '18px' },
+    { utility: 'text-xl', value: '1.25rem', pixels: '20px' },
+    { utility: 'text-2xl', value: '1.5rem', pixels: '24px' }
   ];
 
+  // Physical radius scale — real CSS variables defined in
+  // blocks/src/lib/style/foundation.css, each with a matching Tailwind utility.
   const radiusTokens = [
     { name: '--radius-xs', value: '0.125rem', utility: 'rounded-xs' },
     { name: '--radius-sm', value: '0.25rem', utility: 'rounded-sm' },
@@ -89,6 +97,44 @@
     { name: '--radius-2xl', value: '1rem', utility: 'rounded-2xl' },
     { name: '--radius-3xl', value: '1.5rem', utility: 'rounded-3xl' },
     { name: '--radius-4xl', value: '2rem', utility: 'rounded-4xl' }
+  ];
+
+  // Semantic 3-tier radius vocabulary — components consume these, not raw radii.
+  // Re-tint per brand to reshape the whole library at once.
+  const semanticRadiusTokens = [
+    {
+      name: '--radius-commit',
+      value: '9999px',
+      usage: 'Pill/round — actions, identity, status (Button, Badge, Toggle)'
+    },
+    {
+      name: '--radius-modify',
+      value: 'var(--radius-sm) · 4px',
+      usage: 'Editable surfaces, navigation (Input, Select, Tab, Menu)'
+    },
+    {
+      name: '--radius-contain',
+      value: 'var(--radius-xs) · 2px',
+      usage: 'Containers, panels (Card, Alert, Dialog, Tooltip)'
+    }
+  ];
+
+  // Interaction layer — real CSS variables in blocks/src/lib/style/interaction.css.
+  const durationTokens = [
+    { name: '--blocks-duration-instant', value: '75ms' },
+    { name: '--blocks-duration-fast', value: '150ms' },
+    { name: '--blocks-duration-normal', value: '250ms' },
+    { name: '--blocks-duration-slow', value: '350ms' },
+    { name: '--blocks-duration-slower', value: '500ms' },
+    { name: '--blocks-duration-slowest', value: '750ms' }
+  ];
+
+  const shadowTokens = [
+    { name: '--blocks-shadow-xs', source: 'var(--color-shadow-xs)' },
+    { name: '--blocks-shadow-sm', source: 'var(--color-shadow-sm)' },
+    { name: '--blocks-shadow-base', source: 'var(--color-shadow-base)' },
+    { name: '--blocks-shadow-md', source: 'var(--color-shadow-md)' },
+    { name: '--blocks-shadow-lg', source: 'var(--color-shadow-lg)' }
   ];
 </script>
 
@@ -202,27 +248,45 @@
   <section class="mb-16">
     <h2 class="text-text-primary mb-6 text-2xl font-bold" id="spacing">Spacing Scale</h2>
 
+    <p class="text-text-secondary mb-6">
+      Urbicon UI does not ship a custom spacing token layer — it uses
+      <a
+        href="https://tailwindcss.com/docs/padding"
+        class="text-primary hover:underline"
+        target="_blank"
+        rel="noreferrer">Tailwind's built-in spacing scale</a
+      >
+      directly. Apply spacing with the standard utilities (<code
+        class="bg-surface-subtle rounded-modify px-1.5 py-0.5 text-sm">p-4</code
+      >,
+      <code class="bg-surface-subtle rounded-modify px-1.5 py-0.5 text-sm">gap-2</code>,
+      <code class="bg-surface-subtle rounded-modify px-1.5 py-0.5 text-sm">m-6</code>). Each step is
+      <code class="bg-surface-subtle rounded-modify px-1.5 py-0.5 text-sm">0.25rem × n</code>,
+      driven by Tailwind's own
+      <code class="bg-surface-subtle rounded-modify px-1.5 py-0.5 text-sm">--spacing</code> variable.
+    </p>
+
     <div class="border-border-subtle bg-surface-base overflow-hidden rounded-xl border">
       <div class="overflow-x-auto">
         <table class="w-full text-sm">
           <thead class="border-border-subtle bg-surface-subtle border-b">
             <tr>
-              <th class="text-text-primary px-4 py-3 text-left font-semibold">Token</th>
+              <th class="text-text-primary px-4 py-3 text-left font-semibold">Utility</th>
               <th class="text-text-primary px-4 py-3 text-left font-semibold">Value</th>
               <th class="text-text-primary px-4 py-3 text-left font-semibold">Pixels</th>
               <th class="text-text-primary px-4 py-3 text-left font-semibold">Visual</th>
             </tr>
           </thead>
           <tbody class="divide-border-subtle divide-y">
-            {#each spacingTokens as token (token.name)}
+            {#each spacingScale as step (step.utility)}
               <tr>
-                <td class="text-primary px-4 py-3 font-mono">{token.name}</td>
-                <td class="text-text-secondary px-4 py-3 font-mono">{token.value}</td>
-                <td class="text-text-tertiary px-4 py-3">{token.pixels}</td>
+                <td class="text-primary px-4 py-3 font-mono">{step.utility}</td>
+                <td class="text-text-secondary px-4 py-3 font-mono">{step.value}</td>
+                <td class="text-text-tertiary px-4 py-3">{step.pixels}</td>
                 <td class="px-4 py-3">
                   <div
                     class="bg-primary-subtle rounded-modify h-4"
-                    style="width: {token.value}"
+                    style="width: {step.value}"
                   ></div>
                 </td>
               </tr>
@@ -237,25 +301,31 @@
   <section class="mb-16">
     <h2 class="text-text-primary mb-6 text-2xl font-bold" id="typography">Typography Scale</h2>
 
+    <p class="text-text-secondary mb-6">
+      Type sizes are Tailwind's built-in
+      <code class="bg-surface-subtle rounded-modify px-1.5 py-0.5 text-sm">text-*</code> utilities — there
+      are no custom font-size CSS variables to import or override.
+    </p>
+
     <div class="border-border-subtle bg-surface-base overflow-hidden rounded-xl border">
       <div class="overflow-x-auto">
         <table class="w-full text-sm">
           <thead class="border-border-subtle bg-surface-subtle border-b">
             <tr>
-              <th class="text-text-primary px-4 py-3 text-left font-semibold">Token</th>
+              <th class="text-text-primary px-4 py-3 text-left font-semibold">Utility</th>
               <th class="text-text-primary px-4 py-3 text-left font-semibold">Value</th>
               <th class="text-text-primary px-4 py-3 text-left font-semibold">Pixels</th>
               <th class="text-text-primary px-4 py-3 text-left font-semibold">Example</th>
             </tr>
           </thead>
           <tbody class="divide-border-subtle divide-y">
-            {#each typographyTokens as token (token.name)}
+            {#each typographyScale as step (step.utility)}
               <tr>
-                <td class="text-primary px-4 py-3 font-mono">{token.name}</td>
-                <td class="text-text-secondary px-4 py-3 font-mono">{token.value}</td>
-                <td class="text-text-tertiary px-4 py-3">{token.pixels}</td>
+                <td class="text-primary px-4 py-3 font-mono">{step.utility}</td>
+                <td class="text-text-secondary px-4 py-3 font-mono">{step.value}</td>
+                <td class="text-text-tertiary px-4 py-3">{step.pixels}</td>
                 <td class="text-text-primary px-4 py-3">
-                  <span style="font-size: {token.value}">The quick brown fox</span>
+                  <span style="font-size: {step.value}">The quick brown fox</span>
                 </td>
               </tr>
             {/each}
@@ -269,7 +339,12 @@
   <section class="mb-16">
     <h2 class="text-text-primary mb-6 text-2xl font-bold" id="radius">Border Radius</h2>
 
-    <div class="grid grid-cols-2 gap-4 md:grid-cols-4 lg:grid-cols-8">
+    <h3 class="text-text-primary mb-4 text-lg font-semibold">Physical Scale</h3>
+    <p class="text-text-secondary mb-6">
+      Real <code class="bg-surface-subtle rounded-modify px-1.5 py-0.5 text-sm">--radius-*</code>
+      CSS variables, each with a matching Tailwind utility.
+    </p>
+    <div class="mb-10 grid grid-cols-2 gap-4 md:grid-cols-4 lg:grid-cols-8">
       {#each radiusTokens as token (token.name)}
         <div class="text-center">
           <div class="bg-primary mx-auto mb-2 h-16 w-16" style="border-radius: {token.value}"></div>
@@ -277,6 +352,100 @@
           <div class="text-text-tertiary text-xs">{token.value}</div>
         </div>
       {/each}
+    </div>
+
+    <h3 class="text-text-primary mb-4 text-lg font-semibold">Semantic Tiers</h3>
+    <p class="text-text-secondary mb-6">
+      Components consume a 3-tier semantic vocabulary, not raw radii. Re-tint these three variables
+      to reshape the whole library at once — see the
+      <a href={resolve('/customization/tier-system')} class="text-primary hover:underline"
+        >Tier System</a
+      > for the full cascade.
+    </p>
+    <div class="border-border-subtle bg-surface-base overflow-hidden rounded-xl border">
+      <div class="overflow-x-auto">
+        <table class="w-full text-sm">
+          <thead class="border-border-subtle bg-surface-subtle border-b">
+            <tr>
+              <th class="text-text-primary px-4 py-3 text-left font-semibold">Token</th>
+              <th class="text-text-primary px-4 py-3 text-left font-semibold">Value</th>
+              <th class="text-text-primary px-4 py-3 text-left font-semibold">Used by</th>
+            </tr>
+          </thead>
+          <tbody class="divide-border-subtle divide-y">
+            {#each semanticRadiusTokens as token (token.name)}
+              <tr>
+                <td class="text-primary px-4 py-3 font-mono whitespace-nowrap">{token.name}</td>
+                <td class="text-text-secondary px-4 py-3 font-mono whitespace-nowrap"
+                  >{token.value}</td
+                >
+                <td class="text-text-tertiary px-4 py-3">{token.usage}</td>
+              </tr>
+            {/each}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </section>
+
+  <!-- Motion & Depth -->
+  <section class="mb-16">
+    <h2 class="text-text-primary mb-6 text-2xl font-bold" id="interaction">Motion &amp; Depth</h2>
+    <p class="text-text-secondary mb-6">
+      The interaction layer ships real
+      <code class="bg-surface-subtle rounded-modify px-1.5 py-0.5 text-sm">--blocks-duration-*</code
+      >
+      and
+      <code class="bg-surface-subtle rounded-modify px-1.5 py-0.5 text-sm">--blocks-shadow-*</code>
+      variables (plus easing curves like
+      <code class="bg-surface-subtle rounded-modify px-1.5 py-0.5 text-sm"
+        >--blocks-ease-gentle</code
+      >). Durations collapse to ~1ms under
+      <code class="bg-surface-subtle rounded-modify px-1.5 py-0.5 text-sm"
+        >prefers-reduced-motion</code
+      >; shadows drop to
+      <code class="bg-surface-subtle rounded-modify px-1.5 py-0.5 text-sm">none</code> in high-contrast
+      mode.
+    </p>
+
+    <div class="grid grid-cols-1 gap-6 lg:grid-cols-2">
+      <div class="border-border-subtle bg-surface-base overflow-hidden rounded-xl border">
+        <table class="w-full text-sm">
+          <thead class="border-border-subtle bg-surface-subtle border-b">
+            <tr>
+              <th class="text-text-primary px-4 py-3 text-left font-semibold">Duration token</th>
+              <th class="text-text-primary px-4 py-3 text-left font-semibold">Value</th>
+            </tr>
+          </thead>
+          <tbody class="divide-border-subtle divide-y">
+            {#each durationTokens as token (token.name)}
+              <tr>
+                <td class="text-primary px-4 py-3 font-mono text-xs">{token.name}</td>
+                <td class="text-text-secondary px-4 py-3 font-mono">{token.value}</td>
+              </tr>
+            {/each}
+          </tbody>
+        </table>
+      </div>
+
+      <div class="border-border-subtle bg-surface-base overflow-hidden rounded-xl border">
+        <table class="w-full text-sm">
+          <thead class="border-border-subtle bg-surface-subtle border-b">
+            <tr>
+              <th class="text-text-primary px-4 py-3 text-left font-semibold">Shadow token</th>
+              <th class="text-text-primary px-4 py-3 text-left font-semibold">Source</th>
+            </tr>
+          </thead>
+          <tbody class="divide-border-subtle divide-y">
+            {#each shadowTokens as token (token.name)}
+              <tr>
+                <td class="text-primary px-4 py-3 font-mono text-xs">{token.name}</td>
+                <td class="text-text-tertiary px-4 py-3 font-mono text-xs">{token.source}</td>
+              </tr>
+            {/each}
+          </tbody>
+        </table>
+      </div>
     </div>
   </section>
 

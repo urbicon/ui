@@ -164,6 +164,8 @@ export default {
     blocksProvider: 'BlocksProvider',
     themeBuilder: 'Theme-Baukasten',
     designTokens: 'Design-Tokens',
+    tierSystem: 'Tier-System',
+    editorialTheme: 'Editorial-Theme',
     figmaTokens: 'Figma-Tokens',
     recipes: 'Rezepte',
     loginForm: 'Anmeldeformular',

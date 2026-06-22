@@ -91,8 +91,8 @@
         <code class="text-text-primary">.docs-editorial</code>; they live on the library defaults
         and customise via the regular
         <a href={resolve('/customization')} class="text-primary hover:underline"
-          >three-level customization path</a
-        > (CSS tokens / BlocksProvider / unstyled).
+          >customization ladder</a
+        > (class / slotClasses / preset / defaults / overrides / unstyled).
       </p>
     </div>
   </section>

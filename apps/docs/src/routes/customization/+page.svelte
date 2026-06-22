@@ -5,11 +5,72 @@
   import { CodeExample, DocsLayout as DocsPageLayout } from '@urbicon-ui/docs';
 
   const navigation = [
-    { id: 'themes', title: 'CSS Token Themes', order: 1 },
-    { id: 'defaults', title: 'Global Defaults', order: 2 },
-    { id: 'unstyled', title: 'Unstyled Mode', order: 3 },
-    { id: 'deep-dives', title: 'Deep Dives', order: 4 }
+    { id: 'ladder', title: 'Which tool do I use?', order: 1 },
+    { id: 'class-trap', title: 'The class Root-Slot Trap', order: 2 },
+    { id: 'themes', title: 'CSS Token Themes', order: 3 },
+    { id: 'defaults', title: 'Global Defaults', order: 4 },
+    { id: 'unstyled', title: 'Unstyled Mode', order: 5 },
+    { id: 'deep-dives', title: 'Deep Dives', order: 6 }
   ];
+
+  // The canonical override ladder (weak → strong). Each rung answers one
+  // concrete "I want to…" goal so consumers stop guessing which tool to reach for.
+  const ladder = [
+    {
+      goal: 'Restyle one element on one instance',
+      tool: 'class',
+      example: '<Button class="rounded-full">',
+      note: 'Highest priority. Merges onto the OUTERMOST (root) slot only — see the trap below.'
+    },
+    {
+      goal: 'Restyle an inner element (the actual <input>, a header, a chevron…)',
+      tool: 'slotClasses.<slot>',
+      example: '<Input slotClasses={{ base: "rounded-full" }} />',
+      note: 'Type-safe — autocomplete lists the available slot names for each component.'
+    },
+    {
+      goal: 'App-wide look for a component type (every Button, every Card)',
+      tool: 'preset / BlocksProvider defaults',
+      example: 'defaults={{ Button: { slotClasses: { base: "rounded-full" } } }}',
+      note: 'defaults apply to every instance; presets are opt-in via preset="name".'
+    },
+    {
+      goal: 'Style only one variant / intent / state (e.g. only outlined)',
+      tool: 'overrides',
+      example: 'overrides: [{ variant: "outlined", class: { base: "border" } }]',
+      note: 'Prop-conditional rule — what unconditional slotClasses cannot express.'
+    },
+    {
+      goal: 'Rebuild a component from scratch (strip every default)',
+      tool: 'unstyled + slotClasses',
+      example: '<Card unstyled slotClasses={{ base: "…" }} />',
+      note: 'Renders the HTML structure only; you own all visuals.'
+    }
+  ];
+
+  // Full precedence chain, weak → strong (from resolveSlotClasses + the component class merge).
+  const precedence = [
+    'tv() variant styles (library default)',
+    'BlocksProvider defaults.slotClasses',
+    'BlocksProvider defaults.overrides[match]',
+    'preset.slotClasses (when preset="…" is set)',
+    'preset.overrides[match]',
+    'Instance slotClasses prop',
+    'Instance class prop (root slot only)'
+  ];
+
+  const classTrapExample =
+    `<scr` +
+    `ipt>
+  import { Input } from '@urbicon-ui/blocks';
+</scr` +
+    `ipt>
+
+<!-- ❌ Surprise: this rounds the WRAPPER (label + field column), not the field. -->
+<Input label="Email" class="rounded-full" />
+
+<!-- ✅ Reach the actual <input> via the \`base\` slot. -->
+<Input label="Email" slotClasses={{ base: 'rounded-full' }} />`;
 
   const quickThemeExample = `/* app.css */
 @import '@urbicon-ui/blocks/style/index.css';
@@ -75,46 +136,105 @@
 
 <DocsPageLayout
   title="Customization"
-  description="Urbicon UI offers three levels of customization, from simple color changes to fully custom designs. Pick the level that fits your needs."
+  description="Every Urbicon UI component is restyleable through one predictable ladder of escape hatches. Pick the lowest rung that solves your problem — lower rungs preserve more of the design system's behavior (dark mode, hover/active cascade, focus rings)."
   {navigation}
   showToc
   breadcrumbs={[{ label: 'Customization' }]}
 >
-  <div class="mb-12 grid gap-6 sm:grid-cols-3">
-    <Card class="border-border-subtle">
-      <div class="p-5">
-        <div class="text-primary mb-2 text-2xl font-bold">1</div>
-        <h3 class="text-text-primary mb-1 font-semibold">CSS Token Themes</h3>
-        <p class="text-text-tertiary text-sm">
-          Swap the color palette with a single CSS import. All components update automatically.
-        </p>
+  <!-- Task 1: the canonical override ladder as a decision table -->
+  <section class="mb-12">
+    <h2 class="text-text-primary mb-4 text-2xl font-bold" id="ladder">Which tool do I use?</h2>
+    <p class="text-text-secondary mb-6 leading-relaxed">
+      Start from your goal, not from the API. Find the row that matches what you want to change —
+      the <strong>Reach for</strong> column is the tool to use.
+    </p>
+    <div class="border-border-subtle bg-surface-base overflow-hidden rounded-xl border">
+      <div class="overflow-x-auto">
+        <table class="w-full text-left text-sm">
+          <thead class="border-border-subtle bg-surface-subtle border-b">
+            <tr>
+              <th class="text-text-primary px-4 py-3 font-semibold">I want to…</th>
+              <th class="text-text-primary px-4 py-3 font-semibold">Reach for</th>
+              <th class="text-text-primary px-4 py-3 font-semibold">Example</th>
+            </tr>
+          </thead>
+          <tbody class="divide-border-subtle divide-y">
+            {#each ladder as rung (rung.tool)}
+              <tr>
+                <td class="text-text-secondary px-4 py-3 align-top">
+                  {rung.goal}
+                  <span class="text-text-tertiary mt-1 block text-xs">{rung.note}</span>
+                </td>
+                <td class="px-4 py-3 align-top">
+                  <code class="text-primary text-xs font-medium whitespace-nowrap">{rung.tool}</code
+                  >
+                </td>
+                <td class="px-4 py-3 align-top">
+                  <code class="text-text-tertiary text-xs">{rung.example}</code>
+                </td>
+              </tr>
+            {/each}
+          </tbody>
+        </table>
       </div>
-    </Card>
-    <Card class="border-border-subtle">
-      <div class="p-5">
-        <div class="text-primary mb-2 text-2xl font-bold">2</div>
-        <h3 class="text-text-primary mb-1 font-semibold">Global Defaults</h3>
-        <p class="text-text-tertiary text-sm">
-          Override slot classes per component type via BlocksProvider. Every Button, Card, Input
-          picks up your defaults.
-        </p>
-      </div>
-    </Card>
-    <Card class="border-border-subtle">
-      <div class="p-5">
-        <div class="text-primary mb-2 text-2xl font-bold">3</div>
-        <h3 class="text-text-primary mb-1 font-semibold">Fully Unstyled</h3>
-        <p class="text-text-tertiary text-sm">
-          Strip all default styles globally and build your own design from scratch using
-          slotClasses.
-        </p>
-      </div>
-    </Card>
-  </div>
+    </div>
+    <div
+      class="bg-surface-subtle text-text-secondary rounded-contain mt-4 border p-4 text-sm leading-relaxed"
+    >
+      <strong class="text-text-primary">Full precedence chain (weakest → strongest):</strong>
+      Conflicting Tailwind utilities are resolved per bucket, so a later source wins (e.g. an instance
+      <code class="text-xs">rounded-none</code>
+      defeats a default
+      <code class="text-xs">rounded-full</code>); non-conflicting classes accumulate.
+      <ol class="mt-2 list-inside list-decimal space-y-1">
+        {#each precedence as step (step)}
+          <li><code class="text-xs">{step}</code></li>
+        {/each}
+      </ol>
+    </div>
+  </section>
 
   <Separator class="mb-12" />
 
-  <!-- Level 1: CSS Themes -->
+  <!-- Task 2: the "class only hits the root slot" trap -->
+  <section class="mb-12">
+    <h2 class="text-text-primary mb-4 text-2xl font-bold" id="class-trap">
+      The <code class="text-primary">class</code> Root-Slot Trap
+    </h2>
+    <div
+      class="border-warning/40 bg-warning-subtle text-text-secondary rounded-contain mb-6 border p-4 text-sm leading-relaxed"
+    >
+      <strong class="text-warning-emphasis"
+        >The <code class="text-xs">class</code> prop only reaches the outermost (root) slot.</strong
+      >
+      Most components wrap several elements. <code class="text-xs">class</code> lands on the
+      <em>root</em> wrapper, not the element you are usually picturing. To style something inside,
+      go through <code class="text-xs">slotClasses.&lt;slot&gt;</code>.
+    </div>
+    <p class="text-text-secondary mb-6 leading-relaxed">
+      The classic surprise is <code class="text-xs">Input</code>: its root slot is
+      <code class="text-xs">wrapper</code> (the label + field column), and the real
+      <code class="text-xs">&lt;input&gt;</code> element is the
+      <code class="text-xs">base</code> slot. So <code class="text-xs">class="rounded-full"</code>
+      rounds the column, not the field.
+    </p>
+    <CodeExample title="class vs. slotClasses on Input" code={classTrapExample} preview={false} />
+    <p class="text-text-secondary mt-6 leading-relaxed">
+      <code class="text-xs">slotClasses</code> is now <strong>type-safe</strong> on every component:
+      the keys are derived from the component's <code class="text-xs">tv()</code> slots, so your
+      editor autocompletes the available slot names (<code class="text-xs">wrapper</code>,
+      <code class="text-xs">container</code>, <code class="text-xs">base</code>,
+      <code class="text-xs">label</code>, <code class="text-xs">message</code>… for
+      <code class="text-xs">Input</code>). Check a component's API reference, or the
+      <a href={resolve('/customization/blocks-provider')} class="text-primary hover:underline"
+        >Slot Names reference</a
+      >, for its slot map.
+    </p>
+  </section>
+
+  <Separator class="mb-12" />
+
+  <!-- CSS Themes -->
   <section class="mb-12">
     <h2 class="text-text-primary mb-4 text-2xl font-bold" id="themes">CSS Token Themes</h2>
     <p class="text-text-secondary mb-6 leading-relaxed">
@@ -184,7 +304,7 @@
 
   <Separator class="mb-12" />
 
-  <!-- Level 2: BlocksProvider defaults -->
+  <!-- BlocksProvider defaults -->
   <section class="mb-12">
     <h2 class="text-text-primary mb-4 text-2xl font-bold" id="defaults">
       Global Component Defaults
@@ -204,30 +324,21 @@
       code={blocksProviderExample}
       preview={false}
     />
-    <div
-      class="bg-surface-subtle text-text-secondary rounded-contain mt-4 border p-4 text-sm leading-relaxed"
-    >
-      <strong class="text-text-primary">Merge order (lowest to highest priority):</strong>
-      <ol class="mt-2 list-inside list-decimal space-y-1">
-        <li>
-          <code class="text-xs">tv()</code> base + variant styles (library default)
-        </li>
-        <li>
-          <code class="text-xs">BlocksProvider defaults</code> slotClasses
-        </li>
-        <li>
-          Instance <code class="text-xs">slotClasses</code> prop
-        </li>
-        <li>
-          Instance <code class="text-xs">class</code> prop (highest priority)
-        </li>
-      </ol>
-    </div>
+    <p class="text-text-secondary mt-4 text-sm leading-relaxed">
+      Defaults sit near the bottom of the
+      <a href="#ladder" class="text-primary hover:underline">precedence chain</a> above — instance
+      <code class="text-xs">slotClasses</code> and <code class="text-xs">class</code> still win. For
+      prop-conditional defaults (<code class="text-xs">overrides</code>) and named
+      <code class="text-xs">presets</code>, see the
+      <a href={resolve('/customization/blocks-provider')} class="text-primary hover:underline"
+        >BlocksProvider API</a
+      >.
+    </p>
   </section>
 
   <Separator class="mb-12" />
 
-  <!-- Level 3: Fully unstyled -->
+  <!-- Fully unstyled -->
   <section class="mb-12">
     <h2 class="text-text-primary mb-4 text-2xl font-bold" id="unstyled">Global Unstyled Mode</h2>
     <p class="text-text-secondary mb-6 leading-relaxed">

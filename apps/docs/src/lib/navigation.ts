@@ -258,6 +258,12 @@ export const navigationItems: NavItem[] = [
         href: '/customization/theme-builder'
       },
       { name: 'Design Tokens', nameKey: 'nav.designTokens', href: '/customization/tokens' },
+      { name: 'Tier System', nameKey: 'nav.tierSystem', href: '/customization/tier-system' },
+      {
+        name: 'Editorial Theme',
+        nameKey: 'nav.editorialTheme',
+        href: '/customization/editorial-theme'
+      },
       { name: 'Figma Tokens', nameKey: 'nav.figmaTokens', href: '/customization/figma-tokens' }
     ]
   },
