@@ -1,6 +1,6 @@
 {
   "name": "@urbicon-ui/docs-gen",
-  "version": "6.1.5",
+  "version": "6.1.6",
   "description": "Next-generation documentation generator for UI components with TypeScript extraction and unified schema",
   "license": "MIT",
   "repository": {
