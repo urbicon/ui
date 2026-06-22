@@ -83,8 +83,14 @@ jobs:
           # Topological order: dependents come after their dependencies so a
           # consumer installing `@urbicon-ui/blocks` mid-publish never sees a
           # range pointing at a not-yet-published `@urbicon-ui/i18n`.
+          # KEEP IN SYNC with scripts/publish.sh (same packages, same order).
+          # design-engine/-content/design MUST precede mcp-server, which depends
+          # on them — otherwise mcp-server ships with unresolvable npm deps.
           for dir in packages/shared-types \
                      packages/sveltekit-utils \
+                     packages/design-engine \
+                     packages/design-content \
+                     packages/design \
                      packages/mcp-server \
                      packages/i18n \
                      packages/docs-gen \
