@@ -16,6 +16,8 @@ import { readFile } from 'node:fs/promises';
 import { resolve } from 'node:path';
 import { parseArgs } from './args.js';
 import { runContext } from './commands/context.js';
+import { runFind } from './commands/find.js';
+import { runGetComponent } from './commands/get-component.js';
 import { runHook } from './commands/hook.js';
 import { runRecordDecision } from './commands/record-decision.js';
 import { runSyncManifest } from './commands/sync-manifest.js';
@@ -47,6 +49,14 @@ Commands:
                         findings on stderr so the agent self-corrects. Takes the same
                         gate flags as validate (--strict, --slop-floor, --manifest).
                         Wire it via .claude/settings.json (see templates/).
+  find [query]          Discover components by fuzzy search over the version-pinned
+                        catalog (names, tags, descriptions). No query lists all.
+                        --tag <t>          Filter by category tag (form, action, …).
+                        --limit <n>        Max results for a query (default 10).
+                        --json             Machine-readable catalog entries.
+  get-component <slug>  Print a component's API (its llm.txt) from the bundle.
+                        --section <s>      overview | examples | variants | api | slots |
+                                           full (default: full).
   context               Print the project's design.manifest.md summary.
                         --manifest <path>  Manifest file (default ./design.manifest.md).
                         --json             Emit the parsed manifest as JSON.
@@ -109,6 +119,10 @@ async function main(argv: string[]): Promise<number> {
       return runValidate(positionals, flags);
     case 'hook':
       return runHook(positionals, flags);
+    case 'find':
+      return runFind(positionals, flags);
+    case 'get-component':
+      return runGetComponent(positionals, flags);
     case 'context':
       return runContext(positionals, flags);
     case 'record-decision':

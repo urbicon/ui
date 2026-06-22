@@ -1,0 +1,43 @@
+{
+  "generated": "2026-01-01T00:00:00.000Z",
+  "version": "0.0.0-test",
+  "tags": ["action", "display"],
+  "recipes": [],
+  "components": [
+    {
+      "name": "Button",
+      "slug": "button",
+      "package": "@urbicon-ui/blocks",
+      "group": "primitives",
+      "description": "Click to trigger an action.\nSecond paragraph that the find list should truncate away.",
+      "tags": ["action"],
+      "import": "import { Button } from '@urbicon-ui/blocks';",
+      "llmTxtPath": "",
+      "variants": [
+        { "name": "intent", "values": ["primary", "danger"], "default": "primary" },
+        { "name": "disabled", "values": ["true", "false"] }
+      ],
+      "keyProps": ["intent"],
+      "keyPropTypes": { "intent": "string" },
+      "slots": [],
+      "hasExamples": true,
+      "relatedComponents": ["ButtonGroup"]
+    },
+    {
+      "name": "Badge",
+      "slug": "badge",
+      "package": "@urbicon-ui/blocks",
+      "group": "primitives",
+      "description": "Small status descriptor.",
+      "tags": ["display"],
+      "import": "import { Badge } from '@urbicon-ui/blocks';",
+      "llmTxtPath": "",
+      "variants": [],
+      "keyProps": [],
+      "keyPropTypes": {},
+      "slots": [],
+      "hasExamples": false,
+      "relatedComponents": []
+    }
+  ]
+}

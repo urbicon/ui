@@ -38,6 +38,7 @@
     "test:run": "vitest run"
   },
   "dependencies": {
+    "@urbicon-ui/design-content": "workspace:*",
     "@urbicon-ui/design-engine": "workspace:*"
   },
   "devDependencies": {

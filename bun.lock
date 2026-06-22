@@ -114,6 +114,7 @@
         "urbicon": "./dist/cli.js",
       },
       "dependencies": {
+        "@urbicon-ui/design-content": "workspace:*",
         "@urbicon-ui/design-engine": "workspace:*",
       },
       "devDependencies": {
@@ -299,6 +300,7 @@
     "@urbicon-ui/table",
     "@urbicon-ui/shared-types",
     "@urbicon-ui/docs",
+    "@urbicon-ui/design-content",
     "@urbicon-ui/i18n",
     "@urbicon-ui/design",
     "@urbicon-ui/auth",

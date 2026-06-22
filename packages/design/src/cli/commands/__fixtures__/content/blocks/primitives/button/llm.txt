@@ -1,0 +1,16 @@
+# Button
+
+Click to trigger an action.
+
+### Examples
+
+```svelte
+<Button intent="primary">Save</Button>
+```
+
+### API
+
+| Prop | Type | Default |
+| --- | --- | --- |
+| intent | string | primary |
+| disabled | boolean | false |
