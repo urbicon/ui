@@ -57,6 +57,12 @@ describe('skeletonVariants', () => {
     for (const variant of variants) {
       expect(skeletonVariants({ variant }).base()).not.toMatch(/\bdark:/);
     }
+    // The wave animation previously carried a `dark:` shimmer override — it is
+    // now mode-aware via the `skeleton-shimmer` light-dark() token instead.
+    const animations = ['pulse', 'wave', 'none'] as const;
+    for (const animation of animations) {
+      expect(skeletonVariants({ animation }).base()).not.toMatch(/\bdark:/);
+    }
   });
 
   it('respects prefers-reduced-motion', () => {

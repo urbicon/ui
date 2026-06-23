@@ -86,8 +86,9 @@
         >Space</kbd
       >; uses
       <code class="text-text-primary">focus-visible:</code> for keyboard-only rings. In system mode
-      the component live-reacts to
-      <code class="text-text-primary">prefers-color-scheme</code> changes.
+      the UI live-follows
+      <code class="text-text-primary">prefers-color-scheme</code> changes natively via
+      <code class="text-text-primary">color-scheme: light dark</code> — no JavaScript needed.
     </p>
   </div>
 </Section>

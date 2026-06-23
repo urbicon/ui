@@ -172,11 +172,11 @@
         code={`<!-- Add to app.html <head> for flash-free theme loading -->
 <` +
           `script>
+  // Only explicit choices set a class; system mode leaves
+  // color-scheme: light dark to follow the OS via light-dark().
   const t = localStorage.getItem('urbicon-theme');
-  if (t === 'dark' || (!t && matchMedia('(prefers-color-scheme:dark)').matches))
-    document.documentElement.classList.add('dark');
-  else if (t === 'light')
-    document.documentElement.classList.add('light');
+  if (t === 'dark') document.documentElement.classList.add('dark');
+  else if (t === 'light') document.documentElement.classList.add('light');
 <` +
           `/script>`}
         language="html"

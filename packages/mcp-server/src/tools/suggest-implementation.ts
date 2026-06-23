@@ -69,7 +69,7 @@ const IMPLEMENTATION_RULES = `## Implementation Rules
 
 - **CSS imports** — Add to root layout, Tailwind first: \`@import 'tailwindcss';\` then \`@import '@urbicon-ui/blocks/style/index.css';\` (ships tokens + the \`@source\` directives). Import \`index.css\`, NOT the \`foundation\`/\`semantic\`/\`interaction\` subfiles, and add no manual \`@source\`
 - **Semantic tokens only** — Use \`bg-surface-elevated\`, \`text-text-primary\`, \`border-border-default\` — never raw Tailwind colors
-- **Dark mode** — Automatic via \`prefers-color-scheme\`. Do NOT add \`dark:\` overrides
+- **Dark mode** — Automatic via the CSS \`light-dark()\` function (\`:root\` sets \`color-scheme: light dark\`, following the OS \`prefers-color-scheme\`). For manual control use \`ThemeSwitcher\` (toggles a \`.light\`/\`.dark\` class). Do NOT add \`dark:\` overrides
 - **Focus** — Always \`focus-visible:\` (not \`focus:\`) for keyboard-only focus rings
 - **State binding** — \`bind:value\`, \`bind:checked\`, \`bind:open\` for two-way state; callback props (\`onValueChange\`) for side effects
 - **Custom content** — Use Svelte 5 snippets (\`{#snippet name()}...{/snippet}\`), not legacy slots

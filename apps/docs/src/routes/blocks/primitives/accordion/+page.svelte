@@ -162,8 +162,8 @@
             </AccordionItem>
             <AccordionItem value="item-3" title="Is dark mode automatic?">
               <p class="text-text-secondary text-sm">
-                Yes — semantic tokens handle dark mode via prefers-color-scheme. No manual dark:
-                classes needed.
+                Yes — semantic tokens handle dark mode via the CSS light-dark() function. No manual
+                dark: classes needed.
               </p>
             </AccordionItem>
           </Accordion>

@@ -34,7 +34,7 @@ export function registerGetChecklistTool(server: McpServer): void {
       md +=
         '- [ ] Use OKLCH interaction tokens for hover/active states (`bg-surface-hover`, `bg-surface-active`)\n';
       md +=
-        '- [ ] Dark mode is automatic via `prefers-color-scheme` — semantic tokens switch automatically. For manual control, use `ThemeSwitcher` or set `data-theme="dark"` on `<html>`. Do NOT add `dark:` overrides\n';
+        '- [ ] Dark mode is automatic via the CSS `light-dark()` function (`:root` sets `color-scheme: light dark`, following the OS `prefers-color-scheme`) — semantic tokens switch automatically. For manual control, use `ThemeSwitcher` or add a `.light`/`.dark` class to `<html>`. Do NOT add `dark:` overrides\n';
       md +=
         '- [ ] Use z-index tokens via CSS custom properties: `z-[var(--z-modal)]`, `z-[var(--z-dropdown)]`, etc.\n';
       md += '\n';

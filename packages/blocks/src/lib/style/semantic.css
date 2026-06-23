@@ -38,6 +38,11 @@
   --color-surface-selected: light-dark(var(--color-primary-50), var(--color-primary-900));
   --color-surface-subtle: light-dark(var(--color-neutral-50), var(--color-neutral-800));
   --color-surface-inverted: light-dark(var(--color-neutral-900), var(--color-neutral-100));
+  /* Skeleton wave-shimmer highlight (Skeleton animation="wave"). A translucent
+     white glint that sweeps across `surface-interactive`; lower alpha in dark
+     mode so it reads as a subtle sheen, not a flash. light-dark() keeps it
+     mode-aware so the wave needs no `dark:` override. */
+  --color-skeleton-shimmer: light-dark(oklch(1 0 0 / 0.5), oklch(1 0 0 / 0.1));
 
   /* === TEXT ===
      tertiary/quaternary shifted darker (light) so informative text on

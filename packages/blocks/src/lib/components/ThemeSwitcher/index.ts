@@ -5,8 +5,10 @@ export type Theme = 'light' | 'dark' | 'system';
 /**
  * Props for the ThemeSwitcher component.
  *
- * @description Cycles between light, dark, and system color schemes.
- * Applies light/dark classes on the html element and persists to localStorage.
+ * @description Cycles between light, dark, and system color schemes. Sets a
+ * `light`/`dark` class on the `<html>` element for explicit choices and clears
+ * it in system mode (so the CSS `light-dark()` function follows the OS natively).
+ * Persists the choice to localStorage.
  *
  * @tag action
  * @related LocaleSwitcher

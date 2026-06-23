@@ -64,7 +64,7 @@
               <p class="text-text-secondary text-sm leading-relaxed">
                 We use a 3-layer token system: foundation, semantic, and interaction tokens. Dark
                 mode is handled automatically via <code
-                  class="bg-surface-base rounded px-1.5 py-0.5 text-xs">prefers-color-scheme</code
+                  class="bg-surface-base rounded px-1.5 py-0.5 text-xs">light-dark()</code
                 >
                 — no manual <code class="bg-surface-base rounded px-1.5 py-0.5 text-xs">dark:</code> classes
                 needed.

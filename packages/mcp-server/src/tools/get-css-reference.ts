@@ -32,8 +32,8 @@ Override tokens in your app CSS using Tailwind's \`@theme\` block:
 \`\`\`
 
 ## Dark Mode
-Mechanism: \`@media (prefers-color-scheme: dark)\` on \`:root\` in \`semantic.css\`.
-Manual override: add \`.light\` or \`.dark\` class to \`<html>\` (via \`ThemeSwitcher\` component).
+Mechanism: semantic tokens use the CSS \`light-dark()\` function; \`:root\` declares \`color-scheme: light dark\` so the browser resolves the matching branch automatically (following the OS \`prefers-color-scheme\`). No \`dark:\` overrides.
+Manual override: add a \`.light\` or \`.dark\` class to \`<html>\` (via the \`ThemeSwitcher\` component) — the class only flips \`color-scheme\`, and \`light-dark()\` re-resolves on its own.
 
 To override a token for ALL modes (light, dark, and manual overrides):
 \`\`\`css

@@ -28,14 +28,13 @@ export const skeletonVariants = tv({
         base: 'animate-pulse motion-reduce:animate-none'
       },
       wave: {
-        // `via-surface-hover` resolves to the same neutral-100 as the
-        // base `surface-interactive` in light mode, leaving the shimmer
-        // invisible. We use translucent-white in light and translucent-
-        // light-gray in dark so the highlight reads regardless of theme.
+        // `via-surface-hover` would resolve to the same tone as the base
+        // `surface-interactive`, leaving the shimmer invisible. The
+        // `skeleton-shimmer` token is a translucent-white glint that stays
+        // mode-aware via light-dark() (lower alpha in dark) — no `dark:` needed.
         base: [
           'animate-[blocks-shimmer_1.5s_ease-in-out_infinite]',
-          'bg-linear-to-r from-surface-interactive via-white/50 to-surface-interactive',
-          'dark:via-white/10',
+          'bg-linear-to-r from-surface-interactive via-skeleton-shimmer to-surface-interactive',
           'bg-size-[200%_100%]',
           'motion-reduce:animate-none'
         ]

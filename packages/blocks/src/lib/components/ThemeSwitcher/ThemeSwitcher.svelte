@@ -2,6 +2,7 @@
   import type { ThemeSwitcherProps, Theme } from './index';
   import { themeSwitcherVariants, type ThemeSwitcherVariants } from './themeSwitcher.variants';
   import { onMount } from 'svelte';
+  import { MediaQuery } from 'svelte/reactivity';
   import { getBlocksConfig, resolveSlotClasses } from '$lib/provider';
   import { resolveIcon } from '$lib/icons';
   import SunIconDefault from '$lib/icons/SunIcon.svelte';
@@ -32,7 +33,9 @@
   const blocksConfig = getBlocksConfig();
   const unstyled = $derived(unstyledProp || blocksConfig?.unstyled || false);
 
-  let mounted = $state(false);
+  // Reactive, SSR-safe `prefers-color-scheme` reader (svelte/reactivity) —
+  // re-evaluates `resolvedTheme` on OS changes without a manual listener.
+  const prefersDark = new MediaQuery('(prefers-color-scheme: dark)');
 
   const variantProps: ThemeSwitcherVariants = $derived({ variant, size, disabled });
 
@@ -42,11 +45,9 @@
     resolveSlotClasses(blocksConfig, 'ThemeSwitcher', preset, variantProps, slotClassesProp)
   );
 
-  const resolvedTheme: Theme = $derived.by(() => {
-    if (theme !== 'system' || typeof window === 'undefined') return theme;
-    if (!mounted) return 'light';
-    return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
-  });
+  const resolvedTheme: Theme = $derived(
+    theme === 'system' ? (prefersDark.current ? 'dark' : 'light') : theme
+  );
 
   const label = $derived(
     theme === 'light'
@@ -84,16 +85,15 @@
       root.classList.add('dark');
       if (storageKey) localStorage.setItem(storageKey, 'dark');
     } else {
+      // System: drop both overrides and let `:root { color-scheme: light dark }`
+      // resolve `light-dark()` against the OS preference natively — this keeps
+      // following OS changes live, on every page, without a JS listener.
       root.classList.remove('light', 'dark');
       if (storageKey) localStorage.removeItem(storageKey);
-      const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
-      root.classList.toggle('dark', prefersDark);
     }
   }
 
   onMount(() => {
-    mounted = true;
-
     if (storageKey) {
       const saved = localStorage.getItem(storageKey);
       if (saved === 'light' || saved === 'dark') {
@@ -101,13 +101,6 @@
       }
     }
     applyTheme();
-
-    const mq = window.matchMedia('(prefers-color-scheme: dark)');
-    const handler = () => {
-      if (theme === 'system') applyTheme();
-    };
-    mq.addEventListener('change', handler);
-    return () => mq.removeEventListener('change', handler);
   });
 
   export function getTheme(): Theme {

@@ -28,7 +28,7 @@ export interface AccordionContext {
  *     A Svelte 5 component library with built-in i18n and design tokens.
  *   </AccordionItem>
  *   <AccordionItem value="faq-2" title="How does dark mode work?">
- *     Semantic tokens automatically handle light/dark via prefers-color-scheme.
+ *     Semantic tokens automatically handle light/dark via the CSS light-dark() function.
  *   </AccordionItem>
  * </Accordion>
  * ```

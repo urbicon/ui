@@ -11,14 +11,14 @@
     <meta name="theme-color" media="(prefers-color-scheme: dark)" content="#1a1816" />
     <script>
       (() => {
+        // Only explicit choices set a class; system mode leaves
+        // `color-scheme: light dark` to follow the OS via light-dark().
         var t = localStorage.getItem('urbicon-theme');
         var d = document.documentElement;
         if (t === 'dark') {
           d.classList.add('dark');
         } else if (t === 'light') {
           d.classList.add('light');
-        } else if (window.matchMedia('(prefers-color-scheme: dark)').matches) {
-          d.classList.add('dark');
         }
       })();
     </script>

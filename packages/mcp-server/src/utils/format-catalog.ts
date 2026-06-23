@@ -69,7 +69,7 @@ export function formatCompactCatalog(
   md += '```\n';
   md += "Import: `import { Button, Card } from '@urbicon-ui/blocks';` (always from package root)\n";
   md +=
-    'Dark mode: automatic via `prefers-color-scheme` — semantic tokens switch automatically. For manual control, use `ThemeSwitcher` or `data-theme="dark"` on `<html>`.\n\n';
+    'Dark mode: automatic via the CSS `light-dark()` function (`:root` sets `color-scheme: light dark`, following the OS `prefers-color-scheme`) — semantic tokens switch automatically. For manual control, use `ThemeSwitcher` or add a `.light`/`.dark` class to `<html>`.\n\n';
 
   for (const tag of TAG_ORDER) {
     const comps = grouped.get(tag);

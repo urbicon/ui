@@ -11,7 +11,7 @@ Three-layer CSS custom property architecture in `packages/blocks/src/lib/style/`
 | Layer       | File              | Purpose                                                                                                                                                                                                                             |
 | ----------- | ----------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | Foundation  | `foundation.css`  | OKLCH color palette, spacing, radii, z-index scale, breakpoints                                                                                                                                                                     |
-| Semantic    | `semantic.css`    | Context-aware tokens (`surface-*`, `text-*`, `border-*`) with automatic dark mode via `prefers-color-scheme`                                                                                                                        |
+| Semantic    | `semantic.css`    | Context-aware tokens (`surface-*`, `text-*`, `border-*`) with automatic dark mode via the CSS `light-dark()` function                                                                                                               |
 | Interaction | `interaction.css` | Hover/focus/active states, duration tokens (`--blocks-duration-fast`, `--blocks-duration-normal`), easing tokens (`--blocks-ease-confident`, `--blocks-ease-springy`), shadow tokens (`--blocks-shadow-sm` .. `--blocks-shadow-lg`) |
 
 Foundation tokens define raw OKLCH values. Semantic tokens map those to UI purposes and handle light/dark switching automatically. Interaction tokens define motion and visual feedback.
@@ -58,7 +58,7 @@ Components use a **custom `tv()` variant engine** (in `packages/blocks/src/lib/u
 
 Key patterns:
 
-- **Semantic tokens only** – no `dark:` overrides anywhere in primitives (dark mode via `prefers-color-scheme` in `semantic.css`)
+- **Semantic tokens only** – no `dark:` overrides anywhere in primitives (dark mode via the CSS `light-dark()` function in `semantic.css`, driven by `color-scheme`)
 - **Surface tier semantics** (XC-13, Lighter v5). Four tints sit on top of `surface-base` (= the page background). Every container-shaped primitive should pick the tier whose semantics match its purpose:
 
   | Token              | Purpose                                                                                                                                                                                                                     | Lift relative to base                       |

@@ -484,8 +484,8 @@
 
     <p class="text-text-secondary mb-6">
       Design tokens automatically adapt to dark mode using
-      <code class="bg-surface-subtle rounded-modify px-2 py-1 text-sm">prefers-color-scheme</code>.
-      No manual
+      <code class="bg-surface-subtle rounded-modify px-2 py-1 text-sm">light-dark()</code>. No
+      manual
       <code class="bg-surface-subtle rounded-modify px-2 py-1 text-sm">dark:</code> overrides needed.
     </p>
 
