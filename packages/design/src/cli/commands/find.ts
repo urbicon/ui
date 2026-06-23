@@ -12,6 +12,7 @@
 import { type ComponentCatalogEntry, matchComponents } from '@urbicon-ui/design-engine/search';
 import { boolFlag, type Flags, stringFlag } from '../args.js';
 import { loadCatalog } from '../content.js';
+import { type InstallState, installStateFor, readConsumerDependencies } from '../installed.js';
 import { EXIT, printError } from '../output.js';
 
 /** Variant summary, skipping pure boolean variants (just true/false). */
@@ -28,8 +29,16 @@ function shortDescription(description: string): string {
   return firstLine.length > 140 ? `${firstLine.slice(0, 139)}…` : firstLine;
 }
 
-function formatEntry(entry: ComponentCatalogEntry): string {
-  const lines = [`  ${entry.name}  ·  ${entry.slug}`, `    ${shortDescription(entry.description)}`];
+/** Origin package + install state on the headline, so the import target is never ambiguous. */
+function packageTag(entry: ComponentCatalogEntry, state: InstallState): string {
+  return state === 'missing' ? `${entry.package}  ·  ⚠ not installed` : entry.package;
+}
+
+function formatEntry(entry: ComponentCatalogEntry, state: InstallState): string {
+  const lines = [
+    `  ${entry.name}  ·  ${entry.slug}  ·  ${packageTag(entry, state)}`,
+    `    ${shortDescription(entry.description)}`
+  ];
   const variants = variantSummary(entry);
   if (variants) lines.push(`    ${variants}`);
   if (entry.relatedComponents.length > 0) {
@@ -66,8 +75,18 @@ export async function runFind(positionals: string[], flags: Flags): Promise<numb
     ? matchComponents(components, query, tags, limit)
     : components.filter((c) => !tags || c.tags.some((t) => tags.includes(t)));
 
+  // Which origin packages are actually installed here (null → no consumer context).
+  const deps = readConsumerDependencies();
+  const stateOf = (entry: ComponentCatalogEntry): InstallState =>
+    installStateFor(entry.package, deps);
+
   if (asJson) {
-    console.log(JSON.stringify(results, null, 2));
+    // Additive `installed` annotation (true/false/null) for machine consumers.
+    const annotated = results.map((entry) => {
+      const state = stateOf(entry);
+      return { ...entry, installed: state === 'unknown' ? null : state === 'installed' };
+    });
+    console.log(JSON.stringify(annotated, null, 2));
     return EXIT.OK;
   }
 
@@ -85,7 +104,17 @@ export async function runFind(positionals: string[], flags: Flags): Promise<numb
     : `${results.length} component(s)${tag ? ` tagged "${tag}"` : ''}:`;
   console.log(`${header}\n`);
   for (const entry of results) {
-    console.log(`${formatEntry(entry)}\n`);
+    console.log(`${formatEntry(entry, stateOf(entry))}\n`);
+  }
+
+  // Surface dead ends: matches whose origin package isn't a dependency here.
+  const missing = [
+    ...new Set(results.filter((e) => stateOf(e) === 'missing').map((e) => e.package))
+  ];
+  if (missing.length > 0) {
+    console.log(
+      `⚠ Not in your dependencies: ${missing.join(', ')} — install before importing (e.g. \`bun add ${missing[0]}\`).`
+    );
   }
   console.log(
     '→ `urbicon get-component <slug>` for the full API · `get_css_reference` for tokens.'

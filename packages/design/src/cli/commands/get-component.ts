@@ -10,10 +10,32 @@
 
 import { extractSection, type LlmTxtSection } from '@urbicon-ui/design-engine/search';
 import { type Flags, stringFlag } from '../args.js';
-import { loadComponentLlm } from '../content.js';
+import { loadCatalog, loadComponentLlm } from '../content.js';
+import { installStateFor, readConsumerDependencies } from '../installed.js';
 import { EXIT, printError } from '../output.js';
 
 const SECTIONS: LlmTxtSection[] = ['overview', 'examples', 'variants', 'api', 'slots'];
+
+/**
+ * Warn (on stderr, so piped stdout stays clean) when the component's origin package
+ * isn't a dependency here — otherwise the printed API documents an unimportable
+ * component (the `Table`-from-`@urbicon-ui/table` dead end). Best-effort: a catalog
+ * read failure must not break printing the already-loaded `llm.txt`.
+ */
+async function warnIfNotInstalled(slug: string): Promise<void> {
+  try {
+    const entry = (await loadCatalog()).components.find((c) => c.slug === slug);
+    if (!entry) return;
+    if (installStateFor(entry.package, readConsumerDependencies()) === 'missing') {
+      console.error(
+        `⚠ ${entry.name} ships from ${entry.package}, which isn't in your dependencies — ` +
+          `install it before importing (e.g. \`bun add ${entry.package}\`).`
+      );
+    }
+  } catch {
+    // Catalog unreadable — skip the note; the API text below still stands.
+  }
+}
 
 export async function runGetComponent(positionals: string[], flags: Flags): Promise<number> {
   const slug = positionals[0];
@@ -40,6 +62,8 @@ export async function runGetComponent(positionals: string[], flags: Flags): Prom
     printError(`component "${slug}" not found. Run \`urbicon find <query>\` to discover the slug.`);
     return EXIT.FAIL;
   }
+
+  await warnIfNotInstalled(slug);
 
   // Default / explicit `full` → the complete llm.txt.
   if (!section || section === 'full') {
