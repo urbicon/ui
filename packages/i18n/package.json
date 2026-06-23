@@ -45,6 +45,7 @@
     "dist",
     "!dist/**/*.test.*",
     "!dist/**/*.spec.*",
+    "!dist/**/__fixtures__/**",
     "README.md"
   ],
   "main": "dist/index.js",
