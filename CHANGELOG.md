@@ -4,6 +4,15 @@ All notable changes to this project will be documented in this file.
 This changelog is automatically generated from [Conventional Commits](https://www.conventionalcommits.org).
 
 
+## [6.3.0] - 2026-06-23
+
+### Documentation
+- Surface customization override ladder, fix class-trap + token table
+- Align component conventions + structure standard with type-safe slotClasses
+
+### Features
+- **blocks**: Type-safe slotClasses + resolveSlotClasses library-wide
+
 ## [6.2.0] - 2026-06-22
 
 ### Features
