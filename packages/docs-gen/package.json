@@ -59,6 +59,7 @@
   },
   "devDependencies": {
     "@types/node": "catalog:",
+    "@urbicon-ui/design-engine": "^6.0.0",
     "estree-walker": "catalog:",
     "typescript": "catalog:",
     "vitest": "catalog:"

@@ -120,7 +120,7 @@ export class MCPCatalogAssembler {
     let code = '';
     try {
       const pageContent = await fs.readFile(pagePath, 'utf-8');
-      code = this.extractRecipeCode(pageContent);
+      code = MCPCatalogAssembler.extractRecipeCode(pageContent);
     } catch {
       // No page = no code
     }
@@ -133,7 +133,8 @@ export class MCPCatalogAssembler {
     return { id, title, description, components, code, features, ...(pattern ? { pattern } : {}) };
   }
 
-  private extractRecipeCode(content: string): string {
+  /** Extract the `const recipeCode = …` live-preview source from a recipe `+page.svelte`. */
+  static extractRecipeCode(content: string): string {
     const startMatch = content.match(RECIPE_CODE_START_RE);
     if (!startMatch) return '';
 
