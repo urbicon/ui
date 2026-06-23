@@ -171,6 +171,7 @@ export const authDeps = createAuthDeps<AppRole>({
   config: {
     jwt: { secret: env.JWT_SECRET }, // cookieSecure defaults true → HTTPS + auto HSTS
     appUrl: env.PUBLIC_APP_URL, // trusted base for email links — never request.url
+    email: { from: 'Acme <auth@acme.example>' }, // default sender for all auth emails
     csrf: { doubleSubmit: true }, // token layer on top of the handle's always-on Origin check
     refreshToken: { accessTokenTtl: '15m', refreshTokenTtl: '30d' }, // rotating refresh
     rateLimit: {
@@ -182,7 +183,7 @@ export const authDeps = createAuthDeps<AppRole>({
     routes: { afterLogin: '/', loginPage: '/auth/login' }
   },
   repos: createPrismaRepos<AppRole>(prisma), // pulls in the refreshToken adapter
-  email: createLettermintTransport({ apiKey: env.LETTERMINT_KEY })
+  email: createLettermintTransport({ token: env.LETTERMINT_TOKEN }) // sends via the Lettermint v2 API
 });
 ```
 
