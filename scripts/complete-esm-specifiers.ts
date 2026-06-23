@@ -46,7 +46,8 @@ function complete(spec: string, fromDir: string): string {
   const abs = resolve(fromDir, spec);
   if (isFile(abs)) return spec; // already a real file: ./T.svelte, ./x.js, ./x.css
   if (isFile(`${abs}.js`)) return `${spec}.js`; // ./types → .js, ./context.svelte → .svelte.js
-  if (isFile(join(abs, 'index.js'))) return `${spec}/index.js`; // directory → its index
+  // Directory → its index. Strip a trailing slash first so `./` → `./index.js`, not `.//index.js`.
+  if (isFile(join(abs, 'index.js'))) return `${spec.replace(/\/$/, '')}/index.js`;
   return spec; // external or unresolved — leave alone
 }
 
