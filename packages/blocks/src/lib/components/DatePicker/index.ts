@@ -186,11 +186,12 @@ export interface DatePickerProps extends Omit<HTMLAttributes<HTMLDivElement>, 'c
 // ─── DateRangePickerProps ────────────────────────────────────
 
 /**
- * @description Date range input with dual-calendar popup for selecting start and end dates.
+ * @description Date range picker with a dual-calendar popup for selecting a start and end date — min/max constraints, disabled dates, and native form submission via paired hidden inputs.
  *
  * @tag form
  * @related DatePicker
  * @related Calendar
+ * @standalone
  */
 export interface DateRangePickerProps extends Omit<HTMLAttributes<HTMLDivElement>, 'children'> {
   /** Currently selected date range. Supports bind:value. */
