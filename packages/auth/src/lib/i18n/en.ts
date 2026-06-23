@@ -2,6 +2,31 @@ import type { AuthLocale } from './keys.js';
 
 export const en = {
   auth: {
+    errors: {
+      invitationRequired: 'An invitation is required to register.',
+      invitationUsed: 'This invitation has already been used.',
+      emailTaken: 'This email is already registered.',
+      emailInvited: 'This email has already been invited.',
+      invalidCredentials: 'Invalid email or password.',
+      accountLocked: 'Account locked. Please try again later.',
+      emailUnverified: 'Please verify your email first.',
+      invalidToken: 'This link is invalid or has expired.',
+      currentPasswordIncorrect: 'Current password is incorrect.',
+      notAuthenticated: 'Please sign in to continue.',
+      forbidden: "You don't have permission to do that.",
+      invalidCode: 'Invalid code. Please try again.',
+      no2faChallenge: 'No pending two-factor challenge.',
+      twoFactorChallengeExpired: 'Two-factor challenge expired. Please sign in again.',
+      twoFactorAlreadyEnabled: 'Two-factor authentication is already enabled.',
+      twoFactorSetupRequired: 'Start two-factor setup first.',
+      totpSecretUnreadable: 'Could not read the stored secret. Please try again.',
+      sessionNotFound: 'Session not found.',
+      missingRefreshToken: 'Your session has expired. Please sign in again.',
+      invalidRefreshToken: 'Your session has expired. Please sign in again.',
+      featureUnavailable: 'This feature is not available.',
+      validationError: 'Please check your input and try again.',
+      serverError: 'Something went wrong. Please try again.'
+    },
     login: {
       title: 'Sign in',
       email: 'Email address',

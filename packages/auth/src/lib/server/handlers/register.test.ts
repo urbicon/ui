@@ -30,6 +30,10 @@ describe('createRegisterHandler', () => {
     });
     const res = await createRegisterHandler(deps).POST(event(validBody));
     expect(res.status).toBe(403);
+    // Carries BOTH the English prose (back-compat) and a machine code (Issue #18).
+    const body = await res.json();
+    expect(body.error).toBe('An invitation is required to register.');
+    expect(body.code).toBe('invitation_required');
   });
 
   it('returns 403 when the invitation is already used', async () => {
@@ -40,6 +44,7 @@ describe('createRegisterHandler', () => {
     });
     const res = await createRegisterHandler(deps).POST(event(validBody));
     expect(res.status).toBe(403);
+    expect((await res.json()).code).toBe('invitation_used');
   });
 
   it('returns 409 when the email is already registered', async () => {
@@ -49,6 +54,7 @@ describe('createRegisterHandler', () => {
     });
     const res = await createRegisterHandler(deps).POST(event(validBody));
     expect(res.status).toBe(409);
+    expect((await res.json()).code).toBe('email_taken');
     // Must not consume the invitation when rejecting an existing email.
     expect(deps.repos.invitation.markUsedIfUnused).not.toHaveBeenCalled();
   });

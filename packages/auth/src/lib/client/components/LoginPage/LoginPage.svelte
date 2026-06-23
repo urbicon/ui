@@ -3,6 +3,7 @@
   import { onMount } from 'svelte';
   import { useAuthLocale } from '../../../i18n/index.js';
   import { csrfFetch } from '../../csrf.js';
+  import { errorMessageFromCode } from '../../utils/error-message.js';
   import type { LoginPageProps } from './index.js';
 
   let {
@@ -76,7 +77,7 @@
       );
       const data = await res.json();
       if (!res.ok) {
-        error = data.error ?? t.auth.login.errors.invalid;
+        error = errorMessageFromCode(data.code, t, data.error) ?? t.auth.login.errors.invalid;
         return;
       }
       // Password ok, but the account has 2FA on: switch to the code-entry step
@@ -112,7 +113,10 @@
       );
       const data = await res.json();
       if (!res.ok) {
-        error = data.error ?? t.twoFactor?.invalidCode ?? t.auth.login.errors.invalid;
+        error =
+          errorMessageFromCode(data.code, t, data.error) ??
+          t.twoFactor?.invalidCode ??
+          t.auth.login.errors.invalid;
         return;
       }
       onSuccess?.();

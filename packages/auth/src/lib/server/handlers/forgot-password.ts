@@ -6,6 +6,7 @@ import type { AuthDeps } from '../deps.js';
 import { escapeHtml } from '../email/templates.js';
 import { enforceRateLimit, makeRateLimiter } from '../rate-limit.js';
 import { readJsonBody, validateEmailInput } from '../validation.js';
+import { authError } from './errors.js';
 
 export function createForgotPasswordHandler<R extends string>(
   deps: AuthDeps<R>
@@ -19,7 +20,10 @@ export function createForgotPasswordHandler<R extends string>(
 
       const input = validateEmailInput(await readJsonBody(request));
       if (!input.success) {
-        return json({ error: input.errors[0].message, errors: input.errors }, { status: 400 });
+        return authError('validation_error', 400, {
+          message: input.errors[0].message,
+          extra: { errors: input.errors }
+        });
       }
       const { email } = input.data;
 

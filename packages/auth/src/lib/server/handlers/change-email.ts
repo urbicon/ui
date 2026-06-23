@@ -7,6 +7,7 @@ import { escapeHtml } from '../email/templates.js';
 import { enforceRateLimit, makeRateLimiter } from '../rate-limit.js';
 import { readJsonBody, validateChangeEmailInput } from '../validation.js';
 import { requireSessionUser, verifyCurrentPassword } from './_shared.js';
+import { authError } from './errors.js';
 
 /**
  * Request an email change. Re-auth gated; verification is sent to the NEW
@@ -27,17 +28,20 @@ export function createChangeEmailHandler<R extends string>(
       if (limited) return limited;
 
       const user = await requireSessionUser(deps, cookies);
-      if (!user) return json({ error: 'Not authenticated.' }, { status: 401 });
+      if (!user) return authError('not_authenticated', 401);
 
       const input = validateChangeEmailInput(await readJsonBody(request));
       if (!input.success) {
-        return json({ error: input.errors[0].message, errors: input.errors }, { status: 400 });
+        return authError('validation_error', 400, {
+          message: input.errors[0].message,
+          extra: { errors: input.errors }
+        });
       }
       const { newEmail, currentPassword } = input.data;
 
       // Re-auth before staging any change.
       if (!(await verifyCurrentPassword(user, currentPassword, deps))) {
-        return json({ error: 'Current password is incorrect.' }, { status: 403 });
+        return authError('current_password_incorrect', 403);
       }
 
       // Fire-and-forget the collision check + token write + mails, decoupled

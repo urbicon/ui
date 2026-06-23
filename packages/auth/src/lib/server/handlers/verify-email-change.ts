@@ -4,6 +4,7 @@ import { hashToken } from '../auth.js';
 import type { AuthDeps } from '../deps.js';
 import { enforceRateLimit, makeRateLimiter } from '../rate-limit.js';
 import { readJsonBody, validateTokenInput } from '../validation.js';
+import { authError } from './errors.js';
 
 /**
  * Confirm a pending email change from the link sent to the new address. Not
@@ -26,7 +27,10 @@ export function createVerifyEmailChangeHandler<R extends string>(
 
       const input = validateTokenInput(await readJsonBody(request));
       if (!input.success) {
-        return json({ error: input.errors[0].message, errors: input.errors }, { status: 400 });
+        return authError('validation_error', 400, {
+          message: input.errors[0].message,
+          extra: { errors: input.errors }
+        });
       }
       const { token } = input.data;
 
@@ -35,10 +39,9 @@ export function createVerifyEmailChangeHandler<R extends string>(
       // on an unknown/expired token or a target taken since the request.
       const user = await deps.repos.user.consumeEmailChangeToken(tokenHash);
       if (!user) {
-        return json(
-          { error: 'Invalid or expired link, or the email is no longer available.' },
-          { status: 400 }
-        );
+        return authError('invalid_token', 400, {
+          message: 'Invalid or expired link, or the email is no longer available.'
+        });
       }
 
       // user.email is the freshly-applied new address. The swap has already

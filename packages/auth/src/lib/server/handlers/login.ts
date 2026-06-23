@@ -6,6 +6,7 @@ import { enforceRateLimit, makeRateLimiter } from '../rate-limit.js';
 import { establishSession, resolveSessionMeta } from '../session.js';
 import { createPending2faToken, setPending2faCookie } from '../two-factor.js';
 import { readJsonBody, validateLoginInput } from '../validation.js';
+import { authError } from './errors.js';
 
 // A throwaway password used only to build the dummy hash for timing
 // equalization. Its value is irrelevant — the verify result is always
@@ -37,7 +38,10 @@ export function createLoginHandler<R extends string>(deps: AuthDeps<R>): { POST:
 
       const input = validateLoginInput(await readJsonBody(request));
       if (!input.success) {
-        return json({ error: input.errors[0].message, errors: input.errors }, { status: 400 });
+        return authError('validation_error', 400, {
+          message: input.errors[0].message,
+          extra: { errors: input.errors }
+        });
       }
       const { email, password } = input.data;
 
@@ -57,7 +61,7 @@ export function createLoginHandler<R extends string>(deps: AuthDeps<R>): { POST:
         // accept this deliberately.
         await verifyPasswordWithMigration(password, await dummyHash(), deps.config.password);
         await deps.config.hooks?.onLoginFailed?.(email, 'user_not_found');
-        return json({ error: 'Invalid email or password.' }, { status: 401 });
+        return authError('invalid_credentials', 401);
       }
 
       // Lockout check (refuse before doing the expensive PBKDF2 verify).
@@ -66,7 +70,7 @@ export function createLoginHandler<R extends string>(deps: AuthDeps<R>): { POST:
       if (lockout) {
         const attempts = await deps.repos.user.getFailedLoginAttempts(user.id);
         if (attempts.lockedUntil && attempts.lockedUntil > new Date()) {
-          return json({ error: 'Account locked. Please try again later.' }, { status: 423 });
+          return authError('account_locked', 423);
         }
       }
 
@@ -78,7 +82,7 @@ export function createLoginHandler<R extends string>(deps: AuthDeps<R>): { POST:
       if (!result.valid) {
         await deps.repos.user.recordFailedLogin(user.id, lockout);
         await deps.config.hooks?.onLoginFailed?.(email, 'invalid_password');
-        return json({ error: 'Invalid email or password.' }, { status: 401 });
+        return authError('invalid_credentials', 401);
       }
 
       // Transparent rehash: bcrypt → PBKDF2, or upgrade iteration count

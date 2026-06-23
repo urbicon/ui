@@ -2,6 +2,7 @@
   import { Button, Input, Card, Alert } from '@urbicon-ui/blocks';
   import { useAuthLocale } from '../../../i18n/index.js';
   import { csrfFetch } from '../../csrf.js';
+  import { errorMessageFromCode } from '../../utils/error-message.js';
   import type { ResetPasswordPageProps } from './index.js';
 
   let {
@@ -50,7 +51,9 @@
       );
       const data = await res.json();
       if (!res.ok) {
-        error = data.error ?? t.auth.resetPassword.errors.invalidToken;
+        error =
+          errorMessageFromCode(data.code, t, data.error) ??
+          t.auth.resetPassword.errors.invalidToken;
         return;
       }
       success = true;

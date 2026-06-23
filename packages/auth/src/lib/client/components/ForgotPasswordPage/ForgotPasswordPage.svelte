@@ -2,6 +2,7 @@
   import { Button, Input, Card, Alert } from '@urbicon-ui/blocks';
   import { useAuthLocale } from '../../../i18n/index.js';
   import { csrfFetch } from '../../csrf.js';
+  import { errorMessageFromCode } from '../../utils/error-message.js';
   import type { ForgotPasswordPageProps } from './index.js';
 
   let {
@@ -42,7 +43,7 @@
       );
       if (!res.ok) {
         const data = await res.json();
-        error = data.error ?? 'Request failed';
+        error = errorMessageFromCode(data.code, t, data.error) ?? 'Request failed';
         return;
       }
       submitted = true;

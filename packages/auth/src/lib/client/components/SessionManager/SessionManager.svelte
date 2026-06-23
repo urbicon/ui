@@ -3,6 +3,7 @@
   import { onMount } from 'svelte';
   import { useAuthLocale } from '../../../i18n/index.js';
   import { csrfFetch } from '../../csrf.js';
+  import { errorMessageFromCode } from '../../utils/error-message.js';
   import type { SessionManagerProps } from './index.js';
 
   let {
@@ -73,7 +74,10 @@
       );
       if (!res.ok) {
         const data = await res.json().catch(() => ({}));
-        error = data.error ?? t.common?.error ?? 'Failed to sign out the session.';
+        error =
+          errorMessageFromCode(data.code, t, data.error) ??
+          t.common?.error ??
+          'Failed to sign out the session.';
         return;
       }
       // Drop locally only once the server confirms.
@@ -92,7 +96,10 @@
       const res = await csrfFetch(`${basePath}/revoke-others`, { method: 'POST' }, csrf, fetcher);
       if (!res.ok) {
         const data = await res.json().catch(() => ({}));
-        error = data.error ?? t.common?.error ?? 'Failed to sign out other sessions.';
+        error =
+          errorMessageFromCode(data.code, t, data.error) ??
+          t.common?.error ??
+          'Failed to sign out other sessions.';
         return;
       }
       await loadSessions();

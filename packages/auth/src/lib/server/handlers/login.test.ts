@@ -93,6 +93,10 @@ describe('createLoginHandler', () => {
 
     const response = await handler.POST(event as unknown as RequestEvent);
     expect(response.status).toBe(401);
+    // Machine code + English prose both present (Issue #18).
+    const body = await response.json();
+    expect(body.error).toBe('Invalid email or password.');
+    expect(body.code).toBe('invalid_credentials');
   });
 
   it('should return 401 if password is wrong', async () => {

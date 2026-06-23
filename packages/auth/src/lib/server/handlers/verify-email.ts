@@ -4,6 +4,7 @@ import { hashToken } from '../auth.js';
 import type { AuthDeps } from '../deps.js';
 import { enforceRateLimit, makeRateLimiter } from '../rate-limit.js';
 import { readJsonBody, validateTokenInput } from '../validation.js';
+import { authError } from './errors.js';
 
 export function createVerifyEmailHandler<R extends string>(
   deps: AuthDeps<R>
@@ -17,7 +18,10 @@ export function createVerifyEmailHandler<R extends string>(
 
       const input = validateTokenInput(await readJsonBody(request));
       if (!input.success) {
-        return json({ error: input.errors[0].message, errors: input.errors }, { status: 400 });
+        return authError('validation_error', 400, {
+          message: input.errors[0].message,
+          extra: { errors: input.errors }
+        });
       }
       const { token } = input.data;
 
@@ -27,7 +31,9 @@ export function createVerifyEmailHandler<R extends string>(
       const user = await deps.repos.user.consumeVerificationToken(tokenHash);
 
       if (!user) {
-        return json({ error: 'Invalid or expired verification token.' }, { status: 400 });
+        return authError('invalid_token', 400, {
+          message: 'Invalid or expired verification token.'
+        });
       }
 
       return json({ success: true });

@@ -23,6 +23,7 @@ import {
 } from '../two-factor.js';
 import { readJsonBody, validateDisable2faInput, validateTotpInput } from '../validation.js';
 import { requireSessionUser, verifyCurrentPassword } from './_shared.js';
+import { authError } from './errors.js';
 
 // The 2FA setup/enable response carries the secret/codes the user must capture
 // once — never let a shared cache store it (same rationale as the `me` endpoint).
@@ -43,16 +44,16 @@ export function createTwoFactorSetupHandler<R extends string>(
     POST: async (event) => {
       const { config, repos } = deps;
       const user = await requireSessionUser(deps, event.cookies);
-      if (!user) return json({ error: 'Not authenticated.' }, { status: 401, headers: NO_STORE });
+      if (!user) return authError('not_authenticated', 401, { headers: NO_STORE });
 
       if (!config.twoFactor) {
-        return json({ error: 'Two-factor is not available.' }, { status: 400, headers: NO_STORE });
+        return authError('feature_unavailable', 400, {
+          message: 'Two-factor is not available.',
+          headers: NO_STORE
+        });
       }
       if (user.totpEnabled) {
-        return json(
-          { error: 'Two-factor is already enabled.' },
-          { status: 400, headers: NO_STORE }
-        );
+        return authError('two_factor_already_enabled', 400, { headers: NO_STORE });
       }
 
       const secret = generateTotpSecret();
@@ -86,42 +87,40 @@ export function createTwoFactorEnableHandler<R extends string>(
     POST: async (event) => {
       const { config, repos } = deps;
       const user = await requireSessionUser(deps, event.cookies);
-      if (!user) return json({ error: 'Not authenticated.' }, { status: 401, headers: NO_STORE });
+      if (!user) return authError('not_authenticated', 401, { headers: NO_STORE });
 
       if (!config.twoFactor || !repos.backupCode) {
-        return json({ error: 'Two-factor is not available.' }, { status: 400, headers: NO_STORE });
+        return authError('feature_unavailable', 400, {
+          message: 'Two-factor is not available.',
+          headers: NO_STORE
+        });
       }
       if (user.totpEnabled) {
-        return json(
-          { error: 'Two-factor is already enabled.' },
-          { status: 400, headers: NO_STORE }
-        );
+        return authError('two_factor_already_enabled', 400, { headers: NO_STORE });
       }
       if (!user.totpSecret) {
-        return json({ error: 'Start two-factor setup first.' }, { status: 400, headers: NO_STORE });
+        return authError('two_factor_setup_required', 400, { headers: NO_STORE });
       }
 
       const input = validateTotpInput(await readJsonBody(event.request));
       if (!input.success) {
-        return json(
-          { error: input.errors[0].message, errors: input.errors },
-          { status: 400, headers: NO_STORE }
-        );
+        return authError('validation_error', 400, {
+          message: input.errors[0].message,
+          extra: { errors: input.errors },
+          headers: NO_STORE
+        });
       }
 
       const secret = await decryptSecret(user.totpSecret, config.twoFactor.encryptionKey);
       if (secret === null) {
         // The stored secret can't be decrypted (encryptionKey changed since
         // setup, or corruption) — a server-side fault, not a bad code.
-        return json(
-          { error: 'Could not read the stored secret.' },
-          { status: 500, headers: NO_STORE }
-        );
+        return authError('totp_secret_unreadable', 500, { headers: NO_STORE });
       }
 
       const valid = await verifyTotp(secret, input.data.code, resolveTotpOptions(config.twoFactor));
       if (!valid) {
-        return json({ error: 'Invalid code.' }, { status: 400, headers: NO_STORE });
+        return authError('invalid_code', 400, { headers: NO_STORE });
       }
 
       // Issue backup codes BEFORE flipping the flag: if the flag write fails the
@@ -149,16 +148,19 @@ export function createTwoFactorDisableHandler<R extends string>(
     POST: async (event) => {
       const { repos } = deps;
       const user = await requireSessionUser(deps, event.cookies);
-      if (!user) return json({ error: 'Not authenticated.' }, { status: 401 });
+      if (!user) return authError('not_authenticated', 401);
 
       const input = validateDisable2faInput(await readJsonBody(event.request));
       if (!input.success) {
-        return json({ error: input.errors[0].message, errors: input.errors }, { status: 400 });
+        return authError('validation_error', 400, {
+          message: input.errors[0].message,
+          extra: { errors: input.errors }
+        });
       }
 
       // Re-auth before removing a security factor.
       if (!(await verifyCurrentPassword(user, input.data.currentPassword, deps))) {
-        return json({ error: 'Current password is incorrect.' }, { status: 403 });
+        return authError('current_password_incorrect', 403);
       }
 
       // Disable first (the security-relevant write), then clear backup codes.
@@ -199,22 +201,19 @@ export function createTwoFactorVerifyHandler<R extends string>(
       if (limited) return limited;
 
       if (!config.twoFactor || !repos.backupCode) {
-        return json({ error: 'Two-factor is not available.' }, { status: 400 });
+        return authError('feature_unavailable', 400, { message: 'Two-factor is not available.' });
       }
 
       const pending = readPending2faCookie(cookies, config);
       if (!pending) {
-        return json({ error: 'No pending two-factor challenge.' }, { status: 400 });
+        return authError('no_2fa_challenge', 400);
       }
 
       const userId = await verifyPending2faToken(pending, config);
       if (!userId) {
         // Expired or forged — drop the dead cookie so the client restarts login.
         clearPending2faCookie(cookies, config);
-        return json(
-          { error: 'Two-factor challenge expired. Please sign in again.' },
-          { status: 400 }
-        );
+        return authError('two_factor_challenge_expired', 400);
       }
 
       const user = await repos.user.findById(userId);
@@ -222,21 +221,21 @@ export function createTwoFactorVerifyHandler<R extends string>(
         // The user vanished or 2FA was disabled since the password step — the
         // pending cookie is meaningless now.
         clearPending2faCookie(cookies, config);
-        return json(
-          { error: 'Two-factor challenge expired. Please sign in again.' },
-          { status: 400 }
-        );
+        return authError('two_factor_challenge_expired', 400);
       }
 
       const input = validateTotpInput(await readJsonBody(event.request));
       if (!input.success) {
-        return json({ error: input.errors[0].message, errors: input.errors }, { status: 400 });
+        return authError('validation_error', 400, {
+          message: input.errors[0].message,
+          extra: { errors: input.errors }
+        });
       }
       const code = input.data.code;
 
       const secret = await decryptSecret(user.totpSecret, config.twoFactor.encryptionKey);
       if (secret === null) {
-        return json({ error: 'Could not read the stored secret.' }, { status: 500 });
+        return authError('totp_secret_unreadable', 500);
       }
 
       // Try the TOTP code first; a non-numeric/wrong code falls through to a
@@ -249,7 +248,7 @@ export function createTwoFactorVerifyHandler<R extends string>(
       if (!verified) {
         // Leave the pending cookie in place: the user may retry within the TTL,
         // and the rate limiter (not cookie invalidation) bounds brute force.
-        return json({ error: 'Invalid code.' }, { status: 401 });
+        return authError('invalid_code', 401);
       }
 
       // Success: consume the single-use pending cookie and start the real

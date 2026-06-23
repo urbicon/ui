@@ -2,6 +2,33 @@ import type { AuthLocale } from './keys.js';
 
 export const de = {
   auth: {
+    errors: {
+      invitationRequired: 'Eine Einladung ist erforderlich.',
+      invitationUsed: 'Diese Einladung wurde bereits verwendet.',
+      emailTaken: 'Diese E-Mail-Adresse ist bereits registriert.',
+      emailInvited: 'Diese E-Mail-Adresse wurde bereits eingeladen.',
+      invalidCredentials: 'Ungültige E-Mail oder Passwort.',
+      accountLocked: 'Konto gesperrt. Bitte versuche es später erneut.',
+      emailUnverified: 'Bitte bestätige zuerst deine E-Mail-Adresse.',
+      invalidToken: 'Dieser Link ist ungültig oder abgelaufen.',
+      currentPasswordIncorrect: 'Das aktuelle Passwort ist falsch.',
+      notAuthenticated: 'Bitte melde dich an, um fortzufahren.',
+      forbidden: 'Dazu hast du keine Berechtigung.',
+      invalidCode: 'Ungültiger Code. Bitte versuche es erneut.',
+      no2faChallenge: 'Keine ausstehende Zwei-Faktor-Anfrage.',
+      twoFactorChallengeExpired:
+        'Die Zwei-Faktor-Anfrage ist abgelaufen. Bitte melde dich erneut an.',
+      twoFactorAlreadyEnabled: 'Die Zwei-Faktor-Authentifizierung ist bereits aktiviert.',
+      twoFactorSetupRequired: 'Starte zuerst die Einrichtung der Zwei-Faktor-Authentifizierung.',
+      totpSecretUnreadable:
+        'Der gespeicherte Schlüssel konnte nicht gelesen werden. Bitte erneut versuchen.',
+      sessionNotFound: 'Sitzung nicht gefunden.',
+      missingRefreshToken: 'Deine Sitzung ist abgelaufen. Bitte melde dich erneut an.',
+      invalidRefreshToken: 'Deine Sitzung ist abgelaufen. Bitte melde dich erneut an.',
+      featureUnavailable: 'Diese Funktion ist nicht verfügbar.',
+      validationError: 'Bitte überprüfe deine Eingabe und versuche es erneut.',
+      serverError: 'Etwas ist schiefgelaufen. Bitte versuche es erneut.'
+    },
     login: {
       title: 'Anmelden',
       email: 'E-Mail-Adresse',

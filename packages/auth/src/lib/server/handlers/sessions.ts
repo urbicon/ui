@@ -6,6 +6,7 @@ import type { AuthDeps } from '../deps.js';
 import { readRefreshCookie } from '../refresh-token.js';
 import { readJsonBody } from '../validation.js';
 import { requireSessionUser } from './_shared.js';
+import { authError } from './errors.js';
 
 /**
  * A user-facing summary of one active session (one refresh-token family). The
@@ -52,7 +53,7 @@ export function createListSessionsHandler<R extends string>(
   return {
     GET: async (event) => {
       const user = await requireSessionUser(deps, event.cookies);
-      if (!user) return json({ error: 'Not authenticated.' }, { status: 401, headers: NO_STORE });
+      if (!user) return authError('not_authenticated', 401, { headers: NO_STORE });
 
       const repo = deps.repos.refreshToken;
       if (!deps.config.refreshToken || !repo) {
@@ -99,21 +100,23 @@ export function createRevokeSessionHandler<R extends string>(
   return {
     POST: async (event) => {
       const user = await requireSessionUser(deps, event.cookies);
-      if (!user) return json({ error: 'Not authenticated.' }, { status: 401 });
+      if (!user) return authError('not_authenticated', 401);
 
       const repo = deps.repos.refreshToken;
       if (!deps.config.refreshToken || !repo) {
-        return json({ error: 'Session management is not available.' }, { status: 400 });
+        return authError('feature_unavailable', 400, {
+          message: 'Session management is not available.'
+        });
       }
 
       const body = (await readJsonBody(event.request)) as { id?: unknown };
       const rawId: unknown = event.params?.id ?? body.id;
       if (typeof rawId !== 'string' || rawId.length === 0) {
-        return json({ error: 'A session id is required.' }, { status: 400 });
+        return authError('validation_error', 400, { message: 'A session id is required.' });
       }
 
       const revoked = await repo.revokeFamilyForUser(user.id, rawId);
-      if (!revoked) return json({ error: 'Session not found.' }, { status: 404 });
+      if (!revoked) return authError('session_not_found', 404);
       return json({ success: true });
     }
   };
@@ -130,11 +133,13 @@ export function createRevokeOtherSessionsHandler<R extends string>(
   return {
     POST: async (event) => {
       const user = await requireSessionUser(deps, event.cookies);
-      if (!user) return json({ error: 'Not authenticated.' }, { status: 401 });
+      if (!user) return authError('not_authenticated', 401);
 
       const repo = deps.repos.refreshToken;
       if (!deps.config.refreshToken || !repo) {
-        return json({ error: 'Session management is not available.' }, { status: 400 });
+        return authError('feature_unavailable', 400, {
+          message: 'Session management is not available.'
+        });
       }
 
       // Keep the current family; '' keeps nothing if the request has no live

@@ -4,6 +4,7 @@ import { hashPassword, hashToken, validatePasswordStrength } from '../auth.js';
 import type { AuthDeps } from '../deps.js';
 import { enforceRateLimit, makeRateLimiter } from '../rate-limit.js';
 import { readJsonBody, validateResetPasswordInput } from '../validation.js';
+import { authError } from './errors.js';
 
 export function createResetPasswordHandler<R extends string>(
   deps: AuthDeps<R>
@@ -17,13 +18,19 @@ export function createResetPasswordHandler<R extends string>(
 
       const input = validateResetPasswordInput(await readJsonBody(request));
       if (!input.success) {
-        return json({ error: input.errors[0].message, errors: input.errors }, { status: 400 });
+        return authError('validation_error', 400, {
+          message: input.errors[0].message,
+          extra: { errors: input.errors }
+        });
       }
       const { token, password } = input.data;
 
       const passwordErrors = validatePasswordStrength(password, deps.config.password);
       if (passwordErrors.length > 0) {
-        return json({ error: passwordErrors[0], errors: passwordErrors }, { status: 400 });
+        return authError('validation_error', 400, {
+          message: passwordErrors[0],
+          extra: { errors: passwordErrors }
+        });
       }
 
       // Hash before claiming so the expensive PBKDF2 work sits outside the
@@ -37,7 +44,7 @@ export function createResetPasswordHandler<R extends string>(
       // A second concurrent attempt with the same token gets null → 400.
       const user = await deps.repos.user.consumeResetToken(tokenHash);
       if (!user) {
-        return json({ error: 'Invalid or expired reset token.' }, { status: 400 });
+        return authError('invalid_token', 400, { message: 'Invalid or expired reset token.' });
       }
 
       await deps.repos.user.updatePassword(user.id, newHash);

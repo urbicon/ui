@@ -6,6 +6,7 @@ import type { AuthDeps } from '../deps.js';
 import { escapeHtml } from '../email/templates.js';
 import { getSessionFromCookie } from '../session.js';
 import { readJsonBody, validateInvitationInput } from '../validation.js';
+import { authError } from './errors.js';
 
 export interface InvitationHandlerOptions<R extends string = string> {
   /**
@@ -94,15 +95,15 @@ export function createInvitationHandlers<R extends string>(
     cookies: Parameters<RequestHandler>[0]['cookies']
   ): Promise<{ user: AuthUser<R> } | Response> {
     const session = await getSessionFromCookie<R>(cookies, deps.config.jwt);
-    if (!session) return json({ error: 'Unauthorized' }, { status: 401 });
+    if (!session) return authError('not_authenticated', 401, { message: 'Unauthorized' });
 
     const full = await deps.repos.user.findById(session.userId);
     if (!full || full.tokenVersion !== session.tokenVersion) {
-      return json({ error: 'Unauthorized' }, { status: 401 });
+      return authError('not_authenticated', 401, { message: 'Unauthorized' });
     }
 
     const user = sanitizeUser(full);
-    if (!(await authorize(user))) return json({ error: 'Forbidden' }, { status: 403 });
+    if (!(await authorize(user))) return authError('forbidden', 403);
     return { user };
   }
 
@@ -121,7 +122,10 @@ export function createInvitationHandlers<R extends string>(
 
       const input = validateInvitationInput(await readJsonBody(request), roles);
       if (!input.success) {
-        return json({ error: input.errors[0].message, errors: input.errors }, { status: 400 });
+        return authError('validation_error', 400, {
+          message: input.errors[0].message,
+          extra: { errors: input.errors }
+        });
       }
       const { email, role, sendEmail } = input.data;
 
@@ -131,11 +135,11 @@ export function createInvitationHandlers<R extends string>(
       // (e.g. the in-memory one) from surfacing as a 500.
       const existingUser = await deps.repos.user.findByEmail(email);
       if (existingUser) {
-        return json({ error: 'This email is already registered.' }, { status: 409 });
+        return authError('email_taken', 409);
       }
       const existingInvite = await deps.repos.invitation.findByEmail(email);
       if (existingInvite) {
-        return json({ error: 'This email has already been invited.' }, { status: 409 });
+        return authError('email_invited', 409);
       }
 
       const invitation = await deps.repos.invitation.create({
@@ -189,7 +193,9 @@ export function createInvitationHandlers<R extends string>(
       if (auth instanceof Response) return auth;
 
       const id = params.id;
-      if (!id) return json({ error: 'Invitation id is required.' }, { status: 400 });
+      if (!id) {
+        return authError('validation_error', 400, { message: 'Invitation id is required.' });
+      }
 
       await deps.repos.invitation.delete(id);
       return json({ success: true });

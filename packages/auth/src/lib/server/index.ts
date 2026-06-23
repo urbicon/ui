@@ -72,6 +72,10 @@ export { createChangeEmailHandler } from './handlers/change-email.js';
 // Account management (authenticated; see docs/AUTH.md → Account Management)
 export { createChangePasswordHandler } from './handlers/change-password.js';
 export { createDeleteAccountHandler } from './handlers/delete-account.js';
+// Machine error codes returned alongside the English `error` prose, for
+// localized clients (see `errorMessageFromCode` in the client utils).
+export type { AuthErrorCode } from './handlers/errors.js';
+export { AUTH_ERROR_CODES } from './handlers/errors.js';
 export { createForgotPasswordHandler } from './handlers/forgot-password.js';
 export type { InvitationHandlerOptions } from './handlers/invitation.js';
 export { createInvitationHandlers } from './handlers/invitation.js';

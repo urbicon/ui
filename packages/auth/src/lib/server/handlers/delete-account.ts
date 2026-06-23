@@ -6,6 +6,7 @@ import { enforceRateLimit, makeRateLimiter } from '../rate-limit.js';
 import { endSession } from '../session.js';
 import { readJsonBody, validateDeleteAccountInput } from '../validation.js';
 import { requireSessionUser, verifyCurrentPassword } from './_shared.js';
+import { authError } from './errors.js';
 
 /**
  * Self-service account deletion (GDPR erasure, hard-delete). Re-auth gated. The
@@ -23,17 +24,20 @@ export function createDeleteAccountHandler<R extends string>(
       if (limited) return limited;
 
       const user = await requireSessionUser(deps, cookies);
-      if (!user) return json({ error: 'Not authenticated.' }, { status: 401 });
+      if (!user) return authError('not_authenticated', 401);
 
       const input = validateDeleteAccountInput(await readJsonBody(request));
       if (!input.success) {
-        return json({ error: input.errors[0].message, errors: input.errors }, { status: 400 });
+        return authError('validation_error', 400, {
+          message: input.errors[0].message,
+          extra: { errors: input.errors }
+        });
       }
       const { currentPassword } = input.data;
 
       // Re-auth before an irreversible delete.
       if (!(await verifyCurrentPassword(user, currentPassword, deps))) {
-        return json({ error: 'Current password is incorrect.' }, { status: 403 });
+        return authError('current_password_incorrect', 403);
       }
 
       // Archive hook BEFORE the row is gone. A throw aborts the deletion

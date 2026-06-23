@@ -3,6 +3,7 @@
   import { untrack } from 'svelte';
   import { useAuthLocale } from '../../../i18n/index.js';
   import { csrfFetch } from '../../csrf.js';
+  import { errorMessageFromCode } from '../../utils/error-message.js';
   import type { TwoFactorManagerProps } from './index.js';
 
   let {
@@ -59,8 +60,11 @@
     return { ok: res.ok, data };
   }
 
-  const errText = (data: Record<string, unknown>) =>
-    (typeof data.error === 'string' && data.error) || t.common?.error || 'An error occurred';
+  const errText = (data: Record<string, unknown>) => {
+    const code = typeof data.code === 'string' ? data.code : undefined;
+    const prose = typeof data.error === 'string' ? data.error : undefined;
+    return errorMessageFromCode(code, t, prose) ?? t.common?.error ?? 'An error occurred';
+  };
 
   async function startSetup() {
     error = '';

@@ -4,6 +4,7 @@ import { sanitizeUser } from '../auth.js';
 import type { AuthDeps } from '../deps.js';
 import { readJsonBody, validateUpdateProfileInput } from '../validation.js';
 import { requireSessionUser } from './_shared.js';
+import { authError } from './errors.js';
 
 /**
  * Update the authenticated user's mutable profile fields (v1: `name`). Not
@@ -16,11 +17,14 @@ export function createUpdateProfileHandler<R extends string>(
   return {
     POST: async ({ request, cookies }) => {
       const user = await requireSessionUser(deps, cookies);
-      if (!user) return json({ error: 'Not authenticated.' }, { status: 401 });
+      if (!user) return authError('not_authenticated', 401);
 
       const input = validateUpdateProfileInput(await readJsonBody(request));
       if (!input.success) {
-        return json({ error: input.errors[0].message, errors: input.errors }, { status: 400 });
+        return authError('validation_error', 400, {
+          message: input.errors[0].message,
+          extra: { errors: input.errors }
+        });
       }
       const { name } = input.data;
 

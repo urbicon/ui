@@ -11,6 +11,7 @@ import {
   setRefreshCookie
 } from '../refresh-token.js';
 import { clearSessionCookie, setSessionCookie } from '../session.js';
+import { authError } from './errors.js';
 
 /**
  * Explicit refresh endpoint. The handle hook already rotates transparently
@@ -40,11 +41,13 @@ export function createRefreshHandler<R extends string>(
       const refreshRepo = deps.repos.refreshToken;
 
       if (!refreshConfig || !refreshRepo) {
-        return json({ error: 'Refresh tokens are not enabled.' }, { status: 400 });
+        return authError('feature_unavailable', 400, {
+          message: 'Refresh tokens are not enabled.'
+        });
       }
 
       const raw = readRefreshCookie(cookies, refreshConfig);
-      if (!raw) return json({ error: 'Missing refresh token.' }, { status: 401 });
+      if (!raw) return authError('missing_refresh_token', 401);
 
       const outcome = await rotateRefreshToken(
         refreshRepo,
@@ -74,7 +77,7 @@ export function createRefreshHandler<R extends string>(
       if (outcome.kind !== 'rotated') {
         clearRefreshCookie(cookies, refreshConfig);
         clearSessionCookie(cookies, deps.config.jwt);
-        return json({ error: 'Invalid refresh token.' }, { status: 401, headers: NO_STORE });
+        return authError('invalid_refresh_token', 401, { headers: NO_STORE });
       }
 
       const { user, token } = outcome;

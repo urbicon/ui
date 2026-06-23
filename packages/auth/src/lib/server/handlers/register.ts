@@ -12,6 +12,7 @@ import { escapeHtml } from '../email/templates.js';
 import { enforceRateLimit, makeRateLimiter } from '../rate-limit.js';
 import { establishSession, resolveSessionMeta } from '../session.js';
 import { readJsonBody, validateRegisterInput } from '../validation.js';
+import { authError } from './errors.js';
 
 export function createRegisterHandler<R extends string>(
   deps: AuthDeps<R>
@@ -30,14 +31,20 @@ export function createRegisterHandler<R extends string>(
 
       const input = validateRegisterInput(await readJsonBody(request));
       if (!input.success) {
-        return json({ error: input.errors[0].message, errors: input.errors }, { status: 400 });
+        return authError('validation_error', 400, {
+          message: input.errors[0].message,
+          extra: { errors: input.errors }
+        });
       }
       const { email, name, password } = input.data;
 
       // Password strength validation
       const passwordErrors = validatePasswordStrength(password, deps.config.password);
       if (passwordErrors.length > 0) {
-        return json({ error: passwordErrors[0], errors: passwordErrors }, { status: 400 });
+        return authError('validation_error', 400, {
+          message: passwordErrors[0],
+          extra: { errors: passwordErrors }
+        });
       }
 
       // Account-enumeration stance (Finding M2, Cluster G.2): registration is
@@ -57,17 +64,17 @@ export function createRegisterHandler<R extends string>(
       // enumeration oracle for anyone — revisit (collapse the responses) then.
       const invitation = await deps.repos.invitation.findByEmail(email);
       if (!invitation) {
-        return json({ error: 'An invitation is required to register.' }, { status: 403 });
+        return authError('invitation_required', 403);
       }
       if (invitation.usedAt) {
-        return json({ error: 'This invitation has already been used.' }, { status: 403 });
+        return authError('invitation_used', 403);
       }
 
       // Check existing user (cheap early reject; the email unique-constraint is
       // the real serialization point on create below).
       const existing = await deps.repos.user.findByEmail(email);
       if (existing) {
-        return json({ error: 'This email is already registered.' }, { status: 409 });
+        return authError('email_taken', 409);
       }
 
       const passwordHash = await hashPassword(password, deps.config.password);
@@ -95,7 +102,9 @@ export function createRegisterHandler<R extends string>(
       // column to the schema can't silently desync the in-memory shape.
       const fullUser = await deps.repos.user.findByEmail(email);
       if (!fullUser) {
-        return json({ error: 'Registration failed. Please try again.' }, { status: 500 });
+        return authError('server_error', 500, {
+          message: 'Registration failed. Please try again.'
+        });
       }
 
       // Record consumption atomically. The create above already serialized

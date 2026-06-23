@@ -1,5 +1,36 @@
 export interface AuthLocale {
   auth: {
+    /**
+     * Localized copy for the machine `AuthErrorCode` values the server handlers
+     * return alongside the English `error` prose. The client `errorMessageFromCode`
+     * maps a code here; an unknown/missing code falls back to the server prose.
+     * Keys mirror the `AuthErrorCode` union exactly.
+     */
+    errors: {
+      invitationRequired: string;
+      invitationUsed: string;
+      emailTaken: string;
+      emailInvited: string;
+      invalidCredentials: string;
+      accountLocked: string;
+      emailUnverified: string;
+      invalidToken: string;
+      currentPasswordIncorrect: string;
+      notAuthenticated: string;
+      forbidden: string;
+      invalidCode: string;
+      no2faChallenge: string;
+      twoFactorChallengeExpired: string;
+      twoFactorAlreadyEnabled: string;
+      twoFactorSetupRequired: string;
+      totpSecretUnreadable: string;
+      sessionNotFound: string;
+      missingRefreshToken: string;
+      invalidRefreshToken: string;
+      featureUnavailable: string;
+      validationError: string;
+      serverError: string;
+    };
     login: {
       title: string;
       email: string;

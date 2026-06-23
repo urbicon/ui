@@ -6,6 +6,7 @@ import { enforceRateLimit, makeRateLimiter } from '../rate-limit.js';
 import { establishSession, resolveSessionMeta } from '../session.js';
 import { readJsonBody, validateChangePasswordInput } from '../validation.js';
 import { requireSessionUser, verifyCurrentPassword } from './_shared.js';
+import { authError } from './errors.js';
 
 /**
  * Authenticated password change. Re-auth (current password) is required, the
@@ -24,22 +25,28 @@ export function createChangePasswordHandler<R extends string>(
       if (limited) return limited;
 
       const user = await requireSessionUser(deps, cookies);
-      if (!user) return json({ error: 'Not authenticated.' }, { status: 401 });
+      if (!user) return authError('not_authenticated', 401);
 
       const input = validateChangePasswordInput(await readJsonBody(request));
       if (!input.success) {
-        return json({ error: input.errors[0].message, errors: input.errors }, { status: 400 });
+        return authError('validation_error', 400, {
+          message: input.errors[0].message,
+          extra: { errors: input.errors }
+        });
       }
       const { currentPassword, newPassword } = input.data;
 
       // Re-auth: confirm the current password before allowing the change.
       if (!(await verifyCurrentPassword(user, currentPassword, deps))) {
-        return json({ error: 'Current password is incorrect.' }, { status: 403 });
+        return authError('current_password_incorrect', 403);
       }
 
       const passwordErrors = validatePasswordStrength(newPassword, deps.config.password);
       if (passwordErrors.length > 0) {
-        return json({ error: passwordErrors[0], errors: passwordErrors }, { status: 400 });
+        return authError('validation_error', 400, {
+          message: passwordErrors[0],
+          extra: { errors: passwordErrors }
+        });
       }
 
       const newHash = await hashPassword(newPassword, deps.config.password);

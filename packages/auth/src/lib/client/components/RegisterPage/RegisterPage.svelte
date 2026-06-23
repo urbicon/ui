@@ -3,6 +3,7 @@
   import { untrack } from 'svelte';
   import { useAuthLocale } from '../../../i18n/index.js';
   import { csrfFetch } from '../../csrf.js';
+  import { errorMessageFromCode } from '../../utils/error-message.js';
   import type { RegisterPageProps } from './index.js';
 
   let {
@@ -103,7 +104,7 @@
       );
       const data = await res.json();
       if (!res.ok) {
-        error = data.error ?? 'Registration failed';
+        error = errorMessageFromCode(data.code, t, data.error) ?? 'Registration failed';
         return;
       }
       onSuccess?.();
