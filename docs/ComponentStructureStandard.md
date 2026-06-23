@@ -19,7 +19,7 @@ The props interface extends `ComponentVariants` and relevant HTML attributes. Pr
 ```typescript
 import type { Snippet } from 'svelte';
 import type { HTMLAttributes } from 'svelte/elements';
-import type { ComponentVariants } from './component.variants';
+import type { ComponentSlots, ComponentVariants } from './component.variants';
 import type { MintProp } from '$lib/mint';
 
 export interface ComponentNameProps
@@ -32,6 +32,14 @@ export interface ComponentNameProps
   mint?: MintProp;
   'aria-label'?: string;
   id?: string;
+
+  // === Styling === (every visible component ships all three — see COMPONENT-API-CONVENTIONS.md)
+  /** Remove default tv() classes — only user-provided classes apply. */
+  unstyled?: boolean;
+  /** Per-slot class overrides merged with tv() styles. Keys come from the tv() config. */
+  slotClasses?: Partial<Record<ComponentSlots, string>>;
+  /** Apply a named preset registered via `<BlocksProvider presets={{ ComponentName: {...} }}>`. */
+  preset?: string;
 }
 
 export { componentVariants, type ComponentVariants } from './component.variants';
@@ -55,6 +63,8 @@ export interface CheckboxProps
 
 Internal variant props that are not part of the public API (e.g. `elementType`) should also be excluded via `Omit`.
 
+A compound subcomponent that only owns a slice of the parent's slots constrains its `slotClasses` keys from the derived `*Slots` type via `Exclude`/`Extract`/`Pick` — never a hand-written union that drifts when a slot is renamed. `AccordionItem` uses `Partial<Record<Exclude<AccordionSlots, 'base'>, string>>`; `TabItem` uses `Partial<Record<Extract<TabSlots, 'trigger' | 'icon' | 'label' | 'badge'>, string>>`.
+
 ### Compound Components: Context Interface
 
 For compound components (ButtonGroup + Button, Menu + MenuItem), define the context interface in the parent component's `index.ts`. Context values must be reactive (getters, not snapshots):
@@ -77,8 +87,9 @@ Imports the props type from `index.ts` – no redefinition. Uses `$props()` with
 
 ```svelte
 <script lang="ts">
+  import { getBlocksConfig, resolveSlotClasses } from '$lib/provider';
   import type { ComponentNameProps } from './index';
-  import { componentVariants } from './component.variants';
+  import { componentVariants, type ComponentVariants } from './component.variants';
 
   let {
     children,
@@ -87,17 +98,67 @@ Imports the props type from `index.ts` – no redefinition. Uses `$props()` with
     intent = 'primary',
     disabled = false,
     class: className = '',
+    unstyled: unstyledProp = false,
+    slotClasses: slotClassesProp = {},
+    preset,
     ...restProps
   }: ComponentNameProps = $props();
+
+  const blocksConfig = getBlocksConfig();
+  const unstyled = $derived(unstyledProp || blocksConfig?.unstyled || false);
+
+  // Variant props feed both the tv() style computation and the slot-class
+  // cascade — extracted into one derived so `resolveSlotClasses` can match
+  // conditional `overrides` against the component's active variants.
+  // The `: ComponentVariants` annotation is MANDATORY: without it, the
+  // string-literal ternaries below widen to `string` and stop matching the
+  // tv() variant keys (silent loss of styling + overrides).
+  const variantProps: ComponentVariants = $derived({
+    variant,
+    size,
+    intent,
+    disabled: disabled || undefined
+  });
+
+  const styles = $derived(componentVariants(variantProps));
+
+  const slotClasses = $derived(
+    resolveSlotClasses(blocksConfig, 'ComponentName', preset, variantProps, slotClassesProp)
+  );
 </script>
+
+<button
+  class={[
+    'blocks-componentname',
+    unstyled
+      ? [slotClasses?.base, className].filter(Boolean).join(' ')
+      : styles.base({ class: [slotClasses?.base, className] })
+  ]}
+  {...restProps}
+>
+  {@render children?.()}
+</button>
 ```
+
+The root slot folds `class` and `slotClasses.base` together (so `class` reaches the outermost element); every **other** slot reads only `slotClasses.<slot>`:
+
+```svelte
+<!-- Multi-slot pattern (e.g. Input, whose root slot is `wrapper`, not `base`) -->
+<span
+  class={unstyled ? (slotClasses?.icon ?? '') : styles.icon({ class: slotClasses?.icon })}
+>
+  …
+</span>
+```
+
+**Every declared tv-slot must be wired in the markup.** A slot that exists in `*.variants.ts` (and therefore in `ComponentSlots`) but is never rendered with `styles.<slot>(…)` / `slotClasses?.<slot>` is dead surface — it autocompletes for the consumer but silently does nothing. Typed == wired.
 
 ## component.variants.ts
 
 Uses the in-house `tv()` engine (`$lib/utils/variants`, ~600 LoC, zero-dep) with slots, variants, and semantic design tokens (see [COMPONENT-API-CONVENTIONS.md](COMPONENT-API-CONVENTIONS.md)):
 
 ```typescript
-import { tv, type VariantProps } from '$lib/utils/variants';
+import { tv, type SlotNames, type VariantProps } from '$lib/utils/variants';
 
 export const componentVariants = tv({
   slots: {
@@ -112,6 +173,8 @@ export const componentVariants = tv({
 });
 
 export type ComponentVariants = VariantProps<typeof componentVariants>;
+/** Slot names derived from the tv() config — single source of truth for slotClasses. */
+export type ComponentSlots = SlotNames<typeof componentVariants>;
 ```
 
 ### Variant Interactions and CSS Cascade

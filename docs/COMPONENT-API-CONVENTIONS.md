@@ -237,13 +237,28 @@ This allows hover/focus/cursor styles to be enabled without requiring a click ha
 
 ## `slotClasses`
 
-Per-slot class overrides typed as `Partial<Record<slotName, string>>`. Slot names match the keys in the component's `tv()` definition:
+Per-slot class overrides typed as `Partial<Record<XSlots, string>>`, where the key union is **derived from the component's `tv()` slots** — never a hand-maintained literal union (which silently drifts when a slot is added or renamed). The `*.variants.ts` exports the slot-name type alongside its `VariantProps`:
 
 ```typescript
-slotClasses?: Partial<Record<'wrapper' | 'control' | 'box' | 'icon' | 'label' | 'message', string>>;
+// x.variants.ts
+import { tv, type SlotNames, type VariantProps } from '$lib/utils/variants';
+
+export const xVariants = tv({ slots: { wrapper: [...], base: [...], icon: [...], message: [...] }, ... });
+
+export type XVariants = VariantProps<typeof xVariants>;
+export type XSlots = SlotNames<typeof xVariants>; // 'wrapper' | 'base' | 'icon' | 'message'
+
+// index.ts
+slotClasses?: Partial<Record<XSlots, string>>;
 ```
 
-When `unstyled` is `false`, `slotClasses` values are merged with default tv() classes. When `unstyled` is `true`, they replace them entirely.
+`SlotNames<T>` (in `$lib/utils/variants`) is the companion to `VariantProps<T>` — it reads `keyof ReturnType<T>` off the slotted `tv()` function, so the one source of truth (the `tv({ slots })` config) drives both the runtime classes and the prop type. Consumers get autocomplete on the real slot names and a type error on typos.
+
+When `unstyled` is `false`, `slotClasses` values are merged with the default tv() classes; when `unstyled` is `true`, they replace them entirely. Components resolve the value through `resolveSlotClasses(blocksConfig, 'Name', preset, variantProps, slotClassesProp)`, which composes the full cascade (weakest → strongest):
+
+`defaults.slotClasses → defaults.overrides[match] → preset.slotClasses → preset.overrides[match] → instance.slotClasses → class`
+
+Conflicts are resolved per Tailwind bucket (the later source wins for a given property; non-conflicting classes accumulate) — so an instance `rounded-none` deterministically defeats a provider-default `rounded-full` instead of leaving the winner to stylesheet order.
 
 For **project-wide** overrides, register them on `BlocksProvider` rather than repeating `slotClasses` at each call site: `defaults` (unconditional, every instance), `presets` (opt-in, named), or `overrides` (prop-conditional — e.g. only `variant="outlined"`). See [ARCHITECTURE.md → Preset System](./ARCHITECTURE.md#preset-system-since-v080).
 
@@ -252,6 +267,22 @@ To restyle an embedded component (e.g. make an Input look borderless inside a cu
 ```svelte
 <Input slotClasses={{ base: 'border-0 bg-transparent focus-visible:ring-0' }} />
 ```
+
+### `class` only hits the root slot
+
+The `class` prop reaches the **outermost (root) slot only**; inner elements are reachable solely through `slotClasses.<slot>`. By convention `base` is the interactive core element — but for wrapper components the root slot is **not** `base`. On `Input` the root is `wrapper` (the label + field column) and `base` is the actual `<input>`, so `<Input class="rounded-full" />` rounds the column, not the field; the field needs `<Input slotClasses={{ base: 'rounded-full' }} />`. (Same story for any multi-slot component — see the [Customization → class Root-Slot Trap](../apps/docs/src/routes/customization/+page.svelte) page.)
+
+### The override ladder
+
+Reach for the lowest rung that solves the problem — lower rungs preserve more of the system's behavior (dark mode, hover/active cascade, focus rings):
+
+1. **`class`** — restyle one element (the root slot) on one instance.
+2. **`slotClasses.<slot>`** — restyle an inner element on one instance.
+3. **`preset` / `BlocksProvider` defaults** — app-wide look for a component type.
+4. **`overrides`** — style only one variant / intent / state (prop-conditional — what unconditional `slotClasses` cannot express).
+5. **`unstyled` + `slotClasses`** — strip every default and rebuild the look.
+
+The implementation hinge is one type-annotated `variantProps` derived in `ComponentName.svelte` (`const variantProps: XVariants = $derived({ … })`). It feeds both `styles = xVariants(variantProps)` and the `activeProps` argument of `resolveSlotClasses`, so the `tv()` output and the prop-conditional `overrides` always match against the same set of active variants. The annotation is mandatory — without it the string-literal ternaries widen to `string` and silently stop matching the variant keys.
 
 ## Polymorphic Elements (Link-Buttons, Anchor-as-Card, etc.)
 
