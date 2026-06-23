@@ -17,12 +17,42 @@ import { mkdir, readFile, writeFile } from 'node:fs/promises';
 import { dirname, join, relative, resolve } from 'node:path';
 import { createManifestTemplate } from '@urbicon-ui/design-engine/manifest';
 import { boolFlag, type Flags, stringFlag } from '../args.js';
+import { readConsumerDependencies } from '../installed.js';
 import { resolveManifestPath } from '../manifest-io.js';
 import { EXIT, printError } from '../output.js';
 import { findPackageRoot } from '../package-root.js';
 
 const BLOCK_START = '<!-- urbicon:start';
 const BLOCK_END = '<!-- urbicon:end -->';
+
+/**
+ * The Tailwind 4 wiring step for the "next steps" output. Components emit Tailwind
+ * utility classes (`bg-surface-base`, …) that need a backing build, so without this a
+ * fresh project renders unstyled — and the `@source` on the blocks dist is the
+ * non-obvious, easy-to-miss line that actually generates those classes. `init` only
+ * scaffolds the design loop (it never edits `vite.config.ts`), so this is documented
+ * rather than auto-wired; we tailor it to what's already installed.
+ */
+function tailwindSteps(deps: Set<string> | null): string[] {
+  const has = (p: string): boolean => deps?.has(p) ?? false;
+  const tailwindWired = has('@tailwindcss/vite') || has('tailwindcss');
+  if (tailwindWired) {
+    return [
+      "  • Tailwind is installed — ensure your `app.css` has `@source '../node_modules/@urbicon-ui/blocks/dist';`",
+      "    (relative to app.css) so the components' utility classes are generated. Easy to miss."
+    ];
+  }
+  return [
+    '  • Wire up Tailwind 4 — REQUIRED, or components render unstyled (they emit Tailwind classes):',
+    '      1. bun add -D tailwindcss @tailwindcss/vite',
+    '      2. vite.config.ts → add the `tailwindcss()` plugin',
+    '      3. src/app.css →',
+    "           @import 'tailwindcss';",
+    "           @import '@urbicon-ui/blocks/style/index.css';",
+    "           @source '../node_modules/@urbicon-ui/blocks/dist';   /* generates component classes */",
+    "      4. import './app.css' in your root +layout.svelte"
+  ];
+}
 
 /** Read a packaged template (`templates/<name>`), or throw a clear error. */
 async function readTemplate(name: string): Promise<string> {
@@ -165,6 +195,7 @@ export async function runInit(_positionals: string[], flags: Flags): Promise<num
   for (const d of done) console.log(`  ✓ ${d}`);
   for (const s of skipped) console.log(`  · ${s}`);
   console.log('\nNext steps:');
+  for (const line of tailwindSteps(readConsumerDependencies())) console.log(line);
   console.log(
     '  • Make sure your agent reads AGENTS.md (or paste the block into CLAUDE.md / .cursorrules).'
   );
