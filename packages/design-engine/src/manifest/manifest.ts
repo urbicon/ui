@@ -106,35 +106,62 @@ function parseIntent(body: string): ProductIntent {
   if (section === null) return emptyIntent();
   const lines = section.split('\n');
 
+  // A line that opens a different labelled field, or a heading — either terminates
+  // the value currently being gathered.
+  const isFieldOrHeading = (l: string): boolean => /^\*\*[^*]+:\*\*/.test(l) || /^#{1,6}\s/.test(l);
+
+  // `**Label:** value`, joining soft-wrapped continuation lines into one value —
+  // a Markdown line-wrap inside the value (common for a sentence-long Audience) is
+  // a continuation, not a truncation point. Stops at the first blank line, the next
+  // labelled field, or a heading.
   const inlineField = (label: string): string | undefined => {
-    const re = new RegExp(`^\\*\\*${label}:\\*\\*\\s*(.+)$`);
-    for (const l of lines) {
-      const m = l.match(re);
-      if (m) return m[1]!.trim();
+    const labelRe = new RegExp(`^\\*\\*${label}:\\*\\*\\s*(.*)$`);
+    for (let i = 0; i < lines.length; i++) {
+      const m = lines[i]!.match(labelRe);
+      if (!m) continue;
+      const parts = m[1]!.trim() ? [m[1]!.trim()] : [];
+      for (let j = i + 1; j < lines.length; j++) {
+        const l = lines[j]!;
+        if (l.trim() === '' || isFieldOrHeading(l)) break;
+        parts.push(l.trim());
+      }
+      const value = parts.join(' ').trim();
+      return value === '' ? undefined : value;
     }
     return undefined;
   };
 
-  // Items under a `**Label:**`: an inline comma list on the label line and/or the
-  // bullet lines that follow it, up to the next labelled field. Blank/prose lines
-  // in between are skipped, not treated as terminators.
+  // Items under a `**Label:**`: an inline comma list on the label line (and its
+  // soft-wrapped continuation lines) and/or the bullet lines that follow it, up to
+  // the next labelled field. Blank/prose lines are skipped, not terminators.
   const listField = (label: string): string[] => {
     const items: string[] = [];
     const labelRe = new RegExp(`^\\*\\*${label}:\\*\\*\\s*(.*)$`);
     let capturing = false;
+    let inInlineRun = false; // still gathering the soft-wrapped inline comma value
     for (const l of lines) {
       if (!capturing) {
         const m = l.match(labelRe);
         if (m) {
           capturing = true;
+          inInlineRun = true;
           const inline = m[1]!.trim();
           if (inline) items.push(...splitList(inline));
         }
         continue;
       }
-      if (/^\*\*[^*]+:\*\*/.test(l)) break; // next labelled field ends this one
+      if (isFieldOrHeading(l)) break; // next labelled field / heading ends this one
       const bullet = l.match(/^\s*[-*]\s+(.+)$/);
-      if (bullet) items.push(bullet[1]!.trim());
+      if (bullet) {
+        items.push(bullet[1]!.trim());
+        inInlineRun = false; // bullets started — later loose lines aren't inline-list continuation
+        continue;
+      }
+      if (l.trim() === '') {
+        inInlineRun = false; // blank closes the inline run (bullets may still follow)
+        continue;
+      }
+      if (inInlineRun) items.push(...splitList(l.trim())); // soft-wrapped continuation of the inline list
     }
     return items;
   };

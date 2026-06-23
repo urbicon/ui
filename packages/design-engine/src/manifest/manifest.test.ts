@@ -172,6 +172,25 @@ describe('parseManifest — product intent', () => {
     expect(parseManifest(md).intent.references).toEqual(['Linear', 'Stripe']);
   });
 
+  it('joins a soft-wrapped Audience value instead of truncating at the first line', () => {
+    const md =
+      '## Product Intent\n\n**Audience:** Homeowners with rooftop solar and a battery — non-experts who glance\nat production, consumption and savings.\n';
+    expect(parseManifest(md).intent.audience).toBe(
+      'Homeowners with rooftop solar and a battery — non-experts who glance at production, consumption and savings.'
+    );
+  });
+
+  it('keeps the continuation items of a soft-wrapped inline reference list', () => {
+    const md = '## Product Intent\n\n**References:** Linear, Stripe, Notion,\nFigma, Things\n';
+    expect(parseManifest(md).intent.references).toEqual([
+      'Linear',
+      'Stripe',
+      'Notion',
+      'Figma',
+      'Things'
+    ]);
+  });
+
   it('returns an empty intent when the section is absent', () => {
     const intent = parseManifest('# Bare\n\nsome prose\n').intent;
     expect(intent).toEqual({ voice: [], references: [], antiReferences: [] });
