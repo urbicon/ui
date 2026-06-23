@@ -10,7 +10,7 @@ export function registerGetRecipeTool(server: McpServer): void {
       scenario: z
         .string()
         .describe(
-          'Recipe id: login, settings, dashboard, pricing, profile-card, data-table, command-palette'
+          'Recipe id — e.g. login, settings, dashboard, pricing, profile-card, onboarding-flow, wizard, notification-center, or an auth flow (auth-invitation-register, auth-passkey-login, auth-password-reset). Pass any unrecognised id to get the full, current list.'
         )
     },
     { readOnlyHint: true },
