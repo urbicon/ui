@@ -78,6 +78,8 @@ app root and reference it by name; never force colours with inline `!` overrides
 </BlocksProvider>
 ```
 
+The full override ladder (weakest → strongest): `class` (root slot only) → instance `slotClasses={{ <slot>: … }}` → `BlocksProvider` `defaults`/`presets` → prop-conditional `overrides` (one variant/intent/state) → `unstyled` + `slotClasses` (strip & rebuild).
+
 **Svelte 5** — `$props()` not `export let`; `{#snippet}` / `{@render}` not `<slot>`; callback props
 (`onValueChange`) not `createEventDispatcher`; lowercase DOM events (`onclick`).
 
