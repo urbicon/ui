@@ -5,6 +5,7 @@
   import {
     Avatar,
     Badge,
+    BarChart,
     BarChartIcon,
     Button,
     Card,
@@ -82,6 +83,7 @@
     'Dec'
   ];
   const chartData = [40, 65, 45, 80, 55, 70, 85, 60, 90, 75, 95, 88];
+  const revenue = months.map((label, i) => ({ label, values: [chartData[i]] }));
 
   const recentActivity = [
     { user: 'Sarah Chen', action: 'Purchased Pro plan', time: '2 min ago' },
@@ -94,7 +96,7 @@
   const recipeCode =
     `<script lang="ts">
   import {
-    Avatar, Badge, Button, Card, Progress, Tooltip,
+    Avatar, Badge, BarChart, Button, Card, Progress, Tooltip,
     SidebarLayout, MenuIcon, HomeIcon, BarChartIcon, UsersIcon, SettingsIcon
   } from '@urbicon-ui/blocks';
 
@@ -117,6 +119,7 @@
 
   const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
   const chartData = [40, 65, 45, 80, 55, 70, 85, 60, 90, 75, 95, 88];
+  const revenue = months.map((label, i) => ({ label, values: [chartData[i]] }));
 
   const recentActivity = [
     { user: 'Sarah Chen', action: 'Purchased Pro plan', time: '2 min ago' },
@@ -200,28 +203,20 @@
 
     <Card>
       <div class="space-y-4">
-        <h3 class="text-sm font-semibold text-text-primary">Revenue Overview</h3>
-        <div class="flex h-48 items-end gap-2">
-          {#each chartData as height, i (i)}
-            <div
-              class="flex-1 rounded-t transition-all duration-(--blocks-duration-fast) hover:opacity-80"
-              style="height: {height}%; background: {i === chartData.length - 1
-                ? 'var(--color-primary)'
-                : 'var(--color-primary-subtle)'}"
-            ></div>
-          {/each}
-        </div>
-        <div class="flex justify-between gap-1 text-[10px] text-text-quaternary">
-          {#each months as month (month)}
-            <span>{month}</span>
-          {/each}
-        </div>
+        <h2 class="text-sm font-semibold text-text-primary">Revenue Overview</h2>
+        <BarChart
+          data={revenue}
+          series={[{ label: 'Revenue' }]}
+          height={192}
+          showLegend={false}
+          ariaLabel="Monthly revenue"
+        />
       </div>
     </Card>
 
     <Card>
       <div class="space-y-4">
-        <h3 class="text-sm font-semibold text-text-primary">Recent Activity</h3>
+        <h2 class="text-sm font-semibold text-text-primary">Recent Activity</h2>
         <div class="space-y-3">
           {#each recentActivity as activity (activity.user)}
             <div class="flex items-start gap-3">
@@ -369,21 +364,13 @@
           <Card>
             <div class="space-y-4">
               <h3 class="text-text-primary text-sm font-semibold">Revenue Overview</h3>
-              <div class="flex h-48 items-end gap-2">
-                {#each chartData as height, i (i)}
-                  <div
-                    class="flex-1 rounded-t transition-all duration-(--blocks-duration-fast) hover:opacity-80"
-                    style="height: {height}%; background: {i === chartData.length - 1
-                      ? 'var(--color-primary)'
-                      : 'var(--color-primary-subtle)'}"
-                  ></div>
-                {/each}
-              </div>
-              <div class="text-text-quaternary flex justify-between gap-1 text-[10px]">
-                {#each months as month (month)}
-                  <span>{month}</span>
-                {/each}
-              </div>
+              <BarChart
+                data={revenue}
+                series={[{ label: 'Revenue' }]}
+                height={192}
+                showLegend={false}
+                ariaLabel="Monthly revenue"
+              />
             </div>
           </Card>
 

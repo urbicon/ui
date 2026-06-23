@@ -87,8 +87,8 @@
         <a href="/forgot" class="text-sm text-primary">Forgot?</a>
       </div>
 
-      <Button intent="primary" class="mt-6 w-full"
-        disabled={!canSubmit} {loading}>
+      <Button intent="primary" class="mt-6 w-full" type="submit"
+        disabled={loading} {loading}>
         Sign in
       </Button>
     </form>
@@ -243,8 +243,12 @@
                         >Forgot password?</a
                       >
                     </div>
-                    <Button intent="primary" class="w-full" disabled={!canSubmit} {loading}
-                      >Sign in</Button
+                    <Button
+                      intent="primary"
+                      class="w-full"
+                      type="submit"
+                      disabled={loading}
+                      {loading}>Sign in</Button
                     >
                   </form>
                   <div class="mt-6">
