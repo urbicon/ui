@@ -4,6 +4,16 @@ All notable changes to this project will be documented in this file.
 This changelog is automatically generated from [Conventional Commits](https://www.conventionalcommits.org).
 
 
+## [6.3.1] - 2026-06-23
+
+### Bug Fixes
+- **blocks**: Make system theme follow color-scheme natively; unify dark mode on light-dark()
+- Missed changes related to refined override-architecture
+- **design-engine**: Whitelist skeleton-shimmer token
+
+### Miscellaneous
+- Add design-* packages to commitlint scope list
+
 ## [6.3.0] - 2026-06-23
 
 ### Documentation
