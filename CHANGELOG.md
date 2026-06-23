@@ -4,6 +4,14 @@ All notable changes to this project will be documented in this file.
 This changelog is automatically generated from [Conventional Commits](https://www.conventionalcommits.org).
 
 
+## [6.3.2] - 2026-06-23
+
+### Bug Fixes
+- **mcp-server**: Document border-hairline token + guard css-reference against drift
+
+### Documentation
+- **design**: Complete the override ladder in the AGENTS.md template
+
 ## [6.3.1] - 2026-06-23
 
 ### Bug Fixes
