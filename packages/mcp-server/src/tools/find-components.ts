@@ -2,7 +2,7 @@ import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { matchComponents } from '@urbicon-ui/design-engine/search';
 import { z } from 'zod';
 import { loadCatalog } from '../data/catalog-loader.js';
-import { formatCompactCatalog } from '../utils/format-catalog.js';
+import { formatCompactCatalog, formatComponentLine } from '../utils/format-catalog.js';
 
 export function registerFindComponentsTool(server: McpServer): void {
   server.tool(
@@ -43,20 +43,11 @@ export function registerFindComponentsTool(server: McpServer): void {
         let md = `# Search Results for "${query}"\n\n`;
         md += `> ${results.length} matching components.\n\n`;
 
+        // Same line format as the browse view — including the origin-package tag for
+        // non-blocks components, so a match like `Table` (from @urbicon-ui/table) is
+        // never mistaken for a blocks export.
         for (const comp of results) {
-          const variants = comp.variants
-            .filter(
-              (v) => !['true', 'false'].every((b) => v.values.includes(b) && v.values.length <= 2)
-            )
-            .map((v) => `${v.name}: ${v.values.join('/')}`)
-            .join(' · ');
-
-          md += `- **${comp.name}** — ${comp.description}`;
-          if (variants) md += ` | ${variants}`;
-          if (comp.relatedComponents.length > 0) {
-            md += ` | Related: ${comp.relatedComponents.join(', ')}`;
-          }
-          md += '\n';
+          md += formatComponentLine(comp);
         }
 
         md += '\n> Use `get_component` with the component slug for full API docs.\n';

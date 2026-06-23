@@ -110,7 +110,7 @@ function isBooleanVariant(values: string[]): boolean {
   );
 }
 
-function formatComponentLine(comp: ComponentCatalogEntry): string {
+export function formatComponentLine(comp: ComponentCatalogEntry): string {
   const variants = comp.variants
     .filter((v) => !isBooleanVariant(v.values))
     .map((v) => `${v.name}: ${v.values.join('/')}`)
