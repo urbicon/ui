@@ -8,14 +8,28 @@ import {
   validatePasswordStrength
 } from '../auth.js';
 import type { AuthDeps } from '../deps.js';
-import { escapeHtml } from '../email/templates.js';
+import type { MailBuilder } from '../email/builders.js';
+import { resolveEmailSettings } from '../email/resolve.js';
+import { buildVerificationEmail } from '../email/templates.js';
 import { enforceRateLimit, makeRateLimiter } from '../rate-limit.js';
 import { establishSession, resolveSessionMeta } from '../session.js';
 import { readJsonBody, validateRegisterInput } from '../validation.js';
 import { authError } from './errors.js';
 
+export interface RegisterHandlerOptions {
+  /**
+   * Build the email-verification mail (mirrors `inviteEmail`). Receives the
+   * resolved context (recipient `name`, verify `url`, `appName`, `from`, and the
+   * `t` bundle) and returns `{ subject, html, text }` (optionally a `from` to
+   * override the configured sender). Defaults to a localized template driven by
+   * `config.email.locale`.
+   */
+  verificationEmail?: MailBuilder;
+}
+
 export function createRegisterHandler<R extends string>(
-  deps: AuthDeps<R>
+  deps: AuthDeps<R>,
+  options: RegisterHandlerOptions = {}
 ): { POST: RequestHandler } {
   const rateLimiter = makeRateLimiter(deps.config.rateLimit?.register);
 
@@ -120,16 +134,14 @@ export function createRegisterHandler<R extends string>(
         );
       }
 
-      // Send verification email
+      // Send verification email — localized default, or the consumer hook.
       const verifyUrl = new URL('/auth/verify-email', deps.config.appUrl);
       verifyUrl.searchParams.set('token', verificationToken);
 
-      await deps.email.send({
-        from: deps.config.email?.from,
-        to: email,
-        subject: 'Verify your email',
-        html: `<p>Hello ${escapeHtml(name)},</p><p>Please verify your email by clicking <a href="${escapeHtml(verifyUrl.toString())}">this link</a>.</p>`
-      });
+      const { t, appName, from } = resolveEmailSettings(deps.config);
+      const ctx = { name, url: verifyUrl.toString(), appName, from, t };
+      const built = options.verificationEmail?.(ctx) ?? buildVerificationEmail(ctx, t);
+      await deps.email.send({ from, ...built, to: email });
 
       await deps.config.hooks?.onUserCreated?.(sanitizeUser(fullUser));
 

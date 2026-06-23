@@ -40,6 +40,19 @@ export function useAuthLocale(): () => AuthLocale {
   };
 }
 
+/**
+ * Resolve the full `AuthLocale` bundle for a locale **without** any Svelte
+ * context — the SSR-/server-safe counterpart to {@link useAuthLocale}. Used by
+ * the server-side email builders to localize the default transactional mails
+ * from `config.email.locale`. Falls back to the English bundle for an unknown
+ * locale or when `locale` is omitted, so callers never have to guard.
+ */
+export function resolveAuthLocale(locale?: Locale): AuthLocale {
+  if (!locale) return en;
+  const byLocale: Partial<Record<Locale, AuthLocale>> = authTranslations;
+  return byLocale[locale] ?? en;
+}
+
 export type AuthTranslationKey = keyof typeof en;
 export type { AuthLocale } from './keys.js';
 export { authTranslations };

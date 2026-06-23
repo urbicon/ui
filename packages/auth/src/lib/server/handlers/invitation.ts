@@ -1,9 +1,11 @@
 import type { RequestHandler } from '@sveltejs/kit';
 import { json } from '@sveltejs/kit';
+import type { AuthLocale } from '../../i18n/keys.js';
 import type { AuthUser } from '../../types.js';
 import { sanitizeUser } from '../auth.js';
 import type { AuthDeps } from '../deps.js';
-import { escapeHtml } from '../email/templates.js';
+import { resolveEmailSettings } from '../email/resolve.js';
+import { buildInvitationEmail } from '../email/templates.js';
 import { getSessionFromCookie } from '../session.js';
 import { readJsonBody, validateInvitationInput } from '../validation.js';
 import { authError } from './errors.js';
@@ -29,35 +31,24 @@ export interface InvitationHandlerOptions<R extends string = string> {
   roles: R[];
   /**
    * Build the invitation email sent when the client requests it (the
-   * `sendEmail` flag). Defaults to a minimal template linking to
-   * `${appUrl}/auth/register?email=<invitee>`. Receives `from` — the resolved
-   * `config.email.from` — so a custom builder can reuse or override the sender.
-   * Return `{ subject, html, text? }` (optionally a `from` to override).
+   * `sendEmail` flag). Defaults to a localized template (`config.email.locale`)
+   * linking to `${appUrl}/auth/register?email=<invitee>`. Receives the resolved
+   * context — `from`, `appName`, and the `t` bundle — so a custom builder can
+   * reuse or override them. Return `{ subject, html, text? }` (optionally a
+   * `from` to override the configured sender).
    */
-  inviteEmail?: (ctx: { email: string; role: R; url: string; from?: string }) => {
+  inviteEmail?: (ctx: {
+    email: string;
+    role: R;
+    url: string;
+    from?: string;
+    appName: string;
+    t: AuthLocale;
+  }) => {
     subject: string;
     html: string;
     text?: string;
     from?: string;
-  };
-}
-
-function defaultInviteEmail(ctx: { url: string }): { subject: string; html: string } {
-  const url = escapeHtml(ctx.url);
-  return {
-    subject: "You've been invited",
-    html: `
-      <div style="font-family: sans-serif; max-width: 480px; margin: 0 auto;">
-        <h2>You've been invited</h2>
-        <p>You've been invited to create an account. Click the button below to register:</p>
-        <p style="text-align: center; margin: 24px 0;">
-          <a href="${url}" style="display: inline-block; padding: 12px 24px; background: #171717; color: #fff; border-radius: 6px; text-decoration: none;">
-            Create your account
-          </a>
-        </p>
-        <p style="color: #666; font-size: 14px;">If you weren't expecting this invitation, you can safely ignore this email.</p>
-      </div>
-    `
   };
 }
 
@@ -160,10 +151,10 @@ export function createInvitationHandlers<R extends string>(
         // than masquerade as "email failed to send" on every invite forever.
         const url = new URL('/auth/register', deps.config.appUrl);
         url.searchParams.set('email', email);
-        const from = deps.config.email?.from;
+        const { t, appName, from } = resolveEmailSettings(deps.config);
         const built = inviteEmail
-          ? inviteEmail({ email, role: role as R, url: url.toString(), from })
-          : defaultInviteEmail({ url: url.toString() });
+          ? inviteEmail({ email, role: role as R, url: url.toString(), from, appName, t })
+          : buildInvitationEmail({ url: url.toString(), appName }, t);
 
         try {
           await deps.email.send({ from, ...built, to: email });

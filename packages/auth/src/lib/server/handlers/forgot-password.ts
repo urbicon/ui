@@ -3,13 +3,25 @@ import { json } from '@sveltejs/kit';
 import type { FullAuthUser } from '../adapters/types.js';
 import { generateSecureToken, hashToken } from '../auth.js';
 import type { AuthDeps } from '../deps.js';
-import { escapeHtml } from '../email/templates.js';
+import type { MailBuilder } from '../email/builders.js';
+import { resolveEmailSettings } from '../email/resolve.js';
+import { buildPasswordResetEmail } from '../email/templates.js';
 import { enforceRateLimit, makeRateLimiter } from '../rate-limit.js';
 import { readJsonBody, validateEmailInput } from '../validation.js';
 import { authError } from './errors.js';
 
+export interface ForgotPasswordHandlerOptions {
+  /**
+   * Build the password-reset mail (mirrors `inviteEmail`). Receives the resolved
+   * context (`name`, reset `url`, `appName`, `from`, `t`) and returns
+   * `{ subject, html, text }`. Defaults to a localized template.
+   */
+  resetEmail?: MailBuilder;
+}
+
 export function createForgotPasswordHandler<R extends string>(
-  deps: AuthDeps<R>
+  deps: AuthDeps<R>,
+  options: ForgotPasswordHandlerOptions = {}
 ): { POST: RequestHandler } {
   const rateLimiter = makeRateLimiter(deps.config.rateLimit?.passwordReset);
 
@@ -44,7 +56,7 @@ export function createForgotPasswordHandler<R extends string>(
         // delivery stays durable.
         void (async () => {
           try {
-            await issuePasswordReset(deps, user, deps.config.appUrl);
+            await issuePasswordReset(deps, user, options.resetEmail);
           } catch (err) {
             // Log by user id, not email — keep PII out of stderr where the
             // consumer's logger may not redact it; the hook gets the address.
@@ -76,7 +88,7 @@ export function createForgotPasswordHandler<R extends string>(
 async function issuePasswordReset<R extends string>(
   deps: AuthDeps<R>,
   user: FullAuthUser<R>,
-  appUrl: string
+  resetEmail?: MailBuilder
 ): Promise<void> {
   const token = generateSecureToken();
   const tokenHash = hashToken(token);
@@ -84,13 +96,11 @@ async function issuePasswordReset<R extends string>(
 
   await deps.repos.user.setPasswordResetToken(user.id, tokenHash, expires);
 
-  const resetUrl = new URL('/auth/reset-password', appUrl);
+  const resetUrl = new URL('/auth/reset-password', deps.config.appUrl);
   resetUrl.searchParams.set('token', token);
 
-  await deps.email.send({
-    from: deps.config.email?.from,
-    to: user.email,
-    subject: 'Reset your password',
-    html: `<p>Hello ${escapeHtml(user.name)},</p><p>Click <a href="${escapeHtml(resetUrl.toString())}">here</a> to reset your password. This link expires in 1 hour.</p>`
-  });
+  const { t, appName, from } = resolveEmailSettings(deps.config);
+  const ctx = { name: user.name, url: resetUrl.toString(), appName, from, t };
+  const built = resetEmail?.(ctx) ?? buildPasswordResetEmail(ctx, t);
+  await deps.email.send({ from, ...built, to: user.email });
 }

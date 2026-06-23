@@ -1,5 +1,8 @@
 import type { RequestEvent } from '@sveltejs/kit';
+import type { Mock } from 'vitest';
 import { describe, expect, it, vi } from 'vitest';
+import type { AuthConfig } from '../../types.js';
+import type { EmailTransport } from '../email/types.js';
 import {
   createMockAuthDeps,
   createMockInvitation,
@@ -192,5 +195,53 @@ describe('createRegisterHandler', () => {
     const limited = await handler.POST(event(validBody));
     expect(limited.status).toBe(429);
     expect(Number(limited.headers.get('Retry-After'))).toBeGreaterThan(0);
+  });
+
+  // --- Issue #15: localized default verification mail + builder hook ---
+
+  // Deps wired for a successful registration (so the verification mail is sent).
+  function successDeps(send: Mock, config?: Partial<AuthConfig>) {
+    return createMockAuthDeps({
+      config,
+      user: {
+        findByEmail: vi
+          .fn()
+          .mockResolvedValueOnce(null)
+          .mockResolvedValueOnce(createMockUser({ id: 'u-new', email: 'new@test.com' })),
+        create: vi.fn().mockResolvedValue(createMockUser({ id: 'u-new', email: 'new@test.com' }))
+      },
+      invitation: { findByEmail: vi.fn().mockResolvedValue(createMockInvitation()) },
+      email: { send: send as unknown as EmailTransport['send'] }
+    });
+  }
+
+  it('sends a localized verification mail with an html + text part by default', async () => {
+    const send = vi.fn().mockResolvedValue(undefined);
+    const deps = successDeps(send, { email: { locale: 'de', appName: 'Cookery' } });
+    await createRegisterHandler(deps).POST(event(validBody));
+
+    const mail = send.mock.calls[0][0];
+    expect(mail.subject).toContain('Cookery');
+    expect(mail.subject).toMatch(/Bestätige/); // German default
+    expect(mail.html).toContain('/auth/verify-email?token=');
+    expect(typeof mail.text).toBe('string');
+    expect(mail.text.length).toBeGreaterThan(0);
+  });
+
+  it('honours a verificationEmail builder hook (overriding the default)', async () => {
+    const send = vi.fn().mockResolvedValue(undefined);
+    const deps = successDeps(send);
+    const handler = createRegisterHandler(deps, {
+      verificationEmail: ({ url, appName }) => ({
+        subject: 'Custom verify',
+        html: `<a href="${url}">go</a>`,
+        text: `go ${url} (${appName})`
+      })
+    });
+    await handler.POST(event(validBody));
+
+    const mail = send.mock.calls[0][0];
+    expect(mail.subject).toBe('Custom verify');
+    expect(mail.html).toContain('/auth/verify-email?token=');
   });
 });

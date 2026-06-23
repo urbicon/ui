@@ -209,6 +209,27 @@ export interface EmailConfig {
    * but recommended in production for a consistent, deliverable sender.
    */
   from?: string;
+  /**
+   * Sender display name. When set, it is combined with a bare `from` address
+   * into the RFC-5322 `"Name <addr>"` form for the default mail builders. If
+   * `from` already carries a display name, this is ignored. Purely cosmetic —
+   * affects how the sender shows in the recipient's client.
+   */
+  fromName?: string;
+  /**
+   * Application name shown in the default transactional mail copy (subjects +
+   * bodies, the `{appName}` placeholder). Defaults to the host of `appUrl`.
+   * Ignored when a per-mail builder hook supplies its own copy.
+   */
+  appName?: string;
+  /**
+   * Locale for the **default** transactional mails (verification, password-reset,
+   * email-change, invitation). The handlers resolve the matching `AuthLocale`
+   * bundle server-side (SSR-safe) and pass it to the default builders, so the
+   * mails localize out of the box. Unknown/omitted → English. A per-mail builder
+   * hook overrides this entirely. Bundles ship for `en`/`de`.
+   */
+  locale?: import('@urbicon-ui/i18n').Locale;
 }
 
 export interface AuthConfig<R extends string = string> {

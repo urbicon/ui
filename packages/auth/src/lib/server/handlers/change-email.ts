@@ -3,11 +3,29 @@ import { json } from '@sveltejs/kit';
 import type { FullAuthUser } from '../adapters/types.js';
 import { generateSecureToken, hashToken } from '../auth.js';
 import type { AuthDeps } from '../deps.js';
-import { escapeHtml } from '../email/templates.js';
+import type { ChangeEmailNoticeContext, MailBuilder } from '../email/builders.js';
+import { resolveEmailSettings } from '../email/resolve.js';
+import { buildChangeEmail, buildChangeEmailNotice } from '../email/templates.js';
 import { enforceRateLimit, makeRateLimiter } from '../rate-limit.js';
 import { readJsonBody, validateChangeEmailInput } from '../validation.js';
 import { requireSessionUser, verifyCurrentPassword } from './_shared.js';
 import { authError } from './errors.js';
+
+export interface ChangeEmailHandlerOptions {
+  /**
+   * Build the confirmation mail sent to the NEW address (carries the verify
+   * link). Receives the resolved context (`name`, confirm `url`, `appName`,
+   * `from`, `t`) and returns `{ subject, html, text }`. Defaults to a localized
+   * template.
+   */
+  verifyEmailChangeEmail?: MailBuilder;
+  /**
+   * Build the awareness notice sent to the OLD address (no link — just informs
+   * the current owner a change was requested). Receives the same context plus
+   * the pending `newEmail`. Defaults to a localized template.
+   */
+  changeEmailEmail?: MailBuilder<ChangeEmailNoticeContext>;
+}
 
 /**
  * Request an email change. Re-auth gated; verification is sent to the NEW
@@ -18,7 +36,8 @@ import { authError } from './errors.js';
  * takes effect once confirmed via {@link createVerifyEmailChangeHandler}.
  */
 export function createChangeEmailHandler<R extends string>(
-  deps: AuthDeps<R>
+  deps: AuthDeps<R>,
+  options: ChangeEmailHandlerOptions = {}
 ): { POST: RequestHandler } {
   const rateLimiter = makeRateLimiter(deps.config.rateLimit?.changeEmail);
 
@@ -50,7 +69,7 @@ export function createChangeEmailHandler<R extends string>(
       // longer surface as an HTTP error, so route them to console.error.
       void (async () => {
         try {
-          await issueEmailChange(deps, user, newEmail);
+          await issueEmailChange(deps, user, newEmail, options);
         } catch (err) {
           console.error(`[auth] change-email: failed to issue change (user ${user.id})`, err);
           // Surface the decoupled failure through the observability hook (it
@@ -76,7 +95,8 @@ export function createChangeEmailHandler<R extends string>(
 async function issueEmailChange<R extends string>(
   deps: AuthDeps<R>,
   user: FullAuthUser<R>,
-  newEmail: string
+  newEmail: string,
+  options: ChangeEmailHandlerOptions
 ): Promise<void> {
   // No-op when it's already the current address (nothing to change) or already
   // taken by another account (collision → silent: no token, no mail to the
@@ -93,24 +113,18 @@ async function issueEmailChange<R extends string>(
   const verifyUrl = new URL('/auth/verify-email-change', deps.config.appUrl);
   verifyUrl.searchParams.set('token', token);
 
-  const from = deps.config.email?.from;
+  const { t, appName, from } = resolveEmailSettings(deps.config);
 
   // Confirmation link to the NEW address — proves control of it.
-  await deps.email.send({
-    from,
-    to: newEmail,
-    subject: 'Confirm your new email address',
-    html: `<p>Hello ${escapeHtml(user.name)},</p><p>Click <a href="${escapeHtml(verifyUrl.toString())}">here</a> to confirm this address for your account. This link expires in 1 hour. If you didn't request this, you can ignore this email.</p>`
-  });
+  const confirmCtx = { name: user.name, url: verifyUrl.toString(), appName, from, t };
+  const confirm = options.verifyEmailChangeEmail?.(confirmCtx) ?? buildChangeEmail(confirmCtx, t);
+  await deps.email.send({ from, ...confirm, to: newEmail });
 
   // Awareness notice to the OLD address so the real owner can react to a
   // change they didn't initiate (the swap only happens after confirmation).
-  await deps.email.send({
-    from,
-    to: user.email,
-    subject: 'Email change requested',
-    html: `<p>Hello ${escapeHtml(user.name)},</p><p>A change of your account email to <strong>${escapeHtml(newEmail)}</strong> was requested. If this wasn't you, please secure your account — the change only takes effect once it's confirmed from the new address.</p>`
-  });
+  const noticeCtx = { name: user.name, appName, from, t, newEmail };
+  const notice = options.changeEmailEmail?.(noticeCtx) ?? buildChangeEmailNotice(noticeCtx, t);
+  await deps.email.send({ from, ...notice, to: user.email });
 
   await deps.config.hooks?.onEmailChangeRequested?.(user.id, newEmail);
 }

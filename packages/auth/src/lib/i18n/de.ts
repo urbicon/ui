@@ -99,6 +99,43 @@ export const de = {
       success: 'Deine E-Mail-Adresse wurde bestätigt.',
       error: 'Ungültiger oder abgelaufener Bestätigungslink.',
       resend: 'Bestätigungsmail erneut senden'
+    },
+    emails: {
+      verification: {
+        subject: 'Bestätige deine E-Mail — {appName}',
+        heading: 'Willkommen, {name}!',
+        body: 'Bitte bestätige deine E-Mail-Adresse für {appName}, um die Einrichtung deines Kontos abzuschließen.',
+        cta: 'E-Mail bestätigen',
+        ignore: 'Falls du kein Konto erstellt hast, kannst du diese E-Mail ignorieren.'
+      },
+      passwordReset: {
+        subject: 'Setze dein Passwort zurück — {appName}',
+        heading: 'Passwort zurücksetzen',
+        body: 'Wir haben eine Anfrage zum Zurücksetzen deines Passworts erhalten. Dieser Link läuft in 1 Stunde ab.',
+        cta: 'Passwort zurücksetzen',
+        ignore: 'Falls du dies nicht angefordert hast, kannst du diese E-Mail ignorieren.'
+      },
+      invitation: {
+        subject: 'Du wurdest zu {appName} eingeladen',
+        heading: 'Du wurdest eingeladen',
+        body: 'Du wurdest eingeladen, ein Konto bei {appName} zu erstellen. Klicke unten, um loszulegen.',
+        cta: 'Konto erstellen',
+        ignore: 'Falls du diese Einladung nicht erwartet hast, kannst du diese E-Mail ignorieren.'
+      },
+      changeEmail: {
+        subject: 'Bestätige deine neue E-Mail-Adresse — {appName}',
+        heading: 'E-Mail bestätigen',
+        body: 'Bestätige diese Adresse, um sie für dein {appName}-Konto zu verwenden. Dieser Link läuft in 1 Stunde ab.',
+        cta: 'E-Mail bestätigen',
+        ignore: 'Falls du dies nicht angefordert hast, kannst du diese E-Mail ignorieren.'
+      },
+      changeEmailNotice: {
+        subject: 'Änderung der E-Mail-Adresse angefordert — {appName}',
+        heading: 'Änderung der E-Mail-Adresse angefordert',
+        body: 'Es wurde angefordert, die E-Mail-Adresse deines Kontos zu {email} zu ändern. Sie wird erst wirksam, wenn sie über die neue Adresse bestätigt wird.',
+        ignore:
+          'Falls du das nicht warst, sichere bitte dein Konto — deine E-Mail-Adresse wurde noch nicht geändert.'
+      }
     }
   },
   notifications: {

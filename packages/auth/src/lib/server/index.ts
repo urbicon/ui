@@ -63,11 +63,20 @@ export { validateCsrf } from './csrf.js';
 export type { AuthDeps } from './deps.js';
 // Deps
 export { createAuthDeps } from './deps.js';
+// Per-mail builder hook types + the rendered-mail shape (default builders +
+// consumer hooks return this). See the `*Email` options on the handlers below.
+export type {
+  ChangeEmailNoticeContext,
+  MailBuilder,
+  MailBuilderContext
+} from './email/builders.js';
+export type { BuiltEmail } from './email/templates.js';
 // Email transport types
 export type { EmailTransport, SendEmailParams } from './email/types.js';
 export type { AuthHandleOptions } from './handle.js';
 // Handle hook
 export { createAuthHandle } from './handle.js';
+export type { ChangeEmailHandlerOptions } from './handlers/change-email.js';
 export { createChangeEmailHandler } from './handlers/change-email.js';
 // Account management (authenticated; see docs/AUTH.md → Account Management)
 export { createChangePasswordHandler } from './handlers/change-password.js';
@@ -76,6 +85,7 @@ export { createDeleteAccountHandler } from './handlers/delete-account.js';
 // localized clients (see `errorMessageFromCode` in the client utils).
 export type { AuthErrorCode } from './handlers/errors.js';
 export { AUTH_ERROR_CODES } from './handlers/errors.js';
+export type { ForgotPasswordHandlerOptions } from './handlers/forgot-password.js';
 export { createForgotPasswordHandler } from './handlers/forgot-password.js';
 export type { InvitationHandlerOptions } from './handlers/invitation.js';
 export { createInvitationHandlers } from './handlers/invitation.js';
@@ -84,6 +94,7 @@ export { createLoginHandler } from './handlers/login.js';
 export { createLogoutHandler } from './handlers/logout.js';
 export { createMeHandler } from './handlers/me.js';
 export { createRefreshHandler } from './handlers/refresh.js';
+export type { RegisterHandlerOptions } from './handlers/register.js';
 export { createRegisterHandler } from './handlers/register.js';
 export { createResetPasswordHandler } from './handlers/reset-password.js';
 export type { SessionSummary } from './handlers/sessions.js';

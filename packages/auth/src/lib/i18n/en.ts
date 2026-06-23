@@ -96,6 +96,43 @@ export const en = {
       success: 'Your email has been verified.',
       error: 'Invalid or expired verification link.',
       resend: 'Resend verification email'
+    },
+    emails: {
+      verification: {
+        subject: 'Verify your email — {appName}',
+        heading: 'Welcome, {name}!',
+        body: 'Please confirm your email address for {appName} to finish setting up your account.',
+        cta: 'Verify email',
+        ignore: "If you didn't create an account, you can safely ignore this email."
+      },
+      passwordReset: {
+        subject: 'Reset your password — {appName}',
+        heading: 'Password reset',
+        body: 'We received a request to reset your password. This link expires in 1 hour.',
+        cta: 'Reset password',
+        ignore: "If you didn't request this, you can safely ignore this email."
+      },
+      invitation: {
+        subject: "You've been invited to {appName}",
+        heading: "You've been invited",
+        body: "You've been invited to create an account on {appName}. Click below to get started.",
+        cta: 'Create your account',
+        ignore: "If you weren't expecting this invitation, you can safely ignore this email."
+      },
+      changeEmail: {
+        subject: 'Confirm your new email address — {appName}',
+        heading: 'Confirm your email',
+        body: 'Confirm this address to use it for your {appName} account. This link expires in 1 hour.',
+        cta: 'Confirm email',
+        ignore: "If you didn't request this, you can safely ignore this email."
+      },
+      changeEmailNotice: {
+        subject: 'Email change requested — {appName}',
+        heading: 'Email change requested',
+        body: 'A change of your account email to {email} was requested. It only takes effect once confirmed from the new address.',
+        ignore:
+          "If this wasn't you, please secure your account — your email has not been changed yet."
+      }
     }
   },
   notifications: {

@@ -101,6 +101,49 @@ export interface AuthLocale {
       error: string;
       resend: string;
     };
+    /**
+     * Copy for the default transactional emails the server sends (verification,
+     * password-reset, email-change, invitation). Localized via `config.email.locale`;
+     * a per-mail builder hook (`verificationEmail`, `resetEmail`, …) replaces these.
+     * Placeholders: `{name}`, `{appName}`, `{email}` — substituted by the builder.
+     */
+    emails: {
+      verification: {
+        subject: string;
+        heading: string;
+        body: string;
+        cta: string;
+        ignore: string;
+      };
+      passwordReset: {
+        subject: string;
+        heading: string;
+        body: string;
+        cta: string;
+        ignore: string;
+      };
+      invitation: {
+        subject: string;
+        heading: string;
+        body: string;
+        cta: string;
+        ignore: string;
+      };
+      changeEmail: {
+        subject: string;
+        heading: string;
+        body: string;
+        cta: string;
+        ignore: string;
+      };
+      /** Awareness notice sent to the OLD address when an email change is requested. */
+      changeEmailNotice: {
+        subject: string;
+        heading: string;
+        body: string;
+        ignore: string;
+      };
+    };
   };
   notifications: {
     center: {

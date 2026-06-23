@@ -91,6 +91,59 @@ describe('createChangeEmailHandler', () => {
     expect(onEmailChangeRequested).toHaveBeenCalledWith('user-1', 'new@test.com');
   });
 
+  it('both default mails ship a text part and localize via config.email.locale (Issue #15)', async () => {
+    const send = vi.fn().mockResolvedValue(undefined);
+    const deps = createMockAuthDeps({
+      config: { email: { locale: 'de', appName: 'Cookery' } },
+      user: {
+        findById: vi.fn().mockResolvedValue(await currentUser()),
+        findByEmail: vi.fn().mockResolvedValue(null)
+      },
+      email: { send }
+    });
+    const ev = await authed(deps, { newEmail: 'new@test.com', currentPassword: 'current' });
+    await run(deps, ev);
+
+    await vi.waitFor(() => expect(send).toHaveBeenCalledTimes(2));
+    for (const [mail] of send.mock.calls) {
+      expect(typeof mail.text).toBe('string');
+      expect(mail.text.length).toBeGreaterThan(0);
+      expect(mail.subject).toContain('Cookery');
+    }
+    const notice = send.mock.calls.find((c) => c[0].to === 'old@test.com')![0];
+    expect(notice.html).toContain('new@test.com'); // names the pending address
+  });
+
+  it('honours the verifyEmailChangeEmail + changeEmailEmail builder hooks (Issue #15)', async () => {
+    const send = vi.fn().mockResolvedValue(undefined);
+    const deps = createMockAuthDeps({
+      user: {
+        findById: vi.fn().mockResolvedValue(await currentUser()),
+        findByEmail: vi.fn().mockResolvedValue(null)
+      },
+      email: { send }
+    });
+    const ev = await authed(deps, { newEmail: 'new@test.com', currentPassword: 'current' });
+    await createChangeEmailHandler(deps, {
+      verifyEmailChangeEmail: ({ url }) => ({
+        subject: 'Confirm please',
+        html: `<a href="${url}">x</a>`,
+        text: url
+      }),
+      changeEmailEmail: ({ newEmail }) => ({
+        subject: 'Heads up',
+        html: `changed to ${newEmail}`,
+        text: `changed to ${newEmail}`
+      })
+    }).POST(ev as unknown as RequestEvent);
+
+    await vi.waitFor(() => expect(send).toHaveBeenCalledTimes(2));
+    const confirm = send.mock.calls.find((c) => c[0].to === 'new@test.com')![0];
+    const notice = send.mock.calls.find((c) => c[0].to === 'old@test.com')![0];
+    expect(confirm.subject).toBe('Confirm please');
+    expect(notice.subject).toBe('Heads up');
+  });
+
   it('is account-enumeration safe: a taken target still returns success but stages nothing', async () => {
     const send = vi.fn().mockResolvedValue(undefined);
     const deps = createMockAuthDeps({
