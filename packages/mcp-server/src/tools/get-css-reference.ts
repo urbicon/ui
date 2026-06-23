@@ -1,7 +1,7 @@
 import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { z } from 'zod';
 
-const OVERVIEW = `# Urbicon UI — CSS Design Tokens
+export const OVERVIEW = `# Urbicon UI — CSS Design Tokens
 
 ## Architecture
 Three CSS layers, imported in order:
@@ -49,7 +49,7 @@ The \`@theme\` block sets the Tailwind utility value. The \`:root\` rule overrid
 ## Available Sections
 → \`get_css_reference(section="surfaces")\` — 11 surface background tokens
 → \`get_css_reference(section="text")\` — 9 text color tokens
-→ \`get_css_reference(section="borders")\` — 4 border color tokens
+→ \`get_css_reference(section="borders")\` — 5 border color tokens
 → \`get_css_reference(section="intents")\` — 6 intent palettes (primary, success, danger, etc.)
 → \`get_css_reference(section="shadows")\` — 5 shadow tokens + z-index scale
 → \`get_css_reference(section="theming")\` — How to create custom themes, available presets
@@ -114,16 +114,18 @@ Light → Dark mapping:
 
 const BORDERS = `# Border Tokens
 
-4 tokens for border colors. All auto-switch in dark mode.
+5 tokens for border colors. All auto-switch in dark mode.
 
 | CSS Variable | Tailwind Utility | Purpose |
 |---|---|---|
+| \`--color-border-hairline\` | \`border-border-hairline\` | Faintest divider — translucent (alpha), not a neutral step |
 | \`--color-border-subtle\` | \`border-border-subtle\` | Gentle grouping |
 | \`--color-border-default\` | \`border-border-default\` | Standard borders |
 | \`--color-border-emphasis\` | \`border-border-emphasis\` | Emphasized borders |
 | \`--color-border-strong\` | \`border-border-strong\` | High-contrast borders |
 
 Light → Dark mapping:
+- \`border-hairline\`: black 8% → white 6% (translucent, blends onto any surface)
 - \`border-subtle\`: neutral-200 → neutral-700
 - \`border-default\`: neutral-300 → neutral-600
 - \`border-emphasis\`: neutral-400 → neutral-500
@@ -416,7 +418,7 @@ So the only requirement is to import \`index.css\` (your app owns the Tailwind i
 **Do NOT add manual \`@source\` directives, and do NOT import the \`foundation\`/\`semantic\`/\`interaction\` subfiles instead of \`index.css\`** — the subfiles omit the \`@source\` directives (and global classes), which is the usual cause of "responsive layouts break in production".
 `;
 
-const SECTIONS: Record<string, string> = {
+export const SECTIONS: Record<string, string> = {
   surfaces: SURFACES,
   text: TEXT,
   borders: BORDERS,
