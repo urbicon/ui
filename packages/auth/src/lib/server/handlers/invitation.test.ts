@@ -50,10 +50,14 @@ function setup(opts?: {
   email?: EmailTransport;
   inviteEmail?: InvitationHandlerInviteEmail;
   hooks?: AuthConfig['hooks'];
+  from?: string;
 }) {
   const user = createMockUser(opts?.user ?? {});
   const deps = createMockAuthDeps({
-    config: opts?.hooks ? { hooks: opts.hooks } : undefined,
+    config: {
+      ...(opts?.hooks ? { hooks: opts.hooks } : {}),
+      ...(opts?.from ? { email: { from: opts.from } } : {})
+    },
     user: {
       findById: vi.fn().mockResolvedValue(user),
       findByEmail: vi.fn().mockResolvedValue(null),
@@ -330,6 +334,55 @@ describe('createInvitationHandlers — POST', () => {
       })
     );
     expect(send.mock.calls[0][0]).toMatchObject({ subject: 'Custom invite' });
+  });
+
+  it('threads config.email.from into the invite email (Issue #17)', async () => {
+    const send = vi.fn().mockResolvedValue(undefined);
+    const { deps, user, handlers } = setup({ email: { send }, from: 'Acme <invite@acme.test>' });
+    await handlers.POST(
+      makeEvent({
+        token: await tokenFor(deps, user),
+        body: { email: 'a@b.com', role: 'member', sendEmail: true }
+      })
+    );
+    expect(send.mock.calls[0][0].from).toBe('Acme <invite@acme.test>');
+    // The builder also receives `from` so a custom template can reuse it.
+  });
+
+  it('lets a custom inviteEmail builder override config.email.from', async () => {
+    const send = vi.fn().mockResolvedValue(undefined);
+    const { deps, user, handlers } = setup({
+      email: { send },
+      from: 'Acme <invite@acme.test>',
+      inviteEmail: ({ url, from }) => ({
+        subject: 'Custom',
+        html: `<a href="${url}">join</a> (default from: ${from})`,
+        from: 'Override <noreply@acme.test>'
+      })
+    });
+    await handlers.POST(
+      makeEvent({
+        token: await tokenFor(deps, user),
+        body: { email: 'a@b.com', role: 'member', sendEmail: true }
+      })
+    );
+    expect(send.mock.calls[0][0].from).toBe('Override <noreply@acme.test>');
+    // The default `from` was passed into the builder ctx.
+    expect(send.mock.calls[0][0].html).toContain('Acme <invite@acme.test>');
+  });
+
+  it('builds the register link with the invitee email prefilled (?email=)', async () => {
+    const send = vi.fn().mockResolvedValue(undefined);
+    const { deps, user, handlers } = setup({ email: { send } });
+    await handlers.POST(
+      makeEvent({
+        token: await tokenFor(deps, user),
+        body: { email: 'Invitee@B.com', role: 'member', sendEmail: true }
+      })
+    );
+    // Default template links to /auth/register?email=<normalized invitee>, the
+    // param RegisterPage prefills from (Issue #14).
+    expect(send.mock.calls[0][0].html).toContain('/auth/register?email=invitee%40b.com');
   });
 });
 

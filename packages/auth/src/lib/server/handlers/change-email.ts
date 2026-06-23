@@ -89,8 +89,11 @@ async function issueEmailChange<R extends string>(
   const verifyUrl = new URL('/auth/verify-email-change', deps.config.appUrl);
   verifyUrl.searchParams.set('token', token);
 
+  const from = deps.config.email?.from;
+
   // Confirmation link to the NEW address — proves control of it.
   await deps.email.send({
+    from,
     to: newEmail,
     subject: 'Confirm your new email address',
     html: `<p>Hello ${escapeHtml(user.name)},</p><p>Click <a href="${escapeHtml(verifyUrl.toString())}">here</a> to confirm this address for your account. This link expires in 1 hour. If you didn't request this, you can ignore this email.</p>`
@@ -99,6 +102,7 @@ async function issueEmailChange<R extends string>(
   // Awareness notice to the OLD address so the real owner can react to a
   // change they didn't initiate (the swap only happens after confirmation).
   await deps.email.send({
+    from,
     to: user.email,
     subject: 'Email change requested',
     html: `<p>Hello ${escapeHtml(user.name)},</p><p>A change of your account email to <strong>${escapeHtml(newEmail)}</strong> was requested. If this wasn't you, please secure your account — the change only takes effect once it's confirmed from the new address.</p>`

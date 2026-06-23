@@ -84,6 +84,7 @@ async function issuePasswordReset<R extends string>(
   resetUrl.searchParams.set('token', token);
 
   await deps.email.send({
+    from: deps.config.email?.from,
     to: user.email,
     subject: 'Reset your password',
     html: `<p>Hello ${escapeHtml(user.name)},</p><p>Click <a href="${escapeHtml(resetUrl.toString())}">here</a> to reset your password. This link expires in 1 hour.</p>`

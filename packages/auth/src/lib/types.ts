@@ -193,6 +193,24 @@ export interface TwoFactorConfig {
   backupCodeCount?: number;
 }
 
+/**
+ * Outbound-email settings shared by every transactional mail the package sends
+ * (verification, password-reset, email-change, invitation). Currently just the
+ * default sender; grouped as an object so future mail-wide options (reply-to,
+ * a sender display-name override) land here without widening `AuthConfig`.
+ */
+export interface EmailConfig {
+  /**
+   * Default `From` for all auth emails — a bare address (`auth@example.com`) or
+   * an RFC-5322 display-name form (`"Acme <auth@example.com>"`). Threaded into
+   * every handler's `deps.email.send({ from })` call; a per-mail builder hook
+   * (e.g. `inviteEmail`) may still override it. When omitted, the transport's
+   * own default applies (e.g. a Lettermint verified sender), so this is optional
+   * but recommended in production for a consistent, deliverable sender.
+   */
+  from?: string;
+}
+
 export interface AuthConfig<R extends string = string> {
   jwt: JwtConfig;
   /**
@@ -204,6 +222,12 @@ export interface AuthConfig<R extends string = string> {
    * e.g. `'https://app.example.com'`. No trailing slash required.
    */
   appUrl: string;
+  /**
+   * Outbound-email settings (currently the default sender `from`). Optional; see
+   * {@link EmailConfig}. The resolved `from` is threaded into every handler's
+   * email send so all transactional mail shares a consistent sender.
+   */
+  email?: EmailConfig;
   password?: PasswordConfig;
   /**
    * Account-lockout policy after repeated failed logins. Leave unset to get a

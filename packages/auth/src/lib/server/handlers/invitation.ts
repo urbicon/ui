@@ -29,12 +29,15 @@ export interface InvitationHandlerOptions<R extends string = string> {
   /**
    * Build the invitation email sent when the client requests it (the
    * `sendEmail` flag). Defaults to a minimal template linking to
-   * `${appUrl}/auth/register`. Return `{ subject, html, text? }`.
+   * `${appUrl}/auth/register?email=<invitee>`. Receives `from` — the resolved
+   * `config.email.from` — so a custom builder can reuse or override the sender.
+   * Return `{ subject, html, text? }` (optionally a `from` to override).
    */
-  inviteEmail?: (ctx: { email: string; role: R; url: string }) => {
+  inviteEmail?: (ctx: { email: string; role: R; url: string; from?: string }) => {
     subject: string;
     html: string;
     text?: string;
+    from?: string;
   };
 }
 
@@ -153,12 +156,13 @@ export function createInvitationHandlers<R extends string>(
         // than masquerade as "email failed to send" on every invite forever.
         const url = new URL('/auth/register', deps.config.appUrl);
         url.searchParams.set('email', email);
+        const from = deps.config.email?.from;
         const built = inviteEmail
-          ? inviteEmail({ email, role: role as R, url: url.toString() })
+          ? inviteEmail({ email, role: role as R, url: url.toString(), from })
           : defaultInviteEmail({ url: url.toString() });
 
         try {
-          await deps.email.send({ to: email, ...built });
+          await deps.email.send({ from, ...built, to: email });
           emailSent = true;
         } catch (err) {
           // The invitee — not the API caller — is the one left unable to

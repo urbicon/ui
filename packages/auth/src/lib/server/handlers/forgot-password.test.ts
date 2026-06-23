@@ -57,6 +57,37 @@ describe('createForgotPasswordHandler', () => {
     expect(mail.html).toContain('/auth/reset-password?token=');
   });
 
+  it('threads config.email.from into the reset email (Issue #17)', async () => {
+    const send = vi.fn().mockResolvedValue(undefined);
+    const deps = createMockAuthDeps({
+      config: { email: { from: 'Acme <auth@acme.test>' } },
+      user: {
+        findByEmail: vi.fn().mockResolvedValue(createMockUser({ id: 'u1', email: 'aya@test.com' }))
+      },
+      email: { send }
+    });
+
+    const res = await createForgotPasswordHandler(deps).POST(event({ email: 'aya@test.com' }));
+    expect(res.status).toBe(200);
+
+    await vi.waitFor(() => expect(send).toHaveBeenCalledOnce());
+    expect(send.mock.calls[0][0].from).toBe('Acme <auth@acme.test>');
+  });
+
+  it('sends with from:undefined when no sender is configured (transport default)', async () => {
+    const send = vi.fn().mockResolvedValue(undefined);
+    const deps = createMockAuthDeps({
+      user: {
+        findByEmail: vi.fn().mockResolvedValue(createMockUser({ id: 'u1', email: 'aya@test.com' }))
+      },
+      email: { send }
+    });
+
+    await createForgotPasswordHandler(deps).POST(event({ email: 'aya@test.com' }));
+    await vi.waitFor(() => expect(send).toHaveBeenCalledOnce());
+    expect(send.mock.calls[0][0].from).toBeUndefined();
+  });
+
   it('returns success WITHOUT waiting for the email to send (decoupled timing)', async () => {
     // email.send never resolves; the handler must still respond — proving the
     // response time is independent of the (existing-user-only) send.

@@ -61,6 +61,7 @@ export type {
   AuthSession,
   AuthUser,
   CsrfConfig,
+  EmailConfig,
   JwtConfig,
   LockoutConfig,
   PasswordConfig,

@@ -116,6 +116,7 @@ export function createRegisterHandler<R extends string>(
       verifyUrl.searchParams.set('token', verificationToken);
 
       await deps.email.send({
+        from: deps.config.email?.from,
         to: email,
         subject: 'Verify your email',
         html: `<p>Hello ${escapeHtml(name)},</p><p>Please verify your email by clicking <a href="${escapeHtml(verifyUrl.toString())}">this link</a>.</p>`
