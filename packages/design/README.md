@@ -20,6 +20,17 @@ bun add -d @urbicon-ui/design   # dev tooling — not a runtime dependency
 This exposes the `urbicon` command (a self-contained, Node-runnable bundle — no
 Bun required at the consumer side).
 
+> **Running it standalone (no local install).** The bin is `urbicon` but the package
+> is `@urbicon-ui/design`, so a bare `bunx urbicon …` from a project that hasn't
+> installed it fails with `GET …/urbicon 404` (it looks for a package literally named
+> `urbicon`). To run the CLI without a local install, name both the package and the bin:
+>
+> ```bash
+> bunx --package @urbicon-ui/design urbicon validate src/   # or: npx --package @urbicon-ui/design urbicon …
+> ```
+>
+> Inside a project that already has `@urbicon-ui/design` installed, plain `bunx urbicon …` resolves fine.
+
 ## Onboarding a consumer project
 
 ```bash
