@@ -110,6 +110,7 @@ When asked to modify the design, identify the correct layer:
 **"Make buttons / cards / inputs look different"** → Layer 3 (Component)
 - Use `BlocksProvider` `defaults` for global component overrides
 - Use `presets` for named looks (e.g., `preset="compact"`)
+- Use `overrides` for prop-conditional rules — style only one variant/intent/state (e.g. only `variant="outlined"`), what an unconditional `slotClasses` cannot express
 - Use `slotClasses` on individual instances for one-off overrides
 - Use `unstyled` to strip all defaults and bring your own styling
 
@@ -254,7 +255,7 @@ Translucent, layered, modern. Blurred backgrounds, glass surfaces.
 
 - Never use raw Tailwind color classes (`bg-blue-500`). Always use semantic tokens (`bg-primary`, `bg-surface-base`).
 - Never add `dark:` overrides. Dark mode resolves automatically via `light-dark()`.
-- Never override individual component CSS. Use `slotClasses`, `presets`, or `BlocksProvider` `defaults`.
+- Never override individual component CSS. Use `slotClasses`, `presets`, prop-conditional `overrides`, or `BlocksProvider` `defaults`.
 - Never hardcode z-index values. Use token variables (`z-[var(--z-modal)]`).
 - Never set `border-radius` on individual components. Override the semantic radius tier token.
 - Never mix paradigms within a single app. Pick one and apply it consistently across all layers.

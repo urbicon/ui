@@ -13,11 +13,10 @@
  * mono meta-font, pipe-marker. Aktiviert via <body class="docs-editorial">. */
 @import './lib/style/editorial.css';
 
-/* Docs-app-only: binds the `dark:` variant to the `.dark` class the ThemeSwitcher
-   toggles, for example markup demonstrating consumer-authored custom styling
-   (e.g. the Calendar custom-cell heatmap). The library itself ships no `dark:` —
-   its tokens switch automatically via light-dark() driven by `color-scheme`. */
-@custom-variant dark (&:where(.dark, .dark *));
+/* No `@custom-variant dark` here: this app, like the library, drives dark mode
+   purely through `light-dark()` tokens (resolved against `color-scheme`, set by
+   the ThemeSwitcher's `.light`/`.dark` class or the OS in system mode). It ships
+   no `dark:` overrides, so there is no `.dark`-bound variant to define. */
 
 @source './lib';
 @source './routes';

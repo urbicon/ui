@@ -385,13 +385,16 @@ A global \`@theme\` block (the built-in themes, the Theme Builder output) does N
 
 ## Component-Level Overrides
 
-Use \`BlocksProvider\` to change component defaults globally:
+Use \`BlocksProvider\` to style components project-wide — unconditional \`defaults\`, named \`presets\` (opt-in via the \`preset\` prop), and prop-conditional \`overrides\`:
 \`\`\`svelte
 <BlocksProvider defaults={{
   Card: { slotClasses: { base: 'rounded-2xl shadow-lg' } },
-  Button: { slotClasses: { base: 'rounded-full font-bold uppercase' } }
+  Button: { slotClasses: { base: 'rounded-full font-bold uppercase' } },
+  // prop-conditional: style ONLY the outlined variant — what an unconditional slotClasses cannot express
+  Badge: { overrides: [{ variant: 'outlined', class: { base: 'border' } }] }
 }}>
 \`\`\`
+Cascade (conflict-resolved per Tailwind bucket, later wins): \`defaults.slotClasses → defaults.overrides → preset.slotClasses → preset.overrides → instance slotClasses → instance class\`.
 
 Or override per-instance:
 \`\`\`svelte

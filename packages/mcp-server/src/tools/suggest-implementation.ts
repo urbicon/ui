@@ -73,7 +73,7 @@ const IMPLEMENTATION_RULES = `## Implementation Rules
 - **Focus** — Always \`focus-visible:\` (not \`focus:\`) for keyboard-only focus rings
 - **State binding** — \`bind:value\`, \`bind:checked\`, \`bind:open\` for two-way state; callback props (\`onValueChange\`) for side effects
 - **Custom content** — Use Svelte 5 snippets (\`{#snippet name()}...{/snippet}\`), not legacy slots
-- **Styling overrides** — \`class\` for simple additions, \`slotClasses\` for per-slot targeting, \`unstyled\` to strip all defaults
+- **Styling overrides** — per instance: \`class\` for simple additions, \`slotClasses\` for per-slot targeting, \`unstyled\` to strip all defaults. Project-wide via \`BlocksProvider\`: \`defaults\` (every instance), named \`presets\`, and prop-conditional \`overrides\` (style only one variant, e.g. \`variant="outlined"\`)
 - **Mint** — Add \`mint="scale"\` or \`mint="ripple"\` sparingly on primary CTAs only
 
 ## Design Quality

@@ -60,12 +60,16 @@
     'bg-emerald-500/75'
   ];
 
+  // Heatmap ink, mode-aware via the CSS light-dark() function (darker emerald in
+  // light mode, lighter in dark). This follows `color-scheme` natively — incl.
+  // system mode, where there is no `.dark` class — so it needs no `dark:` override
+  // (which the design linter flags and which would silently break in system mode).
   const heatText = [
-    'text-text-primary', // 0
-    'text-emerald-700 dark:text-emerald-300',
-    'text-emerald-800 dark:text-emerald-200',
-    'text-emerald-900 dark:text-emerald-100',
-    'text-white dark:text-emerald-950'
+    'text-text-primary', // 0 – no heat
+    'text-[color:light-dark(var(--color-emerald-700),var(--color-emerald-300))]',
+    'text-[color:light-dark(var(--color-emerald-800),var(--color-emerald-200))]',
+    'text-[color:light-dark(var(--color-emerald-900),var(--color-emerald-100))]',
+    'text-[color:light-dark(white,var(--color-emerald-950))]'
   ];
 </script>
 

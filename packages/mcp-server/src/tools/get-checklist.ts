@@ -45,6 +45,8 @@ export function registerGetChecklistTool(server: McpServer): void {
       md +=
         '- [ ] For reusable variant sets, register named `preset`s via `BlocksProvider` (and select with the `preset` prop) — not external variant libraries; Urbicon UI ships its own zero-dependency variant engine\n';
       md +=
+        '- [ ] To style only one variant/intent/state project-wide (e.g. just `variant="outlined"`), register prop-conditional `overrides` on `BlocksProvider` `defaults`/`presets` — what an unconditional `slotClasses` cannot express\n';
+      md +=
         "- [ ] For conditional classes, pass an array to `class` (`class={['base', condition && 'extra']}`) — not concatenated conditional class strings\n";
       md += '- [ ] Use `class` prop for simple additions — merges with defaults automatically\n';
       md += '\n';
