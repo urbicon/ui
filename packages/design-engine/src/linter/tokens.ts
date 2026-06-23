@@ -115,6 +115,9 @@ const INTERACTIVE_CORES = [
 /** Chart series tokens → `text-chart-1` … `text-chart-6`. */
 const CHART_CORES = ['chart-1', 'chart-2', 'chart-3', 'chart-4', 'chart-5', 'chart-6'] as const;
 
+/** Skeleton loading tokens → `bg-skeleton-shimmer` (the shimmer overlay sweep). */
+const SKELETON_CORES = ['skeleton-shimmer'] as const;
+
 function buildIntentCores(): string[] {
   const cores: string[] = [];
   for (const intent of INTENT_NAMES) {
@@ -138,7 +141,8 @@ export const VALID_TOKEN_CORES: ReadonlySet<string> = new Set([
   ...WARM_NEUTRAL_STEPS.map((s) => `warm-neutral-${s}`),
   ...FEEDBACK_CORES,
   ...INTERACTIVE_CORES,
-  ...CHART_CORES
+  ...CHART_CORES,
+  ...SKELETON_CORES
 ]);
 
 /**
