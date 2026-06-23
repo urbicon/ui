@@ -20,6 +20,17 @@ export interface RegisterPageProps {
   t?: AuthLocale;
   /** Called after successful registration. */
   onSuccess?: () => void;
+  /**
+   * Pre-fills the email field. Pass the `?email=` query param from the
+   * invitation link (`createInvitationHandlers` builds `/auth/register?email=<invitee>`)
+   * so an invited user lands on a ready-to-submit form instead of retyping —
+   * and a typo can't trigger the opaque "invitation required" 403. Following
+   * the same explicit-prop pattern as `ResetPasswordPage`/`VerifyEmailPage`'s
+   * `token`, read it from the page in your route (SSR-safe), e.g.
+   * `defaultEmail={page.url.searchParams.get('email') ?? ''}`.
+   * @default ''
+   */
+  defaultEmail?: string;
   /** URL for the login page link. @default '/auth/login' */
   loginUrl?: string;
   /** API endpoint. @default '/api/auth/register' */

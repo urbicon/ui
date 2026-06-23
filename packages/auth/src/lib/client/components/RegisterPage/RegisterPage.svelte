@@ -1,5 +1,6 @@
 <script lang="ts">
   import { Button, Input, Card, Alert } from '@urbicon-ui/blocks';
+  import { untrack } from 'svelte';
   import { useAuthLocale } from '../../../i18n/index.js';
   import { csrfFetch } from '../../csrf.js';
   import type { RegisterPageProps } from './index.js';
@@ -7,6 +8,7 @@
   let {
     t: tProp,
     onSuccess,
+    defaultEmail,
     loginUrl = '/auth/login',
     apiPath = '/api/auth/register',
     csrf,
@@ -29,7 +31,10 @@
   const t = $derived(tProp ?? authLocale());
 
   let name = $state('');
-  let email = $state('');
+  // Seeded once from the invite link's `?email=` (passed as `defaultEmail`), then
+  // editable — `untrack` reads the initial prop without subscribing (mirrors
+  // AccountSettings' name seed). To re-seed after mount, remount with `{#key}`.
+  let email = $state(untrack(() => defaultEmail) ?? '');
   let password = $state('');
   let confirmPassword = $state('');
   let error = $state('');
