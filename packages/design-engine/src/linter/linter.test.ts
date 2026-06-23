@@ -507,3 +507,66 @@ describe('rule metadata', () => {
     expect(ids(lintDesign(code).findings)).toEqual(ids(lintDesign(code).findings));
   });
 });
+
+describe('deep-internal-import', () => {
+  it('flags a deep import into a package component file', () => {
+    const code =
+      "<script>import Button from '@urbicon-ui/blocks/primitives/Button/Button.svelte';</script>";
+    expect(has(lintDesign(code).findings, 'deep-internal-import')).toBe(true);
+  });
+  it('flags an internal-directory path even without a file extension', () => {
+    const code = "<script>import { x } from '@urbicon-ui/blocks/icons/registry';</script>";
+    expect(has(lintDesign(code).findings, 'deep-internal-import')).toBe(true);
+  });
+  it('does NOT flag the package root or documented public subpaths', () => {
+    const code = [
+      "import { Button } from '@urbicon-ui/blocks';",
+      "import { addDays } from '@urbicon-ui/blocks/date';",
+      "import en from '@urbicon-ui/blocks/i18n/en';",
+      "import '@urbicon-ui/blocks/style/index.css';"
+    ].join('\n');
+    expect(has(lintDesign(code).findings, 'deep-internal-import')).toBe(false);
+  });
+});
+
+describe('hardcoded-motion', () => {
+  it('flags a hardcoded duration and a cubic-bezier easing', () => {
+    const code =
+      '<div class="transition-transform duration-[250ms] ease-[cubic-bezier(0.4,0,0.2,1)]">';
+    expect(lintDesign(code).findings.filter((f) => f.ruleId === 'hardcoded-motion')).toHaveLength(
+      2
+    );
+  });
+  it('flags a fractional-second duration', () => {
+    expect(has(lintDesign('<div class="duration-[0.2s]">').findings, 'hardcoded-motion')).toBe(
+      true
+    );
+  });
+  it('does NOT flag motion tokens or named eases', () => {
+    const code =
+      '<div class="duration-[var(--blocks-duration-fast)] ease-[var(--blocks-ease-smooth)] ease-out">';
+    expect(has(lintDesign(code).findings, 'hardcoded-motion')).toBe(false);
+  });
+});
+
+describe('token-hallucination — intent typos', () => {
+  it('flags a misspelled intent (`bg-primay` → `bg-primary`)', () => {
+    expect(has(lintDesign('<button class="bg-primay">').findings, 'token-hallucination')).toBe(
+      true
+    );
+  });
+  it('flags a misspelled intent on a text utility (`text-sucess`)', () => {
+    expect(has(lintDesign('<span class="text-sucess">').findings, 'token-hallucination')).toBe(
+      true
+    );
+  });
+  it('does NOT flag arbitrary, far-from-intent cores (`bg-brand`, `bg-cover`)', () => {
+    const { findings } = lintDesign('<div class="bg-brand text-on-brand bg-cover">');
+    expect(has(findings, 'token-hallucination')).toBe(false);
+  });
+  it('does NOT flag a valid intent', () => {
+    expect(
+      has(lintDesign('<div class="bg-primary text-success">').findings, 'token-hallucination')
+    ).toBe(false);
+  });
+});

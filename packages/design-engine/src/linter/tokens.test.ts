@@ -2,7 +2,12 @@ import { existsSync, readFileSync } from 'node:fs';
 import { dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { describe, expect, it } from 'vitest';
-import { resolveValidTokenCores, VALID_TOKEN_CORES } from './tokens.js';
+import {
+  isSingleEditApart,
+  resolveValidTokenCores,
+  suggestIntentTypo,
+  VALID_TOKEN_CORES
+} from './tokens.js';
 
 /**
  * Drift guard: the hardcoded {@link VALID_TOKEN_CORES} is the design-engine's
@@ -107,5 +112,33 @@ describe('resolveValidTokenCores', () => {
     resolveValidTokenCores(['surface-brand']);
     expect(VALID_TOKEN_CORES.size).toBe(before);
     expect(VALID_TOKEN_CORES.has('surface-brand')).toBe(false);
+  });
+});
+
+describe('isSingleEditApart', () => {
+  it('detects single substitutions, insertions, deletions, and adjacent transpositions', () => {
+    expect(isSingleEditApart('primay', 'primary')).toBe(true); // insertion
+    expect(isSingleEditApart('primaryy', 'primary')).toBe(true); // deletion
+    expect(isSingleEditApart('prinary', 'primary')).toBe(true); // substitution
+    expect(isSingleEditApart('priamry', 'primary')).toBe(true); // transposition
+  });
+  it('rejects identical strings and edits of distance ≥ 2', () => {
+    expect(isSingleEditApart('primary', 'primary')).toBe(false);
+    expect(isSingleEditApart('brand', 'primary')).toBe(false);
+    expect(isSingleEditApart('prmiarx', 'primary')).toBe(false); // two edits
+  });
+});
+
+describe('suggestIntentTypo', () => {
+  it('maps a one-edit misspelling to the intended intent', () => {
+    expect(suggestIntentTypo('primay')).toBe('primary');
+    expect(suggestIntentTypo('sucess')).toBe('success');
+    expect(suggestIntentTypo('wraning')).toBe('warning'); // transposition
+  });
+  it('returns null for exact intents, hyphenated cores, and unrelated words', () => {
+    expect(suggestIntentTypo('primary')).toBeNull(); // exact intent, not a typo
+    expect(suggestIntentTypo('primary-subtle')).toBeNull(); // hyphenated — left to whitelist
+    expect(suggestIntentTypo('brand')).toBeNull(); // far from every intent
+    expect(suggestIntentTypo('cover')).toBeNull();
   });
 });

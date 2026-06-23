@@ -231,4 +231,62 @@ export const KNOWN_BAD_NAMESPACES: Record<string, string> = {
   '-fg': 'Use `text-on-primary` / `text-on-surface` for foreground-on-intent text.'
 };
 
+/**
+ * Whether `a` and `b` differ by exactly one typo: a single substitution,
+ * insertion, deletion, or adjacent transposition (Optimal String Alignment
+ * distance 1). Deliberately stricter than Levenshtein ≤ 2 — it catches the common
+ * typo classes (`primay`→`primary`, `sucess`→`success`, `priamry`→`primary`)
+ * while keeping unrelated words (`brand`, `cover`, `accent`) clearly apart, so
+ * the typo check never fires on a legitimately different utility.
+ */
+export function isSingleEditApart(a: string, b: string): boolean {
+  if (a === b) return false;
+  if (a.length === b.length) {
+    let diffs = 0;
+    let at = -1;
+    for (let i = 0; i < a.length; i++) {
+      if (a[i] !== b[i]) {
+        diffs++;
+        if (at === -1) at = i;
+      }
+    }
+    if (diffs === 1) return true; // one substitution
+    // adjacent transposition: two diffs that are a swapped neighbouring pair
+    return diffs === 2 && at >= 0 && a[at] === b[at + 1] && a[at + 1] === b[at];
+  }
+  if (Math.abs(a.length - b.length) !== 1) return false;
+  // one insertion/deletion: the shorter is the longer with a single char removed
+  const [short, long] = a.length < b.length ? [a, b] : [b, a];
+  let i = 0;
+  let j = 0;
+  let skipped = false;
+  while (i < short.length && j < long.length) {
+    if (short[i] === long[j]) {
+      i++;
+      j++;
+    } else if (!skipped) {
+      skipped = true;
+      j++;
+    } else {
+      return false;
+    }
+  }
+  return true;
+}
+
+/**
+ * If `core` is a likely typo of an intent name — a single bare word one edit away
+ * from `primary`/`secondary`/… but not an exact intent — return the intended
+ * intent, else `null`. Hyphenated cores (`primary-subtle`, `success-foo`) are left
+ * to the namespace/whitelist checks; only the bare intent word is typo-matched.
+ */
+export function suggestIntentTypo(core: string): string | null {
+  if (core.includes('-')) return null;
+  if ((INTENT_NAMES as readonly string[]).includes(core)) return null;
+  for (const intent of INTENT_NAMES) {
+    if (isSingleEditApart(core, intent)) return intent;
+  }
+  return null;
+}
+
 export { INTENT_NAMES, INTENT_VARIANTS, SCALE_STEPS };

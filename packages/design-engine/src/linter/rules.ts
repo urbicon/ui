@@ -13,6 +13,7 @@ import {
   KNOWN_BAD_NAMESPACES,
   KNOWN_FOREIGN_CORES,
   SEMANTIC_NAMESPACES,
+  suggestIntentTypo,
   VALID_TOKEN_CORES
 } from './tokens.js';
 import type { Finding, Rule } from './types.js';
@@ -261,6 +262,94 @@ const dynamicClassInterpolation: Rule = {
   }
 };
 
+/** Subpath segments that are internal to an `@urbicon-ui` package — never a public export. */
+const INTERNAL_SUBPATH_SEGMENTS = new Set([
+  'primitives',
+  'components',
+  'lib',
+  'dist',
+  'src',
+  'icons'
+]);
+
+/**
+ * A deep import into an `@urbicon-ui` package: either a concrete component/module
+ * file (`…/Button.svelte`, `…/foo.js`) or a path through an internal directory
+ * (`primitives/`, `components/`, …). The documented public subpaths — `./date`,
+ * `./style/*.css`, `./i18n/en` — are flat, extensionless-or-CSS, and stay allowed.
+ */
+function isDeepInternalSubpath(subpath: string): boolean {
+  if (/\.svelte(\.[jt]s)?$|\.[jt]s$/.test(subpath)) return true;
+  return subpath.split('/').some((seg) => INTERNAL_SUBPATH_SEGMENTS.has(seg));
+}
+
+const deepInternalImport: Rule = {
+  id: 'deep-internal-import',
+  severity: 'error',
+  description: 'Deep/internal import into an `@urbicon-ui` package instead of its public root.',
+  check(lines) {
+    // The module specifier of any import / export-from / @import / dynamic import.
+    const re = /['"](@urbicon-ui\/[a-z-]+)\/([^'"]+)['"]/g;
+    const findings: Finding[] = [];
+    lines.forEach((line, i) => {
+      for (const m of line.matchAll(re)) {
+        const pkg = m[1]!;
+        const subpath = m[2]!;
+        if (!isDeepInternalSubpath(subpath)) continue;
+        findings.push({
+          ruleId: this.id,
+          severity: this.severity,
+          kind: 'deterministic',
+          message: `Deep import \`${pkg}/${subpath}\` reaches into ${pkg}'s internals — they can move between releases.`,
+          fix: `Import from the package root: \`import { … } from '${pkg}'\`.`,
+          line: i + 1,
+          match: `${pkg}/${subpath}`
+        });
+      }
+    });
+    return dedupeByLine(findings);
+  }
+};
+
+const hardcodedMotion: Rule = {
+  id: 'hardcoded-motion',
+  severity: 'error',
+  description:
+    'Hardcoded transition duration or `cubic-bezier()` easing instead of a motion token.',
+  check(lines) {
+    // `duration-[250ms]` / `duration-[0.2s]` — but not `duration-[var(--blocks-duration-fast)]`.
+    const duration = /\bduration-\[\d+(?:\.\d+)?m?s\]/g;
+    // `ease-[cubic-bezier(…)]` — but not `ease-[var(--blocks-ease-smooth)]` or named `ease-out`.
+    const easing = /\bease-\[cubic-bezier\([^\]]*\)\]/g;
+    const findings: Finding[] = [];
+    lines.forEach((line, i) => {
+      for (const m of line.matchAll(duration)) {
+        findings.push({
+          ruleId: this.id,
+          severity: this.severity,
+          kind: 'deterministic',
+          message: `Hardcoded transition duration \`${m[0]}\` bypasses the motion scale (no global speed / reduced-motion control).`,
+          fix: 'Use a duration token: `duration-[var(--blocks-duration-fast)]` / `-normal` / `-slow`.',
+          line: i + 1,
+          match: m[0]
+        });
+      }
+      for (const m of line.matchAll(easing)) {
+        findings.push({
+          ruleId: this.id,
+          severity: this.severity,
+          kind: 'deterministic',
+          message: `Hardcoded \`cubic-bezier()\` easing \`${m[0]}\` bypasses the motion system's easing tokens.`,
+          fix: 'Use an easing token: `ease-[var(--blocks-ease-smooth)]` / `-snappy` / `-gentle`, or a named Tailwind ease (`ease-out`).',
+          line: i + 1,
+          match: m[0]
+        });
+      }
+    });
+    return dedupeByLine(findings);
+  }
+};
+
 /**
  * Token hallucination: a colour utility whose core *looks* like an Urbicon UI
  * semantic token (right namespace / intent prefix) but is not in the validated
@@ -284,7 +373,25 @@ const tokenHallucination: Rule = {
     lines.forEach((line, i) => {
       for (const m of line.matchAll(re)) {
         const core = m[2]!;
-        if (!looksSemantic(core)) continue;
+        if (!looksSemantic(core)) {
+          // Not in our vocabulary — but a bare core one edit from an intent is almost
+          // certainly a misspelling (`bg-primay` → `bg-primary`), where the namespace
+          // heuristic alone would let it pass silently. Arbitrary cores (`bg-cover`,
+          // `bg-brand`) are far from every intent and stay unflagged.
+          const intended = suggestIntentTypo(core);
+          if (intended) {
+            findings.push({
+              ruleId: this.id,
+              severity: this.severity,
+              kind: 'deterministic',
+              message: `\`${m[1]}-${core}\` looks like a typo of \`${m[1]}-${intended}\`.`,
+              fix: `Did you mean \`${m[1]}-${intended}\`? Valid intents: ${INTENT_NAMES.join(', ')}.`,
+              line: i + 1,
+              match: m[0]
+            });
+          }
+          continue;
+        }
         if (validCores.has(core)) continue;
 
         findings.push({
@@ -348,6 +455,8 @@ export const RULES: Rule[] = [
   darkModeOverride,
   focusNotVisible,
   hardcodedZIndex,
+  hardcodedMotion,
+  deepInternalImport,
   dynamicClassInterpolation,
   tokenHallucination,
   ...MARKUP_RULES
