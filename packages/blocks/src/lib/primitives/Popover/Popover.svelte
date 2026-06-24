@@ -1,14 +1,7 @@
 <script lang="ts">
   import { untrack } from 'svelte';
   import { getBlocksConfig, resolveSlotClasses } from '$lib/provider';
-  import {
-    autoUpdate,
-    computePosition,
-    flip,
-    size as floatingSize,
-    offset,
-    shift
-  } from '$lib/utils/floating';
+  import { useFloatingPanel } from '$lib/utils';
   import { popoverVariants } from './popover.variants';
   import type { PopoverProps } from './index';
 
@@ -56,7 +49,6 @@
 
   let internalTriggerElement = $state<HTMLElement | null>(null);
   let popoverElement = $state<HTMLElement | null>(null);
-  let cleanupFloatingUI = $state<(() => void) | undefined>();
 
   const effectiveTriggerElement = $derived(triggerElement || internalTriggerElement);
 
@@ -245,94 +237,24 @@
   });
 
   // ── Floating UI positioning + native show/hide ─────────────
-
-  $effect(() => {
-    if (!open || !effectiveTriggerElement || !popoverElement) {
-      if (popoverElement?.matches(':popover-open')) {
-        try {
-          popoverElement.hidePopover();
-        } catch (err) {
-          // Pre-check eliminated "already hidden"; real causes are
-          // detached elements or popover API absence. Surface to telemetry.
-          console.warn('[Popover] hidePopover failed', err);
-        }
-      }
-      return;
-    }
-
-    // Show the popover in the top layer so it has layout for positioning
-    if (!popoverElement.matches(':popover-open')) {
-      try {
-        popoverElement.showPopover();
-      } catch (err) {
-        // Real causes: legacy browser without Popover API (Safari < 17,
-        // Chrome < 114, Firefox < 125), element detached, or `popover`
-        // attribute overridden by a consumer via restProps.
-        console.warn('[Popover] showPopover failed', err);
-      }
-    }
-
-    const updatePosition = () => {
-      if (!effectiveTriggerElement || !popoverElement) return;
-
-      return computePosition(effectiveTriggerElement, popoverElement, {
-        placement,
-        // `fixed` is the right strategy when the panel sits in the popover
-        // top layer (viewport-coordinated); `absolute` matches the in-flow
-        // mode where the panel is positioned relative to the trigger's
-        // offset parent.
-        strategy: usePortal ? 'fixed' : 'absolute',
-        middleware: [
-          offset(offsetDistance),
-          flip(),
-          shift({ padding: shiftPadding }),
-          floatingSize({
-            apply({ rects }) {
-              if (!popoverElement) return;
-              // `syncWidth` clamps the panel to the trigger width exactly
-              // (Select/Combobox semantics — items longer than the field
-              // truncate or wrap). `syncMinWidth` is the looser Menu-style
-              // variant: panel ≥ trigger.width, but content is free to grow
-              // it. Hard sync wins if both are set.
-              popoverElement.style.width = syncWidth ? `${rects.reference.width}px` : '';
-              popoverElement.style.minWidth =
-                !syncWidth && syncMinWidth ? `${rects.reference.width}px` : '';
-            }
-          })
-        ]
-      })
-        .then(({ x, y }) => {
-          if (!popoverElement) return;
-          // `autoUpdate` may fire after the trigger has detached, in which
-          // case Floating UI returns NaN. Bail rather than writing `NaNpx`.
-          if (!Number.isFinite(x) || !Number.isFinite(y)) return;
-          Object.assign(popoverElement.style, {
-            left: `${x}px`,
-            top: `${y}px`
-          });
-        })
-        .catch((err) => {
-          // Middleware can throw synchronously (e.g. geometry read on a
-          // detached node). Without a catch this becomes an unhandled
-          // rejection with no Popover context.
-          console.warn('[Popover] computePosition failed', err);
-        });
-    };
-
-    updatePosition();
-    cleanupFloatingUI = autoUpdate(effectiveTriggerElement, popoverElement, updatePosition);
-
-    return () => {
-      cleanupFloatingUI?.();
-      cleanupFloatingUI = undefined;
-      if (popoverElement?.matches(':popover-open')) {
-        try {
-          popoverElement.hidePopover();
-        } catch (err) {
-          console.warn('[Popover] hidePopover failed', err);
-        }
-      }
-    };
+  //
+  // Delegated to the shared `useFloatingPanel` helper — the same positioning
+  // codepath Select/Combobox use — so the iOS/visualViewport handling and the
+  // keyboard-aware height cap (`--blocks-overlay-available-height`, consumed by
+  // popoverVariants/menuVariants) land here too instead of being a second,
+  // drifting copy. The helper drives `showPopover()`/`hidePopover()` purely
+  // from `open`; the `popover="auto"`/`"manual"` dismiss wiring above is
+  // independent of it.
+  useFloatingPanel({
+    reference: () => effectiveTriggerElement,
+    floating: () => popoverElement,
+    open: () => open,
+    portal: () => usePortal,
+    placement: () => placement,
+    offsetDistance: () => offsetDistance,
+    shiftPadding: () => shiftPadding,
+    syncWidth: () => syncWidth,
+    syncMinWidth: () => syncMinWidth
   });
 
   // ── Trigger handlers ───────────────────────────────────────
@@ -390,9 +312,10 @@
   `position: absolute`, anchored to the trigger's offset parent. The
   `popover` attribute is suppressed so the browser does not promote the
   element to the top layer; Floating UI still drives `left` / `top` via
-  the existing autoUpdate effect, and the `open`/`!open` toggle just
-  shows / hides the element. Used by Menu / Select consumers that live
-  inside another popover (avoids nested-top-layer focus & z-index quirks).
+  `useFloatingPanel` (which skips show/hide when not portalled), and the
+  `open`/`!open` toggle just shows / hides the element. Used by Menu /
+  Select consumers that live inside another popover (avoids nested-top-layer
+  focus & z-index quirks).
 -->
 <div
   bind:this={popoverElement}

@@ -5,7 +5,13 @@ export const popoverVariants = tv({
   base: [
     'bg-surface-elevated border border-border-hairline rounded-contain',
     'shadow-[var(--blocks-shadow-md)] backdrop-blur-sm',
-    'overflow-y-auto max-h-[calc(100dvh-4rem)]'
+    // `calc(100dvh-4rem)` is the static design cap; Floating UI's `size`
+    // middleware (via useFloatingPanel) narrows it to the room actually left
+    // between the anchor and the visual viewport edge through
+    // `--blocks-overlay-available-height`, so the panel shrinks above the iOS
+    // keyboard and recovers when it closes. The var falls back to 100dvh when
+    // unset (SSR / no JS), leaving the design cap in charge.
+    'overflow-y-auto max-h-[min(calc(100dvh-4rem),var(--blocks-overlay-available-height,100dvh))]'
   ],
   variants: {
     size: {

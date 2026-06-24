@@ -46,7 +46,7 @@ export {
   type TierContext
 } from './tier-context';
 export * from './types';
-export { type FloatingListboxOptions, useFloatingListbox } from './use-floating-listbox.svelte';
+export { type FloatingPanelOptions, useFloatingPanel } from './use-floating-panel.svelte';
 export {
   computeFormFieldAria,
   type UseFormFieldInputs,

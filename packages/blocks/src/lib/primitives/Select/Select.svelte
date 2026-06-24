@@ -1,6 +1,6 @@
 <script lang="ts" generics="T extends string | number | boolean = string">
   import { useBlocksI18n, mintRegistry } from '$lib';
-  import { useFormField, getTierContext, useFloatingListbox } from '$lib/utils';
+  import { useFormField, getTierContext, useFloatingPanel } from '$lib/utils';
   import { getBlocksConfig, resolveSlotClasses } from '$lib/provider';
   import { resolveIcon } from '$lib/icons';
   import ChevronDownIconDefault from '$lib/icons/ChevronDownIcon.svelte';
@@ -228,7 +228,7 @@
     activeIndex = next;
   });
 
-  useFloatingListbox({
+  useFloatingPanel({
     reference: () => triggerRef,
     floating: () => listboxRef,
     open: () => open,

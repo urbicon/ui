@@ -7,7 +7,7 @@
   import CloseIconDefault from '$lib/icons/CloseIcon.svelte';
   import ChevronDownIconDefault from '$lib/icons/ChevronDownIcon.svelte';
   import CheckIconDefault from '$lib/icons/CheckIcon.svelte';
-  import { useFormField, getTierContext, useFloatingListbox } from '$lib/utils';
+  import { useFormField, getTierContext, useFloatingPanel } from '$lib/utils';
   import type { ComboboxProps, ComboboxOption } from './index';
 
   const bt = useBlocksI18n();
@@ -263,10 +263,13 @@
     }
   });
 
-  useFloatingListbox({
+  useFloatingPanel({
     reference: () => inputEl,
     floating: () => listboxEl,
-    open: () => open
+    open: () => open,
+    // The listbox always tracks the input width exactly; the generic panel
+    // helper defaults to no width-sync, so the listbox pattern opts in.
+    syncWidth: () => true
   });
 
   const listboxId = $derived(`${id}-listbox`);

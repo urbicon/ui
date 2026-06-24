@@ -35,10 +35,14 @@ describe('popoverVariants', () => {
     expect(result).toContain('text-base');
   });
 
-  it('includes overflow and max-height constraints', () => {
+  it('includes overflow and a keyboard-aware max-height constraint', () => {
     const result = popoverVariants();
     expect(result).toContain('overflow-y-auto');
-    expect(result).toContain('max-h-[calc(100dvh-4rem)]');
+    // Static design cap inside a min() with the live available-height var, so
+    // the panel shrinks above the iOS keyboard but never exceeds the cap.
+    expect(result).toContain(
+      'max-h-[min(calc(100dvh-4rem),var(--blocks-overlay-available-height,100dvh))]'
+    );
   });
 
   it('never outputs dark: overrides', () => {

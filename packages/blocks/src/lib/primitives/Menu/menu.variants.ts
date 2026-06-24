@@ -17,7 +17,12 @@ export const menuVariants = tv({
     // modify trigger stays on the subtler container border.
     content: [
       'box-border border shadow-[var(--blocks-shadow-md)] p-1',
-      'max-h-80 overflow-y-auto',
+      // 20rem (max-h-80) is the static design cap; the wrapping Popover's
+      // useFloatingPanel sets `--blocks-overlay-available-height` on the panel,
+      // which cascades to this content surface so the menu shrinks above the
+      // iOS keyboard and recovers when it closes. Falls back to the design cap
+      // when the var is unset (SSR / no JS).
+      'max-h-[min(20rem,var(--blocks-overlay-available-height,100dvh))] overflow-y-auto',
       'bg-surface-elevated'
     ],
     header: ['sticky top-0 z-10 bg-surface-elevated', 'px-2 py-1 border-b border-border-hairline'],
