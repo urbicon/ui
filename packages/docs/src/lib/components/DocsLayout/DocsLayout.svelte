@@ -180,73 +180,68 @@
           >
             <div class={unstyled ? '' : styles.stickyBarInner()}>
               <div class="flex items-center py-2.5">
-                <!-- Breadcrumb ancestors: always visible, text shrinks when scrolled.
-                     `font-meta` picks up the Editorial mono font when the host
-                     enables it; falls back to sans-serif otherwise. -->
+                <!--
+                  Breadcrumb + page title on one line. The ancestors
+                  (`blocks / primitives`) sit in a shrinkable, clipping group
+                  so they give way first on narrow viewports. The current-page
+                  title is the SINGLE source of the page name: it morphs in
+                  place — a quiet lowercase trail leaf while the hero h1 is on
+                  screen, a prominent heading once we've scrolled past it — so
+                  there is never a second title element that could read as a
+                  duplicate of the final crumb. `min-w-0` lets the whole nav
+                  shrink instead of bursting the bar; the title `truncate`s
+                  rather than overflowing for long page names. `font-meta`
+                  picks up the Editorial mono font when the host enables it.
+                -->
                 <nav
-                  class="font-meta flex shrink-0 items-center overflow-hidden whitespace-nowrap lowercase transition-all duration-300 ease-out
+                  class="font-meta flex min-w-0 items-center whitespace-nowrap lowercase transition-all duration-300 ease-out
                     {scrolledPastHeader
                     ? 'text-text-tertiary gap-0.5 text-xs'
                     : 'text-text-tertiary gap-0.5 text-sm'}"
                   aria-label="Breadcrumb"
                 >
-                  {#each breadcrumbs as crumb, i (crumb.label)}
-                    {#if i > 0}
-                      <span
-                        class="font-meta text-text-quaternary mx-1.5 select-none"
-                        aria-hidden="true">/</span
-                      >
-                    {/if}
-                    {#if crumb.href}
-                      <!-- eslint-disable svelte/no-navigation-without-resolve -- hrefs are pre-resolved by the consumer -->
-                      <a
-                        href={crumb.href}
-                        class="hover:text-text-secondary transition-colors duration-150"
-                      >
-                        {crumb.label}
-                      </a>
-                      <!-- eslint-enable svelte/no-navigation-without-resolve -->
-                    {:else}
-                      <span>{crumb.label}</span>
-                    {/if}
-                  {/each}
-                  <!--
-                    Editorial final-crumb:
-                    the page title closes the trail as a non-linked
-                    crumb instead of a trailing open slash. The parent
-                    `nav` already applies `lowercase`, so `Button`
-                    renders as `button`. Stays current via aria-current.
-                  -->
+                  <span class="flex min-w-0 items-center overflow-hidden whitespace-nowrap">
+                    {#each breadcrumbs as crumb, i (crumb.label)}
+                      {#if i > 0}
+                        <span
+                          class="font-meta text-text-quaternary mx-1.5 select-none"
+                          aria-hidden="true">/</span
+                        >
+                      {/if}
+                      {#if crumb.href}
+                        <!-- eslint-disable svelte/no-navigation-without-resolve -- hrefs are pre-resolved by the consumer -->
+                        <a
+                          href={crumb.href}
+                          class="hover:text-text-secondary truncate transition-colors duration-150"
+                        >
+                          {crumb.label}
+                        </a>
+                        <!-- eslint-enable svelte/no-navigation-without-resolve -->
+                      {:else}
+                        <span class="truncate">{crumb.label}</span>
+                      {/if}
+                    {/each}
+                  </span>
                   {#if title}
                     <span
-                      class="font-meta text-text-quaternary mx-1.5 select-none"
+                      class="font-meta text-text-quaternary mx-1.5 shrink-0 select-none"
                       aria-hidden="true">/</span
                     >
-                    <span class="text-text-secondary" aria-current="page">{title}</span>
+                    <span
+                      class="min-w-0 truncate transition-colors duration-300 ease-out
+                        {scrolledPastHeader
+                        ? 'text-text-primary text-sm font-semibold normal-case'
+                        : 'text-text-secondary'}"
+                      aria-current="page">{title}</span
+                    >
                   {/if}
                 </nav>
 
-                <!--
-                  Sticky-bar page-identity: a small `text-sm` echo of
-                  the title, visible only once we've scrolled past the
-                  hero h1. In unscrolled state the bar carries just the
-                  breadcrumb (which already ends in the page title as
-                  its final crumb), so a second title-span would read
-                  as a duplicate (E.4 reviewer-finding).
-                -->
-                {#if title}
-                  <span
-                    class="text-text-primary shrink-0 overflow-hidden text-sm font-semibold whitespace-nowrap transition-all duration-300 ease-out
-                      {scrolledPastHeader ? 'ml-2 max-w-xs opacity-100' : 'ml-0 max-w-0 opacity-0'}"
-                    aria-hidden={!scrolledPastHeader}
-                  >
-                    {title}
-                  </span>
-                {/if}
-
-                <!-- Scrollspy badge: slides in with staggered delay when scrolled -->
+                <!-- Scrollspy badge: slides in with a staggered delay when
+                     scrolled. Hidden on mobile, where the bar has no room for
+                     it beside the title and the source link. -->
                 <div
-                  class="flex items-center overflow-hidden transition-all duration-300 ease-out
+                  class="hidden items-center overflow-hidden transition-all duration-300 ease-out sm:flex
                     {scrolledPastHeader && activeSectionTitle
                     ? 'ml-2 max-w-56 opacity-100'
                     : 'ml-0 max-w-0 opacity-0'}"
