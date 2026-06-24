@@ -4,6 +4,11 @@ All notable changes to this project will be documented in this file.
 This changelog is automatically generated from [Conventional Commits](https://www.conventionalcommits.org).
 
 
+## [6.3.5] - 2026-06-24
+
+### Features
+- **auth**: Give the Lettermint transport a configurable from-default and timeout
+
 ## [6.3.4] - 2026-06-24
 
 ### Miscellaneous
