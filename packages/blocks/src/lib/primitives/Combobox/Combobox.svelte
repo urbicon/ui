@@ -231,7 +231,7 @@
     }
   }
 
-  function handleClickOutside(event: MouseEvent) {
+  function handleClickOutside(event: PointerEvent) {
     const target = event.target as Node;
     // Exclude the whole input wrapper (input + chevron toggle + clear button),
     // so clicking the chevron to close doesn't race this handler into a
@@ -248,8 +248,12 @@
 
   $effect(() => {
     if (open) {
-      document.addEventListener('mousedown', handleClickOutside);
-      return () => document.removeEventListener('mousedown', handleClickOutside);
+      // `pointerdown` (not `mousedown`) for reliable outside-dismiss on touch:
+      // iOS fires `pointerdown` immediately on tap, whereas a synthetic
+      // `mousedown` can be delayed or dropped when the tapped element is the
+      // moving top-layer popover. Mirrors Popover's manual-mode dismiss.
+      document.addEventListener('pointerdown', handleClickOutside);
+      return () => document.removeEventListener('pointerdown', handleClickOutside);
     }
   });
 

@@ -373,7 +373,7 @@
     }
   }
 
-  function handleClickOutside(event: MouseEvent) {
+  function handleClickOutside(event: PointerEvent) {
     const target = event.target as Node;
     if (
       open &&
@@ -407,7 +407,7 @@
   const hasSelection = $derived(multiple ? selectedOptions.length > 0 : selectedOption !== null);
 </script>
 
-<svelte:window onclick={handleClickOutside} />
+<svelte:window onpointerdown={handleClickOutside} />
 
 <div
   class={unstyled
