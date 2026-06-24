@@ -138,16 +138,38 @@
     requestAnimationFrame(updateIndicator);
   });
 
-  // Compares the track's natural content width against its (clamped) box width.
-  // Reads layout, so it runs from the ResizeObserver callback rather than a
-  // reactive effect. The +1 tolerance + recorded `naturalWidth` give it
-  // hysteresis so it settles instead of flip-flopping at the boundary.
+  // Detects whether the horizontal track fits its available width. Reads
+  // layout, so it runs from the ResizeObserver callback rather than a reactive
+  // effect. The +1 tolerance + recorded `naturalWidth` give it hysteresis so it
+  // settles instead of flip-flopping at the boundary.
+  //
+  // We measure the items' own geometry rather than `el.scrollWidth`: the track
+  // is `overflow-x-clip`, which is NOT a scroll container, and Chromium/WebKit
+  // clamp `scrollWidth` to `clientWidth` for clip boxes (so the old scrollWidth
+  // check silently never fired off Firefox). `getBoundingClientRect()` reports
+  // true layout positions regardless of clipping.
   function measureOverflow() {
     const el = containerElement;
-    if (!el) return;
+    if (!el || el.clientWidth === 0 || registeredItems.size === 0) return;
     if (!collapsed) {
-      if (el.scrollWidth > el.clientWidth + 1) {
-        naturalWidth = el.scrollWidth;
+      let minLeft = Infinity;
+      let maxRight = -Infinity;
+      for (const item of registeredItems.values()) {
+        const r = item.getBoundingClientRect();
+        if (r.width === 0 && r.height === 0) continue; // not laid out yet
+        minLeft = Math.min(minLeft, r.left);
+        maxRight = Math.max(maxRight, r.right);
+      }
+      if (maxRight === -Infinity) return;
+      const cs = getComputedStyle(el);
+      const padX = (parseFloat(cs.paddingLeft) || 0) + (parseFloat(cs.paddingRight) || 0);
+      const contentWidth = maxRight - minLeft;
+      // Overflow when the items can't fit the content box (clientWidth − padding).
+      if (contentWidth > el.clientWidth - padX + 1) {
+        // Min box width that fits the horizontal track again (used as the
+        // expand-back threshold while collapsed, where the items are stacked
+        // and can no longer be measured horizontally).
+        naturalWidth = contentWidth + padX;
         collapsed = true;
       }
     } else if (naturalWidth > 0 && el.clientWidth >= naturalWidth) {
