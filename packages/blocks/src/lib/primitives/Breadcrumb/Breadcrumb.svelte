@@ -52,7 +52,9 @@
       maxItems > 0 &&
       !expanded &&
       items.length > maxItems &&
-      before + after < items.length;
+      // Only worth it when "…" actually replaces ≥2 items — folding a single
+      // hidden item saves no space and just adds an interaction.
+      items.length - before - after >= 2;
 
     if (!collapse) {
       return items.map((item, i) => ({ kind: 'item' as const, item, current: i === last }));
