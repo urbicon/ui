@@ -4,6 +4,22 @@ All notable changes to this project will be documented in this file.
 This changelog is automatically generated from [Conventional Commits](https://www.conventionalcommits.org).
 
 
+## [6.3.7] - 2026-06-24
+
+### Bug Fixes
+- **blocks**: Keep anchored overlays stable on iOS (visualViewport + viewport-fit height)
+- **blocks**: Dismiss Combobox/Select via pointerdown for reliable touch close
+- **docs**: Single morphing page title in sticky header, overflow-safe
+- **blocks**: Stop overlay max-height from latching short after viewport shrink
+- **blocks**: Don't collapse a Breadcrumb when the ellipsis would hide one item
+
+### Documentation
+- Reflect SegmentGroup overflow collapse + iOS input floor
+- Document Breadcrumb collapse + correct overlay keyboard notes
+
+### Features
+- **blocks**: Collapse long Breadcrumb trails into an expandable ellipsis
+
 ## [6.3.6] - 2026-06-24
 
 ### Bug Fixes
