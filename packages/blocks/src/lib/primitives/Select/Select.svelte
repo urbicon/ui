@@ -109,6 +109,10 @@
   }));
 
   let activeIndex = $state(-1);
+  // Tracks whether the most recent open was keyboard-driven, so the initial
+  // active-option highlight only defaults to the first row for keyboard users.
+  // Plain `let`: read in the open effect, intentionally not a reactive dep.
+  let openedViaKeyboard = false;
   let triggerRef = $state<HTMLElement>();
   let listboxRef = $state<HTMLDivElement>();
 
@@ -205,15 +209,23 @@
     }
   });
 
+  // Initial active-option highlight when the listbox opens. Where the virtual
+  // cursor starts:
+  //   • the selected option, if any — shows the user where they are
+  //   • else the first option ONLY on keyboard-open — gives arrows a starting
+  //     point and matches the keyboard expectation of a focused first row
+  //   • else nothing (-1) on pointer-open — avoids the "first element always
+  //     marked" phantom highlight; the first ArrowDown then moves to row 0.
+  // The `activeIndex >= 0` guard preserves an in-progress cursor so multi-
+  // select (listbox stays open across picks) doesn't reset on every toggle.
   $effect(() => {
-    if (open && listboxRef) {
-      if (multiple) {
-        activeIndex = activeIndex >= 0 ? activeIndex : 0;
-      } else {
-        const selectedIdx = enabledOptions.findIndex((o) => o.value === value);
-        activeIndex = selectedIdx >= 0 ? selectedIdx : 0;
-      }
-    }
+    if (!open || !listboxRef) return;
+    if (activeIndex >= 0) return;
+    let next = -1;
+    const selectedIdx = multiple ? -1 : enabledOptions.findIndex((o) => o.value === value);
+    if (selectedIdx >= 0) next = selectedIdx;
+    else if (openedViaKeyboard) next = 0;
+    activeIndex = next;
   });
 
   useFloatingListbox({
@@ -226,6 +238,9 @@
 
   function toggle() {
     if (disabled) return;
+    // Pointer-driven open (trigger onclick). Mark modality so the open effect
+    // doesn't pre-highlight the first row for a mouse/touch user.
+    if (!open) openedViaKeyboard = false;
     open = !open;
     if (!open) activeIndex = -1;
   }
@@ -289,64 +304,71 @@
     return true;
   }
 
+  // Single keyboard model, attached to the trigger (the focused element). The
+  // ARIA listbox pattern keeps DOM focus on the trigger and moves a virtual
+  // cursor via `aria-activedescendant`, so the listbox element never receives
+  // key events — every key is handled here, branching on `open`.
+  //
+  // (Previously a second handler lived on the listbox `div`; since focus never
+  // entered it, arrows were preventDefault'd but never advanced the cursor —
+  // the "keyboard does nothing / fights the page" report. Consolidated here.)
   function handleTriggerKeydown(event: KeyboardEvent) {
     if (disabled) return;
 
     switch (event.key) {
-      case 'Enter':
-      case ' ':
       case 'ArrowDown':
         event.preventDefault();
-        if (!open) open = true;
-        break;
-      case 'ArrowUp':
-        event.preventDefault();
-        if (!open) open = true;
-        break;
-      case 'Escape':
-        if (open && dismissByEscape()) {
-          event.preventDefault();
+        if (!open) {
+          openedViaKeyboard = true;
+          open = true;
+        } else {
+          activeIndex = activeIndex < enabledOptions.length - 1 ? activeIndex + 1 : 0;
         }
         break;
-    }
-  }
-
-  function handleListboxKeydown(event: KeyboardEvent) {
-    switch (event.key) {
-      case 'ArrowDown':
-        event.preventDefault();
-        activeIndex = activeIndex < enabledOptions.length - 1 ? activeIndex + 1 : 0;
-        break;
       case 'ArrowUp':
         event.preventDefault();
-        activeIndex = activeIndex > 0 ? activeIndex - 1 : enabledOptions.length - 1;
+        if (!open) {
+          openedViaKeyboard = true;
+          open = true;
+        } else {
+          activeIndex = activeIndex > 0 ? activeIndex - 1 : enabledOptions.length - 1;
+        }
         break;
       case 'Enter':
       case ' ':
         event.preventDefault();
-        if (activeIndex >= 0 && activeIndex < enabledOptions.length) {
+        if (!open) {
+          openedViaKeyboard = true;
+          open = true;
+        } else if (activeIndex >= 0 && activeIndex < enabledOptions.length) {
           selectOption(enabledOptions[activeIndex]);
         }
         break;
       case 'Escape':
-        if (dismissByEscape()) {
+        if (open && dismissByEscape()) {
           event.preventDefault();
           focusTrigger();
         }
         break;
       case 'Tab':
-        // Tab always closes (focus is leaving the widget regardless),
+        // Tab leaves the widget — close (focus moves on via the default tab),
         // independent of closeOnEscape/closeOnClickOutside.
-        open = false;
-        activeIndex = -1;
+        if (open) {
+          open = false;
+          activeIndex = -1;
+        }
         break;
       case 'Home':
-        event.preventDefault();
-        activeIndex = 0;
+        if (open) {
+          event.preventDefault();
+          activeIndex = 0;
+        }
         break;
       case 'End':
-        event.preventDefault();
-        activeIndex = enabledOptions.length - 1;
+        if (open) {
+          event.preventDefault();
+          activeIndex = enabledOptions.length - 1;
+        }
         break;
     }
   }
@@ -512,7 +534,6 @@
           ? 'position: absolute; overflow-y: auto;'
           : 'display: none; position: absolute; overflow-y: auto;'}
       aria-labelledby={labelId}
-      onkeydown={handleListboxKeydown}
     >
       {#if open}
         {#if groups}
