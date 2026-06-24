@@ -4,6 +4,24 @@ All notable changes to this project will be documented in this file.
 This changelog is automatically generated from [Conventional Commits](https://www.conventionalcommits.org).
 
 
+## [6.3.6] - 2026-06-24
+
+### Bug Fixes
+- **blocks**: Use manual dismiss for Popover with an external trigger
+- **blocks**: Focus the Menu panel, not the first item, on pointer-open
+- **blocks**: Drive Select keyboard nav from the focused trigger
+- **blocks**: Add a Combobox chevron toggle to close the listbox
+- **blocks**: Floor focusable inputs to 16px on touch to stop iOS zoom
+- **docs**: Stack playground controls above their labels on mobile
+- **docs**: Add a mobile nav to the landing header
+- **blocks**: Detect SegmentGroup overflow via item geometry, not scrollWidth
+
+### Documentation
+- **blocks**: Fix stale Select handler reference in focus-policy comment
+
+### Features
+- **blocks**: Collapse SegmentGroup to a vertical stack on overflow
+
 ## [6.3.5] - 2026-06-24
 
 ### Features
