@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { untrack } from 'svelte';
   import { SvelteMap } from 'svelte/reactivity';
   import { getBlocksConfig, resolveSlotClasses } from '$lib/provider';
   import { getTierContext } from '$lib/utils';
@@ -21,6 +22,7 @@
     slotClasses: slotClassesProp = {},
     preset,
     ariaLabel,
+    collapseOnOverflow = true,
     ...restProps
   }: SegmentGroupProps = $props();
 
@@ -35,6 +37,15 @@
 
   let containerElement = $state<HTMLDivElement>();
   let indicatorStyle = $state('opacity: 0;');
+  // Content-aware overflow degradation: when the horizontal track can't fit its
+  // available width, collapse to a vertical radio-style stack. `collapsed`
+  // drives the `data-collapsed` attribute (CSS does the layout switch).
+  let collapsed = $state(false);
+  // Horizontal content width recorded at the moment we collapse, used as the
+  // hysteresis threshold to expand back. Without it the check would oscillate:
+  // once vertical the track no longer overflows horizontally, so a naive
+  // re-measure would immediately switch back to horizontal and overflow again.
+  let naturalWidth = 0;
   // SvelteMap instead of `$state(new Map())` — `.set()`/`.delete()` must be
   // reactive so the indicator updates when new items register.
   const registeredItems = new SvelteMap<string, HTMLElement>();
@@ -121,7 +132,39 @@
 
   $effect(() => {
     void value;
+    // Reposition the indicator when the layout flips orientation — the active
+    // item's box moves from a horizontal slot to a full-width row.
+    void collapsed;
     requestAnimationFrame(updateIndicator);
+  });
+
+  // Compares the track's natural content width against its (clamped) box width.
+  // Reads layout, so it runs from the ResizeObserver callback rather than a
+  // reactive effect. The +1 tolerance + recorded `naturalWidth` give it
+  // hysteresis so it settles instead of flip-flopping at the boundary.
+  function measureOverflow() {
+    const el = containerElement;
+    if (!el) return;
+    if (!collapsed) {
+      if (el.scrollWidth > el.clientWidth + 1) {
+        naturalWidth = el.scrollWidth;
+        collapsed = true;
+      }
+    } else if (naturalWidth > 0 && el.clientWidth >= naturalWidth) {
+      collapsed = false;
+    }
+  }
+
+  $effect(() => {
+    if (!collapseOnOverflow || !containerElement) return;
+    const el = containerElement;
+    const ro = new ResizeObserver(() => measureOverflow());
+    ro.observe(el);
+    // `untrack` so the synchronous first measure doesn't make `collapsed` a
+    // dependency of this effect (which would tear down + rebuild the observer
+    // on every collapse toggle).
+    untrack(() => measureOverflow());
+    return () => ro.disconnect();
   });
 
   function handleKeyDown(event: KeyboardEvent) {
@@ -165,6 +208,8 @@
 <div
   bind:this={containerElement}
   role="radiogroup"
+  data-collapsed={collapsed || undefined}
+  aria-orientation={collapsed ? 'vertical' : 'horizontal'}
   class={unstyled
     ? [slotClasses?.base, className].filter(Boolean).join(' ')
     : styles.base({ class: [slotClasses?.base, className] })}

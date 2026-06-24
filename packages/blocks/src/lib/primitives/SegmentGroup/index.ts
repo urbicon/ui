@@ -73,6 +73,17 @@ export interface SegmentGroupProps
   ariaLabel?: string;
 
   /**
+   * When the segments can't fit their available width, collapse the horizontal
+   * track to a vertical radio-style stack (all options stay visible) instead of
+   * overflowing. Triggered by real measured overflow (ResizeObserver), not a
+   * viewport breakpoint, so it only engages when an instance genuinely doesn't
+   * fit — a 2-segment switcher that fits stays horizontal. Set `false` to keep
+   * the track horizontal (it still won't push the page wider than its parent).
+   * @default true
+   */
+  collapseOnOverflow?: boolean;
+
+  /**
    * Micro-interaction effect applied to each segment item (per-item, not the container).
    * Accepts a preset name, an array of names, or configured mint objects.
    *

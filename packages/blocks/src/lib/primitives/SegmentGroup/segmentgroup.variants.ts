@@ -7,7 +7,18 @@ export const segmentGroupVariants = tv({
     // `commit` mirrors that. `modify` softens the track + indicator into a
     // compact rectangle for inline-toolbar contexts.
     base: [
-      'relative inline-flex items-center',
+      // `group` + `data-[collapsed]` drive the content-aware degradation below.
+      // `min-w-0 max-w-full` let the track shrink inside a flex/narrow parent
+      // instead of pushing the page wide; `overflow-x-clip` (with a clip-margin
+      // so focus rings aren't cut) contains any horizontal overflow until the
+      // ResizeObserver flips to the vertical stack.
+      'group relative inline-flex items-center',
+      'min-w-0 max-w-full overflow-x-clip [overflow-clip-margin:0.5rem]',
+      // Collapsed = real horizontal overflow detected → vertical radio-style
+      // stack (all options visible, large tap targets). SegmentGroup is already
+      // role=radiogroup, so this is layout-only; the 2D indicator follows the
+      // active row.
+      'data-[collapsed]:flex-col data-[collapsed]:items-stretch data-[collapsed]:w-full data-[collapsed]:overflow-visible',
       'bg-surface-interactive p-1',
       'transition-colors duration-[var(--blocks-duration-fast)]'
     ],
@@ -18,6 +29,9 @@ export const segmentGroupVariants = tv({
     ],
     item: [
       'relative z-10 flex items-center justify-center',
+      // In the collapsed (vertical) layout each item becomes a full-width,
+      // left-aligned row — see the `data-[collapsed]` block on `base`.
+      'group-data-[collapsed]:w-full group-data-[collapsed]:justify-start',
       'font-medium whitespace-nowrap cursor-pointer select-none',
       // `border-0` (not `border-none`) — keeps `border-style: solid` so the
       // text-appearance can add `border-b-[1.5px]` without a style conflict.
