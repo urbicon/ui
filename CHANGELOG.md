@@ -4,6 +4,36 @@ All notable changes to this project will be documented in this file.
 This changelog is automatically generated from [Conventional Commits](https://www.conventionalcommits.org).
 
 
+## [6.3.3] - 2026-06-24
+
+### Bug Fixes
+- **i18n**: Emit fully-specified ESM specifiers from svelte-package builds
+- **design**: Surface the Tailwind 4 wiring step in `init`
+- **i18n**: Avoid a double slash when completing a trailing-slash dir specifier
+- **design-engine**: Keep soft-wrapped values in the manifest Product Intent
+- **mcp-server**: Advertise real get_recipe scenarios
+- **mcp-server**: Show the origin package in find_components search results
+- **docs**: Make the dashboard and login recipes lint-clean
+- **auth**: Target the Lettermint v2 send API in the email transport
+- **auth**: Prefill RegisterPage email from the invite link
+
+### Documentation
+- **design**: Note the standalone `bunx` invocation
+
+### Features
+- **design**: Make find/get-component dependency-aware
+- **design-engine**: Enforce deep-import, motion, and intent-typo rules
+- **blocks**: Expose DateRangePicker as a standalone catalog entry
+- **auth**: Add configurable sender (from) for outbound emails
+- **auth**: Return machine error codes so pages localize handler errors
+- **auth**: Localize default emails and add per-mail builder hooks
+
+### Miscellaneous
+- **blocks**: Exclude test fixtures from the published tarball
+
+### Testing
+- **docs-gen**: Lint recipe live-preview code against the design engine
+
 ## [6.3.2] - 2026-06-23
 
 ### Bug Fixes
