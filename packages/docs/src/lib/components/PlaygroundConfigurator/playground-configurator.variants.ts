@@ -26,7 +26,14 @@ export const playgroundConfiguratorVariants = tv({
     // text field takes up the full panel width. The container can breathe
     // symmetrically on wide viewports.
     controlsGrid: ['flex flex-col gap-y-1 px-4 py-2 max-w-[36rem] mx-auto w-full'],
-    controlItem: ['flex items-center gap-4 min-h-9'],
+    // Stacks label-above-control on mobile so the control gets the full column
+    // width (the fixed 11rem label column would crush it on a phone, and any
+    // wide control would force the page to scroll horizontally); switches to the
+    // labelled row at `sm`.
+    controlItem: [
+      'flex flex-col items-start gap-1',
+      'sm:min-h-9 sm:flex-row sm:items-center sm:gap-4'
+    ],
     // Label on the LEFT, fixed width, mono caps (font-meta picks up JetBrains
     // Mono in editorial scope). `shrink-0` so the control on the right
     // always starts at the same x-position. `w-44` (11rem) holds the
@@ -35,14 +42,15 @@ export const playgroundConfiguratorVariants = tv({
     // the label never wraps, so we widen rather than re-align.
     controlLabel: [
       'font-meta text-text-tertiary flex items-center gap-1.5 shrink-0',
-      'tracking-wider uppercase w-44 text-xs'
+      // Full-width above the control on mobile; fixed 11rem label column at sm+.
+      'tracking-wider uppercase w-full sm:w-44 text-xs'
     ],
     // Wraps stretchy form controls (Input/Select/Textarea/Slider). The
     // wrapper provides the column boundary so the Input's own `w-full`
     // resolves to a sane 26rem max — without the wrapper the field would
     // stretch to the full controlItem width and crowd the surrounding
     // editorial whitespace.
-    controlControl: ['flex-1 min-w-0 max-w-md'],
+    controlControl: ['w-full min-w-0 max-w-md sm:w-auto sm:flex-1'],
     // Wraps naturally-compact controls (Toggle dot, color picker) so they
     // align to the same virtual x-origin as Select/Input text. Without the
     // pl-3 the Toggle dot sits flush at the controlItem flex-start while
@@ -62,7 +70,7 @@ export const playgroundConfiguratorVariants = tv({
     // Indented to start at the control column (label is w-44 = 11rem,
     // gap-4 between label and control adds 1rem → 12rem total). Slightly
     // negative top-margin pulls it visually under the control.
-    controlHint: ['pl-48 pr-4 -mt-0.5 pb-1 text-xs leading-snug text-text-tertiary'],
+    controlHint: ['pl-3 sm:pl-48 pr-4 -mt-0.5 pb-1 text-xs leading-snug text-text-tertiary'],
     // Actions row at the bottom of the controls panel. Holds the
     // reset-all button when any control is modified (the help-toggle
     // lives in the `controlsHeader` slot above the grid). Width-matched
