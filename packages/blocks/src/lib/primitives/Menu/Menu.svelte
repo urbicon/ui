@@ -62,6 +62,10 @@
   const tierCtx = getTierContext();
   const effectiveTier = $derived(tier ?? tierCtx?.tier ?? 'commit');
 
+  // The element that had focus when the menu opened (normally the trigger
+  // button) — captured in the open effect below and refocused by `dismiss()`
+  // on Escape / selection. Not bound to Popover's `triggerElement`; Popover
+  // anchors + excludes via its own internal trigger-wrapper.
   let triggerRef = $state<HTMLElement>();
   let panelRef = $state<HTMLElement>();
   let openSubMenus = $state<Set<string>>(new Set());
@@ -207,12 +211,31 @@
     items[items.length - 1]?.focus();
   }
 
-  // When the menu opens, move focus into it (W3C menu pattern: focus on
-  // the first item). Skipping this step would leave focus on the trigger
-  // and arrow-key navigation would not work until the user clicked.
+  // When the menu opens, move focus into it (W3C menu pattern) so arrow-key
+  // navigation works immediately — otherwise focus would stay on the trigger
+  // and the panel keydown handler would never receive keys.
+  //
+  // BUT focusing the first *item* paints a `:focus-visible` ring on it. That
+  // ring is desirable for keyboard users (they navigated here) and jarring
+  // for pointer users (a tap shouldn't pre-highlight an entry as if selected
+  // — the stray green ring report). So we branch on the opener's modality:
+  //   • keyboard-open (trigger matches `:focus-visible`) → focus first item
+  //   • pointer-open                                     → focus the ring-less
+  //     panel container; arrows still work (handlePanelKeydown falls back to
+  //     focusFirstItem / focusLastItem when no item is focused yet).
+  //
+  // We also capture the opener element here so `dismiss()` can restore focus
+  // to the trigger on Escape / selection (the previous `triggerRef` was never
+  // assigned, so that restore was a silent no-op).
   $effect(() => {
     if (!open) return;
-    queueMicrotask(() => focusFirstItem());
+    const opener = document.activeElement as HTMLElement | null;
+    if (opener && opener !== document.body) triggerRef = opener;
+    const openedViaKeyboard = opener?.matches?.(':focus-visible') ?? false;
+    queueMicrotask(() => {
+      if (openedViaKeyboard) focusFirstItem();
+      else panelRef?.focus();
+    });
   });
 
   function itemSizeForDepth(_depth: number): 'sm' | 'md' | 'lg' {
@@ -289,20 +312,26 @@
   // keys to here via their own onkeydown handler.
   function handlePanelKeydown(e: KeyboardEvent) {
     const target = e.target as HTMLElement | null;
-    const focused =
+    const active = document.activeElement as HTMLElement | null;
+    // Only treat a real menuitem as the navigation anchor. When focus is on
+    // the panel container itself (pointer-open), `focusedItem` is null and
+    // ArrowDown/Up fall back to focusing the first/last item.
+    const focusedItem =
       target?.getAttribute('role') === 'menuitem'
         ? target
-        : (document.activeElement as HTMLElement | null);
+        : active?.getAttribute('role') === 'menuitem'
+          ? active
+          : null;
 
     switch (e.key) {
       case 'ArrowDown':
         e.preventDefault();
-        if (focused) focusNextItem(focused);
+        if (focusedItem) focusNextItem(focusedItem);
         else focusFirstItem();
         break;
       case 'ArrowUp':
         e.preventDefault();
-        if (focused) focusPrevItem(focused);
+        if (focusedItem) focusPrevItem(focusedItem);
         else focusLastItem();
         break;
       case 'Home':
@@ -386,7 +415,6 @@
   <Popover
     bind:open
     placement={placement as import('$lib/utils/floating').Placement}
-    bind:triggerElement={triggerRef}
     {usePortal}
     autoTrigger={false}
     unstyled
@@ -399,9 +427,12 @@
       role="menu"
       tabindex={-1}
       onkeydown={handlePanelKeydown}
-      class={unstyled
-        ? (slotClasses?.content ?? '')
-        : styles.content({ class: slotClasses?.content })}
+      class={[
+        unstyled ? (slotClasses?.content ?? '') : styles.content({ class: slotClasses?.content }),
+        // Panel is programmatically focused on pointer-open as the ring-less
+        // anchor for arrow-key nav — suppress any UA outline on the container.
+        'focus:outline-none'
+      ]}
     >
       {#if customHeader}
         <div
