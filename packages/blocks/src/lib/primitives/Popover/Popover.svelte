@@ -104,8 +104,21 @@
   // Manual mode disables the browser's automatic dismiss entirely, which
   // is the only way to veto Escape or outside-click selectively — the
   // `beforetoggle` event is intentionally not cancelable when closing.
+  //
+  // `autoTrigger=false` (external trigger) ALSO forces manual mode. Native
+  // `popover="auto"` light-dismiss treats the external trigger as "outside"
+  // (the browser only exempts a real `popovertarget` invoker, which we do
+  // not wire through Floating UI). So a tap on an open external trigger
+  // light-dismisses the popover on `pointerdown`, then the consumer's own
+  // `onclick` toggle re-opens it — the close-then-reopen flicker seen on
+  // mobile. Manual mode's outside-pointerdown handler instead excludes the
+  // trigger via `contains`, so the consumer's toggle is the single source
+  // of truth. Deterministic across browsers; no reliance on light-dismiss
+  // timing. Consumers with an external CLICK trigger (Menu, DatePicker)
+  // get a clean toggle; hover-driven external triggers (Calendar event
+  // popovers) are unaffected since they never relied on light-dismiss.
   const popoverMode = $derived<'auto' | 'manual'>(
-    closeOnEscape && closeOnClickOutside ? 'auto' : 'manual'
+    autoTrigger && closeOnEscape && closeOnClickOutside ? 'auto' : 'manual'
   );
 
   // ── Native popover state sync (popover="auto" mode only) ──
@@ -125,17 +138,6 @@
     }
     document.addEventListener('keydown', handleEscape, true);
     return () => document.removeEventListener('keydown', handleEscape, true);
-  });
-
-  // For external triggers (autoTrigger=false), track pointerdown to coordinate
-  // with light dismiss — prevents toggle-on-click when the trigger click causes dismiss.
-  $effect(() => {
-    if (!effectiveTriggerElement || autoTrigger) return;
-    function handlePointerDown() {
-      if (open) dismissedByTrigger = true;
-    }
-    effectiveTriggerElement.addEventListener('pointerdown', handlePointerDown);
-    return () => effectiveTriggerElement.removeEventListener('pointerdown', handlePointerDown);
   });
 
   // Listen for native popover toggle events (light dismiss, Escape, programmatic).
