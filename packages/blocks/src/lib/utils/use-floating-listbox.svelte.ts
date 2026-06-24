@@ -60,15 +60,23 @@ export function useFloatingListbox(opts: FloatingListboxOptions) {
           offset(4),
           flip(),
           shift({ padding: 8 }),
-          ...(syncWidth
-            ? [
-                floatingSize({
-                  apply({ rects }) {
-                    floating.style.width = `${rects.reference.width}px`;
-                  }
-                })
-              ]
-            : [])
+          floatingSize({
+            apply({ availableHeight, rects }) {
+              // Cap the panel to the room actually left between the anchor and
+              // the (visual) viewport edge — decisive on iOS, where the
+              // keyboard shrinks the visualViewport. Exposed as a CSS var so
+              // the component's design cap (e.g. `max-h-60`) stays in CSS and
+              // wins through `min()`: this only ever shrinks the panel to fit,
+              // never grows it past the design cap.
+              floating.style.setProperty(
+                '--blocks-overlay-available-height',
+                `${Math.max(0, Math.round(availableHeight))}px`
+              );
+              if (syncWidth) {
+                floating.style.width = `${rects.reference.width}px`;
+              }
+            }
+          })
         ]
       })
         .then(({ x, y }) => {

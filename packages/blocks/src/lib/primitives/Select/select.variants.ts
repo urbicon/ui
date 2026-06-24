@@ -27,12 +27,16 @@ export const selectVariants = tv({
     // `position`, `width`, `overflow-y` are set inline in Select.svelte
     // so the native `popover="manual"` top-layer rendering works
     // correctly and the UA's `overflow: auto` doesn't render a duplicate
-    // scrollbar. Width is sized by Floating UI's `size` middleware.
+    // scrollbar. Width AND a keyboard-aware max-height come from Floating
+    // UI's `size` middleware: it sets `--blocks-overlay-available-height`
+    // to the room left in the visual viewport (e.g. above the iOS keyboard);
+    // the `max-h-[min(15rem,…)]` below keeps 15rem as the upper design cap
+    // via `min()` and falls back to it whenever the var is unset.
     // tier: contain — floating dropdown panel.
     listbox: [
       'rounded-contain border',
       'bg-surface-elevated border-border-subtle shadow-[var(--blocks-shadow-md)]',
-      'max-h-60 p-1 space-y-0.5'
+      'max-h-[min(15rem,var(--blocks-overlay-available-height,100dvh))] p-1 space-y-0.5'
     ],
     option: [
       'flex w-full items-center gap-2 rounded-modify px-3 cursor-pointer select-none',

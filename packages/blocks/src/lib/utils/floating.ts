@@ -400,6 +400,22 @@ export function autoUpdate(
   window.addEventListener('resize', callback);
   cleanups.push(() => window.removeEventListener('resize', callback));
 
+  // iOS Safari resizes and offsets the *visual* viewport when the on-screen
+  // keyboard opens (and during pinch-zoom / overscroll) WITHOUT firing a
+  // `window` 'resize' or 'scroll'. A `position: fixed` overlay would otherwise
+  // stay pinned to stale coordinates — visibly detaching from its anchor and
+  // drifting as the page settles. Tracking the visualViewport keeps anchored
+  // overlays glued to their reference on touch devices.
+  const vv = window.visualViewport;
+  if (vv) {
+    vv.addEventListener('resize', callback);
+    vv.addEventListener('scroll', callback, { passive: true });
+    cleanups.push(() => {
+      vv.removeEventListener('resize', callback);
+      vv.removeEventListener('scroll', callback);
+    });
+  }
+
   return () => {
     for (const fn of cleanups) fn();
   };
