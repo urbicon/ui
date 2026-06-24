@@ -55,13 +55,17 @@ export const inputVariants = tv({
     },
     size: {
       xs: {
-        base: 'h-7 px-2 text-xs',
+        // `pointer-coarse:text-base` floors the font to 16px on touch-primary
+        // devices (iPhone/iPad) — below 16px iOS Safari auto-zooms the field on
+        // focus and never restores the zoom. Desktop keeps the designed 12px.
+        base: 'h-7 px-2 text-xs pointer-coarse:text-base',
         iconContainer: 'w-7',
         iconButton: 'p-0.5 [&_svg]:w-3 [&_svg]:h-3',
         iconDecoration: '[&_svg]:w-3 [&_svg]:h-3'
       },
       sm: {
-        base: 'h-8 px-3 text-sm',
+        // See `xs` — floor to 16px on touch to avoid iOS Safari focus-zoom.
+        base: 'h-8 px-3 text-sm pointer-coarse:text-base',
         iconContainer: 'w-8',
         iconButton: 'p-0.5 [&_svg]:w-3.5 [&_svg]:h-3.5',
         iconDecoration: '[&_svg]:w-3.5 [&_svg]:h-3.5'

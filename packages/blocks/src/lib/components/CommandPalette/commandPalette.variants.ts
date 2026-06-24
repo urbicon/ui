@@ -9,7 +9,9 @@ export const commandPaletteVariants = tv({
     ],
     inputWrapper: ['flex items-center gap-3 border-b border-border-hairline px-4'],
     input: [
-      'w-full border-0 bg-transparent py-3 text-sm',
+      // `pointer-coarse:text-base` floors the search field to 16px on touch
+      // devices — below 16px iOS Safari auto-zooms on focus and never restores.
+      'w-full border-0 bg-transparent py-3 text-sm pointer-coarse:text-base',
       'text-text-primary placeholder:text-text-quaternary focus:outline-none'
     ],
     inputIcon: 'h-4 w-4 shrink-0 text-text-tertiary',

@@ -40,7 +40,9 @@ export const textareaVariants = tv({
       }
     },
     size: {
-      sm: { base: 'px-3 py-2 text-sm min-h-[5rem]' },
+      // `pointer-coarse:text-base` floors the font to 16px on touch so iOS
+      // Safari doesn't auto-zoom the field on focus. Desktop keeps 14px.
+      sm: { base: 'px-3 py-2 text-sm pointer-coarse:text-base min-h-[5rem]' },
       md: { base: 'px-4 py-3 text-base min-h-[7rem]' },
       lg: { base: 'px-6 py-4 text-lg min-h-[9rem]' }
     },

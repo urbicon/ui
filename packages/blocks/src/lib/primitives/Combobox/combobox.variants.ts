@@ -69,7 +69,9 @@ export const comboboxVariants = tv({
     },
     size: {
       sm: {
-        input: 'h-8 px-3 pr-8 text-sm',
+        // `pointer-coarse:text-base` floors the input to 16px on touch-primary
+        // devices so iOS Safari doesn't auto-zoom (and never un-zoom) on focus.
+        input: 'h-8 px-3 pr-8 text-sm pointer-coarse:text-base',
         option: 'px-2 py-1.5 text-sm min-h-[2rem]'
       },
       md: {
