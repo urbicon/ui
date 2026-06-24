@@ -3,7 +3,7 @@
     CodeVisibilityStore,
     setCodeVisibilityContext
   } from '$lib/stores/code-visibility.svelte';
-  import { ChevronDownIcon } from '@urbicon-ui/blocks';
+  import { Breadcrumb, ChevronDownIcon } from '@urbicon-ui/blocks';
   import TableOfContents from '../TableOfContents/TableOfContents.svelte';
   import { docsLayoutVariants } from './docslayout.variants';
   import type { DocsLayoutProps } from './index.js';
@@ -45,6 +45,13 @@
   setCodeVisibilityContext(codeVisibility);
 
   const useCollapsingHeader = $derived(breadcrumbs != null && breadcrumbs.length > 0);
+
+  // The sticky-header trail is the consumer's ancestor breadcrumbs with the
+  // current page (the `title`) appended as the final crumb — matching the
+  // Breadcrumb primitive's "last item is the current page" contract.
+  const breadcrumbTrail = $derived(
+    title ? [...(breadcrumbs ?? []), { label: title }] : (breadcrumbs ?? [])
+  );
 
   let headerEl: HTMLElement | undefined = $state();
   let scrolledPastHeader = $state(false);
@@ -181,61 +188,29 @@
             <div class={unstyled ? '' : styles.stickyBarInner()}>
               <div class="flex items-center py-2.5">
                 <!--
-                  Breadcrumb + page title on one line. The ancestors
-                  (`blocks / primitives`) sit in a shrinkable, clipping group
-                  so they give way first on narrow viewports. The current-page
-                  title is the SINGLE source of the page name: it morphs in
-                  place — a quiet lowercase trail leaf while the hero h1 is on
-                  screen, a prominent heading once we've scrolled past it — so
-                  there is never a second title element that could read as a
-                  duplicate of the final crumb. `min-w-0` lets the whole nav
-                  shrink instead of bursting the bar; the title `truncate`s
-                  rather than overflowing for long page names. `font-meta`
-                  picks up the Editorial mono font when the host enables it.
+                  Dogfood the Breadcrumb primitive. `wrap={false}` keeps the
+                  trail on one line: ancestor links hold their width while the
+                  current page (the title) truncates. The title is the trail's
+                  final crumb and morphs in place via a reactive `currentPage`
+                  slot class — a quiet lowercase leaf while the hero h1 is on
+                  screen, a prominent heading once scrolled past it, so there is
+                  never a second title element to read as a duplicate. The
+                  ancestor links inherit the primitive's focus-visible ring.
+                  `font-meta` picks up the Editorial mono font when enabled;
+                  `min-w-0` lets the nav shrink rather than burst the bar.
                 -->
-                <nav
-                  class="font-meta flex min-w-0 items-center whitespace-nowrap lowercase transition-all duration-300 ease-out
-                    {scrolledPastHeader
-                    ? 'text-text-tertiary gap-0.5 text-xs'
-                    : 'text-text-tertiary gap-0.5 text-sm'}"
+                <Breadcrumb
+                  items={breadcrumbTrail}
+                  wrap={false}
                   aria-label="Breadcrumb"
-                >
-                  <span class="flex min-w-0 items-center overflow-hidden whitespace-nowrap">
-                    {#each breadcrumbs as crumb, i (crumb.label)}
-                      {#if i > 0}
-                        <span
-                          class="font-meta text-text-quaternary mx-1.5 select-none"
-                          aria-hidden="true">/</span
-                        >
-                      {/if}
-                      {#if crumb.href}
-                        <!-- eslint-disable svelte/no-navigation-without-resolve -- hrefs are pre-resolved by the consumer -->
-                        <a
-                          href={crumb.href}
-                          class="hover:text-text-secondary truncate transition-colors duration-150"
-                        >
-                          {crumb.label}
-                        </a>
-                        <!-- eslint-enable svelte/no-navigation-without-resolve -->
-                      {:else}
-                        <span class="truncate">{crumb.label}</span>
-                      {/if}
-                    {/each}
-                  </span>
-                  {#if title}
-                    <span
-                      class="font-meta text-text-quaternary mx-1.5 shrink-0 select-none"
-                      aria-hidden="true">/</span
-                    >
-                    <span
-                      class="min-w-0 truncate transition-colors duration-300 ease-out
-                        {scrolledPastHeader
-                        ? 'text-text-primary text-sm font-semibold normal-case'
-                        : 'text-text-secondary'}"
-                      aria-current="page">{title}</span
-                    >
-                  {/if}
-                </nav>
+                  slotClasses={{
+                    nav: 'font-meta min-w-0 lowercase',
+                    list: `gap-0.5 transition-[font-size] duration-300 ease-out ${scrolledPastHeader ? 'text-xs' : 'text-sm'}`,
+                    link: 'text-text-tertiary hover:text-text-secondary no-underline hover:no-underline transition-colors duration-150',
+                    separator: 'text-text-quaternary mx-1.5',
+                    currentPage: `text-sm truncate transition-colors duration-300 ease-out ${scrolledPastHeader ? 'text-text-primary font-semibold normal-case' : 'text-text-secondary font-normal'}`
+                  }}
+                />
 
                 <!-- Scrollspy badge: slides in with a staggered delay when
                      scrolled. Hidden on mobile, where the bar has no room for
