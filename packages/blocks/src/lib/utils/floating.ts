@@ -340,10 +340,22 @@ export function size(options: {
     name: 'size',
     fn(state) {
       const overflow = detectOverflow(state);
-      const availableWidth =
-        state.rects.floating.width - Math.max(0, overflow.left) - Math.max(0, overflow.right);
-      const availableHeight =
-        state.rects.floating.height - Math.max(0, overflow.top) - Math.max(0, overflow.bottom);
+      const side = getSide(state.placement);
+      const vertical = side === 'top' || side === 'bottom';
+
+      // Room in the placement's MAIN axis is measured anchor → viewport edge:
+      // `dimension - overflow[side]` cancels the floating element's own
+      // dimension, so the value reflects true available room and grows back
+      // once space is restored. Subtracting the *clamped* overflow of both
+      // edges instead would only ever ratchet down — a one-way "latch" that
+      // keeps the panel short after the iOS keyboard closes. The CROSS axis
+      // keeps the "what currently fits between both edges" measure.
+      const availableWidth = vertical
+        ? state.rects.floating.width - Math.max(0, overflow.left) - Math.max(0, overflow.right)
+        : state.rects.floating.width - overflow[side];
+      const availableHeight = vertical
+        ? state.rects.floating.height - overflow[side]
+        : state.rects.floating.height - Math.max(0, overflow.top) - Math.max(0, overflow.bottom);
 
       options.apply({ ...state, availableWidth, availableHeight });
 

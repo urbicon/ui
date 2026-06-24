@@ -304,6 +304,33 @@ describe('size middleware', () => {
     const args = applySpy.mock.calls[0][0];
     expect(args.rects).toBe(state.rects);
   });
+
+  it('reports main-axis available height independent of the floating height (no latch)', () => {
+    // The available height must reflect anchor→viewport room, NOT the panel's
+    // own (possibly already-clamped) height — otherwise a transient shrink
+    // would ratchet the panel permanently short. For bottom placement the
+    // floating height cancels out to `viewportHeight - y`.
+    const captured = [100, 240, 600].map((h) => {
+      let availableHeight = -1;
+      size({
+        apply: (args) => {
+          availableHeight = args.availableHeight;
+        }
+      }).fn(
+        makeState({
+          placement: 'bottom',
+          y: 200,
+          rects: { reference: mockRect(100, 150, 120, 40), floating: { width: 200, height: h } }
+        })
+      );
+      return availableHeight;
+    });
+
+    // identical regardless of the floating height …
+    expect(new Set(captured).size).toBe(1);
+    // … and equal to the room below the anchor (viewport bottom − y)
+    expect(captured[0]).toBe(VIEWPORT_H - 200);
+  });
 });
 
 // ─── all placements ──────────────────────────────────────────────────────────

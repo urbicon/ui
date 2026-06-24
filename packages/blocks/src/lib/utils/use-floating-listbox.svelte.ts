@@ -32,6 +32,9 @@ export function useFloatingListbox(opts: FloatingListboxOptions) {
     if (!isOpen) {
       cleanupPosition?.();
       cleanupPosition = undefined;
+      // Drop the keyboard-aware height clamp so the next open re-measures from
+      // the full design cap instead of inheriting a stale value.
+      floating.style.removeProperty('--blocks-overlay-available-height');
       if (usePortal && floating.matches(':popover-open')) {
         try {
           floating.hidePopover();
@@ -64,10 +67,10 @@ export function useFloatingListbox(opts: FloatingListboxOptions) {
             apply({ availableHeight, rects }) {
               // Cap the panel to the room actually left between the anchor and
               // the (visual) viewport edge — decisive on iOS, where the
-              // keyboard shrinks the visualViewport. Exposed as a CSS var so
-              // the component's design cap (e.g. `max-h-60`) stays in CSS and
-              // wins through `min()`: this only ever shrinks the panel to fit,
-              // never grows it past the design cap.
+              // keyboard shrinks the visualViewport. Exposed as a CSS var that
+              // the variant feeds into `max-h-[min(15rem,var(--…))]`, so the
+              // 15rem design token stays the upper bound while this tracks the
+              // live available height (and recovers when room is restored).
               floating.style.setProperty(
                 '--blocks-overlay-available-height',
                 `${Math.max(0, Math.round(availableHeight))}px`
