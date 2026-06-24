@@ -292,7 +292,7 @@
 
   // Focus-restoration policy follows the ARIA Listbox/Button pattern:
   //   • selection → focus returns to the trigger button (`selectOption`)
-  //   • Escape    → focus returns to the trigger button (handleListboxKeydown)
+  //   • Escape    → focus returns to the trigger button (handleTriggerKeydown)
   //   • Tab       → focus moves naturally to the next tab stop (no restore)
   //   • outside   → focus stays where the user clicked (no restore — user
   //                  explicitly intent to focus elsewhere)
