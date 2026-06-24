@@ -15,6 +15,7 @@ export default {
     progress: 'Fortschritt',
     slider: 'Schieberegler',
     toggle: 'Umschalter',
+    toggleOptions: 'Optionen umschalten',
     removableBadge: 'Entfernbarer Badge',
     removeBadge: 'Badge entfernen',
     removeFile: '{{name}} entfernen'

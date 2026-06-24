@@ -66,6 +66,7 @@
   const unstyled = $derived(unstyledProp || blocksConfig?.unstyled || false);
 
   let inputEl = $state<HTMLInputElement>();
+  let wrapperEl = $state<HTMLElement>();
   let listboxEl = $state<HTMLElement>();
   let activeIndex = $state(-1);
 
@@ -133,6 +134,24 @@
 
   function handleFocus() {
     if (!disabled) open = true;
+  }
+
+  // Chevron toggle. The input opens on focus but has no way to close itself
+  // (re-clicking a focused field is a no-op — the "trigger doesn't close it"
+  // report), so the chevron button is the explicit open/close affordance.
+  // Focus stays on the input throughout (the chevron's onmousedown calls
+  // preventDefault), so closing here doesn't blur-then-reopen via handleFocus.
+  function toggleOpen() {
+    if (disabled) return;
+    if (open) {
+      open = false;
+      // Restore the selected label if the query was left dangling (mirrors the
+      // click-outside path), so the field doesn't read as blank after closing.
+      if (!value && selectedOption) query = selectedOption.label;
+    } else {
+      open = true;
+      inputEl?.focus();
+    }
   }
 
   function scrollToActive() {
@@ -214,7 +233,10 @@
 
   function handleClickOutside(event: MouseEvent) {
     const target = event.target as Node;
-    if (!inputEl?.contains(target) && !listboxEl?.contains(target)) {
+    // Exclude the whole input wrapper (input + chevron toggle + clear button),
+    // so clicking the chevron to close doesn't race this handler into a
+    // close-then-reopen. The listbox lives in the top layer (separate subtree).
+    if (!wrapperEl?.contains(target) && !listboxEl?.contains(target)) {
       if (!closeOnClickOutside) return;
       open = false;
       if (!value && selectedOption) {
@@ -273,6 +295,7 @@
   {/if}
 
   <div
+    bind:this={wrapperEl}
     class={unstyled
       ? (slotClasses?.inputWrapper ?? '')
       : styles.inputWrapper({ class: slotClasses?.inputWrapper })}
@@ -309,11 +332,25 @@
         <CloseIcon class="h-3.5 w-3.5" />
       </button>
     {:else}
-      <ChevronDownIcon
+      <button
+        type="button"
+        tabindex={-1}
+        {disabled}
+        aria-label={bt('accessibility.toggleOptions')}
+        aria-controls={listboxId}
+        aria-expanded={open}
+        onmousedown={(e) => e.preventDefault()}
+        onclick={toggleOpen}
         class={unstyled
-          ? (slotClasses?.chevron ?? '')
-          : styles.chevron({ class: slotClasses?.chevron })}
-      />
+          ? (slotClasses?.chevronButton ?? '')
+          : styles.chevronButton({ class: slotClasses?.chevronButton })}
+      >
+        <ChevronDownIcon
+          class={unstyled
+            ? (slotClasses?.chevron ?? '')
+            : styles.chevron({ class: slotClasses?.chevron })}
+        />
+      </button>
     {/if}
 
     {#if name}

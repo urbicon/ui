@@ -45,11 +45,20 @@ export const comboboxVariants = tv({
       'transition-colors duration-[var(--blocks-duration-fast)]',
       'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50'
     ],
-    chevron: [
-      'absolute right-2 top-1/2 -translate-y-1/2 pointer-events-none',
-      'text-text-tertiary w-4 h-4',
-      'transition-transform duration-[var(--blocks-duration-fast)]'
-    ]
+    // Chevron toggle button. The input opens on focus and can't "toggle
+    // closed" (re-clicking a focused field is a no-op), so the chevron is the
+    // discoverable open/close affordance. `tabindex={-1}` keeps it out of the
+    // tab order — the input is the single combobox tab stop — and an
+    // `onmousedown` preventDefault keeps focus on the input when it's clicked.
+    chevronButton: [
+      'absolute right-1.5 top-1/2 -translate-y-1/2',
+      'inline-flex items-center justify-center rounded-modify p-1',
+      'text-text-tertiary hover:text-text-primary cursor-pointer',
+      'transition-colors duration-[var(--blocks-duration-fast)]',
+      'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50',
+      'disabled:cursor-not-allowed disabled:hover:text-text-tertiary'
+    ],
+    chevron: ['w-4 h-4', 'transition-transform duration-[var(--blocks-duration-fast)]']
   },
   variants: {
     // 3-tier semantic radius for the Combobox input. Default `modify`.

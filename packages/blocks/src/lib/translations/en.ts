@@ -15,6 +15,7 @@ export default {
     progress: 'Progress',
     slider: 'Slider',
     toggle: 'Toggle',
+    toggleOptions: 'Toggle options',
     removableBadge: 'Removable badge',
     removeBadge: 'Remove badge',
     removeFile: 'Remove {{name}}'
