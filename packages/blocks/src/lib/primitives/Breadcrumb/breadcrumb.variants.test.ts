@@ -41,4 +41,23 @@ describe('breadcrumbVariants', () => {
       expect(styles.separator()).not.toMatch(/\bdark:/);
     }
   });
+
+  it('wraps onto multiple lines by default', () => {
+    const styles = breadcrumbVariants();
+    expect(styles.list()).toContain('flex-wrap');
+    expect(styles.list()).not.toContain('flex-nowrap');
+  });
+
+  it('stays single-line and truncates the current page when wrap is false', () => {
+    const styles = breadcrumbVariants({ wrap: false });
+    // single line, shrinkable container
+    expect(styles.list()).toContain('flex-nowrap');
+    expect(styles.list()).toContain('min-w-0');
+    // ancestors hold their width, the last item (current page) gives way
+    expect(styles.list()).toContain('[&>li:not(:last-child)]:shrink-0');
+    expect(styles.list()).toContain('[&>li:last-child]:shrink');
+    // the current page may use the full available width before truncating
+    expect(styles.currentPage()).toContain('max-w-none');
+    expect(styles.nav()).toContain('min-w-0');
+  });
 });

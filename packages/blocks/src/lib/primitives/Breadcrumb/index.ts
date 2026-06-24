@@ -56,6 +56,13 @@ export interface BreadcrumbProps
   items: BreadcrumbItem[];
   /** Size @default 'md' */
   size?: 'sm' | 'md' | 'lg';
+  /**
+   * Let the trail wrap onto multiple lines (`true`, default) or keep it on a
+   * single line where the current page truncates and the ancestor links hold
+   * their width (`false`). Use `false` for tight single-line bars such as a
+   * sticky header or toolbar. @default true
+   */
+  wrap?: boolean;
   /** Custom separator snippet (default: "/") */
   separator?: Snippet;
   /**

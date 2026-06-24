@@ -7,6 +7,7 @@
   let {
     items,
     size = 'md',
+    wrap = true,
     separator,
     maxItems,
     itemsBeforeCollapse = 1,
@@ -23,7 +24,7 @@
   const blocksConfig = getBlocksConfig();
   const unstyled = $derived(unstyledProp || blocksConfig?.unstyled || false);
 
-  const variantProps: BreadcrumbVariants = $derived({ size });
+  const variantProps: BreadcrumbVariants = $derived({ size, wrap });
 
   const styles = $derived(breadcrumbVariants(variantProps));
 
