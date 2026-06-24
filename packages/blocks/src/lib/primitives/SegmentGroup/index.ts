@@ -20,7 +20,7 @@ export interface SegmentGroupContext {
 }
 
 /**
- * @description Inline segment control with animated sliding indicator for single-selection scenarios.
+ * @description Segment control with an animated sliding indicator for single selection; collapses to a vertical radio-style stack when its row can't fit the available width.
  * Compact mode/view switcher with smooth animation.
  *
  * @tag navigation

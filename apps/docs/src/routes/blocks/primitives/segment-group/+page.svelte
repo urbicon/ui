@@ -33,12 +33,12 @@
 
 <SeoMeta
   title="Segment Group Component"
-  description="Inline segment control with animated sliding indicator for single-selection scenarios."
+  description="Segment control with an animated sliding indicator for single selection; collapses to a vertical stack when its row can't fit."
 />
 
 <DocsPageLayout
   title="Segment Group"
-  description="Inline segment control with animated sliding indicator for single-selection scenarios."
+  description="Segment control with an animated sliding indicator for single selection; collapses to a vertical stack when its row can't fit."
   maxWidth="2xl"
   showToc={true}
   {navigation}

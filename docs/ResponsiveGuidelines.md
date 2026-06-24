@@ -65,6 +65,7 @@ Tokens defined in `foundation.css`:
 |-----------|----------|
 | **Checkbox, Toggle** | `control` wrapper has `min-h-11` (44px) |
 | **Select / Combobox / Menu items** | Per-size token: `sm` 2rem · `md` 2.5rem · `lg` 3rem. Touch-target ≥ 44 px is guaranteed by the parent `control` wrappers (button/input) on coarse pointers, not by individual list rows — list density is optimised for desktop scanning. |
+| **Focusable text inputs (Input, Combobox, Textarea, CommandPalette)** | Font-size floored to **≥16px on coarse pointers** via `pointer-coarse:text-base` on the sub-16px `xs`/`sm` variants. Below 16px iOS Safari auto-zooms the field on focus and never restores the zoom (page stays scrolled sideways). Fine pointers keep the designed 12/14px. **Any new focusable text input must carry this floor** — never use `maximum-scale`/`user-scalable=no` on the viewport, which breaks accessibility. |
 | **Breadcrumb links** | `min-h-11` via touch padding |
 | **Button** | `md` (40px) acceptable for desktop; avoid `2xs`/`xs` as sole touch targets |
 
