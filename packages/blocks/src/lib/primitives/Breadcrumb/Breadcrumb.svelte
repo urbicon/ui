@@ -1,12 +1,17 @@
 <script lang="ts">
+  import { tick } from 'svelte';
   import { getBlocksConfig, resolveSlotClasses } from '$lib/provider';
   import { breadcrumbVariants, type BreadcrumbVariants } from './breadcrumb.variants';
-  import type { BreadcrumbProps } from './index';
+  import type { BreadcrumbProps, BreadcrumbItem } from './index';
 
   let {
     items,
     size = 'md',
     separator,
+    maxItems,
+    itemsBeforeCollapse = 1,
+    itemsAfterCollapse = 1,
+    expandLabel = 'Show all breadcrumb items',
     'aria-label': ariaLabel = 'Breadcrumb',
     class: className = '',
     unstyled: unstyledProp = false,
@@ -25,9 +30,60 @@
   const slotClasses = $derived(
     resolveSlotClasses(blocksConfig, 'Breadcrumb', preset, variantProps, slotClassesProp)
   );
+
+  // Long trails collapse their middle into a single "…" affordance. Clicking
+  // it expands the full trail for the rest of the component's life — the
+  // established expandable-breadcrumb pattern. `before`/`after` clamp to sane
+  // bounds and the current page (last item) is always kept visible.
+  let expanded = $state(false);
+  let navEl = $state<HTMLElement>();
+
+  const before = $derived(Math.max(0, itemsBeforeCollapse));
+  const after = $derived(Math.max(1, itemsAfterCollapse));
+
+  type BreadcrumbEntry =
+    | { kind: 'item'; item: BreadcrumbItem; current: boolean }
+    | { kind: 'ellipsis' };
+
+  const entries = $derived.by((): BreadcrumbEntry[] => {
+    const last = items.length - 1;
+    const collapse =
+      maxItems != null &&
+      maxItems > 0 &&
+      !expanded &&
+      items.length > maxItems &&
+      before + after < items.length;
+
+    if (!collapse) {
+      return items.map((item, i) => ({ kind: 'item' as const, item, current: i === last }));
+    }
+
+    const result: BreadcrumbEntry[] = [];
+    for (let i = 0; i < before; i++) {
+      result.push({ kind: 'item', item: items[i], current: false });
+    }
+    result.push({ kind: 'ellipsis' });
+    for (let i = items.length - after; i < items.length; i++) {
+      result.push({ kind: 'item', item: items[i], current: i === last });
+    }
+    return result;
+  });
+
+  function expand() {
+    expanded = true;
+    // Keep keyboard focus inside the trail: land on the first item that was
+    // hidden (now revealed) rather than dropping to the top of the page when
+    // the "…" button unmounts. Head items are links 0…before-1, so the first
+    // revealed item is link index `before`.
+    const target = before;
+    tick().then(() => {
+      navEl?.querySelectorAll<HTMLAnchorElement>('a')[target]?.focus();
+    });
+  }
 </script>
 
 <nav
+  bind:this={navEl}
   class={unstyled
     ? [slotClasses?.nav, className].filter(Boolean).join(' ')
     : styles.nav({ class: [slotClasses?.nav, className] })}
@@ -35,26 +91,39 @@
   {...restProps}
 >
   <ol class={unstyled ? (slotClasses?.list ?? '') : styles.list({ class: slotClasses?.list })}>
-    {#each items as item, i (`${item.label}-${i}`)}
+    {#each entries as entry, i (entry.kind === 'ellipsis' ? 'ellipsis' : `${entry.item.label}-${i}`)}
       <li class={unstyled ? (slotClasses?.item ?? '') : styles.item({ class: slotClasses?.item })}>
-        {#if i === items.length - 1}
+        {#if entry.kind === 'ellipsis'}
+          <button
+            type="button"
+            class={unstyled
+              ? (slotClasses?.ellipsis ?? '')
+              : styles.ellipsis({ class: slotClasses?.ellipsis })}
+            aria-label={expandLabel}
+            onclick={expand}
+          >
+            …
+          </button>
+        {:else if entry.current}
           <span
             class={unstyled
               ? (slotClasses?.currentPage ?? '')
               : styles.currentPage({ class: slotClasses?.currentPage })}
-            aria-current="page">{item.label}</span
+            aria-current="page">{entry.item.label}</span
           >
         {:else}
           <!-- eslint-disable svelte/no-navigation-without-resolve -- BreadcrumbItem.href is opaque to the library -->
           <a
-            href={item.href}
+            href={entry.item.href}
             class={unstyled ? (slotClasses?.link ?? '') : styles.link({ class: slotClasses?.link })}
-            aria-label={item['aria-label']}
-            onclick={item.onclick}
+            aria-label={entry.item['aria-label']}
+            onclick={entry.item.onclick}
           >
-            {item.label}
+            {entry.item.label}
           </a>
           <!-- eslint-enable svelte/no-navigation-without-resolve -->
+        {/if}
+        {#if i < entries.length - 1}
           <span
             class={unstyled
               ? (slotClasses?.separator ?? '')

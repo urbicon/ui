@@ -12,6 +12,14 @@ export const breadcrumbVariants = tv({
       'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50 focus-visible:rounded-sm'
     ],
     currentPage: 'font-medium text-text-primary truncate max-w-48',
+    // Collapse affordance: the "…" button shown in place of the folded middle
+    // items. Styled as a quiet link; expands the full trail on click.
+    ellipsis: [
+      'inline-flex items-center justify-center rounded-sm px-1',
+      'text-text-tertiary hover:text-text-primary cursor-pointer',
+      'transition-colors duration-[var(--blocks-duration-fast)]',
+      'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50'
+    ],
     separator: 'mx-2 text-text-tertiary select-none'
   },
   variants: {
