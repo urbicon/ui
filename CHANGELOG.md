@@ -4,6 +4,15 @@ All notable changes to this project will be documented in this file.
 This changelog is automatically generated from [Conventional Commits](https://www.conventionalcommits.org).
 
 
+## [6.3.8] - 2026-06-24
+
+### Features
+- **blocks**: Add single-line overflow mode to Breadcrumb
+
+### Refactoring
+- **blocks**: Unify overlay positioning on a shared useFloatingPanel
+- **docs**: Build the DocsLayout sticky header on the Breadcrumb primitive
+
 ## [6.3.7] - 2026-06-24
 
 ### Bug Fixes

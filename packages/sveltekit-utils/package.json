@@ -1,6 +1,6 @@
 {
   "name": "@urbicon-ui/sveltekit-utils",
-  "version": "6.3.7",
+  "version": "6.3.8",
   "description": "SvelteKit helper utilities — createCronRunner and URL-state runes",
   "license": "MIT",
   "repository": {
