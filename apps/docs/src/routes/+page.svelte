@@ -17,10 +17,23 @@
     CheckIcon,
     CopyIcon,
     LocaleSwitcher,
+    MenuIcon,
+    Popover,
     ThemeSwitcher,
     Toggle
   } from '@urbicon-ui/blocks';
   import { onMount } from 'svelte';
+
+  // Mobile nav: below `sm` the four header links collapse into a popover behind
+  // a hamburger (the landing is exempt from the SidebarLayout chrome that
+  // provides the hamburger on doc pages, so it carries its own).
+  let mobileNavOpen = $state(false);
+  const mobileNavLinks = [
+    { label: 'Components', href: resolve('/blocks'), external: false },
+    { label: 'Recipes', href: resolve('/recipes'), external: false },
+    { label: 'AI & DX', href: resolve('/ai'), external: false },
+    { label: 'Codeberg', href: REPO_URL, external: true }
+  ];
 
   // One-shot entrance trigger for the staggered hero transitions.
   let heroVisible = $state(false);
@@ -147,9 +160,38 @@
           href={REPO_URL}
           target="_blank"
           rel="noopener"
-          class="text-text-tertiary hover:text-text-primary px-2 py-1 text-sm transition-colors"
+          class="text-text-tertiary hover:text-text-primary hidden px-2 py-1 text-sm transition-colors sm:block"
           >Codeberg</a
         >
+
+        <!-- Mobile: the four links above collapse into this popover. Closes on
+             link click; a route navigation unmounts the landing anyway. -->
+        <div class="sm:hidden">
+          <Popover bind:open={mobileNavOpen} placement="bottom-end" offsetDistance={8}>
+            {#snippet trigger()}
+              <button
+                type="button"
+                aria-label="Open navigation menu"
+                class="text-text-secondary hover:text-text-primary hover:bg-surface-hover flex h-9 w-9 items-center justify-center rounded-modify transition-colors"
+              >
+                <MenuIcon class="h-5 w-5" />
+              </button>
+            {/snippet}
+            <nav aria-label="Site" class="flex min-w-44 flex-col gap-0.5">
+              {#each mobileNavLinks as link (link.href)}
+                <a
+                  href={link.href}
+                  target={link.external ? '_blank' : undefined}
+                  rel={link.external ? 'noopener' : undefined}
+                  onclick={() => (mobileNavOpen = false)}
+                  class="text-text-secondary hover:text-text-primary hover:bg-surface-hover rounded-modify px-3 py-2 text-sm transition-colors"
+                  >{link.label}</a
+                >
+              {/each}
+            </nav>
+          </Popover>
+        </div>
+
         <ThemeSwitcher size="sm" />
       </nav>
     </div>
