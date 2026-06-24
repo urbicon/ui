@@ -86,13 +86,13 @@ Size constraints (`sm:max-w-sm`, `sm:max-w-md`, etc.) apply from `sm:` upward.
 
 ### Floating UI Integration
 
-- **Combobox**: Uses `computePosition` with `flip()`, `shift()`, `offset()`, `size()` to prevent viewport overflow.
+- **Combobox / Select**: `computePosition` with `flip()`, `shift()`, `offset()`, `size()`. `size()` caps the listbox to the room left between the anchor and the (visual) viewport edge via `--blocks-overlay-available-height`; the design cap `max-h-[min(15rem,…)]` stays the upper bound, so the panel never overflows above the keyboard.
 - **Popover**: `overflow-y-auto` + `max-h-[calc(100dvh-4rem)]` for long content.
 - **Menu / Tooltip**: Already positioned via Popover's Floating UI.
 
 ### Virtual Keyboard
 
-`detectOverflow()` in `floating.ts` uses `window.visualViewport` for correct overflow detection when the virtual keyboard is open. Dialog uses `dvh` units.
+`detectOverflow()` reads `window.visualViewport` (not `window.innerHeight`) for correct overflow detection while the on-screen keyboard is open, and `autoUpdate()` tracks `visualViewport` `resize`/`scroll` so anchored overlays reposition as the keyboard opens/closes and the page settles — without it a `position: fixed` panel detaches from its anchor on iOS. The listbox height is additionally clamped to the shrunken viewport by the `size()` middleware (above). Dialog / Drawer use `dvh` units.
 
 ---
 

@@ -45,6 +45,16 @@
     { label: 'Breadcrumb' }
   ];
 
+  const veryDeepItems = [
+    { label: 'Org', href: '#', onclick: demoNoop },
+    { label: 'Engineering', href: '#', onclick: demoNoop },
+    { label: 'Platform', href: '#', onclick: demoNoop },
+    { label: 'Design System', href: '#', onclick: demoNoop },
+    { label: 'Primitives', href: '#', onclick: demoNoop },
+    { label: 'Navigation', href: '#', onclick: demoNoop },
+    { label: 'Breadcrumb' }
+  ];
+
   const docsItems = [
     { label: 'Docs', href: '#', onclick: demoNoop },
     { label: 'Components', href: '#', onclick: demoNoop },
@@ -63,6 +73,14 @@
       isolate
     >
       <Breadcrumb items={deepItems} size="sm" />
+    </CodeExample>
+
+    <CodeExample
+      title="Collapsing Long Paths"
+      description="Set `maxItems` to fold the middle of a deep trail into an expandable ellipsis (…). `itemsBeforeCollapse` / `itemsAfterCollapse` keep that many items at each end (the current page is always shown); clicking the ellipsis reveals the full path and moves focus to the first revealed item."
+      isolate
+    >
+      <Breadcrumb items={veryDeepItems} maxItems={4} itemsBeforeCollapse={2} size="sm" />
     </CodeExample>
 
     <CodeExample
