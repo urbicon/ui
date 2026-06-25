@@ -11,6 +11,9 @@ import { createMissingKeyCollector } from './missing-key-collector';
 const pkg = createPackageI18n('mk-test', {
   en: { greeting: 'Hi', items: '{{count}} items' }
 });
+// Registration is lazy (first use); register up front so these tests are
+// order-independent (some drive `registry.translate` directly, not `pkg.t`).
+pkg.register();
 const opts = { packageName: 'mk-test' } as const;
 
 afterEach(() => {

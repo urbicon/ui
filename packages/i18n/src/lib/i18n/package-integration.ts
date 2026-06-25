@@ -56,32 +56,37 @@ export function createPackageI18n<const T extends Translations>(
   translations: { en: T } & Partial<Record<Locale, TranslationSchema<T>>>,
   options?: CreatePackageI18nOptions
 ): PackageI18n<T> {
-  // Eager registration at module-init time. The previous lazy variant
-  // (queueMicrotask inside t()) returned the raw key on first call and
-  // never re-triggered the reactive expression that read it, so consumers
-  // saw `filter.button.add` instead of the translated string.
+  // Lazy, first-use registration — deliberately NOT at module-eval (Codeberg #22).
+  // A consumer's top-level `export const x = createPackageI18n(...)` must not call
+  // getRegistry() during module initialisation: in a reordered *production* chunk
+  // (Rollup, `sideEffects: false`) that call can run before the registry module's
+  // `class I18nRegistry` statement, hitting the class temporal dead zone →
+  // `new (undefined)()` → "is not a constructor" → blank page on hydration. The
+  // hoisted getRegistry() keeps the *getter* reachable, but the *class* it
+  // constructs is still a TDZ binding, so the hoist guard alone was insufficient.
   //
-  // Running synchronously here is safe: `createPackageI18n` is invoked at
-  // module top-level (`export const tableI18n = createPackageI18n(...)`),
-  // which is outside any $derived/$effect — so the SvelteMap mutation in
-  // `registerPackage` cannot trip the `state_unsafe_mutation` rule.
-  //
-  // Goes through `getRegistry()` (a hoisted function), NOT a module-const binding:
-  // this call fires at consumer module-eval time, and under Vite 8 / Rolldown a
-  // reordered chunk can run it before the registry module's body ran. A hoisted
-  // function binding survives that; the lazy getter then builds the registry on
-  // first touch, in whatever order the chunks happen to fire.
-  getRegistry().registerPackage(packageName, translations as PackageTranslations);
-
-  // Opt-in lazy locales (WP4): register dynamic-import loaders. The eager bundle
-  // above is the base; these cover the rest, loaded on demand by the provider /
-  // setLocale. Parity for lazy bundles is a runtime concern (validatePackageTranslations).
-  if (options?.loaders) {
+  // Deferring registration to the first useTranslate()/t()/exists() call removes
+  // the ordering dependency at the source: by render / first-call time every module
+  // is fully evaluated, so `new I18nRegistry()` is always safe. Registration is
+  // synchronous (it runs before the translate read), so the first call resolves the
+  // real string — unlike the old queueMicrotask variant that returned the raw key.
+  // registerPackage mutates the reactive SvelteMap, but first touch is a component
+  // init (`useTranslate` body) or a non-reactive call (`t`/tests), never inside a
+  // `$derived`, so it cannot trip `state_unsafe_mutation`.
+  let registered = false;
+  const ensureRegistered = (): void => {
+    if (registered) return;
+    registered = true;
     const registry = getRegistry();
-    for (const [locale, loader] of Object.entries(options.loaders)) {
-      if (loader) registry.registerPackageLoader(packageName, locale as Locale, loader);
+    registry.registerPackage(packageName, translations as PackageTranslations);
+    // Opt-in lazy locales (WP4): dynamic-import loaders alongside the eager base
+    // bundle, loaded on demand by the provider / setLocale.
+    if (options?.loaders) {
+      for (const [locale, loader] of Object.entries(options.loaders)) {
+        if (loader) registry.registerPackageLoader(packageName, locale as Locale, loader);
+      }
     }
-  }
+  };
 
   // Context-scoped hook — the SSR-correct, reactive accessor. Captures the
   // request-scoped locale state at component init (or `undefined` without a
@@ -90,6 +95,7 @@ export function createPackageI18n<const T extends Translations>(
   // call-sites re-render on locale change; reading the registry's SvelteMap makes
   // them re-render when a package registers more translations.
   const useTranslate = (): TypedTranslationFunction<T> => {
+    ensureRegistered();
     const state = useI18nState();
     const registry = getRegistry();
     return ((key: string, params?: TranslationParams, options?: TranslationOptions) =>
@@ -106,19 +112,28 @@ export function createPackageI18n<const T extends Translations>(
   // against the base locale — there is no request-scoped state outside a
   // component. Components use `useTranslate` for the reactive, provider-scoped
   // locale.
-  const t = ((key: string, params?: TranslationParams, options?: TranslationOptions) =>
-    getRegistry().translate(key, BASE_LOCALE, BASE_LOCALE, params, {
+  const t = ((key: string, params?: TranslationParams, options?: TranslationOptions) => {
+    ensureRegistered();
+    return getRegistry().translate(key, BASE_LOCALE, BASE_LOCALE, params, {
       packageName,
       ...options
-    })) as TypedTranslationFunction<T>;
+    });
+  }) as TypedTranslationFunction<T>;
 
-  const exists = (key: string): boolean => getRegistry().exists(key, BASE_LOCALE, packageName);
+  const exists = (key: string): boolean => {
+    ensureRegistered();
+    return getRegistry().exists(key, BASE_LOCALE, packageName);
+  };
 
-  const getLocales = (): Locale[] => getRegistry().getPackageLocales(packageName);
+  const getLocales = (): Locale[] => {
+    ensureRegistered();
+    return getRegistry().getPackageLocales(packageName);
+  };
 
-  // No-op kept for API back-compat with callers that used to invoke `register()`
-  // before reading translations. Registration now happens eagerly above.
-  const register = () => {};
+  // Eager-register escape hatch: a consumer that wants the package present before
+  // the first useTranslate()/t() (e.g. to preload a lazy locale) can call this.
+  // Previously a no-op; now it performs the idempotent first-use registration.
+  const register = (): void => ensureRegistered();
 
   return {
     useTranslate,

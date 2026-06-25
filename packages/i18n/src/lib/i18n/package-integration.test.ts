@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { createPackageI18n, validatePackageTranslations } from './package-integration';
+import { getRegistry } from './registry.svelte';
 
 /**
  * WP1 — type-safety end-to-end through the generic factory.
@@ -24,6 +25,27 @@ describe('createPackageI18n — generic factory, runtime', () => {
 
   it('interpolates a param inferred from {{name}}', () => {
     expect(sample.t('greeting', { name: 'Ada' })).toBe('Hello Ada');
+  });
+});
+
+describe('createPackageI18n — lazy registration (Codeberg #22, registry TDZ)', () => {
+  it('does not touch the registry at creation, then registers synchronously on first use', () => {
+    const registry = getRegistry();
+    // Creating the package must NOT call getRegistry().registerPackage at module-eval
+    // (that is the production class-TDZ trigger) — nothing is registered yet.
+    const lazy = createPackageI18n('lazy-reg-test', { en: { greeting: 'Hi' } });
+    expect(registry.hasPackage('lazy-reg-test')).toBe(false);
+    // First use registers synchronously and resolves the real string (no raw key).
+    expect(lazy.t('greeting')).toBe('Hi');
+    expect(registry.hasPackage('lazy-reg-test')).toBe(true);
+  });
+
+  it('register() eagerly registers without a translate call', () => {
+    const registry = getRegistry();
+    const lazy = createPackageI18n('lazy-reg-test-2', { en: { a: 'A' } });
+    expect(registry.hasPackage('lazy-reg-test-2')).toBe(false);
+    lazy.register();
+    expect(registry.hasPackage('lazy-reg-test-2')).toBe(true);
   });
 });
 

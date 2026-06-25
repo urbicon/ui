@@ -8,7 +8,7 @@ const tableTranslations = {
   de: deTranslations
 };
 
-// Create the package i18n integration (registers eagerly at module init).
+// Create the package i18n integration (registers lazily on first useTranslate()/t()).
 export const tableI18n = createPackageI18n('table', tableTranslations);
 
 /**

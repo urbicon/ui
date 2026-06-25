@@ -8,7 +8,7 @@ const blocksTranslations = {
   de: deTranslations
 };
 
-// Create the package i18n integration (registers eagerly at module init).
+// Create the package i18n integration (registers lazily on first useTranslate()/t()).
 export const blocksI18n = createPackageI18n('blocks', blocksTranslations);
 
 /**
