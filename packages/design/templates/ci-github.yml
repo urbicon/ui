@@ -24,3 +24,9 @@ jobs:
       # fails below the floor); add --record to append a drift point to the
       # design.manifest.history.ndjson sidecar.
       - run: bunx urbicon validate src/ --json
+      # i18n audit — gates on translation-parity errors + keys used in code but
+      # missing from the bundles. Unused keys and hardcoded UI strings are
+      # advisory (add --strict to gate them too). Loads .ts locale bundles, so it
+      # needs Bun; point --translations at your bundle dir(s). Drop this step if
+      # the project does not use @urbicon-ui/i18n.
+      - run: bunx urbicon i18n audit src/ --translations src/lib/translations
