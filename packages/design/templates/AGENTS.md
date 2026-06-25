@@ -19,6 +19,9 @@ library this project installed**, so what it tells you is true of the code you a
     (`--section api|examples|variants|slots|full`).
 - **Validate** what you generate:
   - `urbicon validate <path>` — lint markup against the design rules; fix every error.
+  - `urbicon i18n [check]` — audit `@urbicon-ui/i18n` usage (when the project uses it):
+    `parity` (missing/empty/param/plural across locales), `unused` keys, `hardcoded`
+    strings, or `audit` (all). Gates on parity errors + keys used-but-undefined.
 - **Read & record design intent** (the project's memory):
   - `urbicon context` — the design manifest: paradigm, voice, decisions. Read it first.
   - `urbicon record-decision …` — log a deliberate design choice so the next session sees it.

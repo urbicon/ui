@@ -14,7 +14,7 @@ Svelte 5 + Tailwind CSS 4 UI component library monorepo. Uses Bun workspaces.
   - `docs`: Reusable documentation UI components
   - `docs-gen`: Documentation generator (TypeScript CLI, extracts props/variants from AST)
   - `mcp-server`: Model Context Protocol server (10 read-only tools, 7 guide resources, 10 design-verb prompts) for LLM-driven development; manifest read/write lives in the `urbicon` CLI (`@urbicon-ui/design`), not the remote server
-  - `i18n`: Localization (Svelte 5 runes-based)
+  - `i18n`: Localization (Svelte 5 runes-based); also ships a data-level translation audit (`auditTranslations`, `onMissingKey` / `createMissingKeyCollector`) + a dev-only `@urbicon-ui/i18n/audit` source scanner (unused / used-but-undefined keys, hardcoded strings), fronted by the `urbicon i18n` CLI command and `bun run i18n:check`
   - `shared-types`: Shared TypeScript types
   - `sveltekit-utils`: SvelteKit helper utilities (`createCronRunner`, URL-state runes)
   - `auth`: Authentication & user management (JWT sessions, refresh-token rotation, passkeys/WebAuthn, notifications, email)

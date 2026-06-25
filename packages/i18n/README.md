@@ -302,6 +302,41 @@ import type {
 
 `en`, `de` ship data. `fr`, `es`, `it`, `nl` are declared target locales (in the `Locale` union / `SUPPORTED_LOCALES`) — register your own bundles for them via `createPackageI18n`.
 
+## Translation Auditing
+
+Three layers catch i18n problems — untranslated strings, unused keys, and copy that bypassed i18n entirely. The data-level audit and the runtime sink ship from the main entry (dependency-free, usable in a Vitest test); the source scanner lives on the dev-only `@urbicon-ui/i18n/audit` subpath; the `urbicon i18n` CLI (`@urbicon-ui/design`) is the filesystem front end over all three.
+
+**1. Data-level parity & quality** — `auditTranslations(packageName, bundles)` diffs locale bundles for missing/extra keys, empty values, interpolation-param drift (`{{name}}` in one locale but not another), value-equals-key placeholders, and malformed / CLDR-incomplete `_plural` objects. Pure and deterministic — run it as a test (the richer successor to `validatePackageTranslations`, kept for back-compat):
+
+```ts
+import { auditTranslations } from '@urbicon-ui/i18n';
+import { appTranslations } from '$lib/i18n';
+
+it('translations are in parity', () => {
+  expect(auditTranslations('app', appTranslations).ok).toBe(true);
+});
+```
+
+**2. Runtime missing-key sink** — `onMissingKey` (via `configureI18n`) fires when a key resolves nowhere and would render as its raw string. `createMissingKeyCollector()` packages it for tests/E2E — assert that nothing rendered a raw key, including dynamically-built keys a static scan can't see:
+
+```ts
+import { configureI18n, createMissingKeyCollector } from '@urbicon-ui/i18n';
+
+const misses = createMissingKeyCollector();
+configureI18n({ onMissingKey: misses.onMissingKey });
+// … render / exercise the app …
+expect(misses.isClean()).toBe(true);
+```
+
+**3. Source scan & CLI** — `urbicon i18n` scans your sources for **unused** keys (defined but referenced nowhere), **used-but-undefined** keys (a typo that renders raw), and **hardcoded** UI strings. Run it under Bun (it loads `.ts` locale bundles):
+
+```bash
+urbicon i18n audit src/ --translations src/lib/translations  # parity + unused + hardcoded
+urbicon i18n unused --dynamic-keys 'errors.*' --json         # just the scan, allowlisting dynamic key families
+```
+
+It gates (exit 1) on parity errors + used-but-undefined; unused keys and hardcoded strings are advisory (`--strict` gates them too). The pure scanner core — `scanSources`, `findUnusedKeys`, `findHardcodedStrings` — is on the `@urbicon-ui/i18n/audit` subpath for programmatic use, with `typescript` + `svelte` as optional peers it lazily imports. See the [CI gate template](../design/templates/ci-github.yml).
+
 ## Development
 
 ```bash

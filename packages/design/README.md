@@ -62,6 +62,7 @@ to read the intent, `urbicon find` / `get-component` to discover the catalog, co
 | --- | --- | --- |
 | `urbicon init` | Wire a project into the design loop (AGENTS.md block, manifest scaffold, `--hook`/`--ci`). | — (local only) |
 | `urbicon validate [paths...]` | Lint `.svelte` markup against the design rules. The CI gate. | mirror of `validate_design` |
+| `urbicon i18n [check]` | Audit `@urbicon-ui/i18n`: `parity` / `unused` keys / `hardcoded` strings / `audit` (all). | — (local only) |
 | `urbicon hook` | PostToolUse adapter — validate the just-edited file, block on failure. | — (local only) |
 | `urbicon find [query]` | Fuzzy component discovery over the version-pinned catalog. | `find_components` |
 | `urbicon get-component <slug>` | A component's API (its `llm.txt`) from the bundle. | `get_component` |
@@ -111,6 +112,29 @@ Exit codes — designed for hooks and CI:
 | `2` | Usage error — bad flags / unreadable input |
 
 `--skip-heuristics` runs only the deterministic rules (no distribution notes).
+
+### i18n
+
+Audit `@urbicon-ui/i18n` usage — one check, or `audit` for all. Run under Bun (it
+dynamic-imports `.ts` locale bundles).
+
+```bash
+urbicon i18n audit src/ --translations src/lib/translations  # parity + unused + hardcoded
+urbicon i18n parity --json                                   # data-level locale audit only
+urbicon i18n unused --dynamic-keys 'errors.*'                # scan, allowlisting dynamic key families
+urbicon i18n hardcoded src/ --strict                         # gate the advisory hardcoded-string lint too
+```
+
+| Check | Finds | Gates? |
+| --- | --- | --- |
+| `parity` | missing/extra keys, empty values, `{{param}}` drift, malformed/incomplete `_plural` | errors gate |
+| `unused` | defined keys referenced nowhere (`confirmed`/`suspect`) + keys used-but-undefined | used-but-undefined gates; unused advisory |
+| `hardcoded` | literal UI copy in `.svelte` markup that bypassed i18n | advisory (gate with `--strict`) |
+
+Config via `i18n.audit.json` / `--config` + flags (`--translations`, `--dynamic-keys`,
+`--ignore-keys`, `--ignore-strings`, `--base-locale`); `--json` for CI. Backed by the
+`@urbicon-ui/i18n/audit` subpath; the pure data-level `auditTranslations` also runs as a
+Vitest assertion without the CLI.
 
 ### context / record-decision / sync-manifest
 
