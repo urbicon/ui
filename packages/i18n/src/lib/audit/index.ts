@@ -14,9 +14,10 @@ export type { I18nMissingKey } from '$lib/i18n/types';
 export { makeGlobMatcher } from './glob';
 export type { MissingKeyCollector, MissingKeyRecord } from './missing-key-collector';
 export { createMissingKeyCollector } from './missing-key-collector';
+export type { FindHardcodedOptions, HardcodedFinding } from './scan/hardcoded';
+export { findHardcodedStrings } from './scan/hardcoded';
 export type { ScanSourcesResult } from './scan/scanner';
-
-// Usage scanner (Feature B).
+// Usage scanner (Feature B) + hardcoded-string lint (Feature C).
 export { scanSource, scanSources } from './scan/scanner';
 export type { KeyUsageSite, ScanOptions, UsageScan } from './scan/types';
 export type {
