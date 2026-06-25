@@ -7,6 +7,7 @@ import {
   type Placement,
   shift
 } from './floating';
+import { isAnchoredInModalDialog } from './overlay';
 
 export interface FloatingPanelOptions {
   /** The anchor the panel positions against. */
@@ -16,9 +17,17 @@ export interface FloatingPanelOptions {
   /** Whether the panel is currently open. */
   open: () => boolean;
   /**
-   * Render in the browser top layer via the native popover API (default).
-   * `false` keeps the panel in normal DOM flow (`position: absolute`) for
-   * nested-overlay scenarios — the caller drives visibility via `display`.
+   * Caller hint for top-layer promotion via the native popover API (default
+   * `true`). `false` forces the panel into normal DOM flow (`position:
+   * absolute`) for nested-overlay scenarios (e.g. a Menu/Select inside a
+   * Popover) — the caller drives visibility via `display`.
+   *
+   * Even when `true`, the panel is automatically kept OUT of the top layer
+   * while it sits inside an open modal `<dialog>` — it then renders
+   * `position: fixed` within the dialog's own subtree, because a second
+   * top-layer element over a modal dialog is invisible on iOS/WebKit
+   * (Codeberg #23). Read the effective state from the returned
+   * `topLayer`/`strategy`.
    */
   portal?: () => boolean;
   /** Preferred placement. @default 'bottom-start' */
@@ -34,6 +43,24 @@ export interface FloatingPanelOptions {
 }
 
 /**
+ * Effective render mode of a floating panel, returned by {@link useFloatingPanel}
+ * so the calling component's markup stays in lockstep with the positioning
+ * effect — both read the same derived values, so the `popover` attribute and the
+ * `showPopover()` decision can never diverge.
+ */
+export interface FloatingPanelState {
+  /**
+   * `true` when the panel is promoted to the browser top layer (the markup sets
+   * the `popover` attribute and the effect calls `showPopover()`); `false` when
+   * it renders in place — inside a modal `<dialog>`, or the explicit
+   * `portal=false` inline mode.
+   */
+  readonly topLayer: boolean;
+  /** CSS positioning strategy the panel element must match (`position: <strategy>`). */
+  readonly strategy: 'fixed' | 'absolute';
+}
+
+/**
  * Manages native popover state + Floating UI positioning for anchored overlay
  * panels (Select, Combobox, Popover, and through it Menu). Handles show/hide,
  * the autoUpdate lifecycle, position computation, a keyboard-aware height cap,
@@ -45,20 +72,41 @@ export interface FloatingPanelOptions {
  * the caller's own dismiss handlers in control; this helper only drives
  * `showPopover()`/`hidePopover()` and never reads the dismiss mode.
  *
+ * Top-layer promotion is automatic but conditional: the helper skips it (and
+ * returns `topLayer: false`) when the anchor sits inside an open modal
+ * `<dialog>`, where a second top-layer element is invisible on iOS/WebKit
+ * (Codeberg #23) — the panel then renders `position: fixed` in place. Callers
+ * mirror the returned `topLayer`/`strategy` in their markup via
+ * {@link floatingPanelStyle}.
+ *
  * The Floating-UI `size` middleware feeds the room actually left between the
  * anchor and the (visual) viewport edge into `--blocks-overlay-available-height`.
  * Variants cap height via `max-h-[min(<design-cap>,var(--…,100dvh))]`, so the
  * static design cap stays in CSS and the panel only ever shrinks to fit — and
  * recovers once room is restored (e.g. the iOS keyboard closes).
  */
-export function useFloatingPanel(opts: FloatingPanelOptions) {
+export function useFloatingPanel(opts: FloatingPanelOptions): FloatingPanelState {
   let cleanupPosition: (() => void) | undefined;
+
+  // Effective render mode — derived synchronously, never via an $effect-set
+  // $state. A lagged mode would leave the element carrying a stale
+  // `popover="manual"` for one frame and re-trigger the exact WebKit
+  // double-top-layer bug this guards against (Codeberg #23).
+  const inModalDialog = $derived(opts.open() ? isAnchoredInModalDialog(opts.reference()) : false);
+  const portalHint = $derived(opts.portal?.() ?? true);
+  // Top layer (native popover) only when the caller opted in AND the anchor is
+  // not nested in a modal dialog. `strategy` stays `fixed` for the dialog case
+  // so the panel escapes the dialog body's overflow clipping; only the explicit
+  // inline mode (`portal=false`) falls back to `absolute`.
+  const topLayer = $derived(portalHint && !inModalDialog);
+  const strategy = $derived<'fixed' | 'absolute'>(portalHint ? 'fixed' : 'absolute');
 
   $effect(() => {
     const ref = opts.reference();
     const floating = opts.floating();
     const isOpen = opts.open();
-    const usePortal = opts.portal?.() ?? true;
+    const useTopLayer = topLayer;
+    const positionStrategy = strategy;
     const placement = opts.placement?.() ?? 'bottom-start';
     const offsetDistance = opts.offsetDistance?.() ?? 4;
     const shiftPadding = opts.shiftPadding?.() ?? 8;
@@ -78,21 +126,33 @@ export function useFloatingPanel(opts: FloatingPanelOptions) {
       // Drop the keyboard-aware height clamp so the next open re-measures from
       // the full design cap instead of inheriting a stale value.
       floating.style.removeProperty('--blocks-overlay-available-height');
-      if (usePortal && floating.matches(':popover-open')) {
+      // Guard on the live `:popover-open` state only (not the current mode):
+      // a panel that was promoted to the top layer must still be torn down even
+      // if its mode has since flipped to `fixed`/`inline`.
+      if (floating.matches(':popover-open')) {
         try {
           floating.hidePopover();
-        } catch {
-          /* already hidden */
+        } catch (err) {
+          // Pre-check ruled out "already hidden": a real failure here is a
+          // detached node or a consumer-overridden popover attribute. Surface
+          // it (as Tooltip/Guide do) instead of leaving the panel stuck in the
+          // top layer with no diagnostics.
+          console.warn('[useFloatingPanel] hidePopover failed', err);
         }
       }
       return;
     }
 
-    if (usePortal && !floating.matches(':popover-open')) {
+    if (useTopLayer && !floating.matches(':popover-open')) {
       try {
         floating.showPopover();
-      } catch {
-        /* already shown or not supported */
+      } catch (err) {
+        // Pre-check ruled out "already shown": a real failure here (missing
+        // Popover API on a legacy browser, a detached node, or a consumer-
+        // overridden popover attribute) would leave the panel stuck
+        // `display:none` via the UA rule with no diagnostics — exactly the
+        // silent "overlay never opens" class of bug. Surface it for telemetry.
+        console.warn('[useFloatingPanel] showPopover failed', err);
       }
     }
 
@@ -100,7 +160,7 @@ export function useFloatingPanel(opts: FloatingPanelOptions) {
     cleanupPosition = autoUpdate(ref, floating, () => {
       computePosition(ref, floating, {
         placement,
-        strategy: usePortal ? 'fixed' : 'absolute',
+        strategy: positionStrategy,
         middleware: [
           offset(offsetDistance),
           flip(),
@@ -137,7 +197,9 @@ export function useFloatingPanel(opts: FloatingPanelOptions) {
             top: `${y}px`
           });
         })
-        .catch(() => {});
+        // Mirrors Tooltip/Guide: middleware can throw synchronously on a
+        // detached node; surface it instead of swallowing it silently.
+        .catch((err) => console.warn('[useFloatingPanel] computePosition failed', err));
     });
 
     return () => {
@@ -145,4 +207,31 @@ export function useFloatingPanel(opts: FloatingPanelOptions) {
       cleanupPosition = undefined;
     };
   });
+
+  return {
+    get topLayer() {
+      return topLayer;
+    },
+    get strategy() {
+      return strategy;
+    }
+  };
+}
+
+/**
+ * Inline style for a panel driven by {@link useFloatingPanel}. Pins the
+ * positioning coordinate system Floating UI expects — `position` matches the
+ * strategy, `margin:0; inset:auto` neutralise the UA popover centering — and,
+ * when the panel is NOT top-layer-promoted, drives visibility from `open` (the
+ * UA `[popover]:not(:popover-open){display:none}` rule only applies while the
+ * `popover` attribute is present, which the in-place modes omit).
+ *
+ * `extra` is prepended so a caller's own declarations (e.g. a consumer `style`
+ * prop, or `overflow-y:auto`) stay overridable by the load-bearing positioning
+ * tokens that follow.
+ */
+export function floatingPanelStyle(panel: FloatingPanelState, open: boolean, extra = ''): string {
+  const positioning = `position: ${panel.strategy}; margin: 0; inset: auto;`;
+  const hidden = !panel.topLayer && !open ? ' display: none;' : '';
+  return `${extra}${positioning}${hidden}`;
 }

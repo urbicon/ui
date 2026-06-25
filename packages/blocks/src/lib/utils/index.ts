@@ -46,7 +46,12 @@ export {
   type TierContext
 } from './tier-context';
 export * from './types';
-export { type FloatingPanelOptions, useFloatingPanel } from './use-floating-panel.svelte';
+export {
+  type FloatingPanelOptions,
+  type FloatingPanelState,
+  floatingPanelStyle,
+  useFloatingPanel
+} from './use-floating-panel.svelte';
 export {
   computeFormFieldAria,
   type UseFormFieldInputs,

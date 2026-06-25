@@ -11,6 +11,7 @@
     offset,
     arrow as floatingArrow
   } from '$lib/utils/floating';
+  import { isAnchoredInModalDialog } from '$lib/utils/overlay';
 
   let {
     children,
@@ -47,6 +48,14 @@
   const slotClasses = $derived(
     resolveSlotClasses(blocksConfig, 'Tooltip', preset, variantProps, slotClassesProp)
   );
+
+  // Inside an open modal <dialog>, a popover shown via showPopover() forms a
+  // second top-layer element WebKit won't render above the dialog (Codeberg
+  // #23). Evaluated while `visible` so the check runs once the dialog is
+  // already modal; the tooltip then renders in place (position:fixed + the
+  // opacity `visible` variant + pointer-events-none) within the dialog's own
+  // top-layer subtree, no showPopover() needed.
+  const topLayer = $derived(visible ? !isAnchoredInModalDialog(triggerElement) : true);
 
   let showTimeout: number;
   let hideTimeout: number;
@@ -174,7 +183,9 @@
       return;
     }
 
-    if (!tooltipElement.matches(':popover-open')) {
+    // Skip top-layer promotion inside a modal dialog (see `topLayer`): the
+    // tooltip stays a dialog descendant and shows via the opacity variant.
+    if (topLayer && !tooltipElement.matches(':popover-open')) {
       try {
         tooltipElement.showPopover();
       } catch (err) {
@@ -216,8 +227,10 @@
   Tooltip element stays mounted so `bind:this={tooltipElement}` is stable
   across hover cycles and Floating UI's `arrow` middleware always has a
   target (otherwise the first showPopover would compute positions before
-  the arrow node existed). The `popover="manual"` attribute hides it
-  via the UA stylesheet until `showPopover()` is called.
+  the arrow node existed). In top-layer mode the `popover="manual"` attribute
+  hides it via the UA stylesheet until `showPopover()` is called; inside a
+  modal dialog (`topLayer === false`) the attribute is dropped and the
+  `visible` opacity variant drives visibility instead (Codeberg #23).
 
   Load-bearing attributes (`popover`, `style`, `role`, `id`) intentionally
   follow `{...restProps}` so a consumer-supplied `popover="auto"`, custom
@@ -230,7 +243,7 @@
     ? [slotClasses?.base, className].filter(Boolean).join(' ')
     : styles.base({ class: [slotClasses?.base, className] })}
   {...restProps}
-  popover="manual"
+  popover={topLayer ? 'manual' : null}
   style="position: fixed; margin: 0; inset: auto; overflow: visible;"
   role="tooltip"
   id={tooltipId}

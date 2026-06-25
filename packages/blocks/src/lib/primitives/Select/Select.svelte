@@ -1,6 +1,6 @@
 <script lang="ts" generics="T extends string | number | boolean = string">
   import { useBlocksI18n, mintRegistry } from '$lib';
-  import { useFormField, getTierContext, useFloatingPanel } from '$lib/utils';
+  import { useFormField, getTierContext, useFloatingPanel, floatingPanelStyle } from '$lib/utils';
   import { getBlocksConfig, resolveSlotClasses } from '$lib/provider';
   import { resolveIcon } from '$lib/icons';
   import ChevronDownIconDefault from '$lib/icons/ChevronDownIcon.svelte';
@@ -228,7 +228,7 @@
     activeIndex = next;
   });
 
-  useFloatingPanel({
+  const panel = useFloatingPanel({
     reference: () => triggerRef,
     floating: () => listboxRef,
     open: () => open,
@@ -505,10 +505,12 @@
     {/if}
 
     <!--
-      Listbox stays mounted (with `popover="manual"`) so `bind:this`
-      and `aria-controls` are stable across open/close cycles. Native
-      `[popover]:not(:popover-open)` UA-rule hides it via display:none
-      until `showPopover()` runs in the effect above.
+      Listbox stays mounted so `bind:this` and `aria-controls` are stable across
+      open/close cycles. Top-layer mode uses `popover="manual"` + the UA
+      `[popover]:not(:popover-open)` display rule until `showPopover()` runs; the
+      in-place modes (nested in a modal dialog → Codeberg #23, or the explicit
+      `usePortal=false`) drop the popover attribute and let `floatingPanelStyle`
+      drive visibility via `display`.
 
       `tabindex={-1}` keeps the listbox programmatically focusable without
       adding it to the tab order — the ARIA Listbox / `aria-activedescendant`
@@ -522,17 +524,13 @@
       bind:this={listboxRef}
       id={listboxId}
       role="listbox"
-      popover={usePortal ? 'manual' : null}
+      popover={panel.topLayer ? 'manual' : null}
       aria-multiselectable={multiple || undefined}
       tabindex={-1}
       class={unstyled
         ? (slotClasses?.listbox ?? '')
         : styles.listbox({ class: slotClasses?.listbox })}
-      style={usePortal
-        ? 'position: fixed; margin: 0; inset: auto; overflow-y: auto;'
-        : open
-          ? 'position: absolute; overflow-y: auto;'
-          : 'display: none; position: absolute; overflow-y: auto;'}
+      style={floatingPanelStyle(panel, open, 'overflow-y: auto; ')}
       aria-labelledby={labelId}
     >
       {#if open}

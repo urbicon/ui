@@ -90,3 +90,33 @@ export function closeDialogModal(
   unlockBodyScroll();
   previouslyFocused?.focus();
 }
+
+/**
+ * True when `el` is a descendant of an OPEN *modal* `<dialog>` — one opened via
+ * `showModal()`, which matches `:modal` and occupies the browser top layer.
+ *
+ * A popover shown via `showPopover()` from inside such a dialog forms a *second*
+ * top-layer element, which WebKit/iOS fails to render above the dialog (Codeberg
+ * #23 — the documented "top layer: popover vs. dialog" conflict; Chromium
+ * tolerates it). Anchored overlays use this to skip top-layer promotion when
+ * nested in a modal dialog and render inside the dialog's own subtree instead.
+ *
+ * DOM-based on purpose: it transparently covers `Drawer` (also `showModal()`)
+ * and even consumer-authored `<dialog>` wrappers, and distinguishes modal from
+ * non-modal (`show()`) dialogs — neither of which a context/registry would catch.
+ *
+ * Null-safe so it can be called during SSR, before `bind:this` resolves, or
+ * while an anchor is mid-teardown.
+ */
+export function isAnchoredInModalDialog(el: HTMLElement | null | undefined): boolean {
+  if (!isBrowser || !el) return false;
+  const dialog = el.closest('dialog');
+  if (!dialog) return false;
+  try {
+    return dialog.matches(':modal');
+  } catch {
+    // `:modal` predates the Popover API in every engine, so an engine that
+    // throws on the selector cannot exhibit the top-layer conflict anyway.
+    return false;
+  }
+}

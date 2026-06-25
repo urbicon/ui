@@ -1,7 +1,7 @@
 <script lang="ts">
   import { untrack } from 'svelte';
   import { getBlocksConfig, resolveSlotClasses } from '$lib/provider';
-  import { useFloatingPanel } from '$lib/utils';
+  import { useFloatingPanel, floatingPanelStyle } from '$lib/utils';
   import { popoverVariants } from './popover.variants';
   import type { PopoverProps } from './index';
 
@@ -51,6 +51,30 @@
   let popoverElement = $state<HTMLElement | null>(null);
 
   const effectiveTriggerElement = $derived(triggerElement || internalTriggerElement);
+
+  // ── Floating UI positioning + native show/hide ─────────────
+  //
+  // Delegated to the shared `useFloatingPanel` helper — the same positioning
+  // codepath Select/Combobox use — so the iOS/visualViewport handling and the
+  // keyboard-aware height cap (`--blocks-overlay-available-height`, consumed by
+  // popoverVariants/menuVariants) land here too instead of being a second,
+  // drifting copy. The helper drives `showPopover()`/`hidePopover()` purely from
+  // `open` and reports the effective render mode (`panel.topLayer` /
+  // `panel.strategy`), read below by `popoverMode` (so a panel that leaves the
+  // top layer inside a modal dialog switches to manual dismiss) and by the panel
+  // markup. The `popover="auto"`/`"manual"` dismiss wiring stays independent of
+  // show/hide.
+  const panel = useFloatingPanel({
+    reference: () => effectiveTriggerElement,
+    floating: () => popoverElement,
+    open: () => open,
+    portal: () => usePortal,
+    placement: () => placement,
+    offsetDistance: () => offsetDistance,
+    shiftPadding: () => shiftPadding,
+    syncWidth: () => syncWidth,
+    syncMinWidth: () => syncMinWidth
+  });
 
   // Forward aria-expanded / aria-haspopup to the first interactive descendant
   // of the trigger wrapper. Without this, the wrapper div itself would need
@@ -109,8 +133,12 @@
   // timing. Consumers with an external CLICK trigger (Menu, DatePicker)
   // get a clean toggle; hover-driven external triggers (Calendar event
   // popovers) are unaffected since they never relied on light-dismiss.
+  // A panel that is NOT top-layer-promoted (nested in a modal dialog → Codeberg
+  // #23) emits no native `toggle` events, so `auto` mode's browser-driven
+  // Escape / light-dismiss never fires. Force `manual` there so the explicit
+  // Escape / outside-pointerdown listeners below own the dismiss instead.
   const popoverMode = $derived<'auto' | 'manual'>(
-    autoTrigger && closeOnEscape && closeOnClickOutside ? 'auto' : 'manual'
+    panel.topLayer && autoTrigger && closeOnEscape && closeOnClickOutside ? 'auto' : 'manual'
   );
 
   // ── Native popover state sync (popover="auto" mode only) ──
@@ -236,27 +264,6 @@
     }
   });
 
-  // ── Floating UI positioning + native show/hide ─────────────
-  //
-  // Delegated to the shared `useFloatingPanel` helper — the same positioning
-  // codepath Select/Combobox use — so the iOS/visualViewport handling and the
-  // keyboard-aware height cap (`--blocks-overlay-available-height`, consumed by
-  // popoverVariants/menuVariants) land here too instead of being a second,
-  // drifting copy. The helper drives `showPopover()`/`hidePopover()` purely
-  // from `open`; the `popover="auto"`/`"manual"` dismiss wiring above is
-  // independent of it.
-  useFloatingPanel({
-    reference: () => effectiveTriggerElement,
-    floating: () => popoverElement,
-    open: () => open,
-    portal: () => usePortal,
-    placement: () => placement,
-    offsetDistance: () => offsetDistance,
-    shiftPadding: () => shiftPadding,
-    syncWidth: () => syncWidth,
-    syncMinWidth: () => syncMinWidth
-  });
-
   // ── Trigger handlers ───────────────────────────────────────
 
   function handleTriggerPointerDown() {
@@ -301,32 +308,30 @@
   `{...restProps}` so a consumer-supplied `popover="manual"` or override
   of `role`/`id` cannot silently break the show/hide flow or ARIA pairing.
 
-  The explicit `style` prop is interpolated FIRST so that the load-bearing
-  positioning tokens (`position: fixed`, `margin: 0`, `inset: auto`) come
-  last and win the CSS cascade. A consumer passing `style="background:
+  The explicit `style` prop is interpolated FIRST (via `floatingPanelStyle`) so
+  that the load-bearing positioning tokens (`position`, `margin: 0`, `inset:
+  auto`) come last and win the CSS cascade. A consumer passing `style="background:
   red"` still works; a consumer passing `style="position: absolute"`
   cannot accidentally break Floating UI's coordinate system.
 -->
 <!--
-  `usePortal=false` mode renders the panel in the regular DOM flow with
-  `position: absolute`, anchored to the trigger's offset parent. The
-  `popover` attribute is suppressed so the browser does not promote the
-  element to the top layer; Floating UI still drives `left` / `top` via
-  `useFloatingPanel` (which skips show/hide when not portalled), and the
-  `open`/`!open` toggle just shows / hides the element. Used by Menu /
-  Select consumers that live inside another popover (avoids nested-top-layer
-  focus & z-index quirks).
+  Non-top-layer render (`panel.topLayer === false`): the `popover` attribute is
+  suppressed so the browser does not promote the element to the top layer;
+  `floatingPanelStyle` drives `position` + `display` while Floating UI drives
+  `left` / `top`. Two triggers:
+    • `usePortal=false` (e.g. Menu / Select inside another popover) →
+      `position: absolute`, avoiding nested-top-layer focus & z-index quirks.
+    • nested in an open modal `<dialog>` → `position: fixed`, so the panel paints
+      in the dialog's own top-layer subtree instead of a second popover WebKit
+      drops over a modal dialog (Codeberg #23).
 -->
+
 <div
   bind:this={popoverElement}
   class={popoverClasses}
   {...restProps}
-  popover={usePortal ? popoverMode : null}
-  style={usePortal
-    ? `${style}; position: fixed; margin: 0; inset: auto;`
-    : open
-      ? `${style}; position: absolute; margin: 0; inset: auto;`
-      : `${style}; position: absolute; margin: 0; inset: auto; display: none;`}
+  popover={panel.topLayer ? popoverMode : null}
+  style={floatingPanelStyle(panel, open, style ? `${style}; ` : '')}
   {role}
   aria-modal={ariaModal || undefined}
   {id}
