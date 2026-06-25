@@ -14,7 +14,7 @@
  * not-yet-translated strings identical to the base locale.
  */
 
-import type { Locale } from '$lib/i18n/types';
+import { isLocaleSupported, type Locale, SUPPORTED_LOCALES } from '$lib/i18n/types';
 import { collectDeepKeys, getDeepValue } from '$lib/utils/deep-keys';
 
 /** A single audit check. Stable identifiers — safe to switch on in tooling/CI. */
@@ -22,11 +22,13 @@ export type TranslationFindingCode =
   | 'missing-key'
   | 'extra-key'
   | 'empty-value'
+  | 'wrong-type'
   | 'param-mismatch'
   | 'plural-shape-invalid'
   | 'plural-category-incomplete'
   | 'value-equals-key'
   | 'same-as-base'
+  | 'invalid-locale'
   | 'no-translations';
 
 export type TranslationFindingSeverity = 'error' | 'warning';
@@ -72,11 +74,13 @@ const DEFAULT_CHECKS: Record<TranslationFindingCode, boolean> = {
   'missing-key': true,
   'extra-key': true,
   'empty-value': true,
+  'wrong-type': true,
   'param-mismatch': true,
   'plural-shape-invalid': true,
   'plural-category-incomplete': true,
   'value-equals-key': true,
   'same-as-base': false,
+  'invalid-locale': true,
   'no-translations': true
 };
 
@@ -110,6 +114,13 @@ function requiredPluralCategories(locale: Locale): string[] {
 /** A leaf value is "translatable" (worth a same-as-base check) if it has a letter. */
 function isTranslatable(value: string): boolean {
   return value.trim().length >= 2 && /\p{L}/u.test(value);
+}
+
+/** Readable type label for a wrong-type finding (`array`/`null` over the bare typeof). */
+function describeType(value: unknown): string {
+  if (value === null) return 'null';
+  if (Array.isArray(value)) return 'array';
+  return typeof value;
 }
 
 const LOCALE_ORDER = ['en', 'de', 'fr', 'es', 'it', 'nl'];
@@ -174,13 +185,38 @@ export function auditTranslations(
   for (const locale of locales) {
     const bundle = translations[locale];
     if (!bundle) continue;
+    // Guard before any per-value work: an unsupported tag (a typo like `de_DE`)
+    // would otherwise crash `Intl.PluralRules(locale)` and take the whole audit
+    // down. Report it as a finding and skip the locale — fail-loud, not fatal.
+    if (!isLocaleSupported(locale)) {
+      add(
+        'invalid-locale',
+        'error',
+        locale,
+        '',
+        `unknown locale "${locale}" — not one of ${SUPPORTED_LOCALES.join(', ')}`
+      );
+      continue;
+    }
     const keys = collectDeepKeys(bundle);
     const keySet = new Set(keys);
 
     for (const key of keys) {
       if (isIgnored(key)) continue;
       const value = getDeepValue(bundle, key);
-      if (typeof value !== 'string') continue;
+      if (typeof value !== 'string') {
+        // `collectDeepKeys` treats empty objects and arrays as leaves, so a
+        // non-string leaf shares its path across bundles and the key-diff can't
+        // see it. Translations leaves must be strings — report, don't skip.
+        add(
+          'wrong-type',
+          'error',
+          locale,
+          key,
+          `non-string value at "${key}" (${describeType(value)})`
+        );
+        continue;
+      }
 
       if (value.trim() === '') {
         // A non-base hole over a non-empty base is a user-facing regression

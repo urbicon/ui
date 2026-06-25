@@ -109,7 +109,15 @@ export class I18nRegistry {
     fallbackLocale: Locale,
     packageName?: string
   ): void {
-    this.onMissingKey?.({ key, locale, fallbackLocale, packageName, reason: 'no-translation' });
+    if (!this.onMissingKey) return;
+    try {
+      this.onMissingKey({ key, locale, fallbackLocale, packageName, reason: 'no-translation' });
+    } catch (error) {
+      // The miss sink is observability, never load-bearing: a throwing consumer
+      // handler must not break rendering or skip the read-tolerant key-as-itself
+      // fallback. Mirrors interpolate()'s defensive treatment of consumer callbacks.
+      console.warn(`onMissingKey handler threw for key "${key}"`, error);
+    }
   }
 
   // --- registration / loading (static data; idempotent, request-identical) ---

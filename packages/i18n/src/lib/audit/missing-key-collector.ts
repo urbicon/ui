@@ -7,7 +7,7 @@
  * const misses = createMissingKeyCollector();
  * configureI18n({ onMissingKey: misses.onMissingKey });
  * // … render / exercise the app …
- * expect(misses.report()).toEqual([]); // fail-loud on any raw-key render
+ * expect(misses.isClean()).toBe(true); // fail-loud on any raw-key render
  * ```
  *
  * This is the runtime counterpart to {@link auditTranslations}: the audit catches

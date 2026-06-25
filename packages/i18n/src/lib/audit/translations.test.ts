@@ -145,3 +145,30 @@ describe('auditTranslations — options', () => {
     ).toBe(true);
   });
 });
+
+describe('auditTranslations — structural defects', () => {
+  it('flags a non-string scalar leaf as wrong-type (a key-diff cannot see it)', () => {
+    const r = auditTranslations('p', { en: { a: 42 } });
+    expect(r.ok).toBe(false);
+    expect(
+      r.errors.some((f) => f.code === 'wrong-type' && f.key === 'a' && /number/.test(f.detail))
+    ).toBe(true);
+  });
+
+  it('flags an empty-object leaf where the base has a string (same path, different shape)', () => {
+    const r = auditTranslations('p', { en: { a: { b: 'Hi' } }, de: { a: { b: {} } } });
+    expect(
+      r.errors.some((f) => f.code === 'wrong-type' && f.locale === 'de' && f.key === 'a.b')
+    ).toBe(true);
+  });
+
+  it('reports an unsupported locale tag as a finding instead of crashing on Intl', () => {
+    // Locale keys are typed, but a JS consumer can pass a bad tag — and a `_plural`
+    // entry would otherwise crash `Intl.PluralRules('de_DE')` and abort the audit.
+    const r = auditTranslations('p', {
+      en: { x: '1' },
+      de_DE: { x: '1', x_plural: '{"other":"viele"}' }
+    } as never);
+    expect(r.errors.some((f) => f.code === 'invalid-locale' && /de_DE/.test(f.detail))).toBe(true);
+  });
+});

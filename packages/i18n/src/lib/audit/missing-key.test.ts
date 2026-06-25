@@ -69,4 +69,28 @@ describe('onMissingKey + createMissingKeyCollector', () => {
     expect(keys).toContain('ghost');
     expect(keys).not.toContain('ghost_plural');
   });
+
+  it('never lets a throwing handler break the read-tolerant key fallback', () => {
+    configureI18n({
+      onMissingKey: () => {
+        throw new Error('sink boom');
+      }
+    });
+    const registry = getRegistry();
+    expect(registry.translate('still.absent', 'en', 'en', undefined, opts)).toBe('still.absent');
+  });
+
+  it('keys misses by package + locale + key, with no false merges', () => {
+    const misses = createMissingKeyCollector();
+    configureI18n({ onMissingKey: misses.onMissingKey });
+    const registry = getRegistry();
+
+    registry.translate('dup', 'en', 'en', undefined, opts);
+    registry.translate('dup', 'de', 'de', undefined, opts); // same key, other locale
+    registry.translate('global.dup', 'en', 'en'); // no package scope
+
+    const report = misses.report();
+    expect(report.filter((r) => r.key === 'dup')).toHaveLength(2);
+    expect(report.find((r) => r.key === 'global.dup')?.packageName).toBeUndefined();
+  });
 });
