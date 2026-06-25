@@ -4,6 +4,11 @@ All notable changes to this project will be documented in this file.
 This changelog is automatically generated from [Conventional Commits](https://www.conventionalcommits.org).
 
 
+## [6.3.13] - 2026-06-25
+
+### Bug Fixes
+- **blocks**: Compensate transformed containing block for in-dialog overlays
+
 ## [6.3.12] - 2026-06-25
 
 ### Bug Fixes

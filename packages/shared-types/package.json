@@ -1,6 +1,6 @@
 {
   "name": "@urbicon-ui/shared-types",
-  "version": "6.3.12",
+  "version": "6.3.13",
   "description": "Shared TypeScript types for the Urbicon UI design system",
   "license": "MIT",
   "repository": {
