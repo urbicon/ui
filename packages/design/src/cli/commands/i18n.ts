@@ -133,20 +133,29 @@ interface BundleGroup {
   bundles: Record<string, Record<string, unknown>>;
 }
 
-/** Load each translations dir's locale modules into `{ locale: bundle }` via dynamic import. */
+const BUNDLE_EXT = /\.(ts|js|mjs)$/;
+
+/**
+ * Load each translations dir's locale modules into `{ locale: bundle }` via
+ * dynamic import. Admits .ts/.js/.mjs (the .js path is the documented Node escape
+ * hatch); only files whose stem is a supported locale are loaded, so an `index.ts`
+ * barrel or a helper is ignored rather than imported as a phantom locale. A dir
+ * that yields no locale bundle is an error, not a silent pass.
+ */
 async function loadBundleGroups(
-  dirs: string[]
+  dirs: string[],
+  isSupportedLocale: (locale: string) => boolean
 ): Promise<{ groups: BundleGroup[]; errors: string[] }> {
   const groups: BundleGroup[] = [];
   const errors: string[] = [];
   for (const dir of dirs) {
     const abs = resolve(dir);
-    let files: string[];
+    let candidates: string[];
     try {
       const info = await stat(abs);
-      files = info.isDirectory()
+      candidates = info.isDirectory()
         ? (await readdir(abs))
-            .filter((f) => f.endsWith('.ts') && !f.endsWith('.d.ts'))
+            .filter((f) => BUNDLE_EXT.test(f) && !f.endsWith('.d.ts'))
             .map((f) => join(abs, f))
         : [abs];
     } catch {
@@ -154,17 +163,28 @@ async function loadBundleGroups(
       continue;
     }
     const bundles: Record<string, Record<string, unknown>> = {};
-    for (const file of files) {
+    let localeFiles = 0;
+    for (const file of candidates) {
+      const locale = basename(file).replace(BUNDLE_EXT, '');
+      if (!isSupportedLocale(locale)) continue; // barrels / helpers are not locales
+      localeFiles++;
+      if (bundles[locale]) {
+        errors.push(`duplicate locale "${locale}" in ${label(abs)} — ${label(file)} ignored`);
+        continue;
+      }
       try {
         const mod = (await import(pathToFileURL(file).href)) as { default?: unknown };
         if (mod.default && typeof mod.default === 'object') {
-          bundles[basename(file).replace(/\.ts$/, '')] = mod.default as Record<string, unknown>;
+          bundles[locale] = mod.default as Record<string, unknown>;
+        } else {
+          errors.push(`bundle ${label(file)} has no object default export`);
         }
       } catch (error) {
         errors.push(`cannot load bundle ${label(file)}: ${(error as Error).message}`);
       }
     }
     if (Object.keys(bundles).length) groups.push({ name: label(abs), bundles });
+    else if (localeFiles === 0) errors.push(`no locale bundles (en/de/…) in: ${label(abs)}`);
   }
   return { groups, errors };
 }
@@ -330,7 +350,7 @@ export async function runI18n(positionals: string[], flags: Flags): Promise<numb
   let groups: BundleGroup[] = [];
   let bundleErrors: string[] = [];
   if (wantsParity || wantsUnused) {
-    const loaded = await loadBundleGroups(config.translations);
+    const loaded = await loadBundleGroups(config.translations, audit.isLocaleSupported);
     groups = loaded.groups;
     bundleErrors = loaded.errors;
   }
@@ -342,7 +362,11 @@ export async function runI18n(positionals: string[], flags: Flags): Promise<numb
 
   const totalErrors = Object.values(sections).reduce((sum, s) => sum + s.errors, 0);
   const totalWarnings = Object.values(sections).reduce((sum, s) => sum + s.warnings, 0);
-  const failed = totalErrors > 0 || (strict && totalWarnings > 0);
+  // A translations path that was requested but loaded nothing is a hard failure,
+  // never a silent "all clean" — it would otherwise make every defined key look
+  // unused / hide parity drift. Only relevant when bundles were actually needed.
+  const bundleFailed = (wantsParity || wantsUnused) && bundleErrors.length > 0;
+  const failed = totalErrors > 0 || bundleFailed || (strict && totalWarnings > 0);
 
   if (asJson) {
     console.log(
@@ -367,8 +391,9 @@ export async function runI18n(positionals: string[], flags: Flags): Promise<numb
     if (section.lines.length === 0) console.log('  ✓ no findings');
     else for (const line of section.lines) console.log(line);
   }
+  const bundleNote = bundleErrors.length ? `, ${bundleErrors.length} bundle error(s)` : '';
   console.log(
-    `\n${totalErrors} error(s), ${totalWarnings} advisory finding(s)${strict ? ' (--strict: advisory gates)' : ''}.`
+    `\n${totalErrors} error(s), ${totalWarnings} advisory finding(s)${bundleNote}${strict ? ' (--strict: advisory gates)' : ''}.`
   );
   if (failed) console.log('FAIL.');
   return failed ? EXIT.FAIL : EXIT.OK;

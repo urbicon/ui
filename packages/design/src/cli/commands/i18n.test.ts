@@ -76,4 +76,28 @@ describe('urbicon i18n', () => {
     log.mockClear();
     expect(await run('hardcoded', { strict: true })).toBe(1);
   });
+
+  it('fails (never silently passes) when the translations path loads no bundles', async () => {
+    expect(await run('parity', { translations: join(dir, 'nope') })).toBe(1);
+  });
+
+  it('loads .js bundles — the documented Node escape hatch', async () => {
+    const jsDir = join(dir, 'dist-translations');
+    await mkdir(jsDir, { recursive: true });
+    await writeFile(join(jsDir, 'en.js'), `export default { greeting: 'Hello' };\n`);
+    await writeFile(join(jsDir, 'de.js'), `export default { greeting: 'Hallo' };\n`);
+    expect(await run('parity', { translations: jsDir, json: true })).toBe(0);
+    expect(lastJson().ok).toBe(true);
+  });
+
+  it('ignores a non-locale file (index.ts barrel), not flagging an invalid locale', async () => {
+    await writeFile(
+      join(dir, 'src', 'lib', 'translations', 'index.ts'),
+      `export { default as en } from './en';\n`
+    );
+    await run('parity', { json: true });
+    const findings = lastJson().parity?.findings ?? [];
+    expect(findings.some((f) => f.locale === 'index')).toBe(false);
+    expect(findings.some((f) => f.code === 'invalid-locale')).toBe(false);
+  });
 });

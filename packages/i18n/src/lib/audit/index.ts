@@ -11,8 +11,10 @@
  */
 
 export type { I18nMissingKey, Locale } from '$lib/i18n/types';
-// Re-exported so the CLI can derive defined keys from a bundle without importing
-// the main (Svelte-bearing) entry — keeps the node CLI free of Svelte runtime.
+export { isLocaleSupported, SUPPORTED_LOCALES } from '$lib/i18n/types';
+// Re-exported so the CLI can derive defined keys from a bundle and validate
+// locale tags without importing the main (Svelte-bearing) entry — keeps the node
+// CLI free of Svelte runtime.
 export { collectDeepKeys } from '$lib/utils/deep-keys';
 export { makeGlobMatcher } from './glob';
 export type { MissingKeyCollector, MissingKeyRecord } from './missing-key-collector';
