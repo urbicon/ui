@@ -99,13 +99,46 @@ function getBaseCoords(
   return { x, y };
 }
 
+/**
+ * Viewport offset of a `position: fixed` element's *actual* containing block,
+ * measured by momentarily pinning it to (0,0) and reading where that lands.
+ *
+ * It is (0,0) when the element is genuinely viewport-fixed (the common case, so
+ * compensation is a no-op there). It is non-zero when a transformed / filtered /
+ * contained ancestor establishes the containing block — notably a modal
+ * `<dialog>` nested inside an off-canvas sidebar on iOS/WebKit, which (unlike
+ * Chromium/Firefox) does NOT re-anchor the dialog's fixed descendants to the
+ * viewport (Codeberg #23). Measuring rather than assuming keeps positioning
+ * correct on every engine without UA sniffing. The probe is synchronous (set →
+ * read → restore in one frame), so it never paints an intermediate (0,0) state.
+ */
+function fixedOriginOffset(floating: HTMLElement): { x: number; y: number } {
+  const prevLeft = floating.style.left;
+  const prevTop = floating.style.top;
+  floating.style.left = '0px';
+  floating.style.top = '0px';
+  const origin = floating.getBoundingClientRect();
+  floating.style.left = prevLeft;
+  floating.style.top = prevTop;
+  return { x: origin.left, y: origin.top };
+}
+
 function viewportToLocal(
   floating: HTMLElement,
   x: number,
   y: number,
   strategy: Strategy
 ): { x: number; y: number } {
-  if (strategy === 'fixed') return { x, y };
+  if (strategy === 'fixed') {
+    // A top-layer popover is positioned against the viewport regardless of any
+    // transformed ancestor, so its coordinates are used as-is. A non-top-layer
+    // fixed panel (the in-dialog mode) is positioned against its containing
+    // block, which can be a transformed ancestor on WebKit — compensate for its
+    // measured viewport offset so the same coordinates land correctly there too.
+    if (floating.matches(':popover-open')) return { x, y };
+    const origin = fixedOriginOffset(floating);
+    return { x: x - origin.x, y: y - origin.y };
+  }
 
   const offsetParent = floating.offsetParent as HTMLElement | null;
   if (!offsetParent) return { x, y };
