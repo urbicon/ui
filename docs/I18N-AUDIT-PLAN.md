@@ -114,14 +114,14 @@ Konventionen von `validate` geerbt: rekursives Sammeln, `node_modules/.svelte-ki
 
 ## 5. Arbeitspakete (ToDos)
 
-- [ ] **WP0 — Plan-Doc** persistieren (dieses Dokument) + committen.
-- [ ] **WP1 — Feature A + Runtime** (`@urbicon-ui/i18n`)
-  - [ ] `src/lib/audit/translations.ts`: `auditTranslations()` + Finding-Typen (`TranslationFinding`, `TranslationFindingCode`, `TranslationAuditReport`).
-  - [ ] Checks: missing/extra (reuse `collectDeepKeys`), empty-value, param-mismatch (`extractParamNames`), plural-shape/-category (`Intl.PluralRules`), value-equals-key, same-as-base (opt-in).
-  - [ ] `onMissingKey` in `I18nConfigureOptions` + `configureI18n` + Registry-Feld + Fire an `registry.svelte.ts:277`; `createMissingKeyCollector()`.
-  - [ ] Exporte in `src/lib/index.ts` (+ `src/lib/audit/index.ts`).
-  - [ ] Vitest (`audit/translations.test.ts`, `onMissingKey`-Test). `validatePackageTranslations`-Tests müssen grün bleiben.
-  - [ ] Review (code-reviewer + silent-failure-hunter), Fixes, Commit.
+- [x] **WP0 — Plan-Doc** persistieren (dieses Dokument) + committen. (Commit `ae8427a`)
+- [x] **WP1 — Feature A + Runtime** (`@urbicon-ui/i18n`) — Commits `38d9dca` (Feature) + `ef33a9f` (Review-Härtung). 94 Tests, svelte-check clean.
+  - [x] `src/lib/audit/translations.ts`: `auditTranslations()` + Finding-Typen (`TranslationFinding`, `TranslationFindingCode`, `TranslationAuditReport`).
+  - [x] Checks: missing/extra (reuse `collectDeepKeys`), empty-value, param-mismatch (`extractParamNames`), plural-shape/-category (`Intl.PluralRules`), value-equals-key, same-as-base (opt-in). Review ergänzte `wrong-type` (Non-String-Leaf) + `invalid-locale` (kein Intl-Crash bei vertipptem Tag).
+  - [x] `onMissingKey` in `I18nConfigureOptions` + `configureI18n` + Registry-Feld + Fire am Resolve-Nowhere-Punkt (`reportMissing:false` für `_plural`-Probe; try/catch um den Sink); `createMissingKeyCollector()`.
+  - [x] Exporte in `src/lib/index.ts`.
+  - [x] Vitest (`audit/translations.test.ts` + `audit/missing-key.test.ts`). `validatePackageTranslations`-Tests grün geblieben.
+  - [x] Review (code-reviewer + silent-failure-hunter): 2× HIGH + 1× MEDIUM behoben, Fixes committet.
 - [ ] **WP2 — Feature B Scanner-Kern** (`@urbicon-ui/i18n/audit`)
   - [ ] `package.json`: `exports['./audit']`, `optionalDependencies` typescript+svelte.
   - [ ] `scan/ts-source.ts` (TS-Compiler-API) + `scan/svelte-source.ts` (svelte/compiler `parse`), lazy geladen.
