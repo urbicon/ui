@@ -4,6 +4,28 @@ All notable changes to this project will be documented in this file.
 This changelog is automatically generated from [Conventional Commits](https://www.conventionalcommits.org).
 
 
+## [6.3.9] - 2026-06-25
+
+### Bug Fixes
+- **i18n**: Harden translation audit against bad input and throwing sinks
+- **i18n**: Harden unused-key scanner against false positives (review)
+- **design**: Make i18n bundle-load failures gate, load .js, skip non-locales
+
+### Documentation
+- Add i18n audit implementation plan
+- Mark WP0 + WP1 done in i18n audit plan
+- Mark WP2 (unused-key scanner) done in i18n audit plan
+- Mark WP3–WP5 done, i18n audit plan complete
+
+### Features
+- **i18n**: Add translation audit + runtime onMissingKey hook
+- **i18n**: Add unused-key source scanner on the /audit subpath
+- **i18n**: Add hardcoded-string lint (Feature C) to the audit subpath
+- **design**: Add `urbicon i18n` command over the i18n audit
+
+### Miscellaneous
+- **i18n**: Replace the regex i18n-analyzer with `urbicon i18n` (dogfood + CI)
+
 ## [6.3.8] - 2026-06-24
 
 ### Features
