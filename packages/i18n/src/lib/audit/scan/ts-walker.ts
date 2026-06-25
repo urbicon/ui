@@ -27,13 +27,21 @@ type TsSourceFile = import('typescript').SourceFile;
 let tsPromise: Promise<Ts> | undefined;
 async function loadTs(): Promise<Ts> {
   if (!tsPromise) {
-    tsPromise = import('typescript').then((mod) => {
+    tsPromise = (async () => {
+      let mod: unknown;
+      try {
+        mod = await import('typescript');
+      } catch {
+        throw new Error(
+          '@urbicon-ui/i18n/audit needs the optional peer "typescript" to scan .ts/.js sources — install it (it ships with any SvelteKit/TS project).'
+        );
+      }
       // typescript ships CJS; interop puts the namespace on `.default` or spreads it.
-      const candidate = mod as unknown as Ts & { default?: Ts };
+      const candidate = mod as Ts & { default?: Ts };
       return typeof candidate.createSourceFile === 'function'
         ? candidate
         : (candidate.default as Ts);
-    });
+    })();
   }
   return tsPromise;
 }
@@ -123,7 +131,8 @@ function extractFromArg(ts: Ts, raw: TsNode): ExtractedKey[] {
   }
   if (ts.isBinaryExpression(node) && node.operatorToken.kind === ts.SyntaxKind.PlusToken) {
     const left = unwrap(ts, node.left);
-    if (ts.isStringLiteralLike(left)) return [{ kind: 'prefix', prefix: left.text }];
+    // An empty static part (`'' + x`) is no prefix — `''` would shield every key.
+    if (ts.isStringLiteralLike(left) && left.text) return [{ kind: 'prefix', prefix: left.text }];
     return [{ kind: 'opaque' }];
   }
   return [{ kind: 'opaque' }];
@@ -162,6 +171,16 @@ export async function scanTs(
   const contextAt = makeContextAt(code);
   const visit = (node: TsNode): void => {
     if (ts.isStringLiteralLike(node)) scan.literalPool.add(node.text);
+    // Harvest the static head of EVERY template literal (not only those in a t()
+    // call) as a dynamic prefix — keys built in a config (`col.${id}.label`) and
+    // rendered elsewhere are then shielded from the unused list.
+    if (ts.isTemplateExpression(node) && node.head.text) {
+      const line = sf.getLineAndCharacterOfPosition(node.getStart(sf)).line + 1;
+      scan.dynamicPrefixes.push({
+        prefix: node.head.text,
+        site: { file, line, context: contextAt(line) }
+      });
+    }
     if (ts.isCallExpression(node)) {
       const classification = classifyCall(ts, bindings, node);
       if (classification) {

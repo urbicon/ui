@@ -74,6 +74,14 @@ describe('findUnusedKeys — options', () => {
     const report = findUnusedKeys(DEFINED, BASE_SCAN, { runtimeUsedKeys: ['orphan.key'] });
     expect(report.unused).toEqual([]);
   });
+
+  it('ignores an empty prefix so it cannot shield every key', () => {
+    const report = findUnusedKeys(
+      ['a.unused'],
+      scanOf({ dynamicPrefixes: [{ prefix: '', site }] })
+    );
+    expect(report.unused.map((u) => u.key)).toEqual(['a.unused']);
+  });
 });
 
 describe('findUnusedKeys — diagnostics', () => {

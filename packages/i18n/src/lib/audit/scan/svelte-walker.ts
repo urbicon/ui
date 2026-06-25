@@ -25,7 +25,17 @@ import type { ExtractedKey, KeyUsageSite, ScanOptions, UsageScan } from './types
 type SvelteParse = typeof import('svelte/compiler')['parse'];
 let parsePromise: Promise<SvelteParse> | undefined;
 async function loadParse(): Promise<SvelteParse> {
-  if (!parsePromise) parsePromise = import('svelte/compiler').then((m) => m.parse);
+  if (!parsePromise) {
+    parsePromise = (async () => {
+      try {
+        return (await import('svelte/compiler')).parse;
+      } catch {
+        throw new Error(
+          '@urbicon-ui/i18n/audit needs the "svelte" peer to scan .svelte sources — install it.'
+        );
+      }
+    })();
+  }
   return parsePromise;
 }
 
@@ -109,7 +119,8 @@ function extractFromArg(raw: AstNode | undefined): ExtractedKey[] {
   if (node.type === 'BinaryExpression' && node.operator === '+') {
     const left = unwrap(asNode(node.left));
     const value = left?.type === 'Literal' ? asString(left.value) : undefined;
-    return value !== undefined ? [{ kind: 'prefix', prefix: value }] : [{ kind: 'opaque' }];
+    // An empty static part (`'' + x`) is no prefix — `''` would shield every key.
+    return value ? [{ kind: 'prefix', prefix: value }] : [{ kind: 'opaque' }];
   }
   return [{ kind: 'opaque' }];
 }
@@ -229,9 +240,22 @@ export async function scanSvelte(
     if (node.type === 'Literal') {
       const value = asString(node.value);
       if (value !== undefined) scan.literalPool.add(value);
-    } else if (node.type === 'TemplateLiteral' && asNodes(node.expressions).length === 0) {
-      const cooked = cookedOf(asNodes(node.quasis)[0]);
-      if (cooked !== undefined) scan.literalPool.add(cooked);
+    } else if (node.type === 'Text') {
+      // Plain markup text and quoted attribute values (`<Foo labelKey="user.name"/>`,
+      // `<code>a.b.c</code>`) are Text, not Literal nodes — harvest for the loose layer.
+      const text = asString(node.data)?.trim();
+      if (text) scan.literalPool.add(text);
+    } else if (node.type === 'TemplateLiteral') {
+      const quasis = asNodes(node.quasis);
+      if (asNodes(node.expressions).length === 0) {
+        const cooked = cookedOf(quasis[0]);
+        if (cooked !== undefined) scan.literalPool.add(cooked);
+      } else {
+        // Static head of any template literal → a dynamic prefix, so config-built
+        // keys (`col.${id}.label`) rendered elsewhere are shielded from "unused".
+        const head = cookedOf(quasis[0]);
+        if (head) scan.dynamicPrefixes.push({ prefix: head, site: siteAt(node.start) });
+      }
     } else if (node.type === 'CallExpression') {
       const classification = classifyCall(node, bindings);
       if (classification) {

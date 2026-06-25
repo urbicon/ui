@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+import { findUnusedKeys } from '../unused';
 import { scanSource, scanSources } from './scanner';
 
 describe('scanSource — TypeScript', () => {
@@ -84,5 +85,34 @@ describe('scanSources', () => {
     expect(scan.staticKeys.has('a.key')).toBe(true);
     expect(scan.staticKeys.has('b.key')).toBe(true);
     expect(errors.map((e) => e.file)).toContain('broken.svelte');
+  });
+});
+
+describe('scanSource — false-positive hardening (review regressions)', () => {
+  it('treats an empty concat part as opaque, never a catch-all prefix', async () => {
+    const scan = await scanSource(`const { t } = useI18n(); t('' + suffix);`, 'x.ts');
+    expect(scan.dynamicPrefixes.map((p) => p.prefix)).not.toContain('');
+    expect(scan.opaqueSites.length).toBeGreaterThanOrEqual(1);
+  });
+
+  it('extracts a prefix from a literal-left concatenation', async () => {
+    const scan = await scanSource(`const { t } = useI18n(); t('menu.' + item);`, 'x.ts');
+    expect(scan.dynamicPrefixes.map((p) => p.prefix)).toContain('menu.');
+  });
+
+  it('harvests quoted markup text / attribute values so they are not flagged unused', async () => {
+    const scan = await scanSource(
+      `<Foo labelKey="user.name" /><code>build.target</code>`,
+      'P.svelte'
+    );
+    expect(scan.literalPool.has('user.name')).toBe(true);
+    expect(scan.literalPool.has('build.target')).toBe(true);
+    expect(findUnusedKeys(['user.name', 'build.target'], scan).unused).toEqual([]);
+  });
+
+  it('shields config-built template keys via the static template head', async () => {
+    const scan = await scanSource('const cols = ids.map((id) => `col.${id}.label`);', 'cfg.ts');
+    expect(scan.dynamicPrefixes.map((p) => p.prefix)).toContain('col.');
+    expect(findUnusedKeys(['col.name.label'], scan).unused).toEqual([]);
   });
 });

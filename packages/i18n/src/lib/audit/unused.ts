@@ -60,7 +60,9 @@ export function findUnusedKeys(
   const isIgnored = makeGlobMatcher(options.ignoreKeys);
   const isAllowlisted = makeGlobMatcher(options.dynamicKeys);
   const runtimeUsed = new Set(options.runtimeUsedKeys ?? []);
-  const prefixes = [...new Set(scan.dynamicPrefixes.map((entry) => entry.prefix))];
+  // `.filter(Boolean)`: an empty prefix would `startsWith`-match every key and
+  // silently shield the whole codebase. The walkers already guard, but be safe.
+  const prefixes = [...new Set(scan.dynamicPrefixes.map((entry) => entry.prefix))].filter(Boolean);
   const hasOpaqueSites = scan.opaqueSites.length > 0;
 
   const matchesPrefix = (key: string): boolean => prefixes.some((prefix) => key.startsWith(prefix));
@@ -89,14 +91,20 @@ export function findUnusedKeys(
   const dynamicPrefixCoverage: DynamicPrefixCoverage[] = prefixes
     .map((prefix) => ({
       prefix,
+      // Keys this prefix is the SOLE reason for keeping (no other usage layer hits
+      // them); a prefix that shields nothing (e.g. a non-i18n template) is dropped.
       shieldedKeys: [...defined].filter(
         (key) =>
           key.startsWith(prefix) &&
+          !isIgnored(key) &&
           !scan.staticKeys.has(key) &&
+          !scan.probeKeys.has(key) &&
           !scan.literalPool.has(key) &&
-          !isIgnored(key)
+          !isAllowlisted(key) &&
+          !runtimeUsed.has(key)
       ).length
     }))
+    .filter((coverage) => coverage.shieldedKeys > 0)
     .sort((a, b) => a.prefix.localeCompare(b.prefix));
 
   return {
