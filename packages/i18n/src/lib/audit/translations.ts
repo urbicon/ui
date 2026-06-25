@@ -16,6 +16,7 @@
 
 import { isLocaleSupported, type Locale, SUPPORTED_LOCALES } from '$lib/i18n/types';
 import { collectDeepKeys, getDeepValue } from '$lib/utils/deep-keys';
+import { makeGlobMatcher } from './glob';
 
 /** A single audit check. Stable identifiers — safe to switch on in tooling/CI. */
 export type TranslationFindingCode =
@@ -94,18 +95,6 @@ function extractParamNames(template: string): Set<string> {
   return names;
 }
 
-/** Build an exact-or-`prefix.*` matcher; an empty/absent list matches nothing. */
-function makeIgnoreMatcher(patterns: string[] | undefined): (key: string) => boolean {
-  if (!patterns || patterns.length === 0) return () => false;
-  const exact = new Set<string>();
-  const prefixes: string[] = [];
-  for (const pattern of patterns) {
-    if (pattern.endsWith('*')) prefixes.push(pattern.slice(0, -1));
-    else exact.add(pattern);
-  }
-  return (key) => exact.has(key) || prefixes.some((prefix) => key.startsWith(prefix));
-}
-
 /** CLDR cardinal categories required for `locale`, e.g. `en` → [one, other]. */
 function requiredPluralCategories(locale: Locale): string[] {
   return new Intl.PluralRules(locale).resolvedOptions().pluralCategories;
@@ -141,7 +130,7 @@ export function auditTranslations(
   options: AuditTranslationsOptions = {}
 ): TranslationAuditReport {
   const checks = { ...DEFAULT_CHECKS, ...options.checks, 'missing-key': true };
-  const isIgnored = makeIgnoreMatcher(options.ignoreKeys);
+  const isIgnored = makeGlobMatcher(options.ignoreKeys);
   const findings: TranslationFinding[] = [];
   const add = (
     code: TranslationFindingCode,

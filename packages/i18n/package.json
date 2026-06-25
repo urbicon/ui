@@ -39,6 +39,10 @@
       "types": "./dist/index.d.ts",
       "svelte": "./dist/index.js",
       "default": "./dist/index.js"
+    },
+    "./audit": {
+      "types": "./dist/audit/index.d.ts",
+      "default": "./dist/audit/index.js"
     }
   },
   "files": [
@@ -53,7 +57,13 @@
   "peerDependencies": {
     "@sveltejs/kit": "catalog:",
     "svelte": "catalog:",
+    "typescript": "catalog:",
     "@urbicon-ui/shared-types": "^6.0.0"
+  },
+  "peerDependenciesMeta": {
+    "typescript": {
+      "optional": true
+    }
   },
   "scripts": {
     "dev": "svelte-package --watch",
