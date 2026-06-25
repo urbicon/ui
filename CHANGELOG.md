@@ -4,6 +4,12 @@ All notable changes to this project will be documented in this file.
 This changelog is automatically generated from [Conventional Commits](https://www.conventionalcommits.org).
 
 
+## [6.3.11] - 2026-06-25
+
+### Documentation
+- Surface the i18n audit tools in CLI/README/agent context
+- Add an i18n Auditing & Quality page to the docs site
+
 ## [6.3.10] - 2026-06-25
 
 ### Bug Fixes
