@@ -122,13 +122,13 @@ Konventionen von `validate` geerbt: rekursives Sammeln, `node_modules/.svelte-ki
   - [x] Exporte in `src/lib/index.ts`.
   - [x] Vitest (`audit/translations.test.ts` + `audit/missing-key.test.ts`). `validatePackageTranslations`-Tests grün geblieben.
   - [x] Review (code-reviewer + silent-failure-hunter): 2× HIGH + 1× MEDIUM behoben, Fixes committet.
-- [ ] **WP2 — Feature B Scanner-Kern** (`@urbicon-ui/i18n/audit`)
-  - [ ] `package.json`: `exports['./audit']`, `optionalDependencies` typescript+svelte.
-  - [ ] `scan/ts-source.ts` (TS-Compiler-API) + `scan/svelte-source.ts` (svelte/compiler `parse`), lazy geladen.
-  - [ ] `scan/binding-tracker.ts` (B1), `scan/key-extractor.ts` (B2).
-  - [ ] `unused.ts`: Reconciler (5 Layer + Tiers + used-but-undefined).
-  - [ ] Vitest mit `__fixtures__/` (statisch, ternary, template-präfix, data-driven, opak).
-  - [ ] Review (code-reviewer, type-design-analyzer), Fixes, Commit.
+- [x] **WP2 — Feature B Scanner-Kern** (`@urbicon-ui/i18n/audit`) — Commits `fe38878` (Scanner) + `76117a9` (Review-Härtung). 114 Tests, svelte-check + Build (Subpath emittiert) clean, end-to-end verifiziert.
+  - [x] `package.json`: `exports['./audit']`, `typescript` als optionaler Peer (`svelte` ist bereits Peer), lazy importiert — Runtime-`dependencies: {}` unangetastet.
+  - [x] `scan/ts-walker.ts` (TS-Compiler-API) + `scan/svelte-walker.ts` (svelte/compiler `parse`, ein Walk über Script + Template), lazy geladen.
+  - [x] `scan/recognize.ts` (B1: Factory-/Methoden-Heuristik, Binding-Tracker) + Key-Extractor je Walker (B2) + `scan/scanner.ts` (Dispatch + Fehlersammlung).
+  - [x] `unused.ts`: Reconciler (5 Usage-Layer + confirmed/suspect-Tiers + used-but-undefined + Prefix-Coverage). Geteilter `glob.ts`.
+  - [x] Vitest (`scan/scanner.test.ts` + `unused.test.ts`, inline-Quellen statt `__fixtures__/`): statisch, ternary, template-präfix, data-driven, opak, Markup-Text, empty-prefix-Regression.
+  - [x] Review (code-reviewer + adversarialer FP-Hunt): 2× HIGH False-Positive-Klassen behoben (empty-prefix, Markup-Text) + Robustheit; verbleibende intra-/cross-file-Grenzen im Backlog.
 - [ ] **WP3 — Feature C Hardcoded** (`@urbicon-ui/i18n/audit`)
   - [ ] `hardcoded.ts` (AST + Skip-Heuristik + Marker). Vitest. Review, Fixes, Commit.
 - [ ] **WP4 — urbicon-CLI**
