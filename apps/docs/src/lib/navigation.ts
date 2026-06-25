@@ -233,7 +233,8 @@ export const navigationItems: NavItem[] = [
       { name: 'Type Safety', nameKey: 'nav.i18nTypedKeys', href: '/i18n/typed-keys' },
       { name: 'Formatting & Plurals', nameKey: 'nav.i18nFormatting', href: '/i18n/formatting' },
       { name: 'Lazy Loading', nameKey: 'nav.i18nLazyLoading', href: '/i18n/lazy-loading' },
-      { name: 'Locale Routing', nameKey: 'nav.i18nRouting', href: '/i18n/routing' }
+      { name: 'Locale Routing', nameKey: 'nav.i18nRouting', href: '/i18n/routing' },
+      { name: 'Auditing & Quality', nameKey: 'nav.i18nAuditing', href: '/i18n/auditing' }
     ]
   },
   {

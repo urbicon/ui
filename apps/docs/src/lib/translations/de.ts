@@ -184,6 +184,7 @@ export default {
     i18nFormatting: 'Formatierung & Plurale',
     i18nLazyLoading: 'Lazy Loading',
     i18nRouting: 'Locale-Routing',
+    i18nAuditing: 'Audit & Qualität',
     table: 'Tabelle',
     docs: 'Dokumentation',
     apiReference: 'API-Referenz',
