@@ -4,6 +4,11 @@ All notable changes to this project will be documented in this file.
 This changelog is automatically generated from [Conventional Commits](https://www.conventionalcommits.org).
 
 
+## [6.3.10] - 2026-06-25
+
+### Bug Fixes
+- **i18n**: Defer package registration to first use (Codeberg #22 registry TDZ)
+
 ## [6.3.9] - 2026-06-25
 
 ### Bug Fixes
