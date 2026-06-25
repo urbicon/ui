@@ -4,6 +4,11 @@ All notable changes to this project will be documented in this file.
 This changelog is automatically generated from [Conventional Commits](https://www.conventionalcommits.org).
 
 
+## [6.3.12] - 2026-06-25
+
+### Bug Fixes
+- **blocks**: Render anchored overlays in-place inside modal dialogs
+
 ## [6.3.11] - 2026-06-25
 
 ### Documentation
