@@ -1,0 +1,79 @@
+import { mkdir, mkdtemp, rm, writeFile } from 'node:fs/promises';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { runI18n } from './i18n.js';
+
+interface I18nJson {
+  ok: boolean;
+  parity?: { findings: { code: string; locale: string }[] };
+  unused?: { unused: { key: string; tier: string }[]; usedButUndefined: { key: string }[] };
+  hardcoded?: { findings: { text: string }[] };
+}
+
+describe('urbicon i18n', () => {
+  let dir: string;
+  let log: ReturnType<typeof vi.spyOn>;
+
+  beforeEach(async () => {
+    dir = await mkdtemp(join(tmpdir(), 'urbicon-i18n-'));
+    await mkdir(join(dir, 'src', 'lib', 'translations'), { recursive: true });
+    await writeFile(
+      join(dir, 'src', 'lib', 'translations', 'en.ts'),
+      `export default { greeting: 'Hello', items: '{{count}} items', unused: { deep: 'Never used' } } as const;\n`
+    );
+    await writeFile(
+      join(dir, 'src', 'lib', 'translations', 'de.ts'),
+      `export default { greeting: 'Hallo', items: '{{count}} Dinge' } as const;\n`
+    );
+    await writeFile(
+      join(dir, 'src', 'App.svelte'),
+      `<script lang="ts">\n  import { useI18n } from '@urbicon-ui/i18n';\n  const t = useI18n().t;\n</script>\n<button>{t('greeting')}</button>\n<span aria-label="Close the dialog">{t('items', { count: 3 })}</span>\n`
+    );
+    log = vi.spyOn(console, 'log').mockImplementation(() => {});
+    vi.spyOn(console, 'error').mockImplementation(() => {});
+  });
+
+  afterEach(async () => {
+    vi.restoreAllMocks();
+    await rm(dir, { recursive: true, force: true });
+  });
+
+  const run = (check: string, flags: Record<string, string | boolean> = {}) =>
+    runI18n([check, join(dir, 'src')], {
+      translations: join(dir, 'src', 'lib', 'translations'),
+      ...flags
+    });
+
+  function lastJson(): I18nJson {
+    const out = log.mock.calls.map((call: unknown[]) => call[0]).join('\n');
+    return JSON.parse(out) as I18nJson;
+  }
+
+  it('gates (exit 1) on a missing-key parity error and reports it', async () => {
+    expect(await run('parity', { json: true })).toBe(1);
+    const json = lastJson();
+    expect(json.ok).toBe(false);
+    expect(json.parity?.findings.some((f) => f.code === 'missing-key' && f.locale === 'de')).toBe(
+      true
+    );
+  });
+
+  it('reports an unused key as advisory (exit 0 without --strict)', async () => {
+    expect(await run('unused', { json: true })).toBe(0);
+    const json = lastJson();
+    expect(json.unused?.unused.some((u) => u.key === 'unused.deep')).toBe(true);
+  });
+
+  it('flags hardcoded markup copy', async () => {
+    await run('hardcoded', { json: true });
+    const json = lastJson();
+    expect(json.hardcoded?.findings.some((f) => f.text === 'Close the dialog')).toBe(true);
+  });
+
+  it('gates advisory findings under --strict', async () => {
+    expect(await run('hardcoded')).toBe(0);
+    log.mockClear();
+    expect(await run('hardcoded', { strict: true })).toBe(1);
+  });
+});

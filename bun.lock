@@ -116,6 +116,7 @@
       "dependencies": {
         "@urbicon-ui/design-content": "workspace:*",
         "@urbicon-ui/design-engine": "workspace:*",
+        "@urbicon-ui/i18n": "workspace:*",
       },
       "devDependencies": {
         "@types/node": "catalog:",
@@ -216,7 +217,11 @@
         "@sveltejs/kit": "catalog:",
         "@urbicon-ui/shared-types": "^6.0.0",
         "svelte": "catalog:",
+        "typescript": "catalog:",
       },
+      "optionalPeers": [
+        "typescript",
+      ],
     },
     "packages/mcp-server": {
       "name": "@urbicon-ui/mcp-server",

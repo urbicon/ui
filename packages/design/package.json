@@ -30,7 +30,7 @@
   ],
   "sideEffects": false,
   "scripts": {
-    "build": "bun build ./src/cli/index.ts --target node --outfile dist/cli.js",
+    "build": "bun build ./src/cli/index.ts --target node --outfile dist/cli.js --external @urbicon-ui/i18n",
     "dev": "bun run --watch src/cli/index.ts",
     "start": "bun run src/cli/index.ts",
     "check": "tsc --noEmit",
@@ -39,7 +39,8 @@
   },
   "dependencies": {
     "@urbicon-ui/design-content": "workspace:*",
-    "@urbicon-ui/design-engine": "workspace:*"
+    "@urbicon-ui/design-engine": "workspace:*",
+    "@urbicon-ui/i18n": "workspace:*"
   },
   "devDependencies": {
     "typescript": "catalog:",

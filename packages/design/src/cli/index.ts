@@ -19,6 +19,7 @@ import { runContext } from './commands/context.js';
 import { runFind } from './commands/find.js';
 import { runGetComponent } from './commands/get-component.js';
 import { runHook } from './commands/hook.js';
+import { runI18n } from './commands/i18n.js';
 import { runInit } from './commands/init.js';
 import { runRecordDecision } from './commands/record-decision.js';
 import { runSyncManifest } from './commands/sync-manifest.js';
@@ -80,6 +81,18 @@ Commands:
                         --src <dir>        Source tree to scan (default ./src).
                         --manifest <path>  Manifest file (default ./design.manifest.md).
                         --json             Emit the scan result as JSON.
+  i18n [check] [dirs…]  Audit @urbicon-ui/i18n usage. check = parity | unused |
+                        hardcoded | audit (all, default). Run under Bun.
+                        --translations <d> Locale-bundle dir(s), comma-separated
+                                           (default src/lib/translations).
+                        --config <path>    i18n.audit.json (default ./i18n.audit.json).
+                        --dynamic-keys <g> Key globs built dynamically (errors.*).
+                        --ignore-keys <g>  Key globs to skip entirely.
+                        --ignore-strings   Hardcoded-string globs to skip.
+                        --base-locale <l>  Parity base (default en).
+                        --json / --strict  Machine-readable / gate advisory too.
+                        Gates on parity errors + used-but-undefined; unused,
+                        hardcoded and parity warnings are advisory.
   verbs                 List the design verbs (recipes over the design loop).
   verb <name>           Print one verb recipe, e.g. "urbicon verb compose".
   help                  Show this help.
@@ -140,6 +153,8 @@ async function main(argv: string[]): Promise<number> {
       return runRecordDecision(positionals, flags);
     case 'sync-manifest':
       return runSyncManifest(positionals, flags);
+    case 'i18n':
+      return runI18n(positionals, flags);
     case 'verbs':
       return runVerbList(positionals, flags);
     case 'verb':
