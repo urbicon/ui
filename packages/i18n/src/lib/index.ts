@@ -1,5 +1,25 @@
-// --- Request-scoped i18n (WP2: SSR-correct, Context-based) ---
+// Public surface of @urbicon-ui/i18n — request-scoped runtime (SSR-correct,
+// context-based), package integration, and the data-level audit utilities.
+// (Export order is Biome-sorted by module path; see the per-group comments.)
 
+export type {
+  MissingKeyCollector,
+  MissingKeyRecord
+} from '$lib/audit/missing-key-collector';
+// Runtime missing-key sink: wire `createMissingKeyCollector().onMissingKey` into
+// configureI18n to assert "no raw-key renders" across a test/E2E run.
+export { createMissingKeyCollector } from '$lib/audit/missing-key-collector';
+export type {
+  AuditTranslationsOptions,
+  TranslationAuditReport,
+  TranslationFinding,
+  TranslationFindingCode,
+  TranslationFindingSeverity
+} from '$lib/audit/translations';
+// Translation audit (data-level parity & quality). Pure, dependency-free — run in
+// a vitest test (`expect(auditTranslations(bundles).ok).toBe(true)`) or via the
+// `urbicon i18n parity` CLI. The richer successor to validatePackageTranslations.
+export { auditTranslations } from '$lib/audit/translations';
 // Provider + general hook: mount one <I18nProvider> at the app root, read locale
 // control and locale-aware formatting via useI18n() inside components.
 export { I18nProvider, T } from '$lib/components';
@@ -26,6 +46,7 @@ export type {
   I18nComponentProps,
   I18nConfig,
   I18nError,
+  I18nMissingKey,
   I18nStore,
   Locale,
   PackageI18n,

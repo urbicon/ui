@@ -2,6 +2,7 @@ import { getContext, hasContext, setContext, untrack } from 'svelte';
 import { getRegistry } from './registry.svelte';
 import type {
   I18nError,
+  I18nMissingKey,
   Locale,
   PluralParams,
   TranslationOptions,
@@ -216,6 +217,15 @@ export interface I18nConfigureOptions {
    * `console.warn`. The hook for telemetry (Sentry, structured logging).
    */
   onError?: (error: I18nError) => void;
+  /**
+   * Invoked when `t`/`translate` resolves a key *nowhere* — not the active
+   * locale, not the fallback, in no package or the global bundle — and falls back
+   * to rendering the key string itself. Off by default (read-tolerant: a
+   * provider-less render legitimately misses keys), so this only fires when you
+   * opt in — the loud signal for "this string ships as its raw key". Pair with
+   * `createMissingKeyCollector` to assert "no misses" across a test/E2E run.
+   */
+  onMissingKey?: (info: I18nMissingKey) => void;
 }
 
 /**
@@ -229,5 +239,7 @@ export interface I18nConfigureOptions {
  * ```
  */
 export function configureI18n(options: I18nConfigureOptions): void {
-  getRegistry().onError = options.onError;
+  const registry = getRegistry();
+  registry.onError = options.onError;
+  registry.onMissingKey = options.onMissingKey;
 }

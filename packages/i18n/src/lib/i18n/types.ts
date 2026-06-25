@@ -99,6 +99,25 @@ export type I18nError =
   | { type: 'unsupported-locale'; locale: string }
   | { type: 'load-failed-no-fallback'; locale: Locale };
 
+/**
+ * Surfaced through {@link I18nConfigureOptions.onMissingKey} when `translate`
+ * resolves a key *nowhere* — neither the active nor the fallback locale, in any
+ * package or the global bundle — and falls back to returning the key string
+ * itself. The loud signal for "this will render as its raw key in production".
+ */
+export interface I18nMissingKey {
+  /** The unresolved key, exactly as passed to `t` / `translate`. */
+  key: string;
+  /** Active locale at the time of the miss. */
+  locale: Locale;
+  /** Fallback locale that was also tried and also missed. */
+  fallbackLocale: Locale;
+  /** Package scope, when the call was package-scoped (`useTranslate` / `packageName`). */
+  packageName?: string;
+  /** Always `no-translation` today; a discriminant reserved for future miss reasons. */
+  reason: 'no-translation';
+}
+
 // Utility type: widen all string literal values to string, deeply
 type WidenStringLiteralsDeep<T> = T extends string
   ? string
@@ -116,6 +135,13 @@ export interface TranslationOptions {
   packageName?: string;
   fallbackToGlobal?: boolean;
   interpolate?: boolean;
+  /**
+   * @internal Whether an unresolved key reports through `onMissingKey`. Defaults
+   * to `true`. Set `false` for internal probes that expect a miss — the
+   * `pluralize` lookup of an *optional* `<key>_plural` object, which legitimately
+   * resolves nowhere and must not masquerade as a missing translation.
+   */
+  reportMissing?: boolean;
 }
 
 // Translation loader types for dynamic imports

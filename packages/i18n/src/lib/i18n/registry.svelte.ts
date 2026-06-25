@@ -2,6 +2,7 @@ import { SvelteMap, SvelteSet } from 'svelte/reactivity';
 import { getDeepValue } from '$lib/utils/deep-keys';
 import type {
   I18nError,
+  I18nMissingKey,
   Locale,
   PackageTranslations,
   PluralParams,
@@ -66,6 +67,16 @@ export class I18nRegistry {
    */
   onError?: (error: I18nError) => void;
 
+  /**
+   * Optional missing-key sink. Set once by the app via `configureI18n`. Unlike
+   * `onError` there is NO default `console.warn`: a provider-less, read-tolerant
+   * render legitimately misses keys, so warning on every miss would be noise.
+   * Opt-in only — the loud signal for "this key resolved nowhere" when a consumer
+   * wants it (dev overlay, telemetry, a test collector). Fires exactly once per
+   * resolved-nowhere `translate` call, just before the key-as-itself fallback.
+   */
+  onMissingKey?: (info: I18nMissingKey) => void;
+
   get registeredPackages(): string[] {
     return Array.from(this.packageTranslations.keys());
   }
@@ -90,6 +101,15 @@ export class I18nRegistry {
         console.warn(`Failed to load locale ${error.locale}, falling back to current locale`);
         break;
     }
+  }
+
+  private reportMissingKey(
+    key: string,
+    locale: Locale,
+    fallbackLocale: Locale,
+    packageName?: string
+  ): void {
+    this.onMissingKey?.({ key, locale, fallbackLocale, packageName, reason: 'no-translation' });
   }
 
   // --- registration / loading (static data; idempotent, request-identical) ---
@@ -275,6 +295,12 @@ export class I18nRegistry {
     }
 
     if (!translation) {
+      // Resolved nowhere — package, fallback, and global all missed. Surface the
+      // loud signal (opt-in) before the read-tolerant key-as-itself fallback.
+      // `reportMissing: false` callers (the optional `_plural` probe) opt out.
+      if (opts.reportMissing !== false) {
+        this.reportMissingKey(key, locale, fallbackLocale, opts.packageName);
+      }
       translation = key;
     }
 
@@ -291,9 +317,13 @@ export class I18nRegistry {
     const count = params.count;
 
     const pluralKey = `${key}_plural`;
+    // `reportMissing: false`: a `<key>_plural` object is optional, so this probe
+    // legitimately resolves nowhere for keys without CLDR forms — it must not fire
+    // onMissingKey. A miss on the base `key` below still reports (it's a real one).
     const pluralTranslation = this.translate(pluralKey, locale, fallbackLocale, undefined, {
       ...options,
-      interpolate: false
+      interpolate: false,
+      reportMissing: false
     });
 
     if (pluralTranslation !== pluralKey) {
