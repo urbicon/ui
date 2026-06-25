@@ -1,6 +1,6 @@
 # i18n-Audit — Unübersetzte Strings & unbenutzte Keys (Umsetzungsplan)
 
-> **Status:** In Umsetzung (Branch `feat/i18n-audit`). WP-Reihenfolge unten; jedes Arbeitspaket wird einzeln committet, mit Review-Agent geprüft und nachgebessert.
+> **Status:** ✅ Umgesetzt — WP0–WP5 fertig auf Branch `feat/i18n-audit` (11 Commits), jedes WP einzeln committet + mit Review-Agent geprüft + nachgebessert. Tests: i18n 119, design 84, alle Checks grün. **Offen (Felix):** Merge nach `main` + minor-Bump (siehe §5 Abschluss). Nicht gepusht.
 > **Sprache:** Internes Strategie-/Umsetzungsdokument (Deutsch). Public-API von `auditTranslations` + die `urbicon i18n`-Hilfetexte sind Englisch (Top-Level-Konvention). Nach Abschluss As-built in `docs/ARCHITECTURE.md` / `packages/i18n/README` kondensieren.
 > **Rahmen:** Pre-Release ([[project_pre_release_status]]) — keine externen Konsumenten außer den eigenen Apps (Hausy/Utilio) + Dogfooding. Breaking erlaubt, aber wir halten `validatePackageTranslations` non-breaking, weil es billig ist.
 > **Entscheidungen (Felix, 2026-06-25):** Tool-Heimat = `urbicon`-CLI (`@urbicon-ui/design`); Umfang v1 = **A + B + C** (inkl. Hardcoded-Lint).
@@ -129,13 +129,13 @@ Konventionen von `validate` geerbt: rekursives Sammeln, `node_modules/.svelte-ki
   - [x] `unused.ts`: Reconciler (5 Usage-Layer + confirmed/suspect-Tiers + used-but-undefined + Prefix-Coverage). Geteilter `glob.ts`.
   - [x] Vitest (`scan/scanner.test.ts` + `unused.test.ts`, inline-Quellen statt `__fixtures__/`): statisch, ternary, template-präfix, data-driven, opak, Markup-Text, empty-prefix-Regression.
   - [x] Review (code-reviewer + adversarialer FP-Hunt): 2× HIGH False-Positive-Klassen behoben (empty-prefix, Markup-Text) + Robustheit; verbleibende intra-/cross-file-Grenzen im Backlog.
-- [ ] **WP3 — Feature C Hardcoded** (`@urbicon-ui/i18n/audit`)
-  - [ ] `hardcoded.ts` (AST + Skip-Heuristik + Marker). Vitest. Review, Fixes, Commit.
-- [ ] **WP4 — urbicon-CLI**
-  - [ ] `design/src/cli/commands/i18n.ts` (`runI18n`, dispatch), `index.ts` switch+HELP, dep `@urbicon-ui/i18n`, Config-Loader. Vitest (`i18n.test.ts`). Review, Fixes, Commit.
-- [ ] **WP5 — CI + Dogfooding**
-  - [ ] `templates/ci-github.yml` i18n-Step; `blocks/scripts/i18n-analyzer.js` entfernen; root `i18n:analyze`/`i18n:check` → `urbicon i18n`. Review, Fixes, Commit.
-- [ ] **Abschluss:** As-built kondensieren; Version-Bump (minor — neue Features) **lokal** (Tag, nicht pushen — Push = npm-Publish/Buny, Felix' Schritt [[project_buny_deploy_ui]]).
+- [x] **WP3 — Feature C Hardcoded** (`@urbicon-ui/i18n/audit`) — Commit `97bda47`.
+  - [x] `scan/hardcoded.ts` (svelte-AST + `looksLikeCopy`-Skip-Heuristik + `ignoreStrings` + konfigurierbares Attribut-Set), `<T>`-/Attribut-Ausschluss; svelte-AST-Plumbing in `scan/svelte-ast.ts` extrahiert. Vitest. Review (code-reviewer) positiv (`.ts`-Input → WP4-Routing).
+- [x] **WP4 — urbicon-CLI** — Commits `8cc1b84` (Command) + `f8bc52f` (Review-Fixes).
+  - [x] `design/src/cli/commands/i18n.ts` (`runI18n`, dispatch), `index.ts` switch+HELP, dep `@urbicon-ui/i18n` + Build-`--external` (cli.js 107 KB statt 10,7 MB), Config-Loader. Vitest (`i18n.test.ts`, 7 Tests). Review: 3 Bundle-Loading-Bugs behoben (gating, `.js`-Bundles, Locale-Stem-Filter).
+- [x] **WP5 — CI + Dogfooding** — Commit `a8d14d7`.
+  - [x] `templates/ci-github.yml` i18n-Step; `blocks/scripts/i18n-analyzer.js` (1029 Zeilen) entfernt + README → Pointer; root `i18n:check` → `urbicon i18n audit` (blocks+table). Dogfooding grün (exit 0); reale tote Keys + Hardcoded-Strings im Backlog.
+- [ ] **Abschluss (offen, Felix):** Branch `feat/i18n-audit` (11 Commits) review-fertig. Nach Merge in `main`: As-built in `packages/i18n/README` + `docs/ARCHITECTURE.md` kondensieren; Version-Bump **minor** **lokal** (Tag, nicht pushen — Push = npm-Publish/Buny, Felix' Schritt [[project_buny_deploy_ui]]). Bewusst NICHT auf dem Feature-Branch gebumpt — Bump gehört auf `main` nach Merge.
 
 ## 6. Nebenfunde (während der Umsetzung)
 
