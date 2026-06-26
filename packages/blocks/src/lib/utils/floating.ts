@@ -123,22 +123,6 @@ function fixedOriginOffset(floating: HTMLElement): { x: number; y: number } {
   return { x: origin.left, y: origin.top };
 }
 
-/**
- * `true` when `floating` is a popover currently promoted to the browser top
- * layer. Guarded: `:popover-open` predates the Popover API, so `matches()`
- * throws `SyntaxError` on engines that lack it (Safari < 17) — there, no element
- * can be in the top layer, so `false` is the correct answer (and never throwing
- * keeps `computePosition` from aborting mid-flight, which would leave the panel
- * unpositioned — Codeberg #23).
- */
-function isTopLayerPopover(floating: HTMLElement): boolean {
-  try {
-    return floating.matches(':popover-open');
-  } catch {
-    return false;
-  }
-}
-
 function viewportToLocal(
   floating: HTMLElement,
   x: number,
@@ -146,12 +130,19 @@ function viewportToLocal(
   strategy: Strategy
 ): { x: number; y: number } {
   if (strategy === 'fixed') {
-    // A top-layer popover is positioned against the viewport regardless of any
-    // transformed ancestor, so its coordinates are used as-is. A non-top-layer
-    // fixed panel (the in-dialog mode) is positioned against its containing
-    // block, which can be a transformed ancestor on WebKit — compensate for its
-    // measured viewport offset so the same coordinates land correctly there too.
-    if (isTopLayerPopover(floating)) return { x, y };
+    // Measure where the element's OWN containing block actually sits and
+    // compensate — never assume `position: fixed` (or the top layer) equals the
+    // viewport. The probe self-corrects for every case:
+    //   • genuinely viewport-fixed (desktop)               → origin (0,0), no-op
+    //   • non-top-layer panel under a transformed ancestor → origin = ancestor
+    //   • TOP-LAYER popover on iOS with the keyboard open   → the popover is
+    //     anchored to the LAYOUT viewport, which getBoundingClientRect reports
+    //     offset by `visualViewport.offsetTop`; the probe reads (0, -offsetTop)
+    //     and compensates, so the panel lands on its anchor instead of floating
+    //     that far above the visible area (Codeberg #23).
+    // Earlier revisions special-cased `:popover-open` to skip this — that wrongly
+    // assumed top-layer == viewport-fixed and stranded keyboard-shifted popovers
+    // (and risked a SyntaxError on engines without `:popover-open`).
     const origin = fixedOriginOffset(floating);
     return { x: x - origin.x, y: y - origin.y };
   }
