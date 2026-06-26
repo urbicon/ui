@@ -4,6 +4,11 @@ All notable changes to this project will be documented in this file.
 This changelog is automatically generated from [Conventional Commits](https://www.conventionalcommits.org).
 
 
+## [6.3.15] - 2026-06-26
+
+### Bug Fixes
+- **blocks**: Compensate the keyboard viewport offset for top-layer popovers (Codeberg #23)
+
 ## [6.3.14] - 2026-06-26
 
 ### Bug Fixes
