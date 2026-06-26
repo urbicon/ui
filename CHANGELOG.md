@@ -4,6 +4,11 @@ All notable changes to this project will be documented in this file.
 This changelog is automatically generated from [Conventional Commits](https://www.conventionalcommits.org).
 
 
+## [6.4.0] - 2026-06-26
+
+### Features
+- **auth**: Add autoVerifyInvited to pre-verify invitation-gated signups
+
 ## [6.3.15] - 2026-06-26
 
 ### Bug Fixes
