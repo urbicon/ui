@@ -7,7 +7,7 @@
   import CloseIconDefault from '$lib/icons/CloseIcon.svelte';
   import ChevronDownIconDefault from '$lib/icons/ChevronDownIcon.svelte';
   import CheckIconDefault from '$lib/icons/CheckIcon.svelte';
-  import { useFormField, getTierContext, useFloatingPanel, floatingPanelStyle } from '$lib/utils';
+  import { useFormField, getTierContext, useFloatingPanel, floatingPanelHidden } from '$lib/utils';
   import type { ComboboxProps, ComboboxOption } from './index';
 
   const bt = useBlocksI18n();
@@ -373,8 +373,15 @@
       open/close cycles. In top-layer mode the `popover="manual"` UA-rule
       `[popover]:not(:popover-open)` hides it until `showPopover()` runs; inside a
       modal dialog (`panel.topLayer === false`) the popover attribute is dropped
-      and `floatingPanelStyle` drives visibility via `display` instead, so the
-      listbox renders in the dialog's own top-layer subtree (Codeberg #23).
+      and `display` drives visibility instead, so the listbox renders in the
+      dialog's own top-layer subtree (Codeberg #23).
+
+      The positioning frame is applied with per-property `style:` directives, NOT
+      a single `style={…}` string: a dynamic `style={…}` compiles to
+      `setAttribute('style')`, replacing the whole attribute and wiping the
+      `left`/`top` Floating UI writes imperatively (the iOS `inset: auto` clobber
+      behind Codeberg #23). `style:` directives and Floating UI's writes are both
+      per-property and never overwrite one another.
     -->
     <div
       bind:this={listboxEl}
@@ -385,7 +392,11 @@
       class={unstyled
         ? (slotClasses?.listbox ?? '')
         : styles.listbox({ class: slotClasses?.listbox })}
-      style={floatingPanelStyle(panel, open, 'overflow-y: auto; ')}
+      style:position={panel.strategy}
+      style:inset="auto"
+      style:margin="0"
+      style:overflow-y="auto"
+      style:display={floatingPanelHidden(panel, open) ? 'none' : null}
     >
       {#if open}
         {#if filtered.length === 0}

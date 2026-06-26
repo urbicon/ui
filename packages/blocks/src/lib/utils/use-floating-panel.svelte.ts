@@ -76,8 +76,8 @@ export interface FloatingPanelState {
  * returns `topLayer: false`) when the anchor sits inside an open modal
  * `<dialog>`, where a second top-layer element is invisible on iOS/WebKit
  * (Codeberg #23) — the panel then renders `position: fixed` in place. Callers
- * mirror the returned `topLayer`/`strategy` in their markup via
- * {@link floatingPanelStyle}.
+ * mirror the returned `topLayer`/`strategy` in their markup via per-property
+ * `style:` directives and {@link floatingPanelHidden}.
  *
  * The Floating-UI `size` middleware feeds the room actually left between the
  * anchor and the (visual) viewport edge into `--blocks-overlay-available-height`.
@@ -219,19 +219,29 @@ export function useFloatingPanel(opts: FloatingPanelOptions): FloatingPanelState
 }
 
 /**
- * Inline style for a panel driven by {@link useFloatingPanel}. Pins the
- * positioning coordinate system Floating UI expects — `position` matches the
- * strategy, `margin:0; inset:auto` neutralise the UA popover centering — and,
- * when the panel is NOT top-layer-promoted, drives visibility from `open` (the
- * UA `[popover]:not(:popover-open){display:none}` rule only applies while the
- * `popover` attribute is present, which the in-place modes omit).
+ * Whether a panel driven by {@link useFloatingPanel} must be hidden via
+ * `display: none` while closed. Top-layer panels carry the `popover` attribute
+ * and lean on the UA `[popover]:not(:popover-open){display:none}` rule, so they
+ * report `false`; the in-place modes (in-dialog `fixed`, or the explicit
+ * `portal=false` inline mode) have no such rule and are hidden by the caller.
  *
- * `extra` is prepended so a caller's own declarations (e.g. a consumer `style`
- * prop, or `overflow-y:auto`) stay overridable by the load-bearing positioning
- * tokens that follow.
+ * Callers apply the positioning frame with `style:` DIRECTIVES, never a single
+ * dynamic `style={…}` string — `style={…}` compiles to `setAttribute('style')`,
+ * which replaces the whole attribute and would wipe the `left`/`top` Floating UI
+ * writes imperatively (the iOS `inset: auto` clobber behind Codeberg #23).
+ * Per-property `style:` directives and Floating UI's `style.left/top` writes
+ * coexist without ever overwriting each other:
+ *
+ * ```svelte
+ * <div
+ *   popover={panel.topLayer ? 'manual' : null}
+ *   style:position={panel.strategy}
+ *   style:inset="auto"
+ *   style:margin="0"
+ *   style:display={floatingPanelHidden(panel, open) ? 'none' : null}
+ * >
+ * ```
  */
-export function floatingPanelStyle(panel: FloatingPanelState, open: boolean, extra = ''): string {
-  const positioning = `position: ${panel.strategy}; margin: 0; inset: auto;`;
-  const hidden = !panel.topLayer && !open ? ' display: none;' : '';
-  return `${extra}${positioning}${hidden}`;
+export function floatingPanelHidden(panel: FloatingPanelState, open: boolean): boolean {
+  return !panel.topLayer && !open;
 }

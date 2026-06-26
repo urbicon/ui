@@ -123,6 +123,22 @@ function fixedOriginOffset(floating: HTMLElement): { x: number; y: number } {
   return { x: origin.left, y: origin.top };
 }
 
+/**
+ * `true` when `floating` is a popover currently promoted to the browser top
+ * layer. Guarded: `:popover-open` predates the Popover API, so `matches()`
+ * throws `SyntaxError` on engines that lack it (Safari < 17) — there, no element
+ * can be in the top layer, so `false` is the correct answer (and never throwing
+ * keeps `computePosition` from aborting mid-flight, which would leave the panel
+ * unpositioned — Codeberg #23).
+ */
+function isTopLayerPopover(floating: HTMLElement): boolean {
+  try {
+    return floating.matches(':popover-open');
+  } catch {
+    return false;
+  }
+}
+
 function viewportToLocal(
   floating: HTMLElement,
   x: number,
@@ -135,7 +151,7 @@ function viewportToLocal(
     // fixed panel (the in-dialog mode) is positioned against its containing
     // block, which can be a transformed ancestor on WebKit — compensate for its
     // measured viewport offset so the same coordinates land correctly there too.
-    if (floating.matches(':popover-open')) return { x, y };
+    if (isTopLayerPopover(floating)) return { x, y };
     const origin = fixedOriginOffset(floating);
     return { x: x - origin.x, y: y - origin.y };
   }

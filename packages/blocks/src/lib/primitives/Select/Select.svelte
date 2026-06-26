@@ -1,6 +1,6 @@
 <script lang="ts" generics="T extends string | number | boolean = string">
   import { useBlocksI18n, mintRegistry } from '$lib';
-  import { useFormField, getTierContext, useFloatingPanel, floatingPanelStyle } from '$lib/utils';
+  import { useFormField, getTierContext, useFloatingPanel, floatingPanelHidden } from '$lib/utils';
   import { getBlocksConfig, resolveSlotClasses } from '$lib/provider';
   import { resolveIcon } from '$lib/icons';
   import ChevronDownIconDefault from '$lib/icons/ChevronDownIcon.svelte';
@@ -509,8 +509,11 @@
       open/close cycles. Top-layer mode uses `popover="manual"` + the UA
       `[popover]:not(:popover-open)` display rule until `showPopover()` runs; the
       in-place modes (nested in a modal dialog → Codeberg #23, or the explicit
-      `usePortal=false`) drop the popover attribute and let `floatingPanelStyle`
-      drive visibility via `display`.
+      `usePortal=false`) drop the popover attribute and drive visibility via
+      `display`. The positioning frame uses per-property `style:` directives, not
+      a `style={…}` string, so Svelte's `setAttribute('style')` can never wipe the
+      `left`/`top` Floating UI writes imperatively (iOS `inset: auto` clobber,
+      Codeberg #23).
 
       `tabindex={-1}` keeps the listbox programmatically focusable without
       adding it to the tab order — the ARIA Listbox / `aria-activedescendant`
@@ -530,7 +533,11 @@
       class={unstyled
         ? (slotClasses?.listbox ?? '')
         : styles.listbox({ class: slotClasses?.listbox })}
-      style={floatingPanelStyle(panel, open, 'overflow-y: auto; ')}
+      style:position={panel.strategy}
+      style:inset="auto"
+      style:margin="0"
+      style:overflow-y="auto"
+      style:display={floatingPanelHidden(panel, open) ? 'none' : null}
       aria-labelledby={labelId}
     >
       {#if open}

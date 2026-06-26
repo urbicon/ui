@@ -49,7 +49,7 @@ export * from './types';
 export {
   type FloatingPanelOptions,
   type FloatingPanelState,
-  floatingPanelStyle,
+  floatingPanelHidden,
   useFloatingPanel
 } from './use-floating-panel.svelte';
 export {

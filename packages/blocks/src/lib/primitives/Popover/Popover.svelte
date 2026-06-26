@@ -1,7 +1,7 @@
 <script lang="ts">
   import { untrack } from 'svelte';
   import { getBlocksConfig, resolveSlotClasses } from '$lib/provider';
-  import { useFloatingPanel, floatingPanelStyle } from '$lib/utils';
+  import { useFloatingPanel, floatingPanelHidden } from '$lib/utils';
   import { popoverVariants } from './popover.variants';
   import type { PopoverProps } from './index';
 
@@ -308,17 +308,21 @@
   `{...restProps}` so a consumer-supplied `popover="manual"` or override
   of `role`/`id` cannot silently break the show/hide flow or ARIA pairing.
 
-  The explicit `style` prop is interpolated FIRST (via `floatingPanelStyle`) so
-  that the load-bearing positioning tokens (`position`, `margin: 0`, `inset:
-  auto`) come last and win the CSS cascade. A consumer passing `style="background:
-  red"` still works; a consumer passing `style="position: absolute"`
-  cannot accidentally break Floating UI's coordinate system.
--->
-<!--
+  The consumer `style` prop is the static `style` attribute; the load-bearing
+  positioning frame follows as per-property `style:` directives, which the
+  browser applies on top of (and so win over) the consumer string. A consumer
+  passing `style="background: red"` still works; `style="position: absolute"`
+  is overridden by `style:position` and cannot break Floating UI's coordinates.
+  Keep the prop static — a reactive `style` recompiles to `setAttribute('style')`
+  and would momentarily wipe the directive + Floating UI writes.
+
   Non-top-layer render (`panel.topLayer === false`): the `popover` attribute is
-  suppressed so the browser does not promote the element to the top layer;
-  `floatingPanelStyle` drives `position` + `display` while Floating UI drives
-  `left` / `top`. Two triggers:
+  suppressed so the browser does not promote the element to the top layer; the
+  `style:` directives drive `position` + `display` while Floating UI drives
+  `left` / `top`. Per-property `style:` directives are used (never a single
+  dynamic `style={…}` string) so Svelte's `setAttribute('style')` can't wipe the
+  imperative `left`/`top` writes — the iOS `inset: auto` clobber (Codeberg #23).
+  Two triggers:
     • `usePortal=false` (e.g. Menu / Select inside another popover) →
       `position: absolute`, avoiding nested-top-layer focus & z-index quirks.
     • nested in an open modal `<dialog>` → `position: fixed`, so the panel paints
@@ -331,7 +335,11 @@
   class={popoverClasses}
   {...restProps}
   popover={panel.topLayer ? popoverMode : null}
-  style={floatingPanelStyle(panel, open, style ? `${style}; ` : '')}
+  style={style || null}
+  style:position={panel.strategy}
+  style:inset="auto"
+  style:margin="0"
+  style:display={floatingPanelHidden(panel, open) ? 'none' : null}
   {role}
   aria-modal={ariaModal || undefined}
   {id}
