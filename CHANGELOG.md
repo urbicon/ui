@@ -4,6 +4,11 @@ All notable changes to this project will be documented in this file.
 This changelog is automatically generated from [Conventional Commits](https://www.conventionalcommits.org).
 
 
+## [6.3.14] - 2026-06-26
+
+### Bug Fixes
+- **blocks**: Own anchored-panel positioning solely in Floating UI (Codeberg #23)
+
 ## [6.3.13] - 2026-06-25
 
 ### Bug Fixes
