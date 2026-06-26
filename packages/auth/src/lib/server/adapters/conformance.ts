@@ -199,6 +199,29 @@ export const conformanceChecks: readonly ConformanceCheck[] = [
     }
   ),
 
+  check(
+    'user.create defaults emailVerified to false and honours an explicit true',
+    [],
+    async (repos, h) => {
+      // Default: a freshly created account is unverified — the standard
+      // password-signup path relies on this (a stray `true` would be a hole).
+      const def = await seedUser(repos, h.role);
+      expect((await repos.user.findById(def.id))?.emailVerified, 'defaults to false').toBe(false);
+
+      // Explicit true: invited-signup pre-verification (register's
+      // `autoVerifyInvited`) relies on the adapter persisting this verbatim.
+      const pre = await repos.user.create({
+        email: `pre-verified-${nextSeed()}@conformance.test`,
+        name: 'Pre-verified',
+        passwordHash: 'x',
+        role: h.role,
+        emailVerified: true
+      });
+      expect(pre.emailVerified, 'create() return reflects emailVerified').toBe(true);
+      expect((await repos.user.findById(pre.id))?.emailVerified, 'persisted verified').toBe(true);
+    }
+  ),
+
   // -- User: email-change claim -------------------------------------------
   check(
     'user.consumeEmailChangeToken is single-use under concurrency and swaps the email',

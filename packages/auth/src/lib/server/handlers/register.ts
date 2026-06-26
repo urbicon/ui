@@ -25,6 +25,26 @@ export interface RegisterHandlerOptions {
    * `config.email.locale`.
    */
   verificationEmail?: MailBuilder;
+
+  /**
+   * Treat invitation-gated signups as already email-verified. Registration in
+   * this package is hard invitation-gated — every account is created from an
+   * invitation that was emailed to that exact address — so the invite plus the
+   * link-click already proves mailbox ownership. A separate verification mail
+   * therefore verifies nothing new (and, since register also auto-logs-in the
+   * user, it would arrive *after* they are already signed in).
+   *
+   * When `true`, the handler creates the user with `emailVerified: true` and
+   * skips the verification token **and** the verification email entirely.
+   *
+   * Defaults to `false` — fully backwards-compatible: the verification token +
+   * mail are issued exactly as before, for consumers that do gate on
+   * `emailVerified`. This flag covers only the **register** path; email
+   * *change* always verifies the new address independently (see
+   * `createVerifyEmailChangeHandler`), since there is no prior proof of
+   * ownership for it.
+   */
+  autoVerifyInvited?: boolean;
 }
 
 export function createRegisterHandler<R extends string>(
@@ -92,9 +112,13 @@ export function createRegisterHandler<R extends string>(
       }
 
       const passwordHash = await hashPassword(password, deps.config.password);
-      const verificationToken = generateSecureToken();
-      const tokenHash = hashToken(verificationToken);
-      const tokenExpires = new Date(Date.now() + 24 * 60 * 60 * 1000); // 24h
+
+      // Invitation-gated signups already prove mailbox ownership: the invite
+      // was delivered to this exact address and its link-click proves receipt.
+      // With `autoVerifyInvited`, skip the verification token entirely and
+      // create the account pre-verified — a null token here means
+      // "auto-verified" and gates BOTH the create shape and the mail send below.
+      const verificationToken = options.autoVerifyInvited ? null : generateSecureToken();
 
       // Create the user BEFORE claiming the invitation. An invitation is bound
       // 1:1 to an email, so the email unique-constraint is the authoritative
@@ -107,8 +131,12 @@ export function createRegisterHandler<R extends string>(
         name,
         passwordHash,
         role: invitation.role as R,
-        verificationToken: tokenHash,
-        verificationTokenExpires: tokenExpires
+        ...(verificationToken
+          ? {
+              verificationToken: hashToken(verificationToken),
+              verificationTokenExpires: new Date(Date.now() + 24 * 60 * 60 * 1000) // 24h
+            }
+          : { emailVerified: true })
       });
 
       // Re-read the full row instead of hand-assembling it: DB-defaulted
@@ -134,14 +162,17 @@ export function createRegisterHandler<R extends string>(
         );
       }
 
-      // Send verification email — localized default, or the consumer hook.
-      const verifyUrl = new URL('/auth/verify-email', deps.config.appUrl);
-      verifyUrl.searchParams.set('token', verificationToken);
+      // Send the verification email — unless this was an auto-verified invited
+      // signup (null token). Localized default, or the consumer hook.
+      if (verificationToken) {
+        const verifyUrl = new URL('/auth/verify-email', deps.config.appUrl);
+        verifyUrl.searchParams.set('token', verificationToken);
 
-      const { t, appName, from } = resolveEmailSettings(deps.config);
-      const ctx = { name, url: verifyUrl.toString(), appName, from, t };
-      const built = options.verificationEmail?.(ctx) ?? buildVerificationEmail(ctx, t);
-      await deps.email.send({ from, ...built, to: email });
+        const { t, appName, from } = resolveEmailSettings(deps.config);
+        const ctx = { name, url: verifyUrl.toString(), appName, from, t };
+        const built = options.verificationEmail?.(ctx) ?? buildVerificationEmail(ctx, t);
+        await deps.email.send({ from, ...built, to: email });
+      }
 
       await deps.config.hooks?.onUserCreated?.(sanitizeUser(fullUser));
 

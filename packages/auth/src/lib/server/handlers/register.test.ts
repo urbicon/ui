@@ -244,4 +244,44 @@ describe('createRegisterHandler', () => {
     expect(mail.subject).toBe('Custom verify');
     expect(mail.html).toContain('/auth/verify-email?token=');
   });
+
+  // --- Issue #24: autoVerifyInvited — the invite already proves mailbox
+  // ownership, so the account is created pre-verified and no mail is sent. ---
+
+  it('with autoVerifyInvited: creates the account pre-verified and sends no mail', async () => {
+    const send = vi.fn().mockResolvedValue(undefined);
+    const deps = successDeps(send);
+    const res = await createRegisterHandler(deps, { autoVerifyInvited: true }).POST(
+      event(validBody)
+    );
+
+    expect(res.status).toBe(201);
+    // emailVerified: true at creation, and NOT a single verification artifact.
+    const createArg = (deps.repos.user.create as Mock).mock.calls[0][0];
+    expect(createArg.emailVerified).toBe(true);
+    expect(createArg.verificationToken).toBeUndefined();
+    expect(createArg.verificationTokenExpires).toBeUndefined();
+    // No "please verify your email" mail.
+    expect(send).not.toHaveBeenCalled();
+  });
+
+  it('without autoVerifyInvited (default): issues a token and sends the mail', async () => {
+    const send = vi.fn().mockResolvedValue(undefined);
+    const deps = successDeps(send);
+    const res = await createRegisterHandler(deps).POST(event(validBody));
+
+    expect(res.status).toBe(201);
+    const createArg = (deps.repos.user.create as Mock).mock.calls[0][0];
+    expect(createArg.emailVerified).toBeUndefined();
+    expect(typeof createArg.verificationToken).toBe('string');
+    expect(send).toHaveBeenCalledTimes(1);
+  });
+
+  it('still claims the invitation when autoVerifyInvited is on', async () => {
+    const send = vi.fn().mockResolvedValue(undefined);
+    const deps = successDeps(send);
+    await createRegisterHandler(deps, { autoVerifyInvited: true }).POST(event(validBody));
+    // Pre-verifying must not short-circuit the one-invitation-one-account claim.
+    expect(deps.repos.invitation.markUsedIfUnused).toHaveBeenCalledTimes(1);
+  });
 });
