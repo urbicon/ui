@@ -147,6 +147,9 @@ export interface GuideNavigationSource {
    * Subscribe to navigations; `onNavigate` receives the new path. Returns an unsubscribe. The
    * controller subscribes only while a tour with at least one `route` step is active, so a tour
    * that never declares a route observes no navigation (preserving the manual-`goto` recipe).
+   * `onNavigate` may be invoked **synchronously, re-entrant** during the controller's own `navigate`
+   * hook (a SvelteKit `afterNavigate` source fires inside `goto`); the controller recognizes that as
+   * the tour's own navigation and keeps it running, so the source needs no `queueMicrotask` deferral.
    */
   subscribe(onNavigate: (path: string) => void): () => void;
 }
@@ -276,6 +279,21 @@ export function createBrowserNavigationSource(): GuideNavigationSource {
 
 /** DEV-only: grace period for a navigated-to `route` step's target before warning it never showed. */
 const ROUTE_TARGET_TIMEOUT_MS = 4000;
+
+/**
+ * Heuristic: does `landed` look like a router-normalized form of `route` — a trailing slash
+ * (`/expenses/`) or a base/locale prefix (`/de/expenses`) — rather than an unrelated redirect target
+ * (`/login`)? Used ONLY to decide whether a *synchronous* own-navigation landing on a non-exact path
+ * deserves a DEV diagnostic, never to change tour behavior, so a wrong guess merely over- or
+ * under-warns in DEV. `route` is a normalized pathname (leading `/`), so the suffix test lands on a
+ * real segment boundary — `/myexpenses` does not end with `/expenses`.
+ */
+function looksLikeNormalizedRoute(landed: string, route: string): boolean {
+  const stripSlash = (s: string) => (s.length > 1 && s.endsWith('/') ? s.slice(0, -1) : s);
+  const l = stripSlash(landed);
+  const r = stripSlash(route);
+  return l === r || l.endsWith(r);
+}
 
 let tourIdCounter = 0;
 
@@ -672,20 +690,40 @@ export class GuideController {
     if (!this.#activeTour) return;
     if (path === this.#knownPath) return; // no pathname change (e.g. a hash/query update) — ignore
     this.#knownPath = path;
-    // A location report is the tour's OWN navigation in two cases: it arrives synchronously,
-    // re-entrant, during our injected `#navigate()` call (`#selfNavigating` — the exact signal, true
-    // regardless of how the router normalized the path), or it matches the pending `#expectedRoute`
-    // (the async-source proxy, for a report that lands a tick after the hook returns). Either keeps
-    // the tour running.
-    if (this.#selfNavigating || (this.#expectedRoute !== null && path === this.#expectedRoute)) {
-      // The tour's own navigation landed — keep running. For a *targeted* step, keep `#expectedRoute`
-      // set until the target settles (`#applyStepHighlight`) so a redirecting / multi-hop source (the
-      // Navigation API emitting one event per hop) firing a *second* event for the redirect target is
-      // still recognized as a mismatch (and DEV-warned) instead of silently stopping. A *targetless*
-      // route step has no target to wait for — it is settled on landing, so clear now; otherwise a
-      // later foreign navigation would misfire the "navigated toward …" warning. (`#maybeNavigate`
-      // also resets it on the next step. Clearing here can't move into `#applyStepHighlight`, which
-      // runs synchronously in `#activateStep` before the nav lands — it would mis-read our own nav.)
+    const matchesExpected = this.#expectedRoute !== null && path === this.#expectedRoute;
+    // A location report is the tour's OWN navigation in two cases: it matches the pending
+    // `#expectedRoute` (the async-source proxy, for a report landing a tick after the hook returns),
+    // or it arrives synchronously, re-entrant, during our injected `#navigate()` call
+    // (`#selfNavigating`). The latter is a *causal* signal — our navigate produced this report,
+    // whatever path it carries — so it covers a router-normalized landing (trailing slash,
+    // base/locale prefix) that an exact match would miss. Either keeps the tour running.
+    if (this.#selfNavigating || matchesExpected) {
+      // A *synchronous* report on a path that isn't the expected route is still causally ours, but it
+      // landed somewhere unexpected: a normalized variant of `step.route` (fine — the target anchors
+      // once it mounts) or a genuine redirect off the route (an auth guard → `/login`). We keep
+      // running either way — stopping would re-break the normalized case this fix exists for — but a
+      // landing that doesn't even look like a normalized variant is most likely a redirect, so
+      // surface it in DEV. (A targetless step has no "target never appeared" timer, so an off-route
+      // bubble is otherwise invisible in both DEV and PROD.)
+      if (
+        this.#dev &&
+        this.#selfNavigating &&
+        this.#expectedRoute !== null &&
+        !matchesExpected &&
+        !looksLikeNormalizedRoute(path, this.#expectedRoute)
+      ) {
+        console.warn(
+          `[Guide] tour "${this.#activeTour?.id}" navigated toward "${this.#expectedRoute}" but synchronously landed on "${path}" — keeping the tour running as its own navigation. If this was a redirect off the step's route (not a normalized form of it), stop the tour explicitly from your router guard.`
+        );
+      }
+      // For a *targeted* step, keep `#expectedRoute` set until the target settles
+      // (`#applyStepHighlight`) so a redirecting / multi-hop source (the Navigation API emitting one
+      // event per hop) firing a *second* event for the redirect target is still recognized as a
+      // mismatch (and DEV-warned) instead of silently stopping. A *targetless* route step has no
+      // target to wait for — it is settled on landing, so clear now; otherwise a later foreign
+      // navigation would misfire the "navigated toward …" warning. (`#maybeNavigate` also resets it
+      // on the next step. Clearing here can't move into `#applyStepHighlight`, which runs
+      // synchronously in `#activateStep` before the nav lands — it would mis-read our own nav.)
       if (this.currentStep?.target == null) this.#expectedRoute = null;
       return;
     }

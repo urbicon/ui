@@ -1090,6 +1090,31 @@ describe('GuideController — synchronous navigationSource (re-entrancy, #41)', 
     expect(ctrl.isTourActive).toBe(false);
   });
 
+  it('keeps running but DEV-warns on a synchronous redirect off the step route (not silent)', () => {
+    // A synchronous source landing on an UNRELATED path during the navigate call (a redirect, e.g. an
+    // auth guard → /login) is still causally the tour's own navigation, so the tour keeps running —
+    // stopping would re-break the normalized #41 case the guard exists for. But unlike a normalized
+    // landing it is surfaced in DEV (a targetless off-route bubble is otherwise invisible). Decision
+    // pinned here: keep + DEV-warn, not a silent stop and not a silent run-on. (silent-failure review)
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+    const { ctrl } = makeSyncController({
+      initialPath: '/dash',
+      dev: true,
+      transform: () => '/login'
+    });
+    ctrl.registerTarget('a', mockElement());
+    ctrl.startTour(
+      tour([
+        { target: 'a', route: '/dash' },
+        { target: 'b', route: '/expenses' }
+      ])
+    );
+    warn.mockClear();
+    ctrl.next(); // navigate('/expenses'); the source synchronously reports an unrelated '/login'
+    expect(ctrl.isTourActive).toBe(true); // kept running as its own navigation, not a foreign stop
+    expect(warn).toHaveBeenCalledWith(expect.stringContaining('synchronously landed on "/login"'));
+  });
+
   it('a targetless sync route step (normalized path) does not misfire the warning later (no regress)', () => {
     // Guards the integration: with a normalized landing path the `path === expectedRoute` proxy can't
     // match, so ONLY `#selfNavigating` recognizes the own navigation — and the targetless-step
