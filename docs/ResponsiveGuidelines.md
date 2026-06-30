@@ -109,17 +109,19 @@ Size constraints (`sm:max-w-sm`, `sm:max-w-md`, etc.) apply from `sm:` upward.
 
 ## Content Prioritization
 
-### Table Column Priority (`TABLE_RESPONSIVE`)
+### Table Column Priority
 
-| Priority | Visibility | Use for |
-|----------|-----------|---------|
-| 1 | Always visible | Primary identifier (name, title) |
-| 2 | `hidden sm:table-cell` | Key info (status, date) |
-| 3 | `hidden md:table-cell` | Secondary info (category, assignee) |
-| 4 | `hidden lg:table-cell` | Detail info (created date, tags) |
-| 5 | `hidden xl:table-cell` | Auxiliary info (internal IDs, metadata) |
+A Table column's `priority` controls how it appears in the **mobile card** layout. The
+desktop table always shows every column.
 
-`TableCell` and `TableHead` use `TABLE_RESPONSIVE.priority` lookup for all five levels.
+| Priority | Mobile card | Use for |
+|----------|-------------|---------|
+| 1 (or unset) | Primary — the first such column becomes the card title, others are prominent fields | Primary identifier (name, title) |
+| 2 | Secondary — a normal detail field | Key info (status, date) |
+| 3 | Desktop-only — omitted from the card | Info worth showing only on wide screens |
+
+The split lives in `MobileCard` (it renders the unset/1/2 columns in source order and omits
+priority 3); there is no desktop CSS column-hiding.
 
 ---
 

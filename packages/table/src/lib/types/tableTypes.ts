@@ -81,10 +81,12 @@ interface BaseColumn<T> {
   /**
    * Responsive priority — controls how the column appears in the **mobile card**
    * layout. The desktop table always shows every column.
-   * - `1` (or unset): primary — the first such column becomes the card title,
-   *   any others render as prominent fields.
+   * - `1` (or unset): primary — rendered as a prominent field.
    * - `2`: secondary — rendered as a normal detail field.
    * - `3`: desktop-only — omitted from the mobile card (kept in the desktop table).
+   *
+   * The first card column (priority 1/unset/2, in source order — normally a
+   * primary) becomes the label-less card title.
    */
   priority?: 1 | 2 | 3;
   /** Text alignment within the column */

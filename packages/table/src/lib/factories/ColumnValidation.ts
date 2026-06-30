@@ -125,13 +125,18 @@ export class ColumnValidation {
 
     switch (useCase) {
       case 'mobile': {
-        // The mobile layout stacks each row into a card, so neither column
-        // count nor column widths cause horizontal scrolling. The only thing
-        // that degrades here is having no primary column to act as the title.
+        // The mobile layout stacks each row into a card, so neither column count
+        // nor column widths cause horizontal scrolling. What degrades is having
+        // no card column (all priority 3 → empty card) or no primary for a title.
+        const hasCardColumn = columns.some((col) => !col.priority || col.priority <= 2);
         const hasPrimary = columns.some((col) => !col.priority || col.priority === 1);
-        if (!hasPrimary) {
+        if (!hasCardColumn) {
           warnings.push(
-            'Mobile: no priority 1 (or unset) column — the card has no clear title; the first visible column is used instead'
+            'Mobile: every column is priority 3 (desktop-only) — the card renders empty'
+          );
+        } else if (!hasPrimary) {
+          warnings.push(
+            'Mobile: no priority 1 (or unset) column — a priority 2 column will be used as the card title'
           );
         }
         break;
