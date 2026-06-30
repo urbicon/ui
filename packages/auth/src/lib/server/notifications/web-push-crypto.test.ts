@@ -81,6 +81,44 @@ describe('createVapidHeaders', () => {
     expect(payload.sub).toBe('mailto:test@test.com');
     expect(payload.exp).toBeGreaterThan(Math.floor(Date.now() / 1000));
   });
+
+  it('signs the VAPID JWT with a cryptographically valid signature', async () => {
+    // Regression for the DER-vs-raw mix-up (sibling of Codeberg #38): Web Crypto
+    // already returns raw r||s for ECDSA, so a push service verifying the JWT
+    // must accept the signature over `header.payload`. The previous code ran a
+    // bogus DER→raw conversion on the already-raw bytes, producing a JWT every
+    // push service rejected with 401. The format-only assertions above never
+    // caught it — this verifies the signature the way a push service does.
+    const keys = await generateVapidKeys();
+    const headers = await createVapidHeaders(
+      'https://push.example.com/send/abc123',
+      'mailto:admin@example.com',
+      keys.publicKey,
+      keys.privateKey
+    );
+
+    const jwt = headers.authorization.match(/t=([\w-]+\.[\w-]+\.[\w-]+)/)?.[1];
+    expect(jwt).toBeTruthy();
+    const [headerB64, payloadB64, signatureB64] = jwt!.split('.');
+
+    const signature = base64UrlDecode(signatureB64);
+    expect(signature).toHaveLength(64); // raw r||s for P-256, never DER
+
+    const publicKey = await crypto.subtle.importKey(
+      'raw',
+      base64UrlDecode(keys.publicKey) as BufferSource,
+      { name: 'ECDSA', namedCurve: 'P-256' },
+      false,
+      ['verify']
+    );
+    const valid = await crypto.subtle.verify(
+      { name: 'ECDSA', hash: 'SHA-256' },
+      publicKey,
+      signature as BufferSource,
+      new TextEncoder().encode(`${headerB64}.${payloadB64}`) as BufferSource
+    );
+    expect(valid).toBe(true);
+  });
 });
 
 describe('encryptPayload', () => {

@@ -119,35 +119,14 @@ async function createVapidJwt(
     await crypto.subtle.sign({ name: 'ECDSA', hash: 'SHA-256' }, privateKey, signingInput)
   );
 
-  // Web Crypto returns DER-encoded signature, convert to raw r||s (64 bytes)
-  const rawSig = derToRaw(signatureRaw);
-  const signatureB64 = base64UrlEncode(rawSig);
+  // The W3C Web Crypto API returns the ECDSA signature already in raw r||s form
+  // (IEEE P1363, 64 bytes for P-256) — exactly what a VAPID JWS signature needs
+  // (RFC 7518 §3.4). It is NOT DER here: running a DER→raw conversion would
+  // reinterpret the raw bytes as ASN.1 and silently corrupt the signature, so
+  // every push service would reject the JWT with 401. Use the bytes as-is.
+  const signatureB64 = base64UrlEncode(signatureRaw);
 
   return `${headerB64}.${payloadB64}.${signatureB64}`;
-}
-
-// Convert DER-encoded ECDSA signature to raw r||s format (64 bytes)
-function derToRaw(der: Uint8Array): Uint8Array {
-  // DER: 0x30 <len> 0x02 <rLen> <r> 0x02 <sLen> <s>
-  const raw = new Uint8Array(64);
-
-  let offset = 2; // skip SEQUENCE tag and length
-  // r
-  offset++; // skip INTEGER tag (0x02)
-  const rLen = der[offset++];
-  const rStart = rLen > 32 ? offset + (rLen - 32) : offset;
-  const rDest = rLen > 32 ? 0 : 32 - rLen;
-  raw.set(der.slice(rStart, offset + rLen), rDest);
-  offset += rLen;
-
-  // s
-  offset++; // skip INTEGER tag (0x02)
-  const sLen = der[offset++];
-  const sStart = sLen > 32 ? offset + (sLen - 32) : offset;
-  const sDest = sLen > 32 ? 32 : 64 - sLen;
-  raw.set(der.slice(sStart, offset + sLen), sDest);
-
-  return raw;
 }
 
 export async function createVapidHeaders(
