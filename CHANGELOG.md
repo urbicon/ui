@@ -4,6 +4,16 @@ All notable changes to this project will be documented in this file.
 This changelog is automatically generated from [Conventional Commits](https://www.conventionalcommits.org).
 
 
+## [6.7.2] - 2026-06-30
+
+### Bug Fixes
+- **auth**: Convert ES256 passkey signatures to raw before verify (Codeberg #38)
+- **auth**: Stop corrupting VAPID signatures with a bogus DER conversion
+- **auth**: Return 400 (not 500) for an unimportable stored passkey key
+
+### Refactoring
+- **auth**: Harden ES256 DER converter per review (scope, errors, tests)
+
 ## [6.7.1] - 2026-06-30
 
 ### Documentation
