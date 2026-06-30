@@ -86,7 +86,7 @@
       name: 'new GuideController(options?)',
       type: 'GuideControllerOptions',
       description:
-        'Construct the engine. Options: `storage` (StorageAdapter, default localStorage), `overlayStack`, `dev`. Pass it to `<GuideProvider controller={…}>` for programmatic access.'
+        'Construct the engine. Options: `storage` (StorageAdapter, default localStorage), `navigate` ((route) => void | Promise — the cross-route hook, wire `goto`), `navigationSource` (current-path/navigation seam, default Navigation API + popstate), `overlayStack`, `dev`. Pass it to `<GuideProvider controller={…}>` for programmatic access.'
     },
     {
       name: 'startTour(tour)',
@@ -173,6 +173,12 @@
       name: 'target',
       type: 'string',
       description: '`data-guide` id to anchor to. Omit for a centered, full-scrim step.'
+    },
+    {
+      name: 'route',
+      type: 'string',
+      description:
+        'Route this step lives on (declarative cross-route touring). When set and ≠ the current location, the controller navigates there via the `navigate` hook before spotlighting, then re-anchors once the target appears. A tour-internal navigation keeps the tour running; a foreign one stops it. `prev()` navigates back symmetrically. Needs a `navigate` hook (else DEV-warns and stays put).'
     },
     { name: 'title', type: 'string', description: 'Step heading.' },
     { name: 'body', type: 'string', description: 'Step body text.' },

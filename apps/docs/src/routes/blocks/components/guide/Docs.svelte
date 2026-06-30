@@ -174,33 +174,32 @@
     <p class="text-text-secondary mb-4 max-w-2xl text-sm leading-relaxed">
       Tours survive client-side navigation: the controller lives in the layout's provider, an
       unresolved target renders centered over the full scrim, and the bubble re-anchors as soon as
-      the new route's <code>data-guide</code> element appears. The library never navigates itself —
-      the app does, in <code>onStep</code>. Keep <code>Guide</code> mounted in the layout (a
-      route-local renderer unmounts on navigation and ends the tour), and prefer
-      <code>stopTour()</code> only when navigation invalidates the tour (e.g. logout) — it tears down
-      without marking the tour seen.
+      the new route's <code>data-guide</code> element appears. Give a step a <code>route</code> and
+      wire a <code>navigate</code> hook, and the library drives the navigation declaratively — going
+      to the step's route <em>before</em> the spotlight. A tour-internal navigation keeps the tour
+      running; a <em>foreign</em> one (the user leaving) stops it (analytics-silent).
+      <code>prev()</code> navigates back symmetrically. Keep <code>Guide</code> mounted in the
+      layout (a route-local renderer unmounts on navigation and ends the tour). For routing chosen
+      at runtime, navigate imperatively in <code>onStep</code> instead (a tour with no
+      <code>route</code> is never second-guessed).
     </p>
     <CodeExample
-      title="Cross-route tour (app-driven navigation)"
+      title="Cross-route tour (declarative step.route + navigate hook)"
       code={`<script lang="ts">
   import { goto } from '$app/navigation';
-  import { page } from '$app/state';
-  import type { GuideTour } from '@urbicon-ui/blocks';
+  import { GuideController, type GuideTour } from '@urbicon-ui/blocks';
 
-  // App-side step → route map; the library knows nothing about your router.
-  const stepRoutes: Record<number, string> = { 0: '/dashboard', 2: '/settings/billing' };
+  // Wire the router once; the library stays framework-agnostic.
+  // (Equivalently: <GuideProvider navigate={(route) => goto(route)}>.)
+  const guide = new GuideController({ navigate: (route) => goto(route) });
 
   const tour: GuideTour = {
     id: 'cross-route-onboarding',
     steps: [
-      { target: 'dash-overview', title: 'Your dashboard', body: '…' },
-      { target: 'dash-filter', title: 'Filter', body: '…' },
-      { target: 'billing-plan', title: 'Your plan', body: '…' } // lives on /settings/billing
-    ],
-    onStep: ({ index }) => {
-      const route = stepRoutes[index];
-      if (route && route !== page.url.pathname) goto(route);
-    }
+      { target: 'dash-overview', route: '/dashboard', title: 'Your dashboard', body: '…' },
+      { target: 'dash-filter', route: '/dashboard', title: 'Filter', body: '…' },
+      { target: 'billing-plan', route: '/settings/billing', title: 'Your plan', body: '…' }
+    ]
   };
 </scr` + `ipt>`}
       language="svelte"
