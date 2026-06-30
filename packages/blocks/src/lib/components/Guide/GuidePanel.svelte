@@ -69,7 +69,9 @@
   const open = $derived(guide?.panelOpen ?? false);
   const activeArticle = $derived(guide?.activeArticle ?? null);
   const articles = $derived(
-    [...articleMap].map(([id, a]) => ({ id, title: a.title, group: a.group }))
+    // Normalize a blank/whitespace `group` to `undefined` so it collapses into the
+    // ungrouped block instead of rendering an empty (padded) section header.
+    [...articleMap].map(([id, a]) => ({ id, title: a.title, group: a.group?.trim() || undefined }))
   );
   const headerTitle = $derived(
     (activeArticle ? articleMap.get(activeArticle)?.title : undefined) ??
@@ -226,13 +228,19 @@
             aria-label={bt('guide.filterPlaceholder', {})}
             bind:value={searchQuery}
           />
+          <!-- Persistent polite announcer: present in the a11y tree before the result
+               set empties, so a filter narrowing to zero is reliably announced (a region
+               inserted together with its text is dropped by some screen readers). The
+               visible empty-state below carries no role, to avoid a duplicate region. -->
+          <p aria-live="polite" class="sr-only">
+            {#if isFiltering && filteredArticles.length === 0}{bt('guide.noResults', {})}{/if}
+          </p>
         {/if}
         {#if isFiltering && filteredArticles.length === 0}
           <p
             class={unstyled
               ? (slotClasses?.noResults ?? '')
               : styles.noResults({ class: slotClasses?.noResults })}
-            role="status"
           >
             {bt('guide.noResults', {})}
           </p>

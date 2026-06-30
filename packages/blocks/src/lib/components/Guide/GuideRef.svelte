@@ -23,6 +23,8 @@
     console.warn(
       '[Guide] <GuideRef> is used without a <GuideProvider> ancestor — it renders as plain text.'
     );
+  } else if (import.meta.env?.DEV && !panel) {
+    console.warn('[Guide] <GuideRef> is used outside a <GuidePanel> — it renders as plain text.');
   }
 
   const blocksConfig = getBlocksConfig();
