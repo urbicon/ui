@@ -4,6 +4,14 @@ All notable changes to this project will be documented in this file.
 This changelog is automatically generated from [Conventional Commits](https://www.conventionalcommits.org).
 
 
+## [6.7.0] - 2026-06-30
+
+### Documentation
+- Native controls
+
+### Features
+- **table**: Expose `data-fit` on the container for layout hooks
+
 ## [6.6.0] - 2026-06-30
 
 ### Bug Fixes
