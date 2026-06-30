@@ -129,7 +129,7 @@ export interface GuideControllerOptions {
   storage?: GuideStorageAdapter;
   /** Overlay stack to integrate with. @default the shared `overlayStack` singleton */
   overlayStack?: GuideOverlayStackLike;
-  /** Force DEV-mode warnings on/off. @default `import.meta.env.DEV` */
+  /** Force DEV-mode warnings on/off. @default `import.meta.env?.DEV ?? false` */
   dev?: boolean;
 }
 
@@ -248,7 +248,10 @@ export class GuideController {
   constructor(options: GuideControllerOptions = {}) {
     this.#storage = options.storage ?? createLocalStorageAdapter();
     this.#overlayStack = options.overlayStack ?? overlayStack;
-    this.#dev = options.dev ?? import.meta.env.DEV;
+    // `import.meta.env?.DEV` is `boolean | undefined` (undefined outside Vite);
+    // `?? false` keeps `#dev` a strict boolean and means non-Vite consumers
+    // simply get no dev warnings (rather than a crash).
+    this.#dev = options.dev ?? import.meta.env?.DEV ?? false;
     this.#seen = new SvelteSet(this.#storage.load());
   }
 

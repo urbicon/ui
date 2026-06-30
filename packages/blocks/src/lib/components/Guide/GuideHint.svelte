@@ -37,7 +37,7 @@
 
   const guide = getGuideContext();
 
-  if (import.meta.env.DEV && !guide) {
+  if (import.meta.env?.DEV && !guide) {
     console.warn(
       '[Guide] <GuideHint> is used without a <GuideProvider> ancestor — it will not render.'
     );
@@ -75,7 +75,7 @@
   $effect(() => {
     if (trigger === 'manual') {
       if (open) dismissed = false;
-    } else if (import.meta.env.DEV && open) {
+    } else if (import.meta.env?.DEV && open) {
       console.warn('[Guide] <GuideHint open> is ignored unless trigger="manual".');
     }
   });
@@ -179,7 +179,7 @@
   // DEV resilience: a requested hint whose target can't be resolved is a silent
   // no-op otherwise — warn so a wrong `for` id is noticed (mirrors the engine).
   $effect(() => {
-    if (import.meta.env.DEV && guide && visible && !guide.resolveTarget(topicId)) {
+    if (import.meta.env?.DEV && guide && visible && !guide.resolveTarget(topicId)) {
       console.warn(
         `[Guide] <GuideHint for="${topicId}"> cannot anchor — no element with [data-guide="${topicId}"] (or registered target) found.`
       );

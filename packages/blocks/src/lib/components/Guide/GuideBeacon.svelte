@@ -22,7 +22,7 @@
 
   const guide = getGuideContext();
 
-  if (import.meta.env.DEV && !guide) {
+  if (import.meta.env?.DEV && !guide) {
     console.warn(
       '[Guide] <GuideBeacon> is used without a <GuideProvider> ancestor — it will not render.'
     );

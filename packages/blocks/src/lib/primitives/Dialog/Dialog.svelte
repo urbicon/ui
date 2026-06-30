@@ -42,7 +42,7 @@
   }: DialogProps = $props();
 
   if (
-    import.meta.env.DEV &&
+    import.meta.env?.DEV &&
     hideCloseButton &&
     closeOnEscape === false &&
     closeOnBackdropClick === false

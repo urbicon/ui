@@ -35,7 +35,7 @@
   // Re-registers if the id changes; releases it on unmount.
   $effect(() => guide?.registerPanel(panelId));
 
-  if (import.meta.env.DEV && !guide) {
+  if (import.meta.env?.DEV && !guide) {
     console.warn(
       '[Guide] <GuidePanel> is used without a <GuideProvider> ancestor — it will not render.'
     );
@@ -88,7 +88,7 @@
   // shows an empty body with no signal. Deferred past the current flush via `tick()` so a
   // sibling <GuideArticle> registering in the same render isn't a false positive.
   $effect(() => {
-    if (!import.meta.env.DEV) return;
+    if (!import.meta.env?.DEV) return;
     const id = activeArticle;
     if (!id) return;
     let cancelled = false;

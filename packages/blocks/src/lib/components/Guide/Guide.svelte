@@ -32,7 +32,7 @@
 
   const guide = getGuideContext();
 
-  if (import.meta.env.DEV && !guide) {
+  if (import.meta.env?.DEV && !guide) {
     console.warn(
       '[Guide] <Guide> is used without a <GuideProvider> ancestor — the tour will not render.'
     );
@@ -217,7 +217,7 @@
   // clickable, and only an app-side controller.next() from outside the spotlight can advance.
   // Usually a step-definition mistake; mirrors the unresolved-target warning.
   $effect(() => {
-    if (!import.meta.env.DEV || !guide) return;
+    if (!import.meta.env?.DEV || !guide) return;
     if (step?.advance === 'action' && !step.interactive) {
       console.warn(
         `[Guide] tour "${guide.activeTour?.id}" step ${stepIndex}: advance:'action' without ` +

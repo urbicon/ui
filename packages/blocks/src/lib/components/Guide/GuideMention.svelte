@@ -18,7 +18,7 @@
 
   const guide = getGuideContext();
 
-  if (import.meta.env.DEV && !guide) {
+  if (import.meta.env?.DEV && !guide) {
     console.warn(
       '[Guide] <GuideMention> is used without a <GuideProvider> ancestor — it renders as plain text.'
     );
@@ -42,7 +42,7 @@
   const interactive = $derived(!!guide && effectiveDirection !== 'to-guide');
 
   $effect(() => {
-    if (import.meta.env.DEV && guide && effectiveDirection === 'to-guide') {
+    if (import.meta.env?.DEV && guide && effectiveDirection === 'to-guide') {
       console.warn(
         `[Guide] <GuideMention for="${topicId}"> points at a topic whose direction excludes Guide→UI ('to-guide') — it renders as plain text.`
       );

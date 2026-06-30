@@ -24,7 +24,7 @@
 
   const guide = getGuideContext();
 
-  if (import.meta.env.DEV && !guide) {
+  if (import.meta.env?.DEV && !guide) {
     console.warn(
       '[Guide] <GuideMarker> is used without a <GuideProvider> ancestor — it renders inert.'
     );
