@@ -4,6 +4,25 @@ All notable changes to this project will be documented in this file.
 This changelog is automatically generated from [Conventional Commits](https://www.conventionalcommits.org).
 
 
+## [6.6.0] - 2026-06-30
+
+### Bug Fixes
+- **table**: Stack mobile filter bar so search is not crushed (Codeberg #28)
+- **table**: Enlarge mobile toolbar touch targets, drop dead card slot (Codeberg #32)
+- **table**: Scope mobile touch-target sizing to the toolbar triggers (Codeberg #32)
+- **table**: Avoid nested-interactive in selectable mobile cards (Codeberg #30)
+
+### Documentation
+- **table**: Correct stale priority docs + sharpen JSDoc/validation (Codeberg #33)
+
+### Features
+- **table**: Add a sort control to the mobile filter bar (Codeberg #29)
+- **table**: Redesign mobile card with a title + compact grid (Codeberg #31)
+- **table**: Support row selection in the mobile card (Codeberg #30)
+
+### Refactoring
+- **table**: Unify column priority as a mobile-card concept (Codeberg #33)
+
 ## [6.5.0] - 2026-06-30
 
 ### Bug Fixes
