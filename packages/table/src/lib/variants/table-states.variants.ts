@@ -309,11 +309,6 @@ export const mobileCardVariants = tv({
     // hides data with no tooltip on touch.
     value: ['text-sm text-text-primary break-words'],
     actions: ['flex items-center justify-end gap-2', 'px-4 pb-3 pt-0'],
-    expandButton: [
-      'ml-auto p-1 rounded-modify',
-      'hover:bg-surface-hover',
-      'transition-colors duration-[var(--blocks-duration-fast)]'
-    ],
     expandIcon: ['transition-transform duration-[var(--blocks-duration-fast)]'],
     expandedContent: ['px-4 pb-4', 'border-t border-border-subtle pt-4']
   },

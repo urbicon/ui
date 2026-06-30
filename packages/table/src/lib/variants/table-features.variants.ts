@@ -27,7 +27,15 @@ export const smartFilterBarVariants = tv({
     // the shrink-0 action buttons on a narrow screen (Codeberg #28).
     controls: ['flex gap-2'],
     searchSection: ['w-full min-w-0'],
-    actionsSection: ['flex items-center'],
+    // Touch targets: enlarge the trigger buttons to ≥44px while the bar is
+    // stacked (the mobile case); revert to the compact size once it is a
+    // desktop row (≥ @md), where they sit next to the search and a pointer is
+    // assumed.
+    actionsSection: [
+      'flex items-center',
+      '[&_button]:min-h-11 [&_button]:min-w-11',
+      '@md:[&_button]:min-h-0 @md:[&_button]:min-w-0'
+    ],
     chipsSection: ['w-full']
   },
 
