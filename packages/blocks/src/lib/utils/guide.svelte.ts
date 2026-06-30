@@ -602,6 +602,9 @@ export class GuideController {
    * than a foreign one. Already on the route → nothing to do. No hook wired → DEV warning, stay put.
    */
   #maybeNavigate(): void {
+    // Each step starts with a clean slate — no navigation is pending until we trigger one below.
+    // (A step that doesn't navigate must not inherit the previous step's `expectedRoute`.)
+    this.#expectedRoute = null;
     const route = this.currentStep?.route;
     if (route == null) return;
     if (route === this.#navSource.current()) return;
@@ -652,7 +655,11 @@ export class GuideController {
     if (path === this.#knownPath) return; // no pathname change (e.g. a hash/query update) — ignore
     this.#knownPath = path;
     if (this.#expectedRoute !== null && path === this.#expectedRoute) {
-      this.#expectedRoute = null; // the tour's own navigation landed — keep running
+      // The tour's own navigation landed — keep running. Deliberately do NOT clear `#expectedRoute`
+      // here: a redirecting / multi-hop source (the Navigation API emitting one event per hop) can
+      // fire a *second* event for the redirect target, which must still be recognized as a mismatch
+      // (and DEV-warned) instead of silently stopping. It clears once the step's target resolves
+      // (`#applyStepHighlight`) or the next step navigates (`#maybeNavigate`).
       return;
     }
     // Any other navigation stops the tour (analytics-silent). When one was pending, a landed path
@@ -764,6 +771,7 @@ export class GuideController {
       // the scroll is reduced-motion-aware inside `highlight`.
       this.highlight(step.target, { scroll: true });
       this.#clearRouteTargetWarning(); // target landed → no "never appeared" warning needed
+      this.#expectedRoute = null; // the navigated-to target resolved → navigation fully settled
     } else {
       this.clearHighlight();
       // A step bound to another route legitimately has no target on the current page — during the

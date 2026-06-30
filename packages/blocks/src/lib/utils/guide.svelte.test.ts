@@ -836,6 +836,49 @@ describe('GuideController — cross-route touring', () => {
     expect(ctrl.isTourActive).toBe(false); // …and the strict stop is still kept
   });
 
+  it('stays diagnosable across a redirect chain where the first event already matched', () => {
+    // A redirecting / multi-hop source (the Navigation API emitting one event per hop) fires the
+    // expected path FIRST, then the redirect target. The matching first event must not clear the
+    // expectation, or the second (mismatched) event would stop the tour silently. (Regression for
+    // the cross-route logic review.)
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+    const { ctrl, nav } = makeRouteController({ initialPath: '/dash', dev: true });
+    ctrl.registerTarget('a', mockElement());
+    ctrl.startTour(
+      tour([
+        { target: 'a', route: '/dash' },
+        { target: 'b', route: '/expenses' } // target 'b' never registers → never settles
+      ])
+    );
+    warn.mockClear();
+    ctrl.next(); // navigates toward /expenses
+    nav.emit('/expenses'); // hop 1: the tour's navigation landed (matches) — keeps running
+    expect(ctrl.isTourActive).toBe(true);
+    nav.emit('/expenses/summary'); // hop 2: a redirect to a different path
+    expect(warn).toHaveBeenCalledWith(expect.stringContaining('but landed on "/expenses/summary"'));
+    expect(ctrl.isTourActive).toBe(false); // stopped — but diagnosable, not silent
+  });
+
+  it('clears the expectation once the navigated-to target settles (later foreign nav is a plain stop)', () => {
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+    const { ctrl, nav } = makeRouteController({ initialPath: '/dash', dev: true });
+    ctrl.registerTarget('a', mockElement());
+    ctrl.startTour(
+      tour([
+        { target: 'a', route: '/dash' },
+        { target: 'b', route: '/expenses' }
+      ])
+    );
+    ctrl.next();
+    nav.emit('/expenses'); // navigation lands…
+    ctrl.registerTarget('b', mockElement());
+    ctrl.reapplyStepHighlight(); // …and the target settles → expectation cleared
+    warn.mockClear();
+    nav.emit('/reports'); // a later foreign nav: a plain stop, no "navigated toward" mis-frame
+    expect(ctrl.isTourActive).toBe(false);
+    expect(warn).not.toHaveBeenCalled();
+  });
+
   it('subscribes to navigation only for tours that declare a route', () => {
     const { ctrl, nav } = makeRouteController({ initialPath: '/dash' });
     ctrl.startTour(tour([{ title: 'no route' }])); // no step.route → no subscription
