@@ -655,11 +655,15 @@ export class GuideController {
     if (path === this.#knownPath) return; // no pathname change (e.g. a hash/query update) — ignore
     this.#knownPath = path;
     if (this.#expectedRoute !== null && path === this.#expectedRoute) {
-      // The tour's own navigation landed — keep running. Deliberately do NOT clear `#expectedRoute`
-      // here: a redirecting / multi-hop source (the Navigation API emitting one event per hop) can
-      // fire a *second* event for the redirect target, which must still be recognized as a mismatch
-      // (and DEV-warned) instead of silently stopping. It clears once the step's target resolves
-      // (`#applyStepHighlight`) or the next step navigates (`#maybeNavigate`).
+      // The tour's own navigation landed — keep running. For a *targeted* step, keep `#expectedRoute`
+      // set until the target settles (`#applyStepHighlight`) so a redirecting / multi-hop source (the
+      // Navigation API emitting one event per hop) firing a *second* event for the redirect target is
+      // still recognized as a mismatch (and DEV-warned) instead of silently stopping. A *targetless*
+      // route step has no target to wait for — it is settled on landing, so clear now; otherwise a
+      // later foreign navigation would misfire the "navigated toward …" warning. (`#maybeNavigate`
+      // also resets it on the next step. Clearing here can't move into `#applyStepHighlight`, which
+      // runs synchronously in `#activateStep` before the nav lands — it would mis-read our own nav.)
+      if (this.currentStep?.target == null) this.#expectedRoute = null;
       return;
     }
     // Any other navigation stops the tour (analytics-silent). When one was pending, a landed path

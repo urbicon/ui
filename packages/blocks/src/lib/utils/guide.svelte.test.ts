@@ -879,6 +879,22 @@ describe('GuideController — cross-route touring', () => {
     expect(warn).not.toHaveBeenCalled();
   });
 
+  it('clears the expectation for a targetless route step on landing (no misleading later warning)', () => {
+    // A targetless `route` step (a centered "intro to the new route" bubble) has no target to settle
+    // on, so the expectation must clear on landing — otherwise a later foreign nav would misfire the
+    // "navigated toward …" warning. The mid-test `isTourActive` assertion also guards against a fix
+    // that clears too early and mis-reads the tour's OWN navigation as foreign. (Final cross-route review.)
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+    const { ctrl, nav } = makeRouteController({ initialPath: '/home', dev: true });
+    ctrl.startTour(tour([{ route: '/billing', title: 'Welcome to billing' }])); // route, no target
+    nav.emit('/billing'); // the tour's own navigation lands…
+    expect(ctrl.isTourActive).toBe(true); // …and is NOT mistaken for a foreign navigation
+    warn.mockClear();
+    nav.emit('/settings'); // a later foreign nav: stops, with NO misleading "navigated toward" warning
+    expect(ctrl.isTourActive).toBe(false);
+    expect(warn).not.toHaveBeenCalled();
+  });
+
   it('subscribes to navigation only for tours that declare a route', () => {
     const { ctrl, nav } = makeRouteController({ initialPath: '/dash' });
     ctrl.startTour(tour([{ title: 'no route' }])); // no step.route → no subscription
