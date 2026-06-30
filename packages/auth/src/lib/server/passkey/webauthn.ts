@@ -573,13 +573,18 @@ async function verifyES256(
     y: base64UrlEncode(y)
   };
 
-  const key = await crypto.subtle.importKey(
-    'jwk',
-    jwk,
-    { name: 'ECDSA', namedCurve: 'P-256' },
-    false,
-    ['verify']
-  );
+  // importKey rejects (DataError) for a structurally-valid JWK whose point is
+  // not on P-256 — a corrupt or forged stored credential. Registration stores
+  // the COSE bytes without importing them, so such a key can reach here; treat
+  // it as a clean 400 (WebAuthnError → handler) rather than an opaque 500.
+  let key: CryptoKey;
+  try {
+    key = await crypto.subtle.importKey('jwk', jwk, { name: 'ECDSA', namedCurve: 'P-256' }, false, [
+      'verify'
+    ]);
+  } catch (err) {
+    throw new WebAuthnError('Invalid ES256 public key', { cause: err });
+  }
 
   // WebAuthn/FIDO2 authenticators emit the ECDSA signature as ASN.1 DER, but
   // Web Crypto's ECDSA verify accepts ONLY the raw r‖s (IEEE P1363) form — 64
@@ -627,13 +632,21 @@ async function verifyRS256(
     e: base64UrlEncode(e)
   };
 
-  const key = await crypto.subtle.importKey(
-    'jwk',
-    jwk,
-    { name: 'RSASSA-PKCS1-v1_5', hash: 'SHA-256' },
-    false,
-    ['verify']
-  );
+  // A corrupt stored RSA key (bad modulus/exponent) makes importKey reject
+  // (DataError); surface it as a clean 400 rather than an opaque 500, matching
+  // the ES256 path.
+  let key: CryptoKey;
+  try {
+    key = await crypto.subtle.importKey(
+      'jwk',
+      jwk,
+      { name: 'RSASSA-PKCS1-v1_5', hash: 'SHA-256' },
+      false,
+      ['verify']
+    );
+  } catch (err) {
+    throw new WebAuthnError('Invalid RS256 public key', { cause: err });
+  }
 
   const dataBuf = data.buffer.slice(
     data.byteOffset,

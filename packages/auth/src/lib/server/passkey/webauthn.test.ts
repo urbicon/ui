@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import { base64UrlDecode, base64UrlEncode } from '../notifications/web-push-crypto.js';
 import {
   type AuthenticationCredentialJSON,
@@ -570,5 +570,56 @@ describe('verifyAssertion — ES256 signature (Codeberg #38 regression)', () => 
     await expect(
       verifyAssertion(isolatedConfig(store), 'ceremony', credential, publicKey, -7, 0)
     ).rejects.toThrow('Invalid ECDSA signature encoding');
+  });
+});
+
+/** COSE_Key for an RSA / RS256 public key: {1:3, 3:-257, -1:n, -2:e}. */
+function coseRsaKey(n: Uint8Array, e: Uint8Array): Uint8Array {
+  const entries = [
+    [...cborInt(1), ...cborInt(3)],
+    [...cborInt(3), ...cborInt(-257)],
+    [...cborInt(-1), ...cborBytes(n)],
+    [...cborInt(-2), ...cborBytes(e)]
+  ];
+  return new Uint8Array([0xa0 | entries.length, ...entries.flat()]);
+}
+
+// A corrupt/forged stored public key (structurally valid COSE, but unimportable)
+// must surface as a WebAuthnError → 400, not an unhandled DOMException → 500.
+// Registration stores COSE bytes without importing them, so such a key reaches
+// verifyAssertion.
+describe('verifyAssertion — rejects an unimportable stored key with a clean 400', () => {
+  it('ES256 key whose point is not on P-256 (real importKey rejection)', async () => {
+    const store = createInMemoryChallengeStore();
+    await storeChallenge(store, 'ceremony', 'chal-offcurve');
+    // Valid ceremony fields (so the flow reaches the key import); the signature
+    // is never examined because importKey rejects the off-curve point first.
+    const { credential } = await buildEs256Assertion({ challenge: 'chal-offcurve' });
+    const offCurveKey = coseEc2Key(new Uint8Array(32).fill(0x02), new Uint8Array(32).fill(0x02));
+    await expect(
+      verifyAssertion(isolatedConfig(store), 'ceremony', credential, offCurveKey, -7, 0)
+    ).rejects.toThrow('Invalid ES256 public key');
+  });
+
+  it('RS256 key that importKey rejects', async () => {
+    const store = createInMemoryChallengeStore();
+    await storeChallenge(store, 'ceremony', 'chal-badrsa');
+    const { credential } = await buildEs256Assertion({ challenge: 'chal-badrsa' });
+    // n and e are present so the COSE guard passes and the flow reaches
+    // importKey. No mainstream runtime (Node and Bun both confirmed) eagerly
+    // rejects a structurally-valid-but-bogus RSA JWK — they defer validation to
+    // verify() — so force the importKey rejection a stricter implementation
+    // would raise, and assert verifyRS256 maps it to a clean 400.
+    const rsaKey = coseRsaKey(new Uint8Array(256).fill(0xc0), new Uint8Array([0x01, 0x00, 0x01]));
+    const spy = vi
+      .spyOn(crypto.subtle, 'importKey')
+      .mockRejectedValue(new DOMException('off-curve / bad key', 'DataError'));
+    try {
+      await expect(
+        verifyAssertion(isolatedConfig(store), 'ceremony', credential, rsaKey, -257, 0)
+      ).rejects.toThrow('Invalid RS256 public key');
+    } finally {
+      spy.mockRestore();
+    }
   });
 });
