@@ -156,6 +156,12 @@ so uni- or bidirectional is a deliberate option, resolved by `resolveDirection(i
 ring/glow + optional scroll-into-view; clicking scrolls it into view. Degrades to plain text when
 the direction is `'to-guide'`. → *"I'm reading the article and want to see where the element is."*
 
+**Article → article** (`GuideRef`): an inline link inside a `GuideArticle` body that navigates the
+panel to another article (`setArticle`) — the help-internal analogue of `GuideMention`. It is *not*
+a `data-guide`/highlight link: it resolves against the panel's article registry (`hasArticle`), so
+it degrades to plain text for an unknown article id (or without a provider/panel). → *"I'm reading
+this article and want to jump to a related one."*
+
 **Highlight principle (D5):** **Tour = subtractive** (full scrim, the surroundings disappear)
 · **Highlight = additive** (an `outline` ring + soft glow, the target is emphasized, nothing is
 dimmed). Direction B uses only the additive ring via `outline` (not `border` → no layout shift at
@@ -169,8 +175,9 @@ the target), `prefers-reduced-motion`-aware. The full scrim is reserved for the 
 |---|---|---|
 | `GuideProvider` | overlay, feedback | Context root; instantiates `GuideController`, injects the StorageAdapter (analogous to `BlocksProvider`) |
 | `GuidePanel` | overlay, navigation | Callable, **non-modal** sidebar help panel |
-| `GuideArticle` | display | Structured article in the panel (contains `GuideMention`s) |
+| `GuideArticle` | display | Structured article in the panel (contains `GuideMention`s); optional `group` buckets it under a section header in the index |
 | `GuideMention` | navigation | Inline article→UI reference (direction B) |
+| `GuideRef` | navigation | Inline article→article link inside an article body (panel-internal navigation) |
 | `GuideMarker` | action, feedback | "ⓘ" UI→panel trigger (direction A) — *not* a status `Badge` |
 | `GuideHint` | overlay, feedback | Contextual, non-blocking hint at an element |
 | `Guide` | overlay, feedback | Tour renderer: bubble (`floating.ts`) + spotlight mask |
@@ -181,8 +188,8 @@ programmatically.
 
 Every `*Props` interface carries the mandatory JSDoc (`@description`, `@tag`, `@related`,
 `@stability beta`) — the single source for the MCP server, `llms.txt`, and the docs site.
-The seven surfaces additionally carry `@standalone`, which gives each its own MCP-catalog
-entry and `llm.txt` (`find_components("guide")` lists all eight; `get_component("guide-panel")`
+The eight surfaces additionally carry `@standalone`, which gives each its own MCP-catalog
+entry and `llm.txt` (`find_components("guide")` lists all nine; `get_component("guide-panel")`
 etc. work) despite the family sharing one `index.ts` and one docs page — unlike compound
 subcomponents (TabItem, MenuItem), which stay folded into their directory component's entry.
 
@@ -267,6 +274,15 @@ The build deviated from the original plan in ways that are now the intended cont
   and fall back to the centered scrim when one vanishes. The tour exit fades via a
   `view = liveView ?? heldView` snapshot that holds the last step's content through the popover
   transition. `GuidePanel` returns focus to its opener on close.
+- **Panel index scales with the catalog:** `GuideArticle.group` buckets the index under section
+  headers (a `<ul aria-labelledby>` per section in first-occurrence order; ungrouped articles in
+  one headerless block; a flat list when no article sets a group — unchanged for existing
+  consumers). `GuidePanel.searchable` adds an opt-in case-insensitive title filter that runs
+  *before* grouping (non-empty sections keep their headers, empty ones disappear; an empty result
+  shows the i18n `guide.noResults` status). `GuideRef` (§4) is the inline article→article link,
+  resolving against the panel's article registry (`hasArticle`) so it degrades to plain text for an
+  unknown id — hydration-safe because the registry is empty during SSR and the first client render
+  alike, then reactively upgrades the `<span>` to a `<button>`.
 
 ---
 

@@ -26,6 +26,7 @@
   import { componentData as articleData } from '../guide-article/api';
   import { componentData as markerData } from '../guide-marker/api';
   import { componentData as mentionData } from '../guide-mention/api';
+  import { componentData as refData } from '../guide-ref/api';
   import { componentData as hintData } from '../guide-hint/api';
   import { componentData as beaconData } from '../guide-beacon/api';
   import { buildRelatedLinks } from '$lib/component-links';
@@ -52,6 +53,10 @@
     {
       data: mentionData,
       blurb: 'Direction B — inline article→UI reference that highlights the element.'
+    },
+    {
+      data: refData,
+      blurb: 'Inline article→article link — navigates the panel to another article.'
     },
     { data: hintData, blurb: 'Contextual, waiting hint anchored to a data-guide element.' },
     { data: beaconData, blurb: 'Waiting, pulsing hotspot that starts an opt-in tour.' }
@@ -342,6 +347,7 @@
   GuideArticle,
   GuideMarker,
   GuideMention,
+  GuideRef,
   GuideHint,
   Guide,
   GuideBeacon,
