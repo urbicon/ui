@@ -63,10 +63,22 @@ export function useSorting(state: TableState, getFilteredItems: () => TableItem[
     }
   }
 
+  /**
+   * Set the sort column + direction explicitly. Unlike `handleSort` (which
+   * cycles asc → desc → none on repeated calls), this sets an exact state and
+   * is used by the mobile sort control, where there is no column header to click.
+   * Pass an empty `column` to clear the sort.
+   */
+  function setSort(column: string, direction: 'asc' | 'desc') {
+    state.sortColumn = column;
+    state.sortDirection = column ? direction : 'asc';
+  }
+
   return {
     get sortedItems() {
       return sortedItems;
     },
-    handleSort
+    handleSort,
+    setSort
   };
 }

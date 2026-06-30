@@ -9,6 +9,7 @@
   import ColumnVisibilityMenu from './ColumnVisibilityMenu.svelte';
   import FilterMenu from './FilterMenu.svelte';
   import GroupingMenu from './GroupingMenu.svelte';
+  import SortMenu from './SortMenu.svelte';
   import SummaryMenu from './SummaryMenu.svelte';
   import { getTableStyleConfig, resolveSlotClass } from '$lib/core/table-style-context';
 
@@ -103,6 +104,7 @@
       class={filterBarStyles.actionsSection()}
     >
       <FilterMenu />
+      <SortMenu />
       <GroupingMenu />
       <SummaryMenu />
       <ColumnVisibilityMenu />

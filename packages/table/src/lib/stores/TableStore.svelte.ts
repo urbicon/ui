@@ -235,6 +235,11 @@ export function createTableState(persistenceConfig?: TablePersistenceConfig) {
     persistence.syncSortState();
   }
 
+  function setSort(column: string, direction: 'asc' | 'desc') {
+    sorting.setSort(column, direction);
+    persistence.syncSortState();
+  }
+
   function hideColumn(id: string) {
     columnVisibility.hideColumn(id);
     persistence.syncHiddenColumns([...columnVisibility.hiddenColumnKeys]);
@@ -317,6 +322,7 @@ export function createTableState(persistenceConfig?: TablePersistenceConfig) {
 
     // Sorting
     handleSort,
+    setSort,
 
     // Pagination
     setPage: pagination.setPage,

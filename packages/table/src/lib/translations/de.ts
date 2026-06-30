@@ -96,6 +96,12 @@ export default {
     none: 'Keine Gruppierung',
     placeholder: 'Gruppierung auswählen'
   },
+  sort: {
+    button: 'Sortierung',
+    none: 'Keine Sortierung',
+    ascending: 'Aufsteigend',
+    descending: 'Absteigend'
+  },
   header: {
     activeFilter: 'Aktiver Filter',
     activeIndicator: '{{type}} aktiv für diese Spalte',

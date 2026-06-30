@@ -96,6 +96,12 @@ export default {
     none: 'No grouping',
     placeholder: 'Select grouping'
   },
+  sort: {
+    button: 'Sort',
+    none: 'No sorting',
+    ascending: 'Ascending',
+    descending: 'Descending'
+  },
   header: {
     activeFilter: 'Active filter',
     activeIndicator: '{{type}} active for this column',
