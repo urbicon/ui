@@ -295,12 +295,19 @@ export const mobileCardVariants = tv({
       'transition-[color,background-color,border-color,box-shadow,opacity] duration-[var(--blocks-duration-fast)]',
       'hover:border-border-default hover:shadow-[var(--blocks-shadow-sm)]'
     ],
-    header: ['p-4 pb-0'],
-    content: ['p-4 pt-3'],
-    field: ['flex flex-col gap-1 mb-3'],
+    // Title region — the primary identifier, emphasized and label-less.
+    header: ['px-4 pt-4 pb-1'],
+    title: ['text-base font-semibold text-text-primary leading-snug break-words'],
+    content: ['px-4 pb-4 pt-2'],
+    // Detail fields in a compact 2-column grid (was a tall single-column stack,
+    // which made a 4-field card ~266px tall — only ~2 fit per phone screen).
+    grid: ['grid grid-cols-2 gap-x-4 gap-y-3'],
+    field: ['flex flex-col gap-0.5 min-w-0'],
     label: ['text-xs font-medium text-text-tertiary', 'uppercase tracking-wide'],
-    value: ['text-sm text-text-primary truncate'],
-    actions: ['flex items-center justify-end gap-2', 'p-3 pt-0'],
+    // Wrap instead of truncate — a full-width card has room, and truncation
+    // hides data with no tooltip on touch.
+    value: ['text-sm text-text-primary break-words'],
+    actions: ['flex items-center justify-end gap-2', 'px-4 pb-3 pt-0'],
     expandButton: [
       'ml-auto p-1 rounded-modify',
       'hover:bg-surface-hover',
@@ -313,19 +320,21 @@ export const mobileCardVariants = tv({
   variants: {
     size: {
       sm: {
-        header: 'p-3 pb-0',
-        content: 'p-3 pt-2',
-        field: 'mb-2'
+        header: 'px-3 pt-3 pb-1',
+        content: 'px-3 pb-3 pt-1.5',
+        grid: 'gap-x-3 gap-y-2',
+        title: 'text-sm'
       },
       md: {
-        header: 'p-4 pb-0',
-        content: 'p-4 pt-3',
-        field: 'mb-3'
+        header: 'px-4 pt-4 pb-1',
+        content: 'px-4 pb-4 pt-2',
+        grid: 'gap-x-4 gap-y-3'
       },
       lg: {
-        header: 'p-5 pb-0',
-        content: 'p-5 pt-4',
-        field: 'mb-4'
+        header: 'px-5 pt-5 pb-1.5',
+        content: 'px-5 pb-5 pt-2.5',
+        grid: 'gap-x-5 gap-y-4',
+        title: 'text-lg'
       }
     },
 

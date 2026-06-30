@@ -72,6 +72,12 @@
 
   const secondaryColumns = $derived(tableState.columns.filter((col) => col.priority === 2));
 
+  // The first visible column becomes the card title (emphasized, label-less);
+  // the remaining fields fill a compact grid below it.
+  const visibleColumns = $derived([...primaryColumns, ...secondaryColumns]);
+  const titleColumn = $derived(visibleColumns[0]);
+  const detailColumns = $derived(visibleColumns.slice(1));
+
   const cardStyles = $derived(
     mobileCardVariants({
       size,
@@ -91,9 +97,7 @@
     {@const CellComponent = column.component}
     <CellComponent {...getComponentProps(column, item)} />
   {:else if cellValue !== undefined}
-    <span class={cardStyles.value()}>
-      {formatCellValue(item, column)}
-    </span>
+    {formatCellValue(item, column)}
   {/if}
 {/snippet}
 
@@ -111,21 +115,18 @@
   onclick={handleClick}
   onkeydown={handleKeyDown}
 >
-  <div class={cardStyles.content()}>
-    <div class={cardStyles.content()}>
-      {#each primaryColumns as column (resolveColumnId(column))}
-        <div class={cardStyles.field()}>
-          <span class={cardStyles.label()}>{column.title}</span>
-          <div class={cardStyles.value()}>
-            {@render renderCellContent(column)}
-          </div>
-        </div>
-      {/each}
+  {#if titleColumn}
+    <div class={cardStyles.header()}>
+      <div class={cardStyles.title()}>
+        {@render renderCellContent(titleColumn)}
+      </div>
     </div>
+  {/if}
 
-    {#if secondaryColumns.length > 0}
-      <div class={cardStyles.content()}>
-        {#each secondaryColumns as column (resolveColumnId(column))}
+  {#if detailColumns.length > 0}
+    <div class={cardStyles.content()}>
+      <div class={cardStyles.grid()}>
+        {#each detailColumns as column (resolveColumnId(column))}
           <div class={cardStyles.field()}>
             <span class={cardStyles.label()}>{column.title}</span>
             <div class={cardStyles.value()}>
@@ -134,14 +135,14 @@
           </div>
         {/each}
       </div>
-    {/if}
+    </div>
+  {/if}
 
-    {#if expandable}
-      <div class={cardStyles.actions()}>
-        <ChevronDownIcon class="{cardStyles.expandIcon()} h-5 w-5" />
-      </div>
-    {/if}
-  </div>
+  {#if expandable}
+    <div class={cardStyles.actions()}>
+      <ChevronDownIcon class="{cardStyles.expandIcon()} h-5 w-5" />
+    </div>
+  {/if}
 
   {#if isExpanded && expandedRowContent}
     <div class={cardStyles.expandedContent()}>
