@@ -78,7 +78,7 @@
     className
   )}
 >
-  <Toolbar aria-label={tt('aria.filterBar')} variant="ghost" gap="xs" padding="xs" class="w-full">
+  <div class={filterBarStyles.controls()}>
     <div class={filterBarStyles.searchSection()}>
       {#snippet searchIcon()}
         <SearchIcon class="h-4 w-4" />
@@ -95,13 +95,19 @@
       />
     </div>
 
-    <div class="{filterBarStyles.actionsSection()} ml-auto gap-1">
+    <Toolbar
+      aria-label={tt('aria.filterBar')}
+      variant="ghost"
+      gap="xs"
+      padding="xs"
+      class={filterBarStyles.actionsSection()}
+    >
       <FilterMenu />
       <GroupingMenu />
       <SummaryMenu />
       <ColumnVisibilityMenu />
-    </div>
-  </Toolbar>
+    </Toolbar>
+  </div>
 
   <div class={filterBarStyles.chipsSection()}>
     <ChipsField />

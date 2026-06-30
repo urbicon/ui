@@ -21,8 +21,13 @@ export const smartFilterBarVariants = tv({
       'transition-shadow duration-[var(--blocks-duration-fast)]',
       '@container'
     ],
-    searchSection: ['min-w-0 max-w-xs'],
-    actionsSection: ['flex items-center gap-2 flex-shrink-0'],
+    // [search | actions] row. Direction is driven by `layout` — `responsive`
+    // stacks the search above the actions until the *bar itself* (not the
+    // viewport) is wide enough, so the search input is never crushed to ~0 by
+    // the shrink-0 action buttons on a narrow screen (Codeberg #28).
+    controls: ['flex gap-2'],
+    searchSection: ['w-full min-w-0'],
+    actionsSection: ['flex items-center'],
     chipsSection: ['w-full']
   },
 
@@ -30,27 +35,34 @@ export const smartFilterBarVariants = tv({
     size: {
       sm: {
         container: 'gap-2 p-2',
-        searchSection: 'max-w-2xs'
+        searchSection: '@md:max-w-2xs'
       },
       md: {
         container: 'gap-3 p-3',
-        searchSection: 'max-w-xs'
+        searchSection: '@md:max-w-xs'
       },
       lg: {
         container: 'gap-4 p-4',
-        searchSection: 'max-w-sm'
+        searchSection: '@md:max-w-sm'
       }
     },
 
     layout: {
-      horizontal: {},
+      horizontal: {
+        controls: 'flex-row items-center',
+        actionsSection: 'ml-auto shrink-0'
+      },
       vertical: {
-        searchSection: 'w-full max-w-full',
+        controls: 'flex-col',
+        // Stacked layout → search spans the full width; cancel the size cap
+        // (`@md:max-w-*`) which would otherwise leave dead space beside it.
+        searchSection: '@md:max-w-full',
         actionsSection: 'w-full justify-between'
       },
+      // Stack while the bar is narrow; switch to a row at ~28rem container width.
       responsive: {
-        searchSection: 'w-full sm:max-w-xs',
-        actionsSection: 'w-full sm:w-auto'
+        controls: 'flex-col @md:flex-row @md:items-center',
+        actionsSection: '@md:ml-auto @md:shrink-0'
       }
     },
 
