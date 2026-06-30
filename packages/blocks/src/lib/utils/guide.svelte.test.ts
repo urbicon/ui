@@ -818,6 +818,24 @@ describe('GuideController — cross-route touring', () => {
     expect(ctrl.isTourActive).toBe(true);
   });
 
+  it('DEV-warns (not silently) when a tour navigation lands on an unexpected path, then stops', () => {
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+    const { ctrl, nav } = makeRouteController({ initialPath: '/dash', dev: true });
+    ctrl.registerTarget('a', mockElement());
+    ctrl.startTour(
+      tour([
+        { target: 'a', route: '/dash' },
+        { target: 'b', route: '/expenses' }
+      ])
+    );
+    warn.mockClear();
+    ctrl.next(); // navigates toward /expenses
+    nav.emit('/expenses/'); // the router normalized to a trailing slash → unexpected landing
+    // The mismatch is surfaced (a one-char step.route slip is not a silent teardown)…
+    expect(warn).toHaveBeenCalledWith(expect.stringContaining('but landed on "/expenses/"'));
+    expect(ctrl.isTourActive).toBe(false); // …and the strict stop is still kept
+  });
+
   it('subscribes to navigation only for tours that declare a route', () => {
     const { ctrl, nav } = makeRouteController({ initialPath: '/dash' });
     ctrl.startTour(tour([{ title: 'no route' }])); // no step.route → no subscription

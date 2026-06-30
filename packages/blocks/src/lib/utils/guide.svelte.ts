@@ -169,7 +169,10 @@ export interface GuideControllerOptions {
    * Source for the current path + navigation events, used to decide whether a step's `route`
    * needs navigating and to tell a tour-internal navigation from a foreign one (which stops the
    * tour). @default a browser source reading `window.location.pathname` and listening via the
-   * Navigation API (`popstate` fallback). Inject one for a custom router or a configured base path.
+   * Navigation API. Where that API is unavailable it falls back to `popstate` (back/forward only,
+   * not `pushState`), so a foreign *forward* navigation may go unobserved — inject a router-backed
+   * source (SvelteKit: `afterNavigate` + the `page` store; see docs/GUIDE.md §9) for reliable
+   * detection, or to handle a configured base path / custom router.
    */
   navigationSource?: GuideNavigationSource;
   /** Force DEV-mode warnings on/off. @default `import.meta.env?.DEV ?? false` */
@@ -230,6 +233,7 @@ interface NavigationLike {
  * is not. SSR-safe: `current()` returns `''` and `subscribe()` is a no-op without a `window`.
  */
 export function createBrowserNavigationSource(): GuideNavigationSource {
+  let warnedFallback = false;
   return {
     current() {
       return BROWSER ? window.location.pathname : '';
@@ -252,6 +256,16 @@ export function createBrowserNavigationSource(): GuideNavigationSource {
         };
         nav.addEventListener('navigate', handler);
         return () => nav.removeEventListener('navigate', handler);
+      }
+      // `popstate` only catches back/forward, not `pushState` (a SvelteKit `goto` / intercepted
+      // link click), so a foreign *forward* navigation goes unobserved and the tour won't stop.
+      // Warn once so a degraded-detection browser is diagnosable; inject a router-backed
+      // navigationSource for reliable detection (docs/GUIDE.md §9).
+      if (import.meta.env?.DEV && !warnedFallback) {
+        warnedFallback = true;
+        console.warn(
+          '[Guide] the Navigation API is unavailable; cross-route foreign-navigation detection falls back to popstate and will miss pushState navigations (link clicks, goto). Inject a router-backed navigationSource for reliable detection — see docs/GUIDE.md §9.'
+        );
       }
       const onPop = () => onNavigate(window.location.pathname);
       window.addEventListener('popstate', onPop);
@@ -606,13 +620,25 @@ export class GuideController {
       if (result && typeof (result as Promise<void>).then === 'function') {
         (result as Promise<void>).catch((err: unknown) => {
           if (this.#dev) console.warn('[Guide] navigate hook rejected:', err);
-          if (this.#expectedRoute === route) this.#expectedRoute = null;
+          this.#abortPendingNavigation(route);
         });
       }
     } catch (err) {
       if (this.#dev) console.warn('[Guide] navigate hook threw:', err);
-      if (this.#expectedRoute === route) this.#expectedRoute = null;
+      this.#abortPendingNavigation(route);
     }
+  }
+
+  /**
+   * Roll back the bookkeeping for a navigation that failed (hook threw/rejected) — but only if it
+   * is still the pending one, so a newer step's navigation (the user clicked Next while this hook
+   * was in flight) is never clobbered by a late rejection. Clears the now-meaningless "target never
+   * appeared" timer too, so it can't later fire a misleading warning for a navigation that never ran.
+   */
+  #abortPendingNavigation(route: string): void {
+    if (this.#expectedRoute !== route) return;
+    this.#expectedRoute = null;
+    this.#clearRouteTargetWarning();
   }
 
   /**
@@ -626,8 +652,17 @@ export class GuideController {
     if (path === this.#knownPath) return; // no pathname change (e.g. a hash/query update) — ignore
     this.#knownPath = path;
     if (this.#expectedRoute !== null && path === this.#expectedRoute) {
-      this.#expectedRoute = null;
+      this.#expectedRoute = null; // the tour's own navigation landed — keep running
       return;
+    }
+    // Any other navigation stops the tour (analytics-silent). When one was pending, a landed path
+    // that doesn't match is most often a normalized `step.route` (trailing slash, base/locale
+    // prefix) rather than a genuine foreign nav — so surface it instead of a silent teardown on a
+    // one-character mismatch. (The strict stop is kept either way: better than running on a wrong page.)
+    if (this.#dev && this.#expectedRoute !== null) {
+      console.warn(
+        `[Guide] tour "${this.#activeTour?.id}" navigated toward "${this.#expectedRoute}" but landed on "${path}" — stopping as a foreign navigation. If "${path}" is just a normalized form of the step's route (trailing slash, base/locale prefix), set step.route to the router's actual path.`
+      );
     }
     this.#expectedRoute = null;
     this.stopTour();
