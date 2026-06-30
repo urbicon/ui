@@ -1,6 +1,7 @@
 // WebAuthn server-side verification — zero-dependency implementation.
 // Implements FIDO2/WebAuthn Level 2 attestation and assertion verification.
 
+import { derToRawEcdsaSignature } from '../ecdsa-der.js';
 import { base64UrlDecode, base64UrlEncode } from '../notifications/web-push-crypto.js';
 import { type CborValue, decodeCbor } from './cbor.js';
 
@@ -580,14 +581,28 @@ async function verifyES256(
     ['verify']
   );
 
-  // WebAuthn uses DER-encoded signature; Web Crypto expects it for ECDSA
+  // WebAuthn/FIDO2 authenticators emit the ECDSA signature as ASN.1 DER, but
+  // Web Crypto's ECDSA verify accepts ONLY the raw r‖s (IEEE P1363) form — 64
+  // bytes for P-256. Without this conversion verify() always returns false, so
+  // every ES256 passkey login (Touch ID, Face ID, Windows Hello, …) fails.
+  let rawSignature: Uint8Array;
+  try {
+    rawSignature = derToRawEcdsaSignature(derSignature);
+  } catch {
+    // A conformant authenticator never emits malformed DER. Surface a
+    // structurally invalid signature as a clean assertion failure (the handler
+    // maps WebAuthnError → 400), never an opaque 500, and never hand the raw
+    // bytes to crypto.subtle.verify.
+    throw new WebAuthnError('Invalid ECDSA signature encoding');
+  }
+
   const dataBuf = data.buffer.slice(
     data.byteOffset,
     data.byteOffset + data.byteLength
   ) as ArrayBuffer;
-  const sigBuf = derSignature.buffer.slice(
-    derSignature.byteOffset,
-    derSignature.byteOffset + derSignature.byteLength
+  const sigBuf = rawSignature.buffer.slice(
+    rawSignature.byteOffset,
+    rawSignature.byteOffset + rawSignature.byteLength
   ) as ArrayBuffer;
 
   return crypto.subtle.verify({ name: 'ECDSA', hash: 'SHA-256' }, key, sigBuf, dataBuf);
