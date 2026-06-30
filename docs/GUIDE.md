@@ -356,7 +356,10 @@ How it behaves:
 - **Path comparison.** `route` is compared against `window.location.pathname` by default, so use a
   normalized path (no query/hash, and matching the router's *actual* landed path — e.g. include the
   trailing slash or base/locale prefix if your router adds one, otherwise the navigation lands on a
-  path the engine doesn't recognize and stops the tour as foreign, with a DEV warning).
+  path the engine doesn't recognize and stops the tour as foreign, with a DEV warning). This caveat
+  applies to *asynchronously* observed navigations; a synchronous, re-entrant `navigationSource`
+  (the `afterNavigate` one below) sidesteps it — a same-tick report is recognized as the tour's own
+  by *timing*, not by path, so any normalized landing keeps running.
 
 > **Reliable foreign-navigation detection.** The default `navigationSource` observes navigations via
 > the Navigation API, which catches link clicks, `goto`, and back/forward in Chromium and recent
@@ -387,6 +390,14 @@ How it behaves:
 >   const guide = new GuideController({ navigate: goto, navigationSource });
 > </script>
 > ```
+>
+> This source fires **synchronously inside `goto`** — re-entrant, while the controller's own
+> `navigate` hook is still on the stack. The engine treats such a same-tick report as the tour's own
+> navigation (recognized by *timing*, not by path), so a plain synchronous `notify` is correct — no
+> `queueMicrotask` deferral is needed. Because the match is by timing, a router-normalized landing
+> (trailing slash, base/locale prefix) keeps the tour running; a synchronous *redirect* off the
+> step's route also keeps it running (DEV-warned, not stopped), so stop the tour explicitly from a
+> router guard if a redirect should end it.
 
 ### Manual (`onStep` + `goto`) — the escape hatch
 

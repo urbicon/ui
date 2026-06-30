@@ -372,6 +372,12 @@ export class GuideController {
    * exact signal; the `path === #expectedRoute` check in `#onLocationChange` is only an async-source
    * proxy for the same thing and breaks the moment the router reports a normalized path
    * (trailing slash, base/locale prefix) that doesn't equal the raw `step.route`.
+   *
+   * A boolean (not a depth counter) is enough: the sole re-entrant callee of a sync source is
+   * `#onLocationChange`, which never calls `#maybeNavigate`. A `navigate` hook that *synchronously*
+   * re-enters `next`/`prev`/`startTour` is out of contract — its inner `#maybeNavigate` `finally`
+   * would clear this early; that only ever fails *closed* (a later own report read as foreign → stop),
+   * never open, so it can't keep a genuinely foreign navigation alive.
    */
   #selfNavigating = false;
   /** Last path the tour is known to be on — set at start, updated on each handled navigation. */
