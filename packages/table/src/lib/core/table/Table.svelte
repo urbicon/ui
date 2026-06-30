@@ -211,6 +211,7 @@
     class={resolveSlotClass(tableStyles.container(), slotClasses.container, unstyled, className)}
     style={containerStyle}
     data-table-container
+    data-fit={contained ? 'viewport' : 'content'}
     data-testid="table"
     bind:this={tableContainer}
     {@attach contained ? measureViewportOffsetTop('--blocks-table-avail-top') : () => {}}

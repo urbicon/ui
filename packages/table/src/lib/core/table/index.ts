@@ -430,6 +430,12 @@ export interface TableProps<T = TableItem> {
    *   absorbs app-shell offsets automatically.
    * - Mutually exclusive with `virtualized`, which manages its own bounded
    *   scroll via `virtualHeight`; `fit` has no effect when `virtualized`.
+   * - The box reaches the bottom of the viewport, so it assumes nothing sits
+   *   *below* it. An ancestor with bottom padding (or a following sibling) is
+   *   pushed past `100dvh` and produces a second, page-level scrollbar next to
+   *   the table's own. The container mirrors the effective mode as
+   *   `data-fit="viewport"` (vs `"content"`) so a layout can drop that inset,
+   *   e.g. `main:has([data-fit='viewport']) { padding-block-end: 0 }`.
    *
    * @default "content"
    * @example
