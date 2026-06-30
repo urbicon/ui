@@ -4,6 +4,11 @@ All notable changes to this project will be documented in this file.
 This changelog is automatically generated from [Conventional Commits](https://www.conventionalcommits.org).
 
 
+## [6.7.1] - 2026-06-30
+
+### Documentation
+- **table**: Gate the data-fit padding override to the md breakpoint
+
 ## [6.7.0] - 2026-06-30
 
 ### Documentation
