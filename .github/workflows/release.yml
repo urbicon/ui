@@ -36,16 +36,15 @@ jobs:
       - name: Lint
         run: bun run lint
 
-      # `check` runs over every workspace incl. docs-app, which type-checks
-      # against the built package dist + generated api.ts; `build:ts` produces
-      # both so the typecheck gate can resolve them.
-      - name: Type check
-        run: |
-          bun run build:ts
-          bun run check
-
-      - name: Build packages
+      # Build once: the publish step ships the package dist, and `check` (next)
+      # type-checks every workspace incl. docs-app against that built dist +
+      # the generated api.ts. (`build` here is `build:ts` + the app build, so a
+      # separate `build:ts` before `check` would rebuild every package twice.)
+      - name: Build
         run: bun run build
+
+      - name: Type check
+        run: bun run check
 
       - name: Run unit tests
         run: |
