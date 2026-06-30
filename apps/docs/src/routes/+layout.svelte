@@ -24,8 +24,8 @@
   import '@fontsource/jetbrains-mono/600.css';
   // Editorial display (Newsreader) + body (Public Sans), self-hosted like the
   // mono above — no third-party requests (see /privacy, PUBLISH-READINESS.md E.2).
-  import '@fontsource-variable/newsreader';
-  import '@fontsource-variable/public-sans';
+  import '@fontsource-variable/newsreader/index.css';
+  import '@fontsource-variable/public-sans/index.css';
   import '../app.css';
 
   registerDefaultMints();
