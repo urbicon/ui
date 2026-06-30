@@ -4,6 +4,19 @@ All notable changes to this project will be documented in this file.
 This changelog is automatically generated from [Conventional Commits](https://www.conventionalcommits.org).
 
 
+## [6.5.0] - 2026-06-30
+
+### Bug Fixes
+- **blocks**: Address review findings for the GuidePanel index features
+
+### Documentation
+- **blocks**: Document GuidePanel grouping/search + GuideRef (Codeberg #25/#26/#27)
+
+### Features
+- **blocks**: Group the GuidePanel article index by section (Codeberg #25)
+- **blocks**: Add opt-in article search to GuidePanel (Codeberg #26)
+- **blocks**: Add GuideRef for declarative article→article links (Codeberg #27)
+
 ## [6.4.1] - 2026-06-30
 
 ### Bug Fixes
