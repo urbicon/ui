@@ -6,6 +6,7 @@
   import { getBlocksConfig, resolveSlotClasses } from '$lib/provider';
   import { getGuideContext } from './guide.context';
   import { setGuidePanelContext } from './guide-panel.context';
+  import { groupArticles, hasNamedGroups } from './guide-panel.articles';
   import { guidePanelVariants, type GuidePanelVariants } from './guide.variants';
   import type { GuidePanelProps } from './index';
 
@@ -44,10 +45,11 @@
   // Article registry feeding the list view. GuideArticle children register here.
   // untrack mirrors GuideController.registerTarget: writes happen from a child's
   // $effect, so untracking guards the list derived against effect_update_depth_exceeded.
-  const articleMap = new SvelteMap<string, string>();
+  // SvelteMap preserves insertion order, so the index follows definition order.
+  const articleMap = new SvelteMap<string, { title: string; group?: string }>();
   setGuidePanelContext({
-    registerArticle(id, articleTitle) {
-      untrack(() => articleMap.set(id, articleTitle));
+    registerArticle(id, articleTitle, group) {
+      untrack(() => articleMap.set(id, { title: articleTitle, group }));
       return () => untrack(() => articleMap.delete(id));
     }
   });
@@ -62,10 +64,19 @@
 
   const open = $derived(guide?.panelOpen ?? false);
   const activeArticle = $derived(guide?.activeArticle ?? null);
-  const articles = $derived([...articleMap].map(([id, t]) => ({ id, title: t })));
-  const headerTitle = $derived(
-    (activeArticle ? articleMap.get(activeArticle) : undefined) ?? title ?? bt('guide.openHelp', {})
+  const articles = $derived(
+    [...articleMap].map(([id, a]) => ({ id, title: a.title, group: a.group }))
   );
+  const headerTitle = $derived(
+    (activeArticle ? articleMap.get(activeArticle)?.title : undefined) ??
+      title ??
+      bt('guide.openHelp', {})
+  );
+
+  // Group the index into sections (first-occurrence order; ungrouped articles in
+  // one headerless block). When no article sets a group, this is a flat list.
+  const sections = $derived(groupArticles(articles));
+  const hasGroups = $derived(hasNamedGroups(sections));
 
   const panelTransform = $derived(
     open ? 'translateX(0)' : placement === 'left' ? 'translateX(-100%)' : 'translateX(100%)'
@@ -180,25 +191,53 @@
     </header>
 
     <div class={unstyled ? (slotClasses?.body ?? '') : styles.body({ class: slotClasses?.body })}>
+      {#snippet articleListItem(article: { id: string; title: string })}
+        <li>
+          <button
+            type="button"
+            class={unstyled
+              ? (slotClasses?.listItem ?? '')
+              : styles.listItem({ class: slotClasses?.listItem })}
+            onclick={() => guide?.setArticle(article.id)}
+          >
+            <span class="flex-1">{article.title}</span>
+            <ChevronRightIcon class="h-4 w-4 opacity-50" />
+          </button>
+        </li>
+      {/snippet}
       {#if !activeArticle}
-        <ul
-          class={unstyled ? (slotClasses?.list ?? '') : styles.list({ class: slotClasses?.list })}
-        >
-          {#each articles as article (article.id)}
-            <li>
-              <button
-                type="button"
+        {#if hasGroups}
+          {#each sections as section, i (section.group ?? '')}
+            {#if section.group}
+              <h3
+                id={`${panelId}-group-${i}`}
                 class={unstyled
-                  ? (slotClasses?.listItem ?? '')
-                  : styles.listItem({ class: slotClasses?.listItem })}
-                onclick={() => guide.setArticle(article.id)}
+                  ? (slotClasses?.groupHeader ?? '')
+                  : styles.groupHeader({ class: slotClasses?.groupHeader })}
               >
-                <span class="flex-1">{article.title}</span>
-                <ChevronRightIcon class="h-4 w-4 opacity-50" />
-              </button>
-            </li>
+                {section.group}
+              </h3>
+            {/if}
+            <ul
+              class={unstyled
+                ? (slotClasses?.list ?? '')
+                : styles.list({ class: slotClasses?.list })}
+              aria-labelledby={section.group ? `${panelId}-group-${i}` : undefined}
+            >
+              {#each section.articles as article (article.id)}
+                {@render articleListItem(article)}
+              {/each}
+            </ul>
           {/each}
-        </ul>
+        {:else}
+          <ul
+            class={unstyled ? (slotClasses?.list ?? '') : styles.list({ class: slotClasses?.list })}
+          >
+            {#each articles as article (article.id)}
+              {@render articleListItem(article)}
+            {/each}
+          </ul>
+        {/if}
       {/if}
       {@render children?.()}
     </div>

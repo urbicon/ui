@@ -8,6 +8,7 @@
   let {
     id,
     title,
+    group,
     children,
     class: className = '',
     unstyled: unstyledProp = false,
@@ -21,9 +22,9 @@
 
   // Register with the parent panel's list view. Runs regardless of whether this
   // article is the active one, so every article shows up in the list. Cleans up
-  // on unmount and re-registers if id/title change.
+  // on unmount and re-registers if id/title/group change.
   $effect(() => {
-    return panel?.registerArticle(id, title);
+    return panel?.registerArticle(id, title, group);
   });
 
   const blocksConfig = getBlocksConfig();

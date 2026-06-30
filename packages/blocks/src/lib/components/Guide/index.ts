@@ -131,6 +131,14 @@ export interface GuideArticleProps {
   id: string;
   /** Title shown in the panel list and header. */
   title: string;
+  /**
+   * Optional section this article belongs to in the panel index. Articles that
+   * share a `group` are rendered under one section header (sections appear in
+   * the order their first article is defined); articles without a `group` stay
+   * in an ungrouped block. When no article sets a `group`, the index is a flat
+   * list — unchanged from today.
+   */
+  group?: string;
   /** Article body. */
   children?: Snippet;
   /** Additional classes on the article root. */

@@ -26,6 +26,11 @@ export const guidePanelVariants = tv({
       'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-primary/50'
     ],
     body: ['flex-1 overflow-y-auto overscroll-contain px-5 py-4'],
+    // Section label above a group of articles in the index (opt-in via GuideArticle `group`).
+    groupHeader: [
+      'px-3 pb-1 pt-4 text-xs font-semibold uppercase tracking-wide text-text-tertiary',
+      'first:pt-1'
+    ],
     list: ['flex flex-col gap-1'],
     listItem: [
       'flex w-full items-center gap-2 rounded-lg px-3 py-2.5 text-left text-sm transition-colors',

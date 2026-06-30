@@ -6,8 +6,11 @@ import { createOptionalContext } from '$lib/utils';
  * outside a `GuidePanel` simply renders inert.
  */
 export interface GuidePanelContext {
-  /** Register an article (by title) and return an unregister cleanup. */
-  registerArticle(id: string, title: string): () => void;
+  /**
+   * Register an article (by title, with an optional `group` for the index's
+   * section headers) and return an unregister cleanup.
+   */
+  registerArticle(id: string, title: string, group?: string): () => void;
 }
 
 const [getGuidePanelContext, setGuidePanelContext] = createOptionalContext<GuidePanelContext>();
