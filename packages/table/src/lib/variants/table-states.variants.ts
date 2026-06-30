@@ -295,9 +295,10 @@ export const mobileCardVariants = tv({
       'transition-[color,background-color,border-color,box-shadow,opacity] duration-[var(--blocks-duration-fast)]',
       'hover:border-border-default hover:shadow-[var(--blocks-shadow-sm)]'
     ],
-    // Title region — the primary identifier, emphasized and label-less.
-    header: ['px-4 pt-4 pb-1'],
-    title: ['text-base font-semibold text-text-primary leading-snug break-words'],
+    // Title region — the primary identifier, emphasized and label-less. Lays out
+    // the optional selection checkbox next to the title.
+    header: ['flex items-center gap-3', 'px-4 pt-4 pb-1'],
+    title: ['min-w-0 flex-1 text-base font-semibold text-text-primary leading-snug break-words'],
     content: ['px-4 pb-4 pt-2'],
     // Detail fields in a compact 2-column grid (was a tall single-column stack,
     // which made a 4-field card ~266px tall — only ~2 fit per phone screen).

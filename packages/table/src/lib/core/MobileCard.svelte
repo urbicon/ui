@@ -1,6 +1,11 @@
 <script lang="ts">
-  import { resolveIcon, ChevronDownIcon as ChevronDownIconDefault } from '@urbicon-ui/blocks';
+  import {
+    resolveIcon,
+    Checkbox,
+    ChevronDownIcon as ChevronDownIconDefault
+  } from '@urbicon-ui/blocks';
   import { getTableContext } from '$lib/stores/TableStore.svelte.js';
+  import { useTableI18n } from '$lib/i18n';
 
   const ChevronDownIcon = resolveIcon('chevronDown', ChevronDownIconDefault);
   import { formatCellValue, resolveColumnId, resolveColumnValue } from '../utils';
@@ -31,8 +36,15 @@
     testId = undefined
   }: MobileCardProps = $props();
 
+  const tt = useTableI18n();
   const tableContext = getTableContext();
-  const { state: tableState, toggleExpand, isItemExpanded: checkExpanded } = tableContext;
+  const {
+    state: tableState,
+    toggleExpand,
+    isItemExpanded: checkExpanded,
+    toggleItem,
+    isSelected: checkSelected
+  } = tableContext;
   const styleConfig = getTableStyleConfig();
 
   const itemId = $derived.by((): string | number => {
@@ -40,6 +52,14 @@
     return typeof candidate === 'string' || typeof candidate === 'number' ? candidate : -1;
   });
   let isExpanded = $derived(checkExpanded(itemId));
+
+  const selectable = $derived(tableState.selectionMode !== 'none');
+  const isItemSelected = $derived(selectable && checkSelected(itemId));
+
+  // Keep checkbox interaction from also triggering the card's expand / onClick.
+  function stopSelectionBubble(event: Event) {
+    event.stopPropagation();
+  }
 
   const computedTestId = $derived.by(() => {
     if (testId) return testId;
@@ -82,6 +102,7 @@
     mobileCardVariants({
       size,
       interactive: !!(expandable || onClick),
+      selected: isItemSelected,
       expanded: isExpanded
     })
   );
@@ -115,11 +136,29 @@
   onclick={handleClick}
   onkeydown={handleKeyDown}
 >
-  {#if titleColumn}
+  {#if titleColumn || selectable}
     <div class={cardStyles.header()}>
-      <div class={cardStyles.title()}>
-        {@render renderCellContent(titleColumn)}
-      </div>
+      {#if selectable}
+        <!-- svelte-ignore a11y_no_static_element_interactions -->
+        <div
+          class="flex shrink-0 items-center"
+          onclick={stopSelectionBubble}
+          onkeydown={stopSelectionBubble}
+        >
+          <Checkbox
+            checked={isItemSelected}
+            onchange={() => toggleItem(itemId)}
+            aria-label={isItemSelected ? tt('selection.deselectRow') : tt('selection.selectRow')}
+            size="sm"
+            data-testid={`mobile-card-checkbox-${itemId}`}
+          />
+        </div>
+      {/if}
+      {#if titleColumn}
+        <div class={cardStyles.title()}>
+          {@render renderCellContent(titleColumn)}
+        </div>
+      {/if}
     </div>
   {/if}
 
