@@ -86,17 +86,14 @@
     return { ...baseProps, item: row };
   }
 
-  const primaryColumns = $derived(
-    tableState.columns.filter((col) => col.priority === 1 || !col.priority)
+  // The card shows priority 1/unset (primary) + 2 (secondary) columns in their
+  // natural order; priority 3 is desktop-only and omitted. The first such column
+  // becomes the emphasized, label-less title; the rest fill a compact grid.
+  const cardColumns = $derived(
+    tableState.columns.filter((col) => !col.priority || col.priority <= 2)
   );
-
-  const secondaryColumns = $derived(tableState.columns.filter((col) => col.priority === 2));
-
-  // The first visible column becomes the card title (emphasized, label-less);
-  // the remaining fields fill a compact grid below it.
-  const visibleColumns = $derived([...primaryColumns, ...secondaryColumns]);
-  const titleColumn = $derived(visibleColumns[0]);
-  const detailColumns = $derived(visibleColumns.slice(1));
+  const titleColumn = $derived(cardColumns[0]);
+  const detailColumns = $derived(cardColumns.slice(1));
 
   const cardStyles = $derived(
     mobileCardVariants({

@@ -264,36 +264,6 @@ export const TABLE_ANIMATIONS = {
 } as const;
 
 /**
- * TABLE RESPONSIVE
- * Responsive breakpoints and utilities
- */
-export const TABLE_RESPONSIVE = {
-  // Visibility utilities
-  visibility: {
-    desktop: 'hidden md:table-cell',
-    tablet: 'hidden sm:table-cell',
-    mobile: 'table-cell md:hidden',
-    always: 'table-cell'
-  },
-
-  // Priority-based columns
-  priority: {
-    1: 'table-cell', // Always visible
-    2: 'hidden sm:table-cell', // Hidden on mobile
-    3: 'hidden md:table-cell', // Hidden on mobile & tablet
-    4: 'hidden lg:table-cell', // Hidden except desktop
-    5: 'hidden xl:table-cell' // Hidden except large desktop
-  },
-
-  // Container queries (if available)
-  container: {
-    sm: '@container-sm',
-    md: '@container-md',
-    lg: '@container-lg'
-  }
-} as const;
-
-/**
  * TABLE LAYOUTS
  */
 export const TABLE_LAYOUTS = {
@@ -330,7 +300,6 @@ export const TABLE_LAYOUTS = {
 export type TableIntent = keyof typeof TABLE_INTENTS;
 export type TableSize = 'sm' | 'md' | 'lg';
 export type TableDensity = keyof typeof TABLE_LAYOUTS.density;
-export type TablePriority = 1 | 2 | 3 | 4 | 5;
 export type TableRowState = keyof typeof TABLE_STATES.row;
 export type TableCellState = keyof typeof TABLE_STATES.cell;
 
@@ -339,10 +308,6 @@ export type TableCellState = keyof typeof TABLE_STATES.cell;
  */
 export const combineTableClasses = (tableClasses: string, blockPrimitives?: string): string => {
   return [blockPrimitives, tableClasses].filter(Boolean).join(' ');
-};
-
-export const getResponsiveColumnClass = (priority: TablePriority): string => {
-  return TABLE_RESPONSIVE.priority[priority];
 };
 
 export const getDensityClasses = (density: TableDensity) => {

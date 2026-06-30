@@ -1,7 +1,6 @@
 <script lang="ts">
   import { formatCellValue, resolveColumnId, resolveColumnValue } from '../utils';
   import { customCellVariants } from '$lib/variants';
-  import { TABLE_RESPONSIVE } from '$lib/variants/table.system';
   import { getTableContext } from '$lib/stores/TableStore.svelte';
   import SearchHighlight from '$lib/features/SearchHighlight.svelte';
   import type { Column, TableItem } from '$lib/types/tableTypes';
@@ -56,9 +55,7 @@
 </script>
 
 <td
-  class="{cellClass} {column.flex ? 'flex-col' : ''} {column.priority
-    ? (TABLE_RESPONSIVE.priority[column.priority as keyof typeof TABLE_RESPONSIVE.priority] ?? '')
-    : ''}"
+  class="{cellClass} {column.flex ? 'flex-col' : ''}"
   style={column.width ? `width: ${column.width}; min-width: ${column.minWidth || '4rem'};` : ''}
   role={colIndex !== undefined ? 'gridcell' : undefined}
   aria-colindex={colIndex !== undefined ? colIndex + 1 : undefined}

@@ -125,21 +125,13 @@ export class ColumnValidation {
 
     switch (useCase) {
       case 'mobile': {
-        // Check for too many priority 1 columns
-        const priority1Count = columns.filter((col) => col.priority === 1).length;
-        if (priority1Count > 2) {
+        // The mobile layout stacks each row into a card, so neither column
+        // count nor column widths cause horizontal scrolling. The only thing
+        // that degrades here is having no primary column to act as the title.
+        const hasPrimary = columns.some((col) => !col.priority || col.priority === 1);
+        if (!hasPrimary) {
           warnings.push(
-            `Mobile: ${priority1Count} priority 1 columns may cause horizontal scrolling`
-          );
-        }
-
-        // Check for very wide columns
-        const wideColumns = columns.filter(
-          (col) => col.width?.includes('px') && parseInt(col.width, 10) > 200
-        );
-        if (wideColumns.length > 0) {
-          warnings.push(
-            'Mobile: Some columns have fixed widths > 200px which may cause layout issues'
+            'Mobile: no priority 1 (or unset) column — the card has no clear title; the first visible column is used instead'
           );
         }
         break;
@@ -185,12 +177,14 @@ export const ValidationHelpers = {
    * Checks if columns are suitable for mobile display
    */
   isMobileFriendly: (columns: Column[]): boolean => {
-    const priority1Count = columns.filter((col) => col.priority === 1).length;
-    return priority1Count <= 2;
+    // The card shows priority 1/unset (title + primary) and 2 (detail) columns;
+    // priority 3 is desktop-only. "Friendly" = at least one column shows.
+    return columns.some((col) => !col.priority || col.priority <= 2);
   },
 
   /**
-   * Gets recommended mobile columns (priority 1 and 2)
+   * Gets the columns shown in the mobile card (priority 1/unset + 2; priority 3
+   * is desktop-only and omitted).
    */
   getMobileColumns: (columns: Column[]): Column[] => {
     return columns.filter((col) => !col.priority || col.priority <= 2);

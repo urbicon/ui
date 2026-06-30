@@ -15,7 +15,7 @@
   import HeaderMenu from '../features/HeaderMenu.svelte';
   import { useTableI18n } from '../i18n';
   import { tableHeaderVariants, headerIndicatorVariants } from '$lib/variants';
-  import { TABLE_INDICATORS, TABLE_RESPONSIVE } from '$lib/variants/table.system';
+  import { TABLE_INDICATORS } from '$lib/variants/table.system';
   import { getTableStyleConfig, resolveSlotClass } from './table-style-context';
   import { getStickyContext } from './sticky-context.svelte';
   import { measureToCssVar } from '$lib/utils/sticky-measure';
@@ -221,9 +221,6 @@
           : ''}
         class="{columnStyles.cell()} whitespace-nowrap {column.flex
           ? 'flex-col'
-          : ''} {column.priority
-          ? (TABLE_RESPONSIVE.priority[column.priority as keyof typeof TABLE_RESPONSIVE.priority] ??
-            '')
           : ''} {enableColumnReorder ? 'cursor-grab' : ''} {isDragOver
           ? 'outline-primary outline outline-2 outline-offset-[-2px]'
           : ''}"

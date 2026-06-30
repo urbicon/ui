@@ -19,6 +19,11 @@ type BaseColumnProps = {
   groupable?: boolean;
   summable?: boolean;
   dataType?: 'text' | 'number' | 'date' | 'boolean' | 'email' | 'url';
+  /**
+   * Mobile-card responsive priority: `1`/unset = primary (first becomes the card
+   * title), `2` = secondary detail field, `3` = omitted from the card (desktop
+   * table still shows it). The desktop table always shows every column.
+   */
   priority?: 1 | 2 | 3;
   align?: 'left' | 'center' | 'right';
   width?: string;

@@ -79,10 +79,12 @@ interface BaseColumn<T> {
   /** Column flexibility */
   flex?: boolean;
   /**
-   * Priority for responsive layout
-   * - 1: Always visible
-   * - 2: Hidden on medium screens
-   * - 3: Hidden on larger screens
+   * Responsive priority — controls how the column appears in the **mobile card**
+   * layout. The desktop table always shows every column.
+   * - `1` (or unset): primary — the first such column becomes the card title,
+   *   any others render as prominent fields.
+   * - `2`: secondary — rendered as a normal detail field.
+   * - `3`: desktop-only — omitted from the mobile card (kept in the desktop table).
    */
   priority?: 1 | 2 | 3;
   /** Text alignment within the column */
