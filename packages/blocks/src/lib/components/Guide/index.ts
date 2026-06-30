@@ -16,6 +16,7 @@ import type {
   GuideMentionSlots,
   GuidePanelSlots,
   GuidePanelVariants,
+  GuideRefSlots,
   GuideTourSlots
 } from './guide.variants';
 
@@ -255,6 +256,42 @@ export interface GuideMentionProps {
 }
 
 /**
+ * @description An inline article→article link inside a `GuideArticle` body — the
+ * help-internal analogue of `GuideMention` (which links out to a UI element). A real
+ * `<button>` that navigates the open `GuidePanel` to the target article via the
+ * controller (`setArticle`). Degrades to plain inline text without a `GuideProvider`,
+ * outside a `GuidePanel`, or for an unknown `article` id; keyboard/focus parity with
+ * `GuideMention`.
+ * @tag navigation
+ * @related GuideArticle
+ * @related GuidePanel
+ * @related GuideMention
+ * @stability beta
+ * @standalone
+ *
+ * @example
+ * ```svelte
+ * <GuideArticle id="cost-pot" title="Cost pot">
+ *   <p>The pot is split by the <GuideRef article="splitting">splitting method</GuideRef>.</p>
+ * </GuideArticle>
+ * ```
+ */
+export interface GuideRefProps {
+  /** Id of the `GuideArticle` to navigate to. Inert (plain text) for an unknown id. */
+  article: string;
+  /** The link text. */
+  children?: Snippet;
+  /** Additional classes on the ref. */
+  class?: string;
+  /** Strip all default styles. @default false */
+  unstyled?: boolean;
+  /** Per-slot class overrides. */
+  slotClasses?: Partial<Record<GuideRefSlots, string>>;
+  /** Apply a named preset registered via `<BlocksProvider presets={{ GuideRef: {...} }}>`. */
+  preset?: string;
+}
+
+/**
  * @description A contextual, non-blocking hint anchored to a `data-guide` element via
  * `floating.ts` (flip/shift/arrow), rendered in the native popover top-layer. Waits at the
  * right element rather than interrupting: shows on mount (or when `open` for `trigger="manual"`),
@@ -450,6 +487,7 @@ export { default as GuideMarker } from './GuideMarker.svelte';
 export { default as GuideMention } from './GuideMention.svelte';
 export { default as GuidePanel } from './GuidePanel.svelte';
 export { default as GuideProvider } from './GuideProvider.svelte';
+export { default as GuideRef } from './GuideRef.svelte';
 export {
   type GuideArticleVariants,
   type GuideBeaconVariants,
@@ -457,6 +495,7 @@ export {
   type GuideMarkerVariants,
   type GuideMentionVariants,
   type GuidePanelVariants,
+  type GuideRefVariants,
   type GuideTourVariants,
   guideArticleVariants,
   guideBeaconVariants,
@@ -464,6 +503,7 @@ export {
   guideMarkerVariants,
   guideMentionVariants,
   guidePanelVariants,
+  guideRefVariants,
   guideTourVariants
 } from './guide.variants';
 // Note: getGuideContext/setGuideContext are intentionally NOT re-exported here.

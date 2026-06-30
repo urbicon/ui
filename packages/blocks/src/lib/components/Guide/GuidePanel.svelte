@@ -52,7 +52,10 @@
     registerArticle(id, articleTitle, group) {
       untrack(() => articleMap.set(id, { title: articleTitle, group }));
       return () => untrack(() => articleMap.delete(id));
-    }
+    },
+    // Tracked read (no untrack): a GuideRef's reactive resolvable re-runs as
+    // articles register/unregister.
+    hasArticle: (id) => articleMap.has(id)
   });
 
   const blocksConfig = getBlocksConfig();

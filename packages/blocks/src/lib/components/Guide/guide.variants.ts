@@ -126,6 +126,24 @@ export const guideMentionVariants = tv({
 });
 
 /**
+ * Styling for `GuideRef` — an inline article→article link inside article prose.
+ * Mirrors `GuideMention`'s link-like reset, but with a *solid* underline (vs the
+ * Mention's dotted one) that thickens on hover/focus, so a panel-internal jump
+ * reads distinctly from a Mention's UI highlight.
+ */
+export const guideRefVariants = tv({
+  slots: {
+    ref: [
+      'm-0 inline cursor-pointer border-0 bg-transparent p-0 text-left font-medium text-primary',
+      'underline decoration-solid decoration-1 underline-offset-2',
+      'transition-[text-decoration-thickness] duration-[var(--blocks-duration-fast)]',
+      'hover:decoration-2 focus-visible:decoration-2',
+      'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-1 focus-visible:ring-primary/50 focus-visible:rounded-[0.2em]'
+    ]
+  }
+});
+
+/**
  * Styling for `GuideHint` — a small, non-blocking bubble anchored to a
  * `data-guide` element via `floating.ts`, rendered in the native popover
  * top-layer. `overflow-visible` keeps the arrow (which sits half outside the
@@ -229,6 +247,7 @@ export type GuideBeaconVariants = VariantProps<typeof guideBeaconVariants>;
 export type GuideArticleVariants = VariantProps<typeof guideArticleVariants>;
 export type GuideMarkerVariants = VariantProps<typeof guideMarkerVariants>;
 export type GuideMentionVariants = VariantProps<typeof guideMentionVariants>;
+export type GuideRefVariants = VariantProps<typeof guideRefVariants>;
 export type GuideHintVariants = VariantProps<typeof guideHintVariants>;
 
 /** Slot names derived from each `tv()` config — single source of truth for `slotClasses`. */
@@ -238,4 +257,5 @@ export type GuideBeaconSlots = SlotNames<typeof guideBeaconVariants>;
 export type GuideArticleSlots = SlotNames<typeof guideArticleVariants>;
 export type GuideMarkerSlots = SlotNames<typeof guideMarkerVariants>;
 export type GuideMentionSlots = SlotNames<typeof guideMentionVariants>;
+export type GuideRefSlots = SlotNames<typeof guideRefVariants>;
 export type GuideHintSlots = SlotNames<typeof guideHintVariants>;
