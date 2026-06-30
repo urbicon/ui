@@ -125,7 +125,9 @@ export default {
     infoAbout: 'Mehr Informationen zu {{label}}',
     dismiss: 'Hinweis ausblenden',
     startTour: 'Geführte Tour starten',
-    actionRequired: 'Führe die markierte Aktion aus, um fortzufahren'
+    actionRequired: 'Führe die markierte Aktion aus, um fortzufahren',
+    filterPlaceholder: 'Themen filtern…',
+    noResults: 'Keine passenden Themen'
   },
   datepicker: {
     placeholder: 'Datum wählen...',

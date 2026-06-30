@@ -125,7 +125,9 @@ export default {
     infoAbout: 'More information about {{label}}',
     dismiss: 'Dismiss hint',
     startTour: 'Start the guided tour',
-    actionRequired: 'Complete the highlighted action to continue'
+    actionRequired: 'Complete the highlighted action to continue',
+    filterPlaceholder: 'Filter topics…',
+    noResults: 'No matching topics'
   },
   datepicker: {
     placeholder: 'Select a date...',

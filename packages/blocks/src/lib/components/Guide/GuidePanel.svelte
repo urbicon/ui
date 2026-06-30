@@ -6,7 +6,7 @@
   import { getBlocksConfig, resolveSlotClasses } from '$lib/provider';
   import { getGuideContext } from './guide.context';
   import { setGuidePanelContext } from './guide-panel.context';
-  import { groupArticles, hasNamedGroups } from './guide-panel.articles';
+  import { filterArticles, groupArticles, hasNamedGroups } from './guide-panel.articles';
   import { guidePanelVariants, type GuidePanelVariants } from './guide.variants';
   import type { GuidePanelProps } from './index';
 
@@ -17,6 +17,7 @@
     placement = 'right',
     size = 'md',
     title,
+    searchable = false,
     closeOnEscape = true,
     footer,
     children,
@@ -73,9 +74,15 @@
       bt('guide.openHelp', {})
   );
 
+  // Optional title filter (#26). Grouping below runs on the filtered set, so a
+  // search narrows the index while keeping non-empty sections' headers.
+  let searchQuery = $state('');
+  const filteredArticles = $derived(searchable ? filterArticles(articles, searchQuery) : articles);
+  const isFiltering = $derived(searchable && searchQuery.trim().length > 0);
+
   // Group the index into sections (first-occurrence order; ungrouped articles in
   // one headerless block). When no article sets a group, this is a flat list.
-  const sections = $derived(groupArticles(articles));
+  const sections = $derived(groupArticles(filteredArticles));
   const hasGroups = $derived(hasNamedGroups(sections));
 
   const panelTransform = $derived(
@@ -206,7 +213,27 @@
         </li>
       {/snippet}
       {#if !activeArticle}
-        {#if hasGroups}
+        {#if searchable}
+          <input
+            type="search"
+            class={unstyled
+              ? (slotClasses?.searchInput ?? '')
+              : styles.searchInput({ class: slotClasses?.searchInput })}
+            placeholder={bt('guide.filterPlaceholder', {})}
+            aria-label={bt('guide.filterPlaceholder', {})}
+            bind:value={searchQuery}
+          />
+        {/if}
+        {#if isFiltering && filteredArticles.length === 0}
+          <p
+            class={unstyled
+              ? (slotClasses?.noResults ?? '')
+              : styles.noResults({ class: slotClasses?.noResults })}
+            role="status"
+          >
+            {bt('guide.noResults', {})}
+          </p>
+        {:else if hasGroups}
           {#each sections as section, i (section.group ?? '')}
             {#if section.group}
               <h3
@@ -233,7 +260,7 @@
           <ul
             class={unstyled ? (slotClasses?.list ?? '') : styles.list({ class: slotClasses?.list })}
           >
-            {#each articles as article (article.id)}
+            {#each filteredArticles as article (article.id)}
               {@render articleListItem(article)}
             {/each}
           </ul>

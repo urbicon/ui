@@ -93,6 +93,13 @@ export interface GuidePanelProps {
   size?: GuidePanelVariants['size'];
   /** Heading shown when no article is open. @default i18n `guide.openHelp` */
   title?: string;
+  /**
+   * Render a filter input above the article index that matches article titles
+   * (case-insensitive). Off by default. Pairs with article grouping — filtered
+   * results keep their section headers and empty sections disappear.
+   * @default false
+   */
+  searchable?: boolean;
   /** Close the panel when Escape is pressed. @default true */
   closeOnEscape?: boolean;
   /** Optional footer content. */

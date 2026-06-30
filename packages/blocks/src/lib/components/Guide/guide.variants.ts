@@ -26,6 +26,14 @@ export const guidePanelVariants = tv({
       'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-primary/50'
     ],
     body: ['flex-1 overflow-y-auto overscroll-contain px-5 py-4'],
+    // Filter input above the index (opt-in via GuidePanel `searchable`).
+    searchInput: [
+      'mb-3 w-full rounded-lg border border-border-hairline bg-surface-base px-3 py-2 text-sm',
+      'text-text-primary placeholder:text-text-tertiary',
+      'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-1 focus-visible:ring-primary/50'
+    ],
+    // Empty-state shown when a search filters every article out.
+    noResults: ['px-3 py-6 text-center text-sm text-text-tertiary'],
     // Section label above a group of articles in the index (opt-in via GuideArticle `group`).
     groupHeader: [
       'px-3 pb-1 pt-4 text-xs font-semibold uppercase tracking-wide text-text-tertiary',
