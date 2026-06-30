@@ -2,6 +2,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import {
   createLocalStorageAdapter,
   GuideController,
+  type GuideNavigationSource,
   type GuideOverlayStackLike,
   type GuideStorageAdapter,
   type GuideTour
@@ -83,6 +84,49 @@ function makeController(opts: { storage?: GuideStorageAdapter; dev?: boolean } =
     dev: opts.dev ?? false
   });
   return { ctrl, overlay };
+}
+
+/** A controllable {@link GuideNavigationSource} whose `emit` simulates a real navigation. */
+function makeNavigationSource(initialPath = '/start') {
+  let path = initialPath;
+  const subs = new Set<(p: string) => void>();
+  const source: GuideNavigationSource = {
+    current: () => path,
+    subscribe(cb) {
+      subs.add(cb);
+      return () => subs.delete(cb);
+    }
+  };
+  return {
+    source,
+    /** Move to a new path and notify subscribers (like the Navigation API / popstate firing). */
+    emit(next: string) {
+      path = next;
+      for (const cb of [...subs]) cb(next); // snapshot: a subscriber may unsubscribe mid-emit
+    },
+    get path() {
+      return path;
+    },
+    get subscriberCount() {
+      return subs.size;
+    }
+  };
+}
+
+/** Controller wired for cross-route tests: a mock nav source + a (by default present) navigate hook. */
+function makeRouteController(
+  opts: { initialPath?: string; dev?: boolean; withNavigate?: boolean } = {}
+) {
+  const overlay = makeOverlayStack();
+  const nav = makeNavigationSource(opts.initialPath ?? '/start');
+  const navigate = vi.fn((_route: string) => {});
+  const ctrl = new GuideController({
+    overlayStack: overlay,
+    dev: opts.dev ?? false,
+    navigate: opts.withNavigate === false ? undefined : navigate,
+    navigationSource: nav.source
+  });
+  return { ctrl, overlay, nav, navigate };
 }
 
 const tour = (steps: GuideTour['steps'], extra: Partial<GuideTour> = {}): GuideTour => ({
@@ -656,5 +700,212 @@ describe('createLocalStorageAdapter', () => {
     const adapter = createLocalStorageAdapter();
     expect(adapter.load()).toEqual([]);
     expect(() => adapter.save(['x'])).not.toThrow();
+  });
+});
+
+// ─── Cross-route touring (GuideStep.route + navigate hook) ───────────────────
+
+describe('GuideController — cross-route touring', () => {
+  it('does not navigate when the first step is already on its route', () => {
+    const { ctrl, navigate } = makeRouteController({ initialPath: '/dash' });
+    const el = mockElement();
+    ctrl.registerTarget('a', el);
+    ctrl.startTour(tour([{ target: 'a', route: '/dash', title: 'A' }]));
+    expect(navigate).not.toHaveBeenCalled();
+    expect(ctrl.highlightedId).toBe('a'); // target on the current route is spotlit immediately
+  });
+
+  it('navigates forward across a route and lands the target once it appears', () => {
+    const { ctrl, nav, navigate } = makeRouteController({ initialPath: '/dash' });
+    ctrl.registerTarget('a', mockElement());
+    ctrl.startTour(
+      tour([
+        { target: 'a', route: '/dash', title: 'A' },
+        { target: 'b', route: '/expenses', title: 'B' }
+      ])
+    );
+    expect(navigate).not.toHaveBeenCalled(); // step 0 already on /dash
+    ctrl.next(); // step 1 → /expenses
+    expect(navigate).toHaveBeenCalledWith('/expenses');
+    expect(ctrl.isTourActive).toBe(true);
+    expect(ctrl.highlightedId).toBeNull(); // target absent during the navigation gap
+
+    nav.emit('/expenses'); // the tour-internal navigation lands → keeps running
+    expect(ctrl.isTourActive).toBe(true);
+
+    const elB = mockElement();
+    ctrl.registerTarget('b', elB); // target renders on the new page
+    ctrl.reapplyStepHighlight(); // the surface observed it appear
+    expect(ctrl.highlightedId).toBe('b');
+    expect(elB.has('data-guide-highlight')).toBe(true);
+  });
+
+  it('navigates back across a route on prev() (symmetric)', () => {
+    const { ctrl, nav, navigate } = makeRouteController({ initialPath: '/dash' });
+    ctrl.registerTarget('a', mockElement());
+    ctrl.startTour(
+      tour([
+        { target: 'a', route: '/dash' },
+        { target: 'b', route: '/expenses' }
+      ])
+    );
+    ctrl.next();
+    nav.emit('/expenses');
+    navigate.mockClear();
+
+    ctrl.prev(); // back to step 0 (/dash)
+    expect(navigate).toHaveBeenCalledWith('/dash');
+    expect(ctrl.isTourActive).toBe(true);
+  });
+
+  it('reapplyStepHighlight does not re-trigger navigation', () => {
+    const { ctrl, nav, navigate } = makeRouteController({ initialPath: '/dash' });
+    ctrl.startTour(
+      tour([
+        { target: 'a', route: '/dash' },
+        { target: 'b', route: '/expenses' }
+      ])
+    );
+    ctrl.next();
+    nav.emit('/expenses');
+    navigate.mockClear();
+    ctrl.reapplyStepHighlight(); // the surface re-anchors — must not navigate again
+    expect(navigate).not.toHaveBeenCalled();
+  });
+
+  it('stops the tour on a foreign navigation, analytics-silent', () => {
+    const onSkip = vi.fn();
+    const { ctrl, nav } = makeRouteController({ initialPath: '/dash' });
+    ctrl.registerTarget('a', mockElement());
+    ctrl.startTour(
+      tour(
+        [
+          { target: 'a', route: '/dash' },
+          { target: 'b', route: '/expenses' }
+        ],
+        { onSkip }
+      )
+    );
+    expect(ctrl.isTourActive).toBe(true);
+    expect(nav.subscriberCount).toBe(1);
+
+    nav.emit('/somewhere-else'); // the user navigates away on their own
+    expect(ctrl.isTourActive).toBe(false);
+    expect(onSkip).not.toHaveBeenCalled(); // stopTour is analytics-silent
+    expect(nav.subscriberCount).toBe(0); // and the navigation subscription is released
+  });
+
+  it('lets a foreign navigation win over a pending tour navigation (youngest gesture wins)', () => {
+    const { ctrl, nav, navigate } = makeRouteController({ initialPath: '/dash' });
+    ctrl.registerTarget('a', mockElement());
+    ctrl.startTour(
+      tour([
+        { target: 'a', route: '/dash' },
+        { target: 'b', route: '/expenses' }
+      ])
+    );
+    ctrl.next(); // tour navigates to /expenses (expectedRoute set), not yet landed
+    expect(navigate).toHaveBeenCalledWith('/expenses');
+    nav.emit('/settings'); // user navigates elsewhere before /expenses lands
+    expect(ctrl.isTourActive).toBe(false);
+  });
+
+  it('ignores a navigation event that does not change the path (hash/query update)', () => {
+    const { ctrl, nav } = makeRouteController({ initialPath: '/dash' });
+    ctrl.registerTarget('a', mockElement());
+    ctrl.startTour(tour([{ target: 'a', route: '/dash' }]));
+    nav.emit('/dash'); // same pathname → not a route change → must NOT stop the tour
+    expect(ctrl.isTourActive).toBe(true);
+  });
+
+  it('subscribes to navigation only for tours that declare a route', () => {
+    const { ctrl, nav } = makeRouteController({ initialPath: '/dash' });
+    ctrl.startTour(tour([{ title: 'no route' }])); // no step.route → no subscription
+    expect(nav.subscriberCount).toBe(0);
+    ctrl.finish();
+
+    ctrl.registerTarget('a', mockElement());
+    ctrl.startTour(tour([{ target: 'a', route: '/dash' }], { id: 'route-tour' }));
+    expect(nav.subscriberCount).toBe(1); // a route tour subscribes
+    ctrl.finish();
+    expect(nav.subscriberCount).toBe(0); // and unsubscribes on end
+  });
+
+  it('warns in DEV and stays put when a route step has no navigate hook', () => {
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+    const { ctrl } = makeRouteController({ initialPath: '/home', dev: true, withNavigate: false });
+    expect(() => ctrl.startTour(tour([{ target: 'a', route: '/dash', title: 'A' }]))).not.toThrow();
+    expect(ctrl.isTourActive).toBe(true); // the tour still runs, just doesn't navigate
+    expect(warn).toHaveBeenCalledWith(expect.stringContaining('no navigate hook'));
+  });
+
+  it('does not warn "target not found" during the navigation gap', () => {
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+    const { ctrl } = makeRouteController({ initialPath: '/dash', dev: true });
+    ctrl.registerTarget('a', mockElement());
+    ctrl.startTour(
+      tour([
+        { target: 'a', route: '/dash' },
+        { target: 'b', route: '/expenses' }
+      ])
+    );
+    warn.mockClear();
+    ctrl.next(); // navigating to /expenses; target 'b' is off-route — must not warn yet
+    expect(warn).not.toHaveBeenCalled();
+  });
+
+  it('swallows a navigate hook that throws synchronously (DEV-warned), no crash', () => {
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+    const nav = makeNavigationSource('/dash');
+    const navigate = vi.fn(() => {
+      throw new Error('nav boom');
+    });
+    const ctrl = new GuideController({
+      overlayStack: makeOverlayStack(),
+      dev: true,
+      navigate,
+      navigationSource: nav.source
+    });
+    ctrl.registerTarget('a', mockElement());
+    ctrl.startTour(
+      tour([
+        { target: 'a', route: '/dash' },
+        { target: 'b', route: '/expenses' }
+      ])
+    );
+    expect(() => ctrl.next()).not.toThrow();
+    expect(warn).toHaveBeenCalledWith('[Guide] navigate hook threw:', expect.any(Error));
+    expect(ctrl.isTourActive).toBe(true); // step still active, it just didn't navigate
+  });
+
+  it('swallows a navigate hook that rejects (DEV-warned)', async () => {
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+    const nav = makeNavigationSource('/dash');
+    const navigate = vi.fn(() => Promise.reject(new Error('nav boom')));
+    const ctrl = new GuideController({
+      overlayStack: makeOverlayStack(),
+      dev: true,
+      navigate,
+      navigationSource: nav.source
+    });
+    ctrl.registerTarget('a', mockElement());
+    ctrl.startTour(
+      tour([
+        { target: 'a', route: '/dash' },
+        { target: 'b', route: '/expenses' }
+      ])
+    );
+    expect(() => ctrl.next()).not.toThrow();
+    await new Promise((resolve) => setTimeout(resolve, 0)); // flush the rejection microtask
+    expect(warn).toHaveBeenCalledWith('[Guide] navigate hook rejected:', expect.any(Error));
+  });
+
+  it('treats a non-route tour as before: no subscription, manual onStep navigation is its own', () => {
+    // A tour with no step.route never subscribes, so a consumer navigating in onStep (the
+    // manual-goto recipe) is not seen as a foreign navigation that would stop the tour.
+    const { ctrl, nav } = makeRouteController({ initialPath: '/dash' });
+    ctrl.startTour(tour([{ title: 'A' }, { title: 'B' }]));
+    nav.emit('/the-consumers-own-goto'); // ignored — no subscription was set up
+    expect(ctrl.isTourActive).toBe(true);
   });
 });

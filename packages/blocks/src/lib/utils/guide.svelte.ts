@@ -29,6 +29,18 @@ export interface GuideTopicMeta {
 export interface GuideStep {
   /** `data-guide` id of the element to anchor to. Omit for a centered, target-less step. */
   target?: string;
+  /**
+   * Optional route this step lives on — declarative cross-route touring. When set and different
+   * from the current location, the controller calls its injected `navigate` hook to go there
+   * **before** the spotlight, then re-anchors once the target appears on the new page (via the
+   * surface's existing `reapplyStepHighlight`). Such a tour-internal navigation keeps the tour
+   * running; a *foreign* navigation (the user leaving on their own) still stops it. Compared
+   * against `window.location.pathname` by default, so use a normalized path (no query/hash);
+   * inject a {@link GuideControllerOptions.navigationSource} for a custom router or base path.
+   * A `route` step with no `navigate` hook wired logs a DEV warning and stays put (no crash).
+   * @see GuideControllerOptions.navigate
+   */
+  route?: string;
   /** Step heading. */
   title?: string;
   /** Step body text. */
@@ -123,12 +135,43 @@ export interface GuideOverlayStackLike {
   readonly depth: number;
 }
 
+/**
+ * Source of the current route and navigation notifications the controller needs for cross-route
+ * tours (injectable for tests and custom routers). The default {@link createBrowserNavigationSource}
+ * reads `window.location.pathname` and subscribes via the Navigation API, falling back to `popstate`.
+ */
+export interface GuideNavigationSource {
+  /** The current path, compared against a step's `route` (e.g. `"/expenses"`). `''` on the server. */
+  current(): string;
+  /**
+   * Subscribe to navigations; `onNavigate` receives the new path. Returns an unsubscribe. The
+   * controller subscribes only while a tour with at least one `route` step is active, so a tour
+   * that never declares a route observes no navigation (preserving the manual-`goto` recipe).
+   */
+  subscribe(onNavigate: (path: string) => void): () => void;
+}
+
 /** Options for {@link GuideController}; every dependency is injectable for testing. */
 export interface GuideControllerOptions {
   /** Persistence adapter. @default localStorage-backed adapter */
   storage?: GuideStorageAdapter;
   /** Overlay stack to integrate with. @default the shared `overlayStack` singleton */
   overlayStack?: GuideOverlayStackLike;
+  /**
+   * Navigation hook for declarative cross-route tours. When a step's `route` differs from the
+   * current location, the controller calls this to navigate there before spotlighting the step.
+   * Framework-agnostic by injection — a SvelteKit consumer wires `(route) => goto(route)`. May be
+   * sync or async; a thrown/rejected navigation is swallowed (DEV-warned). A `route` step with no
+   * hook wired logs a DEV warning and stays on the current route (no crash). @default undefined
+   */
+  navigate?: (route: string) => void | Promise<void>;
+  /**
+   * Source for the current path + navigation events, used to decide whether a step's `route`
+   * needs navigating and to tell a tour-internal navigation from a foreign one (which stops the
+   * tour). @default a browser source reading `window.location.pathname` and listening via the
+   * Navigation API (`popstate` fallback). Inject one for a custom router or a configured base path.
+   */
+  navigationSource?: GuideNavigationSource;
   /** Force DEV-mode warnings on/off. @default `import.meta.env?.DEV ?? false` */
   dev?: boolean;
 }
@@ -169,6 +212,56 @@ export function createLocalStorageAdapter(key: string = SEEN_STORAGE_KEY): Guide
     }
   };
 }
+
+/** Minimal slice of the Navigation API we feature-detect (avoids depending on lib DOM types). */
+interface NavigateEventLike {
+  readonly destination?: { readonly url?: string };
+  readonly downloadRequest?: string | null;
+}
+interface NavigationLike {
+  addEventListener(type: 'navigate', listener: (event: NavigateEventLike) => void): void;
+  removeEventListener(type: 'navigate', listener: (event: NavigateEventLike) => void): void;
+}
+
+/**
+ * The default {@link GuideNavigationSource}: reads `window.location.pathname` and observes SPA
+ * navigations through the Navigation API when available — catching link clicks, programmatic
+ * navigation (`goto`), and back/forward — falling back to `popstate` (back/forward only) where it
+ * is not. SSR-safe: `current()` returns `''` and `subscribe()` is a no-op without a `window`.
+ */
+export function createBrowserNavigationSource(): GuideNavigationSource {
+  return {
+    current() {
+      return BROWSER ? window.location.pathname : '';
+    },
+    subscribe(onNavigate) {
+      if (!BROWSER) return () => {};
+      const nav = (window as unknown as { navigation?: NavigationLike }).navigation;
+      if (nav && typeof nav.addEventListener === 'function') {
+        const handler = (event: NavigateEventLike) => {
+          if (event.downloadRequest != null) return; // a download is not a route change
+          const url = event.destination?.url;
+          if (typeof url !== 'string') return;
+          let path: string;
+          try {
+            path = new URL(url).pathname;
+          } catch {
+            return; // opaque/cross-origin destination — not a same-app route
+          }
+          onNavigate(path);
+        };
+        nav.addEventListener('navigate', handler);
+        return () => nav.removeEventListener('navigate', handler);
+      }
+      const onPop = () => onNavigate(window.location.pathname);
+      window.addEventListener('popstate', onPop);
+      return () => window.removeEventListener('popstate', onPop);
+    }
+  };
+}
+
+/** DEV-only: grace period for a navigated-to `route` step's target before warning it never showed. */
+const ROUTE_TARGET_TIMEOUT_MS = 4000;
 
 let tourIdCounter = 0;
 
@@ -235,6 +328,18 @@ export class GuideController {
   #tourOverlayId = $state<string | null>(null);
   #tourUnregister: (() => void) | null = null;
 
+  // ── Cross-route touring ─────────────────────────────────
+  readonly #navigate?: (route: string) => void | Promise<void>;
+  readonly #navSource: GuideNavigationSource;
+  /** The path a tour-internal navigation is heading to; distinguishes our own nav from a foreign one. */
+  #expectedRoute: string | null = null;
+  /** Last path the tour is known to be on — set at start, updated on each handled navigation. */
+  #knownPath = '';
+  /** Unsubscribe from the navigation source; non-null only while a route-using tour runs. */
+  #navUnsub: (() => void) | null = null;
+  /** DEV-only timer that warns when a navigated-to step's target never appears. */
+  #routeTargetTimer: ReturnType<typeof setTimeout> | null = null;
+
   // ── Highlight (shared by tour steps + Mention→UI, Direction B) ──
   #highlightedId = $state<string | null>(null);
 
@@ -248,6 +353,8 @@ export class GuideController {
   constructor(options: GuideControllerOptions = {}) {
     this.#storage = options.storage ?? createLocalStorageAdapter();
     this.#overlayStack = options.overlayStack ?? overlayStack;
+    this.#navigate = options.navigate;
+    this.#navSource = options.navigationSource ?? createBrowserNavigationSource();
     // `import.meta.env?.DEV` is `boolean | undefined` (undefined outside Vite);
     // `?? false` keeps `#dev` a strict boolean and means non-Vite consumers
     // simply get no dev warnings (rather than a crash).
@@ -392,8 +499,14 @@ export class GuideController {
     this.#stepIndex = 0;
     this.#tourOverlayId = nextOverlayId();
     this.#tourUnregister = this.#overlayStack.register(this.#tourOverlayId, () => this.skip());
-    this.#applyStepHighlight();
-    this.#emitStep('start');
+    // Observe navigation only for tours that declare a step route. This keeps the manual-`goto`
+    // recipe (consumer navigates in `onStep`, no `step.route`) untouched, where a navigation is
+    // the consumer's own and must NOT be read as a foreign one that stops the tour.
+    this.#knownPath = this.#navSource.current();
+    if (tour.steps.some((s) => typeof s.route === 'string')) {
+      this.#navUnsub = this.#navSource.subscribe((path) => this.#onLocationChange(path));
+    }
+    this.#activateStep('start');
     return true;
   }
 
@@ -405,16 +518,14 @@ export class GuideController {
       return;
     }
     this.#stepIndex += 1;
-    this.#applyStepHighlight();
-    this.#emitStep('next');
+    this.#activateStep('next');
   }
 
   /** Go back one step. No-op on the first step. */
   prev(): void {
     if (!this.#activeTour || this.isFirstStep) return;
     this.#stepIndex -= 1;
-    this.#applyStepHighlight();
-    this.#emitStep('prev');
+    this.#activateStep('prev');
   }
 
   /** Dismiss the tour without completing it — marks it seen, fires `onSkip`. */
@@ -457,6 +568,102 @@ export class GuideController {
     if (this.#activeTour) this.#applyStepHighlight();
   }
 
+  // ─── Cross-route touring ──────────────────────────────────────────────────
+
+  /**
+   * Make the now-current step active: trigger its cross-route navigation (if any), apply the
+   * highlight, then fire `onStep`. Shared by `startTour`/`next`/`prev`, so every entry point
+   * navigates symmetrically — including `prev()` stepping back across a route boundary.
+   */
+  #activateStep(via: GuideStepEvent['via']): void {
+    this.#clearRouteTargetWarning();
+    this.#maybeNavigate();
+    this.#applyStepHighlight();
+    this.#emitStep(via);
+  }
+
+  /**
+   * If the active step lives on a different route, navigate there via the injected hook and record
+   * it as the `expectedRoute`, so the resulting navigation is recognized as the tour's own rather
+   * than a foreign one. Already on the route → nothing to do. No hook wired → DEV warning, stay put.
+   */
+  #maybeNavigate(): void {
+    const route = this.currentStep?.route;
+    if (route == null) return;
+    if (route === this.#navSource.current()) return;
+    if (!this.#navigate) {
+      if (this.#dev) {
+        console.warn(
+          `[Guide] tour "${this.#activeTour?.id}" step ${this.#stepIndex}: step has route "${route}" but no navigate hook was provided to the GuideController — staying on the current route.`
+        );
+      }
+      return;
+    }
+    this.#expectedRoute = route;
+    this.#scheduleRouteTargetWarning();
+    try {
+      const result = this.#navigate(route);
+      if (result && typeof (result as Promise<void>).then === 'function') {
+        (result as Promise<void>).catch((err: unknown) => {
+          if (this.#dev) console.warn('[Guide] navigate hook rejected:', err);
+          if (this.#expectedRoute === route) this.#expectedRoute = null;
+        });
+      }
+    } catch (err) {
+      if (this.#dev) console.warn('[Guide] navigate hook threw:', err);
+      if (this.#expectedRoute === route) this.#expectedRoute = null;
+    }
+  }
+
+  /**
+   * React to a navigation observed while a route-using tour runs. A navigation matching the pending
+   * `expectedRoute` is the tour's own → clear the flag and keep running (the ring lands via the
+   * surface's `reapplyStepHighlight`). Any other navigation is foreign — the user left, or a
+   * youngest-gesture-wins race — and tears the tour down, analytics-silent (`stopTour`).
+   */
+  #onLocationChange(path: string): void {
+    if (!this.#activeTour) return;
+    if (path === this.#knownPath) return; // no pathname change (e.g. a hash/query update) — ignore
+    this.#knownPath = path;
+    if (this.#expectedRoute !== null && path === this.#expectedRoute) {
+      this.#expectedRoute = null;
+      return;
+    }
+    this.#expectedRoute = null;
+    this.stopTour();
+  }
+
+  /**
+   * DEV-only: after navigating for a `route` step, warn if its target never appears so the spotlight
+   * can't land (the step still renders, centered over the scrim — it never hangs). Browser-gated, so
+   * no timer is ever scheduled under SSR or in node tests.
+   */
+  #scheduleRouteTargetWarning(): void {
+    if (!this.#dev || !BROWSER) return;
+    const step = this.currentStep;
+    if (!step?.target) return;
+    this.#clearRouteTargetWarning();
+    const index = this.#stepIndex;
+    const targetId = step.target;
+    const route = step.route;
+    this.#routeTargetTimer = setTimeout(() => {
+      this.#routeTargetTimer = null;
+      if (this.#stepIndex === index && !this.resolveTarget(targetId)) {
+        console.warn(
+          `[Guide] tour "${this.#activeTour?.id}" step ${index}: navigated to "${route}" but target "${targetId}" never appeared — showing the step without a spotlight ring.`
+        );
+      }
+    }, ROUTE_TARGET_TIMEOUT_MS);
+  }
+
+  /** Cancel a pending route-target warning (target appeared, the step changed, or teardown). */
+  #clearRouteTargetWarning(): void {
+    if (this.#routeTargetTimer !== null) {
+      clearTimeout(this.#routeTargetTimer);
+      this.#routeTargetTimer = null;
+    }
+  }
+
   #endTour(): void {
     const tour = this.#activeTour;
     this.#teardownTour();
@@ -466,8 +673,12 @@ export class GuideController {
     if (tour && tour.once !== false) this.markSeen(tour.id);
   }
 
-  /** Reset all tour state and release the overlay-stack registration. No persistence. */
+  /** Reset all tour state and release the overlay-stack + navigation registrations. No persistence. */
   #teardownTour(): void {
+    this.#clearRouteTargetWarning();
+    this.#navUnsub?.();
+    this.#navUnsub = null;
+    this.#expectedRoute = null;
     this.clearHighlight();
     this.#tourUnregister?.();
     this.#tourUnregister = null;
@@ -517,9 +728,14 @@ export class GuideController {
       // Unlike Direction-B hover (which never scrolls), a tour drives the viewport —
       // the scroll is reduced-motion-aware inside `highlight`.
       this.highlight(step.target, { scroll: true });
+      this.#clearRouteTargetWarning(); // target landed → no "never appeared" warning needed
     } else {
       this.clearHighlight();
-      if (this.#dev) {
+      // A step bound to another route legitimately has no target on the current page — during the
+      // navigation gap, or when no navigate hook is wired — so don't warn "not found" there; the
+      // missing-hook and never-appeared paths own those diagnostics instead.
+      const offRoute = step.route != null && step.route !== this.#navSource.current();
+      if (this.#dev && !offRoute) {
         console.warn(
           `[Guide] tour "${this.#activeTour?.id}" step ${this.#stepIndex}: target "${step.target}" not found in DOM.`
         );

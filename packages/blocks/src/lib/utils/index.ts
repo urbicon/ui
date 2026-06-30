@@ -15,11 +15,13 @@ export {
   size
 } from './floating';
 export {
+  createBrowserNavigationSource,
   createLocalStorageAdapter,
   GuideController,
   type GuideControllerOptions,
   type GuideDirection,
   type GuideEndEvent,
+  type GuideNavigationSource,
   type GuideOverlayStackLike,
   type GuideStep,
   type GuideStepEvent,
