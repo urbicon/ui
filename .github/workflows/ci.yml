@@ -27,6 +27,9 @@ jobs:
       - uses: actions/checkout@v4
       - uses: oven-sh/setup-bun@v2
       - run: bun install --frozen-lockfile
+      # `check` runs over every workspace incl. the consumer apps (docs-app),
+      # which type-check against the built package dist + generated api.ts.
+      # `build:ts` produces both, so it must run before `check` can gate.
       - run: bun run build:ts
       - run: bun run check
 

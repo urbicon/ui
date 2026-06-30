@@ -36,6 +36,9 @@ jobs:
       - name: Lint
         run: bun run lint
 
+      # `check` runs over every workspace incl. docs-app, which type-checks
+      # against the built package dist + generated api.ts; `build:ts` produces
+      # both so the typecheck gate can resolve them.
       - name: Type check
         run: |
           bun run build:ts
