@@ -11,7 +11,13 @@ export const buttonVariants = tv({
       'disabled:opacity-50 disabled:cursor-not-allowed disabled:pointer-events-none'
     ],
     content: [
-      'flex items-center gap-inherit transition-opacity duration-[var(--blocks-duration-fast)]'
+      // `[gap:inherit]` (arbitrary property), NOT `gap-inherit`: Tailwind v4 has
+      // no `gap-inherit` utility — the spacing-based `gap-*` scale has no
+      // `inherit` member (unlike `text-inherit`/`border-inherit`), so that class
+      // emits no rule and the icon↔label gap silently collapses to 0. The
+      // arbitrary property makes `content` inherit `base`'s per-size gap as
+      // intended. (Codeberg #21)
+      'flex items-center [gap:inherit] transition-opacity duration-[var(--blocks-duration-fast)]'
     ],
     spinner: [
       'flex items-center justify-center opacity-0 pointer-events-none transition-opacity duration-[var(--blocks-duration-fast)]'

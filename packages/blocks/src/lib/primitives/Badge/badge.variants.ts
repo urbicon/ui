@@ -21,7 +21,10 @@ export const badgeVariants = tv({
       'transition-[color,background-color,border-color,box-shadow,opacity] duration-[var(--blocks-duration-fast)] ease-out'
       // Radius driven by `tier` axis below.
     ],
-    content: ['flex items-center gap-inherit'],
+    // `[gap:inherit]` (arbitrary property), NOT `gap-inherit` — Tailwind v4 emits
+    // no `gap-inherit` rule, so the icon↔label gap would collapse to 0. The
+    // arbitrary property inherits `base`'s per-size gap. (Codeberg #21)
+    content: ['flex items-center [gap:inherit]'],
     // tier: modify — small remove-control on a commit-tier badge.
     removeButton: [
       'ml-1 shrink-0 rounded-modify transition-colors text-current',

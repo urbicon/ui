@@ -51,6 +51,15 @@ describe('buttonVariants', () => {
     expect(pressed).toContain('shadow-[var(--blocks-shadow-xs)]');
   });
 
+  it('content slot uses the [gap:inherit] arbitrary property, not the non-existent gap-inherit utility (Codeberg #21)', () => {
+    // Tailwind v4 generates no `gap-inherit` rule (the spacing scale has no
+    // `inherit` member), so only the arbitrary property actually renders the
+    // icon↔label gap. Guard against a refactor back to the broken class.
+    const content = buttonVariants({ size: 'md' }).content();
+    expect(content).toContain('[gap:inherit]');
+    expect(content).not.toMatch(/\bgap-inherit\b/);
+  });
+
   it('never outputs dark: overrides', () => {
     const intents = ['primary', 'secondary', 'success', 'warning', 'danger', 'neutral'] as const;
     const variants = ['filled', 'outlined', 'ghost', 'text'] as const;
