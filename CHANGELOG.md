@@ -4,6 +4,20 @@ All notable changes to this project will be documented in this file.
 This changelog is automatically generated from [Conventional Commits](https://www.conventionalcommits.org).
 
 
+## [6.8.0] - 2026-06-30
+
+### Bug Fixes
+- **blocks**: Harden cross-route engine (silent-failure review)
+- **blocks**: Keep cross-route diagnostic across redirect chains
+- **blocks**: Clear expected route for targetless cross-route steps
+
+### Documentation
+- **blocks**: Document declarative cross-route touring
+
+### Features
+- **blocks**: Declarative cross-route guide tours (engine)
+- **blocks**: Forward navigate hook through GuideProvider
+
 ## [6.7.2] - 2026-06-30
 
 ### Bug Fixes
