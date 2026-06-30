@@ -124,6 +124,13 @@ the CSS-var inputs differ.
 - **No app-shell rebuild required.** Sizing the container to `100dvh - top` makes the page
   exactly viewport-height when the table is the main content, so it does not scroll; the
   measurement encapsulates the offset.
+- **`data-fit` layout hook.** The container reflects its resolved mode as `data-fit="viewport"`
+  / `"content"` (the latter also when `virtualized`). Because the box reaches the bottom of the
+  viewport, an ancestor with bottom padding (or a following sibling) is pushed past `100dvh` and
+  yields a second, page-level scrollbar; a layout can drop that inset via the hook. The cap is
+  `md:`-only while `data-fit` is **not** breakpoint-scoped, so gate the override on the same
+  breakpoint — otherwise it strips the inset on mobile (document scroll), where it is wanted:
+  `@media (min-width: 48rem) { main:has([data-fit='viewport']) { padding-block-end: 0 } }`.
 
 ---
 
@@ -182,6 +189,7 @@ avoid competing `top-*` declarations.
 | Wide table + `sticky="header"` | Horizontal overflow falls back to the **page** (no in-table h-scroll). Switch to `fit="viewport"` to contain it. |
 | Wide table + `fit="viewport"` | Horizontal scrollbar appears **inside** the table; the page never scrolls sideways. |
 | Short table + `fit="viewport"` | Container hugs content (`< max-height`); no forced viewport-tall box, no scrollbar. |
+| Ancestor bottom-padding + `fit="viewport"` | Box reaches `100dvh`, so a padded wrapper/sibling adds a second page scrollbar. Drop the inset via the `data-fit="viewport"` hook, gated to `md`+ (see §3). |
 | `groupByKey` + sticky/contained | Group headers pin (they are the "header" layer). In contained mode at `top: thead-h`. |
 | `virtualized` | Manages its own bounded scroll (`virtualHeight`); `fit` is ignored, `sticky` still works (thead already sits outside the virtual scroller). |
 | `unstyled` | Strips the sticky/contained classes — pinning is a layout function, not pure styling. Re-apply via `slotClasses.toolbar` / `slotClasses.thead` / `slotClasses.scrollArea`, or target the `data-table-*` attributes. |

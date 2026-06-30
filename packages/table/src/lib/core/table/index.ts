@@ -433,9 +433,14 @@ export interface TableProps<T = TableItem> {
    * - The box reaches the bottom of the viewport, so it assumes nothing sits
    *   *below* it. An ancestor with bottom padding (or a following sibling) is
    *   pushed past `100dvh` and produces a second, page-level scrollbar next to
-   *   the table's own. The container mirrors the effective mode as
-   *   `data-fit="viewport"` (vs `"content"`) so a layout can drop that inset,
-   *   e.g. `main:has([data-fit='viewport']) { padding-block-end: 0 }`.
+   *   the table's own. The container reflects the resolved mode as
+   *   `data-fit="viewport"` (vs `"content"`, also when `virtualized`) so a
+   *   layout can drop that inset. The height cap is desktop-only (`md`+) while
+   *   `data-fit` is not breakpoint-scoped — it reports the requested mode at
+   *   every width — so gate the override on the same breakpoint, or it also
+   *   strips the inset on mobile, where the table scrolls with the document and
+   *   the padding is wanted:
+   *   `@media (min-width: 48rem) { main:has([data-fit='viewport']) { padding-block-end: 0 } }`.
    *
    * @default "content"
    * @example
