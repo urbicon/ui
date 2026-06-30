@@ -104,6 +104,25 @@
   // Focus never leaves the `<input>` while open — the active option is
   // surfaced via `aria-activedescendant`, not by moving DOM focus into
   // the listbox.
+  //
+  // The focus restore in `select`/`clear` must NOT re-open the listbox the way
+  // a user-initiated focus does. `inputEl.focus()` dispatches `focus`
+  // synchronously, so without this guard `handleFocus` would flip `open = true`
+  // again on the very next line — negating the `open = false` above and leaving
+  // the listbox open after every mouse-click selection/clear (Codeberg #19).
+  // The flag is raised immediately before `focus()` and lowered immediately
+  // after, so it masks only that one synchronous event; when `focus()` is a
+  // no-op (input already focused, e.g. an Enter-key selection) it fires no
+  // `focus` event and the flag is simply lowered again — never left dangling
+  // for the next genuine focus.
+  let suppressFocusOpen = false;
+
+  function focusInputWithoutOpening() {
+    suppressFocusOpen = true;
+    inputEl?.focus();
+    suppressFocusOpen = false;
+  }
+
   function select(opt: ComboboxOption<T>) {
     if (opt.disabled) return;
     value = opt.value;
@@ -111,7 +130,7 @@
     open = false;
     activeIndex = -1;
     onValueChange?.(opt.value);
-    inputEl?.focus();
+    focusInputWithoutOpening();
   }
 
   function clear() {
@@ -120,7 +139,7 @@
     open = false;
     activeIndex = -1;
     onValueChange?.(null);
-    inputEl?.focus();
+    focusInputWithoutOpening();
   }
 
   function handleInput() {
@@ -133,6 +152,7 @@
   }
 
   function handleFocus() {
+    if (suppressFocusOpen) return;
     if (!disabled) open = true;
   }
 
