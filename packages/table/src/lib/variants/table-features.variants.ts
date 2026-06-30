@@ -27,14 +27,18 @@ export const smartFilterBarVariants = tv({
     // the shrink-0 action buttons on a narrow screen (Codeberg #28).
     controls: ['flex gap-2'],
     searchSection: ['w-full min-w-0'],
-    // Touch targets: enlarge the trigger buttons to ≥44px while the bar is
-    // stacked (the mobile case); revert to the compact size once it is a
-    // desktop row (≥ @md), where they sit next to the search and a pointer is
-    // assumed.
+    // Touch targets: enlarge only the menu *trigger* buttons to ≥44px while the
+    // bar is stacked (the mobile case). Triggers carry `aria-haspopup`; the
+    // `:not([popover] *)` guard excludes the panels they open — those are DOM
+    // descendants of this toolbar (native top-layer popover, not portalled) and
+    // carry their own haspopup controls (e.g. the filter operator selects), so a
+    // blanket rule would wrongly size them too. Revert to compact at ≥ @md.
     actionsSection: [
       'flex items-center',
-      '[&_button]:min-h-11 [&_button]:min-w-11',
-      '@md:[&_button]:min-h-0 @md:[&_button]:min-w-0'
+      '[&_button[aria-haspopup]:not(:where([popover]_*))]:min-h-11',
+      '[&_button[aria-haspopup]:not(:where([popover]_*))]:min-w-11',
+      '@md:[&_button[aria-haspopup]:not(:where([popover]_*))]:min-h-0',
+      '@md:[&_button[aria-haspopup]:not(:where([popover]_*))]:min-w-0'
     ],
     chipsSection: ['w-full']
   },
