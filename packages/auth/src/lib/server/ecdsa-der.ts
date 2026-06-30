@@ -1,36 +1,42 @@
 // ECDSA signature format conversion — DER (ASN.1) → raw r‖s (IEEE P1363).
 //
-// The Web Crypto API speaks raw fixed-width r‖s for ECDSA verify/sign, while
-// WebAuthn/FIDO2 authenticators and many ASN.1 toolchains emit DER
-// (`SEQUENCE { INTEGER r, INTEGER s }`). Passing DER straight to
-// `crypto.subtle.verify` makes every check return `false` — this is the
-// conversion that bridges the two. Shared by passkey assertion verification
-// (`verifyES256`) and VAPID JWT signing (`createVapidJwt`).
+// The Web Crypto API speaks raw fixed-width r‖s for ECDSA verify, while
+// WebAuthn/FIDO2 authenticators emit DER (`SEQUENCE { INTEGER r, INTEGER s }`).
+// Passing DER straight to `crypto.subtle.verify` makes every check return
+// `false` — this is the conversion that bridges the two. Used by passkey
+// assertion verification (`verifyES256`).
+//
+// Scoped to P-256 (ES256), the only ECDSA curve this package verifies: each
+// component is 32 bytes and a conformant signature is always DER short-form.
+
+/** Field width of a single P-256 (ES256) signature component, in bytes. */
+const P256_COMPONENT_BYTES = 32;
 
 /**
- * Convert an ASN.1 DER-encoded ECDSA signature into the raw `r‖s` (IEEE P1363)
- * fixed-width form the Web Crypto API requires for `crypto.subtle.verify`.
+ * Convert an ASN.1 DER-encoded P-256 ECDSA signature into the raw `r‖s`
+ * (IEEE P1363) fixed-width form the Web Crypto API requires for
+ * `crypto.subtle.verify`: 64 bytes, each component big-endian and left-padded
+ * with zeros.
  *
  * The passkey path feeds this **attacker-controlled** input, so the parser is
  * strict and bounds-checked end to end: it reads no byte without first proving
  * it is in range, validates every ASN.1 tag and length, rejects long-form
  * lengths (a conformant P-256 signature is always short-form), forbids trailing
- * bytes, and refuses any component that does not fit the curve's field width.
- * On any structural problem it throws — callers translate that into a *failed*
- * (not crashed) verification rather than a 500.
+ * bytes, and refuses any component wider than the 32-byte field. On any
+ * structural problem it throws — callers translate that into a *failed* (not
+ * crashed) verification rather than a 500.
  *
- * For well-formed minimal DER (e.g. the output of `crypto.subtle.sign`) the
- * result is byte-identical to a naive parser, so it is a safe drop-in for the
- * trusted sign-side path too.
+ * Leading-zero handling is deliberately lenient: it strips DER sign/padding
+ * bytes to recover each component's magnitude, so a non-minimal encoding still
+ * maps to the correct (r, s). For well-formed *minimal* DER (e.g. the output of
+ * `crypto.subtle.sign`) the result is byte-identical to a naive parser.
  *
  * @param der DER bytes: `0x30 len 0x02 rLen r 0x02 sLen s`.
- * @param componentSize Fixed width of each component in bytes (32 for P-256).
- * @returns `r‖s`, exactly `2 * componentSize` bytes, each component big-endian
- *   and left-padded with zeros.
+ * @returns `r‖s`, exactly 64 bytes.
  * @throws {Error} when `der` is not a structurally valid two-INTEGER DER
- *   sequence, or a component exceeds `componentSize` bytes.
+ *   sequence, or a component exceeds the 32-byte field width.
  */
-export function derToRawEcdsaSignature(der: Uint8Array, componentSize = 32): Uint8Array {
+export function derToRawEcdsaSignature(der: Uint8Array): Uint8Array {
   let offset = 0;
 
   const readByte = (): number => {
@@ -45,14 +51,14 @@ export function derToRawEcdsaSignature(der: Uint8Array, componentSize = 32): Uin
     throw new Error('Invalid ECDSA DER signature: expected SEQUENCE');
   }
   const seqLen = readByte();
-  // Every curve WebAuthn uses keeps the SEQUENCE body well under 128 bytes, so
-  // the length is always DER short-form. A long-form length (high bit set) is
-  // oversized/non-minimal and never produced by a conformant authenticator.
+  // A P-256 signature's SEQUENCE body is at most ~70 bytes, so its length is
+  // always DER short-form. A long-form length (high bit set) is oversized /
+  // non-minimal and never produced by a conformant authenticator.
   if (seqLen & 0x80) {
     throw new Error('Invalid ECDSA DER signature: unsupported long-form length');
   }
-  // The declared body must consume the rest of the buffer exactly — no bytes
-  // appended after the structure, and none missing.
+  // The declared body must consume the rest of the buffer exactly — this
+  // rejects both a truncated buffer and bytes appended after the structure.
   if (seqLen !== der.length - offset) {
     throw new Error('Invalid ECDSA DER signature: declared length does not match input');
   }
@@ -79,7 +85,7 @@ export function derToRawEcdsaSignature(der: Uint8Array, componentSize = 32): Uin
     value = value.subarray(start);
     // A magnitude wider than the field is not a valid P-256 component — reject
     // rather than let it overflow the fixed-width slot below.
-    if (value.length > componentSize) {
+    if (value.length > P256_COMPONENT_BYTES) {
       throw new Error('Invalid ECDSA DER signature: component exceeds field width');
     }
     return value;
@@ -88,14 +94,15 @@ export function derToRawEcdsaSignature(der: Uint8Array, componentSize = 32): Uin
   const r = readInteger();
   const s = readInteger();
 
-  // The seqLen check already forbade trailing bytes, but assert full
-  // consumption explicitly so the invariant is local and obvious.
+  // r and s are bounded by seqLen, but a SEQUENCE whose declared length is
+  // consumed by a *third* element (or stray bytes) after s still passes the
+  // seqLen check above — this full-consumption assert is what rejects it.
   if (offset !== der.length) {
     throw new Error('Invalid ECDSA DER signature: trailing bytes after signature');
   }
 
-  const raw = new Uint8Array(componentSize * 2);
-  raw.set(r, componentSize - r.length);
-  raw.set(s, componentSize * 2 - s.length);
+  const raw = new Uint8Array(P256_COMPONENT_BYTES * 2);
+  raw.set(r, P256_COMPONENT_BYTES - r.length);
+  raw.set(s, P256_COMPONENT_BYTES * 2 - s.length);
   return raw;
 }

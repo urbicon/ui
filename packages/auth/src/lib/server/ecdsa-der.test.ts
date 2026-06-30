@@ -106,10 +106,17 @@ describe('derToRawEcdsaSignature — rejects malformed / hostile input', () => {
   reject([0x30, 0x06, 0x02, 0x01, 0x01, 0x02, 0x01], 'truncated: declared length exceeds buffer');
   reject(
     [0x30, 0x06, 0x02, 0x01, 0x01, 0x02, 0x01, 0x01, 0xff],
-    'trailing byte after a valid signature'
+    'extra byte beyond the declared SEQUENCE length'
   );
   reject([0x30, 0x04, 0x02, 0x01, 0x01, 0x02, 0x01, 0x01], 'SEQUENCE length shorter than body');
   reject([0x30, 0x08, 0x02, 0x01, 0x01, 0x02, 0x01, 0x01], 'SEQUENCE length longer than body');
+  // Internally inconsistent SEQUENCE: declared length matches the buffer, but a
+  // THIRD INTEGER sits after s. Passes the seqLen check; only the final
+  // full-consumption assert (offset !== der.length) rejects it.
+  reject(
+    [0x30, 0x09, 0x02, 0x01, 0x01, 0x02, 0x01, 0x01, 0x02, 0x01, 0x01],
+    'third INTEGER inside a consistent-length SEQUENCE'
+  );
 
   it('component wider than the field width (33 non-zero bytes)', () => {
     const big = Array(33).fill(0x7f); // 33 bytes, no leading zero → magnitude > 32
@@ -118,20 +125,10 @@ describe('derToRawEcdsaSignature — rejects malformed / hostile input', () => {
     expect(() => derToRawEcdsaSignature(der)).toThrow(/exceeds field width/);
   });
 
-  it('INTEGER length runs past the end of the input', () => {
-    // rLen claims 0x20 bytes but only a few follow.
-    const der = new Uint8Array([0x30, 0x24, 0x02, 0x20, 0x01, 0x02, 0x03]);
-    expect(() => derToRawEcdsaSignature(der)).toThrow(/Invalid ECDSA DER/);
-  });
-});
-
-describe('derToRawEcdsaSignature — non-default component size', () => {
-  it('supports a wider field width (e.g. P-384, 48 bytes)', () => {
-    const r = new Uint8Array(48).fill(0x11);
-    const s = new Uint8Array(48).fill(0x22);
-    const raw = new Uint8Array([...r, ...s]);
-    const out = derToRawEcdsaSignature(rawToDer(raw), 48);
-    expect(out).toHaveLength(96);
-    expect(out).toEqual(raw);
+  it('INTEGER body overruns a consistent-length SEQUENCE', () => {
+    // seqLen=4 matches the 6-byte buffer, but rLen=4 reaches past the end
+    // (offset 4 + 4 > 6) — exercises the INTEGER bounds guard, not the seqLen one.
+    const der = new Uint8Array([0x30, 0x04, 0x02, 0x04, 0x01, 0x02]);
+    expect(() => derToRawEcdsaSignature(der)).toThrow(/runs past end of input/);
   });
 });

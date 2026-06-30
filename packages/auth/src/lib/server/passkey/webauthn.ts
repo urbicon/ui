@@ -588,12 +588,14 @@ async function verifyES256(
   let rawSignature: Uint8Array;
   try {
     rawSignature = derToRawEcdsaSignature(derSignature);
-  } catch {
+  } catch (err) {
     // A conformant authenticator never emits malformed DER. Surface a
     // structurally invalid signature as a clean assertion failure (the handler
     // maps WebAuthnError → 400), never an opaque 500, and never hand the raw
-    // bytes to crypto.subtle.verify.
-    throw new WebAuthnError('Invalid ECDSA signature encoding');
+    // bytes to crypto.subtle.verify. Chain the parser error as `cause` so the
+    // structural reason stays diagnosable server-side without leaking to the
+    // client.
+    throw new WebAuthnError('Invalid ECDSA signature encoding', { cause: err });
   }
 
   const dataBuf = data.buffer.slice(
@@ -679,8 +681,11 @@ function formatAaguid(aaguid: Uint8Array): string {
 }
 
 export class WebAuthnError extends Error {
-  constructor(message: string) {
-    super(message);
+  // Forward ErrorOptions so callers can chain a `cause` — e.g. wrapping a raw
+  // DER-parse error while keeping a clean client-facing message. The handler
+  // returns only `message`, so the cause never leaks but stays diagnosable.
+  constructor(message: string, options?: ErrorOptions) {
+    super(message, options);
     this.name = 'WebAuthnError';
   }
 }
