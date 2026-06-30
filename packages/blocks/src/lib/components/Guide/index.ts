@@ -50,9 +50,16 @@ export interface GuideProviderProps {
   /** Persistence adapter for "seen" state (tours/hints). @default localStorage-backed adapter */
   storage?: GuideStorageAdapter;
   /**
+   * Navigation hook for declarative cross-route tours, forwarded to the internally created
+   * controller. A SvelteKit consumer wires `(route) => goto(route)`; a step's `route` then
+   * navigates before its spotlight. Ignored when a `controller` is supplied (set it there).
+   * @default undefined
+   */
+  navigate?: (route: string) => void | Promise<void>;
+  /**
    * Supply a pre-created `GuideController` for programmatic access from outside the provider
    * (start tours, open the panel, query `hasSeen`). When omitted, the provider creates one
-   * internally and shares it via context. When supplied, `storage` is ignored.
+   * internally and shares it via context. When supplied, `storage` and `navigate` are ignored.
    */
   controller?: GuideController;
   /** App subtree wired to the Guide context. */
