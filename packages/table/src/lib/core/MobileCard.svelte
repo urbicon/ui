@@ -56,7 +56,16 @@
   const selectable = $derived(tableState.selectionMode !== 'none');
   const isItemSelected = $derived(selectable && checkSelected(itemId));
 
-  // Keep checkbox interaction from also triggering the card's expand / onClick.
+  // The whole card may act as one button only when it has no focusable child —
+  // a selection checkbox inside a role="button" is a nested-interactive a11y
+  // violation. Selectable cards therefore use dedicated controls (the checkbox
+  // for selection, a chevron button for expand) instead of a card-wide button.
+  const cardActsAsButton = $derived(!selectable && (expandable || !!onClick));
+  // A selectable card still forwards a pointer click to onClick, but not expand
+  // (that's the chevron button's job) — so only bind onclick when it does something.
+  const cardClickable = $derived(cardActsAsButton || (selectable && !!onClick));
+
+  // Keep checkbox / expand-button interaction from also triggering the card click.
   function stopSelectionBubble(event: Event) {
     event.stopPropagation();
   }
@@ -69,7 +78,7 @@
   function handleClick() {
     if (onClick) {
       onClick(item);
-    } else if (expandable) {
+    } else if (cardActsAsButton && expandable) {
       toggleExpand(itemId);
     }
   }
@@ -79,6 +88,11 @@
       event.preventDefault();
       handleClick();
     }
+  }
+
+  function handleExpandClick(event: MouseEvent) {
+    event.stopPropagation();
+    toggleExpand(itemId);
   }
 
   function getComponentProps(column: Column, row: TableItem) {
@@ -119,7 +133,7 @@
   {/if}
 {/snippet}
 
-<!-- svelte-ignore a11y_no_noninteractive_tabindex -->
+<!-- svelte-ignore a11y_no_noninteractive_tabindex a11y_no_static_element_interactions a11y_click_events_have_key_events -->
 <div
   class={resolveSlotClass(
     cardStyles.card(),
@@ -128,10 +142,10 @@
     className
   )}
   data-testid={computedTestId}
-  role={expandable || onClick ? 'button' : undefined}
-  tabindex={expandable || onClick ? 0 : undefined}
-  onclick={handleClick}
-  onkeydown={handleKeyDown}
+  role={cardActsAsButton ? 'button' : undefined}
+  tabindex={cardActsAsButton ? 0 : undefined}
+  onclick={cardClickable ? handleClick : undefined}
+  onkeydown={cardActsAsButton ? handleKeyDown : undefined}
 >
   {#if titleColumn || selectable}
     <div class={cardStyles.header()}>
@@ -176,7 +190,22 @@
 
   {#if expandable}
     <div class={cardStyles.actions()}>
-      <ChevronDownIcon class="{cardStyles.expandIcon()} h-5 w-5" />
+      {#if cardActsAsButton}
+        <!-- The whole card is the button; the chevron is a visual affordance. -->
+        <ChevronDownIcon class="{cardStyles.expandIcon()} h-5 w-5" />
+      {:else}
+        <!-- Selectable card → the card can't be a button, so expand has its own. -->
+        <button
+          type="button"
+          class="rounded-modify hover:bg-surface-hover flex h-11 w-11 items-center justify-center transition-colors duration-[var(--blocks-duration-fast)]"
+          onclick={handleExpandClick}
+          aria-label={isExpanded ? tt('actions.hideDetails') : tt('actions.showDetails')}
+          aria-expanded={isExpanded}
+          data-testid={`mobile-card-expand-${itemId}`}
+        >
+          <ChevronDownIcon class="{cardStyles.expandIcon()} h-5 w-5" />
+        </button>
+      {/if}
     </div>
   {/if}
 
