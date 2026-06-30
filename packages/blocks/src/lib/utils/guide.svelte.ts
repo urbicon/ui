@@ -347,6 +347,15 @@ export class GuideController {
   readonly #navSource: GuideNavigationSource;
   /** The path a tour-internal navigation is heading to; distinguishes our own nav from a foreign one. */
   #expectedRoute: string | null = null;
+  /**
+   * `true` only while our own injected `#navigate()` call is on the stack. A `navigationSource` that
+   * reports its location change **synchronously, re-entrant** during that call (SvelteKit's
+   * `afterNavigate` fires inside `goto`) IS that very navigation — never a foreign one. This is the
+   * exact signal; the `path === #expectedRoute` check in `#onLocationChange` is only an async-source
+   * proxy for the same thing and breaks the moment the router reports a normalized path
+   * (trailing slash, base/locale prefix) that doesn't equal the raw `step.route`.
+   */
+  #selfNavigating = false;
   /** Last path the tour is known to be on — set at start, updated on each handled navigation. */
   #knownPath = '';
   /** Unsubscribe from the navigation source; non-null only while a route-using tour runs. */
@@ -618,6 +627,12 @@ export class GuideController {
     }
     this.#expectedRoute = route;
     this.#scheduleRouteTargetWarning();
+    // Mark the window during which a synchronous (re-entrant) location report from the
+    // navigationSource is unambiguously our own navigation. Reset in `finally` the instant the
+    // (sync part of the) hook returns — an *async* report (the default Navigation-API source, or a
+    // microtask-deferred one) then falls through to the normal `#expectedRoute` matching, so the
+    // async path is unchanged.
+    this.#selfNavigating = true;
     try {
       const result = this.#navigate(route);
       if (result && typeof (result as Promise<void>).then === 'function') {
@@ -629,6 +644,8 @@ export class GuideController {
     } catch (err) {
       if (this.#dev) console.warn('[Guide] navigate hook threw:', err);
       this.#abortPendingNavigation(route);
+    } finally {
+      this.#selfNavigating = false;
     }
   }
 
@@ -645,16 +662,22 @@ export class GuideController {
   }
 
   /**
-   * React to a navigation observed while a route-using tour runs. A navigation matching the pending
-   * `expectedRoute` is the tour's own → clear the flag and keep running (the ring lands via the
-   * surface's `reapplyStepHighlight`). Any other navigation is foreign — the user left, or a
+   * React to a navigation observed while a route-using tour runs. A navigation that is the tour's own
+   * — reported synchronously during our `#navigate()` call (`#selfNavigating`), or matching the
+   * pending `#expectedRoute` — keeps it running (the ring lands via the surface's
+   * `reapplyStepHighlight`). Any other navigation is foreign — the user left, or a
    * youngest-gesture-wins race — and tears the tour down, analytics-silent (`stopTour`).
    */
   #onLocationChange(path: string): void {
     if (!this.#activeTour) return;
     if (path === this.#knownPath) return; // no pathname change (e.g. a hash/query update) — ignore
     this.#knownPath = path;
-    if (this.#expectedRoute !== null && path === this.#expectedRoute) {
+    // A location report is the tour's OWN navigation in two cases: it arrives synchronously,
+    // re-entrant, during our injected `#navigate()` call (`#selfNavigating` — the exact signal, true
+    // regardless of how the router normalized the path), or it matches the pending `#expectedRoute`
+    // (the async-source proxy, for a report that lands a tick after the hook returns). Either keeps
+    // the tour running.
+    if (this.#selfNavigating || (this.#expectedRoute !== null && path === this.#expectedRoute)) {
       // The tour's own navigation landed — keep running. For a *targeted* step, keep `#expectedRoute`
       // set until the target settles (`#applyStepHighlight`) so a redirecting / multi-hop source (the
       // Navigation API emitting one event per hop) firing a *second* event for the redirect target is

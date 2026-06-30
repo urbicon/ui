@@ -986,3 +986,146 @@ describe('GuideController — cross-route touring', () => {
     expect(ctrl.isTourActive).toBe(true);
   });
 });
+
+// ─── Cross-route touring — synchronous (re-entrant) navigationSource (#41) ───────────────────────
+//
+// The recommended SvelteKit source (`afterNavigate` + the page store, GUIDE.md §9) reports the
+// location change SYNCHRONOUSLY, re-entrant, inside the `goto` the navigate hook calls — so
+// `#onLocationChange` runs *mid-`#maybeNavigate`*. The `path === expectedRoute` proxy alone misses
+// the tour's own navigation the moment the router normalizes the path, tearing the tour down as
+// foreign. A `#selfNavigating` re-entrancy guard recognizes it as our own regardless of the path.
+
+describe('GuideController — synchronous navigationSource (re-entrancy, #41)', () => {
+  /**
+   * A controller whose `navigate` hook reports the new location SYNCHRONOUSLY (like SvelteKit's
+   * `afterNavigate` firing inside `goto`). `transform` injects a router-normalized landing path
+   * (trailing slash, base/locale prefix) — the exact shape that defeated the `path === expectedRoute`
+   * proxy in #41.
+   */
+  function makeSyncController(
+    opts: { initialPath?: string; dev?: boolean; transform?: (route: string) => string } = {}
+  ) {
+    const overlay = makeOverlayStack();
+    const nav = makeNavigationSource(opts.initialPath ?? '/dash');
+    const transform = opts.transform ?? ((r: string) => r);
+    const navigate = vi.fn((route: string) => {
+      nav.emit(transform(route)); // synchronous, re-entrant location report — fires while we navigate
+    });
+    const ctrl = new GuideController({
+      overlayStack: overlay,
+      dev: opts.dev ?? false,
+      navigate,
+      navigationSource: nav.source
+    });
+    return { ctrl, overlay, nav, navigate };
+  }
+
+  it('keeps the tour running and anchors the spotlight on a same-path sync report (AC #1/#4)', () => {
+    const { ctrl, navigate } = makeSyncController({ initialPath: '/dash' });
+    ctrl.registerTarget('a', mockElement());
+    ctrl.startTour(
+      tour([
+        { target: 'a', route: '/dash' },
+        { target: 'b', route: '/expenses' }
+      ])
+    );
+    ctrl.next(); // → /expenses; the hook re-enters #onLocationChange synchronously
+    expect(navigate).toHaveBeenCalledWith('/expenses');
+    expect(ctrl.isTourActive).toBe(true); // NOT torn down as a foreign navigation
+
+    const elB = mockElement();
+    ctrl.registerTarget('b', elB); // target appears on the new page…
+    ctrl.reapplyStepHighlight();
+    expect(ctrl.highlightedId).toBe('b'); // …and the spotlight still lands
+    expect(elB.has('data-guide-highlight')).toBe(true);
+  });
+
+  it('keeps running when a sync source reports a router-normalized path (trailing slash) (AC #1)', () => {
+    // The exact #41 failure: the normalized landing path made `path === expectedRoute` miss, so the
+    // tour's OWN navigation was stopped as foreign (silently in PROD — `dev: false`, no warning).
+    const { ctrl } = makeSyncController({ initialPath: '/dash', transform: (r) => `${r}/` });
+    ctrl.registerTarget('a', mockElement());
+    ctrl.startTour(
+      tour([
+        { target: 'a', route: '/dash' },
+        { target: 'b', route: '/expenses' }
+      ])
+    );
+    ctrl.next();
+    expect(ctrl.isTourActive).toBe(true);
+  });
+
+  it('a sync normalized-path landing does not DEV-warn (recognized as own, not a foreign mismatch)', () => {
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+    const { ctrl } = makeSyncController({
+      initialPath: '/dash',
+      dev: true,
+      transform: (r) => `${r}/`
+    });
+    ctrl.registerTarget('a', mockElement());
+    ctrl.startTour(
+      tour([
+        { target: 'a', route: '/dash' },
+        { target: 'b', route: '/expenses' }
+      ])
+    );
+    warn.mockClear();
+    ctrl.next(); // own navigation, normalized landing — no "navigated toward … but landed on …" warning
+    expect(warn).not.toHaveBeenCalled();
+    expect(ctrl.isTourActive).toBe(true);
+  });
+
+  it('still stops on a genuine foreign navigation with a sync source (AC #2)', () => {
+    // A foreign navigation does NOT pass through our navigate hook, so `#selfNavigating` is false —
+    // it must still be read as foreign and tear the tour down.
+    const { ctrl, nav } = makeSyncController({ initialPath: '/dash' });
+    ctrl.registerTarget('a', mockElement());
+    ctrl.startTour(
+      tour([
+        { target: 'a', route: '/dash' },
+        { target: 'b', route: '/expenses' }
+      ])
+    );
+    nav.emit('/somewhere-else'); // the user navigates away on their own
+    expect(ctrl.isTourActive).toBe(false);
+  });
+
+  it('a targetless sync route step (normalized path) does not misfire the warning later (no regress)', () => {
+    // Guards the integration: with a normalized landing path the `path === expectedRoute` proxy can't
+    // match, so ONLY `#selfNavigating` recognizes the own navigation — and the targetless-step
+    // `expectedRoute` clear must still run inside that branch, or a later foreign nav would misfire the
+    // "navigated toward …" warning (regression for dea2641). The first assertion also fails (tour
+    // already stopped) if the guard didn't recognize the normalized own-navigation at all.
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+    const { ctrl, nav } = makeSyncController({
+      initialPath: '/home',
+      dev: true,
+      transform: (r) => `${r}/`
+    });
+    ctrl.startTour(tour([{ route: '/billing', title: 'Welcome to billing' }])); // route, no target
+    expect(ctrl.isTourActive).toBe(true); // own (sync, normalized) navigation is not mistaken for foreign
+    warn.mockClear();
+    nav.emit('/settings'); // a later foreign nav: stops, with NO misleading "navigated toward" warning
+    expect(ctrl.isTourActive).toBe(false);
+    expect(warn).not.toHaveBeenCalled();
+  });
+
+  it('the async (default-source) path is unchanged: a separate emit still matches via expectedRoute (AC #3)', () => {
+    // When the report lands a tick AFTER the hook returns (the Navigation-API default source, or a
+    // microtask-deferred one), `#selfNavigating` is already false and the normal `path === expectedRoute`
+    // matching carries it — i.e. the guard is additive, not a replacement. `makeRouteController`'s hook
+    // does nothing synchronously, so the `nav.emit` below models that later, non-re-entrant report.
+    const { ctrl, nav } = makeRouteController({ initialPath: '/dash' });
+    ctrl.registerTarget('a', mockElement());
+    ctrl.startTour(
+      tour([
+        { target: 'a', route: '/dash' },
+        { target: 'b', route: '/expenses' }
+      ])
+    );
+    ctrl.next(); // hook returns without reporting; #selfNavigating already reset
+    expect(ctrl.isTourActive).toBe(true);
+    nav.emit('/expenses'); // the report lands later → matched via expectedRoute, not #selfNavigating
+    expect(ctrl.isTourActive).toBe(true);
+  });
+});
