@@ -4,6 +4,13 @@ All notable changes to this project will be documented in this file.
 This changelog is automatically generated from [Conventional Commits](https://www.conventionalcommits.org).
 
 
+## [6.4.1] - 2026-06-30
+
+### Bug Fixes
+- **blocks**: Render icon↔label gap in Button & Badge via [gap:inherit] (Codeberg #21)
+- **blocks**: Keep Combobox listbox closed after selection/clear (Codeberg #19)
+- **blocks**: Guard every import.meta.env.DEV with optional chaining (Codeberg #20)
+
 ## [6.4.0] - 2026-06-26
 
 ### Features
