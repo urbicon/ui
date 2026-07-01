@@ -23,6 +23,7 @@ export interface StepperContext {
  *
  * @tag navigation
  * @related Tab
+ * @related JourneyTimeline
  *
  * @example
  * ```svelte

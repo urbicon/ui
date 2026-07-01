@@ -38,6 +38,7 @@ export const componentLinks: Record<string, string> = {
   Menu: '/blocks/primitives/menu',
   FileUpload: '/blocks/components/file-upload',
   Input: '/blocks/primitives/input',
+  JourneyTimeline: '/blocks/primitives/journey-timeline',
   LocaleSwitcher: '/blocks/components/locale-switcher',
   Pagination: '/blocks/primitives/pagination',
   Popover: '/blocks/primitives/popover',
