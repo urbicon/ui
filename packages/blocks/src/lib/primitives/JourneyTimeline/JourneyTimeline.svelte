@@ -41,26 +41,56 @@
 
   // --- focus state (controlled via bind:focusId, else internal) -------------
   const focusableItems = $derived(items.filter((it) => it.focusable !== false));
+  const isFocusable = (id: string | undefined) =>
+    id !== undefined && focusableItems.some((it) => it.id === id);
 
   // Default focus: explicit → first `active` node → first focusable node.
   const defaultFocus = $derived(
-    (defaultFocusId !== undefined && focusableItems.some((it) => it.id === defaultFocusId)
-      ? defaultFocusId
-      : undefined) ??
+    (isFocusable(defaultFocusId) ? defaultFocusId : undefined) ??
       items.find((it) => it.status === 'active' && it.focusable !== false)?.id ??
       focusableItems[0]?.id
   );
 
   let internalFocusId = $state<string | undefined>(undefined);
+  // A stale internal focus (the expanded node was removed) falls back to the
+  // default so a node is always open. A controlled `focusId` is honoured as-is
+  // (write-strict) and only surfaced via the dev warning below.
   const activeFocusId = $derived(
-    focusId !== undefined ? focusId : (internalFocusId ?? defaultFocus)
+    focusId !== undefined ? focusId : isFocusable(internalFocusId) ? internalFocusId : defaultFocus
   );
 
   // The roving-tabindex target: the last keyboard/click-touched node, else the
   // expanded node. Kept distinct from `activeFocusId` so arrow keys can move DOM
-  // focus without expanding (expansion happens on Enter/Space/click).
+  // focus without expanding (expansion happens on Enter/Space/click). Guarded
+  // against a removed node so the tab stop never lands on nothing.
   let rovingId = $state<string | undefined>(undefined);
-  const tabbableId = $derived(rovingId ?? activeFocusId ?? focusableItems[0]?.id);
+  // Every candidate is validated against the live focusable set (not just the
+  // first non-undefined one), so a stale roving/active id — or a bad controlled
+  // focusId — can never leave every button with tabindex=-1.
+  const tabbableId = $derived(
+    [rovingId, activeFocusId, focusableItems[0]?.id].find((id) => isFocusable(id))
+  );
+
+  // Dev-only signals for caller mistakes that otherwise fail silently. Mirrors
+  // the `Select`/`Guide` precedent (`import.meta.env?.DEV && console.warn`).
+  $effect(() => {
+    if (!import.meta.env?.DEV || items.length === 0) return;
+    if (focusId !== undefined && !isFocusable(focusId)) {
+      console.warn(
+        `[JourneyTimeline] focusId "${focusId}" matches no focusable node — every node stays collapsed.`
+      );
+    }
+    if (focusId === undefined && defaultFocusId !== undefined && !isFocusable(defaultFocusId)) {
+      console.warn(
+        `[JourneyTimeline] defaultFocusId "${defaultFocusId}" matches no focusable node — falling back to the first active/focusable node.`
+      );
+    }
+    if (!node && focusableItems.length > 0) {
+      console.warn(
+        '[JourneyTimeline] focusable nodes render as expandable buttons but no `node` snippet was provided. Pass a `node` snippet or set focusable:false on nodes that carry no detail.'
+      );
+    }
+  });
 
   function setFocus(id: string) {
     const target = items.find((it) => it.id === id);
@@ -140,6 +170,11 @@
     if (nodeEls.length === 0) return;
 
     const visible = new Set<string>();
+    // `observe()` delivers a synthetic initial callback for every target before
+    // any scrolling. Seed `visible` from it but do NOT act — otherwise mounting
+    // would clobber the resolved default focus (or a controlled focusId) and fire
+    // a spurious onFocusChange. Scroll-spy only *follows* real scrolling.
+    let seeded = false;
     const observer = new IntersectionObserver(
       (entries) => {
         for (const entry of entries) {
@@ -147,6 +182,10 @@
           if (!id) continue;
           if (entry.isIntersecting) visible.add(id);
           else visible.delete(id);
+        }
+        if (!seeded) {
+          seeded = true;
+          return;
         }
         const topmost = currentItems.find((it) => it.focusable !== false && visible.has(it.id));
         if (topmost) setFocus(topmost.id);
@@ -173,7 +212,9 @@
           size,
           status: item.status,
           focused,
-          interactive: item.focusable !== false
+          interactive: item.focusable !== false,
+          // The connector leaving a completed node reads as "travelled".
+          connectorComplete: item.status === 'complete'
         });
   }
 
@@ -191,13 +232,6 @@
     const override = [slotClasses?.[key], extra].filter(Boolean).join(' ') || undefined;
     if (unstyled || !styles) return override;
     return styles[key]({ class: override });
-  }
-
-  function connectorCls(travelled: boolean) {
-    const styles = unstyled
-      ? null
-      : journeyTimelineVariants({ orientation, size, connectorComplete: travelled });
-    return sc(styles, 'connector');
   }
 
   // --- misc derived ----------------------------------------------------------
@@ -219,13 +253,13 @@
 <!-- Marker glyph — decorative; the status is conveyed by the sr-only label. -->
 {#snippet markerGlyph(item: JourneyNode)}
   {#if item.status === 'complete'}
-    <CheckIcon size={iconSize} aria-hidden="true" />
+    <CheckIcon size={iconSize} />
   {:else if item.status === 'active'}
-    <CircleDotIcon size={iconSize} aria-hidden="true" />
+    <CircleDotIcon size={iconSize} />
   {:else if item.status === 'blocked'}
-    <BanIcon size={iconSize} aria-hidden="true" />
+    <BanIcon size={iconSize} />
   {:else if item.status === 'skipped'}
-    <MinusIcon size={iconSize} aria-hidden="true" />
+    <MinusIcon size={iconSize} />
   {/if}
 {/snippet}
 
@@ -249,7 +283,7 @@
       data-journey-trigger=""
       data-node-id={item.id}
       tabindex={item.id === tabbableId ? 0 : -1}
-      aria-expanded={focused}
+      aria-expanded={node ? focused : undefined}
       aria-controls={node
         ? orientation === 'horizontal'
           ? panelId
@@ -289,11 +323,7 @@
           aria-current={item.status === 'active' ? 'step' : undefined}
         >
           {@render trigger(item, index, focused, styles)}
-          <span
-            data-journey-connector
-            class={connectorCls(item.status === 'complete')}
-            aria-hidden="true"
-          ></span>
+          <span data-journey-connector class={sc(styles, 'connector')} aria-hidden="true"></span>
         </li>
       {:else}
         <li
@@ -305,10 +335,7 @@
           {@render trigger(item, index, focused, styles)}
           <div class={sc(styles, 'body')}>
             <div class={sc(styles, 'connectorColumn')}>
-              <span
-                data-journey-connector
-                class={connectorCls(item.status === 'complete')}
-                aria-hidden="true"
+              <span data-journey-connector class={sc(styles, 'connector')} aria-hidden="true"
               ></span>
             </div>
             {#if node && item.focusable !== false}
