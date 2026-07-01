@@ -1,6 +1,6 @@
 {
   "name": "@urbicon-ui/design-content",
-  "version": "6.8.0",
+  "version": "6.8.1",
   "description": "Version-pinned bundle of Urbicon UI design knowledge — component catalog, per-component llm.txt, design-system principles + patterns, guide template and icon metadata — plus a package-relative locator. Consumed by the remote MCP server and the urbicon CLI.",
   "license": "MIT",
   "repository": {

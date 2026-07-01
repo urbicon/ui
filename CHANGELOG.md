@@ -4,6 +4,20 @@ All notable changes to this project will be documented in this file.
 This changelog is automatically generated from [Conventional Commits](https://www.conventionalcommits.org).
 
 
+## [6.8.1] - 2026-07-01
+
+### Bug Fixes
+- **docs**: Resolve @fontsource-variable side-effect imports for svelte-check
+- **blocks**: Guard cross-route tours against re-entrant navigationSource
+- **blocks**: Surface a synchronous off-route landing in cross-route tours
+
+### CI/CD
+- Build all packages + docs metadata before the typecheck gate
+- Compose `build` from `build:ts`, drop the release double-build
+
+### Documentation
+- **guide**: Document re-entrancy-safe synchronous navigationSource
+
 ## [6.8.0] - 2026-06-30
 
 ### Bug Fixes
