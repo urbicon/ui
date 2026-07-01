@@ -4,6 +4,21 @@ All notable changes to this project will be documented in this file.
 This changelog is automatically generated from [Conventional Commits](https://www.conventionalcommits.org).
 
 
+## [6.9.0] - 2026-07-01
+
+### Bug Fixes
+- **blocks**: Harden JourneyTimeline focus + scroll-spy against edge cases
+- **blocks**: Correct JourneyTimeline vertical connector geometry
+
+### Documentation
+- **blocks**: Document JourneyTimeline primitive
+
+### Features
+- **blocks**: Add JourneyTimeline primitive
+
+### Testing
+- **blocks**: Cover JourneyTimeline variants + SSR render
+
 ## [6.8.1] - 2026-07-01
 
 ### Bug Fixes
