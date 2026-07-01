@@ -34,6 +34,8 @@ export type { FormFieldProps, FormFieldSlotContext } from './FormField';
 export * from './FormField';
 export type { InputProps } from './Input';
 export * from './Input';
+export type { JourneyNode, JourneyStatus, JourneyTimelineProps } from './JourneyTimeline';
+export * from './JourneyTimeline';
 export type {
   MenuContext,
   MenuCustomSlots,

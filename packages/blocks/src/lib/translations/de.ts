@@ -129,6 +129,16 @@ export default {
     filterPlaceholder: 'Themen filtern…',
     noResults: 'Keine passenden Themen'
   },
+  journeyTimeline: {
+    label: 'Verlauf',
+    status: {
+      complete: 'Abgeschlossen',
+      active: 'In Bearbeitung',
+      pending: 'Ausstehend',
+      blocked: 'Blockiert',
+      skipped: 'Übersprungen'
+    }
+  },
   datepicker: {
     placeholder: 'Datum wählen...',
     rangePlaceholder: 'Zeitraum wählen...',

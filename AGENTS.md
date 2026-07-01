@@ -146,7 +146,7 @@ Icons live in `packages/blocks/src/lib/icons/` — geometry in `svg/<name>.svg`,
 ## Available Components under 'packages'
 
 - packages/blocks/src/lib/primitives:
-  Accordion, Alert, Avatar, Badge, Breadcrumb, Button, ButtonGroup, Card, Checkbox, Collapsible, Combobox, ConfirmDialog, Dialog, Drawer, FormField, Input, Menu, Pagination, Popover, Progress, RadioGroup, SegmentGroup, Select, Separator, Sidebar, Skeleton, Slider, Spinner, Stepper, Tab, Textarea, Toast, Toggle, Toolbar, Tooltip
+  Accordion, Alert, Avatar, Badge, Breadcrumb, Button, ButtonGroup, Card, Checkbox, Collapsible, Combobox, ConfirmDialog, Dialog, Drawer, FormField, Input, JourneyTimeline, Menu, Pagination, Popover, Progress, RadioGroup, SegmentGroup, Select, Separator, Sidebar, Skeleton, Slider, Spinner, Stepper, Tab, Textarea, Toast, Toggle, Toolbar, Tooltip
 - packages/blocks/src/lib/components:
   AreaChart, BarChart, Calendar, ChartFrame, CommandPalette, CompositionBar, CurrencyInput, DatePicker, DonutChart, EmptyState, FileUpload, Guide (+ GuideProvider, GuidePanel, GuideArticle, GuideMarker, GuideMention, GuideRef, GuideHint, GuideBeacon), LineChart, LocaleSwitcher, Sankey, SidebarLayout, Sparkline, ThemeSwitcher
 - packages/table/src/lib:

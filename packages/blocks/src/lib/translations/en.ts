@@ -129,6 +129,16 @@ export default {
     filterPlaceholder: 'Filter topics…',
     noResults: 'No matching topics'
   },
+  journeyTimeline: {
+    label: 'Journey',
+    status: {
+      complete: 'Completed',
+      active: 'In progress',
+      pending: 'Pending',
+      blocked: 'Blocked',
+      skipped: 'Skipped'
+    }
+  },
   datepicker: {
     placeholder: 'Select a date...',
     rangePlaceholder: 'Select a date range...',
