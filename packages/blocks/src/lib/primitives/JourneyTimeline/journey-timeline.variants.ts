@@ -24,7 +24,9 @@ export const journeyTimelineVariants = tv({
       'transition-[color,background-color,border-color,box-shadow] duration-[var(--blocks-duration-fast)]'
     ],
     // Column (marker width) that carries the vertical connector below a marker.
-    connectorColumn: 'flex shrink-0 items-stretch justify-center',
+    // `flex-col` is essential: it makes the connector's `flex-1` grow *down* the
+    // column (a thin vertical line) instead of *across* it (a fat block).
+    connectorColumn: 'flex flex-col shrink-0 items-center',
     // The connecting line between markers.
     connector: [
       'bg-border-subtle',
@@ -72,7 +74,7 @@ export const journeyTimelineVariants = tv({
         trigger: 'gap-2',
         title: 'text-xs',
         subtitle: 'text-[11px]',
-        detailContent: 'text-sm'
+        detailContent: 'text-sm pl-2'
       },
       md: {
         marker: 'size-9 text-sm',
@@ -80,7 +82,7 @@ export const journeyTimelineVariants = tv({
         trigger: 'gap-2.5',
         title: 'text-sm',
         subtitle: 'text-xs',
-        detailContent: 'text-sm'
+        detailContent: 'text-sm pl-2.5'
       },
       lg: {
         marker: 'size-11 text-base',
@@ -88,7 +90,7 @@ export const journeyTimelineVariants = tv({
         trigger: 'gap-3',
         title: 'text-base',
         subtitle: 'text-sm',
-        detailContent: 'text-base'
+        detailContent: 'text-base pl-3'
       }
     },
     // Marker colour + title tone per journey status. Mirrors the semantic intent
