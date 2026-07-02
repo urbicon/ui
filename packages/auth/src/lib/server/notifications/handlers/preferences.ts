@@ -2,6 +2,7 @@ import type { RequestHandler } from '@sveltejs/kit';
 import { json } from '@sveltejs/kit';
 import type { RateLimitConfig } from '../../../types.js';
 import type { NotificationPreferenceRepository } from '../../adapters/types.js';
+import { authError } from '../../handlers/errors.js';
 import { enforceRateLimit, makeRateLimiter } from '../../rate-limit.js';
 import { readJsonBody } from '../../validation.js';
 import type { NotificationRegistry } from '../registry.js';
@@ -58,7 +59,7 @@ export function createPreferencesHandler(
     GET: async ({ locals }) => {
       const userId = localsUserId(locals);
       if (!userId) {
-        return json({ error: 'Unauthorized' }, { status: 401 });
+        return authError('not_authenticated', 401);
       }
 
       const prefs = await repo.findByUser(userId);
@@ -68,7 +69,7 @@ export function createPreferencesHandler(
     PUT: async ({ request, locals }) => {
       const userId = localsUserId(locals);
       if (!userId) {
-        return json({ error: 'Unauthorized' }, { status: 401 });
+        return authError('not_authenticated', 401);
       }
 
       const limited = await enforceRateLimit(rateLimiter, userId);
@@ -81,25 +82,24 @@ export function createPreferencesHandler(
         email?: unknown;
       };
       if (typeof typeKey !== 'string' || typeKey.length === 0) {
-        return json({ error: 'typeKey is required' }, { status: 400 });
+        return authError('validation_error', 400, { message: 'typeKey is required' });
       }
       if (typeKey.length > MAX_TYPE_KEY_LENGTH) {
-        return json(
-          { error: `typeKey must be at most ${MAX_TYPE_KEY_LENGTH} characters` },
-          { status: 400 }
-        );
+        return authError('validation_error', 400, {
+          message: `typeKey must be at most ${MAX_TYPE_KEY_LENGTH} characters`
+        });
       }
       // Only registered types may hold a preference row — see the factory
       // JSDoc (unbounded-row-growth guard + semantic correctness).
       if (!registry.get(typeKey)) {
-        return json({ error: 'Unknown notification type' }, { status: 400 });
+        return authError('validation_error', 400, { message: 'Unknown notification type' });
       }
 
       const sseFlag = parseFlag(sse);
       const pushFlag = parseFlag(push);
       const emailFlag = parseFlag(email);
       if (sseFlag === 'invalid' || pushFlag === 'invalid' || emailFlag === 'invalid') {
-        return json({ error: 'Preference flags must be booleans' }, { status: 400 });
+        return authError('validation_error', 400, { message: 'Preference flags must be booleans' });
       }
 
       // Only the flags actually present in the body reach the repo — the

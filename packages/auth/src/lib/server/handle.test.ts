@@ -85,6 +85,9 @@ describe('createAuthHandle', () => {
 
     const response = await handle({ event: asEvent(event), resolve });
     expect(response.status).toBe(403);
+    expect((await response.json()).code, 'unified error shape on the CSRF gate').toBe(
+      'csrf_failed'
+    );
     expect(resolve).not.toHaveBeenCalled();
   });
 

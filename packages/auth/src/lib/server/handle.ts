@@ -4,6 +4,7 @@ import type { FullAuthUser, Repositories } from './adapters/types.js';
 import { sanitizeUser } from './auth.js';
 import { ensureCsrfCookie, validateCsrf } from './csrf.js';
 import { shieldLogger } from './deps.js';
+import { authError } from './handlers/errors.js';
 import { readRefreshCookie, rotateRefreshToken } from './refresh-token.js';
 import { applySecurityHeaders } from './security-headers.js';
 import { applyRotationOutcome, clearSessionCookie, getSessionFromCookie } from './session.js';
@@ -50,11 +51,7 @@ const DEFAULT_PUBLIC_ROUTES = [
   '/api/auth/'
 ];
 
-const jsonUnauthorized = () =>
-  new Response(JSON.stringify({ error: 'Unauthorized' }), {
-    status: 401,
-    headers: { 'Content-Type': 'application/json' }
-  });
+const jsonUnauthorized = () => authError('not_authenticated', 401);
 
 export function createAuthHandle<R extends string>(options: AuthHandleOptions<R>): Handle {
   const { config, repos } = options;
@@ -116,7 +113,7 @@ export function createAuthHandle<R extends string>(options: AuthHandleOptions<R>
         hostPrefix: csrfHostPrefix
       })
     ) {
-      return new Response('CSRF validation failed', { status: 403 });
+      return authError('csrf_failed', 403);
     }
 
     // 1a. Ensure the Double-Submit-Cookie exists for safe requests so the

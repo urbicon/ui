@@ -49,6 +49,17 @@ export const AUTH_ERROR_CODES = {
   feature_unavailable: 'feature_unavailable',
   // Input validation (field-level message stays in `error`)
   validation_error: 'validation_error',
+  // Rate limiting (429) — also used for connection caps
+  rate_limited: 'rate_limited',
+  // CSRF gate in createAuthHandle (403)
+  csrf_failed: 'csrf_failed',
+  // Passkey ceremony failures (options/verify; the prose carries the detail)
+  passkey_verification_failed: 'passkey_verification_failed',
+  // Push subscription writes (409): endpoint owned by another account vs.
+  // per-user device cap — distinct codes so the client can tell a permanent
+  // ownership conflict from "remove a device first".
+  push_endpoint_conflict: 'push_endpoint_conflict',
+  push_subscription_limit: 'push_subscription_limit',
   // Catch-all server fault
   server_error: 'server_error'
 } as const;
@@ -84,6 +95,11 @@ const DEFAULT_MESSAGES: Record<AuthErrorCode, string> = {
   invalid_refresh_token: 'Invalid refresh token.',
   feature_unavailable: 'This feature is not available.',
   validation_error: 'Invalid input.',
+  rate_limited: 'Too many requests. Please try again later.',
+  csrf_failed: 'CSRF validation failed',
+  passkey_verification_failed: 'Passkey verification failed.',
+  push_endpoint_conflict: 'Subscription endpoint is registered to another account',
+  push_subscription_limit: 'Subscription limit reached',
   server_error: 'Something went wrong. Please try again.'
 };
 

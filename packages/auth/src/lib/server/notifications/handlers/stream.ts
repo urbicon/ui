@@ -1,4 +1,5 @@
 import type { RequestHandler } from '@sveltejs/kit';
+import { authError } from '../../handlers/errors.js';
 import type { SSEManager } from '../sse.js';
 import { localsUserId } from './locals-user.js';
 
@@ -29,7 +30,7 @@ export function createStreamHandler(
     GET: async ({ locals, request }) => {
       const userId = localsUserId(locals);
       if (!userId) {
-        return new Response('Unauthorized', { status: 401 });
+        return authError('not_authenticated', 401);
       }
 
       // Per-user connection cap (DoS guard): refuse beyond the limit so one
@@ -38,7 +39,7 @@ export function createStreamHandler(
       // synchronously, so on single-threaded JS runtimes no concurrent request
       // can interleave past this check — the count is exact, no lock needed.
       if (sse.connectionCount(userId) >= maxConnectionsPerUser) {
-        return new Response('Too many concurrent connections', { status: 429 });
+        return authError('rate_limited', 429, { message: 'Too many concurrent connections' });
       }
 
       const encoder = new TextEncoder();

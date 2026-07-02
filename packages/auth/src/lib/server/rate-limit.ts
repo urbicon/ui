@@ -1,5 +1,5 @@
-import { json } from '@sveltejs/kit';
 import type { RateLimitConfig } from '../types.js';
+import { authError } from './handlers/errors.js';
 
 export interface RateLimitResult {
   allowed: boolean;
@@ -135,13 +135,10 @@ export async function enforceRateLimit(
   if (!limiter) return null;
   const limit = await limiter.check(key);
   if (limit.allowed) return null;
-  return json(
-    { error: message },
-    {
-      status: 429,
-      headers: { 'Retry-After': String(Math.ceil(limit.retryAfterMs / 1000)) }
-    }
-  );
+  return authError('rate_limited', 429, {
+    message,
+    headers: { 'Retry-After': String(Math.ceil(limit.retryAfterMs / 1000)) }
+  });
 }
 
 /**

@@ -7,6 +7,7 @@ import type {
 } from '../../adapters/types.js';
 import { shieldLogger } from '../../deps.js';
 import { base64UrlDecode } from '../../encoding.js';
+import { authError } from '../../handlers/errors.js';
 import { enforceRateLimit, makeRateLimiter } from '../../rate-limit.js';
 import { readJsonBody } from '../../validation.js';
 import { isAllowedPushEndpoint } from '../push-endpoint.js';
@@ -99,7 +100,7 @@ export function createPushSubscriptionHandler(
     POST: async ({ request, locals }) => {
       const userId = localsUserId(locals);
       if (!userId) {
-        return json({ error: 'Unauthorized' }, { status: 401 });
+        return authError('not_authenticated', 401);
       }
 
       const limited = await enforceRateLimit(rateLimiter, userId);
@@ -109,20 +110,20 @@ export function createPushSubscriptionHandler(
         subscription?: { endpoint?: unknown; keys?: unknown };
       };
       if (typeof subscription?.endpoint !== 'string' || !subscription?.keys) {
-        return json({ error: 'Invalid subscription data' }, { status: 400 });
+        return authError('validation_error', 400, { message: 'Invalid subscription data' });
       }
 
       // SSRF guard: the endpoint is later fetched server-side, so reject
       // non-HTTPS, private/loopback/link-local hosts (and anything outside the
       // optional allowlist) before persisting it.
       if (!isAllowedPushEndpoint(subscription.endpoint, options?.allowedEndpointHosts)) {
-        return json({ error: 'Invalid push endpoint' }, { status: 400 });
+        return authError('validation_error', 400, { message: 'Invalid push endpoint' });
       }
 
       // Validate the encryption keys structurally — an invalid p256dh/auth pair
       // would otherwise be stored and then crash every push to this user.
       if (!isValidWebPushKeys(subscription.keys)) {
-        return json({ error: 'Invalid subscription keys' }, { status: 400 });
+        return authError('validation_error', 400, { message: 'Invalid subscription keys' });
       }
 
       // Per-user cap on NEW endpoints only — a re-subscribe of an existing
@@ -132,10 +133,9 @@ export function createPushSubscriptionHandler(
         existing.length >= maxSubscriptionsPerUser &&
         !existing.some((s) => s.endpoint === subscription.endpoint)
       ) {
-        return json(
-          { error: `Subscription limit reached (${maxSubscriptionsPerUser} per user)` },
-          { status: 409 }
-        );
+        return authError('push_subscription_limit', 409, {
+          message: `Subscription limit reached (${maxSubscriptionsPerUser} per user)`
+        });
       }
 
       const outcome = (await repo.create(userId, {
@@ -161,10 +161,7 @@ export function createPushSubscriptionHandler(
         logger.warn(
           `[auth] push-subscription write rejected: user ${userId} presented a foreign endpoint without the matching keys`
         );
-        return json(
-          { error: 'Subscription endpoint is registered to another account' },
-          { status: 409 }
-        );
+        return authError('push_endpoint_conflict', 409);
       }
       if (outcome === 'reassigned') {
         logger.warn(
@@ -178,7 +175,7 @@ export function createPushSubscriptionHandler(
     DELETE: async ({ request, locals }) => {
       const userId = localsUserId(locals);
       if (!userId) {
-        return json({ error: 'Unauthorized' }, { status: 401 });
+        return authError('not_authenticated', 401);
       }
 
       const limited = await enforceRateLimit(rateLimiter, userId);
@@ -186,7 +183,7 @@ export function createPushSubscriptionHandler(
 
       const { endpoint } = (await readJsonBody(request)) as { endpoint?: unknown };
       if (typeof endpoint !== 'string' || endpoint.length === 0) {
-        return json({ error: 'Endpoint is required' }, { status: 400 });
+        return authError('validation_error', 400, { message: 'Endpoint is required' });
       }
 
       await repo.delete(userId, endpoint);

@@ -1,5 +1,6 @@
 import type { RequestHandler } from '@sveltejs/kit';
 import { json } from '@sveltejs/kit';
+import { authError } from '../../handlers/errors.js';
 import type { NotificationService } from '../service.js';
 import { localsUserId } from './locals-user.js';
 
@@ -37,7 +38,7 @@ export function createNotificationsHandlers(service: NotificationService): {
       GET: async ({ locals, url }) => {
         const userId = localsUserId(locals);
         if (!userId) {
-          return json({ error: 'Unauthorized' }, { status: 401 });
+          return authError('not_authenticated', 401);
         }
 
         // Query params are UI hints, read-tolerantly: a malformed or
@@ -56,7 +57,7 @@ export function createNotificationsHandlers(service: NotificationService): {
       POST: async ({ locals }) => {
         const userId = localsUserId(locals);
         if (!userId) {
-          return json({ error: 'Unauthorized' }, { status: 401 });
+          return authError('not_authenticated', 401);
         }
 
         await service.markAllAsRead(userId);
@@ -68,12 +69,12 @@ export function createNotificationsHandlers(service: NotificationService): {
       POST: async ({ locals, params }) => {
         const userId = localsUserId(locals);
         if (!userId) {
-          return json({ error: 'Unauthorized' }, { status: 401 });
+          return authError('not_authenticated', 401);
         }
 
         const id = params.id;
         if (!id) {
-          return json({ error: 'Notification id is required' }, { status: 400 });
+          return authError('validation_error', 400, { message: 'Notification id is required' });
         }
 
         await service.markAsRead(id, userId);
@@ -85,12 +86,12 @@ export function createNotificationsHandlers(service: NotificationService): {
       DELETE: async ({ locals, params }) => {
         const userId = localsUserId(locals);
         if (!userId) {
-          return json({ error: 'Unauthorized' }, { status: 401 });
+          return authError('not_authenticated', 401);
         }
 
         const id = params.id;
         if (!id) {
-          return json({ error: 'Notification id is required' }, { status: 400 });
+          return authError('validation_error', 400, { message: 'Notification id is required' });
         }
 
         await service.deleteNotification(id, userId);

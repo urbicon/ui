@@ -151,6 +151,9 @@ describe('createPushSubscriptionHandler — POST', () => {
     expect(res.status).toBe(409);
     const body = await res.json();
     expect(body.success).toBeUndefined();
+    expect(body.code, 'machine code distinguishes ownership from the device cap').toBe(
+      'push_endpoint_conflict'
+    );
     // Someone replaying foreign endpoint URLs is a signal the operator must
     // be able to see; the endpoint itself stays out of the line.
     const line = String(vi.mocked(logger.warn).mock.calls[0]?.[0]);
@@ -203,6 +206,7 @@ describe('createPushSubscriptionHandler — POST', () => {
     const limited = await post();
     expect(limited.status).toBe(429);
     expect(limited.headers.get('Retry-After')).toBeTruthy();
+    expect((await limited.json()).code, 'the 429 carries the machine code').toBe('rate_limited');
     expect(repo.create).toHaveBeenCalledTimes(2);
   });
 
@@ -219,6 +223,7 @@ describe('createPushSubscriptionHandler — POST', () => {
       event({ subscription: { endpoint: PUBLIC_ENDPOINT, keys: KEYS } }, { id: 'u1' })
     );
     expect(blocked.status).toBe(409);
+    expect((await blocked.json()).code).toBe('push_subscription_limit');
     expect(repo.create).not.toHaveBeenCalled();
 
     // Re-sending an already-stored endpoint (the browser's normal re-enable)

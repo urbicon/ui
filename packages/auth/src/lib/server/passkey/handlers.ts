@@ -9,6 +9,7 @@ import type {
 import { sanitizeUser } from '../auth.js';
 import { base64UrlDecode } from '../encoding.js';
 import { requireSessionUser } from '../handlers/_shared.js';
+import { authError } from '../handlers/errors.js';
 import { enforceRateLimit, makeRateLimiter, type RateLimiter } from '../rate-limit.js';
 import { establishSession, resolveSessionMeta } from '../session.js';
 import {
@@ -89,7 +90,7 @@ export function createPasskeyRegistrationOptionsHandler<R extends string>(
     POST: async ({ cookies }) => {
       const user = await sessionUser(deps, cookies);
       if (!user) {
-        return json({ error: 'Unauthorized' }, { status: 401 });
+        return authError('not_authenticated', 401);
       }
 
       const existing = await deps.repos.passkey.findByUserId(user.id);
@@ -115,7 +116,7 @@ export function createPasskeyRegistrationVerifyHandler<R extends string>(
     POST: async ({ request, cookies }) => {
       const user = await sessionUser(deps, cookies);
       if (!user) {
-        return json({ error: 'Unauthorized' }, { status: 401 });
+        return authError('not_authenticated', 401);
       }
 
       try {
@@ -125,7 +126,7 @@ export function createPasskeyRegistrationVerifyHandler<R extends string>(
         };
 
         if (!credential) {
-          return json({ error: 'Credential is required' }, { status: 400 });
+          return authError('validation_error', 400, { message: 'Credential is required' });
         }
 
         const verified = await verifyRegistration(deps.webauthn, user.id, credential);
@@ -153,7 +154,7 @@ export function createPasskeyRegistrationVerifyHandler<R extends string>(
         );
       } catch (err) {
         if (err instanceof WebAuthnError) {
-          return json({ error: err.message }, { status: 400 });
+          return authError('passkey_verification_failed', 400, { message: err.message });
         }
         throw err;
       }
@@ -254,7 +255,9 @@ export function createPasskeyAuthenticationVerifyHandler<R extends string>(
       const ceremonyId = cookies.get(cookieName);
       if (!ceremonyId) {
         await loginFailed('', 'challenge_missing');
-        return json({ error: 'Challenge expired or not found' }, { status: 400 });
+        return authError('passkey_verification_failed', 400, {
+          message: 'Challenge expired or not found'
+        });
       }
       // Invalidate the single-use handle immediately, so no error path (or
       // replay) downstream can reuse it.
@@ -266,14 +269,14 @@ export function createPasskeyAuthenticationVerifyHandler<R extends string>(
         };
 
         if (!credential) {
-          return json({ error: 'Credential is required' }, { status: 400 });
+          return authError('validation_error', 400, { message: 'Credential is required' });
         }
 
         // Look up the stored credential
         const stored = await deps.repos.passkey.findByCredentialId(credential.id);
         if (!stored) {
           await loginFailed('', 'unknown_credential');
-          return json({ error: 'Unknown credential' }, { status: 400 });
+          return authError('passkey_verification_failed', 400, { message: 'Unknown credential' });
         }
 
         // Verify the assertion. The challenge is consumed under the ceremony
@@ -303,7 +306,9 @@ export function createPasskeyAuthenticationVerifyHandler<R extends string>(
           }
           if (handleUserId !== stored.userId) {
             await loginFailed('', 'user_handle_mismatch');
-            return json({ error: 'User handle mismatch' }, { status: 400 });
+            return authError('passkey_verification_failed', 400, {
+              message: 'User handle mismatch'
+            });
           }
         }
 
@@ -324,7 +329,7 @@ export function createPasskeyAuthenticationVerifyHandler<R extends string>(
         const user = await deps.repos.user.findById(stored.userId);
         if (!user) {
           await loginFailed('', 'user_not_found');
-          return json({ error: 'User not found' }, { status: 400 });
+          return authError('passkey_verification_failed', 400, { message: 'User not found' });
         }
 
         // No TOTP 2FA gate here, by design: a passkey is already a strong,
@@ -347,7 +352,7 @@ export function createPasskeyAuthenticationVerifyHandler<R extends string>(
           // The assertion itself was rejected (bad signature, challenge
           // mismatch, origin, …) — the audit-relevant failure class.
           await loginFailed('', 'invalid_assertion');
-          return json({ error: err.message }, { status: 400 });
+          return authError('passkey_verification_failed', 400, { message: err.message });
         }
         throw err;
       }
@@ -374,7 +379,7 @@ export function createPasskeyListHandler<R extends string>(
     GET: async ({ cookies }) => {
       const user = await sessionUser(deps, cookies);
       if (!user) {
-        return json({ error: 'Unauthorized' }, { status: 401 });
+        return authError('not_authenticated', 401);
       }
 
       const passkeys = await deps.repos.passkey.findByUserId(user.id);
@@ -418,12 +423,12 @@ export function createPasskeyDeleteHandler<R extends string>(
     DELETE: async ({ cookies, params }) => {
       const user = await sessionUser(deps, cookies);
       if (!user) {
-        return json({ error: 'Unauthorized' }, { status: 401 });
+        return authError('not_authenticated', 401);
       }
 
       const credentialId = params.credentialId;
       if (!credentialId) {
-        return json({ error: 'Credential id is required' }, { status: 400 });
+        return authError('validation_error', 400, { message: 'Credential id is required' });
       }
 
       await deps.repos.passkey.delete(credentialId, user.id);
