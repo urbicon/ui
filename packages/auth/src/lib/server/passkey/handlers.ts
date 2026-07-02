@@ -326,3 +326,80 @@ export function createPasskeyAuthenticationVerifyHandler<R extends string>(
     }
   };
 }
+
+// ---- List ----
+
+/**
+ * Self-service passkey listing: the server half of `<PasskeyManager>`'s list
+ * view (the four ceremony handlers above cover register/login). Mount `GET`
+ * on `${basePath}/list`:
+ *
+ * ```ts
+ * // src/routes/api/passkeys/list/+server.ts
+ * export const GET = createPasskeyListHandler(deps).GET;
+ * ```
+ */
+export function createPasskeyListHandler<R extends string>(
+  deps: PasskeyHandlerDeps<R>
+): { GET: RequestHandler } {
+  return {
+    GET: async ({ locals }) => {
+      const user = (locals as { user?: { id: string } }).user;
+      if (!user) {
+        return json({ error: 'Unauthorized' }, { status: 401 });
+      }
+
+      const passkeys = await deps.repos.passkey.findByUserId(user.id);
+      // Project to the display shape: the stored COSE public key and the sign
+      // counter are server-internal verification state and must not travel to
+      // the client.
+      return json({
+        passkeys: passkeys.map((p) => ({
+          credentialId: p.credentialId,
+          name: p.name,
+          createdAt: p.createdAt,
+          lastUsedAt: p.lastUsedAt,
+          aaguid: p.aaguid
+        }))
+      });
+    }
+  };
+}
+
+// ---- Delete ----
+
+/**
+ * Self-service passkey removal: the server half of `<PasskeyManager>`'s
+ * remove action. Mount `DELETE` on `${basePath}/[credentialId]` (the static
+ * sibling routes — `list`, `registration-options`, … — take precedence over
+ * the param route, so they can share the base path):
+ *
+ * ```ts
+ * // src/routes/api/passkeys/[credentialId]/+server.ts
+ * export const DELETE = createPasskeyDeleteHandler(deps).DELETE;
+ * ```
+ *
+ * The repository delete is owner-scoped (`delete(credentialId, userId)`), so
+ * a caller guessing someone else's credential id hits a no-op; the response
+ * is deliberately idempotent (`200` whether or not a row matched).
+ */
+export function createPasskeyDeleteHandler<R extends string>(
+  deps: PasskeyHandlerDeps<R>
+): { DELETE: RequestHandler } {
+  return {
+    DELETE: async ({ locals, params }) => {
+      const user = (locals as { user?: { id: string } }).user;
+      if (!user) {
+        return json({ error: 'Unauthorized' }, { status: 401 });
+      }
+
+      const credentialId = params.credentialId;
+      if (!credentialId) {
+        return json({ error: 'Credential id is required' }, { status: 400 });
+      }
+
+      await deps.repos.passkey.delete(credentialId, user.id);
+      return json({ success: true });
+    }
+  };
+}

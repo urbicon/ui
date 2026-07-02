@@ -5,6 +5,8 @@ import { createMockUser, createMockUserRepository } from '../test-utils.js';
 import {
   createPasskeyAuthenticationOptionsHandler,
   createPasskeyAuthenticationVerifyHandler,
+  createPasskeyDeleteHandler,
+  createPasskeyListHandler,
   type PasskeyHandlerDeps
 } from './handlers.js';
 import { createInMemoryChallengeStore } from './webauthn.js';
@@ -322,5 +324,80 @@ describe('passkey auth — ceremony-handle binding (G.1)', () => {
     const res = await verify.POST(event({}, { jar }));
     expect(res.status).toBe(400);
     expect(jar.store.size).toBe(0);
+  });
+});
+
+describe('createPasskeyListHandler — GET', () => {
+  it('returns 401 when unauthenticated', async () => {
+    const deps = makeDeps();
+    const res = await createPasskeyListHandler(deps).GET({
+      locals: {}
+    } as unknown as RequestEvent);
+    expect(res.status).toBe(401);
+    expect(deps.repos.passkey.findByUserId).not.toHaveBeenCalled();
+  });
+
+  it("lists the session user's passkeys projected to the display shape", async () => {
+    const deps = makeDeps();
+    const stored = mkPasskey({
+      publicKey: new Uint8Array([1, 2, 3]),
+      counter: 42,
+      lastUsedAt: new Date('2026-06-01T00:00:00Z')
+    });
+    deps.repos.passkey.findByUserId = vi.fn().mockResolvedValue([stored]);
+
+    const res = await createPasskeyListHandler(deps).GET({
+      locals: { user: { id: 'real-user-99' } }
+    } as unknown as RequestEvent);
+    expect(res.status).toBe(200);
+    expect(deps.repos.passkey.findByUserId).toHaveBeenCalledWith('real-user-99');
+
+    const { passkeys } = await res.json();
+    expect(passkeys).toHaveLength(1);
+    // Display fields only — the COSE public key and the sign counter are
+    // server-internal verification state and must never reach the client.
+    expect(Object.keys(passkeys[0]).sort()).toEqual([
+      'aaguid',
+      'createdAt',
+      'credentialId',
+      'lastUsedAt',
+      'name'
+    ]);
+    expect(passkeys[0].credentialId).toBe('cred-abc');
+    expect(passkeys[0].name).toBe('Test Key');
+  });
+});
+
+describe('createPasskeyDeleteHandler — DELETE', () => {
+  it('returns 401 when unauthenticated', async () => {
+    const deps = makeDeps();
+    const res = await createPasskeyDeleteHandler(deps).DELETE({
+      locals: {},
+      params: { credentialId: 'cred-abc' }
+    } as unknown as RequestEvent);
+    expect(res.status).toBe(401);
+    expect(deps.repos.passkey.delete).not.toHaveBeenCalled();
+  });
+
+  it('returns 400 without a credentialId param', async () => {
+    const deps = makeDeps();
+    const res = await createPasskeyDeleteHandler(deps).DELETE({
+      locals: { user: { id: 'real-user-99' } },
+      params: {}
+    } as unknown as RequestEvent);
+    expect(res.status).toBe(400);
+    expect(deps.repos.passkey.delete).not.toHaveBeenCalled();
+  });
+
+  it('deletes owner-scoped: (credentialId, userId) in that order', async () => {
+    const deps = makeDeps();
+    const res = await createPasskeyDeleteHandler(deps).DELETE({
+      locals: { user: { id: 'real-user-99' } },
+      params: { credentialId: 'cred-abc' }
+    } as unknown as RequestEvent);
+    expect(res.status).toBe(200);
+    // Argument order is the IDOR guard: the repo no-ops unless the row
+    // belongs to this user.
+    expect(deps.repos.passkey.delete).toHaveBeenCalledWith('cred-abc', 'real-user-99');
   });
 });

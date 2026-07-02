@@ -2,8 +2,8 @@ import type { AuthLocale } from '../../../i18n/keys.js';
 import type { CsrfClientOptions } from '../../csrf.js';
 
 /**
- * @description Admin panel for managing passkeys (WebAuthn credentials). Register and delete passkeys.
- * Communicates with `basePath` (default `/api/auth/passkey`). Pair with the `createPasskeyRegistrationOptionsHandler`, `createPasskeyRegistrationVerifyHandler`, `createPasskeyAuthenticationOptionsHandler` and `createPasskeyAuthenticationVerifyHandler` server handlers.
+ * @description Self-service panel for managing passkeys (WebAuthn credentials). Register, list and delete passkeys.
+ * Communicates with `basePath` (default `/api/auth/passkey`). Pair with the `createPasskeyRegistrationOptionsHandler`, `createPasskeyRegistrationVerifyHandler`, `createPasskeyListHandler` (GET `${basePath}/list`) and `createPasskeyDeleteHandler` (DELETE `${basePath}/[credentialId]`) server handlers; the login flow additionally uses `createPasskeyAuthenticationOptionsHandler` and `createPasskeyAuthenticationVerifyHandler`.
  *
  * @tag form
  * @related LoginPage

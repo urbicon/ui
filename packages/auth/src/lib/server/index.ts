@@ -117,6 +117,7 @@ export {
 export { createUpdateProfileHandler } from './handlers/update-profile.js';
 export { createVerifyEmailHandler } from './handlers/verify-email.js';
 export { createVerifyEmailChangeHandler } from './handlers/verify-email-change.js';
+export { createNotificationsHandlers } from './notifications/handlers/notifications.js';
 export { createPreferencesHandler } from './notifications/handlers/preferences.js';
 export { createPushKeyHandler } from './notifications/handlers/push-key.js';
 export type { PushSubscriptionHandlerOptions } from './notifications/handlers/push-subscription.js';
@@ -139,8 +140,10 @@ export type { NotificationRegistry } from './notifications/registry.js';
 // Notifications & Web Push
 // Server-side stack powering <NotificationListener>/<NotificationCenter>: the
 // event registry, the dispatch service, the SSE connection manager, the Web
-// Push service (RFC 8291/8292) and the four route handlers a consumer mounts
-// under its auth API. See docs/AUTH.md → "Notifications & Web Push".
+// Push service (RFC 8291/8292) and the route handlers a consumer mounts under
+// its auth API — SSE stream, preferences, push key, push subscription, and
+// the notification CRUD group (`createNotificationsHandlers`) that serves
+// `createNotificationStore`. See docs/AUTH.md → "Notifications & Web Push".
 export { createNotificationRegistry } from './notifications/registry.js';
 export type { NotificationService, NotificationServiceDeps } from './notifications/service.js';
 export { createNotificationService } from './notifications/service.js';
@@ -152,6 +155,8 @@ export type { PasskeyHandlerDeps } from './passkey/handlers.js';
 export {
   createPasskeyAuthenticationOptionsHandler,
   createPasskeyAuthenticationVerifyHandler,
+  createPasskeyDeleteHandler,
+  createPasskeyListHandler,
   createPasskeyRegistrationOptionsHandler,
   createPasskeyRegistrationVerifyHandler
 } from './passkey/handlers.js';

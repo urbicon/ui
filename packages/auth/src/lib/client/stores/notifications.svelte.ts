@@ -10,6 +10,14 @@ export interface NotificationStoreConfig {
   csrf?: CsrfClientOptions;
 }
 
+/**
+ * Runes store backing `<NotificationCenter>`/`<NotificationBadge>`: loads,
+ * marks read and deletes the session user's notifications. Its four routes —
+ * `GET {basePath}`, `POST {basePath}/[id]/read`, `POST {basePath}/read-all`,
+ * `DELETE {basePath}/[id]` — are served by `createNotificationsHandlers`
+ * from `@urbicon-ui/auth/server` (mount its `list`/`read`/`readAll`/`item`
+ * groups under `basePath`, default `/api/notifications`).
+ */
 export function createNotificationStore(config?: NotificationStoreConfig) {
   const basePath = config?.basePath ?? '/api/notifications';
   const csrf = config?.csrf;

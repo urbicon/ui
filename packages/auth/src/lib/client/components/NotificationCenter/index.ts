@@ -3,7 +3,8 @@ import type { AuthLocale } from '../../../i18n/keys.js';
 
 /**
  * @description Menu-ready notification list with mark-as-read, delete, and empty state.
- * Renders each notification as a clickable card with timestamp.
+ * Renders each notification as a clickable card with timestamp. Feed it from `createNotificationStore`,
+ * whose routes are served by the `createNotificationsHandlers` server factory.
  *
  * @tag feedback
  * @related NotificationBadge
