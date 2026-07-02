@@ -137,8 +137,8 @@
       <div class="w-full">
         <JourneyTimeline items={shipment} detail="panel">
           {#snippet node(item)}
-            <div class="flex flex-col gap-2">
-              <p class="text-sm font-medium text-text-primary">{item.title}</p>
+            <div class="flex flex-col items-start gap-2">
+              <p class="text-text-primary text-sm font-medium">{item.title}</p>
               <p class="text-text-secondary text-sm">
                 Scans, carrier and location history for this stage.
               </p>
@@ -188,7 +188,9 @@
       <div class="w-full max-w-lg">
         <JourneyTimeline items={statuses} defaultFocusId="s-active">
           {#snippet node(item)}
-            <p class="text-text-secondary text-sm">{item.subtitle}</p>
+            <p class="text-text-secondary text-sm">
+              This node is <code>{item.status}</code> — its detail renders only while focused.
+            </p>
           {/snippet}
         </JourneyTimeline>
       </div>

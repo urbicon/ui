@@ -76,7 +76,7 @@
     const propsStr = props.length > 0 ? ` ${props.join(' ')}` : '';
     return `<JourneyTimeline {items}${propsStr} bind:focusId>
   {#snippet node(item)}
-    <p>{item.subtitle}</p>
+    <p>Full record for {item.title}…</p>
   {/snippet}
 </JourneyTimeline>`;
   }
@@ -152,7 +152,9 @@
             size={values.size}
           >
             {#snippet node(item)}
-              <p class="text-text-secondary text-sm">{item.subtitle}</p>
+              <p class="text-text-secondary text-sm">
+                Full record for “{item.title}” renders here while the node is in focus.
+              </p>
             {/snippet}
           </JourneyTimeline>
         </div>
