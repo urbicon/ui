@@ -4,6 +4,28 @@ All notable changes to this project will be documented in this file.
 This changelog is automatically generated from [Conventional Commits](https://www.conventionalcommits.org).
 
 
+## [6.15.0] - 2026-07-02
+
+### Bug Fixes
+- **auth**: Project invitation rows through a mapper, no-store the admin list
+- **auth**: Isolate notification delivery per recipient, reject duplicate registry keys
+- **auth**: Give PushPermissionPrompt an error path instead of silent dismissal
+- **auth**: Make push enable outcomes honest end to end (client)
+- **auth**: Log per-endpoint push failures — the hook stays optional, the logger is the floor
+- **auth**: Reject the legacy recipients 'all' at wiring time, not first send
+- **auth**: Close the insert race that bypassed the push-subscription key gate
+- **auth**: Surface push-subscription write outcomes, write-strict preference flags
+
+### Build
+- **auth**: Exclude tests and stray artifacts from the npm package
+
+### Features
+- **auth**: Gate push-subscription owner reassign on key possession
+- **auth**: Rate-limit notification endpoints, cap and gate their writes
+
+### Refactoring
+- **auth**: Rename notification recipients 'all' to 'online'
+
 ## [6.14.0] - 2026-07-02
 
 ### Bug Fixes
