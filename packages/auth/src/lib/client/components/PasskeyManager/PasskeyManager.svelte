@@ -4,6 +4,7 @@
   import { useAuthLocale } from '../../../i18n/index.js';
   import { csrfFetch } from '../../csrf.js';
   import type { PasskeyManagerProps } from './index.js';
+  import { base64UrlToBuffer, bufferToBase64Url } from '../../utils/webauthn.js';
 
   let {
     t: tProp,
@@ -166,22 +167,6 @@
     } catch {
       error = t.common?.error ?? 'Failed to delete passkey.';
     }
-  }
-
-  function base64UrlToBuffer(b64url: string): ArrayBuffer {
-    const padding = '='.repeat((4 - (b64url.length % 4)) % 4);
-    const base64 = (b64url + padding).replace(/-/g, '+').replace(/_/g, '/');
-    const binary = atob(base64);
-    const bytes = new Uint8Array(binary.length);
-    for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
-    return bytes.buffer as ArrayBuffer;
-  }
-
-  function bufferToBase64Url(buffer: ArrayBuffer): string {
-    const bytes = new Uint8Array(buffer);
-    let binary = '';
-    for (let i = 0; i < bytes.length; i++) binary += String.fromCharCode(bytes[i]);
-    return btoa(binary).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
   }
 
   // Fire-once load on mount — not an $effect: this must run exactly once, and

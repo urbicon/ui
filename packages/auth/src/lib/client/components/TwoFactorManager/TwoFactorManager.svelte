@@ -2,9 +2,9 @@
   import { Alert, Button, Input, Separator } from '@urbicon-ui/blocks';
   import { untrack } from 'svelte';
   import { useAuthLocale } from '../../../i18n/index.js';
-  import { csrfFetch } from '../../csrf.js';
-  import { errorMessageFromCode } from '../../utils/error-message.js';
   import type { TwoFactorManagerProps } from './index.js';
+  import { errorTextFromBody, postJson as postJsonRequest } from '../../utils/http.js';
+  import { slotClass } from '../../utils/slot-class.js';
 
   let {
     user,
@@ -42,29 +42,10 @@
   let busy = $state(false);
   let error = $state('');
 
-  async function postJson(
-    path: string,
-    body: unknown
-  ): Promise<{ ok: boolean; data: Record<string, unknown> }> {
-    const res = await csrfFetch(
-      `${basePath}${path}`,
-      {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(body)
-      },
-      csrf,
-      fetcher
-    );
-    const data = await res.json().catch(() => ({}));
-    return { ok: res.ok, data };
-  }
+  const postJson = (path: string, body: unknown) =>
+    postJsonRequest(`${basePath}${path}`, body, { csrf, fetcher });
 
-  const errText = (data: Record<string, unknown>) => {
-    const code = typeof data.code === 'string' ? data.code : undefined;
-    const prose = typeof data.error === 'string' ? data.error : undefined;
-    return errorMessageFromCode(code, t, prose) ?? t.common?.error ?? 'An error occurred';
-  };
+  const errText = (data: Record<string, unknown>) => errorTextFromBody(data, t);
 
   async function startSetup() {
     error = '';
@@ -153,8 +134,7 @@
   }
 
   // Styling helper: in `unstyled` mode only the slot override applies.
-  const cls = (base: string, slot?: string) =>
-    (unstyled ? [slot] : [base, slot]).filter(Boolean).join(' ');
+  const cls = (base: string, slot?: string) => slotClass(unstyled, base, slot);
 </script>
 
 {#if user}

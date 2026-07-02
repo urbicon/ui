@@ -5,6 +5,7 @@
   import { csrfFetch } from '../../csrf.js';
   import { errorMessageFromCode } from '../../utils/error-message.js';
   import type { SessionManagerProps } from './index.js';
+  import { slotClass } from '../../utils/slot-class.js';
 
   let {
     t: tProp,
@@ -142,8 +143,7 @@
 
   const otherCount = $derived(sessions.filter((s) => !s.current).length);
 
-  const cls = (base: string, slot?: string) =>
-    (unstyled ? [slot] : [base, slot]).filter(Boolean).join(' ');
+  const cls = (base: string, slot?: string) => slotClass(unstyled, base, slot);
 
   onMount(loadSessions);
 </script>
