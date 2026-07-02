@@ -1,5 +1,5 @@
 import type { Snippet } from 'svelte';
-import type { AuthLocale } from '../../../i18n/keys.js';
+import type { PartialAuthLocale } from '../../../i18n/keys.js';
 
 /**
  * @description Menu-ready notification list with mark-as-read, delete, and empty state.
@@ -19,8 +19,11 @@ import type { AuthLocale } from '../../../i18n/keys.js';
  * ```
  */
 export interface NotificationCenterProps {
-  /** Locale bundle. Auto-detected from i18n context when omitted. */
-  t?: AuthLocale;
+  /**
+   * Locale overrides, deep-merged over the active built-in bundle (resolved
+   * from the i18n context). Pass any subset — a single string or a whole tree.
+   */
+  t?: PartialAuthLocale;
   /** Notification records to display. */
   notifications: import('../../../server/adapters/types.js').NotificationRecord[];
   /** Called when a single notification is marked as read. */

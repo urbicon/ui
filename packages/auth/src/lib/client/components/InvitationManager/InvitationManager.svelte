@@ -10,7 +10,7 @@
     Spinner
   } from '@urbicon-ui/blocks';
   import { onMount, untrack } from 'svelte';
-  import { useAuthLocale } from '../../../i18n/index.js';
+  import { mergeAuthLocale, useAuthLocale } from '../../../i18n/index.js';
   import { csrfFetch } from '../../csrf.js';
   import type { InvitationManagerProps } from './index.js';
   import { errorTextFromBody } from '../../utils/http.js';
@@ -35,7 +35,7 @@
   }: InvitationManagerProps = $props();
 
   const authLocale = useAuthLocale();
-  const t = $derived(tProp ?? authLocale());
+  const t = $derived(mergeAuthLocale(authLocale(), tProp));
 
   // Wrapped so the default path calls the global fetch unbound-safe; a custom
   // fetcher (demo mock, test double, retry layer) takes precedence.
@@ -58,7 +58,7 @@
       const res = await doFetch(basePath);
       if (!res.ok) {
         // A 401/500 must not render as "no invitations yet".
-        error = t.common?.error ?? 'Failed to load invitations.';
+        error = t.common.error;
         return;
       }
       const data = await res.json();
@@ -66,7 +66,7 @@
     } catch {
       // Surface the failure instead of rendering the empty state, which is
       // indistinguishable from "no invitations yet".
-      error = t.common?.error ?? 'Failed to load invitations.';
+      error = t.auth.errors.networkError;
     } finally {
       loading = false;
     }
@@ -96,7 +96,7 @@
       email = '';
       await loadInvitations();
     } catch {
-      error = t.common?.error ?? 'An error occurred';
+      error = t.auth.errors.networkError;
     } finally {
       submitting = false;
     }
@@ -115,7 +115,7 @@
       // remove would hide a failed delete that still exists on the server.
       invitations = invitations.filter((inv) => inv.id !== id);
     } catch {
-      error = t.common?.error ?? 'Failed to delete invitation.';
+      error = t.auth.errors.networkError;
     }
   }
 
@@ -165,11 +165,7 @@
       />
     </div>
 
-    <Checkbox
-      bind:checked={sendEmail}
-      label={t.invitations.sendEmail ?? 'Send invitation email'}
-      {unstyled}
-    />
+    <Checkbox bind:checked={sendEmail} label={t.invitations.sendEmail} {unstyled} />
 
     <Button
       type="submit"
@@ -192,7 +188,7 @@
     </div>
   {:else if invitations.length === 0}
     <p class="text-text-tertiary py-4 text-center text-sm">
-      {t.invitations.empty ?? 'No invitations yet.'}
+      {t.invitations.empty}
     </p>
   {:else}
     <ul

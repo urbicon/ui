@@ -1,7 +1,7 @@
 <script lang="ts">
   import { Alert, Button, Input, Separator } from '@urbicon-ui/blocks';
   import { untrack } from 'svelte';
-  import { useAuthLocale } from '../../../i18n/index.js';
+  import { mergeAuthLocale, useAuthLocale } from '../../../i18n/index.js';
   import type { TwoFactorManagerProps } from './index.js';
   import { errorTextFromBody, postJson as postJsonRequest } from '../../utils/http.js';
   import { slotClass } from '../../utils/slot-class.js';
@@ -21,7 +21,7 @@
   }: TwoFactorManagerProps = $props();
 
   const authLocale = useAuthLocale();
-  const t = $derived(tProp ?? authLocale());
+  const t = $derived(mergeAuthLocale(authLocale(), tProp));
 
   // Local enabled state, seeded once from the user. Updated optimistically after
   // enable/disable so the panel reflects the change without a round-trip.
@@ -60,7 +60,7 @@
       setupUri = typeof data.otpauthUri === 'string' ? data.otpauthUri : '';
       view = 'setup';
     } catch {
-      error = t.common?.error ?? 'An error occurred';
+      error = t.auth.errors.networkError;
     } finally {
       busy = false;
     }
@@ -82,7 +82,7 @@
       view = 'backup';
       onEnabled?.();
     } catch {
-      error = t.common?.error ?? 'An error occurred';
+      error = t.auth.errors.networkError;
     } finally {
       busy = false;
     }
@@ -127,7 +127,7 @@
       disablePassword = '';
       onDisabled?.();
     } catch {
-      error = t.common?.error ?? 'An error occurred';
+      error = t.auth.errors.networkError;
     } finally {
       busy = false;
     }
@@ -140,7 +140,7 @@
 {#if user}
   <div class={cls('flex flex-col gap-4', [slotClasses.root, className].filter(Boolean).join(' '))}>
     <h2 class={cls('text-text-primary text-lg font-semibold', slotClasses.title)}>
-      {t.twoFactor?.title ?? 'Two-factor authentication'}
+      {t.twoFactor.title}
     </h2>
 
     <div aria-live="polite">
@@ -149,24 +149,20 @@
 
     {#if view === 'idle'}
       <p class={cls('text-text-secondary text-sm', undefined)}>
-        {enabled
-          ? (t.twoFactor?.statusEnabled ?? 'Two-factor authentication is on.')
-          : (t.twoFactor?.description ??
-            'Add a second step to sign-in using an authenticator app.')}
+        {enabled ? t.twoFactor.statusEnabled : t.twoFactor.description}
       </p>
 
       {#if enabled}
         <!-- Disable: password re-auth -->
         <form class={cls('flex flex-col gap-3', slotClasses.section)} onsubmit={disable}>
           <h3 class={cls('text-text-primary text-sm font-semibold', slotClasses.sectionTitle)}>
-            {t.twoFactor?.disableTitle ?? 'Disable two-factor authentication'}
+            {t.twoFactor.disableTitle}
           </h3>
           <p class={cls('text-text-tertiary text-sm', undefined)}>
-            {t.twoFactor?.disableDescription ??
-              'Enter your password to turn off two-factor authentication.'}
+            {t.twoFactor.disableDescription}
           </p>
           <Input
-            label={t.twoFactor?.disablePassword ?? 'Current password'}
+            label={t.twoFactor.disablePassword}
             type="password"
             bind:value={disablePassword}
             required
@@ -184,7 +180,7 @@
             {unstyled}
             class={cls('self-start', slotClasses.submit)}
           >
-            {t.twoFactor?.disableConfirm ?? 'Disable'}
+            {t.twoFactor.disableConfirm}
           </Button>
         </form>
       {:else}
@@ -198,14 +194,13 @@
           {unstyled}
           class={cls('self-start', slotClasses.submit)}
         >
-          {t.twoFactor?.enable ?? 'Enable two-factor authentication'}
+          {t.twoFactor.enable}
         </Button>
       {/if}
     {:else if view === 'setup'}
       <!-- Setup: scan the QR / enter the key, then confirm a code -->
       <p class={cls('text-text-secondary text-sm', undefined)}>
-        {t.twoFactor?.setupScan ??
-          'Scan this QR code with your authenticator app, or enter the key manually.'}
+        {t.twoFactor.setupScan}
       </p>
 
       {#if qr}
@@ -214,7 +209,7 @@
 
       <div class={cls('flex flex-col gap-1', undefined)}>
         <span class={cls('text-text-tertiary text-xs', undefined)}>
-          {t.twoFactor?.setupSecret ?? 'Setup key'}
+          {t.twoFactor.setupSecret}
         </span>
         <code
           class={cls(
@@ -228,7 +223,7 @@
 
       <form class={cls('flex flex-col gap-3', slotClasses.section)} onsubmit={confirmEnable}>
         <Input
-          label={t.twoFactor?.setupCode ?? 'Enter the 6-digit code'}
+          label={t.twoFactor.setupCode}
           inputmode="numeric"
           autoComplete="one-time-code"
           bind:value={code}
@@ -247,7 +242,7 @@
             {unstyled}
             class={slotClasses.submit}
           >
-            {t.twoFactor?.setupConfirm ?? 'Confirm and enable'}
+            {t.twoFactor.setupConfirm}
           </Button>
           <Button
             type="button"
@@ -258,18 +253,17 @@
             onclick={cancelSetup}
             {unstyled}
           >
-            {t.twoFactor?.cancel ?? 'Cancel'}
+            {t.twoFactor.cancel}
           </Button>
         </div>
       </form>
     {:else if view === 'backup'}
       <!-- One-time backup codes -->
       <h3 class={cls('text-text-primary text-sm font-semibold', slotClasses.sectionTitle)}>
-        {t.twoFactor?.backupTitle ?? 'Save your backup codes'}
+        {t.twoFactor.backupTitle}
       </h3>
       <p class={cls('text-text-tertiary text-sm', undefined)}>
-        {t.twoFactor?.backupDescription ??
-          'Each code works once if you lose access to your authenticator. Store them somewhere safe — they will not be shown again.'}
+        {t.twoFactor.backupDescription}
       </p>
       <ul
         class={cls(
@@ -283,7 +277,7 @@
       </ul>
       <div class={cls('flex gap-2', undefined)}>
         <Button variant="outlined" intent="neutral" size="sm" onclick={downloadCodes} {unstyled}>
-          {t.twoFactor?.backupDownload ?? 'Download codes'}
+          {t.twoFactor.backupDownload}
         </Button>
         <Button
           variant="filled"
@@ -293,7 +287,7 @@
           {unstyled}
           class={slotClasses.submit}
         >
-          {t.twoFactor?.backupDone ?? "I've saved my codes"}
+          {t.twoFactor.backupDone}
         </Button>
       </div>
     {/if}

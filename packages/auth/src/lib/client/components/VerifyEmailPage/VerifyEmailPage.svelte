@@ -1,7 +1,7 @@
 <script lang="ts">
   import { Card, Alert, Spinner } from '@urbicon-ui/blocks';
   import { onMount } from 'svelte';
-  import { useAuthLocale } from '../../../i18n/index.js';
+  import { mergeAuthLocale, useAuthLocale } from '../../../i18n/index.js';
   import { csrfFetch } from '../../csrf.js';
   import type { VerifyEmailPageProps } from './index.js';
 
@@ -17,7 +17,7 @@
   }: VerifyEmailPageProps = $props();
 
   const authLocale = useAuthLocale();
-  const t = $derived(tProp ?? authLocale());
+  const t = $derived(mergeAuthLocale(authLocale(), tProp));
 
   let verifying = $state(true);
   let success = $state(false);
@@ -82,8 +82,11 @@
 
     <div aria-live="polite">
       {#if verifying}
-        <div class="flex justify-center py-8">
+        <div class={unstyled ? undefined : 'flex flex-col items-center gap-3 py-8'}>
           <Spinner size="lg" {unstyled} />
+          <p class={unstyled ? undefined : 'text-text-secondary text-sm'}>
+            {t.auth.verifyEmail.verifying}
+          </p>
         </div>
       {:else if success}
         <Alert intent="success" {unstyled} class={slotClasses.success}>

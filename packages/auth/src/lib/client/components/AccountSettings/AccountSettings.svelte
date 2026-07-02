@@ -1,7 +1,7 @@
 <script lang="ts">
   import { Alert, Button, ConfirmDialog, Input, Separator } from '@urbicon-ui/blocks';
   import { untrack } from 'svelte';
-  import { useAuthLocale } from '../../../i18n/index.js';
+  import { mergeAuthLocale, useAuthLocale } from '../../../i18n/index.js';
   import type { AuthUser } from '../../../types.js';
   import type { AccountSettingsProps } from './index.js';
   import { errorTextFromBody, postJson as postJsonRequest } from '../../utils/http.js';
@@ -21,7 +21,7 @@
   }: AccountSettingsProps = $props();
 
   const authLocale = useAuthLocale();
-  const t = $derived(tProp ?? authLocale());
+  const t = $derived(mergeAuthLocale(authLocale(), tProp));
   const currentEmail = $derived(user?.email ?? '');
 
   // Editable draft of the name, seeded once from the initial user. If you
@@ -66,10 +66,10 @@
         profileError = errText(data);
         return;
       }
-      profileSuccess = t.account?.profile?.success ?? 'Profile updated.';
+      profileSuccess = t.account.profile.success;
       if (data.user) onProfileUpdated?.(data.user as AuthUser);
     } catch {
-      profileError = t.common?.error ?? 'An error occurred';
+      profileError = t.auth.errors.networkError;
     } finally {
       profileBusy = false;
     }
@@ -91,11 +91,11 @@
       }
       // Always-success (enumeration-safe) response → show the same "check your
       // inbox" hint regardless of whether the address was free.
-      emailSuccess = t.account?.email?.success ?? 'Check your new inbox to confirm the change.';
+      emailSuccess = t.account.email.success;
       newEmail = '';
       emailPassword = '';
     } catch {
-      emailError = t.common?.error ?? 'An error occurred';
+      emailError = t.auth.errors.networkError;
     } finally {
       emailBusy = false;
     }
@@ -115,11 +115,11 @@
         pwError = errText(data);
         return;
       }
-      pwSuccess = t.account?.password?.success ?? 'Your password has been changed.';
+      pwSuccess = t.account.password.success;
       pwCurrent = '';
       pwNew = '';
     } catch {
-      pwError = t.common?.error ?? 'An error occurred';
+      pwError = t.auth.errors.networkError;
     } finally {
       pwBusy = false;
     }
@@ -137,7 +137,7 @@
     } catch {
       // A thrown fetch on the most destructive action must still surface
       // feedback rather than failing silently inside the dialog.
-      deleteError = t.common?.error ?? 'An error occurred';
+      deleteError = t.auth.errors.networkError;
     }
   }
 
@@ -148,16 +148,16 @@
 {#if user}
   <div class={cls('flex flex-col gap-8', [slotClasses.root, className].filter(Boolean).join(' '))}>
     <h2 class={cls('text-text-primary text-lg font-semibold', slotClasses.title)}>
-      {t.account?.title ?? 'Account settings'}
+      {t.account.title}
     </h2>
 
     <!-- Profile -->
     <form class={cls('flex flex-col gap-3', slotClasses.section)} onsubmit={saveProfile}>
       <h3 class={cls('text-text-primary text-sm font-semibold', slotClasses.sectionTitle)}>
-        {t.account?.profile?.title ?? 'Profile'}
+        {t.account.profile.title}
       </h3>
       <Input
-        label={t.account?.profile?.name ?? 'Name'}
+        label={t.account.profile.name}
         bind:value={name}
         autoComplete="name"
         {unstyled}
@@ -178,7 +178,7 @@
         {unstyled}
         class={cls('self-start', slotClasses.submit)}
       >
-        {t.account?.profile?.save ?? 'Save'}
+        {t.account.profile.save}
       </Button>
     </form>
 
@@ -187,14 +187,14 @@
     <!-- Email -->
     <form class={cls('flex flex-col gap-3', slotClasses.section)} onsubmit={changeEmail}>
       <h3 class={cls('text-text-primary text-sm font-semibold', slotClasses.sectionTitle)}>
-        {t.account?.email?.title ?? 'Email address'}
+        {t.account.email.title}
       </h3>
       <p class={cls('text-text-tertiary text-sm', undefined)}>
-        {t.account?.email?.current ?? 'Current email'}:
+        {t.account.email.current}:
         <span class="text-text-secondary">{currentEmail}</span>
       </p>
       <Input
-        label={t.account?.email?.newEmail ?? 'New email'}
+        label={t.account.email.newEmail}
         type="email"
         bind:value={newEmail}
         required
@@ -203,7 +203,7 @@
         class={slotClasses.field}
       />
       <Input
-        label={t.account?.email?.currentPassword ?? 'Current password'}
+        label={t.account.email.currentPassword}
         type="password"
         bind:value={emailPassword}
         required
@@ -225,7 +225,7 @@
         {unstyled}
         class={cls('self-start', slotClasses.submit)}
       >
-        {t.account?.email?.submit ?? 'Change email'}
+        {t.account.email.submit}
       </Button>
     </form>
 
@@ -234,10 +234,10 @@
     <!-- Password -->
     <form class={cls('flex flex-col gap-3', slotClasses.section)} onsubmit={changePassword}>
       <h3 class={cls('text-text-primary text-sm font-semibold', slotClasses.sectionTitle)}>
-        {t.account?.password?.title ?? 'Password'}
+        {t.account.password.title}
       </h3>
       <Input
-        label={t.account?.password?.currentPassword ?? 'Current password'}
+        label={t.account.password.currentPassword}
         type="password"
         bind:value={pwCurrent}
         required
@@ -246,7 +246,7 @@
         class={slotClasses.field}
       />
       <Input
-        label={t.account?.password?.newPassword ?? 'New password'}
+        label={t.account.password.newPassword}
         type="password"
         bind:value={pwNew}
         required
@@ -268,7 +268,7 @@
         {unstyled}
         class={cls('self-start', slotClasses.submit)}
       >
-        {t.account?.password?.submit ?? 'Change password'}
+        {t.account.password.submit}
       </Button>
     </form>
 
@@ -282,14 +282,13 @@
       )}
     >
       <h3 class={cls('text-danger text-sm font-semibold', slotClasses.sectionTitle)}>
-        {t.account?.delete?.title ?? 'Delete account'}
+        {t.account.delete.title}
       </h3>
       <p class={cls('text-text-tertiary text-sm', undefined)}>
-        {t.account?.delete?.description ??
-          'This permanently deletes your account and all associated data. This cannot be undone.'}
+        {t.account.delete.description}
       </p>
       <Input
-        label={t.account?.delete?.currentPassword ?? 'Current password'}
+        label={t.account.delete.currentPassword}
         type="password"
         bind:value={deletePassword}
         autoComplete="current-password"
@@ -308,18 +307,17 @@
         {unstyled}
         class={cls('self-start', slotClasses.submit)}
       >
-        {t.account?.delete?.submit ?? 'Delete account'}
+        {t.account.delete.submit}
       </Button>
     </section>
 
     <ConfirmDialog
       bind:open={confirmOpen}
-      title={t.account?.delete?.confirmTitle ?? 'Delete your account?'}
-      description={t.account?.delete?.confirmBody ??
-        'This permanently erases your account and cannot be undone.'}
+      title={t.account.delete.confirmTitle}
+      description={t.account.delete.confirmBody}
       intent="danger"
-      confirmLabel={t.account?.delete?.confirm ?? 'Delete account'}
-      cancelLabel={t.account?.delete?.cancel ?? 'Cancel'}
+      confirmLabel={t.account.delete.confirm}
+      cancelLabel={t.account.delete.cancel}
       onConfirm={confirmDelete}
     />
   </div>

@@ -1,6 +1,6 @@
 <script lang="ts">
   import { Button, Separator } from '@urbicon-ui/blocks';
-  import { useAuthLocale } from '../../../i18n/index.js';
+  import { mergeAuthLocale, useAuthLocale } from '../../../i18n/index.js';
   import type { NotificationCenterProps } from './index.js';
 
   let {
@@ -17,7 +17,7 @@
   }: NotificationCenterProps = $props();
 
   const authLocale = useAuthLocale();
-  const t = $derived(tProp ?? authLocale());
+  const t = $derived(mergeAuthLocale(authLocale(), tProp));
   const unreadCount = $derived(notifications.filter((n) => !n.readAt).length);
 
   function timeAgo(date: Date | string): string {
@@ -28,11 +28,11 @@
     const diffHrs = Math.floor(diffMs / 3600000);
     const diffDays = Math.floor(diffMs / 86400000);
 
-    const labels = t.common?.timeAgo;
-    if (diffMin < 1) return labels?.now ?? 'Just now';
-    if (diffMin < 60) return (labels?.minutes ?? '{n} min ago').replace('{n}', String(diffMin));
-    if (diffHrs < 24) return (labels?.hours ?? '{n}h ago').replace('{n}', String(diffHrs));
-    return (labels?.days ?? '{n}d ago').replace('{n}', String(diffDays));
+    const labels = t.common.timeAgo;
+    if (diffMin < 1) return labels.now;
+    if (diffMin < 60) return labels.minutes.replace('{n}', String(diffMin));
+    if (diffHrs < 24) return labels.hours.replace('{n}', String(diffHrs));
+    return labels.days.replace('{n}', String(diffDays));
   }
 </script>
 
@@ -120,7 +120,7 @@
               onclick={() => onDelete?.(notification.id)}
               {unstyled}
               class="shrink-0"
-              aria-label={t.notifications.center.delete ?? 'Delete'}
+              aria-label={t.notifications.center.delete}
             >
               &times;
             </Button>

@@ -1,6 +1,6 @@
 <script lang="ts">
   import { Button, Input, Card, Alert } from '@urbicon-ui/blocks';
-  import { useAuthLocale } from '../../../i18n/index.js';
+  import { mergeAuthLocale, useAuthLocale } from '../../../i18n/index.js';
   import { csrfFetch } from '../../csrf.js';
   import { errorMessageFromCode } from '../../utils/error-message.js';
   import type { ForgotPasswordPageProps } from './index.js';
@@ -17,7 +17,7 @@
   }: ForgotPasswordPageProps = $props();
 
   const authLocale = useAuthLocale();
-  const t = $derived(tProp ?? authLocale());
+  const t = $derived(mergeAuthLocale(authLocale(), tProp));
 
   let email = $state('');
   let submitted = $state(false);
@@ -43,12 +43,12 @@
       );
       if (!res.ok) {
         const data = await res.json();
-        error = errorMessageFromCode(data.code, t, data.error) ?? 'Request failed';
+        error = errorMessageFromCode(data.code, t, data.error) ?? t.auth.errors.serverError;
         return;
       }
       submitted = true;
     } catch {
-      error = 'Network error';
+      error = t.auth.errors.networkError;
     } finally {
       submitting = false;
     }

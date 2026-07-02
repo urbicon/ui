@@ -1,9 +1,9 @@
 <script lang="ts">
   import { Alert, Badge, Button, Separator, Spinner } from '@urbicon-ui/blocks';
   import { onMount } from 'svelte';
-  import { useAuthLocale } from '../../../i18n/index.js';
+  import { mergeAuthLocale, useAuthLocale } from '../../../i18n/index.js';
   import { csrfFetch } from '../../csrf.js';
-  import { errorMessageFromCode } from '../../utils/error-message.js';
+  import { errorTextFromBody } from '../../utils/http.js';
   import type { SessionManagerProps } from './index.js';
   import { slotClass } from '../../utils/slot-class.js';
 
@@ -18,7 +18,7 @@
   }: SessionManagerProps = $props();
 
   const authLocale = useAuthLocale();
-  const t = $derived(tProp ?? authLocale());
+  const t = $derived(mergeAuthLocale(authLocale(), tProp));
 
   const doFetch: typeof globalThis.fetch = (input, init) =>
     fetcher ? fetcher(input, init) : fetch(input, init);
@@ -44,7 +44,7 @@
     try {
       const res = await doFetch(basePath);
       if (!res.ok) {
-        error = t.common?.error ?? 'Failed to load sessions.';
+        error = t.common.error;
         return;
       }
       const data = await res.json();
@@ -53,7 +53,7 @@
     } catch {
       // Surface the failure rather than rendering an empty list that looks like
       // "no other sessions".
-      error = t.common?.error ?? 'Failed to load sessions.';
+      error = t.auth.errors.networkError;
     } finally {
       loading = false;
     }
@@ -74,17 +74,14 @@
         fetcher
       );
       if (!res.ok) {
-        const data = await res.json().catch(() => ({}));
-        error =
-          errorMessageFromCode(data.code, t, data.error) ??
-          t.common?.error ??
-          'Failed to sign out the session.';
+        const data = (await res.json().catch(() => ({}))) as Record<string, unknown>;
+        error = errorTextFromBody(data, t);
         return;
       }
       // Drop locally only once the server confirms.
       sessions = sessions.filter((s) => s.id !== id);
     } catch {
-      error = t.common?.error ?? 'Failed to sign out the session.';
+      error = t.auth.errors.networkError;
     } finally {
       revokingId = null;
     }
@@ -96,16 +93,13 @@
     try {
       const res = await csrfFetch(`${basePath}/revoke-others`, { method: 'POST' }, csrf, fetcher);
       if (!res.ok) {
-        const data = await res.json().catch(() => ({}));
-        error =
-          errorMessageFromCode(data.code, t, data.error) ??
-          t.common?.error ??
-          'Failed to sign out other sessions.';
+        const data = (await res.json().catch(() => ({}))) as Record<string, unknown>;
+        error = errorTextFromBody(data, t);
         return;
       }
       await loadSessions();
     } catch {
-      error = t.common?.error ?? 'Failed to sign out other sessions.';
+      error = t.auth.errors.networkError;
     } finally {
       revokingOthers = false;
     }
@@ -113,7 +107,7 @@
 
   /** Zero-dep user-agent → "Browser · OS" heuristic (no UA-parser dependency). */
   function describeDevice(ua: string | null): string {
-    const unknown = t.sessions?.unknownDevice ?? 'Unknown device';
+    const unknown = t.sessions.unknownDevice;
     if (!ua) return unknown;
     const browser = /Edg\//.test(ua)
       ? 'Edge'
@@ -151,7 +145,7 @@
 <div class={cls('flex flex-col gap-4', [slotClasses.root, className].filter(Boolean).join(' '))}>
   <div class="flex items-center justify-between gap-4">
     <h2 class={cls('text-text-primary min-w-0 truncate text-lg font-semibold', slotClasses.title)}>
-      {t.sessions?.title ?? 'Active sessions'}
+      {t.sessions.title}
     </h2>
     {#if otherCount > 0}
       <Button
@@ -164,7 +158,7 @@
         {unstyled}
         class="shrink-0"
       >
-        {t.sessions?.signOutOthers ?? 'Sign out other devices'}
+        {t.sessions.signOutOthers}
       </Button>
     {/if}
   </div>
@@ -179,11 +173,11 @@
     <div class="flex justify-center py-4"><Spinner size="sm" /></div>
   {:else if !available}
     <p class={cls('text-text-tertiary py-4 text-center text-sm', slotClasses.empty)}>
-      {t.sessions?.unavailable ?? 'Session history requires refresh-token rotation.'}
+      {t.sessions.unavailable}
     </p>
   {:else if sessions.length === 0}
     <p class={cls('text-text-tertiary py-4 text-center text-sm', slotClasses.empty)}>
-      {t.sessions?.empty ?? 'No active sessions.'}
+      {t.sessions.empty}
     </p>
   {:else}
     <ul class={cls('flex flex-col gap-2', slotClasses.list)}>
@@ -199,14 +193,12 @@
               <span class="truncate">{describeDevice(session.userAgent)}</span>
               {#if session.current}
                 <Badge intent="success" size="sm" {unstyled} class={slotClasses.badge}>
-                  {t.sessions?.thisDevice ?? 'This device'}
+                  {t.sessions.thisDevice}
                 </Badge>
               {/if}
             </span>
             <span class="text-text-tertiary text-xs">
-              {t.sessions?.lastActive ?? 'Last active'}: {new Date(
-                session.lastActive
-              ).toLocaleString()}
+              {t.sessions.lastActive}: {new Date(session.lastActive).toLocaleString()}
               {#if session.ip}&middot; {session.ip}{/if}
             </span>
           </div>
@@ -221,7 +213,7 @@
               {unstyled}
               class="shrink-0"
             >
-              {t.sessions?.signOut ?? 'Sign out'}
+              {t.sessions.signOut}
             </Button>
           {/if}
         </li>

@@ -1,10 +1,18 @@
+/**
+ * The complete auth locale bundle. Every key is required: the bundles this
+ * package ships (`en`, `de`) satisfy the full shape, and consumer overrides
+ * enter as {@link PartialAuthLocale} — deep-merged over the active built-in
+ * bundle by `mergeAuthLocale` — so component markup reads keys directly,
+ * without per-key `?? '…'` fallback literals (review R19).
+ */
 export interface AuthLocale {
   auth: {
     /**
      * Localized copy for the machine `AuthErrorCode` values the server handlers
      * return alongside the English `error` prose. The client `errorMessageFromCode`
      * maps a code here; an unknown/missing code falls back to the server prose.
-     * Keys mirror the `AuthErrorCode` union exactly.
+     * Keys mirror the `AuthErrorCode` union exactly — plus `networkError` for the
+     * client-synthesized `network_error` (a request that never reached the server).
      */
     errors: {
       invitationRequired: string;
@@ -32,20 +40,21 @@ export interface AuthLocale {
       /** 429 — request/connection limits. */
       rateLimited: string;
       serverError: string;
+      /** Client-side only: the request never reached the server (offline, DNS, CORS). */
+      networkError: string;
     };
     login: {
       title: string;
       email: string;
       password: string;
-      rememberMe?: string;
+      rememberMe: string;
       submit: string;
       noAccount: string;
       register: string;
       forgotPassword: string;
       errors: {
+        /** Generic credentials failure — the fallback when a login error carries no known code. */
         invalid: string;
-        locked: string;
-        unverified: string;
       };
     };
     register: {
@@ -53,27 +62,20 @@ export interface AuthLocale {
       name: string;
       email: string;
       password: string;
-      confirmPassword?: string;
+      confirmPassword: string;
       submit: string;
       hasAccount: string;
       login: string;
-      requirements?: {
+      requirements: {
+        /** `{n}` is replaced with the page's `passwordMinLength` prop. */
         minLength: string;
         uppercase: string;
         lowercase: string;
         digit: string;
-        special?: string;
-      };
-      strength?: {
-        weak: string;
-        fair: string;
-        good: string;
-        strong: string;
+        special: string;
       };
       errors: {
-        invitationRequired: string;
-        emailTaken: string;
-        passwordMismatch?: string;
+        passwordMismatch: string;
       };
     };
     forgotPassword: {
@@ -98,10 +100,9 @@ export interface AuthLocale {
     };
     verifyEmail: {
       title: string;
-      verifying?: string;
+      verifying: string;
       success: string;
       error: string;
-      resend: string;
     };
     /**
      * Copy for the default transactional emails the server sends (verification,
@@ -152,7 +153,7 @@ export interface AuthLocale {
       title: string;
       empty: string;
       markAllRead: string;
-      delete?: string;
+      delete: string;
     };
     push: {
       prompt: string;
@@ -170,7 +171,6 @@ export interface AuthLocale {
   };
   invitations: {
     title: string;
-    invite: string;
     email: string;
     role: string;
     status: string;
@@ -178,11 +178,11 @@ export interface AuthLocale {
     used: string;
     delete: string;
     send: string;
-    empty?: string;
-    sendEmail?: string;
-    registered?: string;
+    empty: string;
+    sendEmail: string;
+    registered: string;
   };
-  passkeys?: {
+  passkeys: {
     title: string;
     add: string;
     empty: string;
@@ -190,8 +190,14 @@ export interface AuthLocale {
     lastUsed: string;
     loginWithPasskey: string;
     or: string;
+    /** Passkey sign-in failed client-side (browser error other than a user cancel). */
+    loginFailed: string;
+    /** The user dismissed the browser's passkey-creation dialog. */
+    cancelled: string;
+    /** Registering a new passkey failed client-side. */
+    addFailed: string;
   };
-  account?: {
+  account: {
     title: string;
     profile: {
       title: string;
@@ -225,7 +231,7 @@ export interface AuthLocale {
       cancel: string;
     };
   };
-  sessions?: {
+  sessions: {
     title: string;
     thisDevice: string;
     lastActive: string;
@@ -235,12 +241,11 @@ export interface AuthLocale {
     empty: string;
     unavailable: string;
   };
-  twoFactor?: {
+  twoFactor: {
     // Manager — status
     title: string;
     description: string;
     statusEnabled: string;
-    statusDisabled: string;
     enable: string;
     disable: string;
     // Setup
@@ -267,13 +272,10 @@ export interface AuthLocale {
     loginBackupHint: string;
     // Feedback
     invalidCode: string;
-    enabledSuccess: string;
-    disabledSuccess: string;
   };
-  common?: {
-    loading?: string;
-    error?: string;
-    timeAgo?: {
+  common: {
+    error: string;
+    timeAgo: {
       now: string;
       minutes: string;
       hours: string;
@@ -281,3 +283,13 @@ export interface AuthLocale {
     };
   };
 }
+
+/** Recursive partial: every branch and leaf becomes optional. */
+export type DeepPartial<T> = T extends object ? { [K in keyof T]?: DeepPartial<T[K]> } : T;
+
+/**
+ * Consumer-facing locale input: any subset of {@link AuthLocale}. Components
+ * accept this as their `t` prop and deep-merge it over the active built-in
+ * bundle, so overriding a single string never silently blanks the rest.
+ */
+export type PartialAuthLocale = DeepPartial<AuthLocale>;

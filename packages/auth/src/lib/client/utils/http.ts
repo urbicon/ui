@@ -48,5 +48,5 @@ export async function postJson(
 export function errorTextFromBody(data: Record<string, unknown>, t: AuthLocale): string {
   const code = typeof data.code === 'string' ? data.code : undefined;
   const prose = typeof data.error === 'string' ? data.error : undefined;
-  return errorMessageFromCode(code, t, prose) ?? t.common?.error ?? 'An error occurred';
+  return errorMessageFromCode(code, t, prose) ?? t.common.error;
 }

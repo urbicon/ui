@@ -1,7 +1,7 @@
 <script lang="ts">
   import { Alert, Button, Card } from '@urbicon-ui/blocks';
   import { subscribeToPush } from '../../utils/service-worker.js';
-  import { useAuthLocale } from '../../../i18n/index.js';
+  import { mergeAuthLocale, useAuthLocale } from '../../../i18n/index.js';
   import { csrfFetch } from '../../csrf.js';
   import type { PushPermissionPromptProps } from './index.js';
 
@@ -20,7 +20,7 @@
   }: PushPermissionPromptProps = $props();
 
   const authLocale = useAuthLocale();
-  const t = $derived(tProp ?? authLocale());
+  const t = $derived(mergeAuthLocale(authLocale(), tProp));
 
   let visible = $state(true);
   let error = $state<string | null>(null);

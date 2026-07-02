@@ -4,7 +4,9 @@ import type { AuthLocale } from '../../i18n/keys.js';
  * Maps each server `AuthErrorCode` (the `code` field on an error response) to its
  * key in `AuthLocale['auth']['errors']`. Kept as a plain string→string record so
  * the client never imports server code: the code arrives over the wire as a
- * string, and an unrecognised one simply isn't in the map.
+ * string, and an unrecognised one simply isn't in the map. One entry is
+ * client-synthesized rather than a server code: `network_error`, produced by the
+ * stores when a request never reached the server.
  */
 const CODE_TO_KEY: Record<string, keyof AuthLocale['auth']['errors']> = {
   invitation_required: 'invitationRequired',
@@ -30,7 +32,8 @@ const CODE_TO_KEY: Record<string, keyof AuthLocale['auth']['errors']> = {
   feature_unavailable: 'featureUnavailable',
   validation_error: 'validationError',
   rate_limited: 'rateLimited',
-  server_error: 'serverError'
+  server_error: 'serverError',
+  network_error: 'networkError'
 };
 
 /**
@@ -61,9 +64,10 @@ export function errorMessageFromCode(
   if (code === 'validation_error' && fallbackError) return fallbackError;
 
   const key = code ? CODE_TO_KEY[code] : undefined;
-  // A known code whose translation is missing at RUNTIME (a JS consumer's
-  // hand-rolled bundle predating a new key) must still fall back to the
-  // server prose — the order this JSDoc promises.
+  // `t` is complete by type (and by mergeAuthLocale at every component call
+  // site), but this is a root export: a JS consumer can still hand it a bare
+  // partial object. Read-tolerant `??` keeps that failure on the server prose
+  // instead of rendering `undefined`.
   if (key) return t.auth.errors[key] ?? fallbackError;
 
   return fallbackError;

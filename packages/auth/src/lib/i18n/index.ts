@@ -1,7 +1,7 @@
 import { createPackageI18n, type Locale, useI18n } from '@urbicon-ui/i18n';
 import { de } from './de.js';
 import { en } from './en.js';
-import type { AuthLocale } from './keys.js';
+import type { AuthLocale, DeepPartial, PartialAuthLocale } from './keys.js';
 
 // No `: Record<string, AuthLocale>` annotation: that widening discarded the
 // literal key structure createPackageI18n needs to infer typed keys. en/de are
@@ -22,7 +22,7 @@ export const at = authT;
  *
  * ```svelte
  * const authLocale = useAuthLocale();
- * const t = $derived(tProp ?? authLocale());
+ * const t = $derived(mergeAuthLocale(authLocale(), tProp));
  * ```
  *
  * Replaces the former free `getAuthLocale()`, which read the global locale
@@ -53,6 +53,37 @@ export function resolveAuthLocale(locale?: Locale): AuthLocale {
   return byLocale[locale] ?? en;
 }
 
+/**
+ * Deep-merge consumer locale `overrides` over a complete `base` bundle — THE
+ * single place a `PartialAuthLocale` becomes a full `AuthLocale` (review R19).
+ * Every component resolves its `t` prop through this, so overriding one string
+ * (`{ auth: { login: { title: 'Welcome back' } } }`) keeps every other key from
+ * the active built-in bundle instead of blanking whole subtrees. Objects merge
+ * recursively, string leaves replace, `undefined` entries are skipped. Returns
+ * `base` itself when there is nothing to merge.
+ */
+export function mergeAuthLocale(base: AuthLocale, overrides?: PartialAuthLocale): AuthLocale {
+  if (!overrides) return base;
+  return deepMerge(base, overrides) as AuthLocale;
+}
+
+function deepMerge<T extends object>(base: T, overrides: DeepPartial<T>): T {
+  const out = { ...base } as Record<string, unknown>;
+  for (const [key, value] of Object.entries(overrides as Record<string, unknown>)) {
+    if (value === undefined) continue;
+    const baseValue = (base as Record<string, unknown>)[key];
+    out[key] =
+      value !== null &&
+      typeof value === 'object' &&
+      !Array.isArray(value) &&
+      baseValue !== null &&
+      typeof baseValue === 'object'
+        ? deepMerge(baseValue as object, value as DeepPartial<object>)
+        : value;
+  }
+  return out as T;
+}
+
 export type AuthTranslationKey = keyof typeof en;
-export type { AuthLocale } from './keys.js';
+export type { AuthLocale, DeepPartial, PartialAuthLocale } from './keys.js';
 export { authTranslations };

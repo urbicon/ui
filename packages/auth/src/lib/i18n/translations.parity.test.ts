@@ -4,11 +4,11 @@ import { de } from './de';
 import { en } from './en';
 
 /**
- * CI gate: the shipped en/de bundles must carry the same deep-key set. The
- * optional (`?`) fields in AuthLocale exist so a *consumer-registered* locale
- * may ship a subset — but the bundles WE ship are expected to be complete and
- * symmetric, so this asserts exact parity (both errors AND warnings empty).
- * Adding a deliberately-partial third locale would relax this for that locale.
+ * CI gate: the shipped en/de bundles must carry the same deep-key set. Since
+ * review R19 the compiler already forces completeness (`AuthLocale` is fully
+ * required and both bundles are `satisfies AuthLocale`; consumer subsets enter
+ * as `PartialAuthLocale` through `mergeAuthLocale` instead) — this test stays
+ * as the guard that survives someone loosening or dropping the `satisfies`.
  */
 describe('auth translations — en/de deep-key parity', () => {
   it('en and de carry identical nested keys', () => {

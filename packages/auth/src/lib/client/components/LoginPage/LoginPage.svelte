@@ -1,7 +1,7 @@
 <script lang="ts">
   import { Button, Input, Card, Alert, Checkbox, Separator } from '@urbicon-ui/blocks';
   import { onMount } from 'svelte';
-  import { useAuthLocale } from '../../../i18n/index.js';
+  import { mergeAuthLocale, useAuthLocale } from '../../../i18n/index.js';
   import { csrfFetch } from '../../csrf.js';
   import { errorMessageFromCode } from '../../utils/error-message.js';
   import type { LoginPageProps } from './index.js';
@@ -29,7 +29,7 @@
   }: LoginPageProps = $props();
 
   const authLocale = useAuthLocale();
-  const t = $derived(tProp ?? authLocale());
+  const t = $derived(mergeAuthLocale(authLocale(), tProp));
 
   let email = $state('');
   let password = $state('');
@@ -90,7 +90,7 @@
       }
       onSuccess?.();
     } catch {
-      error = t.auth.login.errors.invalid;
+      error = t.auth.errors.networkError;
     } finally {
       submitting = false;
     }
@@ -115,15 +115,12 @@
       );
       const data = await res.json();
       if (!res.ok) {
-        error =
-          errorMessageFromCode(data.code, t, data.error) ??
-          t.twoFactor?.invalidCode ??
-          t.auth.login.errors.invalid;
+        error = errorMessageFromCode(data.code, t, data.error) ?? t.twoFactor.invalidCode;
         return;
       }
       onSuccess?.();
     } catch {
-      error = t.twoFactor?.invalidCode ?? t.auth.login.errors.invalid;
+      error = t.auth.errors.networkError;
     } finally {
       submitting = false;
     }
@@ -208,7 +205,7 @@
       if (err instanceof DOMException && err.name === 'NotAllowedError') {
         // User cancelled
       } else {
-        error = 'Passkey login failed';
+        error = t.passkeys.loginFailed;
       }
     } finally {
       passkeyLoading = false;
@@ -238,9 +235,7 @@
             .filter(Boolean)
             .join(' ')}
     >
-      {awaitingTwoFactor
-        ? (t.twoFactor?.loginTitle ?? 'Two-step verification')
-        : t.auth.login.title}
+      {awaitingTwoFactor ? t.twoFactor.loginTitle : t.auth.login.title}
     </h1>
 
     {#if headerSnippet}
@@ -268,10 +263,10 @@
           : ['flex flex-col gap-4', slotClasses.form].filter(Boolean).join(' ')}
       >
         <p class={unstyled ? undefined : 'text-text-secondary text-sm'}>
-          {t.twoFactor?.loginPrompt ?? 'Enter the code from your authenticator app.'}
+          {t.twoFactor.loginPrompt}
         </p>
         <Input
-          label={t.twoFactor?.loginCode ?? 'Authentication code'}
+          label={t.twoFactor.loginCode}
           inputmode="numeric"
           autoComplete="one-time-code"
           bind:value={twoFactorCode}
@@ -290,10 +285,10 @@
             ? slotClasses.submit
             : ['mt-2 w-full', slotClasses.submit].filter(Boolean).join(' ')}
         >
-          {t.twoFactor?.loginSubmit ?? 'Verify'}
+          {t.twoFactor.loginSubmit}
         </Button>
         <p class={unstyled ? undefined : 'text-text-tertiary text-center text-xs'}>
-          {t.twoFactor?.loginBackupHint ?? 'You can also enter one of your backup codes.'}
+          {t.twoFactor.loginBackupHint}
         </p>
       </form>
     {:else}
@@ -325,11 +320,7 @@
           />
 
           {#if showRememberMe}
-            <Checkbox
-              bind:checked={rememberMeChecked}
-              label={t.auth.login.rememberMe ?? 'Remember me'}
-              {unstyled}
-            />
+            <Checkbox bind:checked={rememberMeChecked} label={t.auth.login.rememberMe} {unstyled} />
           {/if}
 
           <Button
@@ -351,7 +342,7 @@
       {#if showPassword && showPasskey}
         <div class="my-4 flex items-center gap-3">
           <Separator {unstyled} class="flex-1" />
-          <span class="text-text-tertiary text-xs">{t.passkeys?.or ?? 'or'}</span>
+          <span class="text-text-tertiary text-xs">{t.passkeys.or}</span>
           <Separator {unstyled} class="flex-1" />
         </div>
       {/if}
@@ -366,7 +357,7 @@
           {unstyled}
           class={unstyled ? undefined : 'w-full'}
         >
-          {t.passkeys?.loginWithPasskey ?? 'Sign in with passkey'}
+          {t.passkeys.loginWithPasskey}
         </Button>
       {/if}
 

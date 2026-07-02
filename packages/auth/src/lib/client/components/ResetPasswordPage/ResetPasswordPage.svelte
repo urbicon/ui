@@ -1,6 +1,6 @@
 <script lang="ts">
   import { Button, Input, Card, Alert } from '@urbicon-ui/blocks';
-  import { useAuthLocale } from '../../../i18n/index.js';
+  import { mergeAuthLocale, useAuthLocale } from '../../../i18n/index.js';
   import { csrfFetch } from '../../csrf.js';
   import { errorMessageFromCode } from '../../utils/error-message.js';
   import type { ResetPasswordPageProps } from './index.js';
@@ -18,7 +18,7 @@
   }: ResetPasswordPageProps = $props();
 
   const authLocale = useAuthLocale();
-  const t = $derived(tProp ?? authLocale());
+  const t = $derived(mergeAuthLocale(authLocale(), tProp));
 
   let password = $state('');
   let confirmPassword = $state('');
@@ -58,7 +58,7 @@
       }
       success = true;
     } catch {
-      error = 'Network error';
+      error = t.auth.errors.networkError;
     } finally {
       submitting = false;
     }

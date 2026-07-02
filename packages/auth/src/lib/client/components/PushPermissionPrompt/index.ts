@@ -1,4 +1,4 @@
-import type { AuthLocale } from '../../../i18n/keys.js';
+import type { PartialAuthLocale } from '../../../i18n/keys.js';
 import type { CsrfClientOptions } from '../../csrf.js';
 
 /**
@@ -16,8 +16,11 @@ import type { CsrfClientOptions } from '../../csrf.js';
  * ```
  */
 export interface PushPermissionPromptProps {
-  /** Locale bundle. Auto-detected from i18n context when omitted. */
-  t?: AuthLocale;
+  /**
+   * Locale overrides, deep-merged over the active built-in bundle (resolved
+   * from the i18n context). Pass any subset — a single string or a whole tree.
+   */
+  t?: PartialAuthLocale;
   /** VAPID public key for push subscription. */
   vapidPublicKey: string;
   /** API endpoint for registering subscriptions. @default '/api/notifications/push-subscription' */

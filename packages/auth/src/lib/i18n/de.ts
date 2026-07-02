@@ -28,7 +28,8 @@ export const de = {
       featureUnavailable: 'Diese Funktion ist nicht verfügbar.',
       validationError: 'Bitte überprüfe deine Eingabe und versuche es erneut.',
       rateLimited: 'Zu viele Anfragen. Bitte versuche es später erneut.',
-      serverError: 'Etwas ist schiefgelaufen. Bitte versuche es erneut.'
+      serverError: 'Etwas ist schiefgelaufen. Bitte versuche es erneut.',
+      networkError: 'Netzwerkfehler. Bitte prüfe deine Verbindung und versuche es erneut.'
     },
     login: {
       title: 'Anmelden',
@@ -40,9 +41,7 @@ export const de = {
       register: 'Konto erstellen',
       forgotPassword: 'Passwort vergessen?',
       errors: {
-        invalid: 'Ungültige E-Mail oder Passwort',
-        locked: 'Konto gesperrt. Bitte versuche es später erneut.',
-        unverified: 'Bitte bestätige zuerst deine E-Mail-Adresse.'
+        invalid: 'Ungültige E-Mail oder Passwort'
       }
     },
     register: {
@@ -55,21 +54,13 @@ export const de = {
       hasAccount: 'Bereits ein Konto?',
       login: 'Anmelden',
       requirements: {
-        minLength: 'Mindestens 8 Zeichen',
+        minLength: 'Mindestens {n} Zeichen',
         uppercase: 'Ein Großbuchstabe',
         lowercase: 'Ein Kleinbuchstabe',
         digit: 'Eine Ziffer',
         special: 'Ein Sonderzeichen'
       },
-      strength: {
-        weak: 'Schwach',
-        fair: 'Mittel',
-        good: 'Gut',
-        strong: 'Stark'
-      },
       errors: {
-        invitationRequired: 'Eine Einladung ist erforderlich.',
-        emailTaken: 'Diese E-Mail-Adresse ist bereits registriert.',
         passwordMismatch: 'Die Passwörter stimmen nicht überein'
       }
     },
@@ -98,8 +89,7 @@ export const de = {
       title: 'E-Mail bestätigen',
       verifying: 'E-Mail wird verifiziert...',
       success: 'Deine E-Mail-Adresse wurde bestätigt.',
-      error: 'Ungültiger oder abgelaufener Bestätigungslink.',
-      resend: 'Bestätigungsmail erneut senden'
+      error: 'Ungültiger oder abgelaufener Bestätigungslink.'
     },
     emails: {
       verification: {
@@ -158,7 +148,6 @@ export const de = {
   },
   invitations: {
     title: 'Einladungen',
-    invite: 'Einladung senden',
     email: 'E-Mail-Adresse',
     role: 'Rolle',
     status: 'Status',
@@ -177,7 +166,10 @@ export const de = {
     delete: 'Löschen',
     lastUsed: 'Zuletzt verwendet',
     loginWithPasskey: 'Mit Passkey anmelden',
-    or: 'oder'
+    or: 'oder',
+    loginFailed: 'Passkey-Anmeldung fehlgeschlagen. Bitte versuche es erneut.',
+    cancelled: 'Passkey-Einrichtung abgebrochen.',
+    addFailed: 'Passkey konnte nicht hinzugefügt werden. Bitte versuche es erneut.'
   },
   account: {
     title: 'Kontoeinstellungen',
@@ -229,7 +221,6 @@ export const de = {
     title: 'Zwei-Faktor-Authentifizierung',
     description: 'Sichere die Anmeldung mit einem zweiten Schritt über eine Authenticator-App.',
     statusEnabled: 'Die Zwei-Faktor-Authentifizierung ist aktiv.',
-    statusDisabled: 'Die Zwei-Faktor-Authentifizierung ist inaktiv.',
     enable: 'Zwei-Faktor-Authentifizierung aktivieren',
     disable: 'Zwei-Faktor-Authentifizierung deaktivieren',
     setupScan:
@@ -253,12 +244,9 @@ export const de = {
     loginCode: 'Authentifizierungscode',
     loginSubmit: 'Bestätigen',
     loginBackupHint: 'Du kannst auch einen deiner Backup-Codes verwenden.',
-    invalidCode: 'Ungültiger Code. Bitte versuche es erneut.',
-    enabledSuccess: 'Die Zwei-Faktor-Authentifizierung ist jetzt aktiv.',
-    disabledSuccess: 'Die Zwei-Faktor-Authentifizierung wurde deaktiviert.'
+    invalidCode: 'Ungültiger Code. Bitte versuche es erneut.'
   },
   common: {
-    loading: 'Laden...',
     error: 'Ein Fehler ist aufgetreten',
     timeAgo: {
       now: 'Gerade eben',

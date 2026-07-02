@@ -1,5 +1,5 @@
 import type { Snippet } from 'svelte';
-import type { AuthLocale } from '../../../i18n/keys.js';
+import type { PartialAuthLocale } from '../../../i18n/keys.js';
 import type { AuthUser } from '../../../types.js';
 import type { CsrfClientOptions } from '../../csrf.js';
 
@@ -34,8 +34,11 @@ export interface TwoFactorManagerProps {
    * `{#key user?.id}…{/key}` to re-seed after an async load.
    */
   user: AuthUser | null;
-  /** Locale bundle. Auto-detected from i18n context when omitted. */
-  t?: AuthLocale;
+  /**
+   * Locale overrides, deep-merged over the active built-in bundle (resolved
+   * from the i18n context). Pass any subset — a single string or a whole tree.
+   */
+  t?: PartialAuthLocale;
   /** API base path for the 2FA account endpoints. @default '/api/auth/account/2fa' */
   basePath?: string;
   /** CSRF cookie/header names — only needed when the server overrides the defaults via `config.csrf`. Mutating requests echo the token automatically. */

@@ -26,7 +26,8 @@ export const en = {
       featureUnavailable: 'This feature is not available.',
       validationError: 'Please check your input and try again.',
       rateLimited: 'Too many requests. Please try again later.',
-      serverError: 'Something went wrong. Please try again.'
+      serverError: 'Something went wrong. Please try again.',
+      networkError: 'Network error. Please check your connection and try again.'
     },
     login: {
       title: 'Sign in',
@@ -38,9 +39,7 @@ export const en = {
       register: 'Create account',
       forgotPassword: 'Forgot password?',
       errors: {
-        invalid: 'Invalid email or password',
-        locked: 'Account locked. Please try again later.',
-        unverified: 'Please verify your email first.'
+        invalid: 'Invalid email or password'
       }
     },
     register: {
@@ -53,21 +52,13 @@ export const en = {
       hasAccount: 'Already have an account?',
       login: 'Sign in',
       requirements: {
-        minLength: 'At least 8 characters',
+        minLength: 'At least {n} characters',
         uppercase: 'One uppercase letter',
         lowercase: 'One lowercase letter',
         digit: 'One digit',
         special: 'One special character'
       },
-      strength: {
-        weak: 'Weak',
-        fair: 'Fair',
-        good: 'Good',
-        strong: 'Strong'
-      },
       errors: {
-        invitationRequired: 'An invitation is required to register.',
-        emailTaken: 'This email is already registered.',
         passwordMismatch: 'Passwords do not match'
       }
     },
@@ -95,8 +86,7 @@ export const en = {
       title: 'Verify email',
       verifying: 'Verifying your email...',
       success: 'Your email has been verified.',
-      error: 'Invalid or expired verification link.',
-      resend: 'Resend verification email'
+      error: 'Invalid or expired verification link.'
     },
     emails: {
       verification: {
@@ -155,7 +145,6 @@ export const en = {
   },
   invitations: {
     title: 'Invitations',
-    invite: 'Send invitation',
     email: 'Email address',
     role: 'Role',
     status: 'Status',
@@ -174,7 +163,10 @@ export const en = {
     delete: 'Delete',
     lastUsed: 'Last used',
     loginWithPasskey: 'Sign in with passkey',
-    or: 'or'
+    or: 'or',
+    loginFailed: 'Passkey sign-in failed. Please try again.',
+    cancelled: 'Passkey setup was cancelled.',
+    addFailed: 'Adding the passkey failed. Please try again.'
   },
   account: {
     title: 'Account settings',
@@ -225,7 +217,6 @@ export const en = {
     title: 'Two-factor authentication',
     description: 'Add a second step to sign-in using an authenticator app.',
     statusEnabled: 'Two-factor authentication is on.',
-    statusDisabled: 'Two-factor authentication is off.',
     enable: 'Enable two-factor authentication',
     disable: 'Disable two-factor authentication',
     setupScan: 'Scan this QR code with your authenticator app, or enter the key manually.',
@@ -247,12 +238,9 @@ export const en = {
     loginCode: 'Authentication code',
     loginSubmit: 'Verify',
     loginBackupHint: 'You can also enter one of your backup codes.',
-    invalidCode: 'Invalid code. Please try again.',
-    enabledSuccess: 'Two-factor authentication is now on.',
-    disabledSuccess: 'Two-factor authentication has been turned off.'
+    invalidCode: 'Invalid code. Please try again.'
   },
   common: {
-    loading: 'Loading...',
     error: 'An error occurred',
     timeAgo: {
       now: 'Just now',

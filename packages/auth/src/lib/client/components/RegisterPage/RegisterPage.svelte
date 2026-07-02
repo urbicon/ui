@@ -1,7 +1,7 @@
 <script lang="ts">
   import { Button, Input, Card, Alert } from '@urbicon-ui/blocks';
   import { untrack } from 'svelte';
-  import { useAuthLocale } from '../../../i18n/index.js';
+  import { mergeAuthLocale, useAuthLocale } from '../../../i18n/index.js';
   import { csrfFetch } from '../../csrf.js';
   import { errorMessageFromCode } from '../../utils/error-message.js';
   import type { RegisterPageProps } from './index.js';
@@ -29,7 +29,7 @@
   }: RegisterPageProps = $props();
 
   const authLocale = useAuthLocale();
-  const t = $derived(tProp ?? authLocale());
+  const t = $derived(mergeAuthLocale(authLocale(), tProp));
 
   let name = $state('');
   // Seeded once from the invite link's `?email=` (passed as `defaultEmail`), then
@@ -45,34 +45,34 @@
     const reqs: Array<{ key: string; label: string; met: boolean }> = [];
     reqs.push({
       key: 'minLength',
-      label: t.auth.register.requirements?.minLength ?? `At least ${passwordMinLength} characters`,
+      label: t.auth.register.requirements.minLength.replace('{n}', String(passwordMinLength)),
       met: password.length >= passwordMinLength
     });
     if (requireUppercase) {
       reqs.push({
         key: 'uppercase',
-        label: t.auth.register.requirements?.uppercase ?? 'One uppercase letter',
+        label: t.auth.register.requirements.uppercase,
         met: /[A-Z]/.test(password)
       });
     }
     if (requireLowercase) {
       reqs.push({
         key: 'lowercase',
-        label: t.auth.register.requirements?.lowercase ?? 'One lowercase letter',
+        label: t.auth.register.requirements.lowercase,
         met: /[a-z]/.test(password)
       });
     }
     if (requireDigit) {
       reqs.push({
         key: 'digit',
-        label: t.auth.register.requirements?.digit ?? 'One digit',
+        label: t.auth.register.requirements.digit,
         met: /[0-9]/.test(password)
       });
     }
     if (requireSpecial) {
       reqs.push({
         key: 'special',
-        label: t.auth.register.requirements?.special ?? 'One special character',
+        label: t.auth.register.requirements.special,
         met: /[^A-Za-z0-9]/.test(password)
       });
     }
@@ -104,12 +104,12 @@
       );
       const data = await res.json();
       if (!res.ok) {
-        error = errorMessageFromCode(data.code, t, data.error) ?? 'Registration failed';
+        error = errorMessageFromCode(data.code, t, data.error) ?? t.auth.errors.serverError;
         return;
       }
       onSuccess?.();
     } catch {
-      error = t.common?.error ?? 'An error occurred';
+      error = t.auth.errors.networkError;
     } finally {
       submitting = false;
     }
@@ -207,14 +207,12 @@
       </div>
 
       <Input
-        label={t.auth.register.confirmPassword ?? 'Confirm password'}
+        label={t.auth.register.confirmPassword}
         type="password"
         bind:value={confirmPassword}
         required
         autoComplete="new-password"
-        error={!passwordsMatch
-          ? (t.auth.register.errors?.passwordMismatch ?? 'Passwords do not match')
-          : undefined}
+        error={!passwordsMatch ? t.auth.register.errors.passwordMismatch : undefined}
         {unstyled}
         class={slotClasses.field}
       />

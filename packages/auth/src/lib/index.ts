@@ -47,7 +47,7 @@ export {
   VerifyEmailPage,
   withCsrfHeader
 } from './client/index.js';
-export type { AuthLocale, AuthTranslationKey } from './i18n/index.js';
+export type { AuthLocale, AuthTranslationKey, PartialAuthLocale } from './i18n/index.js';
 
 // i18n — auto-registers auth translations with @urbicon-ui/i18n
 export {
@@ -56,6 +56,7 @@ export {
   authT,
   getAuthLocales,
   hasAuthTranslation,
+  mergeAuthLocale,
   useAuthLocale
 } from './i18n/index.js';
 export type {

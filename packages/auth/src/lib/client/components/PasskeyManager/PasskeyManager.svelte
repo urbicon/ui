@@ -1,7 +1,7 @@
 <script lang="ts">
   import { Alert, Button, Separator, Spinner } from '@urbicon-ui/blocks';
   import { onMount } from 'svelte';
-  import { useAuthLocale } from '../../../i18n/index.js';
+  import { mergeAuthLocale, useAuthLocale } from '../../../i18n/index.js';
   import { csrfFetch } from '../../csrf.js';
   import type { PasskeyManagerProps } from './index.js';
   import { base64UrlToBuffer, bufferToBase64Url } from '../../utils/webauthn.js';
@@ -18,7 +18,7 @@
   }: PasskeyManagerProps = $props();
 
   const authLocale = useAuthLocale();
-  const t = $derived(tProp ?? authLocale());
+  const t = $derived(mergeAuthLocale(authLocale(), tProp));
 
   // Wrapped so the default path calls the global fetch unbound-safe; a custom
   // fetcher (demo mock, test double, retry layer) takes precedence.
@@ -44,7 +44,7 @@
       const res = await doFetch(`${basePath}/list`);
       if (!res.ok) {
         // A 401/500 must not render as "no passkeys registered".
-        error = t.common?.error ?? 'Failed to load passkeys.';
+        error = t.common.error;
         return;
       }
       const data = await res.json();
@@ -52,7 +52,7 @@
     } catch {
       // Surface the failure instead of rendering the empty state, which is
       // indistinguishable from "no passkeys registered".
-      error = t.common?.error ?? 'Failed to load passkeys.';
+      error = t.auth.errors.networkError;
     } finally {
       loading = false;
     }
@@ -100,7 +100,7 @@
       })) as PublicKeyCredential;
 
       if (!credential) {
-        error = 'Registration cancelled';
+        error = t.passkeys.cancelled;
         return;
       }
 
@@ -138,9 +138,9 @@
       await loadPasskeys();
     } catch (err) {
       if (err instanceof DOMException && err.name === 'NotAllowedError') {
-        error = 'Registration cancelled by user';
+        error = t.passkeys.cancelled;
       } else {
-        error = 'Registration failed';
+        error = t.passkeys.addFailed;
       }
     } finally {
       registering = false;
@@ -166,7 +166,7 @@
       // they think is gone.
       passkeys = passkeys.filter((p) => p.credentialId !== credentialId);
     } catch {
-      error = t.common?.error ?? 'Failed to delete passkey.';
+      error = t.auth.errors.networkError;
     }
   }
 
@@ -190,7 +190,7 @@
             .filter(Boolean)
             .join(' ')}
     >
-      {t.passkeys?.title ?? 'Passkeys'}
+      {t.passkeys.title}
     </h2>
     <Button
       variant="filled"
@@ -202,7 +202,7 @@
       {unstyled}
       class="shrink-0"
     >
-      {t.passkeys?.add ?? 'Add passkey'}
+      {t.passkeys.add}
     </Button>
   </div>
 
@@ -226,7 +226,7 @@
             .filter(Boolean)
             .join(' ')}
     >
-      {t.passkeys?.empty ?? 'No passkeys registered.'}
+      {t.passkeys.empty}
     </p>
   {:else}
     <ul
@@ -250,9 +250,7 @@
             <span class="text-text-tertiary text-xs">
               {new Date(passkey.createdAt).toLocaleDateString()}
               {#if passkey.lastUsedAt}
-                &middot; {t.passkeys?.lastUsed ?? 'Last used'}: {new Date(
-                  passkey.lastUsedAt
-                ).toLocaleDateString()}
+                &middot; {t.passkeys.lastUsed}: {new Date(passkey.lastUsedAt).toLocaleDateString()}
               {/if}
             </span>
           </div>
@@ -261,10 +259,10 @@
             intent="danger"
             size="sm"
             onclick={() => deletePasskey(passkey.credentialId)}
-            aria-label={`${t.passkeys?.delete ?? 'Delete'} — ${passkey.name}`}
+            aria-label={`${t.passkeys.delete} — ${passkey.name}`}
             {unstyled}
           >
-            {t.passkeys?.delete ?? 'Delete'}
+            {t.passkeys.delete}
           </Button>
         </li>
       {/each}
