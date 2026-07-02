@@ -407,6 +407,13 @@ export const conformanceChecks: readonly ConformanceCheck[] = [
     expect(Object.keys(found as object).sort(), 'findByEmail projects to the contract').toEqual(
       CONTRACT_FIELDS
     );
+
+    // The absent-email path must resolve null, not throw inside the mapper —
+    // it runs on every registration attempt and every first-time invite.
+    expect(
+      await repos.invitation.findByEmail(`absent-${nextSeed()}@conformance.test`),
+      'absent email resolves null'
+    ).toBeNull();
   }),
 
   // -- RefreshToken: CAS revoke + rotation race ---------------------------

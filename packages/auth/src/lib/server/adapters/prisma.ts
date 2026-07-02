@@ -62,6 +62,7 @@ export interface PrismaLike {
   pushSubscription?: {
     findUnique: (args: unknown) => Promise<PrismaRow>;
     findMany: (args?: unknown) => Promise<PrismaRow>;
+    create: (args: unknown) => Promise<PrismaRow>;
     upsert: (args: unknown) => Promise<PrismaRow>;
     deleteMany: (args: unknown) => Promise<PrismaRow>;
   };
@@ -541,30 +542,44 @@ export function createPrismaPushSubscriptionRepository(
       // the browser subscription (user switch in the same browser); merely
       // knowing the endpoint URL must not take the row over.
       //
-      // Read-then-write: the gate needs the stored owner + keys, so this is
-      // not a single atomic statement. The final write is still an atomic
-      // upsert, and the check race is harmless — a caller without the
-      // matching keys is rejected in every interleaving, while two writers
-      // who both hold the browser's real keys are both legitimate (last one
-      // wins, exactly as a serial execution would).
-      const existing = await ps.findUnique({ where: { endpoint: subscription.endpoint } });
-      if (
-        existing &&
-        existing.userId !== userId &&
-        !pushKeysEqual(existing.keys ?? {}, subscription.keys)
-      ) {
-        return 'rejected';
+      // Read-then-write, made race-safe against the one interleaving that
+      // would bypass the gate: a row APPEARING between our read and our write
+      // (an unconditional upsert would then take its update branch and
+      // reassign the fresh row ungated — silent-failure review M1). The
+      // no-row path therefore uses a plain `create` and retries once on the
+      // unique violation, re-running the gate against the row that won.
+      // The existing-row path's residual window is harmless: only callers
+      // that already passed the gate (owner or key possessor) ever reach the
+      // write, so a row replaced inside the window was written by another
+      // legitimate actor — last writer wins, same as serial execution.
+      for (let attempt = 0; ; attempt++) {
+        const existing = await ps.findUnique({ where: { endpoint: subscription.endpoint } });
+        if (!existing) {
+          try {
+            await ps.create({
+              data: { userId, endpoint: subscription.endpoint, keys: subscription.keys }
+            });
+            return 'created';
+          } catch (err) {
+            // Lost the insert race — loop once and gate against the winner.
+            if (isUniqueConstraintError(err) && attempt === 0) continue;
+            throw err;
+          }
+        }
+        if (existing.userId !== userId && !pushKeysEqual(existing.keys ?? {}, subscription.keys)) {
+          return 'rejected';
+        }
+        // Derive the outcome BEFORE the write: a client handing out live row
+        // references (the conformance fake does; some Prisma-likes may) would
+        // otherwise see `existing` mutated by the upsert.
+        const outcome = existing.userId === userId ? 'updated' : 'reassigned';
+        await ps.upsert({
+          where: { endpoint: subscription.endpoint },
+          create: { userId, endpoint: subscription.endpoint, keys: subscription.keys },
+          update: { userId, keys: subscription.keys }
+        });
+        return outcome;
       }
-      // Derive the outcome BEFORE the write: a client handing out live row
-      // references (the conformance fake does; some Prisma-likes may) would
-      // otherwise see `existing` mutated by the upsert.
-      const outcome = !existing ? 'created' : existing.userId === userId ? 'updated' : 'reassigned';
-      await ps.upsert({
-        where: { endpoint: subscription.endpoint },
-        create: { userId, endpoint: subscription.endpoint, keys: subscription.keys },
-        update: { userId, keys: subscription.keys }
-      });
-      return outcome;
     },
 
     async delete(userId, endpoint) {

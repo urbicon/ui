@@ -5,7 +5,7 @@
 // to hide, so `any` is the pragmatic, intentional choice here.
 
 import { randomUUID } from 'node:crypto';
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import {
   type ConformanceHarness,
   conformanceChecks,
@@ -322,6 +322,112 @@ describe('prisma adapter — user.delete cascades sent invitations', () => {
     expect(remaining[0]?.id).toBe(keep.id);
     expect(await repos.user.findById(inviter.id), 'inviter gone').toBeNull();
     expect(await repos.user.findById(other.id), 'unrelated user untouched').not.toBeNull();
+  });
+});
+
+// === 2a'. Prisma-specific: push-subscription gate edge cases =================
+//
+// The agnostic suite pins the four write outcomes; these pin the Prisma
+// adapter's two sharp edges: the insert race (a row appearing between the
+// pre-write read and the insert must RE-RUN the key gate, not fall into an
+// ungated upsert — silent-failure review M1) and legacy rows whose `keys`
+// column is null/garbage (fail-closed: unreassignable, never a throw).
+describe('prisma adapter — push-subscription gate edge cases', () => {
+  const ENDPOINT = 'https://push.test/gate-edge';
+  const KEYS_OWNER = { p256dh: 'cDE', auth: 'YTE' };
+  const KEYS_OTHER = { p256dh: 'cDI', auth: 'YTI' };
+
+  function repoOver(ps: Record<string, unknown>) {
+    const repo = createPrismaRepos({
+      ...createFakePrisma(),
+      pushSubscription: ps
+    } as unknown as PrismaLike).pushSubscription;
+    if (!repo) throw new Error('pushSubscription repo missing');
+    return repo;
+  }
+
+  it('re-runs the gate when a row appears between read and insert (insert race)', async () => {
+    // Interleaving: our read sees no row → the victim's create wins the race
+    // (our insert hits the unique violation) → the retry must gate against
+    // the winner's row. An unconditional upsert here would reassign the
+    // victim's fresh row to the attacker without any key check.
+    let reads = 0;
+    const winnerRow = { userId: 'victim', endpoint: ENDPOINT, keys: KEYS_OWNER };
+    const upsert = vi.fn();
+    const repo = repoOver({
+      findUnique: vi.fn(async () => (++reads === 1 ? null : winnerRow)),
+      findMany: vi.fn(async () => []),
+      create: vi.fn(async () => {
+        throw Object.assign(new Error('[fake] unique constraint'), { code: 'P2002' });
+      }),
+      upsert,
+      deleteMany: vi.fn()
+    });
+
+    const outcome = await repo.create('attacker', { endpoint: ENDPOINT, keys: KEYS_OTHER });
+    expect(outcome, 'gate applies to the row that won the race').toBe('rejected');
+    expect(upsert, 'no ungated write may happen').not.toHaveBeenCalled();
+  });
+
+  it("matching keys still pass after losing the insert race ('reassigned')", async () => {
+    let reads = 0;
+    const winnerRow = { userId: 'previous-user', endpoint: ENDPOINT, keys: KEYS_OWNER };
+    const upsert = vi.fn();
+    const repo = repoOver({
+      findUnique: vi.fn(async () => (++reads === 1 ? null : winnerRow)),
+      findMany: vi.fn(async () => []),
+      create: vi.fn(async () => {
+        throw Object.assign(new Error('[fake] unique constraint'), { code: 'P2002' });
+      }),
+      upsert,
+      deleteMany: vi.fn()
+    });
+
+    // Same-browser user switch: the caller holds the real keys.
+    const outcome = await repo.create('next-user', { endpoint: ENDPOINT, keys: KEYS_OWNER });
+    expect(outcome).toBe('reassigned');
+    expect(upsert).toHaveBeenCalledTimes(1);
+  });
+
+  it('a non-P2002 create failure propagates (no infinite retry, no false outcome)', async () => {
+    const repo = repoOver({
+      findUnique: vi.fn(async () => null),
+      findMany: vi.fn(async () => []),
+      create: vi.fn(async () => {
+        throw Object.assign(new Error('db down'), { code: 'P1001' });
+      }),
+      upsert: vi.fn(),
+      deleteMany: vi.fn()
+    });
+    await expect(repo.create('u1', { endpoint: ENDPOINT, keys: KEYS_OWNER })).rejects.toThrow(
+      'db down'
+    );
+  });
+
+  it("a legacy row with keys: null is unreassignable cross-user ('rejected', not a 500)", async () => {
+    const repo = repoOver({
+      findUnique: vi.fn(async () => ({ userId: 'other', endpoint: ENDPOINT, keys: null })),
+      findMany: vi.fn(async () => []),
+      create: vi.fn(),
+      upsert: vi.fn(),
+      deleteMany: vi.fn()
+    });
+    // pushKeysEqual fails closed on the undecodable `?? {}` shape — the
+    // deliberate consequence: such a row can only be healed by its owner.
+    expect(await repo.create('me', { endpoint: ENDPOINT, keys: KEYS_OWNER })).toBe('rejected');
+  });
+
+  it("the owner's own re-subscribe heals a keys: null row ('updated')", async () => {
+    const upsert = vi.fn();
+    const repo = repoOver({
+      findUnique: vi.fn(async () => ({ userId: 'me', endpoint: ENDPOINT, keys: null })),
+      findMany: vi.fn(async () => []),
+      create: vi.fn(),
+      upsert,
+      deleteMany: vi.fn()
+    });
+    expect(await repo.create('me', { endpoint: ENDPOINT, keys: KEYS_OWNER })).toBe('updated');
+    expect(upsert).toHaveBeenCalledTimes(1);
   });
 });
 
