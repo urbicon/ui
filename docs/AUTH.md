@@ -213,7 +213,7 @@ async function listPasskeys(userId: string): Promise<Passkey[]> {
 }
 ```
 
-The `mapX` seams (`mapUser`, `mapPasskey`, `mapNotification`, `mapPushSubscription`, `mapNotificationPreference`) live next to each other at the bottom of `prisma.ts`. A new adapter follows the same shape: a structural `XLike` interface with `unknown` args + one permissive return type, narrow casts inside each method, named `mapX(row)` helpers so the conversion is testable. Don't expose generated row types to the consumer — that's what made the original adapter sprout 32 `Promise<unknown>` errors cross-package.
+The `mapX` seams (`mapUser`, `mapPasskey`, `mapRefreshToken`, `mapInvitation`, `mapNotification`, `mapPushSubscription`, `mapNotificationPreference`) live next to each other at the bottom of `prisma.ts`. `mapInvitation` doubles as a security projection: invitation results feed the admin HTTP response directly, so the seam is what keeps `invitedById` (and consumer extra columns) out of the wire format — the conformance suite asserts the exact field set. A new adapter follows the same shape: a structural `XLike` interface with `unknown` args + one permissive return type, narrow casts inside each method, named `mapX(row)` helpers so the conversion is testable. Don't expose generated row types to the consumer — that's what made the original adapter sprout 32 `Promise<unknown>` errors cross-package.
 
 ### Validate it: the conformance suite
 

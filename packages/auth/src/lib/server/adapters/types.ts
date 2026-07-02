@@ -40,6 +40,15 @@ export interface CreateUserData<R extends string = string> {
   verificationTokenExpires?: Date;
 }
 
+/**
+ * The public invitation shape. `create()`/`list()`/`findByEmail()` results are
+ * serialized straight into the admin HTTP response by
+ * `createInvitationHandlers`, so adapters MUST project rows down to exactly
+ * these fields (see `mapInvitation` in the Prisma adapter; enforced by the
+ * conformance suite). `invitedById` is deliberately NOT part of the contract —
+ * it is a persistence/audit detail, and exposing it would link the inviting
+ * admin's user id into an API response.
+ */
 export interface Invitation {
   id: string;
   email: string;

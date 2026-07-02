@@ -386,6 +386,29 @@ export const conformanceChecks: readonly ConformanceCheck[] = [
     );
   }),
 
+  // -- Invitation: contract-field projection --------------------------------
+  check('invitation results carry exactly the contract fields', [], async (repos) => {
+    // Invitation results are serialized straight into the admin HTTP response
+    // by createInvitationHandlers, so an adapter that passes raw rows through
+    // leaks invitedById (and any consumer extra column) to the client. The
+    // fake-Prisma harness stores invitedById on the row, giving this teeth.
+    const CONTRACT_FIELDS = ['createdAt', 'email', 'id', 'role', 'usedAt'];
+    const email = `inv-shape-${nextSeed()}@conformance.test`;
+    const created = await repos.invitation.create({ email, role: 'USER', invitedById: 'admin' });
+    expect(Object.keys(created).sort(), 'create projects to the contract').toEqual(CONTRACT_FIELDS);
+
+    const listed = (await repos.invitation.list()).find((i) => i.email === email);
+    expect(listed, 'created invitation is listed').toBeDefined();
+    expect(Object.keys(listed as object).sort(), 'list projects to the contract').toEqual(
+      CONTRACT_FIELDS
+    );
+
+    const found = await repos.invitation.findByEmail(email);
+    expect(Object.keys(found as object).sort(), 'findByEmail projects to the contract').toEqual(
+      CONTRACT_FIELDS
+    );
+  }),
+
   // -- RefreshToken: CAS revoke + rotation race ---------------------------
   check(
     'refreshToken.revoke is a single-winner compare-and-set',

@@ -74,6 +74,10 @@ export interface InvitationHandlerOptions<R extends string = string> {
  * resolve the caller from the session cookie directly (not `locals.user`), so
  * authorization is unaffected by a `transformUser` hook reshaping locals.
  */
+// The invitation list is admin-facing PII (invitee emails + roles) — keep it
+// out of shared caches, same as the session list.
+const NO_STORE = { 'Cache-Control': 'no-store' } as const;
+
 export function createInvitationHandlers<R extends string>(
   deps: AuthDeps<R>,
   options: InvitationHandlerOptions<R>
@@ -99,7 +103,7 @@ export function createInvitationHandlers<R extends string>(
       if (auth instanceof Response) return auth;
 
       const invitations = await deps.repos.invitation.list();
-      return json({ invitations });
+      return json({ invitations }, { headers: NO_STORE });
     },
 
     POST: async ({ request, cookies }) => {

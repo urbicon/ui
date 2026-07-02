@@ -146,6 +146,12 @@ describe('createInvitationHandlers — GET', () => {
     expect(data.invitations).toHaveLength(1);
     expect(data.invitations[0].id).toBe('inv-9');
   });
+
+  it('marks the admin PII list no-store', async () => {
+    const { deps, user, handlers } = setup();
+    const res = await handlers.GET(makeEvent({ token: await tokenFor(deps, user) }));
+    expect(res.headers.get('Cache-Control')).toBe('no-store');
+  });
 });
 
 describe('createInvitationHandlers — POST', () => {

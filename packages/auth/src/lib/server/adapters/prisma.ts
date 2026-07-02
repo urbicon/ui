@@ -6,6 +6,7 @@ import type {
   CreateRefreshTokenData,
   CreateUserData,
   FullAuthUser,
+  Invitation,
   InvitationRepository,
   NotificationPreference,
   NotificationPreferenceRepository,
@@ -435,7 +436,8 @@ export function createPrismaUserRepository<R extends string>(
 export function createPrismaInvitationRepository(prisma: PrismaLike): InvitationRepository {
   return {
     async findByEmail(email) {
-      return prisma.invitation.findUnique({ where: { email } });
+      const row = await prisma.invitation.findUnique({ where: { email } });
+      return row ? mapInvitation(row) : null;
     },
 
     async markUsedIfUnused(id) {
@@ -448,17 +450,19 @@ export function createPrismaInvitationRepository(prisma: PrismaLike): Invitation
     },
 
     async create(data: CreateInvitationData) {
-      return prisma.invitation.create({
+      const row = await prisma.invitation.create({
         data: {
           email: data.email,
           role: data.role,
           invitedById: data.invitedById
         }
       });
+      return mapInvitation(row);
     },
 
     async list() {
-      return prisma.invitation.findMany({ orderBy: { createdAt: 'desc' } });
+      const rows = await prisma.invitation.findMany({ orderBy: { createdAt: 'desc' } });
+      return rows.map(mapInvitation);
     },
 
     async delete(id) {
@@ -884,6 +888,30 @@ function mapNotification(row: NotificationRow): NotificationRecord {
     url: row.url ?? null,
     icon: row.icon ?? null,
     readAt: row.readAt ?? null,
+    createdAt: row.createdAt
+  };
+}
+
+interface InvitationRow {
+  id: string;
+  email: string;
+  role: string;
+  usedAt?: Date | null;
+  createdAt: Date;
+}
+
+/**
+ * Typed seam for invitation reads (see {@link mapUser}) — and a deliberate
+ * projection: invitation results are serialized straight into the admin HTTP
+ * response by `createInvitationHandlers`, so without this seam `invitedById`
+ * and every consumer extra column on the table would leak to the client.
+ */
+function mapInvitation(row: InvitationRow): Invitation {
+  return {
+    id: row.id,
+    email: row.email,
+    role: row.role,
+    usedAt: row.usedAt ?? null,
     createdAt: row.createdAt
   };
 }
