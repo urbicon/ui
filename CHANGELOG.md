@@ -4,6 +4,18 @@ All notable changes to this project will be documented in this file.
 This changelog is automatically generated from [Conventional Commits](https://www.conventionalcommits.org).
 
 
+## [6.17.0] - 2026-07-02
+
+### Bug Fixes
+- **auth**: Close the package-4 review findings on the error contract
+
+### Features
+- **auth**: Machine error codes on every handler — one error shape
+- **auth**: Localized error mapping in every component, errorMessageFromCode public
+
+### Refactoring
+- **auth**: ParseBody preamble helper — one copy of the validation block
+
 ## [6.16.0] - 2026-07-02
 
 ### Bug Fixes
