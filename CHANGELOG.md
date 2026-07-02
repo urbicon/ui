@@ -4,6 +4,11 @@ All notable changes to this project will be documented in this file.
 This changelog is automatically generated from [Conventional Commits](https://www.conventionalcommits.org).
 
 
+## [6.12.0] - 2026-07-02
+
+### Bug Fixes
+- **auth**: Default-deny unauthenticated remote-function requests in route guard
+
 ## [6.11.0] - 2026-07-02
 
 ### Documentation
