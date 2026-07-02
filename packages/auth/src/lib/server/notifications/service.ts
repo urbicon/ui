@@ -4,7 +4,6 @@ import type {
   NotificationRepository,
   PushSubscriptionRepository
 } from '../adapters/types.js';
-import type { EmailTransport } from '../email/types.js';
 import type { PushPayload, PushResult, PushService } from './push.js';
 import type { NotificationRegistry } from './registry.js';
 import type { SSEManager } from './sse.js';
@@ -13,7 +12,6 @@ export interface NotificationServiceDeps {
   registry: NotificationRegistry;
   sse: SSEManager;
   push?: PushService;
-  email?: EmailTransport;
   repos: {
     notification: NotificationRepository;
     pushSubscription?: PushSubscriptionRepository;
@@ -61,7 +59,7 @@ function resolveString(
 }
 
 export function createNotificationService(deps: NotificationServiceDeps): NotificationService {
-  const { registry, sse, push, email: _email, repos, resolveAdminRecipients, onPushResult } = deps;
+  const { registry, sse, push, repos, resolveAdminRecipients, onPushResult } = deps;
 
   return {
     async send(typeKey, data) {
