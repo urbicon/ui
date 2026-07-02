@@ -3,6 +3,7 @@ import type { Cookies } from '@sveltejs/kit';
 import type { AuthConfig, JwtConfig, RefreshTokenConfig } from '../types.js';
 import type { FullAuthUser, RefreshTokenRecord, RefreshTokenRepository } from './adapters/types.js';
 import { generateSecureToken, hashToken } from './auth.js';
+import { parseDurationSeconds } from './duration.js';
 
 const DEFAULT_ACCESS_TTL = '15m';
 const DEFAULT_REFRESH_TTL = '30d';
@@ -20,28 +21,6 @@ const DEFAULT_COOKIE_PATH = '/';
 // of them racing through the handle hook would otherwise revoke the whole
 // family and log the user out.
 const ROTATION_GRACE_MS = 10_000;
-
-/**
- * Parse an `Ns | Nm | Nh | Nd` duration into seconds. Mirrors the grammar
- * used by `createSessionToken` in `auth.ts`.
- */
-export function parseDurationSeconds(value: string): number {
-  const match = value.match(/^(\d+)([smhd])$/);
-  if (!match) throw new Error(`Invalid duration format: ${value}`);
-  const n = parseInt(match[1], 10);
-  switch (match[2]) {
-    case 's':
-      return n;
-    case 'm':
-      return n * 60;
-    case 'h':
-      return n * 3600;
-    case 'd':
-      return n * 86400;
-    default:
-      throw new Error(`Unknown time unit: ${match[2]}`);
-  }
-}
 
 /**
  * Resolve the effective JWT config when refresh-token rotation is opted in:

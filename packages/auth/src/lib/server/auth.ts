@@ -1,6 +1,7 @@
 import { createHash, randomBytes } from 'node:crypto';
 import type { AuthSession, AuthUser, JwtConfig, PasswordConfig } from '../types.js';
 import type { FullAuthUser } from './adapters/types.js';
+import { parseDurationSeconds } from './duration.js';
 import { base64UrlDecodeString, base64UrlEncode, base64UrlEncodeString } from './encoding.js';
 import { timingSafeEqual, timingSafeEqualStrings } from './timing-safe.js';
 
@@ -194,25 +195,6 @@ async function hmacVerify(payload: string, signature: string, secret: string): P
   return timingSafeEqual(a, b);
 }
 
-function parseExpiresIn(expiresIn: string): number {
-  const match = expiresIn.match(/^(\d+)([smhd])$/);
-  if (!match) throw new Error(`Invalid expiresIn format: ${expiresIn}`);
-  const value = parseInt(match[1], 10);
-  const unit = match[2];
-  switch (unit) {
-    case 's':
-      return value;
-    case 'm':
-      return value * 60;
-    case 'h':
-      return value * 3600;
-    case 'd':
-      return value * 86400;
-    default:
-      throw new Error(`Unknown time unit: ${unit}`);
-  }
-}
-
 export async function createSessionToken<R extends string>(
   payload: AuthSession<R>,
   config: JwtConfig
@@ -225,7 +207,7 @@ export async function createSessionToken<R extends string>(
     })
   );
   const now = Math.floor(Date.now() / 1000);
-  const exp = now + parseExpiresIn(config.expiresIn ?? '7d');
+  const exp = now + parseDurationSeconds(config.expiresIn ?? '7d');
 
   const body = base64UrlEncodeString(
     JSON.stringify({

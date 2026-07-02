@@ -4,10 +4,10 @@ import type { AuthConfig, RefreshTokenConfig } from '../types.js';
 import { createInMemoryRefreshTokenRepository } from './adapters/in-memory-refresh-token.js';
 import type { FullAuthUser } from './adapters/types.js';
 import { hashToken } from './auth.js';
+import { parseDurationSeconds } from './duration.js';
 import {
   clearRefreshCookie,
   issueRefreshToken,
-  parseDurationSeconds,
   readRefreshCookie,
   resolveJwtConfig,
   revokeRefreshFromCookie,

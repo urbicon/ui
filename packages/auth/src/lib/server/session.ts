@@ -2,10 +2,10 @@ import type { Cookies } from '@sveltejs/kit';
 import type { AuthConfig, AuthSession, JwtConfig } from '../types.js';
 import type { FullAuthUser, RefreshTokenRepository } from './adapters/types.js';
 import { createSessionToken, verifySessionToken } from './auth.js';
+import { parseDurationSeconds } from './duration.js';
 import {
   clearRefreshCookie,
   issueRefreshToken,
-  parseDurationSeconds,
   resolveJwtConfig,
   type SessionMeta,
   setRefreshCookie

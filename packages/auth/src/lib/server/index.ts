@@ -64,6 +64,8 @@ export { validateCsrf } from './csrf.js';
 export type { AuthDeps } from './deps.js';
 // Deps
 export { createAuthDeps } from './deps.js';
+// Refresh-token rotation (opt-in via `config.refreshToken`)
+export { parseDurationSeconds } from './duration.js';
 // Per-mail builder hook types + the rendered-mail shape (default builders +
 // consumer hooks return this). See the `*Email` options on the handlers below.
 export type {
@@ -178,11 +180,9 @@ export type { RateLimiter, RateLimitResult, RateLimitStore } from './rate-limit.
 // Rate limiting
 export { checkRateLimit, createRateLimiter } from './rate-limit.js';
 export type { RotateOutcome, SessionMeta } from './refresh-token.js';
-// Refresh-token rotation (opt-in via `config.refreshToken`)
 export {
   clearRefreshCookie,
   issueRefreshToken,
-  parseDurationSeconds,
   readRefreshCookie,
   refreshCookieName,
   resolveJwtConfig,
