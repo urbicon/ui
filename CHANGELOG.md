@@ -4,6 +4,15 @@ All notable changes to this project will be documented in this file.
 This changelog is automatically generated from [Conventional Commits](https://www.conventionalcommits.org).
 
 
+## [6.13.0] - 2026-07-02
+
+### Bug Fixes
+- **auth**: Derive web push cek/nonce via plain rfc 8188 info strings
+- **auth**: Upsert push subscriptions by endpoint
+
+### Features
+- **auth**: Ship passkey list/delete and notification crud handler factories
+
 ## [6.12.0] - 2026-07-02
 
 ### Bug Fixes
