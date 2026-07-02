@@ -204,6 +204,53 @@ describe('JourneyTimeline (SSR)', () => {
     expect(body).not.toContain('data-journey-detail');
   });
 
+  describe('rich rows (marker / trailing / attention)', () => {
+    const glyph = createRawSnippet<[JourneyNode]>((item) => ({
+      render: () => `<b>MK:${item().id}</b>`
+    }));
+    const badge = createRawSnippet<[JourneyNode]>((item) => ({
+      render: () => `<em>TR:${item().id}</em>`
+    }));
+
+    it('renders marker snippet content inside every (still decorative) dot', () => {
+      const { body } = render(JourneyTimeline, {
+        props: { items: stages, node: detail, marker: glyph }
+      });
+      expect(count(body, 'MK:')).toBe(stages.length);
+      // Glyphs live inside the aria-hidden marker span, never in the button.
+      for (const chunk of body.split('<button').slice(1)) {
+        expect(chunk.split('</button>')[0]).not.toContain('MK:');
+      }
+    });
+
+    it('renders trailing content for every row, outside the trigger button', () => {
+      const { body } = render(JourneyTimeline, {
+        props: { items: stages, node: detail, trailing: badge }
+      });
+      // Every row gets its trailing area — including pure waypoints.
+      expect(count(body, 'TR:')).toBe(stages.length);
+      expect(body).toContain('TR:wait');
+      expect(count(body, 'data-journey-trailing')).toBe(stages.length);
+      // Never nested inside the interactive trigger (valid HTML for buttons
+      // and links in trailing content).
+      for (const chunk of body.split('<button').slice(1)) {
+        expect(chunk.split('</button>')[0]).not.toContain('TR:');
+      }
+    });
+
+    it('announces the attention status through the sr-only label', () => {
+      const { body } = render(JourneyTimeline, {
+        props: {
+          items: [
+            { id: 'adv', title: 'Advance payments', status: 'attention' } satisfies JourneyNode
+          ],
+          node: detail
+        }
+      });
+      expect(body).toContain('Needs attention');
+    });
+  });
+
   it('does not advertise expandability when no node snippet is supplied', () => {
     const { body } = render(JourneyTimeline, { props: { items: stages } });
     expect(body).not.toContain('aria-expanded');

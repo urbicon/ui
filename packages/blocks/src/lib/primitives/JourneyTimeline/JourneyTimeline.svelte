@@ -20,6 +20,8 @@
     onFocusChange,
     node,
     meta,
+    marker,
+    trailing,
     class: className = '',
     unstyled: unstyledProp = false,
     slotClasses: slotClassesProp = {},
@@ -310,6 +312,25 @@
   <span class="sr-only">{statusLabel(item.status)}</span>
 {/snippet}
 
+{#snippet markerDot(item: JourneyNode, styles: Styles | null)}
+  <!-- Decorative either way: the status is announced via the sr-only label,
+       so custom glyph content never needs to be readable. -->
+  <span class={sc(styles, 'marker')} data-journey-marker="" aria-hidden="true">
+    {#if marker}{@render marker(item)}{/if}
+  </span>
+{/snippet}
+
+{#snippet headerRow(item: JourneyNode, index: number, focused: boolean, styles: Styles | null)}
+  <div class={sc(styles, 'header')}>
+    {@render trigger(item, index, focused, styles)}
+    {#if trailing}
+      <div class={sc(styles, 'trailing')} data-journey-trailing="">
+        {@render trailing(item)}
+      </div>
+    {/if}
+  </div>
+{/snippet}
+
 {#snippet trigger(item: JourneyNode, index: number, focused: boolean, styles: Styles | null)}
   {@const interactive = item.focusable !== false}
   {#if interactive}
@@ -373,11 +394,11 @@
               {/if}
             </div>
           {/if}
-          <!-- DOM order trigger → spine (visual order flipped via order-*):
+          <!-- DOM order header → spine (visual order flipped via order-*):
                a segment label is announced after the node it departs from. -->
-          {@render trigger(item, index, focused, styles)}
+          {@render headerRow(item, index, focused, styles)}
           <div class={sc(styles, 'markerColumn')}>
-            <span class={sc(styles, 'marker')} data-journey-marker="" aria-hidden="true"></span>
+            {@render markerDot(item, styles)}
             {#if !last}
               <span data-journey-connector="" class={sc(styles, 'connector')} aria-hidden="true"
               ></span>
@@ -404,7 +425,7 @@
             </div>
           {/if}
           <div class={sc(styles, 'markerColumn')}>
-            <span class={sc(styles, 'marker')} data-journey-marker="" aria-hidden="true"></span>
+            {@render markerDot(item, styles)}
             {#if !last}
               <span data-journey-connector="" class={sc(styles, 'connector')} aria-hidden="true"
               ></span>
@@ -412,7 +433,7 @@
           </div>
           <div class={sc(styles, 'content', last && 'pb-0')}>
             <div class={sc(styles, 'card')}>
-              {@render trigger(item, index, focused, styles)}
+              {@render headerRow(item, index, focused, styles)}
               {#if detailMode === 'inline' && node && item.focusable !== false}
                 <div
                   id={detailDomId(index)}

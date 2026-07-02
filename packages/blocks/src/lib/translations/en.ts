@@ -135,6 +135,7 @@ export default {
       complete: 'Completed',
       active: 'In progress',
       pending: 'Pending',
+      attention: 'Needs attention',
       blocked: 'Blocked',
       skipped: 'Skipped'
     }

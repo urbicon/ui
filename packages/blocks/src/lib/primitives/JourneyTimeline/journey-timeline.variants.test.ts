@@ -15,7 +15,9 @@ describe('journeyTimelineVariants', () => {
       'connector',
       'content',
       'card',
+      'header',
       'trigger',
+      'trailing',
       'labelGroup',
       'title',
       'subtitle',
@@ -34,6 +36,27 @@ describe('journeyTimelineVariants', () => {
     expect(marker).toContain('rounded-commit');
     expect(marker).toContain('size-3');
     expect(marker).not.toMatch(/size-(7|9|11)/);
+  });
+
+  it('centres custom glyph content inside the dot', () => {
+    const marker = journeyTimelineVariants().marker();
+    expect(marker).toContain('grid');
+    expect(marker).toContain('place-items-center');
+  });
+
+  describe('header row (trigger + trailing)', () => {
+    it('right-aligns trailing content in vertical orientation', () => {
+      const styles = journeyTimelineVariants({ orientation: 'vertical' });
+      expect(styles.trailing()).toContain('ml-auto');
+      expect(styles.trigger()).toContain('flex-1');
+      expect(styles.trigger()).toContain('min-w-0');
+    });
+
+    it('appends trailing next to the pill in horizontal orientation', () => {
+      const styles = journeyTimelineVariants({ orientation: 'horizontal' });
+      expect(styles.header()).toContain('gap-x-1.5');
+      expect(styles.trailing()).not.toContain('ml-auto');
+    });
   });
 
   describe('status → semantic intent tokens', () => {
@@ -56,6 +79,13 @@ describe('journeyTimelineVariants', () => {
       expect(marker).toContain('border-border-strong');
       expect(marker).not.toContain('bg-primary');
       expect(marker).not.toContain('bg-success');
+    });
+
+    it('maps attention to a hollow warning dot (worth a look, not blocking)', () => {
+      const styles = journeyTimelineVariants({ status: 'attention' });
+      expect(styles.marker()).toContain('border-warning');
+      expect(styles.marker()).toContain('bg-surface-base');
+      expect(styles.title()).toContain('text-warning-emphasis');
     });
 
     it('maps blocked to danger, with the title as a second (non-colour-only) cue', () => {
@@ -117,11 +147,11 @@ describe('journeyTimelineVariants', () => {
   describe('horizontal spine', () => {
     const styles = journeyTimelineVariants({ orientation: 'horizontal', size: 'md' });
 
-    it('stacks each station meta → spine → labels via order utilities', () => {
+    it('stacks each station meta → spine → header via order utilities', () => {
       expect(styles.node()).toContain('flex-col');
       expect(styles.metaColumn()).toContain('order-1');
       expect(styles.markerColumn()).toContain('order-2');
-      expect(styles.trigger()).toContain('order-3');
+      expect(styles.header()).toContain('order-3');
     });
 
     it('runs the spine as a full-width row so lines meet the next station', () => {
@@ -151,9 +181,9 @@ describe('journeyTimelineVariants', () => {
       );
     });
 
-    it('left-aligns the pill text with marker and meta (-mx compensates px)', () => {
+    it('left-aligns the pill text with marker and meta (-ml compensates px)', () => {
       const trigger = styles.trigger();
-      expect(trigger).toContain('-mx-2');
+      expect(trigger).toContain('-ml-2');
       expect(trigger).toContain('px-2');
       expect(trigger).toContain('w-auto');
     });

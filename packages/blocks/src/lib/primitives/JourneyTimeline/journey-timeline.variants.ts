@@ -20,9 +20,10 @@ export const journeyTimelineVariants = tv({
     // grows down inside; horizontal: a full-width row the line grows right in.
     markerColumn: 'flex items-center',
     // The status dot. Deliberately small — the line is the protagonist, the
-    // dots are punctuation (contrast: Stepper's large glyph discs).
+    // dots are punctuation (contrast: Stepper's large glyph discs). The grid
+    // centring only matters when a `marker` snippet puts a glyph inside.
     marker: [
-      'box-border shrink-0 rounded-commit border-2',
+      'box-border grid shrink-0 place-items-center rounded-commit border-2',
       'transition-[background-color,border-color,box-shadow] duration-[var(--blocks-duration-fast)]'
     ],
     // The connecting line. Drawn with borders so `connectorStyle` can switch
@@ -40,13 +41,19 @@ export const journeyTimelineVariants = tv({
       'rounded-contain border border-transparent',
       'transition-[background-color,border-color,box-shadow] duration-[var(--blocks-duration-normal)] ease-[var(--blocks-ease-gentle)]'
     ],
+    // Header row: the trigger plus the optional trailing area. Keeping
+    // `trailing` a *sibling* of the button (never a child) keeps interactive
+    // trailing content valid HTML and off the activation target.
+    header: 'flex',
     // The interactive header — title + subtitle. A <button> for focusable
     // nodes, a plain <div> for pure waypoints (focusable === false).
     trigger: [
-      'flex w-full appearance-none flex-col items-start gap-0.5 border-0 bg-transparent p-0 text-left',
+      'flex appearance-none flex-col items-start gap-0.5 border-0 bg-transparent p-0 text-left',
       'rounded-contain',
       'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50 focus-visible:ring-offset-2 focus-visible:ring-offset-surface-base'
     ],
+    // End-of-row content (badges, help, quick actions) beside the trigger.
+    trailing: 'flex shrink-0 items-center gap-1',
     labelGroup: 'flex min-w-0 flex-col',
     title: [
       'font-medium leading-tight',
@@ -76,6 +83,9 @@ export const journeyTimelineVariants = tv({
         node: 'grid',
         markerColumn: 'flex-col',
         connector: 'my-1 w-0 min-h-3 flex-1 border-l-2',
+        header: 'items-start gap-x-3',
+        trigger: 'min-w-0 flex-1',
+        trailing: 'ml-auto',
         segment: 'flex items-center'
       },
       horizontal: {
@@ -85,13 +95,14 @@ export const journeyTimelineVariants = tv({
         // Stacked station: meta row above the spine, label pill below. Every
         // node but the last stretches so the spine distributes the stations.
         node: 'flex flex-col [&:not(:last-child)]:flex-1',
-        // Visual order is meta → spine → labels, but the DOM keeps the trigger
+        // Visual order is meta → spine → header, but the DOM keeps the header
         // before the spine so a segment label is read *after* its node.
         metaColumn: 'order-1 text-left',
         markerColumn: 'order-2 w-full flex-row',
+        header: 'order-3 items-center gap-x-1.5 self-start',
         // Shrink-to-fit pill around the labels only — the marker sits on the
         // spine above, so the whole rail reads as stations on one line.
-        trigger: 'order-3 w-auto self-start',
+        trigger: 'w-auto',
         connector: 'h-0 min-w-3 flex-1 border-t-2',
         // Segment labels sit *in* the line (line — label — line); they widen
         // the gap instead of overlapping the next station's marker.
@@ -152,6 +163,12 @@ export const journeyTimelineVariants = tv({
       pending: {
         marker: 'bg-surface-base border-border-strong',
         title: 'text-text-secondary'
+      },
+      // Worth a look, does not block — hollow like pending but on the warning
+      // token, mirroring Stepper's per-step warning state.
+      attention: {
+        marker: 'bg-surface-base border-warning',
+        title: 'text-warning-emphasis'
       },
       blocked: {
         marker: 'bg-danger border-danger',
@@ -249,7 +266,7 @@ export const journeyTimelineVariants = tv({
         node: 'gap-y-0.5',
         metaColumn: 'min-h-3.5',
         markerColumn: 'h-4 gap-1 pr-1',
-        trigger: '-mx-1.5 px-1.5 py-1'
+        trigger: '-ml-1.5 px-1.5 py-1'
       }
     },
     {
@@ -259,7 +276,7 @@ export const journeyTimelineVariants = tv({
         node: 'gap-y-1',
         metaColumn: 'min-h-4',
         markerColumn: 'h-4 gap-1.5 pr-1.5',
-        trigger: '-mx-2 px-2 py-1.5'
+        trigger: '-ml-2 px-2 py-1.5'
       }
     },
     {
@@ -269,7 +286,7 @@ export const journeyTimelineVariants = tv({
         node: 'gap-y-1',
         metaColumn: 'min-h-4.5',
         markerColumn: 'h-5 gap-2 pr-2',
-        trigger: '-mx-2.5 px-2.5 py-2'
+        trigger: '-ml-2.5 px-2.5 py-2'
       }
     },
     // Vertical + panel: two-column layout on wide viewports; on narrow ones the

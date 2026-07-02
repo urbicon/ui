@@ -135,6 +135,7 @@ export default {
       complete: 'Abgeschlossen',
       active: 'In Bearbeitung',
       pending: 'Ausstehend',
+      attention: 'Aufmerksamkeit erforderlich',
       blocked: 'Blockiert',
       skipped: 'Übersprungen'
     }

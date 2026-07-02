@@ -3,7 +3,7 @@ import type { HTMLAttributes } from 'svelte/elements';
 import type { JourneyTimelineSlots, JourneyTimelineVariants } from './journey-timeline.variants';
 
 /** Lifecycle status of a journey node — drives marker colour and title tone. */
-export type JourneyStatus = 'complete' | 'active' | 'pending' | 'blocked' | 'skipped';
+export type JourneyStatus = 'complete' | 'active' | 'pending' | 'attention' | 'blocked' | 'skipped';
 
 /** A single node (waypoint) on a {@link JourneyTimelineProps | JourneyTimeline}. */
 export interface JourneyNode {
@@ -14,8 +14,9 @@ export interface JourneyNode {
   /**
    * Lifecycle status. Maps to a semantic dot marker + title tone:
    * `complete` (success), `active` (primary, ringed), `pending` (hollow),
-   * `blocked` (danger), `skipped` (muted). The status is also announced through
-   * a visually-hidden label.
+   * `attention` (warning — worth a look, does not block), `blocked` (danger),
+   * `skipped` (muted). The status is also announced through a visually-hidden
+   * label.
    */
   status: JourneyStatus;
   /** Short context line shown below the title. */
@@ -54,13 +55,17 @@ export interface JourneyNode {
  * shows rich detail (`node` snippet); the rest stay quiet, compact context
  * rows. The chronicle axis is first-class: per-node `meta` (time/date/actor)
  * renders on a meta rail, connectors carry meaning (`solid | dashed | dotted`)
- * and `segmentLabel` annotates the stretch between nodes. Detail placement is
- * configurable: `detail="inline"` expands in place (vertical default);
- * `detail="panel"` renders a stable readout beside (wide) or docked below
- * (narrow) the rail — horizontal always uses the panel. Use `Stepper` for a
- * prospective wizard/progress indicator and `Tab` for switching between peer
- * views; JourneyTimeline is read-only observation of a sequence, not process
- * control or navigation.
+ * and `segmentLabel` annotates the stretch between nodes. Rows extend without
+ * forking the layout: a `marker` snippet puts glyphs inside the status dots, a
+ * `trailing` snippet adds badges/help/actions beside each header (outside the
+ * button — safe for interactive elements), and the `attention` status flags
+ * optional-but-noteworthy rows. Detail placement is configurable:
+ * `detail="inline"` expands in place (vertical default); `detail="panel"`
+ * renders a stable readout beside (wide) or docked below (narrow) the rail —
+ * horizontal always uses the panel. Use `Stepper` for a prospective
+ * wizard/progress indicator and `Tab` for switching between peer views;
+ * JourneyTimeline is read-only observation of a sequence, not process control
+ * or navigation.
  *
  * @tag navigation
  * @tag display
@@ -132,14 +137,30 @@ export interface JourneyTimelineProps
    * the plain `item.meta` text (e.g. planned + actual time with a Badge).
    */
   meta?: Snippet<[JourneyNode]>;
+  /**
+   * Custom content *inside* each status dot — a glyph, count or icon. The dot
+   * keeps its status colour, shape and size contract (scale it via
+   * `slotClasses.marker`, e.g. `size-5`). Markers stay decorative
+   * (`aria-hidden`); the status is still announced through the hidden label.
+   */
+  marker?: Snippet<[JourneyNode]>;
+  /**
+   * End-of-row content beside each node's header — status badges, a help
+   * affordance, quick actions. Renders *outside* the trigger button (a sibling
+   * in the header row), so interactive elements are valid HTML and activating
+   * them never moves the focused node. Right-aligned in vertical orientation,
+   * appended to the label pill in horizontal.
+   */
+  trailing?: Snippet<[JourneyNode]>;
   /** Extra classes merged onto the root element. */
   class?: string;
   /** Remove all default tv() classes. */
   unstyled?: boolean;
   /**
    * Per-slot class overrides. Slots: base | rail | node | metaColumn | meta |
-   * markerColumn | marker | connector | content | card | trigger | labelGroup |
-   * title | subtitle | segment | detail | detailInner | detailContent | panel
+   * markerColumn | marker | connector | content | card | header | trigger |
+   * trailing | labelGroup | title | subtitle | segment | detail | detailInner |
+   * detailContent | panel
    */
   slotClasses?: Partial<Record<JourneyTimelineSlots, string>>;
   /**
