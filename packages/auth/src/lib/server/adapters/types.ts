@@ -236,6 +236,22 @@ export interface NotificationRepository {
 
 export interface PushSubscriptionRepository {
   findByUser(userId: string): Promise<PushSubscriptionData[]>;
+  /**
+   * Create the subscription — or, when a row with the same `endpoint` already
+   * exists, update that row in place (upsert-by-endpoint). The endpoint URL is
+   * the natural key of a browser push subscription: re-enabling notifications
+   * re-sends the browser's *existing* subscription, so a duplicate POST is the
+   * normal case and MUST NOT fail on the unique endpoint. On conflict the
+   * row's `userId` MUST be reassigned to the caller — after a user switch in
+   * the same browser profile the device belongs to the newly subscribed
+   * account, and the previous owner's notifications must stop pushing to it.
+   *
+   * Flip side of the reassign: possession of an endpoint URL plus *any*
+   * authenticated account is enough to take the row over (and thereby mute
+   * the previous owner's push channel). Endpoint URLs are capability secrets
+   * — treat them like tokens and keep them out of logs. See docs/AUTH.md →
+   * "Notifications & Web Push".
+   */
   create(userId: string, subscription: PushSubscriptionData): Promise<void>;
   /**
    * Delete a subscription scoped to a specific user. Scoping by user-id

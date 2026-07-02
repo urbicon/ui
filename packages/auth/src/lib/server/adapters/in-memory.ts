@@ -451,6 +451,8 @@ export function createInMemoryPushSubscriptionRepository(): PushSubscriptionRepo
     },
 
     async create(userId, subscription: PushSubscriptionData) {
+      // Upsert-by-endpoint per the repository contract: a re-subscribe updates
+      // the row in place, and the latest subscriber owns the endpoint.
       byEndpoint.set(subscription.endpoint, {
         userId,
         endpoint: subscription.endpoint,

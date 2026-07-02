@@ -188,11 +188,16 @@ function makeTable(opts: { defaults?: () => Record<string, any>; uniques?: strin
       return args?.where ? rows.filter((r) => matchWhere(r, args.where)).length : rows.length;
     },
     async upsert(args) {
-      // Models the only upsert the adapter issues: a Prisma compound-unique
-      // where `{ userId_typeKey: { userId, typeKey } }`. find-or-create runs in
-      // one synchronous body, so it is atomic the same way a real upsert is.
-      const compound = Object.values(args.where)[0] as Record<string, any>;
-      const existing = rows.find((r) => Object.entries(compound).every(([k, v]) => eq(r[k], v)));
+      // Models the two upsert where-shapes the adapters issue: a Prisma
+      // compound unique `{ userId_typeKey: { userId, typeKey } }` (object
+      // value) and a plain unique column `{ endpoint }` (scalar value).
+      // find-or-create runs in one synchronous body, so it is atomic the same
+      // way a real upsert is.
+      const [key, val] = Object.entries(args.where)[0] as [string, any];
+      const isCompound = val !== null && typeof val === 'object' && !(val instanceof Date);
+      const existing = isCompound
+        ? rows.find((r) => Object.entries(val).every(([k, v]) => eq(r[k], v)))
+        : rows.find((r) => eq(r[key], val));
       if (existing) {
         applyData(existing, args.update);
         return existing;

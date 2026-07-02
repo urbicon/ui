@@ -59,7 +59,7 @@ export interface PrismaLike {
   };
   pushSubscription?: {
     findMany: (args?: unknown) => Promise<PrismaRow>;
-    create: (args: unknown) => Promise<PrismaRow>;
+    upsert: (args: unknown) => Promise<PrismaRow>;
     deleteMany: (args: unknown) => Promise<PrismaRow>;
   };
   notificationPreference?: {
@@ -503,8 +503,14 @@ export function createPrismaPushSubscriptionRepository(
     },
 
     async create(userId, subscription: PushSubscriptionData) {
-      await ps.create({
-        data: { userId, endpoint: subscription.endpoint, keys: subscription.keys }
+      // Upsert-by-endpoint per the repository contract: the browser re-sends
+      // its existing subscription on every re-enable (a plain `create` would
+      // 500 on the unique endpoint), and after a user switch the device
+      // follows the newly subscribed account (userId reassign).
+      await ps.upsert({
+        where: { endpoint: subscription.endpoint },
+        create: { userId, endpoint: subscription.endpoint, keys: subscription.keys },
+        update: { userId, keys: subscription.keys }
       });
     },
 

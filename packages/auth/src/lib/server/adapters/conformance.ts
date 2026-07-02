@@ -634,6 +634,30 @@ export const conformanceChecks: readonly ConformanceCheck[] = [
     }
   ),
 
+  // -- Notification: list filters ------------------------------------------
+  check('notification.findByUser honors unreadOnly and limit', ['notification'], async (repos) => {
+    const repo = need(repos.notification, 'notification');
+    const a = await repo.create({ userId: 'owner', typeKey: 'security', title: 'first' });
+    const b = await repo.create({ userId: 'owner', typeKey: 'security', title: 'second' });
+    const c = await repo.create({ userId: 'owner', typeKey: 'security', title: 'third' });
+    await repo.markAsRead(b.id, 'owner');
+
+    // The client store's `unreadOnly` toggle rides on this translation
+    // (`readAt: null` in SQL adapters) — a wrong filter shows read rows in
+    // an "unread" view. Order is deliberately not asserted: it is not part
+    // of the documented contract.
+    const unread = await repo.findByUser('owner', { unreadOnly: true });
+    expect(unread.map((n) => n.id).sort(), 'unreadOnly returns exactly the unread rows').toEqual(
+      [a.id, c.id].sort()
+    );
+
+    const limited = await repo.findByUser('owner', { limit: 2 });
+    expect(limited, 'limit caps the result count').toHaveLength(2);
+
+    const all = await repo.findByUser('owner');
+    expect(all, 'no options returns everything').toHaveLength(3);
+  }),
+
   // -- Push subscription: ownership scope ---------------------------------
   check('pushSubscription.delete is scoped to the owner', ['pushSubscription'], async (repos) => {
     const repo = need(repos.pushSubscription, 'pushSubscription');
@@ -647,6 +671,35 @@ export const conformanceChecks: readonly ConformanceCheck[] = [
     await repo.delete('owner', endpoint);
     expect(await repo.findByUser('owner'), 'owner can delete').toHaveLength(0);
   }),
+
+  // -- Push subscription: upsert-by-endpoint -------------------------------
+  check(
+    'pushSubscription.create upserts by endpoint (re-subscribe + owner reassign)',
+    ['pushSubscription'],
+    async (repos) => {
+      const repo = need(repos.pushSubscription, 'pushSubscription');
+      const endpoint = 'https://push.test/endpoint-upsert';
+
+      // The browser re-sends its *existing* subscription on every re-enable,
+      // so the duplicate POST is the normal case — it must update in place,
+      // not throw on the unique endpoint (works-in-dev/500-in-prod class).
+      await repo.create('owner', { endpoint, keys: { p256dh: 'p1', auth: 'a1' } });
+      await repo.create('owner', { endpoint, keys: { p256dh: 'p2', auth: 'a2' } });
+
+      const owned = await repo.findByUser('owner');
+      expect(owned, 're-subscribe keeps a single row').toHaveLength(1);
+      expect(owned[0].keys.p256dh, 'keys are updated in place').toBe('p2');
+
+      // After a user switch in the same browser profile, the endpoint follows
+      // the newly subscribed account — the previous owner's notifications
+      // must stop pushing to this device.
+      await repo.create('other', { endpoint, keys: { p256dh: 'p3', auth: 'a3' } });
+      expect(await repo.findByUser('owner'), 'previous owner released').toHaveLength(0);
+      const reassigned = await repo.findByUser('other');
+      expect(reassigned, 'latest subscriber owns the row').toHaveLength(1);
+      expect(reassigned[0].keys.p256dh).toBe('p3');
+    }
+  ),
 
   // -- Notification preference: per-(user,type) upsert --------------------
   check(
