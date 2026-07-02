@@ -13,6 +13,7 @@
   import { useAuthLocale } from '../../../i18n/index.js';
   import { csrfFetch } from '../../csrf.js';
   import type { InvitationManagerProps } from './index.js';
+  import { errorTextFromBody } from '../../utils/http.js';
 
   interface InvitationItem {
     id: string;
@@ -89,7 +90,7 @@
       );
       if (!res.ok) {
         const data = await res.json();
-        error = data.error ?? t.common?.error ?? 'Failed to send invitation';
+        error = errorTextFromBody(data, t);
         return;
       }
       email = '';
@@ -107,7 +108,7 @@
       const res = await csrfFetch(`${basePath}/${id}`, { method: 'DELETE' }, csrf, fetcher);
       if (!res.ok) {
         const data = await res.json().catch(() => ({}));
-        error = data.error ?? t.common?.error ?? 'Failed to delete invitation.';
+        error = errorTextFromBody(data, t);
         return;
       }
       // Drop it locally only once the server confirms — an unchecked optimistic

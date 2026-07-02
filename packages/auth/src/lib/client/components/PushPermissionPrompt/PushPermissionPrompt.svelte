@@ -64,14 +64,20 @@
         // caller into thinking push delivery is set up.
         onSubscribed?.(result.subscription);
         visible = false;
-      } else if (res.status === 409) {
-        // Deterministic server refusals (endpoint owned by another account /
-        // device limit reached) — "please try again" would loop forever.
-        error = t.notifications.push.errorConflict;
-      } else if (res.status === 429) {
-        error = t.notifications.push.errorRateLimited;
       } else {
-        error = t.notifications.push.error;
+        // Deterministic refusals get precise messages via the machine code
+        // ("please try again" would loop forever on a 409); everything else
+        // keeps the generic retryable text.
+        const body = (await res.json().catch(() => ({}))) as { code?: string };
+        if (body.code === 'push_endpoint_conflict') {
+          error = t.notifications.push.errorConflict;
+        } else if (body.code === 'push_subscription_limit') {
+          error = t.notifications.push.errorLimit;
+        } else if (res.status === 429) {
+          error = t.notifications.push.errorRateLimited;
+        } else {
+          error = t.notifications.push.error;
+        }
       }
     } catch (err) {
       // Network error etc. — keep the prompt open WITH feedback so the user

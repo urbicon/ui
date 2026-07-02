@@ -6,6 +6,7 @@
   import { errorMessageFromCode } from '../../utils/error-message.js';
   import type { LoginPageProps } from './index.js';
   import { base64UrlToBuffer, bufferToBase64Url } from '../../utils/webauthn.js';
+  import { errorTextFromBody } from '../../utils/http.js';
 
   let {
     t: tProp,
@@ -197,8 +198,8 @@
       );
 
       if (!verifyRes.ok) {
-        const data = await verifyRes.json();
-        error = data.error ?? 'Passkey login failed';
+        const data = (await verifyRes.json().catch(() => ({}))) as Record<string, unknown>;
+        error = errorTextFromBody(data, t);
         return;
       }
 

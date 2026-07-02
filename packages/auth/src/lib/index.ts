@@ -27,6 +27,7 @@ export {
   createAuthStore,
   createNotificationStore,
   csrfFetch,
+  errorMessageFromCode,
   ForgotPasswordPage,
   InvitationManager,
   LoginPage,

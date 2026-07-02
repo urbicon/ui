@@ -29,6 +29,7 @@ const CODE_TO_KEY: Record<string, keyof AuthLocale['auth']['errors']> = {
   invalid_refresh_token: 'invalidRefreshToken',
   feature_unavailable: 'featureUnavailable',
   validation_error: 'validationError',
+  rate_limited: 'rateLimited',
   server_error: 'serverError'
 };
 

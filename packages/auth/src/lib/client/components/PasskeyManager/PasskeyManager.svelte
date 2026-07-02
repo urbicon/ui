@@ -5,6 +5,7 @@
   import { csrfFetch } from '../../csrf.js';
   import type { PasskeyManagerProps } from './index.js';
   import { base64UrlToBuffer, bufferToBase64Url } from '../../utils/webauthn.js';
+  import { errorTextFromBody } from '../../utils/http.js';
 
   let {
     t: tProp,
@@ -71,7 +72,7 @@
       );
       if (!optRes.ok) {
         const data = await optRes.json().catch(() => ({}));
-        error = data.error ?? 'Registration failed';
+        error = errorTextFromBody(data, t);
         return;
       }
       const { options } = await optRes.json();
@@ -130,7 +131,7 @@
 
       if (!verifyRes.ok) {
         const data = await verifyRes.json();
-        error = data.error ?? 'Registration failed';
+        error = errorTextFromBody(data, t);
         return;
       }
 
@@ -157,7 +158,7 @@
       );
       if (!res.ok) {
         const data = await res.json().catch(() => ({}));
-        error = data.error ?? t.common?.error ?? 'Failed to delete passkey.';
+        error = errorTextFromBody(data, t);
         return;
       }
       // Drop it locally only once the server confirms — an unchecked optimistic

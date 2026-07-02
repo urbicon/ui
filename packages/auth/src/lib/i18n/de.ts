@@ -27,6 +27,7 @@ export const de = {
       invalidRefreshToken: 'Deine Sitzung ist abgelaufen. Bitte melde dich erneut an.',
       featureUnavailable: 'Diese Funktion ist nicht verfügbar.',
       validationError: 'Bitte überprüfe deine Eingabe und versuche es erneut.',
+      rateLimited: 'Zu viele Anfragen. Bitte versuche es später erneut.',
       serverError: 'Etwas ist schiefgelaufen. Bitte versuche es erneut.'
     },
     login: {
@@ -150,8 +151,8 @@ export const de = {
       enable: 'Aktivieren',
       dismiss: 'Nicht jetzt',
       error: 'Push-Benachrichtigungen konnten nicht aktiviert werden. Bitte versuche es erneut.',
-      errorConflict:
-        'Push-Benachrichtigungen konnten nicht aktiviert werden – dieses Gerät ist einem anderen Konto zugeordnet oder das Gerätelimit ist erreicht.',
+      errorConflict: 'Dieses Gerät ist bereits einem anderen Konto zugeordnet.',
+      errorLimit: 'Gerätelimit erreicht – entferne zuerst ein Gerät.',
       errorRateLimited: 'Zu viele Versuche. Bitte versuche es später erneut.'
     }
   },

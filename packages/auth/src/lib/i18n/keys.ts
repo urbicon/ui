@@ -29,6 +29,8 @@ export interface AuthLocale {
       invalidRefreshToken: string;
       featureUnavailable: string;
       validationError: string;
+      /** 429 — request/connection limits. */
+      rateLimited: string;
       serverError: string;
     };
     login: {
@@ -158,8 +160,10 @@ export interface AuthLocale {
       dismiss: string;
       /** Shown (aria-live) when subscribing fails — the prompt stays open for a retry. */
       error: string;
-      /** Deterministic 409 refusal (endpoint owned by another account / device limit) — retrying cannot succeed. */
+      /** 409 push_endpoint_conflict — this device is registered to another account; retrying cannot succeed. */
       errorConflict: string;
+      /** 409 push_subscription_limit — per-user device cap reached; remove a device first. */
+      errorLimit: string;
       /** 429 — too many attempts right now. */
       errorRateLimited: string;
     };

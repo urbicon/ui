@@ -25,6 +25,7 @@ export const en = {
       invalidRefreshToken: 'Your session has expired. Please sign in again.',
       featureUnavailable: 'This feature is not available.',
       validationError: 'Please check your input and try again.',
+      rateLimited: 'Too many requests. Please try again later.',
       serverError: 'Something went wrong. Please try again.'
     },
     login: {
@@ -147,8 +148,8 @@ export const en = {
       enable: 'Enable',
       dismiss: 'Not now',
       error: 'Enabling push notifications failed. Please try again.',
-      errorConflict:
-        'Push notifications could not be enabled — this device is registered to another account or the device limit is reached.',
+      errorConflict: 'This device is already registered to another account.',
+      errorLimit: 'Device limit reached — remove a device before adding this one.',
       errorRateLimited: 'Too many attempts. Please try again later.'
     }
   },
