@@ -19,24 +19,51 @@ interface DecodeResult {
   offset: number;
 }
 
+// Hard cap on nesting. WebAuthn structures are at most a handful of levels
+// deep; a hostile 1-byte-per-level payload (`0x81 0x81 …`) would otherwise
+// recurse thousands of frames and surface as a RangeError (stack overflow)
+// instead of a clean parse error.
+const MAX_DEPTH = 32;
+
 export function decodeCbor(data: Uint8Array): CborValue {
-  const result = decodeItem(data, 0);
+  const result = decodeItem(data, 0, 0);
+  // A WebAuthn attestation object is exactly one CBOR item. Trailing bytes
+  // are a malformed or hostile payload (a smuggled appendix), not padding —
+  // robust parsers require full consumption (mirrors ecdsa-der.ts).
+  if (result.offset !== data.length) {
+    throw new Error(
+      `CBOR: ${data.length - result.offset} trailing byte(s) after the top-level item`
+    );
+  }
   return result.value;
+}
+
+/**
+ * Decode the FIRST CBOR item and report how many bytes it consumed,
+ * tolerating trailing data. For values embedded in a larger binary structure
+ * — the COSE key inside authenticator data is followed by extension data when
+ * the ED flag is set — and for re-reading stored keys that may carry such an
+ * appendix from before the exact-slicing fix (read tolerant, write strict).
+ */
+export function decodeCborFirst(data: Uint8Array): { value: CborValue; bytesConsumed: number } {
+  const result = decodeItem(data, 0, 0);
+  return { value: result.value, bytesConsumed: result.offset };
 }
 
 export function decodeCborMultiple(data: Uint8Array): CborValue[] {
   const results: CborValue[] = [];
   let offset = 0;
   while (offset < data.length) {
-    const result = decodeItem(data, offset);
+    const result = decodeItem(data, offset, 0);
     results.push(result.value);
     offset = result.offset;
   }
   return results;
 }
 
-function decodeItem(data: Uint8Array, offset: number): DecodeResult {
+function decodeItem(data: Uint8Array, offset: number, depth: number): DecodeResult {
   if (offset >= data.length) throw new Error('CBOR: unexpected end of data');
+  if (depth > MAX_DEPTH) throw new Error(`CBOR: nesting exceeds ${MAX_DEPTH} levels`);
 
   const initial = data[offset];
   const majorType = initial >> 5;
@@ -52,9 +79,9 @@ function decodeItem(data: Uint8Array, offset: number): DecodeResult {
     case 3: // Text string
       return decodeTextString(data, offset);
     case 4: // Array
-      return decodeArray(data, offset);
+      return decodeArray(data, offset, depth);
     case 5: // Map
-      return decodeMap(data, offset);
+      return decodeMap(data, offset, depth);
     case 7: // Simple/float
       return decodeSimpleOrFloat(data, offset, additionalInfo);
     default:
@@ -143,14 +170,14 @@ function decodeTextString(data: Uint8Array, offset: number): DecodeResult {
   return { value: text, offset: newOffset + len };
 }
 
-function decodeArray(data: Uint8Array, offset: number): DecodeResult {
+function decodeArray(data: Uint8Array, offset: number, depth: number): DecodeResult {
   const { value: count, newOffset } = readArgument(data, offset);
   const len = toLength(count);
   const arr: CborValue[] = [];
   let currentOffset = newOffset;
 
   for (let i = 0; i < len; i++) {
-    const item = decodeItem(data, currentOffset);
+    const item = decodeItem(data, currentOffset, depth + 1);
     arr.push(item.value);
     currentOffset = item.offset;
   }
@@ -158,15 +185,23 @@ function decodeArray(data: Uint8Array, offset: number): DecodeResult {
   return { value: arr, offset: currentOffset };
 }
 
-function decodeMap(data: Uint8Array, offset: number): DecodeResult {
+function decodeMap(data: Uint8Array, offset: number, depth: number): DecodeResult {
   const { value: count, newOffset } = readArgument(data, offset);
   const len = toLength(count);
   const map = new Map<CborValue, CborValue>();
   let currentOffset = newOffset;
 
   for (let i = 0; i < len; i++) {
-    const key = decodeItem(data, currentOffset);
-    const val = decodeItem(data, key.offset);
+    const key = decodeItem(data, currentOffset, depth + 1);
+    const val = decodeItem(data, key.offset, depth + 1);
+    // CTAP2 canonical CBOR forbids duplicate map keys; a duplicate would
+    // silently shadow the first value (last-writer-wins) and make the parse
+    // ambiguous. Primitive keys (COSE integer labels, WebAuthn text keys)
+    // compare by value here; composite keys compare by reference and thus
+    // cannot collide — acceptable, WebAuthn maps only key on primitives.
+    if (map.has(key.value)) {
+      throw new Error('CBOR: duplicate map key');
+    }
     map.set(key.value, val.value);
     currentOffset = val.offset;
   }

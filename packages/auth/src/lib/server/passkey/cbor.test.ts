@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { type CborValue, decodeCbor } from './cbor.js';
+import { type CborValue, decodeCbor, decodeCborFirst } from './cbor.js';
 
 // Helper to create CBOR bytes
 function hex(s: string): Uint8Array {
@@ -129,5 +129,53 @@ describe('CBOR decoder', () => {
     expect(result.get(-1)).toBe(1); // crv
     expect((result.get(-2) as Uint8Array).length).toBe(32);
     expect((result.get(-3) as Uint8Array).length).toBe(32);
+  });
+});
+
+describe('hostile-input hardening', () => {
+  const hex = (s: string) => new Uint8Array(s.match(/../g)!.map((b) => Number.parseInt(b, 16)));
+
+  it('rejects trailing bytes after the top-level item', () => {
+    // 0x01 = uint 1, followed by one smuggled byte.
+    expect(() => decodeCbor(hex('0100'))).toThrow(/trailing byte/);
+  });
+
+  it('decodeCborFirst tolerates trailing bytes and reports consumption', () => {
+    const { value, bytesConsumed } = decodeCborFirst(hex('0100'));
+    expect(value).toBe(1);
+    expect(bytesConsumed).toBe(1);
+  });
+
+  it('rejects nesting beyond the depth cap instead of overflowing the stack', () => {
+    // 0x81 = array(1), repeated: [[[[…]]]] — 1 byte per level. Without the cap
+    // this recurses ~4000 frames and dies as a RangeError.
+    const deep = new Uint8Array(4000).fill(0x81);
+    deep[3999] = 0x00;
+    expect(() => decodeCbor(deep)).toThrow(/nesting exceeds/);
+  });
+
+  it('accepts reasonable nesting below the cap', () => {
+    // 10 levels: array(1) × 10 wrapping uint 0.
+    const ten = new Uint8Array(11).fill(0x81);
+    ten[10] = 0x00;
+    expect(decodeCbor(ten)).toEqual([[[[[[[[[[0]]]]]]]]]]);
+  });
+
+  it('rejects duplicate map keys instead of last-writer-wins', () => {
+    // a2 = map(2), entries: (1 → 2), (1 → 3) — same key twice.
+    expect(() => decodeCbor(hex('a20102 0103'.replace(/ /g, '')))).toThrow(/duplicate map key/);
+  });
+});
+
+describe('nesting depth boundary', () => {
+  const nested = (levels: number): Uint8Array => {
+    const bytes = new Uint8Array(levels + 1).fill(0x81);
+    bytes[levels] = 0x00;
+    return bytes;
+  };
+
+  it('accepts exactly 32 levels and rejects 33 (the documented cap)', () => {
+    expect(() => decodeCbor(nested(32))).not.toThrow();
+    expect(() => decodeCbor(nested(33))).toThrow(/nesting exceeds/);
   });
 });

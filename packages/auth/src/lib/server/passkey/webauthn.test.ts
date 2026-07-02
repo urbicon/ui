@@ -623,3 +623,258 @@ describe('verifyAssertion — rejects an unimportable stored key with a clean 40
     }
   });
 });
+
+describe('hostile-input hardening (R9)', () => {
+  const b64u = (bytes: Uint8Array) =>
+    btoa(String.fromCharCode(...bytes))
+      .replace(/\+/g, '-')
+      .replace(/\//g, '_')
+      .replace(/=+$/, '');
+
+  const validClientData = () =>
+    btoa(
+      JSON.stringify({
+        type: 'webauthn.create',
+        challenge: 'test-challenge',
+        origin: 'http://localhost:3000'
+      })
+    )
+      .replace(/\+/g, '-')
+      .replace(/\//g, '_')
+      .replace(/=+$/, '');
+
+  it('rejects a non-JSON clientDataJSON as a WebAuthnError, not a SyntaxError', async () => {
+    const store = createInMemoryChallengeStore();
+    await storeChallenge(store, 'user-mal', 'test-challenge');
+
+    try {
+      await verifyRegistration(isolatedConfig(store), 'user-mal', {
+        id: 'test',
+        rawId: 'test',
+        type: 'public-key',
+        response: {
+          clientDataJSON: b64u(new TextEncoder().encode('not json {{{')),
+          attestationObject: b64u(new Uint8Array([0xa0]))
+        }
+      });
+      expect.fail('Should have thrown');
+    } catch (err) {
+      // The raw SyntaxError previously escaped the WebAuthnError-only catch in
+      // the handlers and surfaced as a 500.
+      expect(err).toBeInstanceOf(WebAuthnError);
+      expect((err as WebAuthnError).message).toContain('Malformed clientDataJSON');
+    }
+  });
+
+  it('rejects malformed attestation CBOR as a WebAuthnError', async () => {
+    const store = createInMemoryChallengeStore();
+    await storeChallenge(store, 'user-cbor', 'test-challenge');
+
+    try {
+      await verifyRegistration(isolatedConfig(store), 'user-cbor', {
+        id: 'test',
+        rawId: 'test',
+        type: 'public-key',
+        // 0xff = unsupported CBOR — previously a plain Error → 500.
+        response: {
+          clientDataJSON: validClientData(),
+          attestationObject: b64u(new Uint8Array([0xff]))
+        }
+      });
+      expect.fail('Should have thrown');
+    } catch (err) {
+      expect(err).toBeInstanceOf(WebAuthnError);
+      expect((err as WebAuthnError).message).toContain('Malformed attestation object');
+    }
+  });
+
+  it('rejects an attestation object with trailing bytes', async () => {
+    const store = createInMemoryChallengeStore();
+    await storeChallenge(store, 'user-trail', 'test-challenge');
+
+    try {
+      await verifyRegistration(isolatedConfig(store), 'user-trail', {
+        id: 'test',
+        rawId: 'test',
+        type: 'public-key',
+        // 0xa0 = valid empty map, then one smuggled trailing byte.
+        response: {
+          clientDataJSON: validClientData(),
+          attestationObject: b64u(new Uint8Array([0xa0, 0x00]))
+        }
+      });
+      expect.fail('Should have thrown');
+    } catch (err) {
+      expect(err).toBeInstanceOf(WebAuthnError);
+      expect((err as WebAuthnError).message).toContain('Malformed attestation object');
+    }
+  });
+});
+
+// ---- Registration happy path + exact COSE slicing (R9) ----
+//
+// Mutation-test finding: every prior verifyRegistration test failed at a gate
+// BEFORE the attested-credential-data branch, so the exact-slicing fix (and
+// the ED-flag tolerance it exists for) was entirely unguarded — reverting
+// decodeCborFirst to strict decodeCbor would reject every credProtect-style
+// authenticator with a 400 and stay green.
+
+describe('verifyRegistration — attested credential data (exact COSE slicing)', () => {
+  const cborText = (s: string): number[] => {
+    const b = new TextEncoder().encode(s);
+    return [0x60 | b.length, ...Array.from(b)];
+  };
+  /** attestationObject {fmt:'none', attStmt:{}, authData: <bytes>}. */
+  const noneAttestation = (authData: Uint8Array): Uint8Array =>
+    new Uint8Array([
+      0xa3,
+      ...cborText('fmt'),
+      ...cborText('none'),
+      ...cborText('attStmt'),
+      0xa0,
+      ...cborText('authData'),
+      ...cborBytes(authData)
+    ]);
+
+  const b64uStr = (s: string) => btoa(s).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+
+  async function buildRegistrationAuthData(extensions?: Uint8Array) {
+    const kp = await crypto.subtle.generateKey({ name: 'ECDSA', namedCurve: 'P-256' }, true, [
+      'sign'
+    ]);
+    const jwk = await crypto.subtle.exportKey('jwk', kp.publicKey);
+    const coseKey = coseEc2Key(base64UrlDecode(jwk.x ?? ''), base64UrlDecode(jwk.y ?? ''));
+
+    const rpIdHash = new Uint8Array(
+      await crypto.subtle.digest('SHA-256', new TextEncoder().encode(config.rpId))
+    );
+    const head = new Uint8Array(5);
+    head[0] = 0x41 | (extensions ? 0x80 : 0); // UP | AT (| ED)
+    new DataView(head.buffer).setUint32(1, 7, false);
+    const aaguid = new Uint8Array(16).fill(0xab);
+    const credId = new TextEncoder().encode('reg-cred-1');
+    // Layout per WebAuthn §6.5.2: rpIdHash ‖ flags ‖ signCount ‖ aaguid(16) ‖
+    // credIdLen(2 BE) ‖ credId ‖ COSE key ‖ [extensions].
+    const authData = concatBytes(
+      rpIdHash,
+      head,
+      aaguid,
+      new Uint8Array([0, credId.length]),
+      credId,
+      coseKey,
+      extensions ?? new Uint8Array(0)
+    );
+    return { coseKey, credId, authData };
+  }
+
+  async function verify(store: ChallengeStore, attestationObject: Uint8Array) {
+    return verifyRegistration(isolatedConfig(store), 'user-reg', {
+      id: 'reg-cred-1',
+      rawId: 'reg-cred-1',
+      type: 'public-key',
+      response: {
+        clientDataJSON: b64uStr(
+          JSON.stringify({
+            type: 'webauthn.create',
+            challenge: 'reg-challenge',
+            origin: config.origin
+          })
+        ),
+        attestationObject: b64uStr(String.fromCharCode(...attestationObject)),
+        transports: ['internal']
+      }
+    });
+  }
+
+  it('extracts the credential and slices the COSE key byte-exactly past extension data (ED)', async () => {
+    const store = createInMemoryChallengeStore();
+    await storeChallenge(store, 'user-reg', 'reg-challenge');
+    // {credProtect: 2} — the classic authenticator extension following the key.
+    const ext = new Uint8Array([0xa1, ...cborText('credProtect'), 0x02]);
+    const { coseKey, credId, authData } = await buildRegistrationAuthData(ext);
+
+    const result = await verify(store, noneAttestation(authData));
+
+    expect(result.credentialId).toBe(base64UrlEncode(credId));
+    expect(result.publicKeyAlg).toBe(-7);
+    expect(result.counter).toBe(7);
+    // THE pin: the stored key is exactly the COSE key — extension bytes are
+    // not persisted inside it (and strict full-consume parsing would have
+    // rejected this registration outright).
+    expect(result.publicKey).toEqual(coseKey);
+  });
+
+  it('verifies a plain registration without extensions identically', async () => {
+    const store = createInMemoryChallengeStore();
+    await storeChallenge(store, 'user-reg', 'reg-challenge');
+    const { coseKey, authData } = await buildRegistrationAuthData();
+
+    const result = await verify(store, noneAttestation(authData));
+    expect(result.publicKey).toEqual(coseKey);
+  });
+});
+
+describe('malformed COSE key inside authenticatorData (silent-failure review)', () => {
+  it('rejects a duplicate-key COSE blob as a WebAuthnError, not a raw CBOR 500', async () => {
+    // The inner COSE decode was the one unwrapped parse left after R9 — the
+    // new duplicate-key throw would otherwise escape the handlers' WebAuthnError
+    // catch as a 500 and skip the onLoginFailed audit hook.
+    const store = createInMemoryChallengeStore();
+    await storeChallenge(store, 'user-reg', 'reg-challenge');
+
+    const rpIdHash = new Uint8Array(
+      await crypto.subtle.digest('SHA-256', new TextEncoder().encode(config.rpId))
+    );
+    const head = new Uint8Array(5);
+    head[0] = 0x41; // UP | AT
+    const credId = new TextEncoder().encode('reg-cred-1');
+    // Map(2) with the key 1 twice — rejected by the hardened decoder.
+    const dupKeyCose = new Uint8Array([0xa2, 0x01, 0x02, 0x01, 0x03]);
+    const authData = concatBytes(
+      rpIdHash,
+      head,
+      new Uint8Array(16).fill(0xab),
+      new Uint8Array([0, credId.length]),
+      credId,
+      dupKeyCose
+    );
+
+    const b64uStr = (s: string) =>
+      btoa(s).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+    const cborText = (t: string): number[] => {
+      const b = new TextEncoder().encode(t);
+      return [0x60 | b.length, ...Array.from(b)];
+    };
+    const attestation = new Uint8Array([
+      0xa3,
+      ...cborText('fmt'),
+      ...cborText('none'),
+      ...cborText('attStmt'),
+      0xa0,
+      ...cborText('authData'),
+      ...cborBytes(authData)
+    ]);
+
+    try {
+      await verifyRegistration(isolatedConfig(store), 'user-reg', {
+        id: 'reg-cred-1',
+        rawId: 'reg-cred-1',
+        type: 'public-key',
+        response: {
+          clientDataJSON: b64uStr(
+            JSON.stringify({
+              type: 'webauthn.create',
+              challenge: 'reg-challenge',
+              origin: config.origin
+            })
+          ),
+          attestationObject: b64uStr(String.fromCharCode(...attestation))
+        }
+      });
+      expect.fail('Should have thrown');
+    } catch (err) {
+      expect(err).toBeInstanceOf(WebAuthnError);
+      expect((err as WebAuthnError).message).toContain('Malformed COSE public key');
+    }
+  });
+});

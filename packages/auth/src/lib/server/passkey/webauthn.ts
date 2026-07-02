@@ -3,7 +3,7 @@
 
 import { derToRawEcdsaSignature } from '../ecdsa-der.js';
 import { base64UrlDecode, base64UrlEncode } from '../notifications/web-push-crypto.js';
-import { type CborValue, decodeCbor } from './cbor.js';
+import { type CborValue, decodeCbor, decodeCborFirst } from './cbor.js';
 
 // ---- Types ----
 
@@ -293,6 +293,22 @@ export async function generateAuthenticationOptions(
   };
 }
 
+// Parse the (attacker-supplied) clientDataJSON bytes. A malformed body must
+// reject as a WebAuthnError (→ clean 400 in the handlers), not leak the raw
+// SyntaxError into a 500 — same doctrine as the COSE/DER error paths.
+function parseClientDataJson(raw: Uint8Array): Record<string, unknown> {
+  let parsed: unknown;
+  try {
+    parsed = JSON.parse(new TextDecoder().decode(raw));
+  } catch (err) {
+    throw new WebAuthnError('Malformed clientDataJSON', { cause: err });
+  }
+  if (parsed === null || typeof parsed !== 'object' || Array.isArray(parsed)) {
+    throw new WebAuthnError('Malformed clientDataJSON: expected an object');
+  }
+  return parsed as Record<string, unknown>;
+}
+
 // ---- Registration Verification ----
 
 export async function verifyRegistration(
@@ -308,7 +324,7 @@ export async function verifyRegistration(
 
   // 2. Parse and verify clientDataJSON
   const clientDataRaw = base64UrlDecode(credential.response.clientDataJSON);
-  const clientData = JSON.parse(new TextDecoder().decode(clientDataRaw));
+  const clientData = parseClientDataJson(clientDataRaw);
 
   if (clientData.type !== 'webauthn.create') {
     throw new WebAuthnError('Invalid clientData type');
@@ -326,9 +342,21 @@ export async function verifyRegistration(
     throw new WebAuthnError('Cross-origin registration rejected');
   }
 
-  // 3. Parse attestation object (CBOR)
+  // 3. Parse attestation object (CBOR). Both parse failures and a non-map
+  // top-level are attacker-suppliable input, so they must surface as a clean
+  // WebAuthnError (→ 400), not as a raw parse error the handler rethrows as a
+  // 500 — the same doctrine the COSE/DER paths below already follow.
   const attestationRaw = base64UrlDecode(credential.response.attestationObject);
-  const attestation = decodeCbor(attestationRaw) as Map<CborValue, CborValue>;
+  let attestation: Map<CborValue, CborValue>;
+  try {
+    const decoded = decodeCbor(attestationRaw);
+    if (!(decoded instanceof Map)) {
+      throw new Error('attestation object is not a CBOR map');
+    }
+    attestation = decoded;
+  } catch (err) {
+    throw new WebAuthnError('Malformed attestation object', { cause: err });
+  }
 
   const authDataRaw = attestation.get('authData') as Uint8Array;
   if (!authDataRaw) throw new WebAuthnError('Missing authData in attestation');
@@ -396,7 +424,7 @@ export async function verifyAssertion(
 
   // 2. Parse and verify clientDataJSON
   const clientDataRaw = base64UrlDecode(credential.response.clientDataJSON);
-  const clientData = JSON.parse(new TextDecoder().decode(clientDataRaw));
+  const clientData = parseClientDataJson(clientDataRaw);
 
   if (clientData.type !== 'webauthn.get') {
     throw new WebAuthnError('Invalid clientData type');
@@ -505,10 +533,28 @@ function parseAuthenticatorData(data: Uint8Array): AuthenticatorData {
       throw new WebAuthnError('AuthData too short for declared credential ID length');
     }
     const credentialId = data.slice(55, 55 + credIdLen);
-    const publicKeyBytes = data.slice(55 + credIdLen);
 
-    // Parse COSE key to extract algorithm
-    const coseKey = decodeCbor(publicKeyBytes) as Map<CborValue, CborValue>;
+    // The COSE key is followed by extension data when the ED flag (0x80) is
+    // set, so slice EXACTLY the bytes the first CBOR item consumed — storing
+    // the tail would persist extension bytes inside the public key.
+    const remainder = data.slice(55 + credIdLen);
+    // Wrap the decode like the top-level attestation parse: the COSE bytes are
+    // attacker-supplied via authenticatorData, so a parse failure (truncated,
+    // duplicate keys, depth) must be a clean WebAuthnError (→ 400 + the
+    // onLoginFailed audit hook), never a raw CBOR error the handlers rethrow
+    // as a 500.
+    let coseValue: CborValue;
+    let bytesConsumed: number;
+    try {
+      ({ value: coseValue, bytesConsumed } = decodeCborFirst(remainder));
+    } catch (err) {
+      throw new WebAuthnError('Malformed COSE public key', { cause: err });
+    }
+    if (!(coseValue instanceof Map)) {
+      throw new WebAuthnError('Malformed COSE public key: expected a CBOR map');
+    }
+    const coseKey = coseValue as Map<CborValue, CborValue>;
+    const publicKeyBytes = remainder.slice(0, bytesConsumed);
     const alg = (coseKey.get(3) as number) ?? -7; // Default ES256
 
     attestedCredentialData = {
@@ -530,7 +576,20 @@ async function verifySignature(
   data: Uint8Array,
   signature: Uint8Array
 ): Promise<boolean> {
-  const coseMap = decodeCbor(cosePublicKey) as Map<CborValue, CborValue>;
+  // Read tolerant: keys stored before the exact-slicing fix in
+  // parseAuthenticatorData may carry trailing extension bytes, so re-reads
+  // take the first CBOR item rather than demanding full consumption. New
+  // writes are exact (write strict).
+  let coseValue: CborValue;
+  try {
+    ({ value: coseValue } = decodeCborFirst(cosePublicKey));
+  } catch (err) {
+    throw new WebAuthnError('Malformed stored COSE public key', { cause: err });
+  }
+  if (!(coseValue instanceof Map)) {
+    throw new WebAuthnError('Malformed stored COSE public key');
+  }
+  const coseMap = coseValue as Map<CborValue, CborValue>;
   const kty = coseMap.get(1) as number;
 
   if (alg === -7 && kty === 2) {
