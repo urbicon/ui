@@ -22,6 +22,18 @@ export function createNotificationRegistry(): NotificationRegistry {
             `register each type exactly once.`
         );
       }
+      // Fail at wiring time, not at first send: for a rarely-sent type (an
+      // admin security alert, say) a send()-time throw would stay latent
+      // until the very moment the alert mattered. send() keeps the same
+      // check as a backstop for third-party registry implementations.
+      if ((type.recipients as unknown) === 'all') {
+        throw new Error(
+          `[auth] notification type "${type.key}" uses recipients: 'all', which was renamed ` +
+            `to 'online' (it only ever reached users with an open SSE stream in this ` +
+            `process). Use 'online', or a recipients function for a true all-accounts ` +
+            `broadcast.`
+        );
+      }
       types.set(type.key, type);
     },
 

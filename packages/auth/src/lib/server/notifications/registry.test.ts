@@ -29,6 +29,16 @@ describe('createNotificationRegistry', () => {
     expect(list.map((t) => t.key)).toEqual(['a', 'b']);
   });
 
+  it("rejects the renamed recipients: 'all' at wiring time, not at first send", () => {
+    // A send()-time-only throw would stay latent for rarely-sent types
+    // (admin security alerts) until the exact moment the alert mattered.
+    const registry = createNotificationRegistry();
+    expect(() =>
+      registry.register({ key: 'legacy', title: 'L', recipients: 'all' as unknown as 'online' })
+    ).toThrow("renamed to 'online'");
+    expect(registry.get('legacy')).toBeUndefined();
+  });
+
   it('rejects a duplicate key instead of silently replacing the earlier definition', () => {
     const registry = createNotificationRegistry();
     registry.register({ key: 'test', title: 'Old', recipients: 'online' });
