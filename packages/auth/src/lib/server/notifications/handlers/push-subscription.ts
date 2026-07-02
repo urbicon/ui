@@ -74,10 +74,20 @@ export function createPushSubscriptionHandler(
         return json({ error: 'Invalid subscription keys' }, { status: 400 });
       }
 
-      await repo.create(userId, {
+      const outcome = await repo.create(userId, {
         endpoint: subscription.endpoint,
         keys: subscription.keys
       });
+      // 'rejected': the endpoint row belongs to another account and the
+      // submitted keys don't match the stored ones — the caller knows the
+      // endpoint URL but demonstrably doesn't hold the browser subscription,
+      // so the write was refused (see PushSubscriptionRepository.create).
+      if (outcome === 'rejected') {
+        return json(
+          { error: 'Subscription endpoint is registered to another account' },
+          { status: 409 }
+        );
+      }
 
       return json({ success: true }, { status: 201 });
     },

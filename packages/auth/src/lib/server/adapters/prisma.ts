@@ -1,3 +1,4 @@
+import { pushKeysEqual } from '../notifications/push-keys.js';
 import type {
   BackupCodeRepository,
   CreateInvitationData,
@@ -59,6 +60,7 @@ export interface PrismaLike {
     count: (args?: unknown) => Promise<number>;
   };
   pushSubscription?: {
+    findUnique: (args: unknown) => Promise<PrismaRow>;
     findMany: (args?: unknown) => Promise<PrismaRow>;
     upsert: (args: unknown) => Promise<PrismaRow>;
     deleteMany: (args: unknown) => Promise<PrismaRow>;
@@ -534,13 +536,35 @@ export function createPrismaPushSubscriptionRepository(
     async create(userId, subscription: PushSubscriptionData) {
       // Upsert-by-endpoint per the repository contract: the browser re-sends
       // its existing subscription on every re-enable (a plain `create` would
-      // 500 on the unique endpoint), and after a user switch the device
-      // follows the newly subscribed account (userId reassign).
+      // 500 on the unique endpoint). Reassigning the endpoint to a DIFFERENT
+      // user is gated on key possession: matching keys prove the caller holds
+      // the browser subscription (user switch in the same browser); merely
+      // knowing the endpoint URL must not take the row over.
+      //
+      // Read-then-write: the gate needs the stored owner + keys, so this is
+      // not a single atomic statement. The final write is still an atomic
+      // upsert, and the check race is harmless — a caller without the
+      // matching keys is rejected in every interleaving, while two writers
+      // who both hold the browser's real keys are both legitimate (last one
+      // wins, exactly as a serial execution would).
+      const existing = await ps.findUnique({ where: { endpoint: subscription.endpoint } });
+      if (
+        existing &&
+        existing.userId !== userId &&
+        !pushKeysEqual(existing.keys ?? {}, subscription.keys)
+      ) {
+        return 'rejected';
+      }
+      // Derive the outcome BEFORE the write: a client handing out live row
+      // references (the conformance fake does; some Prisma-likes may) would
+      // otherwise see `existing` mutated by the upsert.
+      const outcome = !existing ? 'created' : existing.userId === userId ? 'updated' : 'reassigned';
       await ps.upsert({
         where: { endpoint: subscription.endpoint },
         create: { userId, endpoint: subscription.endpoint, keys: subscription.keys },
         update: { userId, keys: subscription.keys }
       });
+      return outcome;
     },
 
     async delete(userId, endpoint) {

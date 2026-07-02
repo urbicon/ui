@@ -720,32 +720,51 @@ export const conformanceChecks: readonly ConformanceCheck[] = [
     expect(await repo.findByUser('owner'), 'owner can delete').toHaveLength(0);
   }),
 
-  // -- Push subscription: upsert-by-endpoint -------------------------------
+  // -- Push subscription: upsert-by-endpoint, key-gated reassign -----------
   check(
-    'pushSubscription.create upserts by endpoint (re-subscribe + owner reassign)',
+    'pushSubscription.create upserts by endpoint and gates the reassign on key match',
     ['pushSubscription'],
     async (repos) => {
       const repo = need(repos.pushSubscription, 'pushSubscription');
       const endpoint = 'https://push.test/endpoint-upsert';
+      // Decodable base64url so adapters comparing decoded bytes get real input.
+      const KEYS_A = { p256dh: 'cDE', auth: 'YTE' };
+      const KEYS_B = { p256dh: 'cDI', auth: 'YTI' };
+      const KEYS_ATTACKER = { p256dh: 'cDM', auth: 'YTM' };
 
       // The browser re-sends its *existing* subscription on every re-enable,
       // so the duplicate POST is the normal case — it must update in place,
       // not throw on the unique endpoint (works-in-dev/500-in-prod class).
-      await repo.create('owner', { endpoint, keys: { p256dh: 'p1', auth: 'a1' } });
-      await repo.create('owner', { endpoint, keys: { p256dh: 'p2', auth: 'a2' } });
+      expect(await repo.create('owner', { endpoint, keys: KEYS_A }), 'new row').toBe('created');
+      expect(
+        await repo.create('owner', { endpoint, keys: KEYS_B }),
+        'same owner may rotate keys'
+      ).toBe('updated');
 
       const owned = await repo.findByUser('owner');
       expect(owned, 're-subscribe keeps a single row').toHaveLength(1);
-      expect(owned[0].keys.p256dh, 'keys are updated in place').toBe('p2');
+      expect(owned[0].keys.p256dh, 'keys are updated in place').toBe(KEYS_B.p256dh);
 
-      // After a user switch in the same browser profile, the endpoint follows
-      // the newly subscribed account — the previous owner's notifications
-      // must stop pushing to this device.
-      await repo.create('other', { endpoint, keys: { p256dh: 'p3', auth: 'a3' } });
+      // After a user switch in the same browser profile, the browser re-sends
+      // the SAME subscription (endpoint + keys): key possession proves the
+      // device, so the endpoint follows the newly subscribed account.
+      expect(await repo.create('other', { endpoint, keys: KEYS_B }), 'matching keys reassign').toBe(
+        'reassigned'
+      );
       expect(await repo.findByUser('owner'), 'previous owner released').toHaveLength(0);
       const reassigned = await repo.findByUser('other');
       expect(reassigned, 'latest subscriber owns the row').toHaveLength(1);
-      expect(reassigned[0].keys.p256dh).toBe('p3');
+
+      // Merely knowing the endpoint URL (say, from a log) must NOT take the
+      // row over: without the matching keys the write is refused untouched.
+      expect(
+        await repo.create('attacker', { endpoint, keys: KEYS_ATTACKER }),
+        'mismatching keys are rejected'
+      ).toBe('rejected');
+      const kept = await repo.findByUser('other');
+      expect(kept, 'row still belongs to the previous owner').toHaveLength(1);
+      expect(kept[0].keys.p256dh, 'keys untouched by the rejected write').toBe(KEYS_B.p256dh);
+      expect(await repo.findByUser('attacker'), 'attacker gained nothing').toHaveLength(0);
     }
   ),
 

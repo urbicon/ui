@@ -1,5 +1,6 @@
 import { randomUUID } from 'node:crypto';
 import type { AuthUser, LockoutConfig } from '../../types.js';
+import { pushKeysEqual } from '../notifications/push-keys.js';
 import { createInMemoryRefreshTokenRepository } from './in-memory-refresh-token.js';
 import type {
   BackupCodeRepository,
@@ -452,12 +453,24 @@ export function createInMemoryPushSubscriptionRepository(): PushSubscriptionRepo
 
     async create(userId, subscription: PushSubscriptionData) {
       // Upsert-by-endpoint per the repository contract: a re-subscribe updates
-      // the row in place, and the latest subscriber owns the endpoint.
+      // the row in place. Reassigning the endpoint to a DIFFERENT user is
+      // gated on key possession — matching keys prove the caller holds the
+      // browser subscription (user switch in the same browser); merely
+      // knowing the endpoint URL must not take the row over.
+      const existing = byEndpoint.get(subscription.endpoint);
+      if (
+        existing &&
+        existing.userId !== userId &&
+        !pushKeysEqual(existing.keys, subscription.keys)
+      ) {
+        return 'rejected';
+      }
       byEndpoint.set(subscription.endpoint, {
         userId,
         endpoint: subscription.endpoint,
         keys: { ...subscription.keys }
       });
+      return !existing ? 'created' : existing.userId === userId ? 'updated' : 'reassigned';
     },
 
     async delete(userId, endpoint) {

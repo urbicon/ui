@@ -251,6 +251,19 @@ export interface NotificationRepository {
   getUnreadCount(userId: string): Promise<number>;
 }
 
+/**
+ * What `PushSubscriptionRepository.create` did with the write:
+ * - `'created'` — no row existed for the endpoint; a new one was inserted.
+ * - `'updated'` — the caller already owned the row; keys updated in place
+ *   (the browser's normal re-subscribe).
+ * - `'reassigned'` — the row belonged to another user and the submitted keys
+ *   matched the stored ones, proving possession of the browser subscription:
+ *   ownership moved to the caller (the user-switch-in-the-same-browser case).
+ * - `'rejected'` — the row belongs to another user and the keys do NOT match:
+ *   nothing was written. The handler surfaces this as `409`.
+ */
+export type PushSubscriptionWriteOutcome = 'created' | 'updated' | 'reassigned' | 'rejected';
+
 export interface PushSubscriptionRepository {
   findByUser(userId: string): Promise<PushSubscriptionData[]>;
   /**
@@ -258,18 +271,23 @@ export interface PushSubscriptionRepository {
    * exists, update that row in place (upsert-by-endpoint). The endpoint URL is
    * the natural key of a browser push subscription: re-enabling notifications
    * re-sends the browser's *existing* subscription, so a duplicate POST is the
-   * normal case and MUST NOT fail on the unique endpoint. On conflict the
-   * row's `userId` MUST be reassigned to the caller — after a user switch in
-   * the same browser profile the device belongs to the newly subscribed
-   * account, and the previous owner's notifications must stop pushing to it.
+   * normal case and MUST NOT fail on the unique endpoint.
    *
-   * Flip side of the reassign: possession of an endpoint URL plus *any*
-   * authenticated account is enough to take the row over (and thereby mute
-   * the previous owner's push channel). Endpoint URLs are capability secrets
-   * — treat them like tokens and keep them out of logs. See docs/AUTH.md →
-   * "Notifications & Web Push".
+   * Ownership on conflict is gated on key possession: when the existing row
+   * belongs to a **different** user, reassign it to the caller **only if** the
+   * submitted `keys` equal the stored ones (compare the decoded bytes,
+   * constant-time — see `pushKeysEqual`), and MUST return `'rejected'`
+   * without writing otherwise. The keys are what distinguishes holding the
+   * browser subscription (the legitimate user-switch case re-sends endpoint
+   * *and* keys) from merely knowing the endpoint URL (e.g. from a log) —
+   * ungated, the latter would let any authenticated account take the row
+   * over and mute the previous owner's push channel. Same-owner writes always
+   * update in place. Endpoint URLs are still worth keeping out of logs (they
+   * are the push target), but takeover no longer rides on them alone.
+   *
+   * Enforced by the conformance suite for all four outcomes.
    */
-  create(userId: string, subscription: PushSubscriptionData): Promise<void>;
+  create(userId: string, subscription: PushSubscriptionData): Promise<PushSubscriptionWriteOutcome>;
   /**
    * Delete a subscription scoped to a specific user. Scoping by user-id
    * prevents an authenticated attacker from deleting another user's

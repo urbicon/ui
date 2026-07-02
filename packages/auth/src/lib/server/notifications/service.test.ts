@@ -283,7 +283,7 @@ describe('createNotificationService', () => {
     ];
     const pushSubRepo = {
       findByUser: vi.fn(async () => subs),
-      create: vi.fn(async () => {}),
+      create: vi.fn(async () => 'created' as const),
       delete: vi.fn(async () => {})
     };
 

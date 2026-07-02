@@ -130,6 +130,28 @@ describe('createPushSubscriptionHandler — POST', () => {
     expect(repo.create).not.toHaveBeenCalledWith('victim-2', expect.anything());
   });
 
+  it('treats created/updated/reassigned outcomes as success (201)', async () => {
+    for (const outcome of ['created', 'updated', 'reassigned'] as const) {
+      const repo = mockRepo({ create: vi.fn().mockResolvedValue(outcome) });
+      const res = await createPushSubscriptionHandler(repo).POST(
+        event({ subscription: { endpoint: PUBLIC_ENDPOINT, keys: KEYS } }, { id: 'u1' })
+      );
+      expect(res.status, `outcome '${outcome}' is a success`).toBe(201);
+    }
+  });
+
+  it('surfaces a key-mismatch rejection as 409 without claiming success', async () => {
+    // The repo refused the write: the endpoint row belongs to another account
+    // and the submitted keys don't match (see PushSubscriptionRepository).
+    const repo = mockRepo({ create: vi.fn().mockResolvedValue('rejected') });
+    const res = await createPushSubscriptionHandler(repo).POST(
+      event({ subscription: { endpoint: PUBLIC_ENDPOINT, keys: KEYS } }, { id: 'attacker' })
+    );
+    expect(res.status).toBe(409);
+    const body = await res.json();
+    expect(body.success).toBeUndefined();
+  });
+
   it('honours the optional host allowlist (rejects a public host not on it)', async () => {
     const repo = mockRepo();
     const handler = createPushSubscriptionHandler(repo, {
