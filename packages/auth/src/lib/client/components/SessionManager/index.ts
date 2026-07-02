@@ -35,7 +35,9 @@ export interface SessionManagerProps {
   /** Strip all default styling. */
   unstyled?: boolean;
   /** Per-slot class overrides. */
-  slotClasses?: Partial<Record<'root' | 'title' | 'list' | 'item' | 'empty' | 'badge', string>>;
+  slotClasses?: Partial<
+    Record<'root' | 'title' | 'error' | 'list' | 'item' | 'empty' | 'badge', string>
+  >;
   /** Extra classes on the root element. */
   class?: string;
 }

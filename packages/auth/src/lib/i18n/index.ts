@@ -61,6 +61,13 @@ export function resolveAuthLocale(locale?: Locale): AuthLocale {
  * the active built-in bundle instead of blanking whole subtrees. Objects merge
  * recursively, string leaves replace, `undefined` entries are skipped. Returns
  * `base` itself when there is nothing to merge.
+ *
+ * Kind-preserving: an entry whose kind mismatches the base (`null`/array/
+ * primitive where the bundle has a subtree, an object where it has a string)
+ * is skipped, keeping the base value. TypeScript rules those out, but JSON is
+ * the natural carrier for consumer override files and cannot express
+ * `undefined` — a hand-written `null` must not blank a whole subtree the
+ * postcondition promises to be complete.
  */
 export function mergeAuthLocale(base: AuthLocale, overrides?: PartialAuthLocale): AuthLocale {
   if (!overrides) return base;
@@ -71,15 +78,19 @@ function deepMerge<T extends object>(base: T, overrides: DeepPartial<T>): T {
   const out = { ...base } as Record<string, unknown>;
   for (const [key, value] of Object.entries(overrides as Record<string, unknown>)) {
     if (value === undefined) continue;
+    // Assigning these would reparent `out` / clobber intrinsics instead of
+    // storing data (JSON.parse can hand us own-enumerable `__proto__` keys).
+    if (key === '__proto__' || key === 'constructor') continue;
     const baseValue = (base as Record<string, unknown>)[key];
-    out[key] =
-      value !== null &&
-      typeof value === 'object' &&
-      !Array.isArray(value) &&
-      baseValue !== null &&
-      typeof baseValue === 'object'
-        ? deepMerge(baseValue as object, value as DeepPartial<object>)
-        : value;
+    if (baseValue !== null && typeof baseValue === 'object') {
+      if (value !== null && typeof value === 'object' && !Array.isArray(value)) {
+        out[key] = deepMerge(baseValue as object, value as DeepPartial<object>);
+      }
+      // kind mismatch (null/array/primitive over a subtree): keep the base
+      continue;
+    }
+    if (typeof value === 'string') out[key] = value;
+    // kind mismatch (object/null/number over a string leaf): keep the base
   }
   return out as T;
 }

@@ -163,7 +163,7 @@ export const en = {
     loginWithPasskey: 'Sign in with passkey',
     or: 'or',
     loginFailed: 'Passkey sign-in failed. Please try again.',
-    cancelled: 'Passkey setup was cancelled.',
+    cancelled: 'The passkey prompt was cancelled.',
     addFailed: 'Adding the passkey failed. Please try again.'
   },
   account: {

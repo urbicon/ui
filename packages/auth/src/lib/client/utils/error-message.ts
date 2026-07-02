@@ -60,15 +60,21 @@ export function errorMessageFromCode(
   t: AuthLocale,
   fallbackError?: string
 ): string | undefined {
+  // An empty string carries no information — normalize it to "no prose" so a
+  // `{ "error": "" }` body can never win the chain and blank the error UI
+  // (`'' ?? generic` would NOT fall through; `{#if error}` would render nothing).
+  const prose = fallbackError || undefined;
+
   // Validation errors carry a precise field message in `error`; prefer it.
-  if (code === 'validation_error' && fallbackError) return fallbackError;
+  if (code === 'validation_error' && prose) return prose;
 
   const key = code ? CODE_TO_KEY[code] : undefined;
   // `t` is complete by type (and by mergeAuthLocale at every component call
   // site), but this is a root export: a JS consumer can still hand it a bare
-  // partial object. Read-tolerant `??` keeps that failure on the server prose
-  // instead of rendering `undefined`.
-  if (key) return t.auth.errors[key] ?? fallbackError;
+  // partial object — including one missing the whole `auth.errors` subtree.
+  // Full read-tolerance (`?.` + `||`) keeps that failure on the server prose
+  // instead of throwing inside the caller's error path.
+  if (key) return (t.auth?.errors?.[key] || undefined) ?? prose;
 
-  return fallbackError;
+  return prose;
 }

@@ -61,22 +61,29 @@ export async function parseJsonBody(res: Response): Promise<Record<string, unkno
 
 /**
  * Narrow the wire-contract fields (`{ error, code }`) out of a tolerant-parsed
- * body — anything non-string becomes `undefined` instead of leaking through.
+ * body — anything non-string (and the information-free empty string) becomes
+ * `undefined` instead of leaking through.
  */
 export function wireError(data: Record<string, unknown>): { error?: string; code?: string } {
   return {
-    error: typeof data.error === 'string' ? data.error : undefined,
-    code: typeof data.code === 'string' ? data.code : undefined
+    error: typeof data.error === 'string' && data.error !== '' ? data.error : undefined,
+    code: typeof data.code === 'string' && data.code !== '' ? data.code : undefined
   };
 }
 
 /**
  * Localized error text for an auth error body: the machine `code` maps
  * through the locale bundle, an unknown code falls back to the server's
- * English prose, and a body with neither yields the generic message.
+ * English prose, and a body with neither yields the generic message. An empty
+ * `error` string counts as absent — it must not defeat the generic fallback
+ * and leave the error region blank.
+ *
+ * NOT a package export: the unguarded `t.common.error` read is safe only
+ * because every caller resolves `t` through `mergeAuthLocale`. If this is
+ * ever exported, give it the same read-tolerance as `errorMessageFromCode`.
  */
 export function errorTextFromBody(data: Record<string, unknown>, t: AuthLocale): string {
   const code = typeof data.code === 'string' ? data.code : undefined;
-  const prose = typeof data.error === 'string' ? data.error : undefined;
+  const prose = typeof data.error === 'string' && data.error !== '' ? data.error : undefined;
   return errorMessageFromCode(code, t, prose) ?? t.common.error;
 }

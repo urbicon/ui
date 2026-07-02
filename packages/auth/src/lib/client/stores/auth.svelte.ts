@@ -1,7 +1,7 @@
 import type { AuthUser } from '../../types.js';
 import type { CsrfClientOptions } from '../csrf.js';
 import { csrfFetch } from '../csrf.js';
-import { getJson, postJson, wireError } from '../utils/http.js';
+import { getJson, parseJsonBody, postJson, wireError } from '../utils/http.js';
 
 export interface AuthStoreConfig {
   basePath?: string;
@@ -47,7 +47,11 @@ function failure(data: Record<string, unknown>): AuthActionResult {
   return { success: false, ...wireError(data) };
 }
 
-const NETWORK_FAILURE: AuthActionResult = { success: false, code: 'network_error' };
+// Frozen: returned by reference from every network-failure path.
+const NETWORK_FAILURE: AuthActionResult = Object.freeze({
+  success: false,
+  code: 'network_error'
+});
 
 export function createAuthStore<R extends string>(config?: AuthStoreConfig) {
   const basePath = config?.basePath ?? '/api/auth';
@@ -76,7 +80,12 @@ export function createAuthStore<R extends string>(config?: AuthStoreConfig) {
         twoFactorRequired = true;
         return { success: true, twoFactorRequired: true };
       }
-      user = (data.user as AuthUser<R> | undefined) ?? null;
+      // A 200 whose (shield-normalized) body carries no user is a malformed
+      // success — a captive portal, broken proxy or mock. Reporting success
+      // while isAuthenticated stays false would send the consumer into a
+      // navigate→guard-bounce loop with zero feedback.
+      if (!data.user) return { success: false, code: 'server_error' };
+      user = data.user as AuthUser<R>;
       twoFactorRequired = false;
       return { success: true };
     } catch {
@@ -93,7 +102,8 @@ export function createAuthStore<R extends string>(config?: AuthStoreConfig) {
     try {
       const { ok, data } = await postJson(`${basePath}/2fa/verify`, { code }, { csrf, fetcher });
       if (!ok) return failure(data);
-      user = (data.user as AuthUser<R> | undefined) ?? null;
+      if (!data.user) return { success: false, code: 'server_error' };
+      user = data.user as AuthUser<R>;
       twoFactorRequired = false;
       return { success: true };
     } catch {
@@ -113,7 +123,8 @@ export function createAuthStore<R extends string>(config?: AuthStoreConfig) {
         { csrf, fetcher }
       );
       if (!ok) return failure(data);
-      user = (data.user as AuthUser<R> | undefined) ?? null;
+      if (!data.user) return { success: false, code: 'server_error' };
+      user = data.user as AuthUser<R>;
       return { success: true };
     } catch {
       return NETWORK_FAILURE;
@@ -124,13 +135,14 @@ export function createAuthStore<R extends string>(config?: AuthStoreConfig) {
    * End the session. The local state is cleared unconditionally — the user
    * asked to leave, so the UI must not stay signed-in — but the result still
    * reports whether the server actually revoked the session (a failed logout
-   * leaves the cookies valid; a caller may want to retry or warn).
+   * leaves the cookies valid; a caller may want to retry or warn, so the
+   * failure carries the wire contract like every other action).
    */
   async function logout(): Promise<AuthActionResult> {
     let result: AuthActionResult;
     try {
       const res = await csrfFetch(`${basePath}/logout`, { method: 'POST' }, csrf, fetcher);
-      result = res.ok ? { success: true } : { success: false };
+      result = res.ok ? { success: true } : failure(await parseJsonBody(res));
     } catch {
       result = NETWORK_FAILURE;
     }
@@ -139,14 +151,26 @@ export function createAuthStore<R extends string>(config?: AuthStoreConfig) {
     return result;
   }
 
-  async function checkStatus(): Promise<void> {
+  /**
+   * Probe the session status (`GET /me`). "Signed out" and "could not ask"
+   * are different facts: a 200 or the me-contract's `401 { user: null }`
+   * resolves `user` and reports success; a transport failure or a non-contract
+   * error (5xx, proxy body) leaves the current `user` untouched and reports
+   * the failure — so a route guard can retry or wait instead of bouncing a
+   * signed-in user to the login page over a transient blip.
+   */
+  async function checkStatus(): Promise<AuthActionResult> {
     try {
       loading = true;
-      const { data } = await getJson(`${basePath}/me`, { fetcher });
-      user = (data.user as AuthUser<R> | undefined) ?? null;
-      if (user) twoFactorRequired = false;
+      const { ok, data } = await getJson(`${basePath}/me`, { fetcher });
+      if (ok || 'user' in data) {
+        user = (data.user as AuthUser<R> | undefined) ?? null;
+        if (user) twoFactorRequired = false;
+        return { success: true };
+      }
+      return failure(data);
     } catch {
-      user = null;
+      return NETWORK_FAILURE;
     } finally {
       loading = false;
     }

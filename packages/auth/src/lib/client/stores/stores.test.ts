@@ -99,6 +99,71 @@ describe('createAuthStore', () => {
     expect(store.user?.id).toBe('u1');
     expect(store.loading).toBe(false);
   });
+
+  it('checkStatus resolves the me-contract 401 as an answered "signed out"', async () => {
+    const store = createAuthStore({
+      fetcher: fetcherReturning(jsonResponse(200, { user }), jsonResponse(401, { user: null }))
+    });
+    await store.checkStatus();
+    expect(store.user).not.toBeNull();
+
+    const result = await store.checkStatus();
+    expect(result).toEqual({ success: true });
+    expect(store.user).toBeNull();
+  });
+
+  it('checkStatus keeps the current user when the probe cannot be answered', async () => {
+    // "signed out" and "could not ask" are different facts: a transient
+    // network blip or a 5xx must not flip a signed-in store to anonymous
+    // (a route guard would bounce the user to /login over nothing).
+    const store = createAuthStore({
+      fetcher: fetcherReturning(
+        jsonResponse(200, { user }),
+        new Error('offline'),
+        jsonResponse(502, { error: 'Bad gateway.', code: 'server_error' })
+      )
+    });
+    await store.checkStatus();
+    expect(store.user).not.toBeNull();
+
+    await expect(store.checkStatus()).resolves.toEqual({
+      success: false,
+      code: 'network_error'
+    });
+    expect(store.user).not.toBeNull();
+    expect(store.loading).toBe(false);
+
+    await expect(store.checkStatus()).resolves.toEqual({
+      success: false,
+      error: 'Bad gateway.',
+      code: 'server_error'
+    });
+    expect(store.user).not.toBeNull();
+  });
+
+  it('logout threads the wire contract of a server-side failure', async () => {
+    const store = createAuthStore({
+      fetcher: fetcherReturning(
+        jsonResponse(200, { user }),
+        jsonResponse(403, { error: 'CSRF check failed.', code: 'csrf_failed' })
+      )
+    });
+    await store.login('a@b.c', 'pw');
+
+    const result = await store.logout();
+    expect(result).toEqual({ success: false, error: 'CSRF check failed.', code: 'csrf_failed' });
+    // local state still clears — the user asked to leave
+    expect(store.user).toBeNull();
+  });
+
+  it('a 200 without a user is a malformed success, not a login', async () => {
+    // captive portal / broken mock: reporting success while isAuthenticated
+    // stays false would send the consumer into a navigate→bounce loop
+    const store = createAuthStore({ fetcher: fetcherReturning(jsonResponse(200, {})) });
+    const result = await store.login('a@b.c', 'pw');
+    expect(result).toEqual({ success: false, code: 'server_error' });
+    expect(store.user).toBeNull();
+  });
 });
 
 function record(id: string, readAt: Date | null = null): NotificationRecord {
@@ -130,7 +195,8 @@ describe('createNotificationStore', () => {
     const store = createNotificationStore({
       fetcher: fetcherReturning(
         jsonResponse(200, { notifications: [record('a')] }),
-        jsonResponse(401, { error: 'Please sign in to continue.', code: 'not_authenticated' })
+        jsonResponse(401, { error: 'Please sign in to continue.', code: 'not_authenticated' }),
+        jsonResponse(200, { notifications: [record('b'), record('c')] })
       )
     });
     await store.load();
@@ -142,6 +208,18 @@ describe('createNotificationStore', () => {
       error: 'Please sign in to continue.',
       code: 'not_authenticated'
     });
+
+    // a successful reload replaces the list and clears the recorded failure
+    await expect(store.load()).resolves.toBe(true);
+    expect(store.notifications.map((n) => n.id)).toEqual(['b', 'c']);
+    expect(store.lastError).toBeNull();
+  });
+
+  it('threads limit/unreadOnly into the load query string', async () => {
+    const fetcher = fetcherReturning(jsonResponse(200, { notifications: [] }));
+    const store = createNotificationStore({ fetcher });
+    await store.load({ limit: 5, unreadOnly: true });
+    expect(fetcher).toHaveBeenCalledWith('/api/notifications?limit=5&unreadOnly=true');
   });
 
   it('a network failure during load synthesizes network_error', async () => {
@@ -171,16 +249,23 @@ describe('createNotificationStore', () => {
     expect(store.lastError).toBeNull();
   });
 
-  it('markAllAsRead marks everything read on success', async () => {
+  it('markAllAsRead marks everything read on success without stomping existing timestamps', async () => {
+    const alreadyRead = new Date('2026-06-30T12:00:00Z');
     const store = createNotificationStore({
       fetcher: fetcherReturning(
-        jsonResponse(200, { notifications: [record('a'), record('b', new Date())] }),
+        jsonResponse(200, { notifications: [record('a'), record('b', alreadyRead)] }),
         jsonResponse(200, {})
       )
     });
     await store.load();
     await expect(store.markAllAsRead()).resolves.toBe(true);
     expect(store.unreadCount).toBe(0);
+    // the `readAt ?? new Date()` is deliberate: an already-read row keeps its
+    // original timestamp instead of being rewritten to "now". Over the wire
+    // readAt arrives JSON-serialized (ISO string), so that is what must survive.
+    expect(store.notifications.find((n) => n.id === 'b')?.readAt).toEqual(
+      alreadyRead.toISOString()
+    );
   });
 
   it('delete drops the row only once the server confirms', async () => {

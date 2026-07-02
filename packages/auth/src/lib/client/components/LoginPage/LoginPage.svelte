@@ -6,7 +6,7 @@
   import { errorMessageFromCode } from '../../utils/error-message.js';
   import type { LoginPageProps } from './index.js';
   import { base64UrlToBuffer, bufferToBase64Url } from '../../utils/webauthn.js';
-  import { errorTextFromBody } from '../../utils/http.js';
+  import { errorTextFromBody, postJson, wireError } from '../../utils/http.js';
   import { slotClass } from '../../utils/slot-class.js';
   import AuthPageShell from '../_shared/AuthPageShell.svelte';
 
@@ -65,23 +65,18 @@
     submitting = true;
 
     try {
-      const res = await csrfFetch(
+      const { ok, data } = await postJson(
         apiPath,
         {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            email,
-            password,
-            ...(showRememberMe && rememberMeChecked ? { rememberMe: true } : {})
-          })
+          email,
+          password,
+          ...(showRememberMe && rememberMeChecked ? { rememberMe: true } : {})
         },
-        csrf,
-        fetcher
+        { csrf, fetcher }
       );
-      const data = await res.json();
-      if (!res.ok) {
-        error = errorMessageFromCode(data.code, t, data.error) ?? t.auth.login.errors.invalid;
+      if (!ok) {
+        const w = wireError(data);
+        error = errorMessageFromCode(w.code, t, w.error) ?? t.auth.login.errors.invalid;
         return;
       }
       // Password ok, but the account has 2FA on: switch to the code-entry step
@@ -105,19 +100,14 @@
     submitting = true;
 
     try {
-      const res = await csrfFetch(
+      const { ok, data } = await postJson(
         twoFactorApiPath,
-        {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ code: twoFactorCode })
-        },
-        csrf,
-        fetcher
+        { code: twoFactorCode },
+        { csrf, fetcher }
       );
-      const data = await res.json();
-      if (!res.ok) {
-        error = errorMessageFromCode(data.code, t, data.error) ?? t.twoFactor.invalidCode;
+      if (!ok) {
+        const w = wireError(data);
+        error = errorMessageFromCode(w.code, t, w.error) ?? t.twoFactor.invalidCode;
         return;
       }
       onSuccess?.();
@@ -166,7 +156,10 @@
         publicKey: publicKeyOptions
       })) as PublicKeyCredential;
 
-      if (!credential) return;
+      if (!credential) {
+        error = t.passkeys.cancelled;
+        return;
+      }
 
       const assertionResponse = credential.response as AuthenticatorAssertionResponse;
 
@@ -204,7 +197,11 @@
       onSuccess?.();
     } catch (err) {
       if (err instanceof DOMException && err.name === 'NotAllowedError') {
-        // User cancelled
+        // NotAllowedError is the browser's privacy catch-all: a user cancel,
+        // but also a timeout or an iframe permissions-policy denial. Staying
+        // silent here (the old behaviour) made the button appear dead in the
+        // non-cancel cases — surface the same message PasskeyManager shows.
+        error = t.passkeys.cancelled;
       } else {
         error = t.passkeys.loginFailed;
       }

@@ -109,7 +109,12 @@ same shape on `lastError` (cleared by the next success), returns `false` from
 failed operations instead of silently no-opping, and a failed `load` keeps the
 existing list rather than blanking it into a fake empty inbox. `logout` clears
 the local state unconditionally but still reports whether the server revoked
-the session.
+the session (threading the failure body's wire contract). `checkStatus`
+distinguishes "signed out" from "could not ask": a 200 or the me-contract's
+`401 { user: null }` resolves the user and reports success, while a transport
+failure or non-contract error leaves the current user untouched and reports
+the failure — a route guard can retry instead of bouncing a signed-in user
+over a transient blip.
 
 ## Consumer Integration — staged setup
 

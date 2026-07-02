@@ -1,8 +1,8 @@
 <script lang="ts">
   import { Alert, Button, Input } from '@urbicon-ui/blocks';
   import { mergeAuthLocale, useAuthLocale } from '../../../i18n/index.js';
-  import { csrfFetch } from '../../csrf.js';
   import { errorMessageFromCode } from '../../utils/error-message.js';
+  import { postJson, wireError } from '../../utils/http.js';
   import { slotClass } from '../../utils/slot-class.js';
   import type { ResetPasswordPageProps } from './index.js';
   import AuthPageShell from '../_shared/AuthPageShell.svelte';
@@ -44,21 +44,11 @@
     submitting = true;
 
     try {
-      const res = await csrfFetch(
-        apiPath,
-        {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ token, password })
-        },
-        csrf,
-        fetcher
-      );
-      const data = await res.json();
-      if (!res.ok) {
+      const { ok, data } = await postJson(apiPath, { token, password }, { csrf, fetcher });
+      if (!ok) {
+        const w = wireError(data);
         error =
-          errorMessageFromCode(data.code, t, data.error) ??
-          t.auth.resetPassword.errors.invalidToken;
+          errorMessageFromCode(w.code, t, w.error) ?? t.auth.resetPassword.errors.invalidToken;
         return;
       }
       success = true;

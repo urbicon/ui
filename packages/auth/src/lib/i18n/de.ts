@@ -166,7 +166,7 @@ export const de = {
     loginWithPasskey: 'Mit Passkey anmelden',
     or: 'oder',
     loginFailed: 'Passkey-Anmeldung fehlgeschlagen. Bitte versuche es erneut.',
-    cancelled: 'Passkey-Einrichtung abgebrochen.',
+    cancelled: 'Der Passkey-Vorgang wurde abgebrochen.',
     addFailed: 'Passkey konnte nicht hinzugefügt werden. Bitte versuche es erneut.'
   },
   account: {

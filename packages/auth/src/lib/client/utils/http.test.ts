@@ -75,6 +75,10 @@ describe('wireError', () => {
     });
     expect(wireError({})).toEqual({ error: undefined, code: undefined });
   });
+
+  it('treats empty strings as absent — they carry no information', () => {
+    expect(wireError({ error: '', code: '' })).toEqual({ error: undefined, code: undefined });
+  });
 });
 
 describe('errorTextFromBody', () => {
@@ -94,6 +98,14 @@ describe('errorTextFromBody', () => {
 
   it('yields the generic message when the body has neither', () => {
     expect(errorTextFromBody({}, t)).toBeTruthy();
+  });
+
+  it('an empty error string cannot blank the error UI (silent-failure M5)', () => {
+    // `{ "error": "" }` used to flow through: '' is a string, `'' ?? generic`
+    // does not fall through, `{#if error}` renders nothing — a failed submit
+    // with zero feedback. Empty must count as absent at every layer.
+    expect(errorTextFromBody({ error: '' }, t)).toBe(t.common.error);
+    expect(errorTextFromBody({ code: 'unknown_code', error: '' }, t)).toBe(t.common.error);
   });
 
   it('lets a validation_error keep its field-level server prose (not the generic string)', () => {

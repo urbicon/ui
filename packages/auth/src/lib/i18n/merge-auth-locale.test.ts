@@ -43,6 +43,42 @@ describe('mergeAuthLocale', () => {
     expect(en.passkeys.title).not.toBe('Hardware keys');
   });
 
+  it('is kind-preserving: null/array/primitive over a subtree keeps the base', () => {
+    // JSON is the natural carrier for consumer override files and cannot
+    // express `undefined` — a hand-written `null` must not blank a subtree
+    // the merge promises to keep complete (silent-failure review M1).
+    const overrides = JSON.parse(
+      '{"auth": null, "passkeys": ["nope"], "sessions": 42, "account": {"profile": {"title": "Mein Profil"}}}'
+    );
+    const merged = mergeAuthLocale(en, overrides);
+    expect(merged.auth.login.title).toBe(en.auth.login.title);
+    expect(merged.passkeys.title).toBe(en.passkeys.title);
+    expect(merged.sessions.title).toBe(en.sessions.title);
+    // the well-formed sibling in the same overrides object still applies
+    expect(merged.account.profile.title).toBe('Mein Profil');
+  });
+
+  it('is kind-preserving: an object over a string leaf keeps the base string', () => {
+    const overrides = JSON.parse('{"auth": {"login": {"title": {"nested": "x"}, "submit": 7}}}');
+    const merged = mergeAuthLocale(en, overrides);
+    expect(merged.auth.login.title).toBe(en.auth.login.title);
+    expect(merged.auth.login.submit).toBe(en.auth.login.submit);
+  });
+
+  it('ignores __proto__/constructor keys from JSON-loaded overrides', () => {
+    const overrides = JSON.parse(
+      '{"__proto__": {"polluted": true}, "constructor": {"x": 1}, "auth": {"login": {"title": "Hi"}}}'
+    );
+    const merged = mergeAuthLocale(en, overrides);
+    expect(merged.auth.login.title).toBe('Hi');
+    expect(Object.getPrototypeOf(merged)).toBe(Object.prototype);
+    expect(
+      (merged as unknown as Record<string, unknown>).polluted,
+      'merged bundle must not be reparented'
+    ).toBeUndefined();
+    expect(({} as Record<string, unknown>).polluted, 'no global pollution').toBeUndefined();
+  });
+
   it('a stale consumer bundle missing new keys still resolves them from the base', () => {
     // Simulates the runtime-stale JS bundle case: a hand-rolled locale written
     // before `networkError`/`passkeys.cancelled` existed. The merge fills the

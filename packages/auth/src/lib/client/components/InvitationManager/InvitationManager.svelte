@@ -92,7 +92,12 @@
   async function deleteInvitation(id: string) {
     error = '';
     try {
-      const res = await csrfFetch(`${basePath}/${id}`, { method: 'DELETE' }, csrf, fetcher);
+      const res = await csrfFetch(
+        `${basePath}/${encodeURIComponent(id)}`,
+        { method: 'DELETE' },
+        csrf,
+        fetcher
+      );
       if (!res.ok) {
         const data = await res.json().catch(() => ({}));
         error = errorTextFromBody(data, t);

@@ -56,8 +56,16 @@
         error = errText(data);
         return;
       }
-      setupSecret = typeof data.secret === 'string' ? data.secret : '';
-      setupUri = typeof data.otpauthUri === 'string' ? data.otpauthUri : '';
+      const secret = typeof data.secret === 'string' ? data.secret : '';
+      const uri = typeof data.otpauthUri === 'string' ? data.otpauthUri : '';
+      if (!secret || !uri) {
+        // A 200 without the TOTP material would build a dead-end setup view
+        // (empty QR payload, empty key, nothing to confirm) — surface it.
+        error = errText(data);
+        return;
+      }
+      setupSecret = secret;
+      setupUri = uri;
       view = 'setup';
     } catch {
       error = t.auth.errors.networkError;
@@ -76,7 +84,16 @@
         error = errText(data);
         return;
       }
-      backupCodes = Array.isArray(data.backupCodes) ? (data.backupCodes as string[]) : [];
+      // The enable handler always returns the one-time backup codes; a 200
+      // without them is malformed. Showing the backup view with an empty list
+      // (and a one-newline download) would hide that — surface it instead. A
+      // retry then answers two_factor_already_enabled, which is localized and
+      // states what happened.
+      if (!Array.isArray(data.backupCodes) || data.backupCodes.length === 0) {
+        error = errText(data);
+        return;
+      }
+      backupCodes = data.backupCodes as string[];
       enabled = true;
       code = '';
       view = 'backup';

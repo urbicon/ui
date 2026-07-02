@@ -2,7 +2,8 @@
   import { Alert, Spinner } from '@urbicon-ui/blocks';
   import { onMount } from 'svelte';
   import { mergeAuthLocale, useAuthLocale } from '../../../i18n/index.js';
-  import { csrfFetch } from '../../csrf.js';
+  import { errorMessageFromCode } from '../../utils/error-message.js';
+  import { postJson, wireError } from '../../utils/http.js';
   import { slotClass } from '../../utils/slot-class.js';
   import type { VerifyEmailPageProps } from './index.js';
   import AuthPageShell from '../_shared/AuthPageShell.svelte';
@@ -37,23 +38,18 @@
       return;
     }
     try {
-      const res = await csrfFetch(
-        apiPath,
-        {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ token })
-        },
-        csrf,
-        fetcher
-      );
-      if (res.ok) {
+      const { ok, data } = await postJson(apiPath, { token }, { csrf, fetcher });
+      if (ok) {
         success = true;
       } else {
-        error = t.auth.verifyEmail.error;
+        // A 429/500 must not read as "your link is broken" (which steers the
+        // user into requesting a new link when retrying would work); only a
+        // code-less failure defaults to the invalid-link prose.
+        const w = wireError(data);
+        error = errorMessageFromCode(w.code, t, w.error) ?? t.auth.verifyEmail.error;
       }
     } catch {
-      error = t.auth.verifyEmail.error;
+      error = t.auth.errors.networkError;
     } finally {
       verifying = false;
     }

@@ -191,7 +191,11 @@ export interface AuthLocale {
     or: string;
     /** Passkey sign-in failed client-side (browser error other than a user cancel). */
     loginFailed: string;
-    /** The user dismissed the browser's passkey-creation dialog. */
+    /**
+     * The browser's passkey dialog (setup or sign-in) ended without a
+     * credential — user cancel, timeout, or an iframe policy denial
+     * (indistinguishable by design: NotAllowedError).
+     */
     cancelled: string;
     /** Registering a new passkey failed client-side. */
     addFailed: string;

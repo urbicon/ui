@@ -160,7 +160,7 @@
     {/if}
   </div>
 
-  <FormErrorAlert {error} {unstyled} />
+  <FormErrorAlert {error} {unstyled} class={slotClasses.error} />
 
   <Separator {unstyled} />
 

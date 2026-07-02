@@ -45,6 +45,42 @@ describe('errorMessageFromCode', () => {
     );
   });
 
+  it('maps the client-synthesized network_error without needing server prose', () => {
+    // The stores emit `{ code: 'network_error' }` with NO error prose (the
+    // request never reached a server that could write any) — so unlike every
+    // server code, this one has no prose fallback layer. An unmapped
+    // network_error degrades straight to the caller's generic message with
+    // zero signal (surviving-mutant finding, package-5 test review).
+    expect(errorMessageFromCode('network_error', en)).toBe(en.auth.errors.networkError);
+    expect(errorMessageFromCode('network_error', de)).toBe(de.auth.errors.networkError);
+  });
+
+  it('falls back to the server prose when a JS consumer bundle lacks the key at runtime', () => {
+    // errorMessageFromCode is a root export: a JS consumer can hand it a bare
+    // partial object the type system never saw. The read-tolerant `??` must
+    // surface the prose instead of rendering `undefined`.
+    const bare = { auth: { errors: {} } } as AuthLocale;
+    expect(errorMessageFromCode('invalid_credentials', bare, 'Server prose.')).toBe(
+      'Server prose.'
+    );
+  });
+
+  it('tolerates a bundle missing the whole auth/errors subtree (no throw in the error path)', () => {
+    // Silent-failure review M2: `t.auth.errors[key]` threw a TypeError for a
+    // KNOWN code when the hand-rolled bundle lacked the subtree — an unhandled
+    // rejection inside the consumer's failure branch.
+    expect(errorMessageFromCode('invalid_credentials', {} as AuthLocale, 'Prose.')).toBe('Prose.');
+    expect(errorMessageFromCode('invalid_credentials', { auth: {} } as AuthLocale, 'Prose.')).toBe(
+      'Prose.'
+    );
+  });
+
+  it('normalizes an empty prose string to undefined instead of returning it', () => {
+    expect(errorMessageFromCode(undefined, en, '')).toBeUndefined();
+    expect(errorMessageFromCode('totally_unknown_code', en, '')).toBeUndefined();
+    expect(errorMessageFromCode('validation_error', en, '')).toBe(en.auth.errors.validationError);
+  });
+
   it('covers every code key with a non-empty string in both bundles', () => {
     // Guards against an AuthLocale errors key being added without translations.
     for (const bundle of [en, de] as AuthLocale[]) {
@@ -69,8 +105,12 @@ describe('CODE_TO_KEY drift against the server contract', () => {
       'push_endpoint_conflict',
       'push_subscription_limit'
     ]);
+    // Codes minted on the client (never in AUTH_ERROR_CODES) — listed here so
+    // the drift gate covers them too: the server-side iteration alone is
+    // structurally blind to them (surviving-mutant finding, package 5).
+    const CLIENT_SYNTHESIZED_CODES = ['network_error'];
     const { AUTH_ERROR_CODES } = await import('../../server/handlers/errors.js');
-    for (const code of Object.values(AUTH_ERROR_CODES)) {
+    for (const code of [...Object.values(AUTH_ERROR_CODES), ...CLIENT_SYNTHESIZED_CODES]) {
       const resolved = errorMessageFromCode(code, en);
       if (EXPECTED_UNMAPPED.has(code)) {
         expect(
