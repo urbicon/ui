@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { Button, Card } from '@urbicon-ui/blocks';
+  import { Alert, Button, Card } from '@urbicon-ui/blocks';
   import { subscribeToPush } from '../../utils/service-worker.js';
   import { useAuthLocale } from '../../../i18n/index.js';
   import { csrfFetch } from '../../csrf.js';
@@ -22,30 +22,42 @@
   const t = $derived(tProp ?? authLocale());
 
   let visible = $state(true);
+  let error = $state<string | null>(null);
 
   async function handleEnable() {
+    error = null;
     try {
       const subscription = await subscribeToPush(vapidPublicKey);
-      if (subscription) {
-        const res = await csrfFetch(
-          subscriptionEndpoint,
-          {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ subscription: subscription.toJSON() })
-          },
-          csrf,
-          fetcher
-        );
+      if (!subscription) {
+        // Permission denied or push unsupported — the user's decision, not a
+        // failure: close quietly.
+        visible = false;
+        return;
+      }
+      const res = await csrfFetch(
+        subscriptionEndpoint,
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ subscription: subscription.toJSON() })
+        },
+        csrf,
+        fetcher
+      );
+      if (res.ok) {
         // Report success only once the server has actually stored the
         // subscription — firing the callback on a failed POST would mislead the
         // caller into thinking push delivery is set up.
-        if (res.ok) onSubscribed?.(subscription);
+        onSubscribed?.(subscription);
+        visible = false;
+      } else {
+        error = t.notifications.push.error;
       }
-    } finally {
-      // Always dismiss, even if the subscription POST throws (network error) —
-      // otherwise the prompt stays open with no way for the user to close it.
-      visible = false;
+    } catch {
+      // Network error etc. — keep the prompt open WITH feedback so the user
+      // can retry or dismiss; closing silently would leave no trace that
+      // enabling failed (this was the one component without an error path).
+      error = t.notifications.push.error;
     }
   }
 
@@ -71,6 +83,13 @@
     >
       {t.notifications.push.prompt}
     </p>
+    <div aria-live="polite" class={slotClasses.error}>
+      {#if error}
+        <div class={unstyled ? undefined : 'mt-2'}>
+          <Alert intent="danger" size="sm" {unstyled}>{error}</Alert>
+        </div>
+      {/if}
+    </div>
     <div
       class={unstyled
         ? slotClasses.actions

@@ -148,7 +148,8 @@ export const de = {
     push: {
       prompt: 'Push-Benachrichtigungen aktivieren?',
       enable: 'Aktivieren',
-      dismiss: 'Nicht jetzt'
+      dismiss: 'Nicht jetzt',
+      error: 'Push-Benachrichtigungen konnten nicht aktiviert werden. Bitte versuche es erneut.'
     }
   },
   invitations: {

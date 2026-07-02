@@ -156,6 +156,8 @@ export interface AuthLocale {
       prompt: string;
       enable: string;
       dismiss: string;
+      /** Shown (aria-live) when subscribing fails — the prompt stays open for a retry. */
+      error: string;
     };
   };
   invitations: {

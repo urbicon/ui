@@ -145,7 +145,8 @@ export const en = {
     push: {
       prompt: 'Enable push notifications?',
       enable: 'Enable',
-      dismiss: 'Not now'
+      dismiss: 'Not now',
+      error: 'Enabling push notifications failed. Please try again.'
     }
   },
   invitations: {

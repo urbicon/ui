@@ -33,7 +33,7 @@ export interface PushPermissionPromptProps {
   /** Strip all default styling. */
   unstyled?: boolean;
   /** Per-slot class overrides. See component source for available slot keys. */
-  slotClasses?: Partial<Record<'root' | 'text' | 'actions', string>>;
+  slotClasses?: Partial<Record<'root' | 'text' | 'error' | 'actions', string>>;
   /** Extra classes on the root element. */
   class?: string;
 }
