@@ -173,9 +173,28 @@ export function createNotificationService(deps: NotificationServiceDeps): Notifi
                 if (onPushResult) {
                   try {
                     onPushResult(userId, results);
-                  } catch {
-                    // An observability hook must never break delivery.
+                  } catch (err) {
+                    // An observability hook must never break delivery — but a
+                    // throwing hook means the consumer just lost their push
+                    // observability, which they must be able to see.
+                    logger.warn('[auth] onPushResult hook threw:', err);
                   }
+                }
+
+                // The common failure mode is per-endpoint: sendPush isolates
+                // each subscription via allSettled and reports failures as
+                // results, so they never hit the transport catch above. A
+                // VAPID misconfig (403 on every send, forever) or corrupt
+                // stored keys would otherwise be invisible unless the
+                // optional onPushResult hook is wired — the logger is the
+                // floor, the hook the rich channel. Expired endpoints are
+                // excluded: they are handled (pruned) right below.
+                const failed = results.filter((r) => !r.success && !r.expired);
+                if (failed.length > 0) {
+                  logger.warn(
+                    `[auth] push delivery to user ${userId} failed for ${failed.length}/${results.length} subscription(s):`,
+                    failed.map((r) => r.statusCode ?? String(r.error))
+                  );
                 }
 
                 // Prune subscriptions the push service reported as gone (410/404).
@@ -184,7 +203,17 @@ export function createNotificationService(deps: NotificationServiceDeps): Notifi
                 // on every send forever.
                 for (const result of results) {
                   if (result.expired) {
-                    await pushRepo.delete(userId, result.endpoint).catch(() => {});
+                    // Best-effort (the outer catch must not abort the loop),
+                    // but never silent: a persistently failing prune means
+                    // this dead endpoint is re-fetched on every future send —
+                    // exactly the waste pruning exists to prevent. Endpoint
+                    // URLs stay out of the log line (capability discipline).
+                    await pushRepo.delete(userId, result.endpoint).catch((err) => {
+                      logger.warn(
+                        `[auth] failed to prune an expired push subscription for user ${userId}:`,
+                        err
+                      );
+                    });
                   }
                 }
               }

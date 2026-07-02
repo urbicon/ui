@@ -205,14 +205,20 @@ describe('createNotificationService', () => {
     expect(notifRepo.create).toHaveBeenCalledWith(expect.objectContaining({ userId: 'user-2' }));
   });
 
-  it("throws a migration error for the renamed recipients: 'all'", async () => {
-    const registry = createNotificationRegistry();
-    // JS consumers bypass the compiler — the runtime guard must catch them.
-    registry.register({
+  it("throws a migration error for the renamed recipients: 'all' (backstop for third-party registries)", async () => {
+    // The built-in registry already rejects 'all' at register() time; this
+    // pins the send()-side backstop for consumers who implement the
+    // NotificationRegistry interface themselves.
+    const legacyType = {
       key: 'legacy',
       title: 'Legacy',
       recipients: 'all' as unknown as 'online'
-    });
+    };
+    const registry = {
+      register: () => {},
+      get: () => legacyType,
+      list: () => [legacyType]
+    };
 
     const sse = createSSEManager();
     const notifRepo = createMockNotificationRepo();
@@ -316,6 +322,175 @@ describe('createNotificationService', () => {
       expect.arrayContaining([
         expect.objectContaining({ endpoint: subs[1].endpoint, expired: true })
       ])
+    );
+  });
+
+  it('logs per-endpoint delivery failures by default — the common failure mode must not need the optional hook', async () => {
+    const registry = createNotificationRegistry();
+    registry.register({ key: 'p', title: 'Hi', recipients: ['user-1'], channels: ['push'] });
+
+    const sse = createSSEManager(); // offline → push branch
+    const notifRepo = createMockNotificationRepo();
+    const pushSubRepo = {
+      findByUser: vi.fn(async () => [
+        { endpoint: 'https://push.example.com/ok', keys: { p256dh: 'a', auth: 'b' } },
+        { endpoint: 'https://push.example.com/forbidden', keys: { p256dh: 'c', auth: 'd' } }
+      ]),
+      create: vi.fn(async () => 'created' as const),
+      delete: vi.fn(async () => {})
+    };
+    // sendPush isolates per-endpoint failures into results — a VAPID
+    // misconfig shows up as a 403 on every send, forever.
+    const push = {
+      sendPush: vi.fn(async () => [
+        { endpoint: 'https://push.example.com/ok', success: true, statusCode: 201 },
+        { endpoint: 'https://push.example.com/forbidden', success: false, statusCode: 403 }
+      ]),
+      cleanupExpired: vi.fn()
+    };
+
+    const logger = { warn: vi.fn(), error: vi.fn() };
+    const service = createNotificationService({
+      registry,
+      sse,
+      push,
+      repos: { notification: notifRepo, pushSubscription: pushSubRepo },
+      logger
+    });
+
+    await service.send('p', {});
+
+    expect(logger.warn).toHaveBeenCalledWith(
+      expect.stringContaining('failed for 1/2'),
+      expect.arrayContaining([403])
+    );
+  });
+
+  it('does not log expired endpoints as failures (they are pruned, not failing)', async () => {
+    const registry = createNotificationRegistry();
+    registry.register({ key: 'p', title: 'Hi', recipients: ['user-1'], channels: ['push'] });
+
+    const sse = createSSEManager();
+    const notifRepo = createMockNotificationRepo();
+    const pushSubRepo = {
+      findByUser: vi.fn(async () => [
+        { endpoint: 'https://push.example.com/gone', keys: { p256dh: 'a', auth: 'b' } }
+      ]),
+      create: vi.fn(async () => 'created' as const),
+      delete: vi.fn(async () => {})
+    };
+    const push = {
+      sendPush: vi.fn(async () => [
+        {
+          endpoint: 'https://push.example.com/gone',
+          success: false,
+          statusCode: 410,
+          expired: true
+        }
+      ]),
+      cleanupExpired: vi.fn()
+    };
+
+    const logger = { warn: vi.fn(), error: vi.fn() };
+    const service = createNotificationService({
+      registry,
+      sse,
+      push,
+      repos: { notification: notifRepo, pushSubscription: pushSubRepo },
+      logger
+    });
+
+    await service.send('p', {});
+
+    expect(pushSubRepo.delete).toHaveBeenCalled();
+    expect(logger.warn).not.toHaveBeenCalled();
+    expect(logger.error).not.toHaveBeenCalled();
+  });
+
+  it('logs a failed prune instead of swallowing it — a dead endpoint would be re-fetched forever', async () => {
+    const registry = createNotificationRegistry();
+    registry.register({ key: 'p', title: 'Hi', recipients: ['user-1'], channels: ['push'] });
+
+    const sse = createSSEManager();
+    const notifRepo = createMockNotificationRepo();
+    const pushSubRepo = {
+      findByUser: vi.fn(async () => [
+        { endpoint: 'https://push.example.com/gone', keys: { p256dh: 'a', auth: 'b' } }
+      ]),
+      create: vi.fn(async () => 'created' as const),
+      delete: vi.fn(async () => {
+        throw new Error('delete permission revoked');
+      })
+    };
+    const push = {
+      sendPush: vi.fn(async () => [
+        {
+          endpoint: 'https://push.example.com/gone',
+          success: false,
+          statusCode: 410,
+          expired: true
+        }
+      ]),
+      cleanupExpired: vi.fn()
+    };
+
+    const logger = { warn: vi.fn(), error: vi.fn() };
+    const service = createNotificationService({
+      registry,
+      sse,
+      push,
+      repos: { notification: notifRepo, pushSubscription: pushSubRepo },
+      logger
+    });
+
+    await expect(service.send('p', {})).resolves.toBeUndefined();
+    expect(logger.warn).toHaveBeenCalledWith(
+      expect.stringContaining('failed to prune'),
+      expect.any(Error)
+    );
+    // Capability discipline: the endpoint URL must not appear in the log line.
+    const pruneLine = vi
+      .mocked(logger.warn)
+      .mock.calls.find(([msg]) => String(msg).includes('failed to prune'));
+    expect(String(pruneLine?.[0])).not.toContain('push.example.com/gone');
+  });
+
+  it('logs a throwing onPushResult hook instead of losing the consumer’s observability silently', async () => {
+    const registry = createNotificationRegistry();
+    registry.register({ key: 'p', title: 'Hi', recipients: ['user-1'], channels: ['push'] });
+
+    const sse = createSSEManager();
+    const notifRepo = createMockNotificationRepo();
+    const pushSubRepo = {
+      findByUser: vi.fn(async () => [
+        { endpoint: 'https://push.example.com/x', keys: { p256dh: 'a', auth: 'b' } }
+      ]),
+      create: vi.fn(async () => 'created' as const),
+      delete: vi.fn(async () => {})
+    };
+    const push = {
+      sendPush: vi.fn(async () => [
+        { endpoint: 'https://push.example.com/x', success: true, statusCode: 201 }
+      ]),
+      cleanupExpired: vi.fn()
+    };
+
+    const logger = { warn: vi.fn(), error: vi.fn() };
+    const service = createNotificationService({
+      registry,
+      sse,
+      push,
+      repos: { notification: notifRepo, pushSubscription: pushSubRepo },
+      onPushResult: () => {
+        throw new Error('typo in the metrics call');
+      },
+      logger
+    });
+
+    await expect(service.send('p', {})).resolves.toBeUndefined();
+    expect(logger.warn).toHaveBeenCalledWith(
+      expect.stringContaining('onPushResult hook threw'),
+      expect.any(Error)
     );
   });
 
