@@ -4,6 +4,19 @@ All notable changes to this project will be documented in this file.
 This changelog is automatically generated from [Conventional Commits](https://www.conventionalcommits.org).
 
 
+## [6.14.0] - 2026-07-02
+
+### Bug Fixes
+- **auth**: Harden cbor/webauthn parsing against hostile input
+- **auth**: Resolve callers via session cookie and validated locals
+- **auth**: No-op prisma user writes on missing rows per contract
+
+### Features
+- **auth**: Rate-limit re-auth endpoints by default and add a logger seam
+
+### Refactoring
+- **auth**: Drop the never-implemented email notification channel
+
 ## [6.13.0] - 2026-07-02
 
 ### Bug Fixes
