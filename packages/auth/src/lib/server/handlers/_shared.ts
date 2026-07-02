@@ -1,5 +1,6 @@
 import type { Cookies } from '@sveltejs/kit';
-import type { FullAuthUser } from '../adapters/types.js';
+import type { JwtConfig } from '../../types.js';
+import type { FullAuthUser, UserRepository } from '../adapters/types.js';
 import { verifyPasswordWithMigration } from '../auth.js';
 import type { AuthDeps } from '../deps.js';
 import { getSessionFromCookie } from '../session.js';
@@ -19,9 +20,15 @@ import { getSessionFromCookie } from '../session.js';
  * that needs to re-authenticate ({@link verifyCurrentPassword}) or mutate the
  * account has it without a second read. Always run the result through
  * `sanitizeUser` before returning anything to the client.
+ *
+ * The parameter type is structurally minimal (`config.jwt` + `repos.user`)
+ * rather than the full `AuthDeps`, so handler families with narrower deps —
+ * the passkey handlers carry `authConfig` + a passkey/user repo pair — can
+ * share this single resolution path instead of reading `locals.user`, whose
+ * shape a consumer's `transformUser` hook may change arbitrarily.
  */
 export async function requireSessionUser<R extends string>(
-  deps: AuthDeps<R>,
+  deps: { config: { jwt: JwtConfig }; repos: { user: UserRepository<R> } },
   cookies: Cookies
 ): Promise<FullAuthUser<R> | null> {
   const session = await getSessionFromCookie<R>(cookies, deps.config.jwt);

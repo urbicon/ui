@@ -1,6 +1,7 @@
 import type { Cookies, RequestEvent } from '@sveltejs/kit';
 import { describe, expect, it, vi } from 'vitest';
 import type { Passkey, PasskeyRepository } from '../adapters/types.js';
+import { setSessionCookie } from '../session.js';
 import { createMockUser, createMockUserRepository } from '../test-utils.js';
 import {
   createPasskeyAuthenticationOptionsHandler,
@@ -327,11 +328,29 @@ describe('passkey auth — ceremony-handle binding (G.1)', () => {
   });
 });
 
+// The self-service handlers resolve the caller from the session cookie
+// (requireSessionUser, R5) — an authenticated event carries a real signed
+// session cookie plus a matching findById row.
+async function sessionEvent(
+  deps: PasskeyHandlerDeps,
+  extra: { params?: Record<string, string> } = {}
+): Promise<RequestEvent> {
+  const user = createMockUser({ id: 'real-user-99' });
+  vi.mocked(deps.repos.user.findById).mockResolvedValue(user);
+  const jar = makeCookieJar();
+  await setSessionCookie(
+    jar.cookies,
+    { userId: user.id, email: user.email, role: user.role, tokenVersion: user.tokenVersion },
+    deps.authConfig.jwt
+  );
+  return { cookies: jar.cookies, params: extra.params ?? {} } as unknown as RequestEvent;
+}
+
 describe('createPasskeyListHandler — GET', () => {
   it('returns 401 when unauthenticated', async () => {
     const deps = makeDeps();
     const res = await createPasskeyListHandler(deps).GET({
-      locals: {}
+      cookies: makeCookieJar().cookies
     } as unknown as RequestEvent);
     expect(res.status).toBe(401);
     expect(deps.repos.passkey.findByUserId).not.toHaveBeenCalled();
@@ -346,9 +365,7 @@ describe('createPasskeyListHandler — GET', () => {
     });
     deps.repos.passkey.findByUserId = vi.fn().mockResolvedValue([stored]);
 
-    const res = await createPasskeyListHandler(deps).GET({
-      locals: { user: { id: 'real-user-99' } }
-    } as unknown as RequestEvent);
+    const res = await createPasskeyListHandler(deps).GET(await sessionEvent(deps));
     expect(res.status).toBe(200);
     expect(deps.repos.passkey.findByUserId).toHaveBeenCalledWith('real-user-99');
 
@@ -372,7 +389,7 @@ describe('createPasskeyDeleteHandler — DELETE', () => {
   it('returns 401 when unauthenticated', async () => {
     const deps = makeDeps();
     const res = await createPasskeyDeleteHandler(deps).DELETE({
-      locals: {},
+      cookies: makeCookieJar().cookies,
       params: { credentialId: 'cred-abc' }
     } as unknown as RequestEvent);
     expect(res.status).toBe(401);
@@ -381,23 +398,41 @@ describe('createPasskeyDeleteHandler — DELETE', () => {
 
   it('returns 400 without a credentialId param', async () => {
     const deps = makeDeps();
-    const res = await createPasskeyDeleteHandler(deps).DELETE({
-      locals: { user: { id: 'real-user-99' } },
-      params: {}
-    } as unknown as RequestEvent);
+    const res = await createPasskeyDeleteHandler(deps).DELETE(await sessionEvent(deps));
     expect(res.status).toBe(400);
     expect(deps.repos.passkey.delete).not.toHaveBeenCalled();
   });
 
   it('deletes owner-scoped: (credentialId, userId) in that order', async () => {
     const deps = makeDeps();
-    const res = await createPasskeyDeleteHandler(deps).DELETE({
-      locals: { user: { id: 'real-user-99' } },
-      params: { credentialId: 'cred-abc' }
-    } as unknown as RequestEvent);
+    const res = await createPasskeyDeleteHandler(deps).DELETE(
+      await sessionEvent(deps, { params: { credentialId: 'cred-abc' } })
+    );
     expect(res.status).toBe(200);
     // Argument order is the IDOR guard: the repo no-ops unless the row
     // belongs to this user.
     expect(deps.repos.passkey.delete).toHaveBeenCalledWith('cred-abc', 'real-user-99');
+  });
+});
+
+describe('passkey self-service — session revalidation (R5)', () => {
+  it('rejects a stale tokenVersion with 401 ("log out everywhere" covers passkey management)', async () => {
+    // The R5 selling point: cookie resolution re-validates tokenVersion, so a
+    // JWT-only drift (trusting the claims without findById) must fail here.
+    const deps = makeDeps();
+    const user = createMockUser({ id: 'real-user-99', tokenVersion: 5 });
+    vi.mocked(deps.repos.user.findById).mockResolvedValue(user);
+    const jar = makeCookieJar();
+    await setSessionCookie(
+      jar.cookies,
+      { userId: user.id, email: user.email, role: user.role, tokenVersion: 4 }, // stale
+      deps.authConfig.jwt
+    );
+
+    const res = await createPasskeyListHandler(deps).GET({
+      cookies: jar.cookies
+    } as unknown as RequestEvent);
+    expect(res.status).toBe(401);
+    expect(deps.repos.passkey.findByUserId).not.toHaveBeenCalled();
   });
 });

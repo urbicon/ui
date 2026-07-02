@@ -1,4 +1,4 @@
-import type { RequestEvent } from '@sveltejs/kit';
+import type { Cookies, RequestEvent } from '@sveltejs/kit';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 // Mock the WebAuthn core so the registration *handler* logic (auth gate →
@@ -20,7 +20,8 @@ vi.mock('./webauthn.js', async (importActual) => {
 });
 
 import type { Passkey, PasskeyRepository } from '../adapters/types.js';
-import { createMockUserRepository } from '../test-utils.js';
+import { setSessionCookie } from '../session.js';
+import { createMockUser, createMockUserRepository } from '../test-utils.js';
 import {
   createPasskeyRegistrationOptionsHandler,
   createPasskeyRegistrationVerifyHandler,
@@ -72,19 +73,49 @@ function makeDeps(passkey: PasskeyRepository = mockPasskeyRepo()): PasskeyHandle
   };
 }
 
-const SESSION_USER = { id: 'user-1', email: 'user@test.com', name: 'Test User' };
+const SESSION_USER = createMockUser({ id: 'user-1', email: 'user@test.com', name: 'Test User' });
 
-/** The registration handlers are session-gated (they read `locals.user`) and
- *  use neither cookies nor the client IP, so the event only needs body + locals. */
-function event(body: unknown, user?: { id: string; email: string; name: string }): RequestEvent {
+/** The registration handlers resolve the caller from the session cookie
+ *  (`requireSessionUser` — R5 replaced the `locals.user` read, which a
+ *  consumer `transformUser` hook could reshape), so an authenticated event
+ *  carries a real signed session cookie and a matching `findById` row. */
+function makeCookieJar() {
+  const store = new Map<string, string>();
+  const cookies = {
+    get: (name: string) => store.get(name),
+    set: (name: string, value: string) => void store.set(name, value),
+    delete: (name: string) => void store.delete(name),
+    getAll: () => [],
+    serialize: () => ''
+  } as unknown as Cookies;
+  return { store, cookies };
+}
+
+function event(body: unknown, jar = makeCookieJar()): RequestEvent {
   return {
     request: new Request('http://localhost/api/auth/passkey/register', {
       method: 'POST',
       body: JSON.stringify(body),
       headers: { 'Content-Type': 'application/json' }
     }),
-    locals: user ? { user } : {}
+    cookies: jar.cookies
   } as unknown as RequestEvent;
+}
+
+async function authedEvent(deps: PasskeyHandlerDeps, body: unknown): Promise<RequestEvent> {
+  const jar = makeCookieJar();
+  vi.mocked(deps.repos.user.findById).mockResolvedValue(SESSION_USER);
+  await setSessionCookie(
+    jar.cookies,
+    {
+      userId: SESSION_USER.id,
+      email: SESSION_USER.email,
+      role: SESSION_USER.role,
+      tokenVersion: SESSION_USER.tokenVersion
+    },
+    deps.authConfig.jwt
+  );
+  return event(body, jar);
 }
 
 beforeEach(() => {
@@ -105,7 +136,9 @@ describe('createPasskeyRegistrationOptionsHandler', () => {
     });
     const deps = makeDeps(passkey);
 
-    const res = await createPasskeyRegistrationOptionsHandler(deps).POST(event({}, SESSION_USER));
+    const res = await createPasskeyRegistrationOptionsHandler(deps).POST(
+      await authedEvent(deps, {})
+    );
     expect(res.status).toBe(200);
     const { options } = await res.json();
 
@@ -129,8 +162,9 @@ describe('createPasskeyRegistrationVerifyHandler', () => {
   });
 
   it('returns 400 when the credential is missing from the body', async () => {
-    const res = await createPasskeyRegistrationVerifyHandler(makeDeps()).POST(
-      event({}, SESSION_USER)
+    const deps = makeDeps();
+    const res = await createPasskeyRegistrationVerifyHandler(deps).POST(
+      await authedEvent(deps, {})
     );
     expect(res.status).toBe(400);
     expect(mockedVerify).not.toHaveBeenCalled();
@@ -138,8 +172,9 @@ describe('createPasskeyRegistrationVerifyHandler', () => {
 
   it('maps a WebAuthnError to a 400 (bad attestation is a client error, not a 500)', async () => {
     mockedVerify.mockRejectedValue(new WebAuthnError('Invalid attestation'));
-    const res = await createPasskeyRegistrationVerifyHandler(makeDeps()).POST(
-      event({ credential: { id: 'x' } }, SESSION_USER)
+    const deps = makeDeps();
+    const res = await createPasskeyRegistrationVerifyHandler(deps).POST(
+      await authedEvent(deps, { credential: { id: 'x' } })
     );
     expect(res.status).toBe(400);
     expect((await res.json()).error).toBe('Invalid attestation');
@@ -147,9 +182,10 @@ describe('createPasskeyRegistrationVerifyHandler', () => {
 
   it('re-throws a non-WebAuthn error so the framework surfaces it as a 500', async () => {
     mockedVerify.mockRejectedValue(new Error('database is down'));
+    const deps = makeDeps();
     await expect(
-      createPasskeyRegistrationVerifyHandler(makeDeps()).POST(
-        event({ credential: { id: 'x' } }, SESSION_USER)
+      createPasskeyRegistrationVerifyHandler(deps).POST(
+        await authedEvent(deps, { credential: { id: 'x' } })
       )
     ).rejects.toThrow('database is down');
   });
@@ -170,7 +206,11 @@ describe('createPasskeyRegistrationVerifyHandler', () => {
     const res = await createPasskeyRegistrationVerifyHandler(deps).POST(
       // A hostile body claims another owner and a forged credentialId; the
       // handler must bind to the SESSION user and store the VERIFIED fields.
-      event({ userId: 'victim-2', credential: { id: 'spoofed' }, name: 'My Laptop' }, SESSION_USER)
+      await authedEvent(deps, {
+        userId: 'victim-2',
+        credential: { id: 'spoofed' },
+        name: 'My Laptop'
+      })
     );
 
     expect(res.status).toBe(201);

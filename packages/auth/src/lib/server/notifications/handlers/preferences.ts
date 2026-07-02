@@ -2,6 +2,7 @@ import type { RequestHandler } from '@sveltejs/kit';
 import { json } from '@sveltejs/kit';
 import type { NotificationPreferenceRepository } from '../../adapters/types.js';
 import { readJsonBody } from '../../validation.js';
+import { localsUserId } from './locals-user.js';
 
 const MAX_TYPE_KEY_LENGTH = 256;
 
@@ -16,18 +17,18 @@ export function createPreferencesHandler(repo: NotificationPreferenceRepository)
 } {
   return {
     GET: async ({ locals }) => {
-      const user = (locals as { user?: { id: string } }).user;
-      if (!user) {
+      const userId = localsUserId(locals);
+      if (!userId) {
         return json({ error: 'Unauthorized' }, { status: 401 });
       }
 
-      const prefs = await repo.findByUser(user.id);
+      const prefs = await repo.findByUser(userId);
       return json({ preferences: prefs });
     },
 
     PUT: async ({ request, locals }) => {
-      const user = (locals as { user?: { id: string } }).user;
-      if (!user) {
+      const userId = localsUserId(locals);
+      if (!userId) {
         return json({ error: 'Unauthorized' }, { status: 401 });
       }
 
@@ -49,7 +50,7 @@ export function createPreferencesHandler(repo: NotificationPreferenceRepository)
 
       // Coerce the flags to booleans — a client sending a non-boolean (or
       // omitting a flag) must not write arbitrary values into the repo.
-      await repo.upsert(user.id, typeKey, {
+      await repo.upsert(userId, typeKey, {
         sse: flag(sse),
         push: flag(push),
         email: flag(email)

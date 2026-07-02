@@ -1,4 +1,4 @@
-import type { RequestHandler } from '@sveltejs/kit';
+import type { Cookies, RequestHandler } from '@sveltejs/kit';
 import { json } from '@sveltejs/kit';
 import type { AuthConfig, RateLimitConfig } from '../../types.js';
 import type {
@@ -7,6 +7,7 @@ import type {
   UserRepository
 } from '../adapters/types.js';
 import { sanitizeUser } from '../auth.js';
+import { requireSessionUser } from '../handlers/_shared.js';
 import { base64UrlDecode } from '../notifications/web-push-crypto.js';
 import { enforceRateLimit, makeRateLimiter, type RateLimiter } from '../rate-limit.js';
 import { establishSession, resolveSessionMeta } from '../session.js';
@@ -70,14 +71,23 @@ export interface PasskeyHandlerDeps<R extends string = string> {
   };
 }
 
+// Resolve the authenticated caller from the session cookie — the same path
+// the account handlers use — instead of `locals.user`: a consumer's
+// `transformUser` hook may reshape locals arbitrarily, which used to break
+// these handlers silently (`user.id === undefined` flowing into repo lookups,
+// review finding R5). Cookie resolution also re-validates `tokenVersion`.
+function sessionUser<R extends string>(deps: PasskeyHandlerDeps<R>, cookies: Cookies) {
+  return requireSessionUser({ config: deps.authConfig, repos: deps.repos }, cookies);
+}
+
 // ---- Registration Options ----
 
 export function createPasskeyRegistrationOptionsHandler<R extends string>(
   deps: PasskeyHandlerDeps<R>
 ): { POST: RequestHandler } {
   return {
-    POST: async ({ locals }) => {
-      const user = (locals as { user?: { id: string; email: string; name: string } }).user;
+    POST: async ({ cookies }) => {
+      const user = await sessionUser(deps, cookies);
       if (!user) {
         return json({ error: 'Unauthorized' }, { status: 401 });
       }
@@ -102,8 +112,8 @@ export function createPasskeyRegistrationVerifyHandler<R extends string>(
   deps: PasskeyHandlerDeps<R>
 ): { POST: RequestHandler } {
   return {
-    POST: async ({ request, locals }) => {
-      const user = (locals as { user?: { id: string; email: string; name: string } }).user;
+    POST: async ({ request, cookies }) => {
+      const user = await sessionUser(deps, cookies);
       if (!user) {
         return json({ error: 'Unauthorized' }, { status: 401 });
       }
@@ -220,6 +230,14 @@ export function createPasskeyAuthenticationVerifyHandler<R extends string>(
 ): { POST: RequestHandler } {
   const rateLimiter = sharedPasskeyAuthLimiter(deps.authConfig.rateLimit?.passkeyAuth);
 
+  // Audit-seam parity with the password login (review finding R10): every
+  // terminal outcome of a passkey login fires the same consumer hooks, so an
+  // audit log sees passkey logins too. The email argument is '' on paths where
+  // the ceremony fails before a user is resolved — discoverable login knows no
+  // email up front; the reason string disambiguates.
+  const loginFailed = (email: string, reason: string) =>
+    deps.authConfig.hooks?.onLoginFailed?.(email, reason);
+
   return {
     POST: async (event) => {
       const { request, cookies, getClientAddress } = event;
@@ -235,6 +253,7 @@ export function createPasskeyAuthenticationVerifyHandler<R extends string>(
       const cookieName = webauthnAuthCookieName(secure);
       const ceremonyId = cookies.get(cookieName);
       if (!ceremonyId) {
+        await loginFailed('', 'challenge_missing');
         return json({ error: 'Challenge expired or not found' }, { status: 400 });
       }
       // Invalidate the single-use handle immediately, so no error path (or
@@ -253,6 +272,7 @@ export function createPasskeyAuthenticationVerifyHandler<R extends string>(
         // Look up the stored credential
         const stored = await deps.repos.passkey.findByCredentialId(credential.id);
         if (!stored) {
+          await loginFailed('', 'unknown_credential');
           return json({ error: 'Unknown credential' }, { status: 400 });
         }
 
@@ -282,6 +302,7 @@ export function createPasskeyAuthenticationVerifyHandler<R extends string>(
             handleUserId = null;
           }
           if (handleUserId !== stored.userId) {
+            await loginFailed('', 'user_handle_mismatch');
             return json({ error: 'User handle mismatch' }, { status: 400 });
           }
         }
@@ -292,6 +313,7 @@ export function createPasskeyAuthenticationVerifyHandler<R extends string>(
         // closes the cloned-authenticator window the bare update left open.
         const advanced = await deps.repos.passkey.updateCounter(credential.id, verified.newCounter);
         if (!advanced) {
+          await loginFailed('', 'counter_regression');
           return json(
             { error: 'Counter did not increase — possible cloned authenticator' },
             { status: 400 }
@@ -301,6 +323,7 @@ export function createPasskeyAuthenticationVerifyHandler<R extends string>(
         // Load user and create session
         const user = await deps.repos.user.findById(stored.userId);
         if (!user) {
+          await loginFailed('', 'user_not_found');
           return json({ error: 'User not found' }, { status: 400 });
         }
 
@@ -316,9 +339,14 @@ export function createPasskeyAuthenticationVerifyHandler<R extends string>(
           resolveSessionMeta(event, deps.authConfig)
         );
 
-        return json({ user: sanitizeUser(user) });
+        const safeUser = sanitizeUser(user);
+        await deps.authConfig.hooks?.onLoginSuccess?.(safeUser);
+        return json({ user: safeUser });
       } catch (err) {
         if (err instanceof WebAuthnError) {
+          // The assertion itself was rejected (bad signature, challenge
+          // mismatch, origin, …) — the audit-relevant failure class.
+          await loginFailed('', 'invalid_assertion');
           return json({ error: err.message }, { status: 400 });
         }
         throw err;
@@ -343,8 +371,8 @@ export function createPasskeyListHandler<R extends string>(
   deps: PasskeyHandlerDeps<R>
 ): { GET: RequestHandler } {
   return {
-    GET: async ({ locals }) => {
-      const user = (locals as { user?: { id: string } }).user;
+    GET: async ({ cookies }) => {
+      const user = await sessionUser(deps, cookies);
       if (!user) {
         return json({ error: 'Unauthorized' }, { status: 401 });
       }
@@ -387,8 +415,8 @@ export function createPasskeyDeleteHandler<R extends string>(
   deps: PasskeyHandlerDeps<R>
 ): { DELETE: RequestHandler } {
   return {
-    DELETE: async ({ locals, params }) => {
-      const user = (locals as { user?: { id: string } }).user;
+    DELETE: async ({ cookies, params }) => {
+      const user = await sessionUser(deps, cookies);
       if (!user) {
         return json({ error: 'Unauthorized' }, { status: 401 });
       }

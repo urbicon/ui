@@ -6,8 +6,8 @@ import { sanitizeUser } from '../auth.js';
 import type { AuthDeps } from '../deps.js';
 import { resolveEmailSettings } from '../email/resolve.js';
 import { buildInvitationEmail } from '../email/templates.js';
-import { getSessionFromCookie } from '../session.js';
 import { readJsonBody, validateInvitationInput } from '../validation.js';
+import { requireSessionUser } from './_shared.js';
 import { authError } from './errors.js';
 
 export interface InvitationHandlerOptions<R extends string = string> {
@@ -85,13 +85,8 @@ export function createInvitationHandlers<R extends string>(
   async function authorizedUser(
     cookies: Parameters<RequestHandler>[0]['cookies']
   ): Promise<{ user: AuthUser<R> } | Response> {
-    const session = await getSessionFromCookie<R>(cookies, deps.config.jwt);
-    if (!session) return authError('not_authenticated', 401, { message: 'Unauthorized' });
-
-    const full = await deps.repos.user.findById(session.userId);
-    if (!full || full.tokenVersion !== session.tokenVersion) {
-      return authError('not_authenticated', 401, { message: 'Unauthorized' });
-    }
+    const full = await requireSessionUser(deps, cookies);
+    if (!full) return authError('not_authenticated', 401, { message: 'Unauthorized' });
 
     const user = sanitizeUser(full);
     if (!(await authorize(user))) return authError('forbidden', 403);
@@ -164,14 +159,14 @@ export function createInvitationHandlers<R extends string>(
           // register, so surface this loudly (error, not warn) and via the
           // optional hook so it can reach an error tracker / resend queue,
           // mirroring `onPasswordResetFailed`.
-          console.error(
+          deps.logger.error(
             `[auth] invitation for ${email} was created but the invite email failed to send:`,
             err
           );
           try {
             await deps.config.hooks?.onInvitationEmailFailed?.(email, err);
           } catch (hookErr) {
-            console.error('[auth] onInvitationEmailFailed hook threw:', hookErr);
+            deps.logger.error('[auth] onInvitationEmailFailed hook threw:', hookErr);
           }
         }
       }

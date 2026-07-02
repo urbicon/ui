@@ -4,6 +4,7 @@ import type { PushSubscriptionRepository } from '../../adapters/types.js';
 import { readJsonBody } from '../../validation.js';
 import { isAllowedPushEndpoint } from '../push-endpoint.js';
 import { base64UrlDecode } from '../web-push-crypto.js';
+import { localsUserId } from './locals-user.js';
 
 /**
  * Structurally validate the subscription `keys` before persisting. RFC 8291
@@ -48,8 +49,8 @@ export function createPushSubscriptionHandler(
 } {
   return {
     POST: async ({ request, locals }) => {
-      const user = (locals as { user?: { id: string } }).user;
-      if (!user) {
+      const userId = localsUserId(locals);
+      if (!userId) {
         return json({ error: 'Unauthorized' }, { status: 401 });
       }
 
@@ -73,7 +74,7 @@ export function createPushSubscriptionHandler(
         return json({ error: 'Invalid subscription keys' }, { status: 400 });
       }
 
-      await repo.create(user.id, {
+      await repo.create(userId, {
         endpoint: subscription.endpoint,
         keys: subscription.keys
       });
@@ -82,8 +83,8 @@ export function createPushSubscriptionHandler(
     },
 
     DELETE: async ({ request, locals }) => {
-      const user = (locals as { user?: { id: string } }).user;
-      if (!user) {
+      const userId = localsUserId(locals);
+      if (!userId) {
         return json({ error: 'Unauthorized' }, { status: 401 });
       }
 
@@ -92,7 +93,7 @@ export function createPushSubscriptionHandler(
         return json({ error: 'Endpoint is required' }, { status: 400 });
       }
 
-      await repo.delete(user.id, endpoint);
+      await repo.delete(userId, endpoint);
       return json({ success: true });
     }
   };

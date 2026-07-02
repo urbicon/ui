@@ -1,6 +1,7 @@
 import type { RequestHandler } from '@sveltejs/kit';
 import { json } from '@sveltejs/kit';
 import type { NotificationService } from '../service.js';
+import { localsUserId } from './locals-user.js';
 
 /**
  * Notification CRUD: the server half of `createNotificationStore` (and with
@@ -31,16 +32,11 @@ export function createNotificationsHandlers(service: NotificationService): {
   read: { POST: RequestHandler };
   item: { DELETE: RequestHandler };
 } {
-  const requireUser = (locals: Parameters<RequestHandler>[0]['locals']): { id: string } | null => {
-    const user = (locals as { user?: { id: string } }).user;
-    return user ?? null;
-  };
-
   return {
     list: {
       GET: async ({ locals, url }) => {
-        const user = requireUser(locals);
-        if (!user) {
+        const userId = localsUserId(locals);
+        if (!userId) {
           return json({ error: 'Unauthorized' }, { status: 401 });
         }
 
@@ -48,7 +44,7 @@ export function createNotificationsHandlers(service: NotificationService): {
         // non-positive `limit` means "no limit" rather than a 400.
         const limitRaw = url.searchParams.get('limit');
         const limitParsed = limitRaw === null ? Number.NaN : Number.parseInt(limitRaw, 10);
-        const notifications = await service.getForUser(user.id, {
+        const notifications = await service.getForUser(userId, {
           limit: Number.isInteger(limitParsed) && limitParsed > 0 ? limitParsed : undefined,
           unreadOnly: url.searchParams.get('unreadOnly') === 'true'
         });
@@ -58,20 +54,20 @@ export function createNotificationsHandlers(service: NotificationService): {
 
     readAll: {
       POST: async ({ locals }) => {
-        const user = requireUser(locals);
-        if (!user) {
+        const userId = localsUserId(locals);
+        if (!userId) {
           return json({ error: 'Unauthorized' }, { status: 401 });
         }
 
-        await service.markAllAsRead(user.id);
+        await service.markAllAsRead(userId);
         return json({ success: true });
       }
     },
 
     read: {
       POST: async ({ locals, params }) => {
-        const user = requireUser(locals);
-        if (!user) {
+        const userId = localsUserId(locals);
+        if (!userId) {
           return json({ error: 'Unauthorized' }, { status: 401 });
         }
 
@@ -80,15 +76,15 @@ export function createNotificationsHandlers(service: NotificationService): {
           return json({ error: 'Notification id is required' }, { status: 400 });
         }
 
-        await service.markAsRead(id, user.id);
+        await service.markAsRead(id, userId);
         return json({ success: true });
       }
     },
 
     item: {
       DELETE: async ({ locals, params }) => {
-        const user = requireUser(locals);
-        if (!user) {
+        const userId = localsUserId(locals);
+        if (!userId) {
           return json({ error: 'Unauthorized' }, { status: 401 });
         }
 
@@ -97,7 +93,7 @@ export function createNotificationsHandlers(service: NotificationService): {
           return json({ error: 'Notification id is required' }, { status: 400 });
         }
 
-        await service.deleteNotification(id, user.id);
+        await service.deleteNotification(id, userId);
         return json({ success: true });
       }
     }

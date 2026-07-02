@@ -1,6 +1,6 @@
 import type { RequestHandler } from '@sveltejs/kit';
-import type { AuthUser } from '../../../types.js';
 import type { SSEManager } from '../sse.js';
+import { localsUserId } from './locals-user.js';
 
 export interface StreamHandlerOptions {
   /**
@@ -27,8 +27,8 @@ export function createStreamHandler(
 
   return {
     GET: async ({ locals, request }) => {
-      const user = (locals as Record<string, unknown>).user as AuthUser | undefined;
-      if (!user) {
+      const userId = localsUserId(locals);
+      if (!userId) {
         return new Response('Unauthorized', { status: 401 });
       }
 
@@ -37,7 +37,7 @@ export function createStreamHandler(
       // check-then-register gap below crosses no `await`, and `start()` runs
       // synchronously, so on single-threaded JS runtimes no concurrent request
       // can interleave past this check — the count is exact, no lock needed.
-      if (sse.connectionCount(user.id) >= maxConnectionsPerUser) {
+      if (sse.connectionCount(userId) >= maxConnectionsPerUser) {
         return new Response('Too many concurrent connections', { status: 429 });
       }
 
@@ -54,7 +54,7 @@ export function createStreamHandler(
           heartbeat = undefined;
         }
         if (registered) {
-          sse.removeConnection(user.id, registered);
+          sse.removeConnection(userId, registered);
           registered = undefined;
         }
       };
@@ -62,7 +62,7 @@ export function createStreamHandler(
       const stream = new ReadableStream({
         start(controller) {
           registered = controller;
-          sse.addConnection(user.id, controller);
+          sse.addConnection(userId, controller);
 
           // Initial heartbeat so the client sees an open stream immediately.
           try {

@@ -153,3 +153,20 @@ describe('createNotificationsHandlers — item.DELETE', () => {
     expect(service.deleteNotification).toHaveBeenCalledWith('n1', 'owner-1');
   });
 });
+
+describe('locals shape contract (R5)', () => {
+  it('rejects a transformUser-reshaped locals.user without a string id (401, no query)', async () => {
+    // The documented failure mode: a consumer transformUser returning
+    // { auth: user, tenant } used to flow user.id === undefined into
+    // findByUserId — Prisma drops an undefined where-filter, so that read
+    // could return ANOTHER user's rows. localsUserId fails closed instead.
+    const service = mockService();
+    const res = await createNotificationsHandlers(service).list.GET({
+      url: new URL('http://localhost/api/notifications'),
+      params: {},
+      locals: { user: { name: 'reshaped', auth: { id: 'u-1' } } }
+    } as unknown as Parameters<ReturnType<typeof createNotificationsHandlers>['list']['GET']>[0]);
+    expect(res.status).toBe(401);
+    expect(service.getForUser).not.toHaveBeenCalled();
+  });
+});
