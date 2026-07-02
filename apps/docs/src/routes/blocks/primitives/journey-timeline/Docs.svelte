@@ -1,7 +1,13 @@
 <script lang="ts">
   import type { SvelteDocsConfig } from '@urbicon-ui/shared-types';
   import { CodeExample, Section } from '@urbicon-ui/docs';
-  import { Badge, Button, JourneyTimeline, type JourneyNode } from '@urbicon-ui/blocks';
+  import {
+    Badge,
+    Button,
+    JourneyTimeline,
+    type JourneyNode,
+    type JourneyStatus
+  } from '@urbicon-ui/blocks';
 
   export const docsConfig: SvelteDocsConfig = {
     generation: {
@@ -85,9 +91,59 @@
       focusable: false
     },
     { id: 's-pending', title: 'Pending', status: 'pending', subtitle: 'Not started' },
+    { id: 's-attention', title: 'Attention', status: 'attention', subtitle: 'Optional, but look' },
     { id: 's-blocked', title: 'Blocked', status: 'blocked', subtitle: 'Missing data' },
     { id: 's-skipped', title: 'Skipped', status: 'skipped', subtitle: 'Not applicable' }
   ];
+
+  // A billing cockpit — glyph markers, an attention row and trailing per row.
+  const cockpit: JourneyNode[] = [
+    { id: 'c-period', title: 'Billing period', status: 'complete', subtitle: 'Jan – Dec 2025' },
+    {
+      id: 'c-heating',
+      title: 'Heating configuration',
+      status: 'blocked',
+      subtitle: 'Heat/water split missing'
+    },
+    {
+      id: 'c-consumption',
+      title: 'Consumption',
+      status: 'pending',
+      subtitle: 'Waits for heating',
+      focusable: false
+    },
+    {
+      id: 'c-expenses',
+      title: 'Expenses & distribution',
+      status: 'active',
+      subtitle: 'No expenses recorded yet'
+    },
+    {
+      id: 'c-advances',
+      title: 'Advance payments',
+      status: 'attention',
+      subtitle: 'Needed for the tenant balance'
+    }
+  ];
+  const glyphs: Record<JourneyStatus, string> = {
+    complete: '✓',
+    active: '▸',
+    pending: '·',
+    attention: '○',
+    blocked: '▲',
+    skipped: '—'
+  };
+  // Filled dots take the on-primary tone (light, like filled buttons); hollow
+  // ones echo their border hue.
+  const glyphTone: Record<JourneyStatus, string> = {
+    complete: 'text-text-on-primary',
+    active: 'text-text-on-primary',
+    pending: 'text-text-tertiary',
+    attention: 'text-warning-emphasis',
+    blocked: 'text-text-on-primary',
+    skipped: 'text-text-tertiary'
+  };
+  let lastHelp = $state<string | undefined>(undefined);
 </script>
 
 <!-- ─── Examples ─── -->
@@ -166,6 +222,43 @@
         </JourneyTimeline>
       </div>
     </CodeExample>
+
+    <CodeExample
+      title="Cockpit rows: glyph markers, attention + trailing"
+      description="The rich-row recipe: the marker snippet puts glyphs inside the status dots (scaled up via slotClasses.marker), status attention flags the optional-but-noteworthy row, and the trailing snippet adds badges and a help action per row. Trailing renders outside the trigger button — pressing “?” never moves the focus."
+      isolate
+    >
+      <div class="flex w-full max-w-lg flex-col gap-3">
+        <p class="text-text-tertiary text-xs" aria-live="polite">
+          {lastHelp ? `Help requested for “${lastHelp}”.` : 'No help requested yet.'}
+        </p>
+        <JourneyTimeline
+          items={cockpit}
+          slotClasses={{ marker: 'size-5 mt-1.5', markerColumn: 'w-5' }}
+        >
+          {#snippet marker(item)}
+            <span class={['text-[11px] font-bold leading-none', glyphTone[item.status]]}>
+              {glyphs[item.status]}
+            </span>
+          {/snippet}
+          {#snippet trailing(item)}
+            {#if item.status === 'blocked'}
+              <Badge size="xs" intent="danger" variant="soft">must · blocks close</Badge>
+            {:else if item.status === 'attention'}
+              <Badge size="xs" intent="warning" variant="soft">optional</Badge>
+            {/if}
+            {#if item.focusable !== false}
+              <Button size="xs" variant="ghost" onclick={() => (lastHelp = item.title)}>?</Button>
+            {/if}
+          {/snippet}
+          {#snippet node(item)}
+            <p class="text-text-secondary text-sm">
+              Why “{item.title}” matters, its consequences and the next action live here.
+            </p>
+          {/snippet}
+        </JourneyTimeline>
+      </div>
+    </CodeExample>
   </div>
 </Section>
 
@@ -175,6 +268,7 @@
     <p class="text-text-secondary text-sm">
       Each node's <code>status</code> maps to a semantic dot: <strong>complete</strong> (success,
       filled), <strong>active</strong> (primary, ringed), <strong>pending</strong> (hollow),
+      <strong>attention</strong> (hollow on the warning token — worth a look, does not block),
       <strong>blocked</strong> (danger — the title turns danger too, so colour is never the only
       cue) and <strong>skipped</strong> (muted). The connector leaving a completed node reads as
       “travelled”. Set <code>focusable: false</code> for pure waypoints — they render a marker and label
@@ -247,10 +341,10 @@
       Every family member supports <code>unstyled</code>, <code>slotClasses</code> and
       <code>preset</code>. Slots: <code>base</code>, <code>rail</code>, <code>node</code>,
       <code>metaColumn</code>, <code>meta</code>, <code>markerColumn</code>, <code>marker</code>,
-      <code>connector</code>, <code>content</code>, <code>card</code>, <code>trigger</code>,
-      <code>labelGroup</code>, <code>title</code>, <code>subtitle</code>, <code>segment</code>,
-      <code>detail</code>, <code>detailInner</code>, <code>detailContent</code> and
-      <code>panel</code>.
+      <code>connector</code>, <code>content</code>, <code>card</code>, <code>header</code>,
+      <code>trigger</code>, <code>trailing</code>, <code>labelGroup</code>, <code>title</code>,
+      <code>subtitle</code>, <code>segment</code>, <code>detail</code>, <code>detailInner</code>,
+      <code>detailContent</code> and <code>panel</code>.
     </p>
     <CodeExample
       title="Restyle markers and the docked panel"
@@ -276,9 +370,15 @@
     <p>
       The rail is an ordered list. Each node carries <code>aria-current="step"</code> while its
       status is <code>active</code>; the focusable trigger exposes <code>aria-expanded</code> and
-      <code>aria-controls</code> for its detail region (a per-node inline region, or the shared panel
-      in panel/horizontal mode). The status is announced through a visually-hidden label, so the dot markers
-      stay decorative.
+      <code>aria-controls</code> for its detail region (a per-node inline region, or the shared
+      panel in panel/horizontal mode). The status is announced through a visually-hidden label, so
+      the dot markers stay decorative — including any glyphs rendered through the
+      <code>marker</code> snippet.
+    </p>
+    <p>
+      <code>trailing</code> content renders <em>outside</em> the trigger button, as a sibling in the header
+      row: buttons and links inside it are valid HTML, become regular tab stops after the header, and
+      activating them never changes the focused node. Arrow-key roving stays on the node headers only.
     </p>
     <div>
       <p class="text-text-primary mb-2 font-medium">Keyboard</p>
