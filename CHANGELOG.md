@@ -4,6 +4,14 @@ All notable changes to this project will be documented in this file.
 This changelog is automatically generated from [Conventional Commits](https://www.conventionalcommits.org).
 
 
+## [6.11.0] - 2026-07-02
+
+### Documentation
+- **blocks**: Add cockpit recipe for JourneyTimeline rich rows
+
+### Features
+- **blocks**: Add marker/trailing snippets + attention status
+
 ## [6.10.1] - 2026-07-02
 
 ### Bug Fixes
