@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { Button, Input, Card, Alert, Checkbox, Separator } from '@urbicon-ui/blocks';
+  import { Button, Checkbox, Input, Separator } from '@urbicon-ui/blocks';
   import { onMount } from 'svelte';
   import { mergeAuthLocale, useAuthLocale } from '../../../i18n/index.js';
   import { csrfFetch } from '../../csrf.js';
@@ -7,6 +7,8 @@
   import type { LoginPageProps } from './index.js';
   import { base64UrlToBuffer, bufferToBase64Url } from '../../utils/webauthn.js';
   import { errorTextFromBody } from '../../utils/http.js';
+  import { slotClass } from '../../utils/slot-class.js';
+  import AuthPageShell from '../_shared/AuthPageShell.svelte';
 
   let {
     t: tProp,
@@ -149,7 +151,6 @@
       }
       const { options } = await optRes.json();
 
-      // eslint-disable-next-line no-undef
       const publicKeyOptions: PublicKeyCredentialRequestOptions = {
         ...options,
         challenge: base64UrlToBuffer(options.challenge),
@@ -211,69 +212,74 @@
       passkeyLoading = false;
     }
   }
+
+  const cls = (base: string, slot?: string) => slotClass(unstyled, base, slot);
 </script>
 
-<div
-  class={unstyled
-    ? [slotClasses.root, className].filter(Boolean).join(' ')
-    : ['flex min-h-[60vh] items-center justify-center', slotClasses.root, className]
-        .filter(Boolean)
-        .join(' ')}
+<AuthPageShell
+  title={awaitingTwoFactor ? t.twoFactor.loginTitle : t.auth.login.title}
+  {error}
+  header={headerSnippet}
+  {unstyled}
+  {slotClasses}
+  class={className}
 >
-  <Card
-    variant="outlined"
-    padding="xl"
-    {unstyled}
-    class={unstyled
-      ? slotClasses.card
-      : ['w-full max-w-md', slotClasses.card].filter(Boolean).join(' ')}
-  >
-    <h1
-      class={unstyled
-        ? slotClasses.title
-        : ['text-text-primary mb-6 text-2xl font-semibold', slotClasses.title]
-            .filter(Boolean)
-            .join(' ')}
-    >
-      {awaitingTwoFactor ? t.twoFactor.loginTitle : t.auth.login.title}
-    </h1>
-
-    {#if headerSnippet}
-      {@render headerSnippet()}
-    {/if}
-
-    <div aria-live="polite">
-      {#if error}
-        <Alert
-          intent="danger"
-          size="sm"
-          {unstyled}
-          class={['mb-4', slotClasses.error].filter(Boolean).join(' ')}
-        >
-          {error}
-        </Alert>
-      {/if}
-    </div>
-
-    {#if awaitingTwoFactor}
-      <form
-        onsubmit={handleTwoFactorSubmit}
-        class={unstyled
-          ? slotClasses.form
-          : ['flex flex-col gap-4', slotClasses.form].filter(Boolean).join(' ')}
+  {#if awaitingTwoFactor}
+    <form onsubmit={handleTwoFactorSubmit} class={cls('flex flex-col gap-4', slotClasses.form)}>
+      <p class={cls('text-text-secondary text-sm')}>
+        {t.twoFactor.loginPrompt}
+      </p>
+      <Input
+        label={t.twoFactor.loginCode}
+        inputmode="numeric"
+        autoComplete="one-time-code"
+        bind:value={twoFactorCode}
+        required
+        {unstyled}
+        class={slotClasses.field}
+      />
+      <Button
+        type="submit"
+        variant="filled"
+        intent="primary"
+        loading={submitting}
+        disabled={submitting}
+        {unstyled}
+        class={cls('mt-2 w-full', slotClasses.submit)}
       >
-        <p class={unstyled ? undefined : 'text-text-secondary text-sm'}>
-          {t.twoFactor.loginPrompt}
-        </p>
+        {t.twoFactor.loginSubmit}
+      </Button>
+      <p class={cls('text-text-tertiary text-center text-xs')}>
+        {t.twoFactor.loginBackupHint}
+      </p>
+    </form>
+  {:else}
+    {#if showPassword}
+      <form onsubmit={handleSubmit} class={cls('flex flex-col gap-4', slotClasses.form)}>
         <Input
-          label={t.twoFactor.loginCode}
-          inputmode="numeric"
-          autoComplete="one-time-code"
-          bind:value={twoFactorCode}
+          label={t.auth.login.email}
+          type="email"
+          bind:value={email}
           required
+          autoComplete="email"
           {unstyled}
           class={slotClasses.field}
         />
+
+        <Input
+          label={t.auth.login.password}
+          type="password"
+          bind:value={password}
+          required
+          autoComplete="current-password"
+          {unstyled}
+          class={slotClasses.field}
+        />
+
+        {#if showRememberMe}
+          <Checkbox bind:checked={rememberMeChecked} label={t.auth.login.rememberMe} {unstyled} />
+        {/if}
+
         <Button
           type="submit"
           variant="filled"
@@ -281,116 +287,60 @@
           loading={submitting}
           disabled={submitting}
           {unstyled}
-          class={unstyled
-            ? slotClasses.submit
-            : ['mt-2 w-full', slotClasses.submit].filter(Boolean).join(' ')}
+          class={cls('mt-2 w-full', slotClasses.submit)}
         >
-          {t.twoFactor.loginSubmit}
+          {t.auth.login.submit}
         </Button>
-        <p class={unstyled ? undefined : 'text-text-tertiary text-center text-xs'}>
-          {t.twoFactor.loginBackupHint}
-        </p>
       </form>
-    {:else}
-      {#if showPassword}
-        <form
-          onsubmit={handleSubmit}
-          class={unstyled
-            ? slotClasses.form
-            : ['flex flex-col gap-4', slotClasses.form].filter(Boolean).join(' ')}
-        >
-          <Input
-            label={t.auth.login.email}
-            type="email"
-            bind:value={email}
-            required
-            autoComplete="email"
-            {unstyled}
-            class={slotClasses.field}
-          />
-
-          <Input
-            label={t.auth.login.password}
-            type="password"
-            bind:value={password}
-            required
-            autoComplete="current-password"
-            {unstyled}
-            class={slotClasses.field}
-          />
-
-          {#if showRememberMe}
-            <Checkbox bind:checked={rememberMeChecked} label={t.auth.login.rememberMe} {unstyled} />
-          {/if}
-
-          <Button
-            type="submit"
-            variant="filled"
-            intent="primary"
-            loading={submitting}
-            disabled={submitting}
-            {unstyled}
-            class={unstyled
-              ? slotClasses.submit
-              : ['mt-2 w-full', slotClasses.submit].filter(Boolean).join(' ')}
-          >
-            {t.auth.login.submit}
-          </Button>
-        </form>
-      {/if}
-
-      {#if showPassword && showPasskey}
-        <div class="my-4 flex items-center gap-3">
-          <Separator {unstyled} class="flex-1" />
-          <span class="text-text-tertiary text-xs">{t.passkeys.or}</span>
-          <Separator {unstyled} class="flex-1" />
-        </div>
-      {/if}
-
-      {#if showPasskey}
-        <Button
-          variant="outlined"
-          intent="neutral"
-          loading={passkeyLoading}
-          disabled={passkeyLoading || submitting}
-          onclick={handlePasskeyLogin}
-          {unstyled}
-          class={unstyled ? undefined : 'w-full'}
-        >
-          {t.passkeys.loginWithPasskey}
-        </Button>
-      {/if}
-
-      {#if footerSnippet}
-        <div class="mt-4">
-          {@render footerSnippet()}
-        </div>
-      {/if}
-
-      {#if linksSnippet}
-        {@render linksSnippet()}
-      {:else}
-        <div
-          class={unstyled
-            ? slotClasses.links
-            : [
-                'text-text-secondary mt-6 flex flex-col items-center gap-2 text-sm',
-                slotClasses.links
-              ]
-                .filter(Boolean)
-                .join(' ')}
-        >
-          <!-- eslint-disable-next-line svelte/no-navigation-without-resolve -->
-          <a href={forgotPasswordUrl} class="text-text-link hover:underline">
-            {t.auth.login.forgotPassword}
-          </a>
-          <span>
-            {t.auth.login.noAccount}
-            <!-- eslint-disable-next-line svelte/no-navigation-without-resolve -->
-            <a href={registerUrl} class="text-text-link hover:underline">{t.auth.login.register}</a>
-          </span>
-        </div>
-      {/if}
     {/if}
-  </Card>
-</div>
+
+    {#if showPassword && showPasskey}
+      <div class={cls('my-4 flex items-center gap-3')}>
+        <Separator {unstyled} class={cls('flex-1')} />
+        <span class={cls('text-text-tertiary text-xs')}>{t.passkeys.or}</span>
+        <Separator {unstyled} class={cls('flex-1')} />
+      </div>
+    {/if}
+
+    {#if showPasskey}
+      <Button
+        variant="outlined"
+        intent="neutral"
+        loading={passkeyLoading}
+        disabled={passkeyLoading || submitting}
+        onclick={handlePasskeyLogin}
+        {unstyled}
+        class={cls('w-full')}
+      >
+        {t.passkeys.loginWithPasskey}
+      </Button>
+    {/if}
+
+    {#if footerSnippet}
+      <div class={cls('mt-4')}>
+        {@render footerSnippet()}
+      </div>
+    {/if}
+
+    {#if linksSnippet}
+      {@render linksSnippet()}
+    {:else}
+      <div
+        class={cls(
+          'text-text-secondary mt-6 flex flex-col items-center gap-2 text-sm',
+          slotClasses.links
+        )}
+      >
+        <a href={forgotPasswordUrl} class={cls('text-text-link hover:underline')}>
+          {t.auth.login.forgotPassword}
+        </a>
+        <span>
+          {t.auth.login.noAccount}
+          <a href={registerUrl} class={cls('text-text-link hover:underline')}>
+            {t.auth.login.register}
+          </a>
+        </span>
+      </div>
+    {/if}
+  {/if}
+</AuthPageShell>

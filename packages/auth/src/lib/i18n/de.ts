@@ -53,6 +53,7 @@ export const de = {
       submit: 'Konto erstellen',
       hasAccount: 'Bereits ein Konto?',
       login: 'Anmelden',
+      requirementsLabel: 'Passwort-Anforderungen',
       requirements: {
         minLength: 'Mindestens {n} Zeichen',
         uppercase: 'Ein Großbuchstabe',
@@ -81,8 +82,7 @@ export const de = {
       success: 'Dein Passwort wurde zurückgesetzt. Du kannst dich jetzt anmelden.',
       errors: {
         mismatch: 'Die Passwörter stimmen nicht überein.',
-        invalidToken: 'Ungültiger oder abgelaufener Link.',
-        expired: 'Dieser Link ist abgelaufen.'
+        invalidToken: 'Ungültiger oder abgelaufener Link.'
       }
     },
     verifyEmail: {
@@ -150,9 +150,7 @@ export const de = {
     title: 'Einladungen',
     email: 'E-Mail-Adresse',
     role: 'Rolle',
-    status: 'Status',
     pending: 'Ausstehend',
-    used: 'Verwendet',
     delete: 'Löschen',
     send: 'Senden',
     empty: 'Noch keine Einladungen.',

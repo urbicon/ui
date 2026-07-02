@@ -1,9 +1,11 @@
 <script lang="ts">
-  import { Button, Input, Card, Alert } from '@urbicon-ui/blocks';
+  import { Alert, Button, Input } from '@urbicon-ui/blocks';
   import { mergeAuthLocale, useAuthLocale } from '../../../i18n/index.js';
   import { csrfFetch } from '../../csrf.js';
   import { errorMessageFromCode } from '../../utils/error-message.js';
+  import { slotClass } from '../../utils/slot-class.js';
   import type { ResetPasswordPageProps } from './index.js';
+  import AuthPageShell from '../_shared/AuthPageShell.svelte';
 
   let {
     t: tProp,
@@ -12,6 +14,9 @@
     apiPath = '/api/auth/reset-password',
     csrf,
     fetcher,
+    header: headerSnippet,
+    footer: footerSnippet,
+    links: linksSnippet,
     unstyled = false,
     slotClasses = {},
     class: className
@@ -63,94 +68,71 @@
       submitting = false;
     }
   }
+
+  const cls = (base: string, slot?: string) => slotClass(unstyled, base, slot);
 </script>
 
-<div
-  class={unstyled
-    ? [slotClasses.root, className].filter(Boolean).join(' ')
-    : ['flex min-h-[60vh] items-center justify-center', slotClasses.root, className]
-        .filter(Boolean)
-        .join(' ')}
+<AuthPageShell
+  title={t.auth.resetPassword.title}
+  {error}
+  header={headerSnippet}
+  {unstyled}
+  {slotClasses}
+  class={className}
 >
-  <Card
-    variant="outlined"
-    padding="xl"
-    {unstyled}
-    class={unstyled
-      ? slotClasses.card
-      : ['w-full max-w-md', slotClasses.card].filter(Boolean).join(' ')}
-  >
-    <h1
-      class={unstyled
-        ? slotClasses.title
-        : ['text-text-primary mb-6 text-2xl font-semibold', slotClasses.title]
-            .filter(Boolean)
-            .join(' ')}
-    >
-      {t.auth.resetPassword.title}
-    </h1>
+  {#if success}
+    <Alert intent="success" size="sm" {unstyled} class={slotClasses.success}>
+      {t.auth.resetPassword.success}
+    </Alert>
+  {:else}
+    <form onsubmit={handleSubmit} class={cls('flex flex-col gap-4', slotClasses.form)}>
+      <Input
+        label={t.auth.resetPassword.password}
+        type="password"
+        bind:value={password}
+        required
+        autoComplete="new-password"
+        {unstyled}
+        class={slotClasses.field}
+      />
+      <Input
+        label={t.auth.resetPassword.confirmPassword}
+        type="password"
+        bind:value={confirmPassword}
+        required
+        autoComplete="new-password"
+        {unstyled}
+        class={slotClasses.field}
+      />
 
-    {#if success}
-      <Alert intent="success" size="sm" {unstyled} class={slotClasses.success}>
-        {t.auth.resetPassword.success}
-      </Alert>
-      <!-- eslint-disable-next-line svelte/no-navigation-without-resolve -->
-      <a href={loginUrl} class="text-text-link mt-4 inline-block text-sm hover:underline">
-        {t.auth.login.submit}
-      </a>
-    {:else}
-      <div aria-live="polite">
-        {#if error}
-          <Alert
-            intent="danger"
-            size="sm"
-            {unstyled}
-            class={['mb-4', slotClasses.error].filter(Boolean).join(' ')}
-          >
-            {error}
-          </Alert>
-        {/if}
-      </div>
-
-      <form
-        onsubmit={handleSubmit}
-        class={unstyled
-          ? slotClasses.form
-          : ['flex flex-col gap-4', slotClasses.form].filter(Boolean).join(' ')}
+      <Button
+        type="submit"
+        variant="filled"
+        intent="primary"
+        loading={submitting}
+        disabled={submitting}
+        {unstyled}
+        class={cls('mt-2 w-full', slotClasses.submit)}
       >
-        <Input
-          label={t.auth.resetPassword.password}
-          type="password"
-          bind:value={password}
-          required
-          autoComplete="new-password"
-          {unstyled}
-          class={slotClasses.field}
-        />
-        <Input
-          label={t.auth.resetPassword.confirmPassword}
-          type="password"
-          bind:value={confirmPassword}
-          required
-          autoComplete="new-password"
-          {unstyled}
-          class={slotClasses.field}
-        />
+        {t.auth.resetPassword.submit}
+      </Button>
+    </form>
+  {/if}
 
-        <Button
-          type="submit"
-          variant="filled"
-          intent="primary"
-          loading={submitting}
-          disabled={submitting}
-          {unstyled}
-          class={unstyled
-            ? slotClasses.submit
-            : ['mt-2 w-full', slotClasses.submit].filter(Boolean).join(' ')}
-        >
-          {t.auth.resetPassword.submit}
-        </Button>
-      </form>
-    {/if}
-  </Card>
-</div>
+  {#if footerSnippet}
+    <div class={cls('mt-4')}>
+      {@render footerSnippet()}
+    </div>
+  {/if}
+
+  {#if linksSnippet}
+    {@render linksSnippet()}
+  {:else if success}
+    <a
+      href={loginUrl}
+      class={cls('text-text-link mt-4 inline-block text-sm hover:underline', slotClasses.links)}
+    >
+      {t.auth.login.submit}
+    </a>
+  {/if}
+</AuthPageShell>

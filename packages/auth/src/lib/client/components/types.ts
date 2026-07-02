@@ -33,6 +33,8 @@ export interface AuthPageSlotClasses {
   success?: string;
   /** Links area below the form (e.g. "Forgot password?"). */
   links?: string;
+  /** Password requirements checklist (RegisterPage only). */
+  requirements?: string;
 }
 
 /**

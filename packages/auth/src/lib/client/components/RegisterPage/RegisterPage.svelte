@@ -1,10 +1,12 @@
 <script lang="ts">
-  import { Button, Input, Card, Alert } from '@urbicon-ui/blocks';
+  import { Button, Input } from '@urbicon-ui/blocks';
   import { untrack } from 'svelte';
   import { mergeAuthLocale, useAuthLocale } from '../../../i18n/index.js';
   import { csrfFetch } from '../../csrf.js';
   import { errorMessageFromCode } from '../../utils/error-message.js';
+  import { slotClass } from '../../utils/slot-class.js';
   import type { RegisterPageProps } from './index.js';
+  import AuthPageShell from '../_shared/AuthPageShell.svelte';
 
   let {
     t: tProp,
@@ -114,144 +116,107 @@
       submitting = false;
     }
   }
+
+  const cls = (base: string, slot?: string) => slotClass(unstyled, base, slot);
 </script>
 
-<div
-  class={unstyled
-    ? [slotClasses.root, className].filter(Boolean).join(' ')
-    : ['flex min-h-[60vh] items-center justify-center', slotClasses.root, className]
-        .filter(Boolean)
-        .join(' ')}
+<AuthPageShell
+  title={t.auth.register.title}
+  {error}
+  header={headerSnippet}
+  {unstyled}
+  {slotClasses}
+  class={className}
 >
-  <Card
-    variant="outlined"
-    padding="xl"
-    {unstyled}
-    class={unstyled
-      ? slotClasses.card
-      : ['w-full max-w-md', slotClasses.card].filter(Boolean).join(' ')}
-  >
-    <h1
-      class={unstyled
-        ? slotClasses.title
-        : ['text-text-primary mb-6 text-2xl font-semibold', slotClasses.title]
-            .filter(Boolean)
-            .join(' ')}
-    >
-      {t.auth.register.title}
-    </h1>
+  <form onsubmit={handleSubmit} class={cls('flex flex-col gap-4', slotClasses.form)}>
+    <Input
+      label={t.auth.register.name}
+      type="text"
+      bind:value={name}
+      required
+      autoComplete="name"
+      {unstyled}
+      class={slotClasses.field}
+    />
+    <Input
+      label={t.auth.register.email}
+      type="email"
+      bind:value={email}
+      required
+      autoComplete="email"
+      {unstyled}
+      class={slotClasses.field}
+    />
 
-    {#if headerSnippet}
-      {@render headerSnippet()}
-    {/if}
-
-    <div aria-live="polite">
-      {#if error}
-        <Alert
-          intent="danger"
-          size="sm"
-          {unstyled}
-          class={['mb-4', slotClasses.error].filter(Boolean).join(' ')}
+    <div class={cls('flex flex-col gap-1.5')}>
+      <Input
+        label={t.auth.register.password}
+        type="password"
+        bind:value={password}
+        required
+        minlength={passwordMinLength}
+        autoComplete="new-password"
+        {unstyled}
+        class={slotClasses.field}
+      />
+      {#if showRequirements && password}
+        <!-- The checklist is functionality, not decoration: it must survive
+             `unstyled` (review R18) \u2014 only the default classes drop. `data-met`
+             carries the pass/fail state structurally so unstyled consumers can
+             target it from CSS. -->
+        <ul
+          class={cls('flex flex-col gap-0.5 pl-1 text-xs', slotClasses.requirements)}
+          aria-label={t.auth.register.requirementsLabel}
         >
-          {error}
-        </Alert>
+          {#each requirements as req (req.key)}
+            <li
+              class={unstyled ? undefined : req.met ? 'text-success' : 'text-text-tertiary'}
+              data-met={req.met || undefined}
+            >
+              <span class={cls('mr-1 inline-block w-3')}>{req.met ? '\u2713' : '\u2717'}</span>
+              {req.label}
+            </li>
+          {/each}
+        </ul>
       {/if}
     </div>
 
-    <form
-      onsubmit={handleSubmit}
-      class={unstyled
-        ? slotClasses.form
-        : ['flex flex-col gap-4', slotClasses.form].filter(Boolean).join(' ')}
+    <Input
+      label={t.auth.register.confirmPassword}
+      type="password"
+      bind:value={confirmPassword}
+      required
+      autoComplete="new-password"
+      error={!passwordsMatch ? t.auth.register.errors.passwordMismatch : undefined}
+      {unstyled}
+      class={slotClasses.field}
+    />
+
+    <Button
+      type="submit"
+      variant="filled"
+      intent="primary"
+      loading={submitting}
+      disabled={!canSubmit}
+      {unstyled}
+      class={cls('mt-2 w-full', slotClasses.submit)}
     >
-      <Input
-        label={t.auth.register.name}
-        type="text"
-        bind:value={name}
-        required
-        autoComplete="name"
-        {unstyled}
-        class={slotClasses.field}
-      />
-      <Input
-        label={t.auth.register.email}
-        type="email"
-        bind:value={email}
-        required
-        autoComplete="email"
-        {unstyled}
-        class={slotClasses.field}
-      />
+      {t.auth.register.submit}
+    </Button>
+  </form>
 
-      <div class="flex flex-col gap-1.5">
-        <Input
-          label={t.auth.register.password}
-          type="password"
-          bind:value={password}
-          required
-          minlength={passwordMinLength}
-          autoComplete="new-password"
-          {unstyled}
-          class={slotClasses.field}
-        />
-        {#if showRequirements && password && !unstyled}
-          <ul class="flex flex-col gap-0.5 pl-1 text-xs" aria-label="Password requirements">
-            {#each requirements as req (req.key)}
-              <li class={req.met ? 'text-success' : 'text-text-tertiary'}>
-                <span class="mr-1 inline-block w-3">{req.met ? '\u2713' : '\u2717'}</span>
-                {req.label}
-              </li>
-            {/each}
-          </ul>
-        {/if}
-      </div>
+  {#if footerSnippet}
+    <div class={cls('mt-4')}>
+      {@render footerSnippet()}
+    </div>
+  {/if}
 
-      <Input
-        label={t.auth.register.confirmPassword}
-        type="password"
-        bind:value={confirmPassword}
-        required
-        autoComplete="new-password"
-        error={!passwordsMatch ? t.auth.register.errors.passwordMismatch : undefined}
-        {unstyled}
-        class={slotClasses.field}
-      />
-
-      <Button
-        type="submit"
-        variant="filled"
-        intent="primary"
-        loading={submitting}
-        disabled={!canSubmit}
-        {unstyled}
-        class={unstyled
-          ? slotClasses.submit
-          : ['mt-2 w-full', slotClasses.submit].filter(Boolean).join(' ')}
-      >
-        {t.auth.register.submit}
-      </Button>
-    </form>
-
-    {#if footerSnippet}
-      <div class="mt-4">
-        {@render footerSnippet()}
-      </div>
-    {/if}
-
-    {#if linksSnippet}
-      {@render linksSnippet()}
-    {:else}
-      <div
-        class={unstyled
-          ? slotClasses.links
-          : ['text-text-secondary mt-6 text-center text-sm', slotClasses.links]
-              .filter(Boolean)
-              .join(' ')}
-      >
-        {t.auth.register.hasAccount}
-        <!-- eslint-disable-next-line svelte/no-navigation-without-resolve -->
-        <a href={loginUrl} class="text-text-link hover:underline">{t.auth.register.login}</a>
-      </div>
-    {/if}
-  </Card>
-</div>
+  {#if linksSnippet}
+    {@render linksSnippet()}
+  {:else}
+    <div class={cls('text-text-secondary mt-6 text-center text-sm', slotClasses.links)}>
+      {t.auth.register.hasAccount}
+      <a href={loginUrl} class={cls('text-text-link hover:underline')}>{t.auth.register.login}</a>
+    </div>
+  {/if}
+</AuthPageShell>

@@ -1,9 +1,11 @@
 <script lang="ts">
-  import { Card, Alert, Spinner } from '@urbicon-ui/blocks';
+  import { Alert, Spinner } from '@urbicon-ui/blocks';
   import { onMount } from 'svelte';
   import { mergeAuthLocale, useAuthLocale } from '../../../i18n/index.js';
   import { csrfFetch } from '../../csrf.js';
+  import { slotClass } from '../../utils/slot-class.js';
   import type { VerifyEmailPageProps } from './index.js';
+  import AuthPageShell from '../_shared/AuthPageShell.svelte';
 
   let {
     t: tProp,
@@ -11,6 +13,9 @@
     apiPath = '/api/auth/verify-email',
     csrf,
     fetcher,
+    header: headerSnippet,
+    footer: footerSnippet,
+    links: linksSnippet,
     unstyled = false,
     slotClasses = {},
     class: className
@@ -53,50 +58,46 @@
       verifying = false;
     }
   });
+
+  const cls = (base: string, slot?: string) => slotClass(unstyled, base, slot);
 </script>
 
-<div
-  class={unstyled
-    ? [slotClasses.root, className].filter(Boolean).join(' ')
-    : ['flex min-h-[60vh] items-center justify-center', slotClasses.root, className]
-        .filter(Boolean)
-        .join(' ')}
+<!-- No `error` prop on the shell: this page announces spinner/success/error
+     through its own single live region below. -->
+<AuthPageShell
+  title={t.auth.verifyEmail.title}
+  centered
+  header={headerSnippet}
+  {unstyled}
+  {slotClasses}
+  class={className}
 >
-  <Card
-    variant="outlined"
-    padding="xl"
-    {unstyled}
-    class={unstyled
-      ? slotClasses.card
-      : ['w-full max-w-md text-center', slotClasses.card].filter(Boolean).join(' ')}
-  >
-    <h1
-      class={unstyled
-        ? slotClasses.title
-        : ['text-text-primary mb-6 text-2xl font-semibold', slotClasses.title]
-            .filter(Boolean)
-            .join(' ')}
-    >
-      {t.auth.verifyEmail.title}
-    </h1>
+  <div aria-live="polite">
+    {#if verifying}
+      <div class={cls('flex flex-col items-center gap-3 py-8')}>
+        <Spinner size="lg" {unstyled} />
+        <p class={cls('text-text-secondary text-sm')}>
+          {t.auth.verifyEmail.verifying}
+        </p>
+      </div>
+    {:else if success}
+      <Alert intent="success" {unstyled} class={slotClasses.success}>
+        {t.auth.verifyEmail.success}
+      </Alert>
+    {:else}
+      <Alert intent="danger" {unstyled} class={slotClasses.error}>
+        {error}
+      </Alert>
+    {/if}
+  </div>
 
-    <div aria-live="polite">
-      {#if verifying}
-        <div class={unstyled ? undefined : 'flex flex-col items-center gap-3 py-8'}>
-          <Spinner size="lg" {unstyled} />
-          <p class={unstyled ? undefined : 'text-text-secondary text-sm'}>
-            {t.auth.verifyEmail.verifying}
-          </p>
-        </div>
-      {:else if success}
-        <Alert intent="success" {unstyled} class={slotClasses.success}>
-          {t.auth.verifyEmail.success}
-        </Alert>
-      {:else}
-        <Alert intent="danger" {unstyled} class={slotClasses.error}>
-          {error}
-        </Alert>
-      {/if}
+  {#if footerSnippet}
+    <div class={cls('mt-4')}>
+      {@render footerSnippet()}
     </div>
-  </Card>
-</div>
+  {/if}
+
+  {#if linksSnippet}
+    {@render linksSnippet()}
+  {/if}
+</AuthPageShell>

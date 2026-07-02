@@ -1,19 +1,12 @@
 <script lang="ts">
-  import {
-    Button,
-    Input,
-    Alert,
-    Badge,
-    Checkbox,
-    Select,
-    Separator,
-    Spinner
-  } from '@urbicon-ui/blocks';
+  import { Badge, Button, Checkbox, Input, Select, Separator, Spinner } from '@urbicon-ui/blocks';
+  import FormErrorAlert from '../_shared/FormErrorAlert.svelte';
   import { onMount, untrack } from 'svelte';
   import { mergeAuthLocale, useAuthLocale } from '../../../i18n/index.js';
   import { csrfFetch } from '../../csrf.js';
   import type { InvitationManagerProps } from './index.js';
   import { errorTextFromBody } from '../../utils/http.js';
+  import { slotClass } from '../../utils/slot-class.js';
 
   interface InvitationItem {
     id: string;
@@ -124,36 +117,20 @@
   onMount(() => {
     loadInvitations();
   });
+
+  // Styling helper: in `unstyled` mode only the slot override applies.
+  const cls = (base: string, slot?: string) => slotClass(unstyled, base, slot);
 </script>
 
-<div
-  class={unstyled
-    ? [slotClasses.root, className].filter(Boolean).join(' ')
-    : ['flex flex-col gap-6', slotClasses.root, className].filter(Boolean).join(' ')}
->
-  <h2
-    class={unstyled
-      ? slotClasses.title
-      : ['text-text-primary text-xl font-semibold', slotClasses.title].filter(Boolean).join(' ')}
-  >
+<div class={cls('flex flex-col gap-6', [slotClasses.root, className].filter(Boolean).join(' '))}>
+  <h2 class={cls('text-text-primary text-xl font-semibold', slotClasses.title)}>
     {t.invitations.title}
   </h2>
 
-  <div aria-live="polite">
-    {#if error}
-      <Alert intent="danger" size="sm" {unstyled} class={slotClasses.error}>
-        {error}
-      </Alert>
-    {/if}
-  </div>
+  <FormErrorAlert {error} {unstyled} class={slotClasses.error} />
 
-  <form
-    onsubmit={handleSendInvitation}
-    class={unstyled
-      ? slotClasses.form
-      : ['flex flex-col gap-4', slotClasses.form].filter(Boolean).join(' ')}
-  >
-    <div class="grid gap-3 sm:grid-cols-[1fr_auto]">
+  <form onsubmit={handleSendInvitation} class={cls('flex flex-col gap-4', slotClasses.form)}>
+    <div class={cls('grid gap-3 sm:grid-cols-[1fr_auto]')}>
       <Input label={t.invitations.email} type="email" bind:value={email} required {unstyled} />
       <Select
         label={t.invitations.role}
@@ -161,7 +138,7 @@
         bind:value={role}
         size="md"
         {unstyled}
-        class="sm:w-44"
+        class={cls('sm:w-44')}
       />
     </div>
 
@@ -174,7 +151,7 @@
       loading={submitting}
       disabled={submitting}
       {unstyled}
-      class="w-full sm:w-auto sm:self-start"
+      class={cls('w-full sm:w-auto sm:self-start')}
     >
       {t.invitations.send}
     </Button>
@@ -183,39 +160,29 @@
   <Separator {unstyled} />
 
   {#if loading}
-    <div class="flex justify-center py-4">
-      <Spinner size="sm" />
+    <div class={cls('flex justify-center py-4')}>
+      <Spinner size="sm" {unstyled} />
     </div>
   {:else if invitations.length === 0}
-    <p class="text-text-tertiary py-4 text-center text-sm">
+    <p class={cls('text-text-tertiary py-4 text-center text-sm')}>
       {t.invitations.empty}
     </p>
   {:else}
-    <ul
-      class={unstyled
-        ? slotClasses.list
-        : ['flex flex-col gap-2', slotClasses.list].filter(Boolean).join(' ')}
-    >
+    <ul class={cls('flex flex-col gap-2', slotClasses.list)}>
       {#each invitations as inv (inv.id)}
         <li
-          class={unstyled
-            ? slotClasses.item
-            : [
-                'bg-surface-subtle border-border-subtle flex items-center justify-between gap-3 rounded-lg border px-4 py-3',
-                slotClasses.item
-              ]
-                .filter(Boolean)
-                .join(' ')}
+          class={cls(
+            'bg-surface-subtle border-border-subtle flex items-center justify-between gap-3 rounded-lg border px-4 py-3',
+            slotClasses.item
+          )}
         >
-          <div class="flex min-w-0 flex-col gap-0.5">
-            <span class="text-text-primary truncate text-sm font-medium">{inv.email}</span>
-            <span class="text-text-tertiary text-xs">{inv.role}</span>
+          <div class={cls('flex min-w-0 flex-col gap-0.5')}>
+            <span class={cls('text-text-primary truncate text-sm font-medium')}>{inv.email}</span>
+            <span class={cls('text-text-tertiary text-xs')}>{inv.role}</span>
           </div>
-          <div class="flex shrink-0 items-center gap-3">
+          <div class={cls('flex shrink-0 items-center gap-3')}>
             <Badge intent={inv.usedAt ? 'neutral' : 'success'} variant="soft" size="sm" {unstyled}>
-              {inv.usedAt
-                ? (t.invitations.registered ?? t.invitations.used)
-                : t.invitations.pending}
+              {inv.usedAt ? t.invitations.registered : t.invitations.pending}
             </Badge>
             {#if !inv.usedAt}
               <Button

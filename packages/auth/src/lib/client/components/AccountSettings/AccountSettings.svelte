@@ -191,7 +191,7 @@
       </h3>
       <p class={cls('text-text-tertiary text-sm', undefined)}>
         {t.account.email.current}:
-        <span class="text-text-secondary">{currentEmail}</span>
+        <span class={cls('text-text-secondary')}>{currentEmail}</span>
       </p>
       <Input
         label={t.account.email.newEmail}

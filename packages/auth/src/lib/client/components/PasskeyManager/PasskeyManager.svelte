@@ -1,11 +1,13 @@
 <script lang="ts">
-  import { Alert, Button, Separator, Spinner } from '@urbicon-ui/blocks';
+  import { Button, Separator, Spinner } from '@urbicon-ui/blocks';
+  import FormErrorAlert from '../_shared/FormErrorAlert.svelte';
   import { onMount } from 'svelte';
   import { mergeAuthLocale, useAuthLocale } from '../../../i18n/index.js';
   import { csrfFetch } from '../../csrf.js';
   import type { PasskeyManagerProps } from './index.js';
   import { base64UrlToBuffer, bufferToBase64Url } from '../../utils/webauthn.js';
   import { errorTextFromBody } from '../../utils/http.js';
+  import { slotClass } from '../../utils/slot-class.js';
 
   let {
     t: tProp,
@@ -175,21 +177,14 @@
   onMount(() => {
     loadPasskeys();
   });
+
+  // Styling helper: in `unstyled` mode only the slot override applies.
+  const cls = (base: string, slot?: string) => slotClass(unstyled, base, slot);
 </script>
 
-<div
-  class={unstyled
-    ? [slotClasses.root, className].filter(Boolean).join(' ')
-    : ['flex flex-col gap-4', slotClasses.root, className].filter(Boolean).join(' ')}
->
-  <div class="flex items-center justify-between gap-4">
-    <h2
-      class={unstyled
-        ? slotClasses.title
-        : ['text-text-primary min-w-0 truncate text-lg font-semibold', slotClasses.title]
-            .filter(Boolean)
-            .join(' ')}
-    >
+<div class={cls('flex flex-col gap-4', [slotClasses.root, className].filter(Boolean).join(' '))}>
+  <div class={cls('flex items-center justify-between gap-4')}>
+    <h2 class={cls('text-text-primary min-w-0 truncate text-lg font-semibold', slotClasses.title)}>
       {t.passkeys.title}
     </h2>
     <Button
@@ -200,54 +195,36 @@
       disabled={registering}
       onclick={registerPasskey}
       {unstyled}
-      class="shrink-0"
+      class={cls('shrink-0')}
     >
       {t.passkeys.add}
     </Button>
   </div>
 
-  <div aria-live="polite">
-    {#if error}
-      <Alert intent="danger" size="sm" {unstyled}>{error}</Alert>
-    {/if}
-  </div>
+  <FormErrorAlert {error} {unstyled} />
 
   <Separator {unstyled} />
 
   {#if loading}
-    <div class="flex justify-center py-4">
-      <Spinner size="sm" />
+    <div class={cls('flex justify-center py-4')}>
+      <Spinner size="sm" {unstyled} />
     </div>
   {:else if passkeys.length === 0}
-    <p
-      class={unstyled
-        ? slotClasses.empty
-        : ['text-text-tertiary py-4 text-center text-sm', slotClasses.empty]
-            .filter(Boolean)
-            .join(' ')}
-    >
+    <p class={cls('text-text-tertiary py-4 text-center text-sm', slotClasses.empty)}>
       {t.passkeys.empty}
     </p>
   {:else}
-    <ul
-      class={unstyled
-        ? slotClasses.list
-        : ['flex flex-col gap-2', slotClasses.list].filter(Boolean).join(' ')}
-    >
+    <ul class={cls('flex flex-col gap-2', slotClasses.list)}>
       {#each passkeys as passkey (passkey.credentialId)}
         <li
-          class={unstyled
-            ? slotClasses.item
-            : [
-                'bg-surface-subtle border-border-subtle flex items-center justify-between rounded-lg border px-4 py-3',
-                slotClasses.item
-              ]
-                .filter(Boolean)
-                .join(' ')}
+          class={cls(
+            'bg-surface-subtle border-border-subtle flex items-center justify-between rounded-lg border px-4 py-3',
+            slotClasses.item
+          )}
         >
-          <div class="flex flex-col gap-0.5">
-            <span class="text-text-primary text-sm font-medium">{passkey.name}</span>
-            <span class="text-text-tertiary text-xs">
+          <div class={cls('flex flex-col gap-0.5')}>
+            <span class={cls('text-text-primary text-sm font-medium')}>{passkey.name}</span>
+            <span class={cls('text-text-tertiary text-xs')}>
               {new Date(passkey.createdAt).toLocaleDateString()}
               {#if passkey.lastUsedAt}
                 &middot; {t.passkeys.lastUsed}: {new Date(passkey.lastUsedAt).toLocaleDateString()}

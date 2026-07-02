@@ -1,5 +1,6 @@
 <script lang="ts">
-  import { Alert, Badge, Button, Separator, Spinner } from '@urbicon-ui/blocks';
+  import { Badge, Button, Separator, Spinner } from '@urbicon-ui/blocks';
+  import FormErrorAlert from '../_shared/FormErrorAlert.svelte';
   import { onMount } from 'svelte';
   import { mergeAuthLocale, useAuthLocale } from '../../../i18n/index.js';
   import { csrfFetch } from '../../csrf.js';
@@ -143,7 +144,7 @@
 </script>
 
 <div class={cls('flex flex-col gap-4', [slotClasses.root, className].filter(Boolean).join(' '))}>
-  <div class="flex items-center justify-between gap-4">
+  <div class={cls('flex items-center justify-between gap-4')}>
     <h2 class={cls('text-text-primary min-w-0 truncate text-lg font-semibold', slotClasses.title)}>
       {t.sessions.title}
     </h2>
@@ -156,21 +157,19 @@
         disabled={revokingOthers}
         onclick={signOutOthers}
         {unstyled}
-        class="shrink-0"
+        class={cls('shrink-0')}
       >
         {t.sessions.signOutOthers}
       </Button>
     {/if}
   </div>
 
-  <div aria-live="polite">
-    {#if error}<Alert intent="danger" size="sm" {unstyled}>{error}</Alert>{/if}
-  </div>
+  <FormErrorAlert {error} {unstyled} />
 
   <Separator {unstyled} />
 
   {#if loading}
-    <div class="flex justify-center py-4"><Spinner size="sm" /></div>
+    <div class={cls('flex justify-center py-4')}><Spinner size="sm" {unstyled} /></div>
   {:else if !available}
     <p class={cls('text-text-tertiary py-4 text-center text-sm', slotClasses.empty)}>
       {t.sessions.unavailable}
@@ -188,16 +187,16 @@
             slotClasses.item
           )}
         >
-          <div class="flex min-w-0 flex-col gap-0.5">
-            <span class="text-text-primary flex items-center gap-2 text-sm font-medium">
-              <span class="truncate">{describeDevice(session.userAgent)}</span>
+          <div class={cls('flex min-w-0 flex-col gap-0.5')}>
+            <span class={cls('text-text-primary flex items-center gap-2 text-sm font-medium')}>
+              <span class={cls('truncate')}>{describeDevice(session.userAgent)}</span>
               {#if session.current}
                 <Badge intent="success" size="sm" {unstyled} class={slotClasses.badge}>
                   {t.sessions.thisDevice}
                 </Badge>
               {/if}
             </span>
-            <span class="text-text-tertiary text-xs">
+            <span class={cls('text-text-tertiary text-xs')}>
               {t.sessions.lastActive}: {new Date(session.lastActive).toLocaleString()}
               {#if session.ip}&middot; {session.ip}{/if}
             </span>
@@ -211,7 +210,7 @@
               disabled={revokingId === session.id}
               onclick={() => revokeSession(session.id)}
               {unstyled}
-              class="shrink-0"
+              class={cls('shrink-0')}
             >
               {t.sessions.signOut}
             </Button>

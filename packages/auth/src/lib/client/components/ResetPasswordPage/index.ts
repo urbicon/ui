@@ -1,3 +1,4 @@
+import type { Snippet } from 'svelte';
 import type { PartialAuthLocale } from '../../../i18n/keys.js';
 import type { CsrfClientOptions } from '../../csrf.js';
 import type { AuthPageSlotClasses } from '../types.js';
@@ -31,6 +32,12 @@ export interface ResetPasswordPageProps {
   csrf?: CsrfClientOptions;
   /** Custom fetch implementation for all API calls. Defaults to the global `fetch`. Useful for mock backends in demos/tests or custom retry/auth layers. */
   fetcher?: typeof globalThis.fetch;
+  /** Content rendered between the heading and the form. */
+  header?: Snippet;
+  /** Content rendered below the form, above links. */
+  footer?: Snippet;
+  /** Replaces the link area below the form. */
+  links?: Snippet;
   /** Strip all default styling. */
   unstyled?: boolean;
   /** Per-slot class overrides. Keys: `root`, `card`, `title`, `form`, `field`, `submit`, `error`, `success`, `links`. */

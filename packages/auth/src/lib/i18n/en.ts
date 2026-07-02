@@ -51,6 +51,7 @@ export const en = {
       submit: 'Create account',
       hasAccount: 'Already have an account?',
       login: 'Sign in',
+      requirementsLabel: 'Password requirements',
       requirements: {
         minLength: 'At least {n} characters',
         uppercase: 'One uppercase letter',
@@ -78,8 +79,7 @@ export const en = {
       success: 'Your password has been reset. You can now sign in.',
       errors: {
         mismatch: 'Passwords do not match.',
-        invalidToken: 'Invalid or expired reset link.',
-        expired: 'This reset link has expired.'
+        invalidToken: 'Invalid or expired reset link.'
       }
     },
     verifyEmail: {
@@ -147,9 +147,7 @@ export const en = {
     title: 'Invitations',
     email: 'Email address',
     role: 'Role',
-    status: 'Status',
     pending: 'Pending',
-    used: 'Used',
     delete: 'Delete',
     send: 'Send',
     empty: 'No invitations yet.',

@@ -66,6 +66,8 @@ export interface AuthLocale {
       submit: string;
       hasAccount: string;
       login: string;
+      /** aria-label of the live requirements checklist. */
+      requirementsLabel: string;
       requirements: {
         /** `{n}` is replaced with the page's `passwordMinLength` prop. */
         minLength: string;
@@ -95,7 +97,6 @@ export interface AuthLocale {
       errors: {
         mismatch: string;
         invalidToken: string;
-        expired: string;
       };
     };
     verifyEmail: {
@@ -173,9 +174,7 @@ export interface AuthLocale {
     title: string;
     email: string;
     role: string;
-    status: string;
     pending: string;
-    used: string;
     delete: string;
     send: string;
     empty: string;
