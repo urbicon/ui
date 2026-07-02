@@ -21,8 +21,8 @@ import {
   resolveTotpOptions,
   verifyPending2faToken
 } from '../two-factor.js';
-import { readJsonBody, validateDisable2faInput, validateTotpInput } from '../validation.js';
-import { NO_STORE, requireSessionUser, verifyCurrentPassword } from './_shared.js';
+import { validateDisable2faInput, validateTotpInput } from '../validation.js';
+import { NO_STORE, parseBody, requireSessionUser, verifyCurrentPassword } from './_shared.js';
 import { authError } from './errors.js';
 
 /**
@@ -98,14 +98,8 @@ export function createTwoFactorEnableHandler<R extends string>(
         return authError('two_factor_setup_required', 400, { headers: NO_STORE });
       }
 
-      const input = validateTotpInput(await readJsonBody(event.request));
-      if (!input.success) {
-        return authError('validation_error', 400, {
-          message: input.errors[0].message,
-          extra: { errors: input.errors },
-          headers: NO_STORE
-        });
-      }
+      const body = await parseBody(event.request, validateTotpInput, { headers: NO_STORE });
+      if (body instanceof Response) return body;
 
       const secret = await decryptSecret(user.totpSecret, config.twoFactor.encryptionKey);
       if (secret === null) {
@@ -114,7 +108,7 @@ export function createTwoFactorEnableHandler<R extends string>(
         return authError('totp_secret_unreadable', 500, { headers: NO_STORE });
       }
 
-      const valid = await verifyTotp(secret, input.data.code, resolveTotpOptions(config.twoFactor));
+      const valid = await verifyTotp(secret, body.data.code, resolveTotpOptions(config.twoFactor));
       if (!valid) {
         return authError('invalid_code', 400, { headers: NO_STORE });
       }
@@ -155,16 +149,11 @@ export function createTwoFactorDisableHandler<R extends string>(
       const user = await requireSessionUser(deps, event.cookies);
       if (!user) return authError('not_authenticated', 401);
 
-      const input = validateDisable2faInput(await readJsonBody(event.request));
-      if (!input.success) {
-        return authError('validation_error', 400, {
-          message: input.errors[0].message,
-          extra: { errors: input.errors }
-        });
-      }
+      const body = await parseBody(event.request, validateDisable2faInput);
+      if (body instanceof Response) return body;
 
       // Re-auth before removing a security factor.
-      if (!(await verifyCurrentPassword(user, input.data.currentPassword, deps))) {
+      if (!(await verifyCurrentPassword(user, body.data.currentPassword, deps))) {
         return authError('current_password_incorrect', 403);
       }
 
@@ -232,14 +221,9 @@ export function createTwoFactorVerifyHandler<R extends string>(
         return authError('two_factor_challenge_expired', 400);
       }
 
-      const input = validateTotpInput(await readJsonBody(event.request));
-      if (!input.success) {
-        return authError('validation_error', 400, {
-          message: input.errors[0].message,
-          extra: { errors: input.errors }
-        });
-      }
-      const code = input.data.code;
+      const body = await parseBody(event.request, validateTotpInput);
+      if (body instanceof Response) return body;
+      const code = body.data.code;
 
       const secret = await decryptSecret(user.totpSecret, config.twoFactor.encryptionKey);
       if (secret === null) {

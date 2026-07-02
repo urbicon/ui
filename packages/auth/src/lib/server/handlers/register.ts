@@ -13,7 +13,8 @@ import { resolveEmailSettings } from '../email/resolve.js';
 import { buildVerificationEmail } from '../email/templates.js';
 import { enforceRateLimit, makeRateLimiter } from '../rate-limit.js';
 import { establishSession, resolveSessionMeta } from '../session.js';
-import { readJsonBody, validateRegisterInput } from '../validation.js';
+import { validateRegisterInput } from '../validation.js';
+import { parseBody } from './_shared.js';
 import { authError } from './errors.js';
 
 export interface RegisterHandlerOptions {
@@ -63,14 +64,9 @@ export function createRegisterHandler<R extends string>(
       );
       if (limited) return limited;
 
-      const input = validateRegisterInput(await readJsonBody(request));
-      if (!input.success) {
-        return authError('validation_error', 400, {
-          message: input.errors[0].message,
-          extra: { errors: input.errors }
-        });
-      }
-      const { email, name, password } = input.data;
+      const body = await parseBody(request, validateRegisterInput);
+      if (body instanceof Response) return body;
+      const { email, name, password } = body.data;
 
       // Password strength validation
       const passwordErrors = validatePasswordStrength(password, deps.config.password);

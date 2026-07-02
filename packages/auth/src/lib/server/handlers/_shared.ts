@@ -4,6 +4,38 @@ import type { FullAuthUser, UserRepository } from '../adapters/types.js';
 import { verifyPasswordWithMigration } from '../auth.js';
 import type { AuthDeps } from '../deps.js';
 import { getSessionFromCookie } from '../session.js';
+import { readJsonBody, type ValidationResult } from '../validation.js';
+import { authError } from './errors.js';
+
+/**
+ * Parse and validate a JSON request body, or produce the canonical
+ * validation-error `400`. Result-or-Response form of the six-line block every
+ * body-taking handler repeated verbatim (review R16):
+ *
+ * ```ts
+ * const body = await parseBody(request, validateLoginInput);
+ * if (body instanceof Response) return body;
+ * const { email, password } = body.data;
+ * ```
+ *
+ * The first field error becomes the `error` prose (the client's fallback
+ * surfaces it verbatim); the full list rides along as `errors`.
+ */
+export async function parseBody<T>(
+  request: Request,
+  validate: (raw: unknown) => ValidationResult<T>,
+  options?: { headers?: HeadersInit }
+): Promise<{ data: T } | Response> {
+  const input = validate(await readJsonBody(request));
+  if (!input.success) {
+    return authError('validation_error', 400, {
+      message: input.errors[0].message,
+      extra: { errors: input.errors },
+      ...(options?.headers && { headers: options.headers })
+    });
+  }
+  return { data: input.data };
+}
 
 /**
  * `Cache-Control` for responses that carry session state or PII (the `me`

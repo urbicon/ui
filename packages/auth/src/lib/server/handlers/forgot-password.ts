@@ -7,8 +7,8 @@ import type { MailBuilder } from '../email/builders.js';
 import { resolveEmailSettings } from '../email/resolve.js';
 import { buildPasswordResetEmail } from '../email/templates.js';
 import { enforceRateLimit, makeRateLimiter } from '../rate-limit.js';
-import { readJsonBody, validateEmailInput } from '../validation.js';
-import { authError } from './errors.js';
+import { validateEmailInput } from '../validation.js';
+import { parseBody } from './_shared.js';
 
 export interface ForgotPasswordHandlerOptions {
   /**
@@ -30,14 +30,9 @@ export function createForgotPasswordHandler<R extends string>(
       const limited = await enforceRateLimit(rateLimiter, getClientAddress());
       if (limited) return limited;
 
-      const input = validateEmailInput(await readJsonBody(request));
-      if (!input.success) {
-        return authError('validation_error', 400, {
-          message: input.errors[0].message,
-          extra: { errors: input.errors }
-        });
-      }
-      const { email } = input.data;
+      const body = await parseBody(request, validateEmailInput);
+      if (body instanceof Response) return body;
+      const { email } = body.data;
 
       const user = await deps.repos.user.findByEmail(email);
       if (user) {

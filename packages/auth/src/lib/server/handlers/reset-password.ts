@@ -3,7 +3,8 @@ import { json } from '@sveltejs/kit';
 import { hashPassword, hashToken, validatePasswordStrength } from '../auth.js';
 import type { AuthDeps } from '../deps.js';
 import { enforceRateLimit, makeRateLimiter } from '../rate-limit.js';
-import { readJsonBody, validateResetPasswordInput } from '../validation.js';
+import { validateResetPasswordInput } from '../validation.js';
+import { parseBody } from './_shared.js';
 import { authError } from './errors.js';
 
 export function createResetPasswordHandler<R extends string>(
@@ -16,14 +17,9 @@ export function createResetPasswordHandler<R extends string>(
       const limited = await enforceRateLimit(rateLimiter, getClientAddress());
       if (limited) return limited;
 
-      const input = validateResetPasswordInput(await readJsonBody(request));
-      if (!input.success) {
-        return authError('validation_error', 400, {
-          message: input.errors[0].message,
-          extra: { errors: input.errors }
-        });
-      }
-      const { token, password } = input.data;
+      const body = await parseBody(request, validateResetPasswordInput);
+      if (body instanceof Response) return body;
+      const { token, password } = body.data;
 
       const passwordErrors = validatePasswordStrength(password, deps.config.password);
       if (passwordErrors.length > 0) {

@@ -7,8 +7,8 @@ import type { ChangeEmailNoticeContext, MailBuilder } from '../email/builders.js
 import { resolveEmailSettings } from '../email/resolve.js';
 import { buildChangeEmail, buildChangeEmailNotice } from '../email/templates.js';
 import { enforceRateLimit, makeRateLimiter } from '../rate-limit.js';
-import { readJsonBody, validateChangeEmailInput } from '../validation.js';
-import { requireSessionUser, verifyCurrentPassword } from './_shared.js';
+import { validateChangeEmailInput } from '../validation.js';
+import { parseBody, requireSessionUser, verifyCurrentPassword } from './_shared.js';
 import { authError } from './errors.js';
 
 export interface ChangeEmailHandlerOptions {
@@ -49,14 +49,9 @@ export function createChangeEmailHandler<R extends string>(
       const user = await requireSessionUser(deps, cookies);
       if (!user) return authError('not_authenticated', 401);
 
-      const input = validateChangeEmailInput(await readJsonBody(request));
-      if (!input.success) {
-        return authError('validation_error', 400, {
-          message: input.errors[0].message,
-          extra: { errors: input.errors }
-        });
-      }
-      const { newEmail, currentPassword } = input.data;
+      const body = await parseBody(request, validateChangeEmailInput);
+      if (body instanceof Response) return body;
+      const { newEmail, currentPassword } = body.data;
 
       // Re-auth before staging any change.
       if (!(await verifyCurrentPassword(user, currentPassword, deps))) {

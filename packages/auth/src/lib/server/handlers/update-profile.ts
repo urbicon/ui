@@ -2,8 +2,8 @@ import type { RequestHandler } from '@sveltejs/kit';
 import { json } from '@sveltejs/kit';
 import { sanitizeUser } from '../auth.js';
 import type { AuthDeps } from '../deps.js';
-import { readJsonBody, validateUpdateProfileInput } from '../validation.js';
-import { requireSessionUser } from './_shared.js';
+import { validateUpdateProfileInput } from '../validation.js';
+import { parseBody, requireSessionUser } from './_shared.js';
 import { authError } from './errors.js';
 
 /**
@@ -19,14 +19,9 @@ export function createUpdateProfileHandler<R extends string>(
       const user = await requireSessionUser(deps, cookies);
       if (!user) return authError('not_authenticated', 401);
 
-      const input = validateUpdateProfileInput(await readJsonBody(request));
-      if (!input.success) {
-        return authError('validation_error', 400, {
-          message: input.errors[0].message,
-          extra: { errors: input.errors }
-        });
-      }
-      const { name } = input.data;
+      const body = await parseBody(request, validateUpdateProfileInput);
+      if (body instanceof Response) return body;
+      const { name } = body.data;
 
       await deps.repos.user.updateProfile(user.id, { name });
 

@@ -3,7 +3,8 @@ import { json } from '@sveltejs/kit';
 import { hashToken } from '../auth.js';
 import type { AuthDeps } from '../deps.js';
 import { enforceRateLimit, makeRateLimiter } from '../rate-limit.js';
-import { readJsonBody, validateTokenInput } from '../validation.js';
+import { validateTokenInput } from '../validation.js';
+import { parseBody } from './_shared.js';
 import { authError } from './errors.js';
 
 /**
@@ -25,14 +26,9 @@ export function createVerifyEmailChangeHandler<R extends string>(
       const limited = await enforceRateLimit(rateLimiter, getClientAddress());
       if (limited) return limited;
 
-      const input = validateTokenInput(await readJsonBody(request));
-      if (!input.success) {
-        return authError('validation_error', 400, {
-          message: input.errors[0].message,
-          extra: { errors: input.errors }
-        });
-      }
-      const { token } = input.data;
+      const body = await parseBody(request, validateTokenInput);
+      if (body instanceof Response) return body;
+      const { token } = body.data;
 
       const tokenHash = hashToken(token);
       // Atomic claim: swaps email→pendingEmail + marks verified, or returns null

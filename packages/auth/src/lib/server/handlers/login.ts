@@ -5,7 +5,8 @@ import type { AuthDeps } from '../deps.js';
 import { enforceRateLimit, makeRateLimiter } from '../rate-limit.js';
 import { establishSession, resolveSessionMeta } from '../session.js';
 import { createPending2faToken, setPending2faCookie } from '../two-factor.js';
-import { readJsonBody, validateLoginInput } from '../validation.js';
+import { validateLoginInput } from '../validation.js';
+import { parseBody } from './_shared.js';
 import { authError } from './errors.js';
 
 // A throwaway password used only to build the dummy hash for timing
@@ -36,14 +37,9 @@ export function createLoginHandler<R extends string>(deps: AuthDeps<R>): { POST:
       );
       if (limited) return limited;
 
-      const input = validateLoginInput(await readJsonBody(request));
-      if (!input.success) {
-        return authError('validation_error', 400, {
-          message: input.errors[0].message,
-          extra: { errors: input.errors }
-        });
-      }
-      const { email, password } = input.data;
+      const body = await parseBody(request, validateLoginInput);
+      if (body instanceof Response) return body;
+      const { email, password } = body.data;
 
       const user = await deps.repos.user.findByEmail(email);
       if (!user) {

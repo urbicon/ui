@@ -4,8 +4,8 @@ import { hashPassword, validatePasswordStrength } from '../auth.js';
 import type { AuthDeps } from '../deps.js';
 import { enforceRateLimit, makeRateLimiter } from '../rate-limit.js';
 import { establishSession, resolveSessionMeta } from '../session.js';
-import { readJsonBody, validateChangePasswordInput } from '../validation.js';
-import { requireSessionUser, verifyCurrentPassword } from './_shared.js';
+import { validateChangePasswordInput } from '../validation.js';
+import { parseBody, requireSessionUser, verifyCurrentPassword } from './_shared.js';
 import { authError } from './errors.js';
 
 /**
@@ -27,14 +27,9 @@ export function createChangePasswordHandler<R extends string>(
       const user = await requireSessionUser(deps, cookies);
       if (!user) return authError('not_authenticated', 401);
 
-      const input = validateChangePasswordInput(await readJsonBody(request));
-      if (!input.success) {
-        return authError('validation_error', 400, {
-          message: input.errors[0].message,
-          extra: { errors: input.errors }
-        });
-      }
-      const { currentPassword, newPassword } = input.data;
+      const body = await parseBody(request, validateChangePasswordInput);
+      if (body instanceof Response) return body;
+      const { currentPassword, newPassword } = body.data;
 
       // Re-auth: confirm the current password before allowing the change.
       if (!(await verifyCurrentPassword(user, currentPassword, deps))) {

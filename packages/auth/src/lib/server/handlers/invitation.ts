@@ -6,8 +6,8 @@ import { sanitizeUser } from '../auth.js';
 import type { AuthDeps } from '../deps.js';
 import { resolveEmailSettings } from '../email/resolve.js';
 import { buildInvitationEmail } from '../email/templates.js';
-import { readJsonBody, validateInvitationInput } from '../validation.js';
-import { NO_STORE, requireSessionUser } from './_shared.js';
+import { validateInvitationInput } from '../validation.js';
+import { NO_STORE, parseBody, requireSessionUser } from './_shared.js';
 import { authError } from './errors.js';
 
 export interface InvitationHandlerOptions<R extends string = string> {
@@ -106,14 +106,9 @@ export function createInvitationHandlers<R extends string>(
       const auth = await authorizedUser(cookies);
       if (auth instanceof Response) return auth;
 
-      const input = validateInvitationInput(await readJsonBody(request), roles);
-      if (!input.success) {
-        return authError('validation_error', 400, {
-          message: input.errors[0].message,
-          extra: { errors: input.errors }
-        });
-      }
-      const { email, role, sendEmail } = input.data;
+      const body = await parseBody(request, (raw) => validateInvitationInput(raw, roles));
+      if (body instanceof Response) return body;
+      const { email, role, sendEmail } = body.data;
 
       // Duplicate rejection with a clear 409. The caller is an authorized admin,
       // so there's no enumeration concern in distinguishing the cases. Checking

@@ -4,8 +4,8 @@ import { sanitizeUser } from '../auth.js';
 import type { AuthDeps } from '../deps.js';
 import { enforceRateLimit, makeRateLimiter } from '../rate-limit.js';
 import { endSession } from '../session.js';
-import { readJsonBody, validateDeleteAccountInput } from '../validation.js';
-import { requireSessionUser, verifyCurrentPassword } from './_shared.js';
+import { validateDeleteAccountInput } from '../validation.js';
+import { parseBody, requireSessionUser, verifyCurrentPassword } from './_shared.js';
 import { authError } from './errors.js';
 
 /**
@@ -26,14 +26,9 @@ export function createDeleteAccountHandler<R extends string>(
       const user = await requireSessionUser(deps, cookies);
       if (!user) return authError('not_authenticated', 401);
 
-      const input = validateDeleteAccountInput(await readJsonBody(request));
-      if (!input.success) {
-        return authError('validation_error', 400, {
-          message: input.errors[0].message,
-          extra: { errors: input.errors }
-        });
-      }
-      const { currentPassword } = input.data;
+      const body = await parseBody(request, validateDeleteAccountInput);
+      if (body instanceof Response) return body;
+      const { currentPassword } = body.data;
 
       // Re-auth before an irreversible delete.
       if (!(await verifyCurrentPassword(user, currentPassword, deps))) {
