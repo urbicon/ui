@@ -140,16 +140,53 @@ describe('createPushSubscriptionHandler — POST', () => {
     }
   });
 
-  it('surfaces a key-mismatch rejection as 409 without claiming success', async () => {
+  it('surfaces a key-mismatch rejection as 409 without claiming success — and logs the security signal', async () => {
     // The repo refused the write: the endpoint row belongs to another account
     // and the submitted keys don't match (see PushSubscriptionRepository).
     const repo = mockRepo({ create: vi.fn().mockResolvedValue('rejected') });
-    const res = await createPushSubscriptionHandler(repo).POST(
+    const logger = { warn: vi.fn(), error: vi.fn() };
+    const res = await createPushSubscriptionHandler(repo, { logger }).POST(
       event({ subscription: { endpoint: PUBLIC_ENDPOINT, keys: KEYS } }, { id: 'attacker' })
     );
     expect(res.status).toBe(409);
     const body = await res.json();
     expect(body.success).toBeUndefined();
+    // Someone replaying foreign endpoint URLs is a signal the operator must
+    // be able to see; the endpoint itself stays out of the line.
+    const line = String(vi.mocked(logger.warn).mock.calls[0]?.[0]);
+    expect(line).toContain('rejected');
+    expect(line).toContain('attacker');
+    expect(line).not.toContain(PUBLIC_ENDPOINT);
+  });
+
+  it('logs a reassign (a push channel moving between accounts must be correlatable)', async () => {
+    const repo = mockRepo({ create: vi.fn().mockResolvedValue('reassigned') });
+    const logger = { warn: vi.fn(), error: vi.fn() };
+    const res = await createPushSubscriptionHandler(repo, { logger }).POST(
+      event({ subscription: { endpoint: PUBLIC_ENDPOINT, keys: KEYS } }, { id: 'next-user' })
+    );
+    expect(res.status).toBe(201);
+    const line = String(vi.mocked(logger.warn).mock.calls[0]?.[0]);
+    expect(line).toContain('reassigned');
+    expect(line).not.toContain(PUBLIC_ENDPOINT);
+  });
+
+  it('warns once when the adapter predates the outcome contract (gate silently absent)', async () => {
+    // A legacy adapter still returning Promise<void>: the takeover gate does
+    // not exist there — the tripwire makes that visible instead of silent.
+    const repo = mockRepo({ create: vi.fn().mockResolvedValue(undefined) });
+    const logger = { warn: vi.fn(), error: vi.fn() };
+    const handler = createPushSubscriptionHandler(repo, { logger });
+    const post = () =>
+      handler.POST(
+        event({ subscription: { endpoint: PUBLIC_ENDPOINT, keys: KEYS } }, { id: 'u1' })
+      );
+    expect((await post()).status).toBe(201);
+    expect((await post()).status).toBe(201);
+    const tripwires = vi
+      .mocked(logger.warn)
+      .mock.calls.filter(([msg]) => String(msg).includes('returned no outcome'));
+    expect(tripwires, 'warn once, not per request').toHaveLength(1);
   });
 
   it('rate-limits POST per user (429 past the limit, repo untouched)', async () => {
@@ -193,6 +230,33 @@ describe('createPushSubscriptionHandler — POST', () => {
     expect(repo.create).toHaveBeenCalledWith('u1', { endpoint: stored[0].endpoint, keys: KEYS });
   });
 
+  it('never blocks a device at cap−1 (boundary from below)', async () => {
+    const stored = Array.from({ length: 2 }, (_, i) => ({
+      endpoint: `https://fcm.googleapis.com/fcm/send/device-${i}`,
+      keys: KEYS
+    }));
+    const repo = mockRepo({ findByUser: vi.fn().mockResolvedValue(stored) });
+    const handler = createPushSubscriptionHandler(repo, { maxSubscriptionsPerUser: 3 });
+    const res = await handler.POST(
+      event({ subscription: { endpoint: PUBLIC_ENDPOINT, keys: KEYS } }, { id: 'u1' })
+    );
+    expect(res.status).toBe(201);
+    expect(repo.create).toHaveBeenCalled();
+  });
+
+  it('rateLimit: null disables limiting entirely (opt-out must not regress to the default)', async () => {
+    const repo = mockRepo();
+    const handler = createPushSubscriptionHandler(repo, { rateLimit: null });
+    // One past the built-in default of 10 — all must pass.
+    for (let i = 0; i < 11; i++) {
+      const res = await handler.POST(
+        event({ subscription: { endpoint: PUBLIC_ENDPOINT, keys: KEYS } }, { id: 'u1' })
+      );
+      expect(res.status).toBe(201);
+    }
+    expect(repo.create).toHaveBeenCalledTimes(11);
+  });
+
   it('honours the optional host allowlist (rejects a public host not on it)', async () => {
     const repo = mockRepo();
     const handler = createPushSubscriptionHandler(repo, {
@@ -221,6 +285,28 @@ describe('createPushSubscriptionHandler — POST', () => {
 });
 
 describe('createPushSubscriptionHandler — DELETE', () => {
+  it('shares one rate-limit budget with POST (mutation finding M2 of the test review)', async () => {
+    const repo = mockRepo();
+    const handler = createPushSubscriptionHandler(repo, {
+      rateLimit: { windowMs: 60_000, max: 2 }
+    });
+    // Exhaust the budget with POSTs …
+    for (let i = 0; i < 2; i++) {
+      expect(
+        (
+          await handler.POST(
+            event({ subscription: { endpoint: PUBLIC_ENDPOINT, keys: KEYS } }, { id: 'u1' })
+          )
+        ).status
+      ).toBe(201);
+    }
+    // … then the DELETE must hit the same wall.
+    const limited = await handler.DELETE(event({ endpoint: PUBLIC_ENDPOINT }, { id: 'u1' }));
+    expect(limited.status).toBe(429);
+    expect(limited.headers.get('Retry-After')).toBeTruthy();
+    expect(repo.delete).not.toHaveBeenCalled();
+  });
+
   it('returns 401 when unauthenticated', async () => {
     const repo = mockRepo();
     const res = await createPushSubscriptionHandler(repo).DELETE(

@@ -12,9 +12,17 @@ const MAX_TYPE_KEY_LENGTH = 256;
 /** Default PUT limit — generous for real toggling, a wall for scripted abuse. */
 const DEFAULT_RATE_LIMIT: RateLimitConfig = { windowMs: 60_000, max: 30 };
 
-/** Coerce an optional preference flag: a non-boolean falls back to `true`. */
-function flag(v: unknown): boolean {
-  return typeof v === 'boolean' ? v : true;
+/**
+ * Parse an optional preference flag, write-strict: absent means "leave the
+ * stored value untouched" (the adapters' upsert merges partial data — pinned
+ * by the conformance suite), a boolean passes through, and anything else is
+ * `'invalid'` → 400. Coercing junk to `true` (the old behaviour) would turn
+ * a client's `push: "false"` — clearly intended as DISABLE — into silently
+ * re-enabling the channel, and a partial PUT into resetting the other flags.
+ */
+function parseFlag(v: unknown): boolean | undefined | 'invalid' {
+  if (v === undefined) return undefined;
+  return typeof v === 'boolean' ? v : 'invalid';
 }
 
 export interface PreferencesHandlerOptions {
@@ -87,12 +95,20 @@ export function createPreferencesHandler(
         return json({ error: 'Unknown notification type' }, { status: 400 });
       }
 
-      // Coerce the flags to booleans — a client sending a non-boolean (or
-      // omitting a flag) must not write arbitrary values into the repo.
+      const sseFlag = parseFlag(sse);
+      const pushFlag = parseFlag(push);
+      const emailFlag = parseFlag(email);
+      if (sseFlag === 'invalid' || pushFlag === 'invalid' || emailFlag === 'invalid') {
+        return json({ error: 'Preference flags must be booleans' }, { status: 400 });
+      }
+
+      // Only the flags actually present in the body reach the repo — the
+      // adapter upsert merges, so omitted flags keep their stored value
+      // instead of being reset to true.
       await repo.upsert(userId, typeKey, {
-        sse: flag(sse),
-        push: flag(push),
-        email: flag(email)
+        ...(sseFlag !== undefined && { sse: sseFlag }),
+        ...(pushFlag !== undefined && { push: pushFlag }),
+        ...(emailFlag !== undefined && { email: emailFlag })
       });
       return json({ success: true });
     }

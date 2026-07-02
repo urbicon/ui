@@ -1,7 +1,11 @@
 import type { RequestHandler } from '@sveltejs/kit';
 import { json } from '@sveltejs/kit';
-import type { RateLimitConfig } from '../../../types.js';
-import type { PushSubscriptionRepository } from '../../adapters/types.js';
+import type { AuthLogger, RateLimitConfig } from '../../../types.js';
+import type {
+  PushSubscriptionRepository,
+  PushSubscriptionWriteOutcome
+} from '../../adapters/types.js';
+import { shieldLogger } from '../../deps.js';
 import { enforceRateLimit, makeRateLimiter } from '../../rate-limit.js';
 import { readJsonBody } from '../../validation.js';
 import { isAllowedPushEndpoint } from '../push-endpoint.js';
@@ -58,6 +62,17 @@ export interface PushSubscriptionHandlerOptions {
    * cost guard.
    */
   maxSubscriptionsPerUser?: number;
+  /**
+   * Sink for the two write outcomes worth an operator's attention:
+   * `'rejected'` (warn — an authenticated account presented a foreign
+   * endpoint with non-matching keys, i.e. someone is replaying endpoint URLs
+   * they don't own) and `'reassigned'` (a push channel moved between
+   * accounts with key possession proven — legitimate, but the previous
+   * owner's channel just went quiet, so it should be correlatable).
+   * Defaults to `console`; calls are shielded. Endpoint URLs are never
+   * logged (capability discipline) — only the acting user id.
+   */
+  logger?: AuthLogger;
 }
 
 /** Default POST/DELETE limit — see {@link PushSubscriptionHandlerOptions.rateLimit}. */
@@ -74,6 +89,11 @@ export function createPushSubscriptionHandler(
     options?.rateLimit === null ? undefined : (options?.rateLimit ?? DEFAULT_RATE_LIMIT)
   );
   const maxSubscriptionsPerUser = options?.maxSubscriptionsPerUser ?? 10;
+  const logger = shieldLogger(options?.logger ?? console);
+  // Tripwire for adapters predating the key gate (still returning void):
+  // with them the takeover gate simply does not exist, and every write
+  // reports success — warn once so the absent gate is visible.
+  let warnedVoidOutcome = false;
 
   return {
     POST: async ({ request, locals }) => {
@@ -118,18 +138,37 @@ export function createPushSubscriptionHandler(
         );
       }
 
-      const outcome = await repo.create(userId, {
+      const outcome = (await repo.create(userId, {
         endpoint: subscription.endpoint,
         keys: subscription.keys
-      });
+      })) as PushSubscriptionWriteOutcome | undefined;
+
+      if (outcome === undefined && !warnedVoidOutcome) {
+        warnedVoidOutcome = true;
+        logger.warn(
+          '[auth] pushSubscription.create returned no outcome — this adapter predates the ' +
+            'endpoint-takeover key gate and enforces none. Implement ' +
+            'PushSubscriptionWriteOutcome and run the adapter conformance suite.'
+        );
+      }
+
       // 'rejected': the endpoint row belongs to another account and the
       // submitted keys don't match the stored ones — the caller knows the
       // endpoint URL but demonstrably doesn't hold the browser subscription,
       // so the write was refused (see PushSubscriptionRepository.create).
+      // Both security-relevant outcomes are logged (never the endpoint URL).
       if (outcome === 'rejected') {
+        logger.warn(
+          `[auth] push-subscription write rejected: user ${userId} presented a foreign endpoint without the matching keys`
+        );
         return json(
           { error: 'Subscription endpoint is registered to another account' },
           { status: 409 }
+        );
+      }
+      if (outcome === 'reassigned') {
+        logger.warn(
+          `[auth] push-subscription endpoint reassigned to user ${userId} (key possession proven) — the previous owner's channel on this device went quiet`
         );
       }
 

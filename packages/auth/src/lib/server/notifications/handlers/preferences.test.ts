@@ -111,20 +111,51 @@ describe('createPreferencesHandler — PUT', () => {
     expect(limited.status).toBe(429);
     expect(limited.headers.get('Retry-After')).toBeTruthy();
     expect(repo.upsert).toHaveBeenCalledTimes(2);
+
+    // GET stays deliberately unlimited (reads are cheap and registry-bounded)
+    // — an exhausted PUT budget must not break NotificationCenter polling.
+    const read = await h.GET(event(undefined, { id: 'owner-1' }));
+    expect(read.status).toBe(200);
   });
 
-  it('coerces non-boolean flags to true (no arbitrary values reach the repo)', async () => {
+  it('rateLimit: null disables limiting entirely (opt-out must not regress to the default)', async () => {
+    const repo = mockRepo();
+    const h = handler(repo, { rateLimit: null });
+    // One past the built-in default of 30 — all must pass.
+    for (let i = 0; i < 31; i++) {
+      expect(
+        (await h.PUT(event({ typeKey: 'security', sse: true }, { id: 'owner-1' }))).status
+      ).toBe(200);
+    }
+    expect(repo.upsert).toHaveBeenCalledTimes(31);
+  });
+
+  it('rejects non-boolean flags with 400 (write-strict: junk must not flip a channel ON)', async () => {
+    // `push: "false"` clearly intends DISABLE — the old coerce-to-true
+    // behaviour silently re-enabled the channel and answered success.
+    const repo = mockRepo();
+    const h = handler(repo);
+    for (const body of [
+      { typeKey: 'security', sse: 'yes' },
+      { typeKey: 'security', push: 'false' },
+      { typeKey: 'security', push: 0 },
+      { typeKey: 'security', email: null }
+    ]) {
+      const res = await h.PUT(event(body, { id: 'owner-1' }));
+      expect(res.status, JSON.stringify(body)).toBe(400);
+    }
+    expect(repo.upsert).not.toHaveBeenCalled();
+  });
+
+  it('omitted flags stay omitted — the adapter merge keeps stored values (no reset to true)', async () => {
     const repo = mockRepo();
     const res = await handler(repo).PUT(
-      // A client sends junk for the flags; they must be coerced, not stored raw.
-      event({ typeKey: 'security', sse: 'yes', push: 0, email: undefined }, { id: 'owner-1' })
+      event({ typeKey: 'security', sse: false }, { id: 'owner-1' })
     );
     expect(res.status).toBe(200);
-    expect(repo.upsert).toHaveBeenCalledWith('owner-1', 'security', {
-      sse: true,
-      push: true,
-      email: true
-    });
+    // Exactly the submitted flag reaches the repo; push/email absent, so a
+    // previously stored push:false cannot be silently reset.
+    expect(repo.upsert).toHaveBeenCalledWith('owner-1', 'security', { sse: false });
   });
 
   it('upserts the preference scoped to the session user, ignoring any body-supplied id', async () => {
