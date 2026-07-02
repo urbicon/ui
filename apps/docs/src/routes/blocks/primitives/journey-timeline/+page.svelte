@@ -19,24 +19,40 @@
   const { propDocs, variantKeys } = extractPlaygroundDocs(componentData?.props ?? []);
   const relatedLinks = buildRelatedLinks(componentData);
 
-  // A utility-billing cockpit — the issue's driving consumer.
+  // A utility-billing run — the issue's driving consumer, as a chronicle.
   const stages: JourneyNode[] = [
-    { id: 'readings', title: 'Meter readings', status: 'complete', subtitle: 'Collected 3 Jun' },
     {
-      id: 'allocate',
-      title: 'Cost allocation',
-      status: 'active',
-      subtitle: 'Splitting shared costs'
+      id: 'readings',
+      title: 'Meter readings',
+      status: 'complete',
+      subtitle: 'All units collected',
+      meta: '3 Jun',
+      segmentLabel: '2 days · validation'
     },
-    { id: 'review', title: 'Review', status: 'pending', subtitle: 'Awaiting sign-off' },
-    { id: 'dispatch', title: 'Dispatch', status: 'pending', subtitle: 'Send statements' }
+    {
+      id: 'validate',
+      title: 'Validation',
+      status: 'complete',
+      subtitle: 'Anomalies resolved',
+      meta: '5 Jun',
+      connector: 'dashed',
+      segmentLabel: 'manual review'
+    },
+    {
+      id: 'statements',
+      title: 'Statements',
+      status: 'active',
+      subtitle: 'Generating documents',
+      meta: '6 Jun'
+    },
+    { id: 'dispatch', title: 'Dispatch', status: 'pending', subtitle: 'Email + postal' }
   ];
 
   const navigation = [
     { id: 'playground', title: 'Playground', order: 1 },
     { id: 'examples', title: 'Examples', order: 2 },
     { id: 'statuses', title: 'Statuses', order: 3 },
-    { id: 'scroll-spy', title: 'Scroll-spy', order: 4 },
+    { id: 'when-to-use', title: 'vs. Stepper / Tab', order: 4 },
     { id: 'customization', title: 'Customization', order: 5 },
     { id: 'accessibility', title: 'Accessibility', order: 6 },
     { id: 'api', title: 'API Reference', order: 10 },
@@ -44,7 +60,11 @@
   ];
 
   function codeGenerator(vals: Record<string, unknown>): string {
-    const defaults: Record<string, unknown> = { orientation: 'vertical', size: 'md' };
+    const defaults: Record<string, unknown> = {
+      orientation: 'vertical',
+      size: 'md',
+      detail: 'inline'
+    };
     const props = Object.entries(vals)
       .filter(([key, value]) => {
         if (value === null || value === undefined) return false;
@@ -64,12 +84,12 @@
 
 <SeoMeta
   title="JourneyTimeline Component"
-  description="Connected timeline whose status-coloured markers are the progress indicator; exactly one focusable node expands to reveal rich per-step detail."
+  description="Retrospective chronicle timeline: one node in focus with rich detail, quiet context rows, a first-class time axis and meaning-bearing connectors."
 />
 
 <DocsPageLayout
   title="JourneyTimeline"
-  description="A connected timeline whose status-coloured markers are the progress indicator, and where exactly one focusable node expands to reveal rich per-step detail — the DB-Navigator travel-log pattern. Reach for Stepper when you only need a compact progress indicator without a detail container."
+  description="A retrospective chronicle (focus + context): an ordered record of what happened and where things stand — shipment tracking, audit trails, billing runs, travel logs. One node is in focus and shows rich detail inline or in a stable readout panel; the rest stay quiet context rows along a first-class time axis. Reach for Stepper for prospective wizards and Tab for peer views."
   maxWidth="2xl"
   showToc={true}
   breadcrumbs={[
@@ -100,6 +120,16 @@
         },
         {
           type: 'dropdown',
+          key: 'detail',
+          label: 'Detail',
+          items: [
+            { label: 'inline', value: 'inline' },
+            { label: 'panel', value: 'panel' }
+          ],
+          defaultValue: 'inline'
+        },
+        {
+          type: 'dropdown',
           key: 'size',
           label: 'Size',
           items: [
@@ -110,12 +140,17 @@
           defaultValue: 'md'
         }
       ]}
-      values={{ orientation: 'vertical', size: 'md' }}
+      values={{ orientation: 'vertical', detail: 'inline', size: 'md' }}
       showHeader={false}
     >
       {#snippet children(values)}
         <div class="w-full max-w-xl">
-          <JourneyTimeline items={stages} orientation={values.orientation} size={values.size}>
+          <JourneyTimeline
+            items={stages}
+            orientation={values.orientation}
+            detail={values.detail}
+            size={values.size}
+          >
             {#snippet node(item)}
               <p class="text-text-secondary text-sm">{item.subtitle}</p>
             {/snippet}

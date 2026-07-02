@@ -24,7 +24,7 @@ Picking the right family up-front avoids the most common categorical bugs: a but
 |---|---|---|---|---|
 | [Action](#action) | Button · ButtonGroup · Menu · Toolbar · Toggle | `button`, `menu`, `menuitem`, `toolbar` | tier-aware (commit default) | **Intent** (`border-neutral` etc.) |
 | [Form](#form) | Input · Select · Combobox · Textarea · Checkbox · RadioGroup · Slider · FormField | `textbox`, `listbox`, `combobox`, `checkbox`, `radio` | tier-aware (modify default) | **Surface** (`border-border-subtle`) |
-| [Navigation](#navigation) | Breadcrumb · Pagination · SegmentGroup · Stepper · Tab | `navigation`, `tablist`, `tab` | tier-aware (commit or modify per component) | mixed (route-context dependent) |
+| [Navigation](#navigation) | Breadcrumb · Pagination · SegmentGroup · Stepper · Tab · JourneyTimeline | `navigation`, `tablist`, `tab` | tier-aware (commit or modify per component) | mixed (route-context dependent) |
 | [Container](#container) | Card · Alert · Accordion · Collapsible · Dialog · Drawer · Popover · Tooltip · Sidebar · Separator · ConfirmDialog | `dialog`, `region`, `tooltip`, etc. | tier-aware (contain default) | **Surface** or **Hairline** |
 | [Feedback / Ambient](#feedback--ambient) | Toast · Spinner · Progress · Skeleton · Badge | `status`, `alert`, `progressbar` | **not tier-aware** — fixed geometry per component | **Intent** (status-tinted) or **none** |
 | [Identity](#identity) | Avatar | `img` or `button` | **not tier-aware** — own shape axis (`circle`/`rounded`/`square`) | none (avatar is its own surface) |
@@ -81,11 +81,11 @@ The split between `display`, `overlay`, `layout`, `feedback` etc. JSDoc tags col
 
 ## Navigation
 
-**Members:** `Breadcrumb`, `Pagination`, `SegmentGroup`, `Stepper`, `Tab`.
+**Members:** `Breadcrumb`, `Pagination`, `SegmentGroup`, `Stepper`, `Tab`, `JourneyTimeline`.
 
-**ARIA:** `<nav aria-label>`, `role="tablist"` + `role="tab"`, `aria-current` for breadcrumbs / pagination current page.
+**ARIA:** `<nav aria-label>`, `role="tablist"` + `role="tab"`, `aria-current` for breadcrumbs / pagination current page. `JourneyTimeline` is an `<ol>` with `aria-current="step"` on the active-status node and disclosure semantics (`aria-expanded`/`aria-controls`) on the focused node's trigger.
 
-**Tier:** Per-component default. `SegmentGroup` defaults `commit` (tab-strip pill), `Tab` defaults `modify` (closer to an editorial surface), `Stepper` defaults `commit`. All tier-aware via context.
+**Tier:** Per-component default. `SegmentGroup` defaults `commit` (tab-strip pill), `Tab` defaults `modify` (closer to an editorial surface), `Stepper` defaults `commit`. All tier-aware via context. `JourneyTimeline` is not tier-aware — its cards/panel sit on the fixed `contain` radius.
 
 **Border source:** Mixed. `SegmentGroup` indicator uses Intent (the active item is action-like). `Tab` `line` variant has no border. Breadcrumb uses no border by default.
 
@@ -93,7 +93,8 @@ The split between `display`, `overlay`, `layout`, `feedback` etc. JSDoc tags col
 
 **When to reach for:**
 - App-level navigation (sections, sub-routes) → `Tab` (`variant="line"` for editorial), `SegmentGroup` (`appearance="solid"` for inline pickers).
-- Linear progress through a process → `Stepper`.
+- Linear progress through a process the user *completes* (wizard, checkout) → `Stepper`.
+- Retrospective record of a sequence the user *observes* (shipment tracking, audit trail, billing run — with a time axis and one focused node) → `JourneyTimeline`.
 - Position context inside a route → `Breadcrumb`.
 - Paginated list → `Pagination`.
 
@@ -174,7 +175,7 @@ The `@tag` annotations on each `*Props` interface in `packages/blocks/src/lib/pr
 |---|---|---|
 | `action` | Action | Button, ButtonGroup, Menu, Toolbar |
 | `form` | Form | Toggle is form-tagged but in Action by behaviour (bistable switch) — see the table at top for canonical family. |
-| `navigation` | Navigation | Breadcrumb, Pagination, SegmentGroup, Stepper, Tab |
+| `navigation` | Navigation | Breadcrumb, Pagination, SegmentGroup, Stepper, Tab, JourneyTimeline (also `display`-tagged) |
 | `layout` | Container | Accordion, Card, Collapsible, Separator, Sidebar |
 | `overlay` | Container | ConfirmDialog, Dialog, Drawer, Popover |
 | `feedback` | Feedback / Ambient | Alert, Badge, Progress, Skeleton, Spinner, Toast |

@@ -16,25 +16,60 @@
     meta: { title: 'JourneyTimeline Component', showToc: true }
   };
 
-  // Vertical billing journey with a controlled focus.
+  // A utility-billing run — a retrospective chronicle with a time axis.
   const billing: JourneyNode[] = [
-    { id: 'readings', title: 'Meter readings', status: 'complete', subtitle: 'Collected 3 Jun' },
     {
-      id: 'allocate',
-      title: 'Cost allocation',
-      status: 'active',
-      subtitle: 'Splitting shared costs'
+      id: 'readings',
+      title: 'Meter readings',
+      status: 'complete',
+      subtitle: 'All 48 units collected',
+      meta: '3 Jun',
+      segmentLabel: '2 days · validation'
     },
-    { id: 'review', title: 'Review', status: 'pending', subtitle: 'Awaiting sign-off' },
-    { id: 'dispatch', title: 'Dispatch', status: 'pending', subtitle: 'Send statements' }
+    {
+      id: 'validate',
+      title: 'Validation',
+      status: 'complete',
+      subtitle: '2 anomalies resolved',
+      meta: '5 Jun',
+      connector: 'dashed',
+      segmentLabel: 'manual review'
+    },
+    {
+      id: 'statements',
+      title: 'Statements',
+      status: 'active',
+      subtitle: 'Generating 48 documents',
+      meta: '6 Jun',
+      segmentLabel: 'dispatch queue'
+    },
+    { id: 'dispatch', title: 'Dispatch', status: 'pending', subtitle: 'Email + postal' }
   ];
-  let focusId = $state('allocate');
+  // Confirmed dates rendered through the `meta` snippet (planned + actual).
+  const actuals: Record<string, string> = { readings: '3 Jun', validate: '6 Jun' };
+  let focusId = $state('statements');
 
-  // Horizontal lifecycle.
+  // Shipment tracking — the stable readout keeps the rail rigid.
+  const shipment: JourneyNode[] = [
+    { id: 'ordered', title: 'Ordered', status: 'complete', meta: 'Mon' },
+    { id: 'packed', title: 'Packed', status: 'complete', meta: 'Tue' },
+    {
+      id: 'transit',
+      title: 'In transit',
+      status: 'active',
+      meta: 'Wed',
+      connector: 'dotted',
+      segmentLabel: 'customs clearance'
+    },
+    { id: 'delivery', title: 'Out for delivery', status: 'pending' },
+    { id: 'delivered', title: 'Delivered', status: 'pending' }
+  ];
+
+  // Invoice lifecycle — horizontal rail + shared panel.
   const lifecycle: JourneyNode[] = [
-    { id: 'draft', title: 'Draft', status: 'complete' },
-    { id: 'open', title: 'Open', status: 'active' },
-    { id: 'due', title: 'Due', status: 'pending' },
+    { id: 'draft', title: 'Draft', status: 'complete', meta: '1 Mar' },
+    { id: 'open', title: 'Open', status: 'active', meta: '5 Mar' },
+    { id: 'due', title: 'Due', status: 'pending', meta: '19 Mar' },
     { id: 'paid', title: 'Paid', status: 'pending' }
   ];
 
@@ -59,23 +94,34 @@
 <Section marker="02" id="examples" title="Examples">
   <div class="space-y-8">
     <CodeExample
-      title="Vertical journey with inline detail"
-      description="Data-driven items; the focused node expands inline to reveal the node snippet. Bind focusId to drive or observe the open node."
+      title="Vertical chronicle with inline detail"
+      description="The default. Per-node meta renders on the chronicle rail (here through the meta snippet: planned date + confirmed Badge), connectors carry meaning (dashed = manual hop), segment labels annotate the stretch between nodes. The focused node becomes an elevated card in place."
       isolate
     >
       <div class="flex w-full max-w-lg flex-col gap-3">
         <div class="flex items-center gap-2">
-          <span class="text-text-tertiary text-xs font-medium">Open node:</span>
+          <span class="text-text-tertiary text-xs font-medium">Focused node:</span>
           <Badge size="xs" intent="primary" variant="soft">{focusId}</Badge>
         </div>
         <JourneyTimeline items={billing} bind:focusId>
+          {#snippet meta(item)}
+            <div class="flex flex-col items-end gap-1">
+              {#if item.meta}
+                <span class="text-text-tertiary font-mono text-xs tabular-nums">{item.meta}</span>
+              {/if}
+              {#if actuals[item.id]}
+                <Badge size="xs" intent="success" variant="soft">{actuals[item.id]}</Badge>
+              {/if}
+            </div>
+          {/snippet}
           {#snippet node(item)}
-            <div class="flex flex-col gap-2 py-1">
+            <div class="flex flex-col gap-2 py-0.5">
               <p class="text-text-secondary text-sm">
-                Details for <strong>{item.title}</strong> ({item.subtitle}).
+                Full record for <strong>{item.title}</strong> — assignments, anomalies and the audit trail
+                live here.
               </p>
               <div>
-                <Button size="sm" variant="outlined">Open {item.title}</Button>
+                <Button size="sm" variant="outlined">Open {item.title.toLowerCase()}</Button>
               </div>
             </div>
           {/snippet}
@@ -84,14 +130,38 @@
     </CodeExample>
 
     <CodeExample
-      title="Horizontal with a shared detail panel"
-      description="In horizontal orientation the markers form a rail and the focused node's detail renders in a single panel beneath it."
+      title="Stable readout with detail=&quot;panel&quot;"
+      description="The rail stays rigid — rows never change height. The focused node's detail renders in a panel beside the rail on wide viewports and docks to the viewport bottom on narrow ones. Pick this for long chronicles or when the detail is tall."
+      isolate
+    >
+      <div class="w-full">
+        <JourneyTimeline items={shipment} detail="panel">
+          {#snippet node(item)}
+            <div class="flex flex-col gap-2">
+              <p class="text-sm font-medium text-text-primary">{item.title}</p>
+              <p class="text-text-secondary text-sm">
+                Scans, carrier and location history for this stage.
+              </p>
+              {#if item.segmentLabel}
+                <Badge size="xs" intent="neutral" variant="soft">{item.segmentLabel}</Badge>
+              {/if}
+            </div>
+          {/snippet}
+        </JourneyTimeline>
+      </div>
+    </CodeExample>
+
+    <CodeExample
+      title="Horizontal lifecycle"
+      description="Horizontal always renders the shared panel below the rail — the same rail + readout model, rotated. Meta renders as a kicker line above each title."
       isolate
     >
       <div class="w-full">
         <JourneyTimeline items={lifecycle} orientation="horizontal">
           {#snippet node(item)}
-            <p class="text-text-secondary text-sm">Phase “{item.title}” details go here.</p>
+            <p class="text-text-secondary text-sm">
+              Invoice events during “{item.title}” — issued, reminders, payments.
+            </p>
           {/snippet}
         </JourneyTimeline>
       </div>
@@ -103,12 +173,12 @@
 <Section marker="03" id="statuses" title="Statuses">
   <div class="space-y-4">
     <p class="text-text-secondary text-sm">
-      Each node's <code>status</code> maps to a semantic marker colour and glyph:
-      <strong>complete</strong> (success ✓), <strong>active</strong> (primary ◉),
-      <strong>pending</strong> (empty outline), <strong>blocked</strong> (danger ⊘) and
-      <strong>skipped</strong> (muted −). The connector leaving a completed node reads as
+      Each node's <code>status</code> maps to a semantic dot: <strong>complete</strong> (success,
+      filled), <strong>active</strong> (primary, ringed), <strong>pending</strong> (hollow),
+      <strong>blocked</strong> (danger — the title turns danger too, so colour is never the only
+      cue) and <strong>skipped</strong> (muted). The connector leaving a completed node reads as
       “travelled”. Set <code>focusable: false</code> for pure waypoints — they render a marker and label
-      but never expand and are skipped by keyboard navigation.
+      but never take focus and are skipped by keyboard navigation.
     </p>
     <CodeExample
       title="All statuses"
@@ -126,26 +196,45 @@
   </div>
 </Section>
 
-<!-- ─── Scroll-spy ─── -->
-<Section marker="04" id="scroll-spy" title="Scroll-spy">
+<!-- ─── When to use ─── -->
+<Section marker="04" id="when-to-use" title="JourneyTimeline vs. Stepper vs. Tab">
   <div class="space-y-4">
     <p class="text-text-secondary text-sm">
-      Opt in with <code>scrollSpy</code> to let the focus follow the node scrolled to the top of the
-      viewport — the travel-log feel. It only <em>follows</em> real scrolling: mounting keeps your
-      resolved default (or controlled) focus, and it never force-scrolls, so it stays
-      <code>prefers-reduced-motion</code> friendly. Leave it off (the default) for a controlled focus
-      driven by click and keyboard.
+      Three components, three different jobs — the overlap is smaller than it looks:
     </p>
-    <CodeExample
-      title="Scroll-driven focus"
-      code={`<JourneyTimeline items={stages} scrollSpy>
-  {#snippet node(item)}
-    <StageDetail id={item.id} />
-  {/snippet}
-</JourneyTimeline>`}
-      language="svelte"
-      preview={false}
-    />
+    <div class="grid gap-4 sm:grid-cols-3">
+      <div class="border-border-subtle rounded-lg border p-4">
+        <p class="text-text-primary text-sm font-semibold">JourneyTimeline</p>
+        <p class="text-text-secondary mt-2 text-sm">
+          <strong>Retrospective observation.</strong> An ordered record of what happened / where
+          things stand: shipment tracking, audit trails, billing runs, travel logs. Time (<code
+            >meta</code
+          >) is the first axis; connectors and segment labels describe the stretches between events.
+          Focus reveals detail — it never advances a process.
+        </p>
+      </div>
+      <div class="border-border-subtle rounded-lg border p-4">
+        <p class="text-text-primary text-sm font-semibold">Stepper</p>
+        <p class="text-text-secondary mt-2 text-sm">
+          <strong>Prospective process.</strong> A wizard the user walks through: checkout, onboarding,
+          multi-step forms. Steps are tasks to complete (often with embedded inputs), progress moves forward,
+          and the component may gate navigation. No time axis — the user is the timeline.
+        </p>
+      </div>
+      <div class="border-border-subtle rounded-lg border p-4">
+        <p class="text-text-primary text-sm font-semibold">Tab</p>
+        <p class="text-text-secondary mt-2 text-sm">
+          <strong>Peer views.</strong> Unordered, equivalent surfaces of one thing — Account / Billing
+          / Team. No sequence, no status, no chronology. If reordering the items would change their meaning,
+          they are not tabs.
+        </p>
+      </div>
+    </div>
+    <p class="text-text-secondary text-sm">
+      Rule of thumb: does each item carry a <em>status</em> and does their
+      <em>order tell a story</em>? JourneyTimeline. Does the user <em>complete</em> the items one by
+      one? Stepper. Are the items just <em>alternative views</em>? Tab.
+    </p>
   </div>
 </Section>
 
@@ -155,19 +244,20 @@
     <p class="text-text-secondary text-sm">
       Every family member supports <code>unstyled</code>, <code>slotClasses</code> and
       <code>preset</code>. Slots: <code>base</code>, <code>rail</code>, <code>node</code>,
-      <code>trigger</code>, <code>marker</code>, <code>connectorColumn</code>,
-      <code>connector</code>,
-      <code>labelGroup</code>, <code>title</code>, <code>subtitle</code>, <code>body</code>,
-      <code>detail</code>, <code>detailInner</code>, <code>detailContent</code> and
-      <code>panel</code>.
+      <code>metaColumn</code>, <code>meta</code>, <code>markerColumn</code>, <code>marker</code>,
+      <code>connector</code>, <code>connectorColumn</code>, <code>content</code>,
+      <code>card</code>, <code>trigger</code>, <code>labelGroup</code>, <code>title</code>,
+      <code>subtitle</code>, <code>segment</code>, <code>detail</code>, <code>detailInner</code>,
+      <code>detailContent</code> and <code>panel</code>.
     </p>
     <CodeExample
-      title="Restyle the marker column with slotClasses"
+      title="Restyle markers and the docked panel"
       code={`<JourneyTimeline
   items={stages}
+  detail="panel"
   slotClasses={{
     marker: 'ring-2 ring-offset-2 ring-primary/20',
-    connector: 'rounded-none'
+    panel: 'sm:top-20'  /* clear a fixed page header */
   }}
 >
   {#snippet node(item)}…{/snippet}
@@ -184,8 +274,8 @@
     <p>
       The rail is an ordered list. Each node carries <code>aria-current="step"</code> while its
       status is <code>active</code>; the focusable trigger exposes <code>aria-expanded</code> and
-      <code>aria-controls</code> for its detail region (an inline region when vertical, the shared panel
-      when horizontal). The status is announced through a visually-hidden label, so the marker glyph can
+      <code>aria-controls</code> for its detail region (a per-node inline region, or the shared panel
+      in panel/horizontal mode). The status is announced through a visually-hidden label, so the dot markers
       stay decorative.
     </p>
     <div>
@@ -193,15 +283,17 @@
       <ul class="list-inside list-disc space-y-1">
         <li>
           <kbd>↑</kbd> / <kbd>↓</kbd> (vertical) or <kbd>←</kbd> / <kbd>→</kbd> (horizontal) move the
-          roving focus between node headers.
+          roving focus between node headers without changing the focused node.
         </li>
         <li><kbd>Home</kbd> / <kbd>End</kbd> jump to the first / last focusable node.</li>
-        <li><kbd>Enter</kbd> / <kbd>Space</kbd> expand the focused node.</li>
+        <li><kbd>Enter</kbd> / <kbd>Space</kbd> put the header's node in focus.</li>
       </ul>
     </div>
     <p>
-      Expand/collapse and colour transitions run on the motion-duration tokens, which collapse to
-      1&nbsp;ms under <code>prefers-reduced-motion: reduce</code>.
+      Motion: expand/collapse runs on the motion-duration tokens, which collapse to 1&nbsp;ms under
+      <code>prefers-reduced-motion: reduce</code>. When activating a node makes another card
+      collapse above it, the component counter-scrolls so the activated header stays visually
+      stationary — real user scrolling cancels this immediately.
     </p>
   </div>
 </Section>
