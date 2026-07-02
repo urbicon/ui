@@ -29,12 +29,16 @@ describe('createNotificationRegistry', () => {
     expect(list.map((t) => t.key)).toEqual(['a', 'b']);
   });
 
-  it('should overwrite existing type with same key', () => {
+  it('rejects a duplicate key instead of silently replacing the earlier definition', () => {
     const registry = createNotificationRegistry();
     registry.register({ key: 'test', title: 'Old', recipients: 'online' });
-    registry.register({ key: 'test', title: 'New', recipients: 'online' });
 
-    expect(registry.get('test')?.title).toBe('New');
+    // A silent overwrite would let a later registration redirect
+    // recipients/channels of an existing (possibly security-alert) type.
+    expect(() => registry.register({ key: 'test', title: 'New', recipients: 'online' })).toThrow(
+      /already registered/
+    );
+    expect(registry.get('test')?.title, 'earlier definition untouched').toBe('Old');
     expect(registry.list()).toHaveLength(1);
   });
 });

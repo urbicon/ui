@@ -1,9 +1,11 @@
+import type { AuthLogger } from '../../types.js';
 import type {
   NotificationPreferenceRepository,
   NotificationRecord,
   NotificationRepository,
   PushSubscriptionRepository
 } from '../adapters/types.js';
+import { shieldLogger } from '../deps.js';
 import type { PushPayload, PushResult, PushService } from './push.js';
 import type { NotificationRegistry } from './registry.js';
 import type { SSEManager } from './sse.js';
@@ -37,9 +39,26 @@ export interface NotificationServiceDeps {
    * defensively — a throwing hook never breaks delivery.
    */
   onPushResult?: (userId: string, results: PushResult[]) => void;
+  /**
+   * Sink for per-recipient delivery failures (see {@link NotificationService.send}).
+   * Defaults to `console`; calls are shielded, so a throwing sink cannot break
+   * delivery — same contract as `AuthConfig.logger`.
+   */
+  logger?: AuthLogger;
 }
 
 export interface NotificationService {
+  /**
+   * Resolve the type's recipients, then persist + deliver to each of them.
+   *
+   * **Failure semantics:** configuration errors (unknown type, unwired
+   * `resolveAdminRecipients`, the legacy `'all'` target) throw before any
+   * delivery. Once delivery starts it is **best-effort per recipient**: a
+   * failure for one recipient (DB blip on the insert, preference read, …) is
+   * reported to `deps.logger` and delivery continues with the remaining
+   * recipients — `send()` resolves. Push-transport failures are additionally
+   * observable per recipient via `onPushResult`.
+   */
   send(typeKey: string, data: Record<string, unknown>): Promise<void>;
   getForUser(
     userId: string,
@@ -60,6 +79,7 @@ function resolveString(
 
 export function createNotificationService(deps: NotificationServiceDeps): NotificationService {
   const { registry, sse, push, repos, resolveAdminRecipients, onPushResult } = deps;
+  const logger = shieldLogger(deps.logger ?? console);
 
   return {
     async send(typeKey, data) {
@@ -103,65 +123,75 @@ export function createNotificationService(deps: NotificationServiceDeps): Notifi
         recipientIds = await typeDef.recipients(data);
       }
 
-      // Persist and deliver to each recipient
+      // Persist and deliver to each recipient — isolated per recipient: a
+      // DB blip for user k must not cost users k+1…n their notification.
+      // Failures are best-effort-logged, not rethrown (see the interface JSDoc).
       for (const userId of recipientIds) {
-        const notification = await repos.notification.create({
-          userId,
-          typeKey,
-          title,
-          body,
-          url,
-          icon: typeDef.icon
-        });
-
-        // Check user preferences
-        let prefs = { sse: true, push: true, email: true };
-        if (repos.notificationPreference) {
-          const userPrefs = await repos.notificationPreference.findByUser(userId);
-          const typePref = userPrefs.find((p) => p.typeKey === typeKey);
-          if (typePref) {
-            prefs = typePref;
-          }
-        }
-
-        // SSE delivery
-        if (channels.includes('sse') && prefs.sse && sse.isOnline(userId)) {
-          sse.notifyUser(userId, {
-            type: 'notification',
-            notification
+        try {
+          const notification = await repos.notification.create({
+            userId,
+            typeKey,
+            title,
+            body,
+            url,
+            icon: typeDef.icon
           });
-        }
 
-        // Push delivery (when user is offline)
-        if (channels.includes('push') && prefs.push && push && repos.pushSubscription) {
-          if (!sse.isOnline(userId)) {
-            const pushRepo = repos.pushSubscription;
-            const subscriptions = await pushRepo.findByUser(userId);
-            if (subscriptions.length > 0) {
-              const payload: PushPayload = { title, body, url, icon: typeDef.icon };
-              const results = await push
-                .sendPush(subscriptions, payload)
-                .catch((): PushResult[] => []);
+          // Check user preferences
+          let prefs = { sse: true, push: true, email: true };
+          if (repos.notificationPreference) {
+            const userPrefs = await repos.notificationPreference.findByUser(userId);
+            const typePref = userPrefs.find((p) => p.typeKey === typeKey);
+            if (typePref) {
+              prefs = typePref;
+            }
+          }
 
-              if (onPushResult) {
-                try {
-                  onPushResult(userId, results);
-                } catch {
-                  // An observability hook must never break delivery.
+          // SSE delivery
+          if (channels.includes('sse') && prefs.sse && sse.isOnline(userId)) {
+            sse.notifyUser(userId, {
+              type: 'notification',
+              notification
+            });
+          }
+
+          // Push delivery (when user is offline)
+          if (channels.includes('push') && prefs.push && push && repos.pushSubscription) {
+            if (!sse.isOnline(userId)) {
+              const pushRepo = repos.pushSubscription;
+              const subscriptions = await pushRepo.findByUser(userId);
+              if (subscriptions.length > 0) {
+                const payload: PushPayload = { title, body, url, icon: typeDef.icon };
+                const results = await push.sendPush(subscriptions, payload).catch((err) => {
+                  // sendPush isolates per-subscription failures itself, so
+                  // reaching this catch means the whole transport call died.
+                  // Keep the send alive (the DB row exists) but say so.
+                  logger.error(`[auth] push transport failed for user ${userId}:`, err);
+                  return [] as PushResult[];
+                });
+
+                if (onPushResult) {
+                  try {
+                    onPushResult(userId, results);
+                  } catch {
+                    // An observability hook must never break delivery.
+                  }
                 }
-              }
 
-              // Prune subscriptions the push service reported as gone (410/404).
-              // sendPush already proved they're dead, so delete directly rather
-              // than re-probing — abandoned endpoints would otherwise be retried
-              // on every send forever.
-              for (const result of results) {
-                if (result.expired) {
-                  await pushRepo.delete(userId, result.endpoint).catch(() => {});
+                // Prune subscriptions the push service reported as gone (410/404).
+                // sendPush already proved they're dead, so delete directly rather
+                // than re-probing — abandoned endpoints would otherwise be retried
+                // on every send forever.
+                for (const result of results) {
+                  if (result.expired) {
+                    await pushRepo.delete(userId, result.endpoint).catch(() => {});
+                  }
                 }
               }
             }
           }
+        } catch (err) {
+          logger.error(`[auth] notification "${typeKey}" delivery to user ${userId} failed:`, err);
         }
       }
     },

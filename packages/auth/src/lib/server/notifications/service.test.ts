@@ -319,6 +319,125 @@ describe('createNotificationService', () => {
     );
   });
 
+  it('isolates a per-recipient failure: later recipients still get their notification', async () => {
+    const registry = createNotificationRegistry();
+    registry.register({ key: 'multi', title: 'Hi', recipients: ['user-1', 'user-2', 'user-3'] });
+
+    const sse = createSSEManager();
+    const notifRepo = createMockNotificationRepo();
+    // The insert for user-2 blows up (DB blip); user-3 must not be skipped.
+    vi.mocked(notifRepo.create).mockImplementation(async (data) => {
+      if (data.userId === 'user-2') throw new Error('db blip');
+      return {
+        id: 'n-x',
+        userId: data.userId,
+        typeKey: data.typeKey,
+        title: data.title,
+        body: null,
+        url: null,
+        icon: null,
+        readAt: null,
+        createdAt: new Date()
+      };
+    });
+
+    const logger = { warn: vi.fn(), error: vi.fn() };
+    const service = createNotificationService({
+      registry,
+      sse,
+      repos: { notification: notifRepo },
+      logger
+    });
+
+    // send() resolves (best-effort per recipient) …
+    await service.send('multi', {});
+
+    // … all three recipients were attempted …
+    expect(notifRepo.create).toHaveBeenCalledTimes(3);
+    expect(notifRepo.create).toHaveBeenCalledWith(expect.objectContaining({ userId: 'user-3' }));
+    // … and the failure is not silent.
+    expect(logger.error).toHaveBeenCalledWith(expect.stringContaining('user-2'), expect.any(Error));
+  });
+
+  it('a throwing consumer logger cannot break delivery (shielded sink)', async () => {
+    const registry = createNotificationRegistry();
+    registry.register({ key: 'multi', title: 'Hi', recipients: ['user-1', 'user-2'] });
+
+    const sse = createSSEManager();
+    const notifRepo = createMockNotificationRepo();
+    vi.mocked(notifRepo.create).mockImplementation(async (data) => {
+      if (data.userId === 'user-1') throw new Error('db blip');
+      return {
+        id: 'n-x',
+        userId: data.userId,
+        typeKey: data.typeKey,
+        title: data.title,
+        body: null,
+        url: null,
+        icon: null,
+        readAt: null,
+        createdAt: new Date()
+      };
+    });
+
+    const service = createNotificationService({
+      registry,
+      sse,
+      repos: { notification: notifRepo },
+      logger: {
+        warn: vi.fn(),
+        error: vi.fn(() => {
+          throw new Error('sink is broken too');
+        })
+      }
+    });
+
+    await expect(service.send('multi', {})).resolves.toBeUndefined();
+    expect(notifRepo.create).toHaveBeenCalledWith(expect.objectContaining({ userId: 'user-2' }));
+  });
+
+  it('logs a whole-transport push failure instead of swallowing it', async () => {
+    const registry = createNotificationRegistry();
+    registry.register({
+      key: 'push_down',
+      title: 'Hi',
+      recipients: ['user-1'],
+      channels: ['push']
+    });
+
+    const sse = createSSEManager(); // user-1 offline → push branch runs
+    const notifRepo = createMockNotificationRepo();
+    const pushSubRepo = {
+      findByUser: vi.fn(async () => [
+        { endpoint: 'https://push.example.com/x', keys: { p256dh: 'a', auth: 'b' } }
+      ]),
+      create: vi.fn(async () => 'created' as const),
+      delete: vi.fn(async () => {})
+    };
+    const push = {
+      sendPush: vi.fn(async () => {
+        throw new Error('transport down');
+      }),
+      cleanupExpired: vi.fn()
+    };
+
+    const logger = { warn: vi.fn(), error: vi.fn() };
+    const service = createNotificationService({
+      registry,
+      sse,
+      push,
+      repos: { notification: notifRepo, pushSubscription: pushSubRepo },
+      logger
+    });
+
+    await service.send('push_down', {});
+
+    expect(logger.error).toHaveBeenCalledWith(
+      expect.stringContaining('push transport failed'),
+      expect.any(Error)
+    );
+  });
+
   it('should markAsRead, markAllAsRead, getUnreadCount', async () => {
     const registry = createNotificationRegistry();
     const sse = createSSEManager();
