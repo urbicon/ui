@@ -175,6 +175,57 @@ describe('createNotificationService', () => {
     expect(notifRepo.create).toHaveBeenCalledWith(expect.objectContaining({ userId: 'admin-2' }));
   });
 
+  it("resolves recipients: 'online' to the users connected right now — and nobody else", async () => {
+    const registry = createNotificationRegistry();
+    registry.register({ key: 'broadcast', title: 'Hi', recipients: 'online' });
+
+    const sse = createSSEManager();
+    const ctrl = () =>
+      ({
+        enqueue: vi.fn(),
+        close: vi.fn(),
+        error: vi.fn()
+      }) as unknown as ReadableStreamDefaultController;
+    sse.addConnection('user-1', ctrl());
+    sse.addConnection('user-2', ctrl());
+    // user-3 exists but is offline → per the presence-based contract they get
+    // nothing: no DB row, no push.
+
+    const notifRepo = createMockNotificationRepo();
+    const service = createNotificationService({
+      registry,
+      sse,
+      repos: { notification: notifRepo }
+    });
+
+    await service.send('broadcast', {});
+
+    expect(notifRepo.create).toHaveBeenCalledTimes(2);
+    expect(notifRepo.create).toHaveBeenCalledWith(expect.objectContaining({ userId: 'user-1' }));
+    expect(notifRepo.create).toHaveBeenCalledWith(expect.objectContaining({ userId: 'user-2' }));
+  });
+
+  it("throws a migration error for the renamed recipients: 'all'", async () => {
+    const registry = createNotificationRegistry();
+    // JS consumers bypass the compiler — the runtime guard must catch them.
+    registry.register({
+      key: 'legacy',
+      title: 'Legacy',
+      recipients: 'all' as unknown as 'online'
+    });
+
+    const sse = createSSEManager();
+    const notifRepo = createMockNotificationRepo();
+    const service = createNotificationService({
+      registry,
+      sse,
+      repos: { notification: notifRepo }
+    });
+
+    await expect(service.send('legacy', {})).rejects.toThrow("renamed to 'online'");
+    expect(notifRepo.create).not.toHaveBeenCalled();
+  });
+
   it('should respect notification preferences', async () => {
     const registry = createNotificationRegistry();
     registry.register({

@@ -19,6 +19,24 @@ export interface SSEManager {
   getOnlineUserIds(): string[];
 }
 
+/**
+ * In-process SSE connection registry. **Process-local by design** — presence
+ * (`isOnline`, `getOnlineUserIds`) only sees connections owned by this
+ * process, and there is no cross-instance seam. On multi-instance or
+ * serverless deployments that means:
+ *
+ * - `isOnline` false-negatives for users whose stream lives on another
+ *   instance: the service skips their live SSE event and falls back to push
+ *   (delivery still happens, via the heavier channel, provided they have a
+ *   push subscription).
+ * - `recipients: 'online'` broadcasts only reach the users connected to the
+ *   instance that runs `send()`.
+ *
+ * Treat the notification system as single-instance until a shared presence
+ * backend exists — the same assumption the in-memory rate-limit store and the
+ * forgot-password serverless note document. See docs/AUTH.md → Known
+ * Limitations & Security Gaps.
+ */
 export function createSSEManager(): SSEManager {
   const connections = new Map<string, Set<ReadableStreamDefaultController>>();
 

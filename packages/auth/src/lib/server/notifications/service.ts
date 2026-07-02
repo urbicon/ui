@@ -75,7 +75,18 @@ export function createNotificationService(deps: NotificationServiceDeps): Notifi
 
       // Resolve recipients
       let recipientIds: string[];
-      if (typeDef.recipients === 'all') {
+      // Migration guard for JS consumers the compiler can't warn: 'all' was
+      // renamed to 'online' because it only ever reached currently-online
+      // users — silently accepting it would keep that misleading semantic.
+      if ((typeDef.recipients as unknown) === 'all') {
+        throw new Error(
+          `Notification type "${typeKey}" uses recipients: 'all', which was renamed to ` +
+            `'online' (it only ever reached users with an open SSE stream in this process — ` +
+            `offline accounts got neither a DB row nor a push). Use 'online', or a recipients ` +
+            `function for a true all-accounts broadcast.`
+        );
+      }
+      if (typeDef.recipients === 'online') {
         recipientIds = sse.getOnlineUserIds();
       } else if (typeDef.recipients === 'admins') {
         if (!resolveAdminRecipients) {
