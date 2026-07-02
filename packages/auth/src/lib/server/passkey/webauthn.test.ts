@@ -484,6 +484,8 @@ async function buildEs256Assertion(opts: {
   tamper?: boolean;
   /** Emit structurally broken DER bytes. */
   breakDer?: boolean;
+  /** Mint the authenticator data for a different RP (rpIdHash mismatch case). */
+  rpId?: string;
 }): Promise<{ credential: AuthenticationCredentialJSON; publicKey: Uint8Array }> {
   const kp = await crypto.subtle.generateKey({ name: 'ECDSA', namedCurve: 'P-256' }, true, [
     'sign',
@@ -499,7 +501,7 @@ async function buildEs256Assertion(opts: {
 
   // Assertion authenticatorData: rpIdHash(32) ‖ flags(1) ‖ signCount(4). UP+UV set.
   const rpIdHash = new Uint8Array(
-    await crypto.subtle.digest('SHA-256', new TextEncoder().encode(config.rpId))
+    await crypto.subtle.digest('SHA-256', new TextEncoder().encode(opts.rpId ?? config.rpId))
   );
   const tail = new Uint8Array(5);
   tail[0] = 0x05;
@@ -570,6 +572,22 @@ describe('verifyAssertion — ES256 signature (Codeberg #38 regression)', () => 
     await expect(
       verifyAssertion(isolatedConfig(store), 'ceremony', credential, publicKey, -7, 0)
     ).rejects.toThrow('Invalid ECDSA signature encoding');
+  });
+});
+
+describe('verifyAssertion — RP binding (rpIdHash, WebAuthn §7.2 step 15)', () => {
+  it('rejects an assertion whose authenticator data was minted for a different RP', async () => {
+    // Test-review mutation finding: the mismatch branch had no negative test —
+    // deleting the check kept 840 green.
+    const store = createInMemoryChallengeStore();
+    await storeChallenge(store, 'ceremony', 'chal-rp');
+    const { credential, publicKey } = await buildEs256Assertion({
+      challenge: 'chal-rp',
+      rpId: 'evil.example'
+    });
+    await expect(
+      verifyAssertion(isolatedConfig(store), 'ceremony', credential, publicKey, -7, 0)
+    ).rejects.toThrow('RP ID hash mismatch');
   });
 });
 
@@ -709,6 +727,80 @@ describe('hostile-input hardening (R9)', () => {
       expect((err as WebAuthnError).message).toContain('Malformed attestation object');
     }
   });
+
+  it('rejects undecodable base64url credential fields as WebAuthnError, never a raw 500', async () => {
+    // Silent-failure review (package 3): these four decodes ran OUTSIDE any
+    // try/catch — 'aaaaa' (len % 4 === 1) or '!!!' threw a raw
+    // InvalidCharacterError that the handlers rethrow as a 500, skipping the
+    // onLoginFailed audit hook for exactly the hostile-probe case.
+    const store = createInMemoryChallengeStore();
+    await storeChallenge(store, 'user-reg', 'test-challenge');
+    await expect(
+      verifyRegistration(isolatedConfig(store), 'user-reg', {
+        id: 'x',
+        rawId: 'x',
+        type: 'public-key',
+        response: { clientDataJSON: 'aaaaa', attestationObject: validClientData() }
+      })
+    ).rejects.toThrow('Malformed clientDataJSON');
+
+    const store2 = createInMemoryChallengeStore();
+    await storeChallenge(store2, 'user-reg', 'test-challenge');
+    await expect(
+      verifyRegistration(isolatedConfig(store2), 'user-reg', {
+        id: 'x',
+        rawId: 'x',
+        type: 'public-key',
+        response: { clientDataJSON: validClientData(), attestationObject: '!!!' }
+      })
+    ).rejects.toThrow('Malformed attestationObject');
+
+    const store3 = createInMemoryChallengeStore();
+    await storeChallenge(store3, 'ceremony', 'chal-mal');
+    const es = await buildEs256Assertion({ challenge: 'chal-mal' });
+    await expect(
+      verifyAssertion(
+        isolatedConfig(store3),
+        'ceremony',
+        {
+          ...es.credential,
+          response: { ...es.credential.response, authenticatorData: 'aaaaa' }
+        },
+        es.publicKey,
+        -7,
+        0
+      )
+    ).rejects.toThrow('Malformed authenticatorData');
+
+    const store4 = createInMemoryChallengeStore();
+    await storeChallenge(store4, 'ceremony', 'chal-mal2');
+    const es2 = await buildEs256Assertion({ challenge: 'chal-mal2' });
+    await expect(
+      verifyAssertion(
+        isolatedConfig(store4),
+        'ceremony',
+        {
+          ...es2.credential,
+          response: { ...es2.credential.response, signature: '!!!' }
+        },
+        es2.publicKey,
+        -7,
+        0
+      )
+    ).rejects.toThrow('Malformed signature');
+  });
+
+  it('rejects a body missing the response object entirely as WebAuthnError, not a TypeError', async () => {
+    const store = createInMemoryChallengeStore();
+    await storeChallenge(store, 'user-reg', 'test-challenge');
+    await expect(
+      verifyRegistration(isolatedConfig(store), 'user-reg', {
+        id: 'x',
+        rawId: 'x',
+        type: 'public-key'
+      } as never)
+    ).rejects.toThrow('Malformed clientDataJSON');
+  });
 });
 
 // ---- Registration happy path + exact COSE slicing (R9) ----
@@ -738,7 +830,7 @@ describe('verifyRegistration — attested credential data (exact COSE slicing)',
 
   const b64uStr = (s: string) => btoa(s).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
 
-  async function buildRegistrationAuthData(extensions?: Uint8Array) {
+  async function buildRegistrationAuthData(extensions?: Uint8Array, rpId?: string) {
     const kp = await crypto.subtle.generateKey({ name: 'ECDSA', namedCurve: 'P-256' }, true, [
       'sign'
     ]);
@@ -746,7 +838,7 @@ describe('verifyRegistration — attested credential data (exact COSE slicing)',
     const coseKey = coseEc2Key(base64UrlDecode(jwk.x ?? ''), base64UrlDecode(jwk.y ?? ''));
 
     const rpIdHash = new Uint8Array(
-      await crypto.subtle.digest('SHA-256', new TextEncoder().encode(config.rpId))
+      await crypto.subtle.digest('SHA-256', new TextEncoder().encode(rpId ?? config.rpId))
     );
     const head = new Uint8Array(5);
     head[0] = 0x41 | (extensions ? 0x80 : 0); // UP | AT (| ED)
@@ -811,6 +903,17 @@ describe('verifyRegistration — attested credential data (exact COSE slicing)',
 
     const result = await verify(store, noneAttestation(authData));
     expect(result.publicKey).toEqual(coseKey);
+  });
+
+  it('rejects authenticator data minted for a different RP (rpIdHash mismatch)', async () => {
+    // WebAuthn §7.1 step 13, the RP-binding check. Test-review mutation
+    // finding: making this check vacuous kept the whole suite green — a
+    // credential minted for evil.example must not register here.
+    const store = createInMemoryChallengeStore();
+    await storeChallenge(store, 'user-reg', 'reg-challenge');
+    const { authData } = await buildRegistrationAuthData(undefined, 'evil.example');
+
+    await expect(verify(store, noneAttestation(authData))).rejects.toThrow('RP ID hash mismatch');
   });
 });
 

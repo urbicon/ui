@@ -29,7 +29,14 @@ export async function postJson(
     options?.csrf,
     options?.fetcher
   );
-  const data = (await res.json().catch(() => ({}))) as Record<string, unknown>;
+  // Shield unparseable bodies AND non-object JSON (`null`, arrays, strings —
+  // e.g. a proxy error page with a JSON content type): the cast would
+  // otherwise let `data.code` throw inside the caller's error path, turning
+  // a failed request into a hung busy state instead of an error message.
+  const parsed: unknown = await res.json().catch(() => ({}));
+  const data = (
+    typeof parsed === 'object' && parsed !== null && !Array.isArray(parsed) ? parsed : {}
+  ) as Record<string, unknown>;
   return { ok: res.ok, data };
 }
 

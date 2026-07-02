@@ -27,6 +27,19 @@ describe('postJson', () => {
     const result = await postJson('/api/x', {}, { fetcher });
     expect(result).toEqual({ ok: false, data: {} });
   });
+
+  it('normalizes non-object JSON bodies (null, arrays) to an empty object', async () => {
+    // A proxy error page can return literal `null`/an array with a JSON
+    // content type; the caller's `data.code` access must not TypeError.
+    for (const body of ['null', '[1,2]', '"oops"']) {
+      const fetcher = vi.fn(
+        async () =>
+          new Response(body, { status: 502, headers: { 'Content-Type': 'application/json' } })
+      ) as unknown as typeof fetch;
+      const result = await postJson('/api/x', {}, { fetcher });
+      expect(result, body).toEqual({ ok: false, data: {} });
+    }
+  });
 });
 
 describe('errorTextFromBody', () => {

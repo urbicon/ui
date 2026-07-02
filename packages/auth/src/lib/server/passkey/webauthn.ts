@@ -324,7 +324,7 @@ export async function verifyRegistration(
   }
 
   // 2. Parse and verify clientDataJSON
-  const clientDataRaw = base64UrlDecode(credential.response.clientDataJSON);
+  const clientDataRaw = decodeField(credential.response?.clientDataJSON, 'clientDataJSON');
   const clientData = parseClientDataJson(clientDataRaw);
 
   if (clientData.type !== 'webauthn.create') {
@@ -347,7 +347,7 @@ export async function verifyRegistration(
   // top-level are attacker-suppliable input, so they must surface as a clean
   // WebAuthnError (→ 400), not as a raw parse error the handler rethrows as a
   // 500 — the same doctrine the COSE/DER paths below already follow.
-  const attestationRaw = base64UrlDecode(credential.response.attestationObject);
+  const attestationRaw = decodeField(credential.response?.attestationObject, 'attestationObject');
   let attestation: Map<CborValue, CborValue>;
   try {
     const decoded = decodeCbor(attestationRaw);
@@ -424,7 +424,7 @@ export async function verifyAssertion(
   }
 
   // 2. Parse and verify clientDataJSON
-  const clientDataRaw = base64UrlDecode(credential.response.clientDataJSON);
+  const clientDataRaw = decodeField(credential.response?.clientDataJSON, 'clientDataJSON');
   const clientData = parseClientDataJson(clientDataRaw);
 
   if (clientData.type !== 'webauthn.get') {
@@ -444,7 +444,7 @@ export async function verifyAssertion(
   }
 
   // 3. Parse authenticator data
-  const authDataRaw = base64UrlDecode(credential.response.authenticatorData);
+  const authDataRaw = decodeField(credential.response?.authenticatorData, 'authenticatorData');
   const authData = parseAuthenticatorData(authDataRaw);
 
   // 4. Verify RP ID hash
@@ -470,7 +470,7 @@ export async function verifyAssertion(
     await crypto.subtle.digest('SHA-256', toArrayBuffer(clientDataRaw))
   );
   const signedData = concatBytes(authDataRaw, clientDataHash);
-  const signatureRaw = base64UrlDecode(credential.response.signature);
+  const signatureRaw = decodeField(credential.response?.signature, 'signature');
 
   const valid = await verifySignature(storedPublicKey, storedAlg, signedData, signatureRaw);
   if (!valid) {
@@ -703,6 +703,26 @@ async function verifyRS256(
 }
 
 // ---- Utilities ----
+
+/**
+ * Decode an attacker-supplied base64url credential field. Every decode of
+ * client-sent material must surface as a clean WebAuthnError (→ 400 + the
+ * onLoginFailed audit hook), never as a raw InvalidCharacterError the
+ * handlers rethrow into a 500 — the same doctrine the JSON/CBOR/DER parse
+ * paths follow (silent-failure review, package 3). Accepts `unknown` so a
+ * body missing the field (or the whole `response` object) fails the same
+ * clean way instead of a TypeError.
+ */
+function decodeField(value: unknown, label: string): Uint8Array {
+  if (typeof value !== 'string') {
+    throw new WebAuthnError(`Malformed ${label}`);
+  }
+  try {
+    return base64UrlDecode(value);
+  } catch (err) {
+    throw new WebAuthnError(`Malformed ${label}`, { cause: err });
+  }
+}
 
 function formatAaguid(aaguid: Uint8Array): string {
   const hex = Array.from(aaguid)

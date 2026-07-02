@@ -142,6 +142,30 @@ describe('createAuthHandle', () => {
     expect(event.locals.user as { id?: string }).not.toHaveProperty('passwordHash');
   });
 
+  it('rejects a session whose tokenVersion is stale and clears the cookie ("log out everywhere")', async () => {
+    // Test-review mutation finding: weakening the tokenVersion gate to a bare
+    // `if (user)` kept the whole suite green — the one mechanism that makes
+    // incrementTokenVersion revoke live sessions was unpinned.
+    const repos = createMockRepos({
+      findById: vi.fn().mockResolvedValue(createMockUser({ tokenVersion: 1 }))
+    });
+    const handle = createAuthHandle({ config, repos });
+
+    const token = await createSessionToken(
+      { userId: 'user-1', email: 'test@test.com', role: 'admin', tokenVersion: 0 },
+      config.jwt
+    );
+    const event = createMockEvent({ path: '/api/data', sessionCookie: token });
+
+    const response = await handle({ event: asEvent(event), resolve: vi.fn() });
+    expect(response.status).toBe(401);
+    expect(event.locals.user).toBeNull();
+    expect(
+      (event as { _cookieStore: Map<string, string> })._cookieStore.get('session'),
+      'stale session cookie is cleared'
+    ).toBeUndefined();
+  });
+
   it('should apply security headers', async () => {
     const repos = createMockRepos();
     const handle = createAuthHandle({ config, repos });
@@ -426,16 +450,51 @@ describe('createAuthHandle — refresh-token rotation', () => {
     expect(record?.revokedAt).toBeInstanceOf(Date);
   });
 
+  it('mints a session cookie that verifies on the next request (payload round-trip)', async () => {
+    // Test-review mutation finding: dropping a claim from sessionPayload kept
+    // the whole suite green — every rotation "succeeded" while minting dead
+    // cookies (verify fails closed on a missing claim), so login would
+    // silently produce permanently unauthenticated sessions.
+    const repos = reposWithRefresh();
+    const { token } = await issueRefreshToken(repos.refreshToken!, 'user-1', {
+      refreshTokenTtl: '30d'
+    });
+    const handle = createAuthHandle({ config: rotationConfig, repos });
+
+    const first = createMockEvent({ path: '/dashboard', refreshCookie: token });
+    await handle({ event: asEvent(first), resolve: vi.fn(async () => new Response('OK')) });
+    const mintedSession = (first as { _cookieStore: Map<string, string> })._cookieStore.get(
+      'session'
+    );
+    expect(mintedSession).toBeDefined();
+
+    // Feed the freshly minted access cookie into a second request WITHOUT a
+    // refresh cookie: it must authenticate on its own.
+    const second = createMockEvent({ path: '/dashboard', sessionCookie: mintedSession });
+    await handle({ event: asEvent(second), resolve: vi.fn(async () => new Response('OK')) });
+    expect(second.locals.user).toBeDefined();
+    expect((second.locals.user as { id?: string }).id).toBe('user-1');
+  });
+
   it('clears both cookies when the refresh cookie is invalid', async () => {
     const repos = reposWithRefresh();
     const handle = createAuthHandle({ config: rotationConfig, repos });
 
-    const event = createMockEvent({ path: '/api/data', refreshCookie: 'not-a-token' });
+    // Seed a stale access cookie alongside the bad refresh cookie so the
+    // "both" in this test's name is actually asserted (test-review gap 3).
+    const event = createMockEvent({
+      path: '/api/data',
+      sessionCookie: 'stale-session',
+      refreshCookie: 'not-a-token'
+    });
     const resolve = vi.fn();
 
     const response = await handle({ event: asEvent(event), resolve });
     expect(response.status).toBe(401);
     expect(event.locals.user).toBeNull();
+    const store = (event as { _cookieStore: Map<string, string> })._cookieStore;
+    expect(store.get('session'), 'access cookie cleared').toBeUndefined();
+    expect(store.get('refresh'), 'refresh cookie cleared').toBeUndefined();
   });
 
   it('falls back to the normal "no session" path when neither cookie is present', async () => {
