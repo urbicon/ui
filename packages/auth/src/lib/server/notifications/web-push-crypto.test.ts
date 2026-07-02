@@ -7,6 +7,7 @@ import {
   encryptPayload,
   generateVapidKeys
 } from './web-push-crypto.js';
+import { decryptWebPushPayload, makeTestUserAgent } from './web-push-test-utils.js';
 
 describe('base64url', () => {
   it('should roundtrip encode/decode', () => {
@@ -166,6 +167,28 @@ describe('encryptPayload', () => {
 
     expect(base64UrlEncode(r1.ciphertext)).not.toBe(base64UrlEncode(r2.ciphertext));
     expect(base64UrlEncode(r1.salt)).not.toBe(base64UrlEncode(r2.salt));
+  });
+
+  it('produces a payload an RFC 8291 user agent can decrypt (roundtrip)', async () => {
+    // Regression for the aesgcm/aes128gcm context mix-up (sibling of the VAPID
+    // DER regression above): the CEK/nonce HKDF info used to carry the legacy
+    // aesgcm draft context ("P-256\0" + length-prefixed keys), deriving keys no
+    // conforming browser could reproduce — every payload was undecryptable end
+    // to end. The length/format assertions above never caught it. The helper
+    // decrypts the way a browser does (RFC 8291 §3.4 + RFC 8188 §2) and shares
+    // NO derivation code with the module (see web-push-test-utils.ts), so a
+    // wrong info string on either derivation fails the AES-GCM tag check here.
+    const ua = await makeTestUserAgent();
+
+    const plaintext = '{"title":"Hello","body":"Roundtrip"}';
+    const { ciphertext, salt, serverPublicKey } = await encryptPayload(
+      new TextEncoder().encode(plaintext),
+      { p256dh: base64UrlEncode(ua.publicRaw), auth: base64UrlEncode(ua.authSecret) }
+    );
+
+    await expect(decryptWebPushPayload({ ciphertext, salt, serverPublicKey }, ua)).resolves.toBe(
+      plaintext
+    );
   });
 });
 

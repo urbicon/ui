@@ -1,6 +1,12 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { PushSubscriptionData } from '../adapters/types.js';
 import { createPushService } from './push.js';
+import { base64UrlEncode, generateVapidKeys } from './web-push-crypto.js';
+import {
+  decryptWebPushPayload,
+  makeTestUserAgent,
+  parseAes128gcmBody
+} from './web-push-test-utils.js';
 
 function makeSub(endpoint: string): PushSubscriptionData {
   return {
@@ -158,5 +164,86 @@ describe('createPushService SSRF guard', () => {
     // The placeholder keys make the downstream crypto fail, but crucially NOT
     // with the guard's 'blocked endpoint' error — proving the host passed.
     expect(result.error).not.toBe('blocked endpoint');
+  });
+});
+
+describe('sendPush wire format', () => {
+  // Mutation-test finding: swapping buildEncryptedBody's arguments kept every
+  // suite green — the crypto roundtrip starts at encryptPayload's outputs and
+  // never sees the wire body, and the push service would even 201 an
+  // undecodable record (it cannot decrypt), so onPushResult reports success.
+  // This test closes the gap by decrypting the exact bytes handed to fetch,
+  // the way a browser does.
+  let fetchMock: ReturnType<typeof vi.fn>;
+  let originalFetch: typeof fetch;
+
+  beforeEach(() => {
+    originalFetch = globalThis.fetch;
+    fetchMock = vi.fn(async () => new Response('', { status: 201 }));
+    globalThis.fetch = fetchMock as unknown as typeof fetch;
+  });
+
+  afterEach(() => {
+    globalThis.fetch = originalFetch;
+  });
+
+  async function makeRealSub() {
+    const ua = await makeTestUserAgent();
+    const sub: PushSubscriptionData = {
+      endpoint: 'https://push.example.com/wire',
+      keys: { p256dh: base64UrlEncode(ua.publicRaw), auth: base64UrlEncode(ua.authSecret) }
+    };
+    return { ua, sub };
+  }
+
+  // Unlike the shared placeholder `vapid` above (which the VAPID signer
+  // rejects — fine for the rate-limit tests, they never assert `success`),
+  // this suite exercises the full crypto path to the wire, so it needs a
+  // real key pair.
+  async function makeRealVapid() {
+    const keys = await generateVapidKeys();
+    return { ...keys, subject: 'mailto:test@example.com' };
+  }
+
+  it('POSTs a body an RFC 8291 user agent can decrypt', async () => {
+    const { ua, sub } = await makeRealSub();
+    const service = createPushService(await makeRealVapid());
+    const payload = { title: 'Wire', body: 'roundtrip', url: '/inbox' };
+
+    const [result] = await service.sendPush([sub], payload);
+    expect(result.success).toBe(true);
+
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+    const [, init] = fetchMock.mock.calls[0] as [string, RequestInit];
+    expect((init.headers as Record<string, string>)['Content-Encoding']).toBe('aes128gcm');
+
+    const parts = parseAes128gcmBody(new Uint8Array(init.body as ArrayBuffer));
+    expect(parts.recordSize).toBe(4096);
+    expect(parts.serverPublicKey).toHaveLength(65);
+    await expect(decryptWebPushPayload(parts, ua)).resolves.toBe(JSON.stringify(payload));
+  });
+
+  it('delivers a decryptable record at the exact 4079-byte plaintext boundary', async () => {
+    const { ua, sub } = await makeRealSub();
+    const service = createPushService(await makeRealVapid());
+
+    // JSON.stringify({title}) wraps the title in `{"title":"…"}` — 12 bytes of
+    // ASCII scaffolding — so a 4067-char title lands exactly on the 4079-byte
+    // Web Push plaintext limit (4096-byte record − 16 GCM tag − 1 delimiter).
+    const payload = { title: 'x'.repeat(4067) };
+    expect(new TextEncoder().encode(JSON.stringify(payload))).toHaveLength(4079);
+
+    const [result] = await service.sendPush([sub], payload);
+    expect(result.success).toBe(true);
+    const [, init] = fetchMock.mock.calls[0] as [string, RequestInit];
+    const parts = parseAes128gcmBody(new Uint8Array(init.body as ArrayBuffer));
+    await expect(decryptWebPushPayload(parts, ua)).resolves.toBe(JSON.stringify(payload));
+
+    // One byte more must be rejected up front (no doomed request).
+    const oversized = { title: 'x'.repeat(4068) };
+    const [rejected] = await service.sendPush([sub], oversized);
+    expect(rejected.success).toBe(false);
+    expect(rejected.error).toContain('payload too large');
+    expect(fetchMock).toHaveBeenCalledTimes(1);
   });
 });

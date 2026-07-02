@@ -167,19 +167,15 @@ async function hkdfDerive(
   return new Uint8Array(bits);
 }
 
-function createInfo(type: string, clientPublic: Uint8Array, serverPublic: Uint8Array): Uint8Array {
-  // "Content-Encoding: <type>\0" + "P-256\0" + client key length (2) + client key + server key length (2) + server key
-  const typeEncoded = encoder.encode(`Content-Encoding: ${type}\0`);
-  const p256Label = encoder.encode('P-256\0');
-
-  const clientLen = new Uint8Array(2);
-  new DataView(clientLen.buffer).setUint16(0, clientPublic.length, false);
-
-  const serverLen = new Uint8Array(2);
-  new DataView(serverLen.buffer).setUint16(0, serverPublic.length, false);
-
-  return concat(typeEncoded, p256Label, clientLen, clientPublic, serverLen, serverPublic);
-}
+// RFC 8188 §2.2: for aes128gcm the CEK/nonce HKDF info values are the plain
+// ASCII labels below — nothing else. The ECDH public keys feed ONLY the
+// RFC 8291 IKM derivation (see `encryptPayload`). The retired `aesgcm` draft
+// appended a "P-256\0" label plus length-prefixed keys here; mixing that
+// context into aes128gcm derives a CEK/nonce no conforming browser can
+// reproduce, so every payload is undecryptable end to end. Guarded by the
+// decrypt-roundtrip test in web-push-crypto.test.ts.
+const CEK_INFO = encoder.encode('Content-Encoding: aes128gcm\0');
+const NONCE_INFO = encoder.encode('Content-Encoding: nonce\0');
 
 export async function encryptPayload(
   plaintext: Uint8Array,
@@ -224,10 +220,8 @@ export async function encryptPayload(
   const ikm = await hkdfDerive(sharedSecret, authSecret, ikmInfo, 32);
 
   // Derive content encryption key (CEK) and nonce
-  const cekInfo = createInfo('aes128gcm', clientPublicRaw, serverPublicRaw);
-  const nonceInfo = createInfo('nonce', clientPublicRaw, serverPublicRaw);
-  const cek = await hkdfDerive(ikm, salt, cekInfo, 16);
-  const nonce = await hkdfDerive(ikm, salt, nonceInfo, 12);
+  const cek = await hkdfDerive(ikm, salt, CEK_INFO, 16);
+  const nonce = await hkdfDerive(ikm, salt, NONCE_INFO, 12);
 
   // Pad plaintext (RFC 8188): payload + 0x02 delimiter
   const paddedPlaintext = concat(plaintext, new Uint8Array([2]));
