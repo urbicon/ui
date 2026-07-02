@@ -21,6 +21,33 @@ export interface AuthHandleOptions<R extends string = string> {
   config: AuthConfig<R>;
   repos: Repositories<R>;
   publicRoutes?: string[];
+  /**
+   * Allow unauthenticated SvelteKit Remote Functions
+   * (`kit.experimental.remoteFunctions`) to pass the route guard.
+   *
+   * Remote functions can't be guarded by `publicRoutes` — a caller controls the
+   * pathname the guard sees, via either of two transports:
+   * - `/_app/remote/…` (query / command / JS-enhanced form): SvelteKit rewrites
+   *   `event.url.pathname` from the client-controlled `x-sveltekit-pathname`
+   *   header before this hook runs.
+   * - the no-JS `<form action="?/remote=…">` fallback: dispatched through the
+   *   page pipeline from the `/remote` search param, decoupled from the
+   *   pathname, with `event.isRemoteRequest` left `false`.
+   *
+   * Either way a spoofed public route (e.g. `/auth/login`) would slip an
+   * unauthenticated remote call past a path-only check, so the guard
+   * default-denies (`401`) both — keyed on the unspoofable
+   * `event.isRemoteRequest` and, for the fallback, a `POST` carrying a truthy
+   * `/remote` action param.
+   *
+   * Set this to `true` only if your app deliberately exposes public remote
+   * functions — you are then responsible for authorizing each remote function
+   * yourself (check `event.locals.user` inside it). Authenticated remote
+   * requests are unaffected either way.
+   *
+   * @default false
+   */
+  allowUnauthenticatedRemote?: boolean;
 }
 
 const DEFAULT_PUBLIC_ROUTES = [
@@ -32,9 +59,16 @@ const DEFAULT_PUBLIC_ROUTES = [
   '/api/auth/'
 ];
 
+const jsonUnauthorized = () =>
+  new Response(JSON.stringify({ error: 'Unauthorized' }), {
+    status: 401,
+    headers: { 'Content-Type': 'application/json' }
+  });
+
 export function createAuthHandle<R extends string>(options: AuthHandleOptions<R>): Handle {
   const { config, repos } = options;
   const publicRoutes = options.publicRoutes ?? DEFAULT_PUBLIC_ROUTES;
+  const allowUnauthenticatedRemote = options.allowUnauthenticatedRemote ?? false;
   const loginPage = config.routes?.loginPage ?? '/auth/login';
 
   const csrfConfig = config.csrf;
@@ -172,19 +206,47 @@ export function createAuthHandle<R extends string>(options: AuthHandleOptions<R>
       (event.locals as Record<string, unknown>).user = null;
     }
 
-    // 3. Route guard: redirect unauthenticated users to login
-    const isPublic = publicRoutes.some((route) => event.url.pathname.startsWith(route));
-    const isApiRoute = event.url.pathname.startsWith('/api/');
+    // 3. Route guard.
     const user = (event.locals as Record<string, unknown>).user;
 
-    if (!user && !isPublic) {
-      if (isApiRoute) {
-        return new Response(JSON.stringify({ error: 'Unauthorized' }), {
-          status: 401,
-          headers: { 'Content-Type': 'application/json' }
-        });
+    // A remote-function call reaches this hook via one of two transports, both
+    // of which let a caller present a public pathname the path guard (3b) would
+    // wave through — so neither may be gated on the path:
+    //   - /_app/remote/… (query / command / JS-enhanced form): SvelteKit
+    //     rewrites event.url.pathname from the client-controlled
+    //     x-sveltekit-pathname header before this hook runs. Detected via the
+    //     unspoofable event.isRemoteRequest (from the real /_app/remote/… path).
+    //   - the no-JS <form action="?/remote=…"> fallback: SvelteKit dispatches it
+    //     through the page pipeline (render_page → is_action_request →
+    //     get_remote_action) purely from the /remote search param, decoupled
+    //     from the pathname, and intentionally leaves event.isRemoteRequest
+    //     false. Detected via a POST carrying a truthy /remote action param —
+    //     mirroring SvelteKit's own dispatch gate (`if (remote_id)`); a normal
+    //     action named "remote" serializes to an empty ?/remote and is falsy,
+    //     so it correctly stays on the path guard.
+    const isRemoteFormPost =
+      event.request.method === 'POST' && Boolean(event.url.searchParams.get('/remote'));
+
+    if (event.isRemoteRequest || isRemoteFormPost) {
+      // 3a. Default-deny unauthenticated remote calls. Apps that deliberately
+      // expose public remote functions opt out via allowUnauthenticatedRemote
+      // and must then guard those functions themselves. Authenticated remote
+      // requests fall through unchanged.
+      if (!user && !allowUnauthenticatedRemote) {
+        return jsonUnauthorized();
       }
-      throw redirect(302, loginPage);
+    } else {
+      // 3b. Path-based guard for normal requests: redirect unauthenticated
+      // users to login (401 for API routes).
+      const isPublic = publicRoutes.some((route) => event.url.pathname.startsWith(route));
+      const isApiRoute = event.url.pathname.startsWith('/api/');
+
+      if (!user && !isPublic) {
+        if (isApiRoute) {
+          return jsonUnauthorized();
+        }
+        throw redirect(302, loginPage);
+      }
     }
 
     // 4. Resolve and apply security headers. HSTS is gated on a secure

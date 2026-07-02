@@ -40,6 +40,7 @@ function createMockEvent(options: {
   sessionCookie?: string;
   refreshCookie?: string;
   refreshCookieName?: string;
+  isRemoteRequest?: boolean;
 }) {
   const headers = new Headers();
   if (options.origin) headers.set('origin', options.origin);
@@ -69,6 +70,7 @@ function createMockEvent(options: {
     route: { id: options.path },
     isDataRequest: false,
     isSubRequest: false,
+    isRemoteRequest: options.isRemoteRequest ?? false,
     getClientAddress: () => '127.0.0.1',
     platform: undefined
   };
@@ -246,6 +248,128 @@ describe('createAuthHandle', () => {
     });
     expect(warn).not.toHaveBeenCalled();
     warn.mockRestore();
+  });
+});
+
+describe('createAuthHandle — remote-function guard', () => {
+  // Regression for the x-sveltekit-pathname spoof (issue #43): for a remote
+  // request event.url.pathname is client-controlled (SvelteKit rewrites it from
+  // the header before this hook), so a public route in the path must NOT make
+  // the request public. The guard keys on the unspoofable event.isRemoteRequest.
+  it('rejects an unauthenticated remote request even when the (spoofable) path is public', async () => {
+    const repos = createMockRepos();
+    const handle = createAuthHandle({ config, repos });
+    const event = createMockEvent({ path: '/auth/login', isRemoteRequest: true });
+    const resolve = vi.fn().mockResolvedValue(new Response('leaked'));
+
+    const response = await handle({ event: asEvent(event), resolve });
+    expect(response.status).toBe(401);
+    expect(resolve).not.toHaveBeenCalled();
+  });
+
+  it('returns 401 (not a 302 redirect) for an unauthenticated remote request', async () => {
+    const repos = createMockRepos();
+    const handle = createAuthHandle({ config, repos });
+    // A non-public path would 302-redirect a normal browser request; a remote
+    // request must get a machine-readable 401 instead of a redirect to HTML.
+    const event = createMockEvent({ path: '/dashboard', isRemoteRequest: true });
+    const resolve = vi.fn();
+
+    const response = await handle({ event: asEvent(event), resolve });
+    expect(response.status).toBe(401);
+    expect(resolve).not.toHaveBeenCalled();
+  });
+
+  it('lets an authenticated remote request through', async () => {
+    const repos = createMockRepos();
+    const handle = createAuthHandle({ config, repos });
+    const token = await createSessionToken(
+      { userId: 'user-1', email: 'test@test.com', role: 'admin', tokenVersion: 0 },
+      config.jwt
+    );
+    const event = createMockEvent({
+      path: '/auth/login',
+      sessionCookie: token,
+      isRemoteRequest: true
+    });
+    const resolve = vi.fn().mockResolvedValue(new Response('OK'));
+
+    const response = await handle({ event: asEvent(event), resolve });
+    expect(response.status).toBe(200);
+    expect(resolve).toHaveBeenCalled();
+  });
+
+  it('allows unauthenticated remote requests when allowUnauthenticatedRemote is set', async () => {
+    const repos = createMockRepos();
+    const handle = createAuthHandle({ config, repos, allowUnauthenticatedRemote: true });
+    const event = createMockEvent({ path: '/dashboard', isRemoteRequest: true });
+    const resolve = vi.fn().mockResolvedValue(new Response('OK'));
+
+    const response = await handle({ event: asEvent(event), resolve });
+    expect(response.status).toBe(200);
+    expect(resolve).toHaveBeenCalled();
+  });
+
+  // Regression for the second transport (issue #43 follow-up): the no-JS
+  // <form action="?/remote=…"> fallback dispatches the remote function from the
+  // /remote search param through the page pipeline, with event.isRemoteRequest
+  // left false and the *real* (unspoofed) pathname. A public path must not wave
+  // it past the guard. POST → needs a same-origin header to clear CSRF (step 1).
+  it('rejects an unauthenticated form() no-JS fallback POST (?/remote=) on a public path', async () => {
+    const repos = createMockRepos();
+    const handle = createAuthHandle({ config, repos });
+    const event = createMockEvent({
+      path: '/auth/login?/remote=deleteAccount',
+      method: 'POST',
+      origin: 'http://localhost:3000',
+      isRemoteRequest: false
+    });
+    const resolve = vi.fn().mockResolvedValue(new Response('leaked'));
+
+    const response = await handle({ event: asEvent(event), resolve });
+    expect(response.status).toBe(401);
+    expect(resolve).not.toHaveBeenCalled();
+  });
+
+  it('lets an authenticated form() no-JS fallback POST through', async () => {
+    const repos = createMockRepos();
+    const handle = createAuthHandle({ config, repos });
+    const token = await createSessionToken(
+      { userId: 'user-1', email: 'test@test.com', role: 'admin', tokenVersion: 0 },
+      config.jwt
+    );
+    const event = createMockEvent({
+      path: '/dashboard?/remote=updateProfile',
+      method: 'POST',
+      origin: 'http://localhost:3000',
+      sessionCookie: token,
+      isRemoteRequest: false
+    });
+    const resolve = vi.fn().mockResolvedValue(new Response('OK'));
+
+    const response = await handle({ event: asEvent(event), resolve });
+    expect(response.status).toBe(200);
+    expect(resolve).toHaveBeenCalled();
+  });
+
+  // Precision of the /remote detection: a normal page action named "remote"
+  // serializes to ?/remote with an EMPTY value, which SvelteKit runs as a plain
+  // action (get_remote_action is falsy). It must stay on the path guard, so an
+  // unauthenticated POST to a public path is not spuriously default-denied.
+  it('does not treat a normal action named "remote" (empty ?/remote) as a remote call', async () => {
+    const repos = createMockRepos();
+    const handle = createAuthHandle({ config, repos });
+    const event = createMockEvent({
+      path: '/auth/login?/remote',
+      method: 'POST',
+      origin: 'http://localhost:3000',
+      isRemoteRequest: false
+    });
+    const resolve = vi.fn().mockResolvedValue(new Response('OK'));
+
+    const response = await handle({ event: asEvent(event), resolve });
+    expect(response.status).toBe(200);
+    expect(resolve).toHaveBeenCalled();
   });
 });
 
