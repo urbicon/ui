@@ -73,7 +73,10 @@
     }
   },
   "files": [
-    "dist"
+    "dist",
+    "!dist/**/*.test.*",
+    "!dist/**/*test-utils.*",
+    "!dist/**/.svelte-kit"
   ],
   "scripts": {
     "dev": "svelte-package --watch",
