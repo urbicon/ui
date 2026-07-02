@@ -4,6 +4,18 @@ All notable changes to this project will be documented in this file.
 This changelog is automatically generated from [Conventional Commits](https://www.conventionalcommits.org).
 
 
+## [6.10.0] - 2026-07-02
+
+### Bug Fixes
+- **blocks**: Cancel in-flight focus pin + gate panel aria-controls
+
+### Documentation
+- **blocks**: Rewrite JourneyTimeline docs for the chronicle rework
+- **blocks**: De-duplicate JourneyTimeline example details
+
+### Features
+- **blocks**: Rework JourneyTimeline as a focus+context chronicle
+
 ## [6.9.0] - 2026-07-01
 
 ### Bug Fixes
