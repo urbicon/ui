@@ -119,6 +119,7 @@ export { createUpdateProfileHandler } from './handlers/update-profile.js';
 export { createVerifyEmailHandler } from './handlers/verify-email.js';
 export { createVerifyEmailChangeHandler } from './handlers/verify-email-change.js';
 export { createNotificationsHandlers } from './notifications/handlers/notifications.js';
+export type { PreferencesHandlerOptions } from './notifications/handlers/preferences.js';
 export { createPreferencesHandler } from './notifications/handlers/preferences.js';
 export { createPushKeyHandler } from './notifications/handlers/push-key.js';
 export type { PushSubscriptionHandlerOptions } from './notifications/handlers/push-subscription.js';

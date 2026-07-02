@@ -152,6 +152,47 @@ describe('createPushSubscriptionHandler — POST', () => {
     expect(body.success).toBeUndefined();
   });
 
+  it('rate-limits POST per user (429 past the limit, repo untouched)', async () => {
+    const repo = mockRepo();
+    const handler = createPushSubscriptionHandler(repo, {
+      rateLimit: { windowMs: 60_000, max: 2 }
+    });
+    const post = () =>
+      handler.POST(
+        event({ subscription: { endpoint: PUBLIC_ENDPOINT, keys: KEYS } }, { id: 'u1' })
+      );
+    expect((await post()).status).toBe(201);
+    expect((await post()).status).toBe(201);
+    const limited = await post();
+    expect(limited.status).toBe(429);
+    expect(limited.headers.get('Retry-After')).toBeTruthy();
+    expect(repo.create).toHaveBeenCalledTimes(2);
+  });
+
+  it('caps subscriptions per user at 409 — but never blocks a re-subscribe of a known endpoint', async () => {
+    const stored = Array.from({ length: 3 }, (_, i) => ({
+      endpoint: `https://fcm.googleapis.com/fcm/send/device-${i}`,
+      keys: KEYS
+    }));
+    const repo = mockRepo({ findByUser: vi.fn().mockResolvedValue(stored) });
+    const handler = createPushSubscriptionHandler(repo, { maxSubscriptionsPerUser: 3 });
+
+    // A NEW endpoint beyond the cap is refused without a write.
+    const blocked = await handler.POST(
+      event({ subscription: { endpoint: PUBLIC_ENDPOINT, keys: KEYS } }, { id: 'u1' })
+    );
+    expect(blocked.status).toBe(409);
+    expect(repo.create).not.toHaveBeenCalled();
+
+    // Re-sending an already-stored endpoint (the browser's normal re-enable)
+    // doesn't grow the count and must pass despite the full cap.
+    const resubscribe = await handler.POST(
+      event({ subscription: { endpoint: stored[0].endpoint, keys: KEYS } }, { id: 'u1' })
+    );
+    expect(resubscribe.status).toBe(201);
+    expect(repo.create).toHaveBeenCalledWith('u1', { endpoint: stored[0].endpoint, keys: KEYS });
+  });
+
   it('honours the optional host allowlist (rejects a public host not on it)', async () => {
     const repo = mockRepo();
     const handler = createPushSubscriptionHandler(repo, {

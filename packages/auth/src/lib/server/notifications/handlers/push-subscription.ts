@@ -1,6 +1,8 @@
 import type { RequestHandler } from '@sveltejs/kit';
 import { json } from '@sveltejs/kit';
+import type { RateLimitConfig } from '../../../types.js';
 import type { PushSubscriptionRepository } from '../../adapters/types.js';
+import { enforceRateLimit, makeRateLimiter } from '../../rate-limit.js';
 import { readJsonBody } from '../../validation.js';
 import { isAllowedPushEndpoint } from '../push-endpoint.js';
 import { base64UrlDecode } from '../web-push-crypto.js';
@@ -38,7 +40,28 @@ export interface PushSubscriptionHandlerOptions {
    * guard always applies regardless.
    */
   allowedEndpointHosts?: string[];
+  /**
+   * Rate limit for the mutating endpoints (POST and DELETE share one budget),
+   * keyed by the authenticated user id — the endpoints require a session, and
+   * a per-user key can't be dodged by rotating IPs. Subscribe/unsubscribe is a
+   * rare user action, so the default of 10/min is generous for real use and a
+   * wall for scripted abuse. Pass `null` to disable.
+   */
+  rateLimit?: RateLimitConfig | null;
+  /**
+   * Upper bound on stored subscriptions per user — a cost guard: every stored
+   * row is a network fetch on every push send to that user. The cap applies
+   * only to endpoints not yet registered for the user; re-subscribing an
+   * existing endpoint (the browser's normal case) always passes. Exceeding it
+   * answers `409`. Default 10 (≈ a device fleet, not a script). The check is
+   * read-then-write and therefore approximate under concurrency — fine for a
+   * cost guard.
+   */
+  maxSubscriptionsPerUser?: number;
 }
+
+/** Default POST/DELETE limit — see {@link PushSubscriptionHandlerOptions.rateLimit}. */
+const DEFAULT_RATE_LIMIT: RateLimitConfig = { windowMs: 60_000, max: 10 };
 
 export function createPushSubscriptionHandler(
   repo: PushSubscriptionRepository,
@@ -47,12 +70,20 @@ export function createPushSubscriptionHandler(
   POST: RequestHandler;
   DELETE: RequestHandler;
 } {
+  const rateLimiter = makeRateLimiter(
+    options?.rateLimit === null ? undefined : (options?.rateLimit ?? DEFAULT_RATE_LIMIT)
+  );
+  const maxSubscriptionsPerUser = options?.maxSubscriptionsPerUser ?? 10;
+
   return {
     POST: async ({ request, locals }) => {
       const userId = localsUserId(locals);
       if (!userId) {
         return json({ error: 'Unauthorized' }, { status: 401 });
       }
+
+      const limited = await enforceRateLimit(rateLimiter, userId);
+      if (limited) return limited;
 
       const { subscription } = (await readJsonBody(request)) as {
         subscription?: { endpoint?: unknown; keys?: unknown };
@@ -72,6 +103,19 @@ export function createPushSubscriptionHandler(
       // would otherwise be stored and then crash every push to this user.
       if (!isValidWebPushKeys(subscription.keys)) {
         return json({ error: 'Invalid subscription keys' }, { status: 400 });
+      }
+
+      // Per-user cap on NEW endpoints only — a re-subscribe of an existing
+      // endpoint doesn't grow the row count and must never be blocked.
+      const existing = await repo.findByUser(userId);
+      if (
+        existing.length >= maxSubscriptionsPerUser &&
+        !existing.some((s) => s.endpoint === subscription.endpoint)
+      ) {
+        return json(
+          { error: `Subscription limit reached (${maxSubscriptionsPerUser} per user)` },
+          { status: 409 }
+        );
       }
 
       const outcome = await repo.create(userId, {
@@ -97,6 +141,9 @@ export function createPushSubscriptionHandler(
       if (!userId) {
         return json({ error: 'Unauthorized' }, { status: 401 });
       }
+
+      const limited = await enforceRateLimit(rateLimiter, userId);
+      if (limited) return limited;
 
       const { endpoint } = (await readJsonBody(request)) as { endpoint?: unknown };
       if (typeof endpoint !== 'string' || endpoint.length === 0) {
