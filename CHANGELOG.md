@@ -4,6 +4,11 @@ All notable changes to this project will be documented in this file.
 This changelog is automatically generated from [Conventional Commits](https://www.conventionalcommits.org).
 
 
+## [6.10.1] - 2026-07-02
+
+### Bug Fixes
+- **blocks**: Rebuild JourneyTimeline horizontal rail as a station spine
+
 ## [6.10.0] - 2026-07-02
 
 ### Bug Fixes
