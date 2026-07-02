@@ -117,8 +117,13 @@
   // visually stationary — the context moves, the focus point doesn't. Real user
   // scroll input cancels the pin immediately. Inline vertical detail only; the
   // panel modes never change geometry.
+  // Only one pin may drive the scroll at a time: activating another node while
+  // a pin is in flight cancels it first (two loops anchored to different
+  // headers would fight over the scroll position frame by frame).
+  let cancelActivePin: (() => void) | undefined;
   function pinFocusAnchor(id: string) {
     if (orientation !== 'vertical' || detailMode !== 'inline' || !node || !rootRef) return;
+    cancelActivePin?.();
     const anchor = rootRef.querySelector<HTMLElement>(
       `[data-journey-trigger][data-node-id="${id}"]`
     );
@@ -150,11 +155,13 @@
     const cancel = () => {
       cancelled = true;
     };
+    cancelActivePin = cancel;
     window.addEventListener('wheel', cancel, { passive: true, capture: true });
     window.addEventListener('touchmove', cancel, { passive: true, capture: true });
     const cleanup = () => {
       window.removeEventListener('wheel', cancel, { capture: true });
       window.removeEventListener('touchmove', cancel, { capture: true });
+      if (cancelActivePin === cancel) cancelActivePin = undefined;
     };
     const step = () => {
       if (cancelled || !anchor.isConnected) {
@@ -316,7 +323,13 @@
       data-node-id={item.id}
       tabindex={item.id === tabbableId ? 0 : -1}
       aria-expanded={node ? focused : undefined}
-      aria-controls={node ? (detailMode === 'panel' ? panelId : detailDomId(index)) : undefined}
+      aria-controls={node
+        ? detailMode === 'panel'
+          ? // Reference the shared readout only while it actually renders — a
+            // bad controlled focusId leaves no panel to point at.
+            focusedItem && panelId
+          : detailDomId(index)
+        : undefined}
       onclick={() => activate(item)}
     >
       {#if orientation === 'horizontal'}
