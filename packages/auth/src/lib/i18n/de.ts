@@ -149,7 +149,10 @@ export const de = {
       prompt: 'Push-Benachrichtigungen aktivieren?',
       enable: 'Aktivieren',
       dismiss: 'Nicht jetzt',
-      error: 'Push-Benachrichtigungen konnten nicht aktiviert werden. Bitte versuche es erneut.'
+      error: 'Push-Benachrichtigungen konnten nicht aktiviert werden. Bitte versuche es erneut.',
+      errorConflict:
+        'Push-Benachrichtigungen konnten nicht aktiviert werden – dieses Gerät ist einem anderen Konto zugeordnet oder das Gerätelimit ist erreicht.',
+      errorRateLimited: 'Zu viele Versuche. Bitte versuche es später erneut.'
     }
   },
   invitations: {

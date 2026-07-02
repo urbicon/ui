@@ -12,6 +12,7 @@ export type {
   NotificationStoreConfig,
   PasskeyManagerProps,
   PushPermissionPromptProps,
+  PushSubscribeResult,
   RegisterPageProps,
   ResetPasswordPageProps,
   RoleOption,

@@ -45,6 +45,7 @@ export { createNotificationStore } from './stores/notifications.svelte.js';
 // Map a server `AuthErrorCode` → localized message (falls back to the raw
 // server `error` prose when the code is unknown). Used by the pre-built pages.
 export { errorMessageFromCode } from './utils/error-message.js';
+export type { PushSubscribeResult } from './utils/service-worker.js';
 export {
   registerServiceWorker,
   subscribeToPush,

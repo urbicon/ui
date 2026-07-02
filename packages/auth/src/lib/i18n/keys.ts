@@ -158,6 +158,10 @@ export interface AuthLocale {
       dismiss: string;
       /** Shown (aria-live) when subscribing fails — the prompt stays open for a retry. */
       error: string;
+      /** Deterministic 409 refusal (endpoint owned by another account / device limit) — retrying cannot succeed. */
+      errorConflict: string;
+      /** 429 — too many attempts right now. */
+      errorRateLimited: string;
     };
   };
   invitations: {

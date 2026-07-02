@@ -146,7 +146,10 @@ export const en = {
       prompt: 'Enable push notifications?',
       enable: 'Enable',
       dismiss: 'Not now',
-      error: 'Enabling push notifications failed. Please try again.'
+      error: 'Enabling push notifications failed. Please try again.',
+      errorConflict:
+        'Push notifications could not be enabled — this device is registered to another account or the device limit is reached.',
+      errorRateLimited: 'Too many attempts. Please try again later.'
     }
   },
   invitations: {

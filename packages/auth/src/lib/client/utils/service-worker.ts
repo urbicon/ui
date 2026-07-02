@@ -5,26 +5,95 @@ export async function registerServiceWorker(
 
   try {
     return await navigator.serviceWorker.register(path);
-  } catch {
+  } catch (err) {
+    // A missing/404ing worker file is a wiring error the developer must see —
+    // silently returning null makes every dependent feature look "declined".
+    console.error('[auth] service worker registration failed:', err);
     return null;
   }
 }
 
-export async function subscribeToPush(vapidPublicKey: string): Promise<PushSubscription | null> {
-  if (!('serviceWorker' in navigator) || !('PushManager' in window)) return null;
+/**
+ * Outcome of {@link subscribeToPush}. Deliberately discriminated instead of
+ * `PushSubscription | null`: a broken VAPID key, a dead push service, or a
+ * missing service worker must never be indistinguishable from the user
+ * declining the permission prompt — a consumer reading `null` as "user said
+ * no" would show a permanently dead Enable button with no trace of the real
+ * problem.
+ */
+export type PushSubscribeResult =
+  | { status: 'subscribed'; subscription: PushSubscription }
+  /** The browser has no service-worker/Push API support. */
+  | { status: 'unsupported' }
+  /** The user declined (or has previously blocked) the permission prompt. */
+  | { status: 'denied' }
+  /** An operational failure: malformed VAPID key, push service down, no service worker registered (ready timed out), … */
+  | { status: 'error'; error: unknown };
+
+/** Race a promise against a timeout — `serviceWorker.ready` never settles when no worker is registered. */
+function withTimeout<T>(promise: Promise<T>, ms: number, message: string): Promise<T> {
+  return new Promise<T>((resolve, reject) => {
+    const timer = setTimeout(() => reject(new Error(message)), ms);
+    promise.then(
+      (value) => {
+        clearTimeout(timer);
+        resolve(value);
+      },
+      (err) => {
+        clearTimeout(timer);
+        reject(err);
+      }
+    );
+  });
+}
+
+/** Only a permission denial is the user's decision — everything else in the catch is operational. */
+function isPermissionDenied(error: unknown): boolean {
+  if (
+    typeof DOMException !== 'undefined' &&
+    error instanceof DOMException &&
+    error.name === 'NotAllowedError'
+  ) {
+    return true;
+  }
+  // Some browsers surface "already blocked" through other error shapes; the
+  // permission state is then the authoritative signal.
+  return typeof Notification !== 'undefined' && Notification.permission === 'denied';
+}
+
+export async function subscribeToPush(
+  vapidPublicKey: string,
+  options?: {
+    /**
+     * How long to wait for `serviceWorker.ready` before reporting an error.
+     * `ready` never settles when no service worker is registered (worker file
+     * 404s, `registerServiceWorker` never ran), which would otherwise hang the
+     * caller forever. Default 10s.
+     */
+    readyTimeoutMs?: number;
+  }
+): Promise<PushSubscribeResult> {
+  if (!('serviceWorker' in navigator) || !('PushManager' in window)) {
+    return { status: 'unsupported' };
+  }
 
   try {
-    const registration = await navigator.serviceWorker.ready;
+    const registration = await withTimeout(
+      navigator.serviceWorker.ready,
+      options?.readyTimeoutMs ?? 10_000,
+      '[auth] service worker never became ready — is one registered? (registerServiceWorker)'
+    );
 
     const existing = await registration.pushManager.getSubscription();
-    if (existing) return existing;
+    if (existing) return { status: 'subscribed', subscription: existing };
 
-    return await registration.pushManager.subscribe({
+    const subscription = await registration.pushManager.subscribe({
       userVisibleOnly: true,
       applicationServerKey: urlBase64ToUint8Array(vapidPublicKey).buffer as ArrayBuffer
     });
-  } catch {
-    return null;
+    return { status: 'subscribed', subscription };
+  } catch (error) {
+    return isPermissionDenied(error) ? { status: 'denied' } : { status: 'error', error };
   }
 }
 

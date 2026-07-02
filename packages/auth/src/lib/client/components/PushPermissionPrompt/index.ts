@@ -30,6 +30,15 @@ export interface PushPermissionPromptProps {
   onSubscribed?: (subscription: PushSubscription) => void;
   /** Called when the user dismisses the prompt. */
   onDismissed?: () => void;
+  /**
+   * Called when the prompt closes because push is not available: the user
+   * declined the browser permission (`'denied'`) or the browser has no push
+   * support (`'unsupported'`). Persist this to avoid remounting the prompt on
+   * every visit — without it, a denial is indistinguishable from never having
+   * shown the prompt. Operational failures do NOT close the prompt; they show
+   * the error state instead.
+   */
+  onUnavailable?: (reason: 'denied' | 'unsupported') => void;
   /** Strip all default styling. */
   unstyled?: boolean;
   /** Per-slot class overrides. See component source for available slot keys. */
