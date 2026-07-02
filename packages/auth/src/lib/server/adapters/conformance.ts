@@ -634,6 +634,31 @@ export const conformanceChecks: readonly ConformanceCheck[] = [
     }
   ),
 
+  // -- User: missing-target writes are no-ops ------------------------------
+  check('user write methods no-op on a missing user (TOCTOU safety)', [], async (repos) => {
+    // The account can be deleted between a handler's session check and its
+    // write; the contract demands a silent no-op, not a P2025-style throw
+    // that surfaces as a 500. The reference Prisma adapter violated this on
+    // ~10 methods before the conformance pin (review R7).
+    const ghost = 'no-such-user-id';
+
+    await repos.user.updatePassword(ghost, 'hash');
+    await repos.user.setEmailVerified(ghost);
+    await repos.user.setVerificationToken(ghost, 'vt-ghost', futureDate());
+    await repos.user.setPasswordResetToken(ghost, 'rt-ghost', futureDate());
+    await repos.user.recordFailedLogin(ghost, { maxAttempts: 5, durationMinutes: 15 });
+    await repos.user.resetFailedLogins(ghost);
+    await repos.user.updateProfile(ghost, { name: 'Ghost' });
+    await repos.user.setEmailChangeToken(ghost, 'ghost@conformance.test', 'ct-ghost', futureDate());
+    await repos.user.setTotpSecret(ghost, 'enc-secret');
+    await repos.user.enableTotp(ghost);
+    await repos.user.disableTotp(ghost);
+    await repos.user.incrementTokenVersion(ghost);
+
+    // None of the writes may have materialized a row.
+    expect(await repos.user.findById(ghost), 'no row was created').toBeNull();
+  }),
+
   // -- Notification: list filters ------------------------------------------
   check('notification.findByUser honors unreadOnly and limit', ['notification'], async (repos) => {
     const repo = need(repos.notification, 'notification');

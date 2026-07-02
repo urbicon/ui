@@ -145,7 +145,14 @@ function makeTable(opts: { defaults?: () => Record<string, any>; uniques?: strin
     },
     async update(args) {
       const row = rows.find((r) => matchWhere(r, args.where));
-      if (!row) throw new Error('[fake-prisma] update: no row matched (P2025)');
+      // Mirror Prisma's missing-row error shape (code P2025), so adapter code
+      // that maps it to the contract's no-op (recordFailedLogin) is exercised
+      // rather than seeing an unstructured error it must rethrow.
+      if (!row) {
+        throw Object.assign(new Error('[fake-prisma] update: no row matched'), {
+          code: 'P2025'
+        });
+      }
       applyData(row, args.data);
       return row;
     },
@@ -448,5 +455,22 @@ describe('conformance suite — negative control', () => {
     );
     expect(resetCheck, 'reset-token check must exist').toBeDefined();
     await expect(resetCheck!.run(brokenHarness)).rejects.toThrow();
+  });
+});
+
+describe('recordFailedLogin error handling (prisma adapter)', () => {
+  it('rethrows non-P2025 errors instead of swallowing them as the no-op', async () => {
+    // Mutation-test finding: a catch-all in the P2025 mapping survived the
+    // suite — a DB outage while counting failed logins would silently degrade
+    // the lockout brake. Only the missing-row shape maps to the contract
+    // no-op; everything else must stay loud.
+    const fake = createFakePrisma();
+    fake.user.update = async () => {
+      throw Object.assign(new Error('[fake-prisma] cannot reach database'), { code: 'P1001' });
+    };
+    const repos = createPrismaRepos(fake);
+    await expect(
+      repos.user.recordFailedLogin('any-user', { maxAttempts: 5, durationMinutes: 15 })
+    ).rejects.toThrow('cannot reach database');
   });
 });

@@ -54,6 +54,14 @@ export interface CreateInvitationData {
   invitedById: string;
 }
 
+/**
+ * **Missing-target semantics:** unless a method documents otherwise, every
+ * write method MUST treat a missing user as a silent no-op — never a throw.
+ * The account can be deleted concurrently between a handler's session check
+ * and its write (TOCTOU); a throwing adapter turns that harmless race into a
+ * 500. The claim methods (`consume*`) signal "nothing claimed" via their
+ * `null`/`false` return instead. Enforced by the conformance suite.
+ */
 export interface UserRepository<R extends string = string> {
   findById(id: string): Promise<FullAuthUser<R> | null>;
   findByEmail(email: string): Promise<FullAuthUser<R> | null>;
@@ -301,12 +309,19 @@ export interface NotificationPreference {
   typeKey: string;
   sse: boolean;
   push: boolean;
+  /**
+   * Reserved: there is currently no email delivery channel (see
+   * `NotificationTypeDefinition.channels`). The flag is persisted and
+   * round-tripped so existing schemas/rows stay valid and a future email
+   * channel can honour stored preferences, but nothing reads it today.
+   */
   email: boolean;
 }
 
 export interface PreferenceData {
   sse?: boolean;
   push?: boolean;
+  /** Reserved — see {@link NotificationPreference.email}. */
   email?: boolean;
 }
 

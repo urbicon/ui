@@ -111,6 +111,22 @@ function isUniqueConstraintError(err: unknown): boolean {
   );
 }
 
+/**
+ * Structural check for Prisma's missing-row error (`P2025`). The repository
+ * contract treats a write against a deleted user as a no-op (TOCTOU: the
+ * account can vanish between the handler's read and this write) — most writes
+ * use `updateMany` for that, but `recordFailedLogin` needs `update`'s returned
+ * row for its atomic count and maps this error to the no-op instead.
+ */
+function isMissingRowError(err: unknown): boolean {
+  return (
+    typeof err === 'object' &&
+    err !== null &&
+    'code' in err &&
+    (err as { code?: unknown }).code === 'P2025'
+  );
+}
+
 export function createPrismaUserRepository<R extends string>(
   prisma: PrismaLike
 ): UserRepository<R> {
@@ -148,15 +164,16 @@ export function createPrismaUserRepository<R extends string>(
     },
 
     async updatePassword(id, passwordHash) {
-      await prisma.user.update({ where: { id }, data: { passwordHash } });
+      // updateMany: a missing user is a contract no-op, not a P2025 throw.
+      await prisma.user.updateMany({ where: { id }, data: { passwordHash } });
     },
 
     async setEmailVerified(id) {
-      await prisma.user.update({ where: { id }, data: { emailVerified: true } });
+      await prisma.user.updateMany({ where: { id }, data: { emailVerified: true } });
     },
 
     async setVerificationToken(id, tokenHash, expires) {
-      await prisma.user.update({
+      await prisma.user.updateMany({
         where: { id },
         data: { verificationToken: tokenHash, verificationTokenExpires: expires }
       });
@@ -198,7 +215,7 @@ export function createPrismaUserRepository<R extends string>(
     },
 
     async setPasswordResetToken(id, tokenHash, expires) {
-      await prisma.user.update({
+      await prisma.user.updateMany({
         where: { id },
         data: { passwordResetToken: tokenHash, passwordResetTokenExpires: expires }
       });
@@ -248,11 +265,19 @@ export function createPrismaUserRepository<R extends string>(
 
     async recordFailedLogin(id, lockoutConfig) {
       // Atomic increment; Prisma returns the updated row so we can read the new
-      // count without a separate read (which would race under credential stuffing).
-      const updated = await prisma.user.update({
-        where: { id },
-        data: { failedLoginAttempts: { increment: 1 }, lastFailedLogin: new Date() }
-      });
+      // count without a separate read (which would race under credential
+      // stuffing). `update` (not updateMany) is deliberate for that returned
+      // row — the contract's missing-user no-op is mapped from P2025 below.
+      let updated: PrismaRow;
+      try {
+        updated = await prisma.user.update({
+          where: { id },
+          data: { failedLoginAttempts: { increment: 1 }, lastFailedLogin: new Date() }
+        });
+      } catch (err) {
+        if (isMissingRowError(err)) return; // user deleted concurrently — no-op
+        throw err;
+      }
       // Lock only when explicitly opted in and the threshold is crossed. The
       // lock write is GUARDED on the DB-side count (`failedLoginAttempts >=
       // maxAttempts`) via updateMany rather than blindly trusting the value we
@@ -275,7 +300,7 @@ export function createPrismaUserRepository<R extends string>(
     },
 
     async resetFailedLogins(id) {
-      await prisma.user.update({
+      await prisma.user.updateMany({
         where: { id },
         data: { failedLoginAttempts: 0, lockedUntil: null, lastFailedLogin: null }
       });
@@ -287,11 +312,11 @@ export function createPrismaUserRepository<R extends string>(
       const patch: Record<string, unknown> = {};
       if (data.name !== undefined) patch.name = data.name;
       if (Object.keys(patch).length === 0) return;
-      await prisma.user.update({ where: { id }, data: patch });
+      await prisma.user.updateMany({ where: { id }, data: patch });
     },
 
     async setEmailChangeToken(id, pendingEmail, tokenHash, expires) {
-      await prisma.user.update({
+      await prisma.user.updateMany({
         where: { id },
         data: {
           pendingEmail,
@@ -383,14 +408,14 @@ export function createPrismaUserRepository<R extends string>(
     async setTotpSecret(id, encryptedSecret) {
       // Stage the encrypted secret and force 2FA off until the setup code is
       // confirmed (enableTotp). Overwrites any prior secret.
-      await prisma.user.update({
+      await prisma.user.updateMany({
         where: { id },
         data: { totpSecret: encryptedSecret, totpEnabled: false, totpConfirmedAt: null }
       });
     },
 
     async enableTotp(id) {
-      await prisma.user.update({
+      await prisma.user.updateMany({
         where: { id },
         data: { totpEnabled: true, totpConfirmedAt: new Date() }
       });
@@ -399,7 +424,7 @@ export function createPrismaUserRepository<R extends string>(
     async disableTotp(id) {
       // Clear the secret and the flags in one write. Backup codes live in their
       // own table — the caller also calls BackupCodeRepository.deleteAll.
-      await prisma.user.update({
+      await prisma.user.updateMany({
         where: { id },
         data: { totpSecret: null, totpEnabled: false, totpConfirmedAt: null }
       });
