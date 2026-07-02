@@ -4,6 +4,16 @@ All notable changes to this project will be documented in this file.
 This changelog is automatically generated from [Conventional Commits](https://www.conventionalcommits.org).
 
 
+## [6.18.0] - 2026-07-02
+
+### Bug Fixes
+- **auth**: Close the package-5 review findings on merge, stores and pages
+
+### Features
+- **auth**: Make AuthLocale fully required with a DeepPartial consumer merge
+- **auth**: Extract AuthPageShell/FormErrorAlert and close the unstyled leaks
+- **auth**: Lift the client stores onto the shared fetch/error infrastructure
+
 ## [6.17.0] - 2026-07-02
 
 ### Bug Fixes
