@@ -2,12 +2,7 @@ import type { RequestHandler } from '@sveltejs/kit';
 import { json } from '@sveltejs/kit';
 import { sanitizeUser } from '../auth.js';
 import type { AuthDeps } from '../deps.js';
-import { requireSessionUser } from './_shared.js';
-
-// This endpoint returns the authenticated user. Mark every response
-// uncacheable so a shared cache (CDN/proxy whose key omits the session cookie)
-// can never replay one user's identity — or a stale 401 — to another client.
-const NO_STORE = { 'Cache-Control': 'no-store' } as const;
+import { NO_STORE, requireSessionUser } from './_shared.js';
 
 export function createMeHandler<R extends string>(deps: AuthDeps<R>): { GET: RequestHandler } {
   return {

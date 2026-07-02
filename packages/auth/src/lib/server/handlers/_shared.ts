@@ -6,6 +6,14 @@ import type { AuthDeps } from '../deps.js';
 import { getSessionFromCookie } from '../session.js';
 
 /**
+ * `Cache-Control` for responses that carry session state or PII (the `me`
+ * payload, freshly minted tokens, session/invitation lists, 2FA material) —
+ * they must never park in a shared cache. One constant instead of the four
+ * per-file copies review R14 counted.
+ */
+export const NO_STORE = { 'Cache-Control': 'no-store' } as const;
+
+/**
  * Resolve the authenticated user behind the request's session cookie, or
  * `null` when there is no valid session. This is the shared building block for
  * every authenticated handler (`me`, account management, sessions, 2FA): it

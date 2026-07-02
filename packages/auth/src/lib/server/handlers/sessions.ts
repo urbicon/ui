@@ -5,7 +5,7 @@ import { hashToken } from '../auth.js';
 import type { AuthDeps } from '../deps.js';
 import { readRefreshCookie } from '../refresh-token.js';
 import { readJsonBody } from '../validation.js';
-import { requireSessionUser } from './_shared.js';
+import { NO_STORE, requireSessionUser } from './_shared.js';
 import { authError } from './errors.js';
 
 /**
@@ -22,10 +22,6 @@ export interface SessionSummary {
   /** Whether this is the session making the current request. */
   current: boolean;
 }
-
-// The session list reflects per-user security state — never let a shared cache
-// store or replay it (same rationale as the `me` endpoint).
-const NO_STORE = { 'Cache-Control': 'no-store' } as const;
 
 /** Resolve the family of the refresh token in the current request, or null. */
 async function currentFamily<R extends string>(

@@ -7,7 +7,7 @@ import type { AuthDeps } from '../deps.js';
 import { resolveEmailSettings } from '../email/resolve.js';
 import { buildInvitationEmail } from '../email/templates.js';
 import { readJsonBody, validateInvitationInput } from '../validation.js';
-import { requireSessionUser } from './_shared.js';
+import { NO_STORE, requireSessionUser } from './_shared.js';
 import { authError } from './errors.js';
 
 export interface InvitationHandlerOptions<R extends string = string> {
@@ -74,10 +74,6 @@ export interface InvitationHandlerOptions<R extends string = string> {
  * resolve the caller from the session cookie directly (not `locals.user`), so
  * authorization is unaffected by a `transformUser` hook reshaping locals.
  */
-// The invitation list is admin-facing PII (invitee emails + roles) — keep it
-// out of shared caches, same as the session list.
-const NO_STORE = { 'Cache-Control': 'no-store' } as const;
-
 export function createInvitationHandlers<R extends string>(
   deps: AuthDeps<R>,
   options: InvitationHandlerOptions<R>

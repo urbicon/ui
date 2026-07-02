@@ -195,11 +195,13 @@ export type { SecurityHeadersConfig } from './security-headers.js';
 export { applySecurityHeaders } from './security-headers.js';
 // Session
 export {
+  applyRotationOutcome,
   clearSessionCookie,
   endSession,
   establishSession,
   getSessionFromCookie,
   resolveSessionMeta,
+  sessionPayload,
   setSessionCookie
 } from './session.js';
 export type { TotpAlgorithm } from './totp.js';

@@ -4,19 +4,9 @@ import type { FullAuthUser, Repositories } from './adapters/types.js';
 import { sanitizeUser } from './auth.js';
 import { ensureCsrfCookie, validateCsrf } from './csrf.js';
 import { shieldLogger } from './deps.js';
-import {
-  readRefreshCookie,
-  resolveJwtConfig,
-  rotateRefreshToken,
-  setRefreshCookie
-} from './refresh-token.js';
+import { readRefreshCookie, rotateRefreshToken } from './refresh-token.js';
 import { applySecurityHeaders } from './security-headers.js';
-import {
-  clearSessionCookie,
-  endSession,
-  getSessionFromCookie,
-  setSessionCookie
-} from './session.js';
+import { applyRotationOutcome, clearSessionCookie, getSessionFromCookie } from './session.js';
 
 export interface AuthHandleOptions<R extends string = string> {
   config: AuthConfig<R>;
@@ -155,7 +145,9 @@ export function createAuthHandle<R extends string>(options: AuthHandleOptions<R>
     } else if (config.refreshToken && repos.refreshToken) {
       // 2a. Access token missing/expired, but refresh rotation is opted in —
       // try to rotate transparently so the in-flight request can continue as
-      // authenticated. Reuse and revocation outcomes clear both cookies.
+      // authenticated. Cookie effects per outcome (incl. the race_ok
+      // don't-touch-the-refresh-cookie rule) live in applyRotationOutcome,
+      // shared with the explicit refresh endpoint.
       const raw = readRefreshCookie(event.cookies, config.refreshToken);
       if (raw) {
         const outcome = await rotateRefreshToken(
@@ -164,43 +156,10 @@ export function createAuthHandle<R extends string>(options: AuthHandleOptions<R>
           (id) => repos.user.findById(id),
           config.refreshToken
         );
-        if (outcome.kind === 'rotated') {
-          const { user, token } = outcome;
-          await setSessionCookie(
-            event.cookies,
-            {
-              userId: user.id,
-              email: user.email,
-              role: user.role,
-              tokenVersion: user.tokenVersion
-            },
-            resolveJwtConfig(config)
-          );
-          setRefreshCookie(event.cookies, token, config.refreshToken);
-          (event.locals as Record<string, unknown>).user = await resolveLocalsUser(event, user);
-        } else if (outcome.kind === 'race_ok') {
-          // Concurrent-rotation loser: the winner's response is already
-          // writing the successor refresh cookie to the same browser. Issue
-          // a fresh access token for this in-flight request but do NOT
-          // touch the refresh cookie — the browser will pick up the
-          // winner's value.
-          const { user } = outcome;
-          await setSessionCookie(
-            event.cookies,
-            {
-              userId: user.id,
-              email: user.email,
-              role: user.role,
-              tokenVersion: user.tokenVersion
-            },
-            resolveJwtConfig(config)
-          );
-          (event.locals as Record<string, unknown>).user = await resolveLocalsUser(event, user);
-        } else {
-          // reused / expired / not_found / revoked — drop both cookies.
-          endSession(event.cookies, config);
-          (event.locals as Record<string, unknown>).user = null;
-        }
+        const rotatedUser = await applyRotationOutcome(event.cookies, outcome, config);
+        (event.locals as Record<string, unknown>).user = rotatedUser
+          ? await resolveLocalsUser(event, rotatedUser)
+          : null;
       } else {
         (event.locals as Record<string, unknown>).user = null;
       }

@@ -22,12 +22,8 @@ import {
   verifyPending2faToken
 } from '../two-factor.js';
 import { readJsonBody, validateDisable2faInput, validateTotpInput } from '../validation.js';
-import { requireSessionUser, verifyCurrentPassword } from './_shared.js';
+import { NO_STORE, requireSessionUser, verifyCurrentPassword } from './_shared.js';
 import { authError } from './errors.js';
-
-// The 2FA setup/enable response carries the secret/codes the user must capture
-// once — never let a shared cache store it (same rationale as the `me` endpoint).
-const NO_STORE = { 'Cache-Control': 'no-store' } as const;
 
 /**
  * POST — begin TOTP enrolment (authenticated). Generates a fresh secret, stores

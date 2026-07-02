@@ -3,14 +3,9 @@ import { json } from '@sveltejs/kit';
 import { sanitizeUser } from '../auth.js';
 import type { AuthDeps } from '../deps.js';
 import { enforceRateLimit, makeRateLimiter } from '../rate-limit.js';
-import {
-  clearRefreshCookie,
-  readRefreshCookie,
-  resolveJwtConfig,
-  rotateRefreshToken,
-  setRefreshCookie
-} from '../refresh-token.js';
-import { clearSessionCookie, setSessionCookie } from '../session.js';
+import { readRefreshCookie, rotateRefreshToken } from '../refresh-token.js';
+import { applyRotationOutcome } from '../session.js';
+import { NO_STORE } from './_shared.js';
 import { authError } from './errors.js';
 
 /**
@@ -23,10 +18,6 @@ import { authError } from './errors.js';
  * or reused. On success the new access- and refresh-cookies are set and
  * the sanitized user is returned.
  */
-// Responses carry session state (a freshly minted access token + sanitized
-// user) and set new cookies — never let a shared cache store or replay them.
-const NO_STORE = { 'Cache-Control': 'no-store' } as const;
-
 export function createRefreshHandler<R extends string>(
   deps: AuthDeps<R>
 ): { POST: RequestHandler } {
@@ -56,44 +47,12 @@ export function createRefreshHandler<R extends string>(
         refreshConfig
       );
 
-      if (outcome.kind === 'race_ok') {
-        // Concurrent-rotation loser: issue a fresh access token but leave
-        // the refresh cookie alone; the winner's response already carried
-        // the successor cookie into the browser jar.
-        const { user } = outcome;
-        await setSessionCookie(
-          cookies,
-          {
-            userId: user.id,
-            email: user.email,
-            role: user.role,
-            tokenVersion: user.tokenVersion
-          },
-          resolveJwtConfig(deps.config)
-        );
-        return json({ user: sanitizeUser(user) }, { headers: NO_STORE });
-      }
-
-      if (outcome.kind !== 'rotated') {
-        clearRefreshCookie(cookies, refreshConfig);
-        clearSessionCookie(cookies, deps.config.jwt);
+      // Cookie effects per outcome (rotated/race_ok/terminal) are the same
+      // policy the handle hook applies — see applyRotationOutcome.
+      const user = await applyRotationOutcome(cookies, outcome, deps.config);
+      if (!user) {
         return authError('invalid_refresh_token', 401, { headers: NO_STORE });
       }
-
-      const { user, token } = outcome;
-
-      await setSessionCookie(
-        cookies,
-        {
-          userId: user.id,
-          email: user.email,
-          role: user.role,
-          tokenVersion: user.tokenVersion
-        },
-        resolveJwtConfig(deps.config)
-      );
-      setRefreshCookie(cookies, token, refreshConfig);
-
       return json({ user: sanitizeUser(user) }, { headers: NO_STORE });
     }
   };
