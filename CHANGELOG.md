@@ -4,6 +4,17 @@ All notable changes to this project will be documented in this file.
 This changelog is automatically generated from [Conventional Commits](https://www.conventionalcommits.org).
 
 
+## [6.16.0] - 2026-07-02
+
+### Bug Fixes
+- **auth**: Wrap webauthn credential-field decodes, pin the unpinned security gates
+
+### Refactoring
+- **auth**: One canonical encoding layer for the security-relevant codecs
+- **auth**: One duration parser for every TTL-shaped config field
+- **auth**: Share the session payload, rotation-outcome policy and no-store header
+- **auth**: Shared client utils for http, webauthn codecs and slot classes
+
 ## [6.15.0] - 2026-07-02
 
 ### Bug Fixes
