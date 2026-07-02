@@ -140,6 +140,9 @@ export function createMockAuthDeps<R extends string>(opts?: {
   email?: EmailTransport;
 }): AuthDeps<R> {
   return {
+    // Quiet by default so expected-failure tests don't spam the run; assert on
+    // deps.logger.error/warn (they are plain vi.fn mocks) to pin log output.
+    logger: { warn: vi.fn(), error: vi.fn() },
     config: {
       appUrl: 'https://app.test',
       jwt: { secret: 'test-secret', expiresIn: '1h' },

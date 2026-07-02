@@ -3,6 +3,7 @@ import type { AuthConfig, AuthUser } from '../types.js';
 import type { FullAuthUser, Repositories } from './adapters/types.js';
 import { sanitizeUser } from './auth.js';
 import { ensureCsrfCookie, validateCsrf } from './csrf.js';
+import { shieldLogger } from './deps.js';
 import {
   readRefreshCookie,
   resolveJwtConfig,
@@ -67,6 +68,7 @@ const jsonUnauthorized = () =>
 
 export function createAuthHandle<R extends string>(options: AuthHandleOptions<R>): Handle {
   const { config, repos } = options;
+  const logger = shieldLogger(config.logger ?? console);
   const publicRoutes = options.publicRoutes ?? DEFAULT_PUBLIC_ROUTES;
   const allowUnauthenticatedRemote = options.allowUnauthenticatedRemote ?? false;
   const loginPage = config.routes?.loginPage ?? '/auth/login';
@@ -83,7 +85,7 @@ export function createAuthHandle<R extends string>(options: AuthHandleOptions<R>
   // as the trigger, so the common `jwt.cookieSecure:false` dev flag is caught.
   // Warn once at construction rather than failing silently per request.
   if (csrfHostPrefix && (csrfConfig?.cookieSecure === false || config.jwt.cookieSecure === false)) {
-    console.warn(
+    logger.warn(
       '[auth] csrf.useHostPrefix forces a Secure __Host- cookie, but this deployment looks non-HTTPS (jwt.cookieSecure or csrf.cookieSecure is false). Browsers drop a Secure cookie over HTTP, so double-submit will 403 every mutating request — enable useHostPrefix only over HTTPS.'
     );
   }

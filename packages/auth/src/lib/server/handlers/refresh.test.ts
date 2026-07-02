@@ -21,6 +21,7 @@ function makeDeps(refreshEnabled = true, refreshRepo?: RefreshTokenRepository): 
       jwt: { secret: 'test-secret' },
       ...(refreshEnabled ? { refreshToken: { refreshTokenTtl: '30d' } } : {})
     },
+    logger: { warn: vi.fn(), error: vi.fn() },
     repos: {
       user: createMockUserRepository({ findById: vi.fn().mockResolvedValue(makeUser()) }),
       invitation: createMockInvitationRepository(),

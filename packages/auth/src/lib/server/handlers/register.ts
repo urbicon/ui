@@ -157,7 +157,7 @@ export function createRegisterHandler<R extends string>(
       // surface it loudly rather than failing the request.
       const claimed = await deps.repos.invitation.markUsedIfUnused(invitation.id);
       if (!claimed) {
-        console.warn(
+        deps.logger.warn(
           `[auth] register: created user ${fullUser.id} but invitation ${invitation.id} was already consumed — possible concurrent registration on an adapter without an email unique-constraint.`
         );
       }

@@ -3,6 +3,7 @@
 // Types re-export
 export type {
   AuthConfig,
+  AuthLogger,
   AuthSession,
   AuthUser,
   CsrfConfig,

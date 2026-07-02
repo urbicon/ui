@@ -66,19 +66,19 @@ export function createChangeEmailHandler<R extends string>(
       // Fire-and-forget the collision check + token write + mails, decoupled
       // from the response so its timing can't reveal whether `newEmail` already
       // belongs to an account (same defense as forgot-password). Failures can no
-      // longer surface as an HTTP error, so route them to console.error.
+      // longer surface as an HTTP error, so route them to deps.logger.error.
       void (async () => {
         try {
           await issueEmailChange(deps, user, newEmail, options);
         } catch (err) {
-          console.error(`[auth] change-email: failed to issue change (user ${user.id})`, err);
+          deps.logger.error(`[auth] change-email: failed to issue change (user ${user.id})`, err);
           // Surface the decoupled failure through the observability hook (it
           // can't reach the user as an HTTP error). Guard the hook itself so a
           // throw can't become an unhandled rejection.
           try {
             await deps.config.hooks?.onEmailChangeFailed?.(user.id, newEmail, err);
           } catch (hookErr) {
-            console.error('[auth] change-email: onEmailChangeFailed hook threw', hookErr);
+            deps.logger.error('[auth] change-email: onEmailChangeFailed hook threw', hookErr);
           }
         }
       })();

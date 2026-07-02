@@ -50,7 +50,7 @@ export function createVerifyEmailChangeHandler<R extends string>(
       try {
         await deps.config.hooks?.onEmailChanged?.(user.id, user.email);
       } catch (err) {
-        console.error(
+        deps.logger.error(
           `[auth] verify-email-change: onEmailChanged hook threw (user ${user.id})`,
           err
         );

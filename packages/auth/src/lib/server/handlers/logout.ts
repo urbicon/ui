@@ -16,7 +16,7 @@ export function createLogoutHandler<R extends string>(deps: AuthDeps<R>): { POST
           await revokeRefreshFromCookie(cookies, deps.repos.refreshToken, deps.config.refreshToken);
         }
       } catch (err) {
-        console.error('[auth] logout: refresh-token revoke failed', err);
+        deps.logger.error('[auth] logout: refresh-token revoke failed', err);
       } finally {
         endSession(cookies, deps.config);
       }

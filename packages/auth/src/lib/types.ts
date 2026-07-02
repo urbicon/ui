@@ -232,8 +232,32 @@ export interface EmailConfig {
   locale?: import('@urbicon-ui/i18n').Locale;
 }
 
+/**
+ * Sink for the package's operational log output — construction-time
+ * misconfiguration warnings and runtime failures that deliberately do not
+ * fail the request (a failed refresh-token revoke on logout, a backup-code
+ * cleanup error, an invitation-email failure). Console-compatible, so the
+ * default is simply `console`; pass your structured logger to route these
+ * into an error tracker instead of stdout (review R11 — previously these
+ * paths were console-only and invisible to consumer logging).
+ *
+ * Exceptions thrown by the sink are swallowed (`createAuthDeps` shields every
+ * call): several sites log inside detached fire-and-forget work or after a
+ * security-relevant write has already committed, and a broken logging
+ * transport must never break the auth flow it observes.
+ */
+export interface AuthLogger {
+  warn(message: string, ...context: unknown[]): void;
+  error(message: string, ...context: unknown[]): void;
+}
+
 export interface AuthConfig<R extends string = string> {
   jwt: JwtConfig;
+  /**
+   * Where operational warnings/errors go. Default: `console`. See
+   * {@link AuthLogger} for what is routed here.
+   */
+  logger?: AuthLogger;
   /**
    * Trusted base URL of the deployment, used to build links in outbound
    * emails (verify-email, password-reset). Required: do NOT derive these
@@ -261,8 +285,11 @@ export interface AuthConfig<R extends string = string> {
    * safe `login` default is present unless you explicitly opt out with `null`
    * — even if you only configure other endpoints here, `login` is still
    * injected (configuring, say, `register` never silently leaves login
-   * unprotected). All token-/credential-accepting handlers can be limited; the
-   * non-`login` keys are opt-in.
+   * unprotected). All token-/credential-accepting handlers can be limited.
+   * The re-auth endpoints (`changePassword`, `changeEmail`, `deleteAccount`,
+   * `twoFactorDisable`) and — when 2FA is wired — `twoFactor` also receive
+   * strict defaults, since each accepts the account password or a 6-digit
+   * code; the remaining keys are opt-in.
    */
   rateLimit?: {
     login?: RateLimitConfig;
@@ -286,6 +313,13 @@ export interface AuthConfig<R extends string = string> {
     changeEmail?: RateLimitConfig;
     /** Limit for the authenticated delete-account handler. */
     deleteAccount?: RateLimitConfig;
+    /**
+     * Limit for the authenticated 2FA-disable handler. Re-auth gated but
+     * credential-accepting — and the most valuable brute-force target of the
+     * re-auth family, since success removes the second factor. `createAuthDeps`
+     * injects a strict default when `twoFactor` is configured.
+     */
+    twoFactorDisable?: RateLimitConfig;
     /**
      * Limit for the 2FA verify handler (the second login step). Brute-force
      * critical — a 6-digit code has only 10^6 combinations — so when `twoFactor`
@@ -404,6 +438,14 @@ export interface AuthConfig<R extends string = string> {
      * A throw fails the request (wrap your own logic in try/catch for
      * resilience). Whatever you return lands on `locals.user`, so don't add
      * secrets if `locals.user` is serialized to the client.
+     *
+     * **Shape contract:** the notification handlers (stream, preferences,
+     * push-subscription, CRUD) identify the caller via `locals.user.id`, so
+     * the object you return MUST keep a string `id` at the top level (e.g.
+     * spread the user: `{ ...user, tenant }` — not `{ auth: user, tenant }`).
+     * A reshaped object without one gets a 401 from those handlers. The
+     * passkey and account handlers are unaffected — they re-resolve the
+     * session cookie and never read `locals.user`.
      */
     transformUser?: (user: AuthUser<R>, event: import('@sveltejs/kit').RequestEvent) => unknown;
   };

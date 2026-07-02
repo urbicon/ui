@@ -19,6 +19,7 @@ function createMockDeps<R extends string>(
       appUrl: 'https://app.test',
       jwt: { secret: 'test-secret', expiresIn: '1h' }
     },
+    logger: { warn: vi.fn(), error: vi.fn() },
     repos: {
       user: createMockUserRepository<R>(userOverrides),
       invitation: createMockInvitationRepository()

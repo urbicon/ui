@@ -48,7 +48,7 @@ export function createForgotPasswordHandler<R extends string>(
         // timing, Finding M6). The detached work still runs on the event loop.
         //
         // Because the failure can no longer surface as an HTTP error, it is
-        // routed to console.error AND the optional onPasswordResetFailed hook
+        // routed to deps.logger.error AND the optional onPasswordResetFailed hook
         // so a broken mail transport doesn't silently lock users out of
         // recovery. NOTE: on serverless/edge runtimes that freeze the worker
         // once the response is sent, this trailing work (and its logging) can
@@ -60,14 +60,17 @@ export function createForgotPasswordHandler<R extends string>(
           } catch (err) {
             // Log by user id, not email — keep PII out of stderr where the
             // consumer's logger may not redact it; the hook gets the address.
-            console.error(
+            deps.logger.error(
               `[auth] forgot-password: failed to issue reset email (user ${user.id})`,
               err
             );
             try {
               await deps.config.hooks?.onPasswordResetFailed?.(user.email, err);
             } catch (hookErr) {
-              console.error('[auth] forgot-password: onPasswordResetFailed hook threw', hookErr);
+              deps.logger.error(
+                '[auth] forgot-password: onPasswordResetFailed hook threw',
+                hookErr
+              );
             }
           }
         })();

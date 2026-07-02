@@ -58,6 +58,7 @@ export {
 } from './i18n/index.js';
 export type {
   AuthConfig,
+  AuthLogger,
   AuthSession,
   AuthUser,
   CsrfConfig,

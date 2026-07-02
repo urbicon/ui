@@ -170,7 +170,6 @@ describe('createChangeEmailHandler', () => {
 
   it('routes a decoupled failure to onEmailChangeFailed without leaking it to the user', async () => {
     const onEmailChangeFailed = vi.fn().mockResolvedValue(undefined);
-    const errSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
     const deps = createMockAuthDeps({
       config: { hooks: { onEmailChangeFailed } },
       user: {
@@ -188,8 +187,7 @@ describe('createChangeEmailHandler', () => {
     await vi.waitFor(() =>
       expect(onEmailChangeFailed).toHaveBeenCalledWith('user-1', 'new@test.com', expect.any(Error))
     );
-    expect(errSpy).toHaveBeenCalled();
-    errSpy.mockRestore();
+    expect(deps.logger.error).toHaveBeenCalled();
   });
 
   it('no-ops when the new email equals the current one', async () => {

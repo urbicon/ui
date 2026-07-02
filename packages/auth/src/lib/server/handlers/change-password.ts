@@ -78,7 +78,7 @@ export function createChangePasswordHandler<R extends string>(
       try {
         await deps.config.hooks?.onPasswordChanged?.(user.id);
       } catch (err) {
-        console.error(
+        deps.logger.error(
           `[auth] change-password: onPasswordChanged hook threw (user ${user.id})`,
           err
         );

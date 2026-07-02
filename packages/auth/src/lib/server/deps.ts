@@ -1,4 +1,4 @@
-import type { AuthConfig, LockoutConfig, RateLimitConfig } from '../types.js';
+import type { AuthConfig, AuthLogger, LockoutConfig, RateLimitConfig } from '../types.js';
 import type {
   BackupCodeRepository,
   InvitationRepository,
@@ -27,6 +27,12 @@ export interface AuthDeps<R extends string = string> {
     backupCode?: BackupCodeRepository;
   };
   email: EmailTransport;
+  /**
+   * Resolved log sink (`config.logger ?? console`) — `createAuthDeps` always
+   * fills it, so handlers log operational failures through one seam instead
+   * of hard-coding `console`.
+   */
+  logger: AuthLogger;
 }
 
 // Brute-force defaults applied when a consumer configures neither rate-limiting
@@ -37,6 +43,13 @@ const DEFAULT_LOCKOUT: LockoutConfig = { maxAttempts: 5, durationMinutes: 15 };
 // combinations, so the second factor is worthless without a tight limiter.
 // 10 / 15 min tolerates a few typos while making online brute force hopeless.
 const DEFAULT_TWO_FACTOR_RATE_LIMIT: RateLimitConfig = { windowMs: 15 * 60_000, max: 10 };
+// Re-auth endpoints (change-password/-email, delete-account, 2FA-disable) all
+// accept the account password, so they get login-strength protection: a
+// hijacked session must not get a better brute-force budget than the login
+// form — especially not at 2FA-disable, where success removes the second
+// factor. Failed re-auths do not feed the lockout (verifyCurrentPassword is
+// side-effect-free by design), making this limiter the only brake.
+const DEFAULT_REAUTH_RATE_LIMIT: RateLimitConfig = { windowMs: 15 * 60_000, max: 5 };
 
 // Floor below which an explicitly configured PBKDF2 work factor is treated as
 // dangerously weak. The secure default (600k, see auth.ts) is well above this;
@@ -67,7 +80,10 @@ const MIN_SAFE_PBKDF2_ITERATIONS = 100_000;
  *
  * Returns a new config object — the caller's input is not mutated.
  */
-function resolveSecurityDefaults<R extends string>(config: AuthConfig<R>): AuthConfig<R> {
+function resolveSecurityDefaults<R extends string>(
+  config: AuthConfig<R>,
+  logger: AuthLogger
+): AuthConfig<R> {
   const isProduction = config.jwt.cookieSecure !== false;
   const resolved: AuthConfig<R> = { ...config };
 
@@ -75,7 +91,7 @@ function resolveSecurityDefaults<R extends string>(config: AuthConfig<R>): AuthC
   // login limiter exists even when the consumer configured other endpoints.
   if (config.rateLimit === null) {
     if (isProduction) {
-      console.warn(
+      logger.warn(
         '[auth] config.rateLimit is explicitly null in a production config (jwt.cookieSecure !== false) — auth handlers are not rate-limited. Set config.rateLimit.login or accept this opt-out deliberately.'
       );
     }
@@ -88,7 +104,7 @@ function resolveSecurityDefaults<R extends string>(config: AuthConfig<R>): AuthC
   // consumer touched no brute-force config at all.
   if (config.lockout === null) {
     if (isProduction) {
-      console.warn(
+      logger.warn(
         '[auth] config.lockout is explicitly null in a production config — repeated failed logins will not lock the account.'
       );
     }
@@ -98,7 +114,7 @@ function resolveSecurityDefaults<R extends string>(config: AuthConfig<R>): AuthC
   }
 
   if (isProduction && !resolved.rateLimit?.login && !resolved.lockout) {
-    console.warn(
+    logger.warn(
       '[auth] No login rate-limit or lockout is active in a production config — login is exposed to brute force. Configure config.rateLimit.login and/or config.lockout.'
     );
   }
@@ -110,15 +126,34 @@ function resolveSecurityDefaults<R extends string>(config: AuthConfig<R>): AuthC
   if (config.twoFactor && resolved.rateLimit && !resolved.rateLimit.twoFactor) {
     resolved.rateLimit = { ...resolved.rateLimit, twoFactor: DEFAULT_TWO_FACTOR_RATE_LIMIT };
   }
+
+  // Re-auth endpoints accept the account password from an existing session, so
+  // an unlimited endpoint lets a hijacked session brute-force the password —
+  // the config documents exactly this threat model on `changePassword`, and
+  // `verifyCurrentPassword` deliberately records no failed attempt (no lockout
+  // backstop). Guarantee a login-strength default on each unless explicitly
+  // configured; the 2FA-disable one only when the endpoint can exist at all.
+  if (resolved.rateLimit) {
+    const reauthDefaults: Partial<NonNullable<AuthConfig<R>['rateLimit']>> = {};
+    for (const key of ['changePassword', 'changeEmail', 'deleteAccount'] as const) {
+      if (!resolved.rateLimit[key]) reauthDefaults[key] = DEFAULT_REAUTH_RATE_LIMIT;
+    }
+    if (config.twoFactor && !resolved.rateLimit.twoFactorDisable) {
+      reauthDefaults.twoFactorDisable = DEFAULT_REAUTH_RATE_LIMIT;
+    }
+    if (Object.keys(reauthDefaults).length > 0) {
+      resolved.rateLimit = { ...resolved.rateLimit, ...reauthDefaults };
+    }
+  }
   if (isProduction && config.twoFactor && !resolved.rateLimit?.twoFactor) {
-    console.warn(
+    logger.warn(
       '[auth] config.twoFactor is set but the 2FA verify endpoint is not rate-limited (rateLimit: null) — a 6-digit code is brute-forceable. Configure config.rateLimit.twoFactor or drop the rateLimit opt-out.'
     );
   }
 
   const iterations = config.password?.pbkdf2Iterations;
   if (isProduction && typeof iterations === 'number' && iterations < MIN_SAFE_PBKDF2_ITERATIONS) {
-    console.warn(
+    logger.warn(
       `[auth] config.password.pbkdf2Iterations is ${iterations} in a production config — far below the OWASP recommendation (≥ 600,000 for PBKDF2-HMAC-SHA256). Raise it or omit it to use the secure default.`
     );
   }
@@ -132,6 +167,35 @@ function resolveSecurityDefaults<R extends string>(config: AuthConfig<R>): AuthC
  * carries the resolved values — pass it on to `createAuthHandle` and the
  * handler factories so the whole app shares one resolved config.
  */
-export function createAuthDeps<R extends string>(deps: AuthDeps<R>): AuthDeps<R> {
-  return { ...deps, config: resolveSecurityDefaults(deps.config) };
+/**
+ * Shield every log call from a throwing consumer sink. Several call sites log
+ * inside detached fire-and-forget blocks (forgot-password, change-email) where
+ * a throwing `logger.error` would become an unhandled promise rejection, and
+ * others log after a security-relevant write already succeeded — a broken
+ * logging transport must never break the auth flow it observes.
+ */
+export function shieldLogger(logger: AuthLogger): AuthLogger {
+  return {
+    warn(message, ...context) {
+      try {
+        logger.warn(message, ...context);
+      } catch {
+        /* a broken sink must not break auth */
+      }
+    },
+    error(message, ...context) {
+      try {
+        logger.error(message, ...context);
+      } catch {
+        /* a broken sink must not break auth */
+      }
+    }
+  };
+}
+
+export function createAuthDeps<R extends string>(deps: Omit<AuthDeps<R>, 'logger'>): AuthDeps<R> {
+  // One source for the sink: `config.logger`. The resolved field on the deps
+  // bundle is what handlers use, so none of them re-defaults to console.
+  const logger = shieldLogger(deps.config.logger ?? console);
+  return { ...deps, logger, config: resolveSecurityDefaults(deps.config, logger) };
 }

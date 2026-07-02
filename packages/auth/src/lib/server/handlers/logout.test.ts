@@ -15,6 +15,7 @@ function createMockDeps(refreshEnabled = false): AuthDeps {
       jwt: { secret: 'test-secret', expiresIn: '15m' },
       ...(refreshEnabled ? { refreshToken: { refreshTokenTtl: '30d' } } : {})
     },
+    logger: { warn: vi.fn(), error: vi.fn() },
     repos: {
       user: createMockUserRepository(),
       invitation: createMockInvitationRepository(),

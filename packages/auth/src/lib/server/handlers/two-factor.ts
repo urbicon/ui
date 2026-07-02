@@ -144,9 +144,18 @@ export function createTwoFactorEnableHandler<R extends string>(
 export function createTwoFactorDisableHandler<R extends string>(
   deps: AuthDeps<R>
 ): { POST: RequestHandler } {
+  // Re-auth endpoints are credential-accepting: without a limiter a hijacked
+  // session could brute-force the current password here — at the most valuable
+  // target of all, since success removes the second factor (review R4).
+  // `createAuthDeps` injects a strict default; explicit config tunes it.
+  const rateLimiter = makeRateLimiter(deps.config.rateLimit?.twoFactorDisable);
+
   return {
     POST: async (event) => {
       const { repos } = deps;
+      const limited = await enforceRateLimit(rateLimiter, event.getClientAddress());
+      if (limited) return limited;
+
       const user = await requireSessionUser(deps, event.cookies);
       if (!user) return authError('not_authenticated', 401);
 
@@ -170,7 +179,10 @@ export function createTwoFactorDisableHandler<R extends string>(
       try {
         await repos.backupCode?.deleteAll(user.id);
       } catch (err) {
-        console.error(`[auth] 2fa-disable: failed to clear backup codes (user ${user.id})`, err);
+        deps.logger.error(
+          `[auth] 2fa-disable: failed to clear backup codes (user ${user.id})`,
+          err
+        );
       }
 
       return json({ success: true });

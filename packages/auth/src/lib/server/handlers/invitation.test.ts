@@ -241,7 +241,6 @@ describe('createInvitationHandlers — POST', () => {
   });
 
   it('still succeeds (emailSent:false) and logs when the invite email fails', async () => {
-    const error = vi.spyOn(console, 'error').mockImplementation(() => {});
     const send = vi.fn().mockRejectedValue(new Error('smtp down'));
     const { deps, user, handlers } = setup({ email: { send } });
     const res = await handlers.POST(
@@ -254,8 +253,7 @@ describe('createInvitationHandlers — POST', () => {
     expect(deps.repos.invitation.create).toHaveBeenCalledTimes(1);
     expect(res.status).toBe(201);
     expect((await res.json()).emailSent).toBe(false);
-    expect(error).toHaveBeenCalled();
-    error.mockRestore();
+    expect(deps.logger.error).toHaveBeenCalled();
   });
 
   it('propagates a throwing inviteEmail builder instead of masking it as a send failure', async () => {
@@ -289,7 +287,6 @@ describe('createInvitationHandlers — POST', () => {
   });
 
   it('reports a send failure to the onInvitationEmailFailed hook', async () => {
-    const error = vi.spyOn(console, 'error').mockImplementation(() => {});
     const onInvitationEmailFailed = vi.fn().mockResolvedValue(undefined);
     const send = vi.fn().mockRejectedValue(new Error('smtp down'));
     const { deps, user, handlers } = setup({ email: { send }, hooks: { onInvitationEmailFailed } });
@@ -301,11 +298,9 @@ describe('createInvitationHandlers — POST', () => {
     );
     expect(res.status).toBe(201);
     expect(onInvitationEmailFailed).toHaveBeenCalledWith('a@b.com', expect.any(Error));
-    error.mockRestore();
   });
 
   it('survives a throwing onInvitationEmailFailed hook (still 201)', async () => {
-    const error = vi.spyOn(console, 'error').mockImplementation(() => {});
     const { deps, user, handlers } = setup({
       email: { send: vi.fn().mockRejectedValue(new Error('smtp down')) },
       hooks: { onInvitationEmailFailed: vi.fn().mockRejectedValue(new Error('hook boom')) }
@@ -318,7 +313,6 @@ describe('createInvitationHandlers — POST', () => {
     );
     expect(res.status).toBe(201);
     expect((await res.json()).emailSent).toBe(false);
-    error.mockRestore();
   });
 
   it('uses a custom inviteEmail builder when provided', async () => {

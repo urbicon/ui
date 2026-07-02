@@ -101,7 +101,6 @@ describe('createRegisterHandler', () => {
   });
 
   it('completes with a warning if the invitation was consumed concurrently after create', async () => {
-    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
     const findByEmail = vi
       .fn()
       .mockResolvedValueOnce(null)
@@ -126,8 +125,7 @@ describe('createRegisterHandler', () => {
     // The account already exists, so the request succeeds, but the anomaly is
     // surfaced loudly.
     expect(res.status).toBe(201);
-    expect(warn).toHaveBeenCalled();
-    warn.mockRestore();
+    expect(deps.logger.warn).toHaveBeenCalled();
   });
 
   it('claims the invitation and creates the user on success', async () => {

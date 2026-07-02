@@ -149,7 +149,6 @@ describe('createForgotPasswordHandler', () => {
   });
 
   it('invokes onPasswordResetFailed when the detached reset work fails (observability seam)', async () => {
-    const errSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
     const onPasswordResetFailed = vi.fn().mockResolvedValue(undefined);
     const deps = createMockAuthDeps({
       config: { hooks: { onPasswordResetFailed } },
@@ -167,8 +166,7 @@ describe('createForgotPasswordHandler', () => {
     await vi.waitFor(() =>
       expect(onPasswordResetFailed).toHaveBeenCalledWith('aya@test.com', expect.any(Error))
     );
-    expect(errSpy).toHaveBeenCalled();
-    errSpy.mockRestore();
+    expect(deps.logger.error).toHaveBeenCalled();
   });
 
   it('returns 429 once the password-reset rate limit is exceeded', async () => {

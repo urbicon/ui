@@ -300,3 +300,28 @@ describe('createTwoFactorVerifyHandler', () => {
     expect([...ev._cookieStore.keys()].some((k) => k.includes('urbicon_2fa'))).toBe(false);
   });
 });
+
+describe('createTwoFactorDisableHandler — rate limit (R4)', () => {
+  it('enforces the twoFactorDisable limit before touching re-auth', async () => {
+    // Pins the KEY wiring: the disable handler must read `twoFactorDisable`,
+    // not the verify handler's `twoFactor` — with both being RateLimitConfig a
+    // swap would compile silently and leave the endpoint unlimited.
+    const user = createMockUser({ totpEnabled: true });
+    const deps = createMockAuthDeps({
+      config: {
+        twoFactor: { encryptionKey: ENC_KEY },
+        rateLimit: { twoFactorDisable: { windowMs: 60_000, max: 2 } }
+      },
+      user: { findById: vi.fn().mockResolvedValue(user) }
+    });
+    const handler = createTwoFactorDisableHandler(deps);
+
+    const r1 = await handler.POST(as(await authed(deps, { currentPassword: 'wrong' })));
+    const r2 = await handler.POST(as(await authed(deps, { currentPassword: 'wrong' })));
+    const r3 = await handler.POST(as(await authed(deps, { currentPassword: 'wrong' })));
+
+    expect(r1.status).toBe(403); // wrong password, but within budget
+    expect(r2.status).toBe(403);
+    expect(r3.status).toBe(429); // budget spent — brute force cut off
+  });
+});
