@@ -1,7 +1,7 @@
 import { describe, expect, it, vi } from 'vitest';
 import { en } from '../../i18n/en.js';
 import type { AuthLocale } from '../../i18n/keys.js';
-import { errorTextFromBody, postJson } from './http.js';
+import { errorTextFromBody, getJson, postJson, wireError } from './http.js';
 
 describe('postJson', () => {
   it('POSTs the JSON body through the provided fetcher and parses the response', async () => {
@@ -39,6 +39,41 @@ describe('postJson', () => {
       const result = await postJson('/api/x', {}, { fetcher });
       expect(result, body).toEqual({ ok: false, data: {} });
     }
+  });
+});
+
+describe('getJson', () => {
+  it('GETs through the provided fetcher with the same tolerant parsing', async () => {
+    const fetcher = vi.fn(
+      async () => new Response(JSON.stringify({ sessions: [] }), { status: 200 })
+    ) as unknown as typeof fetch;
+
+    const result = await getJson('/api/sessions', { fetcher });
+    expect(result).toEqual({ ok: true, data: { sessions: [] } });
+    expect(vi.mocked(fetcher).mock.calls[0][0]).toBe('/api/sessions');
+  });
+
+  it('shields non-JSON and non-object bodies exactly like postJson', async () => {
+    for (const body of ['<html>502</html>', 'null', '[1]']) {
+      const fetcher = vi.fn(
+        async () => new Response(body, { status: 502 })
+      ) as unknown as typeof fetch;
+      expect(await getJson('/api/x', { fetcher }), body).toEqual({ ok: false, data: {} });
+    }
+  });
+});
+
+describe('wireError', () => {
+  it('narrows the contract fields and drops non-string values', () => {
+    expect(wireError({ error: 'Prose.', code: 'forbidden', extra: 1 })).toEqual({
+      error: 'Prose.',
+      code: 'forbidden'
+    });
+    expect(wireError({ error: 42, code: { nested: true } })).toEqual({
+      error: undefined,
+      code: undefined
+    });
+    expect(wireError({})).toEqual({ error: undefined, code: undefined });
   });
 });
 

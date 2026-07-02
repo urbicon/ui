@@ -6,7 +6,7 @@
   import { csrfFetch } from '../../csrf.js';
   import type { PasskeyManagerProps } from './index.js';
   import { base64UrlToBuffer, bufferToBase64Url } from '../../utils/webauthn.js';
-  import { errorTextFromBody } from '../../utils/http.js';
+  import { errorTextFromBody, getJson } from '../../utils/http.js';
   import { slotClass } from '../../utils/slot-class.js';
 
   let {
@@ -21,11 +21,6 @@
 
   const authLocale = useAuthLocale();
   const t = $derived(mergeAuthLocale(authLocale(), tProp));
-
-  // Wrapped so the default path calls the global fetch unbound-safe; a custom
-  // fetcher (demo mock, test double, retry layer) takes precedence.
-  const doFetch: typeof globalThis.fetch = (input, init) =>
-    fetcher ? fetcher(input, init) : fetch(input, init);
 
   interface PasskeyItem {
     credentialId: string;
@@ -43,14 +38,13 @@
   async function loadPasskeys() {
     loading = true;
     try {
-      const res = await doFetch(`${basePath}/list`);
-      if (!res.ok) {
+      const { ok, data } = await getJson(`${basePath}/list`, { fetcher });
+      if (!ok) {
         // A 401/500 must not render as "no passkeys registered".
-        error = t.common.error;
+        error = errorTextFromBody(data, t);
         return;
       }
-      const data = await res.json();
-      passkeys = data.passkeys ?? [];
+      passkeys = (data.passkeys as PasskeyItem[] | undefined) ?? [];
     } catch {
       // Surface the failure instead of rendering the empty state, which is
       // indistinguishable from "no passkeys registered".

@@ -61,10 +61,22 @@ All crypto is implemented via Web Crypto API (`crypto.subtle`):
 
 All components use `@urbicon-ui/blocks` primitives and support:
 
-- **`unstyled`** — strips all default styles
+- **`t`** — locale overrides as `PartialAuthLocale`: any subset, deep-merged over the
+  active built-in bundle by `mergeAuthLocale` (both root-exported). Overriding one
+  string never blanks the rest; a hand-rolled bundle missing newer keys resolves them
+  from the base. `AuthLocale` itself is fully required — no per-key fallback literals
+  in markup (review R19).
+- **`unstyled`** — strips *every* default class, including inner wrappers and list-item
+  internals; structural state that only styling used to carry is exposed as data
+  attributes instead (`data-met` on RegisterPage requirement rows, `data-unread` on
+  NotificationCenter items). Functionality never disappears with the flag.
 - **`slotClasses`** — per-slot class overrides (e.g. `root`, `card`, `form`, `field`)
-- **Snippet overrides** — `form` (LoginPage/RegisterPage), `item` (NotificationCenter)
+- **Snippet overrides** — `header`/`footer`/`links` on all five pages, `item`
+  (NotificationCenter), `qr` (TwoFactorManager)
 - **Semantic design tokens** — `text-text-primary`, `bg-surface-quiet`, etc.
+- The five pages share one internal skeleton (`_shared/AuthPageShell.svelte`: wrapper →
+  Card → h1 → aria-live error region); the region itself is
+  `_shared/FormErrorAlert.svelte`, reused by the managers. Neither is a public export.
 
 | Component            | Purpose                                     |
 | -------------------- | ------------------------------------------- |
@@ -82,6 +94,22 @@ All components use `@urbicon-ui/blocks` primitives and support:
 | NotificationBadge    | Unread count badge                          |
 | NotificationListener | Headless SSE listener                       |
 | PushPermissionPrompt | Push notification opt-in                    |
+
+### Client stores
+
+`createAuthStore` / `createNotificationStore` are the headless counterparts for
+consumers building their own UI. Since review R18 they ride the same
+infrastructure as the components: a `fetcher` config option (mock backends,
+retry layers), the tolerant `postJson`/`getJson` request core, and the wire
+contract instead of hardcoded English — a failed auth action returns
+`{ success: false, error?, code? }` (server prose + machine code; localize via
+`errorMessageFromCode(code, t, error)`), a request that never reached the
+server synthesizes `code: 'network_error'`. The notification store records the
+same shape on `lastError` (cleared by the next success), returns `false` from
+failed operations instead of silently no-opping, and a failed `load` keeps the
+existing list rather than blanking it into a fake empty inbox. `logout` clears
+the local state unconditionally but still reports whether the server revoked
+the session.
 
 ## Consumer Integration — staged setup
 
@@ -355,7 +383,7 @@ bun run test:e2e                            # Playwright (from the repo root)
 
 Every handler (and the `createAuthHandle` gates) answers errors with one JSON shape: `{ error: string, code: AuthErrorCode, … }` — `error` is human-readable English prose, `code` the stable machine value from the append-only `AUTH_ERROR_CODES` set (never repurposed, only extended; the same code can appear under different HTTP statuses when the context differs, e.g. `invalid_code` is 400 on 2FA-enable and 401 on 2FA-verify). Validation failures additionally carry the full field list as `errors`, and the first field message replaces the generic prose. Rate limits answer `429 rate_limited` with a `Retry-After` header; the CSRF gate `403 csrf_failed`; the previously-plaintext SSE-stream refusals are JSON as of v6.17.0 (native `EventSource` clients never see bodies, so that change is inert there). The push-subscription writes distinguish `push_endpoint_conflict` (endpoint owned by another account — permanent) from `push_subscription_limit` (per-user device cap). The one deliberate exception: `createMeHandler` answers `401 { user: null }` — that is the session-status contract of the client store, not an error report.
 
-Localized clients map `code` via `errorMessageFromCode(code, t, error)` (exported from the package root): known code → locale bundle, unknown code or missing translation → the server prose, neither → `undefined` for the caller's own fallback. `validation_error` deliberately prefers the field-level server prose. The pre-built components do this everywhere via their shared `errorTextFromBody` helper.
+Localized clients map `code` via `errorMessageFromCode(code, t, error)` (exported from the package root): known code → locale bundle, unknown code or missing translation → the server prose, neither → `undefined` for the caller's own fallback. `validation_error` deliberately prefers the field-level server prose. The pre-built components do this everywhere via their shared `errorTextFromBody` helper. One code is client-synthesized rather than served: `network_error` (the request never reached the server — offline, DNS, CORS), produced by the stores and mapped to `auth.errors.networkError` like any other code.
 
 ## Known Limitations & Security Gaps
 

@@ -4,7 +4,7 @@
   import { onMount } from 'svelte';
   import { mergeAuthLocale, useAuthLocale } from '../../../i18n/index.js';
   import { csrfFetch } from '../../csrf.js';
-  import { errorTextFromBody } from '../../utils/http.js';
+  import { errorTextFromBody, getJson } from '../../utils/http.js';
   import type { SessionManagerProps } from './index.js';
   import { slotClass } from '../../utils/slot-class.js';
 
@@ -20,9 +20,6 @@
 
   const authLocale = useAuthLocale();
   const t = $derived(mergeAuthLocale(authLocale(), tProp));
-
-  const doFetch: typeof globalThis.fetch = (input, init) =>
-    fetcher ? fetcher(input, init) : fetch(input, init);
 
   interface SessionRow {
     id: string;
@@ -43,13 +40,12 @@
     loading = true;
     error = '';
     try {
-      const res = await doFetch(basePath);
-      if (!res.ok) {
-        error = t.common.error;
+      const { ok, data } = await getJson(basePath, { fetcher });
+      if (!ok) {
+        error = errorTextFromBody(data, t);
         return;
       }
-      const data = await res.json();
-      sessions = data.sessions ?? [];
+      sessions = (data.sessions as SessionRow[] | undefined) ?? [];
       available = data.available !== false;
     } catch {
       // Surface the failure rather than rendering an empty list that looks like

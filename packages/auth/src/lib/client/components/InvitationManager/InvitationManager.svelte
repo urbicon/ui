@@ -5,7 +5,7 @@
   import { mergeAuthLocale, useAuthLocale } from '../../../i18n/index.js';
   import { csrfFetch } from '../../csrf.js';
   import type { InvitationManagerProps } from './index.js';
-  import { errorTextFromBody } from '../../utils/http.js';
+  import { errorTextFromBody, getJson } from '../../utils/http.js';
   import { slotClass } from '../../utils/slot-class.js';
 
   interface InvitationItem {
@@ -30,11 +30,6 @@
   const authLocale = useAuthLocale();
   const t = $derived(mergeAuthLocale(authLocale(), tProp));
 
-  // Wrapped so the default path calls the global fetch unbound-safe; a custom
-  // fetcher (demo mock, test double, retry layer) takes precedence.
-  const doFetch: typeof globalThis.fetch = (input, init) =>
-    fetcher ? fetcher(input, init) : fetch(input, init);
-
   let invitations = $state<InvitationItem[]>([]);
   let email = $state('');
   // Seed the dropdown with the first role once; `roles` is a static prop, so we
@@ -48,14 +43,13 @@
   async function loadInvitations() {
     loading = true;
     try {
-      const res = await doFetch(basePath);
-      if (!res.ok) {
+      const { ok, data } = await getJson(basePath, { fetcher });
+      if (!ok) {
         // A 401/500 must not render as "no invitations yet".
-        error = t.common.error;
+        error = errorTextFromBody(data, t);
         return;
       }
-      const data = await res.json();
-      invitations = data.invitations ?? [];
+      invitations = (data.invitations as InvitationItem[] | undefined) ?? [];
     } catch {
       // Surface the failure instead of rendering the empty state, which is
       // indistinguishable from "no invitations yet".

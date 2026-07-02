@@ -29,15 +29,45 @@ export async function postJson(
     options?.csrf,
     options?.fetcher
   );
-  // Shield unparseable bodies AND non-object JSON (`null`, arrays, strings —
-  // e.g. a proxy error page with a JSON content type): the cast would
-  // otherwise let `data.code` throw inside the caller's error path, turning
-  // a failed request into a hung busy state instead of an error message.
+  return { ok: res.ok, data: await parseJsonBody(res) };
+}
+
+/**
+ * GET a JSON resource with the same tolerant body handling as {@link postJson}.
+ * No CSRF header — reads are not state-changing; the optional `fetcher` keeps
+ * mock backends and custom retry layers injectable (review R18).
+ */
+export async function getJson(
+  url: string,
+  options?: { fetcher?: typeof globalThis.fetch }
+): Promise<JsonResult> {
+  const res = options?.fetcher ? await options.fetcher(url) : await fetch(url);
+  return { ok: res.ok, data: await parseJsonBody(res) };
+}
+
+/**
+ * Tolerantly parse a response body: shields unparseable bodies AND non-object
+ * JSON (`null`, arrays, strings — e.g. a proxy error page with a JSON content
+ * type). Without it the cast would let `data.code` throw inside the caller's
+ * error path, turning a failed request into a hung busy state instead of an
+ * error message. Exported for callers that hold a raw `Response` (DELETEs).
+ */
+export async function parseJsonBody(res: Response): Promise<Record<string, unknown>> {
   const parsed: unknown = await res.json().catch(() => ({}));
-  const data = (
+  return (
     typeof parsed === 'object' && parsed !== null && !Array.isArray(parsed) ? parsed : {}
   ) as Record<string, unknown>;
-  return { ok: res.ok, data };
+}
+
+/**
+ * Narrow the wire-contract fields (`{ error, code }`) out of a tolerant-parsed
+ * body — anything non-string becomes `undefined` instead of leaking through.
+ */
+export function wireError(data: Record<string, unknown>): { error?: string; code?: string } {
+  return {
+    error: typeof data.error === 'string' ? data.error : undefined,
+    code: typeof data.code === 'string' ? data.code : undefined
+  };
 }
 
 /**
