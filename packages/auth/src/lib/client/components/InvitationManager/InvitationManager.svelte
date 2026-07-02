@@ -89,7 +89,7 @@
         fetcher
       );
       if (!res.ok) {
-        const data = await res.json();
+        const data = (await res.json().catch(() => ({}))) as Record<string, unknown>;
         error = errorTextFromBody(data, t);
         return;
       }

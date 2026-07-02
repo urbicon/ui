@@ -68,7 +68,10 @@
         // Deterministic refusals get precise messages via the machine code
         // ("please try again" would loop forever on a 409); everything else
         // keeps the generic retryable text.
-        const body = (await res.json().catch(() => ({}))) as { code?: string };
+        const parsed: unknown = await res.json().catch(() => ({}));
+        const body = (
+          typeof parsed === 'object' && parsed !== null && !Array.isArray(parsed) ? parsed : {}
+        ) as { code?: string };
         if (body.code === 'push_endpoint_conflict') {
           error = t.notifications.push.errorConflict;
         } else if (body.code === 'push_subscription_limit') {

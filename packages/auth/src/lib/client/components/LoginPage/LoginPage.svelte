@@ -147,7 +147,7 @@
       );
       if (!optRes.ok) {
         const data = await optRes.json().catch(() => ({}));
-        error = data.error ?? 'Passkey login failed';
+        error = errorTextFromBody(data as Record<string, unknown>, t);
         return;
       }
       const { options } = await optRes.json();

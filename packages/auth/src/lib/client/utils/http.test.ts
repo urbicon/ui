@@ -60,4 +60,13 @@ describe('errorTextFromBody', () => {
   it('yields the generic message when the body has neither', () => {
     expect(errorTextFromBody({}, t)).toBeTruthy();
   });
+
+  it('lets a validation_error keep its field-level server prose (not the generic string)', () => {
+    // Silent-failure review: a delegation refactor that stopped threading the
+    // prose as fallback would keep every other case green while degrading
+    // "Email is invalid" to a generic message.
+    expect(errorTextFromBody({ code: 'validation_error', error: 'Email is invalid' }, t)).toBe(
+      'Email is invalid'
+    );
+  });
 });

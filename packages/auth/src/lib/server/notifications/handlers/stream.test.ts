@@ -81,6 +81,7 @@ describe('createStreamHandler', () => {
     expect(r1.status).toBe(200);
     expect(r2.status).toBe(200);
     expect(r3.status).toBe(429);
+    expect((await r3.json()).code, 'connection cap carries the machine code').toBe('rate_limited');
 
     // A different user is unaffected.
     expect((await handler.GET(mockEvent({ id: 'u2' }))).status).toBe(200);

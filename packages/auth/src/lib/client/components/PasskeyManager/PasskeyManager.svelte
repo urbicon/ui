@@ -130,7 +130,7 @@
       );
 
       if (!verifyRes.ok) {
-        const data = await verifyRes.json();
+        const data = (await verifyRes.json().catch(() => ({}))) as Record<string, unknown>;
         error = errorTextFromBody(data, t);
         return;
       }

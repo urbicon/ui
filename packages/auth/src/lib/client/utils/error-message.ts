@@ -61,7 +61,10 @@ export function errorMessageFromCode(
   if (code === 'validation_error' && fallbackError) return fallbackError;
 
   const key = code ? CODE_TO_KEY[code] : undefined;
-  if (key) return t.auth.errors[key];
+  // A known code whose translation is missing at RUNTIME (a JS consumer's
+  // hand-rolled bundle predating a new key) must still fall back to the
+  // server prose — the order this JSDoc promises.
+  if (key) return t.auth.errors[key] ?? fallbackError;
 
   return fallbackError;
 }

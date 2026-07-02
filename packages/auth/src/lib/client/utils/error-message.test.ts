@@ -55,3 +55,31 @@ describe('errorMessageFromCode', () => {
     }
   });
 });
+
+describe('CODE_TO_KEY drift against the server contract', () => {
+  it('every server AuthErrorCode resolves to a localized string — or is on the documented unmapped list', async () => {
+    // Test-review finding: the next server code can ship without a client
+    // mapping with zero signal — English prose on localized pages, the exact
+    // bug class R15 fixed. Codes deliberately unmapped (their server prose
+    // carries the detail / a component maps them directly): keep this list
+    // in sync with the rationale in client/utils/error-message.ts.
+    const EXPECTED_UNMAPPED = new Set([
+      'csrf_failed',
+      'passkey_verification_failed',
+      'push_endpoint_conflict',
+      'push_subscription_limit'
+    ]);
+    const { AUTH_ERROR_CODES } = await import('../../server/handlers/errors.js');
+    for (const code of Object.values(AUTH_ERROR_CODES)) {
+      const resolved = errorMessageFromCode(code, en);
+      if (EXPECTED_UNMAPPED.has(code)) {
+        expect(
+          resolved,
+          `${code} should stay unmapped or be removed from the list`
+        ).toBeUndefined();
+      } else {
+        expect(resolved, `${code} needs a CODE_TO_KEY entry + locale string`).toBeTruthy();
+      }
+    }
+  });
+});

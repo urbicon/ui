@@ -12,6 +12,7 @@ import { requireSessionUser } from '../handlers/_shared.js';
 import { authError } from '../handlers/errors.js';
 import { enforceRateLimit, makeRateLimiter, type RateLimiter } from '../rate-limit.js';
 import { establishSession, resolveSessionMeta } from '../session.js';
+import { readJsonBody } from '../validation.js';
 import {
   type AuthenticationCredentialJSON,
   generateAuthenticationOptions,
@@ -120,7 +121,7 @@ export function createPasskeyRegistrationVerifyHandler<R extends string>(
       }
 
       try {
-        const { credential, name } = (await request.json()) as {
+        const { credential, name } = (await readJsonBody(request)) as {
           credential: RegistrationCredentialJSON;
           name?: string;
         };
@@ -264,7 +265,7 @@ export function createPasskeyAuthenticationVerifyHandler<R extends string>(
       cookies.delete(cookieName, { path: '/' });
 
       try {
-        const { credential } = (await request.json()) as {
+        const { credential } = (await readJsonBody(request)) as {
           credential: AuthenticationCredentialJSON;
         };
 
@@ -319,10 +320,9 @@ export function createPasskeyAuthenticationVerifyHandler<R extends string>(
         const advanced = await deps.repos.passkey.updateCounter(credential.id, verified.newCounter);
         if (!advanced) {
           await loginFailed('', 'counter_regression');
-          return json(
-            { error: 'Counter did not increase — possible cloned authenticator' },
-            { status: 400 }
-          );
+          return authError('passkey_verification_failed', 400, {
+            message: 'Counter did not increase — possible cloned authenticator'
+          });
         }
 
         // Load user and create session

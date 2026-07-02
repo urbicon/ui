@@ -35,7 +35,9 @@ describe('enforceRateLimit', () => {
     expect(res).not.toBeNull();
     expect(res!.status).toBe(429);
     expect(Number(res!.headers.get('Retry-After'))).toBeGreaterThan(0);
-    expect((await res!.json()).error).toBe('Custom limit message.');
+    const body = await res!.json();
+    expect(body.error).toBe('Custom limit message.');
+    expect(body.code, 'the shared 429 helper carries the machine code').toBe('rate_limited');
   });
 
   it('keys separately per identifier', async () => {

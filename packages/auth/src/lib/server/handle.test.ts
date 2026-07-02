@@ -125,6 +125,9 @@ describe('createAuthHandle', () => {
 
     const response = await handle({ event: asEvent(event), resolve });
     expect(response.status).toBe(401);
+    expect((await response.json()).code, 'guard 401 carries the machine code').toBe(
+      'not_authenticated'
+    );
   });
 
   it('should set user on event.locals for authenticated requests', async () => {
@@ -291,6 +294,9 @@ describe('createAuthHandle — remote-function guard', () => {
 
     const response = await handle({ event: asEvent(event), resolve });
     expect(response.status).toBe(401);
+    expect((await response.json()).code, 'remote guard shares the unified shape').toBe(
+      'not_authenticated'
+    );
     expect(resolve).not.toHaveBeenCalled();
   });
 

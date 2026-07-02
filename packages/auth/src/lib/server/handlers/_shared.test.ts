@@ -5,7 +5,7 @@ import { hashPassword } from '../auth.js';
 import type { AuthDeps } from '../deps.js';
 import { setSessionCookie } from '../session.js';
 import { createMockAuthDeps, createMockUser, mockPostEvent } from '../test-utils.js';
-import { requireSessionUser, verifyCurrentPassword } from './_shared.js';
+import { parseBody, requireSessionUser, verifyCurrentPassword } from './_shared.js';
 
 /**
  * `requireSessionUser` and `verifyCurrentPassword` are the two shared building
@@ -127,5 +127,59 @@ describe('verifyCurrentPassword', () => {
 
     expect(await verifyCurrentPassword(user, 'correct', deps)).toBe(true);
     expect(updatePassword).not.toHaveBeenCalled();
+  });
+});
+
+describe('parseBody', () => {
+  const validator = (raw: unknown) => {
+    const email = (raw as { email?: unknown })?.email;
+    if (typeof email !== 'string' || !email.includes('@')) {
+      return {
+        success: false as const,
+        errors: [
+          { field: 'email', message: 'Email is invalid' },
+          { field: 'email', message: 'Second issue' }
+        ]
+      };
+    }
+    return { success: true as const, data: { email } };
+  };
+
+  const jsonRequest = (body: string) =>
+    new Request('http://localhost/x', {
+      method: 'POST',
+      body,
+      headers: { 'Content-Type': 'application/json' }
+    });
+
+  it('returns the validated data on success', async () => {
+    const result = await parseBody(jsonRequest('{"email":"a@b.c"}'), validator);
+    expect(result).toEqual({ data: { email: 'a@b.c' } });
+  });
+
+  it('produces the full canonical validation 400 — code, first-error prose, errors array, headers', async () => {
+    // Test-review mutation finding: dropping the errors array or the headers
+    // forwarding survived the whole suite — this is the single choke point
+    // for 14 handler preambles, so the envelope is pinned here once.
+    const result = await parseBody(jsonRequest('{"email":42}'), validator, {
+      headers: { 'Cache-Control': 'no-store' }
+    });
+    expect(result).toBeInstanceOf(Response);
+    const res = result as Response;
+    expect(res.status).toBe(400);
+    expect(res.headers.get('Cache-Control')).toBe('no-store');
+    const body = await res.json();
+    expect(body.code).toBe('validation_error');
+    expect(body.error).toBe('Email is invalid');
+    expect(body.errors).toEqual([
+      { field: 'email', message: 'Email is invalid' },
+      { field: 'email', message: 'Second issue' }
+    ]);
+  });
+
+  it('maps a malformed JSON body to the validation 400, never a 500', async () => {
+    const result = await parseBody(jsonRequest('not json'), validator);
+    expect(result).toBeInstanceOf(Response);
+    expect((result as Response).status).toBe(400);
   });
 });

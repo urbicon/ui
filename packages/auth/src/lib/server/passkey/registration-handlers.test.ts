@@ -177,7 +177,9 @@ describe('createPasskeyRegistrationVerifyHandler', () => {
       await authedEvent(deps, { credential: { id: 'x' } })
     );
     expect(res.status).toBe(400);
-    expect((await res.json()).error).toBe('Invalid attestation');
+    const body = await res.json();
+    expect(body.code, 'append-only machine code contract').toBe('passkey_verification_failed');
+    expect(body.error).toBe('Invalid attestation');
   });
 
   it('re-throws a non-WebAuthn error so the framework surfaces it as a 500', async () => {

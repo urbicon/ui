@@ -279,7 +279,11 @@ describe('passkey auth — ceremony-handle binding (G.1)', () => {
       })
     );
     expect(res.status).toBe(400);
-    expect((await res.json()).error).toMatch(/Challenge expired or not found/i);
+    const challengeBody = await res.json();
+    expect(challengeBody.error).toMatch(/Challenge expired or not found/i);
+    expect(challengeBody.code, 'append-only machine code contract').toBe(
+      'passkey_verification_failed'
+    );
     // It must fail before touching the credential store.
     expect(deps.repos.passkey.findByCredentialId).not.toHaveBeenCalled();
   });
