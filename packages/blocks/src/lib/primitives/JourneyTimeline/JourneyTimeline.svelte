@@ -302,9 +302,6 @@
 
 {#snippet labels(item: JourneyNode, styles: Styles | null)}
   <span class={sc(styles, 'labelGroup')}>
-    {#if orientation === 'horizontal'}
-      {@render metaCell(item, styles)}
-    {/if}
     <span class={sc(styles, 'title')}>{item.title}</span>
     {#if item.subtitle}
       <span class={sc(styles, 'subtitle')}>{item.subtitle}</span>
@@ -332,16 +329,10 @@
         : undefined}
       onclick={() => activate(item)}
     >
-      {#if orientation === 'horizontal'}
-        <span class={sc(styles, 'marker')} data-journey-marker="" aria-hidden="true"></span>
-      {/if}
       {@render labels(item, styles)}
     </button>
   {:else}
     <div class={sc(styles, 'trigger')} data-node-id={item.id}>
-      {#if orientation === 'horizontal'}
-        <span class={sc(styles, 'marker')} data-journey-marker="" aria-hidden="true"></span>
-      {/if}
       {@render labels(item, styles)}
     </div>
   {/if}
@@ -371,18 +362,34 @@
           data-node-id={item.id}
           aria-current={item.status === 'active' ? 'step' : undefined}
         >
+          {#if hasMetaRail}
+            <div class={sc(styles, 'metaColumn')}>
+              {#if meta || item.meta !== undefined}
+                {@render metaCell(item, styles)}
+              {:else}
+                <!-- Empty placeholder keeps every station's meta row the same
+                     height, so markers and titles stay on one baseline. -->
+                <span class={sc(styles, 'meta')} aria-hidden="true">&nbsp;</span>
+              {/if}
+            </div>
+          {/if}
+          <!-- DOM order trigger → spine (visual order flipped via order-*):
+               a segment label is announced after the node it departs from. -->
           {@render trigger(item, index, focused, styles)}
-          {#if !last}
-            <div class={sc(styles, 'connectorColumn')}>
+          <div class={sc(styles, 'markerColumn')}>
+            <span class={sc(styles, 'marker')} data-journey-marker="" aria-hidden="true"></span>
+            {#if !last}
+              <span data-journey-connector="" class={sc(styles, 'connector')} aria-hidden="true"
+              ></span>
               {#if item.segmentLabel}
                 <span class={sc(styles, 'segment')} data-journey-segment="">
                   {item.segmentLabel}
                 </span>
+                <span data-journey-connector="" class={sc(styles, 'connector')} aria-hidden="true"
+                ></span>
               {/if}
-              <span data-journey-connector="" class={sc(styles, 'connector')} aria-hidden="true"
-              ></span>
-            </div>
-          {/if}
+            {/if}
+          </div>
         </li>
       {:else}
         <li

@@ -247,10 +247,10 @@
       Every family member supports <code>unstyled</code>, <code>slotClasses</code> and
       <code>preset</code>. Slots: <code>base</code>, <code>rail</code>, <code>node</code>,
       <code>metaColumn</code>, <code>meta</code>, <code>markerColumn</code>, <code>marker</code>,
-      <code>connector</code>, <code>connectorColumn</code>, <code>content</code>,
-      <code>card</code>, <code>trigger</code>, <code>labelGroup</code>, <code>title</code>,
-      <code>subtitle</code>, <code>segment</code>, <code>detail</code>, <code>detailInner</code>,
-      <code>detailContent</code> and <code>panel</code>.
+      <code>connector</code>, <code>content</code>, <code>card</code>, <code>trigger</code>,
+      <code>labelGroup</code>, <code>title</code>, <code>subtitle</code>, <code>segment</code>,
+      <code>detail</code>, <code>detailInner</code>, <code>detailContent</code> and
+      <code>panel</code>.
     </p>
     <CodeExample
       title="Restyle markers and the docked panel"

@@ -24,7 +24,7 @@ export interface JourneyNode {
    * Label on the chronicle axis (the meta rail left of the markers) — a time,
    * date, version, actor…. The rail renders as soon as any node provides `meta`
    * (or the `meta` snippet is set). Vertical orientation renders it as a
-   * right-aligned column; horizontal as a kicker line above the title.
+   * right-aligned column; horizontal as a date row above the spine.
    */
   meta?: string;
   /**
@@ -138,9 +138,8 @@ export interface JourneyTimelineProps
   unstyled?: boolean;
   /**
    * Per-slot class overrides. Slots: base | rail | node | metaColumn | meta |
-   * markerColumn | marker | connector | connectorColumn | content | card |
-   * trigger | labelGroup | title | subtitle | segment | detail | detailInner |
-   * detailContent | panel
+   * markerColumn | marker | connector | content | card | trigger | labelGroup |
+   * title | subtitle | segment | detail | detailInner | detailContent | panel
    */
   slotClasses?: Partial<Record<JourneyTimelineSlots, string>>;
   /**

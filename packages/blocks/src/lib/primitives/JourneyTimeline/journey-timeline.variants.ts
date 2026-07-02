@@ -16,9 +16,9 @@ export const journeyTimelineVariants = tv({
       'font-mono tabular-nums leading-tight text-text-tertiary',
       'transition-colors duration-[var(--blocks-duration-fast)]'
     ],
-    // Column that carries the dot marker and the connector below it (vertical).
-    // `flex-col` is essential: the connector's `flex-1` must grow *down*.
-    markerColumn: 'flex flex-col items-center',
+    // The spine: marker + connector line. Vertical: a narrow column the line
+    // grows down inside; horizontal: a full-width row the line grows right in.
+    markerColumn: 'flex items-center',
     // The status dot. Deliberately small — the line is the protagonist, the
     // dots are punctuation (contrast: Stepper's large glyph discs).
     marker: [
@@ -31,8 +31,6 @@ export const journeyTimelineVariants = tv({
       'border-border-default',
       'transition-[border-color] duration-[var(--blocks-duration-normal)]'
     ],
-    // Wrapper for segment label + connector in the horizontal rail.
-    connectorColumn: 'flex min-w-6 flex-1 flex-col items-center justify-center gap-1 self-center',
     // Content cell (vertical): card + segment label.
     content: 'min-w-0',
     // The focus surface around header + inline detail. Transparent at rest,
@@ -76,6 +74,7 @@ export const journeyTimelineVariants = tv({
       vertical: {
         rail: 'flex-col',
         node: 'grid',
+        markerColumn: 'flex-col',
         connector: 'my-1 w-0 min-h-3 flex-1 border-l-2',
         segment: 'flex items-center'
       },
@@ -83,63 +82,59 @@ export const journeyTimelineVariants = tv({
         // Column layout so the shared panel sits below the rail.
         base: 'flex flex-col',
         rail: 'flex-row items-start',
-        // Each node grows to spread markers evenly; the last hugs its content.
-        node: 'flex items-center [&:not(:last-child)]:flex-1',
-        // Compact pill header: marker + labels side by side, tinted when focused.
-        trigger: 'w-auto shrink-0 flex-row items-center px-2 py-1.5',
-        connector: 'h-0 w-full border-t-2',
-        segment: 'text-center',
+        // Stacked station: meta row above the spine, label pill below. Every
+        // node but the last stretches so the spine distributes the stations.
+        node: 'flex flex-col [&:not(:last-child)]:flex-1',
+        // Visual order is meta → spine → labels, but the DOM keeps the trigger
+        // before the spine so a segment label is read *after* its node.
+        metaColumn: 'order-1 text-left',
+        markerColumn: 'order-2 w-full flex-row',
+        // Shrink-to-fit pill around the labels only — the marker sits on the
+        // spine above, so the whole rail reads as stations on one line.
+        trigger: 'order-3 w-auto self-start',
+        connector: 'h-0 min-w-3 flex-1 border-t-2',
+        // Segment labels sit *in* the line (line — label — line); they widen
+        // the gap instead of overlapping the next station's marker.
+        segment: 'shrink-0 whitespace-nowrap',
         panel: 'mt-4 w-full'
       }
     },
     size: {
       sm: {
-        metaColumn: 'w-10 pt-1.5',
         meta: 'text-[11px]',
-        markerColumn: 'w-3.5',
-        marker: 'size-2.5 mt-2',
+        marker: 'size-2.5',
         node: 'gap-x-2.5',
         card: '-mx-1.5 px-1.5 py-1.5',
-        trigger: 'gap-x-2',
         title: 'text-xs',
         subtitle: 'text-[11px]',
-        segment: 'text-[11px] mt-1.5 gap-1',
+        segment: 'text-[11px]',
         content: 'pb-4',
         detailContent: 'text-xs pt-2',
-        panel: 'p-3 text-xs',
-        connectorColumn: 'mx-2'
+        panel: 'p-3 text-xs'
       },
       md: {
-        metaColumn: 'w-12 pt-2',
         meta: 'text-xs',
-        markerColumn: 'w-4',
-        marker: 'size-3 mt-2.5',
+        marker: 'size-3',
         node: 'gap-x-3',
         card: '-mx-2 px-2 py-2',
-        trigger: 'gap-x-2.5',
         title: 'text-sm',
         subtitle: 'text-xs',
-        segment: 'text-xs mt-2 gap-1.5',
+        segment: 'text-xs',
         content: 'pb-5',
         detailContent: 'text-sm pt-2.5',
-        panel: 'p-4 text-sm',
-        connectorColumn: 'mx-2.5'
+        panel: 'p-4 text-sm'
       },
       lg: {
-        metaColumn: 'w-14 pt-2.5',
         meta: 'text-sm',
-        markerColumn: 'w-5',
-        marker: 'size-3.5 mt-3',
+        marker: 'size-3.5',
         node: 'gap-x-3.5',
         card: '-mx-2.5 px-2.5 py-2.5',
-        trigger: 'gap-x-3',
         title: 'text-base',
         subtitle: 'text-sm',
-        segment: 'text-sm mt-2.5 gap-2',
+        segment: 'text-sm',
         content: 'pb-6',
         detailContent: 'text-base pt-3',
-        panel: 'p-5 text-base',
-        connectorColumn: 'mx-3'
+        panel: 'p-5 text-base'
       }
     },
     // Marker colour + title tone per journey status. Mirrors the semantic intent
@@ -209,6 +204,74 @@ export const journeyTimelineVariants = tv({
     }
   },
   compoundVariants: [
+    // Size geometry that only applies to one orientation. Vertical: fixed
+    // meta/marker column widths + baseline offsets that align dot and title;
+    // horizontal: spine gaps + the label pill's optical left edge (-mx
+    // compensates px so title, marker and meta share one left line).
+    {
+      orientation: 'vertical',
+      size: 'sm',
+      class: {
+        metaColumn: 'w-10 pt-1.5',
+        markerColumn: 'w-3.5',
+        marker: 'mt-2',
+        segment: 'mt-1.5 gap-1'
+      }
+    },
+    {
+      orientation: 'vertical',
+      size: 'md',
+      class: {
+        metaColumn: 'w-12 pt-2',
+        markerColumn: 'w-4',
+        marker: 'mt-2.5',
+        segment: 'mt-2 gap-1.5'
+      }
+    },
+    {
+      orientation: 'vertical',
+      size: 'lg',
+      class: {
+        metaColumn: 'w-14 pt-2.5',
+        markerColumn: 'w-5',
+        marker: 'mt-3',
+        segment: 'mt-2.5 gap-2'
+      }
+    },
+    // The fixed spine height keeps every marker on one line whether or not the
+    // station's outgoing segment carries a (taller) text label. The metaColumn
+    // min-height is the same guarantee for the chronicle row: it holds even
+    // when a consumer `meta` snippet renders nothing for some stations.
+    {
+      orientation: 'horizontal',
+      size: 'sm',
+      class: {
+        node: 'gap-y-0.5',
+        metaColumn: 'min-h-3.5',
+        markerColumn: 'h-4 gap-1 pr-1',
+        trigger: '-mx-1.5 px-1.5 py-1'
+      }
+    },
+    {
+      orientation: 'horizontal',
+      size: 'md',
+      class: {
+        node: 'gap-y-1',
+        metaColumn: 'min-h-4',
+        markerColumn: 'h-4 gap-1.5 pr-1.5',
+        trigger: '-mx-2 px-2 py-1.5'
+      }
+    },
+    {
+      orientation: 'horizontal',
+      size: 'lg',
+      class: {
+        node: 'gap-y-1',
+        metaColumn: 'min-h-4.5',
+        markerColumn: 'h-5 gap-2 pr-2',
+        trigger: '-mx-2.5 px-2.5 py-2'
+      }
+    },
     // Vertical + panel: two-column layout on wide viewports; on narrow ones the
     // readout docks to the viewport bottom while the rail scrolls behind it.
     {

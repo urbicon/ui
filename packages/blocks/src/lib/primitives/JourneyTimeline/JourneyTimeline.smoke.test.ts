@@ -157,6 +157,44 @@ describe('JourneyTimeline (SSR)', () => {
     expect(count(body, 'DETAIL:')).toBe(1);
   });
 
+  describe('horizontal spine', () => {
+    it('keeps the DOM order trigger → spine so segments announce after their node', () => {
+      const { body } = render(JourneyTimeline, {
+        props: { items: stages, node: detail, orientation: 'horizontal' }
+      });
+      expect(body.indexOf('data-journey-trigger')).toBeLessThan(
+        body.indexOf('data-journey-marker')
+      );
+      // Vertical keeps the spine before the trigger (DOM order = visual order).
+      const vertical = render(JourneyTimeline, { props: { items: stages, node: detail } }).body;
+      expect(vertical.indexOf('data-journey-marker')).toBeLessThan(
+        vertical.indexOf('data-journey-trigger')
+      );
+    });
+
+    it('splits the line around a segment label (line — label — line)', () => {
+      const { body } = render(JourneyTimeline, {
+        props: { items: stages, node: detail, orientation: 'horizontal' }
+      });
+      // 5 gaps between 6 nodes + 1 extra half-line for the labelled segment.
+      expect(count(body, 'data-journey-connector')).toBe(6);
+      expect(count(body, 'data-journey-segment')).toBe(1);
+    });
+
+    it('pads missing meta with an equal-height placeholder so stations align', () => {
+      const { body } = render(JourneyTimeline, {
+        props: { items: stages, node: detail, orientation: 'horizontal' }
+      });
+      // 6 nodes, 2 carry meta → 4 placeholders on the chronicle row.
+      expect(count(body, /\u00a0/g)).toBe(4);
+
+      const noRail = render(JourneyTimeline, {
+        props: { items: plain, node: detail, orientation: 'horizontal' }
+      }).body;
+      expect(count(noRail, /\u00a0/g)).toBe(0);
+    });
+  });
+
   it('ignores detail="inline" for horizontal orientation (always the panel)', () => {
     const { body } = render(JourneyTimeline, {
       props: { items: stages, node: detail, orientation: 'horizontal', detail: 'inline' }

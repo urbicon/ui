@@ -13,7 +13,6 @@ describe('journeyTimelineVariants', () => {
       'markerColumn',
       'marker',
       'connector',
-      'connectorColumn',
       'content',
       'card',
       'trigger',
@@ -106,6 +105,57 @@ describe('journeyTimelineVariants', () => {
       const styles = journeyTimelineVariants({ orientation: 'horizontal' });
       expect(styles.connector()).toContain('border-t-2');
       expect(styles.base()).toContain('flex-col');
+    });
+
+    it('grows the horizontal line inside the spine row (never a fixed stub)', () => {
+      const connector = journeyTimelineVariants({ orientation: 'horizontal' }).connector();
+      expect(connector).toContain('flex-1');
+      expect(connector).toContain('min-w-3');
+    });
+  });
+
+  describe('horizontal spine', () => {
+    const styles = journeyTimelineVariants({ orientation: 'horizontal', size: 'md' });
+
+    it('stacks each station meta → spine → labels via order utilities', () => {
+      expect(styles.node()).toContain('flex-col');
+      expect(styles.metaColumn()).toContain('order-1');
+      expect(styles.markerColumn()).toContain('order-2');
+      expect(styles.trigger()).toContain('order-3');
+    });
+
+    it('runs the spine as a full-width row so lines meet the next station', () => {
+      const spine = styles.markerColumn();
+      expect(spine).toContain('w-full');
+      expect(spine).toContain('flex-row');
+      expect(spine).not.toContain('w-4');
+    });
+
+    it('fixes spine + chronicle row heights so stations stay on one baseline', () => {
+      // Spine: constant height with or without a segment label. Chronicle row:
+      // min-height survives a consumer meta snippet that renders nothing.
+      expect(styles.markerColumn()).toContain('h-4');
+      expect(styles.metaColumn()).toContain('min-h-4');
+    });
+
+    it('keeps segment labels in the line — they may never overlap a marker', () => {
+      const segment = styles.segment();
+      expect(segment).toContain('shrink-0');
+      expect(segment).toContain('whitespace-nowrap');
+    });
+
+    it('drops the vertical baseline offset from the marker', () => {
+      expect(styles.marker()).not.toMatch(/\bmt-/);
+      expect(journeyTimelineVariants({ orientation: 'vertical', size: 'md' }).marker()).toContain(
+        'mt-2.5'
+      );
+    });
+
+    it('left-aligns the pill text with marker and meta (-mx compensates px)', () => {
+      const trigger = styles.trigger();
+      expect(trigger).toContain('-mx-2');
+      expect(trigger).toContain('px-2');
+      expect(trigger).toContain('w-auto');
     });
   });
 
