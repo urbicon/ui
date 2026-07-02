@@ -4,7 +4,7 @@ import {
   DEFAULT_CSRF_COOKIE_NAME,
   DEFAULT_CSRF_HEADER_NAME
 } from '../csrf-constants.js';
-import { base64UrlEncode } from './notifications/web-push-crypto.js';
+import { base64UrlEncode } from './encoding.js';
 import { timingSafeEqualStrings } from './timing-safe.js';
 
 // Re-export so existing `from './csrf.js'` imports keep working.

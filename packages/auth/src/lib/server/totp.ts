@@ -1,4 +1,5 @@
 import { createHash, randomBytes } from 'node:crypto';
+import { toArrayBuffer } from './encoding.js';
 import { timingSafeEqualStrings } from './timing-safe.js';
 
 /**
@@ -13,13 +14,6 @@ import { timingSafeEqualStrings } from './timing-safe.js';
 export type TotpAlgorithm = 'SHA-1' | 'SHA-256' | 'SHA-512';
 
 const BASE32_ALPHABET = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ234567';
-
-// Coerce a Uint8Array/Buffer to a plain ArrayBuffer for the Web Crypto API
-// (whose lib types reject the generic `Uint8Array<ArrayBufferLike>`). Mirrors
-// the helper in web-push-crypto.ts.
-function buf(data: Uint8Array): ArrayBuffer {
-  return data.buffer.slice(data.byteOffset, data.byteOffset + data.byteLength) as ArrayBuffer;
-}
 
 // ---- Base32 (RFC 4648, unpadded) ------------------------------------------
 
@@ -75,12 +69,12 @@ async function hmac(
 ): Promise<Uint8Array> {
   const cryptoKey = await crypto.subtle.importKey(
     'raw',
-    buf(key),
+    toArrayBuffer(key),
     { name: 'HMAC', hash: algorithm },
     false,
     ['sign']
   );
-  return new Uint8Array(await crypto.subtle.sign('HMAC', cryptoKey, buf(message)));
+  return new Uint8Array(await crypto.subtle.sign('HMAC', cryptoKey, toArrayBuffer(message)));
 }
 
 /**
@@ -205,7 +199,10 @@ export function buildOtpauthUri(opts: {
  */
 async function deriveAesKey(keyMaterial: string): Promise<CryptoKey> {
   const hash = createHash('sha256').update(keyMaterial).digest();
-  return crypto.subtle.importKey('raw', buf(hash), 'AES-GCM', false, ['encrypt', 'decrypt']);
+  return crypto.subtle.importKey('raw', toArrayBuffer(hash), 'AES-GCM', false, [
+    'encrypt',
+    'decrypt'
+  ]);
 }
 
 /** Encrypt a secret string → `base64(iv):base64(ciphertext)` (AES-256-GCM). */
@@ -214,9 +211,9 @@ export async function encryptSecret(plaintext: string, keyMaterial: string): Pro
   const iv = randomBytes(12);
   const ciphertext = new Uint8Array(
     await crypto.subtle.encrypt(
-      { name: 'AES-GCM', iv: buf(iv) },
+      { name: 'AES-GCM', iv: toArrayBuffer(iv) },
       key,
-      buf(new TextEncoder().encode(plaintext))
+      toArrayBuffer(new TextEncoder().encode(plaintext))
     )
   );
   return `${iv.toString('base64')}:${Buffer.from(ciphertext).toString('base64')}`;
@@ -234,8 +231,8 @@ export async function decryptSecret(payload: string, keyMaterial: string): Promi
   if (!ivB64 || !ctB64) return null;
   try {
     const key = await deriveAesKey(keyMaterial);
-    const iv = buf(Buffer.from(ivB64, 'base64'));
-    const ct = buf(Buffer.from(ctB64, 'base64'));
+    const iv = toArrayBuffer(Buffer.from(ivB64, 'base64'));
+    const ct = toArrayBuffer(Buffer.from(ctB64, 'base64'));
     const plaintext = await crypto.subtle.decrypt({ name: 'AES-GCM', iv }, key, ct);
     return new TextDecoder().decode(plaintext);
   } catch {

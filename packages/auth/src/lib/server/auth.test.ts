@@ -235,6 +235,22 @@ describe('createSessionToken / verifySessionToken', () => {
     expect(await verifySessionToken('not-a-token', jwtConfig)).toBeNull();
   });
 
+  it('rejects segments with an impossible base64url length (decode throws → null, not a 500)', async () => {
+    // len % 4 === 1 passes the charset regex but cannot decode. The old
+    // Buffer-based decoder silently truncated such segments; the canonical
+    // encoding.ts decoder throws — verify must map either to a clean null.
+    const token = await createSessionToken(
+      { userId: '1', email: 'a@b.c', role: 'user', tokenVersion: 0 },
+      jwtConfig
+    );
+    const [, body, signature] = token.split('.');
+    const bad = 'aaaaa'; // length 5
+    expect(await verifySessionToken(`${bad}.${body}.${signature}`, jwtConfig)).toBeNull();
+    const [header] = token.split('.');
+    expect(await verifySessionToken(`${header}.${bad}.${signature}`, jwtConfig)).toBeNull();
+    expect(await verifySessionToken(`${header}.${body}.${bad}`, jwtConfig)).toBeNull();
+  });
+
   it('should use 7d default expiry', async () => {
     const noExpiryConfig: JwtConfig = { secret: 'test' };
     const token = await createSessionToken(

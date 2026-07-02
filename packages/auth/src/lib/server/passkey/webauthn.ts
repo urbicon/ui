@@ -2,7 +2,8 @@
 // Implements FIDO2/WebAuthn Level 2 attestation and assertion verification.
 
 import { derToRawEcdsaSignature } from '../ecdsa-der.js';
-import { base64UrlDecode, base64UrlEncode } from '../notifications/web-push-crypto.js';
+import { base64UrlDecode, base64UrlEncode, concatBytes, toArrayBuffer } from '../encoding.js';
+import { timingSafeEqual } from '../timing-safe.js';
 import { type CborValue, decodeCbor, decodeCborFirst } from './cbor.js';
 
 // ---- Types ----
@@ -368,7 +369,7 @@ export async function verifyRegistration(
   const expectedRpIdHash = new Uint8Array(
     await crypto.subtle.digest('SHA-256', new TextEncoder().encode(config.rpId))
   );
-  if (!arraysEqual(authData.rpIdHash, expectedRpIdHash)) {
+  if (!timingSafeEqual(authData.rpIdHash, expectedRpIdHash)) {
     throw new WebAuthnError('RP ID hash mismatch');
   }
 
@@ -450,7 +451,7 @@ export async function verifyAssertion(
   const expectedRpIdHash = new Uint8Array(
     await crypto.subtle.digest('SHA-256', new TextEncoder().encode(config.rpId))
   );
-  if (!arraysEqual(authData.rpIdHash, expectedRpIdHash)) {
+  if (!timingSafeEqual(authData.rpIdHash, expectedRpIdHash)) {
     throw new WebAuthnError('RP ID hash mismatch');
   }
 
@@ -466,15 +467,9 @@ export async function verifyAssertion(
 
   // 6. Verify signature
   const clientDataHash = new Uint8Array(
-    await crypto.subtle.digest(
-      'SHA-256',
-      clientDataRaw.buffer.slice(
-        clientDataRaw.byteOffset,
-        clientDataRaw.byteOffset + clientDataRaw.byteLength
-      ) as ArrayBuffer
-    )
+    await crypto.subtle.digest('SHA-256', toArrayBuffer(clientDataRaw))
   );
-  const signedData = concat(authDataRaw, clientDataHash);
+  const signedData = concatBytes(authDataRaw, clientDataHash);
   const signatureRaw = base64UrlDecode(credential.response.signature);
 
   const valid = await verifySignature(storedPublicKey, storedAlg, signedData, signatureRaw);
@@ -662,14 +657,8 @@ async function verifyES256(
     throw new WebAuthnError('Invalid ECDSA signature encoding', { cause: err });
   }
 
-  const dataBuf = data.buffer.slice(
-    data.byteOffset,
-    data.byteOffset + data.byteLength
-  ) as ArrayBuffer;
-  const sigBuf = rawSignature.buffer.slice(
-    rawSignature.byteOffset,
-    rawSignature.byteOffset + rawSignature.byteLength
-  ) as ArrayBuffer;
+  const dataBuf = toArrayBuffer(data);
+  const sigBuf = toArrayBuffer(rawSignature);
 
   return crypto.subtle.verify({ name: 'ECDSA', hash: 'SHA-256' }, key, sigBuf, dataBuf);
 }
@@ -707,43 +696,13 @@ async function verifyRS256(
     throw new WebAuthnError('Invalid RS256 public key', { cause: err });
   }
 
-  const dataBuf = data.buffer.slice(
-    data.byteOffset,
-    data.byteOffset + data.byteLength
-  ) as ArrayBuffer;
-  const sigBuf = signature.buffer.slice(
-    signature.byteOffset,
-    signature.byteOffset + signature.byteLength
-  ) as ArrayBuffer;
+  const dataBuf = toArrayBuffer(data);
+  const sigBuf = toArrayBuffer(signature);
 
   return crypto.subtle.verify('RSASSA-PKCS1-v1_5', key, sigBuf, dataBuf);
 }
 
 // ---- Utilities ----
-
-function concat(...arrays: Uint8Array[]): Uint8Array {
-  const total = arrays.reduce((sum, a) => sum + a.length, 0);
-  const result = new Uint8Array(total);
-  let offset = 0;
-  for (const arr of arrays) {
-    result.set(arr, offset);
-    offset += arr.length;
-  }
-  return result;
-}
-
-// Constant-time equality. Short-circuits only on length mismatch; for equal
-// lengths every byte is compared, so the inner loop runs in O(n) regardless
-// of where the first differing byte is. Prevents timing side channels when
-// comparing RP-ID hashes / credential IDs.
-function arraysEqual(a: Uint8Array, b: Uint8Array): boolean {
-  if (a.length !== b.length) return false;
-  let diff = 0;
-  for (let i = 0; i < a.length; i++) {
-    diff |= a[i] ^ b[i];
-  }
-  return diff === 0;
-}
 
 function formatAaguid(aaguid: Uint8Array): string {
   const hex = Array.from(aaguid)

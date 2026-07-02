@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from 'vitest';
-import { base64UrlDecode, base64UrlEncode } from '../notifications/web-push-crypto.js';
+import { base64UrlDecode, base64UrlEncode } from '../encoding.js';
 import {
   type AuthenticationCredentialJSON,
   type ChallengeEntry,

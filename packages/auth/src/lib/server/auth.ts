@@ -1,6 +1,7 @@
 import { createHash, randomBytes } from 'node:crypto';
 import type { AuthSession, AuthUser, JwtConfig, PasswordConfig } from '../types.js';
 import type { FullAuthUser } from './adapters/types.js';
+import { base64UrlDecodeString, base64UrlEncode, base64UrlEncodeString } from './encoding.js';
 import { timingSafeEqual, timingSafeEqualStrings } from './timing-safe.js';
 
 // ---- Token hashing (SHA-256) ----
@@ -171,14 +172,6 @@ export function validatePasswordStrength(password: string, config?: PasswordConf
 
 const BASE64URL_REGEX = /^[A-Za-z0-9_-]+$/;
 
-function base64UrlEncode(data: string): string {
-  return Buffer.from(data).toString('base64url');
-}
-
-function base64UrlDecode(str: string): string {
-  return Buffer.from(str, 'base64url').toString();
-}
-
 async function hmacSign(payload: string, secret: string): Promise<string> {
   const encoder = new TextEncoder();
   const key = await crypto.subtle.importKey(
@@ -189,7 +182,7 @@ async function hmacSign(payload: string, secret: string): Promise<string> {
     ['sign']
   );
   const signature = await crypto.subtle.sign('HMAC', key, encoder.encode(payload));
-  return Buffer.from(signature).toString('base64url');
+  return base64UrlEncode(new Uint8Array(signature));
 }
 
 async function hmacVerify(payload: string, signature: string, secret: string): Promise<boolean> {
@@ -224,7 +217,7 @@ export async function createSessionToken<R extends string>(
   payload: AuthSession<R>,
   config: JwtConfig
 ): Promise<string> {
-  const header = base64UrlEncode(
+  const header = base64UrlEncodeString(
     JSON.stringify({
       alg: 'HS256',
       typ: 'JWT',
@@ -234,7 +227,7 @@ export async function createSessionToken<R extends string>(
   const now = Math.floor(Date.now() / 1000);
   const exp = now + parseExpiresIn(config.expiresIn ?? '7d');
 
-  const body = base64UrlEncode(
+  const body = base64UrlEncodeString(
     JSON.stringify({
       sub: payload.userId,
       email: payload.email,
@@ -282,7 +275,7 @@ export async function verifySessionToken<R extends string>(
 
   let tokenKid: string | undefined;
   try {
-    const headerJson = JSON.parse(base64UrlDecode(header));
+    const headerJson = JSON.parse(base64UrlDecodeString(header));
     if (typeof headerJson.kid === 'string') tokenKid = headerJson.kid;
   } catch {
     // Malformed header — treat as "no kid" and keep going; the signature
@@ -319,7 +312,7 @@ export async function verifySessionToken<R extends string>(
   void importErrors;
 
   try {
-    const payload = JSON.parse(base64UrlDecode(body));
+    const payload = JSON.parse(base64UrlDecodeString(body));
     // exp is mandatory: a missing/non-numeric exp would otherwise be treated
     // as "never expires", giving anyone in possession of a (current or
     // retired) signing secret an unbounded forge window.
@@ -368,9 +361,9 @@ export async function createSignedToken(
   secret: string,
   expiresInSeconds: number
 ): Promise<string> {
-  const header = base64UrlEncode(JSON.stringify({ alg: 'HS256', typ: 'JWT' }));
+  const header = base64UrlEncodeString(JSON.stringify({ alg: 'HS256', typ: 'JWT' }));
   const now = Math.floor(Date.now() / 1000);
-  const body = base64UrlEncode(
+  const body = base64UrlEncodeString(
     JSON.stringify({ ...claims, iat: now, exp: now + expiresInSeconds })
   );
   const signature = await hmacSign(`${header}.${body}`, secret);
@@ -406,7 +399,7 @@ export async function verifySignedToken<T extends Record<string, unknown>>(
   if (!valid) return null;
 
   try {
-    const payload = JSON.parse(base64UrlDecode(body));
+    const payload = JSON.parse(base64UrlDecodeString(body));
     // exp is mandatory: a missing/non-numeric exp would be an unbounded token.
     if (typeof payload.exp !== 'number' || payload.exp < Math.floor(Date.now() / 1000)) {
       return null;

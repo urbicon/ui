@@ -1,7 +1,6 @@
 import { describe, expect, it } from 'vitest';
+import { base64UrlDecode, base64UrlEncode } from '../encoding.js';
 import {
-  base64UrlDecode,
-  base64UrlEncode,
   buildEncryptedBody,
   createVapidHeaders,
   encryptPayload,

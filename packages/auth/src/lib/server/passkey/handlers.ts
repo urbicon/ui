@@ -7,8 +7,8 @@ import type {
   UserRepository
 } from '../adapters/types.js';
 import { sanitizeUser } from '../auth.js';
+import { base64UrlDecode } from '../encoding.js';
 import { requireSessionUser } from '../handlers/_shared.js';
-import { base64UrlDecode } from '../notifications/web-push-crypto.js';
 import { enforceRateLimit, makeRateLimiter, type RateLimiter } from '../rate-limit.js';
 import { establishSession, resolveSessionMeta } from '../session.js';
 import {

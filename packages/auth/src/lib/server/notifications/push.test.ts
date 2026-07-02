@@ -1,7 +1,8 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { PushSubscriptionData } from '../adapters/types.js';
+import { base64UrlEncode } from '../encoding.js';
 import { createPushService } from './push.js';
-import { base64UrlEncode, generateVapidKeys } from './web-push-crypto.js';
+import { generateVapidKeys } from './web-push-crypto.js';
 import {
   decryptWebPushPayload,
   makeTestUserAgent,

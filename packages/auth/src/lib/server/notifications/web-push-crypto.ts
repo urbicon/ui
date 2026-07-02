@@ -4,49 +4,14 @@
 //
 // Zero-dependency implementation using Web Crypto API.
 
+import { base64UrlDecode, base64UrlEncode, concatBytes, toArrayBuffer } from '../encoding.js';
+
 const encoder = new TextEncoder();
-
-// TypeScript strict mode requires explicit ArrayBuffer for Web Crypto APIs
-function buf(data: Uint8Array): ArrayBuffer {
-  return data.buffer.slice(data.byteOffset, data.byteOffset + data.byteLength) as ArrayBuffer;
-}
-
-// ---- Byte utilities ----
-
-function concat(...arrays: Uint8Array[]): Uint8Array {
-  const total = arrays.reduce((sum, a) => sum + a.length, 0);
-  const result = new Uint8Array(total);
-  let offset = 0;
-  for (const arr of arrays) {
-    result.set(arr, offset);
-    offset += arr.length;
-  }
-  return result;
-}
 
 function uint32BE(value: number): Uint8Array {
   const buf = new Uint8Array(4);
   new DataView(buf.buffer).setUint32(0, value, false);
   return buf;
-}
-
-export function base64UrlEncode(data: Uint8Array): string {
-  let binary = '';
-  for (let i = 0; i < data.length; i++) {
-    binary += String.fromCharCode(data[i]);
-  }
-  return btoa(binary).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
-}
-
-export function base64UrlDecode(str: string): Uint8Array {
-  const padding = '='.repeat((4 - (str.length % 4)) % 4);
-  const base64 = (str + padding).replace(/-/g, '+').replace(/_/g, '/');
-  const binary = atob(base64);
-  const bytes = new Uint8Array(binary.length);
-  for (let i = 0; i < binary.length; i++) {
-    bytes[i] = binary.charCodeAt(i);
-  }
-  return bytes;
 }
 
 // ---- VAPID (RFC 8292) ----
@@ -158,9 +123,11 @@ async function hkdfDerive(
   info: Uint8Array,
   length: number
 ): Promise<Uint8Array> {
-  const key = await crypto.subtle.importKey('raw', buf(ikm), 'HKDF', false, ['deriveBits']);
+  const key = await crypto.subtle.importKey('raw', toArrayBuffer(ikm), 'HKDF', false, [
+    'deriveBits'
+  ]);
   const bits = await crypto.subtle.deriveBits(
-    { name: 'HKDF', hash: 'SHA-256', salt: buf(salt), info: buf(info) },
+    { name: 'HKDF', hash: 'SHA-256', salt: toArrayBuffer(salt), info: toArrayBuffer(info) },
     key,
     length * 8
   );
@@ -187,7 +154,7 @@ export async function encryptPayload(
 
   const clientPublicKey = await crypto.subtle.importKey(
     'raw',
-    buf(clientPublicRaw),
+    toArrayBuffer(clientPublicRaw),
     { name: 'ECDH', namedCurve: 'P-256' },
     false,
     []
@@ -216,7 +183,7 @@ export async function encryptPayload(
   const salt = crypto.getRandomValues(new Uint8Array(16));
 
   // RFC 8291: IKM = HKDF(auth_secret, shared_secret, "WebPush: info\0" || client_public || server_public, 32)
-  const ikmInfo = concat(encoder.encode('WebPush: info\0'), clientPublicRaw, serverPublicRaw);
+  const ikmInfo = concatBytes(encoder.encode('WebPush: info\0'), clientPublicRaw, serverPublicRaw);
   const ikm = await hkdfDerive(sharedSecret, authSecret, ikmInfo, 32);
 
   // Derive content encryption key (CEK) and nonce
@@ -224,12 +191,18 @@ export async function encryptPayload(
   const nonce = await hkdfDerive(ikm, salt, NONCE_INFO, 12);
 
   // Pad plaintext (RFC 8188): payload + 0x02 delimiter
-  const paddedPlaintext = concat(plaintext, new Uint8Array([2]));
+  const paddedPlaintext = concatBytes(plaintext, new Uint8Array([2]));
 
   // AES-128-GCM encrypt
-  const aesKey = await crypto.subtle.importKey('raw', buf(cek), 'AES-GCM', false, ['encrypt']);
+  const aesKey = await crypto.subtle.importKey('raw', toArrayBuffer(cek), 'AES-GCM', false, [
+    'encrypt'
+  ]);
   const encrypted = new Uint8Array(
-    await crypto.subtle.encrypt({ name: 'AES-GCM', iv: buf(nonce) }, aesKey, buf(paddedPlaintext))
+    await crypto.subtle.encrypt(
+      { name: 'AES-GCM', iv: toArrayBuffer(nonce) },
+      aesKey,
+      toArrayBuffer(paddedPlaintext)
+    )
   );
 
   return { ciphertext: encrypted, salt, serverPublicKey: serverPublicRaw };
@@ -244,5 +217,5 @@ export function buildEncryptedBody(
 ): Uint8Array {
   // Header: salt (16) || rs (4) || idlen (1) || keyid (65)
   const idlen = new Uint8Array([serverPublicKey.length]);
-  return concat(salt, uint32BE(recordSize), idlen, serverPublicKey, ciphertext);
+  return concatBytes(salt, uint32BE(recordSize), idlen, serverPublicKey, ciphertext);
 }

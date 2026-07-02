@@ -6,10 +6,10 @@ import type {
   PushSubscriptionWriteOutcome
 } from '../../adapters/types.js';
 import { shieldLogger } from '../../deps.js';
+import { base64UrlDecode } from '../../encoding.js';
 import { enforceRateLimit, makeRateLimiter } from '../../rate-limit.js';
 import { readJsonBody } from '../../validation.js';
 import { isAllowedPushEndpoint } from '../push-endpoint.js';
-import { base64UrlDecode } from '../web-push-crypto.js';
 import { localsUserId } from './locals-user.js';
 
 /**

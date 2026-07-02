@@ -1,5 +1,5 @@
+import { base64UrlDecode } from '../encoding.js';
 import { timingSafeEqual } from '../timing-safe.js';
-import { base64UrlDecode } from './web-push-crypto.js';
 
 /**
  * Equality of two web-push key pairs, compared on the **decoded bytes** so
