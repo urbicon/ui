@@ -1,8 +1,9 @@
 /**
  * SSR smoke render for JourneyTimeline. The vitest env is `node`, so these can't
- * exercise click/keyboard/scroll interaction — but they pin the render-time
- * contract: the default focus resolution, the "exactly one node expanded" rule,
- * status → sr-only label mapping, aria wiring, and the vertical/horizontal split.
+ * exercise click/keyboard interaction — but they pin the render-time contract:
+ * default focus resolution, the "exactly one node in focus" rule, status →
+ * sr-only label mapping, aria wiring, the meta rail, segment labels, and the
+ * inline/panel/horizontal layout split.
  */
 
 import { createRawSnippet } from 'svelte';
@@ -12,12 +13,37 @@ import type { JourneyNode } from './index';
 import JourneyTimeline from './JourneyTimeline.svelte';
 
 const stages: JourneyNode[] = [
-  { id: 'draft', title: 'Draft stage', status: 'complete', subtitle: 'Done Monday' },
-  { id: 'review', title: 'Review stage', status: 'active', subtitle: 'Underway' },
+  {
+    id: 'draft',
+    title: 'Draft stage',
+    status: 'complete',
+    subtitle: 'Done Monday',
+    meta: '06:12',
+    segmentLabel: '2 days · handover'
+  },
+  {
+    id: 'review',
+    title: 'Review stage',
+    status: 'active',
+    subtitle: 'Underway',
+    meta: '08:15',
+    connector: 'dashed'
+  },
   { id: 'wait', title: 'Waiting room', status: 'pending', focusable: false },
   { id: 'approve', title: 'Approval stage', status: 'pending' },
   { id: 'blocked', title: 'Blocked stage', status: 'blocked' },
-  { id: 'skipped', title: 'Skipped stage', status: 'skipped' }
+  {
+    id: 'skipped',
+    title: 'Skipped stage',
+    status: 'skipped',
+    segmentLabel: 'NEVER-RENDERED (last node)'
+  }
+];
+
+// Plain nodes without meta — the chronicle rail must stay off.
+const plain: JourneyNode[] = [
+  { id: 'a', title: 'Alpha', status: 'complete' },
+  { id: 'b', title: 'Beta', status: 'active' }
 ];
 
 // A node snippet that stamps the node id so we can assert *which* detail rendered.
@@ -45,7 +71,7 @@ describe('JourneyTimeline (SSR)', () => {
     expect(body).toContain('Underway');
   });
 
-  it('expands exactly the first active node by default', () => {
+  it('focuses exactly the first active node by default', () => {
     const { body } = render(JourneyTimeline, { props: { items: stages, node: detail } });
     // Only the focused node's detail snippet is in the DOM.
     expect(body).toContain('DETAIL:review');
@@ -75,6 +101,24 @@ describe('JourneyTimeline (SSR)', () => {
     expect(body).toContain('Waiting room');
   });
 
+  it('renders the chronicle meta rail as soon as any node carries meta', () => {
+    const withMeta = render(JourneyTimeline, { props: { items: stages, node: detail } }).body;
+    expect(withMeta).toContain('06:12');
+    expect(withMeta).toContain('08:15');
+    expect(withMeta).toContain('grid-cols-[auto_auto_minmax(0,1fr)]');
+
+    const withoutMeta = render(JourneyTimeline, { props: { items: plain, node: detail } }).body;
+    expect(withoutMeta).toContain('grid-cols-[auto_minmax(0,1fr)]');
+    expect(withoutMeta).not.toContain('grid-cols-[auto_auto_minmax(0,1fr)]');
+  });
+
+  it('labels segments between nodes but never after the last node', () => {
+    const { body } = render(JourneyTimeline, { props: { items: stages, node: detail } });
+    expect(body).toContain('2 days · handover');
+    expect(body).not.toContain('NEVER-RENDERED');
+    expect(count(body, 'data-journey-segment')).toBe(1);
+  });
+
   it('honours an explicit defaultFocusId', () => {
     const { body } = render(JourneyTimeline, {
       props: { items: stages, node: detail, defaultFocusId: 'approve' }
@@ -91,14 +135,35 @@ describe('JourneyTimeline (SSR)', () => {
     expect(body).not.toContain('DETAIL:review');
   });
 
-  it('renders the shared panel (not inline regions) in horizontal orientation', () => {
+  it('renders a single stable readout for detail="panel" (no inline regions)', () => {
+    const { body } = render(JourneyTimeline, {
+      props: { items: stages, node: detail, detail: 'panel' }
+    });
+    expect(body).toContain('data-detail="panel"');
+    expect(body).toContain('data-journey-panel');
+    expect(body).toContain('DETAIL:review');
+    expect(count(body, 'DETAIL:')).toBe(1);
+    // Inline collapse regions must not exist in panel mode.
+    expect(body).not.toContain('data-journey-detail');
+  });
+
+  it('renders the shared panel in horizontal orientation', () => {
     const { body } = render(JourneyTimeline, {
       props: { items: stages, node: detail, orientation: 'horizontal' }
     });
     expect(body).toContain('data-orientation="horizontal"');
+    expect(body).toContain('data-journey-panel');
     expect(body).toContain('DETAIL:review');
-    // The horizontal detail lives in a single panel, so only one region carries a detail.
     expect(count(body, 'DETAIL:')).toBe(1);
+  });
+
+  it('ignores detail="inline" for horizontal orientation (always the panel)', () => {
+    const { body } = render(JourneyTimeline, {
+      props: { items: stages, node: detail, orientation: 'horizontal', detail: 'inline' }
+    });
+    expect(body).toContain('data-detail="panel"');
+    expect(body).toContain('data-journey-panel');
+    expect(body).not.toContain('data-journey-detail');
   });
 
   it('does not advertise expandability when no node snippet is supplied', () => {
@@ -112,8 +177,6 @@ describe('JourneyTimeline (SSR)', () => {
   it('renders nothing catastrophic for an empty item list', () => {
     const { body } = render(JourneyTimeline, { props: { items: [], node: detail } });
     expect(body).toContain('data-orientation="vertical"');
-    // `data-journey-node=` matches the real node attribute, not the base class's
-    // `[&_[data-journey-node]:last-child…]` selector token.
     expect(count(body, 'data-journey-node=')).toBe(0);
   });
 });

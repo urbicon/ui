@@ -8,14 +8,19 @@ describe('journeyTimelineVariants', () => {
       'base',
       'rail',
       'node',
-      'trigger',
+      'metaColumn',
+      'meta',
+      'markerColumn',
       'marker',
-      'connectorColumn',
       'connector',
+      'connectorColumn',
+      'content',
+      'card',
+      'trigger',
       'labelGroup',
       'title',
       'subtitle',
-      'body',
+      'segment',
       'detail',
       'detailInner',
       'detailContent',
@@ -25,81 +30,154 @@ describe('journeyTimelineVariants', () => {
     }
   });
 
-  it('renders circular markers (commit-tier radius)', () => {
-    expect(journeyTimelineVariants().marker()).toContain('rounded-commit');
+  it('renders small circular dot markers — punctuation, not Stepper discs', () => {
+    const marker = journeyTimelineVariants().marker();
+    expect(marker).toContain('rounded-commit');
+    expect(marker).toContain('size-3');
+    expect(marker).not.toMatch(/size-(7|9|11)/);
   });
 
   describe('status → semantic intent tokens', () => {
-    it('maps complete to success (filled)', () => {
+    it('maps complete to success (filled dot)', () => {
       const marker = journeyTimelineVariants({ status: 'complete' }).marker();
       expect(marker).toContain('bg-success');
       expect(marker).toContain('border-success');
     });
 
-    it('maps active to primary (filled + elevated)', () => {
+    it('maps active to primary (filled + ringed dot)', () => {
       const styles = journeyTimelineVariants({ status: 'active' });
       expect(styles.marker()).toContain('bg-primary');
+      expect(styles.marker()).toContain('ring-4');
       expect(styles.title()).toContain('text-text-primary');
     });
 
-    it('maps pending to an empty outlined circle (no fill token)', () => {
+    it('maps pending to a hollow dot (no fill token)', () => {
       const marker = journeyTimelineVariants({ status: 'pending' }).marker();
       expect(marker).toContain('bg-surface-base');
-      expect(marker).toContain('border-border-default');
+      expect(marker).toContain('border-border-strong');
       expect(marker).not.toContain('bg-primary');
       expect(marker).not.toContain('bg-success');
     });
 
-    it('maps blocked to danger (filled)', () => {
+    it('maps blocked to danger, with the title as a second (non-colour-only) cue', () => {
       const styles = journeyTimelineVariants({ status: 'blocked' });
       expect(styles.marker()).toContain('bg-danger');
       expect(styles.title()).toContain('text-danger');
     });
 
     it('maps skipped to a muted, dimmed marker', () => {
-      const marker = journeyTimelineVariants({ status: 'skipped' }).marker();
-      expect(marker).toContain('bg-surface-subtle');
-      expect(marker).toContain('opacity-70');
+      const styles = journeyTimelineVariants({ status: 'skipped' });
+      expect(styles.marker()).toContain('bg-surface-subtle');
+      expect(styles.marker()).toContain('opacity-80');
+      expect(styles.title()).toContain('text-text-tertiary');
     });
   });
 
-  describe('connectorComplete', () => {
+  describe('connector semantics', () => {
     it('paints the travelled segment with the success token', () => {
-      expect(journeyTimelineVariants({ connectorComplete: true }).connector()).toContain(
-        'bg-success'
+      expect(journeyTimelineVariants({ travelled: true }).connector()).toContain('border-success');
+    });
+
+    it('leaves an untravelled segment on the default border token', () => {
+      const connector = journeyTimelineVariants({ travelled: false }).connector();
+      expect(connector).toContain('border-border-default');
+      expect(connector).not.toContain('border-success');
+    });
+
+    it('switches line style per node — the connector carries meaning', () => {
+      expect(journeyTimelineVariants({ connectorStyle: 'solid' }).connector()).toContain(
+        'border-solid'
+      );
+      expect(journeyTimelineVariants({ connectorStyle: 'dashed' }).connector()).toContain(
+        'border-dashed'
+      );
+      expect(journeyTimelineVariants({ connectorStyle: 'dotted' }).connector()).toContain(
+        'border-dotted'
       );
     });
 
-    it('leaves an untravelled segment on the subtle border token', () => {
-      const connector = journeyTimelineVariants({ connectorComplete: false }).connector();
-      expect(connector).toContain('bg-border-subtle');
-      expect(connector).not.toContain('bg-success');
-    });
-  });
-
-  describe('orientation geometry', () => {
-    it('grows the connector vertically in vertical mode', () => {
+    it('draws a vertical hairline in vertical mode', () => {
       const connector = journeyTimelineVariants({ orientation: 'vertical' }).connector();
-      expect(connector).toContain('w-0.5');
+      expect(connector).toContain('border-l-2');
+      expect(connector).toContain('flex-1');
     });
 
-    it('grows the connector horizontally + stacks the panel below in horizontal mode', () => {
+    it('draws a horizontal hairline + stacks the panel below in horizontal mode', () => {
       const styles = journeyTimelineVariants({ orientation: 'horizontal' });
-      expect(styles.connector()).toContain('h-0.5');
+      expect(styles.connector()).toContain('border-t-2');
       expect(styles.base()).toContain('flex-col');
     });
   });
 
+  describe('chronicle meta rail', () => {
+    it('adds the meta grid column only when the rail is active', () => {
+      expect(journeyTimelineVariants({ withMeta: true }).node()).toContain(
+        'grid-cols-[auto_auto_minmax(0,1fr)]'
+      );
+      expect(journeyTimelineVariants({ withMeta: false }).node()).toContain(
+        'grid-cols-[auto_minmax(0,1fr)]'
+      );
+    });
+
+    it('sets the meta text in mono/tabular — a readable time axis', () => {
+      const meta = journeyTimelineVariants().meta();
+      expect(meta).toContain('font-mono');
+      expect(meta).toContain('tabular-nums');
+    });
+  });
+
   describe('focused', () => {
-    it('emphasises the focused node title + trigger surface', () => {
-      const styles = journeyTimelineVariants({ focused: true });
+    it('elevates the focused inline card (surface change, not a grey block)', () => {
+      const styles = journeyTimelineVariants({ detail: 'inline', focused: true });
+      expect(styles.card()).toContain('bg-surface-elevated');
+      expect(styles.card()).toContain('border-border-default');
       expect(styles.title()).toContain('font-semibold');
-      expect(styles.trigger()).toContain('bg-surface-subtle');
+    });
+
+    it('tints the focused row quietly when the detail lives in the panel', () => {
+      const card = journeyTimelineVariants({
+        orientation: 'vertical',
+        detail: 'panel',
+        focused: true
+      }).card();
+      expect(card).toContain('bg-surface-selected');
+      expect(card).not.toContain('bg-surface-elevated');
+    });
+
+    it('tints the focused horizontal trigger pill', () => {
+      expect(
+        journeyTimelineVariants({ orientation: 'horizontal', focused: true }).trigger()
+      ).toContain('bg-surface-selected');
+    });
+
+    it('offers hover feedback only while not focused', () => {
+      expect(journeyTimelineVariants({ interactive: true, focused: false }).card()).toContain(
+        'hover:bg-surface-hover'
+      );
+      expect(journeyTimelineVariants({ interactive: true, focused: true }).card()).not.toContain(
+        'hover:bg-surface-hover'
+      );
+    });
+  });
+
+  describe('detail placement', () => {
+    it('lays rail + readout side by side (wide) and docks it (narrow) for vertical panel mode', () => {
+      const styles = journeyTimelineVariants({ orientation: 'vertical', detail: 'panel' });
+      expect(styles.base()).toContain('sm:grid');
+      expect(styles.panel()).toContain('sm:sticky');
+      expect(styles.panel()).toContain('max-sm:sticky');
+      expect(styles.panel()).toContain('z-[var(--z-docked)]');
+    });
+
+    it('stretches the horizontal panel under the rail', () => {
+      const panel = journeyTimelineVariants({ orientation: 'horizontal' }).panel();
+      expect(panel).toContain('w-full');
+      expect(panel).toContain('mt-4');
     });
   });
 
   describe('interactive', () => {
-    it('shows a pointer + hover surface on focusable nodes', () => {
+    it('shows a pointer on focusable nodes', () => {
       expect(journeyTimelineVariants({ interactive: true }).trigger()).toContain('cursor-pointer');
     });
 
@@ -109,20 +187,28 @@ describe('journeyTimelineVariants', () => {
   });
 
   describe('size', () => {
-    it('scales the marker across sm/md/lg', () => {
-      expect(journeyTimelineVariants({ size: 'sm' }).marker()).toContain('size-7');
-      expect(journeyTimelineVariants({ size: 'md' }).marker()).toContain('size-9');
-      expect(journeyTimelineVariants({ size: 'lg' }).marker()).toContain('size-11');
+    it('scales the dot marker across sm/md/lg', () => {
+      expect(journeyTimelineVariants({ size: 'sm' }).marker()).toContain('size-2.5');
+      expect(journeyTimelineVariants({ size: 'md' }).marker()).toContain('size-3');
+      expect(journeyTimelineVariants({ size: 'lg' }).marker()).toContain('size-3.5');
+    });
+
+    it('scales the meta rail width across sm/md/lg', () => {
+      expect(journeyTimelineVariants({ size: 'sm' }).metaColumn()).toContain('w-10');
+      expect(journeyTimelineVariants({ size: 'md' }).metaColumn()).toContain('w-12');
+      expect(journeyTimelineVariants({ size: 'lg' }).metaColumn()).toContain('w-14');
     });
   });
 
   it('never emits dark: overrides (light-dark() handles theming)', () => {
     const statuses = ['complete', 'active', 'pending', 'blocked', 'skipped'] as const;
     for (const status of statuses) {
-      const styles = journeyTimelineVariants({ status });
+      const styles = journeyTimelineVariants({ status, focused: true });
       expect(styles.marker()).not.toMatch(/\bdark:/);
       expect(styles.title()).not.toMatch(/\bdark:/);
       expect(styles.connector()).not.toMatch(/\bdark:/);
+      expect(styles.card()).not.toMatch(/\bdark:/);
+      expect(styles.panel()).not.toMatch(/\bdark:/);
     }
   });
 });

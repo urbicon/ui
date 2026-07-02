@@ -2,7 +2,7 @@ import type { Snippet } from 'svelte';
 import type { HTMLAttributes } from 'svelte/elements';
 import type { JourneyTimelineSlots, JourneyTimelineVariants } from './journey-timeline.variants';
 
-/** Lifecycle status of a journey node — drives marker colour and glyph. */
+/** Lifecycle status of a journey node — drives marker colour and title tone. */
 export type JourneyStatus = 'complete' | 'active' | 'pending' | 'blocked' | 'skipped';
 
 /** A single node (waypoint) on a {@link JourneyTimelineProps | JourneyTimeline}. */
@@ -12,28 +12,55 @@ export interface JourneyNode {
   /** Node title, always visible next to the marker. */
   title: string;
   /**
-   * Lifecycle status. Maps to a semantic marker colour + glyph:
-   * `complete` (success ✓), `active` (primary ◉), `pending` (empty circle),
-   * `blocked` (danger ⊘), `skipped` (muted −).
+   * Lifecycle status. Maps to a semantic dot marker + title tone:
+   * `complete` (success), `active` (primary, ringed), `pending` (hollow),
+   * `blocked` (danger), `skipped` (muted). The status is also announced through
+   * a visually-hidden label.
    */
   status: JourneyStatus;
-  /** Short status line shown below the title while collapsed. */
+  /** Short context line shown below the title. */
   subtitle?: string;
   /**
-   * When `false`, the node is a pure waypoint: it renders a marker + labels but
-   * cannot receive focus, does not expand, and is skipped by keyboard navigation.
+   * Label on the chronicle axis (the meta rail left of the markers) — a time,
+   * date, version, actor…. The rail renders as soon as any node provides `meta`
+   * (or the `meta` snippet is set). Vertical orientation renders it as a
+   * right-aligned column; horizontal as a kicker line above the title.
+   */
+  meta?: string;
+  /**
+   * Line style of the connector *leaving* this node — lets the connector carry
+   * meaning (e.g. solid = ride, dashed/dotted = transfer, walk, gap in the
+   * record). @default 'solid'
+   */
+  connector?: 'solid' | 'dashed' | 'dotted';
+  /**
+   * Label for the segment between this node and the next (a duration, transport
+   * mode, "3 days in transit"…). Rendered along the connector; ignored on the
+   * last node.
+   */
+  segmentLabel?: string;
+  /**
+   * When `false`, the node is a pure waypoint: it renders marker + labels but
+   * cannot receive focus, shows no detail, and is skipped by keyboard navigation.
    * @default true
    */
   focusable?: boolean;
 }
 
 /**
- * @description Connected timeline whose markers *are* the progress indicator and
- * where exactly one focusable node expands to reveal rich per-step detail (the
- * "journey" / travel-log pattern). Data-driven via `items`; the focused node's
- * body is rendered through the `node` snippet. For a compact progress indicator
- * without a detail container use `Stepper`; for peer views without sequence use
- * `Tab`.
+ * @description Retrospective chronicle timeline (focus + context): an ordered
+ * record of what happened / where things stand — shipment tracking, audit
+ * trails, travel logs, billing runs. Exactly one focusable node is in focus and
+ * shows rich detail (`node` snippet); the rest stay quiet, compact context
+ * rows. The chronicle axis is first-class: per-node `meta` (time/date/actor)
+ * renders on a meta rail, connectors carry meaning (`solid | dashed | dotted`)
+ * and `segmentLabel` annotates the stretch between nodes. Detail placement is
+ * configurable: `detail="inline"` expands in place (vertical default);
+ * `detail="panel"` renders a stable readout beside (wide) or docked below
+ * (narrow) the rail — horizontal always uses the panel. Use `Stepper` for a
+ * prospective wizard/progress indicator and `Tab` for switching between peer
+ * views; JourneyTimeline is read-only observation of a sequence, not process
+ * control or navigation.
  *
  * @tag navigation
  * @tag display
@@ -42,26 +69,27 @@ export interface JourneyNode {
  * @related Accordion
  * @stability beta
  *
- * @example Vertical journey with inline detail
+ * @example Vertical chronicle with inline detail
  * ```svelte
  * <script lang="ts">
  *   import { JourneyTimeline, type JourneyNode } from '@urbicon-ui/blocks';
- *   const stages: JourneyNode[] = [
- *     { id: 'draft', title: 'Draft', status: 'complete', subtitle: 'Sent 3 Jun' },
- *     { id: 'review', title: 'Review', status: 'active', subtitle: 'In progress' },
- *     { id: 'approve', title: 'Approval', status: 'pending' }
+ *   const run: JourneyNode[] = [
+ *     { id: 'readings', title: 'Meter readings', status: 'complete', meta: '3 Jun', segmentLabel: '2 days · validation' },
+ *     { id: 'validate', title: 'Validation', status: 'complete', meta: '5 Jun', connector: 'dashed', segmentLabel: 'manual review' },
+ *     { id: 'statement', title: 'Statements', status: 'active', meta: '6 Jun' },
+ *     { id: 'dispatch', title: 'Dispatch', status: 'pending' }
  *   ];
- *   let focusId = $state('review');
+ *   let focusId = $state('statement');
  * </script>
  *
- * <JourneyTimeline items={stages} bind:focusId>
+ * <JourneyTimeline items={run} bind:focusId>
  *   {#snippet node(item)}
  *     <p>Details for {item.title}…</p>
  *   {/snippet}
  * </JourneyTimeline>
  * ```
  *
- * @example Horizontal lifecycle with a shared detail panel + scroll-spy off
+ * @example Horizontal lifecycle — detail renders in the shared panel
  * ```svelte
  * <JourneyTimeline items={phases} orientation="horizontal" onFocusChange={(id) => track(id)}>
  *   {#snippet node(item)}
@@ -75,36 +103,44 @@ export interface JourneyTimelineProps
     Omit<HTMLAttributes<HTMLDivElement>, 'children'> {
   /** The ordered journey nodes. */
   items: JourneyNode[];
-  /** Layout direction. Vertical expands detail inline; horizontal into a panel below the rail. @default 'vertical' */
+  /** Layout direction. @default 'vertical' */
   orientation?: 'vertical' | 'horizontal';
   /** Marker + label scale. @default 'md' */
   size?: 'sm' | 'md' | 'lg';
   /**
-   * The expanded (focused) node id. Supports `bind:focusId`. When omitted the
-   * component is uncontrolled and falls back to `defaultFocusId`, then the first
-   * `active` node, then the first focusable node.
+   * Where the focused node's detail renders. `inline` expands in place inside
+   * the rail; `panel` renders a stable readout — beside the rail on wide
+   * viewports, docked to the viewport bottom on narrow ones. Horizontal
+   * orientation always uses the panel and ignores `inline` (DEV warning).
+   * @default 'inline' (vertical) / 'panel' (horizontal)
+   */
+  detail?: 'inline' | 'panel';
+  /**
+   * The focused node id. Supports `bind:focusId`. When omitted the component is
+   * uncontrolled and falls back to `defaultFocusId`, then the first `active`
+   * node, then the first focusable node.
    */
   focusId?: string;
   /** Initial focused node id in uncontrolled mode. Ignored once `focusId` is bound. */
   defaultFocusId?: string;
-  /**
-   * When `true`, the focus follows the node scrolled to the top of the viewport
-   * (the travel-log feel), driven by an IntersectionObserver. Reduced-motion safe.
-   * @default false
-   */
-  scrollSpy?: boolean;
-  /** Fires when the focused node changes (click, keyboard, or scroll-spy). */
+  /** Fires when the focused node changes (click or keyboard). */
   onFocusChange?: (id: string) => void;
-  /** Renders the body of the focused node. Receives the focused `JourneyNode`. */
+  /** Renders the detail of the focused node. Receives the focused `JourneyNode`. */
   node?: Snippet<[JourneyNode]>;
+  /**
+   * Rich override for the meta rail — receives each `JourneyNode` and replaces
+   * the plain `item.meta` text (e.g. planned + actual time with a Badge).
+   */
+  meta?: Snippet<[JourneyNode]>;
   /** Extra classes merged onto the root element. */
   class?: string;
   /** Remove all default tv() classes. */
   unstyled?: boolean;
   /**
-   * Per-slot class overrides. Slots: base | rail | node | trigger | marker |
-   * connectorColumn | connector | labelGroup | title | subtitle | body | detail |
-   * detailInner | detailContent | panel
+   * Per-slot class overrides. Slots: base | rail | node | metaColumn | meta |
+   * markerColumn | marker | connector | connectorColumn | content | card |
+   * trigger | labelGroup | title | subtitle | segment | detail | detailInner |
+   * detailContent | panel
    */
   slotClasses?: Partial<Record<JourneyTimelineSlots, string>>;
   /**
