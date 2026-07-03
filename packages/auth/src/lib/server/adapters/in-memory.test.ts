@@ -5,6 +5,7 @@ import {
   createInMemoryNotificationRepository,
   createInMemoryPasskeyRepository,
   createInMemoryPushSubscriptionRepository,
+  createInMemoryRefreshTokenRepository,
   createInMemoryRepos,
   createInMemoryUserRepository
 } from './in-memory.js';
@@ -26,6 +27,82 @@ describe('createInMemoryRepos', () => {
     expect(repos.notificationPreference).toBeDefined();
     expect(repos.passkey).toBeDefined();
     expect(repos.refreshToken).toBeDefined();
+  });
+
+  // The invitation half of the cascade is pinned adapter-agnostically by the
+  // conformance suite; the sibling stores ride on `onDelete: Cascade` for the
+  // Prisma adapter and can only be observed here, against the bundle that
+  // hand-models them (test-coverage review, package 6).
+  it('bundle user.delete cascades across every sibling store', async () => {
+    const repos = createInMemoryRepos();
+    const u = await repos.user.create({
+      email: 'ghost@cascade.test',
+      name: 'Ghost',
+      passwordHash: 'x',
+      role: 'USER'
+    });
+    await repos.passkey!.create(u.id, {
+      credentialId: 'cred-cascade',
+      publicKey: new Uint8Array([1]),
+      publicKeyAlg: -7,
+      counter: 0,
+      aaguid: 'a'
+    });
+    await repos.notification!.create({ userId: u.id, typeKey: 'security', title: 't' });
+    await repos.pushSubscription!.create(u.id, {
+      endpoint: 'https://push.test/cascade',
+      keys: { p256dh: 'p', auth: 'a' }
+    });
+    await repos.notificationPreference!.upsert(u.id, 'security', { push: false });
+    await repos.backupCode!.createMany(u.id, ['bc-hash']);
+    await repos.refreshToken!.create({
+      userId: u.id,
+      tokenHash: 'rt-cascade',
+      family: 'fam',
+      expiresAt: new Date(Date.now() + 60_000)
+    });
+
+    await repos.user.delete(u.id);
+
+    expect(await repos.user.findById(u.id), 'user row gone').toBeNull();
+    expect(await repos.passkey!.findByCredentialId('cred-cascade'), 'passkeys gone').toBeNull();
+    expect(await repos.notification!.findByUser(u.id), 'notifications gone').toHaveLength(0);
+    expect(await repos.pushSubscription!.findByUser(u.id), 'subscriptions gone').toHaveLength(0);
+    expect(await repos.notificationPreference!.findByUser(u.id), 'preferences gone').toHaveLength(
+      0
+    );
+    expect(await repos.backupCode!.consumeIfUnused(u.id, 'bc-hash'), 'backup codes gone').toBe(
+      false
+    );
+    // The contract has no refresh-token hard delete; revoked is the
+    // observable equivalent (nothing lists or rotates a revoked token).
+    expect(
+      (await repos.refreshToken!.findByHash('rt-cascade'))?.revokedAt,
+      'refresh tokens revoked'
+    ).toBeInstanceOf(Date);
+  });
+});
+
+describe('in-memory refresh-token repository', () => {
+  it('returns detached copies, not live store references', async () => {
+    const repo = createInMemoryRefreshTokenRepository();
+    const created = await repo.create({
+      userId: 'u',
+      tokenHash: 'h',
+      family: 'f',
+      expiresAt: new Date(Date.now() + 60_000)
+    });
+    // Mutate the returned record and its nested Date — the store must not see it.
+    created.revokedAt = new Date();
+    created.expiresAt.setFullYear(1990);
+
+    const fresh = await repo.findByHash('h');
+    expect(fresh?.revokedAt ?? null, 'store not corrupted by caller mutation').toBeNull();
+    expect(fresh?.expiresAt.getFullYear()).toBeGreaterThan(2000);
+
+    // And a read is detached from later reads, too.
+    fresh!.revokedAt = new Date();
+    expect((await repo.findByHash('h'))?.revokedAt ?? null).toBeNull();
   });
 });
 

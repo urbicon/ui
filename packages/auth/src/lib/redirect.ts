@@ -27,12 +27,19 @@ export function sanitizeRedirect(candidate: string | null | undefined, fallback:
     return fallback;
   }
   // Belt and braces: resolve against a sentinel origin — anything that
-  // escapes it (embedded scheme, credentials trick, unparseable input) is
-  // rejected rather than partially sanitized.
+  // escapes it (embedded scheme, whitespace-smuggled '//' the parser strips
+  // into an authority, credentials trick, unparseable input) is rejected
+  // rather than partially sanitized.
   try {
     const sentinel = 'http://sanitize-redirect.internal';
     const parsed = new URL(candidate, sentinel);
     if (parsed.origin !== sentinel) return fallback;
+    // Dot-segment normalization can re-form a protocol-relative URL out of an
+    // internal-looking input: '/..//evil.test' passes the raw-prefix gate but
+    // normalizes to the pathname '//evil.test', which a browser navigation
+    // resolves to https://evil.test. Reject the NORMALIZED output too, not
+    // just the raw input (silent-failure review, package 6).
+    if (parsed.pathname.startsWith('//')) return fallback;
     return parsed.pathname + parsed.search + parsed.hash;
   } catch {
     return fallback;

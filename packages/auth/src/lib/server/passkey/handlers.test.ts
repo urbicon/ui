@@ -97,6 +97,18 @@ function event(
   } as unknown as RequestEvent;
 }
 
+describe('createPasskeyHandlers — wiring', () => {
+  it('throws at wiring time when deps.repos.passkey is missing (fail-loud, not a latent 500)', () => {
+    const deps = makeDeps();
+    expect(() =>
+      createPasskeyHandlers(
+        { ...deps, repos: { ...deps.repos, passkey: undefined } },
+        deps.webauthn
+      )
+    ).toThrow(/repos\.passkey is required/);
+  });
+});
+
 describe('passkey auth rate limiting', () => {
   // Review finding (Cluster A): the options + verify handlers must share ONE
   // per-IP budget, not get an independent one each (which would double the

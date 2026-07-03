@@ -38,6 +38,26 @@ describe('sanitizeRedirect', () => {
     expect(out.startsWith('//')).toBe(false);
   });
 
+  it('rejects dot-segment smuggling that re-forms a protocol-relative URL', () => {
+    // '/..//evil.test' passes the raw startsWith gates, but the parser
+    // normalizes the dot segment away and leaves pathname '//evil.test' —
+    // which a browser resolves to https://evil.test. The normalized-output
+    // check is the only line that stops these.
+    expect(sanitizeRedirect('/..//evil.test/phish', '/')).toBe('/');
+    expect(sanitizeRedirect('/%2e%2e//evil.test', '/')).toBe('/');
+    expect(sanitizeRedirect('/a/..//evil.test', '/')).toBe('/');
+    expect(sanitizeRedirect('/.//evil.test', '/')).toBe('/');
+    expect(sanitizeRedirect('/a/b/../../..//evil.test', '/')).toBe('/');
+  });
+
+  it('rejects whitespace-smuggled authority escapes that slip past the prefix gate', () => {
+    // WHATWG URL strips tabs/newlines BEFORE parsing, so '/\t/evil.test'
+    // passes the raw startsWith checks yet resolves to http://evil.test —
+    // only the sentinel-origin comparison catches it.
+    expect(sanitizeRedirect('/\t/evil.test', '/')).toBe('/');
+    expect(sanitizeRedirect('/\n//evil.test', '/')).toBe('/');
+  });
+
   it('round-trips the value the auth handle encodes', () => {
     const requested = '/account/settings?tab=security';
     const query = `redirectTo=${encodeURIComponent(requested)}`;

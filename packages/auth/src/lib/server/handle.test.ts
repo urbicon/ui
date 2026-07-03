@@ -125,6 +125,32 @@ describe('createAuthHandle', () => {
     }
   });
 
+  it('joins redirectTo with & when the configured loginPage already has a query', async () => {
+    // Mutation finding (test-coverage review): always joining with '?' kept
+    // the suite green while producing '/login?lang=de?redirectTo=…' — a
+    // broken query string from which the deep link silently never parses.
+    const repos = createMockRepos();
+    const handle = createAuthHandle({
+      config: { ...config, routes: { loginPage: '/auth/login?lang=de' } },
+      repos
+    });
+    const event = createMockEvent({ path: '/dashboard' });
+
+    try {
+      await handle({ event: asEvent(event), resolve: vi.fn() });
+      expect.fail('Should have redirected');
+    } catch (e) {
+      const err = e as { status?: number; location?: string };
+      expect(err.status).toBe(302);
+      expect(err.location).toBe(
+        `/auth/login?lang=de&redirectTo=${encodeURIComponent('/dashboard')}`
+      );
+      // The param must round-trip through the parser a consumer would use.
+      const query = new URL(`http://localhost:3000${err.location}`).searchParams;
+      expect(query.get('redirectTo')).toBe('/dashboard');
+    }
+  });
+
   it('omits redirectTo for non-GET requests (a POST target must not become a GET)', async () => {
     const repos = createMockRepos();
     const handle = createAuthHandle({ config, repos });

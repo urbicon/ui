@@ -51,7 +51,7 @@ export function createInMemoryRepos<R extends string = string>(): Repositories<R
   const invitation = createInMemoryInvitationRepositoryInternal();
   const notification = createInMemoryNotificationRepository();
   const pushSubscription = createInMemoryPushSubscriptionRepository();
-  const notificationPreference = createInMemoryNotificationPreferenceRepository();
+  const notificationPreference = createInMemoryNotificationPreferenceRepositoryInternal();
   const passkey = createInMemoryPasskeyRepository();
   const refreshToken = createInMemoryRefreshTokenRepository();
   const backupCode = createInMemoryBackupCodeRepository();
@@ -62,10 +62,13 @@ export function createInMemoryRepos<R extends string = string>(): Repositories<R
       // The contract's delete-cascade MUST (types.ts): a relational adapter
       // gets the dependent rows via `onDelete: Cascade` plus an explicit
       // transaction for the invitations the user *sent*; this bundle models
-      // the same end state across its sibling stores. (The standalone
-      // `createInMemoryUserRepository` cannot — it does not know them.)
+      // the same end state across its sibling stores — without the
+      // transactional atomicity a relational adapter gets for free. (The
+      // standalone `createInMemoryUserRepository` cannot — it does not know
+      // them.)
       async delete(id) {
         invitation.deleteByInviter(id);
+        notificationPreference.deleteByUser(id);
         for (const p of await passkey.findByUserId(id)) {
           await passkey.delete(id, p.credentialId);
         }
@@ -85,7 +88,7 @@ export function createInMemoryRepos<R extends string = string>(): Repositories<R
     invitation: invitation.repo,
     notification,
     pushSubscription,
-    notificationPreference,
+    notificationPreference: notificationPreference.repo,
     passkey,
     refreshToken,
     backupCode
@@ -557,10 +560,14 @@ interface StoredPreference extends NotificationPreference {
   userId: string;
 }
 
-export function createInMemoryNotificationPreferenceRepository(): NotificationPreferenceRepository {
+function createInMemoryNotificationPreferenceRepositoryInternal(): {
+  repo: NotificationPreferenceRepository;
+  /** Cascade seam for the bundle's `user.delete` — not part of the contract. */
+  deleteByUser(userId: string): void;
+} {
   const byKey = new Map<string, StoredPreference>(); // `${userId}:${typeKey}` → pref
 
-  return {
+  const repo: NotificationPreferenceRepository = {
     async findByUser(userId) {
       return [...byKey.values()]
         .filter((p) => p.userId === userId)
@@ -585,6 +592,19 @@ export function createInMemoryNotificationPreferenceRepository(): NotificationPr
       }
     }
   };
+
+  return {
+    repo,
+    deleteByUser(userId) {
+      for (const [key, pref] of byKey) {
+        if (pref.userId === userId) byKey.delete(key);
+      }
+    }
+  };
+}
+
+export function createInMemoryNotificationPreferenceRepository(): NotificationPreferenceRepository {
+  return createInMemoryNotificationPreferenceRepositoryInternal().repo;
 }
 
 // --- Passkey ---------------------------------------------------------------

@@ -176,8 +176,8 @@ export const authDeps = createAuthDeps<AppRole>({
     refreshToken: { accessTokenTtl: '15m', refreshTokenTtl: '30d' }, // rotating refresh
     rateLimit: {
       login: { windowMs: 900_000, max: 5 },
-      passwordReset: { windowMs: 3_600_000, max: 3 },
-      resetPassword: { windowMs: 3_600_000, max: 5 }
+      forgotPassword: { windowMs: 3_600_000, max: 3 }, // reset *request* (email send)
+      resetPassword: { windowMs: 3_600_000, max: 5 } // reset *consume* (token redemption)
     },
     lockout: { maxAttempts: 5, durationMinutes: 15 },
     routes: { afterLogin: '/', loginPage: '/auth/login' }
