@@ -282,48 +282,9 @@ describeRepositoryConformance('prisma (in-memory fake)', {
   setup: () => createPrismaRepos(createFakePrisma())
 });
 
-// === 2a. Prisma-specific: user.delete cascades the invitations they sent ====
-//
-// The shared `user.delete removes the user row` check is adapter-agnostic, but
-// the invitation cleanup is Prisma-adapter behaviour (a `$transaction` of
-// `invitation.deleteMany({ invitedById }) + user.deleteMany`): the in-memory
-// adapter intentionally doesn't model the inviter relationship. So we assert it
-// against the fake, which DOES store `invitedById` and runs the transaction.
-describe('prisma adapter — user.delete cascades sent invitations', () => {
-  it('removes the invitations a deleted user sent (transaction cleanup)', async () => {
-    const repos = createPrismaRepos(createFakePrisma());
-    const inviter = await repos.user.create({
-      email: `inviter-${randomUUID()}@conformance.test`,
-      name: 'Inviter',
-      passwordHash: 'x',
-      role: 'USER'
-    });
-    const other = await repos.user.create({
-      email: `other-${randomUUID()}@conformance.test`,
-      name: 'Other',
-      passwordHash: 'x',
-      role: 'USER'
-    });
-    await repos.invitation.create({
-      email: `invitee-${randomUUID()}@conformance.test`,
-      role: 'USER',
-      invitedById: inviter.id
-    });
-    const keep = await repos.invitation.create({
-      email: `keep-${randomUUID()}@conformance.test`,
-      role: 'USER',
-      invitedById: other.id
-    });
-
-    await repos.user.delete(inviter.id);
-
-    const remaining = await repos.invitation.list();
-    expect(remaining, 'only the other user’s invitation survives').toHaveLength(1);
-    expect(remaining[0]?.id).toBe(keep.id);
-    expect(await repos.user.findById(inviter.id), 'inviter gone').toBeNull();
-    expect(await repos.user.findById(other.id), 'unrelated user untouched').not.toBeNull();
-  });
-});
+// (The sent-invitations delete cascade is now pinned adapter-agnostically by
+// the `user.delete cascades the invitations the user sent` conformance check —
+// the in-memory bundle models the inviter relationship since review R20.)
 
 // === 2a'. Prisma-specific: push-subscription gate edge cases =================
 //

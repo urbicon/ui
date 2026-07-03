@@ -77,7 +77,7 @@ export function createNotificationsHandlers(service: NotificationService): {
           return authError('validation_error', 400, { message: 'Notification id is required' });
         }
 
-        await service.markAsRead(id, userId);
+        await service.markAsRead(userId, id);
         return json({ success: true });
       }
     },
@@ -94,7 +94,7 @@ export function createNotificationsHandlers(service: NotificationService): {
           return authError('validation_error', 400, { message: 'Notification id is required' });
         }
 
-        await service.deleteNotification(id, userId);
+        await service.deleteNotification(userId, id);
         return json({ success: true });
       }
     }

@@ -623,8 +623,8 @@ describe('createNotificationService', () => {
       repos: { notification: notifRepo }
     });
 
-    await service.markAsRead('n-1', 'user-1');
-    expect(notifRepo.markAsRead).toHaveBeenCalledWith('n-1', 'user-1');
+    await service.markAsRead('user-1', 'n-1');
+    expect(notifRepo.markAsRead).toHaveBeenCalledWith('user-1', 'n-1');
 
     await service.markAllAsRead('user-1');
     expect(notifRepo.markAllAsRead).toHaveBeenCalledWith('user-1');
@@ -632,11 +632,11 @@ describe('createNotificationService', () => {
     await service.getUnreadCount('user-1');
     expect(notifRepo.getUnreadCount).toHaveBeenCalledWith('user-1');
 
-    // Mutation-test finding: with (id, userId) both plain strings, a swapped
+    // Mutation-test finding: with (userId, id) both plain strings, a swapped
     // forwarding turns the owner-scoped delete into a silent no-op (200, row
     // stays). Pin the exact argument order for the two remaining hops.
-    await service.deleteNotification('n-1', 'user-1');
-    expect(notifRepo.delete).toHaveBeenCalledWith('n-1', 'user-1');
+    await service.deleteNotification('user-1', 'n-1');
+    expect(notifRepo.delete).toHaveBeenCalledWith('user-1', 'n-1');
 
     await service.getForUser('user-1', { limit: 5, unreadOnly: true });
     expect(notifRepo.findByUser).toHaveBeenCalledWith('user-1', { limit: 5, unreadOnly: true });

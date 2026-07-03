@@ -18,8 +18,11 @@ export type {
 // Full in-memory adapter — dev/test fixture and five-minute quickstart. Never
 // production (heap-only, single-process). See `./adapters/in-memory` for the
 // per-repository factories.
-export { createInMemoryBackupCodeRepository, createInMemoryRepos } from './adapters/in-memory.js';
-export { createInMemoryRefreshTokenRepository } from './adapters/in-memory-refresh-token.js';
+export {
+  createInMemoryBackupCodeRepository,
+  createInMemoryRefreshTokenRepository,
+  createInMemoryRepos
+} from './adapters/in-memory.js';
 // Adapter types
 export type {
   BackupCodeRepository,

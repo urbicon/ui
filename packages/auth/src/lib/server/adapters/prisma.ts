@@ -55,7 +55,7 @@ export interface PrismaLike {
     findMany: (args?: unknown) => Promise<PrismaRow>;
     create: (args: unknown) => Promise<PrismaRow>;
     update: (args: unknown) => Promise<PrismaRow>;
-    updateMany: (args: unknown) => Promise<PrismaRow>;
+    updateMany: (args: unknown) => Promise<{ count: number }>;
     delete: (args: unknown) => Promise<PrismaRow>;
     count: (args?: unknown) => Promise<number>;
   };
@@ -64,7 +64,7 @@ export interface PrismaLike {
     findMany: (args?: unknown) => Promise<PrismaRow>;
     create: (args: unknown) => Promise<PrismaRow>;
     upsert: (args: unknown) => Promise<PrismaRow>;
-    deleteMany: (args: unknown) => Promise<PrismaRow>;
+    deleteMany: (args: unknown) => Promise<{ count: number }>;
   };
   notificationPreference?: {
     findMany: (args?: unknown) => Promise<PrismaRow>;
@@ -84,12 +84,12 @@ export interface PrismaLike {
     create: (args: unknown) => Promise<PrismaRow>;
     update: (args: unknown) => Promise<PrismaRow>;
     updateMany: (args: unknown) => Promise<{ count: number }>;
-    deleteMany: (args: unknown) => Promise<PrismaRow>;
+    deleteMany: (args: unknown) => Promise<{ count: number }>;
   };
   twoFactorBackupCode?: {
-    createMany: (args: unknown) => Promise<PrismaRow>;
+    createMany: (args: unknown) => Promise<{ count: number }>;
     updateMany: (args: unknown) => Promise<{ count: number }>;
-    deleteMany: (args: unknown) => Promise<PrismaRow>;
+    deleteMany: (args: unknown) => Promise<{ count: number }>;
   };
   /**
    * Prisma's sequential (array-form) transaction. Used by `user.delete` to drop
@@ -498,7 +498,7 @@ export function createPrismaNotificationRepository(
       return rows.map(mapNotification);
     },
 
-    async markAsRead(id, userId) {
+    async markAsRead(userId, id) {
       await notif.update({
         where: { id, userId },
         data: { readAt: new Date() }
@@ -512,7 +512,7 @@ export function createPrismaNotificationRepository(
       });
     },
 
-    async delete(id, userId) {
+    async delete(userId, id) {
       await notif.delete({ where: { id, userId } });
     },
 
@@ -663,15 +663,11 @@ export function createPrismaPasskeyRepository(prisma: PrismaLike): PasskeyReposi
       return result.count === 1;
     },
 
-    async updateLastUsed(credentialId) {
-      await pk.update({ where: { credentialId }, data: { lastUsedAt: new Date() } });
-    },
-
-    async delete(credentialId, userId) {
+    async delete(userId, credentialId) {
       await pk.delete({ where: { credentialId, userId } });
     },
 
-    async rename(credentialId, userId, name) {
+    async rename(userId, credentialId, name) {
       await pk.update({ where: { credentialId, userId }, data: { name } });
     }
   };
@@ -754,7 +750,7 @@ export function createPrismaRefreshTokenRepository(
 
     async deleteExpired() {
       const result = await rt.deleteMany({ where: { expiresAt: { lt: new Date() } } });
-      return typeof result?.count === 'number' ? result.count : 0;
+      return result.count;
     }
   };
 }

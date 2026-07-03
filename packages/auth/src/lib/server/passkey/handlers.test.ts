@@ -21,7 +21,6 @@ function mockPasskeyRepo(): PasskeyRepository {
     findByCredentialId: vi.fn().mockResolvedValue(null),
     create: vi.fn(),
     updateCounter: vi.fn(),
-    updateLastUsed: vi.fn(),
     delete: vi.fn(),
     rename: vi.fn()
   };
@@ -407,7 +406,7 @@ describe('createPasskeyDeleteHandler — DELETE', () => {
     expect(deps.repos.passkey.delete).not.toHaveBeenCalled();
   });
 
-  it('deletes owner-scoped: (credentialId, userId) in that order', async () => {
+  it('deletes owner-scoped: (userId, credentialId) in that order', async () => {
     const deps = makeDeps();
     const res = await createPasskeyDeleteHandler(deps).DELETE(
       await sessionEvent(deps, { params: { credentialId: 'cred-abc' } })
@@ -415,7 +414,7 @@ describe('createPasskeyDeleteHandler — DELETE', () => {
     expect(res.status).toBe(200);
     // Argument order is the IDOR guard: the repo no-ops unless the row
     // belongs to this user.
-    expect(deps.repos.passkey.delete).toHaveBeenCalledWith('cred-abc', 'real-user-99');
+    expect(deps.repos.passkey.delete).toHaveBeenCalledWith('real-user-99', 'cred-abc');
   });
 });
 

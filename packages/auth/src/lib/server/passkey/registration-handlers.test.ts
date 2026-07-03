@@ -39,7 +39,6 @@ function mockPasskeyRepo(overrides: Partial<PasskeyRepository> = {}): PasskeyRep
     findByCredentialId: vi.fn().mockResolvedValue(null),
     create: vi.fn(),
     updateCounter: vi.fn(),
-    updateLastUsed: vi.fn(),
     delete: vi.fn(),
     rename: vi.fn(),
     ...overrides

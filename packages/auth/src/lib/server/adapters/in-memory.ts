@@ -1,12 +1,12 @@
 import { randomUUID } from 'node:crypto';
 import type { AuthUser, LockoutConfig } from '../../types.js';
 import { pushKeysEqual } from '../notifications/push-keys.js';
-import { createInMemoryRefreshTokenRepository } from './in-memory-refresh-token.js';
 import type {
   BackupCodeRepository,
   CreateInvitationData,
   CreateNotificationData,
   CreatePasskeyData,
+  CreateRefreshTokenData,
   CreateUserData,
   FullAuthUser,
   Invitation,
@@ -20,13 +20,11 @@ import type {
   PreferenceData,
   PushSubscriptionData,
   PushSubscriptionRepository,
+  RefreshTokenRecord,
+  RefreshTokenRepository,
   Repositories,
   UserRepository
 } from './types.js';
-
-// Re-exported so `@urbicon-ui/auth/server/adapters/in-memory` is the complete
-// in-memory story (the refresh-token repo already shipped separately).
-export { createInMemoryRefreshTokenRepository } from './in-memory-refresh-token.js';
 
 /**
  * In-memory implementation of the full {@link Repositories} contract.
@@ -49,15 +47,48 @@ export { createInMemoryRefreshTokenRepository } from './in-memory-refresh-token.
  * fail the same suite — see `conformance.ts`.
  */
 export function createInMemoryRepos<R extends string = string>(): Repositories<R> {
+  const user = createInMemoryUserRepository<R>();
+  const invitation = createInMemoryInvitationRepositoryInternal();
+  const notification = createInMemoryNotificationRepository();
+  const pushSubscription = createInMemoryPushSubscriptionRepository();
+  const notificationPreference = createInMemoryNotificationPreferenceRepository();
+  const passkey = createInMemoryPasskeyRepository();
+  const refreshToken = createInMemoryRefreshTokenRepository();
+  const backupCode = createInMemoryBackupCodeRepository();
+
   return {
-    user: createInMemoryUserRepository<R>(),
-    invitation: createInMemoryInvitationRepository(),
-    notification: createInMemoryNotificationRepository(),
-    pushSubscription: createInMemoryPushSubscriptionRepository(),
-    notificationPreference: createInMemoryNotificationPreferenceRepository(),
-    passkey: createInMemoryPasskeyRepository(),
-    refreshToken: createInMemoryRefreshTokenRepository(),
-    backupCode: createInMemoryBackupCodeRepository()
+    user: {
+      ...user,
+      // The contract's delete-cascade MUST (types.ts): a relational adapter
+      // gets the dependent rows via `onDelete: Cascade` plus an explicit
+      // transaction for the invitations the user *sent*; this bundle models
+      // the same end state across its sibling stores. (The standalone
+      // `createInMemoryUserRepository` cannot — it does not know them.)
+      async delete(id) {
+        invitation.deleteByInviter(id);
+        for (const p of await passkey.findByUserId(id)) {
+          await passkey.delete(id, p.credentialId);
+        }
+        for (const n of await notification.findByUser(id)) {
+          await notification.delete(id, n.id);
+        }
+        for (const s of await pushSubscription.findByUser(id)) {
+          await pushSubscription.delete(id, s.endpoint);
+        }
+        await backupCode.deleteAll(id);
+        // The contract has no hard-delete for refresh tokens; revoking every
+        // live token is the observable equivalent (nothing lists or rotates).
+        await refreshToken.revokeAllForUser(id);
+        await user.delete(id);
+      }
+    },
+    invitation: invitation.repo,
+    notification,
+    pushSubscription,
+    notificationPreference,
+    passkey,
+    refreshToken,
+    backupCode
   };
 }
 
@@ -285,10 +316,11 @@ export function createInMemoryUserRepository<R extends string = string>(): UserR
     },
 
     async delete(id) {
-      // Dev/test fixture: removes the user row only. Cross-repository cascade
-      // (refresh tokens, passkeys, invitations sent, …) is a relational-DB
-      // guarantee the Prisma adapter provides; this single-process, wiped-on-
-      // restart store does not model it (see the in-memory caveat in AUTH.md).
+      // Removes the user row only: this standalone factory does not know its
+      // sibling stores. The contract's cross-repository cascade (invitations
+      // sent, passkeys, …) is modeled by `createInMemoryRepos`, which wires
+      // the stores together — mirroring how the Prisma adapter gets it from
+      // `onDelete: Cascade` plus the delete transaction.
       const u = byId.get(id);
       if (!u) return;
       byId.delete(id);
@@ -325,15 +357,35 @@ export function createInMemoryUserRepository<R extends string = string>(): UserR
 
 // --- Invitation ------------------------------------------------------------
 
-export function createInMemoryInvitationRepository(): InvitationRepository {
-  const byId = new Map<string, Invitation>();
+// Rows keep `invitedById` internally (like a real table) so the bundle
+// factory can model the sent-invitations cascade of `user.delete`; the
+// contract-facing reads below project it away (the `Invitation` type
+// deliberately excludes it).
+interface StoredInvitation extends Invitation {
+  invitedById: string;
+}
+
+function createInMemoryInvitationRepositoryInternal(): {
+  repo: InvitationRepository;
+  /** Cascade seam for the bundle's `user.delete` — not part of the contract. */
+  deleteByInviter(inviterId: string): void;
+} {
+  const byId = new Map<string, StoredInvitation>();
   const byEmail = new Map<string, string>(); // email → id (enforces @unique)
 
-  return {
+  const project = (inv: StoredInvitation): Invitation => ({
+    id: inv.id,
+    email: inv.email,
+    role: inv.role,
+    usedAt: inv.usedAt,
+    createdAt: inv.createdAt
+  });
+
+  const repo: InvitationRepository = {
     async findByEmail(email) {
       const id = byEmail.get(email);
       const inv = id ? byId.get(id) : undefined;
-      return inv ? { ...inv } : null;
+      return inv ? project(inv) : null;
     },
 
     async markUsedIfUnused(id) {
@@ -348,22 +400,23 @@ export function createInMemoryInvitationRepository(): InvitationRepository {
       if (byEmail.has(data.email)) {
         throw new Error(`[auth:in-memory] invitation for ${data.email} already exists`);
       }
-      const inv: Invitation = {
+      const inv: StoredInvitation = {
         id: randomUUID(),
         email: data.email,
         role: data.role,
+        invitedById: data.invitedById,
         usedAt: null,
         createdAt: new Date()
       };
       byId.set(inv.id, inv);
       byEmail.set(inv.email, inv.id);
-      return { ...inv };
+      return project(inv);
     },
 
     async list() {
       return [...byId.values()]
         .sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime())
-        .map((inv) => ({ ...inv }));
+        .map(project);
     },
 
     async delete(id) {
@@ -374,6 +427,22 @@ export function createInMemoryInvitationRepository(): InvitationRepository {
       }
     }
   };
+
+  return {
+    repo,
+    deleteByInviter(inviterId) {
+      for (const [id, inv] of byId) {
+        if (inv.invitedById === inviterId) {
+          byId.delete(id);
+          byEmail.delete(inv.email);
+        }
+      }
+    }
+  };
+}
+
+export function createInMemoryInvitationRepository(): InvitationRepository {
+  return createInMemoryInvitationRepositoryInternal().repo;
 }
 
 // --- Notification ----------------------------------------------------------
@@ -406,7 +475,7 @@ export function createInMemoryNotificationRepository(): NotificationRepository {
       return rows.map((n) => ({ ...n }));
     },
 
-    async markAsRead(id, userId) {
+    async markAsRead(userId, id) {
       const n = byId.get(id);
       // Scope to userId: another user's id must not flip the read state.
       if (n && n.userId === userId && !n.readAt) n.readAt = new Date();
@@ -419,7 +488,7 @@ export function createInMemoryNotificationRepository(): NotificationRepository {
       }
     },
 
-    async delete(id, userId) {
+    async delete(userId, id) {
       const n = byId.get(id);
       // Scope to userId: an attacker knowing an id cannot delete another
       // user's notification.
@@ -584,20 +653,136 @@ export function createInMemoryPasskeyRepository(): PasskeyRepository {
       return false;
     },
 
-    async updateLastUsed(credentialId) {
-      const p = byCredentialId.get(credentialId);
-      if (p) p.lastUsedAt = new Date();
-    },
-
-    async delete(credentialId, userId) {
+    async delete(userId, credentialId) {
       const p = byCredentialId.get(credentialId);
       // Scope to userId: another user must not delete this credential.
       if (p && p.userId === userId) byCredentialId.delete(credentialId);
     },
 
-    async rename(credentialId, userId, name) {
+    async rename(userId, credentialId, name) {
       const p = byCredentialId.get(credentialId);
       if (p && p.userId === userId) p.name = name;
+    }
+  };
+}
+
+// --- Refresh token -----------------------------------------------------------
+
+/**
+ * In-memory default for `RefreshTokenRepository`. Suitable only for single-process
+ * deployments and tests — production consumers should pass a persistent
+ * implementation (Prisma, Redis, etc.) via `repos.refreshToken`.
+ */
+export function createInMemoryRefreshTokenRepository(): RefreshTokenRepository {
+  const byId = new Map<string, RefreshTokenRecord>();
+  const byHash = new Map<string, string>();
+
+  // Reads (and create's echo) return a fully detached copy — same doctrine as
+  // `cloneUser` above: a caller mutating a returned record or one of its Dates
+  // must never corrupt the live store entry.
+  const cloneRecord = (r: RefreshTokenRecord): RefreshTokenRecord => ({
+    ...r,
+    expiresAt: new Date(r.expiresAt),
+    revokedAt: r.revokedAt ? new Date(r.revokedAt) : null,
+    createdAt: new Date(r.createdAt)
+  });
+
+  return {
+    async create(data: CreateRefreshTokenData): Promise<RefreshTokenRecord> {
+      const record: RefreshTokenRecord = {
+        id: randomUUID(),
+        userId: data.userId,
+        tokenHash: data.tokenHash,
+        family: data.family,
+        expiresAt: new Date(data.expiresAt),
+        revokedAt: null,
+        replacedById: null,
+        createdAt: new Date(),
+        userAgent: data.userAgent ?? null,
+        ip: data.ip ?? null
+      };
+      byId.set(record.id, record);
+      byHash.set(record.tokenHash, record.id);
+      return cloneRecord(record);
+    },
+
+    async findByHash(tokenHash: string): Promise<RefreshTokenRecord | null> {
+      const id = byHash.get(tokenHash);
+      if (!id) return null;
+      const record = byId.get(id);
+      return record ? cloneRecord(record) : null;
+    },
+
+    async revoke(id: string, replacedById?: string | null): Promise<boolean> {
+      const record = byId.get(id);
+      // CAS: only the first caller to see a live token wins. Single-threaded
+      // JS makes this check-and-set atomic (no await between read and write).
+      if (!record || record.revokedAt) return false;
+      record.revokedAt = new Date();
+      record.replacedById = replacedById ?? null;
+      return true;
+    },
+
+    async revokeFamily(family: string): Promise<void> {
+      const now = new Date();
+      for (const record of byId.values()) {
+        if (record.family === family && !record.revokedAt) {
+          record.revokedAt = now;
+        }
+      }
+    },
+
+    async revokeAllForUser(userId: string): Promise<void> {
+      const now = new Date();
+      for (const record of byId.values()) {
+        if (record.userId === userId && !record.revokedAt) {
+          record.revokedAt = now;
+        }
+      }
+    },
+
+    async deleteExpired(): Promise<number> {
+      const now = Date.now();
+      let deleted = 0;
+      for (const [id, record] of byId) {
+        if (record.expiresAt.getTime() < now) {
+          byId.delete(id);
+          byHash.delete(record.tokenHash);
+          deleted++;
+        }
+      }
+      return deleted;
+    },
+
+    async listActiveByUser(userId: string): Promise<RefreshTokenRecord[]> {
+      const now = Date.now();
+      return [...byId.values()]
+        .filter((r) => r.userId === userId && !r.revokedAt && r.expiresAt.getTime() > now)
+        .sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime())
+        .map(cloneRecord);
+    },
+
+    async revokeFamilyForUser(userId: string, family: string): Promise<boolean> {
+      const now = new Date();
+      let revoked = false;
+      // Ownership-scoped: only revoke live tokens that are BOTH this family and
+      // this user's. A foreign family id touches nothing → returns false.
+      for (const record of byId.values()) {
+        if (record.userId === userId && record.family === family && !record.revokedAt) {
+          record.revokedAt = now;
+          revoked = true;
+        }
+      }
+      return revoked;
+    },
+
+    async revokeOtherFamiliesForUser(userId: string, keepFamily: string): Promise<void> {
+      const now = new Date();
+      for (const record of byId.values()) {
+        if (record.userId === userId && record.family !== keepFamily && !record.revokedAt) {
+          record.revokedAt = now;
+        }
+      }
     }
   };
 }

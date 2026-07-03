@@ -8,7 +8,7 @@ import { createNotificationsHandlers } from './notifications.js';
  * must scope to `locals.user.id` (set by the auth handle) — the id in the URL
  * alone must never reach another user's rows (IDOR guard), and the service is
  * the layer that enforces that scoping, so these tests assert the exact
- * (id, userId) arguments handed to it.
+ * (userId, id) arguments handed to it.
  */
 
 function mockService(overrides: Partial<NotificationService> = {}): NotificationService {
@@ -102,8 +102,8 @@ describe('createNotificationsHandlers — read.POST', () => {
       event({ user: { id: 'owner-1' }, params: { id: 'n1' } })
     );
     expect(res.status).toBe(200);
-    // (id, userId) order matters: the service scopes the mutation by owner.
-    expect(service.markAsRead).toHaveBeenCalledWith('n1', 'owner-1');
+    // (userId, id) order matters: the service scopes the mutation by owner.
+    expect(service.markAsRead).toHaveBeenCalledWith('owner-1', 'n1');
   });
 });
 
@@ -150,7 +150,7 @@ describe('createNotificationsHandlers — item.DELETE', () => {
       event({ user: { id: 'owner-1' }, params: { id: 'n1' } })
     );
     expect(res.status).toBe(200);
-    expect(service.deleteNotification).toHaveBeenCalledWith('n1', 'owner-1');
+    expect(service.deleteNotification).toHaveBeenCalledWith('owner-1', 'n1');
   });
 });
 

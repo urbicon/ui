@@ -155,7 +155,7 @@ describe('in-memory notification repository', () => {
     expect(await repo.findByUser('u1', { unreadOnly: true })).toHaveLength(2);
     expect(await repo.findByUser('u1', { limit: 1 })).toHaveLength(1);
 
-    await repo.markAsRead(n1.id, 'u1');
+    await repo.markAsRead('u1', n1.id);
     expect(await repo.getUnreadCount('u1')).toBe(1);
 
     await repo.markAllAsRead('u1');
@@ -208,10 +208,10 @@ describe('in-memory passkey repository', () => {
     expect(await repo.updateCounter('cred-1', 0)).toBe(true);
     expect((await repo.findByCredentialId('cred-1'))?.counter).toBe(6);
 
-    await repo.rename('cred-1', 'u1', 'My Key');
+    await repo.rename('u1', 'cred-1', 'My Key');
     expect((await repo.findByCredentialId('cred-1'))?.name).toBe('My Key');
 
-    await repo.delete('cred-1', 'u1');
+    await repo.delete('u1', 'cred-1');
     expect(await repo.findByCredentialId('cred-1')).toBeNull();
   });
 });

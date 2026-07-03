@@ -1,7 +1,7 @@
 import type { RequestEvent } from '@sveltejs/kit';
 import { describe, expect, it, vi } from 'vitest';
 import type { AuthConfig, AuthUser } from '../types.js';
-import { createInMemoryRefreshTokenRepository } from './adapters/in-memory-refresh-token.js';
+import { createInMemoryRefreshTokenRepository } from './adapters/in-memory.js';
 import type { Repositories, UserRepository } from './adapters/types.js';
 import { hashToken } from './auth.js';
 import { createAuthHandle } from './handle.js';
@@ -420,44 +420,51 @@ describe('createAuthHandle — refresh-token rotation', () => {
   }
 
   it('rotates transparently when the access token is missing but the refresh cookie is valid', async () => {
-    const repos = reposWithRefresh();
-    const { token } = await issueRefreshToken(repos.refreshToken!, 'user-1', {
-      refreshTokenTtl: '30d'
-    });
-    const handle = createAuthHandle({ config: rotationConfig, repos });
+    // Fake timers: the replay step below must land OUTSIDE the 10s grace
+    // window, and repo reads return detached copies (backdating a returned
+    // record's revokedAt would not reach the store).
+    vi.useFakeTimers();
+    try {
+      const repos = reposWithRefresh();
+      const { token } = await issueRefreshToken(repos.refreshToken!, 'user-1', {
+        refreshTokenTtl: '30d'
+      });
+      const handle = createAuthHandle({ config: rotationConfig, repos });
 
-    const event = createMockEvent({ path: '/dashboard', refreshCookie: token });
-    const resolve = vi.fn(async () => new Response('OK'));
+      const event = createMockEvent({ path: '/dashboard', refreshCookie: token });
+      const resolve = vi.fn(async () => new Response('OK'));
 
-    await handle({ event: asEvent(event), resolve });
+      await handle({ event: asEvent(event), resolve });
 
-    expect(event.locals.user).toBeDefined();
-    expect((event.locals.user as { id?: string }).id).toBe('user-1');
-    // A fresh access cookie is written
-    expect(
-      (event as { _cookieStore: Map<string, string> })._cookieStore.get('session')
-    ).toBeDefined();
-    // The old refresh token is revoked, the new one is in the cookie
-    const stillSameCookie = (event as { _cookieStore: Map<string, string> })._cookieStore.get(
-      'refresh'
-    );
-    expect(stillSameCookie).toBeDefined();
-    expect(stillSameCookie).not.toBe(token);
+      expect(event.locals.user).toBeDefined();
+      expect((event.locals.user as { id?: string }).id).toBe('user-1');
+      // A fresh access cookie is written
+      expect(
+        (event as { _cookieStore: Map<string, string> })._cookieStore.get('session')
+      ).toBeDefined();
+      // The old refresh token is revoked, the new one is in the cookie
+      const stillSameCookie = (event as { _cookieStore: Map<string, string> })._cookieStore.get(
+        'refresh'
+      );
+      expect(stillSameCookie).toBeDefined();
+      expect(stillSameCookie).not.toBe(token);
 
-    // Reusing the old (now-revoked) refresh token OUTSIDE the grace window
-    // triggers family revoke. Inside the grace window it's treated as a
-    // concurrent-rotation race (see the `race_ok` test below).
-    const predecessor = await repos.refreshToken!.findByHash(hashToken(token));
-    if (predecessor?.revokedAt) predecessor.revokedAt = new Date(Date.now() - 60_000);
+      // Reusing the old (now-revoked) refresh token OUTSIDE the grace window
+      // triggers family revoke. Inside the grace window it's treated as a
+      // concurrent-rotation race (see the `race_ok` test below).
+      vi.advanceTimersByTime(11_000);
 
-    const event2 = createMockEvent({ path: '/api/data', refreshCookie: token });
-    const response2 = await handle({ event: asEvent(event2), resolve });
-    expect(response2.status).toBe(401);
+      const event2 = createMockEvent({ path: '/api/data', refreshCookie: token });
+      const response2 = await handle({ event: asEvent(event2), resolve });
+      expect(response2.status).toBe(401);
 
-    // And the freshly-issued successor is now also revoked
-    const hash = hashToken(stillSameCookie!);
-    const record = await repos.refreshToken!.findByHash(hash);
-    expect(record?.revokedAt).toBeInstanceOf(Date);
+      // And the freshly-issued successor is now also revoked
+      const hash = hashToken(stillSameCookie!);
+      const record = await repos.refreshToken!.findByHash(hash);
+      expect(record?.revokedAt).toBeInstanceOf(Date);
+    } finally {
+      vi.useRealTimers();
+    }
   });
 
   it('mints a session cookie that verifies on the next request (payload round-trip)', async () => {

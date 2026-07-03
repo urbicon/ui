@@ -431,7 +431,7 @@ export function createPasskeyDeleteHandler<R extends string>(
         return authError('validation_error', 400, { message: 'Credential id is required' });
       }
 
-      await deps.repos.passkey.delete(credentialId, user.id);
+      await deps.repos.passkey.delete(user.id, credentialId);
       return json({ success: true });
     }
   };

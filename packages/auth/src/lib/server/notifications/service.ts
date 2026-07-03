@@ -64,10 +64,12 @@ export interface NotificationService {
     userId: string,
     options?: { limit?: number; unreadOnly?: boolean }
   ): Promise<NotificationRecord[]>;
-  markAsRead(id: string, userId: string): Promise<void>;
+  /** Scoped to the owner; owner-first parameter order (see adapters/types.ts). */
+  markAsRead(userId: string, id: string): Promise<void>;
   markAllAsRead(userId: string): Promise<void>;
   getUnreadCount(userId: string): Promise<number>;
-  deleteNotification(id: string, userId: string): Promise<void>;
+  /** Scoped to the owner; owner-first parameter order (see adapters/types.ts). */
+  deleteNotification(userId: string, id: string): Promise<void>;
 }
 
 function resolveString(
@@ -229,8 +231,8 @@ export function createNotificationService(deps: NotificationServiceDeps): Notifi
       return repos.notification.findByUser(userId, options);
     },
 
-    async markAsRead(id, userId) {
-      await repos.notification.markAsRead(id, userId);
+    async markAsRead(userId, id) {
+      await repos.notification.markAsRead(userId, id);
     },
 
     async markAllAsRead(userId) {
@@ -241,8 +243,8 @@ export function createNotificationService(deps: NotificationServiceDeps): Notifi
       return repos.notification.getUnreadCount(userId);
     },
 
-    async deleteNotification(id, userId) {
-      await repos.notification.delete(id, userId);
+    async deleteNotification(userId, id) {
+      await repos.notification.delete(userId, id);
     }
   };
 }

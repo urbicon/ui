@@ -1,6 +1,6 @@
 import type { Cookies, RequestEvent } from '@sveltejs/kit';
 import { describe, expect, it, vi } from 'vitest';
-import { createInMemoryRefreshTokenRepository } from '../adapters/in-memory-refresh-token.js';
+import { createInMemoryRefreshTokenRepository } from '../adapters/in-memory.js';
 import type { RefreshTokenRepository } from '../adapters/types.js';
 import { hashToken } from '../auth.js';
 import type { AuthDeps } from '../deps.js';

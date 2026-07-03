@@ -1,7 +1,7 @@
 import type { Cookies } from '@sveltejs/kit';
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import type { AuthConfig, RefreshTokenConfig } from '../types.js';
-import { createInMemoryRefreshTokenRepository } from './adapters/in-memory-refresh-token.js';
+import { createInMemoryRefreshTokenRepository } from './adapters/in-memory.js';
 import type { FullAuthUser } from './adapters/types.js';
 import { hashToken } from './auth.js';
 import { parseDurationSeconds } from './duration.js';
@@ -158,22 +158,28 @@ describe('rotateRefreshToken', () => {
   });
 
   it('detects reuse of a rotated token outside the grace window and revokes the whole family', async () => {
-    const repo = createInMemoryRefreshTokenRepository();
-    const { token: t1 } = await issueRefreshToken(repo, 'user-1', config);
-    const first = await rotateRefreshToken(repo, t1, findUser, config);
-    expect(first.kind).toBe('rotated');
+    // Fake timers to age the revoke past the grace window: repo reads return
+    // detached copies, so mutating a returned record no longer reaches the
+    // store — the clock itself has to move.
+    vi.useFakeTimers();
+    try {
+      const repo = createInMemoryRefreshTokenRepository();
+      const { token: t1 } = await issueRefreshToken(repo, 'user-1', config);
+      const first = await rotateRefreshToken(repo, t1, findUser, config);
+      expect(first.kind).toBe('rotated');
 
-    // Age the revoke past the grace window so it's no longer a race.
-    const predecessor = await repo.findByHash(hashToken(t1));
-    if (predecessor?.revokedAt) predecessor.revokedAt = new Date(Date.now() - 60_000);
+      vi.advanceTimersByTime(11_000); // grace window is 10s
 
-    const reuse = await rotateRefreshToken(repo, t1, findUser, config);
-    expect(reuse.kind).toBe('reused');
+      const reuse = await rotateRefreshToken(repo, t1, findUser, config);
+      expect(reuse.kind).toBe('reused');
 
-    // The successor that was valid a moment ago must now also be revoked
-    if (first.kind === 'rotated') {
-      const successor = await repo.findByHash(hashToken(first.token));
-      expect(successor?.revokedAt).toBeInstanceOf(Date);
+      // The successor that was valid a moment ago must now also be revoked
+      if (first.kind === 'rotated') {
+        const successor = await repo.findByHash(hashToken(first.token));
+        expect(successor?.revokedAt).toBeInstanceOf(Date);
+      }
+    } finally {
+      vi.useRealTimers();
     }
   });
 
@@ -195,14 +201,19 @@ describe('rotateRefreshToken', () => {
   });
 
   it('returns expired for tokens past their expiresAt', async () => {
-    const repo = createInMemoryRefreshTokenRepository();
-    const { token } = await issueRefreshToken(repo, 'user-1', { refreshTokenTtl: '1s' });
-    // Hand-revise the stored expiresAt so we do not have to sleep
-    const existing = await repo.findByHash(hashToken(token));
-    if (existing) existing.expiresAt = new Date(Date.now() - 1000);
+    // Fake timers instead of sleeping (reads are detached copies — revising
+    // the returned record's expiresAt would not reach the store).
+    vi.useFakeTimers();
+    try {
+      const repo = createInMemoryRefreshTokenRepository();
+      const { token } = await issueRefreshToken(repo, 'user-1', { refreshTokenTtl: '1s' });
+      vi.advanceTimersByTime(2000);
 
-    const outcome = await rotateRefreshToken(repo, token, findUser, config);
-    expect(outcome.kind).toBe('expired');
+      const outcome = await rotateRefreshToken(repo, token, findUser, config);
+      expect(outcome.kind).toBe('expired');
+    } finally {
+      vi.useRealTimers();
+    }
   });
 
   it('returns revoked when the user has been deleted', async () => {
@@ -303,16 +314,23 @@ describe('revokeRefreshFromCookie', () => {
     // rotation replay — burn the whole family so the attacker is locked out.
     const repo = createInMemoryRefreshTokenRepository();
     const { token, record } = await issueRefreshToken(repo, 'user-1', config);
-    const siblingIssue = await issueRefreshToken(repo, 'user-1', config);
-    // Force both into the same family to simulate a rotation sequence
-    siblingIssue.record.family = record.family;
+    // A same-family sibling (a rotation successor), created through the
+    // contract API — reads/creates return detached copies, so reassigning a
+    // returned record's family would not reach the store.
+    const siblingHash = hashToken('sibling-token');
+    await repo.create({
+      userId: 'user-1',
+      tokenHash: siblingHash,
+      family: record.family,
+      expiresAt: new Date(Date.now() + 60_000)
+    });
     await repo.revoke(record.id);
 
     const cookies = makeCookies();
     setRefreshCookie(cookies, token, config);
     await revokeRefreshFromCookie(cookies, repo, config);
 
-    const sibling = await repo.findByHash(hashToken(siblingIssue.token));
+    const sibling = await repo.findByHash(siblingHash);
     expect(sibling?.revokedAt).toBeInstanceOf(Date);
   });
 });
@@ -338,12 +356,20 @@ describe('InMemoryRefreshTokenRepository', () => {
   it('deleteExpired removes only expired rows and returns the count', async () => {
     const repo = createInMemoryRefreshTokenRepository();
     const { record: fresh } = await issueRefreshToken(repo, 'user-1', config);
-    const { token: staleToken } = await issueRefreshToken(repo, 'user-1', config);
-    const stale = await repo.findByHash(hashToken(staleToken));
-    if (stale) stale.expiresAt = new Date(Date.now() - 1000);
+    // Create the stale row through the contract API with a past expiry —
+    // reads are detached copies, so backdating a returned record would not
+    // reach the store.
+    const staleHash = hashToken('stale-token');
+    await repo.create({
+      userId: 'user-1',
+      tokenHash: staleHash,
+      family: 'fam-stale',
+      expiresAt: new Date(Date.now() - 1000)
+    });
 
     const deleted = await repo.deleteExpired();
     expect(deleted).toBe(1);
     expect(await repo.findByHash(fresh.tokenHash)).not.toBeNull();
+    expect(await repo.findByHash(staleHash)).toBeNull();
   });
 });

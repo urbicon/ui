@@ -1,6 +1,6 @@
 import type { RequestEvent } from '@sveltejs/kit';
 import { describe, expect, it, vi } from 'vitest';
-import { createInMemoryRefreshTokenRepository } from '../adapters/in-memory-refresh-token.js';
+import { createInMemoryRefreshTokenRepository } from '../adapters/in-memory.js';
 import type { FullAuthUser, RefreshTokenRepository } from '../adapters/types.js';
 import { hashToken } from '../auth.js';
 import type { AuthDeps } from '../deps.js';
@@ -102,24 +102,29 @@ describe('createRefreshHandler', () => {
   });
 
   it('returns 401 and clears cookies on reuse of a revoked token outside the grace window', async () => {
-    const repo = createInMemoryRefreshTokenRepository();
-    const { token } = await issueRefreshToken(repo, 'user-1', { refreshTokenTtl: '30d' });
+    // Fake timers to age the revoke past the grace window (10s): repo reads
+    // return detached copies, so backdating a returned record's revokedAt
+    // would not reach the store — the clock itself has to move.
+    vi.useFakeTimers();
+    try {
+      const repo = createInMemoryRefreshTokenRepository();
+      const { token } = await issueRefreshToken(repo, 'user-1', { refreshTokenTtl: '30d' });
 
-    // First rotation
-    const handler = createRefreshHandler(makeDeps(true, repo));
-    const event1 = mockEvent({ refresh: token });
-    await handler.POST(event1 as unknown as RequestEvent);
+      // First rotation
+      const handler = createRefreshHandler(makeDeps(true, repo));
+      const event1 = mockEvent({ refresh: token });
+      await handler.POST(event1 as unknown as RequestEvent);
 
-    // Age the revoke past the grace window so the replay is a real reuse
-    // rather than a concurrent-rotation race.
-    const predecessor = await repo.findByHash(hashToken(token));
-    if (predecessor?.revokedAt) predecessor.revokedAt = new Date(Date.now() - 60_000);
+      vi.advanceTimersByTime(11_000);
 
-    // Replay the old token
-    const event2 = mockEvent({ refresh: token });
-    const response = await handler.POST(event2 as unknown as RequestEvent);
-    expect(response.status).toBe(401);
-    expect((event2 as { _store: Map<string, string> })._store.get('refresh')).toBeUndefined();
+      // Replay the old token
+      const event2 = mockEvent({ refresh: token });
+      const response = await handler.POST(event2 as unknown as RequestEvent);
+      expect(response.status).toBe(401);
+      expect((event2 as { _store: Map<string, string> })._store.get('refresh')).toBeUndefined();
+    } finally {
+      vi.useRealTimers();
+    }
   });
 
   it('treats an immediate replay as a concurrent-rotation race and re-issues only the access token', async () => {

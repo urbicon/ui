@@ -304,6 +304,51 @@ export const conformanceChecks: readonly ConformanceCheck[] = [
     expect(await repos.user.findById(user.id), 'user gone after delete').toBeNull();
   }),
 
+  check('user.delete cascades the invitations the user sent', [], async (repos, h) => {
+    // The one dependent the contract makes every adapter delete BY HAND: the
+    // `invitedBy` relation has no schema-level cascade, so the Prisma adapter
+    // pairs `invitation.deleteMany({ invitedById })` with the user delete in a
+    // transaction (and the in-memory bundle mirrors it). The other dependents
+    // (passkeys, tokens, …) ride on `onDelete: Cascade` — a schema guarantee
+    // this store-agnostic suite cannot observe, so it pins exactly the
+    // hand-written half.
+    const inviter = await seedUser(repos, h.role, 'inviter');
+    const other = await seedUser(repos, h.role, 'other');
+    const doomedEmail = `invitee-${nextSeed()}@conformance.test`;
+    await repos.invitation.create({ email: doomedEmail, role: h.role, invitedById: inviter.id });
+    const kept = await repos.invitation.create({
+      email: `kept-${nextSeed()}@conformance.test`,
+      role: h.role,
+      invitedById: other.id
+    });
+
+    await repos.user.delete(inviter.id);
+
+    expect(
+      await repos.invitation.findByEmail(doomedEmail),
+      'sent invitation removed with its inviter'
+    ).toBeNull();
+    expect(
+      await repos.invitation.findByEmail(kept.email),
+      'another inviter’s invitation survives'
+    ).not.toBeNull();
+    expect(await repos.user.findById(other.id), 'unrelated user untouched').not.toBeNull();
+  }),
+
+  // -- User: plain writes persist (happy paths) ----------------------------
+  check('user.updatePassword persists the new hash', [], async (repos, h) => {
+    const user = await seedUser(repos, h.role);
+    await repos.user.updatePassword(user.id, 'new-hash');
+    expect((await repos.user.findById(user.id))?.passwordHash, 'hash replaced').toBe('new-hash');
+  }),
+
+  check('user.setEmailVerified flips the flag', [], async (repos, h) => {
+    const user = await seedUser(repos, h.role);
+    expect((await repos.user.findById(user.id))?.emailVerified).toBe(false);
+    await repos.user.setEmailVerified(user.id);
+    expect((await repos.user.findById(user.id))?.emailVerified, 'flag set').toBe(true);
+  }),
+
   // -- User: TOTP secret lifecycle ----------------------------------------
   check('user.setTotpSecret / enableTotp / disableTotp round-trip', [], async (repos, h) => {
     const user = await seedUser(repos, h.role);
@@ -635,11 +680,33 @@ export const conformanceChecks: readonly ConformanceCheck[] = [
       aaguid: 'aaguid'
     });
 
-    await tolerate(() => repo.delete('cred-1', 'attacker'));
+    await tolerate(() => repo.delete('attacker', 'cred-1'));
     expect(await repo.findByCredentialId('cred-1'), 'non-owner cannot delete').not.toBeNull();
 
-    await repo.delete('cred-1', 'owner');
+    await repo.delete('owner', 'cred-1');
     expect(await repo.findByCredentialId('cred-1'), 'owner can delete').toBeNull();
+  }),
+
+  check('passkey.rename is scoped to the owner', ['passkey'], async (repos) => {
+    const repo = need(repos.passkey, 'passkey');
+    await repo.create('owner', {
+      credentialId: 'cred-1',
+      publicKey: new Uint8Array([1]),
+      publicKeyAlg: -7,
+      counter: 0,
+      aaguid: 'aaguid',
+      name: 'Original'
+    });
+
+    // Same IDOR family as delete: knowing a credentialId must not let another
+    // user relabel it (rename was the one unpinned member of that family).
+    await tolerate(() => repo.rename('attacker', 'cred-1', 'Hijacked'));
+    expect((await repo.findByCredentialId('cred-1'))?.name, 'non-owner cannot rename').toBe(
+      'Original'
+    );
+
+    await repo.rename('owner', 'cred-1', 'My laptop');
+    expect((await repo.findByCredentialId('cred-1'))?.name, 'owner can rename').toBe('My laptop');
   }),
 
   // -- Notification: ownership scope --------------------------------------
@@ -650,17 +717,41 @@ export const conformanceChecks: readonly ConformanceCheck[] = [
       const repo = need(repos.notification, 'notification');
       const n = await repo.create({ userId: 'owner', typeKey: 'security', title: 'New login' });
 
-      await tolerate(() => repo.markAsRead(n.id, 'attacker'));
+      await tolerate(() => repo.markAsRead('attacker', n.id));
       expect(
         (await repo.findByUser('owner'))[0]?.readAt ?? null,
         'non-owner cannot read'
       ).toBeNull();
 
-      await tolerate(() => repo.delete(n.id, 'attacker'));
+      await tolerate(() => repo.delete('attacker', n.id));
       expect(await repo.findByUser('owner'), 'non-owner cannot delete').toHaveLength(1);
 
-      await repo.markAsRead(n.id, 'owner');
+      await repo.markAsRead('owner', n.id);
       expect((await repo.findByUser('owner'))[0]?.readAt, 'owner can read').toBeInstanceOf(Date);
+    }
+  ),
+
+  check(
+    'notification.markAllAsRead and getUnreadCount are scoped to the user',
+    ['notification'],
+    async (repos) => {
+      const repo = need(repos.notification, 'notification');
+      await repo.create({ userId: 'owner', typeKey: 'security', title: 'one' });
+      await repo.create({ userId: 'owner', typeKey: 'security', title: 'two' });
+      const bystander = await repo.create({ userId: 'bystander', typeKey: 'security', title: 'b' });
+
+      expect(await repo.getUnreadCount('owner'), 'both rows start unread').toBe(2);
+
+      await repo.markAllAsRead('owner');
+      expect(await repo.getUnreadCount('owner'), 'all of the owner’s rows read').toBe(0);
+      expect(
+        (await repo.findByUser('owner')).every((n) => n.readAt instanceof Date),
+        'each row carries a read stamp'
+      ).toBe(true);
+
+      // The bulk write must not cross the user boundary.
+      expect(await repo.getUnreadCount('bystander'), 'bystander still unread').toBe(1);
+      expect((await repo.findByUser('bystander'))[0]?.id).toBe(bystander.id);
     }
   ),
 
@@ -695,7 +786,7 @@ export const conformanceChecks: readonly ConformanceCheck[] = [
     const a = await repo.create({ userId: 'owner', typeKey: 'security', title: 'first' });
     const b = await repo.create({ userId: 'owner', typeKey: 'security', title: 'second' });
     const c = await repo.create({ userId: 'owner', typeKey: 'security', title: 'third' });
-    await repo.markAsRead(b.id, 'owner');
+    await repo.markAsRead('owner', b.id);
 
     // The client store's `unreadOnly` toggle rides on this translation
     // (`readAt: null` in SQL adapters) — a wrong filter shows read rows in

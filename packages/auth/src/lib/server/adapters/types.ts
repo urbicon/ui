@@ -70,14 +70,32 @@ export interface CreateInvitationData {
  * and its write (TOCTOU); a throwing adapter turns that harmless race into a
  * 500. The claim methods (`consume*`) signal "nothing claimed" via their
  * `null`/`false` return instead. Enforced by the conformance suite.
+ *
+ * **Email normalization:** every email reaching this repository — as a lookup
+ * argument or inside `CreateUserData` — arrives pre-normalized (trimmed,
+ * lowercased) by the package's input validation. Adapters MUST NOT normalize
+ * again and MUST match/store the value verbatim; whether the underlying store
+ * compares case-sensitively is therefore irrelevant to the contract.
+ *
+ * **Feature tiers:** the interface is one repository (the columns live on one
+ * user row), but its sections below map to features. `findById`…`delete` up to
+ * the lockout group serve the core password flow; the email-change trio only
+ * runs when `createChangeEmailHandler` is mounted; the TOTP trio only when
+ * `config.twoFactor` is wired (alongside the separate, optional
+ * {@link BackupCodeRepository}). An adapter for an app that will never mount a
+ * feature may stub that section with throwing methods — nothing in the package
+ * calls a section whose feature is not mounted — but the shipped adapters
+ * implement everything.
  */
 export interface UserRepository<R extends string = string> {
+  // ---- Identity & credentials (core) ----
   findById(id: string): Promise<FullAuthUser<R> | null>;
   findByEmail(email: string): Promise<FullAuthUser<R> | null>;
   create(data: CreateUserData<R>): Promise<AuthUser<R>>;
   updatePassword(id: string, passwordHash: string): Promise<void>;
   setEmailVerified(id: string): Promise<void>;
 
+  // ---- Email verification ----
   setVerificationToken(id: string, tokenHash: string, expires: Date): Promise<void>;
   /**
    * Atomically claim an email-verification token: mark the matching user as
@@ -89,6 +107,8 @@ export interface UserRepository<R extends string = string> {
    * reusable artifact remains in the store.
    */
   consumeVerificationToken(tokenHash: string): Promise<FullAuthUser<R> | null>;
+
+  // ---- Password reset ----
   setPasswordResetToken(id: string, tokenHash: string, expires: Date): Promise<void>;
   /**
    * Atomically claim a password-reset token: clear it in a single conditional
@@ -99,6 +119,7 @@ export interface UserRepository<R extends string = string> {
    */
   consumeResetToken(tokenHash: string): Promise<FullAuthUser<R> | null>;
 
+  // ---- Session invalidation & lockout (core) ----
   /**
    * Atomically increment the user's token version (invalidates every issued
    * access token). MUST be a single atomic `increment`, not a read-modify-write,
@@ -119,6 +140,7 @@ export interface UserRepository<R extends string = string> {
   recordFailedLogin(id: string, lockoutConfig?: LockoutConfig): Promise<void>;
   resetFailedLogins(id: string): Promise<void>;
 
+  // ---- Profile & account lifecycle (core) ----
   /**
    * Patch mutable profile fields. v1 mutates only `name`; the object shape keeps
    * the contract extensible (more package-owned profile fields later) without an
@@ -130,6 +152,7 @@ export interface UserRepository<R extends string = string> {
    */
   updateProfile(id: string, data: { name?: string }): Promise<void>;
 
+  // ---- Email change (createChangeEmailHandler) ----
   /**
    * Stage a pending email change: store `pendingEmail` plus the SHA-256 token
    * hash and its expiry on the user, overwriting any in-flight change (one
@@ -170,6 +193,7 @@ export interface UserRepository<R extends string = string> {
    */
   delete(id: string): Promise<void>;
 
+  // ---- TOTP two-factor (config.twoFactor; see also BackupCodeRepository) ----
   /**
    * Stage a TOTP secret during 2FA setup: store the **encrypted** secret and
    * force `totpEnabled: false` / `totpConfirmedAt: null`, overwriting any prior
@@ -226,6 +250,7 @@ export interface BackupCodeRepository {
 }
 
 export interface InvitationRepository {
+  /** Emails arrive pre-normalized (see {@link UserRepository}); match verbatim. */
   findByEmail(email: string): Promise<Invitation | null>;
   /**
    * Atomically claim an invitation: flip `usedAt` from null to now in a single
@@ -239,15 +264,24 @@ export interface InvitationRepository {
   delete(id: string): Promise<void>;
 }
 
+/**
+ * **Owner-scope convention:** every method that mutates a single owned row
+ * takes the owner first — `(userId, id)` — matching the rest of the adapter
+ * surface (pushSubscription, backupCode, refreshToken `*ForUser`). With two
+ * `string` parameters a swapped call still compiles; one fixed order across
+ * all repositories is what keeps such a swap greppable and reviewable.
+ */
 export interface NotificationRepository {
   create(data: CreateNotificationData): Promise<NotificationRecord>;
   findByUser(
     userId: string,
     options?: { limit?: number; unreadOnly?: boolean }
   ): Promise<NotificationRecord[]>;
-  markAsRead(id: string, userId: string): Promise<void>;
+  /** Scoped to the owner: a non-owner's call MUST NOT flip the read state. */
+  markAsRead(userId: string, id: string): Promise<void>;
   markAllAsRead(userId: string): Promise<void>;
-  delete(id: string, userId: string): Promise<void>;
+  /** Scoped to the owner: a non-owner's call MUST NOT delete the row. */
+  delete(userId: string, id: string): Promise<void>;
   getUnreadCount(userId: string): Promise<number>;
 }
 
@@ -389,9 +423,10 @@ export interface PasskeyRepository {
    * case implementations only refresh `lastUsedAt` and return `true`.
    */
   updateCounter(credentialId: string, counter: number): Promise<boolean>;
-  updateLastUsed(credentialId: string): Promise<void>;
-  delete(credentialId: string, userId: string): Promise<void>;
-  rename(credentialId: string, userId: string, name: string): Promise<void>;
+  /** Scoped to the owner (owner-first, see {@link NotificationRepository}). */
+  delete(userId: string, credentialId: string): Promise<void>;
+  /** Scoped to the owner (owner-first, see {@link NotificationRepository}). */
+  rename(userId: string, credentialId: string, name: string): Promise<void>;
 }
 
 export interface RefreshTokenRecord {

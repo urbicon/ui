@@ -26,7 +26,6 @@ function mockPasskeyRepo(): PasskeyRepository {
     findByCredentialId: vi.fn().mockResolvedValue(null),
     create: vi.fn(),
     updateCounter: vi.fn().mockResolvedValue(true),
-    updateLastUsed: vi.fn(),
     delete: vi.fn(),
     rename: vi.fn()
   };
