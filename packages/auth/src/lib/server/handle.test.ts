@@ -3,8 +3,9 @@ import { describe, expect, it, vi } from 'vitest';
 import type { AuthConfig, AuthUser } from '../types.js';
 import { createInMemoryRefreshTokenRepository } from './adapters/in-memory-refresh-token.js';
 import type { Repositories, UserRepository } from './adapters/types.js';
-import { createSessionToken, hashToken } from './auth.js';
+import { hashToken } from './auth.js';
 import { createAuthHandle } from './handle.js';
+import { createSessionToken } from './jwt.js';
 import { issueRefreshToken } from './refresh-token.js';
 import {
   createMockInvitationRepository,

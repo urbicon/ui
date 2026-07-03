@@ -3,6 +3,7 @@ import { describe, expect, it, vi } from 'vitest';
 import type { Passkey, PasskeyRepository } from '../adapters/types.js';
 import { setSessionCookie } from '../session.js';
 import { createMockUser, createMockUserRepository } from '../test-utils.js';
+import { createInMemoryChallengeStore } from './challenge-store.js';
 import {
   createPasskeyAuthenticationOptionsHandler,
   createPasskeyAuthenticationVerifyHandler,
@@ -10,7 +11,6 @@ import {
   createPasskeyListHandler,
   type PasskeyHandlerDeps
 } from './handlers.js';
-import { createInMemoryChallengeStore } from './webauthn.js';
 
 /** base64url-encode (no padding) — clientDataJSON is transported this way. */
 const b64url = (s: string) => btoa(s).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');

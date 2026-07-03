@@ -1,7 +1,8 @@
 import type { RequestHandler } from '@sveltejs/kit';
 import { json } from '@sveltejs/kit';
-import { hashPassword, hashToken, validatePasswordStrength } from '../auth.js';
+import { hashToken } from '../auth.js';
 import type { AuthDeps } from '../deps.js';
+import { hashPassword, validatePasswordStrength } from '../password.js';
 import { enforceRateLimit, makeRateLimiter } from '../rate-limit.js';
 import { validateResetPasswordInput } from '../validation.js';
 import { parseBody } from './_shared.js';

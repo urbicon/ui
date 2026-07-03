@@ -45,20 +45,7 @@ export type {
   Repositories,
   UserRepository
 } from './adapters/types.js';
-export type { PasswordVerifyResult } from './auth.js';
-export {
-  createSessionToken,
-  createSignedToken,
-  generateSecureToken,
-  hashPassword,
-  hashToken,
-  sanitizeUser,
-  validatePasswordStrength,
-  verifyPassword,
-  verifyPasswordWithMigration,
-  verifySessionToken,
-  verifySignedToken
-} from './auth.js';
+export { generateSecureToken, hashToken, sanitizeUser } from './auth.js';
 // CSRF
 export { validateCsrf } from './csrf.js';
 export type { AuthDeps } from './deps.js';
@@ -120,6 +107,13 @@ export {
 export { createUpdateProfileHandler } from './handlers/update-profile.js';
 export { createVerifyEmailHandler } from './handlers/verify-email.js';
 export { createVerifyEmailChangeHandler } from './handlers/verify-email-change.js';
+// Session JWT + generic short-lived signed tokens (HS256 on Web Crypto)
+export {
+  createSessionToken,
+  createSignedToken,
+  verifySessionToken,
+  verifySignedToken
+} from './jwt.js';
 export { createNotificationsHandlers } from './notifications/handlers/notifications.js';
 export type { PreferencesHandlerOptions } from './notifications/handlers/preferences.js';
 export { createPreferencesHandler } from './notifications/handlers/preferences.js';
@@ -154,6 +148,7 @@ export { createNotificationService } from './notifications/service.js';
 export type { SSEConnection, SSEManager } from './notifications/sse.js';
 export { createSSEManager } from './notifications/sse.js';
 export type { NotificationTypeDefinition } from './notifications/types.js';
+export { WebAuthnError } from './passkey/errors.js';
 export type { PasskeyHandlerDeps } from './passkey/handlers.js';
 // Passkey / WebAuthn
 export {
@@ -173,9 +168,16 @@ export {
   generateAuthenticationOptions,
   generateRegistrationOptions,
   verifyAssertion,
-  verifyRegistration,
-  WebAuthnError
+  verifyRegistration
 } from './passkey/webauthn.js';
+// Password hashing (PBKDF2 + legacy bcrypt migration) + strength policy
+export type { PasswordVerifyResult } from './password.js';
+export {
+  hashPassword,
+  validatePasswordStrength,
+  verifyPassword,
+  verifyPasswordWithMigration
+} from './password.js';
 export type { RateLimiter, RateLimitResult, RateLimitStore } from './rate-limit.js';
 // Rate limiting
 export { checkRateLimit, createRateLimiter } from './rate-limit.js';

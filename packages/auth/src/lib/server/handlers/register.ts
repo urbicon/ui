@@ -1,16 +1,11 @@
 import type { RequestHandler } from '@sveltejs/kit';
 import { json } from '@sveltejs/kit';
-import {
-  generateSecureToken,
-  hashPassword,
-  hashToken,
-  sanitizeUser,
-  validatePasswordStrength
-} from '../auth.js';
+import { generateSecureToken, hashToken, sanitizeUser } from '../auth.js';
 import type { AuthDeps } from '../deps.js';
 import type { MailBuilder } from '../email/builders.js';
 import { resolveEmailSettings } from '../email/resolve.js';
 import { buildVerificationEmail } from '../email/templates.js';
+import { hashPassword, validatePasswordStrength } from '../password.js';
 import { enforceRateLimit, makeRateLimiter } from '../rate-limit.js';
 import { establishSession, resolveSessionMeta } from '../session.js';
 import { validateRegisterInput } from '../validation.js';

@@ -1,8 +1,8 @@
 import type { Cookies } from '@sveltejs/kit';
 import { describe, expect, it, vi } from 'vitest';
 import type { AuthSession } from '../../types.js';
-import { hashPassword } from '../auth.js';
 import type { AuthDeps } from '../deps.js';
+import { hashPassword } from '../password.js';
 import { setSessionCookie } from '../session.js';
 import { createMockAuthDeps, createMockUser, mockPostEvent } from '../test-utils.js';
 import { parseBody, requireSessionUser, verifyCurrentPassword } from './_shared.js';

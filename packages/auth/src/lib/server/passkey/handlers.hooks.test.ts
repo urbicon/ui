@@ -2,8 +2,9 @@ import type { Cookies, RequestEvent } from '@sveltejs/kit';
 import { describe, expect, it, vi } from 'vitest';
 import type { PasskeyRepository } from '../adapters/types.js';
 import { createMockUser, createMockUserRepository } from '../test-utils.js';
+import { WebAuthnError } from './errors.js';
 import { createPasskeyAuthenticationVerifyHandler, type PasskeyHandlerDeps } from './handlers.js';
-import { verifyAssertion, WebAuthnError } from './webauthn.js';
+import { verifyAssertion } from './webauthn.js';
 
 /**
  * R10 audit-seam parity: the passkey login must fire the same

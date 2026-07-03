@@ -1,8 +1,8 @@
 import type { Cookies } from '@sveltejs/kit';
 import type { JwtConfig } from '../../types.js';
 import type { FullAuthUser, UserRepository } from '../adapters/types.js';
-import { verifyPasswordWithMigration } from '../auth.js';
 import type { AuthDeps } from '../deps.js';
+import { verifyPasswordWithMigration } from '../password.js';
 import { getSessionFromCookie } from '../session.js';
 import { readJsonBody, type ValidationResult } from '../validation.js';
 import { authError } from './errors.js';

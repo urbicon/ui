@@ -22,12 +22,14 @@ vi.mock('./webauthn.js', async (importActual) => {
 import type { Passkey, PasskeyRepository } from '../adapters/types.js';
 import { setSessionCookie } from '../session.js';
 import { createMockUser, createMockUserRepository } from '../test-utils.js';
+import { createInMemoryChallengeStore } from './challenge-store.js';
+import { WebAuthnError } from './errors.js';
 import {
   createPasskeyRegistrationOptionsHandler,
   createPasskeyRegistrationVerifyHandler,
   type PasskeyHandlerDeps
 } from './handlers.js';
-import { createInMemoryChallengeStore, verifyRegistration, WebAuthnError } from './webauthn.js';
+import { verifyRegistration } from './webauthn.js';
 
 const mockedVerify = vi.mocked(verifyRegistration);
 

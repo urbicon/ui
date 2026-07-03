@@ -13,16 +13,16 @@ import { authError } from '../handlers/errors.js';
 import { enforceRateLimit, makeRateLimiter, type RateLimiter } from '../rate-limit.js';
 import { establishSession, resolveSessionMeta } from '../session.js';
 import { readJsonBody } from '../validation.js';
+import { generateChallenge } from './challenge-store.js';
+import { WebAuthnError } from './errors.js';
 import {
   type AuthenticationCredentialJSON,
   generateAuthenticationOptions,
-  generateChallenge,
   generateRegistrationOptions,
   type RegistrationCredentialJSON,
   verifyAssertion,
   verifyRegistration,
-  type WebAuthnConfig,
-  WebAuthnError
+  type WebAuthnConfig
 } from './webauthn.js';
 
 // Passkey authentication is two endpoints (options + verify) that form one

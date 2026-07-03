@@ -1,19 +1,21 @@
 import { describe, expect, it, vi } from 'vitest';
 import { base64UrlDecode, base64UrlEncode } from '../encoding.js';
 import {
-  type AuthenticationCredentialJSON,
   type ChallengeEntry,
   type ChallengeStore,
   consumeChallenge,
   createInMemoryChallengeStore,
-  generateAuthenticationOptions,
   generateChallenge,
+  storeChallenge
+} from './challenge-store.js';
+import { WebAuthnError } from './errors.js';
+import {
+  type AuthenticationCredentialJSON,
+  generateAuthenticationOptions,
   generateRegistrationOptions,
-  storeChallenge,
   verifyAssertion,
   verifyRegistration,
-  type WebAuthnConfig,
-  WebAuthnError
+  type WebAuthnConfig
 } from './webauthn.js';
 
 /** base64url-encode (no padding) — clientDataJSON is transported this way. */

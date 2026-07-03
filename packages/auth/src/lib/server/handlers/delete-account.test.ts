@@ -1,7 +1,7 @@
 import type { Cookies, RequestEvent } from '@sveltejs/kit';
 import { describe, expect, it, vi } from 'vitest';
-import { hashPassword } from '../auth.js';
 import type { AuthDeps } from '../deps.js';
+import { hashPassword } from '../password.js';
 import { setSessionCookie } from '../session.js';
 import { createMockAuthDeps, createMockUser, mockPostEvent } from '../test-utils.js';
 import { createDeleteAccountHandler } from './delete-account.js';

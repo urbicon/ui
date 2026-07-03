@@ -2,9 +2,9 @@ import type { RequestHandler } from '@sveltejs/kit';
 import { describe, expect, it, vi } from 'vitest';
 import type { AuthConfig, AuthUser } from '../../types.js';
 import type { InvitationRepository, UserRepository } from '../adapters/types.js';
-import { createSessionToken } from '../auth.js';
 import type { AuthDeps } from '../deps.js';
 import type { EmailTransport } from '../email/types.js';
+import { createSessionToken } from '../jwt.js';
 import { createMockAuthDeps, createMockInvitation, createMockUser } from '../test-utils.js';
 import { createInvitationHandlers } from './invitation.js';
 

@@ -1,8 +1,9 @@
 import { randomBytes } from 'node:crypto';
 import type { Cookies } from '@sveltejs/kit';
 import type { AuthConfig, TwoFactorConfig } from '../types.js';
-import { createSignedToken, hashToken, verifySignedToken } from './auth.js';
+import { hashToken } from './auth.js';
 import { parseDurationSeconds } from './duration.js';
+import { createSignedToken, verifySignedToken } from './jwt.js';
 import { base32Encode, type TotpAlgorithm } from './totp.js';
 
 /**

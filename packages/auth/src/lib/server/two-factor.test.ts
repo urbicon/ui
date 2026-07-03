@@ -1,7 +1,7 @@
 import type { Cookies } from '@sveltejs/kit';
 import { describe, expect, it } from 'vitest';
 import type { AuthConfig } from '../types.js';
-import { createSignedToken, verifySessionToken } from './auth.js';
+import { createSignedToken, verifySessionToken } from './jwt.js';
 import {
   clearPending2faCookie,
   createPending2faToken,

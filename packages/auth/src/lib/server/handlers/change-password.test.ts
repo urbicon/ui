@@ -1,8 +1,8 @@
 import type { Cookies, RequestEvent } from '@sveltejs/kit';
 import { describe, expect, it, vi } from 'vitest';
 import { createInMemoryRefreshTokenRepository } from '../adapters/in-memory-refresh-token.js';
-import { hashPassword } from '../auth.js';
 import type { AuthDeps } from '../deps.js';
+import { hashPassword } from '../password.js';
 import { setSessionCookie } from '../session.js';
 import { createMockAuthDeps, createMockUser, mockPostEvent } from '../test-utils.js';
 import { createChangePasswordHandler } from './change-password.js';
