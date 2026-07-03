@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
 // The fake Prisma client below mirrors the real `PrismaLike` boundary, which is
 // deliberately `unknown`-in / `any`-out (see adapters/prisma.ts). Typing the
 // fake's query args precisely would re-leak the row model the boundary exists

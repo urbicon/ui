@@ -111,9 +111,9 @@ export function readRefreshCookie(cookies: Cookies, config: RefreshTokenConfig):
   return cookies.get(refreshCookieName(config)) ?? null;
 }
 
-export type RotateOutcome =
-  | { kind: 'rotated'; user: FullAuthUser; token: string; record: RefreshTokenRecord }
-  | { kind: 'race_ok'; user: FullAuthUser }
+export type RotateOutcome<R extends string = string> =
+  | { kind: 'rotated'; user: FullAuthUser<R>; token: string; record: RefreshTokenRecord }
+  | { kind: 'race_ok'; user: FullAuthUser<R> }
   | { kind: 'reused'; userId: string }
   | { kind: 'expired' }
   | { kind: 'revoked' }
@@ -138,12 +138,12 @@ export type RotateOutcome =
  * the access token but leave the refresh cookie untouched — the winner of
  * the race has already written the successor cookie to the same browser jar.
  */
-export async function rotateRefreshToken(
+export async function rotateRefreshToken<R extends string = string>(
   repo: RefreshTokenRepository,
   rawToken: string,
-  findUser: (userId: string) => Promise<FullAuthUser | null>,
+  findUser: (userId: string) => Promise<FullAuthUser<R> | null>,
   config: RefreshTokenConfig
-): Promise<RotateOutcome> {
+): Promise<RotateOutcome<R>> {
   const tokenHash = hashToken(rawToken);
   const existing = await repo.findByHash(tokenHash);
   if (!existing) return { kind: 'not_found' };

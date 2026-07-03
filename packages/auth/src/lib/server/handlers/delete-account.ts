@@ -10,7 +10,7 @@ import { authError } from './errors.js';
 
 /**
  * Self-service account deletion (GDPR erasure, hard-delete). Re-auth gated. The
- * `onAccountDeleted` hook fires *before* the row is removed so the consumer can
+ * `onBeforeAccountDelete` hook fires *before* the row is removed so the consumer can
  * archive; a throwing hook aborts the deletion (fail-closed).
  */
 export function createDeleteAccountHandler<R extends string>(
@@ -40,8 +40,8 @@ export function createDeleteAccountHandler<R extends string>(
       // and the delete are NOT one transaction — if the hook succeeds but the
       // delete then throws, the request 500s with the row intact and the hook
       // re-runs on retry, so the consumer's handler must be idempotent (see the
-      // onAccountDeleted contract in AuthConfig).
-      await deps.config.hooks?.onAccountDeleted?.(sanitizeUser(user));
+      // onBeforeAccountDelete contract in AuthConfig).
+      await deps.config.hooks?.onBeforeAccountDelete?.(sanitizeUser(user));
 
       await deps.repos.user.delete(user.id);
 

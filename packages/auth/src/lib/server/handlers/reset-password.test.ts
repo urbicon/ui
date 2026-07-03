@@ -82,7 +82,7 @@ describe('createResetPasswordHandler', () => {
   });
 
   // Cluster J: the reset-password *consume* handler reads the `resetPassword`
-  // key — deliberately distinct from forgot-password's `passwordReset`. Assert
+  // key — deliberately distinct from forgot-password's `forgotPassword`. Assert
   // it so a future rename can't silently cross-wire (or disable) the limit.
   it('returns 429 once the reset rate limit is exceeded (resetPassword key)', async () => {
     const deps = createMockAuthDeps({

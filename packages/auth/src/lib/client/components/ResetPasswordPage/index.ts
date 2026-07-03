@@ -13,7 +13,10 @@ import type { AuthPageSlotClasses } from '../types.js';
  *
  * @example
  * ```svelte
- * <ResetPasswordPage {t} token={$page.url.searchParams.get('token') ?? ''} />
+ * <script>
+ *   import { page } from '$app/state';
+ * </script>
+ * <ResetPasswordPage {t} token={page.url.searchParams.get('token') ?? ''} />
  * ```
  */
 export interface ResetPasswordPageProps {

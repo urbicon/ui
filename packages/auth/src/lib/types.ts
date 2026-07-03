@@ -294,7 +294,12 @@ export interface AuthConfig<R extends string = string> {
   rateLimit?: {
     login?: RateLimitConfig;
     register?: RateLimitConfig;
-    passwordReset?: RateLimitConfig;
+    /**
+     * Limit for the password-reset *request* handler (`forgot-password`).
+     * Named after its endpoint so it cannot be confused with `resetPassword`,
+     * the consume half of the same flow.
+     */
+    forgotPassword?: RateLimitConfig;
     /** Limit for the password-reset *consume* handler (`reset-password`). */
     resetPassword?: RateLimitConfig;
     /** Limit for the email-verification handler (`verify-email`). */
@@ -413,14 +418,15 @@ export interface AuthConfig<R extends string = string> {
     onEmailChanged?: (userId: string, newEmail: string) => Promise<void>;
     /**
      * Fires immediately **before** a self-service account deletion
-     * (`createDeleteAccountHandler`) removes the row, receiving the sanitized
-     * user so the consumer can archive or anonymise app-owned data while it
-     * still exists. It runs after re-auth and inside the request, so a throw
-     * **aborts** the deletion (fail-closed: don't erase if archiving failed).
-     * Make your handler resilient/idempotent if you don't want a transient
-     * failure to block erasure.
+     * (`createDeleteAccountHandler`) removes the row — the name says so, unlike
+     * the perfect-tense `onAccountDeleted` it replaces (review R24). Receives
+     * the sanitized user so the consumer can archive or anonymise app-owned
+     * data while it still exists. It runs after re-auth and inside the request,
+     * so a throw **aborts** the deletion (fail-closed: don't erase if archiving
+     * failed). Make your handler resilient/idempotent if you don't want a
+     * transient failure to block erasure.
      */
-    onAccountDeleted?: (user: AuthUser<R>) => Promise<void>;
+    onBeforeAccountDelete?: (user: AuthUser<R>) => Promise<void>;
     /**
      * Shape the object placed on `event.locals.user` for every authenticated
      * request. Runs in the handle hook right after the session is resolved and

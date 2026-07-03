@@ -4,7 +4,7 @@ import type { CsrfClientOptions } from '../../csrf.js';
 import type { AuthPageSlotClasses } from '../types.js';
 
 /**
- * @description Auto-verifying email confirmation page. Sends GET to `apiPath` (default `/api/auth/verify-email`) on mount.
+ * @description Auto-verifying email confirmation page. Sends POST `{ token }` to `apiPath` (default `/api/auth/verify-email`) on mount.
  * Pair with `createVerifyEmailHandler(authDeps)` on the server.
  *
  * @tag feedback
@@ -12,7 +12,10 @@ import type { AuthPageSlotClasses } from '../types.js';
  *
  * @example
  * ```svelte
- * <VerifyEmailPage {t} token={$page.url.searchParams.get('token') ?? ''} />
+ * <script>
+ *   import { page } from '$app/state';
+ * </script>
+ * <VerifyEmailPage {t} token={page.url.searchParams.get('token') ?? ''} />
  * ```
  */
 export interface VerifyEmailPageProps {

@@ -171,7 +171,7 @@ describe('createForgotPasswordHandler', () => {
 
   it('returns 429 once the password-reset rate limit is exceeded', async () => {
     const deps = createMockAuthDeps({
-      config: { rateLimit: { passwordReset: { windowMs: 60_000, max: 1 } } },
+      config: { rateLimit: { forgotPassword: { windowMs: 60_000, max: 1 } } },
       user: { findByEmail: vi.fn().mockResolvedValue(null) }
     });
     const handler = createForgotPasswordHandler(deps);

@@ -23,7 +23,7 @@ export function createForgotPasswordHandler<R extends string>(
   deps: AuthDeps<R>,
   options: ForgotPasswordHandlerOptions = {}
 ): { POST: RequestHandler } {
-  const rateLimiter = makeRateLimiter(deps.config.rateLimit?.passwordReset);
+  const rateLimiter = makeRateLimiter(deps.config.rateLimit?.forgotPassword);
 
   return {
     POST: async ({ request, getClientAddress }) => {

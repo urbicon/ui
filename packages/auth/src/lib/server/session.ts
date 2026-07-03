@@ -115,9 +115,9 @@ export function sessionPayload<R extends string>(
  */
 export async function applyRotationOutcome<R extends string>(
   cookies: Cookies,
-  outcome: RotateOutcome,
+  outcome: RotateOutcome<R>,
   config: AuthConfig<R>
-): Promise<FullAuthUser | null> {
+): Promise<FullAuthUser<R> | null> {
   if (outcome.kind === 'rotated') {
     // A rotation can only have happened with refresh tokens configured; fail
     // loud on a caller violating that rather than silently skipping the cookie.

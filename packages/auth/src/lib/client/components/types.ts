@@ -6,7 +6,7 @@
  * ```svelte
  * <LoginPage {t}
  *   slotClasses={{
- *     root: 'bg-gray-50 p-8',
+ *     root: 'bg-surface-quiet p-8',
  *     card: 'shadow-xl max-w-lg',
  *     title: 'text-3xl',
  *     submit: 'rounded-full'

@@ -82,11 +82,8 @@ export function createAuthHandle<R extends string>(options: AuthHandleOptions<R>
   // becomes locals.user). Defined once so the main session path and both
   // refresh-rotation paths stay in sync.
   const transformUser = config.hooks?.transformUser;
-  const resolveLocalsUser = async (e: RequestEvent, user: FullAuthUser): Promise<unknown> => {
-    // The refresh-rotation outcome widens the role to plain `string` (the
-    // rotation helper is not generic over R); the value is the user's real
-    // role, so restore the consumer's role type for the transform.
-    const base = sanitizeUser(user) as AuthUser<R>;
+  const resolveLocalsUser = async (e: RequestEvent, user: FullAuthUser<R>): Promise<unknown> => {
+    const base: AuthUser<R> = sanitizeUser(user);
     return transformUser ? transformUser(base, e) : base;
   };
 

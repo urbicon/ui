@@ -49,10 +49,10 @@ describe('createDeleteAccountHandler', () => {
 
   it('archives via the hook, deletes the user and clears the session cookie', async () => {
     const order: string[] = [];
-    const onAccountDeleted = vi.fn(async () => void order.push('hook'));
+    const onBeforeAccountDelete = vi.fn(async () => void order.push('hook'));
     const user = await reauthableUser();
     const deps = createMockAuthDeps({
-      config: { hooks: { onAccountDeleted } },
+      config: { hooks: { onBeforeAccountDelete } },
       user: { findById: vi.fn().mockResolvedValue(user) }
     });
     (deps.repos.user.delete as ReturnType<typeof vi.fn>).mockImplementation(
@@ -67,7 +67,7 @@ describe('createDeleteAccountHandler', () => {
     // The hook runs BEFORE the row is removed (archive-then-erase), with the
     // sanitized user (no password hash).
     expect(order).toEqual(['hook', 'delete']);
-    expect(onAccountDeleted).toHaveBeenCalledWith(
+    expect(onBeforeAccountDelete).toHaveBeenCalledWith(
       expect.not.objectContaining({ passwordHash: expect.anything() })
     );
     expect(deps.repos.user.delete).toHaveBeenCalledWith('user-1');
@@ -77,7 +77,9 @@ describe('createDeleteAccountHandler', () => {
 
   it('aborts the deletion (fail-closed) when the archive hook throws', async () => {
     const deps = createMockAuthDeps({
-      config: { hooks: { onAccountDeleted: vi.fn().mockRejectedValue(new Error('archive down')) } },
+      config: {
+        hooks: { onBeforeAccountDelete: vi.fn().mockRejectedValue(new Error('archive down')) }
+      },
       user: { findById: vi.fn().mockResolvedValue(await reauthableUser()) }
     });
     const ev = await authed(deps, { currentPassword: 'current' });

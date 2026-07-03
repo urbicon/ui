@@ -188,7 +188,7 @@ export interface UserRepository<R extends string = string> {
    * notifications/push-subscriptions/preferences, but MUST additionally delete
    * the invitations this user *sent* (the `invitedBy` FK has no cascade) —
    * ideally in one transaction with the user delete so the two cannot diverge.
-   * A missing user is a safe no-op. Fire `onAccountDeleted` *before* calling
+   * A missing user is a safe no-op. Fire `onBeforeAccountDelete` *before* calling
    * this (the row, and the data to archive, must still exist).
    */
   delete(id: string): Promise<void>;

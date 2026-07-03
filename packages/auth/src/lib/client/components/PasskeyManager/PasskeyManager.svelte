@@ -74,7 +74,6 @@
       const { options } = await optRes.json();
 
       // 2. Decode challenge and user.id for browser API
-      // eslint-disable-next-line no-undef
       const publicKeyOptions: PublicKeyCredentialCreationOptions = {
         ...options,
         challenge: base64UrlToBuffer(options.challenge),

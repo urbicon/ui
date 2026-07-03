@@ -296,7 +296,7 @@ export const { POST } = createChangePasswordHandler(authDeps);
 All four mutations are **re-auth gated** (current password). change-password keeps the
 current device signed in while logging out every other session; change-email verifies the
 **new** address and is account-enumeration safe (always "check your inbox"); delete-account
-hard-deletes and fires `hooks.onAccountDeleted` **before** erasing so you can archive.
+hard-deletes and fires `hooks.onBeforeAccountDelete` **before** erasing so you can archive.
 
 - **Active-session listing** — show the user their sessions and let them sign devices out. **Requires `refreshToken` rotation** (a session is a token family). Mount the route group and drop in `<SessionManager>`:
 

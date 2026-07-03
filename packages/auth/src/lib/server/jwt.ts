@@ -103,9 +103,10 @@ export async function verifySessionToken<R extends string>(
   const secrets = selectVerifySecrets(config, tokenKid);
   // Iterate every candidate without early break: a timing oracle that reveals
   // which secret matched (primary vs a previousSecret) would let an attacker
-  // target sessions still signed by a compromised retired key.
+  // target sessions still signed by a compromised retired key. A candidate
+  // whose import fails (malformed secret) simply never sets `valid`, so the
+  // all-errored case falls through the `!valid` bail below (fail-closed).
   let valid = false;
-  let importErrors = 0;
   for (const secret of secrets) {
     try {
       if (await hmacVerify(`${header}.${body}`, signature, secret)) valid = true;
@@ -113,7 +114,6 @@ export async function verifySessionToken<R extends string>(
       // A crypto.subtle.importKey rejection means the config has a malformed
       // secret (empty string, non-string). Don't mask as "no session" forever
       // — warn loudly once so consumers notice the broken previousSecrets.
-      importErrors++;
       if (!previousSecretsImportWarned) {
         previousSecretsImportWarned = true;
 
@@ -125,9 +125,6 @@ export async function verifySessionToken<R extends string>(
     }
   }
   if (!valid) return null;
-  // Defensive: if every candidate errored we already bailed via `!valid`, so
-  // this branch is just a paranoia marker for future refactors.
-  void importErrors;
 
   try {
     const payload = JSON.parse(base64UrlDecodeString(body));
