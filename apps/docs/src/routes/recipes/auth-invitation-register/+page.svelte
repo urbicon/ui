@@ -60,7 +60,7 @@ export async function POST({ request, locals }) {
 </scr` +
     `ipt>
 
-<InvitationManager t={en} {roles} basePath="/api/invitations" />`;
+<InvitationManager t={en} {roles} apiPath="/api/invitations" />`;
 </script>
 
 <SeoMeta title={`${title} Recipe`} {description} />

@@ -8,7 +8,7 @@
   let {
     t: tProp,
     vapidPublicKey,
-    subscriptionEndpoint = '/api/notifications/push-subscription',
+    apiPath = '/api/notifications/push-subscription',
     csrf,
     fetcher,
     onSubscribed,
@@ -49,7 +49,7 @@
 
     try {
       const res = await csrfFetch(
-        subscriptionEndpoint,
+        apiPath,
         {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },

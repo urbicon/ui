@@ -37,7 +37,7 @@ export interface LoginPageProps {
   /**
    * API endpoint for the 2FA verify step. When the login response signals
    * `twoFactorRequired`, the page switches to a code-entry step that POSTs here.
-   * Pair with `createTwoFactorVerifyHandler`. @default '/api/auth/2fa/verify'
+   * Pair with `createTwoFactorHandlers().verify`. @default '/api/auth/2fa/verify'
    */
   twoFactorApiPath?: string;
   /** Passkey API base path. Required when mode is `'passkey'` or `'both'`. @default undefined */

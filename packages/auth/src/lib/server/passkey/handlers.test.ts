@@ -1,16 +1,20 @@
 import type { Cookies, RequestEvent } from '@sveltejs/kit';
 import { describe, expect, it, vi } from 'vitest';
 import type { Passkey, PasskeyRepository } from '../adapters/types.js';
+import type { AuthDeps } from '../deps.js';
 import { setSessionCookie } from '../session.js';
-import { createMockUser, createMockUserRepository } from '../test-utils.js';
+import { createMockAuthDeps, createMockUser } from '../test-utils.js';
 import { createInMemoryChallengeStore } from './challenge-store.js';
-import {
-  createPasskeyAuthenticationOptionsHandler,
-  createPasskeyAuthenticationVerifyHandler,
-  createPasskeyDeleteHandler,
-  createPasskeyListHandler,
-  type PasskeyHandlerDeps
-} from './handlers.js';
+import { createPasskeyHandlers } from './handlers.js';
+import type { WebAuthnConfig } from './webauthn.js';
+
+type TestDeps = AuthDeps & {
+  webauthn: WebAuthnConfig;
+  // Non-optional in the test shape so `vi.mocked(deps.repos.passkey.…)` needs
+  // no undefined-guards; the factory itself throws when it is missing.
+  repos: AuthDeps['repos'] & { passkey: PasskeyRepository };
+};
+const passkeyHandlers = (d: TestDeps) => createPasskeyHandlers(d, d.webauthn);
 
 /** base64url-encode (no padding) — clientDataJSON is transported this way. */
 const b64url = (s: string) => btoa(s).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
@@ -42,8 +46,16 @@ function mkPasskey(overrides: Partial<Passkey> = {}): Passkey {
   };
 }
 
-function makeDeps(): PasskeyHandlerDeps {
+function makeDeps(): TestDeps {
+  const base = createMockAuthDeps({
+    config: {
+      jwt: { secret: 's' },
+      rateLimit: { passkeyAuth: { windowMs: 60_000, max: 2 } }
+    }
+  });
   return {
+    ...base,
+    repos: { ...base.repos, passkey: mockPasskeyRepo() },
     // A per-test challenge store keeps the ceremony state isolated from the
     // process-wide default (and from sibling tests).
     webauthn: {
@@ -51,13 +63,7 @@ function makeDeps(): PasskeyHandlerDeps {
       rpName: 'Test',
       origin: 'https://app.test',
       challengeStore: createInMemoryChallengeStore()
-    },
-    authConfig: {
-      appUrl: 'https://app.test',
-      jwt: { secret: 's' },
-      rateLimit: { passkeyAuth: { windowMs: 60_000, max: 2 } }
-    },
-    repos: { passkey: mockPasskeyRepo(), user: createMockUserRepository() }
+    }
   };
 }
 
@@ -97,8 +103,8 @@ describe('passkey auth rate limiting', () => {
   // effective allowance for the single login flow they implement).
   it('shares one rate-limit budget across the options + verify handlers', async () => {
     const deps = makeDeps();
-    const options = createPasskeyAuthenticationOptionsHandler(deps);
-    const verify = createPasskeyAuthenticationVerifyHandler(deps);
+    const options = passkeyHandlers(deps).authenticationOptions;
+    const verify = passkeyHandlers(deps).authenticationVerify;
 
     expect((await options.POST(event({}))).status).toBe(200);
     expect((await options.POST(event({}))).status).toBe(200);
@@ -108,7 +114,7 @@ describe('passkey auth rate limiting', () => {
   });
 
   it('keeps budgets separate per client IP', async () => {
-    const options = createPasskeyAuthenticationOptionsHandler(makeDeps());
+    const options = passkeyHandlers(makeDeps()).authenticationOptions;
     expect((await options.POST(event({}, { ip: 'ip-a' }))).status).toBe(200);
     expect((await options.POST(event({}, { ip: 'ip-a' }))).status).toBe(200);
     expect((await options.POST(event({}, { ip: 'ip-a' }))).status).toBe(429);
@@ -118,8 +124,8 @@ describe('passkey auth rate limiting', () => {
 
   it('does not rate-limit when passkeyAuth is unconfigured', async () => {
     const deps = makeDeps();
-    deps.authConfig.rateLimit = undefined;
-    const options = createPasskeyAuthenticationOptionsHandler(deps);
+    deps.config.rateLimit = undefined;
+    const options = passkeyHandlers(deps).authenticationOptions;
     for (let i = 0; i < 5; i++) {
       expect((await options.POST(event({}))).status).toBe(200);
     }
@@ -134,7 +140,7 @@ describe('passkey auth rate limiting', () => {
 describe('passkey auth — ceremony-handle binding (G.1)', () => {
   it('options stores the challenge under the ceremony cookie value', async () => {
     const deps = makeDeps();
-    const options = createPasskeyAuthenticationOptionsHandler(deps);
+    const options = passkeyHandlers(deps).authenticationOptions;
     const jar = makeCookieJar();
 
     const res = await options.POST(event({}, { jar }));
@@ -152,15 +158,15 @@ describe('passkey auth — ceremony-handle binding (G.1)', () => {
   it('options uses the __Host- prefixed cookie name on a secure (HTTPS) config', async () => {
     const deps = makeDeps(); // jwt.cookieSecure unset → secure default
     const jar = makeCookieJar();
-    await createPasskeyAuthenticationOptionsHandler(deps).POST(event({}, { jar }));
+    await passkeyHandlers(deps).authenticationOptions.POST(event({}, { jar }));
     expect([...jar.store.keys()][0]).toMatch(/^__Host-/);
   });
 
   it('options falls back to the bare cookie name when cookieSecure is false (dev)', async () => {
     const deps = makeDeps();
-    deps.authConfig.jwt.cookieSecure = false;
+    deps.config.jwt.cookieSecure = false;
     const jar = makeCookieJar();
-    await createPasskeyAuthenticationOptionsHandler(deps).POST(event({}, { jar }));
+    await passkeyHandlers(deps).authenticationOptions.POST(event({}, { jar }));
     expect([...jar.store.keys()][0]).not.toMatch(/^__Host-/);
   });
 
@@ -171,7 +177,7 @@ describe('passkey auth — ceremony-handle binding (G.1)', () => {
       mkPasskey({ credentialId: 'c1' }),
       mkPasskey({ credentialId: 'c2' })
     ]);
-    const options = createPasskeyAuthenticationOptionsHandler(deps);
+    const options = passkeyHandlers(deps).authenticationOptions;
 
     const { options: opts } = await (await options.POST(event({ email: 'u1@test.com' }))).json();
     expect(opts.allowCredentials.map((c: { id: string }) => c.id)).toEqual(['c1', 'c2']);
@@ -191,8 +197,8 @@ describe('passkey auth — ceremony-handle binding (G.1)', () => {
     // "Challenge expired or not found"; the fix consumes it under the cookie's
     // handle, so the ceremony advances PAST the challenge gate.
     vi.mocked(deps.repos.passkey.findByCredentialId).mockResolvedValue(mkPasskey());
-    const options = createPasskeyAuthenticationOptionsHandler(deps);
-    const verify = createPasskeyAuthenticationVerifyHandler(deps);
+    const options = passkeyHandlers(deps).authenticationOptions;
+    const verify = passkeyHandlers(deps).authenticationVerify;
     const jar = makeCookieJar();
 
     const { options: opts } = await (await options.POST(event({}, { jar }))).json();
@@ -229,8 +235,8 @@ describe('passkey auth — ceremony-handle binding (G.1)', () => {
   it('a wrong challenge under a valid ceremony handle reports a mismatch (handle was resolved)', async () => {
     const deps = makeDeps();
     vi.mocked(deps.repos.passkey.findByCredentialId).mockResolvedValue(mkPasskey());
-    const options = createPasskeyAuthenticationOptionsHandler(deps);
-    const verify = createPasskeyAuthenticationVerifyHandler(deps);
+    const options = passkeyHandlers(deps).authenticationOptions;
+    const verify = passkeyHandlers(deps).authenticationVerify;
     const jar = makeCookieJar();
 
     await options.POST(event({}, { jar }));
@@ -264,7 +270,7 @@ describe('passkey auth — ceremony-handle binding (G.1)', () => {
   it('verify without a ceremony cookie fails closed', async () => {
     const deps = makeDeps();
     vi.mocked(deps.repos.passkey.findByCredentialId).mockResolvedValue(mkPasskey());
-    const verify = createPasskeyAuthenticationVerifyHandler(deps);
+    const verify = passkeyHandlers(deps).authenticationVerify;
 
     // No options call → no cookie in the jar.
     const res = await verify.POST(
@@ -290,8 +296,8 @@ describe('passkey auth — ceremony-handle binding (G.1)', () => {
   it('verify consumes the ceremony cookie (single-use)', async () => {
     const deps = makeDeps();
     vi.mocked(deps.repos.passkey.findByCredentialId).mockResolvedValue(mkPasskey());
-    const options = createPasskeyAuthenticationOptionsHandler(deps);
-    const verify = createPasskeyAuthenticationVerifyHandler(deps);
+    const options = passkeyHandlers(deps).authenticationOptions;
+    const verify = passkeyHandlers(deps).authenticationVerify;
     const jar = makeCookieJar();
 
     await options.POST(event({}, { jar }));
@@ -316,8 +322,8 @@ describe('passkey auth — ceremony-handle binding (G.1)', () => {
 
   it('burns the ceremony cookie even on a malformed verify body (no replay after bad input)', async () => {
     const deps = makeDeps();
-    const options = createPasskeyAuthenticationOptionsHandler(deps);
-    const verify = createPasskeyAuthenticationVerifyHandler(deps);
+    const options = passkeyHandlers(deps).authenticationOptions;
+    const verify = passkeyHandlers(deps).authenticationVerify;
     const jar = makeCookieJar();
 
     await options.POST(event({}, { jar }));
@@ -335,7 +341,7 @@ describe('passkey auth — ceremony-handle binding (G.1)', () => {
 // (requireSessionUser, R5) — an authenticated event carries a real signed
 // session cookie plus a matching findById row.
 async function sessionEvent(
-  deps: PasskeyHandlerDeps,
+  deps: TestDeps,
   extra: { params?: Record<string, string> } = {}
 ): Promise<RequestEvent> {
   const user = createMockUser({ id: 'real-user-99' });
@@ -344,15 +350,15 @@ async function sessionEvent(
   await setSessionCookie(
     jar.cookies,
     { userId: user.id, email: user.email, role: user.role, tokenVersion: user.tokenVersion },
-    deps.authConfig.jwt
+    deps.config.jwt
   );
   return { cookies: jar.cookies, params: extra.params ?? {} } as unknown as RequestEvent;
 }
 
-describe('createPasskeyListHandler — GET', () => {
+describe('createPasskeyHandlers — list.GET', () => {
   it('returns 401 when unauthenticated', async () => {
     const deps = makeDeps();
-    const res = await createPasskeyListHandler(deps).GET({
+    const res = await passkeyHandlers(deps).list.GET({
       cookies: makeCookieJar().cookies
     } as unknown as RequestEvent);
     expect(res.status).toBe(401);
@@ -368,7 +374,7 @@ describe('createPasskeyListHandler — GET', () => {
     });
     deps.repos.passkey.findByUserId = vi.fn().mockResolvedValue([stored]);
 
-    const res = await createPasskeyListHandler(deps).GET(await sessionEvent(deps));
+    const res = await passkeyHandlers(deps).list.GET(await sessionEvent(deps));
     expect(res.status).toBe(200);
     expect(deps.repos.passkey.findByUserId).toHaveBeenCalledWith('real-user-99');
 
@@ -388,10 +394,10 @@ describe('createPasskeyListHandler — GET', () => {
   });
 });
 
-describe('createPasskeyDeleteHandler — DELETE', () => {
+describe('createPasskeyHandlers — item.DELETE', () => {
   it('returns 401 when unauthenticated', async () => {
     const deps = makeDeps();
-    const res = await createPasskeyDeleteHandler(deps).DELETE({
+    const res = await passkeyHandlers(deps).item.DELETE({
       cookies: makeCookieJar().cookies,
       params: { credentialId: 'cred-abc' }
     } as unknown as RequestEvent);
@@ -401,14 +407,14 @@ describe('createPasskeyDeleteHandler — DELETE', () => {
 
   it('returns 400 without a credentialId param', async () => {
     const deps = makeDeps();
-    const res = await createPasskeyDeleteHandler(deps).DELETE(await sessionEvent(deps));
+    const res = await passkeyHandlers(deps).item.DELETE(await sessionEvent(deps));
     expect(res.status).toBe(400);
     expect(deps.repos.passkey.delete).not.toHaveBeenCalled();
   });
 
   it('deletes owner-scoped: (userId, credentialId) in that order', async () => {
     const deps = makeDeps();
-    const res = await createPasskeyDeleteHandler(deps).DELETE(
+    const res = await passkeyHandlers(deps).item.DELETE(
       await sessionEvent(deps, { params: { credentialId: 'cred-abc' } })
     );
     expect(res.status).toBe(200);
@@ -429,10 +435,10 @@ describe('passkey self-service — session revalidation (R5)', () => {
     await setSessionCookie(
       jar.cookies,
       { userId: user.id, email: user.email, role: user.role, tokenVersion: 4 }, // stale
-      deps.authConfig.jwt
+      deps.config.jwt
     );
 
-    const res = await createPasskeyListHandler(deps).GET({
+    const res = await passkeyHandlers(deps).list.GET({
       cookies: jar.cookies
     } as unknown as RequestEvent);
     expect(res.status).toBe(401);

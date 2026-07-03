@@ -2,4 +2,4 @@
   import { SessionManager } from '@urbicon-ui/auth';
 </script>
 
-<SessionManager basePath="/api/auth/sessions" />
+<SessionManager apiPath="/api/auth/sessions" />

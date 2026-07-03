@@ -6,4 +6,4 @@
   let { user }: { user: AuthUser | null } = $props();
 </script>
 
-<TwoFactorManager {user} basePath="/api/auth/account/2fa" />
+<TwoFactorManager {user} apiPath="/api/auth/account/2fa" />

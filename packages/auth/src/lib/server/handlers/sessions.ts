@@ -37,15 +37,42 @@ async function currentFamily<R extends string>(
 }
 
 /**
- * GET — list the authenticated user's active sessions. Requires
- * `config.refreshToken` rotation (a session is a refresh-token family); without
- * it there is nothing server-side to list, so the response is an empty list
- * with `available: false`. The session of the current request is flagged
- * `current: true`.
+ * The session-management route group behind `<SessionManager>` — one bundled
+ * factory (the package's multi-route convention). Requires
+ * `config.refreshToken` rotation (a session is a refresh-token family). Mount
+ * the groups on the paths the client component calls (default base
+ * `/api/auth/sessions`):
+ *
+ * ```ts
+ * const sessions = createSessionsHandlers(deps);
+ * // src/routes/api/auth/sessions/+server.ts               → export const GET = sessions.list.GET;
+ * // src/routes/api/auth/sessions/revoke/+server.ts        → export const POST = sessions.revoke.POST;
+ * // src/routes/api/auth/sessions/revoke-others/+server.ts → export const POST = sessions.revokeOthers.POST;
+ * ```
+ *
+ * - `list` — the caller's active sessions, newest first; the current request's
+ *   session is flagged `current: true`. Without rotation configured the
+ *   response is an empty list with `available: false`.
+ * - `revoke` — revoke one session by family id (from `params.id` or the body
+ *   `{ id }`). Ownership-scoped: a foreign/guessed id returns 404 (IDOR
+ *   defense). Revoking the current session is allowed (remote sign-out).
+ * - `revokeOthers` — revoke every session except the current one.
  */
-export function createListSessionsHandler<R extends string>(
+export function createSessionsHandlers<R extends string>(
   deps: AuthDeps<R>
-): { GET: RequestHandler } {
+): {
+  list: { GET: RequestHandler };
+  revoke: { POST: RequestHandler };
+  revokeOthers: { POST: RequestHandler };
+} {
+  return {
+    list: listSessionsHandler(deps),
+    revoke: revokeSessionHandler(deps),
+    revokeOthers: revokeOtherSessionsHandler(deps)
+  };
+}
+
+function listSessionsHandler<R extends string>(deps: AuthDeps<R>): { GET: RequestHandler } {
   return {
     GET: async (event) => {
       const user = await requireSessionUser(deps, event.cookies);
@@ -83,16 +110,7 @@ export function createListSessionsHandler<R extends string>(
   };
 }
 
-/**
- * POST — revoke a single session by its family id (from `params.id` or the JSON
- * body `{ id }`). Ownership-scoped: revoking a family that isn't the caller's
- * returns 404 (an attacker knowing/guessing a family id can't sign out another
- * user — IDOR defense). Revoking the current session is allowed (remote
- * sign-out of this device).
- */
-export function createRevokeSessionHandler<R extends string>(
-  deps: AuthDeps<R>
-): { POST: RequestHandler } {
+function revokeSessionHandler<R extends string>(deps: AuthDeps<R>): { POST: RequestHandler } {
   return {
     POST: async (event) => {
       const user = await requireSessionUser(deps, event.cookies);
@@ -118,14 +136,7 @@ export function createRevokeSessionHandler<R extends string>(
   };
 }
 
-/**
- * POST — revoke every session except the current one ("sign out all other
- * devices"). Scoped to the caller; the current family (resolved from the
- * request's refresh cookie) is kept signed in.
- */
-export function createRevokeOtherSessionsHandler<R extends string>(
-  deps: AuthDeps<R>
-): { POST: RequestHandler } {
+function revokeOtherSessionsHandler<R extends string>(deps: AuthDeps<R>): { POST: RequestHandler } {
   return {
     POST: async (event) => {
       const user = await requireSessionUser(deps, event.cookies);

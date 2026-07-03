@@ -4,7 +4,7 @@ import type { CsrfClientOptions } from '../../csrf.js';
 
 /**
  * @description Self-service account-settings panel: change name, email and
- * password, and delete the account. Each section talks to `basePath` (default
+ * password, and delete the account. Each section talks to `apiPath` (default
  * `/api/auth/account`); pair them with the server handlers
  * `createUpdateProfileHandler`, `createChangeEmailHandler`,
  * `createChangePasswordHandler` and `createDeleteAccountHandler`.
@@ -32,7 +32,7 @@ export interface AccountSettingsProps {
    */
   t?: PartialAuthLocale;
   /** API base path for the account endpoints. @default '/api/auth/account' */
-  basePath?: string;
+  apiPath?: string;
   /** CSRF cookie/header names — only needed when the server overrides the defaults via `config.csrf`. Mutating requests echo the token automatically. */
   csrf?: CsrfClientOptions;
   /** Custom fetch implementation for all API calls. Defaults to the global `fetch`. Useful for mock backends in demos/tests or custom retry/auth layers. */

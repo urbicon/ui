@@ -203,7 +203,17 @@ export function createAuthHandle<R extends string>(options: AuthHandleOptions<R>
         if (isApiRoute) {
           return jsonUnauthorized();
         }
-        throw redirect(302, loginPage);
+        // Preserve the deep link: append the requested path so the login flow
+        // can send the user back after signing in. GET/HEAD only — re-issuing
+        // a guarded POST target as a post-login GET navigation would be wrong.
+        // Consumers MUST pass the param through `sanitizeRedirect` before
+        // navigating (it is attacker-writable, like any query param).
+        let target = loginPage;
+        if (event.request.method === 'GET' || event.request.method === 'HEAD') {
+          const requested = event.url.pathname + event.url.search;
+          target += `${loginPage.includes('?') ? '&' : '?'}redirectTo=${encodeURIComponent(requested)}`;
+        }
+        throw redirect(302, target);
       }
     }
 

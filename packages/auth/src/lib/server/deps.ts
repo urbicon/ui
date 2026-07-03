@@ -2,6 +2,7 @@ import type { AuthConfig, AuthLogger, LockoutConfig, RateLimitConfig } from '../
 import type {
   BackupCodeRepository,
   InvitationRepository,
+  PasskeyRepository,
   RefreshTokenRepository,
   UserRepository
 } from './adapters/types.js';
@@ -25,6 +26,12 @@ export interface AuthDeps<R extends string = string> {
      * the SHA-256-hashed recovery codes the 2FA flow issues at enable.
      */
     backupCode?: BackupCodeRepository;
+    /**
+     * Optional — required only when the passkey route group
+     * (`createPasskeyHandlers`) is mounted; that factory throws at wiring time
+     * when it is missing. Pass the adapter's `passkey` field.
+     */
+    passkey?: PasskeyRepository;
   };
   email: EmailTransport;
   /**

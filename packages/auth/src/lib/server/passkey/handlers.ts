@@ -1,12 +1,9 @@
 import type { Cookies, RequestHandler } from '@sveltejs/kit';
 import { json } from '@sveltejs/kit';
-import type { AuthConfig, RateLimitConfig } from '../../types.js';
-import type {
-  PasskeyRepository,
-  RefreshTokenRepository,
-  UserRepository
-} from '../adapters/types.js';
+import type { RateLimitConfig } from '../../types.js';
+import type { PasskeyRepository } from '../adapters/types.js';
 import { sanitizeUser } from '../auth.js';
+import type { AuthDeps } from '../deps.js';
 import { base64UrlDecode } from '../encoding.js';
 import { requireSessionUser } from '../handlers/_shared.js';
 import { authError } from '../handlers/errors.js';
@@ -62,43 +59,88 @@ function webauthnAuthCookieName(secure: boolean): string {
   return secure ? `__Host-${WEBAUTHN_AUTH_COOKIE}` : WEBAUTHN_AUTH_COOKIE;
 }
 
-export interface PasskeyHandlerDeps<R extends string = string> {
-  webauthn: WebAuthnConfig;
-  authConfig: AuthConfig<R>;
-  repos: {
-    passkey: PasskeyRepository;
-    user: UserRepository<R>;
-    /** Required when `authConfig.refreshToken` is set. */
-    refreshToken?: RefreshTokenRepository;
+/**
+ * The full passkey route group: the four WebAuthn ceremony endpoints plus the
+ * self-service list/delete pair behind `<PasskeyManager>`. One bundled factory
+ * (the package's multi-route convention, like `createInvitationHandlers` /
+ * `createNotificationsHandlers`) over the canonical `AuthDeps` bundle; the
+ * WebAuthn ceremony config rides as the second argument. Mount the groups on
+ * the paths the client components call (default base `/api/auth/passkey`):
+ *
+ * ```ts
+ * const passkey = createPasskeyHandlers(deps, webauthnConfig);
+ * // …/registration-options/+server.ts    → export const POST = passkey.registrationOptions.POST;
+ * // …/registration-verify/+server.ts     → export const POST = passkey.registrationVerify.POST;
+ * // …/authentication-options/+server.ts  → export const POST = passkey.authenticationOptions.POST;
+ * // …/authentication-verify/+server.ts   → export const POST = passkey.authenticationVerify.POST;
+ * // …/list/+server.ts                    → export const GET = passkey.list.GET;
+ * // …/[credentialId]/+server.ts          → export const DELETE = passkey.item.DELETE;
+ * ```
+ *
+ * (The static sibling routes take precedence over the `[credentialId]` param
+ * route, so all six share the base path.) Requires `deps.repos.passkey` —
+ * throws at wiring time when it is missing (fail-loud, not a latent 500).
+ */
+export function createPasskeyHandlers<R extends string>(
+  deps: AuthDeps<R>,
+  webauthn: WebAuthnConfig
+): {
+  registrationOptions: { POST: RequestHandler };
+  registrationVerify: { POST: RequestHandler };
+  authenticationOptions: { POST: RequestHandler };
+  authenticationVerify: { POST: RequestHandler };
+  list: { GET: RequestHandler };
+  item: { DELETE: RequestHandler };
+} {
+  const passkeyRepo = deps.repos.passkey;
+  if (!passkeyRepo) {
+    throw new Error(
+      'createPasskeyHandlers: deps.repos.passkey is required — pass the adapter’s passkey repository.'
+    );
+  }
+
+  // Resolve the authenticated caller from the session cookie — the same path
+  // the account handlers use — instead of `locals.user`: a consumer's
+  // `transformUser` hook may reshape locals arbitrarily, which used to break
+  // these handlers silently (`user.id === undefined` flowing into repo
+  // lookups, review finding R5). Cookie resolution also re-validates
+  // `tokenVersion`.
+  const sessionUser = (cookies: Cookies) => requireSessionUser(deps, cookies);
+
+  return {
+    registrationOptions: registrationOptionsHandler(deps, webauthn, passkeyRepo, sessionUser),
+    registrationVerify: registrationVerifyHandler(deps, webauthn, passkeyRepo, sessionUser),
+    authenticationOptions: authenticationOptionsHandler(deps, webauthn, passkeyRepo),
+    authenticationVerify: authenticationVerifyHandler(deps, webauthn, passkeyRepo),
+    list: listHandler(passkeyRepo, sessionUser),
+    item: deleteHandler(passkeyRepo, sessionUser)
   };
 }
 
-// Resolve the authenticated caller from the session cookie — the same path
-// the account handlers use — instead of `locals.user`: a consumer's
-// `transformUser` hook may reshape locals arbitrarily, which used to break
-// these handlers silently (`user.id === undefined` flowing into repo lookups,
-// review finding R5). Cookie resolution also re-validates `tokenVersion`.
-function sessionUser<R extends string>(deps: PasskeyHandlerDeps<R>, cookies: Cookies) {
-  return requireSessionUser({ config: deps.authConfig, repos: deps.repos }, cookies);
-}
+type SessionUserResolver<R extends string> = (
+  cookies: Cookies
+) => ReturnType<typeof requireSessionUser<R>>;
 
 // ---- Registration Options ----
 
-export function createPasskeyRegistrationOptionsHandler<R extends string>(
-  deps: PasskeyHandlerDeps<R>
+function registrationOptionsHandler<R extends string>(
+  _deps: AuthDeps<R>,
+  webauthn: WebAuthnConfig,
+  passkeyRepo: PasskeyRepository,
+  sessionUser: SessionUserResolver<R>
 ): { POST: RequestHandler } {
   return {
     POST: async ({ cookies }) => {
-      const user = await sessionUser(deps, cookies);
+      const user = await sessionUser(cookies);
       if (!user) {
         return authError('not_authenticated', 401);
       }
 
-      const existing = await deps.repos.passkey.findByUserId(user.id);
+      const existing = await passkeyRepo.findByUserId(user.id);
       const existingIds = existing.map((p) => p.credentialId);
 
       const options = await generateRegistrationOptions(
-        deps.webauthn,
+        webauthn,
         { id: user.id, name: user.email, displayName: user.name },
         existingIds
       );
@@ -110,12 +152,15 @@ export function createPasskeyRegistrationOptionsHandler<R extends string>(
 
 // ---- Registration Verify ----
 
-export function createPasskeyRegistrationVerifyHandler<R extends string>(
-  deps: PasskeyHandlerDeps<R>
+function registrationVerifyHandler<R extends string>(
+  _deps: AuthDeps<R>,
+  webauthn: WebAuthnConfig,
+  passkeyRepo: PasskeyRepository,
+  sessionUser: SessionUserResolver<R>
 ): { POST: RequestHandler } {
   return {
     POST: async ({ request, cookies }) => {
-      const user = await sessionUser(deps, cookies);
+      const user = await sessionUser(cookies);
       if (!user) {
         return authError('not_authenticated', 401);
       }
@@ -130,9 +175,9 @@ export function createPasskeyRegistrationVerifyHandler<R extends string>(
           return authError('validation_error', 400, { message: 'Credential is required' });
         }
 
-        const verified = await verifyRegistration(deps.webauthn, user.id, credential);
+        const verified = await verifyRegistration(webauthn, user.id, credential);
 
-        const passkey = await deps.repos.passkey.create(user.id, {
+        const passkey = await passkeyRepo.create(user.id, {
           credentialId: verified.credentialId,
           publicKey: verified.publicKey,
           publicKeyAlg: verified.publicKeyAlg,
@@ -165,10 +210,12 @@ export function createPasskeyRegistrationVerifyHandler<R extends string>(
 
 // ---- Authentication Options ----
 
-export function createPasskeyAuthenticationOptionsHandler<R extends string>(
-  deps: PasskeyHandlerDeps<R>
+function authenticationOptionsHandler<R extends string>(
+  deps: AuthDeps<R>,
+  webauthn: WebAuthnConfig,
+  passkeyRepo: PasskeyRepository
 ): { POST: RequestHandler } {
-  const rateLimiter = sharedPasskeyAuthLimiter(deps.authConfig.rateLimit?.passkeyAuth);
+  const rateLimiter = sharedPasskeyAuthLimiter(deps.config.rateLimit?.passkeyAuth);
 
   return {
     POST: async ({ request, cookies, getClientAddress }) => {
@@ -187,7 +234,7 @@ export function createPasskeyAuthenticationOptionsHandler<R extends string>(
       if (email) {
         const user = await deps.repos.user.findByEmail(email);
         if (user) {
-          const passkeys = await deps.repos.passkey.findByUserId(user.id);
+          const passkeys = await passkeyRepo.findByUserId(user.id);
           credentialIds = passkeys.map((p) => p.credentialId);
         }
       }
@@ -204,9 +251,9 @@ export function createPasskeyAuthenticationOptionsHandler<R extends string>(
       // `generateAuthenticationOptions` mints the real challenge separately and
       // stores it under this handle. (We reuse the package's CSPRNG primitive.)
       const ceremonyId = generateChallenge();
-      const options = await generateAuthenticationOptions(deps.webauthn, ceremonyId, credentialIds);
+      const options = await generateAuthenticationOptions(webauthn, ceremonyId, credentialIds);
 
-      const secure = deps.authConfig.jwt.cookieSecure !== false;
+      const secure = deps.config.jwt.cookieSecure !== false;
       cookies.set(webauthnAuthCookieName(secure), ceremonyId, {
         path: '/',
         httpOnly: true,
@@ -217,7 +264,7 @@ export function createPasskeyAuthenticationOptionsHandler<R extends string>(
         // never needs to survive a cross-site top-level navigation.
         sameSite: 'strict',
         // Expire the pointer with the challenge it points at (default 5 min).
-        maxAge: Math.ceil((deps.webauthn.challengeTimeout ?? 300_000) / 1000)
+        maxAge: Math.ceil((webauthn.challengeTimeout ?? 300_000) / 1000)
       });
 
       return json({ options });
@@ -227,10 +274,12 @@ export function createPasskeyAuthenticationOptionsHandler<R extends string>(
 
 // ---- Authentication Verify ----
 
-export function createPasskeyAuthenticationVerifyHandler<R extends string>(
-  deps: PasskeyHandlerDeps<R>
+function authenticationVerifyHandler<R extends string>(
+  deps: AuthDeps<R>,
+  webauthn: WebAuthnConfig,
+  passkeyRepo: PasskeyRepository
 ): { POST: RequestHandler } {
-  const rateLimiter = sharedPasskeyAuthLimiter(deps.authConfig.rateLimit?.passkeyAuth);
+  const rateLimiter = sharedPasskeyAuthLimiter(deps.config.rateLimit?.passkeyAuth);
 
   // Audit-seam parity with the password login (review finding R10): every
   // terminal outcome of a passkey login fires the same consumer hooks, so an
@@ -238,7 +287,7 @@ export function createPasskeyAuthenticationVerifyHandler<R extends string>(
   // the ceremony fails before a user is resolved — discoverable login knows no
   // email up front; the reason string disambiguates.
   const loginFailed = (email: string, reason: string) =>
-    deps.authConfig.hooks?.onLoginFailed?.(email, reason);
+    deps.config.hooks?.onLoginFailed?.(email, reason);
 
   return {
     POST: async (event) => {
@@ -251,7 +300,7 @@ export function createPasskeyAuthenticationVerifyHandler<R extends string>(
       // browser, or the cookie was stripped/expired. Fail closed (like a
       // missing challenge) before parsing the body or touching the credential
       // store, and never fall back to a user-keyed lookup.
-      const secure = deps.authConfig.jwt.cookieSecure !== false;
+      const secure = deps.config.jwt.cookieSecure !== false;
       const cookieName = webauthnAuthCookieName(secure);
       const ceremonyId = cookies.get(cookieName);
       if (!ceremonyId) {
@@ -274,7 +323,7 @@ export function createPasskeyAuthenticationVerifyHandler<R extends string>(
         }
 
         // Look up the stored credential
-        const stored = await deps.repos.passkey.findByCredentialId(credential.id);
+        const stored = await passkeyRepo.findByCredentialId(credential.id);
         if (!stored) {
           await loginFailed('', 'unknown_credential');
           return authError('passkey_verification_failed', 400, { message: 'Unknown credential' });
@@ -284,7 +333,7 @@ export function createPasskeyAuthenticationVerifyHandler<R extends string>(
         // handle (not stored.userId) — that is what makes discoverable login
         // work; the user is identified by `stored` below.
         const verified = await verifyAssertion(
-          deps.webauthn,
+          webauthn,
           ceremonyId,
           credential,
           stored.publicKey,
@@ -317,7 +366,7 @@ export function createPasskeyAuthenticationVerifyHandler<R extends string>(
         // assertion means a concurrent request already advanced the counter —
         // i.e. a replay slipped through the read→verify gap. Reject it; this
         // closes the cloned-authenticator window the bare update left open.
-        const advanced = await deps.repos.passkey.updateCounter(credential.id, verified.newCounter);
+        const advanced = await passkeyRepo.updateCounter(credential.id, verified.newCounter);
         if (!advanced) {
           await loginFailed('', 'counter_regression');
           return authError('passkey_verification_failed', 400, {
@@ -339,13 +388,13 @@ export function createPasskeyAuthenticationVerifyHandler<R extends string>(
         await establishSession(
           cookies,
           user,
-          deps.authConfig,
+          deps.config,
           deps.repos,
-          resolveSessionMeta(event, deps.authConfig)
+          resolveSessionMeta(event, deps.config)
         );
 
         const safeUser = sanitizeUser(user);
-        await deps.authConfig.hooks?.onLoginSuccess?.(safeUser);
+        await deps.config.hooks?.onLoginSuccess?.(safeUser);
         return json({ user: safeUser });
       } catch (err) {
         if (err instanceof WebAuthnError) {
@@ -362,27 +411,20 @@ export function createPasskeyAuthenticationVerifyHandler<R extends string>(
 
 // ---- List ----
 
-/**
- * Self-service passkey listing: the server half of `<PasskeyManager>`'s list
- * view (the four ceremony handlers above cover register/login). Mount `GET`
- * on `${basePath}/list`:
- *
- * ```ts
- * // src/routes/api/passkeys/list/+server.ts
- * export const GET = createPasskeyListHandler(deps).GET;
- * ```
- */
-export function createPasskeyListHandler<R extends string>(
-  deps: PasskeyHandlerDeps<R>
+// Self-service passkey listing: the server half of `<PasskeyManager>`'s list
+// view (the four ceremony handlers above cover register/login).
+function listHandler<R extends string>(
+  passkeyRepo: PasskeyRepository,
+  sessionUser: SessionUserResolver<R>
 ): { GET: RequestHandler } {
   return {
     GET: async ({ cookies }) => {
-      const user = await sessionUser(deps, cookies);
+      const user = await sessionUser(cookies);
       if (!user) {
         return authError('not_authenticated', 401);
       }
 
-      const passkeys = await deps.repos.passkey.findByUserId(user.id);
+      const passkeys = await passkeyRepo.findByUserId(user.id);
       // Project to the display shape: the stored COSE public key and the sign
       // counter are server-internal verification state and must not travel to
       // the client.
@@ -401,27 +443,17 @@ export function createPasskeyListHandler<R extends string>(
 
 // ---- Delete ----
 
-/**
- * Self-service passkey removal: the server half of `<PasskeyManager>`'s
- * remove action. Mount `DELETE` on `${basePath}/[credentialId]` (the static
- * sibling routes — `list`, `registration-options`, … — take precedence over
- * the param route, so they can share the base path):
- *
- * ```ts
- * // src/routes/api/passkeys/[credentialId]/+server.ts
- * export const DELETE = createPasskeyDeleteHandler(deps).DELETE;
- * ```
- *
- * The repository delete is owner-scoped (`delete(credentialId, userId)`), so
- * a caller guessing someone else's credential id hits a no-op; the response
- * is deliberately idempotent (`200` whether or not a row matched).
- */
-export function createPasskeyDeleteHandler<R extends string>(
-  deps: PasskeyHandlerDeps<R>
+// Self-service passkey removal. The repository delete is owner-scoped
+// (`delete(userId, credentialId)`), so a caller guessing someone else's
+// credential id hits a no-op; the response is deliberately idempotent
+// (`200` whether or not a row matched).
+function deleteHandler<R extends string>(
+  passkeyRepo: PasskeyRepository,
+  sessionUser: SessionUserResolver<R>
 ): { DELETE: RequestHandler } {
   return {
     DELETE: async ({ cookies, params }) => {
-      const user = await sessionUser(deps, cookies);
+      const user = await sessionUser(cookies);
       if (!user) {
         return authError('not_authenticated', 401);
       }
@@ -431,7 +463,7 @@ export function createPasskeyDeleteHandler<R extends string>(
         return authError('validation_error', 400, { message: 'Credential id is required' });
       }
 
-      await deps.repos.passkey.delete(user.id, credentialId);
+      await passkeyRepo.delete(user.id, credentialId);
       return json({ success: true });
     }
   };

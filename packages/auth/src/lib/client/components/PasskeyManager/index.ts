@@ -3,14 +3,14 @@ import type { CsrfClientOptions } from '../../csrf.js';
 
 /**
  * @description Self-service panel for managing passkeys (WebAuthn credentials). Register, list and delete passkeys.
- * Communicates with `basePath` (default `/api/auth/passkey`). Pair with the `createPasskeyRegistrationOptionsHandler`, `createPasskeyRegistrationVerifyHandler`, `createPasskeyListHandler` (GET `${basePath}/list`) and `createPasskeyDeleteHandler` (DELETE `${basePath}/[credentialId]`) server handlers; the login flow additionally uses `createPasskeyAuthenticationOptionsHandler` and `createPasskeyAuthenticationVerifyHandler`.
+ * Communicates with `apiPath` (default `/api/auth/passkey`). Pair with `createPasskeyHandlers` — this panel uses its `registrationOptions`, `registrationVerify`, `list` (GET `${apiPath}/list`) and `item` (DELETE `${apiPath}/[credentialId]`) groups; the login flow additionally uses `authenticationOptions` and `authenticationVerify`.
  *
  * @tag form
  * @related LoginPage
  *
  * @example
  * ```svelte
- * <PasskeyManager {t} basePath="/api/auth/passkey" />
+ * <PasskeyManager {t} apiPath="/api/auth/passkey" />
  * ```
  */
 export interface PasskeyManagerProps {
@@ -20,7 +20,7 @@ export interface PasskeyManagerProps {
    */
   t?: PartialAuthLocale;
   /** API base path for passkey operations. @default '/api/auth/passkey' */
-  basePath?: string;
+  apiPath?: string;
   /** CSRF cookie/header names — only needed when the server overrides the defaults via `config.csrf`. Mutating requests echo the token automatically. */
   csrf?: CsrfClientOptions;
   /** Custom fetch implementation for all API calls. Defaults to the global `fetch`. Useful for mock backends in demos/tests or custom retry/auth layers. */

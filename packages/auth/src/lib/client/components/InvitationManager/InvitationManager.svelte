@@ -19,7 +19,7 @@
   let {
     t: tProp,
     roles,
-    basePath = '/api/invitations',
+    apiPath = '/api/invitations',
     csrf,
     fetcher,
     unstyled = false,
@@ -43,7 +43,7 @@
   async function loadInvitations() {
     loading = true;
     try {
-      const { ok, data } = await getJson(basePath, { fetcher });
+      const { ok, data } = await getJson(apiPath, { fetcher });
       if (!ok) {
         // A 401/500 must not render as "no invitations yet".
         error = errorTextFromBody(data, t);
@@ -66,7 +66,7 @@
 
     try {
       const res = await csrfFetch(
-        basePath,
+        apiPath,
         {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -93,7 +93,7 @@
     error = '';
     try {
       const res = await csrfFetch(
-        `${basePath}/${encodeURIComponent(id)}`,
+        `${apiPath}/${encodeURIComponent(id)}`,
         { method: 'DELETE' },
         csrf,
         fetcher

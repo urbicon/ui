@@ -24,7 +24,7 @@ export interface PushPermissionPromptProps {
   /** VAPID public key for push subscription. */
   vapidPublicKey: string;
   /** API endpoint for registering subscriptions. @default '/api/notifications/push-subscription' */
-  subscriptionEndpoint?: string;
+  apiPath?: string;
   /** CSRF cookie/header names — only needed when the server overrides the defaults via `config.csrf`. Mutating requests echo the token automatically. */
   csrf?: CsrfClientOptions;
   /** Custom fetch implementation for all API calls. Defaults to the global `fetch`. Useful for mock backends in demos/tests or custom retry/auth layers. */

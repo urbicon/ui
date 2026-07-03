@@ -478,7 +478,7 @@ export interface RefreshTokenRepository {
    * List a user's currently-active refresh tokens — non-revoked and unexpired.
    * Rotation keeps exactly one live token per family, so each row corresponds to
    * one active session. Ordered newest-first. Powers the session-listing feature
-   * (`createListSessionsHandler`).
+   * (`createSessionsHandlers().list`).
    */
   listActiveByUser(userId: string): Promise<RefreshTokenRecord[]>;
   /**

@@ -1,19 +1,14 @@
-import { createPackageI18n, type Locale, useI18n } from '@urbicon-ui/i18n';
+import { type Locale, useI18n } from '@urbicon-ui/i18n';
 import { de } from './de.js';
 import { en } from './en.js';
 import type { AuthLocale, DeepPartial, PartialAuthLocale } from './keys.js';
 
-// No `: Record<string, AuthLocale>` annotation: that widening discarded the
-// literal key structure createPackageI18n needs to infer typed keys. en/de are
-// `satisfies AuthLocale` (literal structure preserved + parity enforced).
+// The package's locale bundles. en/de are `satisfies AuthLocale` (literal
+// structure preserved + parity enforced). The bundle-based API below
+// (useAuthLocale / resolveAuthLocale / mergeAuthLocale) is the only i18n
+// surface — the former key-based twin (authI18n/authT/at) was removed in R21:
+// nothing consumed it, and two competing APIs obscured the real one.
 const authTranslations = { en, de };
-
-export const authI18n = createPackageI18n('auth', authTranslations);
-
-export const { t: authT, exists: hasAuthTranslation, getLocales: getAuthLocales } = authI18n;
-
-// Alias for convenience
-export const at = authT;
 
 /**
  * Context-scoped hook for the full AuthLocale object at the active locale. Call
@@ -95,6 +90,4 @@ function deepMerge<T extends object>(base: T, overrides: DeepPartial<T>): T {
   return out as T;
 }
 
-export type AuthTranslationKey = keyof typeof en;
 export type { AuthLocale, DeepPartial, PartialAuthLocale } from './keys.js';
-export { authTranslations };

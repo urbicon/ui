@@ -11,7 +11,7 @@
 
   let {
     t: tProp,
-    basePath = '/api/auth/passkey',
+    apiPath = '/api/auth/passkey',
     csrf,
     fetcher,
     unstyled = false,
@@ -38,7 +38,7 @@
   async function loadPasskeys() {
     loading = true;
     try {
-      const { ok, data } = await getJson(`${basePath}/list`, { fetcher });
+      const { ok, data } = await getJson(`${apiPath}/list`, { fetcher });
       if (!ok) {
         // A 401/500 must not render as "no passkeys registered".
         error = errorTextFromBody(data, t);
@@ -61,7 +61,7 @@
     try {
       // 1. Get registration options from server
       const optRes = await csrfFetch(
-        `${basePath}/registration-options`,
+        `${apiPath}/registration-options`,
         { method: 'POST' },
         csrf,
         fetcher
@@ -104,7 +104,7 @@
 
       // 4. Send to server for verification
       const verifyRes = await csrfFetch(
-        `${basePath}/registration-verify`,
+        `${apiPath}/registration-verify`,
         {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -147,7 +147,7 @@
     error = '';
     try {
       const res = await csrfFetch(
-        `${basePath}/${encodeURIComponent(credentialId)}`,
+        `${apiPath}/${encodeURIComponent(credentialId)}`,
         { method: 'DELETE' },
         csrf,
         fetcher
@@ -167,7 +167,7 @@
   }
 
   // Fire-once load on mount — not an $effect: this must run exactly once, and
-  // re-running on a reactive read (e.g. basePath) would re-fetch needlessly.
+  // re-running on a reactive read (e.g. apiPath) would re-fetch needlessly.
   onMount(() => {
     loadPasskeys();
   });

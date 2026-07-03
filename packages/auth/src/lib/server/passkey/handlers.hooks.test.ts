@@ -1,10 +1,17 @@
 import type { Cookies, RequestEvent } from '@sveltejs/kit';
 import { describe, expect, it, vi } from 'vitest';
 import type { PasskeyRepository } from '../adapters/types.js';
-import { createMockUser, createMockUserRepository } from '../test-utils.js';
+import type { AuthDeps } from '../deps.js';
+import { createMockAuthDeps, createMockUser } from '../test-utils.js';
 import { WebAuthnError } from './errors.js';
-import { createPasskeyAuthenticationVerifyHandler, type PasskeyHandlerDeps } from './handlers.js';
-import { verifyAssertion } from './webauthn.js';
+import { createPasskeyHandlers } from './handlers.js';
+import { verifyAssertion, type WebAuthnConfig } from './webauthn.js';
+
+type TestDeps = AuthDeps & {
+  webauthn: WebAuthnConfig;
+  repos: AuthDeps['repos'] & { passkey: PasskeyRepository };
+};
+const passkeyHandlers = (d: TestDeps) => createPasskeyHandlers(d, d.webauthn);
 
 /**
  * R10 audit-seam parity: the passkey login must fire the same
@@ -31,15 +38,16 @@ function mockPasskeyRepo(): PasskeyRepository {
   };
 }
 
-function makeDeps(): PasskeyHandlerDeps & {
+function makeDeps(): TestDeps & {
   hooks: { onLoginSuccess: ReturnType<typeof vi.fn>; onLoginFailed: ReturnType<typeof vi.fn> };
 } {
   const hooks = { onLoginSuccess: vi.fn(), onLoginFailed: vi.fn() };
+  const base = createMockAuthDeps({ config: { jwt: { secret: 's' }, hooks } });
   return {
+    ...base,
+    repos: { ...base.repos, passkey: mockPasskeyRepo() },
     hooks,
-    webauthn: { rpId: 'app.test', rpName: 'Test', origin: 'https://app.test' },
-    authConfig: { appUrl: 'https://app.test', jwt: { secret: 's' }, hooks },
-    repos: { passkey: mockPasskeyRepo(), user: createMockUserRepository() }
+    webauthn: { rpId: 'app.test', rpName: 'Test', origin: 'https://app.test' }
   };
 }
 
@@ -98,7 +106,7 @@ describe('passkey login hooks (R10)', () => {
     vi.mocked(deps.repos.user.findById).mockResolvedValue(user);
     vi.mocked(verifyAssertion).mockResolvedValue({ credentialId: 'cred-abc', newCounter: 1 });
 
-    const res = await createPasskeyAuthenticationVerifyHandler(deps).POST(
+    const res = await passkeyHandlers(deps).authenticationVerify.POST(
       event(credentialBody, makeCookieJar())
     );
 
@@ -127,7 +135,7 @@ describe('passkey login hooks (R10)', () => {
     });
     vi.mocked(verifyAssertion).mockRejectedValue(new WebAuthnError('Signature mismatch'));
 
-    const res = await createPasskeyAuthenticationVerifyHandler(deps).POST(
+    const res = await passkeyHandlers(deps).authenticationVerify.POST(
       event(credentialBody, makeCookieJar())
     );
 
@@ -138,7 +146,7 @@ describe('passkey login hooks (R10)', () => {
 
   it("fires onLoginFailed('', 'unknown_credential') for an unknown credential", async () => {
     const deps = makeDeps();
-    const res = await createPasskeyAuthenticationVerifyHandler(deps).POST(
+    const res = await passkeyHandlers(deps).authenticationVerify.POST(
       event(credentialBody, makeCookieJar())
     );
 
@@ -163,7 +171,7 @@ describe('passkey login hooks (R10)', () => {
     vi.mocked(verifyAssertion).mockResolvedValue({ credentialId: 'cred-abc', newCounter: 1 });
     vi.mocked(deps.repos.passkey.updateCounter).mockResolvedValue(false);
 
-    const res = await createPasskeyAuthenticationVerifyHandler(deps).POST(
+    const res = await passkeyHandlers(deps).authenticationVerify.POST(
       event(credentialBody, makeCookieJar())
     );
 
@@ -173,7 +181,7 @@ describe('passkey login hooks (R10)', () => {
 
   it("fires onLoginFailed('', 'challenge_missing') without a ceremony cookie", async () => {
     const deps = makeDeps();
-    const res = await createPasskeyAuthenticationVerifyHandler(deps).POST(
+    const res = await passkeyHandlers(deps).authenticationVerify.POST(
       event(credentialBody, makeCookieJar(false))
     );
 
@@ -206,7 +214,7 @@ describe('passkey login hooks — remaining terminal outcomes', () => {
       userHandle: btoa('someone-else').replace(/=+$/, '')
     });
 
-    const res = await createPasskeyAuthenticationVerifyHandler(deps).POST(
+    const res = await passkeyHandlers(deps).authenticationVerify.POST(
       event(credentialBody, makeCookieJar())
     );
     expect(res.status).toBe(400);
@@ -219,7 +227,7 @@ describe('passkey login hooks — remaining terminal outcomes', () => {
     vi.mocked(deps.repos.user.findById).mockResolvedValue(null);
     vi.mocked(verifyAssertion).mockResolvedValue({ credentialId: 'cred-abc', newCounter: 1 });
 
-    const res = await createPasskeyAuthenticationVerifyHandler(deps).POST(
+    const res = await passkeyHandlers(deps).authenticationVerify.POST(
       event(credentialBody, makeCookieJar())
     );
     expect(res.status).toBe(400);

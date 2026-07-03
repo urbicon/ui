@@ -2,4 +2,4 @@
   import { PasskeyManager } from '@urbicon-ui/auth';
 </script>
 
-<PasskeyManager basePath="/api/auth/passkey" />
+<PasskeyManager apiPath="/api/auth/passkey" />

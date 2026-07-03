@@ -11,4 +11,4 @@
   const demoFetch = createAccountDemoFetcher();
 </script>
 
-<AccountSettings user={demoAuthUser} basePath="/api/auth/account" fetcher={demoFetch} />
+<AccountSettings user={demoAuthUser} apiPath="/api/auth/account" fetcher={demoFetch} />

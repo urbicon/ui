@@ -1,19 +1,9 @@
-export interface SSEConnection {
-  userId: string;
-  controller: ReadableStreamDefaultController;
-}
-
 export interface SSEManager {
   addConnection(userId: string, controller: ReadableStreamDefaultController): void;
   removeConnection(userId: string, controller: ReadableStreamDefaultController): void;
   /** Number of live connections for a user (used to enforce a per-user cap). */
   connectionCount(userId: string): number;
   notifyUser(userId: string, data: unknown): void;
-  notifyRole(
-    role: string,
-    data: unknown,
-    getUserRole: (userId: string) => string | undefined
-  ): void;
   notifyAll(data: unknown): void;
   isOnline(userId: string): boolean;
   getOnlineUserIds(): string[];
@@ -92,14 +82,6 @@ export function createSSEManager(): SSEManager {
       if (!set) return;
       // Iterate a copy — sendOrPrune may delete from the live set.
       for (const controller of [...set]) sendOrPrune(userId, controller, data);
-    },
-
-    notifyRole(role, data, getUserRole) {
-      for (const [userId, set] of [...connections]) {
-        if (getUserRole(userId) === role) {
-          for (const controller of [...set]) sendOrPrune(userId, controller, data);
-        }
-      }
     },
 
     notifyAll(data) {

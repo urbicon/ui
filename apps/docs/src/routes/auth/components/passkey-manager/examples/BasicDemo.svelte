@@ -10,4 +10,4 @@
   const demoFetch = createPasskeyDemoFetcher();
 </script>
 
-<PasskeyManager basePath="/api/auth/passkey" fetcher={demoFetch} />
+<PasskeyManager apiPath="/api/auth/passkey" fetcher={demoFetch} />

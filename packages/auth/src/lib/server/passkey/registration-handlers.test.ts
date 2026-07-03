@@ -20,16 +20,19 @@ vi.mock('./webauthn.js', async (importActual) => {
 });
 
 import type { Passkey, PasskeyRepository } from '../adapters/types.js';
+import type { AuthDeps } from '../deps.js';
 import { setSessionCookie } from '../session.js';
-import { createMockUser, createMockUserRepository } from '../test-utils.js';
+import { createMockAuthDeps, createMockUser } from '../test-utils.js';
 import { createInMemoryChallengeStore } from './challenge-store.js';
 import { WebAuthnError } from './errors.js';
-import {
-  createPasskeyRegistrationOptionsHandler,
-  createPasskeyRegistrationVerifyHandler,
-  type PasskeyHandlerDeps
-} from './handlers.js';
-import { verifyRegistration } from './webauthn.js';
+import { createPasskeyHandlers } from './handlers.js';
+import { verifyRegistration, type WebAuthnConfig } from './webauthn.js';
+
+type TestDeps = AuthDeps & {
+  webauthn: WebAuthnConfig;
+  repos: AuthDeps['repos'] & { passkey: PasskeyRepository };
+};
+const passkeyHandlers = (d: TestDeps) => createPasskeyHandlers(d, d.webauthn);
 
 const mockedVerify = vi.mocked(verifyRegistration);
 
@@ -61,16 +64,17 @@ function mkPasskey(overrides: Partial<Passkey> = {}): Passkey {
   };
 }
 
-function makeDeps(passkey: PasskeyRepository = mockPasskeyRepo()): PasskeyHandlerDeps {
+function makeDeps(passkey: PasskeyRepository = mockPasskeyRepo()): TestDeps {
+  const base = createMockAuthDeps({ config: { jwt: { secret: 's' } } });
   return {
+    ...base,
+    repos: { ...base.repos, passkey },
     webauthn: {
       rpId: 'app.test',
       rpName: 'Test',
       origin: 'https://app.test',
       challengeStore: createInMemoryChallengeStore()
-    },
-    authConfig: { appUrl: 'https://app.test', jwt: { secret: 's' } },
-    repos: { passkey, user: createMockUserRepository() }
+    }
   };
 }
 
@@ -103,7 +107,7 @@ function event(body: unknown, jar = makeCookieJar()): RequestEvent {
   } as unknown as RequestEvent;
 }
 
-async function authedEvent(deps: PasskeyHandlerDeps, body: unknown): Promise<RequestEvent> {
+async function authedEvent(deps: TestDeps, body: unknown): Promise<RequestEvent> {
   const jar = makeCookieJar();
   vi.mocked(deps.repos.user.findById).mockResolvedValue(SESSION_USER);
   await setSessionCookie(
@@ -114,7 +118,7 @@ async function authedEvent(deps: PasskeyHandlerDeps, body: unknown): Promise<Req
       role: SESSION_USER.role,
       tokenVersion: SESSION_USER.tokenVersion
     },
-    deps.authConfig.jwt
+    deps.config.jwt
   );
   return event(body, jar);
 }
@@ -123,9 +127,9 @@ beforeEach(() => {
   mockedVerify.mockReset();
 });
 
-describe('createPasskeyRegistrationOptionsHandler', () => {
+describe('createPasskeyHandlers — registrationOptions', () => {
   it('returns 401 when there is no authenticated user', async () => {
-    const res = await createPasskeyRegistrationOptionsHandler(makeDeps()).POST(event({}));
+    const res = await passkeyHandlers(makeDeps()).registrationOptions.POST(event({}));
     expect(res.status).toBe(401);
   });
 
@@ -137,9 +141,7 @@ describe('createPasskeyRegistrationOptionsHandler', () => {
     });
     const deps = makeDeps(passkey);
 
-    const res = await createPasskeyRegistrationOptionsHandler(deps).POST(
-      await authedEvent(deps, {})
-    );
+    const res = await passkeyHandlers(deps).registrationOptions.POST(await authedEvent(deps, {}));
     expect(res.status).toBe(200);
     const { options } = await res.json();
 
@@ -152,9 +154,9 @@ describe('createPasskeyRegistrationOptionsHandler', () => {
   });
 });
 
-describe('createPasskeyRegistrationVerifyHandler', () => {
+describe('createPasskeyHandlers — registrationVerify', () => {
   it('returns 401 when there is no authenticated user', async () => {
-    const res = await createPasskeyRegistrationVerifyHandler(makeDeps()).POST(
+    const res = await passkeyHandlers(makeDeps()).registrationVerify.POST(
       event({ credential: {} })
     );
     expect(res.status).toBe(401);
@@ -164,9 +166,7 @@ describe('createPasskeyRegistrationVerifyHandler', () => {
 
   it('returns 400 when the credential is missing from the body', async () => {
     const deps = makeDeps();
-    const res = await createPasskeyRegistrationVerifyHandler(deps).POST(
-      await authedEvent(deps, {})
-    );
+    const res = await passkeyHandlers(deps).registrationVerify.POST(await authedEvent(deps, {}));
     expect(res.status).toBe(400);
     expect(mockedVerify).not.toHaveBeenCalled();
   });
@@ -174,7 +174,7 @@ describe('createPasskeyRegistrationVerifyHandler', () => {
   it('maps a WebAuthnError to a 400 (bad attestation is a client error, not a 500)', async () => {
     mockedVerify.mockRejectedValue(new WebAuthnError('Invalid attestation'));
     const deps = makeDeps();
-    const res = await createPasskeyRegistrationVerifyHandler(deps).POST(
+    const res = await passkeyHandlers(deps).registrationVerify.POST(
       await authedEvent(deps, { credential: { id: 'x' } })
     );
     expect(res.status).toBe(400);
@@ -187,7 +187,7 @@ describe('createPasskeyRegistrationVerifyHandler', () => {
     mockedVerify.mockRejectedValue(new Error('database is down'));
     const deps = makeDeps();
     await expect(
-      createPasskeyRegistrationVerifyHandler(deps).POST(
+      passkeyHandlers(deps).registrationVerify.POST(
         await authedEvent(deps, { credential: { id: 'x' } })
       )
     ).rejects.toThrow('database is down');
@@ -206,7 +206,7 @@ describe('createPasskeyRegistrationVerifyHandler', () => {
     const passkey = mockPasskeyRepo({ create: vi.fn().mockResolvedValue(created) });
     const deps = makeDeps(passkey);
 
-    const res = await createPasskeyRegistrationVerifyHandler(deps).POST(
+    const res = await passkeyHandlers(deps).registrationVerify.POST(
       // A hostile body claims another owner and a forged credentialId; the
       // handler must bind to the SESSION user and store the VERIFIED fields.
       await authedEvent(deps, {

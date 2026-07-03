@@ -7,11 +7,7 @@ import type { AuthDeps } from '../deps.js';
 import { issueRefreshToken } from '../refresh-token.js';
 import { setSessionCookie } from '../session.js';
 import { createMockAuthDeps, createMockUser, mockPostEvent } from '../test-utils.js';
-import {
-  createListSessionsHandler,
-  createRevokeOtherSessionsHandler,
-  createRevokeSessionHandler
-} from './sessions.js';
+import { createSessionsHandlers } from './sessions.js';
 
 const SESSION = { userId: 'user-1', email: 'test@test.com', role: 'admin', tokenVersion: 0 };
 
@@ -37,10 +33,10 @@ async function authed<R extends string>(deps: AuthDeps<R>, body: unknown, curren
 const revokedAt = async (repo: RefreshTokenRepository, token: string) =>
   (await repo.findByHash(hashToken(token)))?.revokedAt ?? null;
 
-describe('createListSessionsHandler', () => {
+describe('createSessionsHandlers — list', () => {
   it('returns 401 when not authenticated', async () => {
     const { deps } = setup();
-    const res = await createListSessionsHandler(deps).GET(
+    const res = await createSessionsHandlers(deps).list.GET(
       mockPostEvent({}) as unknown as RequestEvent
     );
     expect(res.status).toBe(401);
@@ -51,7 +47,7 @@ describe('createListSessionsHandler', () => {
       user: { findById: vi.fn().mockResolvedValue(createMockUser({ id: 'user-1' })) }
     });
     const ev = await authed(deps, {});
-    const res = await createListSessionsHandler(deps).GET(ev as unknown as RequestEvent);
+    const res = await createSessionsHandlers(deps).list.GET(ev as unknown as RequestEvent);
     expect(res.status).toBe(200);
     expect(await res.json()).toEqual({ sessions: [], available: false });
   });
@@ -62,7 +58,7 @@ describe('createListSessionsHandler', () => {
     const b = await issueRefreshToken(refreshToken, 'user-1', {}, { userAgent: 'UA-B' });
     const ev = await authed(deps, {}, b.token);
 
-    const res = await createListSessionsHandler(deps).GET(ev as unknown as RequestEvent);
+    const res = await createSessionsHandlers(deps).list.GET(ev as unknown as RequestEvent);
     expect(res.status).toBe(200);
     expect(res.headers.get('cache-control')).toBe('no-store');
     const data = await res.json();
@@ -82,16 +78,16 @@ describe('createListSessionsHandler', () => {
     const ev = await authed(deps, {});
 
     const data = await (
-      await createListSessionsHandler(deps).GET(ev as unknown as RequestEvent)
+      await createSessionsHandlers(deps).list.GET(ev as unknown as RequestEvent)
     ).json();
     expect(data.sessions).toHaveLength(1);
   });
 });
 
-describe('createRevokeSessionHandler', () => {
+describe('createSessionsHandlers — revoke', () => {
   it('returns 401 when not authenticated', async () => {
     const { deps } = setup();
-    const res = await createRevokeSessionHandler(deps).POST(
+    const res = await createSessionsHandlers(deps).revoke.POST(
       mockPostEvent({ id: 'x' }) as unknown as RequestEvent
     );
     expect(res.status).toBe(401);
@@ -100,7 +96,7 @@ describe('createRevokeSessionHandler', () => {
   it('returns 400 when no session id is given', async () => {
     const { deps } = setup();
     const ev = await authed(deps, {});
-    const res = await createRevokeSessionHandler(deps).POST(ev as unknown as RequestEvent);
+    const res = await createSessionsHandlers(deps).revoke.POST(ev as unknown as RequestEvent);
     expect(res.status).toBe(400);
   });
 
@@ -109,7 +105,7 @@ describe('createRevokeSessionHandler', () => {
     const other = await issueRefreshToken(refreshToken, 'other-user', {});
     const ev = await authed(deps, { id: other.record.family });
 
-    const res = await createRevokeSessionHandler(deps).POST(ev as unknown as RequestEvent);
+    const res = await createSessionsHandlers(deps).revoke.POST(ev as unknown as RequestEvent);
     expect(res.status).toBe(404);
     expect(await revokedAt(refreshToken, other.token), 'foreign token untouched').toBeNull();
   });
@@ -119,16 +115,16 @@ describe('createRevokeSessionHandler', () => {
     const mine = await issueRefreshToken(refreshToken, 'user-1', {});
     const ev = await authed(deps, { id: mine.record.family });
 
-    const res = await createRevokeSessionHandler(deps).POST(ev as unknown as RequestEvent);
+    const res = await createSessionsHandlers(deps).revoke.POST(ev as unknown as RequestEvent);
     expect(res.status).toBe(200);
     expect(await revokedAt(refreshToken, mine.token)).toBeInstanceOf(Date);
   });
 });
 
-describe('createRevokeOtherSessionsHandler', () => {
+describe('createSessionsHandlers — revokeOthers', () => {
   it('returns 401 when not authenticated', async () => {
     const { deps } = setup();
-    const res = await createRevokeOtherSessionsHandler(deps).POST(
+    const res = await createSessionsHandlers(deps).revokeOthers.POST(
       mockPostEvent({}) as unknown as RequestEvent
     );
     expect(res.status).toBe(401);
@@ -140,7 +136,7 @@ describe('createRevokeOtherSessionsHandler', () => {
     const other = await issueRefreshToken(refreshToken, 'user-1', {});
     const ev = await authed(deps, {}, current.token);
 
-    const res = await createRevokeOtherSessionsHandler(deps).POST(ev as unknown as RequestEvent);
+    const res = await createSessionsHandlers(deps).revokeOthers.POST(ev as unknown as RequestEvent);
     expect(res.status).toBe(200);
     expect(await revokedAt(refreshToken, current.token), 'current kept').toBeNull();
     expect(await revokedAt(refreshToken, other.token), 'other revoked').toBeInstanceOf(Date);

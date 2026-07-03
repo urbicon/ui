@@ -1,5 +1,6 @@
 import type { RequestEvent } from '@sveltejs/kit';
 import { describe, expect, it, vi } from 'vitest';
+import { sanitizeRedirect } from '../redirect.js';
 import type { AuthConfig, AuthUser } from '../types.js';
 import { createInMemoryRefreshTokenRepository } from './adapters/in-memory.js';
 import type { Repositories, UserRepository } from './adapters/types.js';
@@ -102,10 +103,36 @@ describe('createAuthHandle', () => {
     expect(resolve).toHaveBeenCalled();
   });
 
-  it('should redirect unauthenticated users to login', async () => {
+  it('should redirect unauthenticated users to login, preserving the deep link', async () => {
     const repos = createMockRepos();
     const handle = createAuthHandle({ config, repos });
-    const event = createMockEvent({ path: '/dashboard' });
+    const event = createMockEvent({ path: '/dashboard?tab=usage' });
+    const resolve = vi.fn();
+
+    try {
+      await handle({ event: asEvent(event), resolve });
+      expect.fail('Should have redirected');
+    } catch (e) {
+      const err = e as { status?: number; location?: string };
+      expect(err.status).toBe(302);
+      // The requested path (incl. query) rides along so the login flow can
+      // send the user back — via sanitizeRedirect, which round-trips this.
+      expect(err.location).toBe(
+        `/auth/login?redirectTo=${encodeURIComponent('/dashboard?tab=usage')}`
+      );
+      const query = new URL(`http://localhost:3000${err.location}`).searchParams;
+      expect(sanitizeRedirect(query.get('redirectTo'), '/')).toBe('/dashboard?tab=usage');
+    }
+  });
+
+  it('omits redirectTo for non-GET requests (a POST target must not become a GET)', async () => {
+    const repos = createMockRepos();
+    const handle = createAuthHandle({ config, repos });
+    const event = createMockEvent({
+      path: '/dashboard',
+      method: 'POST',
+      origin: 'http://localhost:3000'
+    });
     const resolve = vi.fn();
 
     try {

@@ -1,6 +1,6 @@
 /**
  * @description Headless SSE listener for real-time notifications. Reconnects with exponential backoff (1–30s).
- * Connects to `basePath` (default `/api/notifications/stream`). Pair with `createStreamHandler(sse)` on the server — mount its `GET` on the stream route.
+ * Connects to `apiPath` (default `/api/notifications/stream`). Pair with `createStreamHandler(sse)` on the server — mount its `GET` on the stream route.
  *
  * @tag data
  * @related NotificationCenter
@@ -17,7 +17,7 @@ export interface NotificationListenerProps {
    * endpoints (e.g. after a user change), unmount and remount the listener.
    * @default '/api/notifications/stream'
    */
-  basePath?: string;
+  apiPath?: string;
   /** Maximum reconnection attempts before giving up. Read once at mount. @default 5 */
   maxReconnectAttempts?: number;
   /** Called when a new notification arrives via SSE. */

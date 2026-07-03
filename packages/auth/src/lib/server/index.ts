@@ -1,5 +1,8 @@
 // Auth core
 
+// Open-redirect guard for the handle hook's ?redirectTo=… deep-link param
+// (also exported from the package root for client-side use)
+export { sanitizeRedirect } from '../redirect.js';
 // Types re-export
 export type {
   AuthConfig,
@@ -49,8 +52,11 @@ export type {
   UserRepository
 } from './adapters/types.js';
 export { generateSecureToken, hashToken, sanitizeUser } from './auth.js';
-// CSRF
-export { validateCsrf } from './csrf.js';
+// CSRF — validateCsrf gates mutating requests (used by the handle hook);
+// ensureCsrfCookie seeds the double-submit cookie and returns the token for
+// SSR scenarios that inline it into a form.
+export type { CsrfValidateOptions, EnsureCsrfCookieOptions } from './csrf.js';
+export { ensureCsrfCookie, validateCsrf } from './csrf.js';
 export type { AuthDeps } from './deps.js';
 // Deps
 export { createAuthDeps } from './deps.js';
@@ -91,22 +97,14 @@ export type { RegisterHandlerOptions } from './handlers/register.js';
 export { createRegisterHandler } from './handlers/register.js';
 export { createResetPasswordHandler } from './handlers/reset-password.js';
 export type { SessionSummary } from './handlers/sessions.js';
-// Session listing (requires config.refreshToken; see docs/AUTH.md → Sessions)
-export {
-  createListSessionsHandler,
-  createRevokeOtherSessionsHandler,
-  createRevokeSessionHandler
-} from './handlers/sessions.js';
-// Two-factor auth (TOTP; requires config.twoFactor + repos.backupCode; see
-// docs/AUTH.md → Two-Factor). setup/enable/disable are authenticated; verify is
-// the unauthenticated second login step (reads the pending-2FA cookie). The
-// login handler gates on `totpEnabled` automatically.
-export {
-  createTwoFactorDisableHandler,
-  createTwoFactorEnableHandler,
-  createTwoFactorSetupHandler,
-  createTwoFactorVerifyHandler
-} from './handlers/two-factor.js';
+// Session management route group (requires config.refreshToken; see
+// docs/AUTH.md → Sessions)
+export { createSessionsHandlers } from './handlers/sessions.js';
+// Two-factor auth route group (TOTP; requires config.twoFactor +
+// repos.backupCode; see docs/AUTH.md → Two-Factor). setup/enable/disable are
+// authenticated; verify is the unauthenticated second login step (reads the
+// pending-2FA cookie). The login handler gates on `totpEnabled` automatically.
+export { createTwoFactorHandlers } from './handlers/two-factor.js';
 export { createUpdateProfileHandler } from './handlers/update-profile.js';
 export { createVerifyEmailHandler } from './handlers/verify-email.js';
 export { createVerifyEmailChangeHandler } from './handlers/verify-email-change.js';
@@ -148,20 +146,17 @@ export type { NotificationRegistry } from './notifications/registry.js';
 export { createNotificationRegistry } from './notifications/registry.js';
 export type { NotificationService, NotificationServiceDeps } from './notifications/service.js';
 export { createNotificationService } from './notifications/service.js';
-export type { SSEConnection, SSEManager } from './notifications/sse.js';
+export type { SSEManager } from './notifications/sse.js';
 export { createSSEManager } from './notifications/sse.js';
 export type { NotificationTypeDefinition } from './notifications/types.js';
+// Challenge storage for the WebAuthn ceremonies — the types a consumer needs
+// to supply a persistent `WebAuthnConfig.challengeStore` (Redis/Prisma/…).
+export type { ChallengeEntry, ChallengeStore } from './passkey/challenge-store.js';
+export { createInMemoryChallengeStore } from './passkey/challenge-store.js';
 export { WebAuthnError } from './passkey/errors.js';
-export type { PasskeyHandlerDeps } from './passkey/handlers.js';
-// Passkey / WebAuthn
-export {
-  createPasskeyAuthenticationOptionsHandler,
-  createPasskeyAuthenticationVerifyHandler,
-  createPasskeyDeleteHandler,
-  createPasskeyListHandler,
-  createPasskeyRegistrationOptionsHandler,
-  createPasskeyRegistrationVerifyHandler
-} from './passkey/handlers.js';
+// Passkey / WebAuthn route group (requires repos.passkey; the WebAuthn
+// ceremony config rides as the factory's second argument)
+export { createPasskeyHandlers } from './passkey/handlers.js';
 export type {
   VerifiedAssertion,
   VerifiedRegistration,
@@ -183,7 +178,7 @@ export {
 } from './password.js';
 export type { RateLimiter, RateLimitResult, RateLimitStore } from './rate-limit.js';
 // Rate limiting
-export { checkRateLimit, createRateLimiter } from './rate-limit.js';
+export { createRateLimiter } from './rate-limit.js';
 export type { RotateOutcome, SessionMeta } from './refresh-token.js';
 export {
   clearRefreshCookie,

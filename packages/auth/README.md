@@ -298,15 +298,17 @@ current device signed in while logging out every other session; change-email ver
 **new** address and is account-enumeration safe (always "check your inbox"); delete-account
 hard-deletes and fires `hooks.onAccountDeleted` **before** erasing so you can archive.
 
-- **Active-session listing** — show the user their sessions and let them sign devices out. **Requires `refreshToken` rotation** (a session is a token family). Mount the three handlers and drop in `<SessionManager>`:
+- **Active-session listing** — show the user their sessions and let them sign devices out. **Requires `refreshToken` rotation** (a session is a token family). Mount the route group and drop in `<SessionManager>`:
 
 ```typescript
+// src/lib/server/auth-setup.ts
+import { createSessionsHandlers } from '@urbicon-ui/auth/server';
+export const sessions = createSessionsHandlers(authDeps);
+
 // src/routes/api/auth/sessions/+server.ts
-import { createListSessionsHandler } from '@urbicon-ui/auth/server';
-import { authDeps } from '$lib/server/auth-setup';
-export const { GET } = createListSessionsHandler(authDeps);
-// + sessions/revoke/+server.ts (createRevokeSessionHandler) and
-//   sessions/revoke-others/+server.ts (createRevokeOtherSessionsHandler)
+export const GET = sessions.list.GET;
+// + sessions/revoke/+server.ts        → export const POST = sessions.revoke.POST;
+//   sessions/revoke-others/+server.ts → export const POST = sessions.revokeOthers.POST;
 ```
 
 ```svelte
@@ -314,12 +316,12 @@ export const { GET } = createListSessionsHandler(authDeps);
   import { SessionManager } from '@urbicon-ui/auth';
 </script>
 
-<SessionManager basePath="/api/auth/sessions" />
+<SessionManager apiPath="/api/auth/sessions" />
 ```
 
 Revokes are ownership-scoped (a guessed family id can't sign out another user). The IP is shown only if you set `config.sessions = { storeIp: true }` (GDPR opt-in); the user-agent alone drives the "Browser · OS" device label.
 
-- **Two-factor (TOTP)** — add an authenticator-app second factor. Set `config.twoFactor` (the `encryptionKey` is required — high-entropy, stable, e.g. 32 random bytes base64), provide `repos.backupCode` (the shipped adapters include it), mount the four handlers, and add `<TwoFactorManager>` for enrolment plus the verify path the two-step `<LoginPage>` posts to:
+- **Two-factor (TOTP)** — add an authenticator-app second factor. Set `config.twoFactor` (the `encryptionKey` is required — high-entropy, stable, e.g. 32 random bytes base64), provide `repos.backupCode` (the shipped adapters include it), mount the route group, and add `<TwoFactorManager>` for enrolment plus the verify path the two-step `<LoginPage>` posts to:
 
 ```typescript
 export const authDeps = createAuthDeps({
@@ -333,13 +335,15 @@ export const authDeps = createAuthDeps({
 ```
 
 ```typescript
+// src/lib/server/auth-setup.ts
+import { createTwoFactorHandlers } from '@urbicon-ui/auth/server';
+export const twoFactor = createTwoFactorHandlers(authDeps);
+
 // src/routes/api/auth/account/2fa/setup/+server.ts
-import { createTwoFactorSetupHandler } from '@urbicon-ui/auth/server';
-import { authDeps } from '$lib/server/auth-setup';
-export const { POST } = createTwoFactorSetupHandler(authDeps);
-// + account/2fa/enable (createTwoFactorEnableHandler),
-//   account/2fa/disable (createTwoFactorDisableHandler), and the PUBLIC
-//   2fa/verify route (createTwoFactorVerifyHandler) — the second login step.
+export const POST = twoFactor.setup.POST;
+// + account/2fa/enable  → twoFactor.enable.POST,
+//   account/2fa/disable → twoFactor.disable.POST, and the PUBLIC
+//   2fa/verify route    → twoFactor.verify.POST — the second login step.
 ```
 
 ```svelte

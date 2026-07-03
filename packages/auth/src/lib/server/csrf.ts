@@ -7,9 +7,6 @@ import {
 import { base64UrlEncode } from './encoding.js';
 import { timingSafeEqualStrings } from './timing-safe.js';
 
-// Re-export so existing `from './csrf.js'` imports keep working.
-export { DEFAULT_CSRF_COOKIE_NAME, DEFAULT_CSRF_HEADER_NAME, timingSafeEqualStrings };
-
 const CSRF_TOKEN_BYTES = 32;
 const CSRF_COOKIE_MAX_AGE = 60 * 60 * 24 * 7; // 7 days
 

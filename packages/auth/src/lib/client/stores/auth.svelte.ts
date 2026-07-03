@@ -4,7 +4,7 @@ import { csrfFetch } from '../csrf.js';
 import { getJson, parseJsonBody, postJson, wireError } from '../utils/http.js';
 
 export interface AuthStoreConfig {
-  basePath?: string;
+  apiPath?: string;
   /**
    * CSRF cookie/header names — only needed when the server overrides the
    * defaults via `config.csrf.cookieName`/`headerName`. Omit to use the
@@ -54,7 +54,7 @@ const NETWORK_FAILURE: AuthActionResult = Object.freeze({
 });
 
 export function createAuthStore<R extends string>(config?: AuthStoreConfig) {
-  const basePath = config?.basePath ?? '/api/auth';
+  const apiPath = config?.apiPath ?? '/api/auth';
   const csrf = config?.csrf;
   const fetcher = config?.fetcher;
 
@@ -68,7 +68,7 @@ export function createAuthStore<R extends string>(config?: AuthStoreConfig) {
   async function login(email: string, password: string): Promise<AuthActionResult> {
     try {
       const { ok, data } = await postJson(
-        `${basePath}/login`,
+        `${apiPath}/login`,
         { email, password },
         { csrf, fetcher }
       );
@@ -100,7 +100,7 @@ export function createAuthStore<R extends string>(config?: AuthStoreConfig) {
    */
   async function verifyTwoFactor(code: string): Promise<AuthActionResult> {
     try {
-      const { ok, data } = await postJson(`${basePath}/2fa/verify`, { code }, { csrf, fetcher });
+      const { ok, data } = await postJson(`${apiPath}/2fa/verify`, { code }, { csrf, fetcher });
       if (!ok) return failure(data);
       if (!data.user) return { success: false, code: 'server_error' };
       user = data.user as AuthUser<R>;
@@ -118,7 +118,7 @@ export function createAuthStore<R extends string>(config?: AuthStoreConfig) {
   ): Promise<AuthActionResult> {
     try {
       const { ok, data } = await postJson(
-        `${basePath}/register`,
+        `${apiPath}/register`,
         { name, email, password },
         { csrf, fetcher }
       );
@@ -141,7 +141,7 @@ export function createAuthStore<R extends string>(config?: AuthStoreConfig) {
   async function logout(): Promise<AuthActionResult> {
     let result: AuthActionResult;
     try {
-      const res = await csrfFetch(`${basePath}/logout`, { method: 'POST' }, csrf, fetcher);
+      const res = await csrfFetch(`${apiPath}/logout`, { method: 'POST' }, csrf, fetcher);
       result = res.ok ? { success: true } : failure(await parseJsonBody(res));
     } catch {
       result = NETWORK_FAILURE;
@@ -162,7 +162,7 @@ export function createAuthStore<R extends string>(config?: AuthStoreConfig) {
   async function checkStatus(): Promise<AuthActionResult> {
     try {
       loading = true;
-      const { ok, data } = await getJson(`${basePath}/me`, { fetcher });
+      const { ok, data } = await getJson(`${apiPath}/me`, { fetcher });
       if (ok || 'user' in data) {
         user = (data.user as AuthUser<R> | undefined) ?? null;
         if (user) twoFactorRequired = false;

@@ -39,7 +39,9 @@ export interface NotificationCenterProps {
    * relative (reject `javascript:` and absolute cross-origin URLs). Never
    * navigate to a raw `notification.url`.
    */
-  onClick?: (notification: import('../../../server/adapters/types.js').NotificationRecord) => void;
+  onNotificationClick?: (
+    notification: import('../../../server/adapters/types.js').NotificationRecord
+  ) => void;
   /** Custom notification item renderer. */
   item?: Snippet<[import('../../../server/adapters/types.js').NotificationRecord]>;
   /** Strip all default styling. */

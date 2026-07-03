@@ -4,14 +4,8 @@ import type { EmailTransport, SendEmailParams } from './types.js';
 const DEFAULT_TIMEOUT_MS = 10_000;
 
 export interface LettermintConfig {
-  /**
-   * Lettermint API token, sent in the `x-lettermint-token` header. `token` is
-   * the canonical name; `apiKey` is kept as a back-compat alias (when both are
-   * set, `token` wins). One of the two is required.
-   */
-  token?: string;
-  /** Back-compat alias for {@link LettermintConfig.token}. */
-  apiKey?: string;
+  /** Lettermint API token, sent in the `x-lettermint-token` header. Required. */
+  token: string;
   /**
    * Default sender (optionally `Display Name <addr@example.com>`), used when a
    * send carries no `from` of its own. A per-send `from` always wins. The
@@ -46,9 +40,9 @@ export interface LettermintConfig {
  * surfaced as an Error (the latter carrying the status + response body).
  */
 export function createLettermintTransport(config: LettermintConfig): EmailTransport {
-  const token = config.token ?? config.apiKey;
+  const token = config.token;
   if (!token) {
-    throw new Error('createLettermintTransport: a `token` (or its `apiKey` alias) is required.');
+    throw new Error('createLettermintTransport: a `token` is required.');
   }
   const baseUrl = config.baseUrl ?? 'https://api.lettermint.co/v1';
   const timeoutMs = config.timeoutMs ?? DEFAULT_TIMEOUT_MS;

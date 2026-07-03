@@ -3,7 +3,7 @@
   import type { NotificationListenerProps } from './index.js';
 
   let {
-    basePath = '/api/notifications/stream',
+    apiPath = '/api/notifications/stream',
     maxReconnectAttempts = 5,
     onNotification,
     onError,
@@ -19,7 +19,7 @@
     function connect() {
       if (disposed) return;
 
-      eventSource = new EventSource(basePath);
+      eventSource = new EventSource(apiPath);
 
       eventSource.onopen = () => {
         reconnectAttempts = 0;

@@ -26,16 +26,51 @@ import { NO_STORE, parseBody, requireSessionUser, verifyCurrentPassword } from '
 import { authError } from './errors.js';
 
 /**
- * POST — begin TOTP enrolment (authenticated). Generates a fresh secret, stores
- * it **encrypted** with `totpEnabled` still false, and returns the `otpauth://`
- * URI + Base32 secret for the user's authenticator app. 2FA is NOT active until
- * the user proves possession via {@link createTwoFactorEnableHandler}. Refuses
- * if 2FA is already enabled (disable first) so an attacker on a hijacked session
- * can't silently re-enrol a new device.
+ * The TOTP two-factor route group — one bundled factory (the package's
+ * multi-route convention). Mount the groups on the paths the client components
+ * call (`<TwoFactorManager>` talks to `setup`/`enable`/`disable` under its
+ * `apiPath`, default `/api/auth/account/2fa`; the auth store's login flow
+ * posts to `verify`):
+ *
+ * ```ts
+ * const twoFactor = createTwoFactorHandlers(deps);
+ * // …/2fa/setup/+server.ts   → export const POST = twoFactor.setup.POST;
+ * // …/2fa/enable/+server.ts  → export const POST = twoFactor.enable.POST;
+ * // …/2fa/disable/+server.ts → export const POST = twoFactor.disable.POST;
+ * // …/2fa/verify/+server.ts  → export const POST = twoFactor.verify.POST;
+ * ```
+ *
+ * - `setup` (authenticated) — begin enrolment: stage an **encrypted** secret
+ *   (2FA not yet active) and return the `otpauth://` URI + Base32 secret.
+ *   Refuses when already enabled, so a hijacked session can't silently
+ *   re-enrol a new device.
+ * - `enable` (authenticated) — `{ code }` proves possession against the staged
+ *   secret, flips `totpEnabled` on and returns the backup codes (**once**, in
+ *   plaintext). The old code set is cleared first.
+ * - `disable` (authenticated, re-auth) — `{ currentPassword }` gates turning
+ *   2FA off; clears the secret + every backup code. Rate-limited by default
+ *   (`rateLimit.twoFactorDisable`) — success removes the second factor.
+ * - `verify` (UNauthenticated) — the second login step: reads the short-lived
+ *   pending-2FA cookie set by the login handler, accepts a TOTP **or** backup
+ *   code, and establishes the real session. Strictly rate-limited.
  */
-export function createTwoFactorSetupHandler<R extends string>(
+export function createTwoFactorHandlers<R extends string>(
   deps: AuthDeps<R>
-): { POST: RequestHandler } {
+): {
+  setup: { POST: RequestHandler };
+  enable: { POST: RequestHandler };
+  disable: { POST: RequestHandler };
+  verify: { POST: RequestHandler };
+} {
+  return {
+    setup: setupHandler(deps),
+    enable: enableHandler(deps),
+    disable: disableHandler(deps),
+    verify: verifyHandler(deps)
+  };
+}
+
+function setupHandler<R extends string>(deps: AuthDeps<R>): { POST: RequestHandler } {
   return {
     POST: async (event) => {
       const { config, repos } = deps;
@@ -70,15 +105,7 @@ export function createTwoFactorSetupHandler<R extends string>(
   };
 }
 
-/**
- * POST `{ code }` — finish enrolment by verifying a code against the staged
- * secret, then flip `totpEnabled` on and issue backup codes (returned **once**,
- * in plaintext). Requires a prior setup. The old code set is cleared before the
- * new one is written so re-enabling never leaves redeemable stale codes.
- */
-export function createTwoFactorEnableHandler<R extends string>(
-  deps: AuthDeps<R>
-): { POST: RequestHandler } {
+function enableHandler<R extends string>(deps: AuthDeps<R>): { POST: RequestHandler } {
   return {
     POST: async (event) => {
       const { config, repos } = deps;
@@ -126,14 +153,7 @@ export function createTwoFactorEnableHandler<R extends string>(
   };
 }
 
-/**
- * POST `{ currentPassword }` — turn 2FA off. Re-auth gated (password), then
- * clears the secret + every backup code. Idempotent: disabling when already off
- * still re-auths and no-ops the clears.
- */
-export function createTwoFactorDisableHandler<R extends string>(
-  deps: AuthDeps<R>
-): { POST: RequestHandler } {
+function disableHandler<R extends string>(deps: AuthDeps<R>): { POST: RequestHandler } {
   // Re-auth endpoints are credential-accepting: without a limiter a hijacked
   // session could brute-force the current password here — at the most valuable
   // target of all, since success removes the second factor (review R4).
@@ -175,17 +195,9 @@ export function createTwoFactorDisableHandler<R extends string>(
   };
 }
 
-/**
- * POST `{ code }` — the second login step. UNauthenticated: it reads the
- * short-lived pending-2FA cookie (set by the login handler), not a session. On a
- * valid TOTP **or** backup code it consumes the pending cookie and establishes
- * the real session. Strictly rate-limited — a 6-digit code is brute-forceable.
- * A wrong code does NOT consume the pending cookie (the user retries within the
- * TTL); a correct one does (single-use).
- */
-export function createTwoFactorVerifyHandler<R extends string>(
-  deps: AuthDeps<R>
-): { POST: RequestHandler } {
+// A wrong code does NOT consume the pending cookie (the user retries within
+// the TTL); a correct one does (single-use).
+function verifyHandler<R extends string>(deps: AuthDeps<R>): { POST: RequestHandler } {
   const rateLimiter = makeRateLimiter(deps.config.rateLimit?.twoFactor);
 
   return {

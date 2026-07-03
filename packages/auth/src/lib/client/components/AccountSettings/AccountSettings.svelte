@@ -10,7 +10,7 @@
   let {
     user,
     t: tProp,
-    basePath = '/api/auth/account',
+    apiPath = '/api/auth/account',
     csrf,
     fetcher,
     onProfileUpdated,
@@ -51,7 +51,7 @@
   let confirmOpen = $state(false);
 
   const postJson = (path: string, body: unknown) =>
-    postJsonRequest(`${basePath}${path}`, body, { csrf, fetcher });
+    postJsonRequest(`${apiPath}${path}`, body, { csrf, fetcher });
 
   const errText = (data: Record<string, unknown>) => errorTextFromBody(data, t);
 

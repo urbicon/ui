@@ -47,18 +47,12 @@ export {
   VerifyEmailPage,
   withCsrfHeader
 } from './client/index.js';
-export type { AuthLocale, AuthTranslationKey, PartialAuthLocale } from './i18n/index.js';
-
-// i18n — auto-registers auth translations with @urbicon-ui/i18n
-export {
-  at,
-  authI18n,
-  authT,
-  getAuthLocales,
-  hasAuthTranslation,
-  mergeAuthLocale,
-  useAuthLocale
-} from './i18n/index.js';
+export type { AuthLocale, PartialAuthLocale } from './i18n/index.js';
+// i18n — bundle-based: read the active bundle with useAuthLocale, merge
+// consumer overrides with mergeAuthLocale (see docs/AUTH.md)
+export { mergeAuthLocale, useAuthLocale } from './i18n/index.js';
+// Open-redirect guard for the handle hook's ?redirectTo=… deep-link param
+export { sanitizeRedirect } from './redirect.js';
 export type {
   AuthConfig,
   AuthLogger,

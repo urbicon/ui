@@ -9,7 +9,7 @@
   let {
     user,
     t: tProp,
-    basePath = '/api/auth/account/2fa',
+    apiPath = '/api/auth/account/2fa',
     csrf,
     fetcher,
     qr,
@@ -43,7 +43,7 @@
   let error = $state('');
 
   const postJson = (path: string, body: unknown) =>
-    postJsonRequest(`${basePath}${path}`, body, { csrf, fetcher });
+    postJsonRequest(`${apiPath}${path}`, body, { csrf, fetcher });
 
   const errText = (data: Record<string, unknown>) => errorTextFromBody(data, t);
 

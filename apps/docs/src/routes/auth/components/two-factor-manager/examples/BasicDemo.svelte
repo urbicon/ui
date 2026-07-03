@@ -13,4 +13,4 @@
   const demoFetch = createTwoFactorDemoFetcher();
 </script>
 
-<TwoFactorManager user={demoAuthUser} basePath="/api/auth/account/2fa" fetcher={demoFetch} />
+<TwoFactorManager user={demoAuthUser} apiPath="/api/auth/account/2fa" fetcher={demoFetch} />

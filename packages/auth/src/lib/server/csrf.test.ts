@@ -1,13 +1,8 @@
 import type { Cookies } from '@sveltejs/kit';
 import { describe, expect, it } from 'vitest';
-import {
-  DEFAULT_CSRF_COOKIE_NAME,
-  DEFAULT_CSRF_HEADER_NAME,
-  ensureCsrfCookie,
-  generateCsrfToken,
-  timingSafeEqualStrings,
-  validateCsrf
-} from './csrf.js';
+import { DEFAULT_CSRF_COOKIE_NAME, DEFAULT_CSRF_HEADER_NAME } from '../csrf-constants.js';
+import { ensureCsrfCookie, generateCsrfToken, validateCsrf } from './csrf.js';
+import { timingSafeEqualStrings } from './timing-safe.js';
 
 function makeRequest(method: string, origin?: string, headers?: Record<string, string>): Request {
   const h = new Headers();

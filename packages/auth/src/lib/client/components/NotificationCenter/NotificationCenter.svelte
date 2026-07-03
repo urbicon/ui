@@ -10,7 +10,7 @@
     onMarkAsRead,
     onMarkAllAsRead,
     onDelete,
-    onClick,
+    onNotificationClick,
     item: itemSnippet,
     unstyled = false,
     slotClasses = {},
@@ -82,7 +82,7 @@
               class={cls('flex min-w-0 flex-1 flex-col gap-0.5 text-left')}
               onclick={() => {
                 if (!notification.readAt) onMarkAsRead?.(notification.id);
-                onClick?.(notification);
+                onNotificationClick?.(notification);
               }}
             >
               <span class={cls('text-text-primary text-sm font-medium')}>

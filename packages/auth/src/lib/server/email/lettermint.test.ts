@@ -9,10 +9,12 @@ afterEach(() => {
 });
 
 describe('createLettermintTransport', () => {
-  it('throws when neither token nor apiKey is provided', () => {
-    // Both fields are optional at the type level (either satisfies the API), so
-    // an empty config compiles — the runtime guard is what enforces "one of".
-    expect(() => createLettermintTransport({})).toThrow(/token/i);
+  it('throws when no token is provided', () => {
+    // The runtime guard backs the type: a JS consumer (or an empty env var)
+    // can still hand over a missing/empty token.
+    expect(() =>
+      createLettermintTransport({ token: '' } as Parameters<typeof createLettermintTransport>[0])
+    ).toThrow(/token/i);
   });
 
   it('POSTs to {baseUrl}/send with the x-lettermint-token header (v2 API)', async () => {
@@ -50,34 +52,6 @@ describe('createLettermintTransport', () => {
       html: '<p>Hi</p>',
       text: 'Hi'
     });
-  });
-
-  it('accepts apiKey as a back-compat alias for token', async () => {
-    const fetchMock = vi.fn().mockResolvedValue(okResponse());
-    vi.stubGlobal('fetch', fetchMock);
-
-    await createLettermintTransport({ apiKey: 'legacy-key' }).send({
-      from: 'a@test.com',
-      to: 'b@test.com',
-      subject: 's',
-      html: 'h'
-    });
-
-    expect(fetchMock.mock.calls[0][1].headers['x-lettermint-token']).toBe('legacy-key');
-  });
-
-  it('prefers token over apiKey when both are set', async () => {
-    const fetchMock = vi.fn().mockResolvedValue(okResponse());
-    vi.stubGlobal('fetch', fetchMock);
-
-    await createLettermintTransport({ token: 'new', apiKey: 'old' }).send({
-      from: 'a@test.com',
-      to: 'b@test.com',
-      subject: 's',
-      html: 'h'
-    });
-
-    expect(fetchMock.mock.calls[0][1].headers['x-lettermint-token']).toBe('new');
   });
 
   it('honours a custom baseUrl', async () => {

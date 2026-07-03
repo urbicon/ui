@@ -6,9 +6,9 @@ import type { CsrfClientOptions } from '../../csrf.js';
 /**
  * @description Self-service two-factor (TOTP) management: enrol with an
  * authenticator app, show one-time backup codes, and disable with a password
- * re-auth. Talks to `basePath` (default `/api/auth/account/2fa`); pair with the
- * server handlers `createTwoFactorSetupHandler`, `createTwoFactorEnableHandler`
- * and `createTwoFactorDisableHandler`. The core stays zero-dependency, so QR
+ * re-auth. Talks to `apiPath` (default `/api/auth/account/2fa`); pair with
+ * `createTwoFactorHandlers` — this panel uses its `setup`, `enable` and
+ * `disable` groups. The core stays zero-dependency, so QR
  * rendering is delegated to the `qr` snippet — without it the otpauth URI +
  * Base32 secret are shown for manual entry.
  *
@@ -40,7 +40,7 @@ export interface TwoFactorManagerProps {
    */
   t?: PartialAuthLocale;
   /** API base path for the 2FA account endpoints. @default '/api/auth/account/2fa' */
-  basePath?: string;
+  apiPath?: string;
   /** CSRF cookie/header names — only needed when the server overrides the defaults via `config.csrf`. Mutating requests echo the token automatically. */
   csrf?: CsrfClientOptions;
   /** Custom fetch implementation for all API calls. Defaults to the global `fetch`. */

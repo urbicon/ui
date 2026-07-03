@@ -85,21 +85,6 @@ describe('createSSEManager', () => {
     expect(ids).toContain('user-2');
   });
 
-  it('should notify by role', () => {
-    const sse = createSSEManager();
-    const ctrl1 = createMockController();
-    const ctrl2 = createMockController();
-
-    sse.addConnection('user-1', ctrl1);
-    sse.addConnection('user-2', ctrl2);
-
-    const getRoles: Record<string, string> = { 'user-1': 'admin', 'user-2': 'user' };
-    sse.notifyRole('admin', { type: 'admin-event' }, (id) => getRoles[id]);
-
-    expect(ctrl1.enqueue).toHaveBeenCalled();
-    expect(ctrl2.enqueue).not.toHaveBeenCalled();
-  });
-
   // Cluster C.1: a controller whose enqueue throws (closed socket) must be
   // pruned on send, otherwise it accumulates and drifts isOnline — which would
   // suppress push delivery to users wrongly believed to be online.

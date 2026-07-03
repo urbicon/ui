@@ -11,4 +11,4 @@
   const demoFetch = createSessionDemoFetcher();
 </script>
 
-<SessionManager basePath="/api/auth/sessions" fetcher={demoFetch} />
+<SessionManager apiPath="/api/auth/sessions" fetcher={demoFetch} />

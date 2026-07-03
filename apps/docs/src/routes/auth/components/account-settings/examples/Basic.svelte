@@ -6,4 +6,4 @@
   let { user }: { user: AuthUser | null } = $props();
 </script>
 
-<AccountSettings {user} basePath="/api/auth/account" />
+<AccountSettings {user} apiPath="/api/auth/account" />

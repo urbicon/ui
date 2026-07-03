@@ -11,12 +11,7 @@ import {
 } from '../test-utils.js';
 import { base32Decode, encryptSecret, generateTotpSecret, totp } from '../totp.js';
 import { createPending2faToken, hashBackupCode, setPending2faCookie } from '../two-factor.js';
-import {
-  createTwoFactorDisableHandler,
-  createTwoFactorEnableHandler,
-  createTwoFactorSetupHandler,
-  createTwoFactorVerifyHandler
-} from './two-factor.js';
+import { createTwoFactorHandlers } from './two-factor.js';
 
 const ENC_KEY = 'test-2fa-encryption-key-0123456789';
 const SECRET = generateTotpSecret();
@@ -39,10 +34,10 @@ async function authed<R extends string>(deps: AuthDeps<R>, body: unknown) {
 
 const as = (ev: ReturnType<typeof mockPostEvent>) => ev as unknown as RequestEvent;
 
-describe('createTwoFactorSetupHandler', () => {
+describe('createTwoFactorHandlers — setup', () => {
   it('returns 401 when not authenticated', async () => {
     const deps = createMockAuthDeps({ config: { twoFactor: { encryptionKey: ENC_KEY } } });
-    const res = await createTwoFactorSetupHandler(deps).POST(as(mockPostEvent({})));
+    const res = await createTwoFactorHandlers(deps).setup.POST(as(mockPostEvent({})));
     expect(res.status).toBe(401);
   });
 
@@ -52,7 +47,7 @@ describe('createTwoFactorSetupHandler', () => {
       config: { twoFactor: { encryptionKey: ENC_KEY } },
       user: { findById: vi.fn().mockResolvedValue(user) }
     });
-    const res = await createTwoFactorSetupHandler(deps).POST(as(await authed(deps, {})));
+    const res = await createTwoFactorHandlers(deps).setup.POST(as(await authed(deps, {})));
     expect(res.status).toBe(400);
     expect(deps.repos.user.setTotpSecret).not.toHaveBeenCalled();
   });
@@ -63,7 +58,7 @@ describe('createTwoFactorSetupHandler', () => {
       config: { twoFactor: { encryptionKey: ENC_KEY } },
       user: { findById: vi.fn().mockResolvedValue(user) }
     });
-    const res = await createTwoFactorSetupHandler(deps).POST(as(await authed(deps, {})));
+    const res = await createTwoFactorHandlers(deps).setup.POST(as(await authed(deps, {})));
     expect(res.status).toBe(200);
     const data = await res.json();
     expect(data.secret).toMatch(/^[A-Z2-7]+$/);
@@ -76,7 +71,7 @@ describe('createTwoFactorSetupHandler', () => {
   });
 });
 
-describe('createTwoFactorEnableHandler', () => {
+describe('createTwoFactorHandlers — enable', () => {
   it('returns 400 when no setup is in progress', async () => {
     const user = createMockUser({ totpEnabled: false, totpSecret: null });
     const deps = createMockAuthDeps({
@@ -84,7 +79,7 @@ describe('createTwoFactorEnableHandler', () => {
       user: { findById: vi.fn().mockResolvedValue(user) },
       backupCode: createMockBackupCodeRepository()
     });
-    const res = await createTwoFactorEnableHandler(deps).POST(
+    const res = await createTwoFactorHandlers(deps).enable.POST(
       as(await authed(deps, { code: '123456' }))
     );
     expect(res.status).toBe(400);
@@ -102,7 +97,7 @@ describe('createTwoFactorEnableHandler', () => {
       user: { findById: vi.fn().mockResolvedValue(user) },
       backupCode
     });
-    const res = await createTwoFactorEnableHandler(deps).POST(
+    const res = await createTwoFactorHandlers(deps).enable.POST(
       as(await authed(deps, { code: '000000' }))
     );
     expect(res.status).toBe(400);
@@ -121,7 +116,7 @@ describe('createTwoFactorEnableHandler', () => {
       user: { findById: vi.fn().mockResolvedValue(user) },
       backupCode
     });
-    const res = await createTwoFactorEnableHandler(deps).POST(
+    const res = await createTwoFactorHandlers(deps).enable.POST(
       as(await authed(deps, { code: await currentCode() }))
     );
     expect(res.status).toBe(200);
@@ -143,14 +138,14 @@ describe('createTwoFactorEnableHandler', () => {
       user: { findById: vi.fn().mockResolvedValue(user) },
       backupCode: createMockBackupCodeRepository()
     });
-    const res = await createTwoFactorEnableHandler(deps).POST(
+    const res = await createTwoFactorHandlers(deps).enable.POST(
       as(await authed(deps, { code: await currentCode() }))
     );
     expect(res.status).toBe(400);
   });
 });
 
-describe('createTwoFactorDisableHandler', () => {
+describe('createTwoFactorHandlers — disable', () => {
   it('returns 403 (re-auth) when the password is wrong', async () => {
     const user = createMockUser({
       totpEnabled: true,
@@ -162,7 +157,7 @@ describe('createTwoFactorDisableHandler', () => {
       user: { findById: vi.fn().mockResolvedValue(user) },
       backupCode
     });
-    const res = await createTwoFactorDisableHandler(deps).POST(
+    const res = await createTwoFactorHandlers(deps).disable.POST(
       as(await authed(deps, { currentPassword: 'WRONG' }))
     );
     expect(res.status).toBe(403);
@@ -180,7 +175,7 @@ describe('createTwoFactorDisableHandler', () => {
       user: { findById: vi.fn().mockResolvedValue(user) },
       backupCode
     });
-    const res = await createTwoFactorDisableHandler(deps).POST(
+    const res = await createTwoFactorHandlers(deps).disable.POST(
       as(await authed(deps, { currentPassword: 'correct' }))
     );
     expect(res.status).toBe(200);
@@ -189,7 +184,7 @@ describe('createTwoFactorDisableHandler', () => {
   });
 });
 
-describe('createTwoFactorVerifyHandler', () => {
+describe('createTwoFactorHandlers — verify', () => {
   function verifyDeps(user = createMockUser({ totpEnabled: true })) {
     return createMockAuthDeps({
       config: { twoFactor: { encryptionKey: ENC_KEY } },
@@ -214,7 +209,7 @@ describe('createTwoFactorVerifyHandler', () => {
 
   it('returns 400 when there is no pending cookie', async () => {
     const deps = verifyDeps();
-    const res = await createTwoFactorVerifyHandler(deps).POST(
+    const res = await createTwoFactorHandlers(deps).verify.POST(
       as(mockPostEvent({ code: '123456' }))
     );
     expect(res.status).toBe(400);
@@ -227,7 +222,7 @@ describe('createTwoFactorVerifyHandler', () => {
     });
     const deps = verifyDeps(user);
     const ev = await withPending(deps, { code: await currentCode() });
-    const res = await createTwoFactorVerifyHandler(deps).POST(as(ev));
+    const res = await createTwoFactorHandlers(deps).verify.POST(as(ev));
     expect(res.status).toBe(200);
     const data = await res.json();
     expect(data.user.id).toBe('user-1');
@@ -248,7 +243,7 @@ describe('createTwoFactorVerifyHandler', () => {
       })
     });
     const ev = await withPending(deps, { code: 'ABCD-EFGH-IJKL-MNOP' });
-    const res = await createTwoFactorVerifyHandler(deps).POST(as(ev));
+    const res = await createTwoFactorHandlers(deps).verify.POST(as(ev));
     expect(res.status).toBe(200);
     expect(deps.repos.backupCode!.consumeIfUnused).toHaveBeenCalledWith(
       'user-1',
@@ -264,7 +259,7 @@ describe('createTwoFactorVerifyHandler', () => {
     });
     const deps = verifyDeps(user);
     const ev = await withPending(deps, { code: '000000' });
-    const res = await createTwoFactorVerifyHandler(deps).POST(as(ev));
+    const res = await createTwoFactorHandlers(deps).verify.POST(as(ev));
     expect(res.status).toBe(401);
     expect(ev._cookieStore.get('session')).toBeUndefined();
     // The pending cookie survives a wrong attempt so the user can retry.
@@ -284,7 +279,7 @@ describe('createTwoFactorVerifyHandler', () => {
       user: { findById: vi.fn().mockResolvedValue(user) },
       backupCode: createMockBackupCodeRepository()
     });
-    const handler = createTwoFactorVerifyHandler(deps);
+    const handler = createTwoFactorHandlers(deps).verify;
     const run = async () => handler.POST(as(await withPending(deps, { code: '000000' })));
     expect((await run()).status).toBe(401);
     expect((await run()).status).toBe(401);
@@ -295,13 +290,13 @@ describe('createTwoFactorVerifyHandler', () => {
     const user = createMockUser({ totpEnabled: false });
     const deps = verifyDeps(user);
     const ev = await withPending(deps, { code: await currentCode() });
-    const res = await createTwoFactorVerifyHandler(deps).POST(as(ev));
+    const res = await createTwoFactorHandlers(deps).verify.POST(as(ev));
     expect(res.status).toBe(400);
     expect([...ev._cookieStore.keys()].some((k) => k.includes('urbicon_2fa'))).toBe(false);
   });
 });
 
-describe('createTwoFactorDisableHandler — rate limit (R4)', () => {
+describe('createTwoFactorHandlers — disable rate limit (R4)', () => {
   it('enforces the twoFactorDisable limit before touching re-auth', async () => {
     // Pins the KEY wiring: the disable handler must read `twoFactorDisable`,
     // not the verify handler's `twoFactor` — with both being RateLimitConfig a
@@ -314,7 +309,7 @@ describe('createTwoFactorDisableHandler — rate limit (R4)', () => {
       },
       user: { findById: vi.fn().mockResolvedValue(user) }
     });
-    const handler = createTwoFactorDisableHandler(deps);
+    const handler = createTwoFactorHandlers(deps).disable;
 
     const r1 = await handler.POST(as(await authed(deps, { currentPassword: 'wrong' })));
     const r2 = await handler.POST(as(await authed(deps, { currentPassword: 'wrong' })));

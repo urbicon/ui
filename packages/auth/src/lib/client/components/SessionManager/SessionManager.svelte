@@ -10,7 +10,7 @@
 
   let {
     t: tProp,
-    basePath = '/api/auth/sessions',
+    apiPath = '/api/auth/sessions',
     csrf,
     fetcher,
     unstyled = false,
@@ -40,7 +40,7 @@
     loading = true;
     error = '';
     try {
-      const { ok, data } = await getJson(basePath, { fetcher });
+      const { ok, data } = await getJson(apiPath, { fetcher });
       if (!ok) {
         error = errorTextFromBody(data, t);
         return;
@@ -61,7 +61,7 @@
     revokingId = id;
     try {
       const res = await csrfFetch(
-        `${basePath}/revoke`,
+        `${apiPath}/revoke`,
         {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -88,7 +88,7 @@
     error = '';
     revokingOthers = true;
     try {
-      const res = await csrfFetch(`${basePath}/revoke-others`, { method: 'POST' }, csrf, fetcher);
+      const res = await csrfFetch(`${apiPath}/revoke-others`, { method: 'POST' }, csrf, fetcher);
       if (!res.ok) {
         const data = (await res.json().catch(() => ({}))) as Record<string, unknown>;
         error = errorTextFromBody(data, t);

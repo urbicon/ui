@@ -5,6 +5,7 @@ import type {
   FullAuthUser,
   Invitation,
   InvitationRepository,
+  PasskeyRepository,
   RefreshTokenRepository,
   UserRepository
 } from './adapters/types.js';
@@ -137,6 +138,7 @@ export function createMockAuthDeps<R extends string>(opts?: {
   invitation?: Partial<InvitationRepository>;
   refreshToken?: RefreshTokenRepository;
   backupCode?: BackupCodeRepository;
+  passkey?: PasskeyRepository;
   email?: EmailTransport;
 }): AuthDeps<R> {
   return {
@@ -152,7 +154,8 @@ export function createMockAuthDeps<R extends string>(opts?: {
       user: createMockUserRepository<R>(opts?.user),
       invitation: createMockInvitationRepository(opts?.invitation),
       refreshToken: opts?.refreshToken,
-      backupCode: opts?.backupCode
+      backupCode: opts?.backupCode,
+      passkey: opts?.passkey
     },
     email: opts?.email ?? { send: vi.fn() }
   };
