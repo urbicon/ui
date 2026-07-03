@@ -4,6 +4,19 @@ All notable changes to this project will be documented in this file.
 This changelog is automatically generated from [Conventional Commits](https://www.conventionalcommits.org).
 
 
+## [6.19.0] - 2026-07-03
+
+### Breaking Changes
+- **auth**: Adapter polish — owner-first scoping, delete cascade, conformance gaps (R20)
+- **auth**: Unify API surface, bundle route factories, add redirectTo (R21+R16)
+- **auth**: Retire tooling/doc relics and hygiene leftovers (R24, P3)
+
+### Bug Fixes
+- **auth**: Close the package-6 review findings — redirect bypass, cascade gap, test pins
+
+### Refactoring
+- **auth**: Split the auth.ts and webauthn.ts god-files (R17)
+
 ## [6.18.0] - 2026-07-02
 
 ### Bug Fixes
