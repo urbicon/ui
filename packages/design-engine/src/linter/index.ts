@@ -2,7 +2,7 @@
  * Public API of the Urbicon UI design linter.
  *
  * The linter is the deterministic half of the "generate → validate → fix" loop
- * (docs/DESIGN-MCP.md, Option B). It is consumed by the `validate_design` MCP
+ * (docs/internal/DESIGN-MCP.md, Option B). It is consumed by the `validate_design` MCP
  * tool and, programmatically, by the eval-suite (WP5) which scores generated
  * pages without an LLM in the loop.
  */

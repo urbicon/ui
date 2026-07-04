@@ -5,7 +5,7 @@
  * today by `get_design_principles`, `suggest_implementation`,
  * `get_implementation_checklist`) into executable checks. Deterministic rules
  * produce `error`/`warning` findings; distribution heuristics produce `info`
- * findings. See the design-loop context in docs/DESIGN-MCP.md.
+ * findings. See the design-loop context in docs/internal/DESIGN-MCP.md.
  */
 
 /** How serious a finding is. Drives the score deduction and the report grouping. */

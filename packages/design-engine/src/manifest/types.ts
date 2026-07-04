@@ -1,6 +1,6 @@
 /**
  * Types for the design manifest — the per-consumer-project memory of design
- * intent (docs/DESIGN-MCP.md, Option C). The manifest is a Markdown file
+ * intent (docs/internal/DESIGN-MCP.md, Option C). The manifest is a Markdown file
  * (`design.manifest.md`) at the consumer's project root, plus a sidecar ndjson
  * log. Its parts (DESIGN-MCP-V2 §7):
  *

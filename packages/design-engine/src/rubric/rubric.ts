@@ -1,6 +1,6 @@
 /**
  * The design-quality scoring rubric — the qualitative half of the design loop
- * (docs/DESIGN-MCP.md, step 3). Where `validate_design` answers "is it correct?"
+ * (docs/internal/DESIGN-MCP.md, step 3). Where `validate_design` answers "is it correct?"
  * deterministically, the rubric answers "is it good?" through a judge.
  *
  * The eight criteria have been validated empirically against design-quality

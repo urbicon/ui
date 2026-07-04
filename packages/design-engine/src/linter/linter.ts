@@ -2,7 +2,7 @@
  * The design linter engine: masks comments, runs the deterministic rules and the
  * distribution heuristics, and reduces the findings to a 0–100 score. Pure and
  * dependency-free so it is trivially unit-testable (one of the explicit wins of
- * a linter over prose guidance — see docs/DESIGN-MCP.md, Option B).
+ * a linter over prose guidance — see docs/internal/DESIGN-MCP.md, Option B).
  */
 
 import { runHeuristics } from './heuristics.js';
