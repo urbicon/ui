@@ -51,6 +51,8 @@
     enableColumnVisibility = true,
     searchPlaceholder = tt('search.placeholder'),
     searchDebounceMs = 300,
+    searchTerm = undefined,
+    onSearchTermChange = undefined,
 
     loadingText = tt('data.loading'),
     errorText = tt('error.loadingError'),
@@ -193,6 +195,8 @@
   {selectedIds}
   onSelectionChange={onSelectionChangeErased}
   {enableColumnVisibility}
+  {searchTerm}
+  {onSearchTermChange}
 >
   {@render provider_content()}
 </TableProvider>

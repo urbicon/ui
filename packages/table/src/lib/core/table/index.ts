@@ -213,6 +213,23 @@ export interface TableProps<T = TableItem> {
   searchDebounceMs?: number;
 
   /**
+   * Controlled search term. When provided, it drives the table's search state,
+   * and `onSearchTermChange` fires on every internal change (typing in the smart
+   * filter bar, Escape-to-clear). An empty string is a valid controlled value
+   * ("no search"). Leave undefined for uncontrolled search. Takes precedence
+   * over `persistenceConfig.persistSearch`.
+   */
+  searchTerm?: string;
+
+  /**
+   * Called whenever the search term changes — typed in the built-in smart
+   * filter bar or set programmatically. Pair with {@link searchTerm} for a
+   * controlled search, or use alone to observe the uncontrolled value (e.g. to
+   * mirror it into the URL).
+   */
+  onSearchTermChange?: (term: string) => void;
+
+  /**
    * Text displayed during loading state
    * @default "Loading data..."
    */

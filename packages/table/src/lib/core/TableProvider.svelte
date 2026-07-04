@@ -40,6 +40,8 @@
     selectedIds?: Array<string | number>;
     onSelectionChange?: (selectedItems: TableItem[]) => void;
     enableColumnVisibility?: boolean;
+    searchTerm?: string;
+    onSearchTermChange?: (term: string) => void;
   };
 
   let {
@@ -65,7 +67,9 @@
     selectionMode = 'none',
     selectedIds = undefined,
     onSelectionChange = undefined,
-    enableColumnVisibility = true
+    enableColumnVisibility = true,
+    searchTerm = undefined,
+    onSearchTermChange = undefined
   }: TableProviderProps = $props();
 
   const tableState = createTableState(persistenceConfig);
@@ -156,6 +160,22 @@
     if (onSelectionChange && state.selectionMode !== 'none') {
       const selected = tableState.selectedItems;
       onSelectionChange(selected);
+    }
+  });
+
+  // Controlled search: an explicit `searchTerm` prop drives the store. Guard on
+  // `!== undefined` so an empty string is a valid controlled value ("no
+  // search") — and so a controlled term wins over a persisted one. Uncontrolled
+  // usage leaves `searchTerm` undefined and this effect is inert.
+  $effect(() => {
+    if (searchTerm !== undefined) {
+      tableState.setSearchTerm(searchTerm);
+    }
+  });
+
+  $effect(() => {
+    if (onSearchTermChange) {
+      onSearchTermChange(state.searchTerm);
     }
   });
 
