@@ -20,4 +20,4 @@ bun run i18n:check   # parity + unused-key scan + hardcoded-string lint, blocks 
 `urbicon i18n <parity|unused|hardcoded|audit> [dirs…] --translations <dir>` is the
 general form; `--json` for machine output, `--strict` to gate advisory findings.
 Consumers get the same tool plus `auditTranslations` / `createMissingKeyCollector`
-from `@urbicon-ui/i18n`. See [docs/I18N-AUDIT-PLAN.md](../../../docs/I18N-AUDIT-PLAN.md).
+from `@urbicon-ui/i18n`. See the [i18n package README](../../i18n/README.md).

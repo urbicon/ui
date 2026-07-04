@@ -3,8 +3,8 @@
  *
  * Shared mechanics for cell-based date views: the `DateGridController` state
  * class, its context, the keyboard handler and the `DateGridScaffold` chrome.
- * Consumed by Calendar and Planner; see docs/DATEGRID-PLANNER-PLAN.md (D6) for
- * why it stays internal for now.
+ * Consumed by Calendar and Planner; see docs/ARCHITECTURE.md → "Date & Planning
+ * Infrastructure" for why it stays internal for now.
  */
 
 export { default as DateGridScaffold } from './DateGridScaffold.svelte';
