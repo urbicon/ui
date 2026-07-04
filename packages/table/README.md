@@ -19,14 +19,14 @@ Peer dependencies: `svelte` (^5), `@urbicon-ui/blocks`, `@urbicon-ui/i18n`.
 | Area                | Highlights                                                                                                                  |
 | ------------------- | --------------------------------------------------------------------------------------------------------------------------- |
 | Data pipeline       | `$derived`-chain `items → filteredItems → sortedItems → grouped → paginatedItems`; all stages reactive                      |
-| Sorting & Filtering | Column sort (asc/desc/none tri-state), smart filter bar, column-level filters, search highlighting                          |
-| Selection           | Single / multi, `onSelectionChange`, indeterminate header, keyboard toggle (`Space`)                                        |
+| Sorting & Filtering | Column sort (asc/desc/none tri-state), smart filter bar, column-level filters, search highlighting, controlled `searchTerm` |
+| Selection           | Single / multi, `onSelectionChange`, select-all spans all **filtered** rows, keyboard toggle (`Space`)                      |
 | Keyboard            | Roving tabindex, ARIA-Grid role, arrow keys, `Home`/`End`/`PageUp`/`PageDown`, Skip-Link                                    |
 | Grouping            | `groupByKey`, collapsible group headers, grouped summary rows                                                               |
 | Pagination          | Built-in paginator, auto-disable on grouping, mobile-friendly controls                                                      |
 | Virtualization      | `computeVirtualItems` for 10k+ rows (custom, zero deps); `virtualHeight` prop; falls back to normal rendering when inactive |
 | Column ordering     | Pointer-event drag-and-drop + `Shift+ArrowLeft/Right` keyboard reorder via shared `createDraggable` action                  |
-| Column visibility   | Header menu + persistence API                                                                                               |
+| Column visibility   | Header menu + persistence API; opt out per column (`hideable: false`) or table-wide (`enableColumnVisibility={false}`)      |
 | Remote mode         | `mode: 'server'` + `queryFn` (managed fetch with `AbortSignal`) or `onQueryChange` (manual), debounced, cancellation-safe   |
 | Live updates        | `pushInsert/Update/Delete` pending-buffer, `LiveUpdateBanner`, auto-apply on navigation                                     |
 | Styling             | `unstyled`, `slotClasses`, `TableStyleContext` — every subcomponent respects the 17-slot map                                |
@@ -147,6 +147,13 @@ Deliberate trade-offs of the zero-dependency implementation — documented so th
 - **Virtualization and grouping are mutually exclusive.** When `groupByKey` is set, virtualization deactivates automatically (grouping takes precedence) and the full grouped set renders. For large datasets, group server-side via remote mode or keep grouped views paginated instead of virtualized.
 - **Virtualized mode bypasses pagination.** All sorted items live in one scrollable container; only ~viewport rows are in the DOM.
 - **Live updates ship no transport.** `enableLiveUpdates` is a push-model pending-buffer — the app supplies WebSocket/SSE/polling and calls `pushInsert`/`pushUpdate`/`pushDelete`.
+
+## Behavior contracts
+
+Semantics worth stating outright, since they differ from some other table libraries:
+
+- **Select-all covers every filtered row, not just the current page.** In `selectionMode="multi"`, the header checkbox toggles all rows that pass the active search/filters — across every page — and its indeterminate state reflects that same set. (TanStack/shadcn default to a page-scoped select-all.) Selection is keyed by `item.id`, falling back to the row index, so it survives paging and re-sorting.
+- **A controlled `searchTerm` wins over `persistSearch`.** When you pass `searchTerm`, it drives the search state and takes precedence over a value restored from `persistenceConfig.persistSearch`. Leave it `undefined` to let persistence (or the built-in filter bar) own the term; an empty string is a valid controlled value that clears the search.
 
 ## Development
 

@@ -34,9 +34,17 @@ ${scriptClose}
         <code class="text-text-primary">multi</code> (checkbox) modes with a select-all header.
       </p>
 
+      <p class="text-text-secondary text-sm">
+        The select-all header checkbox toggles
+        <strong class="text-text-primary">every filtered row across all pages</strong>, not just the
+        rows on the current page, and its indeterminate state reflects that same set. Selection is
+        keyed by <code class="text-text-primary">item.id</code> (falling back to the row index), so it
+        survives paging, sorting, and filtering.
+      </p>
+
       <CodeExample
         title="Multi-Select with Callback"
-        description="Checkboxes appear automatically. The select-all header toggles all visible (filtered) items. Shift+Click for range selection."
+        description="Checkboxes appear automatically. The select-all header toggles every filtered row across all pages — not just the current page. Shift+Click for range selection."
         code={codeMultiSelect}
       >
         <Table
