@@ -30,7 +30,7 @@ bun run dev
 ```
 urbicon-ui/
 ├── packages/
-│   ├── blocks            35 primitives + 18 components (zero runtime deps)
+│   ├── blocks            36 primitives + 19 components (zero runtime deps)
 │   ├── table             Data table (selection, keyboard, virtual, remote, live updates)
 │   ├── auth              Auth + passkeys + notifications + email (Web Crypto only)
 │   ├── docs              Reusable documentation UI components
@@ -38,7 +38,10 @@ urbicon-ui/
 │   ├── mcp-server        Model Context Protocol server (AI-native DX)
 │   ├── i18n              Localization (Svelte 5 runes-based)
 │   ├── shared-types      Shared TypeScript type definitions
-│   └── sveltekit-utils   SvelteKit helper utilities (createCronRunner, URL-state runes)
+│   ├── sveltekit-utils   SvelteKit helper utilities (createCronRunner, URL-state runes)
+│   ├── design            urbicon CLI (@urbicon-ui/design): local design-loop enforcement + skill/templates
+│   ├── design-content    Versioned design-knowledge bundle for the remote MCP + CLI
+│   └── design-engine     Zero-dep design linter / manifest parser / rubric
 ├── apps/
 │   └── docs              Documentation site (SvelteKit)
 ├── e2e/                  Playwright suites (auth flow, a11y axe scan)
@@ -54,7 +57,7 @@ urbicon-ui/
 | `bun run build` | Build all packages and apps |
 | `bun run check` | Run type checks (svelte-check) |
 | `bun run lint` | Lint all packages |
-| `bun run format` | Format all packages (Prettier) |
+| `bun run format` | Format with Biome across the tree (`.svelte` via per-package `format`) |
 | `bun run docs:gen:all` | Generate API docs for all components |
 | `bun run test` | Run unit tests across packages |
 | `bun run test:e2e` | Run Playwright end-to-end tests |
@@ -67,7 +70,7 @@ urbicon-ui/
 - **Design Tokens**: OKLCH color system with 3-layer architecture (foundation → semantic → interaction)
 - **Build**: [Bun](https://bun.sh) workspaces, `@sveltejs/package`
 - **Testing**: [Vitest](https://vitest.dev) (unit) + [Playwright](https://playwright.dev/) (e2e + a11y axe)
-- **Commits**: [Conventional Commits](https://www.conventionalcommits.org) enforced via commitlint + Husky
+- **Commits**: [Conventional Commits](https://www.conventionalcommits.org) enforced via commitlint + lefthook
 - **Changelog**: [git-cliff](https://git-cliff.org/) — parses commits, generates `CHANGELOG.md` on bump
 
 ## Documentation

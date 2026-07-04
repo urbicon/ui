@@ -17,6 +17,9 @@ Svelte 5 + Tailwind CSS 4 UI component library monorepo. Uses Bun workspaces.
   - `i18n`: Localization (Svelte 5 runes-based); also ships a data-level translation audit (`auditTranslations`, `onMissingKey` / `createMissingKeyCollector`) + a dev-only `@urbicon-ui/i18n/audit` source scanner (unused / used-but-undefined keys, hardcoded strings), fronted by the `urbicon i18n` CLI command and `bun run i18n:check`
   - `shared-types`: Shared TypeScript types
   - `sveltekit-utils`: SvelteKit helper utilities (`createCronRunner`, URL-state runes)
+  - `design`: the `urbicon` CLI (`@urbicon-ui/design`) — local design-loop enforcement (validate/hook/context/record-decision/sync-manifest/i18n/verb), ships the design skill + templates
+  - `design-content`: versioned design knowledge bundle (`@urbicon-ui/design-content`) consumed by the remote MCP server + the `urbicon` CLI; `content/` is a git-ignored build artifact emitted by docs-gen
+  - `design-engine`: zero-dep design linter / manifest parser / rubric (`@urbicon-ui/design-engine`), subpath exports `./linter` `./manifest` `./rubric`
   - `auth`: Authentication & user management (JWT sessions, refresh-token rotation, passkeys/WebAuthn, notifications, email)
     - Zero runtime dependencies — uses Web Crypto API for JWT, PBKDF2, WebAuthn (CBOR, ECDSA, RSA), Web Push (RFC 8291/8292)
     - Server: handler factories, handle hook, adapter pattern (Prisma adapter included)
@@ -148,7 +151,7 @@ Icons live in `packages/blocks/src/lib/icons/` — geometry in `svg/<name>.svg`,
 - packages/blocks/src/lib/primitives:
   Accordion, Alert, Avatar, Badge, Breadcrumb, Button, ButtonGroup, Card, Checkbox, Collapsible, Combobox, ConfirmDialog, Dialog, Drawer, FormField, Input, JourneyTimeline, Menu, Pagination, Popover, Progress, RadioGroup, SegmentGroup, Select, Separator, Sidebar, Skeleton, Slider, Spinner, Stepper, Tab, Textarea, Toast, Toggle, Toolbar, Tooltip
 - packages/blocks/src/lib/components:
-  AreaChart, BarChart, Calendar, ChartFrame, CommandPalette, CompositionBar, CurrencyInput, DatePicker, DonutChart, EmptyState, FileUpload, Guide (+ GuideProvider, GuidePanel, GuideArticle, GuideMarker, GuideMention, GuideRef, GuideHint, GuideBeacon), LineChart, LocaleSwitcher, Sankey, SidebarLayout, Sparkline, ThemeSwitcher
+  AreaChart, BarChart, Calendar, ChartFrame, CommandPalette, CompositionBar, CurrencyInput, DatePicker, DonutChart, EmptyState, FileUpload, Guide (+ GuideProvider, GuidePanel, GuideArticle, GuideMarker, GuideMention, GuideRef, GuideHint, GuideBeacon), LineChart, LocaleSwitcher, Planner, Sankey, SidebarLayout, Sparkline, ThemeSwitcher
 - packages/table/src/lib:
   Table
 - packages/docs/src/lib/components:
@@ -158,7 +161,7 @@ Icons live in `packages/blocks/src/lib/icons/` — geometry in `svg/<name>.svg`,
 
 ## Git Workflow (Agent Notes)
 
-- **Before committing**: the lefthook pre-commit hook runs `biome check --write` on staged `.ts`/`.js`/`.json` files and re-stages the results. Note: `.svelte` files are **not** auto-formatted by the hook — run `bun run format` for those.
+- **Before committing**: the lefthook pre-commit hook runs `biome check --write` on staged `.ts`/`.js`/`.json` files and re-stages the results. Note: `.svelte` files are **not** auto-formatted by the pre-commit hook — run the package format script (`bun --filter='<pkg>' run format`, which runs `prettier --write "**/*.svelte"`) for those.
 - **Worktree merges**: `main` is checked out in the root worktree (`<repo-root>`). Merge into it **without leaving your worktree** via `git -C <repo-root> merge <branch>` (a fast-forward when `main` hasn't moved). If that tree has uncommitted changes, `git -C … stash` first and `stash pop` after.
 - **Pre-commit hooks**: lefthook (`lefthook.yml`, installed via the `prepare` script) runs `biome check --write` on staged files (pre-commit) + commitlint (commit-msg). Fix lint errors before retrying — don't use `--no-verify`.
 - **SvelteKit sync**: After `bun install` in a fresh worktree, run `bunx --bun svelte-kit sync` in packages that need it (blocks, docs-app) before `svelte-check` or `dev`.

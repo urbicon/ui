@@ -5,7 +5,7 @@ reads as one family. The hard, machine-checkable rules here are enforced by
 `bun run icons:lint` (`packages/blocks/scripts/icons-lint.ts`); the soft rules are judgement
 calls the linter surfaces as warnings and a reviewer (or you) decides on.
 
-> These values are not invented — they codify what the existing 156 icons already do in the
+> These values are not invented — they codify what the existing 315 icons already do in the
 > majority. When in doubt, **copy the geometry of the named reference icon** for that shape class
 > and adapt it; do not start from a blank 24×24.
 
@@ -22,7 +22,7 @@ calls the linter surfaces as warnings and a reviewer (or you) decides on.
 ## Icon resolution & tree-shaking
 
 How a component renders a _default_ icon decides whether a consumer who imports that component
-drags in **one** icon or **all ~156**. Two resolvers exist (`resolveIcon` in `icons/icon.context.ts`, `getIcon` in `icons/icon-registry.ts`); pick by call
+drags in **one** icon or **all ~315**. Two resolvers exist (`resolveIcon` in `icons/icon.context.ts`, `getIcon` in `icons/icon-registry.ts`); pick by call
 site:
 
 - **`resolveIcon(name, FallbackIcon)` — use this in every component.** The component imports its
@@ -46,12 +46,12 @@ site:
   icon and is indexed dynamically (`DEFAULT_ICONS[name]`), **importing `getIcon` pulls the whole
   icon set into the bundle** — unavoidable for a genuinely by-name component, wrong everywhere else.
 
-**Why it matters.** `DEFAULT_ICONS` statically imports all ~156 icons and `getIcon` reads it via a
+**Why it matters.** `DEFAULT_ICONS` statically imports all ~315 icons and `getIcon` reads it via a
 runtime key — a dynamic property access no bundler can tree-shake. A single `getIcon('close')` in
-`Input` therefore used to drag all 156 icons into any app that imports `<Input>`. `resolveIcon`
-never references the registry, so the bundler drops `DEFAULT_ICONS` (and its 156 imports) whenever
+`Input` therefore used to drag all 315 icons into any app that imports `<Input>`. `resolveIcon`
+never references the registry, so the bundler drops `DEFAULT_ICONS` (and its 315 imports) whenever
 no `<Icon>` is in the graph. Measured on the built `dist`: `<Input>` bundles **1** icon, `<Select>`
-3, `<Toaster>` 5 — down from 156 each.
+3, `<Toaster>` 5 — down from 315 each.
 
 **Rule for new components.** Resolve every built-in icon via `resolveIcon(name, …Default)` with a
 direct import. Never call `getIcon` in a component — the lone exception is `Icon.svelte`. The

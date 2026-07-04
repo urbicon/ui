@@ -19,7 +19,7 @@ Requires [Bun](https://bun.sh) v1.1+ and Node.js 18+.
 
 ```bash
 bun run check      # type checks (svelte-check)
-bun run lint       # Biome (.ts/.js/.json) + Prettier (.svelte)
+bun run lint       # Biome (.ts/.js/.json)
 bun run test       # unit tests (Vitest)
 ```
 

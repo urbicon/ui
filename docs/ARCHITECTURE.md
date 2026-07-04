@@ -160,7 +160,7 @@ Unconditional `slotClasses` apply to every instance regardless of variant. For a
 
 Entries match active **prop values** (via `matchesCompound`), not the library's internal variant/compound structure — so it is irrelevant whether `border-2` lives in a `variant` or a `compoundVariant`. `string` conditions match by equality, `string[]` as "one of"; multiple matching entries merge additively. Unconditional-vs-conditional conflicts in the same bucket resolve deterministically (later source wins) via `resolveClassChain` — not left to stylesheet order.
 
-Key files: `packages/blocks/src/lib/provider/BlocksProvider.svelte`, `blocks-context.ts` (`resolveSlotClasses`, `resolveOverrideSlotClasses`, `resolvePresetSlotClasses`), `utils/variants.ts` (`matchesCompound`, `resolveClassChain`). Dev-only `console.warn()` on unregistered preset names. The preset system reaches all primitives and components (rolled out v0.8.0); as of v6.3.0 every one of the 37 component families resolves its slot classes through the shared `resolveSlotClasses(config, name, preset, activeProps, instanceSlotClasses)` helper — each feeding its active `variantProps` as the match input — so `overrides` applies library-wide, not just to Badge.
+Key files: `packages/blocks/src/lib/provider/BlocksProvider.svelte`, `blocks-context.ts` (`resolveSlotClasses`, `resolveOverrideSlotClasses`, `resolvePresetSlotClasses`), `utils/variants.ts` (`matchesCompound`, `resolveClassChain`). Dev-only `console.warn()` on unregistered preset names. The preset system reaches all primitives and components (rolled out v0.8.0); as of v6.3.0 every component family resolves its slot classes through the shared `resolveSlotClasses(config, name, preset, activeProps, instanceSlotClasses)` helper — each feeding its active `variantProps` as the match input — so `overrides` applies library-wide, not just to Badge.
 
 ## Mint System (Micro-Interactions)
 
@@ -225,6 +225,7 @@ Runes-based internationalization in `packages/i18n/`, re-exported through `packa
 - **Opt-in code-splitting**: register non-base locales as dynamic-import loaders (`createPackageI18n(name, { en }, { loaders })`).
 - **Authored as TS `as const`** (not JSON): literal key/param types flow straight into the generic factory's inference — no codegen step.
 - **Plurals via `Intl.PluralRules`** (per-locale CLDR categories, cached), not a bundled ICU runtime.
+- **Translation audit**: data-level `auditTranslations` (missing/unused-key report; `onMissingKey` / `createMissingKeyCollector`) plus a dev-only `@urbicon-ui/i18n/audit` source scanner (unused / used-but-undefined keys, hardcoded strings), fronted by the `urbicon i18n` CLI command and `bun run i18n:check`.
 
 The deliberate trade-off behind these: a **runtime registry** (not a Paraglide-style compiler) keeps translations reactive and SSR-context-scoped at the cost of full tree-shaking — acceptable for a component library where locale data is small.
 
@@ -259,16 +260,17 @@ The `docs-gen` pipeline generates per-component LLM documentation with import st
 
 ## Figma Token Export
 
-The utility `generateFigmaTokensJSON()` in `packages/blocks/src/lib/utils/figma-token-export.ts` exports the full design token system as Tokens Studio-compatible JSON. Categories: `color` (6 OKLCH palettes), `semantic` (surface/text/border), `spacing`, `borderRadius`, `shadow`. The export is available both programmatically and via the `/figma-tokens` docs page (download/copy).
+The utility `generateFigmaTokensJSON()` in `packages/blocks/src/lib/utils/figma-token-export.ts` exports the full design token system as Tokens Studio-compatible JSON. Categories: `color` (6 OKLCH palettes), `semantic` (surface/text/border), `spacing`, `borderRadius`, `shadow`. The export is available both programmatically and via the `/customization/figma-tokens` docs page (download/copy).
 
 ## UI Recipes
 
-The docs app ships **19 production-ready UI recipes** under `apps/docs/src/routes/recipes/`. The canonical, always-current list is the navigation map in `apps/docs/src/lib/navigation.ts`; categorically (illustrative):
+The docs app ships **20 production-ready UI recipes** under `apps/docs/src/routes/recipes/`. The canonical, always-current list is the navigation map in `apps/docs/src/lib/navigation.ts`; categorically (illustrative):
 
 | Category            | Recipes                                                                                       |
 | ------------------- | --------------------------------------------------------------------------------------------- |
 | Authentication      | Login, Invitation Register, Passkey Login, Password Reset                                      |
 | Layout / Dashboards | Dashboard, Stat Tile, Page Header, Trace Drawer                                                |
+| Planning            | Meal Planner (Planner component)                                                               |
 | Forms / Wizards     | Settings, Wizard, Decision Tree Wizard, Range Hint Input, Unsaved Changes Guard, Onboarding Flow |
 | Marketing           | Pricing                                                                                        |
 | Display             | Profile Card, Clickable Card, Help Tooltip                                                     |
@@ -340,6 +342,12 @@ The current `apiRoute` prop fetches all data client-side and processes it locall
 The `TableQuery` object contains `{ page, itemsPerPage, sortColumn, sortDirection, searchTerm, activeFilters, groupByKey }`. In server mode, the derived chain (`filteredItems`, `sortedItems`, `paginatedItems`) passes `state.items` through unchanged; `totalPages` is computed from `totalItems` instead of the local array length.
 
 This pattern is minimal (3 new props), follows the Svelte 5 callback convention, and stays agnostic to the data source (REST, GraphQL, SvelteKit `load`).
+
+## Date & Planning Infrastructure
+
+Calendar and `Planner<T>` share a headless date-grid core. `packages/blocks/src/lib/internal/date-grid/` holds the `DateGridController` + context + keyboard model + `DateGridScaffold` — deliberately **not** exported from the package: two in-repo consumers (Calendar + Planner) don't yet justify the API-stability cost, and a re-export is a one-line `package.json` change if a consumer later needs the bare core. Pure date math lives in `packages/blocks/src/lib/date/` (`geometry`, `range`, `compare`, `format`) and **is** public via the `./date` subpath export.
+
+`Planner<T>` (`packages/blocks/src/lib/components/Planner/`) is the generic planning-board component built on that core — event type is caller-supplied (`T`, not a fixed `CalendarEvent`), view-parametrised. See the `planning-board` design pattern and the `meal-planner` recipe. Calendar keeps its own month-view rendering by design rather than routing every view through the scaffold — the scaffold owns the time-grid mechanics, not month-grid layout.
 
 ## Conscious Trade-offs
 
