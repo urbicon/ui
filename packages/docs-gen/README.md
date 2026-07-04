@@ -7,14 +7,21 @@ Documentation generator for UI component libraries. Extracts props, variants, an
 ### From workspace root
 
 ```bash
-# Generate docs for all packages (blocks, docs, table)
+# Generate docs for all packages (blocks, docs, table, auth)
 bun run docs:gen:all
 
 # Generate for a specific package
 bun run docs:gen:blocks
 bun run docs:gen:docs
 bun run docs:gen:table
+bun run docs:gen:auth
 ```
+
+> Only `docs:gen:all` (and `build`) additionally runs the `MCPCatalogAssembler`,
+> which globs every per-target `_catalog.json` into the aggregated MCP
+> `component-catalog.json` and design-content bundle. A per-target run
+> (`docs:gen:blocks`, …) does not — this is why regenerating after a JSDoc edit
+> is a **two-step** operation, not a single per-target run.
 
 ### From this package
 
@@ -32,7 +39,7 @@ Commands:
   help              Show help
 
 Options:
-  --target <type>   Target: 'blocks', 'docs', 'table', or 'all' (default: 'all')
+  --target <type>   Target: 'blocks', 'docs', 'table', 'auth', or 'all' (default: 'all')
 ```
 
 ## Architecture
@@ -72,6 +79,7 @@ Configuration is built via `DocsConfigurationBuilder` and `ConfigurationFactory`
 - `ConfigurationFactory.blocks()` — `@urbicon-ui/blocks`
 - `ConfigurationFactory.docs()` — `@urbicon-ui/docs`
 - `ConfigurationFactory.table()` — `@urbicon-ui/table`
+- `ConfigurationFactory.auth()` — `@urbicon-ui/auth`
 
 ### Output paths
 
@@ -80,6 +88,7 @@ Configuration is built via `DocsConfigurationBuilder` and `ConfigurationFactory`
 | blocks | `apps/docs/src/routes/blocks/` | `apps/docs/static/blocks/` |
 | docs | `apps/docs/src/routes/docs/` | `apps/docs/static/docs/` |
 | table | `apps/docs/src/routes/table/` | `apps/docs/static/table/` |
+| auth | `apps/docs/src/routes/auth/` | `apps/docs/static/auth/` |
 
 ## Scripts
 

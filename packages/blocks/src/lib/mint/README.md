@@ -98,7 +98,7 @@ interface RippleConfig extends MintConfig {
 ## Presets
 
 ```typescript
-import { mintPresets } from '@urbicon/ui';
+import { mintPresets } from '@urbicon-ui/blocks';
 
 // Verfügbare Presets
 mintPresets['cta-primary']; // Für primäre Call-to-Action Buttons
@@ -108,21 +108,24 @@ mintPresets['subtle-hover']; // Für subtile Hover-Effekte
 mintPresets['error-feedback']; // Für Fehler-Feedback
 ```
 
-## Svelte Actions
+## Svelte 5 Attachments
 
 ```svelte
 <script>
-  import { mint } from '@urbicon/ui';
+  import { mintRegistry } from '@urbicon-ui/blocks';
+
+  // {@attach} factory — mintRegistry.apply returns the cleanup the attachment needs
+  const mint = (mints) => (element) => mintRegistry.apply(element, mints);
 </script>
 
-<!-- Mit Action -->
-<div use:mint="scale">Hover mich</div>
+<!-- Einzelner Mint -->
+<div {@attach mint('scale')}>Hover mich</div>
 
 <!-- Mehrere Mints -->
-<div use:mint={['scale', 'glow']}>Multi-Effekt</div>
+<div {@attach mint(['scale', 'glow'])}>Multi-Effekt</div>
 
 <!-- Mit Konfiguration -->
-<div use:mint={{ name: 'bounce', config: { trigger: 'click' } }}>
+<div {@attach mint({ name: 'bounce', config: { trigger: 'click' } })}>
   Click mich
 </div>
 ```
@@ -130,7 +133,7 @@ mintPresets['error-feedback']; // Für Fehler-Feedback
 ## Eigene Mints registrieren
 
 ```typescript
-import { mintRegistry } from '@urbicon/ui';
+import { mintRegistry } from '@urbicon-ui/blocks';
 
 // Einfacher Mint
 mintRegistry.register('my-mint', (config) => ({
@@ -203,7 +206,7 @@ const complexMint = [
 ### Custom Mint Bundle
 
 ```typescript
-import { registerPlayfulMints, registerBusinessMints } from '@urbicon/ui';
+import { registerPlayfulMints, registerBusinessMints } from '@urbicon-ui/blocks';
 
 // Je nach App-Kontext
 if (appTheme === 'playful') {

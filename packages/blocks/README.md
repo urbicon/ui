@@ -14,13 +14,13 @@ Peer dependencies: `svelte` (^5), `@sveltejs/kit`, `@urbicon-ui/i18n`.
 
 ## Components
 
-### Primitives (35)
+### Primitives (36)
 
-Accordion, Alert, Avatar, Badge, Breadcrumb, Button, ButtonGroup, Card, Checkbox, Collapsible, Combobox, ConfirmDialog, Dialog, Drawer, FormField, Input, Menu, Pagination, Popover, Progress, RadioGroup, SegmentGroup, Select, Separator, Sidebar, Skeleton, Slider, Spinner, Stepper, Tab, Textarea, Toast, Toggle, Toolbar, Tooltip
+Accordion, Alert, Avatar, Badge, Breadcrumb, Button, ButtonGroup, Card, Checkbox, Collapsible, Combobox, ConfirmDialog, Dialog, Drawer, FormField, Input, JourneyTimeline, Menu, Pagination, Popover, Progress, RadioGroup, SegmentGroup, Select, Separator, Sidebar, Skeleton, Slider, Spinner, Stepper, Tab, Textarea, Toast, Toggle, Toolbar, Tooltip
 
-### Components (10)
+### Components (19)
 
-Calendar, CommandPalette, CompositionBar, CurrencyInput, DatePicker, EmptyState, FileUpload, LocaleSwitcher, Sankey, ThemeSwitcher
+AreaChart, BarChart, Calendar, ChartFrame, CommandPalette, CompositionBar, CurrencyInput, DatePicker, DonutChart, EmptyState, FileUpload, Guide, LineChart, LocaleSwitcher, Planner, Sankey, SidebarLayout, Sparkline, ThemeSwitcher
 
 ### System
 
@@ -73,7 +73,7 @@ Use `overrides` for **prop-conditional** rules an unconditional `slotClasses` ca
 
 ## Icons
 
-156 hand-rolled SVG icons in `src/lib/icons/`, registered via `IconProvider`. Metadata (`ICON_METADATA`) enables search by name, keyword, or category. See the icon-design rules in [AGENTS.md → Icon Design Rules](../../AGENTS.md#icon-design-rules).
+315 hand-rolled SVG icons in `src/lib/icons/`, registered via `IconProvider`. Metadata (`ICON_METADATA`) enables search by name, keyword, or category. See the icon-design rules in [AGENTS.md → Icon Design Rules](../../AGENTS.md#icon-design-rules).
 
 ## i18n
 

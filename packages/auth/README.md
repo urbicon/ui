@@ -375,28 +375,21 @@ See [`prisma/auth-schema.prisma`](./prisma/auth-schema.prisma) for the reference
 
 ## Tests
 
-630+ unit tests across 48 files — crypto primitives (JWT, HMAC, PBKDF2, CBOR, WebAuthn parsing, TOTP/HOTP/Base32 against the RFC-6238/4226 vectors, AES-256-GCM secret encryption), CSRF, rate-limiter, session cookies, validation, notification registry/SSE/Push, auth handlers (incl. the 2FA setup/enable/disable/verify flow + login gate), security headers, the service-worker notification-click handler, and the adapter conformance suite (atomic claim/scope guarantees — including backup-code single-use — run against both the in-memory and Prisma adapters).
+800+ unit tests across 67 files — crypto primitives (JWT, HMAC, PBKDF2, CBOR, WebAuthn parsing, TOTP/HOTP/Base32 against the RFC-6238/4226 vectors, AES-256-GCM secret encryption), CSRF, rate-limiter, session cookies, validation, notification registry/SSE/Push, auth handlers (incl. the 2FA setup/enable/disable/verify flow + login gate), security headers, the service-worker notification-click handler, and the adapter conformance suite (atomic claim/scope guarantees — including backup-code single-use — run against both the in-memory and Prisma adapters).
 
 ```bash
 cd packages/auth && bunx --bun vitest run
 ```
 
-Playwright end-to-end coverage for the session kernel flow (`e2e/auth.spec.ts`) is in place since v0.11.0. Full WebAuthn attestation/assertion against a real authenticator and integration tests against a live Prisma instance remain out of scope for v1.0 — see [docs/AUTH.md → Produktionsreife-Checkliste](../../docs/AUTH.md#produktionsreife-checkliste).
+Full WebAuthn attestation/assertion against a real authenticator, end-to-end browser coverage, and integration tests against a live Prisma instance remain out of scope for v1.0 — see [docs/AUTH.md → Produktionsreife-Checkliste](../../docs/AUTH.md#produktionsreife-checkliste).
 
 ## Known Limitations
 
-Summarised here; full catalog with severity and fix-plan in [docs/AUTH.md](../../docs/AUTH.md#known-limitations--security-gaps).
+The three most load-bearing for a production deploy are below; the **full catalog** (10 items with severity, rationale, and fix-plan) is the single source of truth in [docs/AUTH.md → Known Limitations](../../docs/AUTH.md#known-limitations--security-gaps) — kept there to avoid a drifting second copy.
 
-- **Challenge store is pluggable.** Default is an in-memory Map; pass a `ChallengeStore` implementation via `webauthn.challengeStore` for Redis/Prisma/Upstash.
-- **Rate-limit store is pluggable.** Default is in-memory; pass a `RateLimitStore` implementation via `config.rateLimit.*.store` for Redis/Prisma/Upstash.
-- **Refresh-token store is pluggable.** Default is in-memory (single-process only); pass a `RefreshTokenRepository` via `repos.refreshToken` for Prisma / Redis / Upstash. The Prisma adapter is bundled.
-- **Double-Submit-Cookie CSRF is opt-in.** Origin-check is always on for requests routed through `createAuthHandle` (a separate, production-only SvelteKit kernel check guards handle-bypassed cross-origin form posts — see the linked catalog); to enable the additional token layer set `config.csrf = { doubleSubmit: true }`. Recommended for production.
-- **Refresh-token rotation is opt-in.** Without `config.refreshToken` the package keeps the single-cookie 7-day JWT flow. Enable rotation via `config.refreshToken = {}` plus a persistent `repos.refreshToken`.
-- **WebAuthn User-Verification (UV) is opt-in.** UP is always enforced; enable UV by setting `webauthn.requireUserVerification: true`.
-- **Lockout is account-based, rate-limiting is per-IP.** An attacker with many IPs can lock a known account (classic lockout-DoS trade-off). Set `lockout: null` to rely on the per-IP rate-limit alone; the default keeps lockout on as the higher-value protection.
-- **2FA verify is rate-limited per-IP, not per-account.** Like the password login, the 2FA verify step keys its (strict, auto-injected) rate-limit on the client IP — consistent with the package's "per-IP default, account-lockout opt-in (DoS-prone)" stance. A distributed-IP attacker would still need the victim's password to obtain a pending-2FA cookie, and the ±1-window TOTP entropy (10⁶) plus the 5-min token TTL make it impractical; a per-account verify limiter is a deliberate later option, not a default.
-- **TOTP codes are replayable within their validity window.** v1 relies on the strict verify rate-limit; a stored `lastUsedStep` to reject same-window reuse is a noted later hardening.
-- **`publicRoutes` are prefixes.** `createAuthHandle` matches them with `startsWith`, so the default `'/api/auth/'` exempts every sub-route from the auth guard — don't place protected app routes under it.
+- **Persistent stores are opt-in.** Challenge, rate-limit, and refresh-token stores all default to in-memory (single-process). Pass a `ChallengeStore` / `RateLimitStore` / `RefreshTokenRepository` (Redis/Prisma/Upstash) when running >1 instance — the Prisma adapter is bundled.
+- **CSRF Double-Submit and refresh-token rotation are opt-in.** The handle's Origin check is always on; the token layer (`config.csrf = { doubleSubmit: true }`) and rotation (`config.refreshToken = {}` + `repos.refreshToken`) are additive production hardening.
+- **`publicRoutes` are prefixes.** `createAuthHandle` matches them with `startsWith`, so the default `'/api/auth/'` exempts every sub-route from the auth guard — don't nest protected app routes under it.
 
 ## Roadmap
 

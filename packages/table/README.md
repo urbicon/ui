@@ -2,7 +2,7 @@
 
 Feature-complete data table for Svelte 5 — zero runtime dependencies, part of the Urbicon UI monorepo.
 
-> **Maturity:** stable since `v1.0.0` (2026-05-12). `v2.0.0` (2026-05-15) refactored the Column API to separate `accessor` (value extraction) from `id` (state-targeting), eliminating the `"[object Object]"`-search trap; see `CHANGELOG.md`. All nine implementation phases are closed; 185 unit tests cover every concern.
+> **Maturity:** stable since `v1.0.0` (2026-05-12). `v2.0.0` (2026-05-15) refactored the Column API to separate `accessor` (value extraction) from `id` (state-targeting), eliminating the `"[object Object]"`-search trap; see `CHANGELOG.md`. All nine implementation phases are closed; 232 unit tests cover every concern.
 
 ## Installation
 

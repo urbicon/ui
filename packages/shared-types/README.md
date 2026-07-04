@@ -24,6 +24,7 @@ Each subpath is consumable on its own so consumers pull in only what they need:
 | `./documentation` | `ComponentMetadata`, `DeprecationInfo`, `ComponentBadge`, `SectionOrder`, `LLMConfig` |
 | `./docs-config` | `SvelteDocsConfig`, `DocsPlaygroundConfig`, `VariantsConfig`, `ExamplesConfig`, `ApiConfig`, `OverviewConfig`, `UsageConfig`, `DocsMetadata` |
 | `./components` | `ComponentInfo`, `ComponentStats`, `PropInfo`, `PropSource`, `PropExample`, `VariantInfo`, `VariantExample`, `InheritanceInfo`, `CrossReference`, `PackageInfo` |
+| `./component-core` | Shared component-core types — the framework-agnostic core of the component model |
 | `./examples` | `ComponentExample`, `UsagePattern`, `ExampleCollection`, `ExampleGroup` |
 | `./playground` | `PlaygroundConfig`, `ControlDefinition`, `ControlType`, `ControlOption`, `ControlCondition`, `CodeGenerator`, `CodeGeneratorConfig`, `ImportStatement`, `PlaygroundExample`, `PlaygroundMetadata`, `PlaygroundFeature` |
 | `./navigation` | `NavigationItem`, `NavigationMetadata`, `NavigationState`, `NavigationBadge`, `TableOfContents`, `TOCItem`, `TOCSettings`, `Breadcrumb`, `BreadcrumbItem`, `BreadcrumbSettings`, `SiteNavigation`, `NavigationContext`, `NavigationSearchResult`, `SearchMatch` |
