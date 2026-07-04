@@ -29,6 +29,13 @@ type BaseColumnProps = {
   width?: string;
   minWidth?: string;
   flex?: boolean;
+  /**
+   * Whether the user may hide this column (visibility menu + header hide
+   * action). Defaults to `true`; set `false` to pin it as always-visible — e.g.
+   * a primary identifier or an actions column. See the table-level
+   * `enableColumnVisibility` prop to turn the whole feature off.
+   */
+  hideable?: boolean;
 };
 
 type UserAvatarFactoryOptions<Item> = BaseColumnProps &
@@ -92,6 +99,7 @@ export const TableColumns = {
       width,
       minWidth,
       flex,
+      hideable,
       ...componentProps
     } = options;
 
@@ -113,7 +121,8 @@ export const TableColumns = {
       align,
       width,
       minWidth,
-      flex
+      flex,
+      hideable
     };
   },
 
@@ -125,7 +134,7 @@ export const TableColumns = {
     title = 'Actions',
     options: ActionButtonsFactoryOptions<Item> = {} as ActionButtonsFactoryOptions<Item>
   ): Column<Item> => {
-    const { priority, align, width, minWidth, flex, ...componentProps } = options;
+    const { priority, align, width, minWidth, flex, hideable, ...componentProps } = options;
 
     return {
       id: 'actions',
@@ -139,7 +148,8 @@ export const TableColumns = {
       align: align ?? 'right',
       width: width ?? '120px',
       minWidth,
-      flex
+      flex,
+      hideable
     };
   },
 
@@ -162,6 +172,7 @@ export const TableColumns = {
       width,
       minWidth,
       flex,
+      hideable,
       ...componentProps
     } = options;
 
@@ -183,7 +194,8 @@ export const TableColumns = {
       align: align ?? 'center',
       width: width ?? '100px',
       minWidth,
-      flex
+      flex,
+      hideable
     };
   },
 
@@ -206,6 +218,7 @@ export const TableColumns = {
       width,
       minWidth,
       flex,
+      hideable,
       ...componentProps
     } = options;
 
@@ -227,7 +240,8 @@ export const TableColumns = {
       align: align ?? 'center',
       width: width ?? '100px',
       minWidth,
-      flex
+      flex,
+      hideable
     };
   },
 
@@ -250,6 +264,7 @@ export const TableColumns = {
       width,
       minWidth,
       flex,
+      hideable,
       ...componentProps
     } = options;
 
@@ -270,7 +285,8 @@ export const TableColumns = {
       align,
       width,
       minWidth,
-      flex
+      flex,
+      hideable
     };
   },
 
@@ -293,6 +309,7 @@ export const TableColumns = {
       width,
       minWidth,
       flex,
+      hideable,
       ...componentProps
     } = options;
 
@@ -314,7 +331,8 @@ export const TableColumns = {
       align,
       width,
       minWidth,
-      flex
+      flex,
+      hideable
     };
   },
 
@@ -337,6 +355,7 @@ export const TableColumns = {
       width,
       minWidth,
       flex,
+      hideable,
       ...componentProps
     } = options;
 
@@ -358,7 +377,8 @@ export const TableColumns = {
       align,
       width,
       minWidth,
-      flex
+      flex,
+      hideable
     };
   },
 
@@ -381,6 +401,7 @@ export const TableColumns = {
       width,
       minWidth,
       flex,
+      hideable,
       ...componentProps
     } = options;
 
@@ -402,7 +423,8 @@ export const TableColumns = {
       align: align ?? 'right',
       width,
       minWidth,
-      flex
+      flex,
+      hideable
     };
   },
 
@@ -437,7 +459,8 @@ export const TableColumns = {
       align: columnProps.align ?? (isNumericKey ? 'right' : 'left'),
       width: columnProps.width,
       minWidth: columnProps.minWidth,
-      flex: columnProps.flex
+      flex: columnProps.flex,
+      hideable: columnProps.hideable
     };
   }
 };

@@ -37,4 +37,7 @@ export interface TableState {
 
   mode: 'client' | 'server';
   serverTotalItems: number;
+
+  /** Table-level switch for the column-visibility feature (visibility menu + header hide action). */
+  enableColumnVisibility: boolean;
 }

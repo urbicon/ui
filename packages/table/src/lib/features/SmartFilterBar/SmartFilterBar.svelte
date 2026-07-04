@@ -107,7 +107,9 @@
       <SortMenu />
       <GroupingMenu />
       <SummaryMenu />
-      <ColumnVisibilityMenu />
+      {#if tableState.enableColumnVisibility}
+        <ColumnVisibilityMenu />
+      {/if}
     </Toolbar>
   </div>
 

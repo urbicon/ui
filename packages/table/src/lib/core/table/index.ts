@@ -192,6 +192,15 @@ export interface TableProps<T = TableItem> {
   enableSmartFilter?: boolean;
 
   /**
+   * Enable the column-visibility feature: the visibility menu in the smart
+   * filter bar and the "hide column" action in every header menu. Set `false`
+   * to remove both. For per-column control, set `hideable: false` on individual
+   * columns instead.
+   * @default true
+   */
+  enableColumnVisibility?: boolean;
+
+  /**
    * Placeholder text for search input
    * @default "Search..."
    */

@@ -39,6 +39,7 @@
     selectionMode?: 'none' | 'single' | 'multi';
     selectedIds?: Array<string | number>;
     onSelectionChange?: (selectedItems: TableItem[]) => void;
+    enableColumnVisibility?: boolean;
   };
 
   let {
@@ -63,7 +64,8 @@
     autoApplyOnNavigation = true,
     selectionMode = 'none',
     selectedIds = undefined,
-    onSelectionChange = undefined
+    onSelectionChange = undefined,
+    enableColumnVisibility = true
   }: TableProviderProps = $props();
 
   const tableState = createTableState(persistenceConfig);
@@ -138,6 +140,10 @@
 
   $effect(() => {
     state.selectionMode = selectionMode;
+  });
+
+  $effect(() => {
+    state.enableColumnVisibility = enableColumnVisibility;
   });
 
   $effect(() => {

@@ -81,6 +81,41 @@ describe('TableColumns factory', () => {
     });
   });
 
+  describe('hideable flag', () => {
+    const sampleItem: TestItem = {
+      id: 1,
+      name: 'Alice',
+      status: 'active',
+      email: 'a@b.com',
+      amount: 100,
+      created: '2024-01-01',
+      url: 'https://example.com'
+    };
+
+    it('is undefined by default (column stays hideable)', () => {
+      const col = TableColumns.status<TestItem>('status', 'Status');
+      expect(col.hideable).toBeUndefined();
+    });
+
+    it('threads hideable: false onto the column, not into componentProps', () => {
+      const col = TableColumns.status<TestItem>('status', 'Status', { hideable: false });
+      expect(col.hideable).toBe(false);
+      // Must not leak into the cell component's props (the whitelist-destructure guard).
+      const props = col.componentProps!(sampleItem);
+      expect('hideable' in props).toBe(false);
+    });
+
+    it('is supported on synthetic actions columns', () => {
+      const col = TableColumns.actions<TestItem>('Actions', { hideable: false });
+      expect(col.hideable).toBe(false);
+    });
+
+    it('is threaded by the text factory (columnProps path)', () => {
+      const col = TableColumns.text<TestItem>('name', 'Name', { hideable: false });
+      expect(col.hideable).toBe(false);
+    });
+  });
+
   describe('componentProps factory', () => {
     it('returns item in componentProps output', () => {
       const col = TableColumns.userAvatar<TestItem>('name', 'User');

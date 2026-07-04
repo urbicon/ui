@@ -21,15 +21,20 @@
 
   const hiddenCount = $derived(tableContext.hiddenColumnKeys.size);
 
+  // Columns pinned with `hideable: false` are excluded from the toggle list so
+  // they can never be hidden — and so they are not silently hidden the first
+  // time the selection changes (they would otherwise count as "deselected").
+  const hideableColumns = $derived(tableContext.allColumns.filter((col) => col.hideable !== false));
+
   const columnItems = $derived.by(() =>
-    tableContext.allColumns.map((col) => ({
+    hideableColumns.map((col) => ({
       label: resolveColumnLabel(col),
       value: resolveColumnId(col)
     }))
   );
 
   const visibleValues = $derived.by(() =>
-    tableContext.allColumns
+    hideableColumns
       .filter((col) => !tableContext.hiddenColumnKeys.has(resolveColumnId(col)))
       .map((col) => resolveColumnId(col))
   );
@@ -37,7 +42,7 @@
   function handleValueChange(values: string | string[] | null) {
     if (!Array.isArray(values)) return;
     const newVisible = new Set(values);
-    for (const col of tableContext.allColumns) {
+    for (const col of hideableColumns) {
       const id = resolveColumnId(col);
       const isCurrentlyHidden = tableContext.hiddenColumnKeys.has(id);
       const shouldBeVisible = newVisible.has(id);

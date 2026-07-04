@@ -53,6 +53,8 @@
   // Synthetic columns (no accessor) cannot participate in derived ops.
   const canSort = $derived(column.accessor !== undefined && column.sortable !== false);
   const canGroup = $derived(column.accessor !== undefined && column.groupable !== false);
+  // Column visibility can be switched off table-wide, or pinned per column via `hideable: false`.
+  const canHide = $derived(tableState.enableColumnVisibility && column.hideable !== false);
 
   const styles = $derived(headerMenuVariants({ active: isActive }));
 
@@ -211,13 +213,15 @@
         </Button>
       {/if}
 
-      <div class={styles.separator()}></div>
-      <Button variant="ghost" size="sm" class={itemClass('danger')} onclick={handleHideColumn}>
-        <EyeOffIcon class="h-4 w-4" />
-        {tt('headerMenu.hideColumn')}
-      </Button>
+      {#if canHide}
+        <div class={styles.separator()}></div>
+        <Button variant="ghost" size="sm" class={itemClass('danger')} onclick={handleHideColumn}>
+          <EyeOffIcon class="h-4 w-4" />
+          {tt('headerMenu.hideColumn')}
+        </Button>
+      {/if}
 
-      {#if hiddenColumns.length > 0}
+      {#if tableState.enableColumnVisibility && hiddenColumns.length > 0}
         <div class={styles.separator()}></div>
         {#each hiddenColumns as col (resolveColumnId(col))}
           <Button

@@ -118,6 +118,15 @@ interface BaseColumn<T> {
   component?: Component<{ item: T; [key: string]: unknown }>;
   /** Props factory for the custom component (item is always passed automatically) */
   componentProps?: (item: T) => Record<string, unknown>;
+  /**
+   * Whether the user may hide this column — via the column-visibility menu or
+   * the header menu's hide action. Defaults to `true`. Set `false` to pin a
+   * column as always-visible (e.g. a primary identifier or an actions column):
+   * it is then omitted from the visibility menu and its header menu shows no
+   * hide action. Independent of the table-level `enableColumnVisibility` prop,
+   * which turns the whole feature off at once.
+   */
+  hideable?: boolean;
 }
 
 /**

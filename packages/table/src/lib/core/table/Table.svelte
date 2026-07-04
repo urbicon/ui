@@ -48,6 +48,7 @@
     initialSummaryConfigs = [],
 
     enableSmartFilter = true,
+    enableColumnVisibility = true,
     searchPlaceholder = tt('search.placeholder'),
     searchDebounceMs = 300,
 
@@ -191,6 +192,7 @@
   {selectionMode}
   {selectedIds}
   onSelectionChange={onSelectionChangeErased}
+  {enableColumnVisibility}
 >
   {@render provider_content()}
 </TableProvider>

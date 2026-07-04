@@ -132,7 +132,9 @@ export function createTableState(persistenceConfig?: TablePersistenceConfig) {
     selectedIds: new SvelteSet<string | number>(),
 
     mode: 'client' as 'client' | 'server',
-    serverTotalItems: 0
+    serverTotalItems: 0,
+
+    enableColumnVisibility: true
   });
 
   // ── Persistence (initializes state from storage) ──
