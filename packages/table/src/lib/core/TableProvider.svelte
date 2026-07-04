@@ -1,5 +1,5 @@
 <script lang="ts">
-  import type { Snippet } from 'svelte';
+  import { untrack, type Snippet } from 'svelte';
   import { attachTableContext, createTableState } from '$lib';
   import { useTableI18n } from '$lib/i18n';
   import { ColumnValidation } from '$lib/factories/ColumnValidation';
@@ -148,6 +148,14 @@
 
   $effect(() => {
     state.enableColumnVisibility = enableColumnVisibility;
+    // Turning the feature off means "all columns visible". Reveal everything and
+    // drop any hidden set — including one hydrated from persistence — otherwise
+    // persisted-hidden columns would be stranded: hidden, with both restore UIs
+    // (the visibility menu and the header-menu "show" list) gated off. untrack
+    // keeps this effect keyed only on the flag, not on the columns it touches.
+    if (!enableColumnVisibility) {
+      untrack(() => tableState.showAllColumns());
+    }
   });
 
   $effect(() => {

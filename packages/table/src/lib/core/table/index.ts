@@ -194,7 +194,9 @@ export interface TableProps<T = TableItem> {
   /**
    * Enable the column-visibility feature: the visibility menu in the smart
    * filter bar and the "hide column" action in every header menu. Set `false`
-   * to remove both. For per-column control, set `hideable: false` on individual
+   * to remove both — this also reveals every currently-hidden column (including
+   * one restored from persistence), so no column is ever stranded hidden without
+   * a way back. For per-column control, set `hideable: false` on individual
    * columns instead.
    * @default true
    */

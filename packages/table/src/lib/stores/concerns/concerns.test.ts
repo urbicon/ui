@@ -1131,6 +1131,24 @@ describe('useColumnVisibility', () => {
     expect(state.columns.map((c) => c.accessor)).toEqual(['name']);
   });
 
+  it('contract: showAllColumns reveals persisted-hidden columns', async () => {
+    // Guards the enableColumnVisibility={false} recovery path: TableProvider
+    // calls showAllColumns() when the feature is off so a column hidden in a
+    // prior (persisted) session is never stranded without a restore UI.
+    const { useColumnVisibility } = await import('./useColumnVisibility.svelte.js');
+    const state = { columns: [] } as unknown as TableState;
+    const cv = useColumnVisibility(state);
+
+    cv.setHiddenIds(['age', 'email']);
+    cv.setColumns(columns);
+    expect(state.columns.map((c) => c.accessor)).toEqual(['name']);
+
+    cv.showAllColumns();
+
+    expect(state.columns.map((c) => c.accessor)).toEqual(['name', 'age', 'email']);
+    expect(cv.hiddenColumnKeys.size).toBe(0);
+  });
+
   it('contract: setHiddenIds with empty array clears the hidden-set', async () => {
     const { useColumnVisibility } = await import('./useColumnVisibility.svelte.js');
     const state = { columns: [] } as unknown as TableState;
