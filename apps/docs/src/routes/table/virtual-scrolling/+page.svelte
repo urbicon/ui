@@ -43,6 +43,10 @@
             Grouping takes precedence \u2013 virtualization is deactivated when
             <code class="text-text-primary">initialGroupBy</code> is set
           </li>
+          <li>
+            Row heights are fixed per <code class="text-text-primary">size</code> (sm/md/lg) — rows with
+            dynamic height (wrapping text, expanded content) are not supported in virtualized mode
+          </li>
           <li>Selection and keyboard navigation work normally with virtualized rows</li>
           <li>
             <code class="text-text-primary">virtualHeight</code> accepts any CSS value:

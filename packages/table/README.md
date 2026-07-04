@@ -139,6 +139,15 @@ Namespace: `table.*`. Resolve typed keys via the context hook `useTableI18n` —
 
 Resolves against the request-scoped locale from `<I18nProvider>` (or the base locale `en` without one). Add a locale: register a new package via `@urbicon-ui/i18n`'s `createPackageI18n`, or extend the existing bundles in `src/lib/translations/`.
 
+## Known Limitations
+
+Deliberate trade-offs of the zero-dependency implementation — documented so they surprise no one:
+
+- **Virtualization assumes fixed row heights.** The row height derives from the `size` prop (`sm`/`md`/`lg` via `ROW_HEIGHTS`); rows with dynamic height (wrapping text, expanded content) are not supported in virtualized mode.
+- **Virtualization and grouping are mutually exclusive.** When `groupByKey` is set, virtualization deactivates automatically (grouping takes precedence) and the full grouped set renders. For large datasets, group server-side via remote mode or keep grouped views paginated instead of virtualized.
+- **Virtualized mode bypasses pagination.** All sorted items live in one scrollable container; only ~viewport rows are in the DOM.
+- **Live updates ship no transport.** `enableLiveUpdates` is a push-model pending-buffer — the app supplies WebSocket/SSE/polling and calls `pushInsert`/`pushUpdate`/`pushDelete`.
+
 ## Development
 
 ```bash
