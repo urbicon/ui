@@ -149,10 +149,18 @@
     if (infoText) return infoText;
 
     if (layout === 'table') {
-      return `${calculatedStartItem}–${calculatedEndItem} of ${calculatedTotalItems}`;
+      return bt('pagination.rangeInfo', {
+        start: calculatedStartItem,
+        end: calculatedEndItem,
+        total: calculatedTotalItems
+      });
     }
 
-    return `${pageLabel} ${currentPage} of ${totalPages}`;
+    return bt('pagination.pageInfo', {
+      label: pageLabel,
+      current: currentPage,
+      total: totalPages
+    });
   });
 </script>
 

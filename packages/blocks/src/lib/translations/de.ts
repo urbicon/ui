@@ -49,7 +49,9 @@ export default {
     first: 'Erste',
     last: 'Letzte',
     page: 'Seite',
-    previous: 'Vorherige'
+    previous: 'Vorherige',
+    pageInfo: '{{label}} {{current}} von {{total}}',
+    rangeInfo: '{{start}}–{{end}} von {{total}}'
   },
   calendar: {
     recurring: 'Wiederkehrender Termin',
