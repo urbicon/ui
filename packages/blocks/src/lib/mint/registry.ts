@@ -1,3 +1,4 @@
+import { registerDefaultMints } from './presets';
 import type { Mint, MintConfig, MintFactory, MintProp } from './types';
 
 class MintRegistry {
@@ -24,6 +25,18 @@ class MintRegistry {
 
   /** Apply mints to an element using polymorphic input */
   apply(el: HTMLElement, mint: MintProp): () => void {
+    // Ensure the built-in mints (scale, glow, ripple, …) are registered before
+    // the first application. Components declare mint defaults — Button defaults
+    // to 'scale' — so a consumer that never called registerDefaultMints() would
+    // otherwise hit "Unknown mint: scale" on every button (and get no hover
+    // animation). registerDefaultMints() short-circuits on a module-level flag,
+    // so the recurring cost is a single boolean check.
+    //
+    // The registry ↔ presets import is cyclic but inert: both sides dereference
+    // the cyclic binding only at call time, never at module top level, so module
+    // initialisation completes cleanly regardless of load order.
+    registerDefaultMints();
+
     const mintDefinitions = this.normalizeMintProp(mint);
     const elementMints = new Map<string, Mint>();
     const cleanupFunctions: Array<() => void> = [];

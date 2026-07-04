@@ -11,8 +11,7 @@
     ThemeSwitcher,
     SidebarLayout,
     MenuIcon,
-    SearchIcon,
-    registerDefaultMints
+    SearchIcon
   } from '@urbicon-ui/blocks';
   import { provideI18n } from '@urbicon-ui/i18n';
   import { useAppI18n } from '$lib/i18n';
@@ -27,8 +26,6 @@
   import '@fontsource-variable/newsreader/index.css';
   import '@fontsource-variable/public-sans/index.css';
   import '../app.css';
-
-  registerDefaultMints();
 
   let { children } = $props();
 
