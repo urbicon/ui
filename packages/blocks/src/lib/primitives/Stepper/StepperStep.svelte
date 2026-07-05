@@ -1,5 +1,6 @@
 <script lang="ts">
   import { getBlocksConfig, resolveSlotClasses } from '$lib/provider';
+  import { useBlocksI18n } from '$lib';
   import { stepperVariants, type StepperVariants } from './stepper.variants';
   import { getStepperContext } from './stepper.context';
   import { resolveIcon } from '$lib/icons';
@@ -28,6 +29,7 @@
   }: StepperStepProps = $props();
 
   const blocksConfig = getBlocksConfig();
+  const bt = useBlocksI18n();
   const unstyled = $derived(unstyledProp || blocksConfig?.unstyled || false);
 
   const ctx = getStepperContext();
@@ -130,7 +132,7 @@
       <span class={slot('description')}>{description}</span>
     {/if}
     {#if optional}
-      <span class="{slot('description')} italic">Optional</span>
+      <span class="{slot('description')} italic">{bt('stepper.optional')}</span>
     {/if}
   </div>
 {/snippet}

@@ -12,6 +12,7 @@
     extent
   } from '$lib/internal/charts/utils';
   import ChartFrame from '../ChartFrame/ChartFrame.svelte';
+  import { useBlocksI18n } from '$lib';
 
   let {
     data,
@@ -33,6 +34,7 @@
   }: BarChartProps = $props();
 
   const blocksConfig = getBlocksConfig();
+  const bt = useBlocksI18n();
   const unstyled = $derived(unstyledProp || blocksConfig?.unstyled || false);
   const slotClasses = $derived(
     resolveSlotClasses(blocksConfig, 'BarChart', preset, {}, slotClassesProp)
@@ -47,7 +49,9 @@
   const resolvedSeries = $derived<ChartSeries[]>(
     seriesProp && seriesProp.length > 0
       ? seriesProp
-      : Array.from({ length: seriesCount }, (_, i) => ({ label: `Series ${i + 1}` }))
+      : Array.from({ length: seriesCount }, (_, i) => ({
+          label: bt('chart.series', { index: i + 1 })
+        }))
   );
 
   const fmt = $derived(formatValue ?? numberFormatter(locale));
@@ -239,9 +243,9 @@
       <caption>{resolvedAriaLabel}</caption>
       <thead>
         <tr>
-          <th scope="col">Category</th>
+          <th scope="col">{bt('chart.category')}</th>
           {#each resolvedSeries as s, i (s.label + ' ' + i)}
-            <th scope="col">{s.label || `Series ${i + 1}`}</th>
+            <th scope="col">{s.label || bt('chart.series', { index: i + 1 })}</th>
           {/each}
         </tr>
       </thead>

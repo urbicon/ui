@@ -172,5 +172,15 @@ export default {
     lightMode: 'Light mode',
     darkMode: 'Dark mode',
     systemTheme: 'System theme'
+  },
+  chart: {
+    category: 'Category',
+    series: 'Series {{index}}',
+    segment: 'Segment',
+    value: 'Value',
+    share: 'Share'
+  },
+  stepper: {
+    optional: 'Optional'
   }
 } as const;

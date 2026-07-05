@@ -172,5 +172,15 @@ export default {
     lightMode: 'Heller Modus',
     darkMode: 'Dunkler Modus',
     systemTheme: 'Systemdesign'
+  },
+  chart: {
+    category: 'Kategorie',
+    series: 'Datenreihe {{index}}',
+    segment: 'Segment',
+    value: 'Wert',
+    share: 'Anteil'
+  },
+  stepper: {
+    optional: 'Optional'
   }
 } as const;

@@ -1,5 +1,6 @@
 <script lang="ts">
   import { getBlocksConfig, resolveSlotClasses } from '$lib/provider';
+  import { useBlocksI18n } from '$lib';
   import type { DonutChartProps } from './index';
   import { chartSlotResolver } from '$lib/internal/charts/variants';
   import { arcPath, seriesColor, numberFormatter } from '$lib/internal/charts/utils';
@@ -23,6 +24,7 @@
   }: DonutChartProps = $props();
 
   const blocksConfig = getBlocksConfig();
+  const bt = useBlocksI18n();
   const unstyled = $derived(unstyledProp || blocksConfig?.unstyled || false);
   const slotClasses = $derived(
     resolveSlotClasses(blocksConfig, 'DonutChart', preset, {}, slotClassesProp)
@@ -136,9 +138,9 @@
       <caption>{resolvedAriaLabel}</caption>
       <thead>
         <tr>
-          <th scope="col">Segment</th>
-          <th scope="col">Value</th>
-          <th scope="col">Share</th>
+          <th scope="col">{bt('chart.segment')}</th>
+          <th scope="col">{bt('chart.value')}</th>
+          <th scope="col">{bt('chart.share')}</th>
         </tr>
       </thead>
       <tbody>
