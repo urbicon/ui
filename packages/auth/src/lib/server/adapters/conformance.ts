@@ -667,6 +667,19 @@ export const conformanceChecks: readonly ConformanceCheck[] = [
       // counter 0 = counterless authenticator → touch only, keep stored counter.
       expect(await repo.updateCounter('cred-1', 0)).toBe(true);
       expect((await repo.findByCredentialId('cred-1'))?.counter).toBe(11);
+
+      // A credential deleted between assertion-verify and the counter touch is a
+      // no-op → false (the caller rejects it), never a store-level throw. Both
+      // the CAS (counter > 0) and the counterless (counter 0) paths must honour
+      // this so a concurrent delete can't 500 a passkey login.
+      await repo.delete('user-x', 'cred-1');
+      expect(await repo.updateCounter('cred-1', 12), 'CAS on a deleted credential → false').toBe(
+        false
+      );
+      expect(
+        await repo.updateCounter('cred-1', 0),
+        'counterless touch on a deleted credential → false'
+      ).toBe(false);
     }
   ),
 

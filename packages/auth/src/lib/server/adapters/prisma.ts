@@ -649,9 +649,16 @@ export function createPrismaPasskeyRepository(prisma: PrismaLike): PasskeyReposi
 
     async updateCounter(credentialId, counter) {
       if (counter === 0) {
-        // Authenticator keeps no signature counter — nothing to advance, just touch.
-        await pk.update({ where: { credentialId }, data: { lastUsedAt: new Date() } });
-        return true;
+        // Authenticator keeps no signature counter — nothing to advance, just
+        // touch lastUsedAt. updateMany (not update) so a passkey deleted between
+        // assertion-verify and this touch is a no-op returning false — mirroring
+        // the CAS path below and the in-memory adapter — instead of throwing
+        // P2025 as a 500 (TOCTOU restfenster).
+        const result = await pk.updateMany({
+          where: { credentialId },
+          data: { lastUsedAt: new Date() }
+        });
+        return result.count === 1;
       }
       // CAS: advance only if the stored counter is strictly lower. A concurrent
       // replay with an equal/lower counter advances nothing → count 0 → caller

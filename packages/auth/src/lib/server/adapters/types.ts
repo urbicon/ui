@@ -420,7 +420,10 @@ export interface PasskeyRepository {
    * when no row advanced — which, after a passed assertion, signals a
    * concurrent replay the caller should reject (cloned-authenticator window).
    * A reported `counter` of 0 means the authenticator keeps no counter; in that
-   * case implementations only refresh `lastUsedAt` and return `true`.
+   * case implementations only refresh `lastUsedAt` and return `true` — or
+   * `false` if the credential no longer exists (deleted concurrently, between
+   * assertion-verify and this touch), which the caller rejects like any other
+   * non-advance rather than surfacing a store-level fault.
    */
   updateCounter(credentialId: string, counter: number): Promise<boolean>;
   /** Scoped to the owner (owner-first, see {@link NotificationRepository}). */
