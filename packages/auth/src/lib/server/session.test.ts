@@ -1,8 +1,10 @@
 import type { Cookies } from '@sveltejs/kit';
 import { describe, expect, it, vi } from 'vitest';
-import type { AuthSession, JwtConfig } from '../types.js';
+import type { AuthConfig, AuthSession, JwtConfig } from '../types.js';
+import type { FullAuthUser } from './adapters/types.js';
 import {
   clearSessionCookie,
+  establishSession,
   getSessionFromCookie,
   resolveSessionMeta,
   setSessionCookie
@@ -117,5 +119,29 @@ describe('resolveSessionMeta', () => {
     const meta = resolveSessionMeta(event(undefined), { sessions: { storeIp: true } });
     expect(meta.userAgent).toBeUndefined();
     expect(meta.ip).toBe('203.0.113.7');
+  });
+});
+
+describe('establishSession refresh-repo guard', () => {
+  const baseConfig: AuthConfig = { appUrl: 'https://app.test', jwt: { secret: 's' } };
+  const user = { id: '1', email: 'a@b.c', role: 'user', tokenVersion: 0 } as FullAuthUser;
+
+  // Defense-in-depth: establishSession is a public export, so this guard must
+  // hold even when a consumer reaches it without the createAuthDeps wiring.
+  it('throws when config.refreshToken is set but repos.refreshToken is missing', async () => {
+    await expect(
+      establishSession(
+        createMockCookies() as unknown as Cookies,
+        user,
+        { ...baseConfig, refreshToken: {} },
+        {}
+      )
+    ).rejects.toThrow(/repos\.refreshToken is missing/);
+  });
+
+  it('establishes a session (no throw) when refresh rotation is not configured', async () => {
+    const cookies = createMockCookies();
+    await establishSession(cookies as unknown as Cookies, user, baseConfig, {});
+    expect(cookies.set).toHaveBeenCalledWith('session', expect.any(String), expect.any(Object));
   });
 });

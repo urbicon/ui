@@ -1,6 +1,7 @@
 import type { Cookies } from '@sveltejs/kit';
 import type { AuthConfig, AuthSession, JwtConfig } from '../types.js';
 import type { FullAuthUser, RefreshTokenRepository } from './adapters/types.js';
+import { assertReposMatchConfig } from './deps.js';
 import { parseDurationSeconds } from './duration.js';
 import { createSessionToken, verifySessionToken } from './jwt.js';
 import {
@@ -150,12 +151,16 @@ export async function establishSession<R extends string>(
   repos: { refreshToken?: RefreshTokenRepository },
   meta?: SessionMeta
 ): Promise<void> {
+  // Defense-in-depth: establishSession is a public export, so a consumer could
+  // reach it (or hand-build AuthDeps) without going through the
+  // createAuthDeps/createAuthHandle wiring that normally asserts this. Re-assert
+  // here — negligible cost — so config.refreshToken can never silently skip the
+  // refresh cookie regardless of the call path.
+  assertReposMatchConfig(config, repos);
   await setSessionCookie(cookies, sessionPayload(user), resolveJwtConfig(config));
 
-  // `config.refreshToken` implies `repos.refreshToken`: assertReposMatchConfig
-  // enforces it at wiring time (createAuthDeps/createAuthHandle), so this is no
-  // longer a silent cookie-skip — the `&&` is the type-narrowing form of that
-  // invariant, not a degradation path.
+  // config.refreshToken now implies repos.refreshToken (asserted above); the `&&`
+  // is the type-narrowing form of that invariant, not a degradation path.
   if (config.refreshToken && repos.refreshToken) {
     const { token } = await issueRefreshToken(
       repos.refreshToken,
