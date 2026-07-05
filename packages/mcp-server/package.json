@@ -1,6 +1,6 @@
 {
   "name": "@urbicon-ui/mcp-server",
-  "version": "6.19.0",
+  "version": "6.19.1",
   "description": "Model Context Protocol server exposing the Urbicon UI component catalog, recipes and design intelligence to LLM agents",
   "license": "MIT",
   "repository": {

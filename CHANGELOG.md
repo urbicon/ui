@@ -4,6 +4,54 @@ All notable changes to this project will be documented in this file.
 This changelog is automatically generated from [Conventional Commits](https://www.conventionalcommits.org).
 
 
+## [6.19.1] - 2026-07-05
+
+### Bug Fixes
+- **blocks**: Auto-register default mints on first apply
+- **blocks**: I18n the pagination info text
+- **table**: Reveal all columns when column visibility is disabled
+- **blocks**: Clamp Calendar year/month jumps to minDate/maxDate
+- **blocks**: Harden Calendar/date-grid navigator bounds and month-change emission
+- **docs-gen**: Repair docs:scaffold template prop names + align with stepper
+- **blocks**: Clamp today/focus emit paths + repair Calendar keyboard focus-follow
+- **blocks**: Disable Combobox clear button when the field is disabled
+- **blocks**: Warn on inverted date-grid min/max bounds in dev
+- **docs-gen**: Derive MCP catalog version from root package.json
+- **table**: Sync persisted selection on live-delete + honour controlled mode
+- **auth**: Harden passkey.updateCounter against concurrent deletion
+- **auth**: Default-limit the forgot-password endpoint (secure-by-default)
+- **auth**: Fail loud when refreshToken is configured without its repository
+- **auth**: Assert refresh-repo invariant inside establishSession too
+- **docs-gen**: Stop extracting prose that merely names @example as a code sample
+
+### Documentation
+- Align published docs with current codebase (planner, design packages, counts)
+- Correct package README references (scope, targets, resources, counts)
+- De-publish completed internal plans; add docs index, repair links
+- Fix stale DESIGN-MCP doc paths in code comments
+- Table to dos
+- **table**: Document select-all scope and the new opt-out/controlled props
+- Fix pre-commit .svelte-format claim in AGENTS.md
+- **auth**: Document the single-brace i18n placeholder convention
+- **auth**: Document the Node ≥ 20 / Bun runtime requirement
+
+### Features
+- **table**: Opt out of column visibility
+- **table**: Controlled searchTerm + onSearchTermChange
+- **blocks**: Localize chart a11y tables and stepper optional label
+- **table**: Opt-in row-selection persistence via persistSelection
+
+### Miscellaneous
+- Remove dead eslint-disable comments after Biome migration
+- **i18n**: Remove dead translation keys from blocks and table
+
+### Refactoring
+- **blocks**: Drop CalendarDayView dead list-mode branch + day-view eventItem
+- **blocks**: Delegate date-form helpers to date core, rename picker I/O helpers
+- **blocks**: Drop dead sr-only content slot from Badge dot variant
+- **i18n**: Rename inner translate options to callOptions
+- **blocks**: Consolidate CompositionBar legend visibility onto showLegend
+
 ## [6.19.0] - 2026-07-03
 
 ### Breaking Changes
