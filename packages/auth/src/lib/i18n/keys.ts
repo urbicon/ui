@@ -4,6 +4,12 @@
  * enter as {@link PartialAuthLocale} — deep-merged over the active built-in
  * bundle by `mergeAuthLocale` — so component markup reads keys directly,
  * without per-key `?? '…'` fallback literals (review R19).
+ *
+ * Placeholder convention: dynamic values use **single-brace** tokens
+ * (`{n}`, `{name}`, `{email}`) that the consuming component substitutes itself
+ * via `String.replace('{token}', value)`. There is deliberately **no**
+ * `{{…}}` runtime interpolator in this package — the key-based translator twin
+ * (`authT`/`at`) was removed in R21 — so `{{…}}` here would render verbatim.
  */
 export interface AuthLocale {
   auth: {
