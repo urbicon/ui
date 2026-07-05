@@ -59,8 +59,7 @@ export const badgeVariants = tv({
         base: 'bg-transparent border-transparent'
       },
       dot: {
-        base: '!p-0 rounded-commit border-none',
-        content: 'sr-only'
+        base: '!p-0 rounded-commit border-none'
       }
     },
     size: {
