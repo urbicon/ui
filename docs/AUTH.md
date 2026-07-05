@@ -146,6 +146,11 @@ The login rate-limit default is injected whenever you don't explicitly opt out w
 `rateLimit: null` — even if you configure only _other_ endpoints (e.g. `rateLimit: {
 register }` still leaves login protected). The lockout default applies only when you
 configured neither `rateLimit` nor `lockout`; opt out of either with `null`.
+Beyond login, `createAuthDeps` also injects a generous per-IP default for the
+mail-sending forgot-password endpoint (10 / 15 min — a mail-bombing / delivery-cost
+brake), a strict one for the 2FA verify step, and login-strength limits for the
+credential-accepting re-auth endpoints (change-password/-email, delete-account, 2FA
+disable). All are overridable per key and share the `rateLimit: null` opt-out.
 The wiring is four files: deps → `hooks.server.ts` (`createAuthHandle`) → one
 `+server.ts` per handler (`createLoginHandler`, …) → a `<LoginPage>` route.
 

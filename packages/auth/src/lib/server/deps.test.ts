@@ -180,6 +180,35 @@ describe('re-auth rate-limit defaults (R4)', () => {
   });
 });
 
+describe('forgot-password rate-limit default', () => {
+  // The password-reset request endpoint sends an email on every hit for an
+  // existing account, so an unlimited endpoint is a mail-bombing / cost vector.
+  // Defaulted per-IP but more generous than login (10 vs 5) to tolerate NAT.
+  const expected = { windowMs: 15 * 60_000, max: 10 };
+
+  it('injects a generous default when no rate-limit is configured', () => {
+    const deps = createAuthDeps(baseDeps());
+    expect(deps.config.rateLimit?.forgotPassword).toEqual(expected);
+  });
+
+  it('injects the default even when only OTHER rate-limit keys are configured', () => {
+    const deps = createAuthDeps(baseDeps({ rateLimit: { register: { windowMs: 1000, max: 3 } } }));
+    expect(deps.config.rateLimit?.forgotPassword).toEqual(expected);
+  });
+
+  it('respects an explicit forgotPassword limit', () => {
+    const deps = createAuthDeps(
+      baseDeps({ rateLimit: { forgotPassword: { windowMs: 2000, max: 2 } } })
+    );
+    expect(deps.config.rateLimit?.forgotPassword).toEqual({ windowMs: 2000, max: 2 });
+  });
+
+  it('honours the global null opt-out (no forgotPassword limiter)', () => {
+    const deps = createAuthDeps(baseDeps({ rateLimit: null }));
+    expect(deps.config.rateLimit).toBeUndefined();
+  });
+});
+
 describe('config.logger seam (R11)', () => {
   it('routes construction warnings to a custom logger instead of console', () => {
     const consoleWarn = vi.spyOn(console, 'warn').mockImplementation(() => {});

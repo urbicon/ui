@@ -57,6 +57,15 @@ const DEFAULT_TWO_FACTOR_RATE_LIMIT: RateLimitConfig = { windowMs: 15 * 60_000, 
 // factor. Failed re-auths do not feed the lockout (verifyCurrentPassword is
 // side-effect-free by design), making this limiter the only brake.
 const DEFAULT_REAUTH_RATE_LIMIT: RateLimitConfig = { windowMs: 15 * 60_000, max: 5 };
+// Password-reset *request* endpoint (forgot-password): unauthenticated and
+// sends an email on every hit for an existing account, so an unlimited endpoint
+// is a mail-bombing + delivery-cost vector (flood a victim's inbox / burn the
+// consumer's mail quota). Deliberately more generous than login (10 vs 5): the
+// limit is keyed per-IP, so a tight cap risks NAT/shared-IP false positives for
+// a request a legitimate user makes rarely — while 10 / 15 min still deckelt an
+// abuser hard. Not a credential oracle (the handler equalizes timing and always
+// returns success), so it needs no login-strength brake.
+const DEFAULT_FORGOT_PASSWORD_RATE_LIMIT: RateLimitConfig = { windowMs: 15 * 60_000, max: 10 };
 
 // Floor below which an explicitly configured PBKDF2 work factor is treated as
 // dangerously weak. The secure default (600k, see auth.ts) is well above this;
@@ -152,6 +161,19 @@ function resolveSecurityDefaults<R extends string>(
       resolved.rateLimit = { ...resolved.rateLimit, ...reauthDefaults };
     }
   }
+
+  // Password-reset request endpoint: guarantee a (generous) per-IP limiter
+  // unless rate-limiting was opted out (`rateLimit: null` → resolved.rateLimit
+  // undefined). See DEFAULT_FORGOT_PASSWORD_RATE_LIMIT for the mail-bombing / NAT
+  // trade-off. Runs on the already-resolved rateLimit so nothing above is
+  // clobbered.
+  if (resolved.rateLimit && !resolved.rateLimit.forgotPassword) {
+    resolved.rateLimit = {
+      ...resolved.rateLimit,
+      forgotPassword: DEFAULT_FORGOT_PASSWORD_RATE_LIMIT
+    };
+  }
+
   if (isProduction && config.twoFactor && !resolved.rateLimit?.twoFactor) {
     logger.warn(
       '[auth] config.twoFactor is set but the 2FA verify endpoint is not rate-limited (rateLimit: null) — a 6-digit code is brute-forceable. Configure config.rateLimit.twoFactor or drop the rateLimit opt-out.'
