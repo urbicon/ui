@@ -33,17 +33,24 @@ export class ExamplesExtractor extends TypeScriptBaseExtractor<ExamplesExtractio
       let examples: string[] = [];
 
       if (propsNode) {
-        // First, try to read explicit @example tags
+        // First, try to read explicit @example tags. Guard against TS parsing a
+        // bare "@example" that appears mid-sentence (a description that merely
+        // names the tag) as a real tag whose comment is the trailing prose —
+        // accept only tags that actually begin their source line.
         const tags = ts.getJSDocTags(propsNode) || [];
         for (const tag of tags) {
-          if (tag.tagName?.getText() === 'example') {
+          if (tag.tagName?.getText() === 'example' && this.isLineLeadingTag(tag, sourceFile)) {
             const raw = this.getTagCommentText(tag) || '';
             const cleaned = this.normalizeExampleFromTag(raw);
             if (cleaned) examples.push(cleaned);
           }
         }
 
-        // If none found, fallback to scanning the full JSDoc comment attached to the interface
+        // If none found, fall back to fenced ``` blocks in the JSDoc comment
+        // body. Note: only real fenced blocks — never split on the literal
+        // "@example" string, which sliced trailing prose (an @description that
+        // merely names the tag) into fake code samples. The AST tag scan above
+        // is the authoritative @example path.
         if (examples.length === 0) {
           const jsDocs = (ts.getJSDocCommentsAndTags(propsNode) || []).filter((n) =>
             ts.isJSDoc(n)
@@ -52,8 +59,6 @@ export class ExamplesExtractor extends TypeScriptBaseExtractor<ExamplesExtractio
             const text = this.getCommentText(doc.comment ?? '') || '';
             const fromFences = this.extractFencedExamples(text);
             if (fromFences.length > 0) examples.push(...fromFences);
-            const fromFallback = this.extractFallbackExamples(text);
-            if (fromFallback.length > 0) examples.push(...fromFallback);
           }
         }
 
@@ -117,6 +122,24 @@ export class ExamplesExtractor extends TypeScriptBaseExtractor<ExamplesExtractio
     return ranges;
   }
 
+  /**
+   * True when the tag actually begins its source line (only whitespace or the
+   * leading `*` between the line start and the `@`). TS's JSDoc parser turns a
+   * bare "@example" appearing mid-sentence — e.g. an `@description` that names
+   * the tag — into a real tag whose comment is the following prose; this rejects
+   * those so prose is never mistaken for a code sample. A `` `@example` `` in
+   * backticks is not parsed as a tag at all, so it never reaches here.
+   */
+  private isLineLeadingTag(tag: ts.JSDocTag, sourceFile: ts.SourceFile): boolean {
+    const full = sourceFile.getFullText();
+    for (let i = tag.getStart(sourceFile) - 1; i >= 0; i--) {
+      const ch = full[i];
+      if (ch === '\n') return true;
+      if (ch !== ' ' && ch !== '\t' && ch !== '\r' && ch !== '*') return false;
+    }
+    return true;
+  }
+
   private getTagCommentText(tag: ts.JSDocTag): string | undefined {
     // TypeScript does not expose a typed API for tag.comment text slices directly,
     // but JSDocTag has a 'comment' field we can stringify.
@@ -137,18 +160,6 @@ export class ExamplesExtractor extends TypeScriptBaseExtractor<ExamplesExtractio
     for (const m of text.matchAll(fenceRe)) {
       const block = this.sanitizeExampleCode(m[1] || '');
       if (block) out.push(block);
-    }
-    return out;
-  }
-
-  private extractFallbackExamples(text: string): string[] {
-    // Split by @example markers and take the part until the next tag or end
-    const parts = text.split(/@example/g).slice(1);
-    const out: string[] = [];
-    for (const part of parts) {
-      const body = part.split('@')[0] || '';
-      const cleaned = this.sanitizeExampleCode(body);
-      if (cleaned) out.push(cleaned);
     }
     return out;
   }
@@ -175,19 +186,13 @@ export class ExamplesExtractor extends TypeScriptBaseExtractor<ExamplesExtractio
         head =
           head.slice(0, range.start) + ' '.repeat(sliceEnd - range.start) + head.slice(sliceEnd);
       }
-      // Look for @example fenced blocks in the head
+      // Look for @example fenced blocks in the head. Only fenced blocks — the
+      // former split-on-"@example" fallback sliced trailing prose (a description
+      // that merely names the tag) into fake code samples.
       const out: string[] = [];
       const fenceRe = /@example[\s\S]*?```(?:\w+)?\n([\s\S]*?)```/g;
       for (const m of head.matchAll(fenceRe)) {
         const cleaned = this.sanitizeExampleCode(m[1] || '');
-        if (cleaned) out.push(cleaned);
-      }
-      if (out.length > 0) return out;
-      // Fallback inside head: split by @example and take until next @ or end of block
-      const parts = head.split(/@example/g).slice(1);
-      for (const part of parts) {
-        const snippet = part.split('@')[0] || '';
-        const cleaned = this.sanitizeExampleCode(snippet);
         if (cleaned) out.push(cleaned);
       }
       return out;
