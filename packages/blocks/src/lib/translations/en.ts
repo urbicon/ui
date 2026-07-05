@@ -73,8 +73,6 @@ export default {
     legend: 'Legend',
     yearView: 'Year overview',
     weekView: 'Week view',
-    dayView: 'Day view',
-    monthView: 'Month view',
     viewMonth: 'Month',
     viewYear: 'Year',
     viewWeek: 'Week',
@@ -93,7 +91,6 @@ export default {
     nextRange: 'Next range',
     today: 'Today',
     grid: 'Planner',
-    weekNumber: 'Week number',
     itemCount: '{{count}} items'
   },
   commandPalette: {
@@ -145,7 +142,6 @@ export default {
   datepicker: {
     placeholder: 'Select a date...',
     rangePlaceholder: 'Select a date range...',
-    clear: 'Clear selection',
     openCalendar: 'Open calendar',
     invalidDate: 'Invalid date',
     outOfRange: 'Date is outside the allowed range',
@@ -176,9 +172,5 @@ export default {
     lightMode: 'Light mode',
     darkMode: 'Dark mode',
     systemTheme: 'System theme'
-  },
-  time: {
-    ago: '{{value}} {{unit}} ago',
-    now: 'now'
   }
 } as const;

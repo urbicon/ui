@@ -1,10 +1,6 @@
 export default {
-  common: {
-    close: 'Schließen'
-  },
   button: {
-    close: 'Schließen',
-    clear: 'Löschen'
+    close: 'Schließen'
   },
   data: {
     empty: 'Keine Daten verfügbar',
@@ -21,8 +17,7 @@ export default {
       enterValue: 'Wert eingeben...'
     },
     menu: {
-      addFilter: 'Filter hinzufügen',
-      title: 'Filter'
+      addFilter: 'Filter hinzufügen'
     },
     operators: {
       after: 'nach',
@@ -35,9 +30,6 @@ export default {
       onDate: 'am',
       startsWith: 'beginnt mit'
     },
-    overflow: {
-      title: 'Weitere Filter'
-    },
     quickValues: {
       title: 'Schnellwerte'
     }
@@ -47,11 +39,6 @@ export default {
   },
   summary: {
     button: {
-      title: 'Zusammenfassung'
-    },
-    menu: {
-      addSummary: 'Zusammenfassung hinzufügen',
-      noColumns: 'Keine summarisierbaren Spalten verfügbar',
       title: 'Zusammenfassung'
     },
     types: {
@@ -93,8 +80,7 @@ export default {
   },
   grouping: {
     button: 'Gruppierung',
-    none: 'Keine Gruppierung',
-    placeholder: 'Gruppierung auswählen'
+    none: 'Keine Gruppierung'
   },
   sort: {
     button: 'Sortierung',
@@ -107,10 +93,7 @@ export default {
     activeIndicator: '{{type}} aktiv für diese Spalte',
     collapseAllGroups: 'Alle Gruppen einklappen',
     expandAllGroups: 'Alle Gruppen ausklappen',
-    filterActive: 'Filter aktiv',
-    grouped: 'Gruppiert',
     groupedColumn: 'Gruppierte Spalte',
-    summarized: 'Zusammengefasst',
     summarizedColumn: 'Zusammengefasste Spalte'
   },
   headerMenu: {
@@ -168,8 +151,7 @@ export default {
     selectRow: 'Zeile auswählen',
     deselectRow: 'Auswahl aufheben',
     selectAllRows: 'Alle Zeilen auswählen',
-    deselectAllRows: 'Auswahl aller Zeilen aufheben',
-    selectedCount: '{{count}} ausgewählt'
+    deselectAllRows: 'Auswahl aller Zeilen aufheben'
   },
   table: {
     link: {

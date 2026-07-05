@@ -1,10 +1,6 @@
 export default {
-  common: {
-    close: 'Close'
-  },
   button: {
-    close: 'Close',
-    clear: 'Clear'
+    close: 'Close'
   },
   data: {
     empty: 'No data available',
@@ -21,8 +17,7 @@ export default {
       enterValue: 'Enter value...'
     },
     menu: {
-      addFilter: 'Add filter',
-      title: 'Filter'
+      addFilter: 'Add filter'
     },
     operators: {
       after: 'after',
@@ -35,9 +30,6 @@ export default {
       onDate: 'on',
       startsWith: 'starts with'
     },
-    overflow: {
-      title: 'More filters'
-    },
     quickValues: {
       title: 'Quick values'
     }
@@ -47,11 +39,6 @@ export default {
   },
   summary: {
     button: {
-      title: 'Summary'
-    },
-    menu: {
-      addSummary: 'Add summary',
-      noColumns: 'No summarizable columns available',
       title: 'Summary'
     },
     types: {
@@ -93,8 +80,7 @@ export default {
   },
   grouping: {
     button: 'Grouping',
-    none: 'No grouping',
-    placeholder: 'Select grouping'
+    none: 'No grouping'
   },
   sort: {
     button: 'Sort',
@@ -107,10 +93,7 @@ export default {
     activeIndicator: '{{type}} active for this column',
     collapseAllGroups: 'Collapse all groups',
     expandAllGroups: 'Expand all groups',
-    filterActive: 'Filter active',
-    grouped: 'Grouped',
     groupedColumn: 'Grouped column',
-    summarized: 'Summarized',
     summarizedColumn: 'Summarized column'
   },
   headerMenu: {
@@ -168,8 +151,7 @@ export default {
     selectRow: 'Select row',
     deselectRow: 'Deselect row',
     selectAllRows: 'Select all rows',
-    deselectAllRows: 'Deselect all rows',
-    selectedCount: '{{count}} selected'
+    deselectAllRows: 'Deselect all rows'
   },
   table: {
     link: {
