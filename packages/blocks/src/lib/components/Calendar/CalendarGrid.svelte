@@ -103,14 +103,19 @@
 
     if (newDate) {
       e.preventDefault();
+      // Capture the grid while the event is still dispatching: `e.currentTarget` is
+      // null inside the rAF callback a frame later (the browser clears it after
+      // dispatch). CalendarDay uses pure roving tabindex with no isFocused-driven
+      // .focus(), so this rAF is the only thing that moves real DOM focus onto the
+      // landed day — mirrors DateGridScaffold's bound-ref approach.
+      const grid = e.currentTarget as HTMLElement;
       ctx.setFocusedDate(newDate);
 
       requestAnimationFrame(() => {
-        const dateStr = `${newDate!.getFullYear()}-${String(newDate!.getMonth() + 1).padStart(2, '0')}-${String(newDate!.getDate()).padStart(2, '0')}`;
-        const button = (e.currentTarget as HTMLElement)?.querySelector(
-          `[data-date="${dateStr}"]`
-        ) as HTMLElement;
-        button?.focus();
+        // setFocusedDate clamps to [minDate, maxDate], so focus the *landed* day (the
+        // one that took roving tabindex), not the raw requested newDate.
+        const dateStr = toIso(ctx.focusedDate);
+        grid.querySelector<HTMLElement>(`[data-date="${dateStr}"]`)?.focus();
       });
     }
   }

@@ -534,6 +534,9 @@
     get canGoForward() {
       return controller.canGoForward;
     },
+    get canGoToToday() {
+      return controller.canGoToToday;
+    },
     get grid() {
       return controller.cells;
     },
@@ -667,7 +670,8 @@
         navigateMonth,
         goToToday,
         canGoBack: controller.canGoBack,
-        canGoForward: controller.canGoForward
+        canGoForward: controller.canGoForward,
+        canGoToToday: controller.canGoToToday
       })}
     {:else}
       <CalendarHeader {showViewSwitcher} />

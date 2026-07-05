@@ -60,7 +60,7 @@
         mint="none"
         class={ctx.slot('navButton')}
         onclick={() => ctx.goToToday()}
-        disabled={ctx.disabled}
+        disabled={!ctx.canGoToToday || ctx.disabled}
         aria-label={bt('planner.today')}
       >
         <CalendarDaysIcon size={16} />

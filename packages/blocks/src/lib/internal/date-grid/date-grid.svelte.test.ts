@@ -365,6 +365,64 @@ describe('DateGridController — navigation', () => {
   });
 });
 
+// The header Today button gates on canGoToToday; the emit paths (goToToday / goTo)
+// clamp too, so a programmatic call can never seat the reference on an all-disabled
+// month/week/day past the bounds. Bounds are relative to the controller's own `today`.
+describe('DateGridController — today / goTo bounds', () => {
+  const dayOffset = (base: Date, days: number) =>
+    new Date(base.getFullYear(), base.getMonth(), base.getDate() + days);
+
+  it('canGoToToday is true without bounds', () => {
+    expect(new Harness().controller.canGoToToday).toBe(true);
+  });
+
+  it('canGoToToday is false when today is before minDate', () => {
+    const h = new Harness();
+    h.minDate = dayOffset(h.controller.today, 1); // tomorrow
+    expect(h.controller.canGoToToday).toBe(false);
+  });
+
+  it('canGoToToday is false when today is after maxDate', () => {
+    const h = new Harness();
+    h.maxDate = dayOffset(h.controller.today, -1); // yesterday
+    expect(h.controller.canGoToToday).toBe(false);
+  });
+
+  it('canGoToToday is true when today sits within bounds', () => {
+    const h = new Harness();
+    h.minDate = dayOffset(h.controller.today, -5);
+    h.maxDate = dayOffset(h.controller.today, 5);
+    expect(h.controller.canGoToToday).toBe(true);
+  });
+
+  it('goToToday clamps to maxDate (and focus follows) when today is out of range', () => {
+    const h = new Harness({ referenceDate: new Date(2020, 0, 1) });
+    const max = dayOffset(h.controller.today, -3); // 3 days ago
+    h.maxDate = max;
+    h.controller.goToToday();
+    expect(iso(h.controller.focusedDate)).toBe(iso(max)); // clamped, not today
+    expect(iso(h.navigations[0].date)).toBe(iso(max));
+  });
+
+  it('goToToday lands on today (unclamped) when in range', () => {
+    const h = new Harness({ referenceDate: new Date(2020, 0, 1) });
+    h.minDate = dayOffset(h.controller.today, -10);
+    h.maxDate = dayOffset(h.controller.today, 10);
+    h.controller.goToToday();
+    expect(h.controller.isToday(h.controller.focusedDate)).toBe(true);
+  });
+
+  it('goTo clamps the target into [minDate, maxDate]', () => {
+    const h = new Harness({
+      referenceDate: new Date(2026, 5, 16),
+      minDate: new Date(2026, 5, 1),
+      maxDate: new Date(2026, 5, 30)
+    });
+    h.controller.goTo(new Date(2027, 0, 1)); // far past maxDate
+    expect(iso(h.navigations[0].date)).toBe('2026-6-30');
+  });
+});
+
 describe('DateGridController — roving focus', () => {
   it('moves focus within the visible month without navigating', () => {
     const h = new Harness({ referenceDate: new Date(2026, 5, 16) });
@@ -391,6 +449,45 @@ describe('DateGridController — roving focus', () => {
     expect(iso(h.controller.focusedDate)).toBe('2026-6-23');
     h.controller.moveFocus(-7);
     expect(iso(h.controller.focusedDate)).toBe('2026-6-16');
+  });
+
+  // Arrow/Home/End/Page keys are not gated by canGoBack/canGoForward, so the focus
+  // target is clamped to the hard [minDate, maxDate] edges — otherwise the focus (and
+  // the view it drags along) could cross onto an all-disabled window.
+  it('clamps setFocusedDate forward to maxDate', () => {
+    const h = new Harness({ referenceDate: new Date(2026, 5, 16), maxDate: new Date(2026, 5, 20) });
+    h.controller.setFocusedDate(new Date(2026, 5, 25)); // past maxDate
+    expect(iso(h.controller.focusedDate)).toBe('2026-6-20');
+  });
+
+  it('clamps setFocusedDate backward to minDate', () => {
+    const h = new Harness({ referenceDate: new Date(2026, 5, 16), minDate: new Date(2026, 5, 10) });
+    h.controller.setFocusedDate(new Date(2026, 5, 5)); // before minDate
+    expect(iso(h.controller.focusedDate)).toBe('2026-6-10');
+  });
+
+  it('an arrow past maxDate holds focus on the bound without an escape navigation', () => {
+    const h = new Harness({
+      view: 'day',
+      referenceDate: new Date(2026, 5, 18), // Jun 18 = maxDate
+      maxDate: new Date(2026, 5, 18)
+    });
+    h.controller.setFocusedDate(new Date(2026, 5, 18));
+    h.navigations.length = 0;
+    h.controller.moveFocus(1); // ArrowRight wants Jun 19 (> maxDate, all-disabled)
+    expect(iso(h.controller.focusedDate)).toBe('2026-6-18'); // stays on the bound
+    expect(h.navigations).toHaveLength(0); // no navigation onto the disabled day
+  });
+
+  it('leaves in-range focus movement unclamped', () => {
+    const h = new Harness({
+      referenceDate: new Date(2026, 5, 16),
+      minDate: new Date(2026, 0, 1),
+      maxDate: new Date(2026, 11, 31)
+    });
+    h.controller.setFocusedDate(new Date(2026, 5, 16));
+    h.controller.moveFocus(1);
+    expect(iso(h.controller.focusedDate)).toBe('2026-6-17');
   });
 });
 

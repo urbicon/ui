@@ -82,6 +82,8 @@ export interface PlannerHeaderContext {
   canGoBack: boolean;
   /** Whether forward-navigation is within bounds. */
   canGoForward: boolean;
+  /** Whether today is within `[minDate, maxDate]`; gate a custom Today control on it. */
+  canGoToToday: boolean;
 }
 
 /** Every styleable slot Planner exposes through `slotClasses`. */
@@ -116,6 +118,7 @@ export interface PlannerContext {
   readonly weekNumber: number;
   readonly canGoBack: boolean;
   readonly canGoForward: boolean;
+  readonly canGoToToday: boolean;
   readonly locale: string;
   readonly disabled: boolean;
   navigate(delta: number): void;

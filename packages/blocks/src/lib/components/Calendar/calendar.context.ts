@@ -45,6 +45,7 @@ export interface CalendarContext {
   // Navigation constraints
   readonly canGoBack: boolean;
   readonly canGoForward: boolean;
+  readonly canGoToToday: boolean;
 
   // Computed
   readonly grid: Date[][];

@@ -151,4 +151,6 @@ export interface HeaderContext {
   goToToday: () => void;
   canGoBack: boolean;
   canGoForward: boolean;
+  /** Whether today is within `[minDate, maxDate]`; gate a custom Today control on it. */
+  canGoToToday: boolean;
 }

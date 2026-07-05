@@ -226,7 +226,7 @@
             mint="none"
             class="{slot('navButton')} ml-1"
             onclick={() => ctx.goToToday()}
-            disabled={ctx.disabled}
+            disabled={!ctx.canGoToToday || ctx.disabled}
             aria-label={bt('calendar.today')}
           >
             <CalendarIcon size={navIconSize} />

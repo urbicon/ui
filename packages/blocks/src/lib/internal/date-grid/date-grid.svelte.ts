@@ -200,6 +200,19 @@ export class DateGridController {
     return this.#navBounds.canGoForward;
   }
 
+  /** Whether today lies within `[minDate, maxDate]` and can be navigated to. Drives
+   * the header Today button's disabled state (mirrors the arrow buttons gating on
+   * canGoBack/canGoForward). Day-granular: the button jumps to today's *day*, so a
+   * maxDate earlier this month still disables it once today passes the bound. Reads
+   * the reactive `today`, so it re-evaluates after the midnight refresh. */
+  get canGoToToday(): boolean {
+    const { minDate, maxDate } = this.#opts;
+    const t = this.today;
+    if (minDate && t < stripTime(minDate)) return false;
+    if (maxDate && t > stripTime(maxDate)) return false;
+    return true;
+  }
+
   // ─── Per-day queries ─────────────────────────────────────────────────────
 
   weekNumberFor(date: Date): number {
@@ -349,22 +362,34 @@ export class DateGridController {
     this.#emitNavigate(next);
   }
 
-  /** Jump to today and focus it. */
+  /** Jump to today and focus it. Clamped to `[minDate, maxDate]`: the header Today
+   * button gates itself on {@link canGoToToday} (a clamped "today" is not today, so
+   * it disables rather than mislead), but a programmatic call still must not seat the
+   * reference on an all-disabled month/week/day past the boundary. Uses `today` — the
+   * controller's source of truth for "today" — so it lands where `isToday` marks. */
   goToToday(): void {
-    const now = stripTime(new Date());
+    const { minDate, maxDate } = this.#opts;
+    const now = clampDate(this.today, minDate, maxDate);
     this.focusedDate = now;
     this.#emitNavigate(now);
   }
 
-  /** Jump the reference date to a specific date. */
+  /** Jump the reference date to a specific date, clamped to `[minDate, maxDate]`. */
   goTo(date: Date): void {
-    this.#emitNavigate(stripTime(date));
+    const { minDate, maxDate } = this.#opts;
+    this.#emitNavigate(clampDate(stripTime(date), minDate, maxDate));
   }
 
-  /** Set the roving focus, navigating the view if the date left the visible window. */
+  /** Set the roving focus, navigating the view if the date left the visible window.
+   * The target is clamped to `[minDate, maxDate]` — arrow/Home/End/Page keys are not
+   * gated by canGoBack/canGoForward, so an unclamped focus could cross the boundary
+   * and drag the view onto an all-disabled window (the same escape the stepping paths
+   * close). Only the hard outer bounds clamp; custom `isDateDisabled` holes *inside*
+   * the range stay focusable, per the ARIA grid pattern. */
   setFocusedDate(date: Date): void {
-    const d = stripTime(date);
-    const reference = stripTime(this.#opts.referenceDate);
+    const { minDate, maxDate, referenceDate } = this.#opts;
+    const d = clampDate(stripTime(date), minDate, maxDate);
+    const reference = stripTime(referenceDate);
     this.focusedDate = d;
     if (this.#needsNavigationToFocus(d)) {
       this.navDirection = d.getTime() >= reference.getTime() ? 'forward' : 'backward';

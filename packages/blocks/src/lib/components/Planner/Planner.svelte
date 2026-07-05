@@ -220,7 +220,8 @@
     goToToday: () => controller.goToToday(),
     goTo: (date) => controller.goTo(date),
     canGoBack: controller.canGoBack,
-    canGoForward: controller.canGoForward
+    canGoForward: controller.canGoForward,
+    canGoToToday: controller.canGoToToday
   });
 
   // --- Contexts: the controller IS the date-grid context the Scaffold reads;
@@ -248,6 +249,9 @@
     },
     get canGoForward() {
       return controller.canGoForward;
+    },
+    get canGoToToday() {
+      return controller.canGoToToday;
     },
     get locale() {
       return locale;
