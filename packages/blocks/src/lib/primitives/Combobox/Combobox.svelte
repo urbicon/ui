@@ -352,6 +352,7 @@
     {#if clearable && value}
       <button
         type="button"
+        {disabled}
         class={unstyled ? (slotClasses?.clear ?? '') : styles.clear({ class: slotClasses?.clear })}
         onclick={clear}
         aria-label={bt('accessibility.clearSelection')}
