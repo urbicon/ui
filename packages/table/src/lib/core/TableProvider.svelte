@@ -150,7 +150,13 @@
     }
   });
 
+  // Selection is controlled when the prop is present. Set the flag *before*
+  // applying, so the setSelectedIds wrapper's syncSelection sees it and skips
+  // persisting — a controlled value is never mirrored to storage (persistSelection
+  // is a true no-op in controlled mode). `!== undefined` so an empty controlled
+  // array still counts as controlled.
   $effect(() => {
+    state.selectionControlled = selectedIds !== undefined;
     if (selectedIds) {
       tableState.setSelectedIds(selectedIds);
     }

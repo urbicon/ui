@@ -34,6 +34,12 @@ export interface TableState {
 
   selectionMode: 'none' | 'single' | 'multi';
   selectedIds: Set<string | number>;
+  /**
+   * Whether `selectedIds` is driven by a controlled prop. When true, selection
+   * persistence is suppressed so a controlled value is never mirrored to storage
+   * (set by `TableProvider` from the `selectedIds` prop).
+   */
+  selectionControlled: boolean;
 
   mode: 'client' | 'server';
   serverTotalItems: number;

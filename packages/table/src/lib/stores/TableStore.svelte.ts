@@ -85,9 +85,13 @@ export interface TablePersistenceConfig {
   /** Persist column order. Default `true`. */
   persistColumnOrder?: boolean;
   /**
-   * Persist selected row ids (keyed by `item.id`). **Opt-in — default
-   * `false`**, unlike every axis above. Has no effect when `selectedIds` is
-   * controlled: the prop re-applies after hydration and wins.
+   * Persist selected row ids across reloads. **Opt-in — default `false`**,
+   * unlike every axis above (a restored selection surprises more often than it
+   * helps). Genuinely no effect when `selectedIds` is controlled: the prop is
+   * the source of truth, so a controlled value is never written to storage.
+   * Rows are keyed by `item.id`; without a stable `id` the selection falls back
+   * to the row's position index, which restores onto *different* rows after a
+   * reorder — enable this only for data with stable ids.
    */
   persistSelection?: boolean;
 }
@@ -138,6 +142,7 @@ export function createTableState(persistenceConfig?: TablePersistenceConfig) {
 
     selectionMode: 'none' as 'none' | 'single' | 'multi',
     selectedIds: new SvelteSet<string | number>(),
+    selectionControlled: false,
 
     mode: 'client' as 'client' | 'server',
     serverTotalItems: 0,
@@ -317,6 +322,20 @@ export function createTableState(persistenceConfig?: TablePersistenceConfig) {
     persistence.syncSelection();
   }
 
+  // Live-update deletes prune deleted rows out of the selection
+  // (`applyDeletes`, and `applyAll` which calls it), mutating `selectedIds`
+  // outside the selection methods above — so they re-sync persisted selection
+  // too. `applyInserts`/`applyUpdates`/`dismissAll` never touch selection.
+  function applyAllUpdates() {
+    liveUpdates.applyAll();
+    persistence.syncSelection();
+  }
+
+  function applyDeletes() {
+    liveUpdates.applyDeletes();
+    persistence.syncSelection();
+  }
+
   // ── Public API ──
   // `state` is exposed for internal sub-components that need direct reads.
   // External consumers should prefer the wrapper methods (setSearchTerm,
@@ -474,10 +493,10 @@ export function createTableState(persistenceConfig?: TablePersistenceConfig) {
     pushInsert: liveUpdates.pushInsert,
     pushUpdate: liveUpdates.pushUpdate,
     pushDelete: liveUpdates.pushDelete,
-    applyAllUpdates: liveUpdates.applyAll,
+    applyAllUpdates,
     applyInserts: liveUpdates.applyInserts,
     applyUpdates: liveUpdates.applyUpdates,
-    applyDeletes: liveUpdates.applyDeletes,
+    applyDeletes,
     dismissAllUpdates: liveUpdates.dismissAll,
     isRecentlyUpdated: liveUpdates.isRecentlyUpdated,
     isPendingDelete: liveUpdates.isPendingDelete,

@@ -159,8 +159,13 @@ export function usePersistence(state: TableState, persistenceConfig?: TablePersi
 
   // No argument: reads the shared `state.selectedIds` itself (like syncSearch),
   // so the spread only runs when selection persistence is actually enabled.
+  // Skipped while selection is controlled — the prop is the source of truth, so
+  // a controlled value must never reach storage (it would resurrect on a later
+  // switch to uncontrolled).
   function syncSelection() {
-    if (persistentSelection) persistentSelection.value = [...state.selectedIds];
+    if (persistentSelection && !state.selectionControlled) {
+      persistentSelection.value = [...state.selectedIds];
+    }
   }
 
   // Public API

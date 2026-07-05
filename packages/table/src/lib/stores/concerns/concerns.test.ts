@@ -1241,7 +1241,8 @@ describe('usePersistence — surface contract', () => {
       sortColumn: '',
       sortDirection: 'asc',
       showSummary: false,
-      selectedIds: new Set<string | number>()
+      selectedIds: new Set<string | number>(),
+      selectionControlled: false
     } as unknown as TableState;
   }
 
@@ -1298,6 +1299,11 @@ describe('usePersistence — surface contract', () => {
     const on = usePersistence(state, { tableId: 'sel-on', persistSelection: true });
     expect(() => on.syncSelection()).not.toThrow();
     expect(typeof on.clearPersistedSelection).toBe('function');
+
+    // Controlled selection suppresses the write (prop is the source of truth) —
+    // must still not throw.
+    state.selectionControlled = true;
+    expect(() => on.syncSelection()).not.toThrow();
   });
 
   it('contract: clearAllPersistentData covers every axis without throwing', async () => {
