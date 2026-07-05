@@ -1,24 +1,22 @@
 <script lang="ts">
   import { useBlocksI18n } from '$lib';
-  import type { Snippet } from 'svelte';
   import { fly } from 'svelte/transition';
   import { Badge } from '$lib/primitives/Badge';
   import { getCalendarContext, createSlotHelper } from './calendar.context';
   import { formatDateFull, toIso } from '$lib/date';
   import { swipeable } from '$lib/utils/swipeable';
-  import type { CalendarEvent, EventItemContext } from './calendar.types';
+  import type { CalendarEvent } from './calendar.types';
   import CalendarEventRenderer from './CalendarEventRenderer.svelte';
   import CalendarTimeGrid from './CalendarTimeGrid.svelte';
 
   const bt = useBlocksI18n();
 
   interface CalendarDayViewInternalProps {
-    eventItem?: Snippet<[EventItemContext]>;
     onEventClick?: (event: CalendarEvent) => void;
     class?: string;
   }
 
-  let { eventItem, onEventClick, class: className = '' }: CalendarDayViewInternalProps = $props();
+  let { onEventClick, class: className = '' }: CalendarDayViewInternalProps = $props();
 
   const ctx = getCalendarContext();
   const slot = createSlotHelper(ctx);
@@ -28,13 +26,10 @@
   const dateLabel = $derived(formatDateFull(displayedDate, ctx.locale));
   const dayKey = $derived(toIso(displayedDate));
 
-  // Separate all-day vs timed events for time grid mode
-  const allDayEvents = $derived(
-    ctx.showTimeGrid ? eventsWithInfo.filter((info) => info.event.allDay !== false) : []
-  );
-  const timedEventCount = $derived(
-    ctx.showTimeGrid ? eventsWithInfo.filter((info) => info.event.allDay === false).length : 0
-  );
+  // The day view always renders as an hour grid (showTimeGrid is always true
+  // for day). All-day events show in a band above the grid; timed events flow
+  // through CalendarTimeGrid — no custom `eventItem` here, matching WeekGrid.
+  const allDayEvents = $derived(eventsWithInfo.filter((info) => info.event.allDay !== false));
   const totalEventCount = $derived(eventsWithInfo.length);
 
   function handleKeydown(e: KeyboardEvent) {
@@ -83,37 +78,22 @@
           {/if}
         </div>
 
-        {#if ctx.showTimeGrid}
-          <!-- Time grid mode -->
-
-          <!-- All-day events -->
-          {#if allDayEvents.length > 0}
-            <div class={slot('allDayArea')}>
-              <div class="flex flex-col gap-1">
-                {#each allDayEvents as info (info.event.id)}
-                  <CalendarEventRenderer {info} {eventItem} {onEventClick} />
-                {/each}
-              </div>
-            </div>
-          {/if}
-
-          <!-- Time grid -->
-          <CalendarTimeGrid dates={[displayedDate]} {onEventClick} />
-
-          {#if totalEventCount === 0}
-            <div class={slot('empty')}>{bt('calendar.noEvents')}</div>
-          {/if}
-        {:else}
-          <!-- Original list mode -->
-          <div class={slot('dayEventList')} aria-live="polite" aria-label={bt('calendar.events')}>
-            {#if eventsWithInfo.length === 0}
-              <div class={slot('empty')}>{bt('calendar.noEvents')}</div>
-            {:else}
-              {#each eventsWithInfo as info (info.event.id)}
-                <CalendarEventRenderer {info} {eventItem} {onEventClick} />
+        <!-- All-day events -->
+        {#if allDayEvents.length > 0}
+          <div class={slot('allDayArea')}>
+            <div class="flex flex-col gap-1">
+              {#each allDayEvents as info (info.event.id)}
+                <CalendarEventRenderer {info} {onEventClick} />
               {/each}
-            {/if}
+            </div>
           </div>
+        {/if}
+
+        <!-- Time grid -->
+        <CalendarTimeGrid dates={[displayedDate]} {onEventClick} />
+
+        {#if totalEventCount === 0}
+          <div class={slot('empty')}>{bt('calendar.noEvents')}</div>
         {/if}
       </div>
     {/key}

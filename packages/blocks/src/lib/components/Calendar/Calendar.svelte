@@ -670,7 +670,7 @@
           {#if view === 'week'}
             <CalendarWeekGrid {onEventClick} />
           {:else if view === 'day'}
-            <CalendarDayView {eventItem} {onEventClick} />
+            <CalendarDayView {onEventClick} />
           {:else if view === 'agenda'}
             <CalendarAgendaView {eventItem} {onEventClick} {agendaDays} />
           {/if}
@@ -683,7 +683,7 @@
     {:else if view === 'week'}
       <CalendarWeekGrid {onEventClick} />
     {:else if view === 'day'}
-      <CalendarDayView {eventItem} {onEventClick} />
+      <CalendarDayView {onEventClick} />
     {:else if view === 'agenda'}
       <CalendarAgendaView {eventItem} {onEventClick} {agendaDays} />
     {/if}

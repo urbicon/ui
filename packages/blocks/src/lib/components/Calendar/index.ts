@@ -73,7 +73,6 @@ export type CalendarSlotName =
   // Day view
   | 'dayView'
   | 'dayViewHeader'
-  | 'dayEventList'
   // Time grid
   | 'timeGrid'
   | 'timeLabel'
@@ -229,7 +228,11 @@ export interface CalendarProps
   // === Custom rendering ===
   /** Custom snippet for rendering a day cell. */
   dayCell?: Snippet<[DayCellContext]>;
-  /** Custom snippet for rendering an event item in the detail list. */
+  /**
+   * Custom snippet for rendering an event item in the list-based views (agenda
+   * and the month event list). Time-grid views (week/day) render events through
+   * their hour grid and ignore this snippet.
+   */
   eventItem?: Snippet<[EventItemContext]>;
   /** Custom snippet for the header area. */
   header?: Snippet<[HeaderContext]>;

@@ -105,7 +105,6 @@ export const calendarVariants = tv({
     // Day view
     dayView: 'flex flex-col',
     dayViewHeader: 'font-semibold text-text-primary',
-    dayEventList: 'flex flex-col',
 
     // Agenda view
     agendaView: 'flex flex-col',
@@ -224,7 +223,6 @@ export const calendarVariants = tv({
         multiDayBar: 'text-2xs',
         dayView: 'gap-2 mt-2',
         dayViewHeader: 'text-sm mb-1',
-        dayEventList: 'gap-1.5',
         agendaView: 'gap-2 mt-2',
         agendaDayGroup: 'gap-1',
         agendaDayHeader: 'text-xs py-1 px-2',
@@ -278,7 +276,6 @@ export const calendarVariants = tv({
         multiDayBar: 'text-xs',
         dayView: 'gap-3 mt-3',
         dayViewHeader: 'text-base mb-1.5',
-        dayEventList: 'gap-2',
         agendaView: 'gap-3 mt-3',
         agendaDayGroup: 'gap-1.5',
         agendaDayHeader: 'text-sm py-1.5 px-3',
@@ -332,7 +329,6 @@ export const calendarVariants = tv({
         multiDayBar: 'text-sm',
         dayView: 'gap-4 mt-4',
         dayViewHeader: 'text-lg mb-2',
-        dayEventList: 'gap-3',
         agendaView: 'gap-4 mt-4',
         agendaDayGroup: 'gap-2',
         agendaDayHeader: 'text-base py-2 px-4',
