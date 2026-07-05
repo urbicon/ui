@@ -81,7 +81,7 @@ export interface CompositionBarProps
   /** Default intent for items without their own `intent`/`color`. @default 'primary' */
   intent?: CompositionBarIntent;
 
-  /** Show the legend. @default true */
+  /** Show the legend. Position it with `legendPlacement`. @default true */
   showLegend?: boolean;
 
   /** Show percentages in legend and tooltip. @default true */

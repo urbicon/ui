@@ -83,12 +83,14 @@ export const compositionBarVariants = tv({
         legendDot: 'h-3 w-3'
       }
     },
+    // Where the legend sits relative to the bar. Whether it renders at all is a
+    // separate axis — the `showLegend` prop, consistent with the other charts —
+    // so there is deliberately no `none` here (it duplicated `showLegend={false}`).
     legendPlacement: {
       top: { wrapper: 'flex-col-reverse' },
       right: { wrapper: 'flex-row items-start gap-4' },
       bottom: { wrapper: 'flex-col' },
-      left: { wrapper: 'flex-row-reverse items-start gap-4' },
-      none: {}
+      left: { wrapper: 'flex-row-reverse items-start gap-4' }
     },
     isHovered: {
       true: {},

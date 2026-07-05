@@ -69,7 +69,7 @@ describe('compositionBarVariants', () => {
   });
 
   it('never outputs dark: overrides', () => {
-    const placements = ['top', 'right', 'bottom', 'left', 'none'] as const;
+    const placements = ['top', 'right', 'bottom', 'left'] as const;
     for (const placement of placements) {
       const styles = compositionBarVariants({ legendPlacement: placement });
       expect(styles.bar()).not.toMatch(/\bdark:/);

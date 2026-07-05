@@ -406,7 +406,7 @@
   </div>
 
   <!-- Legend -->
-  {#if showLegend && legendPlacement !== 'none'}
+  {#if showLegend}
     <ul
       class={unstyled ? (slotClasses?.legend ?? '') : styles.legend({ class: slotClasses?.legend })}
     >
