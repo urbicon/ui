@@ -260,8 +260,8 @@
   $effect(() => {
     const _current = controller.today;
     if (typeof window === 'undefined') return;
-    const now = new Date(); // eslint-disable-line svelte/prefer-svelte-reactivity
-    const midnight = new Date(now); // eslint-disable-line svelte/prefer-svelte-reactivity
+    const now = new Date();
+    const midnight = new Date(now);
     midnight.setHours(24, 0, 0, 0);
     const msUntilMidnight = midnight.getTime() - now.getTime();
     const timeout = setTimeout(() => controller.refreshToday(), msUntilMidnight);
@@ -286,12 +286,11 @@
   // --- Derived: visible range for recurrence expansion ---
   const visibleRange = $derived.by(() => {
     if (view === 'year') {
-      // eslint-disable-next-line svelte/prefer-svelte-reactivity
       return { start: new Date(displayedYear, 0, 1), end: new Date(displayedYear, 11, 31) };
     }
     if (view === 'agenda') {
-      const start = new Date(displayedYear, displayedMonth, 1); // eslint-disable-line svelte/prefer-svelte-reactivity
-      const end = new Date(start); // eslint-disable-line svelte/prefer-svelte-reactivity
+      const start = new Date(displayedYear, displayedMonth, 1);
+      const end = new Date(start);
       end.setDate(end.getDate() + agendaDays);
       return { start, end };
     }

@@ -41,7 +41,6 @@
 {#if href}
   <!-- The href is provided by the consumer; this component does not own the
        SvelteKit routing layer, so resolve() is the caller's responsibility. -->
-  <!-- eslint-disable-next-line svelte/no-navigation-without-resolve -->
   <a {href} class="{styles.container()} block {className}" aria-label={title}>
     {@render body()}
   </a>

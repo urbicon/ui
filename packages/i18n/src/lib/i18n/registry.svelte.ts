@@ -40,14 +40,12 @@ export class I18nRegistry {
   private loadingLocales = new SvelteSet<Locale>();
 
   // Non-reactive per-instance cache; SvelteMap is unnecessary here.
-  // eslint-disable-next-line svelte/prefer-svelte-reactivity
   private translationLoaders = new Map<Locale, TranslationLoader>();
 
   // Per-package lazy loaders (WP4 code-splitting), keyed `${packageName}::${locale}`.
   // Registered at module-eval, read in setLocale/loadLocale (not in a $derived), so
   // a plain Map suffices. The *loaded data* lands in the reactive packageTranslations,
   // which is what re-resolves `$derived` reads when a chunk arrives.
-  // eslint-disable-next-line svelte/prefer-svelte-reactivity
   private packageLoaders = new Map<string, () => Promise<Translations>>();
   // Reactive: `isLoading` derives from its size.
   private loadingPackageLocales = new SvelteSet<string>();
@@ -56,9 +54,7 @@ export class I18nRegistry {
   // on every `new`; caching by locale avoids that cost when plural()/formatNumber
   // run inside a large {#each}. Keyed by locale only (options-bearing calls skip
   // the cache — they are rare and varied).
-  // eslint-disable-next-line svelte/prefer-svelte-reactivity
   private pluralRulesCache = new Map<Locale, Intl.PluralRules>();
-  // eslint-disable-next-line svelte/prefer-svelte-reactivity
   private numberFormatCache = new Map<Locale, Intl.NumberFormat>();
 
   /**
@@ -463,7 +459,6 @@ export class I18nRegistry {
 
   getAvailableLocales(): Locale[] {
     // Local accumulator — not reactive state.
-    // eslint-disable-next-line svelte/prefer-svelte-reactivity
     const allLocales = new Set<Locale>();
     Object.keys(this.translations).forEach((locale) => {
       allLocales.add(locale as Locale);
@@ -485,7 +480,6 @@ export class I18nRegistry {
 
   getPackageLocales(packageName: string): Locale[] {
     // Eager/loaded locales plus any registered lazy loaders for the package.
-    // eslint-disable-next-line svelte/prefer-svelte-reactivity
     const locales = new Set<Locale>(
       Object.keys(this.packageTranslations.get(packageName) ?? {}) as Locale[]
     );
@@ -535,7 +529,6 @@ export class I18nRegistry {
 
   formatTimeAgo(date: Date, locale: Locale, fallbackLocale: Locale): string {
     // Local timestamp — not reactive state.
-    // eslint-disable-next-line svelte/prefer-svelte-reactivity
     const now = new Date();
     const seconds = Math.round((now.getTime() - date.getTime()) / 1000);
     const minutes = Math.round(seconds / 60);

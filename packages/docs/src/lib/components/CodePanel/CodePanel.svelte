@@ -124,7 +124,6 @@
       {:else}
         <div class={slot('codeDisplay')}>
           <div class={slot('codeContent')} role="textbox" aria-readonly="true" tabindex="0">
-            <!-- eslint-disable-next-line svelte/no-at-html-tags -->
             {@html highlightedCode}
           </div>
         </div>

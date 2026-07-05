@@ -14,7 +14,6 @@ export type UrlParamOptions<T> = {
 // SvelteURLSearchParams wrapper is unnecessary here. Likewise for `goto`:
 // we pass constructed relative paths, not resolved route ids; callers of
 // this helper are free to call `resolve()` at their composition point.
-/* eslint-disable svelte/prefer-svelte-reactivity, svelte/no-navigation-without-resolve */
 export function updateUrlSearchParams(
   next: URLSearchParams | Record<string, string | string[]>,
   opts?: { replaceState?: boolean; keepPath?: boolean }
@@ -98,4 +97,3 @@ export function useUrlArrayParam(
 
   return useUrlParam<string[]>(key, { parse, serialize, initial: opts.initial });
 }
-/* eslint-enable svelte/prefer-svelte-reactivity, svelte/no-navigation-without-resolve */

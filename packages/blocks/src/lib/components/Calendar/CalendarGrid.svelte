@@ -31,7 +31,7 @@
 
   // Map event IDs to events for quick lookup
   const eventById = $derived.by(() => {
-    const map = new Map<string, CalendarEvent>(); // eslint-disable-line svelte/prefer-svelte-reactivity
+    const map = new Map<string, CalendarEvent>();
     for (const e of ctx.events) {
       map.set(e.id, e);
     }
@@ -42,7 +42,7 @@
   const barGap = 2;
 
   // Keyboard navigation handler
-  /* eslint-disable svelte/prefer-svelte-reactivity -- local Date copies for keyboard nav */
+  // Local Date copies for keyboard nav — not reactive state.
   function handleKeydown(e: KeyboardEvent) {
     const current = new Date(ctx.focusedDate);
     let newDate: Date | null = null;
@@ -114,7 +114,6 @@
       });
     }
   }
-  /* eslint-enable svelte/prefer-svelte-reactivity */
 </script>
 
 <div

@@ -27,7 +27,7 @@
 
   // All-day events per date, drawn in the band above the hour grid.
   const allDayByDate = $derived.by(() => {
-    const map = new Map<string, Array<{ event: CalendarEvent; color: string }>>(); // eslint-disable-line svelte/prefer-svelte-reactivity
+    const map = new Map<string, Array<{ event: CalendarEvent; color: string }>>();
     for (const date of ctx.weekDates) {
       const key = toIso(date);
       const allDay = ctx

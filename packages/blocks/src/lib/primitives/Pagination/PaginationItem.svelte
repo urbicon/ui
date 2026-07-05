@@ -29,7 +29,6 @@
   <!-- Link-based pagination item. `href` is consumer-provided (internal or
        external) — `resolve()` only applies to statically-known SvelteKit
        routes. -->
-  <!-- eslint-disable svelte/no-navigation-without-resolve -->
   <a
     {href}
     class="focus-visible:outline-primary/50 inline-block no-underline focus-visible:rounded-md focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 {className}"
@@ -55,7 +54,6 @@
       {/if}
     </Button>
   </a>
-  <!-- eslint-enable svelte/no-navigation-without-resolve -->
 {:else}
   <!-- Button-based pagination item -->
   <Button

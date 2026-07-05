@@ -189,7 +189,6 @@
     <!-- `href` is consumer-provided at runtime; `resolve()` only applies to
          internal SvelteKit routes and would false-positive on any external
          (mailto:/tel:/http) link the consumer configures. -->
-    <!-- eslint-disable svelte/no-navigation-without-resolve -->
     <a
       href={computedHref()}
       {target}
@@ -223,7 +222,6 @@
         </svg>
       {/if}
     </a>
-    <!-- eslint-enable svelte/no-navigation-without-resolve -->
   </div>
 {:else}
   <div class={styles.container()}>

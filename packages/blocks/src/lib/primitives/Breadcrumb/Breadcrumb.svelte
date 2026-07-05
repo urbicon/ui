@@ -115,7 +115,7 @@
             aria-current="page">{entry.item.label}</span
           >
         {:else}
-          <!-- eslint-disable svelte/no-navigation-without-resolve -- BreadcrumbItem.href is opaque to the library -->
+          <!-- BreadcrumbItem.href is opaque to the library; resolve() is the consumer's responsibility. -->
           <a
             href={entry.item.href}
             class={unstyled ? (slotClasses?.link ?? '') : styles.link({ class: slotClasses?.link })}
@@ -124,7 +124,6 @@
           >
             {entry.item.label}
           </a>
-          <!-- eslint-enable svelte/no-navigation-without-resolve -->
         {/if}
         {#if i < entries.length - 1}
           <span

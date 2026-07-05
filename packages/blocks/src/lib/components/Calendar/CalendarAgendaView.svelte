@@ -38,7 +38,7 @@
     }> = [];
 
     for (let i = 0; i < agendaDays; i++) {
-      const d = new Date(start); // eslint-disable-line svelte/prefer-svelte-reactivity
+      const d = new Date(start);
       d.setDate(start.getDate() + i);
       const dayEvents = ctx.getEventsWithDayInfo(d);
       if (dayEvents.length === 0) continue;

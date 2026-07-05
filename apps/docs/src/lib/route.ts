@@ -24,7 +24,7 @@ export function r(path: string): string {
  */
 export function nav(path: string): Promise<void> {
   if (!path.startsWith('/')) {
-    // eslint-disable-next-line svelte/no-navigation-without-resolve -- non-absolute paths are passed through; resolve() would throw on them
+    // Non-absolute paths are passed through; resolve() would throw on them.
     return _goto(path);
   }
   // @ts-expect-error -- typed-routes can't infer dynamic path strings

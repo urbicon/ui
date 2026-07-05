@@ -128,7 +128,6 @@
           {:else}
             <!-- Consumer-provided SVG markup; they are responsible for
                  sanitisation (same contract as the other icon slots). -->
-            <!-- eslint-disable-next-line svelte/no-at-html-tags -->
             {@html icon}
           {/if}
         </div>

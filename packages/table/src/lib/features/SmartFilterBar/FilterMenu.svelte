@@ -107,7 +107,6 @@
 
   function getUniqueValues(columnKey: string): string[] {
     // Local dedup accumulator — not reactive state.
-    // eslint-disable-next-line svelte/prefer-svelte-reactivity
     const values = new Set<string>();
     for (const item of tableState.items) {
       const value = resolveValueById(tableState.columns, item, columnKey);

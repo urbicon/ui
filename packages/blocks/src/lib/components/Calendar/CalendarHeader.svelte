@@ -92,7 +92,7 @@
 
   // Month/Year Quick-Pick
   let monthPickerOpen = $state(false);
-  // eslint-disable-next-line svelte/prefer-writable-derived -- needs both external sync and local mutation
+  // Writable state (not $derived): needs both external sync and local mutation.
   let pickerYear = $state(ctx.displayedYear);
 
   // Keep pickerYear in sync when navigation changes

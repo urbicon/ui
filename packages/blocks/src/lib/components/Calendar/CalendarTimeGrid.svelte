@@ -28,7 +28,6 @@
   const positionedByDate = $derived.by(() => {
     // Local computation inside $derived — the returned Map is read-only
     // downstream, so SvelteMap's reactive wrapping is unnecessary.
-    // eslint-disable-next-line svelte/prefer-svelte-reactivity
     const map = new Map<string, PositionedEvent[]>();
     for (const date of dates) {
       const key = toIso(date);
@@ -72,12 +71,10 @@
   function handleSlotClick(date: Date, slotHour: number, slotMinute: number) {
     if (!ctx.onTimeSlotCreate) return;
     // Local Date math handed straight to a callback — not reactive state.
-    /* eslint-disable svelte/prefer-svelte-reactivity */
     const start = new Date(date);
     start.setHours(slotHour, slotMinute, 0, 0);
     const end = new Date(start);
     end.setHours(start.getHours() + 1);
-    /* eslint-enable svelte/prefer-svelte-reactivity */
     ctx.onTimeSlotCreate(start, end);
   }
 </script>

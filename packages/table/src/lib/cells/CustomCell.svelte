@@ -120,7 +120,6 @@
            and are responsible for sanitising the output; the `content`
            callback is their authoring surface. -->
       <div class={styles.text()}>
-        <!-- eslint-disable-next-line svelte/no-at-html-tags -->
         {@html content(item)}
       </div>
     {:else if children}

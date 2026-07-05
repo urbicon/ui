@@ -154,8 +154,8 @@
   $effect(() => {
     const _today = controller.today;
     if (typeof window === 'undefined') return;
-    const now = new Date(); // eslint-disable-line svelte/prefer-svelte-reactivity
-    const midnight = new Date(now); // eslint-disable-line svelte/prefer-svelte-reactivity
+    const now = new Date();
+    const midnight = new Date(now);
     midnight.setHours(24, 0, 0, 0);
     const timeout = setTimeout(() => controller.refreshToday(), midnight.getTime() - now.getTime());
     return () => clearTimeout(timeout);

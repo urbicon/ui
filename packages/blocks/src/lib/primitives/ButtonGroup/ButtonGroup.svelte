@@ -73,7 +73,7 @@
       onClick() {
         if (disabled || !buttonValue || selection === 'none') return;
 
-        // eslint-disable-next-line svelte/prefer-svelte-reactivity -- local-only copy, not stored in state
+        // Local-only copy, not stored in state.
         const next = new Set(selectedValues);
 
         if (selection === 'single') {

@@ -46,7 +46,6 @@
     if (!targetDate || !ctx.onEventMove) return;
     const eventDuration = event.end ? event.end.getTime() - event.start.getTime() : 0;
     // Local computation — Date mutation is confined to this scope, not $state.
-    // eslint-disable-next-line svelte/prefer-svelte-reactivity
     const newStart = new Date(targetDate);
     newStart.setHours(event.start.getHours(), event.start.getMinutes(), event.start.getSeconds());
     const newEnd =

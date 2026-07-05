@@ -71,7 +71,6 @@
 
     let newDate: Date | null = null;
 
-    /* eslint-disable svelte/prefer-svelte-reactivity */
     switch (e.key) {
       case 'ArrowRight':
         newDate = new Date(focusedMiniDate);
@@ -97,7 +96,6 @@
       default:
         return;
     }
-    /* eslint-enable svelte/prefer-svelte-reactivity */
 
     if (newDate) {
       e.preventDefault();

@@ -154,7 +154,6 @@
             {#if item.seeAlso?.startsWith('http')}
               <!-- External documentation link; `resolve()` only applies to
                    internal SvelteKit routes. -->
-              <!-- eslint-disable-next-line svelte/no-navigation-without-resolve -->
               <a
                 href={item.seeAlso}
                 class={unstyled ? '' : styles.link()}

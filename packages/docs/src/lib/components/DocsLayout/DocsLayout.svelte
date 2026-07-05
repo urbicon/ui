@@ -141,12 +141,11 @@
   Source-Link: occupies the
   slot the global code-toggle previously held (right edge of the
   sticky bar / pageToolbar). The code-toggle now lives in the TOC.
-  External link to Codeberg blob — eslint-disable scoped because the
-  href is not a SvelteKit route.
+  External link to Codeberg blob — the href is not a SvelteKit route.
 -->
 {#snippet sourceLink()}
   {#if sourceHref}
-    <!-- eslint-disable svelte/no-navigation-without-resolve -- external Codeberg URL, not a SvelteKit route -->
+    <!-- external Codeberg URL, not a SvelteKit route -->
     <a
       href={sourceHref}
       target="_blank"
@@ -155,7 +154,6 @@
     >
       source <span aria-hidden="true">↗</span>
     </a>
-    <!-- eslint-enable svelte/no-navigation-without-resolve -->
   {/if}
 {/snippet}
 

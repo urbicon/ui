@@ -115,7 +115,6 @@
       <!-- Table-of-contents anchors navigate within the current route via
            `#hash`; `resolve()` only applies to SvelteKit route paths and
            would flag false positives for every TOC entry. -->
-      <!-- eslint-disable svelte/no-navigation-without-resolve -->
       <a
         href={item.href}
         class="{unstyled ? '' : styles.link()} {unstyled
@@ -142,7 +141,6 @@
           </a>
         {/each}
       {/if}
-      <!-- eslint-enable svelte/no-navigation-without-resolve -->
     {/each}
   </nav>
 
@@ -166,7 +164,7 @@
         : styles.relatedNav({ class: slotClasses?.relatedNav })}
     >
       {#each related as link (link.href)}
-        <!-- eslint-disable svelte/no-navigation-without-resolve -- hrefs are pre-resolved by the consumer -->
+        <!-- hrefs are pre-resolved by the consumer -->
         <a
           href={link.href}
           class={unstyled
@@ -175,7 +173,6 @@
         >
           {link.label}
         </a>
-        <!-- eslint-enable svelte/no-navigation-without-resolve -->
       {/each}
     </nav>
   {/if}

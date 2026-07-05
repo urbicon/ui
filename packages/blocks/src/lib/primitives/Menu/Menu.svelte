@@ -75,7 +75,7 @@
   // `registerItem` / `unregisterItem` hooks. Used to debug + (in future)
   // power type-ahead search; the keyboard model itself walks DOM-focusable
   // descendants directly so it works in array-mode too.
-  // eslint-disable-next-line svelte/prefer-svelte-reactivity -- internal registry, not reactive UI state
+  // Plain Map — internal registry, not reactive UI state.
   const registryBuffer: Map<string, MenuRegistryItem> = new Map();
 
   // ── Item-shape mappers ─────────────────────────────────────────────────
@@ -148,7 +148,7 @@
   }
 
   function toggleSubMenu(id: string) {
-    // eslint-disable-next-line svelte/prefer-svelte-reactivity -- copy + reassign keeps `openSubMenus` reactive
+    // Copy + reassign keeps `openSubMenus` reactive.
     const next = new Set(openSubMenus);
     if (next.has(id)) next.delete(id);
     else next.add(id);

@@ -90,7 +90,7 @@
   function handleDragEnd(targetDate: Date | null) {
     if (!targetDate || !ctx.onEventMove) return;
     const eventDuration = event.end ? event.end.getTime() - event.start.getTime() : 60 * 60 * 1000;
-    const newStart = new Date(targetDate); // eslint-disable-line svelte/prefer-svelte-reactivity
+    const newStart = new Date(targetDate);
     newStart.setHours(event.start.getHours(), event.start.getMinutes(), event.start.getSeconds());
     const newEnd = new Date(newStart.getTime() + eventDuration);
     ctx.onEventMove(event, newStart, newEnd);
