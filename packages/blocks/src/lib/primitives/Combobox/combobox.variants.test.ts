@@ -59,6 +59,34 @@ describe('comboboxVariants', () => {
     expect(styles.base()).toContain('pointer-events-none');
   });
 
+  it('applies variant styles at parity with Input / Select / Textarea', () => {
+    // Default (outlined) reproduces the historical surface-subtle frame.
+    const outlined = comboboxVariants();
+    expect(outlined.input()).toContain('border-border-subtle');
+    expect(outlined.input()).toContain('hover:border-border-default');
+
+    const filled = comboboxVariants({ variant: 'filled' });
+    expect(filled.input()).toContain('bg-surface-interactive');
+    expect(filled.input()).toContain('border-transparent');
+
+    const ghost = comboboxVariants({ variant: 'ghost' });
+    expect(ghost.input()).toContain('bg-transparent');
+    expect(ghost.input()).toContain('border-transparent');
+  });
+
+  it('underline variant drops the frame to a single bottom border', () => {
+    const underline = comboboxVariants({ variant: 'underline' });
+    expect(underline.input()).toContain('border-b-2');
+    expect(underline.input()).toContain('bg-transparent');
+    expect(underline.input()).toContain('focus-visible:ring-0');
+    // `rounded-none` neutralizes the tier radius. The tv() engine does not
+    // dedupe the custom `rounded-modify` utility against `rounded-none` (both
+    // stay in the class list — identical to the shipped Select/Input underline
+    // variants); `rounded-none` wins by CSS source order. See the engine
+    // bucketing caveat in TODO.md.
+    expect(underline.input()).toContain('rounded-none');
+  });
+
   it('never outputs dark: overrides', () => {
     const sizes = ['sm', 'md', 'lg'] as const;
     for (const size of sizes) {

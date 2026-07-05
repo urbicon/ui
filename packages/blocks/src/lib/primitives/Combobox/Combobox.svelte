@@ -27,6 +27,7 @@
     required = false,
     filter,
     tier,
+    variant = 'outlined',
     size = 'md',
     clearable = false,
     disabled = false,
@@ -89,7 +90,13 @@
     return options.filter((o) => filterFn(o, query.trim()));
   });
 
-  const variantProps: ComboboxVariants = $derived({ tier: effectiveTier, size, open, disabled });
+  const variantProps: ComboboxVariants = $derived({
+    variant,
+    tier: effectiveTier,
+    size,
+    open,
+    disabled
+  });
   const styles = $derived(comboboxVariants(variantProps));
 
   const slotClasses = $derived(

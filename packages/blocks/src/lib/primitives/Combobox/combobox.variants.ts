@@ -7,13 +7,10 @@ export const comboboxVariants = tv({
     requiredMark: 'text-danger ml-0.5',
     inputWrapper: 'relative w-full',
     input: [
-      // Radius driven by `tier` axis below.
-      'w-full border bg-surface-base text-text-primary',
-      // Surface-family border, consistent with Input / Textarea / Select.
-      // Form-control frames stay quiet (`border-subtle`); the
-      // `border-neutral` intent token is reserved for Action surfaces
-      // (Outline-Button, Menu) where the border needs to read as clickable.
-      'border-border-subtle hover:border-border-default placeholder:text-text-tertiary',
+      // Radius driven by `tier` axis below; the `underline` variant overrides
+      // it to `rounded-none`. Border color and background come from the
+      // `variant` axis (default `outlined` keeps the historical look).
+      'w-full border bg-surface-base text-text-primary placeholder:text-text-tertiary',
       'transition-colors duration-[var(--blocks-duration-fast)]',
       'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50 focus-visible:border-primary',
       'disabled:opacity-50 disabled:cursor-not-allowed'
@@ -71,6 +68,26 @@ export const comboboxVariants = tv({
       modify: { input: 'rounded-modify' },
       commit: { input: 'rounded-commit' }
     },
+    // Visual style, at parity with Input / Textarea / Select. Default
+    // `outlined` reproduces the historical Combobox frame exactly.
+    variant: {
+      // Surface-family border: form-control frames stay quiet (`border-subtle`);
+      // the `border-neutral` intent token is reserved for Action surfaces
+      // (Outline-Button, Menu) where the border must read as clickable.
+      outlined: { input: 'border-border-subtle hover:border-border-default' },
+      filled: {
+        input:
+          'bg-surface-interactive border-transparent hover:bg-surface-hover focus-visible:bg-surface-base'
+      },
+      ghost: {
+        input:
+          'bg-transparent border-transparent hover:bg-surface-subtle focus-visible:bg-surface-base focus-visible:border-border-subtle'
+      },
+      underline: {
+        input:
+          'bg-transparent border-0 border-b-2 border-border-subtle rounded-none focus-visible:ring-0'
+      }
+    },
     size: {
       sm: {
         // `pointer-coarse:text-base` floors the input to 16px on touch-primary
@@ -96,6 +113,7 @@ export const comboboxVariants = tv({
   },
   defaultVariants: {
     tier: 'modify',
+    variant: 'outlined',
     size: 'md',
     open: false,
     disabled: false

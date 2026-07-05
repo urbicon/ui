@@ -8,8 +8,8 @@
     generation: {
       overview: { enabled: false },
       playground: {
-        featured: ['size', 'clearable', 'disabled', 'placeholder', 'noResultsText'],
-        defaults: { size: 'md' },
+        featured: ['variant', 'size', 'clearable', 'disabled', 'placeholder', 'noResultsText'],
+        defaults: { variant: 'outlined', size: 'md' },
         enabled: true,
         order: 1
       },
