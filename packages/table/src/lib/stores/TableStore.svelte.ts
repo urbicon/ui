@@ -50,10 +50,12 @@ export interface SummaryConfig {
 /**
  * Configuration for table state persistence across reloads.
  *
- * Each `persist*` axis defaults to `true` — providing a `tableId` is
- * enough to opt every view-state axis (filters, search, group, summary,
- * sort, column visibility, column order) into persistence. Set
- * individual flags to `false` to keep them volatile.
+ * Each view-state axis defaults to `true` — providing a `tableId` is
+ * enough to opt filters, search, group, summary, sort, column visibility
+ * and column order into persistence. Set individual flags to `false` to
+ * keep them volatile. Row **selection is the exception**: it is opt-in via
+ * `persistSelection: true` (a restored selection surprises more often than
+ * it helps).
  *
  * Storage defaults to `localStorage` for every axis so reloads,
  * tab-close-and-reopen, and full browser restarts all restore the view.
@@ -82,6 +84,12 @@ export interface TablePersistenceConfig {
   persistColumnVisibility?: boolean;
   /** Persist column order. Default `true`. */
   persistColumnOrder?: boolean;
+  /**
+   * Persist selected row ids (keyed by `item.id`). **Opt-in — default
+   * `false`**, unlike every axis above. Has no effect when `selectedIds` is
+   * controlled: the prop re-applies after hydration and wins.
+   */
+  persistSelection?: boolean;
 }
 
 /**
@@ -272,6 +280,43 @@ export function createTableState(persistenceConfig?: TablePersistenceConfig) {
     persistence.syncColumnOrder([]);
   }
 
+  // Selection mutations sync to storage after mutating (a no-op unless
+  // persistSelection is enabled). `isSelected` stays a passthrough (read-only).
+  function selectItem(id: string | number) {
+    selection.selectItem(id);
+    persistence.syncSelection();
+  }
+
+  function deselectItem(id: string | number) {
+    selection.deselectItem(id);
+    persistence.syncSelection();
+  }
+
+  function toggleItem(id: string | number) {
+    selection.toggleItem(id);
+    persistence.syncSelection();
+  }
+
+  function selectAll() {
+    selection.selectAll();
+    persistence.syncSelection();
+  }
+
+  function deselectAll() {
+    selection.deselectAll();
+    persistence.syncSelection();
+  }
+
+  function toggleAll() {
+    selection.toggleAll();
+    persistence.syncSelection();
+  }
+
+  function setSelectedIds(ids: Array<string | number>) {
+    selection.setSelectedIds(ids);
+    persistence.syncSelection();
+  }
+
   // ── Public API ──
   // `state` is exposed for internal sub-components that need direct reads.
   // External consumers should prefer the wrapper methods (setSearchTerm,
@@ -378,14 +423,14 @@ export function createTableState(persistenceConfig?: TablePersistenceConfig) {
     get someSelected() {
       return selection.someSelected;
     },
-    selectItem: selection.selectItem,
-    deselectItem: selection.deselectItem,
-    toggleItem: selection.toggleItem,
-    selectAll: selection.selectAll,
-    deselectAll: selection.deselectAll,
-    toggleAll: selection.toggleAll,
+    selectItem,
+    deselectItem,
+    toggleItem,
+    selectAll,
+    deselectAll,
+    toggleAll,
     isSelected: selection.isSelected,
-    setSelectedIds: selection.setSelectedIds,
+    setSelectedIds,
 
     // Column order
     get orderedColumns() {

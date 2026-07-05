@@ -1240,7 +1240,8 @@ describe('usePersistence — surface contract', () => {
       summaryConfigs: [],
       sortColumn: '',
       sortDirection: 'asc',
-      showSummary: false
+      showSummary: false,
+      selectedIds: new Set<string | number>()
     } as unknown as TableState;
   }
 
@@ -1258,6 +1259,7 @@ describe('usePersistence — surface contract', () => {
     persistence.syncSortState();
     persistence.syncHiddenColumns(['age']);
     persistence.syncColumnOrder(['name', 'age']);
+    persistence.syncSelection();
 
     // Initial hidden / order are empty when not opted in.
     expect(persistence.initialHiddenColumnIds).toEqual([]);
@@ -1273,9 +1275,29 @@ describe('usePersistence — surface contract', () => {
     expect(typeof persistence.syncSortState).toBe('function');
     expect(typeof persistence.syncHiddenColumns).toBe('function');
     expect(typeof persistence.syncColumnOrder).toBe('function');
+    expect(typeof persistence.syncSelection).toBe('function');
     expect(typeof persistence.clearPersistedSortState).toBe('function');
     expect(typeof persistence.clearPersistedHiddenColumns).toBe('function');
     expect(typeof persistence.clearPersistedColumnOrder).toBe('function');
+    expect(typeof persistence.clearPersistedSelection).toBe('function');
+  });
+
+  it('contract: selection persistence is opt-in and never throws either way', async () => {
+    const { usePersistence } = await import('./usePersistence.svelte.js');
+    const state = makeState();
+    state.selectedIds.add('row-1');
+
+    // Default (no persistSelection flag): syncSelection is a harmless no-op —
+    // the persistent store is never created, so the shared set is left alone.
+    const off = usePersistence(state, { tableId: 'sel-off' });
+    expect(() => off.syncSelection()).not.toThrow();
+
+    // Opt-in: construction hydrates the shared set (a Node no-op here) and
+    // syncSelection engages without throwing. Round-tripping needs a DOM — see
+    // the block comment above.
+    const on = usePersistence(state, { tableId: 'sel-on', persistSelection: true });
+    expect(() => on.syncSelection()).not.toThrow();
+    expect(typeof on.clearPersistedSelection).toBe('function');
   });
 
   it('contract: clearAllPersistentData covers every axis without throwing', async () => {

@@ -4,7 +4,7 @@
   import { useTableI18n } from '$lib/i18n';
   import { ColumnValidation } from '$lib/factories/ColumnValidation';
   import type { Column, TableItem, TableQuery, TableQueryResult } from '$lib/types/tableTypes';
-  import type { SummaryConfig } from '$lib/stores/TableStore.svelte';
+  import type { SummaryConfig, TablePersistenceConfig } from '$lib/stores/TableStore.svelte';
 
   const tt = useTableI18n();
 
@@ -20,15 +20,7 @@
     multiExpand?: boolean;
     loading?: boolean;
     children?: Snippet;
-    persistenceConfig?: {
-      tableId: string;
-      storage?: 'localStorage' | 'sessionStorage';
-      debounceMs?: number;
-      persistFilters?: boolean;
-      persistSearch?: boolean;
-      persistGroupByKey?: boolean;
-      persistSummaryConfigs?: boolean;
-    };
+    persistenceConfig?: TablePersistenceConfig;
     mode?: 'client' | 'server';
     serverTotalItems?: number;
     queryFn?: (query: TableQuery, options: { signal: AbortSignal }) => Promise<TableQueryResult>;

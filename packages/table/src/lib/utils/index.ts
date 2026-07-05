@@ -391,5 +391,15 @@ export function createPersistentColumnOrder(config: FilterPersistenceConfig) {
   });
 }
 
+export function createPersistentSelection(config: FilterPersistenceConfig) {
+  return createPersistentState({
+    // Row ids may be strings or numbers; JSON round-trips both faithfully.
+    key: `table_selection_${config.tableId}`,
+    defaultValue: [] as Array<string | number>,
+    storage: config.storage || 'localStorage',
+    debounceMs: config.debounceMs || 500
+  });
+}
+
 // Sticky-pinning measurement helpers
 export { measureToCssVar, measureViewportOffsetTop, observeStuck } from './sticky-measure';

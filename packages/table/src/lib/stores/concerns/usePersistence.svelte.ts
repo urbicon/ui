@@ -4,6 +4,7 @@ import {
   createPersistentGroupByKey,
   createPersistentHiddenColumns,
   createPersistentSearchTerm,
+  createPersistentSelection,
   createPersistentSortState,
   createPersistentSummaryConfigs
 } from '$lib/utils';
@@ -32,6 +33,7 @@ export function usePersistence(state: TableState, persistenceConfig?: TablePersi
   let persistentSortState: ReturnType<typeof createPersistentSortState> | undefined;
   let persistentHiddenColumns: ReturnType<typeof createPersistentHiddenColumns> | undefined;
   let persistentColumnOrder: ReturnType<typeof createPersistentColumnOrder> | undefined;
+  let persistentSelection: ReturnType<typeof createPersistentSelection> | undefined;
 
   if (persistenceConfig) {
     if (persistenceConfig.persistFilters !== false) {
@@ -106,6 +108,20 @@ export function usePersistence(state: TableState, persistenceConfig?: TablePersi
         debounceMs: persistenceConfig.debounceMs
       });
     }
+
+    // Selection is opt-in (default off), unlike every axis above: restoring a
+    // stale selection across reloads is often surprising. `selectedIds` lives
+    // on the shared `state` (like filters/search), so hydrate it directly here
+    // — no concern handback needed. A controlled `selectedIds` prop re-applies
+    // after construction and wins, so persistence is a no-op in that case.
+    if (persistenceConfig.persistSelection === true) {
+      persistentSelection = createPersistentSelection({
+        tableId: persistenceConfig.tableId,
+        storage: persistenceConfig.storage,
+        debounceMs: persistenceConfig.debounceMs
+      });
+      for (const id of persistentSelection.value) state.selectedIds.add(id);
+    }
   }
 
   // Sync functions called by other concerns after mutations
@@ -141,6 +157,12 @@ export function usePersistence(state: TableState, persistenceConfig?: TablePersi
     if (persistentColumnOrder) persistentColumnOrder.value = order;
   }
 
+  // No argument: reads the shared `state.selectedIds` itself (like syncSearch),
+  // so the spread only runs when selection persistence is actually enabled.
+  function syncSelection() {
+    if (persistentSelection) persistentSelection.value = [...state.selectedIds];
+  }
+
   // Public API
   function clearAllPersistentData() {
     persistentFilters?.reset();
@@ -150,6 +172,7 @@ export function usePersistence(state: TableState, persistenceConfig?: TablePersi
     persistentSortState?.reset();
     persistentHiddenColumns?.reset();
     persistentColumnOrder?.reset();
+    persistentSelection?.reset();
   }
 
   function forceSavePersistentData() {
@@ -160,6 +183,7 @@ export function usePersistence(state: TableState, persistenceConfig?: TablePersi
     persistentSortState?.forceSave();
     persistentHiddenColumns?.forceSave();
     persistentColumnOrder?.forceSave();
+    persistentSelection?.forceSave();
   }
 
   return {
@@ -170,6 +194,7 @@ export function usePersistence(state: TableState, persistenceConfig?: TablePersi
     syncSortState,
     syncHiddenColumns,
     syncColumnOrder,
+    syncSelection,
     get initialHiddenColumnIds(): string[] {
       return persistentHiddenColumns?.value ?? [];
     },
@@ -183,6 +208,7 @@ export function usePersistence(state: TableState, persistenceConfig?: TablePersi
     clearPersistedSortState: () => persistentSortState?.reset(),
     clearPersistedHiddenColumns: () => persistentHiddenColumns?.reset(),
     clearPersistedColumnOrder: () => persistentColumnOrder?.reset(),
+    clearPersistedSelection: () => persistentSelection?.reset(),
     clearAllPersistentData,
     forceSavePersistentData
   };
