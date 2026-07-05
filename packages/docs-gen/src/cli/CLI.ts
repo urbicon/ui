@@ -131,6 +131,18 @@ export class DocsGeneratorCLI {
     // Assemble MCP component catalog
     console.log('\n📦 Assembling MCP component catalog...');
 
+    // Catalog version tracks the repo root (bump.sh keeps package.json in
+    // lockstep with the published packages). Previously hardcoded '0.2.38',
+    // which drifted the catalog's `version` field ~6 majors from the real
+    // release. Fail loud if the field is ever missing rather than stamping junk.
+    const rootPkgRaw = await fs.readFile(resolveFromDocsGen('..', '..', 'package.json'), 'utf-8');
+    const rootVersion: unknown = JSON.parse(rootPkgRaw).version;
+    if (typeof rootVersion !== 'string') {
+      throw new Error(
+        'MCP catalog: root package.json has no string "version" — cannot stamp the catalog.'
+      );
+    }
+
     const catalogAssembler = new MCPCatalogAssembler({
       staticDirs: [
         resolveFromDocsGen('..', '..', 'apps', 'docs', 'static', 'blocks'),
@@ -148,7 +160,7 @@ export class DocsGeneratorCLI {
         'mcp',
         'component-catalog.json'
       ),
-      version: '0.2.38'
+      version: rootVersion
     });
 
     const catalogResult = await catalogAssembler.assemble();
