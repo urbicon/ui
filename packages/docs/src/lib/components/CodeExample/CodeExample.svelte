@@ -48,7 +48,8 @@
 
   $effect(() => {
     if (visibilityStore) {
-      // eslint-disable-next-line @typescript-eslint/no-unused-expressions
+      // Touch `.mode` so this effect re-runs when the global show/hide toggle
+      // flips, clearing any per-example override on a mode change.
       visibilityStore.mode;
       localOverride = null;
     }

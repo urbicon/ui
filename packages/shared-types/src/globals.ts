@@ -6,7 +6,6 @@
 declare global {
   // Svelte's type system requires the `svelteHTML` namespace for template-
   // attribute augmentation; module syntax is not a valid alternative here.
-  // eslint-disable-next-line @typescript-eslint/no-namespace
   namespace svelteHTML {
     interface HTMLAttributes<T> {
       onoutclick?: (event: CustomEvent) => void;

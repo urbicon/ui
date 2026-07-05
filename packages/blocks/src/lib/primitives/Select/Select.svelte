@@ -63,7 +63,6 @@
   // `<Select bind:value={x: T | null}>` narrow correctly. Internally we
   // dispatch through a loose alias so the component code can hand either
   // shape into `onValueChange` without per-branch casts at every call site.
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any -- internal dispatch escape hatch (see comment above)
   const dispatchValueChange = onValueChange as ((v: any) => void) | undefined;
 
   /** Resolved null option config — `null` when prop is unset or `groups` is in use. */

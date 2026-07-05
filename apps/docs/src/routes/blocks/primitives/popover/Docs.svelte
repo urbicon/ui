@@ -218,7 +218,6 @@
       description="Bind the open state to react to or drive popover visibility from outside."
       code={`<` +
         `script>
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars -- used in template
   let open = $state(false);
 <` +
         `/script>
