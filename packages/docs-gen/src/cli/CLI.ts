@@ -231,7 +231,7 @@ export class DocsGeneratorCLI {
     // Generate +page.svelte
     const pageSvelte = `<script lang="ts">
   import { page } from '$app/state';
-  import { asset } from '$app/paths';
+  import { asset, resolve } from '$app/paths';
   import {
     ApiReference,
     CodeExample,
@@ -244,17 +244,19 @@ export class DocsGeneratorCLI {
   import SeoMeta from '$lib/SeoMeta.svelte';
   import CustomDocs from './Docs.svelte';
   import { componentData } from './api';
+  import { buildRelatedLinks } from '$lib/component-links';
   import { ${name} } from '@urbicon-ui/blocks';
 
   const { propDocs, variantKeys } = extractPlaygroundDocs(componentData?.props ?? []);
+  const relatedLinks = buildRelatedLinks(componentData);
 
   const navigation = [
-    { id: 'playground', label: 'Playground', order: 1 },
-    { id: 'examples', label: 'Examples', order: 2 },
-    { id: 'customization', label: 'Customization', order: 3 },
-    { id: 'accessibility', label: 'Accessibility', order: 4 },
-    { id: 'api', label: 'API Reference', order: 10 },
-    { id: 'installation', label: 'Installation', order: 11 }
+    { id: 'playground', title: 'Playground', order: 1 },
+    { id: 'examples', title: 'Examples', order: 2 },
+    { id: 'customization', title: 'Customization', order: 3 },
+    { id: 'accessibility', title: 'Accessibility', order: 4 },
+    { id: 'api', title: 'API Reference', order: 10 },
+    { id: 'installation', title: 'Installation', order: 11 }
   ];
 </script>
 
@@ -266,10 +268,13 @@ export class DocsGeneratorCLI {
   title="${name}"
   description=""
   breadcrumbs={[
-    { label: 'Blocks', href: '/blocks' },
-    { label: '${group === 'primitives' ? 'Primitives' : 'Components'}', href: '/blocks/${group}' }
+    { label: 'Blocks', href: resolve('/blocks') },
+    { label: '${group === 'primitives' ? 'Primitives' : 'Components'}', href: resolve('/blocks/${group}') }
   ]}
   {navigation}
+  stability={componentData?.stability}
+  sourceHref={componentData?.sourceHref}
+  related={relatedLinks}
 >
   <Section id="playground" title="Playground" intent="primary">
     <PlaygroundConfigurator
@@ -300,7 +305,7 @@ export class DocsGeneratorCLI {
       title="Import"
       code={\`import { ${name} } from '@urbicon-ui/blocks';\`}
       language="svelte"
-      hasPreview={false}
+      preview={false}
     />
   </Section>
 
