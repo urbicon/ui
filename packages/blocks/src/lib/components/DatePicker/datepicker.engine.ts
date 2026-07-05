@@ -35,9 +35,9 @@ function isSameDay(a: Date, b: Date): boolean {
  * Format a Date as a locale-aware string. Guards Invalid Date and Intl
  * errors with logging instead of silent fallback.
  */
-export function formatDate(date: Date, locale: string, options?: DateFormatOptions): string {
+export function formatDateInput(date: Date, locale: string, options?: DateFormatOptions): string {
   if (!isValid(date)) {
-    console.warn('[DatePicker] formatDate received Invalid Date', { date, locale });
+    console.warn('[DatePicker] formatDateInput received Invalid Date', { date, locale });
     return '';
   }
   try {
@@ -59,21 +59,21 @@ export function formatDate(date: Date, locale: string, options?: DateFormatOptio
  * shared components (year/month) and break round-trip parsing — the
  * range "Mar 15 – 22, 2026" cannot be split back into two valid dates
  * because the first half has no year. The fixed separator keeps
- * `formatDateRange` and `parseDateRange` symmetric.
+ * `formatDateRangeInput` and `parseDateRangeInput` symmetric.
  */
-export function formatDateRange(
+export function formatDateRangeInput(
   start: Date,
   end: Date,
   locale: string,
   options?: DateFormatOptions
 ): string {
   if (!isValid(start) || !isValid(end)) {
-    console.warn('[DatePicker] formatDateRange received Invalid Date', { start, end, locale });
+    console.warn('[DatePicker] formatDateRangeInput received Invalid Date', { start, end, locale });
     return '';
   }
   const fmt = options ?? defaultFormat;
-  const s = formatDate(start, locale, fmt);
-  const e = formatDate(end, locale, fmt);
+  const s = formatDateInput(start, locale, fmt);
+  const e = formatDateInput(end, locale, fmt);
   if (!s || !e) return '';
   return `${s} – ${e}`;
 }
@@ -202,7 +202,11 @@ function parseLocaleDate(input: string, locale: string, options: DateFormatOptio
  * weekday literals, or non-Gregorian calendars are NOT parseable — the
  * caller should rely on calendar-picker UX or accept ISO input only.
  */
-export function parseDate(input: string, locale: string, options?: DateFormatOptions): Date | null {
+export function parseDateInput(
+  input: string,
+  locale: string,
+  options?: DateFormatOptions
+): Date | null {
   const trimmed = input.trim();
   if (!trimmed) return null;
   const localeResult = parseLocaleDate(trimmed, locale, options ?? defaultFormat);
@@ -234,11 +238,11 @@ const rangeSeparator = /\s+(?:-|\/|bis|to)\s+|\s*,\s+|\s*[–—−]\s*/i;
 
 /**
  * Parse a date range string like "15.03.2026 – 22.03.2026". Splits on
- * the locale-aware range separator and parses each half with `parseDate`.
+ * the locale-aware range separator and parses each half with `parseDateInput`.
  * A single date with no separator is accepted as a single-day range
  * (`{ start: d, end: d }`). Rejects inverted ranges (start after end).
  */
-export function parseDateRange(
+export function parseDateRangeInput(
   input: string,
   locale: string,
   options?: DateFormatOptions
@@ -247,12 +251,12 @@ export function parseDateRange(
   if (!trimmed) return null;
   const parts = trimmed.split(rangeSeparator);
   if (parts.length === 1) {
-    const single = parseDate(parts[0], locale, options);
+    const single = parseDateInput(parts[0], locale, options);
     return single ? { start: single, end: single } : null;
   }
   if (parts.length !== 2) return null;
-  const start = parseDate(parts[0], locale, options);
-  const end = parseDate(parts[1], locale, options);
+  const start = parseDateInput(parts[0], locale, options);
+  const end = parseDateInput(parts[1], locale, options);
   if (!start || !end) return null;
   if (start.getTime() > end.getTime()) return null;
   return { start, end };

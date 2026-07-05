@@ -8,7 +8,7 @@
   import CalendarIconDefault from '$lib/icons/CalendarIcon.svelte';
   import CloseIconDefault from '$lib/icons/CloseIcon.svelte';
   import { useBlocksI18n } from '$lib';
-  import { formatDate, parseDate, isDateAllowed } from './datepicker.engine';
+  import { formatDateInput, parseDateInput, isDateAllowed } from './datepicker.engine';
   import { coerceToDate, toDateInputValue } from '$lib/utils/date';
   import type { DatePickerProps } from '.';
 
@@ -65,7 +65,9 @@
   let parseError = $state<string | undefined>();
 
   const dateValue = $derived(coerceToDate(value));
-  const formattedValue = $derived(dateValue ? formatDate(dateValue, locale, displayFormat) : '');
+  const formattedValue = $derived(
+    dateValue ? formatDateInput(dateValue, locale, displayFormat) : ''
+  );
 
   // Single source of truth for what the input renders. The user-typed
   // draft sticks around while the input is focused *or* a parse error
@@ -136,7 +138,7 @@
       userDraft = null;
       return;
     }
-    const parsed = parseDate(trimmed, locale, displayFormat);
+    const parsed = parseDateInput(trimmed, locale, displayFormat);
     if (!parsed) {
       parseError = bt('datepicker.invalidDate');
       return;

@@ -6,7 +6,14 @@
  * example because the database driver serialises timestamps that way),
  * use these helpers to convert in both directions instead of redoing the
  * arithmetic at every form site.
+ *
+ * The strict `YYYY-MM-DD` ↔ `Date` core is not reimplemented here: it lives in
+ * `../date/range` (`toIso` / `isoToDate`, the Layer-0 source of truth). These
+ * tolerant form helpers delegate to it and only add the tolerant shape rules
+ * (empty/undefined → nullish, 1-digit month/day, epoch-number coercion).
  */
+
+import { isoToDate, toIso } from '../date/range';
 
 /** Detect a finite, valid `Date` instance. */
 function isValidDate(d: Date): boolean {
@@ -57,15 +64,18 @@ export function coerceToDate(input: DateInput): Date | undefined {
     if (trimmed === '') return undefined;
     const dateOnly = trimmed.match(DATE_ONLY_RE);
     if (dateOnly) {
-      const year = Number(dateOnly[1]);
-      const month = Number(dateOnly[2]) - 1;
-      const day = Number(dateOnly[3]);
-      const local = new Date(year, month, day);
-      if (local.getFullYear() === year && local.getMonth() === month && local.getDate() === day) {
-        return local;
+      // Pad to canonical YYYY-MM-DD so 1-digit month/day stays tolerated, then
+      // delegate the strict parse + day-existence check to `isoToDate`.
+      const canonical = `${dateOnly[1]}-${dateOnly[2].padStart(2, '0')}-${dateOnly[3].padStart(2, '0')}`;
+      try {
+        return isoToDate(canonical);
+      } catch (err) {
+        // isoToDate throws a RangeError only for a non-existent day; anything
+        // else is unexpected and should surface, not be mislabelled here.
+        if (!(err instanceof RangeError)) throw err;
+        console.warn('[DatePicker] coerceToDate rejected out-of-range date-only string', { input });
+        return undefined;
       }
-      console.warn('[DatePicker] coerceToDate rejected out-of-range date-only string', { input });
-      return undefined;
     }
     const date = new Date(trimmed);
     if (!isValidDate(date)) {
@@ -100,11 +110,7 @@ export function coerceToDate(input: DateInput): Date | undefined {
  */
 export function toDateInputValue(d: Date | string | null | undefined): string {
   const date = coerceToDate(d);
-  if (!date) return '';
-  const year = date.getFullYear();
-  const month = String(date.getMonth() + 1).padStart(2, '0');
-  const day = String(date.getDate()).padStart(2, '0');
-  return `${year}-${month}-${day}`;
+  return date ? toIso(date) : '';
 }
 
 /**
@@ -120,17 +126,19 @@ export function fromDateInputValue(s: string | null | undefined): Date | null {
   if (trimmed === '') return null;
   const dateOnly = trimmed.match(DATE_ONLY_RE);
   if (dateOnly) {
-    const year = Number(dateOnly[1]);
-    const month = Number(dateOnly[2]) - 1;
-    const day = Number(dateOnly[3]);
-    const date = new Date(year, month, day);
-    if (date.getFullYear() === year && date.getMonth() === month && date.getDate() === day) {
-      return date;
+    // Same delegated strict parse as `coerceToDate`, but nullish on failure.
+    const canonical = `${dateOnly[1]}-${dateOnly[2].padStart(2, '0')}-${dateOnly[3].padStart(2, '0')}`;
+    try {
+      return isoToDate(canonical);
+    } catch (err) {
+      // isoToDate throws a RangeError only for a non-existent day; anything
+      // else is unexpected and should surface, not be mislabelled here.
+      if (!(err instanceof RangeError)) throw err;
+      console.warn('[DatePicker] fromDateInputValue rejected out-of-range date-only string', {
+        input: s
+      });
+      return null;
     }
-    console.warn('[DatePicker] fromDateInputValue rejected out-of-range date-only string', {
-      input: s
-    });
-    return null;
   }
   const date = new Date(trimmed);
   if (!isValidDate(date)) {

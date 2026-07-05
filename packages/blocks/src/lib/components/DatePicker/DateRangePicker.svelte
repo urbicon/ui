@@ -9,7 +9,7 @@
   import CalendarIconDefault from '$lib/icons/CalendarIcon.svelte';
   import CloseIconDefault from '$lib/icons/CloseIcon.svelte';
   import { useBlocksI18n } from '$lib';
-  import { formatDateRange, parseDateRange, isDateAllowed } from './datepicker.engine';
+  import { formatDateRangeInput, parseDateRangeInput, isDateAllowed } from './datepicker.engine';
   import { toDateInputValue } from '$lib/utils/date';
   import type { DateRangePickerProps } from '.';
 
@@ -66,7 +66,7 @@
   let parseError = $state<string | undefined>();
 
   const formattedValue = $derived(
-    value ? formatDateRange(value.start, value.end, locale, displayFormat) : ''
+    value ? formatDateRangeInput(value.start, value.end, locale, displayFormat) : ''
   );
 
   const inputValue = $derived(
@@ -154,7 +154,7 @@
       userDraft = null;
       return;
     }
-    const parsed = parseDateRange(trimmed, locale, displayFormat);
+    const parsed = parseDateRangeInput(trimmed, locale, displayFormat);
     if (!parsed) {
       parseError = bt('datepicker.invalidRange');
       return;

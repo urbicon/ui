@@ -32,6 +32,14 @@ describe('coerceToDate', () => {
     expect(result!.getHours()).toBe(0);
   });
 
+  it('tolerates 1-digit month/day (canonicalised before the strict isoToDate parse)', () => {
+    const result = coerceToDate('2026-6-5');
+    expect(result).toBeInstanceOf(Date);
+    expect(result!.getFullYear()).toBe(2026);
+    expect(result!.getMonth()).toBe(5);
+    expect(result!.getDate()).toBe(5);
+  });
+
   it('parses full ISO timestamp through native Date', () => {
     const result = coerceToDate('2026-03-15T12:00:00Z');
     expect(result).toBeInstanceOf(Date);
@@ -111,6 +119,13 @@ describe('fromDateInputValue', () => {
     expect(parsed!.getFullYear()).toBe(2026);
     expect(parsed!.getMonth()).toBe(2);
     expect(parsed!.getDate()).toBe(15);
+  });
+
+  it('tolerates 1-digit month/day (canonicalised before the strict isoToDate parse)', () => {
+    const parsed = fromDateInputValue('2026-6-5');
+    expect(parsed!.getFullYear()).toBe(2026);
+    expect(parsed!.getMonth()).toBe(5);
+    expect(parsed!.getDate()).toBe(5);
   });
 
   it('returns null for empty / whitespace', () => {
