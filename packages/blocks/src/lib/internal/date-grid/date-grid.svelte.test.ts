@@ -303,6 +303,60 @@ describe('DateGridController — navigation', () => {
     expect(h.controller.canGoForward).toBe(false);
   });
 
+  // Week/day steps are reachable via swipe + day-view arrow keys, neither of
+  // which is gated by canGoBack/canGoForward — so navigate() itself must clamp,
+  // or the reference could land on an all-disabled week/day past the boundary.
+  it('clamps a forward week step to maxDate instead of onto an all-disabled week', () => {
+    const h = new Harness({
+      view: 'week',
+      referenceDate: new Date(2026, 5, 16), // Tue Jun 16, week Jun 15–21
+      maxDate: new Date(2026, 5, 18) // Thu Jun 18
+    });
+    h.controller.navigate(1); // wants Jun 23 (next week) → past maxDate
+    expect(iso(h.navigations[0].date)).toBe('2026-6-18'); // clamped into the max week
+  });
+
+  it('clamps a backward week step to minDate', () => {
+    const h = new Harness({
+      view: 'week',
+      referenceDate: new Date(2026, 5, 16),
+      minDate: new Date(2026, 5, 15) // Mon Jun 15
+    });
+    h.controller.navigate(-1); // wants Jun 9 → before minDate
+    expect(iso(h.navigations[0].date)).toBe('2026-6-15');
+  });
+
+  it('clamps a forward day step to maxDate', () => {
+    const h = new Harness({
+      view: 'day',
+      referenceDate: new Date(2026, 5, 18), // Jun 18 = maxDate
+      maxDate: new Date(2026, 5, 18)
+    });
+    h.controller.navigate(1); // wants Jun 19 → past maxDate
+    expect(iso(h.navigations[0].date)).toBe('2026-6-18'); // no move past the bound
+  });
+
+  it('clamps a backward day step to minDate', () => {
+    const h = new Harness({
+      view: 'day',
+      referenceDate: new Date(2026, 5, 1), // Jun 1 = minDate
+      minDate: new Date(2026, 5, 1)
+    });
+    h.controller.navigate(-1); // wants May 31 → before minDate
+    expect(iso(h.navigations[0].date)).toBe('2026-6-1');
+  });
+
+  it('leaves an in-range week step unclamped', () => {
+    const h = new Harness({
+      view: 'week',
+      referenceDate: new Date(2026, 5, 16),
+      minDate: new Date(2026, 0, 1),
+      maxDate: new Date(2026, 11, 31)
+    });
+    h.controller.navigate(1); // Jun 23, well within range
+    expect(iso(h.navigations[0].date)).toBe('2026-6-23');
+  });
+
   it('goToToday navigates to and focuses today', () => {
     const h = new Harness({ referenceDate: new Date(2020, 0, 1) });
     h.controller.goToToday();

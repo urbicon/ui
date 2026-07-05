@@ -42,6 +42,20 @@ export function isInRange(date: Date, start: Date, end: Date): boolean {
   return d >= Math.min(s, e) && d <= Math.max(s, e);
 }
 
+/**
+ * Clamp a date into optional `[minDate, maxDate]` day boundaries — the
+ * day-level sibling of `clampMonth`. Comparison is on calendar days (time is
+ * stripped from both sides), so a date already inside the range is returned
+ * unchanged (keeping its own time-of-day) while an out-of-range date snaps to
+ * local midnight of the nearest boundary. Either bound may be omitted.
+ */
+export function clampDate(date: Date, minDate?: Date, maxDate?: Date): Date {
+  const day = stripTime(date);
+  if (minDate && day < stripTime(minDate)) return stripTime(minDate);
+  if (maxDate && day > stripTime(maxDate)) return stripTime(maxDate);
+  return date;
+}
+
 /** Check whether a date belongs to the given month and year. */
 export function isInMonth(date: Date, month: number, year: number): boolean {
   return date.getMonth() === month && date.getFullYear() === year;

@@ -13,7 +13,15 @@
  * ```
  */
 
-export { daysBetween, isInMonth, isInRange, isSameDay, isWeekend, stripTime } from './compare';
+export {
+  clampDate,
+  daysBetween,
+  isInMonth,
+  isInRange,
+  isSameDay,
+  isWeekend,
+  stripTime
+} from './compare';
 export {
   formatDate,
   formatDateFull,

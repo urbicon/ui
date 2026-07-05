@@ -1,5 +1,13 @@
 import { describe, expect, it } from 'vitest';
-import { daysBetween, isInMonth, isInRange, isSameDay, isWeekend, stripTime } from './compare';
+import {
+  clampDate,
+  daysBetween,
+  isInMonth,
+  isInRange,
+  isSameDay,
+  isWeekend,
+  stripTime
+} from './compare';
 
 describe('isSameDay', () => {
   it('returns true for the same day regardless of time', () => {
@@ -66,6 +74,51 @@ describe('isInRange', () => {
 
   it('ignores time when comparing boundaries', () => {
     expect(isInRange(new Date(2026, 2, 20, 23, 0), start, end)).toBe(true);
+  });
+});
+
+describe('clampDate', () => {
+  const min = new Date(2026, 2, 10);
+  const max = new Date(2026, 2, 20);
+
+  it('returns an in-range date unchanged, preserving its time-of-day', () => {
+    const inside = new Date(2026, 2, 15, 14, 30);
+    expect(clampDate(inside, min, max)).toBe(inside);
+  });
+
+  it('snaps a date before minDate to local midnight of minDate', () => {
+    const clamped = clampDate(new Date(2026, 2, 5, 9, 0), min, max);
+    expect(isSameDay(clamped, min)).toBe(true);
+    expect(clamped.getHours()).toBe(0);
+  });
+
+  it('snaps a date after maxDate to local midnight of maxDate', () => {
+    const clamped = clampDate(new Date(2026, 2, 25, 9, 0), min, max);
+    expect(isSameDay(clamped, max)).toBe(true);
+    expect(clamped.getHours()).toBe(0);
+  });
+
+  it('leaves boundary days untouched (inclusive), keeping their time', () => {
+    const onMin = new Date(2026, 2, 10, 8, 0);
+    const onMax = new Date(2026, 2, 20, 23, 0);
+    expect(clampDate(onMin, min, max)).toBe(onMin);
+    expect(clampDate(onMax, min, max)).toBe(onMax);
+  });
+
+  it('compares on calendar days, so a later time on the max day is not clamped', () => {
+    // Regression guard for week/day navigation: a reference date carrying a
+    // time-of-day on the boundary day must survive, not snap to midnight.
+    const lateOnMax = new Date(2026, 2, 20, 18, 45);
+    expect(clampDate(lateOnMax, min, max)).toBe(lateOnMax);
+  });
+
+  it('honours a single bound and returns the date when both are omitted', () => {
+    const d = new Date(2026, 2, 15);
+    expect(clampDate(d)).toBe(d);
+    expect(isSameDay(clampDate(new Date(2026, 2, 5), min, undefined), min)).toBe(true);
+    expect(isSameDay(clampDate(new Date(2026, 2, 25), undefined, max), max)).toBe(true);
+    // A date below an omitted-min / above an omitted-max stays put.
+    expect(clampDate(new Date(2026, 2, 5), undefined, max)).toEqual(new Date(2026, 2, 5));
   });
 });
 

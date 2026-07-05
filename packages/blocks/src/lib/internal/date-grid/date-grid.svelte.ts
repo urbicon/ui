@@ -16,6 +16,7 @@
 
 import {
   addDays,
+  clampDate,
   clampMonth,
   daysBetween,
   daysInMonth,
@@ -328,19 +329,21 @@ export class DateGridController {
         // month (1 Mar 2026 is a Sunday → its Monday-week is 23 Feb–1 Mar). Matches
         // the keyboard PageUp/PageDown month step, which already clamps the day.
         const day = Math.min(referenceDate.getDate(), daysInMonth(clamped.year, clamped.month));
-        next = new Date(clamped.year, clamped.month, day);
-        // clampMonth bounds the month; clamp the preserved day too so it never lands
-        // before minDate / after maxDate within that boundary month (a week view
-        // would otherwise open on an all-disabled week just outside the range).
-        if (minDate && next < stripTime(minDate)) next = stripTime(minDate);
-        if (maxDate && next > stripTime(maxDate)) next = stripTime(maxDate);
+        // clampMonth bounds the month; clampDate clamps the preserved day too so it
+        // never lands before minDate / after maxDate within that boundary month (a
+        // week view would otherwise open on an all-disabled week just outside range).
+        next = clampDate(new Date(clamped.year, clamped.month, day), minDate, maxDate);
         break;
       }
+      // Week/day steps carry no month bounds of their own, so clamp the shifted
+      // reference to [minDate, maxDate] too — otherwise a swipe or a day-view arrow
+      // key (neither gated by canGoBack/canGoForward the way the header arrows are)
+      // could step the anchor onto an all-disabled week/day past the boundary.
       case 'week':
-        next = addDays(referenceDate, delta * 7);
+        next = clampDate(addDays(referenceDate, delta * 7), minDate, maxDate);
         break;
       case 'day':
-        next = addDays(referenceDate, delta);
+        next = clampDate(addDays(referenceDate, delta), minDate, maxDate);
         break;
     }
     this.#emitNavigate(next);

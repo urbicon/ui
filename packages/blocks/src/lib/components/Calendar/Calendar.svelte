@@ -11,6 +11,7 @@
     stripTime,
     addDays,
     clampMonth,
+    clampDate,
     daysInMonth
   } from '$lib/date';
   import { DateGridController } from '$lib/internal/date-grid';
@@ -238,13 +239,17 @@
   function handleSelect(selection: DateGridSelection, date: Date) {
     // Date-picker behaviour: clicking an outside (spill) day in the month grid
     // navigates to that month. Confined to month view — week/day anchors must
-    // not jump when a cell from an adjacent month is picked.
+    // not jump when a cell from an adjacent month is picked. The anchor is
+    // clamped to [minDate, maxDate] (a spill day at the edge of a partially
+    // out-of-range month must not push referenceDate past the bound), and
+    // onMonthChange reports the landed month so it stays consistent with it.
     if (
       view === 'month' &&
       (date.getMonth() !== displayedMonth || date.getFullYear() !== displayedYear)
     ) {
-      referenceDate = new Date(date.getFullYear(), date.getMonth(), 1);
-      onMonthChange?.(date.getMonth(), date.getFullYear());
+      const anchor = clampDate(new Date(date.getFullYear(), date.getMonth(), 1), minDate, maxDate);
+      referenceDate = anchor;
+      onMonthChange?.(anchor.getMonth(), anchor.getFullYear());
     }
     onDateClick?.(date);
     const next = selection as CalendarProps['value'];
@@ -380,16 +385,13 @@
   // Move `referenceDate` to a bounded month/year and return the clamped result.
   // clampMonth keeps the month within [minDate, maxDate]; the day-of-month is
   // preserved (so a later switch to week/day view anchors on a real in-month
-  // day, not the 1st's possibly-prior-month week) and then itself clamped so a
-  // boundary month never lands before minDate / after maxDate. Shared by every
+  // day, not the 1st's possibly-prior-month week) and then `clampDate` keeps a
+  // boundary month from landing before minDate / after maxDate. Shared by every
   // programmatic month/year jump so none can escape the navigable range.
   function setReferenceMonth(month: number, year: number): { month: number; year: number } {
     const clamped = clampMonth(month, year, minDate, maxDate);
     const day = Math.min(referenceDate.getDate(), daysInMonth(clamped.year, clamped.month));
-    let next = new Date(clamped.year, clamped.month, day);
-    if (minDate && next < stripTime(minDate)) next = stripTime(minDate);
-    if (maxDate && next > stripTime(maxDate)) next = stripTime(maxDate);
-    referenceDate = next;
+    referenceDate = clampDate(new Date(clamped.year, clamped.month, day), minDate, maxDate);
     return clamped;
   }
 
@@ -402,15 +404,19 @@
     onMonthChange?.(clamped.month, clamped.year);
   }
 
+  // These named navigators mutate referenceDate directly (the custom-header /
+  // mini-calendar surface), bypassing controller.navigate — so they clamp to
+  // [minDate, maxDate] themselves, mirroring the clamp the controller now applies
+  // to the main swipe / keyboard / header-arrow path.
   function navigateWeek(delta: number) {
     controller.navDirection = delta > 0 ? 'forward' : 'backward';
-    referenceDate = addDays(referenceDate, delta * 7);
+    referenceDate = clampDate(addDays(referenceDate, delta * 7), minDate, maxDate);
     onWeekChange?.(referenceDate);
   }
 
   function navigateDay(delta: number) {
     controller.navDirection = delta > 0 ? 'forward' : 'backward';
-    referenceDate = addDays(referenceDate, delta);
+    referenceDate = clampDate(addDays(referenceDate, delta), minDate, maxDate);
     onDayChange?.(referenceDate);
   }
 
@@ -424,8 +430,12 @@
     controller.goToToday();
   }
 
+  // A programmatic month jump (header month/year picker, year-grid month tap,
+  // mini-calendar) reports the landed month like the arrow navigators do — the
+  // clamped result, so a bounds-corrected pick still notifies the consumer.
   function goToMonth(month: number, year: number) {
-    setReferenceMonth(month, year);
+    const clamped = setReferenceMonth(month, year);
+    onMonthChange?.(clamped.month, clamped.year);
   }
 
   function setView(v: CalendarViewMode) {
