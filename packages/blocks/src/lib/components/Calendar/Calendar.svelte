@@ -377,21 +377,28 @@
     }
   }
 
+  // Move `referenceDate` to a bounded month/year and return the clamped result.
+  // clampMonth keeps the month within [minDate, maxDate]; the day-of-month is
+  // preserved (so a later switch to week/day view anchors on a real in-month
+  // day, not the 1st's possibly-prior-month week) and then itself clamped so a
+  // boundary month never lands before minDate / after maxDate. Shared by every
+  // programmatic month/year jump so none can escape the navigable range.
+  function setReferenceMonth(month: number, year: number): { month: number; year: number } {
+    const clamped = clampMonth(month, year, minDate, maxDate);
+    const day = Math.min(referenceDate.getDate(), daysInMonth(clamped.year, clamped.month));
+    let next = new Date(clamped.year, clamped.month, day);
+    if (minDate && next < stripTime(minDate)) next = stripTime(minDate);
+    if (maxDate && next > stripTime(maxDate)) next = stripTime(maxDate);
+    referenceDate = next;
+    return clamped;
+  }
+
   function navigateMonth(delta: number) {
     const total = displayedYear * 12 + displayedMonth + delta;
     const targetYear = Math.floor(total / 12);
     const targetMonth = ((total % 12) + 12) % 12;
-    const clamped = clampMonth(targetMonth, targetYear, minDate, maxDate);
     controller.navDirection = delta > 0 ? 'forward' : 'backward';
-    // Preserve the day-of-month (clamped) so a later switch to week/day view
-    // anchors on a real in-month day, not the 1st's (possibly prior-month) week.
-    const day = Math.min(referenceDate.getDate(), daysInMonth(clamped.year, clamped.month));
-    let next = new Date(clamped.year, clamped.month, day);
-    // clampMonth bounds the month; clamp the day too so it never lands before
-    // minDate / after maxDate within that boundary month.
-    if (minDate && next < stripTime(minDate)) next = stripTime(minDate);
-    if (maxDate && next > stripTime(maxDate)) next = stripTime(maxDate);
-    referenceDate = next;
+    const clamped = setReferenceMonth(targetMonth, targetYear);
     onMonthChange?.(clamped.month, clamped.year);
   }
 
@@ -409,10 +416,8 @@
 
   function navigateYear(delta: number) {
     controller.navDirection = delta > 0 ? 'forward' : 'backward';
-    const targetYear = displayedYear + delta;
-    const day = Math.min(referenceDate.getDate(), daysInMonth(targetYear, displayedMonth));
-    referenceDate = new Date(targetYear, displayedMonth, day);
-    onMonthChange?.(displayedMonth, targetYear);
+    const clamped = setReferenceMonth(displayedMonth, displayedYear + delta);
+    onMonthChange?.(clamped.month, clamped.year);
   }
 
   function goToToday() {
@@ -420,8 +425,7 @@
   }
 
   function goToMonth(month: number, year: number) {
-    const day = Math.min(referenceDate.getDate(), daysInMonth(year, month));
-    referenceDate = new Date(year, month, day);
+    setReferenceMonth(month, year);
   }
 
   function setView(v: CalendarViewMode) {
