@@ -100,6 +100,24 @@ export class DateGridController {
   constructor(opts: DateGridOptions) {
     this.#opts = opts;
     this.focusedDate = stripTime(opts.referenceDate);
+
+    // Dev-only: surface inverted bounds (a caller passing minDate after
+    // maxDate). `clampDate` resolves every date to minDate in that case, so
+    // navigation gating and today/disabled logic become deterministic-but-
+    // meaningless rather than failing. Checked once at construction — the
+    // realistic mistake is statically swapped props; mirrors the Select/Guide
+    // `import.meta.env?.DEV && console.warn` precedent (no throw: a degraded
+    // grid still renders, and the library never crashes on caller garbage-in).
+    if (import.meta.env?.DEV) {
+      const { minDate, maxDate } = opts;
+      if (minDate && maxDate && stripTime(minDate) > stripTime(maxDate)) {
+        console.warn(
+          `[DateGrid] minDate (${minDate.toLocaleDateString()}) is after maxDate ` +
+            `(${maxDate.toLocaleDateString()}) — bounds are inverted; every date ` +
+            `clamps to minDate and navigation is meaningless. Swap the two.`
+        );
+      }
+    }
   }
 
   // ─── Reflected inputs ────────────────────────────────────────────────────
