@@ -152,6 +152,10 @@ export async function establishSession<R extends string>(
 ): Promise<void> {
   await setSessionCookie(cookies, sessionPayload(user), resolveJwtConfig(config));
 
+  // `config.refreshToken` implies `repos.refreshToken`: assertReposMatchConfig
+  // enforces it at wiring time (createAuthDeps/createAuthHandle), so this is no
+  // longer a silent cookie-skip — the `&&` is the type-narrowing form of that
+  // invariant, not a degradation path.
   if (config.refreshToken && repos.refreshToken) {
     const { token } = await issueRefreshToken(
       repos.refreshToken,

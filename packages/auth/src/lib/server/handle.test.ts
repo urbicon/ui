@@ -677,3 +677,27 @@ describe('createAuthHandle — transformUser', () => {
     expect(event.locals.user).toMatchObject({ id: 'user-1', tenant: 'acme' });
   });
 });
+
+describe('createAuthHandle refresh-token wiring', () => {
+  // config.refreshToken without repos.refreshToken would silently skip the
+  // hook's transparent-rotation branch (2a) — assertReposMatchConfig makes it
+  // fail loud at wiring time instead.
+  it('throws when refreshToken is configured but repos.refreshToken is missing', () => {
+    expect(() =>
+      createAuthHandle({ config: { ...config, refreshToken: {} }, repos: createMockRepos() })
+    ).toThrow(/repos\.refreshToken is missing/);
+  });
+
+  it('does not throw when the refreshToken repo is present', () => {
+    expect(() =>
+      createAuthHandle({
+        config: { ...config, refreshToken: {} },
+        repos: { ...createMockRepos(), refreshToken: createInMemoryRefreshTokenRepository() }
+      })
+    ).not.toThrow();
+  });
+
+  it('does not throw when refreshToken is not configured at all', () => {
+    expect(() => createAuthHandle({ config, repos: createMockRepos() })).not.toThrow();
+  });
+});

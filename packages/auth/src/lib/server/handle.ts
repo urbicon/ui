@@ -3,7 +3,7 @@ import type { AuthConfig, AuthUser } from '../types.js';
 import type { FullAuthUser, Repositories } from './adapters/types.js';
 import { sanitizeUser } from './auth.js';
 import { ensureCsrfCookie, validateCsrf } from './csrf.js';
-import { shieldLogger } from './deps.js';
+import { assertReposMatchConfig, shieldLogger } from './deps.js';
 import { authError } from './handlers/errors.js';
 import { readRefreshCookie, rotateRefreshToken } from './refresh-token.js';
 import { applySecurityHeaders } from './security-headers.js';
@@ -55,6 +55,10 @@ const jsonUnauthorized = () => authError('not_authenticated', 401);
 
 export function createAuthHandle<R extends string>(options: AuthHandleOptions<R>): Handle {
   const { config, repos } = options;
+  // Fail loud if refresh rotation is configured without its repo — otherwise the
+  // 2a rotation branch below would be silently skipped. Independent of
+  // createAuthDeps, which wires the handler bundle (this wires the hook).
+  assertReposMatchConfig(config, repos);
   const logger = shieldLogger(config.logger ?? console);
   const publicRoutes = options.publicRoutes ?? DEFAULT_PUBLIC_ROUTES;
   const allowUnauthenticatedRemote = options.allowUnauthenticatedRemote ?? false;

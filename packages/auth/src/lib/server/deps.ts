@@ -191,6 +191,39 @@ function resolveSecurityDefaults<R extends string>(
 }
 
 /**
+ * Fail loud at wiring time when a feature is configured but its backing
+ * repository is absent, instead of degrading silently at request time. The one
+ * silent case today is refresh-token rotation: with `config.refreshToken` set
+ * but `repos.refreshToken` missing, `establishSession` would skip the refresh
+ * cookie and the handle hook would decline to rotate — both without a trace,
+ * quietly downgrading every session to access-token-only. Throwing here mirrors
+ * `createPasskeyHandlers` (throws on a missing `repos.passkey`) and follows the
+ * fail-loud-over-silent-fallback line.
+ *
+ * Both entry points must call this — `createAuthDeps` (handler deps) and
+ * `createAuthHandle` (the hook) build their bundles independently, so a check in
+ * only one would leave the other's path silent.
+ *
+ * 2FA and passkeys are intentionally out of scope: 2FA already surfaces a
+ * visible `feature_unavailable` 400 at request time when `repos.backupCode` is
+ * absent, and the passkey factory already throws at wiring time — neither
+ * degrades silently, so neither is the gap this closes.
+ */
+export function assertReposMatchConfig<R extends string>(
+  config: AuthConfig<R>,
+  repos: { refreshToken?: RefreshTokenRepository }
+): void {
+  if (config.refreshToken && !repos.refreshToken) {
+    throw new Error(
+      '[auth] config.refreshToken is set but repos.refreshToken is missing. ' +
+        'Refresh-token rotation cannot work without its repository — pass the ' +
+        "adapter's `refreshToken` field (or createInMemoryRefreshTokenRepository), " +
+        'or remove config.refreshToken.'
+    );
+  }
+}
+
+/**
  * Assemble the auth dependency bundle, applying secure brute-force defaults to
  * the config (see {@link resolveSecurityDefaults}). The returned `config`
  * carries the resolved values — pass it on to `createAuthHandle` and the
@@ -223,6 +256,7 @@ export function shieldLogger(logger: AuthLogger): AuthLogger {
 }
 
 export function createAuthDeps<R extends string>(deps: Omit<AuthDeps<R>, 'logger'>): AuthDeps<R> {
+  assertReposMatchConfig(deps.config, deps.repos);
   // One source for the sink: `config.logger`. The resolved field on the deps
   // bundle is what handlers use, so none of them re-defaults to console.
   const logger = shieldLogger(deps.config.logger ?? console);

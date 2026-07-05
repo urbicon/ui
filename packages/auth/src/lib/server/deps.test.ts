@@ -1,5 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { AuthConfig } from '../types.js';
+import { createInMemoryRefreshTokenRepository } from './adapters/in-memory.js';
 import { createAuthDeps } from './deps.js';
 import { createMockInvitationRepository, createMockUserRepository } from './test-utils.js';
 
@@ -206,6 +207,27 @@ describe('forgot-password rate-limit default', () => {
   it('honours the global null opt-out (no forgotPassword limiter)', () => {
     const deps = createAuthDeps(baseDeps({ rateLimit: null }));
     expect(deps.config.rateLimit).toBeUndefined();
+  });
+});
+
+describe('refresh-token wiring validation', () => {
+  // config.refreshToken without repos.refreshToken silently downgrades every
+  // session to access-token-only (establishSession skips the refresh cookie) —
+  // fail loud at wiring time instead.
+  it('throws when refreshToken is configured but repos.refreshToken is missing', () => {
+    expect(() => createAuthDeps(baseDeps({ refreshToken: {} }))).toThrow(
+      /repos\.refreshToken is missing/
+    );
+  });
+
+  it('does not throw when the refreshToken repo is provided', () => {
+    const deps = baseDeps({ refreshToken: {} });
+    expect(() =>
+      createAuthDeps({
+        ...deps,
+        repos: { ...deps.repos, refreshToken: createInMemoryRefreshTokenRepository() }
+      })
+    ).not.toThrow();
   });
 });
 
