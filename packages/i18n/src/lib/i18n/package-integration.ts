@@ -98,13 +98,13 @@ export function createPackageI18n<const T extends Translations>(
     ensureRegistered();
     const state = useI18nState();
     const registry = getRegistry();
-    return ((key: string, params?: TranslationParams, options?: TranslationOptions) =>
+    return ((key: string, params?: TranslationParams, callOptions?: TranslationOptions) =>
       registry.translate(
         key,
         state?.locale ?? BASE_LOCALE,
         state?.fallbackLocale ?? BASE_LOCALE,
         params,
-        { packageName, ...options }
+        { packageName, ...callOptions }
       )) as TypedTranslationFunction<T>;
   };
 
@@ -112,11 +112,11 @@ export function createPackageI18n<const T extends Translations>(
   // against the base locale — there is no request-scoped state outside a
   // component. Components use `useTranslate` for the reactive, provider-scoped
   // locale.
-  const t = ((key: string, params?: TranslationParams, options?: TranslationOptions) => {
+  const t = ((key: string, params?: TranslationParams, callOptions?: TranslationOptions) => {
     ensureRegistered();
     return getRegistry().translate(key, BASE_LOCALE, BASE_LOCALE, params, {
       packageName,
-      ...options
+      ...callOptions
     });
   }) as TypedTranslationFunction<T>;
 
