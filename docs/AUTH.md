@@ -42,6 +42,23 @@ All crypto is implemented via Web Crypto API (`crypto.subtle`):
 | Token hashing    | SHA-256                                                  | —                       |
 | bcrypt migration | Dual-verify (detects `$2b$` prefix, re-hashes to PBKDF2) | —                       |
 
+### Runtime requirements
+
+Zero **dependencies**, but the server runtime must provide a couple of platform
+globals:
+
+- **Web Crypto** — `globalThis.crypto` with `crypto.subtle` + `getRandomValues`
+  backs every crypto path above. Global since Node 20, always present in Bun,
+  Deno and edge runtimes.
+- **Node `Buffer`** — password hashing (PBKDF2 hex encoding) and the TOTP secret
+  cipher (base64) use `Buffer`. Password hashing is on the login/register path,
+  so in practice this makes the package **Node ≥ 20 or Bun** (both ship `Buffer`
+  globally); the Prisma adapter is Node/Bun-only regardless.
+
+**Bottom line: target Node.js ≥ 20 or Bun.** Edge/Workers/Deno-deploy need a
+Node-compatibility layer that polyfills `Buffer` (e.g. Cloudflare's
+`nodejs_compat`); the Web Crypto paths themselves are edge-clean.
+
 ## Package Exports
 
 | Export                                         | Condition           | Content                                                     |
