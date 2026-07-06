@@ -41,6 +41,8 @@
     ...restProps
   }: DialogProps = $props();
 
+  // One-shot DEV sanity check on the initial close-path configuration.
+  // svelte-ignore state_referenced_locally
   if (
     import.meta.env?.DEV &&
     hideCloseButton &&

@@ -43,6 +43,7 @@
 
   // Provide parent id to descendants exactly once per component instance
   // so that nested MenuItem components can register with correct parent.
+  // svelte-ignore state_referenced_locally
   setMenuParentId(id);
 
   function toggleOpen() {

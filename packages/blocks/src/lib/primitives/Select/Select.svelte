@@ -63,7 +63,7 @@
   // `<Select bind:value={x: T | null}>` narrow correctly. Internally we
   // dispatch through a loose alias so the component code can hand either
   // shape into `onValueChange` without per-branch casts at every call site.
-  const dispatchValueChange = onValueChange as ((v: any) => void) | undefined;
+  const dispatchValueChange = $derived(onValueChange as ((v: any) => void) | undefined);
 
   /** Resolved null option config — `null` when prop is unset or `groups` is in use. */
   const nullOptionConfig = $derived.by(() => {

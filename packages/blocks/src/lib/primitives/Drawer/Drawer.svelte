@@ -41,6 +41,8 @@
     ...restProps
   }: DrawerProps = $props();
 
+  // One-shot DEV sanity check on the initial close-path configuration.
+  // svelte-ignore state_referenced_locally
   if (
     import.meta.env?.DEV &&
     hideCloseButton &&
@@ -61,7 +63,7 @@
   let previouslyFocused: HTMLElement | null = null;
 
   const uid = $props.id();
-  const titleId = title ? `drawer-title-${uid}` : undefined;
+  const titleId = $derived(title ? `drawer-title-${uid}` : undefined);
   const bodyId = `drawer-body-${uid}`;
   const overlayId = `drawer-${uid}`;
 

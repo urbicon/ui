@@ -36,6 +36,9 @@
     return Array.isArray(v) ? v : [v];
   }
 
+  // Uncontrolled seed: capture only the initial `defaultValue`; later changes
+  // must not clobber user interaction.
+  // svelte-ignore state_referenced_locally
   let internalValue = $state<string[]>(normalise(defaultValue));
 
   const openItems = $derived(value !== undefined ? normalise(value) : internalValue);

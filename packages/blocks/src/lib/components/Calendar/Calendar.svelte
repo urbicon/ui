@@ -161,6 +161,9 @@
     if (month == null && year == null) return today;
     return new Date(year ?? today.getFullYear(), month ?? today.getMonth(), 1);
   }
+  // Uncontrolled seed: capture only the initial default*; later changes to the
+  // default* props must not move the user's navigated month.
+  // svelte-ignore state_referenced_locally
   let referenceDate = $state(
     resolveInitialReference(value, defaultDate, defaultMonth, defaultYear)
   );

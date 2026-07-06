@@ -28,6 +28,9 @@
   const blocksConfig = getBlocksConfig();
   const unstyled = $derived(unstyledProp || blocksConfig?.unstyled || false);
 
+  // Uncontrolled seed: capture only the initial `defaultOpen`; later changes
+  // must not clobber user interaction.
+  // svelte-ignore state_referenced_locally
   let internalOpen = $state(defaultOpen ?? false);
   const isOpen = $derived(open !== undefined ? open : internalOpen);
 

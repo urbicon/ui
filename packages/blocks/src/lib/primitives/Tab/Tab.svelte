@@ -38,6 +38,9 @@
   let tabListElement = $state<HTMLDivElement>();
   let indicatorStyle = $state('');
 
+  // Uncontrolled seed: capture only the initial `defaultValue`; later changes
+  // must not clobber user interaction.
+  // svelte-ignore state_referenced_locally
   let internalValue = $state(defaultValue || '');
 
   const activeValue = $derived(value !== undefined ? value : internalValue);

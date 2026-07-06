@@ -27,6 +27,8 @@
     buttonGroup: () => setButtonGroupContext(undefined)
   };
 
+  // Isolation is applied once at init — the prop is not meant to change reactively.
+  // svelte-ignore state_referenced_locally
   for (const key of isolate) {
     ISOLATIONS[key]?.();
   }
