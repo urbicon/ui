@@ -85,6 +85,16 @@
   const filteredArticles = $derived(searchable ? filterArticles(articles, searchQuery) : articles);
   const isFiltering = $derived(searchable && searchQuery.trim().length > 0);
 
+  // Reset the filter when the panel fully closes (#26 follow-up) so a reopen starts from the
+  // complete index. A "back to list" *within* an open panel intentionally keeps the query —
+  // that in-session narrowing is expected; only a full close/reopen is a fresh start.
+  $effect(() => {
+    if (open) return;
+    untrack(() => {
+      if (searchQuery) searchQuery = '';
+    });
+  });
+
   // Group the index into sections (first-occurrence order; ungrouped articles in
   // one headerless block). When no article sets a group, this is a flat list.
   const sections = $derived(groupArticles(filteredArticles));
@@ -104,6 +114,32 @@
       opener = untrack(() =>
         typeof document !== 'undefined' ? (document.activeElement as HTMLElement | null) : null
       );
+  });
+
+  // A11y: switching articles — via a list item, the back button, or a GuideRef inside the body —
+  // unmounts the currently focused control, dropping focus to <body>. Redirect it to the panel
+  // heading (a stable anchor, re-announced with the new title on every switch). Only reclaim the
+  // focus the unmount stranded on <body>; never pull focus the user/consumer moved elsewhere.
+  let titleEl: HTMLHeadingElement | undefined = $state();
+  // svelte-ignore state_referenced_locally
+  let previousArticle: string | null = activeArticle;
+  $effect(() => {
+    const current = activeArticle;
+    const isOpen = open;
+    if (current === previousArticle) return;
+    previousArticle = current;
+    if (!isOpen) return;
+    let cancelled = false;
+    tick().then(() => {
+      if (cancelled || typeof document === 'undefined') return;
+      // Only the unmount-stranded case lands focus on <body>; anything else means the user or
+      // consumer is focused elsewhere (e.g. a still-focused GuideMarker) — leave it be.
+      if (document.activeElement !== document.body) return;
+      titleEl?.focus();
+    });
+    return () => {
+      cancelled = true;
+    };
   });
 
   // DEV-only: warn when the active article has no matching <GuideArticle> (typo in a
@@ -185,7 +221,9 @@
         </button>
       {/if}
       <h2
+        bind:this={titleEl}
         id={`${panelId}-title`}
+        tabindex="-1"
         class={unstyled ? (slotClasses?.title ?? '') : styles.title({ class: slotClasses?.title })}
       >
         {headerTitle}

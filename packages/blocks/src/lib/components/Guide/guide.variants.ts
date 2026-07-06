@@ -19,7 +19,12 @@ export const guidePanelVariants = tv({
       'text-sm text-text-secondary hover:text-text-primary',
       'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-primary/50'
     ],
-    title: ['flex-1 text-base font-semibold text-text-primary truncate'],
+    // `tabindex="-1"` + programmatic focus target on article switch (a11y) — suppress the
+    // ring for the keyboard-navigation case; it is never a Tab stop.
+    title: [
+      'flex-1 text-base font-semibold text-text-primary truncate',
+      'focus-visible:outline-none'
+    ],
     closeButton: [
       'inline-flex items-center justify-center rounded-md p-1',
       'text-text-secondary hover:bg-surface-hover hover:text-text-primary',

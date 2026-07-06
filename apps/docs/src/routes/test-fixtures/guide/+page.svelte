@@ -10,6 +10,7 @@
     GuideArticle,
     GuideMarker,
     GuideMention,
+    GuideRef,
     GuideHint,
     Guide,
     GuideBeacon,
@@ -200,10 +201,15 @@
       You can export from here.
     </GuideHint>
 
-    <GuidePanel title="Help">
+    <GuidePanel title="Help" searchable>
       <GuideArticle id="saving" title="Saving your work">
         <p>
           Use the <GuideMention for="fx-save">Save button</GuideMention> to persist your changes.
+        </p>
+      </GuideArticle>
+      <GuideArticle id="exporting" title="Exporting data">
+        <p>
+          Export from the toolbar. See also <GuideRef article="saving">Saving your work</GuideRef>.
         </p>
       </GuideArticle>
     </GuidePanel>

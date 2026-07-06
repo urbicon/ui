@@ -73,6 +73,92 @@ test.describe('Guide — bidirectional link (Marker ↔ Mention)', () => {
   });
 });
 
+// ─── Panel navigation: focus management + filter reset ──────────────────────
+
+test.describe('Guide — panel navigation', () => {
+  // An article switch unmounts the focused control (list item / back button / GuideRef in the
+  // body), which would strand focus on <body>. The panel redirects it to the heading — verified
+  // across all three navigation paths. Navigation starts from the marker (opens into "saving")
+  // and reaches the list via the back button, so the fixture needs no extra visible trigger.
+  test('focus moves to the heading when opening an article from the list', async ({ page }) => {
+    await setup(page);
+    await page.locator('[data-guide-marker]').click(); // into "saving"
+    const panel = page.locator('aside[data-placement]');
+    const heading = panel.getByRole('heading', { level: 2 });
+    await panel.getByRole('button', { name: 'All topics' }).click(); // back to the list
+    await expect(heading).toHaveText('Help');
+
+    await panel.getByRole('button', { name: 'Saving your work' }).click(); // list → article
+    await expect(heading).toHaveText('Saving your work');
+    await expect(heading).toBeFocused();
+  });
+
+  test('focus moves to the heading when returning to the list via the back button', async ({
+    page
+  }) => {
+    await setup(page);
+    await page.locator('[data-guide-marker]').click(); // opens straight into "saving"
+    const panel = page.locator('aside[data-placement]');
+    const heading = panel.getByRole('heading', { level: 2 });
+    await expect(heading).toHaveText('Saving your work');
+
+    await panel.getByRole('button', { name: 'All topics' }).click(); // back button
+    await expect(heading).toHaveText('Help');
+    await expect(heading).toBeFocused();
+  });
+
+  test('focus moves to the heading when following a GuideRef to another article', async ({
+    page
+  }) => {
+    await setup(page);
+    await page.locator('[data-guide-marker]').click(); // into "saving"
+    const panel = page.locator('aside[data-placement]');
+    const heading = panel.getByRole('heading', { level: 2 });
+    await panel.getByRole('button', { name: 'All topics' }).click(); // back to the list
+
+    await panel.getByRole('button', { name: 'Exporting data' }).click(); // list → exporting
+    await expect(heading).toHaveText('Exporting data');
+
+    await panel.getByRole('button', { name: 'Saving your work' }).click(); // GuideRef → saving
+    await expect(heading).toHaveText('Saving your work');
+    await expect(heading).toBeFocused();
+  });
+
+  test('the search filter resets on a full close + reopen', async ({ page }) => {
+    await setup(page);
+    await page.locator('[data-guide-marker]').click(); // into "saving"
+    const panel = page.locator('aside[data-placement]');
+    await panel.getByRole('button', { name: 'All topics' }).click(); // back to the list
+    const search = panel.getByRole('searchbox');
+
+    await search.fill('Export');
+    await expect(panel.getByRole('button', { name: 'Saving your work' })).toHaveCount(0);
+
+    await panel.getByRole('button', { name: 'Close' }).click(); // full close
+    await expect(panel).toHaveAttribute('data-state', 'closed');
+
+    await page.locator('[data-guide-marker]').click(); // reopen into "saving"
+    await panel.getByRole('button', { name: 'All topics' }).click(); // back to the list
+    await expect(search).toHaveValue(''); // fresh start — full index
+    await expect(panel.getByRole('button', { name: 'Saving your work' })).toBeVisible();
+  });
+
+  test('the search filter survives a back-to-list within the open panel', async ({ page }) => {
+    await setup(page);
+    await page.locator('[data-guide-marker]').click(); // into "saving"
+    const panel = page.locator('aside[data-placement]');
+    await panel.getByRole('button', { name: 'All topics' }).click(); // back to the list
+    const search = panel.getByRole('searchbox');
+
+    await search.fill('Export');
+    await panel.getByRole('button', { name: 'Exporting data' }).click(); // into the article
+    await expect(panel.getByRole('heading', { level: 2 })).toHaveText('Exporting data');
+
+    await panel.getByRole('button', { name: 'All topics' }).click(); // back to list
+    await expect(search).toHaveValue('Export'); // in-session narrowing kept (#26)
+  });
+});
+
 // ─── Guided tour ────────────────────────────────────────────────────────────
 
 test.describe('Guide — guided tour', () => {
