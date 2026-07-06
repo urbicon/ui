@@ -127,10 +127,10 @@ For fewer tabs (2-4) where a more compact visual is preferred:
 - Do not store active tab in `$state` — derive it from the URL. Client-side state and URL will drift.
 - Do not use `Tab` with `bind:value` for route-based navigation — use `<a href>` inside tab triggers.
 - Do not duplicate the tab bar in every `+page.svelte` — put it in the shared `+layout.svelte`.
-- Do not use this pattern for settings with save/cancel — use the `settings-page` pattern with `Sidebar` instead.
+- Do not use this **route-based** pattern for settings where each section owns its save/cancel — navigating away loses unsaved edits. A small, flat settings page with one page-level save can use client-side `Tab` (`bind:value`); larger or per-section-save settings use `Sidebar` (see `settings-page`).
 
 ## Related
 
-- Pattern: `settings-page` — for hierarchical settings navigation
+- Pattern: `settings-page` — the scale-based Tab-vs-Sidebar choice for settings
 - Component: `Tab` — the underlying tab component API
 - Component: `SegmentGroup` — compact alternative for few sections

@@ -1,6 +1,7 @@
 export const recipeMeta = {
   title: 'Settings Page',
-  description: 'Tabbed settings page with profile editing, notifications, and security panels.',
+  description:
+    'Compact tabbed settings page — profile, notifications, and security as flat, co-equal sections with a single save. The small-scale shape of the settings-page pattern (larger or hierarchical settings use a sidebar).',
   components: [
     'Tab',
     'Input',

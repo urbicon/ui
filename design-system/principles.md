@@ -58,7 +58,7 @@ These heuristics map common UI needs to the right Urbicon UI component:
 ## Layout
 
 - Content max-width: 720px for readability. Wider only for data-dense views (tables, dashboards).
-- Use `Sidebar` for settings/admin navigation. Use `Tab` for peer sections within a page.
+- Use `Sidebar` for large, hierarchical, or admin settings navigation; a small, flat single-save settings page can use `Tab` (peer sections within a page). See the `settings-page` pattern for the scale-based choice.
 - Group related content in `Card`s. Cards represent conceptual units, not individual items.
 - Sticky action bars (`Save`/`Cancel`) when forms exceed the viewport.
 - Empty states: always provide an action. "No results" alone is a dead end.
