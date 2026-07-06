@@ -257,5 +257,5 @@ Translucent, layered, modern. Blurred backgrounds, glass surfaces.
 - Never add `dark:` overrides. Dark mode resolves automatically via `light-dark()`.
 - Never override individual component CSS. Use `slotClasses`, `presets`, prop-conditional `overrides`, or `BlocksProvider` `defaults`.
 - Never hardcode z-index values. Use token variables (`z-[var(--z-modal)]`).
-- Never set `border-radius` on individual components. Override the semantic radius tier token.
+- Never set `border-radius` to break one component out of its tier's rhythm. A consistent, project-wide radius choice is *good* — make it by overriding the semantic tier token (`--radius-commit`/`-modify`/`-contain`), which moves the whole family together, not by rounding a lone component out of step with its peers.
 - Never mix paradigms within a single app. Pick one and apply it consistently across all layers.

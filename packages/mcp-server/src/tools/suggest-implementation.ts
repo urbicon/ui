@@ -81,7 +81,7 @@ const IMPLEMENTATION_RULES = `## Implementation Rules
 - **Vary visual weight** — Don't use the same Card variant/padding everywhere. Reading-flow content → \`variant="quiet"\` (default) + \`padding="md"\`. Architectural delineation → \`variant="outlined"\` + \`padding="md"\`. Lifted content (cards-on-page) → \`variant="elevated"\` + \`padding="lg"\`. Popover-family floating surfaces → \`variant="floating"\`.
 - **Color = meaning** — Neutral surfaces dominate (80–90%). Use \`intent\` colors ONLY for semantic meaning (status, severity, actions) — never as decoration.
 - **Spacing = hierarchy** — Tight (\`gap-2\`/\`gap-3\`) within related items. Generous (\`gap-8\`/\`gap-10\`) between sections. Don't use uniform spacing everywhere.
-- **Commit to a radius** — Pick a radius philosophy (\`rounded-lg\`, \`rounded-xl\`, or \`rounded-2xl\`) and apply it consistently via \`class\` or \`slotClasses\`. Don't rely solely on component defaults.
+- **Commit to a radius** — Pick one radius philosophy and apply it consistently — cleanest via the semantic tier tokens (\`--radius-commit\`/\`-modify\`/\`-contain\`) or \`BlocksProvider\` defaults, so a whole component family moves together. Don't round a single component out of step with its peers, and don't just leave the bland defaults untouched.
 - **Data-driven styling** — Different states/severities should look visually distinct (vary padding, font-weight, Badge variant, text color) — not just carry a different label.
 - **Don't copy recipe styling** — Recipes show ONE interpretation. Create YOUR visual identity with your own spacing rhythm, color distribution, and layout density.
 `;
