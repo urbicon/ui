@@ -61,6 +61,22 @@ export interface CollapsibleProps
   children: Snippet;
   /** Base name for generating ARIA IDs. Defaults to auto-generated. */
   name?: string;
+  /**
+   * Override the expand/collapse animation duration in milliseconds. Defaults to the
+   * `--blocks-collapse-duration` token (the `normal` 250ms). Set globally via that CSS
+   * custom property or per-instance here. Respects `prefers-reduced-motion` (near-instant).
+   */
+  transitionDuration?: number;
+  /**
+   * Override the expand/collapse easing as a CSS `<easing-function>` — e.g. `'ease-in-out'`,
+   * `'cubic-bezier(0.4,0,0.2,1)'`, or a token such as `'var(--blocks-ease-springy)'`. Defaults
+   * to the `--blocks-collapse-easing` token.
+   *
+   * Note: unlike the overlay components (Dialog/Drawer), whose Svelte transitions take an easing
+   * **function** `(t: number) => number`, Collapsible animates via CSS — so its easing is a CSS
+   * string. Same intent, representation follows the transition mechanism.
+   */
+  transitionEasing?: string;
   /** Custom CSS class */
   class?: string;
   /** Remove default styles */

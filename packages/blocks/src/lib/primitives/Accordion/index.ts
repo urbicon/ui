@@ -60,6 +60,18 @@ export interface AccordionProps
   disabled?: boolean;
   /** Whether items can be fully collapsed @default true */
   collapsible?: boolean;
+  /**
+   * Override every item's expand/collapse animation duration in milliseconds. Defaults to the
+   * `--blocks-collapse-duration` token (the `normal` 250ms). Respects `prefers-reduced-motion`.
+   */
+  transitionDuration?: number;
+  /**
+   * Override every item's expand/collapse easing as a CSS `<easing-function>` — e.g.
+   * `'ease-in-out'`, `'cubic-bezier(0.4,0,0.2,1)'`, or a token like `'var(--blocks-ease-springy)'`.
+   * Defaults to the `--blocks-collapse-easing` token. (A CSS string, not the `(t) => number`
+   * easing function the overlay components take — Accordion animates via CSS.)
+   */
+  transitionEasing?: string;
   /** Accordion items */
   children: Snippet;
   /** Custom CSS class */

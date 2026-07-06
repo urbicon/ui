@@ -13,11 +13,16 @@ export const collapsibleVariants = tv({
     ],
     chevron: [
       'shrink-0 text-text-tertiary',
-      'transition-transform duration-[var(--blocks-duration-normal)] ease-[var(--blocks-ease-smooth)]'
+      // Collapse tokens (ACC-3) so `transitionDuration`/`transitionEasing` can retune the spin
+      // in sync with the content. `motion-reduce` guards the inline-override path (an inline
+      // duration bypasses the token that reduced-motion collapses to 1ms).
+      'transition-transform duration-[var(--blocks-collapse-duration)] ease-[var(--blocks-collapse-easing)]',
+      'motion-reduce:duration-[1ms]'
     ],
     content: [
       'overflow-hidden',
-      'transition-[grid-template-rows] duration-[var(--blocks-duration-normal)] ease-[var(--blocks-ease-smooth)]'
+      'transition-[grid-template-rows] duration-[var(--blocks-collapse-duration)] ease-[var(--blocks-collapse-easing)]',
+      'motion-reduce:duration-[1ms]'
     ],
     contentInner: 'text-text-secondary'
   },

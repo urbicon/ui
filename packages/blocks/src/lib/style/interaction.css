@@ -112,6 +112,17 @@
   --blocks-overlay-panel-scale-start: 0.96;
   --blocks-overlay-panel-fly-distance: 320px;
   --blocks-overlay-backdrop-blur: 4px;
+
+  /* === COLLAPSE ANIMATION TOKENS (ACC-3) ===
+     The CSS-driven grid-template-rows collapse shared by Accordion +
+     Collapsible (and their chevron spin). Default to the normal/smooth
+     tokens — so `prefers-reduced-motion` below collapses them to 1ms via
+     the inherited `--blocks-duration-normal`. Override globally here, or per
+     instance via the component's `transitionDuration` / `transitionEasing`
+     props (which set these variables inline + carry a `motion-reduce` guard,
+     since an inline duration can't see the media query). */
+  --blocks-collapse-duration: var(--blocks-duration-normal);
+  --blocks-collapse-easing: var(--blocks-ease-smooth);
 }
 
 /* ===== TOUCH DEVICE ADAPTATIONS ===== */

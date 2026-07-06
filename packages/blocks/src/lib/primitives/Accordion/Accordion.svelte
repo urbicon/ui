@@ -8,6 +8,8 @@
     type = 'single',
     variant = 'default',
     size = 'md',
+    transitionDuration,
+    transitionEasing,
     value = $bindable(),
     defaultValue,
     onValueChange,
@@ -23,6 +25,13 @@
 
   const blocksConfig = getBlocksConfig();
   const unstyled = $derived(unstyledProp || blocksConfig?.unstyled || false);
+
+  // ACC-3: per-instance collapse motion. Set on the root; every item's content + chevron inherit
+  // the vars (AccordionItem renders an unstyled Collapsible that leaves them unset). Inline only
+  // when a prop is given, so the default keeps the reduced-motion-aware token.
+  const collapseDuration = $derived(
+    transitionDuration != null ? `${transitionDuration}ms` : undefined
+  );
 
   const variantProps: AccordionVariants = $derived({ variant, size });
   const styles = $derived(accordionVariants(variantProps));
@@ -88,6 +97,8 @@
   class={unstyled
     ? [slotClasses?.base, className].filter(Boolean).join(' ')
     : styles.base({ class: [slotClasses?.base, className] })}
+  style:--blocks-collapse-duration={collapseDuration}
+  style:--blocks-collapse-easing={transitionEasing}
   data-orientation="vertical"
   {...restProps}
 >

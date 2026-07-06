@@ -16,6 +16,8 @@
     trigger,
     variant = 'default',
     size = 'md',
+    transitionDuration,
+    transitionEasing,
     name,
     children,
     class: className = '',
@@ -27,6 +29,12 @@
 
   const blocksConfig = getBlocksConfig();
   const unstyled = $derived(unstyledProp || blocksConfig?.unstyled || false);
+
+  // ACC-3: per-instance collapse motion. Set the shared collapse CSS variables inline only when
+  // a prop is provided, so the unset default keeps inheriting the reduced-motion-aware token.
+  const collapseDuration = $derived(
+    transitionDuration != null ? `${transitionDuration}ms` : undefined
+  );
 
   // Uncontrolled seed: capture only the initial `defaultOpen`; later changes
   // must not clobber user interaction.
@@ -63,6 +71,8 @@
   class={unstyled
     ? [slotClasses?.base, className].filter(Boolean).join(' ')
     : styles.base({ class: [slotClasses?.base, className] })}
+  style:--blocks-collapse-duration={collapseDuration}
+  style:--blocks-collapse-easing={transitionEasing}
   data-state={isOpen ? 'open' : 'closed'}
   {...restProps}
 >

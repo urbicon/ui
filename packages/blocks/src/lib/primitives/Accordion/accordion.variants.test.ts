@@ -15,9 +15,14 @@ describe('accordionVariants', () => {
   it('uses design tokens for transitions', () => {
     const styles = accordionVariants();
     expect(styles.trigger()).toContain('duration-[var(--blocks-duration-fast)]');
-    expect(styles.chevron()).toContain('duration-[var(--blocks-duration-normal)]');
-    expect(styles.chevron()).toContain('ease-[var(--blocks-ease-smooth)]');
-    expect(styles.content()).toContain('duration-[var(--blocks-duration-normal)]');
+    // ACC-3: chevron + content animate on the collapse tokens so `transitionDuration` /
+    // `transitionEasing` can retune them, with a motion-reduce guard for the inline-override path.
+    expect(styles.chevron()).toContain('duration-[var(--blocks-collapse-duration)]');
+    expect(styles.chevron()).toContain('ease-[var(--blocks-collapse-easing)]');
+    expect(styles.content()).toContain('duration-[var(--blocks-collapse-duration)]');
+    expect(styles.content()).toContain('ease-[var(--blocks-collapse-easing)]');
+    expect(styles.content()).toContain('motion-reduce:duration-[1ms]');
+    expect(styles.chevron()).toContain('motion-reduce:duration-[1ms]');
   });
 
   it('uses focus-visible for keyboard focus', () => {
