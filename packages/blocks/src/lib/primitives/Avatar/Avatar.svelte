@@ -39,7 +39,6 @@
 
   let avatarElement = $state<HTMLElement>();
   let imageError = $state(false);
-  let isHovered = $state(false);
 
   const isInteractive = $derived(clickable || interactive || !!onclick);
 
@@ -104,15 +103,19 @@
     resolveSlotClasses(blocksConfig, 'Avatar', preset, variantProps, slotClassesProp)
   );
 
-  // `randomColor` paints the visible fill, so it targets the `frame` slot;
-  // `ringColor` tints the ring on the outer `base`. Inline property names stay
-  // kebab-case — a previous camelCase `backgroundColor` was silently ignored by
-  // browsers, dropping the avatar back to surface-interactive + white text.
+  // `randomColor` paints the visible fill, so it targets the `frame` slot.
+  // Inline property names stay kebab-case — a previous camelCase
+  // `backgroundColor` was silently ignored by browsers, dropping the avatar back
+  // to surface-interactive + white text.
   const frameStyle = $derived(
     randomColor && randomBg ? `background-color: ${randomBg}; color: white` : undefined
   );
 
-  const baseStyle = $derived(ringColor ? `border-color: ${ringColor}` : undefined);
+  // `ringColor` recolours the ring on the outer `base`. The ring is a
+  // Tailwind `ring-2` box-shadow, so it reads `--tw-ring-color` — setting
+  // `border-color` (the previous approach) was a no-op, as the avatar has no
+  // border. Only meaningful together with `ring`.
+  const baseStyle = $derived(ringColor ? `--tw-ring-color: ${ringColor}` : undefined);
 
   $effect(() => {
     if (avatarElement && mint && mint !== 'none' && isInteractive) {
@@ -121,12 +124,10 @@
   });
 
   function handleMouseEnter() {
-    isHovered = true;
     onHover?.(true);
   }
 
   function handleMouseLeave() {
-    isHovered = false;
     onHover?.(false);
   }
 
