@@ -16,11 +16,15 @@ import { OVERVIEW, SECTIONS } from './get-css-reference.js';
  * assert each is documented, so a newly added token can no longer disappear.
  *
  * Scope: the three families `get_css_reference` enumerates exhaustively (one row
- * per token). It deliberately does NOT require every intent scale step
- * (`primary-50 … primary-950`, documented via shorthand), feedback/interactive,
- * chart, or internal-only token (e.g. `skeleton-shimmer`, used by the Skeleton
- * wave, never a consumer utility) to be spelled out. Whole-set token validity is
- * already guarded by design-engine's `tokens.test.ts`.
+ * per token), plus a lighter check that every intent is at least *named* (its base
+ * `--color-<intent>` token or a `bg-<intent>` utility appears in the prose) — the
+ * F-B drift where a whole intent (`info`, a real ramp behind `bg-info` /
+ * `--color-feedback-info`) went undocumented while the six others were listed. It
+ * deliberately does NOT require every intent scale step (`primary-50 … primary-950`,
+ * documented via shorthand), feedback/interactive, chart, or internal-only token
+ * (e.g. `skeleton-shimmer`, used by the Skeleton wave, never a consumer utility) to
+ * be spelled out. Whole-set token validity is already guarded by design-engine's
+ * `tokens.test.ts`.
  */
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
@@ -55,6 +59,15 @@ function deriveSemanticCores(family: string): string[] {
   return [...cores].sort();
 }
 
+/** Intent names from the `=== X INTENT ===` section markers in the CSS — robust to
+ * the multi-line `--color-neutral` definition a self-referential regex would miss. */
+function deriveIntents(): string[] {
+  const css = readFileSync(semantic, 'utf-8');
+  const cores = new Set<string>();
+  for (const m of css.matchAll(/=== ([A-Z-]+) INTENT ===/g)) cores.add(m[1]!.toLowerCase());
+  return [...cores].sort();
+}
+
 describe.skipIf(!cssAvailable)('get_css_reference token drift guard', () => {
   for (const { family } of TABLED_FAMILIES) {
     it(`documents every semantic \`${family}-*\` token defined in the CSS`, () => {
@@ -74,4 +87,14 @@ describe.skipIf(!cssAvailable)('get_css_reference token drift guard', () => {
       );
     });
   }
+
+  it('names every intent defined in the CSS (base token or utility)', () => {
+    const missing = deriveIntents().filter(
+      (c) => !ALL_CONTENT.includes(`--color-${c}`) && !ALL_CONTENT.includes(`bg-${c}`)
+    );
+    expect(
+      missing,
+      `Intents in the CSS but absent from get_css_reference: ${missing.join(', ')}`
+    ).toEqual([]);
+  });
 });

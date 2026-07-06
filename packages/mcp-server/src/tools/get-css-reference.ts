@@ -5,7 +5,7 @@ export const OVERVIEW = `# Urbicon UI — CSS Design Tokens
 
 ## Architecture
 Three CSS layers, imported in order:
-1. \`foundation.css\` — Raw OKLCH color scales (neutral, primary, secondary, success, warning, danger)
+1. \`foundation.css\` — Raw OKLCH color scales (neutral, warm-neutral, primary, secondary, success, warning, danger, info)
 2. \`semantic.css\` — Purpose-based tokens that reference foundation (\`--color-surface-base\`, \`--color-text-primary\`, etc.)
 3. \`interaction.css\` — Animation timing, easing, shadows, focus rings
 
@@ -50,7 +50,7 @@ The \`@theme\` block sets the Tailwind utility value. The \`:root\` rule overrid
 → \`get_css_reference(section="surfaces")\` — 11 surface background tokens
 → \`get_css_reference(section="text")\` — 9 text color tokens
 → \`get_css_reference(section="borders")\` — 5 border color tokens
-→ \`get_css_reference(section="intents")\` — 6 intent palettes (primary, success, danger, etc.)
+→ \`get_css_reference(section="intents")\` — 6 component intents + the \`info\` status colour, feedback + interactive tokens
 → \`get_css_reference(section="shadows")\` — 5 shadow tokens + z-index scale
 → \`get_css_reference(section="theming")\` — How to create custom themes, available presets
 `;
@@ -137,7 +137,7 @@ Also available for intent-colored borders:
 
 const INTENTS = `# Intent Color System
 
-6 intent palettes, each with 5 semantic variants + 11 foundation steps.
+6 component intents (primary, secondary, success, warning, danger, neutral) plus a status \`info\` colour — each a full palette with 5 semantic variants + 11 foundation steps.
 
 ## Semantic Intent Tokens (auto dark mode)
 
@@ -151,7 +151,9 @@ Each intent has these variants (example: \`primary\`):
 | \`--color-primary-subtle\` | \`bg-primary-subtle\` | Soft background | primary-50 | primary-900 |
 | \`--color-primary-emphasis\` | \`bg-primary-emphasis\` | Strong/dark variant | primary-900 | — |
 
-Same pattern applies to: \`success-*\`, \`warning-*\`, \`danger-*\`, \`secondary-*\`, \`neutral-*\`
+Same pattern applies to: \`success-*\`, \`warning-*\`, \`danger-*\`, \`secondary-*\`, \`neutral-*\`.
+
+\`info-*\` has the identical shape (\`--color-info\`, \`-hover\`, \`-active\`, \`-subtle\`, \`-emphasis\` → \`bg-info\`, \`text-info\`, \`bg-info-subtle\`, …) — the status/feedback blue (hue 220) behind Alert/Toast/Tooltip's info state, \`--color-feedback-info\`, and \`--color-chart-5\`. It is NOT in the global \`ComponentIntent\` union above: the feedback components with a built-in info state (Alert, Toast, Tooltip) do accept \`intent="info"\`, but generic components (Button, Badge, …) take the six-value union, so on those reach for the \`bg-info\`/\`text-info\` utilities rather than \`intent="info"\`.
 
 ## Foundation Intent Scales
 
@@ -163,7 +165,12 @@ Each intent has 11 numbered steps (50–950) for granular control:
 --color-danger-50    through  --color-danger-950
 --color-secondary-50 through  --color-secondary-950
 --color-neutral-50   through  --color-neutral-950
+--color-info-50      through  --color-info-950
 \`\`\`
+
+Two ramps carry stops beyond the standard 50–950:
+- \`neutral\` adds finer steps — \`--color-neutral-0\` (pure white), \`-25\`, \`-650\`, \`-750\`, \`-850\` — so \`bg-neutral-650\` and friends are real tokens (they drive the surface/border light↔dark mappings), not hallucinations.
+- \`--color-warm-neutral-50\` through \`-950\` is a separate warm-tinted greyscale ramp; the \`neutral\` intent borrows its lightness profile (see the theming section) rather than exposing it as a surface.
 
 Tailwind usage: \`bg-primary-500\`, \`text-danger-700\`, \`border-success-300\`, etc.
 
@@ -171,8 +178,8 @@ Tailwind usage: \`bg-primary-500\`, \`text-danger-700\`, \`border-success-300\`,
 
 | CSS Variable | Tailwind Utility | Maps to |
 |---|---|---|
-| \`--color-feedback-info\` | \`bg-feedback-info\` / \`text-feedback-info\` | primary-500 |
-| \`--color-feedback-info-subtle\` | \`bg-feedback-info-subtle\` | primary-50 |
+| \`--color-feedback-info\` | \`bg-feedback-info\` / \`text-feedback-info\` | info-500 |
+| \`--color-feedback-info-subtle\` | \`bg-feedback-info-subtle\` | info-50 |
 | \`--color-feedback-success\` | \`bg-feedback-success\` / \`text-feedback-success\` | success-500 |
 | \`--color-feedback-success-subtle\` | \`bg-feedback-success-subtle\` | success-50 |
 | \`--color-feedback-warning\` | \`bg-feedback-warning\` / \`text-feedback-warning\` | warning-500 |
