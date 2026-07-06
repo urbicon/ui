@@ -4,6 +4,14 @@ All notable changes to this project will be documented in this file.
 This changelog is automatically generated from [Conventional Commits](https://www.conventionalcommits.org).
 
 
+## [6.19.4] - 2026-07-06
+
+### Bug Fixes
+- **mcp-server**: Document the info intent + extended neutral ramps in get_css_reference
+
+### Documentation
+- **design**: Reconcile the radius anti-pattern across principles + suggest_implementation
+
 ## [6.19.3] - 2026-07-06
 
 ### Bug Fixes
