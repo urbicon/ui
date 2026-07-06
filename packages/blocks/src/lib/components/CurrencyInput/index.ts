@@ -26,10 +26,11 @@ export type CurrencySymbolPosition = 'prefix' | 'suffix' | 'none';
  * @tag form
  * @related Input
  *
- * @example Default — Euro with German locale
+ * @example Default — follows the active i18n locale
  * ```svelte
  * <script>
- *   let priceCents = $state(1234_56); // 1.234,56 €
+ *   // "1.234,56 €" under a `de` provider, "1,234.56 €" under `en` (the default)
+ *   let priceCents = $state(1234_56);
  * </script>
  * <CurrencyInput label="Price" bind:value={priceCents} />
  * ```
@@ -84,15 +85,16 @@ export interface CurrencyInputProps
   name?: string;
 
   /**
-   * BCP 47 locale used for formatting (`Intl.NumberFormat`). Controls
-   * grouping separator (`.` vs `,`) and decimal separator. Pass `'auto'`
-   * to defer to the runtime locale (`Intl.NumberFormat().resolvedOptions().locale`)
-   * — i.e. the user's browser language. Note that the runtime locale on the
-   * server (Node) and in the browser typically differ, so SSR pages using
-   * `'auto'` may briefly show a different format on initial render before
-   * hydration. `currency` is intentionally **not** auto-detected, since it
-   * is orthogonal to locale (a `de-CH` user may still bill in EUR).
-   * @default 'de-DE'
+   * BCP 47 locale used for formatting (`Intl.NumberFormat`). Controls the
+   * grouping separator (`.` vs `,`) and decimal separator. Defaults to
+   * `'auto'`, which follows the active `<I18nProvider>` locale — SSR-safe
+   * (server and client resolve the same locale, no hydration flash) and
+   * consistent with the rest of the library's number formatting. Falls back
+   * to the base locale (`en`) when no provider is mounted. Pass an explicit
+   * BCP 47 string (e.g. `'de-DE'`, `'ja-JP'`) to override. `currency` is
+   * intentionally **not** auto-detected, since it is orthogonal to locale
+   * (a `de-CH` user may still bill in EUR).
+   * @default 'auto'
    */
   locale?: string;
 

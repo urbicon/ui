@@ -22,8 +22,6 @@
 
   let jpyValue = $state(15_000);
 
-  let autoLocaleCents = $state(1234_56);
-
   // Imagine these arrived as major-unit floats from an API.
   const apiAmount = 1234.56;
   let majorBackedCents = $state(majorToCents(apiAmount));
@@ -33,11 +31,11 @@
 <Section marker="01" id="examples" title="Examples">
   <div class="space-y-8">
     <CodeExample
-      title="Default — Euro with German locale"
-      description="Cents are stored as integers; the € symbol is a static adornment, locale grouping (1.234,56) is applied on blur."
+      title="Default — follows the active i18n locale"
+      description="Cents are stored as integers; the € symbol is a static adornment. Grouping and decimal separators follow the active i18n locale (this site runs 'en', so 1,234.56), applied on blur — no explicit locale prop needed."
       code={`<` +
         `script>
-  let priceCents = $state(1234_56); // 1.234,56 €
+  let priceCents = $state(1234_56); // grouped per the active locale
 <` +
         `/script>
 <CurrencyInput label="Price" bind:value={priceCents} />`}
@@ -78,20 +76,6 @@
       language="svelte"
     >
       <CurrencyInput bind:value={jpyValue} locale="ja-JP" currency="JPY" precision={0} />
-    </CodeExample>
-
-    <CodeExample
-      title={`Auto locale — defers to the runtime (${new Intl.NumberFormat().resolvedOptions().locale})`}
-      description="Pass locale='auto' to format using the user's browser language. Currency stays explicit, since locale and currency are orthogonal."
-      code={`<CurrencyInput
-  label="Price"
-  bind:value={priceCents}
-  locale="auto"
-  currency="EUR"
-/>`}
-      language="svelte"
-    >
-      <CurrencyInput label="Price" bind:value={autoLocaleCents} locale="auto" currency="EUR" />
     </CodeExample>
   </div>
 </Section>

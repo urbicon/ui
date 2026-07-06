@@ -1,10 +1,11 @@
 <script lang="ts">
   import { Input } from '$lib/primitives/Input';
+  import { useI18n } from '@urbicon-ui/i18n';
   import type { CurrencyInputProps } from './index';
 
   let {
     value = $bindable(null),
-    locale = 'de-DE',
+    locale = 'auto',
     currency = 'EUR',
     symbolPosition = 'suffix',
     precision = 2,
@@ -15,9 +16,14 @@
     ...inputProps
   }: CurrencyInputProps = $props();
 
-  const resolvedLocale = $derived(
-    locale === 'auto' ? new Intl.NumberFormat().resolvedOptions().locale : locale
-  );
+  const i18n = useI18n();
+
+  // `'auto'` (the default) follows the active `<I18nProvider>` locale — SSR-safe
+  // (server and client resolve the same locale) and consistent with the rest of
+  // the library's number formatting (CompositionBar/Sankey read `i18n.locale`
+  // too). Falls back to the base locale (`en`) when no provider is mounted. An
+  // explicit BCP 47 string overrides it.
+  const resolvedLocale = $derived(locale === 'auto' ? i18n.locale : locale);
 
   const decimalSeparator = $derived(
     new Intl.NumberFormat(resolvedLocale).formatToParts(1.1).find((p) => p.type === 'decimal')
