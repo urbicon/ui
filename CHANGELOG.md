@@ -4,6 +4,18 @@ All notable changes to this project will be documented in this file.
 This changelog is automatically generated from [Conventional Commits](https://www.conventionalcommits.org).
 
 
+## [6.19.3] - 2026-07-06
+
+### Bug Fixes
+- **blocks**: Scope mint to the directional box on Checkbox and Toggle
+
+### Miscellaneous
+- **docs-gen**: Drop the always-empty getComponentsByCategory emit
+- **docs**: Drop unused employees import in table customization page
+
+### Refactoring
+- **blocks**: Route CalendarGrid keyboard nav through the shared date-grid handler
+
 ## [6.19.2] - 2026-07-06
 
 ### Breaking Changes
