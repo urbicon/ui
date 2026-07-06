@@ -271,12 +271,6 @@ export class APIFileGenerator {
     lines.push('}');
     lines.push('');
 
-    // Deprecated: category is not part of PropInfo in this bundle; keep helper but always returns empty
-    lines.push('export function getComponentsByCategory(_category: string): string[] {');
-    lines.push('  return [];');
-    lines.push('}');
-    lines.push('');
-
     // Export metadata
     lines.push('// ==========================================');
     lines.push('// METADATA');
