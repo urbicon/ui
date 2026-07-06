@@ -4,6 +4,15 @@ All notable changes to this project will be documented in this file.
 This changelog is automatically generated from [Conventional Commits](https://www.conventionalcommits.org).
 
 
+## [6.20.0] - 2026-07-06
+
+### Bug Fixes
+- **blocks**: Migrate Avatar slotClasses.base consumer + harden AVT-3
+- **blocks**: Make Avatar ringColor colour the ring, drop dead hover state
+
+### Features
+- **blocks**: Add pulse indicator to Avatar status dot
+
 ## [6.19.4] - 2026-07-06
 
 ### Bug Fixes
