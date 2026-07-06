@@ -2,10 +2,19 @@ import { type SlotNames, tv, type VariantProps } from '$lib/utils/variants';
 
 export const avatarVariants = tv({
   slots: {
+    // Outer positioning context. Carries sizing, the ring, interactive/mint
+    // effects — but NOT `overflow-hidden`, so the status dot (a sibling of
+    // `frame`) is never clipped (AVT-1). The radius is mirrored here purely so
+    // the ring follows the avatar's shape.
     base: [
-      'relative inline-flex items-center justify-center',
-      'overflow-hidden font-semibold text-center select-none shrink-0',
-      'transition-[color,background-color,border-color,box-shadow,opacity] duration-[var(--blocks-duration-fast)] ease-out',
+      'relative inline-flex shrink-0',
+      'transition-[color,background-color,border-color,box-shadow,opacity] duration-[var(--blocks-duration-fast)] ease-out'
+    ],
+    // The visible disc. This is the element that clips the image/initials to
+    // the avatar shape; the status dot lives outside it so it stays whole.
+    frame: [
+      'flex items-center justify-center w-full h-full overflow-hidden',
+      'font-semibold text-center select-none',
       'bg-surface-interactive text-text-secondary'
     ],
     image: ['w-full h-full object-cover'],
@@ -43,61 +52,68 @@ export const avatarVariants = tv({
     // people and stand apart from the commit/modify/contain semantic system —
     // a brand that flattens commit-tier surfaces (e.g. squared pill-buttons)
     // should not also lose circular avatars. The radii below are physical
-    // shape tokens, not tier tokens.
+    // shape tokens, not tier tokens. `frame` clips the content to the shape;
+    // `base` mirrors it so the ring tracks the same silhouette.
     variant: {
       circle: {
         base: 'rounded-full',
+        frame: 'rounded-full',
         image: 'rounded-full'
       },
       rounded: {
         // Avatar-specific soft-square. Maps to --radius-xl (foundation scale);
         // brands tune via the foundation token, not via a tier override.
         base: 'rounded-xl',
+        frame: 'rounded-xl',
         image: 'rounded-xl'
       },
       square: {
         base: 'rounded-none',
+        frame: 'rounded-none',
         image: 'rounded-none'
       }
     },
     intent: {
       primary: {
-        base: 'bg-primary-subtle text-primary-emphasis'
+        frame: 'bg-primary-subtle text-primary-emphasis'
       },
       secondary: {
-        base: 'bg-secondary-subtle text-secondary-emphasis'
+        frame: 'bg-secondary-subtle text-secondary-emphasis'
       },
       success: {
-        base: 'bg-success-subtle text-success-emphasis'
+        frame: 'bg-success-subtle text-success-emphasis'
       },
       warning: {
-        base: 'bg-warning-subtle text-warning-emphasis'
+        frame: 'bg-warning-subtle text-warning-emphasis'
       },
       danger: {
-        base: 'bg-danger-subtle text-danger-emphasis'
+        frame: 'bg-danger-subtle text-danger-emphasis'
       },
       neutral: {
-        base: 'bg-surface-interactive text-text-secondary'
+        frame: 'bg-surface-interactive text-text-secondary'
       }
     },
+    // Each status also publishes its colour as `--blocks-avatar-pulse-color`
+    // so the opt-in `pulse` ring (see Avatar.svelte) radiates in the matching
+    // hue without a second colour source.
     status: {
       online: {
-        status: 'bg-success'
+        status: 'bg-success [--blocks-avatar-pulse-color:var(--color-success)]'
       },
       offline: {
-        status: 'bg-text-quaternary'
+        status: 'bg-text-quaternary [--blocks-avatar-pulse-color:var(--color-text-quaternary)]'
       },
       away: {
-        status: 'bg-warning'
+        status: 'bg-warning [--blocks-avatar-pulse-color:var(--color-warning)]'
       },
       busy: {
-        status: 'bg-danger'
+        status: 'bg-danger [--blocks-avatar-pulse-color:var(--color-danger)]'
       }
     },
-    // Status dot is translated out of the avatar's overflow-hidden edge so it
-    // remains fully visible on circular avatars (AVT-1). Translation magnitude
-    // is intentionally fractional — the dot sits half-overlapping the edge,
-    // which matches the conventional badge look (Slack, Discord, Linear).
+    // Status dot is translated out of the avatar's edge so it half-overlaps the
+    // corner (AVT-1). Translation magnitude is intentionally fractional — the
+    // dot sits half-overlapping the edge, which matches the conventional badge
+    // look (Slack, Discord, Linear).
     statusPosition: {
       'bottom-right': {
         status: 'bottom-0 right-0 translate-x-1/4 translate-y-1/4'
@@ -110,6 +126,14 @@ export const avatarVariants = tv({
       },
       'top-left': {
         status: 'top-0 left-0 -translate-x-1/4 -translate-y-1/4'
+      }
+    },
+    // Opt-in "live" pulse on the status dot — a radar ring that draws the eye to
+    // presence changes. Only has a visible effect together with `status`; the
+    // animation itself + reduced-motion handling live in Avatar.svelte.
+    pulse: {
+      true: {
+        status: 'blocks-avatar-status-pulse'
       }
     },
     ring: {
@@ -185,6 +209,7 @@ export const avatarVariants = tv({
     variant: 'circle',
     intent: 'neutral',
     statusPosition: 'bottom-right',
+    pulse: false,
     ring: false,
     ringIntent: 'primary',
     interactive: false

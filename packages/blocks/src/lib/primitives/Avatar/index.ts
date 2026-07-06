@@ -18,6 +18,11 @@ import type { AvatarSlots, AvatarVariants } from './avatar.variants';
  * ```svelte
  * <Avatar name="Jane Smith" randomColor clickable onclick={() => showProfile()} />
  * ```
+ *
+ * @example
+ * ```svelte
+ * <Avatar name="Ada Lovelace" status="online" pulse />
+ * ```
  */
 export interface AvatarProps
   extends AvatarVariants,
@@ -51,7 +56,7 @@ export interface AvatarProps
   class?: string;
   /** Remove all default tv classes. */
   unstyled?: boolean;
-  /** Per-slot class overrides merged with tv styles. Slots: base | image | fallback | status */
+  /** Per-slot class overrides merged with tv styles. Slots: base | frame | image | fallback | status */
   slotClasses?: Partial<Record<AvatarSlots, string>>;
   /**
    * Apply a named preset registered via `<BlocksProvider presets={{ Avatar: {...} }}>`.

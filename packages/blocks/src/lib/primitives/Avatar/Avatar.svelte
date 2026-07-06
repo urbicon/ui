@@ -17,6 +17,7 @@
     intent = 'neutral',
     status,
     statusPosition = 'bottom-right',
+    pulse = false,
     ring = false,
     ringIntent = 'primary',
     ringColor,
@@ -91,6 +92,7 @@
     intent: randomColor ? undefined : intent,
     status,
     statusPosition,
+    pulse,
     ring,
     ringIntent: ringColor ? undefined : ringIntent,
     interactive: isInteractive
@@ -102,30 +104,15 @@
     resolveSlotClasses(blocksConfig, 'Avatar', preset, variantProps, slotClassesProp)
   );
 
-  const dynamicStyles = $derived.by(() => {
-    const styles: Record<string, string> = {};
-
-    if (randomColor && randomBg) {
-      // Inline style property names must be kebab-case, not JS camelCase.
-      // Previously `styles.backgroundColor` serialised as-is, so browsers
-      // ignored it and the avatar fell back to surface-interactive + white
-      // text (1.15:1 contrast).
-      styles['background-color'] = randomBg;
-      styles.color = 'white';
-    }
-
-    if (ringColor) {
-      styles['border-color'] = ringColor;
-    }
-
-    return styles;
-  });
-
-  const styleString = $derived(
-    Object.entries(dynamicStyles)
-      .map(([key, value]) => `${key}: ${value}`)
-      .join('; ')
+  // `randomColor` paints the visible fill, so it targets the `frame` slot;
+  // `ringColor` tints the ring on the outer `base`. Inline property names stay
+  // kebab-case — a previous camelCase `backgroundColor` was silently ignored by
+  // browsers, dropping the avatar back to surface-interactive + white text.
+  const frameStyle = $derived(
+    randomColor && randomBg ? `background-color: ${randomBg}; color: white` : undefined
   );
+
+  const baseStyle = $derived(ringColor ? `border-color: ${ringColor}` : undefined);
 
   $effect(() => {
     if (avatarElement && mint && mint !== 'none' && isInteractive) {
@@ -170,7 +157,7 @@
       ? [slotClasses?.base, className].filter(Boolean).join(' ')
       : styles.base({ class: [slotClasses?.base, className] })
   ]}
-  style={styleString}
+  style={baseStyle}
   role={isInteractive ? 'button' : undefined}
   tabindex={isInteractive ? 0 : undefined}
   aria-label={isInteractive ? alt || name || bt('accessibility.avatar') : undefined}
@@ -180,24 +167,31 @@
   onkeydown={handleKeydown}
   {...restProps}
 >
-  {#if src && !imageError}
-    <img
-      {src}
-      alt={alt || name || bt('accessibility.avatar')}
-      class={unstyled ? (slotClasses?.image ?? '') : styles.image({ class: slotClasses?.image })}
-      onerror={handleImageError}
-    />
-  {:else if children}
-    {@render children()}
-  {:else}
-    <span
-      class={unstyled
-        ? (slotClasses?.fallback ?? '')
-        : styles.fallback({ class: slotClasses?.fallback })}
-    >
-      {getInitials(name)}
-    </span>
-  {/if}
+  <!-- `frame` clips the image/initials to the avatar shape; the status dot
+       below is a sibling so it renders outside the clip and stays whole. -->
+  <div
+    class={unstyled ? (slotClasses?.frame ?? '') : styles.frame({ class: slotClasses?.frame })}
+    style={frameStyle}
+  >
+    {#if src && !imageError}
+      <img
+        {src}
+        alt={alt || name || bt('accessibility.avatar')}
+        class={unstyled ? (slotClasses?.image ?? '') : styles.image({ class: slotClasses?.image })}
+        onerror={handleImageError}
+      />
+    {:else if children}
+      {@render children()}
+    {:else}
+      <span
+        class={unstyled
+          ? (slotClasses?.fallback ?? '')
+          : styles.fallback({ class: slotClasses?.fallback })}
+      >
+        {getInitials(name)}
+      </span>
+    {/if}
+  </div>
 
   {#if status}
     <span
@@ -229,8 +223,35 @@
     }
   }
 
+  /* AVT-3: opt-in "live" pulse on the status dot. A radar ring radiates via an
+     animated box-shadow — no extra DOM — coloured to match the status through
+     the per-status `--blocks-avatar-pulse-color` set in avatar.variants.ts.
+     The dot now sits outside the frame's overflow-hidden clip, so the ring is
+     never cut off. */
+  :global(.blocks-avatar-status-pulse) {
+    animation: avatar-status-pulse 1.6s var(--blocks-ease-confident) infinite;
+  }
+
+  /* The ring must reach its brightest while it is already clear of the dot —
+     a shadow at spread 0 hides behind the opaque dot, so a plain from/to fade
+     only ever shows the faint, expanded tail. The mid stop lights it up at a
+     visible radius; it then keeps growing and fades to nothing. */
+  @keyframes avatar-status-pulse {
+    0% {
+      box-shadow: 0 0 0 0 color-mix(in oklab, var(--blocks-avatar-pulse-color) 0%, transparent);
+    }
+    35% {
+      box-shadow: 0 0 0 0.22rem
+        color-mix(in oklab, var(--blocks-avatar-pulse-color) 60%, transparent);
+    }
+    100% {
+      box-shadow: 0 0 0 0.6rem color-mix(in oklab, var(--blocks-avatar-pulse-color) 0%, transparent);
+    }
+  }
+
   @media (prefers-reduced-motion: reduce) {
-    :global(.blocks-mint-pulse) {
+    :global(.blocks-mint-pulse),
+    :global(.blocks-avatar-status-pulse) {
       animation: none;
     }
   }

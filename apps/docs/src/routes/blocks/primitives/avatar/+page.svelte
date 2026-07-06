@@ -119,6 +119,7 @@
           ],
           defaultValue: 'bottom-right'
         },
+        { type: 'checkbox', key: 'pulse', label: 'Pulse', defaultValue: false },
         { type: 'checkbox', key: 'ring', label: 'Ring', defaultValue: false },
         {
           type: 'dropdown',
@@ -144,6 +145,7 @@
         intent: 'neutral',
         status: '',
         statusPosition: 'bottom-right',
+        pulse: false,
         ring: false,
         ringIntent: 'primary',
         randomColor: false,
