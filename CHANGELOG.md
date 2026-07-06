@@ -4,6 +4,11 @@ All notable changes to this project will be documented in this file.
 This changelog is automatically generated from [Conventional Commits](https://www.conventionalcommits.org).
 
 
+## [6.20.1] - 2026-07-06
+
+### Documentation
+- **design**: Reframe settings Tab-vs-Sidebar as a scale-based choice
+
 ## [6.20.0] - 2026-07-06
 
 ### Bug Fixes
