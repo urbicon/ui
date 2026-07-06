@@ -69,6 +69,8 @@ export interface CalendarContext {
   goToToday: () => void;
   selectDate: (date: Date) => void;
   setFocusedDate: (date: Date) => void;
+  /** Move the roving focus by whole days (keyboard arrows / page keys). */
+  moveFocus: (deltaDays: number) => void;
   setHoveredDate: (date: Date | null) => void;
   setView: (view: CalendarViewMode) => void;
   /** Navigate to a specific month (used by year grid drill-down). */

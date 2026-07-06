@@ -4,6 +4,7 @@
   import { fly } from 'svelte/transition';
   import { getCalendarContext, createSlotHelper } from './calendar.context';
   import { getWeekNumber, toIso } from '$lib/date';
+  import { handleDateGridKeydown } from '$lib/internal/date-grid';
   import { getMultiDayEventLayout } from './calendar.engine';
   import { swipeable } from '$lib/utils/swipeable';
   import type { CalendarEvent, DayCellContext } from './calendar.types';
@@ -41,87 +42,28 @@
   const barHeight = $derived(ctx.size === 'sm' ? 16 : ctx.size === 'lg' ? 24 : 20);
   const barGap = 2;
 
-  // Keyboard navigation handler
-  // Local Date copies for keyboard nav — not reactive state.
-  function handleKeydown(e: KeyboardEvent) {
-    const current = new Date(ctx.focusedDate);
-    let newDate: Date | null = null;
+  // Roving-focus keyboard nav runs through the shared date-grid handler (the same
+  // one Planner's DateGridScaffold uses) so the ARIA key map — arrows, Home/End,
+  // Page(±month), Shift+Page(±year), Enter/Space — lives in one place. The
+  // CalendarContext satisfies DateGridKeyboardTarget (moveFocus/setFocusedDate/
+  // selectDate all delegate to the shared controller).
+  let gridEl = $state<HTMLElement | null>(null);
 
-    switch (e.key) {
-      case 'ArrowRight':
-        newDate = new Date(current);
-        newDate.setDate(current.getDate() + 1);
-        break;
-      case 'ArrowLeft':
-        newDate = new Date(current);
-        newDate.setDate(current.getDate() - 1);
-        break;
-      case 'ArrowDown':
-        newDate = new Date(current);
-        newDate.setDate(current.getDate() + 7);
-        break;
-      case 'ArrowUp':
-        newDate = new Date(current);
-        newDate.setDate(current.getDate() - 7);
-        break;
-      case 'Home':
-        if (e.ctrlKey || e.metaKey) {
-          newDate = new Date(ctx.displayedYear, ctx.displayedMonth, 1);
-        } else {
-          newDate = new Date(current);
-          newDate.setDate(current.getDate() - ((current.getDay() - ctx.weekStartsOn + 7) % 7));
-        }
-        break;
-      case 'End':
-        if (e.ctrlKey || e.metaKey) {
-          newDate = new Date(ctx.displayedYear, ctx.displayedMonth + 1, 0);
-        } else {
-          newDate = new Date(current);
-          newDate.setDate(
-            current.getDate() + (6 - ((current.getDay() - ctx.weekStartsOn + 7) % 7))
-          );
-        }
-        break;
-      case 'PageDown':
-        newDate = new Date(current);
-        newDate.setMonth(current.getMonth() + 1);
-        break;
-      case 'PageUp':
-        newDate = new Date(current);
-        newDate.setMonth(current.getMonth() - 1);
-        break;
-      case 'Enter':
-      case ' ':
-        e.preventDefault();
-        ctx.selectDate(ctx.focusedDate);
-        return;
-      case 'Escape':
-        return;
-      default:
-        return;
-    }
-
-    if (newDate) {
-      e.preventDefault();
-      // Capture the grid while the event is still dispatching: `e.currentTarget` is
-      // null inside the rAF callback a frame later (the browser clears it after
-      // dispatch). CalendarDay uses pure roving tabindex with no isFocused-driven
-      // .focus(), so this rAF is the only thing that moves real DOM focus onto the
-      // landed day — mirrors DateGridScaffold's bound-ref approach.
-      const grid = e.currentTarget as HTMLElement;
-      ctx.setFocusedDate(newDate);
-
-      requestAnimationFrame(() => {
-        // setFocusedDate clamps to [minDate, maxDate], so focus the *landed* day (the
-        // one that took roving tabindex), not the raw requested newDate.
-        const dateStr = toIso(ctx.focusedDate);
-        grid.querySelector<HTMLElement>(`[data-date="${dateStr}"]`)?.focus();
-      });
-    }
+  function handleKeydown(event: KeyboardEvent) {
+    if (!handleDateGridKeydown(event, ctx)) return;
+    // CalendarDay uses pure roving tabindex with no isFocused-driven .focus(), so
+    // this rAF is the only thing that moves real DOM focus onto the landed day.
+    // The controller clamps focus to [minDate, maxDate], so target the day that
+    // actually took the roving tabindex (ctx.focusedDate), not the raw key intent.
+    const target = toIso(ctx.focusedDate);
+    requestAnimationFrame(() => {
+      gridEl?.querySelector<HTMLElement>(`[data-date="${target}"]`)?.focus();
+    });
   }
 </script>
 
 <div
+  bind:this={gridEl}
   class={slot('grid', className)}
   role="grid"
   tabindex={0}

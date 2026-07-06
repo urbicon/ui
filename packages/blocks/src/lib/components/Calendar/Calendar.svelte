@@ -452,6 +452,10 @@
     controller.setFocusedDate(date);
   }
 
+  function moveFocus(deltaDays: number) {
+    controller.moveFocus(deltaDays);
+  }
+
   function setHoveredDate(date: Date | null) {
     controller.setHoveredDate(date);
   }
@@ -567,6 +571,7 @@
     goToMonth,
     selectDate,
     setFocusedDate,
+    moveFocus,
     setHoveredDate,
     setView,
     isDateDisabled: (date: Date) => controller.isDisabled(date),
