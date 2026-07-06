@@ -218,7 +218,7 @@
                 <Avatar
                   name="Noah Bennett"
                   size="sm"
-                  slotClasses={{ base: 'bg-neutral-800 text-neutral-300' }}
+                  slotClasses={{ frame: 'bg-neutral-800 text-neutral-300' }}
                 />
                 <div class="min-w-0 flex-1">
                   <p class="truncate text-sm font-medium text-neutral-200">Noah B.</p>

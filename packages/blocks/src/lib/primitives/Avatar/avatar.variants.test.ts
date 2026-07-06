@@ -5,10 +5,12 @@ describe('avatarVariants', () => {
   // Regression guard for the AVT-1 clipping fix: the clip lives on `frame`, and
   // `base` must stay clip-free so the status dot (a sibling of `frame`) is never
   // cut into a crescent.
-  it('confines overflow-hidden to the frame, never the base', () => {
-    const styles = avatarVariants({ variant: 'circle' });
-    expect(styles.frame()).toContain('overflow-hidden');
-    expect(styles.base()).not.toContain('overflow-hidden');
+  it('confines overflow-hidden to the frame, never the base — for every shape', () => {
+    for (const variant of ['circle', 'rounded', 'square'] as const) {
+      const styles = avatarVariants({ variant });
+      expect(styles.frame()).toContain('overflow-hidden');
+      expect(styles.base()).not.toContain('overflow-hidden');
+    }
   });
 
   it('paints the intent fill on the frame, not the base', () => {
@@ -16,6 +18,13 @@ describe('avatarVariants', () => {
     expect(styles.frame()).toContain('bg-primary-subtle');
     expect(styles.frame()).toContain('text-primary-emphasis');
     expect(styles.base()).not.toContain('bg-primary-subtle');
+  });
+
+  it('gives the frame a neutral surface fill by default (no intent)', () => {
+    const styles = avatarVariants({ intent: 'neutral' });
+    expect(styles.frame()).toContain('bg-surface-interactive');
+    expect(styles.frame()).toContain('text-text-secondary');
+    expect(styles.base()).not.toContain('bg-surface-interactive');
   });
 
   it('mirrors the shape radius onto both base (for the ring) and frame (for the clip)', () => {
