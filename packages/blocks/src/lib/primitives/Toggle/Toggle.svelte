@@ -43,7 +43,7 @@
   const blocksConfig = getBlocksConfig();
   const unstyled = $derived(unstyledProp || blocksConfig?.unstyled || false);
 
-  let rootEl = $state<HTMLElement>();
+  let trackElement = $state<HTMLElement>();
 
   // Tier precedence (closest wins): own prop → TierContext (Toolbar / ButtonGroup)
   // → 'commit' default. A bare Toggle is a Pill switch; a Toolbar tier="modify"
@@ -72,9 +72,12 @@
 
   const dataState = $derived(checked ? 'checked' : 'unchecked');
 
+  // Mint targets the directional switch track, not the enclosing <label> that
+  // also wraps the text — a hover/scale effect belongs to the control surface,
+  // mirroring SegmentItem/Button (XC-1).
   $effect(() => {
-    if (rootEl && mint && mint !== 'none' && !disabled) {
-      return mintRegistry.apply(rootEl, mint);
+    if (trackElement && mint && mint !== 'none' && !disabled) {
+      return mintRegistry.apply(trackElement, mint);
     }
   });
 
@@ -93,7 +96,6 @@
     class={unstyled
       ? (slotClasses?.control ?? '')
       : styles.control({ class: slotClasses?.control })}
-    bind:this={rootEl}
     for={ff.fieldId}
   >
     <input
@@ -115,6 +117,7 @@
 
     <span
       class={unstyled ? (slotClasses?.track ?? '') : styles.track({ class: slotClasses?.track })}
+      bind:this={trackElement}
       aria-hidden="true"
       data-state={dataState}
     >

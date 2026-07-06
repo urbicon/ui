@@ -54,7 +54,7 @@
   const blocksConfig = getBlocksConfig();
   const unstyled = $derived(unstyledProp || blocksConfig?.unstyled || false);
 
-  let controlElement = $state<HTMLElement>();
+  let boxElement = $state<HTMLElement>();
   let inputRef = $state<HTMLInputElement>();
 
   const dataState = $derived(indeterminate ? 'indeterminate' : checked ? 'checked' : 'unchecked');
@@ -85,9 +85,12 @@
     }
   });
 
+  // Mint targets the directional box (the visual checkbox), not the enclosing
+  // <label> that also wraps the text — a hover/scale effect belongs to the
+  // control surface, mirroring SegmentItem/Button (XC-1).
   $effect(() => {
-    if (controlElement && mint && mint !== 'none' && !disabled) {
-      return mintRegistry.apply(controlElement, mint);
+    if (boxElement && mint && mint !== 'none' && !disabled) {
+      return mintRegistry.apply(boxElement, mint);
     }
   });
 
@@ -111,7 +114,6 @@
     class={unstyled
       ? (slotClasses?.control ?? '')
       : styles.control({ class: slotClasses?.control })}
-    bind:this={controlElement}
     for={id}
   >
     <input
@@ -133,6 +135,7 @@
 
     <span
       class={unstyled ? (slotClasses?.box ?? '') : styles.box({ class: slotClasses?.box })}
+      bind:this={boxElement}
       aria-hidden="true"
       data-state={dataState}
     >
