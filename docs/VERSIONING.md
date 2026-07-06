@@ -31,6 +31,8 @@ Bump **after pushing a coherent set of changes**. Bump proactively — don't wai
 
 Result: one release commit + one annotated tag on HEAD. The tag on HEAD is critical — it triggers the CI publish pipeline. Push with `git push --follow-tags`. **Never edit `CHANGELOG.md` manually** — it is fully auto-generated.
 
+**`apps/*` are intentionally out of scope.** The bump only scans `packages/`, and the version write is additionally guarded to non-private packages. `apps/docs` is a private, never-published app, so it keeps its own `package.json` version (currently `0.0.1`) rather than tracking the library version — a private app sharing the public library version would be misleading. This is by design, not a drift to fix.
+
 ## Commit types → Changelog sections
 
 | Commit type | Changelog section | When to use                                |
