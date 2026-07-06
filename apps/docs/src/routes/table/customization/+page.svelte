@@ -3,7 +3,7 @@
   import { CodeExample, DocsLayout as DocsPageLayout, Section } from '@urbicon-ui/docs';
   import { Table } from '@urbicon-ui/table';
   import { resolve } from '$app/paths';
-  import { employees, basicColumns } from '../_data';
+  import { basicColumns } from '../_data';
 </script>
 
 <SeoMeta title="Customization - Table" />
