@@ -64,6 +64,9 @@
     onSearchTermChange = undefined
   }: TableProviderProps = $props();
 
+  // Store is built once from the initial persistence config — not meant to
+  // re-create if the prop changes reactively.
+  // svelte-ignore state_referenced_locally
   const tableState = createTableState(persistenceConfig);
   attachTableContext(tableState);
 
@@ -93,6 +96,10 @@
     }
   });
 
+  // One-shot DEV sanity check on the initial server-mode configuration. The
+  // actual query lifecycle (below) reads queryFn/onQueryChange reactively inside
+  // its $effect, so this init-only read is intentional.
+  // svelte-ignore state_referenced_locally
   if (import.meta.env?.DEV && mode === 'server' && !queryFn && !onQueryChange) {
     console.warn(
       '[Table] mode="server" without queryFn or onQueryChange — the table has no way to fetch data.'

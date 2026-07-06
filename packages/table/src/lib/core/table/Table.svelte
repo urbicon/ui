@@ -86,6 +86,8 @@
     fit = 'content'
   }: TableProps<T> = $props();
 
+  // One-shot DEV migration warning for the v1.5 slot rename.
+  // svelte-ignore state_referenced_locally
   if (import.meta.env?.DEV && 'wrapper' in slotClasses) {
     console.warn('[Table] slotClasses.wrapper was renamed to slotClasses.scrollArea in v1.5.');
   }
