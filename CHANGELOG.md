@@ -4,6 +4,17 @@ All notable changes to this project will be documented in this file.
 This changelog is automatically generated from [Conventional Commits](https://www.conventionalcommits.org).
 
 
+## [6.21.0] - 2026-07-06
+
+### Documentation
+- **versioning**: Note apps/* are intentionally out of unified versioning
+
+### Features
+- **blocks**: Type ConfirmDialog transitionDuration/transitionEasing
+
+### Miscellaneous
+- **table**: Annotate intentional state_referenced_locally captures
+
 ## [6.20.2] - 2026-07-06
 
 ### Bug Fixes
