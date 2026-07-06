@@ -4,6 +4,22 @@ All notable changes to this project will be documented in this file.
 This changelog is automatically generated from [Conventional Commits](https://www.conventionalcommits.org).
 
 
+## [6.19.2] - 2026-07-06
+
+### Breaking Changes
+- **blocks**: Default CurrencyInput locale to the active i18n locale
+> **BREAKING:** CurrencyInput's `locale` prop now defaults to `'auto'` (the active i18n locale, `en` without a provider) instead of `'de-DE'`. Consumers relying on the implicit German formatting must pass `locale="de-DE"` or mount an `<I18nProvider locale="de">`.
+
+### Documentation
+- Note blocks check/test needs built workspace deps in a fresh worktree
+
+### Features
+- **blocks**: Add variant axis to Combobox (outlined/filled/ghost/underline)
+
+### Refactoring
+- **docs**: Drop 46 redundant pass-through +layout.svelte files
+- Drop dead @typescript-eslint eslint-disable directives
+
 ## [6.19.1] - 2026-07-05
 
 ### Bug Fixes
