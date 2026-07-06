@@ -88,6 +88,20 @@ export interface ConfirmDialogProps {
   /** Whether Escape cancels. @default true */
   closeOnEscape?: boolean;
 
+  /**
+   * Override the enter/exit animation duration in milliseconds, forwarded to
+   * the underlying {@link Dialog}. Defaults to the overlay token
+   * `--blocks-overlay-enter-duration` / `--blocks-overlay-exit-duration`
+   * (200ms / 180ms). Respects `prefers-reduced-motion`.
+   */
+  transitionDuration?: number;
+
+  /**
+   * Override the enter/exit easing function, forwarded to the underlying
+   * {@link Dialog}. Defaults to the overlay token easing (`quintOut`).
+   */
+  transitionEasing?: (t: number) => number;
+
   /** Optional richer markup rendered below `description`. */
   children?: Snippet;
 }
