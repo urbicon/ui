@@ -4,6 +4,18 @@ All notable changes to this project will be documented in this file.
 This changelog is automatically generated from [Conventional Commits](https://www.conventionalcommits.org).
 
 
+## [6.20.2] - 2026-07-06
+
+### Bug Fixes
+- **blocks**: Use spec-compliant prefers-contrast: more
+- **blocks**: Resolve state_referenced_locally sweep
+
+### Documentation
+- **agents**: Note the expected import.meta.env build warning
+
+### Testing
+- **auth**: Broaden timing-safe compare length/position coverage
+
 ## [6.20.1] - 2026-07-06
 
 ### Documentation
