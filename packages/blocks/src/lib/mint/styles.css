@@ -177,7 +177,7 @@
 
 /* === HIGH CONTRAST MODE === */
 
-@media (prefers-contrast: high) {
+@media (prefers-contrast: more) {
   .blocks-mint-glow {
     box-shadow: 0 0 0 2px currentColor;
   }

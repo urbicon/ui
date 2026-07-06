@@ -157,7 +157,7 @@
 }
 
 /* ===== HIGH CONTRAST MODE ===== */
-@media (prefers-contrast: high) {
+@media (prefers-contrast: more) {
   :root {
     /* Increase contrast ratios — overrides the semantic tokens that
        components actually consume. */

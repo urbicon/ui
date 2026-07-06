@@ -261,7 +261,7 @@
   /* High-contrast delineation for the avatar disc. Targets the stable
      `blocks-avatar` root marker exactly — not `[class*='blocks-avatar']`, which
      would also catch the `blocks-avatar-status-pulse` dot and ring it. */
-  @media (prefers-contrast: high) {
+  @media (prefers-contrast: more) {
     :global(.blocks-avatar) {
       outline: 2px solid currentColor;
       outline-offset: -2px;
