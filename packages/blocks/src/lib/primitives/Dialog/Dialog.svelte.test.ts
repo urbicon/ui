@@ -66,6 +66,19 @@ describe('Dialog (component interaction)', () => {
     expect((el as HTMLDialogElement).open).toBe(true);
   });
 
+  it('does not leak a body scroll lock when unmounted before the deferred showModal', async () => {
+    renderDialog({ open: true });
+    // Tear down before the opener effect's tick().then callback has run: the
+    // unmount nulls dialogEl and onDestroy has already unlocked, so an
+    // unguarded callback would lockBodyScroll() with nothing ever unlocking —
+    // the whole page stays overflow:hidden (module-global refcount).
+    dispose?.();
+    dispose = undefined;
+    await tick();
+
+    expect(document.body.style.overflow).not.toBe('hidden');
+  });
+
   it('fires onClose on Escape (closeOnEscape defaults to true)', async () => {
     const user = userEvent.setup();
     const onClose = vi.fn();

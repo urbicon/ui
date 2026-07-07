@@ -79,13 +79,21 @@ export function focusFirstElement(container: HTMLElement | undefined): void {
  * but the ref is captured by value: if the caller passes an as-yet-unbound
  * `dialogEl`, the `tick()` still runs `undefined?.showModal()` — a silent no-op
  * that left Dialog/Drawer never actually modal. Sequencing is the caller's job;
- * this function is synchronous.
+ * the top-layer promotion here is synchronous (only the focus move inside
+ * `focusFirstElement` defers by a tick).
  */
 export function showDialogModal(
   dialogEl: HTMLDialogElement | undefined,
   panelEl: HTMLElement | undefined
 ): void {
   if (!isBrowser) return;
+  if (!dialogEl && import.meta.env?.DEV) {
+    console.warn(
+      '[blocks] showDialogModal called before the <dialog> ref was bound — ' +
+        'the overlay will not enter the top layer (no :modal, no initial focus). ' +
+        'Defer the call until after the render that binds it (e.g. tick().then(...)).'
+    );
+  }
   lockBodyScroll();
   dialogEl?.showModal();
   focusFirstElement(panelEl);

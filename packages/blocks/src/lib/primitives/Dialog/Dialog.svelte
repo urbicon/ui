@@ -132,7 +132,12 @@
       // Defer until the `{#if isVisible}` block has rendered so `bind:this` has
       // assigned dialogEl/panelEl — showDialogModal captures the refs by value,
       // so promoting before the bind would silently no-op (never actually modal).
-      tick().then(() => showDialogModal(dialogEl, panelEl));
+      // The guard covers same-flush teardown: if the component unmounts before
+      // the tick resolves, bind:this has nulled dialogEl and onDestroy's
+      // unlockBodyScroll has already run — locking now would leak the lock.
+      tick().then(() => {
+        if (dialogEl) showDialogModal(dialogEl, panelEl);
+      });
     }
   });
 
