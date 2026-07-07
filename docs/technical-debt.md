@@ -76,29 +76,6 @@ internal TODO instead.
   success + busy-lock paths are covered; the reject path is deliberately not
   asserted because it can't be without provoking the unhandled rejection).
 
-### Dialog/Drawer `onDestroy` unlock can release another overlay's scroll lock
-
-- **Where:** `packages/blocks/src/lib/primitives/Dialog/Dialog.svelte` and
-  `packages/blocks/src/lib/primitives/Drawer/Drawer.svelte` (`onDestroy(() =>
-  unlockBodyScroll())`), against the module-global `bodyScrollLockCount` in
-  `packages/blocks/src/lib/utils/overlay.ts`.
-- **What:** The `onDestroy` unlock runs unconditionally — even when this
-  instance never took a lock (mounted closed and destroyed, or destroyed after a
-  regular close whose `handleOutroEnd` already unlocked). Because the lock is a
-  module-global refcount, the spurious decrement releases *someone else's* lock:
-  Dialog A open (count 1), an unrelated closed Dialog B unmounts → count 0 →
-  body scroll restored underneath the still-open A. The safety net itself is
-  needed (destroy-while-open must unlock), it just fires too broadly.
-- **Why deferred:** The clean fix is per-instance lock ownership (a `hasLock`
-  flag set/cleared alongside `showDialogModal`/`closeDialogModal`, or lock
-  tokens in `overlay.ts`), which touches all three lock consumers — Sidebar has
-  the same defect twice over: its `$effect` cleanup unlocks on every re-run even
-  when the guarded body (`open && isMobile`) never locked, *plus* the same
-  unconditional `onDestroy` unlock. A small coordinated sweep, not a one-line
-  patch.
-- **Found:** 2026-07-08, while reviewing the `showModal()` ref-bind fix
-  (bc10fbc); pre-existing, not introduced by that commit.
-
 ### `Collapsible` optimistically mutates a controlled `open` prop on toggle
 
 - **Where:** `packages/blocks/src/lib/primitives/Collapsible/Collapsible.svelte`

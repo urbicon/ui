@@ -1,12 +1,11 @@
 <script lang="ts">
-  import { onDestroy } from 'svelte';
   import { MediaQuery } from 'svelte/reactivity';
   import { quintOut } from 'svelte/easing';
   import { fade } from 'svelte/transition';
   import type { SidebarProps } from './index';
   import { sidebarVariants, type SidebarVariants } from './sidebar.variants';
   import { getBlocksConfig, resolveSlotClasses } from '$lib/provider';
-  import { lockBodyScroll, unlockBodyScroll } from '$lib/utils/overlay';
+  import { lockBodyScroll } from '$lib/utils/overlay';
   import { overlayStack } from '$lib/utils';
 
   let {
@@ -75,17 +74,17 @@
     previouslyFocused = null;
   }
 
+  // Lock body scroll only while acting as a modal overlay (mobile + open). The
+  // acquired lock's release doubles as the effect cleanup, so it runs on both
+  // re-run and destroy — and only when this run actually locked. No onDestroy
+  // needed: a spurious extra release used to be able to free *another*
+  // overlay's lock via the shared refcount.
   $effect(() => {
-    if (open && isMobile) {
-      if (!previouslyFocused) {
-        previouslyFocused = document.activeElement as HTMLElement;
-      }
-      lockBodyScroll();
+    if (!open || !isMobile) return;
+    if (!previouslyFocused) {
+      previouslyFocused = document.activeElement as HTMLElement;
     }
-
-    return () => {
-      unlockBodyScroll();
-    };
+    return lockBodyScroll();
   });
 
   // Register only when behaving as a modal overlay (mobile + open).
@@ -93,10 +92,6 @@
   $effect(() => {
     if (!open || !isMobile) return;
     return overlayStack.register(overlayId, requestClose);
-  });
-
-  onDestroy(() => {
-    unlockBodyScroll();
   });
 
   function handleKeydown(e: KeyboardEvent) {

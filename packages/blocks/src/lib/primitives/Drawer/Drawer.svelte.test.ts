@@ -3,6 +3,7 @@ import { screen } from '@testing-library/dom';
 import type { Snippet } from 'svelte';
 import { createRawSnippet, flushSync, mount, tick, unmount } from 'svelte';
 import { afterEach, describe, expect, it } from 'vitest';
+import { lockBodyScroll } from '../../utils/overlay';
 import Drawer from './Drawer.svelte';
 import type { DrawerProps } from './index';
 
@@ -58,5 +59,22 @@ describe('Drawer (component interaction)', () => {
     await tick();
 
     expect(document.body.style.overflow).not.toBe('hidden');
+  });
+
+  it('unmounting a closed drawer leaves a foreign scroll lock intact', async () => {
+    // Mirrors the Dialog test — the onDestroy release path is duplicated per
+    // component, so each needs its own guard against freeing another
+    // overlay's share of the module-global lock.
+    const releaseForeign = lockBodyScroll();
+    try {
+      renderDrawer({ open: false });
+      dispose?.();
+      dispose = undefined;
+      await tick();
+
+      expect(document.body.style.overflow).toBe('hidden');
+    } finally {
+      releaseForeign();
+    }
   });
 });

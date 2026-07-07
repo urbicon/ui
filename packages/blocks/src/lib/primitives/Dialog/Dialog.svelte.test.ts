@@ -4,6 +4,7 @@ import userEvent from '@testing-library/user-event';
 import type { Snippet } from 'svelte';
 import { createRawSnippet, flushSync, mount, tick, unmount } from 'svelte';
 import { afterEach, describe, expect, it, vi } from 'vitest';
+import { lockBodyScroll } from '../../utils/overlay';
 import Dialog from './Dialog.svelte';
 import type { DialogProps } from './index';
 
@@ -77,6 +78,24 @@ describe('Dialog (component interaction)', () => {
     await tick();
 
     expect(document.body.style.overflow).not.toBe('hidden');
+  });
+
+  it('unmounting a closed dialog leaves a foreign scroll lock intact', async () => {
+    // Another overlay (here: a manual acquisition of the same module-global
+    // lock) is holding the body scroll. Destroying a dialog that never locked
+    // must not decrement that holder's share — the old unconditional
+    // onDestroy unlock did exactly that.
+    const releaseForeign = lockBodyScroll();
+    try {
+      renderDialog({ open: false });
+      dispose?.();
+      dispose = undefined;
+      await tick();
+
+      expect(document.body.style.overflow).toBe('hidden');
+    } finally {
+      releaseForeign();
+    }
   });
 
   it('fires onClose on Escape (closeOnEscape defaults to true)', async () => {

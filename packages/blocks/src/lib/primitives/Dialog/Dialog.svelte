@@ -5,12 +5,7 @@
   import CloseIconDefault from '$lib/icons/CloseIcon.svelte';
   import { onDestroy, tick } from 'svelte';
   import { fade, scale } from 'svelte/transition';
-  import {
-    trapFocus,
-    showDialogModal,
-    closeDialogModal,
-    unlockBodyScroll
-  } from '$lib/utils/overlay';
+  import { trapFocus, showDialogModal, closeDialogModal } from '$lib/utils/overlay';
   import { overlayStack, getOverlayMotion } from '$lib/utils';
   import Button from '../Button/Button.svelte';
   import type { DialogProps } from './index';
@@ -69,6 +64,9 @@
   let panelEl = $state<HTMLElement>();
   let isVisible = $state(false);
   let previouslyFocused: HTMLElement | null = null;
+  // Release for the body-scroll lock this instance holds while modal — set by
+  // showDialogModal, idempotent, so both teardown paths below may call it.
+  let releaseScrollLock: (() => void) | undefined;
 
   const structured = $derived(!!title);
 
@@ -120,7 +118,8 @@
   }
 
   function handleOutroEnd() {
-    closeDialogModal(dialogEl, previouslyFocused);
+    closeDialogModal(dialogEl, previouslyFocused, releaseScrollLock);
+    releaseScrollLock = undefined;
     isVisible = false;
     previouslyFocused = null;
   }
@@ -133,10 +132,10 @@
       // assigned dialogEl/panelEl — showDialogModal captures the refs by value,
       // so promoting before the bind would silently no-op (never actually modal).
       // The guard covers same-flush teardown: if the component unmounts before
-      // the tick resolves, bind:this has nulled dialogEl and onDestroy's
-      // unlockBodyScroll has already run — locking now would leak the lock.
+      // the tick resolves, bind:this has nulled dialogEl and onDestroy has
+      // already run — a lock taken now could never be released.
       tick().then(() => {
-        if (dialogEl) showDialogModal(dialogEl, panelEl);
+        if (dialogEl) releaseScrollLock = showDialogModal(dialogEl, panelEl);
       });
     }
   });
@@ -147,7 +146,11 @@
   });
 
   onDestroy(() => {
-    unlockBodyScroll();
+    // Safety net for destroy-while-open, where no outro runs. Releasing is
+    // idempotent and scoped to this instance's own lock, so a regular close
+    // (already released in handleOutroEnd) or a never-opened instance make
+    // this a no-op — it can never free another overlay's lock.
+    releaseScrollLock?.();
   });
 </script>
 

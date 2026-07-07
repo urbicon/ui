@@ -43,22 +43,35 @@ export function trapFocus(event: KeyboardEvent, container: HTMLElement | undefin
 let bodyScrollLockCount = 0;
 let savedBodyOverflow: string | undefined;
 
-export function lockBodyScroll(): void {
-  if (!isBrowser) return;
+/**
+ * Acquire a shared body-scroll lock; returns the matching release function.
+ *
+ * The count is module-global — the body stays `overflow: hidden` while at
+ * least one overlay (Dialog, Drawer, mobile Sidebar) holds a lock. Ownership
+ * is per-acquisition: only the returned release can decrement this holder's
+ * share, and it is idempotent, so calling it from multiple teardown paths
+ * (outro end + onDestroy safety net) releases exactly once and can never free
+ * a lock held by another overlay instance. There is deliberately no standalone
+ * `unlock` export — an unpaired decrement is exactly the bug this design
+ * removes.
+ */
+export function lockBodyScroll(): () => void {
+  if (!isBrowser) return () => {};
   if (bodyScrollLockCount === 0) {
     savedBodyOverflow = document.body.style.overflow;
     document.body.style.overflow = 'hidden';
   }
   bodyScrollLockCount += 1;
-}
-
-export function unlockBodyScroll(): void {
-  if (!isBrowser) return;
-  bodyScrollLockCount = Math.max(0, bodyScrollLockCount - 1);
-  if (bodyScrollLockCount === 0) {
-    document.body.style.overflow = savedBodyOverflow ?? '';
-    savedBodyOverflow = undefined;
-  }
+  let released = false;
+  return () => {
+    if (released) return;
+    released = true;
+    bodyScrollLockCount -= 1;
+    if (bodyScrollLockCount === 0) {
+      document.body.style.overflow = savedBodyOverflow ?? '';
+      savedBodyOverflow = undefined;
+    }
+  };
 }
 
 export function focusFirstElement(container: HTMLElement | undefined): void {
@@ -81,31 +94,45 @@ export function focusFirstElement(container: HTMLElement | undefined): void {
  * that left Dialog/Drawer never actually modal. Sequencing is the caller's job;
  * the top-layer promotion here is synchronous (only the focus move inside
  * `focusFirstElement` defers by a tick).
+ *
+ * Acquires a body-scroll lock and returns its release function — the caller
+ * owns the lock and must call the release on every teardown path (outro end
+ * and destroy; it is idempotent, so overlapping paths are safe). Pass it back
+ * through {@link closeDialogModal} on the regular close path.
  */
 export function showDialogModal(
   dialogEl: HTMLDialogElement | undefined,
   panelEl: HTMLElement | undefined
-): void {
-  if (!isBrowser) return;
-  if (!dialogEl && import.meta.env?.DEV) {
-    console.warn(
-      '[blocks] showDialogModal called before the <dialog> ref was bound — ' +
-        'the overlay will not enter the top layer (no :modal, no initial focus). ' +
-        'Defer the call until after the render that binds it (e.g. tick().then(...)).'
-    );
+): () => void {
+  if (!isBrowser) return () => {};
+  if (!dialogEl) {
+    // Precondition violation: nothing to promote, so also take no lock — a
+    // lock acquired here would scroll-freeze the page under a non-modal
+    // overlay even if the caller dutifully releases the returned handle.
+    if (import.meta.env?.DEV) {
+      console.warn(
+        '[blocks] showDialogModal called before the <dialog> ref was bound — ' +
+          'the overlay will not enter the top layer (no :modal, no initial focus, ' +
+          'no scroll lock). Defer the call until after the render that binds it ' +
+          '(e.g. tick().then(...)).'
+      );
+    }
+    return () => {};
   }
-  lockBodyScroll();
-  dialogEl?.showModal();
+  const releaseScrollLock = lockBodyScroll();
+  dialogEl.showModal();
   focusFirstElement(panelEl);
+  return releaseScrollLock;
 }
 
 export function closeDialogModal(
   dialogEl: HTMLDialogElement | undefined,
-  previouslyFocused: HTMLElement | null
+  previouslyFocused: HTMLElement | null,
+  releaseScrollLock?: () => void
 ): void {
   if (!isBrowser) return;
   if (dialogEl?.open) dialogEl.close();
-  unlockBodyScroll();
+  releaseScrollLock?.();
   previouslyFocused?.focus();
 }
 

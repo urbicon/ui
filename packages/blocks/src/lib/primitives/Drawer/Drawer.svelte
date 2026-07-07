@@ -5,12 +5,7 @@
   import CloseIconDefault from '$lib/icons/CloseIcon.svelte';
   import { onDestroy, tick } from 'svelte';
   import { fade, fly } from 'svelte/transition';
-  import {
-    trapFocus,
-    showDialogModal,
-    closeDialogModal,
-    unlockBodyScroll
-  } from '$lib/utils/overlay';
+  import { trapFocus, showDialogModal, closeDialogModal } from '$lib/utils/overlay';
   import { overlayStack, getOverlayMotion } from '$lib/utils';
   import Button from '../Button/Button.svelte';
   import type { DrawerProps } from './index';
@@ -61,6 +56,9 @@
   let panelElement = $state<HTMLElement>();
   let isVisible = $state(false);
   let previouslyFocused: HTMLElement | null = null;
+  // Release for the body-scroll lock this instance holds while modal — set by
+  // showDialogModal, idempotent, so both teardown paths below may call it.
+  let releaseScrollLock: (() => void) | undefined;
 
   const uid = $props.id();
   const titleId = $derived(title ? `drawer-title-${uid}` : undefined);
@@ -126,10 +124,10 @@
       // assigned dialogElement/panelElement — showDialogModal captures the refs
       // by value, so promoting before the bind would silently no-op (never modal).
       // The guard covers same-flush teardown: if the component unmounts before
-      // the tick resolves, bind:this has nulled dialogElement and onDestroy's
-      // unlockBodyScroll has already run — locking now would leak the lock.
+      // the tick resolves, bind:this has nulled dialogElement and onDestroy has
+      // already run — a lock taken now could never be released.
       tick().then(() => {
-        if (dialogElement) showDialogModal(dialogElement, panelElement);
+        if (dialogElement) releaseScrollLock = showDialogModal(dialogElement, panelElement);
       });
     }
   });
@@ -140,7 +138,11 @@
   });
 
   onDestroy(() => {
-    unlockBodyScroll();
+    // Safety net for destroy-while-open, where no outro runs. Releasing is
+    // idempotent and scoped to this instance's own lock, so a regular close
+    // (already released in handleOutroEnd) or a never-opened instance make
+    // this a no-op — it can never free another overlay's lock.
+    releaseScrollLock?.();
   });
 
   function handleBackdropDirectClick() {
@@ -157,7 +159,8 @@
   }
 
   function handleOutroEnd() {
-    closeDialogModal(dialogElement, previouslyFocused);
+    closeDialogModal(dialogElement, previouslyFocused, releaseScrollLock);
+    releaseScrollLock = undefined;
     isVisible = false;
     previouslyFocused = null;
   }
