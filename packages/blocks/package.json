@@ -101,6 +101,9 @@
     "tailwindcss": "catalog:",
     "typescript": "catalog:",
     "vite": "catalog:",
-    "vitest": "catalog:"
+    "vitest": "catalog:",
+    "jsdom": "catalog:",
+    "@testing-library/dom": "catalog:",
+    "@testing-library/user-event": "catalog:"
   }
 }
