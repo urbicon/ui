@@ -25,3 +25,27 @@ internal TODO instead.
 - **Found:** 2026-07-07, while adding `calendar.variants.test.ts` (the
   `never dark:` slot sweep passes because this is a fixed colour, not a `dark:`
   override — the token gap is orthogonal).
+
+## Testing
+
+### No standing e2e guard for Dialog/Drawer modal promotion
+
+- **Where:** `e2e/` (no dialog/drawer spec) and
+  `apps/docs/src/routes/test-fixtures/` (no dialog/drawer fixture).
+- **What:** The Dialog/Drawer `showModal()` ref-bind bug (fixed 2026-07-07 —
+  `showDialogModal` ran in the same effect tick that set `isVisible`, before
+  `bind:this` assigned the dialog element, so it captured `undefined` by value
+  and silently no-op'd; the overlays never actually entered the top layer, so
+  there was no initial panel focus and `:modal` never matched → nested overlays
+  hit the iOS #23 path). It is now covered at the unit level
+  (`Dialog.svelte.test.ts` asserts `dialog.open` via the jsdom `showModal` stub)
+  and was verified once in Chromium (`:modal` + focus moved into the panel), but
+  jsdom cannot assert `:modal` / top-layer, so there is no *standing* browser
+  regression guard.
+- **Why deferred:** A robust guard wants a dedicated `test-fixtures/dialog` (+
+  `-drawer`) route and spec (à la `floating.spec.ts`), not a brittle assertion
+  against the docs playground page (which also needs an SSR→hydration retry).
+  That is its own small package — fixture route, docs-app rebuild, spec — beyond
+  the test-writing task in flight.
+- **Found:** 2026-07-07, while adding the jsdom interaction tests for
+  Select/Menu/Dialog; the test-quality review surfaced the latent showModal bug.

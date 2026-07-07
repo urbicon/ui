@@ -3,7 +3,7 @@
   import { getBlocksConfig, resolveSlotClasses } from '$lib/provider';
   import { resolveIcon } from '$lib/icons';
   import CloseIconDefault from '$lib/icons/CloseIcon.svelte';
-  import { onDestroy } from 'svelte';
+  import { onDestroy, tick } from 'svelte';
   import { fade, scale } from 'svelte/transition';
   import {
     trapFocus,
@@ -129,7 +129,10 @@
     if (open && !isVisible) {
       isVisible = true;
       previouslyFocused = document.activeElement as HTMLElement;
-      showDialogModal(dialogEl, panelEl);
+      // Defer until the `{#if isVisible}` block has rendered so `bind:this` has
+      // assigned dialogEl/panelEl — showDialogModal captures the refs by value,
+      // so promoting before the bind would silently no-op (never actually modal).
+      tick().then(() => showDialogModal(dialogEl, panelEl));
     }
   });
 
