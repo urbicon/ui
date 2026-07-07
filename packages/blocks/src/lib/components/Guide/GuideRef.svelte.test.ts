@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 import { screen } from '@testing-library/dom';
 import userEvent from '@testing-library/user-event';
-import { type ComponentProps, flushSync, mount, unmount } from 'svelte';
+import { type ComponentProps, flushSync, mount, tick, unmount } from 'svelte';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { GuideController, type GuideStorageAdapter } from '../../utils/guide.svelte';
 import GuideRefHarness from './__fixtures__/GuideRefHarness.svelte';
@@ -73,9 +73,10 @@ describe('GuideRef (component interaction)', () => {
     renderHarness({ refArticle: 'ghost' });
 
     expect(link().tagName).toBe('SPAN');
-    // The unresolved-article warning is deferred a tick (so a same-render registration is not a
-    // false positive) — let it flush.
-    await Promise.resolve();
+    // The unresolved-article warning is deferred via the component's own `tick()` (so a same-render
+    // registration is not a false positive) — await the same tick rather than a bare microtask,
+    // which would couple to Svelte's internal scheduler depth.
+    await tick();
     expect(warn).toHaveBeenCalledWith(
       expect.stringContaining(
         '<GuideRef article="ghost"> points at an article that is not registered'

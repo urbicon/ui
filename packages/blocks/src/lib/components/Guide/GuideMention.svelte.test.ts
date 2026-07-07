@@ -75,6 +75,18 @@ describe('GuideMention (component interaction)', () => {
     expect(warn).toHaveBeenCalledWith(expect.stringContaining("('to-guide')"));
   });
 
+  it('reads the topic-meta direction when no direction prop is set (to-guide → span)', () => {
+    const controller = makeController();
+    // Register the topic with a Guide-excluding direction, no `direction` prop on the mention.
+    // resolveDirection resolves by id from the registry, so a detached element suffices — this
+    // proves the mention consults the topic meta, not just its own prop.
+    controller.registerTarget('save', document.createElement('div'), { direction: 'to-guide' });
+    renderHarness({ controller, mentions: [{ for: 'save', text: 'Save button' }] });
+
+    expect(mention('Save button').tagName).toBe('SPAN');
+    expect(warn).toHaveBeenCalledWith(expect.stringContaining("('to-guide')"));
+  });
+
   it('highlights the target on hover and clears it on mouseleave', async () => {
     const user = userEvent.setup();
     const controller = makeController();
@@ -119,8 +131,13 @@ describe('GuideMention (component interaction)', () => {
     const controller = makeController();
     renderHarness({ controller });
 
-    // Hover claims ownership; no mouseleave/blur fires before the unmount.
-    await user.hover(mention('Save button'));
+    // Claim ownership with fireEvent, not user.hover: user-event tracks a single pointer, so if it
+    // were on the mention, clicking the toggle would first fire the mention's mouseleave → clear()
+    // drops ownership before the unmount and the teardown $effect would never run (the test would
+    // pass for the wrong reason — the same caveat the topic-guard test documents). fireEvent leaves
+    // user-event's pointer off the mention, so the click below unmounts it while it still owns the
+    // ring — only the teardown can clear it.
+    fireEvent.mouseEnter(mention('Save button'));
     expect(isHighlighted('save')).toBe(true);
 
     await user.click(toggleMention());
