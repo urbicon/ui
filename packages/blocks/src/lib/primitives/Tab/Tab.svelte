@@ -132,6 +132,34 @@
     updateIndicator();
   });
 
+  // A disabled TabItem renders a `<button disabled>`, which can't hold focus —
+  // so roving navigation must skip it, otherwise selection strands on an
+  // unfocusable tab (aria-selected set, focus stuck on the previous tab).
+  function isDisabledTab(tabValue: string) {
+    const el = registeredTabs.get(tabValue);
+    return !el || (el as HTMLButtonElement).disabled;
+  }
+
+  // Walk `dir` (±1) from `from`, wrapping, to the first enabled tab. Returns
+  // `from` when every other tab is disabled (nowhere to move).
+  function nextEnabledIndex(tabValues: string[], from: number, dir: 1 | -1) {
+    const n = tabValues.length;
+    for (let i = 1; i <= n; i++) {
+      const idx = (((from + dir * i) % n) + n) % n;
+      if (!isDisabledTab(tabValues[idx])) return idx;
+    }
+    return from;
+  }
+
+  function edgeEnabledIndex(tabValues: string[], dir: 1 | -1) {
+    const n = tabValues.length;
+    for (let i = 0; i < n; i++) {
+      const idx = dir === 1 ? i : n - 1 - i;
+      if (!isDisabledTab(tabValues[idx])) return idx;
+    }
+    return -1;
+  }
+
   function handleKeyDown(event: KeyboardEvent) {
     if (disabled) return;
 
@@ -147,7 +175,7 @@
         if (orientation === 'vertical' && event.key === 'ArrowRight') return;
 
         event.preventDefault();
-        newIndex = (currentIndex + 1) % tabValues.length;
+        newIndex = nextEnabledIndex(tabValues, currentIndex, 1);
         break;
 
       case 'ArrowLeft':
@@ -156,24 +184,24 @@
         if (orientation === 'vertical' && event.key === 'ArrowLeft') return;
 
         event.preventDefault();
-        newIndex = currentIndex - 1 < 0 ? tabValues.length - 1 : currentIndex - 1;
+        newIndex = nextEnabledIndex(tabValues, currentIndex, -1);
         break;
 
       case 'Home':
         event.preventDefault();
-        newIndex = 0;
+        newIndex = edgeEnabledIndex(tabValues, 1);
         break;
 
       case 'End':
         event.preventDefault();
-        newIndex = tabValues.length - 1;
+        newIndex = edgeEnabledIndex(tabValues, -1);
         break;
 
       default:
         return;
     }
 
-    if (newIndex !== currentIndex && tabValues[newIndex]) {
+    if (newIndex !== currentIndex && newIndex >= 0 && tabValues[newIndex]) {
       tabContext.selectTab(tabValues[newIndex]);
 
       const newTab = registeredTabs.get(tabValues[newIndex]);
