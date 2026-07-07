@@ -9,7 +9,8 @@
 // Assertions use vitest's own matchers (toBe, toBeNull, document.activeElement, getAttribute, …)
 // rather than @testing-library/jest-dom: jest-dom 6's expect augmentation does not compose cleanly
 // with vitest 4's `Assertion` type (it breaks every native matcher under svelte-check), so we skip
-// it. @testing-library/svelte still auto-registers its own afterEach(cleanup) per importing file.
+// it. (@testing-library/svelte is likewise avoided — a second svelte instance breaks svelte-check;
+// tests mount with svelte's own `mount`/`unmount`.)
 if (typeof window !== 'undefined') {
   // Active-option scroll (Combobox/Select/Menu keyboard nav) — jsdom has no scrollIntoView.
   if (!Element.prototype.scrollIntoView) {
@@ -22,6 +23,88 @@ if (typeof window !== 'undefined') {
   if (!HTMLElement.prototype.showPopover) {
     HTMLElement.prototype.showPopover = () => {};
     HTMLElement.prototype.hidePopover = () => {};
+  }
+
+  // Native modal `<dialog>` (Dialog/Drawer call `showModal()` to enter the top
+  // layer). jsdom ships no showModal/show/close, so reflect the `open` attribute
+  // instead — enough for `dialog.open` assertions and the `closeDialogModal`
+  // `dialog.open` guard. No real top layer or `::backdrop`; the panel is already
+  // visible via its own CSS, so tests exercise dismiss logic, not modality paint.
+  if (!HTMLDialogElement.prototype.showModal) {
+    HTMLDialogElement.prototype.showModal = function showModal(this: HTMLDialogElement) {
+      this.setAttribute('open', '');
+    };
+    HTMLDialogElement.prototype.show = function show(this: HTMLDialogElement) {
+      this.setAttribute('open', '');
+    };
+    HTMLDialogElement.prototype.close = function close(this: HTMLDialogElement) {
+      if (!this.hasAttribute('open')) return;
+      this.removeAttribute('open');
+      this.dispatchEvent(new Event('close'));
+    };
+  }
+
+  // Svelte 5 drives `transition:` (Dialog/Drawer fade+scale) through the Web
+  // Animations API. jsdom has no WAAPI, so `element.animate` is missing and the
+  // intro would throw. The stub returns an Animation-like object whose members
+  // Svelte's transition engine actually touches (settable `onfinish`, `cancel`,
+  // `currentTime`). Note it never *fires* `onfinish`, so the intro/outro
+  // `on_finish` cleanup never runs — the panel is torn down by `unmount()`'s
+  // abort path instead (which the no-op `cancel()`/`onfinish` cover). Fine here
+  // because these tests assert synchronous dismiss logic, not the exit animation
+  // or post-close teardown; a future test that needs outro completion (DOM
+  // removal, focus-restore-on-close) would have to fire `onfinish` for real. The
+  // `finished`/`playState` fields are defensive only — Svelte doesn't read them.
+  if (!Element.prototype.animate) {
+    Element.prototype.animate = function animate() {
+      let onfinish: ((this: unknown, ev: Event) => unknown) | null = null;
+      return {
+        currentTime: 0,
+        startTime: 0,
+        playbackRate: 1,
+        playState: 'finished',
+        pending: false,
+        finished: Promise.resolve(),
+        get onfinish() {
+          return onfinish;
+        },
+        set onfinish(fn) {
+          onfinish = fn;
+        },
+        oncancel: null,
+        play() {},
+        pause() {},
+        cancel() {},
+        finish() {},
+        reverse() {},
+        persist() {},
+        commitStyles() {},
+        updatePlaybackRate() {},
+        addEventListener() {},
+        removeEventListener() {},
+        dispatchEvent() {
+          return false;
+        }
+      } as unknown as Animation;
+    };
+  }
+
+  // `prefers-reduced-motion` probes (mint micro-interactions, MediaQuery). jsdom
+  // ships no matchMedia — default to "no match" so animations report as enabled
+  // (the reduced-motion path is exercised in unit tests that mock it explicitly).
+  if (!window.matchMedia) {
+    window.matchMedia = ((query: string) => ({
+      matches: false,
+      media: query,
+      onchange: null,
+      addListener() {},
+      removeListener() {},
+      addEventListener() {},
+      removeEventListener() {},
+      dispatchEvent() {
+        return false;
+      }
+    })) as unknown as typeof window.matchMedia;
   }
 
   // Floating UI's autoUpdate observes the reference element for size/visibility changes.
