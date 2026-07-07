@@ -49,3 +49,29 @@ internal TODO instead.
   the test-writing task in flight.
 - **Found:** 2026-07-07, while adding the jsdom interaction tests for
   Select/Menu/Dialog; the test-quality review surfaced the latent showModal bug.
+
+## Component behaviour
+
+### `ConfirmDialog` propagates a rejecting async `onConfirm` as an unhandled rejection
+
+- **Where:** `packages/blocks/src/lib/primitives/ConfirmDialog/ConfirmDialog.svelte`
+  (`handleConfirm`).
+- **What:** `handleConfirm` is `try { busy = true; await onConfirm(); open = false; }
+  finally { busy = false; }` — no `catch`. When a consumer's async `onConfirm`
+  rejects (e.g. the server call it awaits fails), the observable behaviour is
+  correct — the dialog stays open (the `open = false` after the await is skipped)
+  and re-enables (busy cleared in `finally`) — but the rejection escapes
+  `handleConfirm` and, because `onclick` fires it and ignores the returned
+  promise, surfaces as an **unhandled promise rejection**. The JSDoc only
+  promises "auto-closes on success", so staying open on failure is intended;
+  the noisy rejection is the gap.
+- **Why deferred:** The fix is an API-design decision, not a mechanical change:
+  either (a) swallow the error silently (dialog just stays open), (b) add an
+  `onError?` callback so the consumer can surface it, or (c) keep propagating but
+  document that `onConfirm` must catch its own errors. Each changes the public
+  contract. Today's guidance is (c) implicitly — a consumer should `try/catch`
+  inside `onConfirm` and show their own error UI. Picking (a)/(b) wants a
+  conscious call, so it is logged rather than patched on the fly.
+- **Found:** 2026-07-07, while adding `ConfirmDialog.svelte.test.ts` (the
+  success + busy-lock paths are covered; the reject path is deliberately not
+  asserted because it can't be without provoking the unhandled rejection).
