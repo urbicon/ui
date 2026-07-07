@@ -2,7 +2,7 @@
   import { untrack } from 'svelte';
   import { SvelteMap } from 'svelte/reactivity';
   import { getBlocksConfig, resolveSlotClasses } from '$lib/provider';
-  import { getTierContext } from '$lib/utils';
+  import { edgeEnabledIndex, getTierContext, nextEnabledIndex } from '$lib/utils';
   import { segmentGroupVariants, type SegmentGroupVariants } from './segmentgroup.variants';
   import { setSegmentGroupContext } from './segmentGroup.context';
   import type { SegmentGroupContext, SegmentGroupProps } from './index';
@@ -189,37 +189,45 @@
     return () => ro.disconnect();
   });
 
+  // A disabled SegmentItem renders a `<button disabled>`, which can't hold focus,
+  // so roving navigation must skip it — otherwise selection strands on an
+  // unfocusable segment (aria-checked set, focus stuck on the previous one). The
+  // index math lives in the shared roving helpers (utils/roving).
   function handleKeyDown(event: KeyboardEvent) {
     if (disabled) return;
 
     const itemValues = Array.from(registeredItems.keys());
     const currentIndex = value ? itemValues.indexOf(value) : -1;
+    const isDisabled = (i: number) => {
+      const el = registeredItems.get(itemValues[i]);
+      return !el || (el as HTMLButtonElement).disabled;
+    };
     let newIndex: number;
 
     switch (event.key) {
       case 'ArrowRight':
       case 'ArrowDown':
         event.preventDefault();
-        newIndex = (currentIndex + 1) % itemValues.length;
+        newIndex = nextEnabledIndex(itemValues.length, currentIndex, 1, isDisabled);
         break;
       case 'ArrowLeft':
       case 'ArrowUp':
         event.preventDefault();
-        newIndex = currentIndex - 1 < 0 ? itemValues.length - 1 : currentIndex - 1;
+        newIndex = nextEnabledIndex(itemValues.length, currentIndex, -1, isDisabled);
         break;
       case 'Home':
         event.preventDefault();
-        newIndex = 0;
+        newIndex = edgeEnabledIndex(itemValues.length, 1, isDisabled);
         break;
       case 'End':
         event.preventDefault();
-        newIndex = itemValues.length - 1;
+        newIndex = edgeEnabledIndex(itemValues.length, -1, isDisabled);
         break;
       default:
         return;
     }
 
-    if (newIndex !== currentIndex && itemValues[newIndex]) {
+    if (newIndex !== currentIndex && newIndex >= 0 && itemValues[newIndex]) {
       segmentContext.selectItem(itemValues[newIndex]);
       const newItem = registeredItems.get(itemValues[newIndex]);
       newItem?.focus();
