@@ -93,17 +93,19 @@
   --blocks-stagger-cards: 150ms;
 
   /* === OVERLAY ANIMATION TOKENS (XC-11) ===
-     Single source of truth for Dialog / Drawer / Popover / Tooltip /
-     Toast / ConfirmDialog enter/exit motion. Components read these via
-     CSS where they can (CSS-driven transitions) and via the matching
-     JS constants in `utils/overlay-tokens.ts` for Svelte transitions
-     that need numeric input.
+     Shared enter/exit motion for the panel overlays: Dialog, Drawer,
+     ConfirmDialog (via Dialog) and Toast. All four drive Svelte `fly`/`scale`
+     transitions, so they read these through the JS mirror in
+     `utils/overlay-tokens.ts` (`getOverlayMotion`) — Svelte transitions need
+     numeric input. Tooltip runs a deliberately faster CSS opacity fade off its
+     own `--blocks-tooltip-*` tokens below; Popover has no enter/exit motion yet
+     (ACC-3 follow-up).
 
-     Override globally with a `BlocksProvider` style block, or per
-     instance via the component's `transitionDuration` / `transitionEasing`
-     props. `prefers-reduced-motion` below collapses both enter and exit
-     to 1ms and removes scale/fly distance — kept in one place so motion
-     reduction is consistent across every overlay. */
+     Override globally with a `BlocksProvider` style block, or per instance via
+     the component's `transitionDuration` / `transitionEasing` props.
+     `prefers-reduced-motion` below collapses both enter and exit to 1ms and
+     removes scale/fly distance — kept in one place so motion reduction is
+     consistent across every overlay. */
   --blocks-overlay-enter-duration: 200ms;
   --blocks-overlay-exit-duration: 180ms;
   --blocks-overlay-backdrop-enter-duration: 200ms;
@@ -112,6 +114,21 @@
   --blocks-overlay-panel-scale-start: 0.96;
   --blocks-overlay-panel-fly-distance: 320px;
   --blocks-overlay-backdrop-blur: 4px;
+
+  /* === TOOLTIP FADE TOKENS (ACC-3 follow-up) ===
+     The CSS opacity fade shared by the hover/focus tooltip. Deliberately faster
+     than the panel overlays above — a hint should feel instant, not staged — so
+     it defaults to the `fast` duration (150ms) + the `confident` easing. That
+     easing token is `cubic-bezier(0.4,0,0.2,1)` — exactly Tailwind's implicit
+     transition curve, which the fade used before it carried an explicit `ease-*`
+     class — so the resting fade is unchanged. Defaulting the duration through
+     `--blocks-duration-fast` means `prefers-reduced-motion` below collapses it
+     to 1ms for free. Override globally here, or per instance via Tooltip's
+     `transitionDuration` / `transitionEasing` props (which set these inline +
+     carry a `motion-reduce` guard, since an inline duration can't see the media
+     query). */
+  --blocks-tooltip-duration: var(--blocks-duration-fast);
+  --blocks-tooltip-easing: var(--blocks-ease-confident);
 
   /* === COLLAPSE ANIMATION TOKENS (ACC-3) ===
      The CSS-driven grid-template-rows collapse shared by Accordion +

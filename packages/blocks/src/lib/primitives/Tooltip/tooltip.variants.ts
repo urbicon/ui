@@ -22,7 +22,13 @@ export const tooltipVariants = tv({
       'z-[var(--z-tooltip)] overflow-visible',
       'font-medium text-center whitespace-normal max-w-xs',
       'rounded-contain pointer-events-none',
-      'transition-opacity duration-[var(--blocks-duration-fast)]',
+      // Tooltip fade tokens (ACC-3 follow-up) so `transitionDuration`/
+      // `transitionEasing` can retune the opacity fade per instance. `motion-reduce`
+      // guards the inline-override path (an inline duration bypasses the token that
+      // reduced-motion collapses to 1ms). The default easing token resolves to
+      // Tailwind's implicit transition curve, so the resting fade is unchanged.
+      'transition-opacity duration-[var(--blocks-tooltip-duration)] ease-[var(--blocks-tooltip-easing)]',
+      'motion-reduce:duration-[1ms]',
       'bg-surface-inverted text-text-inverted'
     ],
     arrow: ['absolute w-2 h-2', 'bg-inherit transform rotate-45']

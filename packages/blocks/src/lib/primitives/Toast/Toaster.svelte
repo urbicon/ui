@@ -1,7 +1,7 @@
 <script lang="ts">
   import { useBlocksI18n } from '$lib';
   import { fly } from 'svelte/transition';
-  import { quintOut } from 'svelte/easing';
+  import { getOverlayMotion } from '$lib/utils';
   import { toastVariants, type ToastVariants } from './toast.variants';
   import { toaster } from './toast.store.svelte';
   import { resolveIcon, type IconComponent } from '$lib/icons';
@@ -29,6 +29,8 @@
   let {
     placement = 'bottom-right',
     max = 5,
+    transitionDuration,
+    transitionEasing,
     class: className = '',
     unstyled: unstyledProp = false,
     slotClasses: slotClassesProp = {},
@@ -84,11 +86,22 @@
     const isBottom = placement.startsWith('bottom');
     const isRight = placement.endsWith('right');
     const isLeft = placement.endsWith('left');
+    // Enter/exit motion resolved from the shared overlay tokens
+    // (--blocks-overlay-*, same source as Dialog/Drawer): a global theme or
+    // `prefers-reduced-motion` retunes every toast, and the two props override
+    // it per toaster instance. Resolved per toast so the live reduced-motion
+    // value applies; `fly` is symmetric here, so the enter duration drives both
+    // directions.
+    const motion = getOverlayMotion({
+      enterDuration: transitionDuration,
+      exitDuration: transitionDuration,
+      easing: transitionEasing
+    });
     return {
       y: isBottom ? 20 : -20,
       x: isRight ? 20 : isLeft ? -20 : 0,
-      duration: 250,
-      easing: quintOut
+      duration: motion.enterDuration,
+      easing: motion.easing
     };
   }
 </script>

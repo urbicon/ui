@@ -21,6 +21,8 @@
     placement = 'top',
     showDelay = 200,
     hideDelay = 100,
+    transitionDuration,
+    transitionEasing,
     disabled = false,
     arrow = true,
     onVisibleChange,
@@ -33,6 +35,13 @@
 
   const blocksConfig = getBlocksConfig();
   const unstyled = $derived(unstyledProp || blocksConfig?.unstyled || false);
+
+  // ACC-3 follow-up: per-instance fade motion. Set the shared tooltip CSS
+  // variables inline only when a prop is provided, so the unset default keeps
+  // inheriting the reduced-motion-aware token.
+  const tooltipDuration = $derived(
+    transitionDuration != null ? `${transitionDuration}ms` : undefined
+  );
 
   let visible = $state(false);
   let triggerElement = $state<HTMLElement>();
@@ -245,6 +254,8 @@
   {...restProps}
   popover={topLayer ? 'manual' : null}
   style="position: fixed; margin: 0; inset: auto; overflow: visible;"
+  style:--blocks-tooltip-duration={tooltipDuration}
+  style:--blocks-tooltip-easing={transitionEasing}
   role="tooltip"
   id={tooltipId}
 >

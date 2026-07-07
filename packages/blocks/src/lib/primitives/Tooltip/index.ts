@@ -42,6 +42,22 @@ export interface TooltipProps
   /** Milliseconds before the tooltip disappears after leaving the trigger. @default 100 */
   hideDelay?: number;
 
+  /**
+   * Override the fade duration in milliseconds. Distinct from `showDelay` /
+   * `hideDelay`, which time *when* the tooltip appears — this is how fast the
+   * opacity fade itself runs. Defaults to the tooltip token
+   * `--blocks-tooltip-duration` (fast, 150ms). Respects `prefers-reduced-motion`.
+   */
+  transitionDuration?: number;
+
+  /**
+   * Override the fade easing as a CSS `<easing-function>` (e.g. `'linear'`,
+   * `'ease-out'`, `'cubic-bezier(0.4,0,0.2,1)'`). Defaults to the tooltip token
+   * `--blocks-tooltip-easing`. A CSS string, not a JS easing fn, because the
+   * tooltip fade is a pure CSS transition.
+   */
+  transitionEasing?: string;
+
   /** Whether to show a directional arrow pointing at the trigger. @default true */
   arrow?: boolean;
 

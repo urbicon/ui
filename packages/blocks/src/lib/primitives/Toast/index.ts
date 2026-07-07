@@ -90,6 +90,15 @@ export interface ToastProps extends Omit<HTMLAttributes<HTMLDivElement>, 'childr
   placement?: ToastPlacement;
   /** Maximum number of toasts visible at once. Oldest are hidden first. @default 5 */
   max?: number;
+  /**
+   * Override the enter/exit fly animation duration in milliseconds for every
+   * toast in this toaster. Defaults to the overlay token
+   * `--blocks-overlay-enter-duration` (200ms). Set globally via the CSS custom
+   * property or per-instance via this prop. Respects `prefers-reduced-motion`.
+   */
+  transitionDuration?: number;
+  /** Override the enter/exit fly easing. Defaults to the overlay token easing (`quintOut`). */
+  transitionEasing?: (t: number) => number;
   /** Extra classes merged onto the container element. */
   class?: string;
   /** Strip all default tv classes. Use with `slotClasses` for a fully custom look. */
