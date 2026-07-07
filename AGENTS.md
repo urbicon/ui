@@ -213,6 +213,10 @@ Reference/API docs are written in English; internal strategy & analysis docs are
 
 Internal working docs (strategy, launch, deployment, design analysis) are kept locally under docs/internal/ and are not part of the published repo.
 
+**Project tracking**
+
+- [docs/technical-debt.md](docs/technical-debt.md) – versioned log for small, non-blocking findings hit in passing that need a design decision or a broader sweep, not an on-the-fly fix. Add an entry rather than dropping such a finding silently; keep it to genuine deferrals (don't log what the code, git history, or planned TODO work already covers). Actively planned work lives in the internal TODO (docs/internal/) instead.
+
 **Launch & ops**
 
 - [docs/MIGRATION-v5.md](docs/MIGRATION-v5.md) – v4 → v5 consumer migration guide
