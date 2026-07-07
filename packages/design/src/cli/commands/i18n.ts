@@ -41,7 +41,11 @@ const SKIP_DIRS = new Set([
   'build',
   '.next',
   '.turbo',
-  'coverage'
+  'coverage',
+  // Test-support code, not shippable UI — the same reason `*.test.*`/`*.spec.*` files are skipped
+  // below. Fixture/harness components carry throwaway literal copy that would otherwise surface as
+  // hardcoded-string findings.
+  '__fixtures__'
 ]);
 const MAX_DEPTH = 24;
 

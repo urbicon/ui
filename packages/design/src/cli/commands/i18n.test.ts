@@ -90,6 +90,22 @@ describe('urbicon i18n', () => {
     expect(lastJson().ok).toBe(true);
   });
 
+  it('skips __fixtures__ directories (test-support code, not shippable UI)', async () => {
+    const fixturesDir = join(dir, 'src', 'lib', '__fixtures__');
+    await mkdir(fixturesDir, { recursive: true });
+    await writeFile(
+      join(fixturesDir, 'Harness.svelte'),
+      `<button>Throwaway fixture copy</button>\n`
+    );
+
+    await run('hardcoded', { json: true });
+    const json = lastJson();
+    // The fixture's literal copy is not scanned…
+    expect(json.hardcoded?.findings.some((f) => f.text === 'Throwaway fixture copy')).toBe(false);
+    // …while the regular App.svelte copy still is (the scanner ran, it just skipped the dir).
+    expect(json.hardcoded?.findings.some((f) => f.text === 'Close the dialog')).toBe(true);
+  });
+
   it('ignores a non-locale file (index.ts barrel), not flagging an invalid locale', async () => {
     await writeFile(
       join(dir, 'src', 'lib', 'translations', 'index.ts'),
