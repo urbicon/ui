@@ -1,7 +1,7 @@
 <script lang="ts">
   import { SvelteMap } from 'svelte/reactivity';
   import { getBlocksConfig, resolveSlotClasses } from '$lib/provider';
-  import { getTierContext } from '$lib/utils';
+  import { edgeEnabledIndex, getTierContext, nextEnabledIndex } from '$lib/utils';
   import { tabVariants, type TabVariants } from './tab.variants';
   import { setTabContext } from './tab.context';
   import type { TabContext, TabProps } from './index';
@@ -132,39 +132,19 @@
     updateIndicator();
   });
 
-  // A disabled TabItem renders a `<button disabled>`, which can't hold focus —
-  // so roving navigation must skip it, otherwise selection strands on an
-  // unfocusable tab (aria-selected set, focus stuck on the previous tab).
-  function isDisabledTab(tabValue: string) {
-    const el = registeredTabs.get(tabValue);
-    return !el || (el as HTMLButtonElement).disabled;
-  }
-
-  // Walk `dir` (±1) from `from`, wrapping, to the first enabled tab. Returns
-  // `from` when every other tab is disabled (nowhere to move).
-  function nextEnabledIndex(tabValues: string[], from: number, dir: 1 | -1) {
-    const n = tabValues.length;
-    for (let i = 1; i <= n; i++) {
-      const idx = (((from + dir * i) % n) + n) % n;
-      if (!isDisabledTab(tabValues[idx])) return idx;
-    }
-    return from;
-  }
-
-  function edgeEnabledIndex(tabValues: string[], dir: 1 | -1) {
-    const n = tabValues.length;
-    for (let i = 0; i < n; i++) {
-      const idx = dir === 1 ? i : n - 1 - i;
-      if (!isDisabledTab(tabValues[idx])) return idx;
-    }
-    return -1;
-  }
-
+  // A disabled TabItem renders a `<button disabled>`, which can't hold focus, so
+  // roving navigation must skip it — otherwise selection strands on an
+  // unfocusable tab (aria-selected set, focus stuck on the previous tab). The
+  // index math lives in the shared roving helpers (utils/roving).
   function handleKeyDown(event: KeyboardEvent) {
     if (disabled) return;
 
     const tabValues = Array.from(registeredTabs.keys());
     const currentIndex = tabValues.indexOf(activeValue);
+    const isDisabled = (i: number) => {
+      const el = registeredTabs.get(tabValues[i]);
+      return !el || (el as HTMLButtonElement).disabled;
+    };
 
     let newIndex: number;
 
@@ -175,7 +155,7 @@
         if (orientation === 'vertical' && event.key === 'ArrowRight') return;
 
         event.preventDefault();
-        newIndex = nextEnabledIndex(tabValues, currentIndex, 1);
+        newIndex = nextEnabledIndex(tabValues.length, currentIndex, 1, isDisabled);
         break;
 
       case 'ArrowLeft':
@@ -184,17 +164,17 @@
         if (orientation === 'vertical' && event.key === 'ArrowLeft') return;
 
         event.preventDefault();
-        newIndex = nextEnabledIndex(tabValues, currentIndex, -1);
+        newIndex = nextEnabledIndex(tabValues.length, currentIndex, -1, isDisabled);
         break;
 
       case 'Home':
         event.preventDefault();
-        newIndex = edgeEnabledIndex(tabValues, 1);
+        newIndex = edgeEnabledIndex(tabValues.length, 1, isDisabled);
         break;
 
       case 'End':
         event.preventDefault();
-        newIndex = edgeEnabledIndex(tabValues, -1);
+        newIndex = edgeEnabledIndex(tabValues.length, -1, isDisabled);
         break;
 
       default:

@@ -41,6 +41,7 @@ export {
   type OverlayMotionOverride
 } from './overlay-tokens';
 export * from './persistent-state.svelte';
+export { edgeEnabledIndex, nextEnabledIndex } from './roving';
 export {
   getTierContext,
   type InteractiveTier,
