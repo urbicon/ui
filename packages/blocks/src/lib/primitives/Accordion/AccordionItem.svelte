@@ -43,9 +43,15 @@
   }
 </script>
 
+<!--
+  Collapsible is driven purely by the `open` prop (= ctx.isOpen(value)); the
+  trigger calls ctx.toggle(value) directly rather than Collapsible's own toggle.
+  Routing through Collapsible.toggle would optimistically mutate its local open
+  state *before* ctx decides — so a rejected toggle (collapsible=false on the
+  last open item) left Collapsible visually closed while ctx kept it open.
+-->
 <Collapsible
   {open}
-  onOpenChange={() => ctx.toggle(value)}
   disabled={isDisabled}
   name={`accordion-${value}`}
   unstyled
@@ -56,7 +62,7 @@
   }}
   {...restProps}
 >
-  {#snippet trigger({ open: isOpen, toggle, triggerId, contentId })}
+  {#snippet trigger({ open: isOpen, triggerId, contentId })}
     <button
       id={triggerId}
       type="button"
@@ -64,7 +70,7 @@
       aria-expanded={isOpen}
       aria-controls={contentId}
       disabled={isDisabled}
-      onclick={toggle}
+      onclick={() => ctx.toggle(value)}
     >
       {#if customTrigger}
         {@render customTrigger({ open: isOpen })}
