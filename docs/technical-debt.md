@@ -75,3 +75,27 @@ internal TODO instead.
 - **Found:** 2026-07-07, while adding `ConfirmDialog.svelte.test.ts` (the
   success + busy-lock paths are covered; the reject path is deliberately not
   asserted because it can't be without provoking the unhandled rejection).
+
+### `Collapsible` optimistically mutates a controlled `open` prop on toggle
+
+- **Where:** `packages/blocks/src/lib/primitives/Collapsible/Collapsible.svelte`
+  (`toggle`).
+- **What:** When `open` is controlled (`open !== undefined`), `toggle` sets
+  `open = next` locally *before* calling `onOpenChange(next)`. With `bind:open`
+  this is what propagates the change, so it's correct. But a consumer that passes
+  `open={someValue}` **without** `bind` and then conditionally *rejects* the
+  change in `onOpenChange` gets a divergence: Collapsible shows `next` while the
+  consumer's source of truth still says the old value, and nothing re-syncs it
+  (the unchanged parent expression never re-runs). This is exactly the trap
+  `AccordionItem` hit for `collapsible=false` on the last open item — now worked
+  around by calling `ctx.toggle` from the trigger directly (Collapsible is driven
+  purely by its `open` prop there), fixed 2026-07-07.
+- **Why deferred:** A "pure controlled" Collapsible would have to skip the local
+  mutation when `open` is passed but not bound — and Svelte can't distinguish
+  `open={x}` from `bind:open={x}` at runtime. Resolving it is an API-design call
+  (e.g. an explicit `controlled` flag, or documenting that controlled consumers
+  must accept every `onOpenChange` or use `bind:open`), so it is logged rather
+  than reworked. In practice the common paths (`bind:open`, or unconditional
+  `onOpenChange` write-back) are unaffected.
+- **Found:** 2026-07-07, while adding `Accordion.svelte.test.ts` (the
+  `collapsible=false` last-item test surfaced the divergence).
