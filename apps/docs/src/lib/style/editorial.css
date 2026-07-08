@@ -8,7 +8,8 @@
  * shape (paper hierarchy, ink hierarchy, accent, mono meta) stays
  * identical across modes so the Editorial identity is preserved.
  *
- * Activation: <body class="docs-editorial"> (see app.html).
+ * Activation: <html class="docs-editorial"> (the shipped default in app.html;
+ * the sidebar's docs-theme toggle removes it for the bare library skin).
  *
  * Tokens live on the `--docs-*` namespace so the library identity
  * (library consumers keep the blocks tokens) stays untouched; the
@@ -71,7 +72,7 @@
    * pick up the green automatically without per-token overrides.
    *
    * Library consumers keep the blue default — this
-   * scope only applies inside `<body class="docs-editorial">`. */
+   * scope only applies inside `<html class="docs-editorial">`. */
   --color-primary-50: oklch(0.95 0.04 138);
   --color-primary-100: oklch(0.9 0.07 138);
   --color-primary-200: oklch(0.82 0.11 138);
@@ -392,7 +393,15 @@
  * Horizontal accent that separates the page title from the lede
  * below, matching the editorial mockup. Decorative (aria-hidden in
  * markup); the accent colour is the library primary which already
- * resolves correctly in both modes. */
+ * resolves correctly in both modes.
+ *
+ * The pipe is an Editorial-only signature, so it is hidden by default:
+ * the docs-theme toggle's "Library" skin drops `.docs-editorial`, and
+ * without this reset the `<span class="pipe">` would render as an
+ * orphaned "|" glued to the app/page title (`Button|`, `Urbicon UI|`). */
+.pipe {
+  display: none;
+}
 .docs-editorial .pipe {
   display: inline-block;
   color: var(--docs-accent);

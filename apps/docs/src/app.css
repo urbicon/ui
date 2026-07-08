@@ -10,7 +10,7 @@
 @import '@urbicon-ui/table/style/index.css';
 
 /* Editorial Theme (Lighter-Refactor, Programme A) — cream-paper background,
- * mono meta-font, pipe-marker. Aktiviert via <body class="docs-editorial">. */
+ * mono meta-font, pipe-marker. Aktiviert via <html class="docs-editorial">. */
 @import './lib/style/editorial.css';
 
 /* No `@custom-variant dark` here: this app, like the library, drives dark mode

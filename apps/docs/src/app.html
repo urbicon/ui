@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="en">
+<html lang="en" class="docs-editorial">
   <head>
     <meta charset="utf-8" />
     <link rel="icon" href="%sveltekit.assets%/favicon.svg" type="image/svg+xml" />
@@ -11,20 +11,28 @@
     <meta name="theme-color" media="(prefers-color-scheme: dark)" content="#1a1816" />
     <script>
       (() => {
-        // Only explicit choices set a class; system mode leaves
+        var d = document.documentElement;
+        // Dark/light: only an explicit choice sets a class; system mode leaves
         // `color-scheme: light dark` to follow the OS via light-dark().
         var t = localStorage.getItem('urbicon-theme');
-        var d = document.documentElement;
         if (t === 'dark') {
           d.classList.add('dark');
         } else if (t === 'light') {
           d.classList.add('light');
         }
+        // Editorial/library docs skin: `docs-editorial` is the shipped default
+        // (hardcoded on <html> above, so it survives with JS disabled); only an
+        // explicit 'library' choice removes it. It lives on <html> — not <body>,
+        // which does not exist yet while this <head> script runs — so the first
+        // paint already carries the right skin (no flash of the wrong theme).
+        if (localStorage.getItem('urbicon-docs-theme') === 'library') {
+          d.classList.remove('docs-editorial');
+        }
       })();
     </script>
     %sveltekit.head%
   </head>
-  <body data-sveltekit-preload-data="hover" class="docs-editorial">
+  <body data-sveltekit-preload-data="hover">
     <div style="display: contents">%sveltekit.body%</div>
   </body>
 </html>

@@ -11,10 +11,11 @@
     { id: 'override', title: 'Override Recipes', order: 5 }
   ];
 
-  const activationExample = `<!-- apps/docs/src/app.html -->
-<body data-sveltekit-preload-data="hover" class="docs-editorial">
-  %sveltekit.body%
-</body>`;
+  const activationExample = `<!-- apps/docs/src/app.html — editorial is the shipped default -->
+<html lang="en" class="docs-editorial">
+  <head>…</head>
+  <body>%sveltekit.body%</body>
+</html>`;
 
   const cssImportExample = `/* apps/docs/src/app.css */
 @import '@urbicon-ui/blocks/style/index.css';
@@ -53,7 +54,7 @@
 
 <DocsPageLayout
   title="Editorial Theme"
-  description="A token-only overlay on top of the Urbicon UI library that drives the look of this docs site — warm cream paper, mono meta-font, pipe markers. Activated via a single body class; everything else is CSS custom properties."
+  description="A token-only overlay on top of the Urbicon UI library that drives the look of this docs site — warm cream paper, mono meta-font, pipe markers. Activated via a single root class; everything else is CSS custom properties."
   {navigation}
   showToc
   breadcrumbs={[
@@ -72,7 +73,7 @@
       >) that defines a private <code class="text-text-primary">--docs-*</code> token namespace and
       binds a handful of library semantic tokens to those values when
       <code class="text-text-primary">.docs-editorial</code>
-      is present on the <code class="text-text-primary">&lt;body&gt;</code>.
+      is present on the <code class="text-text-primary">&lt;html&gt;</code> root.
     </p>
     <p class="text-text-secondary mb-4 leading-relaxed">
       Nothing in the library has been forked or duplicated. Every primitive still ships with its
@@ -242,13 +243,15 @@
     <p class="text-text-secondary mb-4 leading-relaxed">
       The theme activates when <code class="text-text-primary">.docs-editorial</code> sits on a
       parent of your content. The docs site puts it on
-      <code class="text-text-primary">&lt;body&gt;</code>
-      so the whole app inherits the warm canvas. The class only adds Editorial; it does not disable anything
-      from the library.
+      <code class="text-text-primary">&lt;html&gt;</code>
+      as the shipped default so the whole app inherits the warm canvas — and so the
+      <code class="text-text-primary">app.html</code> head script can flip it before first paint
+      (the root element exists there, <code class="text-text-primary">&lt;body&gt;</code> does not yet).
+      The class only adds Editorial; it does not disable anything from the library.
     </p>
 
     <CodeExample
-      title="1. Set the body class"
+      title="1. Set the root class"
       code={activationExample}
       language="html"
       preview={false}
@@ -267,8 +270,9 @@
 
     <p class="text-text-secondary mt-4 leading-relaxed">
       Remove the class (e.g. on a route or wrapper element that should render in library defaults)
-      and the page falls back to the library look. The underlying override mechanism is the same
-      CSS-custom-property cascade documented in
+      and the page falls back to the library look — the <strong>Docs theme</strong> toggle in this
+      site's sidebar footer does exactly that, swapping Editorial for the bare library skin live.
+      The underlying override mechanism is the same CSS-custom-property cascade documented in
       <a href={resolve('/customization/tier-system')} class="text-primary hover:underline"
         >Tier System</a
       >

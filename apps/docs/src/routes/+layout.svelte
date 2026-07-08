@@ -5,6 +5,7 @@
   import { afterNavigate } from '$app/navigation';
   import SidebarNavigation from '$lib/SidebarNavigation.svelte';
   import CommandSearch from '$lib/CommandSearch.svelte';
+  import DocsThemeToggle from '$lib/DocsThemeToggle.svelte';
   import { navigationItems } from '$lib/navigation';
   import {
     LocaleSwitcher,
@@ -125,6 +126,9 @@
 
     {#snippet sidebarFooter()}
       <div class="p-4">
+        <div class="mb-4">
+          <DocsThemeToggle />
+        </div>
         <LocaleSwitcher variant="ghost" size="sm" onLocaleChange={persistLocale} />
         <nav
           aria-label={ta('chrome.footerNav' as Parameters<typeof ta>[0])}

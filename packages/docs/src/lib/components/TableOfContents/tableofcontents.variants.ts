@@ -5,7 +5,7 @@ export const tableOfContentsVariants = tv({
     aside: ['max-lg:hidden sticky top-20 shrink-0 self-start'],
     // `text-text-tertiary` and uppercase are kept as fallback for pages
     // without the editorial scope; `meta-marker` (in editorial.css)
-    // overrides font + colour when the host body has `docs-editorial`.
+    // overrides font + colour when the host root has `docs-editorial`.
     title: ['mb-3 text-xs font-medium uppercase tracking-wider text-text-tertiary'],
     // No left rail — the editorial active indicator is a pipe glyph
     // rendered via ::before on the active link, matching the page-title

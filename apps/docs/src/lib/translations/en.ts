@@ -143,7 +143,12 @@ export default {
     privacy: 'Privacy',
     search: 'Search...',
     searchPlaceholder: 'Search components, pages...',
-    skipToContent: 'Skip to main content'
+    skipToContent: 'Skip to main content',
+    themeVariant: {
+      label: 'Docs theme',
+      editorial: 'Editorial',
+      library: 'Library'
+    }
   },
   nav: {
     overview: 'Overview',
