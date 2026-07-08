@@ -18,9 +18,13 @@ export const sectionVariants = tv({
     footer: ['mt-8']
   },
   variants: {
+    // Ownership: `size` owns the default header rhythm (mt-4/6/8/10); the
+    // named intents may set a LARGER offset of their own (hero/primary),
+    // but `default` must not — it would flatten every size to mt-4 under
+    // the fold (intent is declared later and would win the bucket).
     size: {
       sm: { header: 'mt-4', title: 'font-semibold', subtitle: 'text-sm' },
-      md: { title: 'text-lg font-semibold', subtitle: 'text-sm' },
+      md: { header: 'mt-6', title: 'text-lg font-semibold', subtitle: 'text-sm' },
       lg: { header: 'mt-8', title: 'text-xl font-semibold', subtitle: 'text-base' },
       xl: {
         header: 'mt-10',
@@ -46,7 +50,6 @@ export const sectionVariants = tv({
         subtitle: 'text-sm text-text-secondary'
       },
       default: {
-        header: 'mt-4',
         title: 'text-lg font-medium text-text-primary',
         subtitle: 'text-sm text-text-secondary'
       }
