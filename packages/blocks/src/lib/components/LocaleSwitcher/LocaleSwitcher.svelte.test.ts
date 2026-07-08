@@ -47,6 +47,18 @@ describe('LocaleSwitcher (component interaction)', () => {
     expect(options()).toHaveLength(2);
   });
 
+  it('falls back to the registered/default locales when no locales prop is given', async () => {
+    const user = userEvent.setup();
+    // The primary documented usage is `<LocaleSwitcher />` with no explicit list — it must fall
+    // back to the blocks-registered locales (en, de), never render empty.
+    renderSwitcher({});
+
+    await user.click(trigger());
+    // Assert the floor (en + de) rather than an exact count: the source is the shared i18n
+    // registry, so coupling to a precise length would couple to global registration order.
+    expect(options().length).toBeGreaterThanOrEqual(2);
+  });
+
   it('marks the active locale as selected', async () => {
     const user = userEvent.setup();
     renderSwitcher({ locales: ['en', 'de'], initialLocale: 'de' });

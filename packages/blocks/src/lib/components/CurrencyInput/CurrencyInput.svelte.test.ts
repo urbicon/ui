@@ -62,6 +62,26 @@ describe('CurrencyInput (component interaction)', () => {
     expect(input().value).toBe('1,234.56');
   });
 
+  it('truncates excess fractional digits instead of rounding (string-split, not parseFloat)', () => {
+    const onValueChange = vi.fn();
+    renderCurrency({ locale: 'en-US', onValueChange });
+
+    // "1.999" at precision 2: the extra digit is truncated → 199 cents, NOT round(1.999*100)=200.
+    // This is exactly the IEEE-754 drift the integer string-split parse exists to avoid, so it is
+    // the assertion that actually locks the cents contract (a parseFloat*factor impl would give 200).
+    type('1.999');
+    expect(onValueChange).toHaveBeenLastCalledWith(199);
+  });
+
+  it('keeps a lone leading minus as an intermediate buffer', () => {
+    renderCurrency({ locale: 'en-US' });
+
+    // Typing just "-" is an intermediate state while composing a negative; the buffer must survive
+    // so the next digit lands, rather than being wiped by formatDisplay(null) → ''.
+    type('-');
+    expect(input().value).toBe('-');
+  });
+
   it('parses a negative value into negative minor units', () => {
     const onValueChange = vi.fn();
     renderCurrency({ locale: 'en-US', onValueChange });

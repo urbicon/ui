@@ -63,6 +63,35 @@ describe('DatePicker (component interaction)', () => {
     expect(committed.getDate()).toBe(20);
   });
 
+  it('commits a typed date on Enter while focused (popover closed)', () => {
+    const onValueChange = vi.fn();
+    renderPicker({ onValueChange });
+
+    const el = input();
+    fireEvent.focus(el);
+    fireEvent.input(el, { target: { value: '20.03.2026' } });
+    fireEvent.keyDown(el, { key: 'Enter' });
+    flushSync();
+
+    expect(onValueChange).toHaveBeenCalledTimes(1);
+    expect((onValueChange.mock.calls[0][0] as Date).getDate()).toBe(20);
+  });
+
+  it('does not commit a draft when focus moves to a control inside the picker', () => {
+    const onValueChange = vi.fn();
+    renderPicker({ value: new Date(2026, 2, 15), onValueChange });
+
+    const el = input();
+    fireEvent.focus(el);
+    fireEvent.input(el, { target: { value: '20.03.2026' } });
+    // Blur into the picker's own open-calendar button (inside triggerEl) → "still editing", not
+    // "done": commitDraft must be skipped so a half-interaction doesn't commit prematurely.
+    fireEvent.blur(el, { relatedTarget: screen.getByRole('button', { name: 'Open calendar' }) });
+    flushSync();
+
+    expect(onValueChange).not.toHaveBeenCalled();
+  });
+
   it('shows a parse error and does not commit an invalid draft', () => {
     const onValueChange = vi.fn();
     renderPicker({ onValueChange });
@@ -115,6 +144,21 @@ describe('DatePicker (component interaction)', () => {
     expect(input().getAttribute('aria-expanded')).toBe('false');
   });
 
+  it('keeps the popover open on select when closeOnSelect is false', async () => {
+    const user = userEvent.setup();
+    const onValueChange = vi.fn();
+    renderPicker({ value: new Date(2026, 2, 15), onValueChange, closeOnSelect: false });
+
+    fireEvent.keyDown(input(), { key: 'ArrowDown' });
+    flushSync();
+    await user.click(day('2026-03-20') as HTMLElement);
+    flushSync();
+
+    expect(onValueChange).toHaveBeenCalled();
+    // The value still changes, but the popover stays open for further picking.
+    expect(input().getAttribute('aria-expanded')).toBe('true');
+  });
+
   it('closes the popover on Escape', () => {
     renderPicker();
 
@@ -125,6 +169,24 @@ describe('DatePicker (component interaction)', () => {
     fireEvent.keyDown(input(), { key: 'Escape' });
     flushSync();
     expect(input().getAttribute('aria-expanded')).toBe('false');
+  });
+
+  it('discards an unsaved draft on Escape so a later blur does not commit it', () => {
+    const onValueChange = vi.fn();
+    renderPicker({ value: new Date(2026, 2, 15), onValueChange });
+
+    const el = input();
+    fireEvent.focus(el);
+    // A *valid* draft: without the Escape below, the blur would commit it (onValueChange fires).
+    fireEvent.input(el, { target: { value: '20.03.2026' } });
+    fireEvent.keyDown(el, { key: 'Escape' }); // discard the draft (userDraft → null)
+    fireEvent.blur(el);
+    flushSync();
+
+    // The discarded draft is not committed — the observable proof of the revert (asserting the
+    // input's displayed value instead would couple to Svelte's one-way value reconciliation, which
+    // jsdom + fireEvent.input don't reproduce faithfully).
+    expect(onValueChange).not.toHaveBeenCalled();
   });
 
   it('clears the value via the clear button', async () => {
