@@ -50,6 +50,29 @@ internal TODO instead.
 - **Found:** 2026-07-07, while adding the jsdom interaction tests for
   Select/Menu/Dialog; the test-quality review surfaced the latent showModal bug.
 
+### `DatePicker` / `DateRangePicker`: two shared commit-path branches untested in both pickers
+
+- **Where:** `packages/blocks/src/lib/components/DatePicker/DatePicker.svelte` +
+  `DateRangePicker.svelte` (`commitDraft`'s empty-draft branch; the hidden-input
+  `serialize` / `hiddenValue` path when `valueFormat='iso'`), and their two
+  co-located `*.svelte.test.ts` files.
+- **What:** Two glue branches are covered for neither picker:
+  1. **Typed-empty clear** — emptying the field by selecting-and-deleting the text
+     (not the clear button) drives `commitDraft`'s `trimmed === ''` branch, which
+     fires `onValueChange(undefined)`. The suites only cover the clear-*button*
+     path (`handleClear`), a different function.
+  2. **`valueFormat='iso'` serialization** — the hidden form input's ISO branch
+     (`d.toISOString()`, for Drizzle/timestamp consumers per the JSDoc). Only the
+     `'date'` default (`YYYY-MM-DD`) is asserted.
+- **Why deferred:** Both are *shared* mechanics the two pickers mirror ~90% of, so
+  the fix belongs in both `*.svelte.test.ts` at once — a one-sided add would bake
+  in exactly the drift the files' mirror-comment warns against. That is a small
+  deliberate sweep, not a range-specific addition to the task in flight. Low
+  severity: the observable results (field clears; hidden value serializes) are
+  simple and unlikely to regress silently.
+- **Found:** 2026-07-08, in the pr-test-analyzer review of the new
+  `DateRangePicker.svelte.test.ts` (flagged low/optional, shared-with-sibling).
+
 ## Component behaviour
 
 ### `ConfirmDialog` propagates a rejecting async `onConfirm` as an unhandled rejection
