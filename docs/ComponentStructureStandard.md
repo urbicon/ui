@@ -177,24 +177,18 @@ export type ComponentVariants = VariantProps<typeof componentVariants>;
 export type ComponentSlots = SlotNames<typeof componentVariants>;
 ```
 
-### Variant Interactions and CSS Cascade
+### Variant Interactions — axis order is semantic
 
-The in-house `tv()` engine concatenates classes in this order: `slots.base` → variant overrides → `compoundVariants` → call-site `class`. There is no `twMerge`-style class collapsing — the CSS cascade decides which rule wins (last matching declaration of equal specificity). In practice, semantic tokens (`bg-surface-base`, `bg-transparent`) compose cleanly because variant classes appear *after* base classes in the generated string. Shared styles (background, border, hover, focus) **may live in the base slot**; variants override them correctly:
+The `tv()` engine folds an ordered list of sources: `slots.base` → **each variant axis in declaration order** → **each `compoundVariant` in array order** → call-site `class`. Every later source strips the conflicting Tailwind buckets of everything before it, so the winner of a shared bucket is decided by the config, not by stylesheet order.
 
-```typescript
-slots: { base: ['border bg-surface-base hover:border-border-default ...'] },
-variants: {
-  variant: {
-    outlined: { base: 'border-border-subtle' },
-    filled:   { base: 'bg-surface-interactive border-transparent hover:bg-surface-hover' },
-    ghost:    { base: 'bg-transparent border-transparent hover:bg-surface-subtle' },
-  }
-}
-```
+Authoring rules that follow:
 
-**Watch out for Variant x Intent conflicts:** Variants are applied in definition order. If `intent` (defined after `variant`) sets a `border-color`, it overrides the variant's border. For `ghost` (which needs `border-transparent`) this is a problem – ghost ends up looking like outlined.
+1. **Declare the axis that must win a shared bucket later.** The house order is `tier → variant/appearance → size → intent → structural flags (hasIcon, striped, …) → state axes (disabled, readonly, messageType, error, pressed, active, connected)` — states last, because a state must dominate the resting look. Deviate deliberately and leave a comment (see Button's `pressed` before `variant`, table's `sortable` after `sorted`).
+2. **Shared styles may live in the base slot** — any axis overrides them cleanly (`bg-surface-base` in base, `bg-transparent` in ghost).
+3. **Within one class string nothing is stripped** — intentional pairings like `rounded-md rounded-t-none` stay intact.
+4. **A class every reachable combination strips is dead** and fails `bun run variants:lint`. Don't leave aspirational tokens in an axis that a later axis always overrides — move them to a compound or delete them.
 
-Fix via `compoundVariants`, which are applied **after** all regular variants:
+**Variant × Intent conflicts:** if `intent` (declared after `variant`) sets a `border-color`, it deterministically replaces the variant's border. Where a specific combination needs a different answer than the axis order gives (ghost must stay `border-transparent` under intents), use `compoundVariants` — they resolve **after** all axes:
 
 ```typescript
 compoundVariants: [

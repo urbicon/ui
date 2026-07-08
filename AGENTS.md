@@ -43,7 +43,7 @@ For full details see [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md).
 - Install: `bun install`
 - Dev (all): `bun run dev` · Dev (one): `bun --filter='@urbicon-ui/blocks' run dev`
 - Build: `bun run build`
-- Quality: `bun run check` (type/svelte-check), `bun run lint`, `bun run format`
+- Quality: `bun run check` (type/svelte-check), `bun run lint`, `bun run format`, `bun run variants:lint` (dead-token guard over all tv() configs)
 - Docs generation: `bun run docs:gen:all`
 - Scaffold docs page: `bun run docs:scaffold <ComponentName> --group primitives|components`
 - Changelog: `bun run changelog` (generates `CHANGELOG.md` via git-cliff)
