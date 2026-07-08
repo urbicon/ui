@@ -17,6 +17,7 @@
   "dependencies": {
     "@fontsource-variable/newsreader": "^5.2.10",
     "@fontsource-variable/public-sans": "^5.2.7",
+    "@fontsource-variable/schibsted-grotesk": "^5.2.8",
     "@urbicon-ui/auth": "workspace:*",
     "@urbicon-ui/blocks": "workspace:*",
     "@urbicon-ui/docs": "workspace:*",

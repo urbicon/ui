@@ -1,0 +1,184 @@
+/*
+ * Color Rooms — bespoke Mid-Century poster theme for the landing page
+ * (apps/docs/src/routes/+page.svelte). Ported from the Claude Design
+ * project "Direction 3c — Color Rooms v2".
+ *
+ * The page is a fixed dark poster whose accent palette is swapped at runtime
+ * by a "channel" switcher (Gallery '52 / Terrazza '58 / Motel '64). Each
+ * product tile is a saturated colour field; inside it sits a neutral card
+ * with REAL @urbicon-ui components whose accent (`--color-primary` & the whole
+ * primary-derived token family) is scoped to that room's field colour. When
+ * the channel switches, the inline `--room-accent` custom property changes and
+ * every real component in the card repaints live — the "repaint the building"
+ * story told with the actual library, not a mockup.
+ *
+ * Three self-contained scopes, none of which depend on the docs editorial /
+ * library skin or the OS colour scheme (the landing is deliberately identical
+ * in light and dark — there is no light/dark toggle here, the channel switch
+ * IS the theme switch):
+ *
+ *   .rooms-landing  — poster ground + type voice (Schibsted Grotesk).
+ *   .poster-card    — the neutral cream+ink specimen card (pins surface/text/
+ *                     border tokens to fixed warm values so library components
+ *                     read cream+ink regardless of skin/OS).
+ *   .poster-term    — the dark terminal card for the AI specimen.
+ *   .room-accent    — re-declares the primary-derived tokens from two inline
+ *                     vars (--room-accent, --room-accent-fg). Mirrors the
+ *                     re-substitution pattern proven in editorial.css:
+ *                     overriding the ramp alone won't re-resolve :root-defined
+ *                     semantic tokens, so they are re-declared here.
+ */
+
+.rooms-landing {
+  /* Fixed poster: pin the light branch of every light-dark() token so the
+     specimens read identically in OS light and OS dark. Ground + saturated
+     fields are painted explicitly (below / inline), independent of tokens. */
+  color-scheme: light;
+
+  /* Schibsted Grotesk is the whole poster's voice — display AND body — so the
+     marketing type and the real specimen components speak one grotesk. Wins
+     over the editorial Newsreader/Public-Sans pairing within this scope. */
+  --font-display: 'Schibsted Grotesk Variable', system-ui, sans-serif;
+  --font-sans: 'Schibsted Grotesk Variable', system-ui, sans-serif;
+
+  --rooms-ink: #17150f; /* warm near-black ground */
+  --rooms-cream: #f6f3ec; /* warm off-white */
+
+  background: var(--rooms-ink);
+  color: var(--rooms-cream);
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+/* Poster headings inherit the grotesk display voice + the mockup's medium
+   weight and tight tracking. */
+.rooms-landing :is(h1, h2, h3) {
+  font-family: var(--font-display);
+  font-weight: 500;
+  letter-spacing: -0.03em;
+  line-height: 0.98;
+  margin: 0;
+}
+
+/* Saturated colour fields (hero, tiles, install) transition their paint when
+   the channel swaps. `--room-delay` staggers the rooms so the page repaints
+   room-by-room, as in the mockup. */
+.rooms-field {
+  transition:
+    background-color 0.55s ease var(--room-delay, 0s),
+    color 0.55s ease var(--room-delay, 0s);
+}
+
+/* ── Neutral specimen card ──────────────────────────────────────────────
+   Pins a fixed warm cream+ink palette so the real library components inside
+   render high-contrast regardless of editorial/library skin or OS scheme.
+   Only the primary/accent family is left to `.room-accent` to colour. */
+.poster-card {
+  background: #fbfaf6;
+  color: #1f1d17;
+
+  --color-surface-base: #fbfaf6;
+  --color-surface-quiet: #f2eee4;
+  --color-surface-elevated: #ffffff;
+  --color-surface-overlay: #ffffff;
+  --color-surface-subtle: #f2eee4;
+  --color-surface-hover: #efe9dd;
+  --color-surface-interactive: #efeae0;
+  --color-surface-active: #e7e0d1;
+  --color-surface-disabled: #f2eee4;
+
+  --color-text-primary: #1f1d17;
+  --color-text-secondary: #57534a;
+  --color-text-tertiary: #6e6a5f;
+  --color-text-quaternary: #8a8578;
+  --color-text-disabled: #b8b3a6;
+
+  --color-border-hairline: rgb(31 29 23 / 0.1);
+  --color-border-subtle: rgb(31 29 23 / 0.14);
+  --color-border-default: rgb(31 29 23 / 0.22);
+  --color-border-emphasis: rgb(31 29 23 / 0.34);
+
+  /* Warm shadow so cards blend with the cream instead of reading as cool
+     smudges (mirrors editorial's tint). */
+  --blocks-shadow-tint: 0.22 0.04 70;
+}
+
+/* ── Dark terminal card (AI specimen) ───────────────────────────────────── */
+.poster-term {
+  background: #14120d;
+  color: #f6f3ec;
+  --color-surface-base: #14120d;
+  --color-surface-elevated: #1c1a13;
+  --color-text-primary: #f6f3ec;
+  --color-text-secondary: rgb(246 243 236 / 0.72);
+  --color-border-hairline: rgb(246 243 236 / 0.16);
+  --color-border-subtle: rgb(246 243 236 / 0.22);
+}
+
+/* ── Room accent scope ──────────────────────────────────────────────────
+   Fed two inline custom properties from the active channel:
+     --room-accent      the field colour (the room's primary)
+     --room-accent-fg   its ink/cream foreground (text on the accent fill)
+   Re-declares every primary-derived semantic token so real components pick up
+   the room colour and repaint on channel switch. `oklab` mixing keeps the
+   ramp perceptually even. */
+.room-accent {
+  --_a: var(--room-accent, #00845c);
+  --_afg: var(--room-accent-fg, #f6f3ec);
+  --_cream: #fbfaf6;
+  --_ink: #17150f;
+
+  --color-primary-50: color-mix(in oklab, var(--_a) 10%, var(--_cream));
+  --color-primary-100: color-mix(in oklab, var(--_a) 18%, var(--_cream));
+  --color-primary-200: color-mix(in oklab, var(--_a) 32%, var(--_cream));
+  --color-primary-300: color-mix(in oklab, var(--_a) 50%, var(--_cream));
+  --color-primary-400: color-mix(in oklab, var(--_a) 74%, var(--_cream));
+  --color-primary-500: var(--_a);
+  --color-primary-600: color-mix(in oklab, var(--_a) 86%, var(--_ink));
+  --color-primary-700: color-mix(in oklab, var(--_a) 70%, var(--_ink));
+  --color-primary-800: color-mix(in oklab, var(--_a) 54%, var(--_ink));
+  --color-primary-900: color-mix(in oklab, var(--_a) 40%, var(--_ink));
+  --color-primary-950: color-mix(in oklab, var(--_a) 26%, var(--_ink));
+
+  --color-primary: var(--_a);
+  --color-primary-hover: color-mix(in oklab, var(--_a) 84%, var(--_ink));
+  --color-primary-active: color-mix(in oklab, var(--_a) 70%, var(--_ink));
+  --color-primary-subtle: color-mix(in oklab, var(--_a) 12%, var(--_cream));
+  --color-primary-emphasis: color-mix(in oklab, var(--_a) 88%, var(--_ink));
+  --color-text-on-primary: var(--_afg);
+
+  --color-surface-selected: color-mix(in oklab, var(--_a) 12%, var(--_cream));
+  --color-interactive-focus: var(--_a);
+  --color-interactive-hover: color-mix(in oklab, var(--_a) 10%, transparent);
+  --color-interactive-active: color-mix(in oklab, var(--_a) 20%, transparent);
+
+  /* Chart series stay in the room's colour family (tonal steps) instead of
+     pulling in unrelated intent hues. */
+  --color-chart-1: var(--_a);
+  --color-chart-2: color-mix(in oklab, var(--_a) 62%, var(--_ink));
+  --color-chart-3: color-mix(in oklab, var(--_a) 42%, var(--_cream));
+  --color-chart-4: color-mix(in oklab, var(--_a) 90%, #ffffff);
+}
+
+/* ── On-field text scope ────────────────────────────────────────────────
+   For token-driven components (e.g. the footer LocaleSwitcher) placed
+   directly on a saturated field rather than in a card: re-point the text +
+   border tokens to the field's own foreground (currentColor) so they read in
+   cream/ink instead of the ambient editorial ink. The Select dropdown renders
+   in a portaled popover (not a DOM descendant) so it keeps the normal cream
+   surface — only the trigger picks these up. */
+.on-field {
+  --color-text-primary: currentColor;
+  --color-text-secondary: color-mix(in oklab, currentColor 75%, transparent);
+  --color-text-tertiary: color-mix(in oklab, currentColor 62%, transparent);
+  --color-border-subtle: color-mix(in oklab, currentColor 32%, transparent);
+  --color-border-default: color-mix(in oklab, currentColor 45%, transparent);
+  --color-surface-hover: color-mix(in oklab, currentColor 12%, transparent);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .rooms-field {
+    transition: none;
+  }
+}

@@ -1,480 +1,692 @@
 <!--
-  Landing page as a standalone full-bleed stage: it tells the platform story
-  (Urbicon UI → Blocks / Table / Auth / AI-DX) in the editorial language of the
-  doc pages — mono markers, pipe cursor, numbered sections, hairline grid. It
-  has its own header/footer because the root layout exempts the landing from the
-  sidebar chrome.
+  Landing page — "Color Rooms" (ported from the Claude Design project
+  "Direction 3c — Color Rooms v2"). A fixed Mid-Century poster whose accent
+  palette is swapped at runtime by a "channel" switcher. Each product tile is a
+  saturated colour field holding a neutral card of REAL @urbicon-ui components;
+  the room's field colour is scoped as their `--color-primary` family, so
+  switching the channel repaints the whole building — including the live
+  switches, date pickers and table rows — through the token system, not a
+  mockup. See lib/style/rooms.css for the scoping contract.
+
+  The landing brings its own chrome (it is exempt from the SidebarLayout in
+  +layout.svelte); the skip-link and ⌘K stay global.
 -->
 <script lang="ts">
   import SeoMeta from '$lib/SeoMeta.svelte';
   import { asset, resolve } from '$app/paths';
   import { REPO_URL } from '$lib/seo';
+  import { onMount } from 'svelte';
   import {
-    ArrowRightIcon,
     Avatar,
     Badge,
     Button,
     CheckIcon,
     CopyIcon,
+    DatePicker,
+    Input,
     LocaleSwitcher,
-    MenuIcon,
-    Popover,
-    ThemeSwitcher,
+    PasskeyIcon,
+    SegmentGroup,
+    SegmentItem,
+    Slider,
+    Sparkline,
+    Spinner,
     Toggle
   } from '@urbicon-ui/blocks';
-  import { onMount } from 'svelte';
+  import { Table, type Column } from '@urbicon-ui/table';
+  import '$lib/style/rooms.css';
 
-  // Mobile nav: below `sm` the four header links collapse into a popover behind
-  // a hamburger (the landing is exempt from the SidebarLayout chrome that
-  // provides the hamburger on doc pages, so it carries its own).
-  let mobileNavOpen = $state(false);
-  const mobileNavLinks = [
-    { label: 'Components', href: resolve('/blocks'), external: false },
-    { label: 'Recipes', href: resolve('/recipes'), external: false },
-    { label: 'AI & DX', href: resolve('/ai'), external: false },
-    { label: 'Codeberg', href: REPO_URL, external: true }
+  // ── Palette channels ──────────────────────────────────────────────
+  // Three Mid-Century palettes; each has four "fields" (a saturated bg + an
+  // ink/cream fg picked for contrast). Switching the channel repaints the page.
+  const INK = '#17150f';
+  const CREAM = '#f6f3ec';
+
+  type ChannelKey = 'gallery' | 'terrazza' | 'motel';
+  type Field = { bg: string; fg: string };
+  interface Channel {
+    label: string;
+    fields: [Field, Field, Field, Field];
+    bright: string;
+  }
+
+  const CHANNELS: Record<ChannelKey, Channel> = {
+    gallery: {
+      label: "Gallery '52",
+      fields: [
+        { bg: '#e8500f', fg: INK },
+        { bg: '#00845c', fg: CREAM },
+        { bg: '#7c1f2d', fg: CREAM },
+        { bg: '#e3a31c', fg: INK }
+      ],
+      bright: '#ff8a50'
+    },
+    terrazza: {
+      label: "Terrazza '58",
+      fields: [
+        { bg: '#7c7e4a', fg: CREAM },
+        { bg: '#d2a017', fg: INK },
+        { bg: '#6e2b33', fg: CREAM },
+        { bg: '#b4653f', fg: CREAM }
+      ],
+      bright: '#c9cc7e'
+    },
+    motel: {
+      label: "Motel '64",
+      fields: [
+        { bg: '#e45a12', fg: INK },
+        { bg: '#1f9e96', fg: INK },
+        { bg: '#6b4423', fg: CREAM },
+        { bg: '#e0b040', fg: INK }
+      ],
+      bright: '#ff9550'
+    }
+  };
+  const CHANNEL_ORDER: ChannelKey[] = ['gallery', 'terrazza', 'motel'];
+
+  let channel = $state<ChannelKey>('gallery');
+  const active = $derived(CHANNELS[channel]);
+  const fields = $derived(active.fields);
+
+  // Room → field mapping (from the mockup). Hero + AI share f[0]; Table + install
+  // share f[2]. Each room repaints with a staggered delay for the room-by-room
+  // "repaint the building" effect.
+  const hero = $derived(fields[0]);
+  const rooms = $derived([
+    { key: 'blocks', field: fields[1], delay: '0.04s' },
+    { key: 'table', field: fields[2], delay: '0.08s' },
+    { key: 'auth', field: fields[3], delay: '0.12s' },
+    { key: 'ai', field: fields[0], delay: '0.16s' }
+  ] as const);
+  const install = $derived(fields[2]);
+
+  // ── Blocks specimen: a real mini settings panel ───────────────────
+  let section = $state('general');
+  let workspace = $state('Atelier Nord');
+  let uiLocale = $state<'en' | 'de'>('en');
+  const dpLocale = $derived(uiLocale === 'de' ? 'de-DE' : 'en-US');
+  // Fixed literal — deterministic across SSR/hydration (no `new Date()` drift).
+  let renewal = $state<Date>(new Date('2026-10-01T00:00:00'));
+  let compact = $state(true);
+  let reduceMotion = $state(false);
+  let density = $state(64);
+  let autosave = $state(true);
+  let telemetry = $state(false);
+  const usage = [4, 6, 5, 9, 7, 12, 10, 15, 13, 18];
+
+  function persistLocale(locale: string) {
+    uiLocale = locale === 'de' ? 'de' : 'en';
+    try {
+      localStorage.setItem('urbicon-locale', locale);
+    } catch {
+      /* SSR / private mode — non-fatal */
+    }
+  }
+
+  // ── Table specimen: a real @urbicon-ui/table in live remote mode ──
+  interface EdgeRow {
+    id: string;
+    region: string;
+    status: 'live' | 'warm';
+    p95: number;
+  }
+  const BASE_ROWS: EdgeRow[] = [
+    { id: 'eu-central', region: 'eu-central', status: 'live', p95: 42 },
+    { id: 'us-east', region: 'us-east', status: 'live', p95: 87 },
+    { id: 'ap-south', region: 'ap-south', status: 'warm', p95: 118 },
+    { id: 'edge-local', region: 'edge · local', status: 'live', p95: 3 }
   ];
+  const tableColumns: Column<EdgeRow>[] = [
+    { accessor: 'region', title: 'Region', sortable: true },
+    { accessor: 'status', title: 'Status', sortable: true },
+    { accessor: 'p95', title: 'p95', sortable: true, dataType: 'number', align: 'right' }
+  ];
+  // Deterministic jitter (no Math.random) so latency values "breathe" like a
+  // live feed without an SSR/hydration mismatch.
+  let tick = $state(0);
+  const jitter = (base: number, i: number) => Math.max(1, base + ((tick * 7 + i * 13) % 11) - 5);
+  const tableRows = $derived(BASE_ROWS.map((r, i) => ({ ...r, p95: jitter(r.p95, i) })));
 
-  // One-shot entrance trigger for the staggered hero transitions.
-  let heroVisible = $state(false);
-  onMount(() => {
-    const id = setTimeout(() => (heroVisible = true), 80);
-    return () => clearTimeout(id);
-  });
+  // ── Auth specimen: a real passkey sign-in flow ────────────────────
+  let authState = $state<'idle' | 'pending' | 'ok'>('idle');
+  let authTimers: ReturnType<typeof setTimeout>[] = [];
+  function doAuth() {
+    authTimers.forEach(clearTimeout);
+    authState = 'pending';
+    authTimers = [
+      setTimeout(() => (authState = 'ok'), 900),
+      setTimeout(() => (authState = 'idle'), 3400)
+    ];
+  }
 
+  // ── Install specimen: copy-to-clipboard ───────────────────────────
   const INSTALL_COMMAND = 'bun add @urbicon-ui/blocks';
   let copied = $state(false);
-  let copyTimeout: ReturnType<typeof setTimeout> | undefined;
+  let copyTimer: ReturnType<typeof setTimeout> | undefined;
   async function copyInstall() {
     try {
       await navigator.clipboard.writeText(INSTALL_COMMAND);
       copied = true;
-      clearTimeout(copyTimeout);
-      copyTimeout = setTimeout(() => (copied = false), 2000);
+      clearTimeout(copyTimer);
+      copyTimer = setTimeout(() => (copied = false), 2000);
     } catch (err) {
       console.warn('Clipboard unavailable:', err);
     }
   }
 
-  let demoToggle = $state(true);
-
-  const products = [
-    {
-      index: '01',
-      name: 'Blocks',
-      description:
-        'The component library: 35 primitives and 18 composed components — forms, overlays, navigation, charts. Every one themable down to the slot.',
-      meta: 'form · action · overlay · charts',
-      href: resolve('/blocks'),
-      cta: 'Browse components'
-    },
-    {
-      index: '02',
-      name: 'Table',
-      description:
-        'A full data table: sorting, filtering, grouping, selection, keyboard navigation, virtualization, column reorder and remote mode with live updates.',
-      meta: 'virtualized · remote · live updates',
-      href: resolve('/table/table'),
-      cta: 'Explore the table'
-    },
-    {
-      index: '03',
-      name: 'Auth',
-      description:
-        'Complete authentication: JWT sessions with refresh rotation, passkeys (WebAuthn), notifications and web push — implemented on the Web Crypto API alone.',
-      meta: 'JWT · passkeys · web push',
-      href: resolve('/auth'),
-      cta: 'Read the auth docs'
-    },
-    {
-      index: '04',
-      name: 'AI-native DX',
-      description:
-        'An MCP server with design intelligence, per-component llms.txt and .cursorrules — your agent picks components, recipes and tokens like a team member.',
-      meta: 'MCP · llms.txt · .cursorrules',
-      href: resolve('/ai'),
-      cta: 'Set up your agent'
-    }
-  ];
-
-  const principles = [
-    {
-      index: '01',
-      title: 'Zero dependencies',
-      description:
-        'Variant engine, floating positioning, i18n, WebAuthn, web push — all built in-house. Nothing ships but Svelte and your CSS.',
-      meta: '0 runtime deps'
-    },
-    {
-      index: '02',
-      title: 'OKLCH token system',
-      description:
-        'Three layers — foundation, semantic, interaction. Dark mode is a token concern, handled by light-dark(), never a per-component override.',
-      meta: 'foundation → semantic → interaction'
-    },
-    {
-      index: '03',
-      title: 'Accessible by default',
-      description:
-        'WCAG AA targets, keyboard navigation everywhere, focus-visible rings, screen-reader fallbacks, prefers-reduced-motion respected.',
-      meta: 'WCAG AA · focus-visible'
-    },
-    {
-      index: '04',
-      title: 'Tunable to the bone',
-      description:
-        'Every component takes unstyled and slotClasses. Presets, provider defaults and a runes-based i18n (EN + DE) run through the whole platform.',
-      meta: 'unstyled · slotClasses · presets'
-    }
-  ];
+  // Entrance + live-latency timer.
+  let ready = $state(false);
+  onMount(() => {
+    const raf = setTimeout(() => (ready = true), 60);
+    const iv = setInterval(() => (tick += 1), 2400);
+    return () => {
+      clearTimeout(raf);
+      clearInterval(iv);
+      authTimers.forEach(clearTimeout);
+      clearTimeout(copyTimer);
+    };
+  });
 
   const footerYear = 2026;
 </script>
 
 <SeoMeta />
 
-<div class="bg-surface-base min-h-screen">
-  <!-- Top bar -->
-  <header class="border-border-hairline border-b">
-    <div class="mx-auto flex h-14 max-w-6xl items-center justify-between gap-4 px-6">
-      <a href={resolve('/')} class="text-text-primary text-lg font-bold tracking-tight">
-        Urbicon UI<span class="pipe" aria-hidden="true">|</span>
-      </a>
-      <nav aria-label="Landing" class="flex items-center gap-1 sm:gap-2">
-        <a
-          href={resolve('/blocks')}
-          class="text-text-tertiary hover:text-text-primary hidden px-2 py-1 text-sm transition-colors sm:block"
-          >Components</a
-        >
-        <a
-          href={resolve('/recipes')}
-          class="text-text-tertiary hover:text-text-primary hidden px-2 py-1 text-sm transition-colors sm:block"
-          >Recipes</a
-        >
-        <a
-          href={resolve('/ai')}
-          class="text-text-tertiary hover:text-text-primary hidden px-2 py-1 text-sm transition-colors sm:block"
-          >AI &amp; DX</a
-        >
-        <a
-          href={REPO_URL}
-          target="_blank"
-          rel="noopener"
-          class="text-text-tertiary hover:text-text-primary hidden px-2 py-1 text-sm transition-colors sm:block"
-          >Codeberg</a
-        >
-
-        <!-- Mobile: the four links above collapse into this popover. Closes on
-             link click; a route navigation unmounts the landing anyway. -->
-        <div class="sm:hidden">
-          <Popover bind:open={mobileNavOpen} placement="bottom-end" offsetDistance={8}>
-            {#snippet trigger()}
-              <button
-                type="button"
-                aria-label="Open navigation menu"
-                class="text-text-secondary hover:text-text-primary hover:bg-surface-hover flex h-9 w-9 items-center justify-center rounded-modify transition-colors"
-              >
-                <MenuIcon class="h-5 w-5" />
-              </button>
-            {/snippet}
-            <nav aria-label="Site" class="flex min-w-44 flex-col gap-0.5">
-              {#each mobileNavLinks as link (link.href)}
-                <a
-                  href={link.href}
-                  target={link.external ? '_blank' : undefined}
-                  rel={link.external ? 'noopener' : undefined}
-                  onclick={() => (mobileNavOpen = false)}
-                  class="text-text-secondary hover:text-text-primary hover:bg-surface-hover rounded-modify px-3 py-2 text-sm transition-colors"
-                  >{link.label}</a
-                >
-              {/each}
-            </nav>
-          </Popover>
-        </div>
-
-        <ThemeSwitcher size="sm" />
-      </nav>
-    </div>
-  </header>
-
-  <main id="main-content">
-    <!-- Hero -->
-    <section class="mx-auto max-w-6xl px-6 pt-20 pb-16 sm:pt-28 sm:pb-24">
-      <div
+<!-- Palette channel switcher — reused in the hero (compact) and the repaint
+     section (with labels). Real control: repaints the whole page. -->
+{#snippet paletteSwitcher(withLabel: boolean, onField: boolean)}
+  <div class="flex flex-wrap gap-3">
+    {#each CHANNEL_ORDER as key (key)}
+      {@const c = CHANNELS[key]}
+      {@const isActive = key === channel}
+      <button
+        type="button"
+        onclick={() => (channel = key)}
+        aria-pressed={isActive}
+        title={c.label}
         class={[
-          'transform transition-[transform,opacity] duration-500',
-          { 'translate-y-0 opacity-100': heroVisible, 'translate-y-4 opacity-0': !heroVisible }
+          'flex flex-col gap-2 p-2 transition-opacity',
+          withLabel ? 'items-start' : 'items-center',
+          !isActive && 'opacity-80 hover:opacity-100'
         ]}
+        style="border: {isActive
+          ? '2px solid currentColor'
+          : onField
+            ? '1px solid color-mix(in srgb, currentColor 32%, transparent)'
+            : '1px solid rgb(246 243 236 / 0.3)'}"
       >
-        <p class="meta-marker">Urbicon UI — Svelte 5 · Tailwind 4 · zero deps</p>
+        <span class="flex" aria-hidden="true">
+          {#each c.fields as field (field.bg)}
+            <span
+              class={withLabel ? 'h-[30px] w-[30px]' : 'h-4 w-4'}
+              style="background: {field.bg}; transition: background 0.5s ease"
+            ></span>
+          {/each}
+        </span>
+        {#if withLabel}
+          <span class="text-[13.5px] font-medium">{c.label}</span>
+        {/if}
+      </button>
+    {/each}
+  </div>
+{/snippet}
+
+<div class="rooms-landing min-h-screen">
+  <main id="main-content">
+    <!-- ─────────────────────────── Hero ─────────────────────────── -->
+    <section
+      class="rooms-field flex min-h-[80vh] flex-col justify-between px-6 pt-7 pb-10 sm:px-12"
+      style="background: {hero.bg}; color: {hero.fg}"
+    >
+      <div class="flex items-center justify-between gap-4">
+        <span class="text-[17px] font-bold tracking-[-0.01em]">Urbicon UI</span>
+        <nav
+          aria-label="Landing"
+          class="flex items-center gap-5 text-[14.5px] font-medium sm:gap-8"
+        >
+          <a href="#set" class="hidden transition-opacity hover:opacity-70 sm:inline">The set</a>
+          <a href="#repaint" class="hidden transition-opacity hover:opacity-70 sm:inline">Palette</a
+          >
+          <a href={resolve('/ai')} class="hidden transition-opacity hover:opacity-70 sm:inline"
+            >For machines</a
+          >
+          <a
+            href={REPO_URL}
+            target="_blank"
+            rel="noopener"
+            class="transition-opacity hover:opacity-70">Codeberg ↗</a
+          >
+        </nav>
       </div>
 
       <h1
         class={[
-          'text-text-primary mt-6 max-w-4xl transform text-5xl font-bold tracking-tight transition-[transform,opacity] delay-100 duration-500 sm:text-6xl md:text-7xl',
-          { 'translate-y-0 opacity-100': heroVisible, 'translate-y-4 opacity-0': !heroVisible }
+          'max-w-[900px] text-[clamp(3rem,9vw,6.25rem)] transition-[transform,opacity] duration-700',
+          ready ? 'translate-y-0 opacity-100' : 'translate-y-3 opacity-0'
         ]}
       >
-        A UI library that depends on nothing.<span class="pipe" aria-hidden="true">|</span>
+        Depends on nothing.
       </h1>
 
-      <p
-        class={[
-          'text-text-secondary mt-8 max-w-2xl transform text-lg transition-[transform,opacity] delay-200 duration-500 md:text-xl',
-          { 'translate-y-0 opacity-100': heroVisible, 'translate-y-4 opacity-0': !heroVisible }
-        ]}
-      >
-        Written from scratch on Svelte 5 and the web platform. No transitive dependency tree, no
-        supply-chain surprises. Zero runtime deps, and it stays that way.
-      </p>
-
       <div
         class={[
-          'mt-10 flex transform flex-col gap-4 transition-[transform,opacity] delay-300 duration-500 sm:flex-row sm:items-center',
-          { 'translate-y-0 opacity-100': heroVisible, 'translate-y-4 opacity-0': !heroVisible }
+          'flex flex-wrap items-end justify-between gap-x-10 gap-y-8 transition-[transform,opacity] delay-150 duration-700',
+          ready ? 'translate-y-0 opacity-100' : 'translate-y-3 opacity-0'
         ]}
       >
-        <a href={resolve('/getting-started')}>
-          <Button size="lg" intent="primary" class="px-6">Get started</Button>
-        </a>
-        <a href={resolve('/blocks')}>
-          <Button variant="outlined" size="lg" class="px-6">Browse components</Button>
-        </a>
-        <div
-          class="border-border-subtle bg-surface-elevated flex items-center gap-3 rounded-lg border py-2 pr-2 pl-4"
-        >
-          <code class="text-text-secondary font-mono text-sm">{INSTALL_COMMAND}</code>
-          <button
-            type="button"
-            onclick={copyInstall}
-            aria-label={copied ? 'Copied' : 'Copy install command'}
-            class="text-text-quaternary hover:text-text-secondary rounded-modify p-1.5 transition-colors"
-          >
-            {#if copied}
-              <CheckIcon class="text-success h-4 w-4" />
-            {:else}
-              <CopyIcon class="h-4 w-4" />
-            {/if}
-          </button>
-        </div>
-      </div>
-
-      <!-- Live strip: real components, rendered by the library itself -->
-      <div
-        class={[
-          'mt-16 transform transition-[transform,opacity] delay-500 duration-700',
-          { 'translate-y-0 opacity-100': heroVisible, 'translate-y-8 opacity-0': !heroVisible }
-        ]}
-      >
-        <div
-          class="border-border-subtle bg-surface-elevated rounded-[var(--docs-radius-card,1rem)] border"
-        >
-          <div class="border-border-hairline flex items-center justify-between border-b px-5 py-3">
-            <span class="meta-marker">Live — rendered by the library</span>
-            <span class="font-meta text-text-quaternary hidden sm:block">this page runs on it</span>
-          </div>
-          <div class="flex flex-wrap items-center gap-x-6 gap-y-4 px-5 py-6">
-            <Button intent="primary">Save changes</Button>
-            <Button variant="outlined">Cancel</Button>
-            <Badge intent="success">Synced</Badge>
-            <Toggle checked={demoToggle} onCheckedChange={(v: boolean) => (demoToggle = v)} />
-            <Avatar name="Priya Nair" />
-            <Badge variant="outlined" intent="neutral" class="font-mono text-xs"
-              >v{__APP_VERSION__}</Badge
+        <div>
+          <div class="flex items-baseline gap-3">
+            <span
+              class="text-[clamp(1.75rem,4vw,2.5rem)] font-medium tracking-[-0.03em] line-through opacity-50 [text-decoration-thickness:3px]"
+              >1,203</span
             >
+            <span class="text-[clamp(1.75rem,4vw,2.5rem)] font-bold tracking-[-0.03em]">1</span>
           </div>
+          <p class="mt-2 max-w-[280px] text-[12.5px] opacity-80">
+            packages in a typical UI stack — vs. this one. 53 components · Svelte 5.
+          </p>
         </div>
+
+        <div>
+          {@render paletteSwitcher(false, true)}
+          <p class="mt-2 text-[12.5px] opacity-80">{active.label} — repaint the whole page</p>
+        </div>
+
+        <a
+          href={resolve('/getting-started')}
+          class="border-b-2 border-current pb-[3px] text-[17px] font-bold transition-opacity hover:opacity-70"
+          >Get the set →</a
+        >
       </div>
     </section>
 
-    <!-- The platform -->
-    <section class="border-border-hairline border-t">
-      <div class="mx-auto max-w-6xl px-6 py-20">
-        <p class="meta-marker">The platform</p>
-        <h2 class="text-text-primary mt-4 text-3xl font-bold tracking-tight sm:text-4xl">
-          Four products, one system, zero dependencies<span class="pipe" aria-hidden="true">|</span>
-        </h2>
-        <p class="text-text-secondary mt-4 max-w-2xl">
-          Everything is built on the same tokens, the same variant engine and the same i18n — so the
-          table looks like the forms, and the auth pages look like your app.
-        </p>
+    <!-- ────────────────────── Product rooms ─────────────────────── -->
+    <h2 class="sr-only" id="set">The set</h2>
+    <section class="grid grid-cols-1 md:grid-cols-2">
+      {#each rooms as room (room.key)}
+        <div
+          class="rooms-field flex min-h-[560px] flex-col px-6 py-10 sm:px-12"
+          style="background: {room.field.bg}; color: {room.field.fg}; --room-delay: {room.delay}"
+        >
+          {#if room.key === 'blocks'}
+            <!-- Blocks — a real mini settings panel -->
+            <div class="flex items-baseline justify-between gap-5">
+              <h3 class="text-[clamp(2rem,4vw,2.5rem)]">Blocks</h3>
+              <span class="text-[13.5px] opacity-80">35 primitives + 18 composed</span>
+            </div>
+            <p class="mt-2.5 max-w-[420px] text-[15.5px] leading-relaxed opacity-90">
+              Forms, overlays, navigation, charts — themable down to the slot.
+            </p>
 
-        <div class="mt-12 grid grid-cols-1 gap-4 md:grid-cols-2">
-          {#each products as product (product.index)}
-            <a
-              href={product.href}
-              class="group border-border-subtle bg-surface-elevated hover:border-border-default flex gap-5 rounded-[var(--docs-radius-card,1rem)] border p-6 transition-colors"
-            >
-              <span
-                class="text-text-quaternary shrink-0 font-[family-name:var(--font-display)] text-5xl leading-none tabular-nums"
-                aria-hidden="true">{product.index}</span
+            <div class="my-7 flex-1">
+              <div
+                class="poster-card room-accent max-w-[540px] p-5"
+                style="--room-accent: {room.field.bg}; --room-accent-fg: {room.field.fg}"
               >
-              <div class="min-w-0 flex-1">
-                <div class="flex items-baseline justify-between gap-4">
-                  <h3 class="text-text-primary text-xl font-semibold">{product.name}</h3>
-                  <span class="font-meta text-text-quaternary hidden lg:block">{product.meta}</span>
+                <div class="flex items-center justify-between gap-4">
+                  <span class="text-[13px] font-bold text-text-primary">Preferences</span>
+                  <SegmentGroup bind:value={section} size="sm" ariaLabel="Settings section">
+                    <SegmentItem value="general">General</SegmentItem>
+                    <SegmentItem value="display">Display</SegmentItem>
+                    <SegmentItem value="sync">Sync</SegmentItem>
+                  </SegmentGroup>
                 </div>
-                <p class="text-text-secondary mt-3 text-sm leading-relaxed">
-                  {product.description}
-                </p>
-                <span
-                  class="text-text-tertiary group-hover:text-primary mt-4 inline-flex items-center gap-1.5 text-sm font-medium transition-colors"
+
+                <div class="mt-4 grid gap-4 sm:grid-cols-2">
+                  {#if section === 'general'}
+                    <Input bind:value={workspace} label="Workspace" size="sm" />
+                    <div class="flex flex-col gap-1.5">
+                      <span class="text-[12px] font-semibold text-text-secondary">Language</span>
+                      <LocaleSwitcher
+                        size="sm"
+                        showFlag
+                        variant="outlined"
+                        onLocaleChange={persistLocale}
+                      />
+                    </div>
+                    <div class="sm:col-span-2">
+                      <DatePicker
+                        bind:value={renewal}
+                        label="Renewal date"
+                        locale={dpLocale}
+                        size="sm"
+                        clearable={false}
+                      />
+                    </div>
+                  {:else if section === 'display'}
+                    <div class="sm:col-span-2 flex flex-col gap-3">
+                      <Toggle bind:checked={compact} label="Compact density" />
+                      <Toggle bind:checked={reduceMotion} label="Reduce motion" />
+                    </div>
+                    <div class="sm:col-span-2">
+                      <Slider
+                        bind:value={density}
+                        min={0}
+                        max={100}
+                        label="Grid density"
+                        showValue
+                        formatValue={(v) => `${v}%`}
+                      />
+                    </div>
+                  {:else}
+                    <div class="flex flex-col gap-3">
+                      <Toggle bind:checked={autosave} label="Autosave" />
+                      <Toggle bind:checked={telemetry} label="Telemetry" />
+                    </div>
+                    <div class="flex flex-col gap-1.5">
+                      <span class="text-[12px] font-semibold text-text-secondary">Usage</span>
+                      <Sparkline
+                        data={usage}
+                        area
+                        showEndPoint
+                        width={200}
+                        height={44}
+                        ariaLabel="Usage trend, last 10 days"
+                        class="w-full"
+                      />
+                    </div>
+                  {/if}
+                </div>
+
+                <div class="mt-5 flex justify-end gap-2.5">
+                  <Button variant="outlined" size="sm">Reset</Button>
+                  <Button intent="primary" size="sm">Save changes</Button>
+                </div>
+              </div>
+            </div>
+
+            <div class="mt-auto flex items-baseline justify-between gap-5">
+              <span class="text-[13px] opacity-75"
+                >SegmentGroup · Input · Select · Switch · Chart</span
+              >
+              <a
+                href={resolve('/blocks')}
+                class="border-b-2 border-current pb-0.5 text-[15px] font-bold transition-opacity hover:opacity-70"
+                >Browse →</a
+              >
+            </div>
+          {:else if room.key === 'table'}
+            <!-- Table — a real @urbicon-ui/table -->
+            <div class="flex items-baseline justify-between gap-5">
+              <h3 class="text-[clamp(2rem,4vw,2.5rem)]">Table</h3>
+              <span class="text-[13.5px] opacity-80">Live remote mode</span>
+            </div>
+            <p class="mt-2.5 max-w-[420px] text-[15.5px] leading-relaxed opacity-90">
+              Sorting, grouping, selection, virtualization — and live updates over the wire.
+            </p>
+
+            <div class="my-7 flex-1">
+              <div
+                class="poster-card room-accent max-w-[540px] p-4"
+                style="--room-accent: {room.field.bg}; --room-accent-fg: {room.field.fg}"
+              >
+                <div
+                  class="mb-2 flex items-center justify-between px-1 font-mono text-[11px] tracking-[0.04em] text-text-secondary"
                 >
-                  {product.cta}
-                  <ArrowRightIcon
-                    class="h-4 w-4 transition-transform group-hover:translate-x-0.5"
-                  />
-                </span>
+                  <span>edge.latency — {tableRows.length} rows</span>
+                  <span class="inline-flex items-center gap-1.5">
+                    <span class="pulse-dot inline-block h-1.5 w-1.5 rounded-full bg-primary"></span>
+                    live
+                  </span>
+                </div>
+                <Table
+                  items={tableRows}
+                  columns={tableColumns}
+                  selectionMode="single"
+                  enableSmartFilter={false}
+                  itemsPerPage={4}
+                />
               </div>
-            </a>
-          {/each}
+            </div>
+
+            <div class="mt-auto flex items-baseline justify-between gap-5">
+              <span class="text-[13px] opacity-75">Click a header to sort, a row to select</span>
+              <a
+                href={resolve('/table/table')}
+                class="border-b-2 border-current pb-0.5 text-[15px] font-bold transition-opacity hover:opacity-70"
+                >Explore →</a
+              >
+            </div>
+          {:else if room.key === 'auth'}
+            <!-- Auth — a real passkey sign-in flow -->
+            <div class="flex items-baseline justify-between gap-5">
+              <h3 class="text-[clamp(2rem,4vw,2.5rem)]">Auth</h3>
+              <span class="text-[13.5px] opacity-80">Passkeys + Web Crypto</span>
+            </div>
+            <p class="mt-2.5 max-w-[420px] text-[15.5px] leading-relaxed opacity-90">
+              Passkeys, JWT rotation, web push — on the Web Crypto API alone.
+            </p>
+
+            <div class="my-7 flex flex-1 items-start">
+              <div
+                class="poster-card room-accent w-[340px] max-w-full p-6"
+                style="--room-accent: {room.field.bg}; --room-accent-fg: {room.field.fg}"
+              >
+                <div class="flex items-center gap-3">
+                  <Avatar name="Nora Ackermann" size="sm" />
+                  <div>
+                    <p class="text-[15px] font-bold text-text-primary">Sign in to Atelier Nord</p>
+                    <p class="text-[12.5px] text-text-secondary">
+                      No passwords stored, nothing to leak.
+                    </p>
+                  </div>
+                </div>
+
+                <div class="mt-5">
+                  <Button
+                    intent="primary"
+                    class="w-full"
+                    onclick={doAuth}
+                    disabled={authState === 'pending'}
+                  >
+                    {#if authState === 'ok'}
+                      <CheckIcon class="h-4 w-4" /> nora@atelier.de
+                    {:else if authState === 'pending'}
+                      <Spinner size="sm" /> Verifying…
+                    {:else}
+                      <PasskeyIcon class="h-4 w-4" /> Continue with passkey
+                    {/if}
+                  </Button>
+                </div>
+
+                <div class="mt-4 flex items-center justify-between">
+                  {#if authState === 'ok'}
+                    <span class="text-[12.5px] text-text-secondary"
+                      >passkey verified · session started</span
+                    >
+                  {:else}
+                    <a href={resolve('/auth')} class="text-[12.5px] text-text-secondary underline"
+                      >or email a magic link</a
+                    >
+                  {/if}
+                  <Badge intent="neutral" variant="outlined" class="font-mono text-[10px]"
+                    >WebAuthn</Badge
+                  >
+                </div>
+              </div>
+            </div>
+
+            <div class="mt-auto flex items-baseline justify-between gap-5">
+              <span class="text-[13px] opacity-75">Try it — the passkey flow is real UI</span>
+              <a
+                href={resolve('/auth')}
+                class="border-b-2 border-current pb-0.5 text-[15px] font-bold transition-opacity hover:opacity-70"
+                >Read the docs →</a
+              >
+            </div>
+          {:else}
+            <!-- AI & DX — an agent terminal -->
+            <div class="flex items-baseline justify-between gap-5">
+              <h3 class="text-[clamp(2rem,4vw,2.5rem)]">AI &amp; DX</h3>
+              <span class="text-[13.5px] opacity-80">MCP + llms.txt</span>
+            </div>
+            <p class="mt-2.5 max-w-[420px] text-[15.5px] leading-relaxed opacity-90">
+              An MCP server with design intelligence, plus llms.txt for every component.
+            </p>
+
+            <div class="my-7 flex-1">
+              <div
+                class="poster-term room-accent max-w-[540px] p-5 font-mono text-[12.5px] leading-[1.9]"
+                style="--room-accent: {room.field.bg}; --room-accent-fg: {room.field.fg}"
+              >
+                <p class="opacity-55"># agent session — via MCP, 9 tools</p>
+                <p>
+                  <span class="opacity-55">&gt;</span> build a pricing section<span
+                    class="term-caret ml-1 inline-block h-3 w-[7px] translate-y-[2px] bg-primary"
+                  ></span>
+                </p>
+                <div class="mt-3 flex flex-wrap items-center gap-2">
+                  <Badge variant="outlined" class="font-mono text-[11px]">Table</Badge>
+                  <Badge variant="outlined" class="font-mono text-[11px]">Badge</Badge>
+                  <Badge variant="outlined" class="font-mono text-[11px]">Button</Badge>
+                  <span class="text-[11.5px] opacity-80">→ recipe: pricing-grid</span>
+                </div>
+                <p class="mt-3 opacity-85">
+                  $ curl ui.urbicon.de/llms.txt <span class="opacity-55"
+                    >— 53 components, no auth</span
+                  >
+                </p>
+              </div>
+            </div>
+
+            <div class="mt-auto flex items-baseline justify-between gap-5">
+              <span class="text-[13px] opacity-75">Agents read the same manual you do</span>
+              <a
+                href={resolve('/ai')}
+                class="border-b-2 border-current pb-0.5 text-[15px] font-bold transition-opacity hover:opacity-70"
+                >Set up →</a
+              >
+            </div>
+          {/if}
+        </div>
+      {/each}
+    </section>
+
+    <!-- ──────────────────── Repaint the building ─────────────────── -->
+    <section id="repaint" class="px-6 py-20 sm:px-12" style="background: #17150f; color: #f6f3ec">
+      <div class="grid grid-cols-1 items-start gap-12 lg:grid-cols-2 lg:gap-[72px]">
+        <div>
+          <h2 class="text-[clamp(2.5rem,5vw,3.9rem)] !leading-[1.02]">Repaint the building.</h2>
+          <p class="mt-6 max-w-[460px] text-[17px] leading-relaxed opacity-90">
+            One token ramp — foundation, semantic, interaction. Pick a palette and every room on
+            this page re-renders, down to the switches and table rows above. Dark mode is one more
+            token, not a rewrite.
+          </p>
+          <div class="mt-9">
+            {@render paletteSwitcher(true, false)}
+          </div>
+        </div>
+
+        <div>
+          <div
+            class="room-accent border p-6 font-mono text-[13px] leading-loose"
+            style="border-color: rgb(246 243 236 / 0.3); --room-accent: {active.bright}; --room-accent-fg: {INK}"
+          >
+            <p class="opacity-50"># the whole system is also plain text</p>
+            <p><span class="opacity-50">$</span> claude mcp add urbicon</p>
+            <p style="color: {active.bright}; transition: color 0.5s ease">
+              ✓ connected — 9 tools, design intelligence included
+            </p>
+            <p class="mt-3"><span class="opacity-50">&gt;</span> find_components "pricing table"</p>
+            <p class="opacity-85">→ Table + Badge + Button · recipe: pricing-grid</p>
+            <p class="mt-3"><span class="opacity-50">$</span> curl ui.urbicon.de/llms.txt</p>
+            <p class="opacity-85">→ 53 components, plain text, no auth</p>
+          </div>
+          <p class="mt-4 text-[14.5px] opacity-70">
+            Agents read the same manual you do —
+            <a href={asset('/llms.txt')} class="underline hover:opacity-70">llms.txt</a>,
+            <a href={asset('/llms-full.txt')} class="underline hover:opacity-70">llms-full.txt</a>,
+            <a href={resolve('/ai')} class="underline hover:opacity-70">.cursorrules</a>.
+          </p>
         </div>
       </div>
     </section>
 
-    <!-- The system -->
-    <section class="border-border-hairline border-t">
-      <div class="mx-auto max-w-6xl px-6 py-20">
-        <p class="meta-marker">The system</p>
-        <h2 class="text-text-primary mt-4 text-3xl font-bold tracking-tight sm:text-4xl">
-          Opinionated where it counts<span class="pipe" aria-hidden="true">|</span>
-        </h2>
-
-        <dl class="divide-border-hairline border-border-hairline mt-12 divide-y border-y">
-          {#each principles as principle (principle.index)}
-            <div class="grid grid-cols-1 gap-2 py-6 sm:grid-cols-[4.5rem_1fr_auto] sm:gap-6">
-              <span
-                class="text-text-quaternary font-[family-name:var(--font-display)] text-4xl leading-none tabular-nums"
-                aria-hidden="true">{principle.index}</span
-              >
-              <div>
-                <dt class="text-text-primary font-semibold">{principle.title}</dt>
-                <dd class="text-text-secondary mt-1 max-w-2xl text-sm leading-relaxed">
-                  {principle.description}
-                </dd>
-              </div>
-              <span class="font-meta text-text-quaternary pt-1 sm:text-right">
-                {principle.meta}
-              </span>
-            </div>
-          {/each}
-        </dl>
-      </div>
-    </section>
-
-    <!-- Personal note — the person-driven "why" behind the thesis (Cluster G.1). -->
-    <section class="border-border-hairline border-t">
-      <div class="mx-auto max-w-6xl px-6 py-20">
-        <p class="meta-marker">Why this exists</p>
-        <p
-          class="text-text-primary mt-6 max-w-3xl font-[family-name:var(--font-display)] text-2xl leading-relaxed sm:text-3xl"
-        >
-          Built because nothing like it existed for Svelte — and because, the way supply-chain
-          attacks are going, the safest dependency is none.
-        </p>
-        <p class="font-meta text-text-tertiary mt-6">— Felix Urban</p>
-      </div>
-    </section>
-
-    <!-- Closing CTA: same goal, different framing (human vs. agent).
-         Inverted brand-green block — the page's single dominant colour moment (Cluster F). -->
-    <section class="cta-invert">
-      <div class="mx-auto max-w-6xl px-6 py-20">
-        <p class="meta-marker">Start building</p>
-        <h2 class="text-text-primary mt-4 text-3xl font-bold tracking-tight sm:text-4xl">
-          With your hands — or your agent<span class="pipe" aria-hidden="true">|</span>
-        </h2>
-
-        <div class="mt-12 grid grid-cols-1 gap-4 md:grid-cols-2">
-          <div
-            class="border-border-subtle bg-surface-elevated rounded-[var(--docs-radius-card,1rem)] border p-6"
-          >
-            <span class="meta-marker">For you</span>
-            <p class="text-text-secondary mt-3 text-sm leading-relaxed">
-              Install the package and import your first component in under a minute.
-            </p>
-            <code
-              class="border-border-hairline text-text-secondary mt-4 block rounded-lg border px-4 py-3 font-mono text-sm"
-              >{INSTALL_COMMAND}</code
+    <!-- ─────────────────────────── Install ───────────────────────── -->
+    <section
+      class="rooms-field room-accent px-6 pt-24 pb-10 sm:px-12"
+      style="background: {install.bg}; color: {install.fg}; --room-accent: {install.fg}; --room-accent-fg: {install.bg}"
+    >
+      <div class="text-center">
+        <h2 class="text-[clamp(3rem,8vw,6rem)] !leading-none">One package.</h2>
+        <div class="mt-10 flex flex-wrap items-center justify-center gap-4">
+          <a href={resolve('/getting-started')}>
+            <Button intent="primary" size="lg" class="!h-[54px] !px-8 !text-[17px]"
+              >Get the set</Button
             >
-            <a href={resolve('/getting-started')} class="mt-5 inline-block">
-              <Button
-                intent="primary"
-                class="!border-transparent !bg-[#f9f7f2] !text-[#1f3d12] hover:!bg-white"
-                >Get started</Button
-              >
-            </a>
-          </div>
-
+          </a>
           <div
-            class="border-border-subtle bg-surface-elevated rounded-[var(--docs-radius-card,1rem)] border p-6"
+            class="flex items-center gap-3 border-[1.5px] border-current px-5 py-3.5 font-mono text-[14px]"
           >
-            <span class="meta-marker">For your agent</span>
-            <p class="text-text-secondary mt-3 text-sm leading-relaxed">
-              Connect the MCP server for component search, recipes and design principles — or feed
-              the full API surface as plain text.
-            </p>
-            <div class="mt-4 flex flex-wrap gap-x-4 gap-y-2">
-              <a
-                href={asset('/llms.txt')}
-                class="text-text-tertiary hover:text-primary font-mono text-sm underline"
-                >llms.txt</a
-              >
-              <a
-                href={asset('/llms-full.txt')}
-                class="text-text-tertiary hover:text-primary font-mono text-sm underline"
-                >llms-full.txt</a
-              >
-            </div>
-            <a href={resolve('/ai')} class="mt-5 inline-block">
-              <Button
-                variant="outlined"
-                class="!border-[#f9f7f2a6] !text-[#f9f7f2] hover:!bg-[#f9f7f21f]"
-                >Set up the MCP server</Button
-              >
-            </a>
+            <code>{INSTALL_COMMAND}</code>
+            <button
+              type="button"
+              onclick={copyInstall}
+              aria-label={copied ? 'Copied' : 'Copy install command'}
+              class="transition-opacity hover:opacity-70"
+            >
+              {#if copied}
+                <CheckIcon class="h-4 w-4" />
+              {:else}
+                <CopyIcon class="h-4 w-4" />
+              {/if}
+            </button>
           </div>
         </div>
+        <p class="mt-6 text-[14px] opacity-80">No subscription · no telemetry · no dependencies</p>
       </div>
+
+      <footer
+        class="on-field mt-24 flex flex-col gap-4 text-[13px] opacity-80 sm:flex-row sm:items-center sm:justify-between"
+      >
+        <nav aria-label="Footer" class="flex flex-wrap items-center gap-x-2 gap-y-1">
+          <a href={REPO_URL} target="_blank" rel="noopener" class="hover:opacity-70">Codeberg</a>·
+          <a href={resolve('/changelog')} class="hover:opacity-70">Changelog</a>·
+          <a href={asset('/llms.txt')} class="hover:opacity-70">llms.txt</a>·
+          <a href={resolve('/imprint')} class="hover:opacity-70">Imprint</a>·
+          <a href={resolve('/privacy')} class="hover:opacity-70">Privacy</a>
+        </nav>
+        <div class="flex items-center gap-4">
+          <span>© {footerYear} Urbicon · MIT · v{__APP_VERSION__}</span>
+          <LocaleSwitcher variant="ghost" size="sm" onLocaleChange={persistLocale} />
+        </div>
+      </footer>
     </section>
   </main>
-
-  <!-- Footer (landing-local; mirrors the sidebar footer of the docs chrome) -->
-  <footer class="border-border-hairline border-t">
-    <div
-      class="text-text-quaternary mx-auto flex max-w-6xl flex-col gap-4 px-6 py-10 text-xs sm:flex-row sm:items-center sm:justify-between"
-    >
-      <div class="flex flex-wrap items-center gap-x-2 gap-y-1">
-        <a
-          href={REPO_URL}
-          target="_blank"
-          rel="noopener"
-          class="hover:text-text-secondary transition-colors">Codeberg</a
-        >
-        &middot;
-        <a href={resolve('/changelog')} class="hover:text-text-secondary transition-colors"
-          >Changelog</a
-        >
-        &middot;
-        <a href={resolve('/ai')} class="hover:text-text-secondary transition-colors">MCP server</a>
-        &middot;
-        <a href={asset('/llms.txt')} class="hover:text-text-secondary transition-colors">llms.txt</a
-        >
-        &middot;
-        <a href={resolve('/imprint')} class="hover:text-text-secondary transition-colors">Imprint</a
-        >
-        &middot;
-        <a href={resolve('/privacy')} class="hover:text-text-secondary transition-colors">Privacy</a
-        >
-      </div>
-      <div class="flex items-center gap-4">
-        <span>© {footerYear} Urbicon &middot; Felix Urban &middot; v{__APP_VERSION__}</span>
-        <LocaleSwitcher
-          variant="ghost"
-          size="sm"
-          onLocaleChange={(l) => localStorage.setItem('urbicon-locale', l)}
-        />
-      </div>
-    </div>
-  </footer>
 </div>
+
+<style>
+  /* Live-feed pulse (Table specimen) + terminal caret (AI specimen). Both
+     honour reduced-motion. `currentColor`/`bg-primary` inherit the room accent. */
+  .pulse-dot {
+    animation: rooms-pulse 2s ease-in-out infinite;
+  }
+  .term-caret {
+    animation: rooms-blink 1.1s step-end infinite;
+  }
+  @keyframes rooms-pulse {
+    0%,
+    100% {
+      opacity: 1;
+    }
+    50% {
+      opacity: 0.2;
+    }
+  }
+  @keyframes rooms-blink {
+    0%,
+    49% {
+      opacity: 1;
+    }
+    50%,
+    100% {
+      opacity: 0;
+    }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .pulse-dot,
+    .term-caret {
+      animation: none;
+    }
+  }
+</style>
