@@ -380,8 +380,8 @@ export class APIDataGenerator {
 
     // Component name or *Props → component page
     const compName = base.endsWith('Props') ? base.slice(0, -'Props'.length) : base;
-    if (this.componentSlugs.has(compName)) {
-      const slug = this.componentSlugs.get(compName)!;
+    const slug = this.componentSlugs.get(compName);
+    if (slug !== undefined) {
       return `${this.routeBasePath.replace(/\/$/, '')}/${slug}#api`;
     }
 

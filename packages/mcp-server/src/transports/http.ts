@@ -17,8 +17,9 @@ export async function startHttpTransport(port: number): Promise<void> {
     const sessionId = req.headers['mcp-session-id'] as string | undefined;
 
     if (req.method === 'POST') {
-      if (sessionId && sessions.has(sessionId)) {
-        await sessions.get(sessionId)!.handleRequest(req, res);
+      const session = sessionId ? sessions.get(sessionId) : undefined;
+      if (session) {
+        await session.handleRequest(req, res);
       } else if (!sessionId) {
         const transport = new StreamableHTTPServerTransport({
           sessionIdGenerator: () => crypto.randomUUID()
@@ -41,8 +42,9 @@ export async function startHttpTransport(port: number): Promise<void> {
         );
       }
     } else if (req.method === 'GET') {
-      if (sessionId && sessions.has(sessionId)) {
-        await sessions.get(sessionId)!.handleRequest(req, res);
+      const session = sessionId ? sessions.get(sessionId) : undefined;
+      if (session) {
+        await session.handleRequest(req, res);
       } else {
         res.writeHead(400, { 'Content-Type': 'application/json' });
         res.end(
@@ -54,8 +56,9 @@ export async function startHttpTransport(port: number): Promise<void> {
         );
       }
     } else if (req.method === 'DELETE') {
-      if (sessionId && sessions.has(sessionId)) {
-        await sessions.get(sessionId)!.handleRequest(req, res);
+      const session = sessionId ? sessions.get(sessionId) : undefined;
+      if (session && sessionId) {
+        await session.handleRequest(req, res);
         sessions.delete(sessionId);
       } else {
         res.writeHead(204);

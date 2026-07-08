@@ -88,8 +88,8 @@ function extractDescription(content: string): string {
   if (titleIdx === -1) return '';
 
   for (let i = titleIdx + 1; i < lines.length; i++) {
-    const line = lines[i]!.trim();
-    if (line === '') continue;
+    const line = lines[i]?.trim();
+    if (!line) continue;
     if (line.startsWith('#')) break;
     return line;
   }
@@ -115,7 +115,7 @@ export function extractPrincipleSection(content: string, topic: PrincipleTopic):
 
   let endIdx = lines.length;
   for (let i = startIdx + 1; i < lines.length; i++) {
-    if (/^## /.test(lines[i]!)) {
+    if (/^## /.test(lines[i] ?? '')) {
       endIdx = i;
       break;
     }

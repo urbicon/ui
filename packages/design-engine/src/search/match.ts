@@ -96,20 +96,25 @@ function levenshtein(a: string, b: string): number {
   for (let i = 0; i <= a.length; i++) {
     matrix[i] = [i];
   }
+  // Row 0 was set by the i = 0 iteration above (a.length >= 1 here). Seed its columns.
+  const firstRow = matrix[0];
+  if (!firstRow) return b.length;
   for (let j = 0; j <= b.length; j++) {
-    matrix[0]![j] = j;
+    firstRow[j] = j;
   }
 
   for (let i = 1; i <= a.length; i++) {
+    // Both rows were populated by the seed loop; the guard just narrows them for the
+    // checker (noUncheckedIndexedAccess). Cell reads below are likewise in-bounds, so
+    // the `?? 0` fallbacks are never taken.
+    const row = matrix[i];
+    const prevRow = matrix[i - 1];
+    if (!row || !prevRow) continue;
     for (let j = 1; j <= b.length; j++) {
       const cost = a[i - 1] === b[j - 1] ? 0 : 1;
-      matrix[i]![j] = Math.min(
-        matrix[i - 1]![j]! + 1,
-        matrix[i]![j - 1]! + 1,
-        matrix[i - 1]![j - 1]! + cost
-      );
+      row[j] = Math.min((prevRow[j] ?? 0) + 1, (row[j - 1] ?? 0) + 1, (prevRow[j - 1] ?? 0) + cost);
     }
   }
 
-  return matrix[a.length]![b.length]!;
+  return matrix[a.length]?.[b.length] ?? 0;
 }

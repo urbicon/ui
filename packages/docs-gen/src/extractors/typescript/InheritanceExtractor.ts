@@ -248,7 +248,10 @@ export class InheritanceExtractor extends TypeScriptBaseExtractor<
   }
 
   private handleKnownInterface(typeName: string): InheritanceInfo {
-    const knownInterface = this.knownInterfaces.get(typeName)!;
+    const knownInterface = this.knownInterfaces.get(typeName);
+    if (!knownInterface) {
+      throw new Error(`handleKnownInterface called for unknown interface: ${typeName}`);
+    }
     console.log(`📚 Handling known interface: ${typeName} from ${knownInterface.package}`);
 
     const props: PropInfo[] = [

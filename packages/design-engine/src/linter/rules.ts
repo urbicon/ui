@@ -293,8 +293,8 @@ const deepInternalImport: Rule = {
     const findings: Finding[] = [];
     lines.forEach((line, i) => {
       for (const m of line.matchAll(re)) {
-        const pkg = m[1]!;
-        const subpath = m[2]!;
+        const pkg = m[1] ?? '';
+        const subpath = m[2] ?? '';
         if (!isDeepInternalSubpath(subpath)) continue;
         findings.push({
           ruleId: this.id,
@@ -372,7 +372,7 @@ const tokenHallucination: Rule = {
 
     lines.forEach((line, i) => {
       for (const m of line.matchAll(re)) {
-        const core = m[2]!;
+        const core = m[2] ?? '';
         if (!looksSemantic(core)) {
           // Not in our vocabulary — but a bare core one edit from an intent is almost
           // certainly a misspelling (`bg-primay` → `bg-primary`), where the namespace

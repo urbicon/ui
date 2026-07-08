@@ -55,7 +55,7 @@ function collectAtoms(code: string): string[] {
   // class="...", class={...}, slotClasses={{ base: '...' }} — grab quoted runs of utility-ish text.
   const stringRe = /["'`]([^"'`]*?)["'`]/g;
   for (const m of code.matchAll(stringRe)) {
-    const body = m[1]!;
+    const body = m[1] ?? '';
     if (!/[a-z]-/.test(body) && !/\b(flex|grid|block|hidden|relative|absolute)\b/.test(body))
       continue;
     for (const atom of body.split(/\s+/)) {
@@ -111,8 +111,8 @@ function slop(
   message: string | ((count: number, first: Hit) => string),
   fix: string
 ): Finding[] {
-  if (hits.length === 0) return [];
-  const first = hits[0]!;
+  const first = hits[0];
+  if (!first) return [];
   return [
     {
       ruleId,
@@ -137,8 +137,8 @@ function checkIntentRainbow(atoms: string[]): Finding[] {
     `^bg-(${CHROMATIC_INTENTS.join('|')})(?:-(?:hover|active|subtle|emphasis|\\d{2,3}))?(?:\\/\\d{1,3})?$`
   );
   for (const atom of atoms) {
-    const m = atom.match(bgIntent);
-    if (m) families.add(m[1]!);
+    const family = atom.match(bgIntent)?.[1];
+    if (family) families.add(family);
   }
   if (families.size >= HEURISTIC_THRESHOLDS.rainbowIntentFamilies) {
     return [
@@ -160,9 +160,9 @@ function checkSpacingUniformity(atoms: string[]): Finding[] {
   let total = 0;
   const spacingRe = /^(?:gap|gap-x|gap-y|space-x|space-y)-(\d+(?:\.\d+)?|px)$/;
   for (const atom of atoms) {
-    const m = atom.match(spacingRe);
-    if (m) {
-      values.add(m[1]!);
+    const value = atom.match(spacingRe)?.[1];
+    if (value) {
+      values.add(value);
       total++;
     }
   }
@@ -185,7 +185,7 @@ function checkCardMonotony(code: string): Finding[] {
   const cardRe = /<Card\b([^>]*)>/g;
   const signatures: string[] = [];
   for (const m of code.matchAll(cardRe)) {
-    const attrs = m[1]!;
+    const attrs = m[1] ?? '';
     const variant = attrs.match(/\bvariant=(?:"([^"]*)"|'([^']*)'|\{['"]([^'"]*)['"]\})/);
     const padding = attrs.match(/\bpadding=(?:"([^"]*)"|'([^']*)'|\{['"]([^'"]*)['"]\})/);
     const v = variant ? (variant[1] ?? variant[2] ?? variant[3]) : 'default';
@@ -238,9 +238,9 @@ function checkFontWeightUniformity(atoms: string[]): Finding[] {
   const values = new Set<string>();
   let total = 0;
   for (const atom of atoms) {
-    const m = atom.match(weightRe);
-    if (m) {
-      values.add(m[1]!);
+    const value = atom.match(weightRe)?.[1];
+    if (value) {
+      values.add(value);
       total++;
     }
   }
@@ -318,7 +318,7 @@ function checkAnimatedDimensions(lines: string[]): Finding[] {
   const hits: Hit[] = [];
   lines.forEach((line, i) => {
     for (const m of line.matchAll(ANIMATED_DIM_BRACKET_RE)) {
-      if (ANIMATED_DIM_KEYWORD_RE.test(m[1]!)) hits.push({ line: i + 1, match: m[0] });
+      if (ANIMATED_DIM_KEYWORD_RE.test(m[1] ?? '')) hits.push({ line: i + 1, match: m[0] });
     }
   });
   return slop(
@@ -342,7 +342,7 @@ function checkMagicDimensions(lines: string[]): Finding[] {
   lines.forEach((line, i) => {
     for (const m of line.matchAll(MAGIC_DIM_RE)) {
       // Skip 1–2px values: those are hairlines/dividers, a legitimate use of arbitrary px.
-      if (Number.parseFloat(m[1]!) >= HEURISTIC_THRESHOLDS.hairlinePxFloor) {
+      if (Number.parseFloat(m[1] ?? '') >= HEURISTIC_THRESHOLDS.hairlinePxFloor) {
         hits.push({ line: i + 1, match: m[0] });
       }
     }
@@ -530,8 +530,9 @@ function checkHeadingSkip(code: string): Finding[] {
     headings.push({ level: Number(m[1]), index: m.index ?? 0 });
   }
   for (let i = 1; i < headings.length; i++) {
-    const prev = headings[i - 1]!;
-    const cur = headings[i]!;
+    const prev = headings[i - 1];
+    const cur = headings[i];
+    if (!prev || !cur) continue;
     // Going deeper by more than one level skips a rank. Going shallower is fine.
     if (cur.level - prev.level >= 2) {
       return [

@@ -24,7 +24,7 @@ async function resolveVerbsDir(): Promise<string | null> {
 function purposeOf(body: string): string {
   const heading = body.split('\n', 1)[0] ?? '';
   const m = heading.match(/^#\s+[a-z-]+\s+[—-]\s+(.+)$/);
-  return m ? m[1]!.trim() : '';
+  return m?.[1]?.trim() ?? '';
 }
 
 export async function runVerbList(_positionals: string[], _flags: Flags): Promise<number> {

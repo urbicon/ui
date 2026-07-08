@@ -259,7 +259,7 @@ export class PropsExtractor extends TypeScriptBaseExtractor<PropsExtractionInput
     }
     if (memberProps.length === 1) {
       // Degenerate single-member union — treat as plain interface.
-      return memberProps[0]!.props;
+      return memberProps[0]?.props ?? [];
     }
 
     // Build a "prop name → values seen per member" map.
@@ -275,8 +275,12 @@ export class PropsExtractor extends TypeScriptBaseExtractor<PropsExtractionInput
       for (const prop of props) {
         everPresent.set(prop.name, prop);
         if (prop.type === 'never') continue;
-        if (!presence.has(prop.name)) presence.set(prop.name, new Map());
-        presence.get(prop.name)!.set(memberName, prop);
+        let byMember = presence.get(prop.name);
+        if (!byMember) {
+          byMember = new Map();
+          presence.set(prop.name, byMember);
+        }
+        byMember.set(memberName, prop);
       }
     }
 
@@ -383,7 +387,11 @@ export class PropsExtractor extends TypeScriptBaseExtractor<PropsExtractionInput
       const bNoDefault = b.defaultValue === undefined ? 0.5 : 0;
       return aPlaceholder + aDoc + aNoDefault - (bPlaceholder + bDoc + bNoDefault);
     });
-    return ranked[0]!;
+    const best = ranked[0];
+    if (!best) {
+      throw new Error('pickInformativeOccurrence produced an empty ranking');
+    }
+    return best;
   }
 
   /**

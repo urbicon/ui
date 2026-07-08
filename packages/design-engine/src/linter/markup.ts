@@ -136,12 +136,12 @@ function parseAttr(src: string, i: number, line: number): { attr: Attr; end: num
 
   // Optional `= value`, allowing whitespace around `=`.
   let k = j;
-  while (k < src.length && /\s/.test(src[k]!)) k++;
+  while (k < src.length && /\s/.test(src[k] ?? '')) k++;
   if (src[k] !== '=') {
     return { attr: { name, value: null, kind: 'boolean', line }, end: j };
   }
   k++; // past '='
-  while (k < src.length && /\s/.test(src[k]!)) k++;
+  while (k < src.length && /\s/.test(src[k] ?? '')) k++;
 
   const c = src[k];
   if (c === '"' || c === "'") {
@@ -155,7 +155,7 @@ function parseAttr(src: string, i: number, line: number): { attr: Attr; end: num
   }
   // Bare unquoted value: read until whitespace or tag end.
   let m = k;
-  while (m < src.length && !/[\s/>]/.test(src[m]!)) m++;
+  while (m < src.length && !/[\s/>]/.test(src[m] ?? '')) m++;
   return { attr: { name, value: src.slice(k, m), kind: 'string', line }, end: m };
 }
 
@@ -181,7 +181,7 @@ function parseOpenTag(
   let closed = false;
   while (i < src.length) {
     const before = i;
-    while (i < src.length && /\s/.test(src[i]!)) i++;
+    while (i < src.length && /\s/.test(src[i] ?? '')) i++;
     bump(before, i);
 
     const c = src[i];

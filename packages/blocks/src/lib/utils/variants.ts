@@ -357,7 +357,7 @@ const BUCKET_CACHE_MAX = 4096;
 
 function tailwindBucket(cls: string): string | null {
   const cached = BUCKET_CACHE.get(cls);
-  if (cached !== undefined || BUCKET_CACHE.has(cls)) return cached!;
+  if (cached !== undefined || BUCKET_CACHE.has(cls)) return cached ?? null;
 
   // Split off all modifier prefixes (`hover:focus-visible:dark:md:bg-red`).
   const lastColon = cls.lastIndexOf(':');
@@ -523,9 +523,7 @@ export function tv(config: {
 }): unknown {
   const { base, slots, variants = {}, compoundVariants = [], defaultVariants = {} } = config;
   const variantEntries = Object.entries(variants);
-  const hasSlots = slots != null && Object.keys(slots).length > 0;
-
-  if (!hasSlots) {
+  if (slots == null || Object.keys(slots).length === 0) {
     return function resolve(props?: PropBag): string {
       const effective = { ...defaultVariants, ...stripUndefined(props || {}) };
 
@@ -563,8 +561,8 @@ export function tv(config: {
     };
   }
 
-  // Slot mode
-  const slotEntries = Object.keys(slots!);
+  // Slot mode — `slots` is narrowed to non-null by the guard above.
+  const slotEntries = Object.keys(slots);
 
   return function resolve(props?: PropBag) {
     const topProps = { ...defaultVariants, ...stripUndefined(props || {}) };
@@ -583,7 +581,7 @@ export function tv(config: {
         if (slotName === 'base' && base) {
           baseTokens.push(...tokenize(resolveClassValue(base)));
         }
-        baseTokens.push(...tokenize(resolveClassValue(slots![slotName])));
+        baseTokens.push(...tokenize(resolveClassValue(slots[slotName])));
 
         // 2. Per-slot variant resolution
         const variantTokens: string[] = [];

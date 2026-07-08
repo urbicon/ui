@@ -33,11 +33,11 @@ export function parseFrontmatter(content: string): { data: Record<string, string
   const match = content.match(/^---\r?\n([\s\S]*?)\r?\n---\r?\n?/);
   if (!match) return { data, body: content };
 
-  for (const line of match[1]!.split(/\r?\n/)) {
+  for (const line of (match[1] ?? '').split(/\r?\n/)) {
     const kv = line.match(/^([a-zA-Z][\w-]*)\s*:\s*(.*)$/);
     if (kv) {
-      const value = kv[2]!.trim().replace(/^["']|["']$/g, '');
-      if (value) data[kv[1]!] = value;
+      const value = (kv[2] ?? '').trim().replace(/^["']|["']$/g, '');
+      if (value) data[kv[1] ?? ''] = value;
     }
   }
   return { data, body: content.slice(match[0].length) };
@@ -50,7 +50,7 @@ function extractSection(body: string, heading: string): string | null {
   if (start === -1) return null;
   let end = lines.length;
   for (let i = start + 1; i < lines.length; i++) {
-    if (/^## /.test(lines[i]!)) {
+    if (/^## /.test(lines[i] ?? '')) {
       end = i;
       break;
     }
@@ -63,7 +63,7 @@ function parseUsages(body: string): PatternUsage[] {
   if (!section) return [];
   const usages: PatternUsage[] = [];
   for (const m of section.matchAll(/^- `([a-z0-9-]+)`\s+—\s+(.+)$/gm)) {
-    usages.push({ pattern: m[1]!, file: m[2]!.trim() });
+    usages.push({ pattern: m[1] ?? '', file: (m[2] ?? '').trim() });
   }
   return usages;
 }
@@ -75,14 +75,14 @@ function parseDecisions(body: string): DesignDecision[] {
   // Each decision is a `### <date> — <title>` block.
   const blocks = section.split(/^### /m).slice(1);
   for (const block of blocks) {
-    const headerLine = block.split('\n', 1)[0]!;
+    const headerLine = block.split('\n', 1)[0] ?? '';
     const header = headerLine.match(/^(\d{4}-\d{2}-\d{2})\s+—\s+(.+)$/);
     if (!header) continue;
     const field = (name: string): string | undefined =>
       block.match(new RegExp(`\\*\\*${name}:\\*\\*\\s*(.+)`))?.[1]?.trim();
     decisions.push({
-      date: header[1]!,
-      title: header[2]!.trim(),
+      date: header[1] ?? '',
+      title: (header[2] ?? '').trim(),
       status: field('Status') ?? 'accepted',
       decision: field('Decision') ?? '',
       rationale: field('Rationale')
@@ -117,11 +117,12 @@ function parseIntent(body: string): ProductIntent {
   const inlineField = (label: string): string | undefined => {
     const labelRe = new RegExp(`^\\*\\*${label}:\\*\\*\\s*(.*)$`);
     for (let i = 0; i < lines.length; i++) {
-      const m = lines[i]!.match(labelRe);
+      const m = lines[i]?.match(labelRe);
       if (!m) continue;
-      const parts = m[1]!.trim() ? [m[1]!.trim()] : [];
+      const first = (m[1] ?? '').trim();
+      const parts = first ? [first] : [];
       for (let j = i + 1; j < lines.length; j++) {
-        const l = lines[j]!;
+        const l = lines[j] ?? '';
         if (l.trim() === '' || isFieldOrHeading(l)) break;
         parts.push(l.trim());
       }
@@ -145,7 +146,7 @@ function parseIntent(body: string): ProductIntent {
         if (m) {
           capturing = true;
           inInlineRun = true;
-          const inline = m[1]!.trim();
+          const inline = (m[1] ?? '').trim();
           if (inline) items.push(...splitList(inline));
         }
         continue;
@@ -153,7 +154,7 @@ function parseIntent(body: string): ProductIntent {
       if (isFieldOrHeading(l)) break; // next labelled field / heading ends this one
       const bullet = l.match(/^\s*[-*]\s+(.+)$/);
       if (bullet) {
-        items.push(bullet[1]!.trim());
+        items.push((bullet[1] ?? '').trim());
         inInlineRun = false; // bullets started — later loose lines aren't inline-list continuation
         continue;
       }
@@ -196,7 +197,8 @@ function parseTokenOverrides(body: string): string[] {
   const cores: string[] = [];
   const seen = new Set<string>();
   for (const m of section.matchAll(/^\s*[-*]\s+`([a-z][a-z0-9-]*)`/gm)) {
-    const core = m[1]!;
+    const core = m[1];
+    if (!core) continue;
     if (!seen.has(core)) {
       seen.add(core);
       cores.push(core);
@@ -380,7 +382,8 @@ function intentIsEmpty(intent: ProductIntent): boolean {
 /** Render the recent-validation drift block from the sidecar history (newest entries). */
 function formatDrift(history: ValidationHistoryEntry[]): string {
   const recent = history.slice(-5);
-  const last = recent[recent.length - 1]!;
+  const last = recent[recent.length - 1];
+  if (!last) return '';
   let md = '## Validation Drift\n\n';
   md +=
     `Last run (${last.date}): correctness ${last.correctness}/100 · slop ${last.slop}/100 — ` +
@@ -441,7 +444,9 @@ export function formatContext(
   } else {
     const byPattern = new Map<string, string[]>();
     for (const u of manifest.usages) {
-      (byPattern.get(u.pattern) ?? byPattern.set(u.pattern, []).get(u.pattern)!).push(u.file);
+      const bucket = byPattern.get(u.pattern);
+      if (bucket) bucket.push(u.file);
+      else byPattern.set(u.pattern, [u.file]);
     }
     for (const [pattern, files] of [...byPattern].sort((a, b) => a[0].localeCompare(b[0]))) {
       md += `- \`${pattern}\` (${files.length}): ${files.join(', ')}\n`;

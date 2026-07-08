@@ -46,8 +46,9 @@ export function formatCompactCatalog(
   for (const comp of filtered) {
     const primaryTag = comp.tags[0];
     if (primaryTag && TAG_LABELS[primaryTag]) {
-      if (!grouped.has(primaryTag)) grouped.set(primaryTag, []);
-      grouped.get(primaryTag)!.push(comp);
+      const bucket = grouped.get(primaryTag);
+      if (bucket) bucket.push(comp);
+      else grouped.set(primaryTag, [comp]);
     } else {
       ungrouped.push(comp);
     }

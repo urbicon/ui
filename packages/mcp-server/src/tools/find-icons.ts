@@ -36,8 +36,9 @@ export function registerFindIconsTool(server: McpServer): void {
       const byCategory = new Map<string, typeof icons>();
       for (const icon of icons) {
         for (const cat of icon.categories) {
-          if (!byCategory.has(cat)) byCategory.set(cat, []);
-          byCategory.get(cat)!.push(icon);
+          const bucket = byCategory.get(cat);
+          if (bucket) bucket.push(icon);
+          else byCategory.set(cat, [icon]);
         }
       }
 

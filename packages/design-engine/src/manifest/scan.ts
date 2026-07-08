@@ -62,7 +62,8 @@ export async function scanMarkers(
       }
       const seen = new Set<string>();
       for (const m of content.matchAll(MARKER_RE)) {
-        const pattern = m[1]!;
+        const pattern = m[1];
+        if (!pattern) continue;
         if (seen.has(pattern)) continue; // one entry per (pattern, file)
         seen.add(pattern);
         usages.push({ pattern, file: relative(baseDir, full).split(sep).join('/') });

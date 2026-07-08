@@ -23,9 +23,10 @@ export class ComponentFinder {
   async findComponents(packageConfig: PackageConfig): Promise<ComponentManifest[]> {
     const cacheKey = `${packageConfig.name}:${packageConfig.path}`;
 
-    if (this.cache.has(cacheKey)) {
+    const cached = this.cache.get(cacheKey);
+    if (cached) {
       console.log(`📦 Using cached results for ${packageConfig.name}`);
-      return this.cache.get(cacheKey)!;
+      return cached;
     }
 
     console.log(`🔍 Discovering components in ${packageConfig.name}`);
@@ -255,9 +256,10 @@ export class ComponentFinder {
       }
 
       // Filter by include patterns if specified
-      if (packageConfig.include?.length) {
+      const include = packageConfig.include;
+      if (include?.length) {
         return files.filter((file) =>
-          packageConfig.include!.some((includePattern) => file.includes(includePattern))
+          include.some((includePattern) => file.includes(includePattern))
         );
       }
 

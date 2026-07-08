@@ -26,7 +26,7 @@ export function parseComponentNames(content: string): Map<string, string> {
   const block = content.slice(start, end);
   const regex = /(\w+):\s*(\w+Icon)/g;
   for (const match of block.matchAll(regex)) {
-    map.set(match[1]!, match[2]!);
+    map.set(match[1] ?? '', match[2] ?? '');
   }
   return map;
 }
@@ -44,13 +44,13 @@ export function parseIconRegistry(content: string): IconBundleEntry[] {
   const block = content.slice(metadataStart);
 
   for (const match of block.matchAll(entryRegex)) {
-    const name = match[1]!;
-    const label = match[2]!;
-    const categories = match[3]!
+    const name = match[1] ?? '';
+    const label = match[2] ?? '';
+    const categories = (match[3] ?? '')
       .split(',')
       .map((s) => s.trim().replace(/^'|'$/g, ''))
       .filter((s) => s.length > 0);
-    const keywords = match[4]!
+    const keywords = (match[4] ?? '')
       .split(',')
       .map((s) => s.trim().replace(/^'|'$/g, ''))
       .filter((s) => s.length > 0);

@@ -39,9 +39,10 @@ export class ErrorHandler {
     }
 
     // Check if we've exceeded max errors
-    if (this.errors.length >= this.options.maxErrors!) {
+    const maxErrors = this.options.maxErrors;
+    if (maxErrors !== undefined && this.errors.length >= maxErrors) {
       throw new PipelineException(
-        `Maximum error count exceeded (${this.options.maxErrors})`,
+        `Maximum error count exceeded (${maxErrors})`,
         this.errors[this.errors.length - 1]
       );
     }
