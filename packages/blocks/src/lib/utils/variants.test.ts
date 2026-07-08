@@ -1239,6 +1239,71 @@ describe('tv – edge-cases (documented behaviour)', () => {
     ).toThrowError(/not a declared value/);
   });
 
+  it('the true/false escape only applies to boolean-ish axes', () => {
+    // `size: true` on a string axis is a config error, not a silent no-op.
+    expect(() =>
+      tv({
+        slots: { base: '' },
+        variants: { size: { sm: {}, md: {} } },
+        defaultVariants: { size: true as never }
+      })
+    ).toThrowError(/not a declared value/);
+    expect(() =>
+      tv({
+        slots: { base: '' },
+        variants: { size: { sm: {}, md: {} } },
+        compoundVariants: [{ size: true as never, class: { base: 'x' } }]
+      })
+    ).toThrowError(/no such value/);
+  });
+
+  it('validation recurses into arrays and slot-map values (no silent garbage)', () => {
+    // A slot map nested inside a class array would route wholesale to the
+    // 'base' slot and leak its KEYS as literal classes through cx()'s
+    // record form — must throw at init instead.
+    expect(() =>
+      tv({
+        slots: { base: 'b', label: 'l' },
+        variants: { size: { sm: {} } },
+        compoundVariants: [{ size: 'sm', class: [{ label: 'text-xs' }] as never }]
+      })
+    ).toThrowError(/must be a class string/);
+    // Record nested in a no-slot variant-value array.
+    expect(() =>
+      tv({
+        base: 'x',
+        variants: { on: { true: ['a', { active: 1 }] as never } }
+      })
+    ).toThrowError(/must be a class string/);
+    // Slot-map VALUES must bottom out in strings.
+    expect(() =>
+      tv({
+        slots: { base: 'b' },
+        variants: { size: { sm: { base: { oops: 'x' } } as never } }
+      })
+    ).toThrowError(/must be a class string/);
+    // Scalar garbage.
+    expect(() =>
+      tv({
+        slots: { base: 'b' },
+        variants: { size: { sm: 4 as never } }
+      })
+    ).toThrowError(/must be a class string/);
+  });
+
+  it('text-shadow and inset-shadow split size from color', () => {
+    const styles = tv({ slots: { base: 'text-shadow-lg text-shadow-black' } })();
+    const tokens = styles.base({ class: 'text-shadow-white' }).split(/\s+/);
+    expect(tokens).toContain('text-shadow-lg');
+    expect(tokens).not.toContain('text-shadow-black');
+    expect(tokens).toContain('text-shadow-white');
+
+    const inset = tv({ slots: { base: 'inset-shadow-sm' } })();
+    const insetTokens = inset.base({ class: 'inset-shadow-blue-500' }).split(/\s+/);
+    expect(insetTokens).toContain('inset-shadow-sm');
+    expect(insetTokens).toContain('inset-shadow-blue-500');
+  });
+
   it('exposes the config for tooling via .config', () => {
     const component = tv({ slots: { base: 'x' }, variants: { size: { md: { base: 'y' } } } });
     expect(component.config.slots).toEqual({ base: 'x' });

@@ -9,6 +9,7 @@
  */
 type ClassInput =
   | string
+  | number
   | ClassInput[]
   | Record<string, boolean | undefined | null>
   | undefined
@@ -108,6 +109,9 @@ export function cx(...inputs: ClassInput[]): string {
     if (typeof input === 'string') {
       const trimmed = input.trim();
       if (trimmed) parts.push(trimmed);
+    } else if (typeof input === 'number') {
+      // clsx/ClassValue parity: numbers stringify (0 is already filtered).
+      parts.push(String(input));
     } else if (Array.isArray(input)) {
       const nested = cx(...input);
       if (nested) parts.push(nested);
@@ -261,7 +265,10 @@ const BUCKET_PATTERNS: Array<[RegExp, BucketResolver]> = [
 
   // Position offsets. v4.1 inset-shadow-* / inset-ring-* must not fall into
   // the `inset-` position bucket.
-  [/^inset-shadow(-|$)/, 'inset-shadow'],
+  [/^inset-shadow-\[/, 'inset-shadow'],
+  [/^inset-shadow-(2xs|xs|sm|none)$/, 'inset-shadow'],
+  [/^inset-shadow$/, 'inset-shadow'],
+  [/^inset-shadow-/, 'inset-shadow-color'],
   [/^inset-ring(-\d+|-\[[^\]]+\])?$/, 'inset-ring-width'],
   [/^inset-ring-/, 'inset-ring-color'],
   [/^inset-x-/, 'inset-x'],
@@ -349,9 +356,12 @@ const BUCKET_PATTERNS: Array<[RegExp, BucketResolver]> = [
   [/^to-/, 'gradient-to'],
 
   // Text — size / align / weight / color (specific first). v4 size+leading shorthand: `text-sm/6`, `text-base/relaxed`.
-  // v4.1 text-shadow-* must not read as text-color.
+  // v4.1 text-shadow-* must not read as text-color — and like `shadow`,
+  // the named size scale is finite; other single-word values are colors
+  // (`text-shadow-white` must not strip `text-shadow-lg`).
   [/^text-shadow-\[/, 'text-shadow'],
-  [/^text-shadow(-\w+)?$/, 'text-shadow'],
+  [/^text-shadow-(2xs|xs|sm|md|lg|none)$/, 'text-shadow'],
+  [/^text-shadow$/, 'text-shadow'],
   [/^text-shadow-/, 'text-shadow-color'],
   [/^text-(xs|sm|base|lg|xl|\d+xl)(\/[\w.-]+)?$/, 'text-size'],
   // Data-type hints disambiguate the overloaded `text-` arbitraries.
@@ -773,10 +783,29 @@ function validateTvConfig(config: {
     }
   };
 
+  // Leaf values must bottom out in class strings (nested arrays allowed,
+  // falsy entries tolerated for conditional-array patterns). Objects inside
+  // arrays and scalar garbage would silently render as '' — or worse, leak
+  // through cx()'s record form as literal slot-name classes — so they throw.
+  const checkClassLeaf = (value: unknown, context: string): void => {
+    if (value == null || value === false) return;
+    if (typeof value === 'string') return;
+    if (Array.isArray(value)) {
+      for (const [i, v] of value.entries()) {
+        checkClassLeaf(v, `${context}[${i}]`);
+      }
+      return;
+    }
+    throw new Error(
+      `tv(): ${context} must be a class string (or nested array of strings), got ${typeof value}.`
+    );
+  };
+
   const checkSlotKeys = (value: unknown, context: string) => {
     if (value == null) return;
     if (typeof value === 'string' || Array.isArray(value)) {
       if (slotNames) requireBaseSlot(context);
+      checkClassLeaf(value, context);
       return;
     }
     if (typeof value === 'object') {
@@ -791,8 +820,13 @@ function validateTvConfig(config: {
             `tv(): ${context} targets unknown slot '${key}' (declared slots: ${slotNames.join(', ')}).`
           );
         }
+        checkClassLeaf((value as Record<string, unknown>)[key], `${context}.${key}`);
       }
+      return;
     }
+    throw new Error(
+      `tv(): ${context} must be a class string, array or slot map, got ${typeof value}.`
+    );
   };
 
   for (const [axis, values] of Object.entries(variants)) {
@@ -810,12 +844,15 @@ function validateTvConfig(config: {
       }
       const constraint = cv[key];
       const values = Array.isArray(constraint) ? constraint : [constraint];
+      const booleanAxis = 'true' in axis || 'false' in axis;
       for (const v of values) {
         const normalized = falsyToString(v);
         // 'true'/'false' may be matched even when only one of them is
         // declared — half-declared boolean axes are idiomatic
-        // (`loading: { true: … }` + a compound on `loading: false`).
-        if (normalized === 'true' || normalized === 'false') continue;
+        // (`loading: { true: … }` + a compound on `loading: false`). The
+        // escape only applies to boolean-ish axes; `size: true` on a string
+        // axis is a config error.
+        if ((normalized === 'true' || normalized === 'false') && booleanAxis) continue;
         if (normalized == null || !(normalized in axis)) {
           throw new Error(
             `tv(): compoundVariants[${i}] matches '${key}: ${String(v)}', but axis '${key}' declares no such value (values: ${Object.keys(axis).join(', ')}).`
@@ -832,7 +869,8 @@ function validateTvConfig(config: {
       throw new Error(`tv(): defaultVariants references unknown variant axis '${key}'.`);
     }
     const normalized = falsyToString(value);
-    if (normalized === 'true' || normalized === 'false') continue;
+    const booleanAxis = 'true' in axis || 'false' in axis;
+    if ((normalized === 'true' || normalized === 'false') && booleanAxis) continue;
     if (normalized == null || !(normalized in axis)) {
       throw new Error(
         `tv(): defaultVariants.${key} = '${String(value)}' is not a declared value of axis '${key}' (values: ${Object.keys(axis).join(', ')}).`
@@ -841,7 +879,11 @@ function validateTvConfig(config: {
   }
 }
 
-/** Config record exposed on every resolver as `.config` (tooling/linting). */
+/**
+ * Config record exposed on every resolver as `.config` (tooling/linting).
+ * Read-only by convention: it is the live config object — mutating it after
+ * init bypasses validateTvConfig. Tools must treat it as immutable.
+ */
 export type TVConfig = {
   readonly base?: string | string[];
   readonly slots?: Record<string, string | string[]>;
@@ -960,9 +1002,9 @@ export function tv(config: {
     };
 
   const resolve = function resolve(props?: PropBag) {
-    if (import.meta.env?.DEV && props != null && 'class' in props) {
+    if (import.meta.env?.DEV && props != null && (props as PropBag).class != null) {
       console.warn(
-        'tv(): a top-level `class` is ignored in slot mode — pass it to the slot function instead, e.g. styles.base({ class }).'
+        `tv(): a top-level \`class\` is ignored in slot mode (slots: ${slotNames.join(', ')}) — pass it to the slot function instead, e.g. styles.base({ class }).`
       );
     }
     const topProps = { ...defaultVariants, ...stripUndefined(props || {}) };
