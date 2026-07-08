@@ -90,6 +90,26 @@ describe('DateRangePicker (component interaction)', () => {
     expect(iso(range.end)).toBe('2026-03-20');
   });
 
+  it('commits a single typed date (no separator) as a single-day range that fires onValueChange', () => {
+    const onValueChange = vi.fn();
+    renderPicker({ onValueChange });
+
+    // A lone date with no range separator parses to { start: d, end: d }. This is the
+    // one place the typed and calendar paths diverge: the calendar's first click also
+    // produces start === end but *withholds* onValueChange (mid-selection), whereas a
+    // typed single date is a complete, deliberate entry — commitDraft fires for it.
+    const el = input();
+    fireEvent.focus(el);
+    fireEvent.input(el, { target: { value: '15.03.2026' } });
+    fireEvent.blur(el);
+    flushSync();
+
+    expect(onValueChange).toHaveBeenCalledTimes(1);
+    const range = onValueChange.mock.calls[0][0] as DateRange;
+    expect(iso(range.start)).toBe('2026-03-15');
+    expect(iso(range.end)).toBe('2026-03-15');
+  });
+
   it('shows the range parse error and does not commit an unparseable draft', () => {
     const onValueChange = vi.fn();
     renderPicker({ onValueChange });
@@ -118,6 +138,24 @@ describe('DateRangePicker (component interaction)', () => {
 
     expect(onValueChange).not.toHaveBeenCalled();
     expect(document.body.textContent).toContain('Invalid date range');
+  });
+
+  it('rejects a range whose end falls after maxDate (validates the end half), no commit', () => {
+    const onValueChange = vi.fn();
+    // maxDate sits between the two halves: the start is allowed, the end is not — so
+    // this specifically guards the second clause of commitDraft's dual isDateAllowed
+    // check. The sibling DatePicker test covers a single out-of-range value but, by
+    // construction, can never reach the end-half branch a range picker adds.
+    renderPicker({ maxDate: new Date(2026, 2, 15), onValueChange });
+
+    const el = input();
+    fireEvent.focus(el);
+    fireEvent.input(el, { target: { value: '10.03.2026 – 20.03.2026' } });
+    fireEvent.blur(el);
+    flushSync();
+
+    expect(onValueChange).not.toHaveBeenCalled();
+    expect(document.body.textContent).toContain('outside the allowed range');
   });
 
   it('does not re-fire onValueChange when the typed range equals the current value', () => {
