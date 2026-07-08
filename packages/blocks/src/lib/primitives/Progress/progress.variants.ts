@@ -12,7 +12,8 @@ export const progressVariants = tv({
       'transition-[background-color] duration-[var(--blocks-duration-fast)] ease-out'
     ],
     fill: [
-      'h-full rounded-commit',
+      // Height comes from the size axis (track and fill share it).
+      'rounded-commit',
       'transition-[width,background-color] duration-[var(--blocks-duration-normal)] ease-out'
     ],
     circularWrapper: ['relative inline-flex items-center justify-center'],

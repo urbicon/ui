@@ -56,7 +56,9 @@ export const badgeVariants = tv({
         base: 'bg-transparent border-2'
       },
       soft: {
-        base: 'bg-transparent border-transparent'
+        // No bg here: every intent×soft compound supplies its bg-*-subtle,
+        // so an axis-level bg-transparent could never win the fold.
+        base: 'border-transparent'
       },
       dot: {
         base: '!p-0 rounded-commit border-none'

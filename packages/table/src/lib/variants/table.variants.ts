@@ -25,7 +25,9 @@ export const tableHeaderVariants = tv({
     ],
     // compatibility: old code used `cellContent`
     cellContent: ['flex items-center justify-between gap-2'],
-    content: ['flex items-center justify-between gap-2'],
+    // No justify-between: the align axis (default left) always supplies
+    // the justify-* for this slot.
+    content: ['flex items-center gap-2'],
     // compatibility: old code used `titleContainer` and `titleContent`
     titleContainer: ['flex items-center flex-1'],
     titleContent: ['flex items-center space-x-2'],

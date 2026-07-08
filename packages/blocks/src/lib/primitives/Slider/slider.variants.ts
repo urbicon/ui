@@ -13,7 +13,8 @@ export const sliderVariants = tv({
       'transition-[background-color] duration-[var(--blocks-duration-fast)]'
     ],
     range: [
-      'absolute h-full rounded-commit',
+      // Height comes from the size axis (track and range share it).
+      'absolute rounded-commit',
       'transition-[background-color] duration-[var(--blocks-duration-fast)]'
     ],
     thumb: [

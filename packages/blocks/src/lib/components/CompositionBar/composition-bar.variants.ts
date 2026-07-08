@@ -65,20 +65,20 @@ export const compositionBarVariants = tv({
         legend: 'flex-col gap-1.5 flex-1 min-w-0'
       }
     },
+    // Bar thickness is orientation-dependent (height when horizontal, width
+    // when vertical), so it lives in the orientation×size compounds below —
+    // an axis-level `bar: h-*` would strip vertical's `h-full` length.
     size: {
       sm: {
-        bar: 'h-2',
         legendItem: 'text-xs',
         legendDot: 'h-2 w-2',
         tooltip: 'text-[11px]'
       },
       md: {
-        bar: 'h-3',
         legendItem: 'text-sm',
         legendDot: 'h-2.5 w-2.5'
       },
       lg: {
-        bar: 'h-5',
         legendItem: 'text-base',
         legendDot: 'h-3 w-3'
       }
@@ -98,6 +98,13 @@ export const compositionBarVariants = tv({
     }
   },
   compoundVariants: [
+    // Horizontal bar thickness per size. Vertical keeps its fixed w-12 from
+    // the orientation axis — its length is h-full/min-h, which a size-axis
+    // `h-*` would otherwise strip.
+    { orientation: 'horizontal', size: 'sm', class: { bar: 'h-2' } },
+    { orientation: 'horizontal', size: 'md', class: { bar: 'h-3' } },
+    { orientation: 'horizontal', size: 'lg', class: { bar: 'h-5' } },
+
     // In horizontal orientation, legendPlacement="right"/"left" overrides the
     // wrapper flex-direction (bar on the left/right, legend on the right/left).
     {

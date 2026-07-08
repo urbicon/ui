@@ -19,8 +19,8 @@ export const sectionVariants = tv({
   },
   variants: {
     size: {
-      sm: { header: 'mt-4', title: 'text-base font-semibold', subtitle: 'text-sm' },
-      md: { header: 'mt-6', title: 'text-lg font-semibold', subtitle: 'text-sm' },
+      sm: { header: 'mt-4', title: 'font-semibold', subtitle: 'text-sm' },
+      md: { title: 'text-lg font-semibold', subtitle: 'text-sm' },
       lg: { header: 'mt-8', title: 'text-xl font-semibold', subtitle: 'text-base' },
       xl: {
         header: 'mt-10',

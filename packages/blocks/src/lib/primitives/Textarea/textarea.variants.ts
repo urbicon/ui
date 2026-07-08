@@ -46,19 +46,19 @@ export const textareaVariants = tv({
       md: { base: 'px-4 py-3 text-base min-h-[7rem]' },
       lg: { base: 'px-6 py-4 text-lg min-h-[9rem]' }
     },
+    // Message colour is owned by messageType/error (declared below) — an
+    // intent-level message tone could never win the fold and shipped
+    // inconsistently under the old stylesheet-order tie-break.
     intent: {
       default: {},
       success: {
-        base: 'border-success focus-visible:border-success focus-visible:ring-success/20',
-        message: 'text-success'
+        base: 'border-success focus-visible:border-success focus-visible:ring-success/20'
       },
       warning: {
-        base: 'border-warning focus-visible:border-warning focus-visible:ring-warning/20',
-        message: 'text-warning-emphasis'
+        base: 'border-warning focus-visible:border-warning focus-visible:ring-warning/20'
       },
       danger: {
-        base: 'border-danger focus-visible:border-danger focus-visible:ring-danger/20',
-        message: 'text-danger'
+        base: 'border-danger focus-visible:border-danger focus-visible:ring-danger/20'
       }
     },
     autoResize: {

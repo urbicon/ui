@@ -7,7 +7,9 @@ export const buttonGroupVariants = tv({
   variants: {
     orientation: {
       horizontal: { base: 'flex-row' },
-      vertical: { base: 'flex-col w-fit' }
+      // Width lives in the vertical compound below (w-full, sm:w-fit) —
+      // an axis-level w-fit could never win against it.
+      vertical: { base: 'flex-col' }
     },
     connected: {
       true: { base: '' },
