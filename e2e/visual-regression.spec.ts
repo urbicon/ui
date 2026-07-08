@@ -70,6 +70,19 @@ async function setup(page: Page, scheme: (typeof SCHEMES)[number], theme: (typeo
 }
 
 test.describe('Primitive visual regression', () => {
+  // Baselines are captured with chromium on macOS (`…-chromium-darwin.png`). On Linux
+  // (CI) Playwright resolves `…-chromium-linux.png` and hard-fails on the missing files,
+  // so the suite is gated to darwin until per-platform baselines exist — the "CI-optional
+  // until stable" intent from the TODO. (The existing floating/guide visual specs are
+  // darwin-only too; docs/technical-debt.md tracks generating Linux baselines for the
+  // whole e2e-visual layer.)
+  test.beforeEach(() => {
+    test.skip(
+      process.platform !== 'darwin',
+      'chromium-darwin baselines only — regenerate on Linux (see docs/technical-debt.md) to enable in CI'
+    );
+  });
+
   for (const scheme of SCHEMES) {
     for (const theme of THEMES) {
       test(`${scheme} · ${theme}`, async ({ page }) => {
