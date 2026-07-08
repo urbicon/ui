@@ -73,6 +73,29 @@ internal TODO instead.
 - **Found:** 2026-07-08, in the pr-test-analyzer review of the new
   `DateRangePicker.svelte.test.ts` (flagged low/optional, shared-with-sibling).
 
+### e2e visual snapshots are `chromium-darwin`-only — Linux CI can't verify them
+
+- **Where:** `e2e/snapshots/**` (all committed PNGs, incl. the new
+  `visual-regression.spec.ts-snapshots/**`) and `.github/workflows/ci.yml` (the
+  `e2e` job, `runs-on: ubuntu-latest`).
+- **What:** Every committed Playwright screenshot is stamped `-chromium-darwin`.
+  Playwright resolves snapshots per platform, so on Linux (CI) it looks for
+  `-chromium-linux.png`, finds nothing, and hard-fails. The whole e2e-visual layer —
+  `floating.spec.ts`, `guide.spec.ts`, and now `visual-regression.spec.ts` (the
+  10-primitive × light/dark × library/editorial matrix) — is therefore darwin-only.
+  The new suite is explicitly `test.skip`-gated to darwin so it adds no red to the CI
+  e2e job; the pre-existing floating/guide specs are NOT gated (they already fail on
+  Linux — the "CI-optional until stable" state the TODO records).
+- **Why deferred:** Making the visual layer CI-green needs per-platform baselines,
+  which can't be produced on a macOS box: either (a) generate `-chromium-linux`
+  baselines via the official `mcr.microsoft.com/playwright` Docker image and commit
+  both platforms, (b) add a macOS runner for the e2e job, or (c) a one-off CI bootstrap
+  that runs `--update-snapshots` on Linux and commits the result. Each is an infra
+  decision spanning all three specs, not a change to the suite in flight — logged
+  rather than solved here.
+- **Found:** 2026-07-08, adding the primitive visual-regression suite; the CI job runs
+  `bunx playwright test` on `ubuntu-latest` with no `continue-on-error`.
+
 ## Component behaviour
 
 ### `ConfirmDialog` propagates a rejecting async `onConfirm` as an unhandled rejection
