@@ -1,6 +1,19 @@
 // ─── Type Utilities ──────────────────────────────────────────────────────────
 
-type ClassInput = string | ClassInput[] | undefined | null | false;
+/**
+ * Call-site class value — mirrors Svelte 5's `ClassValue` (clsx shape):
+ * strings, nested arrays, `{ class: condition }` records, falsy values
+ * (dropped). Accepted by `cx()` and every `class` input (component props,
+ * slot-function overrides). Config-side values (variants, compound classes)
+ * deliberately do NOT take the record form — there an object is a slot map.
+ */
+type ClassInput =
+  | string
+  | ClassInput[]
+  | Record<string, boolean | undefined | null>
+  | undefined
+  | null
+  | false;
 
 type VariantPropType<V> =
   V extends Record<string, unknown>
@@ -13,30 +26,48 @@ type VariantPropsMap<V extends Record<string, Record<string, unknown>>> = {
   [K in keyof V]?: VariantPropType<V[K]>;
 };
 
-type TVClassOverrides = {
-  class?: ClassInput;
-  className?: ClassInput;
-};
-
 type SlotFn<V extends Record<string, Record<string, unknown>>> = (
-  props?: VariantPropsMap<V> & TVClassOverrides
+  props?: VariantPropsMap<V> & { class?: ClassInput }
 ) => string;
+
+/** Per-slot class map used config-side (variant values, compound classes). */
+type SlotClassMap<S> = { [K in keyof S]?: string | string[] };
+
+/**
+ * Validation companion for slot-mode `variants`: intersecting the inferred
+ * `V` with this mapped type turns every slot-map key that is not a declared
+ * slot into an assignability error AT that key — the compiler catches
+ * `wrapeer` typos that structural checking alone would let through.
+ */
+type ValidSlotVariants<V, S> = {
+  [A in keyof V]: {
+    [Q in keyof V[A]]: V[A][Q] extends string | readonly string[]
+      ? unknown
+      : { [K in keyof V[A][Q]]: K extends keyof S ? unknown : ['unknown slot', K] };
+  };
+};
 
 type CompoundVariant<V extends Record<string, Record<string, unknown>>> = {
   [K in keyof V]?: VariantPropType<V[K]> | VariantPropType<V[K]>[];
 } & {
-  class?: string | string[] | Record<string, string | string[]>;
-  className?: string | string[] | Record<string, string | string[]>;
+  class?: string | string[];
+};
+
+type SlotCompoundVariant<V extends Record<string, Record<string, unknown>>, S> = {
+  [K in keyof V]?: VariantPropType<V[K]> | VariantPropType<V[K]>[];
+} & {
+  class?: string | string[] | SlotClassMap<S>;
 };
 
 // ─── Public Types ────────────────────────────────────────────────────────────
 
-export type TVProps<V extends Record<string, Record<string, unknown>>> = VariantPropsMap<V> &
-  TVClassOverrides;
+export type TVProps<V extends Record<string, Record<string, unknown>>> = VariantPropsMap<V> & {
+  class?: ClassInput;
+};
 
 export type VariantProps<T extends (...args: never[]) => unknown> = Omit<
   Exclude<Parameters<T>[0], undefined>,
-  'class' | 'className'
+  'class'
 >;
 
 /**
@@ -61,8 +92,9 @@ export type SlotNames<T extends (...args: never[]) => unknown> = keyof ReturnTyp
 
 /**
  * Concatenate class inputs into a single string. Accepts strings, nested
- * arrays, and falsy values (filtered out). Trims and joins with single
- * spaces.
+ * arrays, `{ class: condition }` records (Svelte 5 `ClassValue` / clsx
+ * shape — keys with truthy values are included) and falsy values (filtered
+ * out). Trims and joins with single spaces.
  *
  * Note: `cx()` does **not** deduplicate — `cx('foo', 'foo bar')` returns
  * `'foo foo bar'`. Duplicate Tailwind classes are harmless at runtime
@@ -79,6 +111,12 @@ export function cx(...inputs: ClassInput[]): string {
     } else if (Array.isArray(input)) {
       const nested = cx(...input);
       if (nested) parts.push(nested);
+    } else if (typeof input === 'object') {
+      for (const key of Object.keys(input)) {
+        if (!input[key]) continue;
+        const trimmed = key.trim();
+        if (trimmed) parts.push(trimmed);
+      }
     }
   }
   return parts.join(' ');
@@ -456,8 +494,10 @@ const BUCKET_CACHE = new Map<string, string | null>();
 const BUCKET_CACHE_MAX = 4096;
 
 function tailwindBucket(cls: string): string | null {
+  // Stored values are `string | null`, never `undefined` — a single lookup
+  // distinguishes hit from miss.
   const cached = BUCKET_CACHE.get(cls);
-  if (cached !== undefined || BUCKET_CACHE.has(cls)) return cached ?? null;
+  if (cached !== undefined) return cached;
 
   // Split off all modifier prefixes (`hover:focus-visible:dark:md:bg-red`).
   const lastColon = lastTopLevelColon(cls);
@@ -672,7 +712,7 @@ export function matchesCompound(
   effectiveProps: Record<string, unknown>
 ): boolean {
   for (const key of Object.keys(compound)) {
-    if (key === 'class' || key === 'className') continue;
+    if (key === 'class') continue;
 
     const constraint = compound[key];
     const propValue = falsyToString(effectiveProps[key]);
@@ -699,29 +739,147 @@ type VariantMap = Record<string, Record<string, unknown>>;
 type CompoundEntry = Record<string, unknown>;
 type PropBag = Record<string, unknown>;
 
-// Overload: no slots → returns (props?) => string
+/**
+ * Config-time validation — every violation here is a programming error in a
+ * `*.variants.ts` (or a consumer's own tv() call), so it throws immediately
+ * at module init instead of degrading silently at render time. The compile-
+ * time layer (ValidSlotVariants, VariantPropsMap) catches the same class of
+ * mistakes for literal configs; this covers JS consumers and values built
+ * from imported constants.
+ */
+function validateTvConfig(config: {
+  base?: string | string[];
+  slots?: Record<string, string | string[]>;
+  variants?: VariantMap;
+  compoundVariants?: CompoundEntry[];
+  defaultVariants?: PropBag;
+}): void {
+  const { base, slots, variants = {}, compoundVariants = [], defaultVariants = {} } = config;
+  const slotNames = slots != null && Object.keys(slots).length > 0 ? Object.keys(slots) : null;
+
+  if (slotNames && base != null) {
+    // Fail loud instead of the historical silent drop (base only ever
+    // reached a slot literally named 'base').
+    throw new Error(
+      'tv(): `base` and `slots` are mutually exclusive — declare the primary slot as `slots.base` instead.'
+    );
+  }
+
+  const requireBaseSlot = (context: string) => {
+    if (slotNames && !slotNames.includes('base')) {
+      throw new Error(
+        `tv(): ${context} is a plain class value, which routes to the 'base' slot — but no slot named 'base' is declared.`
+      );
+    }
+  };
+
+  const checkSlotKeys = (value: unknown, context: string) => {
+    if (value == null) return;
+    if (typeof value === 'string' || Array.isArray(value)) {
+      if (slotNames) requireBaseSlot(context);
+      return;
+    }
+    if (typeof value === 'object') {
+      if (!slotNames) {
+        throw new Error(
+          `tv(): ${context} is a slot map, but this tv() declares no slots — use a plain class string/array.`
+        );
+      }
+      for (const key of Object.keys(value)) {
+        if (!slotNames.includes(key)) {
+          throw new Error(
+            `tv(): ${context} targets unknown slot '${key}' (declared slots: ${slotNames.join(', ')}).`
+          );
+        }
+      }
+    }
+  };
+
+  for (const [axis, values] of Object.entries(variants)) {
+    for (const [valueName, value] of Object.entries(values)) {
+      checkSlotKeys(value, `variants.${axis}.${valueName}`);
+    }
+  }
+
+  for (const [i, cv] of compoundVariants.entries()) {
+    for (const key of Object.keys(cv)) {
+      if (key === 'class') continue;
+      const axis = variants[key];
+      if (axis == null) {
+        throw new Error(`tv(): compoundVariants[${i}] references unknown variant axis '${key}'.`);
+      }
+      const constraint = cv[key];
+      const values = Array.isArray(constraint) ? constraint : [constraint];
+      for (const v of values) {
+        const normalized = falsyToString(v);
+        // 'true'/'false' may be matched even when only one of them is
+        // declared — half-declared boolean axes are idiomatic
+        // (`loading: { true: … }` + a compound on `loading: false`).
+        if (normalized === 'true' || normalized === 'false') continue;
+        if (normalized == null || !(normalized in axis)) {
+          throw new Error(
+            `tv(): compoundVariants[${i}] matches '${key}: ${String(v)}', but axis '${key}' declares no such value (values: ${Object.keys(axis).join(', ')}).`
+          );
+        }
+      }
+    }
+    checkSlotKeys(cv.class, `compoundVariants[${i}].class`);
+  }
+
+  for (const [key, value] of Object.entries(defaultVariants)) {
+    const axis = variants[key];
+    if (axis == null) {
+      throw new Error(`tv(): defaultVariants references unknown variant axis '${key}'.`);
+    }
+    const normalized = falsyToString(value);
+    if (normalized === 'true' || normalized === 'false') continue;
+    if (normalized == null || !(normalized in axis)) {
+      throw new Error(
+        `tv(): defaultVariants.${key} = '${String(value)}' is not a declared value of axis '${key}' (values: ${Object.keys(axis).join(', ')}).`
+      );
+    }
+  }
+}
+
+/** Config record exposed on every resolver as `.config` (tooling/linting). */
+export type TVConfig = {
+  readonly base?: string | string[];
+  readonly slots?: Record<string, string | string[]>;
+  readonly variants?: Record<string, Record<string, unknown>>;
+  readonly compoundVariants?: Record<string, unknown>[];
+  readonly defaultVariants?: Record<string, unknown>;
+};
+
+// Overload: no slots → returns (props?) => string. Variant values are plain
+// class strings/arrays — a slot map here is a config error.
 // When variants is omitted, V defaults to `{}` so `class` overrides don't
 // collide with the wide index-signature inferred from the generic constraint.
 // biome-ignore lint/complexity/noBannedTypes: empty-object default keeps `class` overrides from colliding with the inferred index signature (see above).
-export function tv<V extends Record<string, Record<string, unknown>> = {}>(config: {
+export function tv<V extends Record<string, Record<string, string | string[]>> = {}>(config: {
   base?: string | string[];
   variants?: V;
   compoundVariants?: CompoundVariant<V>[];
   defaultVariants?: VariantPropsMap<V>;
-}): (props?: TVProps<V>) => string;
+}): ((props?: TVProps<V>) => string) & { readonly config: TVConfig };
 
-// Overload: with slots → returns (props?) => { [slot]: (slotProps?) => string }
+// Overload: with slots → returns (props?) => { [slot]: (slotProps?) => string }.
+// No `base` here: the primary slot is declared as `slots.base`. And no
+// top-level `class` on the resolve call — class overrides belong to the
+// slot functions (`styles.base({ class })`), a top-level one has no slot
+// to attach to. Slot-map keys in variant values and compound classes are
+// compile-checked against the declared slots (ValidSlotVariants).
 export function tv<
   // biome-ignore lint/complexity/noBannedTypes: empty-object default keeps `class` overrides from colliding with the inferred index signature (see above).
   V extends Record<string, Record<string, unknown>> = {},
   S extends Record<string, string | string[]> = Record<string, string>
 >(config: {
-  base?: string | string[];
   slots: S;
-  variants?: V;
-  compoundVariants?: CompoundVariant<V>[];
+  variants?: V & ValidSlotVariants<V, S>;
+  compoundVariants?: SlotCompoundVariant<V, S>[];
   defaultVariants?: VariantPropsMap<V>;
-}): (props?: TVProps<V>) => { [K in keyof S]: SlotFn<V> };
+}): ((props?: VariantPropsMap<V>) => { [K in keyof S]: SlotFn<V> }) & {
+  readonly config: TVConfig;
+};
 
 // Implementation
 export function tv(config: {
@@ -731,114 +889,97 @@ export function tv(config: {
   compoundVariants?: CompoundEntry[];
   defaultVariants?: PropBag;
 }): unknown {
+  validateTvConfig(config);
+
   const { base, slots, variants = {}, compoundVariants = [], defaultVariants = {} } = config;
   const variantEntries = Object.entries(variants);
-  if (slots == null || Object.keys(slots).length === 0) {
-    return function resolve(props?: PropBag): string {
-      const effective = { ...defaultVariants, ...stripUndefined(props || {}) };
+  const hasSlots = slots != null && Object.keys(slots).length > 0;
 
-      // Ordered pipeline sources: base → each variant axis in declaration
-      // order → each matching compoundVariant in array order → call-site
-      // class override. `foldSources` lets every later source strip earlier
-      // sources' conflicting buckets, so axis and compound order are
-      // semantic: declare the axis that must win a shared bucket later.
-      // See "tv() engine — explicit trade-offs" in ARCHITECTURE.md.
-      const sources: string[][] = [tokenize(resolveClassValue(base))];
-
-      for (const [vName, vMap] of variantEntries) {
-        const key = falsyToString(effective[vName]);
-        if (key != null && key in vMap) {
-          sources.push(tokenize(resolveClassValue(vMap[key])));
-        }
-      }
-
-      for (const cv of compoundVariants) {
-        if (matchesCompound(cv, effective)) {
-          sources.push(tokenize(resolveClassValue(cv.class ?? cv.className)));
-        }
-      }
-
-      const overrideTokens: string[] = [];
-      if (props?.class) overrideTokens.push(...tokenize(resolveClassValue(props.class)));
-      if (props?.className) overrideTokens.push(...tokenize(resolveClassValue(props.className)));
-      sources.push(overrideTokens);
-
-      return foldSources(sources).join(' ');
-    };
+  /**
+   * Shared pipeline: first source → each variant axis in declaration order →
+   * each matching compoundVariant in array order → call-site class override.
+   * `foldSources` lets every later source strip earlier sources' conflicting
+   * buckets, so axis and compound order are semantic: declare the axis that
+   * must win a shared bucket later. See "tv() engine — explicit trade-offs"
+   * in ARCHITECTURE.md. `pickValue` routes config values: identity in no-slot
+   * mode; per-slot lookup (slot maps by name, plain strings to the 'base'
+   * slot) in slot mode.
+   */
+  function foldFor(
+    firstSource: string[],
+    effective: PropBag,
+    pickValue: (value: unknown) => unknown,
+    overrideTokens: string[]
+  ): string {
+    const sources: string[][] = [firstSource];
+    for (const [vName, vMap] of variantEntries) {
+      const key = falsyToString(effective[vName]);
+      if (key == null || !(key in vMap)) continue;
+      sources.push(tokenize(resolveClassValue(pickValue(vMap[key]))));
+    }
+    for (const cv of compoundVariants) {
+      if (!matchesCompound(cv, effective)) continue;
+      sources.push(tokenize(resolveClassValue(pickValue(cv.class))));
+    }
+    sources.push(overrideTokens);
+    return foldSources(sources).join(' ');
   }
 
-  // Slot mode — `slots` is narrowed to non-null by the guard above.
-  const slotEntries = Object.keys(slots);
+  if (!hasSlots) {
+    const identity = (value: unknown) => value;
+    const baseTokens = tokenize(resolveClassValue(base));
+    const resolve = function resolve(props?: PropBag): string {
+      const effective = { ...defaultVariants, ...stripUndefined(props || {}) };
+      const overrideTokens = props?.class ? tokenize(cx(props.class as ClassInput)) : [];
+      return foldFor(baseTokens, effective, identity, overrideTokens);
+    };
+    // Introspection hook for tooling (variants linter, docs-gen) — the
+    // config is static module data, exposing it costs nothing.
+    Object.defineProperty(resolve, 'config', { value: config, enumerable: false });
+    return resolve;
+  }
 
-  return function resolve(props?: PropBag) {
+  // Slot mode — `slots` is narrowed to non-null by `hasSlots`.
+  const slotNames = Object.keys(slots as Record<string, string | string[]>);
+  const slotBases = new Map<string, string[]>();
+  for (const slotName of slotNames) {
+    slotBases.set(
+      slotName,
+      tokenize(resolveClassValue((slots as Record<string, string | string[]>)[slotName]))
+    );
+  }
+
+  const pickerFor =
+    (slotName: string) =>
+    (value: unknown): unknown => {
+      if (value != null && typeof value === 'object' && !Array.isArray(value)) {
+        return (value as Record<string, unknown>)[slotName];
+      }
+      // Plain string/array config values route to the 'base' slot only.
+      return slotName === 'base' ? value : undefined;
+    };
+
+  const resolve = function resolve(props?: PropBag) {
+    if (import.meta.env?.DEV && props != null && 'class' in props) {
+      console.warn(
+        'tv(): a top-level `class` is ignored in slot mode — pass it to the slot function instead, e.g. styles.base({ class }).'
+      );
+    }
     const topProps = { ...defaultVariants, ...stripUndefined(props || {}) };
     const result: Record<string, (slotProps?: PropBag) => string> = {};
 
-    for (const slotName of slotEntries) {
+    for (const slotName of slotNames) {
+      const pick = pickerFor(slotName);
+      const slotBase = slotBases.get(slotName) as string[];
       result[slotName] = function slotFn(slotProps?: PropBag): string {
         const effective = { ...topProps, ...stripUndefined(slotProps || {}) };
-
-        // 1. Slot base (merge config.base into 'base' slot if present).
-        //    `config.base` only contributes to a slot literally named
-        //    `'base'`. If a component renames its primary slot (e.g. to
-        //    `wrapper`), `config.base` is silently dropped — slots and
-        //    config.base must agree on the name.
-        const baseTokens: string[] = [];
-        if (slotName === 'base' && base) {
-          baseTokens.push(...tokenize(resolveClassValue(base)));
-        }
-        baseTokens.push(...tokenize(resolveClassValue(slots[slotName])));
-
-        // Ordered pipeline sources: slot base → each variant axis in
-        // declaration order → each matching compoundVariant in array order →
-        // slotProps class override. `foldSources` lets every later source
-        // strip earlier sources' conflicting buckets, so axis and compound
-        // order are semantic: declare the axis that must win a shared bucket
-        // later. See "tv() engine — explicit trade-offs" in ARCHITECTURE.md.
-        const sources: string[][] = [baseTokens];
-
-        // 2. Per-slot variant resolution
-        for (const [vName, vMap] of variantEntries) {
-          const key = falsyToString(effective[vName]);
-          if (key == null || !(key in vMap)) continue;
-          const vValue = vMap[key];
-
-          if (vValue != null && typeof vValue === 'object' && !Array.isArray(vValue)) {
-            const obj = vValue as Record<string, unknown>;
-            if (slotName in obj) {
-              sources.push(tokenize(resolveClassValue(obj[slotName])));
-            }
-          } else if (slotName === 'base') {
-            sources.push(tokenize(resolveClassValue(vValue)));
-          }
-        }
-
-        // 3. Compound variant resolution (per-slot)
-        for (const cv of compoundVariants) {
-          if (!matchesCompound(cv, effective)) continue;
-          const cvClass = cv.class ?? cv.className;
-
-          if (cvClass != null && typeof cvClass === 'object' && !Array.isArray(cvClass)) {
-            const obj = cvClass as Record<string, unknown>;
-            if (slotName in obj) {
-              sources.push(tokenize(resolveClassValue(obj[slotName])));
-            }
-          } else if (slotName === 'base') {
-            sources.push(tokenize(resolveClassValue(cvClass)));
-          }
-        }
-
-        // 4. Class override from slotProps
-        const overrideTokens: string[] = [];
-        if (slotProps?.class) overrideTokens.push(...tokenize(resolveClassValue(slotProps.class)));
-        if (slotProps?.className)
-          overrideTokens.push(...tokenize(resolveClassValue(slotProps.className)));
-        sources.push(overrideTokens);
-
-        return foldSources(sources).join(' ');
+        const overrideTokens = slotProps?.class ? tokenize(cx(slotProps.class as ClassInput)) : [];
+        return foldFor(slotBase, effective, pick, overrideTokens);
       };
     }
 
     return result;
   };
+  Object.defineProperty(resolve, 'config', { value: config, enumerable: false });
+  return resolve;
 }

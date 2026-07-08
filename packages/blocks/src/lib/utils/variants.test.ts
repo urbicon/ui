@@ -456,23 +456,16 @@ describe('tv – slot mode', () => {
     expect(styles.base()).toBe('btn bg-primary text-white');
   });
 
-  it('merges config.base into base slot when both exist', () => {
-    const component = tv({
-      base: 'global-base',
-      slots: { base: 'slot-base', other: 'other-slot' }
-    });
-    const styles = component();
-    expect(styles.base()).toBe('global-base slot-base');
-    expect(styles.other()).toBe('other-slot');
-  });
-
-  it('creates base slot from config.base when no base slot defined', () => {
-    const component = tv({
-      base: 'global-base',
-      slots: { content: 'content-slot' }
-    });
-    const styles = component();
-    expect(styles.content()).toBe('content-slot');
+  it('rejects a top-level base alongside slots (declare slots.base instead)', () => {
+    // Historically `config.base` merged into a slot literally named 'base'
+    // and was silently dropped otherwise — a silent-failure trap. The
+    // combination is now a config-time error (and a type error).
+    expect(() => tv({ base: 'global-base', slots: { base: 'slot-base' } } as never)).toThrowError(
+      /mutually exclusive/
+    );
+    expect(() =>
+      tv({ base: 'global-base', slots: { content: 'content-slot' } } as never)
+    ).toThrowError(/mutually exclusive/);
   });
 });
 
@@ -1180,52 +1173,108 @@ describe('tv – tailwind conflict resolver', () => {
 // ─── tv: documented edge-cases ──────────────────────────────────────────────
 
 describe('tv – edge-cases (documented behaviour)', () => {
-  it('drops config.base when no slot is named "base" (slot-mode)', () => {
-    const component = tv({
-      base: 'should-be-dropped',
-      slots: { wrapper: 'wrapper-class', icon: 'icon-class' },
-      variants: {
-        size: { md: { wrapper: 'wrapper-md' } }
-      }
-    });
-    const styles = component({ size: 'md' });
-    // `config.base` only attaches to a slot literally named "base".
-    // When the only slots are `wrapper` and `icon`, the base value is
-    // silently discarded — see variants.ts comment above part 1.
-    expect(styles.wrapper()).not.toContain('should-be-dropped');
-    expect(styles.icon()).not.toContain('should-be-dropped');
-    expect(styles.wrapper()).toBe('wrapper-class wrapper-md');
+  it('throws on config.base in slot mode instead of dropping it silently', () => {
+    expect(() =>
+      tv({
+        base: 'no-slot-to-attach-to',
+        slots: { wrapper: 'wrapper-class', icon: 'icon-class' }
+      } as never)
+    ).toThrowError(/mutually exclusive/);
   });
 
-  it('ignores variant slot keys that do not match any declared slot', () => {
-    // Slot-name typos in `variants` are silently dropped — the engine
-    // has no way to know the author meant a real slot. Slot-name
-    // type-safety is one of the documented trade-offs of this engine.
-    const component = tv({
-      slots: { base: 'base-class', icon: 'icon-class' },
-      variants: {
-        size: {
-          md: { base: 'base-md', wrapeer: 'typo-md' as never }
+  it('throws on variant slot keys that do not match any declared slot', () => {
+    // Slot-name typos are a config-time error now — compile-time via
+    // ValidSlotVariants for literal configs, runtime via validateTvConfig
+    // for everything else. Historically `wrapeer` was silently dropped.
+    expect(() =>
+      tv({
+        slots: { base: 'base-class', icon: 'icon-class' },
+        variants: {
+          size: {
+            md: { base: 'base-md', wrapeer: 'typo-md' } as never
+          }
         }
-      }
-    });
-    const styles = component({ size: 'md' });
-    expect(styles.base()).toBe('base-class base-md');
-    expect(styles.icon()).toBe('icon-class');
-    // The typo'd "wrapeer" entry is ignored — no slot by that name.
+      })
+    ).toThrowError(/unknown slot 'wrapeer'/);
   });
 
-  it('ignores class-override keys for non-existent slots in slot-mode', () => {
+  it('throws on compound conditions referencing unknown axes or values', () => {
+    expect(() =>
+      tv({
+        slots: { base: '' },
+        variants: { size: { sm: {}, md: {} } },
+        compoundVariants: [{ sise: 'md', class: { base: 'x' } } as never]
+      })
+    ).toThrowError(/unknown variant axis 'sise'/);
+
+    expect(() =>
+      tv({
+        slots: { base: '' },
+        variants: { size: { sm: {}, md: {} } },
+        compoundVariants: [{ size: 'xxl' as never, class: { base: 'x' } }]
+      })
+    ).toThrowError(/no such value/);
+  });
+
+  it('accepts half-declared boolean axes in compounds and defaults', () => {
+    // `loading: { true: … }` + compound/default on `loading: false` is
+    // idiomatic — false simply contributes no classes.
+    expect(() =>
+      tv({
+        slots: { base: '' },
+        variants: { loading: { true: { base: 'opacity-50' } } },
+        compoundVariants: [{ loading: false, class: { base: 'cursor-pointer' } }],
+        defaultVariants: { loading: false }
+      })
+    ).not.toThrow();
+  });
+
+  it('throws on defaultVariants referencing unknown axes or values', () => {
+    expect(() =>
+      tv({
+        slots: { base: '' },
+        variants: { size: { sm: {}, md: {} } },
+        defaultVariants: { size: 'xl' as never }
+      })
+    ).toThrowError(/not a declared value/);
+  });
+
+  it('exposes the config for tooling via .config', () => {
+    const component = tv({ slots: { base: 'x' }, variants: { size: { md: { base: 'y' } } } });
+    expect(component.config.slots).toEqual({ base: 'x' });
+    expect(Object.keys(component.config.variants ?? {})).toEqual(['size']);
+  });
+
+  it('class overrides accept the Svelte 5 ClassValue record form (clsx shape)', () => {
+    // Keys are class names, values are conditions — NOT a slot map. Slot
+    // maps only exist config-side (variants / compound classes).
     const component = tv({
       slots: { base: 'base-class', icon: 'icon-class' }
     });
     const styles = component();
-    // A consumer-side override targeting a slot that does not exist
-    // (`{ class: { nonexistent: '...' } }`) is silently dropped. The
-    // existing slots still receive their declared classes intact.
-    const baseOutput = styles.base({ class: { base: 'override', nonexistent: 'ghost' } as never });
-    expect(baseOutput).toContain('base-class');
-    expect(baseOutput).not.toContain('ghost');
+    const out = styles.base({ class: { active: true, hidden: false } });
+    expect(out).toContain('base-class');
+    expect(out).toContain('active');
+    expect(out).not.toContain('hidden');
+  });
+});
+
+// ─── cx: ClassValue record form ─────────────────────────────────────────────
+
+describe('cx – record form (Svelte 5 ClassValue parity)', () => {
+  it('includes keys with truthy values, drops falsy ones', () => {
+    expect(cx({ a: true, b: false, c: undefined, d: null })).toBe('a');
+  });
+
+  it('composes records with strings and nested arrays', () => {
+    expect(cx('x', [{ y: true }, 'z'], { w: true })).toBe('x y z w');
+  });
+
+  it('record classes participate in conflict resolution like any class', () => {
+    const styles = tv({ slots: { base: 'bg-red' } })();
+    const tokens = styles.base({ class: { 'bg-blue': true } }).split(/\s+/);
+    expect(tokens).not.toContain('bg-red');
+    expect(tokens).toContain('bg-blue');
   });
 });
 

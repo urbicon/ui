@@ -443,9 +443,11 @@ export const headerMenuItemVariants = tv({
       summary: 'text-summary hover:bg-summary-subtle hover:text-summary-hover',
       danger: 'text-danger-emphasis hover:bg-danger-subtle hover:text-danger-emphasis'
     },
+    // Marker axis, consumed by the compounds below — no classes of its own.
+    // In no-slot mode the empty value is '' (an object would be a slot map).
     active: {
-      true: {},
-      false: {}
+      true: '',
+      false: ''
     }
   },
   compoundVariants: [
