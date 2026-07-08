@@ -291,7 +291,12 @@
               .filter(Boolean)
               .join(' ')}
             style={[
-              orientation === 'horizontal' ? `width: ${pct}%` : `height: ${pct}%`,
+              // Vertical uses proportional flex instead of a percentage
+              // height: the bar's height comes from min-h (h-full resolves
+              // against an auto parent), and children's height-% against an
+              // indefinite height computes to 0 — flex distributes the
+              // stretched height correctly.
+              orientation === 'horizontal' ? `width: ${pct}%` : `flex: ${pct} 1 0%`,
               item.color ? `background-color: ${item.color}` : ''
             ]
               .filter(Boolean)
