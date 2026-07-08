@@ -101,10 +101,11 @@ export const badgeVariants = tv({
         base: 'animate-[badge-pulse_2s_cubic-bezier(0.4,0,0.6,1)_infinite]'
       }
     },
+    // The removable right-padding lives in compoundVariants (after the
+    // counter px-* compounds) — a later px-* shorthand would dominate an
+    // axis-level pr-2, and the ✕ button needs its room in counter badges.
     removable: {
-      true: {
-        base: 'pr-2'
-      }
+      true: {}
     },
     interactive: {
       true: {
@@ -135,6 +136,11 @@ export const badgeVariants = tv({
     { counter: true, size: 'sm', class: { base: 'min-w-5 px-1.5' } },
     { counter: true, size: 'md', class: { base: 'min-w-6 px-1.5' } },
     { counter: true, size: 'lg', class: { base: 'min-w-7 px-2' } },
+
+    // Removable ✕ needs right-hand room. Placed after the counter compounds
+    // so the pr-2 longhand refines their px-* (longhands never get
+    // dominance-stripped by an EARLIER shorthand — later sources win).
+    { removable: true, class: { base: 'pr-2' } },
 
     // Dot size overrides
     {

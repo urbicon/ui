@@ -1,7 +1,9 @@
 import { describe, expect, it } from 'vitest';
 import { accordionVariants } from '../primitives/Accordion/accordion.variants';
+import { badgeVariants } from '../primitives/Badge/badge.variants';
 import { buttonVariants } from '../primitives/Button/button.variants';
 import { checkboxVariants } from '../primitives/Checkbox/checkbox.variants';
+import { dialogVariants } from '../primitives/Dialog/dialog.variants';
 import { inputVariants } from '../primitives/Input/input.variants';
 import { menuVariants } from '../primitives/Menu/menu.variants';
 import { paginationVariants } from '../primitives/Pagination/pagination.variants';
@@ -1099,6 +1101,78 @@ describe('tv – tailwind conflict resolver', () => {
       const tokens = styles.base().split(/\s+/);
       expect(tokens).toContain('rounded-md');
       expect(tokens).toContain('rounded-t-none');
+    });
+  });
+
+  describe('shorthand dominance — a later shorthand strips earlier longhands', () => {
+    it('a consumer p-0 override defeats library px/pl paddings (Input)', () => {
+      // Pre-dominance all three classes were emitted and Tailwind's own
+      // cascade let the longhands win — the override silently failed.
+      const styles = inputVariants({ size: 'md', hasLeftIcon: true });
+      const tokens = styles.base({ class: 'p-0' }).split(/\s+/);
+      expect(tokens).not.toContain('px-4');
+      expect(tokens).not.toContain('pl-10');
+      expect(tokens).toContain('p-0');
+    });
+
+    it('a later longhand refines an earlier shorthand (no reverse dominance)', () => {
+      const styles = tv({ slots: { base: 'p-4' } })();
+      const tokens = styles.base({ class: 'pl-2' }).split(/\s+/);
+      expect(tokens).toContain('p-4');
+      expect(tokens).toContain('pl-2');
+    });
+
+    it('rounded-none strips per-side radii (Dialog fullscreen)', () => {
+      // Shipped bug: on mobile (below sm:) the fullscreen panel kept
+      // rounded-t-contain because the corner-specific class won stylesheet
+      // order against the size variant's explicit rounded-none.
+      const tokens = dialogVariants({ size: 'fullscreen' }).panel().split(/\s+/);
+      expect(tokens).not.toContain('rounded-t-contain');
+      expect(tokens).toContain('rounded-none');
+      expect(tokens).not.toContain('sm:rounded-contain');
+      expect(tokens).toContain('sm:rounded-none');
+    });
+
+    it('modifier prefixes bound dominance (hover:p-0 spares plain px-4)', () => {
+      const styles = tv({ slots: { base: 'px-4' } })();
+      const tokens = styles.base({ class: 'hover:p-0' }).split(/\s+/);
+      expect(tokens).toContain('px-4');
+      expect(tokens).toContain('hover:p-0');
+    });
+
+    it('size-* strips w/h when later; w/h never strip size-*', () => {
+      const a = tv({ slots: { base: 'w-5 h-5' } })()
+        .base({ class: 'size-8' })
+        .split(/\s+/);
+      expect(a).not.toContain('w-5');
+      expect(a).not.toContain('h-5');
+      expect(a).toContain('size-8');
+
+      const b = tv({ slots: { base: 'size-5' } })()
+        .base({ class: 'w-7' })
+        .split(/\s+/);
+      expect(b).toContain('size-5');
+      expect(b).toContain('w-7');
+    });
+
+    it('badge removable pr-2 survives the counter px compounds', () => {
+      const tokens = badgeVariants({ counter: true, removable: true, size: 'md' })
+        .base()
+        .split(/\s+/);
+      expect(tokens).toContain('pr-2');
+      expect(tokens).toContain('px-1.5');
+    });
+
+    it('leading-* deliberately survives a later text-size (no font-size dominance)', () => {
+      // The library pairs slot-base leading with axis text sizes across
+      // sources by design — see the DOMINANCE comment in variants.ts.
+      const component = tv({
+        slots: { base: 'leading-tight' },
+        variants: { size: { md: { base: 'text-sm' } } }
+      });
+      const tokens = component({ size: 'md' }).base().split(/\s+/);
+      expect(tokens).toContain('leading-tight');
+      expect(tokens).toContain('text-sm');
     });
   });
 });

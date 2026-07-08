@@ -495,8 +495,82 @@ function tailwindBucket(cls: string): string | null {
   return result;
 }
 
+// Directional shorthand dominance: a LATER class in bucket K also strips
+// earlier classes in DOMINANCE[K]. Longhands never strip their shorthand —
+// a later `pl-2` composes with an earlier `p-4` (Tailwind's own cascade
+// resolves the left side), but a later `p-0` fully replaces earlier `px-4`
+// or `pl-10`, matching what the override author means.
+//
+// Deliberately absent: `text-size` → `line-height`. The library pairs a
+// slot-base `leading-*` with axis-supplied `text-*` across sources by
+// design (labels, timeline meta, table cells) — stripping the leading would
+// silently change typography; leading-* also wins Tailwind's own cascade.
+const DOMINANCE: Record<string, string[]> = {
+  p: ['px', 'py', 'ps', 'pe', 'pt', 'pr', 'pb', 'pl'],
+  px: ['pr', 'pl'],
+  py: ['pt', 'pb'],
+  m: ['mx', 'my', 'ms', 'me', 'mt', 'mr', 'mb', 'ml'],
+  mx: ['mr', 'ml'],
+  my: ['mt', 'mb'],
+  inset: ['inset-x', 'inset-y', 'start', 'end', 'top', 'right', 'bottom', 'left'],
+  'inset-x': ['right', 'left'],
+  'inset-y': ['top', 'bottom'],
+  size: ['w', 'h'],
+  gap: ['gap-x', 'gap-y'],
+  rounded: [
+    'rounded-tl',
+    'rounded-tr',
+    'rounded-bl',
+    'rounded-br',
+    'rounded-ss',
+    'rounded-se',
+    'rounded-es',
+    'rounded-ee',
+    'rounded-t',
+    'rounded-r',
+    'rounded-b',
+    'rounded-l',
+    'rounded-s',
+    'rounded-e'
+  ],
+  'rounded-t': ['rounded-tl', 'rounded-tr'],
+  'rounded-r': ['rounded-tr', 'rounded-br'],
+  'rounded-b': ['rounded-bl', 'rounded-br'],
+  'rounded-l': ['rounded-tl', 'rounded-bl'],
+  'rounded-s': ['rounded-ss', 'rounded-es'],
+  'rounded-e': ['rounded-se', 'rounded-ee'],
+  'border-width': [
+    'border-x-width',
+    'border-y-width',
+    'border-s-width',
+    'border-e-width',
+    'border-t-width',
+    'border-r-width',
+    'border-b-width',
+    'border-l-width'
+  ],
+  'border-x-width': ['border-r-width', 'border-l-width'],
+  'border-y-width': ['border-t-width', 'border-b-width'],
+  'border-color': [
+    'border-x-color',
+    'border-y-color',
+    'border-s-color',
+    'border-e-color',
+    'border-t-color',
+    'border-r-color',
+    'border-b-color',
+    'border-l-color'
+  ],
+  'border-x-color': ['border-r-color', 'border-l-color'],
+  'border-y-color': ['border-t-color', 'border-b-color'],
+  overflow: ['overflow-x', 'overflow-y'],
+  scale: ['scale-x', 'scale-y'],
+  translate: ['translate-x', 'translate-y', 'translate-z']
+};
+
 /**
- * Removes classes from `prior` whose conflict-bucket appears in `current`.
+ * Removes classes from `prior` whose conflict-bucket appears in `current`,
+ * including buckets a later shorthand dominates (`p-0` strips `px-4`).
  * Stable order preserved within each side.
  */
 function stripConflicts(prior: string[], current: string[]): string[] {
@@ -504,7 +578,17 @@ function stripConflicts(prior: string[], current: string[]): string[] {
   const used = new Set<string>();
   for (const cls of current) {
     const b = tailwindBucket(cls);
-    if (b) used.add(b);
+    if (!b) continue;
+    used.add(b);
+    // Dominance expansion keeps the modifier prefix: `hover:p` dominates
+    // `hover:px`, never the plain-state `px`. Bucket keys contain no `:`,
+    // so the last colon is the modifier boundary.
+    const keyStart = b.lastIndexOf(':') + 1;
+    const dominated = DOMINANCE[b.slice(keyStart)];
+    if (dominated) {
+      const mods = b.slice(0, keyStart);
+      for (const d of dominated) used.add(mods + d);
+    }
   }
   if (used.size === 0) return prior;
   return prior.filter((cls) => {
