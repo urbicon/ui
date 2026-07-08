@@ -19,6 +19,10 @@ jobs:
       - uses: oven-sh/setup-bun@v2
       - run: bun install --frozen-lockfile
       - run: bun run lint
+      # Dead-token guard over every tv() config — the compensating control
+      # for the fold semantics ("axis order is semantic"), where a
+      # mis-ordered axis strips classes without any runtime error.
+      - run: bun run variants:lint
 
   typecheck:
     name: Type Check
