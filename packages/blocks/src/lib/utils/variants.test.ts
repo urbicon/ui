@@ -1,8 +1,10 @@
 import { describe, expect, it } from 'vitest';
+import { accordionVariants } from '../primitives/Accordion/accordion.variants';
 import { buttonVariants } from '../primitives/Button/button.variants';
 import { checkboxVariants } from '../primitives/Checkbox/checkbox.variants';
 import { menuVariants } from '../primitives/Menu/menu.variants';
 import { sidebarVariants } from '../primitives/Sidebar/sidebar.variants';
+import { skeletonVariants } from '../primitives/Skeleton/skeleton.variants';
 import { cx, matchesCompound, resolveClassChain, tv, type VariantProps } from './variants';
 
 // ─── cx ──────────────────────────────────────────────────────────────────────
@@ -892,6 +894,124 @@ describe('tv – tailwind conflict resolver', () => {
       const tokens = out.split(/\s+/);
       expect(tokens).not.toContain('text-sm');
       expect(tokens).toContain('text-base/6');
+    });
+  });
+
+  describe('bucket classification — arbitrary properties & overloaded families', () => {
+    it('[gap:inherit] is stripped by a later gap utility (Codeberg #21 follow-up)', () => {
+      const styles = tv({ slots: { base: 'flex [gap:inherit]' } })();
+      const tokens = styles.base({ class: 'gap-4' }).split(/\s+/);
+      expect(tokens).not.toContain('[gap:inherit]');
+      expect(tokens).toContain('gap-4');
+      expect(tokens).toContain('flex');
+    });
+
+    it('same-property arbitraries conflict; different properties pass through', () => {
+      const styles = tv({
+        slots: { base: '[--spinner-speed:1s] [animation-duration:var(--spinner-speed)]' }
+      })();
+      const tokens = styles.base({ class: '[--spinner-speed:2s]' }).split(/\s+/);
+      expect(tokens).not.toContain('[--spinner-speed:1s]');
+      expect(tokens).toContain('[--spinner-speed:2s]');
+      expect(tokens).toContain('[animation-duration:var(--spinner-speed)]');
+    });
+
+    it('modifier prefixes isolate arbitrary properties too', () => {
+      const styles = tv({ slots: { base: 'hover:[transform:rotate(3deg)]' } })();
+      const out = styles.base({ class: '[transform:none]' });
+      expect(out).toContain('hover:[transform:rotate(3deg)]');
+      expect(out).toContain('[transform:none]');
+    });
+
+    it('arbitrary transform property shares the transform utility bucket', () => {
+      const styles = tv({ slots: { base: '[transform:translateZ(0)]' } })();
+      const tokens = styles.base({ class: 'transform-none' }).split(/\s+/);
+      expect(tokens).not.toContain('[transform:translateZ(0)]');
+      expect(tokens).toContain('transform-none');
+    });
+
+    it('v4 gradients and bg-size are bg-image/bg-size, never stripping bg-color (Skeleton wave)', () => {
+      // Pre-fix `bg-linear-to-r` and `bg-size-[…]` bucketed as bg-color and
+      // stripped the slot-base `bg-surface-interactive` — the shimmer floated
+      // on a transparent skeleton.
+      const styles = skeletonVariants({ animation: 'wave' });
+      const tokens = styles.base().split(/\s+/);
+      expect(tokens).toContain('bg-surface-interactive');
+      expect(tokens).toContain('bg-linear-to-r');
+      expect(tokens).toContain('bg-size-[200%_100%]');
+    });
+
+    it('arbitrary gradient values are bg-image too (Progress striped fill)', () => {
+      const styles = tv({ slots: { base: 'bg-primary' } })();
+      const out = styles.base({
+        class: 'bg-[linear-gradient(45deg,rgba(255,255,255,0.15)_25%,transparent_25%)]'
+      });
+      expect(out).toContain('bg-primary');
+      expect(out).toContain('bg-[linear-gradient(');
+    });
+
+    it('bg data-type hints do not collide with bg-color (Progress striped)', () => {
+      const styles = tv({ slots: { base: 'bg-primary' } })();
+      const out = styles.base({ class: 'bg-[length:1rem_1rem]' });
+      expect(out).toContain('bg-primary');
+      expect(out).toContain('bg-[length:1rem_1rem]');
+    });
+
+    it('shadow-<semantic-color> is a color, not a named size', () => {
+      const styles = tv({ slots: { base: 'shadow-md shadow-primary' } })();
+      const tokens = styles.base({ class: 'shadow-danger' }).split(/\s+/);
+      expect(tokens).toContain('shadow-md');
+      expect(tokens).not.toContain('shadow-primary');
+      expect(tokens).toContain('shadow-danger');
+    });
+
+    it('col-span, col-start and col-end are orthogonal grid properties', () => {
+      const styles = tv({ slots: { base: 'col-span-2 col-start-1' } })();
+      const tokens = styles.base({ class: 'col-end-3' }).split(/\s+/);
+      expect(tokens).toContain('col-span-2');
+      expect(tokens).toContain('col-start-1');
+      expect(tokens).toContain('col-end-3');
+      const tokens2 = styles.base({ class: 'col-span-4' }).split(/\s+/);
+      expect(tokens2).not.toContain('col-span-2');
+      expect(tokens2).toContain('col-start-1');
+    });
+
+    it('divide width and color are orthogonal; widths conflict (Accordion separated)', () => {
+      const separated = accordionVariants({ variant: 'separated' }).base().split(/\s+/);
+      expect(separated).not.toContain('divide-y');
+      expect(separated).toContain('divide-y-0');
+      // Color stays untouched by the width swap.
+      expect(separated).toContain('divide-border-hairline');
+    });
+
+    it('border-collapse / border-spacing are not border colors', () => {
+      const styles = tv({ slots: { base: 'border-collapse border-spacing-2' } })();
+      const tokens = styles.base({ class: 'border-danger' }).split(/\s+/);
+      expect(tokens).toContain('border-collapse');
+      expect(tokens).toContain('border-spacing-2');
+      expect(tokens).toContain('border-danger');
+    });
+
+    it('transition-behavior composes with transition-property (v4)', () => {
+      const styles = tv({ slots: { base: 'transition-colors' } })();
+      const out = styles.base({ class: 'transition-discrete' });
+      expect(out).toContain('transition-colors');
+      expect(out).toContain('transition-discrete');
+    });
+
+    it('text-wrap and text-overflow are separate buckets', () => {
+      const styles = tv({ slots: { base: 'text-ellipsis text-nowrap' } })();
+      const tokens = styles.base({ class: 'text-wrap' }).split(/\s+/);
+      expect(tokens).toContain('text-ellipsis');
+      expect(tokens).not.toContain('text-nowrap');
+      expect(tokens).toContain('text-wrap');
+    });
+
+    it('bare outline is a style (v4), so outline-2 survives it', () => {
+      const styles = tv({ slots: { base: 'outline-2' } })();
+      const tokens = styles.base({ class: 'outline' }).split(/\s+/);
+      expect(tokens).toContain('outline-2');
+      expect(tokens).toContain('outline');
     });
   });
 });

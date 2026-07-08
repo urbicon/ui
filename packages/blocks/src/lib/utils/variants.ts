@@ -87,11 +87,19 @@ export function cx(...inputs: ClassInput[]): string {
 // ─── Tailwind Conflict Resolver ──────────────────────────────────────────────
 //
 // Determines which "bucket" a Tailwind utility class belongs to. Two classes
-// with the same bucket key are treated as conflicting; the later stage in the
-// `tv()` resolution pipeline wins.
+// with the same bucket key are treated as conflicting; the later source in
+// the `tv()` resolution pipeline wins (see the fold in `resolvePipeline`).
 //
 // Modifier prefixes (`hover:`, `focus-visible:`, `md:`, `dark:`, …) are part
 // of the bucket key. `hover:bg-red` and `bg-red` therefore do NOT conflict.
+// The modifier/base split happens at the last colon OUTSIDE brackets, so
+// arbitrary values (`bg-[url(https://…)]`) and arbitrary properties
+// (`[gap:inherit]`, `hover:[transform:…]`) keep their base intact.
+//
+// Arbitrary properties (`[prop:value]`, including CSS custom properties like
+// `[--spinner-speed:1s]`) bucket per property name, so `[gap:inherit]` vs
+// `[gap:0]` resolves deterministically. A small alias table maps properties
+// onto their utility twin's bucket (`[gap:…]` ↔ `gap-*`).
 //
 // Unknown / unmatched classes return `null` and never conflict — this keeps
 // the resolver opt-in: any class shape we have not catalogued passes through
@@ -138,27 +146,34 @@ const BUCKET_PATTERNS: Array<[RegExp, BucketResolver]> = [
   // Flex / Grid
   [/^flex-(row|col|row-reverse|col-reverse)$/, 'flex-direction'],
   [/^flex-(wrap|nowrap|wrap-reverse)$/, 'flex-wrap'],
-  [/^flex-(1|auto|initial|none)$/, 'flex'],
-  [/^grow(-0|-\[.+\])?$/, 'flex-grow'],
-  [/^shrink(-0|-\[.+\])?$/, 'flex-shrink'],
+  // v4 accepts any integer (`flex-2`) and arbitrary values (`flex-[2_2_0%]`).
+  [/^flex-(\d+|auto|initial|none|\[[^\]]+\])$/, 'flex'],
+  [/^grow(-\d+|-\[.+\])?$/, 'flex-grow'],
+  [/^shrink(-\d+|-\[.+\])?$/, 'flex-shrink'],
   [/^basis-/, 'flex-basis'],
   [/^order-/, 'order'],
-  [/^items-(start|end|center|baseline|stretch)$/, 'align-items'],
+  [/^items-(start|end|center|baseline|baseline-last|stretch)$/, 'align-items'],
   [/^justify-(start|end|center|between|around|evenly|normal|stretch)$/, 'justify-content'],
-  [/^justify-items-(start|end|center|stretch)$/, 'justify-items'],
+  [/^justify-items-(start|end|center|stretch|normal)$/, 'justify-items'],
   [/^justify-self-(auto|start|end|center|stretch)$/, 'justify-self'],
   [/^content-(start|end|center|between|around|evenly|baseline|stretch|normal)$/, 'align-content'],
-  [/^self-(auto|start|end|center|stretch|baseline)$/, 'align-self'],
+  [/^self-(auto|start|end|center|stretch|baseline|baseline-last)$/, 'align-self'],
   [/^place-content-/, 'place-content'],
   [/^place-items-/, 'place-items'],
   [/^place-self-/, 'place-self'],
   [/^grid-cols-/, 'grid-template-columns'],
   [/^grid-rows-/, 'grid-template-rows'],
+  [/^grid-flow-/, 'grid-auto-flow'],
+  // grid-column vs -start vs -end are three CSS properties — `col-span-2`
+  // must not conflict with `col-start-3`.
+  [/^col-start-/, 'grid-column-start'],
+  [/^col-end-/, 'grid-column-end'],
   [/^col-/, 'grid-column'],
+  [/^row-start-/, 'grid-row-start'],
+  [/^row-end-/, 'grid-row-end'],
   [/^row-/, 'grid-row'],
   [/^auto-cols-/, 'grid-auto-columns'],
   [/^auto-rows-/, 'grid-auto-rows'],
-  [/^auto-flow-/, 'grid-auto-flow'],
 
   // Sizing — width / height
   [/^min-w-/, 'min-w'],
@@ -192,14 +207,25 @@ const BUCKET_PATTERNS: Array<[RegExp, BucketResolver]> = [
   [/^me-/, 'me'],
   [/^m-/, 'm'],
 
-  // Gap / space-between
+  // Gap / space-between / divide
   [/^gap-x-/, 'gap-x'],
   [/^gap-y-/, 'gap-y'],
   [/^gap-/, 'gap'],
+  [/^space-x-reverse$/, 'space-x-reverse'],
+  [/^space-y-reverse$/, 'space-y-reverse'],
   [/^space-x-/, 'space-x'],
   [/^space-y-/, 'space-y'],
+  // divide-* — width / style / color are orthogonal properties.
+  [/^divide-(x|y)-reverse$/, (m) => `divide-${m[1]}-reverse`],
+  [/^divide-(x|y)(-(\d+|\[[^\]]+\]))?$/, (m) => `divide-${m[1]}-width`],
+  [/^divide-(solid|dashed|dotted|double|none)$/, 'divide-style'],
+  [/^divide-/, 'divide-color'],
 
-  // Position offsets
+  // Position offsets. v4.1 inset-shadow-* / inset-ring-* must not fall into
+  // the `inset-` position bucket.
+  [/^inset-shadow(-|$)/, 'inset-shadow'],
+  [/^inset-ring(-\d+|-\[[^\]]+\])?$/, 'inset-ring-width'],
+  [/^inset-ring-/, 'inset-ring-color'],
   [/^inset-x-/, 'inset-x'],
   [/^inset-y-/, 'inset-y'],
   [/^inset-/, 'inset'],
@@ -228,6 +254,11 @@ const BUCKET_PATTERNS: Array<[RegExp, BucketResolver]> = [
   [/^rounded-e(-|$)/, 'rounded-e'],
   [/^rounded(-|$)/, 'rounded'],
 
+  // border-collapse / border-spacing are table-layout properties, not colors.
+  [/^border-(collapse|separate)$/, 'border-collapse'],
+  [/^border-spacing-x-/, 'border-spacing-x'],
+  [/^border-spacing-y-/, 'border-spacing-y'],
+  [/^border-spacing-/, 'border-spacing'],
   // Border style (must come before width/color)
   [/^border-(solid|dashed|dotted|double|hidden|none)$/, 'border-style'],
   // Border width — `border`, `border-1`, `border-2`, `border-[3px]` (Tailwind v4 accepts any integer)
@@ -238,10 +269,12 @@ const BUCKET_PATTERNS: Array<[RegExp, BucketResolver]> = [
   [/^border-(x|y|t|r|b|l|s|e)-/, (m) => `border-${m[1]}-color`],
   [/^border-/, 'border-color'],
 
-  // Outline / ring
-  [/^outline-(none|dashed|dotted|double|hidden)$/, 'outline-style'],
+  // Outline / ring. In v4 bare `outline` sets outline-style: solid — it is a
+  // style, not a width.
+  [/^outline-(solid|dashed|dotted|double|none|hidden)$/, 'outline-style'],
+  [/^outline$/, 'outline-style'],
   [/^outline-offset-/, 'outline-offset'],
-  [/^outline(-\d+|-\[[^\]]+\])?$/, 'outline-width'],
+  [/^outline(-\d+|-\[[^\]]+\])$/, 'outline-width'],
   [/^outline-/, 'outline-color'],
   [/^ring-offset-(\d+|\[[^\]]+\])$/, 'ring-offset-width'],
   [/^ring-offset-/, 'ring-offset-color'],
@@ -256,31 +289,56 @@ const BUCKET_PATTERNS: Array<[RegExp, BucketResolver]> = [
   [/^bg-clip-/, 'bg-clip'],
   [/^bg-origin-/, 'bg-origin'],
   [
-    /^bg-(top|right|bottom|left|center|left-top|left-bottom|right-top|right-bottom)$/,
+    /^bg-(top|right|bottom|left|center|left-top|left-bottom|right-top|right-bottom|top-left|top-right|bottom-left|bottom-right)$/,
     'bg-position'
   ],
+  // Data-type hints and image-valued arbitraries must not read as bg-color —
+  // background-image and background-color are independent CSS properties
+  // (a gradient overlay must never strip the color underneath, see the
+  // Skeleton wave shimmer and Progress striped fill).
+  [/^bg-\[(?:length|size):/, 'bg-size'],
+  [/^bg-\[position:/, 'bg-position'],
+  [/^bg-\[(?:image:|url\(|linear-gradient\(|radial-gradient\(|conic-gradient\()/, 'bg-image'],
+  [/^bg-\[color:/, 'bg-color'],
+  [/^bg-position-/, 'bg-position'],
+  [/^bg-size-/, 'bg-size'],
+  [/^bg-(?:linear|radial|conic)(-|$)/, 'bg-image'],
   [/^bg-gradient-to-/, 'bg-image'],
+  [/^bg-none$/, 'bg-image'],
   [/^bg-/, 'bg-color'],
   [/^from-/, 'gradient-from'],
   [/^via-/, 'gradient-via'],
   [/^to-/, 'gradient-to'],
 
   // Text — size / align / weight / color (specific first). v4 size+leading shorthand: `text-sm/6`, `text-base/relaxed`.
+  // v4.1 text-shadow-* must not read as text-color.
+  [/^text-shadow-\[/, 'text-shadow'],
+  [/^text-shadow(-\w+)?$/, 'text-shadow'],
+  [/^text-shadow-/, 'text-shadow-color'],
   [/^text-(xs|sm|base|lg|xl|\d+xl)(\/[\w.-]+)?$/, 'text-size'],
+  // Data-type hints disambiguate the overloaded `text-` arbitraries.
+  [/^text-\[length:/, 'text-size'],
+  [/^text-\[color:/, 'text-color'],
   // Arbitrary text-size values starting with a digit (e.g. `text-[11px]`,
   // `text-[1.5rem]`). Hex/named values like `text-[#fff]` / `text-[var(--x)]`
   // still fall through to the text-color catch-all below.
   [/^text-\[[0-9.]/, 'text-size'],
   [/^text-(left|center|right|justify|start|end)$/, 'text-align'],
-  [/^text-(ellipsis|clip|wrap|nowrap|balance|pretty)$/, 'text-overflow'],
+  // text-overflow (ellipsis/clip) and text-wrap (wrap/nowrap/balance/pretty)
+  // are different CSS properties — a wrap override must not strip ellipsis'
+  // sibling and vice versa.
+  [/^text-(ellipsis|clip)$/, 'text-overflow'],
+  [/^text-(wrap|nowrap|balance|pretty)$/, 'text-wrap'],
   [/^text-(current|inherit|transparent)$/, 'text-color'],
   [/^text-/, 'text-color'],
   [/^font-(thin|extralight|light|normal|medium|semibold|bold|extrabold|black)$/, 'font-weight'],
+  [/^font-stretch-/, 'font-stretch'],
   [/^font-(sans|serif|mono)$/, 'font-family'],
   [/^font-/, 'font-family'],
   [/^italic$|^not-italic$/, 'font-style'],
   [/^tracking-/, 'letter-spacing'],
   [/^leading-/, 'line-height'],
+  [/^line-clamp-/, 'line-clamp'],
   [/^underline$|^overline$|^line-through$|^no-underline$/, 'text-decoration'],
   // text-decoration sub-properties are orthogonal CSS — three separate buckets.
   // Order matters: style names first, then thickness (numeric/arbitrary), then color catch-all.
@@ -297,8 +355,10 @@ const BUCKET_PATTERNS: Array<[RegExp, BucketResolver]> = [
 
   // Effects
   [/^opacity-/, 'opacity'],
-  [/^shadow-(inner|none)$/, 'shadow'],
-  [/^shadow(-\w+)?$/, 'shadow'],
+  // Named shadow scale is finite; any other `shadow-<word>` is a color
+  // (`shadow-primary` must not strip `shadow-md`).
+  [/^shadow-(2xs|xs|sm|md|lg|xl|2xl|inner|none)$/, 'shadow'],
+  [/^shadow$/, 'shadow'],
   [/^shadow-\[/, 'shadow'],
   [/^shadow-/, 'shadow-color'],
   [/^blur(-\w+)?$/, 'blur'],
@@ -317,14 +377,21 @@ const BUCKET_PATTERNS: Array<[RegExp, BucketResolver]> = [
   [/^scale-x-/, 'scale-x'],
   [/^scale-y-/, 'scale-y'],
   [/^scale-/, 'scale'],
+  // v4 3D rotate axes are orthogonal to plain rotate.
+  [/^rotate-(x|y|z)-/, (m) => `rotate-${m[1]}`],
   [/^rotate-/, 'rotate'],
   [/^translate-x-/, 'translate-x'],
   [/^translate-y-/, 'translate-y'],
+  [/^translate-z-/, 'translate-z'],
+  // v4 plain `translate-*` sets both axes.
+  [/^translate-/, 'translate'],
   [/^skew-x-/, 'skew-x'],
   [/^skew-y-/, 'skew-y'],
   [/^origin-/, 'transform-origin'],
 
-  // Transitions / animations
+  // Transitions / animations. v4 transition-behavior must not conflict with
+  // transition-property (`transition-discrete` composes with `transition-colors`).
+  [/^transition-(discrete|normal)$/, 'transition-behavior'],
   [/^transition(-\w+)?$/, 'transition'],
   [/^transition-\[/, 'transition'],
   [/^duration-/, 'transition-duration'],
@@ -339,6 +406,37 @@ const BUCKET_PATTERNS: Array<[RegExp, BucketResolver]> = [
   [/^caret-/, 'caret-color']
 ];
 
+// Arbitrary CSS properties whose utility twin should share a bucket, so
+// `[gap:inherit]` and `gap-4` resolve against each other (Codeberg #21).
+// Everything else buckets as `@<property>` — same-property arbitraries
+// conflict, utilities stay untouched (twMerge behaves the same way).
+const ARBITRARY_PROP_ALIAS: Record<string, string> = {
+  gap: 'gap',
+  'column-gap': 'gap-x',
+  'row-gap': 'gap-y',
+  transform: 'transform'
+};
+
+const ARBITRARY_PROP_PATTERN = /^\[((?:--)?[a-zA-Z][a-zA-Z0-9-]*):.+\]$/;
+
+/**
+ * Index of the last `:` outside any `[]`/`()` nesting, or -1. This is the
+ * modifier/base boundary: colons inside arbitrary values (`bg-[url(https://…)]`),
+ * arbitrary properties (`[gap:inherit]`) and selector modifiers
+ * (`supports-[display:grid]:grid`) must not split the class.
+ */
+function lastTopLevelColon(cls: string): number {
+  let depth = 0;
+  let last = -1;
+  for (let i = 0; i < cls.length; i++) {
+    const ch = cls[i];
+    if (ch === '[' || ch === '(') depth++;
+    else if (ch === ']' || ch === ')') depth = depth > 0 ? depth - 1 : 0;
+    else if (ch === ':' && depth === 0) last = i;
+  }
+  return last;
+}
+
 /**
  * Returns the conflict-bucket key of a Tailwind class, or `null` if the class
  * does not match any catalogued utility family. Unknown classes never conflict.
@@ -346,8 +444,10 @@ const BUCKET_PATTERNS: Array<[RegExp, BucketResolver]> = [
  * Modifier prefixes are part of the key — `hover:bg-red` returns `hover:bg-color`
  * while `bg-red` returns `bg-color`. The two never strip each other. `!`-important
  * is normalized away entirely so `!bg-red` and `bg-red` share a bucket.
+ * Arbitrary properties bucket per property name (`[gap:inherit]` → `gap`,
+ * `[--spinner-speed:1s]` → `@--spinner-speed`).
  *
- * Results are memoized per process — `tailwindBucket` is called O(stages × classes)
+ * Results are memoized per process — `tailwindBucket` is called O(sources × classes)
  * per `tv()` resolve, and the same handful of class strings appear thousands of
  * times across a render tree. Cap kept high enough for any realistic application
  * surface; values are short and the map never frees.
@@ -360,7 +460,7 @@ function tailwindBucket(cls: string): string | null {
   if (cached !== undefined || BUCKET_CACHE.has(cls)) return cached ?? null;
 
   // Split off all modifier prefixes (`hover:focus-visible:dark:md:bg-red`).
-  const lastColon = cls.lastIndexOf(':');
+  const lastColon = lastTopLevelColon(cls);
   let modifiers = lastColon >= 0 ? cls.slice(0, lastColon + 1) : '';
   let base = lastColon >= 0 ? cls.slice(lastColon + 1) : cls;
 
@@ -372,15 +472,22 @@ function tailwindBucket(cls: string): string | null {
   if (base.startsWith('!')) base = base.slice(1);
   if (base.endsWith('!')) base = base.slice(0, -1);
   // Negative spacing like `-mx-2` shares its bucket with `mx-2`.
-  if (base.startsWith('-')) base = base.slice(1);
+  if (base.startsWith('-') && !base.startsWith('-[')) base = base.slice(1);
 
   let result: string | null = null;
-  for (const [pattern, key] of BUCKET_PATTERNS) {
-    const match = base.match(pattern);
-    if (match) {
-      const bucketKey = typeof key === 'string' ? key : key(match);
-      result = modifiers + bucketKey;
-      break;
+
+  const arbitraryProp = base.match(ARBITRARY_PROP_PATTERN);
+  if (arbitraryProp) {
+    const prop = arbitraryProp[1];
+    result = modifiers + (ARBITRARY_PROP_ALIAS[prop] ?? `@${prop}`);
+  } else {
+    for (const [pattern, key] of BUCKET_PATTERNS) {
+      const match = base.match(pattern);
+      if (match) {
+        const bucketKey = typeof key === 'string' ? key : key(match);
+        result = modifiers + bucketKey;
+        break;
+      }
     }
   }
 
