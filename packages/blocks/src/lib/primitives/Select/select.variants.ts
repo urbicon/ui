@@ -120,6 +120,12 @@ export const selectVariants = tv({
         label: 'text-text-disabled'
       }
     },
+    // Declared BEFORE `error` so the error tone wins the message-color
+    // bucket in every call shape — `{ error: true }` alone must read red.
+    messageType: {
+      error: { message: 'text-danger' },
+      helper: { message: 'text-text-tertiary' }
+    },
     error: {
       true: {
         trigger: 'border-danger focus-visible:border-danger focus-visible:ring-danger/20',
@@ -136,10 +142,6 @@ export const selectVariants = tv({
         optionCheck: 'opacity-100',
         optionCheckbox: 'border-primary bg-primary text-text-on-primary [&_svg]:opacity-100'
       }
-    },
-    messageType: {
-      error: { message: 'text-danger' },
-      helper: { message: 'text-text-tertiary' }
     }
   },
   compoundVariants: [

@@ -80,10 +80,11 @@ export const segmentGroupVariants = tv({
     appearance: {
       default: {},
       text: {
-        // Radius flattening (`rounded-none`) lives in compoundVariants
-        // below so it strips the tier-stage `rounded-{commit|modify}`
-        // cleanly — tv() only strips across stages, not within them.
-        base: 'bg-transparent p-0 gap-1',
+        // Radius flattening (`rounded-none`) and track-padding reset (`p-0`)
+        // live in compoundVariants below so they strip the tier-stage
+        // `rounded-{commit|modify}` and the size-stage `p-*` — those axes
+        // are declared after this one and would win the fold otherwise.
+        base: 'bg-transparent gap-1',
         indicator: 'hidden',
         item: [
           'border-b-[1.5px] border-b-transparent',
@@ -125,12 +126,11 @@ export const segmentGroupVariants = tv({
     }
   },
   compoundVariants: [
-    // Text-appearance flattens the corner radius regardless of tier. This
-    // sits in compoundVariants so it strips the `rounded-{commit|modify}`
-    // emitted by the tier variant — tv() does not dedupe within a single
-    // variant stage, only across stages, so the override has to live one
-    // stage later.
-    { appearance: 'text', class: { base: 'rounded-none', item: 'rounded-none' } },
+    // Text-appearance flattens the corner radius (regardless of tier) and
+    // zeroes the track padding (regardless of size). Compounds resolve after
+    // every variant axis, so these deterministically replace the tier-stage
+    // `rounded-{commit|modify}` and the size-stage `p-*`.
+    { appearance: 'text', class: { base: 'rounded-none p-0', item: 'rounded-none' } },
 
     // Text-appearance sizing: padding/sizing more compact than the pill-track,
     // but still WCAG 2.5.5 AA (≥ 24px tap height). For touch-first contexts

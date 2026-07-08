@@ -12,6 +12,22 @@ export const paginationVariants = tv({
     ]
   },
   variants: {
+    // Declared BEFORE `layout` so the layout-specific gaps (table `gap-4`,
+    // minimal `gap-2`) win the gap bucket over the per-size default.
+    size: {
+      sm: {
+        base: 'gap-1',
+        ellipsis: 'min-w-8 h-8 text-sm'
+      },
+      md: {
+        base: 'gap-1',
+        ellipsis: 'min-w-10 h-10 text-base'
+      },
+      lg: {
+        base: 'gap-2',
+        ellipsis: 'min-w-12 h-12 text-lg'
+      }
+    },
     layout: {
       default: {
         base: 'flex-wrap justify-center'
@@ -26,20 +42,6 @@ export const paginationVariants = tv({
       minimal: {
         base: 'justify-center gap-2',
         info: 'ml-0'
-      }
-    },
-    size: {
-      sm: {
-        base: 'gap-1',
-        ellipsis: 'min-w-8 h-8 text-sm'
-      },
-      md: {
-        base: 'gap-1',
-        ellipsis: 'min-w-10 h-10 text-base'
-      },
-      lg: {
-        base: 'gap-2',
-        ellipsis: 'min-w-12 h-12 text-lg'
       }
     },
     disabled: {

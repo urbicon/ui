@@ -105,14 +105,16 @@ export const sliderVariants = tv({
         thumb: 'hover:scale-100 hover:shadow-[var(--blocks-shadow-sm)]'
       }
     },
+    // Declared BEFORE `error` so the error tone wins the message-color
+    // bucket in every call shape — `{ error: true }` alone must read red.
+    messageType: {
+      error: { message: 'text-danger' },
+      helper: { message: 'text-text-tertiary' }
+    },
     error: {
       true: {
         message: 'text-danger'
       }
-    },
-    messageType: {
-      error: { message: 'text-danger' },
-      helper: { message: 'text-text-tertiary' }
     },
     /**
      * Status of the current slider position relative to validRange/recommendedRange.

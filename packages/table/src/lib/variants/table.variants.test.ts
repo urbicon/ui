@@ -126,3 +126,40 @@ describe('tableRowVariants — Lighter hairline', () => {
     expect(row).not.toContain('border-border-subtle');
   });
 });
+
+describe('tableRowVariants — state beats zebra (within-stage fold)', () => {
+  it('a selected even row reads as selected, not striped', () => {
+    // Pre-fold both bg classes were emitted and @theme order let the zebra
+    // tint win — selection highlight was lost on even rows. `striped` is
+    // declared before `state` so the state tint wins deterministically.
+    const tokens = tableRowVariants({ state: 'selected', striped: 'even' }).row().split(/\s+/);
+    expect(tokens).toContain('bg-primary-subtle');
+    expect(tokens).not.toContain('bg-surface-quiet');
+  });
+
+  it('an expanded even row reads as expanded', () => {
+    const tokens = tableRowVariants({ state: 'expanded', striped: 'even' }).row().split(/\s+/);
+    expect(tokens).toContain('bg-surface-hover');
+    expect(tokens).not.toContain('bg-surface-quiet');
+  });
+
+  it('a default even row keeps the zebra tint', () => {
+    const tokens = tableRowVariants({ state: 'default', striped: 'even' }).row().split(/\s+/);
+    expect(tokens).toContain('bg-surface-quiet');
+  });
+});
+
+describe('tableHeaderVariants — sortable affordance beats sorted-none (within-stage fold)', () => {
+  it('an unsorted sortable column keeps the 60% icon hint', () => {
+    // `sortable` is declared after `sorted` so the always-visible affordance
+    // wins the opacity bucket over sorted-none's opacity-0.
+    const tokens = tableHeaderVariants({ sortable: true, sorted: 'none' }).sortIcon().split(/\s+/);
+    expect(tokens).toContain('opacity-60');
+    expect(tokens).not.toContain('opacity-0');
+  });
+
+  it('a non-sortable column hides the icon entirely', () => {
+    const tokens = tableHeaderVariants({ sortable: false, sorted: 'none' }).sortIcon().split(/\s+/);
+    expect(tokens).toContain('hidden');
+  });
+});

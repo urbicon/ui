@@ -82,6 +82,15 @@ export const buttonVariants = tv({
         ]
       }
     },
+    // Declared BEFORE `variant` so the flat variants (ghost/text
+    // `shadow-none`) win the shadow bucket over the pressed depth cue —
+    // a pressed ghost button stays flat. For filled/outlined (no shadow of
+    // their own) the pressed `shadow-xs` still applies.
+    pressed: {
+      true: {
+        base: 'scale-[0.98] brightness-90 shadow-[var(--blocks-shadow-xs)]'
+      }
+    },
     variant: {
       filled: {},
       outlined: {
@@ -91,10 +100,10 @@ export const buttonVariants = tv({
         base: ['bg-transparent border-transparent shadow-none']
       },
       text: {
-        base: [
-          'bg-transparent border-none shadow-none px-2',
-          'hover:bg-transparent hover:underline'
-        ]
+        // No `px-*` here: the size axis (declared later) always supplies the
+        // horizontal padding, so a variant-level `px-2` could never win —
+        // it was dead weight under the old CSS-order tie-break too.
+        base: ['bg-transparent border-none shadow-none', 'hover:bg-transparent hover:underline']
       }
     },
     size: {
@@ -129,11 +138,6 @@ export const buttonVariants = tv({
       overlay: {},
       start: {},
       end: {}
-    },
-    pressed: {
-      true: {
-        base: 'scale-[0.98] brightness-90 shadow-[var(--blocks-shadow-xs)]'
-      }
     },
     active: {
       true: {},

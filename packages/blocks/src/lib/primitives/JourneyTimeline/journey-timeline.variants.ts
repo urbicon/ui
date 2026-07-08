@@ -180,10 +180,13 @@ export const journeyTimelineVariants = tv({
       }
     },
     // The currently focused node. Distinct from DOM focus (focus-visible ring).
+    // Only the weight changes on the title — every status supplies a title
+    // tone (declared above, so it would win the color bucket anyway), and the
+    // semantic tone (attention/blocked/…) must survive focus.
     focused: {
       true: {
         meta: 'text-text-primary',
-        title: 'font-semibold text-text-primary'
+        title: 'font-semibold'
       },
       false: {}
     },

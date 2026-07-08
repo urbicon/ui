@@ -514,6 +514,25 @@ function stripConflicts(prior: string[], current: string[]): string[] {
 }
 
 /**
+ * Folds an ordered list of class-token sources into one list: each source
+ * strips the accumulated earlier sources' conflicting buckets, then appends
+ * its own tokens. The last source therefore wins per bucket — deterministic,
+ * independent of stylesheet order.
+ *
+ * Within a single source, order is preserved and same-bucket pairs fall
+ * through to the CSS cascade — author-controlled pairings inside one class
+ * string (`rounded-md rounded-t-none`) stay intact.
+ */
+function foldSources(sources: string[][]): string[] {
+  let acc: string[] = [];
+  for (const tokens of sources) {
+    if (tokens.length === 0) continue;
+    acc = acc.length === 0 ? tokens : [...stripConflicts(acc, tokens), ...tokens];
+  }
+  return acc;
+}
+
+/**
  * Tokenize a class-string into individual class tokens. Whitespace-only
  * fragments and empty strings are filtered.
  */
@@ -634,37 +653,33 @@ export function tv(config: {
     return function resolve(props?: PropBag): string {
       const effective = { ...defaultVariants, ...stripUndefined(props || {}) };
 
-      // Pipeline stages — later stages strip earlier stages' conflicting
-      // buckets. See "tv() engine — explicit trade-offs" in ARCHITECTURE.md.
-      const baseTokens = tokenize(resolveClassValue(base));
+      // Ordered pipeline sources: base → each variant axis in declaration
+      // order → each matching compoundVariant in array order → call-site
+      // class override. `foldSources` lets every later source strip earlier
+      // sources' conflicting buckets, so axis and compound order are
+      // semantic: declare the axis that must win a shared bucket later.
+      // See "tv() engine — explicit trade-offs" in ARCHITECTURE.md.
+      const sources: string[][] = [tokenize(resolveClassValue(base))];
 
-      const variantTokens: string[] = [];
       for (const [vName, vMap] of variantEntries) {
         const key = falsyToString(effective[vName]);
         if (key != null && key in vMap) {
-          variantTokens.push(...tokenize(resolveClassValue(vMap[key])));
+          sources.push(tokenize(resolveClassValue(vMap[key])));
         }
       }
 
-      const compoundTokens: string[] = [];
       for (const cv of compoundVariants) {
         if (matchesCompound(cv, effective)) {
-          compoundTokens.push(...tokenize(resolveClassValue(cv.class ?? cv.className)));
+          sources.push(tokenize(resolveClassValue(cv.class ?? cv.className)));
         }
       }
 
       const overrideTokens: string[] = [];
       if (props?.class) overrideTokens.push(...tokenize(resolveClassValue(props.class)));
       if (props?.className) overrideTokens.push(...tokenize(resolveClassValue(props.className)));
+      sources.push(overrideTokens);
 
-      // Strip in pipeline order: variants strip base, compounds strip
-      // (base+variants), overrides strip all prior. Each stage's own classes
-      // remain untouched.
-      const afterVariants = [...stripConflicts(baseTokens, variantTokens), ...variantTokens];
-      const afterCompounds = [...stripConflicts(afterVariants, compoundTokens), ...compoundTokens];
-      const final = [...stripConflicts(afterCompounds, overrideTokens), ...overrideTokens];
-
-      return final.join(' ');
+      return foldSources(sources).join(' ');
     };
   }
 
@@ -690,8 +705,15 @@ export function tv(config: {
         }
         baseTokens.push(...tokenize(resolveClassValue(slots[slotName])));
 
+        // Ordered pipeline sources: slot base → each variant axis in
+        // declaration order → each matching compoundVariant in array order →
+        // slotProps class override. `foldSources` lets every later source
+        // strip earlier sources' conflicting buckets, so axis and compound
+        // order are semantic: declare the axis that must win a shared bucket
+        // later. See "tv() engine — explicit trade-offs" in ARCHITECTURE.md.
+        const sources: string[][] = [baseTokens];
+
         // 2. Per-slot variant resolution
-        const variantTokens: string[] = [];
         for (const [vName, vMap] of variantEntries) {
           const key = falsyToString(effective[vName]);
           if (key == null || !(key in vMap)) continue;
@@ -700,15 +722,14 @@ export function tv(config: {
           if (vValue != null && typeof vValue === 'object' && !Array.isArray(vValue)) {
             const obj = vValue as Record<string, unknown>;
             if (slotName in obj) {
-              variantTokens.push(...tokenize(resolveClassValue(obj[slotName])));
+              sources.push(tokenize(resolveClassValue(obj[slotName])));
             }
           } else if (slotName === 'base') {
-            variantTokens.push(...tokenize(resolveClassValue(vValue)));
+            sources.push(tokenize(resolveClassValue(vValue)));
           }
         }
 
         // 3. Compound variant resolution (per-slot)
-        const compoundTokens: string[] = [];
         for (const cv of compoundVariants) {
           if (!matchesCompound(cv, effective)) continue;
           const cvClass = cv.class ?? cv.className;
@@ -716,10 +737,10 @@ export function tv(config: {
           if (cvClass != null && typeof cvClass === 'object' && !Array.isArray(cvClass)) {
             const obj = cvClass as Record<string, unknown>;
             if (slotName in obj) {
-              compoundTokens.push(...tokenize(resolveClassValue(obj[slotName])));
+              sources.push(tokenize(resolveClassValue(obj[slotName])));
             }
           } else if (slotName === 'base') {
-            compoundTokens.push(...tokenize(resolveClassValue(cvClass)));
+            sources.push(tokenize(resolveClassValue(cvClass)));
           }
         }
 
@@ -728,16 +749,9 @@ export function tv(config: {
         if (slotProps?.class) overrideTokens.push(...tokenize(resolveClassValue(slotProps.class)));
         if (slotProps?.className)
           overrideTokens.push(...tokenize(resolveClassValue(slotProps.className)));
+        sources.push(overrideTokens);
 
-        // Pipeline strip: later stage wins over earlier stage's conflicts.
-        const afterVariants = [...stripConflicts(baseTokens, variantTokens), ...variantTokens];
-        const afterCompounds = [
-          ...stripConflicts(afterVariants, compoundTokens),
-          ...compoundTokens
-        ];
-        const final = [...stripConflicts(afterCompounds, overrideTokens), ...overrideTokens];
-
-        return final.join(' ');
+        return foldSources(sources).join(' ');
       };
     }
 

@@ -77,16 +77,6 @@ export const tableHeaderVariants = tv({
       }
     },
 
-    sortable: {
-      true: {
-        cell: 'cursor-pointer hover:bg-surface-hover',
-        sortIcon: 'opacity-60'
-      },
-      false: {
-        sortIcon: 'hidden'
-      }
-    },
-
     sorted: {
       none: {
         sortIcon: 'opacity-0'
@@ -98,6 +88,19 @@ export const tableHeaderVariants = tv({
       desc: {
         cell: TABLE_STATES.cell.sorted,
         sortIcon: 'text-primary'
+      }
+    },
+
+    // Declared AFTER `sorted`: the sortable affordance (60% icon) wins the
+    // opacity bucket over sorted-none's opacity-0 — sortable columns keep
+    // their always-visible sort hint.
+    sortable: {
+      true: {
+        cell: 'cursor-pointer hover:bg-surface-hover',
+        sortIcon: 'opacity-60'
+      },
+      false: {
+        sortIcon: 'hidden'
       }
     },
 
@@ -196,6 +199,17 @@ export const tableRowVariants = tv({
       }
     },
 
+    striped: {
+      // The striped alternating color is `surface-quiet` (the quietest
+      // in-page tint), not `surface-subtle` (raised). Declared BEFORE
+      // `state`: selection/expansion tints must win the bg bucket over the
+      // zebra tint — an even selected row reads as selected, not striped.
+      even: {
+        row: 'bg-surface-quiet'
+      },
+      odd: {}
+    },
+
     state: {
       default: {
         row: TABLE_STATES.row.hover
@@ -216,15 +230,6 @@ export const tableRowVariants = tv({
         row: 'cursor-pointer'
       },
       false: {}
-    },
-
-    striped: {
-      // The striped alternating color is `surface-quiet` (the quietest
-      // in-page tint), not `surface-subtle` (raised).
-      even: {
-        row: 'bg-surface-quiet'
-      },
-      odd: {}
     }
   },
 

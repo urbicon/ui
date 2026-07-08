@@ -115,6 +115,12 @@ export const inputVariants = tv({
         base: 'bg-surface-subtle cursor-default'
       }
     },
+    // Declared BEFORE `error` so the error tone wins the message-color
+    // bucket in every call shape — `{ error: true }` alone must read red.
+    messageType: {
+      error: { message: 'text-danger' },
+      helper: { message: 'text-text-tertiary' }
+    },
     error: {
       true: {
         base: 'border-danger focus-visible:border-danger focus-visible:ring-danger/20',
@@ -128,10 +134,6 @@ export const inputVariants = tv({
     },
     hasLeftIcon: { true: {} },
     hasRightIcon: { true: {} },
-    messageType: {
-      error: { message: 'text-danger' },
-      helper: { message: 'text-text-tertiary' }
-    },
     iconPosition: {
       left: { iconContainer: 'left-0' },
       right: { iconContainer: 'right-0' }

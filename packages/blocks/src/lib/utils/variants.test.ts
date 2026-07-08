@@ -2,7 +2,10 @@ import { describe, expect, it } from 'vitest';
 import { accordionVariants } from '../primitives/Accordion/accordion.variants';
 import { buttonVariants } from '../primitives/Button/button.variants';
 import { checkboxVariants } from '../primitives/Checkbox/checkbox.variants';
+import { inputVariants } from '../primitives/Input/input.variants';
 import { menuVariants } from '../primitives/Menu/menu.variants';
+import { paginationVariants } from '../primitives/Pagination/pagination.variants';
+import { segmentGroupVariants } from '../primitives/SegmentGroup/segmentgroup.variants';
 import { sidebarVariants } from '../primitives/Sidebar/sidebar.variants';
 import { skeletonVariants } from '../primitives/Skeleton/skeleton.variants';
 import { cx, matchesCompound, resolveClassChain, tv, type VariantProps } from './variants';
@@ -1012,6 +1015,90 @@ describe('tv – tailwind conflict resolver', () => {
       const tokens = styles.base({ class: 'outline' }).split(/\s+/);
       expect(tokens).toContain('outline-2');
       expect(tokens).toContain('outline');
+    });
+  });
+
+  describe('within-stage fold — later axis / later compound wins', () => {
+    it('a later variant axis strips an earlier axis in the same bucket', () => {
+      const component = tv({
+        slots: { base: '' },
+        variants: {
+          a: { one: { base: 'bg-red' } },
+          b: { two: { base: 'bg-blue' } }
+        }
+      });
+      const tokens = component({ a: 'one', b: 'two' }).base().split(/\s+/);
+      expect(tokens).not.toContain('bg-red');
+      expect(tokens).toContain('bg-blue');
+    });
+
+    it('XC-10: the underline variant beats the tier radius deterministically', () => {
+      // Pre-fold both `rounded-modify` (tier axis) and `rounded-none`
+      // (variant axis) were emitted and stylesheet order decided the winner.
+      const tokens = inputVariants({ variant: 'underline' }).base().split(/\s+/);
+      expect(tokens).not.toContain('rounded-modify');
+      expect(tokens).toContain('rounded-none');
+    });
+
+    it('a later matching compound strips an earlier matching compound (Button active)', () => {
+      const styles = buttonVariants({
+        intent: 'primary',
+        variant: 'filled',
+        active: true,
+        size: 'md'
+      });
+      const tokens = styles.base().split(/\s+/);
+      expect(tokens).not.toContain('bg-primary');
+      expect(tokens).toContain('bg-primary-active');
+      expect(tokens).not.toContain('hover:bg-primary-hover');
+      expect(tokens).toContain('hover:bg-primary-active');
+    });
+
+    it('flat variants (ghost) beat the pressed depth cue; filled keeps it', () => {
+      // `pressed` is declared before `variant` for exactly this.
+      const ghost = buttonVariants({ variant: 'ghost', pressed: true, size: 'md' })
+        .base()
+        .split(/\s+/);
+      expect(ghost).toContain('shadow-none');
+      expect(ghost).not.toContain('shadow-[var(--blocks-shadow-xs)]');
+
+      const filled = buttonVariants({ variant: 'filled', pressed: true, size: 'md' })
+        .base()
+        .split(/\s+/);
+      expect(filled).toContain('shadow-[var(--blocks-shadow-xs)]');
+      expect(filled).not.toContain('shadow-[var(--blocks-shadow-sm)]');
+    });
+
+    it('error tone wins the message color in every call shape', () => {
+      // `messageType` is declared before `error` for exactly this — a direct
+      // `{ error: true }` call (public variants() API) must read red even
+      // though the component couples `messageType: error ? 'error' : 'helper'`.
+      const message = inputVariants({ error: true }).message().split(/\s+/);
+      expect(message).toContain('text-danger');
+      expect(message).not.toContain('text-text-tertiary');
+    });
+
+    it('pagination layout gap beats the per-size default gap', () => {
+      // `size` is declared before `layout` for exactly this.
+      const tokens = paginationVariants({ layout: 'table', size: 'md' }).base().split(/\s+/);
+      expect(tokens).toContain('gap-4');
+      expect(tokens).not.toContain('gap-1');
+    });
+
+    it('segmentgroup text appearance zeroes the track via compound', () => {
+      const styles = segmentGroupVariants({ appearance: 'text', size: 'md' });
+      const tokens = styles.base().split(/\s+/);
+      expect(tokens).toContain('p-0');
+      expect(tokens).not.toContain('p-1');
+      expect(tokens).toContain('rounded-none');
+      expect(tokens).not.toContain('rounded-commit');
+    });
+
+    it('intra-source pairings stay intact (no fold within one source)', () => {
+      const styles = tv({ slots: { base: 'rounded-md rounded-t-none' } })();
+      const tokens = styles.base().split(/\s+/);
+      expect(tokens).toContain('rounded-md');
+      expect(tokens).toContain('rounded-t-none');
     });
   });
 });
