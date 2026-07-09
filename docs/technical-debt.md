@@ -179,3 +179,24 @@ internal TODO instead.
   `onOpenChange` write-back) are unaffected.
 - **Found:** 2026-07-07, while adding `Accordion.svelte.test.ts` (the
   `collapsible=false` last-item test surfaced the divergence).
+
+## Accessibility
+
+### `LocaleSwitcher` puts `aria-label` on a role-less wrapper; empty trigger name until hydration
+
+- **Where:** `packages/blocks/src/lib/components/LocaleSwitcher/LocaleSwitcher.svelte`
+  (wrapper carries `aria-label="…"`), surfacing through the docs sidebar chrome
+  on every page.
+- **What:** An axe scan (WCAG 2.1 AA) of `/blocks` reports
+  `aria-prohibited-attr` — `aria-label` sits on a plain `div`/wrapper with no
+  role, where it is not permitted — plus a `button-name` hit on the inner
+  Select trigger in the sidebar instance. The e2e a11y suite never sees this
+  because it deliberately scopes to `[data-docs-preview]` ("the chrome has its
+  own tickets") — this is that ticket.
+- **Why deferred:** The fix belongs in the library component (move the label
+  onto the trigger/listbox element or use a visually hidden `<label>`), not in
+  any single docs page; it changes markup consumed by every LocaleSwitcher
+  user, so it wants its own pass with the DOM tests.
+- **Found:** 2026-07-09, while running axe over the rebuilt `/blocks`
+  specimen-book page (all in-cell findings were resolved there by making
+  specimen wrappers `inert`).

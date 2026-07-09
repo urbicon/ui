@@ -5,4 +5,5 @@ export {
   getCodeVisibilityContext,
   setCodeVisibilityContext
 } from './stores/code-visibility.svelte.js';
+export { ScrollSpy } from './stores/scroll-spy.svelte.js';
 export { highlighterService } from './utils/highlighter.js';
