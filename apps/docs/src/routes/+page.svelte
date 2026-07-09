@@ -295,7 +295,10 @@
           <ul class="mt-1.5">
             {#each PANEL_ITEMS as item, i (item.href)}
               <li style={i > 0 ? 'border-top: 1px solid rgb(246 243 236 / 0.18)' : ''}>
-                <a href={item.href} class="group flex items-baseline gap-4 py-3.5">
+                <a
+                  href={item.href}
+                  class="group flex items-baseline gap-4 py-3.5 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-current"
+                >
                   <span class="text-[clamp(1.1rem,1.5vw,1.35rem)] font-semibold tracking-[-0.01em]"
                     >{item.name}</span
                   >
