@@ -58,6 +58,16 @@ export interface FloatingPanelState {
   readonly topLayer: boolean;
   /** CSS positioning strategy the panel element must match (`position: <strategy>`). */
   readonly strategy: 'fixed' | 'absolute';
+  /**
+   * z-index the panel element must carry (`style:z-index`). `null` in top-layer
+   * mode — the top layer stacks above everything and ignores z-index. The
+   * in-place modes need it: without an explicit z-index the panel stacks at
+   * `auto`, and any positioned element that FOLLOWS it in the DOM (Button /
+   * Input / Select roots are all `position: relative`) paints over the open
+   * panel in document order — e.g. a Select inside a Popover (`usePortal=false`)
+   * being overdrawn by the popover content below it.
+   */
+  readonly zIndex: string | null;
 }
 
 /**
@@ -100,6 +110,7 @@ export function useFloatingPanel(opts: FloatingPanelOptions): FloatingPanelState
   // inline mode (`portal=false`) falls back to `absolute`.
   const topLayer = $derived(portalHint && !inModalDialog);
   const strategy = $derived<'fixed' | 'absolute'>(portalHint ? 'fixed' : 'absolute');
+  const zIndex = $derived(topLayer ? null : 'var(--z-dropdown)');
 
   $effect(() => {
     const ref = opts.reference();
@@ -214,6 +225,9 @@ export function useFloatingPanel(opts: FloatingPanelOptions): FloatingPanelState
     },
     get strategy() {
       return strategy;
+    },
+    get zIndex() {
+      return zIndex;
     }
   };
 }
@@ -238,6 +252,7 @@ export function useFloatingPanel(opts: FloatingPanelOptions): FloatingPanelState
  *   style:position={panel.strategy}
  *   style:inset="auto"
  *   style:margin="0"
+ *   style:z-index={panel.zIndex}
  *   style:display={floatingPanelHidden(panel, open) ? 'none' : null}
  * >
  * ```

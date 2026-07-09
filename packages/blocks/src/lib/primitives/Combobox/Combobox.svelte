@@ -423,6 +423,7 @@
       style:position={panel.strategy}
       style:inset="auto"
       style:margin="0"
+      style:z-index={panel.zIndex}
       style:overflow-y="auto"
       style:display={floatingPanelHidden(panel, open) ? 'none' : null}
     >

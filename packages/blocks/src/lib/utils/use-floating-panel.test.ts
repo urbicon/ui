@@ -11,7 +11,11 @@ import { type FloatingPanelState, floatingPanelHidden } from './use-floating-pan
  * Floating UI's imperative `left`/`top` writes are never clobbered (Codeberg #23).
  */
 describe('floatingPanelHidden', () => {
-  const state = (topLayer: boolean): FloatingPanelState => ({ topLayer, strategy: 'fixed' });
+  const state = (topLayer: boolean): FloatingPanelState => ({
+    topLayer,
+    strategy: 'fixed',
+    zIndex: topLayer ? null : 'var(--z-dropdown)'
+  });
 
   it('never hides a top-layer panel — the UA :popover-open rule owns its visibility', () => {
     expect(floatingPanelHidden(state(true), false)).toBe(false);

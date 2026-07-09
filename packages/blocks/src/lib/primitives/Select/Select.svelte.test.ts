@@ -134,6 +134,33 @@ describe('Select (component interaction)', () => {
     expect(option('France').getAttribute('aria-selected')).toBe('false');
   });
 
+  it('inline mode (usePortal=false) carries the dropdown z-index so later siblings cannot paint over it', async () => {
+    const user = userEvent.setup();
+    renderSelect({ options: OPTIONS, usePortal: false });
+
+    const listbox = screen.getByRole('listbox', { hidden: true });
+    await user.click(trigger());
+
+    // In-place panel (e.g. a Select inside a Popover): `position: absolute`
+    // without the popover top layer. Button/Input/Select roots are all
+    // `position: relative`, so any positioned sibling AFTER the select in the
+    // DOM paints over the open panel unless it carries an explicit z-index —
+    // the table FilterMenu overdraw bug.
+    expect(listbox.style.position).toBe('absolute');
+    expect(listbox.style.zIndex).toBe('var(--z-dropdown)');
+  });
+
+  it('top-layer mode (default) needs no inline z-index — the top layer owns stacking', async () => {
+    const user = userEvent.setup();
+    renderSelect({ options: OPTIONS });
+
+    const listbox = screen.getByRole('listbox', { hidden: true });
+    await user.click(trigger());
+
+    expect(listbox.style.position).toBe('fixed');
+    expect(listbox.style.zIndex).toBe('');
+  });
+
   it('does not select a disabled option', async () => {
     const user = userEvent.setup();
     const onValueChange = vi.fn();

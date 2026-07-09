@@ -318,8 +318,8 @@
 
   Non-top-layer render (`panel.topLayer === false`): the `popover` attribute is
   suppressed so the browser does not promote the element to the top layer; the
-  `style:` directives drive `position` + `display` while Floating UI drives
-  `left` / `top`. Per-property `style:` directives are used (never a single
+  `style:` directives drive `position` + `z-index` + `display` while Floating UI
+  drives `left` / `top`. Per-property `style:` directives are used (never a single
   dynamic `style={…}` string) so Svelte's `setAttribute('style')` can't wipe the
   imperative `left`/`top` writes — the iOS `inset: auto` clobber (Codeberg #23).
   Two triggers:
@@ -339,6 +339,7 @@
   style:position={panel.strategy}
   style:inset="auto"
   style:margin="0"
+  style:z-index={panel.zIndex}
   style:display={floatingPanelHidden(panel, open) ? 'none' : null}
   {role}
   aria-modal={ariaModal || undefined}
