@@ -163,8 +163,11 @@
   --z-auto: auto;
   --z-base: 0;
   --z-docked: 10;
-  --z-dropdown: 9999;
   --z-sticky: 1100;
+  /* Anchored dropdown panels (menus, listboxes) rendered in normal flow:
+     above sticky headers/toolbars (a table menu must clear its own sticky
+     header), below banner and every overlay/chrome layer that follows. */
+  --z-dropdown: 1150;
   --z-banner: 1200;
   --z-overlay: 1300;
   --z-sidebar: 1350;

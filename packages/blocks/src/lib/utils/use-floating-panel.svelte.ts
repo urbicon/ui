@@ -58,16 +58,6 @@ export interface FloatingPanelState {
   readonly topLayer: boolean;
   /** CSS positioning strategy the panel element must match (`position: <strategy>`). */
   readonly strategy: 'fixed' | 'absolute';
-  /**
-   * z-index the panel element must carry (`style:z-index`). `null` in top-layer
-   * mode — the top layer stacks above everything and ignores z-index. The
-   * in-place modes need it: without an explicit z-index the panel stacks at
-   * `auto`, and any positioned element that FOLLOWS it in the DOM (Button /
-   * Input / Select roots are all `position: relative`) paints over the open
-   * panel in document order — e.g. a Select inside a Popover (`usePortal=false`)
-   * being overdrawn by the popover content below it.
-   */
-  readonly zIndex: string | null;
 }
 
 /**
@@ -87,7 +77,10 @@ export interface FloatingPanelState {
  * `<dialog>`, where a second top-layer element is invisible on iOS/WebKit
  * (Codeberg #23) — the panel then renders `position: fixed` in place. Callers
  * mirror the returned `topLayer`/`strategy` in their markup via per-property
- * `style:` directives and {@link floatingPanelHidden}.
+ * `style:` directives and {@link floatingPanelHidden}. Stacking needs no
+ * caller wiring: in the two in-place modes the helper itself stamps the
+ * panel's `z-index` imperatively (see the `zIndex` derivation below), so an
+ * in-place panel always paints above later positioned siblings.
  *
  * The Floating-UI `size` middleware feeds the room actually left between the
  * anchor and the (visual) viewport edge into `--blocks-overlay-available-height`.
@@ -110,7 +103,22 @@ export function useFloatingPanel(opts: FloatingPanelOptions): FloatingPanelState
   // inline mode (`portal=false`) falls back to `absolute`.
   const topLayer = $derived(portalHint && !inModalDialog);
   const strategy = $derived<'fixed' | 'absolute'>(portalHint ? 'fixed' : 'absolute');
-  const zIndex = $derived(topLayer ? null : 'var(--z-dropdown)');
+  // z-index for the two in-place modes; the top layer needs none (it stacks by
+  // insertion order and ignores z-index). An in-place panel stacks at `auto`,
+  // so any positioned element AFTER it in the DOM (Button/Input/Select roots
+  // are all `position: relative`) would paint over the open panel in document
+  // order — the table FilterMenu overdraw. Stamped imperatively on the show
+  // path alongside Floating UI's `left`/`top` writes, never via a `style:`
+  // directive: Svelte reserves a directive's property even while its value is
+  // null, which would strip a consumer-supplied `style="z-index: …"` in
+  // top-layer mode. Set-only (no unset on hide/mode-flip — a leftover value is
+  // inert in the top layer and wanted in place). The literal fallback keeps
+  // the panel stacked when a consumer's Tailwind build prunes the unused
+  // `@theme` token (an unresolvable var() computes to `auto` and would
+  // silently revert the fix). Consumers override via an important utility on
+  // the panel slot (e.g. `slotClasses={{ listbox: 'z-20!' }}`) — plain
+  // utilities lose to this inline style by design, like `position`/`display`.
+  const zIndex = $derived(topLayer ? null : 'var(--z-dropdown, 1150)');
 
   $effect(() => {
     const ref = opts.reference();
@@ -118,6 +126,7 @@ export function useFloatingPanel(opts: FloatingPanelOptions): FloatingPanelState
     const isOpen = opts.open();
     const useTopLayer = topLayer;
     const positionStrategy = strategy;
+    const zIndexValue = zIndex;
     const placement = opts.placement?.() ?? 'bottom-start';
     const offsetDistance = opts.offsetDistance?.() ?? 4;
     const shiftPadding = opts.shiftPadding?.() ?? 8;
@@ -153,6 +162,8 @@ export function useFloatingPanel(opts: FloatingPanelOptions): FloatingPanelState
       }
       return;
     }
+
+    if (zIndexValue) floating.style.zIndex = zIndexValue;
 
     if (useTopLayer && !floating.matches(':popover-open')) {
       try {
@@ -225,9 +236,6 @@ export function useFloatingPanel(opts: FloatingPanelOptions): FloatingPanelState
     },
     get strategy() {
       return strategy;
-    },
-    get zIndex() {
-      return zIndex;
     }
   };
 }
@@ -252,7 +260,6 @@ export function useFloatingPanel(opts: FloatingPanelOptions): FloatingPanelState
  *   style:position={panel.strategy}
  *   style:inset="auto"
  *   style:margin="0"
- *   style:z-index={panel.zIndex}
  *   style:display={floatingPanelHidden(panel, open) ? 'none' : null}
  * >
  * ```

@@ -134,20 +134,27 @@ describe('Select (component interaction)', () => {
     expect(option('France').getAttribute('aria-selected')).toBe('false');
   });
 
-  it('inline mode (usePortal=false) carries the dropdown z-index so later siblings cannot paint over it', async () => {
+  it('inline mode (usePortal=false) opens in place with the dropdown z-index so later siblings cannot paint over it', async () => {
     const user = userEvent.setup();
     renderSelect({ options: OPTIONS, usePortal: false });
 
+    // Closed: hidden via display, and no z-index yet — the hook stamps it on
+    // the show path only, so these assertions also prove the panel opened.
     const listbox = screen.getByRole('listbox', { hidden: true });
+    expect(listbox.style.display).toBe('none');
+    expect(listbox.style.zIndex).toBe('');
+
     await user.click(trigger());
 
     // In-place panel (e.g. a Select inside a Popover): `position: absolute`
     // without the popover top layer. Button/Input/Select roots are all
     // `position: relative`, so any positioned sibling AFTER the select in the
     // DOM paints over the open panel unless it carries an explicit z-index —
-    // the table FilterMenu overdraw bug.
+    // the table FilterMenu overdraw bug. The fallback keeps the panel stacked
+    // when a consumer's Tailwind build prunes the unused @theme token.
+    expect(listbox.style.display).not.toBe('none');
     expect(listbox.style.position).toBe('absolute');
-    expect(listbox.style.zIndex).toBe('var(--z-dropdown)');
+    expect(listbox.style.zIndex).toBe('var(--z-dropdown, 1150)');
   });
 
   it('top-layer mode (default) needs no inline z-index — the top layer owns stacking', async () => {
@@ -159,6 +166,46 @@ describe('Select (component interaction)', () => {
 
     expect(listbox.style.position).toBe('fixed');
     expect(listbox.style.zIndex).toBe('');
+  });
+
+  it('in-dialog mode (anchor in an open modal <dialog>) renders fixed WITH the dropdown z-index', async () => {
+    // jsdom's selector engine does not know `:modal`, so reflect the
+    // vitest-setup showModal stub (which sets the `open` attribute) into the
+    // pseudo-class — this is what lets isAnchoredInModalDialog see the modal
+    // state and pick the in-place fixed mode (Codeberg #23, the WebKit path).
+    const origMatches = Element.prototype.matches;
+    const matchesSpy = vi.spyOn(Element.prototype, 'matches').mockImplementation(function (
+      this: Element,
+      selector: string
+    ) {
+      if (selector === ':modal') return this.tagName === 'DIALOG' && this.hasAttribute('open');
+      return origMatches.call(this, selector);
+    });
+    try {
+      const user = userEvent.setup();
+      const dialog = document.createElement('dialog');
+      document.body.appendChild(dialog);
+      dialog.showModal();
+      const instance = mount(Select, {
+        target: dialog,
+        props: { options: OPTIONS } as SelectProps<string | number | boolean>
+      });
+      dispose = () => unmount(instance);
+      flushSync();
+
+      const listbox = screen.getByRole('listbox', { hidden: true });
+      await user.click(trigger());
+
+      // Not top-layer (a second top-layer panel over a modal dialog is
+      // invisible on iOS/WebKit), but fixed so it escapes the dialog body's
+      // overflow clipping — and it still needs the z-index against later
+      // positioned siblings inside the dialog.
+      expect(listbox.style.position).toBe('fixed');
+      expect(listbox.style.display).not.toBe('none');
+      expect(listbox.style.zIndex).toBe('var(--z-dropdown, 1150)');
+    } finally {
+      matchesSpy.mockRestore();
+    }
   });
 
   it('does not select a disabled option', async () => {

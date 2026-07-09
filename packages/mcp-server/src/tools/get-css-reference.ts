@@ -236,8 +236,8 @@ Shadows automatically increase opacity in dark mode (0.05 → 0.2 for xs, etc.).
 | \`--z-hide\` | -1 | Hidden |
 | \`--z-base\` | 0 | Default |
 | \`--z-docked\` | 10 | Docked elements |
-| \`--z-dropdown\` | 9999 | Menus, listboxes, floating panels |
 | \`--z-sticky\` | 1100 | Sticky headers |
+| \`--z-dropdown\` | 1150 | Menus, listboxes, floating panels (above sticky, below banner) |
 | \`--z-banner\` | 1200 | Banners |
 | \`--z-overlay\` | 1300 | Overlays |
 | \`--z-sidebar\` | 1350 | Sidebars |

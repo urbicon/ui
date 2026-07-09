@@ -167,7 +167,7 @@ Always use CSS custom property tokens:
 
 | Layer    | Token                   | Value |
 | -------- | ----------------------- | ----- |
-| Menu | `z-[var(--z-dropdown)]` | 9999  |
+| Menu | `z-[var(--z-dropdown)]` | 1150  |
 | Overlay  | `z-[var(--z-overlay)]`  | 1300  |
 | Dialog   | `z-[var(--z-modal)]`    | 1400  |
 | Popover  | `z-[var(--z-popover)]`  | 1500  |

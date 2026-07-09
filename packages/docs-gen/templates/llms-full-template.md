@@ -320,7 +320,7 @@ shadow-[var(--blocks-shadow-lg)]   /* menus, popovers */
 ### Z-Index Tokens
 
 ```
-z-[var(--z-dropdown)]  /* 9999 */
+z-[var(--z-dropdown)]  /* 1150 */
 z-[var(--z-overlay)]   /* 1300 */
 z-[var(--z-modal)]     /* 1400 */
 z-[var(--z-popover)]   /* 1500 */
