@@ -33,7 +33,7 @@
     Spinner,
     Toggle
   } from '@urbicon-ui/blocks';
-  import { Table, type Column } from '@urbicon-ui/table';
+  import { Table } from '@urbicon-ui/table';
   import '$lib/style/rooms.css';
 
   // ── Palette channels ──────────────────────────────────────────────
@@ -139,17 +139,23 @@
     status: 'live' | 'warm';
     p95: number;
   }
+  // Ordered by p95 so the table reads sorted on load (the table has no
+  // initial-sort API yet — see docs/technical-debt.md).
   const BASE_ROWS: EdgeRow[] = [
+    { id: 'edge-local', region: 'edge · local', status: 'live', p95: 3 },
     { id: 'eu-central', region: 'eu-central', status: 'live', p95: 42 },
+    { id: 'eu-west', region: 'eu-west', status: 'live', p95: 51 },
     { id: 'us-east', region: 'us-east', status: 'live', p95: 87 },
-    { id: 'ap-south', region: 'ap-south', status: 'warm', p95: 118 },
-    { id: 'edge-local', region: 'edge · local', status: 'live', p95: 3 }
+    { id: 'us-west', region: 'us-west', status: 'warm', p95: 102 },
+    { id: 'ap-south', region: 'ap-south', status: 'warm', p95: 118 }
   ];
-  const tableColumns: Column<EdgeRow>[] = [
-    { accessor: 'region', title: 'Region', sortable: true },
-    { accessor: 'status', title: 'Status', sortable: true },
-    { accessor: 'p95', title: 'p95', sortable: true, dataType: 'number', align: 'right' }
-  ];
+  // One row preselected so the selected state shows the room accent on load.
+  // Controlled selection is the table's only preselection path, so row clicks
+  // must be synced back via onSelectionChange — a static array would freeze
+  // the selection (the provider re-asserts the prop over internal clicks).
+  let tableSelected = $state<Array<string | number>>(['eu-central']);
+  // Columns live in the template (inline on <Table>) because the status
+  // column renders through the `statusCell` snippet, which only exists there.
   // Deterministic jitter (no Math.random) so latency values "breathe" like a
   // live feed without an SSR/hydration mismatch.
   let tick = $state(0);
@@ -203,6 +209,17 @@
 
 <!-- Palette channel switcher — reused in the hero (compact) and the repaint
      section (with labels). Real control: repaints the whole page. -->
+{#snippet statusCell(_item: EdgeRow, value: unknown)}
+  <!-- Palette-true status: `primary` rides the room accent, `neutral` stays
+       warm grey — no foreign intent hues inside a room (same rule as the
+       chart tokens in rooms.css). -->
+  <Badge
+    intent={value === 'live' ? 'primary' : 'neutral'}
+    variant={value === 'live' ? 'soft' : 'outlined'}
+    class="font-mono text-[10px]">{String(value)}</Badge
+  >
+{/snippet}
+
 {#snippet paletteSwitcher(withLabel: boolean, onField: boolean)}
   <div class="flex flex-wrap gap-3">
     {#each CHANNEL_ORDER as key (key)}
@@ -482,16 +499,31 @@
                 </div>
                 <Table
                   items={tableRows}
-                  columns={tableColumns}
+                  columns={[
+                    { accessor: 'region', title: 'Region', sortable: true },
+                    { accessor: 'status', title: 'Status', sortable: true, cell: statusCell },
+                    {
+                      accessor: 'p95',
+                      title: 'p95',
+                      sortable: true,
+                      dataType: 'number',
+                      align: 'right'
+                    }
+                  ]}
                   selectionMode="single"
+                  selectedIds={tableSelected}
+                  onSelectionChange={(items) => (tableSelected = items.map((r) => r.id))}
                   enableSmartFilter={false}
-                  itemsPerPage={4}
+                  itemsPerPage={6}
+                  slotClasses={{ table: '!min-w-0' }}
                 />
               </div>
             </div>
 
             <div class="mt-auto flex items-baseline justify-between gap-5">
-              <span class="text-[13px] opacity-75">Click a header to sort, a row to select</span>
+              <span class="text-[13px] opacity-75"
+                >Click a header to sort, a checkbox to select</span
+              >
               <a
                 href={resolve('/table/table')}
                 class="border-b-2 border-current pb-0.5 text-[15px] font-bold transition-opacity hover:opacity-70"
