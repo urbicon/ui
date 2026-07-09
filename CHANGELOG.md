@@ -4,6 +4,108 @@ All notable changes to this project will be documented in this file.
 This changelog is automatically generated from [Conventional Commits](https://www.conventionalcommits.org).
 
 
+## [6.21.1] - 2026-07-09
+
+### Breaking Changes
+- **blocks**: Tighten the tv() API surface — type-safe slots, fail-loud config, ClassValue parity
+> **BREAKING:** four narrowings of the tv() call surface (no runtime consumer existed for any of them — verified repo-wide): - the React-era `className` alias is gone everywhere (props, compound  entries, matchesCompound). Svelte has one class prop. - `base` and `slots` are mutually exclusive: the primary slot is declared  as `slots.base`. Historically a top-level base was silently dropped  unless a slot happened to be named 'base'. - the slot-mode resolve call takes no top-level `class` (it had no slot to  attach to and was silently ignored) — class overrides belong to the slot  functions; a DEV warning covers untyped callers. - no-slot variant values are class strings/arrays; an object (slot map)  there is now a config error. Found one real instance: table's  headerMenuItemVariants marker axis used {} instead of ''. Completeness upgrades: - slot-name type safety: slot-map keys in variant values and compound  classes are compile-checked against the declared slots  (ValidSlotVariants intersection — a 'wrapeer' typo is now a type error  at that key). Closes the biggest documented trade-off of the engine. - config-time runtime validation (covers JS callers and configs built from  imported constants): unknown slot keys, unknown compound axes/values,  undeclared defaultVariants values and no-slot slot-maps all throw at  module init with precise messages. Half-declared boolean axes  (loading: { true } + a compound on loading: false) stay idiomatic. - call-site class inputs mirror Svelte 5's ClassValue: cx() and every  `class` override accept clsx-shaped records ({ active: cond }), nested  arrays included. Config-side values deliberately keep object = slot map. - every resolver exposes its config as a non-enumerable `.config` for  tooling (variants linter, docs-gen). - micro: single-lookup bucket cache; slot bases tokenized once per config.
+
+### Bug Fixes
+- **blocks**: Redirect GuidePanel focus on article switch, reset search on close
+- **blocks**: Enter modal state after the dialog ref binds (Dialog/Drawer)
+- **blocks**: Skip disabled tabs during Tab keyboard navigation
+- **blocks**: Skip disabled segments in SegmentGroup keyboard navigation
+- **blocks**: Keep Accordion's last item open under collapsible=false
+- **blocks**: Guard the deferred showModal against teardown before its tick
+- **design**: Skip __fixtures__ dirs in the i18n source audit
+- **blocks**: Per-instance body-scroll-lock ownership (Dialog/Drawer/Sidebar)
+- **blocks**: Correct tv() bucket classification for arbitrary properties and v4 utility families
+- **blocks**: Resolve same-bucket conflicts across variant axes and compounds (XC-10)
+- **blocks**: Model shorthand dominance in the tv() conflict resolver
+- **blocks**: Vertical CompositionBar segments collapsed to zero height
+- **blocks**: Harden tv() validation and shadow classification per adversarial review
+- **docs**: Restore Section header rhythm to the size axis
+- **blocks**: Variants-lint leave-one-out attribution, fail-loud gates, CI wiring
+- **docs**: Tint landing specimen cards into their rooms + correct copy facts
+- **blocks**: Export TVConfig/SlotNames so consumer packages can emit types
+- **docs**: Visible keyboard focus on the hero index panel links
+- **docs**: Apply review findings — aria-current, badge anchor parity
+- **table**: Controlled selection no longer freezes user row selection
+- **table**: Dedupe incoming ids in the setSelectedIds idempotence guard
+- **blocks**: Stack in-place floating panels above later positioned siblings
+- **blocks**: Own in-place panel z-index in the hook, rescale --z-dropdown
+
+### Documentation
+- Log Calendar current-time red-500 as technical debt
+- Reference technical-debt.md in AGENTS + CONTRIBUTING
+- Log ConfirmDialog async-confirm unhandled rejection as technical debt
+- Log Collapsible controlled-open optimistic mutation as technical debt
+- Document the __fixtures__ compound-widget test pattern
+- Log the unconditional body-scroll unlock on destroy as technical debt
+- Log the two shared DatePicker commit-path test gaps as technical debt
+- Update the tv() trade-offs section for fold + dominance semantics
+- Log the darwin-only e2e visual snapshots as technical debt
+- Tv() v7 semantics — axis-order doctrine, type-safe configs, variants-lint
+- Log flaky table sort test + missing d.ts build guard as debt
+- Log table initial* gaps, single-select UX, slotClasses conflict as debt
+
+### Features
+- **blocks**: Per-instance collapse motion for Accordion + Collapsible
+- **blocks**: Overlay-motion tokens + per-instance props for Toast & Tooltip
+- **blocks**: Variants-lint guard — and purge the dead tokens it found
+- **docs**: Add editorial/library docs-theme toggle
+- **docs**: Rebuild landing as a palette-channel color-rooms poster
+- **docs**: Room-tinted playground stage, TOC aligned with content top
+- **docs**: Rooms block marker + quiet underlines + localized TOC kickers
+- **docs**: Flatten the sidebar nav — in-place expansion, chip + block marker
+- **docs**: Landing hero as cover + index — inverted set panel, tiles pierce the fold
+- **docs**: Landing tile 'AI & DX' becomes 'Design' — the loop is the story
+- **blocks**: Publish the sidebar-layout pinned-chrome height as a CSS var
+- **docs**: Landing table specimen — status badges, preselection, no overflow
+- **docs**: 'view source' flip on the landing specimen cards
+- **docs**: Rebuild blocks overview as a specimen-book catalog
+- **docs**: Rebuild getting-started as a four-step build guide
+
+### Miscellaneous
+- Update dependencies
+
+### Refactoring
+- **blocks**: Extract shared roving-focus index helpers
+- Replace non-null assertions with explicit narrowing
+- **docs**: Rename theming hooks to the data-docs-* contract
+- **docs**: One scrollspy for DocsLayout and TableOfContents
+- **docs**: Rooms selected via data-room — colours live only in CSS
+- **docs**: Dedupe hero header, sticky offsets via published variable
+
+### Styling
+- Refactor landing page & docs layout
+
+### Testing
+- **blocks**: Variant tests for ButtonGroup, Pagination, Sidebar
+- **blocks**: Variant tests for EmptyState, FileUpload, SidebarLayout
+- **blocks**: Variant tests for Calendar day-state matrix
+- **blocks**: Variant tests for Guide + Planner (sweep complete)
+- **blocks**: Jsdom component-test layer + Combobox interaction tests
+- **blocks**: Jsdom interaction tests for Select/Menu/Dialog
+- **blocks**: Interaction tests for Toggle and Checkbox
+- **blocks**: Interaction tests for ConfirmDialog
+- **blocks**: Interaction tests for Tab + composite fixture pattern
+- **blocks**: Interaction tests for SegmentGroup + RadioGroup
+- **blocks**: Interaction tests for Slider
+- **blocks**: Interaction tests for Collapsible and Accordion
+- **blocks**: Interaction tests for Stepper
+- **blocks**: Interaction tests for GuideRef and GuideMention
+- **blocks**: Close the GuideMention teardown false-pass found in review
+- **blocks**: Interaction tests for LocaleSwitcher
+- **blocks**: Interaction tests for CurrencyInput
+- **blocks**: Interaction tests for DatePicker
+- **blocks**: Close coverage gaps from the component-test review
+- **blocks**: Interaction tests for DateRangePicker
+- **blocks**: Close DateRangePicker review coverage gaps
+- Add visual-regression suite for the ten core primitives
+- Gate the visual-regression suite to darwin
+- **docs**: Wire the docs package into the test gate
+
 ## [6.21.0] - 2026-07-06
 
 ### Documentation
