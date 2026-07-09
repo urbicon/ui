@@ -6,9 +6,9 @@ export const playgroundConfiguratorVariants = tv({
     header: ['text-center'],
     title: ['text-text-primary mb-1 font-bold'],
     subtitle: ['text-text-secondary'],
-    // Container as top/bottom hairlines only, no enclosing rectangle. The
-    // stage sits IN the reading-flow rather than AS a card; surface-quiet
-    // gives the subtle tonal lift that previously came from the border.
+    // Container as top/bottom hairlines only, no enclosing rectangle and no
+    // own background — the stage sits IN the reading-flow rather than AS a
+    // card; the rooms skin tints the preview frame via [data-docs-stage-frame].
     container: ['border-y border-border-hairline'],
     preview: ['border-b border-border-hairline'],
     previewContent: ['flex items-center justify-center'],

@@ -39,8 +39,11 @@ describe('playgroundConfiguratorVariants', () => {
 
     expect(styles.container()).toContain('border-border-hairline');
     expect(styles.container()).toContain('border-y');
-    expect(styles.container()).toContain('bg-surface-quiet');
-    expect(styles.preview()).toContain('bg-surface-base');
+    // The stage sits IN the reading-flow on the page paper — container and
+    // preview deliberately carry no own background (the rooms skin tints the
+    // playground frame via [data-docs-stage-frame]).
+    expect(styles.container()).not.toMatch(/\bbg-/);
+    expect(styles.preview()).not.toMatch(/\bbg-/);
     expect(styles.title()).toContain('text-text-primary');
     expect(styles.subtitle()).toContain('text-text-secondary');
     expect(styles.controlLabel()).toContain('text-text-tertiary');

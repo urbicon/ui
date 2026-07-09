@@ -57,14 +57,23 @@ describe('docsLayoutVariants', () => {
     expect(stickyBar).toContain('lg:top-0');
   });
 
-  it('sticky bar uses full-bleed negative margin', () => {
+  it('sticky bar is a full-width band (no negative-margin bleed)', () => {
+    // Since the colour-field header rework the strip is a direct child of the
+    // page container — full-width by construction, no -mx bleed needed.
     const styles = docsLayoutVariants({});
-    expect(styles.stickyBar()).toContain('-mx-6');
+    expect(styles.stickyBar()).not.toContain('-mx-6');
   });
 
-  it('stickyBarInner re-applies horizontal padding', () => {
+  it('stickyBarInner re-imposes the content column', () => {
     const styles = docsLayoutVariants({});
-    expect(styles.stickyBarInner()).toContain('mx-6');
+    expect(styles.stickyBarInner()).toContain('mx-auto');
+    expect(styles.stickyBarInner()).toContain('px-6');
+  });
+
+  it('wrapper owns the top padding so body and TOC share one top edge', () => {
+    const styles = docsLayoutVariants({});
+    expect(styles.wrapper()).toContain('pt-8');
+    expect(styles.main()).not.toContain('pt-8');
   });
 
   describe('maxWidth variants', () => {

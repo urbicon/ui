@@ -75,6 +75,7 @@
     "preview": "vite preview",
     "check": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json",
     "check:watch": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json --watch",
+    "test": "vitest run",
     "format": "biome format --write . && prettier --write \"**/*.svelte\"",
     "lint": "biome check . && svelte-check --tsconfig ./tsconfig.json",
     "generate:all": "bun generator/generate-unified-docs.ts",
