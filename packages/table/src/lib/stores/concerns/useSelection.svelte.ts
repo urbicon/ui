@@ -95,11 +95,14 @@ export function useSelection(state: TableState, getFilteredItems: () => TableIte
     // the set — clear()+add() of identical ids still bumps the per-key
     // sources, which re-invalidates `selectedItems`, re-fires
     // onSelectionChange and ping-pongs the controlled loop per flush.
-    if (ids.length === state.selectedIds.size && ids.every((id) => state.selectedIds.has(id))) {
+    // Compare via a Set so a duplicated incoming array (['a','a'] against
+    // current {'a','b'}) can't false-positive on matching cardinality.
+    const next = new Set(ids);
+    if (next.size === state.selectedIds.size && ids.every((id) => state.selectedIds.has(id))) {
       return;
     }
     state.selectedIds.clear();
-    for (const id of ids) state.selectedIds.add(id);
+    for (const id of next) state.selectedIds.add(id);
   }
 
   return {

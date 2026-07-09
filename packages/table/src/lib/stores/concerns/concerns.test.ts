@@ -1101,6 +1101,13 @@ describe('useSelection', () => {
     sel.setSelectedIds([3, 2]); // same ids, different order — still identical
     expect(mutations).toBe(0);
 
+    // Duplicated incoming ids must not false-positive on matching
+    // cardinality: ['3','3'] has length 2 like the current {2,3}, but it is
+    // NOT the same selection — the set must be replaced (deduplicated).
+    sel.setSelectedIds([3, 3]);
+    expect(state.selectedIds.size).toBe(1);
+    expect(state.selectedIds.has(3)).toBe(true);
+
     sel.setSelectedIds([1]); // genuinely different — replaces as before
     expect(mutations).toBeGreaterThan(0);
     expect(state.selectedIds.size).toBe(1);
