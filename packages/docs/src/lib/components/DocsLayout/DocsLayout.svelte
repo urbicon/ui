@@ -175,7 +175,7 @@
       class={unstyled
         ? (slotClasses?.stickyBar ?? '')
         : styles.stickyBar({ class: slotClasses?.stickyBar })}
-      data-testid="docs-sticky-bar"
+      data-docs-sticky-bar
     >
       <div
         class={unstyled
@@ -223,7 +223,7 @@
             ></span>
             <a
               href="#{activeSection}"
-              data-scrollspy
+              data-docs-scrollspy
               class="text-primary bg-primary-subtle hover:bg-primary-subtle/80 rounded-modify max-w-40 shrink-0 truncate px-2 py-0.5 text-xs font-medium whitespace-nowrap transition-colors"
               tabindex={scrolledPastHeader ? 0 : -1}
             >
@@ -240,7 +240,7 @@
       <!-- Hairline: expands from center when scrolled (library skin). The
            rooms skin hides it — on the colour band the fill edge is the
            separator. -->
-      <div class="relative h-px overflow-hidden" aria-hidden="true" data-sticky-hairline>
+      <div class="relative h-px overflow-hidden" aria-hidden="true" data-docs-sticky-hairline>
         <div
           class="bg-border-subtle absolute top-0 h-px transition-all duration-300 ease-out
             {scrolledPastHeader ? 'right-0 left-0' : 'right-1/2 left-1/2'}"
@@ -254,7 +254,7 @@
         class={unstyled
           ? (slotClasses?.header ?? '')
           : styles.header({ class: slotClasses?.header })}
-        data-testid="docs-header"
+        data-docs-header
       >
         <div class={unstyled ? '' : styles.headerInner()}>
           {#if title}
@@ -283,7 +283,7 @@
     <!-- ═══ LEGACY — full-width header band (no breadcrumbs, no sticky strip) ═══ -->
     <header
       class={unstyled ? (slotClasses?.header ?? '') : styles.header({ class: slotClasses?.header })}
-      data-testid="docs-header"
+      data-docs-header
     >
       <div class={unstyled ? '' : styles.headerInner()}>
         {#if title}

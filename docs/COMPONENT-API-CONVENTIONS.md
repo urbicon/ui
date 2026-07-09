@@ -363,14 +363,14 @@ Feedback / Ambient components (Toast, Spinner, Progress, Skeleton) and Identity 
 
 ## Docs Theme Hooks
 
-`packages/docs` components carry small `data-*` attributes so that an opt-in docs theme (currently the Color Rooms theme in `apps/docs/`) can paint, flatten, or hide chrome without forking the components:
+`packages/docs` components carry `data-docs-*` attributes so that an opt-in docs theme (currently the Color Rooms theme in `apps/docs/`) can paint, flatten, or hide chrome without forking the components. The namespace is the package's **published theming contract**: themes target these attributes only (never internal class names, and never test ids — hooks that exist for styling are named as such), and renaming one is a breaking change for downstream skins:
 
 | Hook | Attached to | Docs-scope behaviour |
 | --- | --- | --- |
-| `data-testid="docs-header"` | `DocsLayout` hero header (full-width band, direct child of the layout container) | Becomes the room colour field in `.docs-rooms`; spans everything right of the app sidebar, TOC drops below it |
-| `data-testid="docs-sticky-bar"` | `DocsLayout` sticky breadcrumb strip | Shares the header's accent fill; on scroll the title collapses under it, leaving a low breadcrumb-height ribbon in the room colour |
-| `data-sticky-hairline` | expanding hairline inside the sticky strip | `display: none` in `.docs-rooms` (the colour edge is the separator; kept for the bare library skin) |
-| `data-scrollspy` | active-section badge in the sticky strip | Flips to a translucent-foreground inlay so it reads on the accent strip |
+| `data-docs-header` | `DocsLayout` hero header (full-width band, direct child of the layout container) | Becomes the room colour field in `.docs-rooms`; spans everything right of the app sidebar, TOC drops below it |
+| `data-docs-sticky-bar` | `DocsLayout` sticky breadcrumb strip | Shares the header's accent fill; on scroll the title collapses under it, leaving a low breadcrumb-height ribbon in the room colour |
+| `data-docs-sticky-hairline` | expanding hairline inside the sticky strip | `display: none` in `.docs-rooms` (the colour edge is the separator; kept for the bare library skin) |
+| `data-docs-scrollspy` | active-section badge in the sticky strip | Flips to a translucent-foreground inlay so it reads on the accent strip |
 | `data-docs-stage="example|playground"` | `CodeExample` and `PlaygroundConfigurator` outer wrappers | Background flattens to transparent in `.docs-rooms` |
 | `data-docs-stage-frame` | Inner preview frame (Code / Playground) | Same — flattens against cream paper |
 | `data-docs-subtitle` | `description` paragraph in `DocsLayout` | `display: none` in the docs scope (field is title-first) |

@@ -354,9 +354,11 @@
 /* ── Variante C — the header / hero colour fields ────────────────────────
  * Three hooks, one treatment — all full-width bands flush to the app sidebar
  * (spanning the whole content area), each with an inner max-width wrapper that
- * re-aligns its content with the page body:
+ * re-aligns its content with the page body. The `data-docs-*` attributes are
+ * the docs package's published THEMING CONTRACT (see docs/ARCHITECTURE.md) —
+ * stable hooks for skins like this one, deliberately not test ids:
  *
- *   [data-testid='docs-sticky-bar'] + [data-testid='docs-header'] — the
+ *   [data-docs-sticky-bar] + [data-docs-header] — the
  *      DocsLayout sticky breadcrumb strip + hero title. They share one accent
  *      fill above the two-column body (the TOC drops below). On scroll the
  *      title slides under the pinned strip, leaving a low breadcrumb-height
@@ -369,8 +371,8 @@
  *
  * All re-point the text/meta tokens to the field foreground so the Schibsted
  * title, breadcrumb, source link, lede and any `meta-marker` read on the fill. */
-.docs-rooms [data-testid='docs-sticky-bar'],
-.docs-rooms [data-testid='docs-header'],
+.docs-rooms [data-docs-sticky-bar],
+.docs-rooms [data-docs-header],
 .docs-rooms [data-room-hero] {
   background: var(--room-accent);
   color: var(--room-accent-fg);
@@ -386,12 +388,12 @@
 /* Hero title band — tight top (flush under the strip so the two merge into one
  * field), roomy bottom. The `main pt-8` below the band supplies the paper gap
  * to the first content section. */
-.docs-rooms [data-testid='docs-header'] {
+.docs-rooms [data-docs-header] {
   padding-block: 0.25rem 2rem;
 }
 
 /* Poster title on the fill — Schibsted display, scales with the viewport. */
-.docs-rooms [data-testid='docs-header'] h1 {
+.docs-rooms [data-docs-header] h1 {
   font-size: clamp(2.25rem, 1.5rem + 2.4vw, 3.35rem);
   line-height: 1.03;
   letter-spacing: -0.025em;
@@ -399,14 +401,14 @@
 
 /* On the fill the colour edge IS the separator — drop the strip's expanding
  * hairline (kept for the bare library skin). */
-.docs-rooms [data-testid='docs-sticky-bar'] [data-sticky-hairline] {
+.docs-rooms [data-docs-sticky-bar] [data-docs-sticky-hairline] {
   display: none;
 }
 
 /* Scrollspy badge (shown once scrolled) would clash primary-on-primary on the
  * accent strip; flip it to a translucent-foreground inlay so it reads as a
  * chip regardless of room. Breadcrumb + source read via the token remap above. */
-.docs-rooms [data-testid='docs-sticky-bar'] [data-scrollspy] {
+.docs-rooms [data-docs-sticky-bar] [data-docs-scrollspy] {
   background: color-mix(in oklab, var(--room-accent-fg) 16%, transparent);
   color: var(--room-accent-fg);
 }
