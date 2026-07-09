@@ -1,13 +1,10 @@
 <script lang="ts">
-  import { onMount } from 'svelte';
   import { useDocsI18n } from '$lib/i18n';
   import { CodeIcon, EyeOffIcon } from '@urbicon-ui/blocks';
   import { getCodeVisibilityContext } from '$lib/stores/code-visibility.svelte';
-
-  const BROWSER = typeof window !== 'undefined';
+  import { ScrollSpy } from '$lib/stores/scroll-spy.svelte';
   import { tableOfContentsVariants } from './tableofcontents.variants';
   import type { TableOfContentsProps } from './index.js';
-  import type { NavigationItem } from '@urbicon-ui/shared-types';
 
   const dt = useDocsI18n();
 
@@ -17,6 +14,7 @@
     position = 'right',
     width = 'md',
     trackScroll = true,
+    activeSection,
     related,
     showCodeToggle = true,
     class: className,
@@ -34,68 +32,41 @@
 
   const styles = $derived(tableOfContentsVariants({ position, width }));
 
-  type TocItem = {
-    id: string;
-    label?: string;
-    title?: string;
-    href?: string;
-    children?: TocItem[];
-  };
-
   const navigationItems = $derived(
-    ((navigation ?? []) as TocItem[]).map((item) => ({
+    navigation.map((item) => ({
       id: item.id,
-      label: item.label ?? item.title,
+      label: item.title,
       href: item.href ?? `#${item.id}`,
-      children: item.children ?? []
+      children: (item.children ?? []).map((child) => ({
+        id: child.id,
+        label: child.title,
+        href: child.href ?? `#${child.id}`
+      }))
     }))
   );
 
-  const allItems = $derived(() => {
-    const flatten = (items: NavigationItem[]): NavigationItem[] => {
-      return items.reduce((acc, item) => {
-        acc.push({ ...item, href: item.href || `#${item.id}` });
-        if (item.children) {
-          acc.push(...flatten(item.children as NavigationItem[]));
-        }
-        return acc;
-      }, [] as NavigationItem[]);
-    };
-    return flatten(navigationItems as unknown as NavigationItem[]);
+  // Private fallback spy — only observes when no layout controls us via the
+  // `activeSection` prop. DocsLayout passes its layout-wide spy's active id
+  // down, so within the layout there is exactly ONE scroll listener.
+  const spyIds = $derived(
+    navigationItems.flatMap((item) => [item.id, ...item.children.map((child) => child.id)])
+  );
+  const spy = new ScrollSpy(() => spyIds);
+  $effect(() => {
+    if (activeSection !== undefined || !trackScroll) return;
+    void spyIds;
+    return spy.observe();
   });
 
-  let activeSection = $state('');
+  // Controlled wins; `trackScroll` only gates the self-tracking fallback.
+  const active = $derived(activeSection ?? (trackScroll ? spy.active : ''));
 
-  const shouldShowChildren = $derived((item: (typeof navigationItems)[number]) => {
-    if (!item.children?.length) return false;
-    if (activeSection === item.id) return true;
-    return item.children.some((child) => activeSection === child.id);
-  });
-
-  onMount(() => {
-    if (!BROWSER || !trackScroll) return;
-
-    const updateActiveSection = () => {
-      const items = allItems();
-      let lastMatch = '';
-      for (const item of items) {
-        const el = document.getElementById(item.id);
-        if (el) {
-          const rect = el.getBoundingClientRect();
-          if (rect.top <= window.innerHeight * 0.3) {
-            lastMatch = el.id;
-          }
-        }
-      }
-      if (lastMatch) activeSection = lastMatch;
-    };
-
-    updateActiveSection();
-
-    const handleScroll = () => requestAnimationFrame(updateActiveSection);
-    window.addEventListener('scroll', handleScroll, { passive: true });
-    return () => window.removeEventListener('scroll', handleScroll);
-  });
+  // Plain function — reads the reactive `active` at render time, so each
+  // template call re-evaluates when the active section changes.
+  function shouldShowChildren(item: (typeof navigationItems)[number]): boolean {
+    if (!item.children.length) return false;
+    return active === item.id || item.children.some((child) => active === child.id);
+  }
 </script>
 
 <aside
@@ -110,7 +81,7 @@
   </p>
   <nav class={unstyled ? (slotClasses?.nav ?? '') : styles.nav({ class: slotClasses?.nav })}>
     {#each navigationItems as item (item.id)}
-      {@const isActive = trackScroll && activeSection === item.id}
+      {@const isActive = active === item.id}
       {@const showChildren = shouldShowChildren(item)}
       <!-- Table-of-contents anchors navigate within the current route via
            `#hash`; `resolve()` only applies to SvelteKit route paths and
@@ -126,18 +97,18 @@
         {item.label}
       </a>
 
-      {#if item.children?.length && showChildren}
+      {#if showChildren}
         {#each item.children as child (child.id)}
-          {@const childIsActive = trackScroll && activeSection === child.id}
+          {@const childIsActive = active === child.id}
           <a
-            href={child.href || `#${child.id}`}
+            href={child.href}
             class="{unstyled ? '' : styles.childLink()} {unstyled
               ? ''
               : childIsActive
                 ? styles.childLinkActive()
                 : styles.childLinkInactive()}"
           >
-            {child.label ?? child.title}
+            {child.label}
           </a>
         {/each}
       {/if}

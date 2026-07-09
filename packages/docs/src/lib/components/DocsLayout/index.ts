@@ -1,8 +1,8 @@
 import type { Snippet } from 'svelte';
-import type { RelatedLink } from '../TableOfContents/index.js';
+import type { RelatedLink, TocNavigationItem } from '../TableOfContents/index.js';
 import type { DocsLayoutVariantProps } from './docslayout.variants';
 
-export type { RelatedLink };
+export type { RelatedLink, TocNavigationItem };
 
 export interface BreadcrumbItem {
   label: string;
@@ -41,8 +41,8 @@ export interface DocsLayoutProps extends DocsLayoutVariantProps {
   description?: string;
   /** Show a sticky table of contents sidebar on desktop and a collapsible one on mobile. */
   showToc?: boolean;
-  /** Navigation items for the table of contents. */
-  navigation?: Array<{ id: string; title: string; order?: number }>;
+  /** Navigation items for the table of contents (nested children supported). */
+  navigation?: TocNavigationItem[];
   /**
    * Structured breadcrumb trail (ancestors only, title is appended automatically).
    * Enables the collapsing-hero sticky bar layout.

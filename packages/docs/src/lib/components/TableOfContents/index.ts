@@ -19,19 +19,33 @@ export interface RelatedLink {
   href: string;
 }
 
+/**
+ * One page section in the on-this-page nav — shared by TableOfContents and
+ * DocsLayout so both speak the same navigation shape (the layout hands the
+ * array through to the TOC).
+ */
+export interface TocNavigationItem {
+  id: string;
+  title: string;
+  order?: number;
+  href?: string;
+  children?: Array<{ id: string; title: string; order?: number; href?: string }>;
+}
+
 export interface TableOfContentsProps extends TableOfContentsVariantProps {
   /** Heading rendered above the nav links. */
   title?: string;
   /** Navigation items with optional nested children. */
-  navigation: Array<{
-    id: string;
-    title: string;
-    order?: number;
-    href?: string;
-    children?: Array<{ id: string; title: string; order?: number; href?: string }>;
-  }>;
+  navigation: TocNavigationItem[];
   /** Enable scroll-based active section tracking. */
   trackScroll?: boolean;
+  /**
+   * Controlled active-section id. When provided (DocsLayout does this with
+   * its layout-wide scrollspy), the TOC renders the active marker from it
+   * and never starts its own scroll listener; leave undefined for
+   * standalone use, where the TOC tracks scroll itself (`trackScroll`).
+   */
+  activeSection?: string;
   /**
    * Optional Editorial `// RELATED` block rendered below the main nav.
    * Each entry needs a pre-resolved `href` (the TOC does not call

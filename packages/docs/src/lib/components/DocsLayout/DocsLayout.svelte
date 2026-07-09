@@ -3,6 +3,7 @@
     CodeVisibilityStore,
     setCodeVisibilityContext
   } from '$lib/stores/code-visibility.svelte';
+  import { ScrollSpy } from '$lib/stores/scroll-spy.svelte';
   import { Breadcrumb, ChevronDownIcon } from '@urbicon-ui/blocks';
   import TableOfContents from '../TableOfContents/TableOfContents.svelte';
   import { docsLayoutVariants } from './docslayout.variants';
@@ -55,16 +56,41 @@
 
   let headerEl: HTMLElement | undefined = $state();
   let scrolledPastHeader = $state(false);
-  let activeSection = $state('');
 
-  const activeSectionTitle = $derived(navigation.find((n) => n.id === activeSection)?.title ?? '');
+  // ONE scrollspy for the whole layout: the sticky-bar badge and the TOC
+  // marker read the same instance (the active id is passed down to the TOC
+  // below), so the two can never disagree. Ids include nested children so a
+  // TOC child entry can be the active one.
+  const navIds = $derived(
+    navigation.flatMap((n) => [n.id, ...(n.children?.map((c) => c.id) ?? [])])
+  );
+  const spy = new ScrollSpy(() => navIds);
+  const activeSection = $derived(spy.active);
 
-  // Use $effect (not onMount) so the observer/scroll-listener are reactive
-  // to `useCollapsingHeader` and `headerEl` — when a SvelteKit navigation
-  // toggles breadcrumbs from `undefined` to `[…]` (or vice versa), the
-  // header element mounts/unmounts and the observer needs to be re-wired.
-  // onMount captures the initial value only and would leave the layout
-  // without scrollspy after such a transition.
+  // The badge names the top-level section the reader is in — when a nested
+  // child is active, its parent supplies the label.
+  const activeSectionTitle = $derived.by(() => {
+    if (!activeSection) return '';
+    const top = navigation.find(
+      (n) => n.id === activeSection || n.children?.some((c) => c.id === activeSection)
+    );
+    return top?.title ?? '';
+  });
+
+  // $effect (not onMount) so the spy follows `navigation` — a SvelteKit
+  // navigation swaps the section set without remounting the layout, and the
+  // spy has to re-observe (and recompute immediately) against the new ids.
+  $effect(() => {
+    if (!useCollapsingHeader && !(showToc && navigation.length > 0)) return;
+    void navIds;
+    return spy.observe();
+  });
+
+  // Separate $effect for the hero observer: reactive to `useCollapsingHeader`
+  // and `headerEl` — when a navigation toggles breadcrumbs from `undefined`
+  // to `[…]` (or vice versa), the header element mounts/unmounts and the
+  // observer needs to be re-wired. onMount would capture the initial value
+  // only and leave the layout without the collapse transition afterwards.
   $effect(() => {
     if (!useCollapsingHeader || !headerEl) return;
 
@@ -76,29 +102,7 @@
     );
     observer.observe(headerEl);
 
-    const updateActiveSection = () => {
-      if (!navigation.length) return;
-      let lastMatch = '';
-      for (const item of navigation) {
-        const el = document.getElementById(item.id);
-        if (el) {
-          const rect = el.getBoundingClientRect();
-          if (rect.top <= window.innerHeight * 0.3) {
-            lastMatch = item.id;
-          }
-        }
-      }
-      if (lastMatch && lastMatch !== activeSection) activeSection = lastMatch;
-    };
-
-    updateActiveSection();
-    const handleScroll = () => requestAnimationFrame(updateActiveSection);
-    window.addEventListener('scroll', handleScroll, { passive: true });
-
-    return () => {
-      observer.disconnect();
-      window.removeEventListener('scroll', handleScroll);
-    };
+    return () => observer.disconnect();
   });
 
   // Legacy mobile TOC state
@@ -366,7 +370,13 @@
     </div>
 
     {#if showToc && navigation.length > 0}
-      <TableOfContents {navigation} {related} {showCodeToggle} position="right" />
+      <TableOfContents
+        {navigation}
+        {related}
+        {showCodeToggle}
+        position="right"
+        activeSection={spy.active}
+      />
     {/if}
   </div>
 </div>
