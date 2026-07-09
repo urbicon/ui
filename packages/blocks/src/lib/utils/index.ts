@@ -61,4 +61,8 @@ export {
   type UseFormFieldReturn,
   useFormField
 } from './use-form-field.svelte';
-export { cx, type TVProps, tv, type VariantProps } from './variants';
+// TVConfig/SlotNames must be reachable from the package root: without them a
+// consuming package's `tv()` result is not *nameable* during its declaration
+// emit (TS2883) and svelte-package silently drops that file's .d.ts — every
+// `*Props extends …VariantProps` consumer then loses all variant props.
+export { cx, type SlotNames, type TVConfig, type TVProps, tv, type VariantProps } from './variants';
