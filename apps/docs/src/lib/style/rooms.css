@@ -73,20 +73,28 @@
 /* ── Neutral specimen card ──────────────────────────────────────────────
    Pins a fixed warm cream+ink palette so the real library components inside
    render high-contrast regardless of editorial/library skin or OS scheme.
-   Only the primary/accent family is left to `.room-accent` to colour. */
-.poster-card {
-  background: #fbfaf6;
-  color: #1f1d17;
+   Only the primary/accent family is left to `.room-accent` to colour.
 
-  --color-surface-base: #fbfaf6;
-  --color-surface-quiet: #f2eee4;
-  --color-surface-elevated: #ffffff;
-  --color-surface-overlay: #ffffff;
-  --color-surface-subtle: #f2eee4;
-  --color-surface-hover: #efe9dd;
-  --color-surface-interactive: #efeae0;
-  --color-surface-active: #e7e0d1;
-  --color-surface-disabled: #f2eee4;
+   Every surface is tinted ~5% toward the room's field colour (3% on the two
+   white elevation steps) so the card sits IN the room instead of floating on
+   it as a hard white rectangle. Without a `--room-accent` the mix falls back
+   to the base value itself (a no-op). The card's own paint transitions with
+   the room stagger; token-driven children repaint instantly, as they already
+   do for the primary family. */
+.poster-card {
+  background: color-mix(in oklab, var(--room-accent, #fbfaf6) 5%, #fbfaf6);
+  color: #1f1d17;
+  transition: background-color 0.55s ease var(--room-delay, 0s);
+
+  --color-surface-base: color-mix(in oklab, var(--room-accent, #fbfaf6) 5%, #fbfaf6);
+  --color-surface-quiet: color-mix(in oklab, var(--room-accent, #f2eee4) 5%, #f2eee4);
+  --color-surface-elevated: color-mix(in oklab, var(--room-accent, #ffffff) 3%, #ffffff);
+  --color-surface-overlay: color-mix(in oklab, var(--room-accent, #ffffff) 3%, #ffffff);
+  --color-surface-subtle: color-mix(in oklab, var(--room-accent, #f2eee4) 5%, #f2eee4);
+  --color-surface-hover: color-mix(in oklab, var(--room-accent, #efe9dd) 5%, #efe9dd);
+  --color-surface-interactive: color-mix(in oklab, var(--room-accent, #efeae0) 5%, #efeae0);
+  --color-surface-active: color-mix(in oklab, var(--room-accent, #e7e0d1) 5%, #e7e0d1);
+  --color-surface-disabled: color-mix(in oklab, var(--room-accent, #f2eee4) 5%, #f2eee4);
 
   --color-text-primary: #1f1d17;
   --color-text-secondary: #57534a;
@@ -178,7 +186,8 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .rooms-field {
+  .rooms-field,
+  .poster-card {
     transition: none;
   }
 }

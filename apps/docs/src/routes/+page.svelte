@@ -283,13 +283,15 @@
             <span class="text-[clamp(1.75rem,4vw,2.5rem)] font-bold tracking-[-0.03em]">1</span>
           </div>
           <p class="mt-2 max-w-[280px] text-[12.5px] opacity-80">
-            packages in a typical UI stack — vs. this one. 53 components · Svelte 5.
+            packages in a typical UI stack — vs. this one. 55 components · Svelte 5.
           </p>
         </div>
 
         <div>
           {@render paletteSwitcher(false, true)}
-          <p class="mt-2 text-[12.5px] opacity-80">{active.label} — repaint the whole page</p>
+          <p class="mt-2 text-[12.5px] opacity-80">
+            {active.label} — the specimens below are real. Click to repaint them.
+          </p>
         </div>
 
         <a
@@ -312,7 +314,7 @@
             <!-- Blocks — a real mini settings panel -->
             <div class="flex items-baseline justify-between gap-5">
               <h3 class="text-[clamp(2rem,4vw,2.5rem)]">Blocks</h3>
-              <span class="text-[13.5px] opacity-80">35 primitives + 18 composed</span>
+              <span class="text-[13.5px] opacity-80">36 primitives + 19 composed</span>
             </div>
             <p class="mt-2.5 max-w-[420px] text-[15.5px] leading-relaxed opacity-90">
               Forms, overlays, navigation, charts — themable down to the slot.
@@ -397,7 +399,7 @@
 
             <div class="mt-auto flex items-baseline justify-between gap-5">
               <span class="text-[13px] opacity-75"
-                >SegmentGroup · Input · Select · Switch · Chart</span
+                >SegmentGroup · Input · DatePicker · Toggle · Slider · Sparkline</span
               >
               <a
                 href={resolve('/blocks')}
@@ -529,7 +531,7 @@
                 class="poster-term room-accent max-w-[540px] p-5 font-mono text-[12.5px] leading-[1.9]"
                 style="--room-accent: {room.field.bg}; --room-accent-fg: {room.field.fg}"
               >
-                <p class="opacity-55"># agent session — via MCP, 9 tools</p>
+                <p class="opacity-55"># agent session — via MCP, 10 tools</p>
                 <p>
                   <span class="opacity-55">&gt;</span> build a pricing section<span
                     class="term-caret ml-1 inline-block h-3 w-[7px] translate-y-[2px] bg-primary"
@@ -543,7 +545,7 @@
                 </div>
                 <p class="mt-3 opacity-85">
                   $ curl ui.urbicon.de/llms.txt <span class="opacity-55"
-                    >— 53 components, no auth</span
+                    >— 55 components, no auth</span
                   >
                 </p>
               </div>
@@ -585,12 +587,12 @@
             <p class="opacity-50"># the whole system is also plain text</p>
             <p><span class="opacity-50">$</span> claude mcp add urbicon</p>
             <p style="color: {active.bright}; transition: color 0.5s ease">
-              ✓ connected — 9 tools, design intelligence included
+              ✓ connected — 10 tools, design intelligence included
             </p>
             <p class="mt-3"><span class="opacity-50">&gt;</span> find_components "pricing table"</p>
             <p class="opacity-85">→ Table + Badge + Button · recipe: pricing-grid</p>
             <p class="mt-3"><span class="opacity-50">$</span> curl ui.urbicon.de/llms.txt</p>
-            <p class="opacity-85">→ 53 components, plain text, no auth</p>
+            <p class="opacity-85">→ 55 components, plain text, no auth</p>
           </div>
           <p class="mt-4 text-[14.5px] opacity-70">
             Agents read the same manual you do —
