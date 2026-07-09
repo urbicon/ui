@@ -96,6 +96,40 @@ internal TODO instead.
 - **Found:** 2026-07-08, adding the primitive visual-regression suite; the CI job runs
   `bunx playwright test` on `ubuntu-latest` with no `continue-on-error`.
 
+### `useSorting` contract test is flaky in the full-suite run
+
+- **Where:** `packages/table/src/lib/stores/concerns/concerns.test.ts`
+  (`useSorting > contract: handleSort cycles through asc → desc → off`).
+- **What:** In a full `bun run test` sweep the test failed once; re-running the
+  file in isolation AND re-running the whole table suite immediately afterwards
+  both passed (243/243). So the failure is order- or timing-dependent, not a
+  code regression — likely shared state between tests or a timing assumption in
+  the sort-cycle contract.
+- **Why deferred:** Flakiness needs its own investigation (repeat runs, seed /
+  isolation bisection), which is unrelated to the docs-layout work in flight.
+  Until then a red `useSorting` in CI should be re-run before being believed.
+- **Found:** 2026-07-09, during the docs-layout redesign's full-suite gate.
+
+### No guard against silently dropped `.d.ts` files in package builds
+
+- **Where:** every package built with `svelte-package` (`blocks`, `docs`, …);
+  concretely bitten in `packages/docs/dist/**` (all nine `*.variants.d.ts`
+  missing).
+- **What:** When TypeScript's declaration emit fails for a file (here: TS2883,
+  `tv()`'s return type not nameable because `TVConfig` wasn't exported from
+  `@urbicon-ui/blocks` — fixed 2026-07-09), `svelte-package` exits 0 and simply
+  omits that file's `.d.ts`. Consumers then degrade silently: every
+  `*Props extends …VariantProps` loses ALL variant props — that buried the
+  docs-app check gate under 274 phantom errors until the root cause was found.
+  A published release with this state would break consumers' type-checking.
+- **Why deferred:** The root cause is fixed, but nothing prevents a recurrence
+  (any new non-portable inferred type re-triggers it, silently). A durable
+  guard is a small build-gate script — e.g. after `build`, assert every
+  emitted `dist/**/*.js` (excluding tests) has a sibling `.d.ts` — wired into
+  CI/publish. That is its own small package (script + CI wiring across all
+  packages), not part of the docs-layout task.
+- **Found:** 2026-07-09, while gating the docs-layout redesign (docs-app check).
+
 ## Component behaviour
 
 ### `ConfirmDialog` propagates a rejecting async `onConfirm` as an unhandled rejection
