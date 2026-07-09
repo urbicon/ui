@@ -207,19 +207,21 @@
   description="Ready-to-use UI recipes built with Urbicon UI components. Copy-paste complete UI blocks for login forms, dashboards, settings pages, and more."
 />
 
-<div class="mx-auto max-w-6xl px-6 py-12">
-  <!-- Hero -->
-  <div class="mb-12">
-    <div class="mb-6 flex items-start justify-between">
-      <div>
-        <h1 class="text-text-primary mb-3 text-4xl font-bold">UI Recipes</h1>
-        <p class="text-text-secondary max-w-2xl text-lg">
-          Production-ready UI patterns built with Urbicon UI. Each recipe includes a live preview,
-          copyable source code, and links to every component used.
-        </p>
-      </div>
-    </div>
+<!-- Color Rooms hero field (default blocks room) — full-width band flush to the
+     app sidebar; stats stay on paper below, inner wrapper aligns with the body. -->
+<div data-room-hero>
+  <div class="mx-auto max-w-6xl px-6">
+    <h1 class="text-text-primary text-4xl font-bold">UI Recipes</h1>
+    <p class="text-text-secondary mt-3 max-w-2xl text-lg">
+      Production-ready UI patterns built with Urbicon UI. Each recipe includes a live preview,
+      copyable source code, and links to every component used.
+    </p>
+  </div>
+</div>
 
+<div class="mx-auto max-w-6xl px-6 pb-12 pt-10">
+  <!-- Hero stats -->
+  <div class="mb-12">
     <!-- Stats Row -->
     <div class="mb-8 flex flex-wrap gap-6">
       <div class="flex items-center gap-2">

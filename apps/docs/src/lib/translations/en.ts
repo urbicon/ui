@@ -146,7 +146,7 @@ export default {
     skipToContent: 'Skip to main content',
     themeVariant: {
       label: 'Docs theme',
-      editorial: 'Editorial',
+      rooms: 'Rooms',
       library: 'Library'
     }
   },
@@ -170,7 +170,7 @@ export default {
     themeBuilder: 'Theme Builder',
     designTokens: 'Design Tokens',
     tierSystem: 'Tier System',
-    editorialTheme: 'Editorial Theme',
+    roomsTheme: 'Color Rooms',
     figmaTokens: 'Figma Tokens',
     recipes: 'Recipes',
     loginForm: 'Login Form',

@@ -144,20 +144,22 @@
   description="Interactive showcase demonstrating Urbicon UI components working together in a realistic project management application."
 />
 
-<div class="mx-auto max-w-6xl px-6 py-12">
-  <!-- Hero -->
-  <div class="mb-10">
-    <div class="mb-4 flex items-start gap-4">
-      <div>
-        <h1 class="text-text-primary mb-3 text-4xl font-bold">Component Showcase</h1>
-        <p class="text-text-secondary max-w-3xl text-lg">
-          A realistic project management interface built entirely with Urbicon UI. Every element
-          uses design tokens, semantic colors, and the component API. Explore each section to see
-          how components compose together.
-        </p>
-      </div>
-    </div>
+<!-- Color Rooms hero field (default blocks room) — full-width band flush to the
+     app sidebar; stats stay on paper below, inner wrapper aligns with the body. -->
+<div data-room-hero>
+  <div class="mx-auto max-w-6xl px-6">
+    <h1 class="text-text-primary text-4xl font-bold">Component Showcase</h1>
+    <p class="text-text-secondary mt-3 max-w-3xl text-lg">
+      A realistic project management interface built entirely with Urbicon UI. Every element uses
+      design tokens, semantic colors, and the component API. Explore each section to see how
+      components compose together.
+    </p>
+  </div>
+</div>
 
+<div class="mx-auto max-w-6xl px-6 pb-12 pt-10">
+  <!-- Hero stats -->
+  <div class="mb-10">
     <!-- Stats -->
     <div class="mt-6 flex flex-wrap gap-6">
       <div

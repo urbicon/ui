@@ -81,10 +81,12 @@ export interface DocsLayoutProps extends DocsLayoutVariantProps {
       | 'wrapper'
       | 'main'
       | 'header'
+      | 'headerInner'
       | 'title'
       | 'subtitle'
       | 'content'
       | 'stickyBar'
+      | 'stickyBarInner'
       | 'pageToolbar',
       string
     >

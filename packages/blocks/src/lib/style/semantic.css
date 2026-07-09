@@ -84,7 +84,7 @@
 
      `--neutral-chrome-hue` defaults to 240 (:root, below), so the library
      default reads as a cool grey matching its cool chassis. Each theme
-     overrides it to its accent temperature; editorial.css re-pins the neutral
+     overrides it to its accent temperature; rooms-docs.css re-pins the neutral
      intent to the warm ramp directly. Uses the same relative-color syntax
      already relied on by `--color-interactive-*` below. */
   --color-neutral: light-dark(
@@ -232,7 +232,7 @@
      The neutral intent (above) keeps the warm-neutral ramp's lightness but
      takes its hue from here. Default 240 = cool grey, matching the default
      cool chassis. Each theme overrides this to its accent temperature;
-     editorial.css re-pins the neutral intent to the warm ramp instead. */
+     rooms-docs.css re-pins the neutral intent to the warm ramp instead. */
   --neutral-chrome-hue: 240;
 }
 

@@ -4,10 +4,10 @@ export const tableOfContentsVariants = tv({
   slots: {
     aside: ['max-lg:hidden sticky top-20 shrink-0 self-start'],
     // `text-text-tertiary` and uppercase are kept as fallback for pages
-    // without the editorial scope; `meta-marker` (in editorial.css)
-    // overrides font + colour when the host root has `docs-editorial`.
+    // without the rooms scope; `meta-marker` (in rooms-docs.css) overrides
+    // font + colour when the host root has `docs-rooms`.
     title: ['mb-3 text-xs font-medium uppercase tracking-wider text-text-tertiary'],
-    // No left rail — the editorial active indicator is a pipe glyph
+    // No left rail — the active indicator is a room-accent pipe glyph
     // rendered via ::before on the active link, matching the page-title
     // and section-title accent.
     nav: ['flex flex-col'],
@@ -34,9 +34,8 @@ export const tableOfContentsVariants = tv({
       'before:text-primary before:content-["|"]'
     ],
     childLinkInactive: ['text-text-tertiary hover:text-text-tertiary'],
-    // Editorial `// RELATED` block —
-    // mirrors the `// ON THIS PAGE` kicker above the main nav, with a
-    // top-margin separating the two sections visually.
+    // `RELATED` kicker — mirrors the `ON THIS PAGE` kicker above the main
+    // nav, with a top-margin separating the two sections visually.
     relatedTitle: ['mt-6 mb-3 text-xs font-medium uppercase tracking-wider text-text-tertiary'],
     relatedNav: ['flex flex-col'],
     relatedLink: [
@@ -44,10 +43,9 @@ export const tableOfContentsVariants = tv({
       'transition-colors duration-(--blocks-duration-fast)',
       'hover:text-text-secondary'
     ],
-    // Editorial `// CODE` block — hosts the global show/hide-all-code
-    // toggle. Same kicker spacing as RELATED; the toggle itself is a
-    // muted text-link with icon + label, no chrome, mirroring the
-    // editorial vocabulary (action = text, not button surface).
+    // `CODE` kicker — hosts the global show/hide-all-code toggle. Same
+    // kicker spacing as RELATED; the toggle itself is a muted text-link
+    // with icon + label, no chrome (action = text, not button surface).
     codeTitle: ['mt-6 mb-3 text-xs font-medium uppercase tracking-wider text-text-tertiary'],
     codeToggle: [
       'relative flex items-center gap-2 py-1.5 pl-4 text-sm text-text-tertiary',

@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="en" class="docs-editorial">
+<html lang="en" class="docs-rooms">
   <head>
     <meta charset="utf-8" />
     <link rel="icon" href="%sveltekit.assets%/favicon.svg" type="image/svg+xml" />
@@ -20,13 +20,13 @@
         } else if (t === 'light') {
           d.classList.add('light');
         }
-        // Editorial/library docs skin: `docs-editorial` is the shipped default
+        // Rooms/library docs skin: `docs-rooms` is the shipped default
         // (hardcoded on <html> above, so it survives with JS disabled); only an
         // explicit 'library' choice removes it. It lives on <html> — not <body>,
         // which does not exist yet while this <head> script runs — so the first
         // paint already carries the right skin (no flash of the wrong theme).
         if (localStorage.getItem('urbicon-docs-theme') === 'library') {
-          d.classList.remove('docs-editorial');
+          d.classList.remove('docs-rooms');
         }
       })();
     </script>

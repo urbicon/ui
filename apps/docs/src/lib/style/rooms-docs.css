@@ -1,0 +1,465 @@
+/**
+ * Color Rooms — the docs component-page theme (replaces the Editorial skin).
+ *
+ * Ported from the Claude Design project "Docs — Color Rooms", Variante C
+ * ("Farbfelder"): the page-header of every component doc becomes a saturated
+ * colour FIELD in that section's room colour; a block cursor replaces the
+ * editorial pipe; Schibsted Grotesk replaces the Newsreader/Public-Sans
+ * pairing; the `//` meta-markers are dropped for hard, quiet mono kickers.
+ *
+ * "Farbe = Ort": the accent is the ROOM of the current section, not a fixed
+ * brand green —
+ *   /blocks  → green  #00845C     /auth → amber  #E3A31C
+ *   /table   → wine   #7C1F2D     /ai   → orange #E8500F
+ * (everything else falls back to the blocks green). The active room is fed in
+ * as two custom properties from +layout.svelte (`--room-accent` +
+ * `--room-accent-fg`), and the whole primary-derived token family is
+ * re-resolved from them via `color-mix()` — so every real component on the
+ * page (segment indicator, slider, toggle, buttons, TOC-active, badges) picks
+ * up the room colour with no per-component override.
+ *
+ * Structure mirrors the previous editorial theme it replaces:
+ *   - one full light+dark theme via `light-dark()` (the docs keep their
+ *     ThemeSwitcher — the room accent is orthogonal to light/dark),
+ *   - `--docs-*` tokens carry the paper/ink hierarchy,
+ *   - the library semantic tokens are re-pointed at the warm cream palette,
+ *   - the warm intent ramps are retained (they harmonise with all four warm
+ *     room accents, not just the green).
+ *
+ * Activation: <html class="docs-rooms"> (the shipped default in app.html; the
+ * sidebar's docs-theme toggle removes it for the bare library skin). The
+ * per-route room accent lives on the `.docs-room-scope` wrapper (+layout).
+ */
+
+.docs-rooms {
+  /* Mono meta font — JetBrains Mono, self-hosted via @fontsource (loaded in
+   * +layout.svelte), no third-party requests. */
+  --font-mono: 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+
+  /* Color Rooms speaks ONE grotesk — display AND body are Schibsted Grotesk
+   * (self-hosted via @fontsource-variable, loaded in +layout.svelte). The mono
+   * above stays the meta/code voice; the Grotesk↔Mono contrast is the theme's
+   * "precise dev tool" duality (same role the Serif↔Mono pairing played in
+   * Editorial). */
+  --font-display: 'Schibsted Grotesk Variable', system-ui, sans-serif;
+  --font-sans: 'Schibsted Grotesk Variable', system-ui, sans-serif;
+
+  /* Paper hierarchy — two stops for depth. `bg` is the ground (the page
+   * outside content blocks), `paper` is what content sits on. Light: warm
+   * cream → lighter cream. Dark: warm coffee → slightly lighter coffee. */
+  --docs-bg: light-dark(#f7f5f0, #1a1816);
+  --docs-paper: light-dark(#fbfaf6, #232220);
+
+  /* Ink hierarchy — three stops: primary text, meta/body-soft, decoration.
+   * The rooms ink is the poster's warm near-black (#17150F), matching the
+   * landing + the design source. Dark: warm cream → warm tan → warm dark-gray. */
+  --docs-ink: light-dark(#17150f, #f0ede5);
+  --docs-soft: light-dark(#6e6b64, #a5a299);
+  --docs-softer: light-dark(#b8b5ad, #5a574f);
+
+  /* Elevated surfaces — continuation of the cream ladder above paper. */
+  --docs-lifted: light-dark(#fefdfa, #2a2826);
+  --docs-floating: light-dark(#ffffff, #322f2c);
+
+  /* Hairline + line — ink-on-paper in light, cream-on-paper in dark. */
+  --docs-hair: light-dark(rgb(23 21 15 / 0.08), rgb(240 237 229 / 0.08));
+  --docs-line: light-dark(rgb(23 21 15 / 0.14), rgb(240 237 229 / 0.14));
+
+  /* Active room accent — the default is the blocks green; +layout.svelte
+   * overrides `--room-accent`/`--room-accent-fg` per route on the
+   * `.docs-room-scope` wrapper (content) and on <html> (for portaled
+   * popovers, which render outside the wrapper). The primary-derived family
+   * is re-resolved from these two vars in the shared block below. */
+  --room-accent: #00845c;
+  --room-accent-fg: #f6f3ec;
+
+  /* Accent alias — coupled to the room-derived primary (resolved below). */
+  --docs-accent: var(--color-primary);
+
+  /* Intent ramps — retained from the theme this replaces. They were tuned
+   * against a warm brand green so Success/Warning/Danger/Secondary sit
+   * naturally on cream paper; the same warm spectrum harmonises with all four
+   * warm room accents (green/wine/amber/orange), so they stay room-independent
+   * (a per-room intent palette would be chaos across four hues). Info stays
+   * library-default (cool teal — a deliberate contrast against the warm palette). */
+
+  /* Secondary — burgundy / mahogany (Hue 15). */
+  --color-secondary-50: oklch(0.95 0.025 15);
+  --color-secondary-100: oklch(0.9 0.05 15);
+  --color-secondary-200: oklch(0.82 0.07 15);
+  --color-secondary-300: oklch(0.74 0.1 15);
+  --color-secondary-400: oklch(0.62 0.12 15);
+  --color-secondary-500: oklch(0.5 0.12 15);
+  --color-secondary-600: oklch(0.42 0.11 15);
+  --color-secondary-700: oklch(0.34 0.09 15);
+  --color-secondary-800: oklch(0.28 0.08 15);
+  --color-secondary-900: oklch(0.22 0.06 15);
+  --color-secondary-950: oklch(0.14 0.04 15);
+
+  /* Success — forest / sage (Hue 150). */
+  --color-success-50: oklch(0.94 0.02 150);
+  --color-success-100: oklch(0.88 0.04 150);
+  --color-success-200: oklch(0.78 0.06 150);
+  --color-success-300: oklch(0.68 0.08 150);
+  --color-success-400: oklch(0.55 0.09 150);
+  --color-success-500: oklch(0.42 0.08 150);
+  --color-success-600: oklch(0.36 0.07 150);
+  --color-success-700: oklch(0.3 0.07 150);
+  --color-success-800: oklch(0.25 0.06 150);
+  --color-success-900: oklch(0.2 0.05 150);
+  --color-success-950: oklch(0.13 0.03 150);
+
+  /* Warning — amber (Hue 55). */
+  --color-warning-50: oklch(0.96 0.04 55);
+  --color-warning-100: oklch(0.92 0.07 55);
+  --color-warning-200: oklch(0.84 0.1 55);
+  --color-warning-300: oklch(0.76 0.13 55);
+  --color-warning-400: oklch(0.7 0.15 55);
+  --color-warning-500: oklch(0.72 0.16 55);
+  --color-warning-600: oklch(0.62 0.16 55);
+  --color-warning-700: oklch(0.52 0.14 55);
+  --color-warning-800: oklch(0.42 0.12 55);
+  --color-warning-900: oklch(0.28 0.09 55);
+  --color-warning-950: oklch(0.18 0.06 55);
+
+  /* Danger — maroon (Hue 22). */
+  --color-danger-50: oklch(0.95 0.04 22);
+  --color-danger-100: oklch(0.9 0.07 22);
+  --color-danger-200: oklch(0.82 0.09 22);
+  --color-danger-300: oklch(0.74 0.12 22);
+  --color-danger-400: oklch(0.62 0.15 22);
+  --color-danger-500: oklch(0.48 0.17 22);
+  --color-danger-600: oklch(0.42 0.16 22);
+  --color-danger-700: oklch(0.36 0.14 22);
+  --color-danger-800: oklch(0.28 0.11 22);
+  --color-danger-900: oklch(0.2 0.09 22);
+  --color-danger-950: oklch(0.12 0.06 22);
+
+  /* Re-resolve the semantic intent tokens against the ramps above. var() in a
+   * custom-property definition substitutes at the :root cascade level, so
+   * overriding the 50–950 stops alone does not re-trigger substitution for the
+   * derived tokens — they are re-declared here. Mirrors semantic.css. */
+  --color-secondary: light-dark(var(--color-secondary-500), var(--color-secondary-400));
+  --color-secondary-hover: light-dark(var(--color-secondary-600), var(--color-secondary-300));
+  --color-secondary-active: light-dark(var(--color-secondary-700), var(--color-secondary-200));
+  --color-secondary-subtle: light-dark(var(--color-secondary-50), var(--color-secondary-900));
+  --color-secondary-emphasis: light-dark(var(--color-secondary-800), var(--color-secondary-200));
+
+  --color-success: light-dark(var(--color-success-500), var(--color-success-400));
+  --color-success-hover: light-dark(var(--color-success-600), var(--color-success-300));
+  --color-success-active: light-dark(var(--color-success-700), var(--color-success-200));
+  --color-success-subtle: light-dark(var(--color-success-50), var(--color-success-900));
+  --color-success-emphasis: light-dark(var(--color-success-800), var(--color-success-200));
+
+  --color-warning: light-dark(var(--color-warning-500), var(--color-warning-400));
+  --color-warning-hover: light-dark(var(--color-warning-600), var(--color-warning-300));
+  --color-warning-active: light-dark(var(--color-warning-700), var(--color-warning-200));
+  --color-warning-subtle: light-dark(var(--color-warning-50), var(--color-warning-900));
+  --color-warning-emphasis: light-dark(var(--color-warning-800), var(--color-warning-200));
+
+  --color-danger: light-dark(var(--color-danger-500), var(--color-danger-400));
+  --color-danger-hover: light-dark(var(--color-danger-600), var(--color-danger-300));
+  --color-danger-active: light-dark(var(--color-danger-700), var(--color-danger-200));
+  --color-danger-subtle: light-dark(var(--color-danger-50), var(--color-danger-900));
+  --color-danger-emphasis: light-dark(var(--color-danger-800), var(--color-danger-200));
+
+  --color-feedback-success: var(--color-success);
+  --color-feedback-success-subtle: var(--color-success-subtle);
+  --color-feedback-warning: var(--color-warning);
+  --color-feedback-warning-subtle: var(--color-warning-subtle);
+  --color-feedback-danger: var(--color-danger);
+  --color-feedback-danger-subtle: var(--color-danger-subtle);
+
+  /* Geometry tokens — opt-in handles used by the editorial-lineage landing/
+   * getting-started cards (kept working under the new scope). Rooms is a
+   * hard-edge poster, so the decorative card radius is pulled tight to the
+   * library container radius (the loud 2xl pill read as soft against the
+   * saturated fields). */
+  --docs-radius-pill: var(--radius-commit);
+  --docs-radius-card: var(--radius-contain);
+  --docs-shadow-page: var(--blocks-shadow-lg);
+
+  /* Apply to root surfaces. */
+  background: var(--docs-bg);
+  color: var(--docs-ink);
+  font-family: var(--font-sans);
+
+  /* Library semantic token overrides — bind the most-consumed tokens to the
+   * warm cream palette so library components rendered inside `.docs-rooms`
+   * pick it up in both modes. Shadow tint shifts shadows to a warm dark brown
+   * so they blend with the cream instead of reading as cool smudges. */
+  --color-surface-base: var(--docs-paper);
+  --color-surface-quiet: var(--docs-bg);
+  --color-surface-elevated: var(--docs-lifted);
+  --color-surface-overlay: var(--docs-floating);
+  --color-border-hairline: var(--docs-hair);
+  --color-text-primary: var(--docs-ink);
+  --color-text-secondary: var(--docs-soft);
+  --color-text-tertiary: var(--docs-soft);
+  --color-text-quaternary: var(--docs-softer);
+  --blocks-shadow-tint: 0.22 0.04 70;
+
+  /* Architectural neutral stops routed through the library's warm-neutral
+   * ramp (Hue 45) so borders + surface mid-states read warm on cream. */
+  --color-surface-interactive: light-dark(
+    var(--color-warm-neutral-100),
+    var(--color-warm-neutral-700)
+  );
+  --color-surface-hover: light-dark(var(--color-warm-neutral-100), var(--color-warm-neutral-800));
+  --color-surface-active: light-dark(var(--color-warm-neutral-200), var(--color-warm-neutral-700));
+  --color-surface-disabled: light-dark(
+    var(--color-warm-neutral-100),
+    var(--color-warm-neutral-800)
+  );
+  --color-surface-subtle: light-dark(var(--color-warm-neutral-50), var(--color-warm-neutral-800));
+  --color-surface-inverted: light-dark(
+    var(--color-warm-neutral-900),
+    var(--color-warm-neutral-100)
+  );
+
+  --color-border-subtle: light-dark(var(--color-warm-neutral-200), var(--color-warm-neutral-700));
+  --color-border-default: light-dark(var(--color-warm-neutral-300), var(--color-warm-neutral-600));
+  --color-border-emphasis: light-dark(var(--color-warm-neutral-400), var(--color-warm-neutral-500));
+  --color-border-strong: light-dark(var(--color-warm-neutral-500), var(--color-warm-neutral-400));
+
+  --color-text-disabled: light-dark(var(--color-warm-neutral-300), var(--color-warm-neutral-600));
+  --color-interactive-disabled: light-dark(
+    var(--color-warm-neutral-200),
+    var(--color-warm-neutral-700)
+  );
+
+  --color-neutral: light-dark(var(--color-warm-neutral-500), var(--color-warm-neutral-400));
+  --color-neutral-hover: light-dark(var(--color-warm-neutral-600), var(--color-warm-neutral-300));
+  --color-neutral-active: light-dark(var(--color-warm-neutral-700), var(--color-warm-neutral-200));
+  --color-neutral-subtle: light-dark(var(--color-warm-neutral-50), var(--color-warm-neutral-900));
+  --color-neutral-emphasis: light-dark(
+    var(--color-warm-neutral-800),
+    var(--color-warm-neutral-200)
+  );
+}
+
+/* ── Room accent derivation ──────────────────────────────────────────────
+ * Re-declared on BOTH the theme root (so portaled popovers, which mount at
+ * <body> outside the content wrapper, still read the active room after mount)
+ * AND the per-route `.docs-room-scope` wrapper (so page content is correct at
+ * first paint, SSR, with no flash — the wrapper carries the inline
+ * `--room-accent` from +layout). Same re-substitution reasoning as the intent
+ * block above: the derived `--color-primary*` are re-declared here so they
+ * read the current `--room-accent` rather than a stale :root substitution.
+ * `oklab` mixing keeps the ramp perceptually even; the semantic stops pick a
+ * darker step in light / a brighter step in dark via light-dark(), so the
+ * ThemeSwitcher keeps working across every room. */
+.docs-rooms,
+.docs-rooms .docs-room-scope {
+  --_a: var(--room-accent, #00845c);
+  --_afg: var(--room-accent-fg, #f6f3ec);
+  --_cream: #fbfaf6;
+  --_ink: #17150f;
+
+  --color-primary-50: color-mix(in oklab, var(--_a) 10%, var(--_cream));
+  --color-primary-100: color-mix(in oklab, var(--_a) 18%, var(--_cream));
+  --color-primary-200: color-mix(in oklab, var(--_a) 32%, var(--_cream));
+  --color-primary-300: color-mix(in oklab, var(--_a) 50%, var(--_cream));
+  --color-primary-400: color-mix(in oklab, var(--_a) 74%, var(--_cream));
+  --color-primary-500: var(--_a);
+  --color-primary-600: color-mix(in oklab, var(--_a) 86%, var(--_ink));
+  --color-primary-700: color-mix(in oklab, var(--_a) 70%, var(--_ink));
+  --color-primary-800: color-mix(in oklab, var(--_a) 54%, var(--_ink));
+  --color-primary-900: color-mix(in oklab, var(--_a) 40%, var(--_ink));
+  --color-primary-950: color-mix(in oklab, var(--_a) 26%, var(--_ink));
+
+  /* The room colour IS the button fill (raw accent in both modes) so
+   * `--room-accent-fg` stays the correct on-primary text; hover/active shade
+   * toward ink in light and toward the brighter stop in dark. */
+  --color-primary: var(--_a);
+  --color-text-on-primary: var(--_afg);
+  --color-primary-hover: light-dark(var(--color-primary-600), var(--color-primary-400));
+  --color-primary-active: light-dark(var(--color-primary-700), var(--color-primary-300));
+  --color-primary-subtle: light-dark(var(--color-primary-50), var(--color-primary-900));
+  --color-primary-emphasis: light-dark(var(--color-primary-900), var(--color-primary-200));
+
+  --color-surface-selected: light-dark(var(--color-primary-50), var(--color-primary-900));
+  --color-interactive-focus: var(--_a);
+  --color-interactive-hover: color-mix(in oklab, var(--_a) 10%, transparent);
+  --color-interactive-active: color-mix(in oklab, var(--_a) 20%, transparent);
+
+  /* Chart series stay in the room's colour family (tonal steps). */
+  --color-chart-1: var(--_a);
+  --color-chart-2: color-mix(in oklab, var(--_a) 62%, var(--_ink));
+  --color-chart-3: color-mix(in oklab, var(--_a) 42%, var(--_cream));
+  --color-chart-4: color-mix(in oklab, var(--_a) 90%, #ffffff);
+}
+
+/* Headings wear the display face (Schibsted Grotesk). Body inherits
+ * --font-sans. The mono rule below has higher specificity so meta/code/kbd
+ * stay on JetBrains Mono even when nested inside a heading. */
+.docs-rooms :is(h1, h2, h3) {
+  font-family: var(--font-display);
+  letter-spacing: -0.02em;
+}
+
+/* Mono meta font — applied via `font-meta` on crumb, ON THIS PAGE labels,
+ * generated code, and chip badges. */
+.docs-rooms .font-meta,
+.docs-rooms code,
+.docs-rooms kbd {
+  font-family: var(--font-mono, 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, monospace);
+}
+
+.docs-rooms .font-meta {
+  font-size: 0.78rem;
+  letter-spacing: 0.01em;
+  color: var(--docs-soft);
+}
+
+/* Meta kickers — mono, uppercase, quiet. Color Rooms drops the editorial
+ * `// ` prefix (hard-edge poster, not a code-comment voice), so the
+ * `meta-marker::before` prefix is explicitly cleared. */
+.docs-rooms .meta-marker {
+  font-family: var(--font-mono, ui-monospace, monospace);
+  font-size: 0.78rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--docs-soft);
+}
+
+.docs-rooms .meta-marker::before {
+  content: none;
+}
+
+/* ── Block cursor (logo wordmark only) ───────────────────────────────────
+ * Once a caret after every doc title; that decoration was removed — the
+ * colour-field headers carry the title alone. The class survives ONLY for the
+ * sidebar wordmark's brand mark (which mirrors the favicon), painted in the
+ * current room accent. `.pipe` ships hidden so the bare library skin never
+ * renders an orphan glyph. */
+.pipe {
+  display: none;
+}
+
+.docs-rooms .pipe {
+  display: inline-block;
+  width: 0.5em;
+  height: 0.86em;
+  margin-left: 0.3em;
+  transform: translateY(0.06em);
+  background: var(--room-accent);
+  color: transparent;
+  font-weight: 400;
+  letter-spacing: normal;
+  vertical-align: baseline;
+  overflow: hidden;
+}
+
+/* ── Variante C — the header / hero colour fields ────────────────────────
+ * Three hooks, one treatment — all full-width bands flush to the app sidebar
+ * (spanning the whole content area), each with an inner max-width wrapper that
+ * re-aligns its content with the page body:
+ *
+ *   [data-testid='docs-sticky-bar'] + [data-testid='docs-header'] — the
+ *      DocsLayout sticky breadcrumb strip + hero title. They share one accent
+ *      fill above the two-column body (the TOC drops below). On scroll the
+ *      title slides under the pinned strip, leaving a low breadcrumb-height
+ *      ribbon ("einfaltet auf den Breadcrumb").
+ *
+ *   [data-room-hero] — hand-rolled section-landing heroes (/blocks, /ai,
+ *      /getting-started, /recipes, /showcase). Same full-width band; the page
+ *      nests an inner `max-w-* mx-auto px-*` wrapper (matching its body column)
+ *      for alignment.
+ *
+ * All re-point the text/meta tokens to the field foreground so the Schibsted
+ * title, breadcrumb, source link, lede and any `meta-marker` read on the fill. */
+.docs-rooms [data-testid='docs-sticky-bar'],
+.docs-rooms [data-testid='docs-header'],
+.docs-rooms [data-room-hero] {
+  background: var(--room-accent);
+  color: var(--room-accent-fg);
+
+  --color-text-primary: var(--room-accent-fg);
+  --color-text-secondary: color-mix(in oklab, var(--room-accent-fg) 74%, transparent);
+  --color-text-tertiary: color-mix(in oklab, var(--room-accent-fg) 62%, transparent);
+  --color-text-quaternary: color-mix(in oklab, var(--room-accent-fg) 46%, transparent);
+  --docs-soft: color-mix(in oklab, var(--room-accent-fg) 74%, transparent);
+  --docs-softer: color-mix(in oklab, var(--room-accent-fg) 60%, transparent);
+}
+
+/* Hero title band — tight top (flush under the strip so the two merge into one
+ * field), roomy bottom. The `main pt-8` below the band supplies the paper gap
+ * to the first content section. */
+.docs-rooms [data-testid='docs-header'] {
+  padding-block: 0.25rem 2rem;
+}
+
+/* Poster title on the fill — Schibsted display, scales with the viewport. */
+.docs-rooms [data-testid='docs-header'] h1 {
+  font-size: clamp(2.25rem, 1.5rem + 2.4vw, 3.35rem);
+  line-height: 1.03;
+  letter-spacing: -0.025em;
+}
+
+/* On the fill the colour edge IS the separator — drop the strip's expanding
+ * hairline (kept for the bare library skin). */
+.docs-rooms [data-testid='docs-sticky-bar'] [data-sticky-hairline] {
+  display: none;
+}
+
+/* Scrollspy badge (shown once scrolled) would clash primary-on-primary on the
+ * accent strip; flip it to a translucent-foreground inlay so it reads as a
+ * chip regardless of room. Breadcrumb + source read via the token remap above. */
+.docs-rooms [data-testid='docs-sticky-bar'] [data-scrollspy] {
+  background: color-mix(in oklab, var(--room-accent-fg) 16%, transparent);
+  color: var(--room-accent-fg);
+}
+
+/* ── [data-room-hero] — overview landings, full-width band ───────────────
+ * The hero element spans the full content area (flush to the sidebar, like the
+ * DocsLayout header); the page nests an inner `max-w-* mx-auto px-*` wrapper to
+ * align the hero content with the body column below. The body container
+ * supplies its own top padding for the paper gap.
+ *
+ * The vertical rhythm is UNSCOPED (not `.docs-rooms`): the hero was hoisted out
+ * of the page's `py-12` container, so it needs its own block padding in BOTH
+ * skins — the bare library skin (no accent fill) would otherwise glue the title
+ * to the top of the content area. Only the accent fill + token remap above are
+ * room-scoped. */
+[data-room-hero] {
+  padding-block: 2.5rem 2.75rem;
+}
+
+/* Room-tinted chips inside a landing hero (the /blocks count pill) would sink
+ * into the same-hue field; on the fill, flip them to a translucent-foreground
+ * chip so they read as an inlay regardless of room. */
+.docs-rooms [data-room-hero] [data-room-chip] {
+  background: color-mix(in oklab, var(--room-accent-fg) 18%, transparent);
+  color: var(--room-accent-fg);
+}
+
+/* The prose subtitle collapses on component pages — the field is title-first,
+ * matching the design source's title-only header (the description still feeds
+ * SeoMeta). Reverse per-page if a lede is wanted back. */
+.docs-rooms [data-docs-subtitle] {
+  display: none;
+}
+
+/* The outer stage container is transparent so the live demo sits on the page
+ * paper; the inner stage-frame keeps its bg-surface-quiet tint. */
+.docs-rooms [data-docs-stage] {
+  background-color: transparent;
+}
+
+/* Inverted accent block — one dominant room "moment" for the landing/CTA
+ * surfaces carried over from the previous theme. Room-primary ground with the
+ * field foreground; nested text/border/surface tokens invert so editorial-
+ * lineage children (meta-marker, headings, faint cards) follow. */
+.docs-rooms .cta-invert {
+  background: var(--color-primary-800);
+  --color-text-primary: #f9f7f2;
+  --color-text-secondary: rgb(249 247 242 / 0.82);
+  --color-text-tertiary: rgb(249 247 242 / 0.72);
+  --color-text-quaternary: rgb(249 247 242 / 0.55);
+  --color-border-hairline: rgb(249 247 242 / 0.18);
+  --color-border-subtle: rgb(249 247 242 / 0.22);
+  --color-surface-elevated: rgb(249 247 242 / 0.07);
+  --docs-soft: rgb(249 247 242 / 0.82);
+  --docs-softer: rgb(249 247 242 / 0.55);
+}

@@ -196,7 +196,7 @@
     }
     // Re-declare the light-mode chassis-derived tokens. In an inline scope
     // the var() in the :root semantic definitions won't re-substitute against
-    // the overridden neutral ramp on its own (the same trap editorial.css
+    // the overridden neutral ramp on its own (the same trap rooms-docs.css
     // solves), so push direct light-mode values mirroring semantic.css.
     vars.push(`--color-surface-quiet: ${byShade[25]}`);
     vars.push(`--color-surface-elevated: ${byShade[50]}`);

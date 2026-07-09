@@ -16,11 +16,10 @@
 <div class="flex min-h-[70vh] items-center px-6 py-24">
   <div class="mx-auto w-full max-w-xl">
     <p class="text-text-tertiary font-mono text-xs tracking-[0.2em] uppercase">
-      // Error {page.status}
+      Error {page.status}
     </p>
     <h1 class="text-text-primary mt-5 text-5xl font-bold tracking-tight">
       {heading}
-      <span class="text-primary">|</span>
     </h1>
     <p class="text-text-secondary mt-6 leading-relaxed">
       {#if is404}
@@ -42,7 +41,7 @@
     </div>
 
     <p class="text-text-tertiary mt-12 font-mono text-xs">
-      // Tip: press
+      Tip: press
       <kbd class="border-border-subtle bg-surface-quiet rounded border px-1.5 py-0.5">⌘K</kbd>
       to search the docs
     </p>

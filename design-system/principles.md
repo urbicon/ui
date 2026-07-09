@@ -163,7 +163,7 @@ A theme file overrides three foundation ramps: the two accents (`--color-primary
 - **Chroma (C):** 0=gray, 0.05=muted, 0.10=moderate, 0.15=vibrant, 0.20+=vivid. Stay under 0.18 for foundation accent scales; keep the neutral chassis ≤0.017 so it stays near-grey.
 - **Lightness (L):** 0=black, 1=white. The 50-950 scale should span L=0.97 (lightest) to L=0.16 (darkest). 500/600 are the "base" shades used in semantic intent tokens.
 
-> If you scope a theme to a class (e.g. a runtime-toggled `.theme-x`) instead of a global `@theme`/`:root` block, you must also re-declare the derived semantic tokens (`--color-primary`, surface/text/border) inside that class — inline/scoped `var()` won't re-substitute against the overridden ramp on its own. Global `@theme` themes don't hit this. See `apps/docs/src/lib/style/editorial.css` for a fully worked scoped example.
+> If you scope a theme to a class (e.g. a runtime-toggled `.theme-x`) instead of a global `@theme`/`:root` block, you must also re-declare the derived semantic tokens (`--color-primary`, surface/text/border) inside that class — inline/scoped `var()` won't re-substitute against the overridden ramp on its own. Global `@theme` themes don't hit this. See `apps/docs/src/lib/style/rooms-docs.css` for a fully worked scoped example.
 
 ### Built-in Themes
 

@@ -48,12 +48,12 @@
         {#if titleSnippet}
           <svelte:element this={headingTag} id={headingId} class={styles.title()}>
             {#if marker}<span class={styles.marker()}>{marker}</span>{/if}
-            {@render titleSnippet()}<span class="pipe" aria-hidden="true">|</span>
+            {@render titleSnippet()}
           </svelte:element>
         {:else if title}
           <svelte:element this={headingTag} id={headingId} class={styles.title()}>
             {#if marker}<span class={styles.marker()}>{marker}</span>{/if}
-            {title}<span class="pipe" aria-hidden="true">|</span>
+            {title}
           </svelte:element>
         {/if}
 

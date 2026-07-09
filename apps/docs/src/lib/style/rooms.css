@@ -24,7 +24,7 @@
  *   .poster-term    — the dark terminal card for the AI specimen.
  *   .room-accent    — re-declares the primary-derived tokens from two inline
  *                     vars (--room-accent, --room-accent-fg). Mirrors the
- *                     re-substitution pattern proven in editorial.css:
+ *                     re-substitution pattern proven in rooms-docs.css:
  *                     overriding the ramp alone won't re-resolve :root-defined
  *                     semantic tokens, so they are re-declared here.
  */

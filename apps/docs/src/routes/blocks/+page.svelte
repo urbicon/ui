@@ -63,14 +63,17 @@
   description="23 Svelte 5 + Tailwind 4 primitives. Interactive, accessible, token-driven."
 />
 
-<div class="mx-auto max-w-7xl px-4 py-12 sm:px-6 lg:px-8">
-  <div class="mb-14">
+<!-- Color Rooms hero field (default blocks room) — full-width band flush to the
+     app sidebar; the inner wrapper re-aligns with the body column below. -->
+<div data-room-hero>
+  <div class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
     <p class="meta-marker">Primitives — Svelte 5 · Tailwind 4 · zero deps</p>
     <div class="mt-4 flex items-center gap-3">
-      <h1 class="text-text-primary text-4xl font-bold tracking-tight sm:text-5xl">
-        Blocks<span class="pipe" aria-hidden="true">|</span>
-      </h1>
-      <span class="bg-primary/10 text-primary rounded-full px-3 py-1 text-xs font-semibold">
+      <h1 class="text-text-primary text-4xl font-bold tracking-tight sm:text-5xl">Blocks</h1>
+      <span
+        data-room-chip
+        class="bg-primary/10 text-primary rounded-full px-3 py-1 text-xs font-semibold"
+      >
         23
       </span>
     </div>
@@ -79,7 +82,9 @@
       accessible, AI-native, endlessly customizable.
     </p>
   </div>
+</div>
 
+<div class="mx-auto max-w-7xl px-4 pb-12 sm:px-6 lg:px-8">
   {#snippet arrowStd()}
     <ArrowUpRightIcon
       class="text-text-quaternary h-3.5 w-3.5 -translate-x-1 opacity-0 transition-all duration-200 group-hover:translate-x-0 group-hover:opacity-100"
@@ -538,10 +543,7 @@
       id="customization-island-title"
       class="text-text-primary mt-4 text-2xl font-bold tracking-tight sm:text-3xl"
     >
-      The default is editorial — and this is how far you can take it<span
-        class="pipe"
-        aria-hidden="true">|</span
-      >
+      The default is editorial — and this is how far you can take it
     </h2>
     <p class="text-text-secondary mt-4 max-w-2xl text-sm leading-relaxed">
       Every component accepts

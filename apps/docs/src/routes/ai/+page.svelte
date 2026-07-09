@@ -66,20 +66,27 @@ let { variant, intent } = $props();`;
   description="AI-native developer experience: MCP server with 10 tools and 10 design prompts, per-component llms.txt, .cursorrules. Built for Claude, Cursor, and AI-assisted workflows."
 />
 
-<div class="mx-auto max-w-4xl px-6 py-12">
-  <div class="mb-12">
-    <div class="mb-4 flex flex-wrap gap-2">
-      <Badge variant="soft" intent="primary">MCP Server</Badge>
-      <Badge variant="soft" intent="secondary">llms.txt</Badge>
-      <Badge variant="soft" intent="neutral">.cursorrules</Badge>
-    </div>
-    <h1 class="text-text-primary mb-4 text-4xl font-bold">AI & Developer Experience</h1>
-    <p class="text-text-secondary text-xl">
+<div class="mx-auto max-w-4xl px-6 pt-12">
+  <div class="flex flex-wrap gap-2">
+    <Badge variant="soft" intent="primary">MCP Server</Badge>
+    <Badge variant="soft" intent="secondary">llms.txt</Badge>
+    <Badge variant="soft" intent="neutral">.cursorrules</Badge>
+  </div>
+</div>
+
+<!-- Color Rooms hero field (ai room = orange) — full-width band flush to the app
+     sidebar; badges sit on paper above, inner wrapper re-aligns with the body. -->
+<div data-room-hero class="mt-5">
+  <div class="mx-auto max-w-4xl px-6">
+    <h1 class="text-text-primary text-4xl font-bold">AI & Developer Experience</h1>
+    <p class="text-text-secondary mt-4 text-xl">
       Urbicon UI is built for AI-assisted development. Every component is discoverable, documented,
       and scaffold-ready for Claude, Cursor, Copilot, and any MCP-compatible tool.
     </p>
   </div>
+</div>
 
+<div class="mx-auto max-w-4xl px-6 pb-12 pt-10">
   <!-- MCP Server -->
   <section class="mb-12">
     <h2 class="text-text-primary mb-2 text-2xl font-bold">MCP Server</h2>

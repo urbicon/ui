@@ -416,14 +416,15 @@
         </div>
       </Card>
       <Card
-        href={resolve('/customization/editorial-theme')}
+        href={resolve('/customization/rooms-theme')}
         class="border-border-subtle hover:border-primary/30 transition-colors"
       >
         <div class="p-5">
-          <h3 class="text-text-primary mb-1 font-semibold">Editorial Theme</h3>
+          <h3 class="text-text-primary mb-1 font-semibold">Color Rooms</h3>
           <p class="text-text-tertiary text-sm">
-            How this docs site is themed — the <code>--docs-*</code> token catalogue, light/dark via
-            <code>light-dark()</code>, activation and override recipes.
+            How this docs site is themed — the per-section room accent, the <code>--docs-*</code>
+            token catalogue, light/dark via <code>light-dark()</code>, activation and override
+            recipes.
           </p>
         </div>
       </Card>

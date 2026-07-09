@@ -45,6 +45,6 @@
  * overrides these ramps. Use the Theme Builder at /customization/theme-builder
  * in the docs app to generate matched OKLCH palettes (accent + chassis)
  * interactively. To art-direct further (re-tuned intents, custom surface
- * stops, warm shadow tint), see apps/docs/src/lib/style/editorial.css for a
+ * stops, warm shadow tint), see apps/docs/src/lib/style/rooms-docs.css for a
  * fully worked example.
  */

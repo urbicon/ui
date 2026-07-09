@@ -22,10 +22,10 @@
   import '@fontsource/jetbrains-mono/400.css';
   import '@fontsource/jetbrains-mono/500.css';
   import '@fontsource/jetbrains-mono/600.css';
-  // Editorial display (Newsreader) + body (Public Sans), self-hosted like the
-  // mono above — no third-party requests (see /privacy, PUBLISH-READINESS.md E.2).
-  import '@fontsource-variable/newsreader/index.css';
-  import '@fontsource-variable/public-sans/index.css';
+  // Color Rooms display + body — Schibsted Grotesk, self-hosted like the mono
+  // above (no third-party requests, see /privacy). One grotesk voices both the
+  // marketing type and the real specimen components (also the landing's face).
+  import '@fontsource-variable/schibsted-grotesk/index.css';
   import '../app.css';
 
   let { children } = $props();
@@ -68,6 +68,37 @@
   // The landing page is a full-bleed stage without docs chrome — it brings its
   // own header/footer. The skip-link and ⌘K stay global.
   const isLanding = $derived(page.url.pathname === '/');
+
+  // Color Rooms accent per section ("Farbe = Ort"). The top-level route segment
+  // selects the room; everything outside the four product areas falls back to
+  // the blocks green (the design source's default room). These two custom props
+  // feed the primary-token derivation in rooms-docs.css.
+  const ROOMS: Record<string, { accent: string; fg: string }> = {
+    blocks: { accent: '#00845c', fg: '#f6f3ec' },
+    table: { accent: '#7c1f2d', fg: '#f6f3ec' },
+    auth: { accent: '#e3a31c', fg: '#17150f' },
+    ai: { accent: '#e8500f', fg: '#17150f' }
+  };
+  const room = $derived.by(() => {
+    const seg = page.url.pathname.split('/')[1] ?? '';
+    return seg in ROOMS ? seg : 'blocks';
+  });
+  const roomVars = $derived(
+    `--room-accent:${ROOMS[room].accent};--room-accent-fg:${ROOMS[room].fg}`
+  );
+
+  // Content reads the room from the .docs-room-scope wrapper (SSR-correct, no
+  // flash of the wrong accent). Portaled popovers (Select/Combobox/Menu
+  // dropdowns) mount at <body>, OUTSIDE that wrapper, so mirror the accent onto
+  // <html> after mount — they only open on interaction, always post-hydration,
+  // so there is no SSR/first-paint concern for them.
+  $effect(() => {
+    if (isLanding) return;
+    const { accent, fg } = ROOMS[room];
+    const el = document.documentElement;
+    el.style.setProperty('--room-accent', accent);
+    el.style.setProperty('--room-accent-fg', fg);
+  });
 </script>
 
 <a class="blocks-skip-link" href="#main-content"
@@ -77,127 +108,127 @@
 {#if isLanding}
   {@render children()}
 {:else}
-  <SidebarLayout
-    bind:open={sidebarOpen}
-    sidebarWidth="16rem"
-    contentMaxWidth="none"
-    slotClasses={{ sidebar: 'bg-[var(--docs-bg)]' }}
-  >
-    {#snippet sidebarHeader()}
-      <div class="flex h-14 w-full items-center justify-between">
-        <a href={resolve('/')} class="text-text-primary text-lg font-bold tracking-tight">
+  <!--
+    The room scope carries the per-route accent as two inline custom props;
+    `display:contents` keeps it out of the box tree so SidebarLayout's flex +
+    sticky behave exactly as before. rooms-docs.css derives the whole
+    primary-token family from these vars, so switching route repaints every
+    real component on the page in the section's room colour.
+  -->
+  <div class="docs-room-scope" style="display:contents;{roomVars}">
+    <SidebarLayout
+      bind:open={sidebarOpen}
+      sidebarWidth="16rem"
+      contentMaxWidth="none"
+      slotClasses={{ sidebar: 'bg-[var(--docs-bg)]' }}
+    >
+      {#snippet sidebarHeader()}
+        <div class="flex h-14 w-full items-center justify-between">
+          <a href={resolve('/')} class="text-text-primary text-lg font-bold tracking-tight">
+            {ta('chrome.appTitle' as Parameters<typeof ta>[0])}<span class="pipe" aria-hidden="true"
+              >|</span
+            >
+          </a>
+          <ThemeSwitcher size="sm" />
+        </div>
+      {/snippet}
+
+      {#snippet sidebar()}
+        <!--
+      Search trigger: hairline-only bottom border instead of a rounded box;
+      label and `⌘K` hint share the `font-meta` mono ramp so the trigger reads
+      as a mono kicker, not a button. (Color Rooms drops the editorial `//`
+      prefix that used to sit before the label.)
+    -->
+        <div class="px-3 pt-3">
+          <button
+            onclick={() => commandSearch?.toggle()}
+            class="border-border-hairline text-text-tertiary hover:border-text-primary hover:text-text-primary flex w-full items-center gap-2 border-b bg-transparent px-3 py-2 text-sm transition-colors"
+          >
+            <SearchIcon class="h-4 w-4 shrink-0" />
+            <span class="font-meta">{ta('chrome.search' as Parameters<typeof ta>[0])}</span>
+            <span class="font-meta text-text-quaternary ml-auto"><kbd>⌘K</kbd></span>
+          </button>
+        </div>
+
+        <SidebarNavigation items={navigationItems} />
+      {/snippet}
+
+      {#snippet sidebarFooter()}
+        <div class="p-4">
+          <div class="mb-4">
+            <DocsThemeToggle />
+          </div>
+          <LocaleSwitcher variant="ghost" size="sm" onLocaleChange={persistLocale} />
+          <nav
+            aria-label={ta('chrome.footerNav' as Parameters<typeof ta>[0])}
+            class="text-text-quaternary mt-3 space-y-1 text-xs"
+          >
+            <div>
+              <a
+                href={REPO_URL}
+                target="_blank"
+                rel="noopener"
+                class="hover:text-text-secondary transition-colors">Codeberg</a
+              >
+              &middot;
+              <a href={resolve('/changelog')} class="hover:text-text-secondary transition-colors"
+                >{ta('chrome.changelog' as Parameters<typeof ta>[0])}</a
+              >
+              &middot;
+              <a href={resolve('/ai')} class="hover:text-text-secondary transition-colors"
+                >{ta('chrome.mcpServer' as Parameters<typeof ta>[0])}</a
+              >
+            </div>
+            <div>
+              <a href={asset('/llms.txt')} class="hover:text-text-secondary transition-colors"
+                >llms.txt</a
+              >
+              &middot;
+              <a href={asset('/llms-full.txt')} class="hover:text-text-secondary transition-colors"
+                >llms-full.txt</a
+              >
+            </div>
+            <div>
+              <a href={resolve('/imprint')} class="hover:text-text-secondary transition-colors"
+                >{ta('chrome.imprint' as Parameters<typeof ta>[0])}</a
+              >
+              &middot;
+              <a href={resolve('/privacy')} class="hover:text-text-secondary transition-colors"
+                >{ta('chrome.privacy' as Parameters<typeof ta>[0])}</a
+              >
+            </div>
+          </nav>
+          <div class="text-text-quaternary mt-2 text-xs">© 2026 Urbicon &middot; Felix Urban</div>
+          <div class="text-text-quaternary mt-1 text-xs">
+            v{__APP_VERSION__} &middot; {ta('chrome.footerTagline' as Parameters<typeof ta>[0])}
+          </div>
+        </div>
+      {/snippet}
+
+      {#snippet mobileHeader({ openSidebar })}
+        <button
+          type="button"
+          aria-label={ta('chrome.openNavMenu' as Parameters<typeof ta>[0])}
+          aria-expanded={sidebarOpen}
+          onclick={openSidebar}
+          class="text-text-secondary hover:text-text-primary flex min-h-11 min-w-11 items-center justify-center rounded-lg transition-colors"
+        >
+          <MenuIcon class="h-6 w-6" />
+        </button>
+        <span class="text-text-primary text-lg font-semibold">
           {ta('chrome.appTitle' as Parameters<typeof ta>[0])}<span class="pipe" aria-hidden="true"
             >|</span
           >
-        </a>
-        <ThemeSwitcher size="sm" />
-      </div>
-    {/snippet}
-
-    {#snippet sidebar()}
-      <!--
-      Editorial search trigger:
-      hairline-only bottom border instead of rounded box; label and
-      `⌘K` hint share the `font-meta` mono ramp so the trigger reads
-      as a kicker, not a button. The `//` prefix lives in an inline
-      `aria-hidden` span — `meta-marker` would force uppercase via
-      `text-transform`, but its CSS-pseudo prefix is invisible to AT;
-      we recreate the same SR-hidden behaviour for the inline literal
-      so screen readers announce "Search…" rather than "slash slash
-      search dot dot dot".
-    -->
-      <div class="px-3 pt-3">
-        <button
-          onclick={() => commandSearch?.toggle()}
-          class="border-border-hairline text-text-tertiary hover:border-text-primary hover:text-text-primary flex w-full items-center gap-2 border-b bg-transparent px-3 py-2 text-sm transition-colors"
-        >
-          <SearchIcon class="h-4 w-4 shrink-0" />
-          <span class="font-meta"
-            ><span aria-hidden="true">// </span>{ta(
-              'chrome.search' as Parameters<typeof ta>[0]
-            )}</span
-          >
-          <span class="font-meta text-text-quaternary ml-auto"><kbd>⌘K</kbd></span>
-        </button>
-      </div>
-
-      <SidebarNavigation items={navigationItems} />
-    {/snippet}
-
-    {#snippet sidebarFooter()}
-      <div class="p-4">
-        <div class="mb-4">
-          <DocsThemeToggle />
+        </span>
+        <div class="ml-auto">
+          <ThemeSwitcher size="sm" />
         </div>
-        <LocaleSwitcher variant="ghost" size="sm" onLocaleChange={persistLocale} />
-        <nav
-          aria-label={ta('chrome.footerNav' as Parameters<typeof ta>[0])}
-          class="text-text-quaternary mt-3 space-y-1 text-xs"
-        >
-          <div>
-            <a
-              href={REPO_URL}
-              target="_blank"
-              rel="noopener"
-              class="hover:text-text-secondary transition-colors">Codeberg</a
-            >
-            &middot;
-            <a href={resolve('/changelog')} class="hover:text-text-secondary transition-colors"
-              >{ta('chrome.changelog' as Parameters<typeof ta>[0])}</a
-            >
-            &middot;
-            <a href={resolve('/ai')} class="hover:text-text-secondary transition-colors"
-              >{ta('chrome.mcpServer' as Parameters<typeof ta>[0])}</a
-            >
-          </div>
-          <div>
-            <a href={asset('/llms.txt')} class="hover:text-text-secondary transition-colors"
-              >llms.txt</a
-            >
-            &middot;
-            <a href={asset('/llms-full.txt')} class="hover:text-text-secondary transition-colors"
-              >llms-full.txt</a
-            >
-          </div>
-          <div>
-            <a href={resolve('/imprint')} class="hover:text-text-secondary transition-colors"
-              >{ta('chrome.imprint' as Parameters<typeof ta>[0])}</a
-            >
-            &middot;
-            <a href={resolve('/privacy')} class="hover:text-text-secondary transition-colors"
-              >{ta('chrome.privacy' as Parameters<typeof ta>[0])}</a
-            >
-          </div>
-        </nav>
-        <div class="text-text-quaternary mt-2 text-xs">© 2026 Urbicon &middot; Felix Urban</div>
-        <div class="text-text-quaternary mt-1 text-xs">
-          v{__APP_VERSION__} &middot; {ta('chrome.footerTagline' as Parameters<typeof ta>[0])}
-        </div>
-      </div>
-    {/snippet}
+      {/snippet}
 
-    {#snippet mobileHeader({ openSidebar })}
-      <button
-        type="button"
-        aria-label={ta('chrome.openNavMenu' as Parameters<typeof ta>[0])}
-        aria-expanded={sidebarOpen}
-        onclick={openSidebar}
-        class="text-text-secondary hover:text-text-primary flex min-h-11 min-w-11 items-center justify-center rounded-lg transition-colors"
-      >
-        <MenuIcon class="h-6 w-6" />
-      </button>
-      <span class="text-text-primary text-lg font-semibold">
-        {ta('chrome.appTitle' as Parameters<typeof ta>[0])}<span class="pipe" aria-hidden="true"
-          >|</span
-        >
-      </span>
-      <div class="ml-auto">
-        <ThemeSwitcher size="sm" />
-      </div>
-    {/snippet}
-
-    {@render children()}
-  </SidebarLayout>
+      {@render children()}
+    </SidebarLayout>
+  </div>
 {/if}
 
 <CommandSearch bind:this={commandSearch} />

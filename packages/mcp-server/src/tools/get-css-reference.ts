@@ -345,7 +345,7 @@ For a temperature-free, true grayscale chassis (content-focused UIs), set chroma
 
 ## Intent-hue collisions
 
-If your accent hue lands near an intent hue, the two become hard to tell apart. The library intents sit at: success 140, warning 80, danger 25, info 220, secondary 280. A green brand (~140) collides with success; an amber brand (~80) collides with warning. When that happens, re-tune the colliding intent ramp away from the accent (push the hue ±15–25° and/or drop its lightness so it reads as "status", not "brand"). \`apps/docs/src/lib/style/editorial.css\` is a worked example (green brand → success pushed to 150 + darkened, warning pulled to amber 55).
+If your accent hue lands near an intent hue, the two become hard to tell apart. The library intents sit at: success 140, warning 80, danger 25, info 220, secondary 280. A green brand (~140) collides with success; an amber brand (~80) collides with warning. When that happens, re-tune the colliding intent ramp away from the accent (push the hue ±15–25° and/or drop its lightness so it reads as "status", not "brand"). \`apps/docs/src/lib/style/rooms-docs.css\` is a worked example (green brand → success pushed to 150 + darkened, warning pulled to amber 55).
 
 ## Overriding Semantic Tokens
 
@@ -390,7 +390,7 @@ Fix: inside the scoped block, re-declare the derived tokens too, so substitution
   /* ...and the same for any neutral-derived surface/text/border tokens you rely on */
 }
 \`\`\`
-A global \`@theme\` block (the built-in themes, the Theme Builder output) does NOT hit this — everything lands on \`:root\`, the same element where the derived tokens compute, so re-declaration is unnecessary. Prefer global themes unless you genuinely need multiple themes live on one page. \`apps/docs/src/lib/style/editorial.css\` is the canonical scoped example.
+A global \`@theme\` block (the built-in themes, the Theme Builder output) does NOT hit this — everything lands on \`:root\`, the same element where the derived tokens compute, so re-declaration is unnecessary. Prefer global themes unless you genuinely need multiple themes live on one page. \`apps/docs/src/lib/style/rooms-docs.css\` is the canonical scoped example.
 
 ## Component-Level Overrides
 

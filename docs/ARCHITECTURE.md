@@ -384,73 +384,86 @@ The docs site displays:
 
 For the complete documentation page guide (file structure, section order, design philosophy, typography, playground controls, checklists), see [DocsPageGuide.md](DocsPageGuide.md).
 
-## Editorial Theme (docs-only)
+## Color Rooms Theme (docs-only)
 
-The Urbicon documentation site at `apps/docs/` opts into an **Editorial theme** — a warm cream-paper palette with a brand-green accent and a sage / amber / maroon intent ramp. Library consumers (consumer apps and third-party apps) keep the library defaults; the editorial palette is private to the docs site.
+The Urbicon documentation site at `apps/docs/` opts into the **Color Rooms theme** — Schibsted Grotesk on a warm cream-paper palette whose accent is the **room (section) you are in**: `/blocks` green, `/table` wine, `/auth` amber, `/ai` orange (everything else falls back to the blocks green). Component-page and section-landing headers become a full-width colour field in the room colour, flush to the app sidebar. On a component page the header is a full-width band spanning everything right of the app sidebar — breadcrumb + `source` sit in the band and the on-this-page TOC drops below it; on scroll the title collapses under the pinned breadcrumb strip, leaving a low ribbon in the room colour. Library consumers (consumer apps and third-party apps) keep the library defaults; Color Rooms is private to the docs site. (It replaced the earlier fixed-green "Editorial" theme.)
 
-The editorial theme is implemented as a **pure token-override layer** rather than a parallel component tree. Activation:
+Color Rooms is implemented as a **pure token-override layer** rather than a parallel component tree. Activation:
 
 ```html
-<body class="docs-editorial"></body>
+<html lang="en" class="docs-rooms"></html>
 ```
 
-Everything below applies only within that scope. Library defaults stay intact outside it.
+The class sits on `<html>` (not `<body>`) so the `app.html` head script can flip it before first paint; the per-route room accent then lives on a `.docs-room-scope` wrapper in `+layout.svelte`. Everything below applies only within that scope. Library defaults stay intact outside it.
 
-### Private tokens (`--docs-*`)
+### Private tokens (`--docs-*`, `--room-*`)
 
-`apps/docs/src/lib/style/editorial.css` defines a private token namespace for editorial-specific concerns that don't belong in the library:
+`apps/docs/src/lib/style/rooms-docs.css` defines a private token namespace for docs-specific concerns that don't belong in the library:
 
-| Token                                                            | Purpose                                                                                                                    |
-| ---------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------- |
-| `--docs-bg`, `--docs-paper`                                      | Page ground (cream) and content surface (lighter cream). Inverts to warm dark in dark mode.                                |
-| `--docs-lifted`, `--docs-floating`                               | L·2 (dropdowns, popovers, selects) and L·3 (modals, sheets, command menus) — continuation of the cream ladder above paper. |
-| `--docs-ink`, `--docs-soft`, `--docs-softer`                     | Three-stop ink hierarchy (primary text, meta/body-soft, decoration like the `//` prefix).                                  |
-| `--docs-hair`, `--docs-line`                                     | Editorial hairline (8 % alpha) and line (14 % alpha) — black-on-paper in light, cream-on-paper in dark.                    |
-| `--docs-accent`                                                  | Editorial accent (pipe cursor, active markers). Couples to `--color-primary` so the brand green re-uses it.                |
-| `--docs-radius-pill`, `--docs-radius-card`, `--docs-shadow-page` | Editorial geometry — TOC crumbs, Bento cards, Recipe-stage lift.                                                           |
-| `--font-mono`                                                    | JetBrains Mono for editorial meta (`§01`, `// kicker`, prop labels).                                                       |
+| Token | Purpose |
+| ----- | ------- |
+| `--room-accent`, `--room-accent-fg` | Active room colour + its on-accent ink/cream. Fed per-route from `+layout.svelte`; source of the whole primary family and the header field. |
+| `--docs-bg`, `--docs-paper` | Page ground (cream) and content surface (lighter cream). Inverts to warm dark in dark mode. |
+| `--docs-lifted`, `--docs-floating` | L·2 (dropdowns, popovers, selects) and L·3 (modals, sheets, command menus) — continuation of the cream ladder above paper. |
+| `--docs-ink`, `--docs-soft`, `--docs-softer` | Three-stop ink hierarchy (primary text `#17150f`, meta/body-soft, decoration). |
+| `--docs-hair`, `--docs-line` | Hairline (8 % alpha) and line (14 % alpha) — ink-on-paper in light, cream-on-paper in dark. |
+| `--docs-accent` | Docs accent (active markers, links, sidebar logo mark). Couples to `--color-primary` so the room colour re-uses it. |
+| `--docs-radius-pill`, `--docs-radius-card`, `--docs-shadow-page` | Docs geometry — TOC crumbs, Bento cards (`--radius-contain`, tight for the hard-edge poster), Recipe-stage lift. |
+| `--font-display`, `--font-sans` | Schibsted Grotesk — one grotesk for display + body. |
+| `--font-mono` | JetBrains Mono for meta (`01` section marker, mono kickers, prop labels). |
 
-All `--docs-*` tokens use `light-dark()` so the editorial canvas is **first-class light + dark** — the cream-paper / warm-ink shape inverts to warm-dark-paper / cream-ink without losing identity.
+All `--docs-*` tokens use `light-dark()` so the canvas is **first-class light + dark** — the cream-paper / warm-ink shape inverts to warm-dark-paper / cream-ink without losing identity. The room accent is orthogonal to the mode (it repaints primary, not the paper).
 
 ### Library-token overrides
 
-Inside `.docs-editorial`, the editorial scope re-binds the most consumed library tokens to the cream palette:
+Inside `.docs-rooms`, the scope re-binds the most consumed library tokens to the cream palette + the room accent:
 
+- Primary: `--color-primary` → `var(--room-accent)`, `--color-text-on-primary` → `var(--room-accent-fg)` (see the room derivation below).
 - Surface ladder: `--color-surface-base/-quiet/-elevated/-overlay` → `--docs-paper/-bg/-lifted/-floating`.
 - Borders: `--color-border-hairline` → `--docs-hair`. The architectural borders (`-subtle/-default/-emphasis/-strong`) get routed through the library's existing `--color-warm-neutral-*` ramp (Hue 45) so they shed the cool-grey bias against cream.
 - Text: `--color-text-primary/-secondary/-tertiary/-quaternary` → ink hierarchy.
 - Surface mid-states (`-hover/-active/-disabled/-interactive/-subtle/-inverted`) and `--color-text-disabled` / `--color-interactive-disabled` also route through `warm-neutral`.
 - `--blocks-shadow-tint` shifts to `oklch(0.22 0.04 70)` so shadows blend with cream instead of reading as cool smudges.
 
-### Brand-green primary + intent retuning
+### Room accent + intent retuning
 
-Editorial overrides the **entire 11-step `--color-primary-*` ramp** to the Urbicon brand green (#13ba00 ≈ `oklch(0.69 0.205 138)`) and re-tunes the intent palette so it sits naturally on cream and stays distinct from the new primary:
+Instead of a single fixed primary, Color Rooms **re-derives the entire 11-step `--color-primary-*` ramp from `--room-accent`** via `color-mix(in oklab, …)` — the raw accent is stop 500, lighter stops mix toward cream, darker stops toward ink. The four rooms:
 
-| Intent    | Editorial hue              | Why                                                                                                                                                                                               |
-| --------- | -------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Primary   | 138                        | Brand green                                                                                                                                                                                       |
-| Secondary | 15 (burgundy/mahogany)     | Library default Hue 280 (violet) is the complementary to blue; against brand green the natural warm complementary is burgundy.                                                                    |
-| Success   | 150, darker / lower chroma | Library Hue 140 ≈ brand green — would read as a second brand button. Sage reads as "completed/verified".                                                                                          |
-| Warning   | 55 (amber)                 | Library Hue 80 is yellow-green-adjacent and overlaps with the primary register. Amber harmonises with cream.                                                                                      |
-| Danger    | 22 (maroon)                | Library Hue 25 vivid red sits aggressively on cream; maroon at Hue 22 keeps the alert reading without clashing. Hues 12 and 18 were both tried and rolled into magenta on the dark-mode 400 stop. |
-| Info      | 220 (teal)                 | **Unchanged.** Cool blue against the warm palette is a deliberate contrast — info banners read as informational chrome, not as part of the brand voice.                                           |
+| Room             | Accent          | Foreground     |
+| ---------------- | --------------- | -------------- |
+| Blocks (default) | `#00845c` green | cream `#f6f3ec` |
+| Table            | `#7c1f2d` wine  | cream `#f6f3ec` |
+| Auth             | `#e3a31c` amber | ink `#17150f`  |
+| AI & DX          | `#e8500f` orange | ink `#17150f`  |
 
-### Why semantic tokens are re-declared in the editorial scope
+The **intent palette is room-independent** — retuned once (warm) so Success / Warning / Danger / Secondary sit naturally on cream and stay distinct from the room primary. The warm spectrum harmonises with all four warm room accents, so it is not re-tuned per room:
 
-A subtle CSS detail: when a custom property is defined as `--color-primary: light-dark(var(--color-primary-600), var(--color-primary-500))` at `:root`, the `var()` resolves **at the cascade level where the property is defined**. Overriding `--color-primary-600` later in `.docs-editorial` does _not_ re-trigger that substitution — the inherited value is the already-resolved blue string.
+| Intent    | Hue                        | Why                                                                                                                                                    |
+| --------- | -------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| Secondary | 15 (burgundy/mahogany)     | Warm complementary; the library default Hue 280 (violet) reads cool on cream.                                                                          |
+| Success   | 150, darker / lower chroma | Library Hue 140 ≈ a green room — would read as a second room button. Sage reads as "completed/verified".                                               |
+| Warning   | 55 (amber)                 | Library Hue 80 is yellow-green-adjacent; amber harmonises with cream.                                                                                   |
+| Danger    | 22 (maroon)                | Library Hue 25 vivid red sits aggressively on cream; maroon at Hue 22 keeps the alert reading. Hues 12 and 18 rolled into magenta on the dark 400 stop. |
+| Info      | 220 (teal)                 | **Unchanged.** Cool blue against the warm palette is a deliberate contrast — info banners read as informational chrome.                                 |
 
-Editorial therefore re-declares all derived semantic tokens (`--color-primary`, `-hover`, `-active`, `-subtle`, `-emphasis`, `--color-surface-selected`, `--color-interactive-hover/-active/-focus`) inside the `.docs-editorial` block, one-to-one mirroring the library shapes in `semantic.css`. The re-declarations look redundant but they're load-bearing: without them the green ramp stops at the raw stops and the consuming components still pick up blue.
+### Why semantic tokens are re-declared in the docs scope
 
-### Editorial hooks on shared docs components
+A subtle CSS detail: when a custom property is defined as `--color-primary: light-dark(var(--color-primary-600), var(--color-primary-500))` at `:root`, the `var()` resolves **at the cascade level where the property is defined**. Overriding the ramp later in `.docs-rooms` does _not_ re-trigger that substitution — the inherited value is the already-resolved library string.
 
-Components in `packages/docs` carry small `data-*` hooks that the editorial scope flattens — keeps the library API unchanged for non-editorial consumers while giving the editorial CSS a stable anchor:
+Color Rooms therefore re-declares all derived semantic tokens (`--color-primary`, `-hover`, `-active`, `-subtle`, `-emphasis`, `--color-surface-selected`, `--color-interactive-hover/-active/-focus`) inside the scope, one-to-one mirroring the library shapes in `semantic.css`. The re-declarations look redundant but they're load-bearing: without them the room ramp stops at the raw stops and the consuming components still pick up the library blue. Because portaled popovers mount **outside** the `.docs-room-scope` wrapper, the derivation is declared on both the wrapper (content — SSR-correct, no flash) and `.docs-rooms` on `<html>` (portals — mirrored after mount).
 
-- `[data-docs-stage="example|playground"]` on `CodeExample` and `PlaygroundConfigurator` outer wrappers.
-- `[data-docs-stage-frame]` on the inner preview frame.
+### Docs hooks on shared components
+
+Components in `packages/docs` carry small `data-*` hooks that the docs scope styles — keeps the library API unchanged for non-docs consumers while giving the Color Rooms CSS a stable anchor:
+
+- `[data-testid="docs-header"]` on the `DocsLayout` hero header — becomes the room colour field (both the collapsing-hero and legacy headers). It is a **full-width band**: a direct child of the layout container (not the body column), so it spans everything right of the app sidebar and the on-this-page TOC drops below it. Alignment with the body column is re-imposed by an inner wrapper that shares `main`'s `maxWidth`.
+- `[data-testid="docs-sticky-bar"]` on the sticky breadcrumb strip — shares the header's accent fill; on scroll the title collapses under it, leaving a low breadcrumb-height ribbon. Inside it, `[data-sticky-hairline]` is hidden (colour edge is the separator) and `[data-scrollspy]` (the active-section badge) flips to a translucent-foreground inlay.
+- `[data-room-hero]` on hand-rolled section-landing heroes (`/blocks`, `/ai`, `/getting-started`, `/recipes`, `/showcase`) — the same full-width band, flush to the app sidebar: the hero element spans the content area and the page nests an inner `max-w-* mx-auto px-*` wrapper (matching its body column) to align the hero content. `[data-room-chip]` flips a room-tinted chip so it reads on the fill.
+- `[data-docs-stage="example|playground"]` / `[data-docs-stage-frame]` on `CodeExample` / `PlaygroundConfigurator`.
 - `[data-docs-subtitle]` on the page-title sub-headline rendered by `DocsLayout`.
 
-The editorial CSS flattens both stage backgrounds to transparent and hides the subtitle entirely. See [COMPONENT-API-CONVENTIONS.md](COMPONENT-API-CONVENTIONS.md#editorial-hooks) for the consumer-facing summary.
+The scope paints the header field, flattens the stage backgrounds to transparent, and hides the DocsLayout subtitle on component pages (the field is title-first). See [COMPONENT-API-CONVENTIONS.md](COMPONENT-API-CONVENTIONS.md#docs-theme-hooks) for the consumer-facing summary.
 
 ### Doc page
 
-The full editorial token catalogue, activation steps, light/dark modes, and consumer override recipes live at `/customization/editorial-theme` (`apps/docs/src/routes/customization/editorial-theme/+page.svelte`).
+The full Color Rooms token catalogue, the room table, activation steps, light/dark modes, and override recipes live at `/customization/rooms-theme` (`apps/docs/src/routes/customization/rooms-theme/+page.svelte`).

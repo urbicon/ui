@@ -67,24 +67,25 @@ export default {
   description="Get started with Urbicon UI - installation, setup, and your first components. Built with Svelte 5 and Tailwind 4."
 />
 
-<div class="mx-auto max-w-4xl px-6 py-12">
-  <!-- Header -->
-  <div class="mb-14">
+<!-- Header — Color Rooms hero field (default blocks room), full-width band
+     flush to the app sidebar; inner wrapper re-aligns with the body below. -->
+<div data-room-hero>
+  <div class="mx-auto max-w-4xl px-6">
     <p class="meta-marker">Getting started — install · setup · first component</p>
     <h1 class="text-text-primary mt-4 text-4xl font-bold tracking-tight sm:text-5xl">
-      Getting started<span class="pipe" aria-hidden="true">|</span>
+      Getting started
     </h1>
     <p class="text-text-secondary mt-4 max-w-2xl text-lg">
       Get up and running with Urbicon&nbsp;UI in minutes. This guide covers installation, basic
       setup, and creating your first components.
     </p>
   </div>
+</div>
 
+<div class="mx-auto max-w-4xl px-6 pb-12 pt-10">
   <!-- Prerequisites -->
   <section class="mb-14">
-    <h2 class="text-text-primary mb-6 text-2xl font-bold tracking-tight">
-      Prerequisites<span class="pipe" aria-hidden="true">|</span>
-    </h2>
+    <h2 class="text-text-primary mb-6 text-2xl font-bold tracking-tight">Prerequisites</h2>
 
     <div
       class="border-border-subtle bg-surface-elevated rounded-[var(--docs-radius-card,1rem)] border p-6"
@@ -122,9 +123,7 @@ export default {
 
   <!-- Installation -->
   <section class="mb-14">
-    <h2 class="text-text-primary mb-6 text-2xl font-bold tracking-tight">
-      Installation<span class="pipe" aria-hidden="true">|</span>
-    </h2>
+    <h2 class="text-text-primary mb-6 text-2xl font-bold tracking-tight">Installation</h2>
 
     <CodeExample title="Install Urbicon UI" code={installExample} language="bash" preview={false} />
 
@@ -150,9 +149,7 @@ export default {
 
   <!-- Basic Setup -->
   <section class="mb-14">
-    <h2 class="text-text-primary mb-6 text-2xl font-bold tracking-tight">
-      Basic setup<span class="pipe" aria-hidden="true">|</span>
-    </h2>
+    <h2 class="text-text-primary mb-6 text-2xl font-bold tracking-tight">Basic setup</h2>
 
     <div class="space-y-6">
       <div>
@@ -181,9 +178,7 @@ export default {
 
   <!-- First Component -->
   <section class="mb-14">
-    <h2 class="text-text-primary mb-6 text-2xl font-bold tracking-tight">
-      Your first component<span class="pipe" aria-hidden="true">|</span>
-    </h2>
+    <h2 class="text-text-primary mb-6 text-2xl font-bold tracking-tight">Your first component</h2>
 
     <CodeExample title="Hello world" code={firstComponentExample}>
       <div class="w-full max-w-sm space-y-4">
@@ -200,9 +195,7 @@ export default {
 
   <!-- Theme Customization -->
   <section class="mb-14">
-    <h2 class="text-text-primary mb-6 text-2xl font-bold tracking-tight">
-      Theme customization<span class="pipe" aria-hidden="true">|</span>
-    </h2>
+    <h2 class="text-text-primary mb-6 text-2xl font-bold tracking-tight">Theme customization</h2>
 
     <p class="text-text-secondary mb-6 max-w-2xl leading-relaxed">
       Urbicon UI uses Tailwind 4's
@@ -221,9 +214,7 @@ export default {
 
   <!-- Next Steps -->
   <section class="mb-14">
-    <h2 class="text-text-primary mb-6 text-2xl font-bold tracking-tight">
-      Next steps<span class="pipe" aria-hidden="true">|</span>
-    </h2>
+    <h2 class="text-text-primary mb-6 text-2xl font-bold tracking-tight">Next steps</h2>
 
     <div class="grid grid-cols-1 gap-4 md:grid-cols-2">
       <Card href={resolve('/blocks')} class="group h-full">
@@ -276,9 +267,7 @@ export default {
 
   <!-- Performance Tips -->
   <section class="mb-4">
-    <h2 class="text-text-primary mb-6 text-2xl font-bold tracking-tight">
-      Performance tips<span class="pipe" aria-hidden="true">|</span>
-    </h2>
+    <h2 class="text-text-primary mb-6 text-2xl font-bold tracking-tight">Performance tips</h2>
 
     <div class="space-y-3">
       <div

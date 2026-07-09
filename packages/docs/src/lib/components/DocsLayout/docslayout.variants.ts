@@ -4,15 +4,25 @@ export const docsLayoutVariants = tv({
   slots: {
     container: ['min-h-screen bg-surface-base'],
     wrapper: ['flex w-full max-w-screen-2xl mx-auto'],
-    main: ['flex-1 px-6 pt-0 pb-12'],
+    main: ['flex-1 px-6 pt-8 pb-12'],
     content: ['flex flex-col'],
 
-    header: ['mb-8 flex flex-col gap-3'],
+    // The header is a full-width band (direct child of `container`, spanning
+    // everything right of the app sidebar). Its background paints edge-to-edge;
+    // the `headerInner` re-imposes the content column so the title lines up
+    // with the body below. The `maxWidth`/`sidebar` variants keep `headerInner`
+    // + `stickyBarInner` in lockstep with `main`'s column width.
+    header: ['bg-surface-base'],
+    headerInner: ['mx-auto flex flex-col gap-3 px-6 pt-5 pb-9'],
     title: ['text-3xl font-extrabold tracking-tight text-text-primary'],
     subtitle: ['max-w-2xl text-lg leading-relaxed text-text-secondary'],
 
-    stickyBar: ['sticky top-14 lg:top-0 z-(--z-sticky)', '-mx-6 bg-surface-base'],
-    stickyBarInner: ['relative mx-6'],
+    // Sticky breadcrumb strip — full-width band pinned to the top. Because it
+    // is a direct child of the tall `container`, it stays pinned for the whole
+    // page scroll (its containing block is the full page, not a short header
+    // box). `stickyBarInner` aligns the crumb + source with the content column.
+    stickyBar: ['sticky top-14 lg:top-0 z-(--z-sticky) bg-surface-base'],
+    stickyBarInner: ['mx-auto px-6'],
 
     pageToolbar: [
       'flex items-center gap-2',
@@ -36,23 +46,34 @@ export const docsLayoutVariants = tv({
     ]
   },
   variants: {
+    // `main` caps + centres the body column; `headerInner`/`stickyBarInner`
+    // mirror the same cap so the full-width band's inner content lines up with
+    // it. For sidebar pages the `sidebar` compound below widens both to
+    // `max-w-screen-2xl` and lets `main` fill its column (left-aligned), so the
+    // title sits directly above the content.
     maxWidth: {
-      sm: { main: 'max-w-2xl mx-auto' },
-      md: { main: 'max-w-3xl mx-auto' },
-      lg: { main: 'max-w-4xl mx-auto' },
-      xl: { main: 'max-w-5xl mx-auto' },
-      '2xl': { main: 'max-w-6xl mx-auto' },
-      '7xl': { main: 'max-w-7xl mx-auto' }
+      sm: { main: 'max-w-2xl mx-auto', headerInner: 'max-w-2xl', stickyBarInner: 'max-w-2xl' },
+      md: { main: 'max-w-3xl mx-auto', headerInner: 'max-w-3xl', stickyBarInner: 'max-w-3xl' },
+      lg: { main: 'max-w-4xl mx-auto', headerInner: 'max-w-4xl', stickyBarInner: 'max-w-4xl' },
+      xl: { main: 'max-w-5xl mx-auto', headerInner: 'max-w-5xl', stickyBarInner: 'max-w-5xl' },
+      '2xl': { main: 'max-w-6xl mx-auto', headerInner: 'max-w-6xl', stickyBarInner: 'max-w-6xl' },
+      '7xl': { main: 'max-w-7xl mx-auto', headerInner: 'max-w-7xl', stickyBarInner: 'max-w-7xl' }
     },
+    // Applied AFTER `maxWidth` (object-key order), so `max-w-screen-2xl` /
+    // `max-w-none` win the `max-w` conflict bucket in tv() and override the cap
+    // for two-column pages: the body fills its column and the band spans the
+    // full inner width above main + toc.
     sidebar: {
       true: {
         wrapper: 'gap-8',
-        main: 'min-w-0'
+        main: 'min-w-0 max-w-none',
+        headerInner: 'max-w-screen-2xl',
+        stickyBarInner: 'max-w-screen-2xl'
       }
     },
     centered: {
       true: {
-        header: 'text-center',
+        headerInner: 'text-center',
         content: 'items-center'
       }
     }

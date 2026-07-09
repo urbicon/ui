@@ -104,8 +104,8 @@
     : styles.aside({ class: [slotClasses?.aside, className] })}
 >
   <p class={unstyled ? (slotClasses?.title ?? '') : styles.title({ class: slotClasses?.title })}>
-    <!-- Editorial: `meta-marker` renders the `// ` prefix in mono — only
-         picks up styling when the host page sets `.docs-editorial`. -->
+    <!-- `meta-marker` renders a mono kicker (Color Rooms drops the editorial
+         `//` prefix) — only styled when the host page sets `.docs-rooms`. -->
     <span class="meta-marker">{title}</span>
   </p>
   <nav class={unstyled ? (slotClasses?.nav ?? '') : styles.nav({ class: slotClasses?.nav })}>
@@ -146,9 +146,9 @@
 
   {#if related && related.length > 0}
     <!--
-      Editorial `// RELATED` block.
+      `RELATED` block.
       Sibling-list to the page-section nav above; the `meta-marker`
-      kicker matches the `// ON THIS PAGE` title. Hrefs are pre-resolved
+      kicker matches the `ON THIS PAGE` title. Hrefs are pre-resolved
       by the consumer, mirroring the existing TOC behaviour.
     -->
     <p
@@ -179,7 +179,7 @@
 
   {#if codeVisibility && showCodeToggle}
     <!--
-      Editorial `// CODE` block.
+      `CODE` block.
       Hosts the global show/hide-all-code toggle as a Mono action so the
       sticky-bar can carry the source-link instead. The block only
       renders when a code-visibility context is available — i.e. when
