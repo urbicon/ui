@@ -2,10 +2,20 @@ import { type SlotNames, tv, type VariantProps } from '$lib/utils/variants';
 
 export const sidebarLayoutVariants = tv({
   slots: {
-    root: ['min-h-screen', 'bg-surface-base'],
+    // `--sidebar-layout-header-h` is the published "pinned chrome above the
+    // content" height: the mobile-header height below lg, 0 on lg+ (where the
+    // header hides). Descendants with their own sticky elements (e.g.
+    // DocsLayout's breadcrumb strip) offset against it instead of hardcoding
+    // a copy of the h-14 — the responsive truth lives here, next to the
+    // element that causes it.
+    root: [
+      'min-h-screen',
+      'bg-surface-base',
+      '[--sidebar-layout-header-h:3.5rem] lg:[--sidebar-layout-header-h:0rem]'
+    ],
     mobileHeader: [
       'sticky top-0 z-[var(--z-sticky)]',
-      'flex h-14 items-center gap-3',
+      'flex h-(--sidebar-layout-header-h) items-center gap-3',
       'border-border-hairline bg-surface-base/80 border-b backdrop-blur-md',
       'px-4',
       'lg:hidden'
