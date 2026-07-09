@@ -254,3 +254,37 @@ internal TODO instead.
 - **Found:** 2026-07-09, while running axe over the rebuilt `/blocks`
   specimen-book page (all in-cell findings were resolved there by making
   specimen wrappers `inert`).
+
+### Rooms-skin secondary text on accent fields misses WCAG AA contrast
+
+- **Where:** `apps/docs/src/lib/style/rooms-docs.css` — the shared
+  `[data-docs-sticky-bar] / [data-docs-header] / [data-room-hero]` block remaps
+  `--color-text-secondary` (and `--docs-soft`, which `meta-marker`/`font-meta`
+  read) to `color-mix(in oklab, var(--room-accent-fg) 74%, transparent)`.
+- **What:** On the blocks-green field the resolved lede/kicker colour measures
+  a 3.01 contrast ratio against `#00845c` (axe `color-contrast`, needs 4.5:1
+  for normal-size text). This hits every hero lede, kicker and prerequisites
+  line on every room field across the skin — all section landings and every
+  component-page header — not any single page.
+- **Why deferred:** The 74%-translucent foreground is a deliberate Rooms
+  design decision (the quiet-on-field hierarchy). Fixing it is a skin-wide
+  design call: raise the mix toward ~88%+, keep the hierarchy via size/weight
+  instead of opacity, or consciously accept AA-large only for the lede. Wants
+  one decision applied to the whole remap block, with a VR pass over the four
+  rooms.
+- **Found:** 2026-07-10, axe over the rebuilt `/getting-started` build guide.
+
+### docs `CodePanel` code view: unnamed `role="textbox"` + Shiki comment tokens below AA
+
+- **Where:** `packages/docs` code panel (`data-docs-stage="example"` →
+  `[role="textbox"][aria-readonly="true"]`) and its Shiki theme (comment token
+  `#B8B5AD` on the cream `#fbfaf6` panel).
+- **What:** axe reports `aria-input-field-name` (serious) on the read-only
+  code textbox of every `CodeExample` (it has no accessible name), and
+  `color-contrast` 1.96 on syntax-highlighted comment lines. Affects every
+  docs page that renders code, on every route.
+- **Why deferred:** Both fixes live in the docs package, not in any page:
+  the textbox wants an `aria-label` derived from the panel title, and the
+  comment token wants a darker stop from the warm-neutral ramp picked against
+  both panel grounds. Library change + visual sweep across all code panels.
+- **Found:** 2026-07-10, axe over the rebuilt `/getting-started` build guide.
