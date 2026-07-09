@@ -76,6 +76,7 @@
       {#if item.href}
         <a
           href={resolveNav(item.href)}
+          aria-current={exact ? 'page' : undefined}
           class={[
             row,
             'min-h-11',
@@ -105,6 +106,7 @@
               {@const leafActive = isActive(entry.href, path)}
               <a
                 href={resolveNav(entry.href)}
+                aria-current={leafActive ? 'page' : undefined}
                 class={[
                   row,
                   'min-h-9',

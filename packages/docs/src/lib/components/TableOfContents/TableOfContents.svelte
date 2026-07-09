@@ -92,6 +92,7 @@
            would flag false positives for every TOC entry. -->
       <a
         href={item.href}
+        aria-current={isActive ? 'location' : undefined}
         class="{unstyled ? '' : styles.link()} {unstyled
           ? ''
           : isActive
@@ -106,6 +107,7 @@
           {@const childIsActive = active === child.id}
           <a
             href={child.href}
+            aria-current={childIsActive ? 'location' : undefined}
             class="{unstyled ? '' : styles.childLink()} {unstyled
               ? ''
               : childIsActive

@@ -67,19 +67,22 @@
   const spy = new ScrollSpy(() => navIds);
   const activeSection = $derived(spy.active);
 
-  // The badge names the top-level section the reader is in — when a nested
-  // child is active, its parent supplies the label.
-  const activeSectionTitle = $derived.by(() => {
-    if (!activeSection) return '';
-    const top = navigation.find(
+  // The badge names AND anchors to the top-level section the reader is in —
+  // when a nested child is active, its parent supplies both label and target,
+  // so the two never disagree.
+  const activeTopSection = $derived.by(() => {
+    if (!activeSection) return undefined;
+    return navigation.find(
       (n) => n.id === activeSection || n.children?.some((c) => c.id === activeSection)
     );
-    return top?.title ?? '';
   });
+  const activeSectionTitle = $derived(activeTopSection?.title ?? '');
 
-  // $effect (not onMount) so the spy follows `navigation` — a SvelteKit
-  // navigation swaps the section set without remounting the layout, and the
-  // spy has to re-observe (and recompute immediately) against the new ids.
+  // $effect (not onMount) so the spy re-observes (recomputing immediately)
+  // when the id set changes, and tears down on unmount. In this app the
+  // layout remounts per page anyway — the reactive read matters for layouts
+  // whose `navigation` prop changes in place, and keeps the wiring symmetric
+  // with the headerEl observer below.
   $effect(() => {
     if (!useCollapsingHeader && !(showToc && navigation.length > 0)) return;
     void navIds;
@@ -264,7 +267,7 @@
             <span class="bg-text-tertiary/40 mr-2 size-1 shrink-0 rounded-full" aria-hidden="true"
             ></span>
             <a
-              href="#{activeSection}"
+              href="#{activeTopSection?.id ?? activeSection}"
               data-docs-scrollspy
               class="text-primary bg-primary-subtle hover:bg-primary-subtle/80 rounded-modify max-w-40 shrink-0 truncate px-2 py-0.5 text-xs font-medium whitespace-nowrap transition-colors"
               tabindex={scrolledPastHeader ? 0 : -1}

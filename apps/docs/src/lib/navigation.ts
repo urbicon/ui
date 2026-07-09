@@ -12,6 +12,12 @@ export type NavHref = Parameters<typeof resolve>[0];
  * `resolve()` for nav entries. Validity is already enforced by the NavHref
  * type above; the cast only bridges resolve()'s per-route overloads, which
  * reject the (valid) union type.
+ *
+ * CAVEAT: this assumes every nav href is a STATIC route (true today — the
+ * docs app has no dynamic segments). A dynamic route id (`/foo/[id]`) would
+ * type-check as NavHref but needs resolve()'s second `params` argument,
+ * which this helper never passes — add a params-aware overload before
+ * putting a dynamic route into the nav.
  */
 export function resolveNav(href: NavHref): string {
   return (resolve as (route: string) => string)(href);
@@ -122,6 +128,7 @@ export const navigationItems: NavItem[] = [
         group: true,
         children: [
           { name: 'Breadcrumb', href: '/blocks/primitives/breadcrumb' },
+          { name: 'JourneyTimeline', href: '/blocks/primitives/journey-timeline' },
           { name: 'Pagination', href: '/blocks/primitives/pagination' },
           { name: 'SegmentGroup', href: '/blocks/primitives/segment-group' },
           { name: 'Stepper', href: '/blocks/primitives/stepper' },
