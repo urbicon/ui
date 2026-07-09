@@ -90,15 +90,24 @@
 
   // Room → field mapping (from the mockup). Hero + AI share f[0]; Table + install
   // share f[2]. Each room repaints with a staggered delay for the room-by-room
-  // "repaint the building" effect.
+  // "repaint the building" effect. `id` doubles as the hero index-panel anchor.
   const hero = $derived(fields[0]);
   const rooms = $derived([
-    { key: 'blocks', field: fields[1], delay: '0.04s' },
-    { key: 'table', field: fields[2], delay: '0.08s' },
-    { key: 'auth', field: fields[3], delay: '0.12s' },
-    { key: 'ai', field: fields[0], delay: '0.16s' }
+    { key: 'blocks', id: 'blocks', field: fields[1], delay: '0.04s' },
+    { key: 'table', id: 'table', field: fields[2], delay: '0.08s' },
+    { key: 'auth', id: 'auth', field: fields[3], delay: '0.12s' },
+    { key: 'ai', id: 'design', field: fields[0], delay: '0.16s' }
   ] as const);
   const install = $derived(fields[2]);
+
+  // Hero index panel — the inverted "what's in the set" register. One row per
+  // room, anchored to the tiles below.
+  const PANEL_ITEMS = [
+    { href: '#blocks', name: 'Blocks', sub: '55 components, one grammar' },
+    { href: '#table', name: 'Table', sub: 'live remote mode' },
+    { href: '#auth', name: 'Auth', sub: 'passkeys, Web Crypto only' },
+    { href: '#design', name: 'Design', sub: 'your agent gets reviewed' }
+  ] as const;
 
   // ── Blocks specimen: a real mini settings panel ───────────────────
   let section = $state('general');
@@ -235,7 +244,7 @@
   <main id="main-content">
     <!-- ─────────────────────────── Hero ─────────────────────────── -->
     <section
-      class="rooms-field flex min-h-[80vh] flex-col justify-between px-6 pt-7 pb-10 sm:px-12"
+      class="rooms-field flex min-h-[70svh] flex-col justify-between px-6 pt-7 pb-10 sm:px-12 lg:min-h-[72vh]"
       style="background: {hero.bg}; color: {hero.fg}"
     >
       <div class="flex items-center justify-between gap-4">
@@ -259,14 +268,50 @@
         </nav>
       </div>
 
-      <h1
-        class={[
-          'max-w-[900px] text-[clamp(3rem,9vw,6.25rem)] transition-[transform,opacity] duration-700',
-          ready ? 'translate-y-0 opacity-100' : 'translate-y-3 opacity-0'
-        ]}
+      <div
+        class="flex flex-1 flex-col justify-center gap-12 py-10 lg:flex-row lg:items-center lg:justify-between lg:gap-16"
       >
-        Depends on nothing.
-      </h1>
+        <h1
+          class={[
+            'max-w-[600px] text-[clamp(2.75rem,6.5vw,5.25rem)] transition-[transform,opacity] duration-700',
+            ready ? 'translate-y-0 opacity-100' : 'translate-y-3 opacity-0'
+          ]}
+        >
+          Depends on nothing.
+        </h1>
+
+        <!-- Inverted index panel — answers "what's in it?" without a scroll.
+             The arrows carry the hero field colour, so the panel repaints with
+             the channel like everything else. -->
+        <nav
+          aria-label="The set"
+          class={[
+            'w-full max-w-[440px] shrink-0 p-6 transition-[transform,opacity] delay-100 duration-700 sm:p-7',
+            ready ? 'translate-y-0 opacity-100' : 'translate-y-3 opacity-0'
+          ]}
+          style="background: {INK}; color: {CREAM}"
+        >
+          <p class="font-mono text-[11px] tracking-[0.14em] uppercase opacity-60">The set</p>
+          <ul class="mt-1.5">
+            {#each PANEL_ITEMS as item, i (item.href)}
+              <li style={i > 0 ? 'border-top: 1px solid rgb(246 243 236 / 0.18)' : ''}>
+                <a href={item.href} class="group flex items-baseline gap-4 py-3.5">
+                  <span class="text-[clamp(1.1rem,1.5vw,1.35rem)] font-semibold tracking-[-0.01em]"
+                    >{item.name}</span
+                  >
+                  <span class="flex-1 text-right text-[12.5px] opacity-65">{item.sub}</span>
+                  <span
+                    aria-hidden="true"
+                    class="font-bold group-hover:translate-x-1"
+                    style="color: {hero.bg}; transition: color 0.5s ease, transform 0.15s ease"
+                    >→</span
+                  >
+                </a>
+              </li>
+            {/each}
+          </ul>
+        </nav>
+      </div>
 
       <div
         class={[
@@ -283,7 +328,7 @@
             <span class="text-[clamp(1.75rem,4vw,2.5rem)] font-bold tracking-[-0.03em]">1</span>
           </div>
           <p class="mt-2 max-w-[280px] text-[12.5px] opacity-80">
-            packages in a typical UI stack — vs. this one. 55 components · Svelte 5.
+            packages in a typical UI stack — vs. this one. Svelte 5.
           </p>
         </div>
 
@@ -308,6 +353,7 @@
       {#each rooms as room (room.key)}
         <div
           class="rooms-field flex min-h-[560px] flex-col px-6 py-10 sm:px-12"
+          id={room.id}
           style="background: {room.field.bg}; color: {room.field.fg}; --room-delay: {room.delay}"
         >
           {#if room.key === 'blocks'}
