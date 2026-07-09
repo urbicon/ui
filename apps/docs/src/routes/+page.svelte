@@ -174,6 +174,53 @@
     ];
   }
 
+  // ── "View source" flip ────────────────────────────────────────────
+  // Each specimen card can flip to the handful of Svelte lines that render
+  // it — result, code and theming in one screen. The excerpts are honest
+  // abridgements of this very file (state wiring elided, no invented API).
+  let sourceShown = $state({ blocks: false, table: false, auth: false });
+  type SpecimenKey = keyof typeof sourceShown;
+  const SPECIMEN_SOURCE: Record<SpecimenKey, string> = {
+    blocks: `<SegmentGroup bind:value={section} size="sm">
+  <SegmentItem value="general">General</SegmentItem>
+  <SegmentItem value="display">Display</SegmentItem>
+  <SegmentItem value="sync">Sync</SegmentItem>
+</SegmentGroup>
+
+<Input bind:value={workspace} label="Workspace" size="sm" />
+<LocaleSwitcher size="sm" showFlag variant="outlined" />
+<DatePicker bind:value={renewal} label="Renewal date" size="sm" />
+
+<Button variant="outlined" size="sm">Reset</Button>
+<Button intent="primary" size="sm">Save changes</Button>`,
+    table: `<Table
+  items={rows}
+  columns={[
+    { accessor: 'region', title: 'Region', sortable: true },
+    { accessor: 'status', title: 'Status', cell: statusBadge },
+    { accessor: 'p95', title: 'p95', dataType: 'number' }
+  ]}
+  selectionMode="single"
+  selectedIds={selected}
+  itemsPerPage={6}
+/>`,
+    auth: `<Avatar name="Nora Ackermann" size="sm" />
+
+<Button intent="primary" class="w-full" onclick={signIn}>
+  {#if authState === 'ok'}
+    <CheckIcon /> nora@atelier.de
+  {:else if authState === 'pending'}
+    <Spinner size="sm" /> Verifying…
+  {:else}
+    <PasskeyIcon /> Continue with passkey
+  {/if}
+</Button>
+
+<Badge intent="neutral" variant="outlined">
+  WebAuthn
+</Badge>`
+  };
+
   // ── Install specimen: copy-to-clipboard ───────────────────────────
   const INSTALL_COMMAND = 'bun add @urbicon-ui/blocks';
   let copied = $state(false);
@@ -207,8 +254,6 @@
 
 <SeoMeta />
 
-<!-- Palette channel switcher — reused in the hero (compact) and the repaint
-     section (with labels). Real control: repaints the whole page. -->
 {#snippet statusCell(_item: EdgeRow, value: unknown)}
   <!-- Palette-true status: `primary` rides the room accent, `neutral` stays
        warm grey — no foreign intent hues inside a room (same rule as the
@@ -220,6 +265,30 @@
   >
 {/snippet}
 
+<!-- Source flip — the ink chip on each specimen card's corner and the dark
+     code pane it toggles to. Result, code and theming share one screen. -->
+{#snippet sourceFlip(key: SpecimenKey)}
+  <button
+    type="button"
+    class="absolute -top-3 -right-3 flex h-7 items-center border px-2 font-mono text-[11px] font-bold transition-opacity hover:opacity-85 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-current"
+    style="background: {INK}; color: {CREAM}; border-color: rgb(246 243 236 / 0.25)"
+    aria-pressed={sourceShown[key]}
+    aria-label={sourceShown[key] ? 'Show the rendered result' : 'Show the source code'}
+    onclick={() => (sourceShown[key] = !sourceShown[key])}
+  >
+    {sourceShown[key] ? 'UI' : '</>'}
+  </button>
+{/snippet}
+
+{#snippet sourcePane(code: string)}
+  <div class="poster-term p-5 font-mono text-[12px] leading-[1.75]">
+    <p class="mb-3 opacity-55"># this card, verbatim</p>
+    <pre class="overflow-x-auto whitespace-pre">{code}</pre>
+  </div>
+{/snippet}
+
+<!-- Palette channel switcher — reused in the hero (compact) and the repaint
+     section (with labels). Real control: repaints the whole page. -->
 {#snippet paletteSwitcher(withLabel: boolean, onField: boolean)}
   <div class="flex flex-wrap gap-3">
     {#each CHANNEL_ORDER as key (key)}
@@ -387,79 +456,87 @@
             </p>
 
             <div class="my-7 flex-1">
-              <div
-                class="poster-card room-accent max-w-[540px] p-5"
-                style="--room-accent: {room.field.bg}; --room-accent-fg: {room.field.fg}"
-              >
-                <div class="flex items-center justify-between gap-4">
-                  <span class="text-[13px] font-bold text-text-primary">Preferences</span>
-                  <SegmentGroup bind:value={section} size="sm" ariaLabel="Settings section">
-                    <SegmentItem value="general">General</SegmentItem>
-                    <SegmentItem value="display">Display</SegmentItem>
-                    <SegmentItem value="sync">Sync</SegmentItem>
-                  </SegmentGroup>
-                </div>
+              <div class="relative max-w-[540px]">
+                {#if sourceShown.blocks}
+                  {@render sourcePane(SPECIMEN_SOURCE.blocks)}
+                {:else}
+                  <div
+                    class="poster-card room-accent p-5"
+                    style="--room-accent: {room.field.bg}; --room-accent-fg: {room.field.fg}"
+                  >
+                    <div class="flex items-center justify-between gap-4">
+                      <span class="text-[13px] font-bold text-text-primary">Preferences</span>
+                      <SegmentGroup bind:value={section} size="sm" ariaLabel="Settings section">
+                        <SegmentItem value="general">General</SegmentItem>
+                        <SegmentItem value="display">Display</SegmentItem>
+                        <SegmentItem value="sync">Sync</SegmentItem>
+                      </SegmentGroup>
+                    </div>
 
-                <div class="mt-4 grid gap-4 sm:grid-cols-2">
-                  {#if section === 'general'}
-                    <Input bind:value={workspace} label="Workspace" size="sm" />
-                    <div class="flex flex-col gap-1.5">
-                      <span class="text-[12px] font-semibold text-text-secondary">Language</span>
-                      <LocaleSwitcher
-                        size="sm"
-                        showFlag
-                        variant="outlined"
-                        onLocaleChange={persistLocale}
-                      />
+                    <div class="mt-4 grid gap-4 sm:grid-cols-2">
+                      {#if section === 'general'}
+                        <Input bind:value={workspace} label="Workspace" size="sm" />
+                        <div class="flex flex-col gap-1.5">
+                          <span class="text-[12px] font-semibold text-text-secondary">Language</span
+                          >
+                          <LocaleSwitcher
+                            size="sm"
+                            showFlag
+                            variant="outlined"
+                            onLocaleChange={persistLocale}
+                          />
+                        </div>
+                        <div class="sm:col-span-2">
+                          <DatePicker
+                            bind:value={renewal}
+                            label="Renewal date"
+                            locale={dpLocale}
+                            size="sm"
+                            clearable={false}
+                          />
+                        </div>
+                      {:else if section === 'display'}
+                        <div class="sm:col-span-2 flex flex-col gap-3">
+                          <Toggle bind:checked={compact} label="Compact density" />
+                          <Toggle bind:checked={reduceMotion} label="Reduce motion" />
+                        </div>
+                        <div class="sm:col-span-2">
+                          <Slider
+                            bind:value={density}
+                            min={0}
+                            max={100}
+                            label="Grid density"
+                            showValue
+                            formatValue={(v) => `${v}%`}
+                          />
+                        </div>
+                      {:else}
+                        <div class="flex flex-col gap-3">
+                          <Toggle bind:checked={autosave} label="Autosave" />
+                          <Toggle bind:checked={telemetry} label="Telemetry" />
+                        </div>
+                        <div class="flex flex-col gap-1.5">
+                          <span class="text-[12px] font-semibold text-text-secondary">Usage</span>
+                          <Sparkline
+                            data={usage}
+                            area
+                            showEndPoint
+                            width={200}
+                            height={44}
+                            ariaLabel="Usage trend, last 10 days"
+                            class="w-full"
+                          />
+                        </div>
+                      {/if}
                     </div>
-                    <div class="sm:col-span-2">
-                      <DatePicker
-                        bind:value={renewal}
-                        label="Renewal date"
-                        locale={dpLocale}
-                        size="sm"
-                        clearable={false}
-                      />
-                    </div>
-                  {:else if section === 'display'}
-                    <div class="sm:col-span-2 flex flex-col gap-3">
-                      <Toggle bind:checked={compact} label="Compact density" />
-                      <Toggle bind:checked={reduceMotion} label="Reduce motion" />
-                    </div>
-                    <div class="sm:col-span-2">
-                      <Slider
-                        bind:value={density}
-                        min={0}
-                        max={100}
-                        label="Grid density"
-                        showValue
-                        formatValue={(v) => `${v}%`}
-                      />
-                    </div>
-                  {:else}
-                    <div class="flex flex-col gap-3">
-                      <Toggle bind:checked={autosave} label="Autosave" />
-                      <Toggle bind:checked={telemetry} label="Telemetry" />
-                    </div>
-                    <div class="flex flex-col gap-1.5">
-                      <span class="text-[12px] font-semibold text-text-secondary">Usage</span>
-                      <Sparkline
-                        data={usage}
-                        area
-                        showEndPoint
-                        width={200}
-                        height={44}
-                        ariaLabel="Usage trend, last 10 days"
-                        class="w-full"
-                      />
-                    </div>
-                  {/if}
-                </div>
 
-                <div class="mt-5 flex justify-end gap-2.5">
-                  <Button variant="outlined" size="sm">Reset</Button>
-                  <Button intent="primary" size="sm">Save changes</Button>
-                </div>
+                    <div class="mt-5 flex justify-end gap-2.5">
+                      <Button variant="outlined" size="sm">Reset</Button>
+                      <Button intent="primary" size="sm">Save changes</Button>
+                    </div>
+                  </div>
+                {/if}
+                {@render sourceFlip('blocks')}
               </div>
             </div>
 
@@ -484,39 +561,47 @@
             </p>
 
             <div class="my-7 flex-1">
-              <div
-                class="poster-card room-accent max-w-[540px] p-4"
-                style="--room-accent: {room.field.bg}; --room-accent-fg: {room.field.fg}"
-              >
-                <div
-                  class="mb-2 flex items-center justify-between px-1 font-mono text-[11px] tracking-[0.04em] text-text-secondary"
-                >
-                  <span>edge.latency — {tableRows.length} rows</span>
-                  <span class="inline-flex items-center gap-1.5">
-                    <span class="pulse-dot inline-block h-1.5 w-1.5 rounded-full bg-primary"></span>
-                    live
-                  </span>
-                </div>
-                <Table
-                  items={tableRows}
-                  columns={[
-                    { accessor: 'region', title: 'Region', sortable: true },
-                    { accessor: 'status', title: 'Status', sortable: true, cell: statusCell },
-                    {
-                      accessor: 'p95',
-                      title: 'p95',
-                      sortable: true,
-                      dataType: 'number',
-                      align: 'right'
-                    }
-                  ]}
-                  selectionMode="single"
-                  selectedIds={tableSelected}
-                  onSelectionChange={(items) => (tableSelected = items.map((r) => r.id))}
-                  enableSmartFilter={false}
-                  itemsPerPage={6}
-                  slotClasses={{ table: '!min-w-0' }}
-                />
+              <div class="relative max-w-[540px]">
+                {#if sourceShown.table}
+                  {@render sourcePane(SPECIMEN_SOURCE.table)}
+                {:else}
+                  <div
+                    class="poster-card room-accent p-4"
+                    style="--room-accent: {room.field.bg}; --room-accent-fg: {room.field.fg}"
+                  >
+                    <div
+                      class="mb-2 flex items-center justify-between px-1 font-mono text-[11px] tracking-[0.04em] text-text-secondary"
+                    >
+                      <span>edge.latency — {tableRows.length} rows</span>
+                      <span class="inline-flex items-center gap-1.5">
+                        <span class="pulse-dot inline-block h-1.5 w-1.5 rounded-full bg-primary"
+                        ></span>
+                        live
+                      </span>
+                    </div>
+                    <Table
+                      items={tableRows}
+                      columns={[
+                        { accessor: 'region', title: 'Region', sortable: true },
+                        { accessor: 'status', title: 'Status', sortable: true, cell: statusCell },
+                        {
+                          accessor: 'p95',
+                          title: 'p95',
+                          sortable: true,
+                          dataType: 'number',
+                          align: 'right'
+                        }
+                      ]}
+                      selectionMode="single"
+                      selectedIds={tableSelected}
+                      onSelectionChange={(items) => (tableSelected = items.map((r) => r.id))}
+                      enableSmartFilter={false}
+                      itemsPerPage={6}
+                      slotClasses={{ table: '!min-w-0' }}
+                    />
+                  </div>
+                {/if}
+                {@render sourceFlip('table')}
               </div>
             </div>
 
@@ -541,51 +626,62 @@
             </p>
 
             <div class="my-7 flex flex-1 items-start">
-              <div
-                class="poster-card room-accent w-[340px] max-w-full p-6"
-                style="--room-accent: {room.field.bg}; --room-accent-fg: {room.field.fg}"
-              >
-                <div class="flex items-center gap-3">
-                  <Avatar name="Nora Ackermann" size="sm" />
-                  <div>
-                    <p class="text-[15px] font-bold text-text-primary">Sign in to Atelier Nord</p>
-                    <p class="text-[12.5px] text-text-secondary">
-                      No passwords stored, nothing to leak.
-                    </p>
+              <div class={['relative max-w-full', sourceShown.auth ? 'w-[460px]' : 'w-[340px]']}>
+                {#if sourceShown.auth}
+                  {@render sourcePane(SPECIMEN_SOURCE.auth)}
+                {:else}
+                  <div
+                    class="poster-card room-accent w-[340px] max-w-full p-6"
+                    style="--room-accent: {room.field.bg}; --room-accent-fg: {room.field.fg}"
+                  >
+                    <div class="flex items-center gap-3">
+                      <Avatar name="Nora Ackermann" size="sm" />
+                      <div>
+                        <p class="text-[15px] font-bold text-text-primary">
+                          Sign in to Atelier Nord
+                        </p>
+                        <p class="text-[12.5px] text-text-secondary">
+                          No passwords stored, nothing to leak.
+                        </p>
+                      </div>
+                    </div>
+
+                    <div class="mt-5">
+                      <Button
+                        intent="primary"
+                        class="w-full"
+                        onclick={doAuth}
+                        disabled={authState === 'pending'}
+                      >
+                        {#if authState === 'ok'}
+                          <CheckIcon class="h-4 w-4" /> nora@atelier.de
+                        {:else if authState === 'pending'}
+                          <Spinner size="sm" /> Verifying…
+                        {:else}
+                          <PasskeyIcon class="h-4 w-4" /> Continue with passkey
+                        {/if}
+                      </Button>
+                    </div>
+
+                    <div class="mt-4 flex items-center justify-between">
+                      {#if authState === 'ok'}
+                        <span class="text-[12.5px] text-text-secondary"
+                          >passkey verified · session started</span
+                        >
+                      {:else}
+                        <a
+                          href={resolve('/auth')}
+                          class="text-[12.5px] text-text-secondary underline"
+                          >or email a magic link</a
+                        >
+                      {/if}
+                      <Badge intent="neutral" variant="outlined" class="font-mono text-[10px]"
+                        >WebAuthn</Badge
+                      >
+                    </div>
                   </div>
-                </div>
-
-                <div class="mt-5">
-                  <Button
-                    intent="primary"
-                    class="w-full"
-                    onclick={doAuth}
-                    disabled={authState === 'pending'}
-                  >
-                    {#if authState === 'ok'}
-                      <CheckIcon class="h-4 w-4" /> nora@atelier.de
-                    {:else if authState === 'pending'}
-                      <Spinner size="sm" /> Verifying…
-                    {:else}
-                      <PasskeyIcon class="h-4 w-4" /> Continue with passkey
-                    {/if}
-                  </Button>
-                </div>
-
-                <div class="mt-4 flex items-center justify-between">
-                  {#if authState === 'ok'}
-                    <span class="text-[12.5px] text-text-secondary"
-                      >passkey verified · session started</span
-                    >
-                  {:else}
-                    <a href={resolve('/auth')} class="text-[12.5px] text-text-secondary underline"
-                      >or email a magic link</a
-                    >
-                  {/if}
-                  <Badge intent="neutral" variant="outlined" class="font-mono text-[10px]"
-                    >WebAuthn</Badge
-                  >
-                </div>
+                {/if}
+                {@render sourceFlip('auth')}
               </div>
             </div>
 
