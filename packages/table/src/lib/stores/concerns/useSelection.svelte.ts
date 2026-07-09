@@ -90,6 +90,14 @@ export function useSelection(state: TableState, getFilteredItems: () => TableIte
   }
 
   function setSelectedIds(ids: Array<string | number>) {
+    // Idempotent: a controlled parent echoing the current selection back
+    // (the selectedIds + onSelectionChange round trip) must not re-mutate
+    // the set — clear()+add() of identical ids still bumps the per-key
+    // sources, which re-invalidates `selectedItems`, re-fires
+    // onSelectionChange and ping-pongs the controlled loop per flush.
+    if (ids.length === state.selectedIds.size && ids.every((id) => state.selectedIds.has(id))) {
+      return;
+    }
     state.selectedIds.clear();
     for (const id of ids) state.selectedIds.add(id);
   }

@@ -161,11 +161,15 @@
   // applying, so the setSelectedIds wrapper's syncSelection sees it and skips
   // persisting — a controlled value is never mirrored to storage (persistSelection
   // is a true no-op in controlled mode). `!== undefined` so an empty controlled
-  // array still counts as controlled.
+  // array still counts as controlled. untrack keeps this effect keyed only on
+  // the prop: setSelectedIds reads `state.selectedIds` on its write path
+  // (SvelteSet mutation + syncSelection), so without it every internal row
+  // click re-runs the effect, which re-asserts the stale prop value and
+  // freezes the selection against user interaction.
   $effect(() => {
     state.selectionControlled = selectedIds !== undefined;
     if (selectedIds) {
-      tableState.setSelectedIds(selectedIds);
+      untrack(() => tableState.setSelectedIds(selectedIds));
     }
   });
 

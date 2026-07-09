@@ -1072,6 +1072,41 @@ describe('useSelection', () => {
     expect(state.selectedIds.has(3)).toBe(true);
   });
 
+  it('contract: setSelectedIds is a no-op for an identical id set', async () => {
+    const { useSelection } = await import('./useSelection.svelte.js');
+    const state = makeState('multi');
+    // A controlled parent echoing the current selection back (selectedIds +
+    // onSelectionChange round trip) must not re-mutate the set: in the real
+    // store the set is a SvelteSet, so clear()+add() of identical ids bumps
+    // the per-key sources and ping-pongs the controlled loop per flush.
+    let mutations = 0;
+    class CountingSet extends Set<string | number> {
+      override clear() {
+        mutations += 1;
+        super.clear();
+      }
+      override add(value: string | number) {
+        mutations += 1;
+        return super.add(value);
+      }
+      override delete(value: string | number) {
+        mutations += 1;
+        return super.delete(value);
+      }
+    }
+    state.selectedIds = new CountingSet([2, 3]);
+    const sel = useSelection(state, () => state.items);
+
+    mutations = 0;
+    sel.setSelectedIds([3, 2]); // same ids, different order — still identical
+    expect(mutations).toBe(0);
+
+    sel.setSelectedIds([1]); // genuinely different — replaces as before
+    expect(mutations).toBeGreaterThan(0);
+    expect(state.selectedIds.size).toBe(1);
+    expect(state.selectedIds.has(1)).toBe(true);
+  });
+
   it('contract: toggleAll selects all when none selected', async () => {
     const { useSelection } = await import('./useSelection.svelte.js');
     const state = makeState('multi');
