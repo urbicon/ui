@@ -33,7 +33,7 @@ export interface TocNavigationItem {
 }
 
 export interface TableOfContentsProps extends TableOfContentsVariantProps {
-  /** Heading rendered above the nav links. */
+  /** Heading rendered above the nav links. Defaults to the localized "On this page". */
   title?: string;
   /** Navigation items with optional nested children. */
   navigation: TocNavigationItem[];
@@ -76,7 +76,8 @@ export interface TableOfContentsProps extends TableOfContentsVariantProps {
       | 'relatedNav'
       | 'relatedLink'
       | 'codeTitle'
-      | 'codeToggle',
+      | 'codeToggle'
+      | 'codeToggleLabel',
       string
     >
   >;

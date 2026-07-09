@@ -9,7 +9,7 @@
   const dt = useDocsI18n();
 
   let {
-    title = 'On this page',
+    title,
     navigation = [],
     position = 'right',
     width = 'md',
@@ -31,6 +31,10 @@
   );
 
   const styles = $derived(tableOfContentsVariants({ position, width }));
+
+  // Kickers resolve through the docs i18n unless the consumer overrides
+  // `title` explicitly (the RELATED/CODE kickers are always localized).
+  const tocTitle = $derived(title ?? dt('tocOnThisPage'));
 
   const navigationItems = $derived(
     navigation.map((item) => ({
@@ -77,7 +81,7 @@
   <p class={unstyled ? (slotClasses?.title ?? '') : styles.title({ class: slotClasses?.title })}>
     <!-- `meta-marker` renders a mono kicker (Color Rooms drops the editorial
          `//` prefix) — only styled when the host page sets `.docs-rooms`. -->
-    <span class="meta-marker">{title}</span>
+    <span class="meta-marker">{tocTitle}</span>
   </p>
   <nav class={unstyled ? (slotClasses?.nav ?? '') : styles.nav({ class: slotClasses?.nav })}>
     {#each navigationItems as item (item.id)}
@@ -127,7 +131,7 @@
         ? (slotClasses?.relatedTitle ?? '')
         : styles.relatedTitle({ class: slotClasses?.relatedTitle })}
     >
-      <span class="meta-marker">Related</span>
+      <span class="meta-marker">{dt('tocRelated')}</span>
     </p>
     <nav
       class={unstyled
@@ -162,7 +166,7 @@
         ? (slotClasses?.codeTitle ?? '')
         : styles.codeTitle({ class: slotClasses?.codeTitle })}
     >
-      <span class="meta-marker">Code</span>
+      <span class="meta-marker">{dt('tocCode')}</span>
     </p>
     <button
       type="button"
@@ -177,7 +181,13 @@
       {:else}
         <CodeIcon class="h-3.5 w-3.5 shrink-0" aria-hidden="true" />
       {/if}
-      <span>{codeToggleLabel}</span>
+      <span
+        class={unstyled
+          ? (slotClasses?.codeToggleLabel ?? '')
+          : styles.codeToggleLabel({ class: slotClasses?.codeToggleLabel })}
+      >
+        {codeToggleLabel}
+      </span>
     </button>
   {/if}
 </aside>

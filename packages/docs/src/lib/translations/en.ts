@@ -2,6 +2,11 @@ export default {
   // Navigation & Layout
   contents: 'Contents',
 
+  // TableOfContents
+  tocOnThisPage: 'On this page',
+  tocRelated: 'Related',
+  tocCode: 'Code',
+
   // Playground
   livePreview: 'Live Preview',
   configuration: 'Configuration',
