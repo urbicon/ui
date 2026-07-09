@@ -11,12 +11,13 @@
  * brand green —
  *   /blocks  → green  #00845C     /auth → amber  #E3A31C
  *   /table   → wine   #7C1F2D     /ai   → orange #E8500F
- * (everything else falls back to the blocks green). The active room is fed in
- * as two custom properties from +layout.svelte (`--room-accent` +
- * `--room-accent-fg`), and the whole primary-derived token family is
- * re-resolved from them via `color-mix()` — so every real component on the
- * page (segment indicator, slider, toggle, buttons, TOC-active, badges) picks
- * up the room colour with no per-component override.
+ * (everything else falls back to the blocks green). The active room is
+ * selected via `data-room="…"` stamped by +layout.svelte — the route → room
+ * mapping in this file resolves it to `--room-accent` + `--room-accent-fg`,
+ * and the whole primary-derived token family is re-resolved from them via
+ * `color-mix()` — so every real component on the page (segment indicator,
+ * slider, toggle, buttons, TOC-active, badges) picks up the room colour with
+ * no per-component override.
  *
  * Structure mirrors the previous editorial theme it replaces:
  *   - one full light+dark theme via `light-dark()` (the docs keep their
@@ -28,7 +29,8 @@
  *
  * Activation: <html class="docs-rooms"> (the shipped default in app.html; the
  * sidebar's docs-theme toggle removes it for the bare library skin). The
- * per-route room accent lives on the `.docs-room-scope` wrapper (+layout).
+ * per-route room is stamped as `data-room` on the `.docs-room-scope` wrapper
+ * (+layout) and mirrored onto <html> after mount for portaled popovers.
  */
 
 .docs-rooms {
@@ -65,11 +67,13 @@
   --docs-hair: light-dark(rgb(23 21 15 / 0.08), rgb(240 237 229 / 0.08));
   --docs-line: light-dark(rgb(23 21 15 / 0.14), rgb(240 237 229 / 0.14));
 
-  /* Active room accent — the default is the blocks green; +layout.svelte
-   * overrides `--room-accent`/`--room-accent-fg` per route on the
-   * `.docs-room-scope` wrapper (content) and on <html> (for portaled
-   * popovers, which render outside the wrapper). The primary-derived family
-   * is re-resolved from these two vars in the shared block below. */
+  /* Active room accent — blocks green is the default room. The OTHER rooms
+   * are selected purely via `data-room="…"` (stamped by +layout.svelte on
+   * the `.docs-room-scope` wrapper for SSR-correct content, mirrored onto
+   * <html> after mount for portaled popovers) — see the route → room
+   * mapping below. The colour VALUES live only in this file. The
+   * primary-derived family is re-resolved from these two vars in the
+   * shared block further down. */
   --room-accent: #00845c;
   --room-accent-fg: #f6f3ec;
 
@@ -290,6 +294,26 @@
   --color-chart-4: color-mix(in oklab, var(--_a) 90%, #ffffff);
 }
 
+/* ── Route → room mapping ("Farbe = Ort") ────────────────────────────────
+ * The single source of the four room colours. +layout.svelte only stamps
+ * `data-room` (wrapper: SSR-correct first paint; <html>: portaled popovers
+ * after mount) — it carries no hex values. blocks green is the default
+ * declared on `.docs-rooms` above; the other three rooms override here.
+ * (The landing's palette channels are a separate poster system — its
+ * Gallery '52 channel quotes these same four colours by design.) */
+:is(.docs-rooms, .docs-room-scope)[data-room='table'] {
+  --room-accent: #7c1f2d; /* wine */
+  --room-accent-fg: #f6f3ec;
+}
+:is(.docs-rooms, .docs-room-scope)[data-room='auth'] {
+  --room-accent: #e3a31c; /* amber */
+  --room-accent-fg: #17150f;
+}
+:is(.docs-rooms, .docs-room-scope)[data-room='ai'] {
+  --room-accent: #e8500f; /* orange */
+  --room-accent-fg: #17150f;
+}
+
 /* Headings wear the display face (Schibsted Grotesk). Body inherits
  * --font-sans. The mono rule below has higher specificity so meta/code/kbd
  * stay on JetBrains Mono even when nested inside a heading. */
@@ -434,6 +458,26 @@
 .docs-rooms [data-room-hero] [data-room-chip] {
   background: color-mix(in oklab, var(--room-accent-fg) 18%, transparent);
   color: var(--room-accent-fg);
+}
+
+/* ── [data-room-register] — the specimen-book chapter rail ───────────────
+ * A sticky chapter register docked under a [data-room-hero] (used by /blocks).
+ * In the rooms skin it extends the hero's accent field and stays a colour
+ * band while pinned — the colour edge is the separator, so the utility
+ * hairline (kept for the bare library skin) is dropped. Text tokens remap to
+ * the field foreground; `--color-primary` itself flips to the foreground so
+ * the page's `text-primary`/`border-primary` active-link utilities can't
+ * land primary-on-primary (same trap as the scrollspy chip above). */
+.docs-rooms [data-room-register] {
+  background: var(--room-accent);
+  color: var(--room-accent-fg);
+  border-color: transparent;
+
+  --color-text-primary: var(--room-accent-fg);
+  --color-text-secondary: color-mix(in oklab, var(--room-accent-fg) 74%, transparent);
+  --color-text-tertiary: color-mix(in oklab, var(--room-accent-fg) 62%, transparent);
+  --color-primary: var(--room-accent-fg);
+  --color-interactive-focus: var(--room-accent-fg);
 }
 
 /* The prose subtitle collapses on component pages — the field is title-first,

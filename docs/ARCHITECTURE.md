@@ -394,7 +394,7 @@ Color Rooms is implemented as a **pure token-override layer** rather than a para
 <html lang="en" class="docs-rooms"></html>
 ```
 
-The class sits on `<html>` (not `<body>`) so the `app.html` head script can flip it before first paint; the per-route room accent then lives on a `.docs-room-scope` wrapper in `+layout.svelte`. Everything below applies only within that scope. Library defaults stay intact outside it.
+The class sits on `<html>` (not `<body>`) so the `app.html` head script can flip it before first paint; the per-route room is then stamped as `data-room="…"` on a `.docs-room-scope` wrapper in `+layout.svelte` (and mirrored onto `<html>` after mount for portaled popovers) — the route → room colour mapping itself lives in `rooms-docs.css`. Everything below applies only within that scope. Library defaults stay intact outside it.
 
 ### Private tokens (`--docs-*`, `--room-*`)
 
@@ -402,7 +402,7 @@ The class sits on `<html>` (not `<body>`) so the `app.html` head script can flip
 
 | Token | Purpose |
 | ----- | ------- |
-| `--room-accent`, `--room-accent-fg` | Active room colour + its on-accent ink/cream. Fed per-route from `+layout.svelte`; source of the whole primary family and the header field. |
+| `--room-accent`, `--room-accent-fg` | Active room colour + its on-accent ink/cream. Selected per-route via `data-room` (stamped by `+layout.svelte`; the colour values live only in `rooms-docs.css`); source of the whole primary family and the header field. |
 | `--docs-bg`, `--docs-paper` | Page ground (cream) and content surface (lighter cream). Inverts to warm dark in dark mode. |
 | `--docs-lifted`, `--docs-floating` | L·2 (dropdowns, popovers, selects) and L·3 (modals, sheets, command menus) — continuation of the cream ladder above paper. |
 | `--docs-ink`, `--docs-soft`, `--docs-softer` | Three-stop ink hierarchy (primary text `#17150f`, meta/body-soft, decoration). |

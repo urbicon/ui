@@ -71,33 +71,28 @@
 
   // Color Rooms accent per section ("Farbe = Ort"). The top-level route segment
   // selects the room; everything outside the four product areas falls back to
-  // the blocks green (the design source's default room). These two custom props
-  // feed the primary-token derivation in rooms-docs.css.
-  const ROOMS: Record<string, { accent: string; fg: string }> = {
-    blocks: { accent: '#00845c', fg: '#f6f3ec' },
-    table: { accent: '#7c1f2d', fg: '#f6f3ec' },
-    auth: { accent: '#e3a31c', fg: '#17150f' },
-    ai: { accent: '#e8500f', fg: '#17150f' }
-  };
+  // the blocks green (the design source's default room). The layout only
+  // stamps the room NAME — the colour values live solely in rooms-docs.css
+  // (route → room mapping), so a palette change never touches this file.
+  const ROOM_SEGMENTS = new Set(['blocks', 'table', 'auth', 'ai']);
   const room = $derived.by(() => {
     const seg = page.url.pathname.split('/')[1] ?? '';
-    return seg in ROOMS ? seg : 'blocks';
+    return ROOM_SEGMENTS.has(seg) ? seg : 'blocks';
   });
-  const roomVars = $derived(
-    `--room-accent:${ROOMS[room].accent};--room-accent-fg:${ROOMS[room].fg}`
-  );
 
   // Content reads the room from the .docs-room-scope wrapper (SSR-correct, no
   // flash of the wrong accent). Portaled popovers (Select/Combobox/Menu
-  // dropdowns) mount at <body>, OUTSIDE that wrapper, so mirror the accent onto
+  // dropdowns) mount at <body>, OUTSIDE that wrapper, so mirror the room onto
   // <html> after mount — they only open on interaction, always post-hydration,
-  // so there is no SSR/first-paint concern for them.
+  // so there is no SSR/first-paint concern for them. The landing brings its
+  // own palette scopes, so the stamp is removed there rather than left stale.
   $effect(() => {
-    if (isLanding) return;
-    const { accent, fg } = ROOMS[room];
     const el = document.documentElement;
-    el.style.setProperty('--room-accent', accent);
-    el.style.setProperty('--room-accent-fg', fg);
+    if (isLanding) {
+      delete el.dataset.room;
+      return;
+    }
+    el.dataset.room = room;
   });
 </script>
 
@@ -109,13 +104,14 @@
   {@render children()}
 {:else}
   <!--
-    The room scope carries the per-route accent as two inline custom props;
+    The room scope carries the per-route room as a data attribute;
     `display:contents` keeps it out of the box tree so SidebarLayout's flex +
-    sticky behave exactly as before. rooms-docs.css derives the whole
-    primary-token family from these vars, so switching route repaints every
-    real component on the page in the section's room colour.
+    sticky behave exactly as before. rooms-docs.css maps data-room to the
+    accent pair and derives the whole primary-token family from it, so
+    switching route repaints every real component on the page in the
+    section's room colour.
   -->
-  <div class="docs-room-scope" style="display:contents;{roomVars}">
+  <div class="docs-room-scope" style="display:contents" data-room={room}>
     <SidebarLayout
       bind:open={sidebarOpen}
       sidebarWidth="16rem"

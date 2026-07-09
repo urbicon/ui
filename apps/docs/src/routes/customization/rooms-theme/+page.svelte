@@ -23,18 +23,20 @@
 @import './lib/style/rooms-docs.css';   /* Schibsted, cream paper, room accent */`;
 
   const roomAccentExample = `// apps/docs/src/routes/+layout.svelte — "Farbe = Ort"
-const ROOMS = {
-  blocks: { accent: '#00845c', fg: '#f6f3ec' },  // green
-  table:  { accent: '#7c1f2d', fg: '#f6f3ec' },  // wine
-  auth:   { accent: '#e3a31c', fg: '#17150f' },  // amber
-  ai:     { accent: '#e8500f', fg: '#17150f' }   // orange
-};
-// the top-level route segment picks the room (fallback: blocks)
+// the top-level route segment picks the room (fallback: blocks); the layout
+// only stamps the NAME — colour values live solely in rooms-docs.css
+const ROOM_SEGMENTS = new Set(['blocks', 'table', 'auth', 'ai']);
 const room = $derived.by(() => {
   const seg = page.url.pathname.split('/')[1] ?? '';
-  return seg in ROOMS ? seg : 'blocks';
+  return ROOM_SEGMENTS.has(seg) ? seg : 'blocks';
 });
-// fed to the .docs-room-scope wrapper as --room-accent / --room-accent-fg`;
+// <div class="docs-room-scope" data-room={room}> …
+
+/* rooms-docs.css — route → room mapping (single source of the colours) */
+:is(.docs-rooms, .docs-room-scope)[data-room='table'] {
+  --room-accent: #7c1f2d;
+  --room-accent-fg: #f6f3ec;
+}`;
 
   const deriveExample = `/* rooms-docs.css — the whole primary family is re-derived from the room.
  * Re-declared on BOTH the theme root (so portaled popovers read the room too)
