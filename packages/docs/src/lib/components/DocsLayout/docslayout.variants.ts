@@ -24,12 +24,15 @@ export const docsLayoutVariants = tv({
     // is a direct child of the tall `container`, it stays pinned for the whole
     // page scroll (its containing block is the full page, not a short header
     // box). `stickyBarInner` aligns the crumb + source with the content column.
-    stickyBar: ['sticky top-14 lg:top-0 z-(--z-sticky) bg-surface-base'],
+    // The offset reads SidebarLayout's published pinned-chrome height (mobile
+    // header below lg, 0 on lg+) instead of hardcoding a copy of it; the
+    // fallback covers DocsLayout used outside a SidebarLayout.
+    stickyBar: ['sticky top-[var(--sidebar-layout-header-h,0rem)] z-(--z-sticky) bg-surface-base'],
     stickyBarInner: ['mx-auto px-6'],
 
     pageToolbar: [
       'flex items-center gap-2',
-      'sticky top-14 lg:top-0 z-(--z-sticky)',
+      'sticky top-[var(--sidebar-layout-header-h,0rem)] z-(--z-sticky)',
       'bg-surface-base py-3 mb-3',
       'lg:justify-end'
     ],

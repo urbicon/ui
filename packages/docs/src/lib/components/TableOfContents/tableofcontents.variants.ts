@@ -2,6 +2,9 @@ import { tv, type VariantProps } from '@urbicon-ui/blocks';
 
 export const tableOfContentsVariants = tv({
   slots: {
+    // Desktop-only (max-lg:hidden), so no mobile-header offset applies:
+    // top-20 = the pinned breadcrumb strip (~2.6rem) + breathing room,
+    // roughly matching the wrapper's pt-8 content edge.
     aside: ['max-lg:hidden sticky top-20 shrink-0 self-start'],
     // `text-text-tertiary` and uppercase are kept as fallback for pages
     // without the rooms scope; `meta-marker` (in rooms-docs.css) overrides

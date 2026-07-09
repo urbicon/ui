@@ -53,8 +53,9 @@ describe('docsLayoutVariants', () => {
 
     expect(stickyBar).toContain('sticky');
     expect(stickyBar).toContain('z-(--z-sticky)');
-    expect(stickyBar).toContain('top-14');
-    expect(stickyBar).toContain('lg:top-0');
+    // Offset reads SidebarLayout's published pinned-chrome height instead of
+    // hardcoding a copy of its mobile-header h-14.
+    expect(stickyBar).toContain('top-[var(--sidebar-layout-header-h,0rem)]');
   });
 
   it('sticky bar is a full-width band (no negative-margin bleed)', () => {
@@ -107,8 +108,7 @@ describe('docsLayoutVariants', () => {
     it('preserves legacy pageToolbar slot', () => {
       const styles = docsLayoutVariants({});
       expect(styles.pageToolbar()).toContain('sticky');
-      expect(styles.pageToolbar()).toContain('top-14');
-      expect(styles.pageToolbar()).toContain('lg:top-0');
+      expect(styles.pageToolbar()).toContain('top-[var(--sidebar-layout-header-h,0rem)]');
     });
 
     it('preserves mobile TOC slots', () => {

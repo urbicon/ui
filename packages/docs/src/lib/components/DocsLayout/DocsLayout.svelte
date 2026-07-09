@@ -161,6 +161,44 @@
   {/if}
 {/snippet}
 
+<!--
+  Hero header — shared by the collapsing-hero and legacy layouts (one markup,
+  two call sites). `data-docs-header` is part of the data-docs-* theming
+  contract: the rooms skin paints it as the room colour field. `headerEl`
+  only matters for the collapsing layout's IntersectionObserver; binding it
+  in the legacy layout is inert (the observer effect gates on
+  `useCollapsingHeader`).
+-->
+{#snippet heroHeader()}
+  <header
+    bind:this={headerEl}
+    class={unstyled ? (slotClasses?.header ?? '') : styles.header({ class: slotClasses?.header })}
+    data-docs-header
+  >
+    <div class={unstyled ? '' : styles.headerInner()}>
+      {#if title}
+        <h1
+          class={unstyled
+            ? (slotClasses?.title ?? '')
+            : styles.title({ class: slotClasses?.title })}
+        >
+          {title}{@render stabilityStamp()}
+        </h1>
+      {/if}
+      {#if description}
+        <p
+          class={unstyled
+            ? (slotClasses?.subtitle ?? '')
+            : styles.subtitle({ class: slotClasses?.subtitle })}
+          data-docs-subtitle
+        >
+          {description}
+        </p>
+      {/if}
+    </div>
+  </header>
+{/snippet}
+
 <div
   class={unstyled
     ? [slotClasses?.container, className].filter(Boolean).join(' ')
@@ -253,64 +291,11 @@
     </div>
 
     {#if title || description}
-      <header
-        bind:this={headerEl}
-        class={unstyled
-          ? (slotClasses?.header ?? '')
-          : styles.header({ class: slotClasses?.header })}
-        data-docs-header
-      >
-        <div class={unstyled ? '' : styles.headerInner()}>
-          {#if title}
-            <h1
-              class={unstyled
-                ? (slotClasses?.title ?? '')
-                : styles.title({ class: slotClasses?.title })}
-            >
-              {title}{@render stabilityStamp()}
-            </h1>
-          {/if}
-          {#if description}
-            <p
-              class={unstyled
-                ? (slotClasses?.subtitle ?? '')
-                : styles.subtitle({ class: slotClasses?.subtitle })}
-              data-docs-subtitle
-            >
-              {description}
-            </p>
-          {/if}
-        </div>
-      </header>
+      {@render heroHeader()}
     {/if}
   {:else if title || description}
     <!-- ═══ LEGACY — full-width header band (no breadcrumbs, no sticky strip) ═══ -->
-    <header
-      class={unstyled ? (slotClasses?.header ?? '') : styles.header({ class: slotClasses?.header })}
-      data-docs-header
-    >
-      <div class={unstyled ? '' : styles.headerInner()}>
-        {#if title}
-          <h1
-            class={unstyled
-              ? (slotClasses?.title ?? '')
-              : styles.title({ class: slotClasses?.title })}
-          >
-            {title}{@render stabilityStamp()}
-          </h1>
-        {/if}
-        {#if description}
-          <p
-            class={unstyled
-              ? (slotClasses?.subtitle ?? '')
-              : styles.subtitle({ class: slotClasses?.subtitle })}
-            data-docs-subtitle
-          >
-            {description}
-          </p>
-        {/if}
-      </div>
-    </header>
+    {@render heroHeader()}
   {/if}
 
   <div
