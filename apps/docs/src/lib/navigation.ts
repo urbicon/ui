@@ -1,9 +1,26 @@
+import { resolve } from '$app/paths';
 import { useAppI18n } from '$lib/i18n';
+
+/**
+ * Route id accepted by SvelteKit's `resolve()` — typing `href` against it
+ * makes every nav entry fail loud at check time when a route is renamed or
+ * misspelled, instead of 404ing at runtime.
+ */
+export type NavHref = Parameters<typeof resolve>[0];
+
+/**
+ * `resolve()` for nav entries. Validity is already enforced by the NavHref
+ * type above; the cast only bridges resolve()'s per-route overloads, which
+ * reject the (valid) union type.
+ */
+export function resolveNav(href: NavHref): string {
+  return (resolve as (route: string) => string)(href);
+}
 
 export type NavItem = {
   name: string;
   nameKey?: string;
-  href?: string;
+  href?: NavHref;
   children?: NavItem[];
   group?: boolean;
 };

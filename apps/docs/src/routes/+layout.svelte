@@ -135,15 +135,14 @@
 
       {#snippet sidebar()}
         <!--
-      Search trigger: hairline-only bottom border instead of a rounded box;
-      label and `⌘K` hint share the `font-meta` mono ramp so the trigger reads
-      as a mono kicker, not a button. (Color Rooms drops the editorial `//`
-      prefix that used to sit before the label.)
+      Search trigger: a boxed field on the sidebar (design source), sitting on
+      the paper surface with an architectural border; label and `⌘K` hint share
+      the `font-meta` mono ramp so it reads as an input, not a button.
     -->
         <div class="px-3 pt-3">
           <button
             onclick={() => commandSearch?.toggle()}
-            class="border-border-hairline text-text-tertiary hover:border-text-primary hover:text-text-primary flex w-full items-center gap-2 border-b bg-transparent px-3 py-2 text-sm transition-colors"
+            class="border-border-default bg-surface-base text-text-tertiary hover:border-border-emphasis hover:text-text-primary rounded-contain flex w-full items-center gap-2 border px-3 py-2 text-sm transition-colors"
           >
             <SearchIcon class="h-4 w-4 shrink-0" />
             <span class="font-meta">{ta('chrome.search' as Parameters<typeof ta>[0])}</span>
@@ -159,7 +158,8 @@
           <div class="mb-4">
             <DocsThemeToggle />
           </div>
-          <LocaleSwitcher variant="ghost" size="sm" onLocaleChange={persistLocale} />
+          <!-- Boxed select, matching the boxed search trigger above (design source). -->
+          <LocaleSwitcher variant="outlined" size="sm" onLocaleChange={persistLocale} />
           <nav
             aria-label={ta('chrome.footerNav' as Parameters<typeof ta>[0])}
             class="text-text-quaternary mt-3 space-y-1 text-xs"
