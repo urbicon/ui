@@ -132,6 +132,60 @@ internal TODO instead.
 
 ## Component behaviour
 
+### Table's `initial*` family is incomplete — no `initialSort`, no `initialSelectedIds`
+
+- **Where:** `packages/table/src/lib/core/table/index.ts` (TableProps) /
+  `TableProvider.svelte`.
+- **What:** The table ships `initialPage`, `initialGroupBy` and
+  `initialSummaryConfigs`, but there is no uncontrolled way to start sorted or
+  with a selection. Starting sorted is impossible altogether; starting selected
+  forces the fully **controlled** path (`selectedIds` + `onSelectionChange`
+  write-back) even when the consumer only wants a starting value. The landing
+  specimen works around both: rows pre-ordered by `p95` so the table *reads*
+  sorted (no indicator), and controlled selection wired up just for a
+  preselected row.
+- **Why deferred:** New public API (`initialSort: { column, direction }`,
+  `initialSelectedIds`) — wants the same semantics discussion as the existing
+  `initial*` props (interaction with `persistenceConfig`, precedence over a
+  controlled prop) rather than an ad-hoc addition.
+- **Found:** 2026-07-09, building the landing-page table specimen.
+
+### Table single-select: row click does not select — the checkbox is the only path
+
+- **Where:** `packages/table/src/lib/core/TableRow.svelte` (`handleRowClick`
+  only fires `onRowClick`/expansion; selection happens solely in the
+  checkbox's `onchange`).
+- **What:** In `selectionMode="single"`, clicking a row does not select it —
+  users must hit the small checkbox. Most single-select tables treat the whole
+  row as the click target (and often drop the checkbox column entirely in
+  single mode). The landing caption originally promised "click a row to
+  select" — corrected to "a checkbox" to match reality.
+- **Why deferred:** Row-click selection is a behaviour change with real
+  trade-offs (conflicts with `onRowClick` consumers, text selection, expansion
+  rows), so it needs a deliberate API decision, not a drive-by change.
+- **Found:** 2026-07-09, exercising the landing table specimen with Playwright.
+
+## Customization API
+
+### `slotClasses` cannot override same-property utilities — no conflict resolution
+
+- **Where:** `resolveSlotClasses` / the `tv()` engine
+  (`packages/blocks/src/lib/utils/variants.ts`) as consumed by every
+  slotClasses-capable component; concretely bitten on
+  `@urbicon-ui/table`'s `table` slot (base `min-w-[600px]`).
+- **What:** slotClasses are appended after the base classes with no
+  Tailwind property-conflict resolution (no tailwind-merge equivalent in the
+  zero-dep engine). `slotClasses={{ table: 'min-w-0' }}` therefore renders
+  `class="… min-w-[600px] min-w-0"` and the *stylesheet order* decides — in
+  practice the arbitrary value won and the override silently did nothing. The
+  landing had to use `!min-w-0` (important) to win.
+- **Why deferred:** Real fix is a design decision for the tv() engine: either
+  ship a minimal same-property "last wins" merge for the common utility
+  families (breaks the zero-dep simplicity budget), or document `!`-important
+  as the sanctioned slotClasses override mechanism. Either way it should be
+  decided once for all 37 slotClasses components, not per call site.
+- **Found:** 2026-07-09, fitting the table specimen into a 508px poster card.
+
 ### `ConfirmDialog` propagates a rejecting async `onConfirm` as an unhandled rejection
 
 - **Where:** `packages/blocks/src/lib/primitives/ConfirmDialog/ConfirmDialog.svelte`
