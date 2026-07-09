@@ -386,8 +386,8 @@
 }
 
 /* Hero title band — tight top (flush under the strip so the two merge into one
- * field), roomy bottom. The `main pt-8` below the band supplies the paper gap
- * to the first content section. */
+ * field), roomy bottom. The layout wrapper's `pt-8` below the band supplies
+ * the paper gap to the first content section (and the TOC aside). */
 .docs-rooms [data-docs-header] {
   padding-block: 0.25rem 2rem;
 }
@@ -447,6 +447,15 @@
  * paper; the inner stage-frame keeps its bg-surface-quiet tint. */
 .docs-rooms [data-docs-stage] {
   background-color: transparent;
+}
+
+/* The playground preview carries a whisper of the room colour, so the specimen
+ * sits IN the room rather than on bare paper (design source: the tinted
+ * playground field on the component pages). Only the playground — examples
+ * stay on quiet cream so the tint marks the page's one primary stage. Mixing
+ * over --docs-paper keeps it valid in both light and dark. */
+.docs-rooms [data-docs-stage='playground'] [data-docs-stage-frame] {
+  background-color: color-mix(in oklab, var(--room-accent) 10%, var(--docs-paper));
 }
 
 /* Inverted accent block — one dominant room "moment" for the landing/CTA

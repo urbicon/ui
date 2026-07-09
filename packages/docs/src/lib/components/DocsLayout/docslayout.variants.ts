@@ -3,8 +3,11 @@ import { tv, type VariantProps } from '@urbicon-ui/blocks';
 export const docsLayoutVariants = tv({
   slots: {
     container: ['min-h-screen bg-surface-base'],
-    wrapper: ['flex w-full max-w-screen-2xl mx-auto'],
-    main: ['flex-1 px-6 pt-8 pb-12'],
+    // `pt-8` lives on the wrapper (not `main`) so BOTH columns — the body and
+    // the TOC aside — start at the same top edge below the header band; the
+    // TOC kicker lines up with the playground stage instead of hanging higher.
+    wrapper: ['flex w-full max-w-screen-2xl mx-auto pt-8'],
+    main: ['flex-1 px-6 pb-12'],
     content: ['flex flex-col'],
 
     // The header is a full-width band (direct child of `container`, spanning
