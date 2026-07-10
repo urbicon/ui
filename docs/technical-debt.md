@@ -288,3 +288,22 @@ internal TODO instead.
   comment token wants a darker stop from the warm-neutral ramp picked against
   both panel grounds. Library change + visual sweep across all code panels.
 - **Found:** 2026-07-10, axe over the rebuilt `/getting-started` build guide.
+
+## Packaging / distribution
+
+### mcp-server bin is not runnable under node/npx
+
+- **Where:** `packages/mcp-server/package.json` (`bin` → `./src/index.ts`,
+  `build` script is a no-op echo) and `src/index.ts` (`#!/usr/bin/env node`
+  shebang, relative `.js` specifiers resolving to `.ts` files).
+- **What:** `npx @urbicon-ui/mcp-server` crashes — node cannot execute the
+  TypeScript entry nor resolve the `.js`→`.ts` specifiers. Even plain `bunx`
+  fails because it respects the node shebang. The docs (`/ai` setup snippet)
+  now recommend `bunx --bun @urbicon-ui/mcp-server`, which works but silently
+  makes Bun a hard runtime requirement for MCP consumers.
+- **Why deferred:** Needs a distribution decision, not a spot fix: either ship
+  a real build (dist JS, node-compatible — matches how editors/agents usually
+  spawn MCP servers via npx) or commit to bun-only (`#!/usr/bin/env bun`
+  shebang + explicit docs). Touches the release pipeline, not just the package.
+- **Found:** 2026-07-10, docs-launch triage quick-fix pass (§3 of
+  `docs/internal/DOCS-PAGE-TRIAGE-2026-07.md`).
