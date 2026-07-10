@@ -92,15 +92,6 @@
       difficulty: 'Beginner'
     },
     {
-      title: 'Profile Card',
-      description:
-        'User profile with avatar, stats, skills, progress, and multiple layout variants.',
-      href: '/recipes/profile-card',
-      components: ['Card', 'Avatar', 'Badge', 'Progress', 'Tooltip'],
-      category: 'Display',
-      difficulty: 'Beginner'
-    },
-    {
       title: 'Trace Drawer',
       description:
         'Hierarchical drawer with a calculation breakdown — "How was this value calculated?".',
@@ -472,24 +463,6 @@
                       {/if}
                     </div>
                   {/each}
-                </div>
-              </div>
-            {:else if recipe.href === '/recipes/profile-card'}
-              <!-- Profile Card mini preview -->
-              <div class="border-border-subtle bg-surface-base w-56 rounded-lg border">
-                <div class="from-primary to-secondary h-8 rounded-t-lg bg-gradient-to-r"></div>
-                <div class="px-3 pb-3">
-                  <div class="-mt-4 mb-2"><Avatar name="Sarah Chen" size="md" /></div>
-                  <div class="text-text-primary text-[9px] font-semibold">Sarah Chen</div>
-                  <div class="text-text-tertiary text-[7px]">Product Designer</div>
-                  <div class="mt-2 flex gap-3">
-                    {#each ['47', '2.3k', '189'] as val (val)}
-                      <div class="text-center">
-                        <div class="text-text-primary text-[9px] font-bold">{val}</div>
-                        <div class="text-text-quaternary text-[6px]">stat</div>
-                      </div>
-                    {/each}
-                  </div>
                 </div>
               </div>
             {:else}

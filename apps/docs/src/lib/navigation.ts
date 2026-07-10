@@ -42,7 +42,27 @@ export function useNavLabel(): (item: NavItem) => string {
   return (item: NavItem) => (item.nameKey ? t(item.nameKey as Parameters<typeof t>[0]) : item.name);
 }
 
-export const navigationItems: NavItem[] = [
+/**
+ * Launch switch: routes listed here are drafts — hidden from every navigation
+ * surface (sidebar, command palette, prev/next, the /blocks register), because
+ * they all derive from the pruned `navigationItems` export below. Each draft
+ * page must ALSO opt out of the static build via `export const prerender =
+ * false` in its `+page.ts` (same pattern as `test-fixtures/`), so the route
+ * disappears from the published site but stays reachable in dev for rework.
+ * Re-publishing = remove the entry here + delete the prerender override.
+ * Tracked in docs/internal/DOCS-PAGE-TRIAGE-2026-07.md.
+ */
+export const DRAFT_ROUTES: ReadonlySet<NavHref> = new Set<NavHref>(['/recipes/profile-card']);
+
+/** Drop draft entries (and any group left empty by the pruning). */
+function pruneDrafts(items: NavItem[]): NavItem[] {
+  return items
+    .filter((item) => !(item.href && DRAFT_ROUTES.has(item.href)))
+    .map((item) => (item.children ? { ...item, children: pruneDrafts(item.children) } : item))
+    .filter((item) => !(item.group && item.children && item.children.length === 0));
+}
+
+const allNavigationItems: NavItem[] = [
   { name: 'Overview', nameKey: 'nav.overview', href: '/' },
   { name: 'Getting Started', nameKey: 'nav.gettingStarted', href: '/getting-started' },
   {
@@ -358,5 +378,7 @@ export const navigationItems: NavItem[] = [
   },
   { name: 'Changelog', nameKey: 'nav.changelog', href: '/changelog' }
 ];
+
+export const navigationItems: NavItem[] = pruneDrafts(allNavigationItems);
 
 export type { NavItem as NavigationItem };
