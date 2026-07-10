@@ -35,6 +35,7 @@
     noResultsText = 'No results found',
     onValueChange,
     open = $bindable(false),
+    onOpenChange,
     customOption,
     closeOnEscape = true,
     closeOnClickOutside = true,
@@ -130,11 +131,22 @@
     suppressFocusOpen = false;
   }
 
+  // Single mutation point for internally-driven open changes, so
+  // `onOpenChange` fires exactly once per transition (and never when the
+  // consumer writes `bind:open` directly). The no-change guard also keeps
+  // repeat opens quiet — e.g. typing while already open (`handleInput`) or
+  // a focus event on an already-open field (`handleFocus`).
+  function setOpen(next: boolean) {
+    if (open === next) return;
+    open = next;
+    onOpenChange?.(next);
+  }
+
   function select(opt: ComboboxOption<T>) {
     if (opt.disabled) return;
     value = opt.value;
     query = opt.label;
-    open = false;
+    setOpen(false);
     activeIndex = -1;
     onValueChange?.(opt.value);
     focusInputWithoutOpening();
@@ -143,14 +155,14 @@
   function clear() {
     value = null;
     query = '';
-    open = false;
+    setOpen(false);
     activeIndex = -1;
     onValueChange?.(null);
     focusInputWithoutOpening();
   }
 
   function handleInput() {
-    if (!open) open = true;
+    setOpen(true);
     activeIndex = -1;
     if (value && query !== selectedOption?.label) {
       value = null;
@@ -160,7 +172,7 @@
 
   function handleFocus() {
     if (suppressFocusOpen) return;
-    if (!disabled) open = true;
+    if (!disabled) setOpen(true);
   }
 
   // Chevron toggle. The input opens on focus but has no way to close itself
@@ -171,12 +183,12 @@
   function toggleOpen() {
     if (disabled) return;
     if (open) {
-      open = false;
+      setOpen(false);
       // Restore the selected label if the query was left dangling (mirrors the
       // click-outside path), so the field doesn't read as blank after closing.
       if (!value && selectedOption) query = selectedOption.label;
     } else {
-      open = true;
+      setOpen(true);
       inputEl?.focus();
     }
   }
@@ -196,7 +208,7 @@
       case 'ArrowDown': {
         event.preventDefault();
         if (!open) {
-          open = true;
+          setOpen(true);
           return;
         }
         const next = activeIndex + 1;
@@ -211,7 +223,7 @@
       case 'ArrowUp': {
         event.preventDefault();
         if (!open) {
-          open = true;
+          setOpen(true);
           return;
         }
         const prev = activeIndex - 1;
@@ -234,7 +246,7 @@
         if (!open) break;
         if (!closeOnEscape) break;
         event.preventDefault();
-        open = false;
+        setOpen(false);
         activeIndex = -1;
         onEscape?.();
         break;
@@ -265,7 +277,7 @@
     // close-then-reopen. The listbox lives in the top layer (separate subtree).
     if (!wrapperEl?.contains(target) && !listboxEl?.contains(target)) {
       if (!closeOnClickOutside) return;
-      open = false;
+      setOpen(false);
       if (!value && selectedOption) {
         query = selectedOption.label;
       }

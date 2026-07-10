@@ -132,6 +132,13 @@ export interface MenuSpecificProps<TItem extends MenuItemType = MenuItemType> {
   open?: boolean;
 
   /**
+   * Fires when the menu opens or closes from user interaction (trigger
+   * click, item activation, Escape, Tab-out, outside click). Receives the
+   * new open state. Not called when the consumer writes `bind:open` directly.
+   */
+  onOpenChange?: (open: boolean) => void;
+
+  /**
    * Button variant applied to the default trigger button.
    * @default 'outlined'
    */

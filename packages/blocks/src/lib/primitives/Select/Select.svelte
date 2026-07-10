@@ -38,6 +38,7 @@
     mint = 'none',
     onValueChange,
     open = $bindable(false),
+    onOpenChange,
     usePortal = true,
     syncWidth = true,
     customTrigger,
@@ -235,12 +236,21 @@
     syncWidth: () => syncWidth
   });
 
+  // Single mutation point for internally-driven open changes, so
+  // `onOpenChange` fires exactly once per transition (and never when the
+  // consumer writes `bind:open` directly).
+  function setOpen(next: boolean) {
+    if (open === next) return;
+    open = next;
+    onOpenChange?.(next);
+  }
+
   function toggle() {
     if (disabled) return;
     // Pointer-driven open (trigger onclick). Mark modality so the open effect
     // doesn't pre-highlight the first row for a mouse/touch user.
     if (!open) openedViaKeyboard = false;
-    open = !open;
+    setOpen(!open);
     if (!open) activeIndex = -1;
   }
 
@@ -271,7 +281,7 @@
       dispatchValueChange?.(nextValue);
     }
     if (effectiveCloseOnSelect) {
-      open = false;
+      setOpen(false);
       activeIndex = -1;
       focusTrigger();
     }
@@ -297,7 +307,7 @@
   //                  explicitly intent to focus elsewhere)
   function dismissByEscape() {
     if (!closeOnEscape) return false;
-    open = false;
+    setOpen(false);
     activeIndex = -1;
     onEscape?.();
     return true;
@@ -319,7 +329,7 @@
         event.preventDefault();
         if (!open) {
           openedViaKeyboard = true;
-          open = true;
+          setOpen(true);
         } else {
           activeIndex = activeIndex < enabledOptions.length - 1 ? activeIndex + 1 : 0;
         }
@@ -328,7 +338,7 @@
         event.preventDefault();
         if (!open) {
           openedViaKeyboard = true;
-          open = true;
+          setOpen(true);
         } else {
           activeIndex = activeIndex > 0 ? activeIndex - 1 : enabledOptions.length - 1;
         }
@@ -338,7 +348,7 @@
         event.preventDefault();
         if (!open) {
           openedViaKeyboard = true;
-          open = true;
+          setOpen(true);
         } else if (activeIndex >= 0 && activeIndex < enabledOptions.length) {
           selectOption(enabledOptions[activeIndex]);
         }
@@ -353,7 +363,7 @@
         // Tab leaves the widget — close (focus moves on via the default tab),
         // independent of closeOnEscape/closeOnClickOutside.
         if (open) {
-          open = false;
+          setOpen(false);
           activeIndex = -1;
         }
         break;
@@ -382,7 +392,7 @@
       !listboxRef.contains(target)
     ) {
       if (!closeOnClickOutside) return;
-      open = false;
+      setOpen(false);
       activeIndex = -1;
       onClickOutside?.();
     }

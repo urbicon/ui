@@ -86,6 +86,13 @@ export interface ComboboxProps<T extends SelectValue = string>
   onValueChange?: (value: T | null) => void;
   /** Controls the open state of the listbox. Supports `bind:open`. @default false */
   open?: boolean;
+  /**
+   * Fires when the listbox opens or closes from user interaction (focus,
+   * typing, chevron toggle, selection, Escape, outside click). Receives the
+   * new open state — use it e.g. to lazy-load options on first open. Not
+   * called when the consumer writes `bind:open` directly.
+   */
+  onOpenChange?: (open: boolean) => void;
   /** Custom option renderer. Receives the option and whether it is selected. */
   customOption?: Snippet<[ComboboxOption<T>, boolean]>;
 

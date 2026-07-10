@@ -185,6 +185,14 @@ interface SelectBaseProps<T extends SelectValue = string>
   open?: boolean;
 
   /**
+   * Fires when the listbox opens or closes from user interaction (trigger
+   * click, keyboard, selection, Escape, Tab-out, outside click). Receives the
+   * new open state — use it e.g. to lazy-load options on first open. Not
+   * called when the consumer writes `bind:open` directly.
+   */
+  onOpenChange?: (open: boolean) => void;
+
+  /**
    * When true, the listbox is rendered into the browser top layer via the native
    * `popover` API, so it cannot be clipped by `overflow: auto` ancestors. When
    * false, the listbox stays in the regular DOM flow — useful inside other

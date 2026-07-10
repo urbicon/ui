@@ -95,6 +95,39 @@ describe('Select (component interaction)', () => {
     expect(document.activeElement).toBe(trigger());
   });
 
+  it('reports every interaction-driven open transition through onOpenChange exactly once', async () => {
+    const user = userEvent.setup();
+    const onOpenChange = vi.fn();
+    renderSelect({ options: OPTIONS, onOpenChange });
+
+    await user.click(trigger());
+    expect(onOpenChange).toHaveBeenNthCalledWith(1, true);
+
+    // Selection closes single-select — the second transition.
+    await user.click(option('France'));
+    expect(onOpenChange).toHaveBeenNthCalledWith(2, false);
+
+    await user.click(trigger());
+    expect(onOpenChange).toHaveBeenNthCalledWith(3, true);
+
+    await user.keyboard('{Escape}');
+    expect(onOpenChange).toHaveBeenNthCalledWith(4, false);
+    expect(onOpenChange).toHaveBeenCalledTimes(4);
+  });
+
+  it('fires onOpenChange(false) when an outside click dismisses the listbox', async () => {
+    const user = userEvent.setup();
+    const onOpenChange = vi.fn();
+    renderSelect({ options: OPTIONS, onOpenChange });
+
+    await user.click(trigger());
+    await user.click(document.body);
+
+    expect(expanded()).toBe('false');
+    expect(onOpenChange).toHaveBeenLastCalledWith(false);
+    expect(onOpenChange).toHaveBeenCalledTimes(2);
+  });
+
   it('keyboard: ArrowDown moves the active descendant and Enter selects it', async () => {
     const user = userEvent.setup();
     const onValueChange = vi.fn();

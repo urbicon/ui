@@ -67,6 +67,35 @@ describe('Combobox (component interaction)', () => {
     expect(screen.getAllByRole('option', { hidden: true })).toHaveLength(3);
   });
 
+  it('reports every interaction-driven open transition through onOpenChange exactly once', async () => {
+    const user = userEvent.setup();
+    const onOpenChange = vi.fn();
+    renderCombobox({ options: OPTIONS, onOpenChange });
+
+    const input = screen.getByRole('combobox');
+    // Focus-open — the focus event and the click-open race is exactly why
+    // setOpen guards on no-change: one transition, one callback.
+    await user.click(input);
+    expect(onOpenChange).toHaveBeenNthCalledWith(1, true);
+    expect(onOpenChange).toHaveBeenCalledTimes(1);
+
+    // Typing while already open must stay quiet (handleInput calls setOpen(true) per keystroke).
+    await user.keyboard('an');
+    expect(onOpenChange).toHaveBeenCalledTimes(1);
+
+    // Selection closes — the focus restore (suppressFocusOpen) must not re-announce an open.
+    await user.click(option('Banana'));
+    expect(onOpenChange).toHaveBeenNthCalledWith(2, false);
+    expect(onOpenChange).toHaveBeenCalledTimes(2);
+
+    await user.keyboard('{ArrowDown}');
+    expect(onOpenChange).toHaveBeenNthCalledWith(3, true);
+
+    await user.keyboard('{Escape}');
+    expect(onOpenChange).toHaveBeenNthCalledWith(4, false);
+    expect(onOpenChange).toHaveBeenCalledTimes(4);
+  });
+
   it('keeps the listbox closed after selecting an option (Codeberg #19)', async () => {
     // The focus restore in select() re-focuses the input, which fires a synchronous `focus` event.
     // Without the suppressFocusOpen guard, handleFocus flips `open` back to true on that event —

@@ -85,6 +85,53 @@ describe('Menu (component interaction)', () => {
     expect(item('Add tag')).toBeTruthy();
   });
 
+  it('reports every interaction-driven open transition through onOpenChange exactly once', async () => {
+    const user = userEvent.setup();
+    const onOpenChange = vi.fn();
+    renderMenu({
+      placeholder: 'Actions',
+      items: [{ label: 'Edit' }, { label: 'Delete' }],
+      onOpenChange
+    });
+
+    await user.click(trigger());
+    expect(onOpenChange).toHaveBeenNthCalledWith(1, true);
+
+    // Escape goes through Menu's own panel handler (dismiss → setOpen); its
+    // preventDefault() stops Popover's document-level Escape listener from
+    // double-reporting through the forwarded Popover onOpenChange.
+    await user.keyboard('{Escape}');
+    expect(onOpenChange).toHaveBeenNthCalledWith(2, false);
+    expect(onOpenChange).toHaveBeenCalledTimes(2);
+
+    // Item activation closes via dismiss().
+    await user.click(trigger());
+    await user.click(item('Edit'));
+    expect(onOpenChange).toHaveBeenNthCalledWith(3, true);
+    expect(onOpenChange).toHaveBeenNthCalledWith(4, false);
+    expect(onOpenChange).toHaveBeenCalledTimes(4);
+  });
+
+  it('fires onOpenChange(false) when an outside click dismisses the menu (Popover-owned path)', async () => {
+    // Outside click is the one dismiss path Menu does not own — Popover's
+    // manual-mode pointerdown listener mutates `open` via bind:open, and the
+    // transition reaches consumers through the forwarded Popover onOpenChange.
+    const user = userEvent.setup();
+    const onOpenChange = vi.fn();
+    renderMenu({
+      placeholder: 'Actions',
+      items: [{ label: 'Edit' }, { label: 'Delete' }],
+      onOpenChange
+    });
+
+    await user.click(trigger());
+    await user.click(document.body);
+
+    expect(expanded()).toBe('false');
+    expect(onOpenChange).toHaveBeenLastCalledWith(false);
+    expect(onOpenChange).toHaveBeenCalledTimes(2);
+  });
+
   it('closes on Escape and restores focus to the trigger', async () => {
     const user = userEvent.setup();
     renderMenu({ placeholder: 'Actions', items: [{ label: 'Edit' }, { label: 'Delete' }] });

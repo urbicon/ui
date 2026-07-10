@@ -27,6 +27,7 @@
     disabled = false,
     loading = false,
     open = $bindable(false),
+    onOpenChange,
     id: idProp,
     placement = 'bottom-start',
     syncWidth = true,
@@ -127,13 +128,25 @@
   }
 
   // ── Open / close lifecycle ─────────────────────────────────────────────
+  // Single mutation point for internally-driven open changes, so
+  // `onOpenChange` fires exactly once per transition. Popover-owned dismiss
+  // paths (outside click) mutate `open` via `bind:open` instead and report
+  // through the forwarded Popover `onOpenChange` — the Escape path can't
+  // double-fire because `handlePanelKeydown` calls `preventDefault()`,
+  // which Popover's document-level Escape listener honors.
+  function setOpen(next: boolean) {
+    if (open === next) return;
+    open = next;
+    onOpenChange?.(next);
+  }
+
   function toggle() {
     if (disabled || loading) return;
-    open = !open;
+    setOpen(!open);
   }
 
   function dismiss() {
-    open = false;
+    setOpen(false);
     triggerRef?.focus();
   }
 
@@ -414,6 +427,7 @@
   -->
   <Popover
     bind:open
+    onOpenChange={(o) => onOpenChange?.(o)}
     placement={placement as import('$lib/utils/floating').Placement}
     {usePortal}
     autoTrigger={false}
