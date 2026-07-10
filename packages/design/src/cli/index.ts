@@ -16,11 +16,16 @@ import { readFile } from 'node:fs/promises';
 import { resolve } from 'node:path';
 import { parseArgs } from './args.js';
 import { runContext } from './commands/context.js';
+import { runCssReference } from './commands/css-reference.js';
 import { runFind } from './commands/find.js';
 import { runGetComponent } from './commands/get-component.js';
 import { runHook } from './commands/hook.js';
 import { runI18n } from './commands/i18n.js';
+import { runIcons } from './commands/icons.js';
 import { runInit } from './commands/init.js';
+import { runPattern } from './commands/pattern.js';
+import { runPrinciples } from './commands/principles.js';
+import { runRecipe } from './commands/recipe.js';
 import { runRecordDecision } from './commands/record-decision.js';
 import { runSyncManifest } from './commands/sync-manifest.js';
 import { runValidate } from './commands/validate.js';
@@ -67,6 +72,26 @@ Commands:
   get-component <slug>  Print a component's API (its llm.txt) from the bundle.
                         --section <s>      overview | examples | variants | api | slots |
                                            full (default: full).
+  pattern [name]        Composition patterns (settings-page, dashboard, …). No name
+                        lists all; a name prints the full pattern.
+                        --json             Machine-readable pattern list.
+  principles            The design heuristics (visual hierarchy, interaction, layout,
+                        theming, …) from the version-pinned bundle.
+                        --topic <t>        visual-hierarchy | interaction |
+                                           component-selection | layout | accessibility |
+                                           theming.
+                        --rubric           Print the 8-criterion 1–5 scoring rubric
+                                           instead (the judge step; ignores --topic).
+  css-reference [sect]  CSS token reference: naming, dark mode, override patterns.
+                        Sections: surfaces | text | borders | intents | shadows |
+                        theming. No section prints the overview.
+  icons [query]         Icon discovery. A query ranks matches; no query prints the
+                        full reference grouped by category.
+                        --limit <n>        Max results for a query (default 20).
+                        --json             Machine-readable icon entries.
+  recipe [id]           Complete Svelte 5 code recipes from the catalog. No id lists
+                        all; an id prints the full recipe (incl. code).
+                        --json             Machine-readable recipe (or list).
   context               Print the project's design.manifest.md summary.
                         --manifest <path>  Manifest file (default ./design.manifest.md).
                         --json             Emit the parsed manifest as JSON.
@@ -147,6 +172,16 @@ async function main(argv: string[]): Promise<number> {
       return runFind(positionals, flags);
     case 'get-component':
       return runGetComponent(positionals, flags);
+    case 'pattern':
+      return runPattern(positionals, flags);
+    case 'principles':
+      return runPrinciples(positionals, flags);
+    case 'css-reference':
+      return runCssReference(positionals, flags);
+    case 'icons':
+      return runIcons(positionals, flags);
+    case 'recipe':
+      return runRecipe(positionals, flags);
     case 'context':
       return runContext(positionals, flags);
     case 'record-decision':

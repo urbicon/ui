@@ -2,7 +2,17 @@
   "generated": "2026-01-01T00:00:00.000Z",
   "version": "0.0.0-test",
   "tags": ["action", "display"],
-  "recipes": [],
+  "recipes": [
+    {
+      "id": "login",
+      "title": "Login Page",
+      "description": "Centered card with email + password.",
+      "components": ["Button", "Input"],
+      "code": "<script>\n  import { Button } from '@urbicon-ui/blocks';\n</script>\n\n<Button intent=\"primary\">Sign in</Button>",
+      "features": ["Validation states"],
+      "pattern": "form-page"
+    }
+  ],
   "components": [
     {
       "name": "Button",

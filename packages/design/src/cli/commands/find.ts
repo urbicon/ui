@@ -117,7 +117,7 @@ export async function runFind(positionals: string[], flags: Flags): Promise<numb
     );
   }
   console.log(
-    '→ `urbicon get-component <slug>` for the full API · `get_css_reference` for tokens.'
+    '→ `urbicon get-component <slug>` for the full API · `urbicon css-reference` for tokens.'
   );
   return EXIT.OK;
 }

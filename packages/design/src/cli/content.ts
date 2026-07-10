@@ -1,17 +1,27 @@
 /**
  * The CLI's reader for the version-pinned `@urbicon-ui/design-content` bundle — the
- * Knowledge plane behind `urbicon find` / `get-component`. It is the thin I/O layer
- * between two shared pieces: the catalog *schema* + search/parse logic live in
- * `@urbicon-ui/design-engine/search` (one authoring, shared with the remote MCP
- * server); the bundle *location* comes from `@urbicon-ui/design-content`'s locators.
+ * Knowledge plane behind `urbicon find` / `get-component` / `pattern` / `principles`
+ * / `icons` / `recipe`. It is the thin I/O layer between two shared pieces: the
+ * catalog/icon *schemas* + search/parse logic live in `@urbicon-ui/design-engine`
+ * (`search` + `reference`, one authoring, shared with the remote MCP server); the
+ * bundle *location* comes from `@urbicon-ui/design-content`'s locators.
  * No watcher — the CLI is short-lived, unlike the long-running server.
  */
 
-import { readFile } from 'node:fs/promises';
+import { readdir, readFile } from 'node:fs/promises';
 import { createRequire } from 'node:module';
 import { dirname, resolve } from 'node:path';
-import { getCatalogPath, getComponentLlmPath } from '@urbicon-ui/design-content';
-import type { ComponentCatalog } from '@urbicon-ui/design-engine/search';
+import {
+  getCatalogPath,
+  getComponentLlmPath,
+  getDesignSystemDir,
+  getIconsPath
+} from '@urbicon-ui/design-content';
+import { type PatternEntry, parsePatternEntry } from '@urbicon-ui/design-engine/reference';
+import type { ComponentCatalog, IconEntry } from '@urbicon-ui/design-engine/search';
+
+const BUNDLE_MISSING =
+  'design-content bundle missing — reinstall @urbicon-ui/design-content, or run `docs:gen:all` in the monorepo';
 
 /** Catalog `group` dirs the per-component `llm.txt` files live under, in lookup order. */
 const SEARCH_GROUPS = [
@@ -81,9 +91,52 @@ export async function loadComponentLlm(slug: string): Promise<string | null> {
   try {
     await readFile(getCatalogPath(), 'utf-8');
   } catch {
-    throw new Error(
-      'design-content bundle missing — reinstall @urbicon-ui/design-content, or run `docs:gen:all` in the monorepo'
-    );
+    throw new Error(BUNDLE_MISSING);
   }
   return null;
+}
+
+/** Load the bundled design principles (`design-system/principles.md`). Missing bundle throws (see `loadCatalog`). */
+export async function loadPrinciplesText(): Promise<string> {
+  ensureContentDir();
+  try {
+    return await readFile(resolve(getDesignSystemDir(), 'principles.md'), 'utf-8');
+  } catch (err) {
+    if ((err as { code?: string }).code === 'ENOENT') throw new Error(BUNDLE_MISSING);
+    throw err;
+  }
+}
+
+/** Load the bundled composition patterns (`design-system/patterns/*.md`), sorted by name. */
+export async function loadPatternEntries(): Promise<PatternEntry[]> {
+  ensureContentDir();
+  const patternsDir = resolve(getDesignSystemDir(), 'patterns');
+
+  let files: string[];
+  try {
+    files = await readdir(patternsDir);
+  } catch (err) {
+    if ((err as { code?: string }).code === 'ENOENT') throw new Error(BUNDLE_MISSING);
+    throw err;
+  }
+
+  const entries: PatternEntry[] = [];
+  for (const file of files) {
+    if (!file.endsWith('.md')) continue;
+    const content = await readFile(resolve(patternsDir, file), 'utf-8');
+    entries.push(parsePatternEntry(file.replace(/\.md$/, ''), content));
+  }
+  entries.sort((a, b) => a.name.localeCompare(b.name));
+  return entries;
+}
+
+/** Load the bundled icon metadata (`icons.json`). Missing bundle throws (see `loadCatalog`). */
+export async function loadIconEntries(): Promise<IconEntry[]> {
+  ensureContentDir();
+  try {
+    return JSON.parse(await readFile(getIconsPath(), 'utf-8')) as IconEntry[];
+  } catch (err) {
+    if ((err as { code?: string }).code === 'ENOENT') throw new Error(BUNDLE_MISSING);
+    throw err;
+  }
 }

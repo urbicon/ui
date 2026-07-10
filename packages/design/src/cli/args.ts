@@ -24,6 +24,7 @@ const BOOLEAN_FLAGS = new Set([
   'record',
   'hook',
   'ci',
+  'rubric',
   'help',
   'version'
 ]);

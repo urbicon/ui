@@ -1,0 +1,16 @@
+[
+  {
+    "name": "search",
+    "componentName": "SearchIcon",
+    "label": "Search",
+    "categories": ["action"],
+    "keywords": ["find", "magnifier", "lookup"]
+  },
+  {
+    "name": "calendar",
+    "componentName": "CalendarIcon",
+    "label": "Calendar",
+    "categories": ["data"],
+    "keywords": ["date", "schedule", "month"]
+  }
+]

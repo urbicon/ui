@@ -49,8 +49,9 @@ bunx urbicon init               # wire the project into the design loop
 
 Then run the guided intake — `bunx urbicon verb adopt` (brownfield) or `onboard` (greenfield) —
 to fill the manifest with this project's design intent. From there an agent can `urbicon context`
-to read the intent, `urbicon find` / `get-component` to discover the catalog, compose, and
-`urbicon validate` what it produced.
+to read the intent, `urbicon find` / `get-component` to discover the catalog, `urbicon pattern` /
+`principles` / `css-reference` for the design knowledge, compose, and `urbicon validate` what it
+produced.
 
 > The component knowledge is **local and version-pinned**: `@urbicon-ui/design` pulls in the
 > [`@urbicon-ui/design-content`](../design-content/) bundle, so `find` / `get-component` match the
@@ -66,11 +67,21 @@ to read the intent, `urbicon find` / `get-component` to discover the catalog, co
 | `urbicon hook` | PostToolUse adapter — validate the just-edited file, block on failure. | — (local only) |
 | `urbicon find [query]` | Fuzzy component discovery over the version-pinned catalog. | `find_components` |
 | `urbicon get-component <slug>` | A component's API (its `llm.txt`) from the bundle. | `get_component` |
+| `urbicon icons [query]` | Icon discovery (no query: the full grouped reference). | `find_icons` |
+| `urbicon recipe [id]` | Complete Svelte 5 code recipes from the catalog. | `get_recipe` |
+| `urbicon pattern [name]` | Composition patterns per page archetype. | `get_pattern` |
+| `urbicon principles` | Design heuristics (`--topic <t>`); `--rubric` for the judge rubric. | `get_design_principles` |
+| `urbicon css-reference [sect]` | The token truth: naming, dark mode, override patterns. | `get_css_reference` |
 | `urbicon context` | Print the project's `design.manifest.md` summary. | `get_design_context` |
 | `urbicon record-decision …` | Append an ADR to the manifest. | `record_design_decision` |
 | `urbicon sync-manifest` | Re-index `data-design-pattern` markers into the manifest. | `sync_design_manifest` |
 | `urbicon verbs` | List the design verbs (recipes over the design loop). | the MCP prompts |
 | `urbicon verb <name>` | Print one verb recipe to stdout. | the MCP prompts |
+
+The CLI covers the full knowledge surface locally, so the design loop runs
+offline and version-pinned end to end. When an `urbicon-ui` MCP connection is
+*also* present, prefer the CLI: the remote serves latest, the CLI serves the
+version this project installed.
 
 The three manifest commands move off the remote server deliberately: a public
 remote server has no access to your repo's filesystem, so manifest upkeep belongs
@@ -238,11 +249,11 @@ bunx urbicon validate src/ --json              # correctness gate (blocking)
   `bun run packages/design/src/cli/index.ts <command>`.
 - `validate` / `hook` / `context` / `record-decision` / `sync-manifest` / `init` are
   content-free (engine + your repo only); `verbs` / `verb` read the recipes shipped
-  under `skill/` (package-relative, still no content-bundle dependency).
-- `find` / `get-component` read the version-pinned
-  [`@urbicon-ui/design-content`](../design-content/) bundle (a runtime dependency). Icon
-  search (`find_icons`) and the guided onboarding *interview* stay on the remote MCP and the
-  `adopt` / `onboard` verbs respectively.
+  under `skill/` (package-relative, still no content-bundle dependency);
+  `css-reference` and `principles --rubric` come straight from the engine.
+- `find` / `get-component` / `icons` / `recipe` / `pattern` / `principles` read the
+  version-pinned [`@urbicon-ui/design-content`](../design-content/) bundle (a runtime
+  dependency). The guided onboarding *interview* lives in the `adopt` / `onboard` verbs.
 
 ## Related
 
