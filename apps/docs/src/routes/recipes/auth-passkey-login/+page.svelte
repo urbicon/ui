@@ -12,40 +12,38 @@
 
   const recipeCode =
     `// 1. src/lib/server/auth-setup.ts — auth deps + shared WebAuthn ceremony config
-import { createAuthDeps } from '@urbicon-ui/auth/server';
+import { createAuthDeps, createPasskeyHandlers } from '@urbicon-ui/auth/server';
+import type { WebAuthnConfig } from '@urbicon-ui/auth/server';
 import { createPrismaRepos } from '@urbicon-ui/auth/server/adapters/prisma';
 import { createLettermintTransport } from '@urbicon-ui/auth/server/email/lettermint';
-import type { PasskeyHandlerDeps } from '@urbicon-ui/auth/server';
 import { env } from '$env/dynamic/private';
 import { prisma } from './prisma';
 
 export const authDeps = createAuthDeps({
   config: { jwt: { secret: env.JWT_SECRET }, appUrl: env.PUBLIC_APP_URL },
   repos: createPrismaRepos(prisma),
-  email: createLettermintTransport({ apiKey: env.LETTERMINT_KEY })
+  email: createLettermintTransport({ token: env.LETTERMINT_TOKEN })
 });
 
-export const passkeyDeps: PasskeyHandlerDeps = {
-  webauthn: {
-    rpId: 'example.com',        // your registrable domain (no scheme/port)
-    rpName: 'My App',
-    origin: env.PUBLIC_APP_URL  // e.g. https://app.example.com
-    // challengeStore defaults to in-memory; pass a ChallengeStore for >1 instance
-  },
-  authConfig: authDeps.config,
-  repos: { passkey: authDeps.repos.passkey, user: authDeps.repos.user }
+const webauthn: WebAuthnConfig = {
+  rpId: 'example.com',        // your registrable domain (no scheme/port)
+  rpName: 'My App',
+  origin: env.PUBLIC_APP_URL  // e.g. https://app.example.com
+  // challengeStore defaults to in-memory; pass a ChallengeStore for >1 instance
 };
 
+// One factory returns all six passkey handlers (both ceremonies + list/delete).
+export const passkey = createPasskeyHandlers(authDeps, webauthn);
+
 // 2. src/routes/api/auth/passkey/authentication-options/+server.ts
-import { createPasskeyAuthenticationOptionsHandler } from '@urbicon-ui/auth/server';
-import { passkeyDeps } from '$lib/server/auth-setup';
-export const { POST } = createPasskeyAuthenticationOptionsHandler(passkeyDeps);
+import { passkey } from '$lib/server/auth-setup';
+export const POST = passkey.authenticationOptions.POST;
 
 // 3. src/routes/api/auth/passkey/authentication-verify/+server.ts
-import { createPasskeyAuthenticationVerifyHandler } from '@urbicon-ui/auth/server';
-import { passkeyDeps } from '$lib/server/auth-setup';
-export const { POST } = createPasskeyAuthenticationVerifyHandler(passkeyDeps);
-// registration-options + registration-verify wire up identically (Registration handlers).
+import { passkey } from '$lib/server/auth-setup';
+export const POST = passkey.authenticationVerify.POST;
+// passkey.registrationOptions / passkey.registrationVerify (and passkey.list /
+// passkey.item for the PasskeyManager) wire up identically on sibling routes.
 
 // 4. src/routes/auth/login/+page.svelte
 <scr` +

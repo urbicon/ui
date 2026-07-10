@@ -16,25 +16,26 @@ import { createRegisterHandler } from '@urbicon-ui/auth/server';
 import { authDeps } from '$lib/server/auth-setup';
 export const { POST } = createRegisterHandler(authDeps);
 
-// 2. Invitation CRUD — YOU implement these with authDeps.repos.invitation.
-//    They are NOT bundled (unlike the auth handlers) because the admin policy
-//    is app-specific. Scope every write to the signed-in admin via locals.user.
-// src/routes/api/invitations/+server.ts
-import { json } from '@sveltejs/kit';
-import { authDeps } from '$lib/server/auth-setup';
+// 2. src/lib/server/invitations.ts — the bundled invitation handlers.
+//    You only supply the authorization gate (who may manage invitations)
+//    and the roles an invite may carry; validation, the invitedBy scoping
+//    (session user, never the body) and {error,code} responses ship with it.
+import { createInvitationHandlers } from '@urbicon-ui/auth/server';
+import { authDeps } from './auth-setup';
 
-export async function GET({ locals }) {
-  if (locals.user?.role !== 'ADMIN') return json({ error: 'Forbidden' }, { status: 403 });
-  return json({ invitations: await authDeps.repos.invitation.list() });
-}
+export const invitations = createInvitationHandlers(authDeps, {
+  authorize: (user) => user.role === 'ADMIN',
+  roles: ['ADMIN', 'USER']
+});
 
-export async function POST({ request, locals }) {
-  if (locals.user?.role !== 'ADMIN') return json({ error: 'Forbidden' }, { status: 403 });
-  const { email, role } = await request.json();
-  // invitedById comes from the authenticated admin — never from the body.
-  await authDeps.repos.invitation.create({ email, role, invitedById: locals.user.id });
-  return json({ ok: true }, { status: 201 });
-}
+// src/routes/api/invitations/+server.ts — create + list
+import { invitations } from '$lib/server/invitations';
+export const POST = invitations.POST;
+export const GET = invitations.GET;
+
+// src/routes/api/invitations/[id]/+server.ts — revoke (InvitationManager's delete)
+import { invitations } from '$lib/server/invitations';
+export const DELETE = invitations.DELETE;
 
 // 3. src/routes/auth/register/+page.svelte
 <scr` +
