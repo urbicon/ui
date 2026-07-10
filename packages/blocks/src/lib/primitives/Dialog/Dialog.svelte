@@ -26,6 +26,7 @@
     closeOnBackdropClick = true,
     closeOnEscape = true,
     hideCloseButton = false,
+    draggable = false,
     transitionDuration,
     transitionEasing,
     onClose,
@@ -69,6 +70,64 @@
   let releaseScrollLock: (() => void) | undefined;
 
   const structured = $derived(!!title);
+
+  // svelte-ignore state_referenced_locally
+  if (import.meta.env?.DEV && draggable && !title) {
+    console.warn(
+      '[Dialog] `draggable` needs a `title` — the header is the drag handle. Without a title no header renders, so dragging is a no-op.'
+    );
+  }
+
+  // Drag offset from the centred position (px). Only ever non-zero while
+  // `draggable` and the user has grabbed the header. Reset on each open so a
+  // reopened dialog always starts centred.
+  let dragX = $state(0);
+  let dragY = $state(0);
+
+  // Attachment wiring the header as a drag handle. Kept off the markup as an
+  // `{@attach}` (not inline `onpointer*`) so the static `<header>` doesn't trip
+  // the a11y "non-interactive element with handlers needs a role" rule, and so
+  // the listeners tear down cleanly when `draggable` flips off. Pointer capture
+  // keeps the drag alive when the cursor outruns the header; header buttons
+  // (close) are exempted so they still click.
+  function draggableHandle(node: HTMLElement) {
+    node.style.touchAction = 'none';
+    node.style.userSelect = 'none';
+    node.style.cursor = 'move';
+    let dragging = false;
+    let startX = 0;
+    let startY = 0;
+    const onDown = (event: PointerEvent) => {
+      if ((event.target as HTMLElement).closest('button')) return;
+      dragging = true;
+      startX = event.clientX - dragX;
+      startY = event.clientY - dragY;
+      node.setPointerCapture(event.pointerId);
+    };
+    const onMove = (event: PointerEvent) => {
+      if (!dragging) return;
+      dragX = event.clientX - startX;
+      dragY = event.clientY - startY;
+    };
+    const onUp = (event: PointerEvent) => {
+      if (!dragging) return;
+      dragging = false;
+      node.releasePointerCapture(event.pointerId);
+    };
+    node.addEventListener('pointerdown', onDown);
+    node.addEventListener('pointermove', onMove);
+    node.addEventListener('pointerup', onUp);
+    return () => {
+      node.removeEventListener('pointerdown', onDown);
+      node.removeEventListener('pointermove', onMove);
+      node.removeEventListener('pointerup', onUp);
+      // Undo the inline styles too, so toggling `draggable` off at runtime
+      // doesn't leave the header stuck with `cursor: move` / unselectable text.
+      node.style.touchAction = '';
+      node.style.userSelect = '';
+      node.style.cursor = '';
+    };
+  }
 
   const uid = $props.id();
   const titleId = $derived(title ? `dialog-title-${uid}` : undefined);
@@ -123,6 +182,19 @@
     isVisible = false;
     previouslyFocused = null;
   }
+
+  // Reset the drag offset whenever the dialog opens so a reopened dialog always
+  // starts centred — keyed on `open`, not the `open && !isVisible` transition.
+  // Reopening *during* the close outro (isVisible still true) must still recentre;
+  // the old transition-guarded reset silently skipped that case, restoring the
+  // stale drag position. `open` is constant during a drag, so this never fights
+  // the pointer handlers.
+  $effect(() => {
+    if (open) {
+      dragX = 0;
+      dragY = 0;
+    }
+  });
 
   $effect(() => {
     if (open && !isVisible) {
@@ -191,6 +263,7 @@
           : styles.panel({ class: [slotClasses?.panel, className] })}
         data-intent={intent}
         role="document"
+        style:translate={dragX !== 0 || dragY !== 0 ? `${dragX}px ${dragY}px` : undefined}
         transition:scale={{
           duration: motion.enterDuration,
           easing: motion.easing,
@@ -204,6 +277,7 @@
             class={unstyled
               ? (slotClasses?.header ?? '')
               : styles.header({ class: slotClasses?.header })}
+            {@attach draggable ? draggableHandle : undefined}
           >
             <h2
               class={unstyled

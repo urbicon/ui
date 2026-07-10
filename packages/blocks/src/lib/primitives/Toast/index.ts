@@ -22,6 +22,18 @@ export const TOAST_INTENTS = [
 export type ToastIntent = (typeof TOAST_INTENTS)[number];
 
 /**
+ * An action or cancel button rendered inside a toast (Sonner-style).
+ */
+export interface ToastAction {
+  /** Button label. */
+  label: string;
+  /** Click handler. Receives the toast id so the handler can dismiss/update it. */
+  onClick?: (id: string) => void;
+  /** Dismiss the toast after the click. @default true */
+  dismissOnClick?: boolean;
+}
+
+/**
  * Internal data shape for a rendered toast. Created by `toaster.add()`.
  */
 export interface ToastData {
@@ -39,6 +51,26 @@ export interface ToastData {
   dismissible: boolean;
   /** Show an animated progress bar that counts down the remaining `duration`. @default true */
   showProgress: boolean;
+  /** Primary action button (prominent). */
+  action?: ToastAction;
+  /** Secondary/cancel button (quiet). */
+  cancel?: ToastAction;
+  /** Render a spinner instead of the intent icon (used by `toaster.promise` while pending). @default false */
+  loading?: boolean;
+}
+
+/**
+ * Per-state config for `toaster.promise`. Each state is either a plain title
+ * string or a full {@link ToastInput}; `success`/`error` may also be a function
+ * of the resolved value / rejection reason.
+ */
+export interface ToastPromiseOptions<T> {
+  /** Shown while the promise is pending (spinner, persistent, not dismissible). */
+  loading: string | ToastInput;
+  /** Shown when the promise resolves. */
+  success: string | ToastInput | ((value: T) => string | ToastInput);
+  /** Shown when the promise rejects. */
+  error: string | ToastInput | ((reason: unknown) => string | ToastInput);
 }
 
 /**

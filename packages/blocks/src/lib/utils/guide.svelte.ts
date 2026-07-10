@@ -121,8 +121,14 @@ export interface GuideTour {
  * consumer can inject a server-state adapter. Kept deliberately tiny.
  */
 export interface GuideStorageAdapter {
-  /** Returns the persisted set of seen/completed ids. */
-  load(): string[];
+  /**
+   * Returns the persisted set of seen/completed ids. Return a `string[]`
+   * synchronously (localStorage, the default) or a `Promise<string[]>` for a
+   * DB-/remote-backed store. While an async load is pending the seen set starts
+   * empty and is merged (union) with the resolved ids once they arrive — so a
+   * tour may briefly be startable before the store answers.
+   */
+  load(): string[] | Promise<string[]>;
   /** Persists the full set of seen/completed ids. */
   save(ids: string[]): void;
 }
@@ -347,6 +353,22 @@ export class GuideController {
   readonly #targets = new SvelteMap<string, RegisteredTarget>();
   /** Persisted "seen" ids. */
   readonly #seen: SvelteSet<string>;
+  /** False only while an async `storage.load()` is still pending. */
+  #seenLoaded = true;
+  /**
+   * Set when the user writes (markSeen/resetSeen) while an async load is still
+   * pending, so the load's `.then` persists the merged union once — writing
+   * mid-load directly would clobber the remote store before its ids are merged in.
+   */
+  #pendingSeenWrite = false;
+  /**
+   * Ids the user forgot during the load window, so the merge doesn't resurrect
+   * them from the freshly-loaded remote set. A plain `Set` — pure bookkeeping,
+   * never rendered, so the `SvelteSet` rule doesn't apply.
+   */
+  readonly #pendingRemovals = new Set<string>();
+  /** `resetSeen()` (clear-all) during the load window: drop the remote set entirely. */
+  #pendingClearAll = false;
 
   readonly #storage: GuideStorageAdapter;
   readonly #overlayStack: GuideOverlayStackLike;
@@ -406,7 +428,53 @@ export class GuideController {
     // `?? false` keeps `#dev` a strict boolean and means non-Vite consumers
     // simply get no dev warnings (rather than a crash).
     this.#dev = options.dev ?? import.meta.env?.DEV ?? false;
-    this.#seen = new SvelteSet(this.#storage.load());
+    // Sync adapters (localStorage) seed the set immediately. Async adapters
+    // (DB/remote) start empty and get their ids merged in when the promise
+    // settles — union, not replace, so anything marked seen in the meantime
+    // survives. A rejected load is swallowed (dev-warned): the tour just stays
+    // "unseen", which fails open rather than hiding help behind a broken store.
+    const loaded = this.#storage.load();
+    if (Array.isArray(loaded)) {
+      this.#seen = new SvelteSet(loaded);
+    } else {
+      this.#seen = new SvelteSet();
+      this.#seenLoaded = false;
+      loaded
+        .then((ids) => {
+          // Merge the loaded set in, but honour writes made during the window:
+          // skip everything if the user cleared all, and don't resurrect ids the
+          // user explicitly forgot. Adds are safe (union is idempotent).
+          if (!this.#pendingClearAll) {
+            for (const id of ids) {
+              if (!this.#pendingRemovals.has(id)) this.#seen.add(id);
+            }
+          }
+          this.#seenLoaded = true;
+          // Reconcile persistence: if the user wrote during the window, the store
+          // still holds the pre-merge state (we deliberately didn't save then), so
+          // persist the union now. Nothing wrote → leave the store untouched (no
+          // write-amplification of a remote we just read).
+          if (this.#pendingSeenWrite) this.#storage.save([...this.#seen]);
+        })
+        .catch((err: unknown) => {
+          // Read failed: fail open (tour stays "unseen"). We don't persist the
+          // window's in-memory writes here — the store is in an unknown state, and
+          // blindly saving could destroy data we simply couldn't read ("read
+          // tolerant, write strict"). Later writes persist normally.
+          this.#seenLoaded = true;
+          if (this.#dev) console.warn('[Guide] storage.load() rejected:', err);
+        });
+    }
+  }
+
+  /**
+   * Persist the seen-set — unless an async load is still pending, in which case a
+   * direct save would clobber the not-yet-loaded remote store. Defer to the load's
+   * `.then` reconciliation instead (see the constructor).
+   */
+  #persistSeen(): void {
+    if (this.#seenLoaded) this.#storage.save([...this.#seen]);
+    else this.#pendingSeenWrite = true;
   }
 
   // ─── Target registry ──────────────────────────────────────────────────────
@@ -967,14 +1035,27 @@ export class GuideController {
   markSeen(id: string): void {
     if (this.#seen.has(id)) return;
     this.#seen.add(id);
-    this.#storage.save([...this.#seen]);
+    // Re-seeing an id undoes a forget that's still pending reconciliation.
+    if (!this.#seenLoaded) this.#pendingRemovals.delete(id);
+    this.#persistSeen();
   }
 
   /** Forget one id, or all of them when called without an argument. */
   resetSeen(id?: string): void {
-    if (id === undefined) this.#seen.clear();
-    else this.#seen.delete(id);
-    this.#storage.save([...this.#seen]);
+    if (id === undefined) {
+      this.#seen.clear();
+      // Clear-all during a pending load must survive the merge: drop the whole
+      // remote set, superseding any earlier pending removals.
+      if (!this.#seenLoaded) {
+        this.#pendingClearAll = true;
+        this.#pendingRemovals.clear();
+      }
+    } else {
+      this.#seen.delete(id);
+      // Record the forget so the pending-load merge doesn't resurrect it.
+      if (!this.#seenLoaded) this.#pendingRemovals.add(id);
+    }
+    this.#persistSeen();
   }
 
   /** Snapshot of all seen ids. */

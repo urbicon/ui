@@ -8,8 +8,23 @@ import type { BadgePlacement, BadgeSlots, BadgeVariants } from './badge.variants
  * label-style variants both accept these.
  */
 interface BadgeBaseProps
-  extends Omit<BadgeVariants, 'variant'>,
+  extends Omit<BadgeVariants, 'variant' | 'counter'>,
     Omit<HTMLAttributes<HTMLElement>, 'children'> {
+  /**
+   * The badge's semantic purpose — the canonical axis that resolves what the
+   * badge *is*, since a bare Badge served five overlapping roles. Orchestrates
+   * the low-level visual props so you rarely set them directly:
+   * - `status` — a state marker (Active, Failed); pairs with `intent`.
+   * - `tag` — a neutral inline label (category, version).
+   * - `counter` — a compact numeric pill (replaces the `counter` boolean).
+   * - `dot` — a pure indicator, content hidden (replaces `variant="dot"`).
+   * - `chip` — a removable, interactive filter chip; pair with `removable`.
+   *
+   * Leave unset to drive the badge purely by the low-level props (back-compat).
+   * When set, `purpose` wins over `variant="dot"` / the `counter` boolean.
+   */
+  purpose?: 'status' | 'tag' | 'counter' | 'dot' | 'chip';
+
   /** Add a pulsing animation to draw attention (e.g. for live indicators). */
   pulse?: boolean;
   /** Visually disable the badge (reduced opacity, no pointer events). */
@@ -69,7 +84,10 @@ interface BadgeStandardProps extends BadgeBaseProps {
   variant?: 'filled' | 'outlined' | 'soft';
   /** Badge content (text, icons, numbers). */
   children?: Snippet;
-  /** Display as a compact pill for numeric counts. Tightens padding and uses tabular-nums so digits align. */
+  /**
+   * Display as a compact pill for numeric counts (tightens padding, tabular-nums).
+   * @deprecated Prefer `purpose="counter"` — the canonical semantic axis. Kept for back-compat.
+   */
   counter?: boolean;
   /** Show a remove (×) button. */
   removable?: boolean;
@@ -91,16 +109,19 @@ interface BadgeStandardProps extends BadgeBaseProps {
  * `onRemove` at the type level, while `filled` / `outlined` / `soft`
  * accept the full surface.
  *
- * @example
+ * @example Purpose-driven (canonical) — the intent reads from `purpose`
  * ```svelte
- * <Badge variant="filled" intent="primary">New Feature</Badge>
+ * <Badge purpose="status" intent="success">Active</Badge>
+ * <Badge purpose="counter" intent="danger">5</Badge>
+ * <Badge purpose="chip" removable onRemove={() => …}>React</Badge>
+ * <Badge purpose="dot" intent="warning" />
  * ```
  *
- * @example
+ * @example Notification counter anchored to a trigger
  * ```svelte
  * <div class="relative">
  *   <Button>Notifications</Button>
- *   <Badge intent="danger" counter placement="top-end" border>5</Badge>
+ *   <Badge purpose="counter" intent="danger" placement="top-end" border>5</Badge>
  * </div>
  * ```
  */

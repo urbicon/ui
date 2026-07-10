@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 import { screen } from '@testing-library/dom';
 import userEvent from '@testing-library/user-event';
-import { flushSync, mount, unmount } from 'svelte';
+import { createRawSnippet, flushSync, mount, unmount } from 'svelte';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import type { MenuProps } from './index';
 import Menu from './Menu.svelte';
@@ -191,5 +191,58 @@ describe('Menu (component interaction)', () => {
     expect(document.activeElement).toBe(item('Share'));
 
     expect(onDelete).not.toHaveBeenCalled();
+  });
+});
+
+// Context-menu mode (fr/major). A `contextTrigger` snippet becomes a right-click
+// target; contextmenu opens the menu at the cursor and suppresses the native
+// menu. No trigger button renders. jsdom has no layout, so these assert the
+// open/preventDefault/selection contract, not the cursor position.
+describe('Menu (context menu)', () => {
+  const contextTrigger = createRawSnippet(() => ({
+    render: () => '<div data-testid="ctx-target">Right-click me</div>'
+  }));
+
+  const rightClick = (el: Element, x = 120, y = 80) => {
+    const ev = new MouseEvent('contextmenu', {
+      clientX: x,
+      clientY: y,
+      bubbles: true,
+      cancelable: true
+    });
+    el.dispatchEvent(ev);
+    flushSync();
+    return ev;
+  };
+
+  it('opens at the cursor on right-click and suppresses the native menu', () => {
+    renderMenu({ items: [{ label: 'Cut' }, { label: 'Copy' }], contextTrigger });
+
+    expect(screen.queryByRole('menuitem', { hidden: true })).toBeNull();
+
+    const ev = rightClick(screen.getByTestId('ctx-target'));
+
+    expect(ev.defaultPrevented).toBe(true);
+    expect(screen.getByRole('menu', { hidden: true })).toBeTruthy();
+    expect(screen.getAllByRole('menuitem', { hidden: true })).toHaveLength(2);
+  });
+
+  it('does not open (nor preventDefault) when disabled', () => {
+    renderMenu({ items: [{ label: 'Cut' }], contextTrigger, disabled: true });
+    const ev = rightClick(screen.getByTestId('ctx-target'));
+    expect(ev.defaultPrevented).toBe(false);
+    expect(screen.queryByRole('menuitem', { hidden: true })).toBeNull();
+  });
+
+  it('activates an item and closes on selection', async () => {
+    const user = userEvent.setup();
+    const onCut = vi.fn();
+    renderMenu({ items: [{ label: 'Cut', onSelect: onCut }], contextTrigger });
+
+    rightClick(screen.getByTestId('ctx-target'));
+    await user.click(screen.getByRole('menuitem', { name: 'Cut', hidden: true }));
+
+    expect(onCut).toHaveBeenCalledOnce();
+    expect(screen.queryByRole('menuitem', { hidden: true })).toBeNull();
   });
 });

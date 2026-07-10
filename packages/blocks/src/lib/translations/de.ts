@@ -20,7 +20,8 @@ export default {
     toggleOptions: 'Optionen umschalten',
     removableBadge: 'Entfernbarer Badge',
     removeBadge: 'Badge entfernen',
-    removeFile: '{{name}} entfernen'
+    removeFile: '{{name}} entfernen',
+    removeTag: '{{label}} entfernen'
   },
   button: {
     close: 'Schließen',

@@ -22,7 +22,7 @@ export type { CheckboxProps } from './Checkbox';
 export * from './Checkbox';
 export type { CollapsibleProps } from './Collapsible';
 export * from './Collapsible';
-export type { ComboboxOptionType, ComboboxProps } from './Combobox';
+export type { ComboboxGroup, ComboboxOptionType, ComboboxProps } from './Combobox';
 export * from './Combobox';
 export type { ConfirmDialogProps, ConfirmIntent } from './ConfirmDialog';
 export * from './ConfirmDialog';
@@ -46,7 +46,7 @@ export type {
   MenuSectionHeader
 } from './Menu';
 export * from './Menu';
-export type { PaginationItemProps, PaginationProps } from './Pagination';
+export type { PaginationItemContext, PaginationItemProps, PaginationProps } from './Pagination';
 export * from './Pagination';
 export * from './Popover';
 export type { ProgressProps } from './Progress';
@@ -74,10 +74,12 @@ export * from './Tab';
 export type { TextareaProps } from './Textarea';
 export * from './Textarea';
 export type {
+  ToastAction,
   ToastData,
   ToastInput,
   ToastIntent,
   ToastPlacement,
+  ToastPromiseOptions,
   ToastProps,
   ToastShorthandOpts
 } from './Toast';

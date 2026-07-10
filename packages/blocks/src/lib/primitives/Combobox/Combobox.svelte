@@ -1,6 +1,7 @@
 <script lang="ts" generics="T extends string | number | boolean = string">
   import { useBlocksI18n, mintRegistry } from '$lib';
   import { tick } from 'svelte';
+  import { SvelteMap } from 'svelte/reactivity';
   import { comboboxVariants, type ComboboxVariants } from './combobox.variants';
   import { getBlocksConfig, resolveSlotClasses } from '$lib/provider';
   import { resolveIcon } from '$lib/icons';
@@ -17,15 +18,23 @@
   const CheckMarkIcon = resolveIcon('check', CheckIconDefault);
 
   let {
-    options,
+    options = [],
+    groups,
     value = $bindable(null),
     query = $bindable(''),
+    multiple = false,
+    maxItems,
+    onRemoveTag,
+    customTag,
     placeholder = 'Search…',
     label,
     helper,
     error,
     required = false,
     filter,
+    queryFn,
+    debounceMs = 250,
+    loadingText = 'Loading…',
     tier,
     variant = 'outlined',
     size = 'md',
@@ -49,6 +58,13 @@
     id: idProp,
     ...restProps
   }: ComboboxProps<T> = $props();
+
+  // The exported `ComboboxProps<T>` is a discriminated union over `multiple`, so
+  // externally `<Combobox multiple bind:value={x: T[]}>` and the single form
+  // narrow correctly. Internally we dispatch through a loose alias so the
+  // component can hand either shape into `onValueChange` without per-branch
+  // casts at every call site (mirrors Select).
+  const dispatchValueChange = $derived(onValueChange as ((v: unknown) => void) | undefined);
 
   const tierCtx = getTierContext();
   const effectiveTier = $derived(tier ?? tierCtx?.tier ?? 'modify');
@@ -83,12 +99,158 @@
 
   const filterFn = $derived(filter ?? defaultFilter);
 
-  const selectedOption = $derived(options.find((o) => o.value === value));
+  // ── Async / server-side search (queryFn) ──────────────────────────────
+  // Options resolved by the last settled `queryFn` call, and whether one is in
+  // flight. In async mode these replace `options`/`groups` entirely.
+  let asyncOptions = $state<ComboboxOption<T>[]>([]);
+  let loading = $state(false);
+  // Remembers the option the user picked so its label survives a later result
+  // set that no longer contains it (the classic async-combobox label-loss).
+  let selectedCache = $state<ComboboxOption<T> | null>(null);
 
-  const filtered = $derived.by(() => {
-    if (selectedOption && query === selectedOption.label) return options;
-    if (!query.trim()) return options;
-    return options.filter((o) => filterFn(o, query.trim()));
+  // `groups` takes precedence over `options` (mirrors Select); in async mode the
+  // server-resolved list wins over both. Flattened for value lookup + keyboard nav.
+  const allOptions = $derived(
+    queryFn ? asyncOptions : groups ? groups.flatMap((g) => g.options) : options
+  );
+
+  // Single-mode selected option. `undefined` in multi mode, which makes every
+  // single-only path keyed on it (the label-restore effect, the query shortcut
+  // in `matchesQuery`, the click-outside/chevron label restore) inert without a
+  // per-site `!multiple` guard.
+  const selectedOption = $derived(
+    multiple
+      ? undefined
+      : (allOptions.find((o) => o.value === value) ??
+          (selectedCache && selectedCache.value === value ? selectedCache : undefined))
+  );
+
+  // ── Multi-select state (multiple) ─────────────────────────────────────────
+  // Selected values, normalized to an array regardless of what `value` holds
+  // (a stray `null`/non-array default binds to an empty selection).
+  const selectedValues = $derived<T[]>(multiple && Array.isArray(value) ? value : []);
+
+  // Remembers the option behind each picked value so its tag keeps its label
+  // when the option list changes (async results, or a filtered-out option) —
+  // the multi-select analogue of `selectedCache`.
+  const tagCache = new SvelteMap<T, ComboboxOption<T>>();
+
+  // Resolved options for the selected values, in selection order. Falls back to
+  // the cache, then to a bare `{ label: String(value) }` for an orphan value
+  // (bound but never in the options) so the tag still renders and stays
+  // removable rather than silently vanishing from the array.
+  //
+  // The dev-warn is gated to *sync* mode: with `queryFn`, a pre-bound value that
+  // isn't in the current result set is expected, not a bug (there is no API to
+  // seed labels for it), so warning there would cry wolf on a legitimate pattern.
+  // See technical-debt (async pre-selected labels + warn dedup).
+  const selectedTags = $derived.by<ComboboxOption<T>[]>(() =>
+    selectedValues.map((v) => {
+      const found = allOptions.find((o) => o.value === v) ?? tagCache.get(v);
+      if (found) return found;
+      if (!queryFn && import.meta.env?.DEV) {
+        console.warn(
+          `[Combobox] value ${JSON.stringify(v)} has no matching option — tag falls back to its raw value.`
+        );
+      }
+      return { label: String(v), value: v } satisfies ComboboxOption<T>;
+    })
+  );
+
+  const isSelected = (opt: ComboboxOption<T>): boolean =>
+    multiple ? selectedValues.includes(opt.value) : opt.value === value;
+
+  // At the max-items cap, options that aren't already selected can't be added.
+  const atCap = $derived(multiple && maxItems != null && selectedValues.length >= maxItems);
+
+  // An option is effectively disabled when it declares `disabled`, or when the
+  // cap is reached and it isn't already selected (so it can't be added, but a
+  // selected one can still be toggled off). Drives both keyboard-nav skipping
+  // and the rendered `disabled`/`aria-disabled`.
+  const isOptionDisabled = (opt: ComboboxOption<T> | undefined): boolean =>
+    !!opt && (!!opt.disabled || (atCap && !isSelected(opt)));
+
+  // Whether the clear affordance is shown (and what it resets). Single mode uses
+  // `value != null` (not a truthy check) so a legitimately-selected falsy value
+  // — `0`, `''`, `false` under `T extends string | number | boolean` — is still
+  // clearable rather than stranding the field with no way to reset it.
+  const hasValue = $derived(multiple ? selectedValues.length > 0 : value != null);
+
+  // In multi mode the placeholder is suppressed once there are tags — sitting a
+  // "Search…" hint next to chips reads as clutter. Single mode always shows it.
+  const effectivePlaceholder = $derived(multiple && selectedValues.length > 0 ? '' : placeholder);
+
+  // Does an option survive the current query? In async mode the server already
+  // filtered, so everything shows. Otherwise the same rules the flat list always
+  // used: an empty query and a field still showing the selected label both show
+  // everything; else the (custom) filter decides.
+  const matchesQuery = (opt: ComboboxOption<T>): boolean => {
+    if (queryFn) return true;
+    if (selectedOption && query === selectedOption.label) return true;
+    if (!query.trim()) return true;
+    return filterFn(opt, query.trim());
+  };
+
+  // Grouped view for rendering: each group's surviving options, empty groups
+  // dropped. `null` for a flat `options` list or async mode (server results are flat).
+  const filteredGroups = $derived.by(() => {
+    if (!groups || queryFn) return null;
+    return groups
+      .map((g) => ({ label: g.label, options: g.options.filter(matchesQuery) }))
+      .filter((g) => g.options.length > 0);
+  });
+
+  // Flat list backing keyboard nav + aria-activedescendant. Kept in lockstep
+  // with `filteredGroups` (same predicate, same option refs) so the virtual
+  // cursor index always addresses a rendered option.
+  const filtered = $derived(
+    filteredGroups ? filteredGroups.flatMap((g) => g.options) : allOptions.filter(matchesQuery)
+  );
+
+  // Debounced query runner. The effect tracks `query` (+ debounceMs); each change
+  // resets the timer, and the fetch runs a tick later so bursty typing collapses
+  // into one request. A per-run AbortController lets a newer query cancel an
+  // older in-flight one, so a slow stale response can't overwrite a fresh result.
+  let inFlight: AbortController | undefined;
+  $effect(() => {
+    // Gated on `open` so no request fires in the background before the user
+    // engages the field; opening (focus) searches with the current query.
+    if (!queryFn || !open) {
+      loading = false;
+      return;
+    }
+    const q = query;
+    // Mark loading *synchronously*: a search is pending the moment the query
+    // changes, not only once the debounced fetch starts. Otherwise the empty
+    // `asyncOptions` would render the "no results" row for the whole debounce
+    // window before "loading" appears — the opposite of the truth.
+    loading = true;
+    const timer = setTimeout(() => {
+      inFlight?.abort();
+      const controller = new AbortController();
+      inFlight = controller;
+      queryFn(q, controller.signal)
+        .then((result) => {
+          if (controller.signal.aborted) return;
+          asyncOptions = result;
+          activeIndex = -1;
+        })
+        .catch((err: unknown) => {
+          if (controller.signal.aborted || (err as { name?: string })?.name === 'AbortError')
+            return;
+          if (import.meta.env?.DEV) console.warn('[Combobox] queryFn rejected:', err);
+        })
+        .finally(() => {
+          if (!controller.signal.aborted) loading = false;
+        });
+    }, debounceMs);
+    // Abort the in-flight request as well as clearing the timer, so a
+    // superseded / closed / unmounted search doesn't run to completion in the
+    // background — the whole point of threading the AbortSignal through.
+    return () => {
+      clearTimeout(timer);
+      inFlight?.abort();
+    };
   });
 
   const variantProps: ComboboxVariants = $derived({
@@ -146,27 +308,83 @@
     if (opt.disabled) return;
     value = opt.value;
     query = opt.label;
+    selectedCache = opt;
     setOpen(false);
     activeIndex = -1;
-    onValueChange?.(opt.value);
+    // Dispatch through the loose alias — the union's `onValueChange` param type
+    // is the contravariant intersection `(T | null) & T[]`, which nothing is
+    // assignable to; the alias erases the mode split (mirrors Select).
+    dispatchValueChange?.(opt.value);
     focusInputWithoutOpening();
   }
 
   function clear() {
+    if (multiple) {
+      // Clear all tags. `onRemoveTag` is reserved for single-value removals
+      // (× / Backspace / toggle-off); a bulk clear signals through
+      // `onValueChange([])` only. The listbox open state is left untouched.
+      tagCache.clear();
+      value = [] as T[];
+      query = '';
+      activeIndex = -1;
+      dispatchValueChange?.([]);
+      focusInputWithoutOpening();
+      return;
+    }
     value = null;
     query = '';
     setOpen(false);
     activeIndex = -1;
-    onValueChange?.(null);
+    dispatchValueChange?.(null);
+    focusInputWithoutOpening();
+  }
+
+  // Add or remove a value in multi mode. Selecting keeps the listbox open (so
+  // several picks flow without re-opening) and clears the query to search the
+  // next one; toggling an already-selected option off removes its tag.
+  function toggleValue(opt: ComboboxOption<T>) {
+    if (opt.disabled) return;
+    const values = [...selectedValues];
+    const idx = values.indexOf(opt.value);
+    if (idx === -1) {
+      // Adding — respect the cap. (A selected option is never blocked here.)
+      if (maxItems != null && values.length >= maxItems) return;
+      values.push(opt.value);
+      tagCache.set(opt.value, opt);
+      value = values;
+      dispatchValueChange?.(values);
+    } else {
+      values.splice(idx, 1);
+      tagCache.delete(opt.value);
+      value = values;
+      onRemoveTag?.(opt.value);
+      dispatchValueChange?.(values);
+    }
+    query = '';
+    activeIndex = -1;
+    focusInputWithoutOpening();
+  }
+
+  // Remove a single tag (× button or Backspace). Does not change the open state.
+  function removeTag(v: T) {
+    if (disabled) return;
+    const values = selectedValues.filter((x) => x !== v);
+    tagCache.delete(v);
+    value = values;
+    onRemoveTag?.(v);
+    dispatchValueChange?.(values);
     focusInputWithoutOpening();
   }
 
   function handleInput() {
     setOpen(true);
     activeIndex = -1;
-    if (value && query !== selectedOption?.label) {
+    // Single mode: editing the query away from the selected label clears the
+    // selection. Multi mode leaves the array alone — the query is transient
+    // search text, independent of the tags.
+    if (!multiple && value && query !== selectedOption?.label) {
       value = null;
-      onValueChange?.(null);
+      dispatchValueChange?.(null);
     }
   }
 
@@ -184,9 +402,12 @@
     if (disabled) return;
     if (open) {
       setOpen(false);
-      // Restore the selected label if the query was left dangling (mirrors the
-      // click-outside path), so the field doesn't read as blank after closing.
-      if (!value && selectedOption) query = selectedOption.label;
+      // Multi: drop the transient search text so a leftover filter doesn't
+      // linger. Single: restore the selected label if the query was left
+      // dangling (mirrors the click-outside path), so the field doesn't read
+      // as blank after closing.
+      if (multiple) query = '';
+      else if (!value && selectedOption) query = selectedOption.label;
     } else {
       setOpen(true);
       inputEl?.focus();
@@ -214,7 +435,9 @@
         const next = activeIndex + 1;
         if (next < filtered.length) {
           activeIndex = next;
-          while (activeIndex < filtered.length && filtered[activeIndex]?.disabled) activeIndex++;
+          // Skip disabled / at-cap options (see isOptionDisabled).
+          while (activeIndex < filtered.length && isOptionDisabled(filtered[activeIndex]))
+            activeIndex++;
           if (activeIndex >= filtered.length) activeIndex = filtered.length - 1;
         }
         scrollToActive();
@@ -229,7 +452,7 @@
         const prev = activeIndex - 1;
         if (prev >= 0) {
           activeIndex = prev;
-          while (activeIndex >= 0 && filtered[activeIndex]?.disabled) activeIndex--;
+          while (activeIndex >= 0 && isOptionDisabled(filtered[activeIndex])) activeIndex--;
           if (activeIndex < 0) activeIndex = 0;
         }
         scrollToActive();
@@ -237,8 +460,25 @@
       }
       case 'Enter': {
         event.preventDefault();
-        if (open && activeIndex >= 0 && filtered[activeIndex]) {
-          select(filtered[activeIndex]);
+        if (
+          open &&
+          activeIndex >= 0 &&
+          filtered[activeIndex] &&
+          !isOptionDisabled(filtered[activeIndex])
+        ) {
+          const opt = filtered[activeIndex];
+          if (multiple) toggleValue(opt);
+          else select(opt);
+        }
+        break;
+      }
+      case 'Backspace': {
+        // Multi: Backspace on an empty query removes the last tag (standard
+        // tokenizer UX). Only when the query is empty, so it never eats a real
+        // character delete.
+        if (multiple && query === '' && selectedValues.length > 0) {
+          event.preventDefault();
+          removeTag(selectedValues[selectedValues.length - 1]);
         }
         break;
       }
@@ -278,7 +518,9 @@
     if (!wrapperEl?.contains(target) && !listboxEl?.contains(target)) {
       if (!closeOnClickOutside) return;
       setOpen(false);
-      if (!value && selectedOption) {
+      if (multiple) {
+        query = '';
+      } else if (!value && selectedOption) {
         query = selectedOption.label;
       }
       onClickOutside?.();
@@ -346,29 +588,71 @@
       ? (slotClasses?.inputWrapper ?? '')
       : styles.inputWrapper({ class: slotClasses?.inputWrapper })}
   >
-    <input
-      bind:this={inputEl}
-      id={ff.fieldId}
-      type="text"
-      role="combobox"
-      aria-expanded={open}
-      aria-controls={listboxId}
-      aria-activedescendant={activeDescendant}
-      aria-autocomplete="list"
-      aria-invalid={ff.invalid ? 'true' : undefined}
-      aria-describedby={ff.describedBy}
-      autocomplete="off"
-      class={unstyled ? (slotClasses?.input ?? '') : styles.input({ class: slotClasses?.input })}
-      {placeholder}
-      {disabled}
-      required={ff.required || undefined}
-      bind:value={query}
-      oninput={handleInput}
-      onfocus={handleFocus}
-      onkeydown={handleKeydown}
-    />
+    {#if multiple}
+      <!--
+        Multi-select tokenizer frame. The visible border/background/focus-ring
+        lives on this `control` div (not the borderless search input inside it),
+        so selected tags and the search field share one bordered box that grows
+        as tags wrap. Single mode keeps the input-as-frame layout untouched.
+      -->
+      <!-- svelte-ignore a11y_no_static_element_interactions -->
+      <div
+        class={unstyled
+          ? (slotClasses?.control ?? '')
+          : styles.control({ class: slotClasses?.control })}
+        onmousedown={(e) => {
+          // Clicking the empty frame area (not a tag or the input) focuses the
+          // input; `preventDefault` keeps focus from leaving on the mousedown.
+          if (e.target === e.currentTarget) {
+            e.preventDefault();
+            inputEl?.focus();
+          }
+        }}
+      >
+        <!--
+          Keyed with a positional suffix (matching the hidden inputs below), not
+          the bare value: a malformed bound array with a repeated value would
+          otherwise throw `each_key_duplicate`. Internal mutations never create
+          duplicates (toggleValue guards on indexOf), so for valid input this is
+          a stable per-position key.
+        -->
+        {#each selectedTags as opt, i (`${String(opt.value)}-${i}`)}
+          {#if customTag}
+            {@render customTag(opt, () => removeTag(opt.value))}
+          {:else}
+            <span
+              class={unstyled ? (slotClasses?.tag ?? '') : styles.tag({ class: slotClasses?.tag })}
+            >
+              <span
+                class={unstyled
+                  ? (slotClasses?.tagLabel ?? '')
+                  : styles.tagLabel({ class: slotClasses?.tagLabel })}>{opt.label}</span
+              >
+              <button
+                type="button"
+                {disabled}
+                class={unstyled
+                  ? (slotClasses?.tagRemove ?? '')
+                  : styles.tagRemove({ class: slotClasses?.tagRemove })}
+                onclick={() => removeTag(opt.value)}
+                aria-label={bt('accessibility.removeTag', { label: opt.label })}
+              >
+                <CloseIcon />
+              </button>
+            </span>
+          {/if}
+        {/each}
+        {@render searchField(
+          unstyled ? (slotClasses?.search ?? '') : styles.search({ class: slotClasses?.search })
+        )}
+      </div>
+    {:else}
+      {@render searchField(
+        unstyled ? (slotClasses?.input ?? '') : styles.input({ class: slotClasses?.input })
+      )}
+    {/if}
 
-    {#if clearable && value}
+    {#if clearable && hasValue}
       <button
         type="button"
         {disabled}
@@ -401,11 +685,19 @@
     {/if}
 
     {#if name}
-      <input
-        type="hidden"
-        {name}
-        value={value === null || value === undefined ? '' : String(value)}
-      />
+      {#if multiple}
+        <!-- One hidden input per selected value, so the form payload shape is
+             consistent (zero-or-more) regardless of how many tags are picked. -->
+        {#each selectedTags as opt, i (`${String(opt.value)}-${i}`)}
+          <input type="hidden" {name} value={String(opt.value)} />
+        {/each}
+      {:else}
+        <input
+          type="hidden"
+          {name}
+          value={value === null || value === undefined ? '' : String(value)}
+        />
+      {/if}
     {/if}
 
     <!--
@@ -427,6 +719,7 @@
       bind:this={listboxEl}
       id={listboxId}
       role="listbox"
+      aria-multiselectable={multiple || undefined}
       popover={panel.topLayer ? 'manual' : null}
       tabindex={-1}
       class={unstyled
@@ -439,7 +732,16 @@
       style:display={floatingPanelHidden(panel, open) ? 'none' : null}
     >
       {#if open}
-        {#if filtered.length === 0}
+        {#if loading}
+          <div
+            class={unstyled
+              ? (slotClasses?.loading ?? '')
+              : styles.loading({ class: slotClasses?.loading })}
+            role="status"
+          >
+            {loadingText}
+          </div>
+        {:else if filtered.length === 0}
           <div
             class={unstyled
               ? (slotClasses?.noResults ?? '')
@@ -447,51 +749,30 @@
           >
             {noResultsText}
           </div>
+        {:else if filteredGroups}
+          {#each filteredGroups as group (group.label)}
+            <div
+              class={unstyled
+                ? (slotClasses?.group ?? '')
+                : styles.group({ class: slotClasses?.group })}
+              role="group"
+              aria-label={group.label}
+            >
+              <div
+                class={unstyled
+                  ? (slotClasses?.groupLabel ?? '')
+                  : styles.groupLabel({ class: slotClasses?.groupLabel })}
+              >
+                {group.label}
+              </div>
+              {#each group.options as opt (opt.value)}
+                {@render optionButton(opt, filtered.indexOf(opt))}
+              {/each}
+            </div>
+          {/each}
         {:else}
           {#each filtered as opt, i (opt.value)}
-            {@const isActive = i === activeIndex}
-            {@const isSelected = opt.value === value}
-            <button
-              id="{listboxId}-option-{opt.value}"
-              type="button"
-              role="option"
-              aria-selected={isSelected}
-              aria-disabled={opt.disabled}
-              data-active={isActive}
-              disabled={opt.disabled}
-              class={unstyled
-                ? [
-                    slotClasses?.option,
-                    isActive ? slotClasses?.optionActive : undefined,
-                    isSelected ? slotClasses?.optionSelected : undefined
-                  ]
-                    .filter(Boolean)
-                    .join(' ')
-                : styles.option({
-                    class: [
-                      slotClasses?.option,
-                      isActive
-                        ? styles.optionActive({ class: slotClasses?.optionActive })
-                        : undefined,
-                      isSelected
-                        ? styles.optionSelected({ class: slotClasses?.optionSelected })
-                        : undefined
-                    ].filter(Boolean)
-                  })}
-              onclick={() => select(opt)}
-              onmouseenter={() => {
-                activeIndex = i;
-              }}
-            >
-              {#if customOption}
-                {@render customOption(opt, isSelected)}
-              {:else}
-                <span class="flex-1 truncate">{opt.label}</span>
-                {#if isSelected}
-                  <CheckMarkIcon class="text-primary h-4 w-4 shrink-0" />
-                {/if}
-              {/if}
-            </button>
+            {@render optionButton(opt, i)}
           {/each}
         {/if}
       {/if}
@@ -517,3 +798,84 @@
     </div>
   {/if}
 </div>
+
+<!--
+  Single option renderer, shared by the flat and grouped listbox paths. `i` is
+  the option's index in the flattened `filtered` array — the same index the
+  keyboard cursor (`activeIndex`) and `aria-activedescendant` address, so a
+  grouped option highlights and selects identically to a flat one.
+-->
+{#snippet optionButton(opt: ComboboxOption<T>, i: number)}
+  {@const isActive = i === activeIndex}
+  {@const selected = isSelected(opt)}
+  {@const optDisabled = isOptionDisabled(opt)}
+  <button
+    id="{listboxId}-option-{opt.value}"
+    type="button"
+    role="option"
+    aria-selected={selected}
+    aria-disabled={optDisabled || undefined}
+    data-active={isActive}
+    disabled={optDisabled}
+    class={unstyled
+      ? [
+          slotClasses?.option,
+          isActive ? slotClasses?.optionActive : undefined,
+          selected ? slotClasses?.optionSelected : undefined
+        ]
+          .filter(Boolean)
+          .join(' ')
+      : styles.option({
+          class: [
+            slotClasses?.option,
+            isActive ? styles.optionActive({ class: slotClasses?.optionActive }) : undefined,
+            selected ? styles.optionSelected({ class: slotClasses?.optionSelected }) : undefined
+          ].filter(Boolean)
+        })}
+    onclick={() => (multiple ? toggleValue(opt) : select(opt))}
+    onmouseenter={() => {
+      if (!optDisabled) activeIndex = i;
+    }}
+  >
+    {#if customOption}
+      {@render customOption(opt, selected)}
+    {:else}
+      <span class="flex-1 truncate">{opt.label}</span>
+      {#if selected}
+        <CheckMarkIcon class="text-primary h-4 w-4 shrink-0" />
+      {/if}
+    {/if}
+  </button>
+{/snippet}
+
+<!--
+  The single search input, shared by both modes. Single mode styles it as the
+  full bordered frame (`input` slot); multi mode renders it borderless (`search`
+  slot) inside the tokenizer `control`. Factored into a snippet so the ARIA
+  wiring lives in one place. `required` is single-mode only — in multi the input
+  is transient search text (cleared after each pick), so a native `required` on
+  it would wrongly block submit even with tags selected.
+-->
+{#snippet searchField(cls: string)}
+  <input
+    bind:this={inputEl}
+    id={ff.fieldId}
+    type="text"
+    role="combobox"
+    aria-expanded={open}
+    aria-controls={listboxId}
+    aria-activedescendant={activeDescendant}
+    aria-autocomplete="list"
+    aria-invalid={ff.invalid ? 'true' : undefined}
+    aria-describedby={ff.describedBy}
+    autocomplete="off"
+    class={cls}
+    placeholder={effectivePlaceholder}
+    {disabled}
+    required={(!multiple && ff.required) || undefined}
+    bind:value={query}
+    oninput={handleInput}
+    onfocus={handleFocus}
+    onkeydown={handleKeydown}
+  />
+{/snippet}

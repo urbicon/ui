@@ -28,7 +28,7 @@ import type { DialogSlots, DialogVariants } from './dialog.variants';
  * </Dialog>
  * ```
  */
-export interface DialogProps extends Omit<HTMLDialogAttributes, 'children' | 'open'> {
+export interface DialogProps extends Omit<HTMLDialogAttributes, 'children' | 'open' | 'draggable'> {
   /** Controls whether the dialog is visible. Supports bind:open. */
   open?: boolean;
 
@@ -61,6 +61,18 @@ export interface DialogProps extends Omit<HTMLDialogAttributes, 'children' | 'op
 
   /** Whether pressing Escape dismisses the dialog. @default true */
   closeOnEscape?: boolean;
+
+  /**
+   * Let the user reposition the dialog by dragging its header. Off by default.
+   * The structured header (rendered when `title` is set) becomes the drag
+   * handle; the close button and any header controls stay clickable, and the
+   * offset resets each time the dialog reopens. Most useful for a dialog the
+   * user may want to shove aside to see the content behind it. Requires a
+   * `title` — without a header there is nothing to grab. Overrides the native
+   * HTML `draggable` attribute, which has no meaningful use on a dialog.
+   * @default false
+   */
+  draggable?: boolean;
 
   /**
    * Hides the built-in close button. Only takes effect when `title` is

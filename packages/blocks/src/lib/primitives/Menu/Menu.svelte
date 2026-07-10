@@ -1,4 +1,5 @@
 <script lang="ts" generics="TItem extends MenuItemType = MenuItemType">
+  import { tick } from 'svelte';
   import { useBlocksI18n } from '$lib';
   import { getBlocksConfig, resolveSlotClasses } from '$lib/provider';
   import { Button, menuVariants, type MenuVariants } from '$lib/primitives';
@@ -33,6 +34,7 @@
     syncWidth = true,
     usePortal = true,
     customTrigger,
+    contextTrigger,
     customItem,
     customHeader,
     customFooter,
@@ -71,6 +73,31 @@
   let panelRef = $state<HTMLElement>();
   let openSubMenus = $state<Set<string>>(new Set());
   const childrenMode = $derived(!!children);
+
+  // ── Context-menu (right-click) anchoring ───────────────────────────────
+  // A context menu has no trigger button — it opens at the cursor. Floating UI
+  // anchors to an element, not a point, so a 0×0 fixed-position element is
+  // parked at the click coordinates and handed to Popover as the trigger.
+  let cursorAnchor = $state<HTMLElement>();
+  let contextX = $state(0);
+  let contextY = $state(0);
+
+  async function handleContextMenu(event: MouseEvent) {
+    if (disabled || loading) return;
+    // Suppress the native browser menu and anchor ours at the cursor.
+    event.preventDefault();
+    contextX = event.clientX;
+    contextY = event.clientY;
+    // Re-open at the new spot even if it was already open elsewhere: close and
+    // let Popover tear down (await tick) before reopening, so it re-reads the
+    // moved anchor rect. A synchronous setOpen(false)+setOpen(true) batches into
+    // no net change and would strand the menu at the previous cursor position.
+    if (open) {
+      setOpen(false);
+      await tick();
+    }
+    setOpen(true);
+  }
 
   // Map of declarative MenuItems by id — populated via the context's
   // `registerItem` / `unregisterItem` hooks. Used to debug + (in future)
@@ -376,6 +403,26 @@
     .join(' ')}
   {...restProps}
 >
+  {#if contextTrigger}
+    <!-- Right-click target. `display: contents` drops the wrapper from layout so
+         the consumer's own element controls sizing; the contextmenu event still
+         bubbles to the handler. -->
+    <!-- svelte-ignore a11y_no_static_element_interactions -->
+    <div class="contents" oncontextmenu={handleContextMenu}>
+      {@render contextTrigger()}
+    </div>
+    <!-- 0×0 anchor parked at the cursor for Popover to position the menu against. -->
+    <div
+      bind:this={cursorAnchor}
+      aria-hidden="true"
+      style:position="fixed"
+      style:left="{contextX}px"
+      style:top="{contextY}px"
+      style:width="0"
+      style:height="0"
+    ></div>
+  {/if}
+
   {#snippet triggerContent()}
     {#if customTrigger}
       {@render customTrigger(toggle, open, dismiss)}
@@ -432,9 +479,10 @@
     {usePortal}
     autoTrigger={false}
     unstyled
-    syncMinWidth={syncWidth}
+    syncMinWidth={contextTrigger ? false : syncWidth}
     offsetDistance={effectiveTier === 'commit' ? 8 : 4}
-    trigger={triggerContent}
+    trigger={contextTrigger ? undefined : triggerContent}
+    triggerElement={contextTrigger ? cursorAnchor : undefined}
   >
     <div
       bind:this={panelRef}

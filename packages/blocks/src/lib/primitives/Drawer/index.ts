@@ -44,13 +44,23 @@ export interface DrawerProps extends Omit<HTMLDialogAttributes, 'children' | 'op
   size?: DrawerVariants['size'];
 
   /**
-   * Semantic purpose marker (mirrors Dialog). After the Lighter-Refactor,
-   * the Drawer itself no longer paints an accent border — the value is
-   * exposed on the panel as `data-intent="…"` so consumers can hook
-   * presets, CSS overrides, or icon/title color via their own snippets.
+   * Semantic purpose marker (mirrors Dialog). By default the Drawer paints no
+   * accent border — the value is exposed on the panel as `data-intent="…"` so
+   * consumers can hook presets, CSS overrides, or icon/title color via their own
+   * snippets. Set {@link accentEdge} to also tint the docked edge in this colour.
    * @default 'neutral'
    */
   intent?: DrawerVariants['intent'];
+
+  /**
+   * Tint the panel's docked (viewport-facing) edge with a 2px accent border in
+   * the {@link intent} colour — `border-right` for `left`, `border-left` for
+   * `right`, `border-bottom` for `top`, `border-top` for `bottom`. Off by
+   * default, keeping symmetry with Dialog; opt in for a coloured seam that ties
+   * the drawer to a semantic purpose (e.g. a `danger` confirm drawer).
+   * @default false
+   */
+  accentEdge?: DrawerVariants['accentEdge'];
 
   /** Fires when the drawer is dismissed via Escape, backdrop click, or close button. */
   onClose?: () => void;

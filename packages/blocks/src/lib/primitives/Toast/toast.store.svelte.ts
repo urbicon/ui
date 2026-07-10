@@ -1,4 +1,4 @@
-import type { ToastData, ToastInput, ToastShorthandOpts } from './index';
+import type { ToastData, ToastInput, ToastPromiseOptions, ToastShorthandOpts } from './index';
 import type { ToastPlacement } from './toast.variants';
 
 let counter = 0;
@@ -61,7 +61,10 @@ class ToastStore {
       description: input.description,
       duration: input.duration ?? 5000,
       dismissible: input.dismissible ?? true,
-      showProgress: input.showProgress ?? true
+      showProgress: input.showProgress ?? true,
+      action: input.action,
+      cancel: input.cancel,
+      loading: input.loading ?? false
     };
     this.toasts = [...this.toasts, toast];
 
@@ -71,6 +74,106 @@ class ToastStore {
         setTimeout(() => this.dismiss(id), toast.duration)
       );
     }
+
+    return id;
+  }
+
+  /**
+   * Merge new fields into an existing toast in place — same id, same stack
+   * position — and reset its auto-dismiss timer to the new `duration`. No-op if
+   * the toast is gone. Backs `promise()`, which flips a pending toast to
+   * success/error without it sliding out and a new one flying in.
+   */
+  update(id: string, input: ToastInput) {
+    const idx = this.toasts.findIndex((t) => t.id === id);
+    if (idx === -1) return;
+    const next: ToastData = { ...this.toasts[idx], ...input };
+    this.toasts = [...this.toasts.slice(0, idx), next, ...this.toasts.slice(idx + 1)];
+
+    const timer = this.timers.get(id);
+    if (timer) {
+      clearTimeout(timer);
+      this.timers.delete(id);
+    }
+    if (next.duration > 0) {
+      this.timers.set(
+        id,
+        setTimeout(() => this.dismiss(id), next.duration)
+      );
+    }
+  }
+
+  /**
+   * Drive a toast through a promise's lifecycle (Sonner-style). Shows a
+   * persistent, non-dismissible spinner toast while pending, then flips it in
+   * place to success on resolve or danger on reject. `success`/`error` may be a
+   * plain title, a full {@link ToastInput}, or a function of the resolved value
+   * / rejection reason. Returns the toast id.
+   *
+   * @example
+   * ```ts
+   * toaster.promise(saveDraft(), {
+   *   loading: 'Saving…',
+   *   success: (draft) => `Saved “${draft.title}”`,
+   *   error: (e) => `Could not save: ${e.message}`
+   * });
+   * ```
+   */
+  promise<T>(promise: Promise<T>, opts: ToastPromiseOptions<T>): string {
+    const loadingInput: ToastInput =
+      typeof opts.loading === 'string' ? { title: opts.loading } : opts.loading;
+    const id = this.add({
+      intent: 'neutral',
+      ...loadingInput,
+      loading: true,
+      duration: 0,
+      dismissible: false,
+      showProgress: false
+    });
+
+    // Shared settle fields: leave the spinner/persistent/non-dismissible state
+    // and become a normal auto-dismissing toast. `description: undefined` clears
+    // the loading description unless the success/error config sets its own.
+    const settled = {
+      loading: false,
+      duration: 5000,
+      dismissible: true,
+      showProgress: true
+    } as const;
+    // A throwing user formatter must not turn into an unhandled rejection on the
+    // internal `.then`; fall back to a bare settled toast (still flips out of the
+    // loading state) and dev-warn instead.
+    const resolveMessage = <A>(
+      fn: string | ToastInput | ((arg: A) => string | ToastInput),
+      arg: A,
+      label: string
+    ): ToastInput | undefined => {
+      let out: string | ToastInput | undefined;
+      try {
+        out = typeof fn === 'function' ? fn(arg) : fn;
+      } catch (err) {
+        if (import.meta.env?.DEV) console.warn(`[Toast] promise ${label} formatter threw:`, err);
+      }
+      return typeof out === 'string' ? { title: out } : out;
+    };
+    promise.then(
+      (value) => {
+        this.update(id, {
+          intent: 'success',
+          description: undefined,
+          ...settled,
+          ...resolveMessage(opts.success, value, 'success')
+        });
+      },
+      (reason) => {
+        this.update(id, {
+          intent: 'danger',
+          description: undefined,
+          ...settled,
+          ...resolveMessage(opts.error, reason, 'error')
+        });
+      }
+    );
 
     return id;
   }
