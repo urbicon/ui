@@ -22,7 +22,7 @@
 
       <CodeExample
         title="10,000 Rows"
-        description="Only ~20 rows are in the DOM. Pagination is bypassed \u2013 all items are in a scrollable container."
+        description="Only ~20 rows are in the DOM. Pagination is bypassed – all items are in a scrollable container."
         code={`<Table
   items={largeDataset}
   columns={columns}
@@ -40,7 +40,7 @@
             <code class="text-text-primary">virtualized</code> is true
           </li>
           <li>
-            Grouping takes precedence \u2013 virtualization is deactivated when
+            Grouping takes precedence – virtualization is deactivated when
             <code class="text-text-primary">initialGroupBy</code> is set
           </li>
           <li>

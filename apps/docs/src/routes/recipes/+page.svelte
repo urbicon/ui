@@ -492,6 +492,32 @@
                   </div>
                 </div>
               </div>
+            {:else}
+              <!-- Generic mini preview: category + component stack -->
+              <div
+                class="border-border-subtle bg-surface-base w-64 space-y-2.5 rounded-lg border p-4 shadow-[var(--blocks-shadow-sm)]"
+              >
+                <div class="text-text-quaternary text-[7px] font-medium tracking-wide uppercase">
+                  {recipe.category}
+                </div>
+                <div class="flex flex-wrap gap-1.5">
+                  {#each recipe.components.slice(0, 4) as comp (comp)}
+                    <span
+                      class="border-border-subtle bg-surface-subtle text-text-secondary rounded border px-1.5 py-0.5 text-[8px] font-medium"
+                      >{comp}</span
+                    >
+                  {/each}
+                  {#if recipe.components.length > 4}
+                    <span class="text-text-quaternary px-1 py-0.5 text-[8px]"
+                      >+{recipe.components.length - 4}</span
+                    >
+                  {/if}
+                </div>
+                <div class="space-y-1.5">
+                  <div class="bg-surface-subtle h-2 w-3/4 rounded"></div>
+                  <div class="bg-surface-subtle h-2 w-1/2 rounded"></div>
+                </div>
+              </div>
             {/if}
           </div>
           <!-- Difficulty badge -->

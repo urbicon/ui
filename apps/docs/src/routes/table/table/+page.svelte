@@ -12,7 +12,7 @@
   import { asset, resolve } from '$app/paths';
   import { employees, factoryColumns, scriptOpen, scriptClose } from '../_data';
 
-  const playgroundCode = `${scriptOpen.replace('<', '<')}script lang="ts">
+  const playgroundCode = `${scriptOpen.replace('>', ' lang="ts">')}
   import { Table } from '@urbicon-ui/table';
   import '@urbicon-ui/table/style/index.css';
 
@@ -225,7 +225,7 @@ ${scriptClose}
     <div class="mt-6">
       <CodeExample
         title="Full Setup"
-        description="Complete code for the playground above \u2014 columns, data, and props."
+        description="Complete code for the playground above — columns, data, and props."
         code={playgroundCode}
         language="svelte"
         preview={false}
@@ -237,12 +237,12 @@ ${scriptClose}
     <div class="space-y-8">
       <p class="text-text-secondary text-sm">
         <code class="text-text-primary">TableColumns</code> creates pre-configured columns with the right
-        cell components, alignment, and sorting \u2013 no manual wiring.
+        cell components, alignment, and sorting – no manual wiring.
       </p>
 
       <CodeExample
         title="Factory-Powered Table"
-        description="Avatar, text, status badge, number, date, and action columns \u2013 six lines of config."
+        description="Avatar, text, status badge, number, date, and action columns – six lines of config."
         code={codeFactoryTable}
       >
         <Table

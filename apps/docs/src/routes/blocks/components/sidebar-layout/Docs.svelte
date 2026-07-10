@@ -70,7 +70,7 @@
       code={`<script>
   import { SidebarLayout, Button, MenuIcon, ThemeSwitcher } from '@urbicon-ui/blocks';
   let sidebarOpen = $state(false);
-&lt;/script&gt;
+<\/script>
 
 <SidebarLayout bind:open={sidebarOpen} sidebarWidth="16rem">
   {#snippet sidebarHeader()}
@@ -131,7 +131,7 @@
       .sort((a, b) => b.href.length - a.href.length)
       .find((i) => isActive(i.href))
   );
-&lt;/script&gt;
+<\/script>
 
 <SidebarLayout bind:open={sidebarOpen} sidebarWidth="17rem">
   {#snippet sidebarHeader()}

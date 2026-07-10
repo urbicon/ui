@@ -65,11 +65,12 @@
           key: 'variant',
           label: 'Variant',
           items: [
+            { label: 'quiet', value: 'quiet' },
             { label: 'elevated', value: 'elevated' },
             { label: 'outlined', value: 'outlined' },
             { label: 'ghost', value: 'ghost' }
           ],
-          defaultValue: 'elevated'
+          defaultValue: 'quiet'
         },
         {
           type: 'dropdown',

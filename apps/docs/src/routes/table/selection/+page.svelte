@@ -23,7 +23,7 @@ ${scriptClose}
 
 <DocsPageLayout
   title="Row Selection"
-  description="Checkbox-based row selection with single and multi modes, select-all, and Shift+Click range selection."
+  description="Checkbox-based row selection with single and multi modes and a select-all across all filtered pages."
   breadcrumbs={[{ label: 'Table', href: resolve('/table/table') }]}
 >
   <Section id="selection">
@@ -44,7 +44,7 @@ ${scriptClose}
 
       <CodeExample
         title="Multi-Select with Callback"
-        description="Checkboxes appear automatically. The select-all header toggles every filtered row across all pages — not just the current page. Shift+Click for range selection."
+        description="Checkboxes appear automatically. The select-all header toggles every filtered row across all pages — not just the current page."
         code={codeMultiSelect}
       >
         <Table
@@ -58,7 +58,7 @@ ${scriptClose}
 
       <CodeExample
         title="Single Select"
-        description="Only one row can be selected at a time \u2013 previous selection is automatically cleared."
+        description="Only one row can be selected at a time – previous selection is automatically cleared."
         code={`<Table
   {items}
   {columns}

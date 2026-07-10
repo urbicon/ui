@@ -254,7 +254,7 @@
 </scr` +
         `ipt>
 
-<Stepper bind:active={currentStep}>
+<Stepper bind:activeStep={currentStep}>
   {#each steps as step (step.id)}
     <StepperStep label={step.title} />
   {/each}

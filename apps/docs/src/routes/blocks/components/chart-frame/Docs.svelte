@@ -82,7 +82,7 @@
   {/snippet}
 </ChartFrame>`}
       language="svelte"
-      hasPreview={false}
+      preview={false}
     />
   </div>
 </Section>

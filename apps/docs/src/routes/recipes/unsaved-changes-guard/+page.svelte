@@ -7,8 +7,8 @@
 
   const { components: usedComponents, features } = recipeMeta;
 
-  let originalName = 'Sunset Heights';
-  let name = $state(originalName);
+  let originalName = $state('Sunset Heights');
+  let name = $state('Sunset Heights');
   let dirty = $derived(name !== originalName);
 
   let showConfirm = $state(false);

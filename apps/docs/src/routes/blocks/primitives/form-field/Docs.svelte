@@ -74,32 +74,31 @@
 </Section>
 
 <Section marker="02" id="customization" title="Customization">
-  <div class="prose prose-sm max-w-none">
-    <p>
-      Built-in form primitives (<code>Input</code>, <code>Select</code>, <code>Textarea</code>)
-      already render their own label + helper + error — there <em>FormField is not needed</em>. Use
-      <code>FormField</code>
-      only for composite controls that don't have those slots, e.g.
-      <code>FileUpload</code>, custom number-spinner combinations, or media uploaders.
-    </p>
-  </div>
+  <p class="text-text-secondary text-sm leading-relaxed">
+    Built-in form primitives (<code class="text-text-primary">Input</code>,
+    <code class="text-text-primary">Select</code>, <code class="text-text-primary">Textarea</code>)
+    already render their own label + helper + error — <em>FormField is not needed there</em>. Use
+    <code class="text-text-primary">FormField</code> only for composite controls that don't have
+    those slots, e.g. <code class="text-text-primary">FileUpload</code>, custom number-spinner
+    combinations, or media uploaders.
+  </p>
 </Section>
 
 <Section marker="03" id="accessibility" title="Accessibility">
-  <div class="prose prose-sm max-w-none">
-    <ul>
-      <li>
-        The wrapper renders a <code>&lt;label for=…&gt;</code> linked to the slot's <code>id</code>.
-      </li>
-      <li>
-        Hints get an <code>id</code> referenced via <code>aria-describedby</code>. When an error is
-        present, the error message takes the spot (and the hint is hidden) — this matches WCAG
-        guidance to surface the most actionable message to AT users.
-      </li>
-      <li>
-        The error renders with <code>role="alert"</code> so it is announced when the value changes during
-        validation.
-      </li>
-    </ul>
-  </div>
+  <ul class="text-text-secondary list-inside list-disc space-y-2 text-sm leading-relaxed">
+    <li>
+      The wrapper renders a <code class="text-text-primary">&lt;label for=…&gt;</code> linked to the
+      slot's <code class="text-text-primary">id</code>.
+    </li>
+    <li>
+      Hints get an <code class="text-text-primary">id</code> referenced via
+      <code class="text-text-primary">aria-describedby</code>. When an error is present, the error
+      message takes the spot (and the hint is hidden) — this matches WCAG guidance to surface the
+      most actionable message to AT users.
+    </li>
+    <li>
+      The error renders with <code class="text-text-primary">role="alert"</code> so it is announced when
+      the value changes during validation.
+    </li>
+  </ul>
 </Section>

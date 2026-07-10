@@ -8,8 +8,8 @@
 {
   "mcpServers": {
     "urbicon-ui": {
-      "command": "npx",
-      "args": ["-y", "@urbicon-ui/mcp-server"]
+      "command": "bunx",
+      "args": ["--bun", "@urbicon-ui/mcp-server"]
     }
   }
 }`;
@@ -40,7 +40,7 @@ get_design_principles({ as: "rubric" })
 // not via remote tools — a stateless server can't reach your repo.`;
 
   const llmsTxtExample = `# llms.txt (quick reference)
-# llms-full.txt (complete API for all 40+ components)
+# llms-full.txt (complete API for every component)
 
 # Per-component docs with 5 sections:
 #   overview | examples | variants | api | slots

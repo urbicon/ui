@@ -34,7 +34,7 @@ ${scriptClose}
     <div class="space-y-8">
       <p class="text-text-secondary text-sm">
         Enable <code class="text-text-primary">enableLiveUpdates</code> for non-disruptive real-time data
-        updates. Changes are buffered and shown in a banner \u2013 the user decides when to apply them.
+        updates. Changes are buffered and shown in a banner – the user decides when to apply them.
       </p>
 
       <CodeExample

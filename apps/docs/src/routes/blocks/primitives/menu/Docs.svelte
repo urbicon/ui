@@ -144,12 +144,22 @@
             class="bg-surface-base border-border-subtle rounded border px-1.5 py-0.5 text-xs font-medium"
             >Space</kbd
           >
-          on the trigger to open. Items are reachable via
+          on the trigger to open. Arrow keys move focus between items (roving tabindex),
+          <kbd
+            class="bg-surface-base border-border-subtle rounded border px-1.5 py-0.5 text-xs font-medium"
+            >Home</kbd
+          >
+          /
+          <kbd
+            class="bg-surface-base border-border-subtle rounded border px-1.5 py-0.5 text-xs font-medium"
+            >End</kbd
+          >
+          jump to the first/last item, and
           <kbd
             class="bg-surface-base border-border-subtle rounded border px-1.5 py-0.5 text-xs font-medium"
             >Tab</kbd
           >
-          (W3C menu pattern);
+          moves focus out and closes the menu (W3C menu pattern);
           <kbd
             class="bg-surface-base border-border-subtle rounded border px-1.5 py-0.5 text-xs font-medium"
             >Enter</kbd

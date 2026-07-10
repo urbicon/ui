@@ -37,12 +37,11 @@
     title="Advanced Configuration"
     language="svelte"
     preview={false}
-    code={`<ApiReference 
-  componentName="Button"
-  props={buttonProps}
-  events={buttonEvents}
-  slots={buttonSlots}
-/>`}
+    code={`<ApiReference props={buttonProps} slotClasses={{ stats: 'hidden' }}>
+  {#snippet usageNotes()}
+    <p>Sizes below <code>md</code> are reserved for dense toolbars.</p>
+  {/snippet}
+</ApiReference>`}
   >
     <!-- no preview -->
   </CodeExample>

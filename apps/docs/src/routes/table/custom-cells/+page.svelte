@@ -165,7 +165,7 @@
 
       <CodeExample
         title="Heat Map Cells"
-        description="Conditional background coloring to highlight data patterns \u2013 great for KPI dashboards."
+        description="Conditional background coloring to highlight data patterns – great for KPI dashboards."
         code={`{#snippet heatCell(item, value)}
   {@const pct = Math.min(value / 20, 1)}
   {@const hue = pct * 142}
@@ -198,7 +198,7 @@
 
       <CodeExample
         title="Global Cell Override"
-        description="A table-level cell snippet overrides rendering for every column at once \u2013 useful for uniform styling."
+        description="A table-level cell snippet overrides rendering for every column at once – useful for uniform styling."
         code={`<Table {items} {columns}>
   {#snippet cell(item, value, column)}
     {#if resolveColumnId(column) === 'department'}

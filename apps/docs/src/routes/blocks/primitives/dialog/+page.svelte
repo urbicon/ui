@@ -38,11 +38,10 @@
 
 <DocsPageLayout
   title="Dialog"
-  description="Overlay dialog with optional structured layout (title/footer/intent), focus trapping, and keyboard management. Built on native <dialog
+  description="Overlay dialog with optional structured layout (title/footer/intent), focus trapping, and keyboard management. Built on native <dialog>."
   stability={componentData?.stability}
   sourceHref={componentData?.sourceHref}
   related={relatedLinks}
->."
   maxWidth="2xl"
   showToc={true}
   breadcrumbs={[

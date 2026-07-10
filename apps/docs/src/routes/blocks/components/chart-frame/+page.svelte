@@ -152,7 +152,7 @@
       title="Import"
       code={`import { ChartFrame } from '@urbicon-ui/blocks';`}
       language="svelte"
-      hasPreview={false}
+      preview={false}
     />
   </Section>
 

@@ -174,7 +174,7 @@
       title="Import"
       code={`import { Planner } from '@urbicon-ui/blocks';`}
       language="svelte"
-      hasPreview={false}
+      preview={false}
     />
   </Section>
 

@@ -37,7 +37,7 @@
             <tr>
               <td colspan="99" class="py-12 text-center">
                 <div class="mx-auto max-w-xs">
-                  <div class="text-text-tertiary mx-auto mb-3 text-4xl">&loupe;</div>
+                  <div class="text-text-tertiary mx-auto mb-3 text-4xl">🔍</div>
                   <p class="text-text-primary text-lg font-semibold">No results found</p>
                   <p class="text-text-secondary mt-1 text-sm">
                     Try adjusting your filters or search term.
@@ -69,7 +69,7 @@
       <div class="border-border-subtle bg-surface-elevated rounded-2xl border p-6">
         <h4 class="text-text-primary mb-4 text-sm font-semibold">Available Slots</h4>
         <div class="grid grid-cols-2 gap-x-8 gap-y-2 text-sm md:grid-cols-3">
-          {#each ['container', 'wrapper', 'table', 'thead', 'tbody', 'headerRow', 'headerCell', 'row', 'cell', 'groupHeader', 'summaryRow', 'emptyState', 'loadingState', 'errorState', 'filterBar', 'mobileCard'] as slot (slot)}
+          {#each ['container', 'toolbar', 'scrollArea', 'table', 'thead', 'tbody', 'headerRow', 'headerCell', 'row', 'cell', 'groupHeader', 'summaryRow', 'emptyState', 'loadingState', 'errorState', 'filterBar', 'mobileCard'] as slot (slot)}
             <code class="text-primary text-xs">{slot}</code>
           {/each}
         </div>

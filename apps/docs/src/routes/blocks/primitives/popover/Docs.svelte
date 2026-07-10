@@ -36,7 +36,8 @@
   <p class="text-text-secondary text-sm leading-relaxed">
     <strong>Popover</strong> is a floating panel anchored to a trigger element. Use it for
     contextual surfaces — action menus, date pickers, inline help — that should appear next to the
-    element the user just interacted with. Built on Floating UI for placement, with native
+    element the user just interacted with. Placement comes from the library's built-in
+    zero-dependency floating engine (flip, shift, offset), with native
     <code>popover="auto"</code> for the open/close lifecycle. Not modal.
   </p>
   <p class="text-text-secondary mt-3 text-sm leading-relaxed">
@@ -343,9 +344,10 @@
           <code class="text-text-primary">aria-haspopup="dialog"</code> and
           <code class="text-text-primary">aria-expanded</code> reflecting the current open state.
           The floating panel receives
-          <code class="text-text-primary">role="dialog"</code> by default. Set
-          <code class="text-text-primary">aria-modal</code> when the popover contains a form or critical
-          action.
+          <code class="text-text-primary">role="dialog"</code> by default.
+          <code class="text-text-primary">aria-modal</code> is passed through as an attribute only —
+          the popover never traps focus, so leave it unset and reach for
+          <code class="text-text-primary">Dialog</code> when a flow is genuinely modal.
         </p>
       </div>
       <div class="py-4">
@@ -376,17 +378,22 @@
       <div class="py-4">
         <h4 class="text-text-primary mb-1.5 text-sm font-semibold">Click Outside</h4>
         <p class="text-text-secondary text-sm leading-relaxed">
-          Clicking outside the popover or its trigger closes it automatically. Use the
-          <code class="text-text-primary">ignore</code> prop to exclude specific elements from outside-click
-          detection.
+          Clicking outside the popover or its trigger closes it automatically. Set
+          <code class="text-text-primary">closeOnClickOutside</code> to
+          <code class="text-text-primary">false</code> to pin the popover open until you toggle
+          <code class="text-text-primary">open</code> yourself; the
+          <code class="text-text-primary">onClickOutside</code> callback fires after an outside click
+          has dismissed it.
         </p>
       </div>
       <div class="pt-4">
         <h4 class="text-text-primary mb-1.5 text-sm font-semibold">Focus Management</h4>
         <p class="text-text-secondary text-sm leading-relaxed">
-          When <code class="text-text-primary">aria-modal</code> is set, focus stays within the popover
-          until it is closed. Use for forms or critical actions where escaping focus could confuse the
-          user. For lightweight overlays, omit it so users can freely tab away.
+          The popover never traps focus — it is a non-modal surface, and Tab moves on past its
+          content. Closing with Escape returns focus to the trigger. For forms or critical actions
+          that must hold focus until dismissed, use
+          <code class="text-text-primary">Dialog</code> or
+          <code class="text-text-primary">ConfirmDialog</code> instead.
         </p>
       </div>
     </div>

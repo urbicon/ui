@@ -85,7 +85,7 @@ export async function load({ url }) {
   return { meals, start: toIso(start) };
 }`}
       language="typescript"
-      hasPreview={false}
+      preview={false}
     />
   </div>
 </Section>

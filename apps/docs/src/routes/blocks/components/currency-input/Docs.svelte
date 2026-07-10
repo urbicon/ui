@@ -101,10 +101,10 @@
   const apiAmount = 1234.56;
   let cents = $state(majorToCents(apiAmount)); // 123456
   const exportedAsMajor = $derived(centsToMajor(cents)); // 1234.56
-&lt;/script&gt;
+<\/script>
 
 <CurrencyInput label="Price" bind:value={cents} />
-&lt;p&gt;Major: &#123;exportedAsMajor&#125;&lt;/p&gt;`}
+<p>Major: {exportedAsMajor}</p>`}
     language="svelte"
   >
     <CurrencyInput label="Price" bind:value={majorBackedCents} />

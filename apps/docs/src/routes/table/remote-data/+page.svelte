@@ -45,7 +45,7 @@ ${scriptClose}
 
       <CodeExample
         title="Managed: queryFn"
-        description="Provide an async function \u2013 the table handles loading, errors, request cancellation (AbortSignal), and debouncing automatically."
+        description="Provide an async function – the table handles loading, errors, request cancellation (AbortSignal), and debouncing automatically."
         code={`<Table
   mode="server"
   columns={columns}
@@ -68,7 +68,7 @@ ${scriptClose}
 
       <CodeExample
         title="Manual: onQueryChange"
-        description="Full control \u2013 fetch data yourself and feed items back. Works with SvelteKit load functions, GraphQL, or any async pattern."
+        description="Full control – fetch data yourself and feed items back. Works with SvelteKit load functions, GraphQL, or any async pattern."
         code={codeOnQueryChange}
         preview={false}
       />
@@ -89,8 +89,8 @@ ${scriptClose}
           </li>
           <li>
             <code class="text-text-primary">queryFn</code> receives an
-            <code class="text-text-primary">AbortSignal</code> \u2013 cancelled automatically when a new
-            query fires
+            <code class="text-text-primary">AbortSignal</code> – cancelled automatically when a new query
+            fires
           </li>
           <li>Search is debounced (default 300ms) to avoid excessive requests</li>
         </ul>

@@ -121,8 +121,8 @@
 
 <div class="mx-auto max-w-6xl px-6 py-12">
   <header class="mb-10">
-    <h1 class="text-on-surface text-3xl font-bold tracking-tight">Icons</h1>
-    <p class="text-on-surface-muted mt-2 text-lg">
+    <h1 class="text-text-primary text-3xl font-bold tracking-tight">Icons</h1>
+    <p class="text-text-secondary mt-2 text-lg">
       {allNames.length} original stroke-based icons. Click any icon to open it in the playground.
     </p>
   </header>
@@ -200,7 +200,7 @@
             flip={v.flip !== 'none' ? (v.flip as 'x' | 'y' | 'both') : undefined}
             animation={v.animation !== 'none' ? (v.animation as 'spin' | 'pulse') : undefined}
           />
-          <span class="text-on-surface-muted text-sm font-medium">
+          <span class="text-text-secondary text-sm font-medium">
             {ICON_METADATA[selectedIcon].label}
           </span>
         </div>
@@ -218,8 +218,8 @@
       <button
         class="inline-flex items-center gap-1.5 rounded-full border px-3 py-1 text-xs font-medium transition-colors
           {activeCategories.has(cat)
-          ? 'bg-interactive text-on-interactive border-interactive'
-          : 'border-outline-subtle text-on-surface-muted hover:bg-surface-elevated hover:text-on-surface'}"
+          ? 'bg-primary text-text-on-primary border-primary'
+          : 'border-border-subtle text-text-secondary hover:bg-surface-elevated hover:text-text-primary'}"
         onclick={() => toggleCategory(cat)}
       >
         {cat}
@@ -235,7 +235,7 @@
     {/each}
     {#if activeCategories.size > 0}
       <button
-        class="text-on-surface-muted hover:text-on-surface text-xs underline"
+        class="text-text-secondary hover:text-text-primary text-xs underline"
         onclick={() => activeCategories.clear()}
       >
         Clear
@@ -245,7 +245,7 @@
 
   <!-- Icon Grid -->
   {#if filteredIcons.length === 0}
-    <div class="text-on-surface-muted py-20 text-center">No icons match your search.</div>
+    <div class="text-text-secondary py-20 text-center">No icons match your search.</div>
   {:else}
     <div class="grid grid-cols-3 gap-2.5 sm:grid-cols-4 md:grid-cols-6 lg:grid-cols-8">
       {#each filteredIcons as name (name)}
@@ -254,19 +254,19 @@
         <button
           class="group flex flex-col items-center gap-2 rounded-xl border p-3.5 transition-all
             {selectedIcon === name
-            ? 'border-interactive bg-interactive/5 ring-interactive/20 ring-2'
+            ? 'border-primary bg-primary/5 ring-primary/20 ring-2'
             : copiedIcon === name
               ? 'border-success bg-success/5'
-              : 'border-outline-subtle hover:border-interactive hover:bg-surface-elevated'}"
+              : 'border-border-subtle hover:border-primary hover:bg-surface-elevated'}"
           onclick={() => selectForPlayground(name)}
           ondblclick={() => copyImport(name)}
           title="{meta.label} — click to preview, double-click to copy import"
         >
-          <div class="text-on-surface flex items-center justify-center" style="height: 40px">
+          <div class="text-text-primary flex items-center justify-center" style="height: 40px">
             <IconComp size={24} />
           </div>
           <span
-            class="text-on-surface-muted group-hover:text-on-surface w-full truncate text-center text-[10px]"
+            class="text-text-secondary group-hover:text-text-primary w-full truncate text-center text-[10px]"
           >
             {#if copiedIcon === name}
               Copied!
@@ -277,7 +277,7 @@
         </button>
       {/each}
     </div>
-    <p class="text-on-surface-muted mt-4 text-center text-xs">
+    <p class="text-text-secondary mt-4 text-center text-xs">
       {filteredIcons.length} of {allNames.length} icons. Click to preview, double-click to copy import.
     </p>
   {/if}
