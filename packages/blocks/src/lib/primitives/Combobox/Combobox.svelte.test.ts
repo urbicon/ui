@@ -165,3 +165,66 @@ describe('Combobox (component interaction)', () => {
     expect(screen.queryByRole('option', { name: 'Apple', hidden: true })).toBeNull();
   });
 });
+
+// Group support (CMB-5). Grouped options render under section headers; filtering
+// hides empty groups; keyboard nav + selection flow across group boundaries via
+// the same flattened `filtered` cursor a flat list uses.
+const GROUPS = [
+  {
+    label: 'Fruit',
+    options: [
+      { value: 'apple', label: 'Apple' },
+      { value: 'banana', label: 'Banana' }
+    ]
+  },
+  { label: 'Veg', options: [{ value: 'carrot', label: 'Carrot' }] }
+];
+
+describe('Combobox (groups)', () => {
+  const group = (name: string) => screen.getByRole('group', { name, hidden: true });
+
+  it('renders section headers and all grouped options', async () => {
+    const user = userEvent.setup();
+    renderCombobox({ groups: GROUPS });
+
+    await user.click(screen.getByRole('combobox'));
+    expect(group('Fruit')).toBeTruthy();
+    expect(group('Veg')).toBeTruthy();
+    expect(screen.getAllByRole('option', { hidden: true })).toHaveLength(3);
+  });
+
+  it('flows keyboard navigation across group boundaries', async () => {
+    const user = userEvent.setup();
+    const onValueChange = vi.fn();
+    renderCombobox({ groups: GROUPS, onValueChange });
+
+    const input = screen.getByRole('combobox');
+    await user.click(input);
+    // -1 → Apple(0) → Banana(1) → Carrot(2), crossing from Fruit into Veg.
+    await user.keyboard('{ArrowDown}{ArrowDown}{ArrowDown}{Enter}');
+    expect(onValueChange).toHaveBeenCalledWith('carrot');
+  });
+
+  it('hides a group once all its options filter out', async () => {
+    const user = userEvent.setup();
+    renderCombobox({ groups: GROUPS });
+
+    const input = screen.getByRole('combobox');
+    await user.click(input);
+    await user.type(input, 'carr');
+
+    expect(group('Veg')).toBeTruthy();
+    expect(screen.queryByRole('group', { name: 'Fruit', hidden: true })).toBeNull();
+    expect(screen.getAllByRole('option', { hidden: true })).toHaveLength(1);
+  });
+
+  it('selects a grouped option on click', async () => {
+    const user = userEvent.setup();
+    const onValueChange = vi.fn();
+    renderCombobox({ groups: GROUPS, onValueChange });
+
+    await user.click(screen.getByRole('combobox'));
+    await user.click(screen.getByRole('option', { name: 'Banana', hidden: true }));
+    expect(onValueChange).toHaveBeenCalledWith('banana');
+  });
+});

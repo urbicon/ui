@@ -11,6 +11,12 @@ export interface ComboboxOption<T extends SelectValue = string> {
   disabled?: boolean;
 }
 
+/** A labelled group of combobox options (parity with Select's `groups`). */
+export interface ComboboxGroup<T extends SelectValue = string> {
+  label: string;
+  options: ComboboxOption<T>[];
+}
+
 /**
  * @description Searchable menu (autocomplete) combining a text input with a
  * filterable option list. Implements the ARIA combobox pattern with
@@ -52,12 +58,30 @@ export interface ComboboxOption<T extends SelectValue = string> {
  *   size="lg"
  * />
  * ```
+ *
+ * @example Grouped options — filtering hides empty groups automatically
+ * ```svelte
+ * <Combobox
+ *   groups={[
+ *     { label: 'Fruit', options: [{ label: 'Apple', value: 'apple' }] },
+ *     { label: 'Veg', options: [{ label: 'Carrot', value: 'carrot' }] }
+ *   ]}
+ *   bind:value={food}
+ * />
+ * ```
  */
 export interface ComboboxProps<T extends SelectValue = string>
   extends ComboboxVariants,
     Omit<HTMLAttributes<HTMLDivElement>, 'children'> {
   /** Array of selectable options. Each needs a unique `value`. */
-  options: ComboboxOption<T>[];
+  options?: ComboboxOption<T>[];
+  /**
+   * Grouped options with section labels, at parity with Select. Takes precedence
+   * over `options` when set. Filtering runs per group; groups whose options all
+   * filter out are hidden, and keyboard navigation flows across the flattened,
+   * still-visible options exactly as it does for a flat list.
+   */
+  groups?: ComboboxGroup<T>[];
   /** Currently selected value. Supports `bind:value` for two-way binding. */
   value?: T | null;
   /** Current search query text. Supports `bind:query` for external control (e.g. server-side filtering). */
@@ -130,7 +154,7 @@ export interface ComboboxProps<T extends SelectValue = string>
   unstyled?: boolean;
   /** Per-slot class overrides merged with tv() styles. Slots: base | label | requiredMark |
    *  inputWrapper | input | message | helper | listbox | option | optionActive | optionSelected |
-   *  noResults | clear | chevron */
+   *  group | groupLabel | noResults | clear | chevron */
   slotClasses?: Partial<Record<ComboboxSlots, string>>;
   /**
    * Apply a named preset registered via `<BlocksProvider presets={{ Combobox: {...} }}>`.

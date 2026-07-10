@@ -17,7 +17,8 @@
   const CheckMarkIcon = resolveIcon('check', CheckIconDefault);
 
   let {
-    options,
+    options = [],
+    groups,
     value = $bindable(null),
     query = $bindable(''),
     placeholder = 'Search…',
@@ -83,13 +84,36 @@
 
   const filterFn = $derived(filter ?? defaultFilter);
 
-  const selectedOption = $derived(options.find((o) => o.value === value));
+  // `groups` takes precedence over `options` (mirrors Select); flatten for value
+  // lookup and keyboard nav.
+  const allOptions = $derived(groups ? groups.flatMap((g) => g.options) : options);
 
-  const filtered = $derived.by(() => {
-    if (selectedOption && query === selectedOption.label) return options;
-    if (!query.trim()) return options;
-    return options.filter((o) => filterFn(o, query.trim()));
+  const selectedOption = $derived(allOptions.find((o) => o.value === value));
+
+  // Does an option survive the current query? Same rules the flat list always
+  // used: an empty query and a field still showing the selected label both show
+  // everything; otherwise the (custom) filter decides.
+  const matchesQuery = (opt: ComboboxOption<T>): boolean => {
+    if (selectedOption && query === selectedOption.label) return true;
+    if (!query.trim()) return true;
+    return filterFn(opt, query.trim());
+  };
+
+  // Grouped view for rendering: each group's surviving options, empty groups
+  // dropped. `null` when the consumer passes a flat `options` list.
+  const filteredGroups = $derived.by(() => {
+    if (!groups) return null;
+    return groups
+      .map((g) => ({ label: g.label, options: g.options.filter(matchesQuery) }))
+      .filter((g) => g.options.length > 0);
   });
+
+  // Flat list backing keyboard nav + aria-activedescendant. Kept in lockstep
+  // with `filteredGroups` (same predicate, same option refs) so the virtual
+  // cursor index always addresses a rendered option.
+  const filtered = $derived(
+    filteredGroups ? filteredGroups.flatMap((g) => g.options) : allOptions.filter(matchesQuery)
+  );
 
   const variantProps: ComboboxVariants = $derived({
     variant,
@@ -447,51 +471,30 @@
           >
             {noResultsText}
           </div>
+        {:else if filteredGroups}
+          {#each filteredGroups as group (group.label)}
+            <div
+              class={unstyled
+                ? (slotClasses?.group ?? '')
+                : styles.group({ class: slotClasses?.group })}
+              role="group"
+              aria-label={group.label}
+            >
+              <div
+                class={unstyled
+                  ? (slotClasses?.groupLabel ?? '')
+                  : styles.groupLabel({ class: slotClasses?.groupLabel })}
+              >
+                {group.label}
+              </div>
+              {#each group.options as opt (opt.value)}
+                {@render optionButton(opt, filtered.indexOf(opt))}
+              {/each}
+            </div>
+          {/each}
         {:else}
           {#each filtered as opt, i (opt.value)}
-            {@const isActive = i === activeIndex}
-            {@const isSelected = opt.value === value}
-            <button
-              id="{listboxId}-option-{opt.value}"
-              type="button"
-              role="option"
-              aria-selected={isSelected}
-              aria-disabled={opt.disabled}
-              data-active={isActive}
-              disabled={opt.disabled}
-              class={unstyled
-                ? [
-                    slotClasses?.option,
-                    isActive ? slotClasses?.optionActive : undefined,
-                    isSelected ? slotClasses?.optionSelected : undefined
-                  ]
-                    .filter(Boolean)
-                    .join(' ')
-                : styles.option({
-                    class: [
-                      slotClasses?.option,
-                      isActive
-                        ? styles.optionActive({ class: slotClasses?.optionActive })
-                        : undefined,
-                      isSelected
-                        ? styles.optionSelected({ class: slotClasses?.optionSelected })
-                        : undefined
-                    ].filter(Boolean)
-                  })}
-              onclick={() => select(opt)}
-              onmouseenter={() => {
-                activeIndex = i;
-              }}
-            >
-              {#if customOption}
-                {@render customOption(opt, isSelected)}
-              {:else}
-                <span class="flex-1 truncate">{opt.label}</span>
-                {#if isSelected}
-                  <CheckMarkIcon class="text-primary h-4 w-4 shrink-0" />
-                {/if}
-              {/if}
-            </button>
+            {@render optionButton(opt, i)}
           {/each}
         {/if}
       {/if}
@@ -517,3 +520,51 @@
     </div>
   {/if}
 </div>
+
+<!--
+  Single option renderer, shared by the flat and grouped listbox paths. `i` is
+  the option's index in the flattened `filtered` array — the same index the
+  keyboard cursor (`activeIndex`) and `aria-activedescendant` address, so a
+  grouped option highlights and selects identically to a flat one.
+-->
+{#snippet optionButton(opt: ComboboxOption<T>, i: number)}
+  {@const isActive = i === activeIndex}
+  {@const isSelected = opt.value === value}
+  <button
+    id="{listboxId}-option-{opt.value}"
+    type="button"
+    role="option"
+    aria-selected={isSelected}
+    aria-disabled={opt.disabled}
+    data-active={isActive}
+    disabled={opt.disabled}
+    class={unstyled
+      ? [
+          slotClasses?.option,
+          isActive ? slotClasses?.optionActive : undefined,
+          isSelected ? slotClasses?.optionSelected : undefined
+        ]
+          .filter(Boolean)
+          .join(' ')
+      : styles.option({
+          class: [
+            slotClasses?.option,
+            isActive ? styles.optionActive({ class: slotClasses?.optionActive }) : undefined,
+            isSelected ? styles.optionSelected({ class: slotClasses?.optionSelected }) : undefined
+          ].filter(Boolean)
+        })}
+    onclick={() => select(opt)}
+    onmouseenter={() => {
+      activeIndex = i;
+    }}
+  >
+    {#if customOption}
+      {@render customOption(opt, isSelected)}
+    {:else}
+      <span class="flex-1 truncate">{opt.label}</span>
+      {#if isSelected}
+        <CheckMarkIcon class="text-primary h-4 w-4 shrink-0" />
+      {/if}
+    {/if}
+  </button>
+{/snippet}

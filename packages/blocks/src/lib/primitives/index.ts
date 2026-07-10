@@ -22,7 +22,7 @@ export type { CheckboxProps } from './Checkbox';
 export * from './Checkbox';
 export type { CollapsibleProps } from './Collapsible';
 export * from './Collapsible';
-export type { ComboboxOptionType, ComboboxProps } from './Combobox';
+export type { ComboboxGroup, ComboboxOptionType, ComboboxProps } from './Combobox';
 export * from './Combobox';
 export type { ConfirmDialogProps, ConfirmIntent } from './ConfirmDialog';
 export * from './ConfirmDialog';
