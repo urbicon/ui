@@ -11,7 +11,8 @@
   import WarningTriangleIconDefault from '$lib/icons/WarningTriangleIcon.svelte';
   import DangerCircleIconDefault from '$lib/icons/DangerCircleIcon.svelte';
   import { getBlocksConfig, resolveSlotClasses } from '$lib/provider';
-  import type { ToastProps } from './index';
+  import Spinner from '../Spinner/Spinner.svelte';
+  import type { ToastData, ToastProps } from './index';
 
   const bt = useBlocksI18n();
 
@@ -66,11 +67,24 @@
           content: () => '',
           title: () => '',
           description: () => '',
+          actions: () => '',
+          actionButton: () => '',
+          cancelButton: () => '',
           dismissButton: () => '',
           progress: () => ''
         }
       : toastVariants({ placement })
   );
+
+  // Run a toast action/cancel button: fire its handler, then dismiss unless the
+  // action opted out (`dismissOnClick: false`, e.g. a "Retry" that re-issues the
+  // async work and updates the same toast).
+  function runAction(toast: ToastData, which: 'action' | 'cancel') {
+    const action = toast[which];
+    if (!action) return;
+    action.onClick?.(toast.id);
+    if (action.dismissOnClick !== false) toaster.dismiss(toast.id);
+  }
 
   function slot(key: keyof typeof styles, intent?: string) {
     const overrides = slotClasses?.[key];
@@ -115,7 +129,11 @@
   {#each visibleToasts as toast (toast.id)}
     {@const IntentIcon = INTENT_ICON_MAP[toast.intent] ?? INTENT_ICON_MAP.neutral}
     <div class={slot('toast', toast.intent)} role="alert" transition:fly={flyParams()}>
-      <IntentIcon class={slot('icon', toast.intent)} />
+      {#if toast.loading}
+        <span class={slot('icon', toast.intent)}><Spinner size="sm" /></span>
+      {:else}
+        <IntentIcon class={slot('icon', toast.intent)} />
+      {/if}
 
       <div class={slot('content')}>
         {#if toast.title}
@@ -123,6 +141,28 @@
         {/if}
         {#if toast.description}
           <div class={slot('description')}>{toast.description}</div>
+        {/if}
+        {#if toast.action || toast.cancel}
+          <div class={slot('actions')}>
+            {#if toast.action}
+              <button
+                type="button"
+                class={slot('actionButton')}
+                onclick={() => runAction(toast, 'action')}
+              >
+                {toast.action.label}
+              </button>
+            {/if}
+            {#if toast.cancel}
+              <button
+                type="button"
+                class={slot('cancelButton')}
+                onclick={() => runAction(toast, 'cancel')}
+              >
+                {toast.cancel.label}
+              </button>
+            {/if}
+          </div>
         {/if}
       </div>
 

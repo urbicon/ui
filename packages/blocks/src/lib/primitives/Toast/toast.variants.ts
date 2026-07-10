@@ -17,6 +17,21 @@ export const toastVariants = tv({
     content: 'flex-1 min-w-0',
     title: 'font-semibold text-sm leading-tight',
     description: 'text-sm mt-0.5 opacity-80',
+    // Action row (Sonner-style). Intent-neutral, prominent primary + quiet
+    // cancel — the toast's intent already reads through the icon/progress, so
+    // the buttons stay contrast-based rather than intent-coloured.
+    actions: 'flex items-center gap-2 mt-2.5',
+    // tier: modify — small interactive sub-elements on a contain surface.
+    actionButton: [
+      'rounded-modify px-2.5 py-1 text-xs font-medium',
+      'bg-text-primary/10 hover:bg-text-primary/20 text-text-primary',
+      'transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-current/40'
+    ],
+    cancelButton: [
+      'rounded-modify px-2.5 py-1 text-xs font-medium',
+      'text-text-secondary hover:text-text-primary',
+      'transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-current/40'
+    ],
     // tier: modify — small interactive sub-element on a contain surface.
     dismissButton: [
       'shrink-0 rounded-modify p-1',

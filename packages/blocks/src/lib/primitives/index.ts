@@ -74,10 +74,12 @@ export * from './Tab';
 export type { TextareaProps } from './Textarea';
 export * from './Textarea';
 export type {
+  ToastAction,
   ToastData,
   ToastInput,
   ToastIntent,
   ToastPlacement,
+  ToastPromiseOptions,
   ToastProps,
   ToastShorthandOpts
 } from './Toast';
