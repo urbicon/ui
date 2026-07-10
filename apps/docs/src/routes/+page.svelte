@@ -21,20 +21,26 @@
     Badge,
     Button,
     CheckIcon,
+    Combobox,
     CopyIcon,
-    DatePicker,
-    Input,
+    CurrencyInput,
+    DateRangePicker,
     LocaleSwitcher,
+    NumberInput,
     PasskeyIcon,
     SegmentGroup,
     SegmentItem,
-    Slider,
     Sparkline,
-    Spinner,
-    Toggle
+    Spinner
   } from '@urbicon-ui/blocks';
   import { Table } from '@urbicon-ui/table';
+  import type { PageData } from './$types';
   import '$lib/style/rooms.css';
+
+  // Build-time counts (catalog + icon registry, see +page.server.ts) — the
+  // poster's numbers are derived, never hand-maintained.
+  let { data }: { data: PageData } = $props();
+  const counts = $derived(data.counts);
 
   // ── Palette channels ──────────────────────────────────────────────
   // Three Mid-Century palettes; each has four "fields" (a saturated bg + an
@@ -56,8 +62,8 @@
       fields: [
         { bg: '#e8500f', fg: INK },
         { bg: '#00845c', fg: CREAM },
-        { bg: '#7c1f2d', fg: CREAM },
-        { bg: '#e3a31c', fg: INK }
+        { bg: '#e3a31c', fg: INK },
+        { bg: '#7c1f2d', fg: CREAM }
       ],
       bright: '#ff8a50'
     },
@@ -96,32 +102,71 @@
     { key: 'blocks', id: 'blocks', field: fields[1], delay: '0.04s' },
     { key: 'table', id: 'table', field: fields[2], delay: '0.08s' },
     { key: 'auth', id: 'auth', field: fields[3], delay: '0.12s' },
-    { key: 'ai', id: 'design', field: fields[0], delay: '0.16s' }
+    { key: 'ai', id: 'machines', field: fields[0], delay: '0.16s' }
   ] as const);
   const install = $derived(fields[2]);
 
   // Hero index panel — the inverted "what's in the set" register. One row per
   // room, anchored to the tiles below.
-  const PANEL_ITEMS = [
-    { href: '#blocks', name: 'Blocks', sub: '55 components, one grammar' },
+  const PANEL_ITEMS = $derived([
+    { href: '#blocks', name: 'Blocks', sub: `${counts.blocks} components, one grammar` },
     { href: '#table', name: 'Table', sub: 'live remote mode' },
     { href: '#auth', name: 'Auth', sub: 'passkeys, Web Crypto only' },
-    { href: '#design', name: 'Design', sub: 'your agent gets reviewed' }
-  ] as const;
+    { href: '#machines', name: 'For machines', sub: 'your agent gets reviewed' }
+  ] as const);
 
-  // ── Blocks specimen: a real mini settings panel ───────────────────
-  let section = $state('general');
-  let workspace = $state('Atelier Nord');
+  // ── Blocks specimen: the studio plans its offsite ─────────────────
+  // A relatable composition instead of a settings form: SegmentGroup swaps the
+  // destination list AND the fare curve, so every control visibly talks to the
+  // others — not a static screenshot.
   let uiLocale = $state<'en' | 'de'>('en');
   const dpLocale = $derived(uiLocale === 'de' ? 'de-DE' : 'en-US');
-  // Fixed literal — deterministic across SSR/hydration (no `new Date()` drift).
-  let renewal = $state<Date>(new Date('2026-10-01T00:00:00'));
-  let compact = $state(true);
-  let reduceMotion = $state(false);
-  let density = $state(64);
-  let autosave = $state(true);
-  let telemetry = $state(false);
-  const usage = [4, 6, 5, 9, 7, 12, 10, 15, 13, 18];
+
+  type Vibe = 'city' | 'coast' | 'alps';
+  const DESTINATIONS: Record<Vibe, { label: string; value: string }[]> = {
+    city: [
+      { label: 'Copenhagen', value: 'cph' },
+      { label: 'Kraków', value: 'krk' },
+      { label: 'Porto', value: 'opo' },
+      { label: 'Vienna', value: 'vie' }
+    ],
+    coast: [
+      { label: 'Lisbon', value: 'lis' },
+      { label: 'Palermo', value: 'pmo' },
+      { label: 'Split', value: 'spu' },
+      { label: 'Biarritz', value: 'biq' }
+    ],
+    alps: [
+      { label: 'Innsbruck', value: 'ibk' },
+      { label: 'Chamonix', value: 'cmx' },
+      { label: 'Bolzano', value: 'bzo' },
+      { label: 'Kranjska Gora', value: 'kgo' }
+    ]
+  };
+  // Deterministic 12-week fare curves per vibe (no Math.random — SSR and
+  // client must agree).
+  const FARES: Record<Vibe, number[]> = {
+    city: [172, 168, 171, 160, 156, 149, 151, 144, 138, 141, 133, 129],
+    coast: [148, 152, 143, 139, 141, 132, 128, 131, 122, 118, 114, 109],
+    alps: [196, 189, 192, 181, 176, 179, 168, 161, 158, 152, 149, 143]
+  };
+  let vibe = $state('coast');
+  let destination = $state<string | null>('lis');
+  // Fixed literals — deterministic across SSR/hydration (no `new Date()` drift).
+  let range = $state({
+    start: new Date('2027-05-03T00:00:00'),
+    end: new Date('2027-05-07T00:00:00')
+  });
+  let budget = $state<number | null>(128000); // minor units: €1,280.00
+  let team = $state<number | null>(12);
+  const vibeKey = $derived((vibe in DESTINATIONS ? vibe : 'coast') as Vibe);
+  const fares = $derived(FARES[vibeKey]);
+  const destinationLabel = $derived(
+    DESTINATIONS[vibeKey].find((d) => d.value === destination)?.label ?? 'anywhere'
+  );
+  function onVibeChange(next: string) {
+    destination = DESTINATIONS[(next in DESTINATIONS ? next : 'coast') as Vibe][0].value;
+  }
 
   function persistLocale(locale: string) {
     uiLocale = locale === 'de' ? 'de' : 'en';
@@ -132,35 +177,65 @@
     }
   }
 
-  // ── Table specimen: a real @urbicon-ui/table in live remote mode ──
-  interface EdgeRow {
+  // ── Table specimen: today's departures, fully interactive ─────────
+  // The wow is feature richness you can SEE and touch: the SmartFilterBar
+  // (on by default), header menus (sort/group/hide), live status churn.
+  // Deliberately NOT virtualized: grouping silently disables virtualization
+  // and the two-table virtual layout drifts column widths — both logged in
+  // docs/technical-debt.md (2026-07-11).
+  interface Departure {
     id: string;
-    region: string;
-    status: 'live' | 'warm';
-    p95: number;
+    flight: string;
+    to: string;
+    departs: string;
+    status: 'boarding' | 'on time' | 'departed';
   }
-  // Ordered by p95 so the table reads sorted on load (the table has no
-  // initial-sort API yet — see docs/technical-debt.md).
-  const BASE_ROWS: EdgeRow[] = [
-    { id: 'edge-local', region: 'edge · local', status: 'live', p95: 3 },
-    { id: 'eu-central', region: 'eu-central', status: 'live', p95: 42 },
-    { id: 'eu-west', region: 'eu-west', status: 'live', p95: 51 },
-    { id: 'us-east', region: 'us-east', status: 'live', p95: 87 },
-    { id: 'us-west', region: 'us-west', status: 'warm', p95: 102 },
-    { id: 'ap-south', region: 'ap-south', status: 'warm', p95: 118 }
+  const AIRLINES = ['UB', 'NX', 'TZ', 'GL', 'MO'];
+  const DEST_CITIES = [
+    'Lisbon',
+    'Copenhagen',
+    'Palermo',
+    'Reykjavík',
+    'Kraków',
+    'Porto',
+    'Vienna',
+    'Athens',
+    'Split',
+    'Biarritz',
+    'Tromsø',
+    'Valletta'
   ];
+  // Today's board, 06:00–23:55 in 5-minute slots (216 rows) — enough for the
+  // pager to show scale while grouping by city stays legible. Generated
+  // deterministically (no Math.random: SSR and client must agree), pre-sorted
+  // by slot (the table has no initial-sort API yet — see
+  // docs/technical-debt.md). "06:35" sorts lexicographically.
+  const DEPARTURES: Departure[] = Array.from({ length: 216 }, (_, i) => {
+    const hh = String(6 + Math.floor(i / 12)).padStart(2, '0');
+    const mm = String((i % 12) * 5).padStart(2, '0');
+    return {
+      id: `dep-${i}`,
+      flight: `${AIRLINES[i % AIRLINES.length]} ${100 + ((i * 37) % 900)}`,
+      to: DEST_CITIES[(i * 7) % DEST_CITIES.length],
+      departs: `${hh}:${mm}`,
+      status: 'on time' as const
+    };
+  });
+  const DEPARTURE_COUNT = DEPARTURES.length.toLocaleString('en-US');
   // One row preselected so the selected state shows the room accent on load.
   // Controlled selection is the table's only preselection path, so row clicks
   // must be synced back via onSelectionChange — a static array would freeze
   // the selection (the provider re-asserts the prop over internal clicks).
-  let tableSelected = $state<Array<string | number>>(['eu-central']);
+  let tableSelected = $state<Array<string | number>>(['dep-2']);
   // Columns live in the template (inline on <Table>) because the status
   // column renders through the `statusCell` snippet, which only exists there.
-  // Deterministic jitter (no Math.random) so latency values "breathe" like a
-  // live feed without an SSR/hydration mismatch.
+  // Deterministic status churn (no Math.random — no SSR/hydration mismatch).
   let tick = $state(0);
-  const jitter = (base: number, i: number) => Math.max(1, base + ((tick * 7 + i * 13) % 11) - 5);
-  const tableRows = $derived(BASE_ROWS.map((r, i) => ({ ...r, p95: jitter(r.p95, i) })));
+  const statusFor = (i: number): Departure['status'] => {
+    const phase = (i * 11 + tick * 3) % 29;
+    return phase < 5 ? 'boarding' : phase < 8 ? 'departed' : 'on time';
+  };
+  const departures = $derived(DEPARTURES.map((d, i) => ({ ...d, status: statusFor(i) })));
 
   // ── Auth specimen: a real passkey sign-in flow ────────────────────
   let authState = $state<'idle' | 'pending' | 'ok'>('idle');
@@ -181,24 +256,28 @@
   let sourceShown = $state({ blocks: false, table: false, auth: false });
   type SpecimenKey = keyof typeof sourceShown;
   const SPECIMEN_SOURCE: Record<SpecimenKey, string> = {
-    blocks: `<SegmentGroup bind:value={section} size="sm">
-  <SegmentItem value="general">General</SegmentItem>
-  <SegmentItem value="display">Display</SegmentItem>
-  <SegmentItem value="sync">Sync</SegmentItem>
+    blocks: `<SegmentGroup bind:value={vibe} size="sm">
+  <SegmentItem value="city">City</SegmentItem>
+  <SegmentItem value="coast">Coast</SegmentItem>
+  <SegmentItem value="alps">Alps</SegmentItem>
 </SegmentGroup>
 
-<Input bind:value={workspace} label="Workspace" size="sm" />
-<LocaleSwitcher size="sm" showFlag variant="outlined" />
-<DatePicker bind:value={renewal} label="Renewal date" size="sm" />
+<Combobox label="Destination" options={destinations[vibe]}
+  bind:value={destination} size="sm" />
+<DateRangePicker label="Dates" bind:value={range} size="sm" />
+<CurrencyInput label="Budget / person" currency="EUR"
+  bind:value={budget} size="sm" />
+<NumberInput label="Team" bind:value={team} min={1} size="sm" />
 
-<Button variant="outlined" size="sm">Reset</Button>
-<Button intent="primary" size="sm">Save changes</Button>`,
-    table: `<Table
-  items={rows}
+<Sparkline data={fares[vibe]} area showEndPoint />`,
+    table: `<!-- filter bar, header menus, grouping: on by default -->
+<Table
+  items={departures}
   columns={[
-    { accessor: 'region', title: 'Region', sortable: true },
-    { accessor: 'status', title: 'Status', cell: statusBadge },
-    { accessor: 'p95', title: 'p95', dataType: 'number' }
+    { accessor: 'flight', title: 'Flight', sortable: true },
+    { accessor: 'to', title: 'To', sortable: true },
+    { accessor: 'departs', title: 'Departs', sortable: true },
+    { accessor: 'status', title: 'Status', cell: statusCell }
   ]}
   selectionMode="single"
   selectedIds={selected}
@@ -220,6 +299,23 @@
   WebAuthn
 </Badge>`
   };
+
+  // ── Feature ticker: the "also in the box" register ────────────────
+  // Counts ride the build (see +page.server.ts); everything else is a claim
+  // the docs actually back. Rendered twice for the seamless marquee loop.
+  const TICKER_ITEMS = $derived([
+    `${counts.set} components`,
+    `${counts.icons} original icons`,
+    'Svelte 5 + Tailwind 4',
+    'zero runtime dependencies',
+    'i18n with usage audit',
+    'virtualized table',
+    'passkeys + web push',
+    'command palette',
+    'charts · calendar · planner',
+    'dark mode = one token',
+    'MIT'
+  ]);
 
   // ── Install specimen: copy-to-clipboard ───────────────────────────
   const INSTALL_COMMAND = 'bun add @urbicon-ui/blocks';
@@ -254,14 +350,14 @@
 
 <SeoMeta />
 
-{#snippet statusCell(_item: EdgeRow, value: unknown)}
+{#snippet statusCell(_item: Departure, value: unknown)}
   <!-- Palette-true status: `primary` rides the room accent, `neutral` stays
        warm grey — no foreign intent hues inside a room (same rule as the
        chart tokens in rooms.css). -->
   <Badge
-    intent={value === 'live' ? 'primary' : 'neutral'}
-    variant={value === 'live' ? 'soft' : 'outlined'}
-    class="font-mono text-[10px]">{String(value)}</Badge
+    intent={value === 'boarding' ? 'primary' : 'neutral'}
+    variant={value === 'on time' ? 'outlined' : 'soft'}
+    class="font-mono text-[10px] whitespace-nowrap">{String(value)}</Badge
   >
 {/snippet}
 
@@ -330,7 +426,7 @@
   <main id="main-content">
     <!-- ─────────────────────────── Hero ─────────────────────────── -->
     <section
-      class="rooms-field flex min-h-[70svh] flex-col justify-between px-6 pt-7 pb-10 sm:px-12 lg:min-h-[72vh]"
+      class="rooms-field flex min-h-[70svh] flex-col justify-between px-[var(--rooms-gutter)] pt-7 pb-10 lg:min-h-[72vh]"
       style="background: {hero.bg}; color: {hero.fg}"
     >
       <div class="flex items-center justify-between gap-4">
@@ -339,10 +435,11 @@
           aria-label="Landing"
           class="flex items-center gap-5 text-[14.5px] font-medium sm:gap-8"
         >
+          <a href={resolve('/blocks')} class="transition-opacity hover:opacity-70">Docs</a>
           <a href="#set" class="hidden transition-opacity hover:opacity-70 sm:inline">The set</a>
           <a href="#repaint" class="hidden transition-opacity hover:opacity-70 sm:inline">Palette</a
           >
-          <a href={resolve('/ai')} class="hidden transition-opacity hover:opacity-70 sm:inline"
+          <a href="#machines" class="hidden transition-opacity hover:opacity-70 sm:inline"
             >For machines</a
           >
           <a
@@ -357,14 +454,20 @@
       <div
         class="flex flex-1 flex-col justify-center gap-12 py-10 lg:flex-row lg:items-center lg:justify-between lg:gap-16"
       >
-        <h1
+        <div
           class={[
-            'max-w-[600px] text-[clamp(2.75rem,6.5vw,5.25rem)] transition-[transform,opacity] duration-700',
+            'max-w-[600px] transition-[transform,opacity] duration-700',
             ready ? 'translate-y-0 opacity-100' : 'translate-y-3 opacity-0'
           ]}
         >
-          Depends on nothing.
-        </h1>
+          <!-- The eyebrow names the what + the stack; the H1 keeps the claim
+               deadpan (no "0 dependencies" here — that would tell the joke
+               before the punchline). -->
+          <p class="font-mono text-[11px] tracking-[0.14em] text-balance uppercase opacity-70">
+            The component set for Svelte 5 + Tailwind 4
+          </p>
+          <h1 class="mt-4 text-[clamp(2.75rem,6.5vw,5.25rem)]">Depends on nothing.</h1>
+        </div>
 
         <!-- Inverted index panel — answers "what's in it?" without a scroll.
              The arrows carry the hero field colour, so the panel repaints with
@@ -412,19 +515,19 @@
           <div class="flex items-baseline gap-3">
             <span
               class="text-[clamp(1.75rem,4vw,2.5rem)] font-medium tracking-[-0.03em] line-through opacity-50 [text-decoration-thickness:3px]"
-              >1,203</span
+              >1,000</span
             >
             <span class="text-[clamp(1.75rem,4vw,2.5rem)] font-bold tracking-[-0.03em]">1</span>
           </div>
           <p class="mt-2 max-w-[280px] text-[12.5px] opacity-80">
-            packages in a typical UI stack — vs. this one. Svelte 5.
+            Replace an endless supply chain with 1 package
           </p>
         </div>
 
         <div>
           {@render paletteSwitcher(false, true)}
           <p class="mt-2 text-[12.5px] opacity-80">
-            {active.label} — the specimens below are real. Click to repaint them.
+            {active.label}
           </p>
         </div>
 
@@ -439,20 +542,28 @@
     <!-- ────────────────────── Product rooms ─────────────────────── -->
     <h2 class="sr-only" id="set">The set</h2>
     <section class="grid grid-cols-1 md:grid-cols-2">
-      {#each rooms as room (room.key)}
+      {#each rooms as room, i (room.key)}
         <div
-          class="rooms-field flex min-h-[560px] flex-col px-6 py-10 sm:px-12"
+          class={[
+            'rooms-field flex min-h-[560px] flex-col px-[var(--rooms-gutter)] py-10',
+            // Wide screens: the outer edge keeps the growing gutter, the edge
+            // toward the grid's center falls back to the fixed poster margin.
+            i % 2 === 0 ? 'md:pr-12' : 'md:pl-12'
+          ]}
           id={room.id}
           style="background: {room.field.bg}; color: {room.field.fg}; --room-delay: {room.delay}"
         >
           {#if room.key === 'blocks'}
-            <!-- Blocks — a real mini settings panel -->
+            <!-- Blocks — the studio plans its offsite -->
             <div class="flex items-baseline justify-between gap-5">
               <h3 class="text-[clamp(2rem,4vw,2.5rem)]">Blocks</h3>
-              <span class="text-[13.5px] opacity-80">36 primitives + 19 composed</span>
+              <span class="text-[13.5px] opacity-80"
+                >{counts.primitives} primitives + {counts.composed} composed</span
+              >
             </div>
             <p class="mt-2.5 max-w-[420px] text-[15.5px] leading-relaxed opacity-90">
-              Forms, overlays, navigation, charts — themable down to the slot.
+              Forms, overlays, navigation, charts — themable down to the slot. Flip the vibe and
+              watch every control follow.
             </p>
 
             <div class="my-7 flex-1">
@@ -464,75 +575,66 @@
                     class="poster-card room-accent p-5"
                     style="--room-accent: {room.field.bg}; --room-accent-fg: {room.field.fg}"
                   >
-                    <div class="flex items-center justify-between gap-4">
-                      <span class="text-[13px] font-bold text-text-primary">Preferences</span>
-                      <SegmentGroup bind:value={section} size="sm" ariaLabel="Settings section">
-                        <SegmentItem value="general">General</SegmentItem>
-                        <SegmentItem value="display">Display</SegmentItem>
-                        <SegmentItem value="sync">Sync</SegmentItem>
+                    <div class="flex flex-wrap items-center justify-between gap-3">
+                      <span class="text-[13px] font-bold text-text-primary">Offsite '27</span>
+                      <SegmentGroup
+                        bind:value={vibe}
+                        size="sm"
+                        ariaLabel="Trip vibe"
+                        onValueChange={onVibeChange}
+                      >
+                        <SegmentItem value="city">City</SegmentItem>
+                        <SegmentItem value="coast">Coast</SegmentItem>
+                        <SegmentItem value="alps">Alps</SegmentItem>
                       </SegmentGroup>
                     </div>
 
                     <div class="mt-4 grid gap-4 sm:grid-cols-2">
-                      {#if section === 'general'}
-                        <Input bind:value={workspace} label="Workspace" size="sm" />
-                        <div class="flex flex-col gap-1.5">
-                          <span class="text-[12px] font-semibold text-text-secondary">Language</span
-                          >
-                          <LocaleSwitcher
-                            size="sm"
-                            showFlag
-                            variant="outlined"
-                            onLocaleChange={persistLocale}
-                          />
-                        </div>
-                        <div class="sm:col-span-2">
-                          <DatePicker
-                            bind:value={renewal}
-                            label="Renewal date"
-                            locale={dpLocale}
-                            size="sm"
-                            clearable={false}
-                          />
-                        </div>
-                      {:else if section === 'display'}
-                        <div class="sm:col-span-2 flex flex-col gap-3">
-                          <Toggle bind:checked={compact} label="Compact density" />
-                          <Toggle bind:checked={reduceMotion} label="Reduce motion" />
-                        </div>
-                        <div class="sm:col-span-2">
-                          <Slider
-                            bind:value={density}
-                            min={0}
-                            max={100}
-                            label="Grid density"
-                            showValue
-                            formatValue={(v) => `${v}%`}
-                          />
-                        </div>
-                      {:else}
-                        <div class="flex flex-col gap-3">
-                          <Toggle bind:checked={autosave} label="Autosave" />
-                          <Toggle bind:checked={telemetry} label="Telemetry" />
-                        </div>
-                        <div class="flex flex-col gap-1.5">
-                          <span class="text-[12px] font-semibold text-text-secondary">Usage</span>
-                          <Sparkline
-                            data={usage}
-                            area
-                            showEndPoint
-                            width={200}
-                            height={44}
-                            ariaLabel="Usage trend, last 10 days"
-                            class="w-full"
-                          />
-                        </div>
-                      {/if}
+                      <Combobox
+                        label="Destination"
+                        options={DESTINATIONS[vibeKey]}
+                        bind:value={destination}
+                        size="sm"
+                        placeholder="Search…"
+                      />
+                      <DateRangePicker
+                        label="Dates"
+                        bind:value={range}
+                        locale={dpLocale}
+                        size="sm"
+                        clearable={false}
+                      />
+                      <CurrencyInput
+                        label="Budget / person"
+                        bind:value={budget}
+                        currency="EUR"
+                        locale={dpLocale}
+                        size="sm"
+                      />
+                      <NumberInput label="Team" bind:value={team} min={1} max={48} size="sm" />
+                    </div>
+
+                    <div class="mt-4">
+                      <div class="flex items-baseline justify-between gap-4">
+                        <span class="text-[12px] font-semibold text-text-secondary"
+                          >Fares to {destinationLabel}</span
+                        >
+                        <span class="font-mono text-[11px] text-text-tertiary">12-week trend</span>
+                      </div>
+                      <Sparkline
+                        data={fares}
+                        area
+                        showEndPoint
+                        width={460}
+                        height={44}
+                        ariaLabel="Fare trend to {destinationLabel}, 12 weeks"
+                        class="mt-1 w-full"
+                      />
                     </div>
 
                     <div class="mt-5 flex justify-end gap-2.5">
-                      <Button variant="outlined" size="sm">Reset</Button>
-                      <Button intent="primary" size="sm">Save changes</Button>
+                      <Button variant="outlined" size="sm">Share draft</Button>
+                      <Button intent="primary" size="sm">Book the week</Button>
                     </div>
                   </div>
                 {/if}
@@ -542,22 +644,23 @@
 
             <div class="mt-auto flex items-baseline justify-between gap-5">
               <span class="text-[13px] opacity-75"
-                >SegmentGroup · Input · DatePicker · Toggle · Slider · Sparkline</span
+                >SegmentGroup · Combobox · DateRangePicker · CurrencyInput · NumberInput · Sparkline</span
               >
               <a
                 href={resolve('/blocks')}
-                class="border-b-2 border-current pb-0.5 text-[15px] font-bold transition-opacity hover:opacity-70"
+                class="border-b-2 border-current pb-0.5 text-[15px] font-bold whitespace-nowrap transition-opacity hover:opacity-70"
                 >Browse →</a
               >
             </div>
           {:else if room.key === 'table'}
-            <!-- Table — a real @urbicon-ui/table -->
+            <!-- Table — today's departures board, fully interactive -->
             <div class="flex items-baseline justify-between gap-5">
               <h3 class="text-[clamp(2rem,4vw,2.5rem)]">Table</h3>
-              <span class="text-[13.5px] opacity-80">Live remote mode</span>
+              <span class="text-[13.5px] opacity-80">Filter · group · live</span>
             </div>
             <p class="mt-2.5 max-w-[420px] text-[15.5px] leading-relaxed opacity-90">
-              Sorting, grouping, selection, virtualization — and live updates over the wire.
+              Smart filter, header menus, grouping, selection, remote mode — try them all on today's
+              board.
             </p>
 
             <div class="my-7 flex-1">
@@ -572,7 +675,7 @@
                     <div
                       class="mb-2 flex items-center justify-between px-1 font-mono text-[11px] tracking-[0.04em] text-text-secondary"
                     >
-                      <span>edge.latency — {tableRows.length} rows</span>
+                      <span>departures.board — {DEPARTURE_COUNT} flights today</span>
                       <span class="inline-flex items-center gap-1.5">
                         <span class="pulse-dot inline-block h-1.5 w-1.5 rounded-full bg-primary"
                         ></span>
@@ -580,22 +683,16 @@
                       </span>
                     </div>
                     <Table
-                      items={tableRows}
+                      items={departures}
                       columns={[
-                        { accessor: 'region', title: 'Region', sortable: true },
-                        { accessor: 'status', title: 'Status', sortable: true, cell: statusCell },
-                        {
-                          accessor: 'p95',
-                          title: 'p95',
-                          sortable: true,
-                          dataType: 'number',
-                          align: 'right'
-                        }
+                        { accessor: 'flight', title: 'Flight', sortable: true },
+                        { accessor: 'to', title: 'To', sortable: true },
+                        { accessor: 'departs', title: 'Departs', sortable: true },
+                        { accessor: 'status', title: 'Status', sortable: true, cell: statusCell }
                       ]}
                       selectionMode="single"
                       selectedIds={tableSelected}
                       onSelectionChange={(items) => (tableSelected = items.map((r) => r.id))}
-                      enableSmartFilter={false}
                       itemsPerPage={6}
                       slotClasses={{ table: '!min-w-0' }}
                     />
@@ -607,7 +704,7 @@
 
             <div class="mt-auto flex items-baseline justify-between gap-5">
               <span class="text-[13px] opacity-75"
-                >Click a header to sort, a checkbox to select</span
+                >Type a city in the filter, group via a header menu — it's all real</span
               >
               <a
                 href={resolve('/table/table')}
@@ -697,13 +794,12 @@
             <!-- Design — the closed loop: an agent generates, `urbicon validate`
                  reviews, the fix ships. The CLI + llms.txt are the serving channels. -->
             <div class="flex items-baseline justify-between gap-5">
-              <h3 class="text-[clamp(2rem,4vw,2.5rem)]">Design</h3>
+              <h3 class="text-[clamp(2rem,4vw,2.5rem)]">For machines</h3>
               <span class="text-[13.5px] opacity-80">urbicon CLI · Hook & CI · llms.txt</span>
             </div>
             <p class="mt-2.5 max-w-[420px] text-[15.5px] leading-relaxed opacity-90">
-              Generation is the easy half. The urbicon CLI reviews what your agent builds — tokens,
-              focus, slop — and remembers the design decisions your project already made. You wire
-              it once; the agent runs the loop.
+              Hook the library into your AI workflow to give your model a deep understanding of all
+              its aspects. You wire it once; the agent runs the loop.
             </p>
 
             <div class="my-7 flex-1">
@@ -743,8 +839,41 @@
       {/each}
     </section>
 
+    <!-- ─────────────────────── Feature ticker ────────────────────── -->
+    <!-- The "also in the box" register — full-bleed marquee. The separator
+         squares ride the hero field colour, so the band repaints with the
+         channel like everything else. -->
+    <section
+      aria-label="Also in the box"
+      class="rooms-ticker py-4"
+      style="background: {INK}; color: {CREAM}"
+    >
+      <div class="rooms-ticker-track">
+        {#each [0, 1] as copy (copy)}
+          <ul class="flex shrink-0 items-center" aria-hidden={copy === 1}>
+            {#each TICKER_ITEMS as item (item)}
+              <li
+                class="flex items-center gap-7 pr-7 text-[clamp(1rem,1.6vw,1.35rem)] font-bold tracking-[-0.01em] whitespace-nowrap uppercase"
+              >
+                <span>{item}</span>
+                <span
+                  class="h-2.5 w-2.5"
+                  style="background: {hero.bg}; transition: background 0.5s ease"
+                  aria-hidden="true"
+                ></span>
+              </li>
+            {/each}
+          </ul>
+        {/each}
+      </div>
+    </section>
+
     <!-- ──────────────────── Repaint the building ─────────────────── -->
-    <section id="repaint" class="px-6 py-20 sm:px-12" style="background: #17150f; color: #f6f3ec">
+    <section
+      id="repaint"
+      class="px-[var(--rooms-gutter)] py-20"
+      style="background: #17150f; color: #f6f3ec"
+    >
       <div class="grid grid-cols-1 items-start gap-12 lg:grid-cols-2 lg:gap-[72px]">
         <div>
           <h2 class="text-[clamp(2.5rem,5vw,3.9rem)] !leading-[1.02]">Repaint the building.</h2>
@@ -771,7 +900,7 @@
             <p class="mt-3"><span class="opacity-50">$</span> urbicon find "pricing table"</p>
             <p class="opacity-85">→ Table + Badge + Button · recipe: pricing-grid</p>
             <p class="mt-3"><span class="opacity-50">$</span> curl ui.urbicon.de/llms.txt</p>
-            <p class="opacity-85">→ 55 components, plain text, no auth</p>
+            <p class="opacity-85">→ {counts.set} components, plain text, no auth</p>
           </div>
           <p class="mt-4 text-[14.5px] opacity-70">
             Agents read the same manual you do —
@@ -785,7 +914,7 @@
 
     <!-- ─────────────────────────── Install ───────────────────────── -->
     <section
-      class="rooms-field room-accent px-6 pt-24 pb-10 sm:px-12"
+      class="rooms-field room-accent px-[var(--rooms-gutter)] pt-24 pb-10"
       style="background: {install.bg}; color: {install.fg}; --room-accent: {install.fg}; --room-accent-fg: {install.bg}"
     >
       <div class="text-center">

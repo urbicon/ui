@@ -44,11 +44,24 @@
   --rooms-ink: #17150f; /* warm near-black ground */
   --rooms-cream: #f6f3ec; /* warm off-white */
 
+  /* Full-bleed fields, capped content: sections pad with --rooms-gutter, which
+     equals the old px-6 / sm:px-12 up to ~1440px viewport and then grows, so
+     the content column stays centered on wide screens while the colour fields
+     keep bleeding to the viewport edge (no pooled void mid-hero at 1920+). */
+  --rooms-content-max: 1344px;
+  --rooms-gutter: max(1.5rem, calc((100vw - var(--rooms-content-max)) / 2));
+
   background: var(--rooms-ink);
   color: var(--rooms-cream);
   font-family: var(--font-sans);
   -webkit-font-smoothing: antialiased;
   text-rendering: optimizeLegibility;
+}
+
+@media (min-width: 640px) {
+  .rooms-landing {
+    --rooms-gutter: max(3rem, calc((100vw - var(--rooms-content-max)) / 2));
+  }
 }
 
 /* Poster headings inherit the grotesk display voice + the mockup's medium
@@ -82,7 +95,7 @@
    the room stagger; token-driven children repaint instantly, as they already
    do for the primary family. */
 .poster-card {
-  background: color-mix(in oklab, var(--room-accent, #fbfaf6) 5%, #fbfaf6);
+  background: color-mix(in oklab, var(--room-accent, #fbfaf6) 8%, #fbfaf6);
   color: #1f1d17;
   transition: background-color 0.55s ease var(--room-delay, 0s);
 
@@ -185,9 +198,41 @@
   --color-surface-hover: color-mix(in oklab, currentColor 12%, transparent);
 }
 
+/* ── Feature ticker ─────────────────────────────────────────────────────
+   Full-bleed marquee band between the rooms and the repaint section ("also
+   in the box"). The track holds two identical copies of the item list
+   (second one aria-hidden); translating the track by -50% loops seamlessly.
+   Reduced motion: the band stands still and becomes a scrollable strip, the
+   duplicate copy is dropped. */
+.rooms-ticker {
+  overflow: hidden;
+}
+.rooms-ticker-track {
+  display: flex;
+  width: max-content;
+  animation: rooms-marquee 42s linear infinite;
+}
+@keyframes rooms-marquee {
+  from {
+    transform: translateX(0);
+  }
+  to {
+    transform: translateX(-50%);
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   .rooms-field,
   .poster-card {
     transition: none;
+  }
+  .rooms-ticker {
+    overflow-x: auto;
+  }
+  .rooms-ticker-track {
+    animation: none;
+  }
+  .rooms-ticker-track > [aria-hidden='true'] {
+    display: none;
   }
 }

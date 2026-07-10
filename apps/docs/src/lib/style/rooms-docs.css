@@ -302,12 +302,12 @@
  * (The landing's palette channels are a separate poster system — its
  * Gallery '52 channel quotes these same four colours by design.) */
 :is(.docs-rooms, .docs-room-scope)[data-room='table'] {
-  --room-accent: #7c1f2d; /* wine */
-  --room-accent-fg: #f6f3ec;
-}
-:is(.docs-rooms, .docs-room-scope)[data-room='auth'] {
   --room-accent: #e3a31c; /* amber */
   --room-accent-fg: #17150f;
+}
+:is(.docs-rooms, .docs-room-scope)[data-room='auth'] {
+  --room-accent: #7c1f2d; /* wine */
+  --room-accent-fg: #f6f3ec;
 }
 :is(.docs-rooms, .docs-room-scope)[data-room='ai'] {
   --room-accent: #e8500f; /* orange */
@@ -499,7 +499,7 @@
  * stay on quiet cream so the tint marks the page's one primary stage. Mixing
  * over --docs-paper keeps it valid in both light and dark. */
 .docs-rooms [data-docs-stage='playground'] [data-docs-stage-frame] {
-  background-color: color-mix(in oklab, var(--room-accent) 10%, var(--docs-paper));
+  background-color: color-mix(in oklab, var(--room-accent) 3%, var(--docs-paper));
 }
 
 /* Inverted accent block — one dominant room "moment" for the landing/CTA

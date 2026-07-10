@@ -197,6 +197,49 @@ internal TODO instead. Sections are ordered roughly by urgency.
   rows), so it needs a deliberate API decision, not a drive-by change.
 - **Found:** 2026-07-09, exercising the landing table specimen with Playwright.
 
+### Table grouping silently disables virtualization — grouping a large virtualized table dumps every row into the DOM
+
+- **Where:** `packages/table/src/lib/core/TableDesktop.svelte`
+  (`virtualizedActive = virtualized && !tableState.groupByKey`) + the header
+  menu, which still offers "group by" on a virtualized table.
+- **What:** Setting a group key on a `virtualized` table doesn't group the
+  virtual list — it deactivates virtualization entirely and falls back to the
+  normal render path with the **full** item set. For exactly the datasets
+  `virtualized` exists for, that means thousands of rows plus group headers
+  hitting the DOM at once; observed on the landing departures specimen (8,640
+  rows): grouping via the header menu visually broke the board. Sorting is
+  fine (`virtualItems = tableContext.sortedItems`). The guard itself is
+  deliberate — grouped virtualization isn't implemented — but the *silent*
+  fallback is the worst of the available behaviours.
+- **Why deferred:** Needs a product decision, either direction is real work:
+  (a) implement grouped virtualization (group headers become virtual items
+  with their own heights), or (b) suppress the grouping affordances (header-
+  menu "group by", `initialGroupBy`) while `virtualized`, documented as a mode
+  restriction. The landing specimen dropped `virtualized` meanwhile (2026-07-11)
+  and demos the SmartFilterBar + grouping on a day-sized board instead.
+- **Found:** 2026-07-11, exercising the landing departures specimen (Felix).
+
+### Virtualized body renders in a second `<table>` — column widths drift from the header (and rows are fixed-height tall)
+
+- **Where:** `packages/table/src/lib/core/TableDesktop.svelte`, virtualized
+  branch: the header renders in its own `<table>` above the scroll container,
+  the body in a separate `absolute top-0 left-0 w-full` `table-fixed`
+  `<table>` inside it (plus a third one for the summary row); row heights come
+  from the fixed `ROW_HEIGHTS` map in `utils/virtualizer.ts`.
+- **What:** Header and body are two independent tables, so their column
+  tracks are computed independently and nothing pins per-column widths across
+  them — body columns end up visibly narrower/offset than their headers (on
+  the landing specimen the STATUS header sat ~130px right of the status
+  badges; screenshot 2026-07-11). The fixed virtualizer row height also
+  renders rows noticeably taller than their content at `size="sm"`-ish
+  densities.
+- **Why deferred:** The real fix is a layout rework of the virtualized path —
+  shared column sizing (explicit `<colgroup>`/track widths propagated to
+  header, body and summary tables, or a single-table layout with a sticky
+  `<thead>`), plus density-aware row heights — and wants a VR pass. Not a
+  per-call-site patch.
+- **Found:** 2026-07-11, exercising the landing departures specimen (Felix).
+
 ### Table's `resolveSlotClass` concatenates past the tv() conflict fold — slotClasses can't beat base utilities
 
 - **Where:** `packages/table/src/lib/core/table-style-context.ts`
