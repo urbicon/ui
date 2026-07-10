@@ -1,24 +1,17 @@
 import { readdir, readFile } from 'node:fs/promises';
 import { resolve } from 'node:path';
 import { getDesignSystemDir } from '@urbicon-ui/design-content';
+import { type PatternEntry, parsePatternEntry } from '@urbicon-ui/design-engine/reference';
 
-export interface PatternEntry {
-  name: string;
-  title: string;
-  description: string;
-  content: string;
-}
-
-export const PRINCIPLE_TOPICS = [
-  'visual-hierarchy',
-  'interaction',
-  'component-selection',
-  'layout',
-  'accessibility',
-  'theming'
-] as const;
-
-export type PrincipleTopic = (typeof PRINCIPLE_TOPICS)[number];
+// Parsing lives in the engine (shared with the `urbicon` CLI's `principles`/`pattern`
+// commands, so local and remote slice the same files identically); this loader owns
+// only the server-side I/O + caching.
+export {
+  extractPrincipleSection,
+  type PatternEntry,
+  PRINCIPLE_TOPICS,
+  type PrincipleTopic
+} from '@urbicon-ui/design-engine/reference';
 
 let cachedPrinciples: string | null = null;
 let cachedPatterns: PatternEntry[] | null = null;
@@ -60,11 +53,7 @@ export async function loadPatterns(): Promise<PatternEntry[]> {
       continue;
     }
 
-    const name = file.replace(/\.md$/, '');
-    const title = extractTitle(content);
-    const description = extractDescription(content);
-
-    entries.push({ name, title, description, content });
+    entries.push(parsePatternEntry(file.replace(/\.md$/, ''), content));
   }
 
   entries.sort((a, b) => a.name.localeCompare(b.name));
@@ -75,51 +64,4 @@ export async function loadPatterns(): Promise<PatternEntry[]> {
 export async function getPatternByName(name: string): Promise<PatternEntry | null> {
   const patterns = await loadPatterns();
   return patterns.find((p) => p.name === name) ?? null;
-}
-
-function extractTitle(content: string): string {
-  const match = content.match(/^#\s+(.+)$/m);
-  return match?.[1]?.trim() ?? '';
-}
-
-function extractDescription(content: string): string {
-  const lines = content.split('\n');
-  const titleIdx = lines.findIndex((l) => /^#\s+/.test(l));
-  if (titleIdx === -1) return '';
-
-  for (let i = titleIdx + 1; i < lines.length; i++) {
-    const line = lines[i]?.trim();
-    if (!line) continue;
-    if (line.startsWith('#')) break;
-    return line;
-  }
-  return '';
-}
-
-const TOPIC_HEADINGS: Record<PrincipleTopic, string> = {
-  'visual-hierarchy': '## Visual Hierarchy',
-  interaction: '## Interaction',
-  'component-selection': '## Component Selection',
-  layout: '## Layout',
-  accessibility: '## Accessibility',
-  theming: '## Theming'
-};
-
-export function extractPrincipleSection(content: string, topic: PrincipleTopic): string | null {
-  const heading = TOPIC_HEADINGS[topic];
-  if (!heading) return null;
-
-  const lines = content.split('\n');
-  const startIdx = lines.findIndex((l) => l.trim() === heading);
-  if (startIdx === -1) return null;
-
-  let endIdx = lines.length;
-  for (let i = startIdx + 1; i < lines.length; i++) {
-    if (/^## /.test(lines[i] ?? '')) {
-      endIdx = i;
-      break;
-    }
-  }
-
-  return lines.slice(startIdx, endIdx).join('\n').trim();
 }

@@ -2,28 +2,33 @@ import { existsSync, readFileSync } from 'node:fs';
 import { dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { describe, expect, it } from 'vitest';
-import { OVERVIEW, SECTIONS } from './get-css-reference.js';
+import {
+  CSS_REFERENCE_OVERVIEW,
+  CSS_REFERENCE_SECTION_NAMES,
+  CSS_REFERENCE_SECTIONS,
+  renderCssReference
+} from './css-reference.js';
 
 /**
  * Drift guard for the hand-maintained CSS token reference.
  *
- * `get_css_reference` inlines its token tables as TS strings — the MCP server
- * ships standalone (no blocks CSS at runtime), the same constraint that keeps
- * design-engine's `VALID_TOKEN_CORES` inline. The hazard of any hand-copied list
- * is silent drift: `--color-border-hairline` was added to the CSS and went
- * unmirrored here for a while. When the blocks CSS is present (i.e. running
- * in-repo) we re-derive the semantic surface / text / border token cores and
+ * The reference inlines its token tables as TS strings — both consumers (the remote
+ * MCP server and the `urbicon` CLI) ship standalone (no blocks CSS at runtime), the
+ * same constraint that keeps the linter's `VALID_TOKEN_CORES` inline. The hazard of
+ * any hand-copied list is silent drift: `--color-border-hairline` was added to the
+ * CSS and went unmirrored here for a while. When the blocks CSS is present (i.e.
+ * running in-repo) we re-derive the semantic surface / text / border token cores and
  * assert each is documented, so a newly added token can no longer disappear.
  *
- * Scope: the three families `get_css_reference` enumerates exhaustively (one row
- * per token), plus a lighter check that every intent is at least *named* (its base
+ * Scope: the three families the reference enumerates exhaustively (one row per
+ * token), plus a lighter check that every intent is at least *named* (its base
  * `--color-<intent>` token or a `bg-<intent>` utility appears in the prose) — the
  * F-B drift where a whole intent (`info`, a real ramp behind `bg-info` /
  * `--color-feedback-info`) went undocumented while the six others were listed. It
  * deliberately does NOT require every intent scale step (`primary-50 … primary-950`,
  * documented via shorthand), feedback/interactive, chart, or internal-only token
  * (e.g. `skeleton-shimmer`, used by the Skeleton wave, never a consumer utility) to
- * be spelled out. Whole-set token validity is already guarded by design-engine's
+ * be spelled out. Whole-set token validity is already guarded by the linter's
  * `tokens.test.ts`.
  */
 
@@ -41,13 +46,13 @@ const semantic = resolve(
 );
 const cssAvailable = existsSync(semantic);
 
-const ALL_CONTENT = [OVERVIEW, ...Object.values(SECTIONS)].join('\n');
+const ALL_CONTENT = [CSS_REFERENCE_OVERVIEW, ...Object.values(CSS_REFERENCE_SECTIONS)].join('\n');
 
-/** Families `get_css_reference` tables exhaustively, with the prose count to verify. */
+/** Families the reference tables exhaustively, with the prose count to verify. */
 const TABLED_FAMILIES = [
-  { family: 'surface', section: SECTIONS.surfaces! },
-  { family: 'text', section: SECTIONS.text! },
-  { family: 'border', section: SECTIONS.borders! }
+  { family: 'surface', section: CSS_REFERENCE_SECTIONS.surfaces },
+  { family: 'text', section: CSS_REFERENCE_SECTIONS.text },
+  { family: 'border', section: CSS_REFERENCE_SECTIONS.borders }
 ] as const;
 
 /** Unique semantic `--color-<family>-*` cores in the CSS (scoped re-declarations collapse). */
@@ -68,13 +73,29 @@ function deriveIntents(): string[] {
   return [...cores].sort();
 }
 
-describe.skipIf(!cssAvailable)('get_css_reference token drift guard', () => {
+describe('renderCssReference', () => {
+  it('returns the overview when no section is given', () => {
+    expect(renderCssReference()).toBe(CSS_REFERENCE_OVERVIEW);
+  });
+
+  it('returns the overview for an unknown section', () => {
+    expect(renderCssReference('bogus')).toBe(CSS_REFERENCE_OVERVIEW);
+  });
+
+  it('returns each named section', () => {
+    for (const name of CSS_REFERENCE_SECTION_NAMES) {
+      expect(renderCssReference(name)).toBe(CSS_REFERENCE_SECTIONS[name]);
+    }
+  });
+});
+
+describe.skipIf(!cssAvailable)('css-reference token drift guard', () => {
   for (const { family } of TABLED_FAMILIES) {
     it(`documents every semantic \`${family}-*\` token defined in the CSS`, () => {
       const missing = deriveSemanticCores(family).filter((c) => !ALL_CONTENT.includes(c));
       expect(
         missing,
-        `Semantic ${family} tokens in the CSS but absent from get_css_reference: ${missing.join(', ')}`
+        `Semantic ${family} tokens in the CSS but absent from the reference: ${missing.join(', ')}`
       ).toEqual([]);
     });
   }
@@ -94,7 +115,7 @@ describe.skipIf(!cssAvailable)('get_css_reference token drift guard', () => {
     );
     expect(
       missing,
-      `Intents in the CSS but absent from get_css_reference: ${missing.join(', ')}`
+      `Intents in the CSS but absent from the reference: ${missing.join(', ')}`
     ).toEqual([]);
   });
 });

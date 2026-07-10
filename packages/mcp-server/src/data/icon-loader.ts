@@ -1,13 +1,10 @@
 import { readFile } from 'node:fs/promises';
 import { getIconsPath } from '@urbicon-ui/design-content';
+import type { IconEntry } from '@urbicon-ui/design-engine/search';
 
-export interface IconEntry {
-  name: string;
-  componentName: string;
-  label: string;
-  categories: string[];
-  keywords: string[];
-}
+// The schema is the engine's (shared with `urbicon icons`); this loader owns only
+// the server-side I/O + caching.
+export type { IconEntry } from '@urbicon-ui/design-engine/search';
 
 let cachedIcons: IconEntry[] | null = null;
 

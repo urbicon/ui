@@ -1,16 +1,6 @@
 import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
+import { ICON_CATEGORY_ORDER } from '@urbicon-ui/design-engine/search';
 import { loadIcons } from '../data/icon-loader.js';
-
-const CATEGORY_ORDER = [
-  'navigation',
-  'action',
-  'status',
-  'media',
-  'communication',
-  'data',
-  'layout',
-  'toggle'
-] as const;
 
 export function registerFindIconsTool(server: McpServer): void {
   server.tool(
@@ -59,7 +49,7 @@ export function registerFindIconsTool(server: McpServer): void {
         '**Props:** `size` (default 24), `strokeWidth` (default 2), `class`, `rotate`, `flip`, `animation`\n\n';
       md += '---\n\n';
 
-      for (const cat of CATEGORY_ORDER) {
+      for (const cat of ICON_CATEGORY_ORDER) {
         const catIcons = byCategory.get(cat);
         if (!catIcons || catIcons.length === 0) continue;
 
