@@ -73,6 +73,7 @@
   let customValue = $state<string | null>(null);
   let assigneeValue = $state<string | null>(null);
   let timezoneValue = $state<string | null>(null);
+  let skillsValue = $state<string[]>(['ts', 'svelte']);
 </script>
 
 <!-- ─── Examples ─── -->
@@ -89,6 +90,22 @@
         options={teamMembers}
         bind:value={assigneeValue}
         placeholder="Assign to…"
+        clearable
+      />
+    </CodeExample>
+
+    <CodeExample
+      title="Multi-select with tags"
+      description="Pass `multiple` to bind an array of values. Picks render as removable tag chips below the search input, the listbox stays open across selections, Backspace on an empty field removes the last tag, and `maxItems` caps the count — non-selected options grey out once the cap is reached."
+      isolate
+      previewClass="flex flex-col gap-4 max-w-sm"
+    >
+      <Combobox
+        options={languages}
+        multiple
+        bind:value={skillsValue}
+        maxItems={5}
+        placeholder="Add skills…"
         clearable
       />
     </CodeExample>

@@ -1,8 +1,9 @@
 // @vitest-environment jsdom
 import { screen } from '@testing-library/dom';
 import userEvent from '@testing-library/user-event';
-import { flushSync, mount, unmount } from 'svelte';
+import { type ComponentProps, flushSync, mount, unmount } from 'svelte';
 import { afterEach, describe, expect, it, vi } from 'vitest';
+import ComboboxMultiHarness from './__fixtures__/ComboboxMultiHarness.svelte';
 import Combobox from './Combobox.svelte';
 import type { ComboboxOption, ComboboxProps } from './index';
 
@@ -163,6 +164,20 @@ describe('Combobox (component interaction)', () => {
 
     expect(option('Cherry')).toBeTruthy();
     expect(screen.queryByRole('option', { name: 'Apple', hidden: true })).toBeNull();
+  });
+
+  it('shows the clear button for a selected falsy value (numeric 0)', () => {
+    // `hasValue` uses `value != null`, not a truthy check — so a legitimately
+    // selected `0` / `''` / `false` is still clearable, not stranded.
+    renderCombobox({
+      options: [
+        { value: 0, label: 'Zero' },
+        { value: 1, label: 'One' }
+      ],
+      value: 0,
+      clearable: true
+    });
+    expect(screen.getByRole('button', { name: /clear/i })).toBeTruthy();
   });
 });
 
@@ -331,8 +346,42 @@ describe('Combobox (async queryFn)', () => {
     expect(screen.queryByRole('option', { name: 'Stale', hidden: true })).toBeNull();
   });
 
+  it('aborts the in-flight request when the component unmounts mid-flight', async () => {
+    // Regression for f51eee8: the effect cleanup must abort a pending request on
+    // teardown so a late resolve can't write state after unmount. `deferred`
+    // keeps the request in flight until we choose to resolve it.
+    const user = userEvent.setup();
+    const d = deferred<Opt[]>();
+    const signals: AbortSignal[] = [];
+    const queryFn = vi.fn((_q: string, signal: AbortSignal) => {
+      signals.push(signal);
+      return d.promise;
+    });
+    renderCombobox({ queryFn, debounceMs: 1 });
+
+    await user.click(screen.getByRole('combobox'));
+    await settle(); // debounce fires → queryFn runs → signals[0], request pending
+    expect(signals[0].aborted).toBe(false);
+
+    dispose?.(); // unmount while the request is still in flight
+    dispose = undefined;
+    flushSync();
+
+    expect(signals[0].aborted).toBe(true);
+
+    // A late resolve after unmount must be a no-op (guarded by signal.aborted),
+    // not throw or touch state.
+    d.resolve([{ value: 'late', label: 'Late' }]);
+    await settle();
+  });
+
   it('keeps the selected label after a later search drops that option', async () => {
     const user = userEvent.setup();
+    // Only 'fo…' queries return Foo. After selecting, the query is its label
+    // "Foo" (capital F), which does NOT start with 'fo', so re-opening fetches an
+    // empty list — `allOptions` can no longer supply the label, only
+    // `selectedCache` can. (The earlier version left Foo in `asyncOptions`, so the
+    // assertion passed without touching the cache path at all.)
     const queryFn = vi.fn(
       async (q: string): Promise<Opt[]> =>
         q.startsWith('fo') ? [{ value: 'foo', label: 'Foo' }] : []
@@ -347,8 +396,333 @@ describe('Combobox (async queryFn)', () => {
     flushSync();
     await user.click(screen.getByRole('option', { name: 'Foo', hidden: true }));
     expect(onValueChange).toHaveBeenCalledWith('foo');
-    // Selection cached: the input keeps showing "Foo" even though a fresh search
-    // for a different term would no longer return it.
     expect(input.value).toBe('Foo');
+
+    // Re-open via keyboard (re-clicking a focused field is a no-op). The async
+    // effect re-runs the query ("Foo") and gets an empty list, so `asyncOptions`
+    // drops Foo. `value` stays 'foo' (ArrowDown doesn't reset it), so the selected
+    // label is resolved through `selectedCache`, not the option list.
+    await user.keyboard('{ArrowDown}');
+    await settle();
+    flushSync();
+    expect(screen.queryByRole('option', { hidden: true })).toBeNull(); // list dropped Foo
+    expect(input.value).toBe('Foo'); // selection still held
+  });
+});
+
+// Multi-select with tags (CMB-2). `multiple` binds `value` to an array; picks
+// render as removable tag chips below the search input; selecting keeps the
+// listbox open; Backspace on an empty query removes the last tag; `maxItems`
+// caps additions; a selected option can always be toggled back off.
+const removeTagBtn = (label: string) =>
+  screen.getByRole('button', { name: new RegExp(`remove ${label}`, 'i') });
+const queryRemoveTagBtn = (label: string) =>
+  screen.queryByRole('button', { name: new RegExp(`remove ${label}`, 'i') });
+
+describe('Combobox (multiple)', () => {
+  it('renders the selected values as removable tags', () => {
+    renderCombobox({ options: OPTIONS, multiple: true, value: ['apple', 'banana'] });
+
+    expect(removeTagBtn('Apple')).toBeTruthy();
+    expect(removeTagBtn('Banana')).toBeTruthy();
+    expect(queryRemoveTagBtn('Cherry')).toBeNull();
+    // Multi-mode listbox announces itself as multiselectable.
+    expect(screen.getByRole('listbox', { hidden: true }).getAttribute('aria-multiselectable')).toBe(
+      'true'
+    );
+  });
+
+  it('adds a tag on select and keeps the listbox open', async () => {
+    const user = userEvent.setup();
+    const onValueChange = vi.fn();
+    renderCombobox({ options: OPTIONS, multiple: true, value: [], onValueChange });
+
+    const input = screen.getByRole('combobox');
+    await user.click(input);
+    await user.click(option('Apple'));
+
+    expect(onValueChange).toHaveBeenCalledWith(['apple']);
+    expect(removeTagBtn('Apple')).toBeTruthy();
+    // Multi keeps the listbox open so several picks flow without re-opening.
+    expect(expanded(input)).toBe('true');
+    expect(option('Banana')).toBeTruthy();
+  });
+
+  it('removes a tag via its × button, firing onRemoveTag then onValueChange', async () => {
+    const user = userEvent.setup();
+    const onRemoveTag = vi.fn();
+    const onValueChange = vi.fn();
+    renderCombobox({
+      options: OPTIONS,
+      multiple: true,
+      value: ['apple', 'banana'],
+      onRemoveTag,
+      onValueChange
+    });
+
+    await user.click(removeTagBtn('Apple'));
+
+    expect(onRemoveTag).toHaveBeenCalledWith('apple');
+    expect(onValueChange).toHaveBeenCalledWith(['banana']);
+    expect(queryRemoveTagBtn('Apple')).toBeNull();
+    expect(removeTagBtn('Banana')).toBeTruthy();
+  });
+
+  it('removes the last tag on Backspace when the query is empty', async () => {
+    const user = userEvent.setup();
+    const onRemoveTag = vi.fn();
+    renderCombobox({ options: OPTIONS, multiple: true, value: ['apple', 'banana'], onRemoveTag });
+
+    const input = screen.getByRole('combobox');
+    await user.click(input); // focus, empty query
+    await user.keyboard('{Backspace}');
+
+    expect(onRemoveTag).toHaveBeenCalledWith('banana');
+  });
+
+  it('does not remove a tag on Backspace while the query is non-empty', async () => {
+    const user = userEvent.setup();
+    const onRemoveTag = vi.fn();
+    renderCombobox({ options: OPTIONS, multiple: true, value: ['apple'], onRemoveTag });
+
+    const input = screen.getByRole('combobox');
+    await user.click(input);
+    await user.type(input, 'x'); // query = 'x'
+    await user.keyboard('{Backspace}'); // deletes the 'x', must not touch the tag
+
+    expect(onRemoveTag).not.toHaveBeenCalled();
+  });
+
+  it('toggles a selected option off from the listbox', async () => {
+    const user = userEvent.setup();
+    const onRemoveTag = vi.fn();
+    const onValueChange = vi.fn();
+    renderCombobox({
+      options: OPTIONS,
+      multiple: true,
+      value: ['apple'],
+      onRemoveTag,
+      onValueChange
+    });
+
+    await user.click(screen.getByRole('combobox'));
+    await user.click(option('Apple')); // already selected → toggles off
+
+    expect(onRemoveTag).toHaveBeenCalledWith('apple');
+    expect(onValueChange).toHaveBeenLastCalledWith([]);
+  });
+
+  it('caps additions at maxItems but keeps selected options removable', async () => {
+    const user = userEvent.setup();
+    const onValueChange = vi.fn();
+    renderCombobox({ options: OPTIONS, multiple: true, value: [], maxItems: 1, onValueChange });
+
+    const input = screen.getByRole('combobox');
+    await user.click(input);
+    await user.click(option('Apple'));
+    expect(onValueChange).toHaveBeenCalledWith(['apple']);
+    expect(onValueChange).toHaveBeenCalledTimes(1);
+
+    // At the cap, a non-selected option is disabled and cannot be added.
+    expect(option('Banana').getAttribute('aria-disabled')).toBe('true');
+    await user.click(option('Banana'));
+    expect(onValueChange).toHaveBeenCalledTimes(1); // no second call
+
+    // The already-selected option is NOT disabled — it can still be toggled off.
+    expect(option('Apple').getAttribute('aria-disabled')).not.toBe('true');
+    await user.click(option('Apple'));
+    expect(onValueChange).toHaveBeenLastCalledWith([]);
+  });
+
+  it('clears every tag via the clear button without firing onRemoveTag per tag', async () => {
+    const user = userEvent.setup();
+    const onValueChange = vi.fn();
+    const onRemoveTag = vi.fn();
+    renderCombobox({
+      options: OPTIONS,
+      multiple: true,
+      value: ['apple', 'banana'],
+      clearable: true,
+      onValueChange,
+      onRemoveTag
+    });
+
+    await user.click(screen.getByRole('button', { name: /clear/i }));
+
+    expect(onValueChange).toHaveBeenCalledWith([]);
+    expect(queryRemoveTagBtn('Apple')).toBeNull();
+    // A bulk clear signals through onValueChange([]) only — never per-tag.
+    expect(onRemoveTag).not.toHaveBeenCalled();
+  });
+
+  it('clears the query and restores the full option list after a pick', async () => {
+    const user = userEvent.setup();
+    renderCombobox({ options: OPTIONS, multiple: true, value: [], placeholder: 'Pick…' });
+
+    const input = screen.getByRole('combobox') as HTMLInputElement;
+    expect(input.getAttribute('placeholder')).toBe('Pick…');
+
+    await user.click(input);
+    await user.type(input, 'ban'); // filters to Banana
+    await user.click(option('Banana'));
+
+    // Query cleared so the next search starts fresh; the full list is back.
+    expect(input.value).toBe('');
+    expect(screen.getAllByRole('option', { hidden: true })).toHaveLength(3);
+    // Placeholder is suppressed once a tag exists.
+    expect(input.getAttribute('placeholder')).toBe('');
+  });
+
+  it('keyboard navigation skips a disabled option', async () => {
+    const user = userEvent.setup();
+    const onValueChange = vi.fn();
+    renderCombobox({
+      options: [
+        { value: 'a', label: 'A' },
+        { value: 'b', label: 'B', disabled: true },
+        { value: 'c', label: 'C' }
+      ],
+      multiple: true,
+      value: [],
+      onValueChange
+    });
+
+    const input = screen.getByRole('combobox');
+    await user.click(input);
+    // -1 → A(0) → skip disabled B → C(2).
+    await user.keyboard('{ArrowDown}{ArrowDown}{Enter}');
+    expect(onValueChange).toHaveBeenCalledWith(['c']);
+  });
+
+  it('renders a removable fallback tag for an orphan value (bound but not in options)', async () => {
+    const user = userEvent.setup();
+    const onRemoveTag = vi.fn();
+    const onValueChange = vi.fn();
+    // Sync mode → the fallback warns in dev; silence it so the assertion output
+    // stays clean (the warn itself is covered by the async-suppression design).
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+    renderCombobox({
+      options: OPTIONS,
+      multiple: true,
+      value: ['ghost'],
+      onRemoveTag,
+      onValueChange
+    });
+
+    // The orphan renders as a raw-value tag and is still removable.
+    const ghostBtn = removeTagBtn('ghost');
+    expect(ghostBtn).toBeTruthy();
+    await user.click(ghostBtn);
+    expect(onRemoveTag).toHaveBeenCalledWith('ghost');
+    expect(onValueChange).toHaveBeenCalledWith([]);
+    warn.mockRestore();
+  });
+
+  it('does not crash on a bound array with duplicate values', () => {
+    // Duplicate values would throw `each_key_duplicate` if the tag list were
+    // keyed on the bare value; the positional key keeps it fail-soft.
+    expect(() =>
+      renderCombobox({
+        options: OPTIONS,
+        multiple: true,
+        value: ['apple', 'apple']
+      })
+    ).not.toThrow();
+  });
+
+  it('selects via keyboard (Enter) without closing the listbox', async () => {
+    const user = userEvent.setup();
+    const onValueChange = vi.fn();
+    renderCombobox({ options: OPTIONS, multiple: true, value: [], onValueChange });
+
+    const input = screen.getByRole('combobox');
+    await user.click(input);
+    await user.keyboard('{ArrowDown}{Enter}'); // → Apple
+
+    expect(onValueChange).toHaveBeenCalledWith(['apple']);
+    expect(expanded(input)).toBe('true');
+  });
+
+  it('emits one hidden input per selected value for native form submission', () => {
+    renderCombobox({
+      options: OPTIONS,
+      multiple: true,
+      value: ['apple', 'banana'],
+      name: 'fruit'
+    });
+
+    const hidden = Array.from(
+      document.querySelectorAll<HTMLInputElement>('input[type="hidden"][name="fruit"]')
+    );
+    expect(hidden.map((h) => h.value)).toEqual(['apple', 'banana']);
+  });
+});
+
+// The `customTag` snippet and parent-side `bind:value` reactivity can't be driven
+// through `mount(Combobox, { props })` (a snippet prop / non-reactive props), so
+// these mount a real composition from __fixtures__/ (the repo's harness pattern).
+describe('Combobox (multiple — customTag + reactivity)', () => {
+  function renderHarness(props: ComponentProps<typeof ComboboxMultiHarness>) {
+    const instance = mount(ComboboxMultiHarness, { target: document.body, props });
+    dispose = () => unmount(instance);
+    flushSync();
+  }
+
+  it('renders tags through the customTag snippet and wires its remove callback', async () => {
+    const user = userEvent.setup();
+    const onRemoveTag = vi.fn();
+    renderHarness({ onRemoveTag });
+
+    // Build the selection by picking two options — exercises the real add path.
+    await user.click(screen.getByRole('combobox'));
+    await user.click(option('Apple'));
+    await user.click(option('Banana'));
+
+    const chips = screen.getAllByTestId('custom-tag');
+    expect(chips.map((c) => c.getAttribute('data-value'))).toEqual(['apple', 'banana']);
+
+    // The `remove` closure the snippet receives drops the right tag.
+    await user.click(screen.getByTestId('custom-remove-apple'));
+    expect(onRemoveTag).toHaveBeenCalledWith('apple');
+    expect(screen.queryByTestId('custom-remove-apple')).toBeNull();
+    expect(screen.getByTestId('custom-remove-banana')).toBeTruthy();
+  });
+
+  it('re-renders tags when the bound value is mutated from the parent', async () => {
+    const user = userEvent.setup();
+    renderHarness({});
+
+    expect(screen.queryAllByTestId('custom-tag')).toHaveLength(0);
+    await user.click(screen.getByTestId('harness-add-cherry'));
+    const chips = screen.getAllByTestId('custom-tag');
+    expect(chips.map((c) => c.getAttribute('data-value'))).toEqual(['cherry']);
+  });
+});
+
+// Multi-mode tagCache: the array analogue of the single-mode selectedCache test —
+// a picked tag must keep its label after an async result set no longer contains it.
+describe('Combobox (multiple + async queryFn)', () => {
+  it('keeps a selected tag label after a later search drops that option', async () => {
+    const user = userEvent.setup();
+    const queryFn = vi.fn(
+      async (q: string): Promise<Opt[]> =>
+        q.startsWith('fo') ? [{ value: 'foo', label: 'Foo' }] : []
+    );
+    renderCombobox({ queryFn, debounceMs: 1, multiple: true, value: [] });
+
+    const input = screen.getByRole('combobox');
+    await user.click(input);
+    await user.type(input, 'fo');
+    await settle();
+    flushSync();
+    await user.click(option('Foo')); // pick → tag 'Foo', query cleared, tagCache seeded
+    expect(removeTagBtn('Foo')).toBeTruthy();
+
+    // A fresh search returns nothing → asyncOptions drops Foo; the tag must keep
+    // its cached label, not fall back to the raw value 'foo'.
+    await user.type(input, 'x');
+    await settle();
+    flushSync();
+    expect(removeTagBtn('Foo')).toBeTruthy();
   });
 });

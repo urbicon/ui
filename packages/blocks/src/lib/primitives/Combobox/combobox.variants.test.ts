@@ -104,6 +104,60 @@ describe('comboboxVariants', () => {
       expect(styles.input()).not.toMatch(/\bdark:/);
       expect(styles.listbox()).not.toMatch(/\bdark:/);
       expect(styles.option()).not.toMatch(/\bdark:/);
+      // Multi-select tokenizer slots.
+      expect(styles.control()).not.toMatch(/\bdark:/);
+      expect(styles.tag()).not.toMatch(/\bdark:/);
     }
+  });
+
+  // ── Multi-select tokenizer slots (CMB-2) ──────────────────────────────────
+  it('exposes the tokenizer slot functions', () => {
+    const styles = comboboxVariants();
+    expect(typeof styles.control).toBe('function');
+    expect(typeof styles.search).toBe('function');
+    expect(typeof styles.tag).toBe('function');
+    expect(typeof styles.tagLabel).toBe('function');
+    expect(typeof styles.tagRemove).toBe('function');
+  });
+
+  it('control carries the frame (border, surface, focus-within ring), not the input', () => {
+    const control = comboboxVariants().control();
+    expect(control).toContain('border');
+    expect(control).toContain('bg-surface-base');
+    expect(control).toContain('flex-wrap');
+    // Keyboard-only ring lives on focus-within (any child focus), never bare focus:.
+    expect(control).toContain('focus-within:ring-2');
+    expect(control).not.toMatch(/\bfocus:/);
+  });
+
+  it('the search input inside the control is borderless (the frame owns the border)', () => {
+    const search = comboboxVariants().search();
+    expect(search).toContain('border-0');
+    expect(search).toContain('bg-transparent');
+    expect(search).toContain('flex-1');
+    expect(search).toContain('focus-visible:ring-0');
+  });
+
+  it('the tokenizer scales across the size ladder (parity with the single input)', () => {
+    const xs = comboboxVariants({ size: 'xs' });
+    expect(xs.control()).toContain('min-h-7');
+    expect(xs.tag()).toContain('text-xs');
+
+    const md = comboboxVariants({ size: 'md' });
+    expect(md.control()).toContain('min-h-10');
+
+    const xl = comboboxVariants({ size: 'xl' });
+    expect(xl.control()).toContain('min-h-14');
+    expect(xl.tag()).toContain('text-lg');
+  });
+
+  it('applies the visual variant to the control frame at parity with the input', () => {
+    const filled = comboboxVariants({ variant: 'filled' });
+    expect(filled.control()).toContain('bg-surface-interactive');
+    expect(filled.control()).toContain('border-transparent');
+
+    const underline = comboboxVariants({ variant: 'underline' });
+    expect(underline.control()).toContain('border-b-2');
+    expect(underline.control()).toContain('rounded-none');
   });
 });

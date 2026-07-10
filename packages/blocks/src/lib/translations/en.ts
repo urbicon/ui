@@ -20,7 +20,8 @@ export default {
     toggleOptions: 'Toggle options',
     removableBadge: 'Removable badge',
     removeBadge: 'Remove badge',
-    removeFile: 'Remove {{name}}'
+    removeFile: 'Remove {{name}}',
+    removeTag: 'Remove {{label}}'
   },
   button: {
     close: 'Close',
