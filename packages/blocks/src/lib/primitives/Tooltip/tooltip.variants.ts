@@ -34,7 +34,7 @@ export const tooltipVariants = tv({
     arrow: ['absolute w-2 h-2', 'bg-inherit transform rotate-45']
   },
   variants: {
-    visible: {
+    open: {
       true: { base: 'opacity-100' },
       false: { base: 'opacity-0' }
     },
@@ -54,12 +54,14 @@ export const tooltipVariants = tv({
     }
   },
   defaultVariants: {
-    visible: false,
+    open: false,
     intent: 'neutral',
     size: 'md'
   }
 });
 
-export type TooltipVariants = Omit<VariantProps<typeof tooltipVariants>, 'visible'>;
+// `open` is excluded from the public variants type — it is a real prop on
+// TooltipProps (bindable state), not a style knob.
+export type TooltipVariants = Omit<VariantProps<typeof tooltipVariants>, 'open'>;
 /** Slot names derived from the `tv()` config above — single source of truth for `slotClasses`. */
 export type TooltipSlots = SlotNames<typeof tooltipVariants>;

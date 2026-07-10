@@ -25,7 +25,8 @@
     transitionEasing,
     disabled = false,
     arrow = true,
-    onVisibleChange,
+    open = $bindable(false),
+    onOpenChange,
     class: className,
     unstyled: unstyledProp = false,
     slotClasses: slotClassesProp = {},
@@ -43,7 +44,6 @@
     transitionDuration != null ? `${transitionDuration}ms` : undefined
   );
 
-  let visible = $state(false);
   let triggerElement = $state<HTMLElement>();
   let tooltipElement = $state<HTMLElement>();
   let arrowElement = $state<HTMLElement>();
@@ -52,7 +52,7 @@
   const propsId = $props.id();
   const tooltipId = `tooltip-${propsId}`;
 
-  const variantProps: VariantProps<typeof tooltipVariants> = $derived({ visible, intent, size });
+  const variantProps: VariantProps<typeof tooltipVariants> = $derived({ open, intent, size });
   const styles = $derived(tooltipVariants(variantProps));
   const slotClasses = $derived(
     resolveSlotClasses(blocksConfig, 'Tooltip', preset, variantProps, slotClassesProp)
@@ -60,15 +60,25 @@
 
   // Inside an open modal <dialog>, a popover shown via showPopover() forms a
   // second top-layer element WebKit won't render above the dialog (Codeberg
-  // #23). Evaluated while `visible` so the check runs once the dialog is
+  // #23). Evaluated while `open` so the check runs once the dialog is
   // already modal; the tooltip then renders in place (position:fixed + the
-  // opacity `visible` variant + pointer-events-none) within the dialog's own
+  // opacity `open` variant + pointer-events-none) within the dialog's own
   // top-layer subtree, no showPopover() needed.
-  const topLayer = $derived(visible ? !isAnchoredInModalDialog(triggerElement) : true);
+  const topLayer = $derived(open ? !isAnchoredInModalDialog(triggerElement) : true);
 
   let showTimeout: number;
   let hideTimeout: number;
   let cleanup: (() => void) | undefined = undefined;
+
+  // Single mutation point for interaction-driven changes, so `onOpenChange`
+  // fires exactly once per transition. The no-change guard keeps a re-hover
+  // during the hide delay quiet (open never flipped). Consumer writes via
+  // `bind:open` bypass this on purpose — they don't re-announce themselves.
+  function setOpen(next: boolean) {
+    if (open === next) return;
+    open = next;
+    onOpenChange?.(next);
+  }
 
   function show() {
     if (disabled) return;
@@ -80,24 +90,21 @@
       // call would briefly flash the tooltip before the effect tears it
       // back down.
       if (disabled) return;
-      visible = true;
-      onVisibleChange?.(true);
+      setOpen(true);
     }, showDelay);
   }
 
   function hide() {
     clearTimeout(showTimeout);
     hideTimeout = window.setTimeout(() => {
-      visible = false;
-      onVisibleChange?.(false);
+      setOpen(false);
     }, hideDelay);
   }
 
   function handleKeydown(e: KeyboardEvent) {
-    if (e.key === 'Escape' && visible) {
+    if (e.key === 'Escape' && open) {
       clearTimeout(showTimeout);
-      visible = false;
-      onVisibleChange?.(false);
+      setOpen(false);
     }
   }
 
@@ -156,7 +163,7 @@
       });
   }
 
-  // Drive native popover state from `visible`. `popover="manual"` puts the
+  // Drive native popover state from `open`. `popover="manual"` puts the
   // element in the browser top layer when shown, so the tooltip is never
   // clipped by ancestor `overflow` (e.g. Toolbar). We deliberately avoid
   // `popover="auto"` here — auto would dismiss the tooltip on any outside
@@ -170,13 +177,13 @@
   $effect(() => {
     if (!triggerElement || !tooltipElement) return;
 
-    const shouldShow = !disabled && visible && !!label;
+    const shouldShow = !disabled && open && !!label;
 
     if (!shouldShow) {
-      // Force-clear `visible` so a stale show timeout that fired right
+      // Force-clear `open` so a stale show timeout that fired right
       // before `disabled` flipped doesn't immediately re-trigger this
       // effect into the show branch on the next mouse event.
-      if (disabled && visible) visible = false;
+      if (disabled && open) setOpen(false);
       cleanup?.();
       cleanup = undefined;
       if (tooltipElement.matches(':popover-open')) {
@@ -219,15 +226,22 @@
 </script>
 
 <!-- svelte-ignore a11y_no_static_element_interactions -->
+<!--
+  focusin/focusout (not focus/blur): the wrapper span is never focusable
+  itself — the actual trigger is the consumer's child element. focus/blur
+  don't bubble, so a keyboard focus on the child never reached the wrapper
+  and the tooltip silently skipped its WCAG 1.4.13 focus-open path;
+  focusin/focusout bubble and cover any focusable descendant.
+-->
 <span
   class="inline-flex"
   bind:this={triggerElement}
   onmouseenter={show}
   onmouseleave={hide}
-  onfocus={show}
-  onblur={hide}
+  onfocusin={show}
+  onfocusout={hide}
   onkeydown={handleKeydown}
-  aria-describedby={!disabled && label && visible ? tooltipId : undefined}
+  aria-describedby={!disabled && label && open ? tooltipId : undefined}
 >
   {@render children()}
 </span>
@@ -239,7 +253,7 @@
   the arrow node existed). In top-layer mode the `popover="manual"` attribute
   hides it via the UA stylesheet until `showPopover()` is called; inside a
   modal dialog (`topLayer === false`) the attribute is dropped and the
-  `visible` opacity variant drives visibility instead (Codeberg #23).
+  `open` opacity variant drives visibility instead (Codeberg #23).
 
   Load-bearing attributes (`popover`, `style`, `role`, `id`) intentionally
   follow `{...restProps}` so a consumer-supplied `popover="auto"`, custom

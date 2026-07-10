@@ -23,6 +23,22 @@ import type { TooltipSlots, TooltipVariants } from './tooltip.variants';
  *   <Button variant="ghost" size="sm" onclick={handleCopy}>Copy</Button>
  * </Tooltip>
  * ```
+ *
+ * @example Controlled mode — programmatic "Copied!" feedback via `bind:open`
+ * ```svelte
+ * <script lang="ts">
+ *   let copied = $state(false);
+ *   async function copy() {
+ *     await navigator.clipboard.writeText(text);
+ *     copied = true;
+ *     setTimeout(() => (copied = false), 1500);
+ *   }
+ * </script>
+ *
+ * <Tooltip label="Copied!" bind:open={copied}>
+ *   <Button onclick={copy}>Copy</Button>
+ * </Tooltip>
+ * ```
  */
 export interface TooltipProps
   extends TooltipVariants,
@@ -64,8 +80,21 @@ export interface TooltipProps
   /** Prevent the tooltip from appearing regardless of hover/focus. @default false */
   disabled?: boolean;
 
-  /** Fires when tooltip visibility changes (hover in/out, Escape key). */
-  onVisibleChange?: (visible: boolean) => void;
+  /**
+   * Controls tooltip visibility. Supports `bind:open` for programmatic
+   * display (e.g. a transient "Copied!" confirmation). Hover/focus keep
+   * driving the state in parallel — the delays apply only to those
+   * interaction paths, a `bind:open` write takes effect immediately.
+   * @default false
+   */
+  open?: boolean;
+
+  /**
+   * Fires when the tooltip opens or closes from user interaction (hover
+   * in/out, focus/blur, Escape). Receives the new open state. Not called
+   * when the consumer writes `bind:open` directly.
+   */
+  onOpenChange?: (open: boolean) => void;
 
   /** Remove default tv classes; only consumer classes apply. */
   unstyled?: boolean;

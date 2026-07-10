@@ -22,8 +22,8 @@ describe('tooltipVariants', () => {
   });
 
   it('drives visibility through the opacity axis', () => {
-    expect(tooltipVariants({ visible: true }).base()).toContain('opacity-100');
-    expect(tooltipVariants({ visible: false }).base()).toContain('opacity-0');
+    expect(tooltipVariants({ open: true }).base()).toContain('opacity-100');
+    expect(tooltipVariants({ open: false }).base()).toContain('opacity-0');
   });
 
   it('applies intent-specific surface + text classes', () => {
