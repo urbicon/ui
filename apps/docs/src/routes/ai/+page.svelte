@@ -9,7 +9,9 @@ bun add -d @urbicon-ui/design
 
 # Insert the agent context block (AGENTS.md), scaffold design.manifest.md,
 # and optionally wire the edit-time hook + CI gate:
-bunx urbicon init --hook --ci`;
+bunx urbicon init --hook --ci
+
+# Done — the next agent session reads AGENTS.md and takes over.`;
 
   const cliToolsExample = `# Knowledge — version-matched to the library you installed:
 
@@ -98,9 +100,19 @@ let { variant, intent } = $props();`;
 
     <CodeExample title="Setup" code={cliSetupExample} language="bash" preview={false} />
 
+    <p class="text-text-secondary mt-6 mb-6">
+      <strong class="text-text-primary">Two commands, then hands-off.</strong> The context block
+      tells your agent which commands exist and when to run them — so the commands below are what
+      <em>the agent</em> executes, not a workflow you learn. Your touchpoints afterwards are
+      reviews, not operations: the decisions the agent records in
+      <code class="bg-surface-elevated rounded px-1.5 py-0.5 font-mono text-xs"
+        >design.manifest.md</code
+      > show up in your git diff, and a red design gate shows up in CI.
+    </p>
+
     <div class="mt-6">
       <CodeExample
-        title="Available Commands"
+        title="What your agent runs"
         code={cliToolsExample}
         language="bash"
         preview={false}

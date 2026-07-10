@@ -702,7 +702,8 @@
             </div>
             <p class="mt-2.5 max-w-[420px] text-[15.5px] leading-relaxed opacity-90">
               Generation is the easy half. The urbicon CLI reviews what your agent builds — tokens,
-              focus, slop — and remembers the design decisions your project already made.
+              focus, slop — and remembers the design decisions your project already made. You wire
+              it once; the agent runs the loop.
             </p>
 
             <div class="my-7 flex-1">
