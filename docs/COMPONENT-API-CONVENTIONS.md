@@ -262,6 +262,8 @@ slotClasses?: Partial<Record<XSlots, string>>;
 
 `SlotNames<T>` (in `$lib/utils/variants`) is the companion to `VariantProps<T>` — it reads `keyof ReturnType<T>` off the slotted `tv()` function, so the one source of truth (the `tv({ slots })` config) drives both the runtime classes and the prop type. Consumers get autocomplete on the real slot names and a type error on typos.
 
+Two components have no `tv()` config to derive from and therefore carry a **hand-maintained literal union** by necessity: `FormField` (a bare layout wrapper) types its `slotClasses` keys inline, and `ConfirmDialog` (a pre-configured Dialog) forwards `unstyled`/`slotClasses`/`preset` verbatim to the inner Dialog — its presets are registered under the `Dialog` key, not a separate `ConfirmDialog` one.
+
 When `unstyled` is `false`, `slotClasses` values are merged with the default tv() classes; when `unstyled` is `true`, they replace them entirely. Components resolve the value through `resolveSlotClasses(blocksConfig, 'Name', preset, variantProps, slotClassesProp)`, which composes the full cascade (weakest → strongest):
 
 `defaults.slotClasses → defaults.overrides[match] → preset.slotClasses → preset.overrides[match] → instance.slotClasses → class`

@@ -1,5 +1,6 @@
 import type { Snippet } from 'svelte';
 import type { DialogIntent } from '../Dialog';
+import type { DialogSlots } from '../Dialog/dialog.variants';
 
 /**
  * Intent applied to the confirm button. Reuses the standard intent palette
@@ -104,6 +105,33 @@ export interface ConfirmDialogProps {
 
   /** Optional richer markup rendered below `description`. */
   children?: Snippet;
+
+  // ── Styling contract (forwarded verbatim to the underlying Dialog) ──
+  // ConfirmDialog is a pre-configured Dialog, so it does not own a tv()
+  // config — the standard unstyled/slotClasses/preset trio resolves
+  // against the inner Dialog (presets registered under the `Dialog` key).
+
+  /** Extra classes merged onto the dialog element. Forwarded to {@link DialogProps.class}. */
+  class?: string;
+
+  /**
+   * Strip the underlying Dialog's default styles. Combine with `slotClasses`
+   * for a fully custom appearance. @default false
+   */
+  unstyled?: boolean;
+
+  /**
+   * Per-slot class overrides, forwarded to the underlying Dialog.
+   * Slots: dialog | backdrop | panel | content | header | title | body | footer.
+   */
+  slotClasses?: Partial<Record<DialogSlots, string>>;
+
+  /**
+   * Apply a named preset registered via `<BlocksProvider presets={{ Dialog: {...} }}>`.
+   * Resolved against the `Dialog` component key — ConfirmDialog shares the
+   * Dialog preset space instead of introducing a parallel one.
+   */
+  preset?: string;
 }
 
 export { default as ConfirmDialog } from './ConfirmDialog.svelte';

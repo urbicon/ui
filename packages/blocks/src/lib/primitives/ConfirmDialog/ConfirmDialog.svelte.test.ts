@@ -186,4 +186,40 @@ describe('ConfirmDialog (component interaction)', () => {
     expect(onCancel).not.toHaveBeenCalled();
     expect(dialogState()).toBe('open');
   });
+
+  it('forwards the styling contract (class, slotClasses, unstyled) to the underlying Dialog', async () => {
+    // ConfirmDialog owns no tv() config — unstyled/slotClasses/preset resolve
+    // against the inner Dialog. This guards the pass-through (P1 styling-
+    // contract fix: ConfirmDialog previously declared none of the trio).
+    renderConfirm({
+      ...base,
+      open: true,
+      class: 'confirm-root-marker',
+      slotClasses: { title: 'confirm-title-marker' }
+    });
+    await tick();
+
+    // Dialog applies `class` to the visible root slot (the panel), not the
+    // full-viewport <dialog> wrapper — same as every multi-slot component.
+    const dialog = screen.getByRole('dialog', { hidden: true });
+    expect(dialog.querySelector('.confirm-root-marker')).toBeTruthy();
+    const heading = screen.getByRole('heading', { name: 'Delete project?', hidden: true });
+    expect(heading.className).toContain('confirm-title-marker');
+    // Styled mode: default tv() classes are still present alongside the override.
+    expect(heading.className).toContain('font-semibold');
+  });
+
+  it('unstyled strips the Dialog defaults and keeps only slotClasses', async () => {
+    renderConfirm({
+      ...base,
+      open: true,
+      unstyled: true,
+      slotClasses: { title: 'bare-title' }
+    });
+    await tick();
+
+    const heading = screen.getByRole('heading', { name: 'Delete project?', hidden: true });
+    expect(heading.className).toContain('bare-title');
+    expect(heading.className).not.toContain('font-semibold');
+  });
 });
