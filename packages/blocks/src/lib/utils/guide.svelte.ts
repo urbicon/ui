@@ -121,8 +121,14 @@ export interface GuideTour {
  * consumer can inject a server-state adapter. Kept deliberately tiny.
  */
 export interface GuideStorageAdapter {
-  /** Returns the persisted set of seen/completed ids. */
-  load(): string[];
+  /**
+   * Returns the persisted set of seen/completed ids. Return a `string[]`
+   * synchronously (localStorage, the default) or a `Promise<string[]>` for a
+   * DB-/remote-backed store. While an async load is pending the seen set starts
+   * empty and is merged (union) with the resolved ids once they arrive — so a
+   * tour may briefly be startable before the store answers.
+   */
+  load(): string[] | Promise<string[]>;
   /** Persists the full set of seen/completed ids. */
   save(ids: string[]): void;
 }
@@ -406,7 +412,24 @@ export class GuideController {
     // `?? false` keeps `#dev` a strict boolean and means non-Vite consumers
     // simply get no dev warnings (rather than a crash).
     this.#dev = options.dev ?? import.meta.env?.DEV ?? false;
-    this.#seen = new SvelteSet(this.#storage.load());
+    // Sync adapters (localStorage) seed the set immediately. Async adapters
+    // (DB/remote) start empty and get their ids merged in when the promise
+    // settles — union, not replace, so anything marked seen in the meantime
+    // survives. A rejected load is swallowed (dev-warned): the tour just stays
+    // "unseen", which fails open rather than hiding help behind a broken store.
+    const loaded = this.#storage.load();
+    if (Array.isArray(loaded)) {
+      this.#seen = new SvelteSet(loaded);
+    } else {
+      this.#seen = new SvelteSet();
+      loaded
+        .then((ids) => {
+          for (const id of ids) this.#seen.add(id);
+        })
+        .catch((err: unknown) => {
+          if (this.#dev) console.warn('[Guide] storage.load() rejected:', err);
+        });
+    }
   }
 
   // ─── Target registry ──────────────────────────────────────────────────────

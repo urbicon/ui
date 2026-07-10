@@ -1154,3 +1154,52 @@ describe('GuideController — synchronous navigationSource (re-entrancy, #41)', 
     expect(ctrl.isTourActive).toBe(true);
   });
 });
+
+// Async storage adapter (CR-4). `load()` may return a Promise for a DB-/remote-
+// backed seen-state. The set starts empty and unions the resolved ids in when
+// the promise settles; a rejection fails open (tour stays unseen, no crash).
+describe('GuideController — async storage adapter (CR-4)', () => {
+  it('starts empty and merges the resolved ids for an async load', async () => {
+    let resolve!: (ids: string[]) => void;
+    const load = vi.fn(
+      () =>
+        new Promise<string[]>((r) => {
+          resolve = r;
+        })
+    );
+    const { ctrl } = makeController({ storage: { load, save: vi.fn() } });
+
+    // Before the store answers the set is empty — the tour is startable.
+    expect(ctrl.hasSeen('welcome')).toBe(false);
+
+    resolve(['welcome']);
+    await Promise.resolve(); // flush the .then merge
+    expect(ctrl.hasSeen('welcome')).toBe(true);
+  });
+
+  it('unions resolved ids with ones marked seen while the load was pending', async () => {
+    let resolve!: (ids: string[]) => void;
+    const load = vi.fn(
+      () =>
+        new Promise<string[]>((r) => {
+          resolve = r;
+        })
+    );
+    const { ctrl } = makeController({ storage: { load, save: vi.fn() } });
+
+    ctrl.markSeen('local'); // marked before the store answered
+    resolve(['remote']);
+    await Promise.resolve();
+
+    expect(ctrl.hasSeen('local')).toBe(true);
+    expect(ctrl.hasSeen('remote')).toBe(true);
+  });
+
+  it('fails open when the async load rejects (no crash, tour stays unseen)', async () => {
+    const load = vi.fn(() => Promise.reject(new Error('db down')));
+    const { ctrl } = makeController({ storage: { load, save: vi.fn() }, dev: false });
+    await Promise.resolve();
+    await Promise.resolve();
+    expect(ctrl.hasSeen('welcome')).toBe(false);
+  });
+});
