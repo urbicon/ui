@@ -1,6 +1,8 @@
 export default {
   accessibility: {
     avatar: 'Avatar',
+    breadcrumb: 'Pfadnavigation',
+    breadcrumbExpand: 'Alle Pfadebenen anzeigen',
     clearInput: 'Eingabe löschen',
     clearSearch: 'Suche löschen',
     clearSelection: 'Auswahl löschen',

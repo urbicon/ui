@@ -1,6 +1,8 @@
 export default {
   accessibility: {
     avatar: 'Avatar',
+    breadcrumb: 'Breadcrumb',
+    breadcrumbExpand: 'Show all breadcrumb items',
     clearInput: 'Clear input',
     clearSearch: 'Clear search',
     clearSelection: 'Clear selection',

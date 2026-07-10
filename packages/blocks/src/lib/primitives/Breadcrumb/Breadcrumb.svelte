@@ -1,8 +1,11 @@
 <script lang="ts">
   import { tick } from 'svelte';
+  import { useBlocksI18n } from '$lib';
   import { getBlocksConfig, resolveSlotClasses } from '$lib/provider';
   import { breadcrumbVariants, type BreadcrumbVariants } from './breadcrumb.variants';
   import type { BreadcrumbProps, BreadcrumbItem } from './index';
+
+  const bt = useBlocksI18n();
 
   let {
     items,
@@ -12,8 +15,11 @@
     maxItems,
     itemsBeforeCollapse = 1,
     itemsAfterCollapse = 1,
-    expandLabel = 'Show all breadcrumb items',
-    'aria-label': ariaLabel = 'Breadcrumb',
+    // A11y labels default to the localized `accessibility.*` strings in the
+    // markup below (resolved per render, so a locale switch updates them) —
+    // Breadcrumb was the last primitive with built-in English-only strings.
+    expandLabel,
+    'aria-label': ariaLabel,
     class: className = '',
     unstyled: unstyledProp = false,
     slotClasses: slotClassesProp = {},
@@ -43,8 +49,7 @@
   const after = $derived(Math.max(1, itemsAfterCollapse));
 
   type BreadcrumbEntry =
-    | { kind: 'item'; item: BreadcrumbItem; current: boolean }
-    | { kind: 'ellipsis' };
+    { kind: 'item'; item: BreadcrumbItem; current: boolean } | { kind: 'ellipsis' };
 
   const entries = $derived.by((): BreadcrumbEntry[] => {
     const last = items.length - 1;
@@ -90,7 +95,7 @@
   class={unstyled
     ? [slotClasses?.nav, className].filter(Boolean).join(' ')
     : styles.nav({ class: [slotClasses?.nav, className] })}
-  aria-label={ariaLabel}
+  aria-label={ariaLabel ?? bt('accessibility.breadcrumb')}
   {...restProps}
 >
   <ol class={unstyled ? (slotClasses?.list ?? '') : styles.list({ class: slotClasses?.list })}>
@@ -102,7 +107,7 @@
             class={unstyled
               ? (slotClasses?.ellipsis ?? '')
               : styles.ellipsis({ class: slotClasses?.ellipsis })}
-            aria-label={expandLabel}
+            aria-label={expandLabel ?? bt('accessibility.breadcrumbExpand')}
             onclick={expand}
           >
             …

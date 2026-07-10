@@ -76,9 +76,9 @@ export interface BreadcrumbProps
   itemsBeforeCollapse?: number;
   /** Trailing items kept visible when collapsed; the current page is always included. @default 1 */
   itemsAfterCollapse?: number;
-  /** Accessible label for the "…" button that expands a collapsed trail. @default 'Show all breadcrumb items' */
+  /** Accessible label for the "…" button that expands a collapsed trail. Defaults to the localized `accessibility.breadcrumbExpand`. */
   expandLabel?: string;
-  /** Accessible label for the nav element @default 'Breadcrumb' */
+  /** Accessible label for the nav element. Defaults to the localized `accessibility.breadcrumb`. */
   'aria-label'?: string;
   /** Custom CSS class */
   class?: string;
