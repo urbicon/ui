@@ -28,6 +28,23 @@ internal TODO instead. Sections are ordered roughly by urgency.
 
 ## API design
 
+### Button `preset="pill"`/`"circle"` convenience catalog — deferred by design (BTN-3)
+
+- **Where:** `packages/blocks/src/lib/primitives/Button` + the preset resolution
+  in `provider` (`resolveSlotClasses`).
+- **What:** A backlog idea (BTN-3 Alt) proposed shipping built-in Button presets
+  `pill` / `circle` as convenience defaults, on top of the consumer-registered
+  preset system.
+- **Why deferred:** It conflicts with the deliberate "presets are
+  consumer-defined" architecture — these would be the first library-shipped
+  presets, and consumers couldn't tell built-in from their own. The value is
+  low: `pill` is already the default (`tier="commit"` → `rounded-commit`), and
+  `circle` is a one-class consumer pattern (`class="aspect-square rounded-full
+  p-0"` or a project preset). Registering `pill`/`circle` via `<BlocksProvider
+  presets>` is the supported path and stays the recommendation. Revisit only if
+  a broad consumer demand for a canonical shape catalog emerges.
+- **Found:** 2026-07-10, P2 Blocks feature-request pass.
+
 ### `appearance` vs `variant`: the style-axis name is split three ways with no documented rule
 
 - **Where:** `segmentGroup.variants.ts` (`appearance: default|text`),
