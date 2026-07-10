@@ -121,6 +121,11 @@
       node.removeEventListener('pointerdown', onDown);
       node.removeEventListener('pointermove', onMove);
       node.removeEventListener('pointerup', onUp);
+      // Undo the inline styles too, so toggling `draggable` off at runtime
+      // doesn't leave the header stuck with `cursor: move` / unselectable text.
+      node.style.touchAction = '';
+      node.style.userSelect = '';
+      node.style.cursor = '';
     };
   }
 
@@ -178,12 +183,22 @@
     previouslyFocused = null;
   }
 
+  // Reset the drag offset whenever the dialog opens so a reopened dialog always
+  // starts centred — keyed on `open`, not the `open && !isVisible` transition.
+  // Reopening *during* the close outro (isVisible still true) must still recentre;
+  // the old transition-guarded reset silently skipped that case, restoring the
+  // stale drag position. `open` is constant during a drag, so this never fights
+  // the pointer handlers.
+  $effect(() => {
+    if (open) {
+      dragX = 0;
+      dragY = 0;
+    }
+  });
+
   $effect(() => {
     if (open && !isVisible) {
       isVisible = true;
-      // Start every open centred, even after a previous drag.
-      dragX = 0;
-      dragY = 0;
       previouslyFocused = document.activeElement as HTMLElement;
       // Defer until the `{#if isVisible}` block has rendered so `bind:this` has
       // assigned dialogEl/panelEl — showDialogModal captures the refs by value,
