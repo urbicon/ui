@@ -70,6 +70,18 @@
   let hideTimeout: number;
   let cleanup: (() => void) | undefined = undefined;
 
+  // Clear pending show/hide timers on unmount — a hover followed by a
+  // teardown within `showDelay` (route change, {#if} removal) would
+  // otherwise fire setOpen after destroy: a write to the destroyed
+  // $bindable plus a ghost onOpenChange(true) for a tooltip that no
+  // longer exists. Dependency-free effect → runs once, teardown on destroy.
+  $effect(() => {
+    return () => {
+      clearTimeout(showTimeout);
+      clearTimeout(hideTimeout);
+    };
+  });
+
   // Single mutation point for interaction-driven changes, so `onOpenChange`
   // fires exactly once per transition. The no-change guard keeps a re-hover
   // during the hide delay quiet (open never flipped). Consumer writes via

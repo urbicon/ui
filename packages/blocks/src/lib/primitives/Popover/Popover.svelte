@@ -209,6 +209,12 @@
     // intentionally consume Escape.
     function handleEscape(e: KeyboardEvent) {
       if (e.key !== 'Escape' || e.defaultPrevented) return;
+      // Re-check `open` (like the auto-mode toggle handler does): the
+      // listener teardown is deferred to the next effect flush, so a
+      // consumer handler earlier in this same dispatch may already have
+      // closed via `bind:open` — without this guard we'd report a second,
+      // transition-less onOpenChange(false) + onEscape and steal focus.
+      if (!open) return;
       e.preventDefault();
       open = false;
       onOpenChange?.(false);
@@ -231,6 +237,10 @@
       if (!target) return;
       if (popoverElement?.contains(target)) return;
       if (effectiveTriggerElement?.contains(target)) return;
+      // Same deferred-teardown re-check as handleEscape above: a consumer
+      // capture-phase pointerdown handler may have closed via `bind:open`
+      // within this dispatch — don't report a second close.
+      if (!open) return;
       open = false;
       onOpenChange?.(false);
       onClickOutsideProp?.();

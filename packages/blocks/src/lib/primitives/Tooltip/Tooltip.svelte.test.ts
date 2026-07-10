@@ -93,6 +93,22 @@ describe('Tooltip (component interaction)', () => {
     expect(onOpenChange).toHaveBeenCalledTimes(2);
   });
 
+  it('does not fire onOpenChange from a show timer that outlives the unmount', async () => {
+    // Hover starts the showDelay timer; unmounting inside that window must
+    // clear it — otherwise the timer fires setOpen after destroy (a write to
+    // the destroyed $bindable plus a ghost "opened" callback).
+    const user = userEvent.setup();
+    const onOpenChange = vi.fn();
+    renderTooltip({ label: 'Save your changes', showDelay: 20, onOpenChange });
+
+    await user.hover(trigger());
+    dispose?.();
+    dispose = undefined;
+
+    await new Promise((resolve) => setTimeout(resolve, 40));
+    expect(onOpenChange).not.toHaveBeenCalled();
+  });
+
   it('supports programmatic display via the bindable open prop without echoing onOpenChange', async () => {
     const onOpenChange = vi.fn();
     renderTooltip({ label: 'Copied!', open: true, onOpenChange });
