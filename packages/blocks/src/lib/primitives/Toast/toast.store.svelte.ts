@@ -140,23 +140,37 @@ class ToastStore {
       dismissible: true,
       showProgress: true
     } as const;
+    // A throwing user formatter must not turn into an unhandled rejection on the
+    // internal `.then`; fall back to a bare settled toast (still flips out of the
+    // loading state) and dev-warn instead.
+    const resolveMessage = <A>(
+      fn: string | ToastInput | ((arg: A) => string | ToastInput),
+      arg: A,
+      label: string
+    ): ToastInput | undefined => {
+      let out: string | ToastInput | undefined;
+      try {
+        out = typeof fn === 'function' ? fn(arg) : fn;
+      } catch (err) {
+        if (import.meta.env?.DEV) console.warn(`[Toast] promise ${label} formatter threw:`, err);
+      }
+      return typeof out === 'string' ? { title: out } : out;
+    };
     promise.then(
       (value) => {
-        const s = typeof opts.success === 'function' ? opts.success(value) : opts.success;
         this.update(id, {
           intent: 'success',
           description: undefined,
           ...settled,
-          ...(typeof s === 'string' ? { title: s } : s)
+          ...resolveMessage(opts.success, value, 'success')
         });
       },
       (reason) => {
-        const e = typeof opts.error === 'function' ? opts.error(reason) : opts.error;
         this.update(id, {
           intent: 'danger',
           description: undefined,
           ...settled,
-          ...(typeof e === 'string' ? { title: e } : e)
+          ...resolveMessage(opts.error, reason, 'error')
         });
       }
     );

@@ -104,4 +104,40 @@ describe('toaster store — actions, update & promise (TST-1)', () => {
     expect(t.title).toBe('Uploaded');
     expect(t.description).toBeUndefined();
   });
+
+  it('promise(): a throwing success formatter still settles the toast (no unhandled rejection)', async () => {
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+    const p = Promise.resolve('draft');
+    const id = toaster.promise(p, {
+      loading: 'Saving…',
+      success: () => {
+        throw new Error('formatter boom');
+      },
+      error: 'Failed'
+    });
+    await settle();
+    const t = byId(id)!;
+    // Without the guard the throw skips `update`, stranding the toast in loading.
+    expect(t.loading).toBe(false);
+    expect(t.intent).toBe('success');
+    expect(t.duration).toBeGreaterThan(0);
+    warn.mockRestore();
+  });
+
+  it('promise(): a throwing error formatter still settles the toast to danger', async () => {
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+    const p = Promise.reject(new Error('boom'));
+    const id = toaster.promise(p, {
+      loading: 'Working…',
+      success: 'Done',
+      error: () => {
+        throw new Error('formatter boom');
+      }
+    });
+    await settle();
+    const t = byId(id)!;
+    expect(t.loading).toBe(false);
+    expect(t.intent).toBe('danger');
+    warn.mockRestore();
+  });
 });
