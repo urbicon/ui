@@ -42,6 +42,7 @@
     persistDebounceMs = 300,
     persistVersion = 1,
     persistNamespace,
+    onkeydown: userOnKeydown,
     ...restProps
   }: InputProps = $props();
 
@@ -147,11 +148,14 @@
     if (!disabled && onRightIconClick) onRightIconClick();
   }
 
-  function handleKeydown(event: KeyboardEvent) {
+  function handleKeydown(event: KeyboardEvent & { currentTarget: EventTarget & HTMLInputElement }) {
     if (event.key === 'Escape' && shouldShowClear) {
       event.preventDefault();
       handleClear();
     }
+    // Forward the consumer's onkeydown (NumberInput's Arrow-step, etc.) — Input's
+    // own handler is hardcoded on the element, so without this it would swallow it.
+    userOnKeydown?.(event);
   }
 
   $effect(() => {

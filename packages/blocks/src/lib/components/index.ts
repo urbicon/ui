@@ -56,6 +56,8 @@ export * from './Guide';
 export * from './LineChart';
 export type { LocaleSwitcherProps } from './LocaleSwitcher';
 export * from './LocaleSwitcher';
+export type { NumberInputProps } from './NumberInput';
+export * from './NumberInput';
 export type {
   PlannerCellContext,
   PlannerDayContext,
