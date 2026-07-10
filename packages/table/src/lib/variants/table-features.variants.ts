@@ -244,14 +244,14 @@ export const groupHeaderVariants = tv({
  */
 export const summaryRowVariants = tv({
   slots: {
-    row: [
-      'bg-surface-elevated',
-      'font-semibold',
-      TABLE_BORDERS.position.top,
-      TABLE_BORDERS.width.thick,
-      TABLE_BORDERS.color.default
-    ],
+    // No frame: a single 2px rule on the group-separating side (see `position`),
+    // colored per `variant` — mirrors the header's accent underline instead of
+    // boxing the row. tr borders render because the table is border-collapse.
+    row: ['font-semibold'],
     cell: ['text-text-primary'],
+    // Horizontal padding matches customCellVariants' container so summary
+    // values sit flush with the column's cell content.
+    content: ['flex items-center justify-end gap-2'],
     label: ['text-text-secondary text-xs uppercase tracking-wide'],
     value: ['font-mono tabular-nums']
   },
@@ -260,38 +260,41 @@ export const summaryRowVariants = tv({
     size: {
       sm: {
         cell: TABLE_DIMENSIONS.padding.cell.sm,
+        content: 'px-1',
         value: 'text-sm'
       },
       md: {
         cell: TABLE_DIMENSIONS.padding.cell.md,
+        content: 'px-2',
         value: 'text-base'
       },
       lg: {
         cell: TABLE_DIMENSIONS.padding.cell.lg,
+        content: 'px-3',
         value: 'text-lg'
       }
     },
 
     variant: {
       default: {
-        row: 'bg-surface-elevated'
+        row: ['bg-surface-elevated', TABLE_BORDERS.color.default]
       },
       highlighted: {
-        row: 'bg-summary-subtle',
+        row: ['bg-summary-subtle', TABLE_BORDERS.color.summary],
         cell: 'text-summary'
       },
       group: {
-        row: 'bg-group-subtle',
+        row: ['bg-group-subtle', TABLE_BORDERS.color.group],
         cell: 'text-group'
       }
     },
 
     position: {
       top: {
-        row: [TABLE_BORDERS.position.bottom, 'border-b-2']
+        row: 'border-b-2'
       },
       bottom: {
-        row: [TABLE_BORDERS.position.top, 'border-t-2']
+        row: 'border-t-2'
       }
     }
   },

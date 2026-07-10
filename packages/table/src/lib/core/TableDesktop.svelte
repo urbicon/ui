@@ -43,8 +43,7 @@
     onRowClick = undefined as ((item: TableItem) => void) | undefined,
     virtualized = false,
     groupHeaderContent = undefined as
-      | Snippet<[groupName: string, items: TableItem[], isExpanded: boolean]>
-      | undefined,
+      Snippet<[groupName: string, items: TableItem[], isExpanded: boolean]> | undefined,
     ariaLabel = undefined as string | undefined,
     virtualHeight = '600px',
     enableColumnReorder = false
@@ -355,7 +354,7 @@
             )}
           >
             <tbody>
-              <SummaryRow {expandable} />
+              <SummaryRow {expandable} {size} />
             </tbody>
           </table>
         {/if}
@@ -441,6 +440,7 @@
               {#if tableState.showSummary && tableState.summaryConfigs.length > 0}
                 <SummaryRow
                   {expandable}
+                  {size}
                   {groupName}
                   groupSummaryData={groupedSummaryData[groupName]}
                 />
@@ -471,7 +471,7 @@
           {/if}
 
           {#if tableState.showSummary && tableState.summaryConfigs.length > 0}
-            <SummaryRow {expandable} />
+            <SummaryRow {expandable} {size} />
           {/if}
         {/if}
       </tbody>

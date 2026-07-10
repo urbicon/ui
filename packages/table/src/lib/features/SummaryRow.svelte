@@ -8,6 +8,7 @@
     expandable = false,
     groupName = null as string | null,
     groupSummaryData = null as Record<string, unknown> | null,
+    size = 'md' as 'sm' | 'md' | 'lg',
     class: className = ''
   } = $props();
 
@@ -16,20 +17,7 @@
   const styleConfig = getTableStyleConfig();
 
   let summaryData = $derived(groupSummaryData || tableContext.summaryData);
-
-  let visibleColumnsCount = $derived.by(() => {
-    let count = tableState.columns.length;
-
-    if (expandable) {
-      count++;
-    }
-
-    if (tableState.groupByKey) {
-      count++;
-    }
-
-    return count;
-  });
+  let selectable = $derived(tableState.selectionMode !== 'none');
 
   function getSummaryLabel(column: string, type: string): string {
     switch (type) {
@@ -48,7 +36,7 @@
     }
   }
 
-  const summaryStyles = $derived(summaryRowVariants({ variant: 'highlighted', size: 'md' }));
+  const summaryStyles = $derived(summaryRowVariants({ variant: 'highlighted', size }));
 </script>
 
 {#if tableState.showSummary && tableState.summaryConfigs.length > 0}
@@ -61,15 +49,22 @@
     )}
     data-testid={groupName ? `summary-row-${groupName}` : 'summary-row-total'}
   >
+    <!-- Spacer cells mirror the data rows (selection → group indent → expand):
+         every column slot needs a cell, or the whole row shifts and the
+         row background stops short of the missing slot. -->
+    {#if selectable}
+      <td class="{summaryStyles.cell()} w-12" aria-hidden="true"></td>
+    {/if}
+
     {#if tableState.groupByKey}
-      <td class="{summaryStyles.cell()} w-10"></td>
+      <td class="{summaryStyles.cell()} w-10" aria-hidden="true"></td>
     {/if}
 
     {#if expandable}
-      <td class="{summaryStyles.cell()} w-10"></td>
+      <td class="{summaryStyles.cell()} w-10" aria-hidden="true"></td>
     {/if}
 
-    {#each tableState.columns as column (resolveColumnId(column))}
+    {#each tableContext.orderedColumns as column (resolveColumnId(column))}
       {@const columnId = resolveColumnId(column)}
       {@const summaryConfig = tableState.summaryConfigs.find((c) => c.column === columnId)}
       {@const summaryValue = summaryData[columnId]}
@@ -82,7 +77,7 @@
         data-testid={`summary-cell-${columnId}`}
       >
         {#if summaryConfig && typeof summaryValue === 'number'}
-          <div class="flex items-center justify-end gap-2">
+          <div class={summaryStyles.content()}>
             <span class={summaryStyles.label()}>
               {getSummaryLabel(columnId, summaryConfig.type)}
             </span>
