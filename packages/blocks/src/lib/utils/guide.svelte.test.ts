@@ -40,6 +40,33 @@ function makeStorage(initial: string[] = []) {
   return { adapter, store };
 }
 
+/** Async-load storage double: `load()` returns a Promise you settle explicitly,
+ *  `save` writes through to a live `store`, so tests can assert the *persisted*
+ *  payload (not just the in-memory set). */
+function makeAsyncStorage(initial: string[] = []) {
+  const store = { ids: [...initial] };
+  let resolveLoad!: (ids: string[]) => void;
+  const load = vi.fn(
+    () =>
+      new Promise<string[]>((r) => {
+        resolveLoad = r;
+      })
+  );
+  const save = vi.fn((next: string[]) => {
+    store.ids = [...next];
+  });
+  return {
+    adapter: { load, save } as GuideStorageAdapter,
+    store,
+    save,
+    /** Resolve the pending load and flush the `.then` merge + reconciliation. */
+    settle: async (ids: string[]) => {
+      resolveLoad(ids);
+      await Promise.resolve();
+    }
+  };
+}
+
 function makeOverlayStack(): GuideOverlayStackLike & {
   entries: string[];
   pushForeign(id: string): void;
@@ -1201,5 +1228,72 @@ describe('GuideController — async storage adapter (CR-4)', () => {
     await Promise.resolve();
     await Promise.resolve();
     expect(ctrl.hasSeen('welcome')).toBe(false);
+  });
+
+  // Persistence reconciliation across the async-load window: writes during the
+  // window must NOT save immediately (that would clobber the not-yet-loaded
+  // remote store) and must be reconciled into the persisted union on settle.
+  it('defers the write during the load window, then persists the merged union', async () => {
+    const s = makeAsyncStorage();
+    const ctrl = new GuideController({
+      storage: s.adapter,
+      overlayStack: makeOverlayStack(),
+      dev: false
+    });
+
+    ctrl.markSeen('local'); // written before the store answered
+    expect(s.save).not.toHaveBeenCalled(); // must not clobber the remote store yet
+
+    await s.settle(['remote']);
+    expect(ctrl.hasSeen('local')).toBe(true);
+    expect(ctrl.hasSeen('remote')).toBe(true);
+    expect(s.save).toHaveBeenCalledTimes(1);
+    // The bug persisted only ['local'], dropping 'remote'. It must be the union.
+    expect([...s.store.ids].sort()).toEqual(['local', 'remote']);
+  });
+
+  it('does not resurrect an id forgotten during the load window when the merge runs', async () => {
+    const s = makeAsyncStorage();
+    const ctrl = new GuideController({
+      storage: s.adapter,
+      overlayStack: makeOverlayStack(),
+      dev: false
+    });
+
+    ctrl.resetSeen('stale'); // forget before the store answered — remote still has it
+    await s.settle(['stale', 'keep']);
+
+    expect(ctrl.hasSeen('stale')).toBe(false); // the forget wins over the merge
+    expect(ctrl.hasSeen('keep')).toBe(true);
+    expect([...s.store.ids]).toEqual(['keep']); // and is what's persisted
+  });
+
+  it('drops the whole remote set when resetSeen() clears all during the load window', async () => {
+    const s = makeAsyncStorage();
+    const ctrl = new GuideController({
+      storage: s.adapter,
+      overlayStack: makeOverlayStack(),
+      dev: false
+    });
+
+    ctrl.markSeen('local');
+    ctrl.resetSeen(); // clear-all before the store answered
+    await s.settle(['remote-a', 'remote-b']);
+
+    expect(ctrl.seenIds).toEqual([]); // clear-all supersedes the loaded set
+    expect(s.store.ids).toEqual([]);
+  });
+
+  it('leaves the store untouched when nothing is written during the load window', async () => {
+    const s = makeAsyncStorage();
+    const ctrl = new GuideController({
+      storage: s.adapter,
+      overlayStack: makeOverlayStack(),
+      dev: false
+    });
+
+    await s.settle(['a', 'b']); // pure load, no writes
+    expect(ctrl.hasSeen('a')).toBe(true);
+    expect(s.save).not.toHaveBeenCalled(); // no write-amplification of what we just read
   });
 });
