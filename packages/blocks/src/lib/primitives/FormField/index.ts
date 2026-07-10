@@ -18,7 +18,7 @@ import type { HTMLAttributes } from 'svelte/elements';
  *
  * @example
  * ```svelte
- * <FormField label="Document" required error={fileError} hint="PDF, JPG, PNG — max 10 MB">
+ * <FormField label="Document" required error={fileError} helper="PDF, JPG, PNG — max 10 MB">
  *   {#snippet children({ id, describedBy, invalid })}
  *     <FileUpload {id} aria-describedby={describedBy} aria-invalid={invalid} bind:files />
  *   {/snippet}
@@ -29,8 +29,12 @@ export interface FormFieldProps extends Omit<HTMLAttributes<HTMLDivElement>, 'ch
   /** Label rendered above the control. Auto-linked to the slot via the generated `id`. */
   label?: string;
 
-  /** Helper text shown below the control. Hidden when `error` is present. */
-  hint?: string;
+  /**
+   * Helper text shown below the control. Hidden when `error` is present.
+   * Named `helper` to match the built-in helper prop of the form primitives
+   * (Input, Select, Toggle, …) — one vocabulary across the API seam.
+   */
+  helper?: string;
 
   /**
    * Error message shown below the control. Replaces the helper text and
@@ -62,8 +66,13 @@ export interface FormFieldProps extends Omit<HTMLAttributes<HTMLDivElement>, 'ch
 
   /**
    * Per-slot class overrides.
+   *
+   * FormField has no `tv()` config (it is a bare layout wrapper), so this
+   * key union is a hand-maintained literal instead of the usual
+   * `SlotNames<typeof xVariants>` derivation — keep it in sync with the
+   * elements rendered in `FormField.svelte`.
    */
-  slotClasses?: Partial<Record<'wrapper' | 'label' | 'message' | 'hint', string>>;
+  slotClasses?: Partial<Record<'wrapper' | 'label' | 'message' | 'helper', string>>;
 
   /**
    * Snippet receiving wiring metadata (`id`, `describedBy`, `invalid`,

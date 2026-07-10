@@ -58,7 +58,7 @@
   const id = $derived(idProp ?? `combobox-${propsId}`);
   const ff = useFormField(() => ({
     fieldId: id,
-    hint: helper,
+    helper,
     error,
     required,
     disabled
@@ -508,10 +508,10 @@
     >
       {error}
     </div>
-  {:else if ff.hintId}
+  {:else if ff.helperId}
     <div
-      id={ff.hintId}
-      class={unstyled ? (slotClasses?.hint ?? '') : styles.hint({ class: slotClasses?.hint })}
+      id={ff.helperId}
+      class={unstyled ? (slotClasses?.helper ?? '') : styles.helper({ class: slotClasses?.helper })}
     >
       {helper}
     </div>

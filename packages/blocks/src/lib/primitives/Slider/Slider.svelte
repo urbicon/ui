@@ -47,7 +47,7 @@
   const uid = `slider-${propsId}`;
   const ff = useFormField(() => ({
     fieldId: uid,
-    hint: helper,
+    helper,
     error,
     disabled
   }));
@@ -86,11 +86,7 @@
 
   // ─── Range-Constraints ──────────────────────────────────────────────────
   type ZoneStatus =
-    | 'none'
-    | 'insideRecommended'
-    | 'insideValidOnly'
-    | 'outsideValidDanger'
-    | 'outsideValidWarning';
+    'none' | 'insideRecommended' | 'insideValidOnly' | 'outsideValidDanger' | 'outsideValidWarning';
 
   const hasRangeConstraints = $derived(!!validRange || !!recommendedRange);
 
@@ -537,9 +533,9 @@
     >
       {error}
     </div>
-  {:else if ff.hintId}
+  {:else if ff.helperId}
     <div
-      id={ff.hintId}
+      id={ff.helperId}
       class={unstyled
         ? (slotClasses?.message ?? '')
         : styles.message({ class: slotClasses?.message })}

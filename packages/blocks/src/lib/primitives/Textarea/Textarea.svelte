@@ -43,7 +43,7 @@
   const propsId = $props.id();
   const ff = useFormField(() => ({
     fieldId: `textarea-${propsId}`,
-    hint: helper,
+    helper,
     error,
     required,
     disabled
@@ -137,8 +137,7 @@
     {required}
     aria-invalid={ff.invalid ? 'true' : undefined}
     aria-describedby={ff.describedBy}
-    oninput={autoResize ? adjustHeight : undefined}
-  ></textarea>
+    oninput={autoResize ? adjustHeight : undefined}></textarea>
 
   {#if showFooter}
     <div
@@ -154,9 +153,9 @@
         >
           {error}
         </div>
-      {:else if ff.hintId}
+      {:else if ff.helperId}
         <div
-          id={ff.hintId}
+          id={ff.helperId}
           class={unstyled
             ? (slotClasses?.message ?? '')
             : styles.message({ class: slotClasses?.message })}

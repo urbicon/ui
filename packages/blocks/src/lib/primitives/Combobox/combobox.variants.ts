@@ -16,7 +16,7 @@ export const comboboxVariants = tv({
       'disabled:opacity-50 disabled:cursor-not-allowed'
     ],
     message: 'text-xs text-danger',
-    hint: 'text-xs text-text-tertiary',
+    helper: 'text-xs text-text-tertiary',
     // `position`, `width`, `overflow-y` are set inline in Combobox.svelte
     // so the native `popover="manual"` top-layer rendering works
     // correctly and the UA's `overflow: auto` doesn't render a duplicate

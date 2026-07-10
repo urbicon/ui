@@ -1,9 +1,9 @@
 /**
  * `useFormField` — Single source of truth for the ARIA wiring that every
- * Form primitive duplicates: error/hint id derivation, `aria-describedby`,
- * `aria-invalid`, and the mutually-exclusive error-over-hint convention.
+ * Form primitive duplicates: error/helper id derivation, `aria-describedby`,
+ * `aria-invalid`, and the mutually-exclusive error-over-helper convention.
  *
- * Layout (label position, error/hint placement, required marker) stays
+ * Layout (label position, error/helper placement, required marker) stays
  * component-specific because real Form primitives differ in shape — Input
  * stacks the label on top, Checkbox/Toggle put it inline, RadioGroup and
  * SegmentGroup have a group caption + per-item labels. The hook does not
@@ -23,11 +23,11 @@
  * ```svelte
  * <script lang="ts">
  *   import { useFormField } from '$lib/utils';
- *   let { id: idProp, hint, error, required, disabled, label } = $props();
+ *   let { id: idProp, helper, error, required, disabled, label } = $props();
  *   const propsId = $props.id();
  *   const ff = useFormField(() => ({
  *     fieldId: idProp ?? `field-${propsId}`,
- *     hint,
+ *     helper,
  *     error,
  *     required,
  *     disabled
@@ -48,8 +48,8 @@ export interface UseFormFieldInputs {
   /** The DOM id to apply to the field element. Compute once in the caller via `$props.id()`. */
   fieldId: string;
   /** Helper text shown below the field when no error is set. */
-  hint?: string;
-  /** Error message — when truthy, replaces `hint` and flags the field invalid. */
+  helper?: string;
+  /** Error message — when truthy, replaces `helper` and flags the field invalid. */
   error?: string;
   /** Required flag — exposed verbatim for the caller's label markup. */
   required?: boolean;
@@ -62,8 +62,8 @@ export interface UseFormFieldReturn {
   readonly fieldId: string;
   /** Id of the error description, or undefined when no error is set. */
   readonly errorId: string | undefined;
-  /** Id of the hint description, or undefined when error is set or no hint is given. */
-  readonly hintId: string | undefined;
+  /** Id of the helper description, or undefined when error is set or no helper is given. */
+  readonly helperId: string | undefined;
   /** Concatenation suitable for `aria-describedby` (`undefined` when both are unset). */
   readonly describedBy: string | undefined;
   /** `true` iff `error` is truthy. Use for `aria-invalid={ff.invalid || undefined}`. */
@@ -82,20 +82,20 @@ export interface UseFormFieldReturn {
 export function computeFormFieldAria(input: UseFormFieldInputs): UseFormFieldReturn {
   const fieldId = input.fieldId;
   const errorId = input.error ? `${fieldId}-error` : undefined;
-  // Hint is suppressed when an error is present — the error message is
+  // Helper is suppressed when an error is present — the error message is
   // the more important description at that point. This is the same
   // exclusive convention as Material / Carbon / Polaris.
-  const hintId = !input.error && input.hint ? `${fieldId}-hint` : undefined;
-  // Error first, hint second — error is the more semantically urgent
+  const helperId = !input.error && input.helper ? `${fieldId}-helper` : undefined;
+  // Error first, helper second — error is the more semantically urgent
   // description and should reach assistive tech first.
-  const describedBy = [errorId, hintId].filter(Boolean).join(' ') || undefined;
+  const describedBy = [errorId, helperId].filter(Boolean).join(' ') || undefined;
   const invalid = !!input.error;
   const required = !!input.required;
   const disabled = !!input.disabled;
   return {
     fieldId,
     errorId,
-    hintId,
+    helperId,
     describedBy,
     invalid,
     required,
@@ -112,8 +112,8 @@ export function useFormField(inputs: () => UseFormFieldInputs): UseFormFieldRetu
     get errorId() {
       return result.errorId;
     },
-    get hintId() {
-      return result.hintId;
+    get helperId() {
+      return result.helperId;
     },
     get describedBy() {
       return result.describedBy;

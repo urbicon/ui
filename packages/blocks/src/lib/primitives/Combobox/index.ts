@@ -129,7 +129,7 @@ export interface ComboboxProps<T extends SelectValue = string>
   /** Remove all default tv() classes — only user-provided classes apply. @default false */
   unstyled?: boolean;
   /** Per-slot class overrides merged with tv() styles. Slots: base | label | requiredMark |
-   *  inputWrapper | input | message | hint | listbox | option | optionActive | optionSelected |
+   *  inputWrapper | input | message | helper | listbox | option | optionActive | optionSelected |
    *  noResults | clear | chevron */
   slotClasses?: Partial<Record<ComboboxSlots, string>>;
   /**

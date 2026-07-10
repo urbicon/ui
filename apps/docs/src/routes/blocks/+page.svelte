@@ -475,7 +475,7 @@
         <div class={inner} inert>
           {@render heading('FormField')}
           <div class="flex flex-1 flex-col justify-center">
-            <FormField label="API key" hint="Stored locally, never synced.">
+            <FormField label="API key" helper="Stored locally, never synced.">
               {#snippet children({ id, describedBy, invalid })}
                 <input
                   {id}

@@ -4,7 +4,7 @@
 
   let {
     label,
-    hint,
+    helper,
     error,
     required = false,
     disabled = false,
@@ -20,7 +20,7 @@
   // `useFormField` / XC-2 for the contract.
   const ff = useFormField(() => ({
     fieldId: idProp ?? `field-${propsId}`,
-    hint,
+    helper,
     error,
     required,
     disabled
@@ -59,12 +59,12 @@
     >
       {error}
     </div>
-  {:else if ff.hintId}
+  {:else if ff.helperId}
     <div
-      id={ff.hintId}
-      class={['text-text-tertiary text-xs', slotClasses.hint].filter(Boolean).join(' ')}
+      id={ff.helperId}
+      class={['text-text-tertiary text-xs', slotClasses.helper].filter(Boolean).join(' ')}
     >
-      {hint}
+      {helper}
     </div>
   {/if}
 </div>

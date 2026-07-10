@@ -21,8 +21,8 @@
   <div class="space-y-8">
     <CodeExample
       title="Wrapping a custom file input"
-      description="The slot receives wiring metadata (id, describedBy, invalid, required, disabled). Spread or apply these so screen readers can find the label and any error/hint."
-      code={`<FormField label="Document" required hint="PDF, JPG, PNG — max 10 MB">
+      description="The slot receives wiring metadata (id, describedBy, invalid, required, disabled). Spread or apply these so screen readers can find the label and any error/helper text."
+      code={`<FormField label="Document" required helper="PDF, JPG, PNG — max 10 MB">
   {#snippet children({ id, describedBy, invalid, required })}
     <input
       {id}
@@ -35,7 +35,7 @@
 </FormField>`}
       language="svelte"
     >
-      <FormField label="Document" required hint="PDF, JPG, PNG — max 10 MB">
+      <FormField label="Document" required helper="PDF, JPG, PNG — max 10 MB">
         {#snippet children(ctx)}
           <input
             id={ctx.id}
@@ -91,9 +91,9 @@
       slot's <code class="text-text-primary">id</code>.
     </li>
     <li>
-      Hints get an <code class="text-text-primary">id</code> referenced via
+      Helper text gets an <code class="text-text-primary">id</code> referenced via
       <code class="text-text-primary">aria-describedby</code>. When an error is present, the error
-      message takes the spot (and the hint is hidden) — this matches WCAG guidance to surface the
+      message takes the spot (and the helper is hidden) — this matches WCAG guidance to surface the
       most actionable message to AT users.
     </li>
     <li>

@@ -46,7 +46,7 @@
   // ARIA wiring is shared with every form primitive — see XC-2.
   const ff = useFormField(() => ({
     fieldId: groupId,
-    hint: helper,
+    helper,
     error,
     required,
     disabled
@@ -174,9 +174,9 @@
     >
       {error}
     </div>
-  {:else if ff.hintId}
+  {:else if ff.helperId}
     <div
-      id={ff.hintId}
+      id={ff.helperId}
       class={unstyled
         ? (slotClasses?.message ?? '')
         : styles.message({ class: slotClasses?.message })}

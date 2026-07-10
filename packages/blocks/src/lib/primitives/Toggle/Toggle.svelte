@@ -35,7 +35,7 @@
   const id = $derived(idProp ?? propsId);
   const ff = useFormField(() => ({
     fieldId: id,
-    hint: helper,
+    helper,
     required,
     disabled
   }));
@@ -135,9 +135,9 @@
     {/if}
   </label>
 
-  {#if ff.hintId}
+  {#if ff.helperId}
     <div
-      id={ff.hintId}
+      id={ff.helperId}
       class={unstyled
         ? (slotClasses?.message ?? '')
         : styles.message({ class: slotClasses?.message })}

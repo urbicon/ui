@@ -31,7 +31,7 @@
 
 <SeoMeta
   title="FormField Component"
-  description="Layout wrapper for composite form fields with label, hint, and error message."
+  description="Layout wrapper for composite form fields with label, helper text, and error message."
 />
 
 <DocsPageLayout
@@ -58,8 +58,8 @@
         { type: 'text', key: 'label', label: 'Label', defaultValue: 'Document' },
         {
           type: 'text',
-          key: 'hint',
-          label: 'Hint',
+          key: 'helper',
+          label: 'Helper',
           defaultValue: 'PDF, JPG, PNG — max 10 MB'
         },
         { type: 'text', key: 'error', label: 'Error', defaultValue: '' },
@@ -67,7 +67,7 @@
       ]}
       values={{
         label: 'Document',
-        hint: 'PDF, JPG, PNG — max 10 MB',
+        helper: 'PDF, JPG, PNG — max 10 MB',
         error: '',
         required: false
       }}

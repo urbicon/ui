@@ -119,7 +119,7 @@
   const propsId = $props.id();
   const ff = useFormField(() => ({
     fieldId: `input-${propsId}`,
-    hint: helper,
+    helper,
     error,
     required,
     disabled
@@ -280,9 +280,9 @@
     >
       {error}
     </div>
-  {:else if ff.hintId}
+  {:else if ff.helperId}
     <div
-      id={ff.hintId}
+      id={ff.helperId}
       class={unstyled
         ? (slotClasses?.message ?? '')
         : styles.message({ class: slotClasses?.message })}

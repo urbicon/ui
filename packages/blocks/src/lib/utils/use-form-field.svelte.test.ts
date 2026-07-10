@@ -32,10 +32,10 @@ describe('computeFormFieldAria', () => {
     expect(out.describedBy).toBe('a-error');
   });
 
-  it('generates hintId only when hint is set AND no error', () => {
-    expect(computeFormFieldAria({ fieldId: 'b', hint: 'help' }).hintId).toBe('b-hint');
+  it('generates helperId only when helper is set AND no error', () => {
+    expect(computeFormFieldAria({ fieldId: 'b', helper: 'help' }).helperId).toBe('b-helper');
     expect(
-      computeFormFieldAria({ fieldId: 'b', hint: 'help', error: 'no' }).hintId
+      computeFormFieldAria({ fieldId: 'b', helper: 'help', error: 'no' }).helperId
     ).toBeUndefined();
   });
 
@@ -43,13 +43,13 @@ describe('computeFormFieldAria', () => {
     expect(computeFormFieldAria({ fieldId: 'c', error: 'oops' }).describedBy).toBe('c-error');
   });
 
-  it('describedBy points at hint when no error', () => {
-    expect(computeFormFieldAria({ fieldId: 'c', hint: 'help' }).describedBy).toBe('c-hint');
+  it('describedBy points at helper when no error', () => {
+    expect(computeFormFieldAria({ fieldId: 'c', helper: 'help' }).describedBy).toBe('c-helper');
   });
 
-  it('describedBy puts error first when error replaces hint (still only error visible)', () => {
-    // Error suppresses hint, so describedBy is just the error id.
-    expect(computeFormFieldAria({ fieldId: 'c', hint: 'help', error: 'oops' }).describedBy).toBe(
+  it('describedBy puts error first when error replaces helper (still only error visible)', () => {
+    // Error suppresses helper, so describedBy is just the error id.
+    expect(computeFormFieldAria({ fieldId: 'c', helper: 'help', error: 'oops' }).describedBy).toBe(
       'c-error'
     );
   });
@@ -75,7 +75,7 @@ describe('computeFormFieldAria', () => {
   it('all fields together (smoke)', () => {
     const out = computeFormFieldAria({
       fieldId: 'field-42',
-      hint: 'Pick a strong one',
+      helper: 'Pick a strong one',
       error: undefined,
       required: true,
       disabled: false
@@ -83,8 +83,8 @@ describe('computeFormFieldAria', () => {
     expect(out).toEqual({
       fieldId: 'field-42',
       errorId: undefined,
-      hintId: 'field-42-hint',
-      describedBy: 'field-42-hint',
+      helperId: 'field-42-helper',
+      describedBy: 'field-42-helper',
       invalid: false,
       required: true,
       disabled: false
