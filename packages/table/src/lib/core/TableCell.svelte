@@ -46,7 +46,7 @@
   const defaultCellStyles = $derived(
     customCellVariants({
       size,
-      align: 'left',
+      align: column.align ?? 'left',
       interactive: false
     })
   );
@@ -70,13 +70,7 @@
     {@const CellComponent = column.component}
     <CellComponent {...getComponentProps(column, item)} />
   {:else if value !== undefined}
-    <div
-      class="{defaultCellStyles.container()} {column.align === 'center'
-        ? 'justify-center'
-        : column.align === 'right'
-          ? 'justify-end'
-          : 'justify-start'}"
-    >
+    <div class={defaultCellStyles.container()}>
       <div class={defaultCellStyles.content()}>
         <span
           class="text-text-primary block max-w-full overflow-hidden text-ellipsis whitespace-nowrap"
