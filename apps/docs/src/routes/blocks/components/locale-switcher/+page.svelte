@@ -10,8 +10,14 @@
   import { LocaleSwitcher } from '@urbicon-ui/blocks';
   import PrevNextNav from '$lib/PrevNextNav.svelte';
   import CustomDocs from './Docs.svelte';
+  import { componentData } from './api';
+  import { buildRelatedLinks } from '$lib/component-links';
+  import { extractPlaygroundDocs } from '@urbicon-ui/docs';
   import { resolve } from '$app/paths';
   import { page } from '$app/state';
+
+  const { propDocs, variantKeys } = extractPlaygroundDocs(componentData?.props ?? []);
+  const relatedLinks = buildRelatedLinks(componentData);
 
   const navigation = [
     { id: 'playground', title: 'Playground', order: 1 },
@@ -21,75 +27,19 @@
     { id: 'api', title: 'API Reference', order: 5 },
     { id: 'installation', title: 'Installation', order: 6 }
   ];
-
-  const apiProps = [
-    {
-      name: 'showFlag',
-      type: 'boolean',
-      defaultValue: 'true',
-      description: 'Show flag emoji alongside locale name.'
-    },
-    {
-      name: 'locales',
-      type: 'Locale[]',
-      description: 'Restrict displayed locales. Defaults to all locales registered in i18n.'
-    },
-    {
-      name: 'onLocaleChange',
-      type: '(locale: Locale) => void',
-      description: 'Called after the locale has been changed successfully.'
-    },
-    {
-      name: 'variant',
-      type: "'ghost' | 'filled' | 'outlined' | 'text'",
-      defaultValue: "'outlined'",
-      description: 'Visual style of the trigger (inherited from Menu).'
-    },
-    {
-      name: 'size',
-      type: "'2xs' | 'xs' | 'sm' | 'md' | 'lg' | 'xl'",
-      defaultValue: "'sm'",
-      description: 'Size of the trigger (inherited from Menu).'
-    },
-    {
-      name: 'intent',
-      type: "'neutral' | 'primary' | 'secondary' | 'success' | 'warning' | 'danger'",
-      defaultValue: "'neutral'",
-      description: 'Color intent (inherited from Menu).'
-    },
-    {
-      name: 'disabled',
-      type: 'boolean',
-      defaultValue: 'false',
-      description: 'Disable the selector. Also auto-disabled while loading translations.'
-    },
-    {
-      name: 'unstyled',
-      type: 'boolean',
-      defaultValue: 'false',
-      description: 'Remove all default styling from the underlying Menu.'
-    },
-    {
-      name: 'slotClasses',
-      type: 'Partial<Record<MenuSlot, string>>',
-      description: 'Per-slot CSS class overrides forwarded to the Menu.'
-    },
-    {
-      name: 'class',
-      type: 'string',
-      description: 'Additional CSS classes applied to the root element.'
-    }
-  ];
 </script>
 
 <SeoMeta
   title="LocaleSwitcher Component"
-  description="Language selector composed from the Menu primitive, powered by the i18n system with flag support and all Menu styling options."
+  description="Language selector — a convenience wrapper around the Select primitive, powered by the i18n system with flag support and the Select styling axes."
 />
 
 <DocsPageLayout
   title="LocaleSwitcher"
-  description="Language selector composed from the Menu primitive, powered by the i18n system with flag support and all Menu styling options."
+  description="Language selector — a convenience wrapper around the Select primitive, powered by the i18n system with flag support and the Select styling axes."
+  stability={componentData?.stability}
+  sourceHref={componentData?.sourceHref}
+  related={relatedLinks}
   maxWidth="2xl"
   showToc={true}
   breadcrumbs={[
@@ -101,6 +51,8 @@
   <Section id="playground" intent="primary">
     <PlaygroundConfigurator
       componentName="LocaleSwitcher"
+      {propDocs}
+      {variantKeys}
       controls={[
         {
           type: 'dropdown',
@@ -110,7 +62,7 @@
             { label: 'outlined', value: 'outlined' },
             { label: 'filled', value: 'filled' },
             { label: 'ghost', value: 'ghost' },
-            { label: 'text', value: 'text' }
+            { label: 'underline', value: 'underline' }
           ],
           defaultValue: 'outlined'
         },
@@ -144,9 +96,9 @@
     id="api"
     title="API Reference"
     intent="secondary"
-    meta={`${apiProps.length} props`}
+    meta={`${componentData?.props?.length ?? 0} props`}
   >
-    <ApiReference props={apiProps} />
+    <ApiReference props={componentData?.props ?? []} />
   </Section>
 
   <Section marker="05" id="installation" title="Installation">

@@ -15,12 +15,6 @@
       <LocaleSwitcher showFlag={false} />
     </CodeExample>
 
-    <CodeExample title="Variants and sizes" isolate previewClass="flex items-center gap-4">
-      <LocaleSwitcher variant="outlined" size="sm" showFlag />
-      <LocaleSwitcher variant="filled" size="md" showFlag />
-      <LocaleSwitcher variant="ghost" size="lg" showFlag />
-    </CodeExample>
-
     <CodeExample
       title="In a settings panel"
       description="Realistic use — small outlined trigger inline with other preference rows."
@@ -60,7 +54,7 @@
 <Section marker="02" id="customization" title="Customization">
   <CodeExample
     title="Branded trigger"
-    description="Override the underlying Menu trigger slot with a gradient brand-look."
+    description="Override the underlying Select trigger slot with a gradient brand-look."
     isolate
     previewClass="flex items-center gap-4"
   >
@@ -77,7 +71,7 @@
 <Section marker="03" id="accessibility" title="Accessibility">
   <div class="border-border-subtle bg-surface-elevated rounded-2xl border p-6">
     <p class="text-text-secondary text-sm leading-relaxed">
-      Inherits the Menu listbox semantics —
+      Inherits the Select listbox semantics —
       <code class="text-text-primary">role="listbox"</code>,
       <code class="text-text-primary">aria-expanded</code>,
       <code class="text-text-primary">aria-selected</code> — plus a trigger
