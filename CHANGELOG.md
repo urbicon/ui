@@ -4,6 +4,68 @@ All notable changes to this project will be documented in this file.
 This changelog is automatically generated from [Conventional Commits](https://www.conventionalcommits.org).
 
 
+## [6.21.2] - 2026-07-10
+
+### Breaking Changes
+- **blocks**: Move Tooltip to open/onOpenChange with controlled mode
+> **BREAKING:** TooltipProps.onVisibleChange is now onOpenChange (same boolean payload); the tv() axis 'visible' is renamed 'open' (affects only overrides conditioned on that axis). Also fixes the keyboard focus-open path: the wrapper span listened via focus/blur, which do not bubble — a keyboard focus on the consumer's trigger child never opened the tooltip (WCAG 1.4.13). focusin/focusout bubble and cover any focusable descendant; covered by the new Tooltip.svelte.test.ts.
+- **blocks**: Rename FormField hint to helper across the form seam
+> **BREAKING:** FormFieldProps.hint is now helper; the FormField slotClasses key 'hint' is now 'helper'; Combobox slotClasses key 'hint' is now 'helper'; useFormField's input field hint and return field hintId are now helper/helperId.
+
+### Bug Fixes
+- **docs**: Repair broken rendering and false claims (triage quick-fix block)
+- **blocks**: Stop calling the built-in positioning engine "Floating UI" in public JSDoc
+- **docs**: Rewrite both auth recipe codes against the shipped handler factories
+- **docs**: Rewrite the /docs index as a hand-curated card list
+- **docs**: Align locale-switcher page with the Select-based implementation
+- **blocks**: Localize Breadcrumb's built-in accessibility labels
+- **blocks**: Harden onOpenChange against ghost transitions (review findings)
+- **table**: Honor column.align in default cells
+- **table**: Align summary rows with the column grid, drop the boxed frame
+- **blocks**: Correct Combobox async loading sequencing and abort on teardown
+- **blocks**: Re-enable NumberInput stepper clicks and harden stepping
+- **blocks**: Guard toaster.promise against throwing user formatters
+- **blocks**: Reset Dialog drag styles on teardown and recenter on reopen
+- **blocks**: Reconcile Guide seen-writes made during an async storage.load
+- **design-engine**: Split emoji-as-icon regex to dodge Bun alternation bug
+
+### Documentation
+- Log mcp-server bin node-incompatibility as technical debt
+- Define the open-state vocabulary for overlays and disclosures
+- Bring the size table and callback examples up to reality
+- Recast the design verbs and agent templates CLI-first
+- Record the Option-B position — MCP out of the narrative, CLI is the surface
+- Technical-debt
+- **docs**: Say out loud who runs the CLI — the agent, not the developer
+- **docs**: Document table summaries, column visibility, and the header menu
+- **technical-debt**: Record deferral of Button preset catalog (BTN-3)
+- **technical-debt**: Record deferrals from the FR-sweep review
+- Refactor landing page
+- Technical debts
+
+### Features
+- **docs**: Add DRAFT_ROUTES launch switch, disable profile-card and semantic-radii
+- **blocks**: Add onOpenChange to Menu, Select, and Combobox
+- **blocks**: Give ConfirmDialog the standard styling contract
+- **blocks**: Symmetrize the form family — Toggle error state, xs-xl sizes
+- Extract the shared knowledge core into design-engine (reference + icon search)
+- Complete the urbicon CLI knowledge surface
+- **docs**: Lead the AI story with the package track, drop the local MCP setup
+- **blocks**: Add renderItem snippet to Pagination
+- **blocks**: Add opt-in accentEdge to Drawer
+- **blocks**: Add draggable mode to Dialog
+- **blocks**: Add group support to Combobox
+- **blocks**: Add async server-side search to Combobox
+- **blocks**: Add context-menu trigger to Menu
+- **blocks**: Add action buttons and promise toasts (Sonner-style)
+- **blocks**: Allow async GuideStorageAdapter.load()
+- **blocks**: Add NumberInput component
+- **blocks**: Add purpose axis to Badge (BDG-1)
+- **blocks**: Add multi-select with tags to Combobox
+
+### Testing
+- **table**: Hoist concern imports to fix flaky timeout under parallel run
+
 ## [6.21.1] - 2026-07-09
 
 ### Breaking Changes
