@@ -213,6 +213,14 @@ When a prop has a visual-only intermediate state, that state is also bindable:
 <Checkbox bind:checked bind:indeterminate />
 ```
 
+### Open-state vocabulary (overlays & disclosures)
+
+The canonical pair is **`open` (bindable) + `onOpenChange(open: boolean)`** — used by Menu, Select, Combobox, Popover, Tooltip, Collapsible, and Sidebar. `onOpenChange` fires on user-interaction-driven transitions (trigger click, keyboard, selection, Escape, outside click), **not** when the consumer writes `bind:open` directly — the consumer already knows about their own writes.
+
+**Deliberate deviation:** Dialog, Drawer, and ConfirmDialog expose `onClose` instead of `onOpenChange`. These components have no internal "open" path — opening happens exclusively through the consumer setting `open = true` — so an `onOpenChange` could only ever report `false`. `onClose` names the single transition they own. Do not "fix" this by adding `onOpenChange` to them; a change-callback that can never fire for half its domain is more misleading than an asymmetric name.
+
+The granular dismiss-path callbacks (`onEscape`, `onClickOutside`) remain separate where offered (Select, Combobox, Popover): they identify *why* the overlay closed, while `onOpenChange` reports *that* it opened or closed.
+
 ## `data-state` Attribute
 
 Interactive components with distinct visual states expose a `data-state` attribute on their key element. This enables CSS-only custom styling in `unstyled` mode. ~14 primitives expose it (Toggle, Tab, Drawer, Collapsible, RadioGroup, SegmentGroup, Sidebar, …) — the table below is illustrative, not exhaustive:
