@@ -298,12 +298,14 @@ internal TODO instead.
   shebang, relative `.js` specifiers resolving to `.ts` files).
 - **What:** `npx @urbicon-ui/mcp-server` crashes — node cannot execute the
   TypeScript entry nor resolve the `.js`→`.ts` specifiers. Even plain `bunx`
-  fails because it respects the node shebang. The docs (`/ai` setup snippet)
-  now recommend `bunx --bun @urbicon-ui/mcp-server`, which works but silently
-  makes Bun a hard runtime requirement for MCP consumers.
-- **Why deferred:** Needs a distribution decision, not a spot fix: either ship
-  a real build (dist JS, node-compatible — matches how editors/agents usually
-  spawn MCP servers via npx) or commit to bun-only (`#!/usr/bin/env bun`
-  shebang + explicit docs). Touches the release pipeline, not just the package.
+  fails because it respects the node shebang.
+- **Why deferred — and de-escalated (Option B, 2026-07-10):** no consumer runs
+  this bin anymore. The local-install MCP path was removed from the public docs
+  (`/ai` now leads with `@urbicon-ui/design` + `urbicon init`; the CLI ships a
+  real node-runnable `dist/cli.js`), and the server's only intended deployment
+  is the hosted HTTP endpoint at launch — run in-repo under Bun. Resolve
+  together with that hosting decision: either ship a dist build then, or drop
+  the `bin` field entirely and commit to bun-on-own-infra.
 - **Found:** 2026-07-10, docs-launch triage quick-fix pass (§3 of
-  `docs/internal/DOCS-PAGE-TRIAGE-2026-07.md`).
+  `docs/internal/DOCS-PAGE-TRIAGE-2026-07.md`); rescoped same day with the
+  Option-B de-advertising of the MCP.

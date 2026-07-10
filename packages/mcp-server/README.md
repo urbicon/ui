@@ -1,8 +1,17 @@
 # @urbicon-ui/mcp-server
 
-Model Context Protocol server for the Urbicon UI design system. Gives LLMs first-class access to the component catalog, design tokens, recipes, and implementation guidance — the AI-native DX pillar of Urbicon.
+Model Context Protocol server for the Urbicon UI design system. Gives LLMs first-class access to the component catalog, design tokens, recipes, and implementation guidance.
 
-**Transports:** stdio (default, for IDE integrations like Claude Code / Cursor) and streamable HTTP (for remote editors).
+> **Status (Option B, 2026-07-10): built, green, not advertised.** The consumer-facing
+> surface is the `urbicon` CLI in [`@urbicon-ui/design`](../design/) — one dev-dependency,
+> version-pinned, covers the full knowledge/judgment/memory surface locally. This server is
+> the thin **remote adapter** over the same engine (`@urbicon-ui/design-engine`) and content
+> bundle (`@urbicon-ui/design-content`), kept for the launch decision of hosting a public
+> endpoint (evaluation/reach: "point your agent at Urbicon without installing anything").
+> It is deliberately absent from the public docs until that endpoint exists, and a local
+> install is **not** a supported consumer path (see docs/internal/DESIGN-MCP-V2.md §11).
+
+**Transports:** stdio (default, for in-repo development) and streamable HTTP (the intended remote deployment).
 
 ## Installation
 
