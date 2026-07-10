@@ -17,6 +17,16 @@ if (typeof window !== 'undefined') {
     Element.prototype.scrollIntoView = () => {};
   }
 
+  // Pointer capture (Dialog draggable header, Slider thumb) — jsdom has no
+  // capture model. No-ops are enough: the drag handlers key off `pointerdown`/
+  // `pointermove` bookkeeping, capture only reroutes events the test dispatches
+  // straight onto the handle anyway.
+  if (!Element.prototype.setPointerCapture) {
+    Element.prototype.setPointerCapture = () => {};
+    Element.prototype.releasePointerCapture = () => {};
+    Element.prototype.hasPointerCapture = () => false;
+  }
+
   // Native Popover API (listbox/menu/tooltip render in the browser top layer). jsdom has no top
   // layer; no-op show/hide keeps `useFloatingPanel` from throwing. Content still renders from the
   // component's `open` state, so the listbox/menu options appear in the DOM regardless.
