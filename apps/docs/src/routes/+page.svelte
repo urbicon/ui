@@ -695,14 +695,14 @@
             </div>
           {:else}
             <!-- Design — the closed loop: an agent generates, `urbicon validate`
-                 reviews, the fix ships. MCP + llms.txt are the serving channels. -->
+                 reviews, the fix ships. The CLI + llms.txt are the serving channels. -->
             <div class="flex items-baseline justify-between gap-5">
               <h3 class="text-[clamp(2rem,4vw,2.5rem)]">Design</h3>
-              <span class="text-[13.5px] opacity-80">urbicon CLI · MCP · llms.txt</span>
+              <span class="text-[13.5px] opacity-80">urbicon CLI · Hook & CI · llms.txt</span>
             </div>
             <p class="mt-2.5 max-w-[420px] text-[15.5px] leading-relaxed opacity-90">
               Generation is the easy half. The urbicon CLI reviews what your agent builds — tokens,
-              focus, slop — and the MCP server serves the same design intelligence live.
+              focus, slop — and remembers the design decisions your project already made.
             </p>
 
             <div class="my-7 flex-1">
@@ -763,11 +763,11 @@
             style="border-color: rgb(246 243 236 / 0.3); --room-accent: {active.bright}; --room-accent-fg: {INK}"
           >
             <p class="opacity-50"># the whole system is also plain text</p>
-            <p><span class="opacity-50">$</span> claude mcp add urbicon</p>
+            <p><span class="opacity-50">$</span> bun add -d @urbicon-ui/design</p>
             <p style="color: {active.bright}; transition: color 0.5s ease">
-              ✓ connected — 10 tools, design intelligence included
+              ✓ installed — design intelligence, pinned to your version
             </p>
-            <p class="mt-3"><span class="opacity-50">&gt;</span> find_components "pricing table"</p>
+            <p class="mt-3"><span class="opacity-50">$</span> urbicon find "pricing table"</p>
             <p class="opacity-85">→ Table + Badge + Button · recipe: pricing-grid</p>
             <p class="mt-3"><span class="opacity-50">$</span> curl ui.urbicon.de/llms.txt</p>
             <p class="opacity-85">→ 55 components, plain text, no auth</p>

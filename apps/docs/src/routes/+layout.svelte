@@ -173,7 +173,7 @@
               >
               &middot;
               <a href={resolve('/ai')} class="hover:text-text-secondary transition-colors"
-                >{ta('chrome.mcpServer' as Parameters<typeof ta>[0])}</a
+                >{ta('chrome.aiDx' as Parameters<typeof ta>[0])}</a
               >
             </div>
             <div>

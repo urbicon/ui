@@ -1612,7 +1612,7 @@
         >slotClasses</code
       >, and
       <code class="bg-surface-elevated rounded-modify px-1.5 py-0.5 font-mono text-xs">mint</code>
-      micro-interactions. AI-native with MCP server and per-component
+      micro-interactions. AI-native with the urbicon CLI and per-component
       <code class="bg-surface-elevated rounded-modify px-1.5 py-0.5 font-mono text-xs"
         >llms.txt</code
       >.

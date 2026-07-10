@@ -131,12 +131,12 @@ export default {
     warning: 'Warning'
   },
   chrome: {
+    aiDx: 'AI & DX',
     appTitle: 'Urbicon UI',
     changelog: 'Changelog',
     footerNav: 'Footer navigation',
     footerTagline: 'Svelte 5 + Tailwind 4',
     imprint: 'Imprint',
-    mcpServer: 'MCP server',
     openNavMenu: 'Open navigation menu',
     pageNavigation: 'Page navigation',
     pages: 'Pages',

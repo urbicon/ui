@@ -4,40 +4,29 @@
   import { Badge, Card, buttonVariants } from '@urbicon-ui/blocks';
   import { CodeExample } from '@urbicon-ui/docs';
 
-  const mcpSetupExample = `// .cursor/mcp.json or claude_desktop_config.json
-{
-  "mcpServers": {
-    "urbicon-ui": {
-      "command": "bunx",
-      "args": ["--bun", "@urbicon-ui/mcp-server"]
-    }
-  }
-}`;
+  const cliSetupExample = `# One dev-dependency wires your agent into the design system:
+bun add -d @urbicon-ui/design
 
-  const mcpToolsExample = `// 10 tools via MCP. Discovery & generation:
+# Insert the agent context block (AGENTS.md), scaffold design.manifest.md,
+# and optionally wire the edit-time hook + CI gate:
+bunx urbicon init --hook --ci`;
 
-find_components({ query: "date input", tags: ["form"] })
-// → Fuzzy search with scoring across all components
+  const cliToolsExample = `# Knowledge — version-matched to the library you installed:
 
-get_component({ slug: "date-picker", section: "examples" })
-// → Per-section docs: overview, examples, variants, api, slots
+urbicon find "date input"          # fuzzy catalog search
+urbicon get-component date-picker  # real API: props, variants, examples
+urbicon recipe login               # production-ready Svelte 5 recipes
+urbicon icons calendar             # icon discovery
+urbicon pattern dashboard          # composition patterns per page archetype
+urbicon principles --topic theming # design heuristics + paradigm profiles
+urbicon css-reference intents      # the token truth: naming, dark mode, overrides
 
-get_recipe({ scenario: "login" })
-// → Production-ready Svelte 5 skeleton (+ its Layer-4 pattern)
+# The closed design loop — generate → validate → judge:
 
-suggest_implementation({ description: "user settings page" })
-// → AI-assisted scaffold with imports, variants, and tips
-
-// The closed design loop — generate → validate → judge:
-
-validate_design({ code })
-// → Lint tokens, dark:/focus:, z-index, hallucinated classes; 0–100 score
-
-get_design_principles({ as: "rubric" })
-// → 8-criterion scoring rubric to judge a generated UI
-
-// Project memory (design.manifest.md) is maintained locally by the urbicon CLI,
-// not via remote tools — a stateless server can't reach your repo.`;
+urbicon validate src/              # lint tokens, dark:/focus:, z-index; 0–100 scores
+urbicon principles --rubric        # 8-criterion rubric to judge a generated UI
+urbicon context                    # read the project's design memory
+urbicon record-decision --title …  # write a decision the next session will see`;
 
   const llmsTxtExample = `# llms.txt (quick reference)
 # llms-full.txt (complete API for every component)
@@ -63,12 +52,12 @@ let { variant, intent } = $props();`;
 
 <SeoMeta
   title="AI & Developer Experience"
-  description="AI-native developer experience: MCP server with 10 tools and 10 design prompts, per-component llms.txt, .cursorrules. Built for Claude, Cursor, and AI-assisted workflows."
+  description="AI-native developer experience: the urbicon CLI puts version-matched design knowledge, a design linter and project memory next to your agent — plus per-component llms.txt and .cursorrules. Built for Claude, Cursor, and AI-assisted workflows."
 />
 
 <div class="mx-auto max-w-4xl px-6 pt-12">
   <div class="flex flex-wrap gap-2">
-    <Badge variant="soft" intent="primary">MCP Server</Badge>
+    <Badge variant="soft" intent="primary">urbicon CLI</Badge>
     <Badge variant="soft" intent="secondary">llms.txt</Badge>
     <Badge variant="soft" intent="neutral">.cursorrules</Badge>
   </div>
@@ -80,56 +69,64 @@ let { variant, intent } = $props();`;
   <div class="mx-auto max-w-4xl px-6">
     <h1 class="text-text-primary text-4xl font-bold">AI & Developer Experience</h1>
     <p class="text-text-secondary mt-4 text-xl">
-      Urbicon UI is built for AI-assisted development. Every component is discoverable, documented,
-      and scaffold-ready for Claude, Cursor, Copilot, and any MCP-compatible tool.
+      Urbicon UI is built for AI-assisted development. The design system's knowledge, linter, and
+      memory install with the library — version-matched, offline, and enforceable — so Claude,
+      Cursor, Copilot and friends compose from the system instead of guessing.
     </p>
   </div>
 </div>
 
 <div class="mx-auto max-w-4xl px-6 pb-12 pt-10">
-  <!-- MCP Server -->
+  <!-- urbicon CLI -->
   <section class="mb-12">
-    <h2 class="text-text-primary mb-2 text-2xl font-bold">MCP Server</h2>
+    <h2 class="text-text-primary mb-2 text-2xl font-bold">The urbicon CLI</h2>
     <p class="text-text-secondary mb-6">
-      The Model Context Protocol server exposes 10 read-only tools, 10 design prompts and 7 guide
-      resources. Connect it to your IDE or AI assistant for real-time component discovery, code
-      generation, and a closed design loop: generate UI, lint it with <code
-        class="bg-surface-elevated rounded px-1.5 py-0.5 font-mono text-xs">validate_design</code
-      >, judge it against a scoring rubric, and keep design intent across sessions in a
+      One dev-dependency, <code class="bg-surface-elevated rounded px-1.5 py-0.5 font-mono text-xs"
+        >@urbicon-ui/design</code
+      >, gives your agent the full design surface: component discovery, recipes, patterns,
+      principles and the token reference — all pinned to the library version you installed. The same
+      package closes the loop: generated markup is linted by
+      <code class="bg-surface-elevated rounded px-1.5 py-0.5 font-mono text-xs"
+        >urbicon validate</code
+      >
+      (as an edit-time hook and a CI gate), judged against a scoring rubric, and design intent survives
+      sessions in a
       <code class="bg-surface-elevated rounded px-1.5 py-0.5 font-mono text-xs"
         >design.manifest.md</code
-      >, maintained locally by the
-      <code class="bg-surface-elevated rounded px-1.5 py-0.5 font-mono text-xs">urbicon</code> CLI.
+      > in your repo.
     </p>
 
-    <CodeExample title="Setup" code={mcpSetupExample} language="json" preview={false} />
+    <CodeExample title="Setup" code={cliSetupExample} language="bash" preview={false} />
 
     <div class="mt-6">
       <CodeExample
-        title="Available Tools"
-        code={mcpToolsExample}
-        language="typescript"
+        title="Available Commands"
+        code={cliToolsExample}
+        language="bash"
         preview={false}
       />
     </div>
 
     <div class="mt-6 grid grid-cols-1 gap-4 md:grid-cols-2">
       <Card variant="elevated" padding="md">
-        <h3 class="text-text-primary mb-1 font-semibold">10 Tools</h3>
+        <h3 class="text-text-primary mb-1 font-semibold">Version-matched knowledge</h3>
         <p class="text-text-secondary text-sm">
-          <span class="text-text-tertiary">Discover:</span> find_components, get_component,
-          find_icons · <span class="text-text-tertiary">Generate:</span> get_recipe,
-          suggest_implementation, get_implementation_checklist, get_css_reference ·
-          <span class="text-text-tertiary">Design loop:</span> get_design_principles, get_pattern, validate_design
+          <span class="text-text-tertiary">Discover:</span> find, get-component, icons, recipe ·
+          <span class="text-text-tertiary">Design knowledge:</span> pattern, principles,
+          css-reference · What the CLI answers is true of the code in your
+          <code class="bg-surface-subtle rounded px-1 py-0.5 font-mono text-xs">node_modules</code>
+          — not of whatever shipped last week.
         </p>
       </Card>
       <Card variant="outlined" padding="md">
-        <h3 class="text-text-primary mb-1 font-semibold">10 Prompts · 7 Guide Resources</h3>
+        <h3 class="text-text-primary mb-1 font-semibold">10 design verbs · enforced loop</h3>
         <p class="text-text-secondary text-sm">
-          <span class="text-text-tertiary">Prompts:</span> the design-verb table — onboard, adopt,
-          compose, redesign, polish, critique, fix, retheme, audit, migrate (each a recipe over the
-          design loop) · <span class="text-text-tertiary">Guides:</span> API grammar, component families,
-          design tokens, design quality, customization, style presets, auth setup
+          <span class="text-text-tertiary">Verbs:</span> onboard, adopt, compose, redesign, polish,
+          critique, fix, retheme, audit, migrate — each a recipe over the design loop (<code
+            class="bg-surface-subtle rounded px-1 py-0.5 font-mono text-xs"
+            >urbicon verb &lt;name&gt;</code
+          >) · <span class="text-text-tertiary">Enforcement:</span> PostToolUse hook + CI gate via
+          <code class="bg-surface-subtle rounded px-1 py-0.5 font-mono text-xs">urbicon init</code>.
         </p>
       </Card>
     </div>
@@ -141,8 +138,11 @@ let { variant, intent } = $props();`;
     <p class="text-text-secondary mb-6">
       Every component has its own <code
         class="bg-surface-elevated rounded px-1.5 py-0.5 font-mono text-xs">llm.txt</code
-      > file with structured documentation. The MCP server can query individual sections to minimize token
-      usage.
+      >
+      file with structured documentation. Agents can fetch it from the docs site, and
+      <code class="bg-surface-elevated rounded px-1.5 py-0.5 font-mono text-xs"
+        >urbicon get-component --section</code
+      > serves the same sections locally to minimize token usage.
     </p>
 
     <CodeExample title="LLM Documentation" code={llmsTxtExample} language="bash" preview={false} />
@@ -184,7 +184,8 @@ let { variant, intent } = $props();`;
     <h2 class="text-text-primary mb-2 text-2xl font-bold">How It Works</h2>
     <p class="text-text-secondary mb-6">
       JSDoc annotations in component source files are the single source of truth. One edit
-      automatically updates the documentation site, llms.txt files, and MCP catalog.
+      automatically updates the documentation site, llms.txt files, and the version-pinned knowledge
+      bundle the CLI reads.
     </p>
 
     <div class="border-border-subtle bg-surface-elevated overflow-hidden rounded-xl border">
@@ -210,9 +211,9 @@ let { variant, intent } = $props();`;
             </div>
             <div>
               <span class="text-text-quaternary mx-2">&rarr;</span>
-              <span>MCP catalog assembler</span>
+              <span>content bundler</span>
               <span class="text-text-quaternary mx-2">&rarr;</span>
-              <span class="text-primary">component-catalog.json</span> (MCP server)
+              <span class="text-primary">@urbicon-ui/design-content</span> (the CLI's knowledge)
             </div>
           </div>
         </div>
