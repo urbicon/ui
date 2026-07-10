@@ -142,13 +142,20 @@
   $effect(() => {
     // Gated on `open` so no request fires in the background before the user
     // engages the field; opening (focus) searches with the current query.
-    if (!queryFn || !open) return;
+    if (!queryFn || !open) {
+      loading = false;
+      return;
+    }
     const q = query;
+    // Mark loading *synchronously*: a search is pending the moment the query
+    // changes, not only once the debounced fetch starts. Otherwise the empty
+    // `asyncOptions` would render the "no results" row for the whole debounce
+    // window before "loading" appears — the opposite of the truth.
+    loading = true;
     const timer = setTimeout(() => {
       inFlight?.abort();
       const controller = new AbortController();
       inFlight = controller;
-      loading = true;
       queryFn(q, controller.signal)
         .then((result) => {
           if (controller.signal.aborted) return;
@@ -164,7 +171,13 @@
           if (!controller.signal.aborted) loading = false;
         });
     }, debounceMs);
-    return () => clearTimeout(timer);
+    // Abort the in-flight request as well as clearing the timer, so a
+    // superseded / closed / unmounted search doesn't run to completion in the
+    // background — the whole point of threading the AbortSignal through.
+    return () => {
+      clearTimeout(timer);
+      inFlight?.abort();
+    };
   });
 
   const variantProps: ComboboxVariants = $derived({

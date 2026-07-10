@@ -171,7 +171,7 @@ export interface ComboboxProps<T extends SelectValue = string>
   unstyled?: boolean;
   /** Per-slot class overrides merged with tv() styles. Slots: base | label | requiredMark |
    *  inputWrapper | input | message | helper | listbox | option | optionActive | optionSelected |
-   *  group | groupLabel | noResults | clear | chevron */
+   *  group | groupLabel | loading | noResults | clear | chevron */
   slotClasses?: Partial<Record<ComboboxSlots, string>>;
   /**
    * Apply a named preset registered via `<BlocksProvider presets={{ Combobox: {...} }}>`.

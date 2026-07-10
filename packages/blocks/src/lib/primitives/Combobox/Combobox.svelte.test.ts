@@ -280,6 +280,27 @@ describe('Combobox (async queryFn)', () => {
     expect(screen.getByRole('option', { name: 'X', hidden: true })).toBeTruthy();
   });
 
+  it('shows loading immediately on open, not the no-results row, during the debounce window', async () => {
+    const user = userEvent.setup();
+    const d = deferred<Opt[]>();
+    const queryFn = vi.fn(() => d.promise);
+    // A long debounce makes the window observable: loading must be true the
+    // moment the field opens, before the fetch is even scheduled — not "no
+    // results" (asyncOptions is still []).
+    renderCombobox({
+      queryFn,
+      debounceMs: 500,
+      loadingText: 'Searching…',
+      noResultsText: 'Nothing'
+    });
+
+    await user.click(screen.getByRole('combobox'));
+    flushSync();
+
+    expect(screen.getByRole('status', { hidden: true }).textContent).toContain('Searching…');
+    expect(screen.queryByText('Nothing')).toBeNull();
+  });
+
   it('aborts a superseded request so the stale result is discarded', async () => {
     const user = userEvent.setup();
     const d1 = deferred<Opt[]>();
