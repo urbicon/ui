@@ -54,13 +54,24 @@ export const drawerVariants = tv({
       xl: {},
       full: {}
     },
+    // Semantic purpose. By default the Drawer paints no accent (symmetry with
+    // Dialog — intent is surfaced only as `data-intent` for consumer hooks).
+    // Each value additionally parks its colour in `--drawer-accent`, consumed
+    // *only* when `accentEdge` is on (see the accentEdge×placement compounds).
     intent: {
-      neutral: {},
-      primary: {},
-      secondary: {},
-      success: {},
-      warning: {},
-      danger: {}
+      neutral: { panel: '[--drawer-accent:var(--color-border-strong)]' },
+      primary: { panel: '[--drawer-accent:var(--color-primary)]' },
+      secondary: { panel: '[--drawer-accent:var(--color-secondary)]' },
+      success: { panel: '[--drawer-accent:var(--color-success)]' },
+      warning: { panel: '[--drawer-accent:var(--color-warning)]' },
+      danger: { panel: '[--drawer-accent:var(--color-danger)]' }
+    },
+    // Opt-in edge accent (DRW-1 completion). Off by default so the Drawer keeps
+    // Dialog symmetry; on, the docked (viewport-facing) edge is thickened to 2px
+    // and tinted in the intent colour via the placement compounds below.
+    accentEdge: {
+      true: {},
+      false: {}
     }
   },
   compoundVariants: [
@@ -85,14 +96,38 @@ export const drawerVariants = tv({
     { placement: 'bottom', size: 'md', class: { panel: 'h-72' } },
     { placement: 'bottom', size: 'lg', class: { panel: 'h-96' } },
     { placement: 'bottom', size: 'xl', class: { panel: 'h-[32rem]' } },
-    { placement: 'bottom', size: 'full', class: { panel: 'h-full' } }
-    // Intent accent borders removed — for symmetry with Dialog.
-    // Intent is conveyed at the call site via icon + heading color.
+    { placement: 'bottom', size: 'full', class: { panel: 'h-full' } },
+    // Edge accent (opt-in via `accentEdge`). The tinted 2px border lands on the
+    // *inner* edge — the one facing the viewport — so it reads as a coloured seam
+    // between the drawer and the page, never a floating outline. Placement picks
+    // the physical side; the colour comes from `--drawer-accent` (intent axis).
+    // Default (no accentEdge) leaves the panel exactly as before — Dialog symmetry.
+    {
+      accentEdge: true,
+      placement: 'left',
+      class: { panel: 'border-r-2 [border-right-color:var(--drawer-accent)]' }
+    },
+    {
+      accentEdge: true,
+      placement: 'right',
+      class: { panel: 'border-l-2 [border-left-color:var(--drawer-accent)]' }
+    },
+    {
+      accentEdge: true,
+      placement: 'top',
+      class: { panel: 'border-b-2 [border-bottom-color:var(--drawer-accent)]' }
+    },
+    {
+      accentEdge: true,
+      placement: 'bottom',
+      class: { panel: 'border-t-2 [border-top-color:var(--drawer-accent)]' }
+    }
   ],
   defaultVariants: {
     placement: 'right',
     size: 'md',
-    intent: 'neutral'
+    intent: 'neutral',
+    accentEdge: false
   }
 });
 

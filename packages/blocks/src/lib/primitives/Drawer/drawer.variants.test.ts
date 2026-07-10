@@ -81,6 +81,41 @@ describe('drawerVariants', () => {
     expect(styles.footer()).toContain('border-border-hairline');
   });
 
+  it('parks the intent colour in --drawer-accent regardless of accentEdge', () => {
+    expect(drawerVariants({ intent: 'danger' }).panel()).toContain(
+      '[--drawer-accent:var(--color-danger)]'
+    );
+    expect(drawerVariants({ intent: 'primary' }).panel()).toContain(
+      '[--drawer-accent:var(--color-primary)]'
+    );
+  });
+
+  it('paints no accent edge by default', () => {
+    const panel = drawerVariants({ placement: 'right', intent: 'danger' }).panel();
+    // The docked edge keeps the hairline border-l-0 reset, no 2px tint.
+    expect(panel).not.toContain('border-l-2');
+    expect(panel).not.toContain('[border-left-color:var(--drawer-accent)]');
+  });
+
+  it('tints the docked (inner) edge when accentEdge is on', () => {
+    // left docks on the right, right on the left, top on the bottom, bottom on the top.
+    const left = drawerVariants({ placement: 'left', accentEdge: true }).panel();
+    expect(left).toContain('border-r-2');
+    expect(left).toContain('[border-right-color:var(--drawer-accent)]');
+
+    const right = drawerVariants({ placement: 'right', accentEdge: true }).panel();
+    expect(right).toContain('border-l-2');
+    expect(right).toContain('[border-left-color:var(--drawer-accent)]');
+
+    const top = drawerVariants({ placement: 'top', accentEdge: true }).panel();
+    expect(top).toContain('border-b-2');
+    expect(top).toContain('[border-bottom-color:var(--drawer-accent)]');
+
+    const bottom = drawerVariants({ placement: 'bottom', accentEdge: true }).panel();
+    expect(bottom).toContain('border-t-2');
+    expect(bottom).toContain('[border-top-color:var(--drawer-accent)]');
+  });
+
   it('never outputs dark: overrides', () => {
     const placements = ['left', 'right', 'top', 'bottom'] as const;
     for (const placement of placements) {

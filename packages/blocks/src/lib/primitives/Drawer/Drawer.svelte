@@ -23,6 +23,7 @@
     placement = 'right',
     size = 'md',
     intent = 'neutral',
+    accentEdge = false,
     onClose,
     hideCloseButton = false,
     closeOnBackdropClick = true,
@@ -65,7 +66,7 @@
   const bodyId = `drawer-body-${uid}`;
   const overlayId = `drawer-${uid}`;
 
-  const variantProps: DrawerVariants = $derived({ placement, size, intent });
+  const variantProps: DrawerVariants = $derived({ placement, size, intent, accentEdge });
   const styles = $derived(drawerVariants(variantProps));
   const slotClasses = $derived(
     resolveSlotClasses(blocksConfig, 'Drawer', preset, variantProps, slotClassesProp)
