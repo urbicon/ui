@@ -303,6 +303,26 @@ export interface MenuCustomSlots<TItem extends MenuItemType = MenuItemType> {
   customTrigger?: Snippet<[() => void, boolean, () => void]>;
 
   /**
+   * Turn the menu into a **context menu**: instead of a trigger button, the
+   * snippet you pass becomes a right-click target. A `contextmenu` (right-click
+   * or long-press) on it opens the menu at the cursor position — the native
+   * browser context menu is suppressed. Keyboard navigation, dismissal and
+   * item selection behave exactly as in the dropdown menu; on dismiss, focus
+   * returns to wherever it was. Mutually exclusive with `customTrigger`/the
+   * default trigger button (when set, no trigger button renders).
+   *
+   * @example
+   * ```svelte
+   * <Menu {items} contextTrigger>
+   *   {#snippet contextTrigger()}
+   *     <div class="rounded-modify border border-border-subtle p-8">Right-click me</div>
+   *   {/snippet}
+   * </Menu>
+   * ```
+   */
+  contextTrigger?: Snippet;
+
+  /**
    * Custom per-item content. **Render visible content only** — the outer
    * `role="menuitem"` button is provided by Menu and handles the click /
    * keyboard activation. Putting an interactive element (`<button>`, `<a>`)
