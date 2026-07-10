@@ -89,9 +89,16 @@ export const comboboxVariants = tv({
       }
     },
     size: {
-      sm: {
+      // Full xs–xl scale, mirroring Input's h-7…h-14 ladder (form-family
+      // symmetry: a dense form should not pair an xs Input with an sm Combobox).
+      xs: {
         // `pointer-coarse:text-base` floors the input to 16px on touch-primary
         // devices so iOS Safari doesn't auto-zoom (and never un-zoom) on focus.
+        input: 'h-7 px-2 pr-7 text-xs pointer-coarse:text-base',
+        option: 'px-2 py-1 text-xs min-h-[1.75rem]'
+      },
+      sm: {
+        // See `xs` — floor to 16px on touch to avoid iOS Safari focus-zoom.
         input: 'h-8 px-3 pr-8 text-sm pointer-coarse:text-base',
         option: 'px-2 py-1.5 text-sm min-h-[2rem]'
       },
@@ -102,6 +109,10 @@ export const comboboxVariants = tv({
       lg: {
         input: 'h-12 px-4 pr-10 text-lg',
         option: 'px-3 py-2.5 text-base min-h-[3rem]'
+      },
+      xl: {
+        input: 'h-14 px-6 pr-12 text-xl',
+        option: 'px-4 py-3 text-lg min-h-[3.5rem]'
       }
     },
     open: {

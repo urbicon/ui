@@ -30,14 +30,18 @@ describe('selectVariants', () => {
     expect(trigger).toContain('focus-visible:ring-0');
   });
 
-  it('differentiates trigger sizes', () => {
+  it('differentiates trigger sizes across the full xs-xl scale (form-family symmetry)', () => {
+    const xs = selectVariants({ size: 'xs' }).trigger();
     const sm = selectVariants({ size: 'sm' }).trigger();
     const md = selectVariants({ size: 'md' }).trigger();
     const lg = selectVariants({ size: 'lg' }).trigger();
+    const xl = selectVariants({ size: 'xl' }).trigger();
 
+    expect(xs).toContain('h-7');
     expect(sm).toContain('h-8');
     expect(md).toContain('h-10');
     expect(lg).toContain('h-12');
+    expect(xl).toContain('h-14');
   });
 
   it('rotates chevron when open', () => {
@@ -110,11 +114,13 @@ describe('selectVariants', () => {
   });
 
   it('exposes a clear slot with focus-visible ring and right offset per size', () => {
+    const xs = selectVariants({ size: 'xs' }).clear();
     const sm = selectVariants({ size: 'sm' }).clear();
     const md = selectVariants({ size: 'md' }).clear();
     const lg = selectVariants({ size: 'lg' }).clear();
+    const xl = selectVariants({ size: 'xl' }).clear();
 
-    for (const cls of [sm, md, lg]) {
+    for (const cls of [xs, sm, md, lg, xl]) {
       expect(cls).toContain('absolute');
       expect(cls).toContain('focus-visible:');
       expect(cls).not.toMatch(/(?<![a-z-])focus:/);

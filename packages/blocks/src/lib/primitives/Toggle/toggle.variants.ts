@@ -87,6 +87,11 @@ export const toggleVariants = tv({
         control: 'opacity-50 cursor-not-allowed pointer-events-none'
       }
     },
+    error: {
+      true: {
+        message: 'text-danger'
+      }
+    },
     withBorder: {
       true: {},
       false: {}
@@ -157,6 +162,20 @@ export const toggleVariants = tv({
       class: { track: 'bg-neutral border-neutral' }
     },
 
+    // ── Error state: danger boundary on the unchecked track (Switch-Pill) ──
+    // Mirrors Checkbox ("error overrides unchecked border"): the off state
+    // carries the danger mark, the on state keeps its intent colour — an
+    // error on a boolean control usually means "must be switched on".
+    // The dot-appearance twin lives at the END of the compound list so it
+    // folds over the dot-unchecked `border-border-default` (order is
+    // semantic — later compounds win conflicting buckets).
+    {
+      appearance: 'default',
+      error: true,
+      checked: false,
+      class: { track: 'border-danger peer-focus-visible:ring-danger/40' }
+    },
+
     // ── Thumb translation per size when checked (Switch-Pill only) ──
     { appearance: 'default', checked: true, size: 'xs', class: { thumb: 'translate-x-4' } },
     { appearance: 'default', checked: true, size: 'sm', class: { thumb: 'translate-x-5' } },
@@ -217,6 +236,14 @@ export const toggleVariants = tv({
       checked: true,
       intent: 'neutral',
       class: { track: 'border-neutral bg-neutral' }
+    },
+
+    // ── Error state, dot appearance (must fold over dot-unchecked border) ──
+    {
+      appearance: 'dot',
+      error: true,
+      checked: false,
+      class: { track: 'border-danger' }
     }
   ],
   defaultVariants: {
@@ -226,6 +253,7 @@ export const toggleVariants = tv({
     appearance: 'default',
     checked: false,
     disabled: false,
+    error: false,
     withBorder: false
   }
 });

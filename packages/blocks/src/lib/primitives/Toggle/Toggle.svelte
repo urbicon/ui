@@ -11,6 +11,7 @@
     checked = $bindable(false),
     label,
     helper,
+    error,
     tier,
     size = 'md',
     intent = 'primary',
@@ -36,6 +37,7 @@
   const ff = useFormField(() => ({
     fieldId: id,
     helper,
+    error,
     required,
     disabled
   }));
@@ -61,6 +63,7 @@
     appearance,
     checked,
     disabled,
+    error: !!error,
     withBorder
   });
 
@@ -111,6 +114,7 @@
       aria-checked={checked}
       aria-label={label ? undefined : bt('accessibility.toggle') || 'Toggle'}
       aria-describedby={ff.describedBy}
+      aria-invalid={ff.invalid ? 'true' : undefined}
       onchange={handleChange}
       {...restProps}
     />
@@ -135,7 +139,17 @@
     {/if}
   </label>
 
-  {#if ff.helperId}
+  {#if ff.errorId}
+    <div
+      id={ff.errorId}
+      class={unstyled
+        ? (slotClasses?.message ?? '')
+        : styles.message({ class: slotClasses?.message })}
+      role="alert"
+    >
+      {error}
+    </div>
+  {:else if ff.helperId}
     <div
       id={ff.helperId}
       class={unstyled

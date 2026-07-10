@@ -113,4 +113,31 @@ describe('Toggle (component interaction)', () => {
     expect(screen.getByRole('switch')).toBeTruthy();
     expect(screen.getByRole('switch').getAttribute('aria-label')).toBeTruthy();
   });
+
+  it('error replaces helper, announces via role="alert", and flags aria-invalid', () => {
+    // Form-family symmetry (P1): Toggle gets the same error contract as its
+    // boolean-control sibling Checkbox — error-over-helper exclusivity plus
+    // the aria-invalid + aria-describedby wiring from useFormField.
+    renderToggle({
+      label: 'Accept terms',
+      helper: 'Required before checkout',
+      error: 'You must accept the terms'
+    });
+
+    const el = toggle('Accept terms');
+    expect(el.getAttribute('aria-invalid')).toBe('true');
+    expect(screen.queryByText('Required before checkout')).toBeNull();
+    const alert = screen.getByRole('alert');
+    expect(alert.textContent).toContain('You must accept the terms');
+    expect(el.getAttribute('aria-describedby')).toBe(alert.id);
+  });
+
+  it('helper shows without error, with no aria-invalid', () => {
+    renderToggle({ label: 'Accept terms', helper: 'Required before checkout' });
+
+    const el = toggle('Accept terms');
+    expect(el.getAttribute('aria-invalid')).toBeNull();
+    expect(screen.getByText('Required before checkout')).toBeTruthy();
+    expect(screen.queryByRole('alert')).toBeNull();
+  });
 });

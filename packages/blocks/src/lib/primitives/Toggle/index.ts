@@ -26,7 +26,7 @@ import type { ToggleSlots, ToggleVariants } from './toggle.variants';
  * ```
  */
 export interface ToggleProps
-  extends Omit<ToggleVariants, 'checked'>,
+  extends Omit<ToggleVariants, 'checked' | 'error'>,
     Omit<HTMLInputAttributes, 'type' | 'size' | 'checked' | 'class' | 'children'> {
   /** Current on/off state. Supports two-way binding via `bind:checked`. */
   checked?: boolean;
@@ -34,8 +34,15 @@ export interface ToggleProps
   /** Text label displayed to the right of the toggle track. */
   label?: string;
 
-  /** Hint text shown below the control. Useful for explaining side-effects of the toggle. */
+  /** Helper text shown below the control. Hidden when `error` is set. Useful for explaining side-effects of the toggle. */
   helper?: string;
+
+  /**
+   * Error message shown below the control. Replaces `helper`, flags the
+   * hidden input `aria-invalid`, and marks the unchecked track with the
+   * danger colour — e.g. for a consent toggle that must be switched on.
+   */
+  error?: string;
 
   /** Prevent interaction and dim the control. */
   disabled?: boolean;

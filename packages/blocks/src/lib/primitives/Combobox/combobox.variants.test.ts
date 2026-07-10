@@ -35,7 +35,13 @@ describe('comboboxVariants', () => {
     expect(styles.input()).not.toMatch(/\bfocus:/);
   });
 
-  it('applies size classes', () => {
+  it('applies size classes across the full xs-xl scale (form-family symmetry with Input)', () => {
+    const xs = comboboxVariants({ size: 'xs' });
+    expect(xs.input()).toContain('h-7');
+    expect(xs.input()).toContain('text-xs');
+    // iOS focus-zoom floor applies to the sub-16px sizes.
+    expect(xs.input()).toContain('pointer-coarse:text-base');
+
     const sm = comboboxVariants({ size: 'sm' });
     expect(sm.input()).toContain('h-8');
     expect(sm.input()).toContain('text-sm');
@@ -43,6 +49,10 @@ describe('comboboxVariants', () => {
     const lg = comboboxVariants({ size: 'lg' });
     expect(lg.input()).toContain('h-12');
     expect(lg.input()).toContain('text-lg');
+
+    const xl = comboboxVariants({ size: 'xl' });
+    expect(xl.input()).toContain('h-14');
+    expect(xl.input()).toContain('text-xl');
   });
 
   it('rotates chevron when open', () => {
@@ -88,7 +98,7 @@ describe('comboboxVariants', () => {
   });
 
   it('never outputs dark: overrides', () => {
-    const sizes = ['sm', 'md', 'lg'] as const;
+    const sizes = ['xs', 'sm', 'md', 'lg', 'xl'] as const;
     for (const size of sizes) {
       const styles = comboboxVariants({ size });
       expect(styles.input()).not.toMatch(/\bdark:/);

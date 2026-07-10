@@ -40,11 +40,14 @@ export const textareaVariants = tv({
       }
     },
     size: {
+      // Full xs–xl scale (form-family symmetry with Input's ladder).
       // `pointer-coarse:text-base` floors the font to 16px on touch so iOS
-      // Safari doesn't auto-zoom the field on focus. Desktop keeps 14px.
+      // Safari doesn't auto-zoom the field on focus. Desktop keeps 12/14px.
+      xs: { base: 'px-2 py-1.5 text-xs pointer-coarse:text-base min-h-[4rem]' },
       sm: { base: 'px-3 py-2 text-sm pointer-coarse:text-base min-h-[5rem]' },
       md: { base: 'px-4 py-3 text-base min-h-[7rem]' },
-      lg: { base: 'px-6 py-4 text-lg min-h-[9rem]' }
+      lg: { base: 'px-6 py-4 text-lg min-h-[9rem]' },
+      xl: { base: 'px-8 py-5 text-xl min-h-[11rem]' }
     },
     // Message colour is owned by messageType/error (declared below) — an
     // intent-level message tone could never win the fold and shipped

@@ -119,6 +119,26 @@ describe('toggleVariants', () => {
     }
   });
 
+  describe('error', () => {
+    it('paints the message danger and marks the unchecked track (mirrors Checkbox)', () => {
+      const styles = toggleVariants({ error: true, checked: false });
+      expect(styles.message()).toContain('text-danger');
+      expect(styles.track()).toContain('border-danger');
+      expect(styles.track()).toContain('peer-focus-visible:ring-danger/40');
+    });
+
+    it('keeps the intent colour on the checked track (error marks only the off state)', () => {
+      const styles = toggleVariants({ error: true, checked: true, intent: 'primary' });
+      expect(styles.track()).toContain('bg-primary');
+      expect(styles.track()).not.toContain('border-danger');
+    });
+
+    it('dot appearance gets the danger outline when unchecked', () => {
+      const styles = toggleVariants({ appearance: 'dot', error: true, checked: false });
+      expect(styles.track()).toContain('border-danger');
+    });
+  });
+
   describe('tier', () => {
     it('defaults to commit (Pill switch)', () => {
       const styles = toggleVariants({});

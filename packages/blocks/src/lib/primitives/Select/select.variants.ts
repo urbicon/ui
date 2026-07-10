@@ -86,6 +86,16 @@ export const selectVariants = tv({
       }
     },
     size: {
+      // Full xs–xl scale, mirroring Input's h-7…h-14 ladder (form-family
+      // symmetry: a dense form should not pair an xs Input with an sm Select).
+      xs: {
+        trigger: 'h-7 pl-2 pr-7 text-xs gap-1.5',
+        chevron: 'w-3 h-3',
+        clear: 'right-1.5 p-0.5 [&_svg]:w-3 [&_svg]:h-3',
+        option: 'py-1 text-xs min-h-[1.75rem]',
+        optionCheck: 'w-3 h-3',
+        optionCheckbox: 'w-3 h-3 [&_svg]:w-2 [&_svg]:h-2'
+      },
       sm: {
         trigger: 'h-8 pl-3 pr-8 text-sm gap-2',
         chevron: 'w-3.5 h-3.5',
@@ -109,6 +119,14 @@ export const selectVariants = tv({
         option: 'py-2.5 text-base min-h-[3rem]',
         optionCheck: 'w-5 h-5',
         optionCheckbox: 'w-[18px] h-[18px] [&_svg]:w-3.5 [&_svg]:h-3.5'
+      },
+      xl: {
+        trigger: 'h-14 pl-6 pr-14 text-xl gap-3',
+        chevron: 'w-6 h-6',
+        clear: 'right-5 p-1 [&_svg]:w-6 [&_svg]:h-6',
+        option: 'py-3 text-lg min-h-[3.5rem]',
+        optionCheck: 'w-6 h-6',
+        optionCheckbox: 'w-5 h-5 [&_svg]:w-4 [&_svg]:h-4'
       }
     },
     open: {

@@ -29,14 +29,20 @@ describe('textareaVariants', () => {
     expect(base).toContain('focus-visible:ring-0');
   });
 
-  it('applies size classes correctly', () => {
+  it('applies size classes correctly across the full xs-xl scale', () => {
+    const xs = textareaVariants({ size: 'xs' }).base();
     const sm = textareaVariants({ size: 'sm' }).base();
     const md = textareaVariants({ size: 'md' }).base();
     const lg = textareaVariants({ size: 'lg' }).base();
+    const xl = textareaVariants({ size: 'xl' }).base();
 
+    expect(xs).toContain('text-xs');
+    // iOS focus-zoom floor on the sub-16px sizes.
+    expect(xs).toContain('pointer-coarse:text-base');
     expect(sm).toContain('text-sm');
     expect(md).toContain('text-base');
     expect(lg).toContain('text-lg');
+    expect(xl).toContain('text-xl');
 
     expect(sm).toContain('min-h-[5rem]');
     expect(md).toContain('min-h-[7rem]');
