@@ -2,6 +2,20 @@ import { describe, expect, it } from 'vitest';
 import type { Column, Filter } from '$lib/types/tableTypes';
 import type { SummaryConfig } from '../TableStore.svelte';
 import type { TableState } from './types';
+import { useColumnOrder } from './useColumnOrder.svelte.js';
+import { useColumnVisibility } from './useColumnVisibility.svelte.js';
+import { useExpansion } from './useExpansion.svelte.js';
+import { useFiltering } from './useFiltering.svelte.js';
+import { useFocusManagement } from './useFocusManagement.svelte.js';
+import { useGrouping } from './useGrouping.svelte.js';
+import { useLiveUpdates } from './useLiveUpdates.svelte.js';
+import { usePagination } from './usePagination.svelte.js';
+import { usePersistence } from './usePersistence.svelte.js';
+import { useRemoteData } from './useRemoteData.svelte.js';
+import { useSearch } from './useSearch.svelte.js';
+import { useSelection } from './useSelection.svelte.js';
+import { useSorting } from './useSorting.svelte.js';
+import { useSummary } from './useSummary.svelte.js';
 
 // Concern tests for pure logic (non-reactive parts).
 // Reactive $derived chains are tested indirectly via the existing TableStore tests.
@@ -12,8 +26,7 @@ describe('useSearch', () => {
   // Since $state requires Svelte runtime, we test the contract:
   // setSearchTerm(term) should update searchTerm and reset page.
 
-  it('contract: setSearchTerm updates term and resets page', async () => {
-    const { useSearch } = await import('./useSearch.svelte.js');
+  it('contract: setSearchTerm updates term and resets page', () => {
     const state = {
       searchTerm: '',
       showAdvancedSearch: false,
@@ -27,8 +40,7 @@ describe('useSearch', () => {
     expect(state.currentPage).toBe(1);
   });
 
-  it('contract: toggleAdvancedSearch flips state', async () => {
-    const { useSearch } = await import('./useSearch.svelte.js');
+  it('contract: toggleAdvancedSearch flips state', () => {
     const state = {
       searchTerm: '',
       showAdvancedSearch: false,
@@ -44,8 +56,7 @@ describe('useSearch', () => {
 });
 
 describe('useExpansion', () => {
-  it('contract: toggleExpand in single mode', async () => {
-    const { useExpansion } = await import('./useExpansion.svelte.js');
+  it('contract: toggleExpand in single mode', () => {
     const state = {
       multiExpand: false,
       expandedItemId: null,
@@ -61,8 +72,7 @@ describe('useExpansion', () => {
     expect(state.expandedItemId).toBe(null);
   });
 
-  it('contract: toggleExpand in multi mode', async () => {
-    const { useExpansion } = await import('./useExpansion.svelte.js');
+  it('contract: toggleExpand in multi mode', () => {
     const state = {
       multiExpand: true,
       expandedItemId: null,
@@ -83,9 +93,7 @@ describe('useExpansion', () => {
     expect(state.expandedItemIds.has('row-2')).toBe(true);
   });
 
-  it('contract: isItemExpanded reflects state', async () => {
-    const { useExpansion } = await import('./useExpansion.svelte.js');
-
+  it('contract: isItemExpanded reflects state', () => {
     const singleState = {
       multiExpand: false,
       expandedItemId: 'row-1',
@@ -108,8 +116,7 @@ describe('useExpansion', () => {
 });
 
 describe('useSorting', () => {
-  it('contract: handleSort cycles through asc → desc → off', async () => {
-    const { useSorting } = await import('./useSorting.svelte.js');
+  it('contract: handleSort cycles through asc → desc → off', () => {
     const state = {
       sortColumn: '',
       sortDirection: 'asc' as 'asc' | 'desc'
@@ -133,8 +140,7 @@ describe('useSorting', () => {
     expect(state.sortDirection).toBe('asc');
   });
 
-  it('contract: clicking a different column resets to asc', async () => {
-    const { useSorting } = await import('./useSorting.svelte.js');
+  it('contract: clicking a different column resets to asc', () => {
     const state = {
       sortColumn: 'name',
       sortDirection: 'desc' as 'asc' | 'desc'
@@ -149,8 +155,7 @@ describe('useSorting', () => {
 });
 
 describe('useGrouping', () => {
-  it('contract: setGroupByKey resets collapse state and page', async () => {
-    const { useGrouping } = await import('./useGrouping.svelte.js');
+  it('contract: setGroupByKey resets collapse state and page', () => {
     const state = {
       groupByKey: null as string | null,
       collapsedGroups: new Set(['Engineering']),
@@ -168,8 +173,7 @@ describe('useGrouping', () => {
     expect(state.currentPage).toBe(1);
   });
 
-  it('contract: setGroupByKey(null) clears grouping', async () => {
-    const { useGrouping } = await import('./useGrouping.svelte.js');
+  it('contract: setGroupByKey(null) clears grouping', () => {
     const state = {
       groupByKey: 'department' as string | null,
       collapsedGroups: new Set<string>(),
@@ -202,8 +206,7 @@ describe('derived ops use the accessor (function or string)', () => {
     { accessor: 'tier', title: 'Tier' }
   ];
 
-  it('search matches a function accessor', async () => {
-    const { useFiltering } = await import('./useFiltering.svelte.js');
+  it('search matches a function accessor', () => {
     const state = {
       mode: 'client',
       items,
@@ -218,8 +221,7 @@ describe('derived ops use the accessor (function or string)', () => {
     expect((filtering.filteredItems[0] as Row).id).toBe(2);
   });
 
-  it('sort uses a function accessor', async () => {
-    const { useSorting } = await import('./useSorting.svelte.js');
+  it('sort uses a function accessor', () => {
     const state = {
       mode: 'client',
       columns,
@@ -231,8 +233,7 @@ describe('derived ops use the accessor (function or string)', () => {
     expect(sorting.sortedItems.map((r) => (r as Row).id)).toEqual([1, 2, 3]);
   });
 
-  it('group buckets rows by a function-accessor value', async () => {
-    const { useGrouping } = await import('./useGrouping.svelte.js');
+  it('group buckets rows by a function-accessor value', () => {
     const state = {
       mode: 'client',
       columns,
@@ -247,8 +248,7 @@ describe('derived ops use the accessor (function or string)', () => {
     expect(Object.keys(grouping.grouped).sort()).toEqual(['Alice', 'Bob', 'Charlie']);
   });
 
-  it('synthetic-only sort id leaves order untouched (no scrambling)', async () => {
-    const { useSorting } = await import('./useSorting.svelte.js');
+  it('synthetic-only sort id leaves order untouched (no scrambling)', () => {
     const syntheticCols: Column<Row>[] = [{ id: 'actions', title: '' }];
     const state = {
       mode: 'client',
@@ -263,8 +263,7 @@ describe('derived ops use the accessor (function or string)', () => {
 });
 
 describe('useFiltering', () => {
-  it('contract: addFilter adds to activeFilters and resets page', async () => {
-    const { useFiltering } = await import('./useFiltering.svelte.js');
+  it('contract: addFilter adds to activeFilters and resets page', () => {
     const state = {
       items: [],
       columns: [],
@@ -280,8 +279,7 @@ describe('useFiltering', () => {
     expect(state.currentPage).toBe(1);
   });
 
-  it('contract: removeFilter removes by index', async () => {
-    const { useFiltering } = await import('./useFiltering.svelte.js');
+  it('contract: removeFilter removes by index', () => {
     const state = {
       items: [],
       columns: [],
@@ -300,8 +298,7 @@ describe('useFiltering', () => {
     expect(state.activeFilters[0].column).toBe('age');
   });
 
-  it('contract: clearAllFilters empties filters', async () => {
-    const { useFiltering } = await import('./useFiltering.svelte.js');
+  it('contract: clearAllFilters empties filters', () => {
     const state = {
       items: [],
       columns: [],
@@ -317,8 +314,7 @@ describe('useFiltering', () => {
     expect(state.currentPage).toBe(1);
   });
 
-  it('contract: hasFilterForColumn returns correct results', async () => {
-    const { useFiltering } = await import('./useFiltering.svelte.js');
+  it('contract: hasFilterForColumn returns correct results', () => {
     const state = {
       items: [],
       columns: [],
@@ -337,8 +333,7 @@ describe('useFiltering', () => {
 });
 
 describe('useSummary', () => {
-  it('contract: getFormattedSummaryValue formats by type', async () => {
-    const { useSummary } = await import('./useSummary.svelte.js');
+  it('contract: getFormattedSummaryValue formats by type', () => {
     const state = {
       summaryConfigs: [
         { column: 'salary', type: 'sum' as const },
@@ -361,8 +356,7 @@ describe('useSummary', () => {
     expect(s.getFormattedSummaryValue('count', 42)).toBe('42');
   });
 
-  it('contract: getFormattedSummaryValue uses custom formatter', async () => {
-    const { useSummary } = await import('./useSummary.svelte.js');
+  it('contract: getFormattedSummaryValue uses custom formatter', () => {
     const state = {
       summaryConfigs: [
         { column: 'salary', type: 'sum' as const, formatter: (v: number) => `$${v.toFixed(2)}` }
@@ -380,8 +374,7 @@ describe('useSummary', () => {
     expect(s.getFormattedSummaryValue('salary', 50000)).toBe('$50000.00');
   });
 
-  it('contract: addSummaryConfig auto-enables summary', async () => {
-    const { useSummary } = await import('./useSummary.svelte.js');
+  it('contract: addSummaryConfig auto-enables summary', () => {
     const state = {
       summaryConfigs: [] as SummaryConfig[],
       showSummary: false,
@@ -399,8 +392,7 @@ describe('useSummary', () => {
     expect(state.summaryConfigs).toHaveLength(1);
   });
 
-  it('contract: removeSummaryConfig auto-disables when empty', async () => {
-    const { useSummary } = await import('./useSummary.svelte.js');
+  it('contract: removeSummaryConfig auto-disables when empty', () => {
     const state = {
       summaryConfigs: [{ column: 'salary', type: 'sum' as const }],
       showSummary: true,
@@ -420,16 +412,14 @@ describe('useSummary', () => {
 });
 
 describe('useFocusManagement', () => {
-  it('contract: initial focusedRowIndex is 0', async () => {
-    const { useFocusManagement } = await import('./useFocusManagement.svelte.js');
+  it('contract: initial focusedRowIndex is 0', () => {
     const state = {} as unknown as TableState;
     const focus = useFocusManagement(state, () => 5);
 
     expect(focus.focusedRowIndex).toBe(0);
   });
 
-  it('contract: moveFocus down increments index', async () => {
-    const { useFocusManagement } = await import('./useFocusManagement.svelte.js');
+  it('contract: moveFocus down increments index', () => {
     const state = {} as unknown as TableState;
     const focus = useFocusManagement(state, () => 5);
 
@@ -440,8 +430,7 @@ describe('useFocusManagement', () => {
     expect(focus.focusedRowIndex).toBe(2);
   });
 
-  it('contract: moveFocus up decrements index', async () => {
-    const { useFocusManagement } = await import('./useFocusManagement.svelte.js');
+  it('contract: moveFocus up decrements index', () => {
     const state = {} as unknown as TableState;
     const focus = useFocusManagement(state, () => 5);
 
@@ -450,8 +439,7 @@ describe('useFocusManagement', () => {
     expect(focus.focusedRowIndex).toBe(2);
   });
 
-  it('contract: moveFocus respects boundaries', async () => {
-    const { useFocusManagement } = await import('./useFocusManagement.svelte.js');
+  it('contract: moveFocus respects boundaries', () => {
     const state = {} as unknown as TableState;
     const focus = useFocusManagement(state, () => 3);
 
@@ -465,8 +453,7 @@ describe('useFocusManagement', () => {
     expect(focus.focusedRowIndex).toBe(2);
   });
 
-  it('contract: moveFocus first/last jumps to boundaries', async () => {
-    const { useFocusManagement } = await import('./useFocusManagement.svelte.js');
+  it('contract: moveFocus first/last jumps to boundaries', () => {
     const state = {} as unknown as TableState;
     const focus = useFocusManagement(state, () => 10);
 
@@ -477,8 +464,7 @@ describe('useFocusManagement', () => {
     expect(focus.focusedRowIndex).toBe(0);
   });
 
-  it('contract: resetFocus returns to 0', async () => {
-    const { useFocusManagement } = await import('./useFocusManagement.svelte.js');
+  it('contract: resetFocus returns to 0', () => {
     const state = {} as unknown as TableState;
     const focus = useFocusManagement(state, () => 5);
 
@@ -489,8 +475,7 @@ describe('useFocusManagement', () => {
     expect(focus.focusedRowIndex).toBe(0);
   });
 
-  it('contract: isFocusedRow checks correctly', async () => {
-    const { useFocusManagement } = await import('./useFocusManagement.svelte.js');
+  it('contract: isFocusedRow checks correctly', () => {
     const state = {} as unknown as TableState;
     const focus = useFocusManagement(state, () => 5);
 
@@ -500,8 +485,7 @@ describe('useFocusManagement', () => {
     expect(focus.isFocusedRow(4)).toBe(false);
   });
 
-  it('contract: setFocusedRow clamps to valid range', async () => {
-    const { useFocusManagement } = await import('./useFocusManagement.svelte.js');
+  it('contract: setFocusedRow clamps to valid range', () => {
     const state = {} as unknown as TableState;
     const focus = useFocusManagement(state, () => 3);
 
@@ -512,8 +496,7 @@ describe('useFocusManagement', () => {
     expect(focus.focusedRowIndex).toBe(0);
   });
 
-  it('contract: handles empty list gracefully', async () => {
-    const { useFocusManagement } = await import('./useFocusManagement.svelte.js');
+  it('contract: handles empty list gracefully', () => {
     const state = {} as unknown as TableState;
     const focus = useFocusManagement(state, () => 0);
 
@@ -543,8 +526,7 @@ describe('useRemoteData', () => {
     } as unknown as TableState;
   }
 
-  it('contract: query derives from state', async () => {
-    const { useRemoteData } = await import('./useRemoteData.svelte.js');
+  it('contract: query derives from state', () => {
     const state = makeServerState();
     const remote = useRemoteData(state);
 
@@ -558,8 +540,7 @@ describe('useRemoteData', () => {
     expect(q.groupByKey).toBeNull();
   });
 
-  it('contract: setServerResult updates items and totalItems', async () => {
-    const { useRemoteData } = await import('./useRemoteData.svelte.js');
+  it('contract: setServerResult updates items and totalItems', () => {
     const state = makeServerState();
     state.loading = true;
     const remote = useRemoteData(state);
@@ -578,8 +559,7 @@ describe('useRemoteData', () => {
     expect(state.error).toBeNull();
   });
 
-  it('contract: setServerError sets error and clears loading', async () => {
-    const { useRemoteData } = await import('./useRemoteData.svelte.js');
+  it('contract: setServerError sets error and clears loading', () => {
     const state = makeServerState();
     state.loading = true;
     const remote = useRemoteData(state);
@@ -590,8 +570,7 @@ describe('useRemoteData', () => {
     expect(state.loading).toBe(false);
   });
 
-  it('contract: setServerLoading sets loading state', async () => {
-    const { useRemoteData } = await import('./useRemoteData.svelte.js');
+  it('contract: setServerLoading sets loading state', () => {
     const state = makeServerState();
     const remote = useRemoteData(state);
 
@@ -599,8 +578,7 @@ describe('useRemoteData', () => {
     expect(state.loading).toBe(true);
   });
 
-  it('contract: queryKey is a JSON string for change detection', async () => {
-    const { useRemoteData } = await import('./useRemoteData.svelte.js');
+  it('contract: queryKey is a JSON string for change detection', () => {
     const state = makeServerState();
     const remote = useRemoteData(state);
 
@@ -611,8 +589,7 @@ describe('useRemoteData', () => {
     expect(parsed.sortColumn).toBe('name');
   });
 
-  it('contract: activeFilters in query are a copy (not a reference)', async () => {
-    const { useRemoteData } = await import('./useRemoteData.svelte.js');
+  it('contract: activeFilters in query are a copy (not a reference)', () => {
     const state = makeServerState();
     state.activeFilters = [{ column: 'name', operator: 'contains', value: 'A' }];
     const remote = useRemoteData(state);
@@ -624,8 +601,7 @@ describe('useRemoteData', () => {
 });
 
 describe('server mode: concern passthrough', () => {
-  it('useFiltering passes through items in server mode', async () => {
-    const { useFiltering } = await import('./useFiltering.svelte.js');
+  it('useFiltering passes through items in server mode', () => {
     const state = {
       mode: 'server',
       items: [
@@ -643,8 +619,7 @@ describe('server mode: concern passthrough', () => {
     expect(filtering.filteredItems).toHaveLength(2);
   });
 
-  it('useSorting passes through items in server mode', async () => {
-    const { useSorting } = await import('./useSorting.svelte.js');
+  it('useSorting passes through items in server mode', () => {
     const state = {
       mode: 'server',
       sortColumn: 'name',
@@ -661,8 +636,7 @@ describe('server mode: concern passthrough', () => {
     expect(sorting.sortedItems).toBe(items); // Same reference = no copy/sort
   });
 
-  it('usePagination uses serverTotalItems in server mode', async () => {
-    const { usePagination } = await import('./usePagination.svelte.js');
+  it('usePagination uses serverTotalItems in server mode', () => {
     const state = {
       mode: 'server',
       serverTotalItems: 500,
@@ -697,8 +671,7 @@ describe('useLiveUpdates', () => {
     } as unknown as TableState;
   }
 
-  it('contract: pushInsert adds item to pending', async () => {
-    const { useLiveUpdates } = await import('./useLiveUpdates.svelte.js');
+  it('contract: pushInsert adds item to pending', () => {
     const state = makeLiveState();
     const live = useLiveUpdates(state);
 
@@ -707,8 +680,7 @@ describe('useLiveUpdates', () => {
     expect(live.hasPending).toBe(true);
   });
 
-  it('contract: pushInsert deduplicates by id', async () => {
-    const { useLiveUpdates } = await import('./useLiveUpdates.svelte.js');
+  it('contract: pushInsert deduplicates by id', () => {
     const state = makeLiveState();
     const live = useLiveUpdates(state);
 
@@ -718,8 +690,7 @@ describe('useLiveUpdates', () => {
     expect(live.pendingInserts[0].name).toBe('Diana Updated');
   });
 
-  it('contract: pushUpdate adds to pending updates', async () => {
-    const { useLiveUpdates } = await import('./useLiveUpdates.svelte.js');
+  it('contract: pushUpdate adds to pending updates', () => {
     const state = makeLiveState();
     const live = useLiveUpdates(state);
 
@@ -727,8 +698,7 @@ describe('useLiveUpdates', () => {
     expect(live.counts.updates).toBe(1);
   });
 
-  it('contract: pushUpdate merges changes for same id', async () => {
-    const { useLiveUpdates } = await import('./useLiveUpdates.svelte.js');
+  it('contract: pushUpdate merges changes for same id', () => {
     const state = makeLiveState();
     const live = useLiveUpdates(state);
 
@@ -738,8 +708,7 @@ describe('useLiveUpdates', () => {
     expect(live.pendingUpdates[0].changes).toEqual({ name: 'Alice v2', age: 31 });
   });
 
-  it('contract: pushDelete adds to pending deletes', async () => {
-    const { useLiveUpdates } = await import('./useLiveUpdates.svelte.js');
+  it('contract: pushDelete adds to pending deletes', () => {
     const state = makeLiveState();
     const live = useLiveUpdates(state);
 
@@ -748,8 +717,7 @@ describe('useLiveUpdates', () => {
     expect(live.isPendingDelete(2)).toBe(true);
   });
 
-  it('contract: pushDelete of pending insert removes from both', async () => {
-    const { useLiveUpdates } = await import('./useLiveUpdates.svelte.js');
+  it('contract: pushDelete of pending insert removes from both', () => {
     const state = makeLiveState();
     const live = useLiveUpdates(state);
 
@@ -762,8 +730,7 @@ describe('useLiveUpdates', () => {
     expect(live.counts.deletes).toBe(0);
   });
 
-  it('contract: applyInserts merges into state.items', async () => {
-    const { useLiveUpdates } = await import('./useLiveUpdates.svelte.js');
+  it('contract: applyInserts merges into state.items', () => {
     const state = makeLiveState();
     const live = useLiveUpdates(state);
 
@@ -775,8 +742,7 @@ describe('useLiveUpdates', () => {
     expect(live.counts.inserts).toBe(0);
   });
 
-  it('contract: applyUpdates modifies existing items', async () => {
-    const { useLiveUpdates } = await import('./useLiveUpdates.svelte.js');
+  it('contract: applyUpdates modifies existing items', () => {
     const state = makeLiveState();
     const live = useLiveUpdates(state);
 
@@ -788,8 +754,7 @@ describe('useLiveUpdates', () => {
     expect(live.counts.updates).toBe(0);
   });
 
-  it('contract: applyDeletes removes items from state', async () => {
-    const { useLiveUpdates } = await import('./useLiveUpdates.svelte.js');
+  it('contract: applyDeletes removes items from state', () => {
     const state = makeLiveState();
     const live = useLiveUpdates(state);
 
@@ -801,8 +766,7 @@ describe('useLiveUpdates', () => {
     expect(live.counts.deletes).toBe(0);
   });
 
-  it('contract: applyDeletes cleans up selection', async () => {
-    const { useLiveUpdates } = await import('./useLiveUpdates.svelte.js');
+  it('contract: applyDeletes cleans up selection', () => {
     const state = makeLiveState();
     state.selectionMode = 'multi';
     state.selectedIds = new Set([1, 2, 3]);
@@ -816,8 +780,7 @@ describe('useLiveUpdates', () => {
     expect(state.selectedIds.has(3)).toBe(true);
   });
 
-  it('contract: applyAll applies all pending changes', async () => {
-    const { useLiveUpdates } = await import('./useLiveUpdates.svelte.js');
+  it('contract: applyAll applies all pending changes', () => {
     const state = makeLiveState();
     const live = useLiveUpdates(state);
 
@@ -834,8 +797,7 @@ describe('useLiveUpdates', () => {
     expect(live.hasPending).toBe(false);
   });
 
-  it('contract: dismissAll clears all pending without applying', async () => {
-    const { useLiveUpdates } = await import('./useLiveUpdates.svelte.js');
+  it('contract: dismissAll clears all pending without applying', () => {
     const state = makeLiveState();
     const live = useLiveUpdates(state);
 
@@ -850,8 +812,7 @@ describe('useLiveUpdates', () => {
     expect(state.items[0].name).toBe('Alice'); // Not updated
   });
 
-  it('contract: counts reflects all pending types', async () => {
-    const { useLiveUpdates } = await import('./useLiveUpdates.svelte.js');
+  it('contract: counts reflects all pending types', () => {
     const state = makeLiveState();
     const live = useLiveUpdates(state);
 
@@ -877,8 +838,7 @@ describe('useColumnOrder', () => {
     { accessor: 'role', title: 'Role' }
   ] as Column[];
 
-  it('contract: reorderColumn moves column forward', async () => {
-    const { useColumnOrder } = await import('./useColumnOrder.svelte.js');
+  it('contract: reorderColumn moves column forward', () => {
     const state = { columns } as unknown as TableState;
     const co = useColumnOrder(state);
 
@@ -888,8 +848,7 @@ describe('useColumnOrder', () => {
     expect(co.columnOrder).toEqual(['age', 'email', 'name', 'role']);
   });
 
-  it('contract: reorderColumn moves column backward', async () => {
-    const { useColumnOrder } = await import('./useColumnOrder.svelte.js');
+  it('contract: reorderColumn moves column backward', () => {
     const state = { columns } as unknown as TableState;
     const co = useColumnOrder(state);
 
@@ -899,8 +858,7 @@ describe('useColumnOrder', () => {
     expect(co.columnOrder).toEqual(['name', 'role', 'age', 'email']);
   });
 
-  it('contract: reorderColumn same index is no-op', async () => {
-    const { useColumnOrder } = await import('./useColumnOrder.svelte.js');
+  it('contract: reorderColumn same index is no-op', () => {
     const state = { columns } as unknown as TableState;
     const co = useColumnOrder(state);
 
@@ -910,8 +868,7 @@ describe('useColumnOrder', () => {
     expect(co.columnOrder).toEqual(['name', 'age', 'email', 'role']);
   });
 
-  it('contract: resetColumnOrder clears custom order', async () => {
-    const { useColumnOrder } = await import('./useColumnOrder.svelte.js');
+  it('contract: resetColumnOrder clears custom order', () => {
     const state = { columns } as unknown as TableState;
     const co = useColumnOrder(state);
 
@@ -923,8 +880,7 @@ describe('useColumnOrder', () => {
     expect(co.columnOrder).toEqual([]);
   });
 
-  it('contract: getColumnIndex returns correct index', async () => {
-    const { useColumnOrder } = await import('./useColumnOrder.svelte.js');
+  it('contract: getColumnIndex returns correct index', () => {
     const state = { columns } as unknown as TableState;
     const co = useColumnOrder(state);
 
@@ -934,8 +890,7 @@ describe('useColumnOrder', () => {
     expect(co.getColumnIndex('nonexistent')).toBe(-1);
   });
 
-  it('contract: reorderColumn auto-initializes order if empty', async () => {
-    const { useColumnOrder } = await import('./useColumnOrder.svelte.js');
+  it('contract: reorderColumn auto-initializes order if empty', () => {
     const state = { columns } as unknown as TableState;
     const co = useColumnOrder(state);
 
@@ -959,8 +914,7 @@ describe('useSelection', () => {
     } as unknown as TableState;
   }
 
-  it('contract: selectItem adds id in multi mode', async () => {
-    const { useSelection } = await import('./useSelection.svelte.js');
+  it('contract: selectItem adds id in multi mode', () => {
     const state = makeState('multi');
     const sel = useSelection(state, () => state.items);
 
@@ -972,8 +926,7 @@ describe('useSelection', () => {
     expect(state.selectedIds.has(2)).toBe(true);
   });
 
-  it('contract: selectItem replaces in single mode', async () => {
-    const { useSelection } = await import('./useSelection.svelte.js');
+  it('contract: selectItem replaces in single mode', () => {
     const state = makeState('single');
     const sel = useSelection(state, () => state.items);
 
@@ -986,8 +939,7 @@ describe('useSelection', () => {
     expect(state.selectedIds.size).toBe(1);
   });
 
-  it('contract: selectItem is no-op in none mode', async () => {
-    const { useSelection } = await import('./useSelection.svelte.js');
+  it('contract: selectItem is no-op in none mode', () => {
     const state = makeState('none');
     const sel = useSelection(state, () => state.items);
 
@@ -995,8 +947,7 @@ describe('useSelection', () => {
     expect(state.selectedIds.size).toBe(0);
   });
 
-  it('contract: deselectItem removes id', async () => {
-    const { useSelection } = await import('./useSelection.svelte.js');
+  it('contract: deselectItem removes id', () => {
     const state = makeState('multi');
     state.selectedIds = new Set([1, 2]);
     const sel = useSelection(state, () => state.items);
@@ -1006,8 +957,7 @@ describe('useSelection', () => {
     expect(state.selectedIds.has(2)).toBe(true);
   });
 
-  it('contract: toggleItem toggles selection', async () => {
-    const { useSelection } = await import('./useSelection.svelte.js');
+  it('contract: toggleItem toggles selection', () => {
     const state = makeState('multi');
     const sel = useSelection(state, () => state.items);
 
@@ -1018,8 +968,7 @@ describe('useSelection', () => {
     expect(state.selectedIds.has(1)).toBe(false);
   });
 
-  it('contract: selectAll selects all filtered items', async () => {
-    const { useSelection } = await import('./useSelection.svelte.js');
+  it('contract: selectAll selects all filtered items', () => {
     const state = makeState('multi');
     const sel = useSelection(state, () => state.items);
 
@@ -1030,8 +979,7 @@ describe('useSelection', () => {
     expect(state.selectedIds.has(3)).toBe(true);
   });
 
-  it('contract: selectAll is no-op in single mode', async () => {
-    const { useSelection } = await import('./useSelection.svelte.js');
+  it('contract: selectAll is no-op in single mode', () => {
     const state = makeState('single');
     const sel = useSelection(state, () => state.items);
 
@@ -1039,8 +987,7 @@ describe('useSelection', () => {
     expect(state.selectedIds.size).toBe(0);
   });
 
-  it('contract: deselectAll clears all', async () => {
-    const { useSelection } = await import('./useSelection.svelte.js');
+  it('contract: deselectAll clears all', () => {
     const state = makeState('multi');
     state.selectedIds = new Set([1, 2, 3]);
     const sel = useSelection(state, () => state.items);
@@ -1049,8 +996,7 @@ describe('useSelection', () => {
     expect(state.selectedIds.size).toBe(0);
   });
 
-  it('contract: isSelected checks membership', async () => {
-    const { useSelection } = await import('./useSelection.svelte.js');
+  it('contract: isSelected checks membership', () => {
     const state = makeState('multi');
     state.selectedIds = new Set([2]);
     const sel = useSelection(state, () => state.items);
@@ -1060,8 +1006,7 @@ describe('useSelection', () => {
     expect(sel.isSelected(3)).toBe(false);
   });
 
-  it('contract: setSelectedIds replaces the set', async () => {
-    const { useSelection } = await import('./useSelection.svelte.js');
+  it('contract: setSelectedIds replaces the set', () => {
     const state = makeState('multi');
     state.selectedIds = new Set([1]);
     const sel = useSelection(state, () => state.items);
@@ -1072,8 +1017,7 @@ describe('useSelection', () => {
     expect(state.selectedIds.has(3)).toBe(true);
   });
 
-  it('contract: setSelectedIds is a no-op for an identical id set', async () => {
-    const { useSelection } = await import('./useSelection.svelte.js');
+  it('contract: setSelectedIds is a no-op for an identical id set', () => {
     const state = makeState('multi');
     // A controlled parent echoing the current selection back (selectedIds +
     // onSelectionChange round trip) must not re-mutate the set: in the real
@@ -1114,8 +1058,7 @@ describe('useSelection', () => {
     expect(state.selectedIds.has(1)).toBe(true);
   });
 
-  it('contract: toggleAll selects all when none selected', async () => {
-    const { useSelection } = await import('./useSelection.svelte.js');
+  it('contract: toggleAll selects all when none selected', () => {
     const state = makeState('multi');
     const sel = useSelection(state, () => state.items);
 
@@ -1131,8 +1074,7 @@ describe('useColumnVisibility', () => {
     { accessor: 'email', title: 'Email' }
   ] as Column[];
 
-  it('contract: hideColumn removes from state.columns', async () => {
-    const { useColumnVisibility } = await import('./useColumnVisibility.svelte.js');
+  it('contract: hideColumn removes from state.columns', () => {
     const state = { columns: [] } as unknown as TableState;
     const cv = useColumnVisibility(state);
 
@@ -1143,8 +1085,7 @@ describe('useColumnVisibility', () => {
     expect(cv.hiddenColumnKeys.has('age')).toBe(true);
   });
 
-  it('contract: showColumn restores a previously hidden column', async () => {
-    const { useColumnVisibility } = await import('./useColumnVisibility.svelte.js');
+  it('contract: showColumn restores a previously hidden column', () => {
     const state = { columns: [] } as unknown as TableState;
     const cv = useColumnVisibility(state);
 
@@ -1156,8 +1097,7 @@ describe('useColumnVisibility', () => {
     expect(cv.hiddenColumnKeys.has('age')).toBe(false);
   });
 
-  it('contract: setHiddenIds seeds the hidden-set before setColumns', async () => {
-    const { useColumnVisibility } = await import('./useColumnVisibility.svelte.js');
+  it('contract: setHiddenIds seeds the hidden-set before setColumns', () => {
     const state = { columns: [] } as unknown as TableState;
     const cv = useColumnVisibility(state);
 
@@ -1173,11 +1113,10 @@ describe('useColumnVisibility', () => {
     expect(state.columns.map((c) => c.accessor)).toEqual(['name']);
   });
 
-  it('contract: showAllColumns reveals persisted-hidden columns', async () => {
+  it('contract: showAllColumns reveals persisted-hidden columns', () => {
     // Guards the enableColumnVisibility={false} recovery path: TableProvider
     // calls showAllColumns() when the feature is off so a column hidden in a
     // prior (persisted) session is never stranded without a restore UI.
-    const { useColumnVisibility } = await import('./useColumnVisibility.svelte.js');
     const state = { columns: [] } as unknown as TableState;
     const cv = useColumnVisibility(state);
 
@@ -1191,8 +1130,7 @@ describe('useColumnVisibility', () => {
     expect(cv.hiddenColumnKeys.size).toBe(0);
   });
 
-  it('contract: setHiddenIds with empty array clears the hidden-set', async () => {
-    const { useColumnVisibility } = await import('./useColumnVisibility.svelte.js');
+  it('contract: setHiddenIds with empty array clears the hidden-set', () => {
     const state = { columns: [] } as unknown as TableState;
     const cv = useColumnVisibility(state);
 
@@ -1203,8 +1141,7 @@ describe('useColumnVisibility', () => {
     expect(cv.hiddenColumnKeys.size).toBe(0);
   });
 
-  it('contract: showAllColumns clears hidden-set and restores state.columns', async () => {
-    const { useColumnVisibility } = await import('./useColumnVisibility.svelte.js');
+  it('contract: showAllColumns clears hidden-set and restores state.columns', () => {
     const state = { columns: [] } as unknown as TableState;
     const cv = useColumnVisibility(state);
 
@@ -1226,8 +1163,7 @@ describe('useColumnOrder — applyOrder', () => {
     { accessor: 'role', title: 'Role' }
   ] as Column[];
 
-  it('contract: applyOrder seeds the persisted order', async () => {
-    const { useColumnOrder } = await import('./useColumnOrder.svelte.js');
+  it('contract: applyOrder seeds the persisted order', () => {
     const state = { columns } as unknown as TableState;
     const co = useColumnOrder(state);
 
@@ -1237,8 +1173,7 @@ describe('useColumnOrder — applyOrder', () => {
     expect(co.orderedColumns.map((c) => c.accessor)).toEqual(['role', 'name', 'email', 'age']);
   });
 
-  it('contract: applyOrder gracefully handles ids that no longer exist', async () => {
-    const { useColumnOrder } = await import('./useColumnOrder.svelte.js');
+  it('contract: applyOrder gracefully handles ids that no longer exist', () => {
     const state = { columns } as unknown as TableState;
     const co = useColumnOrder(state);
 
@@ -1253,8 +1188,7 @@ describe('useColumnOrder — applyOrder', () => {
     ]);
   });
 
-  it('contract: applyOrder with empty array resets to natural order', async () => {
-    const { useColumnOrder } = await import('./useColumnOrder.svelte.js');
+  it('contract: applyOrder with empty array resets to natural order', () => {
     const state = { columns } as unknown as TableState;
     const co = useColumnOrder(state);
 
@@ -1288,8 +1222,7 @@ describe('usePersistence — surface contract', () => {
     } as unknown as TableState;
   }
 
-  it('contract: without config exposes sync* as no-ops', async () => {
-    const { usePersistence } = await import('./usePersistence.svelte.js');
+  it('contract: without config exposes sync* as no-ops', () => {
     const state = makeState();
 
     const persistence = usePersistence(state);
@@ -1309,8 +1242,7 @@ describe('usePersistence — surface contract', () => {
     expect(persistence.initialColumnOrder).toEqual([]);
   });
 
-  it('contract: with config exposes the new sort/visibility/order sync methods', async () => {
-    const { usePersistence } = await import('./usePersistence.svelte.js');
+  it('contract: with config exposes the new sort/visibility/order sync methods', () => {
     const state = makeState();
 
     const persistence = usePersistence(state, { tableId: 'test-table' });
@@ -1325,8 +1257,7 @@ describe('usePersistence — surface contract', () => {
     expect(typeof persistence.clearPersistedSelection).toBe('function');
   });
 
-  it('contract: selection persistence is opt-in and never throws either way', async () => {
-    const { usePersistence } = await import('./usePersistence.svelte.js');
+  it('contract: selection persistence is opt-in and never throws either way', () => {
     const state = makeState();
     state.selectedIds.add('row-1');
 
@@ -1348,8 +1279,7 @@ describe('usePersistence — surface contract', () => {
     expect(() => on.syncSelection()).not.toThrow();
   });
 
-  it('contract: clearAllPersistentData covers every axis without throwing', async () => {
-    const { usePersistence } = await import('./usePersistence.svelte.js');
+  it('contract: clearAllPersistentData covers every axis without throwing', () => {
     const state = makeState();
 
     const persistence = usePersistence(state, { tableId: 'test-table' });
