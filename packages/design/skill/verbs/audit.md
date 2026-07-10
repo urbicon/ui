@@ -13,10 +13,11 @@ manifest usage-index, which no single-page or system-agnostic tool can do.
    getting more or less generic.
 3. **Check each pattern cohort.** For every pattern in the usage-index, read the files
    listed under it and confirm they actually follow that pattern's rules
-   (`get_pattern("<name>")`). A page marked `dashboard` that looks like a form is
-   drift.
+   (`urbicon pattern <name>`; MCP: `get_pattern`). A page marked `dashboard` that
+   looks like a form is drift.
 4. **Score a representative sample.** Pick the highest-traffic or most-divergent pages
-   and score them with `get_design_principles(as="rubric")`. Look for *spread* — wide
+   and score them with `urbicon principles --rubric` (MCP:
+   `get_design_principles(as="rubric")`). Look for *spread* — wide
    variance across pages is the consistency problem, even if each page passes alone.
 5. **Report drift, don't fix it.** Produce: the app-wide correctness/slop scores and
    their trend; per-pattern conformance; the rubric spread; and a ranked list of the

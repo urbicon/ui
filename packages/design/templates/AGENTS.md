@@ -17,6 +17,16 @@ library this project installed**, so what it tells you is true of the code you a
   - `urbicon find <query>` — fuzzy-search the catalog, e.g. `urbicon find "date range"`.
   - `urbicon get-component <slug>` — a component's real API: props, variants, examples
     (`--section api|examples|variants|slots|full`).
+  - `urbicon icons <query>` — icon discovery (no query: the full reference).
+  - `urbicon recipe [id]` — complete Svelte 5 code recipes (no id: list them).
+- **Design knowledge** (before and while you compose):
+  - `urbicon principles [--topic <t>] [--rubric]` — the design heuristics;
+    `--topic theming` for paradigms + the change decision tree, `--rubric` for the
+    8-criterion scoring rubric (the judge step).
+  - `urbicon pattern [name]` — composition patterns per page archetype
+    (settings-page, dashboard, form-page, …).
+  - `urbicon css-reference [section]` — the token truth: naming, dark mode,
+    override patterns (sections: surfaces, text, borders, intents, shadows, theming).
 - **Validate** what you generate:
   - `urbicon validate <path>` — lint markup against the design rules; fix every error.
   - `urbicon i18n [check]` — audit `@urbicon-ui/i18n` usage (when the project uses it):
@@ -29,9 +39,11 @@ library this project installed**, so what it tells you is true of the code you a
 - **Whole-task recipes** — `urbicon verbs` / `urbicon verb <name>` (also a `/`-skill,
   `urbicon-design`, if installed).
 
-Beyond what the CLI prints, the hosted knowledge lives at <https://ui.urbicon.de> (and the
-`urbicon-ui` MCP server, if your client has it connected). Both serve **latest** — when it
-disagrees with the local CLI, **trust the CLI**: it matches this project's installed version.
+The CLI covers the full knowledge surface locally. The hosted knowledge at
+<https://ui.urbicon.de> (and the `urbicon-ui` MCP server, if your client happens to have it
+connected) serves **latest**, not this project's version — so even when both are available,
+**use the CLI**: it matches the installed library, and on any disagreement the CLI is right.
+The MCP tools are for contexts without a local install (e.g. evaluating the library).
 
 ### How to work — the design loop
 

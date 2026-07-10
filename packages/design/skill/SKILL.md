@@ -6,15 +6,22 @@ description: Design verbs for projects built on Urbicon UI — onboard, adopt, c
 # Urbicon design verbs
 
 A use-case verb is a **recipe**, not a single tool call: it strings the Urbicon
-knowledge (`get_pattern`, `get_css_reference`, `get_design_principles`), the
-deterministic judgment (`validate_design` / `urbicon validate`, the rubric), and
-the per-project memory (`design.manifest.md`) into one loop so generation does not
-regress to a generic template.
+knowledge (`urbicon pattern` / `css-reference` / `principles`), the deterministic
+judgment (`urbicon validate`, the rubric), and the per-project memory
+(`design.manifest.md`) into one loop so generation does not regress to a generic
+template.
 
 **Same recipe text, two ways to run it.** Every verb ships both as an MCP prompt
 (invoke it from any MCP client) and as one of these local recipe files. The body is
 identical; pick whichever your harness exposes. Locally you can also print a recipe
 with `urbicon verb <name>` (and list them with `urbicon verbs`).
+
+**Local CLI first.** Every knowledge/judgment step below has a local CLI form
+(version-matched to the installed library) and a remote MCP form (serves latest).
+When the project has `@urbicon-ui/design` installed, use the CLI — **even if the
+`urbicon-ui` MCP server is also connected**; on any disagreement the CLI is right
+for this project. Reach for the MCP tools only where there is no local install
+(e.g. evaluating the library before adopting it).
 
 ## Two invariants, every verb
 
@@ -49,13 +56,17 @@ diagnosis shows the problem is bigger than its remit.
 
 ## The tools a recipe leans on
 
-- **Knowledge** — `find_components`, `get_component`, `get_pattern`, `get_recipe`,
-  `get_css_reference`, `find_icons`, `get_design_principles` (add `as="rubric"` for
-  the 8-criterion scorer; `topic="theming"` for a paradigm's token profile).
-- **Judgment** — `validate_design(code, extraTokens?)` (remote) or `urbicon validate`
-  (local hook/CI): two axes, correctness (the blocking gate) + slop-floor (advisory).
+- **Knowledge** — `urbicon find` / `get-component` / `pattern` / `recipe` /
+  `css-reference` / `icons` / `principles` (add `--rubric` for the 8-criterion
+  scorer; `--topic theming` for a paradigm's token profile).
+  MCP equivalents: `find_components`, `get_component`, `get_pattern`, `get_recipe`,
+  `get_css_reference`, `find_icons`, `get_design_principles`.
+- **Judgment** — `urbicon validate` (also the hook/CI gate; reads the project's
+  `## Token Overrides` itself), or remote `validate_design(code, extraTokens?)`:
+  two axes either way, correctness (the blocking gate) + slop-floor (advisory).
 - **Memory** — `urbicon context` / `record-decision` / `sync-manifest`, or your own
-  file tools on `./design.manifest.md` and its `*.history.ndjson` sidecar.
+  file tools on `./design.manifest.md` and its `*.history.ndjson` sidecar. Local
+  only — the stateless remote server never touches project files.
 
 Use only real semantic tokens — never invent `bg-status-*`, `text-*-foreground`,
-`bg-card`. When in doubt, `get_css_reference`.
+`bg-card`. When in doubt, `urbicon css-reference`.

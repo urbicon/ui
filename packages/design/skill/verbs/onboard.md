@@ -16,9 +16,9 @@ with only defaults gives later verbs nothing to be consistent *with*.
    - **Voice:** three adjectives (e.g. *calm, precise, trustworthy*).
    - **References:** one or two products whose feel to move toward.
    - **Anti-references:** the generic defaults to avoid (e.g. "Bootstrap admin").
-3. **Settle the intake decisions.** Pick a **paradigm** (call
-   `get_design_principles(topic="theming")` to see the profiles), a **theme**, and a
-   **density**. Explain the trade-off in one line each; default to Minimal /
+3. **Settle the intake decisions.** Pick a **paradigm** (`urbicon principles
+   --topic theming` shows the profiles; MCP: `get_design_principles(topic="theming")`),
+   a **theme**, and a **density**. Explain the trade-off in one line each; default to Minimal /
    default / comfortable if the user is unsure.
 4. **Seed the manifest.** Write `./design.manifest.md`: the frontmatter
    (`paradigm` / `theme` / `density`), and the `## Product Intent` section with the

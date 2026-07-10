@@ -9,14 +9,14 @@ tabs" or "Card lost its `elevated` prop".
    conventions are deliberate (don't migrate away from a recorded ADR without
    superseding it).
 2. **Pin the before/after.** State the exact change: old construct → new construct.
-   If it's a pattern change, re-read both via `get_pattern`; if a component API change,
-   `get_component` for the new contract.
+   If it's a pattern change, re-read both via `urbicon pattern <name>`; if a component
+   API change, `urbicon get-component <slug>` for the new contract.
 3. **Find every site.** `urbicon sync-manifest`, then use the Pattern Usages index
    (for pattern changes) and a grep of the old construct (for API/markup changes) to
    enumerate the files. Report the count up front — a silently partial migration is
    worse than none.
-4. **Transform file by file.** Apply the change to one file, run `validate_design` /
-   `urbicon validate`, and only then move on. Keep each file's diff minimal and
+4. **Transform file by file.** Apply the change to one file, run `urbicon validate`,
+   and only then move on. Keep each file's diff minimal and
    behaviour-preserving. If a file resists the mechanical transform, flag it for
    manual `redesign` rather than forcing it.
 5. **Re-index and validate the whole.** `urbicon sync-manifest` again so the index

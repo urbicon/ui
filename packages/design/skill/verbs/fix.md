@@ -6,13 +6,13 @@ hallucinated tokens. Mechanical, behaviour-preserving corrections.
 **Gate:** correctness — every error and warning must clear.
 
 1. **Context.** `urbicon context` — so a token you're tempted to "fix" that is
-   actually a declared project token (in `## Token Overrides`) is left alone. Pass
-   those as `extraTokens` to `validate_design`; `urbicon validate` reads them from the
-   manifest automatically.
-2. **Enumerate.** Run `validate_design` (or `urbicon validate`) and list every
-   **error** and **warning** with its rule id and location. Ignore the slop-floor
-   notes here — that's `polish`.
-3. **Map each to its correct token.** `get_css_reference` for the real names:
+   actually a declared project token (in `## Token Overrides`) is left alone.
+   `urbicon validate` reads those from the manifest automatically; the remote
+   `validate_design` needs them passed as `extraTokens`.
+2. **Enumerate.** Run `urbicon validate` (or the `validate_design` MCP tool) and list
+   every **error** and **warning** with its rule id and location. Ignore the
+   slop-floor notes here — that's `polish`.
+3. **Map each to its correct token.** `urbicon css-reference` for the real names:
    - raw palette (`bg-red-500`) → the semantic intent (`bg-danger`, `text-on-primary`).
    - `dark:` override → delete it; semantic tokens handle dark mode via `light-dark()`.
    - `focus:` → `focus-visible:`.
