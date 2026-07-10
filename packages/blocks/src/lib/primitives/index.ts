@@ -46,7 +46,7 @@ export type {
   MenuSectionHeader
 } from './Menu';
 export * from './Menu';
-export type { PaginationItemProps, PaginationProps } from './Pagination';
+export type { PaginationItemContext, PaginationItemProps, PaginationProps } from './Pagination';
 export * from './Pagination';
 export * from './Popover';
 export type { ProgressProps } from './Progress';

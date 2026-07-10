@@ -13,6 +13,34 @@ export interface PaginationPageItem {
 }
 
 /**
+ * Context handed to the `renderItem` snippet for a single numbered page button.
+ * Bundles the page number, its active/disabled state, the style props forwarded
+ * from the Pagination (so a custom item stays visually consistent), and a
+ * `select` callback that changes the page (guarded against disabled / no-op /
+ * out-of-range internally).
+ */
+export interface PaginationItemContext {
+  /** The 1-based page number this item represents. */
+  page: number;
+  /** Whether this item is the currently active page. */
+  active: boolean;
+  /** Whether the item is inert (component `disabled` or `loading`). */
+  disabled: boolean;
+  /** Button size forwarded from the Pagination props. */
+  size: 'sm' | 'md' | 'lg';
+  /** Button variant forwarded from the Pagination props. */
+  variant: 'outlined' | 'filled' | 'ghost';
+  /** Semantic intent forwarded from the Pagination props. */
+  intent: 'primary' | 'secondary' | 'success' | 'warning' | 'danger' | 'neutral';
+  /** Semantic radius tier forwarded from the Pagination props. */
+  tier?: InteractiveTier;
+  /** Micro-interaction preset forwarded from the Pagination props. */
+  mint: MintProp;
+  /** Navigate to this page. No-op when disabled, already active, or out of range. */
+  select: () => void;
+}
+
+/**
  * @description Navigation control for paged data sets.
  * Supports multiple layouts, intents, button variants, and configurable ellipsis behaviour.
  *
@@ -77,6 +105,24 @@ export interface PaginationProps
   firstIcon?: Snippet;
   /** Custom icon rendered inside the "Last" button. */
   lastIcon?: Snippet;
+
+  /**
+   * Render each numbered page button yourself. Receives a {@link PaginationItemContext}
+   * with the page number, its active/disabled state, the forwarded style props
+   * (size, variant, intent, tier, mint) and a `select` callback. Only affects the
+   * numbered page buttons in the default layout — prev/next/first/last keep their
+   * own icon snippets, and the ellipsis is unaffected.
+   *
+   * @example
+   * ```svelte
+   * <Pagination {currentPage} {totalPages} {onPageChange}>
+   *   {#snippet renderItem({ page, active, disabled, select })}
+   *     <button class:active onclick={select} {disabled}>{page}</button>
+   *   {/snippet}
+   * </Pagination>
+   * ```
+   */
+  renderItem?: Snippet<[PaginationItemContext]>;
 
   /** Items shown per page. Used by the table layout to compute "Showing X to Y of Z". */
   itemsPerPage?: number;

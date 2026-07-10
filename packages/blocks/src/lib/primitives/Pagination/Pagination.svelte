@@ -34,6 +34,7 @@
     nextIcon,
     firstIcon,
     lastIcon,
+    renderItem,
     itemsPerPage = 10,
     totalItems,
     startItem,
@@ -323,19 +324,33 @@
 
       {#if showNumbers}
         {#each visiblePageNumbers as page (page)}
-          <PaginationItem
-            {size}
-            {variant}
-            {intent}
-            {tier}
-            {page}
-            active={page === currentPage}
-            disabled={disabled || loading}
-            onPageClick={goToPage(page)}
-            {mint}
-          >
-            {page}
-          </PaginationItem>
+          {#if renderItem}
+            {@render renderItem({
+              page,
+              active: page === currentPage,
+              disabled: disabled || loading,
+              size,
+              variant,
+              intent,
+              tier,
+              mint,
+              select: goToPage(page)
+            })}
+          {:else}
+            <PaginationItem
+              {size}
+              {variant}
+              {intent}
+              {tier}
+              {page}
+              active={page === currentPage}
+              disabled={disabled || loading}
+              onPageClick={goToPage(page)}
+              {mint}
+            >
+              {page}
+            </PaginationItem>
+          {/if}
         {/each}
       {/if}
 
