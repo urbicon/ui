@@ -488,6 +488,33 @@ internal TODO instead. Sections are ordered roughly by urgency.
 
 ## Testing / CI gates
 
+### `urbicon validate` matches rule patterns in text content — pages that *quote* an anti-pattern fail the gate
+
+- **Where:** `packages/design-engine` linter rules (string/regex matching over
+  the file), observed via `bunx urbicon validate src/routes/+page.svelte` in
+  `apps/docs`.
+- **What:** The landing's For-machines specimen renders example linter output
+  as prose (`✗ [raw-tailwind-color] \`bg-green-500\``, `focus:ring-2` inside
+  `<p>` text). `validate` flags those **text nodes** as real
+  `raw-tailwind-color` / `focus-not-visible` errors — the rules don't
+  distinguish class-attribute values from content that merely quotes an
+  anti-pattern. Consequence: any docs/marketing page that *shows* a violation
+  (docs about the linter itself, migration guides with before/after snippets)
+  is permanently FAIL and would block the `urbicon hook` / CI gate. The
+  landing additionally collects poster-scope false positives
+  (`--room-accent-fg` → `token-hallucination`, intentional fixed poster
+  colours) — expected for a page that is deliberately outside the token
+  system, but there is no documented exempt/ignore mechanism (per-file
+  pragma, manifest exclude list) to encode that intent.
+- **Why deferred:** Two design decisions, not a quick patch: (a) scope the
+  deterministic rules to class-attribute values (attribute extraction instead
+  of whole-file regex) while keeping stdin/fragment linting working; (b) an
+  explicit exemption mechanism (file pragma or manifest `## Exempt` section)
+  for deliberate off-system surfaces like the landing. Both live in
+  design-engine with their own tests.
+- **Found:** 2026-07-11, dogfooding the `urbicon` CLI against the landing
+  page (session review of the AI-DX claims).
+
 ### No guard against silently dropped `.d.ts` files in package builds
 
 - **Where:** every package built with `svelte-package` (`blocks`, `docs`, …);
