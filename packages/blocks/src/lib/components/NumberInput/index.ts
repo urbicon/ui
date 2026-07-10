@@ -15,6 +15,7 @@ import type { InputProps } from '$lib/primitives/Input';
  * @related Input
  * @related CurrencyInput
  * @related Slider
+ * @stability beta
  *
  * @example
  * ```svelte
@@ -32,7 +33,22 @@ import type { InputProps } from '$lib/primitives/Input';
 export interface NumberInputProps
   extends Omit<
     InputProps,
-    'value' | 'type' | 'inputmode' | 'oninput' | 'onblur' | 'onkeydown' | 'onwheel' | 'children'
+    // NumberInput owns these internally and does not forward them: the numeric
+    // handlers (input/focus/blur/keydown/wheel), the raw string `value`, the
+    // fixed `type`/`inputmode`, and `children`. `clearable`/`onClear` are omitted
+    // too — Input's clear button would replace the stepper and, worse, write only
+    // Input's internal string value, drifting the numeric model out of sync.
+    | 'value'
+    | 'type'
+    | 'inputmode'
+    | 'oninput'
+    | 'onfocus'
+    | 'onblur'
+    | 'onkeydown'
+    | 'onwheel'
+    | 'clearable'
+    | 'onClear'
+    | 'children'
   > {
   /** Current numeric value. `null` when the field is empty. Supports `bind:value`. */
   value?: number | null;

@@ -99,4 +99,58 @@ describe('NumberInput', () => {
     await user.type(spin(), '1,5');
     expect(onValueChange).toHaveBeenLastCalledWith(1.5);
   });
+
+  it('keeps the stepper clickable (pointer-events re-enabled inside Input decoration)', () => {
+    // Input renders a right-side snippet in a `pointer-events-none` decoration
+    // container, so the stepper wrapper must re-enable pointer events or the
+    // buttons are dead to mouse in a real browser. jsdom can't observe the
+    // computed value, so assert the class that restores it; real clickability is
+    // an e2e concern.
+    render({ value: 1 });
+    expect(steppers()[0].parentElement?.classList.contains('pointer-events-auto')).toBe(true);
+  });
+
+  it('lands on the near bound when stepping from empty', async () => {
+    const user = userEvent.setup();
+    const onValueChange = vi.fn();
+    render({ value: null, min: 5, max: 9, step: 1, onValueChange });
+
+    await user.click(steppers()[0]); // ↑ from empty → min, not min + step
+    expect(onValueChange).toHaveBeenLastCalledWith(5);
+  });
+
+  it('lands on max when stepping down from empty', async () => {
+    const user = userEvent.setup();
+    const onValueChange = vi.fn();
+    render({ value: null, min: 5, max: 9, step: 1, onValueChange });
+
+    await user.click(steppers()[1]); // ↓ from empty → max
+    expect(onValueChange).toHaveBeenLastCalledWith(9);
+  });
+
+  it('does not step a readonly field via Arrow keys', async () => {
+    const user = userEvent.setup();
+    const onValueChange = vi.fn();
+    render({ value: 5, step: 1, readonly: true, onValueChange });
+
+    spin().focus();
+    await user.keyboard('{ArrowUp}');
+    expect(onValueChange).not.toHaveBeenCalled();
+  });
+
+  it('formats to fixed precision', () => {
+    render({ value: 1.5, precision: 2 });
+    expect(spin().value).toBe('1.50');
+  });
+
+  it('rounds a sub-decimal (exponential) step on its own scale', async () => {
+    const user = userEvent.setup();
+    const onValueChange = vi.fn();
+    render({ value: 0, step: 1e-7, onValueChange });
+
+    await user.click(steppers()[0]);
+    // decimalsOf must read the exponent (1e-7 stringifies without a literal '.')
+    // or the value rounds down to 0 decimals and the step is swallowed.
+    expect(onValueChange).toHaveBeenLastCalledWith(1e-7);
+  });
 });
