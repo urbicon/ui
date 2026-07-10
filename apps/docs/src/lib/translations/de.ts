@@ -202,7 +202,7 @@ export default {
     typesReference: 'Typen-Referenz',
     tableColumnConfig: 'Spaltenkonfiguration',
     tableFiltering: 'Filtern & Suchen',
-    tableSortingGrouping: 'Sortierung & Gruppierung',
+    tableSortingGrouping: 'Sortierung, Gruppierung & Summen',
     tableSelection: 'Zeilenauswahl',
     tableExpandableRows: 'Aufklappbare Zeilen',
     tableCustomCells: 'Eigene Zellen',

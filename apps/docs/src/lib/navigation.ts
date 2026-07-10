@@ -188,7 +188,7 @@ const allNavigationItems: NavItem[] = [
       },
       { name: 'Filtering & Search', nameKey: 'nav.tableFiltering', href: '/table/filtering' },
       {
-        name: 'Sorting & Grouping',
+        name: 'Sorting, Grouping & Summaries',
         nameKey: 'nav.tableSortingGrouping',
         href: '/table/sorting-grouping'
       },

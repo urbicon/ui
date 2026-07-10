@@ -202,7 +202,7 @@ export default {
     typesReference: 'Types Reference',
     tableColumnConfig: 'Column Configuration',
     tableFiltering: 'Filtering & Search',
-    tableSortingGrouping: 'Sorting & Grouping',
+    tableSortingGrouping: 'Sorting, Grouping & Summaries',
     tableSelection: 'Row Selection',
     tableExpandableRows: 'Expandable Rows',
     tableCustomCells: 'Custom Cells',

@@ -10,14 +10,15 @@
 
 <DocsPageLayout
   title="Filtering & Search"
-  description="Built-in search, column filters, and summary controls via the SmartFilterBar."
+  description="Built-in search, column filters, summary controls, and column visibility via the SmartFilterBar."
   breadcrumbs={[{ label: 'Table', href: resolve('/table/table') }]}
 >
   <Section id="filtering">
     <div class="space-y-8">
       <p class="text-text-secondary text-sm">
         Enable <code class="text-text-primary">enableSmartFilter</code> to get a full-featured toolbar
-        with search, per-column filters, grouping controls, and summary aggregations.
+        with search, per-column filters, grouping controls, summary aggregations, and a column visibility
+        menu.
       </p>
 
       <CodeExample
