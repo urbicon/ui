@@ -15,6 +15,7 @@
   let {
     tier,
     intent = 'primary',
+    purpose,
     variant = 'filled',
     size = 'md',
     counter = false,
@@ -46,16 +47,22 @@
   let badgeElement = $state<HTMLElement>();
   let isHovered = $state(false);
 
-  const isDot = $derived(variant === 'dot');
-  const isInteractive = $derived(interactive || !!onclick);
+  // `purpose` is the canonical semantic axis; it orchestrates the low-level
+  // visual props so the tv() config stays as-is. When set it wins over the
+  // deprecated `variant="dot"` / `counter` boolean; when unset those apply
+  // directly (back-compat).
+  const effVariant = $derived(purpose === 'dot' ? 'dot' : variant);
+  const effCounter = $derived(purpose === 'counter' || counter);
+  const isDot = $derived(effVariant === 'dot');
+  const isInteractive = $derived(purpose === 'chip' || interactive || !!onclick);
   const isRemovable = $derived(removable && !isDot);
 
   const variantProps: BadgeVariants = $derived({
     tier: effectiveTier,
     intent,
-    variant,
+    variant: effVariant,
     size,
-    counter: counter || undefined,
+    counter: effCounter || undefined,
     pulse: pulse || undefined,
     removable: isRemovable || undefined,
     interactive: isInteractive || undefined,
@@ -117,6 +124,7 @@
       : styles.base({ class: [slotClasses?.base, className] })
   ]}
   {role}
+  data-purpose={purpose}
   tabindex={isInteractive ? 0 : undefined}
   onmouseenter={handleMouseEnter}
   onmouseleave={handleMouseLeave}
