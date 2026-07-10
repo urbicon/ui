@@ -27,6 +27,9 @@
     error,
     required = false,
     filter,
+    queryFn,
+    debounceMs = 250,
+    loadingText = 'Loading…',
     tier,
     variant = 'outlined',
     size = 'md',
@@ -84,25 +87,41 @@
 
   const filterFn = $derived(filter ?? defaultFilter);
 
-  // `groups` takes precedence over `options` (mirrors Select); flatten for value
-  // lookup and keyboard nav.
-  const allOptions = $derived(groups ? groups.flatMap((g) => g.options) : options);
+  // ── Async / server-side search (queryFn) ──────────────────────────────
+  // Options resolved by the last settled `queryFn` call, and whether one is in
+  // flight. In async mode these replace `options`/`groups` entirely.
+  let asyncOptions = $state<ComboboxOption<T>[]>([]);
+  let loading = $state(false);
+  // Remembers the option the user picked so its label survives a later result
+  // set that no longer contains it (the classic async-combobox label-loss).
+  let selectedCache = $state<ComboboxOption<T> | null>(null);
 
-  const selectedOption = $derived(allOptions.find((o) => o.value === value));
+  // `groups` takes precedence over `options` (mirrors Select); in async mode the
+  // server-resolved list wins over both. Flattened for value lookup + keyboard nav.
+  const allOptions = $derived(
+    queryFn ? asyncOptions : groups ? groups.flatMap((g) => g.options) : options
+  );
 
-  // Does an option survive the current query? Same rules the flat list always
+  const selectedOption = $derived(
+    allOptions.find((o) => o.value === value) ??
+      (selectedCache && selectedCache.value === value ? selectedCache : undefined)
+  );
+
+  // Does an option survive the current query? In async mode the server already
+  // filtered, so everything shows. Otherwise the same rules the flat list always
   // used: an empty query and a field still showing the selected label both show
-  // everything; otherwise the (custom) filter decides.
+  // everything; else the (custom) filter decides.
   const matchesQuery = (opt: ComboboxOption<T>): boolean => {
+    if (queryFn) return true;
     if (selectedOption && query === selectedOption.label) return true;
     if (!query.trim()) return true;
     return filterFn(opt, query.trim());
   };
 
   // Grouped view for rendering: each group's surviving options, empty groups
-  // dropped. `null` when the consumer passes a flat `options` list.
+  // dropped. `null` for a flat `options` list or async mode (server results are flat).
   const filteredGroups = $derived.by(() => {
-    if (!groups) return null;
+    if (!groups || queryFn) return null;
     return groups
       .map((g) => ({ label: g.label, options: g.options.filter(matchesQuery) }))
       .filter((g) => g.options.length > 0);
@@ -114,6 +133,39 @@
   const filtered = $derived(
     filteredGroups ? filteredGroups.flatMap((g) => g.options) : allOptions.filter(matchesQuery)
   );
+
+  // Debounced query runner. The effect tracks `query` (+ debounceMs); each change
+  // resets the timer, and the fetch runs a tick later so bursty typing collapses
+  // into one request. A per-run AbortController lets a newer query cancel an
+  // older in-flight one, so a slow stale response can't overwrite a fresh result.
+  let inFlight: AbortController | undefined;
+  $effect(() => {
+    // Gated on `open` so no request fires in the background before the user
+    // engages the field; opening (focus) searches with the current query.
+    if (!queryFn || !open) return;
+    const q = query;
+    const timer = setTimeout(() => {
+      inFlight?.abort();
+      const controller = new AbortController();
+      inFlight = controller;
+      loading = true;
+      queryFn(q, controller.signal)
+        .then((result) => {
+          if (controller.signal.aborted) return;
+          asyncOptions = result;
+          activeIndex = -1;
+        })
+        .catch((err: unknown) => {
+          if (controller.signal.aborted || (err as { name?: string })?.name === 'AbortError')
+            return;
+          if (import.meta.env?.DEV) console.warn('[Combobox] queryFn rejected:', err);
+        })
+        .finally(() => {
+          if (!controller.signal.aborted) loading = false;
+        });
+    }, debounceMs);
+    return () => clearTimeout(timer);
+  });
 
   const variantProps: ComboboxVariants = $derived({
     variant,
@@ -170,6 +222,7 @@
     if (opt.disabled) return;
     value = opt.value;
     query = opt.label;
+    selectedCache = opt;
     setOpen(false);
     activeIndex = -1;
     onValueChange?.(opt.value);
@@ -463,7 +516,16 @@
       style:display={floatingPanelHidden(panel, open) ? 'none' : null}
     >
       {#if open}
-        {#if filtered.length === 0}
+        {#if loading}
+          <div
+            class={unstyled
+              ? (slotClasses?.loading ?? '')
+              : styles.loading({ class: slotClasses?.loading })}
+            role="status"
+          >
+            {loadingText}
+          </div>
+        {:else if filtered.length === 0}
           <div
             class={unstyled
               ? (slotClasses?.noResults ?? '')

@@ -4,7 +4,7 @@ import userEvent from '@testing-library/user-event';
 import { flushSync, mount, unmount } from 'svelte';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import Combobox from './Combobox.svelte';
-import type { ComboboxProps } from './index';
+import type { ComboboxOption, ComboboxProps } from './index';
 
 // First DOM/component test in the repo — the interaction layer the variant tests deliberately
 // can't reach (focus / keyboard / click timing). Combobox is the reference case because its
@@ -226,5 +226,108 @@ describe('Combobox (groups)', () => {
     await user.click(screen.getByRole('combobox'));
     await user.click(screen.getByRole('option', { name: 'Banana', hidden: true }));
     expect(onValueChange).toHaveBeenCalledWith('banana');
+  });
+});
+
+// Async / server-side search (CMB-3). queryFn replaces client filtering: it is
+// debounced, its result replaces the option list, a superseded request is
+// aborted so a slow stale response can't clobber a fresh one, and the selected
+// label survives a later result set that no longer contains it.
+type Opt = ComboboxOption<string | number | boolean>;
+function deferred<T>() {
+  let resolve!: (v: T) => void;
+  const promise = new Promise<T>((res) => {
+    resolve = res;
+  });
+  return { promise, resolve };
+}
+// Let the debounce timer fire and any resolved queryFn promise settle.
+const settle = (ms = 20) => new Promise((r) => setTimeout(r, ms));
+
+describe('Combobox (async queryFn)', () => {
+  it('debounces, then replaces the options with the query result', async () => {
+    const user = userEvent.setup();
+    const queryFn = vi.fn(
+      async (q: string): Promise<Opt[]> => (q ? [{ value: q, label: `Hit: ${q}` }] : [])
+    );
+    renderCombobox({ queryFn, debounceMs: 5 });
+
+    const input = screen.getByRole('combobox');
+    await user.click(input);
+    await user.type(input, 'ab');
+    await settle();
+    flushSync();
+
+    expect(queryFn).toHaveBeenCalledWith('ab', expect.any(AbortSignal));
+    expect(screen.getByRole('option', { name: 'Hit: ab', hidden: true })).toBeTruthy();
+  });
+
+  it('shows the loading row while a request is in flight', async () => {
+    const user = userEvent.setup();
+    const d = deferred<Opt[]>();
+    const queryFn = vi.fn(() => d.promise);
+    renderCombobox({ queryFn, debounceMs: 1, loadingText: 'Searching…' });
+
+    await user.click(screen.getByRole('combobox'));
+    await settle();
+    flushSync();
+    expect(screen.getByRole('status', { hidden: true }).textContent).toContain('Searching…');
+
+    d.resolve([{ value: 'x', label: 'X' }]);
+    await settle();
+    flushSync();
+    expect(screen.queryByRole('status', { hidden: true })).toBeNull();
+    expect(screen.getByRole('option', { name: 'X', hidden: true })).toBeTruthy();
+  });
+
+  it('aborts a superseded request so the stale result is discarded', async () => {
+    const user = userEvent.setup();
+    const d1 = deferred<Opt[]>();
+    const d2 = deferred<Opt[]>();
+    const results = [d1, d2];
+    const signals: AbortSignal[] = [];
+    let call = 0;
+    const queryFn = vi.fn((_q: string, signal: AbortSignal) => {
+      signals.push(signal);
+      return results[call++]?.promise ?? Promise.resolve([]);
+    });
+    renderCombobox({ queryFn, debounceMs: 1 });
+
+    const input = screen.getByRole('combobox');
+    await user.click(input); // → queryFn('') → d1 / signals[0]
+    await settle();
+    await user.type(input, 'z'); // → queryFn('z') → d2 / signals[1], aborts signals[0]
+    await settle();
+
+    expect(signals[0].aborted).toBe(true);
+    d2.resolve([{ value: 'fresh', label: 'Fresh' }]);
+    await settle();
+    d1.resolve([{ value: 'stale', label: 'Stale' }]); // resolves last, must not overwrite
+    await settle();
+    flushSync();
+
+    expect(screen.getByRole('option', { name: 'Fresh', hidden: true })).toBeTruthy();
+    expect(screen.queryByRole('option', { name: 'Stale', hidden: true })).toBeNull();
+  });
+
+  it('keeps the selected label after a later search drops that option', async () => {
+    const user = userEvent.setup();
+    const queryFn = vi.fn(
+      async (q: string): Promise<Opt[]> =>
+        q.startsWith('fo') ? [{ value: 'foo', label: 'Foo' }] : []
+    );
+    const onValueChange = vi.fn();
+    renderCombobox({ queryFn, debounceMs: 1, onValueChange });
+
+    const input = screen.getByRole('combobox') as HTMLInputElement;
+    await user.click(input);
+    await user.type(input, 'fo');
+    await settle();
+    flushSync();
+    await user.click(screen.getByRole('option', { name: 'Foo', hidden: true }));
+    expect(onValueChange).toHaveBeenCalledWith('foo');
+    // Selection cached: the input keeps showing "Foo" even though a fresh search
+    // for a different term would no longer return it.
+    expect(input.value).toBe('Foo');
   });
 });

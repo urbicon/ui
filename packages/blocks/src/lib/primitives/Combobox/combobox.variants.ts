@@ -44,6 +44,9 @@ export const comboboxVariants = tv({
     group: '',
     groupLabel: 'px-3 py-1.5 text-xs font-medium text-text-tertiary uppercase tracking-wider',
     noResults: 'px-3 py-4 text-center text-sm text-text-tertiary',
+    // Async-search in-flight message (queryFn). Mirrors noResults so both listbox
+    // status rows read alike; separate slot so consumers can style them apart.
+    loading: 'px-3 py-4 text-center text-sm text-text-tertiary',
     clear: [
       'absolute right-2 top-1/2 -translate-y-1/2 rounded-modify p-1.5',
       'text-text-tertiary hover:text-text-primary',

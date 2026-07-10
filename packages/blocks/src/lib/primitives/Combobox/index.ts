@@ -96,8 +96,25 @@ export interface ComboboxProps<T extends SelectValue = string>
   error?: string;
   /** Marks the field as required. Adds the asterisk on the label. @default false */
   required?: boolean;
-  /** Custom filter replacing the built-in case-insensitive label match. Return `true` to include an option. */
+  /** Custom filter replacing the built-in case-insensitive label match. Return `true` to include an option. Ignored when `queryFn` is set (the server filters). */
   filter?: (option: ComboboxOption<T>, query: string) => boolean;
+
+  /**
+   * Server-side search (analogous to the Table remote-mode API). When set, the
+   * Combobox stops filtering client-side and instead calls `queryFn` — debounced
+   * by {@link debounceMs} — on each query change, replacing the option list with
+   * the resolved result. The `AbortSignal` is aborted when a newer query
+   * supersedes an in-flight request, so a slow stale response never clobbers a
+   * fresh one. Aborted rejections are swallowed; other rejections leave the
+   * previous options in place (and warn in dev). `options`/`groups` are ignored
+   * in this mode. The selected option's label is cached so it survives result
+   * sets that no longer contain it.
+   */
+  queryFn?: (query: string, signal: AbortSignal) => Promise<ComboboxOption<T>[]>;
+  /** Debounce applied to `queryFn` in milliseconds. @default 250 */
+  debounceMs?: number;
+  /** Text shown in the listbox while an async `queryFn` request is in flight. @default 'Loading…' */
+  loadingText?: string;
   /** Show a clear button when a value is selected. Click or press Escape to reset. @default false */
   clearable?: boolean;
   /** Disable the entire combobox. @default false */
