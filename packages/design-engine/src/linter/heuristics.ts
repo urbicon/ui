@@ -507,13 +507,25 @@ function checkPlaceholderContent(lines: string[]): Finding[] {
  *    (`✓`, `⚠`, `→`, `★`) is not flagged, only its deliberate emoji form (`⚠️`).
  * Excludes text symbols (©®™) and maths.
  */
-const EMOJI_RE =
-  /[\u{1F300}-\u{1FAFF}\u{2705}\u{2728}\u{274C}\u{274E}\u{2753}-\u{2755}\u{2757}\u{2795}-\u{2797}\u{27B0}\u{27BF}\u{2B1B}\u{2B1C}\u{2B50}\u{2B55}\u{26A1}\u{2614}\u{2615}]|[\u{2300}-\u{27BF}\u{2B00}-\u{2BFF}]\u{FE0F}/gu;
+// Tiers 1+2 (single-codepoint emoji) and tier 3 (misc symbol + explicit VS16) are
+// kept as two *non-alternating* regexes rather than one `A|B` pattern. Bun's regex
+// engine (≤ v1.4.0-canary) mis-advances the search index across a surrogate pair
+// when a `u`-flag pattern contains a top-level alternation, so an astral emoji in
+// the *middle* of a string (`<button>🚀 Launch</button>`) is silently missed —
+// under Bun, the runtime this linter ships to. Two separate scans sidestep it and
+// behave identically on V8. Regression: linter.test 'emoji-as-icon' (the
+// `<button>🚀 Launch</button>` case fails under Bun with a single alternating RE).
+const EMOJI_GLYPH_RE =
+  /[\u{1F300}-\u{1FAFF}\u{2705}\u{2728}\u{274C}\u{274E}\u{2753}-\u{2755}\u{2757}\u{2795}-\u{2797}\u{27B0}\u{27BF}\u{2B1B}\u{2B1C}\u{2B50}\u{2B55}\u{26A1}\u{2614}\u{2615}]/gu;
+const EMOJI_VS16_RE = /[\u{2300}-\u{27BF}\u{2B00}-\u{2BFF}]\u{FE0F}/gu;
 
 function checkEmojiAsIcon(lines: string[]): Finding[] {
+  const hits = [...collectHits(lines, EMOJI_GLYPH_RE), ...collectHits(lines, EMOJI_VS16_RE)].sort(
+    (a, b) => a.line - b.line
+  );
   return slop(
     'emoji-as-icon',
-    collectHits(lines, EMOJI_RE),
+    hits,
     'Emoji in the markup as iconography. They render inconsistently across platforms and clash with a real icon set.',
     'Use the `Icon` component / a `*Icon` from the 315-icon set (`find_icons`) — consistent stroke, size, and theming.'
   );
