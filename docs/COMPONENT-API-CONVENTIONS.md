@@ -50,16 +50,22 @@ Controls the physical dimensions. All components should follow a consistent scal
 
 **Default:** `md` for all components.
 
-Most components support a subset of this scale. Current component sizes:
+Most components support a subset of this scale. Current component sizes (from the `size` axis of each `*.variants.ts` — regenerate this table from those files, not from memory):
 
-| Subset       | Sizes            | Components                                                                                     |
-| ------------ | ---------------- | ---------------------------------------------------------------------------------------------- |
-| Compact      | `sm`, `md`, `lg` | Menu, Pagination, Popover, Tab, Tooltip, Alert, Breadcrumb, Accordion, Combobox, Separator |
-| Standard     | `xs`–`xl`        | Input, Spinner, ButtonGroup, Skeleton                                                          |
-| Extended-4   | `xs`–`lg`        | Badge, Checkbox, Toggle                                                                        |
-| Button       | `2xs`–`xl`       | Button                                                                                         |
-| Avatar       | `xs`–`2xl`       | Avatar                                                                                         |
-| Dialog       | `sm`–`full`      | Dialog                                                                                         |
+| Subset         | Sizes                            | Components                                                                              |
+| -------------- | -------------------------------- | --------------------------------------------------------------------------------------- |
+| Compact        | `sm`, `md`, `lg`                 | Pagination, Popover, Tab, Tooltip, Alert, Breadcrumb, Accordion, Separator, SegmentGroup, Slider, Stepper |
+| Standard       | `xs`–`xl`                        | Input, Select, Combobox, Textarea, Spinner, Skeleton                                     |
+| Extended-4     | `xs`–`lg`                        | Badge, Checkbox, Toggle, RadioGroup, Progress                                            |
+| Button         | `2xs`–`xl`                       | Button                                                                                   |
+| Avatar         | `xs`–`2xl`                       | Avatar                                                                                   |
+| Overlay panels | `sm`–`xl` + `full`(+`fullscreen`) | Dialog (`fullscreen` too), Drawer                                                        |
+
+Special cases:
+
+- **Menu** has two axes: `size` styles the default trigger button (Button scale, `2xs`–`xl`) and `itemSize` (`sm`–`lg`) styles the list rows independently.
+- **ButtonGroup** no longer has a size axis of its own — the grouped Buttons carry their size.
+- The **form family** (Input, Select, Combobox, Textarea) deliberately shares the full `xs`–`xl` scale so dense forms can mix controls at any density.
 
 Avoid introducing new size values unless there's a clear use case.
 
@@ -132,14 +138,17 @@ Use `on` + PascalCase for callbacks that emit derived/processed state:
 ```svelte
 <Checkbox onCheckedChange={(checked) => ...} />
 <Toggle onCheckedChange={(checked) => ...} />
-<Menu onValueChange={(value) => ...} />
+<Select onValueChange={(value) => ...} />
 <ButtonGroup onSelectionChange={(selected) => ...} />
 <Tab onValueChange={(value) => ...} />
 <Pagination onPageChange={(page) => ...} />
 <PaginationItem onPageClick={(page) => ...} />
 <Accordion onValueChange={(value) => ...} />
 <Combobox onValueChange={(value) => ...} />
+<Select onOpenChange={(open) => ...} />
 ```
+
+(Menu is the deliberate exception: its items are *verbs*, so activation is the per-item `onSelect` callback — Menu has no selection state and no `onValueChange`.)
 
 **Parameter convention:** Always pass the new state value, not the raw event.
 
@@ -203,7 +212,8 @@ Props that represent user-controlled state support two-way binding via `bind:`. 
 
 ```svelte
 <Checkbox bind:checked onCheckedChange={(val) => log(val)} />
-<Menu bind:value onValueChange={(val) => log(val)} />
+<Select bind:value onValueChange={(val) => log(val)} />
+<Menu bind:open onOpenChange={(open) => log(open)} />
 <ButtonGroup bind:value onSelectionChange={(val, all) => log(val, all)} />
 ```
 
