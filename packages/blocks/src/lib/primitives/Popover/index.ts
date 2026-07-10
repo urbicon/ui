@@ -5,8 +5,8 @@ import type { PopoverVariants } from './popover.variants';
 
 /**
  * @description Floating panel anchored to a trigger element. Uses the native Popover API
- * for top-layer rendering, light dismiss, and Escape handling. Floating UI provides
- * precise positioning with automatic flip, shift, and optional width syncing.
+ * for top-layer rendering, light dismiss, and Escape handling. The library's built-in
+ * positioning engine provides automatic flip, shift, and optional width syncing.
  *
  * @tag overlay
  * @related Tooltip
@@ -51,7 +51,7 @@ export interface PopoverProps
   triggerElement?: HTMLElement;
 
   // ── Positioning ──────────────────────────────────────
-  /** Where the popover appears relative to the trigger. All Floating UI `Placement` values are supported. */
+  /** Where the popover appears relative to the trigger. All standard `Placement` values (side plus optional `-start`/`-end` alignment) are supported. */
   placement?: Placement;
   /** Gap in px between the trigger edge and the popover. */
   offsetDistance?: number;

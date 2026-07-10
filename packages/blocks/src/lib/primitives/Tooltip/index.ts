@@ -5,7 +5,7 @@ import type { TooltipSlots, TooltipVariants } from './tooltip.variants';
 
 /**
  * @description Contextual overlay that displays brief, supplementary text on hover or focus.
- * Built with Floating UI for precise positioning and accessibility support.
+ * Built on the library's own positioning engine for precise placement and accessibility support.
  *
  * @tag display
  * @related Popover
