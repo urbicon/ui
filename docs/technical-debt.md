@@ -143,6 +143,25 @@ internal TODO instead. Sections are ordered roughly by urgency.
 - **Found:** 2026-07-07, while adding `Accordion.svelte.test.ts` (the
   `collapsible=false` last-item test surfaced the divergence).
 
+### Badge `purpose="dot"` bypasses the discriminated-union guard that `variant="dot"` enforces
+
+- **Where:** `packages/blocks/src/lib/primitives/Badge/index.ts` — `BadgeProps`
+  is `BadgeDotProps | BadgeStandardProps`, discriminated on `variant` only.
+- **What:** The new `purpose` axis (BDG-1) makes `purpose="dot"` the canonical
+  way to render a pure-indicator dot, but the type union still keys off
+  `variant`. `<Badge purpose="dot" removable onRemove={…}>text</Badge>` resolves
+  to `BadgeStandardProps` (no `variant="dot"` set), so TypeScript accepts
+  `children`/`counter`/`removable`/`interactive`/`onRemove` — exactly the props
+  `BadgeDotProps` forbids for the visual dot. Runtime is safe (`isRemovable =
+  removable && !isDot → false`, children hidden), so this is a weaker *type*
+  contract on the now-canonical path, not a bug.
+- **Why deferred:** Discriminating the union on `purpose === 'dot'` too is not
+  mechanical — `purpose` is optional with five values, so making it a second
+  discriminant alongside optional `variant` risks TS failing to narrow, and would
+  fight the deliberate "keep BDG-1 purely additive" scope (existing
+  `variant`-based usage must stay byte-identical). Wants its own type-design pass.
+- **Found:** 2026-07-10, blocks feature-request review (BDG-1).
+
 ## Component behaviour
 
 ### Table's `initial*` family is incomplete — no `initialSort`, no `initialSelectedIds`
@@ -228,6 +247,72 @@ internal TODO instead. Sections are ordered roughly by urgency.
   trips either.
 - **Found:** 2026-06-30 / 2026-07-01, issue-#41 follow-up review.
 
+### Toast auto-dismiss does not pause on hover (Sonner-style implies it)
+
+- **Where:** `packages/blocks/src/lib/primitives/Toast/Toaster.svelte` (CSS
+  progress animation + the store's plain `setTimeout` auto-dismiss).
+- **What:** The promise/action work (TST-1) is described as "Sonner-style", but
+  hover-to-pause — pointer-enter freezing the auto-dismiss timer and the progress
+  bar, pointer-leave resuming from the remaining time — is not implemented. A
+  toast keeps counting down while the user reads it or reaches for an action button.
+- **Why deferred:** A genuine feature add, not a fix of the shipped work: it
+  wants remaining-duration tracking, timer pause/resume plumbing, and
+  `animation-play-state` sync, plus interaction tests — a deliberate increment,
+  not a drive-by. Logged so "Sonner-style" doesn't imply a behaviour that isn't there.
+- **Found:** 2026-07-10, blocks feature-request review (TST-1).
+
+### Combobox/Select grouped keyboard-nav is O(n²) and keys groups on a non-unique label
+
+- **Where:** `packages/blocks/src/lib/primitives/Combobox/Combobox.svelte`
+  (`filtered.indexOf(opt)` per grouped option; `{#each filteredGroups as group
+  (group.label)}`) and the mirror sites in `Select.svelte`.
+- **What:** Two shared latent edges in the grouped-list rendering: (a) resolving
+  each grouped option's flat index via `indexOf` is O(n²) per render/keystroke —
+  fine for typical sizes, only relevant for grouped lists in the hundreds; (b)
+  keying the group `{#each}` on `group.label` produces a duplicate Svelte key if
+  two groups share a label (very unlikely, but a latent bug).
+- **Why deferred:** Both are identical in Combobox and Select (Combobox mirrors
+  Select's grouping deliberately), so fixing one side alone would introduce the
+  exact divergence the mirror is meant to avoid. Wants one sweep across both
+  (precompute a flat index map; key on a stable group id or `label`+index).
+- **Found:** 2026-07-10, blocks feature-request review (CMB-2 group support).
+
+### Combobox multi-select: no way to seed labels for pre-selected async values; orphan dev-warn re-fires per recompute
+
+- **Where:** `packages/blocks/src/lib/primitives/Combobox/Combobox.svelte`
+  (`selectedTags` `$derived.by`, `tagCache`) — and the same orphan-warn shape in
+  `Select.svelte`'s `selectedOptions`.
+- **What:** In `multiple` + `queryFn` mode a consumer that binds
+  `value=['a']` on mount has no API to supply `'a'`'s label — `tagCache` is only
+  written by `toggleValue` (a user pick), so a pre-bound value renders as its
+  raw `String(value)` until a query happens to return it. The dev-warn is now
+  suppressed in async mode to stop crying wolf (CMB-2 review), but the underlying
+  gap — seeding labels for pre-selected async values — remains. Separately, in
+  *sync* mode the orphan warn lives inside a `$derived.by` whose deps include the
+  `options`/`allOptions` reference, so it re-fires on every parent re-render that
+  passes a fresh `options` array (the common `options={items.map(...)}` idiom)
+  rather than once per orphan value.
+- **Why deferred:** The label-seed needs a deliberate API decision (accept a
+  `ComboboxOption[]` seed / a `selectedOptions` prop / a cache-seed callback), and
+  the warn-dedup is the identical pattern in Select — fixing one side alone
+  reintroduces the Combobox/Select divergence the mirror avoids. Wants one pass
+  across both (a warned-values `Set` for idempotency; a label-seed prop).
+- **Found:** 2026-07-10, blocks feature-request review (CMB-2 multi-select).
+
+### Combobox `queryFn` rejection surfaces no user-facing error state
+
+- **Where:** `packages/blocks/src/lib/primitives/Combobox/Combobox.svelte` — the
+  async effect's `.catch` (swallows non-abort rejections with a DEV-only warn).
+- **What:** A genuine `queryFn` rejection (network/server error) leaves the
+  previous `asyncOptions` in place with `loading` cleared and no error signal —
+  the user sees stale results or the "no results" row with no indication the
+  search failed. `AbortError` is correctly ignored; the gap is only the *real*
+  failure path. Pre-existing (CMB-3), not introduced by CMB-2, but on-topic.
+- **Why deferred:** Needs an API decision — an `onError` callback and/or an
+  error-row slot (mirroring `loadingText`/`noResultsText`) — vs. the current
+  accept-stale-on-failure behaviour. Not a drive-by; wants its own increment.
+- **Found:** 2026-07-10, blocks feature-request review (CMB-2 multi-select).
+
 ## Accessibility
 
 ### PlaygroundConfigurator control hints carry an orphaned `-hint` anchor id
@@ -298,6 +383,35 @@ internal TODO instead. Sections are ordered roughly by urgency.
   comment token wants a darker stop from the warm-neutral ramp picked against
   both panel grounds. Library change + visual sweep across all code panels.
 - **Found:** 2026-07-10, axe over the rebuilt `/getting-started` build guide.
+
+### Toast promise settle may not be re-announced to screen readers (in-place flip)
+
+- **Where:** `packages/blocks/src/lib/primitives/Toast/Toaster.svelte` — the
+  live region is `aria-live="polite"` `aria-relevant="additions removals"`, and a
+  promise toast flips loading→success/error on the *same* DOM node (id reused).
+- **What:** Because the settle mutates the existing toast rather than adding a
+  new one, the loading→success text change is not an "addition"; the per-toast
+  `role="alert"` *usually* re-announces on content change, but this is
+  SR-dependent and inconsistent. The `aria-*` attributes are pre-existing; the
+  promise feature merely surfaces the edge.
+- **Why deferred:** Reliable announcement wants a deliberate a11y decision
+  (re-add the toast on settle instead of mutating, or add `aria-atomic`
+  handling) validated against real screen readers — not a blind attribute tweak.
+  Only act if SR testing shows genuine silence.
+- **Found:** 2026-07-10, blocks feature-request review (TST-1).
+
+### Combobox multi-select `maxItems` cap has no screen-reader announcement
+
+- **Where:** `packages/blocks/src/lib/primitives/Combobox/Combobox.svelte`
+  (`atCap` / `isOptionDisabled`).
+- **What:** Once `maxItems` is reached, non-selected options quietly become
+  `aria-disabled` and are skipped by keyboard nav — but there is no announcement
+  of *why* nothing more can be added. A screen-reader user hits a wall with no
+  explanation. Visual users get the same silence (greyed rows, no message).
+- **Why deferred:** Wants a deliberate a11y pattern — a live-region hint ("Maximum
+  N reached") and/or a visible cap message — designed and SR-tested, not a blind
+  attribute. Low frequency (only when a consumer sets `maxItems`).
+- **Found:** 2026-07-10, blocks feature-request review (CMB-2 multi-select).
 
 ## Auth — accepted trade-offs
 
@@ -395,6 +509,24 @@ internal TODO instead. Sections are ordered roughly by urgency.
   That is its own small package — fixture route, docs-app rebuild, spec.
 - **Found:** 2026-07-07, while adding the jsdom interaction tests for
   Select/Menu/Dialog; the test-quality review surfaced the latent showModal bug.
+
+### No e2e guard for NumberInput stepper clickability (jsdom can't see pointer-events)
+
+- **Where:** `e2e/` (no NumberInput fixture/spec);
+  `packages/blocks/src/lib/components/NumberInput/NumberInput.svelte.test.ts`
+  asserts the `pointer-events-auto` class only.
+- **What:** NumberInput renders its stepper as a right-side snippet inside
+  Input's `pointer-events-none` decoration container, so the buttons need
+  `pointer-events-auto` to be clickable (fixed 2026-07-10 — they were dead to
+  mouse in a real browser while the jsdom test stayed green, because jsdom
+  ignores `pointer-events`). The unit test now guards the class, but real
+  clickability can only be verified in a browser.
+- **Why deferred:** A true guard wants a `test-fixtures/number-input` route +
+  Playwright spec that clicks the stepper and asserts the value changed — the
+  same fixture-route pattern as the deferred Dialog/Drawer e2e guard above, best
+  done in one e2e-fixtures pass.
+- **Found:** 2026-07-10, blocks feature-request review (NI-1); the stepper-click
+  bug was caught by the code review, not the passing unit test.
 
 ### `DatePicker` / `DateRangePicker`: two shared commit-path branches untested in both pickers
 
