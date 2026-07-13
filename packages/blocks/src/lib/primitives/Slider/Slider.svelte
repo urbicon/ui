@@ -34,6 +34,7 @@
     unstyled: unstyledProp = false,
     slotClasses: slotClassesProp = {},
     preset,
+    'aria-describedby': ariaDescribedby,
     ...restProps
   }: SliderProps = $props();
 
@@ -240,12 +241,14 @@
     resolveSlotClasses(blocksConfig, 'Slider', preset, variantProps, slotClassesProp)
   );
 
-  // aria-describedby chain: error > helper, plus rangeStatus when active.
-  // `ff.describedBy` already handles error/hint in the canonical order;
-  // we append the optional statusId.
+  // aria-describedby chain: error > helper, plus rangeStatus when active,
+  // plus a consumer-supplied `aria-describedby` (e.g. an external hint) —
+  // restProps land on the wrapper div, so without the merge the consumer's
+  // description would never reach the focusable thumbs.
   const describedBy = $derived(
-    [ff.describedBy, hasRangeConstraints ? statusId : undefined].filter(Boolean).join(' ') ||
-      undefined
+    [ff.describedBy, hasRangeConstraints ? statusId : undefined, ariaDescribedby]
+      .filter(Boolean)
+      .join(' ') || undefined
   );
 
   $effect(() => {

@@ -53,6 +53,7 @@
     slotClasses: slotClassesProp = {},
     preset,
     id: idProp,
+    'aria-describedby': ariaDescribedby,
     ...restProps
   }: SelectProps<T> = $props();
 
@@ -107,6 +108,14 @@
     required,
     disabled
   }));
+
+  // Consumer-supplied `aria-describedby` (e.g. an external hint rendered
+  // outside the component) merges with the internal error/helper chain —
+  // restProps land on the wrapper div, so without this the description
+  // would never reach the focusable trigger.
+  const describedBy = $derived(
+    [ff.describedBy, ariaDescribedby].filter(Boolean).join(' ') || undefined
+  );
 
   let activeIndex = $state(-1);
   // Tracks whether the most recent open was keyboard-driven, so the initial
@@ -456,7 +465,7 @@
         aria-haspopup="listbox"
         aria-controls={listboxId}
         aria-labelledby={labelId}
-        aria-describedby={ff.describedBy}
+        aria-describedby={describedBy}
         aria-invalid={ff.invalid ? 'true' : undefined}
         aria-activedescendant={activeIndex >= 0 ? getOptionId(activeIndex) : undefined}
         onclick={toggle}

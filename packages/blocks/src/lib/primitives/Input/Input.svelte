@@ -43,6 +43,7 @@
     persistVersion = 1,
     persistNamespace,
     onkeydown: userOnKeydown,
+    'aria-describedby': ariaDescribedby,
     ...restProps
   }: InputProps = $props();
 
@@ -125,6 +126,14 @@
     required,
     disabled
   }));
+
+  // Consumer-supplied `aria-describedby` (e.g. an external hint rendered
+  // outside the component) merges with the internal error/helper chain
+  // instead of being clobbered by it — internal descriptions first, the
+  // consumer's supplemental one last.
+  const describedBy = $derived(
+    [ff.describedBy, ariaDescribedby].filter(Boolean).join(' ') || undefined
+  );
 
   $effect(() => {
     if (inputRef && mint && mint !== 'none' && !disabled) {
@@ -222,7 +231,7 @@
       {readonly}
       {required}
       aria-invalid={ff.invalid ? 'true' : undefined}
-      aria-describedby={ff.describedBy}
+      aria-describedby={describedBy}
       onkeydown={handleKeydown}
     />
 
