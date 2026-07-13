@@ -193,14 +193,40 @@ describe('figma-token-export — border radius scale', () => {
   });
 });
 
+/** Replaces every embedded `light-dark(a, b)` with its light argument `a`. */
+function resolveEmbeddedLightDark(value: string): string {
+  let out = value;
+  let start = out.indexOf('light-dark(');
+  while (start !== -1) {
+    let depth = 0;
+    let comma = -1;
+    let i = start + 'light-dark('.length;
+    for (; i < out.length; i++) {
+      const ch = out[i];
+      if (ch === '(') depth++;
+      else if (ch === ')') {
+        if (depth === 0) break;
+        depth--;
+      } else if (ch === ',' && depth === 0 && comma === -1) comma = i;
+    }
+    const light = out.slice(start + 'light-dark('.length, comma).trim();
+    out = out.slice(0, start) + light + out.slice(i + 1);
+    start = out.indexOf('light-dark(');
+  }
+  return out;
+}
+
 describe('figma-token-export — shadows', () => {
-  // Light branch of `--color-shadow-*`, with the shadow tint resolved. The
-  // CSS omits commas between shadow layers (a comma would split the
-  // light-dark() arguments), the export uses rgba() and layer commas — so
-  // both sides are normalized to a comparable comma-free oklch form.
-  // Matched directly (not via extractBlock(':root')) — ':root' also appears
-  // in comments before the actual rule, and `var(--blocks-shadow-tint)`
-  // usages have no ':' after the name, so this hits only the declaration.
+  // Light branch of `--color-shadow-*`, with the shadow tint resolved.
+  // Shadow layers are top-level comma-separated with light-dark() wrapping
+  // only the per-layer <color> (wrapping the whole list is invalid as a
+  // box-shadow and rendered as none — fixed 2026-07-13), so the light
+  // resolution substitutes each embedded light-dark() and keeps the layer
+  // commas. The export uses rgba(); both sides normalize to oklch.
+  // The tint is matched directly (not via extractBlock(':root')) — ':root'
+  // also appears in comments before the actual rule, and
+  // `var(--blocks-shadow-tint)` usages have no ':' after the name, so this
+  // hits only the declaration.
   const shadowTint = /--blocks-shadow-tint:\s*([^;]+);/.exec(semanticCss)?.[1].trim();
 
   it('resolves the shadow tint from :root', () => {
@@ -213,8 +239,9 @@ describe('figma-token-export — shadows', () => {
     if (!match) continue;
     cssShadows.set(
       match[1],
-      lightValue(value)
+      resolveEmbeddedLightDark(value)
         .replaceAll('var(--blocks-shadow-tint)', shadowTint ?? '')
+        .replace(/\s*,\s*/g, ', ')
         .replace(/\s+/g, ' ')
     );
   }
@@ -226,7 +253,7 @@ describe('figma-token-export — shadows', () => {
       const normalized = exportedShadows
         .get(name)!
         .replace(/rgba\(0,\s*0,\s*0,\s*([\d.]+)\)/g, 'oklch(0 0 0 / $1)')
-        .replaceAll(',', ' ')
+        .replace(/\s*,\s*/g, ', ')
         .replace(/\s+/g, ' ');
       expect(normalized, `shadow.${name}`).toBe(cssValue);
     }

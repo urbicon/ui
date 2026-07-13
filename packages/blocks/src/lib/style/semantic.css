@@ -183,7 +183,12 @@
 
   /* === SHADOWS ===
      Dark mode uses higher alpha to compensate for low contrast against
-     dark surfaces. light-dark() handles the whole multi-layer shadow.
+     dark surfaces. light-dark() may wrap ONLY the per-layer <color> —
+     it is a color function, and layers must stay top-level
+     comma-separated. Wrapping the whole multi-layer list made every
+     `box-shadow: var(--blocks-shadow-*)` invalid at computed-value time
+     (shadows silently rendered as none, library-wide) — verified in
+     chromium before the 2026-07-13 fix.
 
      The shadow tint (`--blocks-shadow-tint`) is an oklch L C H triplet
      WITHOUT the alpha channel — declared on `:root` (not inside @theme)
@@ -192,34 +197,55 @@
      their shadow palette — e.g. editorial sets it to a dark brown so
      shadows blend with cream surfaces instead of reading as cool
      smudges. */
-  --color-shadow-xs: light-dark(
-    0 1px 2px 0 oklch(var(--blocks-shadow-tint) / 0.05),
-    0 1px 2px 0 oklch(var(--blocks-shadow-tint) / 0.2)
-  );
-  --color-shadow-sm: light-dark(
-    0 1px 3px 0 oklch(var(--blocks-shadow-tint) / 0.1) 0 1px 2px -1px
-      oklch(var(--blocks-shadow-tint) / 0.1),
-    0 1px 3px 0 oklch(var(--blocks-shadow-tint) / 0.3) 0 1px 2px -1px
-      oklch(var(--blocks-shadow-tint) / 0.3)
-  );
-  --color-shadow-base: light-dark(
-    0 4px 6px -1px oklch(var(--blocks-shadow-tint) / 0.1) 0 2px 4px -2px
-      oklch(var(--blocks-shadow-tint) / 0.1),
-    0 4px 6px -1px oklch(var(--blocks-shadow-tint) / 0.4) 0 2px 4px -2px
-      oklch(var(--blocks-shadow-tint) / 0.4)
-  );
-  --color-shadow-md: light-dark(
-    0 10px 15px -3px oklch(var(--blocks-shadow-tint) / 0.1) 0 4px 6px -4px
-      oklch(var(--blocks-shadow-tint) / 0.1),
-    0 10px 15px -3px oklch(var(--blocks-shadow-tint) / 0.4) 0 4px 6px -4px
-      oklch(var(--blocks-shadow-tint) / 0.4)
-  );
-  --color-shadow-lg: light-dark(
-    0 20px 25px -5px oklch(var(--blocks-shadow-tint) / 0.1) 0 8px 10px -6px
-      oklch(var(--blocks-shadow-tint) / 0.1),
-    0 20px 25px -5px oklch(var(--blocks-shadow-tint) / 0.5) 0 8px 10px -6px
-      oklch(var(--blocks-shadow-tint) / 0.5)
-  );
+  --color-shadow-xs: 0 1px 2px 0
+    light-dark(
+      oklch(var(--blocks-shadow-tint) / 0.05),
+      oklch(var(--blocks-shadow-tint) / 0.2)
+    );
+  --color-shadow-sm:
+    0 1px 3px 0
+      light-dark(
+        oklch(var(--blocks-shadow-tint) / 0.1),
+        oklch(var(--blocks-shadow-tint) / 0.3)
+      ),
+    0 1px 2px -1px
+      light-dark(
+        oklch(var(--blocks-shadow-tint) / 0.1),
+        oklch(var(--blocks-shadow-tint) / 0.3)
+      );
+  --color-shadow-base:
+    0 4px 6px -1px
+      light-dark(
+        oklch(var(--blocks-shadow-tint) / 0.1),
+        oklch(var(--blocks-shadow-tint) / 0.4)
+      ),
+    0 2px 4px -2px
+      light-dark(
+        oklch(var(--blocks-shadow-tint) / 0.1),
+        oklch(var(--blocks-shadow-tint) / 0.4)
+      );
+  --color-shadow-md:
+    0 10px 15px -3px
+      light-dark(
+        oklch(var(--blocks-shadow-tint) / 0.1),
+        oklch(var(--blocks-shadow-tint) / 0.4)
+      ),
+    0 4px 6px -4px
+      light-dark(
+        oklch(var(--blocks-shadow-tint) / 0.1),
+        oklch(var(--blocks-shadow-tint) / 0.4)
+      );
+  --color-shadow-lg:
+    0 20px 25px -5px
+      light-dark(
+        oklch(var(--blocks-shadow-tint) / 0.1),
+        oklch(var(--blocks-shadow-tint) / 0.5)
+      ),
+    0 8px 10px -6px
+      light-dark(
+        oklch(var(--blocks-shadow-tint) / 0.1),
+        oklch(var(--blocks-shadow-tint) / 0.5)
+      );
 }
 
 /* Shadow tint — declared on :root rather than inside @theme because
