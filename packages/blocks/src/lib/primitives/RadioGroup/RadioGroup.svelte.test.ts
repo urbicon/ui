@@ -4,7 +4,7 @@ import userEvent from '@testing-library/user-event';
 import { flushSync, mount, unmount } from 'svelte';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import RadioHarness from './__fixtures__/RadioHarness.svelte';
-import type { RadioGroupProps } from './index';
+import type { RadioGroupProps, RadioItemProps } from './index';
 
 // Interaction layer for RadioGroup — native <input type="radio"> children under
 // a role=radiogroup, with the W3C radio pattern: selection follows focus (arrows
@@ -25,7 +25,9 @@ afterEach(() => {
   document.body.replaceChildren();
 });
 
-function renderRadios(props: Partial<RadioGroupProps> & { items?: Item[] } = {}) {
+function renderRadios(
+  props: Partial<RadioGroupProps> & { items?: Item[]; itemProps?: Partial<RadioItemProps> } = {}
+) {
   const instance = mount(RadioHarness, { target: document.body, props });
   dispose = () => unmount(instance);
   flushSync();
@@ -142,5 +144,52 @@ describe('RadioGroup (aria-describedby merge)', () => {
     renderRadios({ 'aria-describedby': 'ext-hint' });
 
     expect(screen.getByRole('radiogroup').getAttribute('aria-describedby')).toBe('ext-hint');
+  });
+});
+
+describe('RadioGroup (internal ARIA wins over restProps)', () => {
+  // Both the group element and every RadioItem <input> spread `{...restProps}`
+  // FIRST, so the component's own computed attributes always win — a consumer
+  // can't silently override the group's error state or a radio's roving tabindex
+  // (mirrors Input's ordering). Regression guard for the technical-debt entry
+  // "Form primitives spread {...restProps} last".
+  it('keeps computed aria-invalid="true" on the group when a consumer passes aria-invalid="false" and error is set', () => {
+    renderRadios({ error: 'Pick one', 'aria-invalid': 'false' });
+
+    // The group is invalid because `error` is set; the consumer's restProps value
+    // does not win.
+    expect(screen.getByRole('radiogroup').getAttribute('aria-invalid')).toBe('true');
+  });
+
+  it("keeps each radio's internal roving tabindex over a consumer-spread tabindex", () => {
+    renderRadios({ value: 'medium', itemProps: { tabindex: 5 } });
+
+    // The checked radio keeps tabindex 0 and the rest -1 — the component's roving
+    // tabindex wins over the value spread through each RadioItem's restProps.
+    expect(radio('Medium').getAttribute('tabindex')).toBe('0');
+    expect(radio('Small').getAttribute('tabindex')).toBe('-1');
+    expect(radio('Large').getAttribute('tabindex')).toBe('-1');
+  });
+});
+
+describe('RadioGroup (consumer aria-labelledby survives without an internal label)', () => {
+  // The reorder made `{...restProps}` spread first, so `aria-labelledby` is now
+  // destructured out and used as the group's fallback — a consumer's external
+  // heading association survives when there is no internal `label`, instead of
+  // being cleared by the internal `undefined`.
+  it('keeps a consumer aria-labelledby on the group when there is no internal label', () => {
+    renderRadios({ 'aria-labelledby': 'ext-heading' });
+
+    expect(screen.getByRole('radiogroup').getAttribute('aria-labelledby')).toBe('ext-heading');
+  });
+
+  it('an internal label still wins over a consumer aria-labelledby', () => {
+    renderRadios({ label: 'Plan', 'aria-labelledby': 'ext-heading' });
+
+    const group = screen.getByRole('radiogroup');
+    const labelSpan = screen.getByText('Plan');
+    // The rendered label owns the association; the consumer value is the fallback,
+    // not an override.
+    expect(group.getAttribute('aria-labelledby')).toBe(labelSpan.id);
   });
 });

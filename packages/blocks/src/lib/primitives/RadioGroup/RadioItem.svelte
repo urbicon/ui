@@ -71,6 +71,7 @@
   for={id}
 >
   <input
+    {...restProps}
     {id}
     type="radio"
     name={ctx.name}
@@ -80,7 +81,6 @@
     class="peer sr-only"
     tabindex={isChecked || (!ctx.value && !isDisabled) ? 0 : -1}
     onchange={handleChange}
-    {...restProps}
   />
 
   <span

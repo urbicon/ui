@@ -126,6 +126,7 @@
     for={id}
   >
     <input
+      {...restProps}
       bind:this={inputRef}
       {id}
       type="checkbox"
@@ -139,7 +140,6 @@
       aria-invalid={ff.invalid ? 'true' : undefined}
       aria-describedby={describedBy}
       onchange={handleChange}
-      {...restProps}
     />
 
     <span

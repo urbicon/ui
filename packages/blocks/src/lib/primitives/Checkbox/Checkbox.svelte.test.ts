@@ -169,3 +169,23 @@ describe('Checkbox (aria-describedby merge)', () => {
     expect(box('Accept terms').getAttribute('aria-describedby')).toBe('ext-hint');
   });
 });
+
+describe('Checkbox (internal ARIA wins over restProps)', () => {
+  // The <input> spreads `{...restProps}` FIRST, so the component's own computed
+  // aria-* always win — a consumer can't silently override the checkbox's state
+  // through restProps (mirrors Input's ordering). Regression guard for the
+  // technical-debt entry "Form primitives spread {...restProps} last".
+  it('keeps computed aria-invalid="true" when a consumer passes aria-invalid="false" and error is set', () => {
+    renderCheckbox({ label: 'Accept terms', error: 'Required', 'aria-invalid': 'false' });
+
+    // `error` dictates aria-invalid; the consumer's restProps value does not win.
+    expect(box('Accept terms').getAttribute('aria-invalid')).toBe('true');
+  });
+
+  it('keeps computed aria-checked="mixed" when a consumer passes aria-checked="false" and indeterminate is set', () => {
+    renderCheckbox({ label: 'Select all', indeterminate: true, 'aria-checked': 'false' });
+
+    // The indeterminate third state owns aria-checked="mixed".
+    expect(box('Select all').getAttribute('aria-checked')).toBe('mixed');
+  });
+});

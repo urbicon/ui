@@ -29,6 +29,7 @@
     preset,
     withBorder = false,
     'aria-describedby': ariaDescribedby,
+    'aria-label': ariaLabel,
     ...restProps
   }: ToggleProps = $props();
 
@@ -110,7 +111,11 @@
       : styles.control({ class: slotClasses?.control })}
     for={ff.fieldId}
   >
+    <!-- aria-label: a visible `label` wins (stays undefined); with no label a
+         consumer-supplied aria-label is preferred over the generic i18n fallback
+         so external labelling survives the restProps-first spread. -->
     <input
+      {...restProps}
       id={ff.fieldId}
       type="checkbox"
       role="switch"
@@ -121,11 +126,10 @@
       {required}
       class="peer sr-only"
       aria-checked={checked}
-      aria-label={label ? undefined : bt('accessibility.toggle') || 'Toggle'}
+      aria-label={label ? undefined : (ariaLabel ?? (bt('accessibility.toggle') || 'Toggle'))}
       aria-describedby={describedBy}
       aria-invalid={ff.invalid ? 'true' : undefined}
       onchange={handleChange}
-      {...restProps}
     />
 
     <span

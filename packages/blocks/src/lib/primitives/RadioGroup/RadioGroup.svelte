@@ -27,6 +27,7 @@
     preset,
     id,
     'aria-describedby': ariaDescribedby,
+    'aria-labelledby': ariaLabelledby,
     ...restProps
   }: RadioGroupProps = $props();
 
@@ -43,6 +44,9 @@
   const unstyled = $derived(unstyledProp || blocksConfig?.unstyled || false);
 
   const groupId = $derived(id || `radiogroup-${propsId}`);
+  // When a `label` is rendered it owns the group's `aria-labelledby`; otherwise a
+  // consumer-supplied `aria-labelledby` (an external heading) is used as the
+  // fallback so external labelling survives (see the group element below).
   const labelId = $derived(label ? `${groupId}-label` : undefined);
   // ARIA wiring is shared with every form primitive — see XC-2.
   const ff = useFormField(() => ({
@@ -159,16 +163,16 @@
   {/if}
 
   <div
+    {...restProps}
     bind:this={groupElement}
     role="radiogroup"
     id={groupId}
     class={unstyled ? (slotClasses?.group ?? '') : styles.group({ class: slotClasses?.group })}
-    aria-labelledby={labelId}
+    aria-labelledby={labelId ?? ariaLabelledby}
     aria-describedby={describedBy}
     aria-required={required || undefined}
     aria-invalid={ff.invalid ? 'true' : undefined}
     onkeydown={handleKeydown}
-    {...restProps}
   >
     {@render children()}
   </div>

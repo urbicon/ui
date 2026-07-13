@@ -178,3 +178,46 @@ describe('Toggle (aria-describedby merge)', () => {
     expect(toggle('Wireless').getAttribute('aria-describedby')).toBe('ext-hint');
   });
 });
+
+describe('Toggle (internal ARIA wins over restProps)', () => {
+  // The <input> spreads `{...restProps}` FIRST, so the component's own computed
+  // aria-checked / aria-invalid always win — a consumer can't silently override
+  // the switch's state through restProps (mirrors Input's ordering). Regression
+  // guard for the technical-debt entry "Form primitives spread {...restProps} last".
+  it('keeps computed aria-checked="true" when a consumer passes aria-checked="mixed" and checked is set', () => {
+    renderToggle({ label: 'Wireless', checked: true, 'aria-checked': 'mixed' });
+
+    // The switch is on; aria-checked tracks the bound state, not the restProps value.
+    expect(toggle('Wireless').getAttribute('aria-checked')).toBe('true');
+  });
+
+  it('keeps computed aria-invalid="true" when a consumer passes aria-invalid="false" and error is set', () => {
+    renderToggle({
+      label: 'Accept terms',
+      error: 'You must accept the terms',
+      'aria-invalid': 'false'
+    });
+
+    expect(toggle('Accept terms').getAttribute('aria-invalid')).toBe('true');
+  });
+});
+
+describe('Toggle (consumer aria-label survives without a visible label)', () => {
+  // The reorder made `{...restProps}` spread first, so `aria-label` is now
+  // destructured out and folded into the internal fallback chain — a consumer's
+  // external label is preferred over the generic i18n fallback when there is no
+  // visible `label`, instead of being clobbered by it.
+  it('renders the consumer aria-label (not the generic fallback) when no visible label is given', () => {
+    renderToggle({ 'aria-label': 'Notify me' });
+
+    expect(screen.getByRole('switch').getAttribute('aria-label')).toBe('Notify me');
+  });
+
+  it('a visible label still wins — the switch carries no aria-label so names cannot diverge', () => {
+    renderToggle({ label: 'Wireless', 'aria-label': 'Notify me' });
+
+    // The wrapping <label> names the control; the consumer aria-label is the
+    // fallback, not an override, so it is not applied here.
+    expect(toggle('Wireless').getAttribute('aria-label')).toBeNull();
+  });
+});
