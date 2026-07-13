@@ -20,20 +20,27 @@
   --color-neutral-50: oklch(0.98 0.005 240);
   --color-neutral-500: oklch(0.55 0.016 240);
   --color-neutral-900: oklch(0.15 0.012 240);
-  
+
+  /* Intent 500s darkened so white text passes WCAG AA */
   --color-primary-500: oklch(0.58 0.15 240);
-  --color-success-500: oklch(0.65 0.15 140);
-  --color-danger-500: oklch(0.65 0.18 25);
+  --color-success-500: oklch(0.5 0.15 140);
+  --color-danger-500: oklch(0.5 0.17 25);
 }`;
 
-  const semanticTokenExample = `/* Semantic Layer – maps foundation to roles */
---color-surface-base: var(--color-neutral-0);
---color-text-primary: var(--color-neutral-900);
---color-primary: var(--color-primary-600);
+  const semanticTokenExample = `/* Semantic Layer – maps foundation to
+   roles; light-dark() resolves both modes */
+--color-surface-base: light-dark(
+  var(--color-neutral-0), var(--color-neutral-900));
+--color-text-primary: light-dark(
+  var(--color-neutral-900), var(--color-neutral-100));
+--color-primary: light-dark(
+  var(--color-primary-600), var(--color-primary-500));
 
-/* Interactive States */
---color-interactive-hover: var(--color-neutral-100);
---color-border-focus: var(--color-primary-500);`;
+/* Interactive states */
+--color-interactive-hover:
+  oklch(from var(--color-primary-500) l c h / 0.1);
+--color-interactive-focus: light-dark(
+  var(--color-primary-500), var(--color-primary-400));`;
 
   const componentTokenExample = `/* Interaction Layer – motion & depth */
 --blocks-duration-fast: 150ms;
@@ -45,20 +52,26 @@
 
   const customThemeExample = `@import '@urbicon-ui/blocks/style/index.css';
 
+/* Option A — import a shipped theme
+   (neutral, ocean, forest, rose, sunset) */
+@import '@urbicon-ui/blocks/style/themes/ocean.css';
+
+/* Option B — re-tint a ramp yourself. The semantic layer
+   consumes several stops (600/500 base, 700/400 hover,
+   800/300 active, 900/200 emphasis, 50/900 subtle), so
+   override the WHOLE ramp: keep each stop's lightness and
+   chroma, swap only the hue. */
 @theme {
-  /* Override primary color */
-  --color-primary-500: oklch(0.6 0.2 280); /* Purple */
-  
-  /* Add custom brand colors */
-  --color-brand-500: oklch(0.5 0.25 45); /* Orange */
-  --color-accent-500: oklch(0.7 0.3 320); /* Pink */
+  --color-primary-500: oklch(0.58 0.15 280);
+  --color-primary-600: oklch(0.52 0.15 280);
+  --color-primary-700: oklch(0.44 0.13 280);
+  /* … all stops 50–950 with the new hue */
 }
 
-/* Use in your components */
-.my-custom-button {
-  background: var(--color-brand-500);
-  color: white;
-  border-radius: var(--radius-lg);
+/* Custom brand tokens get Tailwind utilities for free
+   (bg-brand-500, text-brand-500, …) */
+@theme {
+  --color-brand-500: oklch(0.5 0.25 45);
 }`;
 
   // Spacing is NOT a custom token layer — Urbicon UI uses Tailwind's built-in
@@ -99,8 +112,9 @@
     { name: '--radius-4xl', value: '2rem', utility: 'rounded-4xl' }
   ];
 
-  // Semantic 3-tier radius vocabulary — components consume these, not raw radii.
-  // Re-tint per brand to reshape the whole library at once.
+  // Semantic 3-tier radius vocabulary (+ the bridge adjacency token) —
+  // components consume these, not raw radii. Re-tint per brand to reshape
+  // the whole library at once.
   const semanticRadiusTokens = [
     {
       name: '--radius-commit',
@@ -116,6 +130,11 @@
       name: '--radius-contain',
       value: 'var(--radius-xs) · 2px',
       usage: 'Containers, panels (Card, Alert, Dialog, Tooltip)'
+    },
+    {
+      name: '--radius-bridge',
+      value: 'var(--radius-md) · 6px',
+      usage: 'Adjacency only — floating panel anchored to a pill (commit-tier) trigger'
     }
   ];
 
@@ -211,8 +230,15 @@
 
     <div class="mb-8">
       <h3 class="text-text-primary mb-4 text-lg font-semibold">Neutral Palette</h3>
-      <div class="mb-4 grid grid-cols-12 gap-1">
-        {#each [0, 50, 100, 200, 300, 400, 500, 600, 700, 800, 900, 950] as shade (shade)}
+      <p class="text-text-secondary mb-4">
+        The neutral ramp has 16 steps: alongside the standard 50–950 ladder it ships a
+        <code class="bg-surface-subtle rounded-modify px-1.5 py-0.5 text-sm">25</code> tint (the
+        quiet-surface ground) and the half-steps
+        <code class="bg-surface-subtle rounded-modify px-1.5 py-0.5 text-sm">650/750/850</code>,
+        which differentiate the dark-mode elevation ladder.
+      </p>
+      <div class="mb-4 grid grid-cols-4 gap-1 sm:grid-cols-8">
+        {#each [0, 25, 50, 100, 200, 300, 400, 500, 600, 650, 700, 750, 800, 850, 900, 950] as shade (shade)}
           <div class="border-border-subtle bg-surface-base rounded-modify border p-2 text-center">
             <div
               class="rounded-modify mb-1 h-8 w-full"
@@ -224,8 +250,20 @@
       </div>
     </div>
 
-    <div class="mb-8 grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-4">
-      {#each ['primary', 'success', 'warning', 'danger'] as color (color)}
+    <h3 class="text-text-primary mb-4 text-lg font-semibold">Intent Ramps</h3>
+    <p class="text-text-secondary mb-4">
+      Six intent ramps — primary, secondary, success, warning, danger, info — each a full 50–950
+      ladder. The 500/600/700 stops are tuned dark enough that white
+      <code class="bg-surface-subtle rounded-modify px-1.5 py-0.5 text-sm">text-on-primary</code>
+      passes WCAG AA on the solid fills; warning is the deliberate exception (it stays light and pairs
+      with dark
+      <code class="bg-surface-subtle rounded-modify px-1.5 py-0.5 text-sm">text-on-surface</code>).
+      A separate
+      <code class="bg-surface-subtle rounded-modify px-1.5 py-0.5 text-sm">warm-neutral</code>
+      ramp powers the themeable neutral intent chrome.
+    </p>
+    <div class="mb-8 grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
+      {#each ['primary', 'secondary', 'success', 'warning', 'danger', 'info'] as color (color)}
         <div class="border-border-subtle bg-surface-base rounded-contain border p-4">
           <h4 class="text-text-primary mb-3 font-semibold capitalize">{color}</h4>
           <div class="space-y-2">
@@ -356,11 +394,14 @@
 
     <h3 class="text-text-primary mb-4 text-lg font-semibold">Semantic Tiers</h3>
     <p class="text-text-secondary mb-6">
-      Components consume a 3-tier semantic vocabulary, not raw radii. Re-tint these three variables
-      to reshape the whole library at once — see the
+      Components consume a 3-tier semantic vocabulary, not raw radii. Re-tint the three tier
+      variables to reshape the whole library at once — see the
       <a href={resolve('/customization/tier-system')} class="text-primary hover:underline"
         >Tier System</a
-      > for the full cascade.
+      >
+      for the full cascade. A fourth token,
+      <code class="bg-surface-subtle rounded-modify px-1.5 py-0.5 text-sm">--radius-bridge</code>,
+      is not a tier — it pairs pill triggers with their dropdown panels.
     </p>
     <div class="border-border-subtle bg-surface-base overflow-hidden rounded-xl border">
       <div class="overflow-x-auto">
@@ -400,12 +441,15 @@
       variables (plus easing curves like
       <code class="bg-surface-subtle rounded-modify px-1.5 py-0.5 text-sm"
         >--blocks-ease-gentle</code
-      >). Durations collapse to ~1ms under
+      >). Durations collapse to 1ms under
       <code class="bg-surface-subtle rounded-modify px-1.5 py-0.5 text-sm"
         >prefers-reduced-motion</code
-      >; shadows drop to
-      <code class="bg-surface-subtle rounded-modify px-1.5 py-0.5 text-sm">none</code> in high-contrast
-      mode.
+      >;
+      <code class="bg-surface-subtle rounded-modify px-1.5 py-0.5 text-sm"
+        >prefers-contrast: more</code
+      >
+      widens the focus ring to 3px and promotes hairline borders; in print, shadows drop to
+      <code class="bg-surface-subtle rounded-modify px-1.5 py-0.5 text-sm">none</code>.
     </p>
 
     <div class="grid grid-cols-1 gap-6 lg:grid-cols-2">
@@ -456,7 +500,9 @@
     <p class="text-text-secondary mb-6">
       Use Tailwind 4's
       <code class="bg-surface-subtle rounded-modify px-2 py-1 text-sm">@theme</code>
-      directive to customize design tokens and create your own brand theme.
+      directive to override tokens, or import one of the shipped themes — see
+      <a href={resolve('/customization/themes')} class="text-primary hover:underline">Themes</a> for the
+      full gallery.
     </p>
 
     <CodeExample
@@ -467,13 +513,36 @@
     />
 
     <div class="bg-primary-subtle border-primary/20 mt-6 rounded-xl border p-6">
-      <h3 class="text-primary-emphasis mb-3 font-semibold">Theming Best Practices</h3>
-      <ul class="text-text-secondary space-y-2 text-sm">
-        <li>Use semantic color names instead of specific color values</li>
-        <li>Test your theme in both light and dark modes</li>
-        <li>Ensure sufficient contrast ratios for accessibility</li>
-        <li>Consider using OKLCH color space for better perceptual uniformity</li>
-        <li>Keep your custom tokens organized and documented</li>
+      <h3 class="text-primary-emphasis mb-3 font-semibold">Override at the right layer</h3>
+      <ul class="text-text-secondary space-y-3 text-sm">
+        <li>
+          <strong class="text-text-primary">Re-tint a hue → foundation ramp.</strong> Override every stop
+          of the ramp, keeping each stop's lightness/chroma profile — the WCAG-tuned contrast survives,
+          and the semantic layer picks the new hue up in both modes automatically. This is exactly what
+          the shipped themes do.
+        </li>
+        <li>
+          <strong class="text-text-primary">Change a role → semantic token.</strong> To alter what
+          "elevated" or "subtle" means, override the semantic token itself — and supply a
+          <code class="bg-surface-base rounded-modify px-1.5 py-0.5">light-dark(light, dark)</code>
+          pair, otherwise the token is pinned to one look in both modes.
+        </li>
+        <li>
+          <strong class="text-text-primary"
+            >Restyle one component → the component API, not CSS.</strong
+          >
+          Use the override ladder:
+          <code class="bg-surface-base rounded-modify px-1.5 py-0.5">class</code>
+          → <code class="bg-surface-base rounded-modify px-1.5 py-0.5">slotClasses</code> →
+          <code class="bg-surface-base rounded-modify px-1.5 py-0.5">BlocksProvider</code>
+          presets/overrides →
+          <code class="bg-surface-base rounded-modify px-1.5 py-0.5">unstyled</code>. Never force
+          colors with <code class="bg-surface-base rounded-modify px-1.5 py-0.5">!</code> overrides
+          — see
+          <a href={resolve('/customization/blocks-provider')} class="text-primary hover:underline"
+            >BlocksProvider</a
+          >.
+        </li>
       </ul>
     </div>
   </section>
@@ -484,8 +553,18 @@
 
     <p class="text-text-secondary mb-6">
       Design tokens automatically adapt to dark mode using
-      <code class="bg-surface-subtle rounded-modify px-2 py-1 text-sm">light-dark()</code>. No
-      manual
+      <code class="bg-surface-subtle rounded-modify px-2 py-1 text-sm">light-dark()</code>:
+      <code class="bg-surface-subtle rounded-modify px-2 py-1 text-sm">:root</code> declares
+      <code class="bg-surface-subtle rounded-modify px-2 py-1 text-sm"
+        >color-scheme: light dark</code
+      >, so the browser resolves the matching branch from the user's preference. A manual toggle
+      only sets
+      <code class="bg-surface-subtle rounded-modify px-2 py-1 text-sm">:root.light</code>
+      /
+      <code class="bg-surface-subtle rounded-modify px-2 py-1 text-sm">:root.dark</code> to override
+      the
+      <code class="bg-surface-subtle rounded-modify px-2 py-1 text-sm">color-scheme</code> — no
+      token duplication, and no manual
       <code class="bg-surface-subtle rounded-modify px-2 py-1 text-sm">dark:</code> overrides needed.
     </p>
 
@@ -516,7 +595,7 @@
           <div class="flex justify-between">
             <span class="font-mono">--color-text-primary</span>
             <span class="bg-surface-inverted text-text-on-dark rounded-modify px-2 py-1 text-xs"
-              >neutral-50</span
+              >neutral-100</span
             >
           </div>
         </div>
