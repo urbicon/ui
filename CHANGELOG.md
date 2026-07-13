@@ -4,6 +4,33 @@ All notable changes to this project will be documented in this file.
 This changelog is automatically generated from [Conventional Commits](https://www.conventionalcommits.org).
 
 
+## [6.23.0] - 2026-07-13
+
+### Bug Fixes
+- **blocks**: Key calendar weekday header by column position
+- **docs-gen**: Correct generated cross-reference links (route base + urbicon type anchors)
+- **docs-gen**: Carry the group segment into per-scope llms.txt index links
+- **blocks**: Harden Select/Combobox a11y and grouped keyboard-nav
+- **blocks**: Merge consumer aria-describedby across the form family
+
+### Documentation
+- **recipes**: Audit help-tooltip, stat-tile, clickable-card, unsaved-changes-guard
+- **recipes**: Add filter-sidebar layout recipe
+- **recipes**: Lift slop on login, onboarding-flow, pricing, page-header
+- Reconcile technical-debt after the primitives-hardening wave
+- Retire the dead Lighter plan codename from source comments
+- Add JSDoc coverage to sveltekit-utils and mcp-server APIs
+- Log cron onError and docs-gen slot-extraction gaps as debt
+- Log the two docs-link / recipe-sweep findings as debt
+
+### Features
+- **blocks**: Pause Toast auto-dismiss on hover and focus
+- **blocks**: Add roving tabindex to ButtonGroup single-select
+
+### Testing
+- **blocks**: Cover DatePicker/DateRangePicker typed-empty clear and iso serialization
+- **docs-gen**: Make llm.txt link-existence check runtime-agnostic
+
 ## [6.22.0] - 2026-07-13
 
 ### Bug Fixes
