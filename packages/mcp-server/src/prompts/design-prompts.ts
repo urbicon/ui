@@ -141,6 +141,11 @@ function schemaFor(args: VerbArg[]): Record<string, z.ZodString | z.ZodOptional<
   return shape;
 }
 
+/**
+ * Register one MCP prompt per {@link VERBS} entry. Each prompt exposes only the
+ * args that verb uses, loads its recipe body lazily on invocation (via
+ * `loadVerb`), and wraps it with the per-call header from {@link buildVerbPrompt}.
+ */
 export function registerDesignPrompts(server: McpServer): void {
   for (const verb of VERBS) {
     server.prompt(verb.name, verb.summary, schemaFor(verb.args), async (args: VerbArgs) => {

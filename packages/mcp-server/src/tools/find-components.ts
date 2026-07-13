@@ -4,6 +4,13 @@ import { z } from 'zod';
 import { loadCatalog } from '../data/catalog-loader.js';
 import { formatCompactCatalog, formatComponentLine } from '../utils/format-catalog.js';
 
+/**
+ * Register the `find_components` tool: the catalog entry point. With no query it
+ * renders the full catalog grouped by category (via `formatCompactCatalog`);
+ * with a query it fuzzy-matches names/descriptions/tags through the engine's
+ * `matchComponents` (top 10). Every line keeps the origin-package tag so a
+ * non-blocks match (e.g. `Table`) is never mistaken for a blocks export.
+ */
 export function registerFindComponentsTool(server: McpServer): void {
   server.tool(
     'find_components',

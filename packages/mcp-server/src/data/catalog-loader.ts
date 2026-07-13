@@ -31,6 +31,13 @@ function initWatcher(): void {
   }
 }
 
+/**
+ * Load and cache the assembled component catalog (the single source of truth,
+ * auth components included). Unlike the read-tolerant loaders, this **throws**
+ * on a missing or corrupt catalog by design — the server never serves a
+ * silently empty or stale catalog. A file watcher invalidates the cache when
+ * the catalog changes on disk (dev regeneration).
+ */
 export async function loadCatalog(): Promise<ComponentCatalog> {
   if (cachedCatalog) return cachedCatalog;
 
@@ -48,6 +55,7 @@ export async function loadCatalog(): Promise<ComponentCatalog> {
   return cachedCatalog;
 }
 
+/** The in-memory catalog if {@link loadCatalog} has run, else `null`. No I/O. */
 export function getCachedCatalog(): ComponentCatalog | null {
   return cachedCatalog;
 }

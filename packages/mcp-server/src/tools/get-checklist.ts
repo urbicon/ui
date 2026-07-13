@@ -2,6 +2,13 @@ import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { z } from 'zod';
 import { loadCatalog } from '../data/catalog-loader.js';
 
+/**
+ * Register the `get_implementation_checklist` tool: emit the static best-practice
+ * checklist (setup, tokens, styling, a11y, i18n, design quality). When
+ * `components` are supplied, append a per-component notes section (variants,
+ * slots, related) resolved from the catalog. Overlaps the rules that
+ * `suggest_implementation` inlines — this is the standalone entry point.
+ */
 export function registerGetChecklistTool(server: McpServer): void {
   server.tool(
     'get_implementation_checklist',

@@ -2,6 +2,12 @@ import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { ICON_CATEGORY_ORDER } from '@urbicon-ui/design-engine/search';
 import { loadIcons } from '../data/icon-loader.js';
 
+/**
+ * Register the `find_icons` tool (no arguments): render the full icon reference
+ * — usage snippets plus every icon grouped by `ICON_CATEGORY_ORDER`, each listed
+ * as component name + dynamic `name`. Degrades to a hint when the icon bundle is
+ * unavailable (see {@link loadIcons}).
+ */
 export function registerFindIconsTool(server: McpServer): void {
   server.tool(
     'find_icons',

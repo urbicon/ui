@@ -9,6 +9,12 @@ import { z } from 'zod';
 // `urbicon css-reference` CLI command so local and remote answers agree; this tool is
 // only the MCP facade. Drift against the real blocks CSS is guarded by the engine's
 // `css-reference.test.ts`.
+/**
+ * Register the `get_css_reference` tool: a pure facade over the engine's
+ * `renderCssReference`. Returns the token overview (naming + dark-mode
+ * mechanism) or a single category section. All text lives in the engine, shared
+ * with `urbicon css-reference`, so this file holds no reference content itself.
+ */
 export function registerGetCssReferenceTool(server: McpServer): void {
   server.tool(
     'get_css_reference',

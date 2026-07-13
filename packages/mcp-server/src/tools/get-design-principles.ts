@@ -7,6 +7,13 @@ import {
   PRINCIPLE_TOPICS
 } from '../data/design-system-loader.js';
 
+/**
+ * Register the `get_design_principles` tool with two output modes. `as="guide"`
+ * (default) returns the heuristics from `principles.md` — whole, or one `topic`
+ * section. `as="rubric"` instead renders the engine's scoring rubric (via
+ * `renderRubric`) and ignores `topic`. Missing principles content degrades to a
+ * hint rather than throwing.
+ */
 export function registerGetDesignPrinciplesTool(server: McpServer): void {
   server.tool(
     'get_design_principles',

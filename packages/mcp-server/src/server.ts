@@ -13,6 +13,16 @@ import { registerGetRecipeTool } from './tools/get-recipe.js';
 import { registerSuggestImplementationTool } from './tools/suggest-implementation.js';
 import { registerValidateDesignTool } from './tools/validate-design.js';
 
+/**
+ * Assemble a fully-wired `urbicon-ui` MCP server: the two resources, the ten
+ * read-only tools, and the design-verb prompts. Deliberately stateless — it
+ * never reads or writes a consumer's design manifest (that lives in the
+ * consumer repo, via the `urbicon` CLI or the agent's own file tools), so a
+ * fresh instance can be created per HTTP session. Called by both transports.
+ *
+ * @returns A ready-to-connect `McpServer`; the caller attaches a transport
+ *   (`startStdioTransport` / `startHttpTransport`).
+ */
 export function createServer(): McpServer {
   const server = new McpServer({
     name: 'urbicon-ui',

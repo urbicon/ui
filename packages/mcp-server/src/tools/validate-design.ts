@@ -56,6 +56,13 @@ function renderReport(report: LintReport): string {
   return md;
 }
 
+/**
+ * Register the `validate_design` tool: a thin facade over the engine's
+ * `lintDesign`. It renders the {@link LintReport} into markdown (findings
+ * grouped by severity, with per-finding fixes and the two scores) but adds no
+ * rules of its own — the linter is shared verbatim with the `urbicon validate`
+ * CLI, so local and remote verdicts agree.
+ */
 export function registerValidateDesignTool(server: McpServer): void {
   server.tool(
     'validate_design',

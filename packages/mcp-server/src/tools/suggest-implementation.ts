@@ -86,6 +86,14 @@ const IMPLEMENTATION_RULES = `## Implementation Rules
 - **Don't copy recipe styling** — Recipes show ONE interpretation. Create YOUR visual identity with your own spacing rhythm, color distribution, and layout density.
 `;
 
+/**
+ * Register the `suggest_implementation` tool: assemble a Svelte 5 skeleton from
+ * either explicit component names (looked up in the catalog) or a free-text
+ * description (matched via the engine). Emits imports, a per-component prop/
+ * variant digest, a skeleton built from `SKELETON_HINTS`, the inlined
+ * `IMPLEMENTATION_RULES` (so no follow-up checklist call is needed), and any
+ * recipe whose id substring-matches or that shares ≥40% of the matched set.
+ */
 export function registerSuggestImplementationTool(server: McpServer): void {
   server.tool(
     'suggest_implementation',

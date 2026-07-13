@@ -9,6 +9,16 @@ const SEARCH_GROUPS = [
   'auth/components'
 ];
 
+/**
+ * Read a component's `llm.txt` by slug, probing each search group in order
+ * (blocks primitives/components, docs, table, auth). Returns `null` only when
+ * the file is absent (ENOENT) in *every* group — a genuine "unknown component".
+ * Any other I/O error (permissions, corrupt mount) is rethrown rather than
+ * masked as not-found.
+ *
+ * @param slug - Kebab-case component slug (e.g. `date-picker`).
+ * @returns The raw llm.txt, or `null` if no group has it.
+ */
 export async function loadComponentLlmTxt(slug: string): Promise<string | null> {
   for (const group of SEARCH_GROUPS) {
     const path = getComponentLlmPath(group, slug);

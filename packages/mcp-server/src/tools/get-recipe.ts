@@ -2,6 +2,12 @@ import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { z } from 'zod';
 import { loadCatalog } from '../data/catalog-loader.js';
 
+/**
+ * Register the `get_recipe` tool: return a full, production-ready recipe (title,
+ * pattern link, components, features, code) by id. Recipes travel inside the
+ * catalog — no separate source read — so an unknown id lists every available id
+ * from the same catalog load.
+ */
 export function registerGetRecipeTool(server: McpServer): void {
   server.tool(
     'get_recipe',

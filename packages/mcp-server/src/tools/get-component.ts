@@ -127,6 +127,13 @@ function generateCompactView(entry: ComponentCatalogEntry, llmContent: string): 
   return md;
 }
 
+/**
+ * Register the `get_component` tool: per-component API docs at three depths —
+ * a compact catalog+llm.txt summary (default), one named `section`, or the full
+ * llm.txt (`section="full"`). Unknown slugs return a find_components hint; a
+ * slug present in llm.txt but absent from the catalog falls back to full content
+ * rather than failing.
+ */
 export function registerGetComponentTool(server: McpServer): void {
   server.tool(
     'get_component',

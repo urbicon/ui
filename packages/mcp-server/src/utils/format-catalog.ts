@@ -23,12 +23,29 @@ const TAG_LABELS: Record<string, string> = {
   data: 'Data'
 };
 
+/**
+ * Drop the docs-site-only components (`ApiReference`, `CodeExample`, …) that
+ * ship in the assembled catalog but are not consumer-facing API, so they never
+ * surface in `find_components` / the catalog resource.
+ */
 export function filterInternalComponents(
   components: ComponentCatalogEntry[]
 ): ComponentCatalogEntry[] {
   return components.filter((c) => !INTERNAL_COMPONENTS.has(c.name));
 }
 
+/**
+ * Render the browse-view markdown: internal components filtered out, the rest
+ * bucketed by their primary tag in a fixed section order (`TAG_ORDER`, unknown
+ * tags → "Other"), preceded by the install/CSS/dark-mode setup block and
+ * followed by the recipe list. Shared by `find_components` (no query) and the
+ * catalog resource.
+ *
+ * @param components - Full catalog entries (internal ones are removed here).
+ * @param options - `tags` narrows to matching categories (case-insensitive);
+ *   `recipes` appends the recipe index.
+ * @returns Markdown document.
+ */
 export function formatCompactCatalog(
   components: ComponentCatalogEntry[],
   options?: { recipes?: RecipeEntry[]; tags?: string[] }
@@ -111,6 +128,12 @@ function isBooleanVariant(values: string[]): boolean {
   );
 }
 
+/**
+ * Format one catalog entry as a single markdown bullet: name, an origin-package
+ * tag for non-blocks components (so `Table` reads as `@urbicon-ui/table`), the
+ * description, its meaningful (non-boolean) variants, and related components.
+ * The one line shape shared by the browse and search views.
+ */
 export function formatComponentLine(comp: ComponentCatalogEntry): string {
   const variants = comp.variants
     .filter((v) => !isBooleanVariant(v.values))

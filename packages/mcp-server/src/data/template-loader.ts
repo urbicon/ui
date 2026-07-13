@@ -1,6 +1,11 @@
 import { readFile } from 'node:fs/promises';
 import { getTemplatePath } from '@urbicon-ui/design-content';
 
+/**
+ * The seven guide sections carved out of the single template document, keyed by
+ * guide id. Each value is the raw markdown of one `## …` section; the keys are
+ * the ids the guide resources ({@link registerGuideResources}) expose.
+ */
 export interface TemplateSections {
   'api-grammar': string;
   'component-families': string;
@@ -28,6 +33,11 @@ function extractSection(lines: string[], startHeading: string, endMarker: string
   return lines.slice(startIdx, endIdx).join('\n').trim();
 }
 
+/**
+ * Load the template document once and slice it into the seven
+ * {@link TemplateSections} by `## …` heading (each running up to the next `---`
+ * rule; auth-setup, the last section, runs to EOF). Cached per process.
+ */
 export async function loadTemplateSections(): Promise<TemplateSections> {
   if (cachedSections) return cachedSections;
 
@@ -50,6 +60,7 @@ export async function loadTemplateSections(): Promise<TemplateSections> {
   return cachedSections;
 }
 
+/** The cached sections if {@link loadTemplateSections} has run, else `null`. No I/O. */
 export function getCachedSections(): TemplateSections | null {
   return cachedSections;
 }

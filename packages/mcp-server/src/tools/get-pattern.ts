@@ -2,6 +2,12 @@ import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { z } from 'zod';
 import { getPatternByName, loadPatterns } from '../data/design-system-loader.js';
 
+/**
+ * Register the `get_pattern` tool: one composition pattern's full content by
+ * `name`, or — when `name` is omitted — the list of available patterns. An
+ * unknown name echoes the valid names back. Patterns are loaded/cached by
+ * `design-system-loader`.
+ */
 export function registerGetPatternTool(server: McpServer): void {
   server.tool(
     'get_pattern',

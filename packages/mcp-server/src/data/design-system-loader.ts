@@ -16,6 +16,11 @@ export {
 let cachedPrinciples: string | null = null;
 let cachedPatterns: PatternEntry[] | null = null;
 
+/**
+ * Load and cache `principles.md` from the design-system dir. Read-tolerant:
+ * yields `''` when the file is absent, so `get_design_principles` can degrade to
+ * a hint instead of crashing.
+ */
 export async function loadPrinciples(): Promise<string> {
   if (cachedPrinciples !== null) return cachedPrinciples;
 
@@ -28,6 +33,11 @@ export async function loadPrinciples(): Promise<string> {
   return cachedPrinciples;
 }
 
+/**
+ * Load, parse and cache every `patterns/*.md` file, sorted by name. Read-
+ * tolerant: a missing dir or an unreadable file yields `[]` / is skipped rather
+ * than throwing.
+ */
 export async function loadPatterns(): Promise<PatternEntry[]> {
   if (cachedPatterns) return cachedPatterns;
 
@@ -61,6 +71,7 @@ export async function loadPatterns(): Promise<PatternEntry[]> {
   return entries;
 }
 
+/** One pattern by exact name from the cached set, or `null` if none matches. */
 export async function getPatternByName(name: string): Promise<PatternEntry | null> {
   const patterns = await loadPatterns();
   return patterns.find((p) => p.name === name) ?? null;

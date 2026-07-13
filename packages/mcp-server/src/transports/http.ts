@@ -2,6 +2,20 @@ import { createServer as createHttpServer } from 'node:http';
 import { StreamableHTTPServerTransport } from '@modelcontextprotocol/sdk/server/streamableHttp.js';
 import { createServer as createMcpServer } from '../server.js';
 
+/**
+ * Serve the MCP over Streamable HTTP on `/mcp`, multiplexing clients by the
+ * `mcp-session-id` header. Each session gets its own server + transport pair:
+ * - `POST` **without** a session id opens one (fresh {@link createServer}, a
+ *   generated id) and remains registered until the transport closes;
+ * - `POST`/`GET`/`DELETE` **with** a known id are routed to that session;
+ * - a `POST` carrying an **unknown** id, or a session-less `GET`/`DELETE`, is a
+ *   `400` — the stateless server never resurrects a session it did not open.
+ *
+ * Any non-`/mcp` path returns a plain-text banner (a lightweight liveness ping).
+ * Runs until the process exits; there is no returned stop handle.
+ *
+ * @param port - TCP port to listen on (binds `http://localhost:<port>/mcp`).
+ */
 export async function startHttpTransport(port: number): Promise<void> {
   const sessions = new Map<string, StreamableHTTPServerTransport>();
 
