@@ -142,7 +142,7 @@
         </InfoCard>
 
         <div
-          class="border-border-subtle bg-surface-subtle mt-4 flex min-h-[480px] items-center justify-center rounded-xl border p-8"
+          class="border-border-subtle bg-surface-subtle mt-4 flex min-h-96 items-center justify-center rounded-xl border p-8"
         >
           <div class="w-full max-w-sm">
             <Card class="border-border-subtle shadow-[var(--blocks-shadow-lg)]">
@@ -160,7 +160,7 @@
                       /></svg
                     >
                   </div>
-                  <h3 class="text-text-primary text-xl font-bold">Welcome back</h3>
+                  <p class="text-text-primary text-xl font-bold">Welcome back</p>
                   <p class="text-text-tertiary mt-1 text-sm">Sign in to your account</p>
                 </div>
 
@@ -253,7 +253,7 @@
                   </form>
                   <div class="mt-6">
                     <Separator />
-                    <p class="text-text-tertiary mt-4 text-center text-sm">
+                    <p class="text-text-tertiary mt-4 text-left text-sm">
                       Don't have an account? <a
                         href="#signup"
                         class="text-primary font-medium hover:underline">Sign up</a

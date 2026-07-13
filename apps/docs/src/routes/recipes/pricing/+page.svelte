@@ -134,7 +134,7 @@
 
 <div class="grid grid-cols-1 md:grid-cols-3 gap-6 items-start">
   {#each plans as plan (plan.name)}
-    <Card class="relative overflow-hidden transition-all {plan.highlighted
+    <Card class="relative overflow-hidden transition-shadow {plan.highlighted
       ? 'border-primary ring-1 ring-primary/20 scale-[1.02] shadow-lg'
       : 'hover:shadow-md'}">
       {#if plan.highlighted}
@@ -235,7 +235,7 @@
         >
           <!-- Header -->
           <div class="mb-10 text-center">
-            <h3 class="text-text-primary mb-2 text-2xl font-bold">Simple, transparent pricing</h3>
+            <p class="text-text-primary mb-2 text-2xl font-bold">Simple, transparent pricing</p>
             <p class="text-text-secondary mb-6">
               Choose the plan that fits your needs. Upgrade or downgrade anytime.
             </p>
@@ -254,7 +254,7 @@
           <div class="grid grid-cols-1 items-start gap-6 md:grid-cols-3">
             {#each plans as plan (plan.name)}
               <Card
-                class="border-border-subtle relative overflow-hidden transition-all duration-[var(--blocks-duration-fast)] {plan.highlighted
+                class="border-border-subtle relative overflow-hidden transition-shadow duration-[var(--blocks-duration-fast)] {plan.highlighted
                   ? 'border-primary ring-primary/20 scale-[1.02] shadow-[var(--blocks-shadow-lg)] ring-1'
                   : 'hover:border-border-emphasis hover:shadow-[var(--blocks-shadow-md)]'}"
               >
@@ -267,7 +267,7 @@
                 {/if}
 
                 <div class="p-6">
-                  <h4 class="text-text-primary text-lg font-semibold">{plan.name}</h4>
+                  <p class="text-text-primary text-lg font-semibold">{plan.name}</p>
                   <p class="text-text-tertiary mt-1 text-sm">{plan.description}</p>
 
                   <div class="my-6">

@@ -36,7 +36,7 @@
   <Section id="preview" title="Live Preview">
     <div class="space-y-10">
       <div>
-        <h3 class="text-text-primary mb-3 text-sm font-semibold">List page</h3>
+        <p class="text-text-primary mb-3 text-sm font-semibold">List page</p>
         <Card variant="outlined" padding="md">
           <header class="mb-6 flex flex-col gap-4 sm:mb-8">
             <div class="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between sm:gap-6">
@@ -60,7 +60,7 @@
       </div>
 
       <div>
-        <h3 class="text-text-primary mb-3 text-sm font-semibold">Detail page with breadcrumb</h3>
+        <p class="text-text-primary mb-3 text-sm font-semibold">Detail page with breadcrumb</p>
         <Card variant="outlined" padding="md">
           <header class="mb-6 flex flex-col gap-4 sm:mb-8">
             <div class="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between sm:gap-6">
@@ -92,7 +92,7 @@
       </div>
 
       <div>
-        <h3 class="text-text-primary mb-3 text-sm font-semibold">Tab page</h3>
+        <p class="text-text-primary mb-3 text-sm font-semibold">Tab page</p>
         <Card variant="outlined" padding="md">
           <header class="mb-6 flex flex-col gap-4 sm:mb-8">
             <div class="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between sm:gap-6">
@@ -120,7 +120,7 @@
       </div>
 
       <div>
-        <h3 class="text-text-primary mb-3 text-sm font-semibold">Form page (h2 inside dialog)</h3>
+        <p class="text-text-primary mb-3 text-sm font-semibold">Form page (h2 inside dialog)</p>
         <Card variant="outlined" padding="md">
           <header class="mb-6 flex flex-col gap-4 sm:mb-8">
             <div class="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between sm:gap-6">
@@ -259,7 +259,7 @@
     <Card variant="outlined">
       <div class="divide-border-subtle divide-y">
         <div class="px-4 py-3">
-          <h4 class="text-text-primary text-sm font-semibold">Pick the right heading level</h4>
+          <p class="text-text-primary text-sm font-semibold">Pick the right heading level</p>
           <p class="text-text-secondary mt-1 text-sm">
             Use <code class="text-text-primary">&lt;h1&gt;</code> when the header is the single
             top-of-page heading. Drop to
@@ -268,9 +268,9 @@
           </p>
         </div>
         <div class="px-4 py-3">
-          <h4 class="text-text-primary text-sm font-semibold">
+          <p class="text-text-primary text-sm font-semibold">
             Actions on the right, wrapping below on narrow viewports
-          </h4>
+          </p>
           <p class="text-text-secondary mt-1 text-sm">
             <code class="text-text-primary">flex-col gap-4 sm:flex-row sm:justify-between</code>
             gives you the responsive default: heading + actions stack on mobile, sit side-by-side from
@@ -280,7 +280,7 @@
           </p>
         </div>
         <div class="px-4 py-3">
-          <h4 class="text-text-primary text-sm font-semibold">Eyebrow vs. Breadcrumb — pick one</h4>
+          <p class="text-text-primary text-sm font-semibold">Eyebrow vs. Breadcrumb — pick one</p>
           <p class="text-text-secondary mt-1 text-sm">
             Eyebrow ("Property management") is a category label; Breadcrumb is a navigation trail.
             Use eyebrow for context that doesn't navigate; use Breadcrumb when each ancestor is a
@@ -289,9 +289,9 @@
           </p>
         </div>
         <div class="px-4 py-3">
-          <h4 class="text-text-primary text-sm font-semibold">
+          <p class="text-text-primary text-sm font-semibold">
             Subtitle should describe the page, not repeat the title
-          </h4>
+          </p>
           <p class="text-text-secondary mt-1 text-sm">
             "Apartments — list of apartments" is filler. A good subtitle either narrows the scope
             ("…managed by your team this quarter") or tells the user what they can do here. If you
@@ -299,9 +299,9 @@
           </p>
         </div>
         <div class="px-4 py-3">
-          <h4 class="text-text-primary text-sm font-semibold">
+          <p class="text-text-primary text-sm font-semibold">
             Why this is a recipe, not a component
-          </h4>
+          </p>
           <p class="text-text-secondary mt-1 text-sm">
             The header is pure layout composition with zero state, zero variants, and zero
             behaviour. Wrapping it in a component would hide the markup from the consumer without

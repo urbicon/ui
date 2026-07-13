@@ -5,6 +5,7 @@
   import {
     Badge,
     Button,
+    FolderIcon,
     Guide,
     GuideArticle,
     GuideBeacon,
@@ -13,7 +14,9 @@
     GuideMarker,
     GuideMention,
     GuidePanel,
-    GuideProvider
+    GuideProvider,
+    KeyIcon,
+    UsersIcon
   } from '@urbicon-ui/blocks';
   import type { GuideTour } from '@urbicon-ui/blocks';
   import { CodeExample, Section } from '@urbicon-ui/docs';
@@ -193,21 +196,21 @@
                 data-guide="ob-projects"
                 class="border-border-subtle bg-surface-base hover:border-border-emphasis rounded-xl border px-4 py-5 text-left text-sm transition-colors"
               >
-                <span class="mb-1 block text-lg">📁</span>
+                <FolderIcon class="text-text-secondary mb-1 block h-5 w-5" />
                 <span class="text-text-primary font-medium">New project</span>
               </button>
               <button
                 data-guide="ob-team"
                 class="border-border-subtle bg-surface-base hover:border-border-emphasis rounded-xl border px-4 py-5 text-left text-sm transition-colors"
               >
-                <span class="mb-1 block text-lg">👥</span>
+                <UsersIcon class="text-text-secondary mb-1 block h-5 w-5" />
                 <span class="text-text-primary font-medium">Invite team</span>
               </button>
               <button
                 data-guide="ob-api"
                 class="border-border-subtle bg-surface-base hover:border-border-emphasis rounded-xl border px-4 py-5 text-left text-sm transition-colors"
               >
-                <span class="mb-1 block text-lg">🔑</span>
+                <KeyIcon class="text-text-secondary mb-1 block h-5 w-5" />
                 <span class="text-text-primary font-medium">API keys</span>
               </button>
             </div>
@@ -247,7 +250,7 @@
 
       <!-- Live analytics log -->
       <div class="border-border-subtle bg-surface-base flex flex-col rounded-2xl border p-5">
-        <h3 class="text-text-primary text-sm font-semibold">Tour analytics</h3>
+        <p class="text-text-primary text-sm font-semibold">Tour analytics</p>
         <p class="text-text-tertiary mt-1 text-xs leading-relaxed">
           <code>onStep</code> / <code>onComplete</code> / <code>onSkip</code> fire from the engine — the
           funnel and drop-off signal that is the real value of onboarding.
