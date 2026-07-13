@@ -141,3 +141,40 @@ describe('Toggle (component interaction)', () => {
     expect(screen.queryByRole('alert')).toBeNull();
   });
 });
+
+describe('Toggle (aria-describedby merge)', () => {
+  // Form-family forwarding contract (docs/technical-debt.md): a consumer-supplied
+  // `aria-describedby` is APPENDED to the internal error/helper chain — internal
+  // id first, consumer id last — never dropped, never replaced. Toggle used to
+  // spread `{...restProps}` after the explicit attribute, so a consumer value
+  // silently REPLACED the internal error/helper id.
+  it('appends a consumer aria-describedby after the internal error id', () => {
+    renderToggle({
+      label: 'Accept terms',
+      error: 'You must accept the terms',
+      'aria-describedby': 'ext-hint'
+    });
+
+    const el = toggle('Accept terms');
+    const alert = screen.getByRole('alert');
+    expect(el.getAttribute('aria-describedby')).toBe(`${alert.id} ext-hint`);
+  });
+
+  it('appends a consumer aria-describedby after the internal helper id', () => {
+    renderToggle({
+      label: 'Wireless',
+      helper: 'Uses more battery',
+      'aria-describedby': 'ext-hint'
+    });
+
+    const el = toggle('Wireless');
+    const helper = screen.getByText('Uses more battery');
+    expect(el.getAttribute('aria-describedby')).toBe(`${helper.id} ext-hint`);
+  });
+
+  it('keeps a consumer aria-describedby when there is no internal description', () => {
+    renderToggle({ label: 'Wireless', 'aria-describedby': 'ext-hint' });
+
+    expect(toggle('Wireless').getAttribute('aria-describedby')).toBe('ext-hint');
+  });
+});

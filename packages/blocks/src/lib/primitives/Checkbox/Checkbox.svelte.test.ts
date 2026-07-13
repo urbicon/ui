@@ -136,3 +136,36 @@ describe('Checkbox (component interaction)', () => {
     expect(el.getAttribute('aria-describedby')).toBe(alert.id);
   });
 });
+
+describe('Checkbox (aria-describedby merge)', () => {
+  // Form-family forwarding contract (docs/technical-debt.md): a consumer-supplied
+  // `aria-describedby` is APPENDED to the internal error/helper chain — internal
+  // id first, consumer id last — never dropped, never replaced. Checkbox used to
+  // spread `{...restProps}` after the explicit attribute, so a consumer value
+  // silently REPLACED the internal error/helper id.
+  it('appends a consumer aria-describedby after the internal error id', () => {
+    renderCheckbox({ label: 'Accept terms', error: 'Required', 'aria-describedby': 'ext-hint' });
+
+    const el = box('Accept terms');
+    const alert = screen.getByRole('alert');
+    expect(el.getAttribute('aria-describedby')).toBe(`${alert.id} ext-hint`);
+  });
+
+  it('appends a consumer aria-describedby after the internal helper id', () => {
+    renderCheckbox({
+      label: 'Accept terms',
+      helper: 'Read the fine print',
+      'aria-describedby': 'ext-hint'
+    });
+
+    const el = box('Accept terms');
+    const helper = screen.getByText('Read the fine print');
+    expect(el.getAttribute('aria-describedby')).toBe(`${helper.id} ext-hint`);
+  });
+
+  it('keeps a consumer aria-describedby when there is no internal description', () => {
+    renderCheckbox({ label: 'Accept terms', 'aria-describedby': 'ext-hint' });
+
+    expect(box('Accept terms').getAttribute('aria-describedby')).toBe('ext-hint');
+  });
+});

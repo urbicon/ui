@@ -114,3 +114,33 @@ describe('RadioGroup (component interaction)', () => {
     expect(document.activeElement).toBe(radio('Medium'));
   });
 });
+
+describe('RadioGroup (aria-describedby merge)', () => {
+  // Form-family forwarding contract (docs/technical-debt.md): a consumer-supplied
+  // `aria-describedby` is APPENDED to the internal error/helper chain on the
+  // group element (role="radiogroup") — internal id first, consumer id last —
+  // never dropped, never replaced. RadioGroup used to spread `{...restProps}`
+  // after the explicit attribute, so a consumer value silently REPLACED the
+  // internal error/helper id.
+  it('appends a consumer aria-describedby after the internal error id on the group', () => {
+    renderRadios({ error: 'Pick one', 'aria-describedby': 'ext-hint' });
+
+    const group = screen.getByRole('radiogroup');
+    const alert = screen.getByRole('alert');
+    expect(group.getAttribute('aria-describedby')).toBe(`${alert.id} ext-hint`);
+  });
+
+  it('appends a consumer aria-describedby after the internal helper id on the group', () => {
+    renderRadios({ helper: 'Choose your plan', 'aria-describedby': 'ext-hint' });
+
+    const group = screen.getByRole('radiogroup');
+    const helper = screen.getByText('Choose your plan');
+    expect(group.getAttribute('aria-describedby')).toBe(`${helper.id} ext-hint`);
+  });
+
+  it('keeps a consumer aria-describedby when there is no internal description', () => {
+    renderRadios({ 'aria-describedby': 'ext-hint' });
+
+    expect(screen.getByRole('radiogroup').getAttribute('aria-describedby')).toBe('ext-hint');
+  });
+});

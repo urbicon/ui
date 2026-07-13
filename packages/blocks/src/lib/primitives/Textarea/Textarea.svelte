@@ -29,6 +29,7 @@
     slotClasses: slotClassesProp = {},
     preset,
     oninput: userOnInput,
+    'aria-describedby': ariaDescribedby,
     ...restProps
   }: TextareaProps = $props();
 
@@ -49,6 +50,14 @@
     required,
     disabled
   }));
+
+  // Consumer-supplied `aria-describedby` (e.g. an external hint rendered
+  // outside the component) merges with the internal error/helper chain instead
+  // of replacing it — internal descriptions first, the consumer's supplemental
+  // one last (mirrors the Input role model, XC-2).
+  const describedBy = $derived(
+    [ff.describedBy, ariaDescribedby].filter(Boolean).join(' ') || undefined
+  );
 
   const charCount = $derived(typeof value === 'string' ? value.length : 0);
   const counterState = $derived.by(() => {
@@ -145,7 +154,7 @@
     {readonly}
     {required}
     aria-invalid={ff.invalid ? 'true' : undefined}
-    aria-describedby={ff.describedBy}
+    aria-describedby={describedBy}
     oninput={handleInput}></textarea>
 
   {#if showFooter}

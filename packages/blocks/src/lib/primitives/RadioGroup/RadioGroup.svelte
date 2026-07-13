@@ -26,6 +26,7 @@
     slotClasses: slotClassesProp = {},
     preset,
     id,
+    'aria-describedby': ariaDescribedby,
     ...restProps
   }: RadioGroupProps = $props();
 
@@ -51,6 +52,14 @@
     required,
     disabled
   }));
+
+  // Consumer-supplied `aria-describedby` (e.g. an external hint rendered
+  // outside the component) merges with the internal error/helper chain instead
+  // of replacing it — internal descriptions first, the consumer's supplemental
+  // one last (mirrors the Input role model, XC-2). Applied to the group element.
+  const describedBy = $derived(
+    [ff.describedBy, ariaDescribedby].filter(Boolean).join(' ') || undefined
+  );
 
   // Variant props feed both the tv() style computation and the slot-class
   // cascade — extracted into one derived so `resolveSlotClasses` can match
@@ -155,7 +164,7 @@
     id={groupId}
     class={unstyled ? (slotClasses?.group ?? '') : styles.group({ class: slotClasses?.group })}
     aria-labelledby={labelId}
-    aria-describedby={ff.describedBy}
+    aria-describedby={describedBy}
     aria-required={required || undefined}
     aria-invalid={ff.invalid ? 'true' : undefined}
     onkeydown={handleKeydown}

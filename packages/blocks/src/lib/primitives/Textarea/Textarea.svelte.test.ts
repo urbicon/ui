@@ -145,3 +145,32 @@ describe('Textarea (consumer handler passthrough)', () => {
     expect(el.style.height).toBe('200px');
   });
 });
+
+describe('Textarea (aria-describedby merge)', () => {
+  // Form-family forwarding contract (docs/technical-debt.md): a consumer-supplied
+  // `aria-describedby` is APPENDED to the internal error/helper chain — internal
+  // id first, consumer id last — never dropped, never replaced. Textarea used to
+  // set the explicit attribute after `{...restProps}`, so the internal value
+  // REPLACED the consumer's (and dropped it entirely when there was no error).
+  it('appends a consumer aria-describedby after the internal error id', () => {
+    renderTextarea({ error: 'Too short', 'aria-describedby': 'ext-hint' });
+
+    const el = textarea();
+    const alert = screen.getByRole('alert');
+    expect(el.getAttribute('aria-describedby')).toBe(`${alert.id} ext-hint`);
+  });
+
+  it('appends a consumer aria-describedby after the internal helper id', () => {
+    renderTextarea({ helper: 'Max 280 characters', 'aria-describedby': 'ext-hint' });
+
+    const el = textarea();
+    const helper = screen.getByText('Max 280 characters');
+    expect(el.getAttribute('aria-describedby')).toBe(`${helper.id} ext-hint`);
+  });
+
+  it('keeps a consumer aria-describedby when there is no internal description', () => {
+    renderTextarea({ 'aria-describedby': 'ext-hint' });
+
+    expect(textarea().getAttribute('aria-describedby')).toBe('ext-hint');
+  });
+});

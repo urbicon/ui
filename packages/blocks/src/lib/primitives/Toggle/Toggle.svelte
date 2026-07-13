@@ -28,6 +28,7 @@
     slotClasses: slotClassesProp = {},
     preset,
     withBorder = false,
+    'aria-describedby': ariaDescribedby,
     ...restProps
   }: ToggleProps = $props();
 
@@ -41,6 +42,14 @@
     required,
     disabled
   }));
+
+  // Consumer-supplied `aria-describedby` (e.g. an external hint rendered
+  // outside the component) merges with the internal error/helper chain instead
+  // of replacing it — internal descriptions first, the consumer's supplemental
+  // one last (mirrors the Input role model, XC-2).
+  const describedBy = $derived(
+    [ff.describedBy, ariaDescribedby].filter(Boolean).join(' ') || undefined
+  );
 
   const blocksConfig = getBlocksConfig();
   const unstyled = $derived(unstyledProp || blocksConfig?.unstyled || false);
@@ -113,7 +122,7 @@
       class="peer sr-only"
       aria-checked={checked}
       aria-label={label ? undefined : bt('accessibility.toggle') || 'Toggle'}
-      aria-describedby={ff.describedBy}
+      aria-describedby={describedBy}
       aria-invalid={ff.invalid ? 'true' : undefined}
       onchange={handleChange}
       {...restProps}

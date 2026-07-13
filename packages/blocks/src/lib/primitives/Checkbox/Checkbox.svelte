@@ -32,6 +32,7 @@
     unstyled: unstyledProp = false,
     slotClasses: slotClassesProp = {},
     preset,
+    'aria-describedby': ariaDescribedby,
     ...restProps
   }: CheckboxProps = $props();
 
@@ -50,6 +51,14 @@
     required,
     disabled
   }));
+
+  // Consumer-supplied `aria-describedby` (e.g. an external hint rendered
+  // outside the component) merges with the internal error/helper chain instead
+  // of replacing it — internal descriptions first, the consumer's supplemental
+  // one last (mirrors the Input role model, XC-2).
+  const describedBy = $derived(
+    [ff.describedBy, ariaDescribedby].filter(Boolean).join(' ') || undefined
+  );
 
   const blocksConfig = getBlocksConfig();
   const unstyled = $derived(unstyledProp || blocksConfig?.unstyled || false);
@@ -128,7 +137,7 @@
       class="peer sr-only"
       aria-checked={indeterminate ? 'mixed' : undefined}
       aria-invalid={ff.invalid ? 'true' : undefined}
-      aria-describedby={ff.describedBy}
+      aria-describedby={describedBy}
       onchange={handleChange}
       {...restProps}
     />
