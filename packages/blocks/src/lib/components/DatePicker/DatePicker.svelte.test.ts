@@ -202,6 +202,18 @@ describe('DatePicker (component interaction)', () => {
     expect(input().value).toBe('');
   });
 
+  it('clears the value when the field is typed empty (commitDraft empty-branch, not the Clear button)', () => {
+    const onValueChange = vi.fn();
+    renderPicker({ value: new Date(2026, 2, 15), onValueChange });
+
+    // An empty draft drives commitDraft's `trimmed === ''` branch — a different path from the
+    // Clear button's handleClear (tested above). Both reach onValueChange(undefined).
+    typeAndBlur('');
+
+    expect(onValueChange).toHaveBeenCalledTimes(1);
+    expect(onValueChange).toHaveBeenCalledWith(undefined);
+  });
+
   it('carries the ISO date value in the hidden input for form submission', () => {
     renderPicker({ value: new Date(2026, 2, 15), name: 'date' });
 
@@ -209,5 +221,16 @@ describe('DatePicker (component interaction)', () => {
     expect(hidden).not.toBeNull();
     // valueFormat 'date' (default) → YYYY-MM-DD.
     expect(hidden?.value).toBe('2026-03-15');
+  });
+
+  it("serialises the hidden input as an ISO timestamp under valueFormat='iso'", () => {
+    const value = new Date(2026, 2, 15);
+    renderPicker({ value, name: 'date', valueFormat: 'iso' });
+
+    const hidden = document.querySelector<HTMLInputElement>('input[type="hidden"][name="date"]');
+    // valueFormat 'iso' → the full Date.toISOString() (for Drizzle/timestamp consumers), in
+    // contrast to the 'date' default above which emits the bare YYYY-MM-DD calendar day.
+    expect(hidden?.value).toBe(value.toISOString());
+    expect(hidden?.value).toContain('T');
   });
 });

@@ -267,6 +267,21 @@ describe('DateRangePicker (component interaction)', () => {
     expect(end?.value).toBe('2026-03-20');
   });
 
+  it("serialises both hidden inputs as ISO timestamps under valueFormat='iso'", () => {
+    const range = RANGE();
+    renderPicker({ value: range, name: 'stay', valueFormat: 'iso' });
+
+    const start = document.querySelector<HTMLInputElement>(
+      'input[type="hidden"][name="stay_start"]'
+    );
+    const end = document.querySelector<HTMLInputElement>('input[type="hidden"][name="stay_end"]');
+    // Each half runs through serialize() → Date.toISOString(), in contrast to the 'date'
+    // default above (bare YYYY-MM-DD per half).
+    expect(start?.value).toBe(range.start.toISOString());
+    expect(end?.value).toBe(range.end.toISOString());
+    expect(start?.value).toContain('T');
+  });
+
   it('clears the range via the clear button', async () => {
     const user = userEvent.setup();
     const onValueChange = vi.fn();
@@ -277,5 +292,24 @@ describe('DateRangePicker (component interaction)', () => {
 
     expect(onValueChange).toHaveBeenCalledWith(undefined);
     expect(input().value).toBe('');
+  });
+
+  it('clears the range when the field is typed empty (commitDraft empty-branch, not the Clear button)', () => {
+    const onValueChange = vi.fn();
+    renderPicker({ value: RANGE(), onValueChange });
+
+    // An empty draft drives commitDraft's `trimmed === ''` branch — a different path from the
+    // Clear button's handleClear (tested above). The bound value resets to undefined (the
+    // harness projection empties) and onValueChange fires once with it.
+    const el = input();
+    fireEvent.focus(el);
+    fireEvent.input(el, { target: { value: '' } });
+    fireEvent.blur(el);
+    flushSync();
+
+    expect(onValueChange).toHaveBeenCalledTimes(1);
+    expect(onValueChange).toHaveBeenCalledWith(undefined);
+    expect(rangeState().getAttribute('data-start')).toBe('');
+    expect(rangeState().getAttribute('data-end')).toBe('');
   });
 });
