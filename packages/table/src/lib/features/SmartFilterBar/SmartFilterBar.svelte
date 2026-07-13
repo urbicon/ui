@@ -73,7 +73,7 @@
 
 <div
   class={resolveSlotClass(
-    filterBarStyles.container(),
+    filterBarStyles.container,
     styleConfig.slotClasses.filterBar,
     styleConfig.unstyled,
     className

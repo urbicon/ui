@@ -142,16 +142,12 @@
 </script>
 
 <thead
-  class={resolveSlotClass(
-    headerStyles.header(),
-    styleConfig.slotClasses.thead,
-    styleConfig.unstyled
-  )}
+  class={resolveSlotClass(headerStyles.header, styleConfig.slotClasses.thead, styleConfig.unstyled)}
   {@attach stickyContext.mode.header ? measureToCssVar('--blocks-table-thead-h') : () => {}}
 >
   <tr
     class={resolveSlotClass(
-      headerStyles.row(),
+      headerStyles.row,
       styleConfig.slotClasses.headerRow,
       styleConfig.unstyled
     )}

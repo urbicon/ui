@@ -42,7 +42,7 @@
 {#if tableState.showSummary && tableState.summaryConfigs.length > 0}
   <tr
     class={resolveSlotClass(
-      summaryStyles.row(),
+      summaryStyles.row,
       styleConfig.slotClasses.summaryRow,
       styleConfig.unstyled,
       className

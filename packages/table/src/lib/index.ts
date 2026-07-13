@@ -15,7 +15,6 @@ export { default as TableRow } from './core/TableRow.svelte';
 export { default as Table } from './core/table/Table.svelte';
 // === STYLE CONTEXT ===
 export type { TableSlotClasses } from './core/table-style-context.js';
-export { resolveSlotClass } from './core/table-style-context.js';
 // === FACTORIES ===
 export * from './factories/index.js';
 export { default as HeaderMenu } from './features/HeaderMenu.svelte';

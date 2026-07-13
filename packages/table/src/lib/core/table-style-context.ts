@@ -69,19 +69,33 @@ export function getTableStyleConfig(): TableStyleConfig {
 
 /**
  * Resolves classes for a slot, respecting `unstyled` mode.
- * @param variantClasses - Classes from `tv()` variant (e.g. `styles.row()`)
+ *
+ * Routes the caller's `slotClass` + `extra` **through** the `tv()` slot
+ * function (via its `class` option) instead of string-concatenating them onto
+ * the already-resolved variant string. This puts the overrides inside the tv()
+ * conflict fold, so a `slotClasses` (or `className`) utility that shares a
+ * Tailwind bucket with a base/variant class **wins** instead of merely
+ * co-existing and losing to stylesheet order — e.g. `slotClasses={{ table:
+ * 'min-w-0' }}` now beats the base `min-w-[600px]` (previously both rendered
+ * and a `!min-w-0` was needed). Both overrides (`slotClass` and `extra`) win
+ * over base/variant classes in the fold; between the two overrides themselves
+ * nothing is stripped — they share one call-site source, so a direct conflict
+ * there still resolves by stylesheet order, exactly as before.
+ *
+ * @param slotFn - The `tv()` slot **function** (pass `styles.row`, NOT `styles.row()`)
  * @param slotClass - User-provided class for this slot from `slotClasses`
- * @param unstyled - Whether to strip variant classes
- * @param extra - Additional classes (e.g. from `className` prop)
+ * @param unstyled - Whether to strip variant classes (return only the overrides)
+ * @param extra - Additional classes (e.g. from `className` prop or structural utilities)
  */
 export function resolveSlotClass(
-  variantClasses: string,
+  slotFn: (opts?: { class?: (string | undefined)[] }) => string,
   slotClass: string | undefined,
   unstyled: boolean,
   extra?: string
 ): string {
+  const classes = [slotClass, extra];
   if (unstyled) {
-    return [slotClass, extra].filter(Boolean).join(' ');
+    return classes.filter(Boolean).join(' ');
   }
-  return [variantClasses, slotClass, extra].filter(Boolean).join(' ');
+  return slotFn({ class: classes });
 }

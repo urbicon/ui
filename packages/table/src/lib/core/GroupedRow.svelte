@@ -120,7 +120,7 @@
 <!-- Group Header Row -->
 <tr
   class={resolveSlotClass(
-    styles.row(),
+    styles.row,
     styleConfig.slotClasses.groupHeader,
     styleConfig.unstyled,
     className

@@ -241,7 +241,7 @@
   <!-- Virtualized mode: scroll container with fixed height -->
   <div
     class={resolveSlotClass(
-      tableStyles.scrollArea(),
+      tableStyles.scrollArea,
       styleConfig.slotClasses.scrollArea,
       styleConfig.unstyled,
       'desktop-only relative max-md:hidden'
@@ -254,7 +254,7 @@
     <table
       bind:this={tableElement}
       class={resolveSlotClass(
-        tableStyles.table(),
+        tableStyles.table,
         styleConfig.slotClasses.table,
         styleConfig.unstyled,
         'table-fixed'
@@ -284,7 +284,7 @@
       {#if filteredItems.length === 0}
         <table
           class={resolveSlotClass(
-            tableStyles.table(),
+            tableStyles.table,
             styleConfig.slotClasses.table,
             styleConfig.unstyled,
             'table-fixed'
@@ -293,7 +293,7 @@
         >
           <tbody
             class={resolveSlotClass(
-              tableStyles.body(),
+              tableStyles.body,
               styleConfig.slotClasses.tbody,
               styleConfig.unstyled
             )}
@@ -310,7 +310,7 @@
         <div style="height: {virtualResult.totalHeight}px; position: relative;">
           <table
             class="{resolveSlotClass(
-              tableStyles.table(),
+              tableStyles.table,
               styleConfig.slotClasses.table,
               styleConfig.unstyled,
               'table-fixed'
@@ -319,7 +319,7 @@
           >
             <tbody
               class={resolveSlotClass(
-                tableStyles.body(),
+                tableStyles.body,
                 styleConfig.slotClasses.tbody,
                 styleConfig.unstyled
               )}
@@ -348,7 +348,7 @@
         {#if tableState.showSummary && tableState.summaryConfigs.length > 0}
           <table
             class={resolveSlotClass(
-              tableStyles.table(),
+              tableStyles.table,
               styleConfig.slotClasses.table,
               styleConfig.unstyled
             )}
@@ -365,7 +365,7 @@
   <!-- Standard mode: normal table rendering -->
   <div
     class={resolveSlotClass(
-      tableStyles.scrollArea(),
+      tableStyles.scrollArea,
       styleConfig.slotClasses.scrollArea,
       styleConfig.unstyled,
       ['desktop-only relative max-md:hidden', scrollAreaOverflow].filter(Boolean).join(' ')
@@ -377,7 +377,7 @@
     <table
       bind:this={tableElement}
       class={resolveSlotClass(
-        tableStyles.table(),
+        tableStyles.table,
         styleConfig.slotClasses.table,
         styleConfig.unstyled
       )}
@@ -395,7 +395,7 @@
 
       <tbody
         class={resolveSlotClass(
-          tableStyles.body(),
+          tableStyles.body,
           styleConfig.slotClasses.tbody,
           styleConfig.unstyled
         )}

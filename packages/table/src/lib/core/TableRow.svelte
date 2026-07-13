@@ -90,7 +90,7 @@
   id={String(itemId)}
   onclick={handleRowClick}
   class={resolveSlotClass(
-    rowStyles.row(),
+    rowStyles.row,
     styleConfig.slotClasses.row,
     styleConfig.unstyled,
     [
@@ -151,7 +151,7 @@
       {size}
       colIndex={colIdx}
       cellClass={resolveSlotClass(
-        rowStyles.cell(),
+        rowStyles.cell,
         styleConfig.slotClasses.cell,
         styleConfig.unstyled
       )}

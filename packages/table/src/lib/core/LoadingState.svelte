@@ -49,7 +49,7 @@
   <td colspan={colSpan} class={rowStyles.cell()}>
     <div
       class={resolveSlotClass(
-        styles.container(),
+        styles.container,
         styleConfig.slotClasses.loadingState,
         styleConfig.unstyled,
         className

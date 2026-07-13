@@ -216,7 +216,7 @@
   })}
 
   <div
-    class={resolveSlotClass(tableStyles.container(), slotClasses.container, unstyled, className)}
+    class={resolveSlotClass(tableStyles.container, slotClasses.container, unstyled, className)}
     style={containerStyle}
     data-table-container
     data-fit={contained ? 'viewport' : 'content'}
@@ -229,7 +229,7 @@
         <div data-sticky-sentinel aria-hidden="true" class="-mt-px h-px"></div>
       {/if}
       <div
-        class={resolveSlotClass(tableStyles.toolbar(), slotClasses.toolbar, unstyled)}
+        class={resolveSlotClass(tableStyles.toolbar, slotClasses.toolbar, unstyled)}
         data-table-toolbar
         data-stuck={stickyMode.toolbar ? stickyState.toolbarStuck : undefined}
         {@attach stickyMode.toolbar ? measureToCssVar('--blocks-table-toolbar-h') : () => {}}
