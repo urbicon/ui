@@ -380,6 +380,34 @@ internal TODO instead. Sections are ordered roughly by urgency.
   accept-stale-on-failure behaviour. Not a drive-by; wants its own increment.
 - **Found:** 2026-07-10, blocks feature-request review (CMB-2 multi-select).
 
+### Popover auto-mode: `dismissedByTrigger` can stay stale after an aborted click
+
+- **Where:** `packages/blocks/src/lib/primitives/Popover/Popover.svelte`
+  (`handleTriggerPointerDown` arms the guard; `handleTriggerClick` consumes it).
+- **What:** pointerdown on the open trigger arms the "this click already
+  light-dismissed it" guard, but if the pointer is released elsewhere no click
+  ever fires to consume it — the *next* trigger click is swallowed once.
+  Pre-existing edge case; the 2026-07-13 fix scoped the guard to auto mode
+  (manual mode was permanently broken) but did not add an un-arm path.
+- **Why deferred:** Fix wants a design pass on the dismiss protocol (e.g. a
+  document-level `pointerup` reset or consuming the flag on the native
+  `toggle` event) — drive-by attempts risk re-breaking the anti-flicker
+  behaviour the guard exists for.
+- **Found:** 2026-07-13, DOM-test round 2 (Popover package).
+
+### Pagination edge policy differs between layouts — default hides prev/next, table layout disables them
+
+- **Where:** `packages/blocks/src/lib/primitives/Pagination/Pagination.svelte`
+  (default layout `{#if}`s prev/next away on the first/last page; the table
+  layout renders them `disabled`).
+- **What:** Reaching page 1/N in the default layout removes a button under the
+  pointer (layout shift, focus loss); the table layout keeps them visible and
+  disabled. Two policies for the same interaction, undocumented.
+- **Why deferred:** Which policy wins is a design decision (disabled-but-
+  visible is the conventional a11y-friendly choice); changing the default
+  layout alters existing visual snapshots and spacing.
+- **Found:** 2026-07-13, DOM-test round 2 (documented as-is in the tests).
+
 ## Accessibility
 
 ### PlaygroundConfigurator control hints carry an orphaned `-hint` anchor id
@@ -479,6 +507,35 @@ internal TODO instead. Sections are ordered roughly by urgency.
   N reached") and/or a visible cap message — designed and SR-tested, not a blind
   attribute. Low frequency (only when a consumer sets `maxItems`).
 - **Found:** 2026-07-10, blocks feature-request review (CMB-2 multi-select).
+
+### ButtonGroup `selection="single"` renders a radiogroup without arrow-key navigation
+
+- **Where:** `packages/blocks/src/lib/primitives/ButtonGroup/` (group context
+  assigns `role="radiogroup"` / `role="radio"`; every button keeps its own tab
+  stop).
+- **What:** WAI-ARIA radiogroups are expected to be one tab stop with
+  Left/Right/Up/Down moving selection (roving tabindex). The group tabs through
+  every button instead. `utils/roving` already ships the mechanics (Tab/
+  SegmentGroup use it).
+- **Why deferred:** Adopting roving changes the group's tab-order contract for
+  existing consumers and needs a decision for `selection="multiple"` (checkbox
+  groups conventionally stay per-item tabbable) — one deliberate pass, not a
+  drive-by.
+- **Found:** 2026-07-13, DOM-test round 2 (ButtonGroup package).
+
+### Interactive Badge stays `role="status"` — no button semantics on the clickable path
+
+- **Where:** `packages/blocks/src/lib/primitives/Badge/Badge.svelte` (`role`
+  prop union is `status|alert|badge`; `onclick`/`purpose="chip"` add
+  tabindex + Enter/Space handling on the same span).
+- **What:** A clickable/removable badge is announced as a status region, not
+  as a button — screen readers get no activation affordance despite the
+  keyboard handlers.
+- **Why deferred:** Wants an API decision: widen the `role` union or switch
+  the interactive path to a real `role="button"` (and reconcile with the
+  `aria-label` currently reserved for removable badges). Affects the announced
+  semantics of existing consumers.
+- **Found:** 2026-07-13, DOM-test round 2 (Badge package).
 
 ## Auth — accepted trade-offs
 
@@ -690,6 +747,38 @@ internal TODO instead. Sections are ordered roughly by urgency.
   the `en` bundle (possibly a library helper that builds the parity check from
   registered loaders).
 - **Found:** 2026-06-15, WP4 review.
+
+### VR suite tolerates token-level total failures — 1% diff threshold masked the shadow outage
+
+- **Where:** `playwright.config.ts` (`maxDiffPixelRatio: 0.01`) +
+  `e2e/visual-regression.spec.ts`.
+- **What:** The broken `--color-shadow-*` tokens (fixed 2026-07-13) meant the
+  library rendered zero shadows, yet all VR runs passed: subtle shadows stay
+  under the 1% pixel threshold, and the baselines had been captured *with* the
+  bug. A whole token family can silently die without the suite noticing. The
+  editorial→rooms rename also went unnoticed because missing baselines only
+  "fail" on first local run (no CI gate — see the chromium-darwin entry above).
+- **Why deferred:** Wants a deliberate guard design, not a threshold tweak: a
+  cheap e2e smoke test asserting `getComputedStyle(...).boxShadow !== 'none'`
+  (and siblings for other var()-consumed token families) would catch
+  invalid-at-computed-value regressions structurally; tightening the pixel
+  threshold instead would make the suite flaky.
+- **Found:** 2026-07-13, while verifying the shadow-token fix.
+
+### docs `codeExamplePlugin` regex breaks on `>` inside a code template literal
+
+- **Where:** `packages/docs/src/lib/utils/code-example-plugin.ts:28`
+  (`<CodeExample([^>]*)>`).
+- **What:** When a `code={`…`}` template literal contains a literal `>` and an
+  `isolate` example follows in the same file, the regex terminates the match
+  early and the later example's build-time code extraction silently fails
+  (empty code panel). Currently latent — existing pages only have such
+  literals at file end; the button-group rework placed its preset example
+  defensively last for this reason.
+- **Why deferred:** Proper fix is a bracket-aware scan (or extraction via the
+  Svelte parser) plus a fail-loud warning when extraction finds no code —
+  worth doing together with a small regression fixture.
+- **Found:** 2026-07-13, button-group docs rework.
 
 ## Design tokens
 
