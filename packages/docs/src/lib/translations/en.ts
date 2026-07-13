@@ -36,6 +36,8 @@ export default {
   copied: 'Copied!',
   copy: 'Copy',
   loadingSyntax: 'Loading syntax highlighting...',
+  codeExample: 'Code example',
+  codeExampleLabeled: 'Code example: {{title}}',
 
   // PlaygroundConfigurator
   selectOption: 'Select {{option}}...',

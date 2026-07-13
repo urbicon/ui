@@ -118,6 +118,7 @@
       {code}
       {language}
       {size}
+      label={title}
       expanded={codeExpanded}
       onToggle={toggleCode}
       {unstyled}

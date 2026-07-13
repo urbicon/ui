@@ -10,6 +10,7 @@
   let {
     code,
     language = 'svelte',
+    label,
     expanded: expandedProp,
     onToggle,
     size = 'md',
@@ -72,6 +73,10 @@
 
   const copyLabel = $derived(copied ? dt('copied') : dt('copy'));
   const toggleLabel = $derived(isExpanded ? dt('hideCode') : dt('showCode'));
+  // Accessible name for the read-only code region (fixes axe aria-input-field-name).
+  const codeLabel = $derived(
+    label ? dt('codeExampleLabeled', { title: label }) : dt('codeExample')
+  );
 </script>
 
 <div
@@ -123,7 +128,13 @@
         </div>
       {:else}
         <div class={slot('codeDisplay')}>
-          <div class={slot('codeContent')} role="textbox" aria-readonly="true" tabindex="0">
+          <div
+            class={slot('codeContent')}
+            role="textbox"
+            aria-readonly="true"
+            aria-label={codeLabel}
+            tabindex="0"
+          >
             {@html highlightedCode}
           </div>
         </div>

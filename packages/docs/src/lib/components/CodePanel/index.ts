@@ -25,6 +25,12 @@ export interface CodePanelProps extends CodePanelVariantProps {
   code: string;
   /** Language for syntax highlighting and the toolbar language tag. @default 'svelte' */
   language?: string;
+  /**
+   * Human-readable title that names the read-only code region for assistive tech
+   * (`aria-label` on the `role="textbox"`). Composed as `Code example: {label}`;
+   * falls back to `Code example` when omitted so the name is never empty.
+   */
+  label?: string;
   /** Controlled expanded state. When omitted, the panel manages its own state. */
   expanded?: boolean;
   /** Called when the toggle button is clicked. Required when `expanded` is controlled. */

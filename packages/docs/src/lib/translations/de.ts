@@ -36,6 +36,8 @@ export default {
   copied: 'Kopiert!',
   copy: 'Kopieren',
   loadingSyntax: 'Syntax-Highlighting wird geladen...',
+  codeExample: 'Code-Beispiel',
+  codeExampleLabeled: 'Code-Beispiel: {{title}}',
 
   // PlaygroundConfigurator
   selectOption: 'Wähle {{option}}...',

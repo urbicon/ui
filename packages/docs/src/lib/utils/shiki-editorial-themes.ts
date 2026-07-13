@@ -10,7 +10,9 @@ export const editorialLight: ThemeRegistrationRaw = {
   settings: [
     {
       scope: ['comment', 'punctuation.definition.comment'],
-      settings: { foreground: '#b8b5ad', fontStyle: 'italic' }
+      // Warm-neutral, darkened from #b8b5ad (1.96:1 — WCAG AA fail) to the
+      // lightest ramp stop that clears 4.5:1 on the #fbfaf6 panel ground (4.54:1).
+      settings: { foreground: '#767369', fontStyle: 'italic' }
     },
     {
       scope: ['string', 'string.quoted'],
@@ -65,7 +67,9 @@ export const editorialDark: ThemeRegistrationRaw = {
   settings: [
     {
       scope: ['comment', 'punctuation.definition.comment'],
-      settings: { foreground: '#5a574f', fontStyle: 'italic' }
+      // Warm-neutral, lightened from #5a574f (2.20:1 — WCAG AA fail) to the
+      // darkest ramp stop that clears 4.5:1 on the #232220 panel ground (4.60:1).
+      settings: { foreground: '#8d8a7f', fontStyle: 'italic' }
     },
     {
       scope: ['string', 'string.quoted'],
