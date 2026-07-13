@@ -184,7 +184,7 @@
         }
 
         if (!wasTrigger) {
-          effectiveTriggerElement?.focus();
+          focusTrigger();
         }
       }
     }
@@ -219,7 +219,7 @@
       open = false;
       onOpenChange?.(false);
       onEscapeProp?.();
-      effectiveTriggerElement?.focus();
+      focusTrigger();
     }
     document.addEventListener('keydown', handleEscape);
     return () => document.removeEventListener('keydown', handleEscape);
@@ -276,8 +276,29 @@
 
   // ── Trigger handlers ───────────────────────────────────────
 
+  // Restore focus to the trigger after a dismiss. The snippet trigger is
+  // wrapped in a plain (non-focusable) div — `focus()` on it is a spec no-op —
+  // so target the interactive descendant instead (same query as the
+  // aria-expanded effect). An external `triggerElement` is the consumer's
+  // real control: focus it directly.
+  function focusTrigger() {
+    const target =
+      triggerElement ??
+      internalTriggerElement?.querySelector<HTMLElement>(
+        'button, a[href], [role="button"], [tabindex]'
+      ) ??
+      internalTriggerElement;
+    target?.focus();
+  }
+
   function handleTriggerPointerDown() {
-    if (open) dismissedByTrigger = true;
+    // Arm the "this pointerdown already dismissed it" guard only in auto
+    // mode, where the browser's light dismiss really closes the popover
+    // between pointerdown and click (the guard stops that click from
+    // re-opening it). In manual mode nothing light-dismisses — the click
+    // itself must toggle-close, so arming the guard there left the trigger
+    // unable to close its own popover.
+    if (open && popoverMode === 'auto') dismissedByTrigger = true;
   }
 
   function handleTriggerClick(event: MouseEvent) {
