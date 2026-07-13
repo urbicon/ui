@@ -132,6 +132,10 @@ ${scriptClose}
           cancels both — the row never appears
         </li>
         <li>On apply, deletes run first, then updates, then inserts</li>
+        <li>
+          Rows that just received an applied update are highlighted for three seconds, so the change
+          is visible even in a long list
+        </li>
         <li>Applied deletes also remove the affected rows from the current selection</li>
         <li>
           Updates or deletes for unknown row IDs are skipped (with a console warning in dev builds)

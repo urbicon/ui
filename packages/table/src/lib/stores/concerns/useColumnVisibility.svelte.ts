@@ -8,7 +8,10 @@ import type { TableState } from './types';
  */
 export function useColumnVisibility(state: TableState) {
   let allColumns = $state<Column[]>([]);
-  let hiddenColumnKeys = new SvelteSet<string>();
+  // Mutated in place — a plain `let` holding a SvelteSet is NOT reactive when the
+  // instance is swapped, so $derived consumers (HeaderMenu "show column" list,
+  // ColumnVisibilityMenu badge) would keep tracking the stale instance.
+  const hiddenColumnKeys = new SvelteSet<string>();
 
   function setColumns(newColumns: Column[]) {
     allColumns = [...newColumns];
@@ -16,14 +19,12 @@ export function useColumnVisibility(state: TableState) {
   }
 
   function hideColumn(id: string) {
-    hiddenColumnKeys = new SvelteSet([...hiddenColumnKeys, id]);
+    hiddenColumnKeys.add(id);
     state.columns = allColumns.filter((col) => !hiddenColumnKeys.has(resolveColumnId(col)));
   }
 
   function showColumn(id: string) {
-    const next = new SvelteSet(hiddenColumnKeys);
-    next.delete(id);
-    hiddenColumnKeys = next;
+    hiddenColumnKeys.delete(id);
     state.columns = allColumns.filter((col) => !hiddenColumnKeys.has(resolveColumnId(col)));
   }
 
@@ -36,7 +37,7 @@ export function useColumnVisibility(state: TableState) {
   }
 
   function showAllColumns() {
-    hiddenColumnKeys = new SvelteSet();
+    hiddenColumnKeys.clear();
     state.columns = [...allColumns];
   }
 
@@ -47,7 +48,10 @@ export function useColumnVisibility(state: TableState) {
    * the next `setColumns` call.
    */
   function setHiddenIds(ids: Iterable<string>) {
-    hiddenColumnKeys = new SvelteSet(ids);
+    hiddenColumnKeys.clear();
+    for (const id of ids) {
+      hiddenColumnKeys.add(id);
+    }
   }
 
   return {

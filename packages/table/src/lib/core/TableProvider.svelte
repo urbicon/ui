@@ -286,9 +286,12 @@
   // ── Live updates: auto-apply on navigation ──
   $effect(() => {
     if (!enableLiveUpdates || !autoApplyOnNavigation) return;
-    if (!tableState.hasPendingUpdates) return;
 
-    // Track navigation state changes
+    // Track ONLY the navigation signature — read unconditionally, before any
+    // pending check. Tracking `hasPendingUpdates` here would re-run the effect
+    // on every push and apply the buffer immediately instead of deferring it
+    // to the next navigation; checking it before these reads would also leave
+    // the navigation fields untracked whenever the buffer is empty.
     void state.currentPage;
     void state.sortColumn;
     void state.sortDirection;
@@ -296,8 +299,14 @@
     void state.activeFilters;
     void state.groupByKey;
 
-    // Auto-apply pending changes when the user navigates (view is already changing)
-    tableState.applyAllUpdates();
+    // Auto-apply pending changes when the user navigates (view is already
+    // changing). untrack: the pending check and the apply read/write
+    // live-update state, which must not become a dependency of this effect.
+    untrack(() => {
+      if (tableState.hasPendingUpdates) {
+        tableState.applyAllUpdates();
+      }
+    });
   });
 
   // Cleanup on component destroy

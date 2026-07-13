@@ -39,10 +39,13 @@ export interface PendingUpdate {
 export function useLiveUpdates(state: TableState) {
   let inserts = $state<TableItem[]>([]);
   let updates = $state<PendingUpdate[]>([]);
-  let deletes: Set<string | number> = new SvelteSet();
+  // Mutated in place — a plain `let` holding a SvelteSet is NOT reactive when the
+  // instance is swapped (the reassignment isn't a signal write), so `counts` /
+  // `hasPending` would go stale on delete-only pushes.
+  const deletes = new SvelteSet<string | number>();
 
   /** IDs of rows that were recently updated (for visual highlight). Auto-cleared after timeout. */
-  let recentlyUpdatedIds: Set<string | number> = new SvelteSet();
+  const recentlyUpdatedIds = new SvelteSet<string | number>();
   let highlightTimer: ReturnType<typeof setTimeout> | null = null;
 
   const counts = $derived<LiveUpdateCounts>({
@@ -77,19 +80,14 @@ export function useLiveUpdates(state: TableState) {
   }
 
   function pushDelete(id: string | number) {
-    const next = new SvelteSet(deletes);
-    next.add(id);
-    deletes = next;
-
-    // If the item was pending insert, remove it from inserts instead
+    // If the item was pending insert, remove it from inserts instead —
+    // it was never in items, so there is nothing to delete.
     const pendingInsertIdx = inserts.findIndex((i) => pickRowId(i) === id);
     if (pendingInsertIdx >= 0) {
       inserts = inserts.filter((_, idx) => idx !== pendingInsertIdx);
-      // Also remove from deletes since it was never in items
-      const cleaned = new SvelteSet(deletes);
-      cleaned.delete(id);
-      deletes = cleaned;
+      return;
     }
+    deletes.add(id);
   }
 
   // ── Apply methods (merge pending changes into state.items) ──
@@ -128,7 +126,7 @@ export function useLiveUpdates(state: TableState) {
     }
 
     // Mark as recently updated for visual highlight
-    startHighlight(new SvelteSet(updateMap.keys()));
+    startHighlight(updateMap.keys());
     updates = [];
   }
 
@@ -159,23 +157,25 @@ export function useLiveUpdates(state: TableState) {
       state.selectedIds = nextSelected;
     }
 
-    deletes = new SvelteSet();
+    deletes.clear();
   }
 
   function dismissAll() {
     inserts = [];
     updates = [];
-    deletes = new SvelteSet();
+    deletes.clear();
   }
 
   // ── Highlight management ──
 
-  function startHighlight(ids: Set<string | number>) {
-    recentlyUpdatedIds = new SvelteSet([...recentlyUpdatedIds, ...ids]);
+  function startHighlight(ids: Iterable<string | number>) {
+    for (const id of ids) {
+      recentlyUpdatedIds.add(id);
+    }
 
     if (highlightTimer) clearTimeout(highlightTimer);
     highlightTimer = setTimeout(() => {
-      recentlyUpdatedIds = new SvelteSet();
+      recentlyUpdatedIds.clear();
       highlightTimer = null;
     }, 3000);
   }
