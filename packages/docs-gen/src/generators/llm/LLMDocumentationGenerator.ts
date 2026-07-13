@@ -63,7 +63,7 @@ export class LLMDocumentationGenerator {
       }
 
       // Write a per-scope llms.txt manifest for convenience (llms.txt proposal)
-      const indexContent = this.generateLlmsTxt(enrichedComponents, outputPath);
+      const indexContent = this.generateLlmsTxt(enrichedComponents, apiData);
       const indexPath = path.join(outputPath, 'llms.txt');
       await fs.writeFile(indexPath, indexContent, 'utf-8');
       writtenFiles.push(indexPath);
@@ -359,7 +359,7 @@ export class LLMDocumentationGenerator {
     return total;
   }
 
-  private generateLlmsTxt(components: EnrichedComponentInfo[], _scopeDir?: string): string {
+  private generateLlmsTxt(components: EnrichedComponentInfo[], apiData: APIData): string {
     const lines: string[] = [];
     // H1 title as per llms.txt informal spec
     lines.push('# Urbicon UI');
@@ -368,9 +368,14 @@ export class LLMDocumentationGenerator {
     lines.push('');
     lines.push('## Components');
     for (const c of components) {
-      // We do not have direct access to group here from enriched component; skip grouping in index
+      // The per-component file is written to `<group>/<slug>/llm.txt` (or
+      // `<slug>/llm.txt` when the component has no group) — see the write loop
+      // in generate(). The index link MUST carry the same group segment from
+      // apiData or it 404s.
+      const group = apiData.components[c.name]?.group;
       const slug = this.toSlug(c.name);
-      lines.push(`- [${c.name}](./${slug}/llm.txt): Component LLM context`);
+      const href = group ? `./${group}/${slug}/llm.txt` : `./${slug}/llm.txt`;
+      lines.push(`- [${c.name}](${href}): Component LLM context`);
     }
     return lines.join('\n');
   }
