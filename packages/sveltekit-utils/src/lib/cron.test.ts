@@ -146,6 +146,93 @@ describe('createCronRunner', () => {
     runner.stop();
   });
 
+  it('should call onError once with a status-bearing Error on a 500 response', async () => {
+    vi.mocked(fetch).mockResolvedValueOnce(
+      new Response(null, { status: 500, statusText: 'Internal Server Error' })
+    );
+
+    const onError = vi.fn();
+    const job = { path: '/api/fail', intervalSeconds: 5 };
+    const runner = createCronRunner({
+      secret: 's',
+      jobs: [job],
+      onError
+    });
+
+    runner.start();
+    await vi.advanceTimersByTimeAsync(5_000);
+
+    expect(onError).toHaveBeenCalledTimes(1);
+    const [passedJob, err] = onError.mock.calls[0] as [unknown, Error & { status?: number }];
+    expect(passedJob).toBe(job);
+    expect(err).toBeInstanceOf(Error);
+    expect(err.status).toBe(500);
+    runner.stop();
+  });
+
+  it('should call onError with a status-bearing Error on a 403 response', async () => {
+    vi.mocked(fetch).mockResolvedValueOnce(
+      new Response(null, { status: 403, statusText: 'Forbidden' })
+    );
+
+    const onError = vi.fn();
+    const job = { path: '/api/forbidden', intervalSeconds: 5 };
+    const runner = createCronRunner({
+      secret: 's',
+      jobs: [job],
+      onError
+    });
+
+    runner.start();
+    await vi.advanceTimersByTimeAsync(5_000);
+
+    expect(onError).toHaveBeenCalledTimes(1);
+    const err = onError.mock.calls[0]?.[1] as Error & { status?: number };
+    expect(err).toBeInstanceOf(Error);
+    expect(err.status).toBe(403);
+    runner.stop();
+  });
+
+  it('should call a throwing onError exactly once on a non-2xx (no re-invoke via catch)', async () => {
+    vi.mocked(fetch).mockResolvedValueOnce(new Response(null, { status: 500, statusText: 'Boom' }));
+
+    // A misbehaving handler that itself throws must not be re-invoked by the
+    // surrounding try/catch — the non-2xx path lives outside the fetch try.
+    const onError = vi.fn(() => {
+      throw new Error('handler boom');
+    });
+    // The deliberate throw escapes as an unhandled rejection by design (symmetric
+    // with the network-rejection path); swallow it so it doesn't fail the suite.
+    const swallow = vi.fn();
+    process.on('unhandledRejection', swallow);
+
+    const runner = createCronRunner({
+      secret: 's',
+      jobs: [{ path: '/api/fail', intervalSeconds: 5 }],
+      onError
+    });
+
+    runner.start();
+    await vi.advanceTimersByTimeAsync(5_000);
+
+    expect(onError).toHaveBeenCalledTimes(1);
+    runner.stop();
+    process.off('unhandledRejection', swallow);
+  });
+
+  it('should not throw when a non-2xx response has no onError configured', async () => {
+    vi.mocked(fetch).mockResolvedValueOnce(new Response(null, { status: 404 }));
+
+    const runner = createCronRunner({
+      secret: 's',
+      jobs: [{ path: '/api/missing', intervalSeconds: 5 }]
+    });
+
+    runner.start();
+    await expect(vi.advanceTimersByTimeAsync(5_000)).resolves.not.toThrow();
+    runner.stop();
+  });
+
   it('should stop all timers and not fire after stop()', async () => {
     const runner = createCronRunner({
       secret: 's',

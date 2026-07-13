@@ -35,10 +35,16 @@ export interface CronRunnerConfig {
   /** Jobs to schedule; each runs on its own independent interval. */
   jobs: CronJob[];
   /**
-   * Called when a job's `fetch` **rejects** (network error, DNS failure, abort).
-   * A non-2xx HTTP *response* does not reject `fetch`, so it does **not** reach
-   * this hook — the runner is fire-and-forget and never inspects the response.
-   * Have the endpoint report its own failures if you need per-run status.
+   * Called when a job fails, with the failing {@link CronJob} and an `Error`.
+   * Fires in two cases:
+   * - the job's `fetch` **rejects** (network error, DNS failure, abort) — the
+   *   `Error` is whatever `fetch` threw.
+   * - the endpoint answers with a **non-2xx** status — the runner synthesises
+   *   an `Error` naming the job and status, with the numeric code attached as
+   *   `error.status` (e.g. `500`, `403`).
+   *
+   * Without a handler both failure modes are swallowed silently — pass one to
+   * observe per-run outcomes.
    */
   onError?: (job: CronJob, error: Error) => void;
 }
@@ -101,14 +107,28 @@ export function createCronRunner(config: CronRunnerConfig): CronRunner {
 
       for (const job of config.jobs) {
         const timer = setInterval(async () => {
+          const base = config.baseUrl ?? 'http://localhost:3000';
+          let response: Response;
           try {
-            const base = config.baseUrl ?? 'http://localhost:3000';
-            await fetch(`${base}${job.path}`, {
+            response = await fetch(`${base}${job.path}`, {
               method: job.method ?? 'POST',
               headers: { [config.secretHeader ?? 'x-cron-secret']: config.secret }
             });
           } catch (err) {
+            // Network-level failure (DNS, connection refused, abort): fetch rejected.
             config.onError?.(job, err as Error);
+            return;
+          }
+          // The request completed; a non-2xx status is still a failure. Handle it
+          // outside the try so a throwing `onError` escapes as an unhandled
+          // rejection rather than being re-caught and re-invoked here — symmetric
+          // with the rejection path above.
+          if (!response.ok) {
+            const err = new Error(
+              `Cron job "${job.path}" returned ${response.status} ${response.statusText}`
+            ) as Error & { status: number };
+            err.status = response.status;
+            config.onError?.(job, err);
           }
         }, job.intervalSeconds * 1000);
         timers.push(timer);
