@@ -13,6 +13,11 @@ import { toaster } from './toast.store.svelte';
 // the other DOM tests: Svelte's own mount/unmount, @testing-library/dom + native
 // matchers.
 
+// `document.elementFromPoint` (called by the Toaster's stranded-pause
+// reconciliation when the stack shrinks under the pointer) is polyfilled to
+// `null` centrally in vitest-setup.ts — jsdom has no layout, so "cursor over
+// nothing live" is the correct signal for the worst case this guards.
+
 let dispose: (() => void) | undefined;
 
 afterEach(() => {
@@ -36,7 +41,10 @@ function region() {
 
 /** The animated progress element of the first rendered toast. */
 function progressBar() {
-  return region().querySelector('[style*="blocks-toast-progress"]') as HTMLElement | null;
+  // The countdown animation now lives in a CSS class (so `prefers-reduced-motion`
+  // can reach it — an inline `animation` shorthand can't be); query by that class
+  // rather than the old inline `animation:` substring.
+  return region().querySelector('.blocks-toast-progress-bar') as HTMLElement | null;
 }
 
 /** Read the progress bar's `animation-play-state`, tolerant of how jsdom stores inline style. */
@@ -216,5 +224,64 @@ describe('Toaster — hover / focus to pause', () => {
     flushSync();
     vi.advanceTimersByTime(1500); // banked remainder elapses
     expect(toaster.toasts).toHaveLength(0);
+  });
+
+  it('un-freezes when the hovered toast is removed under a stationary cursor (no pointerout fired)', () => {
+    renderToaster();
+    toaster.add({ title: 'Under cursor', duration: 5000 });
+    flushSync();
+
+    fireEvent.pointerOver(region());
+    flushSync();
+    expect(toaster.paused).toBe(true);
+
+    // Programmatic removal (e.g. the toast's own close button) — the browser does
+    // not reliably fire pointerout when the node under the cursor vanishes, so
+    // without the length-shrink reconciliation `pointerInside` would stay stranded
+    // true and freeze the stack forever (worst case: the next toast is born
+    // paused). The reconcile re-derives containment from the real cursor via
+    // elementFromPoint; here jsdom has no layout so it returns null → the cursor
+    // is over no live toast → the flag resets and the store resumes. (The full
+    // elementFromPoint hit-test against a *remaining* toast needs real layout and
+    // is a Playwright job; this asserts the wiring: shrink → reconcile → resume.)
+    toaster.dismiss(toaster.toasts[0].id);
+    flushSync();
+    expect(toaster.paused).toBe(false);
+  });
+});
+
+// Accessibility + the reduced-motion progress bar (Fix 3 + Fix 2 wiring). The
+// aria-atomic attribute + the progress bar's inline custom property are DOM-
+// assertable; the reduced-motion `display:none` itself is a CSS media-query
+// effect with no layout in jsdom, so it is verified by Playwright/manual, not
+// here (documented on the relevant test).
+describe('Toaster — a11y & progress bar', () => {
+  it('marks each toast as an atomic live region (role="alert" + aria-atomic) so an in-place promise settle is re-announced', () => {
+    renderToaster();
+    // A promise toast flips loading→success on the SAME node; aria-atomic="true"
+    // makes AT re-read the whole toast as a unit on that in-place content change.
+    toaster.add({ title: 'Saving…' });
+    flushSync();
+
+    const alert = screen.getByRole('alert');
+    expect(alert.getAttribute('aria-atomic')).toBe('true');
+  });
+
+  it('passes the countdown duration as a CSS custom property and the animation via a class (not an inline shorthand)', () => {
+    renderToaster();
+    toaster.add({ title: 'Timed', duration: 4000 }); // showProgress defaults true
+    flushSync();
+
+    const bar = progressBar();
+    expect(bar).toBeTruthy();
+    // Duration is now a custom property (so a media query can gate the animation);
+    // the `animation` shorthand no longer sits inline.
+    const style = bar!.getAttribute('style') ?? '';
+    expect(style).toContain('--toast-progress-duration: 4000ms');
+    expect(style).not.toContain('animation:');
+    // The animation is carried by the class the reduced-motion rule targets.
+    expect(bar!.classList.contains('blocks-toast-progress-bar')).toBe(true);
+    // Note: the `@media (prefers-reduced-motion: reduce) { display:none }` override
+    // is a CSS effect with no layout in jsdom — not asserted here (Playwright/manual).
   });
 });

@@ -17,6 +17,16 @@ if (typeof window !== 'undefined') {
     Element.prototype.scrollIntoView = () => {};
   }
 
+  // Coordinate hit-testing (Toast hover-pause re-derives containment from the real
+  // cursor when the stack shrinks — a toast removed under the pointer may never fire
+  // `pointerout`). jsdom has no layout, so there is no real hit-test: return null,
+  // which the Toast un-freeze test relies on for its "no live toast under the cursor
+  // → resume" branch. A layout-dependent hit against a *remaining* toast is a
+  // Playwright concern.
+  if (!document.elementFromPoint) {
+    document.elementFromPoint = () => null;
+  }
+
   // Pointer capture (Dialog draggable header, Slider thumb) — jsdom has no
   // capture model. No-ops are enough: the drag handlers key off `pointerdown`/
   // `pointermove` bookkeeping, capture only reroutes events the test dispatches

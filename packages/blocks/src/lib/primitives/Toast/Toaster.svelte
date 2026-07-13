@@ -1,5 +1,6 @@
 <script lang="ts">
   import { useBlocksI18n } from '$lib';
+  import { untrack } from 'svelte';
   import { fly } from 'svelte/transition';
   import { getOverlayMotion } from '$lib/utils';
   import { toastVariants, type ToastVariants } from './toast.variants';
@@ -88,6 +89,42 @@
 
   const visibleToasts = $derived(toaster.toasts.slice(-max));
 
+  // Stranded-pause guard. A toast removed from under the cursor (e.g. its own
+  // close button) does not reliably fire `pointerout`, so `pointerInside` can
+  // stay stuck `true` and freeze every remaining timer — worst case a fresh
+  // toast is then born paused and never counts down. Rather than trust the flag,
+  // when the rendered stack SHRINKS we re-derive containment from the real cursor
+  // position. The cursor is tracked from the region's own bubbling pointer events
+  // (the container is `pointer-events-none`, so these fire only over a toast
+  // child, which is exactly when the coords matter).
+  let containerEl: HTMLElement | undefined;
+  let pointerX = 0;
+  let pointerY = 0;
+  let prevVisibleCount = 0;
+
+  function reconcilePointerInside() {
+    // Only a stranded `true` needs rescuing; SSR-safe — effects/handlers never
+    // run on the server, and `document` is guarded regardless.
+    if (typeof document === 'undefined' || !pointerInside || !containerEl) return;
+    const hit = document.elementFromPoint(pointerX, pointerY);
+    const toastEl = (hit?.closest('[data-toast-id]') ?? null) as HTMLElement | null;
+    // Inside only if the cursor sits over a toast that is (a) in THIS region and
+    // (b) still live — not the just-removed one, whose node lingers through its
+    // fly-out outro.
+    pointerInside =
+      !!toastEl &&
+      containerEl.contains(toastEl) &&
+      visibleToasts.some((t) => t.id === toastEl.dataset.toastId);
+  }
+
+  $effect(() => {
+    const count = visibleToasts.length;
+    untrack(() => {
+      if (count < prevVisibleCount) reconcilePointerInside();
+      prevVisibleCount = count;
+    });
+  });
+
   const styles = $derived(
     unstyled
       ? {
@@ -151,10 +188,19 @@
 </script>
 
 <div
+  bind:this={containerEl}
   class={[slot('container'), className].filter(Boolean).join(' ')}
   aria-live="polite"
   aria-relevant="additions removals"
-  onpointerover={() => (pointerInside = true)}
+  onpointerover={(e) => {
+    pointerX = e.clientX;
+    pointerY = e.clientY;
+    pointerInside = true;
+  }}
+  onpointermove={(e) => {
+    pointerX = e.clientX;
+    pointerY = e.clientY;
+  }}
   onpointerout={(e) => {
     if (leftRegion(e)) pointerInside = false;
   }}
@@ -166,7 +212,13 @@
 >
   {#each visibleToasts as toast (toast.id)}
     {@const IntentIcon = INTENT_ICON_MAP[toast.intent] ?? INTENT_ICON_MAP.neutral}
-    <div class={slot('toast', toast.intent)} role="alert" transition:fly={flyParams()}>
+    <div
+      class={slot('toast', toast.intent)}
+      role="alert"
+      aria-atomic="true"
+      data-toast-id={toast.id}
+      transition:fly={flyParams()}
+    >
       {#if toast.loading}
         <span class={slot('icon', toast.intent)}><Spinner size="sm" /></span>
       {:else}
@@ -216,13 +268,17 @@
       {/if}
 
       {#if toast.showProgress && Number.isFinite(toast.duration) && toast.duration > 0}
-        <!-- Duration comes from the toast itself (the real countdown), not a token.
-             `animation-play-state` tracks the store's paused flag so the bar freezes
-             with the timer on hover/focus and resumes in place — changing only the
+        <!-- The countdown animation lives in the `<style>` rule below (not inline)
+             so `@media (prefers-reduced-motion: reduce)` can reach it — an inline
+             `animation` shorthand is invisible to media queries. Only the real
+             per-toast duration is passed inline, as a custom property.
+             `animation-play-state` (also inline, bound to the store's paused flag)
+             freezes the bar with the timer on hover/focus and resumes it in place;
+             inline wins over the rule's implicit `running`, and toggling only the
              play-state never restarts the animation. -->
         <div
-          class={slot('progress', toast.intent)}
-          style="animation: blocks-toast-progress {toast.duration}ms linear forwards; animation-play-state: {toaster.paused
+          class={[slot('progress', toast.intent), 'blocks-toast-progress-bar']}
+          style="--toast-progress-duration: {toast.duration}ms; animation-play-state: {toaster.paused
             ? 'paused'
             : 'running'};"
         ></div>
@@ -238,6 +294,24 @@
     }
     to {
       width: 0%;
+    }
+  }
+
+  /* The countdown bar animates via this class (not an inline `animation`) so the
+     reduced-motion query below can reach it; the per-toast duration arrives as
+     the `--toast-progress-duration` custom property. `:global` keeps it off
+     Svelte's scoping, consistent with the global keyframe above. */
+  :global(.blocks-toast-progress-bar) {
+    animation: blocks-toast-progress var(--toast-progress-duration) linear forwards;
+  }
+
+  /* A countdown bar carries no information once it can't animate, so under
+     reduced motion we hide it outright rather than leave it frozen. This mirrors
+     interaction.css collapsing the motion tokens; the auto-dismiss timing itself
+     is unaffected. */
+  @media (prefers-reduced-motion: reduce) {
+    :global(.blocks-toast-progress-bar) {
+      display: none;
     }
   }
 </style>
