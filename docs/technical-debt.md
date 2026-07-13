@@ -5,6 +5,13 @@ at hand and can't be fixed on the fly — they need a design decision or a broad
 sweep. Logged here so they aren't lost. Actively planned work lives in the
 internal TODO instead. Sections are ordered roughly by urgency.
 
+> **🚧 In Arbeit — Opus debt-sweep, 2026-07-14** (Worktree `opus/debt-sweep-2026-07-14`).
+> The following entries are being resolved and will be removed on success:
+> Form primitives `{...restProps}` ordering · PlaygroundConfigurator `label for` +
+> Input ignores `id` · `createCronRunner.onError` on non-2xx · Table `resolveSlotClass`
+> past the tv() fold · no `.d.ts` build guard · docs `CodePanel` unnamed textbox +
+> Shiki comment contrast · docs `codeExamplePlugin` regex on `>`/self-closing.
+
 ## Packaging / distribution
 
 ### mcp-server npm tarball ships raw src (incl. tests) with no consumer
