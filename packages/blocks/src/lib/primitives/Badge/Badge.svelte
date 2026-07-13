@@ -45,7 +45,6 @@
   const unstyled = $derived(unstyledProp || blocksConfig?.unstyled || false);
 
   let badgeElement = $state<HTMLElement>();
-  let isHovered = $state(false);
 
   // `purpose` is the canonical semantic axis; it orchestrates the low-level
   // visual props so the tv() config stays as-is. When set it wins over the
@@ -84,12 +83,10 @@
   });
 
   function handleMouseEnter() {
-    isHovered = true;
     onHover?.(true);
   }
 
   function handleMouseLeave() {
-    isHovered = false;
     onHover?.(false);
   }
 
