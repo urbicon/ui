@@ -83,6 +83,30 @@ internal TODO instead. Sections are ordered roughly by urgency.
   conventions-doc update. Removing values is breaking.
 - **Found:** 2026-07-10, systematic primitives API analysis.
 
+### Sparkline can't be made fluid through its public props — responsive use needs the non-obvious `slotClasses={{ svg: 'w-full' }}`
+
+- **Where:** `packages/blocks/src/lib/components/Sparkline/Sparkline.svelte`
+  (`<svg {width} {height} viewBox … preserveAspectRatio="none">`; the bare
+  `class` prop lands on the wrapper `<span>`, not the svg).
+- **What:** `width` is a fixed pixel attribute, and `class="w-full"` only
+  widens the *wrapper* — the svg keeps its attribute width, overflows the
+  container and (inside a card) the page. Bitten on the landing 2026-07-11: a
+  `width={460}` sparkline fit the ~500px desktop card by luck and shot ~130px
+  past the ~330px mobile card, dragging the whole page into horizontal
+  scroll. The component is already scale-ready (`viewBox` +
+  `preserveAspectRatio="none"`); the fluid path just isn't reachable via the
+  obvious props — it takes `slotClasses={{ svg: 'w-full' }}`. Strokes also
+  distort under non-uniform scaling (no `vector-effect="non-scaling-stroke"`),
+  visible only at extreme squeeze.
+- **Why deferred:** Wants a small API decision rather than a drive-by: accept
+  a `width`/`height` of `'100%'` (or a `fluid` boolean) that drops the
+  attributes and keeps the viewBox, or route `class` to the svg. Same
+  ergonomics question likely applies to the other fixed-size chart surfaces
+  (charts without `width` are responsive; Sparkline is the outlier with a
+  fixed default). Add `vector-effect` in the same pass.
+- **Found:** 2026-07-11, mobile bug report on the landing offsite specimen
+  (Felix, real-device Safari).
+
 ### Accordion/Collapsible sibling variant vocabulary diverges
 
 - **Where:** `accordion.variants.ts` (`variant: default|separated|ghost`) vs.
