@@ -4,27 +4,15 @@ import type { MintProp } from '$lib/mint';
 import type { BadgePlacement, BadgeSlots, BadgeVariants } from './badge.variants';
 
 /**
- * Shared fields that apply to every Badge variant — `dot` and the
- * label-style variants both accept these.
+ * Shared fields that apply to every Badge arm. `variant`, `purpose`, and the
+ * label-only props (`children` / `counter` / `removable` / `interactive` /
+ * `onRemove`) are declared per-arm instead — that split is what lets *both*
+ * dot spellings (`variant="dot"` and the canonical `purpose="dot"`) forbid the
+ * label-only props at the type level.
  */
 interface BadgeBaseProps
-  extends Omit<BadgeVariants, 'variant' | 'counter'>,
+  extends Omit<BadgeVariants, 'variant' | 'counter' | 'removable' | 'interactive'>,
     Omit<HTMLAttributes<HTMLElement>, 'children'> {
-  /**
-   * The badge's semantic purpose — the canonical axis that resolves what the
-   * badge *is*, since a bare Badge served five overlapping roles. Orchestrates
-   * the low-level visual props so you rarely set them directly:
-   * - `status` — a state marker (Active, Failed); pairs with `intent`.
-   * - `tag` — a neutral inline label (category, version).
-   * - `counter` — a compact numeric pill (replaces the `counter` boolean).
-   * - `dot` — a pure indicator, content hidden (replaces `variant="dot"`).
-   * - `chip` — a removable, interactive filter chip; pair with `removable`.
-   *
-   * Leave unset to drive the badge purely by the low-level props (back-compat).
-   * When set, `purpose` wins over `variant="dot"` / the `counter` boolean.
-   */
-  purpose?: 'status' | 'tag' | 'counter' | 'dot' | 'chip';
-
   /** Add a pulsing animation to draw attention (e.g. for live indicators). */
   pulse?: boolean;
   /** Visually disable the badge (reduced opacity, no pointer events). */
@@ -34,7 +22,7 @@ interface BadgeBaseProps
   /** Anchor the badge absolutely within a `position: relative` parent. */
   placement?: BadgePlacement;
 
-  /** Click handler. Automatically enables interactive styles. */
+  /** Click handler. Automatically enables interactive styles (and `role="button"`). */
   onclick?: (event: MouseEvent) => void;
   /** Called when the hover state changes. */
   onHover?: (hovered: boolean) => void;
@@ -54,21 +42,24 @@ interface BadgeBaseProps
    */
   preset?: string;
 
-  /** ARIA role. Defaults to `"status"`. Use `"alert"` for time-sensitive notifications. */
-  role?: 'status' | 'alert' | 'badge';
+  /**
+   * ARIA role. A static badge is announced as `"status"`; an interactive badge
+   * (`onclick` or `purpose="chip"`, when not `disabled`) defaults to `"button"`
+   * so assistive tech announces its activation semantics. Set explicitly to
+   * override — e.g. `"alert"` for time-sensitive notifications. An explicit
+   * value always wins over the derived default.
+   */
+  role?: 'status' | 'alert' | 'badge' | 'button';
   /** Micro-interaction preset. Only applies when the badge is interactive. */
   mint?: MintProp;
 }
 
 /**
- * Dot-style badge — a pure indicator. Content is `sr-only` (visually
- * hidden), so `children` / `counter` / `removable` / `interactive` /
- * `onRemove` are excluded by the type: an invisible remove-button or
- * hover-scale on a 2.5 × 2.5 px dot is never the intended UI.
+ * The label-only props a pure-indicator dot forbids. An invisible remove
+ * button, counter shape, or hover-scale on a 2.5 × 2.5 px dot is never the
+ * intended UI, so every dot arm excludes them at the type level.
  */
-interface BadgeDotProps extends BadgeBaseProps {
-  /** Visual variant. `dot` renders a pure indicator (content hidden); the label variants accept the full surface. */
-  variant: 'dot';
+interface BadgeDotForbiddenProps {
   children?: never;
   counter?: never;
   removable?: never;
@@ -77,9 +68,51 @@ interface BadgeDotProps extends BadgeBaseProps {
 }
 
 /**
+ * Dot badge selected by the canonical `purpose="dot"` — a pure indicator whose
+ * content is hidden. `variant` is inert here (the dot look always wins), and
+ * the label-only props are excluded by {@link BadgeDotForbiddenProps}.
+ */
+interface BadgeDotByPurposeProps extends BadgeBaseProps, BadgeDotForbiddenProps {
+  /**
+   * The canonical dot spelling — forces the pure-indicator look regardless of
+   * `variant`. For the label roles use `status` / `tag` / `counter` / `chip`
+   * (their own arm).
+   */
+  purpose: 'dot';
+  /** Inert under `purpose="dot"`; accepted only so a leftover `variant` compiles. */
+  variant?: 'filled' | 'outlined' | 'soft' | 'dot';
+}
+
+/**
+ * Dot badge selected by the deprecated `variant="dot"`. Prefer `purpose="dot"`.
+ * Same exclusions as {@link BadgeDotByPurposeProps}.
+ */
+interface BadgeDotProps extends BadgeBaseProps, BadgeDotForbiddenProps {
+  /** Visual variant. `dot` renders a pure indicator (content hidden); the label variants accept the full surface. */
+  variant: 'dot';
+  /** Only the dot purpose is non-contradictory with `variant="dot"`. */
+  purpose?: 'dot';
+}
+
+/**
  * Label-style badge — accepts content, counter shape, remove button, etc.
  */
 interface BadgeStandardProps extends BadgeBaseProps {
+  /**
+   * The badge's semantic purpose — the canonical axis that resolves what the
+   * badge *is*, since a bare Badge served overlapping roles. Orchestrates the
+   * low-level visual props so you rarely set them directly:
+   * - `status` — a state marker (Active, Failed); pairs with `intent`.
+   * - `tag` — a neutral inline label (category, version).
+   * - `counter` — a compact numeric pill (replaces the `counter` boolean).
+   * - `chip` — a removable, interactive filter chip; pair with `removable`.
+   *
+   * For a pure indicator use `purpose="dot"` (its own arm — it forbids
+   * content / counter / remove). Leave unset to drive the badge purely by the
+   * low-level props (back-compat); when set, `purpose` wins over the `counter`
+   * boolean.
+   */
+  purpose?: 'status' | 'tag' | 'counter' | 'chip';
   /** Visual variant. `dot` renders a pure indicator (content hidden); the label variants accept the full surface. @default 'filled' */
   variant?: 'filled' | 'outlined' | 'soft';
   /** Badge content (text, icons, numbers). */
@@ -104,10 +137,13 @@ interface BadgeStandardProps extends BadgeBaseProps {
  * @related Alert
  * @related Toast
  *
- * Badge props are a discriminated union on `variant`: `variant="dot"`
- * forbids `children` / `counter` / `removable` / `interactive` /
- * `onRemove` at the type level, while `filled` / `outlined` / `soft`
- * accept the full surface.
+ * Badge props are a discriminated union. The pure-indicator dot — spelled
+ * canonically as `purpose="dot"` or via the deprecated `variant="dot"` —
+ * forbids `children` / `counter` / `removable` / `interactive` / `onRemove`
+ * at the type level, while the label arms (`filled` / `outlined` / `soft`;
+ * `purpose` `status` / `tag` / `counter` / `chip`) accept the full surface.
+ * An interactive badge (`onclick` or `purpose="chip"`) is announced as a
+ * `button`, a static one as `status` (override via `role`).
  *
  * @example Purpose-driven (canonical) — the intent reads from `purpose`
  * ```svelte
@@ -125,7 +161,7 @@ interface BadgeStandardProps extends BadgeBaseProps {
  * </div>
  * ```
  */
-export type BadgeProps = BadgeDotProps | BadgeStandardProps;
+export type BadgeProps = BadgeDotByPurposeProps | BadgeDotProps | BadgeStandardProps;
 
 export { default as Badge } from './Badge.svelte';
 export {

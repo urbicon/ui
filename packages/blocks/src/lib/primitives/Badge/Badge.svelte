@@ -34,7 +34,7 @@
     onRemove,
     onclick,
     onHover,
-    role = 'status',
+    role,
     ...restProps
   }: BadgeProps = $props();
 
@@ -55,6 +55,12 @@
   const isDot = $derived(effVariant === 'dot');
   const isInteractive = $derived(purpose === 'chip' || interactive || !!onclick);
   const isRemovable = $derived(removable && !isDot);
+
+  // An interactive badge (clickable chip / onclick) carries button semantics:
+  // it is focusable and Enter/Space-activatable, so screen readers must hear a
+  // button, not a `status` region. An explicit `role` always wins; a disabled
+  // badge is inert (pointer-events-none, guarded handlers) so it stays `status`.
+  const effRole = $derived(role ?? (isInteractive && !disabled ? 'button' : 'status'));
 
   const variantProps: BadgeVariants = $derived({
     tier: effectiveTier,
@@ -124,7 +130,7 @@
       ? [slotClasses?.base, className].filter(Boolean).join(' ')
       : styles.base({ class: [slotClasses?.base, className] })
   ]}
-  {role}
+  role={effRole}
   data-purpose={purpose}
   tabindex={isInteractive && !disabled ? 0 : undefined}
   onmouseenter={handleMouseEnter}
