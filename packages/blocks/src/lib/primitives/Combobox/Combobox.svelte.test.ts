@@ -726,3 +726,90 @@ describe('Combobox (multiple + async queryFn)', () => {
     expect(removeTagBtn('Foo')).toBeTruthy();
   });
 });
+
+// aria-describedby merge (parity with Select's d298d2c + Input). restProps land
+// on the role-less wrapper <div>, so a consumer `aria-describedby` used to never
+// reach the focusable <input>. It must now merge with the internal error/helper
+// id chain — internal descriptions first, the consumer's supplemental one last —
+// on the input itself.
+describe('Combobox (aria-describedby merge)', () => {
+  it('merges a consumer aria-describedby with the internal helper id (internal first) on the input', () => {
+    renderCombobox({ options: OPTIONS, helper: 'Pick one', 'aria-describedby': 'external-hint' });
+
+    const input = screen.getByRole('combobox');
+    const ids = (input.getAttribute('aria-describedby') ?? '').split(' ').filter(Boolean);
+    // Both the internal (helper) id and the consumer id are present.
+    expect(ids).toHaveLength(2);
+    expect(ids).toContain('external-hint');
+    // Internal first, consumer last.
+    expect(ids[ids.length - 1]).toBe('external-hint');
+    const internalId = ids[0];
+    expect(internalId).not.toBe('external-hint');
+    // The internal id resolves to the rendered helper text — a live reference.
+    expect(document.getElementById(internalId)?.textContent).toContain('Pick one');
+    // The description reaches the input ALONE, not the wrapper it used to land on.
+    const described = Array.from(document.querySelectorAll('[aria-describedby]'));
+    expect(described).toHaveLength(1);
+    expect(described[0]).toBe(input);
+  });
+
+  it('uses the consumer aria-describedby verbatim when there is no helper or error', () => {
+    renderCombobox({ options: OPTIONS, 'aria-describedby': 'external-hint' });
+
+    expect(screen.getByRole('combobox').getAttribute('aria-describedby')).toBe('external-hint');
+  });
+});
+
+// Grouped {#each} key stability (mirrors Select). Two groups sharing a label must
+// not collide on the key (was keyed on `group.label` → `each_key_duplicate`).
+// Cross-boundary keyboard nav through the O(1) flat-index map is already covered
+// by "flows keyboard navigation across group boundaries" above.
+describe('Combobox (groups — stable key)', () => {
+  it('renders both groups when two share the same label', () => {
+    // Old `group.label` key throws `each_key_duplicate` on render; the positional
+    // key renders both. open:true renders the keyed group list in the mount flush.
+    renderCombobox({
+      open: true,
+      groups: [
+        { label: 'Team', options: [{ value: 'a', label: 'Alice' }] },
+        { label: 'Team', options: [{ value: 'b', label: 'Bob' }] }
+      ]
+    });
+    expect(screen.getAllByRole('group', { name: 'Team', hidden: true })).toHaveLength(2);
+    expect(screen.getAllByRole('option', { hidden: true })).toHaveLength(2);
+  });
+});
+
+// aria-label forwarding with a precedence gate (the Combobox analogue of Select's
+// Fix 1). restProps land on the role-less wrapper <div>, so a consumer `aria-label`
+// used to become an axe `aria-prohibited-attr` there. It must reach the focusable
+// <input role="combobox"> — but ONLY when no visible `label` renders: the input is
+// named via a native `<label for>` (LOWER ARIA precedence than aria-label), so an
+// unconditional aria-label would override a visible label (the opposite of Select,
+// which names via the higher-precedence aria-labelledby).
+describe('Combobox (aria-label forwarding)', () => {
+  it('forwards a consumer aria-label onto the input when no visible label renders, never the wrapper', () => {
+    renderCombobox({ options: OPTIONS, 'aria-label': 'Search fruit' });
+
+    const input = screen.getByRole('combobox');
+    expect(input.getAttribute('aria-label')).toBe('Search fruit');
+    // The forwarded label lives on the input ALONE — the wrapper the restProps
+    // used to catch it on stays clean (kills the aria-prohibited-attr).
+    const labelled = Array.from(document.querySelectorAll('[aria-label="Search fruit"]'));
+    expect(labelled).toHaveLength(1);
+    expect(labelled[0]).toBe(input);
+  });
+
+  it('suppresses aria-label when a visible label renders, so the native <label for> wins', () => {
+    renderCombobox({ options: OPTIONS, label: 'Fruit', 'aria-label': 'ignored' });
+
+    const input = screen.getByRole('combobox');
+    // Visible label present → aria-label is NOT emitted (it would override the
+    // lower-precedence native association otherwise).
+    expect(input.hasAttribute('aria-label')).toBe(false);
+    expect(document.querySelector('[aria-label="ignored"]')).toBeNull();
+    // The visible <label for> actually names the input.
+    const nativeLabel = document.querySelector(`label[for="${input.id}"]`);
+    expect(nativeLabel?.textContent).toContain('Fruit');
+  });
+});

@@ -54,6 +54,7 @@
     preset,
     id: idProp,
     'aria-describedby': ariaDescribedby,
+    'aria-label': ariaLabel,
     ...restProps
   }: SelectProps<T> = $props();
 
@@ -153,6 +154,19 @@
   });
 
   const enabledOptions = $derived(allOptions.filter((o) => !o.disabled));
+
+  // Flat index of each enabled option, precomputed so a grouped or flat option
+  // reads its keyboard-cursor index in O(1) rather than an O(n) `indexOf` per
+  // render — which made a large grouped listbox O(n²) per keystroke. Disabled
+  // options are absent from `enabledOptions`, so they resolve to -1 here, exactly
+  // as the previous `enabledOptions.indexOf(option)` did.
+  const enabledIndexByOption = $derived.by(() => {
+    const map = new Map<SelectOption<T>, number>();
+    enabledOptions.forEach((o, i) => {
+      if (!map.has(o)) map.set(o, i);
+    });
+    return map;
+  });
 
   /**
    * Currently selected option(s), normalized to an array regardless of mode.
@@ -465,6 +479,7 @@
         aria-haspopup="listbox"
         aria-controls={listboxId}
         aria-labelledby={labelId}
+        aria-label={labelId ? undefined : ariaLabel}
         aria-describedby={describedBy}
         aria-invalid={ff.invalid ? 'true' : undefined}
         aria-activedescendant={activeIndex >= 0 ? getOptionId(activeIndex) : undefined}
@@ -560,7 +575,7 @@
     >
       {#if open}
         {#if groups}
-          {#each groups as group (group.label)}
+          {#each groups as group, i (`${group.label}-${i}`)}
             <div
               class={unstyled
                 ? (slotClasses?.group ?? '')
@@ -576,8 +591,8 @@
                 {group.label}
               </div>
               {#each group.options as option (option.value)}
-                {@const optIdx = enabledOptions.indexOf(option)}
-                {@const isActive = optIdx === activeIndex}
+                {@const optIdx = enabledIndexByOption.get(option) ?? -1}
+                {@const isActive = optIdx >= 0 && optIdx === activeIndex}
                 {@const isSel = isOptionSelected(option)}
                 <!--
                   ARIA Listbox pattern: options are explicitly NOT in the
@@ -647,8 +662,8 @@
           {/each}
         {:else}
           {#each allOptions as option (option.value)}
-            {@const optIdx = enabledOptions.indexOf(option)}
-            {@const isActive = optIdx === activeIndex}
+            {@const optIdx = enabledIndexByOption.get(option) ?? -1}
+            {@const isActive = optIdx >= 0 && optIdx === activeIndex}
             {@const isSel = isOptionSelected(option)}
             <!-- Options stay out of the tab order — see ARIA Listbox note above. -->
             <!-- svelte-ignore a11y_interactive_supports_focus -->

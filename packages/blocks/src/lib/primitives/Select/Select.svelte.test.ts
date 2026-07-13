@@ -260,3 +260,149 @@ describe('Select (component interaction)', () => {
     expect(expanded()).toBe('true');
   });
 });
+
+// ── Accessible naming: aria-label forwarding + aria-labelledby guard ───────────
+// restProps land on the role-less base <div>, so a consumer `aria-label` used to
+// become an axe `aria-prohibited-attr` there while the trigger went unnamed
+// (axe `button-name`). The trigger must resolve to an accessible name in EVERY
+// case: a visible `label` names it via aria-labelledby; else a consumer
+// `aria-label` is forwarded onto the trigger button (not the wrapper); else the
+// button's own text (value/placeholder). LocaleSwitcher relies on the aria-label
+// branch (it passes `aria-label` with no visible `label`), so this guards that
+// inherited behaviour at the Select level.
+describe('Select (accessible naming)', () => {
+  it('forwards a consumer aria-label onto the trigger button, never the role-less wrapper', () => {
+    renderSelect({ options: OPTIONS, 'aria-label': 'Pick a country' });
+
+    const t = trigger();
+    expect(t.getAttribute('aria-label')).toBe('Pick a country');
+    // No visible label → aria-labelledby must be absent, not dangling to a
+    // nonexistent `${uid}-label` id.
+    expect(t.hasAttribute('aria-labelledby')).toBe(false);
+    // The forwarded label lives on the trigger ALONE — the wrapper/base divs the
+    // restProps used to catch it on stay clean (kills the aria-prohibited-attr).
+    const labelled = Array.from(document.querySelectorAll('[aria-label="Pick a country"]'));
+    expect(labelled).toHaveLength(1);
+    expect(labelled[0]).toBe(t);
+  });
+
+  it('names the trigger via aria-labelledby when a visible label renders, suppressing aria-label', () => {
+    renderSelect({ options: OPTIONS, label: 'Country', 'aria-label': 'ignored' });
+
+    const t = trigger();
+    const labelledby = t.getAttribute('aria-labelledby');
+    expect(labelledby).toBeTruthy();
+    // The referenced id actually exists and holds the visible label text — not a
+    // dangling reference.
+    expect(document.getElementById(labelledby as string)?.textContent).toContain('Country');
+    // Visible label wins (aria-labelledby > aria-label), so the redundant
+    // aria-label is not emitted alongside it.
+    expect(t.hasAttribute('aria-label')).toBe(false);
+  });
+
+  it('leaves the trigger named by its own content when neither label nor aria-label is set', () => {
+    renderSelect({ options: OPTIONS });
+
+    const t = trigger();
+    expect(t.hasAttribute('aria-labelledby')).toBe(false);
+    expect(t.hasAttribute('aria-label')).toBe(false);
+    // Falls back to the button's text content (the placeholder here).
+    expect(t.textContent).toContain('Select...');
+  });
+});
+
+// ── Grouped options: cross-boundary keyboard nav + stable {#each} key ──────────
+// groups flatten into one keyboard-navigable list; the virtual cursor crosses
+// group boundaries seamlessly, and each option's flat index is resolved through
+// the precomputed O(1) `enabledIndexByOption` map (previously an O(n) `indexOf`
+// per option per render). Two groups sharing a label must not collide on the
+// {#each} key (was keyed on `group.label` → `each_key_duplicate` dev crash).
+const SELECT_GROUPS = [
+  {
+    label: 'Europe',
+    options: [
+      { label: 'Germany', value: 'de' },
+      { label: 'France', value: 'fr' }
+    ]
+  },
+  {
+    label: 'Americas',
+    options: [
+      { label: 'Brazil', value: 'br' },
+      { label: 'Canada', value: 'ca' }
+    ]
+  }
+];
+
+describe('Select (groups)', () => {
+  const group = (name: string) => screen.getByRole('group', { name, hidden: true });
+
+  it('renders section headers and every grouped option', async () => {
+    const user = userEvent.setup();
+    renderSelect({ groups: SELECT_GROUPS });
+
+    await user.click(trigger());
+    expect(group('Europe')).toBeTruthy();
+    expect(group('Americas')).toBeTruthy();
+    expect(screen.getAllByRole('option', { hidden: true })).toHaveLength(4);
+  });
+
+  it('flows keyboard navigation across group boundaries and selects the crossed option', async () => {
+    const user = userEvent.setup();
+    const onValueChange = vi.fn();
+    renderSelect({ groups: SELECT_GROUPS, onValueChange });
+
+    const el = trigger();
+    await user.click(el);
+    // -1 → Germany(0) → France(1) → Brazil(2): the cursor crosses from Europe
+    // into Americas. The active-descendant addresses the flat index the O(1) map
+    // resolves — a wrong map (or O(n) drift) would point at the wrong option.
+    await user.keyboard('{ArrowDown}{ArrowDown}{ArrowDown}');
+    expect(el.getAttribute('aria-activedescendant')).toBe(
+      `${el.id.replace('-trigger', '')}-option-2`
+    );
+    await user.keyboard('{Enter}');
+    expect(onValueChange).toHaveBeenCalledWith('br');
+  });
+
+  it('renders both groups when two share the same label (stable {#each} key)', () => {
+    // With the old `group.label` key this mount throws `each_key_duplicate` in the
+    // initial flush; the positional key renders both. open:true forces the keyed
+    // group list to render synchronously inside renderSelect's flushSync.
+    renderSelect({
+      open: true,
+      groups: [
+        { label: 'Team', options: [{ label: 'Alice', value: 'a' }] },
+        { label: 'Team', options: [{ label: 'Bob', value: 'b' }] }
+      ]
+    });
+    expect(screen.getAllByRole('group', { name: 'Team', hidden: true })).toHaveLength(2);
+    expect(screen.getAllByRole('option', { hidden: true })).toHaveLength(2);
+  });
+});
+
+// ── Active highlight: no phantom highlight on a disabled option (unset cursor) ─
+// A disabled option is absent from `enabledOptions`, so it resolves optIdx === -1.
+// On pointer-open with no selection the cursor is also unset (activeIndex === -1),
+// so `optIdx === activeIndex` would be true and wrongly paint the disabled row
+// with the active-highlight token. The `optIdx >= 0` guard keeps -1 (unset) from
+// matching -1 (disabled) — nothing is highlighted until the cursor actually lands.
+describe('Select (active highlight)', () => {
+  it('does not highlight a disabled option when the cursor is unset (pointer-open, no selection)', async () => {
+    const user = userEvent.setup();
+    renderSelect({
+      options: [
+        { label: 'Germany', value: 'de', disabled: true },
+        { label: 'France', value: 'fr' }
+      ]
+    });
+
+    await user.click(trigger());
+    // Pointer-open leaves the virtual cursor unset — no active descendant, so no
+    // option should carry the highlight. classList.contains is an exact-token
+    // match, so a `hover:bg-surface-hover` variant can't false-positive here.
+    expect(trigger().hasAttribute('aria-activedescendant')).toBe(false);
+    expect(option('Germany').classList.contains('bg-surface-hover')).toBe(false);
+    expect(option('France').classList.contains('bg-surface-hover')).toBe(false);
+  });
+});

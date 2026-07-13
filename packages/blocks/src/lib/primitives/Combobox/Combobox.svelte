@@ -56,6 +56,8 @@
     slotClasses: slotClassesProp = {},
     preset,
     id: idProp,
+    'aria-describedby': ariaDescribedby,
+    'aria-label': ariaLabel,
     ...restProps
   }: ComboboxProps<T> = $props();
 
@@ -79,6 +81,15 @@
     required,
     disabled
   }));
+
+  // Consumer-supplied `aria-describedby` (e.g. an external hint) merges with the
+  // internal error/helper chain instead of being dropped — restProps land on the
+  // wrapper div, so without this the description would never reach the focusable
+  // input. Internal descriptions first, the consumer's supplemental one last
+  // (mirrors Select + Input).
+  const describedBy = $derived(
+    [ff.describedBy, ariaDescribedby].filter(Boolean).join(' ') || undefined
+  );
 
   const blocksConfig = getBlocksConfig();
   const unstyled = $derived(unstyledProp || blocksConfig?.unstyled || false);
@@ -206,6 +217,18 @@
   const filtered = $derived(
     filteredGroups ? filteredGroups.flatMap((g) => g.options) : allOptions.filter(matchesQuery)
   );
+
+  // Flat index of each option within `filtered`, precomputed so the grouped
+  // render path reads an option's keyboard-cursor index in O(1) instead of
+  // `filtered.indexOf(opt)` per option (O(n²) per keystroke on a large grouped
+  // list). Same first-occurrence semantics as `indexOf`.
+  const filteredIndexByOption = $derived.by(() => {
+    const map = new Map<ComboboxOption<T>, number>();
+    filtered.forEach((opt, i) => {
+      if (!map.has(opt)) map.set(opt, i);
+    });
+    return map;
+  });
 
   // Debounced query runner. The effect tracks `query` (+ debounceMs); each change
   // resets the timer, and the fetch runs a tick later so bursty typing collapses
@@ -750,7 +773,7 @@
             {noResultsText}
           </div>
         {:else if filteredGroups}
-          {#each filteredGroups as group (group.label)}
+          {#each filteredGroups as group, i (`${group.label}-${i}`)}
             <div
               class={unstyled
                 ? (slotClasses?.group ?? '')
@@ -766,7 +789,7 @@
                 {group.label}
               </div>
               {#each group.options as opt (opt.value)}
-                {@render optionButton(opt, filtered.indexOf(opt))}
+                {@render optionButton(opt, filteredIndexByOption.get(opt) ?? -1)}
               {/each}
             </div>
           {/each}
@@ -855,6 +878,14 @@
   wiring lives in one place. `required` is single-mode only — in multi the input
   is transient search text (cleared after each pick), so a native `required` on
   it would wrongly block submit even with tags selected.
+
+  A consumer `aria-label` is forwarded onto the input (destructured out of
+  restProps so it never lands on the role-less wrapper `<div>` — axe
+  aria-prohibited-attr), but ONLY when no visible `label` renders. Unlike Select —
+  which names its trigger via `aria-labelledby` (HIGHER ARIA precedence than
+  aria-label) — Combobox names the input via a native `<label for>` (LOWER
+  precedence than aria-label), so an unconditional aria-label would override a
+  visible label. Gating on `label` keeps the visible label authoritative.
 -->
 {#snippet searchField(cls: string)}
   <input
@@ -867,7 +898,8 @@
     aria-activedescendant={activeDescendant}
     aria-autocomplete="list"
     aria-invalid={ff.invalid ? 'true' : undefined}
-    aria-describedby={ff.describedBy}
+    aria-describedby={describedBy}
+    aria-label={label ? undefined : ariaLabel}
     autocomplete="off"
     class={cls}
     placeholder={effectivePlaceholder}
