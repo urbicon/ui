@@ -141,6 +141,20 @@ internal TODO instead. Sections are ordered roughly by urgency.
   success + busy-lock paths are covered; the reject path is deliberately not
   asserted because it can't be without provoking the unhandled rejection).
 
+### `ConfirmDialogProps` is a closed interface — no `data-*`/attribute pass-through
+
+- **Where:** `packages/blocks/src/lib/primitives/ConfirmDialog/index.ts`
+  (`ConfirmDialogProps` does not extend `HTMLDialogAttributes`, unlike
+  Dialog/Drawer).
+- **What:** Consumers (and tests) cannot attach `data-testid` or other
+  attributes to a ConfirmDialog — the e2e overlay-modal spec (58562c6) had to
+  target it by text/structure. A small API asymmetry with its siblings.
+- **Why deferred:** Adding rest-attribute pass-through touches the styling
+  contract (where do the attributes land — the dialog element, per the Dialog
+  precedent?) and should follow the documented Dialog/Drawer pattern in one
+  deliberate step, not a test-driven drive-by.
+- **Found:** 2026-07-13, e2e fixtures pass.
+
 ### `Collapsible` optimistically mutates a controlled `open` prop on toggle
 
 - **Where:** `packages/blocks/src/lib/primitives/Collapsible/Collapsible.svelte`
@@ -325,6 +339,20 @@ internal TODO instead. Sections are ordered roughly by urgency.
   vs. dropping the operators for non-numeric date columns. Touches filter
   semantics consumers may depend on.
 - **Found:** 2026-07-13, table docs API catch-up.
+
+### `CalendarWeekdayHeader` keys `{#each}` on weekday names — duplicate short names crash dev renders
+
+- **Where:** `packages/blocks/src/lib/components/Calendar/CalendarWeekdayHeader.svelte`
+  (`{#each … as day (day)}` over locale *short* weekday names).
+- **What:** Same class as the CalendarMiniMonth crash fixed in `05d0e7c` (its
+  header keyed on *narrow* names, which duplicate in de-DE as M,D,M,D,F,S,S →
+  `each_key_duplicate` on every dev-mode client render). Short names are
+  unique in de-DE/en-US, but locales with duplicate short forms would hit the
+  identical crash here.
+- **Why deferred:** One-line fix (`(`${i}-${day}`)`) but it was outside the
+  fix-pass scope and wants a quick sweep for any other name-keyed weekday
+  `{#each}` in the date surfaces, plus a locale-parameterized test.
+- **Found:** 2026-07-13, components deep-review fix pass (test fallout).
 
 ### date-grid: `navigate()` range-case + range-view swipe don't clamp to `minDate`/`maxDate`
 
@@ -743,45 +771,6 @@ internal TODO instead. Sections are ordered roughly by urgency.
   decision spanning all three specs, not a change to the suite in flight.
 - **Found:** 2026-07-08, adding the primitive visual-regression suite.
 
-### No standing e2e guard for Dialog/Drawer modal promotion
-
-- **Where:** `e2e/` (no dialog/drawer spec) and
-  `apps/docs/src/routes/test-fixtures/` (no dialog/drawer fixture).
-- **What:** The Dialog/Drawer `showModal()` ref-bind bug (fixed 2026-07-07 —
-  `showDialogModal` ran in the same effect tick that set `isVisible`, before
-  `bind:this` assigned the dialog element, so it captured `undefined` by value
-  and silently no-op'd; the overlays never actually entered the top layer, so
-  there was no initial panel focus and `:modal` never matched → nested overlays
-  hit the iOS #23 path). It is now covered at the unit level
-  (`Dialog.svelte.test.ts` asserts `dialog.open` via the jsdom `showModal` stub)
-  and was verified once in Chromium (`:modal` + focus moved into the panel), but
-  jsdom cannot assert `:modal` / top-layer, so there is no *standing* browser
-  regression guard.
-- **Why deferred:** A robust guard wants a dedicated `test-fixtures/dialog` (+
-  `-drawer`) route and spec (à la `floating.spec.ts`), not a brittle assertion
-  against the docs playground page (which also needs an SSR→hydration retry).
-  That is its own small package — fixture route, docs-app rebuild, spec.
-- **Found:** 2026-07-07, while adding the jsdom interaction tests for
-  Select/Menu/Dialog; the test-quality review surfaced the latent showModal bug.
-
-### No e2e guard for NumberInput stepper clickability (jsdom can't see pointer-events)
-
-- **Where:** `e2e/` (no NumberInput fixture/spec);
-  `packages/blocks/src/lib/components/NumberInput/NumberInput.svelte.test.ts`
-  asserts the `pointer-events-auto` class only.
-- **What:** NumberInput renders its stepper as a right-side snippet inside
-  Input's `pointer-events-none` decoration container, so the buttons need
-  `pointer-events-auto` to be clickable (fixed 2026-07-10 — they were dead to
-  mouse in a real browser while the jsdom test stayed green, because jsdom
-  ignores `pointer-events`). The unit test now guards the class, but real
-  clickability can only be verified in a browser.
-- **Why deferred:** A true guard wants a `test-fixtures/number-input` route +
-  Playwright spec that clicks the stepper and asserts the value changed — the
-  same fixture-route pattern as the deferred Dialog/Drawer e2e guard above, best
-  done in one e2e-fixtures pass.
-- **Found:** 2026-07-10, blocks feature-request review (NI-1); the stepper-click
-  bug was caught by the code review, not the passing unit test.
-
 ### `DatePicker` / `DateRangePicker`: two shared commit-path branches untested in both pickers
 
 - **Where:** `packages/blocks/src/lib/components/DatePicker/DatePicker.svelte` +
@@ -851,23 +840,6 @@ internal TODO instead. Sections are ordered roughly by urgency.
   registered loaders).
 - **Found:** 2026-06-15, WP4 review.
 
-### VR suite tolerates token-level total failures — 1% diff threshold masked the shadow outage
-
-- **Where:** `playwright.config.ts` (`maxDiffPixelRatio: 0.01`) +
-  `e2e/visual-regression.spec.ts`.
-- **What:** The broken `--color-shadow-*` tokens (fixed 2026-07-13) meant the
-  library rendered zero shadows, yet all VR runs passed: subtle shadows stay
-  under the 1% pixel threshold, and the baselines had been captured *with* the
-  bug. A whole token family can silently die without the suite noticing. The
-  editorial→rooms rename also went unnoticed because missing baselines only
-  "fail" on first local run (no CI gate — see the chromium-darwin entry above).
-- **Why deferred:** Wants a deliberate guard design, not a threshold tweak: a
-  cheap e2e smoke test asserting `getComputedStyle(...).boxShadow !== 'none'`
-  (and siblings for other var()-consumed token families) would catch
-  invalid-at-computed-value regressions structurally; tightening the pixel
-  threshold instead would make the suite flaky.
-- **Found:** 2026-07-13, while verifying the shadow-token fix.
-
 ### prettier-plugin-svelte corrupts single-quoted attributes containing double quotes
 
 - **Where:** docs-app `.svelte` sources run through Prettier (lefthook
@@ -891,10 +863,20 @@ internal TODO instead. Sections are ordered roughly by urgency.
   (empty code panel). Currently latent — existing pages only have such
   literals at file end; the button-group rework placed its preset example
   defensively last for this reason.
-- **Why deferred:** Proper fix is a bracket-aware scan (or extraction via the
-  Svelte parser) plus a fail-loud warning when extraction finds no code —
-  worth doing together with a small regression fixture.
-- **Found:** 2026-07-13, button-group docs rework.
+- **Second facet (2026-07-13, guide-demos pass):** a self-closing
+  `<CodeExample code={…} />` has no `</CodeExample>`, so the non-greedy match
+  runs to the *next* example's closing tag and eats it — that example loses
+  its auto-extraction and renders the fallback InfoCard. This one was **live**,
+  not latent: the guide page's waiting-hint demo was silently broken until
+  `ac4b4e3` gave the setup example an explicit closing tag (workaround
+  documented inline). Other pages pairing a self-closing code example with a
+  following `isolate` example may be silently affected — worth a sweep when
+  fixing.
+- **Why deferred:** Proper fix is a quote-/self-closing-aware bracket scan (or
+  extraction via the Svelte parser) plus a fail-loud warning when extraction
+  finds no code — worth doing together with a small regression fixture.
+- **Found:** 2026-07-13, button-group docs rework; second facet same day,
+  guide narrative-demos pass.
 
 ## Design tokens
 
