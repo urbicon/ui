@@ -8,7 +8,8 @@ export type SparklineSlotClasses = Partial<
 /**
  * @description Tiny inline trend line — no axes, no labels — sized to flow in
  * table cells, cards, or running text. Zero-dependency SVG, optional area fill
- * and end-point dot. Aria-hidden by default with an optional `ariaLabel`.
+ * and end-point dot. Fixed `width`/`height` by default, or set `fluid` to fill
+ * the container width. Aria-hidden by default with an optional `ariaLabel`.
  *
  * @tag display
  * @tag data
@@ -27,6 +28,13 @@ export interface SparklineProps extends Omit<HTMLAttributes<HTMLElement>, 'child
   width?: number;
   /** Height in px. @default 24 */
   height?: number;
+  /**
+   * Fill the container width instead of a fixed pixel size. Drops the svg's
+   * `width`/`height` attributes (they still set the `viewBox` aspect ratio) so
+   * it scales to its container; strokes stay crisp via
+   * `vector-effect="non-scaling-stroke"`. @default false
+   */
+  fluid?: boolean;
   /** Fill the area under the line. @default false */
   area?: boolean;
   /** Mark the last point with a dot. @default false */

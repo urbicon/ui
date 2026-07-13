@@ -7,6 +7,7 @@
     data,
     width = 96,
     height = 24,
+    fluid = false,
     area = false,
     showEndPoint = false,
     color = 'var(--color-chart-1)',
@@ -40,15 +41,19 @@
 
 <span
   {...rest}
-  class={[!unstyled && 'inline-block align-middle', slot('root'), className]}
+  class={[
+    !unstyled && (fluid ? 'block w-full' : 'inline-block align-middle'),
+    slot('root'),
+    className
+  ]}
   role={ariaLabel ? 'img' : undefined}
   aria-label={ariaLabel}
   aria-hidden={ariaLabel ? undefined : 'true'}
 >
   <svg
-    class={slot('svg')}
-    {width}
-    {height}
+    class={[fluid && 'w-full h-auto', slot('svg')]}
+    width={fluid ? undefined : width}
+    height={fluid ? undefined : height}
     viewBox="0 0 {width} {height}"
     preserveAspectRatio="none"
   >
@@ -70,6 +75,7 @@
         stroke-width={strokeWidth}
         stroke-linejoin="round"
         stroke-linecap="round"
+        vector-effect={fluid ? 'non-scaling-stroke' : undefined}
       />
     {/if}
     {#if showEndPoint && geometry.last}
