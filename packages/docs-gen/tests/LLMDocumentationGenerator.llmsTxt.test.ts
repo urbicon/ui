@@ -130,9 +130,15 @@ describe('LLMDocumentationGenerator — group-aware llms.txt index links', () =>
     expect(hrefs).toHaveLength(entries.length);
 
     for (const href of hrefs) {
-      // Resolve the link relative to the scope dir it lives in; fs.access throws
-      // (rejecting the assertion) if the target file does not exist.
-      await expect(fs.access(path.resolve(scopeDir, href))).resolves.toBeUndefined();
+      // Resolve the link relative to the scope dir it lives in; fs.access rejects
+      // if the target file does not exist. Assert on existence rather than the
+      // resolved value — Node resolves `access` to `undefined`, Bun to `null`, and
+      // this suite runs under `bun --bun`.
+      const exists = await fs.access(path.resolve(scopeDir, href)).then(
+        () => true,
+        () => false
+      );
+      expect(exists, `index link 404s (no file on disk): ${href}`).toBe(true);
     }
   });
 });
