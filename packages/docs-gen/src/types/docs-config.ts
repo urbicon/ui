@@ -10,13 +10,7 @@ export const DEFAULT_SVELTE_DOCS_CONFIG: SvelteDocsConfig = {
     playground: { featured: [], exclude: [], defaults: {}, enabled: true, order: 2 },
     variants: { exclude: [], groupBy: 'variant', limit: 20, enabled: false, order: 4 },
     examples: false,
-    api: {
-      showInheritance: true,
-      groupBy: 'category',
-      showDeprecated: true,
-      enabled: true,
-      order: 9
-    },
+    api: { showInheritance: true, showDeprecated: true, enabled: true, order: 9 },
     overview: { enabled: false }
   },
   llm: {

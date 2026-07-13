@@ -15,7 +15,7 @@
       playground: { enabled: true, order: 1 },
       variants: { enabled: false },
       examples: false,
-      api: { showInheritance: true, groupBy: 'category', enabled: true, order: 14 },
+      api: { showInheritance: true, enabled: true, order: 14 },
       usage: false
     },
     llm: { include: true },

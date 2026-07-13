@@ -133,7 +133,6 @@ export interface KnownTypeConfig {
   name: string;
   package: string;
   url?: string;
-  category?: string;
 }
 
 export interface MetadataEnrichmentConfig {

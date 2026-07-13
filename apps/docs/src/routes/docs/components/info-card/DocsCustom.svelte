@@ -8,7 +8,7 @@
       playground: { enabled: false },
       variants: { enabled: true, order: 3 },
       examples: false,
-      api: { enabled: true, order: 9, groupBy: 'category', showInheritance: true },
+      api: { enabled: true, order: 9, showInheritance: true },
       usage: false
     },
     llm: { include: true, maxSections: 5, priority: ['overview', 'variants', 'api'] },

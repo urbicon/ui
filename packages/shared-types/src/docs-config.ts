@@ -87,8 +87,6 @@ export interface ExamplesConfig {
 export interface ApiConfig {
   /** Show inherited properties */
   showInheritance?: boolean;
-  /** Group properties by category */
-  groupBy?: 'type' | 'category' | 'alphabetical';
   /** Show deprecated properties */
   showDeprecated?: boolean;
   /** Enable/disable API section */

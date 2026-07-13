@@ -9,7 +9,7 @@
       playground: { enabled: false },
       variants: { enabled: false },
       examples: false,
-      api: { showInheritance: true, groupBy: 'category', enabled: true, order: 5 },
+      api: { showInheritance: true, enabled: true, order: 5 },
       usage: false
     },
     llm: {
