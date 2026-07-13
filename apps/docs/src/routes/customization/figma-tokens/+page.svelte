@@ -2,7 +2,8 @@
   import SeoMeta from '$lib/SeoMeta.svelte';
   import { resolve } from '$app/paths';
   import { Card, Badge, Button, Separator } from '@urbicon-ui/blocks';
-  import { generateFigmaTokensJSON } from '@urbicon-ui/blocks';
+  import { generateFigmaTokens, generateFigmaTokensJSON } from '@urbicon-ui/blocks';
+  import type { FigmaToken, FigmaTokenGroup } from '@urbicon-ui/blocks';
   import { DocsLayout as DocsPageLayout } from '@urbicon-ui/docs';
 
   let copied = $state(false);
@@ -29,16 +30,25 @@
     URL.revokeObjectURL(url);
   }
 
-  const stats = {
-    colors: 6,
-    shades: 67,
-    semantic: 14,
-    spacing: 11,
-    radii: 6,
-    shadows: 5,
-    get total() {
-      return this.shades + this.semantic + this.spacing + this.radii + this.shadows;
+  // Stats are derived from the actual export so they can never drift from it.
+  const tokens = generateFigmaTokens();
+
+  function countLeaves(group: FigmaTokenGroup): number {
+    let count = 0;
+    for (const node of Object.values(group)) {
+      if (typeof (node as FigmaToken).value === 'string') count += 1;
+      else count += countLeaves(node as FigmaTokenGroup);
     }
+    return count;
+  }
+
+  const stats = {
+    colors: Object.keys(tokens.color as FigmaTokenGroup).length,
+    shades: countLeaves(tokens.color as FigmaTokenGroup),
+    semantic: countLeaves(tokens.semantic as FigmaTokenGroup),
+    spacing: countLeaves(tokens.spacing as FigmaTokenGroup),
+    radii: countLeaves(tokens.borderRadius as FigmaTokenGroup),
+    shadows: countLeaves(tokens.shadow as FigmaTokenGroup)
   };
 </script>
 
@@ -49,7 +59,7 @@
 
 <DocsPageLayout
   title="Figma Token Export"
-  description="Export the entire Urbicon UI design token system as Figma-compatible JSON. Works with the Tokens Studio for Figma plugin."
+  description="Export the Urbicon UI design tokens — foundation palettes, semantic surface/text/border roles (light-mode values), spacing, radii, and shadows — as Figma-compatible JSON. Works with the Tokens Studio for Figma plugin."
   maxWidth="2xl"
   breadcrumbs={[
     { label: 'Customization', href: resolve('/customization') },
@@ -175,7 +185,7 @@
 
       <h2 class="text-text-primary mb-4 text-lg font-semibold">Token Categories</h2>
       <div class="space-y-2">
-        {#each [{ name: 'color', desc: 'Foundation OKLCH palettes (6 scales)' }, { name: 'semantic', desc: 'Surface, text, and border tokens' }, { name: 'spacing', desc: 'Spacing scale (0–64px)' }, { name: 'borderRadius', desc: 'Radius tokens (none–full)' }, { name: 'shadow', desc: 'Box shadow tokens (xs–lg)' }] as cat (cat.name)}
+        {#each [{ name: 'color', desc: `Foundation OKLCH palettes (${stats.colors} scales)` }, { name: 'semantic', desc: 'Surface, text, and border roles (light-mode values)' }, { name: 'spacing', desc: 'Spacing scale (0–64px)' }, { name: 'borderRadius', desc: 'Radius tokens (xs–4xl + semantic tiers)' }, { name: 'shadow', desc: 'Box shadow tokens (xs–lg)' }] as cat (cat.name)}
           <div class="flex items-center gap-2 text-sm">
             <Badge variant="outlined" intent="neutral" size="sm" class="font-mono">{cat.name}</Badge
             >
