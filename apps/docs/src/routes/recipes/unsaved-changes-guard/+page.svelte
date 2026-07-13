@@ -257,7 +257,7 @@ export function useUnsavedGuard(opts: UnsavedGuardOptions): void {
     <Card variant="outlined">
       <div class="divide-border-subtle divide-y">
         <div class="px-4 py-3">
-          <h4 class="text-text-primary text-sm font-semibold">Three actions instead of two</h4>
+          <p class="text-text-primary text-sm font-semibold">Three actions instead of two</p>
           <p class="text-text-secondary mt-1 text-sm">
             <strong>Save and leave</strong>, <strong>Discard</strong>,
             <strong>Cancel</strong> — the common mistake is leaving out "Discard". That forces the user
@@ -265,7 +265,7 @@ export function useUnsavedGuard(opts: UnsavedGuardOptions): void {
           </p>
         </div>
         <div class="px-4 py-3">
-          <h4 class="text-text-primary text-sm font-semibold">dirty flag from a real diff</h4>
+          <p class="text-text-primary text-sm font-semibold">dirty flag from a real diff</p>
           <p class="text-text-secondary mt-1 text-sm">
             <code class="text-text-primary">dirty</code> should come from a comparison against the
             original state, not from a manual flag. Otherwise you risk false positives (the user
@@ -274,9 +274,7 @@ export function useUnsavedGuard(opts: UnsavedGuardOptions): void {
           </p>
         </div>
         <div class="px-4 py-3">
-          <h4 class="text-text-primary text-sm font-semibold">
-            Don't overload browser beforeunload
-          </h4>
+          <p class="text-text-primary text-sm font-semibold">Don't overload browser beforeunload</p>
           <p class="text-text-secondary mt-1 text-sm">
             Modern browsers no longer show app-specific text for
             <code class="text-text-primary">beforeunload</code> — just a generic "Do you really want
@@ -286,7 +284,7 @@ export function useUnsavedGuard(opts: UnsavedGuardOptions): void {
           </p>
         </div>
         <div class="px-4 py-3">
-          <h4 class="text-text-primary text-sm font-semibold">Auto-save as an alternative</h4>
+          <p class="text-text-primary text-sm font-semibold">Auto-save as an alternative</p>
           <p class="text-text-secondary mt-1 text-sm">
             If the schema allows auto-save (settings, profile, notes), it spares you the whole
             guard. The guard is needed when saving is explicit (wizard with submit, form with
@@ -295,12 +293,12 @@ export function useUnsavedGuard(opts: UnsavedGuardOptions): void {
           </p>
         </div>
         <div class="px-4 py-3">
-          <h4 class="text-text-primary text-sm font-semibold">
+          <p class="text-text-primary text-sm font-semibold">
             Why a recipe instead of a component?
-          </h4>
+          </p>
           <p class="text-text-secondary mt-1 text-sm">
             The guard is app state, not a UI pattern: dirty tracking, save action, discard action,
-            and the beforeNavigate integration are all app-specific. A UIB component
+            and the beforeNavigate integration are all app-specific. A library component
             <code class="text-text-primary">&lt;UnsavedChangesGuard&gt;</code> would only offer convenience
             for 5 lines of setup — at noticeably more coupling. Recipe + use hook is the clean separation.
           </p>

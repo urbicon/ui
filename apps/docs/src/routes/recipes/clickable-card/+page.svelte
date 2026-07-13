@@ -42,9 +42,9 @@
   <Section id="preview" title="Live Preview">
     <div class="space-y-8">
       <div>
-        <h3 class="text-text-primary mb-3 text-sm font-semibold">
+        <p class="text-text-primary mb-3 text-sm font-semibold">
           Dashboard tile with navigation (<code class="text-text-tertiary text-xs">href</code>)
-        </h3>
+        </p>
         <div class="grid gap-4 sm:grid-cols-2">
           <Card variant="outlined" padding="md" href="#revenue" mint="lift">
             <div class="flex items-start justify-between">
@@ -70,9 +70,9 @@
       </div>
 
       <div>
-        <h3 class="text-text-primary mb-3 text-sm font-semibold">
+        <p class="text-text-primary mb-3 text-sm font-semibold">
           List card with action (<code class="text-text-tertiary text-xs">onclick</code>)
-        </h3>
+        </p>
         <div class="space-y-2">
           {#each users as user (user.id)}
             <Card variant="outlined" padding="sm" onclick={() => (lastClickedUser = user.name)}>
@@ -95,9 +95,9 @@
       </div>
 
       <div>
-        <h3 class="text-text-primary mb-3 text-sm font-semibold">
+        <p class="text-text-primary mb-3 text-sm font-semibold">
           Navigation tile with icon (<code class="text-text-tertiary text-xs">href</code> + icon)
-        </h3>
+        </p>
         <div class="grid gap-3 sm:grid-cols-3">
           <Card variant="elevated" padding="md" href="#tenants">
             <div class="flex flex-col items-start gap-3">
@@ -253,9 +253,9 @@
     <Card variant="outlined">
       <div class="divide-border-subtle divide-y">
         <div class="px-4 py-3">
-          <h4 class="text-text-primary text-sm font-semibold">
+          <p class="text-text-primary text-sm font-semibold">
             href for navigation, onclick for actions
-          </h4>
+          </p>
           <p class="text-text-secondary mt-1 text-sm">
             Routes, detail pages → <code class="text-text-primary">href</code>. Opening a modal,
             changing a selection, server actions → <code class="text-text-primary">onclick</code>.
@@ -263,9 +263,9 @@
           </p>
         </div>
         <div class="px-4 py-3">
-          <h4 class="text-text-primary text-sm font-semibold">
+          <p class="text-text-primary text-sm font-semibold">
             Inner buttons: <code class="text-text-primary">stopPropagation</code>
-          </h4>
+          </p>
           <p class="text-text-secondary mt-1 text-sm">
             If the card contains a secondary button (e.g. "Favorite"), end the button's
             <code class="text-text-primary">onclick</code>
@@ -274,9 +274,9 @@
           </p>
         </div>
         <div class="px-4 py-3">
-          <h4 class="text-text-primary text-sm font-semibold">
+          <p class="text-text-primary text-sm font-semibold">
             mint="lift" for a gentle hover animation
-          </h4>
+          </p>
           <p class="text-text-secondary mt-1 text-sm">
             <code class="text-text-primary">mint="lift"</code> lifts the card slightly on hover;
             <code class="text-text-primary">mint="glow"</code> adds a subtle glow.
@@ -284,9 +284,9 @@
           </p>
         </div>
         <div class="px-4 py-3">
-          <h4 class="text-text-primary text-sm font-semibold">
+          <p class="text-text-primary text-sm font-semibold">
             <code class="text-text-primary">clickable</code> for delegated click handlers
-          </h4>
+          </p>
           <p class="text-text-secondary mt-1 text-sm">
             When click behavior is handled by a wrapper component and the card should render as a
             real button without carrying an
@@ -299,7 +299,7 @@
           </p>
         </div>
         <div class="px-4 py-3">
-          <h4 class="text-text-primary text-sm font-semibold">No "decorative hover"</h4>
+          <p class="text-text-primary text-sm font-semibold">No "decorative hover"</p>
           <p class="text-text-secondary mt-1 text-sm">
             Card deliberately has no mode with hover styles but no click source. A pointer cursor
             plus a lift animation on a passive element violates WCAG 3.2 Predictable. If the card

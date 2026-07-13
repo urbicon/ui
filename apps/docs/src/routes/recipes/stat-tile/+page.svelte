@@ -93,7 +93,7 @@
   <Section id="preview" title="Live Preview">
     <div class="space-y-8">
       <div>
-        <h3 class="text-text-primary mb-3 text-sm font-semibold">4-up grid (dashboard standard)</h3>
+        <p class="text-text-primary mb-3 text-sm font-semibold">4-up grid (dashboard standard)</p>
         <div class="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
           {#each stats as stat (stat.label)}
             {@const TrendIcon = stat.trend?.direction === 'up' ? ArrowUpIcon : ArrowDownIcon}
@@ -145,9 +145,7 @@
       </div>
 
       <div>
-        <h3 class="text-text-primary mb-3 text-sm font-semibold">
-          Compact (for sidebars / footers)
-        </h3>
+        <p class="text-text-primary mb-3 text-sm font-semibold">Compact (for sidebars / footers)</p>
         <div class="border-border-subtle flex flex-wrap gap-6 rounded-lg border p-4">
           <div>
             <p class="text-text-tertiary text-xs">Tenants</p>
@@ -165,7 +163,7 @@
       </div>
 
       <div>
-        <h3 class="text-text-primary mb-3 text-sm font-semibold">Highlight tile (hero KPI)</h3>
+        <p class="text-text-primary mb-3 text-sm font-semibold">Highlight tile (hero KPI)</p>
         <Card variant="elevated" padding="lg">
           <div class="flex items-center gap-5">
             <span
@@ -201,7 +199,7 @@
       language="svelte"
       code={`<script lang="ts">
   import { Card } from '@urbicon-ui/blocks';
-  import type { Component, Snippet } from 'svelte';
+  import type { Component } from 'svelte';
 
   type Intent = 'primary' | 'success' | 'warning' | 'danger' | 'neutral';
 
@@ -260,14 +258,14 @@
     <Card variant="outlined">
       <div class="divide-border-subtle divide-y">
         <div class="px-4 py-3">
-          <h4 class="text-text-primary text-sm font-semibold">tabular-nums for number alignment</h4>
+          <p class="text-text-primary text-sm font-semibold">tabular-nums for number alignment</p>
           <p class="text-text-secondary mt-1 text-sm">
             <code class="text-text-primary">tabular-nums</code> renders digits at equal width — important
             when tiles sit in a grid and values should align visually.
           </p>
         </div>
         <div class="px-4 py-3">
-          <h4 class="text-text-primary text-sm font-semibold">Icon tile as a secondary element</h4>
+          <p class="text-text-primary text-sm font-semibold">Icon tile as a secondary element</p>
           <p class="text-text-secondary mt-1 text-sm">
             The icon is visual labeling, not content. Hence placed on the right, smaller than the
             value. The intent's subtle background sets it apart visually without dominating the
@@ -275,16 +273,16 @@
           </p>
         </div>
         <div class="px-4 py-3">
-          <h4 class="text-text-primary text-sm font-semibold">
+          <p class="text-text-primary text-sm font-semibold">
             Trend always with a comparison period
-          </h4>
+          </p>
           <p class="text-text-secondary mt-1 text-sm">
             "+12.4%" without context says nothing. The description line should make clear what is
             being compared ("vs. last month", "vs. last year") — otherwise leave it out.
           </p>
         </div>
         <div class="px-4 py-3">
-          <h4 class="text-text-primary text-sm font-semibold">href for drill-down</h4>
+          <p class="text-text-primary text-sm font-semibold">href for drill-down</p>
           <p class="text-text-secondary mt-1 text-sm">
             Stat tiles are a classic entry point into detail views. Set
             <code class="text-text-primary">href</code> so Card renders as an <code>&lt;a&gt;</code>

@@ -117,7 +117,7 @@
         </div>
 
         <div>
-          <h4 class="text-text-primary mb-3 text-sm font-semibold">Table header</h4>
+          <p class="text-text-primary mb-3 text-sm font-semibold">Table header</p>
           <table class="text-text-primary w-full text-left text-sm">
             <thead class="border-border-subtle border-b">
               <tr>
@@ -243,7 +243,7 @@ export type GlossaryKey = keyof typeof glossary;`}
     <Card variant="outlined">
       <div class="divide-border-subtle divide-y">
         <div class="px-4 py-3">
-          <h4 class="text-text-primary text-sm font-semibold">Keep the glossary central</h4>
+          <p class="text-text-primary text-sm font-semibold">Keep the glossary central</p>
           <p class="text-text-secondary mt-1 text-sm">
             A <code class="text-text-primary">glossary.ts</code> map with term + text as the single source
             of truth. With i18n: one map per locale. That keeps the wording consistent across form labels,
@@ -251,7 +251,7 @@ export type GlossaryKey = keyof typeof glossary;`}
           </p>
         </div>
         <div class="px-4 py-3">
-          <h4 class="text-text-primary text-sm font-semibold">Don't forget the aria-label</h4>
+          <p class="text-text-primary text-sm font-semibold">Don't forget the aria-label</p>
           <p class="text-text-secondary mt-1 text-sm">
             The trigger is an icon-only button — screen readers need the term in the
             <code class="text-text-primary">aria-label</code> ("Explanation: HeizKV § 7"). Otherwise the
@@ -259,7 +259,7 @@ export type GlossaryKey = keyof typeof glossary;`}
           </p>
         </div>
         <div class="px-4 py-3">
-          <h4 class="text-text-primary text-sm font-semibold">Intent for risk hints</h4>
+          <p class="text-text-primary text-sm font-semibold">Intent for risk hints</p>
           <p class="text-text-secondary mt-1 text-sm">
             For legally or safety-relevant explanations (<code class="text-text-primary"
               >intent="warning"</code
@@ -270,7 +270,7 @@ export type GlossaryKey = keyof typeof glossary;`}
           </p>
         </div>
         <div class="px-4 py-3">
-          <h4 class="text-text-primary text-sm font-semibold">Inline variant for running text</h4>
+          <p class="text-text-primary text-sm font-semibold">Inline variant for running text</p>
           <p class="text-text-secondary mt-1 text-sm">
             Instead of a separate icon button, the term itself can act as the tooltip trigger: a
             subtle <code class="text-text-primary">border-bottom dotted</code>
@@ -278,9 +278,9 @@ export type GlossaryKey = keyof typeof glossary;`}
           </p>
         </div>
         <div class="px-4 py-3">
-          <h4 class="text-text-primary text-sm font-semibold">
+          <p class="text-text-primary text-sm font-semibold">
             Don't misuse it for mandatory documentation
-          </h4>
+          </p>
           <p class="text-text-secondary mt-1 text-sm">
             Tooltips are not suited to compliance texts or legal notices — those must be permanently
             visible. HelpTooltip is only for supporting explanations the user could also do without.
