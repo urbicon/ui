@@ -284,6 +284,23 @@ internal TODO instead. Sections are ordered roughly by urgency.
 - **Found:** 2026-07-09 (original), re-verified + rescoped to table-only
   2026-07-10 after the engine fold landed.
 
+### Table date filters: `greaterThan`/`lessThan` are dead for string/Date values
+
+- **Where:** `packages/table/src/lib/stores/concerns/useFiltering.svelte.ts:55-58`
+  (compares via `Number(String(raw).toLowerCase())`) vs.
+  `features/SmartFilterBar/FilterMenu.svelte:49-52,301` (offers "after"/
+  "before" with a date input for `dataType: 'date'`).
+- **What:** For ISO strings (`'2021-03-15'`) or `Date` objects the `Number()`
+  coercion yields `NaN`, so the comparison is always false — the date
+  operators the UI actively offers only work when the accessor returns
+  numeric timestamps. The filtering docs (2026-07-13) deliberately describe
+  only the real `Number()` semantics and make no date claim.
+- **Why deferred:** Needs a design decision: date-aware parsing in the
+  comparator (what formats?) vs. documenting a timestamp-accessor requirement
+  vs. dropping the operators for non-numeric date columns. Touches filter
+  semantics consumers may depend on.
+- **Found:** 2026-07-13, table docs API catch-up.
+
 ### date-grid: `navigate()` range-case + range-view swipe don't clamp to `minDate`/`maxDate`
 
 - **Where:** `packages/blocks/src/lib/date/date-grid` — the `view === 'range'`
