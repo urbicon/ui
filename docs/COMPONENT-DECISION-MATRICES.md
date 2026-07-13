@@ -34,6 +34,7 @@ If you find yourself disabling Drawer's backdrop and Escape-key handling, you pr
 ### Code anchors
 
 - App-shell recipe: [/recipes/dashboard](../apps/docs/src/routes/recipes/dashboard/+page.svelte) — `SidebarLayout` with responsive sidebar and mobile hamburger.
+- Filter-panel recipe: [/recipes/filter-sidebar](../apps/docs/src/routes/recipes/filter-sidebar/+page.svelte) — `Sidebar` with `mode="responsive"`, persistent on desktop / overlay on mobile, live client-side filtering.
 - Detail drawer recipe: [/recipes/trace-drawer](../apps/docs/src/routes/recipes/trace-drawer/+page.svelte) — `Drawer` with recursive payload, `size="lg"` for deep content.
 - Custom-shell sidebar example: `apps/docs/src/routes/blocks/primitives/sidebar/Docs.svelte` — `Sidebar` primitive used standalone.
 

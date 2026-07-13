@@ -60,6 +60,15 @@
       difficulty: 'Intermediate'
     },
     {
+      title: 'Filter Sidebar',
+      description:
+        'Filterable results page with a filter panel that is persistent on desktop and a slide-in overlay on mobile — Sidebar mode="responsive" with live client-side filtering.',
+      href: '/recipes/filter-sidebar',
+      components: ['Sidebar', 'Checkbox', 'RadioGroup', 'Slider', 'Card'],
+      category: 'Layout',
+      difficulty: 'Intermediate'
+    },
+    {
       title: 'Settings Page',
       description: 'Tabbed settings page with profile editing, notifications, and security panels.',
       href: '/recipes/settings',
