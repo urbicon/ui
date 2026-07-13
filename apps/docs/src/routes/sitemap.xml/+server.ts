@@ -5,11 +5,10 @@ export const prerender = true;
 // Route list derived from the file system at build time: every +page.svelte is
 // a static route (no dynamic segments in this app). test-fixtures and the
 // scaffold template are internal; the redirect routes (/blocks/primitives,
-// /blocks/components) have no +page.svelte and therefore don't appear.
-// Imprint/privacy are noindex (mandatory legal pages only) and thus don't
-// belong in the sitemap. /semantic-radii is an internal, unlinked design
-// reference (noindex).
-const NOINDEX_ROUTES = new Set(['/imprint', '/privacy', '/semantic-radii']);
+// /blocks/components, /semantic-radii) have no +page.svelte and therefore
+// don't appear. Imprint/privacy are noindex (mandatory legal pages only) and
+// thus don't belong in the sitemap.
+const NOINDEX_ROUTES = new Set(['/imprint', '/privacy']);
 const pages = Object.keys(import.meta.glob('/src/routes/**/+page.svelte'))
   .map((path) => path.replace('/src/routes', '').replace(/\/\+page\.svelte$/, '') || '/')
   .filter((route) => !route.startsWith('/test-fixtures') && !route.includes('/_template'))

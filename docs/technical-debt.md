@@ -7,24 +7,22 @@ internal TODO instead. Sections are ordered roughly by urgency.
 
 ## Packaging / distribution
 
-### mcp-server bin is not runnable under node/npx
+### mcp-server npm tarball ships raw src (incl. tests) with no consumer
 
-- **Where:** `packages/mcp-server/package.json` (`bin` → `./src/index.ts`,
-  `build` script is a no-op echo) and `src/index.ts` (`#!/usr/bin/env node`
-  shebang, relative `.js` specifiers resolving to `.ts` files).
-- **What:** `npx @urbicon-ui/mcp-server` crashes — node cannot execute the
-  TypeScript entry nor resolve the `.js`→`.ts` specifiers. Even plain `bunx`
-  fails because it respects the node shebang.
-- **Why deferred — and de-escalated (Option B, 2026-07-10):** no consumer runs
-  this bin anymore. The local-install MCP path was removed from the public docs
-  (`/ai` now leads with `@urbicon-ui/design` + `urbicon init`; the CLI ships a
-  real node-runnable `dist/cli.js`), and the server's only intended deployment
-  is the hosted HTTP endpoint at launch — run in-repo under Bun. Resolve
-  together with that hosting decision: either ship a dist build then, or drop
-  the `bin` field entirely and commit to bun-on-own-infra.
-- **Found:** 2026-07-10, docs-launch triage quick-fix pass (§3 of
-  `docs/internal/DOCS-PAGE-TRIAGE-2026-07.md`); rescoped same day with the
-  Option-B de-advertising of the MCP.
+- **Where:** `packages/mcp-server/package.json` (no `files` field, no
+  `private`); `.github/workflows/release.yml` + `scripts/publish.sh` publish
+  every `packages/*` to npm.
+- **What:** Since the broken `bin` was dropped (`1a5f3ae`, 2026-07-13 — it
+  pointed at the raw TS entry and never ran under node or bunx), the published
+  artifact is raw `src/**` including `*.test.ts` and `src/eval/`, importable
+  only under Bun (declared via `engines.bun`). Harmless but useless: no
+  documented consumer path exists (Option B), and no other package depends on
+  it.
+- **Why deferred:** Launch-hygiene call for Felix alongside the hosting
+  decision: either `private: true` (hosted-endpoint-only) or a `files` field
+  that trims tests/eval from the tarball. Not urgent either way.
+- **Found:** 2026-07-13, resolving the P1 "mcp-server distribution" TODO
+  (supersedes the earlier "bin is not runnable under node/npx" entry).
 
 ## API design
 
@@ -204,6 +202,12 @@ internal TODO instead. Sections are ordered roughly by urgency.
   `initialSelectedIds`) — wants the same semantics discussion as the existing
   `initial*` props (interaction with `persistenceConfig`, precedence over a
   controlled prop) rather than an ad-hoc addition.
+- **Update 2026-07-13:** The new URL sync (`createTableQueryUrlSync`,
+  `4b202c7`) raises the stakes: a shared URL can seed page/group/search but
+  not sort/filters, and the table's first query emission then wipes those
+  params again (documented in the sveltekit-utils README). `initialSort` (+
+  ideally `initialFilters`) would close the gap with no URL-sync API change;
+  back/forward re-hydration also waits on this.
 - **Found:** 2026-07-09, building the landing-page table specimen.
 
 ### Table single-select: row click does not select — the checkbox is the only path
@@ -263,6 +267,27 @@ internal TODO instead. Sections are ordered roughly by urgency.
   `<thead>`), plus density-aware row heights — and wants a VR pass. Not a
   per-call-site patch.
 - **Found:** 2026-07-11, exercising the landing departures specimen (Felix).
+
+### Table live-update push methods are only reachable through a bridge component in a snippet
+
+- **Where:** `packages/table/src/lib` — `pushInsert`/`pushUpdate`/`pushDelete`
+  live on the table context (`getTableContext()`), which is only accessible
+  from *inside* the `<Table>` component tree.
+- **What:** A consumer wiring a WebSocket/SSE feed cannot reach the push
+  methods from the page that renders `<Table>` — there is no `bind:` target or
+  ready-callback exposing the context. The working pattern (used by the
+  live-updates docs page, 2026-07-13) is a bridge component mounted in the
+  `toolbar` snippet that captures `getTableContext()` and hands it upward.
+  Functional, but non-obvious DX for the feature's primary use case.
+- **Why deferred:** Wants an API decision — e.g. an `onReady(context)`
+  callback, an exported imperative handle, or documenting the bridge as the
+  blessed pattern — not a drive-by addition. Also interacts with what surface
+  of the context should be public.
+- **Update 2026-07-13, same pass:** `pushUpdate` on a still-pending inserted
+  row is dropped on apply (updates merge before inserts; DEV-only orphan
+  warn). Fix direction: merge updates into the pending-insert buffer. Assess
+  together with the API decision.
+- **Found:** 2026-07-13, building the live-updates docs demo.
 
 ### Table's `resolveSlotClass` concatenates past the tv() conflict fold — slotClasses can't beat base utilities
 
@@ -583,6 +608,30 @@ internal TODO instead. Sections are ordered roughly by urgency.
   `encoding.ts` (base64 ≠ base64url — a new helper is needed). The zero-dep
   maxim is **not** violated (Buffer is a runtime global, not a dependency).
 - **Found:** 2026-07-05, runtime-constraint documentation work.
+
+## Dead code / decorative config
+
+### Route-level `docsConfig` exports are decorative — nothing consumes them
+
+- **Where:** the `docsConfig` exports in all 59 route-level `Docs.svelte` /
+  `DocsCustom.svelte` files (apps/docs), plus the config surface behind them:
+  `ApiConfig.showInheritance`/`showDeprecated`, `VariantsConfig.groupBy` (and
+  its `'variant'` default), `CrossReferenceConfig.knownTypes` + the remaining
+  `KnownTypeConfig` interface, and the `DocumentationSection`/`SectionContent`
+  apparatus in `shared-types/documentation-core.ts` (incl. two
+  `groupByCategory` fields, zero consumers outside its own file).
+- **What:** docs-gen only parses `docsConfig` from package-internal
+  `docs.svelte` files (`SvelteDocsParser` via `loadDocsConfig`) — and none
+  exist. The route-level exports are never imported at build or runtime; the
+  config fields listed above are set but never read. The dead
+  `api.groupBy`/`KnownTypeConfig.category`/single-file-TS slice was removed
+  2026-07-13 (`8b522c5`); this entry is the remainder.
+- **Why deferred:** Removing the whole `docsConfig` surface is its own sweep
+  (59 files + shared-types + docs-gen types) and wants a deliberate check of
+  what the scaffold template should emit instead — not a drive-by after the
+  category cleanup already landed.
+- **Found:** 2026-07-13, while removing the dead prop-category scaffolding
+  (docs-gen cleanup agent).
 
 ## Testing / CI gates
 
