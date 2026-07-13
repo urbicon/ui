@@ -23,11 +23,13 @@ bun install
 
 Runtime dependencies: `@modelcontextprotocol/sdk`, `zod`.
 
-> **Bun is required.** `package.json#main` points at `./src/index.ts`
-> directly — there is no transpilation step. The server is intended to
-> be launched via `bun run` (see Quick Start). Tools like `npm i -g` or
-> Node-only setups will not work; use Bun or wire the entry through a
-> Bun wrapper script.
+> **Bun is required** (declared via `engines.bun`). `package.json#main`
+> points at `./src/index.ts` directly — there is no build or transpilation
+> step, and deliberately no `bin`: the server is launched via `bun run`
+> (see Quick Start), in-repo, with the hosted HTTP endpoint as the only
+> planned deployment. Node-only setups (`npm i -g`, `npx`) will not work.
+> If a local-install consumer path ever becomes supported, the launch
+> decision reintroduces a `dist` build plus a node-runnable `bin`.
 
 ## Quick Start
 
@@ -116,10 +118,12 @@ The full design-verb table (DESIGN-MCP-V2 §8) — client-agnostic workflows you
 | `audit`    | `brief?`                       | App-wide sweep: validate the tree, check pattern cohorts, report drift over time.          |
 | `migrate`  | `brief?`                       | Roll out a pattern/library change across every site, gated per file.                       |
 
-## CLI Options
+## Server Options
+
+The entry point is run via Bun (no installed binary):
 
 ```
-urbicon-mcp [--transport <stdio|http>] [--port <n>] [--content-dir <path>]
+bun run src/index.ts [--transport <stdio|http>] [--port <n>] [--content-dir <path>]
 ```
 
 | Flag            | Default       | Purpose                                                        |

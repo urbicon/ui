@@ -230,9 +230,6 @@
     "packages/mcp-server": {
       "name": "@urbicon-ui/mcp-server",
       "version": "6.21.3",
-      "bin": {
-        "urbicon-mcp": "./src/index.ts",
-      },
       "dependencies": {
         "@modelcontextprotocol/sdk": "^1.29.0",
         "@urbicon-ui/design-content": "workspace:*",

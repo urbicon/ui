@@ -17,10 +17,10 @@
     "ai"
   ],
   "type": "module",
-  "main": "./src/index.ts",
-  "bin": {
-    "urbicon-mcp": "./src/index.ts"
+  "engines": {
+    "bun": ">=1.0.0"
   },
+  "main": "./src/index.ts",
   "scripts": {
     "build": "echo 'no build needed — Bun runs TypeScript directly'",
     "dev": "bun run --watch src/index.ts",

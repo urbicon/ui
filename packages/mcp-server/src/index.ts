@@ -1,5 +1,3 @@
-#!/usr/bin/env node
-
 import { loadCatalog } from './data/catalog-loader.js';
 import { loadPatterns, loadPrinciples } from './data/design-system-loader.js';
 import { loadTemplateSections } from './data/template-loader.js';
