@@ -621,6 +621,10 @@
                         >
                         <span class="font-mono text-[11px] text-text-tertiary">12-week trend</span>
                       </div>
+                      <!-- `width` is only the viewBox coordinate space: the svg slot
+                           gets CSS w-full so the curve scales to the card (the bare
+                           `class` lands on the wrapper — a fixed 460px svg would
+                           overflow the ~330px mobile card). -->
                       <Sparkline
                         data={fares}
                         area
@@ -628,7 +632,8 @@
                         width={460}
                         height={44}
                         ariaLabel="Fare trend to {destinationLabel}, 12 weeks"
-                        class="mt-1 w-full"
+                        class="mt-1 block w-full"
+                        slotClasses={{ svg: 'w-full' }}
                       />
                     </div>
 
