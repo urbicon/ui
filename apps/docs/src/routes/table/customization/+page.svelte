@@ -57,8 +57,8 @@
   {columns}
   slotClasses={{
     container: 'my-custom-container',
-    row: 'hover:bg-blue-50',
-    headerRow: 'bg-blue-100',
+    row: 'hover:bg-primary-subtle',
+    headerRow: 'bg-surface-elevated',
     cell: 'px-6',
     filterBar: 'mb-6'
   }}
