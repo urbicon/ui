@@ -1,0 +1,35 @@
+<script lang="ts">
+  // Test-only composition harness for ButtonGroup. Child Buttons register
+  // through ButtonGroupContext, so a createRawSnippet of plain HTML can't
+  // drive the selection contract — the interaction test mounts this real
+  // composition instead (same pattern as Tab/__fixtures__/TabHarness.svelte).
+  // Lives under __fixtures__/ so it is excluded from the published package
+  // (package.json `files`) and never collected as a test file.
+  import Button from '../../Button/Button.svelte';
+  import type { ButtonGroupProps } from '../index';
+  import ButtonGroup from '../ButtonGroup.svelte';
+
+  type Item = { value: string; label: string; onclick?: (event: MouseEvent) => void };
+
+  let {
+    items = [
+      { value: 'list', label: 'List' },
+      { value: 'grid', label: 'Grid' },
+      { value: 'map', label: 'Map' }
+    ] as Item[],
+    value = $bindable(),
+    ...groupProps
+  }: Partial<ButtonGroupProps> & { items?: Item[] } = $props();
+</script>
+
+<ButtonGroup bind:value {...groupProps}>
+  {#each items as item (item.value)}
+    <Button value={item.value} onclick={item.onclick}>{item.label}</Button>
+  {/each}
+</ButtonGroup>
+
+<!-- Probe + external setter: assert bind:value round-trips without reaching into component internals. -->
+<span data-testid="value-probe">{JSON.stringify(value ?? null)}</span>
+<button type="button" data-testid="harness-set-grid" onclick={() => (value = 'grid')}>
+  set grid
+</button>

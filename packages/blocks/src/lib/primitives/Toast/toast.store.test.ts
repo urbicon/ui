@@ -141,3 +141,74 @@ describe('toaster store — actions, update & promise (TST-1)', () => {
     warn.mockRestore();
   });
 });
+
+// Auto-dismiss timer lifecycle, driven deterministically with fake timers.
+// (afterEach above restores real timers and clears the store.)
+describe('toaster store — auto-dismiss timers', () => {
+  it('auto-dismisses a toast exactly when its duration elapses', () => {
+    vi.useFakeTimers();
+    const id = toaster.add({ title: 'Bye', duration: 3000 });
+
+    vi.advanceTimersByTime(2999);
+    expect(byId(id)).toBeTruthy();
+    vi.advanceTimersByTime(1);
+    expect(byId(id)).toBeUndefined();
+  });
+
+  it('duration: 0 creates a persistent toast with no timer', () => {
+    vi.useFakeTimers();
+    const id = toaster.add({ title: 'Stay', duration: 0 });
+
+    vi.advanceTimersByTime(60_000);
+    expect(byId(id)).toBeTruthy();
+  });
+
+  it('update() restarts the auto-dismiss clock from the new duration', () => {
+    vi.useFakeTimers();
+    const id = toaster.add({ title: 'A', duration: 3000 });
+
+    vi.advanceTimersByTime(2000);
+    toaster.update(id, { title: 'A2', duration: 3000 });
+
+    // The original timer would have fired at t=3000 — the reset one at t=5000.
+    vi.advanceTimersByTime(2999);
+    expect(byId(id)).toBeTruthy();
+    vi.advanceTimersByTime(1);
+    expect(byId(id)).toBeUndefined();
+  });
+
+  it('update() to duration 0 cancels auto-dismiss entirely', () => {
+    vi.useFakeTimers();
+    const id = toaster.add({ title: 'A', duration: 3000 });
+
+    toaster.update(id, { duration: 0 });
+    vi.advanceTimersByTime(60_000);
+    expect(byId(id)).toBeTruthy();
+  });
+
+  it('manual dismiss clears the pending timer without disturbing others', () => {
+    vi.useFakeTimers();
+    const a = toaster.add({ title: 'A', duration: 3000 });
+    const b = toaster.add({ title: 'B', duration: 5000 });
+
+    toaster.dismiss(a);
+    expect(byId(a)).toBeUndefined();
+
+    // B's timer still fires on its own schedule; A's stale timer does nothing.
+    vi.advanceTimersByTime(4999);
+    expect(byId(b)).toBeTruthy();
+    vi.advanceTimersByTime(1);
+    expect(toaster.toasts).toHaveLength(0);
+  });
+
+  it('clear() removes every toast and cancels all timers', () => {
+    vi.useFakeTimers();
+    toaster.add({ title: 'A', duration: 3000 });
+    toaster.add({ title: 'B', duration: 0 });
+
+    toaster.clear();
+    expect(toaster.toasts).toHaveLength(0);
+    expect(() => vi.advanceTimersByTime(10_000)).not.toThrow();
+    expect(toaster.toasts).toHaveLength(0);
+  });
+});

@@ -3,6 +3,7 @@ import { screen } from '@testing-library/dom';
 import userEvent from '@testing-library/user-event';
 import { flushSync, mount, unmount } from 'svelte';
 import { afterEach, describe, expect, it, vi } from 'vitest';
+import type { ToastProps } from './index';
 import Toaster from './Toaster.svelte';
 import { toaster } from './toast.store.svelte';
 
@@ -21,8 +22,8 @@ afterEach(() => {
   document.body.replaceChildren();
 });
 
-function renderToaster() {
-  const instance = mount(Toaster, { target: document.body });
+function renderToaster(props: Partial<ToastProps> = {}) {
+  const instance = mount(Toaster, { target: document.body, props });
   dispose = () => unmount(instance);
   flushSync();
 }
@@ -61,5 +62,60 @@ describe('Toaster — action buttons', () => {
 
     expect(onRetry).toHaveBeenCalledOnce();
     expect(screen.getByText('Failed')).toBeTruthy();
+  });
+
+  it('cancel button fires its handler and dismisses by default', async () => {
+    const user = userEvent.setup();
+    const onLater = vi.fn();
+    renderToaster();
+
+    toaster.add({ title: 'Update available', cancel: { label: 'Later', onClick: onLater } });
+    flushSync();
+
+    await user.click(screen.getByRole('button', { name: 'Later' }));
+
+    expect(onLater).toHaveBeenCalledOnce();
+    expect(toaster.toasts).toHaveLength(0);
+  });
+});
+
+describe('Toaster — dismiss button & stacking', () => {
+  it('renders a localized dismiss button that removes the toast from the store', async () => {
+    const user = userEvent.setup();
+    renderToaster();
+
+    toaster.add({ title: 'Saved' });
+    flushSync();
+
+    await user.click(screen.getByRole('button', { name: 'Dismiss' }));
+    // Store is the source of truth; the DOM node lingers through the fly outro
+    // (jsdom never fires the WAAPI onfinish — see the action test above).
+    expect(toaster.toasts).toHaveLength(0);
+  });
+
+  it('omits the dismiss button when the toast is not dismissible', () => {
+    renderToaster();
+
+    toaster.add({ title: 'Locked', dismissible: false });
+    flushSync();
+
+    expect(screen.getByText('Locked')).toBeTruthy();
+    expect(screen.queryByRole('button', { name: 'Dismiss' })).toBeNull();
+  });
+
+  it('renders at most `max` toasts, hiding the oldest first', () => {
+    // Seed the store before mounting so the overflowed toast never renders —
+    // no outro-lingering DOM node to trip the count.
+    toaster.add({ title: 'first' });
+    toaster.add({ title: 'second' });
+    toaster.add({ title: 'third' });
+    renderToaster({ max: 2 });
+
+    expect(screen.getAllByRole('alert')).toHaveLength(2);
+    expect(screen.queryByText('first')).toBeNull();
+    expect(screen.getByText('second')).toBeTruthy();
+    expect(screen.getByText('third')).toBeTruthy();
+    // The hidden toast stays queued in the store (only rendering is capped).
+    expect(toaster.toasts).toHaveLength(3);
   });
 });

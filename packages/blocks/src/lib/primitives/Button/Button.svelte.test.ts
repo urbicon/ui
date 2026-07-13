@@ -1,0 +1,142 @@
+// @vitest-environment jsdom
+import { fireEvent, screen } from '@testing-library/dom';
+import userEvent from '@testing-library/user-event';
+import type { Snippet } from 'svelte';
+import { createRawSnippet, flushSync, mount, unmount } from 'svelte';
+import { afterEach, describe, expect, it, vi } from 'vitest';
+import Button from './Button.svelte';
+import type { ButtonProps } from './index';
+
+// Interaction layer for Button — the paths the variant tests deliberately can't
+// reach: the loading-state activation guard (loading suppresses onclick WITHOUT
+// hard-disabling the element, so it stays focusable and announces via
+// aria-busy), the spinner/content slot wiring per loadingPlacement, and the
+// pressed/active → aria-pressed reflection. Same stack as the Combobox pilot:
+// Svelte's own `mount`/`unmount`, @testing-library/dom + user-event, native
+// vitest matchers (no jest-dom). Selection behaviour inside a ButtonGroup is
+// covered by ButtonGroup.svelte.test.ts (context registration needs a harness).
+
+const label = (text = 'Save'): Snippet =>
+  createRawSnippet(() => ({ render: () => `<span>${text}</span>` }));
+
+let dispose: (() => void) | undefined;
+
+afterEach(() => {
+  dispose?.();
+  dispose = undefined;
+  document.body.replaceChildren();
+});
+
+function renderButton(props: Partial<ButtonProps> = {}) {
+  const instance = mount(Button, {
+    target: document.body,
+    props: { children: label(), ...props } as ButtonProps
+  });
+  dispose = () => unmount(instance);
+  flushSync();
+  return instance;
+}
+
+const button = () => screen.getByRole('button', { name: 'Save' });
+// The two structural child spans: [0] spinner slot, [1] content slot.
+const slots = () => {
+  const spans = button().querySelectorAll<HTMLSpanElement>(':scope > span');
+  return { spinner: spans[0], content: spans[1] };
+};
+
+describe('Button (component interaction)', () => {
+  it('fires onclick with the mouse event and defaults to type="button"', async () => {
+    const user = userEvent.setup();
+    const onclick = vi.fn();
+    renderButton({ onclick });
+
+    expect(button().getAttribute('type')).toBe('button');
+    await user.click(button());
+
+    expect(onclick).toHaveBeenCalledOnce();
+    expect(onclick).toHaveBeenCalledWith(expect.any(MouseEvent));
+  });
+
+  it('does not fire onclick when disabled', () => {
+    const onclick = vi.fn();
+    renderButton({ disabled: true, onclick });
+
+    const el = button();
+    expect(el.hasAttribute('disabled')).toBe(true);
+    expect(el.getAttribute('aria-disabled')).toBe('true');
+
+    // fireEvent bypasses the native disabled activation suppression, so this
+    // asserts the component-level guard in handleClick, not just the platform.
+    fireEvent.click(el);
+    expect(onclick).not.toHaveBeenCalled();
+  });
+
+  it('suppresses onclick while loading but keeps the button focusable (aria-busy, not disabled)', async () => {
+    const user = userEvent.setup();
+    const onclick = vi.fn();
+    renderButton({ loading: true, onclick });
+
+    const el = button();
+    // Loading is a soft lock: announced via aria-busy, NOT via the disabled
+    // attribute — the button must keep keyboard focus so focus doesn't drop to
+    // body mid-submit.
+    expect(el.getAttribute('aria-busy')).toBe('true');
+    expect(el.hasAttribute('disabled')).toBe(false);
+    el.focus();
+    expect(document.activeElement).toBe(el);
+
+    await user.click(el);
+    await user.keyboard('{Enter}');
+    expect(onclick).not.toHaveBeenCalled();
+  });
+
+  it('hides the spinner slot when idle', () => {
+    renderButton({});
+    const { spinner } = slots();
+    expect(spinner.className).toContain('hidden');
+    expect(spinner.getAttribute('aria-hidden')).toBe('true');
+    expect(button().getAttribute('aria-busy')).toBe('false');
+  });
+
+  it('overlays the spinner and hides the content while loading (loadingPlacement=overlay)', () => {
+    renderButton({ loading: true });
+    const { spinner, content } = slots();
+    expect(spinner.className).toContain('opacity-100');
+    expect(spinner.className).toContain('absolute');
+    expect(spinner.className).not.toContain('hidden');
+    expect(content.className).toContain('opacity-0');
+    // Content stays in the DOM (dimensions preserved) — only visually hidden.
+    expect(screen.getByText('Save')).toBeTruthy();
+  });
+
+  it('orders the spinner before/after the content for start/end placement', () => {
+    renderButton({ loading: true, loadingPlacement: 'start' });
+    expect(slots().spinner.className).toContain('order-first');
+    expect(slots().content.className).not.toContain('opacity-0');
+
+    dispose?.();
+    document.body.replaceChildren();
+    renderButton({ loading: true, loadingPlacement: 'end' });
+    expect(slots().spinner.className).toContain('order-last');
+  });
+
+  it('reflects pressed and active via aria-pressed, absent by default', () => {
+    renderButton({});
+    expect(button().hasAttribute('aria-pressed')).toBe(false);
+
+    dispose?.();
+    document.body.replaceChildren();
+    renderButton({ pressed: true });
+    expect(button().getAttribute('aria-pressed')).toBe('true');
+
+    dispose?.();
+    document.body.replaceChildren();
+    renderButton({ active: true });
+    expect(button().getAttribute('aria-pressed')).toBe('true');
+  });
+
+  it('exposes the underlying element via getElement()', () => {
+    const instance = renderButton({});
+    expect(instance.getElement()).toBe(button());
+  });
+});
