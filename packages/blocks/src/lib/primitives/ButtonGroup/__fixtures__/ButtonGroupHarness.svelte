@@ -9,7 +9,15 @@
   import type { ButtonGroupProps } from '../index';
   import ButtonGroup from '../ButtonGroup.svelte';
 
-  type Item = { value: string; label: string; onclick?: (event: MouseEvent) => void };
+  // `value` is optional so a test can mix a value-less action button (no
+  // selection role) into a selection group. Labels are unique per composition,
+  // so they key the loop (item.value may be undefined).
+  type Item = {
+    value?: string;
+    label: string;
+    onclick?: (event: MouseEvent) => void;
+    disabled?: boolean;
+  };
 
   let {
     items = [
@@ -23,8 +31,8 @@
 </script>
 
 <ButtonGroup bind:value {...groupProps}>
-  {#each items as item (item.value)}
-    <Button value={item.value} onclick={item.onclick}>{item.label}</Button>
+  {#each items as item (item.label)}
+    <Button value={item.value} disabled={item.disabled} onclick={item.onclick}>{item.label}</Button>
   {/each}
 </ButtonGroup>
 

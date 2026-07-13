@@ -185,3 +185,184 @@ describe('ButtonGroup (disabled / none)', () => {
     expect(onSelectionChange).not.toHaveBeenCalled();
   });
 });
+
+describe('ButtonGroup (single-select roving tabindex + keyboard nav)', () => {
+  // A `selection="single"` group is a WAI-ARIA radiogroup: ONE tab stop, arrow
+  // keys move + select (roving tabindex), Home/End jump to the ends, disabled
+  // radios are stepped over. fireEvent.keyDown + flushSync drive it
+  // deterministically (the container's keydown handler is synchronous; the
+  // tabindex + aria-checked updates settle on the flush).
+
+  it('exposes a single tab stop: the selected radio is tabbable, the rest leave the tab order', () => {
+    renderGroup({ selection: 'single', value: 'grid' });
+
+    expect(radio('List').tabIndex).toBe(-1);
+    expect(radio('Grid').tabIndex).toBe(0);
+    expect(radio('Map').tabIndex).toBe(-1);
+  });
+
+  it('parks the tab stop on the first enabled radio when nothing is selected yet', () => {
+    renderGroup({ selection: 'single' });
+
+    expect(radio('List').tabIndex).toBe(0);
+    expect(radio('Grid').tabIndex).toBe(-1);
+    expect(radio('Map').tabIndex).toBe(-1);
+  });
+
+  it('ArrowRight moves selection + focus to the next radio and rolls the tab stop with it', () => {
+    const onSelectionChange = vi.fn();
+    renderGroup({ selection: 'single', value: 'list', onSelectionChange });
+
+    radio('List').focus();
+    fireEvent.keyDown(radio('List'), { key: 'ArrowRight' });
+    flushSync();
+
+    expect(radio('Grid').getAttribute('aria-checked')).toBe('true');
+    expect(radio('List').getAttribute('aria-checked')).toBe('false');
+    expect(document.activeElement).toBe(radio('Grid'));
+    expect(radio('Grid').tabIndex).toBe(0);
+    expect(radio('List').tabIndex).toBe(-1);
+    expect(onSelectionChange).toHaveBeenLastCalledWith('grid', ['grid']);
+  });
+
+  it('ArrowLeft moves selection + focus to the previous radio', () => {
+    renderGroup({ selection: 'single', value: 'grid' });
+
+    radio('Grid').focus();
+    fireEvent.keyDown(radio('Grid'), { key: 'ArrowLeft' });
+    flushSync();
+
+    expect(radio('List').getAttribute('aria-checked')).toBe('true');
+    expect(document.activeElement).toBe(radio('List'));
+  });
+
+  it('navigates on both axes: ArrowDown/ArrowUp behave like Right/Left', () => {
+    renderGroup({ selection: 'single', value: 'list' });
+
+    radio('List').focus();
+    fireEvent.keyDown(radio('List'), { key: 'ArrowDown' });
+    flushSync();
+    expect(document.activeElement).toBe(radio('Grid'));
+    expect(radio('Grid').getAttribute('aria-checked')).toBe('true');
+
+    fireEvent.keyDown(radio('Grid'), { key: 'ArrowUp' });
+    flushSync();
+    expect(document.activeElement).toBe(radio('List'));
+    expect(radio('List').getAttribute('aria-checked')).toBe('true');
+  });
+
+  it('wraps around the ends', () => {
+    renderGroup({ selection: 'single', value: 'map' });
+
+    radio('Map').focus();
+    fireEvent.keyDown(radio('Map'), { key: 'ArrowRight' });
+    flushSync();
+
+    expect(document.activeElement).toBe(radio('List'));
+    expect(radio('List').getAttribute('aria-checked')).toBe('true');
+  });
+
+  it('SKIPS a disabled radio during arrow navigation', () => {
+    renderGroup({
+      selection: 'single',
+      value: 'list',
+      items: [
+        { value: 'list', label: 'List' },
+        { value: 'grid', label: 'Grid', disabled: true },
+        { value: 'map', label: 'Map' }
+      ]
+    });
+
+    expect(radio('Grid').hasAttribute('disabled')).toBe(true);
+
+    radio('List').focus();
+    fireEvent.keyDown(radio('List'), { key: 'ArrowRight' });
+    flushSync();
+
+    // Grid is stepped over → selection + focus land on Map, not the disabled Grid.
+    expect(radio('Grid').getAttribute('aria-checked')).toBe('false');
+    expect(radio('Map').getAttribute('aria-checked')).toBe('true');
+    expect(document.activeElement).toBe(radio('Map'));
+  });
+
+  it('ignores a value-less action button: no radio role, tab stop + roving stay index-aligned', () => {
+    // A value-less Button (an action, not an option) placed BEFORE the selected
+    // option must not enter the radio set — otherwise the roving index space
+    // (query of [role=radio]) drifts from the value registry and the tab stop /
+    // arrow origin land on the wrong button (and arrow-nav can deselect).
+    renderGroup({
+      selection: 'single',
+      value: 'grid',
+      items: [
+        { value: undefined, label: 'Refresh' },
+        { value: 'list', label: 'List' },
+        { value: 'grid', label: 'Grid' },
+        { value: 'map', label: 'Map' }
+      ]
+    });
+
+    // The action button is not a selection option → plain button, no radio role.
+    const action = screen.getByRole('button', { name: 'Refresh' });
+    expect(action.getAttribute('role')).toBeNull();
+    expect(screen.queryAllByRole('radio')).toHaveLength(3);
+
+    // The single tab stop rolls onto the SELECTED option, not the leading action.
+    expect(action.tabIndex).toBe(0); // native default, untouched by roving
+    expect(radio('Grid').tabIndex).toBe(0);
+    expect(radio('List').tabIndex).toBe(-1);
+    expect(radio('Map').tabIndex).toBe(-1);
+
+    // Arrow-nav computes from the correct origin (Grid) → advances to Map;
+    // it must NOT misfire onto/deselect Grid.
+    radio('Grid').focus();
+    fireEvent.keyDown(radio('Grid'), { key: 'ArrowRight' });
+    flushSync();
+
+    expect(document.activeElement).toBe(radio('Map'));
+    expect(radio('Map').getAttribute('aria-checked')).toBe('true');
+    expect(radio('Grid').getAttribute('aria-checked')).toBe('false');
+  });
+
+  it('Home / End jump to the first / last radio', () => {
+    renderGroup({ selection: 'single', value: 'grid' });
+
+    radio('Grid').focus();
+    fireEvent.keyDown(radio('Grid'), { key: 'Home' });
+    flushSync();
+    expect(document.activeElement).toBe(radio('List'));
+    expect(radio('List').getAttribute('aria-checked')).toBe('true');
+
+    fireEvent.keyDown(radio('List'), { key: 'End' });
+    flushSync();
+    expect(document.activeElement).toBe(radio('Map'));
+    expect(radio('Map').getAttribute('aria-checked')).toBe('true');
+  });
+
+  it('reflects the group orientation via aria-orientation on the radiogroup', () => {
+    renderGroup({ selection: 'single', ariaLabel: 'View', orientation: 'vertical' });
+
+    expect(screen.getByRole('radiogroup', { name: 'View' }).getAttribute('aria-orientation')).toBe(
+      'vertical'
+    );
+  });
+});
+
+describe('ButtonGroup (multiple-select keyboard)', () => {
+  it('stays per-item tabbable and does NOT rove — arrow keys are inert', () => {
+    const onSelectionChange = vi.fn();
+    renderGroup({ selection: 'multiple', value: ['list'], onSelectionChange });
+
+    // Checkbox-group convention: every button keeps its native tab stop (no -1).
+    expect(checkbox('List').tabIndex).toBe(0);
+    expect(checkbox('Grid').tabIndex).toBe(0);
+    expect(checkbox('Map').tabIndex).toBe(0);
+
+    checkbox('List').focus();
+    fireEvent.keyDown(checkbox('List'), { key: 'ArrowRight' });
+    flushSync();
+
+    // Roving is single-select only → focus + selection are untouched.
+    expect(document.activeElement).toBe(checkbox('List'));
+    expect(onSelectionChange).not.toHaveBeenCalled();
+  });
+});
