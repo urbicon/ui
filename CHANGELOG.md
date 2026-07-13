@@ -4,6 +4,32 @@ All notable changes to this project will be documented in this file.
 This changelog is automatically generated from [Conventional Commits](https://www.conventionalcommits.org).
 
 
+## [6.22.0] - 2026-07-13
+
+### Bug Fixes
+- **mcp-server**: Drop broken bin entry and declare the bun engine requirement
+- **table**: Make live-update and column-visibility sets actually reactive
+- **blocks**: Deliver consumer aria-describedby to the focusable element
+- **docs**: Stop playground anchor drift and wire control hints for AT
+- **blocks**: Calendar mini-month navigation, interactive-chart a11y, drag teardown
+
+### Documentation
+- **table**: Build out the live-updates page with a working demo
+- Log wave-1 debt findings, drop stale semantic-radii noindex entry
+- Update debt log after the wave-2 packages
+- **blocks**: Add narrative help-panel demos to the guide page
+- Reconcile debt log with the wave-3 results
+
+### Features
+- **sveltekit-utils**: Add opt-in TableQuery URL sync for server-mode tables
+- **blocks**: Give the checkbox a stroke draw-in and a real interaction layer
+
+### Refactoring
+- **docs-gen**: Remove the dead prop-category scaffolding
+
+### Testing
+- **e2e**: Add modal, number-input, table-core and token-smoke guards
+
 ## [6.21.3] - 2026-07-13
 
 ### Bug Fixes
