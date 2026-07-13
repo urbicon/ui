@@ -28,6 +28,7 @@
     unstyled: unstyledProp = false,
     slotClasses: slotClassesProp = {},
     preset,
+    oninput: userOnInput,
     ...restProps
   }: TextareaProps = $props();
 
@@ -103,6 +104,14 @@
     }
   });
 
+  function handleInput(event: Event & { currentTarget: EventTarget & HTMLTextAreaElement }) {
+    if (autoResize) adjustHeight();
+    // Forward the consumer's oninput — Textarea's own handler sits after
+    // `{...restProps}` on the element, so without this it would swallow it
+    // (same class as Input's onkeydown forward).
+    userOnInput?.(event);
+  }
+
   $effect(() => {
     if (textareaRef && mint && mint !== 'none' && !disabled) {
       return mintRegistry.apply(textareaRef, mint);
@@ -137,7 +146,7 @@
     {required}
     aria-invalid={ff.invalid ? 'true' : undefined}
     aria-describedby={ff.describedBy}
-    oninput={autoResize ? adjustHeight : undefined}></textarea>
+    oninput={handleInput}></textarea>
 
   {#if showFooter}
     <div
