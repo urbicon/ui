@@ -700,6 +700,24 @@ internal TODO instead. Sections are ordered roughly by urgency.
   cross-reference-link fix that surfaced it.
 - **Found:** 2026-07-13, docs-gen cross-reference-link fix (route-base pass).
 
+### `generateLlmsTxt` indexes components the write loop skips — a latent per-scope `llms.txt` 404
+
+- **Where:** `packages/docs-gen/src/generators/llm/LLMDocumentationGenerator.ts`
+  (`generateLlmsTxt` iterates every enriched component; the per-component write
+  loop in `generate()` skips components with no `apiData.components[name]` **or**
+  `docsConfig.llm.include === false`).
+- **What:** The index emits a link for every enriched component, but a component
+  the write loop excludes never gets an `llm.txt` written — so its index link
+  404s, independent of the group-segment fix (`d4f1d3f`, which corrected the link
+  *path*, not the *set* of linked components). Does not manifest today: all 89
+  links across blocks/docs/auth/table resolve because nothing is currently
+  `include:false`. Surfaced while fixing the group-segment 404.
+- **Why deferred:** The clean fix gates the index loop on the same include
+  condition as the write loop (a shared `shouldEmit(component)` predicate), with
+  the roundtrip test extended to assert index ⊆ written. Small but deliberate,
+  and latent, so it was left out of the drive-by group-segment fix.
+- **Found:** 2026-07-13, docs-gen `generateLlmsTxt` group-segment fix (`d4f1d3f`).
+
 ## Testing / CI gates
 
 ### `urbicon validate` matches rule patterns in text content — pages that *quote* an anti-pattern fail the gate
@@ -728,6 +746,32 @@ internal TODO instead. Sections are ordered roughly by urgency.
   design-engine with their own tests.
 - **Found:** 2026-07-11, dogfooding the `urbicon` CLI against the landing
   page (session review of the AI-DX claims).
+
+### design-engine `checkHeadingSkip` is blind to component-rendered headings; slop heuristics also scan `code={…}` template-literal content
+
+- **Where:** `packages/design-engine/src/linter/heuristics.ts`
+  (`checkHeadingSkip` counts only literal `<hN>` tags; the same whole-file scan
+  underlies the other slop heuristics).
+- **What:** Two related precision gaps surfaced across the recipe sweeps
+  (`97700c9`, `4adccf2`): (a) `checkHeadingSkip` cannot see a heading a component
+  renders — notably `<Section>` (`@urbicon-ui/docs`) emits its `title` as an
+  `<h2>` (via `headingLevel`, default 2) — so any page pairing `<Section>` with a
+  literal `<h3>`/`<h4>` sub-label reads as a false-positive `heading-skip`
+  (linter sees h1→h3). The whole recipe corpus now leans on the styled-`<p>`
+  workaround to silence it, which quietly steers authors toward flatter outlines
+  rather than semantically-correct h3s under a Section h2. (b) The heuristics
+  scan the whole file linearly, **including `recipeCode` / `code={…}`
+  template-literal strings** — so a `transition-all` or a heading inside a
+  *teaching-code* literal participates in the slop scan (and only the first
+  occurrence per note is reported, so every latent occurrence has to be fixed to
+  clear it). Same root as the deterministic-rule "matches text content" entry
+  above.
+- **Why deferred:** A robust fix teaches the heuristics which nodes are live
+  markup vs. component-rendered headings vs. quoted string content — resolving
+  `<Section>`/`headingLevel` (or a small registry of heading-rendering
+  components) and scoping the scan to real markup. A design-engine change with
+  its own tests, not a page edit.
+- **Found:** 2026-07-13, recipe audit (`97700c9`) + slop-polish (`4adccf2`) sweeps.
 
 ### No guard against silently dropped `.d.ts` files in package builds
 
