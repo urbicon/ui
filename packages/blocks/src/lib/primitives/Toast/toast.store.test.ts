@@ -212,3 +212,125 @@ describe('toaster store — auto-dismiss timers', () => {
     expect(toaster.toasts).toHaveLength(0);
   });
 });
+
+// Sonner-style hover-to-pause: freezing the whole stack banks each toast's
+// remaining time and resumes from it (not a restart). Driven with fake timers,
+// which advance both `setTimeout` and `Date.now()` in lockstep — the store banks
+// remaining time via `Date.now()`, so these tests also assert that math.
+describe('toaster store — hover-to-pause (pause/resume)', () => {
+  it('pause() freezes the countdown; resume() continues from the remaining time, not a restart', () => {
+    vi.useFakeTimers();
+    const id = toaster.add({ title: 'x', duration: 3000 });
+
+    vi.advanceTimersByTime(2000); // 1000ms left
+    toaster.pause();
+
+    // Frozen: advancing well past the original 3s expiry must NOT dismiss.
+    vi.advanceTimersByTime(10_000);
+    expect(byId(id)).toBeTruthy();
+
+    toaster.resume();
+    // Only the banked 1000ms remain — a restart would have re-armed the full 3000ms.
+    vi.advanceTimersByTime(999);
+    expect(byId(id)).toBeTruthy();
+    vi.advanceTimersByTime(1);
+    expect(byId(id)).toBeUndefined();
+  });
+
+  it('pause()/resume() toggle the reactive `paused` flag the progress bar binds to', () => {
+    expect(toaster.paused).toBe(false);
+    toaster.pause();
+    expect(toaster.paused).toBe(true);
+    toaster.resume();
+    expect(toaster.paused).toBe(false);
+  });
+
+  it('pause() is idempotent — a second pause does not double-bank the remaining time', () => {
+    vi.useFakeTimers();
+    const id = toaster.add({ title: 'x', duration: 3000 });
+
+    vi.advanceTimersByTime(1000); // 2000ms left
+    toaster.pause();
+    vi.advanceTimersByTime(500);
+    toaster.pause(); // no-op — must not re-compute remaining off a stale startedAt
+
+    toaster.resume();
+    vi.advanceTimersByTime(1999);
+    expect(byId(id)).toBeTruthy();
+    vi.advanceTimersByTime(1);
+    expect(byId(id)).toBeUndefined();
+  });
+
+  it('resume() without a prior pause is a no-op (timer untouched)', () => {
+    vi.useFakeTimers();
+    const id = toaster.add({ title: 'x', duration: 3000 });
+
+    toaster.resume();
+    vi.advanceTimersByTime(3000);
+    expect(byId(id)).toBeUndefined();
+  });
+
+  it('pauses the whole stack together and resumes each from its own remaining time', () => {
+    vi.useFakeTimers();
+    const a = toaster.add({ title: 'A', duration: 3000 });
+    const b = toaster.add({ title: 'B', duration: 5000 });
+
+    vi.advanceTimersByTime(2000); // A: 1000 left, B: 3000 left
+    toaster.pause();
+    vi.advanceTimersByTime(20_000);
+    expect(byId(a)).toBeTruthy();
+    expect(byId(b)).toBeTruthy();
+
+    toaster.resume();
+    vi.advanceTimersByTime(1000); // A expires
+    expect(byId(a)).toBeUndefined();
+    expect(byId(b)).toBeTruthy();
+    vi.advanceTimersByTime(2000); // B expires (3000 total since resume)
+    expect(byId(b)).toBeUndefined();
+  });
+
+  it('leaves persistent toasts (duration 0) untouched across pause/resume', () => {
+    vi.useFakeTimers();
+    const id = toaster.add({ title: 'stay', duration: 0 });
+
+    toaster.pause();
+    toaster.resume();
+    vi.advanceTimersByTime(60_000);
+    expect(byId(id)).toBeTruthy();
+  });
+
+  it('treats duration: Infinity as persistent — never auto-dismisses, unaffected by pause/resume', () => {
+    vi.useFakeTimers();
+    const id = toaster.add({ title: 'forever', duration: Number.POSITIVE_INFINITY });
+
+    vi.advanceTimersByTime(60_000);
+    expect(byId(id)).toBeTruthy();
+    toaster.pause();
+    toaster.resume();
+    vi.advanceTimersByTime(60_000);
+    expect(byId(id)).toBeTruthy();
+  });
+
+  it('a toast added while the stack is paused starts frozen and begins counting on resume', () => {
+    vi.useFakeTimers();
+    toaster.pause();
+    const id = toaster.add({ title: 'late', duration: 3000 });
+
+    // Frozen from birth — no countdown while the stack is paused.
+    vi.advanceTimersByTime(10_000);
+    expect(byId(id)).toBeTruthy();
+
+    toaster.resume();
+    vi.advanceTimersByTime(2999);
+    expect(byId(id)).toBeTruthy();
+    vi.advanceTimersByTime(1);
+    expect(byId(id)).toBeUndefined();
+  });
+
+  it('clear() un-freezes the stack (resets `paused`)', () => {
+    toaster.pause();
+    expect(toaster.paused).toBe(true);
+    toaster.clear();
+    expect(toaster.paused).toBe(false);
+  });
+});

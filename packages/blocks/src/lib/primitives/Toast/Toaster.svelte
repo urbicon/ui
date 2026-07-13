@@ -56,6 +56,36 @@
     return toaster.registerSubscriber();
   });
 
+  // Sonner-style hover-to-pause. The pointer or keyboard focus being anywhere in
+  // the toaster region freezes the whole visible stack (all auto-dismiss timers
+  // + the progress bars) and leaving resumes each from its remaining time.
+  //
+  // These are bubbling over/out + focusin/focusout, NOT pointerenter/leave: the
+  // container is `pointer-events-none` (so clicks fall through the gaps between
+  // toasts to the page), which means it never becomes a pointer target itself —
+  // only its `pointer-events-auto` toast children do. enter/leave don't bubble
+  // and so would never fire here; over/out bubble up from the toasts. The
+  // `relatedTarget` containment check collapses the noisy per-descendant out/blur
+  // events into a single "the pointer/focus actually left the region" signal.
+  let pointerInside = $state(false);
+  let focusInside = $state(false);
+
+  $effect(() => {
+    if (pointerInside || focusInside) toaster.pause();
+    else toaster.resume();
+  });
+
+  // Safety net: if the Toaster unmounts while the stack is frozen (pointer/focus
+  // was still inside), un-freeze the singleton store so its timers aren't stranded.
+  $effect(() => {
+    return () => toaster.resume();
+  });
+
+  function leftRegion(event: PointerEvent | FocusEvent) {
+    const next = event.relatedTarget as Node | null;
+    return !(event.currentTarget as HTMLElement).contains(next);
+  }
+
   const visibleToasts = $derived(toaster.toasts.slice(-max));
 
   const styles = $derived(
@@ -124,6 +154,14 @@
   class={[slot('container'), className].filter(Boolean).join(' ')}
   aria-live="polite"
   aria-relevant="additions removals"
+  onpointerover={() => (pointerInside = true)}
+  onpointerout={(e) => {
+    if (leftRegion(e)) pointerInside = false;
+  }}
+  onfocusin={() => (focusInside = true)}
+  onfocusout={(e) => {
+    if (leftRegion(e)) focusInside = false;
+  }}
   {...restProps}
 >
   {#each visibleToasts as toast (toast.id)}
@@ -177,10 +215,16 @@
         </button>
       {/if}
 
-      {#if toast.showProgress && toast.duration > 0}
+      {#if toast.showProgress && Number.isFinite(toast.duration) && toast.duration > 0}
+        <!-- Duration comes from the toast itself (the real countdown), not a token.
+             `animation-play-state` tracks the store's paused flag so the bar freezes
+             with the timer on hover/focus and resumes in place — changing only the
+             play-state never restarts the animation. -->
         <div
           class={slot('progress', toast.intent)}
-          style="animation: blocks-toast-progress {toast.duration}ms linear forwards;"
+          style="animation: blocks-toast-progress {toast.duration}ms linear forwards; animation-play-state: {toaster.paused
+            ? 'paused'
+            : 'running'};"
         ></div>
       {/if}
     </div>
