@@ -19,7 +19,7 @@
 <Section id="examples" title="Examples" subtitle="Render a simple API table">
   <CodeExample
     title="Basic Usage"
-    code={`<ApiReference props={[{ name: 'prop', type: 'string' }]} />`}
+    code={`<ApiReference props={[{ name: 'prop', type: 'string', description: 'Example' }]} />`}
   >
     <ApiReference props={[{ name: 'prop', type: 'string', description: 'Example' }]} />
   </CodeExample>

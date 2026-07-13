@@ -14,8 +14,8 @@
 
   const navigation = [
     { id: 'playground', title: 'Playground', order: 1 },
+    { id: 'examples', title: 'Examples', order: 2 },
     { id: 'api', title: 'API Reference', order: 9 },
-    { id: 'examples', title: 'Examples', order: 11 },
     { id: 'types', title: 'Type Definitions', order: 12 }
   ];
 
@@ -24,12 +24,12 @@
 
 <SeoMeta
   title="InfoCard Component"
-  description="Documentation for the InfoCard component with 5 properties and 0 variants"
+  description="Memo-style callout card for inline notes and tips in docs content, with intent accent colors and three sizes."
 />
 
 <DocsPageLayout
   title="InfoCard"
-  description="Documentation for the InfoCard component"
+  description="Memo-style callout card for inline notes and tips, with intent accent colors and three sizes."
   maxWidth="lg"
   showToc={true}
   {navigation}
@@ -50,13 +50,17 @@
           key: 'intent',
           label: 'Intent',
           items: [
-            { label: 'primary', value: 'primary' },
-            { label: 'secondary', value: 'secondary' },
-            { label: 'success', value: 'success' },
-            { label: 'warning', value: 'warning' },
-            { label: 'danger', value: 'danger' },
-            { label: 'neutral', value: 'neutral' }
-          ],
+            'info',
+            'primary',
+            'secondary',
+            'success',
+            'warning',
+            'danger',
+            'neutral',
+            'example',
+            'playground',
+            'api'
+          ].map((v) => ({ label: v, value: v })),
           defaultValue: 'success'
         },
         {

@@ -16,8 +16,18 @@
     { id: 'sizes', title: 'Sizes', order: 4 },
     { id: 'code-gen', title: 'Code Generation', order: 5 },
     { id: 'prop-docs', title: 'PropDocs & Variants', order: 6 },
-    { id: 'use-cases', title: 'Use Cases', order: 7 }
+    { id: 'use-cases', title: 'Use Cases', order: 7 },
+    { id: 'api', title: 'API Reference', order: 8 }
   ];
+
+  // Static map — Tailwind only compiles complete class literals, so the
+  // dropdown value must resolve to a full utility, never an interpolated fragment.
+  const colorClasses: Record<string, string> = {
+    primary: 'text-primary',
+    success: 'text-success',
+    danger: 'text-danger',
+    neutral: 'text-neutral'
+  };
 
   const componentProps = [
     {
@@ -180,7 +190,10 @@
     >
       {#snippet children(values)}
         <span
-          class="text-{values.color} transition-all"
+          class={[
+            colorClasses[values.color] ?? 'text-text-primary',
+            'transition-colors duration-[var(--blocks-duration-fast)]'
+          ]}
           style="font-size: {values.size}px; font-weight: {values.bold ? 700 : 400}"
         >
           {values.label}

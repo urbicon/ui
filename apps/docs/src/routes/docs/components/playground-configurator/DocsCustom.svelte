@@ -1,7 +1,7 @@
 <script lang="ts">
   import type { SvelteDocsConfig } from '@urbicon-ui/shared-types';
   import { CodeExample, Section, PlaygroundConfigurator, InfoCard } from '@urbicon-ui/docs';
-  import { Badge, Button, Input } from '@urbicon-ui/blocks';
+  import { Badge, Button, CloseIcon, Input } from '@urbicon-ui/blocks';
 
   export const docsConfig: SvelteDocsConfig = {
     generation: {
@@ -22,7 +22,7 @@
 
 <!-- All Control Types -->
 <Section id="control-types" title="Control Types" subtitle="Every supported control in action">
-  <CodeExample title="All Controls">
+  <CodeExample title="All Controls" isolate>
     <PlaygroundConfigurator
       componentName="Demo"
       showHeader={false}
@@ -91,7 +91,7 @@
   title="Conditional Controls"
   subtitle="Controls that appear based on other values"
 >
-  <CodeExample title="Conditional Visibility">
+  <CodeExample title="Conditional Visibility" isolate>
     <PlaygroundConfigurator
       componentName="Alert"
       showHeader={false}
@@ -135,7 +135,13 @@
               {values.intent === 'danger' ? 'Action required!' : ''}
             </span>
             {#if values.dismissible}
-              <button class="opacity-50 hover:opacity-100">✕</button>
+              <button
+                type="button"
+                aria-label="Dismiss"
+                class="rounded-xs opacity-50 transition-opacity duration-[var(--blocks-duration-fast)] hover:opacity-100 focus-visible:opacity-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-current/50"
+              >
+                <CloseIcon size={14} />
+              </button>
             {/if}
           </div>
           {#if values.dismissible}
@@ -153,7 +159,7 @@
 <Section id="sizes" title="Sizes" subtitle="Compact, default, and spacious layouts">
   <div class="flex flex-col gap-6">
     {#each ['sm', 'md', 'lg'] as const as sizeOption (sizeOption)}
-      <CodeExample title="Size: {sizeOption}">
+      <CodeExample title="Size: {sizeOption}" isolate>
         <PlaygroundConfigurator
           componentName="Button"
           showHeader={false}
@@ -189,7 +195,7 @@
   title="Custom Code Generator"
   subtitle="Pass your own code generator for tailored output"
 >
-  <CodeExample title="Button Builder">
+  <CodeExample title="Button Builder" isolate>
     <PlaygroundConfigurator
       componentName="Button"
       showHeader={false}
@@ -260,7 +266,7 @@
   title="PropDocs & VariantKeys"
   subtitle="Info tooltips and variant badges for controls"
 >
-  <CodeExample title="With Prop Documentation">
+  <CodeExample title="With Prop Documentation" isolate>
     <PlaygroundConfigurator
       componentName="Input"
       showHeader={false}

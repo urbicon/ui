@@ -9,6 +9,7 @@
     CodeExample as CodeExampleComponent,
     TypesReference
   } from '@urbicon-ui/docs';
+  import { Button } from '@urbicon-ui/blocks';
   import CustomDocs from './DocsCustom.svelte';
   import { componentData } from './api';
   import { asset } from '$app/paths';
@@ -27,12 +28,12 @@
 
 <SeoMeta
   title="CodeExample Component"
-  description="Documentation for the CodeExample component with 9 properties and 0 variants"
+  description="Code example card with live preview, syntax highlighting, copy-to-clipboard, and a collapsible code panel."
 />
 
 <DocsPageLayout
   title="CodeExample"
-  description="Documentation for the CodeExample component"
+  description="Code example card with live preview, syntax highlighting, copy-to-clipboard, and a collapsible code panel."
   maxWidth="lg"
   showToc={true}
   {navigation}
@@ -48,16 +49,16 @@
           label: 'Description',
           defaultValue: 'Short explanation'
         },
-        { type: 'text', key: 'code', label: 'Code', defaultValue: '<button>Click</button>' },
-        { type: 'text', key: 'language', label: 'Language', defaultValue: 'html' },
-        { type: 'checkbox', key: 'isolate', label: 'Isolate', defaultValue: false }
+        { type: 'text', key: 'code', label: 'Code', defaultValue: '<Button>Click</Button>' },
+        { type: 'text', key: 'language', label: 'Language', defaultValue: 'svelte' },
+        { type: 'checkbox', key: 'preview', label: 'Show Preview', defaultValue: true }
       ]}
       values={{
         title: 'Basic Example',
         description: 'Short explanation',
-        code: '<button>Click</button>',
-        language: 'html',
-        isolate: false
+        code: '<Button>Click</Button>',
+        language: 'svelte',
+        preview: true
       }}
       showHeader={false}
     >
@@ -67,9 +68,9 @@
           description={values.description}
           code={values.code}
           language={values.language}
-          isolate={values.isolate}
+          preview={values.preview}
         >
-          <button class="rounded border px-3 py-1 text-sm">Click</button>
+          <Button>Click</Button>
         </CodeExampleComponent>
       {/snippet}
     </PlaygroundConfigurator>
@@ -83,20 +84,22 @@
     intent="default"
   >
     <div class="space-y-6">
-      <InfoCard intent="info" title="Inherited Properties">
-        <p>This component inherits properties from the following interfaces:</p>
-        <ul class="mt-2 space-y-1">
-          <li><strong>CodeExampleVariantProps</strong> - 1 properties</li>
-        </ul>
+      <InfoCard intent="info" title="Code is a prop, not the children">
+        <p>
+          The rendered snippet comes from the <code>code</code> prop — children are only the live
+          preview. Either pass <code>code</code> explicitly, or set <code>isolate</code> so the
+          <code>codeExamplePlugin</code> Vite plugin (from <code>@urbicon-ui/docs/vite</code>)
+          extracts the children markup as <code>code</code> at build time. Without either, a warning placeholder
+          renders instead of the code panel.
+        </p>
       </InfoCard>
 
-      <InfoCard intent="success" title="Accessibility">
-        <p>This component supports the following accessibility features:</p>
-        <ul class="mt-2 space-y-1">
-          <li>
-            <code>...CodeExampleVariantProps</code> - Styling variants from CodeExampleVariantProps
-          </li>
-        </ul>
+      <InfoCard intent="neutral" title="Collapsing follows the page toggle">
+        <p>
+          The code panel follows the page-wide code-visibility toggle provided by
+          <code>DocsLayout</code>. Use <code>defaultExpanded</code> to override the initial state for
+          a single example — readers can still toggle it locally.
+        </p>
       </InfoCard>
     </div>
   </Section>

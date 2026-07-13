@@ -12,6 +12,7 @@
 
   const navigation = [
     { id: 'examples', title: 'Examples', order: 1 },
+    { id: 'use-cases', title: 'Use Cases', order: 2 },
     { id: 'api', title: 'API Reference', order: 9 },
     { id: 'types', title: 'Type Definitions', order: 12 }
   ];
@@ -21,12 +22,12 @@
 
 <SeoMeta
   title="ApiReference Component"
-  description="Documentation for the ApiReference component"
+  description="Structured API reference table for component docs — prop names, types, defaults, and descriptions with source and required badges."
 />
 
 <DocsPageLayout
   title="ApiReference"
-  description="Documentation for the ApiReference component"
+  description="Structured API reference table — renders prop names, types, defaults, and descriptions with source and required badges."
   maxWidth="lg"
   showToc={true}
   {navigation}
