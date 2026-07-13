@@ -1,5 +1,11 @@
 import { goto } from '$app/navigation';
 import { page } from '$app/state';
+import {
+  applyTableQueryToSearchParams,
+  searchParamsToTableQuery,
+  type TableQueryParams,
+  type TableQueryUrlOptions
+} from './table-query';
 
 export type UrlArrayStrategy = 'repeat' | 'csv';
 
@@ -16,7 +22,7 @@ export type UrlParamOptions<T> = {
 // this helper are free to call `resolve()` at their composition point.
 export function updateUrlSearchParams(
   next: URLSearchParams | Record<string, string | string[]>,
-  opts?: { replaceState?: boolean; keepPath?: boolean }
+  opts?: { replaceState?: boolean }
 ) {
   const base = new URLSearchParams(page.url.searchParams);
 
@@ -35,7 +41,7 @@ export function updateUrlSearchParams(
   }
 
   const q = base.toString();
-  const path = opts?.keepPath ? page.url.pathname : '/';
+  const path = page.url.pathname;
   goto(q ? `${path}?${q}` : path, {
     replaceState: opts?.replaceState ?? true,
     noScroll: true,
@@ -53,7 +59,7 @@ export function createUrlParam<T>(_key: string, options: UrlParamOptions<T>) {
     for (const [k] of nextSp) current.delete(k);
     for (const [k, v] of nextSp) current.append(k, v);
     const q = current.toString();
-    goto(q ? `?${q}` : '/', {
+    goto(q ? `?${q}` : page.url.pathname, {
       replaceState: options.replaceState ?? true,
       noScroll: true,
       keepFocus: true
@@ -96,4 +102,78 @@ export function useUrlArrayParam(
   };
 
   return useUrlParam<string[]>(key, { parse, serialize, initial: opts.initial });
+}
+
+/** Options for {@link createTableQueryUrlSync}. */
+export interface TableQueryUrlSyncOptions extends TableQueryUrlOptions {
+  /**
+   * Replace the current history entry instead of pushing a new one. The
+   * default (`true`) keeps every sort/filter/page interaction from polluting
+   * the back button.
+   * @default true
+   */
+  replaceState?: boolean;
+}
+
+/**
+ * Opt-in URL sync for a table in server mode: mirrors the `TableQuery` the
+ * table emits onto `?q=…&sort=…&page=…` query params, so the view state
+ * survives reloads and can be shared as a link.
+ *
+ * Two directions, both explicit:
+ * - **URL → query**: `initialQuery` is parsed once at creation (SSR-safe) —
+ *   seed the table (`initialPage`, `initialGroupBy`, controlled `searchTerm`)
+ *   and run the first fetch from it.
+ * - **query → URL**: pass `syncQuery` the query from `onQueryChange`, or call
+ *   it inside `queryFn` (when `queryFn` is set, `onQueryChange` does not
+ *   fire). It rewrites only its own — optionally prefixed — params via
+ *   `goto` (`replaceState`, `noScroll`, `keepFocus`); unrelated params are
+ *   preserved. Values equal to `options.defaults` are elided, so a table in
+ *   its default state leaves the URL clean.
+ *
+ * Set `options.defaults` to the table's initial props (`itemsPerPage`,
+ * `initialPage`, `initialGroupBy`) so the elision baseline matches the state
+ * the table actually starts in.
+ *
+ * @example
+ * ```svelte
+ * <script lang="ts">
+ *   import { Table } from '@urbicon-ui/table';
+ *   import { createTableQueryUrlSync } from '@urbicon-ui/sveltekit-utils/url.svelte';
+ *
+ *   const sync = createTableQueryUrlSync({ defaults: { itemsPerPage: 25 } });
+ * </script>
+ *
+ * <Table
+ *   mode="server"
+ *   columns={columns}
+ *   itemsPerPage={25}
+ *   initialPage={sync.initialQuery.page}
+ *   queryFn={async (query, { signal }) => {
+ *     sync.syncQuery(query);
+ *     const res = await fetch(`/api/users?${new URLSearchParams(...)}`, { signal });
+ *     const data = await res.json();
+ *     return { items: data.results, totalItems: data.total };
+ *   }}
+ * />
+ * ```
+ *
+ * @param options - Elision defaults, key prefix, history behaviour.
+ * @returns `initialQuery` (the URL parsed at creation time) + `syncQuery`
+ *   (write a query back to the URL).
+ */
+export function createTableQueryUrlSync(options: TableQueryUrlSyncOptions = {}) {
+  const initialQuery: TableQueryParams = searchParamsToTableQuery(page.url.searchParams, options);
+
+  function syncQuery(query: TableQueryParams): void {
+    const next = applyTableQueryToSearchParams(page.url.searchParams, query, options);
+    const qs = next.toString();
+    goto(`${page.url.pathname}${qs ? `?${qs}` : ''}${page.url.hash}`, {
+      replaceState: options.replaceState ?? true,
+      noScroll: true,
+      keepFocus: true
+    });
+  }
+
+  return { initialQuery, syncQuery } as const;
 }

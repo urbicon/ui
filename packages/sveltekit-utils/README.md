@@ -5,6 +5,7 @@ Small, focused SvelteKit helpers that Urbicon apps share. Zero runtime dependenc
 Currently shipping:
 
 - **URL-state runes** — reactive `useUrlParam` / `useUrlArrayParam` that keep component state in sync with `?query=` parameters
+- **Table-query URL sync** — opt-in `?q=…&sort=…&page=…` mirroring for `@urbicon-ui/table` server mode, plus the pure serializers behind it
 - **Cron runner** — interval-based background fetcher for scheduled server endpoints
 
 ## Installation
@@ -55,6 +56,56 @@ updateUrlSearchParams({ page: '1', tag: ['a', 'b'] }, { replaceState: true });
 - URL updates use `goto()` with `replaceState: true`, `noScroll: true`, `keepFocus: true` — suited for filter/pagination UIs, not full page transitions.
 - `useUrlParam` returns getters (not Svelte stores) so consumers can read the value lazily inside `$derived`/`$effect`.
 
+## Table Query ↔ URL (`table-query` + `url.svelte`)
+
+Opt-in URL sync for `@urbicon-ui/table` in `mode="server"`: the `TableQuery` the table emits (search, sort, page, page size, filters, grouping) is mirrored onto query parameters (`?q=…&sort=…&page=…`), so the view state survives reloads and can be shared as a link.
+
+```svelte
+<script lang="ts">
+  import { Table } from '@urbicon-ui/table';
+  import { tableQueryToSearchParams } from '@urbicon-ui/sveltekit-utils/table-query';
+  import { createTableQueryUrlSync } from '@urbicon-ui/sveltekit-utils/url.svelte';
+
+  const sync = createTableQueryUrlSync({ defaults: { itemsPerPage: 25 } });
+</script>
+
+<Table
+  mode="server"
+  {columns}
+  itemsPerPage={25}
+  initialPage={sync.initialQuery.page}
+  initialGroupBy={sync.initialQuery.groupByKey}
+  queryFn={async (query, { signal }) => {
+    sync.syncQuery(query); // mirror the query onto the URL (replaceState)
+    const res = await fetch(`/api/users?${tableQueryToSearchParams(query)}`, { signal });
+    const data = await res.json();
+    return { items: data.results, totalItems: data.total };
+  }}
+/>
+```
+
+With manual control (`onQueryChange` instead of `queryFn`), pass `sync.syncQuery` directly — note that `onQueryChange` does not fire when `queryFn` is set, which is why the managed variant calls it inside `queryFn`.
+
+The pure serializers live under `@urbicon-ui/sveltekit-utils/table-query` and work without SvelteKit — e.g. to parse the initial query in a server `load` and fetch the first page during SSR:
+
+```typescript
+// +page.server.ts
+import { searchParamsToTableQuery } from '@urbicon-ui/sveltekit-utils/table-query';
+
+export const load = async ({ url }) => {
+  const query = searchParamsToTableQuery(url.searchParams, { defaults: { itemsPerPage: 25 } });
+  return { initialResult: await fetchUsers(query) };
+};
+```
+
+**Design notes**
+
+- **Default elision** — values equal to `defaults` are not written; a table in its default state leaves the URL clean. Set `defaults` to the table's initial props (`itemsPerPage`, `initialPage`, `initialGroupBy`) so the elision baseline matches the state the table starts in.
+- **Read tolerant, write strict** — unparsable params fall back to the defaults and malformed `filter` entries are skipped; serializing a structurally invalid query (non-positive page, unknown operator) throws instead of writing corrupt state.
+- **Namespacing** — `prefix: 't_'` scopes all keys (`?t_q=…`) for multiple synced tables on one page; unrelated params are always preserved.
+- **Types** — `TableQueryParams` is a structural mirror of the table's `TableQuery` (no dependency on `@urbicon-ui/table`; a parity test in the table package guards against drift).
+- **Seeding limits** — the table currently has no `initialSort` / initial-filter props, so sort/filter state parsed from the URL can seed your fetch but not the table's header indicators. Once those props exist, `initialQuery` covers them too.
+
 ## Cron Runner (`cron`)
 
 Fire HTTP requests against SvelteKit server endpoints on an interval. Pair with a shared-secret header so endpoints can authenticate scheduled calls.
@@ -99,11 +150,12 @@ export const POST = async ({ request }) => {
 
 ## Exports
 
-| Subpath        | Contents                                                                            |
-| -------------- | ----------------------------------------------------------------------------------- |
-| `.`            | Barrel of both modules                                                              |
-| `./url.svelte` | `useUrlParam`, `useUrlArrayParam`, `createUrlParam`, `updateUrlSearchParams`, types |
-| `./cron`       | `createCronRunner`, `CronJob`, `CronRunnerConfig`, `CronRunner`                     |
+| Subpath         | Contents                                                                                                           |
+| --------------- | ------------------------------------------------------------------------------------------------------------------ |
+| `.`             | Barrel of all modules                                                                                              |
+| `./url.svelte`  | `useUrlParam`, `useUrlArrayParam`, `createUrlParam`, `updateUrlSearchParams`, `createTableQueryUrlSync`, types     |
+| `./table-query` | `tableQueryToSearchParams`, `searchParamsToTableQuery`, `applyTableQueryToSearchParams`, `TableQueryParams`, types |
+| `./cron`        | `createCronRunner`, `CronJob`, `CronRunnerConfig`, `CronRunner`                                                    |
 
 ## Development
 

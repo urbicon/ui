@@ -40,10 +40,17 @@
     "./cron": {
       "types": "./dist/cron.d.ts",
       "import": "./dist/cron.js"
+    },
+    "./table-query": {
+      "types": "./dist/table-query.d.ts",
+      "import": "./dist/table-query.js",
+      "default": "./dist/table-query.js"
     }
   },
   "files": [
-    "dist"
+    "dist",
+    "!dist/**/*.test.*",
+    "!dist/**/*.spec.*"
   ],
   "scripts": {
     "dev": "svelte-package --watch",

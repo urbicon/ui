@@ -80,6 +80,7 @@
     "@urbicon-ui/blocks": "workspace:*",
     "@urbicon-ui/i18n": "workspace:*",
     "@urbicon-ui/shared-types": "workspace:*",
+    "@urbicon-ui/sveltekit-utils": "workspace:*",
     "prettier": "catalog:",
     "prettier-plugin-svelte": "catalog:",
     "prettier-plugin-tailwindcss": "catalog:",
