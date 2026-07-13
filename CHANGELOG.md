@@ -4,6 +4,36 @@ All notable changes to this project will be documented in this file.
 This changelog is automatically generated from [Conventional Commits](https://www.conventionalcommits.org).
 
 
+## [6.21.3] - 2026-07-13
+
+### Bug Fixes
+- **docs**: Scale landing sparkline to the card via svg slot class
+- **docs**: Align tokens page with the real token sources
+- **blocks**: Align figma token export with the real token sources
+- **docs**: Compute figma-tokens page stats from the export
+- **blocks**: Make shadow tokens render as real box-shadows
+- **blocks**: Block keyboard interaction on disabled badges
+- **blocks**: Forward consumer oninput through Textarea
+- **blocks**: Let manual-mode popover close from its trigger and restore focus
+- **docs**: Use semantic tokens in table customization example
+- **docs**: Stop CodeExample warning fallback on section/toc/types-reference examples
+
+### Documentation
+- Log sparkline fixed-width ergonomics debt
+- Rework button-group page with real use-cases and customization
+- Log DOM-sweep and shadow-verification findings as debt
+- Catch table pages up with the shipped API
+- Log dead table date-filter comparison as debt
+- Polish the docs-package section pages
+- Log prettier single-quote attribute corruption as debt
+
+### Refactoring
+- **blocks**: Drop dead Badge hover state, correct ButtonGroup size JSDoc
+
+### Testing
+- **e2e**: Add missing rooms VR baselines
+- **blocks**: Interactive DOM coverage for the round-2 primitives
+
 ## [6.21.2] - 2026-07-10
 
 ### Breaking Changes
