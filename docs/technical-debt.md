@@ -200,6 +200,44 @@ internal TODO instead. Sections are ordered roughly by urgency.
 
 ## Component behaviour
 
+### ButtonGroup roving couples `buttonOrder` to a positional DOM query — duplicate values and dynamic add/remove desync it
+
+- **Where:** `packages/blocks/src/lib/primitives/ButtonGroup/ButtonGroup.svelte`
+  (`buttonOrder` registry indexed positionally against `rovingRadios()`).
+- **What:** The single-select roving (added 2026-07-13) maps the reactive
+  selection back to a radio position by assuming `buttonOrder[i]` (values, in
+  registration order, deduped) lines up with `rovingRadios()[i]`
+  (`querySelectorAll('[role="radio"]')`, DOM order). The value-less case is
+  fixed (value-less buttons no longer get `role="radio"`), but two edges
+  remain: (a) two buttons with the **same** value — `buttonOrder` dedups, the
+  DOM query does not, so the indices drift; (b) buttons **added/removed at
+  runtime** — `buttonOrder` only ever grows (Button can't unregister), so it
+  goes stale. Static, unique-value groups (the near-universal case) are correct.
+- **Why deferred:** The robust fix for both is to stop indexing positionally —
+  tag each radio with its value (`data-value`) and resolve by matching value —
+  which touches the shared `Button.svelte` (`getButtonProps`), outside the
+  primitives-Welle scope. Wants one deliberate pass with tests for both edges.
+- **Found:** 2026-07-13, ButtonGroup roving review (primitives-Welle, adversarial reviewer).
+
+### Toast hover-to-pause can stay stuck paused when the hovered toast is removed programmatically
+
+- **Where:** `packages/blocks/src/lib/primitives/Toast/Toaster.svelte`
+  (`pointerInside` driven by bubbling `pointerover`/`pointerout` on the
+  `pointer-events-none` region).
+- **What:** The hover-to-pause (added 2026-07-13) freezes the stack while the
+  pointer is inside. If the toast under the cursor is removed from the DOM (e.g.
+  its own close button dismisses it) the browser doesn't reliably fire
+  `pointerout`, so `pointerInside` stays `true` and the remaining timers stay
+  frozen until the pointer next crosses a real region boundary. Worst tail: the
+  last toast is dismissed, the cursor doesn't move, and a new toast then arrives
+  under it — added while `paused`, it never counts down until the pointer moves.
+  Self-heals on the next genuine pointer exit; Sonner has the same class of issue.
+- **Why deferred:** A robust fix wants a deliberate re-evaluation point on toast
+  removal (recompute containment from the real cursor target, or a different
+  pause model) rather than a blind attribute tweak — its own increment, low
+  frequency.
+- **Found:** 2026-07-13, Toast hover-to-pause review (primitives-Welle, adversarial reviewer).
+
 ### Table's `initial*` family is incomplete — no `initialSort`, no `initialSelectedIds`
 
 - **Where:** `packages/table/src/lib/core/table/index.ts` (TableProps) /
@@ -340,20 +378,6 @@ internal TODO instead. Sections are ordered roughly by urgency.
   semantics consumers may depend on.
 - **Found:** 2026-07-13, table docs API catch-up.
 
-### `CalendarWeekdayHeader` keys `{#each}` on weekday names — duplicate short names crash dev renders
-
-- **Where:** `packages/blocks/src/lib/components/Calendar/CalendarWeekdayHeader.svelte`
-  (`{#each … as day (day)}` over locale *short* weekday names).
-- **What:** Same class as the CalendarMiniMonth crash fixed in `05d0e7c` (its
-  header keyed on *narrow* names, which duplicate in de-DE as M,D,M,D,F,S,S →
-  `each_key_duplicate` on every dev-mode client render). Short names are
-  unique in de-DE/en-US, but locales with duplicate short forms would hit the
-  identical crash here.
-- **Why deferred:** One-line fix (`(`${i}-${day}`)`) but it was outside the
-  fix-pass scope and wants a quick sweep for any other name-keyed weekday
-  `{#each}` in the date surfaces, plus a locale-parameterized test.
-- **Found:** 2026-07-13, components deep-review fix pass (test fallout).
-
 ### date-grid: `navigate()` range-case + range-view swipe don't clamp to `minDate`/`maxDate`
 
 - **Where:** `packages/blocks/src/lib/date/date-grid` — the `view === 'range'`
@@ -384,20 +408,6 @@ internal TODO instead. Sections are ordered roughly by urgency.
   trips either.
 - **Found:** 2026-06-30 / 2026-07-01, issue-#41 follow-up review.
 
-### Toast auto-dismiss does not pause on hover (Sonner-style implies it)
-
-- **Where:** `packages/blocks/src/lib/primitives/Toast/Toaster.svelte` (CSS
-  progress animation + the store's plain `setTimeout` auto-dismiss).
-- **What:** The promise/action work (TST-1) is described as "Sonner-style", but
-  hover-to-pause — pointer-enter freezing the auto-dismiss timer and the progress
-  bar, pointer-leave resuming from the remaining time — is not implemented. A
-  toast keeps counting down while the user reads it or reaches for an action button.
-- **Why deferred:** A genuine feature add, not a fix of the shipped work: it
-  wants remaining-duration tracking, timer pause/resume plumbing, and
-  `animation-play-state` sync, plus interaction tests — a deliberate increment,
-  not a drive-by. Logged so "Sonner-style" doesn't imply a behaviour that isn't there.
-- **Found:** 2026-07-10, blocks feature-request review (TST-1).
-
 ### Checkbox now carries a press cue + intent interaction layer its form siblings lack
 
 - **Where:** `packages/blocks/src/lib/primitives/Checkbox/checkbox.variants.ts`
@@ -413,22 +423,6 @@ internal TODO instead. Sections are ordered roughly by urgency.
   deliberate sweep (per-control decision what hover/active mean on a track vs
   a radio dot, plus VR review), not a per-component drive-by.
 - **Found:** 2026-07-13, CHK-10 checkbox polish.
-
-### Combobox/Select grouped keyboard-nav is O(n²) and keys groups on a non-unique label
-
-- **Where:** `packages/blocks/src/lib/primitives/Combobox/Combobox.svelte`
-  (`filtered.indexOf(opt)` per grouped option; `{#each filteredGroups as group
-  (group.label)}`) and the mirror sites in `Select.svelte`.
-- **What:** Two shared latent edges in the grouped-list rendering: (a) resolving
-  each grouped option's flat index via `indexOf` is O(n²) per render/keystroke —
-  fine for typical sizes, only relevant for grouped lists in the hundreds; (b)
-  keying the group `{#each}` on `group.label` produces a duplicate Svelte key if
-  two groups share a label (very unlikely, but a latent bug).
-- **Why deferred:** Both are identical in Combobox and Select (Combobox mirrors
-  Select's grouping deliberately), so fixing one side alone would introduce the
-  exact divergence the mirror is meant to avoid. Wants one sweep across both
-  (precompute a flat index map; key on a stable group id or `label`+index).
-- **Found:** 2026-07-10, blocks feature-request review (CMB-2 group support).
 
 ### Combobox multi-select: no way to seed labels for pre-selected async values; orphan dev-warn re-fires per recompute
 
@@ -496,6 +490,24 @@ internal TODO instead. Sections are ordered roughly by urgency.
 
 ## Accessibility
 
+### Form primitives spread `{...restProps}` last — a consumer can override computed `aria-invalid`/`aria-checked`
+
+- **Where:** `packages/blocks/src/lib/primitives/{Checkbox,Toggle,RadioGroup}`
+  (explicit ARIA before `{...restProps}`) vs. `Input.svelte` (restProps first,
+  internal ARIA last).
+- **What:** After the 2026-07-13 describedby sweep, `aria-describedby` is
+  destructured out of props in every form primitive, so it can no longer be
+  clobbered. But Checkbox/Toggle/RadioGroup still spread `{...restProps}`
+  *after* their computed `aria-invalid` (and Toggle's `aria-checked`), so a
+  consumer passing those attributes through restProps overrides the component's
+  own state — the opposite of Input, which spreads restProps first so internal
+  ARIA always wins.
+- **Why deferred:** The family isn't uniform on "internal ARIA wins", and
+  flipping it is a small but real contract change (some consumers may rely on
+  the current override as an escape hatch). Wants one decision across the form
+  family with DOM tests, not a per-component drive-by.
+- **Found:** 2026-07-13, form-family aria-describedby sweep (primitives-Welle review).
+
 ### PlaygroundConfigurator `label for` points nowhere in most control branches — and Input ignores its `id` prop
 
 - **Where:** `packages/docs/src/lib/components/PlaygroundConfigurator/PlaygroundConfigurator.svelte`
@@ -514,43 +526,6 @@ internal TODO instead. Sections are ordered roughly by urgency.
   of the XC-5/hint pass (`d3a40c6`), which deliberately stayed scoped to
   describedby.
 - **Found:** 2026-07-13, PlaygroundConfigurator hint-wiring verification.
-
-### Form-family `aria-describedby` forwarding is asymmetric
-
-- **Where:** `packages/blocks` form primitives. Input/Select/Slider now merge a
-  consumer `aria-describedby` into the internal error/helper chain
-  (`d298d2c`); Toggle lets the consumer attribute *replace* the internal chain;
-  Textarea/Checkbox/Combobox/RadioGroup are unaudited.
-- **What:** Same attribute, three behaviours across siblings (merge, replace,
-  unknown). A consumer moving between form controls cannot rely on external
-  descriptions composing with validation messages.
-- **Why deferred:** Wants one family sweep with a decided contract (merge,
-  internal-first) plus DOM tests per component — not per-component drive-bys.
-- **Found:** 2026-07-13, while fixing the describedby delivery for the
-  configurator hints.
-
-### `Select` spreads `aria-label` onto its role-less wrapper — surfacing as the LocaleSwitcher axe hit
-
-- **Where:** `packages/blocks/src/lib/primitives/Select/Select.svelte`
-  (`{...restProps}` lands on the `base` `<div>`; the trigger button names
-  itself only via `aria-labelledby={labelId}`), consumed by
-  `LocaleSwitcher.svelte` (passes `aria-label` to Select), visible in the docs
-  sidebar chrome on every page.
-- **What:** An axe scan (WCAG 2.1 AA) reports `aria-prohibited-attr` —
-  `aria-label` sits on a plain `div` with no role — plus a `button-name` hit
-  on the trigger when no visible `label` prop is set (then `labelId` points
-  nowhere and the trigger has no accessible name). The e2e a11y suite scopes
-  to `[data-docs-preview]`, so the chrome instance never gates.
-- **Why deferred:** The fix belongs in Select (forward `aria-label`/labelling
-  to the trigger element rather than the wrapper, or accept a dedicated
-  `triggerLabel` prop), then LocaleSwitcher inherits it. Changes markup for
-  every Select consumer, so it wants its own pass with the DOM tests.
-- **Update 2026-07-13:** `aria-describedby` is now destructured and delivered
-  to the trigger (`d298d2c`); `aria-label` and the accessible-name gap remain
-  as described (re-confirmed by the configurator hint pass — the trigger has
-  no name when only an external label exists).
-- **Found:** 2026-07-09 (axe over `/blocks`), root cause narrowed to Select's
-  restProps target 2026-07-10.
 
 ### Rooms-skin secondary text on accent fields misses WCAG AA contrast
 
@@ -614,21 +589,6 @@ internal TODO instead. Sections are ordered roughly by urgency.
   N reached") and/or a visible cap message — designed and SR-tested, not a blind
   attribute. Low frequency (only when a consumer sets `maxItems`).
 - **Found:** 2026-07-10, blocks feature-request review (CMB-2 multi-select).
-
-### ButtonGroup `selection="single"` renders a radiogroup without arrow-key navigation
-
-- **Where:** `packages/blocks/src/lib/primitives/ButtonGroup/` (group context
-  assigns `role="radiogroup"` / `role="radio"`; every button keeps its own tab
-  stop).
-- **What:** WAI-ARIA radiogroups are expected to be one tab stop with
-  Left/Right/Up/Down moving selection (roving tabindex). The group tabs through
-  every button instead. `utils/roving` already ships the mechanics (Tab/
-  SegmentGroup use it).
-- **Why deferred:** Adopting roving changes the group's tab-order contract for
-  existing consumers and needs a decision for `selection="multiple"` (checkbox
-  groups conventionally stay per-item tabbable) — one deliberate pass, not a
-  drive-by.
-- **Found:** 2026-07-13, DOM-test round 2 (ButtonGroup package).
 
 ### Interactive Badge stays `role="status"` — no button semantics on the clickable path
 
@@ -771,27 +731,6 @@ internal TODO instead. Sections are ordered roughly by urgency.
   decision spanning all three specs, not a change to the suite in flight.
 - **Found:** 2026-07-08, adding the primitive visual-regression suite.
 
-### `DatePicker` / `DateRangePicker`: two shared commit-path branches untested in both pickers
-
-- **Where:** `packages/blocks/src/lib/components/DatePicker/DatePicker.svelte` +
-  `DateRangePicker.svelte` (`commitDraft`'s empty-draft branch; the hidden-input
-  `serialize` / `hiddenValue` path when `valueFormat='iso'`), and their two
-  co-located `*.svelte.test.ts` files.
-- **What:** Two glue branches are covered for neither picker:
-  1. **Typed-empty clear** — emptying the field by selecting-and-deleting the text
-     (not the clear button) drives `commitDraft`'s `trimmed === ''` branch, which
-     fires `onValueChange(undefined)`. The suites only cover the clear-*button*
-     path (`handleClear`), a different function.
-  2. **`valueFormat='iso'` serialization** — the hidden form input's ISO branch
-     (`d.toISOString()`, for Drizzle/timestamp consumers per the JSDoc). Only the
-     `'date'` default (`YYYY-MM-DD`) is asserted.
-- **Why deferred:** Both are *shared* mechanics the two pickers mirror ~90% of, so
-  the fix belongs in both `*.svelte.test.ts` at once — a one-sided add would bake
-  in exactly the drift the files' mirror-comment warns against. Low severity: the
-  observable results are simple and unlikely to regress silently.
-- **Found:** 2026-07-08, in the pr-test-analyzer review of the new
-  `DateRangePicker.svelte.test.ts` (flagged low/optional, shared-with-sibling).
-
 ### `useSorting` contract test is flaky in the full-suite run
 
 - **Where:** `packages/table/src/lib/stores/concerns/concerns.test.ts`
@@ -878,7 +817,70 @@ internal TODO instead. Sections are ordered roughly by urgency.
 - **Found:** 2026-07-13, button-group docs rework; second facet same day,
   guide narrative-demos pass.
 
+## Toolchain / dependencies
+
+### TypeScript 7 (native Go compiler) upgrade blocked on Svelte type-checking support
+
+- **Where:** the single `typescript` catalog pin
+  (`package.json` → `workspaces.catalog`, currently `^6.0.3`), consumed by
+  every package via `"typescript": "catalog:"`; plus the three in-repo
+  consumers of the classic compiler API — `svelte-check` (the `check` script
+  of every package), `packages/docs-gen/src/extractors/**` (7 files,
+  `import * as ts from 'typescript'`) and `packages/i18n/src/lib/audit/scan/ts-walker.ts`
+  (`await import('typescript')`).
+- **What:** TS 7.0.2 (npm `typescript@latest`) is the native Go compiler
+  (Project Corsa) — ESM-only, shipped as platform Go binaries
+  (`@typescript/typescript-<os>-<arch>` optional deps). Its main entry exports
+  **only** `./lib/version.cjs`; the classic ("Strada") synchronous compiler API
+  (`createProgram`, `getTypeChecker`, `createSourceFile`, `forEachChild`,
+  `SyntaxKind`, `ts.sys`, `getJSDocTags`, …) is gone, replaced by a redesigned,
+  partly-async API under `./unstable/ast` · `./unstable/sync` · `./unstable/async`.
+  Verified empirically in a throwaway worktree bumping the catalog to `^7.0.2`
+  (2026-07-13): `bun install` and native `tsc --version` / `tsc --noEmit` on
+  pure-TS packages work (`design-engine`: 0 errors), **but** `svelte-check`
+  crashes on load — `TypeError: Cannot read properties of undefined (reading
+  'useCaseSensitiveFileNames')`, because it does `require('typescript').sys.…`
+  at construction. That kills the type gate for **every** package. Official
+  Svelte (and Vue/Astro/Angular/MDX) template type-checking is not supported on
+  TS 7 yet — tracked upstream at `sveltejs/language-tools#3063` ("TypeScript 7
+  RC crashes svelte2tsx and svelte-check"); `svelte2tsx`'s peer range is still
+  `^4.9.4 || ^5.0.0 || ^6.0.0`, explicitly excluding 7.
+- **Why deferred:** A *clean* whole-monorepo TS 7 with all gates green is
+  **upstream-blocked** — no in-repo change fixes svelte-check; svelte-check /
+  svelte2tsx must ship native-TS7 support first. Two non-clean paths were
+  assessed and rejected: (a) **side-by-side** — native `tsc` for pure-TS
+  packages + the ≤6 JS API kept for svelte-check/docs-gen/i18n (Microsoft's own
+  transition recipe, but two toolchains in one repo, not "the whole app on
+  TS7"); (b) **force it now** — swap official svelte-check for an experimental
+  community checker (`svelte-fast-check` / `svelte-check-native`, both
+  svelte2tsx + tsgo) and rewrite docs-gen + i18n against the literally-`unstable`
+  AST API. Decision (Felix, 2026-07-13): **stay on TS 6.0.3**, ship nothing,
+  revisit.
+- **Revisit trigger:** when svelte-check / svelte2tsx declare native-TS7 support
+  (watch `sveltejs/language-tools#3063` and the svelte2tsx peer range). At that
+  point the upgrade is expected to be the one-line catalog bump plus migrating
+  the docs-gen extractors and the i18n `ts-walker` to `typescript/unstable/ast`
+  (+ `unstable/sync` for program/checker). TS 7.1, expected ~3–4 months after
+  7.0, widens the public API and may unblock the tooling.
+- **Found:** 2026-07-13, on the requested "upgrade the whole app to TypeScript
+  7" task — resolved to an empirical worktree spike + this deferral.
+
 ## Design tokens
+
+### Toast progress bar animates over the literal duration — not gated by reduced-motion
+
+- **Where:** `packages/blocks/src/lib/primitives/Toast/Toaster.svelte`
+  (progress bar `animation: blocks-toast-progress {toast.duration}ms …`).
+- **What:** The countdown bar animates over the raw `toast.duration`, not a
+  `--blocks-duration-*` token, so the `prefers-reduced-motion: reduce` block in
+  `style/interaction.css` (which collapses the motion tokens to ~1ms) doesn't
+  reach it — the bar keeps shrinking under reduced motion. Cosmetic (a shrinking
+  bar is arguably fine, and Sonner keeps it); the auto-dismiss timing itself is
+  unaffected.
+- **Why deferred:** Whether the countdown should be hidden/instant under reduced
+  motion is a shared-CSS design decision (the duration is legitimately dynamic,
+  so it can't just read a fixed token), not a mechanical swap.
+- **Found:** 2026-07-13, Toast hover-to-pause review (primitives-Welle).
 
 ### Calendar current-time indicator uses `red-500` instead of a semantic token
 
