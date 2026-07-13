@@ -441,6 +441,14 @@
     onMonthChange?.(clamped.month, clamped.year);
   }
 
+  // Jump the reference date to a concrete day (mini-calendar drill-down into
+  // week/day view). Delegates to the controller, which clamps to
+  // [minDate, maxDate] and reports back through handleNavigate like every
+  // other controller-driven navigation path.
+  function goToDate(date: Date) {
+    controller.goTo(date);
+  }
+
   function setView(v: CalendarViewMode) {
     view = v;
     onViewChange?.(v);
@@ -572,6 +580,7 @@
     navigateYear,
     goToToday,
     goToMonth,
+    goToDate,
     selectDate,
     setFocusedDate,
     moveFocus,

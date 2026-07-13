@@ -52,13 +52,14 @@
   function handleDayClick(date: Date) {
     // Navigate main calendar to this date and select it
     ctx.selectDate(date);
-    // Also sync view to the clicked day's month
-    if (date.getMonth() !== ctx.displayedMonth || date.getFullYear() !== ctx.displayedYear) {
-      ctx.goToMonth(date.getMonth(), date.getFullYear());
-    }
-    // If in week or day view, update displayed date
     if (ctx.view === 'week' || ctx.view === 'day') {
-      ctx.navigateDay(0); // triggers a re-render with the newly selected date
+      // selectDate only updates the selection — it never moves the reference
+      // date, so jump the week/day grid to the clicked day explicitly.
+      ctx.goToDate(date);
+    } else if (date.getMonth() !== ctx.displayedMonth || date.getFullYear() !== ctx.displayedYear) {
+      // Month-based views (month handled its own spill-jump in selectDate;
+      // agenda lands here) only need to sync to the clicked day's month.
+      ctx.goToMonth(date.getMonth(), date.getFullYear());
     }
   }
 
@@ -140,9 +141,10 @@
     </Button>
   </div>
 
-  <!-- Weekday headers -->
+  <!-- Weekday headers — narrow names duplicate in many locales (de-DE: M, D,
+       M, D, F, S, S), so the key needs the column position to stay unique. -->
   <div class="grid grid-cols-7">
-    {#each weekdayNames as name (name)}
+    {#each weekdayNames as name, i (`${i}-${name}`)}
       <span class={slot('miniCalendarWeekday')}>{name}</span>
     {/each}
   </div>

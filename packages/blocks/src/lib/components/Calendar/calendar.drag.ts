@@ -258,12 +258,9 @@ export function resizableEvent(opts: ResizableEventOptions): Attachment<HTMLElem
       isResizing = false;
 
       handle.releasePointerCapture(e.pointerId);
-      handle.removeEventListener('pointermove', handlePointerMove);
-      handle.removeEventListener('pointerup', handlePointerUp);
-      handle.removeEventListener('pointercancel', handlePointerUp);
-      document.body.style.cursor = '';
 
-      // Calculate new end time based on final position
+      // Calculate new end time based on final position — measured BEFORE
+      // cleanup(), which resets the inline height the calculation reads.
       const gridRect = opts.gridEl.getBoundingClientRect();
       const eventRect = opts.eventEl.getBoundingClientRect();
       const gridTotalMinutes = (opts.endHour - opts.startHour) * 60;
@@ -290,10 +287,20 @@ export function resizableEvent(opts: ResizableEventOptions): Attachment<HTMLElem
       const newEnd = new Date(opts.event.start);
       newEnd.setHours(Math.floor(clampedMinutes / 60), clampedMinutes % 60, 0, 0);
 
-      // Reset inline height — the parent will re-render with new props
-      opts.eventEl.style.height = '';
+      cleanup();
 
       opts.onResizeEnd?.(opts.event, newEnd);
+    }
+
+    // Teardown of everything a live resize holds: document-level cursor, the
+    // move/up/cancel listeners, and the event block's inline height (the parent
+    // re-renders the committed height from props).
+    function cleanup() {
+      handle.removeEventListener('pointermove', handlePointerMove);
+      handle.removeEventListener('pointerup', handlePointerUp);
+      handle.removeEventListener('pointercancel', handlePointerUp);
+      document.body.style.cursor = '';
+      opts.eventEl.style.height = '';
     }
 
     handle.addEventListener('pointerdown', handlePointerDown);
@@ -301,6 +308,12 @@ export function resizableEvent(opts: ResizableEventOptions): Attachment<HTMLElem
 
     return () => {
       handle.removeEventListener('pointerdown', handlePointerDown);
+      // Clean up any in-progress resize on unmount (mirrors draggableEvent) —
+      // otherwise the row-resize cursor and inline height would leak.
+      if (isResizing) {
+        cleanup();
+        isResizing = false;
+      }
     };
   };
 }

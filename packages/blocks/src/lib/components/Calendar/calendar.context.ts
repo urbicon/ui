@@ -75,6 +75,9 @@ export interface CalendarContext {
   setView: (view: CalendarViewMode) => void;
   /** Navigate to a specific month (used by year grid drill-down). */
   goToMonth: (month: number, year: number) => void;
+  /** Jump the reference date to a specific day, clamped to [minDate, maxDate]
+   * (mini-calendar drill-down into week/day view). */
+  goToDate: (date: Date) => void;
 
   // Date queries
   isDateDisabled: (date: Date) => boolean;

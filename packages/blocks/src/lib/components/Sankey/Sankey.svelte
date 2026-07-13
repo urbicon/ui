@@ -45,6 +45,7 @@
     nodeContent: nodeContentSnippet,
     linkContent: linkContentSnippet,
     tooltip: tooltipSnippet,
+    onmousemove: userOnMouseMove,
     ...restProps
   }: SankeyProps = $props();
 
@@ -191,6 +192,16 @@
       visible: true
     };
   }
+  // The wrapper hardcodes onmousemove for tooltip tracking, so a consumer's
+  // onmousemove would otherwise silently replace it via the restProps spread.
+  // Run the internal handler first, then forward to the consumer (same pattern
+  // as Input's onkeydown / Textarea's oninput merge).
+  function handleWrapperMouseMove(
+    event: MouseEvent & { currentTarget: EventTarget & HTMLDivElement }
+  ) {
+    moveTooltip(event);
+    userOnMouseMove?.(event);
+  }
   function hideTooltip() {
     hovered = null;
     tooltipPos = { ...tooltipPos, visible: false };
@@ -264,11 +275,16 @@
     ? [slotClasses?.wrapper, className].filter(Boolean).join(' ')
     : styles.wrapper({ class: [slotClasses?.wrapper, className] })}
   style="height: {effectiveHeight}px"
-  onmousemove={moveTooltip}
+  onmousemove={handleWrapperMouseMove}
   {...restProps}
 >
+  <!-- role="group", not "img": img flattens the subtree in the accessibility
+       tree, which would hide the interactive role="button" nodes/paths inside.
+       Convention: interactive charts (Sankey, CompositionBar) are a named
+       group; purely static charts (ChartFrame, DonutChart) keep role="img" —
+       atomic is only correct without interactive descendants. -->
   <svg
-    role="img"
+    role="group"
     aria-label={ariaSummary}
     class={unstyled ? (slotClasses?.svg ?? '') : styles.svg({ class: slotClasses?.svg })}
     viewBox="0 0 {effectiveWidth} {effectiveHeight}"

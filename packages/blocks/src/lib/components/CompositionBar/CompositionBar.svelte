@@ -263,10 +263,14 @@
       </div>
     {/if}
 
-    <!-- Bar -->
+    <!-- Bar — role="group", not "img": img flattens the subtree in the
+         accessibility tree, which would hide the interactive segment <button>s
+         inside. Convention: interactive charts (Sankey, CompositionBar) are a
+         named group; purely static charts (ChartFrame, DonutChart) keep
+         role="img" — atomic is only correct without interactive descendants. -->
     <div
       bind:this={barRef}
-      role="img"
+      role="group"
       aria-label={ariaSummary}
       class={unstyled ? (slotClasses?.bar ?? '') : styles.bar({ class: slotClasses?.bar })}
     >
