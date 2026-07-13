@@ -782,6 +782,19 @@ internal TODO instead. Sections are ordered roughly by urgency.
   threshold instead would make the suite flaky.
 - **Found:** 2026-07-13, while verifying the shadow-token fix.
 
+### prettier-plugin-svelte corrupts single-quoted attributes containing double quotes
+
+- **Where:** docs-app `.svelte` sources run through Prettier (lefthook
+  pre-commit); observed on `code='<X a="b">'`-style attribute values.
+- **What:** Prettier rewrites the outer single quotes to double quotes without
+  escaping the inner ones — `code="<X a="b">"` — which no longer parses
+  ("Expected token ="). Verified 2026-07-13 on the info-card page; worked
+  around by using `isolate` extraction instead of inline code attributes.
+- **Why deferred:** Upstream prettier-plugin-svelte behaviour; needs a minimal
+  repro + upstream issue (or a repo convention: code snippets always via
+  template-literal props / `isolate`, never single-quoted attributes).
+- **Found:** 2026-07-13, docs-package section polish.
+
 ### docs `codeExamplePlugin` regex breaks on `>` inside a code template literal
 
 - **Where:** `packages/docs/src/lib/utils/code-example-plugin.ts:28`
