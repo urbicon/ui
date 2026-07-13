@@ -1,7 +1,8 @@
 // @vitest-environment jsdom
-import { screen } from '@testing-library/dom';
+import { fireEvent, screen } from '@testing-library/dom';
+import userEvent from '@testing-library/user-event';
 import { createRawSnippet, flushSync, mount, unmount } from 'svelte';
-import { afterEach, describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import Badge from './Badge.svelte';
 import type { BadgeProps } from './index';
 
@@ -62,5 +63,93 @@ describe('Badge — purpose axis (BDG-1)', () => {
   it('back-compat: the counter boolean still applies the pill styling', () => {
     render({ counter: true, children: label('9') });
     expect(badge().className).toContain('tabular-nums');
+  });
+});
+
+// Interaction layer: remove button, keyboard activation/removal, hover callback,
+// and the disabled contract. Keyboard paths use fireEvent — the handlers hang on
+// the badge span, and a direct keydown dispatch exercises exactly the wiring
+// under test without a focus dance (the guards, not focus routing, are the
+// subject; the remove *button* focusability is asserted separately).
+describe('Badge — remove & interaction', () => {
+  it('remove button fires onRemove without triggering the badge onclick', async () => {
+    const onRemove = vi.fn();
+    const onclick = vi.fn();
+    render({ removable: true, onRemove, onclick, children: label('React') });
+
+    const removeBtn = screen.getByRole('button', { name: 'Remove badge' });
+    await userEvent.click(removeBtn);
+
+    expect(onRemove).toHaveBeenCalledOnce();
+    // handleRemove stops propagation — removing a chip must not also "click" it.
+    expect(onclick).not.toHaveBeenCalled();
+  });
+
+  it('labels a removable badge and removes it via Delete/Backspace', () => {
+    const onRemove = vi.fn();
+    render({ removable: true, interactive: true, onRemove });
+
+    const el = badge();
+    expect(el.getAttribute('aria-label')).toBe('Removable badge');
+    fireEvent.keyDown(el, { key: 'Delete' });
+    fireEvent.keyDown(el, { key: 'Backspace' });
+    expect(onRemove).toHaveBeenCalledTimes(2);
+  });
+
+  it('Enter and Space activate an interactive badge', () => {
+    const onclick = vi.fn();
+    render({ onclick });
+
+    // onclick alone makes the badge interactive (focusable).
+    expect(badge().getAttribute('tabindex')).toBe('0');
+    fireEvent.keyDown(badge(), { key: 'Enter' });
+    fireEvent.keyDown(badge(), { key: ' ' });
+    expect(onclick).toHaveBeenCalledTimes(2);
+  });
+
+  it('reports hover transitions through onHover', () => {
+    const onHover = vi.fn();
+    render({ onHover });
+
+    fireEvent.mouseEnter(badge());
+    expect(onHover).toHaveBeenLastCalledWith(true);
+    fireEvent.mouseLeave(badge());
+    expect(onHover).toHaveBeenLastCalledWith(false);
+    expect(onHover).toHaveBeenCalledTimes(2);
+  });
+
+  it('disabled blocks pointer activation (JS guard, not just pointer-events CSS)', () => {
+    const onclick = vi.fn();
+    render({ onclick, disabled: true });
+
+    // Direct dispatch bypasses pointer-events-none (jsdom computes no Tailwind
+    // styles anyway) — the handleClick guard must hold on its own.
+    fireEvent.click(badge());
+    expect(onclick).not.toHaveBeenCalled();
+  });
+
+  it('disabled blocks keyboard activation and keyboard removal', () => {
+    // Regression guard: handleKeydown lacked the disabled guard, so a disabled
+    // badge was mouse-dead (pointer-events-none) but still keyboard-activatable.
+    const onclick = vi.fn();
+    const onRemove = vi.fn();
+    render({ onclick, onRemove, removable: true, interactive: true, disabled: true });
+
+    fireEvent.keyDown(badge(), { key: 'Enter' });
+    fireEvent.keyDown(badge(), { key: ' ' });
+    fireEvent.keyDown(badge(), { key: 'Delete' });
+    fireEvent.keyDown(badge(), { key: 'Backspace' });
+    expect(onclick).not.toHaveBeenCalled();
+    expect(onRemove).not.toHaveBeenCalled();
+  });
+
+  it('disabled removes the badge from the tab order and disables the remove button', () => {
+    render({ removable: true, interactive: true, disabled: true, onRemove: vi.fn() });
+
+    expect(badge().getAttribute('tabindex')).toBeNull();
+    // The inner remove Button must be natively disabled — otherwise Tab still
+    // reaches it and Enter removes a disabled badge.
+    const removeBtn = screen.getByRole('button', { name: 'Remove badge' }) as HTMLButtonElement;
+    expect(removeBtn.disabled).toBe(true);
   });
 });

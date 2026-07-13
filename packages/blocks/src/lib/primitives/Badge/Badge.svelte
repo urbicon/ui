@@ -104,6 +104,10 @@
   }
 
   function handleKeydown(event: KeyboardEvent) {
+    // Mirror the pointer path: `disabled` sets pointer-events-none (mouse dead) and
+    // handleClick guards — without this guard the keyboard could still activate
+    // or remove a disabled badge.
+    if (disabled) return;
     if (isRemovable && (event.key === 'Delete' || event.key === 'Backspace')) {
       handleRemove(event);
     }
@@ -125,7 +129,7 @@
   ]}
   {role}
   data-purpose={purpose}
-  tabindex={isInteractive ? 0 : undefined}
+  tabindex={isInteractive && !disabled ? 0 : undefined}
   onmouseenter={handleMouseEnter}
   onmouseleave={handleMouseLeave}
   onclick={handleClick}
@@ -148,6 +152,7 @@
     <Button
       variant="ghost"
       size="xs"
+      {disabled}
       class={unstyled
         ? (slotClasses?.removeButton ?? '')
         : styles.removeButton({ class: slotClasses?.removeButton })}
