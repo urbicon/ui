@@ -139,9 +139,10 @@
     return () => handlePageChange(page);
   }
 
-  // Computed state helpers
-  const isFirstPage = $derived(currentPage === 1);
-  const isLastPage = $derived(currentPage === totalPages);
+  // Computed state helpers. Edge policy across all layouts is disabled-but-visible:
+  // Previous/Next stay mounted and go `disabled` at page 1 / N (never unmounted),
+  // so the arrow can't vanish from under the pointer (no layout shift, no focus
+  // loss). First/Last are a separate, redundancy-driven concern — see the markup.
   const hasPreviousPage = $derived(currentPage > 1);
   const hasNextPage = $derived(currentPage < totalPages);
 
@@ -220,19 +221,25 @@
       {/if}
     </div>
   {:else if layout === 'navigation'}
-    <!-- Navigation Layout: Only Previous/Next -->
+    <!-- Navigation Layout: Only Previous/Next. Unified edge policy (matches the
+         table layout): both arrows stay mounted and go `disabled` at the boundary
+         (page 1 / N) rather than unmounting. This row is laid out `justify-between`,
+         so unmounting one arm would teleport the survivor across the whole bar
+         (start ↔ end) and drop focus — disabled-but-visible pins Previous left and
+         Next right. Prev/Next-only pagers therefore grey out the dead end here;
+         they do not disappear it. -->
     <div
       class={unstyled
         ? (slotClasses?.controls ?? '')
         : styles.controls({ class: slotClasses?.controls })}
     >
-      {#if showPreviousNext && hasPreviousPage}
+      {#if showPreviousNext}
         <PaginationItem
           {size}
           {variant}
           {intent}
           {tier}
-          disabled={disabled || loading}
+          disabled={disabled || loading || !hasPreviousPage}
           onPageClick={goToPrevious}
           {mint}
         >
@@ -242,15 +249,13 @@
             {previousLabel}
           {/if}
         </PaginationItem>
-      {/if}
 
-      {#if showPreviousNext && hasNextPage}
         <PaginationItem
           {size}
           {variant}
           {intent}
           {tier}
-          disabled={disabled || loading}
+          disabled={disabled || loading || !hasNextPage}
           onPageClick={goToNext}
           {mint}
         >
@@ -276,7 +281,14 @@
         ? (slotClasses?.controls ?? '')
         : styles.controls({ class: slotClasses?.controls })}
     >
-      {#if showFirstLast && !isFirstPage && showStartEllipsis}
+      <!-- First / Last are gated by the ellipsis — by REDUNDANCY, not by the page
+           edge. `showStartEllipsis` is true only when page 1 sits OUTSIDE the visible
+           window; the moment it re-enters, page 1 is a directly-clickable number and
+           a "First" jump button would merely duplicate it. That predicate already
+           implies currentPage > 1, so (unlike Previous/Next) First/Last are never a
+           dead-end control needing disabled-but-visible: hiding one drops a duplicate,
+           not an edge stepper — no layout-shift/focus trap. -->
+      {#if showFirstLast && showStartEllipsis}
         <PaginationItem
           {size}
           {variant}
@@ -294,13 +306,13 @@
         </PaginationItem>
       {/if}
 
-      {#if showPreviousNext && hasPreviousPage}
+      {#if showPreviousNext}
         <PaginationItem
           {size}
           {variant}
           {intent}
           {tier}
-          disabled={disabled || loading}
+          disabled={disabled || loading || !hasPreviousPage}
           onPageClick={goToPrevious}
           {mint}
         >
@@ -364,13 +376,13 @@
         </div>
       {/if}
 
-      {#if showPreviousNext && hasNextPage}
+      {#if showPreviousNext}
         <PaginationItem
           {size}
           {variant}
           {intent}
           {tier}
-          disabled={disabled || loading}
+          disabled={disabled || loading || !hasNextPage}
           onPageClick={goToNext}
           {mint}
         >
@@ -382,7 +394,8 @@
         </PaginationItem>
       {/if}
 
-      {#if showFirstLast && !isLastPage && showEndEllipsis}
+      <!-- See the First-button note above: ellipsis-gated (redundancy), not edge-gated. -->
+      {#if showFirstLast && showEndEllipsis}
         <PaginationItem
           {size}
           {variant}

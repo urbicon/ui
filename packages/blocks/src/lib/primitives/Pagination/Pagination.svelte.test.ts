@@ -81,9 +81,10 @@ describe('Pagination — renderItem snippet', () => {
 });
 
 // Default-button interaction contract: onPageChange wiring for page numbers /
-// Previous / Next / First / Last, edge behaviour (default layout hides the
-// dead-end arrow, table layout disables it), aria-current on the active page,
-// the windowed-ellipsis rendering, and the global `disabled` gate.
+// Previous / Next / First / Last, unified edge behaviour (every layout keeps
+// Previous/Next mounted and disables the dead-end arrow rather than unmounting it),
+// aria-current on the active page, the windowed-ellipsis rendering, and the global
+// `disabled` gate.
 describe('Pagination — page-change contract', () => {
   const pageButton = (name: string) => screen.getByRole('button', { name }) as HTMLButtonElement;
 
@@ -118,17 +119,43 @@ describe('Pagination — page-change contract', () => {
     expect(onPageChange).toHaveBeenLastCalledWith(4);
   });
 
-  it('default layout hides Previous on the first page and Next on the last', () => {
-    renderPagination({ currentPage: 1, totalPages: 5 });
-    expect(screen.queryByRole('button', { name: 'Previous' })).toBeNull();
-    expect(screen.getByRole('button', { name: 'Next' })).toBeTruthy();
+  it('default layout keeps Previous/Next mounted at the edges and disables the dead end', async () => {
+    const onPageChange = vi.fn();
+    renderPagination({ currentPage: 1, totalPages: 5, onPageChange });
+
+    // Page 1: Previous is IN the DOM but disabled (unified edge policy — no unmount,
+    // hence no layout shift and no focus loss); Next stays live.
+    const prevOnFirst = pageButton('Previous');
+    expect(prevOnFirst.disabled).toBe(true);
+    expect(pageButton('Next').disabled).toBe(false);
+    // Clicking the dead-end arrow is inert — the native disabled attribute and the
+    // handlePageChange range guard both suppress it.
+    await userEvent.click(prevOnFirst);
+    expect(onPageChange).not.toHaveBeenCalled();
 
     dispose?.();
     document.body.replaceChildren();
 
-    renderPagination({ currentPage: 5, totalPages: 5 });
-    expect(screen.getByRole('button', { name: 'Previous' })).toBeTruthy();
-    expect(screen.queryByRole('button', { name: 'Next' })).toBeNull();
+    // Last page: symmetric — Next is present-but-disabled, Previous is live.
+    renderPagination({ currentPage: 5, totalPages: 5, onPageChange });
+    const nextOnLast = pageButton('Next');
+    expect(nextOnLast.disabled).toBe(true);
+    expect(pageButton('Previous').disabled).toBe(false);
+    await userEvent.click(nextOnLast);
+    expect(onPageChange).not.toHaveBeenCalled();
+  });
+
+  it('navigation layout keeps both arrows mounted and disables the dead end', async () => {
+    const onPageChange = vi.fn();
+    renderPagination({ layout: 'navigation', currentPage: 1, totalPages: 5, onPageChange });
+
+    // The navigation row is laid out `justify-between`; unmounting a lone arm would
+    // teleport the survivor across the bar, so it is disabled-but-visible here too.
+    const prev = pageButton('Previous');
+    expect(prev.disabled).toBe(true);
+    expect(pageButton('Next').disabled).toBe(false);
+    await userEvent.click(prev);
+    expect(onPageChange).not.toHaveBeenCalled();
   });
 
   it('windows long trails with ellipses and First/Last jump buttons', async () => {
