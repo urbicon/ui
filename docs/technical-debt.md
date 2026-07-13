@@ -370,6 +370,22 @@ internal TODO instead. Sections are ordered roughly by urgency.
   not a drive-by. Logged so "Sonner-style" doesn't imply a behaviour that isn't there.
 - **Found:** 2026-07-10, blocks feature-request review (TST-1).
 
+### Checkbox now carries a press cue + intent interaction layer its form siblings lack
+
+- **Where:** `packages/blocks/src/lib/primitives/Checkbox/checkbox.variants.ts`
+  (`group-active:scale-95`, `group-hover:bg-<intent>-hover` /
+  `group-active:bg-<intent>-active` on the checked/indeterminate box) vs.
+  Toggle / RadioGroup, whose controls have neither.
+- **What:** The CHK-10 polish (`d6dcf2c`) gave Checkbox the small-element
+  press cue and the Button hover/active token ladder. That is the right
+  target state, but it makes Checkbox the only form primitive with a full
+  interaction layer — Toggle's track and RadioGroup's radios stay static
+  under hover/press.
+- **Why deferred:** Rolling the same vocabulary across the form family is a
+  deliberate sweep (per-control decision what hover/active mean on a track vs
+  a radio dot, plus VR review), not a per-component drive-by.
+- **Found:** 2026-07-13, CHK-10 checkbox polish.
+
 ### Combobox/Select grouped keyboard-nav is O(n²) and keys groups on a non-unique label
 
 - **Where:** `packages/blocks/src/lib/primitives/Combobox/Combobox.svelte`
@@ -452,21 +468,38 @@ internal TODO instead. Sections are ordered roughly by urgency.
 
 ## Accessibility
 
-### PlaygroundConfigurator control hints carry an orphaned `-hint` anchor id
+### PlaygroundConfigurator `label for` points nowhere in most control branches — and Input ignores its `id` prop
 
 - **Where:** `packages/docs/src/lib/components/PlaygroundConfigurator/PlaygroundConfigurator.svelte`
-  (`<div class={slot('controlHint')} id="{control.key}-hint">` in the controls
-  `{#each}`).
-- **What:** The per-control description renders with an anchor id that nothing
-  references — none of the control branches (text, checkbox, select, color,
-  slider) set `aria-describedby="{control.key}-hint"`, so assistive tech never
-  associates the hint with its control. The id is dead weight today.
-- **Why deferred:** Wiring it up touches every control branch in the `{#each}`
-  (and the hint only renders while `helpVisible` — the `aria-describedby`
-  should appear/disappear in sync). Wants one small pass over the configurator
-  rather than an inline patch. Docs-package only, no library consumer impact.
-- **Found:** 2026-07-10 (silent-failure review of the P1 `hint`→`helper`
-  rename; pre-existing, not a regression of that rename).
+  (`<label for={control.key}>` per control) vs. the ids the branches actually
+  render; `packages/blocks/src/lib/primitives/Input/Input.svelte` (hardcodes
+  `input-${propsId}`; a consumer `id` prop — or spread id — is overridden).
+- **What:** Only the color branch's `for` resolves. Toggle renders
+  `#{key}-input`, Select's focusable trigger is `#{key}-trigger`, SegmentGroup's
+  radiogroup has no id, Slider thumbs have no ids (the id lands on the
+  wrapper), and Input discards the `id` it is given entirely — that last one is
+  a genuine blocks bug affecting any consumer pairing an external `<label for>`
+  with an Input. Clicking a configurator label therefore focuses nothing.
+- **Why deferred:** Needs per-branch `for` targets in the configurator plus an
+  Input fix to honour a supplied `id` (two-step `$props.id()` pattern per the
+  repo convention) — one coherent pass with DOM assertions, found at the tail
+  of the XC-5/hint pass (`d3a40c6`), which deliberately stayed scoped to
+  describedby.
+- **Found:** 2026-07-13, PlaygroundConfigurator hint-wiring verification.
+
+### Form-family `aria-describedby` forwarding is asymmetric
+
+- **Where:** `packages/blocks` form primitives. Input/Select/Slider now merge a
+  consumer `aria-describedby` into the internal error/helper chain
+  (`d298d2c`); Toggle lets the consumer attribute *replace* the internal chain;
+  Textarea/Checkbox/Combobox/RadioGroup are unaudited.
+- **What:** Same attribute, three behaviours across siblings (merge, replace,
+  unknown). A consumer moving between form controls cannot rely on external
+  descriptions composing with validation messages.
+- **Why deferred:** Wants one family sweep with a decided contract (merge,
+  internal-first) plus DOM tests per component — not per-component drive-bys.
+- **Found:** 2026-07-13, while fixing the describedby delivery for the
+  configurator hints.
 
 ### `Select` spreads `aria-label` onto its role-less wrapper — surfacing as the LocaleSwitcher axe hit
 
@@ -484,6 +517,10 @@ internal TODO instead. Sections are ordered roughly by urgency.
   to the trigger element rather than the wrapper, or accept a dedicated
   `triggerLabel` prop), then LocaleSwitcher inherits it. Changes markup for
   every Select consumer, so it wants its own pass with the DOM tests.
+- **Update 2026-07-13:** `aria-describedby` is now destructured and delivered
+  to the trigger (`d298d2c`); `aria-label` and the accessible-name gap remain
+  as described (re-confirmed by the configurator hint pass — the trigger has
+  no name when only an external label exists).
 - **Found:** 2026-07-09 (axe over `/blocks`), root cause narrowed to Select's
   restProps target 2026-07-10.
 
