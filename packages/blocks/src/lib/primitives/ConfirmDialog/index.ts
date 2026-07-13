@@ -1,4 +1,5 @@
 import type { Snippet } from 'svelte';
+import type { HTMLDialogAttributes } from 'svelte/elements';
 import type { DialogIntent } from '../Dialog';
 import type { DialogSlots } from '../Dialog/dialog.variants';
 
@@ -38,7 +39,8 @@ export type ConfirmIntent = Exclude<DialogIntent, 'neutral'>;
  * />
  * ```
  */
-export interface ConfirmDialogProps {
+export interface ConfirmDialogProps
+  extends Omit<HTMLDialogAttributes, 'children' | 'open' | 'title' | 'draggable'> {
   /** Controls visibility. Supports bind:open. */
   open?: boolean;
 
@@ -106,10 +108,16 @@ export interface ConfirmDialogProps {
   /** Optional richer markup rendered below `description`. */
   children?: Snippet;
 
-  // ── Styling contract (forwarded verbatim to the underlying Dialog) ──
+  // ── Styling & attribute contract (forwarded verbatim to the underlying Dialog) ──
   // ConfirmDialog is a pre-configured Dialog, so it does not own a tv()
   // config — the standard unstyled/slotClasses/preset trio resolves
   // against the inner Dialog (presets registered under the `Dialog` key).
+  // Extending `HTMLDialogAttributes` (mirroring Dialog/Drawer) additionally
+  // lets consumers attach arbitrary `data-*` / `aria-*` / native `<dialog>`
+  // attributes: they are gathered as rest props and spread onto the inner
+  // Dialog, landing on the same `<dialog>` element Dialog itself uses (e.g.
+  // `data-testid` for an e2e hook). Rest props are spread first, so they can
+  // never clobber ConfirmDialog's own computed props/handlers.
 
   /** Extra classes merged onto the dialog element. Forwarded to {@link DialogProps.class}. */
   class?: string;

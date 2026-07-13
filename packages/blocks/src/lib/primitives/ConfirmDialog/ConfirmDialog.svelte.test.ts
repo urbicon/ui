@@ -222,4 +222,25 @@ describe('ConfirmDialog (component interaction)', () => {
     expect(heading.className).toContain('bare-title');
     expect(heading.className).not.toContain('font-semibold');
   });
+
+  it('forwards arbitrary HTML attributes (data-*, aria-label) to the underlying dialog element', async () => {
+    // ConfirmDialogProps now extends HTMLDialogAttributes (mirroring Dialog/Drawer),
+    // so consumer-supplied attributes flow through rest props onto the inner Dialog
+    // and land on the same <dialog> element Dialog itself spreads onto — the hook the
+    // e2e overlay-modal spec needs. Before this the interface was closed, forcing the
+    // spec to target ConfirmDialog by text/structure. The props object below also
+    // type-checks the pass-through: `data-testid` and `aria-label` are only valid
+    // ConfirmDialog props because of the HTMLDialogAttributes extension.
+    renderConfirm({
+      ...base,
+      open: true,
+      'data-testid': 'confirm-delete',
+      'aria-label': 'Confirm deletion'
+    });
+    await tick();
+
+    const dialog = screen.getByRole('dialog', { hidden: true });
+    expect(dialog.getAttribute('data-testid')).toBe('confirm-delete');
+    expect(dialog.getAttribute('aria-label')).toBe('Confirm deletion');
+  });
 });
