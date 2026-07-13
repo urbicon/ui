@@ -198,6 +198,24 @@ internal TODO instead. Sections are ordered roughly by urgency.
   `variant`-based usage must stay byte-identical). Wants its own type-design pass.
 - **Found:** 2026-07-10, blocks feature-request review (BDG-1).
 
+### `createCronRunner.onError` never fires on non-2xx responses — only on fetch rejection
+
+- **Where:** `packages/sveltekit-utils/src/lib/cron.ts` (the per-job
+  `fetch(...)` path that routes failures to `onError`).
+- **What:** `onError` is wired to `fetch`'s promise rejection, which only
+  happens on a network-level failure (DNS, connection refused, abort). A cron
+  endpoint that answers `500`/`403`/`404` resolves `fetch` normally, so the
+  runner treats it as success and `onError` never fires — the single most
+  common failure of a scheduled run (the endpoint ran but errored) is silently
+  swallowed. Documented honestly in the new JSDoc (2026-07-13), but the
+  behaviour collides with the repo's fail-loud-over-silent-fallback maxim.
+- **Why deferred:** The fix is a small API decision, not a drive-by: check
+  `response.ok` and hand a synthetic `Error` (carrying the status) to
+  `onError`. It is additive for the network-error path but changes what
+  `onError` consumers receive, so it wants a conscious call (always-on vs. an
+  opt-in flag) rather than a quiet semantics shift.
+- **Found:** 2026-07-13, JSDoc-coverage pass over sveltekit-utils.
+
 ## Component behaviour
 
 ### ButtonGroup roving couples `buttonOrder` to a positional DOM query — duplicate values and dynamic add/remove desync it
@@ -657,6 +675,30 @@ internal TODO instead. Sections are ordered roughly by urgency.
   category cleanup already landed.
 - **Found:** 2026-07-13, while removing the dead prop-category scaffolding
   (docs-gen cleanup agent).
+
+### docs-gen slot extraction misses derived slot-name aliases — the catalog reports `slots: []` for most components
+
+- **Where:** `packages/docs-gen/src/generators/llm/LLMDocumentationGenerator.ts`
+  (`extractSlotInfo`, the `Record<['"]…['"],/` regex ~L516) and the mirror
+  `extractSlots` in the MCP-catalog generator.
+- **What:** Slot names are harvested only from an inline quoted-union record
+  type (`Record<'a'|'b', string>`). The repo instead uses derived aliases
+  throughout — `Partial<Record<CardSlots, string>>` with `CardSlots =
+  SlotNames<typeof cardVariants>` — which the regex cannot resolve, so
+  Card/Button/Alert/Combobox (practically every slotted component) emit
+  `slots: []` in the catalog and `llm.txt` despite having real `tv()` slots.
+  The route-base fix (`ced20b4`) and the index-link fix (`d4f1d3f`) touched the
+  same generators but not this regex. Separately, even where names resolve
+  there is no per-slot *description* source: the `tv()` `slots:` blocks are
+  class arrays with only sporadic styling-rationale comments, and the
+  `slotClasses` record types carry no per-key docs — so the "slotClasses-doc
+  from `tv()`" idea has no input to work from.
+- **Why deferred:** The real source of truth is the `tv()` `slots:` keys in
+  each `*.variants.ts`, which `VariantsExtractor` does not parse at all today.
+  Wiring slot-name (and optionally description) extraction there is its own
+  feature with a catalog-regeneration + snapshot pass, not part of the
+  cross-reference-link fix that surfaced it.
+- **Found:** 2026-07-13, docs-gen cross-reference-link fix (route-base pass).
 
 ## Testing / CI gates
 
