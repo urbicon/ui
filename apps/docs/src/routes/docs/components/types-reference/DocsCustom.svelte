@@ -53,7 +53,7 @@
 
 <!-- Basic Usage -->
 <Section id="examples" title="Examples" subtitle="How TypesReference renders type definitions">
-  <CodeExample title="Interface & Type Definitions">
+  <CodeExample title="Interface & Type Definitions" isolate>
     <TypesReference
       types={sampleTypes}
       title="Button Types"
@@ -66,7 +66,7 @@
 <Section id="sizes" title="Sizes" subtitle="Compact, default, and spacious density">
   <div class="flex flex-col gap-6">
     {#each ['sm', 'md', 'lg'] as const as sizeOption (sizeOption)}
-      <CodeExample title="Size: {sizeOption}">
+      <CodeExample title="Size: {sizeOption}" isolate>
         <TypesReference
           types={sampleTypes.slice(0, 2)}
           title="Types ({sizeOption})"
@@ -79,7 +79,7 @@
 
 <!-- Empty State -->
 <Section id="empty" title="Empty State" subtitle="What happens when no types are provided">
-  <CodeExample title="No Types">
+  <CodeExample title="No Types" isolate>
     <TypesReference types={[]} title="Types" description="This component has no local types." />
   </CodeExample>
 </Section>

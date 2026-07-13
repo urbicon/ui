@@ -17,7 +17,7 @@
 </script>
 
 <Section id="examples" title="Examples" subtitle="Structure page content">
-  <CodeExample title="Basic Usage">
+  <CodeExample title="Basic Usage" isolate>
     <Section id="demo" title="Title" subtitle="Subtitle">Content</Section>
   </CodeExample>
 </Section>

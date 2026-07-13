@@ -17,7 +17,7 @@
 </script>
 
 <Section id="examples" title="Examples" subtitle="Page navigation">
-  <CodeExample title="Basic Usage">
+  <CodeExample title="Basic Usage" isolate>
     <TableOfContents
       navigation={[
         { id: 'overview', title: 'Overview' },
