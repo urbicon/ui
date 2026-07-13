@@ -141,25 +141,6 @@ internal TODO instead. Sections are ordered roughly by urgency.
 - **Found:** 2026-07-07, while adding `Accordion.svelte.test.ts` (the
   `collapsible=false` last-item test surfaced the divergence).
 
-### Badge `purpose="dot"` bypasses the discriminated-union guard that `variant="dot"` enforces
-
-- **Where:** `packages/blocks/src/lib/primitives/Badge/index.ts` — `BadgeProps`
-  is `BadgeDotProps | BadgeStandardProps`, discriminated on `variant` only.
-- **What:** The new `purpose` axis (BDG-1) makes `purpose="dot"` the canonical
-  way to render a pure-indicator dot, but the type union still keys off
-  `variant`. `<Badge purpose="dot" removable onRemove={…}>text</Badge>` resolves
-  to `BadgeStandardProps` (no `variant="dot"` set), so TypeScript accepts
-  `children`/`counter`/`removable`/`interactive`/`onRemove` — exactly the props
-  `BadgeDotProps` forbids for the visual dot. Runtime is safe (`isRemovable =
-  removable && !isDot → false`, children hidden), so this is a weaker *type*
-  contract on the now-canonical path, not a bug.
-- **Why deferred:** Discriminating the union on `purpose === 'dot'` too is not
-  mechanical — `purpose` is optional with five values, so making it a second
-  discriminant alongside optional `variant` risks TS failing to narrow, and would
-  fight the deliberate "keep BDG-1 purely additive" scope (existing
-  `variant`-based usage must stay byte-identical). Wants its own type-design pass.
-- **Found:** 2026-07-10, blocks feature-request review (BDG-1).
-
 ## Component behaviour
 
 ### ButtonGroup roving couples `buttonOrder` to a positional DOM query — duplicate values and dynamic add/remove desync it
@@ -180,25 +161,6 @@ internal TODO instead. Sections are ordered roughly by urgency.
   which touches the shared `Button.svelte` (`getButtonProps`), outside the
   primitives-Welle scope. Wants one deliberate pass with tests for both edges.
 - **Found:** 2026-07-13, ButtonGroup roving review (primitives-Welle, adversarial reviewer).
-
-### Toast hover-to-pause can stay stuck paused when the hovered toast is removed programmatically
-
-- **Where:** `packages/blocks/src/lib/primitives/Toast/Toaster.svelte`
-  (`pointerInside` driven by bubbling `pointerover`/`pointerout` on the
-  `pointer-events-none` region).
-- **What:** The hover-to-pause (added 2026-07-13) freezes the stack while the
-  pointer is inside. If the toast under the cursor is removed from the DOM (e.g.
-  its own close button dismisses it) the browser doesn't reliably fire
-  `pointerout`, so `pointerInside` stays `true` and the remaining timers stay
-  frozen until the pointer next crosses a real region boundary. Worst tail: the
-  last toast is dismissed, the cursor doesn't move, and a new toast then arrives
-  under it — added while `paused`, it never counts down until the pointer moves.
-  Self-heals on the next genuine pointer exit; Sonner has the same class of issue.
-- **Why deferred:** A robust fix wants a deliberate re-evaluation point on toast
-  removal (recompute containment from the real cursor target, or a different
-  pause model) rather than a blind attribute tweak — its own increment, low
-  frequency.
-- **Found:** 2026-07-13, Toast hover-to-pause review (primitives-Welle, adversarial reviewer).
 
 ### Table's `initial*` family is incomplete — no `initialSort`, no `initialSelectedIds`
 
@@ -452,18 +414,40 @@ internal TODO instead. Sections are ordered roughly by urgency.
   behaviour the guard exists for.
 - **Found:** 2026-07-13, DOM-test round 2 (Popover package).
 
-### Pagination edge policy differs between layouts — default hides prev/next, table layout disables them
+### Sparkline `fluid` scales the `showEndPoint` dot into an ellipse
+
+- **Where:** `packages/blocks/src/lib/components/Sparkline/Sparkline.svelte`
+  (the `showEndPoint` `<circle>` under `fluid` + `preserveAspectRatio="none"`).
+- **What:** The `fluid` prop (added `fb46a3c`) stretches the svg to its
+  container width via `preserveAspectRatio="none"`. The line strokes stay crisp
+  through `vector-effect="non-scaling-stroke"`, but the end-point marker is a
+  fill-only `<circle>` living in the stretched user space — `non-scaling-stroke`
+  can't reach a fill — so at a non-1:1 container ratio the dot renders as an
+  ellipse. Cosmetic, and only on the uncommon `fluid` + `showEndPoint` combo.
+- **Why deferred:** The clean fix renders the marker outside the stretched
+  coordinate space (a fixed-size overlay, or a second non-scaling layer) — a
+  small rework of the marker path, not a drive-by, and only worth it if the
+  combo shows up in practice.
+- **Found:** 2026-07-14, Sparkline `fluid` review (primitives-debt wave).
+
+### Pagination `showFirstLast` is a silent no-op when `showNumbers={false}`
 
 - **Where:** `packages/blocks/src/lib/primitives/Pagination/Pagination.svelte`
-  (default layout `{#if}`s prev/next away on the first/last page; the table
-  layout renders them `disabled`).
-- **What:** Reaching page 1/N in the default layout removes a button under the
-  pointer (layout shift, focus loss); the table layout keeps them visible and
-  disabled. Two policies for the same interaction, undocumented.
-- **Why deferred:** Which policy wins is a design decision (disabled-but-
-  visible is the conventional a11y-friendly choice); changing the default
-  layout alters existing visual snapshots and spacing.
-- **Found:** 2026-07-13, DOM-test round 2 (documented as-is in the tests).
+  (default-layout First/Last gate on `showStartEllipsis`/`showEndEllipsis`) +
+  `computeEllipsisState`.
+- **What:** First/Last are shown only when their jump target sits outside the
+  visible number window (an ellipsis is present) — a deliberate redundancy gate
+  (settled during the 2026-07-14 edge-policy unification: they are redundancy-,
+  not edge-gated). But `computeEllipsisState` returns `{showStart: false,
+  showEnd: false}` whenever `showNumbers` is false, so a consumer pairing
+  `showFirstLast` with `showNumbers={false}` (a compact prev/next-only bar) gets
+  no First/Last buttons at all — silently. The JSDoc frames `showNumbers={false}`
+  as a prev/next-only bar, so it is arguably consistent, but the silent
+  inertness of an explicitly-set `showFirstLast` deserves a call.
+- **Why deferred:** Wants a small design/doc decision (honour `showFirstLast`
+  without numbers, or document it as intentionally coupled to the number window),
+  not a drive-by change to the ellipsis gate.
+- **Found:** 2026-07-14, Pagination edge-policy unification (primitives-debt wave).
 
 ## Accessibility
 
@@ -522,22 +506,6 @@ internal TODO instead. Sections are ordered roughly by urgency.
   The reported debt value (1.96) was uniquely the comment token, now fixed.
 - **Found:** 2026-07-14, CodePanel a11y pass (Opus debt-sweep).
 
-### Toast promise settle may not be re-announced to screen readers (in-place flip)
-
-- **Where:** `packages/blocks/src/lib/primitives/Toast/Toaster.svelte` — the
-  live region is `aria-live="polite"` `aria-relevant="additions removals"`, and a
-  promise toast flips loading→success/error on the *same* DOM node (id reused).
-- **What:** Because the settle mutates the existing toast rather than adding a
-  new one, the loading→success text change is not an "addition"; the per-toast
-  `role="alert"` *usually* re-announces on content change, but this is
-  SR-dependent and inconsistent. The `aria-*` attributes are pre-existing; the
-  promise feature merely surfaces the edge.
-- **Why deferred:** Reliable announcement wants a deliberate a11y decision
-  (re-add the toast on settle instead of mutating, or add `aria-atomic`
-  handling) validated against real screen readers — not a blind attribute tweak.
-  Only act if SR testing shows genuine silence.
-- **Found:** 2026-07-10, blocks feature-request review (TST-1).
-
 ### Combobox multi-select `maxItems` cap has no screen-reader announcement
 
 - **Where:** `packages/blocks/src/lib/primitives/Combobox/Combobox.svelte`
@@ -551,19 +519,23 @@ internal TODO instead. Sections are ordered roughly by urgency.
   attribute. Low frequency (only when a consumer sets `maxItems`).
 - **Found:** 2026-07-10, blocks feature-request review (CMB-2 multi-select).
 
-### Interactive Badge stays `role="status"` — no button semantics on the clickable path
+### Toast live region nests `role="alert"` children inside an `aria-live="polite"` region
 
-- **Where:** `packages/blocks/src/lib/primitives/Badge/Badge.svelte` (`role`
-  prop union is `status|alert|badge`; `onclick`/`purpose="chip"` add
-  tabindex + Enter/Space handling on the same span).
-- **What:** A clickable/removable badge is announced as a status region, not
-  as a button — screen readers get no activation affordance despite the
-  keyboard handlers.
-- **Why deferred:** Wants an API decision: widen the `role` union or switch
-  the interactive path to a real `role="button"` (and reconcile with the
-  `aria-label` currently reserved for removable badges). Affects the announced
-  semantics of existing consumers.
-- **Found:** 2026-07-13, DOM-test round 2 (Badge package).
+- **Where:** `packages/blocks/src/lib/primitives/Toast/Toaster.svelte` — the
+  container is `aria-live="polite"` `aria-relevant="additions removals"` (drops
+  the default `text` token), while each toast child carries `role="alert"`
+  (implicitly `aria-live="assertive"`).
+- **What:** The nested live regions plus the dropped `text` relevance token are
+  why an in-place content change (a promise toast flipping loading→success on
+  the same node) is announced inconsistently across screen readers. The
+  2026-07-14 `aria-atomic="true"` fix mitigates the in-place flip pragmatically,
+  but the deeper structure — two competing live regions, one polite and one
+  assertive over the same content — is unresolved.
+- **Why deferred:** A proper fix is an a11y-architecture decision (make the
+  outer region the sole live region and drop `role="alert"` on children, or
+  align politeness, and reconsider whether `aria-relevant` needs `text`),
+  validated against real screen readers — not a blind attribute tweak.
+- **Found:** 2026-07-14, Toast promise-settle SR review (primitives-debt wave).
 
 ## Auth — accepted trade-offs
 
@@ -841,21 +813,6 @@ internal TODO instead. Sections are ordered roughly by urgency.
   7" task — resolved to an empirical worktree spike + this deferral.
 
 ## Design tokens
-
-### Toast progress bar animates over the literal duration — not gated by reduced-motion
-
-- **Where:** `packages/blocks/src/lib/primitives/Toast/Toaster.svelte`
-  (progress bar `animation: blocks-toast-progress {toast.duration}ms …`).
-- **What:** The countdown bar animates over the raw `toast.duration`, not a
-  `--blocks-duration-*` token, so the `prefers-reduced-motion: reduce` block in
-  `style/interaction.css` (which collapses the motion tokens to ~1ms) doesn't
-  reach it — the bar keeps shrinking under reduced motion. Cosmetic (a shrinking
-  bar is arguably fine, and Sonner keeps it); the auto-dismiss timing itself is
-  unaffected.
-- **Why deferred:** Whether the countdown should be hidden/instant under reduced
-  motion is a shared-CSS design decision (the duration is legitimately dynamic,
-  so it can't just read a fixed token), not a mechanical swap.
-- **Found:** 2026-07-13, Toast hover-to-pause review (primitives-Welle).
 
 ### Calendar current-time indicator uses `red-500` instead of a semantic token
 
