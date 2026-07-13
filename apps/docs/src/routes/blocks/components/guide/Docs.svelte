@@ -3,15 +3,24 @@
   import {
     Button,
     Guide,
+    GuideArticle,
     GuideBeacon,
     GuideController,
     GuideHint,
-    GuideProvider
+    GuidePanel,
+    GuideProvider,
+    GuideRef
   } from '@urbicon-ui/blocks';
   import type { GuideTour } from '@urbicon-ui/blocks';
 
   // Each demo owns an isolated controller (one engine per provider). dev:false keeps the
   // docs console quiet; once:false on the demo tour/beacon makes them endlessly repeatable.
+  // The panel demos are isolated too: panelOpen/activeArticle are controller-level state,
+  // so panels sharing one provider would open in lockstep and fight over the active article.
+  const groupsGuide = new GuideController({ dev: false });
+  const searchGuide = new GuideController({ dev: false });
+  const refGuide = new GuideController({ dev: false });
+
   const hintGuide = new GuideController({ dev: false });
   let hintOpen = $state(false);
 
@@ -65,12 +74,166 @@
 <button onclick={() => guide.startTour(welcomeTour)}>Take the tour</button>`}
     language="svelte"
     preview={false}
-  />
+  ></CodeExample>
+  <!-- ^ Explicit closing tag on purpose: the code-example-extract plugin's regex needs a
+       </CodeExample> to terminate this match — self-closing (`/>`) makes it swallow the next
+       `isolate` example in the file, which then loses its auto-extracted code. -->
+</Section>
+
+<!-- ─── The help panel ─── -->
+
+<Section marker="02" id="panel" title="The help panel">
+  <p class="text-text-secondary mb-4 max-w-2xl text-sm leading-relaxed">
+    The <code>GuidePanel</code> is a small help center living inside your product. Its index is
+    nothing more than the <code>GuideArticle</code>s you mount — and it scales with them: bucket
+    articles into sections with <code>group</code>, switch on <code>searchable</code> when the
+    catalog grows, and cross-link related articles with <code>GuideRef</code>. All three demos below
+    open a real panel; close it with its <strong>×</strong> button or Escape.
+  </p>
+
+  <CodeExample
+    title="Grouped sections"
+    description="Open the help panel — articles that share a group render under one section header."
+    isolate
+  >
+    <GuideProvider controller={groupsGuide}>
+      <div
+        class="border-border-subtle bg-surface-elevated flex w-full max-w-md items-center justify-between gap-3 rounded-2xl border px-4 py-3"
+      >
+        <span class="text-text-primary text-sm font-semibold">Atlas — Projects</span>
+        <Button
+          variant="outlined"
+          intent="neutral"
+          size="sm"
+          onclick={() => groupsGuide.openPanel()}
+        >
+          Open help
+        </Button>
+      </div>
+      <GuidePanel title="Help">
+        <GuideArticle id="grp-first-project" title="Create a project" group="Getting started">
+          <p>A project collects everything one team ships: tasks, docs, and milestones.</p>
+        </GuideArticle>
+        <GuideArticle id="grp-invite" title="Invite your team" group="Getting started">
+          <p>Invite teammates by email — they join with access to every shared project.</p>
+        </GuideArticle>
+        <GuideArticle id="grp-plans" title="Plans & pricing" group="Billing">
+          <p>The Free plan covers three projects. Pro removes the limit.</p>
+        </GuideArticle>
+        <GuideArticle id="grp-seats" title="Seats" group="Billing">
+          <p>You are billed per occupied seat, prorated monthly.</p>
+        </GuideArticle>
+        <GuideArticle id="grp-shortcuts" title="Keyboard shortcuts">
+          <p>Press <strong>?</strong> anywhere to see the full shortcut map.</p>
+        </GuideArticle>
+      </GuidePanel>
+    </GuideProvider>
+  </CodeExample>
+
+  <p class="text-text-secondary my-4 max-w-2xl text-sm leading-relaxed">
+    Sections appear in the order their first article is defined; articles without a
+    <code>group</code> (here: "Keyboard shortcuts") collect into one headerless block. When no article
+    sets a group at all, the index stays a flat list — grouping is purely opt-in.
+  </p>
+
+  <CodeExample
+    title="Searchable index"
+    description="Open the panel and type “export” — the filter narrows the index while non-empty sections keep their headers."
+    isolate
+  >
+    <GuideProvider controller={searchGuide}>
+      <div
+        class="border-border-subtle bg-surface-elevated flex w-full max-w-md items-center justify-between gap-3 rounded-2xl border px-4 py-3"
+      >
+        <span class="text-text-primary text-sm font-semibold">Atlas — Settings</span>
+        <Button
+          variant="outlined"
+          intent="neutral"
+          size="sm"
+          onclick={() => searchGuide.openPanel()}
+        >
+          Open help
+        </Button>
+      </div>
+      <GuidePanel title="Help" searchable>
+        <GuideArticle id="srch-profile" title="Profile & avatar" group="Account">
+          <p>Your name and avatar appear on comments and shared views.</p>
+        </GuideArticle>
+        <GuideArticle id="srch-security" title="Password & security" group="Account">
+          <p>Change your password or add a passkey for phishing-resistant sign-in.</p>
+        </GuideArticle>
+        <GuideArticle id="srch-notifications" title="Notification preferences" group="Account">
+          <p>Choose which events reach you by email, push, or in-app.</p>
+        </GuideArticle>
+        <GuideArticle id="srch-import" title="Import from CSV" group="Data">
+          <p>Upload a CSV and map its columns to project fields.</p>
+        </GuideArticle>
+        <GuideArticle id="srch-export" title="Export your data" group="Data">
+          <p>Download the current view as CSV or JSON at any time.</p>
+        </GuideArticle>
+        <GuideArticle id="srch-scheduled" title="Scheduled exports" group="Data">
+          <p>Deliver a recurring export to email or webhook on a schedule.</p>
+        </GuideArticle>
+      </GuidePanel>
+    </GuideProvider>
+  </CodeExample>
+
+  <p class="text-text-secondary my-4 max-w-2xl text-sm leading-relaxed">
+    The filter matches article titles case-insensitively and runs <em>before</em> grouping, so empty sections
+    disappear and an empty result announces itself politely. Closing the panel resets the query — a reopen
+    starts from the complete index. Search pairs naturally with grouping, but works on a flat list just
+    as well.
+  </p>
+
+  <CodeExample
+    title="Cross-linked articles"
+    description="Open the pot article, then follow the inline references to jump between related articles."
+    isolate
+  >
+    <GuideProvider controller={refGuide}>
+      <div
+        class="border-border-subtle bg-surface-elevated flex w-full max-w-md items-center justify-between gap-3 rounded-2xl border px-4 py-3"
+      >
+        <span class="text-text-primary text-sm font-semibold">Trip to Lisbon — €412.80</span>
+        <Button
+          variant="outlined"
+          intent="neutral"
+          size="sm"
+          onclick={() => refGuide.openPanel('ref-pot')}
+        >
+          How is this split?
+        </Button>
+      </div>
+      <GuidePanel title="Help">
+        <GuideArticle id="ref-pot" title="The cost pot">
+          <p>
+            Every expense lands in the trip's shared pot. At the end, the pot is settled with as few
+            transfers as possible, based on each expense's
+            <GuideRef article="ref-splitting">splitting method</GuideRef>.
+          </p>
+        </GuideArticle>
+        <GuideArticle id="ref-splitting" title="Splitting methods">
+          <p>
+            Split equally, by shares, or by exact amounts. The method applies per expense and feeds
+            the <GuideRef article="ref-pot">cost pot</GuideRef>'s final balance.
+          </p>
+        </GuideArticle>
+      </GuidePanel>
+    </GuideProvider>
+  </CodeExample>
+
+  <p class="text-text-secondary mt-4 max-w-2xl text-sm leading-relaxed">
+    A <code>GuideRef</code> navigates the open panel to another article — the help-internal analogue
+    of <code>GuideMention</code>, which links out to a UI element instead. It resolves against the
+    panel's article registry, so a ref pointing at an unknown id (or rendered outside a panel)
+    degrades to plain text instead of a dead link. The panel's back button returns to the index from
+    any article.
+  </p>
 </Section>
 
 <!-- ─── Contextual hints ─── -->
 
-<Section marker="02" id="hint" title="Contextual hints">
+<Section marker="03" id="hint" title="Contextual hints">
   <p class="text-text-secondary mb-4 max-w-2xl text-sm leading-relaxed">
     A <code>GuideHint</code> waits at the right element instead of interrupting. Show it on mount,
     or drive it from your own route/condition with <code>trigger="manual"</code> and
@@ -115,7 +278,7 @@
 
 <!-- ─── Guided tour + beacon ─── -->
 
-<Section marker="03" id="tour" title="Guided tour & beacon">
+<Section marker="04" id="tour" title="Guided tour & beacon">
   <p class="text-text-secondary mb-4 max-w-2xl text-sm leading-relaxed">
     The guided tour is the deliberately opt-in, intrusive surface: a spotlight that dims everything
     but the current step's target, plus an anchored bubble. A <code>GuideBeacon</code> is the gentle entry
@@ -210,7 +373,7 @@
 
 <!-- ─── Analytics ─── -->
 
-<Section marker="04" id="analytics" title="Analytics">
+<Section marker="05" id="analytics" title="Analytics">
   <p class="text-text-secondary mb-4 max-w-2xl text-sm leading-relaxed">
     The real value of a tour is its funnel and drop-off signal. A <code>GuideTour</code> carries
     three optional hooks fired from the engine, so they trigger no matter which surface drives the
@@ -240,7 +403,7 @@
 
 <!-- ─── data-guide namespace ─── -->
 
-<Section marker="05" id="namespace" title="The data-guide namespace">
+<Section marker="06" id="namespace" title="The data-guide namespace">
   <p class="text-text-secondary mb-4 max-w-2xl text-sm leading-relaxed">
     Every guide target is identified by a string id. There are two ways to register one — both feed
     the same registry, so a tour step, a hint, a marker, and a mention can all point at the same id.
@@ -269,7 +432,7 @@
 
 <!-- ─── Accessibility ─── -->
 
-<Section marker="06" id="accessibility" title="Accessibility">
+<Section marker="07" id="accessibility" title="Accessibility">
   <div class="border-border-subtle bg-surface-elevated rounded-2xl border p-6">
     <div class="divide-border-subtle divide-y">
       <div class="pb-4">
@@ -317,7 +480,7 @@
 
 <!-- ─── Customization ─── -->
 
-<Section marker="07" id="customization" title="Customization">
+<Section marker="08" id="customization" title="Customization">
   <p class="text-text-secondary mb-4 max-w-2xl text-sm leading-relaxed">
     Every surface supports <code>unstyled</code>, per-slot <code>slotClasses</code>, and named
     <code>preset</code>s. Two tokens tune the tour's spotlight scrim and the additive highlight

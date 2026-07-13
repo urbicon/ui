@@ -69,13 +69,15 @@
   const navigation = [
     { id: 'playground', title: 'Playground', order: 1 },
     { id: 'setup', title: 'Setup', order: 2 },
-    { id: 'hint', title: 'Contextual hints', order: 3 },
-    { id: 'tour', title: 'Guided tour', order: 4 },
-    { id: 'analytics', title: 'Analytics', order: 5 },
-    { id: 'namespace', title: 'data-guide namespace', order: 6 },
-    { id: 'accessibility', title: 'Accessibility', order: 7 },
-    { id: 'api', title: 'API Reference', order: 8 },
-    { id: 'installation', title: 'Installation', order: 9 }
+    { id: 'panel', title: 'Help panel', order: 3 },
+    { id: 'hint', title: 'Contextual hints', order: 4 },
+    { id: 'tour', title: 'Guided tour', order: 5 },
+    { id: 'analytics', title: 'Analytics', order: 6 },
+    { id: 'namespace', title: 'data-guide namespace', order: 7 },
+    { id: 'accessibility', title: 'Accessibility', order: 8 },
+    { id: 'customization', title: 'Customization', order: 9 },
+    { id: 'api', title: 'API Reference', order: 10 },
+    { id: 'installation', title: 'Installation', order: 11 }
   ];
 
   // ── Hand-authored API tables for the engine + tour-definition surface that docs-gen
@@ -297,7 +299,7 @@
 
   <CustomDocs />
 
-  <Section marker="08" id="api" title="API Reference" intent="secondary" meta="9 surfaces">
+  <Section marker="09" id="api" title="API Reference" intent="secondary" meta="9 surfaces">
     <div class="space-y-10">
       <div>
         <h3 class="text-text-primary mb-1 text-lg font-semibold">Guide (tour renderer)</h3>
@@ -344,7 +346,7 @@
     </div>
   </Section>
 
-  <Section marker="09" id="installation" title="Installation">
+  <Section marker="10" id="installation" title="Installation">
     <CodeExample
       title="Import"
       code={`import {
