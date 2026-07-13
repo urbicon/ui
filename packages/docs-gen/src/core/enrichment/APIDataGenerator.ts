@@ -34,6 +34,7 @@ export class APIDataGenerator {
   private generatedTypes = new Set<string>();
   private typeDefinitions: TypeDefinition[] = [];
   private componentSlugs = new Map<string, string>();
+  private componentGroups = new Map<string, string | undefined>();
   private routeBasePath: string = '/components';
 
   /**
@@ -52,11 +53,16 @@ export class APIDataGenerator {
     this.generatedTypes.clear();
     this.typeDefinitions = [];
     this.componentSlugs.clear();
+    this.componentGroups.clear();
     this.routeBasePath = options?.routeBasePath || '/components';
 
-    // Prepare component slugs for linking
+    // Prepare component slugs + groups for linking. The group (primitives /
+    // components / undefined) is what turns the flat base into the real route
+    // segment — cross-links resolve the *target* component's group, so the
+    // whole map has to be built up-front, before any component is processed.
     for (const c of richComponents) {
       this.componentSlugs.set(c.name, this.toSlug(c.name));
+      this.componentGroups.set(c.name, this.inferGroupFromPath(c.filePath || ''));
     }
 
     // Process each component
@@ -300,7 +306,7 @@ export class APIDataGenerator {
       processedProp.type === 'VariantProps'
     ) {
       const slug = this.componentSlugs.get(component.name) || this.toSlug(component.name);
-      processedProp.seeAlso = `${this.routeBasePath.replace(/\/$/, '')}/${slug}#variants`;
+      processedProp.seeAlso = `${this.routeForComponent(component.name, slug)}#variants`;
     }
 
     // If local type is referenced, add a direct anchor for UI (TypeCell will prefer seeAlso, then typeAnchor)
@@ -318,7 +324,7 @@ export class APIDataGenerator {
         if (localTypeNames.has(base)) {
           const slug = this.componentSlugs.get(component.name) || this.toSlug(component.name);
           (processedProp as PropInfo & { typeAnchor?: string; typePreview?: string }).typeAnchor =
-            `${this.routeBasePath.replace(/\/$/, '')}/${slug}#type-${base}`;
+            `${this.routeForComponent(component.name, slug)}#type-${base}`;
           const td = componentWithLocalTypes.localTypes?.find((t) => t?.name === base);
           if (td?.definition) {
             // Keep preview compact (first ~15 lines)
@@ -375,14 +381,14 @@ export class APIDataGenerator {
 
     if (localTypeNames.has(base)) {
       const slug = this.componentSlugs.get(component.name) || this.toSlug(component.name);
-      return `${this.routeBasePath.replace(/\/$/, '')}/${slug}#type-${base}`;
+      return `${this.routeForComponent(component.name, slug)}#type-${base}`;
     }
 
     // Component name or *Props → component page
     const compName = base.endsWith('Props') ? base.slice(0, -'Props'.length) : base;
     const slug = this.componentSlugs.get(compName);
     if (slug !== undefined) {
-      return `${this.routeBasePath.replace(/\/$/, '')}/${slug}#api`;
+      return `${this.routeForComponent(compName, slug)}#api`;
     }
 
     // External types
@@ -420,6 +426,22 @@ export class APIDataGenerator {
       .replace(/([a-z0-9])(\p{Lu})/gu, '$1-$2')
       .replace(/[\s_]+/g, '-')
       .toLowerCase();
+  }
+
+  /**
+   * Build the doc-route URL for a component, mirroring the on-disk layout the
+   * API/LLM generators write to: `<routeBasePath>/<group>/<slug>` (or
+   * `<routeBasePath>/<slug>` when the component has no group).
+   *
+   * This is why a single flat base is wrong for the blocks target — its
+   * primitives live under `/blocks/primitives/<slug>` and its components under
+   * `/blocks/components/<slug>`, so the group segment has to come from the
+   * (target) component, not from the run-wide base.
+   */
+  private routeForComponent(name: string, slug: string): string {
+    const base = this.routeBasePath.replace(/\/$/, '');
+    const group = this.componentGroups.get(name);
+    return group ? `${base}/${group}/${slug}` : `${base}/${slug}`;
   }
 
   private inferGroupFromPath(filePath: string): string | undefined {
@@ -477,10 +499,16 @@ export class APIDataGenerator {
   }
 
   private getUrbiconTypeLink(typeName: string): string | undefined {
+    // Real doc routes (the previous `/docs/design-tokens` + `/docs/mint-system`
+    // targets never existed — `/docs` only hosts the docs-package components).
+    // The token reference lives at `/customization/tokens`; intents are the
+    // "Color System" section (`#colors`) and Mint rides the "Motion & Depth"
+    // interaction layer (`#interaction`). There is no dedicated Mint page, and
+    // ComponentSize has no size-specific anchor, so both fall back to the page.
     const map: Record<string, string> = {
-      ComponentIntent: '/docs/design-tokens#intent',
-      ComponentSize: '/docs/design-tokens#size',
-      MintProp: '/docs/mint-system'
+      ComponentIntent: '/customization/tokens#colors',
+      ComponentSize: '/customization/tokens',
+      MintProp: '/customization/tokens#interaction'
     };
     return map[typeName];
   }

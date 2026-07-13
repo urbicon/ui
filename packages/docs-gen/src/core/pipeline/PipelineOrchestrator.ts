@@ -218,7 +218,7 @@ export class PipelineOrchestrator {
     console.log('  📊 Generating API data...');
     const apiDataGenerator = new APIDataGenerator();
     const apiData = await apiDataGenerator.generate(richComponents, {
-      routeBasePath: '/components'
+      routeBasePath: this.deriveRouteBasePath()
     });
 
     console.log(
@@ -231,6 +231,25 @@ export class PipelineOrchestrator {
     });
 
     return { enrichedComponents: enrichedWithApiStats, apiData };
+  }
+
+  /**
+   * Derive the doc-route base from the API output directory. The API/LLM
+   * generators write per-component files under
+   * `<…/routes>/<target>/[<group>/]<slug>`, so the public URL base is exactly
+   * the output path's tail after the `routes/` segment — e.g.
+   * `../../apps/docs/src/routes/blocks` → `/blocks` (from which primitives
+   * resolve to `/blocks/primitives/<slug>` and components to
+   * `/blocks/components/<slug>`), `.../routes/docs` → `/docs`, etc.
+   *
+   * Falls back to `/components` when the output path is not under a `routes/`
+   * segment (e.g. an aggregate single-file config), preserving prior behaviour.
+   */
+  private deriveRouteBasePath(): string {
+    const outputPath = this.config.output.api?.outputPath ?? '';
+    const normalized = outputPath.replace(/\\/g, '/').replace(/\/+$/, '');
+    const match = normalized.match(/(?:^|\/)routes\/(.+)$/);
+    return match ? `/${match[1]}` : '/components';
   }
 
   /**

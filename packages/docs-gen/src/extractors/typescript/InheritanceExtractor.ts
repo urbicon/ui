@@ -400,12 +400,15 @@ export class InheritanceExtractor extends TypeScriptBaseExtractor<
   }
 
   private getUrlForType(typeName: string): string | undefined {
+    // Urbicon token/interaction types map to the real `/customization/tokens`
+    // reference (the old `/docs/design-tokens` + `/docs/mint-system` routes
+    // never existed). Keep in sync with APIDataGenerator.getUrbiconTypeLink.
     const urlMap: Record<string, string> = {
       Snippet: 'https://svelte.dev/docs/svelte/snippet',
       ComponentEvents: 'https://svelte.dev/docs/svelte/component-events',
-      MintProp: '/docs/mint-system',
-      ComponentIntent: '/docs/design-tokens#intent',
-      ComponentSize: '/docs/design-tokens#size'
+      MintProp: '/customization/tokens#interaction',
+      ComponentIntent: '/customization/tokens#colors',
+      ComponentSize: '/customization/tokens'
     };
 
     return urlMap[typeName];
@@ -445,19 +448,19 @@ export class InheritanceExtractor extends TypeScriptBaseExtractor<
       {
         name: 'MintProp',
         package: '@urbicon-ui/blocks',
-        url: '/docs/mint-system',
+        url: '/customization/tokens#interaction',
         description: 'Urbicon Mint micro-interaction system'
       },
       {
         name: 'ComponentIntent',
         package: '@urbicon-ui/blocks',
-        url: '/docs/design-tokens#intent',
+        url: '/customization/tokens#colors',
         description: 'Urbicon component intent colors'
       },
       {
         name: 'ComponentSize',
         package: '@urbicon-ui/blocks',
-        url: '/docs/design-tokens#size',
+        url: '/customization/tokens',
         description: 'Urbicon component sizes'
       }
     ];
