@@ -48,10 +48,10 @@ export interface DialogProps extends Omit<HTMLDialogAttributes, 'children' | 'op
   placement?: DialogVariants['placement'];
 
   /**
-   * Semantic purpose marker (e.g. `danger` for destructive actions). After the
-   * Lighter-Refactor, the Dialog itself no longer paints an accent bar — the
-   * value is exposed on the panel as `data-intent="…"` so consumers can hook
-   * presets, CSS overrides, or icon/title color via their own snippets.
+   * Semantic purpose marker (e.g. `danger` for destructive actions). The
+   * Dialog itself no longer paints an accent bar — the value is exposed on
+   * the panel as `data-intent="…"` so consumers can hook presets, CSS
+   * overrides, or icon/title color via their own snippets.
    * @default 'neutral'
    */
   intent?: DialogVariants['intent'];

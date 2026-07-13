@@ -13,7 +13,7 @@ describe('toolbarVariants', () => {
     }
   });
 
-  describe('variant contract (Lighter consolidation A.2)', () => {
+  describe('variant contract', () => {
     it('defaults to quiet (surface-quiet tint, no border, no shadow)', () => {
       const base = toolbarVariants({}).base();
       expect(base).toContain('bg-surface-quiet');
@@ -21,7 +21,7 @@ describe('toolbarVariants', () => {
       expect(base).not.toContain('shadow');
     });
 
-    it('elevated keeps shadow but drops the border (Lighter chrome reduction)', () => {
+    it('elevated keeps shadow but drops the border', () => {
       const base = toolbarVariants({ variant: 'elevated' }).base();
       expect(base).toContain('bg-surface-elevated');
       expect(base).toContain('shadow-[var(--blocks-shadow-md)]');

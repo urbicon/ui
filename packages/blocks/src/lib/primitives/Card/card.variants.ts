@@ -67,10 +67,10 @@ export const cardVariants = tv({
         footer: 'pt-5'
       }
     },
-    // Opt-in slot separators. Default `false` (Lighter): header/footer
+    // Opt-in slot separators. Default `false`: header/footer
     // sit flush against the body, the slots are separated by spacing
     // only. Set `dividers={true}` for traditional card-with-header look.
-    // Uses `border-hairline` (Lighter token) — leiser als border-subtle.
+    // Uses `border-hairline` — leiser als border-subtle.
     dividers: {
       true: {
         header: 'border-b border-border-hairline',

@@ -54,7 +54,7 @@ describe('dialogVariants', () => {
     expect(center.dialog()).toContain('items-center');
   });
 
-  it('Lighter: no intent adds a colored accent top-border (intent is signaled via icon + heading color in consumers)', () => {
+  it('no intent adds a colored accent top-border (intent is signaled via icon + heading color in consumers)', () => {
     const intents = ['neutral', 'primary', 'secondary', 'success', 'warning', 'danger'] as const;
     for (const intent of intents) {
       const panel = dialogVariants({ intent }).panel();

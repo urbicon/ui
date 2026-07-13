@@ -6,7 +6,7 @@ describe('tableContainerVariants', () => {
     const styles = tableContainerVariants({ size: 'md' });
     expect(styles.container()).toBeTruthy();
     expect(styles.toolbar()).toBeTruthy();
-    // scrollArea is empty in default `flush` appearance (Lighter)
+    // scrollArea is empty in default `flush` appearance
     expect(styles.scrollArea()).toBeDefined();
     expect(styles.table()).toBeTruthy();
     expect(styles.body()).toBeDefined();
@@ -88,7 +88,7 @@ describe('tableHeaderVariants', () => {
     expect(notSortable).not.toContain('cursor-pointer');
   });
 
-  it('Lighter: header is flush (no bg) in default mode — sticky adds its own', () => {
+  it('header is flush (no bg) in default mode — sticky adds its own', () => {
     const flush = tableHeaderVariants({ sticky: false }).header();
     const sticky = tableHeaderVariants({ sticky: true }).header();
     expect(flush).not.toMatch(/\bbg-/);
@@ -119,7 +119,7 @@ describe('tableContainerVariants — appearance', () => {
   });
 });
 
-describe('tableRowVariants — Lighter hairline', () => {
+describe('tableRowVariants — hairline', () => {
   it('row uses border-border-hairline (not border-border-subtle)', () => {
     const row = tableRowVariants({}).row();
     expect(row).toContain('border-border-hairline');

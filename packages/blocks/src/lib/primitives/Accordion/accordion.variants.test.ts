@@ -31,7 +31,7 @@ describe('accordionVariants', () => {
     expect(styles.trigger()).toContain('ring-primary/50');
   });
 
-  it('applies separated variant classes (Lighter — no per-item border)', () => {
+  it('applies separated variant classes (no per-item border)', () => {
     const styles = accordionVariants({ variant: 'separated' });
     expect(styles.item()).toContain('rounded-contain');
     expect(styles.item()).toContain('bg-surface-quiet');

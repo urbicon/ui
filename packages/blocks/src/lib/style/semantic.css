@@ -153,7 +153,7 @@
   --color-chart-6: light-dark(var(--color-danger-500), var(--color-danger-400));
 
   /* === BORDERS ===
-     border-hairline (Lighter-Refactor) is the quietest tier — structural
+     border-hairline is the quietest tier — structural
      trennlinien (row dividers, Card header/footer separators, inline
      section dividers). Sits below border-subtle, which is now reserved
      for quiet container outlines (e. g. Popover). */

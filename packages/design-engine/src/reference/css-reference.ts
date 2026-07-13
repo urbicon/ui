@@ -71,7 +71,7 @@ const SURFACES = `# Surface Tokens
 | CSS Variable | Tailwind Utility | Purpose |
 |---|---|---|
 | \`--color-surface-base\` | \`bg-surface-base\` | Page background |
-| \`--color-surface-quiet\` | \`bg-surface-quiet\` | Softly tinted in-page zone (Lighter default) |
+| \`--color-surface-quiet\` | \`bg-surface-quiet\` | Softly tinted in-page zone |
 | \`--color-surface-subtle\` | \`bg-surface-subtle\` | Subtle differentiation |
 | \`--color-surface-elevated\` | \`bg-surface-elevated\` | Cards, panels (floating with shadow) |
 | \`--color-surface-overlay\` | \`bg-surface-overlay\` | Modals, popovers |

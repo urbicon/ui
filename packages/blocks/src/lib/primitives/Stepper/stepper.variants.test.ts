@@ -11,8 +11,8 @@ describe('stepperVariants', () => {
   });
 
   it('keeps the indicator on surface tokens (no surface-raised leftover)', () => {
-    // Lighter consolidation A.1 — surface-raised is removed from the token
-    // vocabulary; the default-variant indicator now sits on surface-subtle.
+    // surface-raised is intentionally absent from the token vocabulary; the
+    // default-variant indicator sits on surface-subtle.
     const indicator = stepperVariants({ variant: 'default' }).indicator();
     expect(indicator).toContain('bg-surface-subtle');
     expect(indicator).not.toContain('bg-surface-raised');

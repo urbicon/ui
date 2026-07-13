@@ -44,7 +44,7 @@ describe('toastVariants', () => {
     expect(info.progress()).toContain('bg-info');
   });
 
-  it('Lighter §C.5: toast renders without border (intent signalled via icon + progress only)', () => {
+  it('toast renders without border (intent signalled via icon + progress only)', () => {
     const intents = ['primary', 'info', 'success', 'warning', 'danger', 'neutral'] as const;
     for (const intent of intents) {
       const toast = toastVariants({ intent }).toast();

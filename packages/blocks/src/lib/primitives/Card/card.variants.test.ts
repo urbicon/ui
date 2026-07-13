@@ -53,7 +53,7 @@ describe('cardVariants', () => {
     expect(noDividers.footer()).not.toContain('border-t');
   });
 
-  it('dividers=true adds hairline separators (Lighter token, not subtle)', () => {
+  it('dividers=true adds hairline separators (not subtle)', () => {
     const styles = cardVariants({ dividers: true });
     expect(styles.header()).toContain('border-b');
     expect(styles.header()).toContain('border-border-hairline');

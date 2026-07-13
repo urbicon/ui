@@ -105,8 +105,8 @@ describe('menuVariants', () => {
     // this is also the default panel radius.
     //
     // The bridge token (semantic name, see foundation.css) replaced the
-    // hard-coded `rounded-lg` in Lighter consolidation B.2 so brand
-    // overrides can retune it without touching the Menu component.
+    // hard-coded `rounded-lg` so brand overrides can retune it without
+    // touching the Menu component.
     const commitContent = menuVariants({ tier: 'commit' }).content();
     expect(commitContent).toContain('rounded-bridge');
     expect(commitContent).not.toContain('rounded-commit');

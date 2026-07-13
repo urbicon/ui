@@ -38,7 +38,7 @@ export interface SectionProps extends SectionVariantProps {
    * Optional right-aligned monospace meta information in the title row
    * (e.g. `"20 props"`, `"6 recipes"`). Renders as an editorial counter
    * next to the title with `font-meta`, so the information stays visually
-   * subordinate to the section title. Lighter editorial polish (cluster A.3).
+   * subordinate to the section title.
    */
   meta?: string;
 
