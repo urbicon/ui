@@ -41,10 +41,29 @@ describe('checkboxVariants', () => {
   it('shows icon when checked or indeterminate', () => {
     const unchecked = checkboxVariants({ checked: false, indeterminate: false }).icon();
     expect(unchecked).toContain('opacity-0');
+    // Hidden by the full dash offset — the icon stays mounted so the draw-in
+    // transition can run; the offset (not display) is what conceals it.
+    expect(unchecked).toContain('[&_path]:[stroke-dashoffset:23px]');
 
     const checked = checkboxVariants({ checked: true }).icon();
     expect(checked).toContain('opacity-100');
-    expect(checked).toContain('scale-100');
+    // The checked variant pulls the dash offset to 0 (draw-in) and must fold
+    // the base's hidden offset out of the class list — same bucket, later wins.
+    expect(checked).toContain('[&_path]:[stroke-dashoffset:0]');
+    expect(checked).not.toContain('[&_path]:[stroke-dashoffset:23px]');
+
+    const indeterminate = checkboxVariants({ indeterminate: true }).icon();
+    expect(indeterminate).toContain('opacity-100');
+    expect(indeterminate).toContain('[&_path]:[stroke-dashoffset:0]');
+  });
+
+  it('carries the press cue and the intent interaction layer on the box', () => {
+    // Press feedback (Badge/Avatar vocabulary) lives on the box for every state…
+    expect(checkboxVariants({}).box()).toContain('group-active:scale-95');
+    // …and the checked box darkens through the Button interaction-layer tokens.
+    const checked = checkboxVariants({ checked: true, intent: 'primary' }).box();
+    expect(checked).toContain('group-hover:bg-primary-hover');
+    expect(checked).toContain('group-active:bg-primary-active');
   });
 
   it('applies disabled state correctly', () => {

@@ -139,15 +139,24 @@
       aria-hidden="true"
       data-state={dataState}
     >
-      {#if indeterminate}
-        <IndeterminateIcon
-          class={unstyled ? (slotClasses?.icon ?? '') : styles.icon({ class: slotClasses?.icon })}
-        />
-      {:else if checked}
-        <CheckMarkIcon
-          class={unstyled ? (slotClasses?.icon ?? '') : styles.icon({ class: slotClasses?.icon })}
-          strokeWidth={3}
-        />
+      {#if unstyled}
+        <!-- Unstyled keeps the mount-on-state contract: consumers style via
+             `data-state` on the box and rely on the icon only existing while
+             checked/indeterminate. -->
+        {#if indeterminate}
+          <IndeterminateIcon class={slotClasses?.icon ?? ''} />
+        {:else if checked}
+          <CheckMarkIcon class={slotClasses?.icon ?? ''} strokeWidth={3} />
+        {/if}
+      {:else if indeterminate}
+        <IndeterminateIcon class={styles.icon({ class: slotClasses?.icon })} strokeWidth={3} />
+      {:else}
+        <!-- Styled mode keeps the icon mounted even while unchecked (hidden by
+             `opacity-0` + full stroke-dash offset) — a conditional mount would
+             insert the element already at its resolved classes and the draw-in
+             transition could never run. strokeWidth 3 matches the check and
+             the minus so both states carry the same stroke weight. -->
+        <CheckMarkIcon class={styles.icon({ class: slotClasses?.icon })} strokeWidth={3} />
       {/if}
     </span>
 

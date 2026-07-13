@@ -73,13 +73,30 @@
   </div>
 </Section>
 
+<!-- ─── Micro-Interactions ─── -->
+
+<Section marker="02" id="mint" title="Micro-Interactions (Mint)">
+  <div class="space-y-8">
+    <CodeExample
+      title="Mint Presets"
+      description="Hover or click each checkbox to see the effect — mint targets the box, not the label."
+      isolate
+      previewClass="flex flex-col gap-3"
+    >
+      <Checkbox mint="scale" label="Scale on hover" checked />
+      <Checkbox mint="glow" label="Glow on hover" checked intent="success" />
+      <Checkbox mint={['scale', 'glow']} label="Combined scale + glow" checked intent="danger" />
+    </CodeExample>
+  </div>
+</Section>
+
 <!-- ─── Customization ─── -->
 
-<Section marker="02" id="customization" title="Customization">
+<Section marker="03" id="customization" title="Customization">
   <div class="space-y-8">
     <CodeExample
       title="Slot Class Overrides"
-      description="Use slotClasses to tweak individual slots without going fully unstyled."
+      description="Per-instance slotClasses tweak individual slots without going fully unstyled. The box exposes data-state, so overrides can target only the checked state."
       isolate
       previewClass="flex flex-col gap-3"
     >
@@ -89,44 +106,37 @@
         label="Larger box"
         slotClasses={{ box: 'w-7 h-7 rounded-md', icon: 'w-5 h-5' }}
       />
+      <Checkbox
+        checked
+        label="Brand gradient when checked"
+        slotClasses={{
+          box: 'data-[state=checked]:border-transparent data-[state=checked]:bg-linear-to-br data-[state=checked]:from-violet-500 data-[state=checked]:to-fuchsia-500'
+        }}
+      />
     </CodeExample>
 
     <CodeExample
       title="Fully Custom (unstyled)"
-      description="Strip all default styles with unstyled and rebuild from scratch. The box exposes data-state for conditional styling."
+      description="Strip all default styles with unstyled and rebuild from scratch — both instances share one slotClasses object. The box exposes data-state for conditional styling."
       isolate
-      previewClass="flex flex-col gap-3"
+      previewClass="flex min-h-24 flex-col justify-center gap-3"
     >
-      <Checkbox
-        unstyled
-        checked
-        label="Remember me"
-        slotClasses={{
-          control:
-            'inline-flex cursor-pointer items-center gap-3 font-mono text-sm text-text-primary',
-          box: 'h-5 w-5 rounded border-2 border-current flex items-center justify-center data-[state=checked]:bg-text-primary data-[state=checked]:text-surface-base transition-colors',
-          icon: 'w-3.5 h-3.5',
-          label: 'select-none'
-        }}
-      />
-      <Checkbox
-        unstyled
-        label="Stay signed in"
-        slotClasses={{
-          control:
-            'inline-flex cursor-pointer items-center gap-3 font-mono text-sm text-text-primary',
-          box: 'h-5 w-5 rounded border-2 border-current flex items-center justify-center data-[state=checked]:bg-text-primary data-[state=checked]:text-surface-base transition-colors',
-          icon: 'w-3.5 h-3.5',
-          label: 'select-none'
-        }}
-      />
+      {@const terminal = {
+        control:
+          'inline-flex cursor-pointer items-center gap-3 font-mono text-sm text-text-primary',
+        box: 'flex h-5 w-5 items-center justify-center rounded border-2 border-current transition-colors data-[state=checked]:bg-text-primary data-[state=checked]:text-surface-base',
+        icon: 'h-3.5 w-3.5',
+        label: 'select-none'
+      }}
+      <Checkbox unstyled checked label="Remember me" slotClasses={terminal} />
+      <Checkbox unstyled label="Stay signed in" slotClasses={terminal} />
     </CodeExample>
   </div>
 </Section>
 
 <!-- ─── Accessibility ─── -->
 
-<Section marker="03" id="accessibility" title="Accessibility">
+<Section marker="04" id="accessibility" title="Accessibility">
   <div class="border-border-subtle bg-surface-elevated rounded-2xl border p-6">
     <div class="divide-border-subtle divide-y">
       <div class="pb-4">
