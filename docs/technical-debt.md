@@ -5,13 +5,6 @@ at hand and can't be fixed on the fly — they need a design decision or a broad
 sweep. Logged here so they aren't lost. Actively planned work lives in the
 internal TODO instead. Sections are ordered roughly by urgency.
 
-> **🚧 In Arbeit — Opus debt-sweep, 2026-07-14** (Worktree `opus/debt-sweep-2026-07-14`).
-> The following entries are being resolved and will be removed on success:
-> Form primitives `{...restProps}` ordering · PlaygroundConfigurator `label for` +
-> Input ignores `id` · `createCronRunner.onError` on non-2xx · Table `resolveSlotClass`
-> past the tv() fold · no `.d.ts` build guard · docs `CodePanel` unnamed textbox +
-> Shiki comment contrast · docs `codeExamplePlugin` regex on `>`/self-closing.
-
 ## Packaging / distribution
 
 ### mcp-server npm tarball ships raw src (incl. tests) with no consumer
@@ -88,30 +81,6 @@ internal TODO instead. Sections are ordered roughly by urgency.
   conventions-doc update. Removing values is breaking.
 - **Found:** 2026-07-10, systematic primitives API analysis.
 
-### Sparkline can't be made fluid through its public props — responsive use needs the non-obvious `slotClasses={{ svg: 'w-full' }}`
-
-- **Where:** `packages/blocks/src/lib/components/Sparkline/Sparkline.svelte`
-  (`<svg {width} {height} viewBox … preserveAspectRatio="none">`; the bare
-  `class` prop lands on the wrapper `<span>`, not the svg).
-- **What:** `width` is a fixed pixel attribute, and `class="w-full"` only
-  widens the *wrapper* — the svg keeps its attribute width, overflows the
-  container and (inside a card) the page. Bitten on the landing 2026-07-11: a
-  `width={460}` sparkline fit the ~500px desktop card by luck and shot ~130px
-  past the ~330px mobile card, dragging the whole page into horizontal
-  scroll. The component is already scale-ready (`viewBox` +
-  `preserveAspectRatio="none"`); the fluid path just isn't reachable via the
-  obvious props — it takes `slotClasses={{ svg: 'w-full' }}`. Strokes also
-  distort under non-uniform scaling (no `vector-effect="non-scaling-stroke"`),
-  visible only at extreme squeeze.
-- **Why deferred:** Wants a small API decision rather than a drive-by: accept
-  a `width`/`height` of `'100%'` (or a `fluid` boolean) that drops the
-  attributes and keeps the viewBox, or route `class` to the svg. Same
-  ergonomics question likely applies to the other fixed-size chart surfaces
-  (charts without `width` are responsive; Sparkline is the outlier with a
-  fixed default). Add `vector-effect` in the same pass.
-- **Found:** 2026-07-11, mobile bug report on the landing offsite specimen
-  (Felix, real-device Safari).
-
 ### Accordion/Collapsible sibling variant vocabulary diverges
 
 - **Where:** `accordion.variants.ts` (`variant: default|separated|ghost`) vs.
@@ -147,20 +116,6 @@ internal TODO instead. Sections are ordered roughly by urgency.
 - **Found:** 2026-07-07, while adding `ConfirmDialog.svelte.test.ts` (the
   success + busy-lock paths are covered; the reject path is deliberately not
   asserted because it can't be without provoking the unhandled rejection).
-
-### `ConfirmDialogProps` is a closed interface — no `data-*`/attribute pass-through
-
-- **Where:** `packages/blocks/src/lib/primitives/ConfirmDialog/index.ts`
-  (`ConfirmDialogProps` does not extend `HTMLDialogAttributes`, unlike
-  Dialog/Drawer).
-- **What:** Consumers (and tests) cannot attach `data-testid` or other
-  attributes to a ConfirmDialog — the e2e overlay-modal spec (58562c6) had to
-  target it by text/structure. A small API asymmetry with its siblings.
-- **Why deferred:** Adding rest-attribute pass-through touches the styling
-  contract (where do the attributes land — the dialog element, per the Dialog
-  precedent?) and should follow the documented Dialog/Drawer pattern in one
-  deliberate step, not a test-driven drive-by.
-- **Found:** 2026-07-13, e2e fixtures pass.
 
 ### `Collapsible` optimistically mutates a controlled `open` prop on toggle
 
@@ -204,24 +159,6 @@ internal TODO instead. Sections are ordered roughly by urgency.
   fight the deliberate "keep BDG-1 purely additive" scope (existing
   `variant`-based usage must stay byte-identical). Wants its own type-design pass.
 - **Found:** 2026-07-10, blocks feature-request review (BDG-1).
-
-### `createCronRunner.onError` never fires on non-2xx responses — only on fetch rejection
-
-- **Where:** `packages/sveltekit-utils/src/lib/cron.ts` (the per-job
-  `fetch(...)` path that routes failures to `onError`).
-- **What:** `onError` is wired to `fetch`'s promise rejection, which only
-  happens on a network-level failure (DNS, connection refused, abort). A cron
-  endpoint that answers `500`/`403`/`404` resolves `fetch` normally, so the
-  runner treats it as success and `onError` never fires — the single most
-  common failure of a scheduled run (the endpoint ran but errored) is silently
-  swallowed. Documented honestly in the new JSDoc (2026-07-13), but the
-  behaviour collides with the repo's fail-loud-over-silent-fallback maxim.
-- **Why deferred:** The fix is a small API decision, not a drive-by: check
-  `response.ok` and hand a synthetic `Error` (carrying the status) to
-  `onError`. It is additive for the network-error path but changes what
-  `onError` consumers receive, so it wants a conscious call (always-on vs. an
-  opt-in flag) rather than a quiet semantics shift.
-- **Found:** 2026-07-13, JSDoc-coverage pass over sveltekit-utils.
 
 ## Component behaviour
 
@@ -366,25 +303,40 @@ internal TODO instead. Sections are ordered roughly by urgency.
   together with the API decision.
 - **Found:** 2026-07-13, building the live-updates docs demo.
 
-### Table's `resolveSlotClass` concatenates past the tv() conflict fold — slotClasses can't beat base utilities
+### Table's structural `<td>` cells bypass `slotClasses.cell`
 
-- **Where:** `packages/table/src/lib/core/table-style-context.ts`
-  (`resolveSlotClass`: `[variantClasses, slotClass, extra].join(' ')`), used by
-  every table subcomponent; concretely bitten on the `table` slot
-  (base `min-w-[600px]`).
-- **What:** For **blocks** this is resolved since the 2026-07-08 tv() engine
-  rework: components pass `slotClasses` as the call-site `class` into the slot
-  function, and the fold strips same-bucket conflicts (verified:
-  `min-w-[600px]` + class `min-w-0` → `min-w-0` wins). The **table** package
-  bypasses that path — its own `resolveSlotClass` string-concatenates outside
-  the fold, so `slotClasses={{ table: 'min-w-0' }}` still renders both classes
-  and stylesheet order decides; the landing had to use `!min-w-0`.
-- **Why deferred:** The fix is mechanical but broad: route table's slot
-  application through `tableStyles.<slot>({ class: [slotClass, extra] })`
-  across all subcomponents (~17 slots), with a visual pass. Should be one
-  deliberate sweep, not a per-call-site patch.
-- **Found:** 2026-07-09 (original), re-verified + rescoped to table-only
-  2026-07-10 after the engine fold landed.
+- **Where:** `packages/table/src/lib/core/TableRow.svelte` (selection/expand
+  cells, ~`:116`/`:130`), `TableHead.svelte` (~`:160`), `GroupedRow.svelte`
+  (~`:133`) — each renders `class="{rowStyles.cell()} w-12"` / `w-10` as a raw
+  concat that never routes `styleConfig.slotClasses.cell`.
+- **What:** A consumer's `slotClasses.cell` styles only the data cells (applied
+  via `TableCell` / the `resolveSlotClass` path), not the structural
+  checkbox/chevron/spacer cells. Harmless today (no bucket conflict with the
+  `w-*` utilities on those cells), but an inconsistency if a consumer expects
+  `slotClasses.cell` to reach every cell.
+- **Why deferred:** Pre-existing; surfaced during the tv()-fold sweep
+  (`dd67420`) but out of its scope. Wants a deliberate call on whether the
+  structural cells are part of the `cell` slot contract, then routing them
+  through `resolveSlotClass` too.
+- **Found:** 2026-07-14, table tv()-fold sweep (Opus debt-sweep).
+
+### `Dialog`/`Drawer` spread `{...restProps}` after their own dismiss/focus handlers — a consumer `onclick` can silently disable them
+
+- **Where:** `packages/blocks/src/lib/primitives/Dialog/Dialog.svelte`
+  (~`:235`–`:244`): the `<dialog>` sets `onclick={handleBackdropClick}`,
+  `onkeydown={handleKeydown}`, `onclose` and THEN spreads `{...restProps}`.
+- **What:** Because a later spread wins in Svelte, a consumer passing a DOM
+  `onclick`/`onkeydown`/`onclose` through restProps silently overrides Dialog's
+  backdrop-dismiss / focus-trap / close handlers. Now reachable transitively
+  through `ConfirmDialog` too (it forwards `{...rest}` into the inner Dialog,
+  `3d02feb`). Same class as the form-primitive restProps-ordering fix
+  (`32cfddd`) but for the overlay family's behavioural handlers — higher-stakes,
+  since it can break dismissal/focus-trap, not just an ARIA value.
+- **Why deferred:** A fix — spread `restProps` FIRST on the `<dialog>` (as the
+  form primitives now do), or pull the dismiss/focus/close handlers out of the
+  clobberable set — is a deliberate contract change across the overlay family
+  (Dialog/Drawer/ConfirmDialog), wanting DOM tests, not a drive-by.
+- **Found:** 2026-07-14, ConfirmDialog attribute pass-through (Opus debt-sweep).
 
 ### Table date filters: `greaterThan`/`lessThan` are dead for string/Date values
 
@@ -515,24 +467,6 @@ internal TODO instead. Sections are ordered roughly by urgency.
 
 ## Accessibility
 
-### Form primitives spread `{...restProps}` last — a consumer can override computed `aria-invalid`/`aria-checked`
-
-- **Where:** `packages/blocks/src/lib/primitives/{Checkbox,Toggle,RadioGroup}`
-  (explicit ARIA before `{...restProps}`) vs. `Input.svelte` (restProps first,
-  internal ARIA last).
-- **What:** After the 2026-07-13 describedby sweep, `aria-describedby` is
-  destructured out of props in every form primitive, so it can no longer be
-  clobbered. But Checkbox/Toggle/RadioGroup still spread `{...restProps}`
-  *after* their computed `aria-invalid` (and Toggle's `aria-checked`), so a
-  consumer passing those attributes through restProps overrides the component's
-  own state — the opposite of Input, which spreads restProps first so internal
-  ARIA always wins.
-- **Why deferred:** The family isn't uniform on "internal ARIA wins", and
-  flipping it is a small but real contract change (some consumers may rely on
-  the current override as an escape hatch). Wants one decision across the form
-  family with DOM tests, not a per-component drive-by.
-- **Found:** 2026-07-13, form-family aria-describedby sweep (primitives-Welle review).
-
 ### PlaygroundConfigurator `label for` points nowhere in most control branches — and Input ignores its `id` prop
 
 - **Where:** `packages/docs/src/lib/components/PlaygroundConfigurator/PlaygroundConfigurator.svelte`
@@ -571,20 +505,22 @@ internal TODO instead. Sections are ordered roughly by urgency.
   rooms.
 - **Found:** 2026-07-10, axe over the rebuilt `/getting-started` build guide.
 
-### docs `CodePanel` code view: unnamed `role="textbox"` + Shiki comment tokens below AA
+### docs `CodePanel` Shiki punctuation token is below WCAG AA in both themes
 
-- **Where:** `packages/docs` code panel (`data-docs-stage="example"` →
-  `[role="textbox"][aria-readonly="true"]`) and its Shiki theme (comment token
-  `#B8B5AD` on the cream `#fbfaf6` panel).
-- **What:** axe reports `aria-input-field-name` (serious) on the read-only
-  code textbox of every `CodeExample` (it has no accessible name), and
-  `color-contrast` 1.96 on syntax-highlighted comment lines. Affects every
-  docs page that renders code, on every route.
-- **Why deferred:** Both fixes live in the docs package, not in any page:
-  the textbox wants an `aria-label` derived from the panel title, and the
-  comment token wants a darker stop from the warm-neutral ramp picked against
-  both panel grounds. Library change + visual sweep across all code panels.
-- **Found:** 2026-07-10, axe over the rebuilt `/getting-started` build guide.
+- **Where:** `packages/docs/src/lib/utils/shiki-editorial-themes.ts` — the
+  `punctuation` / `meta.brace` / `punctuation.separator|terminator` /
+  `meta.tag.start|end` scopes (light `#9a968e`, dark `#7a776e`).
+- **What:** The comment token was raised to AA (`572b738`), but a full-token
+  audit shows the mid-gray punctuation still fails on the panel grounds: light
+  `#9a968e` = 2.82:1 on `#fbfaf6`, dark `#7a776e` = 3.55:1 on `#232220` (AA
+  needs 4.5:1), so `{ } < > ; .` nodes trip axe `color-contrast` on a full-page
+  scan. Every other token (string/number/keyword/tag/attribute/variable/
+  function/type) clears AA in both themes.
+- **Why deferred:** Comments already sit at the ramp's light limit, so
+  darkening the frequently-used punctuation is a coordinated ramp/aesthetic
+  decision (light needs L≤0.173, dark needs L≥0.247), not a drive-by recolour.
+  The reported debt value (1.96) was uniquely the comment token, now fixed.
+- **Found:** 2026-07-14, CodePanel a11y pass (Opus debt-sweep).
 
 ### Toast promise settle may not be re-announced to screen readers (in-place flip)
 
@@ -823,6 +759,20 @@ internal TODO instead. Sections are ordered roughly by urgency.
   that runs `--update-snapshots` on Linux and commits the result. Each is an infra
   decision spanning all three specs, not a change to the suite in flight.
 - **Found:** 2026-07-08, adding the primitive visual-regression suite.
+
+### e2e axe harness never exercises the docs code panel
+
+- **Where:** `e2e/a11y.spec.ts` — `AxeBuilder.include('[data-docs-preview]')`
+  scopes every scan to the live-preview region only.
+- **What:** The read-only code textbox and the Shiki syntax tokens sit outside
+  `[data-docs-preview]`, so the harness never scanned them — which is why the
+  CodePanel `aria-input-field-name` + comment-contrast failures (`572b738`)
+  went uncaught, and why the remaining punctuation-contrast gap is unguarded.
+  The a11y baseline is `{}`.
+- **Why deferred:** Guarding these wants a second axe pass that includes the
+  code panel (or drops the `.include` scope on select routes) plus a fresh
+  baseline — an e2e-harness change, not a page edit.
+- **Found:** 2026-07-14, CodePanel a11y pass (Opus debt-sweep).
 
 ### `useSorting` contract test is flaky in the full-suite run
 
