@@ -225,6 +225,15 @@ export class APIDataGenerator {
       ? component.relatedComponents.filter((name) => name && name !== component.name)
       : [];
 
+    // Slot names lifted from the tv() `slots:` keys during extraction (attached
+    // to the rich component alongside interfaceExamples/localTypes). Carried
+    // onto the API surface so both catalog generators read one authoritative
+    // source instead of regex-guessing the slotClasses prop type.
+    const componentWithSlots = component as ComponentInfo & { slots?: string[] };
+    const slots = Array.isArray(componentWithSlots.slots)
+      ? componentWithSlots.slots.filter((s) => s?.trim())
+      : [];
+
     return {
       name: component.name,
       props: processedProps,
@@ -234,6 +243,7 @@ export class APIDataGenerator {
       stats,
       group: this.inferGroupFromPath(component.filePath || ''),
       stability,
+      ...(slots.length > 0 ? { slots } : {}),
       ...(sourceHref ? { sourceHref } : {}),
       ...(relatedComponents.length > 0 ? { relatedComponents } : {}),
       // @ts-expect-error not part of shared type, but used by docs app

@@ -75,6 +75,15 @@ export interface ComponentAPIData {
   inheritance: InheritanceInfo[];
   examples: string[];
   stats: ComponentStats;
+  /**
+   * `slotClasses` slot names, lifted from the `slots:` keys of the
+   * component's tv() config by VariantsExtractor. Authoritative source for
+   * the slot list on both catalog surfaces (llm.txt + MCP catalog) — the
+   * public `XSlots` type is a `SlotNames<typeof xVariants>` alias the
+   * prop-type regex cannot resolve, so this is how real slots reach output.
+   * Omitted when the component declares no tv() `slots` block.
+   */
+  slots?: string[];
   /** Optional grouping for route placement, e.g., 'components' or 'primitives' */
   group?: string;
   /**

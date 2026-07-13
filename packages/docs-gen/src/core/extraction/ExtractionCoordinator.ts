@@ -6,6 +6,7 @@ import type {
 } from '@urbicon-ui/shared-types';
 import { ExtractorFactory } from '../../extractors/ExtractorFactory';
 import type { PropsExtractor } from '../../extractors/typescript/PropsExtractor';
+import type { VariantsExtractor } from '../../extractors/variants/VariantsExtractor';
 import type {
   ComponentManifest,
   ExtractionResult,
@@ -68,11 +69,14 @@ export class ExtractionCoordinator {
       async () => {
         console.log(`  🔍 Extracting: ${componentName}`);
 
-        // Run all extractions in parallel (documentation loader removed)
-        const [variantsResult, inheritanceResult, examplesResult] = await Promise.all([
+        // Run all extractions in parallel (documentation loader removed).
+        // Slot names come from the tv() `slots:` keys — a distinct pass from
+        // the variant list, carried alongside it onto the rich component.
+        const [variantsResult, inheritanceResult, examplesResult, slotNames] = await Promise.all([
           this.extractVariants(manifest),
           this.extractInheritance(manifest),
-          this.extractExamples(manifest)
+          this.extractExamples(manifest),
+          this.extractSlotNames(manifest)
         ]);
 
         // Extract props with knowledge of variant keys (for Omit filtering)
@@ -107,8 +111,13 @@ export class ExtractionCoordinator {
           variants: (variantsResult.data || []) as VariantInfo[],
           inheritance: (inheritanceResult.data || []) as InheritanceInfo[],
           localTypes: (localTypes.data || []) as TypeDefinition[],
-          interfaceExamples: (examplesResult.data || []) as string[]
-        } as ComponentInfo & { localTypes?: TypeDefinition[]; interfaceExamples?: string[] };
+          interfaceExamples: (examplesResult.data || []) as string[],
+          slots: slotNames
+        } as ComponentInfo & {
+          localTypes?: TypeDefinition[];
+          interfaceExamples?: string[];
+          slots?: string[];
+        };
 
         // Log extraction summary
         const counts = {
@@ -249,6 +258,29 @@ export class ExtractionCoordinator {
           timestamp: new Date().toISOString()
         }
       };
+    }
+  }
+
+  /**
+   * Extract the tv() `slots:` keys (the real `slotClasses` slot names).
+   * Reuses the cached VariantsExtractor instance; failure is non-fatal —
+   * a component simply reports no slots rather than aborting extraction.
+   */
+  private async extractSlotNames(manifest: ComponentManifest): Promise<string[]> {
+    try {
+      const variantsExtractor =
+        (await this.extractorFactory.createVariantsExtractor()) as unknown as VariantsExtractor;
+
+      return await variantsExtractor.extractSlotNames({
+        componentPath: manifest.component.filePath,
+        componentName: manifest.component.name,
+        // Omit the key entirely when absent (exactOptionalPropertyTypes) so the
+        // extractor falls back to its own variants-file discovery.
+        ...(manifest.files?.variants ? { variantsFilePath: manifest.files.variants } : {})
+      });
+    } catch (error) {
+      console.warn(`⚠️  Slot extraction failed for ${manifest.component.name}:`, error);
+      return [];
     }
   }
 

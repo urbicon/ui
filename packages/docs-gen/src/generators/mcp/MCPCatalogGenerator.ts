@@ -1,6 +1,7 @@
 import * as fs from 'node:fs/promises';
 import * as path from 'node:path';
 import type { APIData, ComponentAPIData, EnrichedComponentInfo } from '../../types';
+import { resolveSlotNames } from '../shared/slots';
 
 export interface ComponentCatalogEntry {
   name: string;
@@ -153,7 +154,7 @@ export class MCPCatalogGenerator {
       keyPropTypes[p.name] = baseType;
     }
 
-    const slots = this.extractSlots(compApi);
+    const slots = resolveSlotNames(compApi);
 
     const relatedComponents = (component.relatedComponents || []).filter(
       (r) => r !== component.name
@@ -175,37 +176,6 @@ export class MCPCatalogGenerator {
       hasExamples: compApi.examples.length > 0,
       relatedComponents
     };
-  }
-
-  private extractSlots(compApi: ComponentAPIData): string[] {
-    const slotNames = new Set<string>();
-
-    for (const v of compApi.variants) {
-      if (v.name === 'slot' || v.name === 'slots') {
-        for (const val of v.values) {
-          if (val.trim()) slotNames.add(val);
-        }
-      }
-    }
-
-    for (const prop of compApi.props) {
-      if (prop.name === 'slotClasses' && prop.type) {
-        const match = prop.type.match(/Record<['"]([\w\s|']+)['"],/);
-        if (match?.[1]) {
-          const keys = match[1]
-            .split(/[|']/)
-            .filter(Boolean)
-            .map((s) => s.trim());
-          keys
-            .filter((k) => k)
-            .forEach((k) => {
-              slotNames.add(k);
-            });
-        }
-      }
-    }
-
-    return Array.from(slotNames);
   }
 
   private toSlug(input: string): string {

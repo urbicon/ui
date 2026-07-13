@@ -72,6 +72,49 @@ export class VariantsExtractor extends TypeScriptBaseExtractor<
     }
   }
 
+  /**
+   * Extract the slot names declared on the component's tv() config
+   * (`slots: { base: [...], header: [...] }`). These are the authoritative
+   * `slotClasses` keys: the repo derives the public `XSlots` type from them
+   * via `SlotNames<typeof xVariants>`, an alias no prop-type regex can
+   * resolve — so the tv() config is the only place the real names exist.
+   *
+   * Returns `[]` when the component has no variants file, no tv() call, or a
+   * tv() config with no `slots` block (single-slot components). Kept separate
+   * from `extract()` so the `VariantInfo[]` contract stays a pure variant list
+   * (slots are not variants and must not surface as bogus API props).
+   */
+  async extractSlotNames(input: VariantsExtractionInput): Promise<string[]> {
+    if (!this.validateInput(input)) return [];
+
+    try {
+      const variantsFilePath = input.variantsFilePath || (await this.findVariantsFile(input));
+      if (!variantsFilePath) return [];
+
+      const sourceFile = await this.getSourceFile(variantsFilePath);
+      if (!sourceFile) return [];
+
+      const declaration = this.findVariantsDeclaration(sourceFile, input.componentName);
+      if (!declaration?.initializer) return [];
+
+      const tvCall = this.findTailwindVariantsCall(declaration.initializer);
+      if (!tvCall) return [];
+
+      const configObject = tvCall.arguments[0];
+      if (!configObject || !ts.isObjectLiteralExpression(configObject)) return [];
+
+      const slotsProperty = this.findPropertyInObject(configObject, 'slots');
+      if (!slotsProperty || !ts.isObjectLiteralExpression(slotsProperty)) return [];
+
+      // Source order (base, header, content, footer …) is more useful — and
+      // just as deterministic — as alphabetical, so unlike variant values we
+      // deliberately do not sort.
+      return this.extractObjectKeys(slotsProperty);
+    } catch {
+      return [];
+    }
+  }
+
   // ==========================================
   // VARIANTS FILE DISCOVERY
   // ==========================================
@@ -293,6 +336,25 @@ export class VariantsExtractor extends TypeScriptBaseExtractor<
       return null;
     }
     return null;
+  }
+
+  /**
+   * Collect the property-name keys of an object literal in source order.
+   * Used for the tv() `slots: { … }` block, whose keys are the slot names.
+   */
+  private extractObjectKeys(objectLiteral: ts.ObjectLiteralExpression): string[] {
+    const keys: string[] = [];
+    for (const property of objectLiteral.properties) {
+      if (ts.isPropertyAssignment(property)) {
+        const name = this.extractPropertyName(property.name);
+        if (name) keys.push(name);
+      } else if (ts.isShorthandPropertyAssignment(property)) {
+        keys.push(property.name.text);
+      } else if (ts.isMethodDeclaration(property) && ts.isIdentifier(property.name)) {
+        keys.push(property.name.text);
+      }
+    }
+    return keys;
   }
 
   private extractDefaultVariants(defaultVariantsNode: ts.Expression): Record<string, string> {

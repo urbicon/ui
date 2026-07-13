@@ -9,6 +9,7 @@ import type {
   GeneratedOutput
 } from '../../types';
 import type { LLMOutputConfig } from '../../types/configuration';
+import { resolveSlotNames } from '../shared/slots';
 
 /**
  * Minimal LLM documentation generator
@@ -19,6 +20,14 @@ import type { LLMOutputConfig } from '../../types/configuration';
 export class LLMDocumentationGenerator {
   private config: LLMOutputConfig;
   private docsParser = new SvelteDocsParser();
+  /**
+   * Per-run memo for parsed docs.svelte configs, keyed by component name.
+   * Lets the write loop, the `shouldEmit` gate, and the index loop share one
+   * parse per component instead of re-reading docs.svelte three times. Cleared
+   * at the top of every `generate()` so a reused instance never serves stale
+   * config across targets.
+   */
+  private docsConfigCache = new Map<string, SvelteDocsConfig>();
 
   constructor(config: LLMOutputConfig) {
     this.config = config;
@@ -28,6 +37,7 @@ export class LLMDocumentationGenerator {
     enrichedComponents: EnrichedComponentInfo[],
     apiData: APIData
   ): Promise<GeneratedOutput> {
+    this.docsConfigCache.clear();
     const outputPath = this.config.outputPath;
     const ext = path.extname(outputPath).toLowerCase();
 
@@ -45,12 +55,14 @@ export class LLMDocumentationGenerator {
       await fs.mkdir(outputPath, { recursive: true });
       const writtenFiles: string[] = [];
       for (const component of enrichedComponents) {
+        // Single source of truth for "does this component get a file?" — the
+        // index loop in generateLlmsTxt() applies the SAME gate, so a skipped
+        // component never gets an index link pointing at a missing file.
+        if (!(await this.shouldEmit(component, apiData))) continue;
         const componentApi = apiData.components[component.name];
-        if (!componentApi) continue;
+        if (!componentApi) continue; // narrowing; shouldEmit already guaranteed presence
 
         const docsConfig = await this.loadDocsConfig(component);
-        if (docsConfig.llm?.include === false) continue;
-
         const content = await this.generateComponentContent(component, componentApi, docsConfig);
         // Write to mirrored route structure with fixed file name "llm.txt"
         const group = (componentApi as ComponentAPIData).group;
@@ -63,7 +75,7 @@ export class LLMDocumentationGenerator {
       }
 
       // Write a per-scope llms.txt manifest for convenience (llms.txt proposal)
-      const indexContent = this.generateLlmsTxt(enrichedComponents, apiData);
+      const indexContent = await this.generateLlmsTxt(enrichedComponents, apiData);
       const indexPath = path.join(outputPath, 'llms.txt');
       await fs.writeFile(indexPath, indexContent, 'utf-8');
       writtenFiles.push(indexPath);
@@ -282,9 +294,24 @@ export class LLMDocumentationGenerator {
   // UTILITIES
   // ==========================================
 
+  /**
+   * Whether a component gets its own `llm.txt` — and therefore an index link.
+   * Both the per-component write loop and the `llms.txt` index loop gate on
+   * this, so the index can never reference a file the write loop skipped
+   * (missing API data, or `llm.include === false` in docs.svelte).
+   */
+  private async shouldEmit(component: EnrichedComponentInfo, apiData: APIData): Promise<boolean> {
+    if (!apiData.components[component.name]) return false;
+    const docsConfig = await this.loadDocsConfig(component);
+    return docsConfig.llm?.include !== false;
+  }
+
   private async loadDocsConfig(component: EnrichedComponentInfo): Promise<SvelteDocsConfig> {
+    const cached = this.docsConfigCache.get(component.name);
+    if (cached) return cached;
     const docsFilePath = await this.resolveDocsFilePath(component);
     const result = await this.docsParser.parseDocsFile(component.name, docsFilePath || undefined);
+    this.docsConfigCache.set(component.name, result.docsConfig);
     return result.docsConfig;
   }
 
@@ -359,7 +386,10 @@ export class LLMDocumentationGenerator {
     return total;
   }
 
-  private generateLlmsTxt(components: EnrichedComponentInfo[], apiData: APIData): string {
+  private async generateLlmsTxt(
+    components: EnrichedComponentInfo[],
+    apiData: APIData
+  ): Promise<string> {
     const lines: string[] = [];
     // H1 title as per llms.txt informal spec
     lines.push('# Urbicon UI');
@@ -368,6 +398,10 @@ export class LLMDocumentationGenerator {
     lines.push('');
     lines.push('## Components');
     for (const c of components) {
+      // Gate on the SAME predicate as the write loop in generate(): a component
+      // the write loop skips (no API data, or llm.include === false) must NOT be
+      // indexed, or its link 404s against a file that was never written.
+      if (!(await this.shouldEmit(c, apiData))) continue;
       // The per-component file is written to `<group>/<slug>/llm.txt` (or
       // `<slug>/llm.txt` when the component has no group) — see the write loop
       // in generate(). The index link MUST carry the same group segment from
@@ -503,33 +537,11 @@ export class LLMDocumentationGenerator {
   }
 
   private extractSlotInfo(componentApiData: APIData['components'][string]): string | null {
-    const variants = componentApiData.variants || [];
-    const slotNames = new Set<string>();
-    for (const v of variants) {
-      if (v.name === 'slot' || v.name === 'slots') {
-        for (const val of v.values) slotNames.add(val);
-      }
-    }
-    // Also extract from props that mention slot
-    for (const prop of componentApiData.props) {
-      if (prop.name === 'slotClasses' && prop.type) {
-        const match = prop.type.match(/Record<['"]([\w\s|']+)['"],/);
-        if (match?.[1]) {
-          const keys = match[1]
-            .split(/[|']/)
-            .filter(Boolean)
-            .map((s) => s.trim());
-          keys.forEach((k) => {
-            slotNames.add(k);
-          });
-        }
-      }
-    }
-    if (slotNames.size === 0) return null;
-    // Filter out empty slot names that can occur from regex extraction
-    const validSlots = Array.from(slotNames).filter((s) => s.trim() !== '');
-    if (validSlots.length === 0) return null;
-    return validSlots.map((s) => `\`${s}\``).join(', ');
+    // Shared resolver: tv() `slots:` keys first (authoritative), legacy regex
+    // fallbacks second — identical to the MCP catalog so the two never diverge.
+    const slotNames = resolveSlotNames(componentApiData);
+    if (slotNames.length === 0) return null;
+    return slotNames.map((s) => `\`${s}\``).join(', ');
   }
 
   private capitalize(input: string): string {

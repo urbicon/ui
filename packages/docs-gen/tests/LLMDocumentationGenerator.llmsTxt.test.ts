@@ -142,3 +142,108 @@ describe('LLMDocumentationGenerator — group-aware llms.txt index links', () =>
     }
   });
 });
+
+// ---------------------------------------------------------------------------
+// shouldEmit gate — the index loop MUST apply the same skip conditions as the
+// per-component write loop, or a skipped component gets an index link that
+// 404s (the latent per-scope llms.txt bug). We prove index ⊆ written for the
+// two skip conditions: (a) no API data, (b) llm.include === false.
+// ---------------------------------------------------------------------------
+
+describe('LLMDocumentationGenerator — index ⊆ written (shouldEmit gate)', () => {
+  let root: string;
+  let scopeDir: string;
+
+  beforeEach(async () => {
+    vi.spyOn(console, 'log').mockImplementation(() => {});
+    vi.spyOn(console, 'warn').mockImplementation(() => {});
+    vi.spyOn(console, 'error').mockImplementation(() => {});
+    root = await fs.mkdtemp(path.join(os.tmpdir(), 'llmstxt-gate-'));
+    scopeDir = path.join(root, 'blocks');
+  });
+
+  afterEach(async () => {
+    vi.restoreAllMocks();
+    await fs.rm(root, { recursive: true, force: true });
+  });
+
+  /** Component names linked from the written llms.txt index. */
+  function indexedNames(index: string): string[] {
+    return [...index.matchAll(/^- \[([^\]]+)\]\(/gm)].map((m) => m[1] as string);
+  }
+
+  /** Every index href must resolve to a file actually on disk. */
+  async function assertNo404s(index: string): Promise<void> {
+    const hrefs = [...index.matchAll(/\]\((\.\/[^)]+llm\.txt)\)/g)].map((m) => m[1] as string);
+    for (const href of hrefs) {
+      const exists = await fs.access(path.resolve(scopeDir, href)).then(
+        () => true,
+        () => false
+      );
+      expect(exists, `index link 404s (no file on disk): ${href}`).toBe(true);
+    }
+  }
+
+  it('does not index a component that has no API data (write loop skips it)', async () => {
+    const gen = new LLMDocumentationGenerator({
+      enabled: true,
+      outputPath: scopeDir,
+      format: 'markdown'
+    });
+    // Ghost is enriched but absent from apiData → write loop skips it. Pre-fix
+    // the index still linked ./ghost/llm.txt, which 404d.
+    await gen.generate(
+      [enriched('Tooltip'), enriched('Planner'), enriched('Ghost')],
+      apiFor([
+        { name: 'Tooltip', group: 'primitives' },
+        { name: 'Planner', group: 'components' }
+      ])
+    );
+
+    const index = await fs.readFile(path.join(scopeDir, 'llms.txt'), 'utf-8');
+    expect(indexedNames(index).sort()).toEqual(['Planner', 'Tooltip']);
+    expect(index).not.toContain('Ghost');
+    await assertNo404s(index);
+  });
+
+  it('does not index a component whose docs.svelte sets llm.include = false', async () => {
+    // Author a real component dir with a docs.svelte opting out of LLM docs.
+    const mutedDir = path.join(root, 'src', 'Muted');
+    await fs.mkdir(mutedDir, { recursive: true });
+    await fs.writeFile(path.join(mutedDir, 'index.ts'), 'export {};', 'utf-8');
+    await fs.writeFile(
+      path.join(mutedDir, 'docs.svelte'),
+      '<script>\n  export const docsConfig = { llm: { include: false } };\n</script>\n',
+      'utf-8'
+    );
+
+    const muted = enriched('Muted');
+    muted.filePath = path.join(mutedDir, 'index.ts');
+
+    const gen = new LLMDocumentationGenerator({
+      enabled: true,
+      outputPath: scopeDir,
+      format: 'markdown'
+    });
+    await gen.generate(
+      [enriched('Tooltip'), muted],
+      apiFor([
+        { name: 'Tooltip', group: 'primitives' },
+        { name: 'Muted', group: 'primitives' }
+      ])
+    );
+
+    const index = await fs.readFile(path.join(scopeDir, 'llms.txt'), 'utf-8');
+    expect(indexedNames(index)).toEqual(['Tooltip']);
+    expect(index).not.toContain('Muted');
+    // And no llm.txt was written for the opted-out component.
+    const mutedWritten = await fs
+      .access(path.join(scopeDir, 'primitives', 'muted', 'llm.txt'))
+      .then(
+        () => true,
+        () => false
+      );
+    expect(mutedWritten).toBe(false);
+    await assertNo404s(index);
+  });
+});
