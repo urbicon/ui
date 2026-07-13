@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+import { maskTeachingCode } from './heuristics.js';
 import { lintDesign, maskComments } from './linter.js';
 import type { Finding } from './types.js';
 
@@ -442,6 +443,130 @@ describe('slop-floor rules', () => {
     expect(inline[0]?.kind).toBe('heuristic');
     expect(scores.correctness).toBe(100); // pure slop, correctness untouched
     expect(scores.slop).toBe(90); // one −10, not −30
+  });
+});
+
+describe('heading-skip — component-rendered headings', () => {
+  it('does NOT fire when a <Section title> supplies the intermediate h2', () => {
+    // Literal scan alone sees [h1, h3] → bogus skip. With Section counted as its
+    // rendered h2 the outline is h1 → h2 → h3, which is sequential.
+    expect(
+      has(
+        lintDesign('<h1>Page</h1><Section title="Overview"><h3>Detail</h3></Section>').findings,
+        'heading-skip'
+      )
+    ).toBe(false);
+  });
+  it('still fires on a genuine h1→h3 skip (no bridging Section)', () => {
+    expect(has(lintDesign('<h1>A</h1><h3>B</h3>').findings, 'heading-skip')).toBe(true);
+  });
+  it('honours an explicit headingLevel={N}: <Section headingLevel={3}> → <h5> skips', () => {
+    expect(
+      has(
+        lintDesign('<Section title="Deep" headingLevel={3}>body</Section><h5>Sub</h5>').findings,
+        'heading-skip'
+      )
+    ).toBe(true);
+  });
+  it('counts a Section whose opening tag wraps across lines (Prettier)', () => {
+    const code = '<h1>P</h1>\n<Section\n  id="x"\n  title="Wrapped"\n>\n<h3>Sub</h3>\n</Section>';
+    expect(has(lintDesign(code).findings, 'heading-skip')).toBe(false);
+  });
+  it('does NOT count a title-less <Section> (it renders no heading) — real skip still fires', () => {
+    // The bare playground wrapper emits no <hN>, so it must neither invent nor mask
+    // a skip: h1 → (nothing) → h3 is a real skip and should still be reported.
+    expect(
+      has(
+        lintDesign('<h1>A</h1><Section id="playground" intent="primary"><h3>B</h3></Section>')
+          .findings,
+        'heading-skip'
+      )
+    ).toBe(true);
+  });
+});
+
+describe('teaching-code masking (heuristic path)', () => {
+  it('slop inside code={`…`} does not fire, but the same pattern in real markup does', () => {
+    expect(
+      has(lintDesign('code={`<div class="transition-all">x</div>`}').findings, 'transition-all')
+    ).toBe(false);
+    expect(has(lintDesign('<div class="transition-all">x</div>').findings, 'transition-all')).toBe(
+      true
+    );
+  });
+  it('a heading skip inside code={`…`} does not fire, but in real markup it does', () => {
+    expect(has(lintDesign('code={`<h1>A</h1><h4>B</h4>`}').findings, 'heading-skip')).toBe(false);
+    expect(has(lintDesign('<h1>A</h1><h4>B</h4>').findings, 'heading-skip')).toBe(true);
+  });
+  it('masks a recipeCode = `…` declaration body', () => {
+    expect(
+      has(
+        lintDesign('const recipeCode = `<div class="transition-all"></div>`;').findings,
+        'transition-all'
+      )
+    ).toBe(false);
+  });
+  it('masks across a `</scr` + `ipt>` concatenation split (both chained literals)', () => {
+    // The corpus splits </script> to survive the Svelte parser; the slop lives in the
+    // second literal, so a single-literal mask would leak it.
+    expect(
+      has(
+        lintDesign('const recipeCode = `intro</scr` + `ipt><h1>A</h1><h4>B</h4>`;').findings,
+        'heading-skip'
+      )
+    ).toBe(false);
+    expect(
+      has(
+        lintDesign('const recipeCode = `<x></scr` + `ipt><div class="transition-all"></div>`;')
+          .findings,
+        'transition-all'
+      )
+    ).toBe(false);
+  });
+  it('honours backslash-escaped backticks inside example code (mask not cut short)', () => {
+    // `code={`… class={\`transition-all\`} …`}` — the escaped inner backticks must
+    // not be read as the terminator, or the tail (with the slop) would leak.
+    expect(
+      has(
+        lintDesign('code={`<span class={\\`transition-all\\`}>x</span>`}').findings,
+        'transition-all'
+      )
+    ).toBe(false);
+  });
+  it('does not over-reach: real markup after a code={`…`} block still fires', () => {
+    const code =
+      'code={`<div class="transition-colors"></div>`}\n<div class="transition-all">y</div>';
+    expect(has(lintDesign(code).findings, 'transition-all')).toBe(true);
+  });
+  it('leaves the deterministic rules scanning example code (separate, open debt)', () => {
+    // Only the slop axis is masked. `focus:` (deterministic) still fires inside the
+    // example; `transition-all` (slop) does not — documenting the scope boundary.
+    const { findings } = lintDesign(
+      'code={`<button class="focus:ring-2 transition-all">x</button>`}'
+    );
+    expect(has(findings, 'focus-not-visible')).toBe(true);
+    expect(has(findings, 'transition-all')).toBe(false);
+  });
+  it('preserves line numbers: a finding after a multi-line masked block reports the real line', () => {
+    const code = [
+      '<div>ok</div>', // 1
+      'code={`', // 2  teaching starts
+      '<h1>A</h1>', // 3  masked (would be a skip with the h4 below)
+      '<h4>B</h4>', // 4  masked
+      '`}', // 5  teaching ends
+      '<div class="transition-all">real</div>' // 6  real slop
+    ].join('\n');
+    const f = lintDesign(code).findings.find((x) => x.ruleId === 'transition-all');
+    expect(f?.line).toBe(6);
+    expect(has(lintDesign(code).findings, 'heading-skip')).toBe(false);
+  });
+  it('maskTeachingCode blanks the body while preserving line count', () => {
+    const src = 'a\ncode={`\n<h1>x</h1>\n`}\nb';
+    const out = maskTeachingCode(src);
+    expect(out.split('\n')).toHaveLength(src.split('\n').length);
+    expect(out).not.toContain('<h1>');
+    expect(out.startsWith('a\ncode={')).toBe(true);
+    expect(out.endsWith('}\nb')).toBe(true);
   });
 });
 

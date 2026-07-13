@@ -535,12 +535,52 @@ function checkEmojiAsIcon(lines: string[]): Finding[] {
 // Group 4 — Structural slop (need cross-element context)
 // ─────────────────────────────────────────────────────────────────────────────
 
+/**
+ * Components that render a heading element from their props, with the default rank
+ * they emit. `<Section>` (from `@urbicon-ui/docs`) renders its `title` as an `<h2>`
+ * by default; an explicit `headingLevel={N}` prop overrides it (Section clamps N to
+ * 1..6, mirrored here). It only emits the heading when it actually has a title, so
+ * `titleAttrs` gates it — the bare `<Section id="playground">` layout wrappers
+ * render no `<hN>`, and counting those would *invent* skips.
+ *
+ * Why the registry exists: the literal-`<hN>`-only scan is blind to this, so a page
+ * that pairs `<Section title="…">` (a real h2) with a literal `<h3>` sub-label read
+ * as a bogus h1→h3 skip. That false positive is exactly what pushed the recipe
+ * corpus onto a styled-`<p>` workaround instead of a semantic h3-under-Section-h2.
+ * Extend as more heading-rendering components surface.
+ */
+interface HeadingComponent {
+  level: number;
+  titleAttrs: readonly string[];
+}
+const HEADING_COMPONENTS: Record<string, HeadingComponent> = {
+  Section: { level: 2, titleAttrs: ['title', 'titleSnippet'] }
+};
+
+/** An explicit `headingLevel={N}` / `"N"` / `'N'` prop (N ∈ 1..6, Section's range). */
+function readHeadingLevel(attrs: string): number | undefined {
+  const m = attrs.match(/\bheadingLevel=(?:\{\s*([1-6])\s*\}|"([1-6])"|'([1-6])')/);
+  return m ? Number(m[1] ?? m[2] ?? m[3]) : undefined;
+}
+
 /** Heading-level skip (e.g. `<h1>` → `<h3>`) — breaks the document outline and a11y. */
 function checkHeadingSkip(code: string): Finding[] {
   const headings: { level: number; index: number }[] = [];
+  // Literal <hN> tags.
   for (const m of code.matchAll(/<h([1-6])\b/g)) {
     headings.push({ level: Number(m[1]), index: m.index ?? 0 });
   }
+  // Component-rendered headings (e.g. <Section> → <h2>), so the outline reflects
+  // what the page actually emits — interleaved with the literal tags by source order.
+  for (const [name, spec] of Object.entries(HEADING_COMPONENTS)) {
+    for (const m of code.matchAll(new RegExp(`<${name}\\b([^>]*)>`, 'g'))) {
+      const attrs = m[1] ?? '';
+      // Only when a title is actually present (else no <hN> is rendered — see above).
+      if (!spec.titleAttrs.some((a) => new RegExp(`\\b${a}=`).test(attrs))) continue;
+      headings.push({ level: readHeadingLevel(attrs) ?? spec.level, index: m.index ?? 0 });
+    }
+  }
+  headings.sort((a, b) => a.index - b.index);
   for (let i = 1; i < headings.length; i++) {
     const prev = headings[i - 1];
     const cur = headings[i];
@@ -588,17 +628,101 @@ function checkTouchTarget(code: string): Finding[] {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
+// Teaching-code masking (heuristic-path only)
+// ─────────────────────────────────────────────────────────────────────────────
 
-/** Run all slop-floor heuristics over the (comment-masked) code. */
+/** Blank every non-newline char, preserving line count (as maskComments does). */
+function blankKeepNewlines(s: string): string {
+  return s.replace(/[^\n]/g, ' ');
+}
+
+/** Index of the next *un-escaped* backtick at/after `from`, or -1. */
+function unescapedBacktick(code: string, from: number): number {
+  for (let i = from; i < code.length; i++) {
+    const c = code[i];
+    // A backslash escapes the next char (`\``, `\\`, `\${` all occur in example
+    // code) — skip it so an escaped backtick is not read as a terminator.
+    if (c === '\\') {
+      i++;
+      continue;
+    }
+    if (c === '`') return i;
+  }
+  return -1;
+}
+
+/**
+ * From the opening backtick at `start`, consume one template literal plus any
+ * `` + `…` `` continuations, returning the index just past the final closing
+ * backtick. The docs corpus splits a literal `</script>` as `` `</scr` + `ipt>` ``
+ * to survive the Svelte parser, so a single-literal scan would leave the tail
+ * exposed. A `${\`…\`}`-nested backtick is not handled (absent from the corpus) and
+ * would merely end the mask early — a benign under-mask, never an over-reach.
+ */
+function teachingChainEnd(code: string, start: number): number {
+  let i = start;
+  for (;;) {
+    const close = unescapedBacktick(code, i + 1);
+    if (close === -1) return code.length; // unterminated literal — blank to EOF (defensive)
+    i = close + 1;
+    // Peek past whitespace for a `+ \`` that continues the concatenated value.
+    let j = i;
+    while (j < code.length && /\s/.test(code[j] ?? '')) j++;
+    if (code[j] !== '+') return i; // value ends here (next is `}`, `;`, …)
+    j++;
+    while (j < code.length && /\s/.test(code[j] ?? '')) j++;
+    if (code[j] !== '`') return i; // a `+` not continuing a template chain
+    i = j;
+  }
+}
+
+/**
+ * Blank the template-literal bodies of *teaching code* — `code={`…`}` props and
+ * `recipeCode = `…`` declarations (docs example source; see CLAUDE.md → Recipe
+ * Pages) — preserving newlines so finding line numbers stay accurate (mirrors
+ * maskComments in linter.ts). A `transition-all` or an `<h1>…<h4>` shown *inside* an
+ * example is not the page's own markup and must not score on the slop axis.
+ *
+ * Deliberately heuristic-path only: the deterministic correctness rules still scan
+ * this text. How they should treat example/prose content (attribute extraction, an
+ * exemption mechanism) is a separate, still-open debt item and out of scope here.
+ */
+export function maskTeachingCode(code: string): string {
+  // `code={` or `recipeCode =` immediately (mod. whitespace) before a backtick. The
+  // `(?=`)` lookahead leaves lastIndex exactly at the opening backtick; the variable
+  // forms (`code={recipeCode}`) fail the lookahead and are correctly left untouched.
+  const anchorRe = /\bcode=\{\s*(?=`)|\brecipeCode\s*=\s*(?=`)/g;
+  let out = '';
+  let last = 0;
+  let m = anchorRe.exec(code);
+  while (m !== null) {
+    const bodyStart = anchorRe.lastIndex; // at the opening backtick
+    const bodyEnd = teachingChainEnd(code, bodyStart);
+    out += code.slice(last, bodyStart) + blankKeepNewlines(code.slice(bodyStart, bodyEnd));
+    last = bodyEnd;
+    anchorRe.lastIndex = bodyEnd; // never rescan inside the region just blanked
+    m = anchorRe.exec(code);
+  }
+  return out + code.slice(last);
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+
+/**
+ * Run all slop-floor heuristics over the (comment-masked) code. Teaching-code
+ * example literals are additionally blanked first (see maskTeachingCode), so example
+ * source shown on the page never scores on the slop axis.
+ */
 export function runHeuristics(code: string): Finding[] {
-  const atoms = collectAtoms(code);
-  const lines = code.split('\n');
+  const scanned = maskTeachingCode(code);
+  const atoms = collectAtoms(scanned);
+  const lines = scanned.split('\n');
   return [
     // Group 1 — distribution
     ...checkIntentRainbow(atoms),
     ...checkSpacingUniformity(atoms),
-    ...checkCardMonotony(code),
-    ...checkRadiusStrategy(code, atoms),
+    ...checkCardMonotony(scanned),
+    ...checkRadiusStrategy(scanned, atoms),
     ...checkFontWeightUniformity(atoms),
     // Group 2 — token-bypass & generic defaults
     ...checkGenericFont(lines),
@@ -611,12 +735,12 @@ export function runHeuristics(code: string): Finding[] {
     ...checkGradientText(lines),
     // Group 3 — contrast & content
     ...checkGreyOnIntent(lines),
-    ...checkCenteredBodyText(code),
+    ...checkCenteredBodyText(scanned),
     ...checkJustifiedText(lines),
     ...checkPlaceholderContent(lines),
     ...checkEmojiAsIcon(lines),
     // Group 4 — structural
-    ...checkHeadingSkip(code),
-    ...checkTouchTarget(code)
+    ...checkHeadingSkip(scanned),
+    ...checkTouchTarget(scanned)
   ];
 }
