@@ -62,6 +62,42 @@
   // has a description — pages without any docs hide the affordance.
   let helpVisible = $state(false);
 
+  // XC-5: variable-size previews (Calendar month grids with 5 vs. 6 week
+  // rows, event lists, …) oscillate in height while the user interacts
+  // with the demo itself, which shifts the controls strip + code panel
+  // below — the configurator "drifts" away from the pointer. Latch the
+  // tallest observed preview height as an inline min-height (high-water
+  // mark) so demo-internal interaction can only grow the stage, never
+  // shrink it. The latch resets when a control changes the demo's props
+  // (the new state legitimately has a different natural size) and when
+  // the stage width changes (a reflow has a new natural height).
+  let previewMinHeight = $state(0);
+
+  $effect(() => {
+    void values;
+    previewMinHeight = 0;
+  });
+
+  function latchPreviewHeight(node: HTMLElement) {
+    let lastWidth = node.offsetWidth;
+    const observer = new ResizeObserver(() => {
+      const width = node.offsetWidth;
+      if (width !== lastWidth) {
+        // Width changed (viewport resize / layout change): drop the latch
+        // and skip this tick — the node still carries the stale min-height,
+        // so its current height is not the new natural height. The style
+        // removal re-triggers the observer, which then latches cleanly.
+        lastWidth = width;
+        previewMinHeight = 0;
+        return;
+      }
+      const height = node.offsetHeight;
+      if (height > previewMinHeight) previewMinHeight = height;
+    });
+    observer.observe(node);
+    return () => observer.disconnect();
+  }
+
   type SlotName = keyof NonNullable<PlaygroundConfiguratorProps<TValues>['slotClasses']>;
   function slot(name: SlotName) {
     if (unstyled) return slotClasses?.[name] ?? '';
@@ -142,7 +178,11 @@
   <div class="{slot('container')} {className ?? ''}" data-docs-stage="playground">
     <!-- Preview -->
     <div class={slot('preview')} data-docs-stage-frame>
-      <div class={slot('previewContent')}>
+      <div
+        class={slot('previewContent')}
+        style:min-height={previewMinHeight ? `${previewMinHeight}px` : undefined}
+        {@attach latchPreviewHeight}
+      >
         {@render children?.(values)}
       </div>
     </div>
@@ -173,6 +213,10 @@
         {#each visibleControls as control (control.key)}
           {@const description = getControlDescription(control)}
           {@const isVariantKey = variantKeySet.has(control.key)}
+          <!-- The hint div only exists while helpVisible is on, so the
+               aria-describedby reference must appear/disappear with it —
+               a dangling idref is an a11y validation error. -->
+          {@const hintId = helpVisible && description ? `${control.key}-hint` : undefined}
           <div class={slot('controlItem')}>
             <label for={control.key} class={slot('controlLabel')}>
               <span>{control.label}</span>
@@ -212,6 +256,7 @@
                   onValueChange={(value: string) =>
                     updateValue(control.key, value === '' ? null : value)}
                   ariaLabel={control.label}
+                  aria-describedby={hintId}
                 >
                   {#each items as item (item.value)}
                     <SegmentItem value={String(item.value)}>{item.label}</SegmentItem>
@@ -245,6 +290,7 @@
                     id={control.key}
                     customItem={controlSelectItem}
                     selectionIndicator="none"
+                    aria-describedby={hintId}
                   />
                 </div>
               {/if}
@@ -256,6 +302,7 @@
                   checked={Boolean(values[control.key])}
                   onCheckedChange={(val) => updateValue(control.key, val)}
                   id={`${control.key}-input`}
+                  aria-describedby={hintId}
                 />
               </div>
             {:else if control.type === 'text'}
@@ -267,6 +314,7 @@
                   value={(values[control.key] as string) ?? ''}
                   placeholder={control.placeholder}
                   oninput={(e) => updateValue(control.key, e.currentTarget.value)}
+                  aria-describedby={hintId}
                 />
               </div>
             {:else if control.type === 'number'}
@@ -283,6 +331,7 @@
                   max={control.max}
                   step={control.step}
                   oninput={(e) => updateValue(control.key, Number(e.currentTarget.value))}
+                  aria-describedby={hintId}
                 />
               </div>
             {:else if control.type === 'color'}
@@ -293,6 +342,7 @@
                   value={values[control.key] || control.defaultValue || '#000000'}
                   onchange={(e) => updateValue(control.key, e.currentTarget.value)}
                   class={styles.colorInput()}
+                  aria-describedby={hintId}
                 />
               </div>
             {:else if control.type === 'slider' || control.type === 'range'}
@@ -316,6 +366,7 @@
                   showValue
                   onValueChange={(val) =>
                     typeof val === 'number' ? updateValue(control.key, val) : undefined}
+                  aria-describedby={hintId}
                 />
               </div>
             {/if}
