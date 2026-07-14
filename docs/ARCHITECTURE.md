@@ -193,7 +193,7 @@ Components that propagate `intent` to their root (e.g. Button, Avatar, Badge) at
 
 ## Overlay motion tokens (XC-11)
 
-All overlay primitives (Dialog, Drawer, Popover, Tooltip, ConfirmDialog, Toast) share a single motion contract. The tokens live in `packages/blocks/src/lib/style/interaction.css` and are mirrored as JS constants in `packages/blocks/src/lib/utils/overlay-tokens.ts`:
+The **modal / panel overlays** (Dialog, Drawer, ConfirmDialog, Toast) share a single Svelte-transition-driven motion contract. The tokens live in `packages/blocks/src/lib/style/interaction.css` and are mirrored as JS constants in `packages/blocks/src/lib/utils/overlay-tokens.ts`:
 
 | CSS custom property                        | Default                                     | Purpose                                 |
 | ------------------------------------------ | ------------------------------------------- | --------------------------------------- |
@@ -210,7 +210,12 @@ All overlay primitives (Dialog, Drawer, Popover, Tooltip, ConfirmDialog, Toast) 
 
 Svelte transitions need numeric inputs at the call site, so components call `getOverlayMotion(override?)` from `utils/overlay-tokens.ts` instead of hard-coding numbers. The reader resolves the live CSS values via `getComputedStyle`, parses ms/s/px, and falls back to the JS defaults on the server. The optional `override` argument carries the component's per-instance `transitionDuration` / `transitionEasing` props through — Dialog and Drawer expose this surface today; other overlays can opt in by accepting the same props and forwarding them.
 
-**Don't** hard-code 200/250ms or panel-scale numbers in new overlay components. Use the tokens (or `getOverlayMotion()` when you need numbers in JS). Adding a new overlay primitive means picking up these tokens, not minting parallel ones.
+The **anchored, native-popover surfaces** deliberately do NOT run Svelte transitions — their show/hide is owned by `showPopover()`/`hidePopover()` (and native light dismiss, which no JS transition can animate). They run **CSS-native motion** on their own faster token pairs, both defaulting through `--blocks-duration-fast` so reduced motion collapses them for free:
+
+- **Tooltip** — `--blocks-tooltip-duration` / `--blocks-tooltip-easing`, opacity fade.
+- **Popover (and Menu / DatePicker through it)** — `--blocks-popover-duration` / `--blocks-popover-easing`, fade + scale. Mechanism: `@starting-style` supplies the enter before-state, `transition-behavior: allow-discrete` on `display`/`overlay` keeps the exit painted through the native hide, and the component lags its children-teardown to the computed transition duration (`maxTransitionDurationMs`). The panel stamps `data-state="open" | "closed"` as the styling hook; `popoverMotion` (popover.variants.ts) is the reference fragment — Menu re-applies it verbatim on its unstyled inner Popover.
+
+**Don't** hard-code 200/250ms or panel-scale numbers in new overlay components. Use the tokens (or `getOverlayMotion()` when you need numbers in JS). Adding a new modal overlay means picking up the `--blocks-overlay-*` tokens; a new anchored native-popover surface follows the Popover mechanism instead — in both cases, don't mint parallel tokens.
 
 ## i18n System
 
