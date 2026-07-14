@@ -9,6 +9,7 @@
     Toggle,
     Tooltip
   } from '@urbicon-ui/blocks';
+  import { onMount } from 'svelte';
   import CodePanel from '../CodePanel/CodePanel.svelte';
   import type { ControlDefinition } from '@urbicon-ui/shared-types/playground';
   import { playgroundConfiguratorVariants } from './playground-configurator.variants';
@@ -22,6 +23,7 @@
     isDefaultValue as isDefaultValueImpl,
     countModified
   } from './code-gen.js';
+  import { decodeShareParams, encodeShareParams } from './share.js';
 
   const dt = useDocsI18n();
 
@@ -154,6 +156,58 @@
     }
     values = next as TValues;
     onValuesChange?.(values);
+  }
+
+  // Share links: the query string carries only the controls the reader
+  // actually changed (see `share.ts`), so a page's 60-odd call sites need no
+  // new prop and a link of pure defaults is never offered.
+  //
+  // Seeding happens on mount, never during init: the docs app is
+  // adapter-static with `prerender = true`, so the prerendered HTML was built
+  // with no query string at all. Reading `location.search` while rendering
+  // would make the client's first render disagree with that HTML — a
+  // hydration mismatch. Same reasoning as `DocsThemeToggle`.
+  onMount(() => {
+    const shared = decodeShareParams(controls, window.location.search);
+    if (Object.keys(shared).length === 0) return;
+    // Mirrors the init effect's own guard: if this callback wins the race
+    // against it, `values` may still be the empty map a consumer passed, and
+    // merging a partial share subset onto that would leave every untouched
+    // control undefined.
+    const base = values && Object.keys(values).length > 0 ? values : componentDefaults;
+    values = { ...base, ...shared } as TValues;
+    onValuesChange?.(values);
+  });
+
+  let shareCopied = $state(false);
+  let shareCopiedTimer: ReturnType<typeof setTimeout> | undefined;
+
+  // The confirmation must not outlive the URL it confirms: once a control
+  // moves, the copied link no longer describes what is on screen.
+  $effect(() => {
+    void values;
+    shareCopied = false;
+  });
+
+  $effect(() => () => clearTimeout(shareCopiedTimer));
+
+  // Copy-on-click rather than keeping the URL in sync as controls move: a live
+  // `replaceState` would spam history or break the back button for a reader
+  // who is only spinning knobs, and `goto` would make this package depend on
+  // SvelteKit's runtime — `packages/docs` has no `$app/*` import today.
+  async function copyShareLink() {
+    const query = encodeShareParams(controls, values);
+    const { origin, pathname } = window.location;
+    try {
+      await navigator.clipboard.writeText(
+        query ? `${origin}${pathname}?${query}` : `${origin}${pathname}`
+      );
+      shareCopied = true;
+      clearTimeout(shareCopiedTimer);
+      shareCopiedTimer = setTimeout(() => (shareCopied = false), 2000);
+    } catch (err) {
+      console.error('Failed to copy share link:', err);
+    }
   }
 
   const generatedCode = $derived.by(() => {
@@ -433,6 +487,28 @@
           {/if}
         {/each}
       </div>
+      <!--
+        Gated on the same condition as "Reset all (N)" above: with nothing
+        modified the share link is just the page URL, so there is nothing worth
+        copying and the row stays out of the layout entirely.
+      -->
+      {#if modifiedCount > 0}
+        <div class={slot('actionsBar')}>
+          <button type="button" class={styles.helpToggle()} onclick={copyShareLink}>
+            {shareCopied ? dt('linkCopied') : dt('copyLink')}
+          </button>
+          <!--
+            Copy confirmation for screen readers, for the reason CodePanel
+            documents: the label flipping on the control the user just pressed is
+            not a reliable announcement, a status region is. Unlike CodePanel's,
+            this one may live inside the {#if} — it mounts *empty* alongside the
+            button, so it is in the DOM well before the click that fills it.
+            `shareCopied` is provably false at mount: the effect above clears it
+            on any value change, and only a value change can bring this row in.
+          -->
+          <span class="sr-only" role="status">{shareCopied ? dt('linkCopied') : ''}</span>
+        </div>
+      {/if}
     </div>
 
     <!-- Collapsible Generated Code -->

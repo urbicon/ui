@@ -71,10 +71,11 @@ export const playgroundConfiguratorVariants = tv({
     // gap-4 between label and control adds 1rem → 12rem total). Slightly
     // negative top-margin pulls it visually under the control.
     controlHint: ['pl-3 sm:pl-48 pr-4 -mt-0.5 pb-1 text-xs leading-snug text-text-tertiary'],
-    // Actions row at the bottom of the controls panel. Holds the
-    // reset-all button when any control is modified (the help-toggle
-    // lives in the `controlsHeader` slot above the grid). Width-matched
-    // to the controlsGrid so the right-edge aligns visually.
+    // Actions row at the bottom of the controls panel. Holds the share-link
+    // button, and renders only while something is modified (the reset-all and
+    // help-toggle buttons both live in the `controlsHeader` slot above the
+    // grid). Width-matched to the controlsGrid so the right-edge aligns
+    // visually.
     actionsBar: ['flex items-center justify-end gap-3 px-4 pb-2 max-w-[36rem] mx-auto w-full'],
     helpToggle: [
       'inline-flex items-center gap-1.5',

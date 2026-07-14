@@ -43,6 +43,8 @@ export default {
   selectOption: 'Wähle {{option}}...',
   enableOption: '{{option}} aktivieren',
   playgroundModified: 'Geänderte Einstellungen: {{count}}',
+  copyLink: 'Link kopieren',
+  linkCopied: 'Link kopiert!',
 
   // CodeExample fallback
   codeExtractionFallback:
