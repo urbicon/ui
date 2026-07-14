@@ -165,6 +165,38 @@
   let codeExpanded = $state(true);
 </script>
 
+<!--
+  Caption content, shared by the `<label for>` and the `<div>` + `aria-labelledby`
+  arms so the two only differ in their wrapper element. `labelId` is set only on
+  the aria-labelledby arm and lands on the bare label text — never on the wrapper,
+  whose reset-dot `aria-label` would otherwise leak into the widget's computed
+  accessible name.
+-->
+{#snippet controlCaption(control: ControlDefinition, labelId: string | undefined)}
+  <span id={labelId}>{control.label}</span>
+  {#if variantKeySet.has(control.key)}
+    <Tooltip label="Style variant (tailwind-variants)" placement="top">
+      <span class={styles.variantBadge()} aria-hidden="true">V</span>
+    </Tooltip>
+  {/if}
+  <!--
+    Dirty-state dot is rendered AFTER the V badge so the badge's
+    horizontal position stays constant across clean/dirty toggles.
+    The per-control (i) info icon was removed in v5.4.0 — descriptions
+    are now surfaced via the single `?` help-toggle in the actions
+    bar below the strip.
+  -->
+  {#if !isDefaultValue(control.key)}
+    <button
+      type="button"
+      class={styles.modifiedDot()}
+      onclick={() => resetToDefault(control.key)}
+      title="Default: {componentDefaults[control.key]}. Click to reset."
+      aria-label="Reset {control.label} to default"
+    ></button>
+  {/if}
+{/snippet}
+
 <section class={slot('root')} {...restProps}>
   {#if showHeader}
     <div class={slot('header')}>
@@ -223,39 +255,45 @@
       <div class={slot('controlsGrid')}>
         {#each visibleControls as control (control.key)}
           {@const description = getControlDescription(control)}
-          {@const isVariantKey = variantKeySet.has(control.key)}
           <!-- The hint div only exists while helpVisible is on, so the
                aria-describedby reference must appear/disappear with it —
                a dangling idref is an a11y validation error. -->
           {@const hintId = helpVisible && description ? `${control.key}-hint` : undefined}
+          {@const items = control.items ?? []}
+          {@const isEnum = control.type === 'dropdown' || control.type === 'select'}
+          {@const isSegment = isEnum && items.length <= 4 && items.length > 0}
+          <!-- Which element the caption addresses depends on what the branch
+               renders. `<label for>` only works against a *labelable* element
+               (input / button / select / textarea) — pointing it at a
+               `role="radiogroup"` div or a `role="slider"` thumb is a dead
+               reference that focuses nothing. So:
+                 • Input / color / Toggle → the branch's `<input id={key}>`.
+                 • Select → its trigger `<button id={key}-trigger>`; a button is
+                   labelable, so the caption both names it and focuses it.
+                 • SegmentGroup / Slider → no labelable element exists; the
+                   caption becomes a plain `<div>` carrying `<span id>` and the
+                   widget references it via `aria-labelledby`. -->
+          {@const usesGroupLabel =
+            isSegment || control.type === 'slider' || control.type === 'range'}
+          {@const labelId = `${control.key}-label`}
+          {@const labelFor = usesGroupLabel
+            ? undefined
+            : isEnum
+              ? `${control.key}-trigger`
+              : control.key}
           <div class={slot('controlItem')}>
-            <label for={control.key} class={slot('controlLabel')}>
-              <span>{control.label}</span>
-              {#if isVariantKey}
-                <Tooltip label="Style variant (tailwind-variants)" placement="top">
-                  <span class={styles.variantBadge()} aria-hidden="true">V</span>
-                </Tooltip>
-              {/if}
-              <!--
-                Dirty-state dot is rendered AFTER the V badge so the badge's
-                horizontal position stays constant across clean/dirty toggles.
-                The per-control (i) info icon was removed in v5.4.0 — descriptions
-                are now surfaced via the single `?` help-toggle in the actions
-                bar below the strip.
-              -->
-              {#if !isDefaultValue(control.key)}
-                <button
-                  class={styles.modifiedDot()}
-                  onclick={() => resetToDefault(control.key)}
-                  title="Default: {componentDefaults[control.key]}. Click to reset."
-                  aria-label="Reset {control.label} to default"
-                ></button>
-              {/if}
-            </label>
+            {#if labelFor}
+              <label for={labelFor} class={slot('controlLabel')}>
+                {@render controlCaption(control, undefined)}
+              </label>
+            {:else}
+              <div class={slot('controlLabel')}>
+                {@render controlCaption(control, labelId)}
+              </div>
+            {/if}
 
-            {#if control.type === 'dropdown' || control.type === 'select'}
-              {@const items = control.items ?? []}
-              {#if items.length <= 4 && items.length > 0}
+            {#if isEnum}
+              {#if isSegment}
                 <!-- Render an enum with <= 4 options as a text SegmentGroup —
                      no dropdown click, all options visible inline.
                      SegmentGroup is naturally compact and does not need the
@@ -266,7 +304,7 @@
                   value={String(values[control.key] ?? '')}
                   onValueChange={(value: string) =>
                     updateValue(control.key, value === '' ? null : value)}
-                  ariaLabel={control.label}
+                  aria-labelledby={labelId}
                   aria-describedby={hintId}
                 >
                   {#each items as item (item.value)}
@@ -306,13 +344,20 @@
                 </div>
               {/if}
             {:else if control.type === 'checkbox' || control.type === 'boolean'}
+              <!-- `aria-label` looks redundant next to the `<label for>` above,
+                   but it is not: given no `label`/`aria-label` Toggle falls back
+                   to a generic aria-label ("Toggle"), and aria-label outranks an
+                   associated `<label>` in the accessible-name calculation — every
+                   playground switch would announce as "Toggle". The `<label for>`
+                   still earns its keep: it is what focuses the switch on click. -->
               <div class={slot('controlControlCompact')}>
                 <Toggle
                   appearance="dot"
                   size="sm"
                   checked={Boolean(values[control.key])}
                   onCheckedChange={(val) => updateValue(control.key, val)}
-                  id={`${control.key}-input`}
+                  id={control.key}
+                  aria-label={control.label}
                   aria-describedby={hintId}
                 />
               </div>
@@ -377,6 +422,7 @@
                   showValue
                   onValueChange={(val) =>
                     typeof val === 'number' ? updateValue(control.key, val) : undefined}
+                  aria-labelledby={labelId}
                   aria-describedby={hintId}
                 />
               </div>

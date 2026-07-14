@@ -290,7 +290,14 @@ interface SelectBaseProps<T extends SelectValue = string>
    */
   preset?: string;
 
-  /** Explicit `id` for the component. Auto-generated if omitted. */
+  /**
+   * Explicit `id` for the component. Auto-generated if omitted.
+   *
+   * The id lands on the component's wrapper, which is not a labelable element.
+   * The focusable trigger is derived from it as `` `${id}-trigger` `` — that is
+   * the id an external `<label for>` has to address, since a `for` pointing at
+   * the wrapper focuses nothing.
+   */
   id?: string;
 }
 

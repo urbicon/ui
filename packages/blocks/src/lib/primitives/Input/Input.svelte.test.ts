@@ -148,6 +148,56 @@ describe('Input (icon buttons)', () => {
   });
 });
 
+describe('Input (id / external label association)', () => {
+  // Input used to hardcode `input-${propsId}` as its field id, silently
+  // discarding a consumer-supplied `id` (it arrived via restProps but was
+  // overwritten by the hardcoded `id=` further down the element). That broke
+  // every consumer pairing an Input with an external `<label for>` — the label
+  // pointed at nothing. These pin the two-step `$props.id()` contract.
+  function externalLabel(htmlFor: string, text: string) {
+    const label = document.createElement('label');
+    label.setAttribute('for', htmlFor);
+    label.textContent = text;
+    document.body.append(label);
+    return label;
+  }
+
+  it('applies a consumer-supplied id to the input itself', () => {
+    renderInput({ id: 'email-field' });
+    expect(input().id).toBe('email-field');
+  });
+
+  it('associates an external <label for> with the input and focuses it on click', async () => {
+    const user = userEvent.setup();
+    const label = externalLabel('email-field', 'Email');
+    renderInput({ id: 'email-field' });
+
+    // The DOM's own view of the association — this is what a dead `for` breaks.
+    expect(label.control).toBe(input());
+    expect(Array.from(input().labels ?? [])).toContain(label);
+    // ...and the association is what makes the label clickable-to-focus.
+    await user.click(label);
+    expect(document.activeElement).toBe(input());
+  });
+
+  it('derives the error/helper description ids from the supplied id', () => {
+    renderInput({ id: 'email-field', error: 'Required' });
+    expect(input().getAttribute('aria-describedby')).toBe('email-field-error');
+    expect(document.getElementById('email-field-error')?.textContent?.trim()).toBe('Required');
+  });
+
+  it('still generates a stable id (label and input agree) when none is supplied', () => {
+    renderInput({ label: 'Email' });
+
+    const generated = input().id;
+    // No consumer id → the component owns it: non-empty, and the internal
+    // label must resolve to the very same input.
+    expect(generated).toBeTruthy();
+    expect(generated.startsWith('input-')).toBe(true);
+    expect(screen.getByText('Email').getAttribute('for')).toBe(generated);
+  });
+});
+
 describe('Input (consumer handler passthrough)', () => {
   it('forwards regular keydown events to the consumer handler (regression: onkeydown swallow)', async () => {
     const user = userEvent.setup();

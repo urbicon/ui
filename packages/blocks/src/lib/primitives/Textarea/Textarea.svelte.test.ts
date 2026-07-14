@@ -175,3 +175,35 @@ describe('Textarea (aria-describedby merge)', () => {
     expect(textarea().getAttribute('aria-describedby')).toBe('ext-hint');
   });
 });
+
+describe('Textarea (id / external label association)', () => {
+  // Same defect class as Input: Textarea hardcoded `textarea-${propsId}` and
+  // dropped a consumer-supplied `id` on the floor, so an external
+  // `<label for>` addressed nothing.
+  it('applies a consumer-supplied id to the textarea itself', () => {
+    renderTextarea({ id: 'bio-field' });
+    expect(textarea().id).toBe('bio-field');
+  });
+
+  it('associates an external <label for> with the textarea and focuses it on click', async () => {
+    const user = userEvent.setup();
+    const label = document.createElement('label');
+    label.setAttribute('for', 'bio-field');
+    label.textContent = 'Bio';
+    document.body.append(label);
+
+    renderTextarea({ id: 'bio-field' });
+
+    expect(label.control).toBe(textarea());
+    await user.click(label);
+    expect(document.activeElement).toBe(textarea());
+  });
+
+  it('still generates a stable id (label and textarea agree) when none is supplied', () => {
+    renderTextarea({ label: 'Bio' });
+
+    const generated = textarea().id;
+    expect(generated.startsWith('textarea-')).toBe(true);
+    expect(screen.getByText('Bio').getAttribute('for')).toBe(generated);
+  });
+});

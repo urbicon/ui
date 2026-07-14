@@ -35,6 +35,7 @@
     slotClasses: slotClassesProp = {},
     preset,
     'aria-describedby': ariaDescribedby,
+    'aria-labelledby': ariaLabelledby,
     ...restProps
   }: SliderProps = $props();
 
@@ -53,6 +54,8 @@
     disabled
   }));
   const statusId = `${uid}-status`;
+  const minLabelId = `${uid}-min-label`;
+  const maxLabelId = `${uid}-max-label`;
 
   let trackRef = $state<HTMLDivElement>();
   let dragging = $state<'single' | 'start' | 'end' | null>(null);
@@ -251,6 +254,17 @@
       .join(' ') || undefined
   );
 
+  // `aria-labelledby` has the same reach problem as `aria-describedby` above:
+  // restProps land on the roleless wrapper div, so an external visible label
+  // would never name the focusable thumbs. On the range arm one external label
+  // would name both thumbs identically ("Padding" / "Padding"), so it is
+  // composed with a visually-hidden minimum/maximum qualifier —
+  // aria-labelledby concatenates its references in order, yielding
+  // "Padding Minimum" / "Padding Maximum" and preserving the distinction the
+  // `label`-prop arm gets for free.
+  const startLabelledBy = $derived(ariaLabelledby ? `${ariaLabelledby} ${minLabelId}` : undefined);
+  const endLabelledBy = $derived(ariaLabelledby ? `${ariaLabelledby} ${maxLabelId}` : undefined);
+
   $effect(() => {
     if (trackRef && mint && mint !== 'none' && !disabled) {
       return mintRegistry.apply(trackRef, mint);
@@ -429,13 +443,22 @@
     {/if}
 
     {#if range}
+      {#if ariaLabelledby}
+        <span id={minLabelId} class="sr-only">{bt('accessibility.minimum') || 'Minimum'}</span>
+        <span id={maxLabelId} class="sr-only">{bt('accessibility.maximum') || 'Maximum'}</span>
+      {/if}
       <div
         role="slider"
         tabindex={disabled ? -1 : 0}
         aria-valuemin={min}
         aria-valuemax={rangeValue[1]}
         aria-valuenow={rangeValue[0]}
-        aria-label={label ? `${label} minimum` : bt('accessibility.minimum') || 'Minimum'}
+        aria-labelledby={startLabelledBy}
+        aria-label={startLabelledBy
+          ? undefined
+          : label
+            ? `${label} minimum`
+            : bt('accessibility.minimum') || 'Minimum'}
         aria-describedby={describedBy}
         aria-disabled={disabled || undefined}
         class={unstyled ? (slotClasses?.thumb ?? '') : styles.thumb({ class: slotClasses?.thumb })}
@@ -449,7 +472,12 @@
         aria-valuemin={rangeValue[0]}
         aria-valuemax={max}
         aria-valuenow={rangeValue[1]}
-        aria-label={label ? `${label} maximum` : bt('accessibility.maximum') || 'Maximum'}
+        aria-labelledby={endLabelledBy}
+        aria-label={endLabelledBy
+          ? undefined
+          : label
+            ? `${label} maximum`
+            : bt('accessibility.maximum') || 'Maximum'}
         aria-describedby={describedBy}
         aria-disabled={disabled || undefined}
         class={unstyled ? (slotClasses?.thumb ?? '') : styles.thumb({ class: slotClasses?.thumb })}
@@ -464,7 +492,8 @@
         aria-valuemin={min}
         aria-valuemax={max}
         aria-valuenow={singleValue}
-        aria-label={label || bt('accessibility.slider') || 'Slider'}
+        aria-labelledby={ariaLabelledby}
+        aria-label={ariaLabelledby ? undefined : label || bt('accessibility.slider') || 'Slider'}
         aria-describedby={describedBy}
         aria-disabled={disabled || undefined}
         class={unstyled ? (slotClasses?.thumb ?? '') : styles.thumb({ class: slotClasses?.thumb })}

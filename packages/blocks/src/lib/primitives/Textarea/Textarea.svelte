@@ -29,6 +29,7 @@
     slotClasses: slotClassesProp = {},
     preset,
     oninput: userOnInput,
+    id: idProp,
     'aria-describedby': ariaDescribedby,
     ...restProps
   }: TextareaProps = $props();
@@ -42,9 +43,12 @@
   let textareaRef = $state<HTMLTextAreaElement>();
 
   // ARIA wiring is shared with every form primitive — see XC-2.
+  // A consumer-supplied `id` wins over the generated one, so an external
+  // `<label for>` can address the `<textarea>` (mirrors the Input role model).
   const propsId = $props.id();
+  const fieldId = $derived(idProp ?? `textarea-${propsId}`);
   const ff = useFormField(() => ({
-    fieldId: `textarea-${propsId}`,
+    fieldId,
     helper,
     error,
     required,

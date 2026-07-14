@@ -43,6 +43,7 @@
     persistVersion = 1,
     persistNamespace,
     onkeydown: userOnKeydown,
+    id: idProp,
     'aria-describedby': ariaDescribedby,
     ...restProps
   }: InputProps = $props();
@@ -118,9 +119,14 @@
   );
 
   // ARIA wiring is shared with every form primitive — see XC-2.
+  // A consumer-supplied `id` wins over the generated one: pairing an Input
+  // with an external `<label for>` is only possible if the id we are handed
+  // actually reaches the `<input>`. `$props.id()` may only appear as a
+  // top-level initializer, hence the two-step derive.
   const propsId = $props.id();
+  const fieldId = $derived(idProp ?? `input-${propsId}`);
   const ff = useFormField(() => ({
-    fieldId: `input-${propsId}`,
+    fieldId,
     helper,
     error,
     required,

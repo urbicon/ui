@@ -166,3 +166,54 @@ describe('Slider (component interaction)', () => {
     expect(valueNow(start)).toBe('80');
   });
 });
+
+describe('Slider (external aria-labelledby)', () => {
+  // A slider thumb is a `role="slider"` div — not a labelable element, so an
+  // external caption cannot reach it via `<label for>`. It has to name the
+  // thumb through `aria-labelledby`, and restProps land on the roleless
+  // wrapper div, so the component must thread it to the thumbs itself.
+  function caption(id: string, text: string) {
+    const el = document.createElement('span');
+    el.id = id;
+    el.textContent = text;
+    document.body.append(el);
+    return el;
+  }
+
+  it('names the single thumb from an external caption', () => {
+    caption('pad-label', 'Padding');
+    renderSlider({ value: 40, 'aria-labelledby': 'pad-label' });
+
+    const el = slider('Padding');
+    expect(el.getAttribute('aria-labelledby')).toBe('pad-label');
+    // The generic fallback name must step aside, not stack with it.
+    expect(el.hasAttribute('aria-label')).toBe(false);
+  });
+
+  it('keeps the generic aria-label when no external caption is given', () => {
+    renderSlider({ value: 40 });
+
+    const el = slider();
+    expect(el.hasAttribute('aria-labelledby')).toBe(false);
+    expect(el.getAttribute('aria-label')).toBe('Slider');
+  });
+
+  it('qualifies both range thumbs so an external caption does not name them identically', () => {
+    caption('span-label', 'Range');
+    renderSlider({ value: [20, 80], range: true, 'aria-labelledby': 'span-label' });
+
+    // aria-labelledby concatenates its references in order → "Range Minimum" /
+    // "Range Maximum", preserving the distinction the `label`-prop arm has.
+    // (The qualifier reuses the standalone `accessibility.minimum` string, so
+    // it is capitalised where the `label` arm reads "Volume minimum" — a
+    // spoken name, so the casing is immaterial and no new i18n key is minted.)
+    // Resolving these two names *is* the assertion: getByRole computes the
+    // accessible name from the idref chain, so a miswired chain throws here.
+    const start = slider('Range Minimum');
+    const end = slider('Range Maximum');
+    expect(start.getAttribute('aria-labelledby')).toMatch(/^span-label /);
+    expect(end.getAttribute('aria-labelledby')).toMatch(/^span-label /);
+    expect(start.hasAttribute('aria-label')).toBe(false);
+    expect(end.hasAttribute('aria-label')).toBe(false);
+  });
+});
