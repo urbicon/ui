@@ -284,43 +284,50 @@ const key = (theme: Theme, intent: Intent, mode: string, state: State) =>
 /**
  * === KNOWN SHORTFALLS ===
  *
- * Combinations that do NOT meet AA today. Both are escalations awaiting a
- * design decision, NOT excuses — and both are structural, which is why this
- * is a predicate rather than a list of magic numbers: the shape of the
- * failure is the finding.
+ * Combinations that do NOT meet AA today. All 24 are one intent — `warning` —
+ * and both faces below trace to the same unresolved design question, which is
+ * why this is a predicate rather than a list of magic numbers: the shape of
+ * the failure is the finding.
  *
- * (1) EVERY dark-mode filled intent (125 of 126 combinations, 1.5–4.1:1).
- *     One root cause: `--color-text-on-primary` is `var(--color-neutral-0)`
- *     — white, unconditionally, with no `light-dark()` branch — while every
- *     `--color-<intent>` resolves to the *lighter* -400 shade in dark mode,
- *     and hover/active step lighter still (so pressing a dark-mode button
- *     makes its label *less* readable, bottoming out at 1.51:1).
- *     The remedy is to pair dark-mode fills with a dark on-color (the
- *     Material-3 `onPrimary` pattern). The shape already exists one line
- *     above it in semantic.css — `--color-text-on-dark` is exactly
- *     `light-dark(var(--color-neutral-0), var(--color-neutral-900))`; the
- *     bug is that `text-on-primary` never grew the same branch. The tests
- *     below measure that remedy: it clears AA for 125 of 126 and needs one
- *     companion change. It is NOT applied here because it repaints the label
- *     of every filled Button/Badge/Alert/Tooltip/Stepper/Checkbox in dark
- *     mode: a design decision for a human, not a token nudge.
- *     The lone exception, `neutral/primary/dark/base`, only passes because
- *     the neutral *theme* desaturates primary to a dark grey (5.26:1) — and
- *     it is precisely the one the remedy would regress (see below).
+ * Warning is the only intent paired with dark text (`--color-text-on-surface`
+ * rather than `--color-text-on-primary`), because its fill is a light amber in
+ * BOTH modes. That pairing is the defect: `text-on-surface` is a *surface*
+ * token — it tracks the page (dark text on light surfaces, light text on dark
+ * ones), which is right for its own name and wrong as an on-*fill* color for a
+ * swatch that never darkens. The two faces:
+ *
+ * (1) `warning/dark/*` in all six themes (1.51–2.80:1, i.e. also under the 3:1
+ *     UI floor). In dark mode `text-on-surface` flips to neutral-100 — light
+ *     text on a light amber fill. Making `--color-text-on-primary` mode-aware
+ *     (2026-07-14, below) fixed the other six intents but could not reach this
+ *     one: warning does not use that token. The fix is to give warning an
+ *     on-color that does NOT track the surface — either its own token, or
+ *     repointing the variants at `text-on-dark`, which is already dark-on-
+ *     light-fill by construction. That touches the component variants, not
+ *     just the token layer.
  *
  * (2) `warning/light/active` in all six themes (3.89–4.05:1). Warning's ramp
- *     is deliberately inverted — it is the one intent paired with dark text,
- *     so its press state getting *darker* moves it *toward* its foreground.
- *     Fixing it means deciding which way warning's press state should travel,
- *     which is a design call, not a lightness nudge.
+ *     is deliberately inverted, so its press state getting *darker* moves it
+ *     *toward* its dark foreground. Fixing it means deciding which way
+ *     warning's press state should travel.
  *
- * Escalated 2026-07-14 (audit D.1). Any combination that starts or stops
- * failing fails the suite — see `the AA shortfalls are exactly as documented`.
+ * Both are escalations awaiting a design decision, NOT excuses. Any
+ * combination that starts or stops failing fails the suite — see
+ * `the AA shortfalls are exactly as documented`.
+ *
+ * History: until 2026-07-14 this block also carried EVERY dark-mode filled
+ * intent — 125 of 126 combinations, bottoming out at 1.51:1 — because
+ * `--color-text-on-primary` was unconditional white while the intent fills
+ * resolve to their *lighter* -400/-500 shades in dark mode. Making that token
+ * mode-aware (plus one companion nudge to the neutral theme's grey primary)
+ * cleared 107 of those 125 and moved them into the AA gate below. It also
+ * unmasked face (1): warning's dark shortfall used to hide inside the blanket
+ * dark-mode failure, and is now the only thing left in it.
  */
 function isKnownShortfall(id: string): boolean {
-  // (1) dark mode — the neutral theme's grey primary is the one that clears AA.
-  if (id.includes('/dark/')) return id !== 'neutral/primary/dark/base';
-  // (2) warning's inverted ramp, press state only.
+  // (1) warning's surface-tracking on-color, whole dark ramp.
+  if (id.includes('/warning/dark/')) return true;
+  // (2) warning's inverted ramp, light press state only.
   return id.endsWith('/warning/light/active');
 }
 
@@ -505,87 +512,103 @@ describe('filled intent surfaces — WCAG contrast', () => {
     );
   });
 
-  describe('dark mode — the escalation, and the proposed remedy', () => {
-    it('root cause: --color-text-on-primary is not mode-aware', () => {
-      // The single reason all 125 dark-mode shortfalls exist. When this
-      // grows a light-dark() branch, this test fails — by design: that is
-      // the signal to re-measure and shrink KNOWN SHORTFALLS.
-      const raw = readDecl(stylesheetFor('default'), '--color-text-on-primary');
-      expect(raw, 'text-on-primary gained a light-dark() branch — re-run the dark-mode audit').toBe(
-        'var(--color-neutral-0)'
-      );
-    });
-
-    it('the sibling on-color token already has the shape text-on-primary needs', () => {
-      // --color-text-on-dark demonstrates the fix in the very same file:
-      // white in light mode, neutral-900 in dark. text-on-primary just never
-      // grew that branch. Asserted so the recommendation cannot go stale.
+  describe('dark mode — the mode-aware on-color contract', () => {
+    it('--color-text-on-primary is mode-aware: white on light fills, dark on light-in-dark fills', () => {
+      // THE load-bearing assertion. Every dark-mode AA pass in the table above
+      // depends on it: reverting this token to unconditional white (its state
+      // before 2026-07-14) puts all 108 non-warning dark fills back under AA.
+      // Asserted on the RESOLVED values, not the source text, so it holds
+      // however the branch is spelled — and fails the moment the two modes
+      // collapse back onto one color.
       const css = stylesheetFor('default');
-      expect(resolveToken(css, '--color-text-on-dark', 'light')).toEqual(
-        resolveToken(css, '--color-text-on-primary', 'light')
-      );
-      expect(resolveToken(css, '--color-text-on-dark', 'dark')).not.toEqual(
-        resolveToken(css, '--color-text-on-primary', 'dark')
-      );
-      // …and its dark branch is exactly the on-color the remedy needs.
-      expect(resolveToken(css, '--color-text-on-dark', 'dark')).toEqual(
-        resolveToken(css, '--color-text-on-surface', 'light')
-      );
+      const light = resolveToken(css, '--color-text-on-primary', 'light');
+      const dark = resolveToken(css, '--color-text-on-primary', 'dark');
+
+      expect(
+        light,
+        'text-on-primary is no longer mode-aware — the dark-mode fills lost their AA'
+      ).not.toEqual(dark);
+      expect(light).toEqual(resolveToken(css, '--color-neutral-0', 'light'));
+      expect(dark).toEqual(resolveToken(css, '--color-neutral-900', 'dark'));
     });
 
-    it('dark-mode fills get LIGHTER on hover/active, so pressing hurts legibility', () => {
-      // Documents the counter-intuitive direction that makes the bug worse.
-      expect(measured['default/primary/dark/base']).toBeGreaterThan(
+    it('text-on-primary and text-on-dark carry the same value but are NOT aliased', () => {
+      // They agree today because both pair text with a fill that flips
+      // lightness with the mode. They are still two tokens, declared
+      // independently, so a consumer can retheme either without dragging the
+      // other: text-on-dark answers to the avatar identity palette (one fixed
+      // lightness per mode), text-on-primary to the theme-tuned intent ramps.
+      // See the rationale at semantic.css.
+      const css = stylesheetFor('default');
+      for (const mode of MODES) {
+        expect(resolveToken(css, '--color-text-on-primary', mode)).toEqual(
+          resolveToken(css, '--color-text-on-dark', mode)
+        );
+      }
+      expect(
+        readDecl(css, '--color-text-on-primary'),
+        'text-on-primary was aliased to text-on-dark — that couples two independent override surfaces'
+      ).not.toContain('--color-text-on-dark');
+      expect(readDecl(css, '--color-text-on-dark')).not.toContain('--color-text-on-primary');
+    });
+
+    it('dark-mode press states now IMPROVE legibility instead of destroying it', () => {
+      // The inverse of the pre-2026-07-14 behaviour: dark-mode fills step
+      // LIGHTER on hover/active, so with a dark on-color the label gets
+      // easier to read as it is pressed, matching light mode's direction.
+      expect(measured['default/primary/dark/active']).toBeGreaterThan(
         measured['default/primary/dark/hover']
       );
       expect(measured['default/primary/dark/hover']).toBeGreaterThan(
-        measured['default/primary/dark/active']
+        measured['default/primary/dark/base']
       );
     });
 
-    /** The remedy under evaluation: give text-on-primary a dark branch. */
-    const remedyRatios = () => {
+    /**
+     * Counterfactual: the pre-2026-07-14 pairing, white on every dark fill.
+     * Measures what the mode-aware branch is actually buying, so the reason
+     * for it cannot decay into folklore.
+     */
+    const whiteOnDarkFills = () => {
       const out: Record<string, number> = {};
       for (const theme of ['default', ...THEMES] as Theme[]) {
         const css = stylesheetFor(theme);
+        const white = resolveToken(css, '--color-neutral-0', 'light');
         for (const intent of INTENTS) {
+          // Only the intents text-on-primary actually governs; warning pairs
+          // with text-on-surface and was never affected either way.
+          if (INTENT_FOREGROUND[intent] !== '--color-text-on-primary') continue;
           for (const state of STATE_NAMES) {
             const bg = resolveToken(css, STATES[state](intent), 'dark');
-            // text-on-surface's LIGHT branch *is* the dark on-color (neutral-900).
-            const fg = resolveToken(css, '--color-text-on-surface', 'light');
-            out[key(theme, intent, 'dark', state)] = round2(ratioOf(bg, fg));
+            out[key(theme, intent, 'dark', state)] = round2(ratioOf(bg, white));
           }
         }
       }
       return out;
     };
 
-    it('proposed remedy clears AA for 125 of 126 dark fills', () => {
-      // Proof for the escalated design decision: swapping the dark branch of
-      // text-on-primary to the dark on-color fixes every dark-mode
-      // combination in every theme — except one, asserted below.
-      const remedy = remedyRatios();
-      const failures = Object.keys(remedy).filter((id) => remedy[id] < AA_NORMAL);
-      expect(failures).toEqual(['neutral/primary/dark/base']);
-      expect(Object.keys(remedy).filter((id) => remedy[id] >= AA_NORMAL)).toHaveLength(125);
-    });
-
-    it('the remedy needs one companion change: the neutral theme grey primary', () => {
-      // neutral/primary/dark/base is the single combination that passes today
-      // (5.26:1 on white) and would regress under the remedy (3.74:1).
-      const remedy = remedyRatios();
-      expect(measured['neutral/primary/dark/base']).toBeCloseTo(5.26, 2);
-      expect(remedy['neutral/primary/dark/base']).toBeCloseTo(3.74, 2);
+    it('unconditional white would fail EVERY one of the 108 fills this token governs', () => {
+      // Before the companion nudge, neutral/primary/dark/base was the lone
+      // combination white still served (5.26:1). Lifting that grey to L 0.58
+      // removed the last one: there is now no dark-mode intent fill for which
+      // white is a legal label, i.e. the mode-aware branch is load-bearing
+      // everywhere, not a majority-rules compromise.
+      const white = whiteOnDarkFills();
+      const governed = Object.keys(white);
+      expect(governed).toHaveLength(6 * 6 * 3);
+      expect(governed.filter((id) => white[id] >= AA_NORMAL)).toEqual([]);
     });
 
     it('proves a per-mode on-color is unavoidable: no grey satisfies both', () => {
-      // The neutral theme's primary is a near-achromatic mid grey. There is no
-      // lightness at which BOTH white and the dark on-color clear AA — which is
-      // exactly why the on-color has to become mode-aware rather than the ramps
-      // being nudged. (Its dark fill would need L >= ~0.58 to take dark text.)
+      // The neutral theme's primary is a near-achromatic mid grey — the worst
+      // case, because it is the fill closest to the midpoint between the two
+      // on-colors. There is no lightness at which BOTH white and the dark
+      // on-color clear AA, which is why the on-color has to be mode-aware
+      // rather than the ramps being nudged onto a single foreground.
+      const css = stylesheetFor('default');
       const grey = (l: number) => ({ l, c: 0.012, h: 240 });
-      const white = resolveToken(stylesheetFor('default'), '--color-text-on-primary', 'dark');
-      const onDark = resolveToken(stylesheetFor('default'), '--color-text-on-surface', 'light');
+      const white = resolveToken(css, '--color-neutral-0', 'light');
+      const onDark = resolveToken(css, '--color-text-on-primary', 'dark');
 
       const satisfiesBoth: number[] = [];
       for (let l = 0; l <= 1.0001; l += 0.005) {
@@ -597,6 +620,35 @@ describe('filled intent surfaces — WCAG contrast', () => {
         satisfiesBoth,
         'a single on-color would suffice after all — re-open the analysis'
       ).toEqual([]);
+    });
+
+    it('the companion: the neutral theme grey primary sits at the lowest step that clears AA', () => {
+      // The one fill the mode-aware on-color regressed (5.26:1 on white →
+      // 3.74:1 on neutral-900), lifted from L 0.53 to 0.58. 0.58 is minimal on
+      // the 0.01 grid this ramp is authored on — 0.57 measures 4.40:1. The
+      // true crossing is L 0.574 (4.50:1), which would ship zero margin.
+      const css = stylesheetFor('neutral');
+      const onDark = resolveToken(css, '--color-text-on-primary', 'dark');
+      expect(resolveToken(css, '--color-primary-500', 'dark').l).toBe(0.58);
+      expect(measured['neutral/primary/dark/base']).toBeGreaterThanOrEqual(AA_NORMAL);
+      expect(ratioOf({ l: 0.57, c: 0.012, h: 240 }, onDark)).toBeLessThan(AA_NORMAL);
+    });
+
+    it('warning is the sole holdout because it pairs with a SURFACE token', () => {
+      // The mechanism behind the remaining 18 shortfalls, isolated so the
+      // KNOWN SHORTFALLS block cannot go stale. text-on-surface tracks the
+      // page — light text in dark mode — which is correct for its own name and
+      // wrong for warning, whose fill is a light amber in BOTH modes.
+      expect(INTENT_FOREGROUND.warning).toBe('--color-text-on-surface');
+      const css = stylesheetFor('default');
+      expect(resolveToken(css, '--color-text-on-surface', 'dark')).toEqual(
+        resolveToken(css, '--color-neutral-100', 'dark')
+      );
+      // Every other intent takes the mode-aware fill on-color.
+      const surfacePaired = INTENTS.filter(
+        (i) => INTENT_FOREGROUND[i] === '--color-text-on-surface'
+      );
+      expect(surfacePaired).toEqual(['warning']);
     });
   });
 });

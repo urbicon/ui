@@ -17,7 +17,16 @@
   --color-primary-200: oklch(0.84 0.008 240);
   --color-primary-300: oklch(0.76 0.01 240);
   --color-primary-400: oklch(0.65 0.012 240);
-  --color-primary-500: oklch(0.53 0.012 240);
+  /* L 0.58, not the 0.53 this ramp's spacing would suggest: primary-500 is the
+     dark-mode `--color-primary` fill, and dark mode carries dark text on it
+     (`--color-text-on-primary`). At 0.53 this grey measured 3.74:1 against
+     neutral-900 — the one intent fill in the whole system that missed AA after
+     the on-color became mode-aware, because a desaturated mid-grey is the
+     hardest case: no lightness clears AA against BOTH white and neutral-900
+     (proved in style/contrast.test.ts). 0.58 is the lowest step on this
+     ramp's 0.01 grid that clears it (4.59:1; the true crossing is 0.574 =
+     4.50:1, i.e. no margin at all). Monotonicity holds (0.65 > 0.58 > 0.43). */
+  --color-primary-500: oklch(0.58 0.012 240);
   --color-primary-600: oklch(0.43 0.012 240);
   --color-primary-700: oklch(0.36 0.01 240);
   --color-primary-800: oklch(0.29 0.008 240);
