@@ -8,6 +8,7 @@
   import { getTierContext } from '$lib/utils/tier-context';
   const ChevronDownIcon = resolveIcon('chevronDown', ChevronDownIconDefault);
   import Popover from '../Popover/Popover.svelte';
+  import { popoverMotion } from '../Popover/popover.variants';
   import { setMenuContext, type MenuContext, type MenuRegistryItem } from './menu.context';
   import MenuItemComp from './MenuItem.svelte';
   import MenuSubmenu from './MenuSubmenu.svelte';
@@ -471,6 +472,12 @@
     only painted layer. Without this, the panel renders as two stacked
     surfaces (Popover wrapper + Menu content) and shows a near-empty box
     with double borders.
+
+    The stripped default ALSO carried the enter/exit motion, so the exact
+    fragment (`popoverMotion`) is re-applied via `class` — it survives
+    Popover's `unstyled` by design and animates the transparent wrapper,
+    which fades/scales the Menu chrome inside it. A Menu-level `unstyled`
+    strips it again; consumers rebuild on the panel's `data-state`.
   -->
   <Popover
     bind:open
@@ -479,6 +486,7 @@
     {usePortal}
     autoTrigger={false}
     unstyled
+    class={unstyled ? undefined : popoverMotion}
     syncMinWidth={contextTrigger ? false : syncWidth}
     offsetDistance={effectiveTier === 'commit' ? 8 : 4}
     trigger={contextTrigger ? undefined : triggerContent}

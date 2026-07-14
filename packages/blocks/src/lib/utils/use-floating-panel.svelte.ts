@@ -143,9 +143,11 @@ export function useFloatingPanel(opts: FloatingPanelOptions): FloatingPanelState
     if (!isOpen || !ref) {
       cleanupPosition?.();
       cleanupPosition = undefined;
-      // Drop the keyboard-aware height clamp so the next open re-measures from
-      // the full design cap instead of inheriting a stale value.
-      floating.style.removeProperty('--blocks-overlay-available-height');
+      // The keyboard-aware height clamp is deliberately NOT dropped here: the
+      // panel may still be painting its CSS exit transition (allow-discrete /
+      // Popover's lagged display), and un-clamping mid-fade would let clamped
+      // content grow while it fades out. The show path below resets it before
+      // the next open instead.
       // Guard on the live `:popover-open` state only (not the current mode):
       // a panel that was promoted to the top layer must still be torn down even
       // if its mode has since flipped to `fixed`/`inline`.
@@ -164,6 +166,11 @@ export function useFloatingPanel(opts: FloatingPanelOptions): FloatingPanelState
     }
 
     if (zIndexValue) floating.style.zIndex = zIndexValue;
+
+    // Drop the previous open's keyboard-aware height clamp before showing, so
+    // this open re-measures from the full design cap instead of inheriting a
+    // stale value. (Moved off the hide path — see the comment there.)
+    floating.style.removeProperty('--blocks-overlay-available-height');
 
     if (useTopLayer && !floating.matches(':popover-open')) {
       try {

@@ -1,6 +1,10 @@
 import { quintOut } from 'svelte/easing';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { getOverlayMotion, OVERLAY_MOTION_DEFAULTS } from './overlay-tokens';
+import {
+  getOverlayMotion,
+  maxTransitionDurationMs,
+  OVERLAY_MOTION_DEFAULTS
+} from './overlay-tokens';
 
 describe('overlay-tokens', () => {
   const originalGetComputedStyle = globalThis.getComputedStyle;
@@ -121,5 +125,40 @@ describe('overlay-tokens', () => {
     const motion = getOverlayMotion({ enterDuration: 999 });
     expect(motion.enterDuration).toBe(999);
     expect(motion.exitDuration).toBe(OVERLAY_MOTION_DEFAULTS.exitDuration);
+  });
+
+  describe('maxTransitionDurationMs', () => {
+    const el = {} as Element;
+
+    const stubTransitionDuration = (value: string) => {
+      globalThis.getComputedStyle = vi.fn(
+        () => ({ transitionDuration: value }) as unknown as CSSStyleDeclaration
+      );
+    };
+
+    it('returns the longest entry of a comma list (the slowest property governs)', () => {
+      stubTransitionDuration('0.15s, 0.6s, 0.15s');
+      expect(maxTransitionDurationMs(el)).toBe(600);
+    });
+
+    it('parses ms entries and single values', () => {
+      stubTransitionDuration('250ms');
+      expect(maxTransitionDurationMs(el)).toBe(250);
+    });
+
+    it('returns 0 for a zero/empty/absent transition', () => {
+      stubTransitionDuration('0s');
+      expect(maxTransitionDurationMs(el)).toBe(0);
+      stubTransitionDuration('');
+      expect(maxTransitionDurationMs(el)).toBe(0);
+      expect(maxTransitionDurationMs(null)).toBe(0);
+      expect(maxTransitionDurationMs(undefined)).toBe(0);
+    });
+
+    it('is SSR-safe when window is undefined', () => {
+      // @ts-expect-error — simulate SSR
+      delete globalThis.window;
+      expect(maxTransitionDurationMs(el)).toBe(0);
+    });
   });
 });

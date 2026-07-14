@@ -60,6 +60,34 @@ export const OVERLAY_MOTION_DEFAULTS: OverlayMotion = {
   panelFlyDistance: 320
 };
 
+/**
+ * Longest `transition-duration` currently applying to an element, in ms.
+ *
+ * Used by Popover's exit-motion lag: the panel's CSS transition (token-driven,
+ * per-instance-overridable, collapsed by reduced motion) is the single source
+ * of truth for how long closed content must stay mounted, so the lag is read
+ * from the live computed style instead of duplicating the token resolution in
+ * JS. Returns `0` when the element is missing, has no transition, or the
+ * environment has no CSS engine (SSR, jsdom) — callers then tear down
+ * synchronously, which keeps unstyled consumers and node tests on the
+ * pre-motion behaviour.
+ *
+ * `transition-duration` computes to a comma list (one entry per transition
+ * property); the max governs because the exit isn't over until the slowest
+ * property lands.
+ */
+export function maxTransitionDurationMs(el: Element | null | undefined): number {
+  if (!el || typeof window === 'undefined') return 0;
+  const raw = getComputedStyle(el).transitionDuration;
+  if (!raw) return 0;
+  let max = 0;
+  for (const part of raw.split(',')) {
+    const ms = parseDurationMs(part, 0);
+    if (ms > max) max = ms;
+  }
+  return max;
+}
+
 function parseDurationMs(value: string, fallback: number): number {
   if (!value) return fallback;
   const trimmed = value.trim();

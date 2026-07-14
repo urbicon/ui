@@ -214,6 +214,89 @@ describe('Popover (manual-mode dismiss matrix)', () => {
   });
 });
 
+describe('Popover (motion contract)', () => {
+  it('stamps data-state open/closed on the panel element', async () => {
+    const user = userEvent.setup();
+    renderPopover();
+
+    expect(panel().getAttribute('data-state')).toBe('closed');
+
+    await user.click(trigger());
+    expect(panel().getAttribute('data-state')).toBe('open');
+
+    trigger().focus();
+    await user.keyboard(' ');
+    expect(panel().getAttribute('data-state')).toBe('closed');
+  });
+
+  it('keeps children mounted for the computed transition duration after close (exit-motion lag)', () => {
+    // jsdom loads no stylesheet, so the panel's transition duration is seeded
+    // via the inline `style` prop — exactly the signal maxTransitionDurationMs
+    // reads in a real browser. fireEvent.click (no pointerdown) keeps the
+    // auto-mode dismissedByTrigger guard out of this test's way.
+    vi.useFakeTimers();
+    try {
+      renderPopover({ style: 'transition-duration: 0.2s' });
+
+      fireEvent.click(trigger());
+      flushSync();
+      expect(isOpen()).toBe(true);
+
+      fireEvent.click(trigger());
+      flushSync();
+      // Closed for ARIA/state purposes, but the exit transition is still
+      // painting: children must outlive `open` or the panel fades out empty.
+      expect(panel().getAttribute('data-state')).toBe('closed');
+      expect(isOpen()).toBe(true);
+
+      // 200ms transition + 50ms buffer → gone after the lag elapses.
+      vi.advanceTimersByTime(300);
+      flushSync();
+      expect(isOpen()).toBe(false);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it('tears children down synchronously when no transition applies (jsdom/unstyled parity)', async () => {
+    const user = userEvent.setup();
+    renderPopover();
+
+    await user.click(trigger());
+    expect(isOpen()).toBe(true);
+
+    trigger().focus();
+    await user.keyboard(' ');
+    // No computed transition duration → no lag → pre-motion behaviour.
+    expect(isOpen()).toBe(false);
+  });
+
+  it('a re-open during the exit lag cancels the pending teardown', () => {
+    vi.useFakeTimers();
+    try {
+      renderPopover({ style: 'transition-duration: 0.2s' });
+
+      fireEvent.click(trigger());
+      flushSync();
+      fireEvent.click(trigger());
+      flushSync();
+      expect(panel().getAttribute('data-state')).toBe('closed');
+
+      // Re-open mid-fade: the timer must be cancelled, not unmount the
+      // children of the now-open panel when it fires.
+      fireEvent.click(trigger());
+      flushSync();
+      expect(panel().getAttribute('data-state')).toBe('open');
+
+      vi.advanceTimersByTime(500);
+      flushSync();
+      expect(isOpen()).toBe(true);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+});
+
 describe('Popover (auto-mode native dismiss)', () => {
   it('discriminates a native Escape dismiss: onEscape fires, focus returns to the trigger', async () => {
     const user = userEvent.setup();
@@ -249,5 +332,29 @@ describe('Popover (auto-mode native dismiss)', () => {
     expect(isOpen()).toBe(false);
     expect(onClickOutside).toHaveBeenCalledOnce();
     expect(onEscape).not.toHaveBeenCalled();
+  });
+
+  it('an aborted trigger click does not swallow the next open (dismissedByTrigger un-arm)', async () => {
+    // Regression (debt log): pointerdown on the open trigger arms the "this
+    // pointerdown already light-dismissed it" guard; if the pointer is
+    // released elsewhere no click ever consumes it, and the NEXT trigger
+    // click used to be swallowed once. The guard now un-arms at the start of
+    // the next pointer gesture (one-shot document capture listener).
+    const user = userEvent.setup();
+    renderPopover();
+
+    await user.click(trigger());
+    expect(isOpen()).toBe(true);
+
+    // Begin a close gesture: pointerdown arms the guard and the browser
+    // light-dismisses (simulated via the toggle event) — but the pointer is
+    // released elsewhere, so no click follows.
+    fireEvent.pointerDown(trigger());
+    dispatchNativeDismiss();
+    expect(isOpen()).toBe(false);
+
+    // The next full click on the trigger must open again.
+    await user.click(trigger());
+    expect(isOpen()).toBe(true);
   });
 });

@@ -1,10 +1,43 @@
 import { tv, type VariantProps } from '$lib/utils/variants';
 
+/**
+ * CSS-native enter/exit motion for the floating panel (ACC-3 rest), keyed on
+ * the `data-state` attribute Popover always stamps. Kept as its own fragment
+ * because two call sites need exactly these classes: `popoverVariants.base`
+ * below, and Menu — which renders its inner Popover `unstyled` (to avoid a
+ * double surface) and re-applies the fragment via Popover's `class` prop.
+ *
+ * How the two halves work:
+ * - **Enter** — the panel un-hides via `showPopover()` (top layer) or a
+ *   `display` flip (in-place mode), so a plain transition has no before-state;
+ *   `starting:` (`@starting-style`) supplies it.
+ * - **Exit** — `hidePopover()` / a native light dismiss yank the panel to
+ *   `display: none` in the same style recalc that flips `data-state`;
+ *   `transition-discrete` (`transition-behavior: allow-discrete`) on
+ *   `display`/`overlay` keeps it painted (and in the top layer) until the
+ *   fade lands. Popover lags the children-teardown to match — see the
+ *   exit-motion block in Popover.svelte.
+ *
+ * Browsers without `@starting-style`/`allow-discrete` simply skip the motion
+ * and keep today's instant toggle. Duration/easing resolve through the
+ * `--blocks-popover-*` tokens (interaction.css), which reduced motion
+ * collapses to 1ms; `motion-reduce:duration-[1ms]` guards the inline
+ * per-instance override path, which can't see the media query.
+ */
+export const popoverMotion = [
+  'transition-[opacity,scale,display,overlay] transition-discrete',
+  'duration-[var(--blocks-popover-duration)] ease-[var(--blocks-popover-easing)]',
+  'motion-reduce:duration-[1ms]',
+  'data-[state=closed]:opacity-0 data-[state=closed]:scale-[0.98]',
+  'starting:data-[state=open]:opacity-0 starting:data-[state=open]:scale-[0.98]'
+].join(' ');
+
 export const popoverVariants = tv({
   // tier: contain — floating panel surface.
   base: [
     'bg-surface-elevated border border-border-hairline rounded-contain',
     'shadow-[var(--blocks-shadow-md)] backdrop-blur-sm',
+    popoverMotion,
     // `calc(100dvh-4rem)` is the static design cap; Floating UI's `size`
     // middleware (via useFloatingPanel) narrows it to the room actually left
     // between the anchor and the visual viewport edge through

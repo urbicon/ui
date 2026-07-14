@@ -386,7 +386,7 @@
           has dismissed it.
         </p>
       </div>
-      <div class="pt-4">
+      <div class="py-4">
         <h4 class="text-text-primary mb-1.5 text-sm font-semibold">Focus Management</h4>
         <p class="text-text-secondary text-sm leading-relaxed">
           The popover never traps focus — it is a non-modal surface, and Tab moves on past its
@@ -394,6 +394,21 @@
           that must hold focus until dismissed, use
           <code class="text-text-primary">Dialog</code> or
           <code class="text-text-primary">ConfirmDialog</code> instead.
+        </p>
+      </div>
+      <div class="pt-4">
+        <h4 class="text-text-primary mb-1.5 text-sm font-semibold">Motion &amp; Reduced Motion</h4>
+        <p class="text-text-secondary text-sm leading-relaxed">
+          The panel fades and scales in over the
+          <code class="text-text-primary">--blocks-popover-duration</code> /
+          <code class="text-text-primary">--blocks-popover-easing</code> tokens (150 ms by default,
+          CSS-native via <code class="text-text-primary">@starting-style</code> and discrete
+          transitions — Menu inherits it). Override per instance with
+          <code class="text-text-primary">transitionDuration</code> /
+          <code class="text-text-primary">transitionEasing</code>; under
+          <code class="text-text-primary">prefers-reduced-motion</code> both collapse to
+          near-instant automatically. With <code class="text-text-primary">unstyled</code>, rebuild
+          motion on the panel's <code class="text-text-primary">data-state</code> attribute.
         </p>
       </div>
     </div>

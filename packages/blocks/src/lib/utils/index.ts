@@ -36,6 +36,7 @@ export { overlayStack } from './overlay-stack.svelte';
 export {
   type EasingFn,
   getOverlayMotion,
+  maxTransitionDurationMs,
   OVERLAY_MOTION_DEFAULTS,
   type OverlayMotion,
   type OverlayMotionOverride

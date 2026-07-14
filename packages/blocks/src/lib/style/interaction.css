@@ -98,8 +98,8 @@
      transitions, so they read these through the JS mirror in
      `utils/overlay-tokens.ts` (`getOverlayMotion`) — Svelte transitions need
      numeric input. Tooltip runs a deliberately faster CSS opacity fade off its
-     own `--blocks-tooltip-*` tokens below; Popover has no enter/exit motion yet
-     (ACC-3 follow-up).
+     own `--blocks-tooltip-*` tokens below; Popover (and Menu through it) runs a
+     CSS-native fade/scale off the `--blocks-popover-*` tokens below.
 
      Override globally with a `BlocksProvider` style block, or per instance via
      the component's `transitionDuration` / `transitionEasing` props.
@@ -129,6 +129,23 @@
      query). */
   --blocks-tooltip-duration: var(--blocks-duration-fast);
   --blocks-tooltip-easing: var(--blocks-ease-confident);
+
+  /* === POPOVER MOTION TOKENS (ACC-3 rest) ===
+     The CSS-native enter/exit fade+scale for Popover (and Menu, which passes
+     the same motion fragment to its inner Popover). Anchored panels should
+     feel snappier than the 200ms modal overlays but calmer than an instant
+     toggle, so they share the tooltip's `fast`/`confident` pairing. Enter is
+     driven by `@starting-style` (the panel un-hides via `showPopover()`, so a
+     plain transition has no before-state); exit relies on
+     `transition-behavior: allow-discrete` on `display`/`overlay` to keep the
+     panel painted in the top layer while it fades. Both default through
+     `--blocks-duration-fast`, so `prefers-reduced-motion` below collapses them
+     to 1ms for free. Override globally here, or per instance via Popover's
+     `transitionDuration` / `transitionEasing` props (which set these inline +
+     carry a `motion-reduce` guard, since an inline duration can't see the
+     media query). */
+  --blocks-popover-duration: var(--blocks-duration-fast);
+  --blocks-popover-easing: var(--blocks-ease-confident);
 
   /* === COLLAPSE ANIMATION TOKENS (ACC-3) ===
      The CSS-driven grid-template-rows collapse shared by Accordion +

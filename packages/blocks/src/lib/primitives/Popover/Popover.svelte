@@ -1,7 +1,7 @@
 <script lang="ts">
   import { untrack } from 'svelte';
   import { getBlocksConfig, resolveSlotClasses } from '$lib/provider';
-  import { useFloatingPanel, floatingPanelHidden } from '$lib/utils';
+  import { useFloatingPanel, floatingPanelHidden, maxTransitionDurationMs } from '$lib/utils';
   import { popoverVariants } from './popover.variants';
   import type { PopoverProps } from './index';
 
@@ -20,6 +20,9 @@
     open = $bindable(false),
     autoTrigger = true,
     size = 'md',
+
+    transitionDuration,
+    transitionEasing,
 
     onOpenChange,
     onClickOutside: onClickOutsideProp,
@@ -47,10 +50,63 @@
     resolveSlotClasses(blocksConfig, 'Popover', preset, { size }, slotClassesProp)
   );
 
+  // Per-instance motion overrides. Set the shared popover CSS variables inline
+  // only when a prop is provided, so the unset default keeps inheriting the
+  // reduced-motion-aware token (mirrors Tooltip's transitionDuration path).
+  const popoverDurationInline = $derived(
+    transitionDuration != null ? `${transitionDuration}ms` : undefined
+  );
+
   let internalTriggerElement = $state<HTMLElement | null>(null);
   let popoverElement = $state<HTMLElement | null>(null);
 
   const effectiveTriggerElement = $derived(triggerElement || internalTriggerElement);
+
+  // ── Exit-motion lag (ACC-3 rest) ───────────────────────────
+  //
+  // Closing used to tear three things down in one flush: `open` flips, the
+  // children block unmounts, and `useFloatingPanel` hides the panel. The CSS
+  // exit transition (see `popoverMotion` in popover.variants.ts) keeps the
+  // *panel element* painted via `allow-discrete`, but the children must
+  // outlive `open` or the panel fades out empty. `exiting` lags the teardown
+  // by the panel's actual computed transition duration — read from the live
+  // style so per-instance props, theme token overrides, and reduced motion all
+  // shorten it automatically. A zero duration (jsdom/node tests, browsers
+  // without the CSS, `unstyled` without rebuilt motion) tears down
+  // synchronously: exactly the pre-motion behaviour.
+  //
+  // `$effect.pre` matters: the flag must be `true` in the SAME flush that
+  // renders `open === false`, otherwise the children unmount one frame before
+  // the lag starts. The `prevOpenForExit` tracker (non-reactive, seeded via
+  // `untrack` like `prevPopoverMode` below) keeps the effect keyed on real
+  // transitions — without it, the `bind:this` assignment would re-run the
+  // effect on mount and flash a closed-by-default popover open for one lag.
+  const EXIT_MOTION_BUFFER_MS = 50;
+  let exiting = $state(false);
+  let exitTimer: ReturnType<typeof setTimeout> | undefined;
+  let prevOpenForExit = untrack(() => open);
+  $effect.pre(() => {
+    if (open === prevOpenForExit) return;
+    prevOpenForExit = open;
+    if (open) {
+      clearTimeout(exitTimer);
+      exiting = false;
+      return;
+    }
+    const ms = maxTransitionDurationMs(untrack(() => popoverElement));
+    if (ms <= 0) return;
+    exiting = true;
+    exitTimer = setTimeout(() => {
+      exiting = false;
+    }, ms + EXIT_MOTION_BUFFER_MS);
+  });
+
+  // While `exiting`, the panel is still fading: keep children mounted and (in
+  // the in-place modes) keep `display` un-hidden. `useFloatingPanel` stays on
+  // the raw `open` on purpose — `hidePopover()` fires immediately and the
+  // discrete transition carries the visual exit, so a re-open during the fade
+  // reverses smoothly instead of waiting out the lag.
+  const panelVisible = $derived(open || exiting);
 
   // ── Floating UI positioning + native show/hide ─────────────
   //
@@ -291,6 +347,27 @@
     target?.focus();
   }
 
+  // Un-arm `dismissedByTrigger` at the start of the NEXT pointer gesture,
+  // wherever it lands. Registered as a one-shot capture listener when the
+  // guard arms: capture order (document before trigger) guarantees a stale
+  // flag is cleared before any new arm, and `once` keeps at most one listener
+  // pending. This closes the aborted-click hole (pointerdown on the trigger,
+  // pointer released elsewhere → no click ever consumed the flag → the next
+  // trigger click was swallowed once).
+  function disarmDismissedByTrigger() {
+    dismissedByTrigger = false;
+  }
+
+  // Unmount cleanup for the imperative leftovers: a pending exit-lag timer
+  // and a still-armed disarm listener. Dependency-free → runs once,
+  // teardown on destroy.
+  $effect(() => {
+    return () => {
+      clearTimeout(exitTimer);
+      document.removeEventListener('pointerdown', disarmDismissedByTrigger, true);
+    };
+  });
+
   function handleTriggerPointerDown() {
     // Arm the "this pointerdown already dismissed it" guard only in auto
     // mode, where the browser's light dismiss really closes the popover
@@ -298,7 +375,15 @@
     // re-opening it). In manual mode nothing light-dismisses — the click
     // itself must toggle-close, so arming the guard there left the trigger
     // unable to close its own popover.
-    if (open && popoverMode === 'auto') dismissedByTrigger = true;
+    if (open && popoverMode === 'auto') {
+      dismissedByTrigger = true;
+      // This event has already passed the document's capture phase, so the
+      // listener can only fire on a LATER pointerdown.
+      document.addEventListener('pointerdown', disarmDismissedByTrigger, {
+        capture: true,
+        once: true
+      });
+    }
   }
 
   function handleTriggerClick(event: MouseEvent) {
@@ -361,6 +446,14 @@
       drops over a modal dialog (Codeberg #23).
 -->
 
+<!--
+  `data-state` sits after `{...restProps}` like the other load-bearing
+  attributes: it drives the enter/exit motion CSS (popoverMotion) and is the
+  documented styling hook for consumers rebuilding motion under `unstyled`.
+  `{#if panelVisible}` (not `open`) keeps the children mounted while the exit
+  transition plays; `style:display` follows the same lagged flag so the
+  in-place modes can fade out before they hide.
+-->
 <div
   bind:this={popoverElement}
   class={popoverClasses}
@@ -370,12 +463,15 @@
   style:position={panel.strategy}
   style:inset="auto"
   style:margin="0"
-  style:display={floatingPanelHidden(panel, open) ? 'none' : null}
+  style:display={floatingPanelHidden(panel, panelVisible) ? 'none' : null}
+  style:--blocks-popover-duration={popoverDurationInline}
+  style:--blocks-popover-easing={transitionEasing}
+  data-state={open ? 'open' : 'closed'}
   {role}
   aria-modal={ariaModal || undefined}
   {id}
 >
-  {#if open}
+  {#if panelVisible}
     {@render children()}
   {/if}
 </div>

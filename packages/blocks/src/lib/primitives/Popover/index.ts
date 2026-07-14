@@ -80,6 +80,21 @@ export interface PopoverProps
   /** When true (default), the trigger wrapper handles click and keyboard to toggle the popover. Set to `false` to manage `open` yourself. */
   autoTrigger?: boolean;
 
+  // ── Motion ───────────────────────────────────────────
+  /**
+   * Override the enter/exit fade duration in ms. Defaults to the shared token
+   * `--blocks-popover-duration` (150ms; collapses to 1ms under
+   * `prefers-reduced-motion`).
+   */
+  transitionDuration?: number;
+  /**
+   * Override the enter/exit easing as a CSS `<easing-function>` (e.g.
+   * `'linear'`, `'ease-out'`, `'cubic-bezier(0.4,0,0.2,1)'`). Defaults to the
+   * token `--blocks-popover-easing`. A CSS string, not a JS easing fn, because
+   * the popover motion is a pure CSS transition.
+   */
+  transitionEasing?: string;
+
   // ── Dismiss behavior ─────────────────────────────────
   /**
    * Whether the popover closes on Escape key. Default `true`.
@@ -113,7 +128,7 @@ export interface PopoverProps
   // ── Styling ──────────────────────────────────────────
   /** Extra classes merged onto the floating panel element. */
   class?: string;
-  /** Strip all default tv() classes. Combine with `class` or `slotClasses` for full custom styling. */
+  /** Strip all default tv() classes (including the enter/exit motion). Combine with `class` or `slotClasses` for full custom styling; the panel always carries `data-state="open" | "closed"`, so custom motion can rebuild on that hook (see `popoverMotion` in popover.variants.ts for the reference implementation). */
   unstyled?: boolean;
   /** Per-slot class overrides. Available slots: `base` (the floating panel). */
   slotClasses?: Partial<Record<'base', string>>;
@@ -127,4 +142,4 @@ export interface PopoverProps
 }
 
 export { default as Popover } from './Popover.svelte';
-export { type PopoverVariants, popoverVariants } from './popover.variants';
+export { type PopoverVariants, popoverMotion, popoverVariants } from './popover.variants';

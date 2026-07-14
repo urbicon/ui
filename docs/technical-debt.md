@@ -424,21 +424,6 @@ internal TODO instead. Sections are ordered roughly by urgency.
   accept-stale-on-failure behaviour. Not a drive-by; wants its own increment.
 - **Found:** 2026-07-10, blocks feature-request review (CMB-2 multi-select).
 
-### Popover auto-mode: `dismissedByTrigger` can stay stale after an aborted click
-
-- **Where:** `packages/blocks/src/lib/primitives/Popover/Popover.svelte`
-  (`handleTriggerPointerDown` arms the guard; `handleTriggerClick` consumes it).
-- **What:** pointerdown on the open trigger arms the "this click already
-  light-dismissed it" guard, but if the pointer is released elsewhere no click
-  ever fires to consume it — the *next* trigger click is swallowed once.
-  Pre-existing edge case; the 2026-07-13 fix scoped the guard to auto mode
-  (manual mode was permanently broken) but did not add an un-arm path.
-- **Why deferred:** Fix wants a design pass on the dismiss protocol (e.g. a
-  document-level `pointerup` reset or consuming the flag on the native
-  `toggle` event) — drive-by attempts risk re-breaking the anti-flicker
-  behaviour the guard exists for.
-- **Found:** 2026-07-13, DOM-test round 2 (Popover package).
-
 ### Sparkline `fluid` scales the `showEndPoint` dot into an ellipse
 
 - **Where:** `packages/blocks/src/lib/components/Sparkline/Sparkline.svelte`
