@@ -476,39 +476,39 @@ internal TODO instead. Sections are ordered roughly by urgency.
 
 ## Accessibility
 
-### `--color-text-on-primary` is unconditionally white — 125 of 126 dark-mode intent fills miss AA
+### `warning`'s dark-mode fills sit at 1.51–2.80:1 — a surface token used as an on-fill colour
 
-- **Where:** `packages/blocks/src/lib/style/semantic.css:58`
-  (`--color-text-on-primary: var(--color-neutral-0)`, no `light-dark()`) vs.
-  the intent tokens one block below (`--color-<intent>:
-  light-dark(<intent>-500/600, <intent>-400)`), which resolve to the
-  *lighter* shades in dark mode; `-hover`/`-active` go lighter still.
-- **What:** Filled controls keep white text while their fill brightens with
-  the mode, so contrast collapses: measured over 6 themes × 7 intents × 2
-  modes × 3 states, **125 of 126 dark-mode combinations sit under AA** (only
-  `neutral/primary/dark/base` = 5.26 passes), bottoming out at **1.51:1** —
-  pressing a dark-mode button makes its label *less* readable. Affects every
-  filled Button/Badge/Alert/Tooltip/Stepper/Checkbox. Light mode is fine (all
-  42 base pairs ≥ 4.56 after the two token nudges of 2026-07-14). Guarded
-  from now on by `style/contrast.test.ts`, which asserts the shortfall as a
-  predicate and so also goes red when a remedy lands.
-- **Why deferred:** The remedy is known and verified — make
-  `text-on-primary` mode-aware, the exact shape `--color-text-on-dark`
-  (`light-dark(neutral-0, neutral-900)`) already uses one line above; it
-  clears AA for 125/126 (4.76–6.62 base, hover/active *improve*, up to
-  12.87). But it flips every filled control in dark mode to dark text — a
-  very visible design change — and regresses the one passing combination
-  (`neutral/primary/dark/base` 5.26 → 3.74), so it needs a companion change
-  (neutral theme `primary-500` to L ≥ 0.58). The test proves no single
-  lightness satisfies both on-colours for that mid-grey, i.e. mode-awareness
-  is unavoidable rather than a matter of taste. Wants a deliberate call plus
-  a VR pass, not a drive-by.
-- **Related, same call:** `warning/light/active` measures 3.89–4.05 across
-  all 6 themes. The warning ramp is deliberately inverted (the only intent
-  with dark text), so its press state runs *toward* its foreground — a
-  ramp-direction question, not a lightness nudge.
-- **Found:** 2026-07-14, PUBLISH-READINESS D.1 contrast audit. The audit's
-  own premise (`success-500` fails AA) was stale — it measures 5.68:1 today.
+- **Where:** `packages/blocks/src/lib/style/semantic.css` (`--color-warning:
+  light-dark(warning-500, warning-400)`) paired with `--color-text-on-surface`
+  in every filled warning variant — e.g.
+  `primitives/Button/button.variants.ts:179`
+  (`bg-warning text-text-on-surface`), and the same pairing across
+  Badge/Alert/Toast.
+- **What:** `text-on-surface` is a *surface* token: it resolves to light text
+  in dark mode, because surfaces are dark there. The warning swatch, however,
+  is light amber in **both** modes — so in dark mode light text lands on a light
+  fill. Measured across all 6 themes: **18 combinations at 1.51–2.80:1**, below
+  even WCAG 1.4.11's 3:1 non-text floor, let alone AA. Plus
+  `warning/light/active` at 3.89–4.05 (the ramp is deliberately inverted — the
+  only intent with dark text — so its press state runs *toward* its
+  foreground). Verified unchanged, byte-for-byte, by the 2026-07-14
+  `text-on-primary` remedy: that token does not govern warning. The blanket
+  dark-mode failure had been hiding this narrower, worse one.
+- **Why deferred:** The fix is not a token nudge but a call on what warning's
+  foreground *should be*: it needs an on-colour that tracks its own fill (an
+  explicit `--color-text-on-warning`, or reusing `text-on-primary` now that it
+  is mode-aware — note the fill is light in **both** modes, so its on-colour
+  arguably should be dark in both, i.e. *not* mode-aware). Either way it changes
+  `button.variants.ts` and its siblings, i.e. component variants rather than the
+  token layer, and wants a VR pass. `style/contrast.test.ts` names these 24
+  shortfalls explicitly (not swallowed) and pins the mechanism
+  (`INTENT_FOREGROUND.warning === '--color-text-on-surface'`), so the exemption
+  cannot go stale and the entry cannot be silently "fixed" by accident.
+- **Found:** 2026-07-14, while landing the `text-on-primary` remedy. The
+  superseded entry claimed the remedy would clear "125 of 126"; that number came
+  from a modelling bug in the old test's `remedyRatios()` (it applied
+  `text-on-surface`'s *light* branch to every intent). The real figure is **107
+  of 125**, and this entry is the remainder.
 
 ### `text-tertiary` on subtle surfaces measures 4.18:1 — and the off-system demos trip axe
 
@@ -869,6 +869,63 @@ internal TODO instead. Sections are ordered roughly by urgency.
   design-engine with their own tests.
 - **Found:** 2026-07-11, dogfooding the `urbicon` CLI against the landing
   page (session review of the AI-DX claims).
+
+### The axe gate never scans dark mode — and the docs skin overrides the token it would catch
+
+- **Where:** `e2e/a11y.spec.ts` (no `colorScheme: 'dark'` context, so every scan
+  runs light) + the docs Rooms skin, which remaps `--color-text-on-primary` to
+  its own `var(--_afg)`.
+- **What:** Two independent blind spots that compound. The 2026-07-14
+  `text-on-primary` bug spanned 125 dark-mode combinations down to 1.51:1 and
+  axe never saw a single one: the harness only emulates light, and even if it
+  emulated dark, the docs pages it scans override that very token. So the
+  entire surface where the worst contrast bug in the system lived is invisible
+  to the a11y gate by construction — `style/contrast.test.ts` is its only
+  guard, and that test reads the CSS rather than the rendered page.
+- **Why deferred:** Adding a dark pass is cheap (a second Playwright project
+  with `colorScheme: 'dark'`), but it doubles the a11y matrix and the baseline
+  ratchet (`42b7fc5`) has to absorb the dark-mode violations deliberately, not
+  by snapshot. The skin-override half is really a question about what the
+  fixtures should be: axe scanning the *docs site* measures the skin, not the
+  library — the token-level truth needs a library-only fixture (the VR suite
+  already has one: `test-fixtures/primitives`).
+- **Found:** 2026-07-14, landing the `text-on-primary` remedy.
+
+### VR tolerance hides colour-only regressions — `maxDiffPixelRatio: 0.01` let a full label inversion pass
+
+- **Where:** `playwright.config.ts:14` (`maxDiffPixelRatio: 0.01`) + the
+  `--update-snapshots` default (updates only what it considers changed).
+- **What:** On small fixtures the ratio is large enough to swallow a *complete
+  colour inversion*: when `text-on-primary` flipped white→dark (2026-07-14),
+  the `badge-dark-library` baseline **passed unchanged** — its label pixels are
+  under 1 % of the shot — so a plain `--update-snapshots` refreshed only
+  `button`, leaving badge's baseline asserting the old, wrong render. Found by
+  running `--update-snapshots=all` and diffing the true blast radius. The same
+  blind spot had already left **8 stale baselines** in the tree
+  (`input-{dark,light}-{library,rooms}`, `checkbox-{dark-rooms,light-library,
+  light-rooms}`), most likely since the Input `id`/label fix (`c8753a4`)
+  without rebaselining; they were reverted rather than swept along, and remain
+  stale. Separately, `progress-light-rooms` is **non-deterministic** — it
+  differs between identical runs.
+- **Why deferred:** Three coupled calls: lowering/removing the tolerance (which
+  demands the flaky `progress` fixture be fixed first, or it goes permanently
+  red), deciding whether `--update-snapshots=all` becomes the documented
+  default, and re-baselining the 8 stale shots deliberately (each needs looking
+  at — that is the point of the suite). Interacts with the darwin-only entry
+  below.
+- **Found:** 2026-07-14, landing the `text-on-primary` remedy.
+
+### `contrast.test.ts` ships in the published package
+
+- **Where:** `packages/blocks/dist/style/contrast.test.{js,d.ts}`.
+- **What:** The test lands in the npm tarball. Harmless (it is never imported
+  by the entry), but it is dead weight consumers download, and it is the only
+  `*.test.*` in `dist/style/`. Suggests the package's `files`/build config does
+  not exclude co-located tests under `style/`.
+- **Why deferred:** Belongs with the packaging-hygiene pass rather than a
+  drive-by config edit — worth checking at the same time whether other
+  co-located tests leak into any package's tarball.
+- **Found:** 2026-07-14, landing the `text-on-primary` remedy.
 
 ### e2e visual snapshots are `chromium-darwin`-only — Linux CI can't verify them
 
