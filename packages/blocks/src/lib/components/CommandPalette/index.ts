@@ -40,6 +40,8 @@ export interface CommandPaletteItem {
  *
  * @tag action
  * @related Dialog
+ * @related Menu
+ * @related Combobox
  *
  * @example
  * ```svelte

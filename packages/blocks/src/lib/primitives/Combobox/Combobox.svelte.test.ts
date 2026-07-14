@@ -658,9 +658,11 @@ describe('Combobox (multiple)', () => {
   });
 });
 
-// The `customTag` snippet and parent-side `bind:value` reactivity can't be driven
-// through `mount(Combobox, { props })` (a snippet prop / non-reactive props), so
-// these mount a real composition from __fixtures__/ (the repo's harness pattern).
+// The `customTag` snippet can't be passed through `mount(Combobox, { props })`
+// as plain data, so these mount a real composition from __fixtures__/ (the
+// repo's harness pattern). It also gives the parent-side `bind:value`
+// assertions a natural home — though an *unspread* `$state` proxy handed to
+// `mount` would work too (see the Collapsible controlled-contract tests).
 describe('Combobox (multiple — customTag + reactivity)', () => {
   function renderHarness(props: ComponentProps<typeof ComboboxMultiHarness>) {
     const instance = mount(ComboboxMultiHarness, { target: document.body, props });

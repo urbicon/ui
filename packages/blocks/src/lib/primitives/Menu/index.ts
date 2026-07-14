@@ -8,18 +8,9 @@ import type { InteractiveTier } from '$lib/utils/tier-context';
 import type { MenuSlots } from './menu.variants';
 
 /**
- * @description Action menu (`role="menu"`) triggered by a button. Items are
- * verbs the user can invoke — Edit, Delete, Share, Export — and dispatch an
- * `onSelect` callback when activated. For picking a value from a list use
- * `Select` (or `Combobox` for searchable). Menu and Select are deliberately
- * disjoint: Menu's ARIA semantics, keyboard model (Tab through items, Enter
- * triggers), and visual chrome match the Action surface family; Select's
- * `role="listbox"` + arrow-navigation match the Form surface family.
- *
- * @tag action
- * @related Select
- * @related Combobox
- * @related Popover
+ * Menu-specific props. The catalog JSDoc (`@description`/`@tag`/`@related`)
+ * lives on `MenuProps` below — the interface docs-gen actually picks up —
+ * so it is not duplicated here.
  *
  * @example Items array with `onSelect` callbacks
  * ```svelte
@@ -193,7 +184,14 @@ export interface MenuSpecificProps<TItem extends MenuItemType = MenuItemType> {
 }
 
 /**
- * @description Action menu triggered by a button with nested items, icons, separators, and keyboard navigation.
+ * @description Action menu (`role="menu"`) triggered by a button, with nested
+ * submenus, sections, icons, and separators. Items are verbs the user can
+ * invoke — Edit, Delete, Share, Export — and dispatch an `onSelect` callback
+ * when activated; Menu holds no selection state. For picking a value from a
+ * list use `Select` (or `Combobox` for searchable). Menu and Select are
+ * deliberately disjoint: Menu's `role="menu"`/`menuitem` semantics with
+ * arrow-key roving and Action-family chrome versus Select's `role="listbox"`
+ * value commitment with Form-family chrome.
  *
  * @tag action
  * @related Select
