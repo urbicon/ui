@@ -101,14 +101,42 @@ export interface ComponentAPIData {
    * the *Props interface. Drives the `// RELATED` block in the TOC.
    */
   relatedComponents?: string[];
+  /**
+   * Local + imported type definitions attached by the extraction phase
+   * (LocalTypesExtractor) and enriched by APIDataGenerator (`scope`,
+   * `usedByProps`, `category`). Consumed by the docs app's TypesReference
+   * and the llm.txt "Types" section.
+   */
+  types?: TypeDefinition[];
 }
 
 export interface TypeDefinition {
   name: string;
-  type: 'interface' | 'type' | 'enum';
+  /** `class` entries carry a public-signature summary as their definition. */
+  type: 'interface' | 'type' | 'enum' | 'class';
   definition: string;
   package: string;
   documentation?: string;
+  /**
+   * Where the definition lives relative to the component's `index.ts`:
+   * `local` (declared in index.ts / the variants file) or `imported`
+   * (declared elsewhere in the package and pulled in via a type-only
+   * import, resolved through the shared ts.Program). Defaults to `local`
+   * during enrichment when unset.
+   */
+  scope?: 'local' | 'imported';
+  /**
+   * Top-level member count (interface/enum members, public class members).
+   * Unset for type aliases. Feeds the llm.txt oversize summary so a capped
+   * type still reports its shape honestly.
+   */
+  members?: number;
+  /**
+   * Repo-relative path of the declaring file (from the `packages/` segment
+   * when present). Lets the llm.txt oversize summary point at the full
+   * definition instead of truncating it.
+   */
+  sourcePath?: string;
 }
 
 export interface APIMetadata {

@@ -16,6 +16,15 @@ export class ExtractorFactory {
   static getInstance(tsConfig?: TypeScriptExtractionConfig): ExtractorFactory {
     if (!ExtractorFactory.instance) {
       ExtractorFactory.instance = new ExtractorFactory(tsConfig);
+    } else if (
+      tsConfig !== undefined &&
+      JSON.stringify(tsConfig) !== JSON.stringify(ExtractorFactory.instance.tsConfig)
+    ) {
+      // `--target all` runs several packages through one process; each brings
+      // its own configPath. Rebuilding the (cheap) extractor instances here
+      // keeps them keyed to the right package — the expensive ts.Programs are
+      // cached per configPath in ProgramCache and survive this.
+      ExtractorFactory.instance.updateTsConfig(tsConfig);
     }
     return ExtractorFactory.instance;
   }

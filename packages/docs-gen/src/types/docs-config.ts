@@ -16,7 +16,7 @@ export const DEFAULT_SVELTE_DOCS_CONFIG: SvelteDocsConfig = {
   llm: {
     include: true,
     maxSections: 6,
-    priority: ['overview', 'examples', 'variants', 'api'],
+    priority: ['overview', 'examples', 'variants', 'api', 'types'],
     excludeTypes: ['playground'],
     simplifyContent: true
   },

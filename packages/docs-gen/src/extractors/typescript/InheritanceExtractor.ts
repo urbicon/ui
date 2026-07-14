@@ -136,7 +136,7 @@ export class InheritanceExtractor extends TypeScriptBaseExtractor<
 
     // Handle different inheritance patterns
     if (this.isOmitPattern(heritageType)) {
-      return this.handleOmitPattern(heritageType);
+      return this.handleOmitPattern(heritageType, sourceFile);
     }
 
     if (this.isHTMLAttributes(typeName)) {
@@ -151,6 +151,23 @@ export class InheritanceExtractor extends TypeScriptBaseExtractor<
     const localInterface = this.findInterface(sourceFile, typeName);
     if (localInterface) {
       return this.handleLocalInterface(localInterface, typeName, sourceFile, depth);
+    }
+
+    // Cross-file: resolve an imported base interface through the shared
+    // program (package sources only; no-op in single-file mode). Reuses the
+    // local-interface path, recursing into the resolved file's own heritage.
+    const resolvedInterface = this.resolveCrossFileInterface(heritageType.expression);
+    if (resolvedInterface) {
+      console.log(
+        `🌉 Resolved heritage ${typeName} from ${resolvedInterface.getSourceFile().fileName}`
+      );
+      const info = await this.handleLocalInterface(
+        resolvedInterface,
+        typeName,
+        resolvedInterface.getSourceFile(),
+        depth
+      );
+      return { ...info, source: 'resolved-interface' };
     }
 
     // Handle external types if enabled
@@ -171,7 +188,10 @@ export class InheritanceExtractor extends TypeScriptBaseExtractor<
   // INHERITANCE PATTERN HANDLERS
   // ==========================================
 
-  private handleOmitPattern(heritageType: ts.ExpressionWithTypeArguments): InheritanceInfo {
+  private handleOmitPattern(
+    heritageType: ts.ExpressionWithTypeArguments,
+    sourceFile: ts.SourceFile
+  ): InheritanceInfo {
     const fullType = heritageType.getText();
     console.log(`✂️ Handling Omit pattern: ${fullType}`);
 
@@ -208,6 +228,24 @@ export class InheritanceExtractor extends TypeScriptBaseExtractor<
           }
         }
       ];
+    } else if (!/\bkeyof\b/.test(omittedKeys)) {
+      // Interface base with literal omit keys — declared in this file or
+      // resolved across files through the shared program (e.g.
+      // Omit<InputProps, 'type' | …>). `keyof`-based omits (variant-key
+      // stripping) can't be enumerated syntactically here and stay handled
+      // by PropsExtractor, which knows the variant keys.
+      const baseInterface =
+        this.findInterface(sourceFile, baseType) ?? this.resolveOmitBaseInterface(heritageType);
+      if (baseInterface) {
+        const omitted = new Set(omittedKeyList);
+        for (const member of baseInterface.members) {
+          if (!ts.isPropertySignature(member)) continue;
+          const prop = this.extractPropFromMember(member);
+          if (!prop || omitted.has(prop.name)) continue;
+          prop.source = { type: 'inherited', name: fullType };
+          props.push(prop);
+        }
+      }
     }
 
     return {

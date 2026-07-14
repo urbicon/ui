@@ -1,3 +1,4 @@
+import * as path from 'node:path';
 import type {
   ComponentInfo,
   InheritanceInfo,
@@ -5,13 +6,16 @@ import type {
   VariantInfo
 } from '@urbicon-ui/shared-types';
 import { ExtractorFactory } from '../../extractors/ExtractorFactory';
+import { assertUsableTsConfig } from '../../extractors/typescript/ProgramCache';
 import type { PropsExtractor } from '../../extractors/typescript/PropsExtractor';
 import type { VariantsExtractor } from '../../extractors/variants/VariantsExtractor';
 import type {
   ComponentManifest,
   ExtractionResult,
   ProcessingConfig,
-  TypeDefinition
+  TypeDefinition,
+  TypeScriptConfig,
+  TypeScriptExtractionConfig
 } from '../../types';
 import { type ErrorHandler, withErrorHandling } from '..';
 
@@ -25,10 +29,38 @@ export class ExtractionCoordinator {
 
   constructor(
     config: ProcessingConfig,
-    private errorHandler: ErrorHandler
+    private errorHandler: ErrorHandler,
+    inputTypeScript?: TypeScriptConfig
   ) {
     this.config = config;
-    this.extractorFactory = ExtractorFactory.getInstance(config.extraction?.typescript);
+
+    // The tsconfig path is authored on `input.typescript` (TypeScriptConfig);
+    // merge it into the extraction config the extractors actually receive.
+    // Historically this field was never handed through, so the extractors
+    // always ran on an empty ts.Program (single-file mode).
+    const tsExtractionConfig = ExtractionCoordinator.mergeTsConfig(
+      config.extraction?.typescript,
+      inputTypeScript
+    );
+
+    // Fail loud *before* extraction starts: a configured-but-broken tsconfig
+    // must abort the run, not degrade into per-component warnings with
+    // cross-file types silently missing from the artifacts.
+    if (tsExtractionConfig?.configPath) {
+      assertUsableTsConfig(tsExtractionConfig.configPath);
+    }
+
+    this.extractorFactory = ExtractorFactory.getInstance(tsExtractionConfig);
+  }
+
+  private static mergeTsConfig(
+    extraction: TypeScriptExtractionConfig | undefined,
+    input: TypeScriptConfig | undefined
+  ): TypeScriptExtractionConfig | undefined {
+    if (!extraction) return undefined;
+    const configPath = input?.configPath ?? extraction.configPath;
+    if (!configPath) return extraction;
+    return { ...extraction, configPath: path.resolve(configPath) };
   }
 
   /**

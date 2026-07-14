@@ -80,6 +80,20 @@ export interface TypeScriptExtractionConfig {
   extractDefaultValues: boolean;
   resolveTypeAliases: boolean;
   includePrivateProps?: boolean;
+  /**
+   * Path to the package's `tsconfig.json` (absolute, or relative to the
+   * docs-gen CWD). When set, the TypeScript extractors build a real
+   * `ts.Program` from it (shared per configPath across all extractors) and
+   * resolve cross-file types — imported `*Props` bases in heritage clauses,
+   * `Omit<ImportedProps, …>` patterns, and type-only imports — from the
+   * package **sources**. When omitted, extraction stays single-file
+   * (isolated `ts.createSourceFile`), as before.
+   *
+   * Authored on `input.typescript` (`TypeScriptConfig.configPath`) by the
+   * `ConfigurationFactory` presets; the pipeline merges it into this
+   * extraction config before handing it to the `ExtractorFactory`.
+   */
+  configPath?: string;
 }
 
 export interface VariantsExtractionConfig {

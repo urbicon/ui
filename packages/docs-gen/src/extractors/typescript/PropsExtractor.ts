@@ -607,6 +607,15 @@ export class PropsExtractor extends TypeScriptBaseExtractor<PropsExtractionInput
       return this.extractPropsFromLocalInterface(localInterface, typeName);
     }
 
+    // Cross-file: resolve an imported base interface through the shared
+    // program (e.g. `extends AnimationProps` from $lib/utils). Scoped to
+    // the package's own sources; no-op in single-file mode.
+    const resolvedInterface = this.resolveCrossFileInterface(heritageType.expression);
+    if (resolvedInterface) {
+      console.log(`🌉 Resolved ${typeName} from ${resolvedInterface.getSourceFile().fileName}`);
+      return this.extractPropsFromLocalInterface(resolvedInterface, typeName);
+    }
+
     // Create placeholder for unknown inheritance
     console.log(`❓ Creating placeholder for unknown inheritance: ${typeName}`);
     return [
@@ -694,19 +703,24 @@ export class PropsExtractor extends TypeScriptBaseExtractor<PropsExtractionInput
         return result;
       }
 
-      // Local interface Omit pattern, e.g., Omit<MenuSpecificProps, keyof MenuVariants>
-      const localInterface = this.findInterface(sourceFile, baseType);
-      if (localInterface) {
-        // Extract props from the local interface
-        const extracted = this.extractPropsFromLocalInterface(localInterface, baseType);
-        // If omittedKeys references keyof Variants, exclude variant keys provided by VariantsExtractor
-        const shouldExcludeVariantKeys = /keyof\s+\w*Variants/.test(omittedKeys);
-        const variantKeyBlacklist = shouldExcludeVariantKeys
-          ? new Set(this.currentVariantKeys)
-          : new Set<string>();
+      // Local interface Omit pattern, e.g., Omit<MenuSpecificProps, keyof MenuVariants>;
+      // cross-file fallback for imported bases, e.g. Omit<InputProps, 'type' | …>
+      // (resolved from the package sources via the shared program).
+      const baseInterface =
+        this.findInterface(sourceFile, baseType) ?? this.resolveOmitBaseInterface(heritageType);
+      if (baseInterface) {
+        // Extract props from the base interface
+        const extracted = this.extractPropsFromLocalInterface(baseInterface, baseType);
+        // Blacklist: literal keys named in Omit<…, 'a' | 'b'> plus — when the
+        // keys argument references `keyof *Variants` — the variant keys
+        // provided by VariantsExtractor.
+        const blacklist = new Set(this.extractOmittedLiteralKeys(omittedKeys));
+        if (/keyof\s+\w*Variants/.test(omittedKeys)) {
+          for (const key of this.currentVariantKeys) blacklist.add(key);
+        }
 
         return extracted
-          .filter((p) => !variantKeyBlacklist.has(p.name))
+          .filter((p) => !blacklist.has(p.name))
           .map((p) => ({
             ...p,
             source: {

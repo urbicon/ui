@@ -181,12 +181,20 @@ export class APIDataGenerator {
         usedByCount?: number;
         category?: string;
       })[]) {
-        // annotate scope/category and usedBy
-        td.scope = 'local';
+        // annotate scope/category and usedBy — the extractor marks
+        // program-resolved definitions as 'imported'; everything else is local
+        td.scope = td.scope ?? 'local';
         td.usedByProps = usedByMap.get(td.name) || [];
         td.usedByCount = Array.isArray(td.usedByProps) ? td.usedByProps.length : 0;
         const defStr = String(td.definition || '');
-        const looksLikeVariant = defStr.includes('VariantProps<') || /Variants?$/.test(td.name);
+        // `SlotNames<…>` aliases (`XSlots`) are tv()-machinery like the
+        // `VariantProps<…>` aliases — categorized 'variant' so type surfaces
+        // (llm.txt Types section) list business types only.
+        const looksLikeVariant =
+          defStr.includes('VariantProps<') ||
+          defStr.includes('SlotNames<') ||
+          /Variants?$/.test(td.name) ||
+          /Slots$/.test(td.name);
         const looksLikeProps = td.type === 'interface' && /Props$/.test(td.name);
         td.category = looksLikeProps ? 'props' : looksLikeVariant ? 'variant' : 'helper';
 
@@ -234,6 +242,8 @@ export class APIDataGenerator {
       ? componentWithSlots.slots.filter((s) => s?.trim())
       : [];
 
+    const group = this.inferGroupFromPath(component.filePath || '');
+
     return {
       name: component.name,
       props: processedProps,
@@ -241,12 +251,11 @@ export class APIDataGenerator {
       inheritance: processedInheritance,
       examples,
       stats,
-      group: this.inferGroupFromPath(component.filePath || ''),
+      ...(group !== undefined ? { group } : {}),
       stability,
       ...(slots.length > 0 ? { slots } : {}),
       ...(sourceHref ? { sourceHref } : {}),
       ...(relatedComponents.length > 0 ? { relatedComponents } : {}),
-      // @ts-expect-error not part of shared type, but used by docs app
       types: localTypeDefs
     };
   }

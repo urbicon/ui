@@ -207,6 +207,14 @@ export class LLMDocumentationGenerator {
       });
     }
 
+    // Supporting type definitions (helper types local to the component or
+    // resolved from the package sources via the shared ts.Program) — the
+    // props interface and variant aliases are already covered by Api/Variants.
+    const typesContent = this.renderTypesMarkdown(componentApiData);
+    if (typesContent && this.shouldIncludeInLLM('types', 'types', docsConfig)) {
+      sections.push({ id: 'types', type: 'types', content: typesContent });
+    }
+
     // Order and limit by priority
     const ordered = this.orderAndLimitSections(sections, docsConfig);
 
@@ -275,6 +283,52 @@ export class LLMDocumentationGenerator {
       lines.push(`- ${variant.name}: ${values}${def}`);
     }
     return lines.join('\n');
+  }
+
+  /**
+   * A type definition rendering longer than this many lines is replaced by a
+   * one-line summary (member count + source path) — llm.txt is the
+   * token-efficiency surface; a 200-line locale-key tree is noise there. The
+   * docs page (TypesReference) still renders the full definition, collapsed
+   * behind its row expansion, and api.ts keeps the complete data.
+   */
+  private static readonly MAX_TYPE_DEFINITION_LINES = 40;
+
+  /**
+   * Render the component's supporting type definitions (category 'helper' —
+   * business types like `GuideTour` or `MenuItemType`). Props interfaces and
+   * variant aliases are excluded: the Api and Variants sections already carry
+   * that information. Oversized definitions collapse to an honest summary
+   * instead of a truncated body. Returns null when there is nothing worth
+   * printing.
+   */
+  private renderTypesMarkdown(componentApiData: APIData['components'][string]): string | null {
+    const typeDefs = (componentApiData.types ?? []) as Array<
+      NonNullable<APIData['components'][string]['types']>[number] & { category?: string }
+    >;
+    const helpers = typeDefs.filter((t) => (t.category ?? 'helper') === 'helper');
+    if (helpers.length === 0) return null;
+
+    const blocks: string[] = [];
+    for (const t of helpers) {
+      const code =
+        t.type === 'type'
+          ? `type ${t.name} = ${t.definition}`
+          : `${t.type} ${t.name} {\n${t.definition}\n}`;
+
+      const lineCount = code.split('\n').length;
+      if (lineCount > LLMDocumentationGenerator.MAX_TYPE_DEFINITION_LINES) {
+        const shape = typeof t.members === 'number' ? `${t.members} members` : `${lineCount} lines`;
+        const source = t.sourcePath ? `: ${t.sourcePath}` : ' in the package sources';
+        blocks.push(
+          `- \`${t.type} ${t.name}\` — ${shape}, definition omitted (${lineCount} lines; full definition${source})`
+        );
+        continue;
+      }
+
+      blocks.push(['```ts', code, '```'].join('\n'));
+    }
+    return blocks.join('\n\n');
   }
 
   private renderExamplesMarkdown(componentApiData: APIData['components'][string]): string {

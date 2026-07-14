@@ -171,7 +171,10 @@ export class PipelineOrchestrator {
 
     const extractionCoordinator = new ExtractionCoordinator(
       this.config.processing,
-      this.errorHandler
+      this.errorHandler,
+      // Carries the package's tsconfig path (configPath) into extraction —
+      // the switch between single-file parsing and real cross-file resolution.
+      this.config.input.typescript
     );
 
     const richComponents = await extractionCoordinator.extractAllComponents(manifests);

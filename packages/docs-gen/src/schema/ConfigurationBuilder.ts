@@ -298,30 +298,35 @@ export class ConfigurationFactory {
    * Create Blocks-specific configuration
    */
   static blocks(): GeneratorConfig {
-    return new DocsConfigurationBuilder()
-      .addPackage({
-        name: '@urbicon-ui/blocks',
-        path: '../blocks',
-        glob: {
-          components: 'src/lib/{primitives,components}/**/index.ts',
-          variants: 'src/lib/{primitives,components}/**/*.variants.ts',
-          documentation: 'src/lib/{primitives,components}/**/docs.svelte'
-        }
-      })
+    return (
+      new DocsConfigurationBuilder()
+        .addPackage({
+          name: '@urbicon-ui/blocks',
+          path: '../blocks',
+          glob: {
+            components: 'src/lib/{primitives,components}/**/index.ts',
+            variants: 'src/lib/{primitives,components}/**/*.variants.ts',
+            documentation: 'src/lib/{primitives,components}/**/docs.svelte'
+          }
+        })
+        // Package tsconfig → shared ts.Program → cross-file type resolution
+        // (imported Props bases, Omit<ImportedProps, …>, type-only imports).
+        .setTypeScript({ configPath: '../blocks/tsconfig.json' })
 
-      .setLLMOutput({
-        enabled: true,
-        // New static layout under blocks with grouping
-        outputPath: '../../apps/docs/static/blocks',
-        format: 'text'
-      })
-      .setAPIOutput({
-        enabled: true,
-        // Directory mode; will write per-component api.ts under group folder (components/primitives)
-        outputPath: '../../apps/docs/src/routes/blocks',
-        format: 'typescript'
-      })
-      .build();
+        .setLLMOutput({
+          enabled: true,
+          // New static layout under blocks with grouping
+          outputPath: '../../apps/docs/static/blocks',
+          format: 'text'
+        })
+        .setAPIOutput({
+          enabled: true,
+          // Directory mode; will write per-component api.ts under group folder (components/primitives)
+          outputPath: '../../apps/docs/src/routes/blocks',
+          format: 'typescript'
+        })
+        .build()
+    );
   }
 
   /**
@@ -338,6 +343,7 @@ export class ConfigurationFactory {
           documentation: 'src/lib/components/**/docs.svelte'
         }
       })
+      .setTypeScript({ configPath: '../docs/tsconfig.json' })
 
       .setLLMOutput({
         enabled: true,
@@ -366,6 +372,7 @@ export class ConfigurationFactory {
           documentation: 'src/lib/core/table/docs.svelte'
         }
       })
+      .setTypeScript({ configPath: '../table/tsconfig.json' })
 
       .setLLMOutput({
         enabled: true,
@@ -393,6 +400,7 @@ export class ConfigurationFactory {
           components: 'src/lib/client/components/*/index.ts'
         }
       })
+      .setTypeScript({ configPath: '../auth/tsconfig.json' })
 
       .setLLMOutput({
         enabled: true,

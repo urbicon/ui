@@ -105,9 +105,9 @@
             {@const t = (types || []).find((x) => x.name === (item.name as string))}
             {#if t}
               {@const code =
-                t.type === 'interface'
-                  ? `interface ${t.name} {\n${t.definition}\n}`
-                  : `type ${t.name} = ${t.definition}`}
+                t.type === 'type'
+                  ? `type ${t.name} = ${t.definition}`
+                  : `${t.type} ${t.name} {\n${t.definition}\n}`}
               {@const values = t.type === 'type' ? extractLiteralValues(t.definition) : []}
               {@const usedBy = Array.isArray(t.usedByProps) ? t.usedByProps : []}
 
