@@ -129,7 +129,9 @@ export const calendarVariants = tv({
       'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50'
     ],
     allDayArea: ['border-b border-border-hairline'],
-    currentTimeLine: 'absolute left-0 right-0 z-10 pointer-events-none border-t-2 border-red-500',
+    // `live` is the dedicated "now" accent (red by convention, themes via
+    // --color-live) — deliberately not `danger`, which signals errors.
+    currentTimeLine: 'absolute left-0 right-0 z-10 pointer-events-none border-t-2 border-live',
 
     // Week time grid mode (replaces weekGrid when showTimeGrid)
     weekTimeLayout: ['w-full flex flex-col', 'border-t border-border-hairline'],

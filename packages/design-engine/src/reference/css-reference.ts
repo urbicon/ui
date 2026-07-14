@@ -57,7 +57,7 @@ The \`@theme\` block sets the Tailwind utility value. The \`:root\` rule overrid
 - \`surfaces\` — 11 surface background tokens
 - \`text\` — 9 text color tokens
 - \`borders\` — 5 border color tokens
-- \`intents\` — 6 component intents + the \`info\` status colour, feedback + interactive tokens
+- \`intents\` — 6 component intents + the \`info\` status colour, feedback + interactive tokens + the \`live\` ("now") accent
 - \`shadows\` — 5 shadow tokens + z-index scale
 - \`theming\` — How to create custom themes, available presets
 
@@ -204,6 +204,12 @@ Tailwind usage: \`bg-primary-500\`, \`text-danger-700\`, \`border-success-300\`,
 | \`--color-interactive-active\` | \`bg-interactive-active\` | 20% primary overlay |
 | \`--color-interactive-focus\` | \`ring-interactive-focus\` | Focus ring color (primary-500) |
 | \`--color-interactive-disabled\` | \`bg-interactive-disabled\` | Disabled state (neutral-200) |
+
+## Live / "Now" Accent
+
+| CSS Variable | Tailwind Utility | Purpose |
+|---|---|---|
+| \`--color-live\` | \`border-live\` / \`bg-live\` | Live/now markers — the Calendar current-time line and dot, recording/live indicators. Red by convention (defaults to danger-500 light / danger-400 dark) but semantically distinct from \`danger\`: override \`--color-live\` alone to restyle live markers without touching error styling. |
 
 ## Override Example: Custom Intent
 \`\`\`css

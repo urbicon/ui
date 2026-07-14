@@ -138,6 +138,11 @@ const AVATAR_CORES = [
 /** Skeleton loading tokens → `bg-skeleton-shimmer` (the shimmer overlay sweep). */
 const SKELETON_CORES = ['skeleton-shimmer'] as const;
 
+/** Live/now accent → `border-live` / `bg-live` (Calendar current-time line and
+ * dot; red by convention but deliberately distinct from the `danger` intent so
+ * live markers and error styling stay independently themeable). */
+const LIVE_CORES = ['live'] as const;
+
 function buildIntentCores(): string[] {
   const cores: string[] = [];
   for (const intent of INTENT_NAMES) {
@@ -163,7 +168,8 @@ export const VALID_TOKEN_CORES: ReadonlySet<string> = new Set([
   ...INTERACTIVE_CORES,
   ...CHART_CORES,
   ...AVATAR_CORES,
-  ...SKELETON_CORES
+  ...SKELETON_CORES,
+  ...LIVE_CORES
 ]);
 
 /**

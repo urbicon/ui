@@ -212,6 +212,17 @@
   --color-avatar-11: light-dark(oklch(0.45 0.13 325), oklch(0.72 0.12 325));
   --color-avatar-12: light-dark(oklch(0.45 0.13 355), oklch(0.72 0.12 355));
 
+  /* === LIVE / "NOW" ACCENT ===
+     Single-purpose accent for live/now markers — the Calendar current-time
+     line and dot, and future live/recording indicators. Red is the
+     convention (Google Calendar et al.), but the *purpose* is not `danger`:
+     a now-line states "you are here", not "something is wrong", and the two
+     must stay independently themeable. Defaults ride the danger foundation
+     ramp, so dark mode and per-theme danger re-tunes flow through
+     automatically; override `--color-live` alone to restyle live indicators
+     without touching error styling. */
+  --color-live: light-dark(var(--color-danger-500), var(--color-danger-400));
+
   /* === BORDERS ===
      border-hairline is the quietest tier — structural
      trennlinien (row dividers, Card header/footer separators, inline
