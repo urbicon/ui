@@ -7,7 +7,7 @@
   import { employees, basicColumns } from '../_data';
 
   let stickyMode = $state<'false' | 'toolbar' | 'header' | 'both'>('both');
-  let stickyOffset = $state(0);
+  let stickyOffset = $state(48);
 
   const stickyProp = $derived(stickyMode === 'false' ? false : stickyMode);
 
