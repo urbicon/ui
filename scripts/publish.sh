@@ -70,6 +70,13 @@ else
   echo "==> Building all packages (bun run build)"
   bun run build
 
+  # This path bypasses CI entirely, so it carries its own declaration guard: a
+  # failed declaration emit makes svelte-package omit that file's .d.ts and
+  # still exit 0, which would publish a silently untyped package. `npm publish`
+  # can't be taken back for a given version, so gate before it, not after.
+  echo "==> Declaration guard (bun run types:guard)"
+  bun run types:guard
+
   # --- LICENSE into each package (npm only bundles a LICENSE from the package dir)
   cleanup() {
     for dir in "${PACKAGES[@]}"; do

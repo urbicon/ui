@@ -43,6 +43,14 @@ jobs:
       - name: Build
         run: bun run build
 
+      # Last line of defence before an irreversible `npm publish`: a failed
+      # declaration emit makes svelte-package omit that file's .d.ts and still
+      # exit 0, so a release can ship silently untyped and break every
+      # consumer's type-check. Runs before `check`, whose phantom errors would
+      # otherwise bury the actual cause.
+      - name: Declaration guard
+        run: bun run types:guard
+
       - name: Type check
         run: bun run check
 

@@ -35,6 +35,14 @@ jobs:
       # which type-check against the built package dist + generated api.ts.
       # `build:ts` produces both, so it must run before `check` can gate.
       - run: bun run build:ts
+      # Declaration-emit guard, deliberately between `build:ts` and `check`:
+      # svelte-package drops a file's .d.ts on a failed declaration emit while
+      # still exiting 0, which surfaces in `check` as hundreds of phantom errors
+      # in unrelated components (274 of them on 2026-07-09). Running it here
+      # names the one missing file first. It cannot live in the `build` job —
+      # that job `needs: [typecheck]`, so a drop would fail `check` and skip the
+      # guard entirely, in exactly the case it exists for.
+      - run: bun run types:guard
       - run: bun run check
 
   test:

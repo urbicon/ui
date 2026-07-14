@@ -100,6 +100,7 @@
     "i18n:check": "bun --filter='@urbicon-ui/i18n' run build && bun packages/design/src/cli/index.ts i18n audit packages/blocks/src packages/table/src --translations packages/blocks/src/lib/translations,packages/table/src/lib/translations",
     "icons:lint": "bun --bun run packages/blocks/scripts/icons-lint.ts",
     "variants:lint": "bun --bun run packages/blocks/scripts/variants-lint.ts",
+    "types:guard": "bun --bun run scripts/types-guard.ts",
     "mcp:start": "bun run packages/mcp-server/src/index.ts",
     "mcp:start:http": "bun run packages/mcp-server/src/index.ts --transport http --port 3001",
     "fix": "biome check --write .",
