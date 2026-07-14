@@ -75,6 +75,8 @@ The split between `display`, `overlay`, `layout`, `feedback` etc. JSDoc tags col
 - Pick multiple values → `Select multiple` (not `Menu multiple`).
 - One-off action list → `Menu` (Action family).
 
+Full decision matrix with edge cases (search threshold, multi-select, async sources, the CommandPalette boundary, what a screen reader hears): [COMPONENT-DECISION-MATRICES.md §Form-input layer](COMPONENT-DECISION-MATRICES.md#form-input-layer--select-vs-combobox-vs-menu-xc-7).
+
 **Not in this family:** `SegmentGroup` (also holds a value, but lives in Navigation — it's a navigational tab strip cast as a value-picker).
 
 ---

@@ -113,54 +113,6 @@ internal TODO instead. Sections are ordered roughly by urgency.
   one pass.
 - **Found:** 2026-07-10, systematic primitives API analysis.
 
-### `ConfirmDialog` propagates a rejecting async `onConfirm` as an unhandled rejection
-
-- **Where:** `packages/blocks/src/lib/primitives/ConfirmDialog/ConfirmDialog.svelte`
-  (`handleConfirm`).
-- **What:** `handleConfirm` is `try { busy = true; await onConfirm(); open = false; }
-  finally { busy = false; }` — no `catch`. When a consumer's async `onConfirm`
-  rejects (e.g. the server call it awaits fails), the observable behaviour is
-  correct — the dialog stays open (the `open = false` after the await is skipped)
-  and re-enables (busy cleared in `finally`) — but the rejection escapes
-  `handleConfirm` and, because `onclick` fires it and ignores the returned
-  promise, surfaces as an **unhandled promise rejection**. The JSDoc only
-  promises "auto-closes on success", so staying open on failure is intended;
-  the noisy rejection is the gap.
-- **Why deferred:** The fix is an API-design decision, not a mechanical change:
-  either (a) swallow the error silently (dialog just stays open), (b) add an
-  `onError?` callback so the consumer can surface it, or (c) keep propagating but
-  document that `onConfirm` must catch its own errors. Each changes the public
-  contract. Today's guidance is (c) implicitly — a consumer should `try/catch`
-  inside `onConfirm` and show their own error UI. Picking (a)/(b) wants a
-  conscious call, so it is logged rather than patched on the fly.
-- **Found:** 2026-07-07, while adding `ConfirmDialog.svelte.test.ts` (the
-  success + busy-lock paths are covered; the reject path is deliberately not
-  asserted because it can't be without provoking the unhandled rejection).
-
-### `Collapsible` optimistically mutates a controlled `open` prop on toggle
-
-- **Where:** `packages/blocks/src/lib/primitives/Collapsible/Collapsible.svelte`
-  (`toggle`).
-- **What:** When `open` is controlled (`open !== undefined`), `toggle` sets
-  `open = next` locally *before* calling `onOpenChange(next)`. With `bind:open`
-  this is what propagates the change, so it's correct. But a consumer that passes
-  `open={someValue}` **without** `bind` and then conditionally *rejects* the
-  change in `onOpenChange` gets a divergence: Collapsible shows `next` while the
-  consumer's source of truth still says the old value, and nothing re-syncs it
-  (the unchanged parent expression never re-runs). This is exactly the trap
-  `AccordionItem` hit for `collapsible=false` on the last open item — now worked
-  around by calling `ctx.toggle` from the trigger directly (Collapsible is driven
-  purely by its `open` prop there), fixed 2026-07-07.
-- **Why deferred:** A "pure controlled" Collapsible would have to skip the local
-  mutation when `open` is passed but not bound — and Svelte can't distinguish
-  `open={x}` from `bind:open={x}` at runtime. Resolving it is an API-design call
-  (e.g. an explicit `controlled` flag, or documenting that controlled consumers
-  must accept every `onOpenChange` or use `bind:open`), so it is logged rather
-  than reworked. In practice the common paths (`bind:open`, or unconditional
-  `onOpenChange` write-back) are unaffected.
-- **Found:** 2026-07-07, while adding `Accordion.svelte.test.ts` (the
-  `collapsible=false` last-item test surfaced the divergence).
-
 ## Component behaviour
 
 ### ButtonGroup roving couples `buttonOrder` to a positional DOM query — duplicate values and dynamic add/remove desync it
@@ -342,35 +294,38 @@ internal TODO instead. Sections are ordered roughly by urgency.
   semantics consumers may depend on.
 - **Found:** 2026-07-13, table docs API catch-up.
 
-### date-grid: `navigate()` range-case + range-view swipe don't clamp to `minDate`/`maxDate`
+### Calendar view swipes call `ctx.navigate` ungated — a swipe at the bound fires a no-op emit
 
-- **Where:** `packages/blocks/src/lib/date/date-grid` — the `view === 'range'`
-  branch of `navigate()` emits `onNavigate(shiftedStart, {shiftedStart,
-  shiftedEnd})` directly (bypassing `#emitNavigate`) and unclamped; a
-  range-view swipe (`CalendarGrid onSwipeLeft → ctx.navigate(1)`) is not gated
-  by `canGoForward`.
-- **What:** A range-view swipe can push the window past `[minDate, maxDate]`.
-  Pre-existing (untouched by the 68c8c86 navigator-bounds hardening and the
-  86db345 emit-path fix), deliberately unclamped — Planner window-shift
-  semantics; naively clamping only `shiftedStart` would collapse the span.
-- **Why deferred:** A span-preserving sliding-window clamp is non-trivial.
-  Revisit when a range consumer actually hits the escape.
-- **Found:** 2026-07-05, navigator-bounds follow-up (code-reviewer).
+- **Where:** `packages/blocks/src/lib/components/Calendar` —
+  `CalendarGrid`/`CalendarWeekGrid`/`CalendarDayView`/`CalendarAgendaView`/
+  `CalendarYearGrid` swipe handlers (`ctx.navigate(±1)` without a
+  `canGoBack`/`canGoForward` gate).
+- **What:** The engine clamps month/week/day navigation (no bounds escape),
+  but a swipe at the bound still emits a no-op (`onMonthChange`/`onNavigate`
+  with an unchanged value) — existing, tested behaviour. The range view got
+  the direction-gated treatment in `DateGridScaffold` (2026-07-14); the other
+  views were deliberately left as-is.
+- **Why deferred:** Aligning them with the DateGridScaffold direction-gate
+  changes an emitted-callback contract consumers may observe — wants one
+  deliberate sweep with tests, not a per-view drive-by.
+- **Found:** 2026-07-14, date-grid range-clamp pass (Fable debt wave).
 
-### Guide cross-route touring: two deliberate DEV-only edge cases
+### Guide cross-route: same-route re-navigation compares paths exactly
 
-- **Where:** Guide engine navigation handling (details archived →
-  `docs/archive/2026-07/CR-guide-cross-route-followups.md`, follow-ups to
-  issue #41).
-- **What:** (a) An async/re-entrant `navigationSource` can still prematurely
-  stop a cross-route tour (latent false-stop; the sync/re-entrant case was
-  fixed in #41). (b) `#knownPath` skips clearing a targetless
-  `#expectedRoute` state. Both are DEV-only symptoms with no teardown in the
-  default path.
-- **Why deferred:** Both were consciously accepted trade-offs in the #41
-  review ("noted for later — not blocking"). Revisit if a real consumer tour
-  trips either.
-- **Found:** 2026-06-30 / 2026-07-01, issue-#41 follow-up review.
+- **Where:** `packages/blocks/src/lib/utils/guide.svelte.ts` —
+  `#maybeNavigate`'s `route === current()` short-circuit.
+- **What:** The post-#41 async/re-entrant false-stops and the `#knownPath`
+  targetless-clear skip are fixed (normalized-landing heuristic +
+  superseded-navigation epochs + early-return clear; tests in
+  `guide.svelte.test.ts`). Remaining sliver: with a normalizing router, a
+  step whose `route` equals the current *logical* route still re-navigates
+  (exact compare), and a router that no-op's such a `goto` without emitting
+  any report leaves a targetless expectation armed until the next step
+  (DEV-only symptom).
+- **Why deferred:** Normalizing the pre-navigation compare is a behaviour
+  decision (skip vs. re-navigate), not a bug fix; no consumer has hit it.
+- **Found:** 2026-07-14, async false-stop hardening (Fable debt wave,
+  follow-up to #41 / CR-guide-cross-route-followups).
 
 ### Checkbox now carries a press cue + intent interaction layer its form siblings lack
 
@@ -422,6 +377,8 @@ internal TODO instead. Sections are ordered roughly by urgency.
 - **Why deferred:** Needs an API decision — an `onError` callback and/or an
   error-row slot (mirroring `loadingText`/`noResultsText`) — vs. the current
   accept-stale-on-failure behaviour. Not a drive-by; wants its own increment.
+  ConfirmDialog now ships the `onError` precedent (same
+  `(error: unknown) => void` signature, 2026-07-14) — mirror its vocabulary.
 - **Found:** 2026-07-10, blocks feature-request review (CMB-2 multi-select).
 
 ### Sparkline `fluid` scales the `showEndPoint` dot into an ellipse
@@ -999,6 +956,33 @@ internal TODO instead. Sections are ordered roughly by urgency.
   template-literal props / `isolate`, never single-quoted attributes).
 - **Found:** 2026-07-13, docs-package section polish.
 
+## docs-gen
+
+### Watch mode drops the authored `typescript.configPath`
+
+- **Where:** `packages/docs-gen` — `ExtractionCoordinator.updateConfig` /
+  the `PipelineOrchestrator` watch path (hands only `ProcessingConfig` on).
+- **What:** The program-backed extraction (2026-07-14) threads
+  `input.typescript.configPath` through the coordinator **constructor**; the
+  (currently unused) watch/update path doesn't, so a watch run would silently
+  fall back to single-file mode and drop cross-file types from regenerated
+  artifacts.
+- **Why deferred:** No watch consumer exists today; wiring it wants the same
+  eager fail-loud validation as the constructor, not a quick pass-through.
+- **Found:** 2026-07-14, ts.Program cross-file resolution pass (Fable debt wave).
+
+### `generateGlobalLlmsTxt` still swallows errors in a silent catch
+
+- **Where:** `packages/docs-gen/src/generators/llm/LLMDocumentationGenerator.ts`
+  (`generateGlobalLlmsTxt`).
+- **What:** A failure while assembling the global `llms.txt` is caught and
+  dropped — the run stays green with a stale or missing artifact, against the
+  fail-loud maxim. Pre-existing, untouched by the 2026-07-14 program rework.
+- **Why deferred:** Needs a small deliberate pass: decide which failures are
+  legitimate (missing optional inputs?) vs. must abort, then fail loud with a
+  test. Not a drive-by inside an unrelated feature commit.
+- **Found:** 2026-07-14, ts.Program cross-file resolution pass (Fable debt wave).
+
 ## Toolchain / dependencies
 
 ### TypeScript 7 (native Go compiler) upgrade blocked on Svelte type-checking support
@@ -1066,20 +1050,3 @@ internal TODO instead. Sections are ordered roughly by urgency.
   hue-shifted theme that breaks AA fails the suite rather than relying on a
   comment.
 - **Found:** 2026-07-14, PUBLISH-READINESS D.1 contrast audit.
-
-### Calendar current-time indicator uses `red-500` instead of a semantic token
-
-- **Where:** `packages/blocks/src/lib/components/Calendar/calendar.variants.ts`
-  (`currentTimeLine` slot → `border-red-500`) and
-  `packages/blocks/src/lib/components/Calendar/CalendarTimeGrid.svelte`
-  (`bg-red-500`).
-- **What:** The "now" line/marker in the time-grid view is a primitive Tailwind
-  colour, against the repo maxim "semantic design tokens over primitive Tailwind
-  classes". It is also the one calendar affordance that isn't `light-dark()`-aware
-  (red-500 does read acceptably in both themes, so this is cosmetic, not a bug).
-- **Why deferred:** A red "now" line is a real convention (Google Calendar et al.),
-  and no existing semantic token fits — `--color-danger` is semantically wrong (it
-  is not an error state). Resolving it is a design decision, not a mechanical
-  swap: either introduce a dedicated token (e.g. a generic "live/now" accent that
-  themes correctly) or consciously document red as an intentional exception.
-- **Found:** 2026-07-07, while adding `calendar.variants.test.ts`.
