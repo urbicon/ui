@@ -4,3 +4,8 @@
 // ==========================================
 
 export { type SvelteDocsParseResult, SvelteDocsParser } from './SvelteDocsParser';
+export {
+  foldStaticExpression,
+  parseDocsConfigFromSvelte,
+  StaticDocsConfigError
+} from './static-docs-config';

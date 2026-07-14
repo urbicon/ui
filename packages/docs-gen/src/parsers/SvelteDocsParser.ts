@@ -1,6 +1,7 @@
 import * as fs from 'node:fs/promises';
 import type { SvelteDocsConfig } from '@urbicon-ui/shared-types';
 import { isValidSvelteDocsConfig, mergeWithSvelteDocsDefaults } from '../types';
+import { parseDocsConfigFromSvelte } from './static-docs-config';
 
 /**
  * Result from parsing a docs.svelte file
@@ -57,7 +58,7 @@ export class SvelteDocsParser {
       console.log(`📄 SvelteDocsParser: Found docs.svelte, content length: ${content.length}`);
 
       // Extract docsConfig from content
-      const docsConfig = this.extractDocsConfig(content);
+      const docsConfig = this.extractDocsConfig(content, docsFilePath);
       console.log(`📄 SvelteDocsParser: Extracted docsConfig:`, docsConfig);
 
       // Validate the configuration
@@ -89,54 +90,25 @@ export class SvelteDocsParser {
   // ==========================================
 
   /**
-   * Extract export const docsConfig from script block using regex
-   * Simplified approach focused on modern Svelte 5 syntax only
+   * Extract `export const docsConfig` from the file's script block.
+   *
+   * Folds the object literal off the TypeScript AST — no code is executed. A
+   * config that is present but not statically evaluable throws (with
+   * file:line:column) rather than degrading to `{}`; the caller reports it via
+   * `SvelteDocsParseResult.errors`. An *absent* export is not an error: the
+   * component simply takes the documented defaults.
    */
-  private extractDocsConfig(content: string): SvelteDocsConfig {
+  private extractDocsConfig(content: string, docsFilePath: string): SvelteDocsConfig {
     console.log(`🔍 SvelteDocsParser: Extracting docsConfig from content`);
 
-    try {
-      // Find export const docsConfig = { ... }; pattern
-      const typedPattern = /export\s+const\s+docsConfig\s*:\s*SvelteDocsConfig\s*=\s*({[\s\S]*?});/;
-      const untypedPattern = /export\s+const\s+docsConfig\s*=\s*({[\s\S]*?});/;
-      const match = content.match(typedPattern) || content.match(untypedPattern);
+    const config = parseDocsConfigFromSvelte(content, docsFilePath);
 
-      if (!match) {
-        console.log(`🔍 SvelteDocsParser: No docsConfig export found`);
-        return {} as SvelteDocsConfig;
-      }
-
-      const configString = match[1] as string;
-      console.log(
-        `🔍 SvelteDocsParser: Found config string (first 200 chars):`,
-        `${configString.substring(0, 200)}...`
-      );
-
-      // Parse the object literal
-      const config = this.parseConfigObject(configString as string);
-      return config;
-    } catch (error) {
-      console.warn(`🔍 SvelteDocsParser: Failed to extract docsConfig:`, error);
+    if (config === null) {
+      console.log(`🔍 SvelteDocsParser: No docsConfig export found`);
       return {} as SvelteDocsConfig;
     }
-  }
 
-  /**
-   * Parse config object string into SvelteDocsConfig
-   * Uses eval for object literals (safe in build context)
-   */
-  private parseConfigObject(configString: string): SvelteDocsConfig {
-    try {
-      // Use eval directly since we're in a controlled build environment
-      // and the content comes from our own source files
-      console.log(`🔍 SvelteDocsParser: Parsing config object with eval`);
-      // biome-ignore lint/security/noGlobalEval: build-time parse of our own doc-config object literals, never runtime or user input (see above).
-      return eval(`(${configString})`);
-    } catch (evalError) {
-      console.error(`🔍 SvelteDocsParser: Failed to parse config object:`, evalError);
-      console.error(`🔍 SvelteDocsParser: Config string was:`, configString.substring(0, 300));
-      return {} as SvelteDocsConfig;
-    }
+    return config as SvelteDocsConfig;
   }
 
   // ==========================================

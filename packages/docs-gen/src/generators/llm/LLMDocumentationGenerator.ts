@@ -306,11 +306,39 @@ export class LLMDocumentationGenerator {
     return docsConfig.llm?.include !== false;
   }
 
+  /**
+   * Read (and memoise) a component's docs.svelte config.
+   *
+   * `parseDocsFile` reports a docs.svelte that exists but cannot be read — an
+   * unreadable file, or a `docsConfig` that is not a static object literal
+   * (`SvelteDocsParser` gives `file:line:column`). Continuing with
+   * `mergeWithSvelteDocsDefaults({})` there would silently discard the settings
+   * the author actually wrote: `llm.include: false` would flip back to `true`
+   * and emit an llm.txt the component opted out of. That is the same silent
+   * fallback the AST parser replaced `eval` to remove, one station later — so a
+   * *present but broken* config fails the generation.
+   *
+   * An *absent* docs.svelte is not an error: `parseDocsFile` returns no errors
+   * and the component takes the documented defaults (a constant default, not a
+   * guess). Warnings are advisory and only logged.
+   */
   private async loadDocsConfig(component: EnrichedComponentInfo): Promise<SvelteDocsConfig> {
     const cached = this.docsConfigCache.get(component.name);
     if (cached) return cached;
     const docsFilePath = await this.resolveDocsFilePath(component);
     const result = await this.docsParser.parseDocsFile(component.name, docsFilePath || undefined);
+
+    if (result.errors.length > 0) {
+      throw new Error(
+        `docsConfig for ${component.name} could not be read (${docsFilePath ?? 'unknown file'}):\n` +
+          result.errors.map((error) => `  - ${error}`).join('\n')
+      );
+    }
+
+    for (const warning of result.warnings) {
+      console.warn(`⚠️  [${component.name}] docsConfig: ${warning}`);
+    }
+
     this.docsConfigCache.set(component.name, result.docsConfig);
     return result.docsConfig;
   }
