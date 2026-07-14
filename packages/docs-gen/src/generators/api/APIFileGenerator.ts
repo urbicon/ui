@@ -191,6 +191,11 @@ export class APIFileGenerator {
     lines.push('  stability?: ComponentStability;');
     lines.push('  sourceHref?: string;');
     lines.push('  relatedComponents?: string[];');
+    // Slot names from the component's tv() config (VariantsExtractor). The
+    // data dump below carries them since the real-slot-names change — without
+    // this field the emitted `componentData: ComponentAPIInfo` no longer
+    // type-checks in any freshly generated tree.
+    lines.push('  slots?: string[];');
     lines.push(
       '  types?: Array<{ name: string; type: string; definition: string; [key: string]: unknown }>;'
     );
