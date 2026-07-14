@@ -53,8 +53,8 @@
         "tooltip"
       ],
       "contrast": { "fg": "#f6f3ec", "bg": "#00845c" },
-      "reason": "PRE-EXISTING, surfaced (not caused) by widening this harness. Systemic token pair: text-on-primary #f6f3ec on bg-primary #00845c = 4.25:1 at normal weight. Not fixable from e2e/ — it is a semantic-token decision in blocks/src/lib/style. Reported for triage.",
-      "ref": "docs/technical-debt.md -> 'Semantic token pairs below WCAG AA'"
+      "reason": "PRE-EXISTING, surfaced (not caused) by widening this harness. #00845c is NOT the library's --color-primary (that is oklch(0.52 0.15 240), blue) — it is --room-accent from the docs app's Rooms skin (apps/docs/src/lib/style/rooms-docs.css:77), which remaps --color-primary. So this is the docs site rendering every filled primary control at 4.25:1, not a library token defect: blocks' own contrast.test.ts covers the library pairs and passes. Fixing means re-picking the room accent (or its on-colour) — an apps/docs skin decision.",
+      "ref": "docs/technical-debt.md -> 'The docs Rooms skin remaps `--color-primary` to an accent that misses AA against `text-on-primary`'"
     },
     {
       "id": "preview-tab-segment-inactive-contrast",
@@ -63,7 +63,7 @@
       "routes": ["segment-group", "tab"],
       "contrast": { "fg": "#6e6b64", "bg": "#e8e3e1" },
       "reason": "PRE-EXISTING. Inactive tab/segment label #6e6b64 on the interactive surface #e8e3e1 = 4.17:1. Semantic-token decision, outside e2e scope. Reported for triage.",
-      "ref": "docs/technical-debt.md -> 'Semantic token pairs below WCAG AA'"
+      "ref": "docs/technical-debt.md -> '`text-tertiary` on subtle surfaces measures 4.18:1 — and the off-system demos trip axe'"
     },
     {
       "id": "preview-journey-timeline-quaternary-contrast",
@@ -72,7 +72,7 @@
       "routes": ["journey-timeline"],
       "contrast": { "fg": "#b8b5ad", "bg": "#fbfaf6" },
       "reason": "PRE-EXISTING. text-text-quaternary #b8b5ad on #fbfaf6 = 1.96:1 — the same ramp stop the Shiki comment token was raised away from in 572b738. Semantic-token decision, outside e2e scope. Reported for triage.",
-      "ref": "docs/technical-debt.md -> 'Semantic token pairs below WCAG AA'"
+      "ref": "docs/technical-debt.md -> '`text-text-quaternary` measures 1.96:1, and the Combobox demos have no accessible name'"
     },
     {
       "id": "preview-breadcrumb-current-contrast",
@@ -81,7 +81,7 @@
       "routes": ["breadcrumb"],
       "contrast": { "fg": "#00845c", "bg": "#e2eee7" },
       "reason": "PRE-EXISTING. aria-current crumb: text-primary on bg-primary/10 = 3.95:1. Docs-demo composition over a token pair; outside e2e scope. Reported for triage.",
-      "ref": "docs/technical-debt.md -> 'Docs demo markup carries four a11y defects the widened axe pass now pins'"
+      "ref": "docs/technical-debt.md -> 'The docs Rooms skin remaps `--color-primary` to an accent that misses AA against `text-on-primary`'"
     },
     {
       "id": "preview-badge-white-on-warning-contrast",
@@ -90,7 +90,7 @@
       "routes": ["badge"],
       "contrast": { "fg": "#ffffff", "bg": "#ef852e" },
       "reason": "PRE-EXISTING. Docs demo hardcodes `text-white` on `bg-warning` = 2.6:1 — a demo-markup bug in apps/docs (hardcoded colour, against the house rules), not a library defect. Lives in another session's tree. Reported for triage.",
-      "ref": "docs/technical-debt.md -> 'Docs demo markup carries four a11y defects the widened axe pass now pins'"
+      "ref": "docs/technical-debt.md -> '`text-tertiary` on subtle surfaces measures 4.18:1 — and the off-system demos trip axe'"
     },
     {
       "id": "preview-segment-group-dark-skin-contrast",
@@ -99,7 +99,7 @@
       "routes": ["segment-group"],
       "contrast": { "fg": "#17150f", "bg": "#062f26" },
       "reason": "PRE-EXISTING. Dark-skinned SegmentGroup demo: #17150f on #062f26 = 1.25:1 — near-invisible selected label. Demo markup in apps/docs, another session's tree. Reported for triage.",
-      "ref": "docs/technical-debt.md -> 'Docs demo markup carries four a11y defects the widened axe pass now pins'"
+      "ref": "docs/technical-debt.md -> '`text-tertiary` on subtle surfaces measures 4.18:1 — and the off-system demos trip axe'"
     },
     {
       "id": "preview-segment-group-dark-skin-inactive-contrast",
@@ -108,7 +108,7 @@
       "routes": ["segment-group"],
       "contrast": { "fg": "#6e6b64", "bg": "#070c10" },
       "reason": "PRE-EXISTING. Same dark-skinned SegmentGroup demo, inactive label: #6e6b64 on #070c10 = 3.69:1. Demo markup in apps/docs, another session's tree. Reported for triage.",
-      "ref": "docs/technical-debt.md -> 'Docs demo markup carries four a11y defects the widened axe pass now pins'"
+      "ref": "docs/technical-debt.md -> '`text-tertiary` on subtle surfaces measures 4.18:1 — and the off-system demos trip axe'"
     },
     {
       "id": "preview-combobox-unlabelled-demo-input",
@@ -117,7 +117,7 @@
       "routes": ["combobox"],
       "htmlIncludes": ["role=\"combobox\""],
       "reason": "PRE-EXISTING. Combobox demos in apps/docs/.../combobox/Docs.svelte pass neither `label` nor `aria-label`, so the input has no accessible name (Combobox.svelte:902 correctly leaves naming to the consumer). Demo markup in another session's tree. Reported for triage.",
-      "ref": "docs/technical-debt.md -> 'Docs demo markup carries four a11y defects the widened axe pass now pins'"
+      "ref": "docs/technical-debt.md -> '`text-text-quaternary` measures 1.96:1, and the Combobox demos have no accessible name'"
     }
   ]
 }

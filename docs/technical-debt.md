@@ -24,6 +24,26 @@ internal TODO instead. Sections are ordered roughly by urgency.
 - **Found:** 2026-07-13, resolving the P1 "mcp-server distribution" TODO
   (supersedes the earlier "bin is not runnable under node/npx" entry).
 
+### `shared-types` `exports` map points at files that don't exist
+
+- **Where:** `packages/shared-types/package.json` — `./components` (`:66`),
+  `./component-core` (`:70`), `./utilities` (`:86`) resolve to `dist/*.d.ts`
+  files that are never emitted; `./docs-config` (`:59`) and
+  `./documentation-core` (`:63`) are mapped to `dist/documentation.d.ts` while
+  their real emits (`dist/docs-config.d.ts`, `dist/documentation-core.d.ts`)
+  sit unreachable beside them.
+- **What:** Five of the package's subpath exports are wrong. Latent today —
+  everything in the repo imports the root entry — but a consumer reaching for
+  a documented subpath gets `ERR_MODULE_NOT_FOUND`, and the two mismapped ones
+  would silently hand back the wrong declarations.
+- **Why deferred:** Different bug class from a dropped declaration emit (this
+  is a hand-written map, not a compiler artifact), so `types:guard`
+  deliberately doesn't cover it — gating it would have made the guard red on
+  arrival. Fixing wants a design call per entry: is `./components` a typo for
+  the emitted `component`, should `./utilities` be dropped, and should the
+  subpaths exist at all given nothing uses them?
+- **Found:** 2026-07-14, building the declaration-emit guard (Opus quality wave).
+
 ## API design
 
 ### Button `preset="pill"`/`"circle"` convenience catalog — deferred by design (BTN-3)
@@ -282,25 +302,28 @@ internal TODO instead. Sections are ordered roughly by urgency.
   through `resolveSlotClass` too.
 - **Found:** 2026-07-14, table tv()-fold sweep (Opus debt-sweep).
 
-### `Dialog`/`Drawer` spread `{...restProps}` after their own dismiss/focus handlers — a consumer `onclick` can silently disable them
+### An untitled `Dialog` has no focusable element, so its focus trap is inert until the user clicks in
 
-- **Where:** `packages/blocks/src/lib/primitives/Dialog/Dialog.svelte`
-  (~`:235`–`:244`): the `<dialog>` sets `onclick={handleBackdropClick}`,
-  `onkeydown={handleKeydown}`, `onclose` and THEN spreads `{...restProps}`;
-  same ordering in `packages/blocks/src/lib/primitives/Drawer/Drawer.svelte`
-  (~`:176`–`:184`, `onkeydown` + `onclose`).
-- **What:** Because a later spread wins in Svelte, a consumer passing a DOM
-  `onclick`/`onkeydown`/`onclose` through restProps silently overrides Dialog's
-  backdrop-dismiss / focus-trap / close handlers. Now reachable transitively
-  through `ConfirmDialog` too (it forwards `{...rest}` into the inner Dialog,
-  `3d02feb`). Same class as the form-primitive restProps-ordering fix
-  (`32cfddd`) but for the overlay family's behavioural handlers — higher-stakes,
-  since it can break dismissal/focus-trap, not just an ARIA value.
-- **Why deferred:** A fix — spread `restProps` FIRST on the `<dialog>` (as the
-  form primitives now do), or pull the dismiss/focus/close handlers out of the
-  clobberable set — is a deliberate contract change across the overlay family
-  (Dialog/Drawer/ConfirmDialog), wanting DOM tests, not a drive-by.
-- **Found:** 2026-07-14, ConfirmDialog attribute pass-through (Opus debt-sweep).
+- **Where:** `packages/blocks/src/lib/primitives/Dialog/Dialog.svelte` (`:86` —
+  header + close button render only `{#if title}`) vs.
+  `packages/blocks/src/lib/utils/overlay.ts` (`focusFirstElement(panelEl)`,
+  `~:124`).
+- **What:** Without a `title` no header renders, so a Dialog whose `children`
+  contain nothing focusable gives `focusFirstElement` nothing to focus — focus
+  stays on `<body>`. Two consequences: the element-level `onkeydown` never
+  fires (ESC still works, but only through the `<svelte:window>` fallback), and
+  the focus trap — which runs from that same element handler — is inert until
+  the user clicks inside. A modal that doesn't contain focus is a WCAG 2.1.2
+  problem, not just a nicety. Drawer is unaffected (it always renders a close
+  button).
+- **Why deferred:** The fix is a deliberate call, not a patch: give the panel
+  `tabindex="-1"` and focus it when no focusable child exists (the standard
+  answer), and decide whether that lands in `showDialogModal` for the whole
+  overlay family or per component. Wants DOM tests for the untitled +
+  no-focusable-children case.
+- **Found:** 2026-07-14, Dialog/Drawer restProps composition (Opus quality
+  wave) — surfaced as a genuine test failure, worked around in the test by
+  giving the fixture a `title`.
 
 ### Table date filters: `greaterThan`/`lessThan` are dead for string/Date values
 
@@ -508,27 +531,70 @@ internal TODO instead. Sections are ordered roughly by urgency.
   show off-system customisation, so either they get axe exemptions, or the
   a11y baseline absorbs them, or they are restyled to clear AA while still
   looking off-system.
+- **Update 2026-07-14 (Opus quality wave):** the baseline question is settled
+  for now — the demos are absorbed as **documented, node-level exceptions** in
+  `e2e/a11y-baseline.json` (each names the exact colour pair, so a *different*
+  bad pair still fails), which restores the gate's signal without pre-empting
+  the restyle-vs-exempt call. The token half is untouched and still wants the
+  pass above. Two further demo defects were measured in the same run and belong
+  to the same restyle decision: SegmentGroup's dark-skin demo renders `#17150f`
+  on `#062f26` = **1.25:1** (a near-invisible selected label), and the badge
+  demo hardcodes `text-white` on `bg-warning` = 2.6:1 — the latter against the
+  house rule on hardcoded colours, so a demo bug rather than an off-system
+  choice.
 - **Found:** 2026-07-14, C.1/C.7 pass (reported) + independently confirmed by
-  the orchestrator (own calculation: 4.18:1).
+  the orchestrator (own calculation: 4.18:1); demo facets extended by the
+  widened axe pass (Opus quality wave).
 
-### PlaygroundConfigurator `label for` points nowhere in most control branches — and Input ignores its `id` prop
+### `text-text-quaternary` measures 1.96:1, and the Combobox demos have no accessible name
 
-- **Where:** `packages/docs/src/lib/components/PlaygroundConfigurator/PlaygroundConfigurator.svelte`
-  (`<label for={control.key}>` per control) vs. the ids the branches actually
-  render; `packages/blocks/src/lib/primitives/Input/Input.svelte` (hardcodes
-  `input-${propsId}`; a consumer `id` prop — or spread id — is overridden).
-- **What:** Only the color branch's `for` resolves. Toggle renders
-  `#{key}-input`, Select's focusable trigger is `#{key}-trigger`, SegmentGroup's
-  radiogroup has no id, Slider thumbs have no ids (the id lands on the
-  wrapper), and Input discards the `id` it is given entirely — that last one is
-  a genuine blocks bug affecting any consumer pairing an external `<label for>`
-  with an Input. Clicking a configurator label therefore focuses nothing.
-- **Why deferred:** Needs per-branch `for` targets in the configurator plus an
-  Input fix to honour a supplied `id` (two-step `$props.id()` pattern per the
-  repo convention) — one coherent pass with DOM assertions, found at the tail
-  of the XC-5/hint pass (`d3a40c6`), which deliberately stayed scoped to
-  describedby.
-- **Found:** 2026-07-13, PlaygroundConfigurator hint-wiring verification.
+- **Where:** the quaternary text token (`packages/blocks/src/lib/style`), seen
+  on `/blocks/primitives/journey-timeline`; plus
+  `apps/docs/src/routes/blocks/primitives/combobox/Docs.svelte`
+  (`:89,103,142,157,187,213,240`).
+- **What:** Two findings the widened axe pass turned up that the entries above
+  don't cover. (a) `text-text-quaternary` `#b8b5ad` on `#fbfaf6` = **1.96:1** —
+  far below AA, and the same ramp stop the Shiki comment token was deliberately
+  raised *away from* in `572b738`; if it is a text token it is unusable, so the
+  real question is whether it is one. (b) Seven Combobox demos pass neither
+  `label` nor `aria-label`, so the input has no accessible name (`label` rule,
+  not contrast). `Combobox.svelte:902` is correct — naming is the consumer's
+  job — which makes this a demo bug that also models the wrong thing to anyone
+  copying it.
+- **Why deferred:** (a) rides the same ramp decision as the `text-tertiary` /
+  `text-on-primary` entries — settle the ramp once rather than per token. (b)
+  is a small local fix, but `apps/docs/src/routes/**` belonged to a parallel
+  session's working set at the time. Both are held meanwhile by documented
+  exceptions in `e2e/a11y-baseline.json`.
+- **Found:** 2026-07-14, widening the e2e axe harness to the code panel (Opus
+  quality wave).
+
+### The docs Rooms skin remaps `--color-primary` to an accent that misses AA against `text-on-primary`
+
+- **Where:** `apps/docs/src/lib/style/rooms-docs.css:77` (`--room-accent:
+  #00845c`, remapped onto `--color-primary`) vs.
+  `packages/blocks/src/lib/style/semantic.css:58` (`--color-text-on-primary:
+  var(--color-neutral-0)`).
+- **What:** On the docs site, every filled primary control renders white
+  `#f6f3ec` on the room green `#00845c` = **4.25:1**, just under the 4.5:1 AA
+  floor — measured by axe across 9 primitive pages (accordion, badge, button,
+  card, popover, tab, toast, toolbar, tooltip). **This is not the library
+  token:** blocks' `--color-primary` is `oklch(0.52 0.15 240)` (blue) and its
+  `contrast.test.ts` passes for the library pairs. The skin is what puts the
+  pair below AA — so the site that demonstrates the design system shows it in
+  a state the system's own contrast test would reject. Distinct from the
+  `text-on-primary` entry above (that one is the library's dark-mode problem)
+  and from the Rooms-skin entry below (that one is *secondary* text at 74%
+  opacity, this one is the solid on-colour).
+- **Why deferred:** It is a skin design call, not a fix: nudge `--room-accent`
+  darker (it is the docs' brand green — every room field, hero and header
+  carries it), or give the skin its own on-colour. Either way wants a VR pass
+  across the four rooms. Held meanwhile by a documented exception in
+  `e2e/a11y-baseline.json`.
+- **Found:** 2026-07-14, widening the e2e axe harness (Opus quality wave); the
+  library/skin split was traced during the merge, when the measurement appeared
+  to contradict the publish-m3 wave's "light mode is fine" finding — both are
+  correct, they measure different layers.
 
 ### Rooms-skin secondary text on accent fields misses WCAG AA contrast
 
@@ -704,6 +770,36 @@ internal TODO instead. Sections are ordered roughly by urgency.
   Cluster A direction) rather than being dropped silently mid-cleanup.
 - **Found:** 2026-07-14, verifying the design-authenticity audit before archiving it.
 
+### The guide page's CodeExample workaround is dead weight since the parser fix
+
+- **Where:** `apps/docs/src/routes/blocks/components/guide/Docs.svelte:77-80` —
+  the explicit `</CodeExample>` closing tag added by `ac4b4e3` plus its inline
+  comment explaining why.
+- **What:** The workaround existed because the old regex extraction ate the
+  next example when it hit a self-closing `<CodeExample … />`. Extraction now
+  runs off the Svelte parser, so the shape is handled and the workaround is
+  inert — it documents a constraint that no longer exists.
+- **Why deferred:** The route belonged to a parallel session's working set.
+  Trivial to remove; verify the example still extracts afterwards. **Trap worth
+  knowing:** that comment's own prose contains a literal `</CodeExample>`,
+  which is what made a naive revert *look* like the old regex worked fine.
+- **Found:** 2026-07-14, CodeExample parser rework (Opus quality wave).
+
+### Every docs page logs `[Select] value "" has no matching option`
+
+- **Where:** emitted by `packages/blocks/src/lib/primitives/Select/Select.svelte:200`
+  (DEV-only warn); observed once per route across all 36 primitive pages.
+- **What:** Something renders a `Select` whose `value` (`""`) matches none of
+  its options, so the trigger falls back to the placeholder. The warn is doing
+  its job — the question is who trips it on *every* page, which points at the
+  shared playground plumbing rather than one page's data. Log noise today, but
+  it drowns the DEV console and would mask a real instance of the same warning.
+- **Why deferred:** Wants a short trace to the actual call site, then a call on
+  whether the emitter should seed a valid default or the warn should not fire
+  for an empty value. Verified pre-existing (untouched by the 2026-07-14
+  configurator label pass).
+- **Found:** 2026-07-14, running the widened a11y suite (Opus quality wave).
+
 ### Route-level `docsConfig` exports are decorative — nothing consumes them
 
 - **Where:** the `docsConfig` exports in all 59 route-level `Docs.svelte` /
@@ -727,6 +823,25 @@ internal TODO instead. Sections are ordered roughly by urgency.
   (docs-gen cleanup agent).
 
 ## Testing / CI gates
+
+### docs-gen: `failFast` is coupled to parallelism being off — enabling it silently downgrades errors to exit 0
+
+- **Where:** `packages/docs-gen/src/.../PipelineOrchestrator.ts:29` —
+  `failFast: !config.processing?.parallel?.enabled`.
+- **What:** `ErrorHandler.reportError` only rethrows a `PipelineException` when
+  `failFast` is on; that rethrow is what makes a generation error reach
+  `success: false` and the CLI's non-zero exit. Parallelism is off today, so
+  the gate works (verified end-to-end: a broken `docsConfig` exits 1). Turn
+  `processing.parallel` on and the rethrow disappears: the error is still
+  logged, the artifact is still missing, and the run exits **0**. A performance
+  switch silently changing error strictness is a trap for whoever flips it.
+- **Why deferred:** Wants a deliberate decision on what the coupling was for
+  (presumably: don't abort sibling tasks mid-flight) and how to keep strictness
+  without it — e.g. collect failures and fail at the barrier. Not a drive-by:
+  it changes what a parallel run does on error.
+- **Found:** 2026-07-14, closing the docsConfig error channel (Opus quality
+  wave).
+
 
 ### `urbicon validate` matches rule patterns in text content — pages that *quote* an anti-pattern fail the gate
 
@@ -755,26 +870,6 @@ internal TODO instead. Sections are ordered roughly by urgency.
 - **Found:** 2026-07-11, dogfooding the `urbicon` CLI against the landing
   page (session review of the AI-DX claims).
 
-### No guard against silently dropped `.d.ts` files in package builds
-
-- **Where:** every package built with `svelte-package` (`blocks`, `docs`, …);
-  concretely bitten in `packages/docs/dist/**` (all nine `*.variants.d.ts`
-  missing).
-- **What:** When TypeScript's declaration emit fails for a file (here: TS2883,
-  `tv()`'s return type not nameable because `TVConfig` wasn't exported from
-  `@urbicon-ui/blocks` — fixed 2026-07-09), `svelte-package` exits 0 and simply
-  omits that file's `.d.ts`. Consumers then degrade silently: every
-  `*Props extends …VariantProps` loses ALL variant props — that buried the
-  docs-app check gate under 274 phantom errors until the root cause was found.
-  A published release with this state would break consumers' type-checking.
-- **Why deferred:** The root cause is fixed, but nothing prevents a recurrence
-  (any new non-portable inferred type re-triggers it, silently). A durable
-  guard is a small build-gate script — e.g. after `build`, assert every
-  emitted `dist/**/*.js` (excluding tests) has a sibling `.d.ts` — wired into
-  CI/publish. That is its own small package (script + CI wiring across all
-  packages), not part of the docs-layout task.
-- **Found:** 2026-07-09, while gating the docs-layout redesign (docs-app check).
-
 ### e2e visual snapshots are `chromium-darwin`-only — Linux CI can't verify them
 
 - **Where:** `e2e/snapshots/**` (all committed PNGs, incl. the
@@ -798,46 +893,6 @@ internal TODO instead. Sections are ordered roughly by urgency.
   that runs `--update-snapshots` on Linux and commits the result. Each is an infra
   decision spanning all three specs, not a change to the suite in flight.
 - **Found:** 2026-07-08, adding the primitive visual-regression suite.
-
-### The e2e a11y gate is red — 14 of 33 pages fail `color-contrast`, and CI can't tell
-
-- **Where:** `e2e/a11y.spec.ts` + `e2e/a11y-baseline.json` (`{}` since the
-  initial commit); `.github/workflows/ci.yml` runs the whole suite via
-  `bunx playwright test` with no `continue-on-error`.
-- **What:** A local run (chromium, this worktree, 2026-07-14) is **14 failed /
-  19 passed** — every failure `color-contrast (serious)`, e.g. 15 nodes on
-  `/blocks/primitives/segment-group`. The causes are pre-existing and
-  independent of any current work: the deliberately off-system demos hardcode
-  raw palette colours (`text-orange-950/80` etc., untouched since the initial
-  commit), and `text-tertiary` sits at 4.18:1 (see the Accessibility entry).
-  Since the baseline is empty, every one of these counts as a "new violation".
-  The gate therefore fails permanently — which means it can no longer report a
-  *real* regression: a genuinely new violation would be indistinguishable from
-  the standing red. Together with the darwin-only snapshot problem below, the
-  whole e2e stage is effectively inert.
-- **Why deferred:** Making it green is not a test-harness tweak but the sum of
-  two design calls — what to do about the off-system demos, and whether to
-  darken `text-tertiary` (both in the Accessibility entry) — plus a decision on
-  what the baseline is *for*: a real baseline that absorbs today's known,
-  accepted violations would restore the signal immediately, but only once the
-  accepted set is deliberately chosen rather than snapshotted.
-- **Found:** 2026-07-14, publish-m3 wave (reported by the C.1/C.7 agent as
-  "red, not mine"; the orchestrator confirmed the run and traced every failure
-  to pre-existing sources).
-
-### e2e axe harness never exercises the docs code panel
-
-- **Where:** `e2e/a11y.spec.ts` — `AxeBuilder.include('[data-docs-preview]')`
-  scopes every scan to the live-preview region only.
-- **What:** The read-only code textbox and the Shiki syntax tokens sit outside
-  `[data-docs-preview]`, so the harness never scanned them — which is why the
-  CodePanel `aria-input-field-name` + comment-contrast failures (`572b738`)
-  went uncaught, and why the remaining punctuation-contrast gap is unguarded.
-  The a11y baseline is `{}`.
-- **Why deferred:** Guarding these wants a second axe pass that includes the
-  code panel (or drops the `.include` scope on select routes) plus a fresh
-  baseline — an e2e-harness change, not a page edit.
-- **Found:** 2026-07-14, CodePanel a11y pass (Opus debt-sweep).
 
 ### i18n source scanner: documented analysis limits (strict mode not built)
 
@@ -885,31 +940,6 @@ internal TODO instead. Sections are ordered roughly by urgency.
   repro + upstream issue (or a repo convention: code snippets always via
   template-literal props / `isolate`, never single-quoted attributes).
 - **Found:** 2026-07-13, docs-package section polish.
-
-### docs `codeExamplePlugin` regex breaks on `>` inside a code template literal
-
-- **Where:** `packages/docs/src/lib/utils/code-example-plugin.ts:28`
-  (`<CodeExample([^>]*)>`).
-- **What:** When a `code={`…`}` template literal contains a literal `>` and an
-  `isolate` example follows in the same file, the regex terminates the match
-  early and the later example's build-time code extraction silently fails
-  (empty code panel). Currently latent — existing pages only have such
-  literals at file end; the button-group rework placed its preset example
-  defensively last for this reason.
-- **Second facet (2026-07-13, guide-demos pass):** a self-closing
-  `<CodeExample code={…} />` has no `</CodeExample>`, so the non-greedy match
-  runs to the *next* example's closing tag and eats it — that example loses
-  its auto-extraction and renders the fallback InfoCard. This one was **live**,
-  not latent: the guide page's waiting-hint demo was silently broken until
-  `ac4b4e3` gave the setup example an explicit closing tag (workaround
-  documented inline). Other pages pairing a self-closing code example with a
-  following `isolate` example may be silently affected — worth a sweep when
-  fixing.
-- **Why deferred:** Proper fix is a quote-/self-closing-aware bracket scan (or
-  extraction via the Svelte parser) plus a fail-loud warning when extraction
-  finds no code — worth doing together with a small regression fixture.
-- **Found:** 2026-07-13, button-group docs rework; second facet same day,
-  guide narrative-demos pass.
 
 ## Toolchain / dependencies
 
