@@ -48,4 +48,54 @@ test.describe('Tooltip motion (ACC-3 follow-up)', () => {
     // can't see the media query, so without the guard reduced motion would be violated.
     expect(await duration(page.locator('[data-testid="tt-prop"]'))).toBe('0.001s');
   });
+
+  test('the fade actually plays in top-layer mode (@starting-style enter, discrete exit)', async ({
+    page
+  }) => {
+    // Regression (2026-07-14): the transition classes resolved correctly but the
+    // fade NEVER ran in top-layer mode — showPopover() revealed the chip with no
+    // before-state (enter popped to opacity 1) and hidePopover() yanked it to
+    // display:none in the same recalc (exit never painted a frame). Fixed with
+    // the popoverMotion mechanism: `starting:opacity-0` + display/overlay in a
+    // discrete transition list. The 600ms linear fixture makes mid-fade
+    // sampling deterministic.
+    await page.goto(URL, { waitUntil: 'load' });
+    await page.waitForSelector('[data-testid="tooltip-motion-fixtures"]');
+
+    const chip = page.locator('[data-testid="tt-prop"]');
+    const trigger = page.getByRole('button', { name: 'Overridden trigger' });
+    const isShown = () => chip.evaluate((el) => el.matches(':popover-open'));
+    const opacity = () => chip.evaluate((el) => parseFloat(getComputedStyle(el).opacity));
+    const display = () => chip.evaluate((el) => getComputedStyle(el).display);
+
+    // Hydration-robust open: hovering an inert SSR span does nothing, so
+    // re-hover until the show path (showDelay 200ms) actually fires.
+    await expect
+      .poll(
+        async () => {
+          await page.mouse.move(4, 4);
+          await trigger.hover();
+          await page.waitForTimeout(300);
+          return isShown();
+        },
+        { timeout: 15_000 }
+      )
+      .toBe(true);
+
+    // Enter: sampled within the 600ms window the fade must be mid-flight —
+    // without @starting-style it would already read 1.
+    expect(await opacity()).toBeLessThan(1);
+    await expect.poll(opacity).toBe(1);
+
+    // Exit: after unhover (hideDelay 100ms) the discrete transition keeps the
+    // chip painted while opacity ramps down…
+    await page.mouse.move(4, 4);
+    await expect
+      .poll(async () => (await display()) === 'block' && (await opacity()) < 1, {
+        timeout: 5_000
+      })
+      .toBe(true);
+    // …and only after the fade does the UA display:none land.
+    await expect.poll(display, { timeout: 5_000 }).toBe('none');
+  });
 });

@@ -15,14 +15,20 @@ describe('tooltipVariants', () => {
     // retune it inline) and carry the `motion-reduce` guard, since an inline
     // duration bypasses the token that reduced motion collapses to 1ms.
     const base = tooltipVariants().base();
-    expect(base).toContain('transition-opacity');
+    // display/overlay + transition-discrete keep the exit painted through
+    // hidePopover(); without them the top-layer fade never runs (2026-07-14).
+    expect(base).toContain('transition-[opacity,display,overlay]');
+    expect(base).toContain('transition-discrete');
     expect(base).toContain('duration-[var(--blocks-tooltip-duration)]');
     expect(base).toContain('ease-[var(--blocks-tooltip-easing)]');
     expect(base).toContain('motion-reduce:duration-[1ms]');
   });
 
-  it('drives visibility through the opacity axis', () => {
-    expect(tooltipVariants({ open: true }).base()).toContain('opacity-100');
+  it('drives visibility through the opacity axis (with the @starting-style enter state)', () => {
+    const openBase = tooltipVariants({ open: true }).base();
+    expect(openBase).toContain('opacity-100');
+    // The @starting-style before-state showPopover() needs for the enter fade.
+    expect(openBase).toContain('starting:opacity-0');
     expect(tooltipVariants({ open: false }).base()).toContain('opacity-0');
   });
 

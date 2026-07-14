@@ -27,7 +27,16 @@ export const tooltipVariants = tv({
       // guards the inline-override path (an inline duration bypasses the token that
       // reduced-motion collapses to 1ms). The default easing token resolves to
       // Tailwind's implicit transition curve, so the resting fade is unchanged.
-      'transition-opacity duration-[var(--blocks-tooltip-duration)] ease-[var(--blocks-tooltip-easing)]',
+      //
+      // display/overlay + `transition-discrete` and the `starting:` before-state
+      // are what make the fade actually PLAY in top-layer mode (same mechanism
+      // as popoverMotion): without them, showPopover() reveals the chip with no
+      // before-state (enter pops to opacity 1) and hidePopover() yanks it to
+      // display:none in the same recalc (exit never paints). Verified 2026-07-14
+      // — the original transition-opacity fade only ever ran in the rare
+      // in-dialog fallback, where visibility is purely opacity-driven.
+      'transition-[opacity,display,overlay] transition-discrete',
+      'duration-[var(--blocks-tooltip-duration)] ease-[var(--blocks-tooltip-easing)]',
       'motion-reduce:duration-[1ms]',
       'bg-surface-inverted text-text-inverted'
     ],
@@ -35,7 +44,9 @@ export const tooltipVariants = tv({
   },
   variants: {
     open: {
-      true: { base: 'opacity-100' },
+      // `starting:` supplies the @starting-style before-state for the frame
+      // showPopover() first renders the chip — the enter half of the fade.
+      true: { base: 'opacity-100 starting:opacity-0' },
       false: { base: 'opacity-0' }
     },
     intent: {
