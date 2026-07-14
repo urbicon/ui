@@ -142,8 +142,15 @@
   style="position: relative; overflow: hidden;"
   onmouseleave={() => ctx.setHoveredDate(null)}
   {@attach swipeable({
-    onSwipeLeft: () => ctx.navigate(1),
-    onSwipeRight: () => ctx.navigate(-1),
+    // Direction-gated like the header arrows: a swipe at the bound should be
+    // inert (no navDirection flip, no clamped no-op emit), matching the
+    // disabled arrow button for the same direction.
+    onSwipeLeft: () => {
+      if (ctx.canGoForward) ctx.navigate(1);
+    },
+    onSwipeRight: () => {
+      if (ctx.canGoBack) ctx.navigate(-1);
+    },
     enabled: swipeEnabled && !ctx.disabled
   })}
 >

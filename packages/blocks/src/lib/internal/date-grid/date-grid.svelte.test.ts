@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import { handleDateGridKeydown } from './date-grid.keyboard';
 import { DateGridController, type DateGridOptions } from './date-grid.svelte';
 import type { DateGridRange, DateGridSelection, DateGridView } from './date-grid.types';
@@ -362,6 +362,137 @@ describe('DateGridController — navigation', () => {
     h.controller.goToToday();
     expect(h.navigations).toHaveLength(1);
     expect(h.controller.isToday(h.controller.focusedDate)).toBe(true);
+  });
+});
+
+// Range navigation slides the explicit [rangeStart, rangeEnd] window. The clamp
+// is span-preserving: the whole window stays inside [minDate, maxDate] and the
+// span never collapses — the latest allowed start is maxDate − (span − 1), the
+// earliest is minDate. Swipes call navigate() without the header arrows' canGo*
+// gate, so the engine itself must hold the bound.
+describe('DateGridController — range window bounds', () => {
+  const rangeHarness = (init: Partial<HarnessInit> = {}) =>
+    new Harness({
+      view: 'range',
+      referenceDate: new Date(2026, 5, 8),
+      rangeStart: new Date(2026, 5, 8), // Mon Jun 8
+      rangeEnd: new Date(2026, 5, 14), // Sun Jun 14 → 7-day span
+      ...init
+    });
+
+  it('clamps a forward shift span-preserving at maxDate (partial shift)', () => {
+    const h = rangeHarness({ maxDate: new Date(2026, 5, 18) });
+    h.controller.navigate(1); // ideal Jun 15–21 → latest start = Jun 18 − 6 = Jun 12
+    expect(h.navigations).toHaveLength(1);
+    const { date, range } = h.navigations[0];
+    expect(iso(range.start)).toBe('2026-6-12');
+    expect(iso(range.end)).toBe('2026-6-18'); // exactly at maxDate, span still 7
+    expect(iso(date)).toBe('2026-6-12');
+    expect(h.controller.navDirection).toBe('forward');
+  });
+
+  it('clamps a backward shift span-preserving at minDate (partial shift)', () => {
+    const h = rangeHarness({ minDate: new Date(2026, 5, 5) });
+    h.controller.navigate(-1); // ideal Jun 1–7 → earliest start = Jun 5
+    const { range } = h.navigations[0];
+    expect(iso(range.start)).toBe('2026-6-5');
+    expect(iso(range.end)).toBe('2026-6-11');
+    expect(h.controller.navDirection).toBe('backward');
+  });
+
+  it('clamps a multi-step delta to the boundary window', () => {
+    const h = rangeHarness({ maxDate: new Date(2026, 5, 30) });
+    h.controller.navigate(5); // ideal start Jul 13 → latest start = Jun 30 − 6 = Jun 24
+    const { range } = h.navigations[0];
+    expect(iso(range.start)).toBe('2026-6-24');
+    expect(iso(range.end)).toBe('2026-6-30');
+  });
+
+  it('emits nothing when the window already sits at the bound (swipe gate)', () => {
+    const h = rangeHarness({
+      rangeStart: new Date(2026, 5, 12),
+      rangeEnd: new Date(2026, 5, 18),
+      maxDate: new Date(2026, 5, 18)
+    });
+    h.controller.navigate(1); // no room forward at all
+    expect(h.navigations).toHaveLength(0);
+    expect(h.controller.navDirection).toBe(null); // no transition flip either
+  });
+
+  it('emits nothing backward when the window starts at minDate', () => {
+    const h = rangeHarness({
+      rangeStart: new Date(2026, 5, 5),
+      rangeEnd: new Date(2026, 5, 11),
+      minDate: new Date(2026, 5, 5)
+    });
+    h.controller.navigate(-1);
+    expect(h.navigations).toHaveLength(0);
+  });
+
+  it('shifts unclamped when no bounds are set', () => {
+    const h = rangeHarness();
+    h.controller.navigate(1);
+    const { range } = h.navigations[0];
+    expect(iso(range.start)).toBe('2026-6-15');
+    expect(iso(range.end)).toBe('2026-6-21');
+  });
+
+  it('gates canGoBack/canGoForward on the window edges, not the week padding', () => {
+    // Window Wed Jun 10 – Tue Jun 16; visible cells pad to Mon Jun 8 – Sun Jun 21.
+    // The padding spills past maxDate Jun 17, but the window itself can still
+    // shift forward by one day — canGoForward must stay true.
+    const h = rangeHarness({
+      rangeStart: new Date(2026, 5, 10),
+      rangeEnd: new Date(2026, 5, 16),
+      minDate: new Date(2026, 5, 10),
+      maxDate: new Date(2026, 5, 17)
+    });
+    expect(h.controller.canGoForward).toBe(true);
+    expect(h.controller.canGoBack).toBe(false); // start already at minDate
+    h.controller.navigate(1); // ideal Jun 17 → latest start = Jun 17 − 6 = Jun 11
+    const { range } = h.navigations[0];
+    expect(iso(range.start)).toBe('2026-6-11');
+    expect(iso(range.end)).toBe('2026-6-17');
+    // Materialise the shifted window (as Planner's handleNavigate does) — the
+    // window now touches both bounds, so both gates close.
+    h.rangeStart = range.start;
+    h.rangeEnd = range.end;
+    expect(h.controller.canGoForward).toBe(false);
+    expect(h.controller.canGoBack).toBe(true); // Jun 11 > minDate Jun 10
+  });
+
+  it('reports both gates open without bounds', () => {
+    const h = rangeHarness();
+    expect(h.controller.canGoBack).toBe(true);
+    expect(h.controller.canGoForward).toBe(true);
+  });
+
+  it('pins a window longer than the navigable interval to minDate and warns (DEV)', () => {
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+    try {
+      const h = rangeHarness({
+        rangeStart: new Date(2026, 5, 1),
+        rangeEnd: new Date(2026, 5, 10), // 10-day span
+        minDate: new Date(2026, 5, 10),
+        maxDate: new Date(2026, 5, 14) // 5-day interval < span
+      });
+      h.controller.navigate(1);
+      expect(h.navigations).toHaveLength(1);
+      const { range } = h.navigations[0];
+      expect(iso(range.start)).toBe('2026-6-10'); // pinned to minDate
+      expect(iso(range.end)).toBe('2026-6-19'); // span preserved; tail spills past maxDate
+      expect(warn).toHaveBeenCalledWith(expect.stringContaining('cannot fit'));
+      // Once pinned, further navigation is inert in both directions.
+      h.rangeStart = range.start;
+      h.rangeEnd = range.end;
+      h.controller.navigate(1);
+      h.controller.navigate(-1);
+      expect(h.navigations).toHaveLength(1);
+      expect(h.controller.canGoBack).toBe(false);
+      expect(h.controller.canGoForward).toBe(false);
+    } finally {
+      warn.mockRestore();
+    }
   });
 });
 

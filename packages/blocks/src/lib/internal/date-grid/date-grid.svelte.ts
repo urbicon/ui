@@ -205,7 +205,18 @@ export class DateGridController {
       );
       return { canGoBack, canGoForward };
     }
-    // week/day/range: day-granular bounds against the visible edges.
+    if (view === 'range') {
+      // Range navigation slides the *explicit* window (partial shifts allowed —
+      // see the span-preserving clamp in navigate()), so gate on the window
+      // edges, not the week-padded visible cells: the padding may spill past a
+      // bound while the window itself can still move.
+      const { start, end } = this.#orderedRange(referenceDate);
+      return {
+        canGoBack: !minDate || start.getTime() > stripTime(minDate).getTime(),
+        canGoForward: !maxDate || end.getTime() < stripTime(maxDate).getTime()
+      };
+    }
+    // week/day: day-granular bounds against the visible edges.
     const canGoBack = !minDate || stripTime(this.rangeStart) > stripTime(minDate);
     const canGoForward = !maxDate || stripTime(this.rangeEnd) < stripTime(maxDate);
     return { canGoBack, canGoForward };
@@ -327,25 +338,38 @@ export class DateGridController {
 
   // ─── Actions ─────────────────────────────────────────────────────────────
 
-  /** Step the view by `delta` units (months / weeks / days; range shifts by its
-   * own span in weeks). Emits the next reference date and visible range. */
+  /** Step the view by `delta` units (months / weeks / days; range slides its
+   * window by its own span in days). Every path clamps to [minDate, maxDate];
+   * the range window clamps span-preserving. Emits the next reference date and
+   * range (visible cell range, or the shifted window for `range`). */
   navigate(delta: number): void {
     if (delta === 0) return;
     const { view, referenceDate, minDate, maxDate } = this.#opts;
-    this.navDirection = delta > 0 ? 'forward' : 'backward';
 
     if (view === 'range') {
       // The range geometry follows the explicit rangeStart/rangeEnd inputs, not
       // referenceDate, so navigation shifts that window by its own span and emits
-      // the shifted range — the wrapper rebinds rangeStart/rangeEnd from it.
+      // the shifted range — the wrapper rebinds rangeStart/rangeEnd from it. It
+      // deliberately bypasses #emitNavigate: that would emit the week-padded
+      // *visible* range, and a wrapper rebinding rangeStart/rangeEnd from it
+      // would silently grow a mid-week window to full weeks on every step.
+      // The shift is clamped span-preserving (see #clampWindowStart), so a swipe
+      // — not gated by canGoBack/canGoForward the way the header arrows are —
+      // cannot push the window past [minDate, maxDate]. A shift that cannot move
+      // at all (already at the bound) emits nothing: unlike week/day, a no-op
+      // emit here would rebind rangeStart/rangeEnd to fresh Date objects and
+      // fire the consumer's onNavigate with an unchanged window.
       const { start, end } = this.#orderedRange(referenceDate);
       const spanDays = daysBetween(start, end) + 1;
-      const shiftedStart = addDays(start, delta * spanDays);
-      const shiftedEnd = addDays(end, delta * spanDays);
+      const shiftedStart = this.#clampWindowStart(addDays(start, delta * spanDays), spanDays);
+      if (shiftedStart.getTime() === start.getTime()) return;
+      this.navDirection = shiftedStart.getTime() > start.getTime() ? 'forward' : 'backward';
+      const shiftedEnd = addDays(shiftedStart, spanDays - 1);
       this.#opts.onNavigate?.(shiftedStart, { start: shiftedStart, end: shiftedEnd });
       return;
     }
 
+    this.navDirection = delta > 0 ? 'forward' : 'backward';
     let next: Date;
     switch (view) {
       case 'month': {
@@ -471,6 +495,38 @@ export class DateGridController {
     const rs = stripTime(this.#opts.rangeStart ?? reference);
     const re = stripTime(this.#opts.rangeEnd ?? reference);
     return rs.getTime() <= re.getTime() ? { start: rs, end: re } : { start: re, end: rs };
+  }
+
+  /** Span-preserving sliding-window clamp for range navigation. A window of
+   * `spanDays` days starting at `idealStart` must lie inside [minDate, maxDate]
+   * as a whole: the earliest allowed start is minDate, the latest is
+   * `maxDate − (spanDays − 1)` (inclusive bounds — the window's last day is
+   * `start + spanDays − 1` and must not pass maxDate). Clamping only the start
+   * against maxDate would collapse the span; this keeps it exact, allowing
+   * partial shifts up to the bound. Degenerate case — the span is longer than
+   * the navigable interval, so no start satisfies both bounds — pins the window
+   * to minDate (its tail spills past maxDate; matches clampDate's minDate-wins
+   * ordering) and warns in DEV instead of crashing, mirroring the inverted-
+   * bounds warning in the constructor. */
+  #clampWindowStart(idealStart: Date, spanDays: number): Date {
+    const { minDate, maxDate } = this.#opts;
+    const earliest = minDate ? stripTime(minDate) : undefined;
+    const latest = maxDate ? addDays(stripTime(maxDate), -(spanDays - 1)) : undefined;
+    if (earliest && latest && earliest.getTime() > latest.getTime()) {
+      if (import.meta.env?.DEV) {
+        console.warn(
+          `[DateGrid] a ${spanDays}-day range window cannot fit between minDate ` +
+            `(${minDate?.toLocaleDateString()}) and maxDate (${maxDate?.toLocaleDateString()}) ` +
+            `— pinning the window to minDate; its tail spills past maxDate. ` +
+            `Widen the bounds or shorten the window.`
+        );
+      }
+      return earliest;
+    }
+    let next = idealStart;
+    if (latest && next.getTime() > latest.getTime()) next = latest;
+    if (earliest && next.getTime() < earliest.getTime()) next = earliest;
+    return next;
   }
 
   /** Pure cell geometry for an arbitrary reference date (no side effects). */
