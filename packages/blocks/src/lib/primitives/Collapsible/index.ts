@@ -35,11 +35,22 @@ import type { CollapsibleSlots, CollapsibleVariants } from './collapsible.varian
 export interface CollapsibleProps
   extends CollapsibleVariants,
     Omit<HTMLAttributes<HTMLDivElement>, 'children'> {
-  /** Whether the content is visible. Supports bind:open. */
+  /**
+   * Whether the content is visible. Supports bind:open. Trigger-driven transitions
+   * are applied optimistically: `open` is updated first, then `onOpenChange` reports
+   * the change. When passing `open` without `bind:`, mirror every `onOpenChange`
+   * back into your state — an ignored change leaves the component and your source
+   * of truth diverged. To conditionally reject transitions, drive `open` from your
+   * own state and toggle it from a custom `trigger` snippet instead of calling the
+   * provided `toggle`.
+   */
   open?: boolean;
   /** Initial open state for uncontrolled usage @default false */
   defaultOpen?: boolean;
-  /** Callback fired when open state changes */
+  /**
+   * Callback fired once per trigger-driven open transition, after the state is
+   * applied. Not fired for consumer writes via `bind:open`.
+   */
   onOpenChange?: (open: boolean) => void;
   /** Disable the trigger @default false */
   disabled?: boolean;

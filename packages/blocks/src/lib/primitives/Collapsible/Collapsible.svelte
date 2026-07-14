@@ -42,6 +42,16 @@
   let internalOpen = $state(defaultOpen ?? false);
   const isOpen = $derived(open !== undefined ? open : internalOpen);
 
+  // Single mutation point. Family contract (COMPONENT-API-CONVENTIONS.md
+  // §Open-state vocabulary): the transition is applied optimistically — `open`
+  // (or the uncontrolled seed) is written *before* `onOpenChange` fires, once
+  // per transition. With `bind:open` that write is the propagation. A consumer
+  // passing `open` without `bind:` must mirror every `onOpenChange` back into
+  // its state (Svelte can't distinguish `open={x}` from `bind:open={x}` at
+  // runtime, so a rejected transition is undetectable from in here). To veto
+  // transitions, own them instead: drive `open` from your source of truth and
+  // toggle it from a custom `trigger` snippet — see AccordionItem's
+  // collapsible=false handling.
   function toggle() {
     if (disabled) return;
     const next = !isOpen;

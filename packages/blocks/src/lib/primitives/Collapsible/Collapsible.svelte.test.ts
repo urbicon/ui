@@ -111,3 +111,72 @@ describe('Collapsible (component interaction)', () => {
     expect(onOpenChange).not.toHaveBeenCalled();
   });
 });
+
+// The open-state family contract (COMPONENT-API-CONVENTIONS.md §Open-state
+// vocabulary): transitions are applied optimistically — `open` is written
+// *before* `onOpenChange` fires. A `$state` proxy passed as mount props gives
+// the child's bindable write somewhere to land, i.e. the bind:open path;
+// a plain props object is the controlled-without-bind path. The proxy must be
+// handed to `mount` as-is — spreading it (renderCollapsible) would sever the
+// write-back.
+function mountCollapsible(props: CollapsibleProps) {
+  const instance = mount(Collapsible, { target: document.body, props });
+  dispose = () => unmount(instance);
+  flushSync();
+}
+
+describe('Collapsible (controlled contract)', () => {
+  it('bind:open — the optimistic write propagates; parent writes are not echoed', async () => {
+    const user = userEvent.setup();
+    const seen: Array<{ next: boolean; propAtCall: boolean }> = [];
+    const props = $state({
+      title: 'Details',
+      children: body(),
+      open: false,
+      onOpenChange: (next: boolean) => seen.push({ next, propAtCall: props.open })
+    });
+    mountCollapsible(props);
+
+    await user.click(trigger());
+    // The bindable write happened before the callback and reached the parent.
+    expect(seen).toEqual([{ next: true, propAtCall: true }]);
+    expect(props.open).toBe(true);
+    expect(expanded()).toBe('true');
+
+    // A consumer write via bind:open updates the view but never re-announces.
+    props.open = false;
+    flushSync();
+    expect(expanded()).toBe('false');
+    expect(seen).toHaveLength(1);
+  });
+
+  it('bind:open — a veto (writing the previous value back in onOpenChange) reverts', async () => {
+    const user = userEvent.setup();
+    const props = $state({
+      title: 'Details',
+      children: body(),
+      open: false,
+      onOpenChange: () => {
+        props.open = false; // reject every open attempt
+      }
+    });
+    mountCollapsible(props);
+
+    await user.click(trigger());
+    expect(props.open).toBe(false);
+    expect(expanded()).toBe('false');
+  });
+
+  it('controlled without bind — toggles optimistically; the consumer must mirror onOpenChange', async () => {
+    const user = userEvent.setup();
+    const onOpenChange = vi.fn();
+    // Plain (non-reactive) props object: the parent's source of truth stays
+    // `false` because nothing mirrors the callback — the component still shows
+    // the new state. Exactly the divergence the documented contract forbids.
+    renderCollapsible({ open: false, onOpenChange });
+
+    await user.click(trigger());
+    expect(expanded()).toBe('true');
+    expect(onOpenChange).toHaveBeenCalledExactlyOnceWith(true);
+  });
+});
