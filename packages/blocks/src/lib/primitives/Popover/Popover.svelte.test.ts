@@ -271,6 +271,60 @@ describe('Popover (motion contract)', () => {
     expect(isOpen()).toBe(false);
   });
 
+  it('lags display:none in the in-place mode (usePortal=false) so the exit can paint', () => {
+    // Inline mode has no native popover attribute: visibility is the
+    // style:display directive driven by floatingPanelHidden. It must follow
+    // the lagged flag, not raw `open`, or in-place panels hide instantly and
+    // never show their exit fade.
+    vi.useFakeTimers();
+    try {
+      renderPopover({ usePortal: false, style: 'transition-duration: 0.2s' });
+
+      expect(panel().style.display).toBe('none');
+
+      fireEvent.click(trigger());
+      flushSync();
+      expect(panel().style.display).not.toBe('none');
+
+      fireEvent.click(trigger());
+      flushSync();
+      expect(panel().getAttribute('data-state')).toBe('closed');
+      // Still painting the exit: display stays un-hidden until the lag ends.
+      expect(panel().style.display).not.toBe('none');
+
+      vi.advanceTimersByTime(300);
+      flushSync();
+      expect(panel().style.display).toBe('none');
+      expect(isOpen()).toBe(false);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it('unmounting during the exit lag clears the pending timer', () => {
+    vi.useFakeTimers();
+    try {
+      renderPopover({ style: 'transition-duration: 0.2s' });
+
+      fireEvent.click(trigger());
+      flushSync();
+      fireEvent.click(trigger());
+      flushSync();
+
+      // Unmount mid-fade — the effect teardown must clear the timer so it
+      // can't fire into a destroyed component.
+      dispose?.();
+      dispose = undefined;
+
+      expect(() => {
+        vi.advanceTimersByTime(500);
+        flushSync();
+      }).not.toThrow();
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
   it('a re-open during the exit lag cancels the pending teardown', () => {
     vi.useFakeTimers();
     try {
