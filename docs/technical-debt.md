@@ -7,6 +7,25 @@ internal TODO instead. Sections are ordered roughly by urgency.
 
 ## Packaging / distribution
 
+### `shiki` is a devDependency of the published `@urbicon-ui/docs` but is imported at runtime
+
+- **Where:** `packages/docs/package.json` (`devDependencies: {"shiki": "catalog:"}`;
+  `peerDependencies` lists only `@sveltejs/kit`, `svelte`, and the `@urbicon-ui/*`
+  siblings); imported at `packages/docs/src/lib/utils/highlighter.ts:1` and
+  re-exported from the public entry at `packages/docs/src/lib/index.ts:9`.
+- **What:** `svelte-package` does not bundle — `import { createHighlighter } from
+  'shiki'` survives verbatim into `dist/`. A consumer installing
+  `@urbicon-ui/docs` gets an unresolvable import the moment they touch
+  `CodePanel` / `CodeExample` / `highlighterService`. Masked in-repo: `apps/docs`
+  resolves shiki through the workspace root, so nothing here ever fails.
+- **Why deferred:** The fix is a design call, not a one-liner: `peerDependency`
+  (pushes the install onto the consumer, correct for a docs-tooling package) vs.
+  a real `dependency` (which would be this repo's first published runtime
+  dependency and collide with the zero-dep maxim). Also unverified whether
+  `@urbicon-ui/docs` has any external consumer yet. Belongs with the same
+  packaging-hygiene pass as the entries below.
+- **Found:** 2026-07-14, SSR-gap investigation (publish-m3-finale).
+
 ### mcp-server npm tarball ships raw src (incl. tests) with no consumer
 
 - **Where:** `packages/mcp-server/package.json` (no `files` field, no
@@ -114,6 +133,131 @@ internal TODO instead. Sections are ordered roughly by urgency.
 - **Found:** 2026-07-10, systematic primitives API analysis.
 
 ## Component behaviour
+
+### Three surfaces ingest their content in `$effect`, so the prerendered HTML carries placeholders — 91 API pages assert "No matching properties"
+
+- **Where:** `packages/table/src/lib/core/TableProvider.svelte:87-97` (`setColumns`)
+  + `:109-114` (`setItems`); `packages/docs/src/lib/components/CodePanel/CodePanel.svelte:58-75`;
+  `packages/docs/src/lib/components/PlaygroundConfigurator/PlaygroundConfigurator.svelte:112-124`.
+  Surfaces via `ApiReference.svelte:159-166` (81 pages) and
+  `TypesReference.svelte:97-98` (10 pages).
+- **What:** `$effect` is client-only, so during SSR `state.items` stays `[]` →
+  `TableDesktop.svelte:450-455` renders `<EmptyState message={noDataText}>`.
+  Because `ApiReference.svelte:166` sets `noDataText="No matching properties"`,
+  **every prerendered API page affirmatively asserts that the component has no
+  props.** Measured on the real `dist/blocks/primitives/checkbox.html`: 2 `<tr>`
+  (TableHead 1 + EmptyState 1), 0 `<pre>`, and the `indeterminate` description
+  absent. The 31× "Loading" on that page is **CodePanel's**, not the Table's —
+  `Table.svelte:187` hardcodes `loading={false}`, so the Table's loading path is
+  unreachable (see the dead-code entry below). Hydrated pages are correct; only
+  the artifact on disk is thin.
+- **Why deferred:** Decided (Felix, 2026-07-14) after an investigation:
+  `$derived` ingestion is architecturally impossible — `state.items` has three
+  writers (`TableStore.svelte.ts:192`, `useLiveUpdates.svelte.ts:103/113/136`,
+  `useRemoteData.svelte.ts:42`); it is a mutable buffer the prop seeds and
+  live-updates then own. The synchronous-init fix is not 4 lines: ~14 of
+  TableProvider's 20 effects are prop→store syncs that would each need a
+  mirrored init call (seeding only items+columns makes SSR render 10 rows vs the
+  client's 999 — `TableStore.svelte.ts:126` vs `ApiReference.svelte:162`),
+  creating 14 permanent drift points. **Today's bug is accidentally
+  hydration-*safe*:** `usePersistence` reads localStorage synchronously at
+  construction (`usePersistence.svelte.ts:38-80`), so seeding items would make
+  SSR (unfiltered) disagree with the client (persisted filters/sort) for every
+  `persistenceConfig` + SSR consumer. And `@urbicon-ui/table` has **zero
+  component-render tests** (14 files, 254 tests, all node-env store/util/variant)
+  — a fix would land with no coverage on the axis it changes. Needs SSR test
+  infra first, as one deliberate piece of work.
+- **CodePanel is the cheaper, separable half:** `codeToHtml` is *already*
+  synchronous (only `createHighlighter` is async), and `createHighlighterCoreSync`
+  + `createJavaScriptRegexEngine` exist in the installed shiki
+  (`node_modules/shiki/dist/core.d.mts:100`, `index.d.mts:6`), so
+  `highlightedCode` could become `$derived` in ~80 LoC with no API change. Gated
+  on two unmeasured costs: sync needs statically-imported grammars (moving 9
+  lazy-loaded langs into the eager client bundle — and the client highlighter
+  cannot be dropped, since `PlaygroundConfigurator.svelte:160-162` generates code
+  reactively), and the JS regex engine is documented as less accurate than
+  oniguruma, shifting highlighting across 186 usages with no VR coverage of code
+  panels.
+- **Counter-argument, recorded deliberately:** the project's positioning is
+  AI-native DX, and non-rendering crawlers (ClaudeBot/GPTBot/Bing) are the target
+  audience — they currently ingest "No matching properties" as the authoritative
+  API on 81 pages. The verdict rests on the Option B judgement that the `urbicon`
+  CLI is the primary consumer surface and the docs site secondary; if that
+  judgement is wrong, so is the deferral. **Cheap middle path if it ever bites:**
+  the falsehood is one prop — an honest `noDataText` for the pre-hydration state
+  costs nothing and touches no store.
+- **Found:** 2026-07-14, building the docs search index (publish-m3-finale). The
+  search indexer routes around this entirely by importing `api.ts` directly
+  rather than parsing HTML — which is why a Pagefind-style approach would have
+  silently shipped an index with zero props. PUBLISH-READINESS A.1's "126
+  prerendered pages **mit vollem Inhalt**" is corrected there.
+
+### `meta-marker` is used bare in two places, so those kickers render unstyled in the library docs skin
+
+- **Where:** `apps/docs/src/lib/SidebarNavigation.svelte:103`
+  (`class="meta-marker"` on every sidebar group label) and
+  `packages/docs/src/lib/components/CodePanel/codepanel.variants.ts:13`
+  (`languageTag: ['meta-marker']`).
+- **What:** `meta-marker` is defined **only** under `.docs-rooms`
+  (`rooms-docs.css:342`), and `apps/docs/src/app.html:29` **removes** that class
+  from `<html>` when `urbicon-docs-theme === 'library'`. No unscoped
+  `.meta-marker` rule exists anywhere in the repo. So in the library skin every
+  sidebar group kicker (Form / Actions / Overlay / …) and every CodePanel
+  language tag render as unstyled inline text — no mono, no uppercase, no
+  tracking, no muted colour. The repo already documents the correct pattern at
+  `tableofcontents.variants.ts:9-12`: pair base utilities (the fallback) **with**
+  `meta-marker` (which wins where the scope applies, because `rooms-docs.css` is
+  unlayered and Tailwind utilities sit in `@layer utilities`). PrevNextNav's new
+  kicker (2026-07-14) uses the paired form; these two do not.
+- **Why deferred:** Two files in two packages, each owned by a different session
+  on the day. Mechanical once picked up — adopt the TOC pairing — but worth
+  eyeballing both skins rather than swapping blind.
+- **Found:** 2026-07-14, adding the prev/next section kicker (publish-m3-finale),
+  where the same trap was caught before shipping.
+
+### PrevNextNav reaches only 79 of 136 pages — Table's 13-page learning path has no prev/next, and four links are one-way doors
+
+- **Where:** `apps/docs/src/lib/PrevNextNav.svelte` imported **per-page** rather
+  than from a layout; `packages/docs-gen/src/cli/CLI.ts:255,335` emits it into
+  the `docs:scaffold` template.
+- **What:** 136 pages sit in the nav chain and 22 group boundaries exist, but
+  only 79 pages render the component, so **11 of the 22 boundaries are
+  reachable**. Missing entirely: all 13 Table feature pages, all 19 Recipes, all
+  7 Customization, all 8 Doc-Components, and 11 of the 13 top-level landings.
+  The inconsistency is sharpest between siblings of identical shape: Table's 13
+  feature pages are the most sequential reading chain in the docs and have no
+  prev/next, while i18n's 7 — same shape, same narrative ordering — do. Plus
+  **four one-way doors**, where the nav points at a page that renders no nav
+  back: `checkbox` → prev → `/blocks`; `tooltip` → next → `/table/table`;
+  `/auth` → prev → `/table/accessibility`; `/i18n/auditing` → next → `/icons`.
+- **Why deferred:** The fix is to hoist PrevNextNav into a layout, which
+  collides with docs-gen's scaffold template (another package emits the per-page
+  tag) — a cross-package decision. `docs/DocsPageGuide.md:83,154` also scopes
+  PrevNextNav to *component* doc pages, so the Recipes/Doc-Components omission is
+  arguably intentional and Table's is arguably not; that call has to be made
+  before the mechanics.
+- **Found:** 2026-07-14, adding the prev/next section kicker (publish-m3-finale).
+  The kicker fix is orthogonal and shipped; this is the larger finding underneath
+  it.
+
+### PlaygroundConfigurator: two hardcoded English strings, and `slotClasses.helpToggle` is dead
+
+- **Where:** `packages/docs/src/lib/components/PlaygroundConfigurator/PlaygroundConfigurator.svelte`
+  — `:292` (`Reset all ({modifiedCount})`), `:305`
+  (`{helpVisible ? 'Hints on' : 'Hints'}`), and `:290`/`:303` calling
+  `styles.helpToggle()` directly instead of `slot('helpToggle')`.
+- **What:** Two defects in one place. (a) Every other string in this file goes
+  through `dt()`, so the German docs locale silently shows English for both
+  labels — and `bun run i18n:check` reports **0** hardcoded findings here, i.e.
+  its scanner does not cover this file. (b) `slotClasses.helpToggle` is declared
+  in the public override union (`index.ts:124`) but never applied, and `unstyled`
+  does not strip those buttons, because the call sites bypass `slot()`.
+- **Why deferred:** (b) changes public override behaviour for a declared-but-inert
+  key, so it wants the same deliberate call as the `actionsBar` slot that was
+  just woken (2026-07-14) — and fixing one of three toggle buttons would be worse
+  than the uniform status quo. (a) rides along with it. The new share button
+  deliberately uses `dt()` and does **not** follow the precedent.
+- **Found:** 2026-07-14, adding playground share-links (publish-m3-finale).
 
 ### ButtonGroup roving couples `buttonOrder` to a positional DOM query — duplicate values and dynamic add/remove desync it
 
@@ -627,6 +771,30 @@ internal TODO instead. Sections are ordered roughly by urgency.
 
 ## Docs coverage
 
+### The docs search index is English-only, capped at 2000 chars per record, and indexes playground control names
+
+- **Where:** `apps/docs/scripts/harvest.ts` (`MAX_BODY` ~`:26`, the
+  `#playground` section records) + the single prerendered build.
+- **What:** Three bounded limits of the search shipped 2026-07-14, each a
+  judgement call rather than a bug. (a) **English-only:** the site's chrome is
+  EN/DE but content is hardcoded English and there is one prerendered build with
+  no per-locale routing, so a German reader searching German prose gets nothing
+  from content search (nav titles still match). (b) **`MAX_BODY` = 2000 chars:**
+  45 of 650 records hit the cap (`/changelog`, `/ai`, `/recipes`, `/privacy`,
+  `/customization/theme-builder`, `/table/column-config`); content past it is
+  unsearchable. (c) **`#playground` records** contribute ~30 KB whose text is
+  control labels and variant names ("Variant V Style variant outlined filled
+  ghost"), near-duplicating the API record on the same page — excluding them
+  would cut ~6 % of the index for almost no recall loss.
+- **Why deferred:** (a) is a site-architecture decision (per-locale prerendering)
+  far beyond search, and it is downstream of the open O1 call on bilingual
+  chrome vs English content. (b) wants chunking those pages, i.e. a content
+  decision, not a bigger constant. (c) needs a judgement on whether playground
+  control names should be findable at all. All three are logged rather than
+  silently accepted — the index reports its real size (650 records, 534 KB raw /
+  146 KB gzipped, lazily fetched) rather than hiding it.
+- **Found:** 2026-07-14, building the docs search index (publish-m3-finale).
+
 ### Combobox async search (`queryFn`) has no docs-site demo
 
 - **Where:** `apps/docs/src/routes/blocks/primitives/combobox/Docs.svelte` — no
@@ -672,6 +840,24 @@ internal TODO instead. Sections are ordered roughly by urgency.
 - **Found:** 2026-07-05, runtime-constraint documentation work.
 
 ## Dead code / decorative config
+
+### `Table.svelte` hardcodes `loading={false}` — the whole loading-state path is dead for client-mode consumers
+
+- **Where:** `packages/table/src/lib/core/table/Table.svelte:187`
+  (`loading={false}` passed to `<TableProvider>`).
+- **What:** `TableProvider` accepts a `loading?: boolean`
+  (`TableProvider.svelte:21`) and syncs it via `$effect` at `:199-201`, but the
+  public `<Table>` never forwards a boolean — it hardcodes `false`.
+  (`Table.svelte:66`'s `loading` prop is the *snippet*, a different thing.) So
+  `tableState.loading` can only become true through server mode
+  (`setServerLoading`, `useRemoteData.svelte.ts:59`), and for every client-mode
+  table `loadingText` (`Table.svelte:57`), `LoadingState.svelte` and the `{#if
+  tableState.loading}` branches at `TableDesktop.svelte:403-407` are unreachable.
+- **Why deferred:** Needs an API call — should `<Table>` expose a `loading`
+  boolean at all, or should the dead path be removed? Found while tracing where
+  the prerendered "Loading" strings came from (they were CodePanel's, *precisely
+  because* this path is dead).
+- **Found:** 2026-07-14, SSR-gap investigation (publish-m3-finale).
 
 ### docs-theme.css ships four intent families nothing consumes — and `--docs-surface-*` resolves to invalid
 
@@ -781,6 +967,49 @@ internal TODO instead. Sections are ordered roughly by urgency.
   (docs-gen cleanup agent).
 
 ## Testing / CI gates
+
+### Nothing checks that a Tailwind class in a tv() config resolves to real CSS — a dead `text-2xs` lived in Calendar undetected
+
+- **Where:** `packages/blocks/scripts/variants-lint.ts` (the `variants:lint`
+  gate) — and the gap it leaves.
+- **What:** Seven Calendar slots referenced `text-2xs` while `--text-2xs` was
+  never defined anywhere, so Tailwind emitted **zero CSS** for the class and the
+  tv() engine read it as a *colour* (it did not match the text-size bucket
+  regex). Net effect: `Calendar size="sm"` rendered `multiDayBar` at its base
+  `text-xs` — identical to `size="md"` — and six sibling slots inherited with no
+  size at all. Nothing caught it: `variants:lint` validates tv() **config shape**
+  (dead/shadowed variant keys), not whether a class resolves to real CSS;
+  svelte-check and vitest never see CSS. Fixed as a side effect on 2026-07-14
+  (`--text-2xs`/`--text-3xs` + the bucket-regex widening), but **the bug class
+  has no guard**.
+- **Why deferred:** It is a new lint capability, not a fix: cross-reference every
+  scale-suffixed class in tv() configs (`text-<scale>`, `rounded-<scale>`, …)
+  against the keys defined in `foundation.css` + Tailwind's `theme.css`. ~20
+  lines, generalises to the whole token namespace, and belongs with whoever owns
+  `variants-lint.ts` rather than riding along with a token addition.
+- **Found:** 2026-07-14, tokenising the sub-xs type floor (publish-m3-finale).
+
+### `apps/docs` has no translation-parity gate — a key missing from `de.ts` is invisible to types and tests
+
+- **Where:** `apps/docs/src/lib/i18n/index.ts`
+  (`AppTranslationKey = DeepKeys<typeof enTranslations>`) +
+  `apps/docs/src/lib/translations/de.ts`; root `package.json:100` (`i18n:check`).
+- **What:** `en.ts` is the type source of truth, but `de.ts` is an unconstrained
+  object — a key present in `en.ts` and missing from `de.ts` fails neither
+  `check` nor any test. The root `i18n:check` audits only `packages/blocks/src` +
+  `packages/table/src`, never `apps/docs`. Compounding it, `NavItem.nameKey` is
+  typed `string` and **cast** at `navigation.ts:42`
+  (`t(item.nameKey as Parameters<typeof t>[0])`), so a typo'd key is invisible
+  too. **This is exactly why the three Auth nav groups (Pages / Management /
+  Notifications) sat un-localized and rendered English in the German sidebar**
+  until 2026-07-14. `packages/docs` has the gate (`translations.parity.test.ts`);
+  the app does not.
+- **Why deferred:** Extending `i18n:check` to `apps/docs` (or mirroring the
+  parity test) is small, but it wants a decision on which surface owns the gate,
+  and it will likely surface further gaps on arrival — the same "gate is red on
+  arrival" problem the declaration-emit guard had. Not a drive-by.
+- **Found:** 2026-07-14, localizing the prev/next section kicker
+  (publish-m3-finale).
 
 ### docs-gen: `failFast` is coupled to parallelism being off — enabling it silently downgrades errors to exit 0
 
@@ -1032,6 +1261,34 @@ internal TODO instead. Sections are ordered roughly by urgency.
   7" task — resolved to an empirical worktree spike + this deferral.
 
 ## Design tokens
+
+### 56 sub-xs hardcodes remain outside `blocks` — and two of them are prose below every legibility floor
+
+- **Where:** `packages/table/src/lib/variants/table.system.ts:190`
+  (`xs: '… text-[10px]'`); `packages/docs/src` ×11 (`apireference.variants.ts:13`,
+  `codepanel.variants.ts:38,39`, `types-reference.variants.ts:36,47` +
+  `TypesReference.svelte:127`, `playground-configurator.variants.ts:82,101,110,120`
+  + `PlaygroundConfigurator.svelte:323`) plus 3 co-located tests asserting the
+  literal `text-[10px]`/`text-[11px]` strings; `apps/docs/src` ×44 across ~14
+  route files (heaviest: `routes/blocks/+page.svelte` ×12, `routes/+page.svelte`
+  ×7, `routes/recipes/RecipePreview.svelte` ×6).
+- **What:** The 2026-07-14 sweep tokenised all 20 sub-xs sites **inside blocks**
+  onto `--text-2xs`/`--text-3xs`; these were out of that package's ownership. Both
+  `table` and `docs` import `tv` from `@urbicon-ui/blocks`, so the tokens are
+  already reachable and the swap is exact-pixel (`text-[11px]` → `text-2xs`,
+  `text-[10px]` → `text-3xs`) with zero behaviour risk. `table.system.ts` is the
+  only one on a **published package's runtime surface**.
+- **Separate a11y question in the same set:** `radioGroup.variants.ts:71` and
+  `stepper.variants.ts:72` render `description` — full sentences — at 10–11px,
+  below every practical legibility floor. These predate the sweep (they were
+  `text-[10px]`/`text-[11px]`); tokenising merely made them greppable for the
+  first time. The tokens page now states the rule (2xs/3xs are for marks, hints
+  and dense grids, never for body copy) — these two contradict it and want a
+  deliberate size decision, not a token swap.
+- **Why deferred:** The sweep is mechanical but crosses three packages that were
+  each owned by a different session on the day; the two `description` sites are a
+  design call with a VR pass, not a find/replace.
+- **Found:** 2026-07-14, tokenising the sub-xs type floor (publish-m3-finale).
 
 ### `themes/index.css` claims hue-only shifts preserve contrast — they don't
 
