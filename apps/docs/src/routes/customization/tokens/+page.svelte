@@ -73,7 +73,9 @@
   --color-neutral-50: oklch(0.98 0.005 290);
   --color-neutral-500: oklch(0.55 0.016 290);
   --color-neutral-900: oklch(0.15 0.012 290);
-  /* … all 16 stops (25–950) with the new hue */
+  /* … all 15 stops (25–950) with the new hue. Leave
+     --color-neutral-0 (pure white) alone — tinting it
+     tints your white. */
 }
 
 /* Raw partial values — :root, never @theme (see Motion & Depth). */
@@ -102,13 +104,17 @@
     { utility: 'p-12 / gap-12', value: '3rem', pixels: '48px' }
   ];
 
-  // `uses` counts occurrences in the blocks source (excluding tests) — an
-  // indicative snapshot, not a contract. It is here because it is the only
-  // honest answer to "which variable actually moves my UI?": the ramp is
-  // steep, and everything above text-xl is unused by the library.
+  // `uses` counts word-bounded occurrences of the utility across every .ts/.svelte
+  // under packages/blocks/src/lib, excluding tests — an indicative snapshot, not a
+  // contract. It is here because it is the only honest answer to "which variable
+  // actually moves my UI?": the ramp is steep, and everything above text-xl is
+  // unused by the library. A 0 renders as an em-dash, i.e. reads as "nothing uses
+  // this" — so a stale count here is a factual lie, not a rounding error. The exact
+  // method above is the one typography-uses.test.ts re-measures against; keep them
+  // in step.
   const typographyScale = [
-    { utility: 'text-3xs', variable: '--text-3xs', value: '0.625rem', pixels: '10px', uses: 0 },
-    { utility: 'text-2xs', variable: '--text-2xs', value: '0.6875rem', pixels: '11px', uses: 7 },
+    { utility: 'text-3xs', variable: '--text-3xs', value: '0.625rem', pixels: '10px', uses: 12 },
+    { utility: 'text-2xs', variable: '--text-2xs', value: '0.6875rem', pixels: '11px', uses: 17 },
     { utility: 'text-xs', variable: '--text-xs', value: '0.75rem', pixels: '12px', uses: 96 },
     { utility: 'text-sm', variable: '--text-sm', value: '0.875rem', pixels: '14px', uses: 128 },
     { utility: 'text-base', variable: '--text-base', value: '1rem', pixels: '16px', uses: 78 },
@@ -118,7 +124,7 @@
   ];
 
   const weightScale = [
-    { utility: 'font-normal', variable: '--font-weight-normal', value: '400', uses: 6 },
+    { utility: 'font-normal', variable: '--font-weight-normal', value: '400', uses: 4 },
     { utility: 'font-medium', variable: '--font-weight-medium', value: '500', uses: 51 },
     { utility: 'font-semibold', variable: '--font-weight-semibold', value: '600', uses: 43 },
     { utility: 'font-bold', variable: '--font-weight-bold', value: '700', uses: 12 }
@@ -670,11 +676,12 @@
 
     <h3 class="text-text-primary mt-10 mb-4 text-lg font-semibold">Theme-level chroma knobs</h3>
     <p class="text-text-secondary mb-6">
-      Two tokens let a theme match its chrome to its chassis without touching contrast. Every
-      shipped theme sets both — see
+      Two tokens let a theme match its chrome to its chassis without touching contrast. The four
+      coloured themes set both — see
       <code class="bg-surface-subtle rounded-modify px-1.5 py-0.5 text-sm"
         >blocks/src/lib/style/themes/forest.css</code
-      >.
+      >. The Neutral theme sets neither, by design: it inherits the library-default cool grey chrome
+      and leaves the shadow tint untouched.
     </p>
     <div class="border-border-subtle bg-surface-base overflow-hidden rounded-xl border">
       <div class="overflow-x-auto">

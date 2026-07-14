@@ -49,6 +49,25 @@ const cssAvailable = existsSync(semantic);
 const themesDir = resolve(semantic, '..', 'themes');
 const themesAvailable = existsSync(themesDir);
 
+const blocksLib = resolve(semantic, '..', '..');
+const blocksLibAvailable = existsSync(blocksLib);
+
+/** Every non-test .ts/.svelte under blocks/src/lib — the source the docs measure. */
+function blocksSourceFiles(dir = blocksLib): string[] {
+  const out: string[] = [];
+  for (const entry of readdirSync(dir, { withFileTypes: true })) {
+    const full = resolve(dir, entry.name);
+    if (entry.isDirectory()) {
+      out.push(...blocksSourceFiles(full));
+      continue;
+    }
+    if (!/\.(ts|svelte)$/.test(entry.name)) continue;
+    if (/\.(test|spec)\./.test(entry.name)) continue;
+    out.push(full);
+  }
+  return out;
+}
+
 /**
  * Token families the SHIPPED themes override, derived from the theme CSS itself.
  * A ramp stop (`--color-primary-500`) collapses to its family (`--color-primary-*`);
@@ -143,6 +162,81 @@ describe.skipIf(!themesAvailable)('theming guide covers what the shipped themes 
       missing,
       `Families a shipped theme overrides but THEMING never mentions: ${missing.join(', ')}`
     ).toEqual([]);
+  });
+});
+
+describe.skipIf(!blocksLibAvailable)('typography reach claims match the blocks source', () => {
+  /**
+   * The TYPOGRAPHY table tells agents which size token moves which components, so a
+   * wrong attribution steers generated overrides at the wrong end of the scale. It
+   * shipped `--text-2xs` as "dense Calendar chrome" while over half that token's call
+   * sites are outside Calendar — measured before the tokenisation sweep landed.
+   *
+   * Method mirrors /customization/tokens: word-bounded utility occurrences across
+   * every .ts/.svelte under blocks/src/lib, excluding tests.
+   */
+  const SUB_XS = ['--text-3xs', '--text-2xs'] as const;
+
+  /** Components using `utility`, by their directory name under primitives/ or components/. */
+  function componentsUsing(utility: string): Map<string, number> {
+    const pattern = new RegExp(`\\b${utility}\\b`, 'g');
+    const byComponent = new Map<string, number>();
+    for (const file of blocksSourceFiles()) {
+      const hits = readFileSync(file, 'utf-8').match(pattern)?.length ?? 0;
+      if (hits === 0) continue;
+      const owner = file.match(/\/(?:primitives|components)\/([^/]+)\//)?.[1];
+      if (!owner) continue; // engine/internal files carry no component name
+      byComponent.set(owner, (byComponent.get(owner) ?? 0) + hits);
+    }
+    return byComponent;
+  }
+
+  /** The "Reach in the library" cell for a variable's row. */
+  function reachCell(variable: string): string {
+    const row = CSS_REFERENCE_SECTIONS.typography
+      .split('\n')
+      .find((line) => line.startsWith(`| \`${variable}\``));
+    if (!row) throw new Error(`no TYPOGRAPHY row for ${variable}`);
+    return row.split('|').at(-2) ?? '';
+  }
+
+  for (const variable of SUB_XS) {
+    const utility = variable.replace('--', '');
+
+    it(`${variable}: every component it names really uses the token`, () => {
+      const users = componentsUsing(utility);
+      const cell = reachCell(variable);
+      const named = [...users.keys()].concat(['Dialog', 'Tooltip', 'Table']);
+      const misattributed = named.filter((c) => cell.includes(c) && !users.has(c));
+      expect(
+        misattributed,
+        `TYPOGRAPHY credits ${misattributed.join(', ')} with ${variable}, but they never use ${utility}.`
+      ).toEqual([]);
+    });
+
+    it(`${variable}: names every component that leans on it`, () => {
+      // A major user the cell omits is how "dense Calendar chrome" happened: the
+      // token read as Calendar-only while 8 of its 15 sites were elsewhere.
+      const users = componentsUsing(utility);
+      const cell = reachCell(variable);
+      const unnamedMajor = [...users.entries()]
+        .filter(([, hits]) => hits >= 2)
+        .map(([component]) => component)
+        .filter((component) => !cell.includes(component));
+      expect(
+        unnamedMajor,
+        `Components with 2+ ${utility} sites that the reach cell never mentions: ${unnamedMajor.join(', ')}`
+      ).toEqual([]);
+    });
+  }
+
+  it('--text-2xs is no longer described as Calendar-only', () => {
+    const users = componentsUsing('text-2xs');
+    const total = [...users.values()].reduce((a, b) => a + b, 0);
+    const calendar = users.get('Calendar') ?? 0;
+    expect(calendar, 'Calendar should still be the heaviest single user').toBeGreaterThan(0);
+    expect(calendar * 2, 'Calendar is a minority of --text-2xs sites').toBeLessThan(total);
+    expect(reachCell('--text-2xs')).not.toBe(' library-added, size-only; dense Calendar chrome ');
   });
 });
 
