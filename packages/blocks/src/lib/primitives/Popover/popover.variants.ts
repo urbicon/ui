@@ -28,7 +28,10 @@ export const popoverMotion = [
   'transition-[opacity,scale,display,overlay] transition-discrete',
   'duration-[var(--blocks-popover-duration)] ease-[var(--blocks-popover-easing)]',
   'motion-reduce:duration-[1ms]',
-  'data-[state=closed]:opacity-0 data-[state=closed]:scale-[0.98]',
+  // pointer-events-none while closed: during the exit fade the children are
+  // still mounted and painted — without this, a quick click on the fading
+  // panel would fire consumer handlers from a visually dismissed surface.
+  'data-[state=closed]:opacity-0 data-[state=closed]:scale-[0.98] data-[state=closed]:pointer-events-none',
   'starting:data-[state=open]:opacity-0 starting:data-[state=open]:scale-[0.98]'
 ].join(' ');
 

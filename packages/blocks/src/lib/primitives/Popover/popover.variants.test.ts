@@ -56,6 +56,9 @@ describe('popoverVariants', () => {
     expect(result).toContain('ease-[var(--blocks-popover-easing)]');
     expect(result).toContain('motion-reduce:duration-[1ms]');
     expect(result).toContain('data-[state=closed]:opacity-0');
+    // No ghost clicks on the fading panel: children stay mounted through the
+    // exit lag, so the closed state must swallow pointer events.
+    expect(result).toContain('data-[state=closed]:pointer-events-none');
     expect(result).toContain('starting:data-[state=open]:opacity-0');
   });
 

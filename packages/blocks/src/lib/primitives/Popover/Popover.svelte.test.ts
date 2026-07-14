@@ -215,6 +215,42 @@ describe('Popover (manual-mode dismiss matrix)', () => {
 });
 
 describe('Popover (motion contract)', () => {
+  it('does not flash open on mount when a transition duration applies', () => {
+    // Guards the prevOpenForExit tracker: without it, the bind:this
+    // assignment re-runs the exit-lag effect on mount and a closed-by-default
+    // popover would render its children for one lag duration.
+    vi.useFakeTimers();
+    try {
+      renderPopover({ style: 'transition-duration: 0.2s' });
+      expect(isOpen()).toBe(false);
+      expect(panel().getAttribute('data-state')).toBe('closed');
+      vi.advanceTimersByTime(300);
+      flushSync();
+      expect(isOpen()).toBe(false);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it('keeps the keyboard height clamp through close and resets it on the next show', async () => {
+    // The clamp used to be stripped on the hide path, which let a clamped
+    // panel grow mid-exit-fade. Invariants now: hide leaves the custom
+    // property alone; the next show resets it before re-measuring.
+    const user = userEvent.setup();
+    renderPopover();
+
+    await user.click(trigger());
+    panel().style.setProperty('--blocks-overlay-available-height', '200px');
+
+    trigger().focus();
+    await user.keyboard(' ');
+    expect(panel().style.getPropertyValue('--blocks-overlay-available-height')).toBe('200px');
+
+    await user.keyboard(' ');
+    expect(isOpen()).toBe(true);
+    expect(panel().style.getPropertyValue('--blocks-overlay-available-height')).toBe('');
+  });
+
   it('stamps data-state open/closed on the panel element', async () => {
     const user = userEvent.setup();
     renderPopover();

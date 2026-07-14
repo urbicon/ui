@@ -112,6 +112,28 @@ test.describe('Popover motion (ACC-3 rest)', () => {
     await expect.poll(() => content.count(), { timeout: 3_000 }).toBe(0);
   });
 
+  test('a click on the fading panel does not fire ghost actions', async ({ page }) => {
+    // The children stay mounted through the exit lag so the fade has content —
+    // data-[state=closed]:pointer-events-none must keep them un-clickable, or
+    // a quick click after dismiss would trigger actions from a visually
+    // dismissed surface.
+    await gotoHydrated(page);
+    const probe = page.locator('[data-testid="ghost-probe"]');
+
+    await page.getByRole('button', { name: 'Overridden' }).click();
+    await probe.click();
+    await expect(page.locator('[data-testid="ghost-clicks"]')).toHaveText('1');
+
+    // Light-dismiss, then immediately click where the probe still fades.
+    const box = await probe.boundingBox();
+    if (!box) throw new Error('probe has no box');
+    await page.mouse.click(4, 4);
+    await expect(page.locator('[data-testid="pop-prop"]')).toHaveAttribute('data-state', 'closed');
+    await page.mouse.click(box.x + box.width / 2, box.y + box.height / 2);
+
+    await expect(page.locator('[data-testid="ghost-clicks"]')).toHaveText('1');
+  });
+
   test('reduced motion collapses both the token and an inline override to near-instant', async ({
     page
   }) => {

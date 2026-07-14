@@ -9,6 +9,10 @@
   // styles are readable while closed (the panel element always exists). Not
   // part of the docs nav.
   import { Button, Menu, Popover } from '@urbicon-ui/blocks';
+
+  // Ghost-click probe: counts activations of a button INSIDE the fading
+  // panel — the exit spec asserts a click mid-fade does not land.
+  let ghostClicks = $state(0);
 </script>
 
 <div class="bg-surface-base min-h-screen p-8" data-testid="popover-motion-fixtures">
@@ -26,8 +30,15 @@
       {#snippet trigger()}
         <Button>Overridden</Button>
       {/snippet}
-      <div data-testid="pop-prop-content">Overridden content</div>
+      <div data-testid="pop-prop-content">
+        Overridden content
+        <button type="button" data-testid="ghost-probe" onclick={() => (ghostClicks += 1)}>
+          Probe
+        </button>
+      </div>
     </Popover>
+
+    <output data-testid="ghost-clicks">{ghostClicks}</output>
 
     <Menu
       placeholder="Menu"
