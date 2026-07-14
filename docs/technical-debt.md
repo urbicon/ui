@@ -683,6 +683,22 @@ internal TODO instead. Sections are ordered roughly by urgency.
   validated against real screen readers — not a blind attribute tweak.
 - **Found:** 2026-07-14, Toast promise-settle SR review (primitives-debt wave).
 
+## Docs coverage
+
+### Combobox async search (`queryFn`) has no docs-site demo
+
+- **Where:** `apps/docs/src/routes/blocks/primitives/combobox/Docs.svelte` — no
+  mention of `queryFn`/`debounce`/`loadingText`; the only reference is the
+  `queryFn` JSDoc in `packages/blocks/src/lib/primitives/Combobox/index.ts`.
+- **What:** The async-search mode (CMB-3, shipped `3d256a4`+`f51eee8`) is
+  invisible on the docs site — consumers discover it only through the API
+  reference or `llm.txt`. A live demo needs a mock-server fetcher pattern
+  (the same gap class as the Auth-Demo-Fetcher item in the docs triage §5).
+- **Why deferred:** Wants a real demo design (fake latency, abort behaviour,
+  loading/empty states), not a drive-by code block. Surfaced while anchoring
+  the XC-7 decision matrix, whose async row now points at the JSDoc instead.
+- **Found:** 2026-07-14, XC-7 disambiguation work.
+
 ## Auth — accepted trade-offs
 
 ### `passkey.updateCounter`: delete-race is misclassified as `counter_regression`

@@ -69,12 +69,72 @@ Two components lay things out on dates, and the MCP used to steer day-content bo
 
 ---
 
+## Form-input layer — Select vs. Combobox vs. Menu (XC-7)
+
+Three components open an anchored floating panel from a trigger and look deceptively
+interchangeable. They are not: **Select** and **Combobox** are Form-family *value holders*
+(`bind:value` + `onValueChange`, label/helper/error/required chrome), while **Menu** is an
+Action-family *verb dispatcher* — items fire `onSelect`, nothing is held afterwards. The family
+split (border source, tiers, ARIA doctrine) is documented in
+[COMPONENT-FAMILIES.md](COMPONENT-FAMILIES.md); this matrix answers the day-to-day "which one here?".
+
+### Decision matrix
+
+| Use-case                                                        | Recommended                        | Why                                                                                                       |
+| --------------------------------------------------------------- | ---------------------------------- | --------------------------------------------------------------------------------------------------------- |
+| Pick one value from a short, known list (≲ 12 options)          | **`Select`**                       | Value semantics plus full form chrome (label, helper, error, required); no search input in the way.        |
+| Pick a value from a long or unfamiliar list (country, user, tag) | **`Combobox`**                     | The trigger *is* the `<input>` — type-to-filter beats scrolling a long listbox.                            |
+| Pick a value the server has to find                              | **`Combobox`** with `queryFn`      | Built-in debounced async search with stale-response handling; a Select has no query to send.               |
+| Pick multiple values, compact field                              | **`Select multiple`**              | Listbox stays open across picks; the trigger summarises (or build a count badge via `customTriggerContent`). |
+| Pick multiple values, picks should stay visible                  | **`Combobox multiple`**            | Selections render as removable tag chips inline with the search input.                                     |
+| One-off actions on a record (Edit / Duplicate / Delete)         | **`Menu`**                         | Items are verbs firing `onSelect`; nothing is "selected". Closes on activation.                            |
+| Right-click / long-press context actions                        | **`Menu`** with `contextTrigger`   | Same action semantics, panel parked at the pointer position.                                               |
+| Nested action groups (Export → CSV / JSON / PDF)                | **`Menu`** with nested `items`     | Submenus are a Menu capability. Select/Combobox `groups` label sections but deliberately don't nest.       |
+| Global "jump to anything / run any command"                     | **`CommandPalette`**               | Modal, keyboard-first (Cmd+K), searches verbs *and* destinations — a different scale than a field picker.  |
+| 2–5 choices that should stay visible                            | **`RadioGroup`** / **`SegmentGroup`** | Don't hide a handful of options behind a dropdown — showing them costs little and saves a click.        |
+| Free text where the value may be outside the list               | **`Input`** (+ own suggestion UI)  | Select/Combobox are pick-from-list: `value` is always one of `options` — a Combobox never commits arbitrary text. |
+
+### The two questions that settle most cases
+
+1. **Does the control hold a value afterwards?** No — the click *does* something → **Menu**.
+   Yes → question 2.
+2. **Does the user know the list, or do they need to search it?** Short/known → **`Select`**.
+   Long, unfamiliar, or server-backed → **`Combobox`**.
+
+Corollary (the family doc states it, the matrix repeats it): pick **multiple values** with
+`Select multiple` / `Combobox multiple`, never with a Menu faking checkmarks — a Menu closes on
+activation and announces `menuitem`, not `option` + selection state. Menu's per-item `keepOpen`
+exists for genuine *verb* lists that shouldn't dismiss ("toggle grid", "toggle rulers"), not for
+value picking.
+
+### What a screen reader hears (why the split is not cosmetic)
+
+| Surface        | `Select`                                        | `Combobox`                                     | `Menu`                          |
+| -------------- | ----------------------------------------------- | ---------------------------------------------- | ------------------------------- |
+| Trigger        | `role="combobox"` + `aria-haspopup="listbox"`   | the `<input>` itself, `role="combobox"`        | Button + `aria-haspopup="menu"` |
+| Panel          | `role="listbox"` (+ `role="group"` per group)   | `role="listbox"` (+ `role="status"` for async) | `role="menu"`                   |
+| Items          | `role="option"` + `aria-selected`               | `role="option"` + `aria-selected`              | `role="menuitem"`               |
+| Keyboard focus | stays on the trigger, `aria-activedescendant`   | stays on the input, `aria-activedescendant`    | roving focus across items       |
+
+A screen reader user told "menu" expects verbs; told "listbox" expects a value commit. Using the
+wrong component isn't a styling nuance — it mis-announces the interaction contract.
+
+### Code anchors
+
+- Select in a form context: [/recipes/settings](../apps/docs/src/routes/recipes/settings/+page.svelte) — grouped settings page with Select fields.
+- Menu on a dashboard card: [/recipes/dashboard](../apps/docs/src/routes/recipes/dashboard/+page.svelte) — per-widget action menu.
+- Async Combobox: `packages/blocks/src/lib/primitives/Combobox/index.ts` — the `queryFn` JSDoc is the canonical reference (the docs page has no async demo yet — see technical-debt).
+- Doctrine: [COMPONENT-FAMILIES.md](COMPONENT-FAMILIES.md) §Action / §Form — border source, tier behaviour, ARIA per family.
+
+---
+
 ## When the matrix is silent
 
-If you cannot find your use-case here, the choice usually collapses to two questions:
+If you cannot find your use-case here, the choice usually collapses to three questions:
 
 1. **Is the panel part of the page layout, or is it a temporary attention-grabber?** Layout → Sidebar/SidebarLayout. Attention → Drawer.
 2. **Is it anchored to a single element on the page (button, input, icon)?** Yes → Popover. No → one of the above.
+3. **Anchored panel with list content?** Value → Select/Combobox, verbs → Menu (see the form-input matrix above); anything richer → plain Popover.
 
 Tooltip and Toast almost never collide with the four above — Tooltip is descriptive-only, Toast is system-level.
 
@@ -83,7 +143,7 @@ Tooltip and Toast almost never collide with the four above — Tooltip is descri
 ## Related cross-cutting clusters
 
 - **XC-14** in [archive/2026-05/V1-HARDENING-AUDIT.md](archive/2026-05/V1-HARDENING-AUDIT.md) — origin of this matrix.
-- **XC-7** — Combobox / Select / Menu disambiguation (form-input layer, separate concern).
+- **XC-7** — Combobox / Select / Menu disambiguation → [§ Form-input layer](#form-input-layer--select-vs-combobox-vs-menu-xc-7) above.
 - **XC-11** — Cross-overlay animation tokens (Dialog/Drawer/Popover/Tooltip/Toast).
 
 ---
