@@ -143,7 +143,8 @@ describe('Toggle (component interaction)', () => {
 });
 
 describe('Toggle (aria-describedby merge)', () => {
-  // Form-family forwarding contract (docs/technical-debt.md): a consumer-supplied
+  // Form-family forwarding contract (docs/COMPONENT-API-CONVENTIONS.md
+  // §restProps ordering): a consumer-supplied
   // `aria-describedby` is APPENDED to the internal error/helper chain — internal
   // id first, consumer id last — never dropped, never replaced. Toggle used to
   // spread `{...restProps}` after the explicit attribute, so a consumer value
@@ -183,7 +184,7 @@ describe('Toggle (internal ARIA wins over restProps)', () => {
   // The <input> spreads `{...restProps}` FIRST, so the component's own computed
   // aria-checked / aria-invalid always win — a consumer can't silently override
   // the switch's state through restProps (mirrors Input's ordering). Regression
-  // guard for the technical-debt entry "Form primitives spread {...restProps} last".
+  // guard for the restProps ordering contract.
   it('keeps computed aria-checked="true" when a consumer passes aria-checked="mixed" and checked is set', () => {
     renderToggle({ label: 'Wireless', checked: true, 'aria-checked': 'mixed' });
 

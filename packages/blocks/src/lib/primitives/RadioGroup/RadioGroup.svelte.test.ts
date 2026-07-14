@@ -118,7 +118,8 @@ describe('RadioGroup (component interaction)', () => {
 });
 
 describe('RadioGroup (aria-describedby merge)', () => {
-  // Form-family forwarding contract (docs/technical-debt.md): a consumer-supplied
+  // Form-family forwarding contract (docs/COMPONENT-API-CONVENTIONS.md
+  // §restProps ordering): a consumer-supplied
   // `aria-describedby` is APPENDED to the internal error/helper chain on the
   // group element (role="radiogroup") — internal id first, consumer id last —
   // never dropped, never replaced. RadioGroup used to spread `{...restProps}`
@@ -151,8 +152,8 @@ describe('RadioGroup (internal ARIA wins over restProps)', () => {
   // Both the group element and every RadioItem <input> spread `{...restProps}`
   // FIRST, so the component's own computed attributes always win — a consumer
   // can't silently override the group's error state or a radio's roving tabindex
-  // (mirrors Input's ordering). Regression guard for the technical-debt entry
-  // "Form primitives spread {...restProps} last".
+  // (mirrors Input's ordering). Regression guard for the
+  // restProps ordering contract.
   it('keeps computed aria-invalid="true" on the group when a consumer passes aria-invalid="false" and error is set', () => {
     renderRadios({ error: 'Pick one', 'aria-invalid': 'false' });
 

@@ -286,7 +286,9 @@ internal TODO instead. Sections are ordered roughly by urgency.
 
 - **Where:** `packages/blocks/src/lib/primitives/Dialog/Dialog.svelte`
   (~`:235`–`:244`): the `<dialog>` sets `onclick={handleBackdropClick}`,
-  `onkeydown={handleKeydown}`, `onclose` and THEN spreads `{...restProps}`.
+  `onkeydown={handleKeydown}`, `onclose` and THEN spreads `{...restProps}`;
+  same ordering in `packages/blocks/src/lib/primitives/Drawer/Drawer.svelte`
+  (~`:176`–`:184`, `onkeydown` + `onclose`).
 - **What:** Because a later spread wins in Svelte, a consumer passing a DOM
   `onclick`/`onkeydown`/`onclose` through restProps silently overrides Dialog's
   backdrop-dismiss / focus-trap / close handlers. Now reachable transitively
@@ -473,9 +475,11 @@ internal TODO instead. Sections are ordered roughly by urgency.
 ### Rooms-skin secondary text on accent fields misses WCAG AA contrast
 
 - **Where:** `apps/docs/src/lib/style/rooms-docs.css` — the shared
-  `[data-docs-sticky-bar] / [data-docs-header] / [data-room-hero]` block remaps
-  `--color-text-secondary` (and `--docs-soft`, which `meta-marker`/`font-meta`
-  read) to `color-mix(in oklab, var(--room-accent-fg) 74%, transparent)`.
+  `[data-docs-sticky-bar] / [data-docs-header] / [data-room-hero]` block (~`:405`)
+  remaps `--color-text-secondary` (and `--docs-soft`, which `meta-marker`/
+  `font-meta` read) to `color-mix(in oklab, var(--room-accent-fg) 74%,
+  transparent)`; the same 74% remap recurs for `[data-room-register]` (~`:477`),
+  so a skin-wide fix has to cover both blocks.
 - **What:** On the blocks-green field the resolved lede/kicker colour measures
   a 3.01 contrast ratio against `#00845c` (axe `color-contrast`, needs 4.5:1
   for normal-size text). This hits every hero lede, kicker and prerequisites
@@ -505,6 +509,24 @@ internal TODO instead. Sections are ordered roughly by urgency.
   decision (light needs L≤0.173, dark needs L≥0.247), not a drive-by recolour.
   The reported debt value (1.96) was uniquely the comment token, now fixed.
 - **Found:** 2026-07-14, CodePanel a11y pass (Opus debt-sweep).
+
+### docs-app hardcodes `lang="en"` while its chrome is bilingual
+
+- **Where:** `apps/docs/src/app.html:2` (`<html lang="en" class="docs-rooms">`)
+  vs. the chrome running through `ta`/`dt` (`+layout.svelte`,
+  `PrevNextNav.svelte`, `TableOfContents.svelte`).
+- **What:** The locale switcher can put the navigation, prev/next labels and TOC
+  into German, but the document language stays `en` — so a screen reader
+  pronounces the German chrome with English phonetics (WCAG 3.1.1 Language of
+  Page). The page *content* is hardcoded English, so `lang="en"` is right for the
+  body text; only the switchable chrome is mislabelled.
+- **Why deferred:** It is the a11y facet of the open O1 decision ("chrome stays
+  bilingual, content stays English", PUBLISH-READINESS). Three defensible fixes —
+  drive `lang` from the active locale (then the English content is mislabelled
+  instead), mark only the chrome subtree with its own `lang`, or drop the
+  bilingual chrome — and picking one settles O1 rather than patching around it.
+  Tracked with the De-Slop rest G.2 in the TODO.
+- **Found:** 2026-07-14, verifying the design-authenticity audit before archiving it.
 
 ### Combobox multi-select `maxItems` cap has no screen-reader announcement
 
@@ -568,6 +590,22 @@ internal TODO instead. Sections are ordered roughly by urgency.
 - **Found:** 2026-07-05, runtime-constraint documentation work.
 
 ## Dead code / decorative config
+
+### docs-app still depends on two fonts it no longer loads
+
+- **Where:** `apps/docs/package.json:18-19` —
+  `@fontsource-variable/newsreader` + `@fontsource-variable/public-sans`.
+- **What:** Leftovers from the editorial serif/sans pairing that Color Rooms
+  replaced: the app loads only `@fontsource-variable/schibsted-grotesk` and
+  `@fontsource/jetbrains-mono` (`+layout.svelte:22-28`). Neither dead package is
+  imported anywhere in `apps/docs/src` — the only trace is a prose mention in
+  `rooms.css:40`. They cost install time, not bundle size (never imported, so
+  never bundled).
+- **Why deferred:** Removing them is a one-line `bun remove` plus a lockfile
+  churn — trivial, but it should ride along with a deliberate check of whether
+  the Rooms skin ever wants a serif display voice back (the audit's original
+  Cluster A direction) rather than being dropped silently mid-cleanup.
+- **Found:** 2026-07-14, verifying the design-authenticity audit before archiving it.
 
 ### Route-level `docsConfig` exports are decorative — nothing consumes them
 
@@ -677,20 +715,6 @@ internal TODO instead. Sections are ordered roughly by urgency.
   code panel (or drops the `.include` scope on select routes) plus a fresh
   baseline — an e2e-harness change, not a page edit.
 - **Found:** 2026-07-14, CodePanel a11y pass (Opus debt-sweep).
-
-### `useSorting` contract test is flaky in the full-suite run
-
-- **Where:** `packages/table/src/lib/stores/concerns/concerns.test.ts`
-  (`useSorting > contract: handleSort cycles through asc → desc → off`).
-- **What:** In a full `bun run test` sweep the test failed once; re-running the
-  file in isolation AND re-running the whole table suite immediately afterwards
-  both passed (243/243). So the failure is order- or timing-dependent, not a
-  code regression — likely shared state between tests or a timing assumption in
-  the sort-cycle contract.
-- **Why deferred:** Flakiness needs its own investigation (repeat runs, seed /
-  isolation bisection). Until then a red `useSorting` in CI should be re-run
-  before being believed.
-- **Found:** 2026-07-09, during the docs-layout redesign's full-suite gate.
 
 ### i18n source scanner: documented analysis limits (strict mode not built)
 

@@ -407,6 +407,31 @@ All visible components should support:
 - `disabled` – boolean where applicable
 - `...restProps` – spread remaining props to root element
 
+### `restProps` ordering: the component's own attributes win
+
+Spread `{...restProps}` **first**, then the component's computed attributes. A
+later spread wins in Svelte, so the reverse order lets a consumer silently
+defeat state the component owns — `aria-invalid="false"` passed through
+restProps would cancel a real `error`, and a stray `tabindex` would break a
+roving group. Spreading first keeps restProps to its purpose: native and
+`data-*` attributes the component doesn't model.
+
+Two attributes are **merged** instead, because a consumer's value there is
+supplemental rather than competing — destructure them out of restProps and
+combine explicitly:
+
+- `aria-describedby` – append the consumer's id to the internal error/helper
+  chain: **internal ids first, consumer id last**, so an external hint adds to
+  the description instead of replacing it. Reference: `Input.svelte`
+  (`describedBy`), mirrored across Textarea/Checkbox/Toggle/RadioGroup and
+  guarded by DOM tests in each.
+
+The overlay family (Dialog/Drawer/ConfirmDialog) does **not** follow this yet —
+it still spreads restProps after its dismiss/focus handlers, so a consumer
+`onclick` can disable backdrop dismissal. Tracked in
+[technical-debt.md](technical-debt.md); don't copy that ordering into new
+components.
+
 ## Accessibility
 
 - All interactive elements must have `focus-visible` styles

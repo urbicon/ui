@@ -147,7 +147,8 @@ describe('Textarea (consumer handler passthrough)', () => {
 });
 
 describe('Textarea (aria-describedby merge)', () => {
-  // Form-family forwarding contract (docs/technical-debt.md): a consumer-supplied
+  // Form-family forwarding contract (docs/COMPONENT-API-CONVENTIONS.md
+  // §restProps ordering): a consumer-supplied
   // `aria-describedby` is APPENDED to the internal error/helper chain — internal
   // id first, consumer id last — never dropped, never replaced. Textarea used to
   // set the explicit attribute after `{...restProps}`, so the internal value

@@ -138,7 +138,8 @@ describe('Checkbox (component interaction)', () => {
 });
 
 describe('Checkbox (aria-describedby merge)', () => {
-  // Form-family forwarding contract (docs/technical-debt.md): a consumer-supplied
+  // Form-family forwarding contract (docs/COMPONENT-API-CONVENTIONS.md
+  // §restProps ordering): a consumer-supplied
   // `aria-describedby` is APPENDED to the internal error/helper chain — internal
   // id first, consumer id last — never dropped, never replaced. Checkbox used to
   // spread `{...restProps}` after the explicit attribute, so a consumer value
@@ -174,7 +175,7 @@ describe('Checkbox (internal ARIA wins over restProps)', () => {
   // The <input> spreads `{...restProps}` FIRST, so the component's own computed
   // aria-* always win — a consumer can't silently override the checkbox's state
   // through restProps (mirrors Input's ordering). Regression guard for the
-  // technical-debt entry "Form primitives spread {...restProps} last".
+  // restProps ordering contract.
   it('keeps computed aria-invalid="true" when a consumer passes aria-invalid="false" and error is set', () => {
     renderCheckbox({ label: 'Accept terms', error: 'Required', 'aria-invalid': 'false' });
 
