@@ -110,7 +110,11 @@ export const DELETE = invitations.DELETE;
           class="border-border-subtle bg-surface-subtle mt-4 flex min-h-[420px] items-center justify-center rounded-xl border p-8"
         >
           <div class="w-full max-w-sm">
-            <RegisterPage />
+            <!-- Preview-only: point the component's own link prop at this site's
+                 docs page. A consuming app owns /auth/*; the docs site has no
+                 such route, so the default would 404 on click. The snippet above
+                 keeps the real-world defaults. -->
+            <RegisterPage loginUrl={resolve('/auth/components/login-page')} />
           </div>
         </div>
       </Section>

@@ -10,7 +10,7 @@
   import { page } from '$app/state';
   import PrevNextNav from '$lib/PrevNextNav.svelte';
   import { componentData } from './api';
-  import BasicExample from './examples/Basic.svelte';
+  import BasicDemo from './examples/BasicDemo.svelte';
   import basicCode from './examples/Basic.svelte?raw';
 
   const navigation = [
@@ -38,7 +38,7 @@
 >
   <Section id="usage" intent="primary">
     <CodeExample title="Basic" code={basicCode} language="svelte">
-      <BasicExample />
+      <BasicDemo />
     </CodeExample>
   </Section>
 

@@ -107,7 +107,13 @@ export const POST = passkey.authenticationVerify.POST;
           class="border-border-subtle bg-surface-subtle mt-4 flex min-h-[420px] items-center justify-center rounded-xl border p-8"
         >
           <div class="w-full max-w-sm">
-            <LoginPage mode="both" passkeyApiPath="/api/auth/passkey" />
+            <!-- Preview-only link targets — see auth-invitation-register. -->
+            <LoginPage
+              mode="both"
+              passkeyApiPath="/api/auth/passkey"
+              registerUrl={resolve('/auth/components/register-page')}
+              forgotPasswordUrl={resolve('/auth/components/forgot-password-page')}
+            />
           </div>
         </div>
       </Section>

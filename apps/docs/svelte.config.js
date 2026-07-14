@@ -19,28 +19,15 @@ export default {
       // test-fixtures/_template opt out via `export const prerender = false`
       // and stay reachable through the SPA fallback.
       entries: ['*'],
-      handleMissingId: 'warn',
-      handleHttpError: ({ path, referrer, message }) => {
-        // Live demos render real components (auth pages, breadcrumb) with
-        // realistic hrefs — these targets intentionally do not exist in the
-        // docs app. Anything else is a genuinely broken link and fails the build.
-        const demoLinkTargets = [
-          '/auth/login',
-          '/auth/register',
-          '/auth/forgot-password',
-          '/blog',
-          '/blog/architecture',
-          '/products',
-          '/products/headphones',
-          '/gallery',
-          '/projects',
-          '/projects/urbicon-ui',
-          '/workspace',
-          '/workspace/ui'
-        ];
-        if (demoLinkTargets.includes(path)) return;
-        throw new Error(`${message} — ${path} (linked from ${referrer})`);
-      }
+      handleMissingId: 'warn'
+      // No handleHttpError override: the crawl is strict, so any broken link
+      // fails the build. Live previews that render components with their own
+      // route links (the auth pages' loginUrl / registerUrl /
+      // forgotPasswordUrl, which a *consuming* app owns and this site has no
+      // route for) pass a docs-site target at the call site instead — see
+      // apps/docs/src/routes/auth/components/*/examples/BasicDemo.svelte and
+      // the three auth recipes. Keep it that way: an exemption list here would
+      // hide real breakage.
     }
   }
 };

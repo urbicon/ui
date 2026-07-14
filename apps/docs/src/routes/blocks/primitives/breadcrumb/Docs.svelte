@@ -61,6 +61,34 @@
     { label: 'Navigation', href: '#', onclick: demoNoop },
     { label: 'Breadcrumb' }
   ];
+
+  // The first item carries an icon label plus an `aria-label` for its
+  // accessible name — the leading '🏠' would otherwise be announced as-is.
+  const iconHomeItems = [
+    { label: '🏠', href: '#', 'aria-label': 'Home', onclick: demoNoop },
+    { label: 'Blog', href: '#', onclick: demoNoop },
+    { label: 'Architecture', href: '#', onclick: demoNoop },
+    { label: 'Monorepo Setup' }
+  ];
+
+  const projectItems = [
+    { label: 'Projects', href: '#', onclick: demoNoop },
+    { label: 'urbicon-ui', href: '#', onclick: demoNoop },
+    { label: 'Settings' }
+  ];
+
+  const galleryItems = [
+    { label: 'Home', href: '#', onclick: demoNoop },
+    { label: 'Gallery', href: '#', onclick: demoNoop },
+    { label: 'Featured' }
+  ];
+
+  const terminalItems = [
+    { label: '~', href: '#', onclick: demoNoop },
+    { label: 'workspace', href: '#', onclick: demoNoop },
+    { label: 'ui', href: '#', onclick: demoNoop },
+    { label: 'src' }
+  ];
 </script>
 
 <!-- ─── Examples ─── -->
@@ -85,17 +113,10 @@
 
     <CodeExample
       title="With Icon Home"
-      description="Replace the first label with an icon for compact navigation."
+      description="Replace the first label with an icon for compact navigation — `iconHomeItems` pairs the `🏠` label with an `aria-label` so it still announces as “Home”."
       isolate
     >
-      <Breadcrumb
-        items={[
-          { label: '🏠', href: '/', 'aria-label': 'Home' },
-          { label: 'Blog', href: '/blog' },
-          { label: 'Architecture', href: '/blog/architecture' },
-          { label: 'Monorepo Setup' }
-        ]}
-      >
+      <Breadcrumb items={iconHomeItems}>
         {#snippet separator()}
           <svg
             class="h-3.5 w-3.5"
@@ -117,14 +138,7 @@
       previewClass="w-full"
     >
       <div class="flex flex-col gap-2">
-        <Breadcrumb
-          items={[
-            { label: 'Projects', href: '/projects' },
-            { label: 'urbicon-ui', href: '/projects/urbicon-ui' },
-            { label: 'Settings' }
-          ]}
-          size="sm"
-        >
+        <Breadcrumb items={projectItems} size="sm">
           {#snippet separator()}
             <svg
               class="h-3 w-3"
@@ -187,11 +201,7 @@
     >
       <Breadcrumb
         unstyled
-        items={[
-          { label: 'Home', href: '/' },
-          { label: 'Gallery', href: '/gallery' },
-          { label: 'Featured' }
-        ]}
+        items={galleryItems}
         class="flex items-center rounded-full border border-white/20 bg-white/15 px-4 py-2 text-sm backdrop-blur-md"
         slotClasses={{
           list: 'flex items-center gap-1',
@@ -223,12 +233,7 @@
     >
       <Breadcrumb
         unstyled
-        items={[
-          { label: '~', href: '/' },
-          { label: 'workspace', href: '/workspace' },
-          { label: 'ui', href: '/workspace/ui' },
-          { label: 'src' }
-        ]}
+        items={terminalItems}
         class="flex items-center font-mono text-sm"
         slotClasses={{
           list: 'flex items-center',

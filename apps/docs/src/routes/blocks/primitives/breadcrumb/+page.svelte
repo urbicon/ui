@@ -28,10 +28,14 @@
     { id: 'installation', title: 'Installation', order: 6 }
   ];
 
+  // Demo-only items don't navigate — `href: '#'` + preventDefault keeps the
+  // playground in view. Real consumers pass real hrefs and omit the onclick.
+  const demoNoop = (event: MouseEvent) => event.preventDefault();
+
   const playgroundItems = [
-    { label: 'Home', href: '/' },
-    { label: 'Products', href: '/products' },
-    { label: 'Headphones', href: '/products/headphones' },
+    { label: 'Home', href: '#', onclick: demoNoop },
+    { label: 'Products', href: '#', onclick: demoNoop },
+    { label: 'Headphones', href: '#', onclick: demoNoop },
     { label: 'AirPods Max' }
   ];
 </script>

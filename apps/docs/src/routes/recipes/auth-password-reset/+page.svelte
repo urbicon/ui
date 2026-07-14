@@ -96,7 +96,8 @@ export const { POST } = createResetPasswordHandler(authDeps);
           class="border-border-subtle bg-surface-subtle mt-4 flex min-h-[420px] items-center justify-center rounded-xl border p-8"
         >
           <div class="w-full max-w-sm">
-            <ForgotPasswordPage />
+            <!-- Preview-only link target — see auth-invitation-register. -->
+            <ForgotPasswordPage loginUrl={resolve('/auth/components/login-page')} />
           </div>
         </div>
       </Section>
