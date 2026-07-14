@@ -185,6 +185,7 @@ export class APIFileGenerator {
     lines.push('  variants: VariantInfo[];');
     lines.push('  inheritance: InheritanceInfo[];');
     lines.push('  examples: string[];');
+    lines.push('  slots?: string[];');
     lines.push('  stats: ComponentStats;');
     lines.push('  group?: string;');
     lines.push('  stability?: ComponentStability;');
