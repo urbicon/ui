@@ -162,7 +162,10 @@ export default {
       layout: 'Layout',
       navigation: 'Navigation',
       display: 'Anzeige',
-      components: 'Komponenten'
+      components: 'Komponenten',
+      pages: 'Seiten',
+      management: 'Verwaltung',
+      notifications: 'Benachrichtigungen'
     },
     customization: 'Anpassung',
     cssTokenThemes: 'CSS-Token-Themes',

@@ -231,6 +231,7 @@ const allNavigationItems: NavItem[] = [
     children: [
       {
         name: 'Pages',
+        nameKey: 'nav.groups.pages',
         group: true,
         children: [
           { name: 'LoginPage', href: '/auth/components/login-page' },
@@ -242,6 +243,7 @@ const allNavigationItems: NavItem[] = [
       },
       {
         name: 'Management',
+        nameKey: 'nav.groups.management',
         group: true,
         children: [
           { name: 'InvitationManager', href: '/auth/components/invitation-manager' },
@@ -253,6 +255,7 @@ const allNavigationItems: NavItem[] = [
       },
       {
         name: 'Notifications',
+        nameKey: 'nav.groups.notifications',
         group: true,
         children: [
           { name: 'NotificationCenter', href: '/auth/components/notification-center' },
