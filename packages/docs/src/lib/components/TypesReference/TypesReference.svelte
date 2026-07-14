@@ -1,6 +1,7 @@
 <script lang="ts">
   import { Card, Checkbox } from '@urbicon-ui/blocks';
   import { Table, type Column } from '@urbicon-ui/table';
+  import { revealTableRow } from '$lib/utils/cross-reference.js';
   import { typesReferenceVariants } from './types-reference.variants';
   import { extractLiteralValues } from './index.js';
   import type { TypesReferenceProps } from './index.js';
@@ -54,22 +55,18 @@
   );
 
   function scrollToApiProp(event: MouseEvent, propRowId: string) {
-    event.preventDefault();
-    const apiSection = document.getElementById('api-reference');
-    if (apiSection) {
-      apiSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    // Modified clicks (open in new tab, etc.) keep their native behaviour.
+    if (event.metaKey || event.ctrlKey || event.shiftKey || event.altKey || event.button !== 0) {
+      return;
     }
-    requestAnimationFrame(() => {
-      let row = document.getElementById(propRowId) as HTMLElement | null;
-      if (!row) {
-        row = document.querySelector(`[id^="${propRowId}-"]`) as HTMLElement | null;
-      }
-      if (row) {
-        const ringClasses = styles.highlightRing().split(' ');
-        row.classList.add(...ringClasses);
-        row.scrollIntoView({ behavior: 'smooth', block: 'center' });
-        setTimeout(() => row.classList.remove(...ringClasses), 1200);
-      }
+    event.preventDefault();
+    // The link sits inside an expandable row — without this the click bubbles to the
+    // row and collapses the very section the reader is navigating from.
+    event.stopPropagation();
+    revealTableRow({
+      rowId: propRowId,
+      highlightClasses: styles.highlightRing(),
+      fallbackSectionId: 'api-reference'
     });
   }
 </script>

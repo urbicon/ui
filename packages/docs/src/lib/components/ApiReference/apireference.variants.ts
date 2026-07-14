@@ -16,6 +16,17 @@ export const apiReferenceVariants = tv({
     description: ['text-sm leading-relaxed text-text-secondary'],
     placeholder: ['text-text-tertiary'],
     link: ['text-primary underline decoration-primary/40 hover:decoration-primary'],
+    // Cross-reference to a TypesReference entry. Reads as prose-quiet inline
+    // reference, not a link: the dotted underline is the only affordance until
+    // hover, so a type-heavy table doesn't turn into a wall of blue.
+    typeLink: [
+      'text-text-primary underline decoration-dotted decoration-border-emphasis underline-offset-2',
+      'transition-colors duration-(--blocks-duration-fast)',
+      'hover:text-primary hover:decoration-primary',
+      'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40',
+      'focus-visible:rounded-modify focus-visible:ring-offset-1'
+    ],
+    highlightRing: ['ring-2 ring-primary/50'],
     // usageNotes as an inline note (left accent instead of a card wrapper).
     usageNotes: ['border-l-2 border-l-border-default pl-4 py-2 text-sm text-text-secondary']
   },

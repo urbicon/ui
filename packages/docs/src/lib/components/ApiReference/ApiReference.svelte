@@ -2,11 +2,14 @@
   import { Badge } from '@urbicon-ui/blocks';
   import { type Column, Table } from '@urbicon-ui/table';
   import { InfoCard } from '$lib';
+  import { revealTableRow } from '$lib/utils/cross-reference.js';
+  import { tokenizeTypeExpression } from '$lib/utils/type-links.js';
   import { apiReferenceVariants } from './apireference.variants';
   import type { ApiReferenceProps, ApiProp } from './index.js';
 
   let {
     props = [],
+    types = [],
     usageNotes,
     class: className,
     unstyled = false,
@@ -55,8 +58,45 @@
   const requiredCount = $derived(sortedProps.filter((p) => p.required).length);
   const styles = $derived(apiReferenceVariants());
 
+  /**
+   * Row id per prop, so `TypesReference` can link back to a specific row.
+   * `<Table>` renders `<tr id={item.id}>`.
+   */
+  const tableItems = $derived(
+    sortedProps.map((prop) => ({ ...prop, id: `prop-${prop.name}` })) as unknown as Record<
+      string,
+      unknown
+    >[]
+  );
+
+  /** Type names that a `TypesReference` on this page documents — the only linkable ones. */
+  const knownTypeNames = $derived(new Set(types.map((t) => t.name).filter(Boolean)));
+
+  function typeSegments(type: string | undefined) {
+    return tokenizeTypeExpression(type, knownTypeNames);
+  }
+
+  function handleTypeLinkClick(event: MouseEvent, typeName: string) {
+    // Modified clicks (open in new tab, etc.) keep their native behaviour.
+    if (event.metaKey || event.ctrlKey || event.shiftKey || event.altKey || event.button !== 0) {
+      return;
+    }
+    event.preventDefault();
+    revealTableRow({
+      rowId: `type-${typeName}`,
+      highlightClasses: styles.highlightRing(),
+      fallbackSectionId: 'types',
+      expand: true
+    });
+  }
+
+  // `id` is set explicitly on every column: the `cell` snippet below branches on
+  // `column.id`, and `<Table>` hands the snippet the raw column object — an
+  // accessor-only column arrives with `id === undefined` and every cell would
+  // silently fall through to the plain-text branch.
   const columns: Column[] = [
     {
+      id: 'name',
       accessor: 'name',
       title: 'Prop',
       minWidth: '160px',
@@ -66,6 +106,7 @@
       summable: false
     },
     {
+      id: 'type',
       accessor: 'type',
       title: 'Type',
       minWidth: '140px',
@@ -74,6 +115,7 @@
       summable: false
     },
     {
+      id: 'defaultValue',
       accessor: 'defaultValue',
       title: 'Default',
       minWidth: '80px',
@@ -81,6 +123,7 @@
       summable: false
     },
     {
+      id: 'description',
       accessor: 'description',
       title: 'Description',
       minWidth: '240px',
@@ -95,7 +138,9 @@
     <p>No API properties found for this component.</p>
   </InfoCard>
 {:else}
+  <!-- `id` is the anchor TypesReference links back to; a page may override it via restProps. -->
   <section
+    id="api-reference"
     class={unstyled
       ? [slotClasses?.base, className].filter(Boolean).join(' ')
       : styles.base({ class: [slotClasses?.base, className] })}
@@ -112,7 +157,7 @@
     </div>
 
     <Table
-      items={sortedProps as unknown as Record<string, unknown>[]}
+      items={tableItems}
       {columns}
       itemsPerPage={999}
       enableSmartFilter={sortedProps.length > 6}
@@ -163,7 +208,17 @@
                 <code class={unstyled ? '' : styles.typeCode()}>{item.type}</code>
               </a>
             {:else}
-              <code class={unstyled ? '' : styles.typeCode()}>{item.type}</code>
+              <!-- Type names documented by a TypesReference on this page become in-page
+                   links; every other token stays plain text. Written tight (no newlines
+                   between segments) so the expression renders without stray whitespace. -->
+              {@const segments = typeSegments(item.type)}
+              <code class={unstyled ? '' : styles.typeCode()}
+                >{#each segments as segment, i (i)}{#if segment.linked}<a
+                      href="#type-{segment.text}"
+                      class={unstyled ? '' : styles.typeLink()}
+                      onclick={(e) => handleTypeLinkClick(e, segment.text)}>{segment.text}</a
+                    >{:else}{segment.text}{/if}{/each}</code
+              >
             {/if}
           {:else}
             <span class={unstyled ? '' : styles.placeholder()}>—</span>
