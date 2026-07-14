@@ -251,18 +251,21 @@ describe('Popover (motion contract)', () => {
     expect(panel().style.getPropertyValue('--blocks-overlay-available-height')).toBe('');
   });
 
-  it('stamps data-state open/closed on the panel element', async () => {
+  it('stamps data-state open/closed and inerts the closed panel', async () => {
     const user = userEvent.setup();
     renderPopover();
 
     expect(panel().getAttribute('data-state')).toBe('closed');
+    expect(panel().hasAttribute('inert')).toBe(true);
 
     await user.click(trigger());
     expect(panel().getAttribute('data-state')).toBe('open');
+    expect(panel().hasAttribute('inert')).toBe(false);
 
     trigger().focus();
     await user.keyboard(' ');
     expect(panel().getAttribute('data-state')).toBe('closed');
+    expect(panel().hasAttribute('inert')).toBe(true);
   });
 
   it('keeps children mounted for the computed transition duration after close (exit-motion lag)', () => {
@@ -282,7 +285,10 @@ describe('Popover (motion contract)', () => {
       flushSync();
       // Closed for ARIA/state purposes, but the exit transition is still
       // painting: children must outlive `open` or the panel fades out empty.
+      // `inert` must land IMMEDIATELY — the fading children are mounted and
+      // displayed, and must be unreachable for keyboard focus + AT.
       expect(panel().getAttribute('data-state')).toBe('closed');
+      expect(panel().hasAttribute('inert')).toBe(true);
       expect(isOpen()).toBe(true);
 
       // 200ms transition + 50ms buffer → gone after the lag elapses.

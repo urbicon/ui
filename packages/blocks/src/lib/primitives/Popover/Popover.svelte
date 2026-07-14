@@ -453,6 +453,12 @@
   `{#if panelVisible}` (not `open`) keeps the children mounted while the exit
   transition plays; `style:display` follows the same lagged flag so the
   in-place modes can fade out before they hide.
+
+  `inert` while closed (GuidePanel's pattern): the exit-fading children are
+  still mounted and displayed, so without it a Tab right after dismiss would
+  focus into the visually dismissed panel and Enter could re-fire a consumer
+  action; pointer-events-none (popoverMotion) only covers mouse/touch. Also
+  drops the fading subtree from the a11y tree immediately.
 -->
 <div
   bind:this={popoverElement}
@@ -467,6 +473,7 @@
   style:--blocks-popover-duration={popoverDurationInline}
   style:--blocks-popover-easing={transitionEasing}
   data-state={open ? 'open' : 'closed'}
+  inert={!open || undefined}
   {role}
   aria-modal={ariaModal || undefined}
   {id}
