@@ -112,13 +112,13 @@ export const journeyTimelineVariants = tv({
     },
     size: {
       sm: {
-        meta: 'text-[11px]',
+        meta: 'text-2xs',
         marker: 'size-2.5',
         node: 'gap-x-2.5',
         card: '-mx-1.5 px-1.5 py-1.5',
         title: 'text-xs',
-        subtitle: 'text-[11px]',
-        segment: 'text-[11px]',
+        subtitle: 'text-2xs',
+        segment: 'text-2xs',
         content: 'pb-4',
         detailContent: 'text-xs pt-2',
         panel: 'p-3 text-xs'

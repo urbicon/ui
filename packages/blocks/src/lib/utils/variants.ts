@@ -363,7 +363,11 @@ const BUCKET_PATTERNS: Array<[RegExp, BucketResolver]> = [
   [/^text-shadow-(2xs|xs|sm|md|lg|none)$/, 'text-shadow'],
   [/^text-shadow$/, 'text-shadow'],
   [/^text-shadow-/, 'text-shadow-color'],
-  [/^text-(xs|sm|base|lg|xl|\d+xl)(\/[\w.-]+)?$/, 'text-size'],
+  // `\d+xs` covers the library's sub-xs scale (--text-2xs/--text-3xs in
+  // foundation.css) and mirrors `\d+xl` for consumer-added steps. Without it
+  // `text-2xs` falls through to the text-color catch-all below, so a color
+  // override would silently strip the font size.
+  [/^text-(\d+xs|xs|sm|base|lg|xl|\d+xl)(\/[\w.-]+)?$/, 'text-size'],
   // Data-type hints disambiguate the overloaded `text-` arbitraries.
   [/^text-\[length:/, 'text-size'],
   [/^text-\[color:/, 'text-color'],

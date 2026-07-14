@@ -18,7 +18,7 @@ export const chartVariants = tv({
     /** Tick marks. */
     axisTick: ['stroke-border-subtle'],
     /** Tick + category labels. */
-    axisLabel: ['fill-text-tertiary text-[10px] tabular-nums'],
+    axisLabel: ['fill-text-tertiary text-3xs tabular-nums'],
     /** Background gridlines. */
     grid: ['stroke-border-hairline'],
     /** Generic data mark (line path, area, point). */
@@ -30,7 +30,7 @@ export const chartVariants = tv({
     /** Donut center primary label. */
     centerLabel: ['fill-text-primary text-sm font-medium tabular-nums'],
     /** Donut center secondary label. */
-    centerSubLabel: ['fill-text-tertiary text-[10px]'],
+    centerSubLabel: ['fill-text-tertiary text-3xs'],
     /** Legend container (HTML). */
     legend: ['mt-2 flex flex-wrap items-center gap-x-4 gap-y-1.5', 'text-text-secondary text-xs'],
     /** One legend entry. */

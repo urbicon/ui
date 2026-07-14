@@ -318,7 +318,7 @@
               <span
                 aria-hidden="true"
                 class={[
-                  'pointer-events-none truncate px-1.5 text-[10px] font-medium tabular-nums',
+                  'pointer-events-none truncate px-1.5 text-3xs font-medium tabular-nums',
                   !unstyled && getOnColorClass(item)
                 ]
                   .filter(Boolean)

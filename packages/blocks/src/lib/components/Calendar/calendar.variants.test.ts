@@ -20,6 +20,37 @@ describe('calendarVariants', () => {
     expect(calendarVariants({ size: 'lg' }).day()).toContain('h-16');
   });
 
+  it('floors the year-view mini day cell at text-3xs while its box keeps scaling', () => {
+    // sm previously hardcoded text-[9px]; it now shares md's 10px floor because
+    // --text-3xs is the smallest step the scale offers. The box still shrinks
+    // (size-3 vs size-4), so the two sizes stay distinguishable.
+    expect(calendarVariants({ size: 'sm' }).yearMiniDay()).toContain('text-3xs');
+    expect(calendarVariants({ size: 'sm' }).yearMiniDay()).toContain('size-3');
+    expect(calendarVariants({ size: 'md' }).yearMiniDay()).toContain('text-3xs');
+    expect(calendarVariants({ size: 'md' }).yearMiniDay()).toContain('size-4');
+    expect(calendarVariants({ size: 'lg' }).yearMiniDay()).toContain('text-xs');
+  });
+
+  it('drives the sm week/time slots off text-2xs, beating the base text size', () => {
+    // These seven slots referenced text-2xs before --text-2xs existed: the class
+    // emitted no CSS *and* the tv() engine read it as a color, so multiDayBar kept
+    // the base slot's text-xs and the rest inherited. Guards both halves of that.
+    const sm = calendarVariants({ size: 'sm' });
+    for (const slot of [
+      'weekColumnDayName',
+      'weekAllDayEvent',
+      'multiDayBar',
+      'timeLabel',
+      'timeEvent',
+      'miniCalendarWeekday',
+      'miniCalendarDay'
+    ] as const) {
+      expect(sm[slot]()).toContain('text-2xs');
+    }
+    expect(sm.multiDayBar()).not.toContain('text-xs');
+    expect(calendarVariants({ size: 'md' }).multiDayBar()).toContain('text-xs');
+  });
+
   it('applies variant chrome — bordered adds a frame, ghost strips hover fills', () => {
     const bordered = calendarVariants({ variant: 'bordered' });
     expect(bordered.base()).toContain('border');

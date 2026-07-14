@@ -36,7 +36,7 @@ export const progressVariants = tv({
       xs: {
         track: 'h-1',
         fill: 'h-1',
-        circularLabel: 'text-[10px]'
+        circularLabel: 'text-3xs'
       },
       sm: {
         track: 'h-1.5',

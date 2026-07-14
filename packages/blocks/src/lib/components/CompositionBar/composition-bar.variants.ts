@@ -72,7 +72,7 @@ export const compositionBarVariants = tv({
       sm: {
         legendItem: 'text-xs',
         legendDot: 'h-2 w-2',
-        tooltip: 'text-[11px]'
+        tooltip: 'text-2xs'
       },
       md: {
         legendItem: 'text-sm',

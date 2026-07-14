@@ -834,6 +834,50 @@ describe('tv – tailwind conflict resolver', () => {
       expect(out).toContain('text-text-primary');
     });
 
+    it('sub-xs scale (text-2xs/3xs) is text-size, not text-color', () => {
+      // `2xs` matches neither `xs` nor `\d+xl`, so before the `\d+xs` alternative
+      // these fell through to the text-color catch-all: a color override would
+      // have silently stripped the font size.
+      const styles = tv({ slots: { base: 'text-2xs text-text-secondary' } })();
+      const out = styles.base({ class: 'text-text-primary' });
+      expect(out).toContain('text-2xs');
+      expect(out).toContain('text-text-primary');
+      expect(out).not.toContain('text-text-secondary');
+    });
+
+    it('sub-xs scale collapses with the rest of the type scale to one winner', () => {
+      // Two font sizes surviving together would leave CSS source order to decide.
+      const styles = tv({ slots: { base: 'text-3xs' } })();
+      const out = styles.base({ class: 'text-lg' });
+      expect(out).toContain('text-lg');
+      expect(out).not.toContain('text-3xs');
+
+      const back = tv({ slots: { base: 'text-lg' } })().base({ class: 'text-2xs' });
+      expect(back).toContain('text-2xs');
+      expect(back).not.toContain('text-lg');
+
+      // …and the two sub-scale steps collapse against each other.
+      const within = tv({ slots: { base: 'text-2xs' } })().base({ class: 'text-3xs' });
+      expect(within).toContain('text-3xs');
+      expect(within).not.toContain('text-2xs');
+    });
+
+    it('sub-xs scale keeps the v4 leading-shorthand in the text-size bucket', () => {
+      const styles = tv({ slots: { base: 'text-2xs/4 text-text-secondary' } })();
+      const out = styles.base({ class: 'text-text-primary' });
+      expect(out).toContain('text-2xs/4');
+      expect(out).toContain('text-text-primary');
+    });
+
+    it('text-shadow-2xs is still text-shadow, not the sub-xs type scale', () => {
+      // The `\d+xs` alternative must not reach past the text-shadow- prefix rules.
+      const styles = tv({ slots: { base: 'text-shadow-2xs text-2xs' } })();
+      const out = styles.base({ class: 'text-shadow-lg' });
+      expect(out).toContain('text-shadow-lg');
+      expect(out).not.toContain('text-shadow-2xs');
+      expect(out).toContain('text-2xs');
+    });
+
     it('font-weight does not strip font-family', () => {
       const styles = tv({ slots: { base: 'font-medium font-mono' } })();
       const out = styles.base({ class: 'font-bold' });

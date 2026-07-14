@@ -30,6 +30,15 @@ describe('progressVariants', () => {
     expect(lg).toContain('h-4');
   });
 
+  it('sizes the circular label off the type scale at every size', () => {
+    // xs needs 10px, below Tailwind's --text-xs floor; text-3xs keeps that
+    // reachable by a consumer @theme override instead of hardcoding text-[10px].
+    expect(progressVariants({ size: 'xs' }).circularLabel()).toContain('text-3xs');
+    expect(progressVariants({ size: 'sm' }).circularLabel()).toContain('text-xs');
+    expect(progressVariants({ size: 'md' }).circularLabel()).toContain('text-sm');
+    expect(progressVariants({ size: 'lg' }).circularLabel()).toContain('text-base');
+  });
+
   it('uses commit tier (rounded-commit) for track and fill', () => {
     const styles = progressVariants({});
     expect(styles.track()).toContain('rounded-commit');

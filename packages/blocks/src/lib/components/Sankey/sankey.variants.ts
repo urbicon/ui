@@ -15,7 +15,7 @@ export const sankeyVariants = tv({
       'fill-text-primary text-xs font-medium',
       'transition-[opacity] duration-[var(--blocks-duration-fast)]'
     ],
-    nodeValue: ['pointer-events-none select-none', 'fill-text-tertiary text-[10px] tabular-nums'],
+    nodeValue: ['pointer-events-none select-none', 'fill-text-tertiary text-3xs tabular-nums'],
     link: [
       'cursor-default fill-none',
       'transition-[opacity,stroke-opacity,stroke-width] duration-[var(--blocks-duration-fast)]',

@@ -121,6 +121,20 @@
   --color-info-900: oklch(0.24 0.07 220);
   --color-info-950: oklch(0.16 0.05 220);
 
+  /* Sub-xs Type Scale — extends Tailwind's own `--text-*` namespace downwards.
+     Tailwind bottoms out at --text-xs (12px), but dense data marks (chart axis
+     labels, mini-calendar day cells, kbd hints) need 10–11px. Defining them here
+     rather than hardcoding `text-[11px]` at the call site is what makes those
+     sizes reachable by a consumer's own @theme override.
+
+     Deliberately size-only: NO paired `--text-*--line-height`. Tailwind emits
+     `line-height` for a scale entry only when the paired key exists, so adding
+     one would inject a line-height into every call site that today inherits it
+     from the cascade — a rendering change, not a refactor. Consumers who want
+     one can add the paired key in their own @theme; the utility picks it up. */
+  --text-2xs: 0.6875rem;
+  --text-3xs: 0.625rem;
+
   /* Border Radius Scale — physical sizes */
   --radius-xs: 0.125rem;
   --radius-sm: 0.25rem;

@@ -73,7 +73,7 @@ export const plannerVariants = tv({
         headerTitle: 'text-sm',
         navButton: 'h-7 w-7',
         weekday: 'text-xs',
-        weekNumber: 'text-[0.65rem]',
+        weekNumber: 'text-3xs',
         cellDate: 'text-xs h-5 min-w-5',
         cellWeekday: 'text-xs',
         cellItems: 'text-xs',

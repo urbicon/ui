@@ -68,7 +68,7 @@ export const radioItemVariants = tv({
         indicator: 'w-3.5 h-3.5 mt-px',
         dot: 'w-1.5 h-1.5',
         label: 'text-xs',
-        description: 'text-[10px]'
+        description: 'text-3xs'
       },
       sm: {
         item: 'gap-2',

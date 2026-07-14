@@ -69,7 +69,7 @@ export const stepperVariants = tv({
         indicator: 'size-7 text-xs',
         step: 'gap-2',
         label: 'text-xs',
-        description: 'text-[11px]',
+        description: 'text-2xs',
         content: 'text-sm',
         indicatorColumn: 'w-7'
       },
