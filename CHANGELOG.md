@@ -4,6 +4,70 @@ All notable changes to this project will be documented in this file.
 This changelog is automatically generated from [Conventional Commits](https://www.conventionalcommits.org).
 
 
+## [6.25.0] - 2026-07-14
+
+### Bug Fixes
+- **blocks**: Tokenise the avatar palette, delete the dead ripple rule
+- **docs-gen**: Emit the slots field in the generated API interface
+- **docs-app**: Retire the prerender tolerance list, point demos at real routes
+- **docs**: Honour system dark mode; announce copy and modified count
+- **docs-app**: Unify breadcrumbs, wire type links on the pages that have types
+- **blocks**: Stop a consumer handler from silently disabling Dialog/Drawer dismissal
+- **docs**: Extract CodeExample code via the Svelte parser, not a regex
+- **blocks**: Honour a consumer `id` on Input and Textarea, and make labels reach the control
+- **blocks**: Drop aria-orientation from ButtonGroup's multi-selection arm
+- **blocks**: Make text-on-primary mode-aware so dark-mode fills clear AA
+- **blocks**: Make the Tooltip fade actually play in top-layer mode
+- **docs-gen**: Declare slots on the emitted ComponentAPIInfo interface
+- **blocks**: Swallow pointer events on the fading popover panel
+- **blocks**: Inert the popover panel while closed
+- **blocks**: Harden Guide cross-route touring against async false-stops
+- **blocks**: Clamp range navigation span-preserving to minDate/maxDate
+- **docs-gen**: Drop the duplicated slots member from the emitted interface
+- **docs**: Make the search index find what the docs actually say
+- **docs**: Correct the false and stale claims the theming pass introduced
+- **docs**: Scope playground share links to the playground that minted them
+
+### Build
+- Gate releases on complete declaration emit
+
+### Documentation
+- Reconcile the debt log and document the restProps contract
+- Log the publish-m3 wave findings
+- Reconcile the debt log after the Opus quality wave
+- Retire the text-on-primary entry, log what landing it revealed
+- Resolve XC-7 with a form-input disambiguation matrix
+- Split the overlay-motion contract into modal and anchored halves
+- **blocks**: Document the optimistic controlled contract for open-state primitives
+- **blocks**: Fix Menu catalog JSDoc and close CommandPalette related-loop
+- Reconcile the debt log after the fable-debt-wave
+- **customization**: Stop the docs contradicting the theming truth
+- Log what the M3 wave surfaced but deliberately did not fix
+
+### Features
+- **docs-app**: Give every recipe card a tailored preview
+- **docs**: Link API types to their definitions, revive dead rendering
+- **blocks**: Add CSS-native enter/exit motion to Popover and Menu
+- **blocks**: Contain ConfirmDialog onConfirm rejections via onError
+- **blocks**: Dedicated --color-live token for the now indicator
+- **docs-gen**: Wire the ts.Program for cross-file type resolution
+- **docs**: Name the section prev/next leads into
+- **docs**: Add share links to the playground configurator
+- **docs**: Index docs content for full-text search
+
+### Refactoring
+- **docs-gen**: Fold docsConfig off the AST instead of eval-ing it
+- **blocks**: Tokenise the sub-xs type floor as --text-2xs/--text-3xs
+
+### Styling
+- Default offset for sticky table header
+
+### Testing
+- **blocks**: Audit every intent contrast pair, fix two sub-AA tokens
+- **e2e**: Scan the docs code panel for a11y, and make the baseline a ratchet
+- **blocks**: Cover the in-place exit lag and unmount-during-lag paths
+- **docs-gen**: Guard the emitted api.ts interface against data drift
+
 ## [6.24.0] - 2026-07-14
 
 ### Bug Fixes
