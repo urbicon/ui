@@ -64,10 +64,7 @@
   description="A semantic vocabulary for border-radius. Three tiers — commit, modify, contain — let components, brand themes, and inline overrides speak the same language without anyone reaching for a raw pixel value."
   {navigation}
   showToc
-  breadcrumbs={[
-    { label: 'Customization', href: resolve('/customization') },
-    { label: 'Tier System' }
-  ]}
+  breadcrumbs={[{ label: 'Customization', href: resolve('/customization') }]}
 >
   <!-- Three Tiers ─────────────────────────────────────────── -->
   <section class="mb-12">

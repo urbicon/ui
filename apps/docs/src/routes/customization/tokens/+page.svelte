@@ -168,10 +168,7 @@
   maxWidth="2xl"
   {navigation}
   showToc
-  breadcrumbs={[
-    { label: 'Customization', href: resolve('/customization') },
-    { label: 'Design Tokens' }
-  ]}
+  breadcrumbs={[{ label: 'Customization', href: resolve('/customization') }]}
 >
   <section class="mb-16">
     <h2 class="text-text-primary mb-6 text-2xl font-bold" id="architecture">Token Architecture</h2>

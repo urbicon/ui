@@ -7,7 +7,7 @@
     Section
   } from '@urbicon-ui/docs';
   import CustomDocs from './DocsCustom.svelte';
-  import { asset } from '$app/paths';
+  import { asset, resolve } from '$app/paths';
 
   const navigation = [
     { id: 'playground', title: 'Playground', order: 1 },
@@ -155,6 +155,7 @@
   maxWidth="lg"
   showToc={true}
   {navigation}
+  breadcrumbs={[{ label: 'Doc Components', href: resolve('/docs') }]}
 >
   <!-- Hero Playground -->
   <Section id="playground" title="Playground" subtitle="Configure controls and see the live output">

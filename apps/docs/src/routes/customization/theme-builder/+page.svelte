@@ -234,10 +234,7 @@
   title="Theme Builder"
   description="Pick your brand color and instantly generate a complete, perceptually-uniform palette — accent plus a matched neutral chassis so surfaces, text and borders share its temperature. Uses OKLCH for consistent contrast across all shades."
   maxWidth="2xl"
-  breadcrumbs={[
-    { label: 'Customization', href: resolve('/customization') },
-    { label: 'Theme Builder' }
-  ]}
+  breadcrumbs={[{ label: 'Customization', href: resolve('/customization') }]}
 >
   <div class="grid grid-cols-1 gap-8 xl:grid-cols-5">
     <!-- Controls -->

@@ -139,7 +139,7 @@
   description="Every Urbicon UI component is restyleable through one predictable ladder of escape hatches. Pick the lowest rung that solves your problem — lower rungs preserve more of the design system's behavior (dark mode, hover/active cascade, focus rings)."
   {navigation}
   showToc
-  breadcrumbs={[{ label: 'Customization' }]}
+  breadcrumbs={[{ label: 'Home', href: resolve('/') }]}
 >
   <!-- Task 1: the canonical override ladder as a decision table -->
   <section class="mb-12">

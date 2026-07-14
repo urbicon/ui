@@ -188,7 +188,7 @@
     intent="secondary"
     meta={`${componentData?.stats?.totalProps ?? 0} props`}
   >
-    <ApiReference props={componentData?.props ?? []} />
+    <ApiReference props={componentData?.props ?? []} types={componentData?.types ?? []} />
   </Section>
 
   <Section marker="05" id="types" title="Types">

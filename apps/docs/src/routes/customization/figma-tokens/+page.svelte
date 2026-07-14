@@ -61,10 +61,7 @@
   title="Figma Token Export"
   description="Export the Urbicon UI design tokens — foundation palettes, semantic surface/text/border roles (light-mode values), spacing, radii, and shadows — as Figma-compatible JSON. Works with the Tokens Studio for Figma plugin."
   maxWidth="2xl"
-  breadcrumbs={[
-    { label: 'Customization', href: resolve('/customization') },
-    { label: 'Figma Tokens' }
-  ]}
+  breadcrumbs={[{ label: 'Customization', href: resolve('/customization') }]}
 >
   <!-- Stats -->
   <div class="mb-8 grid grid-cols-2 gap-4 md:grid-cols-3 lg:grid-cols-6">

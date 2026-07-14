@@ -209,10 +209,7 @@
   title="CSS Token Themes"
   description="Swap palettes with a single CSS import. Each theme re-colors the primary and secondary accents and re-tints the neutral chassis — so surfaces, text and borders share the accent's temperature instead of staying cool grey."
   maxWidth="xl"
-  breadcrumbs={[
-    { label: 'Customization', href: resolve('/customization') },
-    { label: 'CSS Token Themes' }
-  ]}
+  breadcrumbs={[{ label: 'Customization', href: resolve('/customization') }]}
 >
   <!-- Theme selector -->
   <div class="mb-8 flex flex-wrap gap-3">

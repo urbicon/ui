@@ -229,10 +229,7 @@ export type PresetMap = Record<string, Record<string, ComponentPreset>>;`;
   description="A context provider that configures all descendant components. Set global defaults for slotClasses per component type, or switch all components to unstyled mode at once."
   {navigation}
   showToc
-  breadcrumbs={[
-    { label: 'Customization', href: resolve('/customization') },
-    { label: 'BlocksProvider' }
-  ]}
+  breadcrumbs={[{ label: 'Customization', href: resolve('/customization') }]}
 >
   <section class="mb-12">
     <h2 class="text-text-primary mb-4 text-2xl font-bold" id="props">Props</h2>

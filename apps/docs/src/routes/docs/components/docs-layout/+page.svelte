@@ -8,7 +8,7 @@
   } from '@urbicon-ui/docs';
   import CustomDocs from './DocsCustom.svelte';
   import { componentData } from './api';
-  import { asset } from '$app/paths';
+  import { asset, resolve } from '$app/paths';
 
   const navigation = [
     { id: 'examples', title: 'Examples', order: 1 },
@@ -30,6 +30,7 @@
   maxWidth="lg"
   showToc={true}
   {navigation}
+  breadcrumbs={[{ label: 'Doc Components', href: resolve('/docs') }]}
 >
   <CustomDocs />
 
@@ -39,7 +40,7 @@
     subtitle="Complete list of component properties and their configurations"
     intent="secondary"
   >
-    <ApiReference props={componentData?.props ?? []} />
+    <ApiReference props={componentData?.props ?? []} types={typesForTypesReference} />
   </Section>
 
   <TypesReference types={typesForTypesReference} />
