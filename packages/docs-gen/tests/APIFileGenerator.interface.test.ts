@@ -52,8 +52,14 @@ describe('APIFileGenerator — emitted interface covers the emitted data', () =>
 
     const interfaceBlock = emitted.match(/export interface ComponentAPIInfo \{([\s\S]*?)\n\}/);
     expect(interfaceBlock).not.toBeNull();
-    const declaredMembers = new Set(
-      [...(interfaceBlock as RegExpMatchArray)[1].matchAll(/^\s{2}(\w+)\??:/gm)].map((m) => m[1])
+    const memberList = [
+      ...(interfaceBlock as RegExpMatchArray)[1].matchAll(/^\s{2}(\w+)\??:/gm)
+    ].map((m) => m[1]);
+    const declaredMembers = new Set(memberList);
+    // Duplicate members are a TS error in every generated file ("Duplicate
+    // identifier") — two parallel fixes once each added `slots`.
+    expect(memberList.length, `duplicate interface members: ${memberList.join(', ')}`).toBe(
+      declaredMembers.size
     );
 
     const dataMatch = emitted.match(
