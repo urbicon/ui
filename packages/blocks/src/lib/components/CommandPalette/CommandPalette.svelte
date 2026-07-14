@@ -13,6 +13,7 @@
     emptyText: emptyTextProp,
     showFooter = true,
     open = $bindable(false),
+    query = $bindable(''),
     shortcut = 'mod+k',
     filter,
     onSelect,
@@ -32,7 +33,6 @@
   const blocksConfig = getBlocksConfig();
   const unstyled = $derived(unstyledProp || blocksConfig?.unstyled || false);
 
-  let query = $state('');
   let selectedIndex = $state(0);
   let inputEl: HTMLInputElement | undefined = $state();
 
@@ -58,18 +58,25 @@
     return items.filter((item) => fn(item, query));
   });
 
+  /**
+   * Entries carry their index into `filtered` so the markup does not have to
+   * look it up per row — that was an `indexOf` per item, i.e. quadratic in the
+   * item count on every render.
+   */
+  type GroupEntry = { item: CommandPaletteItem; flatIdx: number };
+
   const grouped = $derived.by(() => {
-    const groups: { category: string; items: CommandPaletteItem[] }[] = [];
-    const seen: Record<string, CommandPaletteItem[]> = {};
-    for (const item of filtered) {
+    const groups: { category: string; entries: GroupEntry[] }[] = [];
+    const seen: Record<string, GroupEntry[]> = {};
+    filtered.forEach((item, flatIdx) => {
       const cat = item.category ?? '';
       if (!seen[cat]) {
-        const arr: CommandPaletteItem[] = [];
+        const arr: GroupEntry[] = [];
         seen[cat] = arr;
-        groups.push({ category: cat, items: arr });
+        groups.push({ category: cat, entries: arr });
       }
-      seen[cat].push(item);
-    }
+      seen[cat].push({ item, flatIdx });
+    });
     return groups;
   });
 
@@ -127,10 +134,6 @@
       e.preventDefault();
       setOpen(!open);
     }
-  }
-
-  function getFlatIndex(item: CommandPaletteItem): number {
-    return filtered.indexOf(item);
   }
 
   export function toggle() {
@@ -251,8 +254,7 @@
               {group.category}
             </div>
           {/if}
-          {#each group.items as item (item.id ?? item.label)}
-            {@const flatIdx = getFlatIndex(item)}
+          {#each group.entries as { item, flatIdx } (item.id ?? item.label)}
             {@const isHighlighted = flatIdx === selectedIndex}
             {@const isDisabled = item.disabled ?? false}
             {#if customItem}
@@ -312,9 +314,23 @@
                 {/if}
                 <span
                   class={unstyled
-                    ? (slotClasses?.itemLabel ?? '')
-                    : styles.itemLabel({ class: slotClasses?.itemLabel })}>{item.label}</span
+                    ? (slotClasses?.itemText ?? '')
+                    : styles.itemText({ class: slotClasses?.itemText })}
                 >
+                  <span
+                    class={unstyled
+                      ? (slotClasses?.itemLabel ?? '')
+                      : styles.itemLabel({ class: slotClasses?.itemLabel })}>{item.label}</span
+                  >
+                  {#if item.excerpt}
+                    <span
+                      class={unstyled
+                        ? (slotClasses?.itemExcerpt ?? '')
+                        : styles.itemExcerpt({ class: slotClasses?.itemExcerpt })}
+                      >{item.excerpt}</span
+                    >
+                  {/if}
+                </span>
                 {#if item.shortcut}
                   <kbd
                     class={unstyled

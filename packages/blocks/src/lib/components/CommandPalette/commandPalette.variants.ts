@@ -17,9 +17,7 @@ export const commandPaletteVariants = tv({
     inputIcon: 'h-4 w-4 shrink-0 text-text-tertiary',
     clearButton: 'text-text-quaternary hover:text-text-secondary',
     list: 'max-h-72 overflow-y-auto p-1.5',
-    groupLabel: [
-      'px-2 py-1.5 text-[11px] font-semibold uppercase tracking-wide text-text-quaternary'
-    ],
+    groupLabel: ['px-2 py-1.5 text-2xs font-semibold uppercase tracking-wide text-text-quaternary'],
     // tier: modify — palette items are selectable actions.
     item: [
       'flex w-full items-center gap-3 rounded-modify px-3 py-2 text-sm',
@@ -29,20 +27,24 @@ export const commandPaletteVariants = tv({
     itemDefault: 'text-text-secondary hover:bg-surface-hover',
     itemDisabled: 'text-text-quaternary cursor-not-allowed opacity-50',
     itemIcon: 'h-4 w-4 shrink-0',
-    itemLabel: 'flex-1 text-left',
+    itemText: 'flex min-w-0 flex-1 flex-col items-start gap-0.5',
+    itemLabel: 'text-left',
+    // One line only: excerpts are prose around a search match and would
+    // otherwise reflow every row to a different height.
+    itemExcerpt: 'w-full truncate text-left text-2xs text-text-tertiary',
     itemShortcut: [
       'rounded border border-border-subtle bg-surface-subtle',
-      'px-1.5 py-0.5 font-mono text-[10px] text-text-quaternary'
+      'px-1.5 py-0.5 font-mono text-3xs text-text-quaternary'
     ],
     empty: 'py-8 text-center text-sm text-text-tertiary',
     footer: [
       'flex items-center gap-4 border-t border-border-hairline',
-      'px-4 py-2 text-[11px] text-text-quaternary'
+      'px-4 py-2 text-2xs text-text-quaternary'
     ],
     footerHint: 'flex items-center gap-1',
     kbd: [
       'rounded border border-border-subtle bg-surface-subtle',
-      'px-1 py-0.5 font-mono text-[10px]'
+      'px-1 py-0.5 font-mono text-3xs'
     ],
     separator: 'my-1'
   },

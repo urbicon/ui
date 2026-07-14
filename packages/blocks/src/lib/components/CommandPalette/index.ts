@@ -19,6 +19,12 @@ export interface CommandPaletteItem {
   id?: string;
   /** Display text shown in the list. */
   label: string;
+  /**
+   * Secondary line rendered under the label, truncated to one line. Use it for
+   * context the label cannot carry — a description, or an excerpt around a
+   * search match.
+   */
+  excerpt?: string;
   /** Group header this item belongs to. Items with the same category are grouped together. */
   category?: string;
   /** Optional keyboard shortcut displayed on the right side. */
@@ -88,6 +94,18 @@ export interface CommandPaletteProps {
 
   /** Controls visibility. Supports `bind:open`. @default false */
   open?: boolean;
+
+  /**
+   * Current search text. Supports `bind:query`. Reset to `''` whenever the
+   * palette opens.
+   *
+   * Bind it to source `items` asynchronously — derive your results from the
+   * query and pass them back in via `items`, with `filter={() => true}` so the
+   * built-in label match does not filter them a second time.
+   *
+   * @default ''
+   */
+  query?: string;
 
   /**
    * Register a global keyboard shortcut that toggles the palette.

@@ -5,11 +5,12 @@
   "type": "module",
   "scripts": {
     "dev": "vite dev",
-    "build": "svelte-kit sync && vite build",
+    "build": "svelte-kit sync && vite build && bun scripts/build-search-index.ts",
     "clean": "rm -rf dist .svelte-kit",
     "clean-all": "bun --bun run clean && rm -rf node_modules",
     "preview": "vite preview",
     "check": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json",
+    "test": "vitest run",
     "check:watch": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json --watch",
     "lint": "biome check . && svelte-check --tsconfig ./tsconfig.json",
     "format": "biome format --write . && prettier --write \"**/*.svelte\""
