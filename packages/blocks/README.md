@@ -32,6 +32,20 @@ All primitives and components support `unstyled` + `slotClasses` + `preset` for 
 
 Components use a **custom `tv()` variant engine** (`src/lib/utils/variants.ts`, ~600 LoC, zero-dependency replacement for `tailwind-variants`). Design tokens live in `src/lib/style/` as a three-layer OKLCH system (foundation → semantic → interaction). See the [Architecture Overview](../../docs/ARCHITECTURE.md) for details.
 
+## Theming
+
+Import a shipped theme after the base styles — `neutral`, `ocean`, `forest`, `rose`, `sunset`:
+
+```css
+@import 'tailwindcss';
+@import '@urbicon-ui/blocks/style/index.css';
+@import '@urbicon-ui/blocks/style/themes/forest.css';
+```
+
+Rolling your own: **a brand colour alone is not a theme.** `surface-*`, `text-*` and `border-*` derive from the neutral chassis (`--color-neutral-*`), not from primary — so re-tint the chassis to your accent's temperature too, or the brand button ends up on cool blue-grey cards. Typography themes the same way (`--text-*`, `--font-*`) in the same `@theme` block.
+
+Full walkthrough: [/customization/themes](https://ui.urbicon.de/customization/themes) · canonical reference: `urbicon css-reference theming` (and `typography`).
+
 ## Mint System (Micro-Interactions)
 
 Opt-in micro-interactions. Call `registerDefaultMints()` at app startup, then use via prop:

@@ -1,4 +1,4 @@
-import { existsSync, readFileSync } from 'node:fs';
+import { existsSync, readdirSync, readFileSync } from 'node:fs';
 import { dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { describe, expect, it } from 'vitest';
@@ -46,6 +46,32 @@ const semantic = resolve(
 );
 const cssAvailable = existsSync(semantic);
 
+const themesDir = resolve(semantic, '..', 'themes');
+const themesAvailable = existsSync(themesDir);
+
+/**
+ * Token families the SHIPPED themes override, derived from the theme CSS itself.
+ * A ramp stop (`--color-primary-500`) collapses to its family (`--color-primary-*`);
+ * standalone knobs (`--blocks-shadow-tint`) stay as-is.
+ *
+ * This exists because the docs once taught a primary-only recolor — the drift that
+ * `THEMING` explicitly calls "the single most common theming mistake". If a theme
+ * starts overriding a new family, the guide must account for it.
+ */
+function deriveThemeTokenFamilies(): string[] {
+  const families = new Set<string>();
+  for (const file of readdirSync(themesDir)) {
+    if (!file.endsWith('.css') || file === 'index.css') continue;
+    const css = readFileSync(resolve(themesDir, file), 'utf-8');
+    for (const m of css.matchAll(/^\s*(--[a-z0-9-]+)\s*:/gm)) {
+      const token = m[1]!;
+      const ramp = token.match(/^(--color-[a-z-]+?)-\d+$/);
+      families.add(ramp ? `${ramp[1]}-*` : token);
+    }
+  }
+  return [...families].sort();
+}
+
 const ALL_CONTENT = [CSS_REFERENCE_OVERVIEW, ...Object.values(CSS_REFERENCE_SECTIONS)].join('\n');
 
 /** Families the reference tables exhaustively, with the prose count to verify. */
@@ -86,6 +112,37 @@ describe('renderCssReference', () => {
     for (const name of CSS_REFERENCE_SECTION_NAMES) {
       expect(renderCssReference(name)).toBe(CSS_REFERENCE_SECTIONS[name]);
     }
+  });
+
+  it('advertises every section in the overview', () => {
+    // Anchored to the "Available Sections" bullet form — a passing mention
+    // elsewhere in the prose (e.g. a cross-reference) must not satisfy this.
+    const undocumented = CSS_REFERENCE_SECTION_NAMES.filter(
+      (name) => !CSS_REFERENCE_OVERVIEW.includes(`- \`${name}\` —`)
+    );
+    expect(
+      undocumented,
+      `Sections callable but missing from the overview's "Available Sections" list: ${undocumented.join(', ')}`
+    ).toEqual([]);
+  });
+});
+
+describe.skipIf(!themesAvailable)('theming guide covers what the shipped themes override', () => {
+  /** Intent ramps are covered by naming the intent (the guide teaches the collision
+   * fix by hue, not by spelling out all 11 stops); everything else must appear literally. */
+  const INTENT_RAMP = /^--color-(success|warning|danger|info)-\*$/;
+
+  it('names every token family a shipped theme overrides', () => {
+    const theming = CSS_REFERENCE_SECTIONS.theming;
+    const missing = deriveThemeTokenFamilies().filter((family) => {
+      const intent = family.match(INTENT_RAMP)?.[1];
+      if (intent) return !theming.includes(intent);
+      return !theming.includes(family.replace(/-\*$/, '-'));
+    });
+    expect(
+      missing,
+      `Families a shipped theme overrides but THEMING never mentions: ${missing.join(', ')}`
+    ).toEqual([]);
   });
 });
 

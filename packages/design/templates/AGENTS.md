@@ -26,7 +26,8 @@ library this project installed**, so what it tells you is true of the code you a
   - `urbicon pattern [name]` — composition patterns per page archetype
     (settings-page, dashboard, form-page, …).
   - `urbicon css-reference [section]` — the token truth: naming, dark mode,
-    override patterns (sections: surfaces, text, borders, intents, shadows, theming).
+    override patterns (sections: surfaces, text, borders, intents, shadows, typography,
+    theming).
 - **Validate** what you generate:
   - `urbicon validate <path>` — lint markup against the design rules; fix every error.
   - `urbicon i18n [check]` — audit `@urbicon-ui/i18n` usage (when the project uses it):

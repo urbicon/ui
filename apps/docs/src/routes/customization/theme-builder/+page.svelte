@@ -80,6 +80,47 @@
   // no point emitting a no-op override in that case.
   const chassisIsDefault = $derived(chassisHue === 240 && chassisTint === 1);
 
+  // Shadow tint + neutral chrome follow the chassis, mirroring the shipped
+  // colored themes (forest.css:101,104). A grayscale or default chassis has no
+  // temperature to match, so it keeps the library defaults — which is exactly
+  // what neutral.css does (it ships no :root block at all).
+  const emitChromaKnobs = $derived(!chassisIsDefault && chassisTint > 0);
+
+  // Library intent hues (foundation.css). An accent landing on one of these is
+  // indistinguishable from a status color, so we flag it — and deliberately do
+  // NOT auto-retune: which side moves is a design call the author has to make.
+  const INTENT_HUES = [
+    { name: 'success', hue: 140 },
+    { name: 'warning', hue: 80 },
+    { name: 'danger', hue: 25 },
+    { name: 'info', hue: 220 }
+  ] as const;
+
+  // Exclusive: the library's own default primary (240) sits exactly 20° from info
+  // (220) and ships without re-tuning it, so 20° is demonstrably fine. An
+  // inclusive bound would flag the default palette the moment the page loads.
+  const COLLISION_THRESHOLD = 20;
+
+  /** Shortest angular distance between two hues on the 0–360 wheel. */
+  function hueDistance(a: number, b: number): number {
+    const d = Math.abs(a - b) % 360;
+    return d > 180 ? 360 - d : d;
+  }
+
+  function collisionsFor(hue: number, role: string) {
+    return INTENT_HUES.filter((i) => hueDistance(hue, i.hue) < COLLISION_THRESHOLD).map((i) => ({
+      role,
+      intent: i.name,
+      intentHue: i.hue,
+      distance: Math.round(hueDistance(hue, i.hue))
+    }));
+  }
+
+  const collisions = $derived([
+    ...collisionsFor(brandHue, 'Brand'),
+    ...collisionsFor(secondaryHue, 'Secondary')
+  ]);
+
   const radiusOptions = [
     { value: 'none', label: 'None', scale: 0 },
     { value: 'sm', label: 'Tight', scale: 0.5 },
@@ -169,6 +210,32 @@
       }
     }
     lines.push(`}`);
+    if (emitChromaKnobs) {
+      lines.push(``);
+      lines.push(`/* :root, NOT @theme — both are raw partial values spliced into a`);
+      lines.push(`   color function, so @theme would drop them on the floor. */`);
+      lines.push(`:root {`);
+      lines.push(`  /* oklch L C H, no alpha — shadows pick up the chassis temperature`);
+      lines.push(`     instead of reading as cool smudges on tinted surfaces. */`);
+      lines.push(`  --blocks-shadow-tint: 0.2 0.025 ${chassisHue};`);
+      lines.push(`  /* Neutral intent chrome (bg-neutral / text-neutral / borders). */`);
+      lines.push(`  --neutral-chrome-hue: ${chassisHue};`);
+      lines.push(`}`);
+    }
+    if (collisions.length > 0) {
+      lines.push(``);
+      lines.push(`/* Intent collision — this theme is not finished yet.`);
+      for (const c of collisions) {
+        lines.push(
+          `   ${c.role} hue is only ${c.distance}deg from ${c.intent} (hue ${c.intentHue}) — re-tune`
+        );
+        lines.push(
+          `   the --color-${c.intent}-* ramp 15-25deg away, so a status color still reads`
+        );
+        lines.push(`   as status rather than as your brand.`);
+      }
+      lines.push(`   forest.css ships a worked example of exactly this fix. */`);
+    }
     return lines.join('\n');
   });
 
@@ -521,6 +588,29 @@
 
     <!-- Preview + Output -->
     <div class="space-y-8 xl:col-span-3">
+      {#if collisions.length > 0}
+        <Alert intent="warning" variant="soft" title="Intent collision">
+          <p class="leading-relaxed">
+            {#each collisions as c (c.role + c.intent)}
+              <span class="block">
+                <strong>{c.role}</strong> sits {c.distance}° from
+                <strong>{c.intent}</strong>
+                (hue {c.intentHue}) — a
+                <code class="text-xs">{c.intent}</code> state will look like your accent, not like a status.
+              </span>
+            {/each}
+          </p>
+          <p class="mt-2 leading-relaxed">
+            Fix it in your theme file: re-tune the colliding
+            <code class="text-xs">--color-*</code> ramp 15–25° away (keep each stop's lightness and
+            chroma, move only the hue).
+            <code class="text-xs">forest.css</code> does this for both
+            <code class="text-xs">success</code> and <code class="text-xs">warning</code>. The
+            builder flags it rather than "fixing" it, because which color moves is your call.
+          </p>
+        </Alert>
+      {/if}
+
       <!-- Live Component Preview -->
       <div>
         <h2 class="text-text-primary mb-4 text-lg font-semibold">Live Preview</h2>

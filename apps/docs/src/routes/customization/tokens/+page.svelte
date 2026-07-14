@@ -56,7 +56,7 @@
    (neutral, ocean, forest, rose, sunset) */
 @import '@urbicon-ui/blocks/style/themes/ocean.css';
 
-/* Option B — re-tint a ramp yourself. The semantic layer
+/* Option B — re-tint the ramps yourself. The semantic layer
    consumes several stops (600/500 base, 700/400 hover,
    800/300 active, 900/200 emphasis, 50/900 subtle), so
    override the WHOLE ramp: keep each stop's lightness and
@@ -66,6 +66,20 @@
   --color-primary-600: oklch(0.52 0.15 280);
   --color-primary-700: oklch(0.44 0.13 280);
   /* … all stops 50–950 with the new hue */
+
+  /* The chassis, NOT optional: surface/text/border derive
+     from neutral, so a purple brand on the default cool
+     240 chassis reads broken. Same L/C, hue → 290. */
+  --color-neutral-50: oklch(0.98 0.005 290);
+  --color-neutral-500: oklch(0.55 0.016 290);
+  --color-neutral-900: oklch(0.15 0.012 290);
+  /* … all 16 stops (25–950) with the new hue */
+}
+
+/* Raw partial values — :root, never @theme (see Motion & Depth). */
+:root {
+  --blocks-shadow-tint: 0.2 0.025 290;
+  --neutral-chrome-hue: 290;
 }
 
 /* Custom brand tokens get Tailwind utilities for free
@@ -88,16 +102,51 @@
     { utility: 'p-12 / gap-12', value: '3rem', pixels: '48px' }
   ];
 
-  // Type sizes are likewise Tailwind's built-in `text-*` utilities — there are
-  // no custom font-size CSS variables to import or override.
+  // `uses` counts occurrences in the blocks source (excluding tests) — an
+  // indicative snapshot, not a contract. It is here because it is the only
+  // honest answer to "which variable actually moves my UI?": the ramp is
+  // steep, and everything above text-xl is unused by the library.
   const typographyScale = [
-    { utility: 'text-xs', value: '0.75rem', pixels: '12px' },
-    { utility: 'text-sm', value: '0.875rem', pixels: '14px' },
-    { utility: 'text-base', value: '1rem', pixels: '16px' },
-    { utility: 'text-lg', value: '1.125rem', pixels: '18px' },
-    { utility: 'text-xl', value: '1.25rem', pixels: '20px' },
-    { utility: 'text-2xl', value: '1.5rem', pixels: '24px' }
+    { utility: 'text-3xs', variable: '--text-3xs', value: '0.625rem', pixels: '10px', uses: 0 },
+    { utility: 'text-2xs', variable: '--text-2xs', value: '0.6875rem', pixels: '11px', uses: 7 },
+    { utility: 'text-xs', variable: '--text-xs', value: '0.75rem', pixels: '12px', uses: 96 },
+    { utility: 'text-sm', variable: '--text-sm', value: '0.875rem', pixels: '14px', uses: 128 },
+    { utility: 'text-base', variable: '--text-base', value: '1rem', pixels: '16px', uses: 78 },
+    { utility: 'text-lg', variable: '--text-lg', value: '1.125rem', pixels: '18px', uses: 29 },
+    { utility: 'text-xl', variable: '--text-xl', value: '1.25rem', pixels: '20px', uses: 10 },
+    { utility: 'text-2xl', variable: '--text-2xl', value: '1.5rem', pixels: '24px', uses: 0 }
   ];
+
+  const weightScale = [
+    { utility: 'font-normal', variable: '--font-weight-normal', value: '400', uses: 6 },
+    { utility: 'font-medium', variable: '--font-weight-medium', value: '500', uses: 51 },
+    { utility: 'font-semibold', variable: '--font-weight-semibold', value: '600', uses: 43 },
+    { utility: 'font-bold', variable: '--font-weight-bold', value: '700', uses: 12 }
+  ];
+
+  const typographyOverrideExample = `/* app.css — the SAME @theme block that retunes color.
+   Safe because the library never re-imports Tailwind: your
+   @theme is compiled last and wins. */
+@import 'tailwindcss';
+@import '@urbicon-ui/blocks/style/index.css';
+
+@theme {
+  /* Families — blocks never sets \`font-sans\`, so body type simply
+     inherits from your page. It DOES use \`font-mono\` (CommandPalette
+     shortcut keys, JourneyTimeline meta), so this retunes those. */
+  --font-sans: 'Inter Variable', system-ui, sans-serif;
+  --font-mono: 'JetBrains Mono', ui-monospace, monospace;
+
+  /* Size AND its paired line-height. Tailwind's built-in sizes each
+     ship a --text-*--line-height; changing the size alone leaves the
+     old rhythm behind on all ~128 text-sm call sites. */
+  --text-sm: 0.9375rem;
+  --text-sm--line-height: calc(1.375 / 0.9375);
+
+  --font-weight-medium: 550;
+  --leading-tight: 1.3;
+  --tracking-wide: 0.02em;
+}`;
 
   // Physical radius scale — real CSS variables defined in
   // blocks/src/lib/style/foundation.css, each with a matching Tailwind utility.
@@ -153,7 +202,26 @@
     { name: '--blocks-shadow-sm', source: 'var(--color-shadow-sm)' },
     { name: '--blocks-shadow-base', source: 'var(--color-shadow-base)' },
     { name: '--blocks-shadow-md', source: 'var(--color-shadow-md)' },
-    { name: '--blocks-shadow-lg', source: 'var(--color-shadow-lg)' }
+    { name: '--blocks-shadow-lg', source: 'var(--color-shadow-lg)' },
+    { name: '--blocks-shadow-tint', source: '0 0 0 · oklch L C H, no alpha' }
+  ];
+
+  // Both are declared on `:root`, NOT inside @theme — they are raw partial
+  // values spliced into a color function, not standalone tokens. See the
+  // caveat rendered below the table.
+  const chromaTokens = [
+    {
+      name: '--blocks-shadow-tint',
+      value: '0 0 0',
+      usage:
+        'oklch L C H triplet (no alpha) spliced into every --color-shadow-*. Re-tint so shadows match your chassis instead of reading as cool smudges.'
+    },
+    {
+      name: '--neutral-chrome-hue',
+      value: '240',
+      usage:
+        'Hue of the neutral intent chrome (bg-neutral / text-neutral / neutral borders). Keeps the warm-neutral ramp lightness — only the hue moves, so contrast is untouched.'
+    }
   ];
 </script>
 
@@ -337,19 +405,96 @@
     <h2 class="text-text-primary mb-6 text-2xl font-bold" id="typography">Typography Scale</h2>
 
     <p class="text-text-secondary mb-6">
-      Type sizes are Tailwind's built-in
-      <code class="bg-surface-subtle rounded-modify px-1.5 py-0.5 text-sm">text-*</code> utilities — there
-      are no custom font-size CSS variables to import or override.
+      Type is themeable exactly like color. Sizes, weights, leading, tracking and font families are
+      Tailwind
+      <code class="bg-surface-subtle rounded-modify px-1.5 py-0.5 text-sm">@theme</code>
+      variables —
+      <code class="bg-surface-subtle rounded-modify px-1.5 py-0.5 text-sm">--text-sm</code>,
+      <code class="bg-surface-subtle rounded-modify px-1.5 py-0.5 text-sm"
+        >--font-weight-medium</code
+      >,
+      <code class="bg-surface-subtle rounded-modify px-1.5 py-0.5 text-sm">--leading-tight</code>,
+      <code class="bg-surface-subtle rounded-modify px-1.5 py-0.5 text-sm">--tracking-wide</code>,
+      <code class="bg-surface-subtle rounded-modify px-1.5 py-0.5 text-sm">--font-sans</code>,
+      <code class="bg-surface-subtle rounded-modify px-1.5 py-0.5 text-sm">--font-mono</code> — and
+      you override them in the
+      <em>same</em>
+      <code class="bg-surface-subtle rounded-modify px-1.5 py-0.5 text-sm">@theme</code> block that
+      retunes
+      <code class="bg-surface-subtle rounded-modify px-1.5 py-0.5 text-sm">--color-primary-500</code
+      >. This docs site is the proof: it rethemes the whole library's type by overriding
+      <code class="bg-surface-subtle rounded-modify px-1.5 py-0.5 text-sm">--font-mono</code>
+      and
+      <code class="bg-surface-subtle rounded-modify px-1.5 py-0.5 text-sm">--font-sans</code> — see
+      <code class="bg-surface-subtle rounded-modify px-1.5 py-0.5 text-sm"
+        >apps/docs/src/lib/style/rooms-docs.css</code
+      >.
     </p>
 
-    <div class="border-border-subtle bg-surface-base overflow-hidden rounded-xl border">
+    <div
+      class="border-warning/40 bg-warning-subtle text-text-secondary rounded-contain mb-6 border p-4 text-sm leading-relaxed"
+    >
+      <strong class="text-warning-emphasis">Two things to get right.</strong>
+      <ul class="mt-2 list-inside list-disc space-y-1">
+        <li>
+          <strong class="text-text-primary">Change the paired line-height too.</strong> Tailwind's
+          built-in sizes each ship a companion
+          <code class="text-xs">--text-*--line-height</code>. Resize without it and the rhythm goes
+          subtly wrong everywhere the size is used. The two library-added steps (<code
+            class="text-xs">--text-2xs</code
+          >, <code class="text-xs">--text-3xs</code>) are deliberately size-only — Tailwind emits a
+          <code class="text-xs">line-height</code> only when the paired key exists, so they inherit
+          it from the cascade. Add the paired key in your own
+          <code class="text-xs">@theme</code> if you want one.
+        </li>
+        <li>
+          <strong class="text-text-primary">This works because of one property:</strong> the library
+          deliberately does not
+          <code class="text-xs">@import 'tailwindcss'</code>, so there is exactly one Tailwind
+          compilation — yours — and it wins. If your tooling introduces a second one, typography
+          overrides silently revert, exactly like color overrides do. See
+          <a
+            href="https://codeberg.org/urbicon/ui/src/branch/main/docs/TailwindCaveats.md"
+            class="text-primary hover:underline"
+            target="_blank"
+            rel="noreferrer">docs/TailwindCaveats.md</a
+          >.
+        </li>
+      </ul>
+    </div>
+
+    <CodeExample
+      title="Theme the type scale"
+      code={typographyOverrideExample}
+      language="css"
+      preview={false}
+    />
+
+    <p class="text-text-secondary mt-6 mb-6">
+      <strong class="text-text-primary">Know where the leverage is.</strong> The library's usage is
+      steep and lopsided:
+      <code class="bg-surface-subtle rounded-modify px-1.5 py-0.5 text-sm">--text-sm</code> reaches
+      the most call sites by a wide margin, while
+      <strong>nothing above <code class="text-xs">text-xl</code> is used at all</strong> — so
+      overriding
+      <code class="bg-surface-subtle rounded-modify px-1.5 py-0.5 text-sm">--text-6xl</code>
+      changes nothing in the library, and
+      <code class="bg-surface-subtle rounded-modify px-1.5 py-0.5 text-sm">--text-sm</code> reshapes
+      it. And because blocks never sets
+      <code class="bg-surface-subtle rounded-modify px-1.5 py-0.5 text-sm">font-sans</code>, body
+      type inherits from your page: <strong>you already own the font decision</strong> — no override needed.
+    </p>
+
+    <div class="border-border-subtle bg-surface-base mb-8 overflow-hidden rounded-xl border">
       <div class="overflow-x-auto">
         <table class="w-full text-sm">
           <thead class="border-border-subtle bg-surface-subtle border-b">
             <tr>
               <th class="text-text-primary px-4 py-3 text-left font-semibold">Utility</th>
+              <th class="text-text-primary px-4 py-3 text-left font-semibold">Override</th>
               <th class="text-text-primary px-4 py-3 text-left font-semibold">Value</th>
               <th class="text-text-primary px-4 py-3 text-left font-semibold">Pixels</th>
+              <th class="text-text-primary px-4 py-3 text-left font-semibold">Uses in blocks</th>
               <th class="text-text-primary px-4 py-3 text-left font-semibold">Example</th>
             </tr>
           </thead>
@@ -357,11 +502,45 @@
             {#each typographyScale as step (step.utility)}
               <tr>
                 <td class="text-primary px-4 py-3 font-mono">{step.utility}</td>
+                <td class="text-text-secondary px-4 py-3 font-mono whitespace-nowrap"
+                  >{step.variable}</td
+                >
                 <td class="text-text-secondary px-4 py-3 font-mono">{step.value}</td>
                 <td class="text-text-tertiary px-4 py-3">{step.pixels}</td>
-                <td class="text-text-primary px-4 py-3">
-                  <span style="font-size: {step.value}">The quick brown fox</span>
+                <td class="text-text-tertiary px-4 py-3 tabular-nums">
+                  {step.uses === 0 ? '—' : step.uses}
                 </td>
+                <td class="text-text-primary px-4 py-3">
+                  <span class={step.utility}>The quick brown fox</span>
+                </td>
+              </tr>
+            {/each}
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <h3 class="text-text-primary mb-4 text-lg font-semibold">Weights</h3>
+    <div class="border-border-subtle bg-surface-base overflow-hidden rounded-xl border">
+      <div class="overflow-x-auto">
+        <table class="w-full text-sm">
+          <thead class="border-border-subtle bg-surface-subtle border-b">
+            <tr>
+              <th class="text-text-primary px-4 py-3 text-left font-semibold">Utility</th>
+              <th class="text-text-primary px-4 py-3 text-left font-semibold">Override</th>
+              <th class="text-text-primary px-4 py-3 text-left font-semibold">Value</th>
+              <th class="text-text-primary px-4 py-3 text-left font-semibold">Uses in blocks</th>
+            </tr>
+          </thead>
+          <tbody class="divide-border-subtle divide-y">
+            {#each weightScale as step (step.utility)}
+              <tr>
+                <td class="text-primary px-4 py-3 font-mono">{step.utility}</td>
+                <td class="text-text-secondary px-4 py-3 font-mono whitespace-nowrap"
+                  >{step.variable}</td
+                >
+                <td class="text-text-secondary px-4 py-3 font-mono">{step.value}</td>
+                <td class="text-text-tertiary px-4 py-3 tabular-nums">{step.uses}</td>
               </tr>
             {/each}
           </tbody>
@@ -487,6 +666,57 @@
           </tbody>
         </table>
       </div>
+    </div>
+
+    <h3 class="text-text-primary mt-10 mb-4 text-lg font-semibold">Theme-level chroma knobs</h3>
+    <p class="text-text-secondary mb-6">
+      Two tokens let a theme match its chrome to its chassis without touching contrast. Every
+      shipped theme sets both — see
+      <code class="bg-surface-subtle rounded-modify px-1.5 py-0.5 text-sm"
+        >blocks/src/lib/style/themes/forest.css</code
+      >.
+    </p>
+    <div class="border-border-subtle bg-surface-base overflow-hidden rounded-xl border">
+      <div class="overflow-x-auto">
+        <table class="w-full text-sm">
+          <thead class="border-border-subtle bg-surface-subtle border-b">
+            <tr>
+              <th class="text-text-primary px-4 py-3 text-left font-semibold">Token</th>
+              <th class="text-text-primary px-4 py-3 text-left font-semibold">Default</th>
+              <th class="text-text-primary px-4 py-3 text-left font-semibold">What it does</th>
+            </tr>
+          </thead>
+          <tbody class="divide-border-subtle divide-y">
+            {#each chromaTokens as token (token.name)}
+              <tr>
+                <td class="text-primary px-4 py-3 font-mono text-xs whitespace-nowrap"
+                  >{token.name}</td
+                >
+                <td class="text-text-secondary px-4 py-3 font-mono text-xs">{token.value}</td>
+                <td class="text-text-tertiary px-4 py-3">{token.usage}</td>
+              </tr>
+            {/each}
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <div
+      class="border-warning/40 bg-warning-subtle text-text-secondary rounded-contain mt-4 border p-4 text-sm leading-relaxed"
+    >
+      <strong class="text-warning-emphasis"
+        >Set these in <code class="text-xs">:root</code>, never in
+        <code class="text-xs">@theme</code>.</strong
+      >
+      Both are raw partial values, not standalone tokens —
+      <code class="text-xs">--blocks-shadow-tint</code> is an
+      <code class="text-xs">oklch L C H</code> triplet <em>without</em> an alpha channel, spliced
+      into
+      <code class="text-xs">oklch(var(--blocks-shadow-tint) / 0.05)</code>. Putting either inside
+      <code class="text-xs">@theme</code>
+      gets you nothing. The shipped themes declare them in a
+      <code class="text-xs">:root</code> block after their <code class="text-xs">@theme</code> for exactly
+      this reason.
     </div>
   </section>
 

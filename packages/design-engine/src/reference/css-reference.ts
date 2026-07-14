@@ -55,10 +55,11 @@ The \`@theme\` block sets the Tailwind utility value. The \`:root\` rule overrid
 
 ## Available Sections
 - \`surfaces\` — 11 surface background tokens
-- \`text\` — 9 text color tokens
+- \`text\` — 9 text *color* tokens (for fonts/sizes/weights see \`typography\`)
 - \`borders\` — 5 border color tokens
 - \`intents\` — 6 component intents + the \`info\` status colour, feedback + interactive tokens + the \`live\` ("now") accent
 - \`shadows\` — 5 shadow tokens + z-index scale
+- \`typography\` — Font families, size scale, weights, leading/tracking, and how to override them
 - \`theming\` — How to create custom themes, available presets
 
 Fetch a section with \`urbicon css-reference <section>\` (local CLI) or \`get_css_reference(section="<section>")\` (MCP).
@@ -291,6 +292,80 @@ Usage: \`z-[var(--z-modal)]\`
 | \`--blocks-ease-snappy\` | Quick, decisive |
 `;
 
+const TYPOGRAPHY = `# Typography
+
+Type is themeable exactly like color, through the same \`@theme\` block. There is no separate
+Urbicon typography token layer: sizes, weights, leading, tracking and families are Tailwind's own
+theme variables, and overriding them retunes every component at once.
+
+## Font families
+
+The library **never sets \`font-sans\`** — body type inherits from your page, so you already own the
+font decision without overriding anything. It *does* use \`font-mono\` in a few meta surfaces
+(CommandPalette shortcut keys, JourneyTimeline meta), so \`--font-mono\` is worth setting.
+
+\`\`\`css
+@theme {
+  --font-sans: 'Inter Variable', system-ui, sans-serif;
+  --font-mono: 'JetBrains Mono', ui-monospace, monospace;
+}
+\`\`\`
+
+\`apps/docs/src/lib/style/rooms-docs.css\` is a live example: it rethemes the whole library's type by
+setting \`--font-mono\`, \`--font-sans\` and \`--font-display\`.
+
+## Size scale — know where the leverage is
+
+Tailwind's built-in sizes each have a **paired \`--text-*--line-height\`**. Change the size without
+it and the vertical rhythm goes subtly wrong everywhere that size is used. Always set both:
+
+\`\`\`css
+@theme {
+  --text-sm: 0.9375rem;
+  --text-sm--line-height: calc(1.375 / 0.9375);
+}
+\`\`\`
+
+The library's usage is steep and lopsided — overriding the wrong end of the scale does nothing:
+
+| Variable | Utility | Default | Reach in the library |
+|---|---|---|---|
+| \`--text-3xs\` | \`text-3xs\` | 0.625rem / 10px | library-added, size-only |
+| \`--text-2xs\` | \`text-2xs\` | 0.6875rem / 11px | library-added, size-only; dense Calendar chrome |
+| \`--text-xs\` | \`text-xs\` | 0.75rem / 12px | heavy |
+| \`--text-sm\` | \`text-sm\` | 0.875rem / 14px | **the highest-leverage override** |
+| \`--text-base\` | \`text-base\` | 1rem / 16px | heavy |
+| \`--text-lg\` | \`text-lg\` | 1.125rem / 18px | moderate |
+| \`--text-xl\` | \`text-xl\` | 1.25rem / 20px | light |
+| \`--text-2xl\` and above | — | — | **unused by the library** |
+
+So \`--text-sm\` reshapes the library; \`--text-6xl\` is a no-op (nothing above \`text-xl\` is used).
+Sizes above \`xl\` still work for *your* markup — they just don't move any component.
+
+\`--text-2xs\` / \`--text-3xs\` are the library's own additions to Tailwind's scale and are
+**deliberately size-only** (no paired line-height): Tailwind emits \`line-height\` for a scale entry
+only when the paired key exists, so they inherit it from the cascade instead of injecting one at
+every call site. Add the paired key in your own \`@theme\` if you want one.
+
+## Weights, leading, tracking
+
+\`\`\`css
+@theme {
+  --font-weight-medium: 550;   /* the library's most-used weight */
+  --font-weight-semibold: 650;
+  --leading-tight: 1.3;
+  --tracking-wide: 0.02em;
+}
+\`\`\`
+
+## Why this works (and when it stops)
+
+Overrides win because the library deliberately does **not** \`@import 'tailwindcss'\` — there is
+exactly one Tailwind compilation (yours), processed last. If your tooling introduces a second
+Tailwind compilation, typography overrides silently revert — exactly like color overrides do. See
+\`docs/TailwindCaveats.md\` → "Library CSS must not import Tailwind".
+`;
+
 const THEMING = `# Theming Guide
 
 ## Built-in Themes
@@ -315,7 +390,7 @@ Fix: when you change the accent hue, re-tint the neutral ramp to the same temper
 
 ## Creating a Custom Theme
 
-Pick an accent hue (0–360) and a chassis hue in the same temperature family (often the accent hue itself, or pulled slightly toward grey). Generate matched OKLCH ramps — the Theme Builder at \`/customization/theme-builder\` does this for you:
+Pick an accent hue (0–360) and a chassis hue in the same temperature family (often the accent hue itself, or pulled slightly toward grey). Generate matched OKLCH ramps — the Theme Builder at \`/customization/theme-builder\` does this for you: it emits the accent ramps, the matched chassis, and (for a tinted chassis) the \`:root\` \`--blocks-shadow-tint\` + \`--neutral-chrome-hue\` knobs, and it warns when your accent collides with an intent hue. It does NOT re-tune the colliding intent ramp — that call is yours:
 \`\`\`css
 /* my-theme.css — warm brand on a warm chassis */
 @theme {
@@ -447,6 +522,7 @@ export const CSS_REFERENCE_SECTION_NAMES = [
   'borders',
   'intents',
   'shadows',
+  'typography',
   'theming'
 ] as const;
 
@@ -458,6 +534,7 @@ export const CSS_REFERENCE_SECTIONS: Record<CssReferenceSection, string> = {
   borders: BORDERS,
   intents: INTENTS,
   shadows: SHADOWS,
+  typography: TYPOGRAPHY,
   theming: THEMING
 };
 

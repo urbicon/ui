@@ -3,6 +3,9 @@
   import { resolve } from '$app/paths';
   import { Card, Separator } from '@urbicon-ui/blocks';
   import { CodeExample, DocsLayout as DocsPageLayout } from '@urbicon-ui/docs';
+  // The shipped theme itself, not a retyped excerpt — a hand-copied version of
+  // this file previously drifted into teaching a primary-only recolor.
+  import forestThemeSource from '@urbicon-ui/blocks/style/themes/forest.css?raw';
 
   const navigation = [
     { id: 'ladder', title: 'Which tool do I use?', order: 1 },
@@ -75,23 +78,6 @@
   const quickThemeExample = `/* app.css */
 @import '@urbicon-ui/blocks/style/index.css';
 @import '@urbicon-ui/blocks/style/themes/ocean.css';`;
-
-  const customThemeExample = `/* app.css */
-@import '@urbicon-ui/blocks/style/index.css';
-
-@theme {
-  /* Primary – green brand color */
-  --color-primary-50: oklch(0.95 0.03 155);
-  --color-primary-500: oklch(0.58 0.13 155);
-  --color-primary-600: oklch(0.5 0.13 155);
-  /* ... all shades 50-950 ... */
-
-  /* Secondary – amber accent */
-  --color-secondary-50: oklch(0.95 0.02 90);
-  --color-secondary-500: oklch(0.55 0.08 90);
-  --color-secondary-600: oklch(0.48 0.08 90);
-  /* ... all shades 50-950 ... */
-}`;
 
   const blocksProviderExample =
     `<scr` +
@@ -287,18 +273,47 @@
       </div>
     </div>
     <p class="text-text-secondary mt-6 leading-relaxed">
-      You can also create your own theme. Use the
+      You can also create your own. Use the
       <a href={resolve('/customization/theme-builder')} class="text-primary hover:underline"
         >Theme Builder</a
       >
-      to generate an OKLCH palette, or write a custom
-      <code class="bg-surface-subtle rounded-modify px-1.5 py-0.5 text-sm">@theme</code> block:
+      to generate a matched OKLCH palette, or follow the annotated walkthrough on
+      <a href={resolve('/customization/themes')} class="text-primary hover:underline"
+        >CSS Token Themes</a
+      >.
+    </p>
+    <div
+      class="border-warning/40 bg-warning-subtle text-text-secondary rounded-contain mt-4 border p-4 text-sm leading-relaxed"
+    >
+      <strong class="text-warning-emphasis">A brand color alone is not a theme.</strong>
+      Recolor <code class="text-xs">--color-primary-*</code> and nothing else, and your warm brand
+      button ends up sitting on cool blue-grey cards —
+      <code class="text-xs">surface-*</code>, <code class="text-xs">text-*</code> and
+      <code class="text-xs">border-*</code>
+      derive from the <strong>neutral chassis</strong>, not from primary. A real theme also re-tints
+      <code class="text-xs">--color-neutral-*</code> to the accent's temperature, and re-tunes any
+      intent your accent collides with (a green brand vs. <code class="text-xs">success</code>, an
+      amber one vs. <code class="text-xs">warning</code>).
+    </div>
+    <p class="text-text-secondary mt-6 leading-relaxed">
+      Rather than paraphrase that, here is a shipped theme in full — this is
+      <code class="bg-surface-subtle rounded-modify px-1.5 py-0.5 text-sm"
+        >blocks/style/themes/forest.css</code
+      >
+      itself, read straight from the package. Note what it does beyond the two accent ramps: the chassis
+      re-tint, the two collision re-tunes (green primary pushes
+      <code class="bg-surface-subtle rounded-modify px-1.5 py-0.5 text-sm">success</code> off 140;
+      lime secondary pushes
+      <code class="bg-surface-subtle rounded-modify px-1.5 py-0.5 text-sm">warning</code> off 80),
+      and the two <code class="bg-surface-subtle rounded-modify px-1.5 py-0.5 text-sm">:root</code> chroma
+      knobs at the end.
     </p>
     <CodeExample
-      title="Custom @theme block"
-      code={customThemeExample}
+      title="forest.css — a complete theme, verbatim from the package"
+      code={forestThemeSource}
       language="css"
       preview={false}
+      defaultExpanded={false}
     />
   </section>
 

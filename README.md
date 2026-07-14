@@ -67,7 +67,7 @@ urbicon-ui/
 
 - **Framework**: [Svelte 5](https://svelte.dev) with runes (`$state`, `$derived`, `$effect`)
 - **Styling**: [Tailwind CSS 4](https://tailwindcss.com) + custom `tv()` variant engine (zero-dep replacement for `tailwind-variants`)
-- **Design Tokens**: OKLCH color system with 3-layer architecture (foundation → semantic → interaction)
+- **Design Tokens**: OKLCH color system with 3-layer architecture (foundation → semantic → interaction) — themed (colour *and* typography) via one Tailwind `@theme` block; the neutral chassis re-tints with the accent, see `urbicon css-reference theming`
 - **Build**: [Bun](https://bun.sh) workspaces, `@sveltejs/package`
 - **Testing**: [Vitest](https://vitest.dev) (unit) + [Playwright](https://playwright.dev/) (e2e + a11y axe)
 - **Commits**: [Conventional Commits](https://www.conventionalcommits.org) enforced via commitlint + lefthook
