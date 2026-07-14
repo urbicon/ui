@@ -345,6 +345,15 @@ describe('ButtonGroup (single-select roving tabindex + keyboard nav)', () => {
       'vertical'
     );
   });
+
+  it('omits aria-orientation on the multi-selection arm, where ARIA disallows it', () => {
+    renderGroup({ selection: 'multiple', ariaLabel: 'Filters', orientation: 'vertical' });
+
+    // role=group does not support aria-orientation (axe: aria-allowed-attr).
+    expect(screen.getByRole('group', { name: 'Filters' }).hasAttribute('aria-orientation')).toBe(
+      false
+    );
+  });
 });
 
 describe('ButtonGroup (multiple-select keyboard)', () => {

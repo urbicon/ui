@@ -247,6 +247,10 @@
   }
 
   const ariaRole = $derived(selection === 'single' ? 'radiogroup' : 'group');
+  // ARIA allows `aria-orientation` on `radiogroup`, not on `group` — emitting it
+  // on the multi-selection arm is an `aria-allowed-attr` violation. The visual
+  // orientation is unaffected; it comes from the variant classes, not from ARIA.
+  const ariaOrientation = $derived(ariaRole === 'radiogroup' ? orientation : undefined);
 </script>
 
 <div
@@ -257,7 +261,7 @@
     : styles.base({ class: [slotClasses?.base, className] })}
   aria-label={ariaLabel}
   aria-labelledby={ariaLabelledBy}
-  aria-orientation={orientation}
+  aria-orientation={ariaOrientation}
   aria-disabled={disabled || undefined}
   onkeydown={handleKeyDown}
   {...restProps}
