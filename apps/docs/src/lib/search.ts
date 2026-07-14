@@ -80,10 +80,13 @@ const MATCH_PREFIX = 1;
 const MATCH_WORD = 2;
 
 /**
- * Split a string into lowercase search tokens. camelCase and kebab/underscore
- * runs are additionally split into their parts, so `onCheckedChange` is
- * reachable by `checked` and `focus-visible` by `visible`, while the joined
- * form is kept so the exact symbol still matches as one token.
+ * Split a string into lowercase search tokens, keeping the joined symbol and
+ * adding its camelCase parts, so `onCheckedChange` is reachable by `checked`.
+ *
+ * This is the *index-side* expansion: it flattens a component's symbols into the
+ * `n` field, where every token is an independent thing the record contains.
+ * Queries go through `parseQuery` instead — a query's tokens are conjuncts, and
+ * flattening them here would make the split parts mandatory (see `QueryTerm`).
  */
 export function tokenize(input: string): string[] {
   const tokens: string[] = [];
@@ -91,14 +94,50 @@ export function tokenize(input: string): string[] {
     if (raw) tokens.push(raw);
   }
   for (const raw of input.split(/[^A-Za-z0-9]+/)) {
-    const parts = raw.split(/(?<=[a-z0-9])(?=[A-Z])/);
-    if (parts.length < 2) continue;
-    for (const part of parts) {
-      const lower = part.toLowerCase();
-      if (lower) tokens.push(lower);
-    }
+    const parts = splitCamel(raw);
+    for (const part of parts) tokens.push(part);
   }
   return [...new Set(tokens)];
+}
+
+/** camelCase parts of one word, lowercased. Empty when the word does not split. */
+function splitCamel(raw: string): string[] {
+  const parts = raw.split(/(?<=[a-z0-9])(?=[A-Z])/);
+  if (parts.length < 2) return [];
+  return parts.map((part) => part.toLowerCase()).filter(Boolean);
+}
+
+/**
+ * One word of the query: the token as typed, plus the camelCase parts it splits
+ * into. The parts are a synthetic *expansion* of `token`, not extra words the
+ * reader typed — which is why they are carried alongside it rather than
+ * flattened into the term list.
+ *
+ * Flattening was the bug: `PasskeyManager` became three mandatory terms
+ * (`passkeymanager`, `passkey`, `manager`), so prose naming the component
+ * matched none of them unless it also carried a separate word starting with
+ * "manager". 43 of the 52 multi-word component names found *less* in the casing
+ * the docs themselves use than in all-lowercase; `BlocksProvider` found nothing.
+ */
+export interface QueryTerm {
+  /** The word as typed, lowercased. */
+  token: string;
+  /** camelCase parts of `token`. Empty when it does not split. */
+  parts: string[];
+}
+
+/** Split a raw query into terms. Repeated words collapse into one term. */
+export function parseQuery(input: string): QueryTerm[] {
+  const terms: QueryTerm[] = [];
+  const seen = new Set<string>();
+  for (const raw of input.split(/[^A-Za-z0-9]+/)) {
+    if (!raw) continue;
+    const token = raw.toLowerCase();
+    if (seen.has(token)) continue;
+    seen.add(token);
+    terms.push({ token, parts: splitCamel(raw) });
+  }
+  return terms;
 }
 
 /**
@@ -167,11 +206,31 @@ function scoreToken(hay: Haystacks, token: string): number {
 }
 
 /**
- * Score one record against pre-tokenized query terms. Returns 0 unless *every*
- * term hits some field — AND semantics, so "focus ring" does not return every
- * page that merely says "focus".
+ * Score one term. The word as typed is the evidence; its camelCase parts only
+ * stand in for it when the joined form is absent *and every part hits*, so
+ * `DatePicker` still reaches a record that spells it "date picker" while a
+ * record that merely says "date" is not credited with the whole word.
  */
-export function scoreRecord(record: SearchRecord, terms: string[], phrase: string): number {
+function scoreTerm(hay: Haystacks, term: QueryTerm): number {
+  const direct = scoreToken(hay, term.token);
+  if (direct > 0 || term.parts.length === 0) return direct;
+
+  let total = 0;
+  for (const part of term.parts) {
+    const score = scoreToken(hay, part);
+    if (score === 0) return 0;
+    total += score;
+  }
+  return total;
+}
+
+/**
+ * Score one record against a parsed query. Returns 0 unless *every* term hits
+ * some field — AND semantics, so "focus ring" does not return every page that
+ * merely says "focus". A term's camelCase parts are one term, not several: see
+ * `QueryTerm`.
+ */
+export function scoreRecord(record: SearchRecord, terms: QueryTerm[], phrase: string): number {
   const hay: Haystacks = {
     title: `${record.t} ${record.p}`.toLowerCase(),
     name: (record.n ?? '').toLowerCase(),
@@ -180,7 +239,7 @@ export function scoreRecord(record: SearchRecord, terms: string[], phrase: strin
 
   let total = 0;
   for (const term of terms) {
-    const termScore = scoreToken(hay, term);
+    const termScore = scoreTerm(hay, term);
     if (termScore === 0) return 0;
     total += termScore;
   }
@@ -202,15 +261,17 @@ export function hrefFor(record: SearchRecord): string {
  * Body text around the first matching term, clipped to word boundaries and
  * ellipsed. Returns '' when no term appears in the body (a title-only hit).
  */
-export function excerptFor(record: SearchRecord, terms: string[], radius: number): string {
+export function excerptFor(record: SearchRecord, terms: QueryTerm[], radius: number): string {
   const body = record.b;
   if (!body) return '';
   const lower = body.toLowerCase();
 
   let at = -1;
   for (const term of terms) {
-    const found = indexOfWord(lower, term);
-    if (found !== -1 && (at === -1 || found < at)) at = found;
+    for (const needle of [term.token, ...term.parts]) {
+      const found = indexOfWord(lower, needle);
+      if (found !== -1 && (at === -1 || found < at)) at = found;
+    }
   }
   if (at === -1) return '';
 
@@ -238,7 +299,7 @@ export function searchRecords(
   query: string,
   options: SearchOptions = {}
 ): SearchHit[] {
-  const terms = tokenize(query);
+  const terms = parseQuery(query);
   if (terms.length === 0) return [];
 
   const limit = options.limit ?? DEFAULT_LIMIT;

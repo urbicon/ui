@@ -1,5 +1,12 @@
 import { describe, expect, it } from 'vitest';
-import { excerptFor, hrefFor, type SearchRecord, searchRecords, tokenize } from './search';
+import {
+  excerptFor,
+  hrefFor,
+  parseQuery,
+  type SearchRecord,
+  searchRecords,
+  tokenize
+} from './search';
 
 const record = (over: Partial<SearchRecord>): SearchRecord => ({
   r: '/x',
@@ -50,6 +57,21 @@ const index: SearchRecord[] = [
     n: 'checked indeterminate oncheckedchange on change size',
     b: 'indeterminate Visual-only third state showing a dash icon. Resets to unchecked on next user toggle.',
     k: 'api'
+  }),
+  // Prose records carry no `n`, so a name only ever reaches them as one word.
+  record({
+    r: '/customization/blocks-provider',
+    a: 'presets',
+    t: 'Named Presets',
+    p: 'BlocksProvider',
+    b: 'Register a preset on BlocksProvider and reference it by name from any component.'
+  }),
+  record({
+    r: '/blocks/components/date-picker',
+    a: 'usage',
+    t: 'Usage',
+    p: 'DatePicker Component',
+    b: 'The date picker opens a Calendar in a popover and writes back an ISO string.'
   })
 ];
 
@@ -68,6 +90,29 @@ describe('tokenize', () => {
 
   it('returns nothing for punctuation-only input', () => {
     expect(tokenize('  ?? ')).toEqual([]);
+  });
+});
+
+describe('parseQuery', () => {
+  it('keeps a camelCase word as one term and carries its parts alongside', () => {
+    expect(parseQuery('PasskeyManager')).toEqual([
+      { token: 'passkeymanager', parts: ['passkey', 'manager'] }
+    ]);
+  });
+
+  it('emits one term per typed word', () => {
+    expect(parseQuery('dark mode!')).toEqual([
+      { token: 'dark', parts: [] },
+      { token: 'mode', parts: [] }
+    ]);
+  });
+
+  it('collapses a repeated word', () => {
+    expect(parseQuery('focus focus')).toEqual([{ token: 'focus', parts: [] }]);
+  });
+
+  it('returns nothing for punctuation-only input', () => {
+    expect(parseQuery('  ?? ')).toEqual([]);
   });
 });
 
@@ -121,6 +166,44 @@ describe('searchRecords', () => {
     );
   });
 
+  // Regression: `tokenize` made the camelCase parts *mandatory* terms, so
+  // "BlocksProvider" demanded a separate word starting with "provider" and found
+  // nothing — while "blocksprovider" found the page. Measured on the real 650-record
+  // index, 43 of 52 multi-word component names found less in their documented casing.
+  it('finds a component by its own name, spelled as the docs spell it', () => {
+    expect(searchRecords(index, 'BlocksProvider')[0].href).toBe(
+      '/customization/blocks-provider#presets'
+    );
+    expect(searchRecords(index, 'onCheckedChange')[0].href).toBe('/blocks/primitives/checkbox#api');
+  });
+
+  // The property that keeps the above from regressing in some other form: the
+  // parts are an expansion of the word, so they may only ever *add* evidence.
+  it('never finds less in documented casing than in all-lowercase', () => {
+    for (const name of ['BlocksProvider', 'DatePicker', 'PasskeyManager', 'onCheckedChange']) {
+      const cased = searchRecords(index, name, { limit: 50 });
+      const lower = searchRecords(index, name.toLowerCase(), { limit: 50 });
+      const casedHrefs = cased.map((hit) => hit.href);
+      for (const hit of lower) expect(casedHrefs).toContain(hit.href);
+    }
+  });
+
+  // The reason the parts are carried at all — they must stay optional, not mandatory.
+  it('finds a component whose name the prose splits into words', () => {
+    const hits = searchRecords(index, 'DatePicker');
+    expect(hits.map((hit) => hit.href)).toContain('/blocks/components/date-picker#usage');
+  });
+
+  it('still finds a component from the spaced-out spelling of its name', () => {
+    expect(searchRecords(index, 'date picker')[0].record.r).toBe('/blocks/components/date-picker');
+  });
+
+  // A part on its own is not the word: "date" must not pass for "DatePicker".
+  it('does not credit a partial camelCase match', () => {
+    const dateOnly = [record({ t: 'Release Dates', b: 'A date is stored as an ISO string.' })];
+    expect(searchRecords(dateOnly, 'DatePicker')).toEqual([]);
+  });
+
   it('caps results', () => {
     expect(searchRecords(index, 'the', { limit: 2 }).length).toBeLessThanOrEqual(2);
   });
@@ -147,23 +230,30 @@ describe('hrefFor', () => {
 describe('excerptFor', () => {
   it('centres on the match and ellipses both ends', () => {
     const long = record({ b: `${'a '.repeat(80)}needle ${'b '.repeat(80)}` });
-    const excerpt = excerptFor(long, ['needle'], 30);
+    const excerpt = excerptFor(long, parseQuery('needle'), 30);
     expect(excerpt).toContain('needle');
     expect(excerpt.startsWith('…')).toBe(true);
     expect(excerpt.endsWith('…')).toBe(true);
   });
 
   it('does not ellipse when the whole body fits', () => {
-    expect(excerptFor(record({ b: 'short needle here' }), ['needle'], 90)).toBe(
+    expect(excerptFor(record({ b: 'short needle here' }), parseQuery('needle'), 90)).toBe(
       'short needle here'
     );
   });
 
   it('returns empty for a title-only hit', () => {
-    expect(excerptFor(record({ t: 'Toggle', b: 'unrelated' }), ['toggle'], 90)).toBe('');
+    expect(excerptFor(record({ t: 'Toggle', b: 'unrelated' }), parseQuery('toggle'), 90)).toBe('');
   });
 
   it('ignores an unanchored occurrence', () => {
-    expect(excerptFor(record({ b: 'during' }), ['ring'], 90)).toBe('');
+    expect(excerptFor(record({ b: 'during' }), parseQuery('ring'), 90)).toBe('');
+  });
+
+  // The body may spell the name out, so the parts have to be able to anchor it.
+  it('centres on a camelCase part when the body spells the name as words', () => {
+    expect(excerptFor(record({ b: 'The date picker opens.' }), parseQuery('DatePicker'), 90)).toBe(
+      'The date picker opens.'
+    );
   });
 });

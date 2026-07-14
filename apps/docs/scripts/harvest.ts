@@ -59,6 +59,23 @@ export function decodeEntities(input: string): string {
  * A bare `<` in text is not valid HTML (it must be `&lt;`), so treating every
  * `<` as a tag start is safe for generated output.
  */
+/** Offset just past the `>` that closes the tag opening at `lt`. */
+function endOfTag(html: string, lt: number): number {
+  let j = lt + 1;
+  let quote = '';
+  for (; j < html.length; j++) {
+    const ch = html[j];
+    if (quote) {
+      if (ch === quote) quote = '';
+    } else if (ch === '"' || ch === "'") {
+      quote = ch;
+    } else if (ch === '>') {
+      break;
+    }
+  }
+  return j + 1;
+}
+
 function stripTags(html: string): string {
   let out = '';
   let i = 0;
@@ -66,34 +83,173 @@ function stripTags(html: string): string {
     const lt = html.indexOf('<', i);
     if (lt === -1) return out + html.slice(i);
     out += `${html.slice(i, lt)} `;
-    let j = lt + 1;
-    let quote = '';
-    for (; j < html.length; j++) {
-      const ch = html[j];
-      if (quote) {
-        if (ch === quote) quote = '';
-      } else if (ch === '"' || ch === "'") {
-        quote = ch;
-      } else if (ch === '>') {
-        break;
-      }
-    }
-    i = j + 1;
+    i = endOfTag(html, lt);
   }
 }
 
 /**
- * Flatten markup to readable text. Drops comments (Svelte's hydration markers
- * are comments), and script/style/svg subtrees, whose contents are not prose.
+ * Drop what is markup but never prose: comments (Svelte's hydration markers are
+ * comments) and script/style/svg subtrees.
+ */
+function sanitize(html: string): string {
+  return html.replace(/<!--[\s\S]*?-->/g, '').replace(/<(script|style|svg)\b[\s\S]*?<\/\1>/gi, ' ');
+}
+
+/**
+ * Flatten markup to readable text.
  *
  * Entities are decoded *after* tag stripping, so markup that the page shows as
  * escaped example code stays text rather than being stripped as tags.
  */
 export function stripHtml(html: string): string {
-  const text = stripTags(
-    html.replace(/<!--[\s\S]*?-->/g, '').replace(/<(script|style|svg)\b[\s\S]*?<\/\1>/gi, ' ')
+  return decodeEntities(stripTags(sanitize(html)))
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
+/** Elements that carry no close tag, so they own no subtree. */
+const VOID_TAGS = new Set([
+  'area',
+  'base',
+  'br',
+  'col',
+  'embed',
+  'hr',
+  'img',
+  'input',
+  'link',
+  'meta',
+  'param',
+  'source',
+  'track',
+  'wbr'
+]);
+
+interface Element {
+  name: string;
+  /** Everything after the tag name in the start tag, verbatim. */
+  attrs: string;
+  /** Offset of this element's `<`. */
+  start: number;
+  /** Offset just past its close tag (past the start tag when void or self-closing). */
+  end: number;
+  children: Element[];
+}
+
+/**
+ * Element forest with source ranges. Only what the chrome predicates below need:
+ * tag name, raw attributes, nesting, and where each element begins and ends.
+ *
+ * Tolerant by design (the input is generated, but a harvest must never throw on
+ * a page): a close tag with no matching open tag is ignored, and an open tag
+ * that is never closed runs to the end of the input.
+ */
+function parseElements(html: string): Element[] {
+  const roots: Element[] = [];
+  const open: Element[] = [];
+  let i = 0;
+  for (;;) {
+    const lt = html.indexOf('<', i);
+    if (lt === -1) break;
+    const end = endOfTag(html, lt);
+    const raw = html.slice(lt + 1, end - 1);
+    const match = raw.match(/^(\/?)([a-zA-Z][a-zA-Z0-9-]*)/);
+    if (!match) {
+      i = end;
+      continue;
+    }
+    const name = match[2].toLowerCase();
+    if (match[1]) {
+      const at = open.findLastIndex((candidate) => candidate.name === name);
+      if (at !== -1) {
+        for (let k = open.length - 1; k >= at; k--) open[k].end = end;
+        open.length = at;
+      }
+      i = end;
+      continue;
+    }
+    const element: Element = {
+      name,
+      attrs: raw.slice(match[0].length),
+      start: lt,
+      end,
+      children: []
+    };
+    (open[open.length - 1]?.children ?? roots).push(element);
+    if (!VOID_TAGS.has(name) && !raw.endsWith('/')) open.push(element);
+    i = end;
+  }
+  for (const element of open) element.end = html.length;
+  return roots;
+}
+
+function subtreeHas(element: Element, pred: (candidate: Element) => boolean): boolean {
+  return pred(element) || element.children.some((child) => subtreeHas(child, pred));
+}
+
+/** An element whose content is by its own declaration not final yet. */
+const isBusy = (element: Element): boolean => /\baria-busy="true"/.test(element.attrs);
+
+/** CodePanel's control strip: a disclosure button beside the labelled copy control. */
+function isCodeToolbar(element: Element): boolean {
+  const buttons = element.children.filter((child) => child.name === 'button');
+  return (
+    buttons.some((button) => /\baria-expanded=/.test(button.attrs)) &&
+    buttons.some((button) => /\baria-label=/.test(button.attrs))
   );
-  return decodeEntities(text).replace(/\s+/g, ' ').trim();
+}
+
+/** The control strip wrapped over the busy region it toggles. */
+function isCodePanel(element: Element): boolean {
+  return (
+    element.children.length === 2 &&
+    isCodeToolbar(element.children[0]) &&
+    subtreeHas(element.children[1], isBusy)
+  );
+}
+
+/**
+ * Remove the prerendered placeholder chrome.
+ *
+ * Code examples are highlighted in an `$effect`, so what prerenders in a
+ * CodePanel is never code: it is the panel's shell — language tag, "Hide Code",
+ * "Copy", and a spinner — which was landing verbatim in 365 of 650 records. It
+ * outranked the pages that genuinely document those words ("syntax highlighting"
+ * scored 124 on `planner#installation`) and spent 37k characters of the body
+ * budget site-wide.
+ *
+ * Matched by shape, not by its text: `/customization` documents a copy button and
+ * CodePanel's own page discusses syntax highlighting, and both must stay
+ * indexed. The panel carries no marker attribute of its own (`packages/docs`
+ * ships no `data-` hook on it, and its classes are utility soup shared with every
+ * other component), so the shape is the contract: an element whose two children
+ * are a toolbar — `button[aria-expanded]` next to `button[aria-label]` — and a
+ * region holding `[aria-busy="true"]`. Verified against the real dist: it matches
+ * 646 panels across 139 pages and removes 9 distinct strings, all shell.
+ *
+ * `[aria-busy="true"]` is dropped wherever else it appears too (a demo's loading
+ * Button, a stepper mid-sync): the element is telling us its text is a
+ * placeholder, and "Loading..." was in 394 records.
+ */
+export function stripPlaceholderChrome(html: string): string {
+  const cuts: Array<[number, number]> = [];
+
+  const visit = (element: Element): void => {
+    if (isCodePanel(element) || isBusy(element)) {
+      cuts.push([element.start, element.end]);
+      return;
+    }
+    for (const child of element.children) visit(child);
+  };
+  for (const root of parseElements(html)) visit(root);
+
+  let out = '';
+  let at = 0;
+  for (const [start, end] of cuts) {
+    out += html.slice(at, start);
+    at = end;
+  }
+  return out + html.slice(at);
 }
 
 /**
@@ -189,13 +345,18 @@ function titleCase(slug: string): string {
     .join(' ');
 }
 
+interface HeadingChunk extends Block {
+  /** The heading's own text. `inner` is already flattened, so it cannot be recovered from it. */
+  heading: string;
+}
+
 /**
  * Anchored `<h2 id>`/`<h3 id>` headings and the prose that follows each, used
  * for pages that carry no `<section id>`. Without this the whole
  * `customization/**` tree — the conceptual prose about tokens, theming and dark
  * mode — would be indexed as one undifferentiated blob or missed entirely.
  */
-function harvestHeadingChunks(main: string): Block[] {
+function harvestHeadingChunks(main: string): HeadingChunk[] {
   const pattern = /<(h[1-6])\b[^>]*\bid="([^"]+)"[^>]*>([\s\S]*?)<\/\1>/gi;
   const marks: Array<{ id: string; heading: string; start: number }> = [];
   for (let m = pattern.exec(main); m !== null; m = pattern.exec(main)) {
@@ -204,6 +365,7 @@ function harvestHeadingChunks(main: string): Block[] {
   }
   return marks.map((mark, i) => ({
     id: mark.id,
+    heading: mark.heading,
     inner: `${mark.heading} ${stripHtml(main.slice(mark.start, marks[i + 1]?.start ?? main.length))}`
   }));
 }
@@ -214,8 +376,9 @@ function harvestHeadingChunks(main: string): Block[] {
  * `<section id>` → anchored heading → whole page.
  */
 export function harvestHtml(html: string, route: string): SearchRecord[] {
-  const main = extractMain(html);
-  if (!main) return [];
+  const raw = extractMain(html);
+  if (!raw) return [];
+  const main = stripPlaceholderChrome(sanitize(raw));
 
   const pageTitle = extractPageTitle(html) || titleCase(route.split('/').pop() ?? '');
 
@@ -236,10 +399,10 @@ export function harvestHtml(html: string, route: string): SearchRecord[] {
   const chunks = harvestHeadingChunks(main);
   if (chunks.length > 0) {
     return chunks
-      .map(({ id, inner }) => ({
+      .map(({ id, heading, inner }) => ({
         r: route,
         a: id,
-        t: stripHtml(inner).split(' ').slice(0, 8).join(' ') || titleCase(id),
+        t: heading || titleCase(id),
         p: pageTitle,
         b: clamp(inner),
         k: 'prose' as const
@@ -258,9 +421,9 @@ export function harvestHtml(html: string, route: string): SearchRecord[] {
  * prose that merely mentions it; descriptions become the body so the *meaning*
  * of a prop is searchable too.
  *
- * The name field is run through the query-side `tokenize`, which stores both the
- * joined symbol and its camelCase parts. Search anchors matches to word starts,
- * so without the split parts `checked` could not reach `onCheckedChange`.
+ * The name field is run through `tokenize`, which stores both the joined symbol
+ * and its camelCase parts. Search anchors matches to word starts, so without the
+ * split parts `checked` could not reach `onCheckedChange`.
  */
 export function harvestApi(data: HarvestableApi, route: string): SearchRecord[] {
   const props = [...(data.props ?? []), ...(data.inheritance ?? []).flatMap((i) => i.props ?? [])];

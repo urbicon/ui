@@ -8,8 +8,17 @@ import {
   harvestApi,
   harvestHtml,
   mergeRecords,
-  stripHtml
+  stripHtml,
+  stripPlaceholderChrome
 } from './harvest';
+
+/**
+ * A prerendered CodePanel, verbatim in shape from `dist` (classes elided): the
+ * toolbar, then the collapse wrapping the loading placeholder that stands in for
+ * the code until the `$effect` highlights it. The scope hashes (`svelte-xxx`)
+ * are per-build and deliberately not matched on.
+ */
+const codePanel = `<div class="border-t border-border-hairline svelte-1nx7glw"><div class="flex items-center gap-2 px-4 py-2 svelte-1nx7glw"><button type="button" class="font-meta" aria-expanded="true"><svg class="size-3.5" viewBox="0 0 24 24" aria-hidden="true"><path d="M9 5l7 7-7 7"></path></svg> <span class="meta-marker svelte-1nx7glw">svelte</span> <span class="sr-only">Hide Code</span></button> <span class="text-xs svelte-1nx7glw" aria-hidden="true">·</span> <button type="button" class="font-meta" aria-label="Copy" disabled="">Copy <span aria-hidden="true">↗</span></button> <span class="sr-only" role="status"></span></div> <div class="grid transition-[grid-template-rows]" style="grid-template-rows: 1fr"><div class="overflow-hidden"><!--[0--><div class="flex items-center justify-center gap-2 p-8 svelte-1nx7glw" aria-live="polite"><div class="inline-flex svelte-a9agkl" role="status" aria-label="Loading..." aria-live="polite" aria-busy="true"><svg class="animate-spin" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"></circle></svg> <span class="sr-only svelte-a9agkl">Loading...</span></div> <span class="text-sm text-text-secondary svelte-1nx7glw">Loading syntax highlighting...</span></div><!--]--></div></div></div>`;
 
 /**
  * Mirrors the real prerendered output: a sidebar outside `<main>`, Svelte
@@ -25,6 +34,7 @@ const componentPage = `<!doctype html><html><head><title>Checkbox Component – 
   <div class="[&>span]:font-bold [&>p]:text-base"><p>Keyboard Tab to focus, Space to toggle. The focus ring is drawn with focus-visible.</p>
   <section class="nested"><p>Nested prose stays with its parent section.</p></section></div>
 <!--]--></section>
+<section id="usage" aria-labelledby="usage-title"><header><h2 id="usage-title">06 Usage</h2></header><p>Bind the checked state.</p>${codePanel}</section>
 <section id="api" aria-labelledby="api-title"><header><h2 id="api-title">05 API</h2></header><table><tr><th>Prop</th></tr></table>Loading</section>
 <!--]--></main>
 <footer>Imprint</footer></body></html>`;
@@ -92,10 +102,52 @@ describe('extractMain / extractPageTitle', () => {
   });
 });
 
+describe('stripPlaceholderChrome', () => {
+  // Regression: code is highlighted in an `$effect`, so the prerendered panel is
+  // pure shell. It reached 365 of 650 records, where "syntax highlighting" then
+  // outranked the pages that document it.
+  it('removes the prerendered CodePanel shell whole', () => {
+    const text = stripHtml(stripPlaceholderChrome(codePanel));
+    expect(text).toBe('');
+  });
+
+  it('leaves the prose around a panel intact', () => {
+    const text = stripHtml(stripPlaceholderChrome(`<p>Bind the checked state.</p>${codePanel}`));
+    expect(text).toBe('Bind the checked state.');
+  });
+
+  // The panel is matched by shape because these must survive: /customization
+  // documents a copy button, and CodePanel's own page discusses highlighting.
+  it('keeps prose that merely talks about copying and syntax highlighting', () => {
+    const prose = `<p>Press Copy to copy the snippet. Loading syntax highlighting is deferred.</p>`;
+    expect(stripHtml(stripPlaceholderChrome(prose))).toBe(
+      'Press Copy to copy the snippet. Loading syntax highlighting is deferred.'
+    );
+  });
+
+  // A busy element is telling us its text is a placeholder. "Loading..." was in 394 records.
+  it('removes a busy region wherever it appears, not only inside a panel', () => {
+    const demo = `<div><button>Save <span role="status" aria-busy="true"><span class="sr-only">Loading...</span></span></button><p>Real prose.</p></div>`;
+    const text = stripHtml(stripPlaceholderChrome(demo));
+    expect(text).toBe('Save Real prose.');
+  });
+
+  // A disclosure button and a spinner can coexist without forming a panel;
+  // matching them loosely dropped whole documented examples.
+  it('does not mistake an unrelated disclosure and spinner for a panel', () => {
+    const demo = `<div><div><button aria-expanded="true">Details</button></div><div><p>Kept prose.</p><span aria-busy="true">x</span></div></div>`;
+    expect(stripHtml(stripPlaceholderChrome(demo))).toBe('Details Kept prose.');
+  });
+
+  it('survives a stray close tag without throwing or eating content', () => {
+    expect(stripHtml(stripPlaceholderChrome('<p>a</p></div><p>b</p>'))).toBe('a b');
+  });
+});
+
 describe('extractIdBlocks', () => {
   it('captures outermost id-bearing blocks and does not close on a nested tag', () => {
     const blocks = extractIdBlocks(extractMain(componentPage) ?? '', 'section');
-    expect(blocks.map((b) => b.id)).toEqual(['accessibility', 'api']);
+    expect(blocks.map((b) => b.id)).toEqual(['accessibility', 'usage', 'api']);
     expect(blocks[0].inner).toContain('Nested prose stays with its parent section');
   });
 
@@ -111,7 +163,7 @@ describe('extractIdBlocks', () => {
 describe('harvestHtml', () => {
   it('emits one record per section, deep-linking to route#anchor', () => {
     const records = harvestHtml(componentPage, '/blocks/primitives/checkbox');
-    expect(records.map((r) => r.a)).toEqual(['accessibility', 'api']);
+    expect(records.map((r) => r.a)).toEqual(['accessibility', 'usage', 'api']);
     const a11y = records[0];
     expect(a11y.r).toBe('/blocks/primitives/checkbox');
     expect(a11y.t).toBe('Accessibility');
@@ -131,6 +183,21 @@ describe('harvestHtml', () => {
     const records = harvestHtml(prosePage, '/customization/tokens');
     expect(records.map((r) => r.a)).toEqual(['architecture', 'dark-mode']);
     expect(records[1].b).toContain('light-dark()');
+  });
+
+  // Regression: the title was recomputed from the first 8 words of heading+body,
+  // so all 32 records on the 5 heading-chunk pages were labelled with a sentence
+  // cut off mid-word — and the leaked body words scored as title words (100 vs 12),
+  // which floated a link list above the page a query was actually about.
+  it('titles a heading chunk with the heading, not the prose that follows it', () => {
+    const records = harvestHtml(prosePage, '/customization/tokens');
+    expect(records.map((r) => r.t)).toEqual(['Token Architecture', 'Dark Mode Support']);
+    expect(records[1].b).toContain('Design tokens automatically adapt');
+  });
+
+  it('strips the CodePanel shell out of a section record', () => {
+    const usage = harvestHtml(componentPage, '/x').find((r) => r.a === 'usage');
+    expect(usage?.b).toBe('06 Usage Bind the checked state.');
   });
 
   it('returns nothing for a redirect stub', () => {
@@ -177,7 +244,7 @@ describe('mergeRecords', () => {
     const api = harvestApi(componentData, '/blocks/primitives/checkbox');
     const merged = mergeRecords(prose, api);
 
-    expect(merged).toHaveLength(2);
+    expect(merged).toHaveLength(3);
     const apiRecord = merged.find((r) => r.a === 'api');
     expect(apiRecord?.k).toBe('api');
     expect(apiRecord?.b).toContain('Visual-only third state');
@@ -186,6 +253,6 @@ describe('mergeRecords', () => {
 
   it('keeps prose records that have no API counterpart', () => {
     const merged = mergeRecords(harvestHtml(componentPage, '/x'), []);
-    expect(merged.map((r) => r.a)).toEqual(['accessibility', 'api']);
+    expect(merged.map((r) => r.a)).toEqual(['accessibility', 'usage', 'api']);
   });
 });
