@@ -4,6 +4,29 @@ All notable changes to this project will be documented in this file.
 This changelog is automatically generated from [Conventional Commits](https://www.conventionalcommits.org).
 
 
+## [6.24.0] - 2026-07-14
+
+### Bug Fixes
+- **sveltekit-utils**: Route non-2xx cron responses to onError
+- **table**: Route slotClasses through the tv() conflict fold
+- **docs**: Name the code textbox and lift Shiki comment tokens to WCAG AA
+- **blocks**: Let internal ARIA win over restProps in form primitives
+- **blocks**: Open ConfirmDialogProps to native/data attribute pass-through
+- **docs-gen**: Surface real tv() slot names + gate llms.txt index
+- **design-engine**: Teach slop heuristics about Section headings + example code
+- **blocks**: Announce interactive Badge as a button, guard purpose="dot"
+- **blocks**: Unify Pagination edge policy to disabled-but-visible
+- **blocks**: Harden Toast hover-pause, reduced-motion and promise-settle a11y
+
+### Documentation
+- Mark 7 debt entries as in-progress for the opus debt-sweep wave
+- Resolve six debt entries and log four follow-ups (Opus debt-sweep)
+- Retire the three debt entries resolved by this wave
+- Reconcile technical-debt after the primitives-debt wave
+
+### Features
+- **blocks**: Add Sparkline fluid prop for responsive rendering
+
 ## [6.23.0] - 2026-07-13
 
 ### Bug Fixes
