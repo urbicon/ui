@@ -55,15 +55,19 @@
     }
   });
 
-  function handleKeydown(event: KeyboardEvent) {
-    if ((event.ctrlKey || event.metaKey) && event.shiftKey && event.key === 'X') {
-      event.preventDefault();
-      navigator.clipboard.writeText(code);
-    }
-  }
+  // NOTE: a Ctrl/Cmd+Shift+X "copy this code" shortcut used to live here on
+  // <svelte:window>. It was removed: the listener was registered per CodeExample
+  // instance, so on a page with N examples all N handlers fired and each wrote to
+  // the clipboard — the last-registered one won. Measured on /blocks/primitives/
+  // button (10 examples): with the FIRST example focused, the shortcut copied the
+  // TENTH example's code. It always yielded the last panel on the page rather than
+  // the one being read, gave no feedback, and was documented nowhere. A global
+  // shortcut cannot disambiguate "the example I mean" anyway; the per-panel Copy
+  // button in CodePanel is the discoverable, unambiguous, keyboard-reachable
+  // affordance. If a shortcut is wanted back, scope it to the focused panel and
+  // surface a visible `kbd` hint (the ⌘K search hint in the app sidebar is the
+  // precedent).
 </script>
-
-<svelte:window onkeydown={handleKeydown} />
 
 <div
   class={unstyled

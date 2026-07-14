@@ -1,5 +1,11 @@
 import type { CodePanelVariantProps } from './codepanel.variants';
 
+/**
+ * Line count from which `lineNumbers="auto"` starts numbering. Below this a snippet
+ * is short enough to scan at a glance, and a gutter is just noise.
+ */
+export const LINE_NUMBER_AUTO_THRESHOLD = 6;
+
 export type CodePanelSlotName =
   | 'root'
   | 'toolbar'
@@ -31,6 +37,19 @@ export interface CodePanelProps extends CodePanelVariantProps {
    * falls back to `Code example` when omitted so the name is never empty.
    */
   label?: string;
+  /**
+   * Show line numbers in the gutter.
+   *
+   * `'auto'` (the default) shows them only from {@link LINE_NUMBER_AUTO_THRESHOLD} lines
+   * up — a snippet short enough to take in at a glance (an import one-liner) gains
+   * nothing from a `1` in front of it. Pass `true`/`false` to force it either way.
+   *
+   * Numbers are rendered as CSS generated content, so they are never part of the
+   * copied text or a selection.
+   *
+   * @default 'auto'
+   */
+  lineNumbers?: boolean | 'auto';
   /** Controlled expanded state. When omitted, the panel manages its own state. */
   expanded?: boolean;
   /** Called when the toggle button is clicked. Required when `expanded` is controlled. */

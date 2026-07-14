@@ -190,6 +190,17 @@
     <!-- Controls -->
     <div class={slot('controlsPanel')}>
       <div class={slot('controlsHeader')}>
+        <!--
+          The dirty-state count is carried visually by the "Reset all (N)"
+          button — but that button only EXISTS once something is modified, and a
+          live region that appears together with its text is not announced. So
+          the region lives outside the {#if}, always in the DOM, and only its
+          text changes; `polite` (via role=status) queues behind the control's
+          own value announcement instead of interrupting it.
+        -->
+        <span class="sr-only" role="status">
+          {modifiedCount > 0 ? dt('playgroundModified', { count: modifiedCount }) : ''}
+        </span>
         {#if modifiedCount > 0}
           <button type="button" class={styles.helpToggle()} onclick={resetAll}>
             Reset all ({modifiedCount})

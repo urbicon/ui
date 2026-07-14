@@ -42,6 +42,9 @@ export default {
   // PlaygroundConfigurator
   selectOption: 'Select {{option}}...',
   enableOption: 'Enable {{option}}',
+  // Phrased so one wording fits any count — the runtime interpolates
+  // `{{count}}` but has no plural selection.
+  playgroundModified: 'Settings modified: {{count}}',
 
   // CodeExample fallback
   codeExtractionFallback:

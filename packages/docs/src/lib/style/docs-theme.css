@@ -13,11 +13,11 @@
   --color-code-800: var(--color-slate-800);
   --color-code-900: var(--color-slate-900);
 
-  --color-code: var(--color-code-600);
-  --color-code-hover: var(--color-code-700);
-  --color-code-active: var(--color-code-800);
-  --color-code-subtle: var(--color-code-50);
-  --color-code-emphasis: var(--color-code-900);
+  --color-code: light-dark(var(--color-code-600), var(--color-code-400));
+  --color-code-hover: light-dark(var(--color-code-700), var(--color-code-300));
+  --color-code-active: light-dark(var(--color-code-800), var(--color-code-200));
+  --color-code-subtle: light-dark(var(--color-code-50), var(--color-code-900));
+  --color-code-emphasis: light-dark(var(--color-code-900), var(--color-code-100));
 
   /* Example Intent (Blue-based for code examples) */
   --color-example-50: var(--color-blue-50);
@@ -31,11 +31,11 @@
   --color-example-800: var(--color-blue-800);
   --color-example-900: var(--color-blue-900);
 
-  --color-example: var(--color-example-600);
-  --color-example-hover: var(--color-example-700);
-  --color-example-active: var(--color-example-800);
-  --color-example-subtle: var(--color-example-50);
-  --color-example-emphasis: var(--color-example-900);
+  --color-example: light-dark(var(--color-example-600), var(--color-example-400));
+  --color-example-hover: light-dark(var(--color-example-700), var(--color-example-300));
+  --color-example-active: light-dark(var(--color-example-800), var(--color-example-200));
+  --color-example-subtle: light-dark(var(--color-example-50), var(--color-example-900));
+  --color-example-emphasis: light-dark(var(--color-example-900), var(--color-example-100));
 
   /* Playground Intent (Purple-based for interactive elements) */
   --color-playground-50: var(--color-purple-50);
@@ -49,11 +49,11 @@
   --color-playground-800: var(--color-purple-800);
   --color-playground-900: var(--color-purple-900);
 
-  --color-playground: var(--color-playground-600);
-  --color-playground-hover: var(--color-playground-700);
-  --color-playground-active: var(--color-playground-800);
-  --color-playground-subtle: var(--color-playground-50);
-  --color-playground-emphasis: var(--color-playground-900);
+  --color-playground: light-dark(var(--color-playground-600), var(--color-playground-400));
+  --color-playground-hover: light-dark(var(--color-playground-700), var(--color-playground-300));
+  --color-playground-active: light-dark(var(--color-playground-800), var(--color-playground-200));
+  --color-playground-subtle: light-dark(var(--color-playground-50), var(--color-playground-900));
+  --color-playground-emphasis: light-dark(var(--color-playground-900), var(--color-playground-100));
 
   /* API Intent (Emerald-based for API reference) */
   --color-api-50: var(--color-emerald-50);
@@ -67,11 +67,11 @@
   --color-api-800: var(--color-emerald-800);
   --color-api-900: var(--color-emerald-900);
 
-  --color-api: var(--color-api-600);
-  --color-api-hover: var(--color-api-700);
-  --color-api-active: var(--color-api-800);
-  --color-api-subtle: var(--color-api-50);
-  --color-api-emphasis: var(--color-api-900);
+  --color-api: light-dark(var(--color-api-600), var(--color-api-400));
+  --color-api-hover: light-dark(var(--color-api-700), var(--color-api-300));
+  --color-api-active: light-dark(var(--color-api-800), var(--color-api-200));
+  --color-api-subtle: light-dark(var(--color-api-50), var(--color-api-900));
+  --color-api-emphasis: light-dark(var(--color-api-900), var(--color-api-100));
 
   /* === DOCS-SPECIFIC DESIGN TOKENS === */
   /* Layout dimensions */
@@ -110,10 +110,10 @@
 
   /* Surface tokens - docs specific */
   --docs-surface-playground: var(--color-surface-elevated);
-  --docs-surface-code: var(--color-code-50);
-  --docs-surface-example: var(--color-example-50);
-  --docs-surface-api: var(--color-api-50);
-  --docs-surface-glass: rgba(255, 255, 255, 0.8);
+  --docs-surface-code: light-dark(var(--color-code-50), var(--color-code-950));
+  --docs-surface-example: light-dark(var(--color-example-50), var(--color-example-950));
+  --docs-surface-api: light-dark(var(--color-api-50), var(--color-api-950));
+  --docs-surface-glass: light-dark(rgba(255, 255, 255, 0.8), rgba(0, 0, 0, 0.8));
 
   /* Border tokens */
   --docs-border-code: var(--color-code-200);
@@ -121,10 +121,20 @@
   --docs-border-playground: var(--color-playground-200);
   --docs-border-api: var(--color-api-200);
 
-  /* Shadow tokens - docs specific */
-  --docs-shadow-card: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
-  --docs-shadow-elevated: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
-  --docs-shadow-float: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+  /* Shadow tokens - docs specific.
+     `light-dark()` wraps only the *colour* of each layer, never the whole value:
+     it is a colour function, so `light-dark(<shadow>, <shadow>)` would be invalid
+     and drop the shadow entirely. Geometry is identical in both modes; only the
+     alpha deepens, because a shadow needs more weight against a dark surface. */
+  --docs-shadow-card:
+    0 4px 6px -1px light-dark(rgba(0, 0, 0, 0.1), rgba(0, 0, 0, 0.3)),
+    0 2px 4px -1px light-dark(rgba(0, 0, 0, 0.06), rgba(0, 0, 0, 0.2));
+  --docs-shadow-elevated:
+    0 10px 15px -3px light-dark(rgba(0, 0, 0, 0.1), rgba(0, 0, 0, 0.3)),
+    0 4px 6px -2px light-dark(rgba(0, 0, 0, 0.05), rgba(0, 0, 0, 0.2));
+  --docs-shadow-float:
+    0 20px 25px -5px light-dark(rgba(0, 0, 0, 0.1), rgba(0, 0, 0, 0.4)),
+    0 10px 10px -5px light-dark(rgba(0, 0, 0, 0.04), rgba(0, 0, 0, 0.3));
 
   /* Animation durations - docs specific */
   --docs-duration-fast: 150ms;
@@ -138,41 +148,15 @@
   --docs-z-playground-overlay: 20;
 }
 
-/* Class-based dark mode (for manual theme toggle via .dark on <html>) */
-:root.dark {
-  --color-code: var(--color-code-400);
-  --color-code-hover: var(--color-code-300);
-  --color-code-active: var(--color-code-200);
-  --color-code-subtle: var(--color-code-900);
-  --color-code-emphasis: var(--color-code-100);
-
-  --color-example: var(--color-example-400);
-  --color-example-hover: var(--color-example-300);
-  --color-example-active: var(--color-example-200);
-  --color-example-subtle: var(--color-example-900);
-  --color-example-emphasis: var(--color-example-100);
-
-  --color-playground: var(--color-playground-400);
-  --color-playground-hover: var(--color-playground-300);
-  --color-playground-active: var(--color-playground-200);
-  --color-playground-subtle: var(--color-playground-900);
-  --color-playground-emphasis: var(--color-playground-100);
-
-  --color-api: var(--color-api-400);
-  --color-api-hover: var(--color-api-300);
-  --color-api-active: var(--color-api-200);
-  --color-api-subtle: var(--color-api-900);
-  --color-api-emphasis: var(--color-api-100);
-
-  --docs-surface-code: var(--color-code-950);
-  --docs-surface-example: var(--color-example-950);
-  --docs-surface-api: var(--color-api-950);
-  --docs-surface-glass: rgba(0, 0, 0, 0.8);
-
-  --docs-shadow-card: 0 4px 6px -1px rgba(0, 0, 0, 0.3), 0 2px 4px -1px rgba(0, 0, 0, 0.2);
-  --docs-shadow-elevated: 0 10px 15px -3px rgba(0, 0, 0, 0.3), 0 4px 6px -2px rgba(0, 0, 0, 0.2);
-  --docs-shadow-float: 0 20px 25px -5px rgba(0, 0, 0, 0.4), 0 10px 10px -5px rgba(0, 0, 0, 0.3);
-}
+/* No `:root.dark` token block here.
+   Dark mode rides `light-dark()` on the token definitions above, exactly as
+   blocks' `semantic.css` prescribes ("the manual toggle classes `:root.light` /
+   `:root.dark` only override the `color-scheme` — no token duplication needed").
+   The block that used to live here duplicated every token under `:root.dark`,
+   which only ever applied to the *explicit* toggle: system mode sets no class,
+   so a reader on a dark OS kept the light values. Expressing both values in one
+   `light-dark()` pair covers all four states — explicit dark, explicit light,
+   and system in either direction — and cannot drift out of sync. */
 
 /* Responsive design tokens */
 :root {

@@ -3,7 +3,7 @@
   import { useDocsI18n } from '$lib/i18n';
   import { Spinner } from '@urbicon-ui/blocks';
   import { codePanelVariants } from './codepanel.variants';
-  import type { CodePanelProps } from './index.js';
+  import { LINE_NUMBER_AUTO_THRESHOLD, type CodePanelProps } from './index.js';
 
   const dt = useDocsI18n();
 
@@ -11,6 +11,7 @@
     code,
     language = 'svelte',
     label,
+    lineNumbers = 'auto',
     expanded: expandedProp,
     onToggle,
     size = 'md',
@@ -20,6 +21,18 @@
   }: CodePanelProps = $props();
 
   const styles = $derived(codePanelVariants({ size }));
+
+  // Trailing blank lines would otherwise be numbered; they are not code.
+  const lineCount = $derived(
+    String(code ?? '')
+      .replace(/\n+$/, '')
+      .split('\n').length
+  );
+  const showLineNumbers = $derived(
+    lineNumbers === 'auto' ? lineCount >= LINE_NUMBER_AUTO_THRESHOLD : lineNumbers
+  );
+  // Keep the gutter exactly as wide as the largest number needs.
+  const lineNumberWidth = $derived(String(lineCount).length);
 
   function slot(name: keyof NonNullable<CodePanelProps['slotClasses']>) {
     if (unstyled) return slotClasses?.[name] ?? '';
@@ -115,6 +128,14 @@
       {copyLabel}
       <span aria-hidden="true">{copied ? '✓' : '↗'}</span>
     </button>
+    <!--
+      Copy confirmation for screen readers. The button's label already flips to
+      "Copied!", but a *label* change on the control the user just activated is
+      not a reliable announcement — a status region is. It must be in the DOM
+      BEFORE `copied` flips (a region inserted together with its text is not
+      announced), so the span always renders and only its text content changes.
+    -->
+    <span class="sr-only" role="status">{copied ? dt('copied') : ''}</span>
   </div>
 
   <div class={slot('codeCollapse')} style="grid-template-rows: {isExpanded ? '1fr' : '0fr'}">
@@ -129,7 +150,10 @@
       {:else}
         <div class={slot('codeDisplay')}>
           <div
-            class={slot('codeContent')}
+            class={[slot('codeContent'), showLineNumbers && 'has-line-numbers']
+              .filter(Boolean)
+              .join(' ')}
+            style={showLineNumbers ? `--code-line-number-width: ${lineNumberWidth}ch` : undefined}
             role="textbox"
             aria-readonly="true"
             aria-label={codeLabel}
@@ -144,6 +168,28 @@
 </div>
 
 <style>
+  /*
+   * Line numbers as CSS generated content on Shiki's per-line `.line` spans.
+   * Deliberately not markup: ::before content is not part of the DOM text, so it
+   * cannot land in the clipboard — neither via the copy button (which copies the
+   * raw `code` prop) nor via a manual selection (further guarded by user-select).
+   */
+  .has-line-numbers :global(.shiki code) {
+    counter-reset: code-line;
+  }
+
+  .has-line-numbers :global(.shiki .line::before) {
+    counter-increment: code-line;
+    content: counter(code-line);
+    display: inline-block;
+    width: var(--code-line-number-width, 2ch);
+    margin-right: 1.5ch;
+    text-align: right;
+    color: var(--color-text-quaternary);
+    user-select: none;
+    -webkit-user-select: none;
+  }
+
   :global(.shiki) {
     border-radius: 0;
     border: none;
@@ -160,17 +206,44 @@
       ui-monospace, SFMono-Regular, 'SF Mono', Consolas, 'Liberation Mono', Menlo, monospace;
   }
 
-  :global(.dark .shiki),
-  :global(.dark .shiki pre) {
-    background-color: transparent !important;
-  }
-
+  /*
+   * Dark syntax colours.
+   *
+   * This is the one place in the repo that cannot ride `light-dark()`: Shiki
+   * writes the light theme's colour *inline* on every span and exposes only the
+   * dark one as a custom property (`--shiki-dark`), so there is no
+   * `--shiki-light` to pair with — hence the `!important` overrides below, which
+   * are what beat the inline style. (Shiki's `defaultColor: 'light-dark()'`
+   * output mode would emit both as properties and collapse all of this into a
+   * single `light-dark()` declaration; that switch lives in `highlighter.ts`.)
+   *
+   * The condition mirrors the `color-scheme` contract in blocks' `semantic.css`:
+   * an explicit choice sets `:root.light` / `:root.dark`, and system mode sets no
+   * class at all and follows the OS. So dark applies when the reader explicitly
+   * chose dark, OR when the OS is dark and they have not explicitly chosen light.
+   * The `:not(.light)` guard is what lets an explicit light choice win on a dark
+   * OS. Two blocks, because CSS cannot express that disjunction in one selector.
+   *
+   * Without the media-query half, a reader on a dark OS who never touched the
+   * toggle (the default) got the light theme's near-black text on the dark
+   * surface — every code block on the site unreadable at ~1.05:1.
+   */
   :global(.dark .shiki span) {
     color: var(--shiki-dark) !important;
     background-color: var(--shiki-dark-bg) !important;
     font-style: var(--shiki-dark-font-style) !important;
     font-weight: var(--shiki-dark-font-weight) !important;
     text-decoration: var(--shiki-dark-text-decoration) !important;
+  }
+
+  @media (prefers-color-scheme: dark) {
+    :global(:root:not(.light) .shiki span) {
+      color: var(--shiki-dark) !important;
+      background-color: var(--shiki-dark-bg) !important;
+      font-style: var(--shiki-dark-font-style) !important;
+      font-weight: var(--shiki-dark-font-weight) !important;
+      text-decoration: var(--shiki-dark-text-decoration) !important;
+    }
   }
 
   :global(.shiki pre::-webkit-scrollbar) {

@@ -42,6 +42,7 @@ export default {
   // PlaygroundConfigurator
   selectOption: 'Wähle {{option}}...',
   enableOption: '{{option}} aktivieren',
+  playgroundModified: 'Geänderte Einstellungen: {{count}}',
 
   // CodeExample fallback
   codeExtractionFallback:
