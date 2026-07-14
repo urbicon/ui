@@ -1,13 +1,18 @@
 import type { ControlDefinition } from '@urbicon-ui/shared-types/playground';
 import { describe, expect, it } from 'vitest';
 import {
+  clampToRange,
   computeComponentDefaults,
   countModified,
   filterVisibleControls,
   generateDefaultCode,
   isConditionMet,
   isDefaultValue,
+  isWithinRange,
   normalizeControls,
+  numberFieldValue,
+  readNumberField,
+  reconcileNumberField,
   valuesMatch
 } from './code-gen.js';
 
@@ -273,5 +278,139 @@ describe('countModified', () => {
     expect(countModified(controls, { a: 'x', b: 'z' }, defaults)).toBe(1);
     expect(countModified(controls, { a: 'x', b: 'y' }, defaults)).toBe(0);
     expect(countModified(controls, undefined, defaults)).toBe(0);
+  });
+});
+
+/**
+ * `min`/`max` on `<input type="number">` are validity constraints, not input
+ * filters: the field hands back whatever was typed. The strip used to write
+ * `Number(e.currentTarget.value)` straight into `values`, so clearing the
+ * field meant `Number('')` → 0 and typing past a bound stuck an out-of-range
+ * number into a map the share codec then refused to carry.
+ */
+describe('number field', () => {
+  // Verbatim from the "All Controls" playground on
+  // /docs/components/playground-configurator.
+  const count: ControlDefinition = {
+    key: 'count',
+    type: 'number',
+    label: 'Count',
+    defaultValue: 3,
+    min: 0,
+    max: 20,
+    step: 1
+  };
+  const unbounded: ControlDefinition = { key: 'count', type: 'number', label: 'Count' };
+  // `/table/table` "Items per page": a floor, no ceiling.
+  const floored: ControlDefinition = {
+    key: 'itemsPerPage',
+    type: 'number',
+    label: 'Items per page',
+    defaultValue: 5,
+    min: 3
+  };
+
+  describe('isWithinRange', () => {
+    it('admits both bounds and rejects just outside them', () => {
+      expect(isWithinRange(count, 0)).toBe(true);
+      expect(isWithinRange(count, 20)).toBe(true);
+      expect(isWithinRange(count, -1)).toBe(false);
+      expect(isWithinRange(count, 21)).toBe(false);
+    });
+
+    it('admits anything when a bound is absent', () => {
+      expect(isWithinRange(unbounded, -9999)).toBe(true);
+      expect(isWithinRange(unbounded, 9999)).toBe(true);
+      expect(isWithinRange(floored, 9999)).toBe(true);
+      expect(isWithinRange(floored, 2)).toBe(false);
+    });
+  });
+
+  describe('clampToRange', () => {
+    it('pulls a value to the bound it violates and leaves the rest alone', () => {
+      expect(clampToRange(count, 999)).toBe(20);
+      expect(clampToRange(count, -5)).toBe(0);
+      expect(clampToRange(count, 7)).toBe(7);
+      expect(clampToRange(unbounded, 999)).toBe(999);
+      expect(clampToRange(floored, 0)).toBe(3);
+    });
+  });
+
+  describe('numberFieldValue', () => {
+    it('prefers the current value, then the default, then the floor', () => {
+      expect(numberFieldValue(count, { count: 7 })).toBe(7);
+      expect(numberFieldValue(count, {})).toBe(3);
+      expect(numberFieldValue(count, undefined)).toBe(3);
+      expect(numberFieldValue(floored, {})).toBe(5);
+      // No value, no default: the floor, never a hardcoded 0 that would sit
+      // below `min` and be rejected by the codec on the way out.
+      expect(numberFieldValue({ key: 'n', type: 'number', label: 'N', min: 3 }, {})).toBe(3);
+      expect(numberFieldValue({ key: 'n', type: 'number', label: 'N' }, {})).toBe(0);
+    });
+
+    it('ignores a value of the wrong shape', () => {
+      expect(numberFieldValue(count, { count: 'seven' })).toBe(3);
+      expect(numberFieldValue(count, { count: Number.NaN })).toBe(3);
+      expect(numberFieldValue(count, { count: Number.POSITIVE_INFINITY })).toBe(3);
+    });
+  });
+
+  describe('readNumberField', () => {
+    it('commits an in-range number', () => {
+      expect(readNumberField(count, '7')).toBe(7);
+      expect(readNumberField(count, '0')).toBe(0);
+      expect(readNumberField(count, '20')).toBe(20);
+    });
+
+    it('holds back a blank field instead of reading it as 0', () => {
+      // `Number('')` and `Number(' ')` are both 0. Committing that meant
+      // clearing "Items per page" silently asked the Table for zero rows.
+      expect(readNumberField(count, '')).toBeUndefined();
+      expect(readNumberField(count, '   ')).toBeUndefined();
+      expect(readNumberField(floored, '')).toBeUndefined();
+    });
+
+    it('holds back an unparseable field', () => {
+      expect(readNumberField(count, 'abc')).toBeUndefined();
+      expect(readNumberField(count, 'Infinity')).toBeUndefined();
+      expect(readNumberField(count, 'NaN')).toBeUndefined();
+    });
+
+    it('holds back an out-of-range number rather than clamping under the caret', () => {
+      // A reader typing "15" into a `min: 10` field passes through "1".
+      const tens: ControlDefinition = { key: 'n', type: 'number', label: 'N', min: 10, max: 99 };
+      expect(readNumberField(tens, '1')).toBeUndefined();
+      expect(readNumberField(tens, '15')).toBe(15);
+      expect(readNumberField(count, '999')).toBeUndefined();
+      expect(readNumberField(count, '-1')).toBeUndefined();
+    });
+  });
+
+  describe('reconcileNumberField', () => {
+    it('clamps what the reader typed once they leave the field', () => {
+      expect(reconcileNumberField(count, '999', 3)).toBe(20);
+      expect(reconcileNumberField(count, '-5', 3)).toBe(0);
+      expect(reconcileNumberField(floored, '0', 5)).toBe(3);
+    });
+
+    it('restores the committed value when the field is left blank or broken', () => {
+      expect(reconcileNumberField(count, '', 7)).toBe(7);
+      expect(reconcileNumberField(count, '   ', 7)).toBe(7);
+      expect(reconcileNumberField(count, 'abc', 7)).toBe(7);
+      expect(reconcileNumberField(count, 'NaN', 7)).toBe(7);
+    });
+
+    it('leaves an in-range number exactly as typed', () => {
+      expect(reconcileNumberField(count, '12', 3)).toBe(12);
+      expect(reconcileNumberField(unbounded, '999', 3)).toBe(999);
+    });
+
+    it('always settles somewhere the codec will carry', () => {
+      // The property the strip owes `share.ts`: whatever a reader does to the
+      // field, what lands in `values` is in range, so the link can hold it.
+      for (const raw of ['', ' ', 'abc', 'NaN', 'Infinity', '-999', '999', '0', '20', '7.5']) {
+        expect(isWithinRange(count, reconcileNumberField(count, raw, 3))).toBe(true);
+      }
+    });
   });
 });

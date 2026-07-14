@@ -181,6 +181,78 @@ export function sortControlsByType(controls: readonly ControlDefinition[]): Cont
     .map(({ control }) => control);
 }
 
+/**
+ * The range rule for a numeric control, in one place because three callers
+ * must agree on it: both halves of the share codec and the strip's number
+ * field. A control with neither bound admits any finite number.
+ */
+export function isWithinRange(control: ControlDefinition, value: number): boolean {
+  if (control.min !== undefined && value < control.min) return false;
+  if (control.max !== undefined && value > control.max) return false;
+  return true;
+}
+
+/** `value` pulled to the nearest bound it violates. */
+export function clampToRange(control: ControlDefinition, value: number): number {
+  if (control.min !== undefined && value < control.min) return control.min;
+  if (control.max !== undefined && value > control.max) return control.max;
+  return value;
+}
+
+/**
+ * The number a numeric control currently stands at: its value, else its
+ * documented default, else its floor. Never `undefined`, so the field always
+ * has something to render and blur always has something to fall back to.
+ */
+export function numberFieldValue(
+  control: ControlDefinition,
+  values: Record<string, unknown> | undefined
+): number {
+  const current = values?.[control.key];
+  if (typeof current === 'number' && Number.isFinite(current)) return current;
+  if (typeof control.defaultValue === 'number' && Number.isFinite(control.defaultValue)) {
+    return control.defaultValue;
+  }
+  return control.min ?? 0;
+}
+
+/**
+ * What the text in a number field may be committed as *while typing*, or
+ * `undefined` for "not yet". `min`/`max` on `<input type="number">` are
+ * validity constraints, not input filters — the field hands back whatever was
+ * typed and `Number('')` is 0 — so anything blank, non-finite or out of range
+ * is held back rather than written into `values`.
+ *
+ * Out-of-range is rejected rather than clamped here because a reader typing
+ * "15" into a `min: 10` field passes through "1": clamping mid-keystroke would
+ * rewrite the field under the caret. `reconcileNumberField` clamps on blur,
+ * once the reader has stopped.
+ */
+export function readNumberField(control: ControlDefinition, raw: string): number | undefined {
+  if (raw.trim() === '') return undefined;
+  const parsed = Number(raw);
+  if (!Number.isFinite(parsed)) return undefined;
+  return isWithinRange(control, parsed) ? parsed : undefined;
+}
+
+/**
+ * What a number field settles on when the reader leaves it: the clamp of what
+ * they typed, or `committed` if they left it blank or unparseable. This is the
+ * only place a playground number is clamped, and the correction is visible in
+ * the field the instant it happens — unlike rewriting a shared link, which the
+ * codec refuses to do.
+ */
+export function reconcileNumberField(
+  control: ControlDefinition,
+  raw: string,
+  committed: number
+): number {
+  if (raw.trim() === '') return committed;
+  const parsed = Number(raw);
+  if (!Number.isFinite(parsed)) return committed;
+  return clampToRange(control, parsed);
+}
+
 /** Map of `control.key` → `control.defaultValue` for every control that declares one. */
 export function computeComponentDefaults(
   controls: readonly ControlDefinition[]

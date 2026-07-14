@@ -74,6 +74,18 @@ export interface PlaygroundConfiguratorProps<
   /** Component name used in the auto-generated code output. */
   componentName?: string;
 
+  /**
+   * Identity this playground's share links are scoped to, emitted as `_pg`.
+   * A link only seeds the instance whose key it names, so a page with several
+   * playgrounds does not decode one link into all of them.
+   *
+   * Defaults to `componentName`, which already separates instances documenting
+   * different components. Set it only to tell same-named instances on one page
+   * apart (`shareKey="Button-sizes"`); the value shows up in the URL, so make
+   * it readable.
+   */
+  shareKey?: string;
+
   /** Show the title/subtitle header above the playground. */
   showHeader?: boolean;
 

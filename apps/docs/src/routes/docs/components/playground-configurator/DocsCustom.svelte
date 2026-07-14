@@ -162,6 +162,7 @@
       <CodeExample title="Size: {sizeOption}" isolate>
         <PlaygroundConfigurator
           componentName="Button"
+          shareKey="Button-{sizeOption}"
           showHeader={false}
           size={sizeOption}
           controls={[
@@ -198,6 +199,7 @@
   <CodeExample title="Button Builder" isolate>
     <PlaygroundConfigurator
       componentName="Button"
+      shareKey="Button-builder"
       showHeader={false}
       controls={[
         { key: 'label', type: 'text', label: 'Label', defaultValue: 'Submit' },

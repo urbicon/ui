@@ -21,7 +21,10 @@
     sortControlsByType,
     computeComponentDefaults,
     isDefaultValue as isDefaultValueImpl,
-    countModified
+    countModified,
+    numberFieldValue,
+    readNumberField,
+    reconcileNumberField
   } from './code-gen.js';
   import { decodeShareParams, encodeShareParams } from './share.js';
 
@@ -35,6 +38,7 @@
     onValuesChange,
     codeGenerator,
     componentName = 'Component',
+    shareKey,
     showHeader = true,
     size = 'md',
     propDocs = {},
@@ -146,6 +150,25 @@
     }
   }
 
+  // The number field commits only what `readNumberField` accepts, so `values`
+  // can never hold a number the share codec would refuse to carry (both halves
+  // reject out-of-range) and a cleared field can never mean `Number('')` → 0.
+  function onNumberInput(control: ControlDefinition, raw: string) {
+    const next = readNumberField(control, raw);
+    if (next !== undefined) updateValue(control.key, next);
+  }
+
+  // Holding a value back mid-typing leaves the field showing text `values`
+  // never took. Svelte only pushes `value` down when the bound expression
+  // changes, so a field that settles on the value it already had (blank,
+  // restored) has to be re-synced by hand.
+  function onNumberBlur(control: ControlDefinition, input: HTMLInputElement) {
+    const committed = numberFieldValue(control, values);
+    const next = reconcileNumberField(control, input.value, committed);
+    if (next !== committed) updateValue(control.key, next);
+    input.value = String(next);
+  }
+
   const modifiedCount = $derived(countModified(normalizedControls, values, componentDefaults));
   const hasAnyDescription = $derived(visibleControls.some((c) => !!getControlDescription(c)));
 
@@ -159,16 +182,18 @@
   }
 
   // Share links: the query string carries only the controls the reader
-  // actually changed (see `share.ts`), so a page's 60-odd call sites need no
-  // new prop and a link of pure defaults is never offered.
-  //
+  // actually changed (see `share.ts`), under the `_pg` scope below, so a link
+  // seeds only the playground it was copied from. A query string is
+  // page-global; a playground is not.
+  const shareScope = $derived(shareKey ?? componentName);
+
   // Seeding happens on mount, never during init: the docs app is
   // adapter-static with `prerender = true`, so the prerendered HTML was built
   // with no query string at all. Reading `location.search` while rendering
   // would make the client's first render disagree with that HTML — a
   // hydration mismatch. Same reasoning as `DocsThemeToggle`.
   onMount(() => {
-    const shared = decodeShareParams(controls, window.location.search);
+    const shared = decodeShareParams(controls, window.location.search, shareScope);
     if (Object.keys(shared).length === 0) return;
     // Mirrors the init effect's own guard: if this callback wins the race
     // against it, `values` may still be the empty map a consumer passed, and
@@ -196,7 +221,7 @@
   // who is only spinning knobs, and `goto` would make this package depend on
   // SvelteKit's runtime — `packages/docs` has no `$app/*` import today.
   async function copyShareLink() {
-    const query = encodeShareParams(controls, values);
+    const query = encodeShareParams(controls, values, shareScope);
     const { origin, pathname } = window.location;
     try {
       await navigator.clipboard.writeText(
@@ -434,13 +459,12 @@
                   type="number"
                   variant="ghost"
                   size={fieldSize}
-                  value={(values[control.key] as number | undefined) ??
-                    (control.defaultValue as number | undefined) ??
-                    0}
+                  value={numberFieldValue(control, values)}
                   min={control.min}
                   max={control.max}
                   step={control.step}
-                  oninput={(e) => updateValue(control.key, Number(e.currentTarget.value))}
+                  oninput={(e) => onNumberInput(control, e.currentTarget.value)}
+                  onblur={(e) => onNumberBlur(control, e.currentTarget)}
                   aria-describedby={hintId}
                 />
               </div>
