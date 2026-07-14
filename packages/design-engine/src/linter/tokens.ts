@@ -115,6 +115,26 @@ const INTERACTIVE_CORES = [
 /** Chart series tokens → `text-chart-1` … `text-chart-6`. */
 const CHART_CORES = ['chart-1', 'chart-2', 'chart-3', 'chart-4', 'chart-5', 'chart-6'] as const;
 
+/**
+ * Avatar identity tokens → `bg-avatar-1` … `bg-avatar-12`. An unordered palette
+ * that hashes a name to a fixed hue; pair with `text-text-on-dark`, the one
+ * contrast partner the whole palette shares by construction.
+ */
+const AVATAR_CORES = [
+  'avatar-1',
+  'avatar-2',
+  'avatar-3',
+  'avatar-4',
+  'avatar-5',
+  'avatar-6',
+  'avatar-7',
+  'avatar-8',
+  'avatar-9',
+  'avatar-10',
+  'avatar-11',
+  'avatar-12'
+] as const;
+
 /** Skeleton loading tokens → `bg-skeleton-shimmer` (the shimmer overlay sweep). */
 const SKELETON_CORES = ['skeleton-shimmer'] as const;
 
@@ -142,6 +162,7 @@ export const VALID_TOKEN_CORES: ReadonlySet<string> = new Set([
   ...FEEDBACK_CORES,
   ...INTERACTIVE_CORES,
   ...CHART_CORES,
+  ...AVATAR_CORES,
   ...SKELETON_CORES
 ]);
 
@@ -184,7 +205,8 @@ export const SEMANTIC_NAMESPACES = [
   'border-',
   'feedback-',
   'interactive-',
-  'chart-'
+  'chart-',
+  'avatar-'
 ] as const;
 
 /** Intent prefixes (`primary-…`, `success-…`) that mark a core as semantic-intent. */

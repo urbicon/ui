@@ -153,25 +153,15 @@
      `blocks-intent-{name}` class on the button root scopes the glow color
      via `mint/styles.css`. */
 
-  :global(.blocks-button .blocks-ripple) {
-    position: absolute;
-    border-radius: 50%;
-    background: rgba(255, 255, 255, 0.4);
-    pointer-events: none;
-    animation: ripple var(--blocks-duration-slow) var(--blocks-ease-confident);
-    z-index: 1;
-  }
-
-  @keyframes ripple {
-    0% {
-      transform: scale(0);
-      opacity: 1;
-    }
-    100% {
-      transform: scale(1);
-      opacity: 0;
-    }
-  }
+  /* The ripple mint owns the ripple end-to-end: `mint/ripple.ts` appends a
+     `<span class="blocks-mint-ripple">` on click and drives it with the Web
+     Animations API, tinted `currentColor` so it resolves per variant/intent —
+     white on a filled button, the intent hue on outlined/ghost. Button used to
+     carry a competing `.blocks-ripple` rule here (a hardcoded
+     `rgba(255,255,255,0.4)` plus its own @keyframes) that no element ever
+     matched — nothing has emitted that class since the initial commit, and it
+     would have been invisible on light variants had it matched. Removed rather
+     than tokenised; see the same note in `mint/styles.css` (XC-12/PAG-1). */
 
   :global(.sr-only) {
     position: absolute;
@@ -185,10 +175,7 @@
     border-width: 0;
   }
 
-  @media (prefers-reduced-motion: reduce) {
-    :global(.blocks-button .blocks-ripple) {
-      animation: none !important;
-      opacity: 0 !important;
-    }
-  }
+  /* No reduced-motion rule for the ripple here either: `mint/ripple.ts` bails at
+     click time on `prefers-reduced-motion`, and `mint/styles.css` hides
+     `.blocks-mint-ripple` outright — both on the class that actually exists. */
 </style>

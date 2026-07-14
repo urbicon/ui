@@ -152,6 +152,43 @@
   --color-chart-5: light-dark(var(--color-info-500), var(--color-info-400));
   --color-chart-6: light-dark(var(--color-danger-500), var(--color-danger-400));
 
+  /* === AVATAR IDENTITY PALETTE ===
+     An *unordered* identity palette: Avatar's `randomColor` hashes a name to a
+     fixed slot, so the same person always keeps the same hue. Deliberately NOT
+     the chart palette and NOT the intent tokens:
+
+       - chart-* only has 6 slots and derives from the intent ramps, so a brand
+         that retunes `secondary` would silently reshuffle people's identities.
+         Its dark values are the *-400 tints (L≈0.66) — light enough that white
+         initials drop to ~2.6:1, below AA. Charts colour marks; avatars carry
+         text on top, which is a different contrast contract.
+       - intent tokens are semantic (a person is not "danger").
+
+     Construction: a single lightness per mode, 12 hues at an even 30° spacing.
+     Because OKLCH lightness is perceptual, holding L constant means every slot
+     shares one guaranteed contrast partner — `--color-text-on-dark`, which
+     flips white → neutral-900 with the mode exactly as these fills flip dark →
+     light. So legibility is a property of the construction, not 12 separate
+     checks. Even spacing also beats the 15 hardcoded hex values this replaced,
+     which clustered (red/orange/amber/yellow within ~20°) and blurred when
+     avatars sat side by side.
+
+     L=0.45 (light) / L=0.72 (dark) mirror the foundation ramps' *-700 / *-300
+     steps, so the palette reads as part of the same chassis. Rebrand by
+     overriding these 12 tokens; the text partner follows automatically. */
+  --color-avatar-1: light-dark(oklch(0.45 0.13 25), oklch(0.72 0.12 25));
+  --color-avatar-2: light-dark(oklch(0.45 0.13 55), oklch(0.72 0.12 55));
+  --color-avatar-3: light-dark(oklch(0.45 0.13 85), oklch(0.72 0.12 85));
+  --color-avatar-4: light-dark(oklch(0.45 0.13 115), oklch(0.72 0.12 115));
+  --color-avatar-5: light-dark(oklch(0.45 0.13 145), oklch(0.72 0.12 145));
+  --color-avatar-6: light-dark(oklch(0.45 0.13 175), oklch(0.72 0.12 175));
+  --color-avatar-7: light-dark(oklch(0.45 0.13 205), oklch(0.72 0.12 205));
+  --color-avatar-8: light-dark(oklch(0.45 0.13 235), oklch(0.72 0.12 235));
+  --color-avatar-9: light-dark(oklch(0.45 0.13 265), oklch(0.72 0.12 265));
+  --color-avatar-10: light-dark(oklch(0.45 0.13 295), oklch(0.72 0.12 295));
+  --color-avatar-11: light-dark(oklch(0.45 0.13 325), oklch(0.72 0.12 325));
+  --color-avatar-12: light-dark(oklch(0.45 0.13 355), oklch(0.72 0.12 355));
+
   /* === BORDERS ===
      border-hairline is the quietest tier — structural
      trennlinien (row dividers, Card header/footer separators, inline

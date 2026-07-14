@@ -38,7 +38,7 @@ export interface AvatarProps
 
   /** Custom ring color (CSS value). Overrides `ringIntent` when set. */
   ringColor?: string;
-  /** Derive a deterministic background color from `name`. The same name always produces the same color, making it easy to visually distinguish users without images. Overrides `intent`. */
+  /** Derive a deterministic background color from `name`. The same name always produces the same color, making it easy to visually distinguish users without images. Overrides `intent`. Picks from the 12-slot identity palette (`--color-avatar-1` … `--color-avatar-12`), which resolves light/dark automatically — override those tokens to rebrand it. Without a `name` there is no identity to encode, so the avatar keeps its neutral surface. */
   randomColor?: boolean;
 
   /** Mark the avatar as clickable (adds hover/focus styles and keyboard support). Alias for the `interactive` variant. */

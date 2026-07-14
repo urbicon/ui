@@ -42,35 +42,42 @@
 
   const isInteractive = $derived(clickable || interactive || !!onclick);
 
-  function getRandomColor(name?: string): string {
-    if (!name) return '#4b5563'; // gray-600
+  // The identity palette lives in `style/semantic.css` (--color-avatar-1..12),
+  // so a brand rethemes it without touching this component and dark mode
+  // resolves through light-dark() like every other token. Spelled out one
+  // `var()` per slot rather than built from a template string: Tailwind's
+  // scanner only keeps @theme variables it can see referenced in the source,
+  // and a computed `--color-avatar-${n}` is invisible to it — the same reason
+  // `internal/charts/utils.ts` enumerates its chart palette literally.
+  const identityPalette = [
+    'var(--color-avatar-1)',
+    'var(--color-avatar-2)',
+    'var(--color-avatar-3)',
+    'var(--color-avatar-4)',
+    'var(--color-avatar-5)',
+    'var(--color-avatar-6)',
+    'var(--color-avatar-7)',
+    'var(--color-avatar-8)',
+    'var(--color-avatar-9)',
+    'var(--color-avatar-10)',
+    'var(--color-avatar-11)',
+    'var(--color-avatar-12)'
+  ];
 
-    // Tailwind *-700 shades — dark enough that white text hits WCAG AA 4.5:1
-    // on every hue. Lighter shades (*-500) used before produced ~3:1 contrast.
-    const colors = [
-      '#b91c1c', // red-700
-      '#c2410c', // orange-700
-      '#b45309', // amber-700
-      '#a16207', // yellow-700
-      '#4d7c0f', // lime-700
-      '#15803d', // green-700
-      '#047857', // emerald-700
-      '#0e7490', // cyan-700
-      '#0369a1', // sky-700
-      '#1d4ed8', // blue-700
-      '#4338ca', // indigo-700
-      '#6d28d9', // violet-700
-      '#7e22ce', // purple-700
-      '#a21caf', // fuchsia-700
-      '#be185d' // pink-700
-    ];
+  // Deterministic name → slot. The same name must always land on the same hue,
+  // so this stays a pure function of `name` with no randomness despite the
+  // `randomColor` prop name.
+  function getIdentityColor(name?: string): string | undefined {
+    // No name means no identity to encode — fall through to the `frame` slot's
+    // neutral surface tokens instead of inventing a grey.
+    if (!name) return undefined;
 
     let hash = 0;
     for (let i = 0; i < name.length; i++) {
       hash = name.charCodeAt(i) + ((hash << 5) - hash);
     }
 
-    return colors[Math.abs(hash) % colors.length];
+    return identityPalette[Math.abs(hash) % identityPalette.length];
   }
 
   function getInitials(name?: string): string {
@@ -83,7 +90,7 @@
       .slice(0, 2);
   }
 
-  const randomBg = $derived(randomColor ? getRandomColor(name) : undefined);
+  const randomBg = $derived(randomColor ? getIdentityColor(name) : undefined);
 
   const variantProps: AvatarVariants = $derived({
     size,
@@ -107,8 +114,15 @@
   // Inline property names stay kebab-case — a previous camelCase
   // `backgroundColor` was silently ignored by browsers, dropping the avatar back
   // to surface-interactive + white text.
+  //
+  // The initials take `--color-text-on-dark`, the palette's contrast partner: it
+  // flips white → neutral-900 in step with the fills going dark → light, so the
+  // initials stay legible in both modes. A literal `white` (the previous value)
+  // only worked because the old fills were frozen dark in dark mode too.
   const frameStyle = $derived(
-    randomColor && randomBg ? `background-color: ${randomBg}; color: white` : undefined
+    randomColor && randomBg
+      ? `background-color: ${randomBg}; color: var(--color-text-on-dark)`
+      : undefined
   );
 
   // `ringColor` recolours the ring on the outer `base`. The ring is a
