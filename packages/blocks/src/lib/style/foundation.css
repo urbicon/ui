@@ -53,10 +53,19 @@
   --color-warm-neutral-950: oklch(0.12 0.006 45);
 
   /* Darkened *-500 / *-600 / *-700 so text-on-primary (white) passes WCAG
-     AA (4.5:1) on the solid intent backgrounds. Previous values had
+     AA (4.5:1) on the solid intent backgrounds **in light mode**, where
+     --color-<intent> resolves to the -500/-600 shades. Previous values had
      L=0.65 which produced ~3:1 contrast — below AA. Warning keeps its
      yellow hue at L=0.75 because it pairs with text-on-surface (dark),
-     not white. */
+     not white.
+
+     Scope, measured (contrast.test.ts, 2026-07-14): this holds for light
+     mode only. In dark mode --color-<intent> resolves to the *lighter*
+     -400/-300/-200 shades while --color-text-on-primary stays white, so
+     every filled intent lands at 1.5–4.1:1. That is a semantic.css issue
+     (text-on-primary is not mode-aware), not something these ramps can fix
+     — see the KNOWN SHORTFALLS block in contrast.test.ts. Do not "fix" it
+     by lightening these ramps; that would break light mode instead. */
   --color-success-50: oklch(0.95 0.03 140);
   --color-success-100: oklch(0.9 0.05 140);
   --color-success-200: oklch(0.82 0.08 140);
@@ -101,7 +110,11 @@
   --color-info-200: oklch(0.84 0.075 220);
   --color-info-300: oklch(0.76 0.105 220);
   --color-info-400: oklch(0.66 0.13 220);
-  --color-info-500: oklch(0.55 0.14 220);
+  /* L=0.54, not 0.55: hue 220 is luminous enough that 0.55 measures 4.41:1
+     against text-on-primary (white) — below AA, despite the promise above.
+     0.54 is the smallest step that clears it (4.58:1) and keeps the ramp's
+     0.12 step down from info-400. Guarded by contrast.test.ts. */
+  --color-info-500: oklch(0.54 0.14 220);
   --color-info-600: oklch(0.48 0.13 220);
   --color-info-700: oklch(0.4 0.11 220);
   --color-info-800: oklch(0.32 0.09 220);

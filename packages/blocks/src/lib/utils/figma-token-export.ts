@@ -134,7 +134,7 @@ const foundationColors: Record<string, Record<string, string>> = {
     '200': 'oklch(0.84 0.075 220)',
     '300': 'oklch(0.76 0.105 220)',
     '400': 'oklch(0.66 0.13 220)',
-    '500': 'oklch(0.55 0.14 220)',
+    '500': 'oklch(0.54 0.14 220)',
     '600': 'oklch(0.48 0.13 220)',
     '700': 'oklch(0.4 0.11 220)',
     '800': 'oklch(0.32 0.09 220)',
