@@ -166,6 +166,72 @@ describe('ConfirmDialog (component interaction)', () => {
     expect(dialogState()).toBe('closed');
   });
 
+  it('stays open and re-enables when an async onConfirm rejects, reporting via onError', async () => {
+    // The failure contract: a rejecting onConfirm skips the auto-close (the
+    // dialog stays open for retry/cancel), clears busy, and hands the error to
+    // onError instead of letting it escape as an unhandled rejection.
+    const user = userEvent.setup();
+    let rejectConfirm!: (reason: unknown) => void;
+    const onConfirm = vi.fn(
+      () =>
+        new Promise<void>((_resolve, reject) => {
+          rejectConfirm = reject;
+        })
+    );
+    const onError = vi.fn();
+    renderConfirm({ ...base, open: true, onConfirm, onError });
+    await tick();
+
+    const confirm = confirmBtn();
+    await user.click(confirm);
+    expect(confirm.getAttribute('aria-busy')).toBe('true');
+
+    const failure = new Error('server said no');
+    rejectConfirm(failure);
+    await tick();
+    await tick();
+
+    expect(onError).toHaveBeenCalledOnce();
+    expect(onError).toHaveBeenCalledWith(failure);
+    expect(dialogState()).toBe('open');
+    // busy cleared → the confirm button is live again and cancel is unlocked.
+    expect(confirm.getAttribute('aria-busy')).not.toBe('true');
+    expect(cancelBtn().disabled).toBe(false);
+
+    // Retry is functional: a second confirm click fires onConfirm again.
+    await user.click(confirm);
+    expect(onConfirm).toHaveBeenCalledTimes(2);
+  });
+
+  it('contains a rejection without onError: DEV console.error, no unhandled rejection', async () => {
+    // Without an onError handler the catch still swallows the rejection —
+    // surfaced DEV-only via console.error — so nothing escapes the ignored
+    // onclick promise. The process listener guards the actual debt symptom.
+    const user = userEvent.setup();
+    const consoleError = vi.spyOn(console, 'error').mockImplementation(() => {});
+    const unhandled = vi.fn();
+    process.on('unhandledRejection', unhandled);
+    try {
+      const failure = new Error('boom');
+      renderConfirm({ ...base, open: true, onConfirm: () => Promise.reject(failure) });
+      await tick();
+
+      await user.click(confirmBtn());
+      await tick();
+      // Unhandled-rejection detection runs after the microtask queue drains —
+      // yield a macrotask before asserting the listener stayed silent.
+      await new Promise((resolve) => setTimeout(resolve, 0));
+
+      expect(consoleError).toHaveBeenCalledWith('[ConfirmDialog] onConfirm rejected:', failure);
+      expect(unhandled).not.toHaveBeenCalled();
+      expect(dialogState()).toBe('open');
+      expect(confirmBtn().getAttribute('aria-busy')).not.toBe('true');
+    } finally {
+      process.off('unhandledRejection', unhandled);
+      consoleError.mockRestore();
+    }
+  });
+
   it('locks both buttons and blocks dismissal while the external loading flag is set', async () => {
     const user = userEvent.setup();
     const onConfirm = vi.fn();

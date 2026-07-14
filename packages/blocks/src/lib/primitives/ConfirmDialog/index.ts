@@ -18,7 +18,8 @@ export type ConfirmIntent = Exclude<DialogIntent, 'neutral'>;
  *
  * `onConfirm` may be `async`; while the returned promise is pending the
  * dialog locks itself (no backdrop dismiss, no escape, confirm button
- * shows a spinner). Auto-closes on resolve.
+ * shows a spinner). Auto-closes on resolve; on reject it stays open and
+ * re-enables, handing the error to `onError`.
  *
  * @tag overlay
  * @related Dialog
@@ -70,9 +71,20 @@ export interface ConfirmDialogProps
 
   /**
    * Confirm handler. May return a promise — the dialog stays open and shows
-   * a loading state while it resolves, then auto-closes on success.
+   * a loading state while it resolves, then auto-closes on success. If the
+   * promise rejects the dialog stays open and re-enables; the rejection is
+   * reported via {@link ConfirmDialogProps.onError}.
    */
   onConfirm?: () => void | Promise<void>;
+
+  /**
+   * Fired when an async `onConfirm` rejects (or a sync one throws). The
+   * dialog stays open and re-enables so the user can retry or cancel — use
+   * this to surface the failure (toast, inline message). Without a handler
+   * the rejection is logged DEV-only (`console.error`) and swallowed in
+   * production; it never escapes as an unhandled promise rejection.
+   */
+  onError?: (error: unknown) => void;
 
   /** Fired when the user cancels (button, backdrop, or Escape). */
   onCancel?: () => void;

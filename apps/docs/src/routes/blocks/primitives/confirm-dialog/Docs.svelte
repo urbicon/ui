@@ -56,7 +56,7 @@
 
     <CodeExample
       title="Async onConfirm — auto-loading"
-      description="When onConfirm returns a promise the dialog disables both buttons, blocks dismissal, shows a spinner on the confirm button, then auto-closes on success."
+      description="When onConfirm returns a promise the dialog disables both buttons, blocks dismissal, shows a spinner on the confirm button, then auto-closes on success. If the promise rejects the dialog stays open and re-enables for a retry — surface the failure via onError."
       code={`<ConfirmDialog
   bind:open
   title="Submit report?"
@@ -64,6 +64,7 @@
   intent="primary"
   confirmLabel="Submit"
   onConfirm={async () => { await api.submit(); }}
+  onError={() => toaster.danger('Could not submit report')}
 />`}
       language="svelte"
     >

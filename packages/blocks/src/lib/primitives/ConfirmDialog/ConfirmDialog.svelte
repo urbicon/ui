@@ -15,6 +15,7 @@
     cancelLabel,
     confirmIntent,
     onConfirm,
+    onError,
     onCancel,
     loading = false,
     closeOnBackdropClick = true,
@@ -39,6 +40,19 @@
       busy = true;
       await onConfirm();
       open = false;
+    } catch (error) {
+      // Failure contract: skip the auto-close (dialog stays open) and re-enable
+      // (busy cleared in `finally`) so the user can retry or cancel. The
+      // rejection is handed to `onError`; without one it is surfaced DEV-only
+      // instead of escaping the ignored onclick promise as an unhandled
+      // rejection (Combobox queryFn / Toast promise precedent). A throwing
+      // `onError` is a consumer bug and deliberately escapes (fail-loud,
+      // mirrors createCronRunner).
+      if (onError) {
+        onError(error);
+      } else if (import.meta.env?.DEV) {
+        console.error('[ConfirmDialog] onConfirm rejected:', error);
+      }
     } finally {
       busy = false;
     }
