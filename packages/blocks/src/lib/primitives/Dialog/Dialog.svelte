@@ -6,6 +6,7 @@
   import { onDestroy, tick } from 'svelte';
   import { fade, scale } from 'svelte/transition';
   import { trapFocus, showDialogModal, closeDialogModal } from '$lib/utils/overlay';
+  import { composeHandlers } from '$lib/utils/compose-handlers';
   import { overlayStack, getOverlayMotion } from '$lib/utils';
   import Button from '../Button/Button.svelte';
   import type { DialogProps } from './index';
@@ -34,6 +35,16 @@
     unstyled: unstyledProp = false,
     slotClasses: slotClassesProp = {},
     preset,
+    // Pulled out of restProps so the `{...restProps}`-first spread (internal
+    // attributes win — see docs/COMPONENT-API-CONVENTIONS.md) can't clobber
+    // them, and so neither side loses: the behavioural handlers below are
+    // composed (internal first, consumer second) and the two ARIA attributes
+    // are merged, rather than one silently replacing the other.
+    onclick: onclickProp,
+    onkeydown: onkeydownProp,
+    onclose: oncloseProp,
+    'aria-labelledby': ariaLabelledby,
+    'aria-describedby': ariaDescribedby,
     ...restProps
   }: DialogProps = $props();
 
@@ -134,6 +145,14 @@
   const bodyId = `dialog-body-${uid}`;
   const overlayId = `dialog-${uid}`;
 
+  // A rendered `title` owns the labelling; without one, a consumer-supplied
+  // `aria-labelledby` (e.g. a heading inside `children`) is the fallback, so
+  // external labelling survives the restProps-first spread.
+  const labelledBy = $derived(titleId ?? ariaLabelledby);
+  // Merged, not replaced: a consumer's description is supplemental to the
+  // dialog's own body — internal id first, consumer id last (mirrors Input).
+  const describedBy = $derived([bodyId, ariaDescribedby].filter(Boolean).join(' ') || undefined);
+
   const variantProps: DialogVariants = $derived({ size, placement, intent });
   const styles = $derived(dialogVariants(variantProps));
   const slotClasses = $derived(
@@ -174,6 +193,12 @@
 
   function handleBackdropDirectClick() {
     if (closeOnBackdropClick) requestClose();
+  }
+
+  // Native `close` event (ESC handled by the UA, form[method=dialog], .close()).
+  // Named rather than inline so it can be composed with a consumer `onclose`.
+  function handleNativeClose() {
+    if (open) requestClose();
   }
 
   function handleOutroEnd() {
@@ -230,18 +255,16 @@
 
 {#if isVisible}
   <dialog
+    {...restProps}
     bind:this={dialogEl}
     class={unstyled ? (slotClasses?.dialog ?? '') : styles.dialog({ class: slotClasses?.dialog })}
-    onclick={handleBackdropClick}
-    onkeydown={handleKeydown}
-    onclose={() => {
-      if (open) requestClose();
-    }}
-    aria-labelledby={titleId}
-    aria-describedby={bodyId}
+    onclick={composeHandlers(handleBackdropClick, onclickProp)}
+    onkeydown={composeHandlers(handleKeydown, onkeydownProp)}
+    onclose={composeHandlers(handleNativeClose, oncloseProp)}
+    aria-labelledby={labelledBy}
+    aria-describedby={describedBy}
     aria-modal="true"
     data-state={open ? 'open' : 'closed'}
-    {...restProps}
   >
     {#if open}
       <div

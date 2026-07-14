@@ -1,8 +1,9 @@
 // @vitest-environment jsdom
 import { screen } from '@testing-library/dom';
+import userEvent from '@testing-library/user-event';
 import type { Snippet } from 'svelte';
 import { createRawSnippet, flushSync, mount, tick, unmount } from 'svelte';
-import { afterEach, describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import { lockBodyScroll } from '../../utils/overlay';
 import Drawer from './Drawer.svelte';
 import type { DrawerProps } from './index';
@@ -76,5 +77,98 @@ describe('Drawer (component interaction)', () => {
     } finally {
       releaseForeign();
     }
+  });
+});
+
+// restProps contract on the <dialog> (see docs/COMPONENT-API-CONVENTIONS.md).
+// Same reason this file guards the opener effect: the destructure-and-compose
+// wiring is duplicated in Drawer.svelte rather than shared, so a copy-paste
+// regression would slip past Dialog.svelte.test.ts. Drawer composes two
+// handlers, not three — its <dialog> has no internal onclick (the backdrop is
+// a child div), so a consumer onclick rides the plain spread.
+describe('Drawer (restProps composition)', () => {
+  it('runs a consumer onkeydown and still closes on Escape', async () => {
+    const user = userEvent.setup();
+    const onClose = vi.fn();
+    const onkeydown = vi.fn();
+    renderDrawer({ open: true, onClose, onkeydown });
+    await tick();
+
+    await user.keyboard('{Escape}');
+
+    expect(onkeydown).toHaveBeenCalledOnce();
+    expect(onClose).toHaveBeenCalledOnce();
+  });
+
+  it('runs a consumer onclose and still routes the native close through onClose', async () => {
+    const onClose = vi.fn();
+    const onclose = vi.fn();
+    renderDrawer({ open: true, onClose, onclose });
+    await tick();
+
+    drawer().dispatchEvent(new Event('close'));
+
+    expect(onclose).toHaveBeenCalledOnce();
+    expect(onClose).toHaveBeenCalledOnce();
+  });
+
+  it('keeps the focus trap intact with a consumer onkeydown present', async () => {
+    const onkeydown = vi.fn();
+    renderDrawer({ open: true, title: 'Trapped', onkeydown });
+    await tick();
+
+    const event = new KeyboardEvent('keydown', { key: 'Tab', bubbles: true, cancelable: true });
+    const notPrevented = drawer().dispatchEvent(event);
+
+    expect(notPrevented).toBe(false);
+    expect(onkeydown).toHaveBeenCalledOnce();
+  });
+
+  it('does not let a consumer preventDefault veto the Escape dismiss', async () => {
+    const user = userEvent.setup();
+    const onClose = vi.fn();
+    renderDrawer({ open: true, onClose, onkeydown: (event) => event.preventDefault() });
+    await tick();
+
+    await user.keyboard('{Escape}');
+
+    // Deliberate: preventDefault is not a veto — `closeOnEscape={false}` is.
+    expect(onClose).toHaveBeenCalledOnce();
+  });
+
+  it('delivers a consumer onclick through the spread', async () => {
+    const user = userEvent.setup();
+    const onclick = vi.fn();
+    renderDrawer({ open: true, onclick });
+    await tick();
+
+    await user.click(drawer());
+
+    expect(onclick).toHaveBeenCalledOnce();
+  });
+
+  it('lets internal aria-modal and data-state win over restProps', async () => {
+    renderDrawer({ open: true, 'aria-modal': 'false', 'data-state': 'closed' });
+    await tick();
+
+    expect(drawer().getAttribute('aria-modal')).toBe('true');
+    expect(drawer().getAttribute('data-state')).toBe('open');
+  });
+
+  it('falls back to a consumer aria-labelledby when no title is rendered', async () => {
+    renderDrawer({ open: true, 'aria-labelledby': 'external-heading' });
+    await tick();
+
+    expect(drawer().getAttribute('aria-labelledby')).toBe('external-heading');
+  });
+
+  it('merges a consumer aria-describedby after the internal body id', async () => {
+    renderDrawer({ open: true, 'aria-describedby': 'external-hint' });
+    await tick();
+
+    const ids = (drawer().getAttribute('aria-describedby') as string).split(' ');
+    expect(ids).toHaveLength(2);
+    expect(document.getElementById(ids[0])?.textContent).toContain('Drawer body');
+    expect(ids[1]).toBe('external-hint');
   });
 });

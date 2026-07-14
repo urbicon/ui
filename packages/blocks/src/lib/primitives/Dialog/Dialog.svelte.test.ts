@@ -248,3 +248,132 @@ describe('Dialog (draggable)', () => {
     expect(panel().style.translate).toBe('');
   });
 });
+
+// restProps contract on the <dialog> (see docs/COMPONENT-API-CONVENTIONS.md).
+// Dialog spreads {...restProps} FIRST so its own attributes win, which alone
+// would clobber a consumer's DOM handlers — the exact bug pointed the other
+// way. So the three behavioural handlers are destructured out and composed:
+// internal first (unconditional), consumer second. These tests pin both halves
+// — the consumer's handler runs AND the internal dismiss/focus/close path
+// survives — because a regression in either direction is silent.
+describe('Dialog (restProps composition)', () => {
+  it('runs a consumer onclick and still dismisses on backdrop click', async () => {
+    const user = userEvent.setup();
+    const onClose = vi.fn();
+    const onclick = vi.fn();
+    renderDialog({ open: true, onClose, onclick });
+    await tick();
+
+    await user.click(dialog());
+
+    expect(onclick).toHaveBeenCalledOnce();
+    // The pre-fix ordering (restProps last) made the consumer handler replace
+    // handleBackdropClick outright, so this assertion is the regression guard.
+    expect(onClose).toHaveBeenCalledOnce();
+  });
+
+  it('runs a consumer onkeydown and still closes on Escape', async () => {
+    const user = userEvent.setup();
+    const onClose = vi.fn();
+    const onkeydown = vi.fn();
+    // `title` is load-bearing: it renders the close button, which is the only
+    // focusable the opener can put focus on. Untitled, focus stays on <body>,
+    // ESC never reaches the <dialog>'s onkeydown and the window-level fallback
+    // closes instead — i.e. the element handler under test wouldn't run at all.
+    renderDialog({ open: true, title: 'Settings', onClose, onkeydown });
+    await tick();
+
+    await user.keyboard('{Escape}');
+
+    expect(onkeydown).toHaveBeenCalledOnce();
+    expect(onClose).toHaveBeenCalledOnce();
+  });
+
+  it('runs a consumer onclose and still routes the native close through onClose', async () => {
+    const onClose = vi.fn();
+    const onclose = vi.fn();
+    renderDialog({ open: true, onClose, onclose });
+    await tick();
+
+    // The UA fires `close` for its own ESC handling / form[method=dialog] /
+    // .close(). jsdom does not, so dispatch it directly.
+    dialog().dispatchEvent(new Event('close'));
+
+    expect(onclose).toHaveBeenCalledOnce();
+    expect(onClose).toHaveBeenCalledOnce();
+  });
+
+  it('keeps the focus trap intact with a consumer onkeydown present', async () => {
+    const onkeydown = vi.fn();
+    renderDialog({ open: true, title: 'Trapped', onkeydown });
+    await tick();
+
+    const event = new KeyboardEvent('keydown', { key: 'Tab', bubbles: true, cancelable: true });
+    const notPrevented = dialog().dispatchEvent(event);
+
+    // trapFocus preventDefaults when it wraps focus — dispatchEvent returning
+    // false is the signal that the trap engaged rather than the browser being
+    // left to Tab out of the modal.
+    expect(notPrevented).toBe(false);
+    expect(onkeydown).toHaveBeenCalledOnce();
+  });
+
+  it('does not let a consumer preventDefault veto the backdrop dismiss', async () => {
+    const user = userEvent.setup();
+    const onClose = vi.fn();
+    renderDialog({ open: true, onClose, onclick: (event) => event.preventDefault() });
+    await tick();
+
+    await user.click(dialog());
+
+    // Deliberate: the consumer handler runs after the internal one, so
+    // preventDefault is not a veto. Opting out of dismissal is spelled with
+    // the named prop (`closeOnBackdropClick={false}`), never with a magic
+    // event side-effect — see composeHandlers' module doc.
+    //
+    // The click path is the honest test of that rule: handleBackdropClick
+    // never calls preventDefault itself, so a surviving dismiss can only mean
+    // the consumer's veto was ignored. (On Escape the internal handler
+    // preventDefaults anyway, which would mask the result.)
+    expect(onClose).toHaveBeenCalledOnce();
+  });
+
+  it('lets internal aria-modal and data-state win over restProps', async () => {
+    renderDialog({ open: true, 'aria-modal': 'false', 'data-state': 'closed' });
+    await tick();
+
+    expect(dialog().getAttribute('aria-modal')).toBe('true');
+    expect(dialog().getAttribute('data-state')).toBe('open');
+  });
+
+  it('falls back to a consumer aria-labelledby when no title is rendered', async () => {
+    // Without a `title` the component has no heading to point at, so the
+    // consumer's external labelling is the only one there is — the
+    // restProps-first spread must not drop it to undefined.
+    renderDialog({ open: true, 'aria-labelledby': 'external-heading' });
+    await tick();
+
+    expect(dialog().getAttribute('aria-labelledby')).toBe('external-heading');
+  });
+
+  it('lets a rendered title own aria-labelledby over a consumer value', async () => {
+    renderDialog({ open: true, title: 'Real title', 'aria-labelledby': 'external-heading' });
+    await tick();
+
+    const labelledBy = dialog().getAttribute('aria-labelledby');
+    expect(labelledBy).not.toBe('external-heading');
+    expect(document.getElementById(labelledBy as string)?.textContent).toBe('Real title');
+  });
+
+  it('merges a consumer aria-describedby after the internal body id', async () => {
+    renderDialog({ open: true, 'aria-describedby': 'external-hint' });
+    await tick();
+
+    const ids = (dialog().getAttribute('aria-describedby') as string).split(' ');
+    expect(ids).toHaveLength(2);
+    // Internal id first, consumer id last: the external hint adds to the
+    // dialog's own body description instead of replacing it.
+    expect(document.getElementById(ids[0])?.textContent).toContain('Dialog body');
+    expect(ids[1]).toBe('external-hint');
+  });
+});
