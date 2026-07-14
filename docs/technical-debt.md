@@ -453,6 +453,64 @@ internal TODO instead. Sections are ordered roughly by urgency.
 
 ## Accessibility
 
+### `--color-text-on-primary` is unconditionally white — 125 of 126 dark-mode intent fills miss AA
+
+- **Where:** `packages/blocks/src/lib/style/semantic.css:58`
+  (`--color-text-on-primary: var(--color-neutral-0)`, no `light-dark()`) vs.
+  the intent tokens one block below (`--color-<intent>:
+  light-dark(<intent>-500/600, <intent>-400)`), which resolve to the
+  *lighter* shades in dark mode; `-hover`/`-active` go lighter still.
+- **What:** Filled controls keep white text while their fill brightens with
+  the mode, so contrast collapses: measured over 6 themes × 7 intents × 2
+  modes × 3 states, **125 of 126 dark-mode combinations sit under AA** (only
+  `neutral/primary/dark/base` = 5.26 passes), bottoming out at **1.51:1** —
+  pressing a dark-mode button makes its label *less* readable. Affects every
+  filled Button/Badge/Alert/Tooltip/Stepper/Checkbox. Light mode is fine (all
+  42 base pairs ≥ 4.56 after the two token nudges of 2026-07-14). Guarded
+  from now on by `style/contrast.test.ts`, which asserts the shortfall as a
+  predicate and so also goes red when a remedy lands.
+- **Why deferred:** The remedy is known and verified — make
+  `text-on-primary` mode-aware, the exact shape `--color-text-on-dark`
+  (`light-dark(neutral-0, neutral-900)`) already uses one line above; it
+  clears AA for 125/126 (4.76–6.62 base, hover/active *improve*, up to
+  12.87). But it flips every filled control in dark mode to dark text — a
+  very visible design change — and regresses the one passing combination
+  (`neutral/primary/dark/base` 5.26 → 3.74), so it needs a companion change
+  (neutral theme `primary-500` to L ≥ 0.58). The test proves no single
+  lightness satisfies both on-colours for that mid-grey, i.e. mode-awareness
+  is unavoidable rather than a matter of taste. Wants a deliberate call plus
+  a VR pass, not a drive-by.
+- **Related, same call:** `warning/light/active` measures 3.89–4.05 across
+  all 6 themes. The warning ramp is deliberately inverted (the only intent
+  with dark text), so its press state runs *toward* its foreground — a
+  ramp-direction question, not a lightness nudge.
+- **Found:** 2026-07-14, PUBLISH-READINESS D.1 contrast audit. The audit's
+  own premise (`success-500` fails AA) was stale — it measures 5.68:1 today.
+
+### `text-tertiary` on subtle surfaces measures 4.18:1 — and the off-system demos trip axe
+
+- **Where:** `packages/blocks/src/lib/style/semantic.css:54`
+  (`--color-text-tertiary: light-dark(neutral-600, neutral-300)`), used for
+  inactive controls such as `segmentgroup.variants.ts:46`; plus the
+  deliberately off-system demos under `apps/docs/src/routes/blocks/**/Docs.svelte`
+  (e.g. `text-orange-950/80` in SegmentGroup's "Unstyled warm").
+- **What:** `#6e6b64` on `#e8e3e1` = **4.18:1**, under the 4.5:1 AA floor for
+  normal text — so every inactive SegmentGroup label, and any tertiary text on
+  a subtle surface, misses AA. Unchanged since the initial commit (not a
+  regression). Separately, the unstyled/brutalist/glass demos hardcode raw
+  palette colours on purpose, and axe scans them because they sit inside
+  `[data-docs-preview]`.
+- **Why deferred:** Two different calls. Darkening `text-tertiary` is a
+  system-wide visual change (it is the muted-metadata token everywhere) and
+  wants the same pass as the `text-on-primary` entry above — ideally
+  extending `contrast.test.ts` from intent×variant to text-on-surface, which
+  it does not yet cover. The demos are a separate question: they exist to
+  show off-system customisation, so either they get axe exemptions, or the
+  a11y baseline absorbs them, or they are restyled to clear AA while still
+  looking off-system.
+- **Found:** 2026-07-14, C.1/C.7 pass (reported) + independently confirmed by
+  the orchestrator (own calculation: 4.18:1).
+
 ### PlaygroundConfigurator `label for` points nowhere in most control branches — and Input ignores its `id` prop
 
 - **Where:** `packages/docs/src/lib/components/PlaygroundConfigurator/PlaygroundConfigurator.svelte`
@@ -591,6 +649,45 @@ internal TODO instead. Sections are ordered roughly by urgency.
 
 ## Dead code / decorative config
 
+### docs-theme.css ships four intent families nothing consumes — and `--docs-surface-*` resolves to invalid
+
+- **Where:** `packages/docs/src/lib/style/docs-theme.css` — the
+  `--color-code` / `--color-example` / `--color-playground` / `--color-api`
+  intents (each with `-hover`/`-active`/`-subtle`/`-emphasis`) plus
+  `--docs-surface-code|-example|-api|-glass` and
+  `--docs-shadow-card|-elevated|-float`. ~27 tokens.
+- **What:** Grep finds **zero consumers** — no `bg-code`, `text-example`,
+  `var(--docs-shadow-card)` anywhere; the only non-definition hit is prose
+  ("color-coded events"). Independently confirmed by measurement: Tailwind 4
+  prunes unused `@theme` vars, so `--color-code` read `(unset)` in 3 of 4
+  theme states. Additionally `--docs-surface-code|-example|-api` reference
+  `--color-*-950`, a step the scales never define (they run 50–900), so those
+  three resolve to invalid in **all** states. The families were converted to
+  `light-dark()` on 2026-07-14 (they were the repo's only `:root.dark`
+  token-duplication block, contradicting semantic.css's own contract) — that
+  removed the latent trap and ~35 lines of dead CSS, but the honest end state
+  is deleting the four intents outright (~70 lines).
+- **Why deferred:** Deleting a whole public-looking token surface from the
+  docs package is a deliberate call (are these a planned palette for
+  doc-page accents, or leftovers?), not a drive-by after a selector fix. If
+  they stay, the `-950` refs are a 4-line alias fix.
+- **Found:** 2026-07-14, C.6 system-dark follow-up.
+
+### docs-gen emits `typeAnchor`/`typePreview` that nothing reads
+
+- **Where:** `packages/docs-gen/src/**` (`APIDataGenerator`, ~`:322-346`) —
+  the emitted fields, whose comment references a `TypeCell` component that no
+  longer exists; plus `ApiReference.svelte` silently dropping non-`http`
+  `seeAlso` values.
+- **What:** Both fields land in every generated `api.ts` and are never read.
+  The type-link tokenizer added 2026-07-14 supersedes them and is strictly
+  better (it resolves nested cases like `ToasterSlots` inside
+  `Partial<Record<…>>`, which `getBaseType` misses).
+- **Why deferred:** Removing generator output touches the docs-gen pipeline
+  and its fixtures — its own small sweep, and docs-gen had two other sessions
+  in flight on 2026-07-14. Candidate for deletion, not preservation.
+- **Found:** 2026-07-14, C.6 API type-link pass.
+
 ### docs-app still depends on two fonts it no longer loads
 
 - **Where:** `apps/docs/package.json:18-19` —
@@ -701,6 +798,32 @@ internal TODO instead. Sections are ordered roughly by urgency.
   that runs `--update-snapshots` on Linux and commits the result. Each is an infra
   decision spanning all three specs, not a change to the suite in flight.
 - **Found:** 2026-07-08, adding the primitive visual-regression suite.
+
+### The e2e a11y gate is red — 14 of 33 pages fail `color-contrast`, and CI can't tell
+
+- **Where:** `e2e/a11y.spec.ts` + `e2e/a11y-baseline.json` (`{}` since the
+  initial commit); `.github/workflows/ci.yml` runs the whole suite via
+  `bunx playwright test` with no `continue-on-error`.
+- **What:** A local run (chromium, this worktree, 2026-07-14) is **14 failed /
+  19 passed** — every failure `color-contrast (serious)`, e.g. 15 nodes on
+  `/blocks/primitives/segment-group`. The causes are pre-existing and
+  independent of any current work: the deliberately off-system demos hardcode
+  raw palette colours (`text-orange-950/80` etc., untouched since the initial
+  commit), and `text-tertiary` sits at 4.18:1 (see the Accessibility entry).
+  Since the baseline is empty, every one of these counts as a "new violation".
+  The gate therefore fails permanently — which means it can no longer report a
+  *real* regression: a genuinely new violation would be indistinguishable from
+  the standing red. Together with the darwin-only snapshot problem below, the
+  whole e2e stage is effectively inert.
+- **Why deferred:** Making it green is not a test-harness tweak but the sum of
+  two design calls — what to do about the off-system demos, and whether to
+  darken `text-tertiary` (both in the Accessibility entry) — plus a decision on
+  what the baseline is *for*: a real baseline that absorbs today's known,
+  accepted violations would restore the signal immediately, but only once the
+  accepted set is deliberately chosen rather than snapshotted.
+- **Found:** 2026-07-14, publish-m3 wave (reported by the C.1/C.7 agent as
+  "red, not mine"; the orchestrator confirmed the run and traced every failure
+  to pre-existing sources).
 
 ### e2e axe harness never exercises the docs code panel
 
@@ -837,6 +960,24 @@ internal TODO instead. Sections are ordered roughly by urgency.
   7" task — resolved to an empirical worktree spike + this deferral.
 
 ## Design tokens
+
+### `themes/index.css` claims hue-only shifts preserve contrast — they don't
+
+- **Where:** `packages/blocks/src/lib/style/themes/index.css:24-27` ("Only the
+  hue shifts; lightness and chroma match the foundation ramp, so WCAG contrast
+  is preserved").
+- **What:** False as a general rule: OKLCH lightness is perceptual, but
+  luminance still moves with hue at constant L/C — ocean's `secondary-500`
+  measured 4.39:1 where the default ramp's measured 4.99:1, which is exactly
+  how it slipped under AA (fixed 2026-07-14). For the *chassis* neutral ramp
+  the sentence actually refers to, it holds empirically (5.95–6.05 across all
+  themes) — but only because chroma there is ≈ 0.01.
+- **Why deferred:** A doc-wording call ("holds at near-zero chroma") that
+  should be made together with whoever owns the theming guide, and it is now
+  guarded either way: `contrast.test.ts` measures every theme, so a
+  hue-shifted theme that breaks AA fails the suite rather than relying on a
+  comment.
+- **Found:** 2026-07-14, PUBLISH-READINESS D.1 contrast audit.
 
 ### Calendar current-time indicator uses `red-500` instead of a semantic token
 
