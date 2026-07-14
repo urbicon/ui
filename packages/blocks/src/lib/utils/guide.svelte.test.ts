@@ -845,7 +845,7 @@ describe('GuideController — cross-route touring', () => {
     expect(ctrl.isTourActive).toBe(true);
   });
 
-  it('DEV-warns (not silently) when a tour navigation lands on an unexpected path, then stops', () => {
+  it('DEV-warns (not silently) when a tour navigation lands on an unrelated path, then stops', () => {
     const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
     const { ctrl, nav } = makeRouteController({ initialPath: '/dash', dev: true });
     ctrl.registerTarget('a', mockElement());
@@ -857,10 +857,10 @@ describe('GuideController — cross-route touring', () => {
     );
     warn.mockClear();
     ctrl.next(); // navigates toward /expenses
-    nav.emit('/expenses/'); // the router normalized to a trailing slash → unexpected landing
-    // The mismatch is surfaced (a one-char step.route slip is not a silent teardown)…
-    expect(warn).toHaveBeenCalledWith(expect.stringContaining('but landed on "/expenses/"'));
-    expect(ctrl.isTourActive).toBe(false); // …and the strict stop is still kept
+    nav.emit('/login'); // an unrelated landing (e.g. an auth-guard redirect), not a normalized form
+    // The mismatch is surfaced (a genuine off-route landing is not a silent teardown)…
+    expect(warn).toHaveBeenCalledWith(expect.stringContaining('but landed on "/login"'));
+    expect(ctrl.isTourActive).toBe(false); // …and the strict stop is kept for unrelated paths
   });
 
   it('stays diagnosable across a redirect chain where the first event already matched', () => {
@@ -1179,6 +1179,166 @@ describe('GuideController — synchronous navigationSource (re-entrancy, #41)', 
     expect(ctrl.isTourActive).toBe(true);
     nav.emit('/expenses'); // the report lands later → matched via expectedRoute, not #selfNavigating
     expect(ctrl.isTourActive).toBe(true);
+  });
+});
+
+// ─── Cross-route touring — async false-stop hardening (post-#41 debt (a)+(b)) ────────────────────
+//
+// `#selfNavigating` (the #41 fix) only covers reports that arrive SYNCHRONOUSLY during the
+// `#navigate()` call. With an asynchronous source (the default Navigation-API one, or a
+// tick-deferred custom router) the report lands after the flag is reset, so recognizing the tour's
+// own navigation falls to path matching — which used to be exact-only. Two latent false-stops
+// followed (archived in docs/archive/2026-07/CR-guide-cross-route-followups.md):
+//   (a) a router-normalized landing (`/expenses/`, `/de/expenses`) for a raw `step.route` failed
+//       the exact match → the tour's OWN navigation stopped it as foreign (the async form of #41);
+//       likewise a late report of a navigation superseded by a rapid next()/prev() (epoch race).
+//   (b) two consecutive same-route targetless steps under a normalizing router re-navigate without
+//       the pathname changing, so the `#knownPath` early-return skipped the targetless
+//       `#expectedRoute` clear — arming a misleading "navigated toward …" DEV warning later.
+
+describe('GuideController — async navigationSource false-stop hardening (debt (a)/(b))', () => {
+  /** Sync-reporting controller whose router normalizes every landing with a trailing slash. */
+  function makeSyncNormalizingController(opts: { initialPath: string; dev?: boolean }) {
+    const nav = makeNavigationSource(opts.initialPath);
+    const navigate = vi.fn((route: string) => nav.emit(`${route}/`));
+    const ctrl = new GuideController({
+      overlayStack: makeOverlayStack(),
+      dev: opts.dev ?? false,
+      navigate,
+      navigationSource: nav.source
+    });
+    return { ctrl, nav, navigate };
+  }
+
+  it('(a) keeps running when an async source reports a router-normalized landing (trailing slash)', () => {
+    const { ctrl, nav } = makeRouteController({ initialPath: '/dash' });
+    ctrl.registerTarget('a', mockElement());
+    ctrl.startTour(
+      tour([
+        { target: 'a', route: '/dash' },
+        { target: 'b', route: '/expenses' }
+      ])
+    );
+    ctrl.next(); // navigate('/expenses'); the hook reports nothing synchronously
+    nav.emit('/expenses/'); // the report lands a tick later, router-normalized
+    expect(ctrl.isTourActive).toBe(true); // the tour's OWN navigation must not stop it
+
+    const elB = mockElement();
+    ctrl.registerTarget('b', elB); // target renders on the new page…
+    ctrl.reapplyStepHighlight();
+    expect(ctrl.highlightedId).toBe('b'); // …and the spotlight still lands
+  });
+
+  it('(a) keeps running when an async source reports a base/locale-prefixed landing', () => {
+    const { ctrl, nav } = makeRouteController({ initialPath: '/de/dash' });
+    ctrl.registerTarget('a', mockElement());
+    ctrl.startTour(
+      tour([
+        { target: 'a', route: '/de/dash' },
+        { target: 'b', route: '/expenses' }
+      ])
+    );
+    ctrl.next();
+    nav.emit('/de/expenses'); // the router prefixes the locale segment
+    expect(ctrl.isTourActive).toBe(true);
+  });
+
+  it('(a) DEV-warns (advisory, heuristic match) on an async normalized landing', () => {
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+    const { ctrl, nav } = makeRouteController({ initialPath: '/dash', dev: true });
+    ctrl.registerTarget('a', mockElement());
+    ctrl.startTour(
+      tour([
+        { target: 'a', route: '/dash' },
+        { target: 'b', route: '/expenses' }
+      ])
+    );
+    warn.mockClear();
+    ctrl.next();
+    nav.emit('/expenses/');
+    expect(ctrl.isTourActive).toBe(true);
+    // Unlike the sync (causal) path, the async match is a heuristic — surface it so the consumer
+    // can make step.route exact.
+    expect(warn).toHaveBeenCalledWith(expect.stringContaining('keeping the tour running'));
+  });
+
+  it('(a) does not stop when a superseded own navigation reports late (rapid double-next)', () => {
+    const { ctrl, nav } = makeRouteController({ initialPath: '/dash' });
+    ctrl.registerTarget('a', mockElement());
+    ctrl.startTour(
+      tour([
+        { target: 'a', route: '/dash' },
+        { target: 'b', route: '/reports' },
+        { target: 'c', route: '/expenses' }
+      ])
+    );
+    ctrl.next(); // navigate('/reports') — in flight
+    ctrl.next(); // the user advances again before it lands → navigate('/expenses')
+    nav.emit('/reports'); // the superseded navigation lands late — causally the tour's own
+    expect(ctrl.isTourActive).toBe(true); // must NOT be read as a foreign navigation
+    nav.emit('/expenses'); // the current navigation lands
+    expect(ctrl.isTourActive).toBe(true);
+    nav.emit('/somewhere-else'); // a genuine foreign navigation still stops
+    expect(ctrl.isTourActive).toBe(false);
+  });
+
+  it('(a) a foreign visit to a superseded route after the current navigation landed still stops', () => {
+    const { ctrl, nav } = makeRouteController({ initialPath: '/dash' });
+    ctrl.registerTarget('a', mockElement());
+    ctrl.startTour(
+      tour([
+        { target: 'a', route: '/dash' },
+        { target: 'b', route: '/reports' },
+        { target: 'c', route: '/expenses' }
+      ])
+    );
+    ctrl.next();
+    ctrl.next(); // '/reports' superseded, '/expenses' pending
+    nav.emit('/expenses'); // the current navigation lands → the superseded epoch is over
+    ctrl.registerTarget('c', mockElement());
+    ctrl.reapplyStepHighlight(); // target settles
+    nav.emit('/reports'); // the user going BACK to the superseded route is foreign now
+    expect(ctrl.isTourActive).toBe(false);
+  });
+
+  it('(b, sync) consecutive same-route targetless steps do not arm a misleading foreign-nav warning', () => {
+    // Step 1 lands normalized ('/expenses/'), so step 2's re-navigation to the same logical route
+    // reports a path equal to #knownPath — the early return used to skip the targetless
+    // #expectedRoute clear, arming a later "navigated toward …" mis-frame on a genuine foreign nav.
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+    const { ctrl, nav } = makeSyncNormalizingController({ initialPath: '/home', dev: true });
+    ctrl.startTour(
+      tour([
+        { route: '/expenses', title: 'Intro' },
+        { route: '/expenses', title: 'More' } // same logical route, still targetless
+      ])
+    );
+    expect(ctrl.isTourActive).toBe(true); // step 1's own (sync, normalized) landing kept it running
+    ctrl.next(); // step 2 re-navigates; the sync report equals #knownPath
+    expect(ctrl.isTourActive).toBe(true);
+    warn.mockClear();
+    nav.emit('/settings'); // foreign: stops, with NO misleading "navigated toward" warning
+    expect(ctrl.isTourActive).toBe(false);
+    expect(warn).not.toHaveBeenCalled();
+  });
+
+  it('(b, async) a same-path normalized landing clears a targetless expectation on the early-return path', () => {
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+    const { ctrl, nav } = makeRouteController({ initialPath: '/home', dev: true });
+    ctrl.startTour(
+      tour([
+        { route: '/expenses', title: 'Intro' },
+        { route: '/expenses', title: 'More' }
+      ])
+    );
+    nav.emit('/expenses/'); // step 1's landing, normalized → kept via (a); #knownPath '/expenses/'
+    expect(ctrl.isTourActive).toBe(true);
+    ctrl.next(); // step 2 re-navigates (route ≠ the source's normalized current) — expectation pending
+    nav.emit('/expenses/'); // its landing report — the pathname does not change (=== #knownPath)
+    warn.mockClear();
+    nav.emit('/settings'); // foreign: stops, with NO misleading "navigated toward" warning
+    expect(ctrl.isTourActive).toBe(false);
+    expect(warn).not.toHaveBeenCalled();
   });
 });
 

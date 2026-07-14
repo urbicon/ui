@@ -289,10 +289,12 @@ const ROUTE_TARGET_TIMEOUT_MS = 4000;
 /**
  * Heuristic: does `landed` look like a router-normalized form of `route` — a trailing slash
  * (`/expenses/`) or a base/locale prefix (`/de/expenses`) — rather than an unrelated redirect target
- * (`/login`)? Used ONLY to decide whether a *synchronous* own-navigation landing on a non-exact path
- * deserves a DEV diagnostic, never to change tour behavior, so a wrong guess merely over- or
- * under-warns in DEV. `route` is a normalized pathname (leading `/`), so the suffix test lands on a
- * real segment boundary — `/myexpenses` does not end with `/expenses`.
+ * (`/login`)? On the *synchronous* (re-entrant) path it only tunes DEV diagnostics — `#selfNavigating`
+ * is the causal signal there. On the *asynchronous* path (the default source) there is no causal
+ * signal, so this heuristic decides own-vs-foreign for a pending navigation: a normalized-looking
+ * landing keeps the tour running (DEV-warned, since it is a guess), an unrelated one stops it.
+ * `route` is a normalized pathname (leading `/`), so the suffix test lands on a real segment
+ * boundary — `/myexpenses` does not end with `/expenses`.
  */
 function looksLikeNormalizedRoute(landed: string, route: string): boolean {
   const stripSlash = (s: string) => (s.length > 1 && s.endsWith('/') ? s.slice(0, -1) : s);
@@ -391,9 +393,9 @@ export class GuideController {
    * `true` only while our own injected `#navigate()` call is on the stack. A `navigationSource` that
    * reports its location change **synchronously, re-entrant** during that call (SvelteKit's
    * `afterNavigate` fires inside `goto`) IS that very navigation — never a foreign one. This is the
-   * exact signal; the `path === #expectedRoute` check in `#onLocationChange` is only an async-source
-   * proxy for the same thing and breaks the moment the router reports a normalized path
-   * (trailing slash, base/locale prefix) that doesn't equal the raw `step.route`.
+   * exact signal; the `#expectedRoute` matching in `#onLocationChange` (exact path, or a
+   * `looksLikeNormalizedRoute` landing for a router that normalizes) is only an async-source proxy
+   * for the same thing.
    *
    * A boolean (not a depth counter) is enough: the sole re-entrant callee of a sync source is
    * `#onLocationChange`, which never calls `#maybeNavigate`. A `navigate` hook that *synchronously*
@@ -402,6 +404,16 @@ export class GuideController {
    * never open, so it can't keep a genuinely foreign navigation alive.
    */
   #selfNavigating = false;
+  /**
+   * Own navigations superseded before their report arrived — a rapid `next()`/`prev()` while the
+   * previous step's navigation was still in flight moves its `#expectedRoute` here instead of
+   * dropping it, so the late report is still recognized as the tour's own (not a foreign stop).
+   * Entries live only until the *current* navigation settles (report, or target resolve) or the
+   * tour tears down — bounding the window in which a genuinely foreign visit to one of these paths
+   * would be misread as ours. A plain `Set` — pure bookkeeping, never rendered, so the `SvelteSet`
+   * rule doesn't apply.
+   */
+  readonly #supersededRoutes = new Set<string>();
   /** Last path the tour is known to be on — set at start, updated on each handled navigation. */
   #knownPath = '';
   /** Unsubscribe from the navigation source; non-null only while a route-using tour runs. */
@@ -704,8 +716,14 @@ export class GuideController {
    */
   #maybeNavigate(): void {
     // Each step starts with a clean slate — no navigation is pending until we trigger one below.
-    // (A step that doesn't navigate must not inherit the previous step's `expectedRoute`.)
-    this.#expectedRoute = null;
+    // (A step that doesn't navigate must not inherit the previous step's `expectedRoute`.) A
+    // pending navigation superseded here (rapid next/prev while it was still in flight) is
+    // remembered: its report may land *after* this step activates, and must still be read as the
+    // tour's own navigation — not a foreign one that stops the tour (async epoch race).
+    if (this.#expectedRoute !== null) {
+      this.#supersededRoutes.add(this.#expectedRoute);
+      this.#expectedRoute = null;
+    }
     const route = this.currentStep?.route;
     if (route == null) return;
     if (route === this.#navSource.current()) return;
@@ -753,25 +771,56 @@ export class GuideController {
     this.#clearRouteTargetWarning();
   }
 
+  /** Does `path` look like `route`'s landing — exact, or a router-normalized form of it? */
+  #isOwnLanding(path: string, route: string): boolean {
+    return path === route || looksLikeNormalizedRoute(path, route);
+  }
+
   /**
    * React to a navigation observed while a route-using tour runs. A navigation that is the tour's own
-   * — reported synchronously during our `#navigate()` call (`#selfNavigating`), or matching the
-   * pending `#expectedRoute` — keeps it running (the ring lands via the surface's
+   * — reported synchronously during our `#navigate()` call (`#selfNavigating`), matching the pending
+   * `#expectedRoute` (exactly, or as a router-normalized landing), or matching a navigation this tour
+   * triggered and then superseded — keeps it running (the ring lands via the surface's
    * `reapplyStepHighlight`). Any other navigation is foreign — the user left, or a
    * youngest-gesture-wins race — and tears the tour down, analytics-silent (`stopTour`).
    */
   #onLocationChange(path: string): void {
     if (!this.#activeTour) return;
-    if (path === this.#knownPath) return; // no pathname change (e.g. a hash/query update) — ignore
+    if (path === this.#knownPath) {
+      // No pathname change (a hash/query update, or a re-report of the path we're already on).
+      // A same-path report can still BE the pending navigation's landing: two consecutive steps on
+      // the same logical route under a normalizing router re-navigate without the pathname ever
+      // changing. A *targetless* step settles on landing, so clear its expectation here too —
+      // skipping that (the pre-fix behavior) armed a misleading "navigated toward …" DEV warning
+      // on the next genuine foreign navigation. (A *targeted* step keeps the expectation until its
+      // target resolves, exactly like the main own-navigation branch below.)
+      if (
+        this.#expectedRoute !== null &&
+        this.currentStep?.target == null &&
+        (this.#selfNavigating || this.#isOwnLanding(path, this.#expectedRoute))
+      ) {
+        this.#expectedRoute = null;
+      }
+      return;
+    }
     this.#knownPath = path;
-    const matchesExpected = this.#expectedRoute !== null && path === this.#expectedRoute;
-    // A location report is the tour's OWN navigation in two cases: it matches the pending
-    // `#expectedRoute` (the async-source proxy, for a report landing a tick after the hook returns),
-    // or it arrives synchronously, re-entrant, during our injected `#navigate()` call
+    const expected = this.#expectedRoute;
+    const matchesExpected = expected !== null && path === expected;
+    // With an *async* source (the default) `#selfNavigating` is already false by the time the report
+    // lands, so recognizing the tour's own navigation falls to path matching. Exact-only matching
+    // false-stopped the tour on a router-normalized landing (`/expenses/`, `/de/expenses`) for a raw
+    // `step.route` — the async form of #41 — so a normalized-looking landing for the pending route
+    // counts as ours too (a heuristic, hence DEV-warned below; the sync path has the causal signal
+    // and stays silent).
+    const matchesNormalized =
+      expected !== null && !matchesExpected && looksLikeNormalizedRoute(path, expected);
+    // A location report is the tour's OWN navigation when it matches the pending `#expectedRoute`
+    // (exactly or normalized — the async-source proxy, for a report landing a tick after the hook
+    // returns), or when it arrives synchronously, re-entrant, during our injected `#navigate()` call
     // (`#selfNavigating`). The latter is a *causal* signal — our navigate produced this report,
-    // whatever path it carries — so it covers a router-normalized landing (trailing slash,
-    // base/locale prefix) that an exact match would miss. Either keeps the tour running.
-    if (this.#selfNavigating || matchesExpected) {
+    // whatever path it carries — so it also covers a synchronous redirect an exact or normalized
+    // match would miss. Either keeps the tour running.
+    if (this.#selfNavigating || matchesExpected || matchesNormalized) {
       // A *synchronous* report on a path that isn't the expected route is still causally ours, but it
       // landed somewhere unexpected: a normalized variant of `step.route` (fine — the target anchors
       // once it mounts) or a genuine redirect off the route (an auth guard → `/login`). We keep
@@ -782,14 +831,24 @@ export class GuideController {
       if (
         this.#dev &&
         this.#selfNavigating &&
-        this.#expectedRoute !== null &&
+        expected !== null &&
         !matchesExpected &&
-        !looksLikeNormalizedRoute(path, this.#expectedRoute)
+        !matchesNormalized
       ) {
         console.warn(
-          `[Guide] tour "${this.#activeTour?.id}" navigated toward "${this.#expectedRoute}" but synchronously landed on "${path}" — keeping the tour running as its own navigation. If this was a redirect off the step's route (not a normalized form of it), stop the tour explicitly from your router guard.`
+          `[Guide] tour "${this.#activeTour?.id}" navigated toward "${expected}" but synchronously landed on "${path}" — keeping the tour running as its own navigation. If this was a redirect off the step's route (not a normalized form of it), stop the tour explicitly from your router guard.`
+        );
+      } else if (this.#dev && !this.#selfNavigating && matchesNormalized) {
+        // The async normalized match is a guess (no causal signal) — keep running, but surface it so
+        // the consumer can make the match exact.
+        console.warn(
+          `[Guide] tour "${this.#activeTour?.id}" navigated toward "${expected}" and landed on "${path}" — treating it as the router's normalized form of the step route and keeping the tour running. Set step.route to the router's actual landed path to make the match exact.`
         );
       }
+      // The current navigation reported → any older superseded navigation can no longer report
+      // (navigation reports arrive in order), so drop those epochs — a later *foreign* visit to one
+      // of their paths must stop the tour again.
+      this.#supersededRoutes.clear();
       // For a *targeted* step, keep `#expectedRoute` set until the target settles
       // (`#applyStepHighlight`) so a redirecting / multi-hop source (the Navigation API emitting one
       // event per hop) firing a *second* event for the redirect target is still recognized as a
@@ -801,13 +860,20 @@ export class GuideController {
       if (this.currentStep?.target == null) this.#expectedRoute = null;
       return;
     }
-    // Any other navigation stops the tour (analytics-silent). When one was pending, a landed path
-    // that doesn't match is most often a normalized `step.route` (trailing slash, base/locale
-    // prefix) rather than a genuine foreign nav — so surface it instead of a silent teardown on a
-    // one-character mismatch. (The strict stop is kept either way: better than running on a wrong page.)
-    if (this.#dev && this.#expectedRoute !== null) {
+    // A late report of a navigation this tour triggered and then superseded (rapid next/prev while
+    // it was still in flight) is causally ours — keep running and keep waiting for the *current*
+    // navigation's own report. Silent: the route was recorded causally in `#maybeNavigate`; only
+    // its normalization is heuristic. (Trade-off, bounded by the in-flight window: a genuinely
+    // foreign visit to one of these paths during that window is misread as ours.)
+    for (const superseded of this.#supersededRoutes) {
+      if (this.#isOwnLanding(path, superseded)) return;
+    }
+    // Any other navigation stops the tour (analytics-silent). When one was pending, surface the
+    // mismatch in DEV instead of tearing down silently — with normalized landings recognized above,
+    // reaching this with a pending route means a genuinely unrelated landing (e.g. a redirect).
+    if (this.#dev && expected !== null) {
       console.warn(
-        `[Guide] tour "${this.#activeTour?.id}" navigated toward "${this.#expectedRoute}" but landed on "${path}" — stopping as a foreign navigation. If "${path}" is just a normalized form of the step's route (trailing slash, base/locale prefix), set step.route to the router's actual path.`
+        `[Guide] tour "${this.#activeTour?.id}" navigated toward "${expected}" but landed on "${path}" — stopping as a foreign navigation (the landed path is not a normalized form of the step's route either).`
       );
     }
     this.#expectedRoute = null;
@@ -860,6 +926,7 @@ export class GuideController {
     this.#navUnsub?.();
     this.#navUnsub = null;
     this.#expectedRoute = null;
+    this.#supersededRoutes.clear();
     this.clearHighlight();
     this.#tourUnregister?.();
     this.#tourUnregister = null;
@@ -911,6 +978,7 @@ export class GuideController {
       this.highlight(step.target, { scroll: true });
       this.#clearRouteTargetWarning(); // target landed → no "never appeared" warning needed
       this.#expectedRoute = null; // the navigated-to target resolved → navigation fully settled
+      this.#supersededRoutes.clear(); // …and with it every older, superseded navigation epoch
     } else {
       this.clearHighlight();
       // A step bound to another route legitimately has no target on the current page — during the

@@ -354,12 +354,12 @@ How it behaves:
 - **Missing hook is safe.** A `route` step with no `navigate` wired DEV-warns and stays on the
   current route — no crash.
 - **Path comparison.** `route` is compared against `window.location.pathname` by default, so use a
-  normalized path (no query/hash, and matching the router's *actual* landed path — e.g. include the
-  trailing slash or base/locale prefix if your router adds one, otherwise the navigation lands on a
-  path the engine doesn't recognize and stops the tour as foreign, with a DEV warning). This caveat
-  applies to *asynchronously* observed navigations; a synchronous, re-entrant `navigationSource`
-  (the `afterNavigate` one below) sidesteps it — a same-tick report is recognized as the tour's own
-  by *timing*, not by path, so any normalized landing keeps running.
+  normalized path (no query/hash, preferably the router's *actual* landed path). An asynchronously
+  observed landing that is merely a normalized form of the step's route (trailing slash, base/locale
+  prefix) is recognized as the tour's own — the tour keeps running, DEV-warned so you can make the
+  route exact; an unrelated landing (e.g. an auth redirect) stops the tour as foreign. A
+  synchronous, re-entrant `navigationSource` (the `afterNavigate` one below) doesn't need the
+  heuristic — a same-tick report is recognized as the tour's own by *timing*, not by path.
 
 > **Reliable foreign-navigation detection.** The default `navigationSource` observes navigations via
 > the Navigation API, which catches link clicks, `goto`, and back/forward in Chromium and recent
