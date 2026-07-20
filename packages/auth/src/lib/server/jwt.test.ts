@@ -647,6 +647,35 @@ describe('assertJwtConfigValid', () => {
       })
     ).toThrow(/duplicate JWT key id/);
   });
+
+  it('requires an explicit keyId for a kid-less signing key paired with previousPublicKeys', async () => {
+    // Third-pass gap: without keyId or a signing-key kid, the active kid is a
+    // runtime thumbprint the sync guard can't compute — so a previousPublicKeys
+    // kid colliding with it would slip past. Fail loud at wiring time instead.
+    const active = await generateES256KeyPair();
+    const retired = await generateES256KeyPair();
+    const kidless = { ...active.privateKey };
+    kidless.kid = undefined;
+    expect(() =>
+      assertJwtConfigValid({
+        secret: 's',
+        algorithm: 'ES256',
+        signingKey: kidless,
+        previousPublicKeys: [retired.publicKey]
+      })
+    ).toThrow(/jwt\.keyId is required/);
+  });
+
+  it('accepts a kid-less signing key when no previousPublicKeys are set', async () => {
+    // The ambiguity only matters against a rotation list; a lone kid-less key
+    // resolves its thumbprint at runtime with nothing to collide against.
+    const active = await generateES256KeyPair();
+    const kidless = { ...active.privateKey };
+    kidless.kid = undefined;
+    expect(() =>
+      assertJwtConfigValid({ secret: 's', algorithm: 'ES256', signingKey: kidless })
+    ).not.toThrow();
+  });
 });
 
 describe('createSignedToken / verifySignedToken', () => {

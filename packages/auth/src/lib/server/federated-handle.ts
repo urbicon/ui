@@ -78,7 +78,8 @@ export interface FederatedAuthHandleOptions<TUser> {
    * How long a fetched JWKS document is trusted before it is re-fetched.
    * Mirrors the `max-age=300` the IdP's `createJWKSHandler` serves: five
    * minutes keeps the rotation-propagation window tight without hammering the
-   * endpoint. @default 300_000
+   * endpoint. Must be at least 1000 ms — a shorter cache would collapse the
+   * anti-fetch-storm cooldown (rejected at factory time). @default 300_000
    */
   cacheTtlMs?: number;
   /**
@@ -123,6 +124,13 @@ export interface FederatedAuthHandleOptions<TUser> {
 }
 
 const DEFAULT_CACHE_TTL_MS = 5 * 60_000;
+/**
+ * Lower bound on `cacheTtlMs`. Below this the `min(REFRESH_COOLDOWN_MS,
+ * cacheTtlMs)` cooldown would collapse and stop bounding unknown-kid fetches
+ * (see the factory-time check). 1 s is already far shorter than any real JWKS
+ * cache window.
+ */
+const MIN_CACHE_TTL_MS = 1_000;
 /**
  * Minimum spacing between JWKS fetch attempts. An unknown `kid` triggers at
  * most ONE refresh per window — so a legitimate key rotation propagates within
@@ -230,7 +238,18 @@ async function readJwksBody(res: Response, maxBytes = MAX_JWKS_BYTES): Promise<s
     );
   }
   const stream = res.body;
-  if (!stream) return res.text();
+  if (!stream) {
+    // No readable stream (exotic — undici/workerd always stream a non-empty
+    // body): fall back to res.text(), but still enforce the byte cap on the
+    // buffered result so a lying/absent Content-Length can't slip an oversized
+    // body past on this path. Defense-in-depth for a branch the Content-Length
+    // pre-check already guards in the honest case.
+    const text = await res.text();
+    if (new TextEncoder().encode(text).byteLength > maxBytes) {
+      throw new Error(`JWKS response exceeds ${maxBytes} bytes — refusing to buffer it`);
+    }
+    return text;
+  }
   const reader = stream.getReader();
   const chunks: Uint8Array[] = [];
   let total = 0;
@@ -305,9 +324,16 @@ export function createFederatedAuthHandle<TUser>(
   const jwksUrl = validateJwksUrl(options.jwksUrl, logger);
   const cookieName = options.cookieName ?? 'session';
   const cacheTtlMs = options.cacheTtlMs ?? DEFAULT_CACHE_TTL_MS;
-  if (!(cacheTtlMs > 0)) {
+  // Floor, not just `> 0`: the anti-storm cooldown is `min(REFRESH_COOLDOWN_MS,
+  // cacheTtlMs)`, so a sub-second cacheTtlMs would collapse it toward zero and
+  // let unknown-kid requests trigger an outbound JWKS fetch each — a self-DoS
+  // on both ends. Flooring the cooldown *above* cacheTtlMs instead would strand
+  // legitimate short-TTL configs (stale-but-uncooled window), so the honest
+  // lever is rejecting the absurd TTL at wiring time. 1 s is already far below
+  // any sane JWKS cache (the default is five minutes).
+  if (!(cacheTtlMs >= MIN_CACHE_TTL_MS)) {
     throw new Error(
-      '[auth] createFederatedAuthHandle: cacheTtlMs must be a positive number of milliseconds.'
+      `[auth] createFederatedAuthHandle: cacheTtlMs must be at least ${MIN_CACHE_TTL_MS} ms (a shorter cache would collapse the anti-fetch-storm cooldown). The default is ${DEFAULT_CACHE_TTL_MS} ms.`
     );
   }
   const refreshCooldownMs = Math.min(REFRESH_COOLDOWN_MS, cacheTtlMs);

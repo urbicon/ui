@@ -161,6 +161,18 @@ describe('createFederatedAuthHandle — factory guards', () => {
     expect(() => createFederatedAuthHandle(handleOptions({ cacheTtlMs: 0 }))).toThrow(/cacheTtlMs/);
   });
 
+  it('throws for a sub-second cacheTtlMs that would collapse the fetch-storm cooldown', () => {
+    // Third-pass floor: an absurd TTL (e.g. 1 ms) drives the cooldown toward
+    // zero, so unknown kids would fetch per request.
+    expect(() => createFederatedAuthHandle(handleOptions({ cacheTtlMs: 1 }))).toThrow(
+      /at least 1000 ms/
+    );
+    expect(() => createFederatedAuthHandle(handleOptions({ cacheTtlMs: 999 }))).toThrow(
+      /cacheTtlMs/
+    );
+    expect(() => createFederatedAuthHandle(handleOptions({ cacheTtlMs: 1000 }))).not.toThrow();
+  });
+
   it('throws for a malformed maxTokenAge duration at factory time', () => {
     expect(() => createFederatedAuthHandle(handleOptions({ maxTokenAge: 'soon' }))).toThrow(
       /Invalid duration/
@@ -521,6 +533,32 @@ describe('createFederatedAuthHandle — fail-closed JWKS handling', () => {
 
   it('refuses an oversized JWKS body (byte cap) before buffering it whole, and fails closed', async () => {
     stubJwksFetch(() => 'x'.repeat(300 * 1024));
+    const logger = mockLogger();
+    const handle = createFederatedAuthHandle(handleOptions({ logger }));
+    const event = createMockEvent({ path: '/api/data', sessionCookie: await mintIdpToken() });
+    const response = await handle({ event: asEvent(event), resolve: vi.fn() });
+    expect(response.status, 'fail-closed: signed out, not a 500').toBe(401);
+    expect(event.locals.user).toBeNull();
+    expect(logger.error).toHaveBeenCalledWith(
+      expect.stringContaining('fail closed'),
+      expect.anything()
+    );
+  });
+
+  it('enforces the byte cap on the no-stream fallback (lying/absent content-length)', async () => {
+    // Third-pass defense-in-depth: a response with no readable body stream and
+    // no honest content-length must still be capped on the buffered text, not
+    // returned wholesale.
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async () => ({
+        ok: true,
+        status: 200,
+        body: null,
+        headers: new Headers({ 'content-type': 'application/json' }),
+        text: async () => 'x'.repeat(300 * 1024)
+      }))
+    );
     const logger = mockLogger();
     const handle = createFederatedAuthHandle(handleOptions({ logger }));
     const event = createMockEvent({ path: '/api/data', sessionCookie: await mintIdpToken() });

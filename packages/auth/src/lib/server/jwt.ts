@@ -315,6 +315,20 @@ export function assertJwtConfigValid(config: JwtConfig, logger: AuthLogger = con
         );
       }
     }
+    // The active kid is resolved at runtime by resolveActiveKid, which falls
+    // back to the JWK thumbprint when neither keyId nor the signing key's kid
+    // is set. That thumbprint is async and not known here — so if it were the
+    // active kid, a previousPublicKeys entry whose kid happened to equal it
+    // would slip past the duplicate-kid guard below (and then shadow the active
+    // key in the served JWKS, failing fresh sessions at consumers). Require an
+    // explicit id in that one ambiguous case so the guard can actually see the
+    // active kid. Generated keys always carry a kid (generateES256KeyPair), so
+    // this only bites a hand-built kid-less key paired with a rotation list.
+    if (!config.keyId && !key.kid && (config.previousPublicKeys?.length ?? 0) > 0) {
+      throw new Error(
+        '[auth] jwt.keyId is required when jwt.previousPublicKeys is set and the signing key carries no kid: the active key id would otherwise be a runtime-computed thumbprint that cannot be checked for collisions against the previous keys at wiring time. Set jwt.keyId, or stamp a kid on the signing key (generateES256KeyPair does both).'
+      );
+    }
     // Every published kid must be unique. createJWKSHandler serves the active
     // key and each previousPublicKeys entry under its own kid, and the
     // consumer's JWKS parser keeps the LAST entry per kid — so two entries
