@@ -398,43 +398,51 @@ internal TODO instead. Sections are ordered roughly by urgency.
   a radio dot, plus VR review), not a per-component drive-by.
 - **Found:** 2026-07-13, CHK-10 checkbox polish.
 
-### Combobox multi-select: no way to seed labels for pre-selected async values; orphan dev-warn re-fires per recompute
+### Combobox multi-select: no way to seed labels for pre-selected async values
 
 - **Where:** `packages/blocks/src/lib/primitives/Combobox/Combobox.svelte`
-  (`selectedTags` `$derived.by`, `tagCache`) — and the same orphan-warn shape in
-  `Select.svelte`'s `selectedOptions`.
+  (`selectedTags` `$derived.by`, `tagCache`).
 - **What:** In `multiple` + `queryFn` mode a consumer that binds
   `value=['a']` on mount has no API to supply `'a'`'s label — `tagCache` is only
   written by `toggleValue` (a user pick), so a pre-bound value renders as its
-  raw `String(value)` until a query happens to return it. The dev-warn is now
-  suppressed in async mode to stop crying wolf (CMB-2 review), but the underlying
-  gap — seeding labels for pre-selected async values — remains. Separately, in
-  *sync* mode the orphan warn lives inside a `$derived.by` whose deps include the
-  `options`/`allOptions` reference, so it re-fires on every parent re-render that
-  passes a fresh `options` array (the common `options={items.map(...)}` idiom)
-  rather than once per orphan value.
-- **Why deferred:** The label-seed needs a deliberate API decision (accept a
-  `ComboboxOption[]` seed / a `selectedOptions` prop / a cache-seed callback), and
-  the warn-dedup is the identical pattern in Select — fixing one side alone
-  reintroduces the Combobox/Select divergence the mirror avoids. Wants one pass
-  across both (a warned-values `Set` for idempotency; a label-seed prop).
+  raw `String(value)` until a query happens to return it. The dev-warn is
+  suppressed in async mode to stop crying wolf (CMB-2 review); the underlying
+  gap — seeding labels for pre-selected async values — remains.
+- **Why deferred:** Needs a deliberate API decision, and it is worth doing
+  right rather than as a drive-by. **Recommendation (qa-polish-wave review):** a
+  declarative `seedOptions: ComboboxOption<T>[]` prop, wired in as the *last*
+  lookup source in label resolution (`allOptions.find ?? tagCache.get ??
+  seedOptions.find`), covering single and multi with one shape. Preferred over a
+  `selectedOptions` prop (which introduces a second, conflict-prone selection
+  source — who wins on disagreement with `value`?) and over a cache-seed
+  callback (imperative overkill: consumers usually already hold the labels of
+  pre-selected values). Idempotent, SSR-safe, and it would let the async orphan
+  warn become meaningful again (warn only when a value is in neither results,
+  cache, nor seed). Re-using `options` as the seed is rejected: it collides with
+  the documented "options/groups are ignored in queryFn mode" semantics.
+- **Update 2026-07-20 (qa-polish-wave):** the *warn-dedup* half — the sync-mode
+  orphan warn re-firing per fresh `options` array in both Combobox and Select —
+  is **fixed** (a plain warned-values `Set` outside the reactive graph, mirrored
+  across both components, `14d2854`/`d60b41e`). Only the label-seed API above
+  remains.
 - **Found:** 2026-07-10, blocks feature-request review (CMB-2 multi-select).
 
-### Combobox `queryFn` rejection surfaces no user-facing error state
+### Combobox `queryFn` failure has no in-component error-row slot
 
 - **Where:** `packages/blocks/src/lib/primitives/Combobox/Combobox.svelte` — the
-  async effect's `.catch` (swallows non-abort rejections with a DEV-only warn).
-- **What:** A genuine `queryFn` rejection (network/server error) leaves the
-  previous `asyncOptions` in place with `loading` cleared and no error signal —
-  the user sees stale results or the "no results" row with no indication the
-  search failed. `AbortError` is correctly ignored; the gap is only the *real*
-  failure path. Pre-existing (CMB-3), not introduced by CMB-2, but on-topic.
-- **Why deferred:** Needs an API decision — an `onError` callback and/or an
-  error-row slot (mirroring `loadingText`/`noResultsText`) — vs. the current
-  accept-stale-on-failure behaviour. Not a drive-by; wants its own increment.
-  ConfirmDialog now ships the `onError` precedent (same
-  `(error: unknown) => void` signature, 2026-07-14) — mirror its vocabulary.
-- **Found:** 2026-07-10, blocks feature-request review (CMB-2 multi-select).
+  async runner's `.catch`.
+- **What:** A genuine `queryFn` rejection can now be surfaced by the consumer:
+  `onError(error)` shipped 2026-07-20 (`14d2854`, ConfirmDialog vocabulary),
+  so the failure no longer vanishes — the consumer can toast/inline it, and
+  without a handler it still warns DEV-only. The remaining gap is purely the
+  *in-component* affordance: there is no error-row slot mirroring
+  `loadingText`/`noResultsText`, so the listbox itself shows stale results (or
+  the "no results" row) on failure unless the consumer renders something.
+- **Why deferred:** An error-row slot is a deliberate a11y/design increment
+  (live-region semantics, retry affordance, interaction with the stale-options
+  decision), not a drive-by. `onError` covers the load-bearing case meanwhile.
+- **Found:** 2026-07-10 (CMB-3); narrowed 2026-07-20 once `onError` landed
+  (qa-polish-wave).
 
 ### Sparkline `fluid` scales the `showEndPoint` dot into an ellipse
 
@@ -451,25 +459,6 @@ internal TODO instead. Sections are ordered roughly by urgency.
   small rework of the marker path, not a drive-by, and only worth it if the
   combo shows up in practice.
 - **Found:** 2026-07-14, Sparkline `fluid` review (primitives-debt wave).
-
-### Pagination `showFirstLast` is a silent no-op when `showNumbers={false}`
-
-- **Where:** `packages/blocks/src/lib/primitives/Pagination/Pagination.svelte`
-  (default-layout First/Last gate on `showStartEllipsis`/`showEndEllipsis`) +
-  `computeEllipsisState`.
-- **What:** First/Last are shown only when their jump target sits outside the
-  visible number window (an ellipsis is present) — a deliberate redundancy gate
-  (settled during the 2026-07-14 edge-policy unification: they are redundancy-,
-  not edge-gated). But `computeEllipsisState` returns `{showStart: false,
-  showEnd: false}` whenever `showNumbers` is false, so a consumer pairing
-  `showFirstLast` with `showNumbers={false}` (a compact prev/next-only bar) gets
-  no First/Last buttons at all — silently. The JSDoc frames `showNumbers={false}`
-  as a prev/next-only bar, so it is arguably consistent, but the silent
-  inertness of an explicitly-set `showFirstLast` deserves a call.
-- **Why deferred:** Wants a small design/doc decision (honour `showFirstLast`
-  without numbers, or document it as intentionally coupled to the number window),
-  not a drive-by change to the ellipsis gate.
-- **Found:** 2026-07-14, Pagination edge-policy unification (primitives-debt wave).
 
 ## Accessibility
 
@@ -648,6 +637,25 @@ internal TODO instead. Sections are ordered roughly by urgency.
 
 ## Docs coverage
 
+### ~9 primitive pages use their Customization section as a second Examples bucket (XC-6)
+
+- **Where:** `apps/docs/src/routes/blocks/primitives/*/Docs.svelte` — drawer
+  ("Settings Panel"/"Navigation Menu"), progress ("Upload"/"Dashboard Stats"),
+  radio-group ("Pricing"/"Theme"), select ("Form Integration"), slider
+  ("Volume"/"Price Filter"), segment-group, spinner, textarea; plus the
+  menu page's existing "when-to-use" section is missing from its
+  `+page.svelte` navigation ToC.
+- **What:** Surfaced closing the XC-4 customization-coverage gap (all 36 pages
+  now cover unstyled/slotClasses/preset, 2026-07-20). These ~9 sections hold
+  realistic *usage* contexts with no Customization API — by DocsPageGuide XC-6
+  they are Examples material sitting under the wrong heading. The XC-4 pass
+  added genuine customization content to each rather than reorganising, so the
+  misfiled usage demos remain.
+- **Why deferred:** Moving demos between sections (and renumbering markers) is a
+  deliberate section-taxonomy sweep with its own review, not a drive-by during a
+  coverage pass; the menu ToC omission wants the same look at that page's nav.
+- **Found:** 2026-07-20, XC-4 customization sectioning (qa-polish-wave).
+
 ### The docs search index is English-only, capped at 2000 chars per record, and indexes playground control names
 
 - **Where:** `apps/docs/scripts/harvest.ts` (`MAX_BODY` ~`:26`, the
@@ -687,45 +695,6 @@ internal TODO instead. Sections are ordered roughly by urgency.
 - **Found:** 2026-07-14, XC-7 disambiguation work.
 
 ## Auth — accepted trade-offs
-
-### Federated identity — deferred hardening from the adversarial review
-
-- **Where:** `packages/auth/src/lib/server/jwt.ts`
-  (`createSignedToken`/`verifySignedToken`, the module-global warn flags) +
-  `packages/auth/src/lib/server/adapters/types.ts`
-  (`FederatedAccountRepository`).
-- **What:** Two independent adversarial reviews of the SSO surface (2026-07-20)
-  found no forgery, bypass, takeover or DoS; the load-bearing LOW items were
-  fixed in the same wave (`redirect: 'error'`, JWKS body cap, kid-collision
-  guard, `__Host-`+cookieDomain at wiring time, threat-model docs). Four
-  LOW/INFO items were deliberately left for their own increment, none
-  exploitable today:
-  - **Purpose binding (F2):** `verifySignedToken` accepts any token signed with
-    `jwt.secret` — the session token and the pending-2FA token share HMAC over
-    the same secret, so purpose separation lives only in each caller's
-    claim-shape check (correct today, a footgun for a future caller of the
-    public export). Fix: stamp + require an explicit `purpose`/`typ` claim in the
-    primitive.
-  - **Per-config logging (F3):** the warn-once flags in `assertJwtConfigValid` /
-    `verifySessionToken` are module-global (a second misconfigured config in one
-    process warns nothing), and the verify-path import warnings hardcode
-    `console.error` instead of the configured `AuthLogger`. Observability only —
-    verification still fails closed.
-  - **Verifier length cap (F4):** the public `verifySessionToken` /
-    `verifySignedToken` have no input length cap before parse. Empirically benign
-    (linear regex, early reject: 20 MB → `null` in ~4 ms), so belt-and-suspenders
-    for a consumer applying them to unbounded non-cookie input.
-  - **`unlinkFederatedAccount` (F5):** `FederatedAccountRepository` ships
-    `findByFederatedId` + `linkFederatedAccount` but no unlink, while the
-    link-conflict error tells the consumer to "unlink it explicitly" — a
-    message/API mismatch (fail-safe: the absence prevents accidental
-    re-pointing). Fix: add the method or soften the message.
-- **Why deferred:** Each is a small, separable increment; F2 in particular
-  changes a public, 2FA-critical crypto primitive's signature and wants its own
-  review rather than a tail-of-wave drive-by. All four are non-exploitable
-  (fail-closed / fail-safe / observability).
-- **Found:** 2026-07-20, adversarial security review of the federated-identity
-  surface (sso-debt-wave, two independent Opus-level passes).
 
 ### `passkey.updateCounter`: delete-race is misclassified as `counter_regression`
 
@@ -799,19 +768,22 @@ internal TODO instead. Sections are ordered roughly by urgency.
   they stay, the `-950` refs are a 4-line alias fix.
 - **Found:** 2026-07-14, C.6 system-dark follow-up.
 
-### docs-gen emits `typeAnchor`/`typePreview` that nothing reads
+### `ApiReference.svelte` silently drops non-`http` `seeAlso` values
 
-- **Where:** `packages/docs-gen/src/**` (`APIDataGenerator`, ~`:322-346`) —
-  the emitted fields, whose comment references a `TypeCell` component that no
-  longer exists; plus `ApiReference.svelte` silently dropping non-`http`
-  `seeAlso` values.
-- **What:** Both fields land in every generated `api.ts` and are never read.
-  The type-link tokenizer added 2026-07-14 supersedes them and is strictly
-  better (it resolves nested cases like `ToasterSlots` inside
-  `Partial<Record<…>>`, which `getBaseType` misses).
-- **Why deferred:** Removing generator output touches the docs-gen pipeline
-  and its fixtures — its own small sweep, and docs-gen had two other sessions
-  in flight on 2026-07-14. Candidate for deletion, not preservation.
+- **Where:** `packages/docs/src/lib/components/ApiReference/ApiReference.svelte`
+  (the `seeAlso` render branch).
+- **What:** `ApiReference` renders a `seeAlso` value as an external link only
+  when it is an `http(s)` URL; a route-relative `seeAlso` (the shape docs-gen
+  emits for local type/variant anchors, e.g. `…#variants`) is silently
+  dropped rather than rendered as an in-page link.
+- **Why deferred:** A small render fix, but it wants a deliberate call on the
+  in-page-anchor UX (same-page scroll vs. cross-page nav) rather than a blind
+  branch. Surfaced alongside the now-removed `typeAnchor`/`typePreview` dead
+  emission.
+- **Update 2026-07-20 (qa-polish-wave):** the `typeAnchor`/`typePreview` half of
+  this entry is **done** — docs-gen stopped emitting both fields (`510a410`) and
+  the dead `ApiProp.typeAnchor`/`typePreview` declarations were removed from
+  `packages/docs` (`a9609c0`). Only the `seeAlso` render drop above remains.
 - **Found:** 2026-07-14, C.6 API type-link pass.
 
 ### docs-app still depends on two fonts it no longer loads
@@ -830,24 +802,24 @@ internal TODO instead. Sections are ordered roughly by urgency.
   Cluster A direction) rather than being dropped silently mid-cleanup.
 - **Found:** 2026-07-14, verifying the design-authenticity audit before archiving it.
 
-### `[Select] value 2 has no matching option` on `/docs/components/section`
+### PlaygroundConfigurator `SegmentGroup` branch writes the selected value back untyped
 
-- **Where:** the `headingLevel` control in the shared PlaygroundConfigurator
-  plumbing (`packages/docs/src/lib/components/PlaygroundConfigurator`) feeding
-  `Section`'s docs page — the `Select` options are built via
-  `items.map(… String(item.value))` while the bound value stays the raw number.
-- **What:** The far larger `[Select] value ""` noise (96 of 97 DEV warns) was
-  the Table `SummaryMenu` binding `''`, fixed 2026-07-20 (it now binds `null`).
-  With that gone, one genuine orphan is finally visible: the numeric
-  `headingLevel` dropdown offers string options (`'2'`) but binds the number
-  (`2`), so `'2' !== 2` and the trigger falls back to the placeholder. The warn
-  is doing its job.
-- **Why deferred:** The fix is a design call in the shared playground plumbing —
-  coercing the bound value back to a string would misrepresent the page's real
-  prop type, so it wants a deliberate string/number decision at the configurator
-  boundary, not a per-page patch.
-- **Found:** 2026-07-20, tracing the `[Select] value ""` emitter to its real
-  call site (sso-debt-wave, Track E).
+- **Where:** `packages/docs/src/lib/components/PlaygroundConfigurator/PlaygroundConfigurator.svelte`
+  — the `SegmentGroup` branch (enum controls with ≤4 items), `onValueChange`.
+- **What:** The sibling of the just-fixed `Select`/dropdown boundary bug. The
+  `Select` branch now round-trips through the typed `item.value`
+  (`selectDisplayValue`/`resolveSelectValue`, `32eee46`), so a numeric control
+  like `Section`'s `headingLevel` keeps its `number` type. The `SegmentGroup`
+  branch was **not** part of that fix: it writes the selected option string
+  straight back via `onValueChange` without mapping to the original typed
+  value, so a numeric or boolean enum rendered as a SegmentGroup (≤4 options)
+  would silently drift its bound value to a string.
+- **Why deferred:** Same boundary decision as the Select fix, deliberately
+  scoped out of it — apply `resolveSelectValue`'s typed-round-trip to the
+  SegmentGroup branch too, with a test over a numeric/boolean enum control.
+- **Found:** 2026-07-20, fixing the `[Select] value 2` headingLevel orphan
+  (qa-polish-wave); that Select/dropdown case is now resolved, this sibling is
+  the remainder.
 
 ### Route-level `docsConfig` exports are decorative — nothing consumes them
 
@@ -872,27 +844,6 @@ internal TODO instead. Sections are ordered roughly by urgency.
   (docs-gen cleanup agent).
 
 ## Testing / CI gates
-
-### Nothing checks that a Tailwind class in a tv() config resolves to real CSS — a dead `text-2xs` lived in Calendar undetected
-
-- **Where:** `packages/blocks/scripts/variants-lint.ts` (the `variants:lint`
-  gate) — and the gap it leaves.
-- **What:** Seven Calendar slots referenced `text-2xs` while `--text-2xs` was
-  never defined anywhere, so Tailwind emitted **zero CSS** for the class and the
-  tv() engine read it as a *colour* (it did not match the text-size bucket
-  regex). Net effect: `Calendar size="sm"` rendered `multiDayBar` at its base
-  `text-xs` — identical to `size="md"` — and six sibling slots inherited with no
-  size at all. Nothing caught it: `variants:lint` validates tv() **config shape**
-  (dead/shadowed variant keys), not whether a class resolves to real CSS;
-  svelte-check and vitest never see CSS. Fixed as a side effect on 2026-07-14
-  (`--text-2xs`/`--text-3xs` + the bucket-regex widening), but **the bug class
-  has no guard**.
-- **Why deferred:** It is a new lint capability, not a fix: cross-reference every
-  scale-suffixed class in tv() configs (`text-<scale>`, `rounded-<scale>`, …)
-  against the keys defined in `foundation.css` + Tailwind's `theme.css`. ~20
-  lines, generalises to the whole token namespace, and belongs with whoever owns
-  `variants-lint.ts` rather than riding along with a token addition.
-- **Found:** 2026-07-14, tokenising the sub-xs type floor (publish-m3-finale).
 
 ### `apps/docs` has no translation-parity gate — a key missing from `de.ts` is invisible to types and tests
 
@@ -1080,30 +1031,26 @@ internal TODO instead. Sections are ordered roughly by urgency.
 
 ## docs-gen
 
-### Watch mode drops the authored `typescript.configPath`
+### docs-gen config surface carries ~12 never-consumed interfaces/fields
 
-- **Where:** `packages/docs-gen` — `ExtractionCoordinator.updateConfig` /
-  the `PipelineOrchestrator` watch path (hands only `ProcessingConfig` on).
-- **What:** The program-backed extraction (2026-07-14) threads
-  `input.typescript.configPath` through the coordinator **constructor**; the
-  (currently unused) watch/update path doesn't, so a watch run would silently
-  fall back to single-file mode and drop cross-file types from regenerated
-  artifacts.
-- **Why deferred:** No watch consumer exists today; wiring it wants the same
-  eager fail-loud validation as the constructor, not a quick pass-through.
-- **Found:** 2026-07-14, ts.Program cross-file resolution pass (Fable debt wave).
-
-### `generateGlobalLlmsTxt` still swallows errors in a silent catch
-
-- **Where:** `packages/docs-gen/src/generators/llm/LLMDocumentationGenerator.ts`
-  (`generateGlobalLlmsTxt`).
-- **What:** A failure while assembling the global `llms.txt` is caught and
-  dropped — the run stays green with a stale or missing artifact, against the
-  fail-loud maxim. Pre-existing, untouched by the 2026-07-14 program rework.
-- **Why deferred:** Needs a small deliberate pass: decide which failures are
-  legitimate (missing optional inputs?) vs. must abort, then fail loud with a
-  test. Not a drive-by inside an unrelated feature commit.
-- **Found:** 2026-07-14, ts.Program cross-file resolution pass (Fable debt wave).
+- **Where:** `packages/docs-gen/src/types/configuration.ts` + related — e.g.
+  `LLMFilterConfig`, `APIInclusionConfig`, `SharedOutputConfig`/`BackupConfig`,
+  `WatchConfig`, `ProfilingConfig`, `ParallelConfig.strategy`,
+  `PackageConfig.priority`/`metadata`,
+  `TypeScriptConfig.compilerOptions`/`include`/`exclude`.
+- **What:** The 2026-07-20 JSDoc inventory (which closed the coverage gap on
+  this surface) made visible that ~12 config interfaces/fields are declared and
+  type-checked but never read by the current pipeline. They are now honestly
+  labelled "Not consumed by the current pipeline" / "Reserved" rather than
+  described with invented behaviour, but the honest end state is a prune-or-
+  implement decision.
+- **Why deferred:** Deleting a whole public-looking config surface (and deciding
+  which fields are planned vs. leftover — `WatchConfig`/`enableWatch` in
+  particular pair with the still-caller-less `updateConfig` watch path) is its
+  own deliberate sweep, not a drive-by after a documentation pass.
+- **Found:** 2026-07-20, docs-gen JSDoc coverage pass (qa-polish-wave). The
+  earlier `generateGlobalLlmsTxt` silent-catch and watch-path `configPath` drop
+  entries were resolved in the same wave (`c269849`/`c13781e`).
 
 ## Toolchain / dependencies
 
@@ -1155,32 +1102,25 @@ internal TODO instead. Sections are ordered roughly by urgency.
 
 ## Design tokens
 
-### 56 sub-xs hardcodes remain outside `blocks` — and two of them are prose below every legibility floor
+### Two `description` slots render body copy at 10–11px, below every legibility floor
 
-- **Where:** `packages/table/src/lib/variants/table.system.ts:190`
-  (`xs: '… text-[10px]'`); `packages/docs/src` ×11 (`apireference.variants.ts:13`,
-  `codepanel.variants.ts:38,39`, `types-reference.variants.ts:36,47` +
-  `TypesReference.svelte:127`, `playground-configurator.variants.ts:82,101,110,120`
-  + `PlaygroundConfigurator.svelte:323`) plus 3 co-located tests asserting the
-  literal `text-[10px]`/`text-[11px]` strings; `apps/docs/src` ×44 across ~14
-  route files (heaviest: `routes/blocks/+page.svelte` ×12, `routes/+page.svelte`
-  ×7, `routes/recipes/RecipePreview.svelte` ×6).
-- **What:** The 2026-07-14 sweep tokenised all 20 sub-xs sites **inside blocks**
-  onto `--text-2xs`/`--text-3xs`; these were out of that package's ownership. Both
-  `table` and `docs` import `tv` from `@urbicon-ui/blocks`, so the tokens are
-  already reachable and the swap is exact-pixel (`text-[11px]` → `text-2xs`,
-  `text-[10px]` → `text-3xs`) with zero behaviour risk. `table.system.ts` is the
-  only one on a **published package's runtime surface**.
-- **Separate a11y question in the same set:** `radioGroup.variants.ts:71` and
-  `stepper.variants.ts:72` render `description` — full sentences — at 10–11px,
-  below every practical legibility floor. These predate the sweep (they were
-  `text-[10px]`/`text-[11px]`); tokenising merely made them greppable for the
-  first time. The tokens page now states the rule (2xs/3xs are for marks, hints
-  and dense grids, never for body copy) — these two contradict it and want a
-  deliberate size decision, not a token swap.
-- **Why deferred:** The sweep is mechanical but crosses three packages that were
-  each owned by a different session on the day; the two `description` sites are a
-  design call with a VR pass, not a find/replace.
+- **Where:** `packages/blocks/src/lib/primitives/RadioGroup/radioGroup.variants.ts:71`
+  and `packages/blocks/src/lib/primitives/Stepper/stepper.variants.ts:72` (the
+  `description` slot).
+- **What:** Both render `description` — full sentences — at `text-3xs`/`text-2xs`
+  (10–11px), below every practical legibility floor. The tokens page states the
+  rule (2xs/3xs are for marks, hints and dense grids, **never** for body copy);
+  these two contradict it. Tokenising the sub-xs floor merely made them
+  greppable — the underlying size was already `text-[10px]`/`text-[11px]`.
+- **Why deferred:** A deliberate size decision with a VR pass, not a token swap
+  or find/replace — bumping `description` to a legible step changes the visual
+  rhythm of both controls.
+- **Update 2026-07-20 (qa-polish-wave):** the *mechanical* half of the original
+  entry — 54 exact-pixel `text-[11px]`→`text-2xs` / `text-[10px]`→`text-3xs`
+  swaps across `table`, `packages/docs` and `apps/docs` — is **done**
+  (`e714ce2`); `rg` confirms no `text-[10px]`/`text-[11px]` remain outside
+  `blocks`. These two `description` sites (the a11y design call, always the real
+  remainder) are what is left.
 - **Found:** 2026-07-14, tokenising the sub-xs type floor (publish-m3-finale).
 
 ### `themes/index.css` claims hue-only shifts preserve contrast — they don't
