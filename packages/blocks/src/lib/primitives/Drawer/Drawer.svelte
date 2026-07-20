@@ -218,6 +218,10 @@
           easing: motion.easing
         }}
       ></div>
+      <!-- tabindex=-1: focus target of last resort — focusFirstElement falls back
+           to the panel when children contain nothing focusable (untitled drawer
+           with hideCloseButton), keeping the element-level ESC handler + Tab trap
+           live. Negative, so it never joins the Tab cycle. -->
       <div
         bind:this={panelElement}
         class={unstyled
@@ -225,6 +229,7 @@
           : styles.panel({ class: [slotClasses?.panel, className] })}
         data-intent={intent}
         role="document"
+        tabindex="-1"
         transition:fly={flyParams}
         onoutroend={handleOutroEnd}
       >

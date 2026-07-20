@@ -22,7 +22,17 @@ export function getFocusableElements(container: HTMLElement | undefined): HTMLEl
 export function trapFocus(event: KeyboardEvent, container: HTMLElement | undefined): void {
   if (!isBrowser) return;
   const focusable = getFocusableElements(container);
-  if (focusable.length === 0) return;
+  if (focusable.length === 0) {
+    // Nothing tabbable inside the overlay (untitled Dialog with static
+    // children, Drawer with hideCloseButton): park focus on the container —
+    // the panel that focusFirstElement's fallback focused via tabindex="-1" —
+    // instead of letting Tab walk out of the modal. Browsers with a real top
+    // layer get this from `showModal()` inertness; the guard keeps the trap's
+    // contract honest everywhere else. `contains` includes the container
+    // itself, so focus already parked there stays put.
+    if (container?.contains(document.activeElement)) event.preventDefault();
+    return;
+  }
 
   const first = focusable[0];
   const last = focusable[focusable.length - 1];
@@ -78,7 +88,20 @@ export function focusFirstElement(container: HTMLElement | undefined): void {
   if (!isBrowser) return;
   tick().then(() => {
     const focusable = getFocusableElements(container);
-    if (focusable.length > 0) focusable[0].focus();
+    if (focusable.length > 0) {
+      focusable[0].focus();
+      return;
+    }
+    // No focusable descendant — e.g. an untitled Dialog whose children are
+    // static text (no header, so no close button), or a Drawer with
+    // hideCloseButton. Fall back to the container itself, which the overlay
+    // panels make programmatically focusable via tabindex="-1" (excluded from
+    // getFocusableElements, so it never joins the Tab cycle). Without this,
+    // focus stays on <body>: the overlay's element-level keydown never fires,
+    // leaving ESC to the window fallback and the Tab trap inert until the
+    // user clicks in — a WCAG 2.1.2 problem. Mirrors the native <dialog>
+    // focusing steps, which likewise fall back to the dialog element.
+    container?.focus();
   });
 }
 

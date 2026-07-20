@@ -276,10 +276,10 @@ describe('Dialog (restProps composition)', () => {
     const user = userEvent.setup();
     const onClose = vi.fn();
     const onkeydown = vi.fn();
-    // `title` is load-bearing: it renders the close button, which is the only
-    // focusable the opener can put focus on. Untitled, focus stays on <body>,
-    // ESC never reaches the <dialog>'s onkeydown and the window-level fallback
-    // closes instead — i.e. the element handler under test wouldn't run at all.
+    // Titled: the opener focuses the close button, so the key event starts
+    // inside the dialog and reaches the element-level handler under test. (The
+    // untitled case goes through the panel-focus fallback instead — asserted
+    // in the initial-focus suite below.)
     renderDialog({ open: true, title: 'Settings', onClose, onkeydown });
     await tick();
 
@@ -375,5 +375,78 @@ describe('Dialog (restProps composition)', () => {
     // dialog's own body description instead of replacing it.
     expect(document.getElementById(ids[0])?.textContent).toContain('Dialog body');
     expect(ids[1]).toBe('external-hint');
+  });
+});
+
+// Initial focus — the WCAG 2.1.2 contract. showDialogModal → focusFirstElement
+// moves focus into the panel a tick after showModal(): to the first focusable
+// child when one exists, otherwise — an untitled dialog with static children
+// renders no header, hence no close button — to the panel itself, which carries
+// tabindex="-1" for exactly this fallback. Without it, focus stayed on <body>:
+// the <dialog>'s element-level keydown never fired, ESC only worked through the
+// svelte:window fallback, and the Tab trap was inert until the user clicked in.
+// jsdom's showModal polyfill performs no native dialog focusing steps (see
+// vitest-setup.ts), so everything asserted here is our own focus management.
+// Real Tab traversal across several focusables, top-layer inertness, and
+// focus restore on close need a browser — that remains Playwright's job.
+describe('Dialog (initial focus + no-focusable fallback)', () => {
+  const panel = () => screen.getByRole('document', { hidden: true });
+
+  // focusFirstElement defers by one more tick after the opener effect's own
+  // deferred showDialogModal, so focus assertions settle after two awaits.
+  const settleFocus = async () => {
+    await tick();
+    await tick();
+  };
+
+  it('focuses the first focusable child when one exists (titled: the close button)', async () => {
+    renderDialog({ open: true, title: 'Settings' });
+    await settleFocus();
+
+    // Guard in both directions: a real focusable wins, the panel fallback
+    // must not steal focus from it.
+    expect(document.activeElement).toBe(screen.getByRole('button', { hidden: true }));
+  });
+
+  it('falls back to focusing the panel when children contain nothing focusable', async () => {
+    renderDialog({ open: true });
+    await settleFocus();
+
+    expect(document.activeElement).toBe(panel());
+    // Programmatically focusable only — the fallback target never joins the
+    // Tab order (getFocusableElements excludes tabindex="-1").
+    expect((panel() as HTMLElement).tabIndex).toBe(-1);
+  });
+
+  it('closes on Escape through the element-level handler in the fallback state', async () => {
+    const user = userEvent.setup();
+    const onClose = vi.fn();
+    const onkeydown = vi.fn();
+    renderDialog({ open: true, onClose, onkeydown });
+    await settleFocus();
+
+    await user.keyboard('{Escape}');
+
+    // The consumer onkeydown is composed on the <dialog> element itself, so
+    // its firing proves the key event originated inside the dialog (panel
+    // focus). Pre-fallback, focus stayed on <body> and only the window-level
+    // listener closed — the element handler never ran.
+    expect(onkeydown).toHaveBeenCalledOnce();
+    expect(onClose).toHaveBeenCalledOnce();
+  });
+
+  it('traps Tab on the panel when nothing inside is focusable', async () => {
+    renderDialog({ open: true });
+    await settleFocus();
+
+    const event = new KeyboardEvent('keydown', { key: 'Tab', bubbles: true, cancelable: true });
+    const notPrevented = panel().dispatchEvent(event);
+
+    // With zero focusables, trapFocus parks focus on the panel instead of
+    // letting Tab walk out of the modal — defaultPrevented is the signal that
+    // the trap engaged. (Cycling across several focusables is asserted via the
+    // titled trap test in the restProps suite + Playwright.)
+    expect(notPrevented).toBe(false);
+    expect(document.activeElement).toBe(panel());
   });
 });

@@ -60,6 +60,21 @@ describe('ConfirmDialog (component interaction)', () => {
     expect(cancelBtn()).toBeTruthy();
   });
 
+  it('keeps initial focus inside the dialog even when opened already loading', async () => {
+    // ConfirmDialog can never hit Dialog's panel-focus fallback: `title` is
+    // required (header + close button render) and the footer always carries
+    // both buttons. This pins its worst focusability case — opened with
+    // `loading` — where the close button is hidden and cancel is disabled;
+    // the confirm button is busy but not `disabled`, so it stays the first
+    // focusable and the opener lands there (focus never leaks to <body>).
+    renderConfirm({ ...base, open: true, loading: true });
+    // focusFirstElement defers one tick beyond the deferred showDialogModal.
+    await tick();
+    await tick();
+
+    expect(document.activeElement).toBe(confirmBtn());
+  });
+
   it('fires onConfirm and closes on confirm click', async () => {
     const user = userEvent.setup();
     const onConfirm = vi.fn();

@@ -279,6 +279,10 @@
           easing: motion.easing
         }}
       ></div>
+      <!-- tabindex=-1: focus target of last resort — focusFirstElement falls back
+           to the panel when children contain nothing focusable (untitled dialog),
+           keeping the element-level ESC handler + Tab trap live. Negative, so it
+           never joins the Tab cycle. -->
       <div
         bind:this={panelEl}
         class={unstyled
@@ -286,6 +290,7 @@
           : styles.panel({ class: [slotClasses?.panel, className] })}
         data-intent={intent}
         role="document"
+        tabindex="-1"
         style:translate={dragX !== 0 || dragY !== 0 ? `${dragX}px ${dragY}px` : undefined}
         transition:scale={{
           duration: motion.enterDuration,

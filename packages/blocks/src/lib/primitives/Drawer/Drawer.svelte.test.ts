@@ -172,3 +172,22 @@ describe('Drawer (restProps composition)', () => {
     expect(ids[1]).toBe('external-hint');
   });
 });
+
+// Initial-focus fallback (mirrors the Dialog suite). The focus logic itself is
+// shared via overlay.ts, but the panel's tabindex="-1" — the attribute the
+// fallback focuses — is duplicated in Drawer.svelte's markup, so a copy-paste
+// regression there would slip past Dialog.svelte.test.ts. Drawer reaches the
+// no-focusable state through `hideCloseButton` (untitled + hidden close button
+// renders no header at all).
+describe('Drawer (initial focus + no-focusable fallback)', () => {
+  it('falls back to focusing the panel when nothing inside is focusable', async () => {
+    renderDrawer({ open: true, hideCloseButton: true });
+    // focusFirstElement defers one tick beyond the deferred showDialogModal.
+    await tick();
+    await tick();
+
+    const panel = screen.getByRole('document', { hidden: true });
+    expect(document.activeElement).toBe(panel);
+    expect((panel as HTMLElement).tabIndex).toBe(-1);
+  });
+});
