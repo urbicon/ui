@@ -25,6 +25,12 @@ internal TODO instead. Sections are ordered roughly by urgency.
   specifier assert, `FAIL_ON_PUBLISH_ERROR` as default), or tag-publishing
   is consolidated on exactly one owner. The LICENSE itself is fixed
   publisher-independently since v6.26.3 (vendored into every package dir).
+- **Update 2026-07-20 (v6.27.1):** the trigger can also silently not fire at
+  all — the v6.27.1 tag produced **no** publish for any of the 12 packages
+  (lost webhook event; v6.28.0 then shipped everything, verified complete).
+  The gate list gains a third item for whoever ends up owning the publish: a
+  post-tag verification — a pushed release tag without its npm version after
+  a few minutes should alert, not pass unnoticed.
 - **Found:** 2026-07-20, v6.26.1/v6.26.2 publish verification.
 
 ### `packages/docs` ships no README
