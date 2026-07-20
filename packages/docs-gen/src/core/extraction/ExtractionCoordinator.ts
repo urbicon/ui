@@ -33,24 +33,37 @@ export class ExtractionCoordinator {
     inputTypeScript?: TypeScriptConfig
   ) {
     this.config = config;
+    this.extractorFactory = ExtractorFactory.getInstance(
+      ExtractionCoordinator.resolveTsExtractionConfig(config, inputTypeScript)
+    );
+  }
 
-    // The tsconfig path is authored on `input.typescript` (TypeScriptConfig);
-    // merge it into the extraction config the extractors actually receive.
-    // Historically this field was never handed through, so the extractors
-    // always ran on an empty ts.Program (single-file mode).
+  /**
+   * Merge + validate the TypeScript extraction config — the single path for
+   * both the constructor and `updateConfig`, so watch-mode updates cannot
+   * diverge from construction.
+   *
+   * The tsconfig path is authored on `input.typescript` (TypeScriptConfig);
+   * merge it into the extraction config the extractors actually receive.
+   * Historically this field was never handed through, so the extractors
+   * always ran on an empty ts.Program (single-file mode).
+   *
+   * Fail loud *before* extraction starts: a configured-but-broken tsconfig
+   * must abort the run, not degrade into per-component warnings with
+   * cross-file types silently missing from the artifacts.
+   */
+  private static resolveTsExtractionConfig(
+    config: ProcessingConfig,
+    inputTypeScript?: TypeScriptConfig
+  ): TypeScriptExtractionConfig | undefined {
     const tsExtractionConfig = ExtractionCoordinator.mergeTsConfig(
       config.extraction?.typescript,
       inputTypeScript
     );
-
-    // Fail loud *before* extraction starts: a configured-but-broken tsconfig
-    // must abort the run, not degrade into per-component warnings with
-    // cross-file types silently missing from the artifacts.
     if (tsExtractionConfig?.configPath) {
       assertUsableTsConfig(tsExtractionConfig.configPath);
     }
-
-    this.extractorFactory = ExtractorFactory.getInstance(tsExtractionConfig);
+    return tsExtractionConfig;
   }
 
   private static mergeTsConfig(
@@ -214,12 +227,22 @@ export class ExtractionCoordinator {
   }
 
   /**
-   * Update configuration (useful for watch mode)
+   * Update configuration (watch mode / reusing the coordinator across runs).
+   *
+   * Threads `input.typescript.configPath` exactly like the constructor —
+   * merged into the extraction config and eagerly validated *before* the
+   * extractors are rebuilt. Pre-fix this path forwarded only the raw
+   * `ProcessingConfig`, so an update silently dropped the tsconfig and every
+   * subsequent run fell back to single-file extraction (cross-file types
+   * missing from the artifacts, no error). Callers that carry a
+   * `GeneratorConfig` must pass its `input.typescript` here, mirroring the
+   * construction call in PipelineOrchestrator.extractionPhase().
    */
-  updateConfig(newConfig: ProcessingConfig): void {
+  updateConfig(newConfig: ProcessingConfig, inputTypeScript?: TypeScriptConfig): void {
     this.config = newConfig;
-    // ✅ Updated method call for new factory
-    this.extractorFactory.updateTsConfig(newConfig.extraction?.typescript);
+    this.extractorFactory.updateTsConfig(
+      ExtractionCoordinator.resolveTsExtractionConfig(newConfig, inputTypeScript)
+    );
   }
 
   private async extractProps(
