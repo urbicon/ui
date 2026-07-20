@@ -328,37 +328,6 @@ export class APIDataGenerator {
       processedProp.seeAlso = `${this.routeForComponent(component.name, slug)}#variants`;
     }
 
-    // If local type is referenced, add a direct anchor for UI (TypeCell will prefer seeAlso, then typeAnchor)
-    try {
-      const base = this.getBaseType(prop.type || '');
-      if (base) {
-        const componentWithLocalTypes = component as ComponentInfo & {
-          localTypes?: TypeDefinition[];
-        };
-        const localTypeNames: Set<string> = new Set(
-          Array.isArray(componentWithLocalTypes.localTypes)
-            ? componentWithLocalTypes.localTypes.map((t) => t.name)
-            : []
-        );
-        if (localTypeNames.has(base)) {
-          const slug = this.componentSlugs.get(component.name) || this.toSlug(component.name);
-          (processedProp as PropInfo & { typeAnchor?: string; typePreview?: string }).typeAnchor =
-            `${this.routeForComponent(component.name, slug)}#type-${base}`;
-          const td = componentWithLocalTypes.localTypes?.find((t) => t?.name === base);
-          if (td?.definition) {
-            // Keep preview compact (first ~15 lines)
-            const raw = String(td.definition);
-            const lines = raw.split(/\r?\n/).slice(0, 15).join('\n');
-            (
-              processedProp as PropInfo & { typeAnchor?: string; typePreview?: string }
-            ).typePreview = lines;
-          }
-        }
-      }
-    } catch {
-      // ignore resolution failures
-    }
-
     // Add usage examples if missing
     const examples = this.generatePropExamples(prop, component);
     if (examples && examples.length > 0) {

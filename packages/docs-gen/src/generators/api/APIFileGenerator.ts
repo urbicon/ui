@@ -140,7 +140,7 @@ export class APIFileGenerator {
       'export interface VariantExample { value: string; label?: string; description?: string; code?: string }'
     );
     lines.push(
-      "export interface InheritanceProp { name: string; type: string; required: boolean; description?: string; source?: { type: 'direct' | 'inherited' | 'variant'; name?: string; package?: string; url?: string }; seeAlso?: string; typeAnchor?: string; typePreview?: string; examples?: PropExample[] }"
+      "export interface InheritanceProp { name: string; type: string; required: boolean; description?: string; source?: { type: 'direct' | 'inherited' | 'variant'; name?: string; package?: string; url?: string }; seeAlso?: string; examples?: PropExample[] }"
     );
     lines.push(
       'export interface InheritanceInfo { typeName: string; source: string; url?: string; props: InheritanceProp[] }'
@@ -160,8 +160,6 @@ export class APIFileGenerator {
     lines.push('  experimental?: boolean;');
     lines.push('  values?: string[];');
     lines.push('  seeAlso?: string;');
-    lines.push('  typeAnchor?: string;');
-    lines.push('  typePreview?: string;');
     lines.push(
       "  source?: { type: 'direct' | 'inherited' | 'variant'; name?: string; package?: string; url?: string };"
     );

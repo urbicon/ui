@@ -74,4 +74,19 @@ describe('APIFileGenerator — emitted interface covers the emitted data', () =>
       );
     }
   });
+
+  it('no longer emits the dead typeAnchor/typePreview fields (removed 2026-07: nothing read them)', async () => {
+    const generator = new APIFileGenerator({ outputPath: dir, format: 'typescript' });
+    const apiData: APIData = {
+      metadata: { generated: '2026-07-20T00:00:00.000Z', version: 'test' },
+      components: { Widget: fullComponentData() }
+    } as unknown as APIData;
+
+    await generator.generate(apiData);
+
+    const emitted = await fs.readFile(path.join(dir, 'primitives', 'widget', 'api.ts'), 'utf-8');
+    // The referenced TypeCell component never shipped; the strict type-link
+    // tokenizer (seeAlso) is the surviving mechanism.
+    expect(emitted).not.toMatch(/typeAnchor|typePreview/);
+  });
 });
