@@ -4,6 +4,34 @@ All notable changes to this project will be documented in this file.
 This changelog is automatically generated from [Conventional Commits](https://www.conventionalcommits.org).
 
 
+## [6.26.0] - 2026-07-20
+
+### Bug Fixes
+- **docs**: Declare shiki as a peer dependency
+- **mcp-server**: Trim the npm tarball to the served source
+- **shared-types**: Point subpath exports at real emits
+- **blocks**: Give filled warning surfaces their own on-colour
+- **blocks**: Focus the overlay panel when nothing else is focusable
+- **docs**: Pair the bare meta-marker kickers with utility fallbacks
+- **table**: Use null as the summary menu's empty selection
+- **auth**: Harden the federated identity surface (adversarial review)
+
+### CI/CD
+- Publish with bun so catalog:/workspace: specifiers resolve
+
+### Documentation
+- Reconcile technical-debt after the sso-debt wave
+
+### Features
+- **auth**: Federated identity (SSO) between Urbicon apps
+
+### Miscellaneous
+- **debt**: Claim entries for the sso-debt wave (in-progress markers)
+- Exclude co-located tests from published tarballs
+
+### Refactoring
+- **docs**: Drop the dead CodeExample workaround on the guide page
+
 ## [6.25.0] - 2026-07-14
 
 ### Bug Fixes
