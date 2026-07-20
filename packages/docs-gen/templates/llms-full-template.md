@@ -957,7 +957,8 @@ add a cross-origin, form-encoded endpoint (an OAuth 2.1 token endpoint, a webhoo
 kernel before any hook, in production builds only — rejects it with `403 "Cross-site POST form
 submissions are forbidden"` (most visibly the OAuth token endpoint: RFC 6749 mandates
 `application/x-www-form-urlencoded` and its callers send no `Origin` header). Set
-`kit.csrf: { trustedOrigins: ['*'] }` in `svelte.config.js` to disable the kernel check and let
+`kit.csrf: { checkOrigin: false }` in `svelte.config.js` to disable the kernel check (deprecated
+but the only working off-switch — `trustedOrigins` cannot admit header-less callers) and let
 this package's stricter `validateCsrf` be the single Origin gate — safe only when every
 cookie-authenticated mutating route flows through `createAuthHandle` and the bypassed routes are
 cookieless (bearer/PKCE/API-key). JSON endpoints (e.g. MCP JSON-RPC) are unaffected.

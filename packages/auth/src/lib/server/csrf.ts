@@ -71,8 +71,10 @@ export function generateCsrfToken(): string {
  * (incl. JSON), no `trustedOrigins` allow-list — i.e. a strict superset of
  * the kernel gate for every request routed through `createAuthHandle`. A
  * consumer exposing a cross-origin form-encoded endpoint *outside* the handle
- * must turn the kernel check off (`kit.csrf.trustedOrigins: ['*']`) and rely
- * on this gate. See docs/AUTH.md → Known Limitations & Security Gaps.
+ * must turn the kernel check off (`kit.csrf.checkOrigin: false` — deprecated,
+ * but `trustedOrigins` is consulted only when an `Origin` header is present
+ * and so can't admit the header-less callers this concerns; kit#15992) and
+ * rely on this gate. See docs/AUTH.md → Known Limitations & Security Gaps.
  */
 export function validateCsrf(request: Request, url: URL, options?: CsrfValidateOptions): boolean {
   if (request.method === 'GET' || request.method === 'HEAD') return true;

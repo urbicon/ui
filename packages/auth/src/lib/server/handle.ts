@@ -107,9 +107,11 @@ export function createAuthHandle<R extends string>(options: AuthHandleOptions<R>
     // endpoint, which that kernel check 403s ("Cross-site POST form
     // submissions are forbidden") before this ever runs, in production only.
     // A consumer exposing such an endpoint *outside* this handle must turn the
-    // kernel check off (`kit.csrf.trustedOrigins: ['*']`) and rely on this
-    // gate, which is stricter (all methods, all content types incl. JSON, no
-    // allow-list). See docs/AUTH.md → Known Limitations & Security Gaps.
+    // kernel check off (`kit.csrf.checkOrigin: false` — deprecated, but
+    // `trustedOrigins` is consulted only when an `Origin` header is present
+    // and so can't admit the header-less callers this concerns; kit#15992)
+    // and rely on this gate, which is stricter (all methods, all content
+    // types incl. JSON, no allow-list). See docs/AUTH.md → Known Limitations.
     if (
       !validateCsrf(event.request, event.url, {
         doubleSubmit: csrfDoubleSubmit,
