@@ -74,10 +74,7 @@
 <button onclick={() => guide.startTour(welcomeTour)}>Take the tour</button>`}
     language="svelte"
     preview={false}
-  ></CodeExample>
-  <!-- ^ Explicit closing tag on purpose: the code-example-extract plugin's regex needs a
-       </CodeExample> to terminate this match — self-closing (`/>`) makes it swallow the next
-       `isolate` example in the file, which then loses its auto-extracted code. -->
+  />
 </Section>
 
 <!-- ─── The help panel ─── -->
