@@ -1,4 +1,4 @@
-import type { ControlDefinition } from '@urbicon-ui/shared-types/playground';
+import type { ControlDefinition, ControlOption } from '@urbicon-ui/shared-types/playground';
 import { describe, expect, it } from 'vitest';
 import {
   clampToRange,
@@ -13,6 +13,8 @@ import {
   numberFieldValue,
   readNumberField,
   reconcileNumberField,
+  resolveSelectValue,
+  selectDisplayValue,
   valuesMatch
 } from './code-gen.js';
 
@@ -264,6 +266,61 @@ describe('isDefaultValue', () => {
   it('compares against the documented default', () => {
     expect(isDefaultValue('a', { a: 'x' }, { a: 'x' })).toBe(true);
     expect(isDefaultValue('a', { a: 'y' }, { a: 'x' })).toBe(false);
+  });
+});
+
+/**
+ * Reproduces the `[Select] value 2 has no matching option` DEV warning on
+ * `/docs/components/section`: the dropdown `<Select>` branch builds its
+ * options via `items.map(item => String(item.value))` (strings) while
+ * `headingLevel` itself is bound as the raw number `2`. `2 !== '2'`, so the
+ * trigger fell back to the placeholder even though a value was set.
+ */
+describe('selectDisplayValue / resolveSelectValue (Select boundary)', () => {
+  const headingLevelItems: ControlOption[] = [
+    { label: 'H1', value: 1 },
+    { label: 'H2', value: 2 },
+    { label: 'H3', value: 3 },
+    { label: 'H4', value: 4 },
+    { label: 'H5', value: 5 },
+    { label: 'H6', value: 6 }
+  ];
+
+  describe('selectDisplayValue', () => {
+    it('stringifies a numeric value so it matches the string-valued options', () => {
+      expect(selectDisplayValue(2)).toBe('2');
+    });
+
+    it('stringifies booleans and strings the same way', () => {
+      expect(selectDisplayValue(true)).toBe('true');
+      expect(selectDisplayValue('primary')).toBe('primary');
+    });
+
+    it('passes null/undefined through unchanged (placeholder / null-option branch)', () => {
+      expect(selectDisplayValue(null)).toBeNull();
+      expect(selectDisplayValue(undefined)).toBeNull();
+    });
+  });
+
+  describe('resolveSelectValue', () => {
+    it('maps the selected string back to the original, typed item.value', () => {
+      expect(resolveSelectValue(headingLevelItems, '2')).toBe(2);
+      expect(typeof resolveSelectValue(headingLevelItems, '2')).toBe('number');
+    });
+
+    it('round-trips display -> selection back to the same typed value', () => {
+      const original = 2;
+      const displayed = selectDisplayValue(original);
+      expect(resolveSelectValue(headingLevelItems, displayed)).toBe(original);
+    });
+
+    it('maps null straight through (the null-option / "clear" selection)', () => {
+      expect(resolveSelectValue(headingLevelItems, null)).toBeNull();
+    });
+
+    it('falls back to the raw string when no item matches', () => {
+      expect(resolveSelectValue(headingLevelItems, '99')).toBe('99');
+    });
   });
 });
 

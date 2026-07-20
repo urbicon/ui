@@ -24,7 +24,9 @@
     countModified,
     numberFieldValue,
     readNumberField,
-    reconcileNumberField
+    reconcileNumberField,
+    selectDisplayValue,
+    resolveSelectValue
   } from './code-gen.js';
   import { decodeShareParams, encodeShareParams } from './share.js';
 
@@ -399,7 +401,7 @@
                   <span class="flex w-full items-center gap-2">
                     <span class="flex-1 truncate text-left">{option.label}</span>
                     {#if String(option.value) === String(control.defaultValue)}
-                      <span class="text-text-tertiary text-[10px] leading-none opacity-50"
+                      <span class="text-text-tertiary text-3xs leading-none opacity-50"
                         >default</span
                       >
                     {/if}
@@ -412,8 +414,9 @@
                       value: String(item.value)
                     }))}
                     variant="ghost"
-                    value={(values[control.key] ?? null) as string | null}
-                    onValueChange={(value: string | null) => updateValue(control.key, value)}
+                    value={selectDisplayValue(values[control.key])}
+                    onValueChange={(value: string | null) =>
+                      updateValue(control.key, resolveSelectValue(items, value))}
                     size={fieldSize}
                     id={control.key}
                     customItem={controlSelectItem}

@@ -1,4 +1,4 @@
-import type { ControlDefinition } from '@urbicon-ui/shared-types/playground';
+import type { ControlDefinition, ControlOption } from '@urbicon-ui/shared-types/playground';
 
 /**
  * Helpers backing `PlaygroundConfigurator.svelte`. Pure functions only —
@@ -283,4 +283,36 @@ export function countModified(
   defaults: Record<string, unknown>
 ): number {
   return controls.filter((c) => !isDefaultValue(c.key, values, defaults)).length;
+}
+
+/**
+ * The dropdown `<Select>` branch of a `dropdown`/`select` control renders
+ * options built from `items.map(item => ({ ..., value: String(item.value) }))`
+ * — string options, regardless of the control's real value type (e.g. a
+ * numeric `headingLevel`). `values[control.key]` still holds that real type,
+ * so the trigger's bound `value` must be stringified to match, or the Select
+ * finds no option with `===` equality and falls back to the placeholder
+ * (`'2' !== 2`). `null`/`undefined` pass through so the "nothing selected" /
+ * null-option branch still applies.
+ */
+export function selectDisplayValue(current: unknown): string | null {
+  return current === null || current === undefined ? null : String(current);
+}
+
+/**
+ * Reverse of `selectDisplayValue`, applied to what `onValueChange` fires
+ * back: the selected option's string, mapped to the ORIGINAL, typed
+ * `item.value` it was stringified from (a numeric `headingLevel` stays a
+ * number), so `values` never drifts from the control's declared type. Falls
+ * back to the raw string if no item matches — every fired value came from
+ * `options`, which mirrors `items` 1:1, so this is a defensive fallback, not
+ * an expected path.
+ */
+export function resolveSelectValue(
+  items: readonly ControlOption[],
+  selected: string | null
+): unknown {
+  if (selected === null) return null;
+  const match = items.find((item) => String(item.value) === selected);
+  return match ? match.value : selected;
 }
