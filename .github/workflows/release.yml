@@ -85,11 +85,17 @@ jobs:
         if: env.NPM_REGISTRY_URL != ''
         run: |
           set -e
-          # Each tarball must carry the license text; npm only auto-includes
-          # a LICENSE file from the package directory, not the repo root.
+          # Each tarball must carry the license text. The file is copied into
+          # every package dir (it is listed in each `files` whitelist) and its
+          # presence is ASSERTED on the packed tarball below — v6.26.1 shipped
+          # without it because an unasserted publish silently dropped it.
           for dir in packages/*/; do
-            [ -f "$dir/package.json" ] && cp LICENSE "$dir/LICENSE" || true
+            if [ -f "$dir/package.json" ]; then
+              cp LICENSE "$dir/LICENSE"
+            fi
           done
+          TARBALL_DIR="$RUNNER_TEMP/tarballs"
+          mkdir -p "$TARBALL_DIR"
           # Topological order: dependents come after their dependencies so a
           # consumer installing `@urbicon-ui/blocks` mid-publish never sees a
           # range pointing at a not-yet-published `@urbicon-ui/i18n`.
@@ -120,12 +126,24 @@ jobs:
             if npm view "$NAME@$VERSION" version --registry "$NPM_REGISTRY_URL" >/dev/null 2>&1; then
               echo "$NAME@$VERSION already published — skipping"
             else
-              # bun publish (not npm publish): it resolves `workspace:` and
-              # `catalog:` specifiers to concrete versions at pack time, which
-              # npm publish leaves verbatim — shipping unresolvable ranges to
-              # consumers. Auth + scoped registry come from the $HOME/.npmrc
-              # written above (bun reads it); the registry is passed explicitly.
-              (cd "$dir" && bun publish --access public --registry "$NPM_REGISTRY_URL")
+              # bun pm pack (not npm pack): it resolves `workspace:`/`catalog:`
+              # specifiers to concrete versions at pack time, which npm leaves
+              # verbatim — shipping unresolvable ranges to consumers. The
+              # tarball is then gated BEFORE the irreversible publish and
+              # pushed with npm (publishing a pre-built tarball changes
+              # nothing in the manifest; auth comes from $HOME/.npmrc).
+              (cd "$dir" && bun pm pack --destination "$TARBALL_DIR")
+              TGZ="$TARBALL_DIR/$(echo "$NAME" | tr -d '@' | tr '/' '-')-$VERSION.tgz"
+              if [ ! -f "$TGZ" ]; then
+                echo "::error::expected tarball $TGZ not found"; exit 1
+              fi
+              if ! tar -tzf "$TGZ" | grep -q '^package/LICENSE$'; then
+                echo "::error::$NAME tarball is missing LICENSE"; exit 1
+              fi
+              if tar -xzOf "$TGZ" package/package.json | grep -Eq '"(workspace|catalog):'; then
+                echo "::error::$NAME manifest still contains workspace:/catalog: specifiers"; exit 1
+              fi
+              npm publish "$TGZ" --access public --registry "$NPM_REGISTRY_URL"
             fi
             echo "::endgroup::"
           done
