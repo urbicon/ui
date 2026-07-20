@@ -80,16 +80,26 @@ export class LLMDocumentationGenerator {
       await fs.writeFile(indexPath, indexContent, 'utf-8');
       writtenFiles.push(indexPath);
 
-      // Also maintain a global aggregator at the static root (one level up)
+      // Also maintain a global aggregator at the static root (one level up).
+      // Fail loud, no catch: the index content is a pure static string, so the
+      // only fallible operation here is the write itself — and a swallowed
+      // write failure means the published static root keeps serving a stale
+      // (or missing) llms.txt while the run reports success. There is no
+      // legitimate "optional input" to tolerate either: the target directory
+      // necessarily exists, because outputPath (its child) was created above.
+      const staticRoot = path.resolve(outputPath, '..');
+      const globalIndexPath = path.join(staticRoot, 'llms.txt');
       try {
-        const staticRoot = path.resolve(outputPath, '..');
-        const globalIndex = this.generateGlobalLlmsTxt(staticRoot);
-        const globalIndexPath = path.join(staticRoot, 'llms.txt');
-        await fs.writeFile(globalIndexPath, globalIndex, 'utf-8');
-        writtenFiles.push(globalIndexPath);
-      } catch {
-        /* ignore */
+        await fs.writeFile(globalIndexPath, this.generateGlobalLlmsTxt(), 'utf-8');
+      } catch (error) {
+        throw new Error(
+          `Failed to write the global llms.txt aggregator at ${globalIndexPath}: ${
+            error instanceof Error ? error.message : String(error)
+          }`,
+          { cause: error }
+        );
       }
+      writtenFiles.push(globalIndexPath);
 
       const totalSize = await this.calculateTotalSize(writtenFiles);
       return {
@@ -496,7 +506,13 @@ export class LLMDocumentationGenerator {
     return lines.join('\n');
   }
 
-  private generateGlobalLlmsTxt(_staticRoot: string): string {
+  /**
+   * Render the static-root `llms.txt` aggregator: a fixed index linking
+   * `llms-full.txt` plus the four per-scope manifests (blocks/docs/table/auth).
+   * Pure string assembly — scope links may briefly dangle until every target
+   * has run, which is the designed single-target behaviour, not an error.
+   */
+  private generateGlobalLlmsTxt(): string {
     const lines: string[] = [];
     lines.push('# Urbicon UI');
     lines.push('');
