@@ -216,11 +216,11 @@ Reference/API docs are written in English; internal strategy & analysis docs are
 
 **Auth**
 
-- [docs/AUTH.md](docs/AUTH.md) – Auth package: architecture, exports, consumer integration
+- [docs/AUTH.md](docs/AUTH.md) – Auth package: architecture, exports, consumer integration. **This file is a symlink into `packages/auth/docs/AUTH.md` and ships in the npm tarball** (the package README links to it as `./docs/AUTH.md`) — it is public consumer documentation. Keep it public-appropriate: no internal review IDs, wave/session names, priority markers (P1/P2, cluster letters) or `docs/internal/` references; that material belongs in docs/internal/ or technical-debt.md.
 
 **Internal working docs**
 
-Internal working docs (strategy, launch, deployment, design analysis) are kept locally under docs/internal/ and are not part of the published repo.
+Internal working docs (strategy, launch, deployment, design analysis) are kept locally under docs/internal/ and are not part of the published repo. Rule of thumb for every doc: reference/API content that a consumer developer needs is public (package README, the shipped AUTH.md, the docs site, llms-full.txt) and written in English; planning, review bookkeeping and strategy stay internal. When knowledge must exist on both sides, the public file is the canon and the internal one links to it — never the other way around.
 
 **Project tracking**
 

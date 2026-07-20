@@ -704,6 +704,45 @@ internal TODO instead. Sections are ordered roughly by urgency.
 
 ## Docs coverage
 
+### Consumer knowledge surfaces: four sources of truth, public canon only partially wired
+
+- **Where:** `packages/auth/docs/AUTH.md` (canon, ships in the tarball since
+  2026-07-20), `packages/auth/README.md`, the server-source comments
+  (`handle.ts`, `csrf.ts`, `federated-handle.ts`),
+  `packages/docs-gen/templates/llms-full-template.md` (→ `llms-full.txt`),
+  `packages/design-content/content/` (the `urbicon` CLI bundle),
+  `apps/docs/src/routes/auth/` (component docs).
+- **What:** The same security-critical guidance (kernel-CSRF off-switch,
+  remote-function guard, federation limits) lives in four independently
+  edited sources — the 2026-07-20 CSRF correction had to be applied to five
+  places across three rounds. Consumer reachability was worse: the canonical
+  AUTH.md sat only in the private monorepo while the npm README linked to it
+  relatively (dead on npmjs **and** in node_modules). Partially fixed
+  2026-07-20: AUTH.md now ships inside the tarball (`./docs/AUTH.md`,
+  package-relative README links, internal review IDs / roadmap references
+  stripped for the public audience); a root symlink keeps monorepo links
+  working.
+- **Remaining, in order:**
+  1. Render AUTH.md on ui.urbicon.de (docs-app route or docs-gen) and add
+     absolute links from the README for the npmjs view — relative links 404
+     there against the private repo.
+  2. Give the `urbicon` CLI access to the auth ops guidance: `content/auth/`
+     carries only component APIs; `content/guides/` is served by the MCP
+     server only, which is deliberately unhosted. E.g. `urbicon guide auth`,
+     fed from AUTH.md, so the version-matched channel covers auth the way it
+     covers design knowledge.
+  3. Discipline the copies: shrink the source comments to a pointer, add a
+     KEEP-IN-SYNC marker (or docs-gen extraction) between AUTH.md and the
+     llms-full template, and decide whether the short `llms.txt` should carry
+     the security notes at all (today it doesn't).
+  4. The public/internal boundary rule now lives in AGENTS.md (§ Internal
+     working docs); apply it in passing whenever one of these files is
+     touched.
+- **Why deferred:** 1–2 are their own increments (site route, content
+  pipeline); 3 wants one deliberate pass rather than drive-bys.
+- **Found:** 2026-07-20, consumer-knowledge-surface audit (after the CSRF
+  guidance had to be corrected in five places).
+
 ### ~9 primitive pages use their Customization section as a second Examples bucket (XC-6)
 
 - **Where:** `apps/docs/src/routes/blocks/primitives/*/Docs.svelte` — drawer
