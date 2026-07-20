@@ -954,7 +954,8 @@ export const handle = createAuthHandle({ config: authDeps.config, repos: authDep
 **Note — Origin/CSRF is enforced only for requests routed _through_ the handle.** If you later
 add a cross-origin, form-encoded endpoint (an OAuth 2.1 token endpoint, a webhook) _around_
 `createAuthHandle`, SvelteKit's own built-in `csrf.checkOrigin` — which runs in the request
-kernel before any hook, in production builds only — rejects it with `403 "Cross-site POST form
+kernel before any hook, not under `vite dev` (nor, before Kit 2.70.0, in non-production
+`NODE_ENV` builds — kit#16313) — rejects it with `403 "Cross-site POST form
 submissions are forbidden"` (most visibly the OAuth token endpoint: RFC 6749 mandates
 `application/x-www-form-urlencoded` and its callers send no `Origin` header). Set
 `kit.csrf: { checkOrigin: false }` in `svelte.config.js` to disable the kernel check (deprecated
