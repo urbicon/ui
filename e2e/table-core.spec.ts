@@ -2,8 +2,10 @@ import { expect, type Page, test } from '@playwright/test';
 
 /**
  * Core Table flows in a real browser: header-click sorting (asc → desc → off cycle),
- * smart-filter search narrowing the visible rows, and virtualization rendering only a
- * DOM window of a 2000-row dataset that swaps on scroll. The fixture dataset is fully
+ * smart-filter search narrowing the visible rows, virtualization rendering only a DOM
+ * window of a 2000-row dataset that swaps on scroll, region grouping (groupOrder +
+ * membership), multi-select (row + select-all + count), keyboard column reorder, and
+ * remote/server-mode data (a request per interaction). The fixture dataset is fully
  * deterministic — the spec regenerates the same score sequence to compute the expected
  * sorted pages instead of trusting the component under test.
  */
@@ -119,5 +121,166 @@ test.describe('Table core flows', () => {
     await expect(vRows.first().locator('td').first()).toHaveText(
       `Item ${String(firstIndex).padStart(4, '0')}`
     );
+  });
+
+  test('grouping renders headers in groupOrder with rows under their own group', async ({
+    page
+  }) => {
+    await setupPage(page);
+
+    const grouped = page.getByTestId('table-grouped');
+    const groupHeaders = grouped.locator('[data-testid^="grouped-row-"]');
+
+    // Three region groups render, ordered by groupOrder (['east','north','south'])
+    // rather than the insertion order — proving groupOrder drives the display.
+    await expect(groupHeaders).toHaveCount(3);
+    const headerOrder = await groupHeaders.evaluateAll((els) =>
+      els.map((el) => el.getAttribute('data-testid'))
+    );
+    expect(headerOrder).toEqual(['grouped-row-east', 'grouped-row-north', 'grouped-row-south']);
+
+    // Walk the tbody in DOM order: every member row must sit under the header of
+    // its own region, and each group must hold its expected member count.
+    const sequence = await grouped.locator('tbody tr').evaluateAll((rows) =>
+      rows.map((row) => {
+        const testId = row.getAttribute('data-testid') ?? '';
+        const regionCell = row.querySelector('[data-testid$="-region"]');
+        return {
+          isHeader: testId.startsWith('grouped-row-'),
+          isMember: testId.startsWith('grouped-item-'),
+          group: testId.startsWith('grouped-row-') ? testId.slice('grouped-row-'.length) : '',
+          region: (regionCell?.textContent ?? '').trim()
+        };
+      })
+    );
+
+    let currentGroup = '';
+    const counts: Record<string, number> = {};
+    for (const entry of sequence) {
+      if (entry.isHeader) {
+        currentGroup = entry.group;
+        counts[currentGroup] = 0;
+      } else if (entry.isMember) {
+        expect(entry.region).toBe(currentGroup);
+        counts[currentGroup] += 1;
+      }
+    }
+    expect(counts).toEqual({ east: 1, north: 3, south: 2 });
+  });
+
+  test('multi-select toggles rows, the count, and the select-all header', async ({ page }) => {
+    await setupPage(page);
+
+    const selection = page.getByTestId('table-selection');
+    const rows = selection.locator('tr[data-row-index]');
+    const count = page.getByTestId('selection-count');
+    const secondRow = selection.locator('[data-testid="table-row-1"]');
+    const selectAllHeader = selection.locator('[data-testid="selection-header"]');
+    const selectAllInput = selectAllHeader.locator('input[type="checkbox"]');
+
+    await expect(rows).toHaveCount(6);
+    await expect(count).toHaveText('0');
+    await expect(secondRow).toHaveAttribute('aria-selected', 'false');
+
+    // Select one row: aria-selected flips, the count rises, and the select-all
+    // header goes indeterminate (some-but-not-all selected).
+    await secondRow.locator('label').first().click();
+    await expect(secondRow).toHaveAttribute('aria-selected', 'true');
+    await expect(count).toHaveText('1');
+    await expect(selectAllInput).toHaveAttribute('aria-checked', 'mixed');
+
+    // The select-all header selects every row in the set.
+    await selectAllHeader.locator('label').first().click();
+    await expect(count).toHaveText('6');
+    await expect(selection.locator('tr[data-row-index][aria-selected="true"]')).toHaveCount(6);
+    await expect(selectAllInput).not.toHaveAttribute('aria-checked', 'mixed');
+    expect(await selectAllInput.isChecked()).toBe(true);
+
+    // Toggling the header again clears the whole selection.
+    await selectAllHeader.locator('label').first().click();
+    await expect(count).toHaveText('0');
+    await expect(selection.locator('tr[data-row-index][aria-selected="true"]')).toHaveCount(0);
+  });
+
+  test('keyboard Shift+Arrow reorders columns and round-trips', async ({ page }) => {
+    await setupPage(page);
+
+    const reorder = page.getByTestId('table-reorder');
+    const headerOrder = () =>
+      reorder
+        .locator('[data-testid^="column-header-"]')
+        .evaluateAll((els) => els.map((el) => el.getAttribute('data-testid')));
+
+    expect(await headerOrder()).toEqual([
+      'column-header-name',
+      'column-header-category',
+      'column-header-score'
+    ]);
+
+    // Shift+ArrowRight on the first header moves it one slot to the right. The
+    // handler lives on the <th>; the focusable sort control bubbles the key up.
+    await reorder
+      .getByTestId('column-header-name')
+      .locator('[role="button"]')
+      .press('Shift+ArrowRight');
+    await expect
+      .poll(headerOrder)
+      .toEqual(['column-header-category', 'column-header-name', 'column-header-score']);
+
+    // Shift+ArrowLeft moves it back — the reorder round-trips.
+    await reorder
+      .getByTestId('column-header-name')
+      .locator('[role="button"]')
+      .press('Shift+ArrowLeft');
+    await expect
+      .poll(headerOrder)
+      .toEqual(['column-header-name', 'column-header-category', 'column-header-score']);
+  });
+
+  test('server mode issues a request per interaction and renders the fresh result', async ({
+    page
+  }) => {
+    await setupPage(page);
+
+    const remote = page.getByTestId('table-remote');
+    const rows = remote.locator('tr[data-row-index]');
+    const requestCount = page.getByTestId('remote-request-count');
+    const total = page.getByTestId('remote-total');
+    const search = remote.locator('input[type="search"]');
+    const firstCell = rows.first().locator('td').first();
+    const readCount = async () => Number.parseInt((await requestCount.textContent()) ?? '0', 10);
+
+    // The on-mount managed fetch renders the first page of the 40-row backend and
+    // the request counter — the visible activity indicator — reaches at least 1.
+    await expect.poll(readCount).toBeGreaterThanOrEqual(1);
+    await expect(rows).toHaveCount(10);
+    await expect(total).toHaveText('40');
+    await expect(firstCell).toHaveText('Item 0000');
+
+    // A search issues a new request (counter climbs) and the rendered rows + total
+    // reflect the filtered backend result. "0007" matches exactly one name.
+    const beforeSearch = await readCount();
+    await search.fill('0007');
+    await expect.poll(readCount).toBeGreaterThan(beforeSearch);
+    await expect(rows).toHaveCount(1);
+    await expect(total).toHaveText('1');
+    await expect(firstCell).toHaveText('Item 0007');
+
+    // Clearing restores the full backend.
+    await search.fill('');
+    await expect(total).toHaveText('40');
+
+    // Sorting issues yet another request; descending score puts Item 0030
+    // (score 100, the deterministic max over i∈[0,39]) first.
+    const beforeSort = await readCount();
+    const scoreSort = remote.getByTestId('column-header-score').locator('[role="button"]');
+    await scoreSort.click(); // ascending
+    await scoreSort.click(); // descending
+    await expect.poll(readCount).toBeGreaterThan(beforeSort);
+    await expect(remote.getByTestId('column-header-score')).toHaveAttribute(
+      'aria-sort',
+      'descending'
+    );
+    await expect(firstCell).toHaveText('Item 0030');
   });
 });
