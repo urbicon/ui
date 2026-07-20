@@ -197,3 +197,65 @@ describe('Pagination — page-change contract', () => {
     expect(onPageChange).not.toHaveBeenCalled();
   });
 });
+
+// showFirstLast × showNumbers coupling. First/Last are redundancy-gated to the
+// number window (they only render beside a start/end ellipsis), so with
+// `showNumbers={false}` an explicitly-set `showFirstLast` renders nothing — a
+// settled decision (2026-07-14), but its silence was the bug: the component now
+// says so in dev, once per instance (fail-loud over silent no-op).
+describe('Pagination — showFirstLast without showNumbers (DEV warn)', () => {
+  it('warns once when showFirstLast is explicitly set while showNumbers is false, and renders no First/Last', () => {
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+    renderPagination({ currentPage: 5, totalPages: 20, showFirstLast: true, showNumbers: false });
+
+    expect(warn).toHaveBeenCalledTimes(1);
+    expect(String(warn.mock.calls[0][0])).toContain('showFirstLast');
+    // The documented coupling holds: no number window → no ellipsis → no First/Last.
+    expect(screen.queryByRole('button', { name: 'First' })).toBeNull();
+    expect(screen.queryByRole('button', { name: 'Last' })).toBeNull();
+    warn.mockRestore();
+  });
+
+  it('does not re-warn on later prop changes (once per instance)', () => {
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+    // `$state` proxy handed to `mount` unspread so prop mutations reach the
+    // component (the Collapsible controlled-contract pattern).
+    const props = $state<PaginationProps>({
+      currentPage: 5,
+      totalPages: 20,
+      showFirstLast: true,
+      showNumbers: false
+    });
+    const instance = mount(Pagination, { target: document.body, props });
+    dispose = () => unmount(instance);
+    flushSync();
+    expect(warn).toHaveBeenCalledTimes(1);
+
+    // Toggling showNumbers on and back off re-runs the effect — the instance
+    // flag keeps it at the single initial warn.
+    props.showNumbers = true;
+    flushSync();
+    props.showNumbers = false;
+    flushSync();
+    expect(warn).toHaveBeenCalledTimes(1);
+    warn.mockRestore();
+  });
+
+  it('stays silent when showFirstLast is left at its default', () => {
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+    renderPagination({ currentPage: 5, totalPages: 20, showNumbers: false });
+
+    expect(warn).not.toHaveBeenCalled();
+    warn.mockRestore();
+  });
+
+  it('stays silent in the default configuration, where First/Last render beside the ellipsis', () => {
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+    renderPagination({ currentPage: 10, totalPages: 20, visiblePages: 5, showFirstLast: true });
+
+    expect(warn).not.toHaveBeenCalled();
+    expect(screen.getByRole('button', { name: 'First' })).toBeTruthy();
+    expect(screen.getByRole('button', { name: 'Last' })).toBeTruthy();
+    warn.mockRestore();
+  });
+});

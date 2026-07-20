@@ -20,7 +20,10 @@
     intent = 'primary',
     tier,
     visiblePages = 7,
-    showFirstLast = true,
+    // Undefaulted so the DEV no-op warning below can tell an explicit
+    // `showFirstLast` from the default; `showFirstLast` itself (derived) keeps
+    // the documented `true` default for every render-path consumer.
+    showFirstLast: showFirstLastProp,
     showPreviousNext = true,
     showNumbers = true,
     showInfo = false,
@@ -51,6 +54,29 @@
 
   const blocksConfig = getBlocksConfig();
   const unstyled = $derived(unstyledProp || blocksConfig?.unstyled || false);
+
+  const showFirstLast = $derived(showFirstLastProp ?? true);
+
+  // DEV fail-loud: First/Last are redundancy-gated to the number window (they
+  // render only beside a start/end ellipsis), so with `showNumbers={false}` an
+  // explicitly-set `showFirstLast` is a silent no-op. Surface that once per
+  // instance — the coupling itself is a settled decision (see the
+  // `showFirstLast` JSDoc), only its silence was the bug. Plain flag, not
+  // `$state`: the warn must not feed back into the reactive graph.
+  let warnedFirstLastWithoutNumbers = false;
+  $effect(() => {
+    if (
+      import.meta.env?.DEV &&
+      !warnedFirstLastWithoutNumbers &&
+      showFirstLastProp === true &&
+      !showNumbers
+    ) {
+      warnedFirstLastWithoutNumbers = true;
+      console.warn(
+        '[Pagination] showFirstLast has no effect while showNumbers is false — First/Last only render beside the number window’s ellipsis. Drop showFirstLast or re-enable showNumbers.'
+      );
+    }
+  });
 
   const variantProps: PaginationVariants = $derived({
     layout,

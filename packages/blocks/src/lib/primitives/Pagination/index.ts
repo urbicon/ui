@@ -75,7 +75,15 @@ export interface PaginationProps
 
   /** Maximum number of page buttons shown between the ellipsis indicators. */
   visiblePages?: number;
-  /** Show "First" / "Last" boundary buttons when the current page is far from the edges. */
+  /**
+   * Show "First" / "Last" boundary buttons when the current page is far from
+   * the edges. Deliberately redundancy-gated to the number window: the buttons
+   * render only beside a start/end ellipsis, so without `showNumbers` there is
+   * no number window, no ellipsis — and no First/Last buttons. That coupling is
+   * intentional (a compact prev/next-only bar stays compact), not a bug.
+   * Setting `showFirstLast` explicitly while `showNumbers` is `false` warns
+   * once per instance in dev. @default true
+   */
   showFirstLast?: boolean;
   /** Show "Previous" / "Next" navigation buttons. */
   showPreviousNext?: boolean;
