@@ -27,6 +27,8 @@
   },
   "files": [
     "src",
+    "!src/**/*.test.*",
+    "!src/**/*.spec.*",
     "content",
     "README.md"
   ],

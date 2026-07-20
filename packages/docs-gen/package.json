@@ -67,6 +67,8 @@
   "author": "Urbicon UI Team",
   "files": [
     "dist",
+    "!dist/**/*.test.*",
+    "!dist/**/*.spec.*",
     "README.md"
   ],
   "engines": {
