@@ -11,6 +11,8 @@ export type {
   AuthUser,
   CsrfConfig,
   EmailConfig,
+  Es256PrivateJwk,
+  Es256PublicJwk,
   JwtConfig,
   LockoutConfig,
   PasswordConfig,
@@ -23,6 +25,7 @@ export type {
 // per-repository factories.
 export {
   createInMemoryBackupCodeRepository,
+  createInMemoryFederatedAccountRepository,
   createInMemoryRefreshTokenRepository,
   createInMemoryRepos
 } from './adapters/in-memory.js';
@@ -34,6 +37,8 @@ export type {
   CreatePasskeyData,
   CreateRefreshTokenData,
   CreateUserData,
+  FederatedAccount,
+  FederatedAccountRepository,
   FullAuthUser,
   Invitation,
   InvitationRepository,
@@ -72,6 +77,12 @@ export type {
 export type { BuiltEmail } from './email/templates.js';
 // Email transport types
 export type { EmailTransport, SendEmailParams } from './email/types.js';
+// Federated identity (SSO) — consumer side: verifies the IdP's ES256 session
+// JWT against its JWKS (served by createJWKSHandler on the IdP) and maps the
+// proven identity to a local user via resolveUser. Identity ≠ authorization:
+// resolveUser is where THIS app decides access; the IdP's role never arrives.
+export type { FederatedAuthHandleOptions, FederatedIdentity } from './federated-handle.js';
+export { createFederatedAuthHandle } from './federated-handle.js';
 export type { AuthHandleOptions } from './handle.js';
 // Handle hook
 export { createAuthHandle } from './handle.js';
@@ -88,6 +99,9 @@ export type { ForgotPasswordHandlerOptions } from './handlers/forgot-password.js
 export { createForgotPasswordHandler } from './handlers/forgot-password.js';
 export type { InvitationHandlerOptions } from './handlers/invitation.js';
 export { createInvitationHandlers } from './handlers/invitation.js';
+// JWKS endpoint (RFC 7517) — publishes the ES256 public key set so consuming
+// services can verify this IdP's session JWTs (requires jwt.algorithm 'ES256')
+export { createJWKSHandler } from './handlers/jwks.js';
 // Handlers
 export { createLoginHandler } from './handlers/login.js';
 export { createLogoutHandler } from './handlers/logout.js';
@@ -108,10 +122,15 @@ export { createTwoFactorHandlers } from './handlers/two-factor.js';
 export { createUpdateProfileHandler } from './handlers/update-profile.js';
 export { createVerifyEmailHandler } from './handlers/verify-email.js';
 export { createVerifyEmailChangeHandler } from './handlers/verify-email-change.js';
-// Session JWT + generic short-lived signed tokens (HS256 on Web Crypto)
+// Session JWT (HS256 default / ES256 opt-in) + generic short-lived signed
+// tokens (always HMAC) on Web Crypto. generateES256KeyPair mints the JWK pair
+// for jwt.algorithm 'ES256'; computeJwkThumbprint derives the RFC 7638 kid of
+// an existing key (e.g. for a hand-built previousPublicKeys entry).
 export {
+  computeJwkThumbprint,
   createSessionToken,
   createSignedToken,
+  generateES256KeyPair,
   verifySessionToken,
   verifySignedToken
 } from './jwt.js';

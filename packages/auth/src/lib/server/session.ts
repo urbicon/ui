@@ -52,11 +52,31 @@ function resolveCookieSecure(
   return secure;
 }
 
+/**
+ * Resolve the session cookie's Domain attribute (`jwt.cookieDomain`). A
+ * `__Host-`-prefixed cookie name REQUIRES a host-scoped cookie, so a browser
+ * rejects the combination with a Domain attribute wholesale — the session
+ * would silently never be set (nor cleared). Fail loudly instead, in the same
+ * spirit as {@link resolveCookieSecure}. One helper shared by
+ * {@link setSessionCookie} and {@link clearSessionCookie} so set and clear can
+ * never drift apart.
+ */
+function resolveCookieDomain(config: JwtConfig): string | undefined {
+  if (!config.cookieDomain) return undefined;
+  if (cookieName(config).startsWith('__Host-')) {
+    throw new Error(
+      '[auth] jwt.cookieDomain cannot be combined with a "__Host-"-prefixed cookieName — browsers reject a __Host- cookie that carries a Domain attribute, so the session cookie would silently never be set (or cleared).'
+    );
+  }
+  return config.cookieDomain;
+}
+
 export async function setSessionCookie<R extends string>(
   cookies: Cookies,
   payload: AuthSession<R>,
   config: JwtConfig
 ): Promise<void> {
+  const domain = resolveCookieDomain(config);
   const token = await createSessionToken(payload, config);
   const maxAge = parseDurationSeconds(config.expiresIn ?? '7d');
   const sameSite = config.cookieSameSite ?? 'lax';
@@ -65,12 +85,23 @@ export async function setSessionCookie<R extends string>(
     httpOnly: true,
     secure: resolveCookieSecure(config.cookieSecure, sameSite),
     sameSite,
-    maxAge
+    maxAge,
+    ...(domain !== undefined ? { domain } : {})
   });
 }
 
+/**
+ * Delete the session cookie, mirroring {@link setSessionCookie}'s Path AND
+ * Domain attributes. The symmetry is load-bearing: a delete whose Domain does
+ * not match the set targets a *different* cookie as far as the browser is
+ * concerned, and the session would survive logout.
+ */
 export function clearSessionCookie(cookies: Cookies, config: JwtConfig): void {
-  cookies.delete(cookieName(config), { path: '/' });
+  const domain = resolveCookieDomain(config);
+  cookies.delete(cookieName(config), {
+    path: '/',
+    ...(domain !== undefined ? { domain } : {})
+  });
 }
 
 export async function getSessionFromCookie<R extends string>(

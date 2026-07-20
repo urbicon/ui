@@ -7,6 +7,7 @@ import type {
   UserRepository
 } from './adapters/types.js';
 import type { EmailTransport } from './email/types.js';
+import { assertJwtConfigValid } from './jwt.js';
 
 export interface AuthDeps<R extends string = string> {
   config: AuthConfig<R>;
@@ -260,5 +261,9 @@ export function createAuthDeps<R extends string>(deps: Omit<AuthDeps<R>, 'logger
   // One source for the sink: `config.logger`. The resolved field on the deps
   // bundle is what handlers use, so none of them re-defaults to console.
   const logger = shieldLogger(deps.config.logger ?? console);
+  // Fail loud on an unusable JWT config (ES256 without a signing key, …) at
+  // wiring time — mirrored in createAuthHandle, since either entry point can
+  // be reached first.
+  assertJwtConfigValid(deps.config.jwt, logger);
   return { ...deps, logger, config: resolveSecurityDefaults(deps.config, logger) };
 }

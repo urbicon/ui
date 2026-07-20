@@ -6,6 +6,8 @@ import type {
   CreatePasskeyData,
   CreateRefreshTokenData,
   CreateUserData,
+  FederatedAccount,
+  FederatedAccountRepository,
   FullAuthUser,
   Invitation,
   InvitationRepository,
@@ -90,6 +92,10 @@ export interface PrismaLike {
     createMany: (args: unknown) => Promise<{ count: number }>;
     updateMany: (args: unknown) => Promise<{ count: number }>;
     deleteMany: (args: unknown) => Promise<{ count: number }>;
+  };
+  federatedAccount?: {
+    findUnique: (args: unknown) => Promise<PrismaRow>;
+    create: (args: unknown) => Promise<PrismaRow>;
   };
   /**
    * Prisma's sequential (array-form) transaction. Used by `user.delete` to drop
@@ -762,6 +768,57 @@ export function createPrismaRefreshTokenRepository(
   };
 }
 
+/**
+ * Federated-account links for the consumer side of a federation setup
+ * (`createFederatedAuthHandle` → `resolveUser`). Unlike the other optional
+ * factories this one **throws** when the Prisma client lacks the
+ * `federatedAccount` model: no package feature checks this repo's wiring later
+ * (nothing in the shipped handlers calls it), so the explicit factory call is
+ * the only place a missing model can fail loud instead of surfacing as an
+ * `undefined` method call at request time. `createPrismaRepos` still treats it
+ * as optional (wires it only when the model exists).
+ */
+export function createPrismaFederatedAccountRepository(
+  prisma: PrismaLike
+): FederatedAccountRepository {
+  const fa = prisma.federatedAccount;
+  if (!fa) {
+    throw new Error(
+      '[auth] createPrismaFederatedAccountRepository: the Prisma client has no `federatedAccount` model. Add the FederatedAccount model from prisma/auth-schema.prisma (issuer+subject unique together, userId FK with onDelete: Cascade) and regenerate the client.'
+    );
+  }
+
+  return {
+    async findByFederatedId(issuer, subject) {
+      const row = await fa.findUnique({ where: { issuer_subject: { issuer, subject } } });
+      return row ? mapFederatedAccount(row) : null;
+    },
+
+    async linkFederatedAccount(userId, identity) {
+      // Deliberately NOT an upsert: an upsert would silently re-point an
+      // existing link to the caller — the account-takeover primitive the
+      // contract forbids. Plain create; on the unique violation (someone holds
+      // the pair — pre-existing or a concurrent-link race) re-read and decide:
+      // same user → idempotent no-op, different user → refuse loudly.
+      try {
+        const row = await fa.create({
+          data: { userId, issuer: identity.issuer, subject: identity.subject }
+        });
+        return mapFederatedAccount(row);
+      } catch (err) {
+        if (!isUniqueConstraintError(err)) throw err;
+        const existing = await fa.findUnique({
+          where: { issuer_subject: { issuer: identity.issuer, subject: identity.subject } }
+        });
+        if (existing && existing.userId === userId) return mapFederatedAccount(existing);
+        throw new Error(
+          '[auth] linkFederatedAccount: this federated identity is already linked to a different user — refusing to re-link (unlink it explicitly first).'
+        );
+      }
+    }
+  };
+}
+
 export function createPrismaBackupCodeRepository(
   prisma: PrismaLike
 ): BackupCodeRepository | undefined {
@@ -975,6 +1032,27 @@ function mapPushSubscription(row: PushSubscriptionRow): PushSubscriptionData {
   };
 }
 
+interface FederatedAccountRow {
+  issuer: string;
+  subject: string;
+  userId: string;
+  createdAt: Date;
+}
+
+/**
+ * Typed seam for federated-account reads (see {@link mapUser}) — and a
+ * deliberate projection: the surrogate row id and any consumer extra columns
+ * stay out of the contract shape.
+ */
+function mapFederatedAccount(row: FederatedAccountRow): FederatedAccount {
+  return {
+    issuer: row.issuer,
+    subject: row.subject,
+    userId: row.userId,
+    createdAt: row.createdAt
+  };
+}
+
 interface NotificationPreferenceRow {
   typeKey: string;
   sse: boolean;
@@ -1001,6 +1079,12 @@ export function createPrismaRepos<R extends string>(prisma: PrismaLike): Reposit
     notificationPreference: createPrismaNotificationPreferenceRepository(prisma),
     passkey: createPrismaPasskeyRepository(prisma),
     refreshToken: createPrismaRefreshTokenRepository(prisma),
-    backupCode: createPrismaBackupCodeRepository(prisma)
+    backupCode: createPrismaBackupCodeRepository(prisma),
+    // Presence-gated here (unlike the throwing standalone factory): the bundle
+    // is wired by every consumer, federated or not, so a missing model simply
+    // means "no federation" — same optionality as the other feature repos.
+    federatedAccount: prisma.federatedAccount
+      ? createPrismaFederatedAccountRepository(prisma)
+      : undefined
   };
 }

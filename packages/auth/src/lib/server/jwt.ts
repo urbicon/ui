@@ -1,13 +1,29 @@
-// HS256 JWTs on Web Crypto: the session token (with key rotation via `kid` /
-// `previousSecrets`) and the generic short-lived signed token (pending-2FA
-// handle etc.). Split out of the former auth.ts god-file (R17).
+// Session JWTs on Web Crypto — HS256 (default) or ES256, with key rotation via
+// `kid` / `previousSecrets` / `previousPublicKeys` — plus the generic
+// short-lived signed token (pending-2FA handle etc.), which stays HMAC-based
+// under every algorithm. Split out of the former auth.ts god-file (R17).
 
-import type { AuthSession, JwtConfig } from '../types.js';
+import type {
+  AuthLogger,
+  AuthSession,
+  Es256PrivateJwk,
+  Es256PublicJwk,
+  JwtConfig
+} from '../types.js';
 import { parseDurationSeconds } from './duration.js';
-import { base64UrlDecodeString, base64UrlEncode, base64UrlEncodeString } from './encoding.js';
+import {
+  base64UrlDecode,
+  base64UrlDecodeString,
+  base64UrlEncode,
+  base64UrlEncodeString,
+  toArrayBuffer
+} from './encoding.js';
 import { timingSafeEqual } from './timing-safe.js';
 
-const BASE64URL_REGEX = /^[A-Za-z0-9_-]+$/;
+// Internal export: shared with the federated consumer handle
+// (federated-handle.ts) so token-shape validation cannot drift between the
+// IdP verify path and the consumer verify path. Not part of the public API.
+export const BASE64URL_REGEX = /^[A-Za-z0-9_-]+$/;
 
 async function hmacSign(payload: string, secret: string): Promise<string> {
   const encoder = new TextEncoder();
@@ -31,16 +47,214 @@ async function hmacVerify(payload: string, signature: string, secret: string): P
   return timingSafeEqual(a, b);
 }
 
+// ---- ES256 (ECDSA P-256) ----
+//
+// Web Crypto ECDSA signatures are the raw `r‖s` concatenation (64 bytes for
+// P-256) — exactly the JWS ES256 wire format, so sign/verify need no format
+// conversion. (`ecdsa-der.ts` exists solely for WebAuthn authenticators, which
+// DO emit DER — it has no business here.)
+
+const ES256_KEY_PARAMS = { name: 'ECDSA', namedCurve: 'P-256' } as const;
+const ES256_SIGN_PARAMS = { name: 'ECDSA', hash: 'SHA-256' } as const;
+
+async function es256Sign(payload: string, signingKey: Es256PrivateJwk): Promise<string> {
+  // Import from an explicitly constructed JWK: consumer-provided keys may
+  // carry `use`/`key_ops`/`alg` members that conflict with the requested
+  // usage and make importKey reject an otherwise fine key.
+  const key = await crypto.subtle.importKey(
+    'jwk',
+    { kty: 'EC', crv: 'P-256', x: signingKey.x, y: signingKey.y, d: signingKey.d },
+    ES256_KEY_PARAMS,
+    false,
+    ['sign']
+  );
+  const signature = await crypto.subtle.sign(
+    ES256_SIGN_PARAMS,
+    key,
+    new TextEncoder().encode(payload)
+  );
+  return base64UrlEncode(new Uint8Array(signature));
+}
+
+// Internal export: the one ES256 verify primitive, shared with the federated
+// consumer handle (federated-handle.ts) so the signature check cannot drift
+// between the IdP verify path and the consumer verify path. Not part of the
+// public API (server/index.ts does not re-export it).
+export async function es256Verify(
+  payload: string,
+  signature: string,
+  publicKey: { x?: string; y?: string }
+): Promise<boolean> {
+  const sig = base64UrlDecode(signature);
+  // JWS ES256 signatures are exactly raw r‖s = 64 bytes; anything else can
+  // only be malformed (e.g. a DER-encoded signature) — reject before touching
+  // key material.
+  if (sig.length !== 64) return false;
+  // Public members only: an entry that mistakenly carries the private `d`
+  // (say, a full private JWK pasted into previousPublicKeys) would make
+  // importKey reject the 'verify' usage — stripping to x/y keeps verification
+  // working and never handles private material on the verify path.
+  const key = await crypto.subtle.importKey(
+    'jwk',
+    { kty: 'EC', crv: 'P-256', x: publicKey.x, y: publicKey.y },
+    ES256_KEY_PARAMS,
+    false,
+    ['verify']
+  );
+  return crypto.subtle.verify(
+    ES256_SIGN_PARAMS,
+    key,
+    toArrayBuffer(sig),
+    new TextEncoder().encode(payload)
+  );
+}
+
+/**
+ * RFC 7638 JWK thumbprint of a P-256 key: SHA-256 over the canonical JSON of
+ * the required public members (`crv`, `kty`, `x`, `y` in lexicographic order,
+ * no whitespace), base64url-encoded. Deterministic — the same key always maps
+ * to the same value, and private and public JWK of one pair agree (only public
+ * members feed the hash). This is the default `kid` for ES256 session tokens
+ * and for the keys served by `createJWKSHandler`; use it to derive the `kid`
+ * of a retiring key when building `previousPublicKeys` by hand.
+ */
+export async function computeJwkThumbprint(jwk: JsonWebKey): Promise<string> {
+  if (jwk.kty !== 'EC' || !jwk.crv || !jwk.x || !jwk.y) {
+    throw new Error('[auth] computeJwkThumbprint: expected an EC JWK with crv, x and y.');
+  }
+  // Insertion order IS the RFC 7638 lexicographic order for EC keys.
+  const canonical = JSON.stringify({ crv: jwk.crv, kty: jwk.kty, x: jwk.x, y: jwk.y });
+  const digest = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(canonical));
+  return base64UrlEncode(new Uint8Array(digest));
+}
+
+/**
+ * Generate a fresh ES256 (ECDSA P-256) key pair for `jwt.algorithm: 'ES256'`,
+ * as JWKs ready for the config: `privateKey` goes into `jwt.signingKey` (keep
+ * it secret); `publicKey` is what `createJWKSHandler` serves for it and what a
+ * retiring key contributes to `jwt.previousPublicKeys`. Both JWKs are stamped
+ * with the same `kid` — the RFC 7638 SHA-256 thumbprint, deterministic for the
+ * key, so recomputing it later always yields the same id.
+ *
+ * Run this once in a setup script and store the result in your secret manager
+ * — never on boot: a fresh key per process would invalidate every live
+ * session and desynchronize the JWKS consumers rely on.
+ */
+export async function generateES256KeyPair(): Promise<{
+  privateKey: Es256PrivateJwk;
+  publicKey: Es256PublicJwk;
+  kid: string;
+}> {
+  const pair = await crypto.subtle.generateKey(ES256_KEY_PARAMS, true, ['sign', 'verify']);
+  const privateJwk = await crypto.subtle.exportKey('jwk', pair.privateKey);
+  const publicJwk = await crypto.subtle.exportKey('jwk', pair.publicKey);
+  const kid = await computeJwkThumbprint(publicJwk);
+  return {
+    privateKey: { ...privateJwk, kid },
+    publicKey: { ...publicJwk, kid } as Es256PublicJwk,
+    kid
+  };
+}
+
+/**
+ * The `kid` stamped into new ES256 session tokens and used for the active key
+ * in the JWKS document — one resolution shared by `createSessionToken` and
+ * `createJWKSHandler` so the two can never drift: `keyId` when configured,
+ * else the signingKey's own `kid` (stamped by {@link generateES256KeyPair}),
+ * else the RFC 7638 thumbprint computed on the fly (identical to the stamped
+ * value for generated keys).
+ */
+export async function resolveActiveKid(config: JwtConfig): Promise<string> {
+  if (config.keyId) return config.keyId;
+  if (!config.signingKey) {
+    throw new Error('[auth] resolveActiveKid: jwt.signingKey is required for ES256.');
+  }
+  return config.signingKey.kid ?? computeJwkThumbprint(config.signingKey);
+}
+
+function requireSigningKey(config: JwtConfig): Es256PrivateJwk {
+  if (!config.signingKey) {
+    // Normally caught at wiring time by assertJwtConfigValid (createAuthDeps /
+    // createAuthHandle); re-checked here so a hand-wired call path fails with
+    // a clear message instead of an importKey TypeError.
+    throw new Error(
+      '[auth] jwt.algorithm is "ES256" but jwt.signingKey is missing — generate one with generateES256KeyPair().'
+    );
+  }
+  return config.signingKey;
+}
+
+let es256IgnoredWarned = false;
+let privateInPreviousWarned = false;
+
+/**
+ * Fail loud at wiring time on an unusable JWT config — same posture as
+ * `assertReposMatchConfig`, and called from the same two entry points
+ * (`createAuthDeps` and `createAuthHandle`) so neither path can silently mint
+ * dead tokens:
+ *
+ * - `algorithm: 'ES256'` without a usable private P-256 `signingKey` → throw
+ *   (every later login would throw at sign time anyway — surface it at
+ *   construction instead).
+ * - a `previousPublicKeys` entry that is not a public P-256 JWK with a `kid`
+ *   → throw (verification selects by `kid`; an entry without one is dead
+ *   config that silently fails to verify the tokens it was added for).
+ * - a `previousPublicKeys` entry carrying the private scalar `d` → loud
+ *   error-level warning, once: only public members are ever used or
+ *   published, but private key material does not belong in a public-key list.
+ * - `signingKey`/`previousPublicKeys` set while `algorithm` is not `'ES256'`
+ *   → loud error-level warning, once: the keys are ignored and sessions stay
+ *   HMAC-signed, which almost certainly means `algorithm: 'ES256'` was
+ *   forgotten.
+ */
+export function assertJwtConfigValid(config: JwtConfig, logger: AuthLogger = console): void {
+  if ((config.algorithm ?? 'HS256') === 'ES256') {
+    const key = config.signingKey;
+    if (!key) {
+      throw new Error(
+        '[auth] jwt.algorithm is "ES256" but jwt.signingKey is missing. Generate a key pair with generateES256KeyPair() and pass its privateKey — or drop `algorithm` to stay on HS256.'
+      );
+    }
+    if (key.kty !== 'EC' || key.crv !== 'P-256' || !key.x || !key.y || !key.d) {
+      throw new Error(
+        '[auth] jwt.signingKey must be a PRIVATE P-256 JWK (kty "EC", crv "P-256", with x, y and the private scalar d). Generate one with generateES256KeyPair().'
+      );
+    }
+    for (const prev of config.previousPublicKeys ?? []) {
+      if (prev.kty !== 'EC' || prev.crv !== 'P-256' || !prev.x || !prev.y || !prev.kid) {
+        throw new Error(
+          '[auth] every jwt.previousPublicKeys entry must be a public P-256 JWK with a kid (kty "EC", crv "P-256", x, y, kid) — verification and the JWKS endpoint select keys by kid.'
+        );
+      }
+      if (prev.d && !privateInPreviousWarned) {
+        privateInPreviousWarned = true;
+        logger.error(
+          '[auth] a jwt.previousPublicKeys entry carries the private scalar `d`. Only its public members are used and published, but private key material does not belong in a public-key list — replace the entry with the public JWK.'
+        );
+      }
+    }
+  } else if ((config.signingKey || config.previousPublicKeys) && !es256IgnoredWarned) {
+    es256IgnoredWarned = true;
+    logger.error(
+      '[auth] jwt.signingKey / jwt.previousPublicKeys are set but jwt.algorithm is not "ES256" — they are ignored and sessions stay HMAC-signed (HS256). Set jwt.algorithm: "ES256" to activate the key.'
+    );
+  }
+}
+
 export async function createSessionToken<R extends string>(
   payload: AuthSession<R>,
   config: JwtConfig
 ): Promise<string> {
+  const algorithm = config.algorithm ?? 'HS256';
+  // ES256 tokens always carry the active kid (JWKS consumers resolve the
+  // matching key by it); the HS256 branch keeps the existing
+  // kid-only-when-configured header byte-identical for current consumers.
   const header = base64UrlEncodeString(
-    JSON.stringify({
-      alg: 'HS256',
-      typ: 'JWT',
-      ...(config.keyId ? { kid: config.keyId } : {})
-    })
+    JSON.stringify(
+      algorithm === 'ES256'
+        ? { alg: 'ES256', typ: 'JWT', kid: await resolveActiveKid(config) }
+        : { alg: 'HS256', typ: 'JWT', ...(config.keyId ? { kid: config.keyId } : {}) }
+    )
   );
   const now = Math.floor(Date.now() / 1000);
   const exp = now + parseDurationSeconds(config.expiresIn ?? '7d');
@@ -56,8 +270,12 @@ export async function createSessionToken<R extends string>(
     })
   );
 
-  const signature = await hmacSign(`${header}.${body}`, config.secret);
-  return `${header}.${body}.${signature}`;
+  const signingInput = `${header}.${body}`;
+  const signature =
+    algorithm === 'ES256'
+      ? await es256Sign(signingInput, requireSigningKey(config))
+      : await hmacSign(signingInput, config.secret);
+  return `${signingInput}.${signature}`;
 }
 
 /**
@@ -79,7 +297,36 @@ function selectVerifySecrets(config: JwtConfig, tokenKid: string | undefined): s
   return candidates.filter((c) => c.keyId === tokenKid).map((c) => c.secret);
 }
 
+/**
+ * ES256 mirror of {@link selectVerifySecrets}: resolve which public keys to
+ * try against a token with the given `kid` — the active signing key's public
+ * half plus every `previousPublicKeys` entry. No `kid` header → try all
+ * (tolerant towards externally minted kid-less tokens; our own ES256 tokens
+ * always carry one); `kid` present → only keys with exactly that kid, so an
+ * unmatched kid yields no candidates and verification fails closed — the same
+ * no-silent-fallback rationale as the HMAC side.
+ */
+async function selectVerifyPublicKeys(
+  config: JwtConfig,
+  tokenKid: string | undefined
+): Promise<Array<{ kid?: string; x?: string; y?: string }>> {
+  const candidates: Array<{ kid?: string; x?: string; y?: string }> = [];
+  if (config.signingKey) {
+    candidates.push({
+      kid: await resolveActiveKid(config),
+      x: config.signingKey.x,
+      y: config.signingKey.y
+    });
+  }
+  for (const key of config.previousPublicKeys ?? []) {
+    candidates.push({ kid: key.kid, x: key.x, y: key.y });
+  }
+  if (!tokenKid) return candidates;
+  return candidates.filter((c) => c.kid === tokenKid);
+}
+
 let previousSecretsImportWarned = false;
+let publicKeyImportWarned = false;
 
 export async function verifySessionToken<R extends string>(
   token: string,
@@ -90,37 +337,60 @@ export async function verifySessionToken<R extends string>(
   if (!parts.every((p) => BASE64URL_REGEX.test(p))) return null;
 
   const [header, body, signature] = parts;
+  const algorithm = config.algorithm ?? 'HS256';
 
+  // Algorithm-confusion hardening: the algorithm is pinned FROM THE CONFIG —
+  // the token header only gets to confirm it, never to choose. A header `alg`
+  // that differs from the configured one (e.g. an attacker re-signing an
+  // ES256 payload as HS256 with the public JWK guessed as the HMAC secret) is
+  // rejected before any key material is touched; an unparseable header cannot
+  // confirm anything and is rejected the same way (fail-closed).
   let tokenKid: string | undefined;
   try {
     const headerJson = JSON.parse(base64UrlDecodeString(header));
+    if (headerJson.alg !== algorithm) return null;
     if (typeof headerJson.kid === 'string') tokenKid = headerJson.kid;
   } catch {
-    // Malformed header — treat as "no kid" and keep going; the signature
-    // check below will reject the token if it's actually broken.
+    return null;
   }
 
-  const secrets = selectVerifySecrets(config, tokenKid);
   // Iterate every candidate without early break: a timing oracle that reveals
-  // which secret matched (primary vs a previousSecret) would let an attacker
+  // which key matched (primary vs a previous one) would let an attacker
   // target sessions still signed by a compromised retired key. A candidate
-  // whose import fails (malformed secret) simply never sets `valid`, so the
-  // all-errored case falls through the `!valid` bail below (fail-closed).
+  // whose import fails (malformed key material) simply never sets `valid`, so
+  // the all-errored case falls through the `!valid` bail below (fail-closed).
   let valid = false;
-  for (const secret of secrets) {
-    try {
-      if (await hmacVerify(`${header}.${body}`, signature, secret)) valid = true;
-    } catch (err) {
-      // A crypto.subtle.importKey rejection means the config has a malformed
-      // secret (empty string, non-string). Don't mask as "no session" forever
-      // — warn loudly once so consumers notice the broken previousSecrets.
-      if (!previousSecretsImportWarned) {
-        previousSecretsImportWarned = true;
+  if (algorithm === 'ES256') {
+    for (const publicKey of await selectVerifyPublicKeys(config, tokenKid)) {
+      try {
+        if (await es256Verify(`${header}.${body}`, signature, publicKey)) valid = true;
+      } catch (err) {
+        if (!publicKeyImportWarned) {
+          publicKeyImportWarned = true;
 
-        console.error(
-          '[auth] verifySessionToken: secret import failed — check config.secret / config.previousSecrets.',
-          err
-        );
+          console.error(
+            '[auth] verifySessionToken: public key import failed — check config.signingKey / config.previousPublicKeys.',
+            err
+          );
+        }
+      }
+    }
+  } else {
+    for (const secret of selectVerifySecrets(config, tokenKid)) {
+      try {
+        if (await hmacVerify(`${header}.${body}`, signature, secret)) valid = true;
+      } catch (err) {
+        // A crypto.subtle.importKey rejection means the config has a malformed
+        // secret (empty string, non-string). Don't mask as "no session" forever
+        // — warn loudly once so consumers notice the broken previousSecrets.
+        if (!previousSecretsImportWarned) {
+          previousSecretsImportWarned = true;
+
+          console.error(
+            '[auth] verifySessionToken: secret import failed — check config.secret / config.previousSecrets.',
+            err
+          );
+        }
       }
     }
   }
@@ -167,9 +437,12 @@ export async function verifySessionToken<R extends string>(
  * Sign an arbitrary claims object as a compact HS256 JWT, stamping `iat`/`exp`.
  * The generic counterpart to {@link createSessionToken} — for short-lived,
  * single-purpose tokens (e.g. the pending-2FA handle) that ride in their own
- * cookie and are read back with {@link verifySignedToken}. It reuses the exact
- * same HMAC signing as the session token, so no new key material is introduced;
- * pass `config.jwt.secret`. `expiresInSeconds` should be small (minutes).
+ * cookie and are read back with {@link verifySignedToken}. It is deliberately
+ * HMAC-based under **every** `jwt.algorithm` — these tokens never leave the
+ * deployment, so asymmetric verification buys nothing, which is why
+ * `jwt.secret` stays required even in ES256 mode. No new key material is
+ * introduced; pass `config.jwt.secret`. `expiresInSeconds` should be small
+ * (minutes).
  */
 export async function createSignedToken(
   claims: Record<string, unknown>,

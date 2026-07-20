@@ -8,6 +8,8 @@ import type {
   CreatePasskeyData,
   CreateRefreshTokenData,
   CreateUserData,
+  FederatedAccount,
+  FederatedAccountRepository,
   FullAuthUser,
   Invitation,
   InvitationRepository,
@@ -55,6 +57,7 @@ export function createInMemoryRepos<R extends string = string>(): Repositories<R
   const passkey = createInMemoryPasskeyRepository();
   const refreshToken = createInMemoryRefreshTokenRepository();
   const backupCode = createInMemoryBackupCodeRepository();
+  const federatedAccount = createInMemoryFederatedAccountRepositoryInternal();
 
   return {
     user: {
@@ -69,6 +72,7 @@ export function createInMemoryRepos<R extends string = string>(): Repositories<R
       async delete(id) {
         invitation.deleteByInviter(id);
         notificationPreference.deleteByUser(id);
+        federatedAccount.deleteByUser(id);
         for (const p of await passkey.findByUserId(id)) {
           await passkey.delete(id, p.credentialId);
         }
@@ -91,7 +95,8 @@ export function createInMemoryRepos<R extends string = string>(): Repositories<R
     notificationPreference: notificationPreference.repo,
     passkey,
     refreshToken,
-    backupCode
+    backupCode,
+    federatedAccount: federatedAccount.repo
   };
 }
 
@@ -840,4 +845,62 @@ export function createInMemoryBackupCodeRepository(): BackupCodeRepository {
       }
     }
   };
+}
+
+// --- Federated accounts ----------------------------------------------------
+
+function createInMemoryFederatedAccountRepositoryInternal(): {
+  repo: FederatedAccountRepository;
+  /** Cascade seam for the bundle's `user.delete` — not part of the contract. */
+  deleteByUser(userId: string): void;
+} {
+  // Collision-proof composite key — issuer/subject are consumer-provided
+  // strings, so a naive `${issuer}:${subject}` join could be forged across
+  // the boundary; JSON.stringify keeps the pair unambiguous.
+  const links = new Map<string, FederatedAccount>();
+  const key = (issuer: string, subject: string) => JSON.stringify([issuer, subject]);
+
+  const repo: FederatedAccountRepository = {
+    async findByFederatedId(issuer, subject) {
+      const row = links.get(key(issuer, subject));
+      return row ? { ...row } : null;
+    },
+
+    async linkFederatedAccount(userId, identity) {
+      // Read + conditional write with no await in between (see the atomicity
+      // note on this module): two concurrent links of the same pair serialize,
+      // exactly one creates — the other sees the winner below.
+      const k = key(identity.issuer, identity.subject);
+      const existing = links.get(k);
+      if (existing) {
+        // Idempotent for the same user; a different user must never silently
+        // take the link over (account-takeover primitive — see the contract).
+        if (existing.userId === userId) return { ...existing };
+        throw new Error(
+          '[auth] linkFederatedAccount: this federated identity is already linked to a different user — refusing to re-link (unlink it explicitly first).'
+        );
+      }
+      const row: FederatedAccount = {
+        issuer: identity.issuer,
+        subject: identity.subject,
+        userId,
+        createdAt: new Date()
+      };
+      links.set(k, row);
+      return { ...row };
+    }
+  };
+
+  return {
+    repo,
+    deleteByUser(userId) {
+      for (const [k, row] of links) {
+        if (row.userId === userId) links.delete(k);
+      }
+    }
+  };
+}
+
+export function createInMemoryFederatedAccountRepository(): FederatedAccountRepository {
+  return createInMemoryFederatedAccountRepositoryInternal().repo;
 }

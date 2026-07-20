@@ -60,6 +60,8 @@ export type {
   AuthUser,
   CsrfConfig,
   EmailConfig,
+  Es256PrivateJwk,
+  Es256PublicJwk,
   JwtConfig,
   LockoutConfig,
   PasswordConfig,

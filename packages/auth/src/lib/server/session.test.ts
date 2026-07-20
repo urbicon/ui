@@ -96,6 +96,61 @@ describe('getSessionFromCookie', () => {
   });
 });
 
+describe('cookieDomain (IdP session sharing across subdomains)', () => {
+  const payload: AuthSession = { userId: '1', email: 'a@b.c', role: 'user', tokenVersion: 0 };
+  const domainConfig: JwtConfig = {
+    secret: 'test-secret',
+    cookieName: 'sso-session',
+    cookieDomain: '.example.com'
+  };
+
+  it('stamps the Domain attribute on set', async () => {
+    const cookies = createMockCookies();
+    await setSessionCookie(cookies as unknown as Cookies, payload, domainConfig);
+    expect(cookies.set).toHaveBeenCalledWith(
+      'sso-session',
+      expect.any(String),
+      expect.objectContaining({ domain: '.example.com', path: '/' })
+    );
+  });
+
+  it('clears with the SAME Domain attribute — an asymmetric delete would leave the session alive', async () => {
+    const cookies = createMockCookies();
+    clearSessionCookie(cookies as unknown as Cookies, domainConfig);
+    expect(cookies.delete).toHaveBeenCalledWith('sso-session', {
+      path: '/',
+      domain: '.example.com'
+    });
+  });
+
+  it('omits the Domain attribute entirely when not configured (host-scoped default)', async () => {
+    const cookies = createMockCookies();
+    await setSessionCookie(cookies as unknown as Cookies, payload, jwtConfig);
+    expect(cookies.set.mock.calls[0][2]).not.toHaveProperty('domain');
+    clearSessionCookie(cookies as unknown as Cookies, jwtConfig);
+    expect(cookies.delete).toHaveBeenCalledWith('test-session', { path: '/' });
+  });
+
+  it('rejects a __Host- cookieName combined with cookieDomain — set and clear alike', async () => {
+    // Browsers drop a __Host- cookie that carries a Domain attribute, so the
+    // combination would silently never establish (or clear) a session.
+    const hostPrefixed: JwtConfig = {
+      secret: 'test-secret',
+      cookieName: '__Host-session',
+      cookieDomain: '.example.com'
+    };
+    const cookies = createMockCookies();
+    await expect(
+      setSessionCookie(cookies as unknown as Cookies, payload, hostPrefixed)
+    ).rejects.toThrow(/__Host-/);
+    expect(() => clearSessionCookie(cookies as unknown as Cookies, hostPrefixed)).toThrow(
+      /__Host-/
+    );
+    expect(cookies.set).not.toHaveBeenCalled();
+    expect(cookies.delete).not.toHaveBeenCalled();
+  });
+});
+
 describe('resolveSessionMeta', () => {
   const event = (userAgent?: string, ip = '203.0.113.7') => ({
     request: new Request(

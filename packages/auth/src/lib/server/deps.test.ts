@@ -2,6 +2,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { AuthConfig } from '../types.js';
 import { createInMemoryRefreshTokenRepository } from './adapters/in-memory.js';
 import { createAuthDeps } from './deps.js';
+import { generateES256KeyPair } from './jwt.js';
 import { createMockInvitationRepository, createMockUserRepository } from './test-utils.js';
 
 function baseDeps(config: Partial<AuthConfig> & { jwt?: AuthConfig['jwt'] } = {}) {
@@ -273,5 +274,30 @@ describe('logger shielding (silent-failure review)', () => {
     expect(logger.warn).toHaveBeenCalled();
     expect(() => deps.logger.error('post-commit failure', new Error('x'))).not.toThrow();
     expect(logger.error).toHaveBeenCalled();
+  });
+});
+
+describe('JWT config validation (ES256 wiring)', () => {
+  it('throws when algorithm ES256 is configured without a signingKey', () => {
+    expect(() => createAuthDeps(baseDeps({ jwt: { secret: 's', algorithm: 'ES256' } }))).toThrow(
+      /signingKey is missing/
+    );
+  });
+
+  it('warns loudly on the logger when a signingKey is set without algorithm ES256', async () => {
+    const { privateKey } = await generateES256KeyPair();
+    const logger = { warn: vi.fn(), error: vi.fn() };
+    createAuthDeps(baseDeps({ logger, jwt: { secret: 's', signingKey: privateKey } }));
+    expect(logger.error).toHaveBeenCalledWith(
+      expect.stringContaining('jwt.algorithm is not "ES256"')
+    );
+  });
+
+  it('accepts a well-formed ES256 config', async () => {
+    const { privateKey } = await generateES256KeyPair();
+    const deps = createAuthDeps(
+      baseDeps({ jwt: { secret: 's', algorithm: 'ES256', signingKey: privateKey } })
+    );
+    expect(deps.config.jwt.algorithm).toBe('ES256');
   });
 });

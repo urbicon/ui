@@ -45,6 +45,7 @@ model User {
   refreshTokens             RefreshToken[]
   twoFactorBackupCodes      TwoFactorBackupCode[]
   invitationsSent           Invitation[]    @relation("InvitedBy")
+  federatedAccounts         FederatedAccount[]
 
   createdAt  DateTime @default(now())
   updatedAt  DateTime @updatedAt
@@ -158,5 +159,27 @@ model TwoFactorBackupCode {
   usedAt    DateTime?
   createdAt DateTime  @default(now())
 
+  @@index([userId])
+}
+
+// Federated identity links (SSO, CONSUMER side): maps an IdP identity —
+// (issuer, subject) — to a LOCAL user row, for `createFederatedAuthHandle`'s
+// `resolveUser`. This model belongs in the *consumer* app's schema (point
+// `userId` at that app's own user model if it doesn't use this User model);
+// an IdP-only deployment doesn't need it. `issuer` is the consumer's stable
+// label for the IdP (canonically its origin, e.g. "https://auth.example.com")
+// — the IdP token carries no `iss` claim, the trust anchor is the one JWKS
+// URL you configured. Unique on (issuer, subject): one federated identity
+// links to exactly one local user. Optional — see
+// `createPrismaFederatedAccountRepository` (throws without this model).
+model FederatedAccount {
+  id        String   @id @default(uuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  issuer    String
+  subject   String
+  createdAt DateTime @default(now())
+
+  @@unique([issuer, subject])
   @@index([userId])
 }

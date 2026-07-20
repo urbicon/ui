@@ -5,6 +5,7 @@ import { sanitizeUser } from './auth.js';
 import { ensureCsrfCookie, validateCsrf } from './csrf.js';
 import { assertReposMatchConfig, shieldLogger } from './deps.js';
 import { authError } from './handlers/errors.js';
+import { assertJwtConfigValid } from './jwt.js';
 import { readRefreshCookie, rotateRefreshToken } from './refresh-token.js';
 import { applySecurityHeaders } from './security-headers.js';
 import { applyRotationOutcome, clearSessionCookie, getSessionFromCookie } from './session.js';
@@ -60,6 +61,10 @@ export function createAuthHandle<R extends string>(options: AuthHandleOptions<R>
   // createAuthDeps, which wires the handler bundle (this wires the hook).
   assertReposMatchConfig(config, repos);
   const logger = shieldLogger(config.logger ?? console);
+  // Fail loud on an unusable JWT config (ES256 without a signing key, …) at
+  // wiring time — mirrored in createAuthDeps; hook and handler bundle are
+  // wired independently, so both entry points must check.
+  assertJwtConfigValid(config.jwt, logger);
   const publicRoutes = options.publicRoutes ?? DEFAULT_PUBLIC_ROUTES;
   const allowUnauthenticatedRemote = options.allowUnauthenticatedRemote ?? false;
   const loginPage = config.routes?.loginPage ?? '/auth/login';

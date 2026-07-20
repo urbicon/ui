@@ -185,7 +185,8 @@ export interface UserRepository<R extends string = string> {
    * Hard-delete the user (GDPR erasure — no soft-delete flag). Implementations
    * MUST also remove rows that would otherwise be orphaned: a relational
    * adapter relies on `onDelete: Cascade` for passkeys/refresh-tokens/
-   * notifications/push-subscriptions/preferences, but MUST additionally delete
+   * notifications/push-subscriptions/preferences/federated-accounts, but MUST
+   * additionally delete
    * the invitations this user *sent* (the `invitedBy` FK has no cascade) —
    * ideally in one transaction with the user delete so the two cannot diverge.
    * A missing user is a safe no-op. Fire `onBeforeAccountDelete` *before* calling
@@ -247,6 +248,49 @@ export interface BackupCodeRepository {
   consumeIfUnused(userId: string, codeHash: string): Promise<boolean>;
   /** Remove every backup code for the user (on disable, or before re-issuing at enable). */
   deleteAll(userId: string): Promise<void>;
+}
+
+/**
+ * A link between a federated identity — an IdP's `(issuer, subject)` pair —
+ * and a LOCAL user id in this app's own store. Lives in the **consumer** app
+ * of a federation setup (`createFederatedAuthHandle`): the consumer's
+ * `resolveUser` looks the link up by the token's `sub` and loads its own user
+ * from it. The IdP session token carries no `iss` claim (a consumer trusts
+ * exactly one JWKS it chose), so `issuer` is the consumer's own stable label
+ * for that IdP — canonically its origin, e.g. `'https://auth.example.com'` —
+ * kept in the key to stay unambiguous if a second IdP ever joins. The
+ * surrogate row id is a persistence detail and deliberately not part of the
+ * contract (same rationale as `Invitation.invitedById`).
+ */
+export interface FederatedAccount {
+  issuer: string;
+  subject: string;
+  /** The LOCAL user id this federated identity maps to. */
+  userId: string;
+  createdAt: Date;
+}
+
+/**
+ * Optional repository backing account links for `createFederatedAuthHandle`'s
+ * `resolveUser`. Nothing in this package's own handlers calls it — it is a
+ * building block for consumer apps (which may equally implement `resolveUser`
+ * without it, e.g. by email allow-list or their own mapping).
+ */
+export interface FederatedAccountRepository {
+  /** Look up the account link for `(issuer, subject)`. `null` when unlinked. */
+  findByFederatedId(issuer: string, subject: string): Promise<FederatedAccount | null>;
+  /**
+   * Link a local user to a federated identity. Idempotent for the identical
+   * `(issuer, subject, userId)` triple (returns the existing link). A pair
+   * already linked to a **different** user MUST throw — silently re-pointing
+   * the link would hand the existing local account to whoever presents the
+   * identity next (account-takeover primitive); an explicit unlink flow is the
+   * consumer's own, deliberate operation.
+   */
+  linkFederatedAccount(
+    userId: string,
+    identity: { issuer: string; subject: string }
+  ): Promise<FederatedAccount>;
 }
 
 export interface InvitationRepository {
@@ -514,4 +558,9 @@ export interface Repositories<R extends string = string> {
   refreshToken?: RefreshTokenRepository;
   /** Optional — required only when `config.twoFactor` (TOTP 2FA) is wired. */
   backupCode?: BackupCodeRepository;
+  /**
+   * Optional — consumer-side federation building block for
+   * `createFederatedAuthHandle`'s `resolveUser`; no package handler calls it.
+   */
+  federatedAccount?: FederatedAccountRepository;
 }

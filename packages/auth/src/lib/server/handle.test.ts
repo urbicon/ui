@@ -701,3 +701,17 @@ describe('createAuthHandle refresh-token wiring', () => {
     expect(() => createAuthHandle({ config, repos: createMockRepos() })).not.toThrow();
   });
 });
+
+describe('createAuthHandle JWT config validation (ES256 wiring)', () => {
+  // The hook is wired independently of createAuthDeps, so it must run the
+  // same fail-loud JWT config check — an ES256 config without its signing key
+  // would otherwise only surface as per-request verification failures.
+  it('throws at wiring time when algorithm ES256 lacks a signingKey', () => {
+    expect(() =>
+      createAuthHandle({
+        config: { ...config, jwt: { secret: 'test-secret', algorithm: 'ES256' } },
+        repos: createMockRepos()
+      })
+    ).toThrow(/signingKey is missing/);
+  });
+});

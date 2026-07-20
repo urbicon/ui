@@ -47,6 +47,7 @@ export interface ConformanceCapabilities {
   pushSubscription?: boolean;
   notificationPreference?: boolean;
   backupCode?: boolean;
+  federatedAccount?: boolean;
 }
 
 export interface ConformanceHarness<R extends string = string> {
@@ -937,7 +938,74 @@ export const conformanceChecks: readonly ConformanceCheck[] = [
     expect(await repo.consumeIfUnused('owner', 'h2'), 'owner codes gone').toBe(false);
     // Another user's codes are untouched.
     expect(await repo.consumeIfUnused('bystander', 'h3'), 'bystander untouched').toBe(true);
-  })
+  }),
+
+  check(
+    'federatedAccount link + findByFederatedId round-trip (and unknown → null)',
+    ['federatedAccount'],
+    async (repos) => {
+      const repo = need(repos.federatedAccount, 'federatedAccount');
+      const ISSUER = 'https://auth.conformance.test';
+
+      expect(await repo.findByFederatedId(ISSUER, 'idp-1'), 'unlinked → null').toBeNull();
+
+      const link = await repo.linkFederatedAccount('local-1', { issuer: ISSUER, subject: 'idp-1' });
+      expect(link).toMatchObject({ issuer: ISSUER, subject: 'idp-1', userId: 'local-1' });
+      expect(link.createdAt).toBeInstanceOf(Date);
+
+      const found = await repo.findByFederatedId(ISSUER, 'idp-1');
+      expect(found?.userId, 'link resolves to the local user').toBe('local-1');
+      // The composite key is (issuer, subject) — the same subject under
+      // another issuer label is a different identity.
+      expect(await repo.findByFederatedId('https://other.test', 'idp-1')).toBeNull();
+    }
+  ),
+
+  check(
+    'federatedAccount.linkFederatedAccount is idempotent for the same user and refuses a re-link to another',
+    ['federatedAccount'],
+    async (repos) => {
+      const repo = need(repos.federatedAccount, 'federatedAccount');
+      const ISSUER = 'https://auth.conformance.test';
+      await repo.linkFederatedAccount('local-1', { issuer: ISSUER, subject: 'idp-1' });
+
+      // Idempotent re-link for the identical triple.
+      const again = await repo.linkFederatedAccount('local-1', {
+        issuer: ISSUER,
+        subject: 'idp-1'
+      });
+      expect(again.userId).toBe('local-1');
+
+      // A different local user must NOT silently take the identity over
+      // (account-takeover primitive) — the contract demands a throw …
+      await expect(
+        repo.linkFederatedAccount('local-2', { issuer: ISSUER, subject: 'idp-1' })
+      ).rejects.toThrow();
+      // … and the original link must survive intact.
+      expect((await repo.findByFederatedId(ISSUER, 'idp-1'))?.userId).toBe('local-1');
+    }
+  ),
+
+  check(
+    'federatedAccount link is single-winner under concurrency',
+    ['federatedAccount'],
+    async (repos) => {
+      const repo = need(repos.federatedAccount, 'federatedAccount');
+      const ISSUER = 'https://auth.conformance.test';
+
+      // Two users racing to claim the same federated identity: exactly one
+      // may hold the link afterwards; the loser throws (tolerated here — the
+      // end state is what the contract pins).
+      await Promise.all([
+        tolerate(() => repo.linkFederatedAccount('local-a', { issuer: ISSUER, subject: 'race' })),
+        tolerate(() => repo.linkFederatedAccount('local-b', { issuer: ISSUER, subject: 'race' }))
+      ]);
+
+      const winner = await repo.findByFederatedId(ISSUER, 'race');
+      expect(winner, 'exactly one link exists').not.toBeNull();
+      expect(['local-a', 'local-b']).toContain(winner?.userId);
+    }
+  )
 ];
 
 // --- the describe wrapper --------------------------------------------------

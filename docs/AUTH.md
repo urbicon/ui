@@ -7,10 +7,11 @@ Zero-dependency authentication, user management, and notification system for Sve
 ```
 @urbicon-ui/auth
 ├── Server (import from '@urbicon-ui/auth/server')
-│   ├── Core: JWT (HMAC-SHA256), PBKDF2 password hashing, CSRF, rate-limiting, security headers
+│   ├── Core: JWT (HS256 default, ES256 opt-in + JWKS), PBKDF2 password hashing, CSRF, rate-limiting, security headers
 │   ├── Handlers: login, logout, register, forgot-password, reset-password, verify-email, me
 │   ├── Handle-Hook: createAuthHandle() — session hydration, route guard, CSRF, headers
 │   ├── Passkeys: WebAuthn registration + authentication (CBOR, ECDSA P-256, RSA verification)
+│   ├── Federation (SSO): createJWKSHandler (IdP side) + createFederatedAuthHandle (consumer side)
 │   ├── Notifications: SSE manager, push service (RFC 8291/8292), event registry, dispatch
 │   ├── Email: Transport interface + Lettermint adapter + console logger
 │   └── Adapters: Repository interfaces + Prisma + in-memory adapters + conformance suite
@@ -36,7 +37,7 @@ All crypto is implemented via Web Crypto API (`crypto.subtle`):
 | Feature          | Implementation                                           | Standards               |
 | ---------------- | -------------------------------------------------------- | ----------------------- |
 | Password hashing | PBKDF2 (600k iterations, SHA-256)                        | —                       |
-| JWT sessions     | HMAC-SHA256, timing-safe comparison                      | —                       |
+| JWT sessions     | HMAC-SHA256 (HS256, default; timing-safe comparison) or ECDSA P-256 (ES256, `createJWKSHandler` serves the JWKS) | RFC 7515, 7517, 7638    |
 | Web Push         | ECDH + HKDF + AES-128-GCM                                | RFC 8291, 8292, 8188    |
 | Passkeys         | CBOR decoder, ECDSA/RSA verification                     | WebAuthn Level 2, FIDO2 |
 | Token hashing    | SHA-256                                                  | —                       |
@@ -194,7 +195,7 @@ live.
 - **Account management (self-service)** — let a signed-in user manage their own account. Five server handlers (`createChangePasswordHandler`, `createChangeEmailHandler`, `createVerifyEmailChangeHandler`, `createUpdateProfileHandler`, `createDeleteAccountHandler`) plus the `<AccountSettings>` component (mount the first four under `/api/auth/account/*`; the verify-email-change route sits behind the link mailed to the new address). Invariants: every mutation except profile is **re-auth gated** (`verifyCurrentPassword`); `change-password` bumps `tokenVersion` + revokes all refresh families, then re-establishes the _current_ device (others log out — a voluntary change isn't a compromise, so the initiating device stays in, unlike `reset-password` which signs out everywhere); `change-email` verifies the **new** address (notice to the old one) and is account-enumeration safe (token+mail decoupled, always `success: true`, collision = no-op); `delete-account` is a hard delete (GDPR erasure) that fires `hooks.onBeforeAccountDelete` with the sanitized user **before** the row is removed (a throw aborts), with the Prisma adapter dropping sent invitations in the same `$transaction`. Config: `rateLimit.{changePassword,changeEmail,deleteAccount}`, hooks `onEmailChangeRequested` / `onEmailChangeFailed` / `onEmailChanged` / `onBeforeAccountDelete` (`onEmailChangeFailed` surfaces the decoupled token/mail failure, like `onPasswordResetFailed`).
 - **Active-session listing** — let a user see and revoke their sessions. **Requires `config.refreshToken` rotation** — a "session" is a refresh-token family, so without rotation there is nothing server-side to list (the endpoint returns `available: false`). One route group — `createSessionsHandlers(deps)` with `list` (GET), `revoke` (POST) and `revokeOthers` (POST) — plus the `<SessionManager>` component. Each session row carries the user-agent (the component parses it to "Browser · OS" with a zero-dep heuristic) and a `createdAt`-based "last active"; the IP is listed only when the consumer opts in via `config.sessions.storeIp` (GDPR, default off). Revokes are **ownership-scoped** — `revokeFamilyForUser` returns 404 for a family that isn't the caller's, so a guessed family id can't sign out another user (IDOR). The session of the current request is flagged `current` (resolved from the request's refresh cookie). Login/register/passkey-verify tag their sessions with the device metadata via `resolveSessionMeta`, carried across rotation.
 - **Two-factor authentication (TOTP)** — an opt-in authenticator-app second factor on top of the password. Set `config.twoFactor` (`encryptionKey` **required** — high-entropy, stable; it encrypts the secret at rest, and rotating it forces re-enrolment) and provide `repos.backupCode` (both shipped adapters include it). One route group — `createTwoFactorHandlers(deps)`: `setup`/`enable`/`disable` (authenticated, mount under `/api/auth/account/2fa/*`) plus `verify` (the **public** second login step, mount under `/api/auth/2fa/verify`); the `login` handler gates automatically on `user.totpEnabled`. UI: `<TwoFactorManager>` for enrol/disable + the two-step `<LoginPage>`. Invariants: the secret is **AES-256-GCM-encrypted at rest** and only ever returned (plaintext Base32 + otpauth URI) by `setup`; the login gate keys on `totpEnabled` **alone** so a missing `config.twoFactor` can never become a bypass (fail-closed) — it issues a signed, short-lived pending-2FA token (cookie `urbicon_2fa`, `__Host-`-prefixed when `cookieSecure`) instead of a session, leaving no session/refresh cookie and deferring `onLoginSuccess` to verify; verify accepts a TOTP **or** a single-use SHA-256 backup code, is **strictly rate-limited** (`createAuthDeps` injects a default), and consumes the pending cookie only on success (a wrong code keeps it for retry within the TTL); `disable` is **password re-auth gated** and clears the secret + every backup code; backup codes are cleared before re-issue at enable so a re-enrol leaves none doubly-redeemable. Passkey logins are **not** gated (a passkey is already a strong factor). The TOTP core (`server/totp.ts`, RFC 6238/4226/4648) is exported for custom flows; the pending-token/cookie/backup-code plumbing (`server/two-factor.ts`) stays internal (consumed only by the login + 2FA handlers). Config knobs: `twoFactor.{issuer,algorithm,digits,period,window,pendingTokenTtl,backupCodeCount}`, `rateLimit.twoFactor`. `algorithm` defaults to **SHA-1** — the only one Google/Microsoft Authenticator reliably support; the secret's high entropy carries the security, not the hash, so SHA-256 stays opt-in. **Note:** the verify rate-limit is per-IP (like login) and TOTP codes are replayable within their window in v1 — both deliberate trade-offs (see [Known Limitations](#known-limitations--security-gaps) / the roadmap's open questions).
-- **Federated identity / SSO** — roadmap (`createFederatedAuthHandle()`).
+- **Federated identity / SSO** — one deployment becomes the identity provider (ES256 tokens + `createJWKSHandler`), sibling apps verify with `createFederatedAuthHandle` and decide access themselves. See [Federated Identity (SSO)](#federated-identity-sso).
 
 ```typescript
 // Server: register a domain event (Stage 3 notifications)
@@ -208,9 +209,76 @@ registry.register({
 });
 ```
 
+## Federated Identity (SSO)
+
+One deployment running this package becomes the **identity provider (IdP)**; any number of sibling apps become **consumers** that trust it. The token boundary is deliberately narrow:
+
+> **Identity ≠ authorization.** The IdP's JWT proves *who* the caller is — nothing else. Each consumer app decides *whether* that identity gets in, and *as what*, in its own `resolveUser`. The IdP token's `role` and `tokenVersion` claims are IdP-application-internal and are structurally withheld from consumers (`FederatedIdentity` carries only `subject`, `email`, `issuedAt`, `expiresAt` — type **and** runtime). Forwarding the IdP's role would be exactly the identity/authorization confusion this design forbids: an "admin" at `auth.example.com` is not an admin of your billing app.
+
+### Architecture (prose diagram)
+
+- **IdP** (`auth.example.com`): switches its session JWT to `jwt.algorithm: 'ES256'` (ECDSA P-256; HS256 stays the default for non-federated deployments) and publishes the **public** half of its signing key as an RFC 7517 JWKS via `createJWKSHandler` — served with `Cache-Control: max-age=300`. Login, logout, registration, refresh rotation, 2FA: all stay exclusively at the IdP. With `jwt.cookieDomain: '.example.com'` the session cookie is shared with every `*.example.com` sibling (the refresh and CSRF cookies deliberately stay host-scoped — consumers verify, they never rotate).
+- **Consumer** (`app.example.com`): mounts `createFederatedAuthHandle` as its `hooks.server.ts` handle. Per request it verifies the shared cookie's ES256 signature against the IdP's JWKS (fetched lazily, cached ~5 min, cooldown-limited refresh on unknown `kid` — no fetch storms; fetch failures fail *closed* with one loud log line, never a 500), then calls `resolveUser(identity, event)`. The result is `locals.user` (same locals contract as `createAuthHandle`); `null` denies. Route guard: `publicRoutes` prefixes pass, `/api/` gets a JSON 401, pages 302 to `loginUrl` (typically the IdP login; used verbatim — no `redirectTo`, since the IdP's `sanitizeRedirect` admits IdP-local paths only), and unauthenticated remote-function calls are default-denied on both transports (same issue-#43 hardening as the IdP handle). The consumer handle **never writes cookies** (the cookie is the IdP's — clearing it would log the user out of every sibling app), runs no CSRF gate of its own (keep SvelteKit's built-in `csrf.checkOrigin`, on by default) and sets no security headers (your app's own policy).
+- **Why ES256 only:** a federated consumer must verify *asymmetrically*. Verifying HS256 requires the signing secret — and a shared signing secret means every "consumer" can also **mint** tokens, i.e. there is no trust boundary left. The consumer pins `alg: ES256` (plus a mandatory `kid`) before touching any key material; the IdP side pins its configured algorithm the same way (no algorithm-confusion downgrade in either direction).
+
+### Setup — IdP side
+
+1. **One-time key setup** (a script, **never** on boot — a fresh key per process would invalidate every live session and desynchronize consumers):
+   ```typescript
+   import { generateES256KeyPair } from '@urbicon-ui/auth/server';
+   const { privateKey, publicKey, kid } = await generateES256KeyPair();
+   // privateKey → secret manager (it contains the private scalar `d`);
+   // kid is the RFC 7638 thumbprint, stamped into both JWKs.
+   ```
+2. Config: `jwt: { algorithm: 'ES256', signingKey: privateKey, secret, cookieDomain: '.example.com' }`. `jwt.secret` stays required — package-internal short-lived tokens (pending-2FA handle etc.) deliberately remain HMAC. Misconfiguration (ES256 without a usable key, malformed `previousPublicKeys`) throws at wiring time in `createAuthDeps`/`createAuthHandle`.
+3. Mount the JWKS route, e.g. `src/routes/.well-known/jwks.json/+server.ts`:
+   ```typescript
+   import { createJWKSHandler } from '@urbicon-ui/auth/server';
+   export const { GET } = createJWKSHandler({ jwt: config.jwt });
+   ```
+   Add the route to `publicRoutes` if it falls outside your public prefixes. Only public JWK members can reach the response (allow-list projection; a `d` in the config is warned about and never served).
+
+### Setup — consumer side
+
+```typescript
+// hooks.server.ts of app.example.com
+import { createFederatedAuthHandle } from '@urbicon-ui/auth/server';
+import { createPrismaFederatedAccountRepository } from '@urbicon-ui/auth/server/adapters/prisma';
+
+const federated = createPrismaFederatedAccountRepository(prisma); // throws if the model is missing
+
+export const handle = createFederatedAuthHandle({
+  jwksUrl: 'https://auth.example.com/.well-known/jwks.json', // https enforced (http: localhost only)
+  cookieName: 'session', // must match the IdP's jwt.cookieName
+  loginUrl: 'https://auth.example.com/auth/login',
+  publicRoutes: ['/pricing'],
+  resolveUser: async (identity) => {
+    // THE authorization decision of this app — identity.subject is the stable key.
+    const link = await federated.findByFederatedId('https://auth.example.com', identity.subject);
+    if (!link) return null; // unknown identity → no access (fail-closed)
+    return db.user.findUnique({ where: { id: link.userId } }); // roles are THIS app's columns
+  }
+});
+```
+
+The `FederatedAccount` link table (`findByFederatedId` / `linkFederatedAccount`, unique on `(issuer, subject)`) ships as an optional repo section in both adapters — see the [Prisma Schema](#prisma-schema); the `issuer` string is *your* stable label for the IdP (canonically its origin — the token carries no `iss` claim, the trust anchor is the one `jwksUrl` you configured). Linking is idempotent for the same user and **refuses** re-linking a pair to a different user (account-takeover primitive); onboarding flows (invite-based, email-match against `identity.email`, admin-approved) are the consumer's own policy in `resolveUser`. Consumers without a database can resolve users without any repo — `resolveUser` is just a function.
+
+### Key-rotation runbook (`previousPublicKeys`)
+
+1. Generate the next pair: `const next = await generateES256KeyPair()`.
+2. On the IdP, deploy in ONE step: `signingKey: next.privateKey`, and move the **public** JWK of the retiring key into `jwt.previousPublicKeys` (it already carries its `kid`; for a hand-built entry derive it with `computeJwkThumbprint`). The JWKS now serves both keys; old sessions keep verifying, new tokens carry the new `kid`.
+3. Consumers converge automatically: an unknown `kid` triggers a (cooldown-limited) JWKS refresh, so the new key propagates within about a minute — no consumer deploy.
+4. After the old sessions have expired (`jwt.expiresIn`, default 7d), remove the retired entry from `previousPublicKeys`. Removal is the kill switch: tokens signed by a removed key fail verification everywhere.
+
+### Limitations (deliberate v1 scope)
+
+- **Revocation blindness:** consumers cannot see the IdP's `tokenVersion` bumps ("log out everywhere"), so an IdP-revoked session stays verifiable at consumers until `exp`. Bound the window with short-lived IdP access tokens (`refreshToken` rotation keeps UX intact) and/or the consumer-side `maxTokenAge` option; emergency global kill = rotate the signing key *without* keeping the old public key.
+- **Same trust domain:** cookie-based federation needs a shared parent domain (`cookieDomain`). Cross-domain SSO (redirect-based token handoff, OIDC) is out of scope — as is acting as an OAuth/OIDC provider for third parties (see the auth package non-goals).
+- **Logout is IdP-global:** the consumer never clears the shared cookie; "sign out of one app only" does not exist in this model (deny via `resolveUser` instead).
+
 ## Prisma Schema
 
-See `packages/auth/prisma/auth-schema.prisma` for the reference schema. Models: User, Invitation, PushSubscription, Notification, NotificationType, NotificationPreference, Passkey, TwoFactorBackupCode. The User model carries the 2FA columns `totpSecret` (AES-256-GCM-encrypted), `totpEnabled`, `totpConfirmedAt`. **Recommended:** add `onDelete: Cascade` to the `invitationsSent` relation — DB cascade already covers passkeys/tokens/notifications/push/prefs on user delete; only sent `Invitation` rows lack it (the delete-account handler otherwise removes them by hand in its `$transaction`).
+See `packages/auth/prisma/auth-schema.prisma` for the reference schema. Models: User, Invitation, PushSubscription, Notification, NotificationType, NotificationPreference, Passkey, TwoFactorBackupCode, FederatedAccount (consumer-side federation link, optional). The User model carries the 2FA columns `totpSecret` (AES-256-GCM-encrypted), `totpEnabled`, `totpConfirmedAt`. **Recommended:** add `onDelete: Cascade` to the `invitationsSent` relation — DB cascade already covers passkeys/tokens/notifications/push/prefs on user delete; only sent `Invitation` rows lack it (the delete-account handler otherwise removes them by hand in its `$transaction`).
 
 ## Adapter Authoring Guide
 

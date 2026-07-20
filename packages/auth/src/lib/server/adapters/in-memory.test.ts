@@ -27,6 +27,7 @@ describe('createInMemoryRepos', () => {
     expect(repos.notificationPreference).toBeDefined();
     expect(repos.passkey).toBeDefined();
     expect(repos.refreshToken).toBeDefined();
+    expect(repos.federatedAccount).toBeDefined();
   });
 
   // The invitation half of the cascade is pinned adapter-agnostically by the
@@ -61,6 +62,10 @@ describe('createInMemoryRepos', () => {
       family: 'fam',
       expiresAt: new Date(Date.now() + 60_000)
     });
+    await repos.federatedAccount!.linkFederatedAccount(u.id, {
+      issuer: 'https://idp.test',
+      subject: 'idp-cascade'
+    });
 
     await repos.user.delete(u.id);
 
@@ -80,6 +85,10 @@ describe('createInMemoryRepos', () => {
       (await repos.refreshToken!.findByHash('rt-cascade'))?.revokedAt,
       'refresh tokens revoked'
     ).toBeInstanceOf(Date);
+    expect(
+      await repos.federatedAccount!.findByFederatedId('https://idp.test', 'idp-cascade'),
+      'federated links gone'
+    ).toBeNull();
   });
 });
 

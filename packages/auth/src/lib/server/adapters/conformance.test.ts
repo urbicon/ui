@@ -11,7 +11,11 @@ import {
   describeRepositoryConformance
 } from './conformance.js';
 import { createInMemoryRepos } from './in-memory.js';
-import { createPrismaRepos, type PrismaLike } from './prisma.js';
+import {
+  createPrismaFederatedAccountRepository,
+  createPrismaRepos,
+  type PrismaLike
+} from './prisma.js';
 import type { FullAuthUser, UserRepository } from './types.js';
 
 const ALL_CAPS = {
@@ -20,7 +24,8 @@ const ALL_CAPS = {
   notification: true,
   pushSubscription: true,
   notificationPreference: true,
-  backupCode: true
+  backupCode: true,
+  federatedAccount: true
 } as const;
 
 // === 1. The shipped in-memory adapter must pass every check ================
@@ -54,7 +59,11 @@ interface FakeTable {
   upsert(args: any): Promise<any>;
 }
 
-function makeTable(opts: { defaults?: () => Record<string, any>; uniques?: string[] }): FakeTable {
+function makeTable(opts: {
+  defaults?: () => Record<string, any>;
+  /** Plain entries are single-column uniques; array entries are composite (`@@unique([a, b])`). */
+  uniques?: (string | string[])[];
+}): FakeTable {
   const rows: Record<string, any>[] = [];
   const uniques = opts.uniques ?? ['id'];
 
@@ -73,10 +82,25 @@ function makeTable(opts: { defaults?: () => Record<string, any>; uniques?: strin
     return eq(cell, cond);
   };
 
+  const OPERATOR_KEYS = ['lt', 'lte', 'gt', 'gte', 'not'];
+
   const matchWhere = (row: Record<string, any>, where: Record<string, any>): boolean => {
     for (const [key, val] of Object.entries(where)) {
       if (key === 'OR') {
         if (!(val as any[]).some((cond) => matchWhere(row, cond))) return false;
+      } else if (
+        !(key in row) &&
+        val !== null &&
+        typeof val === 'object' &&
+        !(val instanceof Date) &&
+        !OPERATOR_KEYS.some((op) => op in val)
+      ) {
+        // Prisma's compound-unique where syntax (`{ issuer_subject: { issuer,
+        // subject } }`): the synthetic key is no row column, so match its
+        // sub-conditions against the row instead. Without this branch the
+        // object would fall through matchCond's operator scan and match
+        // EVERY row (no operator keys → vacuous true).
+        if (!Object.entries(val).every(([k, v]) => matchCond(row[k], v))) return false;
       } else if (!matchCond(row[key], val)) {
         return false;
       }
@@ -104,6 +128,15 @@ function makeTable(opts: { defaults?: () => Record<string, any>; uniques?: strin
 
   const enforceUnique = (candidate: Record<string, any>) => {
     for (const field of uniques) {
+      if (Array.isArray(field)) {
+        // Composite unique (`@@unique([a, b])`) — enforced on create; no
+        // shipped adapter rewrites composite-key columns via update.
+        if (field.some((f) => candidate[f] == null)) continue;
+        if (rows.some((r) => field.every((f) => eq(r[f], candidate[f])))) {
+          throw uniqueError(field.join('_'));
+        }
+        continue;
+      }
       if (candidate[field] == null) continue;
       if (rows.some((r) => eq(r[field], candidate[field]))) {
         throw uniqueError(field);
@@ -162,6 +195,7 @@ function makeTable(opts: { defaults?: () => Record<string, any>; uniques?: strin
       // non-null scalar writes can collide — null clears and {increment} are
       // exempt. (This is what lets the email-change collision check have teeth.)
       for (const field of uniques) {
+        if (Array.isArray(field)) continue; // composite uniques: create-only (see enforceUnique)
         const val = args.data?.[field];
         if (val == null || (typeof val === 'object' && !(val instanceof Date))) continue;
         if (rows.some((r) => !matched.includes(r) && eq(r[field], val))) {
@@ -266,6 +300,10 @@ function createFakePrisma(): PrismaLike {
     twoFactorBackupCode: makeTable({
       defaults: () => ({ usedAt: null, createdAt: new Date() })
     }),
+    federatedAccount: makeTable({
+      uniques: ['id', ['issuer', 'subject']],
+      defaults: () => ({ createdAt: new Date() })
+    }),
     // The fake's table methods execute eagerly, so the array operations have
     // already run by the time $transaction awaits them — Promise.all is enough
     // to model the sequential array form. True rollback is a real-DB guarantee
@@ -279,6 +317,26 @@ describeRepositoryConformance('prisma (in-memory fake)', {
   role: 'USER',
   capabilities: ALL_CAPS,
   setup: () => createPrismaRepos(createFakePrisma())
+});
+
+// === 2a. Prisma-specific: federated-account wiring ==========================
+//
+// The federated repo has NO downstream wiring check (nothing in the package's
+// own handlers calls it — it exists for a consumer app's `resolveUser`), so
+// the explicit factory is the one place a missing Prisma model can fail loud.
+describe('prisma adapter — federated-account wiring', () => {
+  it('createPrismaFederatedAccountRepository fails loud when the model is missing', () => {
+    const withoutModel: PrismaLike = { ...createFakePrisma(), federatedAccount: undefined };
+    expect(() => createPrismaFederatedAccountRepository(withoutModel)).toThrow(
+      /federatedAccount.*auth-schema\.prisma/s
+    );
+  });
+
+  it('createPrismaRepos treats the model as optional (bundle wiring, no throw)', () => {
+    const withoutModel: PrismaLike = { ...createFakePrisma(), federatedAccount: undefined };
+    expect(createPrismaRepos(withoutModel).federatedAccount).toBeUndefined();
+    expect(createPrismaRepos(createFakePrisma()).federatedAccount).toBeDefined();
+  });
 });
 
 // (The sent-invitations delete cascade is now pinned adapter-agnostically by
