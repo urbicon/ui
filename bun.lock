@@ -58,7 +58,7 @@
     },
     "packages/auth": {
       "name": "@urbicon-ui/auth",
-      "version": "6.26.0",
+      "version": "6.26.1",
       "devDependencies": {
         "@sveltejs/kit": "catalog:",
         "@sveltejs/package": "catalog:",
@@ -83,7 +83,7 @@
     },
     "packages/blocks": {
       "name": "@urbicon-ui/blocks",
-      "version": "6.26.0",
+      "version": "6.26.1",
       "devDependencies": {
         "@sveltejs/kit": "catalog:",
         "@sveltejs/package": "catalog:",
@@ -113,7 +113,7 @@
     },
     "packages/design": {
       "name": "@urbicon-ui/design",
-      "version": "6.26.0",
+      "version": "6.26.1",
       "bin": {
         "urbicon": "./dist/cli.js",
       },
@@ -130,7 +130,7 @@
     },
     "packages/design-content": {
       "name": "@urbicon-ui/design-content",
-      "version": "6.26.0",
+      "version": "6.26.1",
       "devDependencies": {
         "@types/node": "catalog:",
         "typescript": "catalog:",
@@ -139,7 +139,7 @@
     },
     "packages/design-engine": {
       "name": "@urbicon-ui/design-engine",
-      "version": "6.26.0",
+      "version": "6.26.1",
       "devDependencies": {
         "@types/node": "catalog:",
         "typescript": "catalog:",
@@ -148,7 +148,7 @@
     },
     "packages/docs": {
       "name": "@urbicon-ui/docs",
-      "version": "6.26.0",
+      "version": "6.26.1",
       "devDependencies": {
         "@sveltejs/kit": "catalog:",
         "@sveltejs/package": "catalog:",
@@ -184,7 +184,7 @@
     },
     "packages/docs-gen": {
       "name": "@urbicon-ui/docs-gen",
-      "version": "6.26.0",
+      "version": "6.26.1",
       "bin": {
         "docs-gen": "./dist/cli/CLI.js",
       },
@@ -202,7 +202,7 @@
     },
     "packages/i18n": {
       "name": "@urbicon-ui/i18n",
-      "version": "6.26.0",
+      "version": "6.26.1",
       "devDependencies": {
         "@sveltejs/kit": "catalog:",
         "@sveltejs/package": "catalog:",
@@ -230,7 +230,7 @@
     },
     "packages/mcp-server": {
       "name": "@urbicon-ui/mcp-server",
-      "version": "6.26.0",
+      "version": "6.26.1",
       "dependencies": {
         "@modelcontextprotocol/sdk": "^1.29.0",
         "@urbicon-ui/design-content": "workspace:*",
@@ -245,14 +245,14 @@
     },
     "packages/shared-types": {
       "name": "@urbicon-ui/shared-types",
-      "version": "6.26.0",
+      "version": "6.26.1",
       "devDependencies": {
         "typescript": "catalog:",
       },
     },
     "packages/sveltekit-utils": {
       "name": "@urbicon-ui/sveltekit-utils",
-      "version": "6.26.0",
+      "version": "6.26.1",
       "devDependencies": {
         "@sveltejs/kit": "catalog:",
         "@sveltejs/package": "catalog:",
@@ -273,7 +273,7 @@
     },
     "packages/table": {
       "name": "@urbicon-ui/table",
-      "version": "6.26.0",
+      "version": "6.26.1",
       "devDependencies": {
         "@sveltejs/kit": "catalog:",
         "@sveltejs/package": "catalog:",
@@ -319,7 +319,7 @@
     "@biomejs/biome": "^2.5.3",
     "@commitlint/cli": "^21.2.1",
     "@sveltejs/adapter-static": "^3.0.10",
-    "@sveltejs/kit": "^2.69.2",
+    "@sveltejs/kit": "^2.70.1",
     "@sveltejs/package": "^2.5.8",
     "@sveltejs/vite-plugin-svelte": "^7.0.0",
     "@tailwindcss/vite": "^4.3.1",
@@ -584,7 +584,7 @@
 
     "@sveltejs/adapter-static": ["@sveltejs/adapter-static@3.0.10", "", { "peerDependencies": { "@sveltejs/kit": "^2.0.0" } }, "sha512-7D9lYFWJmB7zxZyTE/qxjksvMqzMuYrrsyh1f4AlZqeZeACPRySjbC3aFiY55wb1tWUaKOQG9PVbm74JcN2Iew=="],
 
-    "@sveltejs/kit": ["@sveltejs/kit@2.69.2", "", { "dependencies": { "@standard-schema/spec": "^1.0.0", "@sveltejs/acorn-typescript": "^1.0.9", "@types/cookie": "^0.6.0", "acorn": "^8.16.0", "cookie": "^0.6.0", "devalue": "^5.8.1", "esm-env": "^1.2.2", "kleur": "^4.1.5", "magic-string": "^0.30.5", "mrmime": "^2.0.0", "set-cookie-parser": "^3.0.0", "sirv": "^3.0.0" }, "peerDependencies": { "@opentelemetry/api": "^1.0.0", "@sveltejs/vite-plugin-svelte": "^3.0.0 || ^4.0.0-next.1 || ^5.0.0 || ^6.0.0-next.0 || ^7.0.0", "svelte": "^4.0.0 || ^5.0.0-next.0", "typescript": "^5.3.3 || ^6.0.0", "vite": "^5.0.3 || ^6.0.0 || ^7.0.0-beta.0 || ^8.0.0" }, "optionalPeers": ["@opentelemetry/api", "typescript"], "bin": { "svelte-kit": "svelte-kit.js" } }, "sha512-CMdPDbYjRwRu4KXTxBVMuOpFPCt1i/v0ANennotec+K9Cmb2e3w2yYzJiC6Vh/WSvm9Khi5sJMZa0rJPqfHlDw=="],
+    "@sveltejs/kit": ["@sveltejs/kit@2.70.1", "", { "dependencies": { "@standard-schema/spec": "^1.0.0", "@sveltejs/acorn-typescript": "^1.0.9", "@types/cookie": "^0.6.0", "acorn": "^8.16.0", "cookie": "^0.6.0", "devalue": "^5.8.1", "esm-env": "^1.2.2", "kleur": "^4.1.5", "magic-string": "^0.30.5", "mrmime": "^2.0.0", "set-cookie-parser": "^3.0.0", "sirv": "^3.0.0" }, "peerDependencies": { "@opentelemetry/api": "^1.0.0", "@sveltejs/vite-plugin-svelte": "^3.0.0 || ^4.0.0-next.1 || ^5.0.0 || ^6.0.0-next.0 || ^7.0.0", "svelte": "^4.0.0 || ^5.0.0-next.0", "typescript": "^5.3.3 || ^6.0.0", "vite": "^5.0.3 || ^6.0.0 || ^7.0.0-beta.0 || ^8.0.0" }, "optionalPeers": ["@opentelemetry/api", "typescript"], "bin": { "svelte-kit": "svelte-kit.js" } }, "sha512-nY9SPHGOZro3doud9vZXDBwl9tCZIouuJztjgSHs6PAIrv9M/z5O7eOhPV5xU7CgVHA976Jwu3BA1hIFvXztkA=="],
 
     "@sveltejs/load-config": ["@sveltejs/load-config@0.2.0", "", {}, "sha512-1LgZ/qUqSoq+QorD83lk2hka79Px0wXNW2q5V1nZlxGhQgw1jrsIbVz5YiCeucVLo4XvFLjXukUaQjIiqowkcg=="],
 

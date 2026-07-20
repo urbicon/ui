@@ -91,6 +91,22 @@ internal TODO instead. Sections are ordered roughly by urgency.
 
 ## Component behaviour
 
+### `focusFirstElement` steals focus from a consumer-focused `tabindex="-1"` element
+
+- **Where:** `packages/blocks/src/lib/utils/overlay.ts` (~`:104`, the
+  panel-focus fallback added in `c788469`).
+- **What:** The fallback focuses the panel whenever `getFocusableElements`
+  returns empty — including when the consumer has already focused a
+  `tabindex="-1"` element inside the container (the focus-the-heading a11y
+  pattern): the selector excludes `tabindex="-1"`, the list comes back empty,
+  and the panel steals that focus a tick later. `trapFocus` guards exactly
+  this case with `container.contains(document.activeElement)` (`:33`);
+  `focusFirstElement` doesn't — the two are inconsistent.
+- **Why deferred:** Niche pattern, no report from real usage; wants the
+  contains-guard plus a jsdom test mirroring the Dialog fallback suite.
+  Flagged in the `c788469` review rather than drive-by-fixed.
+- **Found:** 2026-07-20, v6.26.0 release audit.
+
 ### Three surfaces ingest their content in `$effect`, so the prerendered HTML carries placeholders — 91 API pages assert "No matching properties"
 
 - **Where:** `packages/table/src/lib/core/TableProvider.svelte:87-97` (`setColumns`)
@@ -480,6 +496,19 @@ internal TODO instead. Sections are ordered roughly by urgency.
 
 ## Accessibility
 
+### Badge docs demo hardcodes `text-white` on `bg-warning`
+
+- **Where:** `apps/docs/src/routes/blocks/primitives/badge/Docs.svelte:79`
+  (avatar-circle demo, initials "AB").
+- **What:** White on the light amber fill measures under AA in both modes —
+  the only label-on-a-warning-fill left in the repo after `00d046d` gave
+  filled warning surfaces `text-on-warning`, and a hardcoded colour besides.
+  `text-on-warning` is the drop-in fix if the demo is meant to be on-system.
+- **Why deferred:** Rides with the off-system-demo restyle decision recorded
+  in the `text-tertiary` entry below (restyle vs. exempt); if that call lands
+  on "restyle", this is a one-liner in the same sweep.
+- **Found:** 2026-07-20, v6.26.0 release audit (contrast package).
+
 ### `text-tertiary` on subtle surfaces measures 4.18:1 — and the off-system demos trip axe
 
 - **Where:** `packages/blocks/src/lib/style/semantic.css:54`
@@ -732,6 +761,25 @@ internal TODO instead. Sections are ordered roughly by urgency.
 
 ## Auth — accepted trade-offs
 
+### `validateCsrf` hard-rejects Origin-less browsers — `Sec-Fetch-Site` is the emerging upstream answer
+
+- **Where:** `packages/auth/src/lib/server/csrf.ts` (Layer 1,
+  `if (!origin) return false`).
+- **What:** Privacy-hardened browsers (Tor Browser, Firefox in
+  resist-fingerprinting mode) send **no `Origin` header** on a top-level form
+  POST, so Layer 1 fail-closed-blocks their legitimate logins/mutations — the
+  same edge case that drove sveltejs/kit#15992. Upstream is converging on
+  checking `Sec-Fetch-Site: same-origin` instead (Rich Harris, 2026-06-18):
+  those browsers do send it, it is a forbidden header name (not settable from
+  JS), and a `Sec-Fetch-Site`-first check with Origin as legacy fallback
+  would admit them without weakening the gate.
+- **Why deferred:** Changes the semantics of the package's primary CSRF gate —
+  wants its own review + tests (incl. the absent-header analysis: non-browser
+  callers send neither header, and a request without ambient browser
+  credentials is structurally not CSRF-able), and ideally waits to mirror
+  whatever Kit ships for #15992 so consumer expectations stay aligned.
+- **Found:** 2026-07-20, follow-up research on sveltejs/kit#15992 / #16313.
+
 ### `passkey.updateCounter`: delete-race is misclassified as `counter_regression`
 
 - **Where:** `packages/auth` — `passkey/handlers.ts:370` (caller of
@@ -880,6 +928,22 @@ internal TODO instead. Sections are ordered roughly by urgency.
   (docs-gen cleanup agent).
 
 ## Testing / CI gates
+
+### Contrast pairing drift-guard scans only 4 of 9 wired variant files
+
+- **Where:** `packages/blocks/src/lib/style/contrast.test.ts` (~`:396`,
+  `foreground pairing matches the component variants`).
+- **What:** The guard that pins the `text-on-<intent>` wiring against the real
+  variant files scans Button, Badge, Alert and Tooltip — but Checkbox,
+  Stepper, RadioGroup, CompositionBar and table-states were wired in
+  `00d046d` too and are unscanned. A later revert there would not break the
+  suite: the 252-combination token tests measure tokens, not per-component
+  wiring.
+- **Why deferred:** Mechanical extension, but wants a call on the scan's shape
+  first — hardcoded file list vs. a glob over every variants file carrying a
+  filled `bg-<intent>` — so the next intent/component doesn't silently
+  re-open the gap.
+- **Found:** 2026-07-20, v6.26.0 release audit (contrast package).
 
 ### `apps/docs` has no translation-parity gate — a key missing from `de.ts` is invisible to types and tests
 

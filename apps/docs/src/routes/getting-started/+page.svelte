@@ -114,7 +114,9 @@ export default {
      prerequisites are one mono line here instead of a section of cards. -->
 <div data-room-hero>
   <div class="mx-auto max-w-6xl px-4 sm:px-6 lg:px-8">
-    <p class="meta-marker">Getting started — install · tokens · component · theme</p>
+    <p class="meta-marker text-text-tertiary text-xs font-medium tracking-wider uppercase">
+      Getting started — install · tokens · component · theme
+    </p>
     <h1 class="text-text-primary mt-4 text-4xl font-bold tracking-tight sm:text-5xl">
       Getting started
     </h1>
@@ -341,7 +343,7 @@ export default {
 
   <!-- Next steps — three-link footer instead of a card grid -->
   <footer class="border-border-subtle mt-16 border-t pt-8">
-    <p class="meta-marker">Next</p>
+    <p class="meta-marker text-text-tertiary text-xs font-medium tracking-wider uppercase">Next</p>
     <div class="mt-4 flex flex-wrap gap-x-10 gap-y-3">
       <a
         href={resolve('/blocks')}
