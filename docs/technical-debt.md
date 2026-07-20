@@ -789,6 +789,25 @@ internal TODO instead. Sections are ordered roughly by urgency.
 - **Found:** 2026-07-20, third independent adversarial SSO review (v6.26.0
   release audit).
 
+### `validateCsrf` hard-rejects Origin-less browsers — `Sec-Fetch-Site` is the emerging upstream answer
+
+- **Where:** `packages/auth/src/lib/server/csrf.ts` (Layer 1,
+  `if (!origin) return false`).
+- **What:** Privacy-hardened browsers (Tor Browser, Firefox in
+  resist-fingerprinting mode) send **no `Origin` header** on a top-level form
+  POST, so Layer 1 fail-closed-blocks their legitimate logins/mutations — the
+  same edge case that drove sveltejs/kit#15992. Upstream is converging on
+  checking `Sec-Fetch-Site: same-origin` instead (Rich Harris, 2026-06-18):
+  those browsers do send it, it is a forbidden header name (not settable from
+  JS), and a `Sec-Fetch-Site`-first check with Origin as legacy fallback
+  would admit them without weakening the gate.
+- **Why deferred:** Changes the semantics of the package's primary CSRF gate —
+  wants its own review + tests (incl. the absent-header analysis: non-browser
+  callers send neither header, and a request without ambient browser
+  credentials is structurally not CSRF-able), and ideally waits to mirror
+  whatever Kit ships for #15992 so consumer expectations stay aligned.
+- **Found:** 2026-07-20, follow-up research on sveltejs/kit#15992 / #16313.
+
 ### `passkey.updateCounter`: delete-race is misclassified as `counter_regression`
 
 - **Where:** `packages/auth` — `passkey/handlers.ts:370` (caller of
