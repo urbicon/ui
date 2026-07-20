@@ -357,7 +357,7 @@
   <Badge
     intent={value === 'boarding' ? 'primary' : 'neutral'}
     variant={value === 'on time' ? 'outlined' : 'soft'}
-    class="font-mono text-[10px] whitespace-nowrap">{String(value)}</Badge
+    class="font-mono text-3xs whitespace-nowrap">{String(value)}</Badge
   >
 {/snippet}
 
@@ -366,7 +366,7 @@
 {#snippet sourceFlip(key: SpecimenKey)}
   <button
     type="button"
-    class="absolute -top-3 -right-3 flex h-7 items-center border px-2 font-mono text-[11px] font-bold transition-opacity hover:opacity-85 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-current"
+    class="absolute -top-3 -right-3 flex h-7 items-center border px-2 font-mono text-2xs font-bold transition-opacity hover:opacity-85 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-current"
     style="background: {INK}; color: {CREAM}; border-color: rgb(246 243 236 / 0.25)"
     aria-pressed={sourceShown[key]}
     aria-label={sourceShown[key] ? 'Show the rendered result' : 'Show the source code'}
@@ -463,7 +463,7 @@
           <!-- The eyebrow names the what + the stack; the H1 keeps the claim
                deadpan (no "0 dependencies" here — that would tell the joke
                before the punchline). -->
-          <p class="font-mono text-[11px] tracking-[0.14em] text-balance uppercase opacity-70">
+          <p class="font-mono text-2xs tracking-[0.14em] text-balance uppercase opacity-70">
             The component set for Svelte 5 + Tailwind 4
           </p>
           <h1 class="mt-4 text-[clamp(2.75rem,6.5vw,5.25rem)]">Depends on nothing.</h1>
@@ -480,7 +480,7 @@
           ]}
           style="background: {INK}; color: {CREAM}"
         >
-          <p class="font-mono text-[11px] tracking-[0.14em] uppercase opacity-60">The set</p>
+          <p class="font-mono text-2xs tracking-[0.14em] uppercase opacity-60">The set</p>
           <ul class="mt-1.5">
             {#each PANEL_ITEMS as item, i (item.href)}
               <li style={i > 0 ? 'border-top: 1px solid rgb(246 243 236 / 0.18)' : ''}>
@@ -619,7 +619,7 @@
                         <span class="text-[12px] font-semibold text-text-secondary"
                           >Fares to {destinationLabel}</span
                         >
-                        <span class="font-mono text-[11px] text-text-tertiary">12-week trend</span>
+                        <span class="font-mono text-2xs text-text-tertiary">12-week trend</span>
                       </div>
                       <!-- `width` is only the viewBox coordinate space: the svg slot
                            gets CSS w-full so the curve scales to the card (the bare
@@ -678,7 +678,7 @@
                     style="--room-accent: {room.field.bg}; --room-accent-fg: {room.field.fg}"
                   >
                     <div
-                      class="mb-2 flex items-center justify-between px-1 font-mono text-[11px] tracking-[0.04em] text-text-secondary"
+                      class="mb-2 flex items-center justify-between px-1 font-mono text-2xs tracking-[0.04em] text-text-secondary"
                     >
                       <span>departures.board — {DEPARTURE_COUNT} flights today</span>
                       <span class="inline-flex items-center gap-1.5">
@@ -777,7 +777,7 @@
                           >or email a magic link</a
                         >
                       {/if}
-                      <Badge intent="neutral" variant="outlined" class="font-mono text-[10px]"
+                      <Badge intent="neutral" variant="outlined" class="font-mono text-3xs"
                         >WebAuthn</Badge
                       >
                     </div>

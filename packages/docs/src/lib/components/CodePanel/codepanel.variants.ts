@@ -39,8 +39,8 @@ export const codePanelVariants = tv({
     size: {
       sm: {
         toolbar: 'px-3 py-1.5',
-        codeToggle: 'text-[11px]',
-        copyButton: 'text-[11px]',
+        codeToggle: 'text-2xs',
+        copyButton: 'text-2xs',
         codeChevron: 'size-3',
         loadingContainer: 'p-6'
       },

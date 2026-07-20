@@ -187,7 +187,7 @@ export const TABLE_INDICATORS = {
   badge: {
     base: 'inline-flex items-center justify-center font-semibold rounded-full',
     size: {
-      xs: 'min-w-4 h-4 px-1 text-[10px]',
+      xs: 'min-w-4 h-4 px-1 text-3xs',
       sm: 'min-w-5 h-5 px-1.5 text-xs',
       md: 'min-w-6 h-6 px-2 text-sm',
       lg: 'min-w-7 h-7 px-2.5 text-base'

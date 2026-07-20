@@ -204,11 +204,11 @@
         <CompositionBar items={heatingItems} formatValue={formatEur} size="lg">
           {#snippet tooltip(item, percent)}
             <span class="block font-medium">{item.label}</span>
-            <span class="text-text-tertiary block text-[11px] tabular-nums">
+            <span class="text-text-tertiary block text-2xs tabular-nums">
               {formatEur(item.value)} · {Math.round(percent)} %
             </span>
             {#if item.intent === 'warning'}
-              <span class="text-warning mt-1 block text-[10px] tracking-wide uppercase">
+              <span class="text-warning mt-1 block text-3xs tracking-wide uppercase">
                 statutory levy
               </span>
             {/if}

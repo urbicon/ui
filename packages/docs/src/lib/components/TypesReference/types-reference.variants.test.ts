@@ -78,7 +78,7 @@ describe('typesReferenceVariants', () => {
       expect(styles.toolbar()).toContain('p-2');
       expect(styles.codeBlock()).toContain('p-2');
       expect(styles.codeBlock()).toContain('text-xs');
-      expect(styles.literalBadge()).toContain('text-[10px]');
+      expect(styles.literalBadge()).toContain('text-3xs');
     });
 
     it('md has default layout', () => {
@@ -88,7 +88,7 @@ describe('typesReferenceVariants', () => {
       expect(styles.toolbar()).toContain('p-3');
       expect(styles.codeBlock()).toContain('p-3');
       expect(styles.codeBlock()).toContain('text-[13px]');
-      expect(styles.literalBadge()).toContain('text-[11px]');
+      expect(styles.literalBadge()).toContain('text-2xs');
     });
 
     it('lg has spacious layout', () => {

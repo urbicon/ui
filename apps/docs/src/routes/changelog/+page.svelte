@@ -107,7 +107,7 @@
                       variant="soft"
                       intent={groupIntents[group.name] ?? 'neutral'}
                       size="sm"
-                      class="mr-1 font-mono text-[11px]">{item.scope}</Badge
+                      class="mr-1 font-mono text-2xs">{item.scope}</Badge
                     >
                   {/if}
                   {item.message}

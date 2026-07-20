@@ -124,7 +124,7 @@
                       <span class={slot('literalBadge')}>{val}</span>
                     {/each}
                     {#if values.length > 12}
-                      <span class="text-text-tertiary text-[11px]">
+                      <span class="text-text-tertiary text-2xs">
                         +{values.length - 12} more
                       </span>
                     {/if}

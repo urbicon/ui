@@ -184,7 +184,7 @@
             {#if kind === 'node'}
               {@const node = datum as { id: string; value: number }}
               <span class="block font-medium">{node.id}</span>
-              <span class="text-text-tertiary block text-[11px] tabular-nums">
+              <span class="text-text-tertiary block text-2xs tabular-nums">
                 {formatEur(node.value)}
               </span>
             {:else}
@@ -196,7 +196,7 @@
               <span class="block font-medium">
                 {link.source.id} → {link.target.id}
               </span>
-              <span class="text-primary block text-[11px] font-semibold tabular-nums">
+              <span class="text-primary block text-2xs font-semibold tabular-nums">
                 {formatEur(link.value)}
               </span>
             {/if}

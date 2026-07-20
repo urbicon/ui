@@ -161,7 +161,7 @@
         </svg>
         Search commands...
         <Badge variant="outlined" intent="neutral" size="sm" class="ml-8">
-          <kbd class="font-mono text-[10px]">Ctrl+K</kbd>
+          <kbd class="font-mono text-3xs">Ctrl+K</kbd>
         </Badge>
       </button>
       <CommandPalette

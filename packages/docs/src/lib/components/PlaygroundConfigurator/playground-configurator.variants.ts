@@ -80,7 +80,7 @@ export const playgroundConfiguratorVariants = tv({
     helpToggle: [
       'inline-flex items-center gap-1.5',
       'h-7 px-2 rounded-modify',
-      'font-meta text-[10px] uppercase tracking-wider',
+      'font-meta text-3xs uppercase tracking-wider',
       'text-text-tertiary border border-transparent',
       'transition-colors',
       'hover:text-text-primary hover:bg-surface-hover',
@@ -99,7 +99,7 @@ export const playgroundConfiguratorVariants = tv({
         subtitle: 'text-xs',
         preview: 'p-4',
         previewContent: 'min-h-16',
-        controlLabel: 'text-[10px]',
+        controlLabel: 'text-3xs',
         variantBadge: 'h-3 w-3 text-[7px]',
         colorInput: 'h-7 w-12'
       },
@@ -108,7 +108,7 @@ export const playgroundConfiguratorVariants = tv({
         subtitle: 'text-sm',
         preview: 'p-8',
         previewContent: 'min-h-20',
-        controlLabel: 'text-[11px]',
+        controlLabel: 'text-2xs',
         variantBadge: 'h-3.5 w-3.5 text-[8px]',
         colorInput: 'h-8 w-14'
       },

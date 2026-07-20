@@ -33,7 +33,7 @@ export const typesReferenceVariants = tv({
         filterLabel: 'text-xs',
         codeBlock: 'p-2 text-xs',
         documentation: 'text-xs',
-        literalBadge: 'px-1.5 py-px text-[10px]',
+        literalBadge: 'px-1.5 py-px text-3xs',
         usedBySection: 'text-xs'
       },
       md: {
@@ -44,7 +44,7 @@ export const typesReferenceVariants = tv({
         filterLabel: 'text-sm',
         codeBlock: 'p-3 text-[13px]',
         documentation: 'text-sm',
-        literalBadge: 'px-2 py-[2px] text-[11px]',
+        literalBadge: 'px-2 py-[2px] text-2xs',
         usedBySection: 'text-sm'
       },
       lg: {

@@ -380,7 +380,7 @@
               <div class="flex items-center gap-2">
                 <span class="text-text-tertiary font-mono text-xs">{secondaryHue}°</span>
                 <button
-                  class="rounded-modify border px-2 py-0.5 text-[10px] font-medium transition-all {secondaryAuto
+                  class="rounded-modify border px-2 py-0.5 text-3xs font-medium transition-all {secondaryAuto
                     ? 'border-primary bg-primary-subtle text-primary'
                     : 'border-border-subtle text-text-tertiary hover:border-border-default'}"
                   onclick={() => {
@@ -456,7 +456,7 @@
               <div class="flex items-center gap-2">
                 <span class="text-text-tertiary font-mono text-xs">{chassisHue}°</span>
                 <button
-                  class="rounded-modify border px-2 py-0.5 text-[10px] font-medium transition-all {chassisAuto
+                  class="rounded-modify border px-2 py-0.5 text-3xs font-medium transition-all {chassisAuto
                     ? 'border-primary bg-primary-subtle text-primary'
                     : 'border-border-subtle text-text-tertiary hover:border-border-default'}"
                   onclick={() => {
@@ -577,7 +577,7 @@
                     class="h-6 w-6 rounded-full"
                     style="background: oklch({preset.l} {preset.c} {preset.h})"
                   ></div>
-                  <span class="text-text-tertiary text-[10px]">{preset.name}</span>
+                  <span class="text-text-tertiary text-3xs">{preset.name}</span>
                 </button>
               {/each}
             </div>

@@ -301,7 +301,7 @@
   {#snippet heading(name: string)}
     <div class="mb-3 flex items-center justify-between">
       <span
-        class="text-text-tertiary group-hover:text-text-secondary font-mono text-[11px] font-medium tracking-[0.08em] uppercase transition-colors duration-200"
+        class="text-text-tertiary group-hover:text-text-secondary font-mono text-2xs font-medium tracking-[0.08em] uppercase transition-colors duration-200"
         >{name}</span
       >
       {@render arrow()}
@@ -317,7 +317,7 @@
       >
         {chapter.name}
       </h2>
-      <p class="text-text-tertiary font-mono text-[11px] tracking-[0.08em] uppercase">
+      <p class="text-text-tertiary font-mono text-2xs tracking-[0.08em] uppercase">
         {chapter.count} components · {chapter.traits}
       </p>
     </div>
@@ -578,22 +578,22 @@
               <div class="border-border-hairline flex items-center gap-2 border-b px-3 py-2.5">
                 <SearchIcon class="text-text-tertiary h-3.5 w-3.5" />
                 <span class="text-text-tertiary flex-1 text-xs">Search commands…</span>
-                <kbd class="text-text-quaternary font-mono text-[10px]">⌘K</kbd>
+                <kbd class="text-text-quaternary font-mono text-3xs">⌘K</kbd>
               </div>
               <div class="p-1.5 text-xs">
                 <div
                   class="bg-surface-selected text-text-primary flex items-center justify-between rounded-md px-2.5 py-1.5"
                 >
                   <span>New file</span>
-                  <kbd class="text-text-quaternary font-mono text-[10px]">⌘N</kbd>
+                  <kbd class="text-text-quaternary font-mono text-3xs">⌘N</kbd>
                 </div>
                 <div class="text-text-secondary flex items-center justify-between px-2.5 py-1.5">
                   <span>Toggle theme</span>
-                  <kbd class="text-text-quaternary font-mono text-[10px]">⌘T</kbd>
+                  <kbd class="text-text-quaternary font-mono text-3xs">⌘T</kbd>
                 </div>
                 <div class="text-text-secondary flex items-center justify-between px-2.5 py-1.5">
                   <span>Open settings</span>
-                  <kbd class="text-text-quaternary font-mono text-[10px]">⌘,</kbd>
+                  <kbd class="text-text-quaternary font-mono text-3xs">⌘,</kbd>
                 </div>
               </div>
             </div>
@@ -714,13 +714,13 @@
               class="border-border-subtle bg-surface-overlay w-full max-w-[240px] rounded-lg border p-3.5 shadow-(--blocks-shadow-sm)"
             >
               <p class="text-text-primary text-xs font-bold">Delete project?</p>
-              <p class="text-text-secondary mt-1 text-[11px]">This can't be undone.</p>
+              <p class="text-text-secondary mt-1 text-2xs">This can't be undone.</p>
               <div class="mt-3 flex justify-end gap-1.5">
                 <span
-                  class="border-border-default text-text-secondary rounded-md border px-2.5 py-1 text-[11px]"
+                  class="border-border-default text-text-secondary rounded-md border px-2.5 py-1 text-2xs"
                   >Cancel</span
                 >
-                <span class="bg-danger text-text-on-primary rounded-md px-2.5 py-1 text-[11px]"
+                <span class="bg-danger text-text-on-primary rounded-md px-2.5 py-1 text-2xs"
                   >Delete</span
                 >
               </div>
@@ -1468,7 +1468,7 @@
           {@render heading('Tooltip')}
           <div class="flex flex-1 flex-col items-center justify-center gap-1.5">
             <div
-              class="bg-surface-inverted text-text-inverted rounded-md px-2.5 py-1 text-[11px] font-medium shadow-(--blocks-shadow-sm)"
+              class="bg-surface-inverted text-text-inverted rounded-md px-2.5 py-1 text-2xs font-medium shadow-(--blocks-shadow-sm)"
             >
               Copy to clipboard
             </div>
@@ -1511,7 +1511,7 @@
       <div class="grid grid-cols-1 gap-10 md:grid-cols-2">
         <div class="flex flex-col items-start justify-center gap-3">
           <span
-            class="font-mono text-[11px] font-medium tracking-[0.08em] text-[#f6f3ec]/55 uppercase"
+            class="font-mono text-2xs font-medium tracking-[0.08em] text-[#f6f3ec]/55 uppercase"
           >
             Button · unstyled + slotClasses
           </span>
@@ -1537,7 +1537,7 @@
 
         <div>
           <span
-            class="font-mono text-[11px] font-medium tracking-[0.08em] text-[#f6f3ec]/55 uppercase"
+            class="font-mono text-2xs font-medium tracking-[0.08em] text-[#f6f3ec]/55 uppercase"
           >
             Tab · unstyled on gradient
           </span>

@@ -97,7 +97,7 @@ describe('codePanelVariants', () => {
       const styles = codePanelVariants({ size: 'sm' });
 
       expect(styles.toolbar()).toContain('px-3');
-      expect(styles.codeToggle()).toContain('text-[11px]');
+      expect(styles.codeToggle()).toContain('text-2xs');
       expect(styles.codeChevron()).toContain('size-3');
     });
 

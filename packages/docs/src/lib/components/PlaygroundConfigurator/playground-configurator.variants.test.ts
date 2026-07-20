@@ -80,7 +80,7 @@ describe('playgroundConfiguratorVariants', () => {
 
       expect(styles.preview()).toContain('p-4');
       expect(styles.title()).toContain('text-lg');
-      expect(styles.controlLabel()).toContain('text-[10px]');
+      expect(styles.controlLabel()).toContain('text-3xs');
       expect(styles.colorInput()).toContain('h-7');
     });
 
@@ -89,7 +89,7 @@ describe('playgroundConfiguratorVariants', () => {
 
       expect(styles.preview()).toContain('p-8');
       expect(styles.title()).toContain('text-xl');
-      expect(styles.controlLabel()).toContain('text-[11px]');
+      expect(styles.controlLabel()).toContain('text-2xs');
       expect(styles.colorInput()).toContain('h-8');
     });
 

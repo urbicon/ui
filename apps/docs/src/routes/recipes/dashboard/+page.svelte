@@ -159,7 +159,7 @@
       <Avatar name="Mara Cohen" size="sm" />
       <div class="min-w-0">
         <div class="truncate text-xs font-medium text-text-primary">Mara C</div>
-        <div class="truncate text-[10px] text-text-tertiary">Admin</div>
+        <div class="truncate text-3xs text-text-tertiary">Admin</div>
       </div>
     </div>
   {/snippet}
@@ -317,7 +317,7 @@
             <Avatar name="Mara Cohen" size="sm" />
             <div class="min-w-0">
               <div class="text-text-primary truncate text-xs font-medium">Mara C</div>
-              <div class="text-text-tertiary truncate text-[10px]">Admin</div>
+              <div class="text-text-tertiary truncate text-3xs">Admin</div>
             </div>
           </div>
         {/snippet}

@@ -81,7 +81,7 @@
         <div class="bg-primary mx-auto flex h-5 w-5 items-center justify-center rounded-md">
           <LockIcon class="text-text-on-primary h-3 w-3" />
         </div>
-        <div class="text-text-primary text-center text-[10px] font-semibold">Sign in</div>
+        <div class="text-text-primary text-center text-3xs font-semibold">Sign in</div>
         {@render field('you@example.com')}
         {@render field('••••••••')}
         {@render cta('Log in')}
@@ -341,7 +341,7 @@
         <div class="border-border-default mt-1 border-t pt-1">
           <div class="flex items-center justify-between">
             <span class="text-text-primary text-[8px] font-semibold">Sum</span>
-            <span class="text-primary text-[10px] font-bold">€876</span>
+            <span class="text-primary text-3xs font-bold">€876</span>
           </div>
         </div>
       </div>
@@ -433,7 +433,7 @@
           </div>
           <div class="min-w-0">
             <div class="text-text-quaternary truncate text-[6px]">{s.l}</div>
-            <div class="text-text-primary text-[10px] leading-tight font-bold">{s.v}</div>
+            <div class="text-text-primary text-3xs leading-tight font-bold">{s.v}</div>
             <div
               class="flex items-center gap-0.5 text-[6px] {s.up ? 'text-success' : 'text-danger'}"
             >

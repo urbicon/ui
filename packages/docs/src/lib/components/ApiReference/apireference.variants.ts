@@ -10,7 +10,7 @@ export const apiReferenceVariants = tv({
     // typeChip without a border, just a quiet tint.
     typeChip: [
       'inline-flex items-center rounded-modify',
-      'bg-surface-quiet px-1.5 py-0.5 font-mono text-[11px] leading-none text-text-secondary'
+      'bg-surface-quiet px-1.5 py-0.5 font-mono text-2xs leading-none text-text-secondary'
     ],
     defaultCode: ['font-mono text-xs text-text-tertiary'],
     description: ['text-sm leading-relaxed text-text-secondary'],

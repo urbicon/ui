@@ -142,7 +142,7 @@
     <nav class="flex flex-col gap-6 p-3">
       {#each sections as section, i (section.label ?? i)}
         <div class="flex flex-col gap-1">
-          <span class="text-text-tertiary px-3 pb-1 text-[11px] font-semibold uppercase tracking-wider">
+          <span class="text-text-tertiary px-3 pb-1 text-2xs font-semibold uppercase tracking-wider">
             {section.label}
           </span>
           {#each section.items as item (item.href)}
