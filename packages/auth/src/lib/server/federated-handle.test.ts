@@ -502,6 +502,31 @@ describe('createFederatedAuthHandle — fail-closed JWKS handling', () => {
     const handle = createFederatedAuthHandle(handleOptions());
     await expectSignedOut(handle, await mintIdpToken());
   });
+
+  it('fetches the JWKS with redirect: "error" so a 302 cannot relocate the trust anchor', async () => {
+    const fetchMock = stubJwksFetch(() => jwksDocumentFor(idpJwt()));
+    const handle = createFederatedAuthHandle(handleOptions());
+    const event = createMockEvent({ path: '/dashboard', sessionCookie: await mintIdpToken() });
+    await handle({ event: asEvent(event), resolve: ok() });
+    expect(fetchMock).toHaveBeenCalledWith(
+      JWKS_URL,
+      expect.objectContaining({ redirect: 'error' })
+    );
+  });
+
+  it('refuses an oversized JWKS body (byte cap) before buffering it whole, and fails closed', async () => {
+    stubJwksFetch(() => 'x'.repeat(300 * 1024));
+    const logger = mockLogger();
+    const handle = createFederatedAuthHandle(handleOptions({ logger }));
+    const event = createMockEvent({ path: '/api/data', sessionCookie: await mintIdpToken() });
+    const response = await handle({ event: asEvent(event), resolve: vi.fn() });
+    expect(response.status, 'fail-closed: signed out, not a 500').toBe(401);
+    expect(event.locals.user).toBeNull();
+    expect(logger.error).toHaveBeenCalledWith(
+      expect.stringContaining('fail closed'),
+      expect.anything()
+    );
+  });
 });
 
 describe('createFederatedAuthHandle — route guard', () => {

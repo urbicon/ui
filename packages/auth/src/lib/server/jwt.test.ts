@@ -591,6 +591,47 @@ describe('assertJwtConfigValid', () => {
     expect(logger.warn).not.toHaveBeenCalled();
     expect(logger.error).not.toHaveBeenCalled();
   });
+
+  it('throws when a __Host- cookie name is combined with cookieDomain', () => {
+    expect(() =>
+      assertJwtConfigValid({
+        secret: 's',
+        cookieName: '__Host-session',
+        cookieDomain: '.example.com'
+      })
+    ).toThrow(/__Host-/);
+  });
+
+  it('throws when the active kid collides with a previousPublicKeys kid', async () => {
+    const active = await generateES256KeyPair();
+    const retired = await generateES256KeyPair();
+    expect(() =>
+      assertJwtConfigValid({
+        secret: 's',
+        algorithm: 'ES256',
+        keyId: 'dup',
+        signingKey: active.privateKey,
+        previousPublicKeys: [{ ...retired.publicKey, kid: 'dup' }]
+      })
+    ).toThrow(/duplicate JWT key id/);
+  });
+
+  it('throws when two previousPublicKeys entries share a kid', async () => {
+    const active = await generateES256KeyPair();
+    const a = await generateES256KeyPair();
+    const b = await generateES256KeyPair();
+    expect(() =>
+      assertJwtConfigValid({
+        secret: 's',
+        algorithm: 'ES256',
+        signingKey: active.privateKey,
+        previousPublicKeys: [
+          { ...a.publicKey, kid: 'same' },
+          { ...b.publicKey, kid: 'same' }
+        ]
+      })
+    ).toThrow(/duplicate JWT key id/);
+  });
 });
 
 describe('createSignedToken / verifySignedToken', () => {

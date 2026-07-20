@@ -208,6 +208,16 @@ let privateInPreviousWarned = false;
  *   forgotten.
  */
 export function assertJwtConfigValid(config: JwtConfig, logger: AuthLogger = console): void {
+  // Algorithm-independent: a `__Host-`-prefixed cookie name and a cookieDomain
+  // are mutually exclusive — a browser rejects a `__Host-` cookie that carries a
+  // Domain attribute, so the session cookie would silently never be set.
+  // session.ts throws on this too, but only when the first login writes the
+  // cookie; catch it here at wiring time like every other JWT misconfig.
+  if (config.cookieDomain && (config.cookieName ?? 'session').startsWith('__Host-')) {
+    throw new Error(
+      '[auth] jwt.cookieDomain cannot be combined with a "__Host-"-prefixed jwt.cookieName — a browser rejects a __Host- cookie that carries a Domain attribute, so the session cookie would silently never be set.'
+    );
+  }
   if ((config.algorithm ?? 'HS256') === 'ES256') {
     const key = config.signingKey;
     if (!key) {
@@ -232,6 +242,26 @@ export function assertJwtConfigValid(config: JwtConfig, logger: AuthLogger = con
           '[auth] a jwt.previousPublicKeys entry carries the private scalar `d`. Only its public members are used and published, but private key material does not belong in a public-key list — replace the entry with the public JWK.'
         );
       }
+    }
+    // Every published kid must be unique. createJWKSHandler serves the active
+    // key and each previousPublicKeys entry under its own kid, and the
+    // consumer's JWKS parser keeps the LAST entry per kid — so two entries
+    // sharing a kid silently shadow one key, and every token signed by the
+    // shadowed key then fails to verify at consumers. Only reachable via a
+    // hand-set keyId or a hand-built rotation list (generated thumbprint kids
+    // don't collide across distinct keys); fail loud at wiring time.
+    const activeKid = config.keyId ?? key.kid;
+    const seenKids = new Set<string>();
+    for (const kid of [
+      ...(activeKid ? [activeKid] : []),
+      ...(config.previousPublicKeys ?? []).map((prev) => prev.kid as string)
+    ]) {
+      if (seenKids.has(kid)) {
+        throw new Error(
+          `[auth] duplicate JWT key id "${kid}" — the active key and every jwt.previousPublicKeys entry must carry a unique kid, or one key shadows another and its tokens fail verification at consumers.`
+        );
+      }
+      seenKids.add(kid);
     }
   } else if ((config.signingKey || config.previousPublicKeys) && !es256IgnoredWarned) {
     es256IgnoredWarned = true;

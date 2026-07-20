@@ -139,6 +139,15 @@ const FETCH_TIMEOUT_MS = 5_000;
  * wholesale (fail-closed) rather than partially trusted.
  */
 const MAX_JWKS_KEYS = 10;
+/**
+ * Hard byte ceiling on the JWKS body, enforced *while* the response streams in —
+ * before `parseJwksKeys` and its key-count cap ever run. A real JWKS with ten
+ * P-256 keys is a few KB; 256 KB is ~80× that. Without it, a hostile or
+ * misconfigured endpoint could make the consumer buffer an arbitrarily large
+ * body before the key cap fires: the fetch `AbortSignal` bounds the read in
+ * wall-clock time, this bounds it in memory.
+ */
+const MAX_JWKS_BYTES = 256 * 1024;
 const LOCALHOST_HOSTNAMES = new Set(['localhost', '127.0.0.1', '[::1]']);
 
 function validateJwksUrl(raw: string, logger: AuthLogger): URL {
@@ -205,6 +214,46 @@ function parseJwksKeys(
     keys.set(jwk.kid, { x: jwk.x, y: jwk.y });
   }
   return keys;
+}
+
+/**
+ * Read a JWKS response body under a hard byte ceiling. A declared
+ * `Content-Length` over the cap is rejected up front; a lying or absent one is
+ * caught by counting bytes as the stream drains. Throws on a breach — the
+ * caller turns any throw into "signed out until reachable" (fail-closed).
+ */
+async function readJwksBody(res: Response, maxBytes = MAX_JWKS_BYTES): Promise<string> {
+  const declared = Number(res.headers.get('content-length'));
+  if (Number.isFinite(declared) && declared > maxBytes) {
+    throw new Error(
+      `JWKS response declares ${declared} bytes (cap: ${maxBytes}) — refusing to buffer it`
+    );
+  }
+  const stream = res.body;
+  if (!stream) return res.text();
+  const reader = stream.getReader();
+  const chunks: Uint8Array[] = [];
+  let total = 0;
+  try {
+    for (;;) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      total += value.byteLength;
+      if (total > maxBytes) {
+        throw new Error(`JWKS response exceeds ${maxBytes} bytes — refusing to buffer it`);
+      }
+      chunks.push(value);
+    }
+  } finally {
+    reader.releaseLock();
+  }
+  const merged = new Uint8Array(total);
+  let offset = 0;
+  for (const chunk of chunks) {
+    merged.set(chunk, offset);
+    offset += chunk.byteLength;
+  }
+  return new TextDecoder().decode(merged);
 }
 
 /**
@@ -294,9 +343,15 @@ export function createFederatedAuthHandle<TUser>(
     lastAttemptAt = Date.now();
     inflight = (async () => {
       try {
-        const res = await fetch(jwksUrl.href, { signal: AbortSignal.timeout(FETCH_TIMEOUT_MS) });
+        const res = await fetch(jwksUrl.href, {
+          // Do not follow redirects: a compromised-but-redirecting endpoint
+          // (302, including https→http) must not be able to relocate the trust
+          // anchor away from the configured https origin.
+          redirect: 'error',
+          signal: AbortSignal.timeout(FETCH_TIMEOUT_MS)
+        });
         if (!res.ok) throw new Error(`JWKS endpoint answered ${res.status}`);
-        const keys = parseJwksKeys(await res.json(), () =>
+        const keys = parseJwksKeys(JSON.parse(await readJwksBody(res)), () =>
           warnOnce(
             'private-key',
             `[auth] createFederatedAuthHandle: the JWKS at ${jwksUrl.href} served a key carrying the private scalar \`d\` — the key was discarded. The IdP is leaking private key material; rotate that key immediately.`
