@@ -251,7 +251,9 @@
      inner wrapper re-aligns with the body column below. -->
 <div data-room-hero>
   <div class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-    <p class="meta-marker">Specimen book — Svelte 5 · Tailwind 4 · zero dependencies</p>
+    <p class="meta-marker text-text-tertiary text-xs font-medium tracking-wider uppercase">
+      Specimen book — Svelte 5 · Tailwind 4 · zero dependencies
+    </p>
     <div class="mt-4 flex items-center gap-3">
       <h1 class="text-text-primary text-4xl font-bold tracking-tight sm:text-5xl">Blocks</h1>
       <span
@@ -1484,7 +1486,9 @@
 
   <!-- ─── Customization island ───────────────────────────────── -->
   <section class="mt-20" aria-labelledby="customization-island-title">
-    <p class="meta-marker">Unstyled in action</p>
+    <p class="meta-marker text-text-tertiary text-xs font-medium tracking-wider uppercase">
+      Unstyled in action
+    </p>
     <h2
       id="customization-island-title"
       class="text-text-primary mt-4 text-2xl font-bold tracking-tight sm:text-3xl"
