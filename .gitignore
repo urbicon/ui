@@ -87,6 +87,8 @@ apps/docs/src/**/api.ts
 apps/docs/static/**/*.txt
 !apps/docs/static/robots.txt
 apps/docs/static/**/_catalog.json
+# generated guide copies distributed by docs-gen (source: packages/*/docs/)
+apps/docs/static/**/*.md
 apps/docs/static/mcp/
 llms-full.txt
 
