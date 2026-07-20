@@ -17,8 +17,6 @@ export interface ApiProp {
     package?: string;
     url?: string;
   };
-  typeAnchor?: string;
-  typePreview?: string;
 }
 
 /**
