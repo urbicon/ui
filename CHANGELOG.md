@@ -4,6 +4,17 @@ All notable changes to this project will be documented in this file.
 This changelog is automatically generated from [Conventional Commits](https://www.conventionalcommits.org).
 
 
+## [6.28.0] - 2026-07-20
+
+### Documentation
+- Declare the documentation taxonomy (DOCS-SURFACES.md)
+
+### Features
+- **docs-gen**: Distribute guide documents into the LLM output
+
+### Miscellaneous
+- Ignore the generated guide copies under static
+
 ## [6.27.1] - 2026-07-20
 
 ### Documentation
