@@ -4,7 +4,7 @@ Zero-runtime-dependency authentication, user-management, and notification system
 
 All crypto is implemented with the Web Crypto API — no `bcrypt`, no `jsonwebtoken`, no Web-Push vendor SDK. Server-side handler factories, a Handle-Hook for SvelteKit, an adapter interface (Prisma adapter included), and 14 blocks-based UI components covering login, registration, password reset, email verification, invitation management, passkeys, account management, active sessions, two-factor (TOTP), and notifications.
 
-> **Maturity:** core **stable** (hardened for production SvelteKit deployments, including persistent-store adapters for challenges / rate-limits / refresh tokens); the newest self-service surfaces — account management, session listing, TOTP 2FA — are **`beta`**. See [docs/AUTH.md — Known Limitations](../../docs/AUTH.md#known-limitations--security-gaps) for the residual gap list.
+> **Maturity:** core **stable** (hardened for production SvelteKit deployments, including persistent-store adapters for challenges / rate-limits / refresh tokens); the newest self-service surfaces — account management, session listing, TOTP 2FA — are **`beta`**. See [docs/AUTH.md — Known Limitations](./docs/AUTH.md#known-limitations--security-gaps) for the residual gap list.
 
 > **New here?** Jump to the [Quickstart](#stage-1--quickstart-dev-5-minutes) — a copy-paste setup that runs in five minutes with no database or mail server. Then graduate to [Production](#stage-2--production) and [Advanced](#stage-3--advanced).
 
@@ -124,7 +124,7 @@ export const handle = createAuthHandle({ config: authDeps.config, repos: authDep
 > later route a cross-origin, form-encoded endpoint (an OAuth 2.1 token endpoint, a webhook)
 > _around_ `createAuthHandle`, SvelteKit's own built-in `csrf.checkOrigin` — which runs in
 > the request kernel before any hook, in production builds only — will `403` it. Resolution
-> and safety preconditions: [docs/AUTH.md → Known Limitations](../../docs/AUTH.md#known-limitations--security-gaps).
+> and safety preconditions: [docs/AUTH.md → Known Limitations](./docs/AUTH.md#known-limitations--security-gaps).
 
 **3. API route stubs** — one file per handler, e.g. `src/routes/api/auth/login/+server.ts`:
 
@@ -197,7 +197,7 @@ logs every session in that family out.
 
 #### Production-readiness checklist
 
-Mirrors [docs/AUTH.md → Produktionsreife-Checkliste](../../docs/AUTH.md#produktionsreife-checkliste):
+Mirrors [docs/AUTH.md → Produktionsreife-Checkliste](./docs/AUTH.md#production-readiness-checklist):
 
 - [ ] **HTTPS enforced** — cookies are already `secure: true`; HSTS is emitted automatically once `jwt.cookieSecure !== false`.
 - [ ] **CSRF Double-Submit on** (`csrf.doubleSubmit: true`); optionally `useHostPrefix: true` (HTTPS-only) — then set `useHostPrefix: true` on the client stores/components too.
@@ -207,7 +207,7 @@ Mirrors [docs/AUTH.md → Produktionsreife-Checkliste](../../docs/AUTH.md#produk
 - [ ] **CSP** tuned to your app (`securityHeaders.csp`) — the default only blocks framing.
 - [ ] **`appUrl`** set to the real public origin; **`JWT_SECRET`** from a secret store, with a `keyId` + `previousSecrets` rotation runbook ready.
 - [ ] **Monitoring** on auth-handler latency + error rate; wire `hooks.onPasswordResetFailed` to your error tracker so a broken mail transport doesn't silently lock users out of recovery.
-- [ ] **Cross-origin form-encoded endpoint outside the handle?** (OAuth 2.1 token, webhook) — set `kit.csrf: { checkOrigin: false }` in `svelte.config.js` (SvelteKit's kernel CSRF check, skipped under `vite dev` only, otherwise `403`s it before the hook; deprecated but the only working off-switch — `trustedOrigins` can't admit header-less callers) and confirm every cookie-auth mutating route still flows through `createAuthHandle`. See [docs/AUTH.md → Known Limitations](../../docs/AUTH.md#known-limitations--security-gaps).
+- [ ] **Cross-origin form-encoded endpoint outside the handle?** (OAuth 2.1 token, webhook) — set `kit.csrf: { checkOrigin: false }` in `svelte.config.js` (SvelteKit's kernel CSRF check, skipped under `vite dev` only, otherwise `403`s it before the hook; deprecated but the only working off-switch — `trustedOrigins` can't admit header-less callers) and confirm every cookie-auth mutating route still flows through `createAuthHandle`. See [docs/AUTH.md → Known Limitations](./docs/AUTH.md#known-limitations--security-gaps).
 
 #### CSRF on the client
 
@@ -238,7 +238,7 @@ Cookie/header names are configurable via `config.csrf.cookieName` / `config.csrf
 
 ### Stage 3 — Advanced
 
-- **Custom persistence adapter** — anything beyond Prisma/in-memory (Drizzle, Kysely, raw SQL): follow the [Adapter Authoring Guide](../../docs/AUTH.md#adapter-authoring-guide) and validate it against the exported conformance suite so its atomic claims are _provably_ race-safe.
+- **Custom persistence adapter** — anything beyond Prisma/in-memory (Drizzle, Kysely, raw SQL): follow the [Adapter Authoring Guide](./docs/AUTH.md#adapter-authoring-guide) and validate it against the exported conformance suite so its atomic claims are _provably_ race-safe.
 - **JWT key rotation** — set `jwt.keyId` + `jwt.previousSecrets` to roll the signing secret without logging everyone out; old sessions verify against the previous secret until they expire.
 - **Passkeys (WebAuthn)** — wire `createPasskey*Handler`s with a `webauthn: WebAuthnConfig` (pass a persistent `challengeStore` at >1 instance; set `requireUserVerification: true` to enforce UV), and drop in `<PasskeyManager>` + the passkey entry point on `<LoginPage mode="both">`.
 - **Notifications & Web Push** — register domain events server-side and listen client-side:
@@ -367,7 +367,7 @@ Setup returns the `otpauth://` URI + Base32 secret (the core ships **no** QR enc
 
 - **`notification.url` is untrusted at navigation time.** It originates from your event registry, but treat it as data: validate/allow-list it before passing it to `goto()` so a crafted URL can't drive an open redirect.
 - **The console email transport is dev-only.** It logs full email bodies (including reset/verify tokens) to stdout — never ship it to production.
-- **`createAuthHandle` is mandatory for CSRF and session hydration.** Route handlers alone don't apply the Origin/Double-Submit checks or set `locals.user`. The Origin check covers only requests routed _through_ the handle; a cross-origin, form-encoded endpoint bypassing it is instead gated by SvelteKit's own kernel CSRF check, which `403`s it before any hook (production only) — see [docs/AUTH.md → Known Limitations](../../docs/AUTH.md#known-limitations--security-gaps).
+- **`createAuthHandle` is mandatory for CSRF and session hydration.** Route handlers alone don't apply the Origin/Double-Submit checks or set `locals.user`. The Origin check covers only requests routed _through_ the handle; a cross-origin, form-encoded endpoint bypassing it is instead gated by SvelteKit's own kernel CSRF check, which `403`s it before any hook (production only) — see [docs/AUTH.md → Known Limitations](./docs/AUTH.md#known-limitations--security-gaps).
 - **Notification mark-read / delete must scope by the authenticated user.** In those route handlers derive `userId` from `locals.user`, never from the request body — otherwise one user can mutate another's notifications (IDOR).
 - **`recipients: 'admins'` needs a resolver.** The package has no role model, so pass `resolveAdminRecipients` (e.g. `() => repo.findAdminUserIds()`) to `createNotificationService` for any type that targets admins. Without it `send()` **throws** rather than silently dropping the alert. Push-delivery failures are swallowed (one bad subscription mustn't break a send) — pass `onPushResult` to observe them; dead endpoints (410/404) are pruned automatically.
 
@@ -383,11 +383,11 @@ See [`prisma/auth-schema.prisma`](./prisma/auth-schema.prisma) for the reference
 cd packages/auth && bunx --bun vitest run
 ```
 
-Full WebAuthn attestation/assertion against a real authenticator, end-to-end browser coverage, and integration tests against a live Prisma instance remain out of scope for v1.0 — see [docs/AUTH.md → Produktionsreife-Checkliste](../../docs/AUTH.md#produktionsreife-checkliste).
+Full WebAuthn attestation/assertion against a real authenticator, end-to-end browser coverage, and integration tests against a live Prisma instance remain out of scope for v1.0 — see [docs/AUTH.md → Produktionsreife-Checkliste](./docs/AUTH.md#production-readiness-checklist).
 
 ## Known Limitations
 
-The three most load-bearing for a production deploy are below; the **full catalog** (10 items with severity, rationale, and fix-plan) is the single source of truth in [docs/AUTH.md → Known Limitations](../../docs/AUTH.md#known-limitations--security-gaps) — kept there to avoid a drifting second copy.
+The three most load-bearing for a production deploy are below; the **full catalog** (10 items with severity, rationale, and fix-plan) is the single source of truth in [docs/AUTH.md → Known Limitations](./docs/AUTH.md#known-limitations--security-gaps) — kept there to avoid a drifting second copy.
 
 - **Persistent stores are opt-in.** Challenge, rate-limit, and refresh-token stores all default to in-memory (single-process). Pass a `ChallengeStore` / `RateLimitStore` / `RefreshTokenRepository` (Redis/Prisma/Upstash) when running >1 instance — the Prisma adapter is bundled.
 - **CSRF Double-Submit and refresh-token rotation are opt-in.** The handle's Origin check is always on; the token layer (`config.csrf = { doubleSubmit: true }`) and rotation (`config.refreshToken = {}` + `repos.refreshToken`) are additive production hardening.
@@ -412,4 +412,4 @@ cd packages/auth && bunx --bun vitest run     # tests
 
 ## Related
 
-- [docs/AUTH.md](../../docs/AUTH.md) — architecture, security-gap catalog, consumer-migration notes
+- [docs/AUTH.md](./docs/AUTH.md) — architecture, security-gap catalog, consumer-migration notes
