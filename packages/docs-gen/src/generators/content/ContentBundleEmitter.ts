@@ -27,16 +27,32 @@ export interface ContentBundleEmitterConfig {
   outputDir: string;
 }
 
+/**
+ * Summary of an emitted content bundle — the counts the CLI prints after
+ * `docs:gen:all` plus the version/hash stamped into the bundle's `meta.json`.
+ */
 export interface ContentBundleResult {
+  /** The bundle directory that was (re)written. */
   outputDir: string;
+  /** Per-component `llm.txt` files copied into the bundle. */
   llmTxtCount: number;
+  /** Composition patterns (`design-system/patterns/*.md`) copied. */
   patternCount: number;
+  /** Design-verb recipes copied (fail-loud when zero — every MCP prompt serves one). */
   verbCount: number;
+  /** Icons parsed out of the blocks icon registry into `icons.json`. */
   iconCount: number;
+  /** The `@urbicon-ui/design-content` package version the bundle ships under. */
   version: string;
+  /** First 12 hex chars of the catalog's SHA-256 — the bundle's content fingerprint. */
   contentHash: string;
 }
 
+/**
+ * Emitter for the `@urbicon-ui/design-content` bundle (see the config
+ * interface above for the why). Stateless besides its config; `emit()` does
+ * all the work and is safe to re-run — the output directory is wiped first.
+ */
 export class ContentBundleEmitter {
   private config: ContentBundleEmitterConfig;
 
@@ -44,6 +60,14 @@ export class ContentBundleEmitter {
     this.config = config;
   }
 
+  /**
+   * Rebuild the bundle from scratch: component catalog (required),
+   * per-component llm.txt tree, design-system principles + patterns, verb
+   * recipes, the llms-full guide template, parsed icon metadata, and a
+   * `meta.json` stamp (package version + content hash). Every required input
+   * fails loud with a message naming the missing piece — never a silently
+   * thinner bundle.
+   */
   async emit(): Promise<ContentBundleResult> {
     const { staticDir, designSystemDir, templatePath, iconRegistryPath, verbsDir, outputDir } =
       this.config;
@@ -155,6 +179,10 @@ export class ContentBundleEmitter {
     return patternFiles.length;
   }
 
+  /**
+   * Read a file the bundle cannot ship without; any read failure becomes a
+   * labelled build error (fail-loud — no partial bundles).
+   */
   private async readRequired(file: string, label: string): Promise<string> {
     try {
       return await fs.readFile(file, 'utf-8');

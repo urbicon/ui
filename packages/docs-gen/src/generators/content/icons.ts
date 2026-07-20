@@ -6,15 +6,29 @@
  * the MCP server reads a ready `icons.json` instead of re-parsing TS at runtime.
  */
 
+/**
+ * One icon's metadata as it lands in the bundle's `icons.json` — the search
+ * surface behind `urbicon icons` and the remote `find_icons` tool.
+ */
 export interface IconBundleEntry {
+  /** Registry key, camelCase (e.g. `arrowRight`) — what `<Icon name="…">` accepts. */
   name: string;
+  /** Exported Svelte component name (e.g. `ArrowRightIcon`) for direct imports. */
   componentName: string;
+  /** Human-readable display label from `ICON_METADATA`. */
   label: string;
+  /** Registry categories the icon is filed under (e.g. `navigation`). */
   categories: string[];
+  /** Search keywords from `ICON_METADATA` (what fuzzy icon search matches). */
   keywords: string[];
 }
 
-/** Parse `DEFAULT_ICONS` → a real `name → ComponentName` map. */
+/**
+ * Parse the `DEFAULT_ICONS` block into a real `name → ComponentName` map.
+ * Tolerant by design (returns an empty map when the block is absent) —
+ * `parseIconRegistry` falls back to deriving the component name from the
+ * icon name for any unmapped entry.
+ */
 export function parseComponentNames(content: string): Map<string, string> {
   const map = new Map<string, string>();
   const start = content.indexOf('DEFAULT_ICONS');
@@ -31,7 +45,14 @@ export function parseComponentNames(content: string): Map<string, string> {
   return map;
 }
 
-/** Parse `ICON_METADATA` (+ the `DEFAULT_ICONS` mapping) into bundle entries. */
+/**
+ * Parse the icon registry source into bundle entries: `ICON_METADATA` drives
+ * the entry list (label/categories/keywords per icon), `DEFAULT_ICONS`
+ * supplies the component names (falling back to `name` + `Icon` capitalised
+ * when unmapped). Returns an empty array when no `ICON_METADATA` block is
+ * found — the emitter's icon count then makes the regression visible in the
+ * `docs:gen:all` output.
+ */
 export function parseIconRegistry(content: string): IconBundleEntry[] {
   const componentNames = parseComponentNames(content);
   const entries: IconBundleEntry[] = [];

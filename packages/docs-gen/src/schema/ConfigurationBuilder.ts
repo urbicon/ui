@@ -14,7 +14,10 @@ import type {
 // ==========================================
 
 /**
- * Creates a complete default configuration
+ * Create the complete baseline `GeneratorConfig` every builder starts from:
+ * all extractors on, schema-validation reporting (not failing), LLM + API
+ * output enabled with generic paths. Setters on the builder are overrides of
+ * this baseline, so a preset only has to state what differs.
  */
 function createDefaultConfig(): GeneratorConfig {
   return {
@@ -94,11 +97,19 @@ function createDefaultConfig(): GeneratorConfig {
 }
 
 /**
- * Builder for creating and validating documentation configurations
+ * Fluent builder for `GeneratorConfig`. Starts from `createDefaultConfig()`
+ * so every setter is a partial override; `build()` validates first and
+ * throws on a config that cannot run (no packages, enabled output without a
+ * path). The `ConfigurationFactory` presets are thin compositions over this.
  */
 export class DocsConfigurationBuilder implements GeneratorConfigBuilder {
   private config: GeneratorConfig;
 
+  /**
+   * Start a builder from the defaults, optionally shallow-merging a partial
+   * base config over them (top-level sections replace wholesale; the result
+   * is deep-cloned so the builder never aliases caller state).
+   */
   constructor(baseConfig?: Partial<GeneratorConfig>) {
     this.config = createDefaultConfig();
 
@@ -112,16 +123,29 @@ export class DocsConfigurationBuilder implements GeneratorConfigBuilder {
   // INPUT CONFIGURATION
   // ==========================================
 
+  /**
+   * Add a package to scan (repeatable). At least one package is required —
+   * `validate()` fails an empty list, so `build()` throws without any.
+   */
   addPackage(packageConfig: PackageConfig): GeneratorConfigBuilder {
     this.config.input.packages.push(packageConfig);
     return this;
   }
 
+  /**
+   * Set the package TypeScript context. `configPath` is the switch that
+   * enables program-backed cross-file type resolution in extraction; every
+   * `ConfigurationFactory` preset points it at the package's tsconfig.json.
+   */
   setTypeScript(tsConfig: TypeScriptConfig): GeneratorConfigBuilder {
     this.config.input.typescript = tsConfig;
     return this;
   }
 
+  /**
+   * Override the docs-schema expectations (version, strictness), merged over
+   * the default `{ version: '2.0.0', strict: true }`.
+   */
   setSchema(schemaConfig: Partial<GeneratorConfig['input']['schema']>): GeneratorConfigBuilder {
     this.config.input.schema = {
       ...this.config.input.schema,
@@ -134,6 +158,11 @@ export class DocsConfigurationBuilder implements GeneratorConfigBuilder {
   // PROCESSING CONFIGURATION
   // ==========================================
 
+  /**
+   * Override extraction settings, shallow-merged over the defaults (a passed
+   * sub-config like `typescript` replaces that whole block, so restate any
+   * default flags you want to keep).
+   */
   setExtraction(
     extractionConfig: Partial<GeneratorConfig['processing']['extraction']>
   ): GeneratorConfigBuilder {
@@ -144,6 +173,7 @@ export class DocsConfigurationBuilder implements GeneratorConfigBuilder {
     return this;
   }
 
+  /** Override enrichment settings (cross-references, derived metadata), shallow-merged over the defaults. */
   setEnrichment(
     enrichmentConfig: Partial<GeneratorConfig['processing']['enrichment']>
   ): GeneratorConfigBuilder {
@@ -154,6 +184,7 @@ export class DocsConfigurationBuilder implements GeneratorConfigBuilder {
     return this;
   }
 
+  /** Override validation settings (rules, schema gate), shallow-merged over the defaults. */
   setValidation(
     validationConfig: Partial<GeneratorConfig['processing']['validation']>
   ): GeneratorConfigBuilder {
@@ -164,6 +195,11 @@ export class DocsConfigurationBuilder implements GeneratorConfigBuilder {
     return this;
   }
 
+  /**
+   * Turn on batched parallel extraction (defaults: concurrency 4, strategy
+   * `auto`). Note the side effect in `PipelineOrchestrator`: with parallel
+   * extraction enabled the ErrorHandler is created non-fail-fast.
+   */
   enableParallel(
     parallelConfig?: Partial<GeneratorConfig['processing']['parallel']>
   ): GeneratorConfigBuilder {
@@ -180,6 +216,11 @@ export class DocsConfigurationBuilder implements GeneratorConfigBuilder {
   // OUTPUT CONFIGURATION
   // ==========================================
 
+  /**
+   * Configure the LLM output target, merged over the defaults. An
+   * extension-less `outputPath` selects directory mode (per-component
+   * llm.txt tree + llms.txt manifests) — how all presets run.
+   */
   setLLMOutput(llmConfig: Partial<GeneratorConfig['output']['llm']>): GeneratorConfigBuilder {
     this.config.output.llm = {
       ...this.config.output.llm,
@@ -188,6 +229,11 @@ export class DocsConfigurationBuilder implements GeneratorConfigBuilder {
     return this;
   }
 
+  /**
+   * Configure the API output target, merged over the defaults. An
+   * extension-less `outputPath` selects directory mode (one typed `api.ts`
+   * per component under its route) — how all presets run.
+   */
   setAPIOutput(apiConfig: Partial<GeneratorConfig['output']['api']>): GeneratorConfigBuilder {
     this.config.output.api = {
       ...this.config.output.api,
@@ -200,6 +246,10 @@ export class DocsConfigurationBuilder implements GeneratorConfigBuilder {
   // ADDITIONAL FEATURES
   // ==========================================
 
+  /**
+   * Turn on watch settings (defaults: 1000 ms debounce, add/change/unlink).
+   * Reserved — the CLI ships no watch loop yet; see `WatchConfig`.
+   */
   enableWatch(watchConfig?: Partial<GeneratorConfig['watch']>): GeneratorConfigBuilder {
     this.config.watch = {
       enabled: true,
@@ -210,6 +260,10 @@ export class DocsConfigurationBuilder implements GeneratorConfigBuilder {
     return this;
   }
 
+  /**
+   * Turn on debug reporting (default level `info`, console output). Gates
+   * the full error report on partially-failed pipeline runs.
+   */
   enableDebug(debugConfig?: Partial<GeneratorConfig['debug']>): GeneratorConfigBuilder {
     this.config.debug = {
       enabled: true,
@@ -226,6 +280,11 @@ export class DocsConfigurationBuilder implements GeneratorConfigBuilder {
   // BUILD & VALIDATE
   // ==========================================
 
+  /**
+   * Check the assembled config without building. Blocking errors: no
+   * packages, or an enabled output (LLM/API) without an `outputPath`.
+   * Warnings are advisory and never fail validation.
+   */
   validate(): ConfigValidationResult {
     const errors: Array<{ path: string; message: string }> = [];
     const warnings: Array<{ path: string; message: string }> = [];
@@ -259,6 +318,10 @@ export class DocsConfigurationBuilder implements GeneratorConfigBuilder {
     };
   }
 
+  /**
+   * Validate and return the final config. Throws with all validation errors
+   * joined when the config cannot run; logs (but tolerates) warnings.
+   */
   build(): GeneratorConfig {
     const validation = this.validate();
 
@@ -279,9 +342,7 @@ export class DocsConfigurationBuilder implements GeneratorConfigBuilder {
     return this.config;
   }
 
-  /**
-   * Reset to default configuration
-   */
+  /** Discard everything configured so far and return to the pristine defaults. */
   reset(): GeneratorConfigBuilder {
     this.config = createDefaultConfig();
     return this;
@@ -292,10 +353,20 @@ export class DocsConfigurationBuilder implements GeneratorConfigBuilder {
 // CONFIGURATION FACTORY - Preset configurations
 // ==========================================
 
+/**
+ * Preset `GeneratorConfig`s for the four in-repo targets (blocks, docs,
+ * table, auth) plus file-based loading for external configs. Each preset
+ * points the extraction at the package's own tsconfig (cross-file type
+ * resolution) and writes into the docs app's static/routes trees — these are
+ * exactly the configs `docs-gen generate` runs per `--target`.
+ */
 // biome-ignore lint/complexity/noStaticOnlyClass: intentional namespace grouping of config factories.
 export class ConfigurationFactory {
   /**
-   * Create Blocks-specific configuration
+   * Preset for `@urbicon-ui/blocks`: scans every primitives/components
+   * `index.ts`, resolves types via `../blocks/tsconfig.json`, and writes
+   * llm.txt to `apps/docs/static/blocks` + per-component api.ts under the
+   * `/blocks` routes.
    */
   static blocks(): GeneratorConfig {
     return (
@@ -330,7 +401,8 @@ export class ConfigurationFactory {
   }
 
   /**
-   * Create Docs-specific configuration
+   * Preset for `@urbicon-ui/docs` (the documentation UI components):
+   * mirrors the blocks preset onto `static/docs` + the `/docs` routes.
    */
   static docs(): GeneratorConfig {
     return new DocsConfigurationBuilder()
@@ -360,7 +432,9 @@ export class ConfigurationFactory {
   }
 
   /**
-   * Create Table-specific configuration
+   * Preset for `@urbicon-ui/table`: a single component entry
+   * (`src/lib/core/table/index.ts`), written onto `static/table` + the
+   * `/table` routes.
    */
   static table(): GeneratorConfig {
     return new DocsConfigurationBuilder()
@@ -389,7 +463,9 @@ export class ConfigurationFactory {
   }
 
   /**
-   * Create Auth-specific configuration
+   * Preset for `@urbicon-ui/auth`: scans each `index.ts` under
+   * `src/lib/client/components/`, written onto `static/auth` + the `/auth`
+   * routes.
    */
   static auth(): GeneratorConfig {
     return new DocsConfigurationBuilder()
@@ -416,7 +492,9 @@ export class ConfigurationFactory {
   }
 
   /**
-   * Create single package configuration
+   * Minimal config for an arbitrary package following the conventional
+   * `src/components/<Name>/` layout, with default output paths. No tsconfig
+   * is wired, so extraction stays single-file.
    */
   static singlePackage(packagePath: string, packageName: string): GeneratorConfig {
     return new DocsConfigurationBuilder()
@@ -433,7 +511,11 @@ export class ConfigurationFactory {
   }
 
   /**
-   * Load configuration from file
+   * Load a config from disk — `.json` or an ES module (`.js`/`.mjs`/`.ts`
+   * with a default or named `config` export). The loaded data is replayed
+   * through the builder, so it gets the same defaults-merge and fail-loud
+   * validation as a programmatic config. Throws on a missing file, an
+   * unsupported extension, or validation errors.
    */
   static async fromFile(configPath: string): Promise<GeneratorConfig> {
     try {
@@ -470,6 +552,7 @@ export class ConfigurationFactory {
     }
   }
 
+  /** Parse a JSON config file and replay it through the builder. */
   private static async loadJSONConfig(filePath: string): Promise<GeneratorConfig> {
     const content = await fs.readFile(filePath, 'utf-8');
     const configData = JSON.parse(content);
@@ -477,6 +560,10 @@ export class ConfigurationFactory {
     return ConfigurationFactory.validateAndBuildConfig(configData, filePath);
   }
 
+  /**
+   * Import an ES-module config (default or named `config` export) and replay
+   * it through the builder. Throws when the module exports neither.
+   */
   private static async loadESModuleConfig(filePath: string): Promise<GeneratorConfig> {
     // Use dynamic import to load ES modules
     const configModule = await import(fileURLToPath(filePath));
@@ -491,6 +578,11 @@ export class ConfigurationFactory {
     return ConfigurationFactory.validateAndBuildConfig(configData, filePath);
   }
 
+  /**
+   * Replay loaded config data section-by-section through a fresh builder,
+   * so file-based configs share the exact defaults + validation of
+   * programmatic ones (build() throws on an unrunnable config).
+   */
   private static validateAndBuildConfig(
     configData: Partial<GeneratorConfig>,
     filePath: string

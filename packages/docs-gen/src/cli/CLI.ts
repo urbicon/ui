@@ -8,11 +8,34 @@ import { ConfigurationFactory } from '../schema/ConfigurationBuilder';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
+/**
+ * Resolve a path relative to the docs-gen package root (two levels above
+ * this file), so the CLI works regardless of the caller's CWD.
+ */
 function resolveFromDocsGen(...segments: string[]): string {
   return path.resolve(__dirname, '..', '..', ...segments);
 }
 
+/**
+ * The `docs-gen` command-line interface (the package `bin`, driving
+ * `bun run docs:gen:*` from the repo root). Commands:
+ *
+ * - `generate` / `build` (default) — run the pipeline for one target
+ *   (`--target blocks|docs|table|auth`) or all. The `all` run additionally
+ *   assembles the cross-target artifacts: `llms-full.txt`, the MCP component
+ *   catalog, and the `@urbicon-ui/design-content` bundle — which is why JSDoc
+ *   edits require `docs:gen:all`, not a single target.
+ * - `scaffold <Name> [--group primitives|components]` — create the docs
+ *   route skeleton (+page.svelte / Docs.svelte) for a new component.
+ * - `help` — usage text.
+ *
+ * Any command failure exits with code 1 (fail-loud; CI relies on this).
+ */
 export class DocsGeneratorCLI {
+  /**
+   * Parse argv and dispatch to the requested command. Defaults to
+   * `generate`; unknown commands print help and exit 1.
+   */
   async run(args: string[] = process.argv.slice(2)): Promise<void> {
     const command = args[0] || 'generate';
     const options = this.parseOptions(args.slice(1));
@@ -43,6 +66,12 @@ export class DocsGeneratorCLI {
     }
   }
 
+  /**
+   * Run generation for `--target` (default `all`). `all` runs the four
+   * package targets sequentially and then the cross-target assembly step
+   * (`assembleLlmsFull`); a single target deliberately skips assembly, which
+   * leaves the aggregated artifacts stale until the next full run.
+   */
   private async generateCommand(options: { target?: string }): Promise<void> {
     const target = options.target || 'all';
 
@@ -67,6 +96,11 @@ export class DocsGeneratorCLI {
     }
   }
 
+  /**
+   * Execute the full pipeline for one package target using its
+   * `ConfigurationFactory` preset. Throws (→ exit 1) when the pipeline
+   * reports failure, printing every collected error first.
+   */
   private async generateTarget(target: 'blocks' | 'docs' | 'table' | 'auth'): Promise<void> {
     console.log(`\n🔄 Processing ${target} package...`);
 
@@ -108,6 +142,13 @@ export class DocsGeneratorCLI {
     }
   }
 
+  /**
+   * The cross-target assembly step that only `--target all` runs, in order:
+   * (1) `llms-full.txt` from the per-scope static trees, (2) the MCP
+   * component catalog (stamped with the repo-root version — fail-loud when
+   * that is missing), (3) the `@urbicon-ui/design-content` bundle the MCP
+   * server and `urbicon` CLI consume.
+   */
   private async assembleLlmsFull(): Promise<void> {
     console.log('\n🔗 Assembling llms-full.txt...');
 
@@ -195,6 +236,14 @@ export class DocsGeneratorCLI {
     );
   }
 
+  /**
+   * Scaffold the docs route for a component: creates
+   * `apps/docs/src/routes/blocks/<group>/<slug>/` with a `+page.svelte`
+   * (playground + API sections wired to the generated `api.ts`) and a
+   * `Docs.svelte` (docsConfig + authored sections). Refuses to overwrite an
+   * existing directory; the `api.ts` itself comes from a later
+   * `docs:gen:all` run.
+   */
   private async scaffoldCommand(args: string[]): Promise<void> {
     const name = args[0];
     const options = this.parseOptions(args.slice(1));
@@ -389,6 +438,11 @@ export class DocsGeneratorCLI {
     console.log(`   3. Run \`bun run docs:gen:all\` to generate the api.ts file`);
   }
 
+  /**
+   * Minimal `--flag [value]` parser: a `--key` followed by a non-flag token
+   * becomes `key: value`, a bare `--key` becomes `key: true`. Positional
+   * arguments are handled by the callers, not here.
+   */
   private parseOptions(args: string[]): Record<string, string | boolean> {
     const options: Record<string, string | boolean> = {};
 
@@ -411,6 +465,7 @@ export class DocsGeneratorCLI {
     return options;
   }
 
+  /** Print command/option usage to stdout. */
   private showHelp(): void {
     console.log(`
 📚 Docs Generator
