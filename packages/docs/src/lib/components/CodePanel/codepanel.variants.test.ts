@@ -80,10 +80,16 @@ describe('codePanelVariants', () => {
     expect(styles.copyButton()).toContain('font-meta');
   });
 
-  it('uses meta-marker on language tag', () => {
+  it('pairs meta-marker with utility fallbacks on the language tag', () => {
     const styles = codePanelVariants({ size: 'md' });
 
+    // `meta-marker` styles the tag only under `.docs-rooms`; the utilities must
+    // stay paired with it so the library skin does not render bare inline text.
     expect(styles.languageTag()).toContain('meta-marker');
+    expect(styles.languageTag()).toContain('uppercase');
+    expect(styles.languageTag()).toContain('tracking-wider');
+    expect(styles.languageTag()).toContain('text-text-tertiary');
+    expect(styles.languageTag()).toContain('text-xs');
   });
 
   describe('size variants', () => {

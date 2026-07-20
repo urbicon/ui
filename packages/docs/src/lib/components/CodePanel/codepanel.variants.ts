@@ -10,7 +10,11 @@ export const codePanelVariants = tv({
       'hover:text-text-primary'
     ],
     codeChevron: ['size-3.5 transition-transform duration-(--blocks-duration-fast)'],
-    languageTag: ['meta-marker'],
+    // Base utilities are the fallback for hosts without the rooms scope;
+    // `meta-marker` (defined only under `.docs-rooms` in rooms-docs.css,
+    // unlayered, so it wins over the utility layer) restyles the tag as a
+    // mono kicker there — same pairing as TableOfContents' title slot.
+    languageTag: ['meta-marker text-xs font-medium uppercase tracking-wider text-text-tertiary'],
     copyButton: [
       'font-meta text-text-quaternary inline-flex shrink-0 items-center gap-1 text-xs uppercase tracking-wider',
       'transition-colors duration-(--blocks-duration-fast)',

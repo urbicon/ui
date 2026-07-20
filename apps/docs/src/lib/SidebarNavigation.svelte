@@ -99,8 +99,14 @@
         <div class="flex flex-col gap-px pb-2">
           {#each flattenSection(item) as entry (entry.item.href ?? entry.item.name)}
             {#if entry.kind === 'kicker'}
+              <!-- `meta-marker` only exists under `.docs-rooms` (rooms-docs.css, unlayered —
+                   wins over the utility layer); the utilities carry the library skin, same
+                   pairing as PrevNextNav's kicker and TableOfContents' title slot. -->
               <div class="mt-3 mb-0.5 pl-4">
-                <span class="meta-marker">{navLabel(entry.item)}</span>
+                <span
+                  class="meta-marker text-text-tertiary text-xs font-medium tracking-wider uppercase"
+                  >{navLabel(entry.item)}</span
+                >
               </div>
             {:else}
               {@const leafActive = isActive(entry.href, path)}
