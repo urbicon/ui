@@ -178,6 +178,7 @@
         "@urbicon-ui/i18n": "^6.0.0",
         "@urbicon-ui/shared-types": "^6.0.0",
         "@urbicon-ui/table": "^6.0.0",
+        "shiki": "^4.2.0",
         "svelte": "catalog:",
       },
     },
