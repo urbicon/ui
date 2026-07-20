@@ -1,7 +1,7 @@
 import type { Cookies } from '@sveltejs/kit';
 import { describe, expect, it } from 'vitest';
 import type { AuthConfig } from '../types.js';
-import { createSignedToken, verifySessionToken } from './jwt.js';
+import { createSessionToken, createSignedToken, verifySessionToken } from './jwt.js';
 import {
   clearPending2faCookie,
   createPending2faToken,
@@ -47,10 +47,13 @@ describe('pending-2FA token', () => {
   it('rejects an expired token', async () => {
     const config = makeConfig();
     // Mint a structurally valid pending token whose exp is already in the past.
+    // ('2fa-pending' is the wire value of the pending purpose — pinned here on
+    // purpose: renaming it invalidates in-flight pending logins.)
     const expired = await createSignedToken(
       { pending2fa: true, sub: 'user-42' },
       config.jwt.secret,
-      -1
+      -1,
+      '2fa-pending'
     );
     expect(await verifyPending2faToken(expired, config)).toBeNull();
   });
@@ -70,15 +73,44 @@ describe('pending-2FA token', () => {
 
   it('rejects a token missing the pending2fa marker (no token confusion)', async () => {
     const config = makeConfig();
-    // A signed token WITHOUT the pending2fa marker must not be accepted.
-    const noMarker = await createSignedToken({ sub: 'user-42' }, config.jwt.secret, 300);
+    // A signed token WITHOUT the pending2fa marker must not be accepted, even
+    // under the correct purpose (the domain-shape guard on top of F2).
+    const noMarker = await createSignedToken(
+      { sub: 'user-42' },
+      config.jwt.secret,
+      300,
+      '2fa-pending'
+    );
     expect(await verifyPending2faToken(noMarker, config)).toBeNull();
+  });
+
+  it('rejects a token minted for a different purpose even with perfect pending claims', async () => {
+    const config = makeConfig();
+    // Same secret, same claim shape, wrong purpose — the primitive-level
+    // binding (F2) refuses before the shape check gets a say.
+    const foreign = await createSignedToken(
+      { pending2fa: true, sub: 'user-42' },
+      config.jwt.secret,
+      300,
+      'password-reset'
+    );
+    expect(await verifyPending2faToken(foreign, config)).toBeNull();
+  });
+
+  it('rejects a session token outright (purpose mismatch at the primitive level)', async () => {
+    const config = makeConfig();
+    const sessionToken = await createSessionToken(
+      { userId: 'user-42', email: 'u@u', role: 'user', tokenVersion: 0 },
+      config.jwt
+    );
+    expect(await verifyPending2faToken(sessionToken, config)).toBeNull();
   });
 
   it('is rejected by verifySessionToken (a pending token cannot open a session)', async () => {
     const config = makeConfig();
     const token = await createPending2faToken('user-42', config);
-    // The session verifier requires email/role/tv claims the pending token lacks.
+    // Purpose binding rejects it in the primitive ('2fa-pending' ≠ 'session');
+    // the missing email/role/tv claims would refuse it a second time.
     expect(await verifySessionToken(token, config.jwt)).toBeNull();
   });
 

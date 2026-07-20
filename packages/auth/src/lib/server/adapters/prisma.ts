@@ -96,6 +96,7 @@ export interface PrismaLike {
   federatedAccount?: {
     findUnique: (args: unknown) => Promise<PrismaRow>;
     create: (args: unknown) => Promise<PrismaRow>;
+    deleteMany: (args: unknown) => Promise<{ count: number }>;
   };
   /**
    * Prisma's sequential (array-form) transaction. Used by `user.delete` to drop
@@ -812,9 +813,21 @@ export function createPrismaFederatedAccountRepository(
         });
         if (existing && existing.userId === userId) return mapFederatedAccount(existing);
         throw new Error(
-          '[auth] linkFederatedAccount: this federated identity is already linked to a different user — refusing to re-link (unlink it explicitly first).'
+          '[auth] linkFederatedAccount: this federated identity is already linked to a different user — refusing to re-link (unlink it explicitly first via unlinkFederatedAccount).'
         );
       }
+    },
+
+    async unlinkFederatedAccount(userId, identity) {
+      // Owner-scoped conditional delete in ONE statement (the same
+      // compare-and-set shape as backupCode.consumeIfUnused): the where
+      // includes userId, so a non-owner's call deletes nothing — it can never
+      // free the pair for a takeover re-link. (issuer, subject) is unique, so
+      // the count is 0 or 1.
+      const result = await fa.deleteMany({
+        where: { userId, issuer: identity.issuer, subject: identity.subject }
+      });
+      return result.count === 1;
     }
   };
 }

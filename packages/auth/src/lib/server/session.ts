@@ -1,5 +1,5 @@
 import type { Cookies } from '@sveltejs/kit';
-import type { AuthConfig, AuthSession, JwtConfig } from '../types.js';
+import type { AuthConfig, AuthLogger, AuthSession, JwtConfig } from '../types.js';
 import type { FullAuthUser, RefreshTokenRepository } from './adapters/types.js';
 import { assertReposMatchConfig } from './deps.js';
 import { parseDurationSeconds } from './duration.js';
@@ -106,11 +106,15 @@ export function clearSessionCookie(cookies: Cookies, config: JwtConfig): void {
 
 export async function getSessionFromCookie<R extends string>(
   cookies: Cookies,
-  config: JwtConfig
+  config: JwtConfig,
+  // Sink for verify-path misconfiguration warnings (broken previousSecrets /
+  // key material). Default console; the handle hook and requireSessionUser
+  // thread the configured AuthLogger through.
+  logger?: AuthLogger
 ): Promise<AuthSession<R> | null> {
   const token = cookies.get(cookieName(config));
   if (!token) return null;
-  return verifySessionToken<R>(token, config);
+  return verifySessionToken<R>(token, config, logger);
 }
 
 /**

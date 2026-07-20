@@ -1,5 +1,5 @@
 import type { Cookies } from '@sveltejs/kit';
-import type { JwtConfig } from '../../types.js';
+import type { AuthLogger, JwtConfig } from '../../types.js';
 import type { FullAuthUser, UserRepository } from '../adapters/types.js';
 import type { AuthDeps } from '../deps.js';
 import { verifyPasswordWithMigration } from '../password.js';
@@ -68,10 +68,13 @@ export const NO_STORE = { 'Cache-Control': 'no-store' } as const;
  * shape a consumer's `transformUser` hook may change arbitrarily.
  */
 export async function requireSessionUser<R extends string>(
-  deps: { config: { jwt: JwtConfig }; repos: { user: UserRepository<R> } },
+  // `logger` is structurally optional so hand-wired callers keep working; the
+  // AuthDeps bundle always carries the resolved (shielded) one, so handler
+  // calls route verify-path warnings into the configured sink.
+  deps: { config: { jwt: JwtConfig }; repos: { user: UserRepository<R> }; logger?: AuthLogger },
   cookies: Cookies
 ): Promise<FullAuthUser<R> | null> {
-  const session = await getSessionFromCookie<R>(cookies, deps.config.jwt);
+  const session = await getSessionFromCookie<R>(cookies, deps.config.jwt, deps.logger);
   if (!session) return null;
 
   const user = await deps.repos.user.findById(session.userId);

@@ -8,7 +8,12 @@ import {
   type FederatedIdentity
 } from './federated-handle.js';
 import { createJWKSHandler } from './handlers/jwks.js';
-import { createSessionToken, generateES256KeyPair } from './jwt.js';
+import {
+  createSessionToken,
+  generateES256KeyPair,
+  MAX_TOKEN_LENGTH,
+  SESSION_TOKEN_PURPOSE
+} from './jwt.js';
 
 /**
  * Consumer-side federation tests. The IdP side (key generation, ES256
@@ -526,6 +531,93 @@ describe('createFederatedAuthHandle — fail-closed JWKS handling', () => {
       expect.stringContaining('fail closed'),
       expect.anything()
     );
+  });
+});
+
+describe('createFederatedAuthHandle — purpose binding & input cap', () => {
+  /** ES256-sign arbitrary claims with the ACTIVE IdP key + the real kid. */
+  async function handSignIdpToken(claims: Record<string, unknown>): Promise<string> {
+    const header = base64UrlEncodeString(
+      JSON.stringify({ alg: 'ES256', typ: 'JWT', kid: pair.kid })
+    );
+    const body = base64UrlEncodeString(JSON.stringify(claims));
+    const key = await crypto.subtle.importKey(
+      'jwk',
+      { kty: 'EC', crv: 'P-256', x: pair.privateKey.x, y: pair.privateKey.y, d: pair.privateKey.d },
+      { name: 'ECDSA', namedCurve: 'P-256' },
+      false,
+      ['sign']
+    );
+    const sig = await crypto.subtle.sign(
+      { name: 'ECDSA', hash: 'SHA-256' },
+      key,
+      new TextEncoder().encode(`${header}.${body}`)
+    );
+    return `${header}.${body}.${Buffer.from(sig).toString('base64url')}`;
+  }
+
+  function identityClaims(): Record<string, unknown> {
+    const now = Math.floor(Date.now() / 1000);
+    return {
+      sub: 'idp-user-1',
+      email: 'user@idp.test',
+      purpose: SESSION_TOKEN_PURPOSE,
+      iat: now,
+      exp: now + 3600
+    };
+  }
+
+  it('accepts a hand-signed token carrying purpose "session" (baseline for the negatives)', async () => {
+    stubJwksFetch(() => jwksDocumentFor(idpJwt()));
+    const handle = createFederatedAuthHandle(handleOptions());
+    const event = createMockEvent({
+      path: '/x',
+      sessionCookie: await handSignIdpToken(identityClaims())
+    });
+    await handle({ event: asEvent(event), resolve: ok() });
+    expect(event.locals.user).not.toBeNull();
+  });
+
+  it('rejects a signature-valid IdP token WITHOUT the purpose claim (pre-purpose IdP fails closed)', async () => {
+    // Version skew: an IdP older than the purpose stamp mints tokens without
+    // the claim — the upgraded consumer must reject them (upgrade the IdP
+    // first; see docs/AUTH.md).
+    stubJwksFetch(() => jwksDocumentFor(idpJwt()));
+    const resolveUser = vi.fn(() => ({ id: 'u' }));
+    const handle = createFederatedAuthHandle(handleOptions({ resolveUser }));
+
+    const { purpose: _dropped, ...withoutPurpose } = identityClaims();
+    const event = createMockEvent({
+      path: '/api/data',
+      sessionCookie: await handSignIdpToken(withoutPurpose)
+    });
+    const response = await handle({ event: asEvent(event), resolve: vi.fn() });
+    expect(response.status).toBe(401);
+    expect(resolveUser).not.toHaveBeenCalled();
+  });
+
+  it('rejects a signature-valid IdP token minted for a NON-session purpose', async () => {
+    stubJwksFetch(() => jwksDocumentFor(idpJwt()));
+    const handle = createFederatedAuthHandle(handleOptions());
+    const event = createMockEvent({
+      path: '/api/data',
+      sessionCookie: await handSignIdpToken({ ...identityClaims(), purpose: '2fa-pending' })
+    });
+    const response = await handle({ event: asEvent(event), resolve: vi.fn() });
+    expect(response.status).toBe(401);
+    expect(event.locals.user).toBeNull();
+  });
+
+  it('rejects an oversized cookie before any parsing — and before any JWKS fetch', async () => {
+    const fetchMock = stubJwksFetch(() => jwksDocumentFor(idpJwt()));
+    const handle = createFederatedAuthHandle(handleOptions());
+    const event = createMockEvent({
+      path: '/api/data',
+      sessionCookie: 'x'.repeat(MAX_TOKEN_LENGTH + 1)
+    });
+    const response = await handle({ event: asEvent(event), resolve: vi.fn() });
+    expect(response.status).toBe(401);
+    expect(fetchMock, 'length cap precedes the key lookup').not.toHaveBeenCalled();
   });
 });
 

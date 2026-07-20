@@ -16,7 +16,7 @@ import { shieldLogger } from './deps.js';
 import { parseDurationSeconds } from './duration.js';
 import { base64UrlDecodeString } from './encoding.js';
 import { authError } from './handlers/errors.js';
-import { BASE64URL_REGEX, es256Verify } from './jwt.js';
+import { BASE64URL_REGEX, es256Verify, MAX_TOKEN_LENGTH, SESSION_TOKEN_PURPOSE } from './jwt.js';
 
 /**
  * The identity a verified IdP token proves — and NOTHING more. Deliberately
@@ -393,13 +393,17 @@ export function createFederatedAuthHandle<TUser>(
 
   /**
    * Verify the raw cookie value and project it down to identity claims.
-   * Mirrors `verifySessionToken`'s fail-closed shape checks, with two
-   * consumer-side differences: the algorithm is pinned to ES256 (see the
+   * Mirrors `verifySessionToken`'s fail-closed shape checks — including the
+   * input length cap and the mandatory `purpose: 'session'` binding — with
+   * two consumer-side differences: the algorithm is pinned to ES256 (see the
    * factory JSDoc), and a `kid` header is REQUIRED — the IdP's ES256 tokens
    * always carry one, so a kid-less token can only be foreign (and rejecting
    * it before key lookup means it cannot trigger a JWKS fetch either).
    */
   const verifyIdpToken = async (token: string): Promise<FederatedIdentity | null> => {
+    // Length cap before ANY parsing (see MAX_TOKEN_LENGTH in jwt.ts) — an
+    // oversized cookie is rejected before it can trigger a JWKS fetch.
+    if (token.length > MAX_TOKEN_LENGTH) return null;
     const parts = token.split('.');
     if (parts.length !== 3) return null;
     if (!parts.every((p) => BASE64URL_REGEX.test(p))) return null;
@@ -434,6 +438,14 @@ export function createFederatedAuthHandle<TUser>(
       if (typeof payload.exp !== 'number' || payload.exp < now) return null;
       if (typeof payload.iat !== 'number') return null;
       if (typeof payload.sub !== 'string' || typeof payload.email !== 'string') return null;
+      // Purpose binding, consistent across the app boundary: only a token the
+      // IdP minted AS A SESSION token may federate — the claim value is the
+      // shared SESSION_TOKEN_PURPOSE import, so IdP mint and consumer verify
+      // cannot drift. A signature-valid ES256 token stamped for any other
+      // purpose (or none — e.g. minted by a pre-purpose IdP version) fails
+      // closed here; upgrade order is IdP first (see docs/AUTH.md → Federated
+      // Identity → version skew).
+      if (payload.purpose !== SESSION_TOKEN_PURPOSE) return null;
       if (maxTokenAgeSeconds !== undefined && now - payload.iat > maxTokenAgeSeconds) return null;
       // Identity claims ONLY, constructed field-by-field — the token's
       // role/tv (IdP-internal authorization data) are structurally unable to

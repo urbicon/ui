@@ -76,6 +76,14 @@ export function clearPending2faCookie<R extends string>(
 
 // ---- Pending-2FA token ----------------------------------------------------
 
+/**
+ * The `purpose` claim of the pending-2FA token — stamped at mint and required
+ * verbatim by the verify (see `createSignedToken`'s purpose binding). Wire
+ * contract for in-flight tokens; renaming it invalidates pending logins for
+ * up to `pendingTokenTtl` (5 min default).
+ */
+const PENDING_2FA_TOKEN_PURPOSE = '2fa-pending';
+
 interface Pending2faClaims extends Record<string, unknown> {
   /** Domain marker — must be exactly `true`, distinguishing this from a session token. */
   pending2fa: true;
@@ -85,9 +93,10 @@ interface Pending2faClaims extends Record<string, unknown> {
 
 /**
  * Mint the signed pending-2FA token issued after a correct password when the
- * account has 2FA on. It carries only `{ pending2fa: true, sub: userId }` — no
- * email/role/tokenVersion — so `verifySessionToken` rejects it (it has no
- * `email`/`role`/`tv`) and it can never act as a session. Short-lived
+ * account has 2FA on. Purpose-bound (`'2fa-pending'`) — `verifySessionToken`
+ * rejects it in the primitive (its purpose is not `'session'`), so it can
+ * never act as a session; the claim shape (`{ pending2fa: true, sub }`, no
+ * email/role/tokenVersion) stays as defense in depth. Short-lived
  * (`twoFactor.pendingTokenTtl`, default 5 min). Signed with the existing
  * `jwt.secret`.
  */
@@ -98,21 +107,27 @@ export function createPending2faToken<R extends string>(
   return createSignedToken(
     { pending2fa: true, sub: userId } satisfies Pending2faClaims,
     config.jwt.secret,
-    pendingTtlSeconds(config.twoFactor)
+    pendingTtlSeconds(config.twoFactor),
+    PENDING_2FA_TOKEN_PURPOSE
   );
 }
 
 /**
  * Verify a pending-2FA token and return the user id, or `null` when it is
- * missing/expired/forged or not actually a pending-2FA token. The strict
- * `pending2fa === true` + string-`sub` check is what stops a token minted for
- * another purpose (or a session token) from being accepted here.
+ * missing/expired/forged or not actually a pending-2FA token. The purpose
+ * binding in `verifySignedToken` rejects any token minted for another purpose
+ * (session tokens included); the strict `pending2fa === true` + string-`sub`
+ * check stays on top as the domain-shape guard.
  */
 export async function verifyPending2faToken<R extends string>(
   token: string,
   config: AuthConfig<R>
 ): Promise<string | null> {
-  const claims = await verifySignedToken<Pending2faClaims>(token, config.jwt.secret);
+  const claims = await verifySignedToken<Pending2faClaims>(
+    token,
+    config.jwt.secret,
+    PENDING_2FA_TOKEN_PURPOSE
+  );
   if (!claims) return null;
   if (claims.pending2fa !== true) return null;
   if (typeof claims.sub !== 'string' || claims.sub.length === 0) return null;

@@ -125,12 +125,17 @@ export { createVerifyEmailChangeHandler } from './handlers/verify-email-change.j
 // Session JWT (HS256 default / ES256 opt-in) + generic short-lived signed
 // tokens (always HMAC) on Web Crypto. generateES256KeyPair mints the JWK pair
 // for jwt.algorithm 'ES256'; computeJwkThumbprint derives the RFC 7638 kid of
-// an existing key (e.g. for a hand-built previousPublicKeys entry).
+// an existing key (e.g. for a hand-built previousPublicKeys entry). Every
+// token is purpose-bound: session tokens carry purpose SESSION_TOKEN_PURPOSE
+// ('session'); createSignedToken/verifySignedToken take an explicit purpose.
+// All verifiers cap their input at MAX_TOKEN_LENGTH before parsing.
 export {
   computeJwkThumbprint,
   createSessionToken,
   createSignedToken,
   generateES256KeyPair,
+  MAX_TOKEN_LENGTH,
+  SESSION_TOKEN_PURPOSE,
   verifySessionToken,
   verifySignedToken
 } from './jwt.js';

@@ -1005,6 +1005,48 @@ export const conformanceChecks: readonly ConformanceCheck[] = [
       expect(winner, 'exactly one link exists').not.toBeNull();
       expect(['local-a', 'local-b']).toContain(winner?.userId);
     }
+  ),
+
+  check(
+    'federatedAccount.unlinkFederatedAccount is owner-scoped and enables the explicit re-link',
+    ['federatedAccount'],
+    async (repos) => {
+      const repo = need(repos.federatedAccount, 'federatedAccount');
+      const ISSUER = 'https://auth.conformance.test';
+      await repo.linkFederatedAccount('local-1', { issuer: ISSUER, subject: 'idp-1' });
+
+      // A non-owner cannot free the identity — unlink→re-link would otherwise
+      // be the account-takeover primitive laundered through two steps.
+      expect(
+        await repo.unlinkFederatedAccount('local-2', { issuer: ISSUER, subject: 'idp-1' }),
+        'non-owner → false'
+      ).toBe(false);
+      expect((await repo.findByFederatedId(ISSUER, 'idp-1'))?.userId, 'link survives').toBe(
+        'local-1'
+      );
+      // An unknown pair reports false, not an error.
+      expect(
+        await repo.unlinkFederatedAccount('local-1', { issuer: ISSUER, subject: 'ghost' })
+      ).toBe(false);
+
+      // The owner's unlink removes the link exactly once …
+      expect(
+        await repo.unlinkFederatedAccount('local-1', { issuer: ISSUER, subject: 'idp-1' })
+      ).toBe(true);
+      expect(await repo.findByFederatedId(ISSUER, 'idp-1')).toBeNull();
+      expect(
+        await repo.unlinkFederatedAccount('local-1', { issuer: ISSUER, subject: 'idp-1' }),
+        'second unlink → false'
+      ).toBe(false);
+
+      // … and the freed identity can be linked to another user — the
+      // "unlink it explicitly first" flow the link-conflict error points to.
+      const relinked = await repo.linkFederatedAccount('local-2', {
+        issuer: ISSUER,
+        subject: 'idp-1'
+      });
+      expect(relinked.userId).toBe('local-2');
+    }
   )
 ];
 

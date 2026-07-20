@@ -284,13 +284,28 @@ export interface FederatedAccountRepository {
    * `(issuer, subject, userId)` triple (returns the existing link). A pair
    * already linked to a **different** user MUST throw — silently re-pointing
    * the link would hand the existing local account to whoever presents the
-   * identity next (account-takeover primitive); an explicit unlink flow is the
-   * consumer's own, deliberate operation.
+   * identity next (account-takeover primitive); the explicit path is
+   * {@link unlinkFederatedAccount}, the consumer's own, deliberate operation.
    */
   linkFederatedAccount(
     userId: string,
     identity: { issuer: string; subject: string }
   ): Promise<FederatedAccount>;
+  /**
+   * Remove the link for `(issuer, subject)` — the explicit unlink the
+   * link-conflict error message points to. **Owner-scoped**: the row is
+   * removed only when it exists AND belongs to `userId`, in one conditional
+   * write (never SELECT-then-DELETE across an `await`). Returns `true` iff
+   * this call removed the link, else `false` (no link, or held by a different
+   * user). The scoping is load-bearing: an unscoped delete would let any
+   * caller free a foreign identity and immediately re-link it to themselves —
+   * the same account-takeover primitive {@link linkFederatedAccount} refuses,
+   * laundered through two steps.
+   */
+  unlinkFederatedAccount(
+    userId: string,
+    identity: { issuer: string; subject: string }
+  ): Promise<boolean>;
 }
 
 export interface InvitationRepository {

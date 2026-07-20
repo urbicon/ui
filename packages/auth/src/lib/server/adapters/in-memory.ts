@@ -877,7 +877,7 @@ function createInMemoryFederatedAccountRepositoryInternal(): {
         // take the link over (account-takeover primitive — see the contract).
         if (existing.userId === userId) return { ...existing };
         throw new Error(
-          '[auth] linkFederatedAccount: this federated identity is already linked to a different user — refusing to re-link (unlink it explicitly first).'
+          '[auth] linkFederatedAccount: this federated identity is already linked to a different user — refusing to re-link (unlink it explicitly first via unlinkFederatedAccount).'
         );
       }
       const row: FederatedAccount = {
@@ -888,6 +888,17 @@ function createInMemoryFederatedAccountRepositoryInternal(): {
       };
       links.set(k, row);
       return { ...row };
+    },
+
+    async unlinkFederatedAccount(userId, identity) {
+      // Owner-scoped conditional delete with no await between read and write
+      // (see the atomicity note on this module) — a non-owner can never free
+      // the pair for a takeover re-link.
+      const k = key(identity.issuer, identity.subject);
+      const existing = links.get(k);
+      if (!existing || existing.userId !== userId) return false;
+      links.delete(k);
+      return true;
     }
   };
 

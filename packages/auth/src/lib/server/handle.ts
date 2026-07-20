@@ -134,7 +134,7 @@ export function createAuthHandle<R extends string>(options: AuthHandleOptions<R>
     }
 
     // 2. Session from cookie → load user → set event.locals.user
-    const session = await getSessionFromCookie<R>(event.cookies, config.jwt);
+    const session = await getSessionFromCookie<R>(event.cookies, config.jwt, logger);
 
     if (session) {
       const user = await repos.user.findById(session.userId);

@@ -25,6 +25,44 @@ import { timingSafeEqual } from './timing-safe.js';
 // IdP verify path and the consumer verify path. Not part of the public API.
 export const BASE64URL_REGEX = /^[A-Za-z0-9_-]+$/;
 
+/**
+ * The `purpose` claim stamped into every session token (HS256 and ES256
+ * alike) and REQUIRED by `verifySessionToken` and the federated consumer
+ * handle (`createFederatedAuthHandle`). Purpose binding lives in the
+ * primitive, not in each caller's claim-shape check: two token kinds signed
+ * with the same `jwt.secret` (a session token and, say, the pending-2FA
+ * handle) can never be accepted for each other's purpose, whatever claims
+ * they carry. The value is wire contract across app boundaries (IdP ↔
+ * federated consumers) — never change it without upgrading both sides
+ * (IdP first; see docs/AUTH.md → Federated Identity).
+ */
+export const SESSION_TOKEN_PURPOSE = 'session';
+
+/**
+ * Hard input-length cap applied by `verifySessionToken`, `verifySignedToken`
+ * and the federated consumer handle BEFORE any splitting or parsing. Tokens
+ * this package mints are well under 1 KB, and browsers cap a cookie at ~4 KB
+ * (RFC 6265 minimum) — so 8 KB, double the cookie ceiling, can never reject a
+ * legitimate cookie-borne token while keeping adversarial input finite for a
+ * consumer that applies these verifiers to unbounded non-cookie input
+ * (headers, request bodies). Belt-and-suspenders: the parse path is linear
+ * and early-rejecting even without it.
+ */
+export const MAX_TOKEN_LENGTH = 8192;
+
+/**
+ * A missing/empty `purpose` is API misuse (a programming error), not a bad
+ * token: fail loud instead of silently verifying purposeless — that would
+ * reopen the cross-purpose acceptance the parameter exists to close.
+ */
+function requireValidPurpose(purpose: string, fn: string): void {
+  if (typeof purpose !== 'string' || purpose.length === 0) {
+    throw new Error(
+      `[auth] ${fn}: purpose must be a non-empty string (e.g. '2fa-pending') — it is stamped into the token at mint and required verbatim at verify.`
+    );
+  }
+}
+
 async function hmacSign(payload: string, secret: string): Promise<string> {
   const encoder = new TextEncoder();
   const key = await crypto.subtle.importKey(
@@ -184,8 +222,40 @@ function requireSigningKey(config: JwtConfig): Es256PrivateJwk {
   return config.signingKey;
 }
 
-let es256IgnoredWarned = false;
-let privateInPreviousWarned = false;
+/**
+ * Warn-once bookkeeping, keyed on the CONFIG OBJECT's identity (not
+ * module-global flags): a second misconfigured config in the same process
+ * warns for itself instead of being silenced by the first one's flag, while
+ * the usual repeat calls over one config (createAuthDeps + createAuthHandle,
+ * per-request verifies) still log once. WeakMap, so a dropped config releases
+ * its entry. The sink call is shielded per the {@link AuthLogger} contract —
+ * a broken logging transport must never break (or un-fail-close) the auth
+ * path it observes. Observability only: every caller stays fail-closed
+ * regardless of what is or isn't logged.
+ */
+const warnedPerConfig = new WeakMap<JwtConfig, Set<string>>();
+
+function warnOncePerConfig(
+  config: JwtConfig,
+  logger: AuthLogger,
+  category: string,
+  message: string,
+  ...context: unknown[]
+): void {
+  let seen = warnedPerConfig.get(config);
+  if (!seen) {
+    seen = new Set();
+    warnedPerConfig.set(config, seen);
+  }
+  if (seen.has(category)) return;
+  seen.add(category);
+  try {
+    logger.error(message, ...context);
+  } catch {
+    // Broken sink — swallowed (same shield as deps.ts' shieldLogger, which
+    // cannot be imported here without a module cycle).
+  }
+}
 
 /**
  * Fail loud at wiring time on an unusable JWT config — same posture as
@@ -236,9 +306,11 @@ export function assertJwtConfigValid(config: JwtConfig, logger: AuthLogger = con
           '[auth] every jwt.previousPublicKeys entry must be a public P-256 JWK with a kid (kty "EC", crv "P-256", x, y, kid) — verification and the JWKS endpoint select keys by kid.'
         );
       }
-      if (prev.d && !privateInPreviousWarned) {
-        privateInPreviousWarned = true;
-        logger.error(
+      if (prev.d) {
+        warnOncePerConfig(
+          config,
+          logger,
+          'private-in-previous',
           '[auth] a jwt.previousPublicKeys entry carries the private scalar `d`. Only its public members are used and published, but private key material does not belong in a public-key list — replace the entry with the public JWK.'
         );
       }
@@ -263,9 +335,11 @@ export function assertJwtConfigValid(config: JwtConfig, logger: AuthLogger = con
       }
       seenKids.add(kid);
     }
-  } else if ((config.signingKey || config.previousPublicKeys) && !es256IgnoredWarned) {
-    es256IgnoredWarned = true;
-    logger.error(
+  } else if (config.signingKey || config.previousPublicKeys) {
+    warnOncePerConfig(
+      config,
+      logger,
+      'es256-ignored',
       '[auth] jwt.signingKey / jwt.previousPublicKeys are set but jwt.algorithm is not "ES256" — they are ignored and sessions stay HMAC-signed (HS256). Set jwt.algorithm: "ES256" to activate the key.'
     );
   }
@@ -295,6 +369,9 @@ export async function createSessionToken<R extends string>(
       email: payload.email,
       role: payload.role,
       tv: payload.tokenVersion,
+      // Purpose binding: verifySessionToken AND the federated consumer handle
+      // require exactly this claim — see SESSION_TOKEN_PURPOSE.
+      purpose: SESSION_TOKEN_PURPOSE,
       iat: now,
       exp
     })
@@ -355,13 +432,13 @@ async function selectVerifyPublicKeys(
   return candidates.filter((c) => c.kid === tokenKid);
 }
 
-let previousSecretsImportWarned = false;
-let publicKeyImportWarned = false;
-
 export async function verifySessionToken<R extends string>(
   token: string,
-  config: JwtConfig
+  config: JwtConfig,
+  logger: AuthLogger = console
 ): Promise<AuthSession<R> | null> {
+  // Length cap before ANY parsing — see MAX_TOKEN_LENGTH.
+  if (token.length > MAX_TOKEN_LENGTH) return null;
   const parts = token.split('.');
   if (parts.length !== 3) return null;
   if (!parts.every((p) => BASE64URL_REGEX.test(p))) return null;
@@ -395,14 +472,13 @@ export async function verifySessionToken<R extends string>(
       try {
         if (await es256Verify(`${header}.${body}`, signature, publicKey)) valid = true;
       } catch (err) {
-        if (!publicKeyImportWarned) {
-          publicKeyImportWarned = true;
-
-          console.error(
-            '[auth] verifySessionToken: public key import failed — check config.signingKey / config.previousPublicKeys.',
-            err
-          );
-        }
+        warnOncePerConfig(
+          config,
+          logger,
+          'public-key-import',
+          '[auth] verifySessionToken: public key import failed — check config.signingKey / config.previousPublicKeys.',
+          err
+        );
       }
     }
   } else {
@@ -412,15 +488,15 @@ export async function verifySessionToken<R extends string>(
       } catch (err) {
         // A crypto.subtle.importKey rejection means the config has a malformed
         // secret (empty string, non-string). Don't mask as "no session" forever
-        // — warn loudly once so consumers notice the broken previousSecrets.
-        if (!previousSecretsImportWarned) {
-          previousSecretsImportWarned = true;
-
-          console.error(
-            '[auth] verifySessionToken: secret import failed — check config.secret / config.previousSecrets.',
-            err
-          );
-        }
+        // — warn loudly (once per config) so consumers notice the broken
+        // previousSecrets.
+        warnOncePerConfig(
+          config,
+          logger,
+          'secret-import',
+          '[auth] verifySessionToken: secret import failed — check config.secret / config.previousSecrets.',
+          err
+        );
       }
     }
   }
@@ -432,6 +508,14 @@ export async function verifySessionToken<R extends string>(
     // as "never expires", giving anyone in possession of a (current or
     // retired) signing secret an unbounded forge window.
     if (typeof payload.exp !== 'number' || payload.exp < Math.floor(Date.now() / 1000)) {
+      return null;
+    }
+    // Purpose binding: only a token MINTED as a session token may open a
+    // session — a signature-valid token stamped for another purpose (e.g. a
+    // pending-2FA handle signed with the same jwt.secret) is rejected here in
+    // the primitive, before its claim shape gets a say. Missing claim (a token
+    // minted by a pre-purpose package version) fails closed the same way.
+    if (payload.purpose !== SESSION_TOKEN_PURPOSE) {
       return null;
     }
     // Validate the claim shape even though the signature already matched: a
@@ -464,25 +548,46 @@ export async function verifySessionToken<R extends string>(
 // ---- Generic short-lived signed tokens ----
 
 /**
- * Sign an arbitrary claims object as a compact HS256 JWT, stamping `iat`/`exp`.
- * The generic counterpart to {@link createSessionToken} — for short-lived,
- * single-purpose tokens (e.g. the pending-2FA handle) that ride in their own
- * cookie and are read back with {@link verifySignedToken}. It is deliberately
- * HMAC-based under **every** `jwt.algorithm` — these tokens never leave the
- * deployment, so asymmetric verification buys nothing, which is why
- * `jwt.secret` stays required even in ES256 mode. No new key material is
- * introduced; pass `config.jwt.secret`. `expiresInSeconds` should be small
- * (minutes).
+ * Sign an arbitrary claims object as a compact HS256 JWT, stamping `iat`/`exp`
+ * and the mandatory `purpose` claim. The generic counterpart to
+ * {@link createSessionToken} — for short-lived, single-purpose tokens (e.g.
+ * the pending-2FA handle, `purpose: '2fa-pending'`) that ride in their own
+ * cookie and are read back with {@link verifySignedToken} under the SAME
+ * purpose. The purpose is the token's type: two token kinds signed with the
+ * same secret can never be accepted for each other (`purpose` is a reserved
+ * claim — passing it inside `claims` throws; `'session'` is taken by
+ * {@link SESSION_TOKEN_PURPOSE}). It is deliberately HMAC-based under
+ * **every** `jwt.algorithm` — these tokens never leave the deployment, so
+ * asymmetric verification buys nothing, which is why `jwt.secret` stays
+ * required even in ES256 mode. No new key material is introduced; pass
+ * `config.jwt.secret`. `expiresInSeconds` should be small (minutes).
  */
 export async function createSignedToken(
-  claims: Record<string, unknown>,
+  claims: Record<string, unknown> & { purpose?: never },
   secret: string,
-  expiresInSeconds: number
+  expiresInSeconds: number,
+  purpose: string
 ): Promise<string> {
+  requireValidPurpose(purpose, 'createSignedToken');
+  if (purpose === SESSION_TOKEN_PURPOSE) {
+    // Enforce the reservation instead of only documenting it: a consumer
+    // minting its own short-lived tokens under 'session' would collide with
+    // real session cookies in verifySignedToken (adversarial review, F1/LOW).
+    throw new Error(
+      `[auth] createSignedToken: purpose '${SESSION_TOKEN_PURPOSE}' is reserved for session tokens — mint those via createSessionToken; pick a distinct purpose (e.g. 'magic-link').`
+    );
+  }
+  if ('purpose' in claims) {
+    // Reserved claim — silently overwriting (in either direction) could mask
+    // a caller minting under a different purpose than it believes.
+    throw new Error(
+      '[auth] createSignedToken: `purpose` is a reserved claim — pass it as the `purpose` parameter, not inside `claims`.'
+    );
+  }
   const header = base64UrlEncodeString(JSON.stringify({ alg: 'HS256', typ: 'JWT' }));
   const now = Math.floor(Date.now() / 1000);
   const body = base64UrlEncodeString(
-    JSON.stringify({ ...claims, iat: now, exp: now + expiresInSeconds })
+    JSON.stringify({ ...claims, purpose, iat: now, exp: now + expiresInSeconds })
   );
   const signature = await hmacSign(`${header}.${body}`, secret);
   return `${header}.${body}.${signature}`;
@@ -490,17 +595,24 @@ export async function createSignedToken(
 
 /**
  * Verify a {@link createSignedToken} token: timing-safe signature check plus a
- * **mandatory, in-date `exp`**. Returns the decoded claims on success, else
- * `null` (malformed, bad signature, missing/expired `exp`) — never throws. A
- * valid signature does NOT vouch for claim shape: the caller MUST still check
- * the domain claims it expects (e.g. `pending2fa === true`, a string `sub`),
- * exactly as `verifySessionToken` validates its claim shape. This is what keeps
- * a token minted for one purpose from being accepted for another.
+ * **mandatory, in-date `exp`** plus a **mandatory `purpose` match** — a token
+ * whose `purpose` claim is missing or differs from the `purpose` argument is
+ * rejected in the primitive, whatever its other claims say. Returns the
+ * decoded claims on success, else `null` (oversized, malformed, bad
+ * signature, missing/expired `exp`, wrong purpose) — never throws on token
+ * input (an invalid `purpose` ARGUMENT throws: that is API misuse, not a bad
+ * token). A valid signature+purpose still does not vouch for claim shape: the
+ * caller SHOULD keep checking the domain claims it expects (e.g. a string
+ * `sub`), exactly as `verifySessionToken` validates its claim shape.
  */
 export async function verifySignedToken<T extends Record<string, unknown>>(
   token: string,
-  secret: string
-): Promise<(T & { iat: number; exp: number }) | null> {
+  secret: string,
+  purpose: string
+): Promise<(T & { purpose: string; iat: number; exp: number }) | null> {
+  requireValidPurpose(purpose, 'verifySignedToken');
+  // Length cap before ANY parsing — see MAX_TOKEN_LENGTH.
+  if (token.length > MAX_TOKEN_LENGTH) return null;
   const parts = token.split('.');
   if (parts.length !== 3) return null;
   if (!parts.every((p) => BASE64URL_REGEX.test(p))) return null;
@@ -522,7 +634,11 @@ export async function verifySignedToken<T extends Record<string, unknown>>(
     if (typeof payload.exp !== 'number' || payload.exp < Math.floor(Date.now() / 1000)) {
       return null;
     }
-    return payload as T & { iat: number; exp: number };
+    // Purpose binding — strict equality, fail-closed on absence: a token
+    // minted for another purpose (or a session token, purpose 'session')
+    // never reaches the caller's domain checks.
+    if (payload.purpose !== purpose) return null;
+    return payload as T & { purpose: string; iat: number; exp: number };
   } catch {
     return null;
   }

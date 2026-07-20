@@ -6,6 +6,8 @@ import {
   createSessionToken,
   createSignedToken,
   generateES256KeyPair,
+  MAX_TOKEN_LENGTH,
+  SESSION_TOKEN_PURPOSE,
   verifySessionToken,
   verifySignedToken
 } from './jwt.js';
@@ -128,24 +130,27 @@ describe('createSessionToken / verifySessionToken', () => {
     }
 
     const future = Math.floor(Date.now() / 1000) + 3600;
+    // (purpose is correct throughout — these cases must exercise the SHAPE
+    // guard, not the purpose binding, which has its own describe below.)
+    const purpose = SESSION_TOKEN_PURPOSE;
     // Missing `sub` entirely.
     expect(
       await verifySessionToken(
-        await signRaw({ email: 'a@b.c', role: 'user', tv: 0, exp: future }),
+        await signRaw({ email: 'a@b.c', role: 'user', tv: 0, exp: future, purpose }),
         jwtConfig
       )
     ).toBeNull();
     // `role` is a number, not a string.
     expect(
       await verifySessionToken(
-        await signRaw({ sub: '1', email: 'a@b.c', role: 1, tv: 0, exp: future }),
+        await signRaw({ sub: '1', email: 'a@b.c', role: 1, tv: 0, exp: future, purpose }),
         jwtConfig
       )
     ).toBeNull();
     // `tv` missing.
     expect(
       await verifySessionToken(
-        await signRaw({ sub: '1', email: 'a@b.c', role: 'user', exp: future }),
+        await signRaw({ sub: '1', email: 'a@b.c', role: 'user', exp: future, purpose }),
         jwtConfig
       )
     ).toBeNull();
@@ -270,6 +275,7 @@ function futureClaims(): Record<string, unknown> {
     email: 'u@u',
     role: 'USER',
     tv: 1,
+    purpose: SESSION_TOKEN_PURPOSE,
     exp: Math.floor(Date.now() / 1000) + 3600
   };
 }
@@ -345,10 +351,10 @@ describe('ES256 session tokens', () => {
     // createSignedToken/verifySignedToken (pending-2FA etc.) take the secret
     // directly and stay HS256 by design — the reason `secret` remains
     // required in ES256 mode.
-    const token = await createSignedToken({ purpose: 'pending-2fa' }, esConfig.secret, 60);
+    const token = await createSignedToken({ sub: 'u-1' }, esConfig.secret, 60, '2fa-pending');
     expect(decodeHeader(token).alg).toBe('HS256');
-    const claims = await verifySignedToken<{ purpose: string }>(token, esConfig.secret);
-    expect(claims?.purpose).toBe('pending-2fa');
+    const claims = await verifySignedToken<{ sub: string }>(token, esConfig.secret, '2fa-pending');
+    expect(claims?.purpose).toBe('2fa-pending');
   });
 });
 
@@ -553,15 +559,24 @@ describe('assertJwtConfigValid', () => {
     expect(logger.error).toHaveBeenCalledWith(expect.stringContaining('private scalar `d`'));
   });
 
-  it('warns loudly (once) when a signingKey is set without algorithm ES256', async () => {
+  it('warns loudly (once per config) when a signingKey is set without algorithm ES256', async () => {
     const pair = await generateES256KeyPair();
     const logger = { warn: vi.fn(), error: vi.fn() };
-    assertJwtConfigValid({ secret: 's', signingKey: pair.privateKey }, logger);
-    assertJwtConfigValid({ secret: 's', signingKey: pair.privateKey }, logger);
+    // Deduplication is per CONFIG OBJECT: the two entry points (createAuthDeps
+    // + createAuthHandle) assert the same object → one warning …
+    const config: JwtConfig = { secret: 's', signingKey: pair.privateKey };
+    assertJwtConfigValid(config, logger);
+    assertJwtConfigValid(config, logger);
     expect(logger.error).toHaveBeenCalledTimes(1);
     expect(logger.error).toHaveBeenCalledWith(
       expect.stringContaining('jwt.algorithm is not "ES256"')
     );
+    // … while a SECOND misconfigured config in the same process warns for
+    // itself instead of being silenced by the first one's flag (F3).
+    const second: JwtConfig = { secret: 's2', signingKey: pair.privateKey };
+    assertJwtConfigValid(second, logger);
+    assertJwtConfigValid(second, logger);
+    expect(logger.error).toHaveBeenCalledTimes(2);
   });
 
   it('accepts a plain HS256 config silently', () => {
@@ -635,9 +650,9 @@ describe('assertJwtConfigValid', () => {
 });
 
 describe('createSignedToken / verifySignedToken', () => {
-  it('round-trips arbitrary claims', async () => {
-    const token = await createSignedToken({ purpose: 'x', sub: 'u-1' }, 'secret', 300);
-    const claims = await verifySignedToken<{ purpose: string; sub: string }>(token, 'secret');
+  it('round-trips arbitrary claims and stamps the purpose', async () => {
+    const token = await createSignedToken({ sub: 'u-1' }, 'secret', 300, 'x');
+    const claims = await verifySignedToken<{ sub: string }>(token, 'secret', 'x');
     expect(claims?.purpose).toBe('x');
     expect(claims?.sub).toBe('u-1');
     expect(typeof claims?.exp).toBe('number');
@@ -645,19 +660,200 @@ describe('createSignedToken / verifySignedToken', () => {
   });
 
   it('rejects an expired token (exp in the past)', async () => {
-    const token = await createSignedToken({ sub: 'u-1' }, 'secret', -1);
-    expect(await verifySignedToken(token, 'secret')).toBeNull();
+    const token = await createSignedToken({ sub: 'u-1' }, 'secret', -1, 'x');
+    expect(await verifySignedToken(token, 'secret', 'x')).toBeNull();
   });
 
   it('rejects a wrong secret and a tampered body', async () => {
-    const token = await createSignedToken({ sub: 'u-1' }, 'secret', 300);
-    expect(await verifySignedToken(token, 'other-secret')).toBeNull();
+    const token = await createSignedToken({ sub: 'u-1' }, 'secret', 300, 'x');
+    expect(await verifySignedToken(token, 'other-secret', 'x')).toBeNull();
     const tampered = token.slice(0, -1) + (token.endsWith('A') ? 'B' : 'A');
-    expect(await verifySignedToken(tampered, 'secret')).toBeNull();
+    expect(await verifySignedToken(tampered, 'secret', 'x')).toBeNull();
   });
 
   it('rejects malformed input without throwing', async () => {
-    expect(await verifySignedToken('a.b', 'secret')).toBeNull();
-    expect(await verifySignedToken('not a token', 'secret')).toBeNull();
+    expect(await verifySignedToken('a.b', 'secret', 'x')).toBeNull();
+    expect(await verifySignedToken('not a token', 'secret', 'x')).toBeNull();
+  });
+});
+
+describe('purpose binding (F2)', () => {
+  const jwtConfig: JwtConfig = { secret: 'purpose-binding-secret', expiresIn: '1h' };
+
+  /** HMAC-sign an arbitrary payload with the REAL secret (adversarial mints). */
+  async function signRaw(payload: Record<string, unknown>): Promise<string> {
+    const header = encSegment({ alg: 'HS256', typ: 'JWT' });
+    const body = encSegment(payload);
+    return `${header}.${body}.${await hmacSignRaw(`${header}.${body}`, jwtConfig.secret)}`;
+  }
+
+  it('stamps purpose "session" into session tokens (HS256 and ES256)', async () => {
+    const decodeBody = (token: string): Record<string, unknown> =>
+      JSON.parse(Buffer.from(token.split('.')[1], 'base64url').toString());
+    expect(decodeBody(await createSessionToken(session, jwtConfig)).purpose).toBe('session');
+    const pair = await generateES256KeyPair();
+    const esToken = await createSessionToken(session, {
+      secret: 's',
+      algorithm: 'ES256',
+      signingKey: pair.privateKey
+    });
+    expect(decodeBody(esToken).purpose).toBe(SESSION_TOKEN_PURPOSE);
+  });
+
+  it('rejects a signature-valid, session-shaped token WITHOUT the purpose claim', async () => {
+    const { purpose: _dropped, ...withoutPurpose } = futureClaims();
+    expect(await verifySessionToken(await signRaw(withoutPurpose), jwtConfig)).toBeNull();
+  });
+
+  it('rejects a signature-valid, session-shaped token with a WRONG purpose', async () => {
+    const forged = await signRaw({ ...futureClaims(), purpose: '2fa-pending' });
+    expect(await verifySessionToken(forged, jwtConfig)).toBeNull();
+  });
+
+  it('rejects an ES256 session-shaped token without the purpose claim', async () => {
+    const pair = await generateES256KeyPair();
+    const esConfig: JwtConfig = { secret: 's', algorithm: 'ES256', signingKey: pair.privateKey };
+    const header = encSegment({ alg: 'ES256', typ: 'JWT', kid: pair.kid });
+    const { purpose: _dropped, ...withoutPurpose } = futureClaims();
+    const body = encSegment(withoutPurpose);
+    const signature = await es256SignRaw(`${header}.${body}`, pair.privateKey);
+    expect(await verifySessionToken(`${header}.${body}.${signature}`, esConfig)).toBeNull();
+  });
+
+  it('a createSignedToken token can no longer act as a session, even with session-shaped claims', async () => {
+    // Pre-F2 this VERIFIED: same secret, same HMAC, session-shaped claims —
+    // purpose separation lived only in each caller's shape check. Now the
+    // primitive itself refuses the foreign purpose.
+    const impostor = await createSignedToken(
+      { sub: 'u-1', email: 'u@u', role: 'USER', tv: 1 },
+      jwtConfig.secret,
+      3600,
+      'not-a-session'
+    );
+    expect(await verifySessionToken(impostor, jwtConfig)).toBeNull();
+  });
+
+  it('a session token is not accepted by verifySignedToken for another purpose', async () => {
+    const sessionToken = await createSessionToken(session, jwtConfig);
+    expect(await verifySignedToken(sessionToken, jwtConfig.secret, '2fa-pending')).toBeNull();
+    // Deliberate equivalence stays possible: expecting exactly 'session' works
+    // (verifySignedToken and createSessionToken share the HMAC under HS256).
+    expect(
+      await verifySignedToken(sessionToken, jwtConfig.secret, SESSION_TOKEN_PURPOSE)
+    ).not.toBeNull();
+  });
+
+  it('verifySignedToken requires an exact purpose match', async () => {
+    const token = await createSignedToken({ sub: 'u-1' }, 'secret', 300, 'purpose-a');
+    expect(await verifySignedToken(token, 'secret', 'purpose-a')).not.toBeNull();
+    expect(await verifySignedToken(token, 'secret', 'purpose-b')).toBeNull();
+  });
+
+  it('createSignedToken rejects the reserved `purpose` claim inside claims (fail loud)', async () => {
+    await expect(
+      createSignedToken({ purpose: 'smuggled' } as never, 'secret', 300, 'x')
+    ).rejects.toThrow(/reserved claim/);
+  });
+
+  it('createSignedToken refuses to mint under the reserved session purpose (fail loud)', async () => {
+    // The reservation is load-bearing, not documentation: a consumer minting
+    // e.g. magic-link tokens under 'session' would collide with real session
+    // cookies in verifySignedToken (adversarial review, finding 1).
+    await expect(
+      createSignedToken({ sub: 'u-1' }, 'secret', 300, SESSION_TOKEN_PURPOSE)
+    ).rejects.toThrow(/reserved for session tokens/);
+  });
+
+  it('fails loud on a missing/empty purpose argument (API misuse, not a bad token)', async () => {
+    await expect(createSignedToken({ sub: 'u' }, 'secret', 300, '')).rejects.toThrow(
+      /purpose must be a non-empty string/
+    );
+    await expect(
+      createSignedToken({ sub: 'u' }, 'secret', 300, undefined as unknown as string)
+    ).rejects.toThrow(/purpose must be a non-empty string/);
+    await expect(verifySignedToken('a.b.c', 'secret', '')).rejects.toThrow(
+      /purpose must be a non-empty string/
+    );
+    await expect(
+      verifySignedToken('a.b.c', 'secret', undefined as unknown as string)
+    ).rejects.toThrow(/purpose must be a non-empty string/);
+  });
+});
+
+describe('verifier input length cap (F4)', () => {
+  it('rejects oversized input before parsing — both verifiers, no throw', async () => {
+    const oversized = 'x'.repeat(MAX_TOKEN_LENGTH + 1);
+    expect(await verifySessionToken(oversized, { secret: 's' })).toBeNull();
+    expect(await verifySignedToken(oversized, 's', 'x')).toBeNull();
+  });
+
+  it('rejects even a genuinely signature-valid token beyond the cap', async () => {
+    // A validly signed token whose (absurd) claims push it past 8 KB: the cap
+    // gates BEFORE the signature could vouch for it.
+    const token = await createSignedToken({ blob: 'a'.repeat(9000) }, 'secret', 300, 'x');
+    expect(token.length).toBeGreaterThan(MAX_TOKEN_LENGTH);
+    expect(await verifySignedToken(token, 'secret', 'x')).toBeNull();
+  });
+
+  it('leaves typical tokens far below the cap (sanity)', async () => {
+    const config: JwtConfig = { secret: 'test-secret-key-for-testing' };
+    const token = await createSessionToken(session, config);
+    expect(token.length).toBeLessThan(MAX_TOKEN_LENGTH / 8);
+    expect(await verifySessionToken(token, config)).not.toBeNull();
+  });
+});
+
+describe('per-config verify-path logging (F3)', () => {
+  it('routes secret-import failures to the provided logger, deduped per config', async () => {
+    const logger = { warn: vi.fn(), error: vi.fn() };
+    // A verifiable-format token; the broken config (empty secret) makes
+    // crypto.subtle.importKey reject inside the verify loop.
+    const token = await createSessionToken(session, { secret: 'good-secret' });
+    const broken: JwtConfig = { secret: '' };
+    expect(await verifySessionToken(token, broken, logger)).toBeNull();
+    expect(await verifySessionToken(token, broken, logger)).toBeNull();
+    expect(logger.error).toHaveBeenCalledTimes(1);
+    expect(logger.error).toHaveBeenCalledWith(
+      expect.stringContaining('secret import failed'),
+      expect.anything()
+    );
+    // A SECOND broken config warns for itself (previously: module-global flag).
+    const broken2: JwtConfig = { secret: '' };
+    expect(await verifySessionToken(token, broken2, logger)).toBeNull();
+    expect(logger.error).toHaveBeenCalledTimes(2);
+  });
+
+  it('routes public-key-import failures to the provided logger (ES256 path)', async () => {
+    const pair = await generateES256KeyPair();
+    const token = await createSessionToken(session, {
+      secret: 's',
+      algorithm: 'ES256',
+      signingKey: pair.privateKey
+    });
+    const logger = { warn: vi.fn(), error: vi.fn() };
+    // Same kid, corrupted key material → importKey rejects on the verify path.
+    const broken: JwtConfig = {
+      secret: 's',
+      algorithm: 'ES256',
+      signingKey: { ...pair.privateKey, x: '#not-base64url#' }
+    };
+    expect(await verifySessionToken(token, broken, logger)).toBeNull();
+    expect(await verifySessionToken(token, broken, logger)).toBeNull();
+    expect(logger.error).toHaveBeenCalledTimes(1);
+    expect(logger.error).toHaveBeenCalledWith(
+      expect.stringContaining('public key import failed'),
+      expect.anything()
+    );
+  });
+
+  it('stays fail-closed and never throws when the logger sink throws', async () => {
+    const token = await createSessionToken(session, { secret: 'good-secret' });
+    const hostileLogger = {
+      warn: vi.fn(),
+      error: vi.fn(() => {
+        throw new Error('broken transport');
+      })
+    };
+    await expect(verifySessionToken(token, { secret: '' }, hostileLogger)).resolves.toBeNull();
   });
 });
