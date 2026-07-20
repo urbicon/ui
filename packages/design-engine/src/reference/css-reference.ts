@@ -102,7 +102,9 @@ Override example (dark neon theme):
 
 const TEXT = `# Text Tokens
 
-9 tokens for text colors. All auto-switch in dark mode.
+10 tokens for text colors. All auto-switch in dark mode except \`text-on-warning\`,
+which is deliberately mode-invariant (warning's fill is light amber in both modes,
+so its label is a warm dark in both).
 
 | CSS Variable | Tailwind Utility | Purpose |
 |---|---|---|
@@ -112,9 +114,10 @@ const TEXT = `# Text Tokens
 | \`--color-text-quaternary\` | \`text-text-quaternary\` | Most subtle text |
 | \`--color-text-disabled\` | \`text-text-disabled\` | Disabled text |
 | \`--color-text-inverted\` | \`text-text-inverted\` | Text on inverted surfaces |
-| \`--color-text-on-primary\` | \`text-text-on-primary\` | Text on intent-colored backgrounds |
+| \`--color-text-on-primary\` | \`text-text-on-primary\` | Text on intent-colored fills (all intents except warning) |
+| \`--color-text-on-warning\` | \`text-text-on-warning\` | Text on the warning fill — warm dark (warning-950) in both modes |
 | \`--color-text-on-dark\` | \`text-text-on-dark\` | Text on dark surfaces |
-| \`--color-text-on-surface\` | \`text-text-on-surface\` | Text on any surface (auto-contrast) |
+| \`--color-text-on-surface\` | \`text-text-on-surface\` | Text on any surface (auto-contrast) — never on intent fills |
 
 Light → Dark mapping:
 - \`text-primary\`: neutral-900 (dark) → neutral-100 (light)
@@ -164,6 +167,10 @@ Each intent has these variants (example: \`primary\`):
 Same pattern applies to: \`success-*\`, \`warning-*\`, \`danger-*\`, \`secondary-*\`, \`neutral-*\`.
 
 \`info-*\` has the identical shape (\`--color-info\`, \`-hover\`, \`-active\`, \`-subtle\`, \`-emphasis\` → \`bg-info\`, \`text-info\`, \`bg-info-subtle\`, …) — the status/feedback blue (hue 220) behind Alert/Toast/Tooltip's info state, \`--color-feedback-info\`, and \`--color-chart-5\`. It is NOT in the global \`ComponentIntent\` union above: the feedback components with a built-in info state (Alert, Toast, Tooltip) do accept \`intent="info"\`, but generic components (Button, Badge, …) take the six-value union, so on those reach for the \`bg-info\`/\`text-info\` utilities rather than \`intent="info"\`.
+
+## Labels on Filled Intents
+
+Text sitting ON a solid intent fill takes \`text-text-on-primary\` — mode-aware (white in light mode, near-black in dark mode, where the fills resolve to their lighter stops). The one exception is \`warning\`: its fill stays light amber in BOTH modes, so its label is \`text-text-on-warning\` — a warm dark (the ramp's own 950 stop) that deliberately does NOT switch with the mode and follows theme re-hues. Never use \`text-text-on-surface\` on an intent fill — it tracks the page background, not the fill.
 
 ## Foundation Intent Scales
 

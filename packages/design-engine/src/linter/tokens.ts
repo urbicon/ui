@@ -41,7 +41,8 @@ const TEXT_CORES = [
   'text-inverted',
   'text-on-primary',
   'text-on-dark',
-  'text-on-surface'
+  'text-on-surface',
+  'text-on-warning'
 ] as const;
 
 /** Border colour tokens → `border-border-*`. */
@@ -256,7 +257,7 @@ export const KNOWN_BAD_NAMESPACES: Record<string, string> = {
   'status-':
     'Use a `feedback-*` token (feedback-success, feedback-error, …) or a bare intent (`success`, `danger`).',
   // `-fg` / `-foreground` suffixes are invented; the system uses `text-on-primary` etc.
-  '-fg': 'Use `text-on-primary` / `text-on-surface` for foreground-on-intent text.'
+  '-fg': 'Use `text-on-primary` for foreground-on-intent text (`text-on-warning` on warning fills).'
 };
 
 /**

@@ -159,7 +159,7 @@ export const alertVariants = tv({
     {
       intent: 'warning',
       variant: 'filled',
-      class: { base: 'bg-warning text-text-on-surface', dismissButton: 'text-text-on-surface' }
+      class: { base: 'bg-warning text-text-on-warning', dismissButton: 'text-text-on-warning' }
     },
     {
       intent: 'danger',

@@ -168,7 +168,7 @@ Always use semantic tokens over primitive Tailwind classes:
 | `border-neutral-200 dark:border-neutral-700` | `border-border-subtle`  |
 | `border-neutral-300 dark:border-neutral-600` | `border-border-default` |
 | `text-white` (on intent bg)                  | `text-text-on-primary`  |
-| `text-neutral-900` (on warning bg)           | `text-text-on-surface`  |
+| `text-neutral-900` (on warning bg)           | `text-text-on-warning`  |
 
 ### Z-Index
 

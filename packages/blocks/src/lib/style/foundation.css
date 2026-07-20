@@ -52,20 +52,20 @@
   --color-warm-neutral-900: oklch(0.2 0.008 45);
   --color-warm-neutral-950: oklch(0.12 0.006 45);
 
-  /* Darkened *-500 / *-600 / *-700 so text-on-primary (white) passes WCAG
-     AA (4.5:1) on the solid intent backgrounds **in light mode**, where
-     --color-<intent> resolves to the -500/-600 shades. Previous values had
-     L=0.65 which produced ~3:1 contrast — below AA. Warning keeps its
-     yellow hue at L=0.75 because it pairs with text-on-surface (dark),
-     not white.
+  /* Darkened *-500 / *-600 / *-700 so text-on-primary (white in light mode)
+     passes WCAG AA (4.5:1) on the solid intent backgrounds **in light
+     mode**, where --color-<intent> resolves to the -500/-600 shades.
+     Previous values had L=0.65 which produced ~3:1 contrast — below AA.
+     Warning is the one inverted ramp: its fill stays light in both modes
+     (500 keeps its yellow at L=0.75) and pairs with the dark,
+     non-mode-aware `text-on-warning` (= warning-950), not white.
 
-     Scope, measured (contrast.test.ts, 2026-07-14): this holds for light
-     mode only. In dark mode --color-<intent> resolves to the *lighter*
-     -400/-300/-200 shades while --color-text-on-primary stays white, so
-     every filled intent lands at 1.5–4.1:1. That is a semantic.css issue
-     (text-on-primary is not mode-aware), not something these ramps can fix
-     — see the KNOWN SHORTFALLS block in contrast.test.ts. Do not "fix" it
-     by lightening these ramps; that would break light mode instead. */
+     In dark mode --color-<intent> resolves to the *lighter* -400/-300/-200
+     shades and pairs with the dark branch of the mode-aware
+     `text-on-primary` (semantic.css, 2026-07-14). Both directions are
+     measured across all six themes by style/contrast.test.ts. Do not
+     lighten these ramps to "help" dark mode; light mode is the branch
+     these stops guarantee. */
   --color-success-50: oklch(0.95 0.03 140);
   --color-success-100: oklch(0.9 0.05 140);
   --color-success-200: oklch(0.82 0.08 140);
@@ -85,7 +85,14 @@
   --color-warning-400: oklch(0.66 0.14 80);
   --color-warning-500: oklch(0.75 0.15 80);
   --color-warning-600: oklch(0.65 0.15 80);
-  --color-warning-700: oklch(0.55 0.13 80);
+  /* L=0.59, not the ramp's usual 0.55: warning-700 is the light-mode press
+     fill (--color-warning-active) under the dark `text-on-warning`
+     (warning-950). Warning's ramp is inverted — pressing moves TOWARD the
+     dark label — and at L=0.55 the press state measured 3.90–4.05:1, under
+     AA. 0.59 is the lowest 0.01 step at which every themed hue clears
+     4.5:1 (0.58 still fails forest's hue 60 at 4.46:1). Mirrored by the
+     forest/sunset ramps; guarded by contrast.test.ts. */
+  --color-warning-700: oklch(0.59 0.13 80);
   --color-warning-800: oklch(0.45 0.11 80);
   --color-warning-900: oklch(0.25 0.08 80);
   --color-warning-950: oklch(0.15 0.05 80);

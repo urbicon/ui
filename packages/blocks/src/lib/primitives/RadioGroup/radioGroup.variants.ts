@@ -160,7 +160,7 @@ export const radioItemVariants = tv({
     {
       checked: true,
       intent: 'warning',
-      class: { indicator: 'bg-warning border-warning', dot: 'bg-neutral-900' }
+      class: { indicator: 'bg-warning border-warning', dot: 'bg-text-on-warning' }
     },
     {
       checked: true,

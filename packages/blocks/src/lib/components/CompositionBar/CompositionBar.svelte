@@ -147,7 +147,7 @@
     primary: 'text-text-on-primary',
     secondary: 'text-text-on-primary',
     success: 'text-text-on-primary',
-    warning: 'text-text-on-surface',
+    warning: 'text-text-on-warning',
     danger: 'text-text-on-primary',
     neutral: 'text-text-on-primary'
   };

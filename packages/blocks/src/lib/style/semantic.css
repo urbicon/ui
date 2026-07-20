@@ -54,12 +54,13 @@
   --color-text-tertiary: light-dark(var(--color-neutral-600), var(--color-neutral-300));
   --color-text-quaternary: light-dark(var(--color-neutral-500), var(--color-neutral-400));
   --color-text-disabled: light-dark(var(--color-neutral-300), var(--color-neutral-600));
-  /* The two on-colors below pair text with a *fill* rather than a surface.
-     Their fills are dark in light mode and light in dark mode, so the label
-     has to travel the opposite way — white, then near-black. They are
-     deliberately NOT aliased to one another (`text-on-primary: var(
-     --color-text-on-dark)`), even though they carry the same value today —
-     they answer to different fills and must stay independently overridable:
+  /* The on-colors below pair text with a *fill* rather than a surface.
+     text-on-dark and text-on-primary answer fills that are dark in light
+     mode and light in dark mode, so the label has to travel the opposite
+     way — white, then near-black. They are deliberately NOT aliased to one
+     another (`text-on-primary: var(--color-text-on-dark)`), even though
+     they carry the same value today — they answer to different fills and
+     must stay independently overridable:
 
        - text-on-dark is the partner of the avatar identity palette, whose 12
          slots hold ONE lightness per mode (0.45 / 0.72) by construction.
@@ -75,10 +76,21 @@
      Material-3 `onPrimary` pattern). White here was unconditional until
      2026-07-14, which put 125 of the 126 dark-mode intent fills under WCAG AA
      — down to 1.51:1, and getting *worse* on press. The mode-aware branch
-     clears all 108 fills this token governs; `warning` is not one of them (it
-     pairs with text-on-surface and is still under AA in dark mode — see the
-     KNOWN SHORTFALLS block in style/contrast.test.ts, which guards all of it). */
+     clears all 108 fills this token governs; `warning` is not one of them —
+     its fill is light in BOTH modes, so it carries its own non-mode-aware
+     on-color below (`--color-text-on-warning`). */
   --color-text-on-primary: light-dark(var(--color-neutral-0), var(--color-neutral-900));
+  /* Warning's own on-color. Warning is the one intent whose fill stays a
+     light amber in BOTH modes (base/hover/active ride L 0.59–0.82), so unlike
+     text-on-primary this token is deliberately NOT mode-aware — the label is
+     a warm dark in both modes. It rides the warning ramp's own 950 stop
+     rather than a neutral, so theme re-hues (forest 60, sunset 92) flow
+     through and the label reads as part of the swatch instead of soot on top
+     of it. Until 2026-07-20 filled warning paired with `text-on-surface` — a
+     *surface* token that flips light in dark mode — which put all 18
+     dark-mode warning fills at 1.51–2.80:1. Measured across every theme ×
+     mode × state by style/contrast.test.ts. */
+  --color-text-on-warning: var(--color-warning-950);
   --color-text-on-surface: light-dark(var(--color-neutral-900), var(--color-neutral-100));
 
   /* === PRIMARY INTENT ===

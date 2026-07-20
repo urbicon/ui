@@ -326,9 +326,9 @@
       Six intent ramps — primary, secondary, success, warning, danger, info — each a full 50–950
       ladder. The 500/600/700 stops are tuned dark enough that white
       <code class="bg-surface-subtle rounded-modify px-1.5 py-0.5 text-sm">text-on-primary</code>
-      passes WCAG AA on the solid fills; warning is the deliberate exception (it stays light and pairs
-      with dark
-      <code class="bg-surface-subtle rounded-modify px-1.5 py-0.5 text-sm">text-on-surface</code>).
+      passes WCAG AA on the solid fills; warning is the deliberate exception (its fill stays light in
+      both modes and pairs with its own warm-dark
+      <code class="bg-surface-subtle rounded-modify px-1.5 py-0.5 text-sm">text-on-warning</code>).
       A separate
       <code class="bg-surface-subtle rounded-modify px-1.5 py-0.5 text-sm">warm-neutral</code>
       ramp powers the themeable neutral intent chrome.

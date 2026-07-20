@@ -314,7 +314,7 @@ export const badgeVariants = tv({
       intent: 'warning',
       variant: 'filled',
       class: {
-        base: 'bg-warning text-text-on-surface border-warning'
+        base: 'bg-warning text-text-on-warning border-warning'
       }
     },
     {

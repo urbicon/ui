@@ -86,7 +86,9 @@
   --color-warning-400: oklch(0.66 0.14 60);
   --color-warning-500: oklch(0.75 0.15 60);
   --color-warning-600: oklch(0.65 0.15 60);
-  --color-warning-700: oklch(0.55 0.13 60);
+  /* 0.59 mirrors foundation.css: light-mode press fill under the dark
+     text-on-warning — hue 60 is the binding case (0.58 = 4.46:1, under AA). */
+  --color-warning-700: oklch(0.59 0.13 60);
   --color-warning-800: oklch(0.45 0.11 60);
   --color-warning-900: oklch(0.25 0.08 60);
   --color-warning-950: oklch(0.15 0.05 60);

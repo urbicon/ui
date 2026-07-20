@@ -54,7 +54,7 @@ export const tooltipVariants = tv({
       secondary: { base: 'bg-secondary text-text-on-primary' },
       info: { base: 'bg-info text-text-on-primary' },
       success: { base: 'bg-success text-text-on-primary' },
-      warning: { base: 'bg-warning text-text-on-surface' },
+      warning: { base: 'bg-warning text-text-on-warning' },
       danger: { base: 'bg-danger text-text-on-primary' },
       neutral: { base: 'bg-surface-inverted text-text-inverted' }
     },

@@ -148,7 +148,7 @@ export const checkboxVariants = tv({
       checked: true,
       intent: 'warning',
       class: {
-        box: 'bg-warning border-warning text-text-on-surface group-hover:bg-warning-hover group-active:bg-warning-active'
+        box: 'bg-warning border-warning text-text-on-warning group-hover:bg-warning-hover group-active:bg-warning-active'
       }
     },
     {
@@ -192,7 +192,7 @@ export const checkboxVariants = tv({
       indeterminate: true,
       intent: 'warning',
       class: {
-        box: 'bg-warning border-warning text-text-on-surface group-hover:bg-warning-hover group-active:bg-warning-active'
+        box: 'bg-warning border-warning text-text-on-warning group-hover:bg-warning-hover group-active:bg-warning-active'
       }
     },
     {

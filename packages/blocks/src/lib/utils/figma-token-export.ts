@@ -110,7 +110,7 @@ const foundationColors: Record<string, Record<string, string>> = {
     '400': 'oklch(0.66 0.14 80)',
     '500': 'oklch(0.75 0.15 80)',
     '600': 'oklch(0.65 0.15 80)',
-    '700': 'oklch(0.55 0.13 80)',
+    '700': 'oklch(0.59 0.13 80)',
     '800': 'oklch(0.45 0.11 80)',
     '900': 'oklch(0.25 0.08 80)',
     '950': 'oklch(0.15 0.05 80)'
@@ -167,6 +167,10 @@ const semanticTokens = {
     disabled: { value: '{color.neutral.300}', description: 'Disabled text' },
     'on-dark': { value: '{color.neutral.0}', description: 'Text on dark surfaces' },
     'on-primary': { value: '{color.neutral.0}', description: 'Text on primary color bg' },
+    'on-warning': {
+      value: '{color.warning.950}',
+      description: 'Text on the warning fill (warm dark in both modes)'
+    },
     'on-surface': { value: '{color.neutral.900}', description: 'Text on tinted surfaces' }
   },
   border: {

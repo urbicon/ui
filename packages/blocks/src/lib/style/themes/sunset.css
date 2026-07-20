@@ -73,7 +73,9 @@
   --color-warning-400: oklch(0.66 0.14 92);
   --color-warning-500: oklch(0.75 0.15 92);
   --color-warning-600: oklch(0.65 0.15 92);
-  --color-warning-700: oklch(0.55 0.13 92);
+  /* 0.59 mirrors foundation.css: light-mode press fill under the dark
+     text-on-warning (AA floor across all themed hues). */
+  --color-warning-700: oklch(0.59 0.13 92);
   --color-warning-800: oklch(0.45 0.11 92);
   --color-warning-900: oklch(0.25 0.08 92);
   --color-warning-950: oklch(0.15 0.05 92);

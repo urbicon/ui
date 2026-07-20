@@ -124,7 +124,7 @@ export const stepperVariants = tv({
         label: 'text-danger'
       },
       warning: {
-        indicator: 'border-warning bg-warning text-text-on-surface',
+        indicator: 'border-warning bg-warning text-text-on-warning',
         label: 'text-warning-emphasis'
       }
     },

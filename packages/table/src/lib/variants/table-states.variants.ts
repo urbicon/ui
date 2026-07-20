@@ -206,7 +206,7 @@ export const errorStateVariants = tv({
       },
       warning: {
         icon: 'text-warning-emphasis',
-        retryButton: 'bg-warning hover:bg-warning-hover'
+        retryButton: 'bg-warning text-text-on-warning hover:bg-warning-hover'
       },
       info: {
         icon: 'text-primary',

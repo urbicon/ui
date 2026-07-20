@@ -254,7 +254,7 @@ const INTENT_FOREGROUND = {
   secondary: '--color-text-on-primary',
   neutral: '--color-text-on-primary',
   success: '--color-text-on-primary',
-  warning: '--color-text-on-surface',
+  warning: '--color-text-on-warning',
   danger: '--color-text-on-primary',
   info: '--color-text-on-primary'
 } as const;
@@ -282,54 +282,30 @@ const key = (theme: Theme, intent: Intent, mode: string, state: State) =>
   `${theme}/${intent}/${mode}/${state}`;
 
 /**
- * === KNOWN SHORTFALLS ===
+ * === SHORTFALL LEDGER: EMPTY ===
  *
- * Combinations that do NOT meet AA today. All 24 are one intent — `warning` —
- * and both faces below trace to the same unresolved design question, which is
- * why this is a predicate rather than a list of magic numbers: the shape of
- * the failure is the finding.
+ * Every theme × intent × mode × state combination meets AA. This block used
+ * to be a predicate over the known failures; keep the history so the ledger's
+ * emptiness stays a *claim about work done*, not an assumption:
  *
- * Warning is the only intent paired with dark text (`--color-text-on-surface`
- * rather than `--color-text-on-primary`), because its fill is a light amber in
- * BOTH modes. That pairing is the defect: `text-on-surface` is a *surface*
- * token — it tracks the page (dark text on light surfaces, light text on dark
- * ones), which is right for its own name and wrong as an on-*fill* color for a
- * swatch that never darkens. The two faces:
+ * - Until 2026-07-14 it carried EVERY dark-mode filled intent — 125 of 126
+ *   combinations, bottoming out at 1.51:1 — because `--color-text-on-primary`
+ *   was unconditional white while the intent fills resolve to their *lighter*
+ *   -400/-500 shades in dark mode. Making that token mode-aware (plus a
+ *   companion nudge to the neutral theme's grey primary) cleared 107 of them.
  *
- * (1) `warning/dark/*` in all six themes (1.51–2.80:1, i.e. also under the 3:1
- *     UI floor). In dark mode `text-on-surface` flips to neutral-100 — light
- *     text on a light amber fill. Making `--color-text-on-primary` mode-aware
- *     (2026-07-14, below) fixed the other six intents but could not reach this
- *     one: warning does not use that token. The fix is to give warning an
- *     on-color that does NOT track the surface — either its own token, or
- *     repointing the variants at `text-on-dark`, which is already dark-on-
- *     light-fill by construction. That touches the component variants, not
- *     just the token layer.
+ * - Until 2026-07-20 the remaining 24 were all `warning`, which paired with
+ *   `--color-text-on-surface` — a *surface* token that flips light in dark
+ *   mode while warning's fill is a light amber in BOTH modes. That put
+ *   `warning/dark/*` at 1.51–2.80:1 (under even the 3:1 UI floor) and
+ *   `warning/light/active` at 3.90–4.05:1. Cleared by `--color-text-on-warning`
+ *   (a deliberately non-mode-aware warm dark = warning-950) plus lifting the
+ *   warning-700 press stop from L 0.55 to 0.59 — see the dark-mode describe
+ *   block below, which pins both mechanisms.
  *
- * (2) `warning/light/active` in all six themes (3.89–4.05:1). Warning's ramp
- *     is deliberately inverted, so its press state getting *darker* moves it
- *     *toward* its dark foreground. Fixing it means deciding which way
- *     warning's press state should travel.
- *
- * Both are escalations awaiting a design decision, NOT excuses. Any
- * combination that starts or stops failing fails the suite — see
- * `the AA shortfalls are exactly as documented`.
- *
- * History: until 2026-07-14 this block also carried EVERY dark-mode filled
- * intent — 125 of 126 combinations, bottoming out at 1.51:1 — because
- * `--color-text-on-primary` was unconditional white while the intent fills
- * resolve to their *lighter* -400/-500 shades in dark mode. Making that token
- * mode-aware (plus one companion nudge to the neutral theme's grey primary)
- * cleared 107 of those 125 and moved them into the AA gate below. It also
- * unmasked face (1): warning's dark shortfall used to hide inside the blanket
- * dark-mode failure, and is now the only thing left in it.
+ * Any combination that falls below AA now fails the suite in two places: its
+ * own `it.each` case and the aggregate `the shortfall ledger stays empty`.
  */
-function isKnownShortfall(id: string): boolean {
-  // (1) warning's surface-tracking on-color, whole dark ramp.
-  if (id.includes('/warning/dark/')) return true;
-  // (2) warning's inverted ramp, light press state only.
-  return id.endsWith('/warning/light/active');
-}
 
 describe('color math — validated against known references', () => {
   // If these drift, every ratio below is meaningless.
@@ -432,7 +408,7 @@ describe('foreground pairing matches the component variants', () => {
     // a literal backtick inside a single-quoted string.)
     const notQuote = `[^'"${String.fromCharCode(96)}]`;
     const re = new RegExp(
-      `bg-${intent}(?![\\w-])${notQuote}*?text-text-(on-primary|on-surface)`,
+      `bg-${intent}(?![\\w-])${notQuote}*?text-text-(on-primary|on-surface|on-warning)`,
       'g'
     );
     const found = new Set([...variantSources.matchAll(re)].map((m) => `--color-text-${m[1]}`));
@@ -468,7 +444,7 @@ describe('filled intent surfaces — WCAG contrast', () => {
   });
 
   describe('meets WCAG AA (4.5:1) for normal text', () => {
-    it.each(ids.filter((id) => !isKnownShortfall(id)))('%s', (id) => {
+    it.each(ids)('%s', (id) => {
       expect(
         measured[id],
         `${id} measures ${measured[id]}:1, below AA ${AA_NORMAL}:1`
@@ -477,39 +453,21 @@ describe('filled intent surfaces — WCAG contrast', () => {
   });
 
   describe('clears the 3:1 UI-component floor (WCAG 1.4.11)', () => {
-    it.each(ids.filter((id) => !isKnownShortfall(id)))('%s', (id) => {
+    it.each(ids)('%s', (id) => {
       expect(measured[id], `${id} measures ${measured[id]}:1`).toBeGreaterThanOrEqual(AA_LARGE);
     });
   });
 
-  it('the AA shortfalls are exactly as documented', () => {
-    // Fail-loud in BOTH directions: a new failure is a regression, and a
-    // shortfall that starts passing means an escalation landed and the
-    // KNOWN SHORTFALLS block above is now lying.
+  it('the shortfall ledger stays empty — every combination meets AA', () => {
+    // The headline guarantee, aggregated: one failure message listing every
+    // regression at once instead of 126 scattered it.each cases. See the
+    // SHORTFALL LEDGER block above for what it took to get here.
     const failing = ids.filter((id) => measured[id] < AA_NORMAL).sort();
-    const documented = ids.filter(isKnownShortfall).sort();
-
-    const undocumented = failing.filter((id) => !documented.includes(id));
-    const noLongerFailing = documented.filter((id) => !failing.includes(id));
-
     expect(
-      undocumented,
-      `NEW contrast regressions (below AA, not in KNOWN SHORTFALLS):\n` +
-        undocumented.map((id) => `  ${id} = ${measured[id]}:1`).join('\n')
+      failing,
+      `Contrast regressions (below AA ${AA_NORMAL}:1):\n` +
+        failing.map((id) => `  ${id} = ${measured[id]}:1`).join('\n')
     ).toEqual([]);
-    expect(
-      noLongerFailing,
-      `These now meet AA — update the KNOWN SHORTFALLS block, the escalation landed:\n` +
-        noLongerFailing.map((id) => `  ${id} = ${measured[id]}:1`).join('\n')
-    ).toEqual([]);
-  });
-
-  it('light mode is fully AA-clean apart from warning press states', () => {
-    // The headline guarantee the library can make today.
-    const lightFailures = ids.filter((id) => id.includes('/light/') && measured[id] < AA_NORMAL);
-    expect(lightFailures.sort()).toEqual(
-      ['default', ...THEMES].map((t) => `${t}/warning/light/active`).sort()
-    );
   });
 
   describe('dark mode — the mode-aware on-color contract', () => {
@@ -576,7 +534,7 @@ describe('filled intent surfaces — WCAG contrast', () => {
         const white = resolveToken(css, '--color-neutral-0', 'light');
         for (const intent of INTENTS) {
           // Only the intents text-on-primary actually governs; warning pairs
-          // with text-on-surface and was never affected either way.
+          // with its own text-on-warning and was never affected either way.
           if (INTENT_FOREGROUND[intent] !== '--color-text-on-primary') continue;
           for (const state of STATE_NAMES) {
             const bg = resolveToken(css, STATES[state](intent), 'dark');
@@ -634,21 +592,80 @@ describe('filled intent surfaces — WCAG contrast', () => {
       expect(ratioOf({ l: 0.57, c: 0.012, h: 240 }, onDark)).toBeLessThan(AA_NORMAL);
     });
 
-    it('warning is the sole holdout because it pairs with a SURFACE token', () => {
-      // The mechanism behind the remaining 18 shortfalls, isolated so the
-      // KNOWN SHORTFALLS block cannot go stale. text-on-surface tracks the
-      // page — light text in dark mode — which is correct for its own name and
-      // wrong for warning, whose fill is a light amber in BOTH modes.
-      expect(INTENT_FOREGROUND.warning).toBe('--color-text-on-surface');
-      const css = stylesheetFor('default');
-      expect(resolveToken(css, '--color-text-on-surface', 'dark')).toEqual(
-        resolveToken(css, '--color-neutral-100', 'dark')
+    it('--color-text-on-warning is deliberately NOT mode-aware, and rides the warning ramp', () => {
+      // Warning is the one intent whose fill is light in BOTH modes, so its
+      // on-color is dark in both — the deliberate opposite of the mode-aware
+      // text-on-primary above. Asserted on the RESOLVED values: the token
+      // must collapse to one color across modes (its whole point), and that
+      // color is the ramp's own 950 stop, so theme re-hues flow through
+      // (forest 60, sunset 92) instead of a fixed neutral soot.
+      for (const theme of ['default', ...THEMES] as Theme[]) {
+        const css = stylesheetFor(theme);
+        const light = resolveToken(css, '--color-text-on-warning', 'light');
+        const dark = resolveToken(css, '--color-text-on-warning', 'dark');
+        expect(
+          light,
+          `${theme}: text-on-warning went mode-aware — its fill never flips, so neither may it`
+        ).toEqual(dark);
+        expect(light).toEqual(resolveToken(css, '--color-warning-950', 'light'));
+      }
+      // And warning is the only intent on this token.
+      expect(INTENTS.filter((i) => INTENT_FOREGROUND[i] === '--color-text-on-warning')).toEqual([
+        'warning'
+      ]);
+    });
+
+    it('counterfactual: the old text-on-surface pairing fails every dark warning fill', () => {
+      // What the dedicated on-color bought (pre-2026-07-20 pairing): in dark
+      // mode text-on-surface flips to light text on warning's light amber —
+      // 1.51–2.80:1, under even the 3:1 UI floor. Measured so the reason for
+      // the token cannot decay into folklore.
+      for (const theme of ['default', ...THEMES] as Theme[]) {
+        const css = stylesheetFor(theme);
+        const onSurface = resolveToken(css, '--color-text-on-surface', 'dark');
+        for (const state of STATE_NAMES) {
+          const bg = resolveToken(css, STATES[state]('warning'), 'dark');
+          expect(ratioOf(bg, onSurface)).toBeLessThan(AA_LARGE);
+        }
+      }
+    });
+
+    it('the companion: warning-700 sits at the lowest press-stop step that clears AA', () => {
+      // warning/light/active is the fill the on-color alone could not save:
+      // warning's ramp is inverted, so pressing moves TOWARD the dark label.
+      // At the ramp's original L 0.55 the press state measured 3.90–4.05:1;
+      // lifting the stop to 0.59 is minimal on the 0.01 grid the ramps are
+      // authored on — 0.58 still fails for forest's hue 60 (4.46:1).
+      const forest = stylesheetFor('forest');
+      const onWarning = resolveToken(forest, '--color-text-on-warning', 'light');
+      expect(resolveToken(stylesheetFor('default'), '--color-warning-700', 'light').l).toBe(0.59);
+      expect(resolveToken(forest, '--color-warning-700', 'light').l).toBe(0.59);
+      for (const theme of ['default', ...THEMES] as Theme[]) {
+        expect(measured[key(theme, 'warning', 'light', 'active')]).toBeGreaterThanOrEqual(
+          AA_NORMAL
+        );
+      }
+      expect(ratioOf({ l: 0.58, c: 0.13, h: 60 }, onWarning)).toBeLessThan(AA_NORMAL);
+      expect(ratioOf({ l: 0.55, c: 0.13, h: 60 }, onWarning)).toBeLessThan(AA_NORMAL);
+    });
+
+    it("warning's press direction is preserved: light darkens toward the label, dark lightens away", () => {
+      // The 2026-07-20 decision kept the inverted ramp: pressing in light
+      // mode still darkens (0.75 → 0.65 → 0.59), so contrast falls but stays
+      // above AA; in dark mode pressing lightens, so contrast improves —
+      // matching every other intent's post-2026-07-14 behaviour.
+      expect(measured['default/warning/light/base']).toBeGreaterThan(
+        measured['default/warning/light/hover']
       );
-      // Every other intent takes the mode-aware fill on-color.
-      const surfacePaired = INTENTS.filter(
-        (i) => INTENT_FOREGROUND[i] === '--color-text-on-surface'
+      expect(measured['default/warning/light/hover']).toBeGreaterThan(
+        measured['default/warning/light/active']
       );
-      expect(surfacePaired).toEqual(['warning']);
+      expect(measured['default/warning/dark/active']).toBeGreaterThan(
+        measured['default/warning/dark/hover']
+      );
+      expect(measured['default/warning/dark/hover']).toBeGreaterThan(
+        measured['default/warning/dark/base']
+      );
     });
   });
 });

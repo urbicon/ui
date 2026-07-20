@@ -176,7 +176,7 @@ export const buttonVariants = tv({
       intent: 'warning',
       variant: 'filled',
       class: {
-        base: 'bg-warning text-text-on-surface border-warning hover:bg-warning-hover active:bg-warning-active'
+        base: 'bg-warning text-text-on-warning border-warning hover:bg-warning-hover active:bg-warning-active'
       }
     },
     {
@@ -370,7 +370,7 @@ export const buttonVariants = tv({
       active: true,
       variant: 'outlined',
       intent: 'warning',
-      class: { base: 'bg-warning text-text-on-surface border-warning hover:bg-warning-hover' }
+      class: { base: 'bg-warning text-text-on-warning border-warning hover:bg-warning-hover' }
     },
     {
       active: true,

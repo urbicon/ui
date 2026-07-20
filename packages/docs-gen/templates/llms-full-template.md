@@ -242,9 +242,10 @@ text-text-tertiary       /* muted text, metadata */
 text-text-quaternary     /* most subtle text */
 text-text-disabled       /* disabled text */
 text-text-inverted       /* text on inverted surfaces */
-text-text-on-primary     /* text on intent-colored backgrounds */
+text-text-on-primary     /* text on intent-colored fills (all intents except warning) */
+text-text-on-warning     /* text on the warning fill — warm dark in both modes */
 text-text-on-dark        /* text on dark surfaces */
-text-text-on-surface     /* text on any surface (auto-contrast) */
+text-text-on-surface     /* text on any surface (auto-contrast) — never on intent fills */
 ```
 
 ### Border Tokens
