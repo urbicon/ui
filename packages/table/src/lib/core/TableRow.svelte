@@ -117,7 +117,7 @@
       <div class="flex h-full w-full items-center justify-center">
         <Checkbox
           checked={isRowSelected}
-          onchange={() => tableContext.toggleItem(itemId)}
+          onCheckedChange={() => tableContext.toggleItem(itemId)}
           aria-label={isRowSelected ? tt('selection.deselectRow') : tt('selection.selectRow')}
           size="sm"
           data-testid={`selection-checkbox-${itemId}`}

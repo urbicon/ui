@@ -158,7 +158,7 @@
         >
           <Checkbox
             checked={isItemSelected}
-            onchange={() => toggleItem(itemId)}
+            onCheckedChange={() => toggleItem(itemId)}
             aria-label={isItemSelected ? tt('selection.deselectRow') : tt('selection.selectRow')}
             size="sm"
             data-testid={`mobile-card-checkbox-${itemId}`}

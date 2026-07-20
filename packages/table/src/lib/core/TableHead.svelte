@@ -177,7 +177,7 @@
           <Checkbox
             checked={tableContext.allSelected}
             indeterminate={tableContext.someSelected}
-            onchange={() => tableContext.toggleAll()}
+            onCheckedChange={() => tableContext.toggleAll()}
             aria-label={tableContext.allSelected
               ? tt('selection.deselectAllRows')
               : tt('selection.selectAllRows')}
