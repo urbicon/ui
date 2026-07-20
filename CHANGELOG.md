@@ -20,20 +20,45 @@ This changelog is automatically generated from [Conventional Commits](https://ww
 ## [6.26.1] - 2026-07-20
 
 ### Bug Fixes
+- **blocks**: Clickable Card kept the UA button font — font-inherit is not a Tailwind utility
+- **docs-gen**: Fail loud when the global llms.txt aggregator write fails
+- **docs-gen**: Thread typescript.configPath through updateConfig like the constructor
+- **blocks**: Dedupe the Select orphan-value dev warn per value
+- **blocks**: Warn when an explicit Pagination showFirstLast is inert
+- **docs**: Playground Select controls keep the control's real value type
+- **auth**: Fold in the third-pass federated-JWKS follow-ups
+- **table**: Route selection checkboxes through onCheckedChange, not onchange
 - **docs**: Pair the remaining bare meta-marker kickers
 
 ### Build
 - Upgrade @sveltejs/kit to 2.70.1 across the workspace catalog
 
 ### Documentation
+- **docs-gen**: Close the JSDoc coverage gap on the config surface
+- **app**: Close the XC-4 customization coverage gap on all 36 primitive pages
+- Reconcile technical-debt after the qa-polish-wave
+- Log the e2e-surfaced findings (Checkbox onchange footgun, server-mode demo gap)
 - **auth**: Correct the kernel-CSRF off-switch to checkOrigin:false
 - Log the v6.26.0 review findings in technical-debt
 - **auth**: Scope the kernel-CSRF availability note to Kit versions
 - Log the validateCsrf Origin-less-browser trade-off
 - **auth**: Drop the pre-2.70 kernel-CSRF caveats
 
+### Features
+- **blocks**: Variants:lint now verifies theme-key existence for scale-suffixed classes
+- **blocks**: Surface Combobox queryFn failures via onError
+- **auth**: Purpose-bound signed tokens, verifier input caps, per-config logging, unlink
+
 ### Miscellaneous
 - Ship LICENSE and drop tsbuildinfo in published tarballs
+
+### Refactoring
+- **docs-gen**: Drop the dead typeAnchor/typePreview emission
+- **docs**: Drop the dead ApiProp.typeAnchor/typePreview fields
+- Tokenise the remaining sub-xs type sites outside blocks
+
+### Testing
+- **e2e**: Make the port overridable and cover table grouping/selection/reorder/remote
 
 ## [6.26.0] - 2026-07-20
 
