@@ -7,6 +7,26 @@ internal TODO instead. Sections are ordered roughly by urgency.
 
 ## Packaging / distribution
 
+### The effective npm publisher is the Buny deploy, not `release.yml`
+
+- **Where:** `.github/workflows/release.yml` (publish step + tarball gates),
+  `scripts/publish.sh` — vs. the Buny server deploy
+  (`buny/packages/deploy-runtime/src/build.ts`, `publishSinglePackage`).
+- **What:** v6.26.1 and v6.26.2 appeared on npm ~2 min after their tag push —
+  faster than the workflow's lint→build→test→e2e chain can possibly run — and
+  without the LICENSE that the workflow's copy step and (since `45e8345`)
+  hard assert guarantee. The tag-triggered Buny deploy is what actually
+  publishes: bun-pm-pack → extract → npm publish, with no LICENSE copy and
+  no tarball gates; a repo-side Actions run (if any) then sees "already
+  published" and skips everything. The repo-side publish pipeline is
+  effectively dead weight for publishing (still valuable as a CI gate).
+- **Why deferred:** Wants an ops decision in the Buny project, not this
+  repo: either Buny adopts the same tarball gates (LICENSE assert,
+  specifier assert, `FAIL_ON_PUBLISH_ERROR` as default), or tag-publishing
+  is consolidated on exactly one owner. The LICENSE itself is fixed
+  publisher-independently since v6.26.3 (vendored into every package dir).
+- **Found:** 2026-07-20, v6.26.1/v6.26.2 publish verification.
+
 ### `packages/docs` ships no README
 
 - **Where:** `packages/docs/` (the only published package without a
