@@ -66,6 +66,8 @@
   },
   "author": "Urbicon UI Team",
   "files": [
+    "LICENSE",
+    "!dist/tsconfig.tsbuildinfo",
     "dist",
     "!dist/**/*.test.*",
     "!dist/**/*.spec.*",

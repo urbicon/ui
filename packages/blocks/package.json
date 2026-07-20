@@ -34,6 +34,7 @@
     "test:run": "vitest run"
   },
   "files": [
+    "LICENSE",
     "dist",
     "!dist/**/*.test.*",
     "!dist/**/*.spec.*",

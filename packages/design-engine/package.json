@@ -30,6 +30,7 @@
     "./search": "./src/search/index.ts"
   },
   "files": [
+    "LICENSE",
     "src",
     "!src/**/*.test.*",
     "!src/**/*.spec.*",

@@ -21,6 +21,7 @@
     "bun": ">=1.0.0"
   },
   "files": [
+    "LICENSE",
     "src",
     "!src/**/*.test.*",
     "!src/**/*.spec.*",

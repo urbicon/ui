@@ -53,6 +53,7 @@
     }
   },
   "files": [
+    "LICENSE",
     "dist",
     "!dist/**/*.test.*",
     "!dist/**/*.spec.*",

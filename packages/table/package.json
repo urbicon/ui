@@ -32,6 +32,7 @@
     "test:watch": "vitest"
   },
   "files": [
+    "LICENSE",
     "dist",
     "!dist/**/*.test.*",
     "!dist/**/*.spec.*"

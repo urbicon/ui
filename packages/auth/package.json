@@ -73,6 +73,7 @@
     }
   },
   "files": [
+    "LICENSE",
     "dist",
     "!dist/**/*.test.*",
     "!dist/**/*test-utils.*",

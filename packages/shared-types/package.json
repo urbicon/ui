@@ -55,6 +55,8 @@
     }
   },
   "files": [
+    "LICENSE",
+    "!dist/tsconfig.tsbuildinfo",
     "dist",
     "src"
   ],

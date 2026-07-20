@@ -23,6 +23,7 @@
     "urbicon": "./dist/cli.js"
   },
   "files": [
+    "LICENSE",
     "dist",
     "skill",
     "templates",
