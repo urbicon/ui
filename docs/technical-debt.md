@@ -740,6 +740,14 @@ internal TODO instead. Sections are ordered roughly by urgency.
      touched.
 - **Why deferred:** 1–2 are their own increments (site route, content
   pipeline); 3 wants one deliberate pass rather than drive-bys.
+- **Update 2026-07-20 (stage 2, same day):** the taxonomy is now declared in
+  [DOCS-SURFACES.md](DOCS-SURFACES.md), and docs-gen gained a generic `guides`
+  mechanism (LLM-output config field; copy into the scope's static root +
+  `## Guides` section in the scope `llms.txt`, fail-loud on a missing source;
+  covered by `LLMDocumentationGenerator.test.ts`). Auth is the first user —
+  `/auth/llms.txt` now leads with the shipped AUTH.md. Steps 1–3 above remain
+  (site route + absolute npmjs links, `urbicon guide` via design-content,
+  comment/template discipline).
 - **Found:** 2026-07-20, consumer-knowledge-surface audit (after the CSRF
   guidance had to be corrected in five places).
 

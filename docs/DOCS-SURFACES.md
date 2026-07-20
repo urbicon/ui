@@ -1,0 +1,70 @@
+# Documentation Surfaces
+
+Where documentation lives, who owns it, and how it reaches its readers — the
+declared model behind every doc file in this monorepo. Written 2026-07-20 after
+the same security guidance had to be corrected in five places; treat deviations
+from this file as bugs, not as taste.
+
+## History, so the pendulum stops swinging
+
+Package docs were once centralised from `packages/auth` into `docs/` (one place
+for repo developers), then moved back into the package on 2026-07-20 (npm
+consumers could not reach `docs/` at all — the repo is private and README links
+into it were dead). Both moves optimised for a single audience. The synthesis,
+and the standing rule:
+
+> **The source of truth lives with the versioned artifact it documents; the
+> monorepo keeps a symlink so central navigation still works.** Moving files
+> back and forth is never the fix again — wiring a missing channel is.
+
+## The four principles
+
+1. **Source lives with the versioned artifact.** Anything a consumer of a
+   package needs sits in that package (`README.md`, `docs/*.md`) and ships in
+   its tarball (listed in `files`). `docs/` at the root keeps a symlink per
+   such file (e.g. `docs/AUTH.md → packages/auth/docs/AUTH.md`) plus the
+   monorepo-internal docs that no consumer needs (conventions, patterns,
+   architecture notes).
+2. **One source, all channels generated — docs-gen is the only distributor.**
+   Nothing consumer-facing is hand-copied between surfaces. Component APIs
+   flow from `*Props` JSDoc (see AGENTS.md § Component metadata); guide
+   documents flow via the `guides` field of a target's LLM output config
+   (`packages/docs-gen/src/types/configuration.ts` → copied to
+   `static/<scope>/<Doc>.md` + indexed under `## Guides` in the scope
+   `llms.txt`). A KEEP-IN-SYNC comment is an admission this principle failed —
+   prefer wiring the generator.
+3. **Code comments are pointers, not copies.** Two sentences of contract plus
+   `see docs/AUTH.md § …`. The reference resolves in the tarball (the guide
+   ships next to `dist/`) and in the repo (symlink).
+4. **Public/internal is declared, not guessed.** Consumer-relevant reference
+   content is public and English; planning, review bookkeeping and strategy
+   stay in `docs/internal/` (gitignored). Shipped docs never carry internal
+   review IDs, wave/session names or priority markers. (Also stated in
+   AGENTS.md § Internal working docs.)
+
+## Classes and channels
+
+| Class | Source of truth | Audience | Channels |
+| --- | --- | --- | --- |
+| Component API | `*Props` JSDoc in the package source | consumers + agents | docs-gen → `api.ts`, `llm.txt` tree, MCP catalog, `design-content` (CLI) |
+| Package guide (integration, security, limitations) | `packages/<pkg>/docs/*.md` | consumers + agents | tarball (`files`), docs-gen `guides` → `static/<scope>/` + scope `llms.txt`; planned: site route, `urbicon guide` |
+| Package quickstart | `packages/<pkg>/README.md` | consumers | tarball, npmjs page (links into the shipped guide as `./docs/…`) |
+| Monorepo conventions (SVELTE5-PATTERNS, ICON-DESIGN, …) | `docs/*.md` | repo developers + agents | repo only — deliberately not shipped |
+| Design knowledge (principles, patterns, tokens) | `design-system/`, `css-reference.ts` | consumers + agents | `design-content` bundle → `urbicon` CLI, MCP, docs site |
+| Planning / strategy / review bookkeeping | `docs/internal/` (gitignored), `docs/technical-debt.md` | maintainers | repo only |
+| Site-only prose (Docs.svelte pages, recipes) | `apps/docs/src/**` | site readers | docs site |
+
+Everything under `apps/docs/static/<scope>/` and `dist/` is a **generated
+artifact** (git-ignored, rebuilt by `docs:gen:all` / `build`) — never edit it,
+never link to it as a source.
+
+## Migration state
+
+Done (2026-07-20): AUTH.md moved into `packages/auth/docs/` + root symlink;
+internal markers stripped from the shipped file; `guides` mechanism in
+docs-gen with auth as first user. Remaining steps, in order, live in
+[technical-debt.md → Consumer knowledge surfaces](technical-debt.md): site
+route rendering the shipped guide (fixes absolute npmjs links), `urbicon guide`
+in the `design-content` bundle, replacing the hand-written llms-full-template
+auth section with extraction, then the audit of the remaining `docs/*.md` for
+consumer-relevant content (MIGRATION-v5, STICKY-PINNING, parts of GUIDE.md).

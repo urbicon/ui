@@ -206,6 +206,7 @@ Reference/API docs are written in English; internal strategy & analysis docs are
 - [docs/ICON-ROADMAP.md](docs/ICON-ROADMAP.md) – Icon set expansion 156→315 (P1 symmetry, P2 domain depth: real-estate/energy/finance/auth, P3 breadth); rationale, non-goals (no brand logos), polish backlog
 - [docs/VERSIONING.md](docs/VERSIONING.md) – Bump levels, bump-script steps, commit-type → changelog mapping, scoping
 - [docs/DocsPageGuide.md](docs/DocsPageGuide.md) – Building component documentation pages
+- [docs/DOCS-SURFACES.md](docs/DOCS-SURFACES.md) – Documentation taxonomy: where docs live, who owns them, how they reach consumers (tarball, site, llms, CLI) — includes the anti-pendulum rule for package docs (source lives with the versioned artifact, `docs/` keeps a symlink)
 
 **Component reference**
 
