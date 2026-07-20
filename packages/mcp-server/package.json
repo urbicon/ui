@@ -20,6 +20,12 @@
   "engines": {
     "bun": ">=1.0.0"
   },
+  "files": [
+    "src",
+    "!src/**/*.test.*",
+    "!src/**/*.spec.*",
+    "!src/eval/**"
+  ],
   "main": "./src/index.ts",
   "scripts": {
     "build": "echo 'no build needed — Bun runs TypeScript directly'",
