@@ -114,11 +114,23 @@ for dir in "${PACKAGES[@]}"; do
   fi
 
   echo "==> Publishing $NAME@$VERSION"
-  # bun publish (not npm publish): it resolves `workspace:`/`catalog:` specifiers
-  # to concrete versions at pack time, which npm publish leaves verbatim →
-  # unresolvable for consumers. Auth is the same ~/.npmrc `npm login` writes
-  # (bun reads it); registry passed explicitly so no default can capture it.
-  (cd "$ROOT/$dir" && bun publish --access public --registry "$REGISTRY")
+  # bun pm pack (not npm pack): it resolves `workspace:`/`catalog:` specifiers
+  # to concrete versions at pack time, which npm leaves verbatim →
+  # unresolvable for consumers. The tarball is gated BEFORE the irreversible
+  # publish (v6.26.1 shipped without LICENSE because an unasserted publish
+  # silently dropped it), then pushed with npm — publishing a pre-built
+  # tarball changes nothing in the manifest. KEEP IN SYNC with release.yml.
+  TARBALL_DIR="$(mktemp -d)"
+  (cd "$ROOT/$dir" && bun pm pack --destination "$TARBALL_DIR")
+  TGZ="$TARBALL_DIR/$(echo "$NAME" | tr -d '@' | tr '/' '-')-$VERSION.tgz"
+  [ -f "$TGZ" ] || { echo "✗  expected tarball $TGZ not found"; exit 1; }
+  tar -tzf "$TGZ" | grep -q '^package/LICENSE$' \
+    || { echo "✗  $NAME tarball is missing LICENSE"; exit 1; }
+  if tar -xzOf "$TGZ" package/package.json | grep -Eq '"(workspace|catalog):'; then
+    echo "✗  $NAME manifest still contains workspace:/catalog: specifiers"; exit 1
+  fi
+  npm publish "$TGZ" --access public --registry "$REGISTRY"
+  rm -rf "$TARBALL_DIR"
   published=$((published + 1))
 done
 
