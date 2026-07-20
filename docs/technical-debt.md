@@ -91,6 +91,22 @@ internal TODO instead. Sections are ordered roughly by urgency.
 
 ## Component behaviour
 
+### `focusFirstElement` steals focus from a consumer-focused `tabindex="-1"` element
+
+- **Where:** `packages/blocks/src/lib/utils/overlay.ts` (~`:104`, the
+  panel-focus fallback added in `c788469`).
+- **What:** The fallback focuses the panel whenever `getFocusableElements`
+  returns empty — including when the consumer has already focused a
+  `tabindex="-1"` element inside the container (the focus-the-heading a11y
+  pattern): the selector excludes `tabindex="-1"`, the list comes back empty,
+  and the panel steals that focus a tick later. `trapFocus` guards exactly
+  this case with `container.contains(document.activeElement)` (`:33`);
+  `focusFirstElement` doesn't — the two are inconsistent.
+- **Why deferred:** Niche pattern, no report from real usage; wants the
+  contains-guard plus a jsdom test mirroring the Dialog fallback suite.
+  Flagged in the `c788469` review rather than drive-by-fixed.
+- **Found:** 2026-07-20, v6.26.0 release audit.
+
 ### Three surfaces ingest their content in `$effect`, so the prerendered HTML carries placeholders — 91 API pages assert "No matching properties"
 
 - **Where:** `packages/table/src/lib/core/TableProvider.svelte:87-97` (`setColumns`)
@@ -473,6 +489,19 @@ internal TODO instead. Sections are ordered roughly by urgency.
 
 ## Accessibility
 
+### Badge docs demo hardcodes `text-white` on `bg-warning`
+
+- **Where:** `apps/docs/src/routes/blocks/primitives/badge/Docs.svelte:79`
+  (avatar-circle demo, initials "AB").
+- **What:** White on the light amber fill measures under AA in both modes —
+  the only label-on-a-warning-fill left in the repo after `00d046d` gave
+  filled warning surfaces `text-on-warning`, and a hardcoded colour besides.
+  `text-on-warning` is the drop-in fix if the demo is meant to be on-system.
+- **Why deferred:** Rides with the off-system-demo restyle decision recorded
+  in the `text-tertiary` entry below (restyle vs. exempt); if that call lands
+  on "restyle", this is a one-liner in the same sweep.
+- **Found:** 2026-07-20, v6.26.0 release audit (contrast package).
+
 ### `text-tertiary` on subtle surfaces measures 4.18:1 — and the off-system demos trip axe
 
 - **Where:** `packages/blocks/src/lib/style/semantic.css:54`
@@ -727,6 +756,39 @@ internal TODO instead. Sections are ordered roughly by urgency.
 - **Found:** 2026-07-20, adversarial security review of the federated-identity
   surface (sso-debt-wave, two independent Opus-level passes).
 
+### Federated JWKS — third-pass review follow-ups (kid-guard gap, cooldown floor, body-cap fallback)
+
+- **Where:** `packages/auth/src/lib/server/jwt.ts` (`assertJwtConfigValid`,
+  ~`:253`) + `packages/auth/src/lib/server/federated-handle.ts` (`readJwksBody`
+  ~`:233`, the cache factory's cooldown ~`:313`).
+- **What:** Three LOW items from the third adversarial pass (2026-07-20), none
+  attacker-controlled:
+  1. **kid-guard gap:** the duplicate-kid guard resolves the active kid as
+     `config.keyId ?? signingKey.kid`, while the publish path
+     (`resolveActiveKid`) additionally falls back to the JWK thumbprint. A
+     hand-built kid-less signing key plus a `previousPublicKeys` entry whose
+     kid equals that thumbprint slips past the guard; the JWKS then serves a
+     duplicate kid, the consumer's last-wins parse maps it to the wrong key,
+     and fresh sessions fail at the consumer — exactly the failure the guard
+     exists to prevent (availability only, self-inflicted;
+     `generateES256KeyPair` keys always carry a kid). Fix: resolve the dedup
+     kid via `resolveActiveKid`, or require an explicit kid whenever
+     `previousPublicKeys` is non-empty.
+  2. **Body-cap fallback:** `readJwksBody`'s `!stream` branch returns
+     `res.text()` without the 256-KB counting loop — only a declared
+     `Content-Length` guards that path. Practically unreachable in
+     undici/workerd (non-empty bodies always stream); defense-in-depth.
+  3. **Cooldown floor:** `refreshCooldownMs = min(REFRESH_COOLDOWN_MS,
+     cacheTtlMs)` — an absurd `cacheTtlMs` (e.g. `1`) collapses the anti-storm
+     cooldown to ~0, so unknown kids trigger an outbound JWKS fetch per
+     request (self-DoS on both ends). Wants a floor (e.g.
+     `max(cacheTtlMs, 5_000)`) or a minimum `cacheTtlMs` at the factory gate.
+- **Why deferred:** All three live in the surface the qa-polish-wave session
+  has claimed (the F2–F5 entry above) — folding them into that increment
+  avoids a second concurrent editor of `jwt.ts`/`federated-handle.ts`.
+- **Found:** 2026-07-20, third independent adversarial SSO review (v6.26.0
+  release audit).
+
 ### `passkey.updateCounter`: delete-race is misclassified as `counter_regression`
 
 - **Where:** `packages/auth` — `passkey/handlers.ts:370` (caller of
@@ -872,6 +934,22 @@ internal TODO instead. Sections are ordered roughly by urgency.
   (docs-gen cleanup agent).
 
 ## Testing / CI gates
+
+### Contrast pairing drift-guard scans only 4 of 9 wired variant files
+
+- **Where:** `packages/blocks/src/lib/style/contrast.test.ts` (~`:396`,
+  `foreground pairing matches the component variants`).
+- **What:** The guard that pins the `text-on-<intent>` wiring against the real
+  variant files scans Button, Badge, Alert and Tooltip — but Checkbox,
+  Stepper, RadioGroup, CompositionBar and table-states were wired in
+  `00d046d` too and are unscanned. A later revert there would not break the
+  suite: the 252-combination token tests measure tokens, not per-component
+  wiring.
+- **Why deferred:** Mechanical extension, but wants a call on the scan's shape
+  first — hardcoded file list vs. a glob over every variants file carrying a
+  filled `bg-<intent>` — so the next intent/component doesn't silently
+  re-open the gap.
+- **Found:** 2026-07-20, v6.26.0 release audit (contrast package).
 
 ### Nothing checks that a Tailwind class in a tv() config resolves to real CSS — a dead `text-2xs` lived in Calendar undetected
 
