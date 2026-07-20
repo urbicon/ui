@@ -4,6 +4,11 @@ All notable changes to this project will be documented in this file.
 This changelog is automatically generated from [Conventional Commits](https://www.conventionalcommits.org).
 
 
+## [6.26.2] - 2026-07-20
+
+### CI/CD
+- Gate packed tarballs before publish
+
 ## [6.26.1] - 2026-07-20
 
 ### Bug Fixes
