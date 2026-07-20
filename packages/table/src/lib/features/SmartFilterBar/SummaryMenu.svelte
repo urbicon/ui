@@ -26,7 +26,11 @@
   const summaryConfigs = $derived(tableState.summaryConfigs);
   const isActive = $derived(summaryConfigs.length > 0);
 
-  let selectedValue = $state('');
+  // Select models "no selection" as `null` — an empty string is an ordinary
+  // value that matches no option and trips Select's DEV orphan warning on every
+  // render. This menu uses the Select as a command surface (pick → add summary
+  // → reset), so its resting state must be null, never ''.
+  let selectedValue = $state<string | null>(null);
   let menuOpen = $state(false);
 
   const summableColumns = $derived.by(() => {
@@ -69,7 +73,7 @@
     });
   });
 
-  function handleValueChange(value: string) {
+  function handleValueChange(value: string | null) {
     if (!value) return;
 
     const [columnKey, type] = value.split(':');
@@ -79,7 +83,7 @@
         type: type as SummaryConfig['type']
       };
       addSummaryConfig(summaryConfig);
-      selectedValue = '';
+      selectedValue = null;
     }
   }
 </script>
@@ -110,7 +114,7 @@
   groups={menuGroups}
   bind:value={selectedValue}
   bind:open={menuOpen}
-  onValueChange={(v: string | null) => handleValueChange(v ?? '')}
+  onValueChange={handleValueChange}
   disabled={summableColumns.length === 0}
   size="sm"
   syncWidth={false}
