@@ -62,16 +62,25 @@ interface ComboboxBaseProps<T extends SelectValue = string>
    * by {@link debounceMs} — on each query change, replacing the option list with
    * the resolved result. The `AbortSignal` is aborted when a newer query
    * supersedes an in-flight request, so a slow stale response never clobbers a
-   * fresh one. Aborted rejections are swallowed; other rejections leave the
-   * previous options in place (and warn in dev). `options`/`groups` are ignored
-   * in this mode. The selected option's label is cached so it survives result
-   * sets that no longer contain it.
+   * fresh one. Aborted rejections are swallowed; other rejections end the
+   * loading state, leave the previous options in place, and are reported via
+   * `onError`. `options`/`groups` are ignored in this mode. The selected
+   * option's label is cached so it survives result sets that no longer
+   * contain it.
    */
   queryFn?: (query: string, signal: AbortSignal) => Promise<ComboboxOption<T>[]>;
   /** Debounce applied to `queryFn` in milliseconds. @default 250 */
   debounceMs?: number;
   /** Text shown in the listbox while an async `queryFn` request is in flight. @default 'Loading…' */
   loadingText?: string;
+  /**
+   * Fired when `queryFn` rejects (aborted / superseded requests are ignored).
+   * The loading state ends and the previous option list stays in place — use
+   * this to surface the failure (toast, inline message). Without a handler
+   * the rejection is logged DEV-only (`console.warn`) and swallowed in
+   * production; it never escapes as an unhandled promise rejection.
+   */
+  onError?: (error: unknown) => void;
   /** Show a clear button when a value is selected. Click or press Escape to reset. @default false */
   clearable?: boolean;
   /** Disable the entire combobox. @default false */

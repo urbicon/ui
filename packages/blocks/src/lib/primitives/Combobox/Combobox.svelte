@@ -35,6 +35,7 @@
     queryFn,
     debounceMs = 250,
     loadingText = 'Loading…',
+    onError,
     tier,
     variant = 'outlined',
     size = 'md',
@@ -154,12 +155,21 @@
   // The dev-warn is gated to *sync* mode: with `queryFn`, a pre-bound value that
   // isn't in the current result set is expected, not a bug (there is no API to
   // seed labels for it), so warning there would cry wolf on a legitimate pattern.
-  // See technical-debt (async pre-selected labels + warn dedup).
+  // See technical-debt (async pre-selected labels).
+  //
+  // Warn dedup: `selectedTags` recomputes on every fresh `options` array a
+  // parent re-render passes in (the common `options={items.map(…)}` idiom), so
+  // an unguarded warn would re-fire per recompute. A plain Set — deliberately
+  // outside the reactive graph, so adding to it never invalidates the derived —
+  // makes it one warn per orphan value for the instance's lifetime (mirrors
+  // Select).
+  const warnedOrphanValues = new Set<T>();
   const selectedTags = $derived.by<ComboboxOption<T>[]>(() =>
     selectedValues.map((v) => {
       const found = allOptions.find((o) => o.value === v) ?? tagCache.get(v);
       if (found) return found;
-      if (!queryFn && import.meta.env?.DEV) {
+      if (!queryFn && import.meta.env?.DEV && !warnedOrphanValues.has(v)) {
+        warnedOrphanValues.add(v);
         console.warn(
           `[Combobox] value ${JSON.stringify(v)} has no matching option — tag falls back to its raw value.`
         );
@@ -261,7 +271,18 @@
         .catch((err: unknown) => {
           if (controller.signal.aborted || (err as { name?: string })?.name === 'AbortError')
             return;
-          if (import.meta.env?.DEV) console.warn('[Combobox] queryFn rejected:', err);
+          // Failure contract: the loading state ends (`finally`) and the
+          // previous — now stale — options stay in place (no result-set
+          // clobber; a UI error slot remains an open debt). The rejection is
+          // handed to `onError`; without one it is surfaced DEV-only instead
+          // of vanishing silently (ConfirmDialog onConfirm precedent). A
+          // throwing `onError` is a consumer bug and deliberately escapes
+          // (fail-loud, mirrors createCronRunner).
+          if (onError) {
+            onError(err);
+          } else if (import.meta.env?.DEV) {
+            console.warn('[Combobox] queryFn rejected:', err);
+          }
         })
         .finally(() => {
           if (!controller.signal.aborted) loading = false;

@@ -5,7 +5,7 @@ import { type ComponentProps, flushSync, mount, unmount } from 'svelte';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import ComboboxMultiHarness from './__fixtures__/ComboboxMultiHarness.svelte';
 import Combobox from './Combobox.svelte';
-import type { ComboboxOption, ComboboxProps } from './index';
+import type { ComboboxMultipleProps, ComboboxOption, ComboboxProps } from './index';
 
 // First DOM/component test in the repo — the interaction layer the variant tests deliberately
 // can't reach (focus / keyboard / click timing). Combobox is the reference case because its
@@ -407,6 +407,87 @@ describe('Combobox (async queryFn)', () => {
     flushSync();
     expect(screen.queryByRole('option', { hidden: true })).toBeNull(); // list dropped Foo
     expect(input.value).toBe('Foo'); // selection still held
+  });
+
+  // Failure contract (queryFn rejection → onError, ConfirmDialog precedent):
+  // a real rejection ends the loading state, keeps the previous — now stale —
+  // options in place, and reports through onError exactly once. AbortError
+  // (a superseded/closed request) stays silent, and without a handler the
+  // rejection falls back to the DEV console.warn instead of escaping.
+  it('reports a real queryFn rejection through onError once, ends loading, and keeps stale options', async () => {
+    const user = userEvent.setup();
+    const onError = vi.fn();
+    const failure = new Error('server said no');
+    let call = 0;
+    const queryFn = vi.fn((): Promise<Opt[]> => {
+      call += 1;
+      return call === 1
+        ? Promise.resolve([{ value: 'a', label: 'Alpha' }])
+        : Promise.reject(failure);
+    });
+    renderCombobox({ queryFn, debounceMs: 1, onError });
+
+    const input = screen.getByRole('combobox');
+    await user.click(input); // call 1 → resolves with Alpha
+    await settle();
+    flushSync();
+    expect(screen.getByRole('option', { name: 'Alpha', hidden: true })).toBeTruthy();
+
+    await user.type(input, 'x'); // call 2 → rejects
+    await settle();
+    flushSync();
+
+    expect(onError).toHaveBeenCalledOnce();
+    expect(onError).toHaveBeenCalledWith(failure);
+    // Loading ended — the status row is gone, not stuck on "Loading…".
+    expect(screen.queryByRole('status', { hidden: true })).toBeNull();
+    // Stale-options decision: the previous result set stays in place (no
+    // result-set clobber; a UI error slot is deliberately out of scope).
+    expect(screen.getByRole('option', { name: 'Alpha', hidden: true })).toBeTruthy();
+  });
+
+  it('stays silent on an AbortError rejection — no onError, no dev warn', async () => {
+    const user = userEvent.setup();
+    const onError = vi.fn();
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+    const queryFn = vi.fn(
+      (): Promise<Opt[]> => Promise.reject(new DOMException('aborted', 'AbortError'))
+    );
+    renderCombobox({ queryFn, debounceMs: 1, onError });
+
+    await user.click(screen.getByRole('combobox'));
+    await settle();
+    flushSync();
+
+    expect(queryFn).toHaveBeenCalled();
+    expect(onError).not.toHaveBeenCalled();
+    expect(warn).not.toHaveBeenCalled();
+    warn.mockRestore();
+  });
+
+  it('falls back to the DEV console.warn without onError, and nothing escapes unhandled', async () => {
+    const user = userEvent.setup();
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+    const unhandled = vi.fn();
+    process.on('unhandledRejection', unhandled);
+    try {
+      const failure = new Error('boom');
+      const queryFn = vi.fn((): Promise<Opt[]> => Promise.reject(failure));
+      renderCombobox({ queryFn, debounceMs: 1 });
+
+      await user.click(screen.getByRole('combobox'));
+      await settle();
+      flushSync();
+      // Unhandled-rejection detection runs after the microtask queue drains —
+      // yield a macrotask before asserting the listener stayed silent.
+      await new Promise((resolve) => setTimeout(resolve, 0));
+
+      expect(warn).toHaveBeenCalledWith('[Combobox] queryFn rejected:', failure);
+      expect(unhandled).not.toHaveBeenCalled();
+    } finally {
+      process.off('unhandledRejection', unhandled);
+      warn.mockRestore();
+    }
   });
 });
 
@@ -813,5 +894,44 @@ describe('Combobox (aria-label forwarding)', () => {
     // The visible <label for> actually names the input.
     const nativeLabel = document.querySelector(`label[for="${input.id}"]`);
     expect(nativeLabel?.textContent).toContain('Fruit');
+  });
+});
+
+// Orphan dev-warn dedup. The warn lives in the `selectedTags` $derived.by whose
+// deps include the `options` reference, so a parent re-render passing a fresh
+// `options` array (the common `options={items.map(…)}` idiom) used to re-fire
+// it per recompute. The warned-values Set (deliberately outside the reactive
+// graph) makes it exactly one warn per orphan value per instance. The `$state`
+// proxy is handed to `mount` unspread so prop mutations reach the component
+// (the Collapsible controlled-contract pattern).
+describe('Combobox (orphan warn dedup)', () => {
+  it('warns once per orphan value, not per re-render with a fresh options array', () => {
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+    // Typed as the multi arm (not the ComboboxProps union): TS types property
+    // WRITES on a union as the intersection of the arms' property types, which
+    // for `value` ((T | null) & T[]) nothing satisfies.
+    const props = $state<ComboboxMultipleProps<string | number | boolean>>({
+      options: [...OPTIONS],
+      multiple: true,
+      value: ['ghost']
+    });
+    const instance = mount(Combobox, { target: document.body, props });
+    dispose = () => unmount(instance);
+    flushSync();
+    expect(warn).toHaveBeenCalledTimes(1);
+    expect(String(warn.mock.calls[0][0])).toContain('ghost');
+
+    // Parent re-render idiom: a NEW array reference (same content) invalidates
+    // the derived — the warn must not re-fire for the same orphan.
+    props.options = [...OPTIONS];
+    flushSync();
+    expect(warn).toHaveBeenCalledTimes(1);
+
+    // A different orphan still warns (per-value dedup, not a one-shot latch).
+    props.value = ['ghost', 'phantom'];
+    flushSync();
+    expect(warn).toHaveBeenCalledTimes(2);
+    expect(String(warn.mock.calls[1][0])).toContain('phantom');
+    warn.mockRestore();
   });
 });
