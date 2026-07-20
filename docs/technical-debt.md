@@ -7,67 +7,42 @@ internal TODO instead. Sections are ordered roughly by urgency.
 
 ## Packaging / distribution
 
-### `shiki` is a devDependency of the published `@urbicon-ui/docs` but is imported at runtime
+### `npm publish` doesn't rewrite `catalog:` / `workspace:` ranges — published tarballs carry unresolvable specifiers
 
-> 🚧 **In Arbeit** — Fable-Session `sso-debt-wave`, 2026-07-20.
+- **Where:** every published `packages/*` manifest with a `catalog:` or
+  `workspace:` specifier: `catalog:` peerDependencies in
+  auth/blocks/docs/i18n/sveltekit-utils/table (each `svelte`/`@sveltejs/kit`,
+  i18n also `typescript`), runtime `dependencies` `workspace:*` in design +
+  mcp-server, and `glob: "catalog:"` in docs-gen; published by
+  `.github/workflows/release.yml` + `scripts/publish.sh` via `npm publish`.
+- **What:** `bun publish` rewrites `catalog:`/`workspace:` to concrete versions;
+  `npm publish` does **not**. The pipeline runs `npm publish`, so each tarball
+  ships those specifiers verbatim — a consumer's install then fails on an
+  unresolvable `catalog:`/`workspace:` range. Same bug class as the (now fixed)
+  shiki-peer finding, but pipeline-wide and higher-impact: it hits the primary
+  runtime peers of the flagship packages, not one docs-tooling import. Masked
+  in-repo because the workspace resolves both protocols locally.
+- **Why deferred:** A real pipeline decision, not a drive-by: either switch the
+  publish step to `bun publish` (rewrites both protocols at pack time) or
+  replace every `catalog:`/`workspace:` in a *published* manifest with a real
+  semver range and keep it synced. Wants one deliberate pass with a
+  pack-and-inspect check, ideally CI-gated. Nothing is published until the P1
+  launch, so it is latent today.
+- **Found:** 2026-07-20, packaging-hygiene pass (sso-debt-wave) — surfaced while
+  making shiki a peer dependency and auditing the published specifiers.
 
-- **Where:** `packages/docs/package.json` (`devDependencies: {"shiki": "catalog:"}`;
-  `peerDependencies` lists only `@sveltejs/kit`, `svelte`, and the `@urbicon-ui/*`
-  siblings); imported at `packages/docs/src/lib/utils/highlighter.ts:1` and
-  re-exported from the public entry at `packages/docs/src/lib/index.ts:9`.
-- **What:** `svelte-package` does not bundle — `import { createHighlighter } from
-  'shiki'` survives verbatim into `dist/`. A consumer installing
-  `@urbicon-ui/docs` gets an unresolvable import the moment they touch
-  `CodePanel` / `CodeExample` / `highlighterService`. Masked in-repo: `apps/docs`
-  resolves shiki through the workspace root, so nothing here ever fails.
-- **Why deferred:** The fix is a design call, not a one-liner: `peerDependency`
-  (pushes the install onto the consumer, correct for a docs-tooling package) vs.
-  a real `dependency` (which would be this repo's first published runtime
-  dependency and collide with the zero-dep maxim). Also unverified whether
-  `@urbicon-ui/docs` has any external consumer yet. Belongs with the same
-  packaging-hygiene pass as the entries below.
-- **Found:** 2026-07-14, SSR-gap investigation (publish-m3-finale).
+### `packages/docs` ships no README
 
-### mcp-server npm tarball ships raw src (incl. tests) with no consumer
-
-> 🚧 **In Arbeit** — Fable-Session `sso-debt-wave`, 2026-07-20.
-
-- **Where:** `packages/mcp-server/package.json` (no `files` field, no
-  `private`); `.github/workflows/release.yml` + `scripts/publish.sh` publish
-  every `packages/*` to npm.
-- **What:** Since the broken `bin` was dropped (`1a5f3ae`, 2026-07-13 — it
-  pointed at the raw TS entry and never ran under node or bunx), the published
-  artifact is raw `src/**` including `*.test.ts` and `src/eval/`, importable
-  only under Bun (declared via `engines.bun`). Harmless but useless: no
-  documented consumer path exists (Option B), and no other package depends on
-  it.
-- **Why deferred:** Launch-hygiene call for Felix alongside the hosting
-  decision: either `private: true` (hosted-endpoint-only) or a `files` field
-  that trims tests/eval from the tarball. Not urgent either way.
-- **Found:** 2026-07-13, resolving the P1 "mcp-server distribution" TODO
-  (supersedes the earlier "bin is not runnable under node/npx" entry).
-
-### `shared-types` `exports` map points at files that don't exist
-
-> 🚧 **In Arbeit** — Fable-Session `sso-debt-wave`, 2026-07-20.
-
-- **Where:** `packages/shared-types/package.json` — `./components` (`:66`),
-  `./component-core` (`:70`), `./utilities` (`:86`) resolve to `dist/*.d.ts`
-  files that are never emitted; `./docs-config` (`:59`) and
-  `./documentation-core` (`:63`) are mapped to `dist/documentation.d.ts` while
-  their real emits (`dist/docs-config.d.ts`, `dist/documentation-core.d.ts`)
-  sit unreachable beside them.
-- **What:** Five of the package's subpath exports are wrong. Latent today —
-  everything in the repo imports the root entry — but a consumer reaching for
-  a documented subpath gets `ERR_MODULE_NOT_FOUND`, and the two mismapped ones
-  would silently hand back the wrong declarations.
-- **Why deferred:** Different bug class from a dropped declaration emit (this
-  is a hand-written map, not a compiler artifact), so `types:guard`
-  deliberately doesn't cover it — gating it would have made the guard red on
-  arrival. Fixing wants a design call per entry: is `./components` a typo for
-  the emitted `component`, should `./utilities` be dropped, and should the
-  subpaths exist at all given nothing uses them?
-- **Found:** 2026-07-14, building the declaration-emit guard (Opus quality wave).
+- **Where:** `packages/docs/` (the only published package without a
+  `README.md`).
+- **What:** The package has no consumer-facing readme, so its new `shiki`
+  peer-dependency requirement (and its `@sveltejs/kit`/`svelte`/`@urbicon-ui/*`
+  peers) is documented nowhere a consumer would look. Minor, but it is the one
+  published surface with no install guidance.
+- **Why deferred:** Writing the readme is small, but it rides with the same
+  packaging-hygiene / launch pass as the specifier decision above (and a call on
+  whether `@urbicon-ui/docs` has any external consumer yet at all).
+- **Found:** 2026-07-20, packaging-hygiene pass (sso-debt-wave).
 
 ## API design
 
@@ -197,31 +172,6 @@ internal TODO instead. Sections are ordered roughly by urgency.
   rather than parsing HTML — which is why a Pagefind-style approach would have
   silently shipped an index with zero props. PUBLISH-READINESS A.1's "126
   prerendered pages **mit vollem Inhalt**" is corrected there.
-
-### `meta-marker` is used bare in two places, so those kickers render unstyled in the library docs skin
-
-> 🚧 **In Arbeit** — Fable-Session `sso-debt-wave`, 2026-07-20.
-
-- **Where:** `apps/docs/src/lib/SidebarNavigation.svelte:103`
-  (`class="meta-marker"` on every sidebar group label) and
-  `packages/docs/src/lib/components/CodePanel/codepanel.variants.ts:13`
-  (`languageTag: ['meta-marker']`).
-- **What:** `meta-marker` is defined **only** under `.docs-rooms`
-  (`rooms-docs.css:342`), and `apps/docs/src/app.html:29` **removes** that class
-  from `<html>` when `urbicon-docs-theme === 'library'`. No unscoped
-  `.meta-marker` rule exists anywhere in the repo. So in the library skin every
-  sidebar group kicker (Form / Actions / Overlay / …) and every CodePanel
-  language tag render as unstyled inline text — no mono, no uppercase, no
-  tracking, no muted colour. The repo already documents the correct pattern at
-  `tableofcontents.variants.ts:9-12`: pair base utilities (the fallback) **with**
-  `meta-marker` (which wins where the scope applies, because `rooms-docs.css` is
-  unlayered and Tailwind utilities sit in `@layer utilities`). PrevNextNav's new
-  kicker (2026-07-14) uses the paired form; these two do not.
-- **Why deferred:** Two files in two packages, each owned by a different session
-  on the day. Mechanical once picked up — adopt the TOC pairing — but worth
-  eyeballing both skins rather than swapping blind.
-- **Found:** 2026-07-14, adding the prev/next section kicker (publish-m3-finale),
-  where the same trap was caught before shipping.
 
 ### PrevNextNav reaches only 79 of 136 pages — Table's 13-page learning path has no prev/next, and four links are one-way doors
 
@@ -406,31 +356,6 @@ internal TODO instead. Sections are ordered roughly by urgency.
   through `resolveSlotClass` too.
 - **Found:** 2026-07-14, table tv()-fold sweep (Opus debt-sweep).
 
-### An untitled `Dialog` has no focusable element, so its focus trap is inert until the user clicks in
-
-> 🚧 **In Arbeit** — Fable-Session `sso-debt-wave`, 2026-07-20.
-
-- **Where:** `packages/blocks/src/lib/primitives/Dialog/Dialog.svelte` (`:86` —
-  header + close button render only `{#if title}`) vs.
-  `packages/blocks/src/lib/utils/overlay.ts` (`focusFirstElement(panelEl)`,
-  `~:124`).
-- **What:** Without a `title` no header renders, so a Dialog whose `children`
-  contain nothing focusable gives `focusFirstElement` nothing to focus — focus
-  stays on `<body>`. Two consequences: the element-level `onkeydown` never
-  fires (ESC still works, but only through the `<svelte:window>` fallback), and
-  the focus trap — which runs from that same element handler — is inert until
-  the user clicks inside. A modal that doesn't contain focus is a WCAG 2.1.2
-  problem, not just a nicety. Drawer is unaffected (it always renders a close
-  button).
-- **Why deferred:** The fix is a deliberate call, not a patch: give the panel
-  `tabindex="-1"` and focus it when no focusable child exists (the standard
-  answer), and decide whether that lands in `showDialogModal` for the whole
-  overlay family or per component. Wants DOM tests for the untitled +
-  no-focusable-children case.
-- **Found:** 2026-07-14, Dialog/Drawer restProps composition (Opus quality
-  wave) — surfaced as a genuine test failure, worked around in the test by
-  giving the fixture a `title`.
-
 ### Table date filters: `greaterThan`/`lessThan` are dead for string/Date values
 
 - **Where:** `packages/table/src/lib/stores/concerns/useFiltering.svelte.ts:55-58`
@@ -571,42 +496,6 @@ internal TODO instead. Sections are ordered roughly by urgency.
 - **Found:** 2026-07-14, Pagination edge-policy unification (primitives-debt wave).
 
 ## Accessibility
-
-### `warning`'s dark-mode fills sit at 1.51–2.80:1 — a surface token used as an on-fill colour
-
-> 🚧 **In Arbeit** — Fable-Session `sso-debt-wave`, 2026-07-20.
-
-- **Where:** `packages/blocks/src/lib/style/semantic.css` (`--color-warning:
-  light-dark(warning-500, warning-400)`) paired with `--color-text-on-surface`
-  in every filled warning variant — e.g.
-  `primitives/Button/button.variants.ts:179`
-  (`bg-warning text-text-on-surface`), and the same pairing across
-  Badge/Alert/Toast.
-- **What:** `text-on-surface` is a *surface* token: it resolves to light text
-  in dark mode, because surfaces are dark there. The warning swatch, however,
-  is light amber in **both** modes — so in dark mode light text lands on a light
-  fill. Measured across all 6 themes: **18 combinations at 1.51–2.80:1**, below
-  even WCAG 1.4.11's 3:1 non-text floor, let alone AA. Plus
-  `warning/light/active` at 3.89–4.05 (the ramp is deliberately inverted — the
-  only intent with dark text — so its press state runs *toward* its
-  foreground). Verified unchanged, byte-for-byte, by the 2026-07-14
-  `text-on-primary` remedy: that token does not govern warning. The blanket
-  dark-mode failure had been hiding this narrower, worse one.
-- **Why deferred:** The fix is not a token nudge but a call on what warning's
-  foreground *should be*: it needs an on-colour that tracks its own fill (an
-  explicit `--color-text-on-warning`, or reusing `text-on-primary` now that it
-  is mode-aware — note the fill is light in **both** modes, so its on-colour
-  arguably should be dark in both, i.e. *not* mode-aware). Either way it changes
-  `button.variants.ts` and its siblings, i.e. component variants rather than the
-  token layer, and wants a VR pass. `style/contrast.test.ts` names these 24
-  shortfalls explicitly (not swallowed) and pins the mechanism
-  (`INTENT_FOREGROUND.warning === '--color-text-on-surface'`), so the exemption
-  cannot go stale and the entry cannot be silently "fixed" by accident.
-- **Found:** 2026-07-14, while landing the `text-on-primary` remedy. The
-  superseded entry claimed the remedy would clear "125 of 126"; that number came
-  from a modelling bug in the old test's `remedyRatios()` (it applied
-  `text-on-surface`'s *light* branch to every intent). The real figure is **107
-  of 125**, and this entry is the remainder.
 
 ### `text-tertiary` on subtle surfaces measures 4.18:1 — and the off-system demos trip axe
 
@@ -823,6 +712,45 @@ internal TODO instead. Sections are ordered roughly by urgency.
 
 ## Auth — accepted trade-offs
 
+### Federated identity — deferred hardening from the adversarial review
+
+- **Where:** `packages/auth/src/lib/server/jwt.ts`
+  (`createSignedToken`/`verifySignedToken`, the module-global warn flags) +
+  `packages/auth/src/lib/server/adapters/types.ts`
+  (`FederatedAccountRepository`).
+- **What:** Two independent adversarial reviews of the SSO surface (2026-07-20)
+  found no forgery, bypass, takeover or DoS; the load-bearing LOW items were
+  fixed in the same wave (`redirect: 'error'`, JWKS body cap, kid-collision
+  guard, `__Host-`+cookieDomain at wiring time, threat-model docs). Four
+  LOW/INFO items were deliberately left for their own increment, none
+  exploitable today:
+  - **Purpose binding (F2):** `verifySignedToken` accepts any token signed with
+    `jwt.secret` — the session token and the pending-2FA token share HMAC over
+    the same secret, so purpose separation lives only in each caller's
+    claim-shape check (correct today, a footgun for a future caller of the
+    public export). Fix: stamp + require an explicit `purpose`/`typ` claim in the
+    primitive.
+  - **Per-config logging (F3):** the warn-once flags in `assertJwtConfigValid` /
+    `verifySessionToken` are module-global (a second misconfigured config in one
+    process warns nothing), and the verify-path import warnings hardcode
+    `console.error` instead of the configured `AuthLogger`. Observability only —
+    verification still fails closed.
+  - **Verifier length cap (F4):** the public `verifySessionToken` /
+    `verifySignedToken` have no input length cap before parse. Empirically benign
+    (linear regex, early reject: 20 MB → `null` in ~4 ms), so belt-and-suspenders
+    for a consumer applying them to unbounded non-cookie input.
+  - **`unlinkFederatedAccount` (F5):** `FederatedAccountRepository` ships
+    `findByFederatedId` + `linkFederatedAccount` but no unlink, while the
+    link-conflict error tells the consumer to "unlink it explicitly" — a
+    message/API mismatch (fail-safe: the absence prevents accidental
+    re-pointing). Fix: add the method or soften the message.
+- **Why deferred:** Each is a small, separable increment; F2 in particular
+  changes a public, 2FA-critical crypto primitive's signature and wants its own
+  review rather than a tail-of-wave drive-by. All four are non-exploitable
+  (fail-closed / fail-safe / observability).
+- **Found:** 2026-07-20, adversarial security review of the federated-identity
+  surface (sso-debt-wave, two independent Opus-level passes).
+
 ### `passkey.updateCounter`: delete-race is misclassified as `counter_regression`
 
 - **Where:** `packages/auth` — `passkey/handlers.ts:370` (caller of
@@ -926,39 +854,24 @@ internal TODO instead. Sections are ordered roughly by urgency.
   Cluster A direction) rather than being dropped silently mid-cleanup.
 - **Found:** 2026-07-14, verifying the design-authenticity audit before archiving it.
 
-### The guide page's CodeExample workaround is dead weight since the parser fix
+### `[Select] value 2 has no matching option` on `/docs/components/section`
 
-> 🚧 **In Arbeit** — Fable-Session `sso-debt-wave`, 2026-07-20.
-
-- **Where:** `apps/docs/src/routes/blocks/components/guide/Docs.svelte:77-80` —
-  the explicit `</CodeExample>` closing tag added by `ac4b4e3` plus its inline
-  comment explaining why.
-- **What:** The workaround existed because the old regex extraction ate the
-  next example when it hit a self-closing `<CodeExample … />`. Extraction now
-  runs off the Svelte parser, so the shape is handled and the workaround is
-  inert — it documents a constraint that no longer exists.
-- **Why deferred:** The route belonged to a parallel session's working set.
-  Trivial to remove; verify the example still extracts afterwards. **Trap worth
-  knowing:** that comment's own prose contains a literal `</CodeExample>`,
-  which is what made a naive revert *look* like the old regex worked fine.
-- **Found:** 2026-07-14, CodeExample parser rework (Opus quality wave).
-
-### Every docs page logs `[Select] value "" has no matching option`
-
-> 🚧 **In Arbeit** — Fable-Session `sso-debt-wave`, 2026-07-20.
-
-- **Where:** emitted by `packages/blocks/src/lib/primitives/Select/Select.svelte:200`
-  (DEV-only warn); observed once per route across all 36 primitive pages.
-- **What:** Something renders a `Select` whose `value` (`""`) matches none of
-  its options, so the trigger falls back to the placeholder. The warn is doing
-  its job — the question is who trips it on *every* page, which points at the
-  shared playground plumbing rather than one page's data. Log noise today, but
-  it drowns the DEV console and would mask a real instance of the same warning.
-- **Why deferred:** Wants a short trace to the actual call site, then a call on
-  whether the emitter should seed a valid default or the warn should not fire
-  for an empty value. Verified pre-existing (untouched by the 2026-07-14
-  configurator label pass).
-- **Found:** 2026-07-14, running the widened a11y suite (Opus quality wave).
+- **Where:** the `headingLevel` control in the shared PlaygroundConfigurator
+  plumbing (`packages/docs/src/lib/components/PlaygroundConfigurator`) feeding
+  `Section`'s docs page — the `Select` options are built via
+  `items.map(… String(item.value))` while the bound value stays the raw number.
+- **What:** The far larger `[Select] value ""` noise (96 of 97 DEV warns) was
+  the Table `SummaryMenu` binding `''`, fixed 2026-07-20 (it now binds `null`).
+  With that gone, one genuine orphan is finally visible: the numeric
+  `headingLevel` dropdown offers string options (`'2'`) but binds the number
+  (`2`), so `'2' !== 2` and the trigger falls back to the placeholder. The warn
+  is doing its job.
+- **Why deferred:** The fix is a design call in the shared playground plumbing —
+  coercing the bound value back to a string would misrepresent the page's real
+  prop type, so it wants a deliberate string/number decision at the configurator
+  boundary, not a per-page patch.
+- **Found:** 2026-07-20, tracing the `[Select] value ""` emitter to its real
+  call site (sso-debt-wave, Track E).
 
 ### Route-level `docsConfig` exports are decorative — nothing consumes them
 
@@ -1116,20 +1029,6 @@ internal TODO instead. Sections are ordered roughly by urgency.
   default, and re-baselining the 8 stale shots deliberately (each needs looking
   at — that is the point of the suite). Interacts with the darwin-only entry
   below.
-- **Found:** 2026-07-14, landing the `text-on-primary` remedy.
-
-### `contrast.test.ts` ships in the published package
-
-> 🚧 **In Arbeit** — Fable-Session `sso-debt-wave`, 2026-07-20.
-
-- **Where:** `packages/blocks/dist/style/contrast.test.{js,d.ts}`.
-- **What:** The test lands in the npm tarball. Harmless (it is never imported
-  by the entry), but it is dead weight consumers download, and it is the only
-  `*.test.*` in `dist/style/`. Suggests the package's `files`/build config does
-  not exclude co-located tests under `style/`.
-- **Why deferred:** Belongs with the packaging-hygiene pass rather than a
-  drive-by config edit — worth checking at the same time whether other
-  co-located tests leak into any package's tarball.
 - **Found:** 2026-07-14, landing the `text-on-primary` remedy.
 
 ### e2e visual snapshots are `chromium-darwin`-only — Linux CI can't verify them
