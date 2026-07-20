@@ -13,7 +13,9 @@
   import declarativeChildrenCode from './examples/DeclarativeChildren.svelte?raw';
 
   import { CodeExample, InfoCard, Section } from '@urbicon-ui/docs';
+  import { Menu } from '@urbicon-ui/blocks';
   import type { SvelteDocsConfig } from '@urbicon-ui/shared-types';
+  import { resolve } from '$app/paths';
 
   export const docsConfig: SvelteDocsConfig = {
     generation: {
@@ -117,9 +119,40 @@
   </div>
 </Section>
 
+<!-- ─── Customization ─── -->
+
+<Section marker="03" id="customization" title="Customization">
+  <div class="space-y-8">
+    <CodeExample
+      title="Soft panel via slotClasses"
+      description="Menu exposes its full anatomy as slots — trigger, content, item, section, divider, indicator, submenu, and footer among them. Here the floating panel gets a softer radius and shadow while the items pick up a primary hover tint; placement, keyboard navigation, and dark mode stay untouched."
+      isolate
+    >
+      <Menu
+        placeholder="Actions"
+        items={['Rename', 'Duplicate', 'Archive']}
+        slotClasses={{
+          content: 'rounded-xl shadow-[var(--blocks-shadow-lg)]',
+          item: 'rounded-lg hover:bg-primary/10 hover:text-primary'
+        }}
+      />
+    </CodeExample>
+    <p class="text-text-secondary text-sm leading-relaxed">
+      <code class="text-text-primary">unstyled</code> strips the default classes from every slot
+      while keeping <code class="text-text-primary">role="menu"</code> semantics, roving focus, and
+      dismiss behavior — rebuild the look entirely through
+      <code class="text-text-primary">slotClasses</code>. A context-menu skin you repeat across the
+      app belongs in a <code class="text-text-primary">BlocksProvider</code> preset (registered
+      under <code class="text-text-primary">presets.Menu</code>, applied per instance via
+      <code class="text-text-primary">preset</code>) — see
+      <a href={resolve('/customization')} class="text-primary hover:underline">Customization</a>.
+    </p>
+  </div>
+</Section>
+
 <!-- ─── Accessibility ─── -->
 
-<Section marker="03" id="accessibility" title="Accessibility">
+<Section marker="04" id="accessibility" title="Accessibility">
   <div class="border-border-subtle bg-surface-elevated rounded-2xl border p-6">
     <div class="divide-border-subtle divide-y">
       <div class="pb-4">

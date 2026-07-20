@@ -2,6 +2,7 @@
   import type { SvelteDocsConfig } from '@urbicon-ui/shared-types';
   import { CodeExample, Section } from '@urbicon-ui/docs';
   import { Skeleton, Card } from '@urbicon-ui/blocks';
+  import { resolve } from '$app/paths';
 
   export const docsConfig: SvelteDocsConfig = {
     generation: {
@@ -155,6 +156,14 @@
         class="h-32 w-full animate-pulse rounded-xl bg-white/5 ring-1 ring-white/10 [animation-delay:300ms]"
       />
     </CodeExample>
+
+    <p class="text-text-secondary text-sm leading-relaxed">
+      Branded placeholder shimmer repeats by design — register the look once under
+      <code class="text-text-primary">presets.Skeleton</code> on
+      <code class="text-text-primary">BlocksProvider</code>
+      and apply it with <code class="text-text-primary">preset</code>. See
+      <a href={resolve('/customization')} class="text-primary hover:underline">Customization</a>.
+    </p>
   </div>
 </Section>
 

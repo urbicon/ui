@@ -329,6 +329,15 @@
         </div>
       </Popover>
     </CodeExample>
+
+    <p class="text-text-secondary text-sm leading-relaxed">
+      A branded panel that several popovers share belongs in a <code class="text-text-primary"
+        >BlocksProvider</code
+      >
+      preset (<code class="text-text-primary">presets.Popover</code>), applied via
+      <code class="text-text-primary">preset</code>
+      — see <a href={r('/customization')} class="text-primary hover:underline">Customization</a>.
+    </p>
   </div>
 </Section>
 

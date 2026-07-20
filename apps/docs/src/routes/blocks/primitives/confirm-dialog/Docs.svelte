@@ -2,6 +2,7 @@
   import type { SvelteDocsConfig } from '@urbicon-ui/shared-types';
   import { CodeExample, Section } from '@urbicon-ui/docs';
   import { ConfirmDialog, Button } from '@urbicon-ui/blocks';
+  import { resolve } from '$app/paths';
 
   export const docsConfig: SvelteDocsConfig = {
     generation: {
@@ -94,6 +95,24 @@
       For confirmations with richer markup (a list of consequences, a typed-confirmation field),
       pass content through the default <code class="text-text-primary">children</code> snippet — it
       renders below the <code class="text-text-primary">description</code>.
+    </p>
+    <p class="text-text-secondary text-sm leading-relaxed">
+      ConfirmDialog is a pre-configured
+      <a href={resolve('/blocks/primitives/dialog')} class="text-primary hover:underline">Dialog</a>
+      and owns no styles of its own: <code class="text-text-primary">class</code>,
+      <code class="text-text-primary">unstyled</code>,
+      <code class="text-text-primary">slotClasses</code>, and
+      <code class="text-text-primary">preset</code> are forwarded verbatim to the inner Dialog.
+      <code class="text-text-primary">slotClasses</code> therefore takes the Dialog slot keys (<code
+        class="text-text-primary">panel</code
+      >, <code class="text-text-primary">header</code>,
+      <code class="text-text-primary">title</code>, <code class="text-text-primary">body</code>,
+      <code class="text-text-primary">footer</code>,
+      <code class="text-text-primary">backdrop</code>, …), and presets are registered under the
+      <code class="text-text-primary">presets.Dialog</code> key on
+      <code class="text-text-primary">BlocksProvider</code> — a Dialog preset restyles both
+      components. See
+      <a href={resolve('/customization')} class="text-primary hover:underline">Customization</a>.
     </p>
   </div>
 </Section>

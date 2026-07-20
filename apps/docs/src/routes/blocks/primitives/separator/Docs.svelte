@@ -2,6 +2,7 @@
   import type { SvelteDocsConfig } from '@urbicon-ui/shared-types';
   import { CodeExample, Section } from '@urbicon-ui/docs';
   import { Separator, Button, Avatar, Card } from '@urbicon-ui/blocks';
+  import { resolve } from '$app/paths';
 
   export const docsConfig: SvelteDocsConfig = {
     generation: {
@@ -125,6 +126,18 @@
         />
       </div>
     </CodeExample>
+
+    <p class="text-text-secondary text-sm leading-relaxed">
+      Separator supports the standard <code class="text-text-primary">unstyled</code> /
+      <code class="text-text-primary">slotClasses</code>
+      /
+      <code class="text-text-primary">preset</code> trio despite its single
+      <code class="text-text-primary">base</code>
+      slot — a recurring rule treatment like the gradient fade can live in
+      <code class="text-text-primary">presets.Separator</code>
+      on <code class="text-text-primary">BlocksProvider</code>. See
+      <a href={resolve('/customization')} class="text-primary hover:underline">Customization</a>.
+    </p>
   </div>
 </Section>
 

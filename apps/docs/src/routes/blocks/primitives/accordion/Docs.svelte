@@ -369,6 +369,18 @@
         </AccordionItem>
       </Accordion>
     </CodeExample>
+
+    <p class="text-text-secondary text-sm leading-relaxed">
+      The frosted-glass and terminal treatments above are preset material: register the
+      <code class="text-text-primary">slotClasses</code> combination once under
+      <code class="text-text-primary">presets.Accordion</code>
+      /
+      <code class="text-text-primary">presets.AccordionItem</code> on
+      <code class="text-text-primary">BlocksProvider</code>
+      and opt in per instance via
+      <code class="text-text-primary">preset</code> — see
+      <a href={resolve('/customization')} class="text-primary hover:underline">Customization</a>.
+    </p>
   </div>
 </Section>
 

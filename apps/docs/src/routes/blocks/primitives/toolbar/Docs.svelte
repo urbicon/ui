@@ -2,6 +2,7 @@
   import type { SvelteDocsConfig } from '@urbicon-ui/shared-types';
   import { CodeExample, Section } from '@urbicon-ui/docs';
   import { Badge, Button, Separator, Toolbar } from '@urbicon-ui/blocks';
+  import { resolve } from '$app/paths';
 
   export const docsConfig: SvelteDocsConfig = {
     generation: {
@@ -251,6 +252,16 @@
         <Button variant="ghost" size="sm" class="rounded-full">Settings</Button>
       </Toolbar>
     </CodeExample>
+
+    <p class="text-text-secondary text-sm leading-relaxed">
+      A dock or pill-nav chrome used on several screens belongs in a <code class="text-text-primary"
+        >BlocksProvider</code
+      >
+      preset (<code class="text-text-primary">presets.Toolbar</code>), applied via
+      <code class="text-text-primary">preset</code>
+      — see
+      <a href={resolve('/customization')} class="text-primary hover:underline">Customization</a>.
+    </p>
   </div>
 </Section>
 

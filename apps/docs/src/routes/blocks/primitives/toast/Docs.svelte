@@ -2,6 +2,7 @@
   import type { SvelteDocsConfig } from '@urbicon-ui/shared-types';
   import { CodeExample, Section } from '@urbicon-ui/docs';
   import { Button, toaster } from '@urbicon-ui/blocks';
+  import { resolve } from '$app/paths';
 
   export const docsConfig: SvelteDocsConfig = {
     generation: {
@@ -338,6 +339,17 @@ toaster.clear();      // remove all`}
       language="typescript"
       preview={false}
     />
+
+    <p class="text-text-secondary text-sm leading-relaxed">
+      The <code class="text-text-primary">Toaster</code> is one instance per app, so its
+      <code class="text-text-primary">slotClasses</code>
+      already act globally; a <code class="text-text-primary">BlocksProvider</code> preset (<code
+        class="text-text-primary">presets.Toaster</code
+      >, applied via
+      <code class="text-text-primary">preset</code>) is mainly useful for sharing a skin between
+      apps or switching skins per surface. See
+      <a href={resolve('/customization')} class="text-primary hover:underline">Customization</a>.
+    </p>
   </div>
 </Section>
 

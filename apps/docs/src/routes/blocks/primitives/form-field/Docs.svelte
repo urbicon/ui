@@ -2,6 +2,7 @@
   import type { SvelteDocsConfig } from '@urbicon-ui/shared-types';
   import { CodeExample, Section } from '@urbicon-ui/docs';
   import { FormField } from '@urbicon-ui/blocks';
+  import { resolve } from '$app/paths';
 
   export const docsConfig: SvelteDocsConfig = {
     generation: {
@@ -74,14 +75,32 @@
 </Section>
 
 <Section marker="02" id="customization" title="Customization">
-  <p class="text-text-secondary text-sm leading-relaxed">
-    Built-in form primitives (<code class="text-text-primary">Input</code>,
-    <code class="text-text-primary">Select</code>, <code class="text-text-primary">Textarea</code>)
-    already render their own label + helper + error — <em>FormField is not needed there</em>. Use
-    <code class="text-text-primary">FormField</code> only for composite controls that don't have
-    those slots, e.g. <code class="text-text-primary">FileUpload</code>, custom number-spinner
-    combinations, or media uploaders.
-  </p>
+  <div class="space-y-3">
+    <p class="text-text-secondary text-sm leading-relaxed">
+      Built-in form primitives (<code class="text-text-primary">Input</code>,
+      <code class="text-text-primary">Select</code>,
+      <code class="text-text-primary">Textarea</code>) already render their own label + helper +
+      error — <em>FormField is not needed there</em>. Use
+      <code class="text-text-primary">FormField</code> only for composite controls that don't have
+      those slots, e.g. <code class="text-text-primary">FileUpload</code>, custom number-spinner
+      combinations, or media uploaders.
+    </p>
+    <p class="text-text-secondary text-sm leading-relaxed">
+      FormField is a documented deviation from the standard styling contract: as a bare layout
+      wrapper without a <code class="text-text-primary">tv()</code> config it has no
+      <code class="text-text-primary">unstyled</code> mode and no
+      <code class="text-text-primary">preset</code> support. Restyle it via
+      <code class="text-text-primary">class</code> (the wrapper element) and
+      <code class="text-text-primary">slotClasses</code> with the hand-maintained keys
+      <code class="text-text-primary">wrapper</code>, <code class="text-text-primary">label</code>,
+      <code class="text-text-primary">message</code>, and
+      <code class="text-text-primary">helper</code> — e.g. a bolder label via the
+      <code class="text-text-primary">label</code> key. The wrapped control keeps its own styling
+      API. See
+      <a href={resolve('/customization')} class="text-primary hover:underline">Customization</a> for the
+      general contract.
+    </p>
+  </div>
 </Section>
 
 <Section marker="03" id="accessibility" title="Accessibility">

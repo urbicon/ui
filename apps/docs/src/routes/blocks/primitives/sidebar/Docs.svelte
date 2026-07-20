@@ -230,6 +230,16 @@
         </Sidebar>
       {/if}
     </CodeExample>
+
+    <p class="text-text-secondary text-sm leading-relaxed">
+      Sidebar also supports <code class="text-text-primary">unstyled</code> for a fully hand-rolled
+      shell. The branded dark panel above is natural preset material: register it under
+      <code class="text-text-primary">presets.Sidebar</code>
+      on
+      <code class="text-text-primary">BlocksProvider</code> and apply it via
+      <code class="text-text-primary">preset</code>
+      — see <a href={r('/customization')} class="text-primary hover:underline">Customization</a>.
+    </p>
   </div>
 </Section>
 

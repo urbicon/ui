@@ -2,6 +2,7 @@
   import type { SvelteDocsConfig } from '@urbicon-ui/shared-types';
   import { CodeExample, Section } from '@urbicon-ui/docs';
   import { SegmentGroup, SegmentItem } from '@urbicon-ui/blocks';
+  import { resolve } from '$app/paths';
 
   export const docsConfig: SvelteDocsConfig = {
     generation: {
@@ -275,6 +276,17 @@
         <SegmentItem value="rollback">Rollback</SegmentItem>
       </SegmentGroup>
     </CodeExample>
+
+    <p class="text-text-secondary text-sm leading-relaxed">
+      A switcher chrome reused across settings panels belongs in <code class="text-text-primary"
+        >BlocksProvider</code
+      >
+      presets (<code class="text-text-primary">presets.SegmentGroup</code>, item styling under
+      <code class="text-text-primary">presets.SegmentItem</code>) — apply with
+      <code class="text-text-primary">preset</code>
+      instead of repeating <code class="text-text-primary">slotClasses</code>. See
+      <a href={resolve('/customization')} class="text-primary hover:underline">Customization</a>.
+    </p>
   </div>
 </Section>
 

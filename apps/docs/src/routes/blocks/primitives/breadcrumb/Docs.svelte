@@ -2,6 +2,7 @@
   import type { SvelteDocsConfig } from '@urbicon-ui/shared-types';
   import { CodeExample, Section } from '@urbicon-ui/docs';
   import { Breadcrumb, Badge } from '@urbicon-ui/blocks';
+  import { resolve } from '$app/paths';
 
   export const docsConfig: SvelteDocsConfig = {
     generation: {
@@ -267,6 +268,16 @@
         {/snippet}
       </Breadcrumb>
     </CodeExample>
+
+    <p class="text-text-secondary text-sm leading-relaxed">
+      To ship the pill or glass trail site-wide, register it as a <code class="text-text-primary"
+        >BlocksProvider</code
+      >
+      preset (<code class="text-text-primary">presets.Breadcrumb</code>) and apply it with
+      <code class="text-text-primary">preset</code>
+      on each instance — see
+      <a href={resolve('/customization')} class="text-primary hover:underline">Customization</a>.
+    </p>
   </div>
 </Section>
 

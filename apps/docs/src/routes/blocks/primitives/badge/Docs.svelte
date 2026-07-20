@@ -2,6 +2,7 @@
   import type { SvelteDocsConfig } from '@urbicon-ui/shared-types';
   import { CodeExample, Section } from '@urbicon-ui/docs';
   import { Badge, Button } from '@urbicon-ui/blocks';
+  import { resolve } from '$app/paths';
 
   let filters = $state<string[]>(['Active', 'Premium', 'Last 7 days']);
   const removeFilter = (f: string) => (filters = filters.filter((x) => x !== f));
@@ -378,6 +379,16 @@
         ★ Editor's Pick
       </Badge>
     </CodeExample>
+
+    <p class="text-text-secondary text-sm leading-relaxed">
+      A tag style that repeats across the app — like the gradient categories above — is one
+      <code class="text-text-primary">BlocksProvider</code> preset (<code class="text-text-primary"
+        >presets.Badge</code
+      >) applied via <code class="text-text-primary">preset</code>, not a copied
+      <code class="text-text-primary">slotClasses</code>
+      block. See
+      <a href={resolve('/customization')} class="text-primary hover:underline">Customization</a>.
+    </p>
   </div>
 </Section>
 

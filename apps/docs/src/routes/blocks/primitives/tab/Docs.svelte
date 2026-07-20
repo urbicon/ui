@@ -2,6 +2,7 @@
   import type { SvelteDocsConfig } from '@urbicon-ui/shared-types';
   import { CodeExample, Section } from '@urbicon-ui/docs';
   import { Tab, TabItem, TabPanel, Badge } from '@urbicon-ui/blocks';
+  import { resolve } from '$app/paths';
 
   let activeSettings = $state('profile');
   let activeProject = $state('inbox');
@@ -232,7 +233,7 @@
           {#snippet tabs()}
             <div class="w-48 shrink-0 p-3">
               <p
-                class="text-text-tertiary mb-3 px-2 text-[10px] font-semibold tracking-widest uppercase"
+                class="text-text-tertiary mb-3 px-2 text-3xs font-semibold tracking-widest uppercase"
               >
                 Settings
               </p>
@@ -748,6 +749,19 @@
         {/snippet}
       </Tab>
     </CodeExample>
+
+    <p class="text-text-secondary text-sm leading-relaxed">
+      A tab chrome shared across the app belongs in <code class="text-text-primary"
+        >BlocksProvider</code
+      >
+      presets (<code class="text-text-primary">presets.Tab</code>, per-trigger styling under
+      <code class="text-text-primary">presets.TabItem</code>, panel styling under
+      <code class="text-text-primary">presets.TabPanel</code>) — applied via
+      <code class="text-text-primary">preset</code>
+      instead of repeating
+      <code class="text-text-primary">slotClasses</code>. See
+      <a href={resolve('/customization')} class="text-primary hover:underline">Customization</a>.
+    </p>
   </div>
 </Section>
 

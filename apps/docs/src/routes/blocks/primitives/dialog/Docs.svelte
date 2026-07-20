@@ -2,6 +2,7 @@
   import type { SvelteDocsConfig } from '@urbicon-ui/shared-types';
   import { CodeExample, Section } from '@urbicon-ui/docs';
   import { Dialog, Button, Input } from '@urbicon-ui/blocks';
+  import { resolve } from '$app/paths';
 
   let basicOpen = $state(false);
   let topOpen = $state(false);
@@ -321,7 +322,7 @@
       >
         <div class="mb-3 flex items-center gap-2 border-b border-green-500/20 pb-2">
           <span class="inline-block h-2 w-2 rounded-full bg-green-500"></span>
-          <span class="text-[10px] tracking-widest text-green-500/70 uppercase">System</span>
+          <span class="text-3xs tracking-widest text-green-500/70 uppercase">System</span>
         </div>
         <p class="leading-relaxed opacity-80">
           &gt; Connection established.<br />
@@ -344,6 +345,16 @@
         </div>
       </Dialog>
     </CodeExample>
+
+    <p class="text-text-secondary text-sm leading-relaxed">
+      A dialog chrome shared across the app belongs in <code class="text-text-primary"
+        >presets.Dialog</code
+      >
+      on
+      <code class="text-text-primary">BlocksProvider</code> — and because ConfirmDialog forwards its
+      styling props to the inner Dialog, the same preset covers both components. See
+      <a href={resolve('/customization')} class="text-primary hover:underline">Customization</a>.
+    </p>
   </div>
 </Section>
 

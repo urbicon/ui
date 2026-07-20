@@ -2,6 +2,7 @@
   import type { SvelteDocsConfig } from '@urbicon-ui/shared-types';
   import { CodeExample, Section } from '@urbicon-ui/docs';
   import { Textarea } from '@urbicon-ui/blocks';
+  import { resolve } from '$app/paths';
 
   export const docsConfig: SvelteDocsConfig = {
     generation: {
@@ -147,6 +148,15 @@
         }}
       />
     </CodeExample>
+
+    <p class="text-text-secondary text-sm leading-relaxed">
+      A field treatment shared with Input and Select belongs in a <code class="text-text-primary"
+        >BlocksProvider</code
+      >
+      preset (<code class="text-text-primary">presets.Textarea</code>) so the whole form speaks one
+      language — see
+      <a href={resolve('/customization')} class="text-primary hover:underline">Customization</a>.
+    </p>
   </div>
 </Section>
 

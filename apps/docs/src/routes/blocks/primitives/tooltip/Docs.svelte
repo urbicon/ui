@@ -2,6 +2,7 @@
   import type { SvelteDocsConfig } from '@urbicon-ui/shared-types';
   import { CodeExample, Section } from '@urbicon-ui/docs';
   import { Tooltip, Button, Badge } from '@urbicon-ui/blocks';
+  import { resolve } from '$app/paths';
 
   export const docsConfig: SvelteDocsConfig = {
     generation: {
@@ -162,6 +163,14 @@
         </Badge>
       </Tooltip>
     </CodeExample>
+
+    <p class="text-text-secondary text-sm leading-relaxed">
+      A branded tooltip surface belongs in a <code class="text-text-primary">BlocksProvider</code>
+      preset (<code class="text-text-primary">presets.Tooltip</code>): registered once, every
+      <code class="text-text-primary">preset</code>
+      instance matches — see
+      <a href={resolve('/customization')} class="text-primary hover:underline">Customization</a>.
+    </p>
   </div>
 </Section>
 

@@ -2,6 +2,7 @@
   import type { SvelteDocsConfig } from '@urbicon-ui/shared-types';
   import { CodeExample, Section } from '@urbicon-ui/docs';
   import { Progress } from '@urbicon-ui/blocks';
+  import { resolve } from '$app/paths';
 
   export const docsConfig: SvelteDocsConfig = {
     generation: {
@@ -102,6 +103,32 @@
         </div>
       </div>
     </CodeExample>
+
+    <CodeExample
+      title="Slot Overrides"
+      description="The linear bar exposes track and fill (plus wrapper, header, label, and valueText; circular mode has its own circular* slots). A thicker pill track with a soft intent tint — value logic and dark mode stay untouched."
+      isolate
+      previewClass="flex flex-col gap-4 max-w-md w-full"
+    >
+      <Progress
+        value={72}
+        label="Storage"
+        showValue
+        slotClasses={{
+          track: 'h-3 rounded-full bg-primary/10',
+          fill: 'rounded-full'
+        }}
+      />
+    </CodeExample>
+
+    <p class="text-text-secondary text-sm leading-relaxed">
+      <code class="text-text-primary">unstyled</code> drops all default classes but keeps the
+      <code class="text-text-primary">role="progressbar"</code> semantics and value wiring — rebuild
+      the bar from <code class="text-text-primary">slotClasses</code> alone. A gauge style used on
+      every dashboard card belongs in a <code class="text-text-primary">BlocksProvider</code> preset
+      (<code class="text-text-primary">presets.Progress</code>) — see
+      <a href={resolve('/customization')} class="text-primary hover:underline">Customization</a>.
+    </p>
   </div>
 </Section>
 

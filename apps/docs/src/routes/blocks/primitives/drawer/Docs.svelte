@@ -150,6 +150,38 @@
         </nav>
       </Drawer>
     </CodeExample>
+
+    <CodeExample
+      title="slotClasses Override"
+      description="Drawer exposes dialog, backdrop, panel, header, title, body, and footer as slots. Here the backdrop loses its blur, the panel gets a square edge with a stronger border, and the body more breathing room — slide animation, focus trap, and stacking stay untouched."
+      code={`<Drawer
+  bind:open
+  title="Filters"
+  placement="right"
+  slotClasses={{
+    backdrop: 'backdrop-blur-none bg-black/30',
+    panel: 'rounded-none border-l-2 border-border-default',
+    body: 'px-8'
+  }}
+>
+  …
+</Drawer>`}
+      language="svelte"
+      preview={false}
+    />
+
+    <p class="text-text-secondary text-sm leading-relaxed">
+      <code class="text-text-primary">unstyled</code> strips the panel chrome (surface, border,
+      shadow) while the native <code class="text-text-primary">&lt;dialog&gt;</code>, focus trap,
+      and placement transitions keep working — rebuild the sheet through
+      <code class="text-text-primary">slotClasses</code>. A drawer treatment shared across the app
+      (e.g. a brand filter sheet) belongs in a
+      <code class="text-text-primary">BlocksProvider</code> preset (<code class="text-text-primary"
+        >presets.Drawer</code
+      >, applied via
+      <code class="text-text-primary">preset</code>) — see
+      <a href={r('/customization')} class="text-primary hover:underline">Customization</a>.
+    </p>
   </div>
 </Section>
 

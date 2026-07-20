@@ -24,9 +24,10 @@
   const navigation = [
     { id: 'playground', title: 'Playground', order: 1 },
     { id: 'examples', title: 'Examples', order: 2 },
-    { id: 'accessibility', title: 'Accessibility', order: 3 },
-    { id: 'api', title: 'API Reference', order: 4 },
-    { id: 'installation', title: 'Installation', order: 5 }
+    { id: 'customization', title: 'Customization', order: 3 },
+    { id: 'accessibility', title: 'Accessibility', order: 4 },
+    { id: 'api', title: 'API Reference', order: 5 },
+    { id: 'installation', title: 'Installation', order: 6 }
   ];
 
   const playgroundItems: MenuObjectOption[] = [
@@ -197,7 +198,7 @@
   <CustomDocs />
 
   <Section
-    marker="04"
+    marker="05"
     id="api"
     title="API Reference"
     intent="secondary"
@@ -206,7 +207,7 @@
     <ApiReference props={componentData?.props ?? []} />
   </Section>
 
-  <Section marker="05" id="installation" title="Installation">
+  <Section marker="06" id="installation" title="Installation">
     <CodeExample
       title="Import"
       code={`import { Menu, MenuItem, MenuDivider, MenuSection } from '@urbicon-ui/blocks';`}

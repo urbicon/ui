@@ -2,6 +2,7 @@
   import type { SvelteDocsConfig } from '@urbicon-ui/shared-types';
   import { CodeExample, Section } from '@urbicon-ui/docs';
   import { Collapsible, Badge, Button } from '@urbicon-ui/blocks';
+  import { resolve } from '$app/paths';
 
   let controlledOpen = $state(false);
 
@@ -223,6 +224,16 @@
         </Collapsible>
       </div>
     </CodeExample>
+
+    <p class="text-text-secondary text-sm leading-relaxed">
+      Panel skins that recur (glass, terminal) belong in a <code class="text-text-primary"
+        >BlocksProvider</code
+      >
+      preset (<code class="text-text-primary">presets.Collapsible</code>), applied per instance via
+      <code class="text-text-primary">preset</code>
+      — see
+      <a href={resolve('/customization')} class="text-primary hover:underline">Customization</a>.
+    </p>
   </div>
 </Section>
 

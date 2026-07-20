@@ -2,6 +2,7 @@
   import type { SvelteDocsConfig } from '@urbicon-ui/shared-types';
   import { CodeExample, Section } from '@urbicon-ui/docs';
   import { Checkbox } from '@urbicon-ui/blocks';
+  import { resolve } from '$app/paths';
 
   export const docsConfig: SvelteDocsConfig = {
     generation: {
@@ -131,6 +132,15 @@
       <Checkbox unstyled checked label="Remember me" slotClasses={terminal} />
       <Checkbox unstyled label="Stay signed in" slotClasses={terminal} />
     </CodeExample>
+
+    <p class="text-text-secondary text-sm leading-relaxed">
+      The shared <code class="text-text-primary">terminal</code> object above is a preset in spirit
+      — for app-wide reuse, register it under
+      <code class="text-text-primary">presets.Checkbox</code>
+      on <code class="text-text-primary">BlocksProvider</code> and apply it with
+      <code class="text-text-primary">preset</code> instead of importing a class map everywhere. See
+      <a href={resolve('/customization')} class="text-primary hover:underline">Customization</a>.
+    </p>
   </div>
 </Section>
 

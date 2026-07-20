@@ -2,6 +2,7 @@
   import type { SvelteDocsConfig } from '@urbicon-ui/shared-types';
   import { CodeExample, Section } from '@urbicon-ui/docs';
   import { Avatar } from '@urbicon-ui/blocks';
+  import { resolve } from '$app/paths';
 
   export const docsConfig: SvelteDocsConfig = {
     generation: {
@@ -124,6 +125,22 @@
         ST
       </Avatar>
     </CodeExample>
+
+    <p class="text-text-secondary text-sm leading-relaxed">
+      Beyond <code class="text-text-primary">unstyled</code> +
+      <code class="text-text-primary">class</code>, Avatar exposes
+      <code class="text-text-primary">base</code>,
+      <code class="text-text-primary">frame</code>, <code class="text-text-primary">image</code>,
+      <code class="text-text-primary">fallback</code>, and
+      <code class="text-text-primary">status</code>
+      through
+      <code class="text-text-primary">slotClasses</code>. A recurring identity treatment — like the
+      gradient tiles above — is best registered as a
+      <code class="text-text-primary">BlocksProvider</code>
+      preset (<code class="text-text-primary">presets.Avatar</code>) and applied via
+      <code class="text-text-primary">preset</code>; see
+      <a href={resolve('/customization')} class="text-primary hover:underline">Customization</a>.
+    </p>
   </div>
 </Section>
 

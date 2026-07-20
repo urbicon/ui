@@ -3,6 +3,7 @@
   import { CodeExample, Section } from '@urbicon-ui/docs';
   import { Combobox, Badge, Avatar } from '@urbicon-ui/blocks';
   import type { ComboboxOption } from '@urbicon-ui/blocks';
+  import { resolve } from '$app/paths';
 
   export const docsConfig: SvelteDocsConfig = {
     generation: {
@@ -257,6 +258,14 @@
         }}
       />
     </CodeExample>
+
+    <p class="text-text-secondary text-sm leading-relaxed">
+      A search-field skin used in more than one place — command palette, hero search — is better
+      registered as a <code class="text-text-primary">BlocksProvider</code> preset (<code
+        class="text-text-primary">presets.Combobox</code
+      >) than repeated <code class="text-text-primary">slotClasses</code>. See
+      <a href={resolve('/customization')} class="text-primary hover:underline">Customization</a>.
+    </p>
   </div>
 </Section>
 

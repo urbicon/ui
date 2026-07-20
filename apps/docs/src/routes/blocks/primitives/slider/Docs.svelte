@@ -2,6 +2,7 @@
   import type { SvelteDocsConfig } from '@urbicon-ui/shared-types';
   import { CodeExample, Section } from '@urbicon-ui/docs';
   import { Slider } from '@urbicon-ui/blocks';
+  import { resolve } from '$app/paths';
 
   export const docsConfig: SvelteDocsConfig = {
     generation: {
@@ -206,6 +207,37 @@
         />
       </div>
     </CodeExample>
+
+    <CodeExample
+      title="Slot Overrides"
+      description="track, range, and thumb carry the visual weight (wrapper, label, valueText, mark, and message round out the slot set). A slimmer track with a tinted fill and a larger thumb — pointer, keyboard, and range logic stay untouched."
+      isolate
+      previewClass="flex flex-col gap-3 max-w-sm w-full"
+    >
+      <Slider
+        label="Opacity"
+        value={40}
+        showValue
+        formatValue={(v) => `${v}%`}
+        slotClasses={{
+          track: 'h-1 bg-primary/15',
+          range: 'bg-primary',
+          thumb: 'size-5 border-2'
+        }}
+      />
+    </CodeExample>
+
+    <p class="text-text-secondary text-sm leading-relaxed">
+      <code class="text-text-primary">unstyled</code> removes all default classes while
+      <code class="text-text-primary">role="slider"</code>, pointer capture, and keyboard stepping
+      keep working — rebuild track and thumb through
+      <code class="text-text-primary">slotClasses</code>. A control skin shared across sliders (e.g.
+      a media-player look) belongs in a
+      <code class="text-text-primary">BlocksProvider</code> preset (<code class="text-text-primary"
+        >presets.Slider</code
+      >) — see
+      <a href={resolve('/customization')} class="text-primary hover:underline">Customization</a>.
+    </p>
   </div>
 </Section>
 

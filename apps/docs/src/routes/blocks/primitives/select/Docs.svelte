@@ -2,6 +2,7 @@
   import type { SvelteDocsConfig } from '@urbicon-ui/shared-types';
   import { CodeExample, Section } from '@urbicon-ui/docs';
   import { Select } from '@urbicon-ui/blocks';
+  import { resolve } from '$app/paths';
 
   export const docsConfig: SvelteDocsConfig = {
     generation: {
@@ -143,6 +144,39 @@
         </p>
       </div>
     </CodeExample>
+
+    <CodeExample
+      title="Pill Trigger via slotClasses"
+      description="Select spans two surfaces — the field (trigger, triggerText, placeholder, chevron, clear) and the floating list (listbox, option, group, groupLabel). Here the trigger becomes a pill and the listbox gets a matching radius with a stronger shadow; keyboard navigation and the form contract are untouched."
+      isolate
+      previewClass="flex flex-col gap-3 max-w-xs"
+    >
+      <Select
+        label="Sort by"
+        options={[
+          { label: 'Newest first', value: 'newest' },
+          { label: 'Price ascending', value: 'price-asc' },
+          { label: 'Price descending', value: 'price-desc' }
+        ]}
+        value="newest"
+        slotClasses={{
+          trigger: 'rounded-full',
+          listbox: 'rounded-xl shadow-[var(--blocks-shadow-lg)]',
+          option: 'rounded-lg'
+        }}
+      />
+    </CodeExample>
+
+    <p class="text-text-secondary text-sm leading-relaxed">
+      <code class="text-text-primary">unstyled</code> strips every slot's default classes while the
+      combobox ARIA wiring, keyboard navigation, and hidden form input keep working — rebuild both
+      surfaces through <code class="text-text-primary">slotClasses</code>. A field treatment your
+      forms share (with Input and Combobox) belongs in
+      <code class="text-text-primary">BlocksProvider</code> presets (<code class="text-text-primary"
+        >presets.Select</code
+      >) rather than per-instance overrides — see
+      <a href={resolve('/customization')} class="text-primary hover:underline">Customization</a>.
+    </p>
   </div>
 </Section>
 

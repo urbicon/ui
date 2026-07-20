@@ -2,6 +2,7 @@
   import type { SvelteDocsConfig } from '@urbicon-ui/shared-types';
   import { CodeExample, Section } from '@urbicon-ui/docs';
   import { Card, Badge, Button } from '@urbicon-ui/blocks';
+  import { resolve } from '$app/paths';
 
   export const docsConfig: SvelteDocsConfig = {
     generation: {
@@ -211,6 +212,16 @@
         </div>
       </Card>
     </CodeExample>
+
+    <p class="text-text-secondary text-sm leading-relaxed">
+      A hero-card look reused across marketing surfaces belongs in a <code class="text-text-primary"
+        >BlocksProvider</code
+      >
+      preset (<code class="text-text-primary">presets.Card</code>), applied via
+      <code class="text-text-primary">preset</code>
+      — see
+      <a href={resolve('/customization')} class="text-primary hover:underline">Customization</a>.
+    </p>
   </div>
 </Section>
 

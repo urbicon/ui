@@ -2,6 +2,7 @@
   import type { SvelteDocsConfig } from '@urbicon-ui/shared-types';
   import { CodeExample, Section } from '@urbicon-ui/docs';
   import { Pagination } from '@urbicon-ui/blocks';
+  import { resolve } from '$app/paths';
 
   let pg3 = $state(7);
   let pg6 = $state(1);
@@ -181,6 +182,14 @@
         nextLabel="next →"
       />
     </CodeExample>
+
+    <p class="text-text-secondary text-sm leading-relaxed">
+      Used on more than one list, the pill or terminal styles above become one
+      <code class="text-text-primary">BlocksProvider</code> preset (<code class="text-text-primary"
+        >presets.Pagination</code
+      >) applied via <code class="text-text-primary">preset</code> — see
+      <a href={resolve('/customization')} class="text-primary hover:underline">Customization</a>.
+    </p>
   </div>
 </Section>
 

@@ -237,7 +237,7 @@
           slotClasses={{ marker: 'size-5 mt-1.5', markerColumn: 'w-5' }}
         >
           {#snippet marker(item)}
-            <span class={['text-[11px] font-bold leading-none', glyphTone[item.status]]}>
+            <span class={['text-2xs font-bold leading-none', glyphTone[item.status]]}>
               {glyphs[item.status]}
             </span>
           {/snippet}

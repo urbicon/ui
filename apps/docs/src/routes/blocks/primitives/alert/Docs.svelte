@@ -2,6 +2,7 @@
   import type { SvelteDocsConfig } from '@urbicon-ui/shared-types';
   import { CodeExample, Section } from '@urbicon-ui/docs';
   import { Alert, Button } from '@urbicon-ui/blocks';
+  import { resolve } from '$app/paths';
 
   let dismissedSoft = $state(false);
   let dismissedInline = $state(false);
@@ -292,6 +293,16 @@
         March 2026.
       </Alert>
     </CodeExample>
+
+    <p class="text-text-secondary text-sm leading-relaxed">
+      Recurring promotional looks like the gradient banners belong in a
+      <code class="text-text-primary">BlocksProvider</code> preset (<code class="text-text-primary"
+        >presets.Alert</code
+      >): registered once, applied per instance via <code class="text-text-primary">preset</code> —
+      instead of repeating <code class="text-text-primary">slotClasses</code> at every call site.
+      See
+      <a href={resolve('/customization')} class="text-primary hover:underline">Customization</a>.
+    </p>
   </div>
 </Section>
 

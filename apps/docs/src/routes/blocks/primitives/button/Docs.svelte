@@ -2,6 +2,7 @@
   import type { SvelteDocsConfig } from '@urbicon-ui/shared-types';
   import { CodeExample, Section } from '@urbicon-ui/docs';
   import { Button, CheckIcon, CloseIcon } from '@urbicon-ui/blocks';
+  import { resolve } from '$app/paths';
 
   export const docsConfig: SvelteDocsConfig = {
     generation: {
@@ -232,6 +233,16 @@
         Brutalist
       </Button>
     </CodeExample>
+
+    <p class="text-text-secondary text-sm leading-relaxed">
+      The gradient CTA is the canonical preset case: register it once under
+      <code class="text-text-primary">presets.Button</code> on
+      <code class="text-text-primary">BlocksProvider</code>
+      and every call site becomes
+      <code class="text-text-primary">preset="cta"</code> — hover, dark mode, and Mint stay
+      coherent. See
+      <a href={resolve('/customization')} class="text-primary hover:underline">Customization</a>.
+    </p>
   </div>
 </Section>
 

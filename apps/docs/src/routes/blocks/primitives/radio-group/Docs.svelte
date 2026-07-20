@@ -2,6 +2,7 @@
   import type { SvelteDocsConfig } from '@urbicon-ui/shared-types';
   import { CodeExample, Section } from '@urbicon-ui/docs';
   import { RadioGroup, RadioItem } from '@urbicon-ui/blocks';
+  import { resolve } from '$app/paths';
 
   export const docsConfig: SvelteDocsConfig = {
     generation: {
@@ -135,6 +136,45 @@
         </RadioGroup>
       </div>
     </CodeExample>
+
+    <CodeExample
+      title="Card Options via slotClasses"
+      description="RadioGroup styles the group shell (root, group, label, message); each RadioItem owns its item, indicator, dot, label, and description slots. Here every option becomes a bordered card that highlights while selected — the has-[:checked] variant reads the native input inside the item."
+      isolate
+      previewClass="flex justify-center max-w-md w-full mx-auto"
+    >
+      <RadioGroup label="Region" value="eu" slotClasses={{ group: 'gap-2' }}>
+        <RadioItem
+          value="eu"
+          label="EU (Frankfurt)"
+          description="GDPR-friendly, lowest latency in Europe"
+          slotClasses={{
+            item: 'w-full rounded-xl border border-border-subtle p-3 has-[:checked]:border-primary has-[:checked]:bg-primary/5'
+          }}
+        />
+        <RadioItem
+          value="us"
+          label="US (Virginia)"
+          description="Closest to North American users"
+          slotClasses={{
+            item: 'w-full rounded-xl border border-border-subtle p-3 has-[:checked]:border-primary has-[:checked]:bg-primary/5'
+          }}
+        />
+      </RadioGroup>
+    </CodeExample>
+
+    <p class="text-text-secondary text-sm leading-relaxed">
+      <code class="text-text-primary">unstyled</code> (per item) drops the indicator and label
+      styling while the native radio semantics, roving tabindex, and arrow-key navigation keep
+      working. When the card treatment above is your app's standard option style, register it once
+      as a <code class="text-text-primary">BlocksProvider</code> preset (<code
+        class="text-text-primary">presets.RadioGroup</code
+      >
+      /
+      <code class="text-text-primary">presets.RadioItem</code>) instead of repeating
+      <code class="text-text-primary">slotClasses</code> — see
+      <a href={resolve('/customization')} class="text-primary hover:underline">Customization</a>.
+    </p>
   </div>
 </Section>
 
