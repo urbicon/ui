@@ -20,21 +20,19 @@ Each subpath is consumable on its own so consumers pull in only what they need:
 
 | Subpath | Contents |
 |---|---|
-| `.` | Barrel — re-exports everything below except `documentation-core` |
+| `.` | Barrel — re-exports everything below except `documentation-core` and `globals`. Includes the component model: `ComponentInfo`, `ComponentStats`, `PropInfo`, `PropSource`, `PropExample`, `VariantInfo`, `VariantExample`, `InheritanceInfo`, `CrossReference`, `PackageInfo` |
 | `./documentation` | `ComponentMetadata`, `DeprecationInfo`, `ComponentBadge`, `SectionOrder`, `LLMConfig` |
 | `./docs-config` | `SvelteDocsConfig`, `DocsPlaygroundConfig`, `VariantsConfig`, `ExamplesConfig`, `ApiConfig`, `OverviewConfig`, `UsageConfig`, `DocsMetadata` |
-| `./components` | `ComponentInfo`, `ComponentStats`, `PropInfo`, `PropSource`, `PropExample`, `VariantInfo`, `VariantExample`, `InheritanceInfo`, `CrossReference`, `PackageInfo` |
-| `./component-core` | Shared component-core types — the framework-agnostic core of the component model |
+| `./documentation-core` | `DocumentationSection`, `SectionContent`, `ComponentDocumentation`, `DocumentationMetadata` and the section-structure config types |
 | `./examples` | `ComponentExample`, `UsagePattern`, `ExampleCollection`, `ExampleGroup` |
 | `./playground` | `PlaygroundConfig`, `ControlDefinition`, `ControlType`, `ControlOption`, `ControlCondition`, `CodeGenerator`, `CodeGeneratorConfig`, `ImportStatement`, `PlaygroundExample`, `PlaygroundMetadata`, `PlaygroundFeature` |
 | `./navigation` | `NavigationItem`, `NavigationMetadata`, `NavigationState`, `NavigationBadge`, `TableOfContents`, `TOCItem`, `TOCSettings`, `Breadcrumb`, `BreadcrumbItem`, `BreadcrumbSettings`, `SiteNavigation`, `NavigationContext`, `NavigationSearchResult`, `SearchMatch` |
 | `./globals` | Monorepo-wide branded types and constants |
-| `./utilities` | Helper types |
 
 ## Usage
 
 ```typescript
-import type { PropInfo, ComponentInfo } from '@urbicon-ui/shared-types/components';
+import type { PropInfo, ComponentInfo } from '@urbicon-ui/shared-types';
 import type { PlaygroundConfig } from '@urbicon-ui/shared-types/playground';
 
 const button: ComponentInfo = {

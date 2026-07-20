@@ -26,24 +26,16 @@
       "import": "./dist/index.js"
     },
     "./docs-config": {
-      "types": "./dist/documentation.d.ts",
-      "import": "./dist/documentation.js"
+      "types": "./dist/docs-config.d.ts",
+      "import": "./dist/docs-config.js"
     },
     "./documentation": {
       "types": "./dist/documentation.d.ts",
       "import": "./dist/documentation.js"
     },
     "./documentation-core": {
-      "types": "./dist/documentation.d.ts",
-      "import": "./dist/documentation.js"
-    },
-    "./components": {
-      "types": "./dist/components.d.ts",
-      "import": "./dist/components.js"
-    },
-    "./component-core": {
-      "types": "./dist/component-core.d.ts",
-      "import": "./dist/component-core.js"
+      "types": "./dist/documentation-core.d.ts",
+      "import": "./dist/documentation-core.js"
     },
     "./examples": {
       "types": "./dist/examples.d.ts",
@@ -56,10 +48,6 @@
     "./navigation": {
       "types": "./dist/navigation.d.ts",
       "import": "./dist/navigation.js"
-    },
-    "./utilities": {
-      "types": "./dist/utilities.d.ts",
-      "import": "./dist/utilities.js"
     },
     "./globals": {
       "types": "./dist/globals.d.ts",
