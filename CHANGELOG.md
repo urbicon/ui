@@ -4,6 +4,12 @@ All notable changes to this project will be documented in this file.
 This changelog is automatically generated from [Conventional Commits](https://www.conventionalcommits.org).
 
 
+## [6.27.1] - 2026-07-20
+
+### Documentation
+- **auth**: Ship the canonical AUTH.md inside the package
+- Record the knowledge-surface debt and the public/internal rule
+
 ## [6.26.3] - 2026-07-20
 
 ### Documentation
