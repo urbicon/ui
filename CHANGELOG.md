@@ -4,6 +4,24 @@ All notable changes to this project will be documented in this file.
 This changelog is automatically generated from [Conventional Commits](https://www.conventionalcommits.org).
 
 
+## [6.26.1] - 2026-07-20
+
+### Bug Fixes
+- **docs**: Pair the remaining bare meta-marker kickers
+
+### Build
+- Upgrade @sveltejs/kit to 2.70.1 across the workspace catalog
+
+### Documentation
+- **auth**: Correct the kernel-CSRF off-switch to checkOrigin:false
+- Log the v6.26.0 review findings in technical-debt
+- **auth**: Scope the kernel-CSRF availability note to Kit versions
+- Log the validateCsrf Origin-less-browser trade-off
+- **auth**: Drop the pre-2.70 kernel-CSRF caveats
+
+### Miscellaneous
+- Ship LICENSE and drop tsbuildinfo in published tarballs
+
 ## [6.26.0] - 2026-07-20
 
 ### Bug Fixes
