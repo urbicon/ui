@@ -105,9 +105,9 @@ export function createAuthHandle<R extends string>(options: AuthHandleOptions<R>
     // (before any hook) and so still applies to handle-bypassed routes — most
     // visibly a cross-origin, form-encoded POST such as an OAuth 2.1 token
     // endpoint, which that kernel check 403s ("Cross-site POST form
-    // submissions are forbidden") before this ever runs — never under
-    // `vite dev`, and on Kit < 2.70.0 in no non-production-NODE_ENV build
-    // either (kit#16313).
+    // submissions are forbidden") before this ever runs (skipped under
+    // `vite dev` only; the ^2.70.1 peer range guarantees builds always
+    // carry the gate, kit#16313).
     // A consumer exposing such an endpoint *outside* this handle must turn the
     // kernel check off (`kit.csrf.checkOrigin: false` — deprecated, but
     // `trustedOrigins` is consulted only when an `Origin` header is present

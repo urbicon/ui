@@ -207,7 +207,7 @@ Mirrors [docs/AUTH.md → Produktionsreife-Checkliste](../../docs/AUTH.md#produk
 - [ ] **CSP** tuned to your app (`securityHeaders.csp`) — the default only blocks framing.
 - [ ] **`appUrl`** set to the real public origin; **`JWT_SECRET`** from a secret store, with a `keyId` + `previousSecrets` rotation runbook ready.
 - [ ] **Monitoring** on auth-handler latency + error rate; wire `hooks.onPasswordResetFailed` to your error tracker so a broken mail transport doesn't silently lock users out of recovery.
-- [ ] **Cross-origin form-encoded endpoint outside the handle?** (OAuth 2.1 token, webhook) — set `kit.csrf: { checkOrigin: false }` in `svelte.config.js` (SvelteKit's kernel CSRF check — skipped under `vite dev`, and on Kit < 2.70.0 missing from non-production `NODE_ENV` builds too — otherwise `403`s it before the hook; deprecated but the only working off-switch — `trustedOrigins` can't admit header-less callers) and confirm every cookie-auth mutating route still flows through `createAuthHandle`. See [docs/AUTH.md → Known Limitations](../../docs/AUTH.md#known-limitations--security-gaps).
+- [ ] **Cross-origin form-encoded endpoint outside the handle?** (OAuth 2.1 token, webhook) — set `kit.csrf: { checkOrigin: false }` in `svelte.config.js` (SvelteKit's kernel CSRF check, skipped under `vite dev` only, otherwise `403`s it before the hook; deprecated but the only working off-switch — `trustedOrigins` can't admit header-less callers) and confirm every cookie-auth mutating route still flows through `createAuthHandle`. See [docs/AUTH.md → Known Limitations](../../docs/AUTH.md#known-limitations--security-gaps).
 
 #### CSRF on the client
 
