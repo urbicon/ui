@@ -90,7 +90,14 @@ export const cardVariants = tv({
     },
     elementType: {
       button: {
-        base: 'border-none font-inherit text-left cursor-pointer'
+        // `[font:inherit]` (arbitrary property), NOT `font-inherit`: Tailwind
+        // v4 has no `font-inherit` utility (no `--font-inherit` theme key), so
+        // that class emitted no rule and a clickable Card kept the UA button
+        // font instead of inheriting the surrounding type. Same utility gap as
+        // Button's `[gap:inherit]` (Codeberg #21); found ground-truthing the
+        // variants-lint theme-existence guard (`font-` itself stays unguarded —
+        // family keys are legitimately consumer-supplied).
+        base: 'border-none [font:inherit] text-left cursor-pointer'
       },
       a: {
         base: 'no-underline text-inherit'
