@@ -15,6 +15,13 @@
  *   ✖ ERROR  dead token — removing it from its source changes the output in
  *            NO sampled combination where the source is active (leave-one-out
  *            attribution, immune to identical-token collisions across sources).
+ *   ✖ ERROR  unknown theme key — a class in a theme-driven namespace
+ *            (text-/rounded-/shadow-/blur-/tracking-/leading-/ease-, see
+ *            scripts/theme-tokens.ts) whose key is defined neither in the
+ *            repo's own `@theme` blocks (blocks foundation/semantic,
+ *            table-theme, docs-theme) nor in Tailwind 4's default theme.
+ *            Tailwind emits NO CSS for such a class — the bug class behind
+ *            Calendar's dead `text-2xs` (`size="sm"` rendered like `md`).
  *   ⚠ WARN   partially stripped token — its removal changes some combinations
  *            but not others. Usually intentional (state overrides); the
  *            listing exists so axis-order decisions stay visible.
@@ -31,6 +38,7 @@
  */
 import { unlink } from 'node:fs/promises';
 import { resolve } from 'node:path';
+import { checkClassToken, collectThemeVars } from './theme-tokens';
 
 const ENGINE = resolve(import.meta.dir, '../src/lib/utils/variants.ts');
 const REPO = resolve(import.meta.dir, '../../..');
@@ -107,6 +115,52 @@ if (loaded.length < 50) {
   process.exit(1);
 }
 
+// ─── theme truth (for the theme-existence guard) ─────────────────────────────
+
+// The always-loaded @theme pipeline: Tailwind 4's default theme plus every
+// @theme block the packages themselves ship (blocks' index.css imports
+// foundation + semantic; table/docs add their own). Optional themes
+// (style/themes/*.css) are deliberately excluded — they only override
+// existing keys, and a class must not depend on an opt-in theme to exist.
+const THEME_CSS = [
+  Bun.resolveSync('tailwindcss/theme.css', REPO),
+  resolve(REPO, 'packages/blocks/src/lib/style/foundation.css'),
+  resolve(REPO, 'packages/blocks/src/lib/style/semantic.css'),
+  resolve(REPO, 'packages/table/src/lib/style/table-theme.css'),
+  resolve(REPO, 'packages/docs/src/lib/style/docs-theme.css')
+];
+
+const themeVars = new Set<string>();
+for (const cssPath of THEME_CSS) {
+  const fileVars = collectThemeVars(await Bun.file(cssPath).text());
+  if (fileVars.size === 0) {
+    console.error(
+      `✖ variants-lint: no @theme variables parsed from ${cssPath} — the theme-existence guard would run blind.`
+    );
+    process.exit(1);
+  }
+  for (const v of fileVars) themeVars.add(v);
+}
+
+// One canary per source (+ Tailwind's deprecated compat block via --radius):
+// a missing canary means @theme parsing or file-location drift, not a clean run.
+const THEME_CANARIES = [
+  '--text-xs', // tailwind default theme
+  '--radius', // tailwind deprecated compat block
+  '--text-2xs', // blocks foundation.css
+  '--radius-commit', // blocks foundation.css (semantic radii)
+  '--color-text-primary', // blocks semantic.css
+  '--color-filter', // table-theme.css
+  '--color-code' // docs-theme.css
+];
+const missingCanaries = THEME_CANARIES.filter((c) => !themeVars.has(c));
+if (missingCanaries.length > 0) {
+  console.error(
+    `✖ variants-lint: theme canaries missing (${missingCanaries.join(', ')}) — @theme parsing or file-location drift.`
+  );
+  process.exit(1);
+}
+
 // ─── matrix + source activity ────────────────────────────────────────────────
 
 function falsyToString(value: unknown): string | undefined {
@@ -176,6 +230,8 @@ type Finding = { where: string; token: string; detail: string };
 const dead: Finding[] = [];
 const shadowed: Finding[] = [];
 const partial: Finding[] = [];
+const unknownTheme: Finding[] = [];
+const unknownThemeSeen = new Set<string>();
 
 /** Remove every occurrence of `token` from a class value (string or nested array). */
 function removeToken(value: unknown, token: string): unknown {
@@ -275,6 +331,27 @@ for (const { file, name, fn, cfg } of loaded) {
     });
   }
 
+  // Theme-existence guard: every class token in a theme-driven namespace
+  // must resolve to a key in the collected @theme truth. Independent of the
+  // fold replay below — a dead-AND-unknown token reports on both axes.
+  for (const src of sources) {
+    for (const slot of slotList) {
+      for (const token of new Set(src.tokens.get(slot) ?? [])) {
+        const miss = checkClassToken(token, themeVars);
+        if (miss == null) continue;
+        const where = `${file} › ${name}${slots ? ` › ${slot}` : ''}`;
+        const seenKey = `${where} ${token}`;
+        if (unknownThemeSeen.has(seenKey)) continue;
+        unknownThemeSeen.add(seenKey);
+        unknownTheme.push({
+          where,
+          token,
+          detail: `${src.id} — no @theme key: looked for ${miss.lookedFor.join(' / ')}`
+        });
+      }
+    }
+  }
+
   // Baseline outputs per combo per slot.
   const baseline = combos.map((combo) => {
     const resolved = fn(combo);
@@ -347,11 +424,14 @@ for (const { file, name, fn, cfg } of loaded) {
 // ─── report ──────────────────────────────────────────────────────────────────
 
 console.log(
-  `variants-lint: ${loaded.length} configs in ${files.length} files — ${dead.length} lost, ${shadowed.length} shadowed, ${partial.length} partially-stripped token(s)`
+  `variants-lint: ${loaded.length} configs in ${files.length} files, ${themeVars.size} @theme keys — ${dead.length} lost, ${unknownTheme.length} unknown-theme, ${shadowed.length} shadowed, ${partial.length} partially-stripped token(s)`
 );
 
 for (const err of fileErrors) console.error(`✖ ${err}`);
 for (const f of dead) console.error(`✖ lost token '${f.token}' in ${f.where} (${f.detail})`);
+for (const f of unknownTheme) {
+  console.error(`✖ unknown theme key for '${f.token}' in ${f.where} (${f.detail})`);
+}
 
 if (SHOW_WARNINGS) {
   for (const f of shadowed) console.warn(`⚠ shadowed '${f.token}' in ${f.where} (${f.detail})`);
@@ -362,4 +442,4 @@ if (SHOW_WARNINGS) {
   );
 }
 
-if (fileErrors.length > 0 || dead.length > 0) process.exit(1);
+if (fileErrors.length > 0 || dead.length > 0 || unknownTheme.length > 0) process.exit(1);

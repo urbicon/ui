@@ -10,7 +10,13 @@ export default mergeConfig(
       // DOM. Component tests opt into jsdom per-file with a `// @vitest-environment jsdom` docblock
       // (see the `*.svelte.test.ts` files), so the node suite stays fast and untouched.
       environment: 'node',
-      include: ['src/**/*.{test,spec}.{ts,svelte}', 'src/**/*.svelte.{test,spec}.ts'],
+      include: [
+        'src/**/*.{test,spec}.{ts,svelte}',
+        'src/**/*.svelte.{test,spec}.ts',
+        // scripts/ tooling with extractable pure logic (theme-tokens.ts for
+        // the variants-lint theme-existence guard) tests next to the source.
+        'scripts/*.{test,spec}.ts'
+      ],
       globals: true,
       // Registers @testing-library/jest-dom matchers; see vitest-setup.ts for why it is safe to
       // load globally across both environments.
