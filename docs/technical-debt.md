@@ -9,6 +9,8 @@ internal TODO instead. Sections are ordered roughly by urgency.
 
 ### `shiki` is a devDependency of the published `@urbicon-ui/docs` but is imported at runtime
 
+> 🚧 **In Arbeit** — Fable-Session `sso-debt-wave`, 2026-07-20.
+
 - **Where:** `packages/docs/package.json` (`devDependencies: {"shiki": "catalog:"}`;
   `peerDependencies` lists only `@sveltejs/kit`, `svelte`, and the `@urbicon-ui/*`
   siblings); imported at `packages/docs/src/lib/utils/highlighter.ts:1` and
@@ -28,6 +30,8 @@ internal TODO instead. Sections are ordered roughly by urgency.
 
 ### mcp-server npm tarball ships raw src (incl. tests) with no consumer
 
+> 🚧 **In Arbeit** — Fable-Session `sso-debt-wave`, 2026-07-20.
+
 - **Where:** `packages/mcp-server/package.json` (no `files` field, no
   `private`); `.github/workflows/release.yml` + `scripts/publish.sh` publish
   every `packages/*` to npm.
@@ -44,6 +48,8 @@ internal TODO instead. Sections are ordered roughly by urgency.
   (supersedes the earlier "bin is not runnable under node/npx" entry).
 
 ### `shared-types` `exports` map points at files that don't exist
+
+> 🚧 **In Arbeit** — Fable-Session `sso-debt-wave`, 2026-07-20.
 
 - **Where:** `packages/shared-types/package.json` — `./components` (`:66`),
   `./component-core` (`:70`), `./utilities` (`:86`) resolve to `dist/*.d.ts`
@@ -193,6 +199,8 @@ internal TODO instead. Sections are ordered roughly by urgency.
   prerendered pages **mit vollem Inhalt**" is corrected there.
 
 ### `meta-marker` is used bare in two places, so those kickers render unstyled in the library docs skin
+
+> 🚧 **In Arbeit** — Fable-Session `sso-debt-wave`, 2026-07-20.
 
 - **Where:** `apps/docs/src/lib/SidebarNavigation.svelte:103`
   (`class="meta-marker"` on every sidebar group label) and
@@ -400,6 +408,8 @@ internal TODO instead. Sections are ordered roughly by urgency.
 
 ### An untitled `Dialog` has no focusable element, so its focus trap is inert until the user clicks in
 
+> 🚧 **In Arbeit** — Fable-Session `sso-debt-wave`, 2026-07-20.
+
 - **Where:** `packages/blocks/src/lib/primitives/Dialog/Dialog.svelte` (`:86` —
   header + close button render only `{#if title}`) vs.
   `packages/blocks/src/lib/utils/overlay.ts` (`focusFirstElement(panelEl)`,
@@ -563,6 +573,8 @@ internal TODO instead. Sections are ordered roughly by urgency.
 ## Accessibility
 
 ### `warning`'s dark-mode fills sit at 1.51–2.80:1 — a surface token used as an on-fill colour
+
+> 🚧 **In Arbeit** — Fable-Session `sso-debt-wave`, 2026-07-20.
 
 - **Where:** `packages/blocks/src/lib/style/semantic.css` (`--color-warning:
   light-dark(warning-500, warning-400)`) paired with `--color-text-on-surface`
@@ -916,6 +928,8 @@ internal TODO instead. Sections are ordered roughly by urgency.
 
 ### The guide page's CodeExample workaround is dead weight since the parser fix
 
+> 🚧 **In Arbeit** — Fable-Session `sso-debt-wave`, 2026-07-20.
+
 - **Where:** `apps/docs/src/routes/blocks/components/guide/Docs.svelte:77-80` —
   the explicit `</CodeExample>` closing tag added by `ac4b4e3` plus its inline
   comment explaining why.
@@ -930,6 +944,8 @@ internal TODO instead. Sections are ordered roughly by urgency.
 - **Found:** 2026-07-14, CodeExample parser rework (Opus quality wave).
 
 ### Every docs page logs `[Select] value "" has no matching option`
+
+> 🚧 **In Arbeit** — Fable-Session `sso-debt-wave`, 2026-07-20.
 
 - **Where:** emitted by `packages/blocks/src/lib/primitives/Select/Select.svelte:200`
   (DEV-only warn); observed once per route across all 36 primitive pages.
@@ -1103,6 +1119,8 @@ internal TODO instead. Sections are ordered roughly by urgency.
 - **Found:** 2026-07-14, landing the `text-on-primary` remedy.
 
 ### `contrast.test.ts` ships in the published package
+
+> 🚧 **In Arbeit** — Fable-Session `sso-debt-wave`, 2026-07-20.
 
 - **Where:** `packages/blocks/dist/style/contrast.test.{js,d.ts}`.
 - **What:** The test lands in the npm tarball. Harmless (it is never imported
