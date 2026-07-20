@@ -398,6 +398,24 @@ internal TODO instead. Sections are ordered roughly by urgency.
   a radio dot, plus VR review), not a per-component drive-by.
 - **Found:** 2026-07-13, CHK-10 checkbox polish.
 
+### Checkbox silently swallows a consumer-passed native `onchange`
+
+- **Where:** `packages/blocks/src/lib/primitives/Checkbox/Checkbox.svelte` — the
+  inner `<input>` binds `onchange={handleChange}` **after** `{...restProps}`.
+- **What:** A consumer passing native `onchange` to `<Checkbox>` has it land in
+  `restProps` and then overridden by the internal handler, so it never fires —
+  the callback is `onCheckedChange(checked: boolean)`. This is exactly how
+  Table's selection wiring was silently broken across four components (fixed
+  2026-07-20, `d7b4dfe`, by switching to `onCheckedChange`). Passing `onchange`
+  is arguably misuse, but dropping it silently is a footgun.
+- **Why deferred:** Two defensible resolutions with a precedent on each side —
+  compose the consumer handler (as the Textarea `oninput` fix did, `d4a8728`)
+  or document that internal change handling wins (as the ARIA-over-restProps
+  contract does, `32cfddd`). Since Checkbox transforms change→boolean, a raw
+  `onchange` is semantically odd; wants a deliberate call, not a drive-by. A
+  DEV warn when `onchange` is passed would at least stop it failing silently.
+- **Found:** 2026-07-20, e2e table selection coverage (qa-polish-wave).
+
 ### Combobox multi-select: no way to seed labels for pre-selected async values
 
 - **Where:** `packages/blocks/src/lib/primitives/Combobox/Combobox.svelte`
@@ -655,6 +673,24 @@ internal TODO instead. Sections are ordered roughly by urgency.
   deliberate section-taxonomy sweep with its own review, not a drive-by during a
   coverage pass; the menu ToC omission wants the same look at that page's nav.
 - **Found:** 2026-07-20, XC-4 customization sectioning (qa-polish-wave).
+
+### Table server-mode (`mode="server"`) has no live docs demo, and `/table/live-updates` has a broken import
+
+- **Where:** `apps/docs/src/routes/.../table/remote-data` (both examples render
+  with `preview={false}` — code-only) and `.../table/live-updates` (a dev-server
+  `[UNRESOLVED_IMPORT] ./LiveFeed.svelte` warning).
+- **What:** Two adjacent gaps found while adding table e2e coverage. (a)
+  Server-mode is demonstrated only as code — there is no live preview a reader
+  (or an e2e) can drive, which is why the new `table-core` remote test had to
+  build its own deterministic server-mode fixture with a request counter. (b)
+  `/table/live-updates` references `./LiveFeed.svelte`, which the dev server
+  fails to resolve — a non-fatal warning today, but a broken reference on a
+  shipped route.
+- **Why deferred:** (a) wants a real server-mode demo design (mock latency,
+  loading/empty states, a visible request indicator) — the same demo-fetcher
+  class as the Combobox `queryFn` gap, not a drive-by. (b) is small but wants a
+  look at whether `LiveFeed.svelte` should exist or the import should go.
+- **Found:** 2026-07-20, e2e table remote/grouping coverage (qa-polish-wave).
 
 ### The docs search index is English-only, capped at 2000 chars per record, and indexes playground control names
 
