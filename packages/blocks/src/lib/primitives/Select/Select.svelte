@@ -177,14 +177,23 @@
    * dev so the consumer notices the orphan. The orphan is also filtered out
    * of the hidden form input, so the submitted form stays consistent with
    * what the trigger shows.
+   *
+   * Warn dedup: `selectedOptions` recomputes on every fresh `options` array a
+   * parent re-render passes in (the common `options={items.map(…)}` idiom), so
+   * an unguarded warn would re-fire per recompute. A plain Set — deliberately
+   * outside the reactive graph, so adding to it never invalidates the derived —
+   * makes it one warn per orphan value for the instance's lifetime (mirrors
+   * Combobox).
    */
+  const warnedOrphanValues = new Set<unknown>();
   const selectedOptions = $derived.by((): SelectOption<T>[] => {
     if (multiple) {
       const values = Array.isArray(value) ? value : [];
       return values
         .map((v) => {
           const found = allOptions.find((o) => o.value === v);
-          if (!found && import.meta.env?.DEV) {
+          if (!found && import.meta.env?.DEV && !warnedOrphanValues.has(v)) {
+            warnedOrphanValues.add(v);
             console.warn(
               `[Select] value ${JSON.stringify(v)} has no matching option — dropped from selection.`
             );
@@ -195,7 +204,8 @@
     }
     if (value === null || value === undefined) return [];
     const found = allOptions.find((o) => o.value === value);
-    if (!found && import.meta.env?.DEV) {
+    if (!found && import.meta.env?.DEV && !warnedOrphanValues.has(value)) {
+      warnedOrphanValues.add(value);
       console.warn(
         `[Select] value ${JSON.stringify(value)} has no matching option — trigger will fall back to placeholder.`
       );

@@ -3,7 +3,7 @@ import { screen } from '@testing-library/dom';
 import userEvent from '@testing-library/user-event';
 import { flushSync, mount, unmount } from 'svelte';
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import type { SelectProps } from './index';
+import type { SelectMultipleProps, SelectProps } from './index';
 import Select from './Select.svelte';
 
 // Interaction layer for Select — the focus / keyboard / open-close timing the
@@ -404,5 +404,65 @@ describe('Select (active highlight)', () => {
     expect(trigger().hasAttribute('aria-activedescendant')).toBe(false);
     expect(option('Germany').classList.contains('bg-surface-hover')).toBe(false);
     expect(option('France').classList.contains('bg-surface-hover')).toBe(false);
+  });
+});
+
+// Orphan dev-warn dedup — mirrors Combobox. Both warn sites live in the
+// `selectedOptions` $derived.by whose deps include the `options` reference, so
+// a parent re-render passing a fresh `options` array (the common
+// `options={items.map(…)}` idiom) used to re-fire the warn per recompute. The
+// warned-values Set (deliberately outside the reactive graph) makes it exactly
+// one warn per orphan value per instance. The `$state` proxy is handed to
+// `mount` unspread so prop mutations reach the component (the Collapsible
+// controlled-contract pattern).
+describe('Select (orphan warn dedup)', () => {
+  function mountSelect(props: SelectProps<string | number | boolean>) {
+    const instance = mount(Select, { target: document.body, props });
+    dispose = () => unmount(instance);
+    flushSync();
+  }
+
+  it('multi mode: warns once per orphan value, not per re-render with a fresh options array', () => {
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+    // Typed as the multi arm (not the SelectProps union): TS types property
+    // WRITES on a union as the intersection of the arms' property types, which
+    // for `value` ((T | null) & T[]) nothing satisfies.
+    const props = $state<SelectMultipleProps<string | number | boolean>>({
+      options: [...OPTIONS],
+      multiple: true,
+      value: ['ghost']
+    });
+    mountSelect(props);
+    expect(warn).toHaveBeenCalledTimes(1);
+    expect(String(warn.mock.calls[0][0])).toContain('ghost');
+
+    // Fresh array reference (same content) invalidates the derived — the warn
+    // must not re-fire for the same orphan.
+    props.options = [...OPTIONS];
+    flushSync();
+    expect(warn).toHaveBeenCalledTimes(1);
+
+    // A different orphan still warns (per-value dedup, not a one-shot latch).
+    props.value = ['ghost', 'phantom'];
+    flushSync();
+    expect(warn).toHaveBeenCalledTimes(2);
+    expect(String(warn.mock.calls[1][0])).toContain('phantom');
+    warn.mockRestore();
+  });
+
+  it('single mode: warns once for an orphan bound value across fresh options arrays', () => {
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+    const props = $state<SelectProps<string | number | boolean>>({
+      options: [...OPTIONS],
+      value: 'ghost'
+    });
+    mountSelect(props);
+    expect(warn).toHaveBeenCalledTimes(1);
+    expect(String(warn.mock.calls[0][0])).toContain('ghost');
+
+    props.options = [...OPTIONS];
+    flushSync();
+    expect(warn).toHaveBeenCalledTimes(1);
+    warn.mockRestore();
   });
 });
