@@ -114,7 +114,11 @@ for dir in "${PACKAGES[@]}"; do
   fi
 
   echo "==> Publishing $NAME@$VERSION"
-  (cd "$ROOT/$dir" && npm publish --access public --registry "$REGISTRY")
+  # bun publish (not npm publish): it resolves `workspace:`/`catalog:` specifiers
+  # to concrete versions at pack time, which npm publish leaves verbatim →
+  # unresolvable for consumers. Auth is the same ~/.npmrc `npm login` writes
+  # (bun reads it); registry passed explicitly so no default can capture it.
+  (cd "$ROOT/$dir" && bun publish --access public --registry "$REGISTRY")
   published=$((published + 1))
 done
 

@@ -120,7 +120,12 @@ jobs:
             if npm view "$NAME@$VERSION" version --registry "$NPM_REGISTRY_URL" >/dev/null 2>&1; then
               echo "$NAME@$VERSION already published — skipping"
             else
-              (cd "$dir" && npm publish --access public --registry "$NPM_REGISTRY_URL")
+              # bun publish (not npm publish): it resolves `workspace:` and
+              # `catalog:` specifiers to concrete versions at pack time, which
+              # npm publish leaves verbatim — shipping unresolvable ranges to
+              # consumers. Auth + scoped registry come from the $HOME/.npmrc
+              # written above (bun reads it); the registry is passed explicitly.
+              (cd "$dir" && bun publish --access public --registry "$NPM_REGISTRY_URL")
             fi
             echo "::endgroup::"
           done

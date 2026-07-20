@@ -7,30 +7,6 @@ internal TODO instead. Sections are ordered roughly by urgency.
 
 ## Packaging / distribution
 
-### `npm publish` doesn't rewrite `catalog:` / `workspace:` ranges — published tarballs carry unresolvable specifiers
-
-- **Where:** every published `packages/*` manifest with a `catalog:` or
-  `workspace:` specifier: `catalog:` peerDependencies in
-  auth/blocks/docs/i18n/sveltekit-utils/table (each `svelte`/`@sveltejs/kit`,
-  i18n also `typescript`), runtime `dependencies` `workspace:*` in design +
-  mcp-server, and `glob: "catalog:"` in docs-gen; published by
-  `.github/workflows/release.yml` + `scripts/publish.sh` via `npm publish`.
-- **What:** `bun publish` rewrites `catalog:`/`workspace:` to concrete versions;
-  `npm publish` does **not**. The pipeline runs `npm publish`, so each tarball
-  ships those specifiers verbatim — a consumer's install then fails on an
-  unresolvable `catalog:`/`workspace:` range. Same bug class as the (now fixed)
-  shiki-peer finding, but pipeline-wide and higher-impact: it hits the primary
-  runtime peers of the flagship packages, not one docs-tooling import. Masked
-  in-repo because the workspace resolves both protocols locally.
-- **Why deferred:** A real pipeline decision, not a drive-by: either switch the
-  publish step to `bun publish` (rewrites both protocols at pack time) or
-  replace every `catalog:`/`workspace:` in a *published* manifest with a real
-  semver range and keep it synced. Wants one deliberate pass with a
-  pack-and-inspect check, ideally CI-gated. Nothing is published until the P1
-  launch, so it is latent today.
-- **Found:** 2026-07-20, packaging-hygiene pass (sso-debt-wave) — surfaced while
-  making shiki a peer dependency and auditing the published specifiers.
-
 ### `packages/docs` ships no README
 
 - **Where:** `packages/docs/` (the only published package without a
@@ -40,8 +16,8 @@ internal TODO instead. Sections are ordered roughly by urgency.
   peers) is documented nowhere a consumer would look. Minor, but it is the one
   published surface with no install guidance.
 - **Why deferred:** Writing the readme is small, but it rides with the same
-  packaging-hygiene / launch pass as the specifier decision above (and a call on
-  whether `@urbicon-ui/docs` has any external consumer yet at all).
+  packaging-hygiene / launch pass (and a call on whether `@urbicon-ui/docs` has
+  any external consumer yet at all).
 - **Found:** 2026-07-20, packaging-hygiene pass (sso-debt-wave).
 
 ## API design
