@@ -406,10 +406,30 @@ export interface LLMOutputConfig {
   outputPath: string;
   /** Aggregate-file format; ignored in directory mode (always llm.txt markdown-ish text). */
   format: LLMFormat;
+  /** Guide documents copied into the output directory and indexed in the per-scope `llms.txt`. Directory mode only. */
+  guides?: LLMGuideConfig[];
   /** Component/example limits for the aggregate document. Not consumed by the current generator. */
   filtering?: LLMFilterConfig;
   /** Token-budget optimisations. Not consumed by the current generator. */
   optimization?: LLMOptimizationConfig;
+}
+
+/**
+ * A hand-written guide document copied verbatim into the LLM output directory
+ * and indexed under a "Guides" section of the per-scope `llms.txt`. The source
+ * of truth stays where the file lives (typically the package's own `docs/`,
+ * shipped in its npm tarball) — this is distribution, not duplication. See
+ * docs/DOCS-SURFACES.md for the documentation-flow model.
+ */
+export interface LLMGuideConfig {
+  /** Index-entry link title. */
+  title: string;
+  /** Source markdown path, resolved like `outputPath` (relative to the generator cwd). */
+  sourcePath: string;
+  /** File name written into the output directory (e.g. `AUTH.md`). */
+  outputName: string;
+  /** One-line index-entry description. */
+  description: string;
 }
 
 /**

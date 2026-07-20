@@ -8,7 +8,7 @@ import type {
   EnrichedComponentInfo,
   GeneratedOutput
 } from '../../types';
-import type { LLMOutputConfig } from '../../types/configuration';
+import type { LLMGuideConfig, LLMOutputConfig } from '../../types/configuration';
 import { resolveSlotNames } from '../shared/slots';
 
 /**
@@ -74,8 +74,28 @@ export class LLMDocumentationGenerator {
         writtenFiles.push(filePath);
       }
 
+      // Copy configured guide documents into the output root. Fail loud on a
+      // missing source — a silently skipped guide would leave the published
+      // scope index linking a file that was never written (same stance as the
+      // global-aggregator write below).
+      const guides = this.config.guides ?? [];
+      for (const guide of guides) {
+        const guideTarget = path.join(outputPath, guide.outputName);
+        try {
+          await fs.copyFile(guide.sourcePath, guideTarget);
+        } catch (error) {
+          throw new Error(
+            `Failed to copy guide "${guide.title}" from ${guide.sourcePath}: ${
+              error instanceof Error ? error.message : String(error)
+            }`,
+            { cause: error }
+          );
+        }
+        writtenFiles.push(guideTarget);
+      }
+
       // Write a per-scope llms.txt manifest for convenience (llms.txt proposal)
-      const indexContent = await this.generateLlmsTxt(enrichedComponents, apiData);
+      const indexContent = await this.generateLlmsTxt(enrichedComponents, apiData, guides);
       const indexPath = path.join(outputPath, 'llms.txt');
       await fs.writeFile(indexPath, indexContent, 'utf-8');
       writtenFiles.push(indexPath);
@@ -480,7 +500,8 @@ export class LLMDocumentationGenerator {
 
   private async generateLlmsTxt(
     components: EnrichedComponentInfo[],
-    apiData: APIData
+    apiData: APIData,
+    guides: LLMGuideConfig[] = []
   ): Promise<string> {
     const lines: string[] = [];
     // H1 title as per llms.txt informal spec
@@ -488,6 +509,16 @@ export class LLMDocumentationGenerator {
     lines.push('');
     lines.push('> LLM-friendly documentation files for components.');
     lines.push('');
+    // Guides first: the hand-written reference (integration, security,
+    // limitations) is what an LLM consumer lacks most — the component files
+    // below only carry per-component API context.
+    if (guides.length > 0) {
+      lines.push('## Guides');
+      for (const g of guides) {
+        lines.push(`- [${g.title}](./${g.outputName}): ${g.description}`);
+      }
+      lines.push('');
+    }
     lines.push('## Components');
     for (const c of components) {
       // Gate on the SAME predicate as the write loop in generate(): a component

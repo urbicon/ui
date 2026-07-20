@@ -481,7 +481,18 @@ export class ConfigurationFactory {
       .setLLMOutput({
         enabled: true,
         outputPath: '../../apps/docs/static/auth',
-        format: 'text'
+        format: 'text',
+        // The canonical, tarball-shipped auth reference (packages/auth/docs/)
+        // distributed onto the scope's static root — see docs/DOCS-SURFACES.md.
+        guides: [
+          {
+            title: 'Auth Reference',
+            sourcePath: '../auth/docs/AUTH.md',
+            outputName: 'AUTH.md',
+            description:
+              'Architecture, consumer integration, federation (SSO), known limitations & production checklist'
+          }
+        ]
       })
       .setAPIOutput({
         enabled: true,
