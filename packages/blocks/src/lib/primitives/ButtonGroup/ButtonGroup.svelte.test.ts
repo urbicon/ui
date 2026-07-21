@@ -2,7 +2,7 @@
 import { fireEvent, screen } from '@testing-library/dom';
 import userEvent from '@testing-library/user-event';
 import type { ComponentProps } from 'svelte';
-import { flushSync, mount, unmount } from 'svelte';
+import { flushSync, mount, tick, unmount } from 'svelte';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import ButtonGroupHarness from './__fixtures__/ButtonGroupHarness.svelte';
 
@@ -336,6 +336,64 @@ describe('ButtonGroup (single-select roving tabindex + keyboard nav)', () => {
     flushSync();
     expect(document.activeElement).toBe(radio('Map'));
     expect(radio('Map').getAttribute('aria-checked')).toBe('true');
+  });
+
+  it('resolves the tab stop by value, not position: duplicate values do not drift it', () => {
+    // Two buttons sharing a value: the old registration order deduped to
+    // ['a','b'] while the DOM held three radios, so the selected value 'b'
+    // resolved to index 1 and parked the tab stop on "Alpha again". data-value
+    // matching pins it to the element whose value is actually selected.
+    renderGroup({
+      selection: 'single',
+      value: 'b',
+      items: [
+        { value: 'a', label: 'Alpha' },
+        { value: 'a', label: 'Alpha again' },
+        { value: 'b', label: 'Beta' }
+      ]
+    });
+
+    expect(radio('Beta').tabIndex).toBe(0);
+    expect(radio('Alpha').tabIndex).toBe(-1);
+    expect(radio('Alpha again').tabIndex).toBe(-1);
+  });
+
+  it('keeps tab stop and selection aligned after a preceding radio is removed at runtime', async () => {
+    // The old value registry only ever grew, so after removing "List" a
+    // selection of 'grid' still resolved through ['list','grid','map'] to
+    // index 1 — the tab stop landed on "Map" while "Grid" was selected.
+    const user = userEvent.setup();
+    renderGroup({ selection: 'single', value: 'map' });
+
+    await user.click(screen.getByTestId('harness-remove-first'));
+    await user.click(radio('Grid'));
+
+    expect(screen.queryAllByRole('radio')).toHaveLength(2);
+    expect(radio('Grid').getAttribute('aria-checked')).toBe('true');
+    expect(radio('Grid').tabIndex).toBe(0);
+    expect(radio('Map').tabIndex).toBe(-1);
+  });
+
+  it('roves a radio mounted after the initial render into the single-tab-stop contract', async () => {
+    // Registration bumps a deferred registry version, so the roving effect
+    // re-runs for late-mounted buttons — without it the new radio kept its
+    // native tabbability: a second tab stop inside the radiogroup.
+    const user = userEvent.setup();
+    renderGroup({ selection: 'single', value: 'grid' });
+
+    await user.click(screen.getByTestId('harness-append-photo'));
+    await tick();
+    flushSync();
+
+    expect(radio('Photo').tabIndex).toBe(-1);
+    expect(radio('Grid').tabIndex).toBe(0);
+
+    // The late radio is a full roving citizen: End jumps onto it.
+    radio('Grid').focus();
+    fireEvent.keyDown(radio('Grid'), { key: 'End' });
+    flushSync();
+    expect(document.activeElement).toBe(radio('Photo'));
+    expect(radio('Photo').getAttribute('aria-checked')).toBe('true');
   });
 
   it('reflects the group orientation via aria-orientation on the radiogroup', () => {

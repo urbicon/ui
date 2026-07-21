@@ -66,15 +66,26 @@
     }
   });
 
-  // Child Button values in registration (= document) order. Buttons register
-  // during their render pass (before any effect runs), so this is fully
-  // populated in DOM order by the time roving reads it — it lets the radiogroup
-  // map the reactive selection back to a radio's position without the shared
-  // <Button> exposing its value in the DOM.
-  const buttonOrder: string[] = [];
+  // Bumped (deferred to a microtask — registration runs during the child's
+  // render, where a synchronous $state write would be state_unsafe_mutation)
+  // whenever a Button registers, so the roving effect below re-runs for
+  // buttons mounted *after* the group's initial render. Without it a
+  // runtime-added radio kept its native tabbability until the next selection
+  // change — a second tab stop in the radiogroup.
+  let registryVersion = $state(0);
+  let registryBumpQueued = false;
+
+  function noteRegistration() {
+    if (registryBumpQueued) return;
+    registryBumpQueued = true;
+    queueMicrotask(() => {
+      registryBumpQueued = false;
+      registryVersion++;
+    });
+  }
 
   function registerButton(buttonValue: string | undefined) {
-    if (buttonValue && !buttonOrder.includes(buttonValue)) buttonOrder.push(buttonValue);
+    noteRegistration();
     return {
       get isSelected() {
         return buttonValue ? selectedValues.has(buttonValue) : false;
@@ -100,17 +111,18 @@
         onSelectionChange?.(value, Array.from(selectedValues));
       },
       getButtonProps() {
-        // A value-less Button is an action button, not a selection option, so it
-        // gets no radio/checkbox role. This also keeps `rovingRadios()` (which
-        // collects `[role="radio"]`) index-aligned with `buttonOrder` (gated on
-        // `buttonValue`): a value-less radio would otherwise sit in the roving
-        // array but not the order registry, drifting the two index spaces and
-        // misplacing the tab stop / arrow-nav origin.
+        // A value-less Button is an action button, not a selection option, so
+        // it gets no radio/checkbox role. Selection options additionally carry
+        // their value as `data-value`, committed in the same render as the
+        // role — the radiogroup resolves the selected radio by *matching
+        // value* against the queried elements, so duplicate values and
+        // runtime-mounted/removed buttons can never drift an index space.
         if (selection === 'none' || !buttonValue) return {};
         const checked = selectedValues.has(buttonValue);
         return {
           role: selection === 'single' ? ('radio' as const) : ('checkbox' as const),
-          'aria-checked': checked
+          'aria-checked': checked,
+          'data-value': buttonValue
         };
       }
     };
@@ -165,24 +177,29 @@
       : [];
   }
 
-  // Position of the selected radio, read from the reactive selection (not the
-  // DOM's aria-checked) so it is correct even on the first paint — a parent
-  // effect can run before the child <Button>s commit their aria, so the DOM
-  // isn't a reliable source there. `buttonOrder` is in document order, matching
-  // the radios queried above.
-  function selectedRadioIndex(): number {
-    for (let i = 0; i < buttonOrder.length; i++) {
-      if (selectedValues.has(buttonOrder[i])) return i;
-    }
-    return -1;
+  // Position of the selected radio within the queried elements: each radio
+  // carries its value as `data-value` (same render commit as its role), and
+  // the *selected* one is read from the reactive selection — not the DOM's
+  // aria-checked, which a parent effect can observe before the child
+  // <Button>s commit it. Matching by value (not by a parallel registration
+  // index) keeps duplicates and runtime-mounted/removed buttons correct: the
+  // tab stop sticks to the element whose value is selected, wherever it sits.
+  function selectedRadioIndex(radios: readonly HTMLButtonElement[]): number {
+    return radios.findIndex((radio) => {
+      const v = radio.dataset.value;
+      return v !== undefined && selectedValues.has(v);
+    });
   }
 
   $effect(() => {
+    // `registryVersion` re-runs the assignment when Buttons mount after the
+    // group's initial render (the DOM query itself is not reactive).
+    void registryVersion;
     if (selection !== 'single' || !containerElement) return;
     const radios = rovingRadios();
     if (radios.length === 0) return;
 
-    const checkedIndex = selectedRadioIndex();
+    const checkedIndex = selectedRadioIndex(radios);
     // Nothing selected yet → the first enabled radio holds the tab stop, so the
     // group stays reachable with Tab (standard radiogroup entry behaviour).
     const activeIndex =
@@ -194,11 +211,12 @@
       radio.tabIndex = i === activeIndex ? 0 : -1;
     });
 
-    // Restore native tabbability when the group stops roving (selection flips away
-    // from single, or it unmounts) — otherwise the imposed -1 would strand the
-    // buttons out of the tab order.
+    // Restore native tabbability when the group stops roving (selection flips
+    // away from single, or it unmounts) — otherwise the imposed -1 would strand
+    // the buttons out of the tab order. Queried fresh at teardown time so
+    // radios mounted since this run are restored too.
     return () => {
-      for (const radio of radios) radio.removeAttribute('tabindex');
+      for (const radio of rovingRadios()) radio.removeAttribute('tabindex');
     };
   });
 
@@ -212,7 +230,7 @@
     const radios = rovingRadios();
     if (radios.length === 0) return;
 
-    const currentIndex = selectedRadioIndex();
+    const currentIndex = selectedRadioIndex(radios);
     const isDisabled = (i: number) => radios[i].disabled;
     let newIndex: number;
 

@@ -28,10 +28,14 @@
     value = $bindable(),
     ...groupProps
   }: Partial<ButtonGroupProps> & { items?: Item[] } = $props();
+
+  // Mutable copy so the runtime add/remove probes below can mount/unmount
+  // Buttons after the group's initial render (the roving-registry edge cases).
+  let liveItems = $state<Item[]>([...items]);
 </script>
 
 <ButtonGroup bind:value {...groupProps}>
-  {#each items as item (item.label)}
+  {#each liveItems as item (item.label)}
     <Button value={item.value} disabled={item.disabled} onclick={item.onclick}>{item.label}</Button>
   {/each}
 </ButtonGroup>
@@ -40,4 +44,15 @@
 <span data-testid="value-probe">{JSON.stringify(value ?? null)}</span>
 <button type="button" data-testid="harness-set-grid" onclick={() => (value = 'grid')}>
   set grid
+</button>
+<!-- Runtime mutation probes for the roving add/remove edge cases. -->
+<button
+  type="button"
+  data-testid="harness-append-photo"
+  onclick={() => liveItems.push({ value: 'photo', label: 'Photo' })}
+>
+  append photo
+</button>
+<button type="button" data-testid="harness-remove-first" onclick={() => liveItems.splice(0, 1)}>
+  remove first
 </button>

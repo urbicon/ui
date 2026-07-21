@@ -112,6 +112,12 @@ export interface ButtonGroupContext {
     getButtonProps: () => {
       role?: 'radio' | 'checkbox';
       'aria-checked'?: boolean;
+      /**
+       * The Button's selection value, exposed on the element so the group can
+       * resolve the selected radio by matching value instead of by position
+       * (robust against duplicate values and runtime add/remove).
+       */
+      'data-value'?: string;
     };
   };
 }

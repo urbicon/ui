@@ -120,6 +120,7 @@
   onclick={handleClick}
   role={ariaProps.role}
   aria-checked={ariaProps['aria-checked']}
+  data-value={ariaProps['data-value']}
   aria-pressed={ariaProps.role ? undefined : effectiveActive || effectivePressed || undefined}
   aria-disabled={effectiveDisabled}
   aria-busy={loading}
