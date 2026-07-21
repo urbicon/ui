@@ -4,6 +4,13 @@ All notable changes to this project will be documented in this file.
 This changelog is automatically generated from [Conventional Commits](https://www.conventionalcommits.org).
 
 
+## [6.30.1] - 2026-07-21
+
+### Testing
+- **e2e**: Add recipe live-preview coverage + a hydration marker
+- **e2e**: Add Calendar interaction spec on a fixed-month fixture
+- **e2e**: Align the auth spec with PORT isolation and the rotation grace
+
 ## [6.30.0] - 2026-07-21
 
 ### Bug Fixes
