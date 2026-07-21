@@ -2,6 +2,12 @@ import { createHash } from 'node:crypto';
 import * as fs from 'node:fs/promises';
 import * as path from 'node:path';
 import { glob } from 'glob';
+import {
+  assertGuideSlug,
+  GUIDE_PLACEHOLDER_PATTERN,
+  guidePlaceholder,
+  type PackageGuide
+} from '../llm/guide-injection';
 import { parseIconRegistry } from './icons';
 
 /**
@@ -23,6 +29,12 @@ export interface ContentBundleEmitterConfig {
   iconRegistryPath: string;
   /** `packages/design/skill/verbs` — the single-source verb recipes (DESIGN-MCP-V2 §8). */
   verbsDir: string;
+  /**
+   * Canonical package guides copied to `guides/<slug>.md` + indexed in
+   * `guides/index.json` — the version-matched channel behind `urbicon guide`
+   * and the MCP guide resources (docs/DOCS-SURFACES.md).
+   */
+  packageGuides: PackageGuide[];
   /** `packages/design-content/content` — the bundle output (cleaned + rewritten each run). */
   outputDir: string;
 }
@@ -40,6 +52,8 @@ export interface ContentBundleResult {
   patternCount: number;
   /** Design-verb recipes copied (fail-loud when zero — every MCP prompt serves one). */
   verbCount: number;
+  /** Package guides copied to `guides/<slug>.md` (fail-loud on a missing source). */
+  guideCount: number;
   /** Icons parsed out of the blocks icon registry into `icons.json`. */
   iconCount: number;
   /** The `@urbicon-ui/design-content` package version the bundle ships under. */
@@ -69,8 +83,15 @@ export class ContentBundleEmitter {
    * thinner bundle.
    */
   async emit(): Promise<ContentBundleResult> {
-    const { staticDir, designSystemDir, templatePath, iconRegistryPath, verbsDir, outputDir } =
-      this.config;
+    const {
+      staticDir,
+      designSystemDir,
+      templatePath,
+      iconRegistryPath,
+      verbsDir,
+      packageGuides,
+      outputDir
+    } = this.config;
 
     // Rebuild from scratch so a removed/renamed component leaves no stale llm.txt.
     await fs.rm(outputDir, { recursive: true, force: true });
@@ -104,10 +125,21 @@ export class ContentBundleEmitter {
     //    the remote MCP prompts read the same text the local skill ships.
     const verbCount = await this.copyVerbs(verbsDir, path.join(outputDir, 'verbs'));
 
-    // 5. Guide template.
+    // 5. Guide template. `{{GUIDE:<slug>}}` placeholders become pointers to the
+    //    bundled guide file — the bundle carries each guide exactly once (5b),
+    //    and the template's sections stay sliceable for the MCP guide resources.
     const template = await this.readRequired(templatePath, 'llms-full template');
+    const bundledTemplate = this.pointGuidePlaceholders(template, packageGuides);
     await fs.mkdir(path.join(outputDir, 'guides'), { recursive: true });
-    await fs.writeFile(path.join(outputDir, 'guides', 'llms-full-template.md'), template, 'utf-8');
+    await fs.writeFile(
+      path.join(outputDir, 'guides', 'llms-full-template.md'),
+      bundledTemplate,
+      'utf-8'
+    );
+
+    // 5b. Package guides — the canonical, tarball-shipped guide documents
+    //     (docs/DOCS-SURFACES.md), copied verbatim + indexed for listings.
+    const guideCount = await this.copyPackageGuides(packageGuides, path.join(outputDir, 'guides'));
 
     // 6. Icons — parsed from the registry source into JSON (the registry imports
     //    `.svelte`, so it can't be module-imported here; we parse the data blocks).
@@ -126,10 +158,50 @@ export class ContentBundleEmitter {
       llmTxtCount: llmFiles.length,
       patternCount,
       verbCount,
+      guideCount,
       iconCount: icons.length,
       version,
       contentHash
     };
+  }
+
+  /**
+   * Copy every configured package guide to `guides/<slug>.md` and write the
+   * `guides/index.json` listing (`{ slug, title, description }[]`) that the
+   * `urbicon guide` command and the MCP guide resources enumerate. A missing
+   * source is a build error — a silently thinner bundle would strand the
+   * version-matched channel on stale knowledge.
+   */
+  private async copyPackageGuides(guides: PackageGuide[], destDir: string): Promise<number> {
+    await fs.mkdir(destDir, { recursive: true });
+    for (const guide of guides) {
+      assertGuideSlug(guide.slug);
+      const content = await this.readRequired(
+        guide.sourcePath,
+        `package guide "${guide.title}" (${guide.slug})`
+      );
+      await fs.writeFile(path.join(destDir, `${guide.slug}.md`), content, 'utf-8');
+    }
+    const index = guides.map(({ slug, title, description }) => ({ slug, title, description }));
+    await fs.writeFile(path.join(destDir, 'index.json'), JSON.stringify(index, null, 2), 'utf-8');
+    return guides.length;
+  }
+
+  /**
+   * Replace each `{{GUIDE:<slug>}}` in the bundled template copy with a
+   * one-line pointer to the guide's own bundle file. A placeholder without a
+   * configured guide is the template/config drift case — fail loud.
+   */
+  private pointGuidePlaceholders(template: string, guides: PackageGuide[]): string {
+    for (const guide of guides) {
+      const pointer = `> Bundled separately as \`guides/${guide.slug}.md\` — ${guide.description}`;
+      template = template.replace(guidePlaceholder(guide.slug), () => pointer);
+    }
+    const leftover = GUIDE_PLACEHOLDER_PATTERN.exec(template);
+    if (leftover) {
+      throw new Error(`Content bundle: template references unconfigured guide "${leftover[1]}"`);
+    }
+    return template;
   }
 
   /**

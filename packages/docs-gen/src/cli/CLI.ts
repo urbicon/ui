@@ -2,6 +2,7 @@ import * as fs from 'node:fs/promises';
 import * as path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { ContentBundleEmitter } from '../generators/content/ContentBundleEmitter';
+import type { PackageGuide } from '../generators/llm/guide-injection';
 import { LlmsFullAssembler } from '../generators/llm/LlmsFullAssembler';
 import { MCPCatalogAssembler } from '../generators/mcp/MCPCatalogAssembler';
 import { ConfigurationFactory } from '../schema/ConfigurationBuilder';
@@ -15,6 +16,45 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 function resolveFromDocsGen(...segments: string[]): string {
   return path.resolve(__dirname, '..', '..', ...segments);
 }
+
+/**
+ * The canonical, tarball-shipped package guides distributed into the generated
+ * channels (docs/DOCS-SURFACES.md): every entry lands in the design-content
+ * bundle (`guides/<slug>.md` + index → `urbicon guide <slug>` and the MCP
+ * guide resources); entries flagged `embedInLlmsFull` are additionally inlined
+ * into `llms-full.txt` via their `{{GUIDE:<slug>}}` template placeholder.
+ */
+const PACKAGE_GUIDES: (PackageGuide & { embedInLlmsFull?: boolean })[] = [
+  {
+    slug: 'auth',
+    title: 'Auth Reference',
+    description:
+      'Architecture, consumer integration, federation (SSO), known limitations & production checklist',
+    sourcePath: resolveFromDocsGen('..', 'auth', 'docs', 'AUTH.md'),
+    embedInLlmsFull: true
+  },
+  {
+    slug: 'guide-system',
+    title: 'Guide System (blocks)',
+    description:
+      'Non-modal help panel, contextual hints, UI↔guide linking, opt-in guided tour — architecture + as-built contract',
+    sourcePath: resolveFromDocsGen('..', 'blocks', 'docs', 'GUIDE.md')
+  },
+  {
+    slug: 'migration-v5',
+    title: 'Migration v4 → v5',
+    description:
+      'Consumer migration guide for the v5 "lighter design" refactor — variant renames, table chrome, new tokens',
+    sourcePath: resolveFromDocsGen('..', 'blocks', 'docs', 'MIGRATION-v5.md')
+  },
+  {
+    slug: 'table-sticky',
+    title: 'Table Sticky Pinning & Contained Scroll',
+    description:
+      'The two table scroll models — page-relative sticky pinning and contained viewport scroll — API + CSS vars',
+    sourcePath: resolveFromDocsGen('..', 'table', 'docs', 'STICKY-PINNING.md')
+  }
+];
 
 /**
  * The `docs-gen` command-line interface (the package `bin`, driving
@@ -163,7 +203,8 @@ export class DocsGeneratorCLI {
       outputPaths: [
         resolveFromDocsGen('..', '..', 'llms-full.txt'),
         resolveFromDocsGen('..', '..', 'apps', 'docs', 'static', 'llms-full.txt')
-      ]
+      ],
+      guides: PACKAGE_GUIDES.filter((g) => g.embedInLlmsFull)
     });
 
     const result = await assembler.assemble();
@@ -227,12 +268,13 @@ export class DocsGeneratorCLI {
         'icon-registry.ts'
       ),
       verbsDir: resolveFromDocsGen('..', 'design', 'skill', 'verbs'),
+      packageGuides: PACKAGE_GUIDES,
       outputDir: resolveFromDocsGen('..', 'design-content', 'content')
     });
 
     const bundleResult = await bundleEmitter.emit();
     console.log(
-      `✅ design-content bundle emitted (v${bundleResult.version}, ${bundleResult.llmTxtCount} llm.txt, ${bundleResult.patternCount} patterns, ${bundleResult.verbCount} verbs, ${bundleResult.iconCount} icons, hash ${bundleResult.contentHash})`
+      `✅ design-content bundle emitted (v${bundleResult.version}, ${bundleResult.llmTxtCount} llm.txt, ${bundleResult.patternCount} patterns, ${bundleResult.verbCount} verbs, ${bundleResult.guideCount} guides, ${bundleResult.iconCount} icons, hash ${bundleResult.contentHash})`
     );
   }
 

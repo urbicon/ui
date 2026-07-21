@@ -388,7 +388,25 @@ export class ConfigurationFactory {
           enabled: true,
           // New static layout under blocks with grouping
           outputPath: '../../apps/docs/static/blocks',
-          format: 'text'
+          format: 'text',
+          // The canonical, tarball-shipped blocks guides (packages/blocks/docs/)
+          // distributed onto the scope's static root — see docs/DOCS-SURFACES.md.
+          guides: [
+            {
+              title: 'Guide System',
+              sourcePath: '../blocks/docs/GUIDE.md',
+              outputName: 'GUIDE.md',
+              description:
+                'Non-modal help panel, contextual hints, UI↔guide linking, opt-in guided tour — architecture + as-built contract'
+            },
+            {
+              title: 'Migration v4 → v5',
+              sourcePath: '../blocks/docs/MIGRATION-v5.md',
+              outputName: 'MIGRATION-v5.md',
+              description:
+                'Consumer migration guide for the v5 "lighter design" refactor — variant renames, table chrome, new tokens'
+            }
+          ]
         })
         .setAPIOutput({
           enabled: true,
@@ -452,7 +470,18 @@ export class ConfigurationFactory {
         enabled: true,
         // Write under SvelteKit static path, mirroring routes hierarchy
         outputPath: '../../apps/docs/static/table',
-        format: 'text'
+        format: 'text',
+        // The canonical, tarball-shipped table guide (packages/table/docs/)
+        // distributed onto the scope's static root — see docs/DOCS-SURFACES.md.
+        guides: [
+          {
+            title: 'Sticky Pinning & Contained Scroll',
+            sourcePath: '../table/docs/STICKY-PINNING.md',
+            outputName: 'STICKY-PINNING.md',
+            description:
+              'The two table scroll models — page-relative sticky pinning and contained viewport scroll — API + CSS vars'
+          }
+        ]
       })
       .setAPIOutput({
         enabled: true,

@@ -178,6 +178,104 @@ describe('LlmsFullAssembler', () => {
     expect(writtenContent).toContain('Semantic tokens only.');
   });
 
+  describe('guide injection', () => {
+    const GUIDE_TEMPLATE = `# Reference
+
+## Components
+
+{{COMPONENTS}}
+
+---
+
+## Auth Reference
+
+{{GUIDE:auth}}
+`;
+    const guideSourcePath = '/repo/packages/auth/docs/AUTH.md';
+    // The $-before-backtick would corrupt output if replace() used a string
+    // replacement ($\` substitutes the preceding text) — pin the replacer fn.
+    const GUIDE_SOURCE =
+      '# @urbicon-ui/auth\n\n## Architecture\n\ndetects the `$2b$` prefix\n\n### Runtime\n\nNode 20+';
+
+    function mockFs(template: string, withGuideSource = true): void {
+      vi.mocked(fs.readFile).mockImplementation(async (filePath) => {
+        const p = filePath.toString();
+        if (p === templatePath) return template;
+        if (p === guideSourcePath) {
+          if (!withGuideSource) throw new Error('ENOENT');
+          return GUIDE_SOURCE;
+        }
+        if (p.includes('llm.txt')) return COMPONENT_A;
+        throw new Error(`Unexpected read: ${p}`);
+      });
+      vi.mocked(glob).mockResolvedValue(['/repo/apps/docs/static/blocks/Alert/llm.txt']);
+      vi.mocked(fs.mkdir).mockResolvedValue(undefined);
+      vi.mocked(fs.writeFile).mockResolvedValue(undefined);
+    }
+
+    const guides = [
+      {
+        slug: 'auth',
+        title: 'Auth Reference',
+        description: 'The auth reference',
+        sourcePath: guideSourcePath
+      }
+    ];
+
+    it('replaces {{GUIDE:slug}} with the demoted, title-stripped source', async () => {
+      mockFs(GUIDE_TEMPLATE);
+      const guideAssembler = new LlmsFullAssembler({
+        templatePath,
+        staticDirs,
+        outputPaths,
+        guides
+      });
+
+      await guideAssembler.assemble();
+
+      const written = vi.mocked(fs.writeFile).mock.calls[0][1] as string;
+      expect(written).not.toContain('{{GUIDE:auth}}');
+      expect(written).toContain('### Architecture');
+      expect(written).toContain('#### Runtime');
+      // Title dropped, hierarchy demoted under the template's `## Auth Reference`.
+      expect(written).not.toContain('## @urbicon-ui/auth');
+      // `$`-pattern content survives verbatim (no replace() substitution).
+      expect(written).toContain('detects the `$2b$` prefix');
+      expect(written.indexOf('## Components')).toBeLessThan(written.indexOf('### Architecture'));
+    });
+
+    it('throws when a configured guide has no placeholder in the template', async () => {
+      mockFs(TEMPLATE); // template without {{GUIDE:auth}}
+      const guideAssembler = new LlmsFullAssembler({
+        templatePath,
+        staticDirs,
+        outputPaths,
+        guides
+      });
+
+      await expect(guideAssembler.assemble()).rejects.toThrow('missing the {{GUIDE:auth}}');
+    });
+
+    it('throws when the guide source file is missing', async () => {
+      mockFs(GUIDE_TEMPLATE, false);
+      const guideAssembler = new LlmsFullAssembler({
+        templatePath,
+        staticDirs,
+        outputPaths,
+        guides
+      });
+
+      await expect(guideAssembler.assemble()).rejects.toThrow('Guide source not found');
+    });
+
+    it('throws when the template references an unconfigured guide', async () => {
+      mockFs(GUIDE_TEMPLATE);
+      const guideAssembler = new LlmsFullAssembler({ templatePath, staticDirs, outputPaths });
+
+      await expect(guideAssembler.assemble()).rejects.toThrow('unconfigured guide "auth"');
+    });
+  });
+
   it('scans multiple static directories', async () => {
     const multiAssembler = new LlmsFullAssembler({
       templatePath,

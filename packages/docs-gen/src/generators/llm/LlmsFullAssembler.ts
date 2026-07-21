@@ -1,6 +1,12 @@
 import * as fs from 'node:fs/promises';
 import * as path from 'node:path';
 import { glob } from 'glob';
+import {
+  GUIDE_PLACEHOLDER_PATTERN,
+  guidePlaceholder,
+  type PackageGuide,
+  renderGuideForEmbedding
+} from './guide-injection';
 
 const PLACEHOLDER = '{{COMPONENTS}}';
 
@@ -8,11 +14,20 @@ export interface LlmsFullAssemblerConfig {
   templatePath: string;
   staticDirs: string[];
   outputPaths: string[];
+  /**
+   * Canonical package guides embedded via `{{GUIDE:<slug>}}` placeholders —
+   * extraction from the tarball-shipped source instead of a hand-written
+   * template section (docs/DOCS-SURFACES.md principle 2). Fail-loud in both
+   * directions: a configured guide whose placeholder is gone, and a template
+   * placeholder no guide covers, are build errors.
+   */
+  guides?: PackageGuide[];
 }
 
 /**
  * Assembles the llms-full.txt by combining a hand-curated template
- * with auto-generated per-component LLM docs from the static output directories.
+ * with auto-generated per-component LLM docs from the static output directories
+ * and the configured package guides ({@link PackageGuide}).
  */
 export class LlmsFullAssembler {
   private config: LlmsFullAssemblerConfig;
@@ -25,7 +40,10 @@ export class LlmsFullAssembler {
     const template = await this.loadTemplate();
     const componentSections = await this.collectComponentSections();
 
-    const assembled = template.replace(PLACEHOLDER, componentSections.content);
+    // Replacer functions throughout: string replacements would interpret `$`
+    // patterns ($&, $`, $') inside the injected markdown as substitutions.
+    let assembled = template.replace(PLACEHOLDER, () => componentSections.content);
+    assembled = await this.injectGuides(assembled);
 
     for (const outputPath of this.config.outputPaths) {
       await fs.mkdir(path.dirname(outputPath), { recursive: true });
@@ -45,6 +63,37 @@ export class LlmsFullAssembler {
     } catch {
       throw new Error(`Template not found: ${this.config.templatePath}`);
     }
+  }
+
+  /**
+   * Replace every `{{GUIDE:<slug>}}` with the embeddable form of its guide
+   * source. Afterwards no guide placeholder may remain — a leftover means a
+   * template edit and the guide config drifted apart, which must break the
+   * build rather than ship a literal placeholder.
+   */
+  private async injectGuides(assembled: string): Promise<string> {
+    for (const guide of this.config.guides ?? []) {
+      const placeholder = guidePlaceholder(guide.slug);
+      if (!assembled.includes(placeholder)) {
+        throw new Error(
+          `llms-full template is missing the ${placeholder} placeholder for guide "${guide.title}"`
+        );
+      }
+      let source: string;
+      try {
+        source = await fs.readFile(guide.sourcePath, 'utf-8');
+      } catch {
+        throw new Error(`Guide source not found for "${guide.title}": ${guide.sourcePath}`);
+      }
+      const rendered = renderGuideForEmbedding(source);
+      assembled = assembled.replace(placeholder, () => rendered);
+    }
+
+    const leftover = GUIDE_PLACEHOLDER_PATTERN.exec(assembled);
+    if (leftover) {
+      throw new Error(`llms-full template references unconfigured guide "${leftover[1]}"`);
+    }
+    return assembled;
   }
 
   private async collectComponentSections(): Promise<{ content: string; count: number }> {
