@@ -4,6 +4,21 @@ All notable changes to this project will be documented in this file.
 This changelog is automatically generated from [Conventional Commits](https://www.conventionalcommits.org).
 
 
+## [6.29.0] - 2026-07-21
+
+### Bug Fixes
+- **docs-gen**: Satisfy noUncheckedIndexedAccess in guide-injection
+
+### Documentation
+- Log the lost-webhook symptom on the publisher debt entry
+- Move consumer guides into their packages (GUIDE, MIGRATION-v5, STICKY-PINNING)
+- Declare the completed consumer-knowledge-surface migration
+
+### Features
+- **docs-gen**: Extract package guides into llms-full + design-content bundle
+- **design**: Urbicon guide command over bundled package guides
+- **docs-app**: Render the shipped AUTH.md at /auth/guide + absolute README links
+
 ## [6.28.0] - 2026-07-20
 
 ### Documentation
