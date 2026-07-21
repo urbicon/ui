@@ -68,6 +68,30 @@ describe('Checkbox (component interaction)', () => {
     expect(onCheckedChange).toHaveBeenLastCalledWith(false);
   });
 
+  it('forwards a consumer-passed native onchange instead of swallowing it', async () => {
+    // The internal handler sits after {...restProps} on the <input>, so a
+    // consumer onchange used to land in restProps and get overridden — the
+    // exact silent failure that broke Table's selection wiring (d7b4dfe).
+    // It composes now: onCheckedChange stays canonical, the native handler
+    // fires afterwards with the committed value on its target.
+    const user = userEvent.setup();
+    const onCheckedChange = vi.fn();
+    const onchange = vi.fn();
+    renderCheckbox({ label: 'Accept terms', onCheckedChange, onchange });
+
+    const el = box('Accept terms');
+    await user.click(el);
+
+    expect(onchange).toHaveBeenCalledOnce();
+    expect((onchange.mock.calls[0][0].target as HTMLInputElement).checked).toBe(true);
+    expect(onCheckedChange).toHaveBeenCalledExactlyOnceWith(true);
+    // Internal-first ordering: the canonical callback observes the state
+    // before the consumer's supplemental native handler runs.
+    expect(onCheckedChange.mock.invocationCallOrder[0]).toBeLessThan(
+      onchange.mock.invocationCallOrder[0]
+    );
+  });
+
   it('toggles via the keyboard Space key', async () => {
     const user = userEvent.setup();
     const onCheckedChange = vi.fn();

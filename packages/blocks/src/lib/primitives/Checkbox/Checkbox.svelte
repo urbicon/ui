@@ -28,6 +28,7 @@
     id: idProp,
     mint = 'none',
     onCheckedChange,
+    onchange: userOnChange,
     class: className = '',
     unstyled: unstyledProp = false,
     slotClasses: slotClassesProp = {},
@@ -103,7 +104,7 @@
     }
   });
 
-  function handleChange(event: Event) {
+  function handleChange(event: Event & { currentTarget: EventTarget & HTMLInputElement }) {
     if (disabled) return;
     if (indeterminate) indeterminate = false;
     // Read the new value directly from the input — `bind:checked`
@@ -111,6 +112,14 @@
     const next = (event.target as HTMLInputElement).checked;
     checked = next;
     onCheckedChange?.(next);
+    // Forward the consumer's native onchange — Checkbox's own handler sits
+    // after `{...restProps}` on the <input>, so without this it would be
+    // silently swallowed (the exact failure that broke Table's selection
+    // wiring, d7b4dfe; Textarea's oninput forward is the precedent).
+    // `onCheckedChange(checked)` stays the canonical callback; the forward
+    // runs after the internal state write so the consumer observes the
+    // committed value.
+    userOnChange?.(event);
   }
 </script>
 
