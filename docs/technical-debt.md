@@ -378,6 +378,31 @@ internal TODO instead. Sections are ordered roughly by urgency.
   semantics consumers may depend on.
 - **Found:** 2026-07-13, table docs API catch-up.
 
+### Calendar `bind:value` from an empty initial never writes back — controlled-detection keys on `value !== undefined`
+
+- **Where:** `packages/blocks/src/lib/components/Calendar/Calendar.svelte` —
+  `handleSelect` (`if (value !== undefined) { value = next; } else {
+  internalValue = next; }`).
+- **What:** The JSDoc promises "Supports bind:value", but the write-back is
+  gated on the prop already being non-undefined. A consumer who starts with
+  the only *type-correct* empty selection —
+  `let sel = $state<CalendarSelection | undefined>()` + `bind:value={sel}` —
+  therefore never receives a selection: the component routes every pick into
+  its private `internalValue`. Binding an initial `null` happens to work at
+  runtime but is rejected by the prop type (`CalendarSelection | undefined`),
+  so the typed path and the working path contradict each other. Found when the
+  e2e calendar fixture's day-select probe silently stayed empty; the fixture
+  now probes via `onValueChange` instead.
+- **Why deferred:** The clean fix is an API decision, not a drive-by: likely
+  dropping the `internalValue` split and always assigning the `$bindable`
+  prop (Svelte 5 keeps writes to an unbound bindable local, so uncontrolled
+  usage still works), or admitting `null` into the value type as the explicit
+  empty. Either changes controlled/uncontrolled semantics consumers may
+  observe and wants DOM tests over bound-empty, bound-preset and unbound
+  arms, plus a look at whether DatePicker shares the pattern.
+- **Found:** 2026-07-21, building the Calendar interaction e2e fixture
+  (debt-fix-wave continuation).
+
 ### Calendar view swipes call `ctx.navigate` ungated — a swipe at the bound fires a no-op emit
 
 - **Where:** `packages/blocks/src/lib/components/Calendar` —
