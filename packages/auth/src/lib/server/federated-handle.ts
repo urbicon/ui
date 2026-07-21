@@ -308,8 +308,9 @@ async function readJwksBody(res: Response, maxBytes = MAX_JWKS_BYTES): Promise<s
  * IdP (which sets it for the shared parent domain via `jwt.cookieDomain`);
  * login and logout happen there. Consequently there is no refresh-token
  * rotation here either — rotation is IdP-internal. This handle also adds no
- * CSRF gate of its own (keep SvelteKit's built-in `csrf.checkOrigin`, on by
- * default) and no security headers (they are this app's own policy, not the
+ * CSRF gate of its own (keep SvelteKit's kernel CSRF gate on — the default;
+ * don't set `trustedOrigins: ['*']` on a federated consumer) and no security
+ * headers (they are this app's own policy, not the
  * IdP's) — it does exactly one thing: turn the IdP cookie into
  * `locals.user`, or into a guarded 401/redirect.
  *

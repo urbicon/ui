@@ -98,10 +98,10 @@ export function createAuthHandle<R extends string>(options: AuthHandleOptions<R>
 
   return async ({ event, resolve }) => {
     // 1. CSRF check for mutating requests. The package's own Origin gate,
-    // covering only requests that reach this hook; SvelteKit's kernel
-    // `csrf.checkOrigin` runs earlier and still gates handle-bypassed routes.
-    // Interplay + the only working off-switch: docs/AUTH.md → Known
-    // Limitations ("SvelteKit's built-in csrf.checkOrigin").
+    // covering only requests that reach this hook; SvelteKit's kernel CSRF
+    // gate runs earlier and still gates handle-bypassed routes. Interplay +
+    // the off-switch (`kit.csrf.trustedOrigins: ['*']`, resolved at build
+    // time): docs/AUTH.md → Known Limitations.
     if (
       !validateCsrf(event.request, event.url, {
         doubleSubmit: csrfDoubleSubmit,

@@ -122,8 +122,8 @@ export const handle = createAuthHandle({ config: authDeps.config, repos: authDep
 
 > **Origin/CSRF is enforced only for requests that flow _through_ the handle.** If you
 > later route a cross-origin, form-encoded endpoint (an OAuth 2.1 token endpoint, a webhook)
-> _around_ `createAuthHandle`, SvelteKit's own built-in `csrf.checkOrigin` — which runs in
-> the request kernel before any hook, in production builds only — will `403` it. Resolution
+> _around_ `createAuthHandle`, SvelteKit's own kernel CSRF gate — which runs before any
+> hook, in built apps only (never under `vite dev`) — will `403` it. Resolution
 > and safety preconditions: [AUTH.md → Known Limitations](https://ui.urbicon.de/auth/guide#known-limitations--security-gaps).
 
 **3. API route stubs** — one file per handler, e.g. `src/routes/api/auth/login/+server.ts`:
@@ -174,7 +174,7 @@ export const authDeps = createAuthDeps<AppRole>({
     jwt: { secret: env.JWT_SECRET }, // cookieSecure defaults true → HTTPS + auto HSTS
     appUrl: env.PUBLIC_APP_URL, // trusted base for email links — never request.url
     email: { from: 'Acme <auth@acme.example>' }, // default sender for all auth emails
-    csrf: { doubleSubmit: true }, // token layer on top of the handle's always-on Origin check
+    csrf: { doubleSubmit: true }, // token layer on top of the always-on Origin check — only with header-capable clients (see checklist)
     refreshToken: { accessTokenTtl: '15m', refreshTokenTtl: '30d' }, // rotating refresh
     rateLimit: {
       login: { windowMs: 900_000, max: 5 },
@@ -200,14 +200,14 @@ logs every session in that family out.
 Mirrors [AUTH.md → Production-Readiness Checklist](https://ui.urbicon.de/auth/guide#production-readiness-checklist):
 
 - [ ] **HTTPS enforced** — cookies are already `secure: true`; HSTS is emitted automatically once `jwt.cookieSecure !== false`.
-- [ ] **CSRF Double-Submit on** (`csrf.doubleSubmit: true`); optionally `useHostPrefix: true` (HTTPS-only) — then set `useHostPrefix: true` on the client stores/components too.
+- [ ] **CSRF Double-Submit decided** (`csrf.doubleSubmit: true`) — only when every cookie-auth mutation sends the `x-csrf-token` header (package stores/components or `csrfFetch`). SvelteKit **Remote Functions** and no-JS form posts can't send it — with those in play keep it `false`; the always-on Origin check is the complete layer there. Optionally `useHostPrefix: true` (HTTPS-only) — then set `useHostPrefix: true` on the client stores/components too.
 - [ ] **Refresh-token rotation on** (`refreshToken: {}` + `repos.refreshToken`) — non-breaking, recommended.
 - [ ] **Rate-limit + lockout** active (defaulted by `createAuthDeps`; tune per handler). Use a persistent `RateLimitStore` when running >1 instance.
 - [ ] **Persistent stores** for challenges / refresh tokens / rate limits at >1 instance.
 - [ ] **CSP** tuned to your app (`securityHeaders.csp`) — the default only blocks framing.
 - [ ] **`appUrl`** set to the real public origin; **`JWT_SECRET`** from a secret store, with a `keyId` + `previousSecrets` rotation runbook ready.
 - [ ] **Monitoring** on auth-handler latency + error rate; wire `hooks.onPasswordResetFailed` to your error tracker so a broken mail transport doesn't silently lock users out of recovery.
-- [ ] **Cross-origin form-encoded endpoint outside the handle?** (OAuth 2.1 token, webhook) — set `kit.csrf: { checkOrigin: false }` in `svelte.config.js` (SvelteKit's kernel CSRF check, skipped under `vite dev` only, otherwise `403`s it before the hook; deprecated but the only working off-switch — `trustedOrigins` can't admit header-less callers) and confirm every cookie-auth mutating route still flows through `createAuthHandle`. See [AUTH.md → Known Limitations](https://ui.urbicon.de/auth/guide#known-limitations--security-gaps).
+- [ ] **Cross-origin form-encoded endpoint outside the handle?** (OAuth 2.1 token, webhook) — set `kit.csrf: { trustedOrigins: ['*'] }` in `svelte.config.js` (SvelteKit's kernel CSRF gate, skipped under `vite dev` only, otherwise `403`s it before the hook; the wildcard disables the gate at build time — a *specific* origin list can't admit header-less callers) and confirm every cookie-auth mutating route still flows through `createAuthHandle`. See [AUTH.md → Known Limitations](https://ui.urbicon.de/auth/guide#known-limitations--security-gaps).
 
 #### CSRF on the client
 
@@ -390,7 +390,7 @@ Full WebAuthn attestation/assertion against a real authenticator, end-to-end bro
 The three most load-bearing for a production deploy are below; the **full catalog** (10 items with severity, rationale, and fix-plan) is the single source of truth in [AUTH.md → Known Limitations](https://ui.urbicon.de/auth/guide#known-limitations--security-gaps) — kept there to avoid a drifting second copy.
 
 - **Persistent stores are opt-in.** Challenge, rate-limit, and refresh-token stores all default to in-memory (single-process). Pass a `ChallengeStore` / `RateLimitStore` / `RefreshTokenRepository` (Redis/Prisma/Upstash) when running >1 instance — the Prisma adapter is bundled.
-- **CSRF Double-Submit and refresh-token rotation are opt-in.** The handle's Origin check is always on; the token layer (`config.csrf = { doubleSubmit: true }`) and rotation (`config.refreshToken = {}` + `repos.refreshToken`) are additive production hardening.
+- **CSRF Double-Submit and refresh-token rotation are opt-in.** The handle's Origin check is always on; the token layer (`config.csrf = { doubleSubmit: true }`, requires header-capable clients — incompatible with remote-function / no-JS-form mutations) and rotation (`config.refreshToken = {}` + `repos.refreshToken`) are additive production hardening.
 - **`publicRoutes` are prefixes.** `createAuthHandle` matches them with `startsWith`, so the default `'/api/auth/'` exempts every sub-route from the auth guard — don't nest protected app routes under it.
 
 ## Roadmap

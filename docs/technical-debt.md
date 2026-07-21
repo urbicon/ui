@@ -806,6 +806,29 @@ internal TODO instead. Sections are ordered roughly by urgency.
   whatever Kit ships for #15992 so consumer expectations stay aligned.
 - **Found:** 2026-07-20, follow-up research on sveltejs/kit#15992 / #16313.
 
+### `doubleSubmit` is structurally off for remote-function-first consumers — an `isRemoteRequest` skip could re-enable it
+
+- **Where:** `packages/auth/src/lib/server/csrf.ts` (Layer 2) +
+  `packages/auth/src/lib/server/handle.ts` (step 1).
+- **What:** Layer 2 requires the `x-csrf-token` header on every mutation;
+  SvelteKit's remote-function transport sends only `x-sveltekit-pathname` /
+  `-search` and cannot be extended, so any consumer whose mutations are remote
+  functions (all current first-party consumers) must keep
+  `doubleSubmit: false` — documented in the production checklist since
+  2026-07-21. The handle already knows `event.isRemoteRequest` (issue-#43
+  guard); skipping Layer 2 for remote requests would be defensible because
+  Kit's kernel runs a non-configurable strict same-origin gate for
+  `/_app/remote/…` non-GET requests (`respond.js`), independent of
+  `kit.csrf.*`. That would let such consumers enable `doubleSubmit` for their
+  classic fetch/form surface.
+- **Why deferred:** Changes the semantics of a security layer → wants its own
+  adversarial review + tests; and it is only half a fix — the no-JS
+  `?/remote=` fallback has `isRemoteRequest === false` and native form posts
+  still send no header, so those surfaces would still 403. Needs a deliberate
+  design decision (skip vs. token-in-form-field support vs. status quo).
+- **Found:** 2026-07-21, consumer-digestion analysis (cookery/utilio/buny
+  CSRF sessions).
+
 ### `passkey.updateCounter`: delete-race is misclassified as `counter_regression`
 
 - **Where:** `packages/auth` — `passkey/handlers.ts:370` (caller of
