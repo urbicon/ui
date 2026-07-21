@@ -19,6 +19,8 @@ library this project installed**, so what it tells you is true of the code you a
     (`--section api|examples|variants|slots|full`).
   - `urbicon icons <query>` — icon discovery (no query: the full reference).
   - `urbicon recipe [id]` — complete Svelte 5 code recipes (no id: list them).
+  - `urbicon guide [slug]` — the canonical package guides (auth reference, blocks
+    guide system, v5 migration notes, table scroll models); no slug lists them.
 - **Design knowledge** (before and while you compose):
   - `urbicon principles [--topic <t>] [--rubric]` — the design heuristics;
     `--topic theming` for paradigms + the change decision tree, `--rubric` for the

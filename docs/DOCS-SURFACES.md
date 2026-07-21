@@ -28,11 +28,16 @@ and the standing rule:
 2. **One source, all channels generated — docs-gen is the only distributor.**
    Nothing consumer-facing is hand-copied between surfaces. Component APIs
    flow from `*Props` JSDoc (see AGENTS.md § Component metadata); guide
-   documents flow via the `guides` field of a target's LLM output config
-   (`packages/docs-gen/src/types/configuration.ts` → copied to
-   `static/<scope>/<Doc>.md` + indexed under `## Guides` in the scope
-   `llms.txt`). A KEEP-IN-SYNC comment is an admission this principle failed —
-   prefer wiring the generator.
+   documents flow through three generated channels: the `guides` field of a
+   target's LLM output config (`packages/docs-gen/src/types/configuration.ts`
+   → copied to `static/<scope>/<Doc>.md` + indexed under `## Guides` in the
+   scope `llms.txt`), the `PACKAGE_GUIDES` list in docs-gen's CLI (→
+   `guides/<slug>.md` + index in the `design-content` bundle, behind
+   `urbicon guide <slug>` and `urbicon://guide/<id>`, plus `{{GUIDE:<slug>}}`
+   extraction into `llms-full.txt` for guides flagged `embedInLlmsFull`), and
+   the docs site (a route rendering the shipped file at build time, e.g.
+   `/auth/guide`). A KEEP-IN-SYNC comment is an admission this principle
+   failed — prefer wiring the generator.
 3. **Code comments are pointers, not copies.** Two sentences of contract plus
    `see docs/AUTH.md § …`. The reference resolves in the tarball (the guide
    ships next to `dist/`) and in the repo (symlink).
@@ -47,8 +52,8 @@ and the standing rule:
 | Class | Source of truth | Audience | Channels |
 | --- | --- | --- | --- |
 | Component API | `*Props` JSDoc in the package source | consumers + agents | docs-gen → `api.ts`, `llm.txt` tree, MCP catalog, `design-content` (CLI) |
-| Package guide (integration, security, limitations) | `packages/<pkg>/docs/*.md` | consumers + agents | tarball (`files`), docs-gen `guides` → `static/<scope>/` + scope `llms.txt`; planned: site route, `urbicon guide` |
-| Package quickstart | `packages/<pkg>/README.md` | consumers | tarball, npmjs page (links into the shipped guide as `./docs/…`) |
+| Package guide (integration, security, limitations) | `packages/<pkg>/docs/*.md` | consumers + agents | tarball (`files`), docs-gen `guides` → `static/<scope>/` + scope `llms.txt`, `design-content` bundle → `urbicon guide` + MCP resource, llms-full extraction (`embedInLlmsFull`), site route (`/auth/guide`) |
+| Package quickstart | `packages/<pkg>/README.md` | consumers | tarball, npmjs page (deep links go absolute to the rendered site route — relative links 404 on npmjs against the private repo; `./docs/…` stays as the shipped-copy pointer) |
 | Monorepo conventions (SVELTE5-PATTERNS, ICON-DESIGN, …) | `docs/*.md` | repo developers + agents | repo only — deliberately not shipped |
 | Design knowledge (principles, patterns, tokens) | `design-system/`, `css-reference.ts` | consumers + agents | `design-content` bundle → `urbicon` CLI, MCP, docs site |
 | Planning / strategy / review bookkeeping | `docs/internal/` (gitignored), `docs/technical-debt.md` | maintainers | repo only |
@@ -60,11 +65,31 @@ never link to it as a source.
 
 ## Migration state
 
-Done (2026-07-20): AUTH.md moved into `packages/auth/docs/` + root symlink;
-internal markers stripped from the shipped file; `guides` mechanism in
-docs-gen with auth as first user. Remaining steps, in order, live in
-[technical-debt.md → Consumer knowledge surfaces](technical-debt.md): site
-route rendering the shipped guide (fixes absolute npmjs links), `urbicon guide`
-in the `design-content` bundle, replacing the hand-written llms-full-template
-auth section with extraction, then the audit of the remaining `docs/*.md` for
-consumer-relevant content (MIGRATION-v5, STICKY-PINNING, parts of GUIDE.md).
+**Complete (2026-07-21).** The stages, in the order they landed:
+
+- 2026-07-20: AUTH.md moved into `packages/auth/docs/` + root symlink; internal
+  markers stripped from the shipped file; `guides` mechanism in docs-gen with
+  auth as first user.
+- 2026-07-21, the remaining channel wiring:
+  - `/auth/guide` renders the shipped AUTH.md at build time (GitHub-compatible
+    heading anchors); the auth README's deep links went absolute to it for the
+    npmjs view, keeping `./docs/AUTH.md` as the shipped-copy pointer.
+  - `urbicon guide <slug>` serves the canonical package guides from the
+    `design-content` bundle (`guides/<slug>.md` + `index.json`, emitted by
+    docs-gen's `PACKAGE_GUIDES`); the MCP server's `urbicon://guide/auth`
+    reads the same bundle file.
+  - The hand-written llms-full-template auth section (already drifted: it
+    still called SSO "on the roadmap") was replaced by `{{GUIDE:auth}}`
+    extraction from AUTH.md; the kernel-CSRF prose in `handle.ts`/`csrf.ts`
+    shrank to pointers (principle 3). The scope `llms.txt` stays an index —
+    security notes live in the indexed guide, not inline (decided 2026-07-21).
+  - The `docs/*.md` audit moved GUIDE.md + MIGRATION-v5.md into
+    `packages/blocks/docs/` and STICKY-PINNING.md into
+    `packages/table/docs/` — each tarball-shipped with a root symlink,
+    scope-`llms.txt` indexed, and in the guide bundle.
+
+New consumer-relevant docs follow this file's model from the start; there is
+no open migration debt. The one deliberate asymmetry: the `urbicon` CLI lists
+every bundled guide dynamically (`guides/index.json`), while the unhosted MCP
+server statically advertises only the auth guide alongside its six
+template-sliced resources.

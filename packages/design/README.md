@@ -69,6 +69,7 @@ produced.
 | `urbicon get-component <slug>` | A component's API (its `llm.txt`) from the bundle. | `get_component` |
 | `urbicon icons [query]` | Icon discovery (no query: the full grouped reference). | `find_icons` |
 | `urbicon recipe [id]` | Complete Svelte 5 code recipes from the catalog. | `get_recipe` |
+| `urbicon guide [slug]` | Canonical package guides (auth reference, blocks guide system, migration notes, table scroll models). | `urbicon://guide/auth` |
 | `urbicon pattern [name]` | Composition patterns per page archetype. | `get_pattern` |
 | `urbicon principles` | Design heuristics (`--topic <t>`); `--rubric` for the judge rubric. | `get_design_principles` |
 | `urbicon css-reference [sect]` | The token truth: naming, dark mode, override patterns. | `get_css_reference` |
@@ -251,9 +252,10 @@ bunx urbicon validate src/ --json              # correctness gate (blocking)
   content-free (engine + your repo only); `verbs` / `verb` read the recipes shipped
   under `skill/` (package-relative, still no content-bundle dependency);
   `css-reference` and `principles --rubric` come straight from the engine.
-- `find` / `get-component` / `icons` / `recipe` / `pattern` / `principles` read the
-  version-pinned [`@urbicon-ui/design-content`](../design-content/) bundle (a runtime
-  dependency). The guided onboarding *interview* lives in the `adopt` / `onboard` verbs.
+- `find` / `get-component` / `icons` / `recipe` / `guide` / `pattern` / `principles`
+  read the version-pinned [`@urbicon-ui/design-content`](../design-content/) bundle (a
+  runtime dependency). The guided onboarding *interview* lives in the `adopt` /
+  `onboard` verbs.
 
 ## Related
 

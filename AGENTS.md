@@ -144,7 +144,7 @@ Conventional commits are parsed by git-cliff to auto-generate the changelog. Use
 
 - `llms.txt` / `llms-full.txt` – LLM-readable API reference (llms.txt standard)
 - `.cursorrules` – Cursor IDE rules (imports, API grammar, tokens, do/don't)
-- **`urbicon` CLI** (`packages/design`, `@urbicon-ui/design`) – **the primary, consumer-facing surface** (one dev-dependency, version-pinned knowledge). Knowledge: `find`, `get-component`, `icons`, `recipe`, `pattern`, `principles` (`--topic`, `--rubric`), `css-reference`. Judgment: `validate` (+ `hook`/CI). Memory: `context`, `record-decision`, `sync-manifest`. Process: `verbs`/`verb <name>` + the `urbicon-design` skill. Onboarding: `init` (AGENTS.md block, manifest scaffold, `--hook`/`--ci`).
+- **`urbicon` CLI** (`packages/design`, `@urbicon-ui/design`) – **the primary, consumer-facing surface** (one dev-dependency, version-pinned knowledge). Knowledge: `find`, `get-component`, `icons`, `recipe`, `guide` (bundled package guides: auth reference, blocks guide system, migration notes, table scroll models), `pattern`, `principles` (`--topic`, `--rubric`), `css-reference`. Judgment: `validate` (+ `hook`/CI). Memory: `context`, `record-decision`, `sync-manifest`. Process: `verbs`/`verb <name>` + the `urbicon-design` skill. Onboarding: `init` (AGENTS.md block, manifest scaffold, `--hook`/`--ci`).
 - **MCP Server** (`packages/mcp-server`) – thin remote adapter over the same engine/content (Streamable HTTP, 10 read-only tools, 10 verb prompts, 7 guide resources). **Deliberately not advertised or hosted pre-launch (Option B, 2026-07-10)** — the package track is the story; hosting the public endpoint is a launch decision. Kept in the repo and green; no local-install path is documented anywhere (the old `bunx`-stdio setup on `/ai` was removed). Manifest read/write lives in the `urbicon` CLI, never on the stateless server.
 - **Design System Intelligence** (`design-system/`) – Layer 4+5 of the 5-layer design model: `principles.md` (heuristics, paradigm profiles, change decision tree) + `patterns/*.md` (composition patterns: settings-page, dashboard, form-page, tab-navigation, onboarding-guide). Served locally by `urbicon principles` / `urbicon pattern` and remotely by `get_design_principles` / `get_pattern`, both from the `design-content` bundle.
 - **Closed design loop** – Beyond serving knowledge: `urbicon validate` (= remote `validate_design`, same engine) lints generated markup (deterministic rules + token whitelist + heuristics); `data-design-pattern` markers + `design.manifest.md` (maintained consumer-side via the `urbicon` CLI: context / record-decision / sync-manifest) persist design intent per consumer project; `urbicon principles --rubric` serves the 1–5 judge rubric; the design verbs (the full table — onboard, adopt, compose, redesign, polish, critique, fix, retheme, audit, migrate — shipped as the local skill in `@urbicon-ui/design` and as MCP prompts, same text) ship the generate → validate → judge → synthesise process; locally the `urbicon` CLI enforces that loop — a `PostToolUse` hook (`urbicon hook`) and CI (`urbicon validate`; correctness always gates, the slop axis opt-in via `--slop-floor`) turn it from advisory to required (templates ship under `@urbicon-ui/design/templates`).
@@ -212,8 +212,8 @@ Reference/API docs are written in English; internal strategy & analysis docs are
 
 - [docs/COMPONENT-FAMILIES.md](docs/COMPONENT-FAMILIES.md) – Six-family taxonomy (Action/Form/Navigation/Container/Feedback/Identity) — ARIA, tier behaviour, border-token source per family
 - [docs/COMPONENT-DECISION-MATRICES.md](docs/COMPONENT-DECISION-MATRICES.md) – Sidebar/Drawer/Popover/SidebarLayout decision matrix
-- [docs/STICKY-PINNING.md](docs/STICKY-PINNING.md) – Table scroll models: page-relative sticky pinning (toolbar/header/group-header) + contained scroll (`fit="viewport"`), API, CSS vars
-- [docs/GUIDE.md](docs/GUIDE.md) – Guide system (non-modal help panel, contextual hints, UI↔guide linking, opt-in guided tour over one headless engine): architecture, `data-guide` namespace, tokens/z-index, decisions D1–D6, as-built contract. Shipped v5.8.0, stability `beta`.
+- [docs/STICKY-PINNING.md](docs/STICKY-PINNING.md) – Table scroll models: page-relative sticky pinning (toolbar/header/group-header) + contained scroll (`fit="viewport"`), API, CSS vars. **Symlink into `packages/table/docs/`, ships in the table tarball** — keep it public-appropriate.
+- [docs/GUIDE.md](docs/GUIDE.md) – Guide system (non-modal help panel, contextual hints, UI↔guide linking, opt-in guided tour over one headless engine): architecture, `data-guide` namespace, tokens/z-index, decisions D1–D6, as-built contract. Shipped v5.8.0, stability `beta`. **Symlink into `packages/blocks/docs/`, ships in the blocks tarball** — keep it public-appropriate.
 
 **Auth**
 
@@ -229,7 +229,7 @@ Internal working docs (strategy, launch, deployment, design analysis) are kept l
 
 **Launch & ops**
 
-- [docs/MIGRATION-v5.md](docs/MIGRATION-v5.md) – v4 → v5 consumer migration guide
+- [docs/MIGRATION-v5.md](docs/MIGRATION-v5.md) – v4 → v5 consumer migration guide. **Symlink into `packages/blocks/docs/`, ships in the blocks tarball** — keep it public-appropriate.
 
 ## Recipe Pages
 
@@ -257,6 +257,8 @@ library this project installed**, so what it tells you is true of the code you a
     (`--section api|examples|variants|slots|full`).
   - `urbicon icons <query>` — icon discovery (no query: the full reference).
   - `urbicon recipe [id]` — complete Svelte 5 code recipes (no id: list them).
+  - `urbicon guide [slug]` — the canonical package guides (auth reference, blocks
+    guide system, v5 migration notes, table scroll models); no slug lists them.
 - **Design knowledge** (before and while you compose):
   - `urbicon principles [--topic <t>] [--rubric]` — the design heuristics;
     `--topic theming` for paradigms + the change decision tree, `--rubric` for the
