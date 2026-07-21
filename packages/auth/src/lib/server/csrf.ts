@@ -62,8 +62,11 @@ export function generateCsrfToken(): string {
  *
  * Layer 2 (opt-in via `options.doubleSubmit`): Double-Submit-Cookie — the
  * token in the CSRF cookie must match the token sent in the CSRF header.
- * This defends against CORS-related attacks that can satisfy the Origin
- * check but cannot read the cookie set by the server. It requires every
+ * This holds where the Origin check alone can be satisfied without the
+ * attacker controlling the page — e.g. infrastructure that rewrites or
+ * normalizes the `Origin` header, combined with cross-site cookies
+ * (`SameSite=None`) — because the attacker still cannot read the token
+ * cookie. It requires every
  * mutating caller to send that header — SvelteKit remote-function and native
  * no-JS form posts cannot, so apps using those must leave it off (docs/AUTH.md
  * → production checklist).

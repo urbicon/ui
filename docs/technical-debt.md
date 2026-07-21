@@ -825,7 +825,14 @@ internal TODO instead. Sections are ordered roughly by urgency.
   adversarial review + tests; and it is only half a fix — the no-JS
   `?/remote=` fallback has `isRemoteRequest === false` and native form posts
   still send no header, so those surfaces would still 403. Needs a deliberate
-  design decision (skip vs. token-in-form-field support vs. status quo).
+  design decision (skip vs. token-in-form-field support vs. selective
+  per-surface enablement — the package's own fetch-based auth endpoints are
+  header-capable even in remote-first apps — vs. status quo). Hard
+  constraint from the 2026-07-21 adversarial review: any skip must key on the
+  real `event.isRemoteRequest`, never on the handle's `isRemoteFormPost` —
+  the no-JS fallback runs through the page pipeline and is *not* behind
+  Kit's remote gate, so skipping Layer 2 there would drop it to
+  origin-only with no kernel backstop.
 - **Found:** 2026-07-21, consumer-digestion analysis (cookery/utilio/buny
   CSRF sessions).
 

@@ -309,8 +309,11 @@ async function readJwksBody(res: Response, maxBytes = MAX_JWKS_BYTES): Promise<s
  * login and logout happen there. Consequently there is no refresh-token
  * rotation here either — rotation is IdP-internal. This handle also adds no
  * CSRF gate of its own (keep SvelteKit's kernel CSRF gate on — the default;
- * don't set `trustedOrigins: ['*']` on a federated consumer) and no security
- * headers (they are this app's own policy, not the
+ * don't set `trustedOrigins: ['*']` on a federated consumer: there is no
+ * `validateCsrf` backstop behind this handle. If you must expose a
+ * header-less cross-origin endpoint, gate cookie-authenticated mutations
+ * yourself via the exported `validateCsrf` first — docs/AUTH.md → Federated)
+ * and no security headers (they are this app's own policy, not the
  * IdP's) — it does exactly one thing: turn the IdP cookie into
  * `locals.user`, or into a guarded 401/redirect.
  *

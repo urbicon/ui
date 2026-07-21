@@ -169,7 +169,10 @@ export interface RateLimitConfig {
 /**
  * Optional Double-Submit-Cookie configuration on top of the always-on
  * Origin-header CSRF check. When `doubleSubmit` is true, mutating requests
- * must echo the value of the CSRF cookie in the configured header.
+ * must echo the value of the CSRF cookie in the configured header. Enable it
+ * only when every cookie-authenticated mutation sends that header (package
+ * stores/components or `csrfFetch`) — SvelteKit remote-function and native
+ * no-JS form posts cannot, and would 403 (AUTH.md → production checklist).
  */
 export interface CsrfConfig {
   doubleSubmit?: boolean;
