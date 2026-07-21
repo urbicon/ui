@@ -13,6 +13,7 @@ import {
   numberFieldValue,
   readNumberField,
   reconcileNumberField,
+  resolveSegmentValue,
   resolveSelectValue,
   selectDisplayValue,
   valuesMatch
@@ -320,6 +321,32 @@ describe('selectDisplayValue / resolveSelectValue (Select boundary)', () => {
 
     it('falls back to the raw string when no item matches', () => {
       expect(resolveSelectValue(headingLevelItems, '99')).toBe('99');
+    });
+  });
+
+  describe('resolveSegmentValue (SegmentGroup boundary)', () => {
+    const booleanItems: ControlOption[] = [
+      { label: 'On', value: true },
+      { label: 'Off', value: false }
+    ];
+
+    it('maps a numeric enum selection back to its typed value', () => {
+      expect(resolveSegmentValue(headingLevelItems, '3')).toBe(3);
+      expect(typeof resolveSegmentValue(headingLevelItems, '3')).toBe('number');
+    });
+
+    it('maps a boolean enum selection back to its typed value', () => {
+      expect(resolveSegmentValue(booleanItems, 'false')).toBe(false);
+    });
+
+    it("maps SegmentGroup's cleared-selection empty string to null", () => {
+      expect(resolveSegmentValue(headingLevelItems, '')).toBeNull();
+    });
+
+    it('round-trips display -> segment selection back to the same typed value', () => {
+      const original = 4;
+      const displayed = selectDisplayValue(original) ?? '';
+      expect(resolveSegmentValue(headingLevelItems, displayed)).toBe(original);
     });
   });
 });

@@ -26,6 +26,7 @@
     readNumberField,
     reconcileNumberField,
     selectDisplayValue,
+    resolveSegmentValue,
     resolveSelectValue
   } from './code-gen.js';
   import { decodeShareParams, encodeShareParams } from './share.js';
@@ -382,9 +383,9 @@
                 <SegmentGroup
                   appearance="text"
                   size="sm"
-                  value={String(values[control.key] ?? '')}
+                  value={selectDisplayValue(values[control.key]) ?? ''}
                   onValueChange={(value: string) =>
-                    updateValue(control.key, value === '' ? null : value)}
+                    updateValue(control.key, resolveSegmentValue(items, value))}
                   aria-labelledby={labelId}
                   aria-describedby={hintId}
                 >

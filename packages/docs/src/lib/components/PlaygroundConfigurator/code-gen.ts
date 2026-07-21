@@ -316,3 +316,16 @@ export function resolveSelectValue(
   const match = items.find((item) => String(item.value) === selected);
   return match ? match.value : selected;
 }
+
+/**
+ * The SegmentGroup arm of the same boundary (enum controls with ≤ 4 options
+ * render as a SegmentGroup instead of a Select). SegmentGroup fires a plain
+ * string — `''` when the selection is cleared — so this maps the empty string
+ * to `null` and everything else through {@link resolveSelectValue}, keeping a
+ * numeric or boolean enum's bound value typed instead of silently drifting it
+ * to a string (the Select branch got this in the headingLevel fix; this is
+ * its deliberately-scoped-out sibling).
+ */
+export function resolveSegmentValue(items: readonly ControlOption[], selected: string): unknown {
+  return selected === '' ? null : resolveSelectValue(items, selected);
+}
