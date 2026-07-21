@@ -117,22 +117,6 @@ internal TODO instead. Sections are ordered roughly by urgency.
 
 ## Component behaviour
 
-### `focusFirstElement` steals focus from a consumer-focused `tabindex="-1"` element
-
-- **Where:** `packages/blocks/src/lib/utils/overlay.ts` (~`:104`, the
-  panel-focus fallback added in `c788469`).
-- **What:** The fallback focuses the panel whenever `getFocusableElements`
-  returns empty — including when the consumer has already focused a
-  `tabindex="-1"` element inside the container (the focus-the-heading a11y
-  pattern): the selector excludes `tabindex="-1"`, the list comes back empty,
-  and the panel steals that focus a tick later. `trapFocus` guards exactly
-  this case with `container.contains(document.activeElement)` (`:33`);
-  `focusFirstElement` doesn't — the two are inconsistent.
-- **Why deferred:** Niche pattern, no report from real usage; wants the
-  contains-guard plus a jsdom test mirroring the Dialog fallback suite.
-  Flagged in the `c788469` review rather than drive-by-fixed.
-- **Found:** 2026-07-20, v6.26.0 release audit.
-
 ### Three surfaces ingest their content in `$effect`, so the prerendered HTML carries placeholders — 91 API pages assert "No matching properties"
 
 - **Where:** `packages/table/src/lib/core/TableProvider.svelte:87-97` (`setColumns`)

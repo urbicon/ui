@@ -87,6 +87,13 @@ export function lockBodyScroll(): () => void {
 export function focusFirstElement(container: HTMLElement | undefined): void {
   if (!isBrowser) return;
   tick().then(() => {
+    // The consumer may have already moved focus inside the overlay — the
+    // focus-the-heading a11y pattern focuses a `tabindex="-1"` element, which
+    // getFocusableElements deliberately excludes, so without this guard the
+    // fallback below would steal exactly that focus a tick later. Mirrors the
+    // contains-guard trapFocus applies to the same case; `contains` includes
+    // the container itself, so a pre-focused panel also stays put.
+    if (container?.contains(document.activeElement)) return;
     const focusable = getFocusableElements(container);
     if (focusable.length > 0) {
       focusable[0].focus();
