@@ -219,25 +219,6 @@ internal TODO instead. Sections are ordered roughly by urgency.
   deliberately uses `dt()` and does **not** follow the precedent.
 - **Found:** 2026-07-14, adding playground share-links (publish-m3-finale).
 
-### ButtonGroup roving couples `buttonOrder` to a positional DOM query — duplicate values and dynamic add/remove desync it
-
-- **Where:** `packages/blocks/src/lib/primitives/ButtonGroup/ButtonGroup.svelte`
-  (`buttonOrder` registry indexed positionally against `rovingRadios()`).
-- **What:** The single-select roving (added 2026-07-13) maps the reactive
-  selection back to a radio position by assuming `buttonOrder[i]` (values, in
-  registration order, deduped) lines up with `rovingRadios()[i]`
-  (`querySelectorAll('[role="radio"]')`, DOM order). The value-less case is
-  fixed (value-less buttons no longer get `role="radio"`), but two edges
-  remain: (a) two buttons with the **same** value — `buttonOrder` dedups, the
-  DOM query does not, so the indices drift; (b) buttons **added/removed at
-  runtime** — `buttonOrder` only ever grows (Button can't unregister), so it
-  goes stale. Static, unique-value groups (the near-universal case) are correct.
-- **Why deferred:** The robust fix for both is to stop indexing positionally —
-  tag each radio with its value (`data-value`) and resolve by matching value —
-  which touches the shared `Button.svelte` (`getButtonProps`), outside the
-  primitives-Welle scope. Wants one deliberate pass with tests for both edges.
-- **Found:** 2026-07-13, ButtonGroup roving review (primitives-Welle, adversarial reviewer).
-
 ### Table's `initial*` family is incomplete — no `initialSort`, no `initialSelectedIds`
 
 - **Where:** `packages/table/src/lib/core/table/index.ts` (TableProps) /
@@ -423,53 +404,6 @@ internal TODO instead. Sections are ordered roughly by urgency.
   deliberate sweep (per-control decision what hover/active mean on a track vs
   a radio dot, plus VR review), not a per-component drive-by.
 - **Found:** 2026-07-13, CHK-10 checkbox polish.
-
-### Checkbox silently swallows a consumer-passed native `onchange`
-
-- **Where:** `packages/blocks/src/lib/primitives/Checkbox/Checkbox.svelte` — the
-  inner `<input>` binds `onchange={handleChange}` **after** `{...restProps}`.
-- **What:** A consumer passing native `onchange` to `<Checkbox>` has it land in
-  `restProps` and then overridden by the internal handler, so it never fires —
-  the callback is `onCheckedChange(checked: boolean)`. This is exactly how
-  Table's selection wiring was silently broken across four components (fixed
-  2026-07-20, `d7b4dfe`, by switching to `onCheckedChange`). Passing `onchange`
-  is arguably misuse, but dropping it silently is a footgun.
-- **Why deferred:** Two defensible resolutions with a precedent on each side —
-  compose the consumer handler (as the Textarea `oninput` fix did, `d4a8728`)
-  or document that internal change handling wins (as the ARIA-over-restProps
-  contract does, `32cfddd`). Since Checkbox transforms change→boolean, a raw
-  `onchange` is semantically odd; wants a deliberate call, not a drive-by. A
-  DEV warn when `onchange` is passed would at least stop it failing silently.
-- **Found:** 2026-07-20, e2e table selection coverage (qa-polish-wave).
-
-### Combobox multi-select: no way to seed labels for pre-selected async values
-
-- **Where:** `packages/blocks/src/lib/primitives/Combobox/Combobox.svelte`
-  (`selectedTags` `$derived.by`, `tagCache`).
-- **What:** In `multiple` + `queryFn` mode a consumer that binds
-  `value=['a']` on mount has no API to supply `'a'`'s label — `tagCache` is only
-  written by `toggleValue` (a user pick), so a pre-bound value renders as its
-  raw `String(value)` until a query happens to return it. The dev-warn is
-  suppressed in async mode to stop crying wolf (CMB-2 review); the underlying
-  gap — seeding labels for pre-selected async values — remains.
-- **Why deferred:** Needs a deliberate API decision, and it is worth doing
-  right rather than as a drive-by. **Recommendation (qa-polish-wave review):** a
-  declarative `seedOptions: ComboboxOption<T>[]` prop, wired in as the *last*
-  lookup source in label resolution (`allOptions.find ?? tagCache.get ??
-  seedOptions.find`), covering single and multi with one shape. Preferred over a
-  `selectedOptions` prop (which introduces a second, conflict-prone selection
-  source — who wins on disagreement with `value`?) and over a cache-seed
-  callback (imperative overkill: consumers usually already hold the labels of
-  pre-selected values). Idempotent, SSR-safe, and it would let the async orphan
-  warn become meaningful again (warn only when a value is in neither results,
-  cache, nor seed). Re-using `options` as the seed is rejected: it collides with
-  the documented "options/groups are ignored in queryFn mode" semantics.
-- **Update 2026-07-20 (qa-polish-wave):** the *warn-dedup* half — the sync-mode
-  orphan warn re-firing per fresh `options` array in both Combobox and Select —
-  is **fixed** (a plain warned-values `Set` outside the reactive graph, mirrored
-  across both components, `14d2854`/`d60b41e`). Only the label-seed API above
-  remains.
-- **Found:** 2026-07-10, blocks feature-request review (CMB-2 multi-select).
 
 ### Combobox `queryFn` failure has no in-component error-row slot
 
@@ -926,25 +860,6 @@ internal TODO instead. Sections are ordered roughly by urgency.
   Cluster A direction) rather than being dropped silently mid-cleanup.
 - **Found:** 2026-07-14, verifying the design-authenticity audit before archiving it.
 
-### PlaygroundConfigurator `SegmentGroup` branch writes the selected value back untyped
-
-- **Where:** `packages/docs/src/lib/components/PlaygroundConfigurator/PlaygroundConfigurator.svelte`
-  — the `SegmentGroup` branch (enum controls with ≤4 items), `onValueChange`.
-- **What:** The sibling of the just-fixed `Select`/dropdown boundary bug. The
-  `Select` branch now round-trips through the typed `item.value`
-  (`selectDisplayValue`/`resolveSelectValue`, `32eee46`), so a numeric control
-  like `Section`'s `headingLevel` keeps its `number` type. The `SegmentGroup`
-  branch was **not** part of that fix: it writes the selected option string
-  straight back via `onValueChange` without mapping to the original typed
-  value, so a numeric or boolean enum rendered as a SegmentGroup (≤4 options)
-  would silently drift its bound value to a string.
-- **Why deferred:** Same boundary decision as the Select fix, deliberately
-  scoped out of it — apply `resolveSelectValue`'s typed-round-trip to the
-  SegmentGroup branch too, with a test over a numeric/boolean enum control.
-- **Found:** 2026-07-20, fixing the `[Select] value 2` headingLevel orphan
-  (qa-polish-wave); that Select/dropdown case is now resolved, this sibling is
-  the remainder.
-
 ### Route-level `docsConfig` exports are decorative — nothing consumes them
 
 - **Where:** the `docsConfig` exports in all 59 route-level `Docs.svelte` /
@@ -968,22 +883,6 @@ internal TODO instead. Sections are ordered roughly by urgency.
   (docs-gen cleanup agent).
 
 ## Testing / CI gates
-
-### Contrast pairing drift-guard scans only 4 of 9 wired variant files
-
-- **Where:** `packages/blocks/src/lib/style/contrast.test.ts` (~`:396`,
-  `foreground pairing matches the component variants`).
-- **What:** The guard that pins the `text-on-<intent>` wiring against the real
-  variant files scans Button, Badge, Alert and Tooltip — but Checkbox,
-  Stepper, RadioGroup, CompositionBar and table-states were wired in
-  `00d046d` too and are unscanned. A later revert there would not break the
-  suite: the 252-combination token tests measure tokens, not per-component
-  wiring.
-- **Why deferred:** Mechanical extension, but wants a call on the scan's shape
-  first — hardcoded file list vs. a glob over every variants file carrying a
-  filled `bg-<intent>` — so the next intent/component doesn't silently
-  re-open the gap.
-- **Found:** 2026-07-20, v6.26.0 release audit (contrast package).
 
 ### `apps/docs` has no translation-parity gate — a key missing from `de.ts` is invisible to types and tests
 

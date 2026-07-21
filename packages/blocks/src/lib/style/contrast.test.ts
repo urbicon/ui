@@ -1,4 +1,4 @@
-import { readFileSync } from 'node:fs';
+import { readdirSync, readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { describe, expect, it } from 'vitest';
 
@@ -393,14 +393,48 @@ describe('CSS token graph — resolver', () => {
 
 describe('foreground pairing matches the component variants', () => {
   // Re-derive INTENT_FOREGROUND from the markup so the table cannot drift.
-  const variantSources = [
-    '../primitives/Button/button.variants.ts',
-    '../primitives/Badge/badge.variants.ts',
-    '../primitives/Alert/alert.variants.ts',
-    '../primitives/Tooltip/tooltip.variants.ts'
-  ]
-    .map((file) => read(file))
-    .join('\n');
+  //
+  // The sources are DISCOVERED (every `*.variants.ts` in blocks plus the
+  // table package's), not a hardcoded list: the original four-file list
+  // silently missed 5 of the 9 files wired in 00d046d (Checkbox, Stepper,
+  // Select, Tab, Calendar — plus table-states/-features next door), so a
+  // revert there would not have failed this suite. A glob keeps the NEXT
+  // wired component inside the guard by construction. Files without a
+  // filled-bg/on-color pairing contribute no matches and cost nothing.
+  function findVariantFiles(dir: string): string[] {
+    return readdirSync(dir, { recursive: true })
+      .map(String)
+      .filter((p) => p.endsWith('.variants.ts'))
+      .map((p) => resolve(dir, p))
+      .sort();
+  }
+
+  const variantFiles = [
+    ...findVariantFiles(resolve(STYLE_DIR, '..')),
+    // The table package wires the same on-color vocabulary (00d046d); its
+    // variants live one package over, pinned by the workspace layout.
+    ...findVariantFiles(resolve(STYLE_DIR, '../../../../table/src/lib'))
+  ];
+
+  it('discovers the variant sources (glob sanity: blocks + table, incl. the original four)', () => {
+    // Lower bound only — the point of discovery is that additions join
+    // automatically. The four originally scanned files must be among them.
+    expect(variantFiles.length).toBeGreaterThanOrEqual(40);
+    for (const name of [
+      'button.variants.ts',
+      'badge.variants.ts',
+      'alert.variants.ts',
+      'tooltip.variants.ts',
+      'table-states.variants.ts'
+    ]) {
+      expect(
+        variantFiles.some((f) => f.endsWith(name)),
+        `${name} discovered`
+      ).toBe(true);
+    }
+  });
+
+  const variantSources = variantFiles.map((file) => readFileSync(file, 'utf8')).join('\n');
 
   it.each(INTENTS)('bg-%s pairs with exactly one on-color', (intent) => {
     // Stay inside one class string: stop at any quote that could end it.
