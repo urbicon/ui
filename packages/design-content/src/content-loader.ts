@@ -40,9 +40,27 @@ export function getVerbsDir(): string {
   return resolve(getContentDir(), 'verbs');
 }
 
-/** The `llms-full` template that backs the guide resources. */
+/** The `llms-full` template that backs the template-sliced guide resources. */
 export function getTemplatePath(): string {
   return resolve(getContentDir(), 'guides', 'llms-full-template.md');
+}
+
+/** The package-guide listing (`guides/index.json`, `{ slug, title, description }[]`). */
+export function getGuideIndexPath(): string {
+  return resolve(getContentDir(), 'guides', 'index.json');
+}
+
+/**
+ * Resolve a bundled package guide (`guides/<slug>.md`) — the canonical,
+ * tarball-shipped guide documents (AUTH.md etc.) distributed into the bundle
+ * by docs-gen. Rejects unsafe slugs like {@link getComponentLlmPath} — the
+ * slug is caller-supplied (CLI argument / MCP resource id).
+ */
+export function getGuidePath(slug: string): string {
+  if (!SAFE_SLUG.test(slug)) {
+    throw new Error(`Invalid guide slug: "${slug}"`);
+  }
+  return resolve(getContentDir(), 'guides', `${slug}.md`);
 }
 
 /** The parsed icon metadata (name → label/categories/keywords). */

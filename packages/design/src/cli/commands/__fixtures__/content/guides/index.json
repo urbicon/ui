@@ -1,0 +1,12 @@
+[
+  {
+    "slug": "auth",
+    "title": "Auth Reference",
+    "description": "Architecture, consumer integration, federation (SSO), known limitations & production checklist"
+  },
+  {
+    "slug": "table-sticky",
+    "title": "Table Sticky Pinning & Contained Scroll",
+    "description": "The two table scroll models"
+  }
+]

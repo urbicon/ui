@@ -15,6 +15,8 @@ import {
   getCatalogPath,
   getComponentLlmPath,
   getDesignSystemDir,
+  getGuideIndexPath,
+  getGuidePath,
   getIconsPath
 } from '@urbicon-ui/design-content';
 import { type PatternEntry, parsePatternEntry } from '@urbicon-ui/design-engine/reference';
@@ -128,6 +130,44 @@ export async function loadPatternEntries(): Promise<PatternEntry[]> {
   }
   entries.sort((a, b) => a.name.localeCompare(b.name));
   return entries;
+}
+
+/** One entry of the bundled package-guide listing (`guides/index.json`). */
+export interface GuideIndexEntry {
+  slug: string;
+  title: string;
+  description: string;
+}
+
+/** Load the package-guide listing (`guides/index.json`). Missing bundle throws (see `loadCatalog`). */
+export async function loadGuideIndex(): Promise<GuideIndexEntry[]> {
+  ensureContentDir();
+  try {
+    return JSON.parse(await readFile(getGuideIndexPath(), 'utf-8')) as GuideIndexEntry[];
+  } catch (err) {
+    if ((err as { code?: string }).code === 'ENOENT') throw new Error(BUNDLE_MISSING);
+    throw err;
+  }
+}
+
+/**
+ * Load one bundled package guide (`guides/<slug>.md`). `null` for a slug that
+ * is simply not in the bundle (a genuine "unknown guide" — the caller lists
+ * what exists); a wholly missing bundle throws the clear "reinstall" error.
+ */
+export async function loadGuideText(slug: string): Promise<string | null> {
+  ensureContentDir();
+  try {
+    return await readFile(getGuidePath(slug), 'utf-8');
+  } catch (err) {
+    if ((err as { code?: string }).code !== 'ENOENT') throw err;
+  }
+  try {
+    await readFile(getGuideIndexPath(), 'utf-8');
+  } catch {
+    throw new Error(BUNDLE_MISSING);
+  }
+  return null;
 }
 
 /** Load the bundled icon metadata (`icons.json`). Missing bundle throws (see `loadCatalog`). */

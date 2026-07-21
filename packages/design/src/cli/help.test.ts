@@ -42,6 +42,7 @@ describe('urbicon --help', () => {
       'css-reference',
       'icons',
       'recipe',
+      'guide',
       'context',
       'record-decision',
       'sync-manifest',

@@ -101,6 +101,10 @@ Commands:
   recipe [id]           Complete Svelte 5 code recipes from the catalog. No id lists
                         all; an id prints the full recipe (incl. code).
                         --json             Machine-readable recipe (or list).
+  guide [slug]          Package guides from the version-pinned bundle (auth
+                        reference, blocks guide system, migration notes, table
+                        scroll models). No slug lists all; a slug prints the guide.
+                        --json             Machine-readable guide list.
   context               Print the project's design.manifest.md summary.
                         --manifest <path>  Manifest file (default ./design.manifest.md).
                         --json             Emit the parsed manifest as JSON.

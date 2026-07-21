@@ -19,6 +19,7 @@ import { runContext } from './commands/context.js';
 import { runCssReference } from './commands/css-reference.js';
 import { runFind } from './commands/find.js';
 import { runGetComponent } from './commands/get-component.js';
+import { runGuide } from './commands/guide.js';
 import { runHook } from './commands/hook.js';
 import { runI18n } from './commands/i18n.js';
 import { runIcons } from './commands/icons.js';
@@ -81,6 +82,8 @@ async function main(argv: string[]): Promise<number> {
       return runIcons(positionals, flags);
     case 'recipe':
       return runRecipe(positionals, flags);
+    case 'guide':
+      return runGuide(positionals, flags);
     case 'context':
       return runContext(positionals, flags);
     case 'record-decision':

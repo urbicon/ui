@@ -4,6 +4,8 @@ import {
   getComponentLlmPath,
   getContentDir,
   getDesignSystemDir,
+  getGuideIndexPath,
+  getGuidePath,
   getIconsPath,
   getTemplatePath
 } from './content-loader.js';
@@ -40,7 +42,25 @@ describe('content-loader paths', () => {
       expect(getCatalogPath()).toBe('/bundle/component-catalog.json');
       expect(getDesignSystemDir()).toBe('/bundle/design-system');
       expect(getTemplatePath()).toBe('/bundle/guides/llms-full-template.md');
+      expect(getGuideIndexPath()).toBe('/bundle/guides/index.json');
       expect(getIconsPath()).toBe('/bundle/icons.json');
+    });
+  });
+
+  describe('getGuidePath', () => {
+    beforeEach(() => {
+      process.env.URBICON_CONTENT_DIR = '/bundle';
+    });
+
+    it('resolves a valid slug to guides/<slug>.md', () => {
+      expect(getGuidePath('auth')).toBe('/bundle/guides/auth.md');
+      expect(getGuidePath('migration-v5')).toBe('/bundle/guides/migration-v5.md');
+    });
+
+    it('rejects unsafe slugs', () => {
+      expect(() => getGuidePath('../escape')).toThrow('Invalid guide slug');
+      expect(() => getGuidePath('Auth')).toThrow('Invalid guide slug');
+      expect(() => getGuidePath('')).toThrow('Invalid guide slug');
     });
   });
 

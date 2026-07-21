@@ -2,9 +2,11 @@ import { readFile } from 'node:fs/promises';
 import { getTemplatePath } from '@urbicon-ui/design-content';
 
 /**
- * The seven guide sections carved out of the single template document, keyed by
+ * The six guide sections carved out of the single template document, keyed by
  * guide id. Each value is the raw markdown of one `## …` section; the keys are
- * the ids the guide resources ({@link registerGuideResources}) expose.
+ * the ids the guide resources ({@link registerGuideResources}) expose. The auth
+ * guide is deliberately NOT here — it is a canonical package guide served from
+ * the bundle's `guides/auth.md` (see `guide-loader.ts`), not a template slice.
  */
 export interface TemplateSections {
   'api-grammar': string;
@@ -13,7 +15,6 @@ export interface TemplateSections {
   'design-quality': string;
   customization: string;
   'style-patterns': string;
-  'auth-setup': string;
 }
 
 let cachedSections: TemplateSections | null = null;
@@ -34,9 +35,9 @@ function extractSection(lines: string[], startHeading: string, endMarker: string
 }
 
 /**
- * Load the template document once and slice it into the seven
+ * Load the template document once and slice it into the six
  * {@link TemplateSections} by `## …` heading (each running up to the next `---`
- * rule; auth-setup, the last section, runs to EOF). Cached per process.
+ * rule). Cached per process.
  */
 export async function loadTemplateSections(): Promise<TemplateSections> {
   if (cachedSections) return cachedSections;
@@ -51,10 +52,7 @@ export async function loadTemplateSections(): Promise<TemplateSections> {
     tokens: extractSection(lines, '## Design Token System', '---'),
     'design-quality': extractSection(lines, '## Design Quality', '---'),
     customization: extractSection(lines, '## Customization', '---'),
-    'style-patterns': extractSection(lines, '## Style Patterns', '---'),
-    // Auth Setup is the last section and contains no `---` rules of its own, so
-    // it extracts cleanly to EOF. Its `###` stage sub-headings carry the staging.
-    'auth-setup': extractSection(lines, '## Auth Setup', '---')
+    'style-patterns': extractSection(lines, '## Style Patterns', '---')
   };
 
   return cachedSections;

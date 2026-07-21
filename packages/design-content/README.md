@@ -21,7 +21,8 @@ The `content/` directory is a **build artifact** (git-ignored in dev, regenerate
 | `<group>/<slug>/llm.txt` | Per-component LLM documentation (overview / examples / variants / api / slots) |
 | `design-system/principles.md` | Design principles, by topic |
 | `design-system/patterns/*.md` | Layer-4 composition patterns (dashboard, form-page, …) |
-| `guides/llms-full-template.md` | Source for the seven guide resources |
+| `guides/llms-full-template.md` | Source for the template-sliced guide resources |
+| `guides/<slug>.md` + `guides/index.json` | Canonical package guides (auth, guide-system, migration-v5, table-sticky) behind `urbicon guide` |
 | `icons.json` | Icon metadata (name → label / categories / keywords / component) |
 | `meta.json` | Build provenance `{ version, builtAt, contentHash }` |
 
@@ -33,6 +34,8 @@ import {
   getComponentLlmPath,
   getContentDir,
   getDesignSystemDir,
+  getGuideIndexPath,
+  getGuidePath,
   getIconsPath,
   getTemplatePath,
   loadContentMeta

@@ -16,6 +16,8 @@ export {
   getComponentLlmPath,
   getContentDir,
   getDesignSystemDir,
+  getGuideIndexPath,
+  getGuidePath,
   getIconsPath,
   getTemplatePath,
   getVerbsDir,
