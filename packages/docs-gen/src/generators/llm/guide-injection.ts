@@ -60,10 +60,10 @@ export function demoteHeadings(markdown: string, by: number): string {
         return line;
       }
       if (inFence) return line;
-      const match = /^(#{1,6})(\s)/.exec(line);
-      if (!match) return line;
-      const level = Math.min(6, match[1].length + by);
-      return `${'#'.repeat(level)}${line.slice(match[1].length)}`;
+      const hashes = /^(#{1,6})\s/.exec(line)?.[1];
+      if (!hashes) return line;
+      const level = Math.min(6, hashes.length + by);
+      return `${'#'.repeat(level)}${line.slice(hashes.length)}`;
     })
     .join('\n');
 }
@@ -76,10 +76,10 @@ export function demoteHeadings(markdown: string, by: number): string {
 export function stripLeadingH1(markdown: string): string {
   const lines = markdown.split('\n');
   let i = 0;
-  while (i < lines.length && lines[i].trim() === '') i++;
-  if (i < lines.length && /^#\s/.test(lines[i])) {
+  while (i < lines.length && (lines[i] ?? '').trim() === '') i++;
+  if (i < lines.length && /^#\s/.test(lines[i] ?? '')) {
     i++;
-    while (i < lines.length && lines[i].trim() === '') i++;
+    while (i < lines.length && (lines[i] ?? '').trim() === '') i++;
     return lines.slice(i).join('\n');
   }
   return markdown;
