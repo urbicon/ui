@@ -4,6 +4,11 @@ All notable changes to this project will be documented in this file.
 This changelog is automatically generated from [Conventional Commits](https://www.conventionalcommits.org).
 
 
+## [6.29.1] - 2026-07-21
+
+### Documentation
+- **auth**: Restore trustedOrigins ['*'] as the kernel-CSRF off-switch
+
 ## [6.29.0] - 2026-07-21
 
 ### Bug Fixes
