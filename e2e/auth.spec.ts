@@ -17,7 +17,9 @@ import { expect, type Page, test } from '@playwright/test';
  */
 
 const TEST_USER = { email: 'alice@test.local', name: 'Alice', password: 'AliceSecret123' };
-const ORIGIN = 'http://localhost:5174';
+// Mirrors playwright.config.ts's PORT override — a hardcoded 5174 here makes
+// the auth CSRF gate 403 every seed call under `PORT=<n>` session isolation.
+const ORIGIN = `http://localhost:${Number(process.env.PORT ?? 5174)}`;
 
 async function seedWorld(page: Page) {
   const res = await page.request.post('/test-fixtures/auth/api/reset', {
@@ -116,12 +118,22 @@ test.describe('Auth kernel flow', () => {
     expect(after.find((c) => c.name === 'session')).toBeDefined();
     expect(after.find((c) => c.name === 'refresh')?.value).not.toBe(oldRefreshValue);
 
-    // Replay the revoked refresh cookie → reuse detection kicks in.
+    // Replay the just-revoked refresh cookie. Within the 10 s
+    // concurrent-rotation grace (ROTATION_GRACE_MS, refresh-token.ts) this is
+    // DELIBERATELY served as a parallel-request race (`race_ok`), not a
+    // replay: a real browser fires overlapping requests the moment the access
+    // cookie expires, and hard reuse-detection here would log the loser out.
+    // The genuine replay — outside the window → whole family revoked — needs
+    // fake timers and is pinned by the unit suite (refresh-token.test.ts,
+    // "detects reuse … outside the window" / "treats a replay inside the
+    // window as a concurrent-rotation race"). This spec's earlier 302/401
+    // expectation predated the grace and only survived because the CI e2e job
+    // is red on the darwin-snapshot debt.
     await page.context().clearCookies();
     await page.context().addCookies([refresh!]);
     const res = await page.request.get('/test-fixtures/auth/protected', {
       maxRedirects: 0
     });
-    expect([302, 303, 401]).toContain(res.status());
+    expect(res.status()).toBe(200);
   });
 });
