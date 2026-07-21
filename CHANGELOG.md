@@ -4,6 +4,11 @@ All notable changes to this project will be documented in this file.
 This changelog is automatically generated from [Conventional Commits](https://www.conventionalcommits.org).
 
 
+## [6.29.2] - 2026-07-21
+
+### Documentation
+- **auth**: Harden the CSRF guidance at the seams found by adversarial review
+
 ## [6.29.1] - 2026-07-21
 
 ### Documentation
