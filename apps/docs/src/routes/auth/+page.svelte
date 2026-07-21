@@ -121,6 +121,13 @@ export const POST = createForgotPasswordHandler(authDeps);
       <code>unstyled</code> / <code>slotClasses</code> / snippet overrides, and auto-detect locale
       from the <code>@urbicon-ui/i18n</code> context.
     </p>
+    <p class="text-text-secondary mt-4">
+      The complete reference — architecture, staged setup, federation (SSO), the adapter contract,
+      and the known-limitations catalog with the production checklist — is the
+      <a href={resolve('/auth/guide')} class="text-primary hover:underline"
+        >Auth Reference (AUTH.md)</a
+      >, rendered from the same document that ships inside the npm package.
+    </p>
   </Section>
 
   <Section id="architecture" title="Architecture">

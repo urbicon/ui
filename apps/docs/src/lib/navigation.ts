@@ -229,6 +229,7 @@ const allNavigationItems: NavItem[] = [
     nameKey: 'nav.auth',
     href: '/auth',
     children: [
+      { name: 'Reference (AUTH.md)', href: '/auth/guide' },
       {
         name: 'Pages',
         nameKey: 'nav.groups.pages',

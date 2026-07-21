@@ -97,23 +97,11 @@ export function createAuthHandle<R extends string>(options: AuthHandleOptions<R>
   };
 
   return async ({ event, resolve }) => {
-    // 1. CSRF check for mutating requests.
-    //
-    // This is the package's own Origin gate and only covers requests that
-    // reach this hook. It is independent of SvelteKit's built-in
-    // `kit.csrf.checkOrigin`, which runs earlier in the request kernel
-    // (before any hook) and so still applies to handle-bypassed routes — most
-    // visibly a cross-origin, form-encoded POST such as an OAuth 2.1 token
-    // endpoint, which that kernel check 403s ("Cross-site POST form
-    // submissions are forbidden") before this ever runs (skipped under
-    // `vite dev` only; the ^2.70.1 peer range guarantees builds always
-    // carry the gate, kit#16313).
-    // A consumer exposing such an endpoint *outside* this handle must turn the
-    // kernel check off (`kit.csrf.checkOrigin: false` — deprecated, but
-    // `trustedOrigins` is consulted only when an `Origin` header is present
-    // and so can't admit the header-less callers this concerns; kit#15992)
-    // and rely on this gate, which is stricter (all methods, all content
-    // types incl. JSON, no allow-list). See docs/AUTH.md → Known Limitations.
+    // 1. CSRF check for mutating requests. The package's own Origin gate,
+    // covering only requests that reach this hook; SvelteKit's kernel
+    // `csrf.checkOrigin` runs earlier and still gates handle-bypassed routes.
+    // Interplay + the only working off-switch: docs/AUTH.md → Known
+    // Limitations ("SvelteKit's built-in csrf.checkOrigin").
     if (
       !validateCsrf(event.request, event.url, {
         doubleSubmit: csrfDoubleSubmit,
