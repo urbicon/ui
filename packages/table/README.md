@@ -166,4 +166,5 @@ bunx --bun vitest run                        # unit tests (from package root)
 
 ## Related
 
-- [docs/ARCHITECTURE.md](../../docs/ARCHITECTURE.md) — remote-data architecture
+- [docs/STICKY-PINNING.md](./docs/STICKY-PINNING.md) — scroll models: page-relative sticky pinning + contained scroll (`fit="viewport"`), API, CSS vars. Ships in this package.
+- [docs/ARCHITECTURE.md](../../docs/ARCHITECTURE.md) — remote-data architecture (monorepo only)

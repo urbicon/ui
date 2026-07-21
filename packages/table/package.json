@@ -33,6 +33,7 @@
   },
   "files": [
     "LICENSE",
+    "docs/STICKY-PINNING.md",
     "dist",
     "!dist/**/*.test.*",
     "!dist/**/*.spec.*"

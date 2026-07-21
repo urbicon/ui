@@ -35,6 +35,8 @@
   },
   "files": [
     "LICENSE",
+    "docs/GUIDE.md",
+    "docs/MIGRATION-v5.md",
     "dist",
     "!dist/**/*.test.*",
     "!dist/**/*.spec.*",

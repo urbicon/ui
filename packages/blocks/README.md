@@ -121,6 +121,8 @@ bun run test                                  # Run tests (from root)
 
 ## Related
 
-- [docs/ARCHITECTURE.md](../../docs/ARCHITECTURE.md) — Token system, Mint, Preset-System, i18n
-- [docs/COMPONENT-API-CONVENTIONS.md](../../docs/COMPONENT-API-CONVENTIONS.md) — Props, callbacks, styling patterns
-- [docs/ComponentStructureStandard.md](../../docs/ComponentStructureStandard.md) — File structure, index.ts, variants.ts
+- [docs/GUIDE.md](./docs/GUIDE.md) — Guide system (help panel, hints, UI↔guide linking, guided tour): architecture + as-built contract. Ships in this package.
+- [docs/MIGRATION-v5.md](./docs/MIGRATION-v5.md) — v4 → v5 consumer migration guide. Ships in this package.
+- [docs/ARCHITECTURE.md](../../docs/ARCHITECTURE.md) — Token system, Mint, Preset-System, i18n (monorepo only)
+- [docs/COMPONENT-API-CONVENTIONS.md](../../docs/COMPONENT-API-CONVENTIONS.md) — Props, callbacks, styling patterns (monorepo only)
+- [docs/ComponentStructureStandard.md](../../docs/ComponentStructureStandard.md) — File structure, index.ts, variants.ts (monorepo only)
