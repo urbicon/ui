@@ -115,6 +115,28 @@ internal TODO instead. Sections are ordered roughly by urgency.
   one pass.
 - **Found:** 2026-07-10, systematic primitives API analysis.
 
+### Button spreads `restProps` last, against the documented restProps-first contract
+
+- **Where:** `packages/blocks/src/lib/primitives/Button/Button.svelte` (the
+  `<button>` element: computed `role`/`aria-checked`/`data-value`/
+  `aria-pressed`/`aria-disabled`/`aria-busy` before `{...restProps}`).
+- **What:** COMPONENT-API-CONVENTIONS §restProps ordering mandates spreading
+  restProps *first* so component-owned state wins; Button does the reverse, so
+  a consumer-passed `role`/`aria-checked`/`data-value` (via restProps) would
+  override the ButtonGroup selection wiring. Purely theoretical today — no
+  consumer passes those to a group Button, and `onclick` is destructured and
+  composed — but it is the one form-family component contradicting the
+  documented contract.
+- **Why deferred:** A naive reorder breaks legitimate standalone uses: with
+  restProps first, the explicit `role={ariaProps.role}` evaluates to
+  `undefined` outside a selection group, and an explicit `undefined` *after*
+  the spread removes a consumer's own `role="link"`. The migration needs
+  conditional merges (`ariaProps.role ?? restProps.role`-style) per attribute,
+  with DOM tests for both the group and the standalone arm — a deliberate
+  pass, not a drive-by. Surfaced while adding `data-value` (roving-by-value
+  fix), which inherits the pre-existing exposure.
+- **Found:** 2026-07-21, ButtonGroup roving-by-value fix (debt-fix-wave).
+
 ## Component behaviour
 
 ### Three surfaces ingest their content in `$effect`, so the prerendered HTML carries placeholders — 91 API pages assert "No matching properties"
@@ -247,7 +269,7 @@ internal TODO instead. Sections are ordered roughly by urgency.
 
 - **Where:** `packages/table/src/lib/core/TableRow.svelte` (`handleRowClick`
   only fires `onRowClick`/expansion; selection happens solely in the
-  checkbox's `onchange`).
+  checkbox's `onCheckedChange`).
 - **What:** In `selectionMode="single"`, clicking a row does not select it —
   users must hit the small checkbox. Most single-select tables treat the whole
   row as the click target (and often drop the checkbox column entirely in

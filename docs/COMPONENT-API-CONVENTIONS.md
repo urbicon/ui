@@ -428,11 +428,18 @@ combine explicitly:
   (`describedBy`), mirrored across Textarea/Checkbox/Toggle/RadioGroup and
   guarded by DOM tests in each.
 
-The overlay family (Dialog/Drawer/ConfirmDialog) does **not** follow this yet —
-it still spreads restProps after its dismiss/focus handlers, so a consumer
-`onclick` can disable backdrop dismissal. Tracked in
-[technical-debt.md](technical-debt.md); don't copy that ordering into new
-components.
+The overlay family (Dialog/Drawer/ConfirmDialog) follows this since the
+2026-07-14 quality wave: restProps spreads first, and the dismiss/focus
+handlers survive a consumer's own `onclick`/`onkeydown` via `composeHandlers`
+(both run — the consumer's handler supplements instead of replacing).
+Reference: `Dialog.svelte`.
+
+Known non-follower: `Button` still spreads restProps **last** (after its
+computed `role`/`aria-checked`/`data-value`/`aria-pressed`). A naive reorder
+would clobber legitimate standalone uses (an explicit `role={undefined}`
+after the spread *removes* a consumer's `role="link"`), so the migration
+needs conditional merges — tracked in
+[technical-debt.md](technical-debt.md).
 
 ## Accessibility
 
