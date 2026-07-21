@@ -884,28 +884,6 @@ internal TODO instead. Sections are ordered roughly by urgency.
 
 ## Testing / CI gates
 
-### `apps/docs` has no translation-parity gate — a key missing from `de.ts` is invisible to types and tests
-
-- **Where:** `apps/docs/src/lib/i18n/index.ts`
-  (`AppTranslationKey = DeepKeys<typeof enTranslations>`) +
-  `apps/docs/src/lib/translations/de.ts`; root `package.json:100` (`i18n:check`).
-- **What:** `en.ts` is the type source of truth, but `de.ts` is an unconstrained
-  object — a key present in `en.ts` and missing from `de.ts` fails neither
-  `check` nor any test. The root `i18n:check` audits only `packages/blocks/src` +
-  `packages/table/src`, never `apps/docs`. Compounding it, `NavItem.nameKey` is
-  typed `string` and **cast** at `navigation.ts:42`
-  (`t(item.nameKey as Parameters<typeof t>[0])`), so a typo'd key is invisible
-  too. **This is exactly why the three Auth nav groups (Pages / Management /
-  Notifications) sat un-localized and rendered English in the German sidebar**
-  until 2026-07-14. `packages/docs` has the gate (`translations.parity.test.ts`);
-  the app does not.
-- **Why deferred:** Extending `i18n:check` to `apps/docs` (or mirroring the
-  parity test) is small, but it wants a decision on which surface owns the gate,
-  and it will likely surface further gaps on arrival — the same "gate is red on
-  arrival" problem the declaration-emit guard had. Not a drive-by.
-- **Found:** 2026-07-14, localizing the prev/next section kicker
-  (publish-m3-finale).
-
 ### docs-gen: `failFast` is coupled to parallelism being off — enabling it silently downgrades errors to exit 0
 
 - **Where:** `packages/docs-gen/src/.../PipelineOrchestrator.ts:29` —

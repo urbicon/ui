@@ -1,5 +1,5 @@
 import { resolve } from '$app/paths';
-import { useAppI18n } from '$lib/i18n';
+import { type AppTranslationKey, useAppI18n } from '$lib/i18n';
 
 /**
  * Route id accepted by SvelteKit's `resolve()` — typing `href` against it
@@ -25,7 +25,12 @@ export function resolveNav(href: NavHref): string {
 
 export type NavItem = {
   name: string;
-  nameKey?: string;
+  /**
+   * Typed against the `en` bundle's deep keys — a typo'd or removed key now
+   * fails `check` instead of silently rendering the English `name` fallback
+   * (which is how the Auth nav groups sat un-localized until 2026-07-14).
+   */
+  nameKey?: AppTranslationKey;
   href?: NavHref;
   children?: NavItem[];
   group?: boolean;
@@ -39,7 +44,7 @@ export type NavItem = {
  */
 export function useNavLabel(): (item: NavItem) => string {
   const t = useAppI18n();
-  return (item: NavItem) => (item.nameKey ? t(item.nameKey as Parameters<typeof t>[0]) : item.name);
+  return (item: NavItem) => (item.nameKey ? t(item.nameKey) : item.name);
 }
 
 /**
