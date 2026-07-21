@@ -45,6 +45,11 @@
   }
 
   onMount(() => {
+    // Hydration marker for the e2e suite: `html[data-hydrated]` only exists
+    // once client JS runs, so specs can gate interactions on it instead of
+    // racing the SSR-inert markup (see e2e/recipes.spec.ts / the
+    // popover-motion aria-expanded workaround it generalizes).
+    document.documentElement.dataset.hydrated = 'true';
     const stored = localStorage.getItem('urbicon-locale');
     const browserLang = navigator.language.split('-')[0];
     const next =
