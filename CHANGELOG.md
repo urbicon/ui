@@ -4,6 +4,24 @@ All notable changes to this project will be documented in this file.
 This changelog is automatically generated from [Conventional Commits](https://www.conventionalcommits.org).
 
 
+## [6.30.0] - 2026-07-21
+
+### Bug Fixes
+- **blocks**: Keep consumer-placed focus when an overlay opens
+- **blocks**: Forward a consumer-passed native onchange on Checkbox
+- **blocks**: Resolve ButtonGroup roving radios by value, not position
+- **docs**: Round-trip typed values in the playground SegmentGroup branch
+
+### Documentation
+- Reconcile the restProps-ordering contract with the code
+
+### Features
+- **blocks**: Add Combobox seedOptions - label seed for pre-selected values
+
+### Testing
+- **blocks**: Discover contrast drift-guard variant sources by glob
+- **docs-app**: Add the en/de translation-parity gate + typed nav keys
+
 ## [6.29.2] - 2026-07-21
 
 ### Documentation
