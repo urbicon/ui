@@ -679,8 +679,9 @@ describe('Combobox (multiple)', () => {
     const user = userEvent.setup();
     const onRemoveTag = vi.fn();
     const onValueChange = vi.fn();
-    // Sync mode → the fallback warns in dev; silence it so the assertion output
-    // stays clean (the warn itself is covered by the async-suppression design).
+    // The fallback warns in dev (pointing at seedOptions); silence it so the
+    // assertion output stays clean — the warn itself is asserted in the
+    // seedOptions suite below.
     const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
     renderCombobox({
       options: OPTIONS,
@@ -736,6 +737,84 @@ describe('Combobox (multiple)', () => {
       document.querySelectorAll<HTMLInputElement>('input[type="hidden"][name="fruit"]')
     );
     expect(hidden.map((h) => h.value)).toEqual(['apple', 'banana']);
+  });
+});
+
+// Label seed for pre-selected values (the async-mount pattern): `seedOptions`
+// is the LAST lookup source when a selected value's label resolves — live
+// options first, then the pick-cache, then the seed — so it supplies labels
+// for values bound before any options exist without ever shadowing a live
+// option. One shape for single and multi. Its existence also makes the orphan
+// warn meaningful in async mode: a value in none of the three sources is a
+// consumer gap the warn can now name an API for.
+describe('Combobox (seedOptions label seed)', () => {
+  it('resolves a pre-bound multi value through the seed instead of the raw fallback', () => {
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+    renderCombobox({
+      options: OPTIONS,
+      multiple: true,
+      value: ['ghost'],
+      seedOptions: [{ value: 'ghost', label: 'Ghost Label' }]
+    });
+
+    expect(removeTagBtn('Ghost Label')).toBeTruthy();
+    expect(warn).not.toHaveBeenCalled();
+    warn.mockRestore();
+  });
+
+  it('never shadows a live option: the current options win over a stale seed', () => {
+    renderCombobox({
+      options: OPTIONS,
+      multiple: true,
+      value: ['apple'],
+      seedOptions: [{ value: 'apple', label: 'Stale Apple' }]
+    });
+
+    expect(removeTagBtn('Apple')).toBeTruthy();
+    expect(queryRemoveTagBtn('Stale Apple')).toBeNull();
+  });
+
+  it('labels a pre-bound async (queryFn) value before any request has run', () => {
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+    renderCombobox({
+      queryFn: vi.fn(() => Promise.resolve([])),
+      multiple: true,
+      value: ['u-42'],
+      seedOptions: [{ value: 'u-42', label: 'Ada Lovelace' }]
+    });
+
+    // No query has fired (listbox never opened) — the seed alone labels the tag.
+    expect(removeTagBtn('Ada Lovelace')).toBeTruthy();
+    expect(warn).not.toHaveBeenCalled();
+    warn.mockRestore();
+  });
+
+  it('warns (DEV, once) in async mode when a pre-bound value has no source, naming seedOptions', () => {
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+    renderCombobox({
+      queryFn: vi.fn(() => Promise.resolve([])),
+      multiple: true,
+      value: ['u-42']
+    });
+
+    // Pre-seedOptions this stayed silent (there was no API to point at);
+    // now the raw-value fallback is a closable consumer gap.
+    expect(removeTagBtn('u-42')).toBeTruthy();
+    expect(warn).toHaveBeenCalledOnce();
+    expect(String(warn.mock.calls[0][0])).toContain('seedOptions');
+    warn.mockRestore();
+  });
+
+  it('restores the seeded label into the single-mode input on mount', () => {
+    renderCombobox({
+      queryFn: vi.fn(() => Promise.resolve([])),
+      value: 'apple',
+      seedOptions: [{ value: 'apple', label: 'Apple' }]
+    });
+
+    // The label-restore effect reads selectedOption, which now resolves
+    // through the seed — the field shows the label, not an empty input.
+    expect((screen.getByRole('combobox') as HTMLInputElement).value).toBe('Apple');
   });
 });
 

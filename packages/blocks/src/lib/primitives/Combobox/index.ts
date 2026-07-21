@@ -81,6 +81,18 @@ interface ComboboxBaseProps<T extends SelectValue = string>
    * production; it never escapes as an unhandled promise rejection.
    */
   onError?: (error: unknown) => void;
+  /**
+   * Label seed for pre-selected values whose options are not (yet) in the
+   * option list — the async-mode pattern of binding `value` on mount before
+   * any `queryFn` result has arrived. Consulted as the LAST lookup source when
+   * resolving a selected value's label (current options first, then the
+   * pick-cache, then this seed), so it can never shadow a live option, and it
+   * works identically for single and multi selection. Without a matching seed
+   * such a value renders as its raw `String(value)` (and warns DEV-only).
+   * Declarative and idempotent — not a second selection source: `value` alone
+   * decides what is selected; `seedOptions` only supplies labels.
+   */
+  seedOptions?: ComboboxOption<T>[];
   /** Show a clear button when a value is selected. Click or press Escape to reset. @default false */
   clearable?: boolean;
   /** Disable the entire combobox. @default false */

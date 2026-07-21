@@ -36,6 +36,7 @@
     debounceMs = 250,
     loadingText = 'Loading…',
     onError,
+    seedOptions = [],
     tier,
     variant = 'outlined',
     size = 'md',
@@ -129,12 +130,16 @@
   // Single-mode selected option. `undefined` in multi mode, which makes every
   // single-only path keyed on it (the label-restore effect, the query shortcut
   // in `matchesQuery`, the click-outside/chevron label restore) inert without a
-  // per-site `!multiple` guard.
+  // per-site `!multiple` guard. Lookup order: live options → the pick-cache →
+  // the consumer's `seedOptions` (labels for values pre-bound before any
+  // options exist, e.g. async mode on mount) — the seed is last so it can
+  // never shadow a live option.
   const selectedOption = $derived(
     multiple
       ? undefined
       : (allOptions.find((o) => o.value === value) ??
-          (selectedCache && selectedCache.value === value ? selectedCache : undefined))
+          (selectedCache && selectedCache.value === value ? selectedCache : undefined) ??
+          seedOptions.find((o) => o.value === value))
   );
 
   // ── Multi-select state (multiple) ─────────────────────────────────────────
@@ -147,15 +152,16 @@
   // the multi-select analogue of `selectedCache`.
   const tagCache = new SvelteMap<T, ComboboxOption<T>>();
 
-  // Resolved options for the selected values, in selection order. Falls back to
-  // the cache, then to a bare `{ label: String(value) }` for an orphan value
-  // (bound but never in the options) so the tag still renders and stays
-  // removable rather than silently vanishing from the array.
+  // Resolved options for the selected values, in selection order. Lookup order
+  // mirrors `selectedOption`: live options → the pick-cache → `seedOptions`,
+  // then a bare `{ label: String(value) }` for a true orphan (bound but in no
+  // source) so the tag still renders and stays removable rather than silently
+  // vanishing from the array.
   //
-  // The dev-warn is gated to *sync* mode: with `queryFn`, a pre-bound value that
-  // isn't in the current result set is expected, not a bug (there is no API to
-  // seed labels for it), so warning there would cry wolf on a legitimate pattern.
-  // See technical-debt (async pre-selected labels).
+  // The dev-warn covers BOTH modes since `seedOptions` exists: a value that is
+  // in neither the options, the cache, nor the seed is a consumer gap in async
+  // mode too — the warn names the API that closes it. (Before the seed there
+  // was no way to supply async labels, so warning there would have cried wolf.)
   //
   // Warn dedup: `selectedTags` recomputes on every fresh `options` array a
   // parent re-render passes in (the common `options={items.map(…)}` idiom), so
@@ -166,12 +172,16 @@
   const warnedOrphanValues = new Set<T>();
   const selectedTags = $derived.by<ComboboxOption<T>[]>(() =>
     selectedValues.map((v) => {
-      const found = allOptions.find((o) => o.value === v) ?? tagCache.get(v);
+      const found =
+        allOptions.find((o) => o.value === v) ??
+        tagCache.get(v) ??
+        seedOptions.find((o) => o.value === v);
       if (found) return found;
-      if (!queryFn && import.meta.env?.DEV && !warnedOrphanValues.has(v)) {
+      if (import.meta.env?.DEV && !warnedOrphanValues.has(v)) {
         warnedOrphanValues.add(v);
         console.warn(
-          `[Combobox] value ${JSON.stringify(v)} has no matching option — tag falls back to its raw value.`
+          `[Combobox] value ${JSON.stringify(v)} has no matching option — tag falls back to its raw value. ` +
+            'For pre-selected values (e.g. async mode on mount), supply its label via `seedOptions`.'
         );
       }
       return { label: String(v), value: v } satisfies ComboboxOption<T>;
