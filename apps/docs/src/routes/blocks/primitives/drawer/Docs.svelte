@@ -102,13 +102,7 @@
         {/snippet}
       </Drawer>
     </CodeExample>
-  </div>
-</Section>
 
-<!-- ─── Customization ─── -->
-
-<Section marker="03" id="customization" title="Customization">
-  <div class="space-y-8">
     <CodeExample
       title="Settings Panel"
       description="A realistic settings drawer with form controls."
@@ -150,7 +144,13 @@
         </nav>
       </Drawer>
     </CodeExample>
+  </div>
+</Section>
 
+<!-- ─── Customization ─── -->
+
+<Section marker="03" id="customization" title="Customization">
+  <div class="space-y-8">
     <CodeExample
       title="slotClasses Override"
       description="Drawer exposes dialog, backdrop, panel, header, title, body, and footer as slots. Here the backdrop loses its blur, the panel gets a square edge with a stronger border, and the body more breathing room — slide animation, focus trap, and stacking stay untouched."

@@ -100,13 +100,7 @@
         Rolling back
       </div>
     </CodeExample>
-  </div>
-</Section>
 
-<!-- ─── Customization ─── -->
-
-<Section marker="02" id="customization" title="Customization">
-  <div class="space-y-8">
     <CodeExample
       title="Content Loading Overlay"
       description="Frosted glass overlay with centered spinner for in-place content loading."
@@ -180,7 +174,13 @@
       <Button loading>Processing</Button>
       <Button loading loadingPlacement="start" variant="outlined">Uploading</Button>
     </CodeExample>
+  </div>
+</Section>
 
+<!-- ─── Customization ─── -->
+
+<Section marker="02" id="customization" title="Customization">
+  <div class="space-y-8">
     <CodeExample
       title="Slot Overrides"
       description="Use slotClasses to restyle individual parts without unstyled mode."

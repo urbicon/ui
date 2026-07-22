@@ -60,6 +60,48 @@
         <SegmentItem value="c">Available</SegmentItem>
       </SegmentGroup>
     </CodeExample>
+
+    <CodeExample
+      title="Theme Switcher"
+      description="Embedded in a settings panel with two-way binding."
+      isolate
+      previewClass="flex justify-center"
+    >
+      <div
+        class="border-border-subtle bg-surface-elevated flex w-full max-w-sm items-center justify-between rounded-2xl border p-4"
+      >
+        <span class="text-text-primary text-sm font-medium">Appearance</span>
+        <SegmentGroup bind:value={theme} size="sm" mint="scale" ariaLabel="Theme preference">
+          <SegmentItem value="light">Light</SegmentItem>
+          <SegmentItem value="dark">Dark</SegmentItem>
+          <SegmentItem value="system">System</SegmentItem>
+        </SegmentGroup>
+      </div>
+    </CodeExample>
+
+    <CodeExample
+      title="Dashboard Toolbar"
+      description="Full-width segment in a toolbar layout."
+      isolate
+    >
+      <div class="border-border-subtle bg-surface-elevated rounded-2xl border p-4">
+        <div class="mb-4 flex items-center justify-between">
+          <h3 class="text-text-primary text-base font-semibold">Analytics</h3>
+          <span class="text-text-tertiary text-xs">Last updated: just now</span>
+        </div>
+        <SegmentGroup
+          bind:value={period}
+          fullWidth
+          mint={['scale', 'glow']}
+          ariaLabel="Analytics period"
+        >
+          <SegmentItem value="day">Day</SegmentItem>
+          <SegmentItem value="week">Week</SegmentItem>
+          <SegmentItem value="month">Month</SegmentItem>
+          <SegmentItem value="year">Year</SegmentItem>
+        </SegmentGroup>
+      </div>
+    </CodeExample>
   </div>
 </Section>
 
@@ -131,48 +173,6 @@
 
 <Section marker="04" id="customization" title="Customization">
   <div class="space-y-8">
-    <CodeExample
-      title="Theme Switcher"
-      description="Embedded in a settings panel with two-way binding."
-      isolate
-      previewClass="flex justify-center"
-    >
-      <div
-        class="border-border-subtle bg-surface-elevated flex w-full max-w-sm items-center justify-between rounded-2xl border p-4"
-      >
-        <span class="text-text-primary text-sm font-medium">Appearance</span>
-        <SegmentGroup bind:value={theme} size="sm" mint="scale" ariaLabel="Theme preference">
-          <SegmentItem value="light">Light</SegmentItem>
-          <SegmentItem value="dark">Dark</SegmentItem>
-          <SegmentItem value="system">System</SegmentItem>
-        </SegmentGroup>
-      </div>
-    </CodeExample>
-
-    <CodeExample
-      title="Dashboard Toolbar"
-      description="Full-width segment in a toolbar layout."
-      isolate
-    >
-      <div class="border-border-subtle bg-surface-elevated rounded-2xl border p-4">
-        <div class="mb-4 flex items-center justify-between">
-          <h3 class="text-text-primary text-base font-semibold">Analytics</h3>
-          <span class="text-text-tertiary text-xs">Last updated: just now</span>
-        </div>
-        <SegmentGroup
-          bind:value={period}
-          fullWidth
-          mint={['scale', 'glow']}
-          ariaLabel="Analytics period"
-        >
-          <SegmentItem value="day">Day</SegmentItem>
-          <SegmentItem value="week">Week</SegmentItem>
-          <SegmentItem value="month">Month</SegmentItem>
-          <SegmentItem value="year">Year</SegmentItem>
-        </SegmentGroup>
-      </div>
-    </CodeExample>
-
     <CodeExample
       title="Gradient Pricing Toggle"
       description="slotClasses transforms the neutral control into a branded pricing switcher."

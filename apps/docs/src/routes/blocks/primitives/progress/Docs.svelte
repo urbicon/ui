@@ -65,13 +65,7 @@
         </p>
       </div>
     </CodeExample>
-  </div>
-</Section>
 
-<!-- ─── Customization ─── -->
-
-<Section marker="02" id="customization" title="Customization">
-  <div class="space-y-8">
     <CodeExample
       title="Upload Progress"
       description="Progress bar in a realistic file upload context."
@@ -103,7 +97,13 @@
         </div>
       </div>
     </CodeExample>
+  </div>
+</Section>
 
+<!-- ─── Customization ─── -->
+
+<Section marker="02" id="customization" title="Customization">
+  <div class="space-y-8">
     <CodeExample
       title="Slot Overrides"
       description="The linear bar exposes track and fill (plus wrapper, header, label, and valueText; circular mode has its own circular* slots). A thicker pill track with a soft intent tint — value logic and dark mode stay untouched."

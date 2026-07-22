@@ -115,13 +115,7 @@
         placeholder="Select..."
       />
     </CodeExample>
-  </div>
-</Section>
 
-<!-- ─── Customization ─── -->
-
-<Section marker="02" id="customization" title="Customization">
-  <div class="space-y-8">
     <CodeExample
       title="Form Integration"
       description="Select with hidden input for native form submission."
@@ -144,7 +138,13 @@
         </p>
       </div>
     </CodeExample>
+  </div>
+</Section>
 
+<!-- ─── Customization ─── -->
+
+<Section marker="02" id="customization" title="Customization">
+  <div class="space-y-8">
     <CodeExample
       title="Pill Trigger via slotClasses"
       description="Select spans two surfaces — the field (trigger, triggerText, placeholder, chevron, clear) and the floating list (listbox, option, group, groupLabel). Here the trigger becomes a pill and the listbox gets a matching radius with a stronger shadow; keyboard navigation and the form contract are untouched."

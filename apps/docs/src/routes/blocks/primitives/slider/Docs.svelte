@@ -159,13 +159,7 @@
         error="Please set a budget above $0"
       />
     </CodeExample>
-  </div>
-</Section>
 
-<!-- ─── Customization ─── -->
-
-<Section marker="02" id="customization" title="Customization">
-  <div class="space-y-8">
     <CodeExample
       title="Volume Control"
       description="Slider in a realistic media player context."
@@ -207,7 +201,13 @@
         />
       </div>
     </CodeExample>
+  </div>
+</Section>
 
+<!-- ─── Customization ─── -->
+
+<Section marker="02" id="customization" title="Customization">
+  <div class="space-y-8">
     <CodeExample
       title="Slot Overrides"
       description="track, range, and thumb carry the visual weight (wrapper, label, valueText, mark, and message round out the slot set). A slimmer track with a tinted fill and a larger thumb — pointer, keyboard, and range logic stay untouched."

@@ -80,13 +80,7 @@
         <RadioItem value="decline" label="I decline" />
       </RadioGroup>
     </CodeExample>
-  </div>
-</Section>
 
-<!-- ─── Customization ─── -->
-
-<Section marker="02" id="customization" title="Customization">
-  <div class="space-y-8">
     <CodeExample
       title="Pricing Plan Selector"
       description="RadioGroup in a realistic settings context with bound value."
@@ -136,7 +130,13 @@
         </RadioGroup>
       </div>
     </CodeExample>
+  </div>
+</Section>
 
+<!-- ─── Customization ─── -->
+
+<Section marker="02" id="customization" title="Customization">
+  <div class="space-y-8">
     <CodeExample
       title="Card Options via slotClasses"
       description="RadioGroup styles the group shell (root, group, label, message); each RadioItem owns its item, indicator, dot, label, and description slots. Here every option becomes a bordered card that highlights while selected — the has-[:checked] variant reads the native input inside the item."

@@ -98,6 +98,27 @@
         <Pagination currentPage={pg3} totalPages={20} layout="minimal" />
       </div>
     </CodeExample>
+
+    <CodeExample
+      title="Data Table Row"
+      description="Table layout embedded in a surface panel — a common real-world pattern."
+      isolate
+      previewClass="w-full"
+    >
+      <div class="border-border-subtle bg-surface-elevated rounded-xl border px-5 py-3">
+        <Pagination
+          currentPage={pg6}
+          totalPages={42}
+          layout="table"
+          variant="ghost"
+          intent="neutral"
+          size="sm"
+          itemsPerPage={25}
+          totalItems={1042}
+          onPageChange={(p: number) => (pg6 = p)}
+        />
+      </div>
+    </CodeExample>
   </div>
 </Section>
 
@@ -121,27 +142,6 @@
         }}
         onPageChange={(p: number) => (pg6 = p)}
       />
-    </CodeExample>
-
-    <CodeExample
-      title="Data Table Row"
-      description="Table layout embedded in a surface panel — a common real-world pattern."
-      isolate
-      previewClass="w-full"
-    >
-      <div class="border-border-subtle bg-surface-elevated rounded-xl border px-5 py-3">
-        <Pagination
-          currentPage={pg6}
-          totalPages={42}
-          layout="table"
-          variant="ghost"
-          intent="neutral"
-          size="sm"
-          itemsPerPage={25}
-          totalItems={1042}
-          onPageChange={(p: number) => (pg6 = p)}
-        />
-      </div>
     </CodeExample>
 
     <CodeExample

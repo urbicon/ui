@@ -23,11 +23,13 @@
 
   const navigation = [
     { id: 'playground', title: 'Playground', order: 1 },
-    { id: 'examples', title: 'Examples', order: 2 },
-    { id: 'customization', title: 'Customization', order: 3 },
-    { id: 'accessibility', title: 'Accessibility', order: 4 },
-    { id: 'api', title: 'API Reference', order: 5 },
-    { id: 'installation', title: 'Installation', order: 6 }
+    { id: 'usage', title: 'When to use', order: 2 },
+    { id: 'examples', title: 'Examples', order: 3 },
+    { id: 'customization', title: 'Customization', order: 4 },
+    { id: 'stacking', title: 'Stacking & Nested Drawers', order: 5 },
+    { id: 'accessibility', title: 'Accessibility', order: 6 },
+    { id: 'api', title: 'API Reference', order: 7 },
+    { id: 'installation', title: 'Installation', order: 8 }
   ];
 </script>
 

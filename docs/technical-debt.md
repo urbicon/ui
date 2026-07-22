@@ -33,21 +33,6 @@ internal TODO instead. Sections are ordered roughly by urgency.
   a few minutes should alert, not pass unnoticed.
 - **Found:** 2026-07-20, v6.26.1/v6.26.2 publish verification.
 
-### `packages/docs` ships no README
-
-- **Where:** `packages/docs/` (the only published package without a
-  `README.md`).
-- **What:** The package has no consumer-facing readme, so its new `shiki`
-  peer-dependency requirement (and its `@sveltejs/kit`/`svelte`/`@urbicon-ui/*`
-  peers) is documented nowhere a consumer would look. Minor, but it is the one
-  published surface with no install guidance.
-- **Why deferred:** Writing the readme is small, but it rides with the same
-  packaging-hygiene / launch pass (and a call on whether `@urbicon-ui/docs` has
-  any external consumer yet at all).
-- **Found:** 2026-07-20, packaging-hygiene pass (sso-debt-wave).
-- **Status:** 🚧 in Arbeit (debt-fix-wave-4, 2026-07-23) — das README wird
-  geschrieben; die Konsumenten-Frage bleibt bei der Packaging-Hygiene.
-
 ### The `./dist/i18n/index.js` sideEffects exemption is inert under rolldown-vite
 
 - **Where:** `packages/blocks/package.json` (`sideEffects` array) vs.
@@ -92,24 +77,39 @@ whose bundle price only became visible with the measurement tool.
   alternatively Spinner's config could be slimmed for both.
 - **Found:** 2026-07-22, bundle-size breakdown analysis.
 
-### Mint effects resolve through a registry — all of them ship, ripple engine included
+### The blocks Icon component grew ~4.8 KB min against the v6.31 baseline with no source change
 
-- **Where:** `packages/blocks/src/lib/mint/registry.ts`
-  (`mintRegistry.apply(el, name)`), consumed by e.g. `Button.svelte`
-  (default `mint = 'scale'`).
-- **What:** The dynamic name→effect lookup is the same non-tree-shakeable
-  class as the solved `getIcon()` icon-registry problem: every component
-  with a mint default ships **all** mint effects — micro-interactions
-  (2.1 KB), the full ripple engine (0.9 KB), registry + compose + presets
-  (~1 KB) — ~3.9 KB min even when only `scale` is ever used.
-- **Why deferred:** Wants the `resolveIcon` pattern (direct import of the
-  default effect, registry only for dynamic/provider-overridden cases),
-  which touches the mint API surface and every mint-consuming component —
-  a sweep, not a spot fix.
-- **Found:** 2026-07-22, bundle-size breakdown analysis.
-- **Status:** 🚧 in Arbeit (debt-fix-wave-4, 2026-07-23) — Richtung wie im
-  Eintrag: resolveIcon-Muster (Default-Effekt als direkter Import, Registry
-  nur für dynamische/Provider-Fälle), Vorher/Nachher per `size:blocks`.
+- **Where:** `packages/blocks/bundle-size.baseline.json` (the `Icon` entry) vs.
+  the measured bundle; no icon-source change since the baseline commit
+  `973e535`.
+- **What:** Re-baselining during the mint tree-shaking pass (debt-fix-wave-4)
+  surfaced a pre-existing drift: `Icon` measures +4,762 B min / +2,110 B gz
+  against the committed baseline, with no change to icon sources and no mint
+  involvement in its graph — most plausibly the v6.33.0 `bun.lock` bump
+  changed a transitive dependency's emitted code. The growth is now absorbed
+  into the refreshed baseline, so the gate will catch *further* growth but the
+  jump itself is unexplained.
+- **Why deferred:** Root-causing needs a diff of the measured Icon bundle
+  between the two lockfile states (the measurement tool supports `--breakdown`)
+  — archaeology, not a fix, and nothing observably broke.
+- **Found:** 2026-07-23, mint tree-shaking re-baseline (debt-fix-wave-4).
+
+### Badge statically bundles Button (+ its 10.7 KB variants config) for the dismiss affordance
+
+- **Where:** `packages/blocks/src/lib/primitives/Badge/Badge.svelte` (imports
+  `Button` for the dismiss button); visible in every `size:blocks --breakdown`
+  of Badge.
+- **What:** A dismissible Badge renders its close affordance through the full
+  Button component, so every Badge consumer ships Button plus its ~10.7 KB
+  `button.variants.ts` config — the largest single contributor to Badge's
+  bundle after the i18n catalog, paid whether `dismissible` is used or not.
+  Known since the first breakdown pass (2026-07-22) but never logged.
+- **Why deferred:** Same design class as the Button/Spinner entry above: an
+  internal minimal dismiss button (plain `<button>` + the few needed classes)
+  would cut the cost but forks the Button interaction/ARIA source of truth.
+  One deliberate call for both entries together.
+- **Found:** 2026-07-22, bundle-size breakdown analysis; logged 2026-07-23
+  (debt-fix-wave-4).
 
 ### tv() ships its config-time diagnostics unguarded — 11 of 12 sites
 
@@ -318,34 +318,50 @@ whose bundle price only became visible with the measurement tool.
 - **Found:** 2026-07-22, PlaygroundConfigurator helpToggle/dt() pass
   (debt-fix-wave-3).
 
-### Table's `initial*` family is incomplete — no `initialSort`, no `initialSelectedIds`
+### Table `initialGroupBy`/`initialSummaryConfigs`: Provider-effect seeding diverges from the documented contract
 
-- **Where:** `packages/table/src/lib/core/table/index.ts` (TableProps) /
-  `TableProvider.svelte`.
-- **What:** The table ships `initialPage`, `initialGroupBy` and
-  `initialSummaryConfigs`, but there is no uncontrolled way to start sorted or
-  with a selection. Starting sorted is impossible altogether; starting selected
-  forces the fully **controlled** path (`selectedIds` + `onSelectionChange`
-  write-back) even when the consumer only wants a starting value. The landing
-  specimen works around both: rows pre-ordered by `p95` so the table *reads*
-  sorted (no indicator), and controlled selection wired up just for a
-  preselected row.
-- **Why deferred:** New public API (`initialSort: { column, direction }`,
-  `initialSelectedIds`) — wants the same semantics discussion as the existing
-  `initial*` props (interaction with `persistenceConfig`, precedence over a
-  controlled prop) rather than an ad-hoc addition.
-- **Update 2026-07-13:** The new URL sync (`createTableQueryUrlSync`,
-  `4b202c7`) raises the stakes: a shared URL can seed page/group/search but
-  not sort/filters, and the table's first query emission then wipes those
-  params again (documented in the sveltekit-utils README). `initialSort` (+
-  ideally `initialFilters`) would close the gap with no URL-sync API change;
-  back/forward re-hydration also waits on this.
-- **Found:** 2026-07-09, building the landing-page table specimen.
-- **Status:** 🚧 in Arbeit (debt-fix-wave-4, 2026-07-23) — Kern
-  `initialSort` + `initialSelectedIds`, Semantik strikt analog zur
-  bestehenden `initial*`-Familie (seed-once, controlled gewinnt,
-  persistence-Precedence wie heute); `initialFilters` nur, wenn es exakt
-  demselben Muster folgt.
+- **Where:** `packages/table/src/lib/core/TableProvider.svelte` (the
+  `initialGroupBy` and `initialSummaryConfigs` `$effect`s).
+- **What:** Found while building `initialSort`/`initialFilters`/
+  `initialSelectedIds` (debt-fix-wave-4, which seeds in the store
+  constructor — seed-once, persistence-hydration wins). The two older
+  Provider-effect seeds have quirks the new seeds deliberately do not copy:
+  (a) `initialGroupBy` applies **unconditionally** when set — it overwrites a
+  `persistGroupByKey`-restored value, contradicting its own JSDoc "(if no
+  persisted value exists)"; (b) the `initialSummaryConfigs` effect guards on
+  the *reactive* `state.summaryConfigs.length === 0`, so removing the last
+  summary config at runtime re-runs the effect and re-seeds — a user cannot
+  fully clear summaries while the prop is set.
+- **Why deferred:** Both fixes are behaviour changes to shipped semantics
+  (persistence-precedence for groupBy; seed-once for summaries). The clean fix
+  is moving both into the constructor `TableSeedState` next to the new seeds —
+  wants its own pass (deprecation of the Provider-effect path, changelog note).
+- **Found:** 2026-07-23, debt-fix-wave-4 (`initial*` family completion).
+
+### Table persistence cannot distinguish "stored empty" from "absent" — cleared state re-seeds
+
+- **Where:** `packages/table/src/lib/stores/concerns/usePersistence.svelte.ts`
+  (every hydration guard: `value.length > 0`, `value.column`, truthy checks)
+  on top of `createPersistentState`
+  (`packages/blocks/src/lib/utils/persistent-state.svelte.ts`).
+- **What:** Hydration treats a stored *empty* value (`[]`, `''`,
+  `{ column: '' }`) exactly like "nothing stored" and skips it. Combined with
+  the `initial*` seeds (`initialSort` / `initialFilters` /
+  `initialSelectedIds`, debt-fix-wave-4) this reanimates cleared state: the
+  user clears the sort (asc→desc→none), removes all filter chips, or
+  deselects everything → the sync writes the empty value to storage → on
+  reload nothing hydrates, the seed guard sees an empty axis and applies the
+  seed again. Documented honestly in the three props' JSDoc, `TableSeedState`
+  and the sveltekit-utils README caveat. Shares a root cause with the two
+  Provider-effect quirks in the previous entry (`initialGroupBy` /
+  `initialSummaryConfigs`): "empty" is not a first-class persisted state
+  anywhere in the table's persistence.
+- **Why deferred:** The fix is a stored-empty-vs-absent distinction in the
+  persistence layer (presence marker or envelope per axis) — it affects every
+  axis, every guard, and every consumer's existing storage keys, so it wants
+  its own design decision plus a migration story for already-persisted state.
+- **Found:** 2026-07-23, adversarial review of the `initial*` seed work
+  (debt-fix-wave-4).
 
 ### Table single-select: row click does not select — the checkbox is the only path
 
@@ -596,6 +612,12 @@ whose bundle price only became visible with the measurement tool.
   scanned at all (it is chrome + a live specimen; scanning doubles per-page
   cost), and a sweep over the playground specimens' naming once it is. Surfaced
   by the wave-3 review as a follow-up, not a regression.
+- **Update 2026-07-23 (debt-fix-wave-4 review):** the route dimension is the
+  bigger half of the same gap — `e2e/a11y.spec.ts` iterates only the
+  `PRIMITIVES` route list, so table/*, recipes and the other non-primitive
+  routes (including the new live `/table/remote-data` demo, which does carry a
+  `[data-docs-preview]` region) are never scanned at all. Widening the route
+  list belongs to the same gate-scope decision.
 - **Found:** 2026-07-22, debt-fix-wave-3 review.
 
 ### The docs Rooms skin remaps `--color-primary` to an accent that misses AA against `text-on-primary`
@@ -720,48 +742,20 @@ whose bundle price only became visible with the measurement tool.
 
 ## Docs coverage
 
-### ~9 primitive pages use their Customization section as a second Examples bucket (XC-6)
+### Toast's Customization section holds API-reference material ("Toaster Store API")
 
-- **Where:** `apps/docs/src/routes/blocks/primitives/*/Docs.svelte` — drawer
-  ("Settings Panel"/"Navigation Menu"), progress ("Upload"/"Dashboard Stats"),
-  radio-group ("Pricing"/"Theme"), select ("Form Integration"), slider
-  ("Volume"/"Price Filter"), segment-group, spinner, textarea; plus the
-  menu page's existing "when-to-use" section is missing from its
-  `+page.svelte` navigation ToC.
-- **What:** Surfaced closing the XC-4 customization-coverage gap (all 36 pages
-  now cover unstyled/slotClasses/preset, 2026-07-20). These ~9 sections hold
-  realistic *usage* contexts with no Customization API — by DocsPageGuide XC-6
-  they are Examples material sitting under the wrong heading. The XC-4 pass
-  added genuine customization content to each rather than reorganising, so the
-  misfiled usage demos remain.
-- **Why deferred:** Moving demos between sections (and renumbering markers) is a
-  deliberate section-taxonomy sweep with its own review, not a drive-by during a
-  coverage pass; the menu ToC omission wants the same look at that page's nav.
-- **Found:** 2026-07-20, XC-4 customization sectioning (qa-polish-wave).
-- **Status:** 🚧 in Arbeit (debt-fix-wave-4, 2026-07-23).
-
-### Table server-mode (`mode="server"`) has no live docs demo
-
-- **Where:** `apps/docs/src/routes/.../table/remote-data` (both examples render
-  with `preview={false}` — code-only).
-- **What:** Server-mode is demonstrated only as code — there is no live preview
-  a reader (or an e2e) can drive, which is why the new `table-core` remote test
-  had to build its own deterministic server-mode fixture with a request counter.
-- **Why deferred:** Wants a real server-mode demo design (mock latency,
-  loading/empty states, a visible request indicator) — the same demo-fetcher
-  class as the Combobox `queryFn` gap, not a drive-by. (The entry's former
-  part (b) — the `/table/live-updates` `[UNRESOLVED_IMPORT] ./LiveFeed.svelte`
-  warning — was resolved in debt-fix-wave-3, 2026-07-22: the import only ever
-  existed inside a display-code template literal; Vite's dep-scanner
-  regex-extracts import specifiers from `lang="ts"` Svelte scripts without
-  understanding template literals, so it resolved reader-facing example code.
-  Fixed by interpolating the specifier; rendered output byte-identical. The
-  trap is generic — any future display-code literal with a relative import
-  reproduces it; if it recurs, a `_data.ts`-style helper for display snippets
-  is the systematic home.)
-- **Found:** 2026-07-20, e2e table remote/grouping coverage (qa-polish-wave).
-- **Status:** 🚧 in Arbeit (debt-fix-wave-4, 2026-07-23) — zusammen mit der
-  Combobox-`queryFn`-Demo als ein Demo-Fetcher-Paket.
+- **Where:** `apps/docs/src/routes/blocks/primitives/toast/Docs.svelte` — the
+  "Toaster Store API" block inside the Customization section.
+- **What:** The XC-6 taxonomy sweep (debt-fix-wave-4, 2026-07-23) moved all
+  misfiled *usage* demos to Examples across 9 pages (the 8 logged ones plus
+  pagination) and closed four ToC omissions (menu, drawer, popover, sidebar).
+  Toast's remainder is a different class: store-API reference prose sitting
+  under Customization — not a usage demo, so the sweep left it. It arguably
+  belongs in the API section or its own section.
+- **Why deferred:** Wants a per-page taxonomy call (and possibly a docs-gen
+  section for imperative store APIs — Toast is not the only store-driven
+  surface), not a mechanical move.
+- **Found:** 2026-07-23, XC-6 taxonomy sweep (debt-fix-wave-4).
 
 ### The docs search index is English-only, capped at 2000 chars per record, and indexes playground control names
 
@@ -786,22 +780,6 @@ whose bundle price only became visible with the measurement tool.
   silently accepted — the index reports its real size (650 records, 534 KB raw /
   146 KB gzipped, lazily fetched) rather than hiding it.
 - **Found:** 2026-07-14, building the docs search index (publish-m3-finale).
-
-### Combobox async search (`queryFn`) has no docs-site demo
-
-- **Where:** `apps/docs/src/routes/blocks/primitives/combobox/Docs.svelte` — no
-  mention of `queryFn`/`debounce`/`loadingText`; the only reference is the
-  `queryFn` JSDoc in `packages/blocks/src/lib/primitives/Combobox/index.ts`.
-- **What:** The async-search mode (CMB-3, shipped `3d256a4`+`f51eee8`) is
-  invisible on the docs site — consumers discover it only through the API
-  reference or `llm.txt`. A live demo needs a mock-server fetcher pattern
-  (the same gap class as the Auth-Demo-Fetcher item in the docs triage §5).
-- **Why deferred:** Wants a real demo design (fake latency, abort behaviour,
-  loading/empty states), not a drive-by code block. Surfaced while anchoring
-  the XC-7 decision matrix, whose async row now points at the JSDoc instead.
-- **Found:** 2026-07-14, XC-7 disambiguation work.
-- **Status:** 🚧 in Arbeit (debt-fix-wave-4, 2026-07-23) — zusammen mit der
-  Server-Mode-Demo als ein Demo-Fetcher-Paket.
 
 ## Auth — accepted trade-offs
 

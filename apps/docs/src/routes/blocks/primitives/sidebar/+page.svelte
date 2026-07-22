@@ -24,11 +24,12 @@
   const navigation = [
     { id: 'overview', title: 'Overview', order: 1 },
     { id: 'playground', title: 'Playground', order: 2 },
-    { id: 'examples', title: 'Examples', order: 3 },
-    { id: 'customization', title: 'Customization', order: 4 },
-    { id: 'accessibility', title: 'Accessibility', order: 5 },
-    { id: 'api', title: 'API Reference', order: 6 },
-    { id: 'installation', title: 'Installation', order: 7 }
+    { id: 'usage', title: 'When to use', order: 3 },
+    { id: 'examples', title: 'Examples', order: 4 },
+    { id: 'customization', title: 'Customization', order: 5 },
+    { id: 'accessibility', title: 'Accessibility', order: 6 },
+    { id: 'api', title: 'API Reference', order: 7 },
+    { id: 'installation', title: 'Installation', order: 8 }
   ];
 </script>
 

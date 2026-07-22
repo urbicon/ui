@@ -83,13 +83,7 @@
         placeholder="Cannot be empty"
       />
     </CodeExample>
-  </div>
-</Section>
 
-<!-- ─── Customization ─── -->
-
-<Section marker="02" id="customization" title="Customization">
-  <div class="space-y-8">
     <CodeExample
       title="Feedback Form"
       description="Textarea in a realistic form context with bound value and character counter."
@@ -112,7 +106,13 @@
         </p>
       </div>
     </CodeExample>
+  </div>
+</Section>
 
+<!-- ─── Customization ─── -->
+
+<Section marker="02" id="customization" title="Customization">
+  <div class="space-y-8">
     <CodeExample
       title="Code Input"
       description="Use slotClasses to create a code-friendly textarea with monospace font."

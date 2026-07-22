@@ -23,11 +23,12 @@
 
   const navigation = [
     { id: 'playground', title: 'Playground', order: 1 },
-    { id: 'examples', title: 'Examples', order: 2 },
-    { id: 'customization', title: 'Customization', order: 3 },
-    { id: 'accessibility', title: 'Accessibility', order: 4 },
-    { id: 'api', title: 'API Reference', order: 5 },
-    { id: 'installation', title: 'Installation', order: 6 }
+    { id: 'when-to-use', title: 'When to use', order: 2 },
+    { id: 'examples', title: 'Examples', order: 3 },
+    { id: 'customization', title: 'Customization', order: 4 },
+    { id: 'accessibility', title: 'Accessibility', order: 5 },
+    { id: 'api', title: 'API Reference', order: 6 },
+    { id: 'installation', title: 'Installation', order: 7 }
   ];
 
   const playgroundItems: MenuObjectOption[] = [
