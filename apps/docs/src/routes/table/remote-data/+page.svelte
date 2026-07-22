@@ -3,6 +3,7 @@
   import { CodeExample, DocsLayout as DocsPageLayout, Section } from '@urbicon-ui/docs';
   import { resolve } from '$app/paths';
   import { scriptOpen, scriptClose } from '../_data';
+  import RemoteDataDemo from './RemoteDataDemo.svelte';
 
   const codeOnQueryChange = `${scriptOpen}
   let items = $state([]);
@@ -45,7 +46,7 @@ ${scriptClose}
 
       <CodeExample
         title="Managed: queryFn"
-        description="Provide an async function – the table handles loading, errors, request cancellation (AbortSignal), and debouncing automatically."
+        description="Provide an async function – the table handles loading, errors, request cancellation (AbortSignal), and debouncing automatically. The live demo runs against a deterministic in-memory mock backend that filters, sorts, and paginates 56 rows server-side after an adjustable artificial latency (no real network requests) — the code shows the real fetch-based consumer pattern."
         code={`<Table
   mode="server"
   columns={columns}
@@ -63,8 +64,9 @@ ${scriptClose}
   }}
   queryDebounceMs={300}
 />`}
-        preview={false}
-      />
+      >
+        <RemoteDataDemo />
+      </CodeExample>
 
       <CodeExample
         title="Manual: onQueryChange"

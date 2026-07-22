@@ -75,6 +75,105 @@
   let assigneeValue = $state<string | null>(null);
   let timezoneValue = $state<string | null>(null);
   let skillsValue = $state<string[]>(['ts', 'svelte']);
+
+  // ── Async search (queryFn) demo ─────────────────────────────────────────
+  // Deterministic in-memory mock backend: a fixed city list, a constant
+  // artificial latency, and a request counter. No network, no Math.random —
+  // the same demo-fetcher pattern as the Table server-mode demo
+  // (/table/remote-data) and the e2e remote fixture.
+  const cities: ComboboxOption[] = [
+    'Amsterdam',
+    'Athens',
+    'Barcelona',
+    'Berlin',
+    'Bern',
+    'Bratislava',
+    'Brussels',
+    'Bucharest',
+    'Budapest',
+    'Copenhagen',
+    'Dublin',
+    'Hamburg',
+    'Helsinki',
+    'Lisbon',
+    'Ljubljana',
+    'London',
+    'Madrid',
+    'Munich',
+    'Oslo',
+    'Paris',
+    'Prague',
+    'Reykjavik',
+    'Rome',
+    'Stockholm',
+    'Vienna',
+    'Warsaw',
+    'Zagreb',
+    'Zurich'
+  ].map((name) => ({ label: name, value: name.toLowerCase() }));
+
+  const CITY_LATENCY_MS = 450;
+  let cityValue = $state<string | null>(null);
+  let cityRequests = $state(0);
+  let cityError = $state<string | undefined>(undefined);
+
+  // Reject on abort so a superseded request never resolves — the same shape a
+  // real `fetch(url, { signal })` produces. The Combobox swallows these
+  // AbortError rejections; only genuine failures reach `onError`.
+  function delay(ms: number, signal: AbortSignal): Promise<void> {
+    return new Promise((resolve, reject) => {
+      const timer = setTimeout(resolve, ms);
+      signal.addEventListener(
+        'abort',
+        () => {
+          clearTimeout(timer);
+          reject(new DOMException('Aborted', 'AbortError'));
+        },
+        { once: true }
+      );
+    });
+  }
+
+  async function searchCities(query: string, signal: AbortSignal): Promise<ComboboxOption[]> {
+    cityRequests += 1;
+    await delay(CITY_LATENCY_MS, signal);
+    const q = query.trim().toLowerCase();
+    if (q === 'error') throw new Error('Simulated 500 from the mock API');
+    cityError = undefined;
+    const matches = q ? cities.filter((c) => c.label.toLowerCase().includes(q)) : cities;
+    return matches.slice(0, 8);
+  }
+
+  const asyncScriptOpen = '<' + 'script lang="ts">';
+  const asyncScriptClose = '</' + 'script>';
+  const asyncSearchCode = `${asyncScriptOpen}
+  import { Combobox, type ComboboxOption } from '@urbicon-ui/blocks';
+
+  let city = $state<string | null>(null);
+  let searchError = $state<string | undefined>(undefined);
+
+  // Forward the signal to fetch: when a newer query supersedes this request,
+  // the Combobox aborts it and the browser cancels the HTTP request. Aborted
+  // rejections are swallowed — only real failures reach onError.
+  async function searchCities(query: string, signal: AbortSignal): Promise<ComboboxOption[]> {
+    searchError = undefined;
+    const res = await fetch(\`/api/cities?q=\${encodeURIComponent(query)}\`, { signal });
+    if (!res.ok) throw new Error(\`Search failed with \${res.status}\`);
+    const results = await res.json();
+    return results.map((c) => ({ label: c.name, value: c.id }));
+  }
+${asyncScriptClose}
+
+<Combobox
+  label="City"
+  queryFn={searchCities}
+  debounceMs={300}
+  loadingText="Searching cities…"
+  bind:value={city}
+  error={searchError}
+  onError={() => (searchError = 'Search failed — previous results are kept')}
+  clearable
+/>`;
 </script>
 
 <!-- ─── Examples ─── -->
@@ -184,9 +283,65 @@
   </div>
 </Section>
 
+<!-- ─── Async Search ─── -->
+
+<Section marker="02" id="async-search" title="Async Search">
+  <div class="space-y-8">
+    <p class="text-text-secondary text-sm leading-relaxed">
+      Pass <code class="text-text-primary">queryFn</code> and the Combobox stops filtering
+      client-side: on each query change it calls your async function — debounced by
+      <code class="text-text-primary">debounceMs</code> (default 250&thinsp;ms) — and replaces the
+      option list with the resolved result.
+      <code class="text-text-primary">options</code>, <code class="text-text-primary">groups</code>,
+      and <code class="text-text-primary">filter</code> are ignored in this mode — the server does
+      the filtering. Requests run only while the listbox is open, and each request receives an
+      <code class="text-text-primary">AbortSignal</code> that is aborted the moment a newer query
+      supersedes it, so a slow stale response never clobbers a fresh one. While a request is in
+      flight the listbox shows <code class="text-text-primary">loadingText</code>; zero matches
+      render <code class="text-text-primary">noResultsText</code>. A rejection ends the loading
+      state, keeps the previous options in place, and is reported via
+      <code class="text-text-primary">onError</code>.
+    </p>
+
+    <CodeExample
+      title="Server-side search"
+      description="The live demo runs against a deterministic in-memory mock backend with 450 ms of artificial latency (no real network requests) — the code shows the real fetch-based consumer pattern. Type “ber” and watch the loading row, try a query with no match for the empty state, or type “error” to trigger a simulated server failure surfaced via `onError`."
+      code={asyncSearchCode}
+    >
+      <div class="flex max-w-sm flex-col gap-3">
+        <Combobox
+          label="City"
+          queryFn={searchCities}
+          debounceMs={300}
+          loadingText="Searching cities…"
+          noResultsText="No matching cities"
+          placeholder="Type to search…"
+          helper="Try “ber”, a nonsense query, or “error” for a simulated failure"
+          error={cityError}
+          onError={() => (cityError = 'Search failed — previous results are kept')}
+          bind:value={cityValue}
+          clearable
+        />
+        <p class="text-text-tertiary text-xs">
+          Requests sent: {cityRequests} · Mock latency: {CITY_LATENCY_MS}&thinsp;ms · Debounce:
+          300&thinsp;ms
+        </p>
+      </div>
+    </CodeExample>
+
+    <p class="text-text-secondary text-sm leading-relaxed">
+      For values that are pre-selected before any search has run — an edit form binding
+      <code class="text-text-primary">value</code> on mount — pass
+      <code class="text-text-primary">seedOptions</code> so the selection renders its label instead
+      of the raw value. The same mock-backend pattern drives the Table's server mode; see
+      <a href={resolve('/table/remote-data')} class="text-primary hover:underline">Remote Data</a>.
+    </p>
+  </div>
+</Section>
+
 <!-- ─── Customization ─── -->
 
-<Section marker="02" id="customization" title="Customization">
+<Section marker="03" id="customization" title="Customization">
   <div class="space-y-8">
     <CodeExample
       title="Command Palette"
@@ -283,7 +438,7 @@
 
 <!-- ─── Accessibility ─── -->
 
-<Section marker="03" id="accessibility" title="Accessibility">
+<Section marker="04" id="accessibility" title="Accessibility">
   <div class="border-border-subtle bg-surface-elevated rounded-2xl border p-6">
     <div class="divide-border-subtle divide-y">
       <div class="pb-4">
