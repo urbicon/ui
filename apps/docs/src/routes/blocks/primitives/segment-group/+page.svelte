@@ -58,8 +58,8 @@
       controls={[
         {
           type: 'dropdown',
-          key: 'appearance',
-          label: 'Appearance',
+          key: 'variant',
+          label: 'Variant',
           items: [
             { label: 'default', value: 'default' },
             { label: 'text', value: 'text' }
@@ -94,7 +94,7 @@
         { type: 'checkbox', key: 'disabled', label: 'Disabled', defaultValue: false }
       ]}
       values={{
-        appearance: 'default',
+        variant: 'default',
         size: 'md',
         mint: 'none',
         fullWidth: false,

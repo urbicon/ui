@@ -100,7 +100,7 @@
           label: 'Variant',
           items: [
             { label: 'default', value: 'default' },
-            { label: 'separated', value: 'separated' },
+            { label: 'card', value: 'card' },
             { label: 'ghost', value: 'ghost' }
           ],
           defaultValue: 'default'

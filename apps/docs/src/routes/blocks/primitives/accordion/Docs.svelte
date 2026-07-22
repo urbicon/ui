@@ -100,7 +100,7 @@
           <span class="text-text-tertiary text-xs font-medium">Open:</span>
           <Badge size="xs" intent="primary" variant="soft">{faqValue || '(none)'}</Badge>
         </div>
-        <Accordion variant="separated" bind:value={faqValue}>
+        <Accordion variant="card" bind:value={faqValue}>
           <AccordionItem value="what-is" title="What is Urbicon UI?">
             A Svelte 5 component library with built-in i18n, semantic design tokens, and zero-config
             dark mode.
@@ -121,7 +121,7 @@
       description="Replace the default trigger with a custom snippet for full control over the header layout — icons, badges, multi-line metadata."
       isolate
     >
-      <Accordion variant="separated" defaultValue="pro">
+      <Accordion variant="card" defaultValue="pro">
         <AccordionItem value="free">
           {#snippet trigger({ open: _open })}
             <div class="flex w-full items-center gap-3">
@@ -191,7 +191,7 @@
         <p class="text-text-tertiary text-xs font-medium tracking-wider uppercase">
           Multi-panel → Accordion
         </p>
-        <Accordion variant="separated" defaultValue="a1">
+        <Accordion variant="card" defaultValue="a1">
           <AccordionItem value="a1" title="Coordinated panel A">
             Opening this closes panel B. Accordion coordinates multiple Collapsible panels via a
             shared context.
@@ -230,7 +230,7 @@
       previewClass="w-full"
     >
       <Accordion
-        variant="separated"
+        variant="card"
         defaultValue="styled"
         slotClasses={{
           item: 'border-2 border-primary/40 rounded-2xl bg-primary/5',

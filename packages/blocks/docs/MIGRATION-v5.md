@@ -39,19 +39,21 @@ card-with-header look.
 | Component   | Before                | After                  |
 | ----------- | --------------------- | ---------------------- |
 | `Alert`     | `variant="outlined"`  | `variant="inline"`     |
-| `Accordion` | `variant="bordered"`  | `variant="separated"`  |
+| `Accordion` | `variant="bordered"`  | `variant="card"`       |
 
 `Alert.inline` is a memo-style with a left accent border (`border-l-2`),
-no surrounding box. `Accordion.separated` renders items as a stacked
-card list with `surface-quiet` tint and `space-y-2`.
+no surrounding box. `Accordion.card` renders items as a stacked
+card list with `surface-quiet` tint and `space-y-2`. (The value was named
+`separated` from v5.0 to v6.30; it now shares the `card` vocabulary with
+its disclosure sibling `Collapsible`.)
 
 ```svelte
 <!-- v4 -->
 <Alert variant="outlined" intent="warning">…</Alert>
 <Accordion variant="bordered">…</Accordion>
-<!-- v5 -->
+<!-- current -->
 <Alert variant="inline" intent="warning">…</Alert>
-<Accordion variant="separated">…</Accordion>
+<Accordion variant="card">…</Accordion>
 ```
 
 ## 3. Table chrome

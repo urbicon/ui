@@ -9,7 +9,7 @@ describe('segmentGroupVariants', () => {
     expect(typeof styles.item).toBe('function');
   });
 
-  it('uses semantic tokens for the pill-track surface (default appearance)', () => {
+  it('uses semantic tokens for the pill-track surface (default variant)', () => {
     const styles = segmentGroupVariants();
     expect(styles.base()).toContain('bg-surface-interactive');
     expect(styles.base()).toContain('rounded-commit');
@@ -22,7 +22,7 @@ describe('segmentGroupVariants', () => {
     expect(item).not.toMatch(/(?<![a-z-])focus:/);
   });
 
-  it('applies size classes (default appearance — pill-track)', () => {
+  it('applies size classes (default variant — pill-track)', () => {
     const sm = segmentGroupVariants({ size: 'sm' });
     expect(sm.item()).toContain('text-sm');
     expect(sm.base()).toContain('p-0.5');
@@ -46,52 +46,52 @@ describe('segmentGroupVariants', () => {
     expect(styles.item()).toContain('flex-1');
   });
 
-  describe('appearance="text"', () => {
+  describe('variant="text"', () => {
     it('strips the pill chrome (no bg, no padding, no rounded)', () => {
-      const styles = segmentGroupVariants({ appearance: 'text' });
+      const styles = segmentGroupVariants({ variant: 'text' });
       expect(styles.base()).toContain('bg-transparent');
       expect(styles.base()).toContain('rounded-none');
       expect(styles.base()).toContain('p-0');
     });
 
     it('hides the sliding indicator (active state signalled via border-b)', () => {
-      const indicator = segmentGroupVariants({ appearance: 'text' }).indicator();
+      const indicator = segmentGroupVariants({ variant: 'text' }).indicator();
       expect(indicator).toContain('hidden');
     });
 
     it('uses bottom-border primary as the active-state signal', () => {
-      const item = segmentGroupVariants({ appearance: 'text' }).item();
+      const item = segmentGroupVariants({ variant: 'text' }).item();
       expect(item).toContain('border-b-[1.5px]');
       expect(item).toContain('data-[state=active]:border-b-primary');
     });
 
     it('opts items out of pill bg/shadow on active (so the underline alone carries the signal)', () => {
-      const item = segmentGroupVariants({ appearance: 'text' }).item();
+      const item = segmentGroupVariants({ variant: 'text' }).item();
       expect(item).toContain('data-[state=active]:bg-transparent');
       expect(item).toContain('data-[state=active]:shadow-none');
     });
 
     it('renders text at font-normal (matches adjacent Select/Input in editorial knob-strips)', () => {
-      const item = segmentGroupVariants({ appearance: 'text' }).item();
+      const item = segmentGroupVariants({ variant: 'text' }).item();
       expect(item).toContain('font-normal');
     });
 
     it('applies size-specific padding via compoundVariants', () => {
-      // Compounds override the default-appearance px-3/py-1 sizes with denser
-      // text-appearance values appropriate for inline-toolbar use.
-      expect(segmentGroupVariants({ appearance: 'text', size: 'sm' }).item()).toContain('px-2');
-      expect(segmentGroupVariants({ appearance: 'text', size: 'sm' }).item()).toContain('text-xs');
-      expect(segmentGroupVariants({ appearance: 'text', size: 'md' }).item()).toContain('px-2.5');
-      expect(segmentGroupVariants({ appearance: 'text', size: 'lg' }).item()).toContain('px-3');
+      // Compounds override the default-variant px-3/py-1 sizes with denser
+      // text-variant values appropriate for inline-toolbar use.
+      expect(segmentGroupVariants({ variant: 'text', size: 'sm' }).item()).toContain('px-2');
+      expect(segmentGroupVariants({ variant: 'text', size: 'sm' }).item()).toContain('text-xs');
+      expect(segmentGroupVariants({ variant: 'text', size: 'md' }).item()).toContain('px-2.5');
+      expect(segmentGroupVariants({ variant: 'text', size: 'lg' }).item()).toContain('px-3');
     });
   });
 
   it('never outputs dark: overrides', () => {
-    const appearances = ['default', 'text'] as const;
+    const variantValues = ['default', 'text'] as const;
     const sizes = ['sm', 'md', 'lg'] as const;
-    for (const appearance of appearances) {
+    for (const variant of variantValues) {
       for (const size of sizes) {
-        const styles = segmentGroupVariants({ appearance, size });
+        const styles = segmentGroupVariants({ variant, size });
         expect(styles.base()).not.toMatch(/\bdark:/);
         expect(styles.indicator()).not.toMatch(/\bdark:/);
         expect(styles.item()).not.toMatch(/\bdark:/);
@@ -115,16 +115,16 @@ describe('segmentGroupVariants', () => {
       expect(styles.base()).not.toContain('rounded-commit');
     });
 
-    it('text appearance strips the tier rounded-{commit|modify} cleanly', () => {
-      // Regression guard: pre-fix, `tier × appearance="text"` emitted both
+    it('text variant strips the tier rounded-{commit|modify} cleanly', () => {
+      // Regression guard: pre-fix, `tier × variant="text"` emitted both
       // `rounded-{commit|modify}` (tier stage) and `rounded-none`
-      // (appearance stage) into the same slot. The CSS source order
+      // (variant stage) into the same slot. The CSS source order
       // happened to favour `rounded-none`, but it was load-bearing on the
       // alphabetic ordering of the token names. Now `rounded-none` lives
       // in a compoundVariant, which strips the tier-stage rounded class
       // entirely from the resolved output.
-      const commit = segmentGroupVariants({ tier: 'commit', appearance: 'text' });
-      const modify = segmentGroupVariants({ tier: 'modify', appearance: 'text' });
+      const commit = segmentGroupVariants({ tier: 'commit', variant: 'text' });
+      const modify = segmentGroupVariants({ tier: 'modify', variant: 'text' });
 
       expect(commit.base()).toContain('rounded-none');
       expect(commit.base()).not.toContain('rounded-commit');

@@ -41,7 +41,7 @@
   // defaults — `showValue=true` is a playground convenience, the
   // component itself defaults to `false`).
   const componentDefaults: Record<string, unknown> = {
-    appearance: 'default',
+    variant: 'default',
     intent: 'primary',
     size: 'md',
     step: 1,
@@ -116,8 +116,8 @@
       controls={[
         {
           type: 'dropdown',
-          key: 'appearance',
-          label: 'Appearance',
+          key: 'variant',
+          label: 'Variant',
           items: [
             { label: 'default', value: 'default' },
             { label: 'rail', value: 'rail' }
@@ -167,7 +167,7 @@
         { type: 'checkbox', key: 'disabled', label: 'Disabled', defaultValue: false }
       ]}
       values={{
-        appearance: 'default',
+        variant: 'default',
         intent: 'primary',
         size: 'md',
         step: 1,
@@ -184,7 +184,7 @@
             <Slider
               label="Volume"
               bind:value={rangeValue}
-              appearance={values.appearance}
+              variant={values.variant}
               intent={values.intent}
               size={values.size}
               step={values.step}
@@ -197,7 +197,7 @@
             <Slider
               label="Volume"
               bind:value={singleValue}
-              appearance={values.appearance}
+              variant={values.variant}
               intent={values.intent}
               size={values.size}
               step={values.step}

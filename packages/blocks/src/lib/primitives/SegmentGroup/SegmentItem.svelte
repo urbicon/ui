@@ -28,7 +28,7 @@
 
   const variantProps: SegmentGroupVariants = $derived({
     size: ctx.size,
-    appearance: ctx.appearance,
+    variant: ctx.variant,
     tier: ctx.tier
   });
 

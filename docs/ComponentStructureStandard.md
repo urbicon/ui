@@ -183,7 +183,7 @@ The `tv()` engine folds an ordered list of sources: `slots.base` → **each vari
 
 Authoring rules that follow:
 
-1. **Declare the axis that must win a shared bucket later.** The house order is `tier → variant/appearance → size → intent → structural flags (hasIcon, striped, …) → state axes (disabled, readonly, messageType, error, pressed, active, connected)` — states last, because a state must dominate the resting look. Deviate deliberately and leave a comment (see Button's `pressed` before `variant`, table's `sortable` after `sorted`).
+1. **Declare the axis that must win a shared bucket later.** The house order is `tier → variant → size → intent → structural flags (hasIcon, striped, …) → state axes (disabled, readonly, messageType, error, pressed, active, connected)` — states last, because a state must dominate the resting look. Deviate deliberately and leave a comment (see Button's `pressed` before `variant`, table's `sortable` after `sorted`).
 2. **Shared styles may live in the base slot** — any axis overrides them cleanly (`bg-surface-base` in base, `bg-transparent` in ghost).
 3. **Within one class string nothing is stripped** — intentional pairings like `rounded-md rounded-t-none` stay intact.
 4. **A class every reachable combination strips is dead** and fails `bun run variants:lint`. Don't leave aspirational tokens in an axis that a later axis always overrides — move them to a compound or delete them.

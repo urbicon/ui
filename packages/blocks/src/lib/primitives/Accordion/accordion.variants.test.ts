@@ -31,8 +31,8 @@ describe('accordionVariants', () => {
     expect(styles.trigger()).toContain('ring-primary/50');
   });
 
-  it('applies separated variant classes (no per-item border)', () => {
-    const styles = accordionVariants({ variant: 'separated' });
+  it('applies card variant classes (no per-item border)', () => {
+    const styles = accordionVariants({ variant: 'card' });
     expect(styles.item()).toContain('rounded-contain');
     expect(styles.item()).toContain('bg-surface-quiet');
     expect(styles.base()).toContain('divide-y-0');
@@ -54,7 +54,7 @@ describe('accordionVariants', () => {
   });
 
   it('never outputs dark: overrides', () => {
-    const variants = ['default', 'separated', 'ghost'] as const;
+    const variants = ['default', 'card', 'ghost'] as const;
     const sizes = ['sm', 'md', 'lg'] as const;
     for (const variant of variants) {
       for (const size of sizes) {

@@ -34,12 +34,12 @@ export const segmentGroupVariants = tv({
       'group-data-[collapsed]:w-full group-data-[collapsed]:justify-start',
       'font-medium whitespace-nowrap cursor-pointer select-none',
       // `border-0` (not `border-none`) — keeps `border-style: solid` so the
-      // text-appearance can add `border-b-[1.5px]` without a style conflict.
+      // text-variant can add `border-b-[1.5px]` without a style conflict.
       'border-0 bg-transparent',
       // Note: weight is intentionally not transitioned and not bumped on
       // active. Changing font weight on selection caused horizontal
       // reflow of sibling items (knob-strips wrapping mid-row). The
-      // indicator (default appearance) / underline (text appearance)
+      // indicator (default variant) / underline (text variant)
       // already signal active state — the colour shift below adds the
       // semantic emphasis without altering layout.
       'transition-colors duration-[var(--blocks-duration-fast)] ease-out',
@@ -50,7 +50,7 @@ export const segmentGroupVariants = tv({
       'data-[state=active]:text-text-primary'
     ]
   },
-  // Appearance contract (see docs/ARCHITECTURE.md §Component Styling
+  // Variant contract (see docs/ARCHITECTURE.md §Component Styling
   // for the surface-token hierarchy and docs/COMPONENT-FAMILIES.md §Navigation):
   //   default → classic pill-track look with an animated indicator
   //   text    → no box frame; items are bare buttons, the active one
@@ -62,8 +62,8 @@ export const segmentGroupVariants = tv({
     // canonical pill-track surface in the 3-tier vocabulary. `modify`
     // produces a soft-rectangle track + indicator + item for compact
     // inline-toolbar contexts (usually inherited from a wrapping
-    // `<Toolbar tier="modify">` via TierContext). When `appearance="text"`
-    // the tier is moot — the appearance override flattens the track to
+    // `<Toolbar tier="modify">` via TierContext). When `variant="text"`
+    // the tier is moot — the variant override flattens the track to
     // `rounded-none` and the items wear their underline instead.
     tier: {
       commit: {
@@ -77,7 +77,7 @@ export const segmentGroupVariants = tv({
         item: 'rounded-modify'
       }
     },
-    appearance: {
+    variant: {
       default: {},
       text: {
         // Radius flattening (`rounded-none`) and track-padding reset (`p-0`)
@@ -90,7 +90,7 @@ export const segmentGroupVariants = tv({
           'border-b-[1.5px] border-b-transparent',
           'data-[state=active]:border-b-primary',
           'data-[state=active]:bg-transparent data-[state=active]:shadow-none',
-          // text-appearance overrides the base `font-medium` so SegmentGroup
+          // text-variant overrides the base `font-medium` so SegmentGroup
           // text sits at the same weight as adjacent Select/Input values in
           // editorial knob-strip contexts. Active state remains distinct via
           // border-b-primary + text-text-primary — no need for weight to
@@ -126,23 +126,23 @@ export const segmentGroupVariants = tv({
     }
   },
   compoundVariants: [
-    // Text-appearance flattens the corner radius (regardless of tier) and
+    // Text-variant flattens the corner radius (regardless of tier) and
     // zeroes the track padding (regardless of size). Compounds resolve after
     // every variant axis, so these deterministically replace the tier-stage
     // `rounded-{commit|modify}` and the size-stage `p-*`.
-    { appearance: 'text', class: { base: 'rounded-none p-0', item: 'rounded-none' } },
+    { variant: 'text', class: { base: 'rounded-none p-0', item: 'rounded-none' } },
 
-    // Text-appearance sizing: padding/sizing more compact than the pill-track,
+    // Text-variant sizing: padding/sizing more compact than the pill-track,
     // but still WCAG 2.5.5 AA (≥ 24px tap height). For touch-first contexts
-    // the `default` appearance should be used — text is primarily intended
+    // the `default` variant should be used — text is primarily intended
     // for cursor-driven toolbar/knob-strip contexts.
-    { appearance: 'text', size: 'sm', class: { item: 'px-2 py-1.5 text-xs' } },
-    { appearance: 'text', size: 'md', class: { item: 'px-2.5 py-2 text-sm' } },
-    { appearance: 'text', size: 'lg', class: { item: 'px-3 py-2.5 text-base' } }
+    { variant: 'text', size: 'sm', class: { item: 'px-2 py-1.5 text-xs' } },
+    { variant: 'text', size: 'md', class: { item: 'px-2.5 py-2 text-sm' } },
+    { variant: 'text', size: 'lg', class: { item: 'px-3 py-2.5 text-base' } }
   ],
   defaultVariants: {
     tier: 'commit',
-    appearance: 'default',
+    variant: 'default',
     size: 'md',
     fullWidth: false,
     disabled: false

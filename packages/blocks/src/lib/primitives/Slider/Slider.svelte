@@ -21,7 +21,7 @@
     helper,
     intent = 'primary',
     size = 'md',
-    appearance = 'default',
+    variant = 'default',
     disabled = false,
     name,
     validRange,
@@ -231,7 +231,7 @@
   const variantProps: SliderVariants = $derived({
     intent,
     size,
-    appearance,
+    variant,
     disabled: disabled || undefined,
     error: !!error || undefined,
     messageType: error ? 'error' : 'helper',

@@ -25,14 +25,27 @@ Controls the semantic color of a component. Use when a component needs to commun
 
 Controls the visual style/weight of a component independently of color.
 
+**The style axis is always named `variant` — never `appearance`, `look`, or `style`.** A
+"`variant` = visual weight (filled/outlined/ghost), `appearance` = structural build" split
+proved not separable in practice (Tab's `line|pills|enclosed|solid` is structural and always
+ran under `variant`), so structural builds are `variant` values too: Toggle `default|dot`,
+Slider `default|rail`, SegmentGroup `default|text` — all three renamed from `appearance` in
+the pre-launch window. One axis name, whatever the values express.
+
+**Siblings share value vocabulary.** Components covering the same interaction reuse the same
+value for the same visual treatment: the boxed disclosure treatment is `card` on both
+Accordion and Collapsible (Accordion's former `separated` was renamed). When adding a variant
+to a component with a sibling, check the sibling's values first.
+
 **Common values:**
 
 - `filled` – solid background (highest emphasis)
 - `outlined` – border only, transparent background
 - `ghost` – no border, no background, color only
 - `underline` – bottom border only, transparent background (Input only)
-- `text` – minimal, text-only (Button only)
+- `text` – minimal, text-only (Button, SegmentGroup)
 - `soft` – subtle background tint (Badge only)
+- `card` – boxed card treatment (Accordion, Collapsible)
 
 **Default:** `filled` for action elements, `outlined` for form elements, `elevated` for containers.
 

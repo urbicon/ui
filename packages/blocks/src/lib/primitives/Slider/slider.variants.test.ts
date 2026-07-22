@@ -85,9 +85,9 @@ describe('sliderVariants', () => {
     }
   });
 
-  describe('appearance="rail"', () => {
+  describe('variant="rail"', () => {
     it('collapses track and range to a 1px hairline', () => {
-      const styles = sliderVariants({ appearance: 'rail' });
+      const styles = sliderVariants({ variant: 'rail' });
       expect(styles.track()).toContain('h-px');
       expect(styles.range()).toContain('h-px');
       // Default chrome stripped: no commit-pill radius on the hairline
@@ -97,7 +97,7 @@ describe('sliderVariants', () => {
 
     it('renders thumb as a fixed 8px solid dot regardless of size', () => {
       for (const size of ['sm', 'md', 'lg'] as const) {
-        const thumb = sliderVariants({ appearance: 'rail', size }).thumb();
+        const thumb = sliderVariants({ variant: 'rail', size }).thumb();
         expect(thumb).toContain('w-2');
         expect(thumb).toContain('h-2');
         expect(thumb).toContain('rounded-full');
@@ -107,13 +107,13 @@ describe('sliderVariants', () => {
     });
 
     it('disables hover-scale and shadow lift on the dot', () => {
-      const thumb = sliderVariants({ appearance: 'rail' }).thumb();
+      const thumb = sliderVariants({ variant: 'rail' }).thumb();
       expect(thumb).toContain('hover:scale-100');
       expect(thumb).toContain('hover:shadow-none');
     });
 
     it('expands hit-target to 24×24 via ::before pseudo-element', () => {
-      const thumb = sliderVariants({ appearance: 'rail' }).thumb();
+      const thumb = sliderVariants({ variant: 'rail' }).thumb();
       expect(thumb).toContain('before:content-[""]');
       expect(thumb).toContain('before:absolute');
       expect(thumb).toContain('before:-inset-2');
@@ -122,14 +122,14 @@ describe('sliderVariants', () => {
     it('maps intent to dot fill via text-color + bg-current', () => {
       const intents = ['primary', 'secondary', 'success', 'warning', 'danger', 'neutral'] as const;
       for (const intent of intents) {
-        const thumb = sliderVariants({ appearance: 'rail', intent }).thumb();
+        const thumb = sliderVariants({ variant: 'rail', intent }).thumb();
         expect(thumb).toContain(`text-${intent}`);
         expect(thumb).toContain('bg-current');
       }
     });
 
     it('uses neutral hairline for the unfilled portion of the track', () => {
-      const track = sliderVariants({ appearance: 'rail' }).track();
+      const track = sliderVariants({ variant: 'rail' }).track();
       expect(track).toContain('bg-border-default');
     });
   });

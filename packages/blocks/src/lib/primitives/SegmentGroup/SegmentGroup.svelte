@@ -12,7 +12,7 @@
     value = $bindable(),
     onValueChange,
     size = 'md',
-    appearance = 'default',
+    variant = 'default',
     tier,
     fullWidth = false,
     disabled = false,
@@ -52,7 +52,7 @@
 
   const variantProps: SegmentGroupVariants = $derived({
     size,
-    appearance,
+    variant,
     tier: effectiveTier,
     fullWidth,
     disabled
@@ -111,8 +111,8 @@
     get size() {
       return size;
     },
-    get appearance() {
-      return appearance;
+    get variant() {
+      return variant;
     },
     get tier() {
       return effectiveTier;

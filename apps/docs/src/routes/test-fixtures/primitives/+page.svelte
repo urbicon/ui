@@ -5,8 +5,8 @@
   // light/dark × library/editorial. Props are static — no time, no randomness, no
   // image loads (Avatar uses initials via `name`), Progress always carries a `value`
   // (an omitted value is indeterminate/animated). Prop names verified against source:
-  // Toggle uses `appearance`, Progress uses `shape`, Avatar `variant` is a shape, Card
-  // has `padding` not `size` and no intent, Input/Alert/Select intents differ per source.
+  // Progress uses `shape`, Avatar `variant` is a shape, Card has `padding` not `size`
+  // and no intent, Input/Alert/Select intents differ per source.
   import {
     Alert,
     Avatar,
@@ -79,13 +79,13 @@
       </div>
     </section>
 
-    <!-- Toggle — Form family: appearance axis + intents -->
+    <!-- Toggle — Form family: variant axis + intents -->
     <section data-testid="vr-toggle" class="space-y-3">
       <h2 class="text-text-primary text-lg font-semibold">Toggle</h2>
       <div class="flex flex-wrap items-center gap-6">
         <Toggle label="On" checked intent="success" />
         <Toggle label="Off" intent="primary" />
-        <Toggle label="Dot" checked appearance="dot" intent="primary" />
+        <Toggle label="Dot" checked variant="dot" intent="primary" />
         <Toggle label="Disabled" checked disabled />
       </div>
     </section>

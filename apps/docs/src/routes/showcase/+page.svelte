@@ -409,7 +409,7 @@
               <!-- Settings Tab -->
             {:else if activeTab === 'settings'}
               <div class="max-w-lg space-y-6">
-                <Accordion variant="separated">
+                <Accordion variant="card">
                   <AccordionItem value="notifications" title="Notification Preferences">
                     <div class="space-y-4">
                       <div class="flex items-center justify-between">

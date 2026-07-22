@@ -186,7 +186,7 @@
 
       <TabPanel value="security">
         <div class="pt-6">
-          <Accordion variant="separated">
+          <Accordion variant="card">
             <AccordionItem value="2fa" title="Two-Factor Authentication">
               <div class="flex items-center justify-between">
                 <div>
@@ -383,7 +383,7 @@
 
                 <TabPanel value="security">
                   <div class="pt-6">
-                    <Accordion variant="separated">
+                    <Accordion variant="card">
                       <AccordionItem value="2fa" title="Two-Factor Authentication">
                         <div class="flex items-center justify-between">
                           <div>

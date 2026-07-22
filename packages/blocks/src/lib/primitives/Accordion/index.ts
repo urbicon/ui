@@ -35,7 +35,7 @@ export interface AccordionContext {
  *
  * @example
  * ```svelte
- * <Accordion type="multiple" variant="separated" bind:value={openItems}>
+ * <Accordion type="multiple" variant="card" bind:value={openItems}>
  *   <AccordionItem value="section-1" title="Section 1">Content</AccordionItem>
  *   <AccordionItem value="section-2" title="Section 2">Content</AccordionItem>
  * </Accordion>
@@ -47,7 +47,7 @@ export interface AccordionProps
   /** Allow single or multiple items open at once @default 'single' */
   type?: 'single' | 'multiple';
   /** Visual style @default 'default' */
-  variant?: 'default' | 'separated' | 'ghost';
+  variant?: 'default' | 'card' | 'ghost';
   /** Size @default 'md' */
   size?: 'sm' | 'md' | 'lg';
   /** Controlled open item(s) – string for single, string[] for multiple */

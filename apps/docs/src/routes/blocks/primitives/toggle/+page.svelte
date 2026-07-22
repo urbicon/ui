@@ -58,8 +58,8 @@
         { type: 'text', key: 'label', label: 'Label', defaultValue: 'Enable notifications' },
         {
           type: 'dropdown',
-          key: 'appearance',
-          label: 'Appearance',
+          key: 'variant',
+          label: 'Variant',
           items: [
             { label: 'default', value: 'default' },
             { label: 'dot', value: 'dot' }
@@ -116,7 +116,7 @@
       ]}
       values={{
         label: 'Enable notifications',
-        appearance: 'default',
+        variant: 'default',
         intent: 'primary',
         size: 'md',
         mint: 'none',

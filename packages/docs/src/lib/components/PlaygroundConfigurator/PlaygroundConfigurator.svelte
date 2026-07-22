@@ -381,7 +381,7 @@
                      SegmentGroup is naturally compact and does not need the
                      controlControl wrapper. -->
                 <SegmentGroup
-                  appearance="text"
+                  variant="text"
                   size="sm"
                   value={selectDisplayValue(values[control.key]) ?? ''}
                   onValueChange={(value: string) =>
@@ -435,7 +435,7 @@
                    still earns its keep: it is what focuses the switch on click. -->
               <div class={slot('controlControlCompact')}>
                 <Toggle
-                  appearance="dot"
+                  variant="dot"
                   size="sm"
                   checked={Boolean(values[control.key])}
                   onCheckedChange={(val) => updateValue(control.key, val)}
@@ -484,7 +484,7 @@
                 />
               </div>
             {:else if control.type === 'slider' || control.type === 'range'}
-              <!-- Knob-strip slider uses `appearance="rail"` (1px hairline +
+              <!-- Knob-strip slider uses `variant="rail"` (1px hairline +
                    8px dot) so its loudness matches the SegmentGroup `text`
                    and Toggle `dot` siblings on the same row. The default
                    pill thumb would crowd the strip and re-introduce the
@@ -493,7 +493,7 @@
               <div class={slot('controlControl')}>
                 <Slider
                   id={control.key}
-                  appearance="rail"
+                  variant="rail"
                   value={(values[control.key] as number | undefined) ??
                     (control.defaultValue as number | undefined) ??
                     control.min ??

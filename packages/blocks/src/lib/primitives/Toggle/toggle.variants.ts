@@ -27,7 +27,7 @@ export const toggleVariants = tv({
     // toggle is a status declaration, identity-shaped. Opt-in `modify`
     // renders a soft-rectangle switch for compact inline-toolbar contexts
     // (usually inherited from a wrapping `<Toolbar tier="modify">` via
-    // TierContext). The `dot` appearance overrides geometry in compounds
+    // TierContext). The `dot` variant overrides geometry in compounds
     // below, so tier is functionally a no-op there — both still type-check.
     tier: {
       commit: { track: 'rounded-commit', thumb: 'rounded-commit' },
@@ -63,14 +63,14 @@ export const toggleVariants = tv({
       danger: {},
       neutral: {}
     },
-    // Appearance contract (see docs/ARCHITECTURE.md §Tier System
+    // Variant contract (see docs/ARCHITECTURE.md §Tier System
     // for the commit/modify radius semantics).
     //   default → classic switch pill (track + animated thumb).
     //   dot     → small indicator dot left of the label. Off = outline only,
     //             on = fill-intent. Monochrome, no pill background. Ideal
     //             for inline settings, dense toolbars, knob-strips —
     //             or anywhere the switch is visually too dominant.
-    appearance: {
+    variant: {
       default: {},
       // Concrete styles for `dot` live in compoundVariants below, so that
       // the override-bucket (w/h/rounded) can strip the corresponding
@@ -98,11 +98,11 @@ export const toggleVariants = tv({
     }
   },
   compoundVariants: [
-    // ── Default-appearance compounds (classic Switch-Pill) ──
-    // All filter on `appearance: 'default'` so the new `dot` mode picks
+    // ── Default-variant compounds (classic Switch-Pill) ──
+    // All filter on `variant: 'default'` so the new `dot` mode picks
     // up only its own monochrome compounds (defined further below).
     {
-      appearance: 'default',
+      variant: 'default',
       checked: false,
       class: {
         track: 'bg-surface-interactive',
@@ -112,13 +112,13 @@ export const toggleVariants = tv({
 
     // ── withBorder: visible boundary in both states ──
     {
-      appearance: 'default',
+      variant: 'default',
       checked: false,
       withBorder: true,
       class: { track: 'border-border-strong' }
     },
     {
-      appearance: 'default',
+      variant: 'default',
       checked: true,
       withBorder: true,
       class: { track: 'ring-1 ring-inset ring-surface-base/40' }
@@ -126,37 +126,37 @@ export const toggleVariants = tv({
 
     // ── Checked track per intent (Switch-Pill only) ──
     {
-      appearance: 'default',
+      variant: 'default',
       checked: true,
       intent: 'primary',
       class: { track: 'bg-primary border-primary' }
     },
     {
-      appearance: 'default',
+      variant: 'default',
       checked: true,
       intent: 'secondary',
       class: { track: 'bg-secondary border-secondary' }
     },
     {
-      appearance: 'default',
+      variant: 'default',
       checked: true,
       intent: 'success',
       class: { track: 'bg-success border-success' }
     },
     {
-      appearance: 'default',
+      variant: 'default',
       checked: true,
       intent: 'warning',
       class: { track: 'bg-warning border-warning' }
     },
     {
-      appearance: 'default',
+      variant: 'default',
       checked: true,
       intent: 'danger',
       class: { track: 'bg-danger border-danger' }
     },
     {
-      appearance: 'default',
+      variant: 'default',
       checked: true,
       intent: 'neutral',
       class: { track: 'bg-neutral border-neutral' }
@@ -166,30 +166,30 @@ export const toggleVariants = tv({
     // Mirrors Checkbox ("error overrides unchecked border"): the off state
     // carries the danger mark, the on state keeps its intent colour — an
     // error on a boolean control usually means "must be switched on".
-    // The dot-appearance twin lives at the END of the compound list so it
+    // The dot-variant twin lives at the END of the compound list so it
     // folds over the dot-unchecked `border-border-default` (order is
     // semantic — later compounds win conflicting buckets).
     {
-      appearance: 'default',
+      variant: 'default',
       error: true,
       checked: false,
       class: { track: 'border-danger peer-focus-visible:ring-danger/40' }
     },
 
     // ── Thumb translation per size when checked (Switch-Pill only) ──
-    { appearance: 'default', checked: true, size: 'xs', class: { thumb: 'translate-x-4' } },
-    { appearance: 'default', checked: true, size: 'sm', class: { thumb: 'translate-x-5' } },
-    { appearance: 'default', checked: true, size: 'md', class: { thumb: 'translate-x-6' } },
-    { appearance: 'default', checked: true, size: 'lg', class: { thumb: 'translate-x-7' } },
+    { variant: 'default', checked: true, size: 'xs', class: { thumb: 'translate-x-4' } },
+    { variant: 'default', checked: true, size: 'sm', class: { thumb: 'translate-x-5' } },
+    { variant: 'default', checked: true, size: 'md', class: { thumb: 'translate-x-6' } },
+    { variant: 'default', checked: true, size: 'lg', class: { thumb: 'translate-x-7' } },
 
-    // ── Dot appearance: monochrome circular indicator ──
+    // ── Dot variant: monochrome circular indicator ──
     // The base track is overridden to a tiny outline-only circle. The thumb
     // is hidden. Off = border-only (no bg-class so CSS default `transparent`
     // applies), on = fill-intent. compoundVariants run after the size-variant
     // stage, so `w-3.5/h-3.5/rounded-full` strip the size-based
     // `w-12/h-6/rounded-commit` from the resolved class set.
     {
-      appearance: 'dot',
+      variant: 'dot',
       class: {
         track: 'w-3.5 h-3.5 rounded-full border shadow-none',
         thumb: 'hidden',
@@ -197,50 +197,50 @@ export const toggleVariants = tv({
       }
     },
     {
-      appearance: 'dot',
+      variant: 'dot',
       checked: false,
       class: { track: 'border-border-default' }
     },
     {
-      appearance: 'dot',
+      variant: 'dot',
       checked: true,
       intent: 'primary',
       class: { track: 'border-primary bg-primary' }
     },
     {
-      appearance: 'dot',
+      variant: 'dot',
       checked: true,
       intent: 'secondary',
       class: { track: 'border-secondary bg-secondary' }
     },
     {
-      appearance: 'dot',
+      variant: 'dot',
       checked: true,
       intent: 'success',
       class: { track: 'border-success bg-success' }
     },
     {
-      appearance: 'dot',
+      variant: 'dot',
       checked: true,
       intent: 'warning',
       class: { track: 'border-warning bg-warning' }
     },
     {
-      appearance: 'dot',
+      variant: 'dot',
       checked: true,
       intent: 'danger',
       class: { track: 'border-danger bg-danger' }
     },
     {
-      appearance: 'dot',
+      variant: 'dot',
       checked: true,
       intent: 'neutral',
       class: { track: 'border-neutral bg-neutral' }
     },
 
-    // ── Error state, dot appearance (must fold over dot-unchecked border) ──
+    // ── Error state, dot variant (must fold over dot-unchecked border) ──
     {
-      appearance: 'dot',
+      variant: 'dot',
       error: true,
       checked: false,
       class: { track: 'border-danger' }
@@ -250,7 +250,7 @@ export const toggleVariants = tv({
     tier: 'commit',
     size: 'md',
     intent: 'primary',
-    appearance: 'default',
+    variant: 'default',
     checked: false,
     disabled: false,
     error: false,

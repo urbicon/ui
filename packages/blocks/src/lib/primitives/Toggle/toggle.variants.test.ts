@@ -24,7 +24,7 @@ describe('toggleVariants', () => {
     expect(track).not.toMatch(/(?<![a-z-])focus:/);
   });
 
-  it('applies pill size classes (default appearance)', () => {
+  it('applies pill size classes (default variant)', () => {
     const md = toggleVariants({ size: 'md' });
     expect(md.track()).toContain('w-12');
     expect(md.track()).toContain('h-6');
@@ -35,14 +35,14 @@ describe('toggleVariants', () => {
     expect(lg.thumb()).toContain('w-6');
   });
 
-  it('translates thumb on checked per size (default appearance only)', () => {
+  it('translates thumb on checked per size (default variant only)', () => {
     expect(toggleVariants({ checked: true, size: 'xs' }).thumb()).toContain('translate-x-4');
     expect(toggleVariants({ checked: true, size: 'sm' }).thumb()).toContain('translate-x-5');
     expect(toggleVariants({ checked: true, size: 'md' }).thumb()).toContain('translate-x-6');
     expect(toggleVariants({ checked: true, size: 'lg' }).thumb()).toContain('translate-x-7');
   });
 
-  it('applies intent-coloured fill on checked (default appearance)', () => {
+  it('applies intent-coloured fill on checked (default variant)', () => {
     expect(toggleVariants({ checked: true, intent: 'primary' }).track()).toContain('bg-primary');
     expect(toggleVariants({ checked: true, intent: 'success' }).track()).toContain('bg-success');
     expect(toggleVariants({ checked: true, intent: 'danger' }).track()).toContain('bg-danger');
@@ -54,9 +54,9 @@ describe('toggleVariants', () => {
     expect(control).toContain('cursor-not-allowed');
   });
 
-  describe('appearance="dot"', () => {
+  describe('variant="dot"', () => {
     it('strips pill-track sizing in favour of a 14px circle', () => {
-      const track = toggleVariants({ appearance: 'dot' }).track();
+      const track = toggleVariants({ variant: 'dot' }).track();
       expect(track).toContain('w-3.5');
       expect(track).toContain('h-3.5');
       expect(track).toContain('rounded-full');
@@ -64,12 +64,12 @@ describe('toggleVariants', () => {
     });
 
     it('hides the thumb (no slider animation in dot mode)', () => {
-      const thumb = toggleVariants({ appearance: 'dot' }).thumb();
+      const thumb = toggleVariants({ variant: 'dot' }).thumb();
       expect(thumb).toContain('hidden');
     });
 
     it('off state renders an outline-only dot (border, no fill)', () => {
-      const track = toggleVariants({ appearance: 'dot', checked: false }).track();
+      const track = toggleVariants({ variant: 'dot', checked: false }).track();
       expect(track).toContain('border-border-default');
       // No intent fill when off
       expect(track).not.toContain('bg-primary');
@@ -77,41 +77,41 @@ describe('toggleVariants', () => {
     });
 
     it('on state fills the dot in the intent colour', () => {
-      const primary = toggleVariants({ appearance: 'dot', checked: true, intent: 'primary' });
+      const primary = toggleVariants({ variant: 'dot', checked: true, intent: 'primary' });
       expect(primary.track()).toContain('bg-primary');
       expect(primary.track()).toContain('border-primary');
 
-      const success = toggleVariants({ appearance: 'dot', checked: true, intent: 'success' });
+      const success = toggleVariants({ variant: 'dot', checked: true, intent: 'success' });
       expect(success.track()).toContain('bg-success');
       expect(success.track()).toContain('border-success');
 
-      const danger = toggleVariants({ appearance: 'dot', checked: true, intent: 'danger' });
+      const danger = toggleVariants({ variant: 'dot', checked: true, intent: 'danger' });
       expect(danger.track()).toContain('bg-danger');
       expect(danger.track()).toContain('border-danger');
     });
 
-    it('does NOT apply the default-appearance pill compounds (no thumb translate, no pill bg)', () => {
-      const track = toggleVariants({ appearance: 'dot', checked: false }).track();
-      // default-appearance checked-false compound applies bg-surface-interactive — dot must not pick it up
+    it('does NOT apply the default-variant pill compounds (no thumb translate, no pill bg)', () => {
+      const track = toggleVariants({ variant: 'dot', checked: false }).track();
+      // default-variant checked-false compound applies bg-surface-interactive — dot must not pick it up
       expect(track).not.toContain('bg-surface-interactive');
 
-      const thumb = toggleVariants({ appearance: 'dot', checked: true, size: 'md' }).thumb();
-      // default-appearance pill thumb translates by size; dot hides the thumb entirely
+      const thumb = toggleVariants({ variant: 'dot', checked: true, size: 'md' }).thumb();
+      // default-variant pill thumb translates by size; dot hides the thumb entirely
       expect(thumb).not.toContain('translate-x-6');
     });
 
     it('shrinks the control min-height (denser than pill)', () => {
-      const control = toggleVariants({ appearance: 'dot' }).control();
+      const control = toggleVariants({ variant: 'dot' }).control();
       expect(control).toContain('min-h-6');
     });
   });
 
   it('never outputs dark: overrides', () => {
-    const appearances = ['default', 'dot'] as const;
+    const variantValues = ['default', 'dot'] as const;
     const intents = ['primary', 'secondary', 'success', 'warning', 'danger', 'neutral'] as const;
-    for (const appearance of appearances) {
+    for (const variant of variantValues) {
       for (const intent of intents) {
-        const styles = toggleVariants({ appearance, intent, checked: true });
+        const styles = toggleVariants({ variant, intent, checked: true });
         expect(styles.track()).not.toMatch(/\bdark:/);
         expect(styles.thumb()).not.toMatch(/\bdark:/);
         expect(styles.control()).not.toMatch(/\bdark:/);
@@ -133,8 +133,8 @@ describe('toggleVariants', () => {
       expect(styles.track()).not.toContain('border-danger');
     });
 
-    it('dot appearance gets the danger outline when unchecked', () => {
-      const styles = toggleVariants({ appearance: 'dot', error: true, checked: false });
+    it('dot variant gets the danger outline when unchecked', () => {
+      const styles = toggleVariants({ variant: 'dot', error: true, checked: false });
       expect(styles.track()).toContain('border-danger');
     });
   });

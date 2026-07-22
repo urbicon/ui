@@ -28,13 +28,13 @@ export const accordionVariants = tv({
     contentInner: 'pb-4 text-text-secondary'
   },
   // Variant contract (see docs/MIGRATION-v5.md §2):
-  //   default   → hairlines between items (divide-y)
-  //   separated → items as standalone blocks with spacing, no borders
-  //   ghost     → no separators, hover-tint per item
+  //   default → hairlines between items (divide-y)
+  //   card    → items as standalone card blocks with spacing, no borders
+  //   ghost   → no separators, hover-tint per item
   variants: {
     variant: {
       default: {},
-      separated: {
+      card: {
         base: 'divide-y-0 space-y-2',
         item: 'rounded-contain bg-surface-quiet px-4'
       },

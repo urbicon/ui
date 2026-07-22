@@ -12,7 +12,7 @@ export interface SegmentGroupContext {
   selectItem: (value: string) => void;
   isActive: (value: string) => boolean;
   readonly size: NonNullable<SegmentGroupVariants['size']>;
-  readonly appearance: NonNullable<SegmentGroupVariants['appearance']>;
+  readonly variant: NonNullable<SegmentGroupVariants['variant']>;
   readonly tier: InteractiveTier;
   readonly disabled: boolean;
   readonly unstyled: boolean;

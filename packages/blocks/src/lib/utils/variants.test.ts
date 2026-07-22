@@ -1018,12 +1018,12 @@ describe('tv – tailwind conflict resolver', () => {
       expect(tokens2).toContain('col-start-1');
     });
 
-    it('divide width and color are orthogonal; widths conflict (Accordion separated)', () => {
-      const separated = accordionVariants({ variant: 'separated' }).base().split(/\s+/);
-      expect(separated).not.toContain('divide-y');
-      expect(separated).toContain('divide-y-0');
+    it('divide width and color are orthogonal; widths conflict (Accordion card)', () => {
+      const card = accordionVariants({ variant: 'card' }).base().split(/\s+/);
+      expect(card).not.toContain('divide-y');
+      expect(card).toContain('divide-y-0');
       // Color stays untouched by the width swap.
-      expect(separated).toContain('divide-border-hairline');
+      expect(card).toContain('divide-border-hairline');
     });
 
     it('border-collapse / border-spacing are not border colors', () => {
@@ -1124,8 +1124,8 @@ describe('tv – tailwind conflict resolver', () => {
       expect(tokens).not.toContain('gap-1');
     });
 
-    it('segmentgroup text appearance zeroes the track via compound', () => {
-      const styles = segmentGroupVariants({ appearance: 'text', size: 'md' });
+    it('segmentgroup text variant zeroes the track via compound', () => {
+      const styles = segmentGroupVariants({ variant: 'text', size: 'md' });
       const tokens = styles.base().split(/\s+/);
       expect(tokens).toContain('p-0');
       expect(tokens).not.toContain('p-1');

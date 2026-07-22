@@ -81,7 +81,7 @@ export const sliderVariants = tv({
         thumb: 'w-7 h-7'
       }
     },
-    // Appearance contract (mirrors Toggle's `dot` and SegmentGroup's `text`).
+    // Variant contract (mirrors Toggle's `dot` and SegmentGroup's `text`).
     //   default → classic pill slider: filled range + 20px thumb with a
     //             white center, border in the intent color, shadow + scale on
     //             hover. Ideal for mobile and content-light contexts where the
@@ -96,7 +96,7 @@ export const sliderVariants = tv({
     // so the tv() pipeline override can cleanly strip the size stage
     // (h-1/2/3, w-3.5 …) — variants and compounds sit in different stages,
     // and only compounds reliably win against variants.
-    appearance: {
+    variant: {
       default: {},
       rail: {}
     },
@@ -148,18 +148,18 @@ export const sliderVariants = tv({
     }
   },
   compoundVariants: [
-    // ─── rail appearance: structural overrides ──────────────────────────
-    // Strips the default-appearance pill chrome from track, range and
+    // ─── rail variant: structural overrides ──────────────────────────
+    // Strips the default-variant pill chrome from track, range and
     // thumb. tv() applies compoundVariants after base variants, so the
     // h-px / rounded-none / border-0 overrides win against the size and
     // intent stages without us having to repeat them per-size.
     {
-      appearance: 'rail',
+      variant: 'rail',
       class: {
         track: 'h-px rounded-none bg-border-default',
         range: 'h-px rounded-none',
         thumb: [
-          // Reset default-appearance chrome
+          // Reset default-variant chrome
           'rounded-full border-0 bg-current shadow-none',
           // Fixed 8×8 visual — rail is size-invariant by design (analogue
           // to Toggle dot, which keeps the same dot size across sm/md/lg).
@@ -178,17 +178,17 @@ export const sliderVariants = tv({
     // bg-current picks up the text-color set here, so we map intent →
     // text-color once instead of overriding bg-primary/secondary/…
     // for every intent.
-    { appearance: 'rail', intent: 'primary', class: { thumb: 'text-primary' } },
-    { appearance: 'rail', intent: 'secondary', class: { thumb: 'text-secondary' } },
-    { appearance: 'rail', intent: 'success', class: { thumb: 'text-success' } },
-    { appearance: 'rail', intent: 'warning', class: { thumb: 'text-warning' } },
-    { appearance: 'rail', intent: 'danger', class: { thumb: 'text-danger' } },
-    { appearance: 'rail', intent: 'neutral', class: { thumb: 'text-neutral' } }
+    { variant: 'rail', intent: 'primary', class: { thumb: 'text-primary' } },
+    { variant: 'rail', intent: 'secondary', class: { thumb: 'text-secondary' } },
+    { variant: 'rail', intent: 'success', class: { thumb: 'text-success' } },
+    { variant: 'rail', intent: 'warning', class: { thumb: 'text-warning' } },
+    { variant: 'rail', intent: 'danger', class: { thumb: 'text-danger' } },
+    { variant: 'rail', intent: 'neutral', class: { thumb: 'text-neutral' } }
   ],
   defaultVariants: {
     intent: 'primary',
     size: 'md',
-    appearance: 'default',
+    variant: 'default',
     disabled: false,
     error: false,
     messageType: 'helper',

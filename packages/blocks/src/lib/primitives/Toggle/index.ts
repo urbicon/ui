@@ -110,7 +110,7 @@ export interface ToggleProps
    *
    * @default 'default'
    */
-  appearance?: ToggleVariants['appearance'];
+  variant?: ToggleVariants['variant'];
 }
 
 export { default as Toggle } from './Toggle.svelte';
