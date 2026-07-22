@@ -65,6 +65,23 @@ internal TODO instead. Sections are ordered roughly by urgency.
   a broad consumer demand for a canonical shape catalog emerges.
 - **Found:** 2026-07-10, P2 Blocks feature-request pass.
 
+### ButtonGroup's container div spreads `restProps` last — same class as the fixed Button exposure
+
+- **Where:** `packages/blocks/src/lib/primitives/ButtonGroup/ButtonGroup.svelte`
+  (the container `<div>`, ~`:274-285`: `role={ariaRole}`/`aria-orientation`/
+  `aria-disabled`/`onkeydown` before `{...restProps}`).
+- **What:** The same contract violation Button was migrated off (`42b0791`),
+  one level up: a consumer-passed `role` via restProps would override the
+  computed `radiogroup`/`toolbar` role, and a consumer `onkeydown` would
+  replace — not supplement — the roving keyboard navigation (it is not
+  composed via `composeHandlers`).
+- **Why deferred:** Surfaced during the Button migration's review, outside that
+  entry's scope. Wants the same deliberate treatment: conditional merges for
+  the ARIA attributes, `composeHandlers` for `onkeydown`, DOM tests for the
+  adversarial and legitimate arms.
+- **Found:** 2026-07-22, Button restProps-first migration review
+  (fable-debt-wave-2).
+
 ### Table still names its style axis `appearance` after the blocks-wide `variant` unification
 
 - **Where:** `packages/table/src/lib/core/table/index.ts` (`appearance?: 'flush'
@@ -104,6 +121,22 @@ internal TODO instead. Sections are ordered roughly by urgency.
 - **Found:** 2026-07-10, systematic primitives API analysis.
 
 ## Component behaviour
+
+### Calendar day/agenda keyboard navigation still emits a clamped no-op at the bounds
+
+- **Where:** `packages/blocks/src/lib/components/Calendar/CalendarDayView.svelte`
+  + `CalendarAgendaView.svelte` — the ArrowLeft/ArrowRight keydown handlers call
+  `ctx.navigate(±1)` without a `canGoBack`/`canGoForward` gate.
+- **What:** The swipe handlers of all five views were direction-gated in
+  `926b528` (no callback emit at a `minDate`/`maxDate` bound), but the two
+  views with keyboard prev/next kept the ungated path: an arrow key at the
+  bound still fires `onDayChange` with an unchanged value. Same one-line gate,
+  different input modality.
+- **Why deferred:** The debt entry that drove the sweep explicitly named only
+  the swipe handlers; gating the keyboard path is the same emitted-callback
+  contract decision and should get its own deliberate (if small) pass with
+  tests rather than riding along unreviewed.
+- **Found:** 2026-07-22, Calendar swipe-gating sweep (fable-debt-wave-2).
 
 ### Three surfaces ingest their content in `$effect`, so the prerendered HTML carries placeholders — 91 API pages assert "No matching properties"
 
