@@ -46,6 +46,26 @@ internal TODO instead. Sections are ordered roughly by urgency.
   any external consumer yet at all).
 - **Found:** 2026-07-20, packaging-hygiene pass (sso-debt-wave).
 
+### The `./dist/i18n/index.js` sideEffects exemption is inert under rolldown-vite
+
+- **Where:** `packages/blocks/package.json` (`sideEffects` array) vs.
+  `dist/i18n/index.js`; observed via `scripts/bundle-size.ts`.
+- **What:** A bare consumer `import '@urbicon-ui/blocks'` built with Vite 8
+  (rolldown) tree-shakes to **0 bytes** — the listed side-effect module is
+  dropped despite the exemption (not root-caused: symlinked-workspace path
+  matching vs. rolldown analysis). Nothing observably breaks, because
+  `createPackageI18n` registers lazily and every translation-using component
+  imports the module directly (verified: Dialog bundles en+de). But
+  rollup-based consumers (Vite ≤ 7) presumably still honour the entry and pay
+  i18n runtime + full en/de translations on **every** barrel import, used or
+  not.
+- **Why deferred:** Needs a design decision after root-causing: if the lazy
+  registration made the eager side-effect obsolete, deleting the exemption
+  slims every rollup-vite consumer; if some path still relies on eager
+  registration (SSR locale bootstrap?), the rolldown drop is a latent bug and
+  the exemption needs a form both bundlers honour.
+- **Found:** 2026-07-22, building the bundle-size measurement tool.
+
 ## API design
 
 ### Button `preset="pill"`/`"circle"` convenience catalog — deferred by design (BTN-3)
