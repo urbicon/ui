@@ -39,14 +39,24 @@
   );
 </script>
 
+<!--
+  restProps spreads FIRST so component-owned state wins (COMPONENT-API-CONVENTIONS
+  §restProps ordering) — a consumer role through restProps must not defeat the
+  toolbar semantics. No conditional merges are needed here (unlike
+  Button/ButtonGroup), because every attribute after the spread is always
+  defined: role is static, `orientation` has a default, and `aria-label` is a
+  required prop destructured out of restProps. `aria-orientation` is valid on
+  role=toolbar on both arms, so there is no removal case; `aria-labelledby`
+  and other native/data-* attributes pass through the spread untouched.
+-->
 <div
+  {...restProps}
   class={unstyled
     ? [slotClasses?.base, className].filter(Boolean).join(' ')
     : styles.base({ class: [slotClasses?.base, className] })}
   role="toolbar"
   aria-orientation={orientation}
   aria-label={ariaLabel}
-  {...restProps}
 >
   {@render children()}
 </div>

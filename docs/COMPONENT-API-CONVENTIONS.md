@@ -30,7 +30,8 @@ Controls the visual style/weight of a component independently of color.
 proved not separable in practice (Tab's `line|pills|enclosed|solid` is structural and always
 ran under `variant`), so structural builds are `variant` values too: Toggle `default|dot`,
 Slider `default|rail`, SegmentGroup `default|text` — all three renamed from `appearance` in
-the pre-launch window. One axis name, whatever the values express.
+the pre-launch window, and Table's chrome axis (`flush|surface|framed`) completed the sweep
+in the same window. One axis name, whatever the values express.
 
 **Siblings share value vocabulary.** Components covering the same interaction reuse the same
 value for the same visual treatment: the boxed disclosure treatment is `card` on both
@@ -453,7 +454,16 @@ state (`pressed`/`disabled`/`loading`) win when the component has something to
 say, and fall back to the consumer's restProps value when it doesn't — a plain
 explicit attribute after the spread would *remove* a standalone consumer's
 `role="link"` (explicit `undefined` deletes the attribute). Reference:
-`Button.svelte` for selection-wired attributes.
+`Button.svelte` for selection-wired attributes. `ButtonGroup`'s container
+follows the same treatment (also 2026-07-22): the computed
+`radiogroup`/`group` role wins outright, the roving `onkeydown` is composed
+via `composeHandlers`, and the `group` arm actively removes a consumer
+`aria-orientation` even against restProps (ARIA disallows it on `role=group`).
+`Toolbar`'s container spreads restProps first too (also 2026-07-22) — the
+simple case: no merges needed, because its post-spread attributes are always
+defined (`role="toolbar"` static, `orientation` defaulted, `aria-label` a
+required destructured prop) and `aria-orientation` is valid on `role=toolbar`
+on both arms, so there is no removal case.
 
 ## Accessibility
 

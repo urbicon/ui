@@ -1,6 +1,7 @@
 <script lang="ts">
   import { buttonGroupVariants, type ButtonGroupVariants } from '$lib/primitives';
   import { getBlocksConfig, resolveSlotClasses } from '$lib/provider';
+  import { composeHandlers } from '$lib/utils/compose-handlers';
   import { edgeEnabledIndex, nextEnabledIndex } from '$lib/utils';
   import { getTierContext, setTierContext } from '$lib/utils/tier-context';
   import type { ButtonGroupContext, ButtonGroupProps } from './index';
@@ -25,6 +26,12 @@
     preset,
     ariaLabel,
     ariaLabelledBy,
+    // Pulled out of restProps so the `{...restProps}`-first spread (internal
+    // attributes win — see docs/COMPONENT-API-CONVENTIONS.md) can't clobber
+    // it: the roving keyboard navigation below is composed with a consumer's
+    // own handler (internal first, consumer second) instead of either side
+    // silently replacing the other.
+    onkeydown: onkeydownProp,
     ...restProps
   }: ButtonGroupProps = $props();
 
@@ -271,18 +278,35 @@
   const ariaOrientation = $derived(ariaRole === 'radiogroup' ? orientation : undefined);
 </script>
 
+<!--
+  restProps spreads FIRST so component-owned state wins (COMPONENT-API-CONVENTIONS
+  §restProps ordering) — a consumer role/tabindex through restProps must not
+  defeat the radiogroup semantics. The attributes after the spread are
+  conditional merges, not plain overrides, because an explicit `undefined`
+  after a spread REMOVES the attribute:
+  - role: always internally computed (radiogroup/group) — internal wins outright.
+  - aria-label / aria-labelledby: the dedicated props win, a consumer's own
+    `aria-label`/`aria-labelledby` through restProps is the fallback.
+  - aria-orientation: internal on the radiogroup arm; on the `group` arm it is
+    actively removed even against restProps — ARIA disallows aria-orientation
+    on role=group (aria-allowed-attr), mirroring Button's aria-pressed force-off.
+  - aria-disabled: internal `true` is unoverridable, idle falls back to the
+    consumer value; the default DOM output stays byte-identical (attr absent).
+  - onkeydown is destructured (never in restProps) and composed: the roving
+    keyboard nav always runs, a consumer handler runs after it.
+-->
 <div
   bind:this={containerElement}
+  {...restProps}
   role={ariaRole}
   class={unstyled
     ? [slotClasses?.base, className].filter(Boolean).join(' ')
     : styles.base({ class: [slotClasses?.base, className] })}
-  aria-label={ariaLabel}
-  aria-labelledby={ariaLabelledBy}
+  aria-label={ariaLabel ?? restProps['aria-label']}
+  aria-labelledby={ariaLabelledBy ?? restProps['aria-labelledby']}
   aria-orientation={ariaOrientation}
-  aria-disabled={disabled || undefined}
-  onkeydown={handleKeyDown}
-  {...restProps}
+  aria-disabled={disabled || restProps['aria-disabled'] || undefined}
+  onkeydown={composeHandlers(handleKeyDown, onkeydownProp)}
 >
   {@render children?.()}
 </div>

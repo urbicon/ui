@@ -500,6 +500,125 @@ describe('ButtonGroup (restProps-first contract on child Buttons)', () => {
   });
 });
 
+describe('ButtonGroup (restProps-first contract on the container)', () => {
+  // The container div spreads {...restProps} FIRST and applies its computed
+  // attributes after it (COMPONENT-API-CONVENTIONS §restProps ordering) — the
+  // same migration Button got one level down. A consumer role cannot defeat
+  // the radiogroup semantics, and a consumer onkeydown supplements the roving
+  // keyboard nav via composeHandlers instead of replacing it.
+
+  it('consumer role via restProps cannot override the computed radiogroup role', () => {
+    renderGroup({ selection: 'single', value: 'grid', ariaLabel: 'View', role: 'menu' });
+
+    expect(screen.getByRole('radiogroup', { name: 'View' })).toBeTruthy();
+    expect(screen.queryByRole('menu')).toBeNull();
+  });
+
+  it('internal aria-orientation wins on the radiogroup arm, even against restProps', () => {
+    renderGroup({
+      selection: 'single',
+      ariaLabel: 'View',
+      orientation: 'vertical',
+      'aria-orientation': 'horizontal'
+    });
+
+    expect(screen.getByRole('radiogroup', { name: 'View' }).getAttribute('aria-orientation')).toBe(
+      'vertical'
+    );
+  });
+
+  it('actively removes a consumer aria-orientation on the group arm, where ARIA disallows it', () => {
+    // role=group does not support aria-orientation (axe: aria-allowed-attr) —
+    // letting the consumer value through would ship the violation for them,
+    // so the component removes it (mirrors Button's aria-pressed force-off).
+    renderGroup({ selection: 'multiple', ariaLabel: 'Filters', 'aria-orientation': 'vertical' });
+
+    expect(screen.getByRole('group', { name: 'Filters' }).hasAttribute('aria-orientation')).toBe(
+      false
+    );
+  });
+
+  it('a real disabled beats a consumer aria-disabled="false"; idle falls back to the consumer value', () => {
+    renderGroup({
+      selection: 'single',
+      disabled: true,
+      ariaLabel: 'View',
+      'aria-disabled': 'false'
+    });
+    expect(screen.getByRole('radiogroup', { name: 'View' }).getAttribute('aria-disabled')).toBe(
+      'true'
+    );
+
+    dispose?.();
+    document.body.replaceChildren();
+
+    renderGroup({ selection: 'single', ariaLabel: 'View', 'aria-disabled': 'true' });
+    expect(screen.getByRole('radiogroup', { name: 'View' }).getAttribute('aria-disabled')).toBe(
+      'true'
+    );
+  });
+
+  it('consumer onkeydown supplements the roving nav — both run, consumer second', () => {
+    // The old spread-last order let a consumer onkeydown REPLACE the roving
+    // keyboard navigation. Composed, the internal handler runs first (arrow
+    // selection still moves) and the consumer observes the event afterwards —
+    // defaultPrevented tells them the group claimed the key.
+    const seenDefaultPrevented: boolean[] = [];
+    const onkeydown = vi.fn((event: KeyboardEvent) =>
+      seenDefaultPrevented.push(event.defaultPrevented)
+    );
+    renderGroup({ selection: 'single', value: 'list', onkeydown });
+
+    radio('List').focus();
+    fireEvent.keyDown(radio('List'), { key: 'ArrowRight' });
+    flushSync();
+
+    // Roving nav survived: selection + focus + tab stop moved to Grid.
+    expect(radio('Grid').getAttribute('aria-checked')).toBe('true');
+    expect(document.activeElement).toBe(radio('Grid'));
+    expect(radio('Grid').tabIndex).toBe(0);
+    // The consumer handler still ran, after the internal one claimed the key.
+    expect(onkeydown).toHaveBeenCalledOnce();
+    expect(seenDefaultPrevented).toEqual([true]);
+  });
+
+  it('runs the consumer onkeydown even where the internal handler is inert (multiple arm)', () => {
+    const onkeydown = vi.fn();
+    const onSelectionChange = vi.fn();
+    renderGroup({ selection: 'multiple', value: ['list'], onkeydown, onSelectionChange });
+
+    checkbox('List').focus();
+    fireEvent.keyDown(checkbox('List'), { key: 'ArrowRight' });
+    flushSync();
+
+    // No roving on the checkbox arm — but the composed consumer handler fires.
+    expect(onkeydown).toHaveBeenCalledOnce();
+    expect(onSelectionChange).not.toHaveBeenCalled();
+    expect(document.activeElement).toBe(checkbox('List'));
+  });
+
+  it('lets legitimate restProps through: data-*, id, and a native aria-label label the group', () => {
+    renderGroup({
+      selection: 'single',
+      'aria-label': 'Views (native)',
+      'data-analytics': 'view-switch',
+      id: 'view-group'
+    });
+
+    // No ariaLabel prop → the consumer's own aria-label survives the merge.
+    const group = screen.getByRole('radiogroup', { name: 'Views (native)' });
+    expect(group.getAttribute('data-analytics')).toBe('view-switch');
+    expect(group.id).toBe('view-group');
+  });
+
+  it('prefers the dedicated ariaLabel prop over a restProps aria-label', () => {
+    renderGroup({ selection: 'single', ariaLabel: 'Prop label', 'aria-label': 'Native label' });
+
+    expect(screen.getByRole('radiogroup', { name: 'Prop label' })).toBeTruthy();
+    expect(screen.queryByRole('radiogroup', { name: 'Native label' })).toBeNull();
+  });
+});
+
 describe('ButtonGroup (multiple-select keyboard)', () => {
   it('stays per-item tabbable and does NOT rove — arrow keys are inert', () => {
     const onSelectionChange = vi.fn();
