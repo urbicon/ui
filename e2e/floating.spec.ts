@@ -56,7 +56,10 @@ test.describe('Floating positioning – Visual Regression', () => {
       await trigger.hover();
       await page.waitForTimeout(500);
 
-      const tooltip = page.locator('[role="tooltip"]');
+      // All four tooltips sit in the DOM permanently as manual popovers since
+      // the exit-transition rework (99adb41) — scope by accessible name, a bare
+      // [role="tooltip"] locator is a strict-mode violation.
+      const tooltip = page.getByRole('tooltip', { name: `Tooltip ${placement}` });
       await tooltip.waitFor({ state: 'visible', timeout: 5_000 });
       await page.waitForTimeout(300);
 
