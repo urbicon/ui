@@ -66,6 +66,78 @@ internal TODO instead. Sections are ordered roughly by urgency.
   the exemption needs a form both bundlers honour.
 - **Found:** 2026-07-22, building the bundle-size measurement tool.
 
+## Bundle size
+
+Findings from the first `bun run size:blocks --breakdown` pass (v6.31.0,
+net-of-Svelte numbers; reproduce with
+`bun run size:blocks --filter <name> --breakdown`). Nothing *leaks* — no
+comments, no dead modules, no icon registry — these are deliberate structures
+whose bundle price only became visible with the measurement tool.
+
+### Button's `loading` state ships the full Spinner — 21 % of the Button bundle
+
+- **Where:** `packages/blocks/src/lib/primitives/Button/Button.svelte`
+  (imports `Spinner` from `$lib`); breakdown attribution.
+- **What:** The `loading` state renders the complete Spinner component
+  including its own 159-line tv() variants config: 8.4 KB of Button's
+  39.8 KB min (4.7 KB `Spinner.svelte` + 3.7 KB `spinner.variants.js`).
+  Every consumer of Button pays it, loading used or not — and via
+  composition it cascades (Badge imports Button for its dismiss affordance,
+  so a Badge ships a Spinner).
+- **Why deferred:** An API/design call: an internal minimal inline spinner
+  (one SVG + one animation class, no variants engine pass) would cut
+  ~8 KB min / ~1.5 KB gz but forks the spinner visual source of truth;
+  alternatively Spinner's config could be slimmed for both.
+- **Found:** 2026-07-22, bundle-size breakdown analysis.
+
+### Mint effects resolve through a registry — all of them ship, ripple engine included
+
+- **Where:** `packages/blocks/src/lib/mint/registry.ts`
+  (`mintRegistry.apply(el, name)`), consumed by e.g. `Button.svelte`
+  (default `mint = 'scale'`).
+- **What:** The dynamic name→effect lookup is the same non-tree-shakeable
+  class as the solved `getIcon()` icon-registry problem: every component
+  with a mint default ships **all** mint effects — micro-interactions
+  (2.1 KB), the full ripple engine (0.9 KB), registry + compose + presets
+  (~1 KB) — ~3.9 KB min even when only `scale` is ever used.
+- **Why deferred:** Wants the `resolveIcon` pattern (direct import of the
+  default effect, registry only for dynamic/provider-overridden cases),
+  which touches the mint API surface and every mint-consuming component —
+  a sweep, not a spot fix.
+- **Found:** 2026-07-22, bundle-size breakdown analysis.
+
+### tv() ships its config-time diagnostics unguarded — 11 of 12 sites
+
+- **Where:** `packages/blocks/src/lib/utils/variants.ts` (`throw new
+  Error`/`console.warn` sites; only the `class`-prop warning at ~line 1009
+  is behind `import.meta.env?.DEV`).
+- **What:** Config-time developer errors (e.g. "tv(): `base` and `slots`
+  are mutually exclusive…") ship verbatim in every consumer's production
+  bundle, ~1 KB min across the engine. The one existing guard proves the
+  `import.meta.env?.DEV` fold works in consumer builds (string absent from
+  the measured bundle).
+- **Why deferred:** Needs the fail-loud line drawn deliberately: config-time
+  misuse diagnostics (the class Svelte itself makes DEV-only) vs. runtime
+  contract checks that must stay. Blanket-guarding all 11 without that
+  distinction would trade correctness posture for ~1 KB.
+- **Found:** 2026-07-22, bundle-size breakdown analysis.
+
+### `useBlocksI18n` components bundle every locale — en+de always, statically
+
+- **Where:** `packages/blocks/src/lib/i18n/index.ts`
+  (`blocksTranslations = { en, de }` passed to `createPackageI18n`).
+- **What:** Any component translating a single aria-label pulls the full
+  catalog of **all** locales plus the i18n runtime: 14.7 KB min in Badge
+  (6.5 KB registry, 4.0 KB de, 3.7 KB en, 0.5 KB integration). Cost grows
+  linearly with every locale the package adds; the consumer's actual locale
+  choice can't tree-shake it.
+- **Why deferred:** Per-locale splitting (consumer imports
+  `@urbicon-ui/blocks/i18n/de` — the subpath exports already exist — and the
+  package core stops eagerly bundling both) is an i18n architecture change
+  with SSR/lazy-registration implications, owned together with the i18n
+  package.
+- **Found:** 2026-07-22, bundle-size breakdown analysis.
+
 ## API design
 
 ### Button `preset="pill"`/`"circle"` convenience catalog — deferred by design (BTN-3)
