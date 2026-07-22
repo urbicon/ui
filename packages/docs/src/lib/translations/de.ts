@@ -43,6 +43,9 @@ export default {
   selectOption: 'Wähle {{option}}...',
   enableOption: '{{option}} aktivieren',
   playgroundModified: 'Geänderte Einstellungen: {{count}}',
+  resetAll: 'Alle zurücksetzen ({{count}})',
+  hints: 'Hinweise',
+  hintsOn: 'Hinweise an',
   copyLink: 'Link kopieren',
   linkCopied: 'Link kopiert!',
 

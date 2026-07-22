@@ -316,21 +316,25 @@
           {modifiedCount > 0 ? dt('playgroundModified', { count: modifiedCount }) : ''}
         </span>
         {#if modifiedCount > 0}
-          <button type="button" class={styles.helpToggle()} onclick={resetAll}>
-            Reset all ({modifiedCount})
+          <button type="button" class={slot('helpToggle')} onclick={resetAll}>
+            {dt('resetAll', { count: modifiedCount })}
           </button>
         {/if}
         {#if hasAnyDescription}
+          <!-- helpToggleActive is a state layer, not a slot: it has no
+               slotClasses key, so `unstyled` drops it with the rest of the
+               default styles — the pressed state is still carried by
+               aria-pressed for consumers who restyle from scratch. -->
           <button
             type="button"
-            class={[styles.helpToggle(), helpVisible && styles.helpToggleActive()]
+            class={[slot('helpToggle'), helpVisible && !unstyled && styles.helpToggleActive()]
               .filter(Boolean)
               .join(' ')}
             aria-pressed={helpVisible}
             onclick={() => (helpVisible = !helpVisible)}
           >
             <span aria-hidden="true">?</span>
-            {helpVisible ? 'Hints on' : 'Hints'}
+            {helpVisible ? dt('hintsOn') : dt('hints')}
           </button>
         {/if}
       </div>
@@ -522,7 +526,7 @@
       -->
       {#if modifiedCount > 0}
         <div class={slot('actionsBar')}>
-          <button type="button" class={styles.helpToggle()} onclick={copyShareLink}>
+          <button type="button" class={slot('helpToggle')} onclick={copyShareLink}>
             {shareCopied ? dt('linkCopied') : dt('copyLink')}
           </button>
           <!--

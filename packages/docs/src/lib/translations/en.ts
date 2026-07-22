@@ -45,6 +45,9 @@ export default {
   // Phrased so one wording fits any count — the runtime interpolates
   // `{{count}}` but has no plural selection.
   playgroundModified: 'Settings modified: {{count}}',
+  resetAll: 'Reset all ({{count}})',
+  hints: 'Hints',
+  hintsOn: 'Hints on',
   copyLink: 'Copy link',
   linkCopied: 'Link copied!',
 
