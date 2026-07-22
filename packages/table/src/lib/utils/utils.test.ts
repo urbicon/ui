@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import type { Column } from '$lib/types/tableTypes';
 import {
+  findColumnById,
   formatCellValue,
   getNestedValue,
   groupItems,
@@ -34,6 +35,27 @@ describe('resolveColumnLabel', () => {
 
   it('never returns an empty label for a resolvable column', () => {
     expect(resolveColumnLabel({ id: 'x', title: '' })).toBe('X');
+  });
+});
+
+describe('findColumnById', () => {
+  // Also the engine behind TableProvider's DEV warn for an `initialSort.column`
+  // that matches no column (the Provider effect itself needs render infra).
+  const columns: Column[] = [
+    { accessor: 'name', title: 'Name' },
+    { id: 'deptCode', accessor: () => 'x', title: 'Dept' },
+    { id: 'actions', title: '' }
+  ];
+
+  it('resolves string-accessor, explicit-id, and synthetic columns', () => {
+    expect(findColumnById(columns, 'name')).toBe(columns[0]);
+    expect(findColumnById(columns, 'deptCode')).toBe(columns[1]);
+    expect(findColumnById(columns, 'actions')).toBe(columns[2]);
+  });
+
+  it('returns undefined for an unknown id (seeded-sort warn path)', () => {
+    expect(findColumnById(columns, 'salary')).toBeUndefined();
+    expect(findColumnById([], 'name')).toBeUndefined();
   });
 });
 

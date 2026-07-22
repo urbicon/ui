@@ -97,6 +97,32 @@ export interface TablePersistenceConfig {
 }
 
 /**
+ * Uncontrolled initial view state, applied once at store construction —
+ * immediately after persistence hydration. Each axis seeds only when
+ * persistence left it empty, so a value restored from storage always wins.
+ * The seeded value is synced back to storage exactly like a user action
+ * would be (matching how `initialGroupBy` / `initialSummaryConfigs` seed
+ * through the persistence-syncing wrappers). Controlled props are gated one
+ * level up: `TableProvider` drops `selectedIds` from the seed whenever the
+ * controlled `selectedIds` prop is present.
+ *
+ * Caveat: persistence stores only non-empty values, so an axis the user
+ * *cleared* reads as empty after a reload and the seed applies again —
+ * cleared state does not survive a reload while a seed is set.
+ */
+export interface TableSeedState {
+  /**
+   * Initial sort. `column` must match a column's resolved id; an empty
+   * column is treated as "no seed".
+   */
+  sort?: { column: string; direction: 'asc' | 'desc' };
+  /** Initial selected row ids (keyed by `item.id`, row-index fallback). */
+  selectedIds?: Array<string | number>;
+  /** Initial advanced filters. */
+  filters?: Filter[];
+}
+
+/**
  * Creates the table state by composing independent concerns.
  *
  * Derived chain: items → filteredItems → sortedItems → grouped → paginatedItems
@@ -110,7 +136,10 @@ export interface TablePersistenceConfig {
  * property access by string key. Type safety for row data is the consumer's
  * responsibility at the `TableProps<T>` boundary.
  */
-export function createTableState(persistenceConfig?: TablePersistenceConfig) {
+export function createTableState(
+  persistenceConfig?: TablePersistenceConfig,
+  seed?: TableSeedState
+) {
   // ── Shared reactive state ──
   const state: TableState = $state({
     items: [] as TableItem[],
@@ -185,6 +214,26 @@ export function createTableState(persistenceConfig?: TablePersistenceConfig) {
   }
   if (persistence.initialColumnOrder.length > 0) {
     columnOrder.applyOrder(persistence.initialColumnOrder);
+  }
+
+  // ── Seed uncontrolled initial view state (initialSort / initialSelectedIds /
+  // initialFilters) ──
+  // Runs exactly once, here at construction — before the first render and
+  // before the first server-mode query emission, so the header sort indicator
+  // and the initial `query` both carry the seed. Persistence hydrated the
+  // shared state above, so each axis seeds only when persistence left it
+  // empty: a persisted value wins. Writes go through the persistence-syncing
+  // wrappers (hoisted function declarations below), mirroring how
+  // `initialGroupBy` / `initialSummaryConfigs` seed through them.
+  if (seed?.sort?.column && !state.sortColumn) {
+    setSort(seed.sort.column, seed.sort.direction);
+  }
+  if (seed?.filters && seed.filters.length > 0 && state.activeFilters.length === 0) {
+    state.activeFilters = [...seed.filters];
+    persistence.syncFilters();
+  }
+  if (seed?.selectedIds && seed.selectedIds.length > 0 && state.selectedIds.size === 0) {
+    setSelectedIds(seed.selectedIds);
   }
 
   // ── Thin wrappers that add persistence syncing ──
@@ -522,12 +571,13 @@ const [getTableContextRaw, setTableContextRaw] =
 /**
  * Creates and sets the table context.
  * @param persistenceConfig - Optional persistence configuration for filters, search, grouping, and summaries.
+ * @param seed - Optional uncontrolled initial view state (sort, selection, filters); a persisted value wins per axis. Ignored when an existing context is returned.
  */
-export function setTableContext(persistenceConfig?: TablePersistenceConfig) {
+export function setTableContext(persistenceConfig?: TablePersistenceConfig, seed?: TableSeedState) {
   const existing = getTableContextRaw();
   if (existing) return existing;
 
-  const tableState = createTableState(persistenceConfig);
+  const tableState = createTableState(persistenceConfig, seed);
   setTableContextRaw(tableState);
   return tableState;
 }

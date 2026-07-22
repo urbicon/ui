@@ -59,6 +59,20 @@
       </p>
 
       <CodeExample
+        title="Start Sorted"
+        description="initialSort seeds the uncontrolled sort once — the header indicator shows it, and users can still change or clear it. A sort restored via persistenceConfig (persistSort) takes precedence."
+        code={`<Table {items} {columns} initialSort={{ column: 'salary', direction: 'desc' }} />`}
+      >
+        <Table
+          items={employees}
+          columns={summaryColumns}
+          initialSort={{ column: 'salary', direction: 'desc' }}
+          itemsPerPage={5}
+          enableSmartFilter={false}
+        />
+      </CodeExample>
+
+      <CodeExample
         title="Grouping with Custom Order"
         description="Group rows by any column. The groupOrder array controls the display sequence of groups."
         code={`<Table

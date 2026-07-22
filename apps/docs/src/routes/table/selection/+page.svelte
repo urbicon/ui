@@ -81,6 +81,26 @@ ${scriptClose}
       </CodeExample>
 
       <CodeExample
+        title="Start Selected"
+        description="initialSelectedIds seeds the uncontrolled selection once — no controlled wiring needed for a starting value. Users can change or clear it freely; a selection restored via persistenceConfig.persistSelection takes precedence."
+        code={`<Table
+  {items}
+  {columns}
+  selectionMode="multi"
+  initialSelectedIds={[1, 3]}
+/>`}
+      >
+        <Table
+          items={employees.slice(0, 6)}
+          columns={basicColumns}
+          selectionMode="multi"
+          initialSelectedIds={[1, 3]}
+          enableSmartFilter={false}
+          itemsPerPage={6}
+        />
+      </CodeExample>
+
+      <CodeExample
         title="Single Select"
         description="Only one row can be selected at a time – previous selection is automatically cleared."
         code={`<Table
@@ -105,9 +125,13 @@ ${scriptClose}
     <div class="space-y-8">
       <p class="text-text-secondary text-sm">
         By default the selection is internal, uncontrolled state. Pass the
-        <code class="text-text-primary">selectedIds</code> prop to control it from outside — preselect
-        rows, drive the selection from URL state, or clear it programmatically. The prop is then the source
-        of truth: whenever it changes, the table adopts it.
+        <code class="text-text-primary">selectedIds</code> prop to control it from outside —
+        preselect rows, drive the selection from URL state, or clear it programmatically. The prop
+        is then the source of truth: whenever it changes, the table adopts it. If you only need a
+        starting value, prefer
+        <code class="text-text-primary">initialSelectedIds</code> above — when both are set,
+        controlled
+        <code class="text-text-primary">selectedIds</code> wins and the seed is ignored.
       </p>
 
       <p class="text-text-secondary text-sm">

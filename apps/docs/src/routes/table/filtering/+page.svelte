@@ -121,6 +121,16 @@ ${scriptClose}
       </div>
 
       <p class="text-text-secondary text-sm">
+        To start with filters active, pass
+        <code class="text-text-primary">initialFilters</code> — an array of the same
+        <code class="text-text-primary">&#123; column, operator, value &#125;</code> objects. It
+        seeds the uncontrolled filter state once (the chips show them; users can still remove or add
+        filters), and filters restored via
+        <code class="text-text-primary">persistenceConfig</code>
+        (<code class="text-text-primary">persistFilters</code>) take precedence.
+      </p>
+
+      <p class="text-text-secondary text-sm">
         Both search and filters match against the column accessor's output — not against what a
         custom cell renders. In
         <code class="text-text-primary">mode="server"</code> the table does not filter locally:

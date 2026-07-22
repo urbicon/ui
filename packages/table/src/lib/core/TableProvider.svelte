@@ -1,9 +1,15 @@
 <script lang="ts">
   import { untrack, type Snippet } from 'svelte';
-  import { attachTableContext, createTableState } from '$lib';
+  import { attachTableContext, createTableState, findColumnById } from '$lib';
   import { useTableI18n } from '$lib/i18n';
   import { ColumnValidation } from '$lib/factories/ColumnValidation';
-  import type { Column, TableItem, TableQuery, TableQueryResult } from '$lib/types/tableTypes';
+  import type {
+    Column,
+    Filter,
+    TableItem,
+    TableQuery,
+    TableQueryResult
+  } from '$lib/types/tableTypes';
   import type { SummaryConfig, TablePersistenceConfig } from '$lib/stores/TableStore.svelte';
 
   const tt = useTableI18n();
@@ -17,6 +23,9 @@
     groupByKey?: string | null;
     initialGroupBy?: string | null;
     initialSummaryConfigs?: SummaryConfig[];
+    initialSort?: { column: string; direction: 'asc' | 'desc' };
+    initialFilters?: Filter[];
+    initialSelectedIds?: Array<string | number>;
     multiExpand?: boolean;
     loading?: boolean;
     children?: Snippet;
@@ -45,6 +54,9 @@
     groupByKey = null,
     initialGroupBy = null,
     initialSummaryConfigs = [],
+    initialSort = undefined,
+    initialFilters = undefined,
+    initialSelectedIds = undefined,
     multiExpand = false,
     loading = false,
     children,
@@ -65,9 +77,19 @@
   }: TableProviderProps = $props();
 
   // Store is built once from the initial persistence config — not meant to
-  // re-create if the prop changes reactively.
+  // re-create if the prop changes reactively. The initial* seeds are equally
+  // construction-time-only (seed-once): later changes to initialSort /
+  // initialFilters / initialSelectedIds are ignored, and each axis only fills
+  // what persistence left empty — a persisted value wins (see TableSeedState).
+  // A controlled `selectedIds` prop supersedes `initialSelectedIds` entirely:
+  // the seed is dropped so the prop is the source of truth from the first
+  // render (and, per syncSelection, is never mirrored to storage).
   // svelte-ignore state_referenced_locally
-  const tableState = createTableState(persistenceConfig);
+  const tableState = createTableState(persistenceConfig, {
+    sort: initialSort,
+    filters: initialFilters,
+    selectedIds: selectedIds === undefined ? initialSelectedIds : undefined
+  });
   attachTableContext(tableState);
 
   const {
@@ -91,6 +113,17 @@
         const result = ColumnValidation.validateColumns(columns);
         if (!result.isValid) {
           console.warn('[Table] Column validation:', result.errors);
+        }
+        // Columns are unknown at store construction, so a seeded sort against
+        // a nonexistent column stays silently inert (read-tolerant). Surface
+        // it here, where columns are first known. The seed is
+        // construction-time-only — read it untracked so a later prop change
+        // cannot re-run this effect.
+        const seededSort = untrack(() => initialSort);
+        if (seededSort?.column && !findColumnById(columns, seededSort.column)) {
+          console.warn(
+            `[Table] initialSort.column "${seededSort.column}" does not match any column id — the seeded sort has no effect.`
+          );
         }
       }
     }

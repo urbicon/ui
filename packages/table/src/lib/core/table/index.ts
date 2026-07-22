@@ -1,6 +1,7 @@
 import type { Snippet } from 'svelte';
 import type {
   Column,
+  Filter,
   SummaryConfig,
   TableItem,
   TablePersistenceConfig,
@@ -184,6 +185,35 @@ export interface TableProps<T = TableItem> {
    * @default []
    */
   initialSummaryConfigs?: SummaryConfig[];
+
+  /**
+   * Initial sort (if no persisted value exists). Seeds the uncontrolled sort
+   * state once when the table is created: the header sort indicator shows it
+   * and, in server mode, the very first emitted query already contains it —
+   * so URL-synced sort params survive the initial emission. A sort restored
+   * via `persistenceConfig` (`persistSort`) takes precedence. Later changes
+   * to this prop are ignored; users can still change or clear the sort.
+   * `column` must match a column's resolved id. Caveat when combined with
+   * `persistenceConfig`: persistence stores only non-empty values, so a sort
+   * the user *cleared* does not survive a reload — the seed applies again on
+   * the next visit.
+   * @default undefined
+   */
+  initialSort?: { column: string; direction: 'asc' | 'desc' };
+
+  /**
+   * Initial advanced filters (if no persisted value exists). Seeds the
+   * uncontrolled filter state once when the table is created: the filter
+   * chips show them and, in server mode, the very first emitted query
+   * already contains them. Filters restored via `persistenceConfig`
+   * (`persistFilters`) take precedence. Later changes to this prop are
+   * ignored; users can still add or remove filters. Caveat when combined
+   * with `persistenceConfig`: persistence stores only non-empty values, so a
+   * filter set the user *cleared* does not survive a reload — the seed
+   * applies again on the next visit.
+   * @default undefined
+   */
+  initialFilters?: Filter[];
 
   /**
    * Enable smart filtering functionality
@@ -523,6 +553,21 @@ export interface TableProps<T = TableItem> {
    * @default "none"
    */
   selectionMode?: 'none' | 'single' | 'multi';
+
+  /**
+   * Initial selected row ids (if no persisted value exists). Seeds the
+   * uncontrolled selection once when the table is created. Ignored entirely
+   * when the controlled `selectedIds` prop is set — controlled always wins.
+   * A selection restored via `persistenceConfig.persistSelection` takes
+   * precedence. Later changes to this prop are ignored; users can still
+   * change or clear the selection. Rows are keyed by `item.id` (row-index
+   * fallback). Caveat when combined with
+   * `persistenceConfig.persistSelection`: persistence stores only non-empty
+   * values, so a selection the user *cleared* does not survive a reload —
+   * the seed applies again on the next visit.
+   * @default undefined
+   */
+  initialSelectedIds?: Array<string | number>;
 
   /**
    * Controlled selected row IDs. When provided, the component reflects this value

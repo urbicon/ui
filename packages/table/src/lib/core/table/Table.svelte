@@ -46,6 +46,9 @@
     groupOrder = [],
     initialGroupBy = null,
     initialSummaryConfigs = [],
+    initialSort = undefined,
+    initialFilters = undefined,
+    initialSelectedIds = undefined,
 
     enableSmartFilter = true,
     enableColumnVisibility = true,
@@ -183,6 +186,9 @@
   {groupOrder}
   {initialGroupBy}
   {initialSummaryConfigs}
+  {initialSort}
+  {initialFilters}
+  {initialSelectedIds}
   {multiExpand}
   loading={false}
   {persistenceConfig}

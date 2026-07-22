@@ -231,8 +231,11 @@ export interface TableQueryUrlSyncOptions extends TableQueryUrlOptions {
  *
  * Two directions, both explicit:
  * - **URL → query**: `initialQuery` is parsed once at creation (SSR-safe) —
- *   seed the table (`initialPage`, `initialGroupBy`, controlled `searchTerm`)
- *   and run the first fetch from it.
+ *   seed the table (`initialPage`, `initialGroupBy`, `initialSort`,
+ *   `initialFilters`, controlled `searchTerm`) and run the first fetch from
+ *   it. The seeds land before the table's first query emission, so URL sort/
+ *   filter params survive it; note that a value restored via the table's
+ *   `persistenceConfig` wins over an `initial*` seed for its axis.
  * - **query → URL**: pass `syncQuery` the query from `onQueryChange`, or call
  *   it inside `queryFn` (when `queryFn` is set, `onQueryChange` does not
  *   fire). It rewrites only its own — optionally prefixed — params via

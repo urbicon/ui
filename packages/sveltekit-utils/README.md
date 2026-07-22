@@ -75,6 +75,10 @@ Opt-in URL sync for `@urbicon-ui/table` in `mode="server"`: the `TableQuery` the
   itemsPerPage={25}
   initialPage={sync.initialQuery.page}
   initialGroupBy={sync.initialQuery.groupByKey}
+  initialSort={sync.initialQuery.sortColumn
+    ? { column: sync.initialQuery.sortColumn, direction: sync.initialQuery.sortDirection }
+    : undefined}
+  initialFilters={sync.initialQuery.activeFilters}
   queryFn={async (query, { signal }) => {
     sync.syncQuery(query); // mirror the query onto the URL (replaceState)
     const res = await fetch(`/api/users?${tableQueryToSearchParams(query)}`, { signal });
@@ -100,11 +104,11 @@ export const load = async ({ url }) => {
 
 **Design notes**
 
-- **Default elision** — values equal to `defaults` are not written; a table in its default state leaves the URL clean. Set `defaults` to the table's initial props (`itemsPerPage`, `initialPage`, `initialGroupBy`) so the elision baseline matches the state the table starts in.
+- **Default elision** — values equal to `defaults` are not written; a table in its default state leaves the URL clean. Set `defaults` to the table's initial props (`itemsPerPage`, `initialPage`, `initialGroupBy`, and `sortColumn`/`sortDirection` when the table ships a baked-in `initialSort`) so the elision baseline matches the state the table starts in.
 - **Read tolerant, write strict** — unparsable params fall back to the defaults and malformed `filter` entries are skipped; serializing a structurally invalid query (non-positive page, unknown operator) throws instead of writing corrupt state.
 - **Namespacing** — `prefix: 't_'` scopes all keys (`?t_q=…`) for multiple synced tables on one page; unrelated params are always preserved.
 - **Types** — `TableQueryParams` is a structural mirror of the table's `TableQuery` (no dependency on `@urbicon-ui/table`; a parity test in the table package guards against drift).
-- **Seeding limits** — the table currently has no `initialSort` / initial-filter props, so sort/filter state parsed from the URL can seed your fetch but not the table's header indicators. Once those props exist, `initialQuery` covers them too.
+- **Seeding** — every axis the URL carries can seed the table: `initialPage`, `initialGroupBy`, `initialSort`, `initialFilters` (plus controlled `searchTerm` with an `onSearchTermChange` write-back). The seeds land before the table's first query emission, so a shared URL's sort/filter params survive it — the header indicator and filter chips show the URL state instead of the first emission wiping it. One precedence caveat: the `initial*` props seed only what `persistenceConfig` left empty — when both are active, a persisted sort/filter/group wins over the URL. And since persistence stores only non-empty values, a state the user _cleared_ reads as empty on the next load and the seed applies again. Scope or disable persistence for URL-driven tables if the link should be the source of truth.
 
 ## Cron Runner (`cron`)
 
