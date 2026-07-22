@@ -83,5 +83,5 @@ export function createRippleMint(defaultConfig: RippleConfig = {}): Mint<RippleC
  * Called by registerDefaultMints() - not at module level.
  */
 export function registerRipple(registry: typeof mintRegistry): void {
-  registry.register('ripple', createRippleMint);
+  registry.registerBuiltin('ripple', createRippleMint);
 }

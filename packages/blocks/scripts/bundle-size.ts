@@ -38,6 +38,15 @@
  * dragging the full icon registry (the `getIcon()` anti-pattern) or another
  * barrel jumps by an order of magnitude and fails `--check` immediately.
  * CSS is out of scope (Tailwind generates it consumer-side).
+ *
+ * Chunk accounting: min/gzip (and the baseline/--check gate) count only the
+ * chunks statically reachable from the entry — what the consumer pays on page
+ * load. Chunks reachable only via dynamic import() (e.g. the mint built-in
+ * set behind `mintRegistry.apply`'s demand-load) are priced on use, not on
+ * load; they are reported in a separate `lazy gz` column and gated separately
+ * in --check (the baseline records them per component under `lazy`), so they
+ * stay visible and cannot silently grow without polluting the load-cost
+ * headline.
  */
 import { existsSync, mkdirSync, readdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { dirname, join, resolve } from 'node:path';
@@ -74,6 +83,8 @@ interface Measurement extends Size {
   name: string;
   kind: Group['kind'];
   exports: string[];
+  /** Demand-loaded (dynamic-import-only) chunk bytes — excluded from min/gz. */
+  lazy: Size;
   /** min bytes per source module (only populated with --breakdown). */
   bySource?: Map<string, number>;
 }
@@ -81,7 +92,9 @@ interface Measurement extends Size {
 interface Baseline {
   note: string;
   toolchain: { svelte: string; vite: string };
-  sizes: Record<string, Size>;
+  // `lazy` is absent in baselines written before demand-loaded chunks existed
+  // (read tolerantly as 0/0); every new write records it uniformly.
+  sizes: Record<string, Size & { lazy?: Size }>;
 }
 
 // --- CLI ---------------------------------------------------------------------
@@ -212,7 +225,7 @@ function shortSource(source: string): string {
 async function measure(
   code: string,
   { bundleSvelte = false, dumpName = '' } = {}
-): Promise<Size & { bySource?: Map<string, number> }> {
+): Promise<Size & { lazy: Size; bySource?: Map<string, number> }> {
   const result = await build({
     configFile: false,
     root: REPO_ROOT,
@@ -246,10 +259,14 @@ async function measure(
   });
 
   const outputs = Array.isArray(result) ? result : [result];
-  let min = 0;
-  let gz = 0;
-  const chunks: string[] = [];
-  const bySource = args.breakdown ? new Map<string, number>() : undefined;
+  interface MeasuredChunk {
+    fileName: string;
+    isEntry: boolean;
+    imports: string[];
+    code: string;
+    map: { sources: string[]; mappings: string } | null;
+  }
+  const chunks: MeasuredChunk[] = [];
   for (const out of outputs) {
     if (!('output' in out)) continue;
     for (const item of out.output) {
@@ -258,17 +275,55 @@ async function measure(
       // stay byte-identical with plain runs (and the baseline).
       const chunkCode = item.code.replace(/\n?\/\/# sourceMappingURL=\S*\s*$/, '');
       if (chunkCode.trim() === '') continue; // fully tree-shaken — no gzip-header phantom bytes
-      min += Buffer.byteLength(chunkCode);
-      gz += gzipSync(chunkCode, { level: 9 }).length;
-      chunks.push(chunkCode);
-      if (bySource && item.map) attributeBySource(chunkCode, item.map, bySource);
+      chunks.push({
+        fileName: item.fileName,
+        isEntry: item.isEntry,
+        imports: item.imports,
+        code: chunkCode,
+        map: item.map
+      });
+    }
+  }
+
+  // Initial = chunks statically reachable from the entry (walk `imports`, the
+  // static edges). Everything else is only reachable via dynamic import() —
+  // demand-loaded at runtime, paid on first use rather than on page load, so
+  // it is summed separately and kept out of the headline (and the baseline).
+  const byName = new Map(chunks.map((c) => [c.fileName, c]));
+  const reachable = new Set<string>();
+  const stack = chunks.filter((c) => c.isEntry).map((c) => c.fileName);
+  while (stack.length > 0) {
+    const name = stack.pop() as string;
+    if (reachable.has(name)) continue;
+    reachable.add(name);
+    const chunk = byName.get(name);
+    if (chunk) stack.push(...chunk.imports);
+  }
+
+  let min = 0;
+  let gz = 0;
+  const lazy: Size = { min: 0, gz: 0 };
+  const dumped: string[] = [];
+  const bySource = args.breakdown ? new Map<string, number>() : undefined;
+  for (const chunk of chunks) {
+    const bytes = Buffer.byteLength(chunk.code);
+    const gzBytes = gzipSync(chunk.code, { level: 9 }).length;
+    if (reachable.has(chunk.fileName)) {
+      min += bytes;
+      gz += gzBytes;
+      if (bySource && chunk.map) attributeBySource(chunk.code, chunk.map, bySource);
+      dumped.push(chunk.code);
+    } else {
+      lazy.min += bytes;
+      lazy.gz += gzBytes;
+      dumped.push(`// ---- demand-loaded chunk (${chunk.fileName}) ----\n${chunk.code}`);
     }
   }
   if (args.dump && dumpName) {
     mkdirSync(args.dump, { recursive: true });
-    writeFileSync(join(args.dump, `${dumpName}.js`), chunks.join('\n// ---- next chunk ----\n'));
+    writeFileSync(join(args.dump, `${dumpName}.js`), dumped.join('\n// ---- next chunk ----\n'));
   }
-  return { min, gz, bySource };
+  return { min, gz, lazy, bySource };
 }
 
 function entryFor(exports: string[]): string {
@@ -382,6 +437,7 @@ async function main(): Promise<void> {
             exports: m.exports,
             min: m.min,
             gz: m.gz,
+            lazy: m.lazy,
             ...(args.breakdown ? { breakdown: Object.fromEntries(breakdownOf(m)) } : {})
           }))
         },
@@ -393,14 +449,18 @@ async function main(): Promise<void> {
     // The net column only earns its place once the barrel floor is non-zero
     // (a side-effect module that every barrel import would pay for).
     const showNet = barrel.gz > 0;
+    // Demand-loaded column only when some group actually splits off a chunk.
+    const showLazy = sorted.some((m) => m.lazy.gz > 0);
     const nameWidth = Math.max(...sorted.map((m) => m.name.length), 9) + 2;
     const netHead = showNet ? ` ${pad('net gz*', 10, true)}` : '';
+    const lazyHead = showLazy ? ` ${pad('lazy gz†', 10, true)}` : '';
     console.log('');
     console.log(
-      `${pad('Component', nameWidth)} ${pad('min', 10, true)} ${pad('gzip', 10, true)}${netHead} ${pad('Δ gz vs baseline', 18, true)}`
+      `${pad('Component', nameWidth)} ${pad('min', 10, true)} ${pad('gzip', 10, true)}${netHead}${lazyHead} ${pad('Δ gz vs baseline', 18, true)}`
     );
     for (const m of sorted) {
       const netCol = showNet ? ` ${pad(kb(Math.max(0, m.gz - barrel.gz)), 10, true)}` : '';
+      const lazyCol = showLazy ? ` ${pad(m.lazy.gz > 0 ? kb(m.lazy.gz) : '—', 10, true)}` : '';
       const base = baseline?.sizes[m.name];
       let delta = base ? '' : 'new';
       if (base) {
@@ -412,7 +472,7 @@ async function main(): Promise<void> {
             : `${d > 0 ? '+' : '−'}${kb(Math.abs(d))} (${d > 0 ? '+' : '−'}${Math.abs(Number(pct))} %)`;
       }
       console.log(
-        `${pad(m.name, nameWidth)} ${pad(kb(m.min), 10, true)} ${pad(kb(m.gz), 10, true)}${netCol} ${pad(delta, 18, true)}`
+        `${pad(m.name, nameWidth)} ${pad(kb(m.min), 10, true)} ${pad(kb(m.gz), 10, true)}${netCol}${lazyCol} ${pad(delta, 18, true)}`
       );
     }
     console.log('');
@@ -424,6 +484,11 @@ async function main(): Promise<void> {
     }
     if (showNet) {
       console.log(`* net gz ≈ gzip − barrel floor (gzip is not additive; approximation)`);
+    }
+    if (showLazy) {
+      console.log(
+        `† demand-loaded via dynamic import() (e.g. the mint built-in set) — fetched on first use, not on page load; excluded from min/gzip and the baseline`
+      );
     }
     console.log(
       `Measured in ${seconds}s. Svelte ${versionOf('svelte')}, Vite ${versionOf('vite')}.`
@@ -453,13 +518,22 @@ async function main(): Promise<void> {
   // --- Baseline handling -----------------------------------------------------
 
   if (args['update-baseline']) {
-    const sizes: Record<string, Size> = { __barrel__: barrel };
+    // Uniform entry shape ({ min, gz, lazy }) for every row, __barrel__
+    // included — no field beyond these three ever leaks into the baseline.
+    const entry = (s: Size & { lazy?: Size }): Size & { lazy: Size } => ({
+      min: s.min,
+      gz: s.gz,
+      lazy: { min: s.lazy?.min ?? 0, gz: s.lazy?.gz ?? 0 }
+    });
+    const sizes: Record<string, Size & { lazy: Size }> = {};
     // Full (unfiltered) runs replace the baseline; filtered runs patch into it.
-    if (filters.length > 0 && baseline)
-      Object.assign(sizes, baseline.sizes, { __barrel__: barrel });
-    for (const m of measurements) sizes[m.name] = { min: m.min, gz: m.gz };
+    if (filters.length > 0 && baseline) {
+      for (const [name, s] of Object.entries(baseline.sizes)) sizes[name] = entry(s);
+    }
+    sizes.__barrel__ = entry(barrel);
+    for (const m of measurements) sizes[m.name] = entry(m);
     const next: Baseline = {
-      note: 'Generated by scripts/bundle-size.ts (--update-baseline). Net-of-Svelte, minified; gz = gzip -9.',
+      note: 'Generated by scripts/bundle-size.ts (--update-baseline). Net-of-Svelte, minified; gz = gzip -9. min/gz cover initial (statically reachable) chunks; lazy = demand-loaded dynamic-import chunks, gated separately.',
       toolchain: { svelte: versionOf('svelte'), vite: versionOf('vite') },
       sizes: Object.fromEntries(Object.entries(sizes).sort(([a], [b]) => a.localeCompare(b)))
     };
@@ -484,6 +558,15 @@ async function main(): Promise<void> {
       if (growth > Math.max(TOLERANCE_BYTES, base.gz * TOLERANCE_RATIO)) {
         failures.push(
           `${m.name}: ${kb(base.gz)} → ${kb(m.gz)} gz (+${kb(growth)}). Tree-shaking regression? If intentional, run --update-baseline.`
+        );
+      }
+      // Demand-loaded chunks are not load-time cost, but silent unbounded
+      // growth would still be a regression — gate them on their own budget.
+      const baseLazyGz = base.lazy?.gz ?? 0;
+      const lazyGrowth = m.lazy.gz - baseLazyGz;
+      if (lazyGrowth > Math.max(TOLERANCE_BYTES, baseLazyGz * TOLERANCE_RATIO)) {
+        failures.push(
+          `${m.name}: lazy chunk ${kb(baseLazyGz)} → ${kb(m.lazy.gz)} gz (+${kb(lazyGrowth)}). Demand-loaded set growing? If intentional, run --update-baseline.`
         );
       }
     }

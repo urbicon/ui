@@ -8,6 +8,11 @@ let defaultMintsRegistered = false;
 /**
  * Register all default mints (scale, translate, rotate, glow, bounce, pulse, shake, ripple, composite).
  * Safe to call multiple times – subsequent calls are no-ops.
+ *
+ * All registrations go through `registerBuiltin` (register-if-absent), so a
+ * consumer `register()` override for a built-in name ALWAYS survives — no
+ * matter whether the override ran before this call or while the demand-load
+ * that triggers it was still in flight.
  */
 export function registerDefaultMints(): void {
   if (defaultMintsRegistered) return;
@@ -30,17 +35,18 @@ export function registerPlayfulMints(): void {
 }
 
 /**
- * Register business mints bundle
+ * Register business mints bundle.
+ * Registered via `registerBuiltin`: a consumer override for these names wins.
  */
 export function registerBusinessMints(): void {
   // Subtle mints for professional UIs
-  mintRegistry.register('fade', () => ({
+  mintRegistry.registerBuiltin('fade', () => ({
     init(el) {
       el.classList.add('blocks-mint-fade');
     }
   }));
 
-  mintRegistry.register('slide', () => ({
+  mintRegistry.registerBuiltin('slide', () => ({
     init(el) {
       el.classList.add('blocks-mint-slide');
     }

@@ -2,7 +2,7 @@
 
 export { composeMints, createCompositeMint } from './compose';
 // Mint factories
-export { createMicroInteraction } from './micro-interactions';
+export { createMicroInteraction, scaleMint } from './engine';
 // Presets
 export {
   mintPresets,
@@ -10,7 +10,7 @@ export {
   registerDefaultMints,
   registerPlayfulMints
 } from './presets';
-export { mintRegistry } from './registry';
+export { type MintFallbacks, mintRegistry } from './registry';
 export { createRippleMint } from './ripple';
 
 // Svelte integration

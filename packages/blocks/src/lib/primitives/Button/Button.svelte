@@ -1,5 +1,9 @@
 <script lang="ts">
   import { mintRegistry, Spinner } from '$lib';
+  // Direct import (not the barrel): the resolveIcon tree-shaking pattern.
+  // Button's mint default is 'scale', so the scale factory ships statically
+  // as the apply() fallback; every other mint name stays demand-loaded.
+  import { scaleMint } from '$lib/mint/engine';
   import { getBlocksConfig, resolveSlotClasses } from '$lib/provider';
   import { getButtonGroupContext } from '../ButtonGroup/buttonGroup.context';
   import { buttonVariants, type ButtonVariants } from '$lib/primitives';
@@ -80,7 +84,7 @@
       !effectiveDisabled &&
       !loading
     ) {
-      return mintRegistry.apply(buttonElement, effectiveMint);
+      return mintRegistry.apply(buttonElement, effectiveMint, { scale: scaleMint });
     }
   });
 

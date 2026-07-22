@@ -1,111 +1,27 @@
+import { createMicroInteraction, prefersReducedMotion, scaleMint } from './engine';
 import type { mintRegistry } from './registry';
-import type { MicroInteractionConfig, Mint } from './types';
+import type { MicroInteractionConfig } from './types';
 
 /**
- * Check if user prefers reduced motion
+ * Built-in micro-interaction registrations.
+ *
+ * The generic engine (`createMicroInteraction`) and the statically-shipped
+ * default (`scaleMint`) live in `./engine.ts` — this module must contain ONLY
+ * registration code, because it is reachable exclusively through the
+ * demand-loaded `./presets.ts` chunk. Anything defined here would otherwise
+ * be dragged back into every component's initial bundle once a statically
+ * imported module shared it (Rollup assigns a shared module's whole
+ * used-export-set to the chunk that statically owns it).
  */
-function prefersReducedMotion(): boolean {
-  return window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-}
-
-/**
- * Generic micro-interaction factory
- */
-export function createMicroInteraction(
-  className: string,
-  defaultConfig: MicroInteractionConfig = {}
-): Mint<MicroInteractionConfig> {
-  return {
-    init(el, config = {}) {
-      // Merge default config with provided config
-      const finalConfig = { ...defaultConfig, ...config };
-
-      // Skip if disabled or prefers reduced motion
-      if (finalConfig.disabled || prefersReducedMotion()) return;
-
-      const trigger = finalConfig.trigger || 'hover';
-      const duration = finalConfig.duration || 200;
-      const delay = finalConfig.delay || 0;
-
-      // Determine event based on trigger
-      const eventMap = {
-        hover: 'mouseenter',
-        click: 'click',
-        focus: 'focus',
-        load: 'load'
-      };
-      const event = eventMap[trigger] || 'mouseenter';
-
-      const handler = () => {
-        // Skip if this specific animation is already running
-        const animatingAttr = `data-animating-${className}`;
-        if (el.getAttribute(animatingAttr) === 'true') return;
-
-        // Apply delay if specified
-        const applyAnimation = () => {
-          el.setAttribute(animatingAttr, 'true');
-
-          // Add dynamic styles if intensity is specified
-          if (finalConfig.intensity && className.includes('scale')) {
-            el.style.setProperty('--scale-intensity', finalConfig.intensity.toString());
-          }
-
-          el.classList.add(className);
-
-          const cleanup = () => {
-            el.classList.remove(className);
-            el.removeAttribute(animatingAttr);
-            el.style.removeProperty('--scale-intensity');
-            el.removeEventListener('animationend', cleanup);
-            el.removeEventListener('transitionend', cleanup);
-          };
-
-          el.addEventListener('animationend', cleanup, { once: true });
-          el.addEventListener('transitionend', cleanup, { once: true });
-
-          // Fallback timeout
-          setTimeout(cleanup, duration + 50);
-        };
-
-        if (delay > 0) {
-          setTimeout(applyAnimation, delay);
-        } else {
-          applyAnimation();
-        }
-      };
-
-      // Special handling for load trigger
-      if (trigger === 'load') {
-        // Execute immediately if element is already loaded
-        requestAnimationFrame(() => handler());
-      } else {
-        el.addEventListener(event, handler, { passive: true });
-      }
-
-      // Store cleanup function
-      this.destroy = () => {
-        if (event !== 'load') {
-          el.removeEventListener(event, handler);
-        }
-      };
-    }
-  };
-}
 
 /**
  * Register all default micro-interaction mints.
  * Called by registerDefaultMints() - not at module level.
  */
 export function registerMicroInteractions(registry: typeof mintRegistry): void {
-  registry.register('scale', (config?: MicroInteractionConfig) =>
-    createMicroInteraction('blocks-mint-scale', {
-      trigger: 'hover',
-      duration: 200,
-      ...config
-    })
-  );
+  registry.registerBuiltin('scale', scaleMint);
 
-  registry.register('translate', (config?: MicroInteractionConfig) =>
+  registry.registerBuiltin('translate', (config?: MicroInteractionConfig) =>
     createMicroInteraction('blocks-mint-translate', {
       trigger: 'hover',
       duration: 200,
@@ -113,7 +29,7 @@ export function registerMicroInteractions(registry: typeof mintRegistry): void {
     })
   );
 
-  registry.register('rotate', (config?: MicroInteractionConfig) =>
+  registry.registerBuiltin('rotate', (config?: MicroInteractionConfig) =>
     createMicroInteraction('blocks-mint-rotate', {
       trigger: 'hover',
       duration: 200,
@@ -121,7 +37,7 @@ export function registerMicroInteractions(registry: typeof mintRegistry): void {
     })
   );
 
-  registry.register('glow', (config?: MicroInteractionConfig) =>
+  registry.registerBuiltin('glow', (config?: MicroInteractionConfig) =>
     createMicroInteraction('blocks-mint-glow', {
       trigger: 'hover',
       duration: 300,
@@ -129,7 +45,7 @@ export function registerMicroInteractions(registry: typeof mintRegistry): void {
     })
   );
 
-  registry.register('bounce', (config?: MicroInteractionConfig) =>
+  registry.registerBuiltin('bounce', (config?: MicroInteractionConfig) =>
     createMicroInteraction('blocks-mint-bounce', {
       trigger: 'click',
       duration: 600,
@@ -137,7 +53,7 @@ export function registerMicroInteractions(registry: typeof mintRegistry): void {
     })
   );
 
-  registry.register('pulse', (config?: MicroInteractionConfig) => ({
+  registry.registerBuiltin('pulse', (config?: MicroInteractionConfig) => ({
     init(el, inputConfig = {}) {
       const finalConfig = { trigger: 'hover', ...config, ...inputConfig };
 
@@ -181,7 +97,7 @@ export function registerMicroInteractions(registry: typeof mintRegistry): void {
     }
   }));
 
-  registry.register('shake', (config?: MicroInteractionConfig) =>
+  registry.registerBuiltin('shake', (config?: MicroInteractionConfig) =>
     createMicroInteraction('blocks-mint-shake', {
       trigger: 'click',
       duration: 500,
@@ -189,7 +105,7 @@ export function registerMicroInteractions(registry: typeof mintRegistry): void {
     })
   );
 
-  registry.register('wiggle', (config?: MicroInteractionConfig) =>
+  registry.registerBuiltin('wiggle', (config?: MicroInteractionConfig) =>
     createMicroInteraction('blocks-mint-wiggle', {
       trigger: 'hover',
       duration: 500,

@@ -162,6 +162,39 @@ mintRegistry.register('my-mint', (config) => ({
 - **Throttling**: Verhindert Spam bei schnellen Interaktionen
 - **Cleanup**: Automatische Bereinigung bei Component-Unmount
 
+## Auflösung & Tree-Shaking (resolveIcon-Muster)
+
+`mintRegistry.apply(el, mint, fallbacks?)` löst jeden Mint-Namen in dieser
+Reihenfolge auf:
+
+1. **Registry-Eintrag** — Consumer-`register()`-Override oder bereits geladene
+   Built-ins (gewinnt immer, wie der IconProvider bei `resolveIcon`).
+2. **`fallbacks`** — statisch importierte Factories des Aufrufers. Button
+   importiert `scaleMint` direkt (`{ scale: scaleMint }`), damit sein Default
+   tree-shaken mitkommt, ohne das gesamte Built-in-Set zu ziehen.
+3. **Demand-Load** — unbekannte Namen laden das Built-in-Set einmalig per
+   dynamischem `import('./presets')` nach (Chunk wird nur gefetcht, wenn
+   tatsächlich ein dynamischer Mint-Name verwendet wird) und wenden den Effekt
+   danach an. `<Button mint="ripple">` funktioniert also weiterhin ohne
+   manuelles `registerDefaultMints()`.
+
+**Kontrakt Demand-Load (dokumentiert):** Mint-Effekte sind dekorativ.
+Interaktionen im Fetch-Fenster werden NICHT nachgespielt — auf langsamen
+Netzen kann der erste Klick für einen noch nicht geladenen click-getriggerten
+Effekt (`ripple`, `shake`, …) verloren gehen; hover-getriggerte Effekte
+greifen ab dem nächsten `mouseenter`. Consumer-Overrides überleben den
+Demand-Load immer (die Built-ins registrieren sich nur auf freie Namen —
+`registerBuiltin`). Wer First-Interaction-Garantien braucht, registriert den
+Effekt statisch beim App-Start: `registerDefaultMints()` oder
+`mintRegistry.register(name, factory)` mit direkt importierter Factory.
+
+Modul-Layout (load-bearing für die Chunk-Zuordnung): `engine.ts` enthält die
+Micro-Interaction-Engine + `scaleMint` (schifft statisch mit Button);
+`micro-interactions.ts` enthält NUR die Registrierungen und ist ausschließlich
+über den demand-geladenen `presets.ts`-Chunk erreichbar. Neue statisch
+verschiffte Default-Effekte gehören in `engine.ts` (oder ein eigenes Modul),
+niemals in `micro-interactions.ts`.
+
 ## Accessibility
 
 Das Mint-System respektiert automatisch `prefers-reduced-motion`:
