@@ -8,8 +8,10 @@ Build/maintenance scripts for `@urbicon-ui/blocks`:
   Svelte (`bun run size:blocks`, needs a built `dist/`). Builds one virtual
   consumer entry per component directory via Vite and measures raw + gzip.
   `--filter <name>` for a subset, `--dump <dir>` to inspect what a bundle pulls
-  in, `--update-baseline` to record `bundle-size.baseline.json`, `--check` as
-  tree-shaking regression gate (fails when gzip grows > max(256 B, 3 %)).
+  in, `--breakdown` for a per-source-module byte attribution (sourcemap-based —
+  answers "what exactly makes this big?"), `--update-baseline` to record
+  `bundle-size.baseline.json`, `--check` as tree-shaking regression gate (fails
+  when gzip grows > max(256 B, 3 %)).
 - `add-icons.ts`, `fix-icon-components.ts`, `fix-svgs.ts`, `refactor-icons.ts`,
   `wrap-svgs.ts` — one-off icon-pipeline helpers.
 

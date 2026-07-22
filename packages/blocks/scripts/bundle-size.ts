@@ -29,6 +29,10 @@
  *   bun scripts/bundle-size.ts --check            # CI gate: fail on gz growth > max(256 B, 3 %)
  *   bun scripts/bundle-size.ts --json             # machine-readable report on stdout
  *   bun scripts/bundle-size.ts --concurrency 4    # parallel builds (default 4)
+ *   bun scripts/bundle-size.ts --filter button --breakdown
+ *                                                 # per-source-module byte attribution
+ *                                                 # (sourcemap-based; answers "what
+ *                                                 # exactly makes this big?")
  *
  * The tool doubles as a tree-shaking regression guard: a component that starts
  * dragging the full icon registry (the `getIcon()` anti-pattern) or another
@@ -70,6 +74,8 @@ interface Measurement extends Size {
   name: string;
   kind: Group['kind'];
   exports: string[];
+  /** min bytes per source module (only populated with --breakdown). */
+  bySource?: Map<string, number>;
 }
 
 interface Baseline {
@@ -89,7 +95,9 @@ const { values: args } = parseArgs({
     concurrency: { type: 'string', default: '4' },
     // Debugging aid: write each measured bundle to <dir>/<name>.js so a
     // suspicious size can be inspected (what exactly got pulled in?).
-    dump: { type: 'string' }
+    dump: { type: 'string' },
+    // Per-source-module byte attribution via sourcemap (use with --filter).
+    breakdown: { type: 'boolean', default: false }
   }
 });
 
@@ -123,10 +131,88 @@ function discoverGroups(): Group[] {
   return groups;
 }
 
+// --- Sourcemap attribution (--breakdown) -------------------------------------
+
+const B64_CHARS = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/';
+const B64: Record<string, number> = Object.fromEntries([...B64_CHARS].map((c, i) => [c, i]));
+
+/** Decode one sourcemap VLQ segment ("AACA" → [0, 0, 1, 0]). */
+function decodeSegment(seg: string): number[] {
+  const out: number[] = [];
+  let value = 0;
+  let shift = 0;
+  for (const ch of seg) {
+    const digit = B64[ch];
+    value |= (digit & 31) << shift;
+    if (digit & 32) {
+      shift += 5;
+    } else {
+      out.push(value & 1 ? -(value >>> 1) : value >>> 1);
+      value = 0;
+      shift = 0;
+    }
+  }
+  return out;
+}
+
+/**
+ * Attribute a chunk's minified bytes to their source modules: each mapping
+ * segment owns the generated columns up to the next segment (or line end).
+ * Columns are UTF-16 units, bytes are UTF-8 — close enough for a breakdown.
+ */
+function attributeBySource(
+  code: string,
+  map: { sources: string[]; mappings: string },
+  into: Map<string, number>
+): void {
+  const codeLines = code.split('\n');
+  const mappingLines = map.mappings.split(';');
+  let srcIdx = 0; // persists across segments and lines per spec
+  for (let li = 0; li < mappingLines.length; li++) {
+    const lineLen = codeLines[li]?.length ?? 0;
+    const points: Array<{ col: number; src: string }> = [];
+    let genCol = 0;
+    for (const seg of mappingLines[li].split(',')) {
+      if (seg === '') continue;
+      const fields = decodeSegment(seg);
+      genCol += fields[0];
+      if (fields.length >= 4) {
+        srcIdx += fields[1];
+        points.push({ col: genCol, src: map.sources[srcIdx] ?? '<unknown>' });
+      } else {
+        points.push({ col: genCol, src: '<unmapped>' });
+      }
+    }
+    if (points.length === 0) {
+      if (lineLen > 0) into.set('<unmapped>', (into.get('<unmapped>') ?? 0) + lineLen);
+      continue;
+    }
+    if (points[0].col > 0) into.set('<unmapped>', (into.get('<unmapped>') ?? 0) + points[0].col);
+    for (let i = 0; i < points.length; i++) {
+      const end = i + 1 < points.length ? points[i + 1].col : lineLen;
+      const bytes = Math.max(0, end - points[i].col);
+      if (bytes > 0) into.set(points[i].src, (into.get(points[i].src) ?? 0) + bytes);
+    }
+  }
+}
+
+/** Shorten a sourcemap source path to something readable in the report. */
+function shortSource(source: string): string {
+  const markers = ['/packages/', '/node_modules/'];
+  for (const marker of markers) {
+    const at = source.lastIndexOf(marker);
+    if (at !== -1) return source.slice(at + 1);
+  }
+  return source.replace(/^(\.\.\/)+/, '');
+}
+
 // --- Measurement -------------------------------------------------------------
 
 /** Build `code` as an app entry against the packaged library; sum minified JS bytes. */
-async function measure(code: string, { bundleSvelte = false, dumpName = '' } = {}): Promise<Size> {
+async function measure(
+  code: string,
+  { bundleSvelte = false, dumpName = '' } = {}
+): Promise<Size & { bySource?: Map<string, number> }> {
   const result = await build({
     configFile: false,
     root: REPO_ROOT,
@@ -149,6 +235,7 @@ async function measure(code: string, { bundleSvelte = false, dumpName = '' } = {
       write: false,
       modulePreload: false,
       reportCompressedSize: false,
+      sourcemap: args.breakdown,
       rollupOptions: {
         input: VIRTUAL_ID,
         // Net-of-Svelte is the headline number: the runtime is shared across
@@ -162,21 +249,26 @@ async function measure(code: string, { bundleSvelte = false, dumpName = '' } = {
   let min = 0;
   let gz = 0;
   const chunks: string[] = [];
+  const bySource = args.breakdown ? new Map<string, number>() : undefined;
   for (const out of outputs) {
     if (!('output' in out)) continue;
     for (const item of out.output) {
       if (item.type !== 'chunk') continue; // CSS/assets: out of scope
-      if (item.code.trim() === '') continue; // fully tree-shaken — no gzip-header phantom bytes
-      min += Buffer.byteLength(item.code);
-      gz += gzipSync(item.code, { level: 9 }).length;
-      chunks.push(item.code);
+      // Strip the sourceMappingURL footer --breakdown adds, so its numbers
+      // stay byte-identical with plain runs (and the baseline).
+      const chunkCode = item.code.replace(/\n?\/\/# sourceMappingURL=\S*\s*$/, '');
+      if (chunkCode.trim() === '') continue; // fully tree-shaken — no gzip-header phantom bytes
+      min += Buffer.byteLength(chunkCode);
+      gz += gzipSync(chunkCode, { level: 9 }).length;
+      chunks.push(chunkCode);
+      if (bySource && item.map) attributeBySource(chunkCode, item.map, bySource);
     }
   }
   if (args.dump && dumpName) {
     mkdirSync(args.dump, { recursive: true });
     writeFileSync(join(args.dump, `${dumpName}.js`), chunks.join('\n// ---- next chunk ----\n'));
   }
-  return { min, gz };
+  return { min, gz, bySource };
 }
 
 function entryFor(exports: string[]): string {
@@ -202,6 +294,17 @@ async function pool<T, R>(items: T[], n: number, fn: (item: T) => Promise<R>): P
 
 function kb(bytes: number): string {
   return `${(bytes / 1024).toFixed(1)} KB`;
+}
+
+/** Aggregated, shortened, size-sorted per-module attribution of a measurement. */
+function breakdownOf(m: Measurement): Array<[string, number]> {
+  if (!m.bySource) return [];
+  const agg = new Map<string, number>();
+  for (const [src, bytes] of m.bySource) {
+    const key = shortSource(src);
+    agg.set(key, (agg.get(key) ?? 0) + bytes);
+  }
+  return [...agg.entries()].sort((a, b) => b[1] - a[1]);
 }
 
 function pad(s: string, width: number, right = false): string {
@@ -271,9 +374,16 @@ async function main(): Promise<void> {
       JSON.stringify(
         {
           toolchain: { svelte: versionOf('svelte'), vite: versionOf('vite') },
-          barrel,
+          barrel: { min: barrel.min, gz: barrel.gz },
           svelteRuntimeGz,
-          components: sorted
+          components: sorted.map((m) => ({
+            name: m.name,
+            kind: m.kind,
+            exports: m.exports,
+            min: m.min,
+            gz: m.gz,
+            ...(args.breakdown ? { breakdown: Object.fromEntries(breakdownOf(m)) } : {})
+          }))
         },
         null,
         2
@@ -318,6 +428,26 @@ async function main(): Promise<void> {
     console.log(
       `Measured in ${seconds}s. Svelte ${versionOf('svelte')}, Vite ${versionOf('vite')}.`
     );
+
+    if (args.breakdown) {
+      for (const m of sorted) {
+        const entries = breakdownOf(m);
+        if (entries.length === 0) continue;
+        console.log(`\n${m.name} — minified bytes by source module:`);
+        const top = entries.slice(0, 20);
+        for (const [src, bytes] of top) {
+          const pct = ((bytes / m.min) * 100).toFixed(1).padStart(5);
+          console.log(`  ${pad(kb(bytes), 9, true)}  ${pct} %  ${src}`);
+        }
+        if (entries.length > top.length) {
+          const rest = entries.slice(top.length).reduce((sum, [, b]) => sum + b, 0);
+          const pct = ((rest / m.min) * 100).toFixed(1).padStart(5);
+          console.log(
+            `  ${pad(kb(rest), 9, true)}  ${pct} %  (${entries.length - top.length} more modules)`
+          );
+        }
+      }
+    }
   }
 
   // --- Baseline handling -----------------------------------------------------
