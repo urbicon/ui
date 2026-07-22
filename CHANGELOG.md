@@ -4,6 +4,22 @@ All notable changes to this project will be documented in this file.
 This changelog is automatically generated from [Conventional Commits](https://www.conventionalcommits.org).
 
 
+## [6.33.0] - 2026-07-22
+
+### Breaking Changes
+- **table**: Rename the appearance prop to variant
+> **BREAKING:** the Table prop appearance is now variant (flush | surface | framed unchanged).
+
+### Bug Fixes
+- **blocks**: Migrate ButtonGroup and Toolbar containers to the restProps-first contract
+- **blocks**: Gate calendar day/agenda arrow-key navigation at the date bounds
+- **docs-app**: Name the combobox demos, fix badge warning contrast, defuse the LiveFeed ghost import
+- **docs**: Wake slotClasses.helpToggle and localize the playground reset/hints labels
+
+### Documentation
+- Mark debt-fix-wave-3 entries as in progress
+- Close the debt-fix-wave-3 entries and log the follow-up findings
+
 ## [6.32.0] - 2026-07-22
 
 ### Documentation
