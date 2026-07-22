@@ -414,6 +414,92 @@ describe('ButtonGroup (single-select roving tabindex + keyboard nav)', () => {
   });
 });
 
+describe('ButtonGroup (restProps-first contract on child Buttons)', () => {
+  // Button spreads {...restProps} FIRST and merges its selection attributes
+  // after it (COMPONENT-API-CONVENTIONS §restProps ordering), so a consumer
+  // passing role/aria-checked/data-value through restProps cannot override the
+  // group's selection wiring — the exposure that motivated the migration.
+
+  it('consumer role/aria-checked/data-value via restProps cannot override the selection wiring', () => {
+    renderGroup({
+      selection: 'single',
+      value: 'grid',
+      items: [
+        { value: 'list', label: 'List' },
+        {
+          value: 'grid',
+          label: 'Grid',
+          attrs: { role: 'link', 'aria-checked': 'false', 'data-value': 'evil' }
+        },
+        // The unselected option's internal `false` must also win — the merge
+        // is `??` (undefined-only fallback), not `||`.
+        { value: 'map', label: 'Map', attrs: { 'aria-checked': 'true' } }
+      ]
+    });
+
+    // Still a radio (consumer role lost), still checked, still the real value.
+    const grid = radio('Grid');
+    expect(grid.getAttribute('role')).toBe('radio');
+    expect(grid.getAttribute('aria-checked')).toBe('true');
+    expect(grid.getAttribute('data-value')).toBe('grid');
+    expect(radio('Map').getAttribute('aria-checked')).toBe('false');
+    // Roving resolves the tab stop through the REAL data-value, so the
+    // radiogroup keeps its single tab stop on the selected option.
+    expect(grid.tabIndex).toBe(0);
+    expect(radio('List').tabIndex).toBe(-1);
+    expect(radio('Map').tabIndex).toBe(-1);
+  });
+
+  it('selection still works on a button carrying adversarial restProps', async () => {
+    const user = userEvent.setup();
+    const onSelectionChange = vi.fn();
+    renderGroup({
+      selection: 'single',
+      onSelectionChange,
+      items: [
+        { value: 'list', label: 'List' },
+        { value: 'grid', label: 'Grid', attrs: { role: 'link', 'data-value': 'evil' } }
+      ]
+    });
+
+    await user.click(radio('Grid'));
+
+    expect(radio('Grid').getAttribute('aria-checked')).toBe('true');
+    expect(onSelectionChange).toHaveBeenCalledExactlyOnceWith('grid', ['grid']);
+    expect(probe()).toBe('"grid"');
+  });
+
+  it('forces aria-pressed off on selection options, even against restProps', () => {
+    renderGroup({
+      selection: 'single',
+      value: 'list',
+      items: [{ value: 'list', label: 'List', attrs: { 'aria-pressed': 'true' } }]
+    });
+
+    // A selection role announces via aria-checked; a consumer aria-pressed
+    // would double-announce, so the component actively removes it here.
+    expect(radio('List').hasAttribute('aria-pressed')).toBe(false);
+  });
+
+  it('lets consumer attributes through on a value-less action button inside the group', () => {
+    renderGroup({
+      selection: 'single',
+      value: 'grid',
+      items: [
+        { value: undefined, label: 'Docs', attrs: { role: 'link', 'aria-current': 'page' } },
+        { value: 'list', label: 'List' },
+        { value: 'grid', label: 'Grid' }
+      ]
+    });
+
+    // No selection wiring on the action button → the standalone arm applies
+    // and the consumer's own role/aria survive the merge.
+    const action = screen.getByRole('link', { name: 'Docs' });
+    expect(action.getAttribute('aria-current')).toBe('page');
+    expect(screen.queryAllByRole('radio')).toHaveLength(2);
+  });
+});
+
 describe('ButtonGroup (multiple-select keyboard)', () => {
   it('stays per-item tabbable and does NOT rove — arrow keys are inert', () => {
     const onSelectionChange = vi.fn();

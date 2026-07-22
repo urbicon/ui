@@ -140,3 +140,58 @@ describe('Button (component interaction)', () => {
     expect(instance.getElement()).toBe(button());
   });
 });
+
+describe('Button (restProps-first contract, standalone)', () => {
+  // restProps spreads FIRST (COMPONENT-API-CONVENTIONS §restProps ordering);
+  // the merges after it must not delete consumer attributes outside a
+  // selection group — an explicit `undefined` after a spread removes the
+  // attribute, which is exactly what the migration had to avoid.
+
+  it('keeps a consumer role and supplemental aria/data attributes from restProps', () => {
+    renderButton({ role: 'link', 'aria-current': 'page', 'data-value': 'cta' });
+
+    const el = screen.getByRole('link', { name: 'Save' });
+    expect(el.getAttribute('role')).toBe('link');
+    expect(el.getAttribute('aria-current')).toBe('page');
+    // Outside a group, data-value has no internal owner → consumer's survives.
+    expect(el.getAttribute('data-value')).toBe('cta');
+  });
+
+  it('keeps consumer toggle semantics (role="switch" + aria-checked) from restProps', () => {
+    renderButton({ role: 'switch', 'aria-checked': 'true' });
+
+    const el = screen.getByRole('switch', { name: 'Save' });
+    expect(el.getAttribute('aria-checked')).toBe('true');
+  });
+
+  it('falls back to a consumer aria-pressed only while the component has no pressed state', () => {
+    renderButton({ 'aria-pressed': 'false' });
+    expect(button().getAttribute('aria-pressed')).toBe('false');
+
+    dispose?.();
+    document.body.replaceChildren();
+    // The modeled state wins: pressed=true beats a contradicting restProps value.
+    renderButton({ pressed: true, 'aria-pressed': 'false' });
+    expect(button().getAttribute('aria-pressed')).toBe('true');
+  });
+
+  it('lets internal disabled/busy state win over contradicting restProps values', () => {
+    renderButton({ disabled: true, 'aria-disabled': 'false' });
+    expect(button().getAttribute('aria-disabled')).toBe('true');
+
+    dispose?.();
+    document.body.replaceChildren();
+    renderButton({ loading: true, 'aria-busy': 'false' });
+    expect(button().getAttribute('aria-busy')).toBe('true');
+  });
+
+  it('accepts consumer soft-state (aria-disabled/aria-busy) when the component is idle', () => {
+    renderButton({ 'aria-disabled': 'true', 'aria-busy': 'true' });
+
+    const el = button();
+    // Soft-disable pattern: announced, but not hard-disabled by the component.
+    expect(el.getAttribute('aria-disabled')).toBe('true');
+    expect(el.getAttribute('aria-busy')).toBe('true');
+    expect(el.hasAttribute('disabled')).toBe(false);
+  });
+});

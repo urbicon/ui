@@ -106,8 +106,23 @@
   }
 </script>
 
+<!--
+  restProps spreads FIRST so component-owned state wins (COMPONENT-API-CONVENTIONS
+  §restProps ordering). The ARIA/selection attributes after the spread are
+  conditional merges, not plain overrides: an explicit `undefined` after a spread
+  REMOVES the attribute in Svelte, so a naive `role={ariaProps.role}` would strip
+  a standalone consumer's own `role="link"`. Each merge lets the ButtonGroup
+  selection wiring (role/aria-checked/data-value) and the modeled state
+  (pressed/disabled/loading) win when the component has something to say, and
+  falls back to the consumer's restProps value when it doesn't. Inside a
+  selection group aria-pressed is forced off even against restProps — a selection
+  role announces via aria-checked, and doubling up is an ARIA violation.
+  `type`/`disabled`/`class`/`onclick` are destructured (never in restProps);
+  a consumer onclick is composed inside handleClick.
+-->
 <button
   bind:this={buttonElement}
+  {...restProps}
   {type}
   disabled={effectiveDisabled}
   class={[
@@ -118,13 +133,14 @@
       : styles.base({ class: [slotClasses?.base, className] })
   ]}
   onclick={handleClick}
-  role={ariaProps.role}
-  aria-checked={ariaProps['aria-checked']}
-  data-value={ariaProps['data-value']}
-  aria-pressed={ariaProps.role ? undefined : effectiveActive || effectivePressed || undefined}
-  aria-disabled={effectiveDisabled}
-  aria-busy={loading}
-  {...restProps}
+  role={ariaProps.role ?? restProps.role}
+  aria-checked={ariaProps['aria-checked'] ?? restProps['aria-checked']}
+  data-value={ariaProps['data-value'] ?? restProps['data-value']}
+  aria-pressed={ariaProps.role
+    ? undefined
+    : effectiveActive || effectivePressed || restProps['aria-pressed']}
+  aria-disabled={effectiveDisabled || (restProps['aria-disabled'] ?? false)}
+  aria-busy={loading || (restProps['aria-busy'] ?? false)}
 >
   <span
     class={unstyled
