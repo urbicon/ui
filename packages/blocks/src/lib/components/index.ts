@@ -44,6 +44,7 @@ export type {
 } from './Calendar';
 export * from './Calendar';
 export * from './ChartFrame';
+export * from './Chat';
 export * from './CommandPalette';
 export type { CompositionBarIntent, CompositionBarProps, CompositionItem } from './CompositionBar';
 export * from './CompositionBar';

@@ -492,10 +492,15 @@ export function createIncrementalParser(
         onUnresolvedRef: (label) => unresolvedLabels.add(label)
       };
       for (let k = 0; k < settleCount; k += 1) {
-        const block = Object.assign(materialize(rawBlocks[k], settleCtx), {
-          key: nextKey
-        }) as MarkdownBlock;
-        nextKey += 1;
+        // A settling block must keep the key it was *displayed* under, or the
+        // keyed {#each} remounts it. In the steady state nextKey coincides
+        // with the shown key by construction, but after a computeFresh
+        // reconciliation the shown keys lag behind nextKey — so always prefer
+        // the previous document's key at this position (same kind).
+        const prevShown = doc.blocks[settled.length + k];
+        const block = materialize(rawBlocks[k], settleCtx) as MarkdownBlock;
+        block.key = prevShown && prevShown.kind === block.kind ? prevShown.key : nextKey;
+        nextKey = Math.max(nextKey, block.key + 1);
         settled.push(block);
       }
       // Reference definitions inside the settled region become permanent.
@@ -517,10 +522,28 @@ export function createIncrementalParser(
     const displayScan = scanBlocks(displayText);
     const displayRefs = mergeRefs(displayScan.refs);
     const ctx: MaterializeContext = { linkRefs: displayRefs, options };
-    const tailBlocks = displayScan.blocks.map(
-      (rawBlock, index) =>
-        Object.assign(materialize(rawBlock, ctx), { key: nextKey + index }) as MarkdownBlock
-    );
+    // Tail keys mirror the settle path: reuse the key each position was last
+    // displayed under (kept stable across computeFresh reconciliation); fresh
+    // positions draw collision-free keys above nextKey without persisting the
+    // counter — the same position deterministically redraws the same key.
+    const usedKeys = new Set(settled.map((block) => block.key));
+    let alloc = nextKey;
+    const takeFresh = (): number => {
+      while (usedKeys.has(alloc)) alloc += 1;
+      const key = alloc;
+      alloc += 1;
+      return key;
+    };
+    const tailBlocks = displayScan.blocks.map((rawBlock, index) => {
+      const block = materialize(rawBlock, ctx) as MarkdownBlock;
+      const prevShown = doc.blocks[settled.length + index];
+      block.key =
+        prevShown && prevShown.kind === block.kind && !usedKeys.has(prevShown.key)
+          ? prevShown.key
+          : takeFresh();
+      usedKeys.add(block.key);
+      return block;
+    });
     doc = { blocks: [...settled, ...tailBlocks], linkRefs: displayRefs };
   }
 

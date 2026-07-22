@@ -131,6 +131,47 @@ describe('referential stability across appends (per-line)', () => {
   }
 });
 
+// ── Suite 2b: key continuity through a late-ref invalidation ─────────────────
+
+describe('key continuity across computeFresh reconciliation', () => {
+  it('keeps every block key stable from first display to the end', () => {
+    // A reference used before its definition forces the one legitimate
+    // invalidation (computeFresh). Keys must survive it for settled AND tail
+    // blocks — and must not jump when tail blocks settle afterwards
+    // (regression: the settle path used to mint fresh nextKey values above
+    // the keys the blocks were displayed under, remounting their DOM).
+    const chunks = [
+      'Use [x][r].\n\n',
+      'B1\n\n',
+      'B2\n\n',
+      'B3\n\n',
+      '[r]: https://example.com/\n\n',
+      'B5\n\n',
+      'B6\n\n',
+      'B7\n\n'
+    ];
+    const parser = createIncrementalParser();
+    const keyByText = new Map<string, number>();
+    for (const chunk of chunks) {
+      parser.append(chunk);
+      const seen = new Set<number>();
+      for (const block of parser.document.blocks) {
+        expect(seen.has(block.key)).toBe(false);
+        seen.add(block.key);
+        if (block.kind !== 'paragraph') continue;
+        const first = block.children[0];
+        const text = first?.kind === 'text' ? first.text : JSON.stringify(block.children);
+        const previous = keyByText.get(text);
+        if (previous !== undefined) {
+          expect(block.key).toBe(previous);
+        } else {
+          keyByText.set(text, block.key);
+        }
+      }
+    }
+  });
+});
+
 // ── Suite 3: URL policy holds on the parsed tree ─────────────────────────────
 
 describe('URL policy on the hostile fixture', () => {
