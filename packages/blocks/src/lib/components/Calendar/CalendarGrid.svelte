@@ -72,9 +72,15 @@
   onmouseleave={() => ctx.setHoveredDate(null)}
   style="overflow: hidden; position: relative;"
   {@attach swipeable({
-    onSwipeLeft: () => ctx.navigate(1),
-    onSwipeRight: () => ctx.navigate(-1),
-    enabled: ctx.swipeable
+    // Direction-gated like the header arrows (the DateGridScaffold pattern): a
+    // swipe at the bound is inert — no navDirection flip, no clamped no-op emit.
+    onSwipeLeft: () => {
+      if (ctx.canGoForward) ctx.navigate(1);
+    },
+    onSwipeRight: () => {
+      if (ctx.canGoBack) ctx.navigate(-1);
+    },
+    enabled: ctx.swipeable && !ctx.disabled
   })}
 >
   <CalendarWeekdayHeader />

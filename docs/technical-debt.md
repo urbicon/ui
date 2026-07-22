@@ -65,23 +65,23 @@ internal TODO instead. Sections are ordered roughly by urgency.
   a broad consumer demand for a canonical shape catalog emerges.
 - **Found:** 2026-07-10, P2 Blocks feature-request pass.
 
-### `appearance` vs `variant`: the style-axis name is split three ways with no documented rule
+### Table still names its style axis `appearance` after the blocks-wide `variant` unification
 
-- **Where:** `segmentGroup.variants.ts` (`appearance: default|text`),
-  `toggle.variants.ts` (`appearance: default|dot`), `slider.variants.ts`
-  (`appearance: default|rail`) vs. `variant` on every other primitive;
-  `docs/COMPONENT-API-CONVENTIONS.md` (defines `variant`, never mentions
-  `appearance`).
-- **What:** Three primitives name their visual-style axis `appearance`, the
-  other 30+ use `variant`. If the implicit rule is "variant = visual weight
-  (filled/outlined/ghost), appearance = structural build of the control", it is
-  documented nowhere — and Tab (`line|pills|enclosed|solid`, clearly structural)
-  runs under `variant`, contradicting it.
-- **Why deferred:** One vocabulary decision across the public API: either
-  rename the three axes to `variant` (breaking — the pre-release window
-  applies) or write the variant/appearance distinction into
-  COMPONENT-API-CONVENTIONS and align Tab. Not a mechanical swap.
-- **Found:** 2026-07-10, systematic primitives API analysis.
+- **Where:** `packages/table/src/lib/core/table/index.ts` (`appearance?: 'flush'
+  | 'surface' | 'framed'`), the `appearance` axis in `table.variants.ts` /
+  `table-features.variants.ts`, `table-style-context.ts`,
+  `SmartFilterBar.svelte`; `packages/blocks/docs/MIGRATION-v5.md` §3 documents
+  the prop; the table docs-page playground drives it.
+- **What:** The 2026-07-22 vocabulary decision made `variant` the single
+  style-axis name (COMPONENT-API-CONVENTIONS §variant) and renamed the three
+  blocks `appearance` axes (SegmentGroup/Toggle/Slider). Table — a separate
+  package, outside that primitives sweep — still ships `appearance` for its
+  chrome, the last axis carrying the old name. Table has no competing `variant`
+  axis, so a rename is mechanical.
+- **Why deferred:** Wants its own small breaking pass: it touches the shipped
+  v4→v5 migration guide §3 and the table docs page, and the pre-launch window
+  should be confirmed still open when it lands.
+- **Found:** 2026-07-22, style-axis vocabulary sweep.
 
 ### Intent palettes drift across primitives — three different value sets, one undocumented
 
@@ -101,18 +101,6 @@ internal TODO instead. Sections are ordered roughly by urgency.
 - **Why deferred:** Wants one palette decision per family (and a call on
   whether form validation goes through `intent` or `error`), then a
   conventions-doc update. Removing values is breaking.
-- **Found:** 2026-07-10, systematic primitives API analysis.
-
-### Accordion/Collapsible sibling variant vocabulary diverges
-
-- **Where:** `accordion.variants.ts` (`variant: default|separated|ghost`) vs.
-  `collapsible.variants.ts` (`variant: default|card|ghost`).
-- **What:** The two disclosure siblings name what is visually the same
-  boxed/card-like treatment differently (`separated` vs `card`). A consumer
-  moving between them has to relearn the value.
-- **Why deferred:** Tiny, but it's a rename (breaking) and wants the same
-  vocabulary decision as the appearance/variant entry above — settle both in
-  one pass.
 - **Found:** 2026-07-10, systematic primitives API analysis.
 
 ## Component behaviour
@@ -355,47 +343,6 @@ internal TODO instead. Sections are ordered roughly by urgency.
   vs. dropping the operators for non-numeric date columns. Touches filter
   semantics consumers may depend on.
 - **Found:** 2026-07-13, table docs API catch-up.
-
-### Calendar `bind:value` from an empty initial never writes back — controlled-detection keys on `value !== undefined`
-
-- **Where:** `packages/blocks/src/lib/components/Calendar/Calendar.svelte` —
-  `handleSelect` (`if (value !== undefined) { value = next; } else {
-  internalValue = next; }`).
-- **What:** The JSDoc promises "Supports bind:value", but the write-back is
-  gated on the prop already being non-undefined. A consumer who starts with
-  the only *type-correct* empty selection —
-  `let sel = $state<CalendarSelection | undefined>()` + `bind:value={sel}` —
-  therefore never receives a selection: the component routes every pick into
-  its private `internalValue`. Binding an initial `null` happens to work at
-  runtime but is rejected by the prop type (`CalendarSelection | undefined`),
-  so the typed path and the working path contradict each other. Found when the
-  e2e calendar fixture's day-select probe silently stayed empty; the fixture
-  now probes via `onValueChange` instead.
-- **Why deferred:** The clean fix is an API decision, not a drive-by: likely
-  dropping the `internalValue` split and always assigning the `$bindable`
-  prop (Svelte 5 keeps writes to an unbound bindable local, so uncontrolled
-  usage still works), or admitting `null` into the value type as the explicit
-  empty. Either changes controlled/uncontrolled semantics consumers may
-  observe and wants DOM tests over bound-empty, bound-preset and unbound
-  arms, plus a look at whether DatePicker shares the pattern.
-- **Found:** 2026-07-21, building the Calendar interaction e2e fixture
-  (debt-fix-wave continuation).
-
-### Calendar view swipes call `ctx.navigate` ungated — a swipe at the bound fires a no-op emit
-
-- **Where:** `packages/blocks/src/lib/components/Calendar` —
-  `CalendarGrid`/`CalendarWeekGrid`/`CalendarDayView`/`CalendarAgendaView`/
-  `CalendarYearGrid` swipe handlers (`ctx.navigate(±1)` without a
-  `canGoBack`/`canGoForward` gate).
-- **What:** The engine clamps month/week/day navigation (no bounds escape),
-  but a swipe at the bound still emits a no-op (`onMonthChange`/`onNavigate`
-  with an unchanged value) — existing, tested behaviour. The range view got
-  the direction-gated treatment in `DateGridScaffold` (2026-07-14); the other
-  views were deliberately left as-is.
-- **Why deferred:** Aligning them with the DateGridScaffold direction-gate
-  changes an emitted-callback contract consumers may observe — wants one
-  deliberate sweep with tests, not a per-view drive-by.
-- **Found:** 2026-07-14, date-grid range-clamp pass (Fable debt wave).
 
 ### Guide cross-route: same-route re-navigation compares paths exactly
 

@@ -99,9 +99,15 @@
   onkeydown={handleKeydown}
   style="overflow: hidden;"
   {@attach swipeable({
-    onSwipeLeft: () => ctx.navigate(1),
-    onSwipeRight: () => ctx.navigate(-1),
-    enabled: ctx.swipeable
+    // Direction-gated like the header arrows (the DateGridScaffold pattern): a
+    // swipe at the bound is inert — no navDirection flip, no clamped no-op emit.
+    onSwipeLeft: () => {
+      if (ctx.canGoForward) ctx.navigate(1);
+    },
+    onSwipeRight: () => {
+      if (ctx.canGoBack) ctx.navigate(-1);
+    },
+    enabled: ctx.swipeable && !ctx.disabled
   })}
 >
   <div class="grid [&>*]:col-start-1 [&>*]:row-start-1">

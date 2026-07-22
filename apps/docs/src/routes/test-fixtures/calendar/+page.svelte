@@ -7,7 +7,12 @@
   // text — plain <span>s, not <output>: output's implicit role="status"
   // collides with the calendar's own sr-only month live region in role
   // queries.
-  import { Calendar, type CalendarEvent, type CalendarViewMode } from '@urbicon-ui/blocks';
+  import {
+    Calendar,
+    type CalendarEvent,
+    type CalendarSelection,
+    type CalendarViewMode
+  } from '@urbicon-ui/blocks';
 
   const anchor = new Date(2026, 5, 15);
 
@@ -22,19 +27,20 @@
     { id: 'e3', title: 'Concert', start: new Date(2026, 5, 24), categoryId: 'private' }
   ];
 
-  // Deliberately NOT bind:value: Calendar's controlled-detection keys on
-  // `value !== undefined`, so a binding that starts empty (undefined — the
-  // only type-correct "no selection") never receives the write-back; the
-  // spec probes selection through onValueChange instead. Logged in
-  // docs/technical-debt.md (Calendar bind:value from empty initial).
-  let selected = $state<Date | undefined>(undefined);
+  // bind:value from the empty (undefined) initial — the only type-correct
+  // "no selection". This deliberately regression-probes the write-back fix
+  // (Calendar now always assigns its $bindable instead of gating on
+  // `value !== undefined`): the spec's selection probe reads the BOUND value,
+  // so a bind:value-from-empty regression fails e2e, not just unit tests.
+  let selected = $state<CalendarSelection | undefined>(undefined);
   let view = $state<CalendarViewMode>('month');
   let lastEventTitle = $state('');
   let lastMonth = $state('');
 
-  const iso = (d: Date | undefined) =>
-    d
-      ? `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
+  // Single-select mode always yields a Date; anything else renders 'none'.
+  const iso = (v: CalendarSelection | undefined) =>
+    v instanceof Date
+      ? `${v.getFullYear()}-${String(v.getMonth() + 1).padStart(2, '0')}-${String(v.getDate()).padStart(2, '0')}`
       : 'none';
 </script>
 
@@ -50,11 +56,11 @@
       defaultDate={anchor}
       locale="en-US"
       bind:view
+      bind:value={selected}
       views={['month', 'week', 'day']}
       {events}
       {categories}
       eventPopover
-      onValueChange={(v) => (selected = v as Date)}
       onEventClick={(e) => (lastEventTitle = e.title)}
       onMonthChange={(month, year) => (lastMonth = `${month}-${year}`)}
     />

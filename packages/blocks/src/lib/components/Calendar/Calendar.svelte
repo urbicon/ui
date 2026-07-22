@@ -178,10 +178,6 @@
     view === 'year' || view === 'agenda' ? 'month' : view
   );
 
-  // --- Uncontrolled fallback ---
-  let internalValue = $state<CalendarProps['value']>(undefined);
-  const effectiveValue = $derived(value !== undefined ? value : internalValue);
-
   // --- Extra disable predicate (min/max handled by the controller) ---
   const disabledDatesSet = $derived(new Set(disabledDates.map((d) => toIso(d))));
   function checkExtraDisabled(date: Date): boolean {
@@ -210,7 +206,7 @@
       return selectionMode;
     },
     get selection() {
-      return effectiveValue as DateGridSelection | undefined;
+      return value as DateGridSelection | undefined;
     },
     get rangeStart() {
       return undefined;
@@ -255,12 +251,13 @@
       onMonthChange?.(anchor.getMonth(), anchor.getFullYear());
     }
     onDateClick?.(date);
+    // Always assign the $bindable — no controlled/uncontrolled split. With
+    // `bind:value` the write-back reaches the consumer even from the empty
+    // (undefined) initial, the only type-correct "no selection"; without a
+    // binding Svelte 5 keeps the write local until the parent passes a new
+    // prop value, so uncontrolled and callback-driven usage work unchanged.
     const next = selection as CalendarProps['value'];
-    if (value !== undefined) {
-      value = next;
-    } else {
-      internalValue = next;
-    }
+    value = next;
     onValueChange?.(next!);
   }
 
@@ -351,10 +348,10 @@
 
   // --- Derived: selected date for event list ---
   const selectedDateForList = $derived.by(() => {
-    if (!effectiveValue) return null;
-    if (effectiveValue instanceof Date) return effectiveValue;
-    if (Array.isArray(effectiveValue)) return effectiveValue[effectiveValue.length - 1] ?? null;
-    return effectiveValue.start;
+    if (!value) return null;
+    if (value instanceof Date) return value;
+    if (Array.isArray(value)) return value[value.length - 1] ?? null;
+    return value.start;
   });
 
   // --- Event helpers ---
@@ -500,15 +497,14 @@
       return selectedDateForList;
     },
     get selectedDates() {
-      if (!effectiveValue) return [];
-      if (effectiveValue instanceof Date) return [effectiveValue];
-      if (Array.isArray(effectiveValue)) return effectiveValue;
-      return [effectiveValue.start, effectiveValue.end];
+      if (!value) return [];
+      if (value instanceof Date) return [value];
+      if (Array.isArray(value)) return value;
+      return [value.start, value.end];
     },
     get selectedRange() {
-      if (!effectiveValue || effectiveValue instanceof Date || Array.isArray(effectiveValue))
-        return null;
-      return effectiveValue as DateRange;
+      if (!value || value instanceof Date || Array.isArray(value)) return null;
+      return value as DateRange;
     },
     get events() {
       return expandedEvents;

@@ -85,9 +85,18 @@
   onkeydown={handleKeydown}
   style="overflow: hidden;"
   {@attach swipeable({
-    onSwipeLeft: () => ctx.navigate(1),
-    onSwipeRight: () => ctx.navigate(-1),
-    enabled: ctx.swipeable
+    // Direction-gated like the header arrows (the DateGridScaffold pattern): a
+    // swipe at the bound is inert — no navDirection flip, no clamped no-op
+    // emit. In year view the gate is month-granular (the controller maps year
+    // onto month bounds): whenever it blocks, the year step would have clamped
+    // back onto the displayed month/year anyway — never a real change.
+    onSwipeLeft: () => {
+      if (ctx.canGoForward) ctx.navigate(1);
+    },
+    onSwipeRight: () => {
+      if (ctx.canGoBack) ctx.navigate(-1);
+    },
+    enabled: ctx.swipeable && !ctx.disabled
   })}
 >
   <div class="grid [&>*]:col-start-1 [&>*]:row-start-1">
