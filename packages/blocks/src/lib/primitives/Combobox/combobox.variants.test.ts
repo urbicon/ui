@@ -55,6 +55,54 @@ describe('comboboxVariants', () => {
     expect(xl.input()).toContain('text-xl');
   });
 
+  it('options follow the shared listbox item rhythm (XC-9, parity with Select)', () => {
+    const xs = comboboxVariants({ size: 'xs' }).option();
+    expect(xs).toContain('px-2');
+    expect(xs).toContain('min-h-[1.75rem]');
+
+    const md = comboboxVariants({ size: 'md' }).option();
+    expect(md).toContain('px-3');
+    expect(md).toContain('min-h-[2.5rem]');
+    expect(md).toContain('text-sm');
+
+    const xl = comboboxVariants({ size: 'xl' }).option();
+    expect(xl).toContain('px-4');
+    expect(xl).toContain('min-h-[3.5rem]');
+  });
+
+  it('group label shares the option inset per size', () => {
+    expect(comboboxVariants({ size: 'xs' }).groupLabel()).toContain('px-2');
+    expect(comboboxVariants({ size: 'sm' }).groupLabel()).toContain('px-2');
+    expect(comboboxVariants({ size: 'md' }).groupLabel()).toContain('px-3');
+    expect(comboboxVariants({ size: 'lg' }).groupLabel()).toContain('px-3');
+    expect(comboboxVariants({ size: 'xl' }).groupLabel()).toContain('px-4');
+  });
+
+  it('grouped options keep the flat listbox item-to-item rhythm', () => {
+    expect(comboboxVariants({}).listbox()).toContain('space-y-0.5');
+    expect(comboboxVariants({}).group()).toContain('space-y-0.5');
+  });
+
+  it('optionCheck reserves space and fades in, sized per option size (parity with Select)', () => {
+    const base = comboboxVariants({}).optionCheck();
+    expect(base).toContain('opacity-0');
+    expect(base).toContain('text-primary');
+    expect(base).toContain('shrink-0');
+
+    expect(comboboxVariants({ size: 'xs' }).optionCheck()).toContain('w-3');
+    expect(comboboxVariants({ size: 'sm' }).optionCheck()).toContain('w-3.5');
+    expect(comboboxVariants({ size: 'md' }).optionCheck()).toContain('w-4');
+    expect(comboboxVariants({ size: 'lg' }).optionCheck()).toContain('w-5');
+    expect(comboboxVariants({ size: 'xl' }).optionCheck()).toContain('w-6');
+  });
+
+  it('disabled options carry the shared disabled signature', () => {
+    // Options are real <button>s, so the disabled: pseudo applies.
+    const option = comboboxVariants({}).option();
+    expect(option).toContain('disabled:opacity-50');
+    expect(option).toContain('disabled:cursor-not-allowed');
+  });
+
   it('rotates chevron when open', () => {
     const open = comboboxVariants({ open: true });
     expect(open.chevron()).toContain('rotate-180');

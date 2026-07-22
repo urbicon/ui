@@ -87,6 +87,31 @@ describe('commandPaletteVariants', () => {
     expect(styles.list()).toContain('max-h-72');
   });
 
+  it('list carries the shared listbox rhythm (XC-9)', () => {
+    // 4px edge inset + 2px item-to-item gap — the same panel rhythm as the
+    // Select/Combobox listboxes and the Menu panel.
+    const list = commandPaletteVariants().list();
+    expect(list).toContain('p-1');
+    expect(list).not.toContain('p-1.5');
+    expect(list).toContain('space-y-0.5');
+  });
+
+  it('items sit on the md listbox baseline', () => {
+    // px-3 py-2 text-sm min-h-2.5rem gap-2 = the md rhythm shared with
+    // Select/Combobox options; the palette has no per-item size axis.
+    const item = commandPaletteVariants().item();
+    expect(item).toContain('px-3');
+    expect(item).toContain('py-2');
+    expect(item).toContain('text-sm');
+    expect(item).toContain('min-h-[2.5rem]');
+    expect(item).toContain('gap-2');
+    expect(item).toContain('rounded-modify');
+  });
+
+  it('group label shares the item inset', () => {
+    expect(commandPaletteVariants().groupLabel()).toContain('px-3');
+  });
+
   it('item has transition for smooth interactions', () => {
     const styles = commandPaletteVariants();
     expect(styles.item()).toContain('transition-colors');

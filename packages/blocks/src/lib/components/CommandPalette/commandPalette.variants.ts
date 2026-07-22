@@ -16,11 +16,16 @@ export const commandPaletteVariants = tv({
     ],
     inputIcon: 'h-4 w-4 shrink-0 text-text-tertiary',
     clearButton: 'text-text-quaternary hover:text-text-secondary',
-    list: 'max-h-72 overflow-y-auto p-1.5',
-    groupLabel: ['px-2 py-1.5 text-2xs font-semibold uppercase tracking-wide text-text-quaternary'],
-    // tier: modify — palette items are selectable actions.
+    // `p-1` + `space-y-0.5` = the shared listbox rhythm (XC-9): 4px edge
+    // inset, 2px item-to-item gap — same as Select/Combobox/Menu panels.
+    list: 'max-h-72 overflow-y-auto p-1 space-y-0.5',
+    // `px-3` shares the item's horizontal inset; the micro-typo (2xs,
+    // quaternary) is the palette's own command-surface voice.
+    groupLabel: ['px-3 py-1.5 text-2xs font-semibold uppercase tracking-wide text-text-quaternary'],
+    // tier: modify — palette items are selectable actions. Rhythm = the md
+    // listbox baseline (px-3 py-2 text-sm min-h-2.5rem, gap-2 — XC-9).
     item: [
-      'flex w-full items-center gap-3 rounded-modify px-3 py-2 text-sm',
+      'flex w-full items-center gap-2 rounded-modify px-3 py-2 text-sm min-h-[2.5rem]',
       'transition-colors cursor-pointer'
     ],
     itemHighlighted: 'bg-primary-subtle text-primary',

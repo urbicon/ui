@@ -28,7 +28,9 @@ export const menuVariants = tv({
     header: ['sticky top-0 z-10 bg-surface-elevated', 'px-2 py-1 border-b border-border-hairline'],
     section: ['px-3 py-1.5 text-xs font-medium text-text-tertiary'],
     divider: ['my-1 h-px bg-border-hairline'],
-    items: ['py-1 space-y-0.5'],
+    // No extra `py` — the `content` slot's `p-1` is the single edge inset
+    // (symmetric 4px, same rhythm as the Select/Combobox listboxes, XC-9).
+    items: ['space-y-0.5'],
     // tier: modify — menu items are momentary affordances inside the contain panel.
     item: [
       'flex w-full items-center gap-2 rounded-modify text-left',
@@ -36,7 +38,9 @@ export const menuVariants = tv({
       'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-primary/50',
       'cursor-pointer select-none'
     ],
-    indicator: ['mr-2 inline-flex items-center self-center'],
+    // No `mr-*` — the item's `gap-2` owns the icon↔label distance (8px, the
+    // same gap every listbox row in the library uses).
+    indicator: ['inline-flex items-center self-center'],
     submenu: ['ml-4 mt-2 border-l border-border-hairline pl-2'],
     footer: [
       'sticky bottom-0 z-10 bg-surface-elevated',
@@ -58,11 +62,15 @@ export const menuVariants = tv({
         content: 'min-w-48'
       }
     },
-    // Size for menu items
+    // Size for menu items. Typo tracks the Button ladder (text-sm/base/lg —
+    // Action-family items read like the Button that opened them); py/min-h
+    // sit on the shared listbox baseline (2 / 2.5 / 3 rem, XC-9). The section
+    // header always shares the item's horizontal inset (px-3 lives on the
+    // `section` slot base for md).
     itemSize: {
-      sm: { item: 'px-2 py-1.5 text-sm min-h-[2rem]' },
+      sm: { item: 'px-2 py-1.5 text-sm min-h-[2rem]', section: 'px-2' },
       md: { item: 'px-3 py-2 text-base min-h-[2.5rem]' },
-      lg: { item: 'px-4 py-2.5 text-lg min-h-[3rem]' }
+      lg: { item: 'px-4 py-2.5 text-lg min-h-[3rem]', section: 'px-4' }
     },
     disabled: {
       true: {

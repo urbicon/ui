@@ -78,6 +78,57 @@ describe('selectVariants', () => {
     expect(selected).toContain('opacity-100');
   });
 
+  it('marks selected options with the Form-family signature (parity with Combobox)', () => {
+    // bg-surface-selected + font-medium is the shared listbox selected
+    // signature; Combobox carries the same pair on its optionSelected slot.
+    const selected = selectVariants({ selected: true }).option();
+    expect(selected).toContain('bg-surface-selected');
+    expect(selected).toContain('font-medium');
+
+    const unselected = selectVariants({ selected: false }).option();
+    expect(unselected).not.toContain('bg-surface-selected');
+    expect(unselected).not.toContain('font-medium');
+  });
+
+  it('options follow the shared listbox item rhythm (XC-9)', () => {
+    // px: 2 below md, 3 at md/lg, 4 at xl; min-h staggered 1.75→3.5rem.
+    const xs = selectVariants({ size: 'xs' }).option();
+    expect(xs).toContain('px-2');
+    expect(xs).toContain('min-h-[1.75rem]');
+
+    const sm = selectVariants({ size: 'sm' }).option();
+    expect(sm).toContain('px-2');
+    expect(sm).toContain('min-h-[2rem]');
+
+    const md = selectVariants({ size: 'md' }).option();
+    expect(md).toContain('px-3');
+    expect(md).toContain('min-h-[2.5rem]');
+    expect(md).toContain('text-sm');
+
+    const lg = selectVariants({ size: 'lg' }).option();
+    expect(lg).toContain('px-3');
+    expect(lg).toContain('min-h-[3rem]');
+
+    const xl = selectVariants({ size: 'xl' }).option();
+    expect(xl).toContain('px-4');
+    expect(xl).toContain('min-h-[3.5rem]');
+  });
+
+  it('group label shares the option inset per size', () => {
+    expect(selectVariants({ size: 'xs' }).groupLabel()).toContain('px-2');
+    expect(selectVariants({ size: 'sm' }).groupLabel()).toContain('px-2');
+    expect(selectVariants({ size: 'md' }).groupLabel()).toContain('px-3');
+    expect(selectVariants({ size: 'lg' }).groupLabel()).toContain('px-3');
+    expect(selectVariants({ size: 'xl' }).groupLabel()).toContain('px-4');
+  });
+
+  it('grouped options keep the flat listbox item-to-item rhythm', () => {
+    // The listbox spaces its direct children (flat options OR whole groups);
+    // the group container re-establishes the same 2px gap for its options.
+    expect(selectVariants({}).listbox()).toContain('space-y-0.5');
+    expect(selectVariants({}).group()).toContain('space-y-0.5');
+  });
+
   it('does not set a z-index on listbox (top-layer rendering)', () => {
     // After migration to `popover="manual"`, the listbox is rendered in
     // the browser's top layer, which sits above any stacking context —

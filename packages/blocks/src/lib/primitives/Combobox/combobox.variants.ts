@@ -35,13 +35,21 @@ export const comboboxVariants = tv({
       'flex w-full items-center gap-2 rounded-modify px-3 py-2 text-left',
       'text-text-primary cursor-pointer select-none',
       'transition-colors duration-[var(--blocks-duration-fast)]',
-      'focus-visible:outline-none'
+      'focus-visible:outline-none',
+      'disabled:opacity-50 disabled:cursor-not-allowed'
     ],
     optionActive: 'bg-surface-hover',
     optionSelected: 'bg-surface-selected font-medium',
-    // Grouped options (parity with Select). `group` is a bare container; the
-    // label is a quiet, uppercase section header.
-    group: '',
+    // Trailing selected-check (parity with Select `optionCheck`): always
+    // rendered with reserved space, fades in via opacity — no layout shift
+    // when a row becomes selected. Sized one step with the option per size.
+    optionCheck: [
+      'shrink-0 text-primary opacity-0 transition-opacity duration-[var(--blocks-duration-fast)]'
+    ],
+    // Grouped options (parity with Select). `group` carries the same
+    // item-to-item rhythm as the flat listbox (`space-y-0.5` there lives on
+    // the `listbox` slot); the label is a quiet, uppercase section header.
+    group: 'space-y-0.5',
     groupLabel: 'px-3 py-1.5 text-xs font-medium text-text-tertiary uppercase tracking-wider',
     noResults: 'px-3 py-4 text-center text-sm text-text-tertiary',
     // Async-search in-flight message (queryFn). Mirrors noResults so both listbox
@@ -143,11 +151,15 @@ export const comboboxVariants = tv({
       // The multi-mode tokenizer (`control`/`search`/`tag`) tracks the same
       // ladder: `control` uses `min-h-*` (not `h-*`) so it grows as tags wrap,
       // and reserves right padding (`pr-*`) for the absolute chevron/clear.
+      // Option rows follow the shared listbox item rhythm (XC-9); the group
+      // label always shares the option's horizontal inset.
       xs: {
         // `pointer-coarse:text-base` floors the input to 16px on touch-primary
         // devices so iOS Safari doesn't auto-zoom (and never un-zoom) on focus.
         input: 'h-7 px-2 pr-7 text-xs pointer-coarse:text-base',
         option: 'px-2 py-1 text-xs min-h-[1.75rem]',
+        optionCheck: 'w-3 h-3',
+        groupLabel: 'px-2',
         control: 'min-h-7 gap-1 px-1.5 py-1 pr-7',
         search: 'text-xs pointer-coarse:text-base',
         tag: 'text-xs px-1.5 py-0.5',
@@ -157,6 +169,8 @@ export const comboboxVariants = tv({
         // See `xs` — floor to 16px on touch to avoid iOS Safari focus-zoom.
         input: 'h-8 px-3 pr-8 text-sm pointer-coarse:text-base',
         option: 'px-2 py-1.5 text-sm min-h-[2rem]',
+        optionCheck: 'w-3.5 h-3.5',
+        groupLabel: 'px-2',
         control: 'min-h-8 gap-1 px-2 py-1 pr-8',
         search: 'text-sm pointer-coarse:text-base',
         tag: 'text-xs px-2 py-0.5',
@@ -165,6 +179,7 @@ export const comboboxVariants = tv({
       md: {
         input: 'h-10 px-3 pr-8 text-base',
         option: 'px-3 py-2 text-sm min-h-[2.5rem]',
+        optionCheck: 'w-4 h-4',
         control: 'min-h-10 gap-1.5 px-2 py-1.5 pr-8',
         search: 'text-base',
         tag: 'text-sm px-2 py-0.5',
@@ -173,6 +188,7 @@ export const comboboxVariants = tv({
       lg: {
         input: 'h-12 px-4 pr-10 text-lg',
         option: 'px-3 py-2.5 text-base min-h-[3rem]',
+        optionCheck: 'w-5 h-5',
         control: 'min-h-12 gap-2 px-3 py-2 pr-10',
         search: 'text-lg',
         tag: 'text-base px-2.5 py-1',
@@ -181,6 +197,8 @@ export const comboboxVariants = tv({
       xl: {
         input: 'h-14 px-6 pr-12 text-xl',
         option: 'px-4 py-3 text-lg min-h-[3.5rem]',
+        optionCheck: 'w-6 h-6',
+        groupLabel: 'px-4',
         control: 'min-h-14 gap-2 px-4 py-2.5 pr-12',
         search: 'text-xl',
         tag: 'text-lg px-3 py-1',

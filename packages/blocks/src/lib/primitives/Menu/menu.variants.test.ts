@@ -85,6 +85,32 @@ describe('menuVariants', () => {
     expect(section).not.toContain('border-b');
   });
 
+  it('section header shares the item inset per itemSize', () => {
+    expect(menuVariants({ itemSize: 'sm' }).section()).toContain('px-2');
+    expect(menuVariants({ itemSize: 'md' }).section()).toContain('px-3');
+    expect(menuVariants({ itemSize: 'lg' }).section()).toContain('px-4');
+  });
+
+  it('items follow the shared listbox baseline (min-h, XC-9)', () => {
+    expect(menuVariants({ itemSize: 'sm' }).item()).toContain('min-h-[2rem]');
+    expect(menuVariants({ itemSize: 'md' }).item()).toContain('min-h-[2.5rem]');
+    expect(menuVariants({ itemSize: 'lg' }).item()).toContain('min-h-[3rem]');
+  });
+
+  it('panel edge inset is symmetric: content p-1 only, items wrapper adds no py', () => {
+    // The 4px edge inset lives once on `content` — same rhythm as the
+    // Select/Combobox listboxes. The items wrapper only spaces rows.
+    expect(menuVariants({}).content()).toContain('p-1');
+    const items = menuVariants({}).items();
+    expect(items).toContain('space-y-0.5');
+    expect(items).not.toMatch(/\bpy-/);
+  });
+
+  it('the item gap owns the icon↔label distance — indicator carries no mr-*', () => {
+    expect(menuVariants({}).item()).toContain('gap-2');
+    expect(menuVariants({}).indicator()).not.toMatch(/\bmr-/);
+  });
+
   it('never outputs dark: overrides', () => {
     const styles = menuVariants({});
     expect(styles.base()).not.toMatch(/\bdark:/);

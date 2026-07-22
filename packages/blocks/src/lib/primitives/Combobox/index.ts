@@ -147,8 +147,8 @@ interface ComboboxBaseProps<T extends SelectValue = string>
   unstyled?: boolean;
   /** Per-slot class overrides merged with tv() styles. Slots: base | label | requiredMark |
    *  inputWrapper | input | message | helper | listbox | option | optionActive | optionSelected |
-   *  group | groupLabel | loading | noResults | clear | chevron | control | search | tag |
-   *  tagLabel | tagRemove */
+   *  optionCheck | group | groupLabel | loading | noResults | clear | chevron | control | search |
+   *  tag | tagLabel | tagRemove */
   slotClasses?: Partial<Record<ComboboxSlots, string>>;
   /**
    * Apply a named preset registered via `<BlocksProvider presets={{ Combobox: {...} }}>`.

@@ -94,7 +94,7 @@ Full decision matrix with edge cases (search threshold, multi-select, async sour
 **Industry analogue:** Radix `Tabs`, Material `BottomNavigation`, Linear `SegmentedControl`. The key trait: route-or-section selection that persists; not "click and dispatch".
 
 **When to reach for:**
-- App-level navigation (sections, sub-routes) → `Tab` (`variant="line"` for editorial), `SegmentGroup` (`appearance="solid"` for inline pickers).
+- App-level navigation (sections, sub-routes) → `Tab` (`variant="line"` for editorial), `SegmentGroup` (the pill-track default) for inline pickers.
 - Linear progress through a process the user *completes* (wizard, checkout) → `Stepper`.
 - Retrospective record of a sequence the user *observes* (shipment tracking, audit trail, billing run — with a time axis and one focused node) → `JourneyTimeline`.
 - Position context inside a route → `Breadcrumb`.
@@ -166,6 +166,29 @@ Some surfaces sit close to each other and consumers regularly ask "which one". T
 | `Popover` vs `Tooltip` | Popover for click-interactions, Tooltip for hover-descriptions | Tooltip is non-focusable; Popover hosts a focus-trapped panel. |
 | `Alert` vs `Toast` | Alert for in-page banners, Toast for ephemeral notifications | Alert is `role="alert"` + in-page; Toast is system-level + stacking. |
 | `Badge` vs `Chip` (v6) | Badge today does both via `purpose` patterns | Future: a dedicated `Chip` for filter/removable use cases (tracked as BDG-1). |
+
+---
+
+## Listbox item rhythm (XC-9)
+
+Four surfaces render option/item rows inside a floating panel: `Select` and `Combobox` (Form, `role="listbox"`), `Menu` (Action, `role="menu"`), and `CommandPalette` (a filtered `role="listbox"` command surface). They share **one structural rhythm**; only the *voice* differs by family. A fifth listbox-shaped surface must adopt the shared rhythm and pick its family voice deliberately.
+
+**Shared structure (all four):**
+
+- Panel: `p-1` edge inset (symmetric 4px) + `space-y-0.5` item-to-item (2px). Grouped listboxes re-establish the same gap on the `group` container so grouped options space like flat ones.
+- Rows: `rounded-modify`, `gap-2` icon↔label (the gap owns the distance — no `mr-*` on leading indicators), min-height staggered per size `1.75 / 2 / 2.5 / 3 / 3.5 rem` (xs–xl; Menu covers sm–lg, CommandPalette sits fixed on the md baseline), horizontal inset `px-2` below md, `px-3` at md/lg, `px-4` at xl.
+- Group/section headers always share the row's horizontal inset (`px` follows the size axis); `py-1.5` fixed — headers don't scale vertically.
+- Cursor/hover = `bg-surface-hover`; disabled = `opacity-50` + not-allowed cursor.
+
+**Family voice (deliberate contrasts — do not flatten):**
+
+| | Form (Select / Combobox) | Action (Menu) | CommandPalette |
+|---|---|---|---|
+| Row typography | one step under the trigger: `text-xs/sm/sm/base/lg` (xs–xl) — options are data, quieter than the control | the Button ladder: `text-sm/base/lg` (sm–lg) — items read like the Button that opened them | `text-sm` fixed, rows `text-text-secondary` |
+| Selected | `bg-surface-selected font-medium` + trailing `text-primary` check (space reserved, opacity fade — no layout shift) | none — items dispatch, nothing holds a value | none — actions run and dismiss |
+| Header voice | uppercase `text-xs font-medium tracking-wider text-text-tertiary` | plain `text-xs font-medium text-text-tertiary` — sections label actions, not data groups | uppercase `text-2xs font-semibold text-text-quaternary` — micro command voice |
+| Keyboard cursor | `bg-surface-hover` via `aria-activedescendant` | `bg-surface-hover` + real roving focus (`focus-visible` ring) | `bg-primary-subtle text-primary` — "Enter runs this" |
+| Empty/loading rows | `text-sm text-text-tertiary` centered, `py-4` | n/a (static action lists) | same signature, `py-8` (larger surface) |
 
 ---
 

@@ -895,9 +895,17 @@
       {@render customOption(opt, selected)}
     {:else}
       <span class="flex-1 truncate">{opt.label}</span>
-      {#if selected}
-        <CheckMarkIcon class="text-primary h-4 w-4 shrink-0" />
-      {/if}
+      <!--
+        Always rendered (reserved space) and faded in via opacity — parity
+        with Select's optionCheck mechanic, so selecting never shifts layout.
+      -->
+      <CheckMarkIcon
+        class={unstyled
+          ? (slotClasses?.optionCheck ?? '')
+          : styles.optionCheck({
+              class: [slotClasses?.optionCheck, selected ? 'opacity-100' : undefined]
+            })}
+      />
     {/if}
   </button>
 {/snippet}
