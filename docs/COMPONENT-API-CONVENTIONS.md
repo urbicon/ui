@@ -447,12 +447,13 @@ handlers survive a consumer's own `onclick`/`onkeydown` via `composeHandlers`
 (both run — the consumer's handler supplements instead of replacing).
 Reference: `Dialog.svelte`.
 
-Known non-follower: `Button` still spreads restProps **last** (after its
-computed `role`/`aria-checked`/`data-value`/`aria-pressed`). A naive reorder
-would clobber legitimate standalone uses (an explicit `role={undefined}`
-after the spread *removes* a consumer's `role="link"`), so the migration
-needs conditional merges — tracked in
-[technical-debt.md](technical-debt.md).
+`Button` follows the contract via **conditional merges** (since 2026-07-22):
+its selection-group attributes (`role`/`aria-checked`/`data-value`) and modeled
+state (`pressed`/`disabled`/`loading`) win when the component has something to
+say, and fall back to the consumer's restProps value when it doesn't — a plain
+explicit attribute after the spread would *remove* a standalone consumer's
+`role="link"` (explicit `undefined` deletes the attribute). Reference:
+`Button.svelte` for selection-wired attributes.
 
 ## Accessibility
 
