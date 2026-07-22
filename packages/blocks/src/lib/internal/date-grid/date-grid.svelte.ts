@@ -391,9 +391,11 @@ export class DateGridController {
         break;
       }
       // Week/day steps carry no month bounds of their own, so clamp the shifted
-      // reference to [minDate, maxDate] too — otherwise a swipe or a day-view arrow
-      // key (neither gated by canGoBack/canGoForward the way the header arrows are)
-      // could step the anchor onto an all-disabled week/day past the boundary.
+      // reference to [minDate, maxDate] too. Swipes and the day/agenda arrow keys
+      // are canGoBack/canGoForward-gated like the header arrows these days, but the
+      // custom-header API (goTo/navigateWeek/navigateDay) is not — this clamp stays
+      // as the backstop so no caller can step the anchor onto an all-disabled
+      // week/day past the boundary.
       case 'week':
         next = clampDate(addDays(referenceDate, delta * 7), minDate, maxDate);
         break;

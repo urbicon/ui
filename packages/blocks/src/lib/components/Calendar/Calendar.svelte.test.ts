@@ -20,6 +20,12 @@ import Calendar from './Calendar.svelte';
 //    still emit a no-op onMonthChange/onWeekChange/onDayChange with an
 //    unchanged value. In-bounds swipes keep reporting exactly as before.
 //
+// 3. ArrowLeft/ArrowRight in the day and agenda views (the two views whose
+//    keydown calls ctx.navigate) share the same direction gate — an arrow key
+//    at the bound emits nothing, and a disabled calendar ignores keys. The
+//    other views' keydown only moves DOM focus (already clamped), never
+//    ctx.navigate.
+//
 // Same stack as the other Calendar DOM tests: svelte's own mount/unmount,
 // @testing-library/dom, native matchers. Swipes are raw PointerEvents on the
 // view root (jsdom implements PointerEvent; `isPrimary` is required by the
@@ -279,5 +285,108 @@ describe('Calendar view swipes are direction-gated at the bounds', () => {
 
     expect(onMonthChange).not.toHaveBeenCalled();
     expect(dayCell('2026-06-15')).not.toBeNull();
+  });
+});
+
+describe('Calendar day/agenda keyboard navigation is direction-gated at the bounds', () => {
+  const monthBounds = { minDate: new Date(2026, 5, 1), maxDate: new Date(2026, 5, 30) };
+
+  /** ArrowLeft/ArrowRight on a view root — the keyboard twin of `swipe`. */
+  function press(el: Element | null, key: 'ArrowLeft' | 'ArrowRight') {
+    expect(el).not.toBeNull();
+    fireEvent.keyDown(el!, { key });
+    flushSync();
+  }
+
+  it('day view: arrow keys at a one-day window fire no onDayChange', () => {
+    const onDayChange = vi.fn();
+    renderCalendar({
+      view: 'day',
+      defaultDate: anchor,
+      minDate: anchor,
+      maxDate: anchor,
+      animated: false,
+      onDayChange
+    });
+
+    const region = document.querySelector('[role="region"]');
+    press(region, 'ArrowRight');
+    press(region, 'ArrowLeft');
+
+    expect(onDayChange).not.toHaveBeenCalled();
+  });
+
+  it('day view: in-bounds arrow keys still navigate and report as before', () => {
+    const onDayChange = vi.fn();
+    renderCalendar({ view: 'day', defaultDate: anchor, animated: false, onDayChange });
+
+    press(document.querySelector('[role="region"]'), 'ArrowRight');
+    expect(onDayChange).toHaveBeenCalledTimes(1);
+    expect(iso(onDayChange.mock.calls[0][0] as Date)).toBe('2026-06-16');
+
+    press(document.querySelector('[role="region"]'), 'ArrowLeft');
+    expect(onDayChange).toHaveBeenCalledTimes(2);
+    expect(iso(onDayChange.mock.calls[1][0] as Date)).toBe('2026-06-15');
+  });
+
+  it('day view: at maxDate only the blocked direction is inert', () => {
+    const onDayChange = vi.fn();
+    renderCalendar({
+      view: 'day',
+      defaultDate: anchor,
+      maxDate: anchor,
+      animated: false,
+      onDayChange
+    });
+
+    const region = document.querySelector('[role="region"]');
+    press(region, 'ArrowRight'); // at maxDate — inert
+    expect(onDayChange).not.toHaveBeenCalled();
+
+    press(region, 'ArrowLeft'); // back is open
+    expect(onDayChange).toHaveBeenCalledTimes(1);
+    expect(iso(onDayChange.mock.calls[0][0] as Date)).toBe('2026-06-14');
+  });
+
+  it('agenda view: arrow keys at a one-month window fire no onMonthChange', () => {
+    const onMonthChange = vi.fn();
+    renderCalendar({
+      view: 'agenda',
+      defaultDate: anchor,
+      animated: false,
+      ...monthBounds,
+      onMonthChange
+    });
+
+    const region = document.querySelector('[role="region"]');
+    press(region, 'ArrowRight');
+    press(region, 'ArrowLeft');
+
+    expect(onMonthChange).not.toHaveBeenCalled();
+  });
+
+  it('agenda view: an in-bounds ArrowRight reports the next month', () => {
+    const onMonthChange = vi.fn();
+    renderCalendar({ view: 'agenda', defaultDate: anchor, animated: false, onMonthChange });
+
+    press(document.querySelector('[role="region"]'), 'ArrowRight');
+
+    expect(onMonthChange).toHaveBeenCalledTimes(1);
+    expect(onMonthChange).toHaveBeenLastCalledWith(6, 2026); // July
+  });
+
+  it('disabled calendar: arrow keys are inert entirely', () => {
+    const onDayChange = vi.fn();
+    renderCalendar({
+      view: 'day',
+      defaultDate: anchor,
+      animated: false,
+      disabled: true,
+      onDayChange
+    });
+
+    press(document.querySelector('[role="region"]'), 'ArrowRight');
+
+    expect(onDayChange).not.toHaveBeenCalled();
   });
 });

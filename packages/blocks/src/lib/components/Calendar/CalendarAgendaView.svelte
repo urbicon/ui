@@ -62,14 +62,18 @@
   const agendaKey = $derived(`${ctx.displayedYear}-${ctx.displayedMonth}`);
 
   function handleKeydown(e: KeyboardEvent) {
+    // Direction-gated like the swipes and header arrows (the DateGridScaffold
+    // pattern): an arrow key at the bound is inert — no navDirection flip, no
+    // clamped no-op onMonthChange emit. Disabled calendars ignore keys entirely.
+    if (ctx.disabled) return;
     switch (e.key) {
       case 'ArrowLeft':
         e.preventDefault();
-        ctx.navigate(-1);
+        if (ctx.canGoBack) ctx.navigate(-1);
         break;
       case 'ArrowRight':
         e.preventDefault();
-        ctx.navigate(1);
+        if (ctx.canGoForward) ctx.navigate(1);
         break;
     }
   }
