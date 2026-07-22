@@ -45,6 +45,8 @@ internal TODO instead. Sections are ordered roughly by urgency.
   packaging-hygiene / launch pass (and a call on whether `@urbicon-ui/docs` has
   any external consumer yet at all).
 - **Found:** 2026-07-20, packaging-hygiene pass (sso-debt-wave).
+- **Status:** 🚧 in Arbeit (debt-fix-wave-4, 2026-07-23) — das README wird
+  geschrieben; die Konsumenten-Frage bleibt bei der Packaging-Hygiene.
 
 ### The `./dist/i18n/index.js` sideEffects exemption is inert under rolldown-vite
 
@@ -105,6 +107,9 @@ whose bundle price only became visible with the measurement tool.
   which touches the mint API surface and every mint-consuming component —
   a sweep, not a spot fix.
 - **Found:** 2026-07-22, bundle-size breakdown analysis.
+- **Status:** 🚧 in Arbeit (debt-fix-wave-4, 2026-07-23) — Richtung wie im
+  Eintrag: resolveIcon-Muster (Default-Effekt als direkter Import, Registry
+  nur für dynamische/Provider-Fälle), Vorher/Nachher per `size:blocks`.
 
 ### tv() ships its config-time diagnostics unguarded — 11 of 12 sites
 
@@ -336,6 +341,11 @@ whose bundle price only became visible with the measurement tool.
   ideally `initialFilters`) would close the gap with no URL-sync API change;
   back/forward re-hydration also waits on this.
 - **Found:** 2026-07-09, building the landing-page table specimen.
+- **Status:** 🚧 in Arbeit (debt-fix-wave-4, 2026-07-23) — Kern
+  `initialSort` + `initialSelectedIds`, Semantik strikt analog zur
+  bestehenden `initial*`-Familie (seed-once, controlled gewinnt,
+  persistence-Precedence wie heute); `initialFilters` nur, wenn es exakt
+  demselben Muster folgt.
 
 ### Table single-select: row click does not select — the checkbox is the only path
 
@@ -728,6 +738,7 @@ whose bundle price only became visible with the measurement tool.
   deliberate section-taxonomy sweep with its own review, not a drive-by during a
   coverage pass; the menu ToC omission wants the same look at that page's nav.
 - **Found:** 2026-07-20, XC-4 customization sectioning (qa-polish-wave).
+- **Status:** 🚧 in Arbeit (debt-fix-wave-4, 2026-07-23).
 
 ### Table server-mode (`mode="server"`) has no live docs demo
 
@@ -749,6 +760,8 @@ whose bundle price only became visible with the measurement tool.
   reproduces it; if it recurs, a `_data.ts`-style helper for display snippets
   is the systematic home.)
 - **Found:** 2026-07-20, e2e table remote/grouping coverage (qa-polish-wave).
+- **Status:** 🚧 in Arbeit (debt-fix-wave-4, 2026-07-23) — zusammen mit der
+  Combobox-`queryFn`-Demo als ein Demo-Fetcher-Paket.
 
 ### The docs search index is English-only, capped at 2000 chars per record, and indexes playground control names
 
@@ -787,6 +800,8 @@ whose bundle price only became visible with the measurement tool.
   loading/empty states), not a drive-by code block. Surfaced while anchoring
   the XC-7 decision matrix, whose async row now points at the JSDoc instead.
 - **Found:** 2026-07-14, XC-7 disambiguation work.
+- **Status:** 🚧 in Arbeit (debt-fix-wave-4, 2026-07-23) — zusammen mit der
+  Server-Mode-Demo als ein Demo-Fetcher-Paket.
 
 ## Auth — accepted trade-offs
 
