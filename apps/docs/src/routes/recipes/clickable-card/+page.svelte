@@ -46,7 +46,7 @@
           Dashboard tile with navigation (<code class="text-text-tertiary text-xs">href</code>)
         </p>
         <div class="grid gap-4 sm:grid-cols-2">
-          <Card variant="outlined" padding="md" href="#revenue" mint="lift">
+          <Card variant="outlined" padding="md" href="#revenue" mint="translate">
             <div class="flex items-start justify-between">
               <div>
                 <p class="text-text-tertiary text-xs font-medium">Revenue</p>
@@ -56,7 +56,7 @@
               <ArrowRightIcon class="text-text-tertiary h-4 w-4" />
             </div>
           </Card>
-          <Card variant="outlined" padding="md" href="#buildings" mint="lift">
+          <Card variant="outlined" padding="md" href="#buildings" mint="translate">
             <div class="flex items-start justify-between">
               <div>
                 <p class="text-text-tertiary text-xs font-medium">Properties</p>
@@ -159,7 +159,7 @@
         title="Stat tile with href (renders as <a>)"
         preview={false}
         language="svelte"
-        code={`<Card variant="outlined" padding="md" href="/revenue" mint="lift">
+        code={`<Card variant="outlined" padding="md" href="/revenue" mint="translate">
   <div class="flex items-start justify-between">
     <div>
       <p class="text-text-tertiary text-xs font-medium">Revenue</p>
@@ -275,10 +275,11 @@
         </div>
         <div class="px-4 py-3">
           <p class="text-text-primary text-sm font-semibold">
-            mint="lift" for a gentle hover animation
+            mint="translate" for a gentle hover animation
           </p>
           <p class="text-text-secondary mt-1 text-sm">
-            <code class="text-text-primary">mint="lift"</code> lifts the card slightly on hover;
+            <code class="text-text-primary">mint="translate"</code> lifts the card slightly on
+            hover;
             <code class="text-text-primary">mint="glow"</code> adds a subtle glow.
             <code class="text-text-primary">prefers-reduced-motion</code> is respected.
           </p>

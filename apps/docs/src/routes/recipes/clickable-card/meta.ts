@@ -7,7 +7,7 @@ export const recipeMeta = {
     'href automatically sets the rendered element to <a> with correct tab order',
     'onclick sets it to <button type="button"> for actions without navigation',
     'Hover/focus styles kick in automatically once href/onclick/clickable is set — no "decorative hover" mode on passive elements',
-    'mint="lift" or mint="glow" for a gentle micro-interaction',
+    'mint="translate" or mint="glow" for a gentle micro-interaction',
     'Anti-pattern comparison: why <a><Card></Card></a> is the worse solution'
   ]
 };
