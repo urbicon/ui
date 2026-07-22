@@ -157,43 +157,6 @@ whose bundle price only became visible with the measurement tool.
   a broad consumer demand for a canonical shape catalog emerges.
 - **Found:** 2026-07-10, P2 Blocks feature-request pass.
 
-### ButtonGroup's container div spreads `restProps` last — same class as the fixed Button exposure
-
-- **Where:** `packages/blocks/src/lib/primitives/ButtonGroup/ButtonGroup.svelte`
-  (the container `<div>`, ~`:274-285`: `role={ariaRole}`/`aria-orientation`/
-  `aria-disabled`/`onkeydown` before `{...restProps}`).
-- **What:** The same contract violation Button was migrated off (`42b0791`),
-  one level up: a consumer-passed `role` via restProps would override the
-  computed `radiogroup`/`toolbar` role, and a consumer `onkeydown` would
-  replace — not supplement — the roving keyboard navigation (it is not
-  composed via `composeHandlers`).
-- **Why deferred:** Surfaced during the Button migration's review, outside that
-  entry's scope. Wants the same deliberate treatment: conditional merges for
-  the ARIA attributes, `composeHandlers` for `onkeydown`, DOM tests for the
-  adversarial and legitimate arms.
-- **Found:** 2026-07-22, Button restProps-first migration review
-  (fable-debt-wave-2).
-- **Status:** 🚧 in Arbeit (debt-fix-wave-3, 2026-07-22).
-
-### Table still names its style axis `appearance` after the blocks-wide `variant` unification
-
-- **Where:** `packages/table/src/lib/core/table/index.ts` (`appearance?: 'flush'
-  | 'surface' | 'framed'`), the `appearance` axis in `table.variants.ts` /
-  `table-features.variants.ts`, `table-style-context.ts`,
-  `SmartFilterBar.svelte`; `packages/blocks/docs/MIGRATION-v5.md` §3 documents
-  the prop; the table docs-page playground drives it.
-- **What:** The 2026-07-22 vocabulary decision made `variant` the single
-  style-axis name (COMPONENT-API-CONVENTIONS §variant) and renamed the three
-  blocks `appearance` axes (SegmentGroup/Toggle/Slider). Table — a separate
-  package, outside that primitives sweep — still ships `appearance` for its
-  chrome, the last axis carrying the old name. Table has no competing `variant`
-  axis, so a rename is mechanical.
-- **Why deferred:** Wants its own small breaking pass: it touches the shipped
-  v4→v5 migration guide §3 and the table docs page, and the pre-launch window
-  should be confirmed still open when it lands.
-- **Found:** 2026-07-22, style-axis vocabulary sweep.
-- **Status:** 🚧 in Arbeit (debt-fix-wave-3, 2026-07-22).
-
 ### Intent palettes drift across primitives — three different value sets, one undocumented
 
 - **Where:** `alert.variants.ts` / `toast.variants.ts` (6 values: `+info`,
@@ -216,22 +179,31 @@ whose bundle price only became visible with the measurement tool.
 
 ## Component behaviour
 
-### Calendar day/agenda keyboard navigation still emits a clamped no-op at the bounds
+### Calendar day/agenda view region: three small a11y gaps on the focusable-region pattern
 
-- **Where:** `packages/blocks/src/lib/components/Calendar/CalendarDayView.svelte`
-  + `CalendarAgendaView.svelte` — the ArrowLeft/ArrowRight keydown handlers call
-  `ctx.navigate(±1)` without a `canGoBack`/`canGoForward` gate.
-- **What:** The swipe handlers of all five views were direction-gated in
-  `926b528` (no callback emit at a `minDate`/`maxDate` bound), but the two
-  views with keyboard prev/next kept the ungated path: an arrow key at the
-  bound still fires `onDayChange` with an unchanged value. Same one-line gate,
-  different input modality.
-- **Why deferred:** The debt entry that drove the sweep explicitly named only
-  the swipe handlers; gating the keyboard path is the same emitted-callback
-  contract decision and should get its own deliberate (if small) pass with
-  tests rather than riding along unreviewed.
-- **Found:** 2026-07-22, Calendar swipe-gating sweep (fable-debt-wave-2).
-- **Status:** 🚧 in Arbeit (debt-fix-wave-3, 2026-07-22).
+- **Where:** `packages/blocks/src/lib/components/Calendar/CalendarDayView.svelte:53`
+  + `CalendarAgendaView.svelte:82` — the `role="region"` + `tabindex={0}` +
+  `onkeydown` container both views share.
+- **What:** Three facets of the same shipped pattern, surfaced while gating the
+  keyboard navigation (debt-fix-wave-3). (a) svelte-check flags
+  `a11y_no_noninteractive_tabindex` + `a11y_no_noninteractive_element_interactions`
+  on both roots (4 of the 6 pre-existing blocks warnings; the other two are
+  `Slider.svelte:416` and `CalendarMiniMonth.svelte:153`
+  `a11y_interactive_supports_focus`) — the focusable-named-region pattern is
+  deliberate, but the warnings want a deliberate verdict (suppress with
+  `svelte-ignore` + comment, re-role, or restructure). (b) A **disabled**
+  calendar's region keeps `tabindex={0}`: keyboard is inert (gated), but the
+  region stays in the tab order while the header buttons are native-disabled.
+  (c) The keydown handler doesn't check `e.target`: arrow keys pressed inside
+  interactive children (event-item buttons, a consumer `eventItem` snippet with
+  an input) bubble to the region, navigate the month/day and `preventDefault`
+  the caret movement — pre-existing, not introduced by the gate.
+- **Why deferred:** All three want one deliberate pass over the region pattern
+  (with SR/keyboard testing), not drive-by attribute tweaks during a bounds-gate
+  sweep.
+- **Found:** 2026-07-22, Calendar keyboard bounds-gating + its review
+  (debt-fix-wave-3). The bounds-gate entry itself is resolved: day/agenda arrow
+  keys are `canGoBack`/`canGoForward`-gated like the swipe paths since this wave.
 
 ### Three surfaces ingest their content in `$effect`, so the prerendered HTML carries placeholders — 91 API pages assert "No matching properties"
 
@@ -316,27 +288,30 @@ whose bundle price only became visible with the measurement tool.
   The kicker fix is orthogonal and shipped; this is the larger finding underneath
   it.
 
-### PlaygroundConfigurator: two hardcoded English strings, and `slotClasses.helpToggle` is dead
+### PlaygroundConfigurator: the i18n/slot pass left three smaller gaps — and `i18n:check` never scans `packages/docs` at all
 
 - **Where:** `packages/docs/src/lib/components/PlaygroundConfigurator/PlaygroundConfigurator.svelte`
-  — `:292` (`Reset all ({modifiedCount})`), `:305`
-  (`{helpVisible ? 'Hints on' : 'Hints'}`), and `:290`/`:303` calling
-  `styles.helpToggle()` directly instead of `slot('helpToggle')`.
-- **What:** Two defects in one place. (a) Every other string in this file goes
-  through `dt()`, so the German docs locale silently shows English for both
-  labels — and `bun run i18n:check` reports **0** hardcoded findings here, i.e.
-  its scanner does not cover this file. (b) `slotClasses.helpToggle` is declared
-  in the public override union (`index.ts:124`) but never applied, and `unstyled`
-  does not strip those buttons, because the call sites bypass `slot()`.
-- **Why deferred:** (b) changes public override behaviour for a declared-but-inert
-  key, so it wants the same deliberate call as the `actionsBar` slot that was
-  just woken (2026-07-14) — and fixing one of three toggle buttons would be worse
-  than the uniform status quo. (a) rides along with it. The new share button
-  deliberately uses `dt()` and does **not** follow the precedent.
-- **Found:** 2026-07-14, adding playground share-links (publish-m3-finale).
-- **Status:** 🚧 in Arbeit (debt-fix-wave-3, 2026-07-22) — helpToggle wird
-  nach dem actionsBar-Präzedenzfall geweckt (alle drei Buttons via `slot()`),
-  die beiden Strings gehen über `dt()`.
+  (Tooltip `label="Style variant (tailwind-variants)"`, the modified-dot's
+  `title`/`aria-label` strings in the controlCaption snippet, the literal
+  `default` badge in the Select customItem snippet; plus the internal-only
+  `styles.variantBadge()`/`modifiedDot()`/`colorInput()` calls), and root
+  `package.json:100` (`i18n:check` scan roots).
+- **What:** The 2026-07-22 pass (debt-fix-wave-3) woke `slotClasses.helpToggle`
+  (all three call sites via `slot()`, actionsBar precedent) and localized the
+  two logged strings (`resetAll`/`hints`/`hintsOn`, EN/DE). Left deliberately:
+  (a) the further hardcoded English strings above — same class, outside the
+  logged scope; (b) `variantBadge`/`modifiedDot`/`colorInput` are internal-only
+  styles never declared in the public slotClasses union — exposing them as
+  slots is an open design call, unlike the dead-but-declared helpToggle.
+  (c) Root cause of the "0 findings" mystery: `i18n:check` scans only
+  `packages/blocks/src` and `packages/table/src` — `packages/docs/src`,
+  `packages/auth/src` and `apps/docs/src` all ship translations but are never
+  audited (extending the script also needs their `--translations` paths).
+- **Why deferred:** (a)+(b) want one coherent localization/slot pass over the
+  file; (c) is a script-surface decision (which packages the gate should own)
+  with a real runtime cost per added root.
+- **Found:** 2026-07-22, PlaygroundConfigurator helpToggle/dt() pass
+  (debt-fix-wave-3).
 
 ### Table's `initial*` family is incomplete — no `initialSort`, no `initialSelectedIds`
 
@@ -543,23 +518,6 @@ whose bundle price only became visible with the measurement tool.
 
 ## Accessibility
 
-### Badge docs demo hardcodes `text-white` on `bg-warning`
-
-- **Where:** `apps/docs/src/routes/blocks/primitives/badge/Docs.svelte:79`
-  (avatar-circle demo, initials "AB").
-- **What:** White on the light amber fill measures under AA in both modes —
-  the only label-on-a-warning-fill left in the repo after `00d046d` gave
-  filled warning surfaces `text-on-warning`, and a hardcoded colour besides.
-  `text-on-warning` is the drop-in fix if the demo is meant to be on-system.
-- **Why deferred:** Rides with the off-system-demo restyle decision recorded
-  in the `text-tertiary` entry below (restyle vs. exempt); if that call lands
-  on "restyle", this is a one-liner in the same sweep.
-- **Found:** 2026-07-20, v6.26.0 release audit (contrast package).
-- **Status:** 🚧 in Arbeit (debt-fix-wave-3, 2026-07-22) — als Demo-Bug
-  eingestuft (hardcodierte Farbe gegen die Hausregel, on-system-Demo), Fix
-  `text-on-warning`; unabhängig von der restyle-vs-exempt-Entscheidung der
-  echten Off-System-Demos.
-
 ### `text-tertiary` on subtle surfaces measures 4.18:1 — and the off-system demos trip axe
 
 - **Where:** `packages/blocks/src/lib/style/semantic.css:54`
@@ -586,40 +544,49 @@ whose bundle price only became visible with the measurement tool.
   `e2e/a11y-baseline.json` (each names the exact colour pair, so a *different*
   bad pair still fails), which restores the gate's signal without pre-empting
   the restyle-vs-exempt call. The token half is untouched and still wants the
-  pass above. Two further demo defects were measured in the same run and belong
-  to the same restyle decision: SegmentGroup's dark-skin demo renders `#17150f`
-  on `#062f26` = **1.25:1** (a near-invisible selected label), and the badge
-  demo hardcodes `text-white` on `bg-warning` = 2.6:1 — the latter against the
-  house rule on hardcoded colours, so a demo bug rather than an off-system
-  choice.
+  pass above. Two further demo defects were measured in the same run: the badge
+  demo's `text-white` on `bg-warning` was reclassified as a plain demo bug
+  (hardcoded colour, on-system demo) and **fixed in debt-fix-wave-3
+  (2026-07-22, `text-text-on-warning`)**; SegmentGroup's dark-skin demo
+  (`#17150f` on `#062f26` = **1.25:1**, a near-invisible selected label)
+  remains with the restyle decision.
 - **Found:** 2026-07-14, C.1/C.7 pass (reported) + independently confirmed by
   the orchestrator (own calculation: 4.18:1); demo facets extended by the
   widened axe pass (Opus quality wave).
 
-### `text-text-quaternary` measures 1.96:1, and the Combobox demos have no accessible name
+### `text-text-quaternary` measures 1.96:1
 
 - **Where:** the quaternary text token (`packages/blocks/src/lib/style`), seen
-  on `/blocks/primitives/journey-timeline`; plus
-  `apps/docs/src/routes/blocks/primitives/combobox/Docs.svelte`
-  (`:89,103,142,157,187,213,240`).
-- **What:** Two findings the widened axe pass turned up that the entries above
-  don't cover. (a) `text-text-quaternary` `#b8b5ad` on `#fbfaf6` = **1.96:1** —
+  on `/blocks/primitives/journey-timeline`.
+- **What:** `text-text-quaternary` `#b8b5ad` on `#fbfaf6` = **1.96:1** —
   far below AA, and the same ramp stop the Shiki comment token was deliberately
   raised *away from* in `572b738`; if it is a text token it is unusable, so the
-  real question is whether it is one. (b) Seven Combobox demos pass neither
-  `label` nor `aria-label`, so the input has no accessible name (`label` rule,
-  not contrast). `Combobox.svelte:902` is correct — naming is the consumer's
-  job — which makes this a demo bug that also models the wrong thing to anyone
-  copying it.
-- **Why deferred:** (a) rides the same ramp decision as the `text-tertiary` /
-  `text-on-primary` entries — settle the ramp once rather than per token. (b)
-  is a small local fix, but `apps/docs/src/routes/**` belonged to a parallel
-  session's working set at the time. Both are held meanwhile by documented
-  exceptions in `e2e/a11y-baseline.json`.
+  real question is whether it is one. Held meanwhile by a documented exception
+  in `e2e/a11y-baseline.json`.
+- **Why deferred:** Rides the same ramp decision as the `text-tertiary` /
+  `text-on-primary` entries — settle the ramp once rather than per token.
+  (The entry's former part (b) — seven unlabelled Combobox demos — was fixed
+  in debt-fix-wave-3, 2026-07-22: all demos named, the baseline exception
+  removed.)
 - **Found:** 2026-07-14, widening the e2e axe harness to the code panel (Opus
   quality wave).
-- **Status:** 🚧 Teil (b) — die Combobox-Demo-Labels — in Arbeit
-  (debt-fix-wave-3, 2026-07-22); Teil (a) bleibt bei der Ramp-Entscheidung.
+
+### Playground stages are exempt from the axe gate — and the Combobox playground input is unlabelled
+
+- **Where:** `e2e/a11y.spec.ts` (the preview/code passes scan
+  `[data-docs-preview]` and `[data-docs-stage="example"]`; the
+  PlaygroundConfigurator's `data-docs-stage="playground"` is never scanned) +
+  `apps/docs/src/routes/blocks/primitives/combobox/+page.svelte:116-124` (the
+  playground Combobox has neither `label` nor `aria-label`).
+- **What:** The same defect class the wave-3 demo fix closed, one section up —
+  but structurally ungated: no axe pass covers playground stages, so unlabelled
+  playground inputs (and any other playground-only violation) are invisible to
+  the gate on all ~36 primitive pages.
+- **Why deferred:** Two coupled calls: whether the playground stage should be
+  scanned at all (it is chrome + a live specimen; scanning doubles per-page
+  cost), and a sweep over the playground specimens' naming once it is. Surfaced
+  by the wave-3 review as a follow-up, not a regression.
+- **Found:** 2026-07-22, debt-fix-wave-3 review.
 
 ### The docs Rooms skin remaps `--color-primary` to an accent that misses AA against `text-on-primary`
 
@@ -647,6 +614,12 @@ whose bundle price only became visible with the measurement tool.
   library/skin split was traced during the merge, when the measurement appeared
   to contradict the publish-m3 wave's "light mode is fine" finding — both are
   correct, they measure different layers.
+- **Update 2026-07-22 (debt-fix-wave-3):** the badge demo's two JD avatar
+  circles keep their hardcoded `text-white` on `bg-primary` deliberately —
+  under the Rooms skin white measures ≈ 4.7:1 on `#00845c` (passes), while the
+  "correct" `text-text-on-primary` (`#f6f3ec`) would *drop* the pair to 4.25:1
+  into this entry's exception. Swapping them is coupled to this accent
+  decision, not a drive-by.
 
 ### Rooms-skin secondary text on accent fields misses WCAG AA contrast
 
@@ -756,25 +729,26 @@ whose bundle price only became visible with the measurement tool.
   coverage pass; the menu ToC omission wants the same look at that page's nav.
 - **Found:** 2026-07-20, XC-4 customization sectioning (qa-polish-wave).
 
-### Table server-mode (`mode="server"`) has no live docs demo, and `/table/live-updates` has a broken import
+### Table server-mode (`mode="server"`) has no live docs demo
 
 - **Where:** `apps/docs/src/routes/.../table/remote-data` (both examples render
-  with `preview={false}` — code-only) and `.../table/live-updates` (a dev-server
-  `[UNRESOLVED_IMPORT] ./LiveFeed.svelte` warning).
-- **What:** Two adjacent gaps found while adding table e2e coverage. (a)
-  Server-mode is demonstrated only as code — there is no live preview a reader
-  (or an e2e) can drive, which is why the new `table-core` remote test had to
-  build its own deterministic server-mode fixture with a request counter. (b)
-  `/table/live-updates` references `./LiveFeed.svelte`, which the dev server
-  fails to resolve — a non-fatal warning today, but a broken reference on a
-  shipped route.
-- **Why deferred:** (a) wants a real server-mode demo design (mock latency,
+  with `preview={false}` — code-only).
+- **What:** Server-mode is demonstrated only as code — there is no live preview
+  a reader (or an e2e) can drive, which is why the new `table-core` remote test
+  had to build its own deterministic server-mode fixture with a request counter.
+- **Why deferred:** Wants a real server-mode demo design (mock latency,
   loading/empty states, a visible request indicator) — the same demo-fetcher
-  class as the Combobox `queryFn` gap, not a drive-by. (b) is small but wants a
-  look at whether `LiveFeed.svelte` should exist or the import should go.
+  class as the Combobox `queryFn` gap, not a drive-by. (The entry's former
+  part (b) — the `/table/live-updates` `[UNRESOLVED_IMPORT] ./LiveFeed.svelte`
+  warning — was resolved in debt-fix-wave-3, 2026-07-22: the import only ever
+  existed inside a display-code template literal; Vite's dep-scanner
+  regex-extracts import specifiers from `lang="ts"` Svelte scripts without
+  understanding template literals, so it resolved reader-facing example code.
+  Fixed by interpolating the specifier; rendered output byte-identical. The
+  trap is generic — any future display-code literal with a relative import
+  reproduces it; if it recurs, a `_data.ts`-style helper for display snippets
+  is the systematic home.)
 - **Found:** 2026-07-20, e2e table remote/grouping coverage (qa-polish-wave).
-- **Status:** 🚧 Teil (b) — der `LiveFeed.svelte`-Import — in Arbeit
-  (debt-fix-wave-3, 2026-07-22); Teil (a) (Server-Mode-Live-Demo) bleibt offen.
 
 ### The docs search index is English-only, capped at 2000 chars per record, and indexes playground control names
 
