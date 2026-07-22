@@ -88,6 +88,7 @@
       previewClass="flex flex-col gap-4 max-w-sm"
     >
       <Combobox
+        label="Assignee"
         options={teamMembers}
         bind:value={assigneeValue}
         placeholder="Assign to…"
@@ -102,6 +103,7 @@
       previewClass="flex flex-col gap-4 max-w-sm"
     >
       <Combobox
+        label="Skills"
         options={languages}
         multiple
         bind:value={skillsValue}
@@ -141,6 +143,7 @@
       previewClass="flex flex-col gap-4 max-w-xs"
     >
       <Combobox
+        label="Language"
         options={languages}
         bind:value={filterValue}
         placeholder="Type to match…"
@@ -155,7 +158,13 @@
       isolate
       previewClass="flex flex-col gap-4 max-w-sm"
     >
-      <Combobox options={teamMembers} bind:value={customValue} placeholder="Search team…" clearable>
+      <Combobox
+        label="Team member"
+        options={teamMembers}
+        bind:value={customValue}
+        placeholder="Search team…"
+        clearable
+      >
         {#snippet customOption(opt: ComboboxOption, isSelected: boolean)}
           <div class="flex w-full items-center gap-3">
             <Avatar src={avatars[opt.value]} size="xs" />
@@ -194,6 +203,7 @@
           { label: '⌘J  Toggle Terminal', value: 'cmd-j' },
           { label: '⌘,  Open Settings', value: 'cmd-comma' }
         ]}
+        aria-label="Command palette"
         placeholder="Type a command…"
         size="lg"
         slotClasses={{
@@ -212,6 +222,7 @@
       previewClass="flex flex-col items-center gap-4 max-w-md w-full mx-auto rounded-xl bg-linear-to-br from-indigo-600 via-purple-600 to-pink-500 px-8 py-10"
     >
       <Combobox
+        aria-label="Timezone"
         options={timezones}
         placeholder="Select your timezone…"
         unstyled
@@ -239,6 +250,7 @@
       previewClass="flex flex-col items-center gap-4 max-w-md w-full mx-auto"
     >
       <Combobox
+        aria-label="Language"
         options={languages}
         placeholder="$ select --lang"
         unstyled

@@ -29,9 +29,16 @@ ${scriptOpen}
   });
 ${scriptClose}`;
 
+  // Display-only specifier. Interpolated (like scriptOpen/scriptClose) so
+  // vite's dep-scanner — which regex-extracts imports from the raw script of
+  // lang="ts" svelte files without understanding template literals — does not
+  // treat the example's `./LiveFeed.svelte` as a real import of a file that
+  // only exists in the consumer's project ([UNRESOLVED_IMPORT] warning).
+  const liveFeedPath = `'./LiveFeed.svelte'`;
+
   const codeMount = `${scriptOpen}
   import { Table, SmartFilterBar } from '@urbicon-ui/table';
-  import LiveFeed from './LiveFeed.svelte';
+  import LiveFeed from ${liveFeedPath};
 ${scriptClose}
 
 <Table {items} {columns} enableLiveUpdates>

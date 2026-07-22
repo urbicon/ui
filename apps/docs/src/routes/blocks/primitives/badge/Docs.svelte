@@ -77,7 +77,7 @@
         <Badge intent="success" variant="dot" placement="bottom-end" border />
       </div>
       <div
-        class="bg-warning relative flex h-16 w-16 items-center justify-center rounded-full text-white"
+        class="bg-warning text-text-on-warning relative flex h-16 w-16 items-center justify-center rounded-full"
       >
         AB
         <Badge intent="danger" counter placement="top-end" border size="sm">5</Badge>

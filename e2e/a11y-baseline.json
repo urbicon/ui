@@ -84,15 +84,6 @@
       "ref": "docs/technical-debt.md -> 'The docs Rooms skin remaps `--color-primary` to an accent that misses AA against `text-on-primary`'"
     },
     {
-      "id": "preview-badge-white-on-warning-contrast",
-      "pass": "preview",
-      "rule": "color-contrast",
-      "routes": ["badge"],
-      "contrast": { "fg": "#ffffff", "bg": "#ef852e" },
-      "reason": "PRE-EXISTING. Docs demo hardcodes `text-white` on `bg-warning` = 2.6:1 — a demo-markup bug in apps/docs (hardcoded colour, against the house rules), not a library defect. Lives in another session's tree. Reported for triage.",
-      "ref": "docs/technical-debt.md -> '`text-tertiary` on subtle surfaces measures 4.18:1 — and the off-system demos trip axe'"
-    },
-    {
       "id": "preview-segment-group-dark-skin-contrast",
       "pass": "preview",
       "rule": "color-contrast",
@@ -109,15 +100,6 @@
       "contrast": { "fg": "#6e6b64", "bg": "#070c10" },
       "reason": "PRE-EXISTING. Same dark-skinned SegmentGroup demo, inactive label: #6e6b64 on #070c10 = 3.69:1. Demo markup in apps/docs, another session's tree. Reported for triage.",
       "ref": "docs/technical-debt.md -> '`text-tertiary` on subtle surfaces measures 4.18:1 — and the off-system demos trip axe'"
-    },
-    {
-      "id": "preview-combobox-unlabelled-demo-input",
-      "pass": "preview",
-      "rule": "label",
-      "routes": ["combobox"],
-      "htmlIncludes": ["role=\"combobox\""],
-      "reason": "PRE-EXISTING. Combobox demos in apps/docs/.../combobox/Docs.svelte pass neither `label` nor `aria-label`, so the input has no accessible name (Combobox.svelte:902 correctly leaves naming to the consumer). Demo markup in another session's tree. Reported for triage.",
-      "ref": "docs/technical-debt.md -> '`text-text-quaternary` measures 1.96:1, and the Combobox demos have no accessible name'"
     }
   ]
 }
