@@ -4,6 +4,15 @@ All notable changes to this project will be documented in this file.
 This changelog is automatically generated from [Conventional Commits](https://www.conventionalcommits.org).
 
 
+## [6.32.0] - 2026-07-22
+
+### Documentation
+- Log the four bundle-composition findings from the size breakdown
+
+### Features
+- **blocks**: Add per-component bundle-size measurement + baseline gate
+- **blocks**: Sourcemap byte attribution for bundle-size (--breakdown)
+
 ## [6.31.0] - 2026-07-22
 
 ### Breaking Changes
