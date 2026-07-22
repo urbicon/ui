@@ -1,6 +1,11 @@
 /** Shared terminal rendering + exit codes for the urbicon CLI. */
 
-import type { Finding, LintReport, Severity } from '@urbicon-ui/design-engine/linter';
+import type {
+  Finding,
+  LintReport,
+  Severity,
+  SuppressedRule
+} from '@urbicon-ui/design-engine/linter';
 
 /**
  * CLI exit codes. `FAIL` is the design gate (errors, or warnings under
@@ -18,14 +23,26 @@ function formatFinding(f: Finding): string {
   return `  ${SEVERITY_ICON[f.severity]} [${f.ruleId}]${loc}${match} — ${f.message}\n    ↳ ${f.fix}`;
 }
 
+/** One suppressed-rule line: the exemption stays visible in every report. */
+function formatSuppressed(s: SuppressedRule): string {
+  const via = s.source === 'pragma' ? 'urbicon-ignore pragma' : 'manifest Exempt';
+  const unused = s.count === 0 ? ' — matched nothing (stale?)' : '';
+  return `  ≋ [${s.ruleId}] ×${s.count} suppressed via ${via}${unused}`;
+}
+
 /** Human-readable report for a single linted unit. */
 export function formatReport(report: LintReport): string {
-  const { scores, counts, findings, filename } = report;
+  const { scores, counts, findings, filename, suppressed } = report;
+  const suppressedTotal = (suppressed ?? []).reduce((a, s) => a + s.count, 0);
   const head =
     `${filename ?? '<stdin>'} — correctness ${scores.correctness}/100 · slop ${scores.slop}/100 · ` +
-    `${counts.error} error(s), ${counts.warning} warning(s), ${counts.info} slop note(s)`;
-  if (findings.length === 0) return `${head}\n  ✓ no issues`;
-  return `${head}\n${findings.map(formatFinding).join('\n')}`;
+    `${counts.error} error(s), ${counts.warning} warning(s), ${counts.info} slop note(s)` +
+    (suppressed ? `, ${suppressedTotal} suppressed` : '');
+  const suppressedLines = (suppressed ?? []).map(formatSuppressed);
+  const body = [...findings.map(formatFinding), ...suppressedLines];
+  if (body.length === 0) return `${head}\n  ✓ no issues`;
+  if (findings.length === 0) return `${head}\n  ✓ no issues\n${suppressedLines.join('\n')}`;
+  return `${head}\n${body.join('\n')}`;
 }
 
 /** Write a CLI error to stderr, prefixed so it is unambiguous in a hook log. */

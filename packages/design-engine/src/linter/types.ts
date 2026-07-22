@@ -50,16 +50,33 @@ export interface LintContext {
   validTokenCores: ReadonlySet<string>;
 }
 
+/**
+ * Which slice of the source a deterministic rule scans.
+ *
+ * - `'code'` — the code view (see `scope.ts`): class-attribute values, string/
+ *   template literals in script blocks and `{…}` expressions, and `@apply` lines —
+ *   with prose text content, non-class string attributes (`style=`, `aria-label=`,
+ *   …) and comments blanked. For rules whose patterns are class utilities or
+ *   module specifiers, so a page *quoting* an anti-pattern in prose (linter docs,
+ *   before/after migration guides) is not flagged as violating it.
+ * - `'file'` — the whole comment-masked file (the default). For rules that do their
+ *   own structural scoping (the markup rules) or genuinely need file scope.
+ */
+export type RuleScope = 'code' | 'file';
+
 /** A deterministic rule: scans the source and emits findings. */
 export interface Rule {
   id: string;
   severity: Severity;
   /** One-line description of what the rule enforces, shown in `validate_design` rule listings. */
   description: string;
+  /** Which view of the source this rule scans. Default: `'file'`. See {@link RuleScope}. */
+  scope?: RuleScope;
   /**
    * Run the rule over the already-prepared source lines.
-   * @param lines source split by `\n`, with comments masked (see linter.ts)
-   * @param raw the original source (for rules that need cross-line context)
+   * @param lines source split by `\n`, prepared per the rule's {@link RuleScope}
+   *   (comment-masked whole file, or the code view with prose blanked)
+   * @param raw the same prepared source unsplit (for rules that need cross-line context)
    * @param ctx per-run context (e.g. the effective token whitelist). Always supplied
    *   by {@link lintDesign}; optional so a rule stays callable standalone, in which
    *   case it falls back to its own built-in defaults.
@@ -89,21 +106,71 @@ export interface LintScores {
   slop: number;
 }
 
+/**
+ * One rule whose findings were suppressed for this unit — via an in-file
+ * `urbicon-ignore` pragma or a caller-supplied list ({@link LintOptions.suppressRules},
+ * e.g. the manifest's `## Exempt` section resolved by the CLI). Always surfaced in
+ * the report (never silently swallowed): a suppression is a visible, deliberate
+ * decision, and a `count` of 0 marks a declared suppression that matched nothing
+ * (a candidate for removal).
+ */
+export interface SuppressedRule {
+  ruleId: string;
+  /** How many findings of this rule were suppressed in this unit (0 = declared but unused). */
+  count: number;
+  /** Where the suppression was declared: an in-file pragma or the caller's option. */
+  source: 'pragma' | 'option';
+}
+
 /** Aggregate result of linting one code unit. */
 export interface LintReport {
   findings: Finding[];
   /** Two-axis 0–100 score; 100/100 = no findings on that axis. See {@link LintScores}. */
   scores: LintScores;
   counts: { error: number; warning: number; info: number };
+  /**
+   * Rules suppressed for this unit (pragma / caller option), with per-rule counts.
+   * Suppressed findings are excluded from {@link findings}, {@link counts} and
+   * {@link scores} but stay visible here. Absent when nothing was declared.
+   */
+  suppressed?: SuppressedRule[];
   /** Optional label (e.g. filename) echoed back in the report. */
   filename?: string;
 }
+
+/**
+ * How the source should be read when building the code view for the
+ * class-scoped rules (see {@link RuleScope}).
+ *
+ * - `'markup'` — a Svelte/HTML document: class values live in attributes,
+ *   `{…}` expressions, `<script>` literals and `@apply`; element text content is
+ *   prose and never scanned. The default.
+ * - `'code'` — a plain TS/JS module (e.g. a `tv()` config file): every string/
+ *   template literal in the file is a class-bearing candidate; there is no
+ *   markup structure and no prose.
+ *
+ * When omitted, the mode is inferred from the {@link LintOptions.filename}
+ * extension (`.ts`/`.js`/`.mjs`/… → `'code'`), else `'markup'`. Pass it
+ * explicitly for extension-less input (stdin) that is not Svelte markup.
+ */
+export type LintMode = 'markup' | 'code';
 
 /** Options for a lint run. */
 export interface LintOptions {
   filename?: string;
   /** Skip the distribution heuristics (the `info`-level checks). Default: false. */
   skipHeuristics?: boolean;
+  /** Input kind for the code view. Default: inferred from `filename`, else `'markup'`. See {@link LintMode}. */
+  mode?: LintMode;
+  /**
+   * Rule ids to suppress for this unit, merged with any in-file `urbicon-ignore`
+   * pragmas — the caller-side channel for the manifest's `## Exempt` section
+   * (resolved per file by the `urbicon` CLI). Suppressed findings are excluded
+   * from findings/counts/scores but reported in {@link LintReport.suppressed};
+   * unknown rule ids produce a loud `invalid-suppression` warning instead of
+   * silently suppressing nothing.
+   */
+  suppressRules?: readonly string[];
   /**
    * Project-specific semantic token cores to treat as valid for this run, merged
    * into the built-in whitelist so the `token-hallucination` rule does not flag

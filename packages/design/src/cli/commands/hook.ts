@@ -30,7 +30,12 @@ import type { LintReport } from '@urbicon-ui/design-engine/linter';
 import { lintDesign } from '@urbicon-ui/design-engine/linter';
 import { boolFlag, type Flags, stringFlag } from '../args.js';
 import { evaluateGate, parseSlopFloor } from '../gate.js';
-import { readTokenOverrides, resolveManifestPath } from '../manifest-io.js';
+import {
+  exemptRulesFor,
+  readExempts,
+  readTokenOverrides,
+  resolveManifestPath
+} from '../manifest-io.js';
 import { EXIT, formatReport, printError } from '../output.js';
 
 /** The code that makes Claude Code surface this process's stderr to the agent. */
@@ -77,18 +82,27 @@ export async function runHook(_positionals: string[], flags: Flags): Promise<num
 
   const manifestPath = resolveManifestPath(stringFlag(flags, 'manifest'));
   const extraTokens = await readTokenOverrides(manifestPath);
+  const exempts = await readExempts(manifestPath);
   const strict = boolFlag(flags, 'strict');
   const skipHeuristics = boolFlag(flags, 'skip-heuristics');
 
   const reports = [];
   for (const p of paths) {
+    const abs = resolve(p);
     let code: string;
     try {
-      code = await readFile(resolve(p), 'utf-8');
+      code = await readFile(abs, 'utf-8');
     } catch {
       continue; // the file vanished between the edit and the hook — skip it
     }
-    reports.push(lintDesign(code, { filename: p, skipHeuristics, extraTokens }));
+    reports.push(
+      lintDesign(code, {
+        filename: p,
+        skipHeuristics,
+        extraTokens,
+        suppressRules: exemptRulesFor(abs, manifestPath, exempts)
+      })
+    );
   }
   if (reports.length === 0) return EXIT.OK;
 

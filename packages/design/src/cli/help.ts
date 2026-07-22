@@ -60,6 +60,14 @@ Commands:
                         Paths may be files, directories, or "-" (stdin).
                         Reads ## Token Overrides from the manifest (if any) so your
                         project's own tokens are not flagged as hallucinated.
+                        Class rules scan class attributes / slotClasses / tv()
+                        literals — prose that merely quotes an anti-pattern
+                        (docs, before/after guides) is not flagged.
+                        Deliberately off-system surfaces can be exempted per rule:
+                        in-file <!-- urbicon-ignore rule-id … — reason --> or a
+                        manifest ## Exempt bullet ("path" — "rule-id" — reason).
+                        Suppressions are always reported ("n suppressed"), never
+                        silent; unknown rule ids warn (invalid-suppression).
                         --json             Machine-readable report ({ ok, slopFloor, results }).
                         --strict           Fail on warnings too, not just errors.
                         --slop-floor <n>   Also fail any file scoring below n/100 on the

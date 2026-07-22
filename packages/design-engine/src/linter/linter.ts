@@ -7,10 +7,13 @@
 
 import { runHeuristics } from './heuristics.js';
 import { RULES } from './rules.js';
+import { buildCodeView } from './scope.js';
+import { applySuppressions, collectSuppressions } from './suppress.js';
 import { resolveValidTokenCores } from './tokens.js';
 import type {
   Finding,
   LintContext,
+  LintMode,
   LintOptions,
   LintReport,
   LintScores,
@@ -52,24 +55,48 @@ export function maskComments(code: string): string {
 
 const SEVERITY_ORDER: Record<Severity, number> = { error: 0, warning: 1, info: 2 };
 
+/** File extensions read as plain TS/JS modules (`mode: 'code'`) rather than markup. */
+const CODE_EXTENSION_RE = /\.(?:[mc]?[jt]s|[jt]sx)$/i;
+
+/** Explicit option first, then the filename extension, else markup. */
+function resolveMode(opts: LintOptions): LintMode {
+  if (opts.mode) return opts.mode;
+  return opts.filename !== undefined && CODE_EXTENSION_RE.test(opts.filename) ? 'code' : 'markup';
+}
+
 /** Lint one code unit. Returns findings, a score, and severity counts. */
 export function lintDesign(code: string, opts: LintOptions = {}): LintReport {
   const masked = maskComments(code);
   const lines = masked.split('\n');
 
+  // The code view for the `'code'`-scoped rules: class attributes + code
+  // literals kept, prose text content blanked (see scope.ts). Same length and
+  // line structure as the source, so findings keep their real line numbers.
+  const codeView = buildCodeView(code, resolveMode(opts));
+  const codeViewLines = codeView.split('\n');
+
   // Resolve the effective whitelist once per call (built-in cores + opts.extraTokens),
   // then hand every rule the same context. Rules that need no context ignore it.
   const ctx: LintContext = { validTokenCores: resolveValidTokenCores(opts.extraTokens) };
 
+  // Exemptions: in-file `urbicon-ignore` pragmas (parsed from the raw source —
+  // they live in comments) merged with caller-supplied suppressRules (the
+  // manifest `## Exempt` channel). Misuse becomes a loud warning finding.
+  const suppression = collectSuppressions(code, opts.suppressRules);
+
   const findings: Finding[] = [];
   for (const rule of RULES) {
-    findings.push(...rule.check(lines, masked, ctx));
+    const scoped = rule.scope === 'code';
+    findings.push(...rule.check(scoped ? codeViewLines : lines, scoped ? codeView : masked, ctx));
   }
   if (!opts.skipHeuristics) {
     findings.push(...runHeuristics(masked));
   }
+  findings.push(...suppression.findings);
 
-  findings.sort((a, b) => {
+  const { kept, suppressed } = applySuppressions(findings, suppression);
+
+  kept.sort((a, b) => {
     const lineDiff = (a.line ?? Infinity) - (b.line ?? Infinity);
     if (lineDiff !== 0) return lineDiff;
     return SEVERITY_ORDER[a.severity] - SEVERITY_ORDER[b.severity];
@@ -78,11 +105,13 @@ export function lintDesign(code: string, opts: LintOptions = {}): LintReport {
   // Two axes, never mixed (§6): deterministic findings deduct from correctness
   // (per occurrence, weighted by severity), heuristic findings from slop (flat per
   // finding). `kind`, not `severity`, decides the axis — so a future deterministic
-  // `info` would still score against correctness, where it belongs.
+  // `info` would still score against correctness, where it belongs. Suppressed
+  // findings are already partitioned out: they neither count nor score, but stay
+  // visible in `report.suppressed`.
   const counts = { error: 0, warning: 0, info: 0 };
   let correctnessDeduction = 0;
   let slopDeduction = 0;
-  for (const f of findings) {
+  for (const f of kept) {
     counts[f.severity]++;
     if (f.kind === 'heuristic') slopDeduction += SLOP_WEIGHT;
     else correctnessDeduction += SCORE_WEIGHTS[f.severity];
@@ -92,5 +121,7 @@ export function lintDesign(code: string, opts: LintOptions = {}): LintReport {
     slop: Math.max(0, 100 - slopDeduction)
   };
 
-  return { findings, scores, counts, filename: opts.filename };
+  const report: LintReport = { findings: kept, scores, counts, filename: opts.filename };
+  if (suppressed.length > 0) report.suppressed = suppressed;
+  return report;
 }

@@ -230,6 +230,49 @@ describe('parseManifest — token overrides', () => {
   });
 });
 
+describe('parseManifest — exempt entries', () => {
+  it('parses path, rule ids, and the optional reason', () => {
+    const md = [
+      '## Exempt',
+      '',
+      '- `src/routes/+page.svelte` — `raw-tailwind-color`, `focus-not-visible` — landing renders linter output as prose',
+      '- `src/routes/marketing/` — `magic-dimension`'
+    ].join('\n');
+    expect(parseManifest(md).exempts).toEqual([
+      {
+        path: 'src/routes/+page.svelte',
+        rules: ['raw-tailwind-color', 'focus-not-visible'],
+        note: 'landing renders linter output as prose'
+      },
+      { path: 'src/routes/marketing/', rules: ['magic-dimension'] }
+    ]);
+  });
+
+  it('drops a bullet without rule ids (no blanket exempt) and non-bullet prose', () => {
+    const md = [
+      '## Exempt',
+      '',
+      '- `src/routes/+page.svelte` — everything, please',
+      'Some explanatory prose with `backticks` in it.'
+    ].join('\n');
+    expect(parseManifest(md).exempts).toEqual([]);
+  });
+
+  it('returns [] for an absent section and for the scaffold placeholder', () => {
+    expect(parseManifest('# Bare\n').exempts).toEqual([]);
+    expect(parseManifest(createManifestTemplate({})).exempts).toEqual([]);
+  });
+
+  it('formatContext lists exemptions so the intent stays visible', () => {
+    const md = ['## Exempt', '', '- `src/routes/+page.svelte` — `inline-style` — poster'].join(
+      '\n'
+    );
+    expect(formatContext(parseManifest(md))).toContain(
+      '- `src/routes/+page.svelte` — `inline-style` — poster'
+    );
+  });
+});
+
 describe('template scaffolds the new sections without breaking the round-trip', () => {
   it('still parses frontmatter, usages and decisions; adds empty intent + overrides', () => {
     const m = parseManifest(createManifestTemplate({ paradigm: 'editorial', theme: 'slate' }));

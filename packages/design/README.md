@@ -59,29 +59,29 @@ produced.
 
 ## Commands
 
-| Command | What it does | Replaces (remote) |
-| --- | --- | --- |
-| `urbicon init` | Wire a project into the design loop (AGENTS.md block, manifest scaffold, `--hook`/`--ci`). | — (local only) |
-| `urbicon validate [paths...]` | Lint `.svelte` markup against the design rules. The CI gate. | mirror of `validate_design` |
-| `urbicon i18n [check]` | Audit `@urbicon-ui/i18n`: `parity` / `unused` keys / `hardcoded` strings / `audit` (all). | — (local only) |
-| `urbicon hook` | PostToolUse adapter — validate the just-edited file, block on failure. | — (local only) |
-| `urbicon find [query]` | Fuzzy component discovery over the version-pinned catalog. | `find_components` |
-| `urbicon get-component <slug>` | A component's API (its `llm.txt`) from the bundle. | `get_component` |
-| `urbicon icons [query]` | Icon discovery (no query: the full grouped reference). | `find_icons` |
-| `urbicon recipe [id]` | Complete Svelte 5 code recipes from the catalog. | `get_recipe` |
-| `urbicon guide [slug]` | Canonical package guides (auth reference, blocks guide system, migration notes, table scroll models). | `urbicon://guide/auth` |
-| `urbicon pattern [name]` | Composition patterns per page archetype. | `get_pattern` |
-| `urbicon principles` | Design heuristics (`--topic <t>`); `--rubric` for the judge rubric. | `get_design_principles` |
-| `urbicon css-reference [sect]` | The token truth: naming, dark mode, override patterns. | `get_css_reference` |
-| `urbicon context` | Print the project's `design.manifest.md` summary. | `get_design_context` |
-| `urbicon record-decision …` | Append an ADR to the manifest. | `record_design_decision` |
-| `urbicon sync-manifest` | Re-index `data-design-pattern` markers into the manifest. | `sync_design_manifest` |
-| `urbicon verbs` | List the design verbs (recipes over the design loop). | the MCP prompts |
-| `urbicon verb <name>` | Print one verb recipe to stdout. | the MCP prompts |
+| Command                        | What it does                                                                                          | Replaces (remote)           |
+| ------------------------------ | ----------------------------------------------------------------------------------------------------- | --------------------------- |
+| `urbicon init`                 | Wire a project into the design loop (AGENTS.md block, manifest scaffold, `--hook`/`--ci`).            | — (local only)              |
+| `urbicon validate [paths...]`  | Lint `.svelte` markup against the design rules. The CI gate.                                          | mirror of `validate_design` |
+| `urbicon i18n [check]`         | Audit `@urbicon-ui/i18n`: `parity` / `unused` keys / `hardcoded` strings / `audit` (all).             | — (local only)              |
+| `urbicon hook`                 | PostToolUse adapter — validate the just-edited file, block on failure.                                | — (local only)              |
+| `urbicon find [query]`         | Fuzzy component discovery over the version-pinned catalog.                                            | `find_components`           |
+| `urbicon get-component <slug>` | A component's API (its `llm.txt`) from the bundle.                                                    | `get_component`             |
+| `urbicon icons [query]`        | Icon discovery (no query: the full grouped reference).                                                | `find_icons`                |
+| `urbicon recipe [id]`          | Complete Svelte 5 code recipes from the catalog.                                                      | `get_recipe`                |
+| `urbicon guide [slug]`         | Canonical package guides (auth reference, blocks guide system, migration notes, table scroll models). | `urbicon://guide/auth`      |
+| `urbicon pattern [name]`       | Composition patterns per page archetype.                                                              | `get_pattern`               |
+| `urbicon principles`           | Design heuristics (`--topic <t>`); `--rubric` for the judge rubric.                                   | `get_design_principles`     |
+| `urbicon css-reference [sect]` | The token truth: naming, dark mode, override patterns.                                                | `get_css_reference`         |
+| `urbicon context`              | Print the project's `design.manifest.md` summary.                                                     | `get_design_context`        |
+| `urbicon record-decision …`    | Append an ADR to the manifest.                                                                        | `record_design_decision`    |
+| `urbicon sync-manifest`        | Re-index `data-design-pattern` markers into the manifest.                                             | `sync_design_manifest`      |
+| `urbicon verbs`                | List the design verbs (recipes over the design loop).                                                 | the MCP prompts             |
+| `urbicon verb <name>`          | Print one verb recipe to stdout.                                                                      | the MCP prompts             |
 
 The CLI covers the full knowledge surface locally, so the design loop runs
 offline and version-pinned end to end. When an `urbicon-ui` MCP connection is
-*also* present, prefer the CLI: the remote serves latest, the CLI serves the
+_also_ present, prefer the CLI: the remote serves latest, the CLI serves the
 version this project installed.
 
 The three manifest commands move off the remote server deliberately: a public
@@ -108,6 +108,32 @@ token-hallucination warning, never the error gates. `--record` appends one
 `ValidationHistoryEntry` per run to the sidecar `design.manifest.history.ndjson`
 so drift is measurable over time (CI opts in; the editor hook stays silent).
 
+**Quoting is not violating.** The class rules (raw colours, `dark:`/`focus:`,
+z-index/motion, hallucinated tokens, deep imports) scan only class-bearing
+content — `class`/`*Class*` attribute values, string/template literals in
+`<script>` and `{…}` expressions (tv() configs, `slotClasses`), and `@apply` —
+never element text content, `style=` attributes or other string attributes. A
+docs page that _shows_ `bg-green-500` in prose or a before/after snippet is not
+flagged for it. Plain `.ts`/`.js` input (a tv-config module) is scanned across
+all its literals; for extension-less non-Svelte stdin pass the engine's
+`mode: 'code'`.
+
+**Exemptions for deliberately off-system surfaces** (a landing poster, a page
+rendering linter output): suppress specific rules — never everything — via
+
+- an in-file pragma, visible next to what it exempts:
+  `<!-- urbicon-ignore magic-dimension inline-style — reason -->`
+  (`//` and `/* */` forms work in TS/JS); the em-dash starts the free-text
+  reason;
+- or a `## Exempt` section in `design.manifest.md`, one bullet per path:
+  ``- `src/routes/+page.svelte` — `magic-dimension`, `inline-style` — reason``
+  (a trailing `/` on the path exempts the subtree).
+
+Suppressions are always visible: the report prints `n suppressed` with per-rule
+counts (`--json` carries `results[].suppressed`), a suppression that matched
+nothing is marked stale, and an unknown rule id raises an
+`invalid-suppression` warning instead of silently suppressing nothing.
+
 The linter scores two independent axes (DESIGN-MCP-V2 §6): **correctness** (raw
 colours, `dark:`/`focus:`, hallucinated tokens — deterministic, always the
 blocking gate) and **slop** (20 "looks generic" heuristics — advisory by default,
@@ -117,11 +143,11 @@ behind clean ones. Leave it off and slop stays informational.
 
 Exit codes — designed for hooks and CI:
 
-| Code | Meaning |
-| --- | --- |
-| `0` | Clean, or only warnings/notes |
-| `1` | Failed — `validate` found errors (with `--strict`, warnings too), or a command could not complete (e.g. a manifest write error) |
-| `2` | Usage error — bad flags / unreadable input |
+| Code | Meaning                                                                                                                         |
+| ---- | ------------------------------------------------------------------------------------------------------------------------------- |
+| `0`  | Clean, or only warnings/notes                                                                                                   |
+| `1`  | Failed — `validate` found errors (with `--strict`, warnings too), or a command could not complete (e.g. a manifest write error) |
+| `2`  | Usage error — bad flags / unreadable input                                                                                      |
 
 `--skip-heuristics` runs only the deterministic rules (no distribution notes).
 
@@ -137,11 +163,11 @@ urbicon i18n unused --dynamic-keys 'errors.*'                # scan, allowlistin
 urbicon i18n hardcoded src/ --strict                         # gate the advisory hardcoded-string lint too
 ```
 
-| Check | Finds | Gates? |
-| --- | --- | --- |
-| `parity` | missing/extra keys, empty values, `{{param}}` drift, malformed/incomplete `_plural` | errors gate |
-| `unused` | defined keys referenced nowhere (`confirmed`/`suspect`) + keys used-but-undefined | used-but-undefined gates; unused advisory |
-| `hardcoded` | literal UI copy in `.svelte` markup that bypassed i18n | advisory (gate with `--strict`) |
+| Check       | Finds                                                                               | Gates?                                    |
+| ----------- | ----------------------------------------------------------------------------------- | ----------------------------------------- |
+| `parity`    | missing/extra keys, empty values, `{{param}}` drift, malformed/incomplete `_plural` | errors gate                               |
+| `unused`    | defined keys referenced nowhere (`confirmed`/`suspect`) + keys used-but-undefined   | used-but-undefined gates; unused advisory |
+| `hardcoded` | literal UI copy in `.svelte` markup that bypassed i18n                              | advisory (gate with `--strict`)           |
 
 Config via `i18n.audit.json` / `--config` + flags (`--translations`, `--dynamic-keys`,
 `--ignore-keys`, `--ignore-strings`, `--base-locale`); `--json` for CI. Backed by the
@@ -175,15 +201,18 @@ scaffold on first write):
 
 ```markdown
 ## Product Intent
+
 **Audience:** who uses this — context, constraints, expertise
 **Voice:** three adjectives, comma-separated
 **References:** / **Anti-references:** bullet (or comma) lists
 
 ## Token Overrides
-- `surface-brand`   # project tokens `urbicon validate` should accept
 
-## Pattern Usages    # auto-generated by sync-manifest
-## Design Decisions  # append-only ADRs from record-decision
+- `surface-brand` # project tokens `urbicon validate` should accept
+
+## Pattern Usages # auto-generated by sync-manifest
+
+## Design Decisions # append-only ADRs from record-decision
 ```
 
 ## Design verbs
@@ -197,12 +226,12 @@ urbicon verbs            # list them
 urbicon verb compose     # print one recipe — pipe it to an agent, or read it inline
 ```
 
-| Verb | Use-case |
-| --- | --- |
-| `onboard` / `adopt` | seed the manifest for a greenfield / brownfield project |
+| Verb                              | Use-case                                                   |
+| --------------------------------- | ---------------------------------------------------------- |
+| `onboard` / `adopt`               | seed the manifest for a greenfield / brownfield project    |
 | `compose` / `redesign` / `polish` | build / rework / tighten a page (gated on linter + rubric) |
-| `critique` / `fix` | judge without changing / repair correctness defects |
-| `retheme` / `audit` / `migrate` | rebrand / check consistency / roll out a change app-wide |
+| `critique` / `fix`                | judge without changing / repair correctness defects        |
+| `retheme` / `audit` / `migrate`   | rebrand / check consistency / roll out a change app-wide   |
 
 `skill/SKILL.md` is the router (intent → verb). Every recipe opens by reading the
 manifest and closes by writing the decision back.
@@ -224,7 +253,10 @@ findings are fed back to the agent to fix; a clean edit is silent. Merge
 {
   "hooks": {
     "PostToolUse": [
-      { "matcher": "Edit|MultiEdit|Write", "hooks": [{ "type": "command", "command": "urbicon hook" }] }
+      {
+        "matcher": "Edit|MultiEdit|Write",
+        "hooks": [{ "type": "command", "command": "urbicon hook" }]
+      }
     ]
   }
 }
@@ -254,7 +286,7 @@ bunx urbicon validate src/ --json              # correctness gate (blocking)
   `css-reference` and `principles --rubric` come straight from the engine.
 - `find` / `get-component` / `icons` / `recipe` / `guide` / `pattern` / `principles`
   read the version-pinned [`@urbicon-ui/design-content`](../design-content/) bundle (a
-  runtime dependency). The guided onboarding *interview* lives in the `adopt` /
+  runtime dependency). The guided onboarding _interview_ lives in the `adopt` /
   `onboard` verbs.
 
 ## Related

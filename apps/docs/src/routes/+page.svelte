@@ -11,6 +11,7 @@
   The landing brings its own chrome (it is exempt from the SidebarLayout in
   +layout.svelte); the skip-link and ⌘K stay global.
 -->
+<!-- urbicon-ignore magic-dimension important-modifier inline-style touch-target-small — deliberate poster scope: fixed 30px swatch grids, ink-on-cream chips and hand-tuned section paint are the landing's identity, not drift -->
 <script lang="ts">
   import SeoMeta from '$lib/SeoMeta.svelte';
   import { asset, resolve } from '$app/paths';

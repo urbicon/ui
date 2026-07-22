@@ -21,6 +21,7 @@ export { scanMarkers } from './scan.js';
 export type {
   DesignDecision,
   DesignManifest,
+  ExemptEntry,
   PatternUsage,
   ProductIntent,
   ValidationHistoryEntry

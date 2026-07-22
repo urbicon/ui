@@ -29,6 +29,12 @@ export interface Attr {
   kind: AttrKind;
   /** 1-based line of the attribute name. */
   line: number;
+  /** Char offset of the attribute name (undefined for spread/shorthand, which have none). */
+  nameStart?: number;
+  /** Char offset where the raw inner value begins (inside quotes/braces). Undefined for boolean attrs. */
+  valueStart?: number;
+  /** Char offset just past the raw inner value (before the closing quote/brace). Undefined for boolean attrs. */
+  valueEnd?: number;
 }
 
 export interface Element {
@@ -88,7 +94,7 @@ function readQuoted(src: string, i: number): { value: string; end: number } {
  * balances naturally through the same counter. Returns the inner text + index past
  * the closing brace, or `end: -1` if never closed.
  */
-function readBraced(src: string, i: number): { value: string; end: number } {
+export function readBraced(src: string, i: number): { value: string; end: number } {
   let depth = 0;
   let str: string | null = null; // active "/' string delimiter, if any
   for (let j = i; j < src.length; j++) {
@@ -123,7 +129,9 @@ function parseAttr(src: string, i: number, line: number): { attr: Attr; end: num
         name: spread ? '' : trimmed,
         value: spread ? trimmed.slice(3).trim() : trimmed,
         kind: spread ? 'spread' : 'shorthand',
-        line
+        line,
+        valueStart: i + 1,
+        valueEnd: end - 1
       },
       end
     };
@@ -138,7 +146,7 @@ function parseAttr(src: string, i: number, line: number): { attr: Attr; end: num
   let k = j;
   while (k < src.length && /\s/.test(src[k] ?? '')) k++;
   if (src[k] !== '=') {
-    return { attr: { name, value: null, kind: 'boolean', line }, end: j };
+    return { attr: { name, value: null, kind: 'boolean', line, nameStart: i }, end: j };
   }
   k++; // past '='
   while (k < src.length && /\s/.test(src[k] ?? '')) k++;
@@ -146,17 +154,50 @@ function parseAttr(src: string, i: number, line: number): { attr: Attr; end: num
   const c = src[k];
   if (c === '"' || c === "'") {
     const { value, end } = readQuoted(src, k);
-    return { attr: { name, value, kind: 'string', line }, end };
+    return {
+      attr: {
+        name,
+        value,
+        kind: 'string',
+        line,
+        nameStart: i,
+        valueStart: k + 1,
+        valueEnd: end - 1
+      },
+      end
+    };
   }
   if (c === '{') {
     const { value, end } = readBraced(src, k);
     if (end === -1) return null;
-    return { attr: { name, value, kind: 'expression', line }, end };
+    return {
+      attr: {
+        name,
+        value,
+        kind: 'expression',
+        line,
+        nameStart: i,
+        valueStart: k + 1,
+        valueEnd: end - 1
+      },
+      end
+    };
   }
   // Bare unquoted value: read until whitespace or tag end.
   let m = k;
   while (m < src.length && !/[\s/>]/.test(src[m] ?? '')) m++;
-  return { attr: { name, value: src.slice(k, m), kind: 'string', line }, end: m };
+  return {
+    attr: {
+      name,
+      value: src.slice(k, m),
+      kind: 'string',
+      line,
+      nameStart: i,
+      valueStart: k,
+      valueEnd: m
+    },
+    end: m
+  };
 }
 
 /** Parse an opening tag starting at `src[start]` (`<`). Returns the element + index past `>`, or null. */

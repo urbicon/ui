@@ -14,11 +14,21 @@ describe('scanMarkup', () => {
     expect(b.tag).toBe('Button');
     expect(b.isComponent).toBe(true);
     expect(b.selfClosing).toBe(false);
-    expect(b.attrs).toEqual([
+    // toMatchObject: the char-offset fields (nameStart/valueStart/valueEnd) are
+    // position bookkeeping for the code view — asserted separately below.
+    expect(b.attrs).toMatchObject([
       { name: 'intent', value: 'primary', kind: 'string', line: 1 },
       { name: 'onclick', value: 'save', kind: 'expression', line: 1 },
       { name: 'disabled', value: null, kind: 'boolean', line: 1 }
     ]);
+    // The value span points at the raw inner value in the source.
+    const intent = b.attrs[0]!;
+    expect(
+      '<Button intent="primary" onclick={save} disabled>Save</Button>'.slice(
+        intent.valueStart,
+        intent.valueEnd
+      )
+    ).toBe('primary');
   });
 
   it('distinguishes components from raw HTML elements', () => {
@@ -32,14 +42,14 @@ describe('scanMarkup', () => {
   it('marks self-closing tags', () => {
     const els = scanMarkup('<Icon name="x" />');
     expect(els[0]!.selfClosing).toBe(true);
-    expect(els[0]!.attrs[0]).toEqual({ name: 'name', value: 'x', kind: 'string', line: 1 });
+    expect(els[0]!.attrs[0]).toMatchObject({ name: 'name', value: 'x', kind: 'string', line: 1 });
   });
 
   it('does not let a `>` inside an expression terminate the tag early', () => {
     const els = scanMarkup('<Box class={a > b ? "x" : "y"} role="grid">hi</Box>');
     const box = tag(els, 'Box')!;
     expect(box.attrs.map((a) => a.name)).toEqual(['class', 'role']);
-    expect(box.attrs[1]).toEqual({ name: 'role', value: 'grid', kind: 'string', line: 1 });
+    expect(box.attrs[1]).toMatchObject({ name: 'role', value: 'grid', kind: 'string', line: 1 });
   });
 
   it('handles object literals and template strings inside an expression attribute', () => {
@@ -51,7 +61,7 @@ describe('scanMarkup', () => {
 
   it('reads shorthand and spread attributes', () => {
     const els = scanMarkup('<C {value} {...rest} />');
-    expect(els[0]!.attrs).toEqual([
+    expect(els[0]!.attrs).toMatchObject([
       { name: 'value', value: 'value', kind: 'shorthand', line: 1 },
       { name: '', value: 'rest', kind: 'spread', line: 1 }
     ]);
@@ -62,7 +72,7 @@ describe('scanMarkup', () => {
     const els = scanMarkup(src);
     const b = tag(els, 'Button')!;
     expect(b.line).toBe(2);
-    expect(b.attrs[0]).toEqual({ name: 'intent', value: 'primary', kind: 'string', line: 3 });
+    expect(b.attrs[0]).toMatchObject({ name: 'intent', value: 'primary', kind: 'string', line: 3 });
   });
 
   it('ignores markup inside <script> and <style> blocks', () => {

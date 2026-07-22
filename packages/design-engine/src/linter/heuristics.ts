@@ -21,6 +21,35 @@
 import type { Finding } from './types.js';
 
 /**
+ * Every slop-heuristic rule id, in report order — the heuristic half of the id
+ * universe a suppression (`urbicon-ignore` pragma / manifest `## Exempt`) may
+ * name. Kept next to the checks so adding one is a two-line change; the
+ * "ids stay in sync with runHeuristics" invariant is regression-tested.
+ */
+export const HEURISTIC_RULE_IDS: readonly string[] = [
+  'intent-rainbow',
+  'spacing-uniform',
+  'card-monotony',
+  'no-radius-strategy',
+  'font-weight-uniform',
+  'generic-font',
+  'arbitrary-color',
+  'transition-all',
+  'animated-dimensions',
+  'magic-dimension',
+  'important-modifier',
+  'inline-style',
+  'gradient-text',
+  'grey-on-intent',
+  'centered-bodytext',
+  'justified-text',
+  'placeholder-content',
+  'emoji-as-icon',
+  'heading-skip',
+  'touch-target-small'
+];
+
+/**
  * Chromatic intents only — `neutral` is structural greyscale, so neutral
  * backgrounds (common and legitimate) must not count toward a decorative
  * "rainbow". `info` is a distinct blue hue and does count.
@@ -684,8 +713,11 @@ function teachingChainEnd(code: string, start: number): number {
  * example is not the page's own markup and must not score on the slop axis.
  *
  * Deliberately heuristic-path only: the deterministic correctness rules still scan
- * this text. How they should treat example/prose content (attribute extraction, an
- * exemption mechanism) is a separate, still-open debt item and out of scope here.
+ * teaching code — an example a consumer copies must itself be token-correct (the
+ * docs-gen recipe lint depends on it). Prose *quoting* an anti-pattern is handled
+ * elsewhere: the class-scoped code view (scope.ts) keeps text content out of the
+ * deterministic rules, and a deliberate anti-pattern demo can be exempted via
+ * `urbicon-ignore` (suppress.ts).
  */
 export function maskTeachingCode(code: string): string {
   // `code={` or `recipeCode =` immediately (mod. whitespace) before a backtick. The

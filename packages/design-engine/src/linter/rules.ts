@@ -4,6 +4,13 @@
  * covered by regression tests. The prose source is the Anti-Patterns section of
  * `design-system/principles.md` plus the documented known failure modes
  * (token hallucination, dynamic Tailwind classes).
+ *
+ * All class-utility / module-specifier rules declare `scope: 'code'`: they scan
+ * the code view (scope.ts) — class attributes, script/expression literals,
+ * `@apply` — never prose text content, so a page that *quotes* an anti-pattern
+ * (linter docs, before/after migration guides) is not flagged as committing it.
+ * The markup rules (markup-rules.ts) stay file-scoped: they are structurally
+ * scoped to elements already.
  */
 
 import { MARKUP_RULES } from './markup-rules.js';
@@ -130,6 +137,7 @@ function dedupeByLine(findings: Finding[]): Finding[] {
 
 const rawTailwindColor: Rule = {
   id: 'raw-tailwind-color',
+  scope: 'code',
   severity: 'error',
   description: 'Raw Tailwind palette colour (e.g. `bg-blue-500`) instead of a semantic token.',
   check(lines) {
@@ -158,6 +166,7 @@ const rawTailwindColor: Rule = {
 
 const darkModeOverride: Rule = {
   id: 'dark-mode-override',
+  scope: 'code',
   severity: 'error',
   description: 'Manual `dark:` override instead of automatic `light-dark()` semantic tokens.',
   check(lines) {
@@ -184,6 +193,7 @@ const darkModeOverride: Rule = {
 
 const focusNotVisible: Rule = {
   id: 'focus-not-visible',
+  scope: 'code',
   severity: 'error',
   description: 'Plain `focus:` ring instead of keyboard-only `focus-visible:`.',
   check(lines) {
@@ -211,6 +221,7 @@ const focusNotVisible: Rule = {
 
 const hardcodedZIndex: Rule = {
   id: 'hardcoded-z-index',
+  scope: 'code',
   severity: 'error',
   description: 'Hardcoded z-index instead of a `z-[var(--z-*)]` token.',
   check(lines) {
@@ -237,6 +248,7 @@ const hardcodedZIndex: Rule = {
 
 const dynamicClassInterpolation: Rule = {
   id: 'dynamic-class-interpolation',
+  scope: 'code',
   severity: 'error',
   description:
     'String-interpolated Tailwind class fragment (e.g. `gap-{x}`) — never compiled by Tailwind.',
@@ -285,6 +297,7 @@ function isDeepInternalSubpath(subpath: string): boolean {
 
 const deepInternalImport: Rule = {
   id: 'deep-internal-import',
+  scope: 'code',
   severity: 'error',
   description: 'Deep/internal import into an `@urbicon-ui` package instead of its public root.',
   check(lines) {
@@ -313,6 +326,7 @@ const deepInternalImport: Rule = {
 
 const hardcodedMotion: Rule = {
   id: 'hardcoded-motion',
+  scope: 'code',
   severity: 'error',
   description:
     'Hardcoded transition duration or `cubic-bezier()` easing instead of a motion token.',
@@ -358,6 +372,7 @@ const hardcodedMotion: Rule = {
  */
 const tokenHallucination: Rule = {
   id: 'token-hallucination',
+  scope: 'code',
   severity: 'warning',
   description:
     'Colour utility referencing a non-existent semantic token (e.g. `bg-status-danger`).',

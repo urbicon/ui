@@ -115,6 +115,51 @@ describe('urbicon validate', () => {
     expect(await runValidate([file], { strict: true, manifest })).toBe(0);
   });
 
+  it('suppresses manifest-##-Exempt rules for the matching file only (visible, not silent)', async () => {
+    const bad = '<div class="bg-red-500">x</div>\n';
+    const poster = join(dir, 'Poster.svelte');
+    const other = join(dir, 'Other.svelte');
+    await writeFile(poster, bad);
+    await writeFile(other, bad);
+    const manifest = join(dir, 'design.manifest.md');
+    await writeFile(manifest, '## Exempt\n\n- `Poster.svelte` — `raw-tailwind-color` — poster\n');
+
+    // The exempted file passes; the sibling with the same violation still fails.
+    expect(await runValidate([poster], { manifest })).toBe(0);
+    expect(await runValidate([other], { manifest })).toBe(1);
+
+    // The suppression is surfaced in the JSON report, never swallowed.
+    log.mockClear();
+    await runValidate([poster], { manifest, json: true });
+    const out = log.mock.calls.map((call: unknown[]) => call[0]).join('\n');
+    const parsed = JSON.parse(out) as {
+      results: { suppressed?: { ruleId: string; count: number; source: string }[] }[];
+    };
+    expect(parsed.results[0]?.suppressed).toEqual([
+      { ruleId: 'raw-tailwind-color', count: 1, source: 'option' }
+    ]);
+  });
+
+  it('honours an in-file urbicon-ignore pragma without any manifest', async () => {
+    const file = join(dir, 'Landing.svelte');
+    await writeFile(
+      file,
+      '<!-- urbicon-ignore raw-tailwind-color — renders linter output as prose -->\n' +
+        '<div class="bg-red-500">x</div>\n'
+    );
+    expect(await runValidate([file], { manifest: join(dir, 'absent.md') })).toBe(0);
+  });
+
+  it('a typo in an Exempt rule id warns loudly instead of silently suppressing nothing', async () => {
+    const file = join(dir, 'Typo.svelte');
+    await writeFile(file, '<button class="px-4 py-2">Save</button>\n');
+    const manifest = join(dir, 'design.manifest.md');
+    await writeFile(manifest, '## Exempt\n\n- `Typo.svelte` — `raw-tailwind-colour`\n');
+    // invalid-suppression is a warning: passes by default, fails under --strict.
+    expect(await runValidate([file], { manifest })).toBe(0);
+    expect(await runValidate([file], { manifest, strict: true })).toBe(1);
+  });
+
   it('echoes the applied overrides in the --json envelope', async () => {
     const file = join(dir, 'Brand.svelte');
     await writeFile(file, '<div class="bg-surface-brand">x</div>\n');

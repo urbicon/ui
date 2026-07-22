@@ -23,6 +23,19 @@ function renderFindings(findings: Finding[], severity: Severity): string {
   return `${md}\n`;
 }
 
+function renderSuppressed(report: LintReport): string {
+  const suppressed = report.suppressed ?? [];
+  if (suppressed.length === 0) return '';
+  let md = `### ⚪ Suppressed (${suppressed.reduce((a, s) => a + s.count, 0)})\n\n`;
+  md += 'Deliberate exemptions — excluded from counts/scores but always listed, never hidden:\n\n';
+  for (const s of suppressed) {
+    const via = s.source === 'pragma' ? '`urbicon-ignore` pragma' : 'caller `suppressRules`';
+    const unused = s.count === 0 ? ' — matched nothing (stale?)' : '';
+    md += `- **[${s.ruleId}]** ×${s.count} via ${via}${unused}\n`;
+  }
+  return `${md}\n`;
+}
+
 function renderReport(report: LintReport): string {
   const { scores, counts, findings, filename } = report;
   const hardFails = counts.error + counts.warning;
@@ -37,6 +50,7 @@ function renderReport(report: LintReport): string {
   if (findings.length === 0) {
     md +=
       'No issues found. Tokens are valid, no `dark:`/`focus:`/hardcoded z-index, and the slop-floor heuristics are satisfied.\n';
+    md += renderSuppressed(report);
     return md;
   }
 
@@ -47,6 +61,7 @@ function renderReport(report: LintReport): string {
   md += renderFindings(findings, 'error');
   md += renderFindings(findings, 'warning');
   md += renderFindings(findings, 'info');
+  md += renderSuppressed(report);
 
   md += '---\n\n**Next steps:**\n';
   md += '- `get_css_reference()` — exact valid token names (fixes hallucinated tokens)\n';
@@ -66,7 +81,7 @@ function renderReport(report: LintReport): string {
 export function registerValidateDesignTool(server: McpServer): void {
   server.tool(
     'validate_design',
-    'Lint generated Svelte/HTML markup against the Urbicon UI design rules. Two axes, never mixed: (1) **correctness** — deterministic defects (raw Tailwind colours, `dark:`/`focus:` misuse, hardcoded z-index, broken dynamic classes, hallucinated tokens, foreign-library component APIs like `tone=`/`variant="outline"`, icon-only buttons with no accessible name), the blocking gate; (2) **slop-floor** — system-agnostic "looks generic" heuristics (generic fonts, animated width/height, magic-number sizes, low-contrast text on colour, inline styles, `!important`, placeholder copy, emoji-as-icon, heading-level skips, small touch targets, intent-colour rainbow, uniform spacing/weights, identical Cards), advisory. Returns a correctness score and a slop-floor score (both 0–100; correctness −10/error, −5/warning; slop −10 per signal; floored) plus per-finding fixes. Run in a generate → validate → fix loop after producing UI code. Pass `extraTokens` to whitelist semantic tokens your project defines on top of Urbicon’s so they are not flagged as hallucinated.',
+    'Lint generated Svelte/HTML markup against the Urbicon UI design rules. Two axes, never mixed: (1) **correctness** — deterministic defects (raw Tailwind colours, `dark:`/`focus:` misuse, hardcoded z-index, broken dynamic classes, hallucinated tokens, foreign-library component APIs like `tone=`/`variant="outline"`, icon-only buttons with no accessible name), the blocking gate; (2) **slop-floor** — system-agnostic "looks generic" heuristics (generic fonts, animated width/height, magic-number sizes, low-contrast text on colour, inline styles, `!important`, placeholder copy, emoji-as-icon, heading-level skips, small touch targets, intent-colour rainbow, uniform spacing/weights, identical Cards), advisory. Returns a correctness score and a slop-floor score (both 0–100; correctness −10/error, −5/warning; slop −10 per signal; floored) plus per-finding fixes. Run in a generate → validate → fix loop after producing UI code. Pass `extraTokens` to whitelist semantic tokens your project defines on top of Urbicon’s so they are not flagged as hallucinated. Class rules scan class attributes, slotClasses and tv()/script literals — prose that merely *quotes* an anti-pattern (docs, before/after examples) is not flagged. A deliberately off-system surface can exempt specific rules in-file via `<!-- urbicon-ignore rule-id … — reason -->`; suppressions are always reported, never silent.',
     {
       code: z
         .string()

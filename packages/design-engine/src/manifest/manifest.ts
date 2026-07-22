@@ -8,6 +8,7 @@
 import type {
   DesignDecision,
   DesignManifest,
+  ExemptEntry,
   PatternUsage,
   ProductIntent,
   ValidationHistoryEntry
@@ -15,6 +16,7 @@ import type {
 
 const INTENT_HEADING = '## Product Intent';
 const TOKEN_OVERRIDES_HEADING = '## Token Overrides';
+const EXEMPT_HEADING = '## Exempt';
 const USAGES_HEADING = '## Pattern Usages';
 const DECISIONS_HEADING = '## Design Decisions';
 /**
@@ -207,6 +209,36 @@ function parseTokenOverrides(body: string): string[] {
   return cores;
 }
 
+/**
+ * Parse the `## Exempt` section: per-path linter suppressions for deliberately
+ * off-system surfaces. Grammar per bullet (em-dash separated):
+ *
+ *   - `src/routes/+page.svelte` — `rule-a`, `rule-b` — reason
+ *
+ * The path is the first backticked token; the rule ids are the backticked
+ * tokens of the second segment; an optional third segment is the free-text
+ * reason. A bullet without any rule ids is dropped (there is deliberately no
+ * blanket exempt — the CLI's unknown-id warning covers typos downstream).
+ */
+function parseExempts(body: string): ExemptEntry[] {
+  const section = extractSection(body, EXEMPT_HEADING);
+  if (!section) return [];
+  const entries: ExemptEntry[] = [];
+  for (const line of section.split('\n')) {
+    const m = line.match(/^\s*[-*]\s+`([^`]+)`\s*—\s*(.+)$/);
+    if (!m) continue;
+    const path = (m[1] ?? '').trim();
+    const segments = (m[2] ?? '').split('—');
+    const rules = [...(segments[0] ?? '').matchAll(/`([a-z][a-z0-9-]*)`/g)]
+      .map((r) => r[1] ?? '')
+      .filter(Boolean);
+    if (path === '' || rules.length === 0) continue;
+    const note = segments.slice(1).join('—').trim();
+    entries.push(note ? { path, rules, note } : { path, rules });
+  }
+  return entries;
+}
+
 /** Parse a manifest file into structured form. */
 export function parseManifest(content: string, exists = true): DesignManifest {
   const { data, body } = parseFrontmatter(content);
@@ -214,6 +246,7 @@ export function parseManifest(content: string, exists = true): DesignManifest {
     frontmatter: data,
     intent: parseIntent(body),
     tokenOverrides: parseTokenOverrides(body),
+    exempts: parseExempts(body),
     usages: parseUsages(body),
     decisions: parseDecisions(body),
     exists
@@ -226,6 +259,7 @@ export function emptyManifest(): DesignManifest {
     frontmatter: {},
     intent: emptyIntent(),
     tokenOverrides: [],
+    exempts: [],
     usages: [],
     decisions: [],
     exists: false
@@ -360,6 +394,16 @@ export function createManifestTemplate(opts: {
     '',
     '_None yet._',
     '',
+    EXEMPT_HEADING,
+    '',
+    '<!-- Deliberately off-system surfaces (landing posters, pages quoting linter output).',
+    '     One bullet per path: `path` — `rule-id`, `rule-id` — reason. A trailing `/` on the',
+    '     path exempts the subtree. `urbicon validate` suppresses exactly the listed rules for',
+    '     matching files and reports them as "suppressed" — never silently. The in-file',
+    '     alternative is an `<!… urbicon-ignore rule-id — reason …>` comment pragma. -->',
+    '',
+    '_None yet._',
+    '',
     USAGES_HEADING,
     '',
     renderUsagesBlock([]),
@@ -435,6 +479,16 @@ export function formatContext(
     md += '## Token Overrides\n\n';
     md += `${manifest.tokenOverrides.map((c) => `\`${c}\``).join(', ')}\n\n`;
     md += '> Treated as valid by `urbicon validate` (passed as extra tokens for this project).\n\n';
+  }
+
+  if (manifest.exempts.length > 0) {
+    md += '## Exempt\n\n';
+    for (const e of manifest.exempts) {
+      const rules = e.rules.map((r) => `\`${r}\``).join(', ');
+      md += `- \`${e.path}\` — ${rules}${e.note ? ` — ${e.note}` : ''}\n`;
+    }
+    md +=
+      '\n> Deliberately off-system surfaces: `urbicon validate` suppresses exactly these rules for the listed paths (reported as "suppressed", never hidden).\n\n';
   }
 
   md += '## Pattern Usages\n\n';

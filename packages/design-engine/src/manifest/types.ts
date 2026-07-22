@@ -79,6 +79,27 @@ export interface ValidationHistoryEntry {
   slop: number;
 }
 
+/**
+ * One `## Exempt` entry: a deliberately off-system surface (landing poster, a
+ * page rendering linter output as prose) with the exact rule ids `urbicon
+ * validate` suppresses for it. A rule list is required — there is deliberately
+ * no blanket off-switch — and suppressions stay visible in every report
+ * (`LintReport.suppressed`), so an exemption is a recorded decision, not a
+ * silent hole in the gate. The in-file counterpart is the `urbicon-ignore`
+ * pragma; use the manifest form when the intent is project-level.
+ */
+export interface ExemptEntry {
+  /**
+   * Project-root-relative path (forward slashes). A trailing `/` exempts the
+   * whole subtree (`src/routes/marketing/`); otherwise the match is exact.
+   */
+  path: string;
+  /** Linter rule ids to suppress for this path (e.g. `raw-tailwind-color`). */
+  rules: string[];
+  /** Free-text reason (the part after the second ` — `). */
+  note?: string;
+}
+
 /** Parsed view of a manifest file. */
 export interface DesignManifest {
   /** Flat key→value frontmatter (paradigm, theme, density, …). */
@@ -91,6 +112,8 @@ export interface DesignManifest {
    * linter whitelist — not full utilities (`bg-surface-brand`) nor CSS variables.
    */
   tokenOverrides: string[];
+  /** Deliberately off-system surfaces with the rule ids suppressed for them. */
+  exempts: ExemptEntry[];
   usages: PatternUsage[];
   decisions: DesignDecision[];
   /** Whether a manifest file actually existed (false → defaults returned). */

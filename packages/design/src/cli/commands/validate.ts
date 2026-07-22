@@ -20,6 +20,8 @@ import { boolFlag, type Flags, stringFlag } from '../args.js';
 import { evaluateGate, parseSlopFloor } from '../gate.js';
 import {
   appendHistory,
+  exemptRulesFor,
+  readExempts,
   readTokenOverrides,
   resolveHistoryPath,
   resolveManifestPath
@@ -41,6 +43,8 @@ const MAX_DEPTH = 24;
 interface Unit {
   label: string;
   code: string;
+  /** Absolute file path, for manifest `## Exempt` matching. Absent for stdin. */
+  abs?: string;
 }
 
 /** Project-relative, forward-slashed label for a file, for stable report output. */
@@ -95,10 +99,10 @@ async function gather(positionals: string[]): Promise<Unit[] | null> {
     }
     if (info.isDirectory()) {
       for (const file of await collectSvelte(abs)) {
-        units.push({ label: label(file), code: await readFile(file, 'utf-8') });
+        units.push({ label: label(file), code: await readFile(file, 'utf-8'), abs: file });
       }
     } else {
-      units.push({ label: label(abs), code: await readFile(abs, 'utf-8') });
+      units.push({ label: label(abs), code: await readFile(abs, 'utf-8'), abs });
     }
   }
   return units;
@@ -142,6 +146,9 @@ export async function runValidate(positionals: string[], flags: Flags): Promise<
   // token-hallucination warning; the error gates are unaffected (engine contract).
   const manifestPath = resolveManifestPath(stringFlag(flags, 'manifest'));
   const extraTokens = await readTokenOverrides(manifestPath);
+  // Manifest-declared exemptions for deliberately off-system surfaces; matched per
+  // file below. In-file `urbicon-ignore` pragmas are handled inside the engine.
+  const exempts = await readExempts(manifestPath);
 
   const units = await gather(positionals);
   if (units === null) return EXIT.USAGE;
@@ -151,7 +158,12 @@ export async function runValidate(positionals: string[], flags: Flags): Promise<
   }
 
   const reports: LintReport[] = units.map((unit) =>
-    lintDesign(unit.code, { filename: unit.label, skipHeuristics, extraTokens })
+    lintDesign(unit.code, {
+      filename: unit.label,
+      skipHeuristics,
+      extraTokens,
+      suppressRules: unit.abs ? exemptRulesFor(unit.abs, manifestPath, exempts) : undefined
+    })
   );
 
   const gate = evaluateGate(reports, { strict, slopFloor });
