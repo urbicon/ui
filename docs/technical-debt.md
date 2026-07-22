@@ -173,6 +173,7 @@ whose bundle price only became visible with the measurement tool.
   adversarial and legitimate arms.
 - **Found:** 2026-07-22, Button restProps-first migration review
   (fable-debt-wave-2).
+- **Status:** 🚧 in Arbeit (debt-fix-wave-3, 2026-07-22).
 
 ### Table still names its style axis `appearance` after the blocks-wide `variant` unification
 
@@ -191,6 +192,7 @@ whose bundle price only became visible with the measurement tool.
   v4→v5 migration guide §3 and the table docs page, and the pre-launch window
   should be confirmed still open when it lands.
 - **Found:** 2026-07-22, style-axis vocabulary sweep.
+- **Status:** 🚧 in Arbeit (debt-fix-wave-3, 2026-07-22).
 
 ### Intent palettes drift across primitives — three different value sets, one undocumented
 
@@ -229,6 +231,7 @@ whose bundle price only became visible with the measurement tool.
   contract decision and should get its own deliberate (if small) pass with
   tests rather than riding along unreviewed.
 - **Found:** 2026-07-22, Calendar swipe-gating sweep (fable-debt-wave-2).
+- **Status:** 🚧 in Arbeit (debt-fix-wave-3, 2026-07-22).
 
 ### Three surfaces ingest their content in `$effect`, so the prerendered HTML carries placeholders — 91 API pages assert "No matching properties"
 
@@ -331,6 +334,9 @@ whose bundle price only became visible with the measurement tool.
   than the uniform status quo. (a) rides along with it. The new share button
   deliberately uses `dt()` and does **not** follow the precedent.
 - **Found:** 2026-07-14, adding playground share-links (publish-m3-finale).
+- **Status:** 🚧 in Arbeit (debt-fix-wave-3, 2026-07-22) — helpToggle wird
+  nach dem actionsBar-Präzedenzfall geweckt (alle drei Buttons via `slot()`),
+  die beiden Strings gehen über `dt()`.
 
 ### Table's `initial*` family is incomplete — no `initialSort`, no `initialSelectedIds`
 
@@ -549,6 +555,10 @@ whose bundle price only became visible with the measurement tool.
   in the `text-tertiary` entry below (restyle vs. exempt); if that call lands
   on "restyle", this is a one-liner in the same sweep.
 - **Found:** 2026-07-20, v6.26.0 release audit (contrast package).
+- **Status:** 🚧 in Arbeit (debt-fix-wave-3, 2026-07-22) — als Demo-Bug
+  eingestuft (hardcodierte Farbe gegen die Hausregel, on-system-Demo), Fix
+  `text-on-warning`; unabhängig von der restyle-vs-exempt-Entscheidung der
+  echten Off-System-Demos.
 
 ### `text-tertiary` on subtle surfaces measures 4.18:1 — and the off-system demos trip axe
 
@@ -608,6 +618,8 @@ whose bundle price only became visible with the measurement tool.
   exceptions in `e2e/a11y-baseline.json`.
 - **Found:** 2026-07-14, widening the e2e axe harness to the code panel (Opus
   quality wave).
+- **Status:** 🚧 Teil (b) — die Combobox-Demo-Labels — in Arbeit
+  (debt-fix-wave-3, 2026-07-22); Teil (a) bleibt bei der Ramp-Entscheidung.
 
 ### The docs Rooms skin remaps `--color-primary` to an accent that misses AA against `text-on-primary`
 
@@ -761,6 +773,8 @@ whose bundle price only became visible with the measurement tool.
   class as the Combobox `queryFn` gap, not a drive-by. (b) is small but wants a
   look at whether `LiveFeed.svelte` should exist or the import should go.
 - **Found:** 2026-07-20, e2e table remote/grouping coverage (qa-polish-wave).
+- **Status:** 🚧 Teil (b) — der `LiveFeed.svelte`-Import — in Arbeit
+  (debt-fix-wave-3, 2026-07-22); Teil (a) (Server-Mode-Live-Demo) bleibt offen.
 
 ### The docs search index is English-only, capped at 2000 chars per record, and indexes playground control names
 
