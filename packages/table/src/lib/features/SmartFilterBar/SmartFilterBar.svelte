@@ -66,7 +66,7 @@
       size,
       layout,
       elevated: responsive,
-      appearance: styleConfig.appearance
+      variant: styleConfig.variant
     })
   );
 </script>

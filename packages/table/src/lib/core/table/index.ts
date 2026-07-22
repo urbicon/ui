@@ -109,13 +109,13 @@ export interface TableProps<T = TableItem> {
   size?: 'sm' | 'md' | 'lg';
 
   /**
-   * Visual appearance of the table chrome (see docs/MIGRATION-v5.md §3):
+   * Visual style of the table chrome (see docs/MIGRATION-v5.md §3):
    * - `flush` (default): no outer frame, sits inline in the reading flow
    * - `surface`: gentle `surface-quiet` tinted zone, no border
    * - `framed`: bordered + rounded + shadowed standalone block
    * @default "flush"
    */
-  appearance?: 'flush' | 'surface' | 'framed';
+  variant?: 'flush' | 'surface' | 'framed';
 
   /**
    * Number of items to display per page

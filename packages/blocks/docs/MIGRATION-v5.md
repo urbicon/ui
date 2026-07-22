@@ -58,10 +58,12 @@ its disclosure sibling `Collapsible`.)
 
 ## 3. Table chrome
 
-The Table no longer renders a frame by default. The new `appearance` prop
-controls the container chrome:
+The Table no longer renders a frame by default. The new `variant` prop
+controls the container chrome. (The prop was named `appearance` from v5.0
+to v6.32; it now shares the single style-axis name `variant` with every
+other component.)
 
-| `appearance` | Effect                                                       |
+| `variant`    | Effect                                                       |
 | ------------ | ------------------------------------------------------------ |
 | `flush` (default) | No frame; the table sits inline in the reading flow.    |
 | `surface`    | Quiet tinted zone — `bg-surface-quiet`.                      |
@@ -73,7 +75,7 @@ The dead `tableVariants` export is removed (was unused in any consumer).
 <!-- v4 — implicit frame -->
 <Table data={rows} columns={cols} />
 <!-- v5 — explicit equivalent -->
-<Table data={rows} columns={cols} appearance="framed" />
+<Table data={rows} columns={cols} variant="framed" />
 <!-- v5 — new editorial default -->
 <Table data={rows} columns={cols} />
 ```

@@ -85,7 +85,7 @@ export const smartFilterBarVariants = tv({
       false: {}
     },
 
-    appearance: {
+    variant: {
       flush: {
         container: ['border-transparent bg-transparent shadow-none']
       },
@@ -100,7 +100,7 @@ export const smartFilterBarVariants = tv({
     size: 'md',
     layout: 'responsive',
     elevated: false,
-    appearance: 'framed'
+    variant: 'framed'
   }
 });
 

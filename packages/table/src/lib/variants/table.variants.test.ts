@@ -6,7 +6,7 @@ describe('tableContainerVariants', () => {
     const styles = tableContainerVariants({ size: 'md' });
     expect(styles.container()).toBeTruthy();
     expect(styles.toolbar()).toBeTruthy();
-    // scrollArea is empty in default `flush` appearance
+    // scrollArea is empty in default `flush` variant
     expect(styles.scrollArea()).toBeDefined();
     expect(styles.table()).toBeTruthy();
     expect(styles.body()).toBeDefined();
@@ -96,7 +96,7 @@ describe('tableHeaderVariants', () => {
   });
 });
 
-describe('tableContainerVariants — appearance', () => {
+describe('tableContainerVariants — variant', () => {
   it('flush (default) has no chrome on scrollArea', () => {
     const flush = tableContainerVariants({}).scrollArea();
     expect(flush).not.toMatch(/\bborder\b/);
@@ -106,13 +106,13 @@ describe('tableContainerVariants — appearance', () => {
   });
 
   it('surface applies bg-surface-quiet only', () => {
-    const surface = tableContainerVariants({ appearance: 'surface' }).scrollArea();
+    const surface = tableContainerVariants({ variant: 'surface' }).scrollArea();
     expect(surface).toContain('bg-surface-quiet');
     expect(surface).not.toMatch(/\bborder\b/);
   });
 
   it('framed applies border + rounded-contain + shadow + bg-surface-elevated', () => {
-    const framed = tableContainerVariants({ appearance: 'framed' }).scrollArea();
+    const framed = tableContainerVariants({ variant: 'framed' }).scrollArea();
     expect(framed).toContain('border-border-default');
     expect(framed).toContain('rounded-contain');
     expect(framed).toContain('bg-surface-elevated');

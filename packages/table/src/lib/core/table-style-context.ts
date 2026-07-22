@@ -44,12 +44,12 @@ export interface TableSlotClasses {
   mobileCard?: string;
 }
 
-export type TableAppearance = 'flush' | 'surface' | 'framed';
+export type TableVariant = 'flush' | 'surface' | 'framed';
 
 export interface TableStyleConfig {
   unstyled: boolean;
   slotClasses: Partial<TableSlotClasses>;
-  appearance: TableAppearance;
+  variant: TableVariant;
 }
 
 // Optional — sub-components have a sane default when used outside Table.svelte.
@@ -64,7 +64,7 @@ export { setTableStyleContext };
  * Retrieves the table style context. Used by subcomponents to apply `unstyled` + `slotClasses`.
  */
 export function getTableStyleConfig(): TableStyleConfig {
-  return getTableStyleContextRaw() ?? { unstyled: false, slotClasses: {}, appearance: 'flush' };
+  return getTableStyleContextRaw() ?? { unstyled: false, slotClasses: {}, variant: 'flush' };
 }
 
 /**

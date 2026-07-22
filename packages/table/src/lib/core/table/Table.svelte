@@ -34,7 +34,7 @@
     class: className = '',
     ariaLabel = undefined,
     size = 'md' as 'sm' | 'md' | 'lg',
-    appearance = 'flush' as 'flush' | 'surface' | 'framed',
+    variant = 'flush' as 'flush' | 'surface' | 'framed',
 
     itemsPerPage = 10,
     initialPage = 1,
@@ -117,8 +117,8 @@
     get slotClasses() {
       return slotClasses;
     },
-    get appearance() {
-      return appearance;
+    get variant() {
+      return variant;
     }
   });
 
@@ -208,7 +208,7 @@
   {@const { state: tableState } = tableContext}
 
   {@const tableStyles = tableContainerVariants({
-    appearance,
+    variant,
     size,
     responsive: true,
     stickyToolbar: stickyMode.toolbar,

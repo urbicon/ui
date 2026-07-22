@@ -158,8 +158,8 @@ ${scriptClose}
       controls={[
         {
           type: 'dropdown',
-          key: 'appearance',
-          label: 'Appearance',
+          key: 'variant',
+          label: 'Variant',
           items: [
             { label: 'flush', value: 'flush' },
             { label: 'surface', value: 'surface' },
@@ -201,7 +201,7 @@ ${scriptClose}
         }
       ]}
       values={{
-        appearance: 'flush',
+        variant: 'flush',
         size: 'md',
         itemsPerPage: 5,
         enableSmartFilter: true,
@@ -211,7 +211,7 @@ ${scriptClose}
     >
       {#snippet children(values)}
         <Table
-          appearance={values.appearance}
+          variant={values.variant}
           size={values.size}
           itemsPerPage={values.itemsPerPage}
           enableSmartFilter={values.enableSmartFilter}

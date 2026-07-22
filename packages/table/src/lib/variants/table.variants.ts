@@ -1,7 +1,7 @@
 /**
  * TABLE VARIANTS
  * Variant definitions for the table component (see docs/MIGRATION-v5.md §3
- * for the v4 → v5 appearance API).
+ * for the v4 → v5 chrome-variant API).
  */
 
 import { tv, type VariantProps } from '@urbicon-ui/blocks';
@@ -176,7 +176,7 @@ export const tableRowVariants = tv({
   slots: {
     // Row dividers use a hairline (~8% alpha) instead of border-subtle.
     // No explicit row bg — the surface tint is inherited from the
-    // scrollArea, depending on the appearance (see below).
+    // scrollArea, depending on the variant (see below).
     row: [
       'border-b border-border-hairline',
       'last:border-b-0',
@@ -324,7 +324,7 @@ export const tableContainerVariants = tv({
   //   surface → bg-surface-quiet, gentle in-page tinted zone
   //   framed  → border + rounded-contain + shadow, standalone block
   variants: {
-    appearance: {
+    variant: {
       flush: {
         scrollArea: []
       },
@@ -386,7 +386,7 @@ export const tableContainerVariants = tv({
     }
   },
   defaultVariants: {
-    appearance: 'flush',
+    variant: 'flush',
     size: 'md',
     responsive: true,
     stickyToolbar: false,
