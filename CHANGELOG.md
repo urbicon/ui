@@ -4,6 +4,22 @@ All notable changes to this project will be documented in this file.
 This changelog is automatically generated from [Conventional Commits](https://www.conventionalcommits.org).
 
 
+## [6.34.0] - 2026-07-22
+
+### Bug Fixes
+- **docs-app**: Point the clickable-card recipe at a real mint
+
+### Documentation
+- Mark debt-fix-wave-4 entries as in progress
+- **docs-app**: Move misfiled usage demos out of Customization (XC-6)
+- **docs**: Add the missing package README, drop dead generator scripts
+- Close the debt-fix-wave-4 entries and log the follow-up findings
+
+### Features
+- **blocks**: Tree-shake the mint registry via the resolveIcon pattern
+- **table**: Add initialSort, initialFilters and initialSelectedIds seeds
+- **docs-app**: Add live async-search and server-mode table demos
+
 ## [6.33.0] - 2026-07-22
 
 ### Breaking Changes
