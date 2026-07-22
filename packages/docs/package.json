@@ -80,17 +80,7 @@
     "check:watch": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json --watch",
     "test": "vitest run",
     "format": "biome format --write . && prettier --write \"**/*.svelte\"",
-    "lint": "biome check . && svelte-check --tsconfig ./tsconfig.json",
-    "generate:all": "bun generator/generate-unified-docs.ts",
-    "generate:docs": "bun --bun generator/generate-unified-docs.ts docs",
-    "generate:llm": "bun --bun generator/generate-unified-docs.ts llm",
-    "generate:api-props": "bun --bun generator/generate-unified-docs.ts api-props",
-    "debug:component": "bun generator/generate-unified-docs.ts debug",
-    "docs:build": "bun --bun run generate:all && bun --bun run build",
-    "docs:dev": "bun --bun run generate:docs && bun run dev",
-    "docs:watch": "bun --bun generator/watch-generator.ts",
-    "docs:stats": "bun --bun generator/cli/docs-cli.ts stats",
-    "docs:validate": "bun --bun generator/cli/docs-cli.ts validate"
+    "lint": "biome check . && svelte-check --tsconfig ./tsconfig.json"
   },
   "sideEffects": [
     "./src/**/*.css",
