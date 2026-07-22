@@ -4,6 +4,28 @@ All notable changes to this project will be documented in this file.
 This changelog is automatically generated from [Conventional Commits](https://www.conventionalcommits.org).
 
 
+## [6.31.0] - 2026-07-22
+
+### Breaking Changes
+- **blocks**: Unify the style-axis vocabulary — appearance becomes variant, separated becomes card
+> **BREAKING:** SegmentGroup/Toggle/Slider `appearance` prop is now `variant`; Accordion `variant="separated"` is now `variant="card"`.
+
+### Bug Fixes
+- **blocks**: Migrate Button to the restProps-first contract via conditional ARIA merges
+- **blocks**: Repair Calendar bind:value write-back and direction-gate view swipes
+
+### Documentation
+- Record Button's conditional-merge pattern as the restProps reference
+- Log two follow-up findings from the wave reviews in technical-debt
+- Re-measure the tokens-page uses column after the XC-9 rhythm sweep
+
+### Features
+- **blocks**: Unify the listbox item rhythm across Select/Combobox/Menu/CommandPalette (XC-9)
+- **design-engine**: Scope deterministic lint rules to code and add a visible exemption mechanism
+
+### Testing
+- **e2e**: Scope the floating-spec tooltip locator, re-baseline the menu shot
+
 ## [6.30.1] - 2026-07-21
 
 ### Testing
