@@ -26,7 +26,8 @@ export const timeInputVariants = tv({
     meridiem: [
       'ml-1 font-medium text-text-secondary rounded-sm cursor-pointer select-none',
       'hover:bg-surface-hover focus-visible:outline-none focus-visible:bg-primary-subtle',
-      'disabled:cursor-not-allowed disabled:opacity-50'
+      // The segment is a span-hosted spinbutton — no native :disabled state.
+      'aria-disabled:cursor-not-allowed aria-disabled:opacity-50'
     ],
     message: ['text-xs']
   },

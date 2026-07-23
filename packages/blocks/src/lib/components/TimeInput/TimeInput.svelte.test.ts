@@ -104,10 +104,26 @@ describe('TimeInput', () => {
     render({ format: '12h', onValueChange });
     hour().focus();
     await user.keyboard('0230'); // 02:30
-    const meridiem = screen.getByRole('button', { name: 'AM or PM' });
+    const meridiem = screen.getByRole('spinbutton', { name: 'AM or PM' });
     expect(meridiem.textContent?.trim()).toBe('AM');
     await user.click(meridiem); // -> PM => 14:30
     expect(onValueChange).toHaveBeenLastCalledWith('14:30');
+  });
+
+  it('announces the meridiem state via spinbutton value semantics', async () => {
+    const user = userEvent.setup();
+    render({ format: '12h', value: '14:30' });
+    const meridiem = screen.getByRole('spinbutton', { name: 'AM or PM' });
+    // The current AM/PM state must live in aria-valuetext — an aria-label on a
+    // button used to override the content, leaving the state unannounced.
+    expect(meridiem.getAttribute('aria-valuetext')).toBe('PM');
+    expect(meridiem.getAttribute('aria-valuenow')).toBe('1');
+    meridiem.focus();
+    // Enter/Space activation is hand-wired on the span host.
+    await user.keyboard('{Enter}');
+    expect(meridiem.getAttribute('aria-valuetext')).toBe('AM');
+    await user.keyboard(' ');
+    expect(meridiem.getAttribute('aria-valuetext')).toBe('PM');
   });
 
   it('clamps to [min, max] when focus leaves the field', async () => {
@@ -158,12 +174,12 @@ describe('TimeInput', () => {
 
     // 24h: 13:30 shows as 13.
     expect(hour().value).toBe('13');
-    expect(screen.queryByRole('button', { name: 'AM or PM' })).toBeNull();
+    expect(screen.queryByRole('spinbutton', { name: 'AM or PM' })).toBeNull();
 
     await user.click(screen.getByTestId('flip-format')); // -> 12h
     // The 24h value 13:30 must re-seed to 01:30 PM, not leave a stale "13".
     expect(hour().value).toBe('01');
-    const meridiem = screen.getByRole('button', { name: 'AM or PM' });
+    const meridiem = screen.getByRole('spinbutton', { name: 'AM or PM' });
     expect(meridiem.textContent?.trim()).toBe('PM');
     expect(screen.getByTestId('value').textContent).toBe('13:30');
 

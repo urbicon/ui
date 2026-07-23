@@ -66,7 +66,7 @@
   let hourEl = $state<HTMLInputElement>();
   let minuteEl = $state<HTMLInputElement>();
   let secondEl = $state<HTMLInputElement>();
-  let meridiemEl = $state<HTMLButtonElement>();
+  let meridiemEl = $state<HTMLSpanElement>();
 
   function pad(n: number): string {
     return String(n).padStart(2, '0');
@@ -174,7 +174,7 @@
       minuteEl,
       withSeconds ? secondEl : undefined,
       format === '12h' ? meridiemEl : undefined
-    ].filter(Boolean) as (HTMLInputElement | HTMLButtonElement)[]
+    ].filter(Boolean) as (HTMLInputElement | HTMLSpanElement)[]
   );
 
   function advanceFrom(el: HTMLElement) {
@@ -315,6 +315,10 @@
     switch (e.key) {
       case 'ArrowUp':
       case 'ArrowDown':
+      // The segment is a spinbutton on a span (html-aria forbids the role on
+      // <button>), so Enter/Space activation is wired manually.
+      case 'Enter':
+      case ' ':
         e.preventDefault();
         toggleMeridiem();
         break;
@@ -331,7 +335,7 @@
       case 'ArrowLeft':
       case 'Backspace': {
         e.preventDefault();
-        const idx = order.indexOf(e.currentTarget as HTMLButtonElement);
+        const idx = order.indexOf(e.currentTarget as HTMLSpanElement);
         if (idx > 0) order[idx - 1].focus();
         break;
       }
@@ -478,11 +482,22 @@
       />
     {/if}
     {#if format === '12h'}
-      <button
+      <!-- A spinbutton (not a button): aria-label on a button would OVERRIDE its
+           AM/PM content, so the current state was never announced. As a
+           spinbutton the state travels via aria-valuetext — same semantics as
+           the sibling segments — and html-aria only permits the role on a
+           non-button host, hence the span with manual focus/activation. -->
+      <span
         bind:this={meridiemEl}
-        type="button"
-        {disabled}
+        role="spinbutton"
+        tabindex={disabled ? -1 : 0}
         aria-label={bt('accessibility.timeMeridiem')}
+        aria-valuemin={0}
+        aria-valuemax={1}
+        aria-valuenow={meridiem === 'AM' ? 0 : 1}
+        aria-valuetext={meridiem}
+        aria-disabled={disabled ? 'true' : undefined}
+        aria-readonly={readonly ? 'true' : undefined}
         class={unstyled
           ? (slotClasses?.meridiem ?? '')
           : styles.meridiem({ class: slotClasses?.meridiem })}
@@ -490,7 +505,7 @@
         onkeydown={handleMeridiemKeydown}
       >
         {meridiem}
-      </button>
+      </span>
     {/if}
   </div>
 
