@@ -88,6 +88,12 @@ class MintRegistry {
    * effect. Acceptable for decorative effects (documented contract, see
    * mint/README.md); consumers who need first-interaction guarantees register
    * the effect statically up front (`registerDefaultMints()`).
+   *
+   * One apply() per element: a second apply() on the same element replaces
+   * the instances map the first one registered, and the first cleanup then
+   * deletes it — `update()` for the second application would go dead. Every
+   * in-repo caller pairs exactly one apply() per element with its `$effect`
+   * teardown, which upholds this.
    */
   apply(el: HTMLElement, mint: MintProp, fallbacks?: MintFallbacks): () => void {
     const mintDefinitions = this.normalizeMintProp(mint);
@@ -163,7 +169,13 @@ class MintRegistry {
     return [];
   }
 
-  /** Update mint config for an element */
+  /**
+   * Update mint config for an element.
+   *
+   * No-op for a name still inside the demand-load fetch window (it is not in
+   * the element's instances map yet) — same decorative-effect contract as the
+   * lost-first-interaction case documented on `apply()`.
+   */
   update(el: HTMLElement, name: string, config: MintConfig): void {
     const elementMints = this.instances.get(el);
     const mint = elementMints?.get(name);
@@ -178,7 +190,13 @@ class MintRegistry {
     return Array.from(this.mints.keys());
   }
 
-  /** Clear all mints */
+  /**
+   * Clear all mints. Test-only escape hatch: this does NOT reset the
+   * demand-load latch (`builtinsLoading` here, `defaultMintsRegistered` in
+   * ./presets.ts), so built-ins stay gone until a module reload — tests use
+   * `vi.resetModules()` for a fresh registry. Pre-existing behaviour from the
+   * eager-registration era, kept as-is.
+   */
   clear(): void {
     this.mints.clear();
   }
