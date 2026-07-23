@@ -4,6 +4,18 @@ All notable changes to this project will be documented in this file.
 This changelog is automatically generated from [Conventional Commits](https://www.conventionalcommits.org).
 
 
+## [6.38.0] - 2026-07-23
+
+### Documentation
+- **docs-app**: Add prev/next navigation to the Table documentation pages
+- **tokens**: Refresh typography usage counts for the new components
+
+### Features
+- **blocks**: Add Kbd, CopyButton and AvatarGroup components
+
+### Miscellaneous
+- **blocks**: Record Kbd, CopyButton and AvatarGroup in the bundle-size baseline
+
 ## [6.37.2] - 2026-07-23
 
 ### Bug Fixes
