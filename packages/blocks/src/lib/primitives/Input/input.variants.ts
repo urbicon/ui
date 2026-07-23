@@ -1,19 +1,39 @@
+import {
+  FIELD_DISABLED_FRAME,
+  FIELD_LABEL,
+  FIELD_LABEL_DISABLED,
+  FIELD_MESSAGE_TONES,
+  FIELD_NATIVE_DISABLED,
+  FIELD_NATIVE_READONLY,
+  FIELD_REQUIRED_LABEL,
+  FIELD_SURFACE,
+  FIELD_TRANSITION,
+  fieldErrorFrame,
+  fieldFocusRing,
+  fieldIntentFrames,
+  fieldSurfaceVariants
+} from '$lib/internal/field-chrome';
 import { type SlotNames, tv, type VariantProps } from '$lib/utils/variants';
+
+// Input and PinInput light the focusable element itself; TimeInput its container.
+const focus = 'focus-visible';
+const surface = fieldSurfaceVariants(focus);
+const intents = fieldIntentFrames(focus);
 
 export const inputVariants = tv({
   slots: {
     wrapper: ['flex flex-col w-full gap-1.5'],
     container: ['relative flex items-center'],
     base: [
-      'w-full box-border transition-[color,background-color,border-color,box-shadow] duration-[var(--blocks-duration-fast)] ease-out',
+      `w-full box-border ${FIELD_TRANSITION}`,
       // Radius driven by `tier` axis below.
       'focus-visible:outline-none',
-      'border text-text-primary bg-surface-base placeholder:text-text-quaternary',
-      'hover:border-border-default focus-visible:border-primary focus-visible:ring-2 focus-visible:ring-primary/20',
-      'disabled:opacity-50 disabled:cursor-not-allowed disabled:bg-surface-subtle',
-      'read-only:bg-surface-subtle read-only:cursor-default'
+      `${FIELD_SURFACE} placeholder:text-text-quaternary`,
+      `hover:border-border-default ${fieldFocusRing(focus)}`,
+      FIELD_NATIVE_DISABLED,
+      FIELD_NATIVE_READONLY
     ],
-    label: ['block font-medium text-text-secondary text-sm'],
+    label: [FIELD_LABEL],
     message: ['text-xs mt-1.5'],
     iconContainer: [
       'absolute top-0 bottom-0 flex items-center justify-center z-10 pointer-events-none'
@@ -41,13 +61,13 @@ export const inputVariants = tv({
     },
     variant: {
       outlined: {
-        base: 'border-border-subtle'
+        base: surface.outlined
       },
       filled: {
-        base: 'bg-surface-interactive border-transparent hover:bg-surface-hover focus-visible:bg-surface-base'
+        base: surface.filled
       },
       ghost: {
-        base: 'bg-transparent hover:bg-surface-subtle focus-visible:bg-surface-base focus-visible:border-border-subtle'
+        base: surface.ghost
       },
       underline: {
         base: 'bg-transparent border-0 border-b-2 border-border-subtle rounded-none focus-visible:ring-0'
@@ -95,19 +115,19 @@ export const inputVariants = tv({
     intent: {
       default: {},
       success: {
-        base: 'border-success focus-visible:border-success focus-visible:ring-success/20'
+        base: intents.success
       },
       warning: {
-        base: 'border-warning focus-visible:border-warning focus-visible:ring-warning/20'
+        base: intents.warning
       },
       danger: {
-        base: 'border-danger focus-visible:border-danger focus-visible:ring-danger/20'
+        base: intents.danger
       }
     },
     disabled: {
       true: {
-        base: 'opacity-50 cursor-not-allowed bg-surface-disabled pointer-events-none',
-        label: 'text-text-disabled'
+        base: FIELD_DISABLED_FRAME,
+        label: FIELD_LABEL_DISABLED
       }
     },
     readonly: {
@@ -118,18 +138,18 @@ export const inputVariants = tv({
     // Declared BEFORE `error` so the error tone wins the message-color
     // bucket in every call shape — `{ error: true }` alone must read red.
     messageType: {
-      error: { message: 'text-danger' },
-      helper: { message: 'text-text-tertiary' }
+      error: { message: FIELD_MESSAGE_TONES.error },
+      helper: { message: FIELD_MESSAGE_TONES.helper }
     },
     error: {
       true: {
-        base: 'border-danger focus-visible:border-danger focus-visible:ring-danger/20',
-        message: 'text-danger'
+        base: fieldErrorFrame(focus),
+        message: FIELD_MESSAGE_TONES.error
       }
     },
     required: {
       true: {
-        label: "after:content-['*'] after:ml-1 after:text-danger"
+        label: FIELD_REQUIRED_LABEL
       }
     },
     hasLeftIcon: { true: {} },

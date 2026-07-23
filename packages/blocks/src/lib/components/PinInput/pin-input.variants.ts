@@ -1,18 +1,39 @@
+import {
+  FIELD_DISABLED_FRAME,
+  FIELD_LABEL,
+  FIELD_LABEL_DISABLED,
+  FIELD_MESSAGE_TONES,
+  FIELD_NATIVE_DISABLED,
+  FIELD_NATIVE_READONLY,
+  FIELD_REQUIRED_LABEL,
+  FIELD_SURFACE,
+  FIELD_TRANSITION,
+  fieldErrorFrame,
+  fieldFocusRing,
+  fieldIntentFrames,
+  fieldSurfaceVariants
+} from '$lib/internal/field-chrome';
 import { type SlotNames, tv, type VariantProps } from '$lib/utils/variants';
+
+// Each cell is directly focusable, so the ring lives on the cell itself.
+const focus = 'focus-visible';
+const surface = fieldSurfaceVariants(focus);
+const intents = fieldIntentFrames(focus);
 
 export const pinInputVariants = tv({
   slots: {
     root: ['flex flex-col gap-1.5'],
-    label: ['block font-medium text-text-secondary text-sm'],
+    label: [FIELD_LABEL],
     group: ['flex items-center'],
     cell: [
       'box-border text-center font-medium tabular-nums caret-primary',
-      'border text-text-primary bg-surface-base',
-      'transition-[color,background-color,border-color,box-shadow] duration-[var(--blocks-duration-fast)] ease-out',
-      'focus-visible:outline-none focus-visible:border-primary focus-visible:ring-2 focus-visible:ring-primary/20 focus-visible:z-10',
+      FIELD_SURFACE,
+      FIELD_TRANSITION,
+      // `focus-visible:z-10` lifts the focused cell's ring above its neighbours.
+      `focus-visible:outline-none ${fieldFocusRing(focus)} focus-visible:z-10`,
       'hover:border-border-default',
-      'disabled:opacity-50 disabled:cursor-not-allowed disabled:bg-surface-subtle',
-      'read-only:bg-surface-subtle read-only:cursor-default'
+      FIELD_NATIVE_DISABLED,
+      FIELD_NATIVE_READONLY
     ],
     separator: ['text-text-tertiary select-none'],
     message: ['text-xs']
@@ -25,13 +46,9 @@ export const pinInputVariants = tv({
       commit: { cell: 'rounded-commit' }
     },
     variant: {
-      outlined: { cell: 'border-border-subtle' },
-      filled: {
-        cell: 'bg-surface-interactive border-transparent hover:bg-surface-hover focus-visible:bg-surface-base'
-      },
-      ghost: {
-        cell: 'bg-transparent hover:bg-surface-subtle focus-visible:bg-surface-base focus-visible:border-border-subtle'
-      }
+      outlined: { cell: surface.outlined },
+      filled: { cell: surface.filled },
+      ghost: { cell: surface.ghost }
     },
     size: {
       sm: {
@@ -54,20 +71,14 @@ export const pinInputVariants = tv({
     },
     intent: {
       default: {},
-      success: {
-        cell: 'border-success focus-visible:border-success focus-visible:ring-success/20'
-      },
-      warning: {
-        cell: 'border-warning focus-visible:border-warning focus-visible:ring-warning/20'
-      },
-      danger: {
-        cell: 'border-danger focus-visible:border-danger focus-visible:ring-danger/20'
-      }
+      success: { cell: intents.success },
+      warning: { cell: intents.warning },
+      danger: { cell: intents.danger }
     },
     disabled: {
       true: {
-        cell: 'opacity-50 cursor-not-allowed bg-surface-disabled pointer-events-none',
-        label: 'text-text-disabled'
+        cell: FIELD_DISABLED_FRAME,
+        label: FIELD_LABEL_DISABLED
       }
     },
     readonly: {
@@ -76,17 +87,17 @@ export const pinInputVariants = tv({
     // Declared BEFORE `error` so the error tone wins the message-color bucket
     // in every call shape — `{ error: true }` alone must read red.
     messageType: {
-      error: { message: 'text-danger' },
-      helper: { message: 'text-text-tertiary' }
+      error: { message: FIELD_MESSAGE_TONES.error },
+      helper: { message: FIELD_MESSAGE_TONES.helper }
     },
     error: {
       true: {
-        cell: 'border-danger focus-visible:border-danger focus-visible:ring-danger/20',
-        message: 'text-danger'
+        cell: fieldErrorFrame(focus),
+        message: FIELD_MESSAGE_TONES.error
       }
     },
     required: {
-      true: { label: "after:content-['*'] after:ml-1 after:text-danger" }
+      true: { label: FIELD_REQUIRED_LABEL }
     }
   },
   compoundVariants: [

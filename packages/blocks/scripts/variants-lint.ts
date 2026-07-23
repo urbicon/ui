@@ -41,6 +41,7 @@ import { resolve } from 'node:path';
 import { checkClassToken, collectThemeVars } from './theme-tokens';
 
 const ENGINE = resolve(import.meta.dir, '../src/lib/utils/variants.ts');
+const BLOCKS_LIB = resolve(import.meta.dir, '../src/lib');
 const REPO = resolve(import.meta.dir, '../../..');
 const SHOW_WARNINGS = process.argv.includes('--warnings');
 
@@ -82,9 +83,16 @@ const fileErrors: string[] = [];
 
 for (const file of files) {
   const src = await Bun.file(file).text();
-  const rewritten = src
+  let rewritten = src
     .replaceAll("'$lib/utils/variants'", `'${ENGINE}'`)
     .replaceAll("'@urbicon-ui/blocks'", `'${ENGINE}'`);
+  // A blocks config may pull shared style fragments from other $lib modules
+  // (e.g. internal/field-chrome). The engine alias above is already resolved;
+  // point any remaining $lib import at the real blocks lib dir so the temp
+  // file resolves. Scoped to blocks files — table/docs $lib means their own lib.
+  if (file.includes('/packages/blocks/')) {
+    rewritten = rewritten.replaceAll("'$lib/", `'${BLOCKS_LIB}/`);
+  }
   const tmp = file.replace(/\.ts$/, '.__variants_lint_tmp.ts');
   await Bun.write(tmp, rewritten);
   try {
@@ -151,7 +159,7 @@ const THEME_CANARIES = [
   '--radius-commit', // blocks foundation.css (semantic radii)
   '--color-text-primary', // blocks semantic.css
   '--color-filter', // table-theme.css
-  '--color-code' // docs-theme.css
+  '--docs-sidebar-width' // docs-theme.css (the removed --color-code intent used to canary here)
 ];
 const missingCanaries = THEME_CANARIES.filter((c) => !themeVars.has(c));
 if (missingCanaries.length > 0) {

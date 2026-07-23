@@ -1,18 +1,37 @@
+import {
+  FIELD_DISABLED_FRAME,
+  FIELD_LABEL,
+  FIELD_LABEL_DISABLED,
+  FIELD_MESSAGE_TONES,
+  FIELD_REQUIRED_LABEL,
+  FIELD_SURFACE,
+  FIELD_TRANSITION,
+  fieldErrorFrame,
+  fieldFocusRing,
+  fieldIntentFrames,
+  fieldSurfaceVariants
+} from '$lib/internal/field-chrome';
 import { type SlotNames, tv, type VariantProps } from '$lib/utils/variants';
+
+// Borderless segments live inside a bordered container, so the ring lights the
+// whole field via focus-within rather than focus-visible on one element.
+const focus = 'focus-within';
+const surface = fieldSurfaceVariants(focus);
+const intents = fieldIntentFrames(focus);
 
 export const timeInputVariants = tv({
   slots: {
     wrapper: ['flex flex-col gap-1.5 w-full'],
-    label: ['block font-medium text-text-secondary text-sm'],
+    label: [FIELD_LABEL],
     // The bordered container reads as a single field; the segment inputs inside
     // are borderless. The focus ring lives here via focus-within so tabbing
     // between segments keeps the whole field lit.
     field: [
       'inline-flex items-center box-border w-fit',
-      'border text-text-primary bg-surface-base',
-      'transition-[color,background-color,border-color,box-shadow] duration-[var(--blocks-duration-fast)] ease-out',
+      FIELD_SURFACE,
+      FIELD_TRANSITION,
       'hover:border-border-default',
-      'focus-within:border-primary focus-within:ring-2 focus-within:ring-primary/20'
+      fieldFocusRing(focus)
     ],
     icon: ['pointer-events-none inline-flex items-center justify-center text-text-tertiary'],
     segment: [
@@ -39,15 +58,9 @@ export const timeInputVariants = tv({
       commit: { field: 'rounded-commit' }
     },
     variant: {
-      outlined: { field: 'border-border-subtle' },
-      filled: {
-        field:
-          'bg-surface-interactive border-transparent hover:bg-surface-hover focus-within:bg-surface-base'
-      },
-      ghost: {
-        field:
-          'bg-transparent hover:bg-surface-subtle focus-within:bg-surface-base focus-within:border-border-subtle'
-      }
+      outlined: { field: surface.outlined },
+      filled: { field: surface.filled },
+      ghost: { field: surface.ghost }
     },
     size: {
       sm: {
@@ -72,31 +85,32 @@ export const timeInputVariants = tv({
     },
     intent: {
       default: {},
-      success: { field: 'border-success focus-within:border-success focus-within:ring-success/20' },
-      warning: { field: 'border-warning focus-within:border-warning focus-within:ring-warning/20' },
-      danger: { field: 'border-danger focus-within:border-danger focus-within:ring-danger/20' }
+      success: { field: intents.success },
+      warning: { field: intents.warning },
+      danger: { field: intents.danger }
     },
     disabled: {
       true: {
-        field: 'opacity-50 cursor-not-allowed bg-surface-disabled pointer-events-none',
-        label: 'text-text-disabled'
+        field: FIELD_DISABLED_FRAME,
+        label: FIELD_LABEL_DISABLED
       }
     },
     readonly: {
+      // No `cursor-default` here — the container's segments carry their own cursor.
       true: { field: 'bg-surface-subtle' }
     },
     messageType: {
-      error: { message: 'text-danger' },
-      helper: { message: 'text-text-tertiary' }
+      error: { message: FIELD_MESSAGE_TONES.error },
+      helper: { message: FIELD_MESSAGE_TONES.helper }
     },
     error: {
       true: {
-        field: 'border-danger focus-within:border-danger focus-within:ring-danger/20',
-        message: 'text-danger'
+        field: fieldErrorFrame(focus),
+        message: FIELD_MESSAGE_TONES.error
       }
     },
     required: {
-      true: { label: "after:content-['*'] after:ml-1 after:text-danger" }
+      true: { label: FIELD_REQUIRED_LABEL }
     },
     fullWidth: {
       true: { field: 'w-full justify-start' }
