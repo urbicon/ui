@@ -132,6 +132,29 @@ describe('PinInput', () => {
     expect(onComplete).toHaveBeenCalledWith('123456');
   });
 
+  it('fires onComplete again after the parent resets the value (paste retry flow)', async () => {
+    const user = userEvent.setup();
+    const onComplete = vi.fn();
+    const props = $state<PinInputProps>({ length: 6, value: '', onComplete });
+    const instance = mount(PinInput, { target: document.body, props });
+    dispose = () => unmount(instance);
+    flushSync();
+
+    cells()[0].focus();
+    await user.paste('111111');
+    expect(onComplete).toHaveBeenCalledTimes(1);
+
+    // Parent-side reset (wrong code → clear → try again).
+    props.value = '';
+    flushSync();
+    expect(cells().every((el) => el.value === '')).toBe(true);
+
+    cells()[0].focus();
+    await user.paste('222222');
+    expect(onComplete).toHaveBeenCalledTimes(2);
+    expect(onComplete).toHaveBeenLastCalledWith('222222');
+  });
+
   it('strips non-matching characters from a pasted string', async () => {
     const user = userEvent.setup();
     render({ length: 6 });

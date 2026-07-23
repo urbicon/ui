@@ -84,6 +84,10 @@
     if (normalized !== (value ?? '')) {
       value = normalized;
     }
+    // Completeness must track the (possibly externally reset) value — a stale
+    // `true` after a parent-side clear would swallow the onComplete of the next
+    // single-emit fill (paste/autofill), the standard wrong-code retry flow.
+    wasComplete = normalized.length === length;
   });
 
   // Stable per-position keys — the index IS the cell identity, but a derived id
