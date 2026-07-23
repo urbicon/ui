@@ -91,29 +91,29 @@ internal TODO instead. Sections are ordered roughly by urgency.
   conventions-doc update. Removing values is breaking.
 - **Found:** 2026-07-10, systematic primitives API analysis.
 
-### Field chrome is copy-pasted across four form components — no shared style fragments
+### Field label/helper/error MARKUP is re-implemented per form component (part b)
 
-- **Where:** `input.variants.ts`, `pin-input.variants.ts`, `time-input.variants.ts`
-  (NumberInput inherits via its Input composition) + the label/message scaffolding
-  in `Input.svelte`, `PinInput.svelte`, `TimeInput.svelte`.
-- **What:** Two layers of near-identical duplication. (a) The tv() class strings
-  for the field frame — `border text-text-primary bg-surface-base`, the
-  `focus(-visible|-within):border-primary` + `ring-2 ring-primary/20` ring, the
-  `outlined|filled|ghost` variant values, the intent colours, tier radius,
-  disabled/readonly states, the ghost×error `border-transparent` compound — are
-  hand-copied per file. (b) The label/helper/error markup (label span +
-  `aria-labelledby`, `role="alert"` message, required asterisk, `messageType`
-  derivation) is re-implemented per component. Drift has already started: Input
-  carries `xs` + `underline` that the segmented fields lack (defensible), and
-  PinInput's cell heights sit on their own scale (h-9/11/14 vs h-8/10/12 —
-  touch-target driven, but nothing records that).
-- **Why deferred:** The right cut is shared *style fragments* (exported class
-  arrays under `src/lib/internal/`, consumed by the field variants configs), not
-  a behaviour core — there is no shared behaviour, so a `CoreFieldShell` would
-  be premature. Wants one deliberate sweep across all four components with VR
-  coverage, plus a decision on whether the message scaffolding joins the
-  fragment set; piecemeal extraction would churn every field component twice.
-- **Found:** 2026-07-24, component-trio review (PinInput/TimeInput/QRCode).
+- **Where:** the label/message scaffolding in `Input.svelte`, `PinInput.svelte`,
+  `TimeInput.svelte` (label span + `aria-labelledby`, `role="alert"` message,
+  required asterisk, `messageType` derivation).
+- **What:** Part (a) — the duplicated tv() **class strings** for the field frame
+  — is **resolved** (debt-fix-wave-5, 2026-07-24): the shared frame/focus-ring/
+  variant/intent/state/label fragments now live in
+  `packages/blocks/src/lib/internal/field-chrome.ts` and are composed back into
+  `input`/`pin-input`/`time-input.variants.ts`, byte-identical to the old inline
+  strings (proven by a 47 872-combination resolved-class matrix diff, 0 diff).
+  What remains is part (b): the label/helper/error **markup** is still hand-
+  re-implemented in each of the three `.svelte` files. Deliberate per-component
+  divergences stay inline in the variants (Input's `xs`/`underline`, PinInput's
+  cell-height scale + `focus-visible:z-10`, TimeInput's `focus-within` +
+  cursor-free readonly) and are commented at each site.
+- **Why deferred:** A shared markup cut (a `FieldShell` snippet/component or a
+  `useFieldScaffold` helper) is a bigger, behaviour-touching change with its own
+  a11y surface (id wiring, `aria-describedby`), and wants VR coverage — none of
+  PinInput/TimeInput is in the VR fixture yet. Not a drive-by after the style
+  fragments landed.
+- **Found:** 2026-07-24, component-trio review; part (a) closed same day
+  (debt-fix-wave-5).
 
 ## Component behaviour
 
@@ -829,63 +829,67 @@ internal TODO instead. Sections are ordered roughly by urgency.
   because* this path is dead).
 - **Found:** 2026-07-14, SSR-gap investigation (publish-m3-finale).
 
-### docs-theme.css ships four intent families nothing consumes — and `--docs-surface-*` resolves to invalid
+### docs-theme.css: the whole `--docs-*` design-token block has zero consumers repo-wide
 
-- **Where:** `packages/docs/src/lib/style/docs-theme.css` — the
-  `--color-code` / `--color-example` / `--color-playground` / `--color-api`
-  intents (each with `-hover`/`-active`/`-subtle`/`-emphasis`) plus
-  `--docs-surface-code|-example|-api|-glass` and
-  `--docs-shadow-card|-elevated|-float`. ~27 tokens.
-- **What:** Grep finds **zero consumers** — no `bg-code`, `text-example`,
-  `var(--docs-shadow-card)` anywhere; the only non-definition hit is prose
-  ("color-coded events"). Independently confirmed by measurement: Tailwind 4
-  prunes unused `@theme` vars, so `--color-code` read `(unset)` in 3 of 4
-  theme states. Additionally `--docs-surface-code|-example|-api` reference
-  `--color-*-950`, a step the scales never define (they run 50–900), so those
-  three resolve to invalid in **all** states. The families were converted to
-  `light-dark()` on 2026-07-14 (they were the repo's only `:root.dark`
-  token-duplication block, contradicting semantic.css's own contract) — that
-  removed the latent trap and ~35 lines of dead CSS, but the honest end state
-  is deleting the four intents outright (~70 lines).
-- **Why deferred:** Deleting a whole public-looking token surface from the
-  docs package is a deliberate call (are these a planned palette for
-  doc-page accents, or leftovers?), not a drive-by after a selector fix. If
-  they stay, the `-950` refs are a 4-line alias fix.
+- **Where:** `packages/docs/src/lib/style/docs-theme.css` (imported into the
+  shipped docs style bundle via `style/index.css:14`) — the remaining
+  `--docs-sidebar-width`, `--docs-*-gap`, `--docs-text-*`, `--docs-code-*`,
+  `--docs-duration-*`, `--docs-z-*` block after the intent apparatus was removed.
+- **What:** The four docs intent families (`--color-{code,example,playground,api}`
+  + `-hover`/`-active`/`-subtle`/`-emphasis`), their numeric scales
+  (`--color-*-50..900`), `--docs-surface-*`, `--docs-shadow-*` and
+  `--docs-border-*` were **all removed** (debt-fix-wave-5, 2026-07-24) — one
+  self-contained dead cluster, zero consumers verified, the variants-lint theme
+  canary repointed from `--color-code` to `--docs-sidebar-width`. Removing them
+  surfaced that the **rest** of the file is dead too: a repo-wide grep finds
+  **zero** `var(--docs-*)` / `[--docs-*]` usages of *any* remaining token. The
+  block is emitted into the docs CSS bundle but consumed by nothing — so the
+  honest end state is likely deleting the whole file (and retiring its
+  variants-lint canary + `THEME_CSS` entry).
+- **Why deferred:** Removing a whole public-looking token vocabulary from a
+  shipped package is a deliberate call (are these a planned docs design-token
+  API, or leftovers from an abandoned docs-theme?), and it wants a check for
+  non-`var()` consumption (JS reads, `@apply`, consumer usage of
+  `@urbicon-ui/docs/style/docs-theme`) before deletion — not a drive-by after
+  the intent-apparatus cleanup.
+- **Found:** 2026-07-14, C.6 system-dark follow-up; scope widened + intent
+  apparatus removed 2026-07-24 (debt-fix-wave-5).
 - **Found:** 2026-07-14, C.6 system-dark follow-up.
 
-### `ApiReference.svelte` silently drops non-`http` `seeAlso` values
+### docs-gen `@see` extraction stores bare type names as `seeAlso`, which ApiReference can't link
 
-- **Where:** `packages/docs/src/lib/components/ApiReference/ApiReference.svelte`
-  (the `seeAlso` render branch).
-- **What:** `ApiReference` renders a `seeAlso` value as an external link only
-  when it is an `http(s)` URL; a route-relative `seeAlso` (the shape docs-gen
-  emits for local type/variant anchors, e.g. `…#variants`) is silently
-  dropped rather than rendered as an in-page link.
-- **Why deferred:** A small render fix, but it wants a deliberate call on the
-  in-page-anchor UX (same-page scroll vs. cross-page nav) rather than a blind
-  branch. Surfaced alongside the now-removed `typeAnchor`/`typePreview` dead
-  emission.
-- **Update 2026-07-20 (qa-polish-wave):** the `typeAnchor`/`typePreview` half of
-  this entry is **done** — docs-gen stopped emitting both fields (`510a410`) and
-  the dead `ApiProp.typeAnchor`/`typePreview` declarations were removed from
-  `packages/docs` (`a9609c0`). Only the `seeAlso` render drop above remains.
-- **Found:** 2026-07-14, C.6 API type-link pass.
+- **Where:** `packages/docs-gen/src/core/extraction/PropsExtractor.ts` (~`:535`,
+  raw `@see` tag text → `seeAlso`) surfacing in
+  `packages/docs/src/lib/components/ApiReference/ApiReference.svelte`.
+- **What:** The non-`http` `seeAlso` render drop is **resolved** (debt-fix-wave-5,
+  2026-07-24): route-relative (`/…#…`) and fragment (`#…`) values now render as
+  internal links wrapping the type code. But `@see` extraction blindly stores the
+  raw tag text, so hand-written prose cross-refs like `@see HTMLButtonAttributes.value`
+  (Button) / `@see CartesianDatum` (BarChart) land in `seeAlso` as bare dotted/type
+  names — neither `http` nor `/`|`#`, so they now (correctly) fall through to the
+  plain type-segment branch and render as text, i.e. the `@see` is silently ignored.
+  One field is doing two jobs — "a link destination" and "a prose reference".
+- **Why deferred:** The fix is a docs-gen design call — resolve bare type names to
+  their doc anchors, or keep prose `@see` out of `seeAlso` (a separate field),
+  cross-checked against the extractor. Not a render tweak.
+- **Found:** 2026-07-24, debt-fix-wave-5 (ApiReference seeAlso fix). The
+  `typeAnchor`/`typePreview` half of the original entry was closed in qa-polish-wave
+  (`510a410`/`a9609c0`); the seeAlso render drop in this wave.
 
-### docs-app still depends on two fonts it no longer loads
+### The `@urbicon-ui/docs` package has no component / DOM test coverage
 
-- **Where:** `apps/docs/package.json:18-19` —
-  `@fontsource-variable/newsreader` + `@fontsource-variable/public-sans`.
-- **What:** Leftovers from the editorial serif/sans pairing that Color Rooms
-  replaced: the app loads only `@fontsource-variable/schibsted-grotesk` and
-  `@fontsource/jetbrains-mono` (`+layout.svelte:22-28`). Neither dead package is
-  imported anywhere in `apps/docs/src` — the only trace is a prose mention in
-  `rooms.css:40`. They cost install time, not bundle size (never imported, so
-  never bundled).
-- **Why deferred:** Removing them is a one-line `bun remove` plus a lockfile
-  churn — trivial, but it should ride along with a deliberate check of whether
-  the Rooms skin ever wants a serif display voice back (the audit's original
-  Cluster A direction) rather than being dropped silently mid-cleanup.
-- **Found:** 2026-07-14, verifying the design-authenticity audit before archiving it.
+- **Where:** `packages/docs/src` — `vitest.config.ts` runs `environment: 'node'`
+  only; every test targets plain `.ts` modules or `*.variants.ts` configs.
+- **What:** All `.svelte` rendering logic in the docs package (ApiReference branch
+  selection, TypesReference, DocsLayout, PlaygroundConfigurator, …) is untested —
+  e.g. the debt-fix-wave-5 ApiReference `seeAlso` branch shipped with no mount
+  test because there is no jsdom + `mount` harness in the package. The blocks
+  package's DOM-test stack (jsdom docblock + native `mount` + `@testing-library/dom`)
+  would need porting.
+- **Why deferred:** Standing up DOM-test infra for a package (jsdom setup, mount
+  harness, Table/Badge deps) is its own decision, not a drive-by while fixing one
+  render branch.
+- **Found:** 2026-07-24, debt-fix-wave-5 (ApiReference seeAlso fix).
 
 ### Route-level `docsConfig` exports are decorative — nothing consumes them
 
