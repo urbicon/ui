@@ -84,6 +84,15 @@
         chunk lands.)
       </li>
       <li>
+        <strong class="text-text-primary">For SSR</strong>, register the bundle eagerly once at
+        server start so the first server render already resolves that locale instead of flashing the
+        fallback: <code>packageI18n.registerLocale(locale, bundle)</code> (blocks re-exports it as
+        <code>registerBlocksLocale</code>) with the per-locale subpath import (<code
+          >@urbicon-ui/blocks/i18n/de</code
+        >). Additive — it keeps the eager base — and safe on the module-global registry (static,
+        request-identical data).
+      </li>
+      <li>
         <strong class="text-text-primary">On switch</strong>, <code>setLocale</code> triggers the
         target's loader (not awaited) and flips the locale; the <code>$derived</code> reads re-resolve
         when the chunk arrives.
@@ -119,7 +128,10 @@
         <ul class="text-text-secondary space-y-1 text-sm">
           <li>Smaller initial bundle — inactive locales excluded.</li>
           <li>Parity is a runtime/CI check, not compile-time.</li>
-          <li>A lazy non-base initial locale flashes the fallback first.</li>
+          <li>
+            A lazy non-base initial locale flashes the fallback first (unless eager-registered for
+            SSR).
+          </li>
           <li>Worth it past a handful of locales.</li>
         </ul>
       </div>

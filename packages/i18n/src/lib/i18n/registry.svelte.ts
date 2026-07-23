@@ -144,6 +144,29 @@ export class I18nRegistry {
     this.packageLoaders.set(`${packageName}::${locale}`, loader);
   }
 
+  /**
+   * Additively register one locale's already-loaded bundle for a package — the
+   * synchronous, eager counterpart to {@link loadPackageLocale}.
+   *
+   * Unlike {@link registerPackage} (which `.set`s the *whole* package entry and so
+   * drops any sibling locale already registered), this **merges** the single
+   * locale into the existing entry, preserving the eager base bundle. That makes
+   * it the correct primitive for an eager-register escape hatch: a consumer that
+   * has passed a locale as a lazy `loader` can register its imported bundle up
+   * front (e.g. once at SSR/app start) so the very first server render already
+   * resolves that locale — no fallback-locale flash, no hydration text mismatch —
+   * instead of waiting for the provider's client-only on-mount chunk load.
+   *
+   * A fresh object reference is written so the reactive SvelteMap notifies
+   * `$derived` readers (an in-place mutation would not). Idempotent-friendly:
+   * re-registering the same locale simply overwrites it with identical data.
+   */
+  registerPackageLocale(packageName: string, locale: Locale, data: Translations): void {
+    const existing = this.packageTranslations.get(packageName) ?? {};
+    this.packageTranslations.set(packageName, { ...existing, [locale]: data });
+    this.addTranslations(locale, { [packageName]: data });
+  }
+
   hasLoader(locale: Locale): boolean {
     if (this.translationLoaders.has(locale)) return true;
     for (const key of this.packageLoaders.keys()) {
@@ -225,15 +248,13 @@ export class I18nRegistry {
     this.loadingPackageLocales.add(key);
     try {
       const data = await loader();
-      // New object reference per merge so the SvelteMap notifies subscribers
-      // (SvelteMap.set only signals when the value reference changes — an in-place
-      // mutation would NOT re-run the $derived reads). `existing` is read AFTER the
-      // await, so two concurrent loads of different non-base locales for the same
+      // Delegate the additive merge to registerPackageLocale (same primitive the
+      // eager escape hatch uses). It reads `existing` fresh — here, AFTER the
+      // await — so two concurrent loads of different non-base locales for the same
       // package (e.g. de + fr) each see the other's already-merged result and don't
-      // lose a write.
-      const existing = this.packageTranslations.get(packageName) ?? {};
-      this.packageTranslations.set(packageName, { ...existing, [locale]: data });
-      this.addTranslations(locale, { [packageName]: data });
+      // lose a write, and it writes a new object reference so the SvelteMap
+      // notifies its `$derived` subscribers.
+      this.registerPackageLocale(packageName, locale, data);
       return true;
     } catch (error) {
       this.reportError({ type: 'load-failed', locale, cause: error });

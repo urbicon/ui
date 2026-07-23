@@ -1,8 +1,10 @@
 // @vitest-environment jsdom
-import { screen } from '@testing-library/dom';
+import { screen, waitFor } from '@testing-library/dom';
 import userEvent from '@testing-library/user-event';
 import { type ComponentProps, flushSync, mount, unmount } from 'svelte';
 import { afterEach, describe, expect, it, vi } from 'vitest';
+import { registerBlocksLocale } from '$lib/i18n';
+import deTranslations from '$lib/translations/de';
 import LocaleSwitcherHarness from './__fixtures__/LocaleSwitcherHarness.svelte';
 
 // Interaction layer for LocaleSwitcher — a thin Select wrapper whose own contract is the i18n
@@ -38,12 +40,24 @@ function renderSwitcher(props: Partial<ComponentProps<typeof LocaleSwitcherHarne
 const trigger = () => screen.getByRole('combobox');
 const options = () => screen.getAllByRole('option', { hidden: true });
 
+// Since the en-eager/de-lazy split, mounting under a non-base initialLocale kicks off the
+// de chunk load (provider mount effect) and LocaleSwitcher disables its trigger while
+// registry.isLoading — under suite load a bare click can lose that race (flaked once in the
+// full suite). Wait out the transient window before opening; real apps eager-register the
+// locale at startup instead (registerBlocksLocale) and never see it.
+async function openSwitcher(user: ReturnType<typeof userEvent.setup>) {
+  await waitFor(() => {
+    if (trigger().hasAttribute('disabled')) throw new Error('locale chunk still loading');
+  });
+  await user.click(trigger());
+}
+
 describe('LocaleSwitcher (component interaction)', () => {
   it('lists the provided locales as options', async () => {
     const user = userEvent.setup();
     renderSwitcher({ locales: ['en', 'de'] });
 
-    await user.click(trigger());
+    await openSwitcher(user);
     expect(options()).toHaveLength(2);
   });
 
@@ -53,7 +67,7 @@ describe('LocaleSwitcher (component interaction)', () => {
     // back to the blocks-registered locales (en, de), never render empty.
     renderSwitcher({});
 
-    await user.click(trigger());
+    await openSwitcher(user);
     // Assert the floor (en + de) rather than an exact count: the source is the shared i18n
     // registry, so coupling to a precise length would couple to global registration order.
     expect(options().length).toBeGreaterThanOrEqual(2);
@@ -63,7 +77,7 @@ describe('LocaleSwitcher (component interaction)', () => {
     const user = userEvent.setup();
     renderSwitcher({ locales: ['en', 'de'], initialLocale: 'de' });
 
-    await user.click(trigger());
+    await openSwitcher(user);
     // Locale order is preserved → index 1 is 'de', the active locale.
     const [en, de] = options();
     expect(de.getAttribute('aria-selected')).toBe('true');
@@ -84,7 +98,7 @@ describe('LocaleSwitcher (component interaction)', () => {
     });
 
     expect(state?.locale).toBe('en');
-    await user.click(trigger());
+    await openSwitcher(user);
     await user.click(options()[1]); // 'de'
     flushSync();
 
@@ -97,7 +111,7 @@ describe('LocaleSwitcher (component interaction)', () => {
     const user = userEvent.setup();
     renderSwitcher({ locales: ['en', 'de'], showFlag: true });
 
-    await user.click(trigger());
+    await openSwitcher(user);
     const [en, de] = options();
     expect(en.textContent).toContain('🇺🇸');
     expect(de.textContent).toContain('🇩🇪');
@@ -109,5 +123,17 @@ describe('LocaleSwitcher (component interaction)', () => {
     const t = trigger();
     const isDisabled = t.hasAttribute('disabled') || t.getAttribute('aria-disabled') === 'true';
     expect(isDisabled).toBe(true);
+  });
+
+  it('never disables the trigger when the locale is eager-registered (SSR recipe)', async () => {
+    // The documented startup recipe (registerBlocksLocale) must remove the transient
+    // isLoading-disable entirely: with de eager-registered, mounting under initialLocale 'de'
+    // finds the catalog present, the provider's load effect early-returns, and the trigger is
+    // enabled from the first frame — no waitFor needed, that absence is the assertion.
+    registerBlocksLocale('de', deTranslations);
+
+    renderSwitcher({ locales: ['en', 'de'], initialLocale: 'de' });
+
+    expect(trigger().hasAttribute('disabled')).toBe(false);
   });
 });

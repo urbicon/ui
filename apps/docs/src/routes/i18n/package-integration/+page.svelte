@@ -29,6 +29,11 @@
     ['exists', '(key) => boolean', "Whether the key exists in the package's base-locale bundle."],
     ['getLocales', '() => Locale[]', 'Locales this package has registered (data or loader).'],
     [
+      'registerLocale',
+      '(locale, bundle) => void',
+      'Eagerly + additively register a lazy locale bundle (SSR escape hatch). Call once at server start; throws on an unsupported locale or non-object bundle.'
+    ],
+    [
       'types',
       'CreatePackageTypes<T>',
       'Phantom carrier for the inferred key/param types (compile-time only).'
@@ -38,16 +43,21 @@
   const createCode = `// Inside @urbicon-ui/blocks — src/lib/i18n/index.ts
 import { createPackageI18n } from '@urbicon-ui/i18n';
 import en from '../translations/en';
-import de from '../translations/de';
 
 // Generic over the \`en\` bundle: keys + params flow through to the hook's \`t\`.
-export const blocksI18n = createPackageI18n('blocks', { en, de });
+// en is the eager base; de is a lazy dynamic-import loader, so English-only
+// apps never bundle the de catalog (before it loads, de resolves to en).
+export const blocksI18n = createPackageI18n('blocks', { en }, {
+  loaders: { de: () => import('../translations/de').then((m) => m.default) }
+});
 
 // Re-export the context-scoped hook under a package-specific name.
 export const useBlocksI18n = blocksI18n.useTranslate;
 
-// (optional) export the raw bundles for the CI parity test.
-export const blocksTranslations = { en, de };`;
+// Eager-register de once at server start so a German SSR app renders German on
+// the first paint instead of the en fallback (see the SSR note).
+export const registerBlocksLocale = (locale, bundle) =>
+  blocksI18n.registerLocale(locale, bundle);`;
 
   const hookCode =
     `<!-- In a blocks component -->
@@ -86,10 +96,11 @@ export const useShopI18n = shopI18n.useTranslate;`;
 
   const validateCode = `// my-app/src/lib/i18n.test.ts
 import { validatePackageTranslations } from '@urbicon-ui/i18n';
-import { blocksTranslations } from '$lib/i18n';
+import en from '$lib/translations/en';
+import de from '$lib/translations/de'; // import lazy bundles directly for the check
 
 it('en/de key parity', () => {
-  const { errors } = validatePackageTranslations('blocks', blocksTranslations);
+  const { errors } = validatePackageTranslations('blocks', { en, de });
   expect(errors).toEqual([]); // a missing nested key is an error, an extra one a warning
 });`;
 </script>

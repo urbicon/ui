@@ -107,9 +107,12 @@ Each Urbicon package registers its own namespaced keys so consumers get a merged
 // Inside @urbicon-ui/blocks — src/lib/i18n/index.ts
 import { createPackageI18n } from '@urbicon-ui/i18n';
 import en from '../translations/en';
-import de from '../translations/de';
 
-export const blocksI18n = createPackageI18n('blocks', { en, de });
+// en is the eager base; de is a lazy dynamic-import loader (see "Locale
+// code-splitting" below), so English-only apps never bundle the de catalog.
+export const blocksI18n = createPackageI18n('blocks', { en }, {
+  loaders: { de: () => import('../translations/de').then((m) => m.default) }
+});
 
 // The context-scoped hook (re-exported for components)
 export const useBlocksI18n = blocksI18n.useTranslate;
@@ -205,7 +208,25 @@ export const blocksI18n = createPackageI18n(
 );
 ```
 
-Vite/Rollup splits each dynamic import into its own chunk, so only the active locale is in the initial bundle. The provider loads the active + fallback locale on mount; `setLocale` loads a target on switch. A lazy non-base initial locale renders the fallback until its chunk lands, then re-resolves reactively. Worth it past a handful of locales; eager is simpler for `en`/`de`.
+Vite/Rollup splits each dynamic import into its own chunk, so only the active locale is in the initial bundle. The provider loads the active + fallback locale on mount; `setLocale` loads a target on switch. A lazy non-base initial locale renders the fallback until its chunk lands, then re-resolves reactively.
+
+> **`@urbicon-ui/blocks` ships this way** — `en` eager, `de` lazy — so an English-only app doesn't bundle the `de` catalog.
+
+### SSR: eager-register the lazy locale for non-base apps
+
+The provider's on-mount load runs in a **client-only** `$effect`. So under SSR a lazy non-base initial locale (e.g. a German app) renders the *fallback* (English) on the server and the first client paint, then flips to German once the chunk lands — a text flash and a possible hydration text mismatch. That is not acceptable as the default for a server-rendered app in that locale.
+
+The fix is to register the bundle **eagerly, once at server/app start**. The registry is module-global and holds only static, request-identical translation data, so a single startup registration is SSR-safe (it carries no per-request state). Every package factory returns `registerLocale(locale, bundle)` for this; `@urbicon-ui/blocks` re-exports it as `registerBlocksLocale`:
+
+```ts
+// src/hooks.server.ts (or any module evaluated once at server start)
+import { registerBlocksLocale } from '@urbicon-ui/blocks';
+import de from '@urbicon-ui/blocks/i18n/de'; // the public per-locale subpath
+
+registerBlocksLocale('de', de);
+```
+
+`registerLocale` is **additive** (it merges the locale in without dropping the eager base) and **write-strict** (throws on an unsupported locale or a non-object bundle). The `de` catalog stays out of English-only client bundles — you only pull it in where it is actually rendered. Worth the loader split past a handful of locales; a fully eager `createPackageI18n(name, { en, de })` is simpler when you always ship both.
 
 ## Coexisting with an app-level i18n (e.g. Paraglide)
 
@@ -244,10 +265,11 @@ configureI18n({ onError: (e) => reportToSentry(e) });
 
 ```ts
 import { validatePackageTranslations } from '@urbicon-ui/i18n';
-import { blocksTranslations } from '$lib/i18n';
+import en from '$lib/translations/en';
+import de from '$lib/translations/de'; // import lazy bundles directly for the check
 
 it('en/de key parity', () => {
-  expect(validatePackageTranslations('blocks', blocksTranslations).errors).toEqual([]);
+  expect(validatePackageTranslations('blocks', { en, de }).errors).toEqual([]);
 });
 ```
 

@@ -107,7 +107,17 @@ Re-exports `@urbicon-ui/i18n`. Components with text content (Pagination, Menu, C
 </I18nProvider>
 ```
 
-For the provider/hook API, typed keys, SSR locale resolution, and opt-in lazy loading see the [@urbicon-ui/i18n](../i18n/) package.
+**English is bundled eagerly; German is lazy.** The `de` catalog is a dynamic-import chunk, so an English-only app never bundles it. Before that chunk loads, `de` keys resolve to the English fallback (never the raw key). The provider loads `de` client-side on mount, which means a **server-rendered German app** would paint English first and flip on hydration. Fix it by registering `de` eagerly once at server start:
+
+```ts
+// src/hooks.server.ts (evaluated once at server start — SSR-safe, static data)
+import { registerBlocksLocale } from '@urbicon-ui/blocks';
+import de from '@urbicon-ui/blocks/i18n/de';
+
+registerBlocksLocale('de', de);
+```
+
+For the provider/hook API, typed keys, SSR locale resolution, and the code-splitting + eager-register details see the [@urbicon-ui/i18n](../i18n/) package.
 
 ## Development
 

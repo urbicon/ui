@@ -12,6 +12,7 @@ import type {
   Translations,
   TypedTranslationFunction
 } from './types';
+import { isLocaleSupported, SUPPORTED_LOCALES } from './types';
 
 /**
  * Loose translation call (key as plain string + optional params/options).
@@ -135,12 +136,43 @@ export function createPackageI18n<const T extends Translations>(
   // Previously a no-op; now it performs the idempotent first-use registration.
   const register = (): void => ensureRegistered();
 
+  // Eager, additive registration of one locale's bundle — the SSR escape hatch for
+  // a locale that is otherwise declared as a lazy `options.loaders` entry. The
+  // provider only loads lazy chunks in a client-only `$effect`, so a lazy non-base
+  // locale renders the *fallback* (base) locale during SSR and the first client
+  // paint, then flips once the chunk lands. A server-rendered app in that locale
+  // therefore ships the wrong-language strings and risks a hydration text
+  // mismatch. Registering the imported bundle here — once at server/app start,
+  // where it is request-identical static data on the module-global registry —
+  // makes the locale present for the very first render instead. Merges (does NOT
+  // clobber the eager base bundle) via registry.registerPackageLocale.
+  //
+  // Write-strict: throws on an unsupported locale or a non-object bundle rather
+  // than silently registering garbage under a bogus key.
+  const registerLocale = (locale: Locale, bundle: Translations): void => {
+    if (!isLocaleSupported(locale)) {
+      throw new Error(
+        `[i18n] ${packageName}.registerLocale: unsupported locale "${String(locale)}". ` +
+          `Supported: ${SUPPORTED_LOCALES.join(', ')}.`
+      );
+    }
+    if (!bundle || typeof bundle !== 'object' || Array.isArray(bundle)) {
+      const kind = bundle === null ? 'null' : Array.isArray(bundle) ? 'array' : typeof bundle;
+      throw new Error(
+        `[i18n] ${packageName}.registerLocale("${locale}"): bundle must be a translations object, got ${kind}.`
+      );
+    }
+    ensureRegistered();
+    getRegistry().registerPackageLocale(packageName, locale, bundle);
+  };
+
   return {
     useTranslate,
     t,
     exists,
     getLocales,
     register,
+    registerLocale,
     types: {} as CreatePackageTypes<T>
   };
 }

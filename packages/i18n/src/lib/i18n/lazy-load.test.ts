@@ -79,3 +79,52 @@ describe('WP4 — per-package lazy loading', () => {
     expect(reg.translate('f.k', 'de', 'en')).toBe('x');
   });
 });
+
+/**
+ * Eager, additive registration — the SSR escape hatch. `registerPackageLocale`
+ * (registry) and `registerLocale` (factory) let a consumer register a lazy
+ * locale's bundle up front so it resolves on the very first render, without
+ * waiting for the provider's client-only chunk load. It must MERGE, not clobber
+ * the eager base bundle (the failure mode that a plain second `registerPackage`
+ * would cause).
+ */
+describe('eager additive registration (registerPackageLocale / registerLocale)', () => {
+  it('registerPackageLocale merges a locale without dropping the eager base', () => {
+    const reg = new I18nRegistry();
+    reg.registerPackage('p', { en: { hi: 'Hello' } }); // eager base
+    // Register de eagerly and additively — no loader, resolves synchronously.
+    reg.registerPackageLocale('p', 'de', { hi: 'Hallo' });
+
+    expect(reg.translate('hi', 'de', 'en', undefined, { packageName: 'p' })).toBe('Hallo');
+    // Crucially, en survives the second registration (a plain registerPackage
+    // would have .set()-clobbered it).
+    expect(reg.translate('hi', 'en', 'en', undefined, { packageName: 'p' })).toBe('Hello');
+    expect(reg.getPackageLocales('p').sort()).toEqual(['de', 'en']);
+  });
+
+  it('registerLocale (factory) registers a lazy locale eagerly, resolving without the loader', () => {
+    const loader = vi.fn(async () => ({ hi: 'Hallo' }));
+    const pkg = createPackageI18n(
+      'eagerfactory',
+      { en: { hi: 'Hello' } as const },
+      { loaders: { de: loader } }
+    );
+    // Eager-register de from an imported bundle instead of via the lazy chunk.
+    pkg.registerLocale('de', { hi: 'Hallo' });
+    // The loader was never invoked — the eager path made de present directly.
+    expect(loader).not.toHaveBeenCalled();
+    // Resolvable in both locales via the dotted global path.
+    expect(pkg.t('hi')).toBe('Hello');
+    expect(pkg.getLocales().sort()).toEqual(['de', 'en']);
+  });
+
+  it('registerLocale is write-strict: throws on an unsupported locale or non-object bundle', () => {
+    const pkg = createPackageI18n('strictfactory', { en: { hi: 'Hello' } as const });
+    // @ts-expect-error deliberately invalid locale
+    expect(() => pkg.registerLocale('xx', { hi: 'x' })).toThrow(/unsupported locale/);
+    // @ts-expect-error deliberately invalid bundle
+    expect(() => pkg.registerLocale('de', null)).toThrow(/must be a translations object/);
+    // @ts-expect-error deliberately invalid bundle
+    expect(() => pkg.registerLocale('de', [])).toThrow(/must be a translations object/);
+  });
+});

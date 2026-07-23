@@ -211,6 +211,16 @@ export interface PackageI18n<T extends Translations> {
   exists: (key: string) => boolean;
   getLocales: () => Locale[];
   register: () => void;
+  /**
+   * Eagerly and **additively** register one locale's already-imported bundle for
+   * this package — the SSR escape hatch for a locale declared as a lazy
+   * `options.loaders` entry. Call once at server/app start (with e.g.
+   * `import de from '@urbicon-ui/blocks/i18n/de'`) so the first server render
+   * already resolves that locale instead of rendering the fallback until the
+   * client-only on-mount chunk load lands. Merges — it does not drop the eager
+   * base bundle. Throws on an unsupported locale or a non-object bundle.
+   */
+  registerLocale: (locale: Locale, bundle: Translations) => void;
   types: CreatePackageTypes<T>;
 }
 

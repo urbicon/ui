@@ -79,9 +79,7 @@
   },
   "sideEffects": [
     "./src/**/*.css",
-    "./dist/**/*.css",
-    "./dist/i18n/index.js",
-    "./dist/i18n/index.d.ts"
+    "./dist/**/*.css"
   ],
   "peerDependencies": {
     "svelte": "catalog:",
