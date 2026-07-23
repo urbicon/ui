@@ -318,6 +318,14 @@ Reach for the lowest rung that solves the problem — lower rungs preserve more 
 4. **`overrides`** — style only one variant / intent / state (prop-conditional — what unconditional `slotClasses` cannot express).
 5. **`unstyled` + `slotClasses`** — strip every default and rebuild the look.
 
+One scoping note: controls embedded via the internal core layer (Badge's
+remove ×, Dialog/Drawer's close ×, embedded loading spinners) are styled by
+their host's variants slot (`removeButton`, `closeButton`, `spinner`) — rungs
+1–5 of the *host* apply to them, but Button/Spinner presets and provider
+defaults do not reach inside (they never were the documented path). The cores'
+few structural plumbing classes (flex centring, cursor, disabled inertness)
+sit outside the ladder entirely: they are behaviour, not an override surface.
+
 The implementation hinge is one type-annotated `variantProps` derived in `ComponentName.svelte` (`const variantProps: XVariants = $derived({ … })`). It feeds both `styles = xVariants(variantProps)` and the `activeProps` argument of `resolveSlotClasses`, so the `tv()` output and the prop-conditional `overrides` always match against the same set of active variants. The annotation is mandatory — without it the string-literal ternaries widen to `string` and silently stop matching the variant keys.
 
 ## Polymorphic Elements (Link-Buttons, Anchor-as-Card, etc.)

@@ -35,6 +35,7 @@ Svelte 5 + Tailwind CSS 4 UI component library monorepo. Uses Bun workspaces.
 - **Focus**: `focus-visible:` everywhere (not `focus:`), for keyboard-only focus rings
 - **Z-Index**: CSS custom property tokens (`--z-modal`, `--z-dropdown`, etc.) via `z-[var(--z-*)]`
 - **Components**: All support `unstyled` + `slotClasses` + `preset` props for style overrides; `BlocksProvider` additionally accepts prop-conditional `overrides` (style only a specific variant/intent/state, e.g. the `outlined` variant)
+- **Internal core layer**: Public blocks components never import each other for trivial embedded controls (close ×, loading spinner, icon-only nav button) — they use the behaviour-only cores in `src/lib/internal/core/` (`CoreIconButton`, `CoreSpinner`; never exported) with the look in an own variants slot. Essential compositions (ConfirmDialog→Dialog, DatePicker→Calendar) stay direct imports but need a justified allowlist entry in `packages/blocks/scripts/imports-lint.ts`; `bun run imports:lint` errors on unknown edges AND stale entries. See [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) → "Internal Core Layer".
 
 For full details see [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md).
 
@@ -43,7 +44,7 @@ For full details see [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md).
 - Install: `bun install`
 - Dev (all): `bun run dev` · Dev (one): `bun --filter='@urbicon-ui/blocks' run dev`
 - Build: `bun run build`
-- Quality: `bun run check` (type/svelte-check), `bun run lint`, `bun run format`, `bun run variants:lint` (dead-token guard over all tv() configs)
+- Quality: `bun run check` (type/svelte-check), `bun run lint`, `bun run format`, `bun run variants:lint` (dead-token guard over all tv() configs), `bun run imports:lint` (cross-component import guard — see below)
 - Bundle size: `bun run size:blocks` (per-component tree-shaken min+gzip size, net of Svelte; needs built blocks-`dist/`; `--check` gates against `packages/blocks/bundle-size.baseline.json`, `--update-baseline` after intentional growth)
 - Docs generation: `bun run docs:gen:all`
 - Scaffold docs page: `bun run docs:scaffold <ComponentName> --group primitives|components`

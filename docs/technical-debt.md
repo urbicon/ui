@@ -33,49 +33,7 @@ internal TODO instead. Sections are ordered roughly by urgency.
   a few minutes should alert, not pass unnoticed.
 - **Found:** 2026-07-20, v6.26.1/v6.26.2 publish verification.
 
-### The `./dist/i18n/index.js` sideEffects exemption is inert under rolldown-vite
-
-- **Where:** `packages/blocks/package.json` (`sideEffects` array) vs.
-  `dist/i18n/index.js`; observed via `scripts/bundle-size.ts`.
-- **What:** A bare consumer `import '@urbicon-ui/blocks'` built with Vite 8
-  (rolldown) tree-shakes to **0 bytes** — the listed side-effect module is
-  dropped despite the exemption (not root-caused: symlinked-workspace path
-  matching vs. rolldown analysis). Nothing observably breaks, because
-  `createPackageI18n` registers lazily and every translation-using component
-  imports the module directly (verified: Dialog bundles en+de). But
-  rollup-based consumers (Vite ≤ 7) presumably still honour the entry and pay
-  i18n runtime + full en/de translations on **every** barrel import, used or
-  not.
-- **Why deferred:** Needs a design decision after root-causing: if the lazy
-  registration made the eager side-effect obsolete, deleting the exemption
-  slims every rollup-vite consumer; if some path still relies on eager
-  registration (SSR locale bootstrap?), the rolldown drop is a latent bug and
-  the exemption needs a form both bundlers honour.
-- **Found:** 2026-07-22, building the bundle-size measurement tool.
-
 ## Bundle size
-
-Findings from the first `bun run size:blocks --breakdown` pass (v6.31.0,
-net-of-Svelte numbers; reproduce with
-`bun run size:blocks --filter <name> --breakdown`). Nothing *leaks* — no
-comments, no dead modules, no icon registry — these are deliberate structures
-whose bundle price only became visible with the measurement tool.
-
-### Button's `loading` state ships the full Spinner — 21 % of the Button bundle
-
-- **Where:** `packages/blocks/src/lib/primitives/Button/Button.svelte`
-  (imports `Spinner` from `$lib`); breakdown attribution.
-- **What:** The `loading` state renders the complete Spinner component
-  including its own 159-line tv() variants config: 8.4 KB of Button's
-  39.8 KB min (4.7 KB `Spinner.svelte` + 3.7 KB `spinner.variants.js`).
-  Every consumer of Button pays it, loading used or not — and via
-  composition it cascades (Badge imports Button for its dismiss affordance,
-  so a Badge ships a Spinner).
-- **Why deferred:** An API/design call: an internal minimal inline spinner
-  (one SVG + one animation class, no variants engine pass) would cut
-  ~8 KB min / ~1.5 KB gz but forks the spinner visual source of truth;
-  alternatively Spinner's config could be slimmed for both.
-- **Found:** 2026-07-22, bundle-size breakdown analysis.
 
 ### The blocks Icon component grew ~4.8 KB min against the v6.31 baseline with no source change
 
@@ -93,55 +51,6 @@ whose bundle price only became visible with the measurement tool.
   between the two lockfile states (the measurement tool supports `--breakdown`)
   — archaeology, not a fix, and nothing observably broke.
 - **Found:** 2026-07-23, mint tree-shaking re-baseline (debt-fix-wave-4).
-
-### Badge statically bundles Button (+ its 10.7 KB variants config) for the dismiss affordance
-
-- **Where:** `packages/blocks/src/lib/primitives/Badge/Badge.svelte` (imports
-  `Button` for the dismiss button); visible in every `size:blocks --breakdown`
-  of Badge.
-- **What:** A dismissible Badge renders its close affordance through the full
-  Button component, so every Badge consumer ships Button plus its ~10.7 KB
-  `button.variants.ts` config — the largest single contributor to Badge's
-  bundle after the i18n catalog, paid whether `dismissible` is used or not.
-  Known since the first breakdown pass (2026-07-22) but never logged.
-- **Why deferred:** Same design class as the Button/Spinner entry above: an
-  internal minimal dismiss button (plain `<button>` + the few needed classes)
-  would cut the cost but forks the Button interaction/ARIA source of truth.
-  One deliberate call for both entries together.
-- **Found:** 2026-07-22, bundle-size breakdown analysis; logged 2026-07-23
-  (debt-fix-wave-4).
-
-### tv() ships its config-time diagnostics unguarded — 11 of 12 sites
-
-- **Where:** `packages/blocks/src/lib/utils/variants.ts` (`throw new
-  Error`/`console.warn` sites; only the `class`-prop warning at ~line 1009
-  is behind `import.meta.env?.DEV`).
-- **What:** Config-time developer errors (e.g. "tv(): `base` and `slots`
-  are mutually exclusive…") ship verbatim in every consumer's production
-  bundle, ~1 KB min across the engine. The one existing guard proves the
-  `import.meta.env?.DEV` fold works in consumer builds (string absent from
-  the measured bundle).
-- **Why deferred:** Needs the fail-loud line drawn deliberately: config-time
-  misuse diagnostics (the class Svelte itself makes DEV-only) vs. runtime
-  contract checks that must stay. Blanket-guarding all 11 without that
-  distinction would trade correctness posture for ~1 KB.
-- **Found:** 2026-07-22, bundle-size breakdown analysis.
-
-### `useBlocksI18n` components bundle every locale — en+de always, statically
-
-- **Where:** `packages/blocks/src/lib/i18n/index.ts`
-  (`blocksTranslations = { en, de }` passed to `createPackageI18n`).
-- **What:** Any component translating a single aria-label pulls the full
-  catalog of **all** locales plus the i18n runtime: 14.7 KB min in Badge
-  (6.5 KB registry, 4.0 KB de, 3.7 KB en, 0.5 KB integration). Cost grows
-  linearly with every locale the package adds; the consumer's actual locale
-  choice can't tree-shake it.
-- **Why deferred:** Per-locale splitting (consumer imports
-  `@urbicon-ui/blocks/i18n/de` — the subpath exports already exist — and the
-  package core stops eagerly bundling both) is an i18n architecture change
-  with SSR/lazy-registration implications, owned together with the i18n
-  package.
-- **Found:** 2026-07-22, bundle-size breakdown analysis.
 
 ## API design
 
@@ -183,6 +92,20 @@ whose bundle price only became visible with the measurement tool.
 - **Found:** 2026-07-10, systematic primitives API analysis.
 
 ## Component behaviour
+
+### Mint demand-load path has no end-to-end coverage
+
+- **Where:** `packages/blocks/src/lib/mint/registry.ts` (`loadBuiltinMints` /
+  the unresolved branch of `apply()`); `e2e/`.
+- **What:** The jsdom suite (`registry.test.ts`, `compose.test.ts`) covers
+  resolution order, override precedence and the demand-load *registration*,
+  but the real path — dynamic `import()` over the network, effect applied
+  after the chunk lands — never runs end-to-end anywhere. A recipe-page smoke
+  (click a `mint="ripple"` element, assert the `blocks-mint-ripple` span
+  appears) would cover the whole chain including the dist specifier rewrite.
+- **Why deferred:** e2e additions ride with an e2e wave (full-suite run
+  required per house practice), not with a review pass.
+- **Found:** 2026-07-23, review of the mint tree-shaking commit (00922a8).
 
 ### Calendar day/agenda view region: three small a11y gaps on the focusable-region pattern
 
@@ -541,6 +464,28 @@ whose bundle price only became visible with the measurement tool.
   small rework of the marker path, not a drive-by, and only worth it if the
   combo shows up in practice.
 - **Found:** 2026-07-14, Sparkline `fluid` review (primitives-debt wave).
+
+### Toast/FileUpload loading spinners are pinned `text-primary`, ignoring the intent/status colour scheme
+
+- **Where:** `packages/blocks/src/lib/primitives/Toast/Toaster.svelte` (loading
+  icon slot) and `packages/blocks/src/lib/components/FileUpload/FileUpload.svelte`
+  (uploading status icon).
+- **What:** Both loading glyphs render brand-primary regardless of context: the
+  toast's other intent icons follow `toast.intent` (the variants file even says
+  "the intent signal comes through the icon color"), and FileUpload's sibling
+  status icons are `text-success`/`text-danger` — but a loading toast with
+  `intent: 'success'` still shows a primary spinner. Inherited, not designed:
+  the old embedded public `Spinner` simply defaulted to `intent="primary"`, and
+  the CoreSpinner conversion pinned `class="text-primary"` to keep the rendered
+  default byte-identical (the default promise-toast intent is `neutral`, so
+  dropping the pin would have visibly re-coloured it to `text-text-secondary`).
+- **Why deferred:** Whether the loading spinner should follow the intent (like
+  every other status glyph) or stay brand-primary (the common "busy = brand"
+  look) is a design decision with a visible outcome, not a mechanical fix —
+  the conversion's contract was render-identity. Once decided, the fix is
+  deleting/replacing one class at each of the two call-sites.
+- **Found:** 2026-07-23, core-extraction wave (public→public edge removal),
+  while proving render-identity of the Toaster/FileUpload spinner conversion.
 
 ## Accessibility
 
@@ -1024,6 +969,15 @@ whose bundle price only became visible with the measurement tool.
   default, and re-baselining the 8 stale shots deliberately (each needs looking
   at — that is the point of the suite). Interacts with the darwin-only entry
   below.
+- **Update 2026-07-23 (core-extraction baseline):** bit again, from the other
+  direction — an *added* element vanished into the ratio: a new
+  `soft`/`primary` removable-Badge sentinel (light-on-light, `text-xs`)
+  rendered fine but stayed under 1 % of the section shot, so
+  `--update-snapshots` silently kept the old baseline (while the loading
+  Buttons re-baselined only because they wrapped the row and forced a size
+  mismatch). Consequence, until the tolerance call is made: **VR sentinel
+  elements must be high-contrast** (the fixture now uses `filled`/`danger`,
+  with a comment pointing here).
 - **Found:** 2026-07-14, landing the `text-on-primary` remedy.
 
 ### e2e visual snapshots are `chromium-darwin`-only — Linux CI can't verify them

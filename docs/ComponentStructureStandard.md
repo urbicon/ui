@@ -12,6 +12,15 @@ packages/blocks/src/lib/primitives/[ComponentName]/
 └── docs/                    # Optional: examples, playground config
 ```
 
+A component must not import another public component's `.svelte` for a trivial
+embedded control (close ×, loading spinner, icon-only nav button) — use the
+behaviour-only cores in `src/lib/internal/core/` (`CoreIconButton`,
+`CoreSpinner`) and put the control's look into an own variants slot
+(`closeButton`, `removeButton`, …). Essential compositions (ConfirmDialog →
+Dialog, DatePicker → Calendar) stay public-to-public but need an allowlist
+entry in `scripts/imports-lint.ts` (`bun run imports:lint`). See
+[ARCHITECTURE.md → Internal Core Layer](ARCHITECTURE.md#internal-core-layer-layer-0).
+
 ## index.ts
 
 The props interface extends `ComponentVariants` and relevant HTML attributes. Prop order: Content → Variants → Behavior → Callbacks → Mint → Styling → Accessibility.

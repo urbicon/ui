@@ -124,6 +124,15 @@ The zero-dependency replacement is intentionally narrower than `tailwind-variant
 
 If a future change needs full `twMerge` semantics or slot typing, extend `variants.ts` rather than re-introducing `tailwind-variants`.
 
+## Internal Core Layer (layer 0)
+
+Public components never import each other for trivial embedded controls — that made every Badge ship Button's full variants matrix and every Button ship the whole Spinner (measured: Badge −29 %, Dialog/Drawer −30 % gz after the extraction). Shared behaviour lives in `src/lib/internal/core/` instead:
+
+- **`CoreSpinner`** — the spinner arc (geometry shared with the public `Spinner` via `spinner-geometry.ts`, single source) + spin animation. No role/aria: the embedding context carries the semantics (Button's wrapper is `aria-hidden` + `aria-busy`; a `role="status"` here would nest live regions inside Toast).
+- **`CoreIconButton`** — a behaviour-only native `<button>` (required `aria-label`, disabled inertness, focus-visible reset). Visual identity comes entirely from the call-site's `*.variants.ts` slot (`removeButton`, `closeButton`, `navButton`, …); the core deliberately runs no tv()/mint pass, so it stays a few hundred bytes. Its base classes are structural plumbing and not an override surface — consumer overrides target the variants slot, which merges bucket-by-bucket as usual.
+
+Genuine compositions (ConfirmDialog = Dialog + Buttons, Menu → Popover, DatePicker → Calendar, PaginationItem *is a* Button) remain public-to-public imports — the rule targets fixed-configuration utility embeds, not essence. `bun run imports:lint` enforces the boundary: every cross-component edge must sit on an in-script allowlist with a justification, and stale entries error, so the list only shrinks deliberately. Same internal-only convention as `internal/date-grid` and `internal/charts`: nothing under `internal/` is exported or documented.
+
 ## Preset System (since v0.8.0)
 
 Project-defined, named style presets registered through `BlocksProvider`, plus prop-conditional `overrides`. The full override hierarchy, conflict-resolved per Tailwind bucket so a later source wins:
@@ -227,7 +236,7 @@ Runes-based internationalization in `packages/i18n/`, re-exported through `packa
 - **Type-safe**: Literal key + param inference through the generic factory (key autocomplete, typos are compile errors).
 - **Reactive**: Svelte 5 runes (`$state`, `$derived`); in-place locale switch, no reload.
 - **Components**: `<T key="..." />` for inline translations, `<LocaleSwitcher />` for language switching.
-- **Opt-in code-splitting**: register non-base locales as dynamic-import loaders (`createPackageI18n(name, { en }, { loaders })`).
+- **Code-splitting**: non-base locales register as dynamic-import loaders (`createPackageI18n(name, { en }, { loaders })`). **blocks ships this way** — `en` eager, `de` lazy — so English-only apps don't bundle the `de` catalog. Before the chunk loads, `de` keys resolve to the English fallback. Because the provider loads lazy chunks in a client-only `$effect`, a server-rendered non-base app renders the fallback until hydration; register the bundle eagerly once at server start (`registerLocale` / `registerBlocksLocale` + `@urbicon-ui/blocks/i18n/de`) to make it SSR-present — additive (keeps the eager base) and safe on the module-global registry (static, request-identical data).
 - **Authored as TS `as const`** (not JSON): literal key/param types flow straight into the generic factory's inference — no codegen step.
 - **Plurals via `Intl.PluralRules`** (per-locale CLDR categories, cached), not a bundled ICU runtime.
 - **Translation audit**: data-level `auditTranslations` (missing/unused-key report; `onMissingKey` / `createMissingKeyCollector`) plus a dev-only `@urbicon-ui/i18n/audit` source scanner (unused / used-but-undefined keys, hardcoded strings), fronted by the `urbicon i18n` CLI command and `bun run i18n:check`.
