@@ -54,6 +54,12 @@
         <Button variant="ghost" intent="primary">Ghost</Button>
         <Button variant="text" intent="primary">Text</Button>
         <Button variant="filled" intent="neutral" disabled>Disabled</Button>
+        <!-- Loading arm: guards the embedded spinner's geometry/colour (core-extraction sentinel).
+             The fixture zeroes animation-duration, so the spinner renders in its 0% keyframe. -->
+        <Button variant="filled" intent="primary" loading loadingPlacement="start">Loading</Button>
+        <Button variant="outlined" intent="neutral" loading loadingPlacement="overlay"
+          >Overlay</Button
+        >
       </div>
     </section>
 
@@ -100,6 +106,11 @@
         <Badge variant="outlined" intent="primary">Outlined</Badge>
         <Badge variant="soft" intent="warning">Soft</Badge>
         <Badge variant="dot" intent="danger" />
+        <!-- Removable arm: guards the dismiss affordance's look (core-extraction sentinel).
+             filled/danger on purpose: a soft badge's light-on-light pixels stay under the
+             suite's maxDiffPixelRatio (0.01) and the comparison swallows the whole badge —
+             sentinels must be high-contrast to register at all. -->
+        <Badge variant="filled" intent="danger" removable onRemove={() => {}}>Removable</Badge>
       </div>
     </section>
 
