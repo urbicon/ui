@@ -87,10 +87,12 @@ const allNavigationItems: NavItem[] = [
           { name: 'FileUpload', href: '/blocks/components/file-upload' },
           { name: 'FormField', href: '/blocks/primitives/form-field' },
           { name: 'Input', href: '/blocks/primitives/input' },
+          { name: 'PinInput', href: '/blocks/components/pin-input' },
           { name: 'RadioGroup', href: '/blocks/primitives/radio-group' },
           { name: 'Select', href: '/blocks/primitives/select' },
           { name: 'Slider', href: '/blocks/primitives/slider' },
           { name: 'Textarea', href: '/blocks/primitives/textarea' },
+          { name: 'TimeInput', href: '/blocks/components/time-input' },
           { name: 'Toggle', href: '/blocks/primitives/toggle' }
         ]
       },
@@ -174,6 +176,7 @@ const allNavigationItems: NavItem[] = [
           { name: 'DonutChart', href: '/blocks/components/donut-chart' },
           { name: 'LineChart', href: '/blocks/components/line-chart' },
           { name: 'Planner', href: '/blocks/components/planner' },
+          { name: 'QRCode', href: '/blocks/components/qrcode' },
           { name: 'Sankey', href: '/blocks/components/sankey' },
           { name: 'Sparkline', href: '/blocks/components/sparkline' },
           { name: 'Tooltip', href: '/blocks/primitives/tooltip' }

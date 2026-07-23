@@ -1053,6 +1053,29 @@ internal TODO instead. Sections are ordered roughly by urgency.
 
 ## docs-gen
 
+### `toSlug` mis-kebabs component names with consecutive capitals (`QRCode` → `qrcode`)
+
+- **Where:** `packages/docs-gen/src/core/enrichment/APIDataGenerator.ts:412`
+  (`toSlug`: `input.replace(/([a-z0-9])(\p{Lu})/gu, '$1-$2')…`).
+- **What:** The kebab rule only inserts a hyphen at a lowercase/digit→uppercase
+  boundary. A name with consecutive capitals has no such boundary inside the run,
+  so `QRCode` slugifies to `qrcode` (not `qr-code`) — the route, `api.ts`,
+  `_catalog.json` slug, `llm.txt` path and MCP-catalog entry all land under
+  `qrcode`. Handled for QRCode by making the route + nav + `llm.txt` asset link
+  match the tooling slug (`/blocks/components/qrcode`), but it is a latent trap
+  for any future name with a capital run: `OTPInput` → `otpinput`, `APIKey` →
+  `apikey`, `PDFViewer` → `pdfviewer`. Worse, docs-gen silently creates the
+  `<slug>/api.ts` route dir from its own derivation, so a hand-authored
+  `otp-input/+page.svelte` would import a `./api` that was written to
+  `otpinput/api.ts` instead — a broken page with no error until check runs.
+- **Why deferred:** The correct kebab also has to split `[A-Z]+` runs before a
+  trailing capitalized word (`QRCode` → `qr-code`, but `IOStream` → `io-stream`,
+  `HTTPSProxy` → `https-proxy`) — a deliberate slug-rule change that reslugs
+  nothing today but would change URLs the moment such a component ships, so it
+  wants one decision plus a redirect story if any existing slug moves. No such
+  component exists yet besides QRCode (handled).
+- **Found:** 2026-07-23, adding the QRCode component (component-trio wave).
+
 ### docs-gen config surface carries ~12 never-consumed interfaces/fields
 
 - **Where:** `packages/docs-gen/src/types/configuration.ts` + related — e.g.

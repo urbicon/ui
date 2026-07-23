@@ -58,6 +58,8 @@ export type { LocaleSwitcherProps } from './LocaleSwitcher';
 export * from './LocaleSwitcher';
 export type { NumberInputProps } from './NumberInput';
 export * from './NumberInput';
+export type { PinInputProps } from './PinInput';
+export * from './PinInput';
 export type {
   PlannerCellContext,
   PlannerDayContext,
@@ -68,6 +70,8 @@ export type {
   PlannerView
 } from './Planner';
 export * from './Planner';
+export type { QRCodeProps } from './QRCode';
+export * from './QRCode';
 export type {
   SankeyIntent,
   SankeyLaidOutLinkWithMeta,
@@ -80,3 +84,5 @@ export * from './Sankey';
 export * from './SidebarLayout';
 export * from './Sparkline';
 export * from './ThemeSwitcher';
+export type { TimeInputProps } from './TimeInput';
+export * from './TimeInput';
