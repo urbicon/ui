@@ -67,6 +67,8 @@ export type { SliderMark, SliderProps } from './Slider';
 export * from './Slider';
 export type { SpinnerProps } from './Spinner';
 export * from './Spinner';
+export type { SplitPaneProps } from './SplitPane';
+export * from './SplitPane';
 export type { StepperProps, StepperStepProps } from './Stepper';
 export * from './Stepper';
 export type { TabItemProps, TabPanelProps, TabProps } from './Tab';

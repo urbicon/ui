@@ -241,26 +241,6 @@ internal TODO instead. Sections are ordered roughly by urgency.
 - **Found:** 2026-07-22, PlaygroundConfigurator helpToggle/dt() pass
   (debt-fix-wave-3).
 
-### Table `initialGroupBy`/`initialSummaryConfigs`: Provider-effect seeding diverges from the documented contract
-
-- **Where:** `packages/table/src/lib/core/TableProvider.svelte` (the
-  `initialGroupBy` and `initialSummaryConfigs` `$effect`s).
-- **What:** Found while building `initialSort`/`initialFilters`/
-  `initialSelectedIds` (debt-fix-wave-4, which seeds in the store
-  constructor — seed-once, persistence-hydration wins). The two older
-  Provider-effect seeds have quirks the new seeds deliberately do not copy:
-  (a) `initialGroupBy` applies **unconditionally** when set — it overwrites a
-  `persistGroupByKey`-restored value, contradicting its own JSDoc "(if no
-  persisted value exists)"; (b) the `initialSummaryConfigs` effect guards on
-  the *reactive* `state.summaryConfigs.length === 0`, so removing the last
-  summary config at runtime re-runs the effect and re-seeds — a user cannot
-  fully clear summaries while the prop is set.
-- **Why deferred:** Both fixes are behaviour changes to shipped semantics
-  (persistence-precedence for groupBy; seed-once for summaries). The clean fix
-  is moving both into the constructor `TableSeedState` next to the new seeds —
-  wants its own pass (deprecation of the Provider-effect path, changelog note).
-- **Found:** 2026-07-23, debt-fix-wave-4 (`initial*` family completion).
-
 ### Table persistence cannot distinguish "stored empty" from "absent" — cleared state re-seeds
 
 - **Where:** `packages/table/src/lib/stores/concerns/usePersistence.svelte.ts`
@@ -269,16 +249,16 @@ internal TODO instead. Sections are ordered roughly by urgency.
   (`packages/blocks/src/lib/utils/persistent-state.svelte.ts`).
 - **What:** Hydration treats a stored *empty* value (`[]`, `''`,
   `{ column: '' }`) exactly like "nothing stored" and skips it. Combined with
-  the `initial*` seeds (`initialSort` / `initialFilters` /
-  `initialSelectedIds`, debt-fix-wave-4) this reanimates cleared state: the
-  user clears the sort (asc→desc→none), removes all filter chips, or
-  deselects everything → the sync writes the empty value to storage → on
-  reload nothing hydrates, the seed guard sees an empty axis and applies the
-  seed again. Documented honestly in the three props' JSDoc, `TableSeedState`
-  and the sveltekit-utils README caveat. Shares a root cause with the two
-  Provider-effect quirks in the previous entry (`initialGroupBy` /
-  `initialSummaryConfigs`): "empty" is not a first-class persisted state
-  anywhere in the table's persistence.
+  the `initial*` seeds — now the whole family (`initialSort` / `initialFilters`
+  / `initialSelectedIds`, debt-fix-wave-4; plus `initialGroupBy` /
+  `initialSummaryConfigs`, moved into the same constructor seed 2026-07-23) —
+  this reanimates cleared state: the user clears the sort (asc→desc→none),
+  removes all filter chips, ungroups, clears every summary, or deselects
+  everything → the sync writes the empty value to storage → on reload nothing
+  hydrates, the seed guard sees an empty axis and applies the seed again.
+  Documented honestly in the props' JSDoc, `TableSeedState` and the
+  sveltekit-utils README caveat. "empty" is simply not a first-class persisted
+  state anywhere in the table's persistence.
 - **Why deferred:** The fix is a stored-empty-vs-absent distinction in the
   persistence layer (presence marker or envelope per axis) — it affects every
   axis, every guard, and every consumer's existing storage keys, so it wants
@@ -1185,3 +1165,25 @@ internal TODO instead. Sections are ordered roughly by urgency.
   hue-shifted theme that breaks AA fails the suite rather than relying on a
   comment.
 - **Found:** 2026-07-14, PUBLISH-READINESS D.1 contrast audit.
+
+### Popover inside phrasing content breaks SSR paragraphs (CitationChip in `<p>`)
+
+- **Where:** `packages/blocks/src/lib/primitives/Popover/Popover.svelte`
+  (trigger wrapper + panel are `<div>`s) as consumed by `CitationChip` inside
+  `StreamingMarkdown` paragraphs (`MdBlock` renders `<p>` — phrasing content
+  only).
+- **What:** On SSR-prerendered pages that render citation chips in flowing
+  text (e.g. `/blocks/components/chat-message`), the browser's HTML parser
+  closes the `<p>` at the first `<div>`, so the prerendered DOM differs from
+  the component tree until hydration repairs it (dev console:
+  `node_invalid_placement_ssr`; prod: a brief structural flash). Client-side
+  streamed chat is unaffected — chips mount after hydration.
+- **Why deferred:** Not fixable locally in CitationChip: even span wrappers
+  don't help while any descendant is a `<div>` (a `<div>` token closes an open
+  `<p>` regardless of nesting), so the real fix is a Popover-level decision —
+  a phrasing-safe rendering mode (span chain incl. panel content) or moving
+  the panel out of the flow — with VR + floating.spec coverage across all
+  Popover consumers (Menu, DatePicker, Calendar, CitationChip). Deserves its
+  own small wave rather than an end-of-P3 quickfix.
+- **Found:** 2026-07-23, AI-Kit P3 live check of the new chat-message docs
+  page.

@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 import { beforeEach, describe, expect, it } from 'vitest';
 import type { Filter } from '$lib/types/tableTypes';
-import { createTableState } from './TableStore.svelte.js';
+import { createTableState, type SummaryConfig } from './TableStore.svelte.js';
 
 /**
  * Precedence of the `initial*` seeds against `persistenceConfig`: persistence
@@ -26,6 +26,8 @@ import { createTableState } from './TableStore.svelte.js';
 const SORT_KEY = (tableId: string) => `urbicon_table_sort_${tableId}_v1`;
 const FILTERS_KEY = (tableId: string) => `urbicon_table_filters_${tableId}_v1`;
 const SELECTION_KEY = (tableId: string) => `urbicon_table_selection_${tableId}_v1`;
+const GROUP_KEY = (tableId: string) => `urbicon_table_group_by_${tableId}_v1`;
+const SUMMARY_KEY = (tableId: string) => `urbicon_table_summary_configs_${tableId}_v1`;
 
 function createMemoryStorage(): Storage {
   const map = new Map<string, string>();
@@ -158,5 +160,54 @@ describe('seed precedence vs persistence: selection', () => {
 
     expect([...ts.state.selectedIds]).toEqual([9]);
     expect(JSON.parse(window.localStorage.getItem(SELECTION_KEY('t8')) ?? 'null')).toEqual([1]);
+  });
+});
+
+describe('seed precedence vs persistence: groupBy', () => {
+  it('a persisted grouping key wins over initialGroupBy', () => {
+    window.localStorage.setItem(GROUP_KEY('t9'), JSON.stringify('name'));
+
+    const ts = withRoot(() => createTableState({ tableId: 't9' }, { groupBy: 'department' }));
+
+    expect(ts.state.groupByKey).toBe('name');
+  });
+
+  it('with nothing persisted the seed applies and is synced to storage', () => {
+    const ts = withRoot(() => createTableState({ tableId: 't10' }, { groupBy: 'department' }));
+
+    expect(ts.state.groupByKey).toBe('department');
+
+    ts.forceSavePersistentData();
+    expect(JSON.parse(window.localStorage.getItem(GROUP_KEY('t10')) ?? 'null')).toBe('department');
+  });
+});
+
+describe('seed precedence vs persistence: summaryConfigs', () => {
+  const seedSummaries: SummaryConfig[] = [{ column: 'age', type: 'sum' }];
+
+  it('persisted summary configs win over initialSummaryConfigs', () => {
+    const persisted: SummaryConfig[] = [{ column: 'salary', type: 'avg' }];
+    window.localStorage.setItem(SUMMARY_KEY('t11'), JSON.stringify(persisted));
+
+    const ts = withRoot(() =>
+      createTableState({ tableId: 't11' }, { summaryConfigs: seedSummaries })
+    );
+
+    expect(ts.state.summaryConfigs).toEqual(persisted);
+    expect(ts.state.showSummary).toBe(true);
+  });
+
+  it('with nothing persisted the seed applies, reveals the row, and is synced', () => {
+    const ts = withRoot(() =>
+      createTableState({ tableId: 't12' }, { summaryConfigs: seedSummaries })
+    );
+
+    expect(ts.state.summaryConfigs).toEqual(seedSummaries);
+    expect(ts.state.showSummary).toBe(true);
+
+    ts.forceSavePersistentData();
+    expect(JSON.parse(window.localStorage.getItem(SUMMARY_KEY('t12')) ?? 'null')).toEqual(
+      seedSummaries
+    );
   });
 });

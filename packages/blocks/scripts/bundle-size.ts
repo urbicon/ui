@@ -134,16 +134,29 @@ function discoverGroups(): Group[] {
     ['primitives', 'primitive'],
     ['components', 'component']
   ] as const;
+  const readSvelteExports = (indexPath: string): string[] => {
+    if (!existsSync(indexPath)) return [];
+    const source = readFileSync(indexPath, 'utf8');
+    return [...source.matchAll(/export \{ default as (\w+) \} from '\.\/[\w.]+\.svelte'/g)].map(
+      (m) => m[1]
+    );
+  };
   for (const [dir, kind] of sections) {
     for (const entry of readdirSync(join(DIST, dir), { withFileTypes: true })) {
       if (!entry.isDirectory()) continue;
-      const indexPath = join(DIST, dir, entry.name, 'index.js');
-      if (!existsSync(indexPath)) continue;
-      const source = readFileSync(indexPath, 'utf8');
-      const exports = [
-        ...source.matchAll(/export \{ default as (\w+) \} from '\.\/[\w.]+\.svelte'/g)
-      ].map((m) => m[1]);
-      if (exports.length > 0) groups.push({ name: entry.name, exports, kind });
+      const exports = readSvelteExports(join(DIST, dir, entry.name, 'index.js'));
+      if (exports.length > 0) {
+        groups.push({ name: entry.name, exports, kind });
+        continue;
+      }
+      // Family directory (e.g. components/Chat): no direct .svelte exports at
+      // the top, but member directories that are components in their own
+      // right — measure each member as its own group.
+      for (const sub of readdirSync(join(DIST, dir, entry.name), { withFileTypes: true })) {
+        if (!sub.isDirectory()) continue;
+        const subExports = readSvelteExports(join(DIST, dir, entry.name, sub.name, 'index.js'));
+        if (subExports.length > 0) groups.push({ name: sub.name, exports: subExports, kind });
+      }
     }
   }
   // System surfaces worth tracking alongside the component groups: the

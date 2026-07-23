@@ -4,6 +4,36 @@ All notable changes to this project will be documented in this file.
 This changelog is automatically generated from [Conventional Commits](https://www.conventionalcommits.org).
 
 
+## [6.36.0] - 2026-07-23
+
+### Bug Fixes
+- **table**: Seed initialGroupBy/initialSummaryConfigs in the store constructor
+- **docs-gen**: Skip family barrels in discovery; measure family members in bundle-size
+- **blocks**: Teach imports-lint to scan family subdirectories
+- **blocks**: Review-hardening for the P3 agent surfaces and docs
+
+### Documentation
+- Remove docs theme toggle
+- Claim table initial* seeding debt (worktree table-initial-seed)
+- Close the table initial* seeding debt entry
+- Add the ai JSDoc tag to the taxonomy, refresh typography use counts
+
+### Features
+- **blocks**: Bundle-size --entry — ad-hoc combined measurement for marginal cost
+- **blocks**: Streaming-markdown parser core (AI-Kit P0 spike)
+- **blocks**: Add SplitPane primitive (resizable two-pane layout)
+- **blocks**: Streaming markdown renderer, CodeBlock, CitationChip (AI-Kit P1)
+- **docs**: Add streaming-markdown playground with live fixture replay
+- **blocks**: Extract shared file-intake core, refactor FileUpload onto it
+- **blocks**: Add chat conversation surfaces (AI-Kit P2)
+- **docs**: Add chat playground and scroll-engine e2e coverage
+- **blocks**: Add ToolCallCard and ReasoningDisclosure, wire them into ChatMessage
+- **docs**: Document the AI family — ten component pages, specimen chapter, recipe, pattern
+
+### Testing
+- **e2e**: Gate split-pane through the a11y scan; record the AI-family size baseline
+- **blocks**: Make the file-intake type-echo assertion runtime-tolerant
+
 ## [6.35.0] - 2026-07-23
 
 ### Breaking Changes

@@ -173,15 +173,27 @@ export interface TableProps<T = TableItem> {
   groupOrder?: string[];
 
   /**
-   * Initial grouping key (if no persisted value exists).
-   * When grouping is active, pagination is disabled — all grouped items are shown at once.
+   * Initial grouping key (if no persisted value exists). Seeds the
+   * uncontrolled grouping state once when the table is created. A key restored
+   * via `persistenceConfig` (`persistGroupByKey`) takes precedence. Later
+   * changes to this prop are ignored; users can still group or ungroup. When
+   * grouping is active, pagination is disabled — all grouped items are shown at
+   * once. Caveat when combined with `persistenceConfig`: persistence stores
+   * only non-empty values, so a grouping the user *cleared* does not survive a
+   * reload — the seed applies again on the next visit.
    * @default null
    */
   initialGroupBy?: string | null;
 
   /**
-   * Initial summary configurations (if no persisted value exists).
-   * Each entry defines a column + aggregation type (sum, avg, count, min, max).
+   * Initial summary configurations (if no persisted value exists). Seeds the
+   * uncontrolled summary state once when the table is created; each entry
+   * defines a column + aggregation type (sum, avg, count, min, max). A set
+   * restored via `persistenceConfig` (`persistSummaryConfigs`) takes
+   * precedence. Later changes to this prop are ignored; users can still add or
+   * remove summaries. Caveat when combined with `persistenceConfig`:
+   * persistence stores only non-empty values, so summaries the user *cleared*
+   * do not survive a reload — the seed applies again on the next visit.
    * @default []
    */
   initialSummaryConfigs?: SummaryConfig[];

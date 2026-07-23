@@ -1,12 +1,6 @@
 <script lang="ts">
   import { useBlocksI18n } from '$lib';
-  import type {
-    FileUploadProps,
-    FileUploadFile,
-    FileRejection,
-    FileUploadError,
-    FileUploadSlotName
-  } from './index';
+  import type { FileUploadProps, FileUploadFile, FileUploadSlotName } from './index';
   import { fileUploadVariants, type FileUploadVariants } from './fileUpload.variants';
   import { getBlocksConfig, resolveSlotClasses } from '$lib/provider';
   import { resolveIcon } from '$lib/icons';
@@ -22,6 +16,15 @@
   import { fly } from 'svelte/transition';
   import { quintOut } from 'svelte/easing';
   import { onDestroy } from 'svelte';
+  import {
+    createIntakeEntry,
+    dragItemsMatchAccept,
+    formatFileSize,
+    partitionIntake,
+    revokeIntakePreviews,
+    type FileIntakeConstraints,
+    type FileIntakeMessages
+  } from '$lib/utils/file-intake';
 
   const bt = useBlocksI18n();
 
@@ -116,53 +119,26 @@
 
   // ── Validation ─────────────────────────────────────────────────────────────
 
-  function validateFile(file: File): FileUploadError[] {
-    const errors: FileUploadError[] = [];
+  // Error texts wired from the component's i18n source; injected into the
+  // shared file-intake core so its pure functions stay label-agnostic. Texts
+  // are identical to the pre-refactor inline `bt('fileUpload.*')` calls.
+  const messages: FileIntakeMessages = {
+    invalidType: (type) => bt('fileUpload.invalidType', { type }),
+    tooLarge: (size) => bt('fileUpload.tooLarge', { size }),
+    tooSmall: (size) => bt('fileUpload.tooSmall', { size }),
+    exists: () => bt('fileUpload.exists'),
+    tooMany: (count) => bt('fileUpload.tooMany', { count: String(count) })
+  };
 
-    if (accept) {
-      const types = Array.isArray(accept) ? accept : accept.split(',').map((t) => t.trim());
-      const matches = types.some((type) => {
-        if (type.startsWith('.')) return file.name.toLowerCase().endsWith(type.toLowerCase());
-        if (type.endsWith('/*')) return file.type.startsWith(type.replace('/*', '/'));
-        return file.type === type;
-      });
-      if (!matches) {
-        errors.push({
-          code: 'FILE_INVALID_TYPE',
-          message: bt('fileUpload.invalidType', { type: file.type || 'unknown' })
-        });
-      }
-    }
-
-    if (file.size > maxFileSize) {
-      errors.push({
-        code: 'FILE_TOO_LARGE',
-        message: bt('fileUpload.tooLarge', { size: formatFileSize(maxFileSize) })
-      });
-    }
-
-    if (file.size < minFileSize) {
-      errors.push({
-        code: 'FILE_TOO_SMALL',
-        message: bt('fileUpload.tooSmall', { size: formatFileSize(minFileSize) })
-      });
-    }
-
-    if (files.some((f) => f.file.name === file.name && f.file.size === file.size)) {
-      errors.push({ code: 'FILE_EXISTS', message: bt('fileUpload.exists') });
-    }
-
-    if (validate) {
-      const custom = validate(file);
-      if (custom) errors.push(...custom);
-    }
-
-    return errors;
-  }
+  const constraints = $derived<FileIntakeConstraints>({
+    accept,
+    maxFiles,
+    maxFileSize,
+    minFileSize,
+    validate
+  });
 
   // ── File Processing ────────────────────────────────────────────────────────
-
-  let idCounter = 0;
 
   // Two-way sync between `files[0]` and the convenience `file` binding.
   // `lastSyncedFile` is the snapshot we last wrote to `file` — comparing
@@ -194,9 +170,7 @@
     if (file === lastSyncedFile) return;
 
     if (file === null) {
-      for (const entry of files) {
-        if (entry.preview) URL.revokeObjectURL(entry.preview);
-      }
+      revokeIntakePreviews(files);
       files = [];
       lastSyncedFile = null;
       onFilesChange?.(files);
@@ -204,15 +178,8 @@
     }
 
     const old = files[0];
-    if (old?.preview) URL.revokeObjectURL(old.preview);
-    const replacement: FileUploadFile = {
-      id: `file-${Date.now()}-${++idCounter}`,
-      file,
-      status: 'pending',
-      errors: [],
-      preview: isImageFile(file) ? URL.createObjectURL(file) : undefined
-    };
-    files = [replacement];
+    if (old) revokeIntakePreviews([old]);
+    files = [createIntakeEntry(file)];
     lastSyncedFile = file;
     onFilesChange?.(files);
   });
@@ -220,36 +187,7 @@
   function processFiles(incoming: File[]) {
     if (disabled) return;
 
-    const accepted: FileUploadFile[] = [];
-    const rejected: FileRejection[] = [];
-
-    const remaining = maxFiles - files.length;
-    const toProcess = incoming.slice(0, remaining);
-    const excess = incoming.slice(remaining);
-
-    for (const file of excess) {
-      rejected.push({
-        file,
-        errors: [
-          { code: 'TOO_MANY_FILES', message: bt('fileUpload.tooMany', { count: String(maxFiles) }) }
-        ]
-      });
-    }
-
-    for (const file of toProcess) {
-      const errors = validateFile(file);
-      if (errors.length > 0) {
-        rejected.push({ file, errors });
-      } else {
-        accepted.push({
-          id: `file-${Date.now()}-${++idCounter}`,
-          file,
-          status: 'pending',
-          errors: [],
-          preview: isImageFile(file) ? URL.createObjectURL(file) : undefined
-        });
-      }
-    }
+    const { accepted, rejected } = partitionIntake(incoming, files, constraints, messages);
 
     if (accepted.length > 0) {
       files = [...files, ...accepted];
@@ -263,16 +201,14 @@
   }
 
   function removeFile(entry: FileUploadFile) {
-    if (entry.preview) URL.revokeObjectURL(entry.preview);
+    revokeIntakePreviews([entry]);
     files = files.filter((f) => f.id !== entry.id);
     onFileRemove?.(entry);
     onFilesChange?.(files);
   }
 
   onDestroy(() => {
-    for (const entry of files) {
-      if (entry.preview) URL.revokeObjectURL(entry.preview);
-    }
+    revokeIntakePreviews(files);
   });
 
   // ── Drag Handlers ──────────────────────────────────────────────────────────
@@ -285,16 +221,7 @@
     dragging = true;
 
     if (accept && e.dataTransfer?.items?.length) {
-      const types = Array.isArray(accept) ? accept : accept.split(',').map((t) => t.trim());
-      const hasInvalid = Array.from(e.dataTransfer.items).some((item) => {
-        if (item.kind !== 'file') return true;
-        return !types.some((type) => {
-          if (type.endsWith('/*')) return item.type.startsWith(type.replace('/*', '/'));
-          if (type.startsWith('.')) return true;
-          return item.type === type;
-        });
-      });
-      dragInvalid = hasInvalid;
+      dragInvalid = !dragItemsMatchAccept(e.dataTransfer.items, accept);
     }
   }
 
@@ -369,21 +296,6 @@
       document.removeEventListener('drop', preventDrop);
     };
   });
-
-  // ── Helpers ────────────────────────────────────────────────────────────────
-
-  function formatFileSize(bytes: number): string {
-    if (bytes === 0) return '0 B';
-    if (!isFinite(bytes)) return '';
-    const k = 1024;
-    const sizes = ['B', 'KB', 'MB', 'GB'];
-    const i = Math.floor(Math.log(bytes) / Math.log(k));
-    return parseFloat((bytes / Math.pow(k, i)).toFixed(1)) + ' ' + sizes[i];
-  }
-
-  function isImageFile(file: File): boolean {
-    return file.type.startsWith('image/');
-  }
 
   // ── Mint ─────────────────────────────────────────────────────────────────
 

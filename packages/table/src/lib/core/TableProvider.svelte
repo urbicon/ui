@@ -79,16 +79,23 @@
   // Store is built once from the initial persistence config — not meant to
   // re-create if the prop changes reactively. The initial* seeds are equally
   // construction-time-only (seed-once): later changes to initialSort /
-  // initialFilters / initialSelectedIds are ignored, and each axis only fills
-  // what persistence left empty — a persisted value wins (see TableSeedState).
-  // A controlled `selectedIds` prop supersedes `initialSelectedIds` entirely:
-  // the seed is dropped so the prop is the source of truth from the first
-  // render (and, per syncSelection, is never mirrored to storage).
+  // initialFilters / initialSelectedIds / initialGroupBy / initialSummaryConfigs
+  // are ignored, and each axis only fills what persistence left empty — a
+  // persisted value wins (see TableSeedState). Controlled props supersede their
+  // seed entirely: `selectedIds` drops `initialSelectedIds`, and a truthy
+  // `groupByKey` drops `initialGroupBy` (both applied by the effects below), so
+  // the prop is the source of truth from the first render (and, per
+  // syncSelection, a controlled selection is never mirrored to storage). The
+  // `groupByKey` gate uses truthiness — matching the effect below and the
+  // pre-migration `if (groupByKey) … else if (initialGroupBy)` — so a falsy
+  // `groupByKey` (its `null` default, or `''`) still lets the seed apply.
   // svelte-ignore state_referenced_locally
   const tableState = createTableState(persistenceConfig, {
     sort: initialSort,
     filters: initialFilters,
-    selectedIds: selectedIds === undefined ? initialSelectedIds : undefined
+    selectedIds: selectedIds === undefined ? initialSelectedIds : undefined,
+    groupBy: groupByKey ? undefined : initialGroupBy,
+    summaryConfigs: initialSummaryConfigs
   });
   attachTableContext(tableState);
 
@@ -233,21 +240,14 @@
     setLoading(loading);
   });
 
+  // Controlled grouping: an explicit `groupByKey` prop drives the store
+  // reactively. The uncontrolled `initialGroupBy` seed is applied once at
+  // construction (see TableSeedState) and dropped from the seed above when
+  // `groupByKey` is set, so the two never fight. `initialSummaryConfigs`
+  // seeds the same way — construction-time, seed-once — so it needs no effect.
   $effect(() => {
     if (groupByKey) {
       setGroupByKey(groupByKey);
-    } else if (initialGroupBy && columns && columns.length > 0) {
-      setGroupByKey(initialGroupBy);
-    }
-  });
-
-  $effect(() => {
-    if (
-      initialSummaryConfigs &&
-      initialSummaryConfigs.length > 0 &&
-      state.summaryConfigs.length === 0
-    ) {
-      tableState.setSummaryConfigs(initialSummaryConfigs);
     }
   });
 

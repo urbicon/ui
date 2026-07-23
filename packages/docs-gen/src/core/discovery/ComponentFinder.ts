@@ -295,6 +295,26 @@ export class ComponentFinder {
       throw new Error(`Component file not accessible: ${componentFilePath}`, { cause: error });
     }
 
+    // A family barrel (e.g. components/Chat/index.ts) only re-exports member
+    // directories — it neither re-exports a Svelte file of its own nor declares
+    // a `*Props` interface (the catalog substance per ComponentStructureStandard).
+    // Such a file is not a component and must not become a catalog entry; its
+    // members are discovered via their own index.ts. Real component indexes
+    // keep at least one of the two markers (e.g. table's core/table/index.ts
+    // has no .svelte re-export but declares TableProps).
+    if (!nameOverride && path.basename(componentFilePath) === 'index.ts') {
+      const source = await fs.readFile(componentFilePath, 'utf-8');
+      const hasSvelteDefaultExport =
+        /export\s*\{\s*default\s+as\s+\w+\s*\}\s*from\s*'[^']*\.svelte'/.test(source);
+      const declaresPropsInterface = /\binterface\s+\w+Props\b/.test(source);
+      if (!hasSvelteDefaultExport && !declaresPropsInterface) {
+        console.log(
+          `  ⏭️  ${componentName} — barrel (no .svelte export, no *Props interface), skipped`
+        );
+        return null;
+      }
+    }
+
     // Create component info
     const componentInfo: ComponentInfo = {
       name: componentName,

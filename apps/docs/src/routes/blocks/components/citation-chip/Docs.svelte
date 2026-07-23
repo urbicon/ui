@@ -1,0 +1,108 @@
+<script lang="ts">
+  import type { SvelteDocsConfig } from '@urbicon-ui/shared-types';
+  import { CodeExample, Section } from '@urbicon-ui/docs';
+  import { asset } from '$app/paths';
+  import { SourceFooter, CitationStyles, FromStreamingMarkdown } from './examples';
+
+  import sourceFooterCode from './examples/SourceFooter.svelte?raw';
+  import citationStylesCode from './examples/CitationStyles.svelte?raw';
+  import fromStreamingMarkdownCode from './examples/FromStreamingMarkdown.svelte?raw';
+
+  export const docsConfig: SvelteDocsConfig = {
+    generation: {
+      overview: { enabled: false },
+      playground: {
+        featured: ['citationStyle', 'index', 'openLabel'],
+        defaults: { citationStyle: 'numeric' },
+        enabled: true,
+        order: 1
+      },
+      variants: { enabled: false },
+      examples: false,
+      api: { showInheritance: true, enabled: true, order: 14 },
+      usage: false
+    },
+    llm: {
+      include: true,
+      maxSections: 8,
+      priority: ['overview', 'examples', 'real-world', 'patterns', 'api'],
+      excludeTypes: ['playground']
+    },
+    meta: { title: 'CitationChip Component', showToc: true }
+  };
+</script>
+
+<Section marker="01" id="examples" title="Examples">
+  <div class="space-y-10">
+    <CodeExample
+      title="Standalone source footer"
+      description="Use CitationChip on its own for a reference list under an answer or card — no streamed message required. Each chip opens a popover with the source title, snippet, and a policy-checked link."
+      code={sourceFooterCode}
+    >
+      <SourceFooter />
+    </CodeExample>
+
+    <CodeExample
+      title="Numeric vs. label"
+      description="citationStyle picks what the chip shows. Reach for numeric — a compact footnote pill — when citations are dense and inline; reach for label — the truncated title — for a handful of named sources in a footer or sidebar."
+      code={citationStylesCode}
+    >
+      <CitationStyles />
+    </CodeExample>
+
+    <CodeExample
+      title="Wired up by StreamingMarkdown"
+      description="Inside a streamed answer you rarely construct chips by hand: StreamingMarkdown resolves each [id] marker to a CitationChip from its sources prop, 1-based in array order. See the StreamingMarkdown page for the full streaming flow."
+      code={fromStreamingMarkdownCode}
+    >
+      <FromStreamingMarkdown />
+    </CodeExample>
+  </div>
+</Section>
+
+<Section marker="02" id="accessibility" title="Accessibility">
+  <div class="border-border-subtle bg-surface-elevated rounded-2xl border p-6">
+    <div class="divide-border-subtle divide-y">
+      <div class="pb-4">
+        <h4 class="text-text-primary mb-1.5 text-sm font-semibold">Descriptive trigger label</h4>
+        <p class="text-text-secondary text-sm leading-relaxed">
+          A bare "[1]" tells a screen reader nothing, so the trigger's
+          <code class="text-text-primary">aria-label</code> defaults to
+          <code class="text-text-primary">Source {'{index}'}: {'{title}'}</code> (or
+          <code class="text-text-primary">Source: {'{title}'}</code> with no index). Override it
+          with the <code class="text-text-primary">label</code> prop when you need different wording.
+        </p>
+      </div>
+      <div class="py-4">
+        <h4 class="text-text-primary mb-1.5 text-sm font-semibold">Named popover</h4>
+        <p class="text-text-secondary text-sm leading-relaxed">
+          The chip opens a <code class="text-text-primary">Popover</code>; the same
+          <code class="text-text-primary">aria-label</code> lands on the panel, so the opened dialog
+          is named rather than anonymous. Keyboard and focus behaviour (open, close on
+          <code class="text-text-primary">Escape</code>, focus return) come from the underlying
+          Popover primitive.
+        </p>
+      </div>
+      <div class="pt-4">
+        <h4 class="text-text-primary mb-1.5 text-sm font-semibold">Policy-checked link</h4>
+        <p class="text-text-secondary text-sm leading-relaxed">
+          The outbound link runs the same strict
+          <code class="text-text-primary">urlPolicy</code> as the streaming-markdown engine. A blocked
+          or absent URL yields no link at all — only the title and snippet — so untrusted source URLs
+          can never smuggle a dangerous scheme into the popover.
+        </p>
+      </div>
+    </div>
+  </div>
+</Section>
+
+<Section marker="03" id="related" title="Related">
+  <div class="prose prose-sm max-w-none">
+    <p>
+      For the streaming flow that produces these chips automatically, see
+      <a href={asset('/blocks/components/streaming-markdown')}>StreamingMarkdown</a> — its
+      <code>sources</code> prop drives marker resolution and forwards the same
+      <code>urlPolicy</code> to every chip.
+    </p>
+  </div>
+</Section>

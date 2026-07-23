@@ -101,10 +101,11 @@ export interface TablePersistenceConfig {
  * immediately after persistence hydration. Each axis seeds only when
  * persistence left it empty, so a value restored from storage always wins.
  * The seeded value is synced back to storage exactly like a user action
- * would be (matching how `initialGroupBy` / `initialSummaryConfigs` seed
- * through the persistence-syncing wrappers). Controlled props are gated one
- * level up: `TableProvider` drops `selectedIds` from the seed whenever the
- * controlled `selectedIds` prop is present.
+ * would be (every axis writes through the persistence-syncing wrappers
+ * below). Controlled props are gated one level up: `TableProvider` drops
+ * the `selectedIds` seed whenever the controlled `selectedIds` prop is
+ * present, and the `groupBy` seed whenever the controlled `groupByKey`
+ * prop is truthy.
  *
  * Caveat: persistence stores only non-empty values, so an axis the user
  * *cleared* reads as empty after a reload and the seed applies again —
@@ -120,6 +121,16 @@ export interface TableSeedState {
   selectedIds?: Array<string | number>;
   /** Initial advanced filters. */
   filters?: Filter[];
+  /**
+   * Initial grouping key. A key restored via `persistGroupByKey` takes
+   * precedence; a nullish/empty seed is treated as "no seed".
+   */
+  groupBy?: string | null;
+  /**
+   * Initial summary configurations. A set restored via
+   * `persistSummaryConfigs` takes precedence; an empty seed is "no seed".
+   */
+  summaryConfigs?: SummaryConfig[];
 }
 
 /**
@@ -216,15 +227,15 @@ export function createTableState(
     columnOrder.applyOrder(persistence.initialColumnOrder);
   }
 
-  // ── Seed uncontrolled initial view state (initialSort / initialSelectedIds /
-  // initialFilters) ──
+  // ── Seed uncontrolled initial view state (sort / filters / selection /
+  // groupBy / summaryConfigs) ──
   // Runs exactly once, here at construction — before the first render and
   // before the first server-mode query emission, so the header sort indicator
   // and the initial `query` both carry the seed. Persistence hydrated the
   // shared state above, so each axis seeds only when persistence left it
   // empty: a persisted value wins. Writes go through the persistence-syncing
-  // wrappers (hoisted function declarations below), mirroring how
-  // `initialGroupBy` / `initialSummaryConfigs` seed through them.
+  // wrappers (hoisted function declarations below), so a seeded value reaches
+  // storage exactly like a user action would.
   if (seed?.sort?.column && !state.sortColumn) {
     setSort(seed.sort.column, seed.sort.direction);
   }
@@ -234,6 +245,15 @@ export function createTableState(
   }
   if (seed?.selectedIds && seed.selectedIds.length > 0 && state.selectedIds.size === 0) {
     setSelectedIds(seed.selectedIds);
+  }
+  if (seed?.groupBy && !state.groupByKey) {
+    setGroupByKey(seed.groupBy);
+  }
+  if (seed?.summaryConfigs && seed.summaryConfigs.length > 0 && state.summaryConfigs.length === 0) {
+    // Copy so the seed never aliases the consumer's array (mirrors the
+    // `initialFilters` seed above) — `setSummaryConfigs` stores the reference
+    // as-is, and the add/update path can mutate an entry in place.
+    setSummaryConfigs([...seed.summaryConfigs]);
   }
 
   // ── Thin wrappers that add persistence syncing ──
@@ -571,7 +591,7 @@ const [getTableContextRaw, setTableContextRaw] =
 /**
  * Creates and sets the table context.
  * @param persistenceConfig - Optional persistence configuration for filters, search, grouping, and summaries.
- * @param seed - Optional uncontrolled initial view state (sort, selection, filters); a persisted value wins per axis. Ignored when an existing context is returned.
+ * @param seed - Optional uncontrolled initial view state (sort, selection, filters, groupBy, summaryConfigs); a persisted value wins per axis. Ignored when an existing context is returned.
  */
 export function setTableContext(persistenceConfig?: TablePersistenceConfig, seed?: TableSeedState) {
   const existing = getTableContextRaw();

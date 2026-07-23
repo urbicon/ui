@@ -58,6 +58,7 @@ const PRIMITIVES = [
   'skeleton',
   'slider',
   'spinner',
+  'split-pane',
   'stepper',
   'tab',
   'textarea',
