@@ -4,6 +4,19 @@ All notable changes to this project will be documented in this file.
 This changelog is automatically generated from [Conventional Commits](https://www.conventionalcommits.org).
 
 
+## [6.37.1] - 2026-07-23
+
+### Bug Fixes
+- **blocks**: Re-arm PinInput onComplete after an external value reset
+- **blocks**: Announce the TimeInput meridiem state via spinbutton semantics
+- **blocks**: Pin a light color-scheme on the QRCode card frame
+
+### Documentation
+- Log the field-chrome duplication across the form components
+
+### Miscellaneous
+- **blocks**: Record the component trio in the bundle-size baseline
+
 ## [6.37.0] - 2026-07-23
 
 ### Documentation
