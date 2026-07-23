@@ -36,6 +36,8 @@ export type { InputProps } from './Input';
 export * from './Input';
 export type { JourneyNode, JourneyStatus, JourneyTimelineProps } from './JourneyTimeline';
 export * from './JourneyTimeline';
+export type { KbdProps } from './Kbd';
+export * from './Kbd';
 export type {
   MenuContext,
   MenuCustomSlots,

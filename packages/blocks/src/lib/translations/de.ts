@@ -1,6 +1,7 @@
 export default {
   accessibility: {
     avatar: 'Avatar',
+    avatarGroup: 'Benutzer-Avatare',
     breadcrumb: 'Pfadnavigation',
     breadcrumbExpand: 'Alle Pfadebenen anzeigen',
     clearInput: 'Eingabe löschen',
@@ -8,6 +9,9 @@ export default {
     clearSelection: 'Auswahl löschen',
     closeDialog: 'Dialog schließen',
     closeDrawer: 'Seitenleiste schließen',
+    copied: 'Kopiert',
+    copy: 'Kopieren',
+    copyFailed: 'Kopieren fehlgeschlagen',
     dismiss: 'Schließen',
     fileUpload: 'Datei-Upload',
     loading: 'Wird geladen',

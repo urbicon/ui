@@ -27,6 +27,8 @@ export {
   chartVariants
 } from '$lib/internal/charts/variants';
 export * from './AreaChart';
+export type { AvatarGroupProps } from './AvatarGroup';
+export * from './AvatarGroup';
 export * from './BarChart';
 export type {
   CalendarContext,
@@ -48,6 +50,8 @@ export * from './Chat';
 export * from './CommandPalette';
 export type { CompositionBarIntent, CompositionBarProps, CompositionItem } from './CompositionBar';
 export * from './CompositionBar';
+export type { CopyButtonProps } from './CopyButton';
+export * from './CopyButton';
 export * from './CurrencyInput';
 export * from './DatePicker';
 export * from './DonutChart';

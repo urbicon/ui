@@ -51,6 +51,8 @@ const ALLOWLIST: ReadonlyArray<readonly [edge: string, why: string]> = [
   // components → primitives/components
   ['CurrencyInput -> Input', 'is-an input with currency formatting'],
   ['NumberInput -> Input', 'is-an input with number semantics'],
+  ['CopyButton -> Button', 'is-a button that copies text to the clipboard'],
+  ['AvatarGroup -> Avatar', 'stacks the avatars (+ overflow chip) it composes'],
   ['DatePicker -> Input', 'text entry field for the picked date'],
   ['DatePicker -> Popover', 'calendar overlay surface'],
   ['DatePicker -> Calendar', 'date grid inside the popover'],

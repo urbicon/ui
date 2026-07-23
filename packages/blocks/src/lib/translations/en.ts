@@ -1,6 +1,7 @@
 export default {
   accessibility: {
     avatar: 'Avatar',
+    avatarGroup: 'User avatars',
     breadcrumb: 'Breadcrumb',
     breadcrumbExpand: 'Show all breadcrumb items',
     clearInput: 'Clear input',
@@ -8,6 +9,9 @@ export default {
     clearSelection: 'Clear selection',
     closeDialog: 'Close dialog',
     closeDrawer: 'Close drawer',
+    copied: 'Copied',
+    copy: 'Copy',
+    copyFailed: 'Copy failed',
     dismiss: 'Dismiss',
     fileUpload: 'File upload',
     loading: 'Loading',
