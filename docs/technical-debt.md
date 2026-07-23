@@ -241,28 +241,6 @@ internal TODO instead. Sections are ordered roughly by urgency.
 - **Found:** 2026-07-22, PlaygroundConfigurator helpToggle/dt() pass
   (debt-fix-wave-3).
 
-### Table `initialGroupBy`/`initialSummaryConfigs`: Provider-effect seeding diverges from the documented contract
-
-- 🔨 **In Arbeit** (Worktree `table-initial-seed`, seit 2026-07-23): moving both
-  seeds into the constructor `TableSeedState` next to the wave-4 seeds.
-- **Where:** `packages/table/src/lib/core/TableProvider.svelte` (the
-  `initialGroupBy` and `initialSummaryConfigs` `$effect`s).
-- **What:** Found while building `initialSort`/`initialFilters`/
-  `initialSelectedIds` (debt-fix-wave-4, which seeds in the store
-  constructor — seed-once, persistence-hydration wins). The two older
-  Provider-effect seeds have quirks the new seeds deliberately do not copy:
-  (a) `initialGroupBy` applies **unconditionally** when set — it overwrites a
-  `persistGroupByKey`-restored value, contradicting its own JSDoc "(if no
-  persisted value exists)"; (b) the `initialSummaryConfigs` effect guards on
-  the *reactive* `state.summaryConfigs.length === 0`, so removing the last
-  summary config at runtime re-runs the effect and re-seeds — a user cannot
-  fully clear summaries while the prop is set.
-- **Why deferred:** Both fixes are behaviour changes to shipped semantics
-  (persistence-precedence for groupBy; seed-once for summaries). The clean fix
-  is moving both into the constructor `TableSeedState` next to the new seeds —
-  wants its own pass (deprecation of the Provider-effect path, changelog note).
-- **Found:** 2026-07-23, debt-fix-wave-4 (`initial*` family completion).
-
 ### Table persistence cannot distinguish "stored empty" from "absent" — cleared state re-seeds
 
 - **Where:** `packages/table/src/lib/stores/concerns/usePersistence.svelte.ts`
@@ -271,16 +249,16 @@ internal TODO instead. Sections are ordered roughly by urgency.
   (`packages/blocks/src/lib/utils/persistent-state.svelte.ts`).
 - **What:** Hydration treats a stored *empty* value (`[]`, `''`,
   `{ column: '' }`) exactly like "nothing stored" and skips it. Combined with
-  the `initial*` seeds (`initialSort` / `initialFilters` /
-  `initialSelectedIds`, debt-fix-wave-4) this reanimates cleared state: the
-  user clears the sort (asc→desc→none), removes all filter chips, or
-  deselects everything → the sync writes the empty value to storage → on
-  reload nothing hydrates, the seed guard sees an empty axis and applies the
-  seed again. Documented honestly in the three props' JSDoc, `TableSeedState`
-  and the sveltekit-utils README caveat. Shares a root cause with the two
-  Provider-effect quirks in the previous entry (`initialGroupBy` /
-  `initialSummaryConfigs`): "empty" is not a first-class persisted state
-  anywhere in the table's persistence.
+  the `initial*` seeds — now the whole family (`initialSort` / `initialFilters`
+  / `initialSelectedIds`, debt-fix-wave-4; plus `initialGroupBy` /
+  `initialSummaryConfigs`, moved into the same constructor seed 2026-07-23) —
+  this reanimates cleared state: the user clears the sort (asc→desc→none),
+  removes all filter chips, ungroups, clears every summary, or deselects
+  everything → the sync writes the empty value to storage → on reload nothing
+  hydrates, the seed guard sees an empty axis and applies the seed again.
+  Documented honestly in the props' JSDoc, `TableSeedState` and the
+  sveltekit-utils README caveat. "empty" is simply not a first-class persisted
+  state anywhere in the table's persistence.
 - **Why deferred:** The fix is a stored-empty-vs-absent distinction in the
   persistence layer (presence marker or envelope per axis) — it affects every
   axis, every guard, and every consumer's existing storage keys, so it wants
