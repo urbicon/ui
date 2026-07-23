@@ -1,16 +1,17 @@
 import { describe, expect, it } from 'vitest';
 import type { Column, Filter } from '$lib/types/tableTypes';
-import { createTableState } from './TableStore.svelte.js';
+import { createTableState, type SummaryConfig } from './TableStore.svelte.js';
 
 /**
  * Seed contract for the uncontrolled `initial*` view-state props
- * (`initialSort` / `initialFilters` / `initialSelectedIds`), applied via
- * `createTableState`'s `seed` parameter. Semantics follow the existing
- * `initial*` family: seed-once at construction, a persisted value wins
- * (covered in `TableStore.seed.persistence.svelte.test.ts`, which needs a
- * DOM for real storage), a controlled prop wins (the Provider drops the
- * selection seed when `selectedIds` is set; the store-level convergence is
- * covered below).
+ * (`initialSort` / `initialFilters` / `initialSelectedIds` / `initialGroupBy`
+ * / `initialSummaryConfigs`), applied via `createTableState`'s `seed`
+ * parameter. Semantics are uniform across the family: seed-once at
+ * construction, a persisted value wins (covered in
+ * `TableStore.seed.persistence.svelte.test.ts`, which needs a DOM for real
+ * storage), a controlled prop wins (the Provider drops the selection seed
+ * when `selectedIds` is set and the groupBy seed when `groupByKey` is set;
+ * the store-level convergence is covered below).
  *
  * These tests run in the default node environment — the seed lands before
  * the first render and before the first server-mode query emission, so the
@@ -146,17 +147,103 @@ describe('createTableState seed: initialSelectedIds', () => {
   });
 });
 
+describe('createTableState seed: initialGroupBy', () => {
+  it('seeds the grouping key at construction and groups client-mode items', () => {
+    const ts = createTableState(undefined, { groupBy: 'department' });
+    ts.setColumns(columns);
+    ts.setItems(items);
+
+    expect(ts.state.groupByKey).toBe('department');
+    expect(Object.keys(ts.grouped).sort()).toEqual(['Design', 'Engineering']);
+    expect(ts.grouped.Engineering.map((i) => i.id)).toEqual([1, 3]);
+    expect(ts.grouped.Design.map((i) => i.id)).toEqual([2]);
+  });
+
+  it('is seed-once — users can still change and clear the grouping', () => {
+    const ts = createTableState(undefined, { groupBy: 'department' });
+
+    // Clearing to ungrouped sticks — there is no effect that re-asserts the seed.
+    ts.setGroupByKey(null);
+    expect(ts.state.groupByKey).toBeNull();
+
+    // Grouping by another column works normally; the seed never re-applies.
+    ts.setGroupByKey('age');
+    expect(ts.state.groupByKey).toBe('age');
+  });
+
+  it('treats a nullish/empty seed as "no seed"', () => {
+    expect(createTableState(undefined, { groupBy: null }).state.groupByKey).toBeNull();
+    expect(createTableState(undefined, { groupBy: '' }).state.groupByKey).toBeNull();
+  });
+});
+
+describe('createTableState seed: initialSummaryConfigs', () => {
+  const seedSummaries: SummaryConfig[] = [{ column: 'age', type: 'sum' }];
+
+  it('seeds summary configs at construction and reveals the summary row', () => {
+    const ts = createTableState(undefined, { summaryConfigs: seedSummaries });
+
+    expect(ts.state.summaryConfigs).toEqual(seedSummaries);
+    // setSummaryConfigs sets showSummary from the config count, so a non-empty
+    // seed turns the summary row on (matching a persisted hydration).
+    expect(ts.state.showSummary).toBe(true);
+  });
+
+  it('is seed-once — clearing the last summary at runtime does not re-seed', () => {
+    // The pre-migration Provider `$effect` guarded on the reactive
+    // `state.summaryConfigs.length === 0`, so removing the last config re-ran
+    // it and re-seeded — a user could never fully clear summaries while the
+    // prop was set. Seeding in the constructor makes the clear stick.
+    const ts = createTableState(undefined, { summaryConfigs: seedSummaries });
+
+    ts.removeSummaryConfig('age');
+    expect(ts.state.summaryConfigs).toEqual([]);
+    expect(ts.state.showSummary).toBe(false);
+
+    // A fresh config added afterwards is the user's, not the seed re-applied.
+    ts.addSummaryConfig({ column: 'age', type: 'avg' });
+    expect(ts.state.summaryConfigs).toEqual([{ column: 'age', type: 'avg' }]);
+  });
+
+  it('does not alias the consumer array', () => {
+    // The seed copies, so updating an *already-seeded* column — which
+    // `addSummaryConfig` handles by replacing the array slot in place — must
+    // not reach back into the consumer's array. (Adding a *new* column takes
+    // the reassignment branch and would leave the source intact either way, so
+    // it wouldn't guard the copy.)
+    const consumerArray: SummaryConfig[] = [{ column: 'age', type: 'sum' }];
+    const ts = createTableState(undefined, { summaryConfigs: consumerArray });
+
+    ts.addSummaryConfig({ column: 'age', type: 'avg' });
+    expect(consumerArray).toEqual([{ column: 'age', type: 'sum' }]);
+    expect(ts.state.summaryConfigs).toEqual([{ column: 'age', type: 'avg' }]);
+  });
+
+  it('treats an empty seed array as "no seed"', () => {
+    const ts = createTableState(undefined, { summaryConfigs: [] });
+    expect(ts.state.summaryConfigs).toEqual([]);
+    expect(ts.state.showSummary).toBe(false);
+  });
+});
+
 describe('createTableState seed: absent seeds are inert', () => {
   it('no seed argument leaves every axis at its default', () => {
     const ts = createTableState();
     expect(ts.state.sortColumn).toBe('');
     expect(ts.state.activeFilters).toEqual([]);
     expect(ts.state.selectedIds.size).toBe(0);
+    expect(ts.state.groupByKey).toBeNull();
+    expect(ts.state.summaryConfigs).toEqual([]);
   });
 
   it('empty seed arrays leave every axis at its default', () => {
-    const ts = createTableState(undefined, { filters: [], selectedIds: [] });
+    const ts = createTableState(undefined, {
+      filters: [],
+      selectedIds: [],
+      summaryConfigs: []
+    });
     expect(ts.state.activeFilters).toEqual([]);
     expect(ts.state.selectedIds.size).toBe(0);
+    expect(ts.state.summaryConfigs).toEqual([]);
   });
 });
