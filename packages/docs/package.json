@@ -46,7 +46,6 @@
       "default": "./dist/index.js"
     },
     "./style/index.css": "./dist/style/index.css",
-    "./style/docs-theme.css": "./dist/style/docs-theme.css",
     "./vite": {
       "types": "./dist/utils/code-example-plugin.d.ts",
       "default": "./dist/utils/code-example-plugin.js"

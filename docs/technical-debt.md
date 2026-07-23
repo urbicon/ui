@@ -840,33 +840,6 @@ internal TODO instead. Sections are ordered roughly by urgency.
   because* this path is dead).
 - **Found:** 2026-07-14, SSR-gap investigation (publish-m3-finale).
 
-### docs-theme.css: the whole `--docs-*` design-token block has zero consumers repo-wide
-
-- **Where:** `packages/docs/src/lib/style/docs-theme.css` (imported into the
-  shipped docs style bundle via `style/index.css:14`) — the remaining
-  `--docs-sidebar-width`, `--docs-*-gap`, `--docs-text-*`, `--docs-code-*`,
-  `--docs-duration-*`, `--docs-z-*` block after the intent apparatus was removed.
-- **What:** The four docs intent families (`--color-{code,example,playground,api}`
-  + `-hover`/`-active`/`-subtle`/`-emphasis`), their numeric scales
-  (`--color-*-50..900`), `--docs-surface-*`, `--docs-shadow-*` and
-  `--docs-border-*` were **all removed** (debt-fix-wave-5, 2026-07-24) — one
-  self-contained dead cluster, zero consumers verified, the variants-lint theme
-  canary repointed from `--color-code` to `--docs-sidebar-width`. Removing them
-  surfaced that the **rest** of the file is dead too: a repo-wide grep finds
-  **zero** `var(--docs-*)` / `[--docs-*]` usages of *any* remaining token. The
-  block is emitted into the docs CSS bundle but consumed by nothing — so the
-  honest end state is likely deleting the whole file (and retiring its
-  variants-lint canary + `THEME_CSS` entry).
-- **Why deferred:** Removing a whole public-looking token vocabulary from a
-  shipped package is a deliberate call (are these a planned docs design-token
-  API, or leftovers from an abandoned docs-theme?), and it wants a check for
-  non-`var()` consumption (JS reads, `@apply`, consumer usage of
-  `@urbicon-ui/docs/style/docs-theme`) before deletion — not a drive-by after
-  the intent-apparatus cleanup.
-- **Found:** 2026-07-14, C.6 system-dark follow-up; scope widened + intent
-  apparatus removed 2026-07-24 (debt-fix-wave-5).
-- **Found:** 2026-07-14, C.6 system-dark follow-up.
-
 ### docs-gen `@see` extraction stores bare type names as `seeAlso`, which ApiReference can't link
 
 - **Where:** `packages/docs-gen/src/core/extraction/PropsExtractor.ts` (~`:535`,

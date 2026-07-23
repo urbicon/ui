@@ -10,9 +10,6 @@
 /* Foundation Layer - Base design tokens from blocks package */
 @import '@urbicon-ui/blocks/style/index.css';
 
-/* Docs-specific design tokens and intents */
-@import './docs-theme.css';
-
 @source '../variants';
 
 pre.shiki {

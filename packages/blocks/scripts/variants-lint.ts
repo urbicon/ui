@@ -19,7 +19,7 @@
  *            (text-/rounded-/shadow-/blur-/tracking-/leading-/ease-, see
  *            scripts/theme-tokens.ts) whose key is defined neither in the
  *            repo's own `@theme` blocks (blocks foundation/semantic,
- *            table-theme, docs-theme) nor in Tailwind 4's default theme.
+ *            table-theme) nor in Tailwind 4's default theme.
  *            Tailwind emits NO CSS for such a class — the bug class behind
  *            Calendar's dead `text-2xs` (`size="sm"` rendered like `md`).
  *   ⚠ WARN   partially stripped token — its removal changes some combinations
@@ -127,15 +127,14 @@ if (loaded.length < 50) {
 
 // The always-loaded @theme pipeline: Tailwind 4's default theme plus every
 // @theme block the packages themselves ship (blocks' index.css imports
-// foundation + semantic; table/docs add their own). Optional themes
+// foundation + semantic; table adds its own). Optional themes
 // (style/themes/*.css) are deliberately excluded — they only override
 // existing keys, and a class must not depend on an opt-in theme to exist.
 const THEME_CSS = [
   Bun.resolveSync('tailwindcss/theme.css', REPO),
   resolve(REPO, 'packages/blocks/src/lib/style/foundation.css'),
   resolve(REPO, 'packages/blocks/src/lib/style/semantic.css'),
-  resolve(REPO, 'packages/table/src/lib/style/table-theme.css'),
-  resolve(REPO, 'packages/docs/src/lib/style/docs-theme.css')
+  resolve(REPO, 'packages/table/src/lib/style/table-theme.css')
 ];
 
 const themeVars = new Set<string>();
@@ -158,8 +157,7 @@ const THEME_CANARIES = [
   '--text-2xs', // blocks foundation.css
   '--radius-commit', // blocks foundation.css (semantic radii)
   '--color-text-primary', // blocks semantic.css
-  '--color-filter', // table-theme.css
-  '--docs-sidebar-width' // docs-theme.css (the removed --color-code intent used to canary here)
+  '--color-filter' // table-theme.css
 ];
 const missingCanaries = THEME_CANARIES.filter((c) => !themeVars.has(c));
 if (missingCanaries.length > 0) {
@@ -348,7 +346,7 @@ for (const { file, name, fn, cfg } of loaded) {
         const miss = checkClassToken(token, themeVars);
         if (miss == null) continue;
         const where = `${file} › ${name}${slots ? ` › ${slot}` : ''}`;
-        const seenKey = `${where} ${token}`;
+        const seenKey = `${where}\0${token}`;
         if (unknownThemeSeen.has(seenKey)) continue;
         unknownThemeSeen.add(seenKey);
         unknownTheme.push({

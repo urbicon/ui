@@ -10,8 +10,8 @@ import { checkClassToken, collectThemeVars, utilityOf } from './theme-tokens';
  *
  * The valid/dead class fixtures below are NOT invented: each one was
  * ground-truthed against the real Tailwind 4 compiler (@tailwindcss/node
- * `compile().build([...])` over theme.css + foundation/semantic/table-theme/
- * docs-theme, 2026-07-20). If Tailwind's resolution rules change on an
+ * `compile().build([...])` over theme.css + foundation/semantic/table-theme,
+ * 2026-07-20). If Tailwind's resolution rules change on an
  * upgrade, re-run that experiment before touching the expectations.
  */
 
