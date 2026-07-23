@@ -75,12 +75,6 @@ export interface ChatMessageProps
   regenerateLabel?: string;
   /** Label for the retry button in the error/aborted Alert. @default 'Retry' */
   retryLabel?: string;
-  /** Fallback header for a reasoning part without `durationMs`. @default 'Reasoning' */
-  reasoningLabel?: string;
-  /** Badge text for a completed tool call. @default 'complete' */
-  toolCompleteLabel?: string;
-  /** Badge text for a failed tool call. @default 'error' */
-  toolErrorLabel?: string;
   /** Alert title for `status === 'error'`. @default 'Something went wrong' */
   errorLabel?: string;
   /** Alert title for `status === 'aborted'`. @default 'Generation stopped' */

@@ -16,18 +16,8 @@ export const chatMessageVariants = tv({
     bubble: ['min-w-0 max-w-full'],
     // Vertical stack of the rendered parts.
     partsFlow: ['flex min-w-0 flex-col'],
-    // reasoning
-    reasoningBlock: [
-      'flex flex-col gap-1 rounded-modify border border-border-subtle bg-surface-base px-3 py-2'
-    ],
-    reasoningHeader: ['text-xs font-medium text-text-tertiary select-none'],
-    reasoningText: ['whitespace-pre-wrap text-sm text-text-tertiary'],
-    // tool-call
-    toolCallRow: [
-      'flex flex-wrap items-center gap-2 rounded-modify border border-border-subtle bg-surface-base px-2.5 py-1.5'
-    ],
-    toolCallName: ['font-mono text-sm text-text-secondary'],
-    toolCallError: ['w-full text-xs text-danger'],
+    // reasoning and tool-call parts render through ReasoningDisclosure /
+    // ToolCallCard (own slotClasses there); override via partRenderers.
     // attachments
     attachment: [
       'inline-flex max-w-full items-center gap-2 rounded-modify border border-border-subtle bg-surface-base px-2.5 py-1.5 text-sm no-underline',

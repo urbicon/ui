@@ -16,7 +16,9 @@ export type {
   ChatMessageData,
   ChatMessagePart,
   ChatMessageStatus,
-  ChatRole
+  ChatReasoningPart,
+  ChatRole,
+  ChatToolCallPart
 } from './chat.types';
 export { createIncrementalParser, parseMarkdown } from './markdown/blocks';
 export { repairMarkdownTail } from './markdown/repair';
@@ -31,5 +33,9 @@ export type {
 } from './markdown/types';
 export type { PromptInputProps } from './PromptInput';
 export * from './PromptInput';
+export type { ReasoningDisclosureProps } from './ReasoningDisclosure';
+export * from './ReasoningDisclosure';
 export type { MarkdownRenderers, StreamingMarkdownProps } from './StreamingMarkdown';
 export * from './StreamingMarkdown';
+export type { ToolCallCardProps } from './ToolCallCard';
+export * from './ToolCallCard';

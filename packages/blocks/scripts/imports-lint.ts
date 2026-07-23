@@ -83,14 +83,15 @@ const ALLOWLIST: ReadonlyArray<readonly [edge: string, why: string]> = [
   // StreamingMarkdown, MdBlock → CodeBlock … — are same-dir, never edges)
   ['ChatMessage -> Alert', 'error/aborted surface with retry action'],
   ['ChatMessage -> Avatar', 'role avatar in the bubble layout'],
-  ['ChatMessage -> Badge', 'tool-call status badge (moves into ToolCallCard)'],
   ['ChatMessage -> Button', 'deliberate text-variant retry Button — stays public'],
   ['ChatMessage -> Skeleton', 'streaming placeholder before the first tokens'],
-  ['ChatMessage -> Spinner', 'tool-call running state (moves into ToolCallCard)'],
   ['ChatMessage -> Tooltip', 'copy/regenerate action hints'],
   ['ChatMessageList -> Badge', 'new-message counter on the jump pill'],
   ['ChatMessageList -> EmptyState', 'default empty-conversation state'],
-  ['CitationChip -> Popover', 'citation details overlay surface']
+  ['CitationChip -> Popover', 'citation details overlay surface'],
+  ['ReasoningDisclosure -> Collapsible', 'expand/collapse mechanics'],
+  ['ToolCallCard -> Collapsible', 'expand/collapse mechanics (card variant)'],
+  ['ToolCallCard -> Badge', 'tool status badge — real styled intent variants']
 ];
 
 const c = {

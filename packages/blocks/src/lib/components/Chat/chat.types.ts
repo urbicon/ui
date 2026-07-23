@@ -49,6 +49,12 @@ export type ChatMessagePart =
   /** Declarative A2UI payload (P4). Validated fail-loud by A2UIView; ignored by default renderers until then. */
   | { type: 'a2ui'; payload: unknown };
 
+/** The `tool-call` member of {@link ChatMessagePart} — the prop shape of ToolCallCard. */
+export type ChatToolCallPart = Extract<ChatMessagePart, { type: 'tool-call' }>;
+
+/** The `reasoning` member of {@link ChatMessagePart} — the prop shape of ReasoningDisclosure. */
+export type ChatReasoningPart = Extract<ChatMessagePart, { type: 'reasoning' }>;
+
 /**
  * One message in a conversation. Named `ChatMessageData` because the value
  * export `ChatMessage` is the component that renders it.

@@ -166,14 +166,17 @@ describe('ChatMessage', () => {
     expect(document.querySelector('.text-danger')).not.toBeNull();
   });
 
-  it('shows a spinner while a tool call is running', () => {
+  it('renders a running tool call through ToolCallCard with its status text', () => {
     render({
       message: msg({
         parts: [{ type: 'tool-call', id: 't1', name: 'search_web', state: 'running' }]
       })
     });
-    expect(screen.getByRole('status', { name: /loading/i, hidden: true })).not.toBeNull();
+    // ToolCallCard's CoreSpinner is deliberately ARIA-free chrome; the sr-only
+    // status text inside the trigger is the accessible signal.
+    expect(document.body.textContent).toContain('Running');
     expect(document.body.textContent).toContain('search_web');
+    expect(screen.getByRole('button', { name: /Running search_web/ })).not.toBeNull();
   });
 
   it('labels a reasoning part with its rounded duration', () => {

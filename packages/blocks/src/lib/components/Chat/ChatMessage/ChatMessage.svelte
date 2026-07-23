@@ -1,6 +1,6 @@
 <script lang="ts">
   import { getBlocksConfig, resolveSlotClasses } from '$lib/provider';
-  import { Alert, Avatar, Badge, Button, Skeleton, Spinner, Tooltip } from '$lib/primitives';
+  import { Alert, Avatar, Button, Skeleton, Tooltip } from '$lib/primitives';
   import { resolveIcon } from '$lib/icons';
   import SparklesIconDefault from '$lib/icons/SparklesIcon.svelte';
   import UserIconDefault from '$lib/icons/UserIcon.svelte';
@@ -12,6 +12,8 @@
   import { formatFileSize } from '$lib/utils/file-intake';
   import StreamingMarkdown from '../StreamingMarkdown/StreamingMarkdown.svelte';
   import CitationChip from '../CitationChip/CitationChip.svelte';
+  import ReasoningDisclosure from '../ReasoningDisclosure/ReasoningDisclosure.svelte';
+  import ToolCallCard from '../ToolCallCard/ToolCallCard.svelte';
   import type { CitationSource } from '../CitationChip';
   import { checkLinkUrl } from '../markdown/url-policy.js';
   import type { ChatMessagePart, ChatRole } from '../chat.types';
@@ -36,9 +38,6 @@
     copiedLabel = 'Copied',
     regenerateLabel = 'Regenerate',
     retryLabel = 'Retry',
-    reasoningLabel = 'Reasoning',
-    toolCompleteLabel = 'complete',
-    toolErrorLabel = 'error',
     errorLabel = 'Something went wrong',
     abortedLabel = 'Generation stopped',
     class: className,
@@ -200,32 +199,19 @@
         {#if partRenderers?.reasoning}
           {@render partRenderers.reasoning(part)}
         {:else}
-          <div class={cls('reasoningBlock')}>
-            <span class={cls('reasoningHeader')}>
-              {part.durationMs != null
-                ? `Thought for ${Math.round(part.durationMs / 1000)}s`
-                : reasoningLabel}
-            </span>
-            <span class={cls('reasoningText')}>{part.text}</span>
-          </div>
+          <!-- Streaming while it is the trailing part: once the answer text
+               starts flowing behind it, the reasoning is settled. -->
+          <ReasoningDisclosure
+            reasoning={part}
+            streaming={status === 'streaming' && index === lastIndex}
+            {urlPolicy}
+          />
         {/if}
       {:else if part.type === 'tool-call'}
         {#if partRenderers?.['tool-call']}
           {@render partRenderers['tool-call'](part)}
         {:else}
-          <div class={cls('toolCallRow')}>
-            {#if part.state === 'pending' || part.state === 'running'}
-              <Spinner size="xs" />
-            {:else if part.state === 'complete'}
-              <Badge intent="success" variant="soft">{toolCompleteLabel}</Badge>
-            {:else}
-              <Badge intent="danger" variant="soft">{toolErrorLabel}</Badge>
-            {/if}
-            <span class={cls('toolCallName')}>{part.name}</span>
-            {#if part.state === 'error' && part.errorMessage}
-              <span class={cls('toolCallError')}>{part.errorMessage}</span>
-            {/if}
-          </div>
+          <ToolCallCard toolCall={part} />
         {/if}
       {:else if part.type === 'attachment'}
         {#if partRenderers?.attachment}
