@@ -34,7 +34,15 @@
     Calendar,
     Card,
     ChartFrame,
+    Chat,
+    ChatMessage,
+    type ChatMessageData,
+    ChatMessageList,
+    type ChatReasoningPart,
+    type ChatToolCallPart,
     Checkbox,
+    CitationChip,
+    CodeBlock,
     Collapsible,
     Combobox,
     CompositionBar,
@@ -55,8 +63,10 @@
     Menu,
     Pagination,
     Progress,
+    PromptInput,
     RadioGroup,
     RadioItem,
+    ReasoningDisclosure,
     Sankey,
     SearchIcon,
     SegmentGroup,
@@ -69,13 +79,15 @@
     Spinner,
     Stepper,
     StepperStep,
+    StreamingMarkdown,
     Tab,
     TabItem,
     TabPanel,
     Textarea,
     ThemeSwitcher,
     Toggle,
-    Toolbar
+    Toolbar,
+    ToolCallCard
   } from '@urbicon-ui/blocks';
   import { ScrollSpy } from '@urbicon-ui/docs';
   import { resolve } from '$app/paths';
@@ -92,7 +104,8 @@
     Feedback: 'status & ambient · fixed geometry',
     Layout: 'architectural surfaces · contain tier',
     Navigation: 'where you are · roving focus',
-    Display: 'data, time & identity'
+    Display: 'data, time & identity',
+    AI: 'streams & agent surfaces · untrusted by default'
   };
 
   const chapters = blocksGroups.map((group) => ({
@@ -240,6 +253,54 @@
     { id: 'design', title: 'Design', status: 'active' as const },
     { id: 'build', title: 'Build', status: 'pending' as const }
   ];
+
+  // ── AI chapter specimens — one tiny conversation universe ──────────
+  const aiMessages: ChatMessageData[] = [
+    { id: 'u1', role: 'user', parts: [{ type: 'text', text: 'How do I theme the buttons?' }] },
+    {
+      id: 'a1',
+      role: 'assistant',
+      parts: [
+        { type: 'text', text: 'Register a **preset** on the provider and reference it by name.' }
+      ]
+    }
+  ];
+
+  const singleMessage: ChatMessageData = {
+    id: 'a2',
+    role: 'assistant',
+    parts: [
+      { type: 'text', text: 'You can override a single slot with `slotClasses` — no full rebuild.' }
+    ]
+  };
+
+  const streamingMarkdownDemo = `### Theming
+Tokens switch light and dark automatically:
+
+- \`bg-surface-base\`
+- \`text-text-primary\``;
+
+  const toolCallDemo: ChatToolCallPart = {
+    type: 'tool-call',
+    id: 'weather-1',
+    name: 'get_weather',
+    state: 'complete',
+    input: { city: 'Berlin' },
+    output: { temperature: 21 }
+  };
+
+  const reasoningDemo: ChatReasoningPart = {
+    type: 'reasoning',
+    durationMs: 3000,
+    text: 'A single DatePicker binds one date — the range preset keeps one popover for both bounds.'
+  };
+
+  const citationDemo = {
+    id: '1',
+    title: 'Design tokens reference',
+    url: 'https://ui.urbicon.de/customization/tokens',
+    snippet: 'Semantic tokens switch light and dark via light-dark().'
+  };
 </script>
 
 <SeoMeta
@@ -1478,6 +1539,163 @@
               ><path fill="currentColor" d="M6 8 0 0h12z" /></svg
             >
             <Button variant="outlined" size="xs">Copy</Button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ════════════════════════ AI ════════════════════════ -->
+  <section
+    id="ai"
+    data-chapter
+    aria-labelledby="ai-title"
+    class="scroll-mt-[calc(var(--sidebar-layout-header-h)+3.25rem)]"
+  >
+    {@render chapterHead(7)}
+    <div class={grid}>
+      <!-- Chat ── 2×2 · the layout shell: header + list + composer -->
+      <div class={cellLg} data-specimen="Chat">
+        <a href={resolve('/blocks/components/chat')} class={cellLink} aria-label="Chat docs"></a>
+        <div class={inner} inert>
+          {@render heading('Chat')}
+          <div class="flex min-h-0 flex-1 flex-col">
+            <Chat
+              class="border-border-subtle bg-surface-elevated overflow-hidden rounded-xl border"
+            >
+              {#snippet header()}
+                <span class="text-text-secondary px-3 py-2 text-xs font-medium">Assistant</span>
+              {/snippet}
+              <ChatMessageList messages={aiMessages} class="px-2" />
+              {#snippet composer()}
+                <PromptInput placeholder="Reply…" minRows={1} onSubmit={() => {}} />
+              {/snippet}
+            </Chat>
+          </div>
+        </div>
+      </div>
+
+      <!-- ChatMessageList ── 2×2 · two messages, stick-to-bottom log -->
+      <div class={cellLg} data-specimen="ChatMessageList">
+        <a
+          href={resolve('/blocks/components/chat-message-list')}
+          class={cellLink}
+          aria-label="ChatMessageList docs"
+        ></a>
+        <div class={inner} inert>
+          {@render heading('ChatMessageList')}
+          <div class="flex min-h-0 flex-1 flex-col">
+            <ChatMessageList
+              messages={aiMessages}
+              class="border-border-subtle bg-surface-base rounded-xl border"
+            />
+          </div>
+        </div>
+      </div>
+
+      <!-- ChatMessage ── 2×1 · a single assistant bubble -->
+      <div class={cellWd} data-specimen="ChatMessage">
+        <a
+          href={resolve('/blocks/components/chat-message')}
+          class={cellLink}
+          aria-label="ChatMessage docs"
+        ></a>
+        <div class={inner} inert>
+          {@render heading('ChatMessage')}
+          <div class="flex flex-1 flex-col justify-center">
+            <ChatMessage message={singleMessage} />
+          </div>
+        </div>
+      </div>
+
+      <!-- StreamingMarkdown ── 2×1 · settled markdown -->
+      <div class={cellWd} data-specimen="StreamingMarkdown">
+        <a
+          href={resolve('/blocks/components/streaming-markdown')}
+          class={cellLink}
+          aria-label="StreamingMarkdown docs"
+        ></a>
+        <div class={inner} inert>
+          {@render heading('StreamingMarkdown')}
+          <div class="flex flex-1 flex-col justify-center overflow-hidden">
+            <StreamingMarkdown content={streamingMarkdownDemo} size="sm" headingLevelStart={4} />
+          </div>
+        </div>
+      </div>
+
+      <!-- ToolCallCard ── 2×1 · a completed call -->
+      <div class={cellWd} data-specimen="ToolCallCard">
+        <a
+          href={resolve('/blocks/components/tool-call-card')}
+          class={cellLink}
+          aria-label="ToolCallCard docs"
+        ></a>
+        <div class={inner} inert>
+          {@render heading('ToolCallCard')}
+          <div class="flex flex-1 flex-col justify-center">
+            <ToolCallCard toolCall={toolCallDemo} />
+          </div>
+        </div>
+      </div>
+
+      <!-- ReasoningDisclosure ── 2×1 · settled trace, opened -->
+      <div class={cellWd} data-specimen="ReasoningDisclosure">
+        <a
+          href={resolve('/blocks/components/reasoning-disclosure')}
+          class={cellLink}
+          aria-label="ReasoningDisclosure docs"
+        ></a>
+        <div class={inner} inert>
+          {@render heading('ReasoningDisclosure')}
+          <div class="flex flex-1 flex-col justify-center overflow-hidden">
+            <ReasoningDisclosure reasoning={reasoningDemo} defaultOpen />
+          </div>
+        </div>
+      </div>
+
+      <!-- PromptInput ── 2×1 · the composer -->
+      <div class={cellWd} data-specimen="PromptInput">
+        <a
+          href={resolve('/blocks/components/prompt-input')}
+          class={cellLink}
+          aria-label="PromptInput docs"
+        ></a>
+        <div class={inner} inert>
+          {@render heading('PromptInput')}
+          <div class="flex flex-1 flex-col justify-center">
+            <PromptInput placeholder="Ask anything…" minRows={1} onSubmit={() => {}} />
+          </div>
+        </div>
+      </div>
+
+      <!-- CodeBlock ── 2×1 · read-only code + copy -->
+      <div class={cellWd} data-specimen="CodeBlock">
+        <a
+          href={resolve('/blocks/components/code-block')}
+          class={cellLink}
+          aria-label="CodeBlock docs"
+        ></a>
+        <div class={inner} inert>
+          {@render heading('CodeBlock')}
+          <div class="flex flex-1 flex-col justify-center overflow-hidden">
+            <CodeBlock lang="ts" code={`const theme = 'oklch';`} />
+          </div>
+        </div>
+      </div>
+
+      <!-- CitationChip ── 1×1 · a source marker -->
+      <div class={cell} data-specimen="CitationChip">
+        <a
+          href={resolve('/blocks/components/citation-chip')}
+          class={cellLink}
+          aria-label="CitationChip docs"
+        ></a>
+        <div class={inner} inert>
+          {@render heading('CitationChip')}
+          <div class={demo}>
+            <span class="text-text-secondary inline-flex items-center gap-1 text-sm">
+              tokens <CitationChip source={citationDemo} index={1} />
+            </span>
           </div>
         </div>
       </div>

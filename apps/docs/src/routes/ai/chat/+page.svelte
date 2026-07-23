@@ -77,7 +77,7 @@ Both citations resolve to chips — open one to see the title, snippet, and the 
 
 - [x] Wire the message list to your stream
 - [x] Pass \`sources\` so \`[n]\` markers become chips
-- [ ] Add a \`partRenderers.tool-call\` override (P3 ships ToolCallCard)
+- [x] Tool calls render as \`ToolCallCard\`, reasoning as \`ReasoningDisclosure\` — override via \`partRenderers\`
 
 > Tip: press **Stop** while I stream to see the aborted state with its Retry action.`
     }

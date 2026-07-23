@@ -178,6 +178,15 @@
       components: ['Planner', 'Button', 'Badge'],
       category: 'Display',
       difficulty: 'Intermediate'
+    },
+    {
+      title: 'AI Chat',
+      description:
+        'Streaming chat surface — Chat shell + ChatMessageList + PromptInput wired to a SvelteKit SSE endpoint. Token-append in place, AbortController Stop, regenerate/retry.',
+      href: '/recipes/ai-chat',
+      components: ['Chat', 'ChatMessageList', 'PromptInput'],
+      category: 'AI',
+      difficulty: 'Advanced'
     }
   ];
 

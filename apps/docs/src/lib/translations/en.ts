@@ -162,6 +162,7 @@ export default {
       layout: 'Layout',
       navigation: 'Navigation',
       display: 'Display',
+      ai: 'AI',
       components: 'Components',
       pages: 'Pages',
       management: 'Management',

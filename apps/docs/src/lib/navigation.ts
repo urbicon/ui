@@ -144,7 +144,8 @@ const allNavigationItems: NavItem[] = [
           { name: 'Collapsible', href: '/blocks/primitives/collapsible' },
           { name: 'Separator', href: '/blocks/primitives/separator' },
           { name: 'Sidebar', href: '/blocks/primitives/sidebar' },
-          { name: 'SidebarLayout', href: '/blocks/components/sidebar-layout' }
+          { name: 'SidebarLayout', href: '/blocks/components/sidebar-layout' },
+          { name: 'SplitPane', href: '/blocks/primitives/split-pane' }
         ]
       },
       {
@@ -177,6 +178,22 @@ const allNavigationItems: NavItem[] = [
           { name: 'Sankey', href: '/blocks/components/sankey' },
           { name: 'Sparkline', href: '/blocks/components/sparkline' },
           { name: 'Tooltip', href: '/blocks/primitives/tooltip' }
+        ]
+      },
+      {
+        name: 'AI',
+        nameKey: 'nav.groups.ai',
+        group: true,
+        children: [
+          { name: 'Chat', href: '/blocks/components/chat' },
+          { name: 'ChatMessage', href: '/blocks/components/chat-message' },
+          { name: 'ChatMessageList', href: '/blocks/components/chat-message-list' },
+          { name: 'CitationChip', href: '/blocks/components/citation-chip' },
+          { name: 'CodeBlock', href: '/blocks/components/code-block' },
+          { name: 'PromptInput', href: '/blocks/components/prompt-input' },
+          { name: 'ReasoningDisclosure', href: '/blocks/components/reasoning-disclosure' },
+          { name: 'StreamingMarkdown', href: '/blocks/components/streaming-markdown' },
+          { name: 'ToolCallCard', href: '/blocks/components/tool-call-card' }
         ]
       }
     ]
