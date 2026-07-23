@@ -122,7 +122,7 @@
   <CustomDocs />
 
   <Section
-    marker="05"
+    marker="04"
     id="api"
     title="API Reference"
     intent="secondary"
@@ -131,7 +131,7 @@
     <ApiReference props={componentData?.props ?? []} />
   </Section>
 
-  <Section marker="06" id="installation" title="Installation">
+  <Section marker="05" id="installation" title="Installation">
     <CodeExample
       title="Import"
       code={`import { ChatMessage } from '@urbicon-ui/blocks';

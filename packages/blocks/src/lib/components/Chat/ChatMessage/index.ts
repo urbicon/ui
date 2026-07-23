@@ -86,10 +86,10 @@ export interface ChatMessageProps
   unstyled?: boolean;
   /**
    * Per-slot class overrides. Slots: root | container | header | roleName | avatar |
-   * bubble | partsFlow | reasoningBlock | reasoningHeader | reasoningText | toolCallRow |
-   * toolCallName | toolCallError | attachment | attachmentIcon | attachmentName |
-   * attachmentSize | sourcesFooter | placeholder | statusAlert | footer | actions |
-   * actionButton | metadata
+   * bubble | partsFlow | attachment | attachmentIcon | attachmentName | attachmentSize |
+   * sourcesFooter | placeholder | statusAlert | footer | actions | actionButton |
+   * metadata. Reasoning and tool-call parts render through ReasoningDisclosure /
+   * ToolCallCard, which take their own `slotClasses`.
    */
   slotClasses?: Partial<Record<ChatMessageSlots, string>>;
   /**

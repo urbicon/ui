@@ -77,6 +77,7 @@
     Slider,
     Sparkline,
     Spinner,
+    SplitPane,
     Stepper,
     StepperStep,
     StreamingMarkdown,
@@ -1132,6 +1133,38 @@ Tokens switch light and dark automatically:
                 <div class="bg-text-tertiary/10 mt-2 h-1.5 w-full rounded"></div>
                 <div class="bg-text-tertiary/10 mt-1.5 h-1.5 w-4/5 rounded"></div>
               </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- SplitPane ── 2×1 · a real two-pane split with its handle -->
+      <div class={cellWd} data-specimen="SplitPane">
+        <a
+          href={resolve('/blocks/primitives/split-pane')}
+          class={cellLink}
+          aria-label="SplitPane docs"
+        ></a>
+        <div class={inner} inert>
+          {@render heading('SplitPane')}
+          <div class={demo}>
+            <div
+              class="border-border-subtle h-[76px] w-full max-w-[240px] overflow-hidden rounded-lg border"
+            >
+              <SplitPane defaultRatio={0.4} min="20%" max="80%" handleLabel="Resize panes">
+                {#snippet start()}
+                  <div class="bg-surface-elevated h-full p-2">
+                    <div class="bg-text-primary/25 h-1.5 w-8 rounded"></div>
+                    <div class="bg-text-tertiary/15 mt-2 h-1.5 w-10 rounded"></div>
+                  </div>
+                {/snippet}
+                {#snippet end()}
+                  <div class="bg-surface-quiet h-full p-2">
+                    <div class="bg-text-primary/20 h-2 w-12 rounded"></div>
+                    <div class="bg-text-tertiary/10 mt-2 h-1.5 w-4/5 rounded"></div>
+                  </div>
+                {/snippet}
+              </SplitPane>
             </div>
           </div>
         </div>

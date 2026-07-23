@@ -112,7 +112,7 @@
   <CustomDocs />
 
   <Section
-    marker="04"
+    marker="03"
     id="api"
     title="API Reference"
     intent="secondary"
@@ -121,7 +121,7 @@
     <ApiReference props={componentData?.props ?? []} />
   </Section>
 
-  <Section marker="05" id="installation" title="Installation">
+  <Section marker="04" id="installation" title="Installation">
     <CodeExample
       title="Import"
       code={`import { ToolCallCard } from '@urbicon-ui/blocks';

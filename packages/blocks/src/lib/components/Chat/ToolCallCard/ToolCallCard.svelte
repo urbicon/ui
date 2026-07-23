@@ -74,21 +74,24 @@
     onOpenChange?.(next);
   }
 
-  // Auto-open when the call transitions to `error` while mounted — unless the
-  // user has already toggled it. Only ever opens (never force-closes); reads of
-  // the open state are untracked so the write can't re-trigger this effect.
+  // Auto-open on a GENUINE transition to `error` while mounted — unless the
+  // user has toggled. A call that is already failed at mount is covered by the
+  // seed above (so an explicit defaultOpen={false} wins there), and the open
+  // runs through the same notification path as a manual toggle so a
+  // controlled-without-bind consumer can mirror it (review findings, P3 wave).
+  // svelte-ignore state_referenced_locally
+  let prevState = toolCall.state;
   $effect(() => {
-    const failed = toolCall.state === 'error';
-    const toggled = userToggled;
-    if (failed && !toggled) {
-      untrack(() => {
-        if (open !== undefined) {
-          if (open !== true) open = true;
-        } else if (internalOpen !== true) {
-          internalOpen = true;
-        }
-      });
-    }
+    const state = toolCall.state;
+    const wasError = prevState === 'error';
+    prevState = state;
+    if (state !== 'error' || wasError) return;
+    untrack(() => {
+      if (userToggled || isOpen) return;
+      if (open !== undefined) open = true;
+      else internalOpen = true;
+      onOpenChange?.(true);
+    });
   });
 
   const statusLabel = $derived(

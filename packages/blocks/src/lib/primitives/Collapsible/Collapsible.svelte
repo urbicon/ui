@@ -109,10 +109,15 @@
     </button>
   {/if}
 
+  <!-- `inert` while collapsed (Popover's pattern): the clipped children stay
+       mounted for the grid-rows animation, so without it a keyboard user tabs
+       into invisible controls (e.g. a CodeBlock copy button inside a collapsed
+       ToolCallCard — WCAG 2.4.3/2.4.7) and the subtree stays in the a11y tree. -->
   <div
     id={contentId}
     role="region"
     aria-labelledby={triggerId}
+    inert={!isOpen}
     class={unstyled
       ? (slotClasses?.content ?? '')
       : styles.content({ class: slotClasses?.content })}

@@ -28,7 +28,7 @@ export type ChatMessagePart =
   | { type: 'text'; text: string }
   /** Model reasoning. Collapsed, tertiary presentation; `durationMs` feeds the "Thought for Xs" label. */
   | { type: 'reasoning'; text: string; durationMs?: number }
-  /** A tool invocation with its lifecycle state. P2 renders a compact status line; ToolCallCard (P3) takes over via `partRenderers`. */
+  /** A tool invocation with its lifecycle state. Rendered as a ToolCallCard by default; override via `partRenderers`. */
   | {
       type: 'tool-call';
       id: string;

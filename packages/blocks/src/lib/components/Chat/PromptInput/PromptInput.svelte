@@ -339,9 +339,11 @@
     <ul class={cls('attachmentsStrip')} aria-label={attachLabel}>
       {#each attachments as entry, i (entry.id)}
         <li class={cls('attachmentChip')}>
-          <span class={cls('attachmentThumb')}>
+          <!-- Decorative: the adjacent attachmentName span carries the file
+               name — a filled alt would read it twice (review finding). -->
+          <span class={cls('attachmentThumb')} aria-hidden="true">
             {#if entry.preview}
-              <img src={entry.preview} alt={entry.file.name} />
+              <img src={entry.preview} alt="" />
             {:else}
               <FileIcon size={16} />
             {/if}

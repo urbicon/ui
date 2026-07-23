@@ -107,9 +107,13 @@ const LIB = join(PKG, 'src/lib');
 const GROUPS = ['primitives', 'components'] as const;
 
 // Sanity floors — a collapse means directory/glob drift, not a clean run.
-const MIN_DIRS = 40;
-const MIN_PUBLIC = 70;
-const MIN_FILES = 150;
+// Kept close to the actual counts (58/104/~255 at calibration): a regression
+// to the pre-family flat scanner would drop ~40 family-subdir files, which a
+// loose floor would silently accept (review finding, P3 wave). Raise these as
+// the library grows.
+const MIN_DIRS = 55;
+const MIN_PUBLIC = 95;
+const MIN_FILES = 230;
 
 const HINT = 'compose via src/lib/internal/core/* or add an allowlist entry with justification';
 
@@ -124,13 +128,21 @@ const publicOwner = new Map<string, string>();
 /** dir id → set of files to scan. */
 const dirFiles = new Map<string, string[]>();
 
-/** All scannable source files under a component dir, family subdirs included. */
+/**
+ * All scannable source files under a component dir, family subdirs included.
+ * Skips fixtures plus locally generated trees (nested node_modules /
+ * .svelte-kit from per-package tooling runs) — those are git-ignored, so
+ * scanning them would make filesScanned machine-dependent and open a latent
+ * phantom-edge surface (review finding, P3 wave).
+ */
 function collectComponentFiles(dir: string): string[] {
   const out: string[] = [];
   for (const entry of readdirSync(dir).sort()) {
     const p = join(dir, entry);
     if (statSync(p).isDirectory()) {
-      if (entry !== '__fixtures__') out.push(...collectComponentFiles(p));
+      if (entry !== '__fixtures__' && entry !== 'node_modules' && !entry.startsWith('.')) {
+        out.push(...collectComponentFiles(p));
+      }
     } else if (
       (entry.endsWith('.svelte') || entry.endsWith('.ts')) &&
       !entry.includes('.test.') &&
@@ -161,9 +173,12 @@ for (const group of GROUPS) {
       const index = readFileSync(file, 'utf8');
       for (const m of index.matchAll(RE_DEFAULT_AS)) publicOwner.set(m[1], dirId);
     }
-    for (const sub of readdirSync(dirPath).sort()) {
-      if (/^[A-Z]/.test(sub) && statSync(join(dirPath, sub)).isDirectory()) {
-        publicOwner.set(sub, dirId);
+    // Register every PascalCase directory segment on the collected paths (any
+    // depth), so a member without its own `default as` export still resolves
+    // to the family for bare-name barrel imports.
+    for (const file of files) {
+      for (const seg of relative(dirPath, dirname(file)).split('/')) {
+        if (/^[A-Z]/.test(seg)) publicOwner.set(seg, dirId);
       }
     }
   }

@@ -150,6 +150,45 @@ describe('ToolCallCard — open state', () => {
     flushSync();
     expect(seen).toEqual([true]);
   });
+
+  it('honors defaultOpen={false} for a call already failed at mount', () => {
+    // The auto-open effect must only react to a TRANSITION to error — a call
+    // mounted in error is the seed's business, and an explicit defaultOpen
+    // wins there (review finding, P3 wave).
+    render({ toolCall: part('error', { errorMessage: 'boom' }), defaultOpen: false });
+    expect(getTrigger().getAttribute('aria-expanded')).toBe('false');
+  });
+
+  it('fires onOpenChange when the error transition auto-opens the card', () => {
+    // Auto-open runs through the same notification path as a manual toggle so
+    // a controlled-without-bind consumer can mirror it (review finding).
+    const seen: boolean[] = [];
+    const props = $state<ToolCallCardProps>({
+      toolCall: part('running'),
+      onOpenChange: (o) => seen.push(o)
+    });
+    render(props);
+    expect(getTrigger().getAttribute('aria-expanded')).toBe('false');
+
+    flushSync(() => {
+      props.toolCall = part('error', { errorMessage: 'boom' });
+    });
+    expect(getTrigger().getAttribute('aria-expanded')).toBe('true');
+    expect(seen).toEqual([true]);
+  });
+
+  it('marks the collapsed content region inert (no tab stop on the hidden copy button)', () => {
+    render({ toolCall: part('complete', { output: { ok: true } }) });
+    // Svelte applies `inert` as a DOM property, so query structurally (the
+    // Collapsible content region is labelled by the trigger) and assert the
+    // property. Collapsed: the clipped CodeBlock copy button must be out of
+    // the tab order and a11y tree (WCAG 2.4.3 — review finding, fixed in
+    // Collapsible).
+    const trigger = getTrigger();
+    const region = document.getElementById(trigger.getAttribute('aria-controls') ?? '');
+    expect(region).not.toBeNull();
+    expect((region as HTMLElement).inert || region?.hasAttribute('inert')).toBe(true);
+  });
 });
 
 describe('ToolCallCard — body', () => {

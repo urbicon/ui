@@ -1142,3 +1142,25 @@ internal TODO instead. Sections are ordered roughly by urgency.
   hue-shifted theme that breaks AA fails the suite rather than relying on a
   comment.
 - **Found:** 2026-07-14, PUBLISH-READINESS D.1 contrast audit.
+
+### Popover inside phrasing content breaks SSR paragraphs (CitationChip in `<p>`)
+
+- **Where:** `packages/blocks/src/lib/primitives/Popover/Popover.svelte`
+  (trigger wrapper + panel are `<div>`s) as consumed by `CitationChip` inside
+  `StreamingMarkdown` paragraphs (`MdBlock` renders `<p>` — phrasing content
+  only).
+- **What:** On SSR-prerendered pages that render citation chips in flowing
+  text (e.g. `/blocks/components/chat-message`), the browser's HTML parser
+  closes the `<p>` at the first `<div>`, so the prerendered DOM differs from
+  the component tree until hydration repairs it (dev console:
+  `node_invalid_placement_ssr`; prod: a brief structural flash). Client-side
+  streamed chat is unaffected — chips mount after hydration.
+- **Why deferred:** Not fixable locally in CitationChip: even span wrappers
+  don't help while any descendant is a `<div>` (a `<div>` token closes an open
+  `<p>` regardless of nesting), so the real fix is a Popover-level decision —
+  a phrasing-safe rendering mode (span chain incl. panel content) or moving
+  the panel out of the flow — with VR + floating.spec coverage across all
+  Popover consumers (Menu, DatePicker, Calendar, CitationChip). Deserves its
+  own small wave rather than an end-of-P3 quickfix.
+- **Found:** 2026-07-23, AI-Kit P3 live check of the new chat-message docs
+  page.

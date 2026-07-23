@@ -72,6 +72,7 @@
   import { SplitPane, Chat, ChatMessageList, PromptInput } from '@urbicon-ui/blocks';
 
   let split = $state(0.55);
+  // messages / handleSubmit as in the composition example above
 <\/script>
 
 <div class="h-[40rem]">

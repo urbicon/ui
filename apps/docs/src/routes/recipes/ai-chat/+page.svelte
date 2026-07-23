@@ -209,7 +209,10 @@ export const POST: RequestHandler = async ({ request }) => {
     ];
 
     const assistantId = nextId();
-    const history = messages.map(toWire); // snapshot BEFORE the empty assistant turn
+    // Snapshot BEFORE the empty assistant turn — and drop text-less turns: a
+    // stream stopped before its first token leaves an empty assistant message,
+    // and the Messages API rejects empty content (the chat would stay wedged).
+    const history = messages.map(toWire).filter((m) => m.content.length > 0);
     messages = [
       ...messages,
       { id: assistantId, role: 'assistant', parts: [{ type: 'text', text: '' }], status: 'streaming' }
@@ -328,8 +331,8 @@ export const POST: RequestHandler = async ({ request }) => {
     <p class="mb-4 text-sm text-text-secondary">
       This preview replays canned answers on a timer — no network — so it is reproducible offline.
       The <a href={resolve('/recipes/ai-chat')} class="text-primary underline">code below</a>
-      streams from a real SSE endpoint, but drives the same surface and the same append/abort state
-      machine. Send a message, then scroll up mid-stream or press <strong>Stop</strong>.
+      streams from a real SSE endpoint, but drives the same surface and the same append/abort state machine.
+      Send a message, then scroll up mid-stream or press <strong>Stop</strong>.
     </p>
     <Card variant="outlined">
       <div class="p-4">
