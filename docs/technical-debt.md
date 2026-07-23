@@ -91,6 +91,30 @@ internal TODO instead. Sections are ordered roughly by urgency.
   conventions-doc update. Removing values is breaking.
 - **Found:** 2026-07-10, systematic primitives API analysis.
 
+### Field chrome is copy-pasted across four form components — no shared style fragments
+
+- **Where:** `input.variants.ts`, `pin-input.variants.ts`, `time-input.variants.ts`
+  (NumberInput inherits via its Input composition) + the label/message scaffolding
+  in `Input.svelte`, `PinInput.svelte`, `TimeInput.svelte`.
+- **What:** Two layers of near-identical duplication. (a) The tv() class strings
+  for the field frame — `border text-text-primary bg-surface-base`, the
+  `focus(-visible|-within):border-primary` + `ring-2 ring-primary/20` ring, the
+  `outlined|filled|ghost` variant values, the intent colours, tier radius,
+  disabled/readonly states, the ghost×error `border-transparent` compound — are
+  hand-copied per file. (b) The label/helper/error markup (label span +
+  `aria-labelledby`, `role="alert"` message, required asterisk, `messageType`
+  derivation) is re-implemented per component. Drift has already started: Input
+  carries `xs` + `underline` that the segmented fields lack (defensible), and
+  PinInput's cell heights sit on their own scale (h-9/11/14 vs h-8/10/12 —
+  touch-target driven, but nothing records that).
+- **Why deferred:** The right cut is shared *style fragments* (exported class
+  arrays under `src/lib/internal/`, consumed by the field variants configs), not
+  a behaviour core — there is no shared behaviour, so a `CoreFieldShell` would
+  be premature. Wants one deliberate sweep across all four components with VR
+  coverage, plus a decision on whether the message scaffolding joins the
+  fragment set; piecemeal extraction would churn every field component twice.
+- **Found:** 2026-07-24, component-trio review (PinInput/TimeInput/QRCode).
+
 ## Component behaviour
 
 ### Mint demand-load path has no end-to-end coverage
