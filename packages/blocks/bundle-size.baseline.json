@@ -14,48 +14,48 @@
       }
     },
     "Accordion": {
-      "min": 26001,
-      "gz": 7987,
+      "min": 26122,
+      "gz": 8046,
       "lazy": {
         "min": 0,
         "gz": 0
       }
     },
     "Alert": {
-      "min": 36103,
-      "gz": 11839,
+      "min": 36180,
+      "gz": 11895,
       "lazy": {
         "min": 4180,
         "gz": 1930
       }
     },
     "AreaChart": {
-      "min": 38150,
-      "gz": 13013,
+      "min": 38272,
+      "gz": 13091,
       "lazy": {
         "min": 4180,
         "gz": 1930
       }
     },
     "Avatar": {
-      "min": 36001,
-      "gz": 12216,
+      "min": 36109,
+      "gz": 12263,
       "lazy": {
         "min": 7892,
-        "gz": 3343
+        "gz": 3344
       }
     },
     "Badge": {
-      "min": 40608,
-      "gz": 13203,
+      "min": 40764,
+      "gz": 13291,
       "lazy": {
         "min": 7892,
         "gz": 3342
       }
     },
     "BarChart": {
-      "min": 38354,
-      "gz": 13122,
+      "min": 38476,
+      "gz": 13200,
       "lazy": {
         "min": 4180,
         "gz": 1930
@@ -70,416 +70,496 @@
       }
     },
     "Breadcrumb": {
-      "min": 32538,
-      "gz": 11081,
+      "min": 32645,
+      "gz": 11144,
       "lazy": {
         "min": 4180,
         "gz": 1930
       }
     },
     "Button": {
-      "min": 31378,
-      "gz": 9280,
+      "min": 31483,
+      "gz": 9340,
       "lazy": {
         "min": 2680,
-        "gz": 1109
+        "gz": 1111
       }
     },
     "ButtonGroup": {
-      "min": 19586,
-      "gz": 6502,
+      "min": 19623,
+      "gz": 6525,
       "lazy": {
         "min": 0,
         "gz": 0
       }
     },
     "Calendar": {
-      "min": 171433,
-      "gz": 46404,
+      "min": 171650,
+      "gz": 46924,
       "lazy": {
         "min": 6860,
-        "gz": 3041
+        "gz": 3038
       }
     },
     "Card": {
-      "min": 21353,
-      "gz": 7250,
+      "min": 21426,
+      "gz": 7296,
       "lazy": {
         "min": 3712,
-        "gz": 1412
+        "gz": 1411
       }
     },
     "ChartFrame": {
-      "min": 16653,
-      "gz": 5667,
+      "min": 16690,
+      "gz": 5681,
       "lazy": {
         "min": 0,
         "gz": 0
       }
     },
+    "Chat": {
+      "min": 16088,
+      "gz": 5306,
+      "lazy": {
+        "min": 0,
+        "gz": 0
+      }
+    },
+    "ChatMessage": {
+      "min": 155445,
+      "gz": 41809,
+      "lazy": {
+        "min": 6860,
+        "gz": 3041
+      }
+    },
+    "ChatMessageList": {
+      "min": 165650,
+      "gz": 44357,
+      "lazy": {
+        "min": 6860,
+        "gz": 3038
+      }
+    },
     "Checkbox": {
-      "min": 28061,
-      "gz": 8975,
+      "min": 28215,
+      "gz": 9047,
       "lazy": {
         "min": 3712,
-        "gz": 1413
+        "gz": 1414
       }
     },
     "CheckIcon": {
-      "min": 1963,
-      "gz": 966,
+      "min": 1992,
+      "gz": 976,
+      "lazy": {
+        "min": 0,
+        "gz": 0
+      }
+    },
+    "CitationChip": {
+      "min": 33151,
+      "gz": 11163,
+      "lazy": {
+        "min": 0,
+        "gz": 0
+      }
+    },
+    "CodeBlock": {
+      "min": 20718,
+      "gz": 6991,
       "lazy": {
         "min": 0,
         "gz": 0
       }
     },
     "Collapsible": {
-      "min": 20846,
-      "gz": 6973,
+      "min": 20930,
+      "gz": 7016,
       "lazy": {
         "min": 0,
         "gz": 0
       }
     },
     "Combobox": {
-      "min": 59361,
-      "gz": 18824,
+      "min": 59410,
+      "gz": 18879,
       "lazy": {
         "min": 7892,
-        "gz": 3342
+        "gz": 3343
       }
     },
     "CommandPalette": {
-      "min": 54099,
-      "gz": 17243,
+      "min": 54268,
+      "gz": 17350,
       "lazy": {
         "min": 4180,
         "gz": 1930
       }
     },
     "CompositionBar": {
-      "min": 45457,
-      "gz": 14639,
+      "min": 45507,
+      "gz": 14686,
       "lazy": {
         "min": 7892,
-        "gz": 3342
+        "gz": 3344
       }
     },
     "ConfirmDialog": {
-      "min": 59375,
-      "gz": 18076,
+      "min": 59531,
+      "gz": 18146,
       "lazy": {
         "min": 6860,
         "gz": 3041
       }
     },
     "CurrencyInput": {
-      "min": 47146,
-      "gz": 15470,
+      "min": 47187,
+      "gz": 15540,
       "lazy": {
         "min": 7892,
-        "gz": 3344
+        "gz": 3343
       }
     },
     "DatePicker": {
-      "min": 204659,
-      "gz": 54329,
+      "min": 204820,
+      "gz": 54550,
       "lazy": {
         "min": 6860,
-        "gz": 3042
+        "gz": 3043
       }
     },
     "Dialog": {
-      "min": 41745,
-      "gz": 14158,
+      "min": 41900,
+      "gz": 14230,
       "lazy": {
         "min": 4180,
         "gz": 1930
       }
     },
     "DonutChart": {
-      "min": 34260,
-      "gz": 11838,
+      "min": 34367,
+      "gz": 11900,
       "lazy": {
         "min": 4180,
         "gz": 1930
       }
     },
     "Drawer": {
-      "min": 42328,
-      "gz": 14026,
+      "min": 42484,
+      "gz": 14110,
       "lazy": {
         "min": 4180,
         "gz": 1930
       }
     },
     "EmptyState": {
-      "min": 17107,
-      "gz": 5628,
+      "min": 17080,
+      "gz": 5626,
       "lazy": {
         "min": 0,
         "gz": 0
       }
     },
     "FileUpload": {
-      "min": 55385,
-      "gz": 17363,
+      "min": 55848,
+      "gz": 17646,
       "lazy": {
         "min": 7892,
-        "gz": 3343
+        "gz": 3341
       }
     },
     "FormField": {
-      "min": 2572,
-      "gz": 1019,
+      "min": 2585,
+      "gz": 1027,
       "lazy": {
         "min": 0,
         "gz": 0
       }
     },
     "Guide": {
-      "min": 95927,
-      "gz": 27706,
+      "min": 96217,
+      "gz": 27901,
       "lazy": {
         "min": 6860,
-        "gz": 3041
+        "gz": 3042
       }
     },
     "Icon": {
-      "min": 145207,
-      "gz": 16551,
+      "min": 149969,
+      "gz": 18671,
       "lazy": {
         "min": 0,
         "gz": 0
       }
     },
     "Input": {
-      "min": 43487,
-      "gz": 14142,
+      "min": 43514,
+      "gz": 14185,
       "lazy": {
         "min": 7892,
-        "gz": 3344
+        "gz": 3343
       }
     },
     "JourneyTimeline": {
-      "min": 44924,
-      "gz": 14354,
+      "min": 44941,
+      "gz": 14421,
       "lazy": {
         "min": 4180,
         "gz": 1930
       }
     },
     "LineChart": {
-      "min": 37786,
-      "gz": 12942,
+      "min": 37908,
+      "gz": 13013,
       "lazy": {
         "min": 4180,
         "gz": 1930
       }
     },
     "LocaleSwitcher": {
-      "min": 59767,
-      "gz": 18709,
+      "min": 59746,
+      "gz": 18750,
       "lazy": {
         "min": 7892,
         "gz": 3344
       }
     },
     "Menu": {
-      "min": 76073,
-      "gz": 22652,
+      "min": 76225,
+      "gz": 22743,
       "lazy": {
         "min": 6860,
         "gz": 3040
       }
     },
     "NumberInput": {
-      "min": 47404,
-      "gz": 15260,
+      "min": 47477,
+      "gz": 15353,
       "lazy": {
         "min": 7892,
-        "gz": 3342
+        "gz": 3344
       }
     },
     "Pagination": {
-      "min": 57193,
-      "gz": 16170,
+      "min": 57229,
+      "gz": 16190,
       "lazy": {
         "min": 6860,
-        "gz": 3039
+        "gz": 3040
       }
     },
     "Planner": {
-      "min": 66836,
-      "gz": 21628,
+      "min": 66970,
+      "gz": 21740,
       "lazy": {
         "min": 4180,
         "gz": 1930
       }
     },
     "Popover": {
-      "min": 26882,
-      "gz": 9022,
+      "min": 26921,
+      "gz": 9027,
       "lazy": {
         "min": 0,
         "gz": 0
       }
     },
     "Progress": {
-      "min": 34886,
-      "gz": 11592,
+      "min": 34948,
+      "gz": 11656,
+      "lazy": {
+        "min": 4180,
+        "gz": 1930
+      }
+    },
+    "PromptInput": {
+      "min": 45038,
+      "gz": 14871,
       "lazy": {
         "min": 4180,
         "gz": 1930
       }
     },
     "RadioGroup": {
-      "min": 26951,
-      "gz": 8826,
+      "min": 27039,
+      "gz": 8891,
       "lazy": {
         "min": 3712,
-        "gz": 1413
+        "gz": 1411
+      }
+    },
+    "ReasoningDisclosure": {
+      "min": 72878,
+      "gz": 22216,
+      "lazy": {
+        "min": 0,
+        "gz": 0
       }
     },
     "Sankey": {
-      "min": 44861,
-      "gz": 14709,
+      "min": 44922,
+      "gz": 14784,
       "lazy": {
         "min": 4180,
         "gz": 1930
       }
     },
     "SegmentGroup": {
-      "min": 24134,
-      "gz": 8332,
+      "min": 24252,
+      "gz": 8390,
       "lazy": {
         "min": 3712,
         "gz": 1413
       }
     },
     "Select": {
-      "min": 57590,
-      "gz": 17985,
+      "min": 57552,
+      "gz": 18031,
       "lazy": {
         "min": 7892,
-        "gz": 3343
+        "gz": 3342
       }
     },
     "Separator": {
-      "min": 15860,
-      "gz": 5194,
+      "min": 15897,
+      "gz": 5212,
       "lazy": {
         "min": 0,
         "gz": 0
       }
     },
     "Sidebar": {
-      "min": 19563,
-      "gz": 6612,
+      "min": 19568,
+      "gz": 6628,
       "lazy": {
         "min": 0,
         "gz": 0
       }
     },
     "SidebarLayout": {
-      "min": 23404,
-      "gz": 7605,
+      "min": 23422,
+      "gz": 7625,
       "lazy": {
         "min": 0,
         "gz": 0
       }
     },
     "Skeleton": {
-      "min": 31587,
-      "gz": 10699,
+      "min": 31697,
+      "gz": 10767,
       "lazy": {
         "min": 4180,
         "gz": 1930
       }
     },
     "Slider": {
-      "min": 46960,
-      "gz": 14769,
+      "min": 47000,
+      "gz": 14804,
       "lazy": {
         "min": 7892,
-        "gz": 3341
+        "gz": 3344
       }
     },
     "Sparkline": {
-      "min": 3077,
-      "gz": 1322,
+      "min": 3090,
+      "gz": 1341,
       "lazy": {
         "min": 0,
         "gz": 0
       }
     },
     "Spinner": {
-      "min": 23060,
-      "gz": 6886,
+      "min": 23021,
+      "gz": 6898,
       "lazy": {
         "min": 0,
         "gz": 0
       }
     },
-    "Stepper": {
-      "min": 40325,
-      "gz": 13306,
-      "lazy": {
-        "min": 4180,
-        "gz": 1930
-      }
-    },
-    "Tab": {
-      "min": 28741,
-      "gz": 9198,
+    "SplitPane": {
+      "min": 23835,
+      "gz": 8195,
       "lazy": {
         "min": 3712,
         "gz": 1414
       }
     },
-    "Textarea": {
-      "min": 24859,
-      "gz": 8366,
+    "Stepper": {
+      "min": 40500,
+      "gz": 13412,
+      "lazy": {
+        "min": 4180,
+        "gz": 1930
+      }
+    },
+    "StreamingMarkdown": {
+      "min": 65027,
+      "gz": 20381,
+      "lazy": {
+        "min": 0,
+        "gz": 0
+      }
+    },
+    "Tab": {
+      "min": 28803,
+      "gz": 9234,
       "lazy": {
         "min": 3712,
-        "gz": 1411
+        "gz": 1413
+      }
+    },
+    "Textarea": {
+      "min": 24962,
+      "gz": 8391,
+      "lazy": {
+        "min": 3712,
+        "gz": 1414
       }
     },
     "ThemeSwitcher": {
-      "min": 33766,
-      "gz": 11559,
+      "min": 33921,
+      "gz": 11635,
       "lazy": {
         "min": 4180,
         "gz": 1930
       }
     },
     "Toast": {
-      "min": 44199,
-      "gz": 14375,
+      "min": 44289,
+      "gz": 14468,
       "lazy": {
         "min": 4180,
         "gz": 1930
       }
     },
     "Toggle": {
-      "min": 36483,
-      "gz": 12156,
+      "min": 36590,
+      "gz": 12218,
       "lazy": {
         "min": 7892,
-        "gz": 3345
+        "gz": 3342
       }
     },
     "Toolbar": {
-      "min": 16296,
-      "gz": 5418,
+      "min": 16333,
+      "gz": 5442,
       "lazy": {
         "min": 0,
         "gz": 0
       }
     },
+    "ToolCallCard": {
+      "min": 56383,
+      "gz": 17284,
+      "lazy": {
+        "min": 7892,
+        "gz": 3343
+      }
+    },
     "Tooltip": {
-      "min": 23971,
-      "gz": 8202,
+      "min": 24010,
+      "gz": 8227,
       "lazy": {
         "min": 0,
         "gz": 0

@@ -55,7 +55,7 @@
                   <FileIcon class="size-4" /> App.svelte
                 </li>
                 <li
-                  class="text-primary bg-primary-subtle flex items-center gap-2 rounded px-1 py-1 pl-5"
+                  class="text-text-primary bg-primary-subtle flex items-center gap-2 rounded px-1 py-1 pl-5 font-medium"
                 >
                   <FileIcon class="size-4" /> main.ts
                 </li>
@@ -102,7 +102,7 @@
               <p class="text-success">✓ build succeeded in 412ms</p>
               <p class="text-text-tertiary">→ 24 modules transformed</p>
               <p class="text-text-tertiary">→ dist/index.js 12.4 kB</p>
-              <p class="text-warning">! 1 unused export in utils.ts</p>
+              <p class="text-text-secondary">! 1 unused export in utils.ts</p>
               <p class="text-text-tertiary">→ watching for changes…</p>
             </section>
           {/snippet}
