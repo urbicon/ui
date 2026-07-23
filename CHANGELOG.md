@@ -4,6 +4,11 @@ All notable changes to this project will be documented in this file.
 This changelog is automatically generated from [Conventional Commits](https://www.conventionalcommits.org).
 
 
+## [6.37.0] - 2026-07-23
+
+### Documentation
+- **tokens**: Refresh typography usage counts for the component trio
+
 ## [6.36.0] - 2026-07-23
 
 ### Bug Fixes
@@ -20,6 +25,7 @@ This changelog is automatically generated from [Conventional Commits](https://ww
 
 ### Features
 - **blocks**: Bundle-size --entry — ad-hoc combined measurement for marginal cost
+- **blocks**: Add PinInput, TimeInput and QRCode components
 - **blocks**: Streaming-markdown parser core (AI-Kit P0 spike)
 - **blocks**: Add SplitPane primitive (resizable two-pane layout)
 - **blocks**: Streaming markdown renderer, CodeBlock, CitationChip (AI-Kit P1)
