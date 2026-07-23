@@ -12,7 +12,8 @@
   import WarningTriangleIconDefault from '$lib/icons/WarningTriangleIcon.svelte';
   import DangerCircleIconDefault from '$lib/icons/DangerCircleIcon.svelte';
   import { getBlocksConfig, resolveSlotClasses } from '$lib/provider';
-  import Spinner from '../Spinner/Spinner.svelte';
+  // internal core, not the public component — keeps the public-to-public import graph clean (see internal/core/)
+  import CoreSpinner from '$lib/internal/core/CoreSpinner.svelte';
   import type { ToastData, ToastProps } from './index';
 
   const bt = useBlocksI18n();
@@ -220,7 +221,21 @@
       transition:fly={flyParams()}
     >
       {#if toast.loading}
-        <span class={slot('icon', toast.intent)}><Spinner size="sm" /></span>
+        <!--
+          CoreSpinner instead of the public Spinner (see internal/core/).
+          Deliberate a11y delta: the old embedded Spinner emitted role="status" +
+          aria-live + an sr-only "Loading..." label — a live region NESTED inside
+          the toast's own role="alert" region. The core emits no semantics; the
+          toast region owns the announcement. `text-primary` pins the old look:
+          the public Spinner's intent DEFAULTED to primary, so the loading glyph
+          always rendered primary regardless of the toast intent (whether it
+          should follow the intent instead is logged in technical-debt.md). It
+          wins the color duel against the core's `text-current` by stylesheet
+          order (theme color utilities sort after keyword colors).
+        -->
+        <span class={slot('icon', toast.intent)}
+          ><CoreSpinner size="sm" class="text-primary" /></span
+        >
       {:else}
         <IntentIcon class={slot('icon', toast.intent)} />
       {/if}

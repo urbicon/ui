@@ -9,12 +9,23 @@ export const calendarVariants = tv({
     header: ['flex items-center justify-between', 'border-b border-border-hairline'],
     title: 'font-semibold text-text-primary select-none',
     nav: 'flex items-center gap-1',
+    // Rendered on the internal CoreIconButton (behaviour-only base: inline-flex
+    // centring, cursor/select affordance, focus-visible reset, disabled
+    // opacity/cursor/inertness), so this slot carries only the visual identity
+    // on top — the classes the core already supplies (inline-flex items-center
+    // justify-center, focus-visible:outline-none, disabled:opacity-50,
+    // disabled:cursor-not-allowed) are not repeated here. Deliberate deltas vs.
+    // the old `<Button unstyled mint="none">` render (which had NO plumbing):
+    // `cursor-pointer` (was the UA arrow — Tailwind 4 preflight doesn't set it;
+    // now consistent with every styled Button) and `disabled:pointer-events-none`
+    // (a disabled nav button is fully inert: no more hover-bg feedback or
+    // not-allowed cursor while disabled — matching the styled Button base).
+    // Mirrors planner.variants navButton. See internal/core/.
     navButton: [
-      'inline-flex items-center justify-center rounded-md',
+      'rounded-md',
       'text-text-secondary hover:bg-surface-hover hover:text-text-primary',
       'transition-colors duration-[var(--blocks-duration-fast)]',
-      'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50 focus-visible:ring-offset-2',
-      'disabled:opacity-50 disabled:cursor-not-allowed'
+      'focus-visible:ring-2 focus-visible:ring-primary/50 focus-visible:ring-offset-2'
     ],
 
     // Grid
@@ -149,11 +160,14 @@ export const calendarVariants = tv({
     miniCalendar: ['shrink-0 flex flex-col', 'border-r border-border-hairline'],
     miniCalendarHeader: 'flex items-center justify-between',
     miniCalendarTitle: 'font-semibold text-text-primary text-center select-none',
+    // Rendered on the internal CoreIconButton — same plumbing/slot split as
+    // `navButton` above (and the same deliberate cursor-pointer delta); these
+    // buttons are never disabled, so the disabled plumbing is inert.
     miniCalendarNavButton: [
-      'inline-flex items-center justify-center rounded-md',
+      'rounded-md',
       'text-text-secondary hover:bg-surface-hover hover:text-text-primary',
       'transition-colors duration-[var(--blocks-duration-fast)]',
-      'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50'
+      'focus-visible:ring-2 focus-visible:ring-primary/50'
     ],
     miniCalendarWeekday: 'text-center text-text-tertiary select-none font-medium',
     miniCalendarDay: [

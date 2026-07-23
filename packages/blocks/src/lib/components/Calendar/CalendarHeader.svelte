@@ -3,7 +3,8 @@
   import { Tooltip } from '$lib/primitives/Tooltip';
   import { Popover } from '$lib/primitives/Popover';
   import { SegmentGroup, SegmentItem } from '$lib/primitives/SegmentGroup';
-  import { Button } from '$lib/primitives/Button';
+  // internal core, not the public component — keeps the public-to-public import graph clean (see internal/core/)
+  import CoreIconButton from '$lib/internal/core/CoreIconButton.svelte';
   import ChevronLeftIcon from '$lib/icons/ChevronLeftIcon.svelte';
   import ChevronRightIcon from '$lib/icons/ChevronRightIcon.svelte';
   import ChevronDownIcon from '$lib/icons/ChevronDownIcon.svelte';
@@ -125,18 +126,24 @@
     {@render children()}
   </div>
 {:else}
+  <!--
+    All header buttons render on the internal CoreIconButton (was `<Button
+    unstyled mint="none">`, which emitted only the call-site classes). The
+    core's plumbing overlaps the navButton slot's old baseline (inline-flex
+    centring, focus-visible reset, disabled opacity/cursor — now supplied by
+    the core, stripped from the slot); the deliberate deltas it introduces are
+    documented on the slot in calendar.variants.ts.
+  -->
   <div class={slot('header', className)} {...restProps}>
     <div class={slot('nav')}>
-      <Button
-        unstyled
-        mint="none"
+      <CoreIconButton
         class={slot('navButton')}
         onclick={() => ctx.navigate(-1)}
         disabled={!ctx.canGoBack || ctx.disabled}
         aria-label={prevLabel}
       >
         <ChevronLeftIcon size={navIconSize} />
-      </Button>
+      </CoreIconButton>
     </div>
 
     <div class="flex items-center gap-2">
@@ -162,40 +169,43 @@
         {/snippet}
         <div class="min-w-48 p-3">
           <div class="mb-2 flex items-center justify-between">
-            <Button
-              unstyled
-              mint="none"
+            <CoreIconButton
               class={slot('navButton')}
               onclick={() => pickerYear--}
               aria-label={bt('calendar.previousYear')}
             >
               <ChevronLeftIcon size={pickerIconSize} />
-            </Button>
+            </CoreIconButton>
             <span class="text-text-primary font-semibold tabular-nums">{pickerYear}</span>
-            <Button
-              unstyled
-              mint="none"
+            <CoreIconButton
               class={slot('navButton')}
               onclick={() => pickerYear++}
               aria-label={bt('calendar.nextYear')}
             >
               <ChevronRightIcon size={pickerIconSize} />
-            </Button>
+            </CoreIconButton>
           </div>
           <div class="grid grid-cols-3 gap-1">
             {#each months as m (m.index)}
-              <Button
-                unstyled
-                mint="none"
+              <!--
+                Text-labelled month cell on the same CoreIconButton as the nav
+                buttons (removes the last CalendarHeader→Button edge). The core
+                REQUIRES aria-label, so it gets the visible label — the accessible
+                name stays the identical string. Never rendered disabled (the
+                picker closes when the calendar is disabled), so the core's
+                disabled plumbing is inert here.
+              -->
+              <CoreIconButton
                 class="text-text-primary rounded-md px-2 py-1.5 text-sm transition-colors
                   {m.isCurrent
                   ? 'bg-primary-subtle ring-primary text-primary font-semibold ring-1'
                   : 'hover:bg-surface-hover'}
-                  focus-visible:ring-primary/50 focus-visible:ring-2 focus-visible:outline-none"
+                  focus-visible:ring-primary/50 focus-visible:ring-2"
                 onclick={() => selectMonth(m.index)}
+                aria-label={m.label}
               >
                 {m.label}
-              </Button>
+              </CoreIconButton>
             {/each}
           </div>
         </div>
@@ -221,29 +231,25 @@
 
       {#if showToday}
         <Tooltip label={bt('calendar.today')}>
-          <Button
-            unstyled
-            mint="none"
+          <CoreIconButton
             class="{slot('navButton')} ml-1"
             onclick={() => ctx.goToToday()}
             disabled={!ctx.canGoToToday || ctx.disabled}
             aria-label={bt('calendar.today')}
           >
             <CalendarIcon size={navIconSize} />
-          </Button>
+          </CoreIconButton>
         </Tooltip>
       {/if}
 
-      <Button
-        unstyled
-        mint="none"
+      <CoreIconButton
         class={slot('navButton')}
         onclick={() => ctx.navigate(1)}
         disabled={!ctx.canGoForward || ctx.disabled}
         aria-label={nextLabel}
       >
         <ChevronRightIcon size={navIconSize} />
-      </Button>
+      </CoreIconButton>
     </div>
   </div>
 {/if}

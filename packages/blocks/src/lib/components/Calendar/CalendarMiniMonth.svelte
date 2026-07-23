@@ -1,6 +1,7 @@
 <script lang="ts">
   import { useBlocksI18n } from '$lib';
-  import { Button } from '$lib/primitives/Button';
+  // internal core, not the public component — keeps the public-to-public import graph clean (see internal/core/)
+  import CoreIconButton from '$lib/internal/core/CoreIconButton.svelte';
   import { getCalendarContext, createSlotHelper } from './calendar.context';
   import {
     getMonthGrid,
@@ -118,27 +119,26 @@
 </script>
 
 <div class={slot('miniCalendar', className)}>
-  <!-- Mini header -->
+  <!-- Mini header. Nav buttons render on the internal CoreIconButton (was
+       `<Button unstyled mint="none">`); the plumbing/slot split is documented
+       on the miniCalendarNavButton slot in calendar.variants.ts. Never
+       disabled, so the core's disabled plumbing is inert here. -->
   <div class={slot('miniCalendarHeader')}>
-    <Button
-      unstyled
-      mint="none"
+    <CoreIconButton
       class={slot('miniCalendarNavButton')}
       onclick={() => navigateMini(-1)}
       aria-label={bt('calendar.previousMonth')}
     >
       ‹
-    </Button>
+    </CoreIconButton>
     <span class={slot('miniCalendarTitle')}>{miniTitle}</span>
-    <Button
-      unstyled
-      mint="none"
+    <CoreIconButton
       class={slot('miniCalendarNavButton')}
       onclick={() => navigateMini(1)}
       aria-label={bt('calendar.nextMonth')}
     >
       ›
-    </Button>
+    </CoreIconButton>
   </div>
 
   <!-- Weekday headers — narrow names duplicate in many locales (de-DE: M, D,

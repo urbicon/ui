@@ -115,8 +115,8 @@
   const typographyScale = [
     { utility: 'text-3xs', variable: '--text-3xs', value: '0.625rem', pixels: '10px', uses: 12 },
     { utility: 'text-2xs', variable: '--text-2xs', value: '0.6875rem', pixels: '11px', uses: 17 },
-    { utility: 'text-xs', variable: '--text-xs', value: '0.75rem', pixels: '12px', uses: 96 },
-    { utility: 'text-sm', variable: '--text-sm', value: '0.875rem', pixels: '14px', uses: 130 },
+    { utility: 'text-xs', variable: '--text-xs', value: '0.75rem', pixels: '12px', uses: 97 },
+    { utility: 'text-sm', variable: '--text-sm', value: '0.875rem', pixels: '14px', uses: 132 },
     { utility: 'text-base', variable: '--text-base', value: '1rem', pixels: '16px', uses: 78 },
     { utility: 'text-lg', variable: '--text-lg', value: '1.125rem', pixels: '18px', uses: 29 },
     { utility: 'text-xl', variable: '--text-xl', value: '1.25rem', pixels: '20px', uses: 10 },
@@ -125,7 +125,7 @@
 
   const weightScale = [
     { utility: 'font-normal', variable: '--font-weight-normal', value: '400', uses: 4 },
-    { utility: 'font-medium', variable: '--font-weight-medium', value: '500', uses: 53 },
+    { utility: 'font-medium', variable: '--font-weight-medium', value: '500', uses: 56 },
     { utility: 'font-semibold', variable: '--font-weight-semibold', value: '600', uses: 43 },
     { utility: 'font-bold', variable: '--font-weight-bold', value: '700', uses: 12 }
   ];

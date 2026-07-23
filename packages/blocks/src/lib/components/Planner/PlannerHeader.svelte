@@ -6,7 +6,8 @@
 -->
 <script lang="ts">
   import { useBlocksI18n } from '$lib';
-  import { Button } from '$lib/primitives/Button';
+  // internal core, not the public component — keeps the public-to-public import graph clean (see internal/core/)
+  import CoreIconButton from '$lib/internal/core/CoreIconButton.svelte';
   import { Tooltip } from '$lib/primitives/Tooltip';
   import { resolveIcon } from '$lib/icons';
   import ChevronLeftIconDefault from '$lib/icons/ChevronLeftIcon.svelte';
@@ -37,44 +38,46 @@
   );
 </script>
 
+<!--
+  Nav buttons render on the internal CoreIconButton (was `<Button unstyled
+  mint="none">`, which emitted only the call-site classes). The core's plumbing
+  overlaps the navButton slot's old baseline (inline-flex centring, focus-visible
+  reset, disabled opacity/cursor — now supplied by the core, stripped from the
+  slot); the deliberate deltas it introduces are documented on the slot in
+  planner.variants.ts.
+-->
 <div class={ctx.slot('header')}>
   <div class={ctx.slot('nav')}>
-    <Button
-      unstyled
-      mint="none"
+    <CoreIconButton
       class={ctx.slot('navButton')}
       onclick={() => ctx.navigate(-1)}
       disabled={!ctx.canGoBack || ctx.disabled}
       aria-label={prevLabel}
     >
       <ChevronLeftIcon size={16} />
-    </Button>
+    </CoreIconButton>
   </div>
 
   <span class={ctx.slot('headerTitle')}>{ctx.title}</span>
 
   <div class={ctx.slot('nav')}>
     <Tooltip label={bt('planner.today')}>
-      <Button
-        unstyled
-        mint="none"
+      <CoreIconButton
         class={ctx.slot('navButton')}
         onclick={() => ctx.goToToday()}
         disabled={!ctx.canGoToToday || ctx.disabled}
         aria-label={bt('planner.today')}
       >
         <CalendarDaysIcon size={16} />
-      </Button>
+      </CoreIconButton>
     </Tooltip>
-    <Button
-      unstyled
-      mint="none"
+    <CoreIconButton
       class={ctx.slot('navButton')}
       onclick={() => ctx.navigate(1)}
       disabled={!ctx.canGoForward || ctx.disabled}
       aria-label={nextLabel}
     >
       <ChevronRightIcon size={16} />
-    </Button>
+    </CoreIconButton>
   </div>
 </div>

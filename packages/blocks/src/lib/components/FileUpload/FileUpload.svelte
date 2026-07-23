@@ -17,7 +17,8 @@
   import DangerCircleIconDefault from '$lib/icons/DangerCircleIcon.svelte';
   import { mintRegistry } from '$lib/mint';
   import { Progress } from '$lib/primitives/Progress';
-  import { Spinner } from '$lib/primitives/Spinner';
+  // internal core, not the public component — keeps the public-to-public import graph clean (see internal/core/)
+  import CoreSpinner from '$lib/internal/core/CoreSpinner.svelte';
   import { fly } from 'svelte/transition';
   import { quintOut } from 'svelte/easing';
   import { onDestroy } from 'svelte';
@@ -520,7 +521,21 @@
             <!-- Status indicator -->
             <div class={slot('fileItemStatusIcon')}>
               {#if entry.status === 'uploading'}
-                <Spinner size="xs" visible />
+                <!--
+                  CoreSpinner instead of the public Spinner (see internal/core/).
+                  The old call was `visible` (explicitly true) with no label
+                  override, and this branch already gates rendering on the
+                  uploading status — so the core needs no {#if} of its own.
+                  Deliberate a11y delta: the old Spinner emitted role="status" +
+                  aria-live + an sr-only "Loading..." inside the file list's own
+                  aria-live="polite" region (nested live regions); the core emits
+                  no semantics — the list region owns announcements. `text-primary`
+                  pins the old default color (the public Spinner's intent default),
+                  matching the explicit text-success/text-danger on the sibling
+                  status icons; it wins the duel against the core's `text-current`
+                  by stylesheet order (theme colors sort after keyword colors).
+                -->
+                <CoreSpinner size="xs" class="text-primary" />
               {:else if entry.status === 'complete'}
                 <CheckCircleIcon size={itemIconSize} class="text-success" />
               {:else if entry.status === 'error'}
