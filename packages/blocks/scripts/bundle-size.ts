@@ -33,6 +33,11 @@
  *                                                 # per-source-module byte attribution
  *                                                 # (sourcemap-based; answers "what
  *                                                 # exactly makes this big?")
+ *   bun scripts/bundle-size.ts --entry Button,Input,Dialog
+ *                                                 # ONE combined bundle — the marginal-cost
+ *                                                 # workflow: cost(set∪X) − cost(set) is what
+ *                                                 # X really adds to an app (solo rows
+ *                                                 # double-count the shared floor)
  *
  * The tool doubles as a tree-shaking regression guard: a component that starts
  * dragging the full icon registry (the `getIcon()` anti-pattern) or another
@@ -110,7 +115,13 @@ const { values: args } = parseArgs({
     // suspicious size can be inspected (what exactly got pulled in?).
     dump: { type: 'string' },
     // Per-source-module byte attribution via sourcemap (use with --filter).
-    breakdown: { type: 'boolean', default: false }
+    breakdown: { type: 'boolean', default: false },
+    // Ad-hoc combined entry: measure ONE bundle importing the given exports
+    // together (comma-separated, e.g. --entry Button,Input,Dialog). This is
+    // how marginal cost is measured — cost(A∪B) − cost(B) — since solo rows
+    // double-count the shared floor (tv() engine, provider context) that a
+    // real app pays once. No baseline interaction, composes with --breakdown.
+    entry: { type: 'string' }
   }
 });
 
@@ -381,6 +392,32 @@ async function main(): Promise<void> {
   if (!existsSync(join(DIST, 'index.js'))) {
     console.error('dist/index.js missing — run `bun run build` in packages/blocks first.');
     process.exit(1);
+  }
+
+  // Ad-hoc combined measurement (marginal-cost workflows) — measure and exit.
+  if (args.entry) {
+    const exports = args.entry
+      .split(',')
+      .map((e) => e.trim())
+      .filter(Boolean);
+    if (exports.length === 0) {
+      console.error('--entry needs at least one export name.');
+      process.exit(1);
+    }
+    const size = await measure(entryFor(exports), { dumpName: 'entry' });
+    const m: Measurement = { name: exports.join('+'), kind: 'system', exports, ...size };
+    console.log(
+      `${m.name}: ${kb(m.min)} min  ${kb(m.gz)} gz` +
+        (m.lazy.gz > 0 ? `  (+ ${kb(m.lazy.gz)} gz demand-loaded)` : '')
+    );
+    if (args.breakdown) {
+      for (const [src, bytes] of breakdownOf(m).slice(0, 25)) {
+        console.log(
+          `  ${pad(kb(bytes), 9, true)}  ${(((bytes / m.min) * 100).toFixed(1)).padStart(5)} %  ${src}`
+        );
+      }
+    }
+    return;
   }
 
   const filters = (args.filter ?? []).flatMap((f) => f.split(',')).map((f) => f.toLowerCase());
