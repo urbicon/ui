@@ -4,6 +4,21 @@ All notable changes to this project will be documented in this file.
 This changelog is automatically generated from [Conventional Commits](https://www.conventionalcommits.org).
 
 
+## [6.37.2] - 2026-07-23
+
+### Bug Fixes
+- **docs**: Render route-relative seeAlso as internal ApiReference links
+
+### Documentation
+- Refresh technical-debt after the field-chrome dedup wave
+- **docs-app**: Sync typography-uses counts after field-chrome dedup
+
+### Miscellaneous
+- **docs**: Drop dead docs-theme intent tokens and unused fonts
+
+### Refactoring
+- **blocks**: Dedupe field chrome into shared style fragments
+
 ## [6.37.1] - 2026-07-23
 
 ### Bug Fixes

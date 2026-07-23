@@ -1,6 +1,6 @@
 {
   "name": "@urbicon-ui/design",
-  "version": "6.37.1",
+  "version": "6.37.2",
   "description": "The urbicon CLI — version-pinned design validation and design-manifest tooling for projects built with Urbicon UI. Wraps @urbicon-ui/design-engine for editor hooks and CI.",
   "license": "MIT",
   "repository": {
