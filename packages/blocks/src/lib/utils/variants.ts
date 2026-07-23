@@ -760,6 +760,20 @@ type PropBag = Record<string, unknown>;
  * time layer (ValidSlotVariants, VariantPropsMap) catches the same class of
  * mistakes for literal configs; this covers JS consumers and values built
  * from imported constants.
+ *
+ * Error codes (prod builds throw the bare code to keep message bytes out of
+ * consumer bundles; reproduce in dev for the full message. Codes are stable —
+ * never renumber, append only):
+ * - tv:E1  — `base` and `slots` are mutually exclusive
+ * - tv:E2  — plain class value routes to 'base', but no 'base' slot is declared
+ * - tv:E3  — class leaf is not a string / nested array of strings
+ * - tv:E4  — slot map given, but this tv() declares no slots
+ * - tv:E5  — value targets an undeclared slot name
+ * - tv:E6  — value is neither class string, array nor slot map
+ * - tv:E7  — compoundVariants references an unknown variant axis
+ * - tv:E8  — compoundVariants matches a value the axis does not declare
+ * - tv:E9  — defaultVariants references an unknown variant axis
+ * - tv:E10 — defaultVariants value is not declared on its axis
  */
 function validateTvConfig(config: {
   base?: string | string[];
@@ -775,14 +789,18 @@ function validateTvConfig(config: {
     // Fail loud instead of the historical silent drop (base only ever
     // reached a slot literally named 'base').
     throw new Error(
-      'tv(): `base` and `slots` are mutually exclusive — declare the primary slot as `slots.base` instead.'
+      import.meta.env?.DEV
+        ? 'tv(): `base` and `slots` are mutually exclusive — declare the primary slot as `slots.base` instead.'
+        : 'tv:E1'
     );
   }
 
   const requireBaseSlot = (context: string) => {
     if (slotNames && !slotNames.includes('base')) {
       throw new Error(
-        `tv(): ${context} is a plain class value, which routes to the 'base' slot — but no slot named 'base' is declared.`
+        import.meta.env?.DEV
+          ? `tv(): ${context} is a plain class value, which routes to the 'base' slot — but no slot named 'base' is declared.`
+          : 'tv:E2'
       );
     }
   };
@@ -801,7 +819,9 @@ function validateTvConfig(config: {
       return;
     }
     throw new Error(
-      `tv(): ${context} must be a class string (or nested array of strings), got ${typeof value}.`
+      import.meta.env?.DEV
+        ? `tv(): ${context} must be a class string (or nested array of strings), got ${typeof value}.`
+        : 'tv:E3'
     );
   };
 
@@ -815,13 +835,17 @@ function validateTvConfig(config: {
     if (typeof value === 'object') {
       if (!slotNames) {
         throw new Error(
-          `tv(): ${context} is a slot map, but this tv() declares no slots — use a plain class string/array.`
+          import.meta.env?.DEV
+            ? `tv(): ${context} is a slot map, but this tv() declares no slots — use a plain class string/array.`
+            : 'tv:E4'
         );
       }
       for (const key of Object.keys(value)) {
         if (!slotNames.includes(key)) {
           throw new Error(
-            `tv(): ${context} targets unknown slot '${key}' (declared slots: ${slotNames.join(', ')}).`
+            import.meta.env?.DEV
+              ? `tv(): ${context} targets unknown slot '${key}' (declared slots: ${slotNames.join(', ')}).`
+              : 'tv:E5'
           );
         }
         checkClassLeaf((value as Record<string, unknown>)[key], `${context}.${key}`);
@@ -829,7 +853,9 @@ function validateTvConfig(config: {
       return;
     }
     throw new Error(
-      `tv(): ${context} must be a class string, array or slot map, got ${typeof value}.`
+      import.meta.env?.DEV
+        ? `tv(): ${context} must be a class string, array or slot map, got ${typeof value}.`
+        : 'tv:E6'
     );
   };
 
@@ -844,7 +870,11 @@ function validateTvConfig(config: {
       if (key === 'class') continue;
       const axis = variants[key];
       if (axis == null) {
-        throw new Error(`tv(): compoundVariants[${i}] references unknown variant axis '${key}'.`);
+        throw new Error(
+          import.meta.env?.DEV
+            ? `tv(): compoundVariants[${i}] references unknown variant axis '${key}'.`
+            : 'tv:E7'
+        );
       }
       const constraint = cv[key];
       const values = Array.isArray(constraint) ? constraint : [constraint];
@@ -859,7 +889,9 @@ function validateTvConfig(config: {
         if ((normalized === 'true' || normalized === 'false') && booleanAxis) continue;
         if (normalized == null || !(normalized in axis)) {
           throw new Error(
-            `tv(): compoundVariants[${i}] matches '${key}: ${String(v)}', but axis '${key}' declares no such value (values: ${Object.keys(axis).join(', ')}).`
+            import.meta.env?.DEV
+              ? `tv(): compoundVariants[${i}] matches '${key}: ${String(v)}', but axis '${key}' declares no such value (values: ${Object.keys(axis).join(', ')}).`
+              : 'tv:E8'
           );
         }
       }
@@ -870,14 +902,20 @@ function validateTvConfig(config: {
   for (const [key, value] of Object.entries(defaultVariants)) {
     const axis = variants[key];
     if (axis == null) {
-      throw new Error(`tv(): defaultVariants references unknown variant axis '${key}'.`);
+      throw new Error(
+        import.meta.env?.DEV
+          ? `tv(): defaultVariants references unknown variant axis '${key}'.`
+          : 'tv:E9'
+      );
     }
     const normalized = falsyToString(value);
     const booleanAxis = 'true' in axis || 'false' in axis;
     if ((normalized === 'true' || normalized === 'false') && booleanAxis) continue;
     if (normalized == null || !(normalized in axis)) {
       throw new Error(
-        `tv(): defaultVariants.${key} = '${String(value)}' is not a declared value of axis '${key}' (values: ${Object.keys(axis).join(', ')}).`
+        import.meta.env?.DEV
+          ? `tv(): defaultVariants.${key} = '${String(value)}' is not a declared value of axis '${key}' (values: ${Object.keys(axis).join(', ')}).`
+          : 'tv:E10'
       );
     }
   }
