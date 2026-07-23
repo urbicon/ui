@@ -2,6 +2,23 @@ export * from './date';
 export * from './draggable';
 export * from './figma-token-export';
 export {
+  createIntakeEntry,
+  dragItemsMatchAccept,
+  type FileIntakeConstraints,
+  type FileIntakeEntry,
+  type FileIntakeError,
+  type FileIntakeErrorCode,
+  type FileIntakeMessages,
+  type FileIntakeRejection,
+  type FileIntakeStatus,
+  formatFileSize,
+  isImageFile,
+  matchesAccept,
+  partitionIntake,
+  revokeIntakePreviews,
+  validateIntakeFile
+} from './file-intake';
+export {
   arrow,
   autoUpdate,
   type ComputePositionReturn,

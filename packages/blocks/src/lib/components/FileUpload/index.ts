@@ -3,48 +3,27 @@ import type { HTMLAttributes } from 'svelte/elements';
 import type { MintProp } from '$lib/mint';
 import type { FileUploadSlots, FileUploadVariants } from './fileUpload.variants';
 
-// ── Error Codes ──────────────────────────────────────────────────────────────
+// ── Error Codes & File Wrapper ────────────────────────────────────────────────
+//
+// These types are re-exported aliases of the shared file-intake core
+// (`$lib/utils/file-intake`) — the single source of truth for FileUpload and
+// PromptInput. The public FileUpload names are preserved for API stability.
 
-export type FileUploadErrorCode =
-  | 'FILE_INVALID_TYPE'
-  | 'FILE_TOO_LARGE'
-  | 'FILE_TOO_SMALL'
-  | 'TOO_MANY_FILES'
-  | 'FILE_EXISTS'
-  | 'CUSTOM';
+import type {
+  FileIntakeRejection as FileRejection,
+  FileIntakeError as FileUploadError,
+  FileIntakeErrorCode as FileUploadErrorCode,
+  FileIntakeEntry as FileUploadFile,
+  FileIntakeStatus as FileUploadStatus
+} from '$lib/utils/file-intake';
 
-export interface FileUploadError {
-  /** Machine-readable error code. */
-  code: FileUploadErrorCode;
-  /** Human-readable error message. */
-  message: string;
-}
-
-// ── File Wrapper ─────────────────────────────────────────────────────────────
-
-export type FileUploadStatus = 'pending' | 'uploading' | 'complete' | 'error';
-
-export interface FileUploadFile {
-  /** Unique identifier for this file entry. */
-  id: string;
-  /** The native File object. */
-  file: File;
-  /** Object URL for image previews (auto-generated, auto-revoked). */
-  preview?: string;
-  /** Upload progress 0–100. Undefined when not tracking. */
-  progress?: number;
-  /** Current lifecycle status. */
-  status: FileUploadStatus;
-  /** Validation or upload errors. */
-  errors: FileUploadError[];
-}
-
-export interface FileRejection {
-  /** The rejected file. */
-  file: File;
-  /** Why it was rejected. */
-  errors: FileUploadError[];
-}
+export type {
+  FileRejection,
+  FileUploadError,
+  FileUploadErrorCode,
+  FileUploadFile,
+  FileUploadStatus
+};
 
 // ── MIME Presets ──────────────────────────────────────────────────────────────
 
