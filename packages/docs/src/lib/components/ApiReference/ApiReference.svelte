@@ -207,6 +207,20 @@
               >
                 <code class={unstyled ? '' : styles.typeCode()}>{item.type}</code>
               </a>
+            {:else if item.seeAlso?.startsWith('/') || item.seeAlso?.startsWith('#')}
+              <!-- Internal documentation target — a route-relative path
+                   (`/blocks/primitives/button#variants`, `…#type-Foo`, `…#api`,
+                   `/customization/tokens#colors`) or a bare `#fragment`. Rendered
+                   as a same-origin link wrapping the whole type, visually mirroring
+                   the external branch above (no target/rel). `resolve()` on route
+                   paths is the caller's responsibility — `packages/docs` has no
+                   `$app/*` import. A non-navigable `@see` value (e.g. a bare
+                   `HTMLButtonAttributes.value`) is neither `/` nor `#`, so it
+                   falls through to the type-segment branch instead of becoming a
+                   broken link. -->
+              <a href={item.seeAlso} class={unstyled ? '' : styles.link()}>
+                <code class={unstyled ? '' : styles.typeCode()}>{item.type}</code>
+              </a>
             {:else}
               <!-- Type names documented by a TypesReference on this page become in-page
                    links; every other token stays plain text. Written tight (no newlines
