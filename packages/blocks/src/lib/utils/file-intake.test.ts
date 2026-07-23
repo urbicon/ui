@@ -166,7 +166,13 @@ describe('validateIntakeFile', () => {
       { accept: 'image/*' },
       messages
     );
-    expect(withType).toEqual([{ code: 'FILE_INVALID_TYPE', message: 'invalid:text/plain' }]);
+    expect(withType).toHaveLength(1);
+    expect(withType[0].code).toBe('FILE_INVALID_TYPE');
+    // The message echoes the file's real `type`. Bun's File normalises a
+    // string-part MIME to `text/plain;charset=utf-8` while Node keeps it
+    // verbatim — the root `bun --bun` test aggregate runs on Bun, the
+    // filtered per-package runs on Node, so pin only the prefix.
+    expect(withType[0].message).toMatch(/^invalid:text\/plain/);
 
     const noMime = validateIntakeFile(
       makeFile('a', 10, ''),
