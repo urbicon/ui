@@ -156,9 +156,11 @@
 
       {#snippet sidebarFooter()}
         <div class="p-4">
+          <!-- Seems a bit unnecessary/confusing
           <div class="mb-4">
             <DocsThemeToggle />
           </div>
+          -->
           <!-- Boxed select, matching the boxed search trigger above (design source). -->
           <LocaleSwitcher variant="outlined" size="sm" onLocaleChange={persistLocale} />
           <nav
