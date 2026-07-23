@@ -4,6 +4,26 @@ All notable changes to this project will be documented in this file.
 This changelog is automatically generated from [Conventional Commits](https://www.conventionalcommits.org).
 
 
+## [6.35.0] - 2026-07-23
+
+### Breaking Changes
+- **blocks**: Extract a layer-0 core — public components stop importing each other
+
+### Documentation
+- **blocks**: Pin three mint-registry contract notes from the review
+- Document the layer-0 core, close five debt entries, refresh the size baseline
+
+### Features
+- **i18n**: Make the blocks de catalog lazy, with an eager SSR escape hatch
+- **blocks**: Strip tv() diagnostic strings from prod bundles via error codes
+- **blocks**: Imports-lint — allowlisted cross-component import guard
+
+### Refactoring
+- **blocks**: Move the remaining trivial embeds onto the layer-0 cores
+
+### Testing
+- **e2e**: Add loading and removable sentinels to the VR primitives fixture
+
 ## [6.34.0] - 2026-07-22
 
 ### Bug Fixes
