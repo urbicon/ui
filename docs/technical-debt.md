@@ -243,6 +243,8 @@ internal TODO instead. Sections are ordered roughly by urgency.
 
 ### Table `initialGroupBy`/`initialSummaryConfigs`: Provider-effect seeding diverges from the documented contract
 
+- 🔨 **In Arbeit** (Worktree `table-initial-seed`, seit 2026-07-23): moving both
+  seeds into the constructor `TableSeedState` next to the wave-4 seeds.
 - **Where:** `packages/table/src/lib/core/TableProvider.svelte` (the
   `initialGroupBy` and `initialSummaryConfigs` `$effect`s).
 - **What:** Found while building `initialSort`/`initialFilters`/
