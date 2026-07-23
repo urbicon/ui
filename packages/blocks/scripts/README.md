@@ -4,6 +4,12 @@ Build/maintenance scripts for `@urbicon-ui/blocks`:
 
 - `icons-lint.ts` — enforces the icon design contract + registry integrity
   (`bun run icons:lint`). See [docs/ICON-DESIGN.md](../../../docs/ICON-DESIGN.md).
+- `imports-lint.ts` — guards cross-component imports (`bun run imports:lint`).
+  A component under `primitives/*` or `components/*` may only import a Svelte
+  component from another public component directory when the edge is on the
+  script's allowlist (each entry with a one-line justification); stale entries
+  error too, so the list can only shrink deliberately, never grow silently.
+  `src/lib/internal/**` is always allowed (extraction target).
 - `bundle-size.ts` — per-component minified + tree-shaken bundle size, net of
   Svelte (`bun run size:blocks`, needs a built `dist/`). Builds one virtual
   consumer entry per component directory via Vite and measures raw + gzip.

@@ -99,6 +99,7 @@
     "test:e2e:update": "playwright test --update-snapshots",
     "i18n:check": "bun --filter='@urbicon-ui/i18n' run build && bun packages/design/src/cli/index.ts i18n audit packages/blocks/src packages/table/src --translations packages/blocks/src/lib/translations,packages/table/src/lib/translations",
     "icons:lint": "bun --bun run packages/blocks/scripts/icons-lint.ts",
+    "imports:lint": "bun --bun run packages/blocks/scripts/imports-lint.ts",
     "size:blocks": "bun --bun run packages/blocks/scripts/bundle-size.ts",
     "variants:lint": "bun --bun run packages/blocks/scripts/variants-lint.ts",
     "types:guard": "bun --bun run scripts/types-guard.ts",
