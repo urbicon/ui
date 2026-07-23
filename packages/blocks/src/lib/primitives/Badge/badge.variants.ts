@@ -26,9 +26,25 @@ export const badgeVariants = tv({
     // arbitrary property inherits `base`'s per-size gap. (Codeberg #21)
     content: ['flex items-center [gap:inherit]'],
     // tier: modify — small remove-control on a commit-tier badge.
+    //
+    // Rendered on the internal CoreIconButton (behaviour-only base: inline-flex
+    // centring, cursor/select, focus-visible reset, disabled inertness), so this
+    // slot carries the FULL visual identity. The class set below is the exact
+    // fold of the `<Button variant="ghost" size="xs">` (intent neutral, tier
+    // commit) this control used to be — the ghost/xs Button base plus the
+    // remove-control overrides — MINUS the classes CoreIconButton already
+    // supplies. Effective render is byte-identical to the pre-extraction Badge,
+    // so the removable VR baseline stays green (see internal/core/).
     removeButton: [
+      // ghost/xs neutral Button base (the part CoreIconButton does not supply)
+      'relative font-medium text-center whitespace-nowrap border overflow-hidden',
+      'duration-[var(--blocks-duration-fast)] ease-out',
+      'bg-transparent border-transparent shadow-none',
+      'hover:shadow-[var(--blocks-shadow-md)] active:scale-[0.98] active:shadow-[var(--blocks-shadow-sm)]',
+      'h-6 px-2 text-xs gap-1 focus-visible:ring-offset-2',
+      // remove-control overrides (won the fold over the ghost base)
       'ml-1 shrink-0 rounded-modify transition-colors text-current',
-      'hover:bg-neutral-950/10 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-current'
+      'hover:bg-neutral-950/10 focus-visible:ring-1 focus-visible:ring-current'
     ],
     removeIcon: ['w-3 h-3']
   },

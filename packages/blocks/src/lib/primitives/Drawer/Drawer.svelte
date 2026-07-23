@@ -8,7 +8,8 @@
   import { trapFocus, showDialogModal, closeDialogModal } from '$lib/utils/overlay';
   import { composeHandlers } from '$lib/utils/compose-handlers';
   import { overlayStack, getOverlayMotion } from '$lib/utils';
-  import Button from '../Button/Button.svelte';
+  // internal core, not the public component — keeps the public-to-public import graph clean (see internal/core/)
+  import CoreIconButton from '$lib/internal/core/CoreIconButton.svelte';
   import type { DrawerProps } from './index';
   import { drawerVariants, type DrawerVariants } from './drawer.variants';
 
@@ -252,14 +253,15 @@
               <span></span>
             {/if}
             {#if !hideCloseButton}
-              <Button
-                variant="ghost"
-                size="sm"
+              <CoreIconButton
+                class={unstyled
+                  ? (slotClasses?.closeButton ?? '')
+                  : styles.closeButton({ class: slotClasses?.closeButton })}
                 onclick={requestClose}
                 aria-label={bt('accessibility.closeDrawer')}
               >
                 <CloseIcon class="h-4 w-4" />
-              </Button>
+              </CoreIconButton>
             {/if}
           </header>
         {/if}

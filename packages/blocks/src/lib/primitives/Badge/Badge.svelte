@@ -1,5 +1,7 @@
 <script lang="ts">
-  import { Button, mintRegistry } from '$lib';
+  import { mintRegistry } from '$lib';
+  // internal core, not the public component — keeps the public-to-public import graph clean (see internal/core/)
+  import CoreIconButton from '$lib/internal/core/CoreIconButton.svelte';
   import { getBlocksConfig, resolveSlotClasses } from '$lib/provider';
   import { resolveIcon } from '$lib/icons';
   import CloseIconDefault from '$lib/icons/CloseIcon.svelte';
@@ -152,9 +154,7 @@
   {/if}
 
   {#if isRemovable}
-    <Button
-      variant="ghost"
-      size="xs"
+    <CoreIconButton
       {disabled}
       class={unstyled
         ? (slotClasses?.removeButton ?? '')
@@ -167,7 +167,7 @@
           ? (slotClasses?.removeIcon ?? '')
           : styles.removeIcon({ class: slotClasses?.removeIcon })}
       />
-    </Button>
+    </CoreIconButton>
   {/if}
 </span>
 

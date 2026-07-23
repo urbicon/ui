@@ -19,6 +19,23 @@ export const drawerVariants = tv({
       'border-b border-border-hairline flex-shrink-0'
     ],
     title: ['text-base font-semibold text-text-primary truncate'],
+    // Icon-only header close control (× dismiss). Rendered on the internal
+    // CoreIconButton (behaviour-only base: inline-flex centring, cursor/select,
+    // focus-visible reset, disabled inertness), so this slot carries the FULL
+    // visual identity of the `<Button variant="ghost" size="sm">` (intent
+    // neutral, tier commit) it used to be — the exact ghost/sm neutral Button
+    // fold MINUS the classes CoreIconButton already supplies. Effective render is
+    // byte-identical to the pre-extraction close button (no VR baseline gates
+    // overlays; reproduced deterministically from buttonVariants). Mirrors Dialog.
+    // See internal/core/.
+    closeButton: [
+      'relative font-medium text-center whitespace-nowrap border overflow-hidden',
+      'transition-[color,background-color,border-color,box-shadow,opacity,transform] duration-[var(--blocks-duration-fast)] ease-out',
+      'rounded-commit bg-transparent border-transparent shadow-none',
+      'hover:shadow-[var(--blocks-shadow-md)] active:scale-[0.98] active:shadow-[var(--blocks-shadow-sm)]',
+      'h-8 px-3 text-sm gap-1.5 text-neutral-emphasis hover:bg-neutral-subtle',
+      'focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-neutral/50'
+    ],
     body: [
       'px-5 py-4 flex-1 overflow-y-auto overscroll-contain',
       'text-sm leading-relaxed text-text-secondary'

@@ -1,5 +1,7 @@
 <script lang="ts">
-  import { mintRegistry, Spinner } from '$lib';
+  import { mintRegistry } from '$lib';
+  // internal core, not the public component — keeps the public-to-public import graph clean (see internal/core/)
+  import CoreSpinner from '$lib/internal/core/CoreSpinner.svelte';
   // Direct import (not the barrel): the resolveIcon tree-shaking pattern.
   // Button's mint default is 'scale', so the scale factory ships statically
   // as the apply() fallback; every other mint name stays demand-loaded.
@@ -154,7 +156,7 @@
       : styles.spinner({ class: slotClasses?.spinner })}
     aria-hidden="true"
   >
-    <Spinner size={spinnerSizeMap[effectiveSize]} intent="current" visible={true} />
+    <CoreSpinner size={spinnerSizeMap[effectiveSize]} />
   </span>
 
   <span
