@@ -12,10 +12,16 @@ export const qrCodeVariants = tv({
   variants: {
     // Optional framing so the code can sit on a guaranteed-light card (the
     // scan-safe default look) without the consumer hand-building one.
+    // `scheme-light` pins `color-scheme: light` on the card, so every
+    // `light-dark()` token inside resolves to its light value even in dark
+    // mode — without it the card ground flips dark and the `currentColor`
+    // modules invert (light-on-dark QR codes fail many scanners). The explicit
+    // `text-text-primary` re-derives the module colour under that scheme
+    // (inherited `color` is computed on the dark ancestor and would leak in).
     frame: {
       none: {},
       card: {
-        root: 'bg-surface-base border border-border-subtle rounded-lg p-3 shadow-[var(--blocks-shadow-sm)]'
+        root: 'scheme-light bg-surface-base text-text-primary border border-border-subtle rounded-lg p-3 shadow-[var(--blocks-shadow-sm)]'
       }
     }
   },
