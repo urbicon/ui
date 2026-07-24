@@ -43,6 +43,12 @@ export interface A2uiRenderNode {
   children: A2uiRenderNode[];
   /** flex-grow, present only when this node is a direct Row/Column child with a finite `weight`. */
   weight?: number;
+  /**
+   * The parent prop this child came from (e.g. Card `header`/`footer`/`child`).
+   * Lets a dispatcher with several named childId slots pick the right child by
+   * name instead of position; single-slot / list components ignore it.
+   */
+  slot?: string;
 }
 
 /** Static text labels threaded to the node dispatcher (i18n comes from A2UIView props). */
@@ -155,29 +161,43 @@ interface WalkState {
 /**
  * Resolve a component's child references by walking its spec's child-bearing
  * props (`childId` = one id; `childList` = an id array or a `{ componentId,
- * path }` template). Kind-driven rather than reading fixed `child`/`children`
- * keys, so a catalog may name its child slots freely (Card header/footer,
- * Section child, …). Behaviour is unchanged for the Basic catalog, whose only
- * child props ARE `child`/`children`.
+ * path }` template; `labeledChildren` = a `[{ label, child }]` list). Kind-
+ * driven rather than reading fixed `child`/`children` keys, so a catalog may
+ * name its child slots freely (Card header/footer, Section child, Accordion
+ * items, …). Behaviour is unchanged for the Basic catalog, whose only child
+ * props ARE `child`/`children`. One ref is pushed per `labeledChildren` item
+ * (even a dangling one) so the dispatcher can zip labels with resolved children
+ * by index.
  */
 function childRefs(
   instance: A2uiComponentInstance,
   scopePrefix: string | undefined,
   state: WalkState
-): Array<{ id: string; scope: string | undefined }> {
-  const out: Array<{ id: string; scope: string | undefined }> = [];
+): Array<{ id: string; scope: string | undefined; slot: string }> {
+  const out: Array<{ id: string; scope: string | undefined; slot: string }> = [];
   const spec = state.registry[instance.component];
   if (!spec) return out;
 
   for (const [key, propSpec] of Object.entries(spec.props)) {
     if (propSpec.kind === 'childId') {
       const single = instance.props.get(key);
-      if (typeof single === 'string') out.push({ id: single, scope: scopePrefix });
+      if (typeof single === 'string') out.push({ id: single, scope: scopePrefix, slot: key });
+    } else if (propSpec.kind === 'labeledChildren') {
+      const items = instance.props.get(key);
+      if (Array.isArray(items)) {
+        for (const item of items) {
+          if (item !== null && typeof item === 'object') {
+            const child = (item as { child?: unknown }).child;
+            if (typeof child === 'string') out.push({ id: child, scope: scopePrefix, slot: key });
+          }
+          if (out.length > state.maxNodes) break;
+        }
+      }
     } else if (propSpec.kind === 'childList') {
       const children = instance.props.get(key);
       if (Array.isArray(children)) {
         for (const childId of children) {
-          if (typeof childId === 'string') out.push({ id: childId, scope: scopePrefix });
+          if (typeof childId === 'string') out.push({ id: childId, scope: scopePrefix, slot: key });
         }
       } else if (children !== null && typeof children === 'object') {
         const template = children as { componentId?: unknown; path?: unknown };
@@ -188,7 +208,7 @@ function childRefs(
           const list = getAtPointer(state.dataModel, absPath);
           if (Array.isArray(list)) {
             for (let i = 0; i < list.length; i++) {
-              out.push({ id: template.componentId, scope: `${absPath}/${i}` });
+              out.push({ id: template.componentId, scope: `${absPath}/${i}`, slot: key });
               if (out.length > state.maxNodes) break; // bound the expansion itself
             }
           }
@@ -237,7 +257,10 @@ function buildNode(
     if (nextAncestors.has(ref.id)) continue; // cycle: truncate (issue reported elsewhere)
     const childKey = `${ref.id}@${ref.scope ?? ''}#${i}`;
     const child = buildNode(ref.id, ref.scope, childKey, isFlex, nextAncestors, depth + 1, state);
-    if (child) node.children.push(child);
+    if (child) {
+      child.slot = ref.slot;
+      node.children.push(child);
+    }
   }
 
   return node;

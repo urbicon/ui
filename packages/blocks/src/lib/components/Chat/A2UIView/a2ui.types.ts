@@ -125,7 +125,22 @@ export const A2UI_ISSUE_CODES = {
    * back to the first (default) catalog. Only emitted in a multi-catalog setup;
    * a single-catalog processor accepts any id string silently (back-compat).
    */
-  UNKNOWN_CATALOG: 'UNKNOWN_CATALOG'
+  UNKNOWN_CATALOG: 'UNKNOWN_CATALOG',
+  /**
+   * A `Text` value looks like it carries Markdown, but `Text` renders PLAIN.
+   * A heuristic warning steering the agent to `RichText` (Urbicon catalog).
+   */
+  MARKDOWN_IN_TEXT: 'MARKDOWN_IN_TEXT',
+  /**
+   * An `updateDataModel` write's value type contradicts the surface data
+   * schema's declared type at that pointer (opt-in `dataSchema`).
+   */
+  SCHEMA_TYPE_MISMATCH: 'SCHEMA_TYPE_MISMATCH',
+  /**
+   * An `updateDataModel` write targets a top-level path the surface data schema
+   * does not declare (opt-in `dataSchema`; warning).
+   */
+  SCHEMA_UNDECLARED_PATH: 'SCHEMA_UNDECLARED_PATH'
 } as const;
 
 export type A2uiIssueCode = (typeof A2UI_ISSUE_CODES)[keyof typeof A2UI_ISSUE_CODES];

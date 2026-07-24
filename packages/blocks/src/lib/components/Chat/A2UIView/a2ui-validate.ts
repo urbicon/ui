@@ -240,6 +240,9 @@ function validateProp(
     case 'childList':
       return validateChildList(componentName, key, value, path, surfaceId);
 
+    case 'labeledChildren':
+      return validateLabeledChildren(componentName, key, value, path, surfaceId);
+
     case 'action':
       return validateAction(componentName, key, value, path, surfaceId);
 
@@ -297,6 +300,40 @@ function validateChildList(
       )
     ]
   };
+}
+
+/**
+ * A `labeledChildren` value is an array of `{ label, child }` items: `label` is
+ * a (dynamic) string, `child` a component id referenced by the labelled slot
+ * (Accordion items, Tabs later). The whole prop is rejected if ANY item is
+ * malformed, so the render/graph layers may assume every stored item is a valid
+ * `{ label, child: string }` — this keeps the item→child index alignment the
+ * dispatcher relies on when zipping labels with resolved child nodes.
+ */
+function validateLabeledChildren(
+  componentName: string,
+  key: string,
+  value: unknown,
+  path: string,
+  surfaceId: string
+): PropResult {
+  const bad = (detail: string): PropResult => ({
+    store: false,
+    issues: [issue('error', A2UI_ISSUE_CODES.TYPE_MISMATCH, detail, { surfaceId, path })]
+  });
+  if (!Array.isArray(value))
+    return bad(`"${key}" on ${componentName} must be an array of { label, child } items`);
+  const issues: A2uiValidationIssue[] = [];
+  for (let i = 0; i < value.length; i++) {
+    const item = value[i];
+    if (!isPlainObject(item) || typeof item.child !== 'string' || !isDynamicString(item.label)) {
+      return bad(`item ${i} on ${componentName} must be { label, child: string }`);
+    }
+    for (const labelIssue of dynamicRefIssues(item.label, `${path}/${i}/label`, surfaceId)) {
+      issues.push(labelIssue);
+    }
+  }
+  return { store: true, issues };
 }
 
 function validateAction(
@@ -1175,6 +1212,17 @@ export function collectGraphIssues(
       if (propSpec.kind === 'childId') {
         const single = comp.props.get(key);
         if (typeof single === 'string') out.push({ id: single, scope: scopePrefix });
+      } else if (propSpec.kind === 'labeledChildren') {
+        const items = comp.props.get(key);
+        if (Array.isArray(items)) {
+          for (const item of items) {
+            if (item && typeof item === 'object') {
+              const child = (item as { child?: unknown }).child;
+              if (typeof child === 'string') out.push({ id: child, scope: scopePrefix });
+            }
+            if (out.length > maxNodes) break; // bound expansion
+          }
+        }
       } else if (propSpec.kind === 'childList') {
         const children = comp.props.get(key);
         if (Array.isArray(children)) {

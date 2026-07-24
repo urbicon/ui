@@ -152,3 +152,15 @@ export {
   type A2UIViewVariants,
   a2uiViewVariants
 } from './a2ui-view.variants';
+// ── Urbicon-native catalog (opt-in; tree-shaken out unless imported) ─────────
+export { urbiconA2uiCatalog } from './urbicon/a2ui-urbicon-catalog';
+export {
+  SHARED_AXES,
+  UNSUPPORTED_URBICON_A2UI_COMPONENTS,
+  URBICON_A2UI_CATALOG_ID,
+  URBICON_A2UI_ICON_NAMES,
+  URBICON_A2UI_REGISTRY,
+  type UrbiconComponentSpec,
+  type UrbiconPropSpec,
+  urbiconA2uiCatalogSpec
+} from './urbicon/a2ui-urbicon-registry';

@@ -21,6 +21,7 @@
   import { checkImageUrl, checkLinkUrl } from '../markdown/url-policy.js';
   import type { A2uiActionEvent } from './a2ui.types';
   import { A2UI_REGISTRY, A2UI_SVG_PATH_RE } from './a2ui-registry';
+  import { dedupeOptions, splitDateTime } from './a2ui-node-common';
   import type { A2uiRenderContext, A2uiRenderNode } from './a2ui-render';
   import { bindingPointer, toInputString, toStringArray } from './a2ui-render';
 
@@ -306,27 +307,13 @@
     if (pointer) return toStringArray(resolved('value'));
     return localList ?? toStringArray(raw('value'));
   });
-  const choiceOptions = $derived.by(() => {
-    const options = raw('options');
-    if (!Array.isArray(options)) return [] as Array<{ value: string; label: string }>;
-    // Dedupe by value (first wins): the validator warns on duplicates, but the
-    // keyed `{#each}` below is on option.value — two equal keys throw Svelte's
-    // `each_key_duplicate` (a hard crash that would break the "never throw"
-    // contract for an untrusted payload).
-    const seen = new Set<string>();
-    const out: Array<{ value: string; label: string }> = [];
-    for (const option of options) {
-      if (option === null || typeof option !== 'object' || typeof option.value !== 'string')
-        continue;
-      if (seen.has(option.value)) continue;
-      seen.add(option.value);
-      out.push({
-        value: option.value,
-        label: text(context.resolve(option.label, node.scopePrefix).value)
-      });
-    }
-    return out;
-  });
+  // Dedupe by value (first wins): the validator warns on duplicates, but the
+  // keyed `{#each}` below is on option.value — two equal keys throw Svelte's
+  // `each_key_duplicate` (a hard crash that would break the "never throw"
+  // contract for an untrusted payload). Shared with the Urbicon dispatcher.
+  const choiceOptions = $derived(
+    dedupeOptions(raw('options'), (label) => text(context.resolve(label, node.scopePrefix).value))
+  );
   const choiceLabel = $derived(text(resolved('label')));
   function writeChoice(next: string[]) {
     const pointer = valuePointer();
@@ -358,24 +345,6 @@
     // validator already reported DATETIME_NO_MODE).
     return 'date';
   });
-
-  function normalizeTimePart(value: string): string {
-    const match = /^(\d{2}:\d{2}(?::\d{2})?)/.exec(value);
-    return match ? match[1] : '';
-  }
-  function splitDateTime(value: string): { date: string; time: string } {
-    const trimmed = value.trim();
-    if (trimmed === '') return { date: '', time: '' };
-    const tIndex = trimmed.indexOf('T');
-    if (tIndex !== -1) {
-      return {
-        date: trimmed.slice(0, tIndex),
-        time: normalizeTimePart(trimmed.slice(tIndex + 1))
-      };
-    }
-    if (trimmed.includes(':')) return { date: '', time: normalizeTimePart(trimmed) };
-    return { date: trimmed, time: '' };
-  }
 
   const dtParts = $derived(splitDateTime(textValue));
   const dtMinParts = $derived(splitDateTime(text(resolved('min'))));

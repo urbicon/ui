@@ -110,7 +110,60 @@ const ALLOWLIST: ReadonlyArray<readonly [edge: string, why: string]> = [
     'A2UINode -> Textarea',
     'essential composition — renders the trusted catalog (TextField longText)'
   ],
-  ['A2UIView -> Alert', 'envelope-level error summary surface']
+  ['A2UIView -> Alert', 'envelope-level error summary surface'],
+  // Urbicon A2UI dispatcher — essential composition, renders the Urbicon-native
+  // catalog (opt-in; tree-shaken out of the Basic path). One edge per mapped
+  // component, same rationale as A2UINode.
+  [
+    'UrbiconA2UINode -> Accordion',
+    'essential composition — renders the Urbicon catalog (Accordion)'
+  ],
+  [
+    'UrbiconA2UINode -> AccordionItem',
+    'essential composition — renders the Urbicon catalog (Accordion)'
+  ],
+  ['UrbiconA2UINode -> Alert', 'essential composition — renders the Urbicon catalog (Alert)'],
+  ['UrbiconA2UINode -> Avatar', 'essential composition — renders the Urbicon catalog (Avatar)'],
+  ['UrbiconA2UINode -> Badge', 'essential composition — renders the Urbicon catalog (Badge)'],
+  ['UrbiconA2UINode -> Button', 'essential composition — renders the Urbicon catalog (Button)'],
+  ['UrbiconA2UINode -> Card', 'essential composition — renders the Urbicon catalog (Card)'],
+  ['UrbiconA2UINode -> Checkbox', 'essential composition — renders the Urbicon catalog (Checkbox)'],
+  [
+    'UrbiconA2UINode -> DatePicker',
+    'essential composition — renders the Urbicon catalog (DatePicker)'
+  ],
+  [
+    'UrbiconA2UINode -> EmptyState',
+    'essential composition — renders the Urbicon catalog (EmptyState)'
+  ],
+  ['UrbiconA2UINode -> Input', 'essential composition — renders the Urbicon catalog (Input)'],
+  ['UrbiconA2UINode -> Progress', 'essential composition — renders the Urbicon catalog (Progress)'],
+  [
+    'UrbiconA2UINode -> RadioGroup',
+    'essential composition — renders the Urbicon catalog (RadioGroup)'
+  ],
+  [
+    'UrbiconA2UINode -> RadioItem',
+    'essential composition — renders the Urbicon catalog (RadioGroup)'
+  ],
+  ['UrbiconA2UINode -> Select', 'essential composition — renders the Urbicon catalog (Select)'],
+  [
+    'UrbiconA2UINode -> Separator',
+    'essential composition — renders the Urbicon catalog (Separator)'
+  ],
+  ['UrbiconA2UINode -> Skeleton', 'essential composition — streaming placeholder for pending refs'],
+  ['UrbiconA2UINode -> Slider', 'essential composition — renders the Urbicon catalog (Slider)'],
+  ['UrbiconA2UINode -> Stepper', 'essential composition — renders the Urbicon catalog (Stepper)'],
+  [
+    'UrbiconA2UINode -> StepperStep',
+    'essential composition — renders the Urbicon catalog (Stepper)'
+  ],
+  ['UrbiconA2UINode -> Textarea', 'essential composition — renders the Urbicon catalog (Textarea)'],
+  [
+    'UrbiconA2UINode -> TimeInput',
+    'essential composition — renders the Urbicon catalog (TimeInput)'
+  ],
+  ['UrbiconA2UINode -> Toggle', 'essential composition — renders the Urbicon catalog (Toggle)']
 ];
 
 const c = {

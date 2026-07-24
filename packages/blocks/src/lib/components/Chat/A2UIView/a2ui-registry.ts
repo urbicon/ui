@@ -22,6 +22,7 @@ export type A2uiPropKind =
   | 'enum'
   | 'childId'
   | 'childList'
+  | 'labeledChildren'
   | 'action'
   | 'options'
   | 'icon'
