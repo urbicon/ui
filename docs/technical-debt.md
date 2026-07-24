@@ -65,26 +65,6 @@ internal TODO instead. Sections are ordered roughly by urgency.
 
 ## API design
 
-### Button `preset="pill"`/`"circle"` convenience catalog — deferred by design (BTN-3)
-
-- **Where:** `packages/blocks/src/lib/primitives/Button` + the preset resolution
-  in `provider` (`resolveSlotClasses`).
-- **What:** A backlog idea (BTN-3 Alt) proposed shipping built-in Button presets
-  `pill` / `circle` as convenience defaults, on top of the consumer-registered
-  preset system.
-- **Why deferred:** It conflicts with the deliberate "presets are
-  consumer-defined" architecture — these would be the first library-shipped
-  presets, and consumers couldn't tell built-in from their own. The value is
-  low: `pill` is already the default (`tier="commit"` → `rounded-commit`), and
-  `circle` is a one-class consumer pattern (`class="aspect-square rounded-full
-  p-0"` or a project preset). Registering `pill`/`circle` via `<BlocksProvider
-  presets>` is the supported path and stays the recommendation. Revisit only if
-  a broad consumer demand for a canonical shape catalog emerges.
-- **Decision 2026-07-24:** ✕ Won't-do — conflicts with the "presets are
-  consumer-defined" architecture; `pill` is already the default and `circle` a
-  one-class consumer preset. Closed.
-- **Found:** 2026-07-10, P2 Blocks feature-request pass.
-
 ### Intent palettes drift across primitives — three different value sets, one undocumented
 
 - **Where:** `alert.variants.ts` / `toast.variants.ts` (6 values: `+info`,
@@ -217,12 +197,19 @@ internal TODO instead. Sections are ordered roughly by urgency.
   panels.
 - **Counter-argument, recorded deliberately:** the project's positioning is
   AI-native DX, and non-rendering crawlers (ClaudeBot/GPTBot/Bing) are the target
-  audience — they currently ingest "No matching properties" as the authoritative
+  audience — they used to ingest "No matching properties" as the authoritative
   API on 81 pages. The verdict rests on the Option B judgement that the `urbicon`
   CLI is the primary consumer surface and the docs site secondary; if that
-  judgement is wrong, so is the deferral. **Cheap middle path if it ever bites:**
-  the falsehood is one prop — an honest `noDataText` for the pre-hydration state
-  costs nothing and touches no store.
+  judgement is wrong, so is the deferral.
+- **Cheap middle path — shipped for ApiReference (W7, 2026-07-24):** the
+  affirmative *falsehood* is closed. `ApiReference.svelte` now keys `noDataText`
+  on a local `hydrated` flag, so the prerendered/crawler artifact reads "Loading
+  properties…" (props are on their way in) instead of the false "No matching
+  properties"; post-hydration it reverts to the correct filter-empty copy. One
+  prop, no store touched. This does NOT fix the underlying $effect-ingestion —
+  the prerendered table body is still empty (no prop rows), the deep fix below
+  (SSR-seed the Table) is unchanged, and the two other surfaces (CodePanel,
+  PlaygroundConfigurator) still carry placeholders.
 - **Found:** 2026-07-14, building the docs search index (publish-m3-finale). The
   search indexer routes around this entirely by importing `api.ts` directly
   rather than parsing HTML — which is why a Pagefind-style approach would have
@@ -392,23 +379,6 @@ internal TODO instead. Sections are ordered roughly by urgency.
   semantics consumers may depend on.
 - **Found:** 2026-07-13, table docs API catch-up.
 
-### Guide cross-route: same-route re-navigation compares paths exactly
-
-- **Where:** `packages/blocks/src/lib/utils/guide.svelte.ts` —
-  `#maybeNavigate`'s `route === current()` short-circuit.
-- **What:** The post-#41 async/re-entrant false-stops and the `#knownPath`
-  targetless-clear skip are fixed (normalized-landing heuristic +
-  superseded-navigation epochs + early-return clear; tests in
-  `guide.svelte.test.ts`). Remaining sliver: with a normalizing router, a
-  step whose `route` equals the current *logical* route still re-navigates
-  (exact compare), and a router that no-op's such a `goto` without emitting
-  any report leaves a targetless expectation armed until the next step
-  (DEV-only symptom).
-- **Why deferred:** Normalizing the pre-navigation compare is a behaviour
-  decision (skip vs. re-navigate), not a bug fix; no consumer has hit it.
-- **Found:** 2026-07-14, async false-stop hardening (Fable debt wave,
-  follow-up to #41 / CR-guide-cross-route-followups).
-
 ### Checkbox now carries a press cue + intent interaction layer its form siblings lack
 
 - **Where:** `packages/blocks/src/lib/primitives/Checkbox/checkbox.variants.ts`
@@ -459,28 +429,6 @@ internal TODO instead. Sections are ordered roughly by urgency.
 - **Decision 2026-07-24:** ⏸ Hold — cosmetic, only the `fluid`+`showEndPoint`
   combo; act only if it shows up in practice.
 - **Found:** 2026-07-14, Sparkline `fluid` review (primitives-debt wave).
-
-### Toast/FileUpload loading spinners are pinned `text-primary`, ignoring the intent/status colour scheme
-
-- **Where:** `packages/blocks/src/lib/primitives/Toast/Toaster.svelte` (loading
-  icon slot) and `packages/blocks/src/lib/components/FileUpload/FileUpload.svelte`
-  (uploading status icon).
-- **What:** Both loading glyphs render brand-primary regardless of context: the
-  toast's other intent icons follow `toast.intent` (the variants file even says
-  "the intent signal comes through the icon color"), and FileUpload's sibling
-  status icons are `text-success`/`text-danger` — but a loading toast with
-  `intent: 'success'` still shows a primary spinner. Inherited, not designed:
-  the old embedded public `Spinner` simply defaulted to `intent="primary"`, and
-  the CoreSpinner conversion pinned `class="text-primary"` to keep the rendered
-  default byte-identical (the default promise-toast intent is `neutral`, so
-  dropping the pin would have visibly re-coloured it to `text-text-secondary`).
-- **Why deferred:** Whether the loading spinner should follow the intent (like
-  every other status glyph) or stay brand-primary (the common "busy = brand"
-  look) is a design decision with a visible outcome, not a mechanical fix —
-  the conversion's contract was render-identity. Once decided, the fix is
-  deleting/replacing one class at each of the two call-sites.
-- **Found:** 2026-07-23, core-extraction wave (public→public edge removal),
-  while proving render-identity of the Toaster/FileUpload spinner conversion.
 
 ## Accessibility
 
@@ -606,21 +554,6 @@ internal TODO instead. Sections are ordered roughly by urgency.
 
 ## Docs coverage
 
-### Toast's Customization section holds API-reference material ("Toaster Store API")
-
-- **Where:** `apps/docs/src/routes/blocks/primitives/toast/Docs.svelte` — the
-  "Toaster Store API" block inside the Customization section.
-- **What:** The XC-6 taxonomy sweep (debt-fix-wave-4, 2026-07-23) moved all
-  misfiled *usage* demos to Examples across 9 pages (the 8 logged ones plus
-  pagination) and closed four ToC omissions (menu, drawer, popover, sidebar).
-  Toast's remainder is a different class: store-API reference prose sitting
-  under Customization — not a usage demo, so the sweep left it. It arguably
-  belongs in the API section or its own section.
-- **Why deferred:** Wants a per-page taxonomy call (and possibly a docs-gen
-  section for imperative store APIs — Toast is not the only store-driven
-  surface), not a mechanical move.
-- **Found:** 2026-07-23, XC-6 taxonomy sweep (debt-fix-wave-4).
-
 ### The docs search index is English-only, capped at 2000 chars per record, and indexes playground control names
 
 - **Where:** `apps/docs/scripts/harvest.ts` (`MAX_BODY` ~`:26`, the
@@ -700,22 +633,6 @@ internal TODO instead. Sections are ordered roughly by urgency.
   still 403s) and touches security semantics.
 - **Found:** 2026-07-21, consumer-digestion analysis (cookery/utilio/buny
   CSRF sessions).
-
-### `passkey.updateCounter`: delete-race is misclassified as `counter_regression`
-
-- **Where:** `packages/auth` — `passkey/handlers.ts:370` (caller of
-  `updateCounter`).
-- **What:** Since the TOCTOU fix (1a40207), a counterless passkey deleted
-  mid-login makes `updateCounter` return `false` → the caller logs audit
-  reason `counter_regression` and reports "possible cloned authenticator".
-  Outcome (reject, fail-closed) is correct, but the diagnosis is wrong — a SOC
-  alarms on a benign delete-race as a clone attack.
-- **Why deferred:** Judgment call: the race is extremely rare, and the only
-  fix (re-query `findByCredentialId` on `false` → `credential_deleted`) costs
-  an extra query on the genuine clone-attack path too. Pure observability, no
-  security impact.
-- **Found:** 2026-07-05, silent-failure-hunter pass on the auth review
-  package 6.
 
 ### auth `Buffer` usage binds to Node/Bun (not edge-portable)
 
@@ -810,23 +727,32 @@ internal TODO instead. Sections are ordered roughly by urgency.
 
 ## Testing / CI gates
 
-### docs-gen: `failFast` is coupled to parallelism being off — enabling it silently downgrades errors to exit 0
+### docs-gen strictness: the barrier only fails on *collected* errors — discovery partial-failures aren't collected, and there's no orchestrator-level test
 
-- **Where:** `packages/docs-gen/src/.../PipelineOrchestrator.ts:29` —
-  `failFast: !config.processing?.parallel?.enabled`.
-- **What:** `ErrorHandler.reportError` only rethrows a `PipelineException` when
-  `failFast` is on; that rethrow is what makes a generation error reach
-  `success: false` and the CLI's non-zero exit. Parallelism is off today, so
-  the gate works (verified end-to-end: a broken `docsConfig` exits 1). Turn
-  `processing.parallel` on and the rethrow disappears: the error is still
-  logged, the artifact is still missing, and the run exits **0**. A performance
-  switch silently changing error strictness is a trap for whoever flips it.
-- **Why deferred:** Wants a deliberate decision on what the coupling was for
-  (presumably: don't abort sibling tasks mid-flight) and how to keep strictness
-  without it — e.g. collect failures and fail at the barrier. Not a drive-by:
-  it changes what a parallel run does on error.
-- **Found:** 2026-07-14, closing the docsConfig error channel (Opus quality
-  wave).
+- **Where:** `packages/docs-gen/src/core/pipeline/PipelineOrchestrator.ts`
+  (`discoveryPhase` per-package `catch`) + the absence of a
+  `PipelineOrchestrator.execute()` test.
+- **What:** The original coupling — `failFast: !parallel.enabled`, so enabling
+  parallelism silently downgraded errors to exit 0 — is **fixed** (W7,
+  2026-07-24): `failFast` is decoupled from parallelism and a barrier after all
+  phases fails the run on any collected error (`totalErrors > 0` →
+  `createErrorResult` → `success:false`), in both modes; `maxErrors` still caps
+  runaway accumulation. Two residual strictness bounds remain: (a) `discoveryPhase`
+  catches a per-package `findComponents` failure, `console.error`s it and
+  *continues* without `errorHandler.reportError`, so a **partial** discovery
+  failure (one package fails, others succeed) is never collected → the barrier
+  doesn't trip and the run succeeds with that package's components missing (a
+  *total* discovery failure is still caught by the `manifests.length === 0`
+  guard). (b) The barrier itself has no regression test — `ErrorHandler.test.ts`
+  covers the `failFast`/`maxErrors` primitives but not the orchestrator control
+  flow.
+- **Why deferred:** (a) is a deliberate "continue with other packages" (commented
+  as such) — making a partial discovery failure fail the whole run is a strictness
+  *decision*, not a drive-by. (b) wants a mockable phase seam the orchestrator
+  doesn't currently expose (phases use dynamic imports of concrete classes).
+- **Found:** 2026-07-24, W7 failFast-decoupling adversarial review (narrowed from
+  the original "failFast coupled to parallelism" entry, 2026-07-14; the coupling
+  is resolved).
 
 
 ### e2e visual snapshots are `chromium-darwin`-only — Linux CI can't verify them
@@ -908,10 +834,13 @@ internal TODO instead. Sections are ordered roughly by urgency.
   escaping the inner ones — `code="<X a="b">"` — which no longer parses
   ("Expected token ="). Verified 2026-07-13 on the info-card page; worked
   around by using `isolate` extraction instead of inline code attributes.
-- **Why deferred:** Upstream prettier-plugin-svelte behaviour; needs a minimal
-  repro + upstream issue (or a repo convention: code snippets always via
-  template-literal props / `isolate`, never single-quoted attributes).
-- **Found:** 2026-07-13, docs-package section polish.
+- **Why deferred:** Upstream prettier-plugin-svelte behaviour. The **repo
+  convention** half is done (W7, 2026-07-24): `docs/DocsPageGuide.md` now
+  documents "never put a code snippet in a single-quoted attribute — use a
+  template-literal `code={`…`}` or `isolate`", which every page already follows.
+  Only the upstream contribution remains: a minimal standalone repro + a
+  `prettier-plugin-svelte` issue.
+- **Found:** 2026-07-13, docs-package section polish; convention documented in W7.
 
 ## docs-gen
 
@@ -1029,24 +958,6 @@ internal TODO instead. Sections are ordered roughly by urgency.
   `blocks`. These two `description` sites (the a11y design call, always the real
   remainder) are what is left.
 - **Found:** 2026-07-14, tokenising the sub-xs type floor (publish-m3-finale).
-
-### `themes/index.css` claims hue-only shifts preserve contrast — they don't
-
-- **Where:** `packages/blocks/src/lib/style/themes/index.css:24-27` ("Only the
-  hue shifts; lightness and chroma match the foundation ramp, so WCAG contrast
-  is preserved").
-- **What:** False as a general rule: OKLCH lightness is perceptual, but
-  luminance still moves with hue at constant L/C — ocean's `secondary-500`
-  measured 4.39:1 where the default ramp's measured 4.99:1, which is exactly
-  how it slipped under AA (fixed 2026-07-14). For the *chassis* neutral ramp
-  the sentence actually refers to, it holds empirically (5.95–6.05 across all
-  themes) — but only because chroma there is ≈ 0.01.
-- **Why deferred:** A doc-wording call ("holds at near-zero chroma") that
-  should be made together with whoever owns the theming guide, and it is now
-  guarded either way: `contrast.test.ts` measures every theme, so a
-  hue-shifted theme that breaks AA fails the suite rather than relying on a
-  comment.
-- **Found:** 2026-07-14, PUBLISH-READINESS D.1 contrast audit.
 
 ### Popover inside phrasing content breaks SSR paragraphs (CitationChip in `<p>`)
 
