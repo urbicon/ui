@@ -4,6 +4,16 @@ All notable changes to this project will be documented in this file.
 This changelog is automatically generated from [Conventional Commits](https://www.conventionalcommits.org).
 
 
+## [6.40.4] - 2026-07-24
+
+### Bug Fixes
+- **auth**: Distinguish passkey delete-race from counter regression
+- **blocks,docs,docs-gen**: Six small debt fixes (W7 polish sweep)
+- **blocks,docs,auth**: Address W7 adversarial-review findings
+
+### Documentation
+- Reconcile technical-debt after W7 polish + auth-micro
+
 ## [6.40.3] - 2026-07-24
 
 ### Bug Fixes
