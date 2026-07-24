@@ -47,19 +47,26 @@ describe('tooltipVariants', () => {
   });
 
   it('never outputs dark: overrides', () => {
-    const intents = [
-      'primary',
-      'secondary',
-      'info',
-      'success',
-      'warning',
-      'danger',
-      'neutral'
-    ] as const;
+    const intents = ['primary', 'secondary', 'success', 'warning', 'danger', 'neutral'] as const;
     for (const intent of intents) {
       const styles = tooltipVariants({ intent });
       expect(styles.base()).not.toMatch(/\bdark:/);
       expect(styles.arrow()).not.toMatch(/\bdark:/);
     }
+  });
+});
+
+describe('tooltipVariants — palette scope', () => {
+  it('carries the standard six-value palette, without the feedback-only info', () => {
+    // `info` belongs to Alert/Toast (feedback), not to a container primitive —
+    // see docs/COMPONENT-API-CONVENTIONS.md §intent. It also rendered one hue
+    // step from `primary`, so it implied a distinction it could not show.
+    const intents = Object.keys(
+      (tooltipVariants as unknown as { config: { variants: { intent: Record<string, unknown> } } })
+        .config.variants.intent
+    );
+    expect(intents.sort()).toEqual(
+      ['danger', 'neutral', 'primary', 'secondary', 'success', 'warning'].sort()
+    );
   });
 });

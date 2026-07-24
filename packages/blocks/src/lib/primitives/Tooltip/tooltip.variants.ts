@@ -49,10 +49,14 @@ export const tooltipVariants = tv({
       true: { base: 'opacity-100 starting:opacity-0' },
       false: { base: 'opacity-0' }
     },
+    // The standard six-value palette. `info` is deliberately absent: it belongs
+    // to the feedback family (Alert, Toast), where it means "informational, and
+    // stable under a rebrand" — a tooltip is a container, and `info` sat one
+    // hue-step from `primary` (220 vs 240), so the two were barely
+    // distinguishable while implying a distinction that wasn't there.
     intent: {
       primary: { base: 'bg-primary text-text-on-primary' },
       secondary: { base: 'bg-secondary text-text-on-primary' },
-      info: { base: 'bg-info text-text-on-primary' },
       success: { base: 'bg-success text-text-on-primary' },
       warning: { base: 'bg-warning text-text-on-warning' },
       danger: { base: 'bg-danger text-text-on-primary' },

@@ -166,7 +166,7 @@ Each intent has these variants (example: \`primary\`):
 
 Same pattern applies to: \`success-*\`, \`warning-*\`, \`danger-*\`, \`secondary-*\`, \`neutral-*\`.
 
-\`info-*\` has the identical shape (\`--color-info\`, \`-hover\`, \`-active\`, \`-subtle\`, \`-emphasis\` → \`bg-info\`, \`text-info\`, \`bg-info-subtle\`, …) — the status/feedback blue (hue 220) behind Alert/Toast/Tooltip's info state, \`--color-feedback-info\`, and \`--color-chart-5\`. It is NOT in the global \`ComponentIntent\` union above: the feedback components with a built-in info state (Alert, Toast, Tooltip) do accept \`intent="info"\`, but generic components (Button, Badge, …) take the six-value union, so on those reach for the \`bg-info\`/\`text-info\` utilities rather than \`intent="info"\`.
+\`info-*\` has the identical shape (\`--color-info\`, \`-hover\`, \`-active\`, \`-subtle\`, \`-emphasis\` → \`bg-info\`, \`text-info\`, \`bg-info-subtle\`, …) — the status/feedback blue (hue 220) behind Alert and Toast's info state, \`--color-feedback-info\`, and \`--color-chart-5\`. It is NOT in the global \`ComponentIntent\` union above: only the feedback components (Alert, Toast) accept \`intent="info"\`, because only there does "informational" name a status. Everything else — Button, Badge, Tooltip, … — takes the six-value union, so reach for the \`bg-info\`/\`text-info\` utilities rather than \`intent="info"\`. (Tooltip carried \`info\` until v6.42; it rendered one hue step from \`primary\` and implied a distinction it could not show.)
 
 ## Labels on Filled Intents
 
