@@ -4,6 +4,24 @@ All notable changes to this project will be documented in this file.
 This changelog is automatically generated from [Conventional Commits](https://www.conventionalcommits.org).
 
 
+## [6.42.0] - 2026-07-24
+
+### Bug Fixes
+- **blocks,design-engine**: Drop `info` from the Tooltip palette
+- **blocks**: Make `error` beat `intent` structurally, give Combobox an error frame
+- **blocks,table**: Transition lists must name Tailwind 4's discrete transform properties
+- **blocks,table**: Address the W5 adversarial-review findings
+
+### Documentation
+- Give form validation a normative rule, correct the intent palette list
+- Reconcile technical-debt after W5 form-family
+
+### Features
+- **blocks**: Roll the interaction vocabulary out to Toggle and RadioGroup
+
+### Testing
+- **e2e**: Add RadioGroup, PinInput and TimeInput to the VR + dark-axe matrix
+
 ## [6.41.0] - 2026-07-24
 
 ### Bug Fixes
