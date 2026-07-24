@@ -29,10 +29,20 @@ test.describe('Floating positioning – Visual Regression', () => {
 
   // ─── Menu section ──────────────────────────────────────────────────
 
+  // Both sections sit ~1100px down the fixture, below the 720px viewport, so at
+  // scrollY=0 the floating layer correctly flips ABOVE its trigger (no room
+  // below). Screenshotting without scrolling first froze that flipped state into
+  // baselines named "opens below" — and made the shot depend on the page's total
+  // height, so any section added above silently changed it. Scroll the trigger
+  // into view first (the tooltip tests below already do), which both matches the
+  // test names and makes the shot independent of the fixture's length.
+
   test('menu opens below trigger', async ({ page }) => {
     await setupPage(page);
 
     const section = page.getByTestId('menu-section');
+    await section.scrollIntoViewIfNeeded();
+    await page.waitForTimeout(300);
     await expect(section).toHaveScreenshot('menu-open.png');
   });
 
@@ -42,6 +52,8 @@ test.describe('Floating positioning – Visual Regression', () => {
     await setupPage(page);
 
     const section = page.getByTestId('combobox-section');
+    await section.scrollIntoViewIfNeeded();
+    await page.waitForTimeout(300);
     await expect(section).toHaveScreenshot('combobox-open.png');
   });
 

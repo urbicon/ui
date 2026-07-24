@@ -43,7 +43,15 @@ export default defineConfig({
   projects: [
     {
       name: 'chromium',
-      use: { ...devices['Desktop Chrome'] }
+      // `channel: 'chromium'` pins the FULL Chromium build. Without it Playwright
+      // runs `headless_shell`, which renders fonts ~1px differently — enough to
+      // flip every text-heavy snapshot. The visual baselines are produced from
+      // the full build, so leaving the renderer implicit meant a plain local run
+      // disagreed with the committed baselines by a constant ~1% of pixels (how
+      // 13 shots in floating/guide.spec sat red at exactly the old 0.01 ratio).
+      // Both builds ship with `playwright install chromium`; pinning costs
+      // nothing and makes the renderer the same everywhere.
+      use: { ...devices['Desktop Chrome'], channel: 'chromium' }
     }
   ],
   webServer: {

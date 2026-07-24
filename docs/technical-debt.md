@@ -711,20 +711,26 @@ internal TODO instead. Sections are ordered roughly by urgency.
   baselines in the CI env itself — option (c), a one-off bootstrap job; a local
   Docker run is not trusted to match the GitHub-Actions font rendering
   byte-for-byte, which is the whole point of per-platform baselines.
-- **Update 2026-07-24 (W4/W6 full-suite run):** the tightened tolerance was
-  applied globally but only `visual-regression.spec` was re-baselined, so the
-  two older visual specs now fail on darwin as well: **13 shots** (7 in
-  `floating.spec.ts`, 6 in `guide.spec.ts`) are red, each at a measured diff
-  ratio of **exactly 0.01** — the previous threshold, which had been waving
-  them through. Their baselines date from the initial commit and have never
-  been generated under the current tolerance (or the current Playwright browser
-  build: the config sets no `channel`, so a plain run uses `headless_shell`,
-  whose ~1px font rendering is the documented caveat above). The rest of the
-  suite is green (116 passed), including all table specs. Deliberately not
-  re-baselined in passing: doing it from a headless_shell run would bake the
-  wrong renderer into the baselines and break them for everyone else. Whoever
-  picks this up should re-generate both specs from a full `channel: 'chromium'`
-  run and verify the diffs are renderer drift, not content.
+- **Resolved on darwin 2026-07-25:** the 13 red shots are green and the full
+  suite passes 131/131. The diagnosis in the previous update was wrong on both
+  counts, which is why re-baselining "as renderer drift" would have been the
+  wrong move: (a) the failures reproduced **identically** under the full
+  `channel: 'chromium'` build, so `headless_shell` was never the cause; (b) the
+  "exactly 0.01" ratio was Playwright's rounded console output, not a constant.
+  The baselines were simply **stale by months** — they still showed "Blocks UI"
+  as the sidebar brand and a section labelled "Dropdown (open)", i.e. they
+  predate both the Urbicon rename and the Dropdown→Menu rename. Three things
+  landed: the config now pins `channel: 'chromium'` (the renderer was implicit,
+  so a plain local run and the committed baselines could never agree); the
+  `menu`/`combobox` shots scroll their section into view before screenshotting
+  (both sections sit ~1100px down a 720px viewport, so the floating layer
+  correctly flipped *above* its trigger — the old shots froze that state under
+  test names reading "opens below", and depended on the fixture's total height);
+  and both specs were re-generated with `--update-snapshots=all`, verified
+  stable over two consecutive runs.
+  **Still open:** the Linux half — this entry's actual subject — is untouched.
+  0 `-chromium-linux` baselines exist against 66 darwin ones, so CI remains
+  blind to the whole visual layer.
 - **Found:** 2026-07-08, adding the primitive visual-regression suite.
 
 ### i18n source scanner: documented analysis limits (strict mode not built)
