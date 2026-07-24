@@ -50,14 +50,44 @@ export interface A2uiStreamIssue {
   line?: string;
 }
 
-const FENCE_OPEN = '```a2ui';
-const FENCE_CLOSE = '```';
+interface FenceMarker {
+  char: '`' | '~';
+  /** Number of fence characters (≥3). */
+  len: number;
+  /** Info string (language), trimmed; `''` for a bare closing fence. */
+  info: string;
+  /** Leading-space count (0–3; ≥4 is an indented code block, not a fence). */
+  indent: number;
+}
 
-/** Could this partial (newline-free) line still grow into a ` ```a2ui ` fence marker? */
+/**
+ * Parse a line as a CommonMark code-fence marker, or `null` if it is not one.
+ * A fence is ` ``` `+ or `~~~`+ with 0–3 leading spaces (≥4 = indented code); a
+ * backtick fence's info string may not contain a backtick.
+ */
+function parseFence(line: string): FenceMarker | null {
+  const m = /^( {0,3})(`{3,}|~{3,})[ \t]*(.*?)[ \t]*$/.exec(line);
+  if (!m) return null;
+  const char = m[2][0] as '`' | '~';
+  const info = m[3];
+  if (char === '`' && info.includes('`')) return null;
+  return { char, len: m[2].length, info, indent: m[1].length };
+}
+
+/** Our special opener: a column-0 backtick fence whose info string is exactly `a2ui`. */
+function isA2uiOpen(f: FenceMarker | null): boolean {
+  return f !== null && f.char === '`' && f.indent === 0 && f.info === 'a2ui';
+}
+/** A bare closing fence that terminates a fence opened with `open`. */
+function isCloseOf(f: FenceMarker | null, open: { char: '`' | '~'; len: number }): boolean {
+  return f !== null && f.char === open.char && f.len >= open.len && f.info === '';
+}
+
+/** Could this partial (newline-free) line still grow into our ` ```a2ui ` fence marker? */
 function couldStartFence(s: string): boolean {
   const t = s.replace(/^[ \t]+/, '');
   if (t === '') return false;
-  return FENCE_OPEN.startsWith(t) || t.startsWith(FENCE_CLOSE);
+  return '```a2ui'.startsWith(t) || t.startsWith('```') || t.startsWith('~~~');
 }
 
 // ── Pure, immutable part-array transforms ───────────────────────────────────
@@ -94,6 +124,12 @@ export class A2uiStreamSplitter {
   /** Committed parts (immutable; replaced wholesale on every mutation). */
   private committed: A2uiStreamPart[] = [];
   private mode: 'text' | 'fence' = 'text';
+  /**
+   * When in text mode inside a *regular* (non-a2ui) markdown code fence, the
+   * marker that opened it. A `` ```a2ui `` line inside such a block is literal
+   * code, NOT a surface — this is what stops a quoted example from executing.
+   */
+  private codeFence: { char: '`' | '~'; len: number } | null = null;
   /** Buffered trailing line that has not yet seen its newline. */
   private pending = '';
   private rawText = '';
@@ -131,40 +167,62 @@ export class A2uiStreamSplitter {
     }
   }
 
-  private processLine(line: string, terminated: boolean): void {
-    const trimmed = line.trim();
-    if (this.mode === 'text') {
-      if (trimmed === FENCE_OPEN) {
-        this.mode = 'fence';
-        this.committed = withStartedA2ui(this.committed);
-      } else {
-        this.committed = withAppendedText(this.committed, terminated ? `${line}\n` : line);
+  private asText(line: string, terminated: boolean): void {
+    this.committed = withAppendedText(this.committed, terminated ? `${line}\n` : line);
+  }
+
+  private processLine(rawLine: string, terminated: boolean): void {
+    // Normalize CRLF: a trailing \r would otherwise defeat fence detection
+    // (the marker regex ends at whitespace, not \r) and leak into JSONL lines.
+    const line = rawLine.endsWith('\r') ? rawLine.slice(0, -1) : rawLine;
+    const fence = parseFence(line);
+
+    if (this.mode === 'fence') {
+      // Inside OUR a2ui block (opened by ```a2ui). Only a bare ``` closes it;
+      // every other line is a JSONL envelope.
+      if (isCloseOf(fence, { char: '`', len: 3 })) {
+        this.committed = withoutEmptyTrailingA2ui(this.committed);
+        this.mode = 'text';
+        return;
+      }
+      if (line.trim() === '') return; // ignore blank lines inside the fence
+      try {
+        const env = JSON.parse(line) as unknown;
+        this.committed = withAppendedEnvelope(this.committed, env);
+      } catch {
+        // Unparseable line: fall the rest of the fence back to text.
+        this.issueList.push({
+          code: 'UNPARSEABLE_LINE',
+          message: 'An a2ui line was not valid JSON; falling back to text.',
+          line
+        });
+        this.committed = withoutEmptyTrailingA2ui(this.committed);
+        this.mode = 'text';
+        this.asText(line, terminated);
       }
       return;
     }
 
-    // fence mode
-    if (trimmed === FENCE_CLOSE) {
-      // Close the fence. An a2ui part that never got an envelope renders nothing.
-      this.committed = withoutEmptyTrailingA2ui(this.committed);
-      this.mode = 'text';
+    // text mode, inside a regular (non-a2ui) code block: everything is verbatim
+    // text — a ```a2ui here is quoted code, never a surface — until the matching
+    // closing fence, which is itself emitted as text.
+    if (this.codeFence) {
+      if (isCloseOf(fence, this.codeFence)) this.codeFence = null;
+      this.asText(line, terminated);
       return;
     }
-    if (trimmed === '') return; // ignore blank lines inside the fence
-    try {
-      const env = JSON.parse(line) as unknown;
-      this.committed = withAppendedEnvelope(this.committed, env);
-    } catch {
-      // Unparseable line: fall the rest of the fence back to text.
-      this.issueList.push({
-        code: 'UNPARSEABLE_LINE',
-        message: 'An a2ui line was not valid JSON; falling back to text.',
-        line
-      });
-      this.committed = withoutEmptyTrailingA2ui(this.committed);
-      this.mode = 'text';
-      this.committed = withAppendedText(this.committed, terminated ? `${line}\n` : line);
+
+    // plain text mode.
+    if (isA2uiOpen(fence)) {
+      this.mode = 'fence';
+      this.committed = withStartedA2ui(this.committed);
+      return;
     }
+    if (fence) {
+      // A regular code fence opens: track it so a nested ```a2ui stays literal.
+      this.codeFence = { char: fence.char, len: fence.len };
+    }
+    this.asText(line, terminated);
   }
 
   /**

@@ -165,6 +165,57 @@ describe('A2uiStreamSplitter — streaming behaviour', () => {
   });
 });
 
+describe('A2uiStreamSplitter — markdown-fence awareness (quoted / indented fences)', () => {
+  it('does NOT execute a 4-space-indented ```a2ui block (it is indented code)', () => {
+    const source = `Example:\n    \`\`\`a2ui\n    ${ENV_SURFACE}\n    \`\`\`\ndone`;
+    const s = runChunked(source, 5);
+    const parts = s.snapshot();
+    // No a2ui part — the whole indented block is literal text.
+    expect(parts.every((p) => p.type === 'text')).toBe(true);
+    expect(s.issues).toHaveLength(0);
+  });
+
+  it('does NOT execute a ```a2ui quoted inside an outer ````markdown block', () => {
+    const source = [
+      'How does it look?',
+      '',
+      '````markdown',
+      '```a2ui',
+      ENV_SURFACE,
+      '```',
+      '````',
+      '',
+      'Cheers.'
+    ].join('\n');
+    const s = runChunked(source, 6);
+    const parts = s.snapshot();
+    expect(parts.every((p) => p.type === 'text')).toBe(true);
+    // The outer fence markers do not leak as a live surface, and the whole block
+    // renders as one continuous text region (with the trailing prose).
+    const textJoined = parts.map((p) => (p as { text: string }).text).join('');
+    expect(textJoined).toContain('````markdown');
+    expect(textJoined).toContain('```a2ui');
+    expect(textJoined).toContain('Cheers.');
+  });
+
+  it('handles two real a2ui blocks in one reply', () => {
+    const source = `First:\n\`\`\`a2ui\n${ENV_SURFACE}\n\`\`\`\nSecond:\n\`\`\`a2ui\n${ENV_ROOT}\n\`\`\`\nfin`;
+    const s = runChunked(source, 8);
+    const parts = s.snapshot();
+    expect(parts.map((p) => p.type)).toEqual(['text', 'a2ui', 'text', 'a2ui', 'text']);
+    expect((parts[1] as { payload: unknown[] }).payload).toEqual([JSON.parse(ENV_SURFACE)]);
+    expect((parts[3] as { payload: unknown[] }).payload).toEqual([JSON.parse(ENV_ROOT)]);
+  });
+
+  it('tolerates CRLF line endings around the fence', () => {
+    const source = `intro\r\n\`\`\`a2ui\r\n${ENV_SURFACE}\r\n\`\`\`\r\ndone`;
+    const s = runChunked(source, 7);
+    const parts = s.snapshot();
+    expect(parts.map((p) => p.type)).toEqual(['text', 'a2ui', 'text']);
+    expect((parts[1] as { payload: unknown[] }).payload).toEqual([JSON.parse(ENV_SURFACE)]);
+  });
+});
+
 // Type-level: a splitter part is assignable to the shape ChatMessage expects.
 it('produces parts structurally compatible with ChatMessage', () => {
   const parts: A2uiStreamPart[] = new A2uiStreamSplitter().snapshot();
