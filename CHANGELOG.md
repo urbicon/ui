@@ -4,6 +4,28 @@ All notable changes to this project will be documented in this file.
 This changelog is automatically generated from [Conventional Commits](https://www.conventionalcommits.org).
 
 
+## [6.43.0] - 2026-07-24
+
+### Bug Fixes
+- **blocks**: Harden the data-schema against the W3 review findings
+- **blocks**: Give the Slider and Progress track a visible fill
+
+### Documentation
+- **blocks**: Note the opt-in Urbicon A2UI catalog in the A2UIView description
+- **blocks**: Ship the A2UI guide and an agent-generated-UI recipe
+- Refresh the typography `uses` counts after the merge
+
+### Features
+- **blocks**: Add the Urbicon-native A2UI catalog (opt-in second catalog)
+- **blocks**: Wire the Urbicon A2UI prompt, data schema and demo/docs surfaces
+- **blocks**: Let an A2UI surface outlive the reply that created it
+
+### Miscellaneous
+- Merge the AI-kit branch (A2UI multi-step surfaces, transport, guide)
+
+### Refactoring
+- **blocks**: Thread an A2UI catalog abstraction through the engine
+
 ## [6.42.0] - 2026-07-24
 
 ### Bug Fixes
