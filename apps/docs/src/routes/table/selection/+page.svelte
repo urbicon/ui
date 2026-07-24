@@ -102,7 +102,7 @@ ${scriptClose}
 
       <CodeExample
         title="Single Select"
-        description="Only one row can be selected at a time – previous selection is automatically cleared."
+        description="Only one row can be selected at a time – previous selection is automatically cleared. Clicking anywhere on the row selects it here (rowClickSelects defaults to true in single mode, and off as soon as onRowClick is set); a click that ends a text selection is ignored, so cell content stays copyable. Pass rowClickSelects explicitly to opt in for multi mode or to keep the checkbox as the only target."
         code={`<Table
   {items}
   {columns}

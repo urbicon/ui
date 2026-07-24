@@ -20,7 +20,7 @@ Peer dependencies: `svelte` (^5), `@urbicon-ui/blocks`, `@urbicon-ui/i18n`.
 | ------------------- | --------------------------------------------------------------------------------------------------------------------------- |
 | Data pipeline       | `$derived`-chain `items → filteredItems → sortedItems → grouped → paginatedItems`; all stages reactive                      |
 | Sorting & Filtering | Column sort (asc/desc/none tri-state), smart filter bar, column-level filters, search highlighting, controlled `searchTerm` |
-| Selection           | Single / multi, `onSelectionChange`, select-all spans all **filtered** rows, keyboard toggle (`Space`)                      |
+| Selection           | Single / multi, `onSelectionChange`, select-all spans all **filtered** rows, keyboard toggle (`Space`), row-click select (`rowClickSelects`, on by default in single mode) |
 | Keyboard            | Roving tabindex, ARIA-Grid role, arrow keys, `Home`/`End`/`PageUp`/`PageDown`, Skip-Link                                    |
 | Grouping            | `groupByKey`, collapsible group headers, grouped summary rows                                                               |
 | Pagination          | Built-in paginator, auto-disable on grouping, mobile-friendly controls                                                      |
