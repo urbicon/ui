@@ -26,6 +26,10 @@ export const a2uiViewVariants = tv({
     errorIcon: 'shrink-0',
     /** Streaming placeholder wrapper for a not-yet-defined reference. */
     pending: 'inline-flex items-center gap-1.5',
+    /** Skeleton shown while streaming before a surface has received its root. */
+    pendingSurface: 'flex min-w-0 flex-col gap-2 rounded-contain border border-border-subtle p-4',
+    /** One shimmering placeholder bar inside the streaming skeleton. */
+    pendingBar: 'h-4 animate-pulse rounded-modify bg-neutral-subtle motion-reduce:animate-none',
     /** Column layout container (flex-col); justify/align appended per instance. */
     column: 'flex min-w-0 flex-col gap-2',
     /** Row layout container (flex-row); justify/align appended per instance. */

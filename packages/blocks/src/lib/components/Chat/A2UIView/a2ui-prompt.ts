@@ -109,7 +109,11 @@ export function a2uiSystemPrompt(options?: { catalogId?: string }): string {
       '- A multi-child container (Row, Column, List) uses "children": either an',
       '  array of ids, or a template { componentId, path } that repeats one',
       '  component over a data-model array.',
-      '- You may stream components incrementally; buffer until "root" exists.'
+      '- Stream components incrementally: send SEVERAL updateComponents envelopes',
+      '  ("root" and its top-level containers in the FIRST one, then a few',
+      '  components per envelope) so the UI renders progressively while you write.',
+      '  The client buffers until "root" exists and shows placeholders for',
+      '  children that have not arrived yet.'
     ].join('\n')
   );
 

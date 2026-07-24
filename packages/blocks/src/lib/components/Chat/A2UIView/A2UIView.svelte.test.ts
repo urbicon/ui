@@ -352,6 +352,40 @@ describe('A2UIView — validation surfacing', () => {
         .some((i) => i.code === A2UI_ISSUE_CODES.DANGLING_REF && i.severity === 'error')
     ).toBe(true);
   });
+
+  it('shows a skeleton while streaming before the surface has a root, then the fault chip', () => {
+    // The model emits createSurface fast but the (large) updateComponents last —
+    // the wait must be visible, not blank.
+    const props = render({ payload: [surface()], streaming: true });
+
+    expect(screen.getByRole('status')).toBeTruthy();
+    expect(screen.getByText('Loading UI')).toBeTruthy();
+    expect(document.body.textContent).not.toContain('Invalid UI payload');
+
+    flushSync(() => {
+      props.streaming = false;
+    });
+    flushSync();
+
+    // Settled without a root: the skeleton yields to the fault chip.
+    expect(screen.queryByRole('status')).toBeNull();
+    expect(document.body.textContent).toContain('Invalid UI payload');
+  });
+
+  it('shows a skeleton while streaming an empty payload and nothing once settled', () => {
+    // The fence just opened — no envelope has completed yet.
+    const props = render({ payload: [], streaming: true });
+    expect(screen.getByRole('status')).toBeTruthy();
+
+    flushSync(() => {
+      props.streaming = false;
+    });
+    flushSync();
+
+    // An empty settled payload renders nothing (no skeleton, no fault).
+    expect(screen.queryByRole('status')).toBeNull();
+    expect(document.body.textContent).not.toContain('Invalid UI payload');
+  });
 });
 
 describe('A2UIView — hardening (review regressions)', () => {

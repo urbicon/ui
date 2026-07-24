@@ -249,6 +249,20 @@
   <A2UINode {node} {context} renderChild={renderNode} />
 {/snippet}
 
+<!--
+  Streaming skeleton: while the model is still emitting the (often large)
+  updateComponents envelope, the surface exists without a root — show a quiet
+  pulse instead of nothing so the wait is visible.
+-->
+{#snippet pendingSkeleton()}
+  <div class={classes.pendingSurface} role="status">
+    <span class="sr-only">{pendingLabel}</span>
+    <div class={[classes.pendingBar, 'w-1/3']} aria-hidden="true"></div>
+    <div class={[classes.pendingBar, 'w-full']} aria-hidden="true"></div>
+    <div class={[classes.pendingBar, 'w-2/3']} aria-hidden="true"></div>
+  </div>
+{/snippet}
+
 <div class={rootClass} {...restProps}>
   {#if view.summaryIssues.length}
     <Alert intent="danger" title={errorTitle}>
@@ -264,9 +278,16 @@
     <div class={classes.surface}>
       {#if surface.root}
         {@render renderNode(surface.root, surface.context)}
-      {:else if !streamingProp}
+      {:else if streamingProp}
+        {@render pendingSkeleton()}
+      {:else}
         <span class={classes.errorChip}>{errorTitle}</span>
       {/if}
     </div>
   {/each}
+
+  {#if streamingProp && view.surfaces.length === 0 && !view.summaryIssues.length}
+    <!-- Fence opened but no envelope has completed yet — same quiet pulse. -->
+    {@render pendingSkeleton()}
+  {/if}
 </div>
