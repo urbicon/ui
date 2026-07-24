@@ -82,6 +82,12 @@ export const A2UI_ISSUE_CODES = {
   UNKNOWN_ENUM: 'UNKNOWN_ENUM',
   /** Two components share an id inside a single `updateComponents` list. */
   DUPLICATE_ID: 'DUPLICATE_ID',
+  /** Two `ChoicePicker` options share a `value` — the second is dropped (values must be unique). */
+  DUPLICATE_OPTION: 'DUPLICATE_OPTION',
+  /** More surfaces than the engine renders at once — the extra `createSurface` is refused. */
+  MAX_SURFACES: 'MAX_SURFACES',
+  /** A single `updateComponents` exceeds the per-message component cap — the surplus is dropped. */
+  MAX_COMPONENTS: 'MAX_COMPONENTS',
   /** A component object has no usable `id`. */
   MISSING_ID: 'MISSING_ID',
   /** `__proto__`/`constructor`/`prototype` as an id, prop, pointer or context key. */

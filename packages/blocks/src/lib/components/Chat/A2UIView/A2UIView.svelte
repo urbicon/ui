@@ -87,6 +87,12 @@
   let consumed: unknown[] = [];
   let normalizeIssue = $state<A2uiValidationIssue | undefined>(undefined);
   let version = $state(0);
+  // Bumped ONLY on a full rebuild (payload replaced, not appended). It keys the
+  // surface `{#each}`, so a rebuild remounts the node tree and A2UINode's local
+  // input fallbacks reset — otherwise a typed-then-replaced literal input keeps
+  // the stale text (a rebuild is documented to discard local edits). An
+  // incremental append leaves it unchanged, so focus and edits survive.
+  let generation = $state(0);
 
   function bump(): void {
     version++;
@@ -106,6 +112,7 @@
       if (!prefixMatches) {
         processor = createA2uiProcessor();
         consumed = [];
+        generation++;
       }
       for (let i = consumed.length; i < envelopes.length; i++) {
         processor.apply(envelopes[i], i);
@@ -253,7 +260,7 @@
     </Alert>
   {/if}
 
-  {#each view.surfaces as surface (surface.surfaceId)}
+  {#each view.surfaces as surface (`${surface.surfaceId}#${generation}`)}
     <div class={classes.surface}>
       {#if surface.root}
         {@render renderNode(surface.root, surface.context)}

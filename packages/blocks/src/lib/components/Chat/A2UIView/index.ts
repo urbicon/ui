@@ -22,19 +22,20 @@ import type { A2UIViewSlots } from './a2ui-view.variants';
  * @related ChatMessage
  * @stability experimental
  *
- * @example Wire it into ChatMessage as the `a2ui` part renderer
+ * @example Wire it in as the `a2ui` part renderer (via `partRenderers`, which
+ * ChatMessage/ChatMessageList forward to each part — a plain `a2ui` snippet on
+ * `<ChatMessage>` is NOT consumed)
  * ```svelte
- * <ChatMessage {message} {urlPolicy}>
- *   {#snippet a2ui(part)}
- *     <A2UIView
- *       payload={part.payload}
- *       streaming={message.status === 'streaming'}
- *       {urlPolicy}
- *       onAction={(event) => sendUserTurn(`[ui-action] ${JSON.stringify(event)}`)}
- *       onValidationError={(issues) => reportToAgent(issues)}
- *     />
- *   {/snippet}
- * </ChatMessage>
+ * {#snippet a2uiPart(part)}
+ *   <A2UIView
+ *     payload={part.payload}
+ *     streaming={message.status === 'streaming'}
+ *     {urlPolicy}
+ *     onAction={(event) => sendUserTurn(`[ui-action] ${JSON.stringify(event)}`)}
+ *     onValidationError={(issues) => reportToAgent(issues)}
+ *   />
+ * {/snippet}
+ * <ChatMessage {message} {urlPolicy} partRenderers={{ a2ui: a2uiPart }} />
  * ```
  *
  * @example Standalone with an accumulated envelope array

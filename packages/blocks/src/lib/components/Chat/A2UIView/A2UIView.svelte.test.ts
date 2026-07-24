@@ -2,7 +2,7 @@
 import { screen } from '@testing-library/dom';
 import userEvent from '@testing-library/user-event';
 import { flushSync, mount, unmount } from 'svelte';
-import { afterEach, describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import A2UIView from './A2UIView.svelte';
 import { A2UI_ISSUE_CODES, type A2uiActionEvent, type A2uiValidationIssue } from './a2ui.types';
 import type { A2UIViewProps } from './index';
@@ -351,5 +351,135 @@ describe('A2UIView — validation surfacing', () => {
         .flat()
         .some((i) => i.code === A2UI_ISSUE_CODES.DANGLING_REF && i.severity === 'error')
     ).toBe(true);
+  });
+});
+
+describe('A2UIView — hardening (review regressions)', () => {
+  it('does not crash on duplicate ChoicePicker option values (dedupes + warns)', () => {
+    const reported: A2uiValidationIssue[][] = [];
+    // A duplicate option.value used to throw Svelte's `each_key_duplicate` at
+    // mount, breaking the "untrusted payload never throws" contract.
+    expect(() =>
+      render({
+        payload: [
+          surface(),
+          data({ c: [] }),
+          comps([
+            {
+              id: 'root',
+              component: 'ChoicePicker',
+              value: { path: '/c' },
+              options: [
+                { label: 'A', value: 'x' },
+                { label: 'B', value: 'x' }
+              ]
+            }
+          ])
+        ],
+        onValidationError: (issues) => reported.push(issues)
+      })
+    ).not.toThrow();
+    expect(document.querySelectorAll('input[type="radio"]').length).toBe(1);
+    expect(reported.flat().some((i) => i.code === A2UI_ISSUE_CODES.DUPLICATE_OPTION)).toBe(true);
+  });
+
+  it('gives a labelled Column role="group" so aria-label is valid', () => {
+    render({
+      payload: [
+        surface(),
+        comps([
+          {
+            id: 'root',
+            component: 'Column',
+            accessibility: { label: 'Booking form' },
+            children: ['t']
+          },
+          { id: 't', component: 'Text', text: 'Hi' }
+        ])
+      ]
+    });
+    const group = screen.getByRole('group', { name: 'Booking form' });
+    expect(group.tagName).toBe('DIV');
+  });
+
+  it('discards a typed literal input value on a full rebuild (generation remount)', async () => {
+    const user = userEvent.setup();
+    const props = render({
+      payload: [
+        surface(),
+        comps([{ id: 'root', component: 'TextField', label: 'Name', value: 'A' }])
+      ]
+    });
+    const input = document.querySelector('input') as HTMLInputElement;
+    expect(input.value).toBe('A');
+    await user.clear(input);
+    await user.type(input, 'hello');
+    flushSync();
+    expect((document.querySelector('input') as HTMLInputElement).value).toBe('hello');
+
+    // Fresh (non-referential) payload with a new literal → full rebuild remounts
+    // the node, the local fallback resets, and the new literal wins.
+    flushSync(() => {
+      props.payload = [
+        surface(),
+        comps([{ id: 'root', component: 'TextField', label: 'Name', value: 'B' }])
+      ];
+    });
+    flushSync();
+    expect((document.querySelector('input') as HTMLInputElement).value).toBe('B');
+  });
+
+  it('opens a policy-allowed openUrl action and no-ops a blocked one', async () => {
+    const user = userEvent.setup();
+    const openSpy = vi.spyOn(window, 'open').mockImplementation(() => null);
+    render({
+      payload: [
+        surface(),
+        comps([
+          { id: 'root', component: 'Column', children: ['ok', 'bad'] },
+          {
+            id: 'ok',
+            component: 'Button',
+            child: 'okl',
+            action: { functionCall: { call: 'openUrl', args: { url: 'https://ok.example/' } } }
+          },
+          { id: 'okl', component: 'Text', text: 'Open' },
+          {
+            id: 'bad',
+            component: 'Button',
+            child: 'badl',
+            action: { functionCall: { call: 'openUrl', args: { url: 'javascript:alert(1)' } } }
+          },
+          { id: 'badl', component: 'Text', text: 'Evil' }
+        ])
+      ],
+      urlPolicy: { allowedLinkProtocols: ['https:'] }
+    });
+    await user.click(screen.getByRole('button', { name: /Open/ }));
+    await user.click(screen.getByRole('button', { name: /Evil/ }));
+    flushSync();
+    expect(openSpy).toHaveBeenCalledTimes(1);
+    expect(openSpy).toHaveBeenCalledWith('https://ok.example/', '_blank', 'noopener,noreferrer');
+    openSpy.mockRestore();
+  });
+
+  it('disables a button for an unsupported functionCall and adds an sr-only note', () => {
+    render({
+      payload: [
+        surface(),
+        comps([
+          {
+            id: 'root',
+            component: 'Button',
+            child: 'l',
+            action: { functionCall: { call: 'doThing' } }
+          },
+          { id: 'l', component: 'Text', text: 'Do' }
+        ])
+      ]
+    });
+    const button = screen.getByRole('button', { name: /Do/ }) as HTMLButtonElement;
+    expect(button.disabled).toBe(true);
+    expect(document.body.textContent).toContain('This action is not supported');
   });
 });

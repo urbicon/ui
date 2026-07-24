@@ -35,6 +35,16 @@ import {
 
 const PROTO_KEYS: ReadonlySet<string> = new Set(['__proto__', 'constructor', 'prototype']);
 
+// DoS caps. The per-surface render walk is already bounded (depth 32, nodes
+// 512), but that leaves the *number* of surfaces and the per-message component
+// count unbounded — an attacker-streamed flood of tiny createSurface pairs (the
+// render tree re-derives every surface on each version bump) or one giant
+// updateComponents array would otherwise pin the main thread. Capping surface
+// count keeps the whole-processor re-derive O(surfaces·nodes) with a constant,
+// and capping the component list bounds each message's validation work.
+const MAX_SURFACES = 64;
+const MAX_COMPONENTS_PER_UPDATE = 1024;
+
 // ── Public state shapes ──────────────────────────────────────────────────────
 
 export interface A2uiComponentInstance {
@@ -108,6 +118,47 @@ function isDynamicStringList(value: unknown): boolean {
   );
 }
 
+/**
+ * Faults that only a dynamic *reference* value can carry, surfaced at validation
+ * time so they reach `onValidationError` (the render layer resolves with only
+ * `.value` and drops the issue — this is the closed feedback loop the agent
+ * needs). A function-call binding is unsupported (renders to nothing → warning);
+ * a `{ path }` binding whose pointer contains a prototype-pollution segment is a
+ * hard error (position-independent, so scope need not be resolved here). Plain
+ * literals return no issues.
+ */
+function dynamicRefIssues(value: unknown, path: string, surfaceId: string): A2uiValidationIssue[] {
+  if (isFunctionCall(value)) {
+    const call = (value as Record<string, unknown>).call;
+    return [
+      issue(
+        'warning',
+        A2UI_ISSUE_CODES.FUNCTION_CALL_UNSUPPORTED,
+        `Function-call binding "${String(call)}" is not supported; it resolves to nothing`,
+        { surfaceId, path }
+      )
+    ];
+  }
+  if (isDataBinding(value)) {
+    const raw = (value as Record<string, unknown>).path as string;
+    const tokens = (raw.startsWith('/') ? raw.slice(1) : raw).split('/');
+    for (const token of tokens) {
+      const segment = token.replaceAll('~1', '/').replaceAll('~0', '~');
+      if (PROTO_KEYS.has(segment)) {
+        return [
+          issue(
+            'error',
+            A2UI_ISSUE_CODES.PROTOTYPE_POLLUTION,
+            `Prohibited property name "${segment}" in binding path "${raw}"`,
+            { surfaceId, path }
+          )
+        ];
+      }
+    }
+  }
+  return [];
+}
+
 // ── Per-prop validation ──────────────────────────────────────────────────────
 
 interface PropResult {
@@ -132,7 +183,7 @@ function validateProp(
   switch (spec.kind) {
     case 'string':
       if (spec.dynamic ? isDynamicString(value) : typeof value === 'string')
-        return { store: true, issues };
+        return { store: true, issues: dynamicRefIssues(value, path, surfaceId) };
       return mismatch(
         `"${key}" on ${componentName} must be a string${spec.dynamic ? ' or { path } binding' : ''}`
       );
@@ -141,20 +192,21 @@ function validateProp(
       if (
         spec.dynamic ? isDynamicNumber(value) : typeof value === 'number' && Number.isFinite(value)
       )
-        return { store: true, issues };
+        return { store: true, issues: dynamicRefIssues(value, path, surfaceId) };
       return mismatch(
         `"${key}" on ${componentName} must be a finite number${spec.dynamic ? ' or { path } binding' : ''}`
       );
 
     case 'boolean':
       if (spec.dynamic ? isDynamicBoolean(value) : typeof value === 'boolean')
-        return { store: true, issues };
+        return { store: true, issues: dynamicRefIssues(value, path, surfaceId) };
       return mismatch(
         `"${key}" on ${componentName} must be a boolean${spec.dynamic ? ' or { path } binding' : ''}`
       );
 
     case 'stringList':
-      if (isDynamicStringList(value)) return { store: true, issues };
+      if (isDynamicStringList(value))
+        return { store: true, issues: dynamicRefIssues(value, path, surfaceId) };
       return mismatch(`"${key}" on ${componentName} must be a string array or { path } binding`);
 
     case 'enum':
@@ -347,6 +399,8 @@ function validateOptions(
   });
   if (!Array.isArray(value))
     return bad(`"${key}" on ${componentName} must be an array of { label, value } options`);
+  const issues: A2uiValidationIssue[] = [];
+  const seenValues = new Set<string>();
   for (let i = 0; i < value.length; i++) {
     const option = value[i];
     if (
@@ -356,8 +410,25 @@ function validateOptions(
     ) {
       return bad(`option ${i} on ${componentName} must be { label, value:string }`);
     }
+    // Duplicate option values must be flagged AND deduped downstream: a keyed
+    // `{#each}` on option.value would otherwise throw `each_key_duplicate` (a
+    // hard render crash that breaks the "never throw" contract).
+    if (seenValues.has(option.value)) {
+      issues.push(
+        issue(
+          'warning',
+          A2UI_ISSUE_CODES.DUPLICATE_OPTION,
+          `Duplicate option value "${option.value}" on ${componentName} (the later option is dropped)`,
+          { surfaceId, path: `${path}/${i}/value` }
+        )
+      );
+    }
+    seenValues.add(option.value);
+    for (const labelIssue of dynamicRefIssues(option.label, `${path}/${i}/label`, surfaceId)) {
+      issues.push(labelIssue);
+    }
   }
-  return { store: true, issues: [] };
+  return { store: true, issues };
 }
 
 function validateIcon(value: unknown, path: string, surfaceId: string): PropResult {
@@ -396,7 +467,8 @@ function validateIcon(value: unknown, path: string, surfaceId: string): PropResu
         ]
       };
     }
-    if (typeof value.path === 'string') return { store: true, issues: [] }; // dynamic binding
+    if (typeof value.path === 'string')
+      return { store: true, issues: dynamicRefIssues(value, path, surfaceId) }; // dynamic binding
   }
   return {
     store: false,
@@ -672,6 +744,17 @@ function createProcessor(): A2uiProcessor {
       );
       return;
     }
+    if (surfaces.size >= MAX_SURFACES) {
+      globalIssues.push(
+        issue(
+          'error',
+          A2UI_ISSUE_CODES.MAX_SURFACES,
+          `Surface count exceeds the limit of ${MAX_SURFACES}; "${surfaceId}" was not created`,
+          { surfaceId, path: `${base}/createSurface/surfaceId` }
+        )
+      );
+      return;
+    }
     const surface: A2uiSurfaceState = {
       surfaceId,
       components: new Map(),
@@ -772,8 +855,20 @@ function createProcessor(): A2uiProcessor {
       );
       return;
     }
+    let limit = components.length;
+    if (limit > MAX_COMPONENTS_PER_UPDATE) {
+      surface.issues.push(
+        issue(
+          'error',
+          A2UI_ISSUE_CODES.MAX_COMPONENTS,
+          `updateComponents carries ${components.length} components; only the first ${MAX_COMPONENTS_PER_UPDATE} are processed`,
+          { surfaceId, path: `${base}/updateComponents/components` }
+        )
+      );
+      limit = MAX_COMPONENTS_PER_UPDATE;
+    }
     const idsSeen = new Set<string>();
-    for (let i = 0; i < components.length; i++) {
+    for (let i = 0; i < limit; i++) {
       validateComponent(surface, components[i], index, i, idsSeen);
     }
   }

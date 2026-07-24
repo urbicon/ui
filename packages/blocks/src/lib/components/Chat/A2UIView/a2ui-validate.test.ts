@@ -366,3 +366,75 @@ describe('hostile fixtures never throw and produce the expected issues', () => {
     expect(({} as Record<string, unknown>).polluted).toBeUndefined();
   });
 });
+
+describe('A2UIView validator — hardening (review regressions)', () => {
+  const V = 'v0.9.1';
+  const surface = (id = 's') => ({ version: V, createSurface: { surfaceId: id, catalogId: 'x' } });
+  const comps = (components: unknown[], id = 's') => ({
+    version: V,
+    updateComponents: { surfaceId: id, components }
+  });
+
+  it('caps the surface count and reports MAX_SURFACES for the surplus', () => {
+    const envelopes: unknown[] = [];
+    for (let i = 0; i < 80; i++) envelopes.push(surface(`s${i}`));
+    const proc = applyAll(envelopes);
+    // Bounded well below the flood; the extra createSurface calls are refused.
+    expect(proc.surfaces.size).toBeLessThanOrEqual(64);
+    expect(codes(proc.globalIssues).has(A2UI_ISSUE_CODES.MAX_SURFACES)).toBe(true);
+  });
+
+  it('caps a single updateComponents component list and reports MAX_COMPONENTS', () => {
+    const big: unknown[] = [{ id: 'root', component: 'Text', text: 'hi' }];
+    for (let i = 0; i < 1100; i++) big.push({ id: `t${i}`, component: 'Text', text: 'x' });
+    const proc = applyAll([surface(), comps(big)]);
+    const s = proc.surfaces.get('s');
+    expect(s).toBeDefined();
+    expect(s && s.components.size).toBeLessThanOrEqual(1025); // cap + root
+    expect(codes(allIssues(proc)).has(A2UI_ISSUE_CODES.MAX_COMPONENTS)).toBe(true);
+  });
+
+  it('flags a function-call value binding as an unsupported warning (feedback loop)', () => {
+    const proc = applyAll([
+      surface(),
+      comps([{ id: 'root', component: 'Text', text: { call: 'now', args: {} } }])
+    ]);
+    const issues = allIssues(proc);
+    expect(
+      issues.some(
+        (i) => i.code === A2UI_ISSUE_CODES.FUNCTION_CALL_UNSUPPORTED && i.severity === 'warning'
+      )
+    ).toBe(true);
+  });
+
+  it('flags a prototype-poisoned data-binding path as an error at validation time', () => {
+    const proc = applyAll([
+      surface(),
+      comps([{ id: 'root', component: 'Text', text: { path: '/__proto__/x' } }])
+    ]);
+    const issues = allIssues(proc);
+    expect(
+      issues.some((i) => i.code === A2UI_ISSUE_CODES.PROTOTYPE_POLLUTION && i.severity === 'error')
+    ).toBe(true);
+    // The poison never entered the model.
+    expect((Object.prototype as Record<string, unknown>).x).toBeUndefined();
+  });
+
+  it('warns on duplicate ChoicePicker option values (render dedupes)', () => {
+    const proc = applyAll([
+      surface(),
+      comps([
+        {
+          id: 'root',
+          component: 'ChoicePicker',
+          value: { path: '/c' },
+          options: [
+            { label: 'A', value: 'x' },
+            { label: 'B', value: 'x' }
+          ]
+        }
+      ])
+    ]);
+    expect(codes(allIssues(proc)).has(A2UI_ISSUE_CODES.DUPLICATE_OPTION)).toBe(true);
+  });
+});

@@ -15,7 +15,7 @@
   import DangerCircleIconDefault from '$lib/icons/DangerCircleIcon.svelte';
   import type { Snippet } from 'svelte';
   import StreamingMarkdown from '../StreamingMarkdown/StreamingMarkdown.svelte';
-  import { checkImageUrl } from '../markdown/url-policy.js';
+  import { checkImageUrl, checkLinkUrl } from '../markdown/url-policy.js';
   import type { A2uiActionEvent } from './a2ui.types';
   import { A2UI_REGISTRY, A2UI_SVG_PATH_RE } from './a2ui-registry';
   import type { A2uiRenderContext, A2uiRenderNode } from './a2ui-render';
@@ -197,6 +197,36 @@
     return typeof name === 'string' ? (event as Record<string, unknown>) : undefined;
   });
 
+  // A local `openUrl` function-call action: the only client-side action the
+  // subset supports. Every other functionCall is unsupported (the validator
+  // already warns) and leaves the button inert.
+  const openUrlArg = $derived.by<string | undefined>(() => {
+    const action = raw('action');
+    if (action === null || typeof action !== 'object') return undefined;
+    const fc = (action as Record<string, unknown>).functionCall;
+    if (fc === null || typeof fc !== 'object') return undefined;
+    const call = (fc as Record<string, unknown>).call;
+    if (call !== 'openUrl') return undefined;
+    const args = (fc as Record<string, unknown>).args;
+    const url =
+      args !== null && typeof args === 'object' ? (args as Record<string, unknown>).url : undefined;
+    const resolvedUrl = context.resolve(url, node.scopePrefix).value;
+    return typeof resolvedUrl === 'string' ? resolvedUrl : undefined;
+  });
+  const buttonUsable = $derived(actionEvent !== undefined || openUrlArg !== undefined);
+
+  function dispatchButton() {
+    if (actionEvent !== undefined) {
+      dispatchAction();
+      return;
+    }
+    if (openUrlArg !== undefined) {
+      // Gate the URL through the same policy as markdown links before opening.
+      const check = checkLinkUrl(openUrlArg, context.urlPolicy);
+      if (check.ok) window.open(check.href, '_blank', 'noopener,noreferrer');
+    }
+  }
+
   function dispatchAction() {
     const event = actionEvent;
     if (!event || !instance) return;
@@ -276,15 +306,23 @@
   const choiceOptions = $derived.by(() => {
     const options = raw('options');
     if (!Array.isArray(options)) return [] as Array<{ value: string; label: string }>;
-    return options
-      .filter(
-        (option): option is Record<string, unknown> =>
-          option !== null && typeof option === 'object' && typeof option.value === 'string'
-      )
-      .map((option) => ({
-        value: option.value as string,
+    // Dedupe by value (first wins): the validator warns on duplicates, but the
+    // keyed `{#each}` below is on option.value — two equal keys throw Svelte's
+    // `each_key_duplicate` (a hard crash that would break the "never throw"
+    // contract for an untrusted payload).
+    const seen = new Set<string>();
+    const out: Array<{ value: string; label: string }> = [];
+    for (const option of options) {
+      if (option === null || typeof option !== 'object' || typeof option.value !== 'string')
+        continue;
+      if (seen.has(option.value)) continue;
+      seen.add(option.value);
+      out.push({
+        value: option.value,
         label: text(context.resolve(option.label, node.scopePrefix).value)
-      }));
+      });
+    }
+    return out;
   });
   const choiceLabel = $derived(text(resolved('label')));
   function writeChoice(next: string[]) {
@@ -323,6 +361,8 @@
 {:else if !spec || missingRequired}
   {@render faultChip(`${context.labels.unsupported}: ${component || node.id}`)}
 {:else if component === 'Column'}
+  <!-- A plain <div> is role=generic, which forbids aria-label (axe
+       aria-prohibited-attr, ignored by SR); a labelled group needs role="group". -->
   <div
     class={[
       context.classes.column,
@@ -330,6 +370,7 @@
       ALIGN[enumOr('align', 'stretch')]
     ]}
     style={weightStyle}
+    role={ariaLabel ? 'group' : undefined}
     aria-label={ariaLabel}
   >
     {#each node.children as child (child.key)}
@@ -344,6 +385,7 @@
       ALIGN[enumOr('align', 'stretch')]
     ]}
     style={weightStyle}
+    role={ariaLabel ? 'group' : undefined}
     aria-label={ariaLabel}
   >
     {#each node.children as child (child.key)}
@@ -367,7 +409,7 @@
     {/each}
   </ul>
 {:else if component === 'Card'}
-  <Card style={weightStyle} aria-label={ariaLabel}>
+  <Card style={weightStyle} role={ariaLabel ? 'group' : undefined} aria-label={ariaLabel}>
     {#if node.children[0]}
       {@render renderChild(node.children[0], blockCtx)}
     {/if}
@@ -449,20 +491,24 @@
     </span>
   {/if}
 {:else if component === 'Button'}
-  {@const usable = actionEvent !== undefined}
   <Button
     variant={buttonStyle.variant}
     intent={buttonStyle.intent}
     style={weightStyle}
     aria-label={ariaLabel}
-    disabled={!usable}
-    title={usable ? undefined : 'Unsupported action'}
-    onclick={usable ? dispatchAction : undefined}
+    disabled={!buttonUsable}
+    title={buttonUsable ? undefined : 'This action is not supported'}
+    onclick={buttonUsable ? dispatchButton : undefined}
   >
     {#if node.children[0]}
       {@render renderChild(node.children[0], inlineCtx)}
     {/if}
   </Button>
+  {#if !buttonUsable}
+    <!-- A disabled button drops out of the tab order, so `title` is invisible to
+         screen readers; an adjacent sr-only note is reachable in browse mode. -->
+    <span class="sr-only">This action is not supported</span>
+  {/if}
 {:else if component === 'TextField'}
   {@const label = text(resolved('label'))}
   {@const variant = enumOr('variant', 'shortText')}
