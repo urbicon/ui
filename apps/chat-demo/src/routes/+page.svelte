@@ -12,6 +12,7 @@
     type ChatMessageData,
     type ChatMessagePart
   } from '@urbicon-ui/blocks';
+  import { SseRequestError, streamSse } from '@urbicon-ui/sveltekit-utils/sse';
   import { A2uiStreamSplitter } from '$lib/a2ui-stream';
 
   interface WireMessage {
@@ -37,12 +38,16 @@
     messages = messages.map((m) => (m.id === id ? { ...m, ...next } : m));
   }
 
-  // Flatten a message to the wire shape. Assistant turns are sent back with their
-  // RAW model output (fences included) so the agent sees its own prior UI verbatim.
+  // Flatten a message to the wire shape. `metadata.raw` wins for BOTH roles:
+  // assistant turns carry the verbatim model output (fences included), user
+  // turns carry the `[ui-action]`/`[ui-error]` wire form behind a friendlier
+  // display text. NOTE: tool_use/tool_result blocks are NOT replayed into the
+  // wire history (POC simplification) — the model sees its own prose + UI, not
+  // its past tool transcripts.
   function toWire(m: ChatMessageData): WireMessage {
-    if (m.role === 'assistant') {
-      const raw = m.metadata?.raw;
-      if (typeof raw === 'string') return { role: 'assistant', content: raw };
+    const raw = m.metadata?.raw;
+    if (typeof raw === 'string') {
+      return { role: m.role === 'assistant' ? 'assistant' : 'user', content: raw };
     }
     const content = m.parts
       .filter((p): p is Extract<ChatMessagePart, { type: 'text' }> => p.type === 'text')
@@ -54,20 +59,36 @@
   const issueSig = (i: A2uiValidationIssue) =>
     `${i.code}|${i.surfaceId ?? ''}|${i.path ?? ''}|${i.message}`;
 
-  async function runTurn(rawUserText: string) {
+  // The assistant turn is assembled from SEGMENTS in stream order: one
+  // A2uiStreamSplitter per model round (text + a2ui fences), with a tool-call
+  // part between rounds wherever the model stopped to call a tool. ChatMessage
+  // renders the tool-call parts as ToolCallCards by default.
+  type ToolPart = Extract<ChatMessagePart, { type: 'tool-call' }>;
+  type Segment = { splitter: A2uiStreamSplitter } | { tool: ToolPart };
+
+  async function runTurn(wireUserText: string, displayUserText?: string) {
     if (busy) return;
 
-    let text = rawUserText;
+    let wire = wireUserText;
+    let display = displayUserText ?? wireUserText;
     // Prepend queued validation errors so the agent can repair the surface.
     if (pendingIssues.length > 0) {
-      text = `[ui-error] ${JSON.stringify(pendingIssues)}\n${text}`;
+      const count = pendingIssues.length;
+      wire = `[ui-error] ${JSON.stringify(pendingIssues)}\n${wire}`;
+      display = `⚠ Reporting ${count} validation issue${count === 1 ? '' : 's'} to the agent\n\n${display}`;
       pendingIssues = [];
     }
     errorBanner = '';
 
     messages = [
       ...messages,
-      { id: nextId(), role: 'user', parts: [{ type: 'text', text }], status: 'complete' }
+      {
+        id: nextId(),
+        role: 'user',
+        parts: [{ type: 'text', text: display }],
+        status: 'complete',
+        metadata: display === wire ? undefined : { raw: wire }
+      }
     ];
 
     // Snapshot BEFORE the empty assistant turn; drop text-less turns (the Messages
@@ -75,7 +96,17 @@
     const history = messages.map(toWire).filter((m) => m.content.length > 0);
 
     const assistantId = nextId();
-    const splitter = new A2uiStreamSplitter();
+    const segments: Segment[] = [];
+    let splitter = new A2uiStreamSplitter();
+    segments.push({ splitter });
+    const assemble = (): ChatMessagePart[] =>
+      segments.flatMap((segment) =>
+        'splitter' in segment ? (segment.splitter.snapshot() as ChatMessagePart[]) : [segment.tool]
+      );
+    const rawText = () =>
+      segments.map((segment) => ('splitter' in segment ? segment.splitter.raw : '')).join('');
+    const patchLive = () => patch(assistantId, { parts: assemble(), metadata: { raw: rawText() } });
+
     messages = [
       ...messages,
       {
@@ -91,65 +122,70 @@
     let failed = false;
 
     try {
-      const res = await fetch('/api/chat', {
-        method: 'POST',
-        headers: { 'content-type': 'application/json' },
-        body: JSON.stringify({ messages: history }),
+      for await (const frame of streamSse('/api/chat', {
+        body: { messages: history },
         signal: controller.signal
-      });
-
-      if (!res.ok || !res.body) {
-        const body = await res.text().catch(() => '');
-        let message = body;
-        try {
-          message = (JSON.parse(body) as { message?: string }).message ?? body;
-        } catch {
-          /* keep raw body */
-        }
-        errorBanner = message || `Request failed (${res.status})`;
-        patch(assistantId, { status: 'error' });
-        return;
-      }
-
-      const reader = res.body.getReader();
-      const decoder = new TextDecoder();
-      let buffer = '';
-
-      for (;;) {
-        const { value, done } = await reader.read();
-        if (done) break;
-        buffer += decoder.decode(value, { stream: true });
-
-        // SSE frames are separated by a blank line.
-        const frames = buffer.split('\n\n');
-        buffer = frames.pop() ?? '';
-        for (const frame of frames) {
-          const lines = frame.split('\n');
-          const event = lines.find((l) => l.startsWith('event: '))?.slice(7);
-          const rawData = lines.find((l) => l.startsWith('data: '))?.slice(6);
-          if (!event || rawData === undefined) continue;
-          const data = JSON.parse(rawData) as { text?: string; message?: string };
-          if (event === 'token') {
-            splitter.push(data.text ?? '');
-            patch(assistantId, {
-              parts: splitter.snapshot() as ChatMessagePart[],
-              metadata: { raw: splitter.raw }
-            });
-          } else if (event === 'error') {
-            failed = true;
-            errorBanner = data.message ?? 'stream failed';
-            patch(assistantId, { status: 'error' });
+      })) {
+        const data = JSON.parse(frame.data) as {
+          text?: string;
+          message?: string;
+          id?: string;
+          name?: string;
+          input?: unknown;
+          output?: unknown;
+        };
+        if (frame.event === 'token') {
+          splitter.push(data.text ?? '');
+          patchLive();
+        } else if (frame.event === 'tool_start') {
+          // The model stopped this round to call a tool: settle the round's
+          // splitter and surface the call as a running ToolCallCard.
+          splitter.end();
+          segments.push({
+            tool: {
+              type: 'tool-call',
+              id: data.id ?? `tool-${segments.length}`,
+              name: data.name ?? 'tool',
+              state: 'running',
+              input: data.input
+            }
+          });
+          patchLive();
+        } else if (frame.event === 'tool_result') {
+          for (const segment of segments) {
+            if ('tool' in segment && segment.tool.id === data.id) {
+              segment.tool = { ...segment.tool, state: 'complete', output: data.output };
+            }
           }
+          // The follow-up round streams into a fresh splitter.
+          splitter = new A2uiStreamSplitter();
+          segments.push({ splitter });
+          patchLive();
+        } else if (frame.event === 'error') {
+          failed = true;
+          errorBanner = data.message ?? 'stream failed';
+          patch(assistantId, { status: 'error' });
         }
       }
 
       splitter.end();
       patch(assistantId, {
-        parts: splitter.snapshot() as ChatMessagePart[],
-        metadata: { raw: splitter.raw },
+        parts: assemble(),
+        metadata: { raw: rawText() },
         status: failed ? 'error' : 'complete'
       });
     } catch (err) {
+      if (err instanceof SseRequestError) {
+        let message = err.body;
+        try {
+          message = (JSON.parse(err.body) as { message?: string }).message ?? err.body;
+        } catch {
+          /* keep raw body */
+        }
+        errorBanner = message || `Request failed (${err.status})`;
+        patch(assistantId, { status: 'error' });
+        return;
+      }
       const aborted = (err as Error).name === 'AbortError';
       patch(assistantId, { status: aborted ? 'aborted' : 'error' });
       if (!aborted) errorBanner = (err as Error).message;
@@ -173,15 +209,20 @@
     if (idx < 1) return;
     const prior = messages[idx - 1];
     if (prior?.role !== 'user') return;
-    const text = toWire(prior).content;
+    const wire = toWire(prior).content;
+    const display = prior.parts
+      .filter((p): p is Extract<ChatMessagePart, { type: 'text' }> => p.type === 'text')
+      .map((p) => p.text)
+      .join('');
     messages = messages.slice(0, idx - 1);
-    runTurn(text);
+    runTurn(wire, display === wire ? undefined : display);
   }
 
-  // A Button on a rendered surface → a fresh user turn carrying the action event.
+  // A Button on a rendered surface → a fresh user turn carrying the action event
+  // on the wire, shown as a compact summary instead of raw JSON.
   function handleAction(event: A2uiActionEvent) {
     if (busy) return;
-    runTurn(`[ui-action] ${JSON.stringify(event)}`);
+    runTurn(`[ui-action] ${JSON.stringify(event)}`, `▸ ${event.name}`);
   }
 
   // Collect error-severity issues (deduped) to report on the next send.
