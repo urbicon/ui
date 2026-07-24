@@ -84,9 +84,11 @@ export const textareaVariants = tv({
       error: { message: 'text-danger' },
       helper: { message: 'text-text-tertiary' }
     },
+    // The error FRAME is not declared here — it lives in the compound stage
+    // below, where it beats `intent` by construction. See the precedence note
+    // on the first compound entry.
     error: {
       true: {
-        base: 'border-danger focus-visible:border-danger focus-visible:ring-danger/20',
         message: 'text-danger'
       }
     },
@@ -102,6 +104,17 @@ export const textareaVariants = tv({
     }
   },
   compoundVariants: [
+    // ── Validation precedence: `error` beats `intent`, explicitly ────────────
+    // Both axes paint the SAME three buckets (border-color plus the focused
+    // border/ring tint), so exactly one of them can win. Emitting the error
+    // frame here rather than on the `error` axis makes that rule structural:
+    // compounds always fold after every axis, so `error: true` overrides
+    // whatever `intent` painted regardless of how the axes are ordered above
+    // (it used to hinge purely on `error` being DECLARED after `intent`).
+    {
+      error: true,
+      class: { base: 'border-danger focus-visible:border-danger focus-visible:ring-danger/20' }
+    },
     {
       variant: 'ghost',
       intent: ['success', 'warning', 'danger'],

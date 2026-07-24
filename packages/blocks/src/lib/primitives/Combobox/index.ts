@@ -24,7 +24,7 @@ export interface ComboboxGroup<T extends SelectValue = string> {
  * against `multiple`.
  */
 interface ComboboxBaseProps<T extends SelectValue = string>
-  extends ComboboxVariants,
+  extends Omit<ComboboxVariants, 'error'>,
     Omit<HTMLAttributes<HTMLDivElement>, 'children'> {
   /** Array of selectable options. Each needs a unique `value`. */
   options?: ComboboxOption<T>[];
@@ -43,7 +43,13 @@ interface ComboboxBaseProps<T extends SelectValue = string>
   label?: string;
   /** Helper text shown below the field. Hidden when an error is set. */
   helper?: string;
-  /** Error message — replaces helper text and flags the field as invalid. */
+  /**
+   * Error message — replaces helper text, flags the field as invalid
+   * (`aria-invalid`) and paints the shared danger frame on the input (single
+   * mode) or the tokenizer control (multi). The string prop shadows the boolean
+   * `error` variant axis, which the component derives from it (mirrors Input /
+   * Select) — that is what the `Omit` above is for.
+   */
   error?: string;
   /**
    * Marks the field as required. Adds the asterisk on the label. @default false

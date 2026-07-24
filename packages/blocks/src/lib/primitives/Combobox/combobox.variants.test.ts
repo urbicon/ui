@@ -208,4 +208,46 @@ describe('comboboxVariants', () => {
     expect(underline.control()).toContain('border-b-2');
     expect(underline.control()).toContain('rounded-none');
   });
+
+  // ── Validation frame ──────────────────────────────────────────────────────
+  it('paints the shared error frame on both mode frames', () => {
+    const styles = comboboxVariants({ error: true });
+    // Single mode: the input IS the frame and is focusable itself.
+    expect(styles.input()).toContain(
+      'border-danger focus-visible:border-danger focus-visible:ring-danger/20'
+    );
+    // Multi mode: the tokenizer control is the frame and lights via focus-within.
+    expect(styles.control()).toContain(
+      'border-danger focus-within:border-danger focus-within:ring-danger/20'
+    );
+  });
+
+  it('replaces the resting border instead of stacking on it, in every variant', () => {
+    for (const variant of ['outlined', 'filled', 'ghost', 'underline'] as const) {
+      const styles = comboboxVariants({ variant, error: true });
+      for (const frame of [styles.input(), styles.control()]) {
+        expect(frame).toContain('border-danger');
+        // Neither the quiet resting border nor a transparent one may survive —
+        // both would leave the invalid field looking valid.
+        expect(frame).not.toContain('border-border-subtle');
+        expect(frame).not.toMatch(/(?<![a-z-:])border-transparent/);
+      }
+    }
+  });
+
+  it('leaves the frame untouched while the field is valid', () => {
+    const styles = comboboxVariants({ error: false });
+    expect(styles.input()).not.toContain('border-danger');
+    expect(styles.control()).not.toContain('border-danger');
+    expect(styles.input()).toContain('focus-visible:border-primary');
+  });
+
+  it('colours the two message roles by role, so a helper never reads red', () => {
+    // Error and helper render through separate, mutually exclusive slots, so
+    // the helper stays quiet even while the field is invalid.
+    const invalid = comboboxVariants({ error: true });
+    expect(invalid.message()).toContain('text-danger');
+    expect(invalid.helper()).toContain('text-text-tertiary');
+    expect(invalid.helper()).not.toContain('text-danger');
+  });
 });

@@ -103,9 +103,11 @@ export const timeInputVariants = tv({
       error: { message: FIELD_MESSAGE_TONES.error },
       helper: { message: FIELD_MESSAGE_TONES.helper }
     },
+    // The error FRAME is not declared here — it lives in the compound stage
+    // below, where it beats `intent` by construction. See the precedence note
+    // on the first compound entry.
     error: {
       true: {
-        field: fieldErrorFrame(focus),
         message: FIELD_MESSAGE_TONES.error
       }
     },
@@ -117,6 +119,19 @@ export const timeInputVariants = tv({
     }
   },
   compoundVariants: [
+    // ── Validation precedence: `error` beats `intent`, explicitly ────────────
+    // Both axes paint the SAME three buckets (border-color plus the focused
+    // border/ring tint), so exactly one of them can win. Emitting the error
+    // frame here rather than on the `error` axis makes that rule structural:
+    // compounds always fold after every axis, so `error: true` overrides
+    // whatever `intent` painted regardless of how the axes are ordered above
+    // (it used to hinge purely on `error` being DECLARED after `intent`).
+    // Folding after `fullWidth` too is harmless: that axis only paints layout
+    // buckets (`w`, `justify-content`), which never collide with the frame.
+    {
+      error: true,
+      class: { field: fieldErrorFrame(focus) }
+    },
     {
       variant: 'ghost',
       error: false,

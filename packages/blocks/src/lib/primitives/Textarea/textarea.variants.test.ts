@@ -55,6 +55,18 @@ describe('textareaVariants', () => {
     expect(styles.message()).toContain('text-danger');
   });
 
+  it('lets error beat every intent, with no losing frame left over', () => {
+    // The precedence comes from the compound stage, not from `error` being
+    // declared after `intent` — see the note on the first compoundVariant.
+    for (const intent of ['success', 'warning'] as const) {
+      const base = textareaVariants({ intent, error: true }).base();
+      expect(base).toContain('border-danger');
+      expect(base).toContain('focus-visible:ring-danger/20');
+      expect(base).not.toContain(`border-${intent}`);
+      expect(base).not.toContain(`focus-visible:ring-${intent}/20`);
+    }
+  });
+
   it('applies intent styles', () => {
     const success = textareaVariants({ intent: 'success' });
     expect(success.base()).toContain('border-success');

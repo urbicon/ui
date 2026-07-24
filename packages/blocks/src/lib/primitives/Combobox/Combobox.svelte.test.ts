@@ -1014,3 +1014,53 @@ describe('Combobox (orphan warn dedup)', () => {
     warn.mockRestore();
   });
 });
+
+describe('Combobox (validation frame)', () => {
+  // The variant tests prove the frame EXISTS; these prove it is actually wired
+  // — before this wave an invalid Combobox announced itself through
+  // `aria-invalid` only and looked exactly like a valid one.
+  it('paints the error frame on the single-mode input and flags it invalid', () => {
+    renderCombobox({ options: OPTIONS, error: 'Pick a fruit' });
+    const input = screen.getByRole('combobox');
+
+    expect(input.getAttribute('aria-invalid')).toBe('true');
+    expect(input.getAttribute('class')).toContain('border-danger');
+    expect(input.getAttribute('class')).toContain('focus-visible:border-danger');
+  });
+
+  it('paints the error frame on the multi-mode tokenizer control', () => {
+    const props = $state<ComboboxMultipleProps<string | number | boolean>>({
+      options: [...OPTIONS],
+      multiple: true,
+      value: [],
+      error: 'Pick a fruit'
+    });
+    const instance = mount(Combobox, { target: document.body, props });
+    dispose = () => unmount(instance);
+    flushSync();
+
+    // In multi mode the frame is the control div wrapping the search input.
+    const control = screen.getByRole('combobox').parentElement as HTMLElement;
+    expect(control.getAttribute('class')).toContain('border-danger');
+    expect(control.getAttribute('class')).toContain('focus-within:border-danger');
+  });
+
+  it('keeps a helper message quiet and the frame neutral while valid', () => {
+    renderCombobox({ options: OPTIONS, helper: 'Start typing to search' });
+    const input = screen.getByRole('combobox');
+    const helper = screen.getByText('Start typing to search');
+
+    expect(input.getAttribute('aria-invalid')).toBe(null);
+    expect(input.getAttribute('class')).not.toContain('border-danger');
+    expect(helper.getAttribute('class')).toContain('text-text-tertiary');
+    expect(helper.getAttribute('class')).not.toContain('text-danger');
+  });
+
+  it('renders the error message in the error tone', () => {
+    renderCombobox({ options: OPTIONS, error: 'Pick a fruit' });
+    const message = screen.getByRole('alert');
+
+    expect(message.textContent?.trim()).toBe('Pick a fruit');
+    expect(message.getAttribute('class')).toContain('text-danger');
+  });
+});

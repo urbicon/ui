@@ -307,12 +307,17 @@
     };
   });
 
+  // `error` is the same signal that drives `aria-invalid` (`ff.invalid`), so
+  // the visible frame and the announced state can never disagree. It also
+  // reaches `resolveSlotClasses`, so a consumer `overrides` entry can target
+  // the invalid state.
   const variantProps: ComboboxVariants = $derived({
     variant,
     tier: effectiveTier,
     size,
     open,
-    disabled
+    disabled,
+    error: ff.invalid
   });
   const styles = $derived(comboboxVariants(variantProps));
 

@@ -64,6 +64,16 @@ describe('selectVariants', () => {
     expect(styles.message()).toContain('text-danger');
   });
 
+  it('wears the shared field error frame, not a hand-copied twin', () => {
+    // Same frame as Input/Textarea/PinInput/TimeInput/Combobox — sourced from
+    // `internal/field-chrome` so a token fix can never miss Select again.
+    const trigger = selectVariants({ error: true }).trigger();
+    expect(trigger).toContain(
+      'border-danger focus-visible:border-danger focus-visible:ring-danger/20'
+    );
+    expect(trigger).not.toContain('border-border-subtle');
+  });
+
   it('applies required asterisk to label', () => {
     const label = selectVariants({ required: true }).label();
     expect(label).toContain("after:content-['*']");

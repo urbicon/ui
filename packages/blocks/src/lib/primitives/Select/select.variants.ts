@@ -1,4 +1,8 @@
+import { FIELD_MESSAGE_TONES, fieldErrorFrame } from '$lib/internal/field-chrome';
 import { type SlotNames, tv, type VariantProps } from '$lib/utils/variants';
+
+// The trigger is the focusable element, so the error ring lives on it directly.
+const focus = 'focus-visible';
 
 export const selectVariants = tv({
   slots: {
@@ -150,13 +154,19 @@ export const selectVariants = tv({
     // Declared BEFORE `error` so the error tone wins the message-color
     // bucket in every call shape — `{ error: true }` alone must read red.
     messageType: {
-      error: { message: 'text-danger' },
-      helper: { message: 'text-text-tertiary' }
+      error: { message: FIELD_MESSAGE_TONES.error },
+      helper: { message: FIELD_MESSAGE_TONES.helper }
     },
+    // Same error frame as every other field (shared fragment, so a token fix
+    // can't miss Select again). Unlike Input/Textarea/PinInput/TimeInput,
+    // Select has no `intent` axis, so nothing competes for the border/ring
+    // buckets and the frame can stay on the axis. If an `intent` axis is ever
+    // added here, move this to the compound stage — see the precedence note in
+    // input.variants.ts.
     error: {
       true: {
-        trigger: 'border-danger focus-visible:border-danger focus-visible:ring-danger/20',
-        message: 'text-danger'
+        trigger: fieldErrorFrame(focus),
+        message: FIELD_MESSAGE_TONES.error
       }
     },
     required: {

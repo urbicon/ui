@@ -66,6 +66,18 @@ describe('inputVariants', () => {
     expect(message).toContain('text-danger');
   });
 
+  it('lets error beat every intent, with no losing frame left over', () => {
+    // The precedence comes from the compound stage, not from `error` being
+    // declared after `intent` — see the note on the first compoundVariant.
+    for (const intent of ['success', 'warning'] as const) {
+      const base = inputVariants({ intent, error: true }).base();
+      expect(base).toContain('border-danger');
+      expect(base).toContain('focus-visible:ring-danger/20');
+      expect(base).not.toContain(`border-${intent}`);
+      expect(base).not.toContain(`focus-visible:ring-${intent}/20`);
+    }
+  });
+
   it('keeps ghost border transparent when intent is set', () => {
     const ghost = inputVariants({ variant: 'ghost', intent: 'success' });
     const base = ghost.base();

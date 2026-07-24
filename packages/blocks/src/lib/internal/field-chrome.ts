@@ -21,6 +21,12 @@
  * whole field via `focus-within:`. That is why the ring / variant / intent /
  * error fragments are parameterised by {@link FieldFocus} rather than fixed.
  *
+ * Select and Combobox draw only on the validation subset ({@link fieldErrorFrame}
+ * and {@link FIELD_MESSAGE_TONES}) — their frames are otherwise their own (a
+ * trigger button, a tokenizer box). That subset is what kept drifting: Select
+ * hand-copied the error frame and Combobox had none at all, so an invalid
+ * Combobox announced itself through `aria-invalid` and looked untouched.
+ *
  * NOT covered here (deliberately component-local): the per-component frame
  * prefix (Input's `w-full`, PinInput's cell content styles, TimeInput's
  * `inline-flex` container), Input's `underline` variant and `placeholder`
@@ -81,7 +87,18 @@ export const fieldIntentFrames = (f: FieldFocus) => ({
   danger: `border-danger ${f}:border-danger ${f}:ring-danger/20`
 });
 
-/** The error frame value (danger border + ring), parameterised by focus mode. */
+/**
+ * The error frame value (danger border + ring), parameterised by focus mode.
+ *
+ * PRECEDENCE: this paints the same three buckets as {@link fieldIntentFrames}
+ * (border-color plus the focused border/ring tint), so in a config that has
+ * BOTH a tonal `intent` axis and a boolean `error` axis only one of them can
+ * win. Apply it from a `compoundVariants` entry (`{ error: true, … }`), never
+ * from the `error` axis: compounds fold after every axis, which makes "error
+ * beats intent" a rule instead of a side effect of the axis declaration order.
+ * Configs without an `intent` axis (Select, Combobox) can keep it on the axis —
+ * but must move it the day one is added. Reference: input.variants.ts.
+ */
 export const fieldErrorFrame = (f: FieldFocus): string =>
   `border-danger ${f}:border-danger ${f}:ring-danger/20`;
 

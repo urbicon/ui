@@ -1,3 +1,4 @@
+import { FIELD_MESSAGE_TONES, fieldErrorFrame } from '$lib/internal/field-chrome';
 import { type SlotNames, tv, type VariantProps } from '$lib/utils/variants';
 
 export const comboboxVariants = tv({
@@ -15,8 +16,15 @@ export const comboboxVariants = tv({
       'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50 focus-visible:border-primary',
       'disabled:opacity-50 disabled:cursor-not-allowed'
     ],
-    message: 'text-xs text-danger',
-    helper: 'text-xs text-text-tertiary',
+    // Message tone follows the ROLE of the text, not the field state: the
+    // `message` slot only ever renders the `error` string (the markup picks it
+    // over `helper`, they are mutually exclusive), so the two slots carry the
+    // two shared field-message tones — a helper never reads red. Sibling
+    // fields express the same thing through a `messageType` axis because they
+    // render both roles through ONE `message` slot; here the slot split
+    // already encodes it.
+    message: ['text-xs', FIELD_MESSAGE_TONES.error],
+    helper: ['text-xs', FIELD_MESSAGE_TONES.helper],
     // `position`, `width`, `overflow-y` are set inline in Combobox.svelte
     // so the native `popover="manual"` top-layer rendering works
     // correctly and the UA's `overflow: auto` doesn't render a duplicate
@@ -210,6 +218,26 @@ export const comboboxVariants = tv({
     },
     disabled: {
       true: { base: 'opacity-50 pointer-events-none' }
+    },
+    // Validation frame, at parity with every other field — the SHARED fragment
+    // (`fieldErrorFrame`), not a hand-copied one, so the next token fix cannot
+    // miss Combobox the way it missed it before this axis existed (until then
+    // an invalid Combobox only announced itself via `aria-invalid`, with no
+    // visible frame at all).
+    //
+    // Both frames are painted because the visible frame moves between modes:
+    // single mode wears it on the `input`, multi mode on the tokenizer
+    // `control` — which lights via `focus-within`, since focus lives on the
+    // borderless search input inside it. Declared LAST so it wins the
+    // border/ring buckets against `variant`; Combobox has no `intent` axis (a
+    // deliberate non-goal for now), so nothing else competes. If one is ever
+    // added, move this frame to the compound stage — see the precedence note
+    // in input.variants.ts.
+    error: {
+      true: {
+        input: fieldErrorFrame('focus-visible'),
+        control: fieldErrorFrame('focus-within')
+      }
     }
   },
   defaultVariants: {
@@ -217,7 +245,8 @@ export const comboboxVariants = tv({
     variant: 'outlined',
     size: 'md',
     open: false,
-    disabled: false
+    disabled: false,
+    error: false
   }
 });
 
