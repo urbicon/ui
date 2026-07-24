@@ -17,7 +17,7 @@
     <div class="space-y-8">
       <CodeExample
         title="Custom Empty State"
-        description="Override the default empty state with a branded illustration or call-to-action."
+        description="Override the default empty state with a branded illustration or call-to-action. The snippet renders into the desktop <tbody>, so it must be table-row markup — on mobile the card list shows the plain noDataText instead, since <tr>/<td> cannot live in a <div>. Same for loadingState and errorState."
         code={`<Table {items} {columns}>
   {#snippet emptyState()}
     <tr>

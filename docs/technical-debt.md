@@ -222,67 +222,23 @@ internal TODO instead. Sections are ordered roughly by urgency.
 - **Found:** 2026-07-22, PlaygroundConfigurator helpToggle/dt() pass
   (debt-fix-wave-3).
 
-### Table filter operators: three residual sharp edges around dates and empty values
+### Grouped tables: the group header is a Tab stop, not an arrow-key stop
 
-- **Where:** `packages/table/src/lib/stores/concerns/useFiltering.svelte.ts`
-  (the `equals` branch + the numeric path of `greaterThan`/`lessThan`) and
-  `packages/table/src/lib/features/SmartFilterBar/FilterMenu.svelte:~99`
-  (`selectedOperator: 'contains'` default) vs. `:43-60` (`OPERATORS_BY_TYPE`).
-- **What:** Three neighbours of the date-comparator fix (W4, 2026-07-24), each
-  deliberately out of its scope. (a) `equals` — which the UI labels "on date"
-  for `dataType: 'date'` columns — compares lowercased strings, so it only ever
-  matches columns whose accessor returns the exact `YYYY-MM-DD` string; a `Date`
-  instance or a timestamped ISO string never matches. (b) An empty/blank filter
-  value on a numeric column stays on the numeric path (`Number('') === 0`), so
-  `greaterThan ''` silently means "> 0" instead of being inert — reachable via
-  `initialFilters`, restored persistence or programmatic `addFilter` (the menu
-  itself guards on `.trim()`). The date path returns `false` for empty values,
-  so the two paths now disagree. (c) The menu seeds every column's operator with
-  `contains`, which `number`/`date` columns don't even offer — pick a date, press
-  Enter without touching the operator select, and you get a substring match.
-- **Why deferred:** (a) would make the generic text operator type-aware, which
-  changes string behaviour for every column — wants its own decision (dedicated
-  `onDate` operator vs. day-bucket equality gated on `dataType`). (b) is
-  pre-existing numeric semantics that the fix deliberately kept
-  backward-compatible; changing it is a call about seeded/restored filters.
-  (c) is a UI default in a different file, plus a `Select` question (bound value
-  outside the option list).
-- **Found:** 2026-07-24, W4 date-filter fix.
-
-### Table keyboard row navigation is dead inside groups
-
-- **Where:** `packages/table/src/lib/core/TableDesktop.svelte:124`
-  (`querySelectorAll('tbody tr[data-row-index]')`) vs.
-  `packages/table/src/lib/core/GroupedRow.svelte` (its item rows carry neither
-  `data-row-index` nor `tabindex`, unlike `TableRow.svelte:126`).
-- **What:** The roving-tabindex navigation (arrows, Home/End, PageUp/PageDown,
-  `Space` to select, `Enter` to expand) only ever sees flat rows. In a grouped
-  table the row collection is empty, so the whole keyboard path is inert —
-  a keyboard user can still reach the checkboxes via Tab, but not navigate or
-  select rows. Pre-existing; surfaced while wiring row-click selection (W4),
-  which gave the mouse a path the keyboard still lacks in groups.
-- **Why deferred:** Making grouped rows part of the roving sequence means one
-  index space across group headers and item rows (are collapsed groups skipped?
-  is the group header itself a stop?), plus the aria-rowindex bookkeeping —
-  an a11y design pass with SR testing, not an attribute addition.
-- **Found:** 2026-07-24, W4 row-click selection.
-
-### Mobile renders the `emptyState` snippet — which is table-row markup — inside a `<div>` card list
-
-- **Where:** `packages/table/src/lib/core/TableMobile.svelte` (the `emptyState`
-  branch) vs. its documented shape (`apps/docs/src/routes/table/customization/+page.svelte`,
-  where the example snippet is `<tr><td colspan="99">…`).
-- **What:** The same `emptyState` snippet feeds the desktop `<tbody>` and the
-  mobile card container. Consumers write row markup (as the docs example does),
-  so on mobile a `<tr>`/`<td>` lands inside a `<div>` — the parser drops the
-  tags and the content renders unstyled at best. W4 dodged the trap for the new
-  loading/error states (mobile renders plain text for those, commented at the
-  site) but left the pre-existing `emptyState` path as is.
-- **Why deferred:** The fix is an API decision: either a second snippet for the
-  card list (`emptyStateMobile`), or a documented "must be phrasing content"
-  contract with a wrapper on the desktop side — both change the public snippet
-  surface, and neither is a drive-by while shipping the state props.
-- **Found:** 2026-07-24, W4 mobile loading/error states.
+- **Where:** `packages/table/src/lib/core/GroupedRow.svelte` (the header `<td>`
+  carries `role="button"` + `tabindex="0"`) vs. the roving sequence over item
+  rows, wired 2026-07-25.
+- **What:** Making keyboard navigation work inside groups needed a call on
+  whether the group header is part of the arrow-key sequence. It is not: it keeps
+  its own `tabindex={0}` and answers Enter/Space by collapsing, so it is reachable
+  by Tab while the arrows move only between item rows. That is the smaller change
+  and it left the header's existing behaviour untouched, but it means a table with
+  many groups has many Tab stops, and a screen-reader user arrowing through rows
+  is never told they crossed into a new group.
+- **Why deferred:** The alternative — one index space over headers *and* rows —
+  changes what Enter means depending on where focus sits, and wants real SR
+  testing to judge (does announcing the group on crossing beat a dedicated stop?).
+  That is a design pass, not a follow-up to the wiring.
+- **Found:** 2026-07-25, wiring the grouped roving tabindex.
 
 ### Virtualized body renders in a second `<table>` — column widths drift from the header (and rows are fixed-height tall)
 

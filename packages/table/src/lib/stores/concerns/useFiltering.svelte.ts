@@ -1,5 +1,5 @@
 import type { Filter, FilterOperator, TableItem } from '$lib/types/tableTypes';
-import { resolveColumnId, resolveColumnValue, resolveValueById } from '$lib/utils';
+import { findColumnById, resolveColumnId, resolveColumnValue, resolveValueById } from '$lib/utils';
 import type { TableState } from './types';
 
 /**
@@ -74,6 +74,32 @@ function matchesDateComparison(
 }
 
 /**
+ * Date-aware `equals` ("on date" for `dataType: 'date'` columns).
+ *
+ * The generic `equals` compares lowercased strings, so it only ever matched a
+ * column whose accessor returns the exact `YYYY-MM-DD` text — a `Date` instance
+ * (`String(date)` → "Mon Mar 15 2021 …") or a timestamped ISO string never
+ * matched what the UI labels "on date". Gated on `dataType: 'date'` so string
+ * columns keep byte equality.
+ *
+ * A bare calendar filter value matches the whole UTC day (the same boundary
+ * `after`/`before` use); a filter value with a time of day compares instants.
+ */
+function matchesDateEquality(rawItemValue: unknown, filterValue: string): boolean {
+  const itemInstant = toInstant(rawItemValue);
+  if (Number.isNaN(itemInstant)) return false;
+
+  const text = filterValue.trim();
+  const filterInstant = toInstant(text);
+  if (Number.isNaN(filterInstant)) return false;
+
+  if (ISO_DATE_ONLY.test(text)) {
+    return itemInstant >= filterInstant && itemInstant < filterInstant + MS_PER_DAY;
+  }
+  return itemInstant === filterInstant;
+}
+
+/**
  * Filtering concern: manages active filters and computes filtered items.
  * Combines search-term matching and advanced filter matching.
  *
@@ -114,11 +140,27 @@ export function useFiltering(state: TableState) {
           const value = String(raw ?? '').toLowerCase();
           const filterValue = filter.value.toLowerCase();
 
+          // A filter carrying no value is not an assertion — it matches every
+          // row rather than silently meaning something. The text operators
+          // already behaved this way by accident (`''.includes('')` is true);
+          // the numeric path did not (`Number('')` is 0, so `greaterThan ''`
+          // meant "> 0") and the date path excluded every row. The filter menu
+          // guards on `.trim()`, so this is only reachable through
+          // `initialFilters`, restored persistence or a programmatic addFilter.
+          if (filter.value.trim() === '') return true;
+
+          // Synthetic columns carry no `dataType`, so narrow before reading it —
+          // the same discrimination the filter menu does when it builds the
+          // operator list.
+          const filterColumn = findColumnById(state.columns, filter.column);
+          const isDateColumn =
+            !!filterColumn && 'dataType' in filterColumn && filterColumn.dataType === 'date';
+
           switch (filter.operator) {
             case 'contains':
               return value.includes(filterValue);
             case 'equals':
-              return value === filterValue;
+              return isDateColumn ? matchesDateEquality(raw, filter.value) : value === filterValue;
             case 'startsWith':
               return value.startsWith(filterValue);
             case 'endsWith':

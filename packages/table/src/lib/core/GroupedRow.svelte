@@ -32,6 +32,13 @@
     testId?: string;
     groupHeaderContent?: Snippet<[groupName: string, items: TableItem[], isExpanded: boolean]>;
     onRowClick?: (item: TableItem) => void;
+    /**
+     * Index of this group's first item row within `tableContext.navigableItems`
+     * — the flat, visual-order index space the roving tabindex moves through.
+     * Supplied by TableDesktop, which accumulates it across the rendered groups
+     * (skipping collapsed ones, which render no item rows).
+     */
+    rowIndexOffset?: number;
   };
 
   let {
@@ -44,7 +51,8 @@
     class: className = '',
     testId = undefined,
     groupHeaderContent,
-    onRowClick = undefined
+    onRowClick = undefined,
+    rowIndexOffset = 0
   }: GroupedRowProps = $props();
 
   // Table context
@@ -62,6 +70,9 @@
   });
 
   let selectable = $derived(tableState.selectionMode !== 'none');
+  // Same rule as TableRow: a row only joins the roving sequence when there is
+  // something to do with it.
+  let interactive = $derived(selectable || expandable || !!onRowClick);
   const styleConfig = getTableStyleConfig();
   const stickyContext = getStickyContext();
 
@@ -211,7 +222,14 @@
       )}
       onclick={(event) => handleItemRowClick(event, item, rowItemId)}
       transition:slide={{ duration: 150 }}
+      tabindex={interactive
+        ? tableContext.isFocusedRow(rowIndexOffset + index)
+          ? 0
+          : -1
+        : undefined}
+      aria-rowindex={rowIndexOffset + index + 1}
       aria-selected={selectable ? isRowSelected : undefined}
+      data-row-index={rowIndexOffset + index}
       data-testid={`grouped-item-${rowItemId}`}
     >
       {#if selectable}

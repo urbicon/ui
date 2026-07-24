@@ -146,6 +146,25 @@
     />
   </section>
 
+  <!-- Grouped + interactive: same grouping, but selectable, so rows join the
+       roving-tabindex sequence. The grouped table above is deliberately inert
+       (no selection/expand/onRowClick), which is why it never exercised the
+       keyboard path — grouped rows carried no data-row-index at all until
+       2026-07-25. -->
+  <section data-testid="table-grouped-keyboard" class="mb-16">
+    <h2 class="text-text-primary mb-4 text-lg font-semibold">Grouped + keyboard</h2>
+    <Table
+      items={groupRows}
+      columns={groupColumns}
+      initialGroupBy="region"
+      {groupOrder}
+      selectionMode="multi"
+      itemsPerPage={50}
+      enableSmartFilter={false}
+      ariaLabel="Grouped keyboard fixture table"
+    />
+  </section>
+
   <!-- Multi-select table: checkbox selection + select-all header. onSelectionChange
        drives the visible count the spec asserts against. -->
   <section data-testid="table-selection" class="mb-16">

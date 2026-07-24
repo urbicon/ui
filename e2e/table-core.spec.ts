@@ -168,6 +168,76 @@ test.describe('Table core flows', () => {
     expect(counts).toEqual({ east: 1, north: 3, south: 2 });
   });
 
+  test('keyboard navigation crosses group boundaries and selects the right row', async ({
+    page
+  }) => {
+    await setupPage(page);
+
+    const table = page.getByTestId('table-grouped-keyboard');
+    const rows = table.locator('tbody tr[data-row-index]');
+
+    // Every item row across all three groups is in one index space, numbered in
+    // visual order. Before 2026-07-25 grouped rows carried no data-row-index at
+    // all, so this collection was empty and the whole keyboard path was inert.
+    await expect(rows).toHaveCount(6);
+    const indices = await rows.evaluateAll((els) =>
+      els.map((el) => Number(el.getAttribute('data-row-index')))
+    );
+    expect(indices).toEqual([0, 1, 2, 3, 4, 5]);
+
+    // groupOrder is east(1), north(3), south(2) — so index 0 is the sole east row
+    // and index 1 is the first north row: arrowing down crosses a group boundary.
+    const regionAt = async (i: number) =>
+      (await rows.nth(i).locator('[data-testid$="-region"]').textContent())?.trim();
+    expect(await regionAt(0)).toBe('east');
+    expect(await regionAt(1)).toBe('north');
+
+    await rows.first().focus();
+    await expect(rows.first()).toBeFocused();
+
+    await page.keyboard.press('ArrowDown');
+    await expect(rows.nth(1)).toBeFocused();
+
+    // Space selects the focused row. It must select the row the focus is on —
+    // the id lookup used to read the paginated (ungrouped) list, so under
+    // grouping it would have resolved a different item.
+    await page.keyboard.press(' ');
+    await expect(rows.nth(1)).toHaveAttribute('aria-selected', 'true');
+    await expect(rows.nth(0)).toHaveAttribute('aria-selected', 'false');
+
+    // End jumps to the last row of the last group; Home returns to the first.
+    await page.keyboard.press('End');
+    await expect(rows.nth(5)).toBeFocused();
+    expect(await regionAt(5)).toBe('south');
+
+    await page.keyboard.press('Home');
+    await expect(rows.nth(0)).toBeFocused();
+  });
+
+  test('collapsing a group removes its rows from the keyboard sequence', async ({ page }) => {
+    await setupPage(page);
+
+    const table = page.getByTestId('table-grouped-keyboard');
+    const rows = table.locator('tbody tr[data-row-index]');
+    await expect(rows).toHaveCount(6);
+
+    // Collapse the first group (east, 1 row) via its header.
+    await table.getByTestId('grouped-row-east').click();
+
+    // Its row leaves the DOM, and the remaining rows renumber from 0 so the
+    // index space stays contiguous with what is actually rendered.
+    await expect(rows).toHaveCount(5);
+    const indices = await rows.evaluateAll((els) =>
+      els.map((el) => Number(el.getAttribute('data-row-index')))
+    );
+    expect(indices).toEqual([0, 1, 2, 3, 4]);
+
+    // End must reach the last *visible* row, not index 5 of the old sequence.
+    await rows.first().focus();
+    await page.keyboard.press('End');
+    await expect(rows.nth(4)).toBeFocused();
+  });
+
   test('multi-select toggles rows, the count, and the select-all header', async ({ page }) => {
     await setupPage(page);
 
