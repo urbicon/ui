@@ -26,7 +26,13 @@ export class PipelineOrchestrator {
   constructor(config: GeneratorConfig) {
     this.config = config;
     this.errorHandler = new ErrorHandler({
-      failFast: !config.processing?.parallel?.enabled,
+      // Strictness is enforced at the barrier below (any collected error fails the
+      // run), NOT by fail-fast — so it must not be coupled to parallelism.
+      // Previously `failFast: !parallel.enabled` meant turning parallelism on
+      // silently stopped errors from reaching a non-zero exit (a performance
+      // switch changing error strictness). Collect all errors (up to maxErrors),
+      // then fail once at the end regardless of mode.
+      failFast: false,
       maxErrors: 50,
       logLevel: (config.debug?.level as 'error' | 'warn' | 'info' | 'debug') || 'info'
     });
@@ -92,10 +98,23 @@ export class PipelineOrchestrator {
       }
 
       const summary = this.errorHandler.getSummary();
-      if (summary.totalErrors > 0 || summary.totalWarnings > 0) {
-        console.warn(
-          `⚠️  Pipeline completed with ${summary.totalErrors} errors and ${summary.totalWarnings} warnings`
+
+      // Barrier: any error collected during the run fails it, regardless of
+      // fail-fast / parallel mode. This is what keeps a parallel run as strict as
+      // a serial one — an error logged but not rethrown mid-flight would otherwise
+      // let a run with a missing artifact exit 0. Warnings do not fail the run.
+      if (summary.totalErrors > 0) {
+        console.error(
+          `❌ Pipeline completed with ${summary.totalErrors} error(s) and ${summary.totalWarnings} warning(s)`
         );
+        console.error(this.errorHandler.generateReport());
+        return this.createErrorResult(
+          new Error(`Pipeline completed with ${summary.totalErrors} error(s)`)
+        );
+      }
+
+      if (summary.totalWarnings > 0) {
+        console.warn(`⚠️  Pipeline completed with ${summary.totalWarnings} warning(s)`);
         if (this.config.debug?.enabled) {
           console.warn(this.errorHandler.generateReport());
         }
@@ -103,19 +122,7 @@ export class PipelineOrchestrator {
         console.log('✅ Pipeline completed successfully');
       }
 
-      return {
-        ...result,
-        errors: result.errors.concat(
-          summary.totalErrors > 0
-            ? [
-                {
-                  type: 'pipeline_warnings',
-                  message: `Pipeline completed with ${summary.totalErrors} errors and ${summary.totalWarnings} warnings`
-                }
-              ]
-            : []
-        )
-      };
+      return result;
     } catch (error) {
       console.error('❌ Pipeline failed:', error);
       console.error(this.errorHandler.generateReport());

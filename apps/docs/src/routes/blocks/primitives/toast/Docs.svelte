@@ -296,22 +296,10 @@ toaster.clear();`}
   </div>
 </Section>
 
-<!-- ─── Customization ─── -->
+<!-- ─── Store API ─── -->
 
-<Section marker="02" id="customization" title="Customization">
+<Section marker="02" id="store-api" title="Store API">
   <div class="space-y-8">
-    <CodeExample
-      title="slotClasses Override"
-      description="Override individual toast slots for a branded look without going fully unstyled."
-      code={`<Toaster slotClasses={{
-  toast: 'border-2 border-violet-500/30 shadow-lg shadow-violet-500/10',
-  title: 'text-violet-400 font-bold',
-  icon: 'text-violet-400'
-}} />`}
-      language="svelte"
-      preview={false}
-    />
-
     <CodeExample
       title="Toaster Store API"
       description="All methods on the toaster singleton."
@@ -339,6 +327,24 @@ toaster.clear();      // remove all`}
       language="typescript"
       preview={false}
     />
+  </div>
+</Section>
+
+<!-- ─── Customization ─── -->
+
+<Section marker="03" id="customization" title="Customization">
+  <div class="space-y-8">
+    <CodeExample
+      title="slotClasses Override"
+      description="Override individual toast slots for a branded look without going fully unstyled."
+      code={`<Toaster slotClasses={{
+  toast: 'border-2 border-violet-500/30 shadow-lg shadow-violet-500/10',
+  title: 'text-violet-400 font-bold',
+  icon: 'text-violet-400'
+}} />`}
+      language="svelte"
+      preview={false}
+    />
 
     <p class="text-text-secondary text-sm leading-relaxed">
       The <code class="text-text-primary">Toaster</code> is one instance per app, so its
@@ -355,7 +361,7 @@ toaster.clear();      // remove all`}
 
 <!-- ─── Accessibility ─── -->
 
-<Section marker="03" id="accessibility" title="Accessibility">
+<Section marker="04" id="accessibility" title="Accessibility">
   <div class="border-border-subtle bg-surface-elevated rounded-2xl border p-6">
     <div class="divide-border-subtle divide-y">
       <div class="pb-4">

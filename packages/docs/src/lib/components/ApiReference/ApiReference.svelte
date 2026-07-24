@@ -58,6 +58,19 @@
   const requiredCount = $derived(sortedProps.filter((p) => p.required).length);
   const styles = $derived(apiReferenceVariants());
 
+  // Pre-hydration the Table body is empty — TableProvider seeds its rows in a
+  // client-only $effect — so the prerendered artifact renders the empty state
+  // even though `sortedProps` (and the "N props" stat above) are already
+  // populated at SSR. Keep the empty-state copy honest for that window: props
+  // are on their way in, not absent, so a non-rendering crawler never ingests
+  // the false "No matching properties" as the component's authoritative API.
+  // Post-hydration it reverts to the correct filter-empty copy. This is only the
+  // cheap half of the SSR-ingestion debt (the real fix seeds the Table at SSR).
+  let hydrated = $state(false);
+  $effect(() => {
+    hydrated = true;
+  });
+
   /**
    * Row id per prop, so `TypesReference` can link back to a specific row.
    * `<Table>` renders `<tr id={item.id}>`.
@@ -163,7 +176,7 @@
       enableSmartFilter={sortedProps.length > 6}
       searchPlaceholder="Filter properties…"
       searchDebounceMs={200}
-      noDataText="No matching properties"
+      noDataText={hydrated ? 'No matching properties' : 'Loading properties…'}
       size="sm"
     >
       {#snippet cell(rawItem, value, column)}

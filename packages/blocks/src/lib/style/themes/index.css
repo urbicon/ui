@@ -23,8 +23,14 @@
  *                        (e.g. Sunset shifts it warm, Ocean cool) so that
  *                        surfaces, text and borders harmonise instead of
  *                        reading as a fixed cool grey. Only the hue shifts;
- *                        lightness and chroma match the foundation ramp, so
- *                        WCAG contrast is preserved.
+ *                        lightness and chroma match the foundation ramp. On this
+ *                        near-zero-chroma chassis ramp (chroma ≈ 0.01) that keeps
+ *                        WCAG contrast effectively unchanged (measured 5.95–6.05:1
+ *                        across every theme). It is NOT a general rule: at higher
+ *                        chroma, luminance still moves with hue at constant L/C
+ *                        (an accent ramp can slip under AA that way), which is why
+ *                        contrast.test.ts measures every theme rather than trusting
+ *                        this comment.
  *
  * Because surface-*, text-* and border-* all derive from --color-neutral-*
  * in semantic.css, re-tinting that one ramp flows through the whole chassis

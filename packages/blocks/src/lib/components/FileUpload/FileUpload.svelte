@@ -441,11 +441,14 @@
                   Deliberate a11y delta: the old Spinner emitted role="status" +
                   aria-live + an sr-only "Loading..." inside the file list's own
                   aria-live="polite" region (nested live regions); the core emits
-                  no semantics — the list region owns announcements. `text-primary`
-                  pins the old default color (the public Spinner's intent default),
-                  matching the explicit text-success/text-danger on the sibling
-                  status icons; it wins the duel against the core's `text-current`
-                  by stylesheet order (theme colors sort after keyword colors).
+                  no semantics — the list region owns announcements. The spinner
+                  stays `text-primary` deliberately: uploading is the IN-PROGRESS
+                  state, so it matches the always-primary progress bar above
+                  (Progress resolves fileUpload's primary|neutral intent to primary
+                  either way); the sibling text-success/text-danger icons mark the
+                  TERMINAL states. It wins the duel against the core's
+                  `text-current` by stylesheet order (theme colors sort after
+                  keyword colors).
                 -->
                 <CoreSpinner size="xs" class="text-primary" />
               {:else if entry.status === 'complete'}

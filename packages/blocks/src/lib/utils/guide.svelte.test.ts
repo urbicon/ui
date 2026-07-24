@@ -1322,6 +1322,24 @@ describe('GuideController — async navigationSource false-stop hardening (debt 
     expect(warn).not.toHaveBeenCalled();
   });
 
+  it('(b) skips the redundant goto when already on the logical route (normalizing router)', () => {
+    // The pre-navigation compare normalizes like the async own-vs-foreign path, so a step whose
+    // route matches the current path up to a trailing slash (or locale prefix) does not re-navigate.
+    // The old exact compare re-issued a goto to the same logical route, which a normalizing router
+    // no-op's without emitting a report — arming a targetless expectation until the next step.
+    const { ctrl, navigate } = makeSyncNormalizingController({ initialPath: '/home' });
+    ctrl.startTour(
+      tour([
+        { route: '/expenses', title: 'Intro' }, // step 1: /home → /expenses (router lands /expenses/)
+        { route: '/expenses', title: 'More' } // step 2: same logical route → no re-navigation
+      ])
+    );
+    expect(navigate).toHaveBeenCalledTimes(1); // only step 1 navigated
+    ctrl.next();
+    expect(navigate).toHaveBeenCalledTimes(1); // step 2 recognized '/expenses/' as '/expenses'
+    expect(ctrl.isTourActive).toBe(true);
+  });
+
   it('(b, async) a same-path normalized landing clears a targetless expectation on the early-return path', () => {
     const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
     const { ctrl, nav } = makeRouteController({ initialPath: '/home', dev: true });

@@ -726,7 +726,14 @@ export class GuideController {
     }
     const route = this.currentStep?.route;
     if (route == null) return;
-    if (route === this.#navSource.current()) return;
+    // Already on the (logical) route → nothing to do. Compare via the same
+    // normalization the async own-vs-foreign path uses, not an exact string
+    // match: under a normalizing router the current path can be `/expenses/` or
+    // `/de/expenses` for a step route of `/expenses`. An exact compare would
+    // re-navigate to the same logical route, and a router that no-op's that
+    // `goto` emits no report — leaving a targetless expectation armed until the
+    // next step (a spurious DEV foreign-nav warning).
+    if (looksLikeNormalizedRoute(this.#navSource.current(), route)) return;
     if (!this.#navigate) {
       if (this.#dev) {
         console.warn(

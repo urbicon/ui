@@ -250,6 +250,18 @@ With `isolate`, a default preview wrapper with `flex flex-wrap items-center gap-
 
 Only use the manual `code` prop when the displayed code should **intentionally** differ from the rendered markup.
 
+> **Convention — never put a code snippet in a single-quoted attribute.** A `code`
+> prop (or any attribute) whose value contains double quotes MUST be a
+> template-literal (`code={`…`}`) or come from `isolate` / a `?raw` import — never
+> a single-quoted attribute like `code='<X a="b" />'`. `prettier-plugin-svelte`
+> (the lefthook pre-commit formatter for `.svelte`) rewrites the outer single
+> quotes to double quotes **without escaping the inner ones** — `code="<X a="b" />"`
+> — which no longer parses ("Expected token ="). Verified 2026-07-13 on the
+> info-card page. Template-literal `code={`…`}` and `isolate` both sidestep it;
+> this is why every example on the pages uses one of them. (Upstream
+> `prettier-plugin-svelte` bug — a minimal repro is still to be filed; the
+> convention is the working mitigation.)
+
 ### CodeExample with `?raw` import (code-only, no live preview)
 
 For components that can't be rendered live in the docs (e.g. auth pages that need a server), use Vite's `?raw` suffix to import example `.svelte` files as strings:

@@ -226,16 +226,13 @@
           Deliberate a11y delta: the old embedded Spinner emitted role="status" +
           aria-live + an sr-only "Loading..." label — a live region NESTED inside
           the toast's own role="alert" region. The core emits no semantics; the
-          toast region owns the announcement. `text-primary` pins the old look:
-          the public Spinner's intent DEFAULTED to primary, so the loading glyph
-          always rendered primary regardless of the toast intent (whether it
-          should follow the intent instead is logged in technical-debt.md). It
-          wins the color duel against the core's `text-current` by stylesheet
-          order (theme color utilities sort after keyword colors).
+          toast region owns the announcement. The spinner follows the toast intent
+          like every other status glyph: with no explicit colour it inherits
+          `text-current` from the intent-coloured `slot('icon', intent)` span
+          (success → text-success, neutral → text-text-secondary, …), so a
+          success/danger loading toast no longer shows a brand-primary spinner.
         -->
-        <span class={slot('icon', toast.intent)}
-          ><CoreSpinner size="sm" class="text-primary" /></span
-        >
+        <span class={slot('icon', toast.intent)}><CoreSpinner size="sm" /></span>
       {:else}
         <IntentIcon class={slot('icon', toast.intent)} />
       {/if}
