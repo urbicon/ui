@@ -40,6 +40,8 @@
 
   let isFocused = $derived(tableContext.isFocusedRow(rowIndex));
   let interactive = $derived(selectable || expandable || !!onRowClick);
+  const selectsOnClick = $derived(tableState.rowClickSelects && selectable);
+  const clickable = $derived(expandable || !!onRowClick || selectsOnClick);
 
   const itemId = $derived.by((): string | number => {
     const candidate = item.id ?? item.__index;
@@ -58,12 +60,13 @@
     return count;
   });
 
-  function handleRowClick() {
+  function handleRowClick(event: MouseEvent) {
     const actions = resolveRowClickActions({
       hasRowClickHandler: !!onRowClick,
       expandable,
       rowClickSelects: tableState.rowClickSelects,
-      selectable
+      selectable,
+      row: event.currentTarget as Node | null
     });
     if (actions.fireRowClick) {
       onRowClick?.(item);
@@ -72,6 +75,9 @@
       toggleExpand(itemId);
     }
     if (actions.toggleSelection) {
+      // Keep the roving focus with the row the user just acted on, or the next
+      // Space keypress would toggle whatever row the index still pointed at.
+      tableContext.setFocusedRow(rowIndex);
       tableContext.toggleItem(itemId);
     }
   }
@@ -104,11 +110,12 @@
     styleConfig.slotClasses.row,
     styleConfig.unstyled,
     [
-      // `select-none` only where the click has no selection meaning — a
-      // row-click-selects row must keep its text selectable (the click handler
-      // skips selection while text is highlighted).
-      expandable || onRowClick ? 'cursor-pointer select-none' : '',
-      !expandable && !onRowClick && tableState.rowClickSelects ? 'cursor-pointer' : '',
+      clickable ? 'cursor-pointer' : '',
+      // `select-none` only where the click has no selection meaning. A
+      // row-click-selects row keeps its text selectable — the handler skips
+      // selection while text inside the row is highlighted, which `select-none`
+      // would make unreachable.
+      clickable && !selectsOnClick ? 'select-none' : '',
       isRecentlyUpdated
         ? 'ring-success/30 bg-success-subtle/30 ring-2 transition-[box-shadow,background-color] duration-1000 ring-inset'
         : ''

@@ -73,8 +73,14 @@
   let scrollTop = $state(0);
   let viewportHeight = $state(0);
 
-  // Virtualized = true bypasses pagination, uses all sorted items
-  const virtualizedActive = $derived(virtualized && !tableState.groupByKey);
+  // Virtualized = true bypasses pagination, uses all sorted items.
+  // Loading/error fall back to the standard branch: those states render a
+  // single row instead of a body, which the virtual list has no place for —
+  // without this the virtualized table would answer "loading" with the empty
+  // state ("No data found.") while mobile says "Loading…".
+  const virtualizedActive = $derived(
+    virtualized && !tableState.groupByKey && !tableState.loading && !tableState.error
+  );
   const virtualItems = $derived(tableContext.sortedItems);
   const rowHeight = $derived(ROW_HEIGHTS[size] ?? ROW_HEIGHTS.md);
 

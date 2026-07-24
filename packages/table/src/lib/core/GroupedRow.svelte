@@ -105,23 +105,21 @@
     }
   }
 
-  function handleItemToggleExpand(e: MouseEvent, row: TableItem) {
+  function handleItemToggleExpand(e: MouseEvent, rowItemId: string | number) {
     e.stopPropagation();
     if (!expandable) return;
-    const candidate = row.id ?? row.__index;
-    if (typeof candidate === 'string' || typeof candidate === 'number') {
-      toggleExpand(candidate);
-    }
+    toggleExpand(rowItemId);
   }
 
   // Same click semantics as the flat rows (TableRow) — grouped rows previously
   // took `onRowClick` as a prop and never wired it, so a click did nothing here.
-  function handleItemRowClick(row: TableItem, rowItemId: string | number) {
+  function handleItemRowClick(event: MouseEvent, row: TableItem, rowItemId: string | number) {
     const actions = resolveRowClickActions({
       hasRowClickHandler: !!onRowClick,
       expandable,
       rowClickSelects: tableState.rowClickSelects,
-      selectable
+      selectable,
+      row: event.currentTarget as Node | null
     });
     if (actions.fireRowClick) {
       onRowClick?.(row);
@@ -134,9 +132,8 @@
     }
   }
 
-  const rowIsInteractive = $derived(
-    expandable || !!onRowClick || (tableState.rowClickSelects && selectable)
-  );
+  const selectsOnClick = $derived(tableState.rowClickSelects && selectable);
+  const clickable = $derived(expandable || !!onRowClick || selectsOnClick);
 </script>
 
 <!-- Group Header Row -->
@@ -205,16 +202,14 @@
         styleConfig.slotClasses.row,
         styleConfig.unstyled,
         [
+          clickable ? 'cursor-pointer' : '',
           // `select-none` only where the click has no selection meaning — see TableRow.
-          expandable || onRowClick ? 'cursor-pointer select-none' : '',
-          !expandable && !onRowClick && tableState.rowClickSelects && selectable
-            ? 'cursor-pointer'
-            : ''
+          clickable && !selectsOnClick ? 'select-none' : ''
         ]
           .filter(Boolean)
           .join(' ')
       )}
-      onclick={() => handleItemRowClick(item, rowItemId)}
+      onclick={(event) => handleItemRowClick(event, item, rowItemId)}
       transition:slide={{ duration: 150 }}
       aria-selected={selectable ? isRowSelected : undefined}
       data-testid={`grouped-item-${rowItemId}`}
@@ -243,7 +238,7 @@
               class="table-expand-button rounded-modify flex h-6 w-6 items-center justify-center transition-transform duration-(--blocks-duration-fast) {isRowExpanded
                 ? 'rotate-180'
                 : ''}"
-              onclick={(e) => handleItemToggleExpand(e, item)}
+              onclick={(e) => handleItemToggleExpand(e, rowItemId)}
               aria-label={tt('actions.showDetails')}
               data-testid={`expand-button-${rowItemId}`}
             >

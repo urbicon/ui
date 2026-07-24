@@ -168,7 +168,9 @@ export interface TableProps<T = TableItem> {
    * Not compatible with grouping — and virtualization wins: the grouping
    * affordances are suppressed, and `initialGroupBy`, a controlled
    * `groupByKey` or a persisted grouping is ignored (DEV warns). Storage is not
-   * cleared, so the grouping returns if `virtualized` is dropped.
+   * cleared, so a persisted grouping applies again on the next load without
+   * `virtualized`; toggling the prop at runtime does not bring the current
+   * grouping back.
    * @default false
    */
   virtualized?: boolean;
@@ -645,18 +647,22 @@ export interface TableProps<T = TableItem> {
    * Whether clicking anywhere on a row body toggles that row's selection, in
    * addition to the always-present checkbox.
    *
-   * Defaults to `true` in `selectionMode="single"` (where a single click is the
+   * On by default in `selectionMode="single"` (where a single click is the
    * expected gesture and there is no marquee/range interaction to conflict
-   * with), but only while no {@link onRowClick} handler is set — a row click
-   * that already means something else must not silently also select. Set it
-   * explicitly to opt in for `multi`, or to `false` to keep the checkbox as the
-   * only selection target.
+   * with), as long as the row click means nothing else yet — neither
+   * {@link onRowClick} nor {@link expandedRowContent} is set. Set it explicitly
+   * to opt in for `multi` or for expandable rows, or to `false` to keep the
+   * checkbox as the only selection target.
    *
-   * A click that ends a text selection never selects, so cell content stays
-   * copyable. Applies to desktop rows (flat and grouped); mobile cards keep the
-   * checkbox as their only selection control, since a selectable card cannot be
-   * a button without nesting interactive elements.
-   * @default selectionMode === 'single' && !onRowClick
+   * A click that ends a text selection *inside the row* never selects, so cell
+   * content stays copyable. Applies to desktop rows (flat and grouped); mobile
+   * cards keep the checkbox as their only selection control, since a selectable
+   * card cannot be a button without nesting interactive elements.
+   *
+   * Defaults to `true` only in `selectionMode="single"` without `onRowClick`
+   * and without `expandedRowContent` — a row click that already expands must
+   * not silently also select.
+   * @default false
    */
   rowClickSelects?: boolean;
 

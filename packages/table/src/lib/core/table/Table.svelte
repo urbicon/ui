@@ -149,10 +149,11 @@
   let expandable = $derived(!!expandedRowContent);
 
   // Row-click selection defaults on for single-select (one click is the expected
-  // gesture there) but never steals a row click that already means something —
-  // `onRowClick` opts out unless the consumer says otherwise explicitly.
+  // gesture there) but never steals a row click that already means something:
+  // both an `onRowClick` handler and expandable rows (where the click toggles
+  // the detail row) opt out, unless the consumer opts in explicitly.
   const rowClickSelectsResolved = $derived(
-    rowClickSelects ?? (selectionMode === 'single' && !onRowClick)
+    rowClickSelects ?? (selectionMode === 'single' && !onRowClick && !expandedRowContent)
   );
 
   let tableContainer = $state<HTMLElement | null>(null);

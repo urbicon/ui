@@ -60,7 +60,7 @@ export function useGrouping(state: TableState, getSortedItems: () => TableItem[]
     // through here used to deactivate virtualization and render the *full* item
     // set — the failure mode `virtualized` is meant to prevent. Clearing stays
     // allowed, so a key restored before the mode was known can still be undone.
-    if (key !== null && state.virtualized) {
+    if (key && state.virtualized) {
       if (import.meta.env?.DEV) {
         console.warn(
           `[Table] Grouping is not available on a virtualized table — ignoring groupBy "${key}". Drop \`virtualized\` to group, or group server-side.`

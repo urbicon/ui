@@ -62,10 +62,20 @@ export function useLiveUpdates(state: TableState) {
   function pushInsert(item: TableItem) {
     // Deduplicate: if an item with the same ID is already pending, replace it
     const id = pickRowId(item);
+    let merged = item;
     if (id !== undefined) {
       inserts = inserts.filter((i) => pickRowId(i) !== id);
+      // Mirror of the pushUpdate case below: an out-of-order feed can deliver
+      // the update before the insert. Fold that pending update in and drop it
+      // from the buffer, or applyUpdates (which runs first) would discard it as
+      // orphaned and applyInserts would then add the un-updated row.
+      const pendingUpdateIdx = updates.findIndex((u) => u.id === id);
+      if (pendingUpdateIdx >= 0) {
+        merged = { ...item, ...updates[pendingUpdateIdx].changes };
+        updates = updates.filter((_, idx) => idx !== pendingUpdateIdx);
+      }
     }
-    inserts = [...inserts, item];
+    inserts = [...inserts, merged];
   }
 
   function pushUpdate(id: string | number, changes: Partial<TableItem>) {

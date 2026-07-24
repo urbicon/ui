@@ -1,3 +1,4 @@
+import type { Filter } from '$lib/types/tableTypes';
 import {
   createPersistentColumnOrder,
   createPersistentFilters,
@@ -8,8 +9,33 @@ import {
   createPersistentSortState,
   createPersistentSummaryConfigs
 } from '$lib/utils';
-import type { TablePersistenceConfig } from '../TableStore.svelte';
+import type { SummaryConfig, TablePersistenceConfig } from '../TableStore.svelte';
 import type { TableState } from './types';
+
+/**
+ * Element-level shape guards. A stored value is JSON the user's browser
+ * handed back — it can be any shape (a hand-edited key, a value written by an
+ * older version, another app on the same origin). Container checks alone let
+ * garbage *elements* through, and those reach `$derived` pipelines that assume
+ * their fields exist: a filter without `column` threw on every render, from a
+ * key the UI offers no way to clear. Malformed elements are dropped; if that
+ * leaves the axis unusable, the whole entry counts as absent so a seed applies.
+ */
+function isFilterShape(value: unknown): value is Filter {
+  if (!value || typeof value !== 'object') return false;
+  const filter = value as Partial<Filter>;
+  return typeof filter.column === 'string' && typeof filter.operator === 'string';
+}
+
+function isSummaryConfigShape(value: unknown): value is SummaryConfig {
+  if (!value || typeof value !== 'object') return false;
+  const config = value as Partial<SummaryConfig>;
+  return typeof config.column === 'string' && typeof config.type === 'string';
+}
+
+function isRowId(value: unknown): value is string | number {
+  return typeof value === 'string' || typeof value === 'number';
+}
 
 /**
  * Persistence concern: manages syncing table state to/from storage.
@@ -49,7 +75,6 @@ export function usePersistence(state: TableState, persistenceConfig?: TablePersi
   // wrongly-shaped entry leaves the axis untouched (and lets a seed apply).
   // The host store reads these through the `hydrated*` getters below.
   let hydratedFilters = false;
-  let hydratedSearch = false;
   let hydratedGroupByKey = false;
   let hydratedSummaryConfigs = false;
   let hydratedSort = false;
@@ -63,7 +88,7 @@ export function usePersistence(state: TableState, persistenceConfig?: TablePersi
         debounceMs: persistenceConfig.debounceMs
       });
       if (persistentFilters.hasStoredValue && Array.isArray(persistentFilters.value)) {
-        state.activeFilters = persistentFilters.value;
+        state.activeFilters = persistentFilters.value.filter(isFilterShape);
         hydratedFilters = true;
       }
     }
@@ -76,7 +101,6 @@ export function usePersistence(state: TableState, persistenceConfig?: TablePersi
       });
       if (persistentSearchTerm.hasStoredValue && typeof persistentSearchTerm.value === 'string') {
         state.searchTerm = persistentSearchTerm.value;
-        hydratedSearch = true;
       }
     }
 
@@ -106,10 +130,11 @@ export function usePersistence(state: TableState, persistenceConfig?: TablePersi
         persistentSummaryConfigs.hasStoredValue &&
         Array.isArray(persistentSummaryConfigs.value)
       ) {
-        state.summaryConfigs = persistentSummaryConfigs.value;
+        const configs = persistentSummaryConfigs.value.filter(isSummaryConfigShape);
+        state.summaryConfigs = configs;
         // Only reveal the summary row when there is something to show — a
         // stored *empty* set means the user removed every summary.
-        state.showSummary = persistentSummaryConfigs.value.length > 0;
+        state.showSummary = configs.length > 0;
         hydratedSummaryConfigs = true;
       }
     }
@@ -121,7 +146,12 @@ export function usePersistence(state: TableState, persistenceConfig?: TablePersi
         debounceMs: persistenceConfig.debounceMs
       });
       const sortValue = persistentSortState.value;
-      if (persistentSortState.hasStoredValue && typeof sortValue?.column === 'string') {
+      if (
+        persistentSortState.hasStoredValue &&
+        sortValue &&
+        typeof sortValue === 'object' &&
+        typeof sortValue.column === 'string'
+      ) {
         state.sortColumn = sortValue.column;
         state.sortDirection = sortValue.direction === 'desc' ? 'desc' : 'asc';
         hydratedSort = true;
@@ -156,15 +186,19 @@ export function usePersistence(state: TableState, persistenceConfig?: TablePersi
         debounceMs: persistenceConfig.debounceMs
       });
       if (persistentSelection.hasStoredValue && Array.isArray(persistentSelection.value)) {
-        for (const id of persistentSelection.value) state.selectedIds.add(id);
+        for (const id of persistentSelection.value.filter(isRowId)) state.selectedIds.add(id);
         hydratedSelection = true;
       }
     }
   }
 
   // Sync functions called by other concerns after mutations
+  // Every sync writes a *snapshot*, never the live array: the concerns mutate
+  // their arrays in place (`state.summaryConfigs[i] = config`), so assigning the
+  // same reference back would be no signal change at all — the auto-save effect
+  // would not re-run and the edit would never reach storage.
   function syncFilters() {
-    if (persistentFilters) persistentFilters.value = state.activeFilters;
+    if (persistentFilters) persistentFilters.value = [...state.activeFilters];
   }
 
   function syncSearch() {
@@ -176,7 +210,7 @@ export function usePersistence(state: TableState, persistenceConfig?: TablePersi
   }
 
   function syncSummaryConfigs() {
-    if (persistentSummaryConfigs) persistentSummaryConfigs.value = state.summaryConfigs;
+    if (persistentSummaryConfigs) persistentSummaryConfigs.value = [...state.summaryConfigs];
   }
 
   function syncSortState() {
@@ -257,9 +291,6 @@ export function usePersistence(state: TableState, persistenceConfig?: TablePersi
     // a stored-empty snapshot there is indistinguishable from not applying it.
     get hydratedFilters(): boolean {
       return hydratedFilters;
-    },
-    get hydratedSearch(): boolean {
-      return hydratedSearch;
     },
     get hydratedGroupByKey(): boolean {
       return hydratedGroupByKey;

@@ -126,8 +126,9 @@
   // and the seeds already applied, so a persisted or seeded group key can be in
   // place before the mode is known — set the flag and drop such a key
   // *synchronously*, before the first render, so a virtualized table never
-  // renders its full item set for a frame. Storage is deliberately left alone:
-  // the grouping comes back if the consumer drops `virtualized`.
+  // renders its full item set for a frame. Storage is deliberately left alone,
+  // so a persisted grouping applies again on the next load without
+  // `virtualized` — the effect below only clears, it never re-applies.
   // svelte-ignore state_referenced_locally
   if (virtualized) {
     state.virtualized = true;
@@ -156,18 +157,6 @@
     untrack(() => {
       state.groupByKey = null;
     });
-  });
-
-  // Hand the context to consumers outside the table's tree (getTableContext()
-  // only resolves inside it). Fires once, after mount, so a subscription set up
-  // in the callback sees a table that is fully wired. untrack keeps the callback
-  // itself off the dependency list — an inline arrow prop would otherwise
-  // re-fire this on every parent re-render.
-  let readyFired = false;
-  $effect(() => {
-    if (readyFired || !onReady) return;
-    readyFired = true;
-    untrack(() => onReady(tableState));
   });
 
   // ── Sync props → store ──
@@ -329,6 +318,19 @@
     if (groupByKey) {
       setGroupByKey(groupByKey);
     }
+  });
+
+  // Hand the context to consumers outside the table's tree (getTableContext()
+  // only resolves inside it). Declared *after* the prop→store effects above, so
+  // it flushes last and the callback sees columns and items already synced —
+  // Svelte runs user effects in creation order. untrack keeps the callback off
+  // the dependency list; an inline arrow prop would otherwise re-fire this on
+  // every parent re-render.
+  let readyFired = false;
+  $effect(() => {
+    if (readyFired || !onReady) return;
+    readyFired = true;
+    untrack(() => onReady(tableState));
   });
 
   // ── Server mode: queryFn lifecycle ──

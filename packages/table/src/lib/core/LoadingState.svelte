@@ -47,7 +47,11 @@
 
 <tr class={rowStyles.row()} data-testid={testId}>
   <td colspan={colSpan} class={rowStyles.cell()}>
+    <!-- The live region sits on the content wrapper, not on the row: a `<tr>`
+         with role="status" would stop being a row in the table's a11y tree.
+         Mirrors the mobile branch (only one of the two is ever displayed). -->
     <div
+      role="status"
       class={resolveSlotClass(
         styles.container,
         styleConfig.slotClasses.loadingState,

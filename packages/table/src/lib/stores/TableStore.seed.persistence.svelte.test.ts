@@ -442,3 +442,91 @@ describe('storage hygiene: an untouched axis creates no entry', () => {
     expect(window.localStorage.getItem(SORT_KEY('t18'))).toBe(null);
   });
 });
+
+describe('clearing an axis that has nothing stored yet', () => {
+  /**
+   * The blind spot of the first version: the write-dedup baseline was seeded
+   * with the *default*, so on a key that did not exist yet, writing the default
+   * back — clearing — looked like a no-op and never reached storage. Every axis
+   * default *is* its cleared state, so the seed came back on the next load.
+   *
+   * Two entry points reach that state: a first visit (nothing was ever stored),
+   * and `clearPersistedSortState()` / `clearAllPersistentData()` — the public
+   * "forget my saved view" API.
+   */
+  it('a sort cleared on a fresh key survives the reload', () => {
+    // Session 1: nothing stored, seed applies, user clears the sort.
+    const first = withRoot(() =>
+      createTableState({ tableId: 'fresh1' }, { sort: { column: 'age', direction: 'desc' } })
+    );
+    expect(first.state.sortColumn).toBe('age');
+    first.handleSort('age'); // desc → none
+    expect(first.state.sortColumn).toBe('');
+    first.forceSavePersistentData();
+
+    expect(JSON.parse(window.localStorage.getItem(SORT_KEY('fresh1')) ?? 'null')).toEqual({
+      column: '',
+      direction: 'asc'
+    });
+
+    // Session 2: the cleared sort wins over the same seed.
+    const second = withRoot(() =>
+      createTableState({ tableId: 'fresh1' }, { sort: { column: 'age', direction: 'desc' } })
+    );
+    expect(second.state.sortColumn).toBe('');
+  });
+
+  it('clearing again after clearAllPersistentData() is persisted', () => {
+    window.localStorage.setItem(
+      SORT_KEY('fresh2'),
+      JSON.stringify({ column: 'name', direction: 'asc' })
+    );
+
+    const ts = withRoot(() =>
+      createTableState({ tableId: 'fresh2' }, { sort: { column: 'age', direction: 'desc' } })
+    );
+    // "Forget my saved view" — every axis is back to "nothing stored".
+    ts.clearAllPersistentData();
+    expect(window.localStorage.getItem(SORT_KEY('fresh2'))).toBe(null);
+
+    // The user clears the sort again; that must be storable, or the next visit
+    // resurrects the seed.
+    ts.handleSort('age');
+    ts.handleSort('age');
+    ts.handleSort('age');
+    expect(ts.state.sortColumn).toBe('');
+    ts.forceSavePersistentData();
+    expect(JSON.parse(window.localStorage.getItem(SORT_KEY('fresh2')) ?? 'null')).toEqual({
+      column: '',
+      direction: 'asc'
+    });
+  });
+
+  it('an in-place summary edit reaches storage', () => {
+    // `addSummaryConfig` mutates the array in place for an existing column, so
+    // syncing the live reference back would be no signal change at all — the
+    // edit would never be written. The syncs pass snapshots for that reason.
+    const ts = withRoot(() => createTableState({ tableId: 'fresh3' }));
+    ts.addSummaryConfig({ column: 'age', type: 'sum' });
+    ts.forceSavePersistentData();
+    ts.addSummaryConfig({ column: 'age', type: 'avg' });
+    ts.forceSavePersistentData();
+
+    expect(JSON.parse(window.localStorage.getItem(SUMMARY_KEY('fresh3')) ?? 'null')).toEqual([
+      { column: 'age', type: 'avg' }
+    ]);
+  });
+
+  it('drops malformed elements instead of hydrating them into the pipeline', () => {
+    // Stored JSON is whatever the browser hands back — a hand-edited key or an
+    // older version's shape. Container-level checks let garbage elements reach
+    // `$derived` pipelines that assume their fields exist.
+    window.localStorage.setItem(
+      FILTERS_KEY('fresh4'),
+      JSON.stringify([{ column: 'name', operator: 'contains', value: 'a' }, 'junk', null, 42, {}])
+    );
+
+    const ts = withRoot(() => createTableState({ tableId: 'fresh4' }));
+    expect(ts.state.activeFilters).toEqual([{ column: 'name', operator: 'contains', value: 'a' }]);
+  });
+});

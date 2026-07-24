@@ -64,7 +64,9 @@
 
 <tr class={rowStyles.row()} data-testid={testId}>
   <td colspan={colSpan} class={rowStyles.cell()}>
+    <!-- Live region on the content wrapper, not the row — see LoadingState. -->
     <div
+      role="alert"
       class={resolveSlotClass(
         styles.container,
         styleConfig.slotClasses.errorState,

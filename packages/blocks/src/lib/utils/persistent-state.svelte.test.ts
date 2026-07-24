@@ -178,3 +178,72 @@ describe('write dedup', () => {
     cleanup();
   });
 });
+
+describe('clearing an axis that has no entry yet', () => {
+  /**
+   * The case the first version of the dedup got wrong: it seeded its "what
+   * storage holds" baseline with the *default*, although storage held nothing.
+   * Writing the default back — clearing — then looked like a no-op forever, so
+   * the absent → stored-empty transition (the whole point of `hasStoredValue`)
+   * could never happen on a key that did not exist yet. Reachable after
+   * `reset()` / `clearAllPersistentData()`, or simply on a first visit.
+   */
+  it('writes the cleared value even though it equals the default', () => {
+    const { result, cleanup } = withRoot(() =>
+      createPersistentState({ key: 'ps_fresh_clear', defaultValue: [] as string[] })
+    );
+
+    expect(window.localStorage.getItem('urbicon_ps_fresh_clear_v1')).toBe(null);
+
+    // The user clears an axis that was never persisted (its value is already
+    // the default) — a deliberate write, not an untouched instance.
+    result.value = [];
+    flushSync();
+    vi.advanceTimersByTime(1000);
+
+    expect(window.localStorage.getItem('urbicon_ps_fresh_clear_v1')).toBe('[]');
+    expect(result.hasStoredValue).toBe(true);
+    cleanup();
+  });
+
+  it('re-clearing after reset() writes again', () => {
+    window.localStorage.setItem('urbicon_ps_reclear_v1', '["a"]');
+
+    const { result, cleanup } = withRoot(() =>
+      createPersistentState({ key: 'ps_reclear', defaultValue: [] as string[] })
+    );
+
+    result.reset();
+    flushSync();
+    vi.advanceTimersByTime(1000);
+    expect(window.localStorage.getItem('urbicon_ps_reclear_v1')).toBe(null);
+    expect(result.hasStoredValue).toBe(false);
+
+    // Same instance, user clears again — must be persistable, not swallowed.
+    result.value = [];
+    flushSync();
+    vi.advanceTimersByTime(1000);
+    expect(window.localStorage.getItem('urbicon_ps_reclear_v1')).toBe('[]');
+    expect(result.hasStoredValue).toBe(true);
+    cleanup();
+  });
+
+  it('forceSave() after an explicit clear writes, unlike on an untouched default', () => {
+    const { result, cleanup } = withRoot(() =>
+      createPersistentState({ key: 'ps_force_clear', defaultValue: [] as string[] })
+    );
+
+    // Untouched: a blanket flush must not create entries, or every unused axis
+    // would read as "the user cleared this" and retire its seed forever.
+    result.forceSave();
+    expect(window.localStorage.getItem('urbicon_ps_force_clear_v1')).toBe(null);
+
+    // The same flush after a deliberate clear does write.
+    result.value = [];
+    flushSync();
+    result.forceSave();
+    expect(window.localStorage.getItem('urbicon_ps_force_clear_v1')).toBe('[]');
+    expect(result.hasStoredValue).toBe(true);
+    cleanup();
+  });
+});
