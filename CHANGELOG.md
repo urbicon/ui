@@ -4,6 +4,28 @@ All notable changes to this project will be documented in this file.
 This changelog is automatically generated from [Conventional Commits](https://www.conventionalcommits.org).
 
 
+## [6.41.0] - 2026-07-24
+
+### Bug Fixes
+- **table**: Make date filters work for ISO strings and Date values
+- **table,blocks**: Tell "stored empty" apart from "nothing stored"
+- **table,blocks**: Address the W4 adversarial-review findings
+- **docs-gen,mcp-server**: Split capital runs in toSlug, migrate the two affected slugs
+- **docs-gen,docs,shared-types**: Keep prose @see out of the seeAlso link field
+- **docs-gen**: Keep inline {@link …} out of the void in extracted prose
+
+### Documentation
+- **table**: Document row-click selection and the data-column slot contract
+- Reconcile technical-debt after W4 table-api
+- Reconcile technical-debt after W6 docs-gen-cleanup
+- Record the VR fallout of the tightened tolerance
+
+### Features
+- **table**: Loading/error state props, row-click selection, onReady context
+
+### Miscellaneous
+- **docs-gen,shared-types,docs-app**: Prune the dead docsConfig + config surface
+
 ## [6.40.4] - 2026-07-24
 
 ### Bug Fixes
