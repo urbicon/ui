@@ -65,26 +65,6 @@ internal TODO instead. Sections are ordered roughly by urgency.
 
 ## API design
 
-### Intent palettes drift across primitives — three different value sets, one undocumented
-
-- **Where:** `alert.variants.ts` / `toast.variants.ts` (6 values: `+info`,
-  **no `secondary`**), `tooltip.variants.ts` (7 values: both `secondary` and
-  `info`), `input.variants.ts` / `textarea.variants.ts`
-  (`default|success|warning|danger`), Select/Combobox (**no intent axis at
-  all** — validation only via the `error` bool + `messageType`);
-  `docs/COMPONENT-API-CONVENTIONS.md` §intent.
-- **What:** The conventions define the standard 6-value palette and the
-  feedback `+info` extension — but not the `−secondary` that Alert/Toast
-  actually apply. Tooltip is the lone component carrying all 7 values although
-  it is not a feedback component (the same conventions forbid `info` outside
-  feedback). Within the form family, Input/Textarea signal validation through
-  a private intent set while Select/Combobox signal it through `error` only —
-  two mechanisms for one concept.
-- **Why deferred:** Wants one palette decision per family (and a call on
-  whether form validation goes through `intent` or `error`), then a
-  conventions-doc update. Removing values is breaking.
-- **Found:** 2026-07-10, systematic primitives API analysis.
-
 ### Field label/helper/error MARKUP is re-implemented per form component (part b)
 
 - **Where:** the label/message scaffolding in `Input.svelte`, `PinInput.svelte`,
@@ -103,9 +83,10 @@ internal TODO instead. Sections are ordered roughly by urgency.
   cursor-free readonly) and are commented at each site.
 - **Why deferred:** A shared markup cut (a `FieldShell` snippet/component or a
   `useFieldScaffold` helper) is a bigger, behaviour-touching change with its own
-  a11y surface (id wiring, `aria-describedby`), and wants VR coverage — none of
-  PinInput/TimeInput is in the VR fixture yet. Not a drive-by after the style
-  fragments landed.
+  a11y surface (id wiring, `aria-describedby`). **Its stated blocker is gone**
+  (W5, 2026-07-24): PinInput and TimeInput are now in the VR fixture and the
+  dark-axe matrix, so a markup extraction can be proven pixel-identical the way
+  the style extraction was. What remains is the extraction itself.
 - **Found:** 2026-07-24, component-trio review; part (a) closed same day
   (debt-fix-wave-5).
 
@@ -398,22 +379,6 @@ internal TODO instead. Sections are ordered roughly by urgency.
   the selection one, plus a test — small, but a behaviour change of its own
   outside the stored-empty scope.
 - **Found:** 2026-07-24, W4 persistence work.
-
-### Checkbox now carries a press cue + intent interaction layer its form siblings lack
-
-- **Where:** `packages/blocks/src/lib/primitives/Checkbox/checkbox.variants.ts`
-  (`group-active:scale-95`, `group-hover:bg-<intent>-hover` /
-  `group-active:bg-<intent>-active` on the checked/indeterminate box) vs.
-  Toggle / RadioGroup, whose controls have neither.
-- **What:** The CHK-10 polish (`d6dcf2c`) gave Checkbox the small-element
-  press cue and the Button hover/active token ladder. That is the right
-  target state, but it makes Checkbox the only form primitive with a full
-  interaction layer — Toggle's track and RadioGroup's radios stay static
-  under hover/press.
-- **Why deferred:** Rolling the same vocabulary across the form family is a
-  deliberate sweep (per-control decision what hover/active mean on a track vs
-  a radio dot, plus VR review), not a per-component drive-by.
-- **Found:** 2026-07-13, CHK-10 checkbox polish.
 
 ### Combobox `queryFn` failure has no in-component error-row slot
 
@@ -943,6 +908,78 @@ internal TODO instead. Sections are ordered roughly by urgency.
   7" task — resolved to an empirical worktree spike + this deferral.
 
 ## Design tokens
+
+### Disabled field labels sit at 2.3:1 in dark mode
+
+- **Where:** `packages/blocks/src/lib/internal/field-chrome.ts`
+  (`FIELD_LABEL_DISABLED = 'text-text-disabled'`), consumed by Input, Textarea,
+  PinInput, TimeInput and (hand-written, same value) Select.
+- **What:** A disabled field's label renders `#454f56` on `#070c10` = **2.34:1**
+  in dark mode. WCAG 1.4.3 exempts inactive components, so this is not a
+  violation — but it is the label, the one part that still has to say what the
+  field *is*. The dark-axe gate only sees it on PinInput, because axe honours the
+  exemption when a `<label for>` points at a disabled control and PinInput labels
+  a `role="group"` via `aria-labelledby` instead; Input and Select pass the
+  identical token in the identical state (exception recorded in
+  `e2e/a11y-dark-baseline.json`).
+- **Why deferred:** Choosing a legible disabled tone (e.g. the W1-hardened
+  `text-text-tertiary`, or a new dedicated stop) is a design call across every
+  field, and it moves VR baselines for input/select/pin-input/time-input — a
+  contrast wave's work, not a validation wave's.
+- **Found:** 2026-07-24, W5 (PinInput entering the dark-axe matrix).
+
+### `surface-interactive` has no working hover partner
+
+- **Where:** `packages/blocks/src/lib/style/semantic.css`
+  (`--color-surface-interactive` vs `--color-surface-hover` / `-active`), used by
+  `internal/field-chrome.ts` and the filled variants of Input, Textarea, Select,
+  Combobox, plus Toggle's off track.
+- **What:** `surface-interactive` resolves to the *same value* as `surface-hover`
+  in light mode and as `surface-active` in dark — in the library default and
+  under the Rooms skin. So the established idiom
+  `bg-surface-interactive … hover:bg-surface-hover` is a **silent no-op in light
+  mode** everywhere it appears: those filled fields have no hover feedback at all
+  where most users see them. W5 worked around it for Toggle by using a border
+  step instead of a fill step (commented at the site).
+- **Why deferred:** The fix is a token-level decision — a dedicated
+  `--color-surface-interactive-hover` stop (and its `-active` sibling), chosen
+  against both modes and all six themes — not a per-component patch.
+- **Found:** 2026-07-24, W5 interaction-vocabulary rollout.
+
+### The press cue snaps wherever the shorthand `transition-colors` carries it
+
+- **Where:** `packages/blocks/src/lib/primitives/Badge/badge.variants.ts`
+  (`removeButton`), `packages/table/src/lib/variants/table.variants.ts`
+  (`tableRowVariants.row`), `packages/table/src/lib/variants/table-cells.variants.ts`
+  (`customCellVariants.container`).
+- **What:** Same bug class W5 fixed for arbitrary transition lists, but expressed
+  through the shorthand: `transition-colors` next to `active:scale-[0.98]` /
+  `hover:-translate-y-0.5`. Those cues snap. The new variants-lint rule
+  deliberately does not flag them — `transition-colors` is a *complete*
+  statement ("only colours move"), so the linter cannot tell a deliberate snap
+  from an oversight. Badge's `removeButton` is thereby inconsistent with
+  Dialog/Drawer's `closeButton`, which are the same ghost-Button fold and do
+  animate.
+- **Why deferred:** Needs a design call first — is the press cue animated
+  everywhere, or only where a component already opted into transform motion?
+  Badge additionally carries a documented "byte-identical to the pre-extraction
+  close button" contract that any change has to re-justify.
+- **Found:** 2026-07-24, W5 transition-list sweep.
+
+### Combobox's focus ring is twice as strong as every other field's
+
+- **Where:** `packages/blocks/src/lib/primitives/Combobox/combobox.variants.ts`
+  (`input` + `control` slots, `ring-primary/50`) vs. `fieldFocusRing` in
+  `internal/field-chrome.ts` (`/20`), used by Input, Textarea, Select,
+  PinInput, TimeInput.
+- **What:** Surfaced by W5 giving Combobox the shared error frame: its invalid
+  ring (`ring-danger/20`, from the shared fragment) is now *weaker* than its
+  valid one (`ring-primary/50`, its own). Nothing is broken, but the field is
+  the odd one out in both directions.
+- **Why deferred:** Harmonising to `/20` is a visible change on every focused
+  Combobox and wants a VR baseline refresh — a look decision, not a drive-by
+  inside a validation wave.
+- **Found:** 2026-07-24, W5 form-validation pass.
 
 ### Two `description` slots render body copy at 10–11px, below every legibility floor
 
