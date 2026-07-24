@@ -4,6 +4,12 @@ All notable changes to this project will be documented in this file.
 This changelog is automatically generated from [Conventional Commits](https://www.conventionalcommits.org).
 
 
+## [6.40.3] - 2026-07-24
+
+### Bug Fixes
+- **docs**: Mark bilingual chrome subtrees with their active locale
+- **docs**: Scope TOC lang to kicker spans, not the whole aside
+
 ## [6.40.2] - 2026-07-24
 
 ### Documentation
