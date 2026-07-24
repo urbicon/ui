@@ -4,6 +4,27 @@ All notable changes to this project will be documented in this file.
 This changelog is automatically generated from [Conventional Commits](https://www.conventionalcommits.org).
 
 
+## [6.40.0] - 2026-07-24
+
+### Bug Fixes
+- **chat-demo**: Buffer pretty-printed multi-line a2ui envelopes in the splitter
+- **blocks**: Demand compact single-line envelopes in the a2ui prompt
+- **blocks**: Make the A2UI streaming wait visible with a skeleton pulse
+- Harden the wave against the adversarial review findings (7 PROVEN)
+
+### Documentation
+- Log the A2UI DateTimeInput/Tabs catalog gap in the debt log
+- **blocks**: Un-hardcode the A2UI subset count, document the new mapping
+
+### Features
+- **chat-demo**: Ground the demo agent with a mock salon tool
+- **sveltekit-utils**: Add streamSse, a zero-dep SSE reader for POST streams
+- **blocks**: Render A2UI DateTimeInput through DatePicker and TimeInput
+- **chat-demo**: Stream via streamSse, render ToolCallCards and action chips
+
+### Miscellaneous
+- Add a root chat script for the a2ui demo dev server
+
 ## [6.39.0] - 2026-07-24
 
 ### Bug Fixes
