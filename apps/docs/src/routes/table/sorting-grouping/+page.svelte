@@ -60,7 +60,7 @@
 
       <CodeExample
         title="Start Sorted"
-        description="initialSort seeds the uncontrolled sort once — the header indicator shows it, and users can still change or clear it. A sort restored via persistenceConfig (persistSort) takes precedence."
+        description="initialSort seeds the uncontrolled sort once — the header indicator shows it, and users can still change or clear it. A sort restored via persistenceConfig (persistSort) takes precedence — including a stored 'no sort', so a sort the user cleared stays cleared instead of re-seeding."
         code={`<Table {items} {columns} initialSort={{ column: 'salary', direction: 'desc' }} />`}
       >
         <Table

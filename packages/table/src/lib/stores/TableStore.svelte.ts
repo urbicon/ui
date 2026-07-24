@@ -62,6 +62,12 @@ export interface SummaryConfig {
  * Pass `storage: 'sessionStorage'` to limit persistence to the current
  * tab. Pagination (current page) is never persisted — page 1 on
  * navigation is intentional UX.
+ *
+ * An axis is only written once its value differs from the default, so a
+ * table nobody touched leaves storage untouched as well. From then on the
+ * stored value is restored verbatim — *including an empty one*: clearing
+ * the sort, the filters, the grouping, the summaries or the selection is
+ * itself persisted and wins over the matching `initial*` seed.
  */
 export interface TablePersistenceConfig {
   /** Unique identifier for this table — used as the storage-key suffix. */
@@ -99,17 +105,19 @@ export interface TablePersistenceConfig {
 /**
  * Uncontrolled initial view state, applied once at store construction —
  * immediately after persistence hydration. Each axis seeds only when
- * persistence left it empty, so a value restored from storage always wins.
- * The seeded value is synced back to storage exactly like a user action
- * would be (every axis writes through the persistence-syncing wrappers
- * below). Controlled props are gated one level up: `TableProvider` drops
- * the `selectedIds` seed whenever the controlled `selectedIds` prop is
- * present, and the `groupBy` seed whenever the controlled `groupByKey`
- * prop is truthy.
+ * persistence did not supply it, so a value restored from storage always
+ * wins. The seeded value is synced back to storage exactly like a user
+ * action would be (every axis writes through the persistence-syncing
+ * wrappers below). Controlled props are gated one level up:
+ * `TableProvider` drops the `selectedIds` seed whenever the controlled
+ * `selectedIds` prop is present, and the `groupBy` seed whenever the
+ * controlled `groupByKey` prop is truthy.
  *
- * Caveat: persistence stores only non-empty values, so an axis the user
- * *cleared* reads as empty after a reload and the seed applies again —
- * cleared state does not survive a reload while a seed is set.
+ * "Persistence supplied it" means storage held an *entry* for that axis,
+ * not that the entry was non-empty: an axis the user cleared (no sort, no
+ * filters, no grouping, no summaries, nothing selected) is persisted as
+ * cleared and beats the seed too — cleared state survives a reload. Only
+ * an absent or corrupt entry lets the seed through.
  */
 export interface TableSeedState {
   /**
@@ -123,12 +131,14 @@ export interface TableSeedState {
   filters?: Filter[];
   /**
    * Initial grouping key. A key restored via `persistGroupByKey` takes
-   * precedence; a nullish/empty seed is treated as "no seed".
+   * precedence — including a stored `null` (the user ungrouped); a
+   * nullish/empty seed is treated as "no seed".
    */
   groupBy?: string | null;
   /**
    * Initial summary configurations. A set restored via
-   * `persistSummaryConfigs` takes precedence; an empty seed is "no seed".
+   * `persistSummaryConfigs` takes precedence — including a stored empty
+   * set (the user removed every summary); an empty seed is "no seed".
    */
   summaryConfigs?: SummaryConfig[];
 }
@@ -183,6 +193,8 @@ export function createTableState(
     selectionMode: 'none' as 'none' | 'single' | 'multi',
     selectedIds: new SvelteSet<string | number>(),
     selectionControlled: false,
+    rowClickSelects: false,
+    virtualized: false,
 
     mode: 'client' as 'client' | 'server',
     serverTotalItems: 0,
@@ -232,24 +244,41 @@ export function createTableState(
   // Runs exactly once, here at construction — before the first render and
   // before the first server-mode query emission, so the header sort indicator
   // and the initial `query` both carry the seed. Persistence hydrated the
-  // shared state above, so each axis seeds only when persistence left it
-  // empty: a persisted value wins. Writes go through the persistence-syncing
+  // shared state above, so each axis seeds only when persistence did not
+  // supply it: a persisted value wins — including a persisted *empty* one
+  // (`hydrated*`), so an axis the user cleared stays cleared instead of being
+  // re-seeded on every load. Writes go through the persistence-syncing
   // wrappers (hoisted function declarations below), so a seeded value reaches
   // storage exactly like a user action would.
-  if (seed?.sort?.column && !state.sortColumn) {
+  if (seed?.sort?.column && !state.sortColumn && !persistence.hydratedSort) {
     setSort(seed.sort.column, seed.sort.direction);
   }
-  if (seed?.filters && seed.filters.length > 0 && state.activeFilters.length === 0) {
+  if (
+    seed?.filters &&
+    seed.filters.length > 0 &&
+    state.activeFilters.length === 0 &&
+    !persistence.hydratedFilters
+  ) {
     state.activeFilters = [...seed.filters];
     persistence.syncFilters();
   }
-  if (seed?.selectedIds && seed.selectedIds.length > 0 && state.selectedIds.size === 0) {
+  if (
+    seed?.selectedIds &&
+    seed.selectedIds.length > 0 &&
+    state.selectedIds.size === 0 &&
+    !persistence.hydratedSelection
+  ) {
     setSelectedIds(seed.selectedIds);
   }
-  if (seed?.groupBy && !state.groupByKey) {
+  if (seed?.groupBy && !state.groupByKey && !persistence.hydratedGroupByKey) {
     setGroupByKey(seed.groupBy);
   }
-  if (seed?.summaryConfigs && seed.summaryConfigs.length > 0 && state.summaryConfigs.length === 0) {
+  if (
+    seed?.summaryConfigs &&
+    seed.summaryConfigs.length > 0 &&
+    state.summaryConfigs.length === 0 &&
+    !persistence.hydratedSummaryConfigs
+  ) {
     // Copy so the seed never aliases the consumer's array (mirrors the
     // `initialFilters` seed above) — `setSummaryConfigs` stores the reference
     // as-is, and the add/update path can mutate an entry in place.

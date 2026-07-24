@@ -82,7 +82,7 @@ ${scriptClose}
 
       <CodeExample
         title="Start Selected"
-        description="initialSelectedIds seeds the uncontrolled selection once — no controlled wiring needed for a starting value. Users can change or clear it freely; a selection restored via persistenceConfig.persistSelection takes precedence."
+        description="initialSelectedIds seeds the uncontrolled selection once — no controlled wiring needed for a starting value. Users can change or clear it freely; a selection restored via persistenceConfig.persistSelection takes precedence — including a stored empty one, so deselecting everything stays deselected instead of re-seeding."
         code={`<Table
   {items}
   {columns}

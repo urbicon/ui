@@ -24,6 +24,15 @@ import type { TableState } from './types';
  * Mutating concerns call the matching `sync*` function after each
  * mutation; `usePersistence` debounces the write to storage internally
  * (default 500 ms, configurable via `persistenceConfig.debounceMs`).
+ *
+ * **Stored empty is a real state.** Hydration keys off
+ * `hasStoredValue` (does storage hold an entry?), not off "is the value
+ * non-empty" — so an axis the user *cleared* (no sort, no filters, no
+ * grouping, no summaries, nothing selected) restores as cleared instead
+ * of reading like "nothing stored". The `hydrated*` getters report that
+ * per axis so the host store can keep its `initial*` seeds off an axis
+ * persistence already owns. A missing **or corrupt** entry counts as
+ * absent, so junk in storage can never block a seed permanently.
  */
 export function usePersistence(state: TableState, persistenceConfig?: TablePersistenceConfig) {
   let persistentFilters: ReturnType<typeof createPersistentFilters> | undefined;
@@ -35,6 +44,17 @@ export function usePersistence(state: TableState, persistenceConfig?: TablePersi
   let persistentColumnOrder: ReturnType<typeof createPersistentColumnOrder> | undefined;
   let persistentSelection: ReturnType<typeof createPersistentSelection> | undefined;
 
+  // Per-axis "persistence supplied this axis" flags. Set only when storage
+  // held a parseable entry of the expected shape — an absent, corrupt or
+  // wrongly-shaped entry leaves the axis untouched (and lets a seed apply).
+  // The host store reads these through the `hydrated*` getters below.
+  let hydratedFilters = false;
+  let hydratedSearch = false;
+  let hydratedGroupByKey = false;
+  let hydratedSummaryConfigs = false;
+  let hydratedSort = false;
+  let hydratedSelection = false;
+
   if (persistenceConfig) {
     if (persistenceConfig.persistFilters !== false) {
       persistentFilters = createPersistentFilters({
@@ -42,8 +62,9 @@ export function usePersistence(state: TableState, persistenceConfig?: TablePersi
         storage: persistenceConfig.storage,
         debounceMs: persistenceConfig.debounceMs
       });
-      if (persistentFilters.value.length > 0) {
+      if (persistentFilters.hasStoredValue && Array.isArray(persistentFilters.value)) {
         state.activeFilters = persistentFilters.value;
+        hydratedFilters = true;
       }
     }
 
@@ -53,8 +74,9 @@ export function usePersistence(state: TableState, persistenceConfig?: TablePersi
         storage: persistenceConfig.storage,
         debounceMs: persistenceConfig.debounceMs
       });
-      if (persistentSearchTerm.value) {
+      if (persistentSearchTerm.hasStoredValue && typeof persistentSearchTerm.value === 'string') {
         state.searchTerm = persistentSearchTerm.value;
+        hydratedSearch = true;
       }
     }
 
@@ -64,8 +86,13 @@ export function usePersistence(state: TableState, persistenceConfig?: TablePersi
         storage: persistenceConfig.storage,
         debounceMs: persistenceConfig.debounceMs
       });
-      if (persistentGroupByKey.value) {
-        state.groupByKey = persistentGroupByKey.value;
+      const groupByValue = persistentGroupByKey.value;
+      if (
+        persistentGroupByKey.hasStoredValue &&
+        (groupByValue === null || typeof groupByValue === 'string')
+      ) {
+        state.groupByKey = groupByValue;
+        hydratedGroupByKey = true;
       }
     }
 
@@ -75,9 +102,15 @@ export function usePersistence(state: TableState, persistenceConfig?: TablePersi
         storage: persistenceConfig.storage,
         debounceMs: persistenceConfig.debounceMs
       });
-      if (persistentSummaryConfigs.value.length > 0) {
+      if (
+        persistentSummaryConfigs.hasStoredValue &&
+        Array.isArray(persistentSummaryConfigs.value)
+      ) {
         state.summaryConfigs = persistentSummaryConfigs.value;
-        state.showSummary = true;
+        // Only reveal the summary row when there is something to show — a
+        // stored *empty* set means the user removed every summary.
+        state.showSummary = persistentSummaryConfigs.value.length > 0;
+        hydratedSummaryConfigs = true;
       }
     }
 
@@ -87,9 +120,11 @@ export function usePersistence(state: TableState, persistenceConfig?: TablePersi
         storage: persistenceConfig.storage,
         debounceMs: persistenceConfig.debounceMs
       });
-      if (persistentSortState.value.column) {
-        state.sortColumn = persistentSortState.value.column;
-        state.sortDirection = persistentSortState.value.direction;
+      const sortValue = persistentSortState.value;
+      if (persistentSortState.hasStoredValue && typeof sortValue?.column === 'string') {
+        state.sortColumn = sortValue.column;
+        state.sortDirection = sortValue.direction === 'desc' ? 'desc' : 'asc';
+        hydratedSort = true;
       }
     }
 
@@ -120,7 +155,10 @@ export function usePersistence(state: TableState, persistenceConfig?: TablePersi
         storage: persistenceConfig.storage,
         debounceMs: persistenceConfig.debounceMs
       });
-      for (const id of persistentSelection.value) state.selectedIds.add(id);
+      if (persistentSelection.hasStoredValue && Array.isArray(persistentSelection.value)) {
+        for (const id of persistentSelection.value) state.selectedIds.add(id);
+        hydratedSelection = true;
+      }
     }
   }
 
@@ -200,11 +238,40 @@ export function usePersistence(state: TableState, persistenceConfig?: TablePersi
     syncHiddenColumns,
     syncColumnOrder,
     syncSelection,
+    // Hand-back snapshots for the two axes that live inside other concerns.
+    // Same read-tolerance as the hydration above: a hand-edited entry that is
+    // not an array of ids reads as "nothing persisted" rather than being
+    // iterated (a bare string would otherwise hide one column per character).
     get initialHiddenColumnIds(): string[] {
-      return persistentHiddenColumns?.value ?? [];
+      const stored = persistentHiddenColumns?.value;
+      return Array.isArray(stored) ? stored : [];
     },
     get initialColumnOrder(): string[] {
-      return persistentColumnOrder?.value ?? [];
+      const stored = persistentColumnOrder?.value;
+      return Array.isArray(stored) ? stored : [];
+    },
+    // "Persistence owns this axis" — true when storage held an entry for it,
+    // including a stored *empty* one. The host store's `initial*` seeds check
+    // these so a cleared axis is not re-seeded on the next load. Column
+    // visibility and column order have no seed, so they need no flag: applying
+    // a stored-empty snapshot there is indistinguishable from not applying it.
+    get hydratedFilters(): boolean {
+      return hydratedFilters;
+    },
+    get hydratedSearch(): boolean {
+      return hydratedSearch;
+    },
+    get hydratedGroupByKey(): boolean {
+      return hydratedGroupByKey;
+    },
+    get hydratedSummaryConfigs(): boolean {
+      return hydratedSummaryConfigs;
+    },
+    get hydratedSort(): boolean {
+      return hydratedSort;
+    },
+    get hydratedSelection(): boolean {
+      return hydratedSelection;
     },
     clearPersistedFilters: () => persistentFilters?.reset(),
     clearPersistedSearchTerm: () => persistentSearchTerm?.reset(),
