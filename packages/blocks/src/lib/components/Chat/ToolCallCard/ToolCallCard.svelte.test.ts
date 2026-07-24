@@ -200,6 +200,31 @@ describe('ToolCallCard — body', () => {
     expect(document.body.textContent).toContain('"hits": 3');
   });
 
+  /**
+   * The card IS the frame. A bordered child card would draw a second outline at
+   * the same radius inside the first — the stacked-chrome look that made one
+   * JSON payload cost two header rows and three divider lines. Asserted on the
+   * rendered DOM rather than on the CodeBlock variant prop, because what matters
+   * is that nothing downstream reintroduces the frame.
+   */
+  it('embeds the payloads without stacking a second framed card inside the card', () => {
+    render({ toolCall: part('complete', { input: { query: 'svelte' }, output: { hits: 3 } }) });
+
+    const pres = [...document.querySelectorAll('pre')];
+    expect(pres.length, 'both payloads rendered').toBe(2);
+
+    for (const pre of pres) {
+      const block = pre.parentElement!;
+      expect(block.className, 'payload draws no outline').not.toMatch(/(^|\s)border(-|\s|$)/);
+      expect(block.className, 'payload draws no radius').not.toMatch(/\brounded-/);
+      expect(block.className, 'payload draws no surface').not.toMatch(/\bbg-surface-/);
+    }
+
+    // One caption per payload, not a section heading plus a language label.
+    expect(screen.getAllByText('Input')).toHaveLength(1);
+    expect(document.body.textContent, 'the redundant "json" caption is gone').not.toContain('json');
+  });
+
   it('omits the input section when input is undefined', () => {
     render({ toolCall: part('complete', { output: { hits: 3 } }) });
     expect(screen.queryByText('Input')).toBeNull();

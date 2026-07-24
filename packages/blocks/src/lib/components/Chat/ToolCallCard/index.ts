@@ -62,9 +62,9 @@ export interface ToolCallCardProps
   completeLabel?: string;
   /** Header badge label for the `error` state. @default 'Failed' */
   errorLabel?: string;
-  /** Heading above the input code block. @default 'Input' */
+  /** Caption in the input payload's header. @default 'Input' */
   inputLabel?: string;
-  /** Heading above the output code block. @default 'Output' */
+  /** Caption in the output payload's header. @default 'Output' */
   outputLabel?: string;
 
   /** Extra classes merged onto the root card element. */
@@ -74,7 +74,8 @@ export interface ToolCallCardProps
   /**
    * Per-slot class overrides. Slots: `trigger` (header button), `triggerLeft`,
    * `triggerRight`, `spinner`, `toolName`, `chevron`, `body`, `section`,
-   * `sectionLabel`, `errorMessage`.
+   * `errorMessage`. The payloads render as `variant="plain"` CodeBlocks — style
+   * those through `<BlocksProvider presets={{ CodeBlock: {...} }}>`.
    */
   slotClasses?: Partial<Record<ToolCallCardSlots, string>>;
   /**

@@ -154,9 +154,44 @@ describe('CodeBlock (component interaction)', () => {
     expect(region().parentElement?.className).toContain('my-root');
   });
 
-  it('labels the scrollable region by language, falling back to "Code"', () => {
+  /**
+   * `label` is what an embedding parent passes ("Input"). It replaces `lang` in
+   * the header rather than joining it — a header reading "Input" over a block
+   * captioned "json" states the same payload twice, which is exactly the doubled
+   * chrome the embedded variant removes.
+   */
+  it('shows label instead of lang in the header when both are given', () => {
+    render({ lang: 'json', label: 'Input', showCopy: false });
+    const root = region().parentElement!;
+    expect(root.textContent).toContain('Input');
+    expect(root.textContent).not.toContain('json');
+  });
+
+  it('shows the header for a label alone, and omits it when neither is given', () => {
+    render({ label: 'Input', showCopy: false });
+    expect(region().parentElement?.firstElementChild).not.toBe(region());
+    dispose?.();
+    document.body.replaceChildren();
+
+    render({ showCopy: false });
+    expect(region().parentElement?.firstElementChild).toBe(region());
+  });
+
+  it('labels the scrollable region by language, falling back to label then "Code"', () => {
     render({ lang: 'python' });
     expect(region().getAttribute('aria-label')).toBe('python code');
+    dispose?.();
+    document.body.replaceChildren();
+
+    // The language stays the region's name even when the header shows a caption:
+    // "json code" tells a screen-reader user more than "Input code".
+    render({ lang: 'json', label: 'Input' });
+    expect(region().getAttribute('aria-label')).toBe('json code');
+    dispose?.();
+    document.body.replaceChildren();
+
+    render({ label: 'Input' });
+    expect(region().getAttribute('aria-label')).toBe('Input code');
     dispose?.();
     document.body.replaceChildren();
 

@@ -153,20 +153,25 @@
   {#if children}
     {@render children(toolCall)}
   {:else}
+    <!--
+      The payloads render as `plain` CodeBlocks: this card already IS the frame,
+      so a bordered child card would stack a second outline at the same radius
+      inside the first. The section caption moved into the block's own header
+      too — "Input" above a header reading "json" was one chrome row and one
+      label too many for a single payload.
+    -->
     <div class={cls('body')}>
       {#if toolCall.errorMessage}
         <p class={cls('errorMessage')}>{toolCall.errorMessage}</p>
       {/if}
       {#if toolCall.input !== undefined}
         <div class={cls('section')}>
-          <span class={cls('sectionLabel')}>{inputLabel}</span>
-          <CodeBlock lang="json" code={stringify(toolCall.input)} />
+          <CodeBlock variant="plain" label={inputLabel} code={stringify(toolCall.input)} />
         </div>
       {/if}
       {#if toolCall.output !== undefined}
         <div class={cls('section')}>
-          <span class={cls('sectionLabel')}>{outputLabel}</span>
-          <CodeBlock lang="json" code={stringify(toolCall.output)} />
+          <CodeBlock variant="plain" label={outputLabel} code={stringify(toolCall.output)} />
         </div>
       {/if}
     </div>

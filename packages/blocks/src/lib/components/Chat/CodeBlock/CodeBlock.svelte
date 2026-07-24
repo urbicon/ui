@@ -9,6 +9,8 @@
   let {
     code,
     lang,
+    label,
+    variant = 'card',
     showCopy = true,
     wrap = false,
     copyLabel = 'Copy code',
@@ -28,7 +30,7 @@
   const CopyIcon = resolveIcon('copy', CopyIconDefault);
   const CheckIcon = resolveIcon('check', CheckIconDefault);
 
-  const variantProps: CodeBlockVariants = $derived({ wrap });
+  const variantProps: CodeBlockVariants = $derived({ variant, wrap });
   const styles = $derived(codeBlockVariants(variantProps));
   const slotClasses = $derived(
     resolveSlotClasses(blocksConfig, 'CodeBlock', preset, variantProps, slotClassesProp)
@@ -45,8 +47,14 @@
     });
   }
 
-  const showHeader = $derived(!!lang || showCopy || !!actions);
-  const regionLabel = $derived(lang ? `${lang} code` : 'Code');
+  // `label` wins over `lang` in the header: an embedding parent (ToolCallCard)
+  // passes what the payload *is* ("Input"), which says more than the language it
+  // happens to be serialised in — and showing both is the same fact twice.
+  const headerLabel = $derived(label ?? lang);
+  const showHeader = $derived(!!headerLabel || showCopy || !!actions);
+  // The accessible name of the scroll region keeps naming the language when
+  // there is one: "Input code" is vaguer than "json code" for a screen reader.
+  const regionLabel = $derived(lang ? `${lang} code` : label ? `${label} code` : 'Code');
 
   let copied = $state(false);
   let resetTimer: ReturnType<typeof setTimeout> | undefined;
@@ -77,7 +85,7 @@
 <div class={cls('root', className)} {...restProps}>
   {#if showHeader}
     <div class={cls('header')}>
-      <span class={cls('langLabel')}>{lang ?? ''}</span>
+      <span class={cls('langLabel')}>{headerLabel ?? ''}</span>
       <div class="flex items-center gap-1">
         {@render actions?.()}
         {#if showCopy}
