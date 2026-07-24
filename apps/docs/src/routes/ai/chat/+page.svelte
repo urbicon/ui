@@ -305,6 +305,9 @@ Both citations resolve to chips — open one to see the title, snippet, and the 
   function handleStop() {
     stopTimer();
     busy = false;
+    // Also settle the shared streaming flag: leaving it true would keep any
+    // dangling A2UI reference stuck as a skeleton instead of a fault chip.
+    a2uiStreaming = false;
     const last = messages[messages.length - 1];
     if (last?.status === 'streaming') patchMessage(last.id, { status: 'aborted' });
   }

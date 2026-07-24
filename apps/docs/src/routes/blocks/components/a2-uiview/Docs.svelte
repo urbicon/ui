@@ -26,12 +26,18 @@
   };
 
   const wiringCode = `<script lang="ts">
-  import { ChatMessageList, A2UIView, type ChatMessageData } from '@urbicon-ui/blocks';
+  import {
+    ChatMessageList,
+    A2UIView,
+    type ChatMessageData,
+    type MarkdownUrlPolicy
+  } from '@urbicon-ui/blocks';
 
   let messages: ChatMessageData[] = $state([]);
 
-  // A strict URL policy — images and links are blocked unless allowlisted.
-  const urlPolicy = { images: 'block', links: { allow: ['https://'] } } as const;
+  // Strict by default: external images are blocked unless a prefix is
+  // allowlisted; links keep the safe default protocols. Keep the object stable.
+  const urlPolicy: MarkdownUrlPolicy = { allowedImagePrefixes: ['https://cdn.example.com/'] };
 
   function sendUserTurn(text: string) {
     messages = [...messages, { id: crypto.randomUUID(), role: 'user', parts: [{ type: 'text', text }] }];
