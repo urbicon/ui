@@ -1,6 +1,9 @@
 import { describe, expect, it } from 'vitest';
 import { radioGroupVariants, radioItemVariants } from './radioGroup.variants';
 
+const INTENTS = ['primary', 'secondary', 'success', 'warning', 'danger', 'neutral'] as const;
+const VARIANTS = ['outlined', 'filled', 'ghost'] as const;
+
 describe('radioGroupVariants', () => {
   it('produces vertical layout by default', () => {
     const group = radioGroupVariants({}).group();
@@ -55,6 +58,112 @@ describe('radioItemVariants', () => {
     }
   });
 
+  // ── Interaction vocabulary (rolled out from Checkbox, W5/C) ──
+  describe('press cue', () => {
+    it('squeezes the indicator — the control surface — in every state', () => {
+      for (const variant of VARIANTS) {
+        for (const checked of [true, false] as const) {
+          expect(
+            radioItemVariants({ variant, checked }).indicator(),
+            `${variant}/${checked ? 'on' : 'off'}`
+          ).toContain('group-active:scale-95');
+        }
+      }
+    });
+
+    it('lists `scale` as a transitioned property (otherwise the squeeze snaps)', () => {
+      expect(radioItemVariants({}).indicator()).toContain(
+        'transition-[color,background-color,border-color,box-shadow,scale]'
+      );
+    });
+
+    it('does NOT put the cue on the dot (it owns the scale bucket for its check-in)', () => {
+      for (const checked of [true, false] as const) {
+        expect(radioItemVariants({ checked }).dot()).not.toContain('group-active:scale-95');
+      }
+      // The dot's own animation must survive untouched.
+      expect(radioItemVariants({ checked: false }).dot()).toContain('scale-0');
+      expect(radioItemVariants({ checked: true }).dot()).toContain('scale-100');
+    });
+
+    it('transitions the dot on `scale`, not `transform`', () => {
+      // Tailwind 4 compiles `scale-*` to the discrete `scale` property, which
+      // `transition-property: transform` does not cover — the check-in used
+      // to pop instantly with only the opacity fading.
+      const dot = radioItemVariants({}).dot();
+      expect(dot).toContain('transition-[opacity,scale]');
+      expect(dot).not.toContain('transition-[opacity,transform]');
+    });
+  });
+
+  describe('intent interaction layer', () => {
+    it('walks the hover/active token ladder on the checked indicator for every intent', () => {
+      for (const intent of INTENTS) {
+        const indicator = radioItemVariants({ checked: true, intent }).indicator();
+        expect(indicator, intent).toContain(`bg-${intent}`);
+        expect(indicator, intent).toContain(`group-hover:bg-${intent}-hover`);
+        expect(indicator, intent).toContain(`group-active:bg-${intent}-active`);
+      }
+    });
+
+    it('keeps the border on the base intent stop (only the fill steps)', () => {
+      for (const intent of INTENTS) {
+        const indicator = radioItemVariants({ checked: true, intent }).indicator();
+        expect(indicator, intent).toContain(`border-${intent}`);
+        expect(indicator, intent).not.toContain(`group-hover:border-${intent}-hover`);
+      }
+    });
+
+    it('holds the dot at one on-colour across base/hover/active', () => {
+      // style/contrast.test.ts measures `--color-<intent>` / `-hover` /
+      // `-active` against the intent's paired on-colour for every theme ×
+      // mode and asserts AA — including warning/light/active, where the fill
+      // darkens toward the dark `text-on-warning`. So the dot needs no
+      // state-dependent colour; asserting the absence keeps it that way.
+      for (const intent of INTENTS) {
+        const dot = radioItemVariants({ checked: true, intent }).dot();
+        expect(dot, intent).toContain(
+          intent === 'warning' ? 'bg-text-on-warning' : 'bg-text-on-primary'
+        );
+        expect(dot, intent).not.toMatch(/group-(hover|active):bg-/);
+      }
+    });
+
+    it('leaves the unchecked indicator free of intent fills', () => {
+      for (const intent of INTENTS) {
+        const indicator = radioItemVariants({ checked: false, intent }).indicator();
+        expect(indicator, intent).not.toContain(`group-hover:bg-${intent}-hover`);
+        expect(indicator, intent).not.toContain(`group-active:bg-${intent}-active`);
+      }
+    });
+  });
+
+  describe('unchecked hover', () => {
+    it('steps the boundary/fill per variant (identical to Checkbox)', () => {
+      expect(radioItemVariants({ checked: false, variant: 'outlined' }).indicator()).toContain(
+        'group-hover:border-border-emphasis'
+      );
+      expect(radioItemVariants({ checked: false, variant: 'filled' }).indicator()).toContain(
+        'group-hover:border-border-default'
+      );
+      expect(radioItemVariants({ checked: false, variant: 'ghost' }).indicator()).toContain(
+        'group-hover:bg-surface-subtle'
+      );
+    });
+
+    it('keeps the danger boundary on hover when in error', () => {
+      // Modifier prefixes are part of the tv() conflict bucket, so a plain
+      // `border-danger` does NOT fold the unchecked compound's
+      // `group-hover:border-*` step — the error compound pins it itself.
+      for (const variant of VARIANTS) {
+        const indicator = radioItemVariants({ error: true, checked: false, variant }).indicator();
+        expect(indicator, variant).toContain('group-hover:border-danger');
+        expect(indicator, variant).not.toContain('group-hover:border-border-emphasis');
+        expect(indicator, variant).not.toContain('group-hover:border-border-default');
+      }
+    });
+  });
+
   it('shows dot when checked', () => {
     const unchecked = radioItemVariants({ checked: false }).dot();
     expect(unchecked).toContain('opacity-0');
@@ -105,13 +214,31 @@ describe('radioItemVariants', () => {
   });
 
   it('never outputs dark: overrides', () => {
-    const intents = ['primary', 'secondary', 'success', 'warning', 'danger', 'neutral'] as const;
-    for (const intent of intents) {
+    // Covers the hover/active-bearing states too: the interaction layer is
+    // exactly where a `dark:` override would be tempting, and semantic tokens
+    // already switch through light-dark().
+    for (const intent of INTENTS) {
+      for (const variant of VARIANTS) {
+        for (const checked of [true, false] as const) {
+          for (const error of [true, false] as const) {
+            const styles = radioItemVariants({ intent, variant, checked, error });
+            const where = `${intent}/${variant}/${checked}/${error}`;
+            expect(styles.indicator(), where).not.toMatch(/\bdark:/);
+            expect(styles.dot(), where).not.toMatch(/\bdark:/);
+            expect(styles.item(), where).not.toMatch(/\bdark:/);
+            expect(styles.label(), where).not.toMatch(/\bdark:/);
+          }
+        }
+      }
+    }
+  });
+
+  it('never outputs a bare focus: modifier (keyboard-only rings)', () => {
+    for (const variant of VARIANTS) {
       for (const checked of [true, false] as const) {
-        const styles = radioItemVariants({ intent, checked });
-        expect(styles.indicator()).not.toMatch(/\bdark:/);
-        expect(styles.item()).not.toMatch(/\bdark:/);
-        expect(styles.label()).not.toMatch(/\bdark:/);
+        const indicator = radioItemVariants({ variant, checked }).indicator();
+        expect(indicator, `${variant}/${checked}`).toContain('peer-focus-visible:');
+        expect(indicator, `${variant}/${checked}`).not.toMatch(/(?<![a-z-])focus:/);
       }
     }
   });

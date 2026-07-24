@@ -1,6 +1,9 @@
 import { describe, expect, it } from 'vitest';
 import { checkboxVariants } from './checkbox.variants';
 
+const INTENTS = ['primary', 'secondary', 'success', 'warning', 'danger', 'neutral'] as const;
+const VARIANTS = ['outlined', 'filled', 'ghost'] as const;
+
 describe('checkboxVariants', () => {
   it('uses semantic tokens for unchecked outlined state', () => {
     const styles = checkboxVariants({ checked: false, indeterminate: false, variant: 'outlined' });
@@ -57,13 +60,76 @@ describe('checkboxVariants', () => {
     expect(indeterminate).toContain('[&_path]:[stroke-dashoffset:0]');
   });
 
-  it('carries the press cue and the intent interaction layer on the box', () => {
-    // Press feedback (Badge/Avatar vocabulary) lives on the box for every state…
-    expect(checkboxVariants({}).box()).toContain('group-active:scale-95');
-    // …and the checked box darkens through the Button interaction-layer tokens.
-    const checked = checkboxVariants({ checked: true, intent: 'primary' }).box();
-    expect(checked).toContain('group-hover:bg-primary-hover');
-    expect(checked).toContain('group-active:bg-primary-active');
+  describe('press cue + intent interaction layer', () => {
+    it('squeezes the box — the control surface — in every state', () => {
+      for (const variant of VARIANTS) {
+        for (const state of ['off', 'checked', 'indeterminate'] as const) {
+          const box = checkboxVariants({
+            variant,
+            checked: state === 'checked',
+            indeterminate: state === 'indeterminate'
+          }).box();
+          expect(box, `${variant}/${state}`).toContain('group-active:scale-95');
+        }
+      }
+    });
+
+    it('lists `scale` as a transitioned property (otherwise the squeeze snaps)', () => {
+      expect(checkboxVariants({}).box()).toContain(
+        'transition-[color,background-color,border-color,box-shadow,scale]'
+      );
+    });
+
+    it('walks the hover/active token ladder on the checked box for every intent', () => {
+      for (const intent of INTENTS) {
+        const box = checkboxVariants({ checked: true, intent }).box();
+        expect(box, intent).toContain(`bg-${intent}`);
+        expect(box, intent).toContain(`group-hover:bg-${intent}-hover`);
+        expect(box, intent).toContain(`group-active:bg-${intent}-active`);
+      }
+    });
+
+    it('walks the same ladder on the indeterminate box for every intent', () => {
+      // The indeterminate branch is a full twin of the checked one — it used
+      // to be untested, which is how the sibling gap went unnoticed.
+      for (const intent of INTENTS) {
+        const box = checkboxVariants({ indeterminate: true, intent }).box();
+        expect(box, intent).toContain(`bg-${intent}`);
+        expect(box, intent).toContain(`group-hover:bg-${intent}-hover`);
+        expect(box, intent).toContain(`group-active:bg-${intent}-active`);
+      }
+    });
+
+    it('keeps the border on the base intent stop (only the fill steps)', () => {
+      for (const intent of INTENTS) {
+        for (const key of ['checked', 'indeterminate'] as const) {
+          const box = checkboxVariants({ [key]: true, intent }).box();
+          expect(box, `${key}/${intent}`).toContain(`border-${intent}`);
+          expect(box, `${key}/${intent}`).not.toContain(`group-hover:border-${intent}-hover`);
+        }
+      }
+    });
+
+    it('leaves the unchecked box free of intent fills', () => {
+      for (const intent of INTENTS) {
+        const box = checkboxVariants({ checked: false, indeterminate: false, intent }).box();
+        expect(box, intent).not.toContain(`group-hover:bg-${intent}-hover`);
+        expect(box, intent).not.toContain(`group-active:bg-${intent}-active`);
+      }
+    });
+
+    it('steps the unchecked boundary/fill per variant on hover', () => {
+      const off = { checked: false, indeterminate: false } as const;
+      expect(checkboxVariants({ ...off, variant: 'outlined' }).box()).toContain(
+        'group-hover:border-border-emphasis'
+      );
+      expect(checkboxVariants({ ...off, variant: 'filled' }).box()).toContain(
+        'group-hover:border-border-default'
+      );
+      expect(checkboxVariants({ ...off, variant: 'ghost' }).box()).toContain(
+        'group-hover:bg-surface-subtle'
+      );
+    });
   });
 
   it('applies disabled state correctly', () => {
@@ -101,13 +167,20 @@ describe('checkboxVariants', () => {
   });
 
   it('never outputs dark: overrides', () => {
-    const intents = ['primary', 'secondary', 'success', 'warning', 'danger', 'neutral'] as const;
-    for (const intent of intents) {
-      for (const checked of [true, false] as const) {
-        const styles = checkboxVariants({ intent, checked });
-        expect(styles.box()).not.toMatch(/\bdark:/);
-        expect(styles.control()).not.toMatch(/\bdark:/);
-        expect(styles.label()).not.toMatch(/\bdark:/);
+    // Covers the indeterminate branch and every variant too: the interaction
+    // layer is exactly where a `dark:` override would be tempting, and
+    // semantic tokens already switch through light-dark().
+    for (const intent of INTENTS) {
+      for (const variant of VARIANTS) {
+        for (const checked of [true, false] as const) {
+          for (const indeterminate of [true, false] as const) {
+            const styles = checkboxVariants({ intent, variant, checked, indeterminate });
+            const where = `${intent}/${variant}/${checked}/${indeterminate}`;
+            expect(styles.box(), where).not.toMatch(/\bdark:/);
+            expect(styles.control(), where).not.toMatch(/\bdark:/);
+            expect(styles.label(), where).not.toMatch(/\bdark:/);
+          }
+        }
       }
     }
   });
@@ -136,5 +209,17 @@ describe('checkboxVariants', () => {
         expect(box).not.toMatch(/\brounded(?!-)/);
       }
     });
+  });
+});
+
+describe('checkboxVariants — error boundary survives hover', () => {
+  it('pins the danger border against the unchecked hover step', () => {
+    // Modifier prefixes live in their own conflict bucket, so a plain
+    // `border-danger` never folds `group-hover:border-border-emphasis` — the
+    // error boundary used to turn grey under the pointer.
+    for (const variant of ['outlined', 'filled', 'ghost'] as const) {
+      const box = checkboxVariants({ variant, error: true, checked: false }).box();
+      expect(box).toContain('group-hover:border-danger');
+    }
   });
 });

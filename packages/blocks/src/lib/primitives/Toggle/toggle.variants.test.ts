@@ -1,6 +1,9 @@
 import { describe, expect, it } from 'vitest';
 import { toggleVariants } from './toggle.variants';
 
+const INTENTS = ['primary', 'secondary', 'success', 'warning', 'danger', 'neutral'] as const;
+const VARIANTS = ['default', 'dot'] as const;
+
 describe('toggleVariants', () => {
   it('provides all required slot functions', () => {
     const styles = toggleVariants();
@@ -52,6 +55,111 @@ describe('toggleVariants', () => {
     const control = toggleVariants({ disabled: true }).control();
     expect(control).toContain('opacity-50');
     expect(control).toContain('cursor-not-allowed');
+  });
+
+  // ── Interaction vocabulary (rolled out from Checkbox, W5/C) ──
+  describe('press cue', () => {
+    it('squeezes the track — the control surface — in every variant and state', () => {
+      for (const variant of VARIANTS) {
+        for (const checked of [true, false] as const) {
+          expect(
+            toggleVariants({ variant, checked }).track(),
+            `${variant}/${checked ? 'on' : 'off'}`
+          ).toContain('group-active:scale-95');
+        }
+      }
+    });
+
+    it('lists `scale` as a transitioned property (otherwise the squeeze snaps)', () => {
+      expect(toggleVariants({}).track()).toContain(
+        'transition-[color,background-color,border-color,box-shadow,scale]'
+      );
+    });
+
+    it('does NOT put the cue on the thumb', () => {
+      // Judgement call: the thumb already drives `translate` for the slide and
+      // is `hidden` in the dot variant — a thumb-mounted cue would shrink the
+      // knob in place and vanish entirely in dot mode. Guard both directions.
+      for (const variant of VARIANTS) {
+        for (const checked of [true, false] as const) {
+          expect(toggleVariants({ variant, checked }).thumb()).not.toContain('scale-95');
+        }
+      }
+    });
+  });
+
+  describe('intent interaction layer', () => {
+    it('walks the hover/active token ladder on the checked pill for every intent', () => {
+      for (const intent of INTENTS) {
+        const track = toggleVariants({ variant: 'default', checked: true, intent }).track();
+        expect(track, intent).toContain(`bg-${intent}`);
+        expect(track, intent).toContain(`group-hover:bg-${intent}-hover`);
+        expect(track, intent).toContain(`group-active:bg-${intent}-active`);
+      }
+    });
+
+    it('walks the same ladder on the checked dot for every intent', () => {
+      for (const intent of INTENTS) {
+        const track = toggleVariants({ variant: 'dot', checked: true, intent }).track();
+        expect(track, intent).toContain(`bg-${intent}`);
+        expect(track, intent).toContain(`group-hover:bg-${intent}-hover`);
+        expect(track, intent).toContain(`group-active:bg-${intent}-active`);
+      }
+    });
+
+    it('keeps the border on the base intent stop (only the fill steps)', () => {
+      for (const variant of VARIANTS) {
+        for (const intent of INTENTS) {
+          const track = toggleVariants({ variant, checked: true, intent }).track();
+          expect(track, `${variant}/${intent}`).toContain(`border-${intent}`);
+          expect(track, `${variant}/${intent}`).not.toContain(`group-hover:border-${intent}-hover`);
+        }
+      }
+    });
+
+    it('leaves the off state free of intent fills', () => {
+      for (const variant of VARIANTS) {
+        for (const intent of INTENTS) {
+          const track = toggleVariants({ variant, checked: false, intent }).track();
+          expect(track, `${variant}/${intent}`).not.toContain(`group-hover:bg-${intent}-hover`);
+          expect(track, `${variant}/${intent}`).not.toContain(`group-active:bg-${intent}-active`);
+        }
+      }
+    });
+  });
+
+  describe('off-state hover', () => {
+    it('steps the pill boundary up to border-emphasis', () => {
+      const track = toggleVariants({ variant: 'default', checked: false }).track();
+      expect(track).toContain('group-hover:border-border-emphasis');
+    });
+
+    it('steps the dot boundary default → emphasis (the Checkbox outlined ladder)', () => {
+      const track = toggleVariants({ variant: 'dot', checked: false }).track();
+      expect(track).toContain('border-border-default');
+      expect(track).toContain('group-hover:border-border-emphasis');
+    });
+
+    it('does not use a fill step — surface-hover/-active collapse onto surface-interactive', () => {
+      // `surface-interactive` === `surface-hover` in light mode and
+      // === `surface-active` in dark, so either would be a silent no-op in
+      // one mode. Regression guard for a well-meaning "simplification".
+      const track = toggleVariants({ variant: 'default', checked: false }).track();
+      expect(track).toContain('bg-surface-interactive');
+      expect(track).not.toContain('group-hover:bg-surface-hover');
+      expect(track).not.toContain('group-hover:bg-surface-active');
+    });
+
+    it('withBorder pins the hover boundary at strong instead of weakening it', () => {
+      const track = toggleVariants({
+        variant: 'default',
+        checked: false,
+        withBorder: true
+      }).track();
+      expect(track).toContain('border-border-strong');
+      expect(track).toContain('group-hover:border-border-strong');
+      expect(track).not.toContain('group-hover:border-border-emphasis');
+    });
   });
 
   describe('variant="dot"', () => {
@@ -107,14 +215,31 @@ describe('toggleVariants', () => {
   });
 
   it('never outputs dark: overrides', () => {
-    const variantValues = ['default', 'dot'] as const;
-    const intents = ['primary', 'secondary', 'success', 'warning', 'danger', 'neutral'] as const;
-    for (const variant of variantValues) {
-      for (const intent of intents) {
-        const styles = toggleVariants({ variant, intent, checked: true });
-        expect(styles.track()).not.toMatch(/\bdark:/);
-        expect(styles.thumb()).not.toMatch(/\bdark:/);
-        expect(styles.control()).not.toMatch(/\bdark:/);
+    // Covers the hover/active-bearing states too: the interaction layer is
+    // exactly where a `dark:` override would be tempting, and semantic tokens
+    // already switch through light-dark().
+    for (const variant of VARIANTS) {
+      for (const intent of INTENTS) {
+        for (const checked of [true, false] as const) {
+          for (const withBorder of [true, false] as const) {
+            for (const error of [true, false] as const) {
+              const styles = toggleVariants({ variant, intent, checked, withBorder, error });
+              const where = `${variant}/${intent}/${checked}/${withBorder}/${error}`;
+              expect(styles.track(), where).not.toMatch(/\bdark:/);
+              expect(styles.thumb(), where).not.toMatch(/\bdark:/);
+              expect(styles.control(), where).not.toMatch(/\bdark:/);
+            }
+          }
+        }
+      }
+    }
+  });
+
+  it('never outputs a bare focus: modifier (keyboard-only rings)', () => {
+    for (const variant of VARIANTS) {
+      for (const checked of [true, false] as const) {
+        const track = toggleVariants({ variant, checked }).track();
+        expect(track, `${variant}/${checked}`).not.toMatch(/(?<![a-z-])focus:/);
       }
     }
   });
@@ -136,6 +261,30 @@ describe('toggleVariants', () => {
     it('dot variant gets the danger outline when unchecked', () => {
       const styles = toggleVariants({ variant: 'dot', error: true, checked: false });
       expect(styles.track()).toContain('border-danger');
+    });
+
+    it('keeps the danger boundary on hover (the off-state hover must not eat it)', () => {
+      // Modifier prefixes are part of the tv() conflict bucket, so a plain
+      // `border-danger` does NOT fold the unchecked compound's
+      // `group-hover:border-border-emphasis` — the error compound has to pin
+      // the hover bucket itself.
+      for (const variant of VARIANTS) {
+        const track = toggleVariants({ variant, error: true, checked: false }).track();
+        expect(track, variant).toContain('group-hover:border-danger');
+        expect(track, variant).not.toContain('group-hover:border-border-emphasis');
+      }
+    });
+
+    it('holds the pin even with withBorder (error outranks the strong boundary)', () => {
+      const track = toggleVariants({
+        variant: 'default',
+        error: true,
+        checked: false,
+        withBorder: true
+      }).track();
+      expect(track).toContain('border-danger');
+      expect(track).toContain('group-hover:border-danger');
+      expect(track).not.toContain('group-hover:border-border-strong');
     });
   });
 

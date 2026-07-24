@@ -211,11 +211,17 @@ export const checkboxVariants = tv({
     },
 
     // ── Error overrides unchecked border ──
+    // `group-hover:border-danger` is not redundant: modifier prefixes are part of
+    // the conflict bucket, so the plain `border-danger` never folds the unchecked
+    // variants' `group-hover:border-border-emphasis` above — without the pin, an
+    // errored checkbox loses its danger boundary the moment it is hovered.
     {
       error: true,
       checked: false,
       indeterminate: false,
-      class: { box: 'border-danger peer-focus-visible:ring-danger/40' }
+      class: {
+        box: 'border-danger group-hover:border-danger peer-focus-visible:ring-danger/40'
+      }
     }
   ],
   defaultVariants: {

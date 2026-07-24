@@ -9,7 +9,26 @@ export const toggleVariants = tv({
     // rectangle switch that reads as inline-toolbar control.
     track: [
       'relative inline-flex items-center',
-      'transition-[color,background-color,border-color,box-shadow] duration-[var(--blocks-duration-fast)] ease-out',
+      'transition-[color,background-color,border-color,box-shadow,scale] duration-[var(--blocks-duration-fast)] ease-out',
+      // Press feedback on the control surface — the same small-element press
+      // cue Checkbox took from Badge/Avatar (`scale-95`), with `group-active`
+      // so pressing the label squeezes the switch too. It rides the TRACK,
+      // not the thumb, for three reasons:
+      //   1. the track is the switch's control surface — Checkbox puts the
+      //      cue on `box`, and the whole subtree (thumb included) squeezes
+      //      with it, so one class covers the entire control;
+      //   2. the `dot` variant *hides* the thumb, so a thumb-mounted cue
+      //      would silently vanish exactly where the control is smallest;
+      //   3. the thumb already drives motion through `translate` (its
+      //      resting `-translate-y-1/2` plus the per-size `translate-x-*`).
+      //      Tailwind 4 compiles `scale-*` to the discrete `scale` property,
+      //      which CSS applies AFTER `translate` about the element's own
+      //      centre — so a thumb-mounted cue would shrink the knob in place
+      //      at whichever end of the track it sits, reading as a rendering
+      //      glitch rather than a press.
+      // `scale` is in the transition list above, and reduced motion collapses
+      // `--blocks-duration-fast` to 1ms.
+      'group-active:scale-95',
       'border border-transparent',
       'peer-focus-visible:ring-2 peer-focus-visible:ring-primary/50',
       'peer-focus-visible:ring-offset-2 peer-focus-visible:ring-offset-surface-base'
@@ -105,7 +124,18 @@ export const toggleVariants = tv({
       variant: 'default',
       checked: false,
       class: {
-        track: 'bg-surface-interactive',
+        // Off-state hover steps the boundary up to `border-emphasis` — the
+        // same destination Checkbox's unchecked `outlined` box reaches, on
+        // the border the track already reserves (`border border-transparent`
+        // in the slot base, so nothing shifts).
+        // Deliberately NOT a fill step: the off track sits on
+        // `surface-interactive`, which resolves to the SAME value as
+        // `surface-hover` in light mode (both neutral-100) and as
+        // `surface-active` in dark (both neutral-700) — in the library
+        // default *and* under the docs Rooms skin. Either fill token would
+        // therefore be a silent no-op in one of the two modes; the border is
+        // the only step that reads in both.
+        track: 'bg-surface-interactive group-hover:border-border-emphasis',
         thumb: 'translate-x-0'
       }
     },
@@ -115,7 +145,11 @@ export const toggleVariants = tv({
       variant: 'default',
       checked: false,
       withBorder: true,
-      class: { track: 'border-border-strong' }
+      // `border-strong` is the top of the border ladder, so the off-state
+      // hover above would *weaken* it (strong → emphasis). Pin the hover
+      // bucket to strong: an opt-in permanent boundary must not soften when
+      // the pointer arrives.
+      class: { track: 'border-border-strong group-hover:border-border-strong' }
     },
     {
       variant: 'default',
@@ -125,41 +159,63 @@ export const toggleVariants = tv({
     },
 
     // ── Checked track per intent (Switch-Pill only) ──
+    // Hover/active darken through the intent interaction-layer tokens — the
+    // same `bg-<intent>-hover` / `bg-<intent>-active` ladder Button and
+    // Checkbox use — via `group-*` so hovering/pressing the label counts too.
+    // The border stays on the base intent stop (as in Checkbox), leaving a
+    // hairline rim that makes the fill step legible.
     {
       variant: 'default',
       checked: true,
       intent: 'primary',
-      class: { track: 'bg-primary border-primary' }
+      class: {
+        track:
+          'bg-primary border-primary group-hover:bg-primary-hover group-active:bg-primary-active'
+      }
     },
     {
       variant: 'default',
       checked: true,
       intent: 'secondary',
-      class: { track: 'bg-secondary border-secondary' }
+      class: {
+        track:
+          'bg-secondary border-secondary group-hover:bg-secondary-hover group-active:bg-secondary-active'
+      }
     },
     {
       variant: 'default',
       checked: true,
       intent: 'success',
-      class: { track: 'bg-success border-success' }
+      class: {
+        track:
+          'bg-success border-success group-hover:bg-success-hover group-active:bg-success-active'
+      }
     },
     {
       variant: 'default',
       checked: true,
       intent: 'warning',
-      class: { track: 'bg-warning border-warning' }
+      class: {
+        track:
+          'bg-warning border-warning group-hover:bg-warning-hover group-active:bg-warning-active'
+      }
     },
     {
       variant: 'default',
       checked: true,
       intent: 'danger',
-      class: { track: 'bg-danger border-danger' }
+      class: {
+        track: 'bg-danger border-danger group-hover:bg-danger-hover group-active:bg-danger-active'
+      }
     },
     {
       variant: 'default',
       checked: true,
       intent: 'neutral',
-      class: { track: 'bg-neutral border-neutral' }
+      class: {
+        track:
+          'bg-neutral border-neutral group-hover:bg-neutral-hover group-active:bg-neutral-active'
+      }
     },
 
     // ── Error state: danger boundary on the unchecked track (Switch-Pill) ──
@@ -169,11 +225,16 @@ export const toggleVariants = tv({
     // The dot-variant twin lives at the END of the compound list so it
     // folds over the dot-unchecked `border-border-default` (order is
     // semantic — later compounds win conflicting buckets).
+    // `group-hover:border-danger` pins the hover bucket as well — without it
+    // the off-state hover step above would repaint the error boundary neutral
+    // the moment the pointer arrives, which is exactly when the mark matters.
     {
       variant: 'default',
       error: true,
       checked: false,
-      class: { track: 'border-danger peer-focus-visible:ring-danger/40' }
+      class: {
+        track: 'border-danger group-hover:border-danger peer-focus-visible:ring-danger/40'
+      }
     },
 
     // ── Thumb translation per size when checked (Switch-Pill only) ──
@@ -199,51 +260,74 @@ export const toggleVariants = tv({
     {
       variant: 'dot',
       checked: false,
-      class: { track: 'border-border-default' }
+      // Off-state hover: `border-default` → `border-emphasis`, the exact
+      // ladder Checkbox's unchecked `outlined` box walks (the dot is
+      // outline-only, so its boundary is the whole control).
+      class: { track: 'border-border-default group-hover:border-border-emphasis' }
     },
+    // Same intent interaction layer as the Switch-Pill above — the dot is a
+    // filled intent surface too, just a 14px one.
     {
       variant: 'dot',
       checked: true,
       intent: 'primary',
-      class: { track: 'border-primary bg-primary' }
+      class: {
+        track:
+          'border-primary bg-primary group-hover:bg-primary-hover group-active:bg-primary-active'
+      }
     },
     {
       variant: 'dot',
       checked: true,
       intent: 'secondary',
-      class: { track: 'border-secondary bg-secondary' }
+      class: {
+        track:
+          'border-secondary bg-secondary group-hover:bg-secondary-hover group-active:bg-secondary-active'
+      }
     },
     {
       variant: 'dot',
       checked: true,
       intent: 'success',
-      class: { track: 'border-success bg-success' }
+      class: {
+        track:
+          'border-success bg-success group-hover:bg-success-hover group-active:bg-success-active'
+      }
     },
     {
       variant: 'dot',
       checked: true,
       intent: 'warning',
-      class: { track: 'border-warning bg-warning' }
+      class: {
+        track:
+          'border-warning bg-warning group-hover:bg-warning-hover group-active:bg-warning-active'
+      }
     },
     {
       variant: 'dot',
       checked: true,
       intent: 'danger',
-      class: { track: 'border-danger bg-danger' }
+      class: {
+        track: 'border-danger bg-danger group-hover:bg-danger-hover group-active:bg-danger-active'
+      }
     },
     {
       variant: 'dot',
       checked: true,
       intent: 'neutral',
-      class: { track: 'border-neutral bg-neutral' }
+      class: {
+        track:
+          'border-neutral bg-neutral group-hover:bg-neutral-hover group-active:bg-neutral-active'
+      }
     },
 
     // ── Error state, dot variant (must fold over dot-unchecked border) ──
+    // Pins the hover bucket too, for the same reason as the Switch-Pill twin.
     {
       variant: 'dot',
       error: true,
       checked: false,
-      class: { track: 'border-danger' }
+      class: { track: 'border-danger group-hover:border-danger' }
     }
   ],
   defaultVariants: {

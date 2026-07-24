@@ -41,13 +41,32 @@ export const radioItemVariants = tv({
     // a radio indicator declares status, conventionally circular.
     indicator: [
       'relative flex items-center justify-center shrink-0 border',
-      'transition-[color,background-color,border-color,box-shadow] duration-[var(--blocks-duration-fast)] ease-out',
+      'transition-[color,background-color,border-color,box-shadow,scale] duration-[var(--blocks-duration-fast)] ease-out',
+      // Press feedback on the control surface — the same small-element press
+      // cue Checkbox took from Badge/Avatar (`scale-95`); `group-active` so
+      // pressing the label squeezes the indicator too. It sits on the
+      // indicator rather than the dot: the dot already owns the `scale`
+      // bucket for its own check-in animation (`scale-0` → `scale-100`), and
+      // scaling the parent carries the dot along multiplicatively instead of
+      // fighting that bucket — the whole control squeezes as one, exactly as
+      // Checkbox's box does with its check glyph. `scale` is in the
+      // transition list above, and reduced motion collapses
+      // `--blocks-duration-fast` to 1ms.
+      'group-active:scale-95',
       'peer-focus-visible:ring-2 peer-focus-visible:ring-primary/50',
       'peer-focus-visible:ring-offset-2 peer-focus-visible:ring-offset-surface-base'
     ],
     dot: [
       'opacity-0 scale-0',
-      'transition-[opacity,transform] duration-[var(--blocks-duration-fast)] ease-out'
+      // `scale`, not `transform`: Tailwind 4 compiles `scale-*` to the
+      // discrete `scale` property (`scale: var(--tw-scale-x) …`), which a
+      // `transition-property: transform` does NOT cover — so the check-in
+      // used to pop to full size instantly while only the opacity faded.
+      // (The shorthand `transition-transform` would work, since v4 expands it
+      // to `transform, translate, scale, rotate`; the explicit list has to
+      // name the property it actually animates.) Both durations are tokens,
+      // so reduced motion collapses the whole check-in to 1ms.
+      'transition-[opacity,scale] duration-[var(--blocks-duration-fast)] ease-out'
     ],
     label: ['text-text-primary select-none leading-snug'],
     description: ['text-text-tertiary leading-snug']
@@ -142,42 +161,88 @@ export const radioItemVariants = tv({
     },
 
     // Checked intent colors
+    // Hover/active darken through the intent interaction-layer tokens — the
+    // same `bg-<intent>-hover` / `bg-<intent>-active` ladder Button and
+    // Checkbox use — via `group-*` so hovering/pressing the label counts too.
+    // The border stays on the base intent stop (as in Checkbox).
+    //
+    // The dot keeps ONE colour across all three stops: it is the intent's
+    // paired on-colour, and `style/contrast.test.ts` measures exactly that
+    // pairing (`--color-<intent>` / `-hover` / `-active` against
+    // `--color-text-on-primary` / `-on-warning`) across every theme × mode ×
+    // state — 126 combinations, all ≥ AA 4.5:1, and all ≥ the 3:1
+    // UI-component floor that actually binds a non-text mark. That includes
+    // the one adverse direction, `warning/light/active`, where the fill
+    // darkens *toward* the dark `text-on-warning`; warning-700 is pinned as
+    // the lowest press stop that still clears AA. So a state-dependent dot
+    // colour would buy nothing the token graph does not already guarantee.
     {
       checked: true,
       intent: 'primary',
-      class: { indicator: 'bg-primary border-primary', dot: 'bg-text-on-primary' }
+      class: {
+        indicator:
+          'bg-primary border-primary group-hover:bg-primary-hover group-active:bg-primary-active',
+        dot: 'bg-text-on-primary'
+      }
     },
     {
       checked: true,
       intent: 'secondary',
-      class: { indicator: 'bg-secondary border-secondary', dot: 'bg-text-on-primary' }
+      class: {
+        indicator:
+          'bg-secondary border-secondary group-hover:bg-secondary-hover group-active:bg-secondary-active',
+        dot: 'bg-text-on-primary'
+      }
     },
     {
       checked: true,
       intent: 'success',
-      class: { indicator: 'bg-success border-success', dot: 'bg-text-on-primary' }
+      class: {
+        indicator:
+          'bg-success border-success group-hover:bg-success-hover group-active:bg-success-active',
+        dot: 'bg-text-on-primary'
+      }
     },
     {
       checked: true,
       intent: 'warning',
-      class: { indicator: 'bg-warning border-warning', dot: 'bg-text-on-warning' }
+      class: {
+        indicator:
+          'bg-warning border-warning group-hover:bg-warning-hover group-active:bg-warning-active',
+        dot: 'bg-text-on-warning'
+      }
     },
     {
       checked: true,
       intent: 'danger',
-      class: { indicator: 'bg-danger border-danger', dot: 'bg-text-on-primary' }
+      class: {
+        indicator:
+          'bg-danger border-danger group-hover:bg-danger-hover group-active:bg-danger-active',
+        dot: 'bg-text-on-primary'
+      }
     },
     {
       checked: true,
       intent: 'neutral',
-      class: { indicator: 'bg-neutral border-neutral', dot: 'bg-text-on-primary' }
+      class: {
+        indicator:
+          'bg-neutral border-neutral group-hover:bg-neutral-hover group-active:bg-neutral-active',
+        dot: 'bg-text-on-primary'
+      }
     },
 
     // Error overrides unchecked border
+    // `group-hover:border-danger` pins the hover bucket too: the unchecked
+    // compounds above carry a `group-hover:border-*` step, and a plain
+    // `border-danger` does not fold it (modifier prefixes are part of the
+    // conflict bucket), so without this the error boundary went neutral the
+    // moment the pointer arrived — exactly when the mark matters.
     {
       error: true,
       checked: false,
-      class: { indicator: 'border-danger peer-focus-visible:ring-danger/40' }
+      class: {
+        indicator: 'border-danger group-hover:border-danger peer-focus-visible:ring-danger/40'
+      }
     }
   ],
   defaultVariants: {
