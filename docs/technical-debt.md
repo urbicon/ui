@@ -345,6 +345,46 @@ internal TODO instead. Sections are ordered roughly by urgency.
   consumer-provided default value? — an API decision of its own.
 - **Found:** 2026-07-24, W4 persistence work.
 
+### `TableContext` exposes the whole store surface as public API
+
+- **Where:** `packages/table/src/lib/core/table/index.ts` (`export type
+  TableContext = ReturnType<typeof createTableState>`), re-exported from the
+  package root; same object `getTableContext()` returns.
+- **What:** Naming the context type for `onReady` (W4) made the store's entire
+  inside part of the published contract — `setColumns`, `setItems`,
+  `showAllColumns`, `initColumnOrder`, `resetFocus`, `setServerResult/-Error`,
+  `clearAllPersistentData` and everything else. Any restructuring of the store
+  is now a breaking change, although only a handful of members
+  (`state`, the push/apply family, the documented getters) are meant for
+  consumers. The exposure predates the type alias — `getTableContext()` already
+  returned the same object — but the alias makes it explicit and easy to depend on.
+- **Why deferred:** The fix is a hand-written, narrow `TableContext` interface
+  that `createTableState` is typed against, which means deciding member by
+  member what is public — and checking the in-tree consumers (SmartFilterBar,
+  HeaderMenu, cells) that legitimately use the wider surface from *inside*.
+- **Found:** 2026-07-24, W4 adversarial review.
+
+### Persistence: three residual limits after the stored-empty fix
+
+- **Where:** `packages/blocks/src/lib/utils/persistent-state.svelte.ts` (debounce
+  + `touched` write rule) and `packages/table/src/lib/stores/concerns/usePersistence.svelte.ts`.
+- **What:** (a) **Legacy entries.** Consumers who ran a persisted table *before*
+  the fix have empty defaults in `localStorage` from the old mount-write. If an
+  `initial*` seed is added afterwards, that stale entry reads as "the user
+  cleared this" and suppresses the seed until the user sets the axis once or
+  calls `clearAllPersistentData()`. (b) **Debounce window.** Setting an axis and
+  clearing it again inside one debounce window, before anything was ever stored,
+  leaves no entry — the intermediate state never reached storage. Consumers can
+  widen that window via `persistenceConfig.debounceMs`. (c) **SSR divergence.**
+  `hasStoredValue` is always false without storage, so a client hydrating a
+  stored-*empty* axis now differs from the server-rendered seeded one, where it
+  previously matched (same class as the pre-existing stored-non-empty case).
+- **Why deferred:** (a) is only fixable with a storage key bump plus the
+  migration/GC story the key scheme does not have (see the entry above).
+  (b) is inherent to debouncing. (c) is the general SSR/persistence tension —
+  it wants the documented answer for all axes at once, not a per-case patch.
+- **Found:** 2026-07-24, W4 persistence review.
+
 ### Table persists a *controlled* `searchTerm`, unlike controlled selection
 
 - **Where:** `packages/table/src/lib/stores/concerns/usePersistence.svelte.ts`
@@ -630,26 +670,6 @@ internal TODO instead. Sections are ordered roughly by urgency.
 
 ## Dead code / decorative config
 
-### docs-gen `@see` extraction stores bare type names as `seeAlso`, which ApiReference can't link
-
-- **Where:** `packages/docs-gen/src/core/extraction/PropsExtractor.ts` (~`:535`,
-  raw `@see` tag text → `seeAlso`) surfacing in
-  `packages/docs/src/lib/components/ApiReference/ApiReference.svelte`.
-- **What:** The non-`http` `seeAlso` render drop is **resolved** (debt-fix-wave-5,
-  2026-07-24): route-relative (`/…#…`) and fragment (`#…`) values now render as
-  internal links wrapping the type code. But `@see` extraction blindly stores the
-  raw tag text, so hand-written prose cross-refs like `@see HTMLButtonAttributes.value`
-  (Button) / `@see CartesianDatum` (BarChart) land in `seeAlso` as bare dotted/type
-  names — neither `http` nor `/`|`#`, so they now (correctly) fall through to the
-  plain type-segment branch and render as text, i.e. the `@see` is silently ignored.
-  One field is doing two jobs — "a link destination" and "a prose reference".
-- **Why deferred:** The fix is a docs-gen design call — resolve bare type names to
-  their doc anchors, or keep prose `@see` out of `seeAlso` (a separate field),
-  cross-checked against the extractor. Not a render tweak.
-- **Found:** 2026-07-24, debt-fix-wave-5 (ApiReference seeAlso fix). The
-  `typeAnchor`/`typePreview` half of the original entry was closed in qa-polish-wave
-  (`510a410`/`a9609c0`); the seeAlso render drop in this wave.
-
 ### The `@urbicon-ui/docs` package has no component / DOM test coverage
 
 - **Where:** `packages/docs/src` — `vitest.config.ts` runs `environment: 'node'`
@@ -664,28 +684,6 @@ internal TODO instead. Sections are ordered roughly by urgency.
   harness, Table/Badge deps) is its own decision, not a drive-by while fixing one
   render branch.
 - **Found:** 2026-07-24, debt-fix-wave-5 (ApiReference seeAlso fix).
-
-### Route-level `docsConfig` exports are decorative — nothing consumes them
-
-- **Where:** the `docsConfig` exports in all 59 route-level `Docs.svelte` /
-  `DocsCustom.svelte` files (apps/docs), plus the config surface behind them:
-  `ApiConfig.showInheritance`/`showDeprecated`, `VariantsConfig.groupBy` (and
-  its `'variant'` default), `CrossReferenceConfig.knownTypes` + the remaining
-  `KnownTypeConfig` interface, and the `DocumentationSection`/`SectionContent`
-  apparatus in `shared-types/documentation-core.ts` (incl. two
-  `groupByCategory` fields, zero consumers outside its own file).
-- **What:** docs-gen only parses `docsConfig` from package-internal
-  `docs.svelte` files (`SvelteDocsParser` via `loadDocsConfig`) — and none
-  exist. The route-level exports are never imported at build or runtime; the
-  config fields listed above are set but never read. The dead
-  `api.groupBy`/`KnownTypeConfig.category`/single-file-TS slice was removed
-  2026-07-13 (`8b522c5`); this entry is the remainder.
-- **Why deferred:** Removing the whole `docsConfig` surface is its own sweep
-  (59 files + shared-types + docs-gen types) and wants a deliberate check of
-  what the scaffold template should emit instead — not a drive-by after the
-  category cleanup already landed.
-- **Found:** 2026-07-13, while removing the dead prop-category scaffolding
-  (docs-gen cleanup agent).
 
 ## Testing / CI gates
 
@@ -806,49 +804,81 @@ internal TODO instead. Sections are ordered roughly by urgency.
 
 ## docs-gen
 
-### `toSlug` mis-kebabs component names with consecutive capitals (`QRCode` → `qrcode`)
+### `@see` on a *type* is still swallowed, and a mid-sentence `@see` becomes a real tag
 
-- **Where:** `packages/docs-gen/src/core/enrichment/APIDataGenerator.ts:412`
-  (`toSlug`: `input.replace(/([a-z0-9])(\p{Lu})/gu, '$1-$2')…`).
-- **What:** The kebab rule only inserts a hyphen at a lowercase/digit→uppercase
-  boundary. A name with consecutive capitals has no such boundary inside the run,
-  so `QRCode` slugifies to `qrcode` (not `qr-code`) — the route, `api.ts`,
-  `_catalog.json` slug, `llm.txt` path and MCP-catalog entry all land under
-  `qrcode`. Handled for QRCode by making the route + nav + `llm.txt` asset link
-  match the tooling slug (`/blocks/components/qrcode`), but it is a latent trap
-  for any future name with a capital run: `OTPInput` → `otpinput`, `APIKey` →
-  `apikey`, `PDFViewer` → `pdfviewer`. Worse, docs-gen silently creates the
-  `<slug>/api.ts` route dir from its own derivation, so a hand-authored
-  `otp-input/+page.svelte` would import a `./api` that was written to
-  `otpinput/api.ts` instead — a broken page with no error until check runs.
-- **Why deferred:** The correct kebab also has to split `[A-Z]+` runs before a
-  trailing capitalized word (`QRCode` → `qr-code`, but `IOStream` → `io-stream`,
-  `HTTPSProxy` → `https-proxy`) — a deliberate slug-rule change that reslugs
-  nothing today but would change URLs the moment such a component ships, so it
-  wants one decision plus a redirect story if any existing slug moves. No such
-  component exists yet besides QRCode (handled).
-- **Found:** 2026-07-23, adding the QRCode component (component-trio wave).
+- **Where:** `packages/docs-gen/src/extractors/typescript/LocalTypesExtractor.ts`
+  (~`:151`/`:295`/`:313`, `documentation = extractJSDocComment(decl)`), surfacing
+  in `packages/docs/src/lib/components/TypesReference/TypesReference.svelte`.
+- **What:** W6 split prop-level `@see` into link targets (`seeAlso`) and prose
+  refs (`seeAlsoRefs`) — but only on the **prop** side. A `@see` on a *type*
+  declaration is still dropped: `BarChartDatum`'s `@see CartesianDatum`
+  (`packages/blocks/src/lib/components/BarChart/index.ts:9`) reaches
+  `bar-chart/api.ts` with the tag gone. Second facet, found while building the
+  fixtures: TypeScript parses **any** `@see` as a `JSDocSeeTag`, including one
+  written mid-sentence in a description — such a description would silently grow
+  a reference chip. No prop description does that today (verified: three
+  prop-level `@see`, all deliberate).
+- **Why deferred:** The type side needs its own `seeAlsoRefs` counterpart:
+  `TypeDefinition` + three extractor call sites + the emitted interface + the
+  docs `TypeEntry` + two render sites. One real occurrence, and it loses nothing
+  visible (that alias' definition literally *is* the referenced type). The
+  mid-sentence trap wants a JSDoc lint, not a fix.
+- **Found:** 2026-07-24, W6 `@see` split.
 
-### docs-gen config surface carries ~12 never-consumed interfaces/fields
+### The slug rule lives in two hand-synced copies
 
-- **Where:** `packages/docs-gen/src/types/configuration.ts` + related — e.g.
-  `LLMFilterConfig`, `APIInclusionConfig`, `SharedOutputConfig`/`BackupConfig`,
-  `WatchConfig`, `ProfilingConfig`, `ParallelConfig.strategy`,
-  `PackageConfig.priority`/`metadata`,
-  `TypeScriptConfig.compilerOptions`/`include`/`exclude`.
-- **What:** The 2026-07-20 JSDoc inventory (which closed the coverage gap on
-  this surface) made visible that ~12 config interfaces/fields are declared and
-  type-checked but never read by the current pipeline. They are now honestly
-  labelled "Not consumed by the current pipeline" / "Reserved" rather than
-  described with invented behaviour, but the honest end state is a prune-or-
-  implement decision.
-- **Why deferred:** Deleting a whole public-looking config surface (and deciding
-  which fields are planned vs. leftover — `WatchConfig`/`enableWatch` in
-  particular pair with the still-caller-less `updateConfig` watch path) is its
-  own deliberate sweep, not a drive-by after a documentation pass.
-- **Found:** 2026-07-20, docs-gen JSDoc coverage pass (qa-polish-wave). The
-  earlier `generateGlobalLlmsTxt` silent-catch and watch-path `configPath` drop
-  entries were resolved in the same wave (`c269849`/`c13781e`).
+- **Where:** `packages/docs-gen/src/utils/slug.ts` vs.
+  `packages/mcp-server/src/tools/get-component.ts` (~`:41`).
+- **What:** W6 consolidated four drifted `toSlug` copies inside docs-gen into
+  one module — but mcp-server deliberately has no dependency on docs-gen (thin
+  remote adapter), so its own copy was merely *aligned*, tied to the original by
+  a comment. That is exactly how the four docs-gen copies drifted apart in the
+  first place.
+- **Why deferred:** The right home is `@urbicon-ui/shared-types`, which both
+  already depend on — but that package is types-only today (zero runtime
+  exports, `sideEffects: false`), so adding a runtime function is a
+  package-shape decision.
+- **Found:** 2026-07-24, W6 slug consolidation.
+
+### docs-gen's vitest never runs `src/**/*.test.ts`
+
+- **Where:** `packages/docs-gen/vitest.config.ts` (`include: ['tests/**/*.test.ts']`).
+- **What:** Two suites next to their sources — `src/generators/content/icons.test.ts`
+  and `src/generators/llm/LLMDocumentationGenerator.test.ts` — are silently never
+  executed; the package's reported test count contains none of them.
+- **Why deferred:** Widening `include` may surface real failures in code that
+  has not been exercised for months, and both files may be superseded by
+  same-named suites under `tests/` — triage, not a config tweak.
+- **Found:** 2026-07-24, W6.
+
+### What the docs-gen prune deliberately left standing
+
+- **Where:** `packages/docs-gen/src/types/configuration.ts`
+  (`LLMOptimizationConfig`, `APIOptimizationConfig.compress`/`splitByPackage`/
+  `generateIndex`, `DebugOutputConfig`, `MigrationConfig`, `CustomParserConfig`,
+  `VariantsExtractionConfig.includeComputed`/`customParsers`,
+  `MetadataEnrichmentConfig.addTags`/`autoTierAssignment`, `SchemaConfig.strict`/
+  `allowUnknownSections`, `ComponentValidationConfig`);
+  `packages/shared-types/src/component.ts` (`ComponentInfo.documentation`);
+  `apps/docs/package.json` + `packages/docs/package.json` (`chokidar`);
+  `packages/docs-gen/docs/*.mermaid`.
+- **What:** Four leftovers around the W6 prune. (a) A second tier of
+  declared-but-never-read config, same shape as the pruned one — two fields are
+  even *written* as defaults by `VariantsExtractor` with no reader. (b) The
+  inverse shape: `ComponentInfo.documentation` is *read* once (the pipeline's
+  `componentsWithDocumentation` stat) but never written, so that number is
+  structurally always 0. (c) `chokidar` is a devDependency of two packages with
+  zero imports — residue of the same never-built watch loop whose config W6
+  removed. (d) Both docs-gen architecture diagrams describe classes and types
+  that no longer exist (`SectionMerger`, `DocumentationSectionRenderer`,
+  `SveltePageGenerator`, the deleted `DocumentationSection` family).
+- **Why deferred:** (a) pruning it further shrinks `EnrichmentConfig`/
+  `ExtractionConfig` to near-empty shells — that is a decision about whether
+  docs-gen keeps a configurable-pipeline contract at all. (b) means deciding
+  whether to populate the field or drop a whole shared-types subpath. (c) touches
+  `bun.lock`, which should not be rewritten mid-wave. (d) is a docs task of its
+  own — they are the only architecture overview docs-gen has.
+- **Found:** 2026-07-24, W6 prune.
 
 ## Toolchain / dependencies
 
