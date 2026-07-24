@@ -14,6 +14,16 @@ export const apiReferenceVariants = tv({
     ],
     defaultCode: ['font-mono text-xs text-text-tertiary'],
     description: ['text-sm leading-relaxed text-text-secondary'],
+    // Description cell wrapper — only needed when a prop also carries prose
+    // `@see` references, which stack under the description text.
+    descriptionCell: ['flex flex-col items-start gap-1'],
+    // Prose `@see` references (`HTMLButtonAttributes.value`): a real reference,
+    // but one with no doc URL, so it reads as a quiet footnote rather than a link.
+    seeAlsoRefs: ['flex flex-wrap items-center gap-1 text-2xs text-text-tertiary'],
+    seeAlsoRef: [
+      'inline-flex items-center rounded-modify',
+      'bg-surface-quiet px-1.5 py-0.5 font-mono text-2xs leading-none text-text-secondary'
+    ],
     placeholder: ['text-text-tertiary'],
     link: ['text-primary underline decoration-primary/40 hover:decoration-primary'],
     // Cross-reference to a TypesReference entry. Reads as prose-quiet inline

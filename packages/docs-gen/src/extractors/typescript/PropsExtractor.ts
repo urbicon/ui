@@ -518,6 +518,7 @@ export class PropsExtractor extends TypeScriptBaseExtractor<PropsExtractionInput
     let examples: PropInfo['examples'] = [];
     let deprecated: PropInfo['deprecated'];
     let seeAlso: PropInfo['seeAlso'];
+    let seeAlsoRefs: PropInfo['seeAlsoRefs'];
     let experimental = false;
     let since: string | undefined;
 
@@ -531,11 +532,15 @@ export class PropsExtractor extends TypeScriptBaseExtractor<PropsExtractionInput
       defaultValue = this.extractJSDocTag(member, 'default');
       since = this.extractJSDocTag(member, 'since');
 
-      // NEW: Extract @see references
-      const seeTag = this.extractJSDocTag(member, 'see');
-      if (seeTag) {
-        seeAlso = seeTag;
-      }
+      // Split `@see` into the two jobs it actually serves: a navigable link
+      // target (`seeAlso`, rendered as a link) and a prose reference
+      // (`seeAlsoRefs`, rendered as literal text). Before this split every
+      // `@see` landed in `seeAlso`, where a bare type name silently fell
+      // through ApiReference's link branches and was never shown.
+      const seeValues = this.extractSeeValues(member);
+      seeAlso = seeValues.find((value) => PropsExtractor.isSeeLinkTarget(value));
+      const refs = seeValues.filter((value) => !PropsExtractor.isSeeLinkTarget(value));
+      if (refs.length > 0) seeAlsoRefs = refs;
 
       const deprecatedInfo = this.extractJSDocTag(member, 'deprecated');
       if (deprecatedInfo) {
@@ -573,8 +578,59 @@ export class PropsExtractor extends TypeScriptBaseExtractor<PropsExtractionInput
     if (experimental) prop.experimental = experimental;
     if (since) prop.since = since;
     if (seeAlso) prop.seeAlso = seeAlso;
+    if (seeAlsoRefs) prop.seeAlsoRefs = seeAlsoRefs;
 
     return prop;
+  }
+
+  // ==========================================
+  // @see HANDLING
+  // ==========================================
+
+  /**
+   * Recover every raw `@see` value from a node's JSDoc, in source order.
+   *
+   * `extractJSDocTag(member, 'see')` cannot be used here: TypeScript parses
+   * `@see` into a `JSDocSeeTag` whose `name` (a `JSDocNameReference`) swallows
+   * an unpredictable prefix of the value and leaves only the remainder — or
+   * the next line's comment asterisk — in `comment`:
+   *
+   * | JSDoc                                | `tag.name`              | `tag.comment` |
+   * | ------------------------------------ | ----------------------- | ------------- |
+   * | `@see HTMLButtonAttributes.value`    | `HTMLButtonAttributes.value` | *(none)* → tag dropped |
+   * | `@see HTMLButtonAttributes.class`    | `HTMLButtonAttributes.` | `class` (a keyword ends the name) |
+   * | `@see X.disabled` + a following tag  | `X.disabled`            | `*` (leaked comment marker) |
+   * | `@see https://example.com`           | `https`                 | `://example.com` |
+   *
+   * Reading the tag's raw source text and keeping its first line is the only
+   * form that survives all of these. `@see` is single-line by convention here;
+   * a wrapped continuation line would be dropped, which is preferable to
+   * re-importing the mis-parse above.
+   */
+  private extractSeeValues(node: ts.Node): string[] {
+    const values = new Set<string>();
+    for (const tag of ts.getJSDocTags(node)) {
+      if (tag.tagName.text !== 'see') continue;
+      const firstLine = tag.getText().split('\n')[0] ?? '';
+      const value = PropsExtractor.unwrapJSDocLink(firstLine.replace(/^@see\b/, '').trim());
+      if (value) values.add(value);
+    }
+    return [...values];
+  }
+
+  /** Reduce a `{@link target}` / `{@link target text}` payload to its target. */
+  private static unwrapJSDocLink(value: string): string {
+    return value.match(/^\{@link\s+([^\s|}]+)(?:[\s|][^}]*)?\}$/)?.[1]?.trim() ?? value;
+  }
+
+  /**
+   * Whether a `@see` value is something a doc page can actually navigate to:
+   * an absolute URL, a route-relative path (`/blocks/…#api`) or a bare
+   * fragment (`#type-Foo`). Everything else — `HTMLButtonAttributes.value`,
+   * `CartesianDatum` — is prose and belongs in `seeAlsoRefs`.
+   */
+  private static isSeeLinkTarget(value: string): boolean {
+    return /^https?:\/\//.test(value) || value.startsWith('/') || value.startsWith('#');
   }
 
   // ==========================================

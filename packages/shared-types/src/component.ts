@@ -89,8 +89,22 @@ export interface PropInfo {
   since?: string;
   /** Values */
   values?: string[];
-  /** See also */
+  /**
+   * A **navigable** `@see` target: an absolute URL, a route-relative path
+   * (`/blocks/primitives/button#variants`) or a bare fragment (`#type-Foo`).
+   * Renderers turn this into a link on the prop's type. Set either from a
+   * `@see` tag that carries such a target or by docs-gen's own type-link
+   * resolution.
+   */
   seeAlso?: string;
+  /**
+   * **Prose** `@see` references — bare type or member names such as
+   * `HTMLButtonAttributes.value` or `CartesianDatum`, in source order.
+   * These have no doc URL, so they are rendered as literal text rather than
+   * as a link. Kept separate from {@link PropInfo.seeAlso} precisely so a
+   * renderer never has to guess which of the two kinds it holds.
+   */
+  seeAlsoRefs?: string[];
   /**
    * When the host type is a discriminated union (e.g.
    * `type Foo = A | B`), this records the variants in which the prop

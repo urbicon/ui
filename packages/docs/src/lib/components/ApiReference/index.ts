@@ -9,7 +9,18 @@ export interface ApiProp {
   required?: boolean;
   defaultValue?: string;
   description?: string;
+  /**
+   * A navigable `@see` target — absolute URL, route-relative path
+   * (`/blocks/primitives/button#variants`) or bare fragment (`#type-Foo`).
+   * Rendered as a link wrapping the prop's type.
+   */
   seeAlso?: string;
+  /**
+   * Prose `@see` references (bare type/member names such as
+   * `HTMLButtonAttributes.value`). They have no doc URL, so they render as
+   * literal text under the description instead of as a link.
+   */
+  seeAlsoRefs?: string[];
   values?: string[];
   source?: {
     type: 'direct' | 'variant' | 'inherited';

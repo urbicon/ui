@@ -256,6 +256,29 @@
           {:else}
             <span class={unstyled ? '' : styles.placeholder()}>—</span>
           {/if}
+        {:else if column.id === 'description'}
+          {#if value || item.seeAlsoRefs?.length}
+            <div class={unstyled ? '' : styles.descriptionCell()}>
+              {#if value}
+                <span class={unstyled ? '' : styles.description()}>{value}</span>
+              {/if}
+              {#if item.seeAlsoRefs?.length}
+                <!-- Prose `@see` values (`HTMLButtonAttributes.value`,
+                     `CartesianDatum`). They name a type or member rather than a
+                     doc URL, so they render as literal text — a link here would
+                     have nowhere to point. Navigable `@see` targets live in
+                     `seeAlso` and decorate the Type column instead. -->
+                <span class={unstyled ? '' : styles.seeAlsoRefs()}>
+                  See
+                  {#each item.seeAlsoRefs as ref, i (`${ref}-${i}`)}
+                    <code class={unstyled ? '' : styles.seeAlsoRef()}>{ref}</code>
+                  {/each}
+                </span>
+              {/if}
+            </div>
+          {:else}
+            <span class={unstyled ? '' : styles.placeholder()}>—</span>
+          {/if}
         {:else if value}
           <span class={unstyled ? '' : styles.description()}>{value}</span>
         {:else}
