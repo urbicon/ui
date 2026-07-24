@@ -33,7 +33,6 @@ describe('chatMessageVariants', () => {
   it('tints and aligns bubbles per role', () => {
     const user = chatMessageVariants({ layout: 'bubble', role: 'user' });
     expect(user.bubble()).toContain('bg-primary-subtle');
-    expect(user.bubble()).toContain('rounded-contain');
     // User bubble packs to the right edge via row-reverse.
     expect(user.container()).toContain('flex-row-reverse');
 
@@ -46,11 +45,32 @@ describe('chatMessageVariants', () => {
     expect(system.container()).toContain('justify-center');
   });
 
+  /**
+   * A bubble is content, not architecture. `rounded-contain` (2 px) is the
+   * panel radius: correct on a 600 px Card, a plain rectangle on a ~200 px
+   * bubble — optical radius scales with the area it turns. The bubble takes the
+   * middle `bridge` tier instead, and it must stay a TIER (not a raw
+   * `rounded-md`) so a consumer can retune it via `--radius-bridge`.
+   */
+  it('gives every bubble role the bridge tier, never the panel radius', () => {
+    for (const role of ['user', 'assistant', 'system'] as const) {
+      const bubble = chatMessageVariants({ layout: 'bubble', role }).bubble();
+      expect(bubble, `${role} bubble must ride the bridge tier`).toContain('rounded-bridge');
+      expect(bubble, `${role} bubble must not fall back to the panel radius`).not.toContain(
+        'rounded-contain'
+      );
+      // A raw radius would silently opt out of brand theming.
+      expect(bubble, `${role} bubble must not hard-code a physical radius`).not.toMatch(
+        /\brounded-(?:none|xs|sm|md|lg|xl|2xl|3xl|full|\[)/
+      );
+    }
+  });
+
   it('drops the bubble tint and goes full width in plain layout', () => {
     const plain = chatMessageVariants({ layout: 'plain', role: 'assistant' });
     expect(plain.bubble()).toContain('w-full');
     expect(plain.bubble()).not.toContain('bg-surface-elevated');
-    expect(plain.bubble()).not.toContain('rounded-contain');
+    expect(plain.bubble()).not.toContain('rounded-bridge');
   });
 
   it('scales bubble padding with density', () => {

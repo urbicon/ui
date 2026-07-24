@@ -75,20 +75,26 @@ export const chatMessageVariants = tv({
   },
   compoundVariants: [
     // ── bubble layout: role tint + alignment ────────────────────────────────
+    // Bubbles ride the BRIDGE tier, not `contain`. `contain` (2 px) is the
+    // architectural-panel radius — correct on a 600 px Card, where it reads as
+    // a precise edge, but on a ~200 px bubble the same 2 px reads as a plain
+    // rectangle. Optical radius scales with the area it turns. `bridge` (6 px)
+    // is the middle tier and stays brand-themeable, so a consumer retunes
+    // bubbles via `--radius-bridge` instead of overriding this slot.
     {
       layout: 'bubble' as const,
       role: 'user' as const,
       class: {
         // Reverse so the (avatar-less) bubble packs to the right edge.
         container: 'flex-row-reverse',
-        bubble: 'max-w-[85%] rounded-contain bg-primary-subtle'
+        bubble: 'max-w-[85%] rounded-bridge bg-primary-subtle'
       }
     },
     {
       layout: 'bubble' as const,
       role: 'assistant' as const,
       class: {
-        bubble: 'max-w-[85%] rounded-contain bg-surface-elevated'
+        bubble: 'max-w-[85%] rounded-bridge bg-surface-elevated'
       }
     },
     {
@@ -97,7 +103,7 @@ export const chatMessageVariants = tv({
       class: {
         container: 'justify-center',
         bubble:
-          'max-w-[90%] rounded-contain border border-border-subtle bg-surface-base text-sm text-text-secondary'
+          'max-w-[90%] rounded-bridge border border-border-subtle bg-surface-base text-sm text-text-secondary'
       }
     },
     // ── bubble layout: density padding ──────────────────────────────────────

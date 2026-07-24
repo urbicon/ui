@@ -182,13 +182,22 @@ The neutral intent keeps the `--color-warm-neutral-*` ramp's lightness profile (
 
 ### Semantic Radius Tiers
 
-Three radius tiers map to component families — override these, not individual component radii:
+Radius tiers map to component families — override these, not individual component radii:
 
 | Tier | Token | Default | Components | Brand tuning |
 |---|---|---|---|---|
 | Commit | `--radius-commit` | `9999px` (pill) | Button, Badge, Toggle, SegmentGroup | Lower for less playful (e.g., `--radius-xl`) |
 | Modify | `--radius-modify` | `var(--radius-sm)` (4px) | Input, Textarea, Select, Combobox, Tab | Raise for softer (e.g., `--radius-md`) |
 | Contain | `--radius-contain` | `var(--radius-xs)` (2px) | Card, Dialog, Drawer, Alert, Tooltip | Raise for friendlier (e.g., `--radius-md`) |
+| Bridge | `--radius-bridge` | `var(--radius-md)` (6px) | Menu panel under a pill trigger, ChatMessage bubble | Follows `contain` if you raise that |
+
+The first three are the primary tiers — pick one of them. **Bridge** is the middle
+tier for the two cases where `contain` is too hard and `commit` too soft:
+
+1. **Adjacency** — a floating panel anchored to a pill trigger reads disconnected at 2px and over-sized at pill radius.
+2. **Small tinted content surfaces** — optical radius scales with the area it turns. 2px on a 600px Card reads as a precise edge; the same 2px on a ~200px chat bubble reads as a rectangle. A bubble is *content*, not architecture.
+
+Anything that genuinely *is* a panel, dialog or container stays on `contain`.
 
 ### Interaction Tuning
 
