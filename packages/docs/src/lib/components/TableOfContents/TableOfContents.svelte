@@ -10,13 +10,14 @@
   const dt = useDocsI18n();
   const i18n = useI18n();
 
-  // The kickers ("On this page", "Related", "Code") render through `dt`, which
+  // The kickers ("On this page", "Related", "Code", the code-toggle label) render
+  // through `dt`, so `lang` tags ONLY those spans — never the whole aside. The
+  // nav-link labels are the page's own section titles (content language, English
+  // on this docs site); tagging the aside would mislabel them as the chrome
+  // locale, a worse WCAG 3.1.2 miss than the few kicker words it fixes. `dt`
   // falls back to the base locale for any locale the docs package doesn't
-  // translate. On a page whose body is a different language than the active
-  // chrome locale (e.g. the English docs site with a German chrome), declaring
-  // `lang` as the locale the kickers are ACTUALLY in stops a screen reader from
-  // voicing them with the surrounding language's phonetics (WCAG 3.1.1). No
-  // provider → base locale, which matches the untranslated default strings.
+  // translate, so declare the locale the kickers are ACTUALLY in. No provider →
+  // base locale, which matches the untranslated default strings.
   const tocLocale = $derived(getDocsLocales().includes(i18n.locale) ? i18n.locale : BASE_LOCALE);
 
   let {
@@ -88,12 +89,13 @@
   class={unstyled
     ? [slotClasses?.aside, className].filter(Boolean).join(' ')
     : styles.aside({ class: [slotClasses?.aside, className] })}
-  lang={tocLocale}
 >
   <p class={unstyled ? (slotClasses?.title ?? '') : styles.title({ class: slotClasses?.title })}>
     <!-- `meta-marker` renders a mono kicker (Color Rooms drops the editorial
-         `//` prefix) — only styled when the host page sets `.docs-rooms`. -->
-    <span class="meta-marker">{tocTitle}</span>
+         `//` prefix) — only styled when the host page sets `.docs-rooms`. The
+         `lang` marks the DEFAULT kicker (via `dt`); a consumer-supplied `title`
+         is of unknown language, so it stays untagged (inherits the page lang). -->
+    <span class="meta-marker" lang={title == null ? tocLocale : undefined}>{tocTitle}</span>
   </p>
   <nav class={unstyled ? (slotClasses?.nav ?? '') : styles.nav({ class: slotClasses?.nav })}>
     {#each navigationItems as item (item.id)}
@@ -145,7 +147,7 @@
         ? (slotClasses?.relatedTitle ?? '')
         : styles.relatedTitle({ class: slotClasses?.relatedTitle })}
     >
-      <span class="meta-marker">{dt('tocRelated')}</span>
+      <span class="meta-marker" lang={tocLocale}>{dt('tocRelated')}</span>
     </p>
     <nav
       class={unstyled
@@ -180,7 +182,7 @@
         ? (slotClasses?.codeTitle ?? '')
         : styles.codeTitle({ class: slotClasses?.codeTitle })}
     >
-      <span class="meta-marker">{dt('tocCode')}</span>
+      <span class="meta-marker" lang={tocLocale}>{dt('tocCode')}</span>
     </p>
     <button
       type="button"
@@ -199,6 +201,7 @@
         class={unstyled
           ? (slotClasses?.codeToggleLabel ?? '')
           : styles.codeToggleLabel({ class: slotClasses?.codeToggleLabel })}
+        lang={tocLocale}
       >
         {codeToggleLabel}
       </span>

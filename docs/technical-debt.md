@@ -547,25 +547,31 @@ internal TODO instead. Sections are ordered roughly by urgency.
   Playwright project would catch this class).
 - **Found:** 2026-07-24, W1 adversarial review (deepened by W1's green nudge).
 
-### docs-app hardcodes `lang="en"` while its chrome is bilingual
+### docs-app `lang`: the ⌘K command palette is the one bilingual chrome surface still inheriting `lang="en"`
 
-- **🚧 In Arbeit (W3 docs-lang, worktree `debt-fix-waves`):** chrome subtree gets
-  its own `lang` following the active locale (O1 verdict), content stays `en`.
-- **Where:** `apps/docs/src/app.html:2` (`<html lang="en" class="docs-rooms">`)
-  vs. the chrome running through `ta`/`dt` (`+layout.svelte`,
-  `PrevNextNav.svelte`, `TableOfContents.svelte`).
-- **What:** The locale switcher can put the navigation, prev/next labels and TOC
-  into German, but the document language stays `en` — so a screen reader
-  pronounces the German chrome with English phonetics (WCAG 3.1.1 Language of
-  Page). The page *content* is hardcoded English, so `lang="en"` is right for the
-  body text; only the switchable chrome is mislabelled.
-- **Why deferred:** It is the a11y facet of the open O1 decision ("chrome stays
-  bilingual, content stays English", PUBLISH-READINESS). Three defensible fixes —
-  drive `lang` from the active locale (then the English content is mislabelled
-  instead), mark only the chrome subtree with its own `lang`, or drop the
-  bilingual chrome — and picking one settles O1 rather than patching around it.
-  Tracked with the De-Slop rest G.2 in the TODO.
-- **Found:** 2026-07-14, verifying the design-authenticity audit before archiving it.
+- **Where:** `apps/docs/src/lib/CommandSearch.svelte` → `<CommandPalette>`
+  (`packages/blocks/.../CommandPalette/CommandPalette.svelte`).
+- **What:** W3 (2026-07-24) settled the O1 a11y facet — every switchable chrome
+  subtree now carries its own `lang` following the active locale, content stays
+  `en`: the skip-link + all four sidebar snippets in `+layout.svelte`,
+  `PrevNextNav.svelte`'s reading `<nav>`, and the `dt`-sourced kicker spans in
+  `TableOfContents.svelte` (the TOC's nav-link labels are English section titles,
+  so only the kickers are tagged, never the whole aside). The lone remainder is
+  the ⌘K palette: its placeholder (`chrome.searchPlaceholder`) and the "Pages"
+  category kicker (`chrome.pages`) localize, but it renders in a native
+  `<dialog>` under the layout root and inherits `lang="en"`. It is a *mixed*
+  surface — the dominant, persistent content is English page-title results
+  (correctly `en`); only those two transient affordance strings are mislabelled
+  when the chrome is German.
+- **Why deferred:** A wholesale `lang` wrapper would mislabel the English result
+  titles (the TOC lesson), so the correct fix is per-affordance: `lang` on the
+  palette's `<input>` placeholder host and the category kicker — which needs
+  `CommandPalette` (a published blocks component) to accept/forward `lang`, a
+  cross-package API decision, not a docs-app drive-by. Low value: a transient
+  overlay, two words.
+- **Found:** 2026-07-24, W3 docs-lang adversarial review (narrowed from the
+  original "docs-app hardcodes lang=en" entry, 2026-07-14; the three enumerated
+  chrome surfaces are resolved).
 
 ### Combobox multi-select `maxItems` cap has no screen-reader announcement
 
