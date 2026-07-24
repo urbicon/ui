@@ -1,11 +1,11 @@
 import { expect, type Page, test } from '@playwright/test';
 
 /**
- * Visual-regression baseline for the ten core primitives, against the dedicated
+ * Visual-regression baseline for the thirteen core primitives, against the dedicated
  * fixture at /test-fixtures/primitives. Each primitive is snapped on its own
  * (`data-testid="vr-<name>"`) across the full theming matrix:
  *
- *   scheme ∈ {light, dark}  ×  theme ∈ {library, rooms}  ×  10 primitives = 40 shots.
+ *   scheme ∈ {light, dark}  ×  theme ∈ {library, rooms}  ×  13 primitives = 52 shots.
  *
  * scheme is driven by `emulateMedia({ colorScheme })` — the library resolves dark
  * mode through the CSS `light-dark()` function off `color-scheme`, so this flips the
@@ -34,7 +34,10 @@ const PRIMITIVES = [
   'card',
   'avatar',
   'progress',
-  'select'
+  'select',
+  'radio-group',
+  'pin-input',
+  'time-input'
 ] as const;
 
 const SCHEMES = ['light', 'dark'] as const;

@@ -27,7 +27,10 @@ const PRIMITIVES = [
   'card',
   'avatar',
   'progress',
-  'select'
+  'select',
+  'radio-group',
+  'pin-input',
+  'time-input'
 ] as const;
 
 const EXCEPTIONS = loadExceptions(new URL('./a11y-dark-baseline.json', import.meta.url));

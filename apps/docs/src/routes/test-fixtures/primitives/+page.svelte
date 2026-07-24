@@ -1,5 +1,5 @@
 <script lang="ts">
-  // Visual-regression fixture: ten core primitives rendered in static, deterministic
+  // Visual-regression fixture: thirteen core form/display components rendered in static, deterministic
   // states (no interaction, no open overlays), each in its own `data-testid="vr-<name>"`
   // section so e2e/visual-regression.spec.ts can snapshot them one at a time across
   // light/dark × library/editorial. Props are static — no time, no randomness, no
@@ -15,8 +15,12 @@
     Card,
     Checkbox,
     Input,
+    PinInput,
     Progress,
+    RadioGroup,
+    RadioItem,
     Select,
+    TimeInput,
     Toggle
   } from '@urbicon-ui/blocks';
 
@@ -184,6 +188,49 @@
         <Select label="Region" value="fr" options={selectOptions} variant="filled" />
         <Select label="Missing" placeholder="Choose…" options={selectOptions} error="Required" />
         <Select label="Disabled" value="es" options={selectOptions} disabled />
+      </div>
+    </section>
+
+    <!-- RadioGroup — Form family: the indicator states the intent ladder rides on.
+         Was missing from this matrix entirely until v6.42. -->
+    <section data-testid="vr-radio-group" class="space-y-3">
+      <h2 class="text-text-primary text-lg font-semibold">RadioGroup</h2>
+      <div class="grid grid-cols-2 gap-4">
+        <RadioGroup label="Plan" value="pro">
+          <RadioItem value="free" label="Free" />
+          <RadioItem value="pro" label="Pro" description="Best for teams" />
+          <RadioItem value="legacy" label="Legacy" disabled />
+        </RadioGroup>
+        <RadioGroup label="Region" value="" error="Pick one to continue">
+          <RadioItem value="eu" label="Europe" />
+          <RadioItem value="us" label="Americas" />
+        </RadioGroup>
+      </div>
+    </section>
+
+    <!-- PinInput — Form family: the segmented field frame (shares field-chrome with
+         Input). Values are static and complete so no caret/focus state is captured. -->
+    <section data-testid="vr-pin-input" class="space-y-3">
+      <h2 class="text-text-primary text-lg font-semibold">PinInput</h2>
+      <div class="flex flex-col gap-4">
+        <PinInput label="Code" value="1234" />
+        <PinInput label="Grouped" value="12345678" length={8} separator="-" groupSize={4} />
+        <PinInput label="Masked" value="4321" mask />
+        <PinInput label="Invalid" value="0000" error="That code has expired" />
+        <PinInput label="Locked" value="1234" disabled />
+      </div>
+    </section>
+
+    <!-- TimeInput — Form family: the segmented field frame in its 12h/24h shapes.
+         Fixed values only — no `new Date()`, or the shot would change every run. -->
+    <section data-testid="vr-time-input" class="space-y-3">
+      <h2 class="text-text-primary text-lg font-semibold">TimeInput</h2>
+      <div class="grid grid-cols-2 gap-4">
+        <TimeInput label="Start" value="09:30" />
+        <TimeInput label="End (12h)" value="17:45" format="12h" />
+        <TimeInput label="Precise" value="08:15:30" seconds />
+        <TimeInput label="Invalid" value="23:59" error="Outside opening hours" />
+        <TimeInput label="Locked" value="12:00" disabled />
       </div>
     </section>
   </div>
