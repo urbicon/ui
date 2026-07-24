@@ -5,6 +5,13 @@ at hand and can't be fixed on the fly — they need a design decision or a broad
 sweep. Logged here so they aren't lost. Actively planned work lives in the
 internal TODO instead. Sections are ordered roughly by urgency.
 
+> **Decision pass 2026-07-24:** the decision-blocked entries here were triaged and
+> resolved — verdict + wave assignment per entry in
+> [internal/DEBT-DECISIONS-2026-07-24.md](internal/DEBT-DECISIONS-2026-07-24.md)
+> (7 waves W1–W7). Scheduled entries stay here until their wave lands (the wave
+> then updates/removes them); entries decided **not to act on** carry an inline
+> `Decision 2026-07-24` line below so they aren't re-litigated.
+
 ## Packaging / distribution
 
 ### The effective npm publisher is the Buny deploy, not `release.yml`
@@ -31,6 +38,8 @@ internal TODO instead. Sections are ordered roughly by urgency.
   The gate list gains a third item for whoever ends up owning the publish: a
   post-tag verification — a pushed release tag without its npm version after
   a few minutes should alert, not pass unnoticed.
+- **Decision 2026-07-24:** ⏸ Hold — ops decision in the Buny project, to be made
+  with the hosting call; not resolvable in this repo.
 - **Found:** 2026-07-20, v6.26.1/v6.26.2 publish verification.
 
 ## Bundle size
@@ -50,6 +59,8 @@ internal TODO instead. Sections are ordered roughly by urgency.
 - **Why deferred:** Root-causing needs a diff of the measured Icon bundle
   between the two lockfile states (the measurement tool supports `--breakdown`)
   — archaeology, not a fix, and nothing observably broke.
+- **Decision 2026-07-24:** ⏸ Hold — archaeology, not a fix; the refreshed
+  baseline gates further growth. Revisit only if it recurs.
 - **Found:** 2026-07-23, mint tree-shaking re-baseline (debt-fix-wave-4).
 
 ## API design
@@ -69,6 +80,9 @@ internal TODO instead. Sections are ordered roughly by urgency.
   p-0"` or a project preset). Registering `pill`/`circle` via `<BlocksProvider
   presets>` is the supported path and stays the recommendation. Revisit only if
   a broad consumer demand for a canonical shape catalog emerges.
+- **Decision 2026-07-24:** ✕ Won't-do — conflicts with the "presets are
+  consumer-defined" architecture; `pill` is already the default and `circle` a
+  one-class consumer preset. Closed.
 - **Found:** 2026-07-10, P2 Blocks feature-request pass.
 
 ### Intent palettes drift across primitives — three different value sets, one undocumented
@@ -442,6 +456,8 @@ internal TODO instead. Sections are ordered roughly by urgency.
   coordinate space (a fixed-size overlay, or a second non-scaling layer) — a
   small rework of the marker path, not a drive-by, and only worth it if the
   combo shows up in practice.
+- **Decision 2026-07-24:** ⏸ Hold — cosmetic, only the `fluid`+`showEndPoint`
+  combo; act only if it shows up in practice.
 - **Found:** 2026-07-14, Sparkline `fluid` review (primitives-debt wave).
 
 ### Toast/FileUpload loading spinners are pinned `text-primary`, ignoring the intent/status colour scheme
@@ -724,6 +740,8 @@ internal TODO instead. Sections are ordered roughly by urgency.
   callers send neither header, and a request without ambient browser
   credentials is structurally not CSRF-able), and ideally waits to mirror
   whatever Kit ships for #15992 so consumer expectations stay aligned.
+- **Decision 2026-07-24:** ⏸ Hold — wait for Kit's #15992 answer, then mirror
+  `Sec-Fetch-Site`-first; don't diverge from upstream on the primary CSRF gate.
 - **Found:** 2026-07-20, follow-up research on sveltejs/kit#15992 / #16313.
 
 ### `doubleSubmit` is structurally off for remote-function-first consumers — an `isRemoteRequest` skip could re-enable it
@@ -753,6 +771,9 @@ internal TODO instead. Sections are ordered roughly by urgency.
   the no-JS fallback runs through the page pipeline and is *not* behind
   Kit's remote gate, so skipping Layer 2 there would drop it to
   origin-only with no kernel backstop.
+- **Decision 2026-07-24:** ⏸ Hold — status quo (`doubleSubmit:false`,
+  documented); the `isRemoteRequest` skip is only half a fix (no-JS fallback
+  still 403s) and touches security semantics.
 - **Found:** 2026-07-21, consumer-digestion analysis (cookery/utilio/buny
   CSRF sessions).
 
@@ -782,6 +803,8 @@ internal TODO instead. Sections are ordered roughly by urgency.
   `Buffer.from(x).toString('hex'|'base64')` with hex + base64 helpers in
   `encoding.ts` (base64 ≠ base64url — a new helper is needed). The zero-dep
   maxim is **not** violated (Buffer is a runtime global, not a dependency).
+- **Decision 2026-07-24:** ⏸ Hold — accepted trade-off; act only if Edge/Workers
+  becomes a target.
 - **Found:** 2026-07-05, runtime-constraint documentation work.
 
 ## Dead code / decorative config
@@ -977,6 +1000,8 @@ internal TODO instead. Sections are ordered roughly by urgency.
   approach 4) — documented as an optional future "strict mode", deliberately
   not built. Revisit only if consumers hit the false-positive classes in
   practice.
+- **Decision 2026-07-24:** ⏸ Hold — no consumer has hit the false-positive
+  classes; revisit on demand (strict mode stays unbuilt).
 - **Found:** 2026-06-25 ff., i18n-audit implementation + adversarial review
   (commit `fe38878`).
 
@@ -992,6 +1017,8 @@ internal TODO instead. Sections are ordered roughly by urgency.
   When one does: add a CI test that resolves the loaders and validates against
   the `en` bundle (possibly a library helper that builds the parity check from
   registered loaders).
+- **Decision 2026-07-24:** ⏸ Hold — latent; no consumer uses lazy loading yet.
+  Add the CI parity test when one does.
 - **Found:** 2026-06-15, WP4 review.
 
 ### prettier-plugin-svelte corrupts single-quoted attributes containing double quotes
