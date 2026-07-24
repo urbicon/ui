@@ -1,11 +1,15 @@
 <script lang="ts">
   import { r } from '$lib/route';
   import { useAppI18n } from '$lib/i18n';
+  import { useI18n } from '@urbicon-ui/i18n';
   import { navigationItems, useNavLabel, type NavItem } from './navigation';
 
   let { currentPath }: { currentPath: string } = $props();
 
   const ta = useAppI18n();
+  // Active locale for the chrome `lang` marker: this reading-nav sits inside the
+  // English article column but its labels are localized (see +layout.svelte).
+  const i18n = useI18n();
   const navLabel = useNavLabel();
 
   type PageEntry = { name: string; href: string; group?: string };
@@ -62,6 +66,7 @@
   <nav
     class="border-border-subtle mt-12 flex items-center justify-between border-t pt-6"
     aria-label={ta('chrome.pageNavigation' as Parameters<typeof ta>[0])}
+    lang={i18n.locale}
   >
     {#if prev}
       <a

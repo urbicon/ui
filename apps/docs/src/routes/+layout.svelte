@@ -103,7 +103,14 @@
   });
 </script>
 
-<a class="blocks-skip-link" href="#main-content"
+<!--
+  The chrome (skip-link, sidebar, prev/next, TOC) is bilingual via `ta`/`dt`, but
+  the article body is hardcoded English, so `<html lang="en">` (app.html) is right
+  for the content. To keep a screen reader from voicing the German chrome with
+  English phonetics (WCAG 3.1.1), every switchable chrome subtree carries its own
+  `lang` following the active locale; the content column inherits `en` untouched.
+-->
+<a class="blocks-skip-link" href="#main-content" lang={i18nState.locale}
   >{ta('chrome.skipToContent' as Parameters<typeof ta>[0])}</a
 >
 
@@ -136,7 +143,7 @@
       slotClasses={{ sidebar: 'bg-[var(--docs-bg)]' }}
     >
       {#snippet sidebarHeader()}
-        <div class="flex h-14 w-full items-center justify-between">
+        <div class="flex h-14 w-full items-center justify-between" lang={i18nState.locale}>
           <a href={resolve('/')} class="text-text-primary text-lg font-bold tracking-tight">
             {ta('chrome.appTitle' as Parameters<typeof ta>[0])}<span class="pipe" aria-hidden="true"
               >|</span
@@ -147,27 +154,32 @@
       {/snippet}
 
       {#snippet sidebar()}
-        <!--
+        <!-- `display:contents` wrapper carries the chrome `lang` without adding a
+             box (mirrors the .docs-room-scope pattern); its two children stay
+             direct flow children of the Sidebar content area. -->
+        <div class="contents" lang={i18nState.locale}>
+          <!--
       Search trigger: a boxed field on the sidebar (design source), sitting on
       the paper surface with an architectural border; label and `⌘K` hint share
       the `font-meta` mono ramp so it reads as an input, not a button.
     -->
-        <div class="px-3 pt-3">
-          <button
-            onclick={() => commandSearch?.toggle()}
-            class="border-border-default bg-surface-base text-text-tertiary hover:border-border-emphasis hover:text-text-primary rounded-contain flex w-full items-center gap-2 border px-3 py-2 text-sm transition-colors"
-          >
-            <SearchIcon class="h-4 w-4 shrink-0" />
-            <span class="font-meta">{ta('chrome.search' as Parameters<typeof ta>[0])}</span>
-            <span class="font-meta text-text-quaternary ml-auto"><kbd>⌘K</kbd></span>
-          </button>
-        </div>
+          <div class="px-3 pt-3">
+            <button
+              onclick={() => commandSearch?.toggle()}
+              class="border-border-default bg-surface-base text-text-tertiary hover:border-border-emphasis hover:text-text-primary rounded-contain flex w-full items-center gap-2 border px-3 py-2 text-sm transition-colors"
+            >
+              <SearchIcon class="h-4 w-4 shrink-0" />
+              <span class="font-meta">{ta('chrome.search' as Parameters<typeof ta>[0])}</span>
+              <span class="font-meta text-text-quaternary ml-auto"><kbd>⌘K</kbd></span>
+            </button>
+          </div>
 
-        <SidebarNavigation items={navigationItems} />
+          <SidebarNavigation items={navigationItems} />
+        </div>
       {/snippet}
 
       {#snippet sidebarFooter()}
-        <div class="p-4">
+        <div class="p-4" lang={i18nState.locale}>
           <!-- Seems a bit unnecessary/confusing
           <div class="mb-4">
             <DocsThemeToggle />
@@ -222,22 +234,26 @@
       {/snippet}
 
       {#snippet mobileHeader({ openSidebar })}
-        <button
-          type="button"
-          aria-label={ta('chrome.openNavMenu' as Parameters<typeof ta>[0])}
-          aria-expanded={sidebarOpen}
-          onclick={openSidebar}
-          class="text-text-secondary hover:text-text-primary flex min-h-11 min-w-11 items-center justify-center rounded-lg transition-colors"
-        >
-          <MenuIcon class="h-6 w-6" />
-        </button>
-        <span class="text-text-primary text-lg font-semibold">
-          {ta('chrome.appTitle' as Parameters<typeof ta>[0])}<span class="pipe" aria-hidden="true"
-            >|</span
+        <!-- `display:contents` wrapper carries the chrome `lang`; the button, title
+             and switcher stay direct flex children of SidebarLayout's header. -->
+        <div class="contents" lang={i18nState.locale}>
+          <button
+            type="button"
+            aria-label={ta('chrome.openNavMenu' as Parameters<typeof ta>[0])}
+            aria-expanded={sidebarOpen}
+            onclick={openSidebar}
+            class="text-text-secondary hover:text-text-primary flex min-h-11 min-w-11 items-center justify-center rounded-lg transition-colors"
           >
-        </span>
-        <div class="ml-auto">
-          <ThemeSwitcher size="sm" />
+            <MenuIcon class="h-6 w-6" />
+          </button>
+          <span class="text-text-primary text-lg font-semibold">
+            {ta('chrome.appTitle' as Parameters<typeof ta>[0])}<span class="pipe" aria-hidden="true"
+              >|</span
+            >
+          </span>
+          <div class="ml-auto">
+            <ThemeSwitcher size="sm" />
+          </div>
         </div>
       {/snippet}
 

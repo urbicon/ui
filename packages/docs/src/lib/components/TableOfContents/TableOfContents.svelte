@@ -1,5 +1,6 @@
 <script lang="ts">
-  import { useDocsI18n } from '$lib/i18n';
+  import { useDocsI18n, getDocsLocales } from '$lib/i18n';
+  import { useI18n, BASE_LOCALE } from '@urbicon-ui/i18n';
   import { CodeIcon, EyeOffIcon } from '@urbicon-ui/blocks';
   import { getCodeVisibilityContext } from '$lib/stores/code-visibility.svelte';
   import { ScrollSpy } from '$lib/stores/scroll-spy.svelte';
@@ -7,6 +8,16 @@
   import type { TableOfContentsProps } from './index.js';
 
   const dt = useDocsI18n();
+  const i18n = useI18n();
+
+  // The kickers ("On this page", "Related", "Code") render through `dt`, which
+  // falls back to the base locale for any locale the docs package doesn't
+  // translate. On a page whose body is a different language than the active
+  // chrome locale (e.g. the English docs site with a German chrome), declaring
+  // `lang` as the locale the kickers are ACTUALLY in stops a screen reader from
+  // voicing them with the surrounding language's phonetics (WCAG 3.1.1). No
+  // provider → base locale, which matches the untranslated default strings.
+  const tocLocale = $derived(getDocsLocales().includes(i18n.locale) ? i18n.locale : BASE_LOCALE);
 
   let {
     title,
@@ -77,6 +88,7 @@
   class={unstyled
     ? [slotClasses?.aside, className].filter(Boolean).join(' ')
     : styles.aside({ class: [slotClasses?.aside, className] })}
+  lang={tocLocale}
 >
   <p class={unstyled ? (slotClasses?.title ?? '') : styles.title({ class: slotClasses?.title })}>
     <!-- `meta-marker` renders a mono kicker (Color Rooms drops the editorial

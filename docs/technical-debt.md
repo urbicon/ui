@@ -549,6 +549,8 @@ internal TODO instead. Sections are ordered roughly by urgency.
 
 ### docs-app hardcodes `lang="en"` while its chrome is bilingual
 
+- **🚧 In Arbeit (W3 docs-lang, worktree `debt-fix-waves`):** chrome subtree gets
+  its own `lang` following the active locale (O1 verdict), content stays `en`.
 - **Where:** `apps/docs/src/app.html:2` (`<html lang="en" class="docs-rooms">`)
   vs. the chrome running through `ta`/`dt` (`+layout.svelte`,
   `PrevNextNav.svelte`, `TableOfContents.svelte`).
