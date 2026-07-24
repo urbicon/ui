@@ -3,7 +3,10 @@ import { type SlotNames, tv, type VariantProps } from '$lib/utils/variants';
 export const cardVariants = tv({
   slots: {
     base: [
-      'relative block w-full transition-[color,background-color,border-color,box-shadow,opacity,transform] duration-[var(--blocks-duration-fast)] ease-out box-border',
+      // `translate`, NOT `transform`: Tailwind 4 emits `-translate-y-*` as the
+      // discrete CSS `translate:` property, so a list naming only `transform`
+      // never animates the `interactive` hover lift — it would jump.
+      'relative block w-full transition-[color,background-color,border-color,box-shadow,opacity,translate] duration-[var(--blocks-duration-fast)] ease-out box-border',
       // Structure radius — cards are architectural surfaces, not human/CTA.
       'rounded-contain'
     ],

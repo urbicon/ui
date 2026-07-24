@@ -5,7 +5,10 @@ export const buttonVariants = tv({
     base: [
       'relative inline-flex items-center justify-center gap-2',
       'font-medium text-center whitespace-nowrap border cursor-pointer select-none',
-      'transition-[color,background-color,border-color,box-shadow,opacity,transform] duration-[var(--blocks-duration-fast)] ease-out overflow-hidden',
+      // `scale`, NOT `transform`: Tailwind 4 emits `scale-*` as the discrete
+      // CSS `scale:` property, so a list naming only `transform` never animates
+      // the press cue (`active:scale-[0.98]` / `pressed`) — it would jump.
+      'transition-[color,background-color,border-color,box-shadow,opacity,scale] duration-[var(--blocks-duration-fast)] ease-out overflow-hidden',
       // Radius is driven by the `tier` variant axis below — see `tier`.
       'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2',
       'disabled:opacity-50 disabled:cursor-not-allowed disabled:pointer-events-none'

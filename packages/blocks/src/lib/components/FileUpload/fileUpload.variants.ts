@@ -10,7 +10,10 @@ export const fileUploadVariants = tv({
       'rounded-contain border-2 border-dashed',
       'border-border-default bg-surface-base',
       'cursor-pointer select-none',
-      'transition-[color,background-color,border-color,box-shadow,transform]',
+      // `scale`, NOT `transform`: Tailwind 4 emits `scale-*` as the discrete
+      // `scale:` property — the `dragging` compounds below lift the zone with
+      // `scale-[1.01]`, which a `transform` entry never animated.
+      'transition-[color,background-color,border-color,box-shadow,scale]',
       'duration-[var(--blocks-duration-fast)]',
       'ease-[var(--blocks-ease-gentle)]',
       'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50 focus-visible:ring-offset-2'
@@ -18,7 +21,9 @@ export const fileUploadVariants = tv({
 
     dropzoneIcon: [
       'text-text-quaternary',
-      'transition-[color,transform] duration-[var(--blocks-duration-fast)]'
+      // `scale`, NOT `transform` — the `dragging` compounds pop the icon with
+      // `scale-110` (discrete `scale:` property in Tailwind 4).
+      'transition-[color,scale] duration-[var(--blocks-duration-fast)]'
     ],
 
     dropzoneTitle: ['font-medium text-text-primary'],
@@ -31,7 +36,10 @@ export const fileUploadVariants = tv({
     fileItem: [
       'group relative flex items-center gap-3',
       'rounded-contain border border-border-hairline bg-surface-quiet',
-      'transition-[background-color,border-color,box-shadow,opacity,transform]',
+      // No transform entry: nothing on this slot sets a scale/translate/rotate
+      // utility, and Tailwind 4 would emit those as discrete properties anyway —
+      // `transform` was dead weight.
+      'transition-[background-color,border-color,box-shadow,opacity]',
       'duration-[var(--blocks-duration-fast)]',
       'hover:border-border-default hover:shadow-[var(--blocks-shadow-sm)]'
     ],
@@ -64,7 +72,10 @@ export const fileUploadVariants = tv({
 
     fileItemStatusIcon: [
       'flex-shrink-0',
-      'transition-[color,transform] duration-[var(--blocks-duration-fast)]'
+      // Colour only: the icon is swapped per status, never scaled/rotated, so a
+      // `transform` entry animated nothing (Tailwind 4 emits transforms as the
+      // discrete scale/translate/rotate properties).
+      'transition-[color] duration-[var(--blocks-duration-fast)]'
     ]
   },
 

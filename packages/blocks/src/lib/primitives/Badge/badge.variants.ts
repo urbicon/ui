@@ -18,7 +18,13 @@ export const badgeVariants = tv({
     base: [
       'relative inline-flex items-center justify-center',
       'font-medium text-center whitespace-nowrap border select-none',
-      'transition-[color,background-color,border-color,box-shadow,opacity] duration-[var(--blocks-duration-fast)] ease-out'
+      // `scale` is listed because the `interactive` axis adds
+      // `hover:scale-105 active:scale-95` — Tailwind 4 emits those as the
+      // discrete `scale:` property, which nothing else in this list covers.
+      // `translate` is deliberately NOT listed: the `placement` axis uses
+      // translate as layout, not motion (see the exemption in
+      // scripts/variants-lint.ts).
+      'transition-[color,background-color,border-color,box-shadow,opacity,scale] duration-[var(--blocks-duration-fast)] ease-out'
       // Radius driven by `tier` axis below.
     ],
     // `[gap:inherit]` (arbitrary property), NOT `gap-inherit` — Tailwind v4 emits

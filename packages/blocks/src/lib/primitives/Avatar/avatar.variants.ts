@@ -8,7 +8,10 @@ export const avatarVariants = tv({
     // the ring follows the avatar's shape.
     base: [
       'relative inline-flex shrink-0',
-      'transition-[color,background-color,border-color,box-shadow,opacity] duration-[var(--blocks-duration-fast)] ease-out'
+      // `scale` is listed because the `interactive` axis adds
+      // `hover:scale-105 active:scale-95` — Tailwind 4 emits those as the
+      // discrete `scale:` property, which nothing else in this list covers.
+      'transition-[color,background-color,border-color,box-shadow,opacity,scale] duration-[var(--blocks-duration-fast)] ease-out'
     ],
     // The visible disc. This is the element that clips the image/initials to
     // the avatar shape; the status dot lives outside it so it stays whole.

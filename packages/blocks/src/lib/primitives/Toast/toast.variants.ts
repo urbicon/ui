@@ -11,7 +11,11 @@ export const toastVariants = tv({
       'pointer-events-auto flex items-start gap-3 w-full max-w-sm',
       'rounded-contain p-4',
       'shadow-[var(--blocks-shadow-lg)]',
-      'transition-[color,background-color,box-shadow,opacity,transform] duration-[var(--blocks-duration-normal)] ease-[var(--blocks-ease-smooth)]'
+      // No transform entry: the enter/exit motion is Svelte's `transition:fly`,
+      // which runs as a CSS *animation* (keyframes) and ignores
+      // `transition-property` entirely. Nothing on this slot sets a
+      // scale/translate/rotate utility, so a `transform` entry was dead weight.
+      'transition-[color,background-color,box-shadow,opacity] duration-[var(--blocks-duration-normal)] ease-[var(--blocks-ease-smooth)]'
     ],
     icon: 'shrink-0 mt-0.5 w-5 h-5',
     content: 'flex-1 min-w-0',

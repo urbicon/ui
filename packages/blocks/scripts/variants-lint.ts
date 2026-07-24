@@ -22,6 +22,13 @@
  *            table-theme) nor in Tailwind 4's default theme.
  *            Tailwind emits NO CSS for such a class — the bug class behind
  *            Calendar's dead `text-2xs` (`size="sm"` rendered like `md`).
+ *   ✖ ERROR  transform property missing from an arbitrary transition list —
+ *            Tailwind 4 emits `scale-*` / `translate-*` / `rotate-*` as the
+ *            DISCRETE CSS properties `scale:` / `translate:` / `rotate:`, not
+ *            as `transform:`. A list like `transition-[…,transform]` therefore
+ *            covers none of them and the motion jumps instead of animating.
+ *            (The shorthand `transition-transform` expands to all four and is
+ *            never flagged.) See "transform transitions" below.
  *   ⚠ WARN   partially stripped token — its removal changes some combinations
  *            but not others. Usually intentional (state overrides); the
  *            listing exists so axis-order decisions stay visible.
@@ -230,6 +237,162 @@ function tokenize(value: unknown, slot: string | null): string[] {
   return slot === 'base' ? flatTokens(value) : [];
 }
 
+// ─── transform transitions (Tailwind 4 discrete properties) ──────────────────
+
+/**
+ * Tailwind 4 no longer funnels every transform through one `transform:`
+ * declaration: `scale-*` emits `scale:`, `translate-*` emits `translate:`,
+ * `rotate-*` emits `rotate:`. Only the SHORTHAND `transition-transform`
+ * expands to `transform, translate, scale, rotate`; an arbitrary
+ * `transition-[…]` list has to name them itself, and a list saying
+ * `transform` covers none of them — the motion snaps to its end state.
+ * 3-D transforms (`rotate-x/y/z-*`, `skew-*`, `transform-*`) do still compose
+ * into `transform:`, so those map back to `transform`. Order matters:
+ * `rotate-x-` must be tested before the plain `rotate-` rule.
+ */
+const TRANSFORM_PROPERTY: [RegExp, string][] = [
+  [/^rotate-[xyz](-|$)/, 'transform'],
+  [/^(skew|transform)(-|$)/, 'transform'],
+  [/^scale(-|$)/, 'scale'],
+  [/^translate(-|$)/, 'translate'],
+  [/^rotate(-|$)/, 'rotate']
+];
+
+/**
+ * Variant prefixes that retarget the rule at a DIFFERENT element. A transform
+ * utility behind one of these must be matched against a transition list behind
+ * the same prefix (Checkbox's `[&_path]:transition-[stroke-dashoffset]` styles
+ * the inner path, not the box). State/breakpoint prefixes (`hover:`, `sm:`, …)
+ * do NOT retarget — they are the trigger, and the list belongs on the element.
+ */
+const ELEMENT_PSEUDO_VARIANTS = new Set([
+  'before',
+  'after',
+  'placeholder',
+  'file',
+  'marker',
+  'selection',
+  'first-line',
+  'first-letter',
+  'backdrop',
+  'details-content'
+]);
+
+function isElementShifting(prefix: string): boolean {
+  return (
+    prefix.startsWith('[&') ||
+    prefix === '*' ||
+    prefix === '**' ||
+    ELEMENT_PSEUDO_VARIANTS.has(prefix)
+  );
+}
+
+/** Split `hover:[&_path]:scale-110` into its variant prefixes + the utility. */
+function splitVariants(token: string): { prefixes: string[]; utility: string } {
+  const parts: string[] = [];
+  let depth = 0;
+  let start = 0;
+  for (let i = 0; i < token.length; i++) {
+    const ch = token[i];
+    if (ch === '[' || ch === '(') depth++;
+    else if (ch === ']' || ch === ')') depth--;
+    else if (ch === ':' && depth === 0) {
+      parts.push(token.slice(start, i));
+      start = i + 1;
+    }
+  }
+  parts.push(token.slice(start));
+  const utility = parts.pop() as string;
+  return { prefixes: parts, utility };
+}
+
+/** Strip the `!` important marker and a negative-utility leading `-`. */
+function bareUtility(utility: string): string {
+  return utility.replace(/^!/, '').replace(/!$/, '').replace(/^-/, '');
+}
+
+function transformPropertyOf(utility: string): string | null {
+  const bare = bareUtility(utility);
+  for (const [re, prop] of TRANSFORM_PROPERTY) if (re.test(bare)) return prop;
+  return null;
+}
+
+/** Properties declared by an arbitrary `transition-[a,b]` list (null if not one). */
+function transitionListProperties(utility: string): Set<string> | null {
+  const m = /^transition-\[(.+)\]$/.exec(bareUtility(utility));
+  if (m == null) return null;
+  return new Set(
+    m[1]
+      .split(',')
+      .map((p) => p.trim().replaceAll('_', ' '))
+      .filter(Boolean)
+  );
+}
+
+/**
+ * Justified exemptions from the transform-transition rule — for slots where a
+ * transform utility is LAYOUT, not motion, and animating it would be wrong.
+ * Mirrors imports-lint's allowlist discipline: an unlisted finding errors, and
+ * a listed-but-no-longer-occurring entry errors as stale, so the list cannot
+ * quietly outlive its reason. `where` is the exact location string the rule
+ * prints (`file › config › slot`).
+ */
+const TRANSITION_EXEMPTIONS: { where: string; property: string; why: string }[] = [
+  {
+    where: 'packages/blocks/src/lib/primitives/Badge/badge.variants.ts › badgeVariants › base',
+    property: 'translate',
+    why: 'the `placement` axis uses translate as layout — the half-overlap offset is paired with top/left/right/bottom, which cannot transition in step. Animating it would slide the badge *after* its anchor already jumped; both must land at once.'
+  }
+];
+const exemptionKey = (where: string, property: string) => `${where}\0${property}`;
+const exemptions = new Map(
+  TRANSITION_EXEMPTIONS.map((e) => [exemptionKey(e.where, e.property), e])
+);
+const exemptionsHit = new Set<string>();
+
+type TransitionGroup = {
+  /** raw class token → the properties its arbitrary list declares */
+  lists: Map<string, Set<string>>;
+  /** CSS property → the raw transform utilities that write it */
+  byProp: Map<string, Set<string>>;
+  /** properties whose utility sits behind a state/breakpoint variant */
+  stateful: Set<string>;
+};
+
+/** Bucket one rendered class string by target element. */
+function groupTransitionTokens(classString: string): Map<string, TransitionGroup> {
+  const groups = new Map<string, TransitionGroup>();
+  const groupFor = (key: string): TransitionGroup => {
+    let g = groups.get(key);
+    if (!g) {
+      g = { lists: new Map(), byProp: new Map(), stateful: new Set() };
+      groups.set(key, g);
+    }
+    return g;
+  };
+  for (const token of classString.split(/\s+/).filter(Boolean)) {
+    const { prefixes, utility } = splitVariants(token);
+    const shifting = prefixes.filter(isElementShifting);
+    const key = shifting.join('|');
+    const declared = transitionListProperties(utility);
+    if (declared != null) {
+      groupFor(key).lists.set(token, declared);
+      continue;
+    }
+    const prop = transformPropertyOf(utility);
+    if (prop == null) continue;
+    const g = groupFor(key);
+    let tokens = g.byProp.get(prop);
+    if (!tokens) {
+      tokens = new Set();
+      g.byProp.set(prop, tokens);
+    }
+    tokens.add(token);
+    if (prefixes.length > shifting.length) g.stateful.add(prop);
+  }
+  return groups;
+}
+
 // ─── lint ────────────────────────────────────────────────────────────────────
 
 type Finding = { where: string; token: string; detail: string };
@@ -238,6 +401,8 @@ const shadowed: Finding[] = [];
 const partial: Finding[] = [];
 const unknownTheme: Finding[] = [];
 const unknownThemeSeen = new Set<string>();
+const missingTransition: Finding[] = [];
+const missingTransitionSeen = new Set<string>();
 
 /** Remove every occurrence of `token` from a class value (string or nested array). */
 function removeToken(value: unknown, token: string): unknown {
@@ -375,6 +540,59 @@ for (const { file, name, fn, cfg } of loaded) {
     return sources.map((src) => src.activeIn(eff));
   });
 
+  // Transform-transition guard. Runs over the RENDERED output per slot, so it
+  // sees exactly what the browser sees: base + axes + compounds after the fold,
+  // including class fragments spliced in from shared *.system.ts tables. A
+  // property is only *required* in the list when it can actually change — it
+  // sits behind a state variant, or its utility set differs between sampled
+  // combos. A constant, unprefixed transform (the Slider thumb's centring
+  // `-translate-x-1/2`, which never moves — the thumb travels via `left`) is
+  // therefore not demanded.
+  for (const slot of slotList) {
+    const perCombo = baseline.map((bySlot) => groupTransitionTokens(bySlot.get(slot) as string));
+    const elementKeys = new Set(perCombo.flatMap((groups) => [...groups.keys()]));
+    for (const elementKey of elementKeys) {
+      const props = new Set(
+        perCombo.flatMap((groups) => [...(groups.get(elementKey)?.byProp.keys() ?? [])])
+      );
+      const dynamic = new Set<string>();
+      for (const prop of props) {
+        const stateful = perCombo.some((groups) => groups.get(elementKey)?.stateful.has(prop));
+        const signatures = new Set(
+          perCombo.map((groups) =>
+            [...(groups.get(elementKey)?.byProp.get(prop) ?? [])].sort().join(' ')
+          )
+        );
+        if (stateful || signatures.size > 1) dynamic.add(prop);
+      }
+      for (const groups of perCombo) {
+        const group = groups.get(elementKey);
+        if (group == null) continue;
+        for (const [listToken, declared] of group.lists) {
+          for (const [prop, utilities] of group.byProp) {
+            if (declared.has(prop) || !dynamic.has(prop)) continue;
+            const where = `${file} › ${name}${slots ? ` › ${slot}` : ''}${
+              elementKey ? ` › ${elementKey}` : ''
+            }`;
+            const exemptKey = exemptionKey(where, prop);
+            if (exemptions.has(exemptKey)) {
+              exemptionsHit.add(exemptKey);
+              continue;
+            }
+            const seenKey = `${where}\0${listToken}\0${prop}`;
+            if (missingTransitionSeen.has(seenKey)) continue;
+            missingTransitionSeen.add(seenKey);
+            missingTransition.push({
+              where,
+              token: listToken,
+              detail: `'${[...utilities].sort()[0]}' writes the discrete CSS property '${prop}', which the list does not name — the state change jumps instead of animating. Add '${prop}' to the list (or use the 'transition-transform' shorthand, which expands to transform,translate,scale,rotate)`
+            });
+          }
+        }
+      }
+    }
+  }
+
   for (const [si, src] of sources.entries()) {
     for (const slot of slotList) {
       // Deduplicate per source+slot; leave-one-out removes all occurrences.
@@ -430,13 +648,24 @@ for (const { file, name, fn, cfg } of loaded) {
 // ─── report ──────────────────────────────────────────────────────────────────
 
 console.log(
-  `variants-lint: ${loaded.length} configs in ${files.length} files, ${themeVars.size} @theme keys — ${dead.length} lost, ${unknownTheme.length} unknown-theme, ${shadowed.length} shadowed, ${partial.length} partially-stripped token(s)`
+  `variants-lint: ${loaded.length} configs in ${files.length} files, ${themeVars.size} @theme keys — ${dead.length} lost, ${unknownTheme.length} unknown-theme, ${missingTransition.length} incomplete transition list(s), ${shadowed.length} shadowed, ${partial.length} partially-stripped token(s)`
 );
 
 for (const err of fileErrors) console.error(`✖ ${err}`);
 for (const f of dead) console.error(`✖ lost token '${f.token}' in ${f.where} (${f.detail})`);
 for (const f of unknownTheme) {
   console.error(`✖ unknown theme key for '${f.token}' in ${f.where} (${f.detail})`);
+}
+for (const f of missingTransition) {
+  console.error(`✖ incomplete transition list '${f.token}' in ${f.where}\n    ${f.detail}`);
+}
+const staleExemptions = [...exemptions.values()].filter(
+  (e) => !exemptionsHit.has(exemptionKey(e.where, e.property))
+);
+for (const e of staleExemptions) {
+  console.error(
+    `✖ stale transition exemption '${e.property}' for ${e.where} — the slot no longer writes that property; drop the entry from TRANSITION_EXEMPTIONS.`
+  );
 }
 
 if (SHOW_WARNINGS) {
@@ -448,4 +677,12 @@ if (SHOW_WARNINGS) {
   );
 }
 
-if (fileErrors.length > 0 || dead.length > 0 || unknownTheme.length > 0) process.exit(1);
+if (
+  fileErrors.length > 0 ||
+  dead.length > 0 ||
+  unknownTheme.length > 0 ||
+  missingTransition.length > 0 ||
+  staleExemptions.length > 0
+) {
+  process.exit(1);
+}

@@ -25,7 +25,10 @@ export const emptyStateVariants = tv({
       'px-4 py-2.5',
       'bg-primary text-white',
       'rounded-commit font-medium',
-      'transition-[color,background-color,border-color,box-shadow,opacity,transform] duration-[var(--blocks-duration-fast)]',
+      // `translate`, NOT `transform`: Tailwind 4 emits `-translate-y-*` as the
+      // discrete CSS `translate:` property, so the hover lift below only
+      // animates if the list names `translate`.
+      'transition-[color,background-color,border-color,box-shadow,opacity,translate] duration-[var(--blocks-duration-fast)]',
       'hover:bg-primary-hover hover:-translate-y-0.5',
       'active:translate-y-0',
       'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2'
@@ -169,7 +172,9 @@ export const errorStateVariants = tv({
       'px-4 py-2.5',
       'bg-primary text-white',
       'rounded-commit font-medium',
-      'transition-[color,background-color,border-color,box-shadow,opacity,transform] duration-[var(--blocks-duration-fast)]',
+      // `translate`, NOT `transform` — same discrete-property rule as the empty
+      // state's action button above; a `transform` entry never animated the lift.
+      'transition-[color,background-color,border-color,box-shadow,opacity,translate] duration-[var(--blocks-duration-fast)]',
       'hover:bg-primary-hover hover:-translate-y-0.5',
       'active:translate-y-0',
       'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2'
@@ -292,7 +297,10 @@ export const mobileCardVariants = tv({
       'border border-border-subtle',
       'rounded-contain overflow-hidden',
       'mb-3',
-      'transition-[color,background-color,border-color,box-shadow,opacity] duration-[var(--blocks-duration-fast)]',
+      // `scale` is listed because the `interactive` axis adds `active:scale-[0.995]`
+      // — Tailwind 4 emits that as the discrete `scale:` property, which no other
+      // entry in this list covers.
+      'transition-[color,background-color,border-color,box-shadow,opacity,scale] duration-[var(--blocks-duration-fast)]',
       'hover:border-border-default hover:shadow-[var(--blocks-shadow-sm)]'
     ],
     // Title region — the primary identifier, emphasized and label-less. Lays out

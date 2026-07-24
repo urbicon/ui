@@ -21,7 +21,11 @@ export const sliderVariants = tv({
       'absolute rounded-commit bg-surface-base border-2',
       'shadow-[var(--blocks-shadow-sm)]',
       '-translate-x-1/2 -translate-y-1/2 top-1/2',
-      'transition-[box-shadow,transform] duration-[var(--blocks-duration-fast)]',
+      // `scale`, NOT `transform`: Tailwind 4 emits `scale-*` as the discrete
+      // `scale:` property — `hover:scale-110` is the only animated transform
+      // here, so it is the only one listed. The centring `-translate-*` above
+      // is static (the thumb travels via `left`), so `translate` stays out.
+      'transition-[box-shadow,scale] duration-[var(--blocks-duration-fast)]',
       'hover:scale-110 hover:shadow-[var(--blocks-shadow-md)]',
       'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-offset-surface-base'
     ],

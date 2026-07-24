@@ -6,7 +6,11 @@ export const menuVariants = tv({
     trigger: ['w-full justify-between gap-3 min-w-36'],
     triggerText: ['flex flex-1 items-center text-left truncate'],
     chevron: [
-      'w-4 h-4 shrink-0 opacity-70 transition-[opacity,transform] duration-[var(--blocks-duration-fast)] ease-out'
+      // `rotate,translate`, NOT `transform`: Tailwind 4 emits `rotate-*` /
+      // `translate-*` as the discrete `rotate:` / `translate:` properties. The
+      // `chevronAnimation` axis drives exactly those two (rotate-0 ↔ rotate-180,
+      // translate-y-0 ↔ translate-y-1), so a `transform` entry animated neither.
+      'w-4 h-4 shrink-0 opacity-70 transition-[opacity,rotate,translate] duration-[var(--blocks-duration-fast)] ease-out'
     ],
     // Floating panel surface. Position is owned by the wrapping Popover
     // (Floating UI sets `top` / `left` on its container); this slot just
