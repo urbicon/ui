@@ -280,34 +280,14 @@
   </div>
 {/snippet}
 
-<div class={cls('root', className)} data-role={message.role} data-status={status} {...restProps}>
-  {#if layout === 'plain'}
-    <div class={cls('header')}>
-      {#if avatar}
-        {@render avatar({ role: message.role })}
-      {:else}
-        {@render defaultAvatar(message.role)}
-      {/if}
-      <span class={cls('roleName')}>{roleLabel}</span>
-    </div>
-    <div class={cls('bubble')}>
-      {@render body()}
-    </div>
-  {:else}
-    <div class={cls('container')}>
-      {#if message.role !== 'user'}
-        {#if avatar}
-          {@render avatar({ role: message.role })}
-        {:else}
-          {@render defaultAvatar(message.role)}
-        {/if}
-      {/if}
-      <div class={cls('bubble')}>
-        {@render body()}
-      </div>
-    </div>
-  {/if}
-
+<!--
+  `column` wraps the bubble together with everything that hangs under it —
+  citations, the status alert, the footer. They must be siblings of the bubble
+  INSIDE the column, not of `container`: the column is what carries the
+  role-dependent side (`items-end` for a user message), so the timestamp ends up
+  under the bubble's own edge instead of at the left margin.
+-->
+{#snippet belowBubble()}
   {#if sources.length}
     <div class={cls('sourcesFooter')}>
       {#each sources as source, i (source.id)}
@@ -338,6 +318,41 @@
       <time class={cls('metadata')} datetime={createdAtIso}>{createdAtTime}</time>
     {/if}
   </div>
+{/snippet}
+
+<div class={cls('root', className)} data-role={message.role} data-status={status} {...restProps}>
+  {#if layout === 'plain'}
+    <div class={cls('header')}>
+      {#if avatar}
+        {@render avatar({ role: message.role })}
+      {:else}
+        {@render defaultAvatar(message.role)}
+      {/if}
+      <span class={cls('roleName')}>{roleLabel}</span>
+    </div>
+    <div class={cls('column')}>
+      <div class={cls('bubble')}>
+        {@render body()}
+      </div>
+      {@render belowBubble()}
+    </div>
+  {:else}
+    <div class={cls('container')}>
+      {#if message.role !== 'user'}
+        {#if avatar}
+          {@render avatar({ role: message.role })}
+        {:else}
+          {@render defaultAvatar(message.role)}
+        {/if}
+      {/if}
+      <div class={cls('column')}>
+        <div class={cls('bubble')}>
+          {@render body()}
+        </div>
+        {@render belowBubble()}
+      </div>
+    </div>
+  {/if}
 
   <!-- Copy confirmation for screen readers — a live status region, present
        before `copied` flips so it always announces the change. -->

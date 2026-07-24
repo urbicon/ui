@@ -86,9 +86,12 @@ export interface ChatMessageProps
   unstyled?: boolean;
   /**
    * Per-slot class overrides. Slots: root | container | header | roleName | avatar |
-   * bubble | partsFlow | attachment | attachmentIcon | attachmentName | attachmentSize |
-   * sourcesFooter | placeholder | statusAlert | footer | actions | actionButton |
-   * metadata. Reasoning and tool-call parts render through ReasoningDisclosure /
+   * column | bubble | partsFlow | attachment | attachmentIcon | attachmentName |
+   * attachmentSize | sourcesFooter | placeholder | statusAlert | footer | actions |
+   * actionButton | metadata. `column` wraps the bubble with everything under it
+   * (citations, status alert, footer) and carries the role-dependent alignment —
+   * override it to re-align a message's whole stack, not just the bubble.
+   * Reasoning and tool-call parts render through ReasoningDisclosure /
    * ToolCallCard, which take their own `slotClasses`.
    */
   slotClasses?: Partial<Record<ChatMessageSlots, string>>;

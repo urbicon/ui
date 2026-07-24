@@ -12,6 +12,13 @@ export const chatMessageVariants = tv({
     header: ['flex min-w-0 items-center gap-2'],
     roleName: ['text-sm font-medium text-text-secondary select-none'],
     avatar: ['shrink-0'],
+    // Everything that belongs UNDER the bubble — citations, the error alert, the
+    // footer — lives in this column, not as a sibling of `container`. It is what
+    // makes those rows inherit the bubble's side: a user bubble sits right, so
+    // its timestamp and citations must too. `items-*` per role does the aligning
+    // (see the compounds), and the width cap lives here rather than on `bubble`
+    // so an alert spans the column while the bubble still hugs its text.
+    column: ['flex min-w-0 flex-col'],
     // The content bubble (bubble layout) / the full-width column (plain layout).
     bubble: ['min-w-0 max-w-full'],
     // Vertical stack of the rendered parts.
@@ -30,12 +37,17 @@ export const chatMessageVariants = tv({
     sourcesFooter: ['flex flex-wrap items-center gap-1.5 pt-1'],
     // streaming placeholder (zero parts)
     placeholder: ['py-1'],
-    // status alert
-    statusAlert: ['mt-1'],
-    // footer row holding actions + metadata
-    footer: ['flex items-center gap-2'],
+    // status alert — stretches across the column (the bubble hugs its text, an
+    // error does not).
+    statusAlert: ['mt-1 w-full'],
+    // Footer row holding actions + metadata. Its height is set by the metadata
+    // line (`min-h-5`), NOT by the action buttons: those are `opacity-0` until
+    // hover/focus, so letting them size the row reserved ~28px of blank strip
+    // under every single message. `-my-1` below lets them overhang the shorter
+    // row instead of growing it.
+    footer: ['flex min-h-5 items-center gap-2'],
     actions: [
-      'flex items-center gap-1 opacity-0',
+      'flex items-center gap-1 -my-1 opacity-0',
       'transition-opacity duration-[var(--blocks-duration-fast)] ease-out',
       'group-hover/message:opacity-100 group-focus-within/message:opacity-100'
     ],
@@ -53,6 +65,7 @@ export const chatMessageVariants = tv({
       bubble: {},
       // Document-like: full-width content under an avatar + role header row.
       plain: {
+        column: 'w-full items-stretch',
         bubble: 'w-full',
         partsFlow: 'gap-3'
       }
@@ -65,10 +78,12 @@ export const chatMessageVariants = tv({
     density: {
       comfortable: {
         root: 'gap-1.5',
+        column: 'gap-1.5',
         partsFlow: 'gap-2'
       },
       compact: {
         root: 'gap-1',
+        column: 'gap-1',
         partsFlow: 'gap-1.5'
       }
     }
@@ -85,16 +100,20 @@ export const chatMessageVariants = tv({
       layout: 'bubble' as const,
       role: 'user' as const,
       class: {
-        // Reverse so the (avatar-less) bubble packs to the right edge.
+        // Reverse so the (avatar-less) column packs to the right edge, and
+        // right-align its rows so timestamp + citations hang off the same edge
+        // as the bubble instead of drifting to the left margin.
         container: 'flex-row-reverse',
-        bubble: 'max-w-[85%] rounded-bridge bg-primary-subtle'
+        column: 'max-w-[85%] items-end',
+        bubble: 'rounded-bridge bg-primary-subtle'
       }
     },
     {
       layout: 'bubble' as const,
       role: 'assistant' as const,
       class: {
-        bubble: 'max-w-[85%] rounded-bridge bg-surface-elevated'
+        column: 'max-w-[85%] items-start',
+        bubble: 'rounded-bridge bg-surface-elevated'
       }
     },
     {
@@ -102,8 +121,9 @@ export const chatMessageVariants = tv({
       role: 'system' as const,
       class: {
         container: 'justify-center',
+        column: 'max-w-[90%] items-center',
         bubble:
-          'max-w-[90%] rounded-bridge border border-border-subtle bg-surface-base text-sm text-text-secondary'
+          'rounded-bridge border border-border-subtle bg-surface-base text-sm text-text-secondary'
       }
     },
     // ── bubble layout: density padding ──────────────────────────────────────

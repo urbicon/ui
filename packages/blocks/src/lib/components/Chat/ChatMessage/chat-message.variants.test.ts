@@ -7,6 +7,7 @@ const SLOTS = [
   'header',
   'roleName',
   'avatar',
+  'column',
   'bubble',
   'partsFlow',
   'attachment',
@@ -82,6 +83,51 @@ describe('chatMessageVariants', () => {
     );
     expect(chatMessageVariants({ density: 'comfortable' }).partsFlow()).toContain('gap-2');
     expect(chatMessageVariants({ density: 'compact' }).partsFlow()).toContain('gap-1.5');
+  });
+
+  /**
+   * The width cap belongs on the column, not the bubble: a bubble hugs its text,
+   * while the error alert underneath must span the full column. If the cap sat on
+   * `bubble`, the alert would be free to run wider than the message it belongs to.
+   */
+  it('caps the column width per role and lets the bubble hug its content', () => {
+    for (const [role, cap] of [
+      ['user', 'max-w-[85%]'],
+      ['assistant', 'max-w-[85%]'],
+      ['system', 'max-w-[90%]']
+    ] as const) {
+      const styles = chatMessageVariants({ layout: 'bubble', role });
+      expect(styles.column(), `${role} column carries the cap`).toContain(cap);
+      expect(styles.bubble(), `${role} bubble must not cap itself`).not.toMatch(/max-w-\[\d+%\]/);
+    }
+  });
+
+  /**
+   * A user bubble sits on the right, so its timestamp and citations have to as
+   * well — they hang off the column, and the column is what carries the side.
+   */
+  it('aligns the column to the bubble side per role', () => {
+    expect(chatMessageVariants({ layout: 'bubble', role: 'user' }).column()).toContain('items-end');
+    expect(chatMessageVariants({ layout: 'bubble', role: 'assistant' }).column()).toContain(
+      'items-start'
+    );
+    expect(chatMessageVariants({ layout: 'bubble', role: 'system' }).column()).toContain(
+      'items-center'
+    );
+    // Plain layout is a document flow — every row spans the full width.
+    expect(chatMessageVariants({ layout: 'plain' }).column()).toContain('items-stretch');
+  });
+
+  /**
+   * The action buttons are `opacity-0` until hover/focus. Letting them size the
+   * footer reserved a ~28px blank strip under EVERY message — visible as dead
+   * space between a bubble and its timestamp. The row is sized by the metadata
+   * line instead, and the buttons overhang it via a negative margin.
+   */
+  it('sizes the footer by its metadata line, not by the hidden action buttons', () => {
+    const styles = chatMessageVariants();
+    expect(styles.footer()).toContain('min-h-5');
+    expect(styles.actions()).toContain('-my-1');
   });
 
   it('reveals the action bar on hover / focus-within and keeps buttons focus-visible', () => {
