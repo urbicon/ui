@@ -1,5 +1,4 @@
 <script lang="ts">
-  import type { SvelteDocsConfig } from '@urbicon-ui/shared-types';
   import { CodeExample, Section } from '@urbicon-ui/docs';
   import {
     BasicUpload,
@@ -20,35 +19,6 @@
   import customDropzoneCode from './examples/CustomDropzone.svelte?raw';
   import sizesCode from './examples/Sizes.svelte?raw';
   import pasteUploadCode from './examples/PasteUpload.svelte?raw';
-
-  export const docsConfig: SvelteDocsConfig = {
-    generation: {
-      overview: { enabled: false },
-      playground: {
-        featured: ['size', 'intent', 'multiple', 'maxFiles', 'allowDrop', 'allowPaste', 'disabled'],
-        defaults: {
-          size: 'md',
-          intent: 'primary',
-          multiple: false,
-          allowDrop: true,
-          disabled: false
-        },
-        enabled: true,
-        order: 1
-      },
-      variants: { enabled: false },
-      examples: false,
-      api: { showInheritance: true, enabled: true, order: 14 },
-      usage: false
-    },
-    llm: {
-      include: true,
-      maxSections: 8,
-      priority: ['overview', 'examples', 'real-world', 'patterns', 'variants', 'api'],
-      excludeTypes: ['playground']
-    },
-    meta: { title: 'FileUpload Component', showToc: true }
-  };
 </script>
 
 <!-- ─── Examples ─── -->

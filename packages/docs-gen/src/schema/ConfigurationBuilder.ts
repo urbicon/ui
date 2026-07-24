@@ -83,14 +83,6 @@ function createDefaultConfig(): GeneratorConfig {
         enabled: true,
         outputPath: './src/lib/generated/api-props.ts',
         format: 'typescript'
-      },
-      shared: {
-        clean: true,
-        createDirectories: true,
-        overwrite: true,
-        backup: {
-          enabled: false
-        }
       }
     }
   };
@@ -196,9 +188,9 @@ export class DocsConfigurationBuilder implements GeneratorConfigBuilder {
   }
 
   /**
-   * Turn on batched parallel extraction (defaults: concurrency 4, strategy
-   * `auto`). Note the side effect in `PipelineOrchestrator`: with parallel
-   * extraction enabled the ErrorHandler is created non-fail-fast.
+   * Turn on batched parallel extraction (default concurrency 4). Note the
+   * side effect in `PipelineOrchestrator`: with parallel extraction enabled
+   * the ErrorHandler is created non-fail-fast.
    */
   enableParallel(
     parallelConfig?: Partial<GeneratorConfig['processing']['parallel']>
@@ -206,7 +198,6 @@ export class DocsConfigurationBuilder implements GeneratorConfigBuilder {
     this.config.processing.parallel = {
       enabled: true,
       maxConcurrency: 4,
-      strategy: 'auto',
       ...parallelConfig
     };
     return this;
@@ -245,20 +236,6 @@ export class DocsConfigurationBuilder implements GeneratorConfigBuilder {
   // ==========================================
   // ADDITIONAL FEATURES
   // ==========================================
-
-  /**
-   * Turn on watch settings (defaults: 1000 ms debounce, add/change/unlink).
-   * Reserved — the CLI ships no watch loop yet; see `WatchConfig`.
-   */
-  enableWatch(watchConfig?: Partial<GeneratorConfig['watch']>): GeneratorConfigBuilder {
-    this.config.watch = {
-      enabled: true,
-      debounce: 1000,
-      events: ['add', 'change', 'unlink'],
-      ...watchConfig
-    };
-    return this;
-  }
 
   /**
    * Turn on debug reporting (default level `info`, console output). Gates
@@ -659,10 +636,6 @@ export class ConfigurationFactory {
 
     if (configData.output?.api) {
       builder.setAPIOutput(configData.output.api);
-    }
-
-    if (configData.watch) {
-      builder.enableWatch(configData.watch);
     }
 
     if (configData.debug) {

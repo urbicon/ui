@@ -1,42 +1,7 @@
 <script lang="ts">
-  import type { SvelteDocsConfig } from '@urbicon-ui/shared-types';
   import { CodeExample, Section } from '@urbicon-ui/docs';
   import { Avatar } from '@urbicon-ui/blocks';
   import { resolve } from '$app/paths';
-
-  export const docsConfig: SvelteDocsConfig = {
-    generation: {
-      overview: { enabled: false },
-      playground: {
-        featured: [
-          'name',
-          'variant',
-          'size',
-          'intent',
-          'status',
-          'statusPosition',
-          'ring',
-          'ringIntent',
-          'randomColor',
-          'interactive'
-        ],
-        defaults: { variant: 'circle', size: 'md', intent: 'neutral' },
-        enabled: true,
-        order: 1
-      },
-      variants: { enabled: false },
-      examples: false,
-      api: { showInheritance: true, enabled: true, order: 14 },
-      usage: false
-    },
-    llm: {
-      include: true,
-      maxSections: 8,
-      priority: ['overview', 'examples', 'real-world', 'patterns', 'variants', 'api'],
-      excludeTypes: ['playground']
-    },
-    meta: { title: 'Avatar Component', showToc: true }
-  };
 </script>
 
 <!-- ─── Examples ─── -->

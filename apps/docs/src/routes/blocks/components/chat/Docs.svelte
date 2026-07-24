@@ -1,25 +1,6 @@
 <script lang="ts">
-  import type { SvelteDocsConfig } from '@urbicon-ui/shared-types';
   import { CodeExample, Section } from '@urbicon-ui/docs';
   import { r } from '$lib/route';
-
-  export const docsConfig: SvelteDocsConfig = {
-    generation: {
-      overview: { enabled: false },
-      playground: { enabled: true, order: 1 },
-      variants: { enabled: false },
-      examples: false,
-      api: { showInheritance: true, enabled: true, order: 5 },
-      usage: false
-    },
-    llm: {
-      include: true,
-      maxSections: 8,
-      priority: ['overview', 'examples', 'patterns', 'api'],
-      excludeTypes: ['playground']
-    },
-    meta: { title: 'Chat Component', showToc: true }
-  };
 </script>
 
 <!-- ─── Examples ─── -->

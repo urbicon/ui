@@ -1,28 +1,9 @@
 <script lang="ts">
-  import type { SvelteDocsConfig } from '@urbicon-ui/shared-types';
   import { CodeExample, Section } from '@urbicon-ui/docs';
   import { CustomMarks, LegendAndFallback } from './examples';
 
   import customMarksCode from './examples/CustomMarks.svelte?raw';
   import legendFallbackCode from './examples/LegendAndFallback.svelte?raw';
-
-  export const docsConfig: SvelteDocsConfig = {
-    generation: {
-      overview: { enabled: false },
-      playground: { enabled: true, order: 1 },
-      variants: { enabled: false },
-      examples: false,
-      api: { showInheritance: true, enabled: true, order: 14 },
-      usage: false
-    },
-    llm: {
-      include: true,
-      maxSections: 6,
-      priority: ['overview', 'when-to-use', 'examples', 'accessibility', 'api'],
-      excludeTypes: ['playground']
-    },
-    meta: { title: 'ChartFrame Component', showToc: true }
-  };
 </script>
 
 <!-- ─── When to use ─── -->

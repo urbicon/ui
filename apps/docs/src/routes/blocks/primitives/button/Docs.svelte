@@ -1,49 +1,7 @@
 <script lang="ts">
-  import type { SvelteDocsConfig } from '@urbicon-ui/shared-types';
   import { CodeExample, Section } from '@urbicon-ui/docs';
   import { Button, CheckIcon, CloseIcon } from '@urbicon-ui/blocks';
   import { resolve } from '$app/paths';
-
-  export const docsConfig: SvelteDocsConfig = {
-    generation: {
-      overview: { enabled: false },
-      playground: {
-        featured: [
-          'variant',
-          'size',
-          'tier',
-          'intent',
-          'loadingPlacement',
-          'mint',
-          'children',
-          'loading',
-          'disabled',
-          'active',
-          'pressed'
-        ],
-        defaults: {
-          variant: 'filled',
-          size: 'lg',
-          tier: 'commit',
-          intent: 'primary',
-          mint: 'scale'
-        },
-        enabled: true,
-        order: 1
-      },
-      variants: { enabled: false },
-      examples: false,
-      api: { showInheritance: true, enabled: true, order: 14 },
-      usage: false
-    },
-    llm: {
-      include: true,
-      maxSections: 8,
-      priority: ['overview', 'examples', 'real-world', 'patterns', 'variants', 'api'],
-      excludeTypes: ['playground']
-    },
-    meta: { title: 'Button Component', showToc: true }
-  };
 </script>
 
 <!-- ─── Examples ─── -->

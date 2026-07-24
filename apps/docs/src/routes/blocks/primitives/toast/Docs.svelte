@@ -1,39 +1,7 @@
 <script lang="ts">
-  import type { SvelteDocsConfig } from '@urbicon-ui/shared-types';
   import { CodeExample, Section } from '@urbicon-ui/docs';
   import { Button, toaster } from '@urbicon-ui/blocks';
   import { resolve } from '$app/paths';
-
-  export const docsConfig: SvelteDocsConfig = {
-    generation: {
-      overview: { enabled: false },
-      playground: {
-        featured: [
-          'placement',
-          'intent',
-          'title',
-          'description',
-          'duration',
-          'dismissible',
-          'showProgress'
-        ],
-        defaults: { placement: 'bottom-right', intent: 'success', duration: 5000 },
-        enabled: true,
-        order: 1
-      },
-      variants: { enabled: false },
-      examples: false,
-      api: { showInheritance: true, enabled: true, order: 14 },
-      usage: false
-    },
-    llm: {
-      include: true,
-      maxSections: 8,
-      priority: ['overview', 'examples', 'real-world', 'patterns', 'variants', 'api'],
-      excludeTypes: ['playground']
-    },
-    meta: { title: 'Toast Component', showToc: true }
-  };
 
   let counter = $state(0);
 </script>

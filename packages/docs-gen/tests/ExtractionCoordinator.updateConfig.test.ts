@@ -6,15 +6,15 @@ import type { ExtractorFactory } from '../src/extractors/ExtractorFactory';
 import type { ProcessingConfig } from '../src/types';
 
 // ---------------------------------------------------------------------------
-// Watch-path configPath threading.
+// configPath threading through the reconfiguration path.
 //
 // The program-backed extraction threads `input.typescript.configPath` through
 // the ExtractionCoordinator *constructor* (merge into the extraction config +
-// eager assertUsableTsConfig). Pre-fix, `updateConfig` — the watch-mode
-// surface — forwarded only the raw ProcessingConfig: the tsconfig silently
-// dropped out and every subsequent run fell back to single-file extraction.
-// These tests pin the update path to the constructor's contract: same merge,
-// same eager fail-loud validation.
+// eager assertUsableTsConfig). Pre-fix, `updateConfig` — the surface for
+// reusing one coordinator across runs — forwarded only the raw
+// ProcessingConfig: the tsconfig silently dropped out and every subsequent run
+// fell back to single-file extraction. These tests pin the update path to the
+// constructor's contract: same merge, same eager fail-loud validation.
 // ---------------------------------------------------------------------------
 
 const PKG = path.join(import.meta.dirname, 'fixtures', 'cross-file-pkg');
@@ -50,7 +50,7 @@ function factoryOf(coordinator: ExtractionCoordinator): ExtractorFactory {
   return (coordinator as unknown as { extractorFactory: ExtractorFactory }).extractorFactory;
 }
 
-describe('ExtractionCoordinator.updateConfig — configPath threading (watch path)', () => {
+describe('ExtractionCoordinator.updateConfig — configPath threading', () => {
   afterEach(() => {
     vi.restoreAllMocks();
   });

@@ -1,43 +1,10 @@
 <script lang="ts">
-  import type { SvelteDocsConfig } from '@urbicon-ui/shared-types';
   import { CodeExample, Section } from '@urbicon-ui/docs';
   import { Tab, TabItem, TabPanel, Badge } from '@urbicon-ui/blocks';
   import { resolve } from '$app/paths';
 
   let activeSettings = $state('profile');
   let activeProject = $state('inbox');
-
-  export const docsConfig: SvelteDocsConfig = {
-    generation: {
-      overview: { enabled: false },
-      playground: {
-        featured: [
-          'variant',
-          'size',
-          'tier',
-          'orientation',
-          'fullWidth',
-          'disabled',
-          'mint',
-          'defaultValue'
-        ],
-        defaults: { variant: 'line', size: 'md', tier: 'modify', orientation: 'horizontal' },
-        enabled: true,
-        order: 1
-      },
-      variants: { enabled: false },
-      examples: false,
-      api: { showInheritance: true, enabled: true, order: 14 },
-      usage: false
-    },
-    llm: {
-      include: true,
-      maxSections: 8,
-      priority: ['overview', 'examples', 'real-world', 'patterns', 'variants', 'api'],
-      excludeTypes: ['playground']
-    },
-    meta: { title: 'Tab Component', showToc: true }
-  };
 </script>
 
 <!-- ─── Examples ─── -->

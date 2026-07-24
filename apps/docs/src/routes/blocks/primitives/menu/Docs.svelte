@@ -14,47 +14,7 @@
 
   import { CodeExample, InfoCard, Section } from '@urbicon-ui/docs';
   import { Menu } from '@urbicon-ui/blocks';
-  import type { SvelteDocsConfig } from '@urbicon-ui/shared-types';
   import { resolve } from '$app/paths';
-
-  export const docsConfig: SvelteDocsConfig = {
-    generation: {
-      overview: { enabled: false },
-      playground: {
-        featured: [
-          'variant',
-          'intent',
-          'size',
-          'tier',
-          'itemSize',
-          'placement',
-          'chevronAnimation',
-          'placeholder'
-        ],
-        defaults: {
-          variant: 'outlined',
-          size: 'md',
-          tier: 'commit',
-          intent: 'neutral',
-          placement: 'bottom-start',
-          chevronAnimation: 'rotate'
-        },
-        enabled: true,
-        order: 1
-      },
-      variants: { enabled: false },
-      examples: false,
-      api: { showInheritance: true, enabled: true, order: 14 },
-      usage: false
-    },
-    llm: {
-      include: true,
-      maxSections: 8,
-      priority: ['overview', 'examples', 'real-world', 'patterns', 'api'],
-      excludeTypes: ['playground']
-    },
-    meta: { title: 'Menu Component', showToc: true }
-  };
 </script>
 
 <!-- ─── When Menu vs Select ─── -->

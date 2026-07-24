@@ -1,31 +1,7 @@
 <script lang="ts">
-  import type { SvelteDocsConfig } from '@urbicon-ui/shared-types';
   import { CodeExample, Section } from '@urbicon-ui/docs';
   import { Button, Drawer, Input, Separator, Toggle } from '@urbicon-ui/blocks';
   import { r } from '$lib/route';
-
-  export const docsConfig: SvelteDocsConfig = {
-    generation: {
-      overview: { enabled: false },
-      playground: {
-        featured: ['placement', 'size', 'hideCloseButton'],
-        defaults: { placement: 'right', size: 'md' },
-        enabled: true,
-        order: 1
-      },
-      variants: { enabled: false },
-      examples: false,
-      api: { showInheritance: true, enabled: true, order: 14 },
-      usage: false
-    },
-    llm: {
-      include: true,
-      maxSections: 8,
-      priority: ['overview', 'examples', 'real-world', 'patterns', 'variants', 'api'],
-      excludeTypes: ['playground']
-    },
-    meta: { title: 'Drawer Component', showToc: true }
-  };
 
   let rightOpen = $state(false);
   let leftOpen = $state(false);

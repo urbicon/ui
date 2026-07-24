@@ -1,19 +1,5 @@
 <script lang="ts">
-  import type { SvelteDocsConfig } from '@urbicon-ui/shared-types';
   import { CodeExample, Section, InfoCard } from '@urbicon-ui/docs';
-
-  export const docsConfig: SvelteDocsConfig = {
-    generation: {
-      overview: { enabled: true },
-      playground: { enabled: false },
-      variants: { enabled: false },
-      examples: false,
-      api: { enabled: true, order: 9, showInheritance: true },
-      usage: false
-    },
-    llm: { include: true, maxSections: 5, priority: ['overview', 'api'] },
-    meta: { title: 'DocsLayout Component', showToc: true }
-  };
 </script>
 
 <Section id="examples" title="Examples" subtitle="Page-level layout, shown as code">

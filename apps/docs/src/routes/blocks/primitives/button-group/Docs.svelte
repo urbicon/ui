@@ -1,5 +1,4 @@
 <script lang="ts">
-  import type { SvelteDocsConfig } from '@urbicon-ui/shared-types';
   import { CodeExample, Section } from '@urbicon-ui/docs';
   import {
     BoldIcon,
@@ -15,37 +14,6 @@
     ZoomInIcon,
     ZoomOutIcon
   } from '@urbicon-ui/blocks';
-
-  export const docsConfig: SvelteDocsConfig = {
-    generation: {
-      overview: { enabled: false },
-      playground: {
-        featured: [
-          'orientation',
-          'variant',
-          'intent',
-          'size',
-          'selection',
-          'connected',
-          'disabled'
-        ],
-        defaults: { variant: 'outlined', intent: 'neutral', size: 'md' },
-        enabled: true,
-        order: 1
-      },
-      variants: { enabled: false },
-      examples: false,
-      api: { showInheritance: true, enabled: true, order: 14 },
-      usage: false
-    },
-    llm: {
-      include: true,
-      maxSections: 8,
-      priority: ['overview', 'examples', 'real-world', 'patterns', 'variants', 'api'],
-      excludeTypes: ['playground']
-    },
-    meta: { title: 'Button Group Component', showToc: true }
-  };
 
   // View switcher — single selection. ButtonGroupValue is string | string[] | undefined.
   let view = $state<ButtonGroupValue>('list');

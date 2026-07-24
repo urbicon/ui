@@ -282,7 +282,8 @@ export class DocsGeneratorCLI {
    * Scaffold the docs route for a component: creates
    * `apps/docs/src/routes/blocks/<group>/<slug>/` with a `+page.svelte`
    * (playground + API sections wired to the generated `api.ts`) and a
-   * `Docs.svelte` (docsConfig + authored sections). Refuses to overwrite an
+   * `Docs.svelte` (the authored example/customization/a11y sections that the
+   * page composes in). Refuses to overwrite an
    * existing directory; the `api.ts` itself comes from a later
    * `docs:gen:all` run.
    */
@@ -425,21 +426,7 @@ export class DocsGeneratorCLI {
 
     // Generate Docs.svelte
     const docsSvelte = `<script lang="ts">
-  import type { SvelteDocsConfig } from '@urbicon-ui/shared-types';
   import { CodeExample, Section } from '@urbicon-ui/docs';
-
-  export const docsConfig: SvelteDocsConfig = {
-    generation: {
-      overview: { enabled: false },
-      playground: { enabled: true, order: 1 },
-      variants: { enabled: false },
-      examples: false,
-      api: { showInheritance: true, enabled: true, order: 14 },
-      usage: false
-    },
-    llm: { include: true },
-    meta: { title: '${name} Component', showToc: true }
-  };
 </script>
 
 <!-- ─── Examples ─── -->

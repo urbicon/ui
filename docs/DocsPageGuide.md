@@ -169,32 +169,8 @@ Track this when sweeping a page: report before-/after-line-count in commit body 
 
 ```svelte
 <script lang="ts">
-  import type { SvelteDocsConfig } from '@urbicon-ui/shared-types';
   import { CodeExample, Section } from '@urbicon-ui/docs';
   import { ComponentName } from '@urbicon-ui/blocks';
-
-  export const docsConfig: SvelteDocsConfig = {
-    generation: {
-      overview: { enabled: false },
-      playground: {
-        featured: ['variant', 'size', 'intent', ...],
-        defaults: { variant: 'filled', size: 'md' },
-        enabled: true,
-        order: 1
-      },
-      variants: { enabled: false },
-      examples: false,
-      api: { showInheritance: true, groupBy: 'category', enabled: true, order: 14 },
-      usage: false
-    },
-    llm: {
-      include: true,
-      maxSections: 8,
-      priority: ['overview', 'examples', 'real-world', 'patterns', 'variants', 'api'],
-      excludeTypes: ['playground']
-    },
-    meta: { title: 'ComponentName Component', showToc: true }
-  };
 </script>
 
 <Section id="examples" title="Examples">
@@ -208,9 +184,12 @@ Track this when sweeping a page: report before-/after-line-count in commit body 
 </Section>
 ```
 
-### docsConfig
-
-The `docsConfig` export controls automatic documentation generation (docs-gen) and LLM output. It must be a named export in `Docs.svelte`.
+> **No `docsConfig` in route files.** docs-gen only reads a `docsConfig` export
+> from a **package-internal** `docs.svelte` (next to the component source, e.g.
+> `packages/blocks/src/lib/primitives/Button/docs.svelte`) — never from a route
+> file under `apps/docs/src/routes/`. Route-level `docsConfig` exports were
+> decorative and were removed; per-component LLM settings belong in a
+> package-internal `docs.svelte`.
 
 ### CodeExample with `isolate`
 
@@ -371,7 +350,7 @@ Semantic tokens automatically adapt between light and dark mode.
 - [ ] `+page.svelte`: ApiReference directly in Section (no wrapper div)
 - [ ] `+page.svelte`: Installation section at the end
 - [ ] `+page.svelte`: llm.txt link (prev/next comes from the layout — never add `<PrevNextNav>` per page)
-- [ ] `Docs.svelte`: `docsConfig` exported
+- [ ] `Docs.svelte`: no `docsConfig` export (route files are not read by docs-gen)
 - [ ] `Docs.svelte`: All CodeExamples with `isolate` (where possible)
 - [ ] `Docs.svelte`: Accessibility section present
 - [ ] `Docs.svelte`: Only semantic tokens, no hardcoded colors

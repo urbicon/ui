@@ -1,5 +1,4 @@
 <script lang="ts">
-  import type { SvelteDocsConfig } from '@urbicon-ui/shared-types';
   import { CodeExample, Section } from '@urbicon-ui/docs';
   import { asset } from '$app/paths';
   import { SourceFooter, CitationStyles, FromStreamingMarkdown } from './examples';
@@ -7,29 +6,6 @@
   import sourceFooterCode from './examples/SourceFooter.svelte?raw';
   import citationStylesCode from './examples/CitationStyles.svelte?raw';
   import fromStreamingMarkdownCode from './examples/FromStreamingMarkdown.svelte?raw';
-
-  export const docsConfig: SvelteDocsConfig = {
-    generation: {
-      overview: { enabled: false },
-      playground: {
-        featured: ['citationStyle', 'index', 'openLabel'],
-        defaults: { citationStyle: 'numeric' },
-        enabled: true,
-        order: 1
-      },
-      variants: { enabled: false },
-      examples: false,
-      api: { showInheritance: true, enabled: true, order: 14 },
-      usage: false
-    },
-    llm: {
-      include: true,
-      maxSections: 8,
-      priority: ['overview', 'examples', 'real-world', 'patterns', 'api'],
-      excludeTypes: ['playground']
-    },
-    meta: { title: 'CitationChip Component', showToc: true }
-  };
 </script>
 
 <Section marker="01" id="examples" title="Examples">

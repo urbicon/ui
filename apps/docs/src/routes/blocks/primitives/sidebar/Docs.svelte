@@ -1,31 +1,7 @@
 <script lang="ts">
-  import type { SvelteDocsConfig } from '@urbicon-ui/shared-types';
   import { CodeExample, Section } from '@urbicon-ui/docs';
   import { Sidebar, Button, Separator, Badge, Avatar, CloseIcon } from '@urbicon-ui/blocks';
   import { r } from '$lib/route';
-
-  export const docsConfig: SvelteDocsConfig = {
-    generation: {
-      overview: { enabled: false },
-      playground: {
-        featured: ['mode', 'side', 'width', 'closeOnBackdropClick'],
-        defaults: { mode: 'responsive', side: 'left', width: '16rem' },
-        enabled: true,
-        order: 2
-      },
-      variants: { enabled: false },
-      examples: false,
-      api: { showInheritance: true, enabled: true, order: 14 },
-      usage: false
-    },
-    llm: {
-      include: true,
-      maxSections: 8,
-      priority: ['overview', 'examples', 'patterns', 'variants', 'api'],
-      excludeTypes: ['playground']
-    },
-    meta: { title: 'Sidebar Component', showToc: true }
-  };
 
   let detailOpen = $state(false);
   let brandedOpen = $state(false);

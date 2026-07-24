@@ -1,20 +1,6 @@
 <script lang="ts">
-  import type { SvelteDocsConfig } from '@urbicon-ui/shared-types';
   import { CodeExample, Section, InfoCard } from '@urbicon-ui/docs';
   import { Badge, Button } from '@urbicon-ui/blocks';
-
-  export const docsConfig: SvelteDocsConfig = {
-    generation: {
-      overview: { enabled: true },
-      playground: { enabled: false },
-      variants: { enabled: false },
-      examples: { enabled: true, order: 3 },
-      api: { enabled: true, order: 9, showInheritance: true },
-      usage: { enabled: true, order: 8 }
-    },
-    llm: { include: true, maxSections: 5, priority: ['overview', 'api'] },
-    meta: { title: 'CodeExample Component', showToc: true }
-  };
 </script>
 
 <Section id="examples" title="Examples" subtitle="The core props in action">

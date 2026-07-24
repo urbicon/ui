@@ -1,5 +1,4 @@
 <script lang="ts">
-  import type { SvelteDocsConfig } from '@urbicon-ui/shared-types';
   import { CodeExample, Section } from '@urbicon-ui/docs';
   import {
     EmptyState,
@@ -10,19 +9,6 @@
     PlusIcon,
     SearchIcon
   } from '@urbicon-ui/blocks';
-
-  export const docsConfig: SvelteDocsConfig = {
-    generation: {
-      overview: { enabled: false },
-      playground: { enabled: true, order: 1 },
-      variants: { enabled: false },
-      examples: false,
-      api: { showInheritance: true, enabled: true, order: 14 },
-      usage: false
-    },
-    llm: { include: true },
-    meta: { title: 'EmptyState Component', showToc: true }
-  };
 </script>
 
 <Section marker="01" id="examples" title="Examples">

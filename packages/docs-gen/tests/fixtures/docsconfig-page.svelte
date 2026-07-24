@@ -13,7 +13,7 @@
       },
       variants: { enabled: false },
       examples: false,
-      api: { showInheritance: true, enabled: true, order: 14 },
+      api: { enabled: true, order: 14 },
       usage: false
     },
     llm: {

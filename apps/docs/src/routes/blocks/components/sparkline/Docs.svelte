@@ -1,20 +1,6 @@
 <script lang="ts">
-  import type { SvelteDocsConfig } from '@urbicon-ui/shared-types';
   import { CodeExample, Section } from '@urbicon-ui/docs';
   import { Sparkline } from '@urbicon-ui/blocks';
-
-  export const docsConfig: SvelteDocsConfig = {
-    generation: {
-      overview: { enabled: false },
-      playground: { enabled: true, order: 1 },
-      variants: { enabled: false },
-      examples: false,
-      api: { showInheritance: true, enabled: true, order: 14 },
-      usage: false
-    },
-    llm: { include: true },
-    meta: { title: 'Sparkline Component', showToc: true }
-  };
 
   const up = [4, 6, 5, 8, 7, 10, 9, 12, 14];
   const down = [14, 12, 13, 9, 10, 7, 8, 5, 4];

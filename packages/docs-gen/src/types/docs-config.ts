@@ -8,9 +8,9 @@ export function isValidSvelteDocsConfig(config: unknown): config is SvelteDocsCo
 export const DEFAULT_SVELTE_DOCS_CONFIG: SvelteDocsConfig = {
   generation: {
     playground: { featured: [], exclude: [], defaults: {}, enabled: true, order: 2 },
-    variants: { exclude: [], groupBy: 'variant', limit: 20, enabled: false, order: 4 },
+    variants: { exclude: [], limit: 20, enabled: false, order: 4 },
     examples: false,
-    api: { showInheritance: true, showDeprecated: true, enabled: true, order: 9 },
+    api: { enabled: true, order: 9 },
     overview: { enabled: false }
   },
   llm: {

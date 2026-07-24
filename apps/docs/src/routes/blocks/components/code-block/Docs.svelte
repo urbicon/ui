@@ -1,34 +1,10 @@
 <script lang="ts">
-  import type { SvelteDocsConfig } from '@urbicon-ui/shared-types';
   import { CodeExample, Section } from '@urbicon-ui/docs';
   import { BasicUsage, TrackCopy, HeaderActions } from './examples';
 
   import basicUsageCode from './examples/BasicUsage.svelte?raw';
   import trackCopyCode from './examples/TrackCopy.svelte?raw';
   import headerActionsCode from './examples/HeaderActions.svelte?raw';
-
-  export const docsConfig: SvelteDocsConfig = {
-    generation: {
-      overview: { enabled: false },
-      playground: {
-        featured: ['lang', 'wrap', 'showCopy'],
-        defaults: { wrap: false, showCopy: true },
-        enabled: true,
-        order: 1
-      },
-      variants: { enabled: false },
-      examples: false,
-      api: { showInheritance: true, enabled: true, order: 14 },
-      usage: false
-    },
-    llm: {
-      include: true,
-      maxSections: 8,
-      priority: ['overview', 'examples', 'real-world', 'patterns', 'api'],
-      excludeTypes: ['playground']
-    },
-    meta: { title: 'CodeBlock Component', showToc: true }
-  };
 </script>
 
 <Section marker="01" id="examples" title="Examples">

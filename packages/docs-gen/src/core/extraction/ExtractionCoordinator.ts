@@ -40,7 +40,7 @@ export class ExtractionCoordinator {
 
   /**
    * Merge + validate the TypeScript extraction config — the single path for
-   * both the constructor and `updateConfig`, so watch-mode updates cannot
+   * both the constructor and `updateConfig`, so a later update cannot
    * diverge from construction.
    *
    * The tsconfig path is authored on `input.typescript` (TypeScriptConfig);
@@ -227,7 +227,7 @@ export class ExtractionCoordinator {
   }
 
   /**
-   * Update configuration (watch mode / reusing the coordinator across runs).
+   * Update configuration (reusing one coordinator across runs).
    *
    * Threads `input.typescript.configPath` exactly like the constructor —
    * merged into the extraction config and eagerly validated *before* the

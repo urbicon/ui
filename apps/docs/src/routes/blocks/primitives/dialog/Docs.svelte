@@ -1,5 +1,4 @@
 <script lang="ts">
-  import type { SvelteDocsConfig } from '@urbicon-ui/shared-types';
   import { CodeExample, Section } from '@urbicon-ui/docs';
   import { Dialog, Button, Input } from '@urbicon-ui/blocks';
   import { resolve } from '$app/paths';
@@ -13,37 +12,6 @@
 
   let formName = $state('');
   let formEmail = $state('');
-
-  export const docsConfig: SvelteDocsConfig = {
-    generation: {
-      overview: { enabled: false },
-      playground: {
-        featured: [
-          'title',
-          'size',
-          'placement',
-          'intent',
-          'hideCloseButton',
-          'closeOnBackdropClick',
-          'closeOnEscape'
-        ],
-        defaults: { size: 'sm', placement: 'center', intent: 'neutral' },
-        enabled: true,
-        order: 1
-      },
-      variants: { enabled: false },
-      examples: false,
-      api: { showInheritance: true, enabled: true, order: 14 },
-      usage: false
-    },
-    llm: {
-      include: true,
-      maxSections: 8,
-      priority: ['overview', 'examples', 'real-world', 'patterns', 'variants', 'api'],
-      excludeTypes: ['playground']
-    },
-    meta: { title: 'Dialog Component', showToc: true }
-  };
 </script>
 
 <!-- Examples: Confirmation (content-only) -->

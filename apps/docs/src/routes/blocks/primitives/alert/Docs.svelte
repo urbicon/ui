@@ -1,34 +1,10 @@
 <script lang="ts">
-  import type { SvelteDocsConfig } from '@urbicon-ui/shared-types';
   import { CodeExample, Section } from '@urbicon-ui/docs';
   import { Alert, Button } from '@urbicon-ui/blocks';
   import { resolve } from '$app/paths';
 
   let dismissedSoft = $state(false);
   let dismissedInline = $state(false);
-
-  export const docsConfig: SvelteDocsConfig = {
-    generation: {
-      overview: { enabled: false },
-      playground: {
-        featured: ['title', 'variant', 'intent', 'size', 'dismissible'],
-        defaults: { variant: 'soft', intent: 'primary', size: 'md' },
-        enabled: true,
-        order: 1
-      },
-      variants: { enabled: false },
-      examples: false,
-      api: { showInheritance: true, enabled: true, order: 14 },
-      usage: false
-    },
-    llm: {
-      include: true,
-      maxSections: 8,
-      priority: ['overview', 'examples', 'real-world', 'patterns', 'variants', 'api'],
-      excludeTypes: ['playground']
-    },
-    meta: { title: 'Alert Component', showToc: true }
-  };
 </script>
 
 <!-- ─── Examples ─── -->

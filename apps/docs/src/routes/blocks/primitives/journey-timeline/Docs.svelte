@@ -1,5 +1,4 @@
 <script lang="ts">
-  import type { SvelteDocsConfig } from '@urbicon-ui/shared-types';
   import { CodeExample, Section } from '@urbicon-ui/docs';
   import {
     Badge,
@@ -8,19 +7,6 @@
     type JourneyNode,
     type JourneyStatus
   } from '@urbicon-ui/blocks';
-
-  export const docsConfig: SvelteDocsConfig = {
-    generation: {
-      overview: { enabled: false },
-      playground: { enabled: true, order: 1 },
-      variants: { enabled: false },
-      examples: false,
-      api: { showInheritance: true, enabled: true, order: 14 },
-      usage: false
-    },
-    llm: { include: true },
-    meta: { title: 'JourneyTimeline Component', showToc: true }
-  };
 
   // A utility-billing run — a retrospective chronicle with a time axis.
   const billing: JourneyNode[] = [

@@ -59,8 +59,6 @@ export interface DocsPlaygroundConfig {
 export interface VariantsConfig {
   /** Variants to exclude from showcase */
   exclude?: string[];
-  /** How to group variants (by intent, size, etc.) */
-  groupBy?: string;
   /** Maximum variants to show per group */
   limit?: number;
   /** Enable/disable variants section */
@@ -85,10 +83,6 @@ export interface ExamplesConfig {
  * API reference configuration
  */
 export interface ApiConfig {
-  /** Show inherited properties */
-  showInheritance?: boolean;
-  /** Show deprecated properties */
-  showDeprecated?: boolean;
   /** Enable/disable API section */
   enabled?: boolean;
   /** Section order */

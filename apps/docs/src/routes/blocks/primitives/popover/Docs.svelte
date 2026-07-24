@@ -1,31 +1,7 @@
 <script lang="ts">
-  import type { SvelteDocsConfig } from '@urbicon-ui/shared-types';
   import { CodeExample, Section } from '@urbicon-ui/docs';
   import { Popover, Button, Badge } from '@urbicon-ui/blocks';
   import { r } from '$lib/route';
-
-  export const docsConfig: SvelteDocsConfig = {
-    generation: {
-      overview: { enabled: false },
-      playground: {
-        featured: ['placement', 'size', 'offsetDistance', 'syncWidth'],
-        defaults: { placement: 'bottom-start', size: 'md', offsetDistance: 4 },
-        enabled: true,
-        order: 1
-      },
-      variants: { enabled: false },
-      examples: false,
-      api: { showInheritance: true, enabled: true, order: 14 },
-      usage: false
-    },
-    llm: {
-      include: true,
-      maxSections: 8,
-      priority: ['overview', 'examples', 'real-world', 'patterns', 'variants', 'api'],
-      excludeTypes: ['playground']
-    },
-    meta: { title: 'Popover Component', showToc: true }
-  };
 
   let controlledOpen = $state(false);
 </script>

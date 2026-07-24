@@ -1,5 +1,4 @@
 <script lang="ts">
-  import type { SvelteDocsConfig } from '@urbicon-ui/shared-types';
   import { CodeExample, Section } from '@urbicon-ui/docs';
   import ChatComposer from './examples/ChatComposer.svelte';
   import WithAttachments from './examples/WithAttachments.svelte';
@@ -8,29 +7,6 @@
   import chatComposerCode from './examples/ChatComposer.svelte?raw';
   import withAttachmentsCode from './examples/WithAttachments.svelte?raw';
   import withModelSelectCode from './examples/WithModelSelect.svelte?raw';
-
-  export const docsConfig: SvelteDocsConfig = {
-    generation: {
-      overview: { enabled: false },
-      playground: {
-        featured: ['busy', 'allowAttachments', 'submitOn', 'disabled'],
-        defaults: { submitOn: 'enter' },
-        enabled: true,
-        order: 1
-      },
-      variants: { enabled: false },
-      examples: false,
-      api: { showInheritance: true, enabled: true, order: 14 },
-      usage: false
-    },
-    llm: {
-      include: true,
-      maxSections: 8,
-      priority: ['overview', 'examples', 'real-world', 'patterns', 'variants', 'api'],
-      excludeTypes: ['playground']
-    },
-    meta: { title: 'PromptInput Component', showToc: true }
-  };
 </script>
 
 <!-- ─── Examples ─── -->

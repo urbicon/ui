@@ -1,47 +1,7 @@
 <script lang="ts">
-  import type { SvelteDocsConfig } from '@urbicon-ui/shared-types';
   import { CodeExample, Section } from '@urbicon-ui/docs';
   import { Checkbox } from '@urbicon-ui/blocks';
   import { resolve } from '$app/paths';
-
-  export const docsConfig: SvelteDocsConfig = {
-    generation: {
-      overview: { enabled: false },
-      playground: {
-        featured: [
-          'checked',
-          'variant',
-          'intent',
-          'size',
-          'tier',
-          'indeterminate',
-          'disabled',
-          'label',
-          'mint'
-        ],
-        defaults: {
-          checked: false,
-          variant: 'outlined',
-          size: 'md',
-          tier: 'modify',
-          intent: 'primary'
-        },
-        enabled: true,
-        order: 1
-      },
-      variants: { enabled: false },
-      examples: false,
-      api: { showInheritance: true, enabled: true, order: 14 },
-      usage: false
-    },
-    llm: {
-      include: true,
-      maxSections: 8,
-      priority: ['overview', 'examples', 'real-world', 'patterns', 'variants', 'api'],
-      excludeTypes: ['playground']
-    },
-    meta: { title: 'Checkbox Component', showToc: true }
-  };
 </script>
 
 <!-- ─── Examples ─── -->

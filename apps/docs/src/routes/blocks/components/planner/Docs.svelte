@@ -1,43 +1,10 @@
 <script lang="ts">
-  import type { SvelteDocsConfig } from '@urbicon-ui/shared-types';
   import { CodeExample, Section } from '@urbicon-ui/docs';
   import { WeekMealPlan, MonthShiftPlan, CustomStyling } from './examples';
 
   import weekMealPlanCode from './examples/WeekMealPlan.svelte?raw';
   import monthShiftPlanCode from './examples/MonthShiftPlan.svelte?raw';
   import customStylingCode from './examples/CustomStyling.svelte?raw';
-
-  export const docsConfig: SvelteDocsConfig = {
-    generation: {
-      overview: { enabled: false },
-      playground: {
-        featured: [
-          'view',
-          'variant',
-          'size',
-          'showWeekNumber',
-          'highlightToday',
-          'highlightWeekend',
-          'animated',
-          'disabled'
-        ],
-        defaults: { view: 'week', variant: 'default', size: 'md' },
-        enabled: true,
-        order: 1
-      },
-      variants: { enabled: false },
-      examples: false,
-      api: { showInheritance: true, enabled: true, order: 14 },
-      usage: false
-    },
-    llm: {
-      include: true,
-      maxSections: 6,
-      priority: ['overview', 'examples', 'customization', 'accessibility', 'api'],
-      excludeTypes: ['playground']
-    },
-    meta: { title: 'Planner Component', showToc: true }
-  };
 </script>
 
 <!-- ─── Examples ─── -->

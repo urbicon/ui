@@ -1,33 +1,9 @@
 <script lang="ts">
-  import type { SvelteDocsConfig } from '@urbicon-ui/shared-types';
   import { CodeExample, Section } from '@urbicon-ui/docs';
   import { SplitPane, Badge, FileIcon, FolderOpenIcon, SparklesIcon } from '@urbicon-ui/blocks';
   import { resolve } from '$app/paths';
 
   let sidebarCollapsed = $state(false);
-
-  export const docsConfig: SvelteDocsConfig = {
-    generation: {
-      overview: { enabled: false },
-      playground: {
-        featured: ['orientation', 'collapsible', 'disabled'],
-        defaults: { orientation: 'horizontal' },
-        enabled: true,
-        order: 1
-      },
-      variants: { enabled: false },
-      examples: false,
-      api: { showInheritance: true, enabled: true, order: 14 },
-      usage: false
-    },
-    llm: {
-      include: true,
-      maxSections: 8,
-      priority: ['overview', 'examples', 'real-world', 'patterns', 'variants', 'api'],
-      excludeTypes: ['playground']
-    },
-    meta: { title: 'SplitPane Component', showToc: true }
-  };
 </script>
 
 <!-- ─── Examples ─── -->

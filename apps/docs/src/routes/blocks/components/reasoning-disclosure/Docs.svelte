@@ -1,5 +1,4 @@
 <script lang="ts">
-  import type { SvelteDocsConfig } from '@urbicon-ui/shared-types';
   import { CodeExample, Section } from '@urbicon-ui/docs';
   import Settled from './examples/Settled.svelte';
   import StreamingSim from './examples/StreamingSim.svelte';
@@ -8,24 +7,6 @@
   import settledCode from './examples/Settled.svelte?raw';
   import streamingSimCode from './examples/StreamingSim.svelte?raw';
   import localizedCode from './examples/Localized.svelte?raw';
-
-  export const docsConfig: SvelteDocsConfig = {
-    generation: {
-      overview: { enabled: false },
-      playground: { enabled: true, order: 1 },
-      variants: { enabled: false },
-      examples: false,
-      api: { showInheritance: true, enabled: true, order: 14 },
-      usage: false
-    },
-    llm: {
-      include: true,
-      maxSections: 8,
-      priority: ['overview', 'examples', 'real-world', 'patterns', 'api'],
-      excludeTypes: ['playground']
-    },
-    meta: { title: 'ReasoningDisclosure Component', showToc: true }
-  };
 </script>
 
 <Section marker="01" id="examples" title="Examples">

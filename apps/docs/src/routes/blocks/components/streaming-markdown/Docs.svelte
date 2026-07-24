@@ -1,5 +1,4 @@
 <script lang="ts">
-  import type { SvelteDocsConfig } from '@urbicon-ui/shared-types';
   import { CodeExample, Section } from '@urbicon-ui/docs';
   import { StaticMarkdown, WithCitations, UrlPolicy, CustomRenderer } from './examples';
 
@@ -7,29 +6,6 @@
   import withCitationsCode from './examples/WithCitations.svelte?raw';
   import urlPolicyCode from './examples/UrlPolicy.svelte?raw';
   import customRendererCode from './examples/CustomRenderer.svelte?raw';
-
-  export const docsConfig: SvelteDocsConfig = {
-    generation: {
-      overview: { enabled: false },
-      playground: {
-        featured: ['size', 'streaming'],
-        defaults: { size: 'md', streaming: true },
-        enabled: true,
-        order: 1
-      },
-      variants: { enabled: false },
-      examples: false,
-      api: { showInheritance: true, enabled: true, order: 14 },
-      usage: false
-    },
-    llm: {
-      include: true,
-      maxSections: 8,
-      priority: ['overview', 'examples', 'real-world', 'patterns', 'api'],
-      excludeTypes: ['playground']
-    },
-    meta: { title: 'StreamingMarkdown Component', showToc: true }
-  };
 </script>
 
 <Section marker="01" id="examples" title="Examples">

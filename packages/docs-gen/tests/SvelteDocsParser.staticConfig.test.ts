@@ -41,7 +41,7 @@ describe('parseDocsConfigFromSvelte — valid configs', () => {
         generation: {
           playground: { featured: ['size', 'intent'], enabled: true, order: 1 },
           examples: false,
-          api: { showInheritance: true, order: 14 }
+          api: { enabled: true, order: 14 }
         },
         llm: { include: true, maxSections: 8, priority: ['overview', 'api'] },
         meta: { title: 'Drawer Component', showToc: true }
@@ -53,7 +53,7 @@ describe('parseDocsConfigFromSvelte — valid configs', () => {
       generation: {
         playground: { featured: ['size', 'intent'], enabled: true, order: 1 },
         examples: false,
-        api: { showInheritance: true, order: 14 }
+        api: { enabled: true, order: 14 }
       },
       llm: { include: true, maxSections: 8, priority: ['overview', 'api'] },
       meta: { title: 'Drawer Component', showToc: true }

@@ -1,20 +1,6 @@
 <script lang="ts">
-  import type { SvelteDocsConfig } from '@urbicon-ui/shared-types';
   import { CodeExample, Section, PlaygroundConfigurator, InfoCard } from '@urbicon-ui/docs';
   import { Badge, Button, CloseIcon, Input } from '@urbicon-ui/blocks';
-
-  export const docsConfig: SvelteDocsConfig = {
-    generation: {
-      overview: { enabled: true },
-      playground: { enabled: false },
-      variants: { enabled: false },
-      examples: { enabled: true, order: 2 },
-      api: { enabled: true, order: 9, showInheritance: true },
-      usage: false
-    },
-    llm: { include: true, maxSections: 5, priority: ['overview', 'api'] },
-    meta: { title: 'PlaygroundConfigurator Component', showToc: true }
-  };
 
   const buttonCode = (v: Record<string, unknown>) =>
     `<Button variant="${v.variant}" intent="${v.intent}" size="${v.size}"${v.disabled ? ' disabled' : ''}>${v.label}</Button>`;

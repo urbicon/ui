@@ -23,7 +23,7 @@ Each subpath is consumable on its own so consumers pull in only what they need:
 | `.` | Barrel — re-exports everything below except `documentation-core` and `globals`. Includes the component model: `ComponentInfo`, `ComponentStats`, `PropInfo`, `PropSource`, `PropExample`, `VariantInfo`, `VariantExample`, `InheritanceInfo`, `CrossReference`, `PackageInfo` |
 | `./documentation` | `ComponentMetadata`, `DeprecationInfo`, `ComponentBadge`, `SectionOrder`, `LLMConfig` |
 | `./docs-config` | `SvelteDocsConfig`, `DocsPlaygroundConfig`, `VariantsConfig`, `ExamplesConfig`, `ApiConfig`, `OverviewConfig`, `UsageConfig`, `DocsMetadata` |
-| `./documentation-core` | `DocumentationSection`, `SectionContent`, `ComponentDocumentation`, `DocumentationMetadata` and the section-structure config types |
+| `./documentation-core` | `ComponentDocumentation`, `ComponentDocumentationFiles`, `DocumentationMetadata`, `LLMSettings` and the section-structure config types (`AutoSectionsConfig`, `CustomSection`, `SectionStructure`, `ParentSectionConfig`) |
 | `./examples` | `ComponentExample`, `UsagePattern`, `ExampleCollection`, `ExampleGroup` |
 | `./playground` | `PlaygroundConfig`, `ControlDefinition`, `ControlType`, `ControlOption`, `ControlCondition`, `CodeGenerator`, `CodeGeneratorConfig`, `ImportStatement`, `PlaygroundExample`, `PlaygroundMetadata`, `PlaygroundFeature` |
 | `./navigation` | `NavigationItem`, `NavigationMetadata`, `NavigationState`, `NavigationBadge`, `TableOfContents`, `TOCItem`, `TOCSettings`, `Breadcrumb`, `BreadcrumbItem`, `BreadcrumbSettings`, `SiteNavigation`, `NavigationContext`, `NavigationSearchResult`, `SearchMatch` |

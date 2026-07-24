@@ -1,20 +1,6 @@
 <script lang="ts">
-  import type { SvelteDocsConfig } from '@urbicon-ui/shared-types';
   import { CodeExample, Section, InfoCard, TypesReference } from '@urbicon-ui/docs';
   import type { LocalTypeDef } from '@urbicon-ui/docs';
-
-  export const docsConfig: SvelteDocsConfig = {
-    generation: {
-      overview: { enabled: true },
-      playground: { enabled: false },
-      variants: { enabled: false },
-      examples: { enabled: true, order: 2 },
-      api: { enabled: true, order: 9, showInheritance: true },
-      usage: false
-    },
-    llm: { include: true, maxSections: 5, priority: ['overview', 'api'] },
-    meta: { title: 'TypesReference Component', showToc: true }
-  };
 
   const sampleTypes: LocalTypeDef[] = [
     {

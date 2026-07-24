@@ -323,11 +323,4 @@ export class PipelineOrchestrator {
   getConfig(): GeneratorConfig {
     return this.config;
   }
-
-  /**
-   * Update configuration (useful for watch mode)
-   */
-  updateConfig(newConfig: GeneratorConfig): void {
-    this.config = newConfig;
-  }
 }

@@ -13,8 +13,6 @@ export interface GeneratorConfig {
   processing: ProcessingConfig;
   /** LLM + API artifact targets. */
   output: OutputConfig;
-  /** File-watch settings. Reserved: the CLI ships no watch loop yet; the coordinators expose `updateConfig` for one. */
-  watch?: WatchConfig;
   /** Debug verbosity and reporting; `level` also feeds the pipeline's ErrorHandler. */
   debug?: DebugConfig;
 }
@@ -51,10 +49,6 @@ export interface PackageConfig {
   include?: string[];
   /** Glob patterns passed to discovery as `ignore` (e.g. a fixtures directory). */
   exclude?: string[];
-  /** Declared ordering weight between packages. Not consumed by the current pipeline. */
-  priority?: number;
-  /** Display metadata for the package. Not consumed by the current pipeline. */
-  metadata?: PackageMetadata;
 }
 
 /**
@@ -71,23 +65,6 @@ export interface GlobConfig {
   documentation?: string;
   /** Pattern for test files. */
   tests?: string;
-}
-
-/**
- * Human-facing package metadata (labels, links, tags). Declared for
- * completeness; not consumed by the current pipeline.
- */
-export interface PackageMetadata {
-  /** Human-readable package label. */
-  displayName?: string;
-  /** Short package description. */
-  description?: string;
-  /** Homepage URL. */
-  homepage?: string;
-  /** Repository URL. */
-  repository?: string;
-  /** Free-form classification tags. */
-  tags?: string[];
 }
 
 /**
@@ -122,21 +99,15 @@ export interface MigrationConfig {
 }
 
 /**
- * TypeScript project context for a package. The load-bearing field is
- * `configPath`: authored by every `ConfigurationFactory` preset, threaded by
- * `ExtractionCoordinator` (constructor and `updateConfig` alike) into the
+ * TypeScript project context for a package. Its single field, `configPath`,
+ * is load-bearing: authored by every `ConfigurationFactory` preset, threaded
+ * by `ExtractionCoordinator` (constructor and `updateConfig` alike) into the
  * extractors, where it backs the shared `ts.Program` for cross-file type
  * resolution. A configured-but-broken path aborts the run eagerly.
  */
 export interface TypeScriptConfig {
   /** Path to the package `tsconfig.json` (absolute, or relative to the docs-gen CWD). */
   configPath?: string;
-  /** Compiler-option overrides. Not consumed by the current pipeline (the program is built from `configPath`). */
-  compilerOptions?: Record<string, unknown>;
-  /** File allowlist for the program. Not consumed by the current pipeline. */
-  include?: string[];
-  /** File blocklist for the program. Not consumed by the current pipeline. */
-  exclude?: string[];
 }
 
 /**
@@ -303,21 +274,6 @@ export interface CrossReferenceConfig {
   enabled: boolean;
   /** Also link types from external packages. */
   includeExternal: boolean;
-  /** Curated external types with fixed documentation URLs. */
-  knownTypes?: KnownTypeConfig[];
-}
-
-/**
- * A curated external type with a fixed documentation URL, used to link prop
- * types that resolve outside the scanned packages.
- */
-export interface KnownTypeConfig {
-  /** Type name as referenced in prop signatures. */
-  name: string;
-  /** Package that declares the type. */
-  package: string;
-  /** Documentation URL for the type. */
-  url?: string;
 }
 
 /**
@@ -375,8 +331,6 @@ export interface ParallelConfig {
   enabled: boolean;
   /** Components per batch. The coordinator falls back to `4` when unset. */
   maxConcurrency?: number;
-  /** Batching strategy. Not consumed by the current coordinator (always per-component batches). */
-  strategy?: 'package' | 'component' | 'auto';
 }
 
 /**
@@ -388,8 +342,6 @@ export interface OutputConfig {
   llm: LLMOutputConfig;
   /** API data output (per-component `api.ts` or a single aggregate file). */
   api: APIOutputConfig;
-  /** Cross-cutting output behaviour (clean, overwrite, backups). */
-  shared?: SharedOutputConfig;
 }
 
 /**
@@ -408,8 +360,6 @@ export interface LLMOutputConfig {
   format: LLMFormat;
   /** Guide documents copied into the output directory and indexed in the per-scope `llms.txt`. Directory mode only. */
   guides?: LLMGuideConfig[];
-  /** Component/example limits for the aggregate document. Not consumed by the current generator. */
-  filtering?: LLMFilterConfig;
   /** Token-budget optimisations. Not consumed by the current generator. */
   optimization?: LLMOptimizationConfig;
 }
@@ -439,22 +389,6 @@ export interface LLMGuideConfig {
 export type LLMFormat = 'markdown' | 'text' | 'json';
 
 /**
- * Size limits for aggregate LLM output. Declared for the output contract;
- * not consumed by the current generator (per-component docs.svelte `llm`
- * settings control inclusion instead).
- */
-export interface LLMFilterConfig {
-  /** Cap on the number of components included. */
-  maxComponents?: number;
-  /** Cap on examples emitted per component. */
-  maxExamplesPerComponent?: number;
-  /** Restrict output to these tier levels. */
-  includeTiers?: number[];
-  /** Drop components marked experimental. */
-  excludeExperimental?: boolean;
-}
-
-/**
  * Token-budget optimisations for aggregate LLM output. Declared for the
  * output contract; not consumed by the current generator.
  */
@@ -481,8 +415,6 @@ export interface APIOutputConfig {
   outputPath: string;
   /** Emission format. Directory mode always emits TypeScript. */
   format: APIFormat;
-  /** Data-inclusion switches. Not consumed by the current generator. */
-  inclusion?: APIInclusionConfig;
   /** Output-size options; only `minify` is honoured (JSON format). */
   optimization?: APIOptimizationConfig;
 }
@@ -492,21 +424,6 @@ export interface APIOutputConfig {
  * `yaml` (aggregate single-file mode only).
  */
 export type APIFormat = 'typescript' | 'json' | 'yaml';
-
-/**
- * Switches for which prop data lands in the API artifact. Declared for the
- * output contract; the current generator always emits everything it has.
- */
-export interface APIInclusionConfig {
-  /** Emit per-prop usage examples. */
-  includeExamples: boolean;
-  /** Emit inherited props (heritage clauses). */
-  includeInherited: boolean;
-  /** Emit props marked experimental. */
-  includeExperimental: boolean;
-  /** Emit per-component stats. */
-  includeStats: boolean;
-}
 
 /**
  * API artifact size/layout options. `minify` collapses JSON output to a
@@ -524,77 +441,6 @@ export interface APIOptimizationConfig {
 }
 
 /**
- * Cross-cutting output behaviour shared by all generators. Currently
- * declarative — the generators clean/create their own directories (e.g. the
- * LLM directory mode always wipes its tree to prevent stale files).
- */
-export interface SharedOutputConfig {
-  /** Remove previous output before generating. */
-  clean: boolean;
-  /** Create missing output directories. */
-  createDirectories: boolean;
-  /** Overwrite existing files. */
-  overwrite: boolean;
-  /** Backup behaviour for replaced files. */
-  backup?: BackupConfig;
-}
-
-/**
- * Backup behaviour for replaced output files. Declared for the output
- * contract; `APIFileGenerator.createBackup()` exists but is caller-driven,
- * not gated on this config.
- */
-export interface BackupConfig {
-  /** Master switch for backups. */
-  enabled: boolean;
-  /** Directory backups are written to; next to the original when unset. */
-  directory?: string;
-  /** How many timestamped backups to retain. */
-  keepCount?: number;
-  /** Append a timestamp to backup filenames. */
-  timestamp?: boolean;
-}
-
-/**
- * File-watch settings for incremental regeneration. Reserved: the CLI ships
- * no watch loop yet — `PipelineOrchestrator.updateConfig` /
- * `ExtractionCoordinator.updateConfig` are the surfaces a future loop would
- * drive (the latter re-threads and re-validates the tsconfig path).
- */
-export interface WatchConfig {
-  /** Master switch for watch mode. */
-  enabled: boolean;
-  /** Rebuild debounce in milliseconds; the builder defaults to `1000`. */
-  debounce: number;
-  /** Paths/globs to watch. */
-  include?: string[];
-  /** Paths/globs to ignore. */
-  exclude?: string[];
-  /** Filesystem events that trigger a rebuild; the builder defaults to add/change/unlink. */
-  events?: WatchEvent[];
-  /** Lifecycle hooks around rebuilds. */
-  hooks?: WatchHooks;
-}
-
-/**
- * Filesystem events a watch loop can react to (chokidar-style event names).
- */
-export type WatchEvent = 'add' | 'change' | 'unlink' | 'addDir' | 'unlinkDir';
-
-/**
- * Watch-lifecycle hooks, each a path to a module exporting the hook
- * function. Reserved alongside `WatchConfig`.
- */
-export interface WatchHooks {
-  /** Runs before a rebuild starts. */
-  beforeRebuild?: string;
-  /** Runs after a rebuild completes. */
-  afterRebuild?: string;
-  /** Runs when a rebuild fails. */
-  onError?: string;
-}
-
-/**
  * Debug/reporting settings. `enabled` gates the full error report on
  * partially-failed runs; `level` seeds the pipeline ErrorHandler's log level.
  */
@@ -605,8 +451,6 @@ export interface DebugConfig {
   level: DebugLevel;
   /** Where debug output goes. Not consumed by the current pipeline (console only). */
   output?: DebugOutputConfig;
-  /** Performance profiling. Not consumed by the current pipeline. */
-  profiling?: ProfilingConfig;
 }
 
 /**
@@ -625,21 +469,6 @@ export interface DebugOutputConfig {
   file?: string;
   /** Emit structured (JSON) records instead of formatted text. */
   structured?: boolean;
-}
-
-/**
- * Profiling settings for pipeline performance analysis. Declared extension
- * point; not consumed by the current pipeline.
- */
-export interface ProfilingConfig {
-  /** Master switch for profiling. */
-  enabled: boolean;
-  /** Where profile data is written. */
-  outputPath?: string;
-  /** Include memory usage samples. */
-  includeMemory?: boolean;
-  /** Sampling rate for profile events. */
-  sampleRate?: number;
 }
 
 // ==========================================
@@ -670,7 +499,7 @@ export interface GeneratorConfigBuilder {
   /** Override validation settings (merged over the defaults). */
   setValidation(config: ValidationConfig): GeneratorConfigBuilder;
 
-  /** Turn on batched parallel extraction (default concurrency 4, strategy `auto`). */
+  /** Turn on batched parallel extraction (default concurrency 4). */
   enableParallel(config?: ParallelConfig): GeneratorConfigBuilder;
 
   /** Configure the LLM output target (merged over the defaults). */
@@ -678,9 +507,6 @@ export interface GeneratorConfigBuilder {
 
   /** Configure the API output target (merged over the defaults). */
   setAPIOutput(config: APIOutputConfig): GeneratorConfigBuilder;
-
-  /** Turn on watch settings (reserved — see `WatchConfig`). */
-  enableWatch(config?: WatchConfig): GeneratorConfigBuilder;
 
   /** Turn on debug reporting at `info` level (or as overridden). */
   enableDebug(config?: DebugConfig): GeneratorConfigBuilder;

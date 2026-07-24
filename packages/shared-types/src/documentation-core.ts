@@ -5,107 +5,6 @@ import type { NavigationItem } from './navigation.js';
 import type { PlaygroundConfig } from './playground.js';
 
 /**
- * Documentation section for generation pipeline
- * Used for rendering and processing documentation sections
- */
-export interface DocumentationSection {
-  /** Unique section ID */
-  id: string;
-  /** Section title */
-  title: string;
-  /** Section type - primary categorization */
-  type: SectionType;
-  /** Display order */
-  order: number;
-  /** Section content */
-  content: SectionContent;
-}
-
-/**
- * Available section types
- */
-export type SectionType =
-  | 'overview'
-  | 'playground'
-  | 'examples'
-  | 'variants'
-  | 'api'
-  | 'types'
-  | 'accessibility'
-  | 'custom'
-  | 'text';
-
-/**
- * Union type for different section content types
- * Content type is inferred from DocumentationSection.type
- */
-export type SectionContent =
-  | ExampleContent
-  | PlaygroundContent
-  | TextContent
-  | ApiContent
-  | VariantsContent
-  | CustomContent;
-
-/**
- * Example section content
- */
-export interface ExampleContent {
-  examples: ComponentExample[];
-  showCategories?: boolean;
-  groupByCategory?: boolean;
-}
-
-/**
- * Playground section content
- */
-export interface PlaygroundContent {
-  config: PlaygroundConfig;
-  showCodePreview?: boolean;
-  showInlineControls?: boolean;
-}
-
-/**
- * Text/markdown section content
- */
-export interface TextContent {
-  content: string;
-  format?: 'markdown' | 'html' | 'plain';
-  variables?: Record<string, unknown>;
-}
-
-/**
- * API reference section content. `props` is typed as `unknown[]` because
- * this base type ships without a runtime dependency on docs-gen's PropInfo.
- */
-export interface ApiContent {
-  props: unknown[];
-  showInherited?: boolean;
-  groupByCategory?: boolean;
-  showExamples?: boolean;
-}
-
-/**
- * Variants showcase section content. `variants` is typed as `unknown[]`
- * because this base type ships without a runtime dependency on docs-gen's
- * VariantInfo.
- */
-export interface VariantsContent {
-  variants: unknown[];
-  showExamples?: boolean;
-  showCombinations?: boolean;
-}
-
-/**
- * Custom section content
- */
-export interface CustomContent {
-  content: string;
-  template?: string;
-  variables?: Record<string, unknown>;
-}
-
-/**
  * Complete component documentation structure.
  * Either auto-generated or manually created.
  */
@@ -137,9 +36,6 @@ export interface ComponentDocumentation {
 
   /** Documentation metadata */
   metadata?: DocumentationMetadata;
-
-  /** Documentation sections (for docs-gen compatibility) */
-  sections?: DocumentationSection[];
 }
 
 /**
