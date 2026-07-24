@@ -460,6 +460,7 @@
             ? `${label} minimum`
             : bt('accessibility.minimum') || 'Minimum'}
         aria-describedby={describedBy}
+        aria-invalid={error ? 'true' : undefined}
         aria-disabled={disabled || undefined}
         class={unstyled ? (slotClasses?.thumb ?? '') : styles.thumb({ class: slotClasses?.thumb })}
         style="left: {thumbStartPosition}%"
@@ -479,6 +480,7 @@
             ? `${label} maximum`
             : bt('accessibility.maximum') || 'Maximum'}
         aria-describedby={describedBy}
+        aria-invalid={error ? 'true' : undefined}
         aria-disabled={disabled || undefined}
         class={unstyled ? (slotClasses?.thumb ?? '') : styles.thumb({ class: slotClasses?.thumb })}
         style="left: {thumbEndPosition}%"
@@ -495,6 +497,7 @@
         aria-labelledby={ariaLabelledby}
         aria-label={ariaLabelledby ? undefined : label || bt('accessibility.slider') || 'Slider'}
         aria-describedby={describedBy}
+        aria-invalid={error ? 'true' : undefined}
         aria-disabled={disabled || undefined}
         class={unstyled ? (slotClasses?.thumb ?? '') : styles.thumb({ class: slotClasses?.thumb })}
         style="left: {thumbPosition}%"

@@ -1,3 +1,4 @@
+import { fieldErrorFrame } from '$lib/internal/field-chrome';
 import { type SlotNames, tv, type VariantProps } from '$lib/utils/variants';
 
 export const textareaVariants = tv({
@@ -113,7 +114,7 @@ export const textareaVariants = tv({
     // (it used to hinge purely on `error` being DECLARED after `intent`).
     {
       error: true,
-      class: { base: 'border-danger focus-visible:border-danger focus-visible:ring-danger/20' }
+      class: { base: fieldErrorFrame('focus-visible') }
     },
     {
       variant: 'ghost',

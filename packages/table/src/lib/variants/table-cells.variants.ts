@@ -596,7 +596,9 @@ export type CopyButtonVariantProps = VariantProps<typeof copyButtonVariants>;
 export const customCellVariants = tv({
   slots: {
     container: [
-      'h-full w-full flex items-center transition-colors',
+      // `translate`: the interactive container lifts on hover
+      // (`hover:-translate-y-0.5`), a discrete property colours-only cannot animate.
+      'h-full w-full flex items-center transition-[color,background-color,translate]',
       'px-3 py-2 text-sm leading-normal text-text-primary'
     ],
     content: ['flex items-center min-w-0 gap-2 h-full w-full'],

@@ -317,7 +317,10 @@
     size,
     open,
     disabled,
-    error: ff.invalid
+    // `|| undefined` rather than a plain `false`, matching Input: these props
+    // are also matched against `BlocksProvider` `overrides`, where an entry
+    // keyed `{ error: false }` must not fire on a valid field.
+    error: ff.invalid || undefined
   });
   const styles = $derived(comboboxVariants(variantProps));
 

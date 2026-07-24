@@ -27,12 +27,12 @@ Controls the semantic color of a component. Use when a component needs to commun
 
 | Palette | Values | Components |
 | --- | --- | --- |
-| Standard | `primary` `secondary` `success` `warning` `danger` `neutral` | Button, Badge, Avatar, Checkbox, Toggle, RadioGroup, Slider, Progress, Dialog, Drawer, Tooltip, ButtonGroup, Pagination, Menu, ConfirmDialog, CompositionBar, Sankey |
+| Standard | `primary` `secondary` `success` `warning` `danger` `neutral` | Button, Badge, Avatar, Checkbox, Toggle, RadioGroup, Slider, Progress, Dialog, Drawer, Tooltip, ButtonGroup, Pagination, Menu, ConfirmDialog, CopyButton, CompositionBar, Sankey |
 | Feedback (`+info`, `−secondary`) | `primary` `info` `success` `warning` `danger` `neutral` | Alert, Toast |
 | Form field tone | `default` `success` `warning` `danger` | Input, Textarea, PinInput, TimeInput (and CurrencyInput/NumberInput by inheritance) |
 | Component-specific | see the component | Spinner (`+current`, follows `currentColor`), FileUpload (`primary`/`neutral` only) |
 
-Components with **no** intent axis: Select, Combobox, FormField, SegmentGroup, Accordion, Card, Popover, Tab, Stepper — they carry no colour category of their own.
+Components with **no** intent axis: Select, Combobox, DatePicker, FormField, SegmentGroup, Accordion, Card, Popover, Tab, Stepper — they carry no colour category of their own. (The first four still take `error`/`helper`; see §Form validation.)
 
 ### `variant` (Visual Style)
 
@@ -106,13 +106,13 @@ Three props, three jobs — they do not overlap, and their precedence is a rule,
 | `helper` | `string` | Guidance while the field is valid. **Displaced** by `error` — they never render together. |
 | `intent` | `default \| success \| warning \| danger` | The *tone* of the frame while the field is valid: a positive confirmation, a soft warning. Only on the input-shaped fields (Input, Textarea, PinInput, TimeInput); Select and Combobox have no intent axis. |
 
-**`error` beats `intent`, structurally.** Both paint the same buckets (border colour, focused border + ring), so only one can win. The error frame is therefore emitted from the **compound stage** of the `tv()` config, which the engine folds after every axis — not from the `error` axis, whose win would depend on being declared after `intent`. Reordering axes, or slipping a new one in between, can no longer turn validation feedback back into a green frame. `internal/field-chrome.ts` carries the contract; a component adding an `intent` axis later must move its error frame into a compound at the same time.
+**`error` beats `intent`, structurally.** Both paint the same buckets (border colour, focused border + ring), so only one can win. Wherever a field has *both* axes — Input, Textarea, PinInput, TimeInput — the error frame is emitted from the **compound stage** of the `tv()` config, which the engine folds after every axis, not from the `error` axis, whose win would depend on being declared after `intent`. Reordering axes, or slipping a new one in between, can no longer turn validation feedback back into a green frame. Fields without an intent axis (Select, Combobox) keep the frame on the `error` axis, where nothing competes for the bucket — with a comment requiring the move if an intent axis is ever added. `internal/field-chrome.ts` carries the contract.
 
-**Do not** introduce a second way to say "invalid": no `invalid` boolean next to `error`, no `status` prop, no intent value that means failure on its own. A field is invalid exactly when it has an `error` string.
+**Do not** introduce a second *public* way to say "invalid" on a field: no `invalid` boolean beside `error`, no validation-`status` prop, no intent value that means failure on its own. A field is invalid exactly when it has an `error` string. (Internal tv() flags of the same name are fine — they are what the string feeds; and `status` is a legitimate prop name elsewhere, e.g. Avatar's presence dot or a table cell's state.)
 
-**Every field frame comes from `internal/field-chrome.ts`** (`fieldErrorFrame`, `fieldIntentFrames`, `fieldFocusRing`, `FIELD_MESSAGE_TONES`, …). Hand-inlining the same strings is how the family drifted apart before — Select's error frame and Combobox's message tones were re-derived by hand, and Combobox had no visual error state at all until v6.42.
+**Field frames come from `internal/field-chrome.ts`** (`fieldErrorFrame`, `fieldIntentFrames`, `fieldFocusRing`, `FIELD_MESSAGE_TONES`, …) — Input, Textarea, Select, Combobox, PinInput and TimeInput all consume it. Hand-inlining the same strings is how the family drifted apart before: Select's error frame and Combobox's message tones had been re-derived by hand, and Combobox had no visual error state at all until v6.42.
 
-**Non-field controls** (Checkbox, RadioGroup, Toggle, Slider) take `error` as a message too, but tint only the message, not a frame — they have no frame to tint. Their `intent` is the standard six-value palette (the control's colour), not a validation tone.
+**Non-field controls** (Checkbox, RadioGroup, Toggle, Slider) take `error` as a message too, but tint only the message, not a frame — they have no frame to tint. Their `intent` is the standard six-value palette (the control's colour), not a validation tone. `aria-invalid` and the `role="alert"` message still follow `error`, exactly as on the fields.
 
 ## Discriminated unions for mutually exclusive props
 

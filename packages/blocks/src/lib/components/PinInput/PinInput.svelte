@@ -261,6 +261,7 @@
     role="group"
     aria-labelledby={label ? labelId : undefined}
     aria-label={label ? undefined : ariaLabel}
+    aria-disabled={disabled ? 'true' : undefined}
     class={unstyled ? (slotClasses?.group ?? '') : styles.group({ class: slotClasses?.group })}
   >
     {#each cellKeys as key, i (key)}

@@ -317,14 +317,44 @@ function transformPropertyOf(utility: string): string | null {
   return null;
 }
 
-/** Properties declared by an arbitrary `transition-[a,b]` list (null if not one). */
+/**
+ * Named shorthands that declare a CLOSED property list. `transition-transform`
+ * (transform + translate + scale + rotate), `transition` and `transition-all`
+ * cover the discrete transform properties and are therefore absent here — they
+ * can never be incomplete. The three below cannot animate a transform, so a
+ * `scale-*`/`translate-*`/`rotate-*` next to them snaps just as it does next to
+ * an arbitrary list that forgot the property. Values verified against the
+ * installed Tailwind's compiled output.
+ */
+const TRANSITION_SHORTHANDS: Record<string, string[]> = {
+  'transition-colors': [
+    'color',
+    'background-color',
+    'border-color',
+    'outline-color',
+    'text-decoration-color',
+    'fill',
+    'stroke'
+  ],
+  'transition-opacity': ['opacity'],
+  'transition-shadow': ['box-shadow']
+};
+
+/** Properties declared by a `transition-[a,b]` list or a closed-list shorthand (null if neither). */
 function transitionListProperties(utility: string): Set<string> | null {
-  const m = /^transition-\[(.+)\]$/.exec(bareUtility(utility));
+  const bare = bareUtility(utility);
+
+  const shorthand = TRANSITION_SHORTHANDS[bare];
+  if (shorthand) return new Set(shorthand);
+
+  const m = /^transition-\[(.+)\]$/.exec(bare);
   if (m == null) return null;
   return new Set(
     m[1]
+      // `_` is Tailwind's space escape — expand it BEFORE trimming, or
+      // `transition-[opacity,_scale]` parses as ' scale' and never matches.
       .split(',')
-      .map((p) => p.trim().replaceAll('_', ' '))
+      .map((p) => p.replaceAll('_', ' ').trim())
       .filter(Boolean)
   );
 }

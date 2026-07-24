@@ -2,7 +2,7 @@
   // Visual-regression fixture: thirteen core form/display components rendered in static, deterministic
   // states (no interaction, no open overlays), each in its own `data-testid="vr-<name>"`
   // section so e2e/visual-regression.spec.ts can snapshot them one at a time across
-  // light/dark × library/editorial. Props are static — no time, no randomness, no
+  // light/dark × library/rooms (the docs skin — the spec's third axis is named `rooms`). Props are static — no time, no randomness, no
   // image loads (Avatar uses initials via `name`), Progress always carries a `value`
   // (an omitted value is indeterminate/animated). Prop names verified against source:
   // Progress uses `shape`, Avatar `variant` is a shape, Card has `padding` not `size`
@@ -213,11 +213,11 @@
     <section data-testid="vr-pin-input" class="space-y-3">
       <h2 class="text-text-primary text-lg font-semibold">PinInput</h2>
       <div class="flex flex-col gap-4">
-        <PinInput label="Code" value="1234" />
+        <PinInput label="Code" value="123456" />
         <PinInput label="Grouped" value="12345678" length={8} separator="-" groupSize={4} />
-        <PinInput label="Masked" value="4321" mask />
-        <PinInput label="Invalid" value="0000" error="That code has expired" />
-        <PinInput label="Locked" value="1234" disabled />
+        <PinInput label="Masked" value="432109" mask />
+        <PinInput label="Invalid" value="000000" error="That code has expired" />
+        <PinInput label="Locked" value="123456" disabled />
       </div>
     </section>
 
@@ -228,7 +228,7 @@
       <div class="grid grid-cols-2 gap-4">
         <TimeInput label="Start" value="09:30" />
         <TimeInput label="End (12h)" value="17:45" format="12h" />
-        <TimeInput label="Precise" value="08:15:30" seconds />
+        <TimeInput label="Precise" value="08:15:30" withSeconds />
         <TimeInput label="Invalid" value="23:59" error="Outside opening hours" />
         <TimeInput label="Locked" value="12:00" disabled />
       </div>

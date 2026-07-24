@@ -180,7 +180,9 @@ export const tableRowVariants = tv({
     row: [
       'border-b border-border-hairline',
       'last:border-b-0',
-      'transition-colors duration-[var(--blocks-duration-fast)]'
+      // `scale`: the interactive row adds `active:scale-[0.995]`, a discrete
+      // property `transition-colors` cannot animate.
+      'transition-[color,background-color,border-color,scale] duration-[var(--blocks-duration-fast)]'
     ],
     cell: ['text-text-primary', 'transition-colors duration-[var(--blocks-duration-fast)]']
   },
