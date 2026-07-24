@@ -46,8 +46,8 @@ test.describe('Floating positioning – Visual Regression', () => {
   // the old baselines passed for months. The assertion is also the only half
   // of these tests that will run in Linux CI, where no baselines exist.
 
-  /** Waits until `floating` has settled below `anchor`, then returns both boxes. */
-  async function expectOpensBelow(page: Page, anchor: Locator, floating: Locator) {
+  /** Waits until `floating` has settled below `anchor`. */
+  async function expectOpensBelow(anchor: Locator, floating: Locator) {
     await expect
       .poll(
         async () => {
@@ -71,11 +71,7 @@ test.describe('Floating positioning – Visual Regression', () => {
     const section = page.getByTestId('menu-section');
     await section.evaluate((el) => el.scrollIntoView({ block: 'center' }));
 
-    await expectOpensBelow(
-      page,
-      page.getByRole('button', { name: 'Actions' }),
-      page.getByRole('menu')
-    );
+    await expectOpensBelow(page.getByRole('button', { name: 'Actions' }), page.getByRole('menu'));
     await expect(section).toHaveScreenshot('menu-open.png');
   });
 
@@ -87,7 +83,7 @@ test.describe('Floating positioning – Visual Regression', () => {
     const section = page.getByTestId('combobox-section');
     await section.evaluate((el) => el.scrollIntoView({ block: 'center' }));
 
-    await expectOpensBelow(page, page.getByPlaceholder('Search fruits'), page.getByRole('listbox'));
+    await expectOpensBelow(page.getByPlaceholder('Search fruits'), page.getByRole('listbox'));
     await expect(section).toHaveScreenshot('combobox-open.png');
   });
 
