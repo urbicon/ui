@@ -1,0 +1,18 @@
+{
+  "$comment": [
+    "Allow-list for the dark-mode axe pass in e2e/a11y-dark.spec.ts.",
+    "",
+    "Same ratchet contract as a11y-baseline.json: every entry names one axe rule,",
+    "the pass ('dark') and the fixture-section slugs it applies to, plus a",
+    "node-level predicate (contrast or htmlIncludes). A violation is suppressed",
+    "only when EVERY one of its nodes matches an exception; an exception with no",
+    "predicate is rejected at load time.",
+    "",
+    "This gate scans the LIBRARY fixture (test-fixtures/primitives, Rooms skin",
+    "removed) in dark mode. After W1 (text-on-primary + warning made mode-aware)",
+    "the library clears AA in dark mode, so this list is empty — the gate is a",
+    "regression guard, not a deferral ledger. Add an entry only for a deliberate,",
+    "documented dark-mode deferral."
+  ],
+  "exceptions": []
+}

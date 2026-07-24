@@ -116,6 +116,7 @@
             options={demoOptions}
             size={values.size}
             tier={values.tier}
+            aria-label="Country"
             placeholder={values.placeholder || undefined}
             noResultsText={values.noResultsText || undefined}
             clearable={values.clearable}
