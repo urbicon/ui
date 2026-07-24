@@ -7,6 +7,8 @@
   import CommandSearch from '$lib/CommandSearch.svelte';
   import DocsThemeToggle from '$lib/DocsThemeToggle.svelte';
   import { navigationItems } from '$lib/navigation';
+  import PrevNextNav from '$lib/PrevNextNav.svelte';
+  import DocsPageNavProvider from '$lib/DocsPageNavProvider.svelte';
   import {
     LocaleSwitcher,
     ThemeSwitcher,
@@ -104,6 +106,16 @@
 <a class="blocks-skip-link" href="#main-content"
   >{ta('chrome.skipToContent' as Parameters<typeof ta>[0])}</a
 >
+
+<!--
+  The prev/next reading nav, defined once here and handed to DocsLayout's
+  page-nav slot via DocsPageNavProvider (context). Every DocsLayout page renders
+  it at the foot of its article column — no per-page repetition. Landing pages
+  (the `isLanding` branch below) don't use DocsLayout, so they receive no nav.
+-->
+{#snippet pageNav()}
+  <PrevNextNav currentPath={page.url.pathname} />
+{/snippet}
 
 {#if isLanding}
   {@render children()}
@@ -229,7 +241,9 @@
         </div>
       {/snippet}
 
-      {@render children()}
+      <DocsPageNavProvider {pageNav}>
+        {@render children()}
+      </DocsPageNavProvider>
     </SidebarLayout>
   </div>
 {/if}

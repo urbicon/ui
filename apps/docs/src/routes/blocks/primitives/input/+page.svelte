@@ -9,12 +9,10 @@
     Section
   } from '@urbicon-ui/docs';
   import { Input } from '@urbicon-ui/blocks';
-  import PrevNextNav from '$lib/PrevNextNav.svelte';
   import CustomDocs from './Docs.svelte';
   import { componentData } from './api';
   import { buildRelatedLinks } from '$lib/component-links';
   import { asset, resolve } from '$app/paths';
-  import { page } from '$app/state';
 
   const { propDocs, variantKeys } = extractPlaygroundDocs(componentData?.props ?? []);
   const relatedLinks = buildRelatedLinks(componentData);
@@ -183,6 +181,4 @@
       rel="noopener">llm.txt</a
     >
   </div>
-
-  <PrevNextNav currentPath={page.url.pathname} />
 </DocsPageLayout>

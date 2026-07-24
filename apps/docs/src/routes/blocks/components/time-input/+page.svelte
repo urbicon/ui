@@ -1,6 +1,5 @@
 <script lang="ts">
   import SeoMeta from '$lib/SeoMeta.svelte';
-  import { page } from '$app/state';
   import { asset } from '$app/paths';
   import {
     ApiReference,
@@ -10,7 +9,6 @@
     PlaygroundConfigurator,
     Section
   } from '@urbicon-ui/docs';
-  import PrevNextNav from '$lib/PrevNextNav.svelte';
   import CustomDocs from './Docs.svelte';
   import { componentData } from './api';
   import { buildRelatedLinks } from '$lib/component-links';
@@ -154,6 +152,4 @@
       llm.txt
     </a>
   </div>
-
-  <PrevNextNav currentPath={page.url.pathname} />
 </DocsPageLayout>

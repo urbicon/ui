@@ -2,8 +2,6 @@
   import SeoMeta from '$lib/SeoMeta.svelte';
   import { DocsLayout as DocsPageLayout, Section, CodeExample } from '@urbicon-ui/docs';
   import { resolve } from '$app/paths';
-  import { page } from '$app/state';
-  import PrevNextNav from '$lib/PrevNextNav.svelte';
 
   const navigation = [
     { id: 'when', title: 'When to use it', order: 1 },
@@ -137,6 +135,4 @@
       </div>
     </div>
   </Section>
-
-  <PrevNextNav currentPath={page.url.pathname} />
 </DocsPageLayout>

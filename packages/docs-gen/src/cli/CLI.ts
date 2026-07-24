@@ -333,7 +333,6 @@ export class DocsGeneratorCLI {
 
     // Generate +page.svelte
     const pageSvelte = `<script lang="ts">
-  import { page } from '$app/state';
   import { asset, resolve } from '$app/paths';
   import {
     ApiReference,
@@ -343,7 +342,6 @@ export class DocsGeneratorCLI {
     PlaygroundConfigurator,
     Section
   } from '@urbicon-ui/docs';
-  import PrevNextNav from '$lib/PrevNextNav.svelte';
   import SeoMeta from '$lib/SeoMeta.svelte';
   import CustomDocs from './Docs.svelte';
   import { componentData } from './api';
@@ -422,8 +420,6 @@ export class DocsGeneratorCLI {
       llm.txt
     </a>
   </div>
-
-  <PrevNextNav currentPath={page.url.pathname} />
 </DocsPageLayout>
 `;
 

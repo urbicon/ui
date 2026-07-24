@@ -215,42 +215,6 @@ internal TODO instead. Sections are ordered roughly by urgency.
   silently shipped an index with zero props. PUBLISH-READINESS A.1's "126
   prerendered pages **mit vollem Inhalt**" is corrected there.
 
-### PrevNextNav still misses Recipes / Customization / Doc-Components / landings — Table's 13-page chain resolved
-
-- **Where:** `apps/docs/src/lib/PrevNextNav.svelte` imported **per-page** rather
-  than from a layout; `packages/docs-gen/src/cli/CLI.ts:255,335` emits it into
-  the `docs:scaffold` template.
-- **What:** The nav chain flattens `navigationItems`, but only a subset of pages
-  render the component (originally measured 79 of 136, 2026-07-14). Still missing
-  entirely: all 19 Recipes, all 7 Customization, all 8 Doc-Components, and most
-  top-level landings. The inconsistency used to be sharpest between siblings of
-  identical shape — Table's feature pages are the most sequential reading chain
-  in the docs and had no prev/next while i18n's, same shape and ordering, do; the
-  **Table half is now closed** (see Update). Two one-way doors remain, where the
-  nav points at a page that renders no nav back: `checkbox` → prev → `/blocks`;
-  `/i18n/auditing` → next → `/icons` (both target top-level section landings).
-- **Why deferred:** The fix is to hoist PrevNextNav into a layout, which
-  collides with docs-gen's scaffold template (another package emits the per-page
-  tag) — a cross-package decision. `docs/DocsPageGuide.md:83,154` also scopes
-  PrevNextNav to *component* doc pages, so the Recipes/Doc-Components omission is
-  arguably intentional; Customization and the top-level landings are the
-  ambiguous middle; that call has to be made before the mechanics.
-- **Update 2026-07-24 (docs-nav-wave):** the clearly-correct, decision-free half
-  landed — all 14 Table pages (the 13 feature pages + the `/table/table` section
-  landing) now render `<PrevNextNav currentPath={page.url.pathname} />` before
-  their `</DocsPageLayout>`, verbatim to the i18n pattern; targets derive from
-  `navigationItems`, nothing hand-ordered. This also closed **two** of the four
-  original one-way doors — `tooltip → /table/table` and
-  `/auth → /table/accessibility` — because both targets now navigate back. The
-  chain boundaries were checked to stay bidirectional
-  (`/blocks/components/tool-call-card` ↔ `/table/table`, `/table/accessibility` ↔
-  `/auth`, both boundary pages already render the nav), so no new door was
-  introduced. What remains is exactly the part that needs a decision: the other
-  route groups + the layout-hoist-vs-per-page-scaffold mechanic.
-- **Found:** 2026-07-14, adding the prev/next section kicker (publish-m3-finale).
-  The kicker fix is orthogonal and shipped; this is the larger finding underneath
-  it.
-
 ### PlaygroundConfigurator: the i18n/slot pass left three smaller gaps — and `i18n:check` never scans `packages/docs` at all
 
 - **Where:** `packages/docs/src/lib/components/PlaygroundConfigurator/PlaygroundConfigurator.svelte`

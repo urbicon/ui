@@ -8,13 +8,11 @@
     Section
   } from '@urbicon-ui/docs';
   import { LocaleSwitcher } from '@urbicon-ui/blocks';
-  import PrevNextNav from '$lib/PrevNextNav.svelte';
   import CustomDocs from './Docs.svelte';
   import { componentData } from './api';
   import { buildRelatedLinks } from '$lib/component-links';
   import { extractPlaygroundDocs } from '@urbicon-ui/docs';
   import { resolve } from '$app/paths';
-  import { page } from '$app/state';
 
   const { propDocs, variantKeys } = extractPlaygroundDocs(componentData?.props ?? []);
   const relatedLinks = buildRelatedLinks(componentData);
@@ -109,6 +107,4 @@
       preview={false}
     />
   </Section>
-
-  <PrevNextNav currentPath={page.url.pathname} />
 </DocsPageLayout>

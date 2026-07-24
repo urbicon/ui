@@ -15,7 +15,6 @@
     GuidePanel,
     GuideProvider
   } from '@urbicon-ui/blocks';
-  import PrevNextNav from '$lib/PrevNextNav.svelte';
   import CustomDocs from './Docs.svelte';
   import { componentData } from './api';
   // Every Guide surface is a `@standalone` catalog component with its own generated
@@ -31,7 +30,6 @@
   import { componentData as beaconData } from '../guide-beacon/api';
   import { buildRelatedLinks } from '$lib/component-links';
   import { asset, resolve } from '$app/paths';
-  import { page } from '$app/state';
 
   // The generated @related list is the sibling Guide surfaces — self-referential on this
   // family page. Point "related" at the spatial, event-driven overlays Guide contrasts with
@@ -374,6 +372,4 @@ import type { GuideTour, GuideStep, GuideStepEvent, GuideEndEvent } from '@urbic
       rel="noopener">llm.txt</a
     >
   </div>
-
-  <PrevNextNav currentPath={page.url.pathname} />
 </DocsPageLayout>

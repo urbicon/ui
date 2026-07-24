@@ -2,8 +2,6 @@
   import SeoMeta from '$lib/SeoMeta.svelte';
   import { DocsLayout as DocsPageLayout, Section, CodeExample } from '@urbicon-ui/docs';
   import { resolve } from '$app/paths';
-  import { page } from '$app/state';
-  import PrevNextNav from '$lib/PrevNextNav.svelte';
 
   const navigation = [
     { id: 'why', title: 'Why namespaces', order: 1 },
@@ -230,6 +228,4 @@ it('en/de key parity', () => {
     </p>
     <CodeExample code={validateCode} language="typescript" preview={false} />
   </Section>
-
-  <PrevNextNav currentPath={page.url.pathname} />
 </DocsPageLayout>

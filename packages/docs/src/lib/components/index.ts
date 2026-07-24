@@ -7,7 +7,7 @@ export { default as CodeExample } from './CodeExample';
 export type { CodePanelProps, CodePanelSlotName, CodePanelVariantProps } from './CodePanel';
 export { default as CodePanel } from './CodePanel';
 export type { DocsLayoutProps, DocsLayoutVariantProps } from './DocsLayout';
-export { default as DocsLayout } from './DocsLayout';
+export { default as DocsLayout, setDocsPageNav } from './DocsLayout';
 export type { InfoCardProps, InfoCardVariantProps } from './InfoCard';
 export { default as InfoCard } from './InfoCard';
 export type {

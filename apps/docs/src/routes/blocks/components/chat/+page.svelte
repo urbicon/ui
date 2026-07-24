@@ -14,12 +14,10 @@
     PromptInput,
     type ChatMessageData
   } from '@urbicon-ui/blocks';
-  import PrevNextNav from '$lib/PrevNextNav.svelte';
   import CustomDocs from './Docs.svelte';
   import { componentData } from './api';
   import { buildRelatedLinks } from '$lib/component-links';
   import { asset, resolve } from '$app/paths';
-  import { page } from '$app/state';
 
   const relatedLinks = buildRelatedLinks(componentData);
 
@@ -171,6 +169,4 @@
       llm.txt
     </a>
   </div>
-
-  <PrevNextNav currentPath={page.url.pathname} />
 </DocsPageLayout>

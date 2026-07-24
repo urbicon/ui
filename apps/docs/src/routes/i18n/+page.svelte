@@ -2,8 +2,6 @@
   import SeoMeta from '$lib/SeoMeta.svelte';
   import { DocsLayout as DocsPageLayout, Section, InfoCard, CodeExample } from '@urbicon-ui/docs';
   import { resolve } from '$app/paths';
-  import { page } from '$app/state';
-  import PrevNextNav from '$lib/PrevNextNav.svelte';
 
   const navigation = [
     { id: 'overview', title: 'Overview', order: 1 },
@@ -240,6 +238,4 @@ export const load = ({ request }) => ({ locale: resolveLocale(request) });`;
       </table>
     </div>
   </Section>
-
-  <PrevNextNav currentPath={page.url.pathname} />
 </DocsPageLayout>

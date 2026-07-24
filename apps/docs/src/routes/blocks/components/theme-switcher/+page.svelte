@@ -8,10 +8,8 @@
     Section
   } from '@urbicon-ui/docs';
   import { ThemeSwitcher } from '@urbicon-ui/blocks';
-  import PrevNextNav from '$lib/PrevNextNav.svelte';
   import CustomDocs from './Docs.svelte';
   import { resolve } from '$app/paths';
-  import { page } from '$app/state';
 
   const navigation = [
     { id: 'playground', title: 'Playground', order: 1 },
@@ -184,6 +182,4 @@
       />
     </div>
   </Section>
-
-  <PrevNextNav currentPath={page.url.pathname} />
 </DocsPageLayout>

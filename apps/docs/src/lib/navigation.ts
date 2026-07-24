@@ -34,6 +34,15 @@ export type NavItem = {
   href?: NavHref;
   children?: NavItem[];
   group?: boolean;
+  /**
+   * Excluded from the prev/next reading chain (and, for a group, so are its
+   * children) while still shown in the sidebar. Set on jump-in / index / landing
+   * surfaces that render their own bespoke layout instead of `DocsLayout` — home,
+   * the recipes cookbook, the icons gallery, showcase, the AI/DX page, changelog.
+   * Those pages carry no page-nav, so keeping them out of the chain is what stops
+   * a neighbouring page's next/prev from pointing at a dead end.
+   */
+  standalone?: boolean;
 };
 
 /**
@@ -68,8 +77,13 @@ function pruneDrafts(items: NavItem[]): NavItem[] {
 }
 
 const allNavigationItems: NavItem[] = [
-  { name: 'Overview', nameKey: 'nav.overview', href: '/' },
-  { name: 'Getting Started', nameKey: 'nav.gettingStarted', href: '/getting-started' },
+  { name: 'Overview', nameKey: 'nav.overview', href: '/', standalone: true },
+  {
+    name: 'Getting Started',
+    nameKey: 'nav.gettingStarted',
+    href: '/getting-started',
+    standalone: true
+  },
   {
     name: 'Blocks',
     nameKey: 'nav.blocks',
@@ -257,7 +271,7 @@ const allNavigationItems: NavItem[] = [
     nameKey: 'nav.auth',
     href: '/auth',
     children: [
-      { name: 'Reference (AUTH.md)', href: '/auth/guide' },
+      { name: 'Reference (AUTH.md)', href: '/auth/guide', standalone: true },
       {
         name: 'Pages',
         nameKey: 'nav.groups.pages',
@@ -316,7 +330,8 @@ const allNavigationItems: NavItem[] = [
   {
     name: 'Icons',
     nameKey: 'nav.icons',
-    href: '/icons'
+    href: '/icons',
+    standalone: true
   },
   {
     name: 'Customization',
@@ -348,6 +363,7 @@ const allNavigationItems: NavItem[] = [
     name: 'Recipes',
     nameKey: 'nav.recipes',
     href: '/recipes',
+    standalone: true,
     children: [
       { name: 'Clickable Card', href: '/recipes/clickable-card' },
       { name: 'Dashboard', nameKey: 'nav.dashboard', href: '/recipes/dashboard' },
@@ -375,8 +391,8 @@ const allNavigationItems: NavItem[] = [
       { name: 'Unsaved Changes Guard', href: '/recipes/unsaved-changes-guard' }
     ]
   },
-  { name: 'Showcase', nameKey: 'nav.showcase', href: '/showcase' },
-  { name: 'AI & DX', nameKey: 'nav.aiDx', href: '/ai' },
+  { name: 'Showcase', nameKey: 'nav.showcase', href: '/showcase', standalone: true },
+  { name: 'AI & DX', nameKey: 'nav.aiDx', href: '/ai', standalone: true },
   {
     name: 'Doc Components',
     nameKey: 'nav.docComponents',
@@ -408,7 +424,7 @@ const allNavigationItems: NavItem[] = [
       }
     ]
   },
-  { name: 'Changelog', nameKey: 'nav.changelog', href: '/changelog' }
+  { name: 'Changelog', nameKey: 'nav.changelog', href: '/changelog', standalone: true }
 ];
 
 export const navigationItems: NavItem[] = pruneDrafts(allNavigationItems);

@@ -1,7 +1,5 @@
 <script lang="ts">
   import SeoMeta from '$lib/SeoMeta.svelte';
-  import { page } from '$app/state';
-  import PrevNextNav from '$lib/PrevNextNav.svelte';
   import { CodeExample, DocsLayout as DocsPageLayout, Section } from '@urbicon-ui/docs';
   import { Table } from '@urbicon-ui/table';
   import { Input } from '@urbicon-ui/blocks';
@@ -183,6 +181,4 @@ ${scriptClose}
       </CodeExample>
     </div>
   </Section>
-
-  <PrevNextNav currentPath={page.url.pathname} />
 </DocsPageLayout>

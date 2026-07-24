@@ -8,10 +8,8 @@
   } from '@urbicon-ui/docs';
   import { CommandPalette, Button } from '@urbicon-ui/blocks';
   import type { CommandPaletteItem } from '@urbicon-ui/blocks';
-  import PrevNextNav from '$lib/PrevNextNav.svelte';
   import CustomDocs from './Docs.svelte';
   import { resolve } from '$app/paths';
-  import { page } from '$app/state';
 
   let playgroundOpen = $state(false);
 
@@ -228,6 +226,4 @@
       preview={false}
     />
   </Section>
-
-  <PrevNextNav currentPath={page.url.pathname} />
 </DocsPageLayout>

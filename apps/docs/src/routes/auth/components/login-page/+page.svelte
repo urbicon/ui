@@ -7,8 +7,6 @@
     Section
   } from '@urbicon-ui/docs';
   import { asset, resolve } from '$app/paths';
-  import { page } from '$app/state';
-  import PrevNextNav from '$lib/PrevNextNav.svelte';
   import { componentData } from './api';
   import BasicDemo from './examples/BasicDemo.svelte';
   import basicCode from './examples/Basic.svelte?raw';
@@ -62,6 +60,4 @@
       rel="noopener">llm.txt</a
     >
   </div>
-
-  <PrevNextNav currentPath={page.url.pathname} />
 </DocsPageLayout>

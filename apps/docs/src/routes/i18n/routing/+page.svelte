@@ -3,7 +3,6 @@
   import { DocsLayout as DocsPageLayout, Section, CodeExample } from '@urbicon-ui/docs';
   import { resolve } from '$app/paths';
   import { page } from '$app/state';
-  import PrevNextNav from '$lib/PrevNextNav.svelte';
 
   const navigation = [
     { id: 'overview', title: 'Why routing lives here', order: 1 },
@@ -252,6 +251,4 @@ export function localizeHref(path, locale) {
       tree changes — but search engines may treat the variants as one page.
     </p>
   </Section>
-
-  <PrevNextNav currentPath={page.url.pathname} />
 </DocsPageLayout>

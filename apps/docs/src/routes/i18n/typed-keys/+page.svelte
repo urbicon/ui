@@ -2,8 +2,6 @@
   import SeoMeta from '$lib/SeoMeta.svelte';
   import { DocsLayout as DocsPageLayout, Section, CodeExample } from '@urbicon-ui/docs';
   import { resolve } from '$app/paths';
-  import { page } from '$app/state';
-  import PrevNextNav from '$lib/PrevNextNav.svelte';
 
   const navigation = [
     { id: 'inference', title: 'Key inference', order: 1 },
@@ -126,6 +124,4 @@ const pkg2 = createPackageI18n('blocks', { en, de });`;
     </p>
     <CodeExample code={deprecatedCode} language="typescript" preview={false} />
   </Section>
-
-  <PrevNextNav currentPath={page.url.pathname} />
 </DocsPageLayout>

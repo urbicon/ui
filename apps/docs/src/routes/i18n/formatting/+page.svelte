@@ -3,8 +3,6 @@
   import { DocsLayout as DocsPageLayout, Section, CodeExample } from '@urbicon-ui/docs';
   import { useI18n } from '@urbicon-ui/i18n';
   import { resolve } from '$app/paths';
-  import { page } from '$app/state';
-  import PrevNextNav from '$lib/PrevNextNav.svelte';
 
   const navigation = [
     { id: 'plurals', title: 'Pluralization', order: 1 },
@@ -133,6 +131,4 @@
       </table>
     </div>
   </Section>
-
-  <PrevNextNav currentPath={page.url.pathname} />
 </DocsPageLayout>

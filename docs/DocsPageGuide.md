@@ -80,11 +80,9 @@ Track this when sweeping a page: report before-/after-line-count in commit body 
     Section
   } from '@urbicon-ui/docs';
   import { ComponentName } from '@urbicon-ui/blocks';
-  import PrevNextNav from '$lib/PrevNextNav.svelte';
   import CustomDocs from './Docs.svelte';
   import { componentData } from './api';
   import { asset, resolve } from '$app/paths';
-  import { page } from '$app/state';
 
   const navigation = [
     { id: 'playground', title: 'Playground', order: 1 },
@@ -150,10 +148,15 @@ Track this when sweeping a page: report before-/after-line-count in commit body 
       rel="noopener">llm.txt</a
     >
   </div>
-
-  <PrevNextNav currentPath={page.url.pathname} />
 </DocsPageLayout>
 ```
+
+> **Prev/next navigation is provided by the layout, not per page.** Every
+> `DocsLayout` page renders the prev/next reading nav automatically (the root
+> `+layout.svelte` hands a single `<PrevNextNav>` to `DocsLayout`'s page-nav slot
+> via `DocsPageNavProvider`). Do **not** add `<PrevNextNav>` to a page. A page
+> stays out of the reading chain by marking its nav entry `standalone: true` in
+> `apps/docs/src/lib/navigation.ts` (used for jump-in / index / landing surfaces).
 
 ### Key Details
 
@@ -355,7 +358,7 @@ Semantic tokens automatically adapt between light and dark mode.
 - [ ] `+page.svelte`: PlaygroundConfigurator with `showHeader={false}`
 - [ ] `+page.svelte`: ApiReference directly in Section (no wrapper div)
 - [ ] `+page.svelte`: Installation section at the end
-- [ ] `+page.svelte`: llm.txt link and PrevNextNav
+- [ ] `+page.svelte`: llm.txt link (prev/next comes from the layout — never add `<PrevNextNav>` per page)
 - [ ] `Docs.svelte`: `docsConfig` exported
 - [ ] `Docs.svelte`: All CodeExamples with `isolate` (where possible)
 - [ ] `Docs.svelte`: Accessibility section present

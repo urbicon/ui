@@ -7,6 +7,7 @@
   import { Breadcrumb, ChevronDownIcon } from '@urbicon-ui/blocks';
   import TableOfContents from '../TableOfContents/TableOfContents.svelte';
   import { docsLayoutVariants } from './docslayout.variants';
+  import { getPageNav } from './page-nav';
   import type { DocsLayoutProps } from './index.js';
 
   let {
@@ -35,6 +36,11 @@
       centered
     })
   );
+
+  // Optional end-of-page slot (prev/next reading nav). The app sets one snippet
+  // site-wide via setPageNav; every DocsLayout page renders it below the content
+  // — no per-page repetition, and the published layout stays router-agnostic.
+  const pageNav = getPageNav();
 
   // The code-visibility store is provisioned here even though the
   // global toggle now lives in the TOC: the store has to be in the
@@ -354,6 +360,8 @@
         {/if}
 
         {@render children?.()}
+
+        {@render pageNav?.()}
       </div>
     </div>
 

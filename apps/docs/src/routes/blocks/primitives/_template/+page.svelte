@@ -6,7 +6,6 @@
     Section
   } from '@urbicon-ui/docs';
   // import { ComponentName } from '@urbicon-ui/blocks';
-  import PrevNextNav from '$lib/PrevNextNav.svelte';
   import SeoMeta from '$lib/SeoMeta.svelte';
   // import CustomDocs from './Docs.svelte';
   // import { componentData } from './api';
@@ -14,7 +13,6 @@
 
   // const relatedLinks = buildRelatedLinks(componentData);
   import { asset, resolve } from '$app/paths';
-  import { page } from '$app/state';
 
   const COMPONENT_NAME = 'ComponentName';
   const COMPONENT_SLUG = 'component-name';
@@ -105,6 +103,4 @@
       rel="noopener">llm.txt</a
     >
   </div>
-
-  <PrevNextNav currentPath={page.url.pathname} />
 </DocsPageLayout>
