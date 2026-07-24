@@ -7,6 +7,7 @@ import type {
   VariantInfo
 } from '@urbicon-ui/shared-types';
 import type { APIData, ComponentAPIData, TypeDefinition } from '../../types';
+import { toSlug } from '../../utils/slug';
 
 /**
  * Generates structured API data from enriched component information
@@ -61,7 +62,7 @@ export class APIDataGenerator {
     // segment — cross-links resolve the *target* component's group, so the
     // whole map has to be built up-front, before any component is processed.
     for (const c of richComponents) {
-      this.componentSlugs.set(c.name, this.toSlug(c.name));
+      this.componentSlugs.set(c.name, toSlug(c.name));
       this.componentGroups.set(c.name, this.inferGroupFromPath(c.filePath || ''));
     }
 
@@ -324,7 +325,7 @@ export class APIDataGenerator {
       (processedProp.name?.startsWith('...') && processedProp.source?.type === 'variant') ||
       processedProp.type === 'VariantProps'
     ) {
-      const slug = this.componentSlugs.get(component.name) || this.toSlug(component.name);
+      const slug = this.componentSlugs.get(component.name) || toSlug(component.name);
       processedProp.seeAlso = `${this.routeForComponent(component.name, slug)}#variants`;
     }
 
@@ -368,7 +369,7 @@ export class APIDataGenerator {
     );
 
     if (localTypeNames.has(base)) {
-      const slug = this.componentSlugs.get(component.name) || this.toSlug(component.name);
+      const slug = this.componentSlugs.get(component.name) || toSlug(component.name);
       return `${this.routeForComponent(component.name, slug)}#type-${base}`;
     }
 
@@ -407,13 +408,6 @@ export class APIDataGenerator {
     ];
     if (!noGenerics || primitives.includes(noGenerics) || /^['"]/.test(noGenerics)) return null;
     return noGenerics;
-  }
-
-  private toSlug(input: string): string {
-    return input
-      .replace(/([a-z0-9])(\p{Lu})/gu, '$1-$2')
-      .replace(/[\s_]+/g, '-')
-      .toLowerCase();
   }
 
   /**

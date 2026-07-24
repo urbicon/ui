@@ -1,20 +1,6 @@
 <script lang="ts">
-  import type { SvelteDocsConfig } from '@urbicon-ui/shared-types';
   import { CodeExample, Section } from '@urbicon-ui/docs';
   import { QRCode, Textarea } from '@urbicon-ui/blocks';
-
-  export const docsConfig: SvelteDocsConfig = {
-    generation: {
-      overview: { enabled: false },
-      playground: { enabled: true, order: 1 },
-      variants: { enabled: false },
-      examples: false,
-      api: { showInheritance: true, enabled: true, order: 14 },
-      usage: false
-    },
-    llm: { include: true },
-    meta: { title: 'QRCode Component', showToc: true }
-  };
 
   const eclLevels = ['L', 'M', 'Q', 'H'] as const;
   const sizes = [120, 160, 220];

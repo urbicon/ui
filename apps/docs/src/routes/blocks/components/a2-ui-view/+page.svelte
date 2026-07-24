@@ -203,7 +203,7 @@ import type { A2uiActionEvent, A2uiValidationIssue } from '@urbicon-ui/blocks';`
   <div class="mt-6 text-right">
     <a
       class="text-text-tertiary hover:text-text-secondary text-sm underline"
-      href={asset('/blocks/components/a2-uiview/llm.txt')}
+      href={asset('/blocks/components/a2-ui-view/llm.txt')}
       rel="noopener">llm.txt</a
     >
   </div>

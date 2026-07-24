@@ -38,9 +38,22 @@ function extractFirstExample(content: string): string | null {
   return match?.[1]?.trim() ?? null;
 }
 
-/** PascalCase component name to kebab-case slug */
+/**
+ * PascalCase component name to kebab-case slug — must stay in lockstep with
+ * docs-gen's `toSlug` (`packages/docs-gen/src/utils/slug.ts`), which is what
+ * actually keys the catalog entries this hint points at.
+ *
+ * The acronym-run pass comes first: the last capital of a run of capitals
+ * starts the next word (`QRCode` → `qr-code`, `A2UIView` → `a2-ui-view`).
+ * Hyphenating every capital individually — the previous rule — produced
+ * `q-r-code`, a `get_component()` hint that resolves to nothing.
+ */
 function toSlug(name: string): string {
-  return name.replace(/([A-Z])/g, (_, c, i) => (i > 0 ? '-' : '') + c.toLowerCase());
+  return name
+    .replace(/(\p{Lu}+)(\p{Lu}\p{Ll})/gu, '$1-$2')
+    .replace(/([\p{Ll}\p{N}])(\p{Lu})/gu, '$1-$2')
+    .replace(/[\s_]+/g, '-')
+    .toLowerCase();
 }
 
 /** Generate compact summary from catalog data + llm.txt */

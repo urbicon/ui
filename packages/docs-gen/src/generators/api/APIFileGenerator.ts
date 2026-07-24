@@ -2,6 +2,7 @@ import * as fs from 'node:fs/promises';
 import * as path from 'node:path';
 import type { VariantInfo } from '@urbicon-ui/shared-types';
 import type { APIData, APIOutputConfig, ComponentAPIData, GeneratedOutput } from '../../types';
+import { toSlug } from '../../utils/slug';
 
 /**
  * Generates the per-component api.ts files that other phases can consume
@@ -31,7 +32,7 @@ export class APIFileGenerator {
         await fs.mkdir(this.config.outputPath, { recursive: true });
         for (const [componentName, componentData] of Object.entries(apiData.components)) {
           const group = componentData.group;
-          const slug = this.toSlug(componentName);
+          const slug = toSlug(componentName);
           // Avoid nested duplicate group segment (e.g., components/components)
           const dir = group
             ? path.join(this.config.outputPath, group, slug)
@@ -112,14 +113,6 @@ export class APIFileGenerator {
   // PER-COMPONENT FILE GENERATION (DIRECTORY MODE)
   // ==========================================
 
-  private toSlug(input: string): string {
-    return input
-      .replace(/([a-z0-9])([A-Z])/g, '$1-$2')
-      .replace(/_/g, '-')
-      .replace(/\s+/g, '-')
-      .toLowerCase();
-  }
-
   private generatePerComponentTypeScriptFile(
     componentName: string,
     componentData: ComponentAPIData,
@@ -140,7 +133,7 @@ export class APIFileGenerator {
       'export interface VariantExample { value: string; label?: string; description?: string; code?: string }'
     );
     lines.push(
-      "export interface InheritanceProp { name: string; type: string; required: boolean; description?: string; source?: { type: 'direct' | 'inherited' | 'variant'; name?: string; package?: string; url?: string }; seeAlso?: string; examples?: PropExample[] }"
+      "export interface InheritanceProp { name: string; type: string; required: boolean; description?: string; source?: { type: 'direct' | 'inherited' | 'variant'; name?: string; package?: string; url?: string }; seeAlso?: string; seeAlsoRefs?: string[]; examples?: PropExample[] }"
     );
     lines.push(
       'export interface InheritanceInfo { typeName: string; source: string; url?: string; props: InheritanceProp[] }'
@@ -159,7 +152,11 @@ export class APIFileGenerator {
     lines.push('  deprecated?: DeprecationInfo;');
     lines.push('  experimental?: boolean;');
     lines.push('  values?: string[];');
+    // `seeAlso` = navigable target (URL / route path / fragment) → rendered as
+    // a link. `seeAlsoRefs` = prose `@see` references (bare type/member names)
+    // → rendered as literal text. See shared-types `PropInfo`.
     lines.push('  seeAlso?: string;');
+    lines.push('  seeAlsoRefs?: string[];');
     lines.push(
       "  source?: { type: 'direct' | 'inherited' | 'variant'; name?: string; package?: string; url?: string };"
     );

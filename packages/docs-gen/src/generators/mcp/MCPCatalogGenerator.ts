@@ -1,6 +1,7 @@
 import * as fs from 'node:fs/promises';
 import * as path from 'node:path';
 import type { APIData, ComponentAPIData, EnrichedComponentInfo } from '../../types';
+import { toSlug } from '../../utils/slug';
 import { resolveSlotNames } from '../shared/slots';
 
 export interface ComponentCatalogEntry {
@@ -105,7 +106,7 @@ export class MCPCatalogGenerator {
     compApi: ComponentAPIData
   ): ComponentCatalogEntry {
     const group = (compApi.group || 'primitives') as 'primitives' | 'components' | 'core';
-    const slug = this.toSlug(component.name);
+    const slug = toSlug(component.name);
 
     const llmTxtPath = group ? `${group}/${slug}/llm.txt` : `${slug}/llm.txt`;
 
@@ -176,13 +177,5 @@ export class MCPCatalogGenerator {
       hasExamples: compApi.examples.length > 0,
       relatedComponents
     };
-  }
-
-  private toSlug(input: string): string {
-    return input
-      .replace(/([a-z0-9])([A-Z])/g, '$1-$2')
-      .replace(/_/g, '-')
-      .replace(/\s+/g, '-')
-      .toLowerCase();
   }
 }

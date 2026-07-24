@@ -1634,7 +1634,7 @@ Tokens switch light and dark automatically:
       <!-- A2UIView ── 2×2 · a rendered agent surface + a fault chip -->
       <div class={cellLg} data-specimen="A2UIView">
         <a
-          href={resolve('/blocks/components/a2-uiview')}
+          href={resolve('/blocks/components/a2-ui-view')}
           class={cellLink}
           aria-label="A2UIView docs"
         ></a>

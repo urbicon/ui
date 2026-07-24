@@ -1,29 +1,10 @@
 <script lang="ts">
-  import type { SvelteDocsConfig } from '@urbicon-ui/shared-types';
   import { CodeExample, InfoCard, Section } from '@urbicon-ui/docs';
   import LiveDemo from './examples/LiveDemo.svelte';
   import BrokenPayload from './examples/BrokenPayload.svelte';
 
   import liveDemoCode from './examples/LiveDemo.svelte?raw';
   import brokenPayloadCode from './examples/BrokenPayload.svelte?raw';
-
-  export const docsConfig: SvelteDocsConfig = {
-    generation: {
-      overview: { enabled: false },
-      playground: { enabled: true, order: 1 },
-      variants: { enabled: false },
-      examples: false,
-      api: { showInheritance: true, enabled: true, order: 14 },
-      usage: false
-    },
-    llm: {
-      include: true,
-      maxSections: 8,
-      priority: ['overview', 'examples', 'real-world', 'patterns', 'api'],
-      excludeTypes: ['playground']
-    },
-    meta: { title: 'A2UIView Component', showToc: true }
-  };
 
   const wiringCode = `<script lang="ts">
   import {

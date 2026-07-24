@@ -194,7 +194,7 @@ const allNavigationItems: NavItem[] = [
           { name: 'Kbd', href: '/blocks/primitives/kbd' },
           { name: 'LineChart', href: '/blocks/components/line-chart' },
           { name: 'Planner', href: '/blocks/components/planner' },
-          { name: 'QRCode', href: '/blocks/components/qrcode' },
+          { name: 'QRCode', href: '/blocks/components/qr-code' },
           { name: 'Sankey', href: '/blocks/components/sankey' },
           { name: 'Sparkline', href: '/blocks/components/sparkline' },
           { name: 'Tooltip', href: '/blocks/primitives/tooltip' }
@@ -205,7 +205,7 @@ const allNavigationItems: NavItem[] = [
         nameKey: 'nav.groups.ai',
         group: true,
         children: [
-          { name: 'A2UIView', href: '/blocks/components/a2-uiview' },
+          { name: 'A2UIView', href: '/blocks/components/a2-ui-view' },
           { name: 'Chat', href: '/blocks/components/chat' },
           { name: 'ChatMessage', href: '/blocks/components/chat-message' },
           { name: 'ChatMessageList', href: '/blocks/components/chat-message-list' },

@@ -9,6 +9,7 @@ import type {
   GeneratedOutput
 } from '../../types';
 import type { LLMGuideConfig, LLMOutputConfig } from '../../types/configuration';
+import { toSlug } from '../../utils/slug';
 import { resolveSlotNames } from '../shared/slots';
 
 /**
@@ -66,7 +67,7 @@ export class LLMDocumentationGenerator {
         const content = await this.generateComponentContent(component, componentApi, docsConfig);
         // Write to mirrored route structure with fixed file name "llm.txt"
         const group = (componentApi as ComponentAPIData).group;
-        const slug = this.toSlug(component.name);
+        const slug = toSlug(component.name);
         const dir = group ? path.join(outputPath, group, slug) : path.join(outputPath, slug);
         await fs.mkdir(dir, { recursive: true });
         const filePath = path.join(dir, 'llm.txt');
@@ -530,7 +531,7 @@ export class LLMDocumentationGenerator {
       // in generate(). The index link MUST carry the same group segment from
       // apiData or it 404s.
       const group = apiData.components[c.name]?.group;
-      const slug = this.toSlug(c.name);
+      const slug = toSlug(c.name);
       const href = group ? `./${group}/${slug}/llm.txt` : `./${slug}/llm.txt`;
       lines.push(`- [${c.name}](${href}): Component LLM context`);
     }
@@ -676,13 +677,5 @@ export class LLMDocumentationGenerator {
   private capitalize(input: string): string {
     if (!input) return input;
     return input.charAt(0).toUpperCase() + input.slice(1);
-  }
-
-  private toSlug(input: string): string {
-    return input
-      .replace(/([a-z0-9])([A-Z])/g, '$1-$2')
-      .replace(/_/g, '-')
-      .replace(/\s+/g, '-')
-      .toLowerCase();
   }
 }
