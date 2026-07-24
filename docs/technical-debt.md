@@ -915,98 +915,44 @@ internal TODO instead. Sections are ordered roughly by urgency.
 
 ## Design tokens
 
-### Disabled field labels sit at 2.3:1 in dark mode
-
-- **Where:** `packages/blocks/src/lib/internal/field-chrome.ts`
-  (`FIELD_LABEL_DISABLED = 'text-text-disabled'`), consumed by Input, Textarea,
-  PinInput, TimeInput and (hand-written, same value) Select.
-- **What:** A disabled field's label renders `#454f56` on `#070c10` = **2.34:1**
-  in dark mode. WCAG 1.4.3 exempts inactive components, so this is not a
-  violation — but it is the label, the one part that still has to say what the
-  field *is*. The dark-axe gate only sees it on PinInput, because axe honours the
-  exemption when a `<label for>` points at a disabled control and PinInput labels
-  a `role="group"` via `aria-labelledby` instead; Input and Select pass the
-  identical token in the identical state (exception recorded in
-  `e2e/a11y-dark-baseline.json`).
-- **Why deferred:** Choosing a legible disabled tone (e.g. the W1-hardened
-  `text-text-tertiary`, or a new dedicated stop) is a design call across every
-  field, and it moves VR baselines for input/select/pin-input/time-input — a
-  contrast wave's work, not a validation wave's.
-- **Found:** 2026-07-24, W5 (PinInput entering the dark-axe matrix).
-
-### `surface-interactive` has no working hover partner
+### `surface-subtle` is byte-identical to `surface-elevated`, so `hover:bg-surface-subtle` dies on elevated surfaces
 
 - **Where:** `packages/blocks/src/lib/style/semantic.css`
-  (`--color-surface-interactive` vs `--color-surface-hover` / `-active`), used by
-  `internal/field-chrome.ts` and the filled variants of Input, Textarea, Select,
-  Combobox, plus Toggle's off track.
-- **What:** `surface-interactive` resolves to the *same value* as `surface-hover`
-  in light mode and as `surface-active` in dark — in the library default and
-  under the Rooms skin. So the established idiom
-  `bg-surface-interactive … hover:bg-surface-hover` is a **silent no-op in light
-  mode** everywhere it appears: those filled fields have no hover feedback at all
-  where most users see them. W5 worked around it for Toggle by using a border
-  step instead of a fill step (commented at the site).
-- **Why deferred:** The fix is a token-level decision — a dedicated
-  `--color-surface-interactive-hover` stop (and its `-active` sibling), chosen
-  against both modes and all six themes — not a per-component patch.
-- **Found:** 2026-07-24, W5 interaction-vocabulary rollout.
+  (`--color-surface-subtle` vs `--color-surface-elevated` — both
+  `light-dark(neutral-50, neutral-800)`), consumed as a *hover* step by the
+  `ghost` variants of Input/Textarea/Select/Combobox
+  (`internal/field-chrome.ts`), RadioGroup's indicator, Checkbox, Tab and
+  `table-states.variants.ts` — 8+ sites.
+- **What:** Same shape as the `surface-interactive` collapse fixed on
+  2026-07-25, but context-dependent rather than universal. `hover:bg-surface-subtle`
+  reads correctly on `surface-base`, and is invisible on anything already at
+  `surface-elevated` (a Popover, a Menu, a Select dropdown, an elevated Card) —
+  the hover target and its background resolve to the same colour.
+- **Why deferred:** Two different fixes, and picking between them is the
+  decision: give `surface-subtle` its own value (moves every *non*-hover use of
+  it too — auth list rows, docs table headers, readonly fields), or move the
+  hover idiom onto `surface-hover` (8+ sites across 6 components, each a VR
+  baseline). Deliberately not bundled into the interaction-token wave, which
+  already carried three token decisions.
+- **Found:** 2026-07-25, interaction-token wave (while fixing the universal
+  `surface-interactive` sibling).
 
-### The press cue snaps wherever the shorthand `transition-colors` carries it
+### The VR matrix has no hover, focus or disabled state — the interaction-token wave moved 0 of 52 shots
 
-- **Where:** `packages/blocks/src/lib/primitives/Badge/badge.variants.ts`
-  (`removeButton`), `packages/table/src/lib/variants/table.variants.ts`
-  (`tableRowVariants.row`), `packages/table/src/lib/variants/table-cells.variants.ts`
-  (`customCellVariants.container`).
-- **What:** Same bug class W5 fixed for arbitrary transition lists, but expressed
-  through the shorthand: `transition-colors` next to `active:scale-[0.98]` /
-  `hover:-translate-y-0.5`. Those cues snap. The new variants-lint rule
-  deliberately does not flag them — `transition-colors` is a *complete*
-  statement ("only colours move"), so the linter cannot tell a deliberate snap
-  from an oversight. Badge's `removeButton` is thereby inconsistent with
-  Dialog/Drawer's `closeButton`, which are the same ghost-Button fold and do
-  animate.
-- **Why deferred:** Needs a design call first — is the press cue animated
-  everywhere, or only where a component already opted into transform motion?
-  Badge additionally carries a documented "byte-identical to the pre-extraction
-  close button" contract that any change has to re-justify.
-- **Found:** 2026-07-24, W5 transition-list sweep.
-
-### Combobox's focus ring is twice as strong as every other field's
-
-- **Where:** `packages/blocks/src/lib/primitives/Combobox/combobox.variants.ts`
-  (`input` + `control` slots, `ring-primary/50`) vs. `fieldFocusRing` in
-  `internal/field-chrome.ts` (`/20`), used by Input, Textarea, Select,
-  PinInput, TimeInput.
-- **What:** Surfaced by W5 giving Combobox the shared error frame: its invalid
-  ring (`ring-danger/20`, from the shared fragment) is now *weaker* than its
-  valid one (`ring-primary/50`, its own). Nothing is broken, but the field is
-  the odd one out in both directions.
-- **Why deferred:** Harmonising to `/20` is a visible change on every focused
-  Combobox and wants a VR baseline refresh — a look decision, not a drive-by
-  inside a validation wave.
-- **Found:** 2026-07-24, W5 form-validation pass.
-
-### Two `description` slots render body copy at 10–11px, below every legibility floor
-
-- **Where:** `packages/blocks/src/lib/primitives/RadioGroup/radioGroup.variants.ts:71`
-  and `packages/blocks/src/lib/primitives/Stepper/stepper.variants.ts:72` (the
-  `description` slot).
-- **What:** Both render `description` — full sentences — at `text-3xs`/`text-2xs`
-  (10–11px), below every practical legibility floor. The tokens page states the
-  rule (2xs/3xs are for marks, hints and dense grids, **never** for body copy);
-  these two contradict it. Tokenising the sub-xs floor merely made them
-  greppable — the underlying size was already `text-[10px]`/`text-[11px]`.
-- **Why deferred:** A deliberate size decision with a VR pass, not a token swap
-  or find/replace — bumping `description` to a legible step changes the visual
-  rhythm of both controls.
-- **Update 2026-07-20 (qa-polish-wave):** the *mechanical* half of the original
-  entry — 54 exact-pixel `text-[11px]`→`text-2xs` / `text-[10px]`→`text-3xs`
-  swaps across `table`, `packages/docs` and `apps/docs` — is **done**
-  (`e714ce2`); `rg` confirms no `text-[10px]`/`text-[11px]` remain outside
-  `blocks`. These two `description` sites (the a11y design call, always the real
-  remainder) are what is left.
-- **Found:** 2026-07-14, tokenising the sub-xs type floor (publish-m3-finale).
+- **Where:** `e2e/visual-regression.spec.ts` + `apps/docs/src/routes/test-fixtures/primitives`.
+- **What:** The 2026-07-25 wave changed `--color-text-disabled` (1.45→4.85:1
+  light), Combobox's focus ring (`/50`→`/20`), two `description` sizes and the
+  filled-field hover fill. The full e2e suite stayed **131/131 green and not one
+  of the 52 VR shots moved** — the fixture renders every primitive in its resting
+  state only. So the gate that exists precisely to catch visual change is blind
+  to the entire interaction layer; the wave had to be verified by measuring
+  computed styles in a throwaway probe spec instead.
+- **Why deferred:** Adding hover/focus/disabled columns roughly doubles the
+  matrix (52 → ~100 shots at 2 modes × 2 themes) and needs a decision on how to
+  drive the states deterministically (CSS class vs. real pointer/focus, and
+  whether `:hover` screenshots are stable enough to gate on). That is a gate
+  design pass of its own.
+- **Found:** 2026-07-25, interaction-token wave.
 
 ### Popover inside phrasing content breaks SSR paragraphs (CitationChip in `<p>`)
 

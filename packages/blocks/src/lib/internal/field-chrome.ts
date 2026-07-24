@@ -72,7 +72,7 @@ export const fieldFocusRing = (f: FieldFocus): string =>
  */
 export const fieldSurfaceVariants = (f: FieldFocus) => ({
   outlined: 'border-border-subtle',
-  filled: `bg-surface-interactive border-transparent hover:bg-surface-hover ${f}:bg-surface-base`,
+  filled: `bg-surface-interactive border-transparent hover:bg-surface-interactive-hover ${f}:bg-surface-base`,
   ghost: `bg-transparent hover:bg-surface-subtle ${f}:bg-surface-base ${f}:border-border-subtle`
 });
 

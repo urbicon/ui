@@ -151,6 +151,10 @@ const semanticTokens = {
     elevated: { value: '{color.neutral.50}', description: 'L2 — lifted surfaces (popover, menu)' },
     overlay: { value: '{color.neutral.0}', description: 'L3 — dialog/drawer/toast background' },
     interactive: { value: '{color.neutral.100}', description: 'Interactive control background' },
+    'interactive-hover': {
+      value: '{color.neutral.200}',
+      description: 'Hover step for an interactive control fill'
+    },
     hover: { value: '{color.neutral.100}', description: 'Hover state background' },
     active: { value: '{color.neutral.200}', description: 'Active/pressed state background' },
     disabled: { value: '{color.neutral.100}', description: 'Disabled surface' },
@@ -164,7 +168,7 @@ const semanticTokens = {
     secondary: { value: '{color.neutral.700}', description: 'Secondary text' },
     tertiary: { value: '{color.neutral.600}', description: 'Tertiary text (WCAG AA on base)' },
     quaternary: { value: '{color.neutral.500}', description: 'Quaternary text (lowest emphasis)' },
-    disabled: { value: '{color.neutral.300}', description: 'Disabled text' },
+    disabled: { value: '{color.neutral.500}', description: 'Disabled text' },
     'on-dark': { value: '{color.neutral.0}', description: 'Text on dark surfaces' },
     'on-primary': { value: '{color.neutral.0}', description: 'Text on primary color bg' },
     'on-warning': {

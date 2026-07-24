@@ -804,4 +804,40 @@ describe('informative text on reading surfaces — WCAG contrast', () => {
       expect(quat[id], `${id} measures ${quat[id]}:1`).toBeGreaterThanOrEqual(AA_LARGE);
     });
   });
+
+  /**
+   * Disabled text is held to the same 3:1 UI floor. WCAG 1.4.3 exempts inactive
+   * controls, so this is a house rule rather than a conformance one — but a
+   * disabled field's LABEL is the part that still has to say what the field is,
+   * and the token used to sit at 1.45–1.68:1 (light) / 2.01–2.34:1 (dark),
+   * i.e. invisible rather than muted. Nothing caught it: the dark-axe gate only
+   * ever saw it on PinInput, because axe honours the exemption wherever a
+   * `<label for>` points at a disabled control.
+   */
+  describe('disabled text stays legible — clears the 3:1 UI floor', () => {
+    const disabled: Record<string, number> = {};
+    for (const theme of ['default', ...THEMES] as Theme[]) {
+      const css = stylesheetFor(theme);
+      for (const mode of MODES) {
+        for (const surface of [...READING_SURFACES, 'disabled'] as const) {
+          const id = `${theme}/disabled-text/${mode}/${surface}`;
+          disabled[id] = round2(
+            ratioOf(
+              resolveToken(css, surfaceToken(surface), mode),
+              resolveToken(css, '--color-text-disabled', mode)
+            )
+          );
+        }
+      }
+    }
+
+    it('covers disabled text × surface (incl. the disabled fill) × mode × theme', () => {
+      expect(Object.keys(disabled)).toHaveLength(6 * 2 * 6);
+      expect(disabled).toHaveProperty('default/disabled-text/dark/disabled');
+    });
+
+    it.each(Object.keys(disabled))('%s clears 3:1', (id) => {
+      expect(disabled[id], `${id} measures ${disabled[id]}:1`).toBeGreaterThanOrEqual(AA_LARGE);
+    });
+  });
 });

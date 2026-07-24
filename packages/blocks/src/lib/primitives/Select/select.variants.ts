@@ -81,7 +81,7 @@ export const selectVariants = tv({
       outlined: { trigger: 'border-border-subtle' },
       filled: {
         trigger:
-          'bg-surface-interactive border-transparent hover:bg-surface-hover focus-visible:bg-surface-base'
+          'bg-surface-interactive border-transparent hover:bg-surface-interactive-hover focus-visible:bg-surface-base'
       },
       ghost: {
         trigger:

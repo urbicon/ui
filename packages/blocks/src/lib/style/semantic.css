@@ -31,7 +31,22 @@
   /* L·3 — overlay: highest surfaces (Dialog, Drawer, Sheet, Toast).
      Full shadow + backdrop dimming. */
   --color-surface-overlay: light-dark(var(--color-neutral-0), var(--color-neutral-850));
+  /* `surface-hover` / `-active` are the hover/press steps for elements resting
+     on a READING surface (base/quiet/elevated) — a menu item, a table row.
+     `surface-interactive` is a resting FILL one step in from the page (a filled
+     Input, a Slider track, the Tab list). Those two ladders start at different
+     rungs, so they need their own hover step: `surface-interactive` already sits
+     at neutral-100, which is exactly where `surface-hover` lands in light mode —
+     `bg-surface-interactive hover:bg-surface-hover` was a silent no-op, and in
+     dark mode `surface-active` collapses onto `surface-interactive` the same
+     way. `-interactive-hover` continues the fill's own ladder: one step further
+     from the page in light, one step toward the light in dark. Guarded by
+     style/semantic.test.ts so the pair can never collapse again. */
   --color-surface-interactive: light-dark(var(--color-neutral-100), var(--color-neutral-700));
+  --color-surface-interactive-hover: light-dark(
+    var(--color-neutral-200),
+    var(--color-neutral-650)
+  );
   --color-surface-hover: light-dark(var(--color-neutral-100), var(--color-neutral-750));
   --color-surface-active: light-dark(var(--color-neutral-200), var(--color-neutral-700));
   --color-surface-disabled: light-dark(var(--color-neutral-100), var(--color-neutral-800));
@@ -61,7 +76,16 @@
   --color-text-secondary: light-dark(var(--color-neutral-700), var(--color-neutral-300));
   --color-text-tertiary: light-dark(var(--color-neutral-600), var(--color-neutral-300));
   --color-text-quaternary: light-dark(var(--color-neutral-500), var(--color-neutral-400));
-  --color-text-disabled: light-dark(var(--color-neutral-300), var(--color-neutral-600));
+  /* Disabled text — the same stop in both modes (measured 3.48–4.85:1 on every
+     reading surface plus the disabled fill). WCAG 1.4.3 exempts inactive
+     controls, so the old value was not a violation, but at neutral-300 / -600 it
+     measured 1.45–1.68:1 in light and 2.01–2.34:1 in dark: a disabled field's
+     label is the one part that still has to say what the field IS, and it was
+     effectively invisible. Deliberately still the weakest rung of the text ramp
+     (tertiary reads 7.9–8.4:1), so "disabled" stays legible without stopping
+     being a signal. It shares its light-mode value with text-quaternary, which
+     is fine — they are two roles, not two steps of one interaction ladder. */
+  --color-text-disabled: light-dark(var(--color-neutral-500), var(--color-neutral-500));
   /* The on-colors below pair text with a *fill* rather than a surface.
      text-on-dark and text-on-primary answer fills that are dark in light
      mode and light in dark mode, so the label has to travel the opposite

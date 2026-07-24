@@ -69,7 +69,8 @@ export const stepperVariants = tv({
         indicator: 'size-7 text-xs',
         step: 'gap-2',
         label: 'text-xs',
-        description: 'text-2xs',
+        // Body-copy floor — see the same note in radioGroup.variants.ts.
+        description: 'text-xs',
         content: 'text-sm',
         indicatorColumn: 'w-7'
       },

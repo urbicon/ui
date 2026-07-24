@@ -117,4 +117,39 @@ describe('semantic.css — surface/border refinement tokens', () => {
     const contrastBlock = extractBlock(semanticCss, '@media (prefers-contrast: more)');
     expect(contrastBlock).toContain('--color-border-hairline');
   });
+
+  /**
+   * A hover token that resolves to its own resting value is not a subtle bug —
+   * it is *no* hover. `bg-surface-interactive hover:bg-surface-hover` shipped
+   * that way: identical in light mode (both neutral-100), so every filled
+   * Input/Textarea/Select/Combobox had no hover feedback at all where most
+   * users are. The same shape hit `-active` in dark mode. Both are only
+   * detectable by comparing resolved values, which no visual test does — a
+   * no-op hover looks exactly like a working one in a static screenshot.
+   */
+  describe('interaction fills step away from their resting value', () => {
+    const PAIRS = [
+      ['--color-surface-interactive', '--color-surface-interactive-hover'],
+      ['--color-surface-base', '--color-surface-hover'],
+      ['--color-surface-hover', '--color-surface-active']
+    ] as const;
+
+    it.each(PAIRS)('%s and %s resolve differently in both modes', (restToken, stepToken) => {
+      const rest = findLightDark(themeBlock, restToken);
+      const step = findLightDark(themeBlock, stepToken);
+      expect(rest, `${restToken} missing or not in light-dark() form`).not.toBeNull();
+      expect(step, `${stepToken} missing or not in light-dark() form`).not.toBeNull();
+
+      expect(
+        step!.light,
+        `${stepToken} resolves to the same value as ${restToken} in LIGHT mode — ` +
+          `any hover/press built on this pair is a silent no-op there`
+      ).not.toEqual(rest!.light);
+      expect(
+        step!.dark,
+        `${stepToken} resolves to the same value as ${restToken} in DARK mode — ` +
+          `any hover/press built on this pair is a silent no-op there`
+      ).not.toEqual(rest!.dark);
+    });
+  });
 });

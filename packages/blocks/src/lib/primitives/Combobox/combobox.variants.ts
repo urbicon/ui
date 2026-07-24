@@ -13,7 +13,13 @@ export const comboboxVariants = tv({
       // `variant` axis (default `outlined` keeps the historical look).
       'w-full border bg-surface-base text-text-primary placeholder:text-text-tertiary',
       'transition-colors duration-[var(--blocks-duration-fast)]',
-      'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50 focus-visible:border-primary',
+      // `/20` matches `fieldFocusRing` in internal/field-chrome.ts, which Input,
+      // Textarea, Select, PinInput and TimeInput all use. At `/50` this field was
+      // the odd one out in both directions: a stronger valid ring than every
+      // sibling, and — once it gained the shared error frame (ring-danger/20) —
+      // an invalid state weaker than its own valid one. The icon-button slots
+      // below keep `/50`: they are small targets, not field frames.
+      'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/20 focus-visible:border-primary',
       'disabled:opacity-50 disabled:cursor-not-allowed'
     ],
     // Message tone follows the ROLE of the text, not the field state: the
@@ -93,7 +99,8 @@ export const comboboxVariants = tv({
     control: [
       'flex w-full flex-wrap items-center border bg-surface-base cursor-text',
       'transition-colors duration-[var(--blocks-duration-fast)]',
-      'focus-within:outline-none focus-within:ring-2 focus-within:ring-primary/50 focus-within:border-primary'
+      // `/20` — same reason as the `input` slot above.
+      'focus-within:outline-none focus-within:ring-2 focus-within:ring-primary/20 focus-within:border-primary'
     ],
     // Borderless search input inside `control`; the frame owns the border/ring.
     search: [
@@ -137,7 +144,7 @@ export const comboboxVariants = tv({
       },
       filled: {
         input:
-          'bg-surface-interactive border-transparent hover:bg-surface-hover focus-visible:bg-surface-base',
+          'bg-surface-interactive border-transparent hover:bg-surface-interactive-hover focus-visible:bg-surface-base',
         control: 'bg-surface-interactive border-transparent focus-within:bg-surface-base'
       },
       ghost: {

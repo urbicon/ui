@@ -18,7 +18,9 @@ describe('inputVariants', () => {
 
     expect(base).toContain('bg-surface-interactive');
     expect(base).toContain('border-transparent');
-    expect(base).toContain('hover:bg-surface-hover');
+    // Not `surface-hover`: that resolves to the same value as the resting
+    // `surface-interactive` fill in light mode, so the hover was invisible.
+    expect(base).toContain('hover:bg-surface-interactive-hover');
   });
 
   it('applies ghost variant with transparent background', () => {

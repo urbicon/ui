@@ -87,7 +87,12 @@ export const radioItemVariants = tv({
         indicator: 'w-3.5 h-3.5 mt-px',
         dot: 'w-1.5 h-1.5',
         label: 'text-xs',
-        description: 'text-3xs'
+        // `description` carries full sentences, so it stops at the body-copy
+        // floor (`text-xs`) instead of continuing the ladder down to `text-3xs`
+        // (10px) — 2xs/3xs are for marks, hints and dense grids, never for prose
+        // (see the tokens page). At this size the label/description hierarchy is
+        // carried by colour (text-primary vs text-tertiary) rather than size.
+        description: 'text-xs'
       },
       sm: {
         item: 'gap-2',
