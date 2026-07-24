@@ -3,6 +3,7 @@
   import { resolveIcon } from '$lib/icons';
   import CopyIconDefault from '$lib/icons/CopyIcon.svelte';
   import CheckIconDefault from '$lib/icons/CheckIcon.svelte';
+  import { createCopyState } from '$lib/internal/copy-state.svelte';
   import { codeBlockVariants, type CodeBlockVariants } from './code-block.variants';
   import type { CodeBlockProps } from './index';
 
@@ -13,9 +14,11 @@
     variant = 'card',
     showCopy = true,
     wrap = false,
-    copyLabel = 'Copy code',
+    copyLabel = 'Copy',
     copiedLabel = 'Copied',
+    copyFailedLabel = 'Copy failed',
     onCopy,
+    onCopyError,
     actions,
     class: className,
     unstyled: unstyledProp = false,
@@ -29,6 +32,15 @@
 
   const CopyIcon = resolveIcon('copy', CopyIconDefault);
   const CheckIcon = resolveIcon('check', CheckIconDefault);
+
+  // Deliberately NOT routed through useBlocksI18n(). CodeBlock is a leaf with no
+  // other reason to pull the i18n registry, and doing so for three strings costs
+  // +5 KB gz here — which StreamingMarkdown and ReasoningDisclosure then inherit
+  // by embedding it (+25% each, measured against bundle-size.baseline.json). A
+  // consumer localises through the three label props; ChatMessage, which already
+  // carries the registry via Alert/Avatar/Button/Tooltip, does use the
+  // translations because there it is free. See technical-debt.md — splitting
+  // translations/en.ts per area would remove the trade-off.
 
   const variantProps: CodeBlockVariants = $derived({ variant, wrap });
   const styles = $derived(codeBlockVariants(variantProps));
@@ -56,30 +68,30 @@
   // there is one: "Input code" is vaguer than "json code" for a screen reader.
   const regionLabel = $derived(lang ? `${lang} code` : label ? `${label} code` : 'Code');
 
-  let copied = $state(false);
-  let resetTimer: ReturnType<typeof setTimeout> | undefined;
+  const copyState = createCopyState();
 
-  async function copyCode() {
-    try {
-      await navigator.clipboard.writeText(code);
-      copied = true;
-      if (resetTimer) clearTimeout(resetTimer);
-      resetTimer = setTimeout(() => {
-        copied = false;
-        resetTimer = undefined;
-      }, 2000);
+  async function handleCopy() {
+    const result = await copyState.copy(code);
+    if (result.ok) {
       onCopy?.(code);
-    } catch (err) {
-      // Never swallow silently — but leave state untouched so the UI does not
-      // falsely confirm a copy that failed (e.g. denied clipboard permission).
-      console.error('CodeBlock: failed to copy code', err);
+    } else if (onCopyError) {
+      onCopyError(result.error);
+    } else {
+      // Never silent: a copy that did nothing is the outcome most worth
+      // reporting, and the consumer opted out of handling it.
+      console.error('CodeBlock: failed to copy code', result.error);
     }
   }
 
-  // Clear a pending reset on unmount so the timer can't fire into a torn-down component.
-  $effect(() => () => {
-    if (resetTimer) clearTimeout(resetTimer);
-  });
+  // The button reports the outcome, all three of them. A denied clipboard
+  // permission used to leave it looking untouched (console-only).
+  const buttonText = $derived(
+    copyState.phase === 'copied'
+      ? copiedLabel
+      : copyState.phase === 'error'
+        ? copyFailedLabel
+        : copyLabel
+  );
 </script>
 
 <div class={cls('root', className)} {...restProps}>
@@ -89,18 +101,24 @@
       <div class="flex items-center gap-1">
         {@render actions?.()}
         {#if showCopy}
+          <!--
+            Icon-only: the button sits in a header whose other half already names
+            the payload, and a text button there outweighed the caption it was
+            supposed to serve. `title` carries the label for pointer users, the
+            live region below announces the outcome.
+          -->
           <button
             type="button"
             class={cls('copyButton')}
-            onclick={copyCode}
-            aria-label={copied ? copiedLabel : copyLabel}
+            onclick={handleCopy}
+            aria-label={buttonText}
+            title={buttonText}
           >
-            {#if copied}
+            {#if copyState.phase === 'copied'}
               <CheckIcon size={14} />
             {:else}
               <CopyIcon size={14} />
             {/if}
-            <span>{copied ? copiedLabel : copyLabel}</span>
           </button>
         {/if}
       </div>
@@ -119,10 +137,10 @@
     ></pre>
 
   <!--
-    Copy confirmation for screen readers. A label change on the button the user
-    just activated is not a reliable announcement — a live status region is. It
-    must exist in the DOM before `copied` flips, so it always renders and only
-    its text content changes.
+    Copy outcome for screen readers. A label change on the button the user just
+    activated is not a reliable announcement — a live status region is. It must
+    exist in the DOM before the phase flips, so it always renders and only its
+    text content changes.
   -->
-  <span class="sr-only" role="status">{copied ? copiedLabel : ''}</span>
+  <span class="sr-only" role="status">{copyState.phase === 'idle' ? '' : buttonText}</span>
 </div>

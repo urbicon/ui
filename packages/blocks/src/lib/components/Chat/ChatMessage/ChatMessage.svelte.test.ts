@@ -138,7 +138,7 @@ describe('ChatMessage', () => {
         parts: [{ type: 'reasoning', text: 'internal chain of thought' }]
       })
     });
-    expect(screen.queryByRole('button', { name: 'Copy message', hidden: true })).toBeNull();
+    expect(screen.queryByRole('button', { name: 'Copy', hidden: true })).toBeNull();
   });
 
   it('never renders a javascript: attachment url as a link', () => {
@@ -266,7 +266,7 @@ describe('ChatMessage', () => {
         ]
       })
     });
-    screen.getByRole('button', { name: 'Copy message' }).click();
+    screen.getByRole('button', { name: 'Copy' }).click();
     await vi.waitFor(() => expect(writeText).toHaveBeenCalledTimes(1));
     // Only text parts, joined — sources are not part of the copied payload.
     expect(writeText).toHaveBeenCalledWith('First.\n\nSecond.');

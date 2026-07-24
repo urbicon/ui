@@ -1,5 +1,7 @@
 <script lang="ts">
+  import { useBlocksI18n } from '$lib/i18n';
   import { getBlocksConfig, resolveSlotClasses } from '$lib/provider';
+  import { createCopyState } from '$lib/internal/copy-state.svelte';
   import { Alert, Avatar, Button, Skeleton, Tooltip } from '$lib/primitives';
   import { resolveIcon } from '$lib/icons';
   import SparklesIconDefault from '$lib/icons/SparklesIcon.svelte';
@@ -34,8 +36,9 @@
     layout = 'bubble',
     density = 'comfortable',
     roleLabels,
-    copyLabel = 'Copy message',
-    copiedLabel = 'Copied',
+    copyLabel,
+    copiedLabel,
+    copyFailedLabel,
     regenerateLabel = 'Regenerate',
     retryLabel = 'Retry',
     errorLabel = 'Something went wrong',
@@ -47,8 +50,14 @@
     ...restProps
   }: ChatMessageProps = $props();
 
+  const bt = useBlocksI18n();
   const blocksConfig = getBlocksConfig();
   const unstyled = $derived(unstyledProp || blocksConfig?.unstyled || false);
+
+  // Localised by default instead of hardcoded English in the prop signature.
+  const copyText = $derived(copyLabel ?? bt('accessibility.copy'));
+  const copiedText = $derived(copiedLabel ?? bt('accessibility.copied'));
+  const copyFailedText = $derived(copyFailedLabel ?? bt('accessibility.copyFailed'));
 
   const SparklesIcon = resolveIcon('sparkles', SparklesIconDefault);
   const UserIcon = resolveIcon('user', UserIconDefault);
@@ -93,7 +102,7 @@
   });
 
   // Concatenated text parts — what the copy action writes to the clipboard.
-  const copyText = $derived(
+  const messageText = $derived(
     message.parts.flatMap((p) => (p.type === 'text' ? [p.text] : [])).join('\n\n')
   );
 
@@ -114,27 +123,22 @@
   );
 
   // ── Copy interaction ─────────────────────────────────────────────────────
-  let copied = $state(false);
-  let resetTimer: ReturnType<typeof setTimeout> | undefined;
+  const copyState = createCopyState();
+
+  // Reports all three outcomes. A failed copy used to be console-only, so the
+  // action bar looked identical whether the clipboard write worked or not.
+  const copyButtonText = $derived(
+    copyState.phase === 'copied'
+      ? copiedText
+      : copyState.phase === 'error'
+        ? copyFailedText
+        : copyText
+  );
 
   async function copyMessage() {
-    try {
-      await navigator.clipboard.writeText(copyText);
-      copied = true;
-      if (resetTimer) clearTimeout(resetTimer);
-      resetTimer = setTimeout(() => {
-        copied = false;
-        resetTimer = undefined;
-      }, 2000);
-    } catch (err) {
-      // Never confirm a copy that failed (e.g. denied clipboard permission).
-      console.error('ChatMessage: failed to copy message', err);
-    }
+    const result = await copyState.copy(messageText);
+    if (!result.ok) console.error('ChatMessage: failed to copy message', result.error);
   }
-
-  $effect(() => () => {
-    if (resetTimer) clearTimeout(resetTimer);
-  });
 </script>
 
 {#snippet defaultAvatar(role: ChatRole)}
@@ -249,15 +253,15 @@
   <div class={cls('actions')}>
     <!-- No copy for text-less messages (tool-call/reasoning-only): copying an
          empty string and confirming "Copied" would be a lie (review finding). -->
-    {#if copyText}
-      <Tooltip label={copyLabel}>
+    {#if messageText}
+      <Tooltip label={copyButtonText}>
         <button
           type="button"
           class={cls('actionButton')}
           onclick={copyMessage}
-          aria-label={copied ? copiedLabel : copyLabel}
+          aria-label={copyButtonText}
         >
-          {#if copied}
+          {#if copyState.phase === 'copied'}
             <CheckIcon size={16} />
           {:else}
             <CopyIcon size={16} />
@@ -354,7 +358,7 @@
     </div>
   {/if}
 
-  <!-- Copy confirmation for screen readers — a live status region, present
-       before `copied` flips so it always announces the change. -->
-  <span class="sr-only" role="status">{copied ? copiedLabel : ''}</span>
+  <!-- Copy outcome for screen readers — a live status region, present before the
+       phase flips so it always announces the change. -->
+  <span class="sr-only" role="status">{copyState.phase === 'idle' ? '' : copyButtonText}</span>
 </div>

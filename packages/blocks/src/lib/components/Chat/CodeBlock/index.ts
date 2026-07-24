@@ -44,13 +44,34 @@ export interface CodeBlockProps
    */
   wrap?: boolean;
 
-  /** Accessible label / tooltip for the copy button in its idle state. */
+  /**
+   * Accessible label / tooltip for the copy button at rest. These three labels
+   * are plain English defaults rather than translations on purpose: pulling the
+   * i18n registry into this leaf costs +5 KB gz, which StreamingMarkdown and
+   * ReasoningDisclosure would inherit by embedding it. Pass your own strings to
+   * localise.
+   * @default 'Copy'
+   */
   copyLabel?: string;
-  /** Accessible label shown for two seconds after a successful copy. */
+  /**
+   * Label shown for two seconds after a successful copy.
+   * @default 'Copied'
+   */
   copiedLabel?: string;
+  /**
+   * Label shown for two seconds after a FAILED copy — e.g. a denied clipboard
+   * permission or a non-secure context.
+   * @default 'Copy failed'
+   */
+  copyFailedLabel?: string;
 
   /** Called with the copied code after a successful clipboard write. */
   onCopy?: (code: string) => void;
+  /**
+   * Called with the thrown reason when the clipboard write fails. Without a
+   * handler the failure is logged; either way the button reports it.
+   */
+  onCopyError?: (error: unknown) => void;
 
   /** Extra header actions rendered to the right, before the copy button. */
   actions?: Snippet;

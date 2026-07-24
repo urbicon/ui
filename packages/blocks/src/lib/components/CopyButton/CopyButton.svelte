@@ -3,6 +3,7 @@
   import { resolveIcon } from '$lib/icons';
   import CheckIconDefault from '$lib/icons/CheckIcon.svelte';
   import CopyIconDefault from '$lib/icons/CopyIcon.svelte';
+  import { createCopyState } from '$lib/internal/copy-state.svelte';
   import { Button } from '$lib/primitives/Button';
   import { getBlocksConfig, resolveSlotClasses } from '$lib/provider';
   import { copyButtonVariants } from './copy-button.variants';
@@ -40,8 +41,11 @@
   const blocksConfig = getBlocksConfig();
   const unstyled = $derived(unstyledProp || blocksConfig?.unstyled || false);
 
-  let state = $state<'idle' | 'copied' | 'error'>('idle');
-  let timer: ReturnType<typeof setTimeout> | undefined;
+  // Shares the clipboard state machine with CodeBlock and ChatMessage — see
+  // internal/copy-state.svelte.ts for why the outcome is returned rather than
+  // delivered through callbacks captured at init.
+  const copyState = createCopyState({ timeout: () => timeout });
+  const state = $derived(copyState.phase);
 
   const copyText = $derived(label ?? bt('accessibility.copy'));
   const copiedText = $derived(copiedLabel ?? bt('accessibility.copied'));
@@ -91,25 +95,11 @@
   // visible text be the name (WCAG 2.5.3), keeping any consumer aria-label.
   const ariaLabel = $derived(label ? ariaLabelProp : (ariaLabelProp ?? copyText));
 
-  function scheduleReset() {
-    clearTimeout(timer);
-    if (timeout > 0) timer = setTimeout(() => (state = 'idle'), timeout);
-  }
-
   async function handleCopy() {
-    try {
-      if (!navigator.clipboard?.writeText) throw new Error('Clipboard API unavailable');
-      await navigator.clipboard.writeText(value);
-      state = 'copied';
-      onCopy?.(value);
-    } catch (error) {
-      state = 'error';
-      onError?.(error);
-    }
-    scheduleReset();
+    const result = await copyState.copy(value);
+    if (result.ok) onCopy?.(value);
+    else onError?.(result.error);
   }
-
-  $effect(() => () => clearTimeout(timer));
 </script>
 
 <span class="contents">

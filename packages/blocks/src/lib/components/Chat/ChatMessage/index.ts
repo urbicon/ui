@@ -67,10 +67,22 @@ export interface ChatMessageProps
 
   /** Display names per role, shown in the `plain`-layout header. */
   roleLabels?: Partial<Record<ChatRole, string>>;
-  /** Accessible label / tooltip for the copy action. @default 'Copy message' */
+  /**
+   * Accessible label / tooltip for the copy action.
+   * @default the `accessibility.copy` translation
+   */
   copyLabel?: string;
-  /** Accessible label shown briefly after a successful copy. @default 'Copied' */
+  /**
+   * Label shown briefly after a successful copy.
+   * @default the `accessibility.copied` translation
+   */
   copiedLabel?: string;
+  /**
+   * Label shown briefly after a FAILED copy — e.g. a denied clipboard permission
+   * or a non-secure context.
+   * @default the `accessibility.copyFailed` translation
+   */
+  copyFailedLabel?: string;
   /** Accessible label / tooltip for the regenerate action. @default 'Regenerate' */
   regenerateLabel?: string;
   /** Label for the retry button in the error/aborted Alert. @default 'Retry' */

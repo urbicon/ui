@@ -1042,3 +1042,27 @@ internal TODO instead. Sections are ordered roughly by urgency.
   (`docs/internal/A2UI-POC-BEFUNDE-2026-07.md` §4.2), which may supersede
   piecemeal basic-catalog additions.
 - **Found:** 2026-07-24, first live chat-demo run (haircut booking form).
+
+### `translations/en.ts` is one object, so three keys cost the whole table
+
+- **Where:** `packages/blocks/src/lib/i18n/index.ts` (eager `{ en: enTranslations }`)
+  + `packages/blocks/src/lib/translations/en.ts`.
+- **What:** `useBlocksI18n()` pulls `createPackageI18n` **and** the complete
+  English catalog, so a component that needs three strings pays for all of them.
+  Measured on CodeBlock: +5.0 KB gz (6.8 → 11.9, +74% on a leaf) plus a 2.0 KB
+  lazy `de` chunk — and StreamingMarkdown (+26%) / ReasoningDisclosure (+25%)
+  inherit it just by embedding CodeBlock. CodeBlock therefore keeps plain English
+  label defaults (`copyLabel` / `copiedLabel` / `copyFailedLabel`) while
+  ChatMessage does use the translations, because it already carries the registry
+  via Alert/Avatar/Button/Tooltip. That split is a bundle decision, not a
+  considered API stance: two components in one family localise differently, and a
+  consumer holding only `StreamingMarkdown` cannot reach the CodeBlock labels at
+  all (no prop passthrough).
+- **Why deferred:** The fix is an i18n-architecture change — split the catalog
+  per area (`accessibility`, per-component groups) so a component imports only
+  its slice, which touches `createPackageI18n`, the lazy-locale loader, `de.ts`,
+  the `i18n:check` scanner and every package that registers a locale. It pays off
+  across the whole library rather than for this one family, and it is larger than
+  the chat wave that surfaced it.
+- **Found:** 2026-07-25, chat-family redesign — the bundle-size gate caught the
+  regression when CodeBlock was switched to the shared accessibility strings.
