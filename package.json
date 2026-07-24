@@ -106,7 +106,8 @@
     "mcp:start": "bun run packages/mcp-server/src/index.ts",
     "mcp:start:http": "bun run packages/mcp-server/src/index.ts --transport http --port 3001",
     "fix": "biome check --write .",
-    "prepare": "lefthook install || true"
+    "prepare": "lefthook install || true",
+    "chat": "bun --filter='@urbicon-ui/chat-demo' run dev"
   },
   "devDependencies": {
     "@axe-core/playwright": "^4.12.1",
