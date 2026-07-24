@@ -4,6 +4,16 @@ All notable changes to this project will be documented in this file.
 This changelog is automatically generated from [Conventional Commits](https://www.conventionalcommits.org).
 
 
+## [6.40.2] - 2026-07-24
+
+### Documentation
+- Reconcile technical-debt after W2 gate-harden
+
+### Testing
+- **e2e**: Add dark-mode axe gate + scan playground stages
+- **e2e**: Tighten VR tolerance, make fixtures deterministic, re-baseline
+- **e2e**: Document the dark-axe gate's fixture scope
+
 ## [6.40.1] - 2026-07-24
 
 ### Bug Fixes
