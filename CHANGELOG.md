@@ -4,6 +4,19 @@ All notable changes to this project will be documented in this file.
 This changelog is automatically generated from [Conventional Commits](https://www.conventionalcommits.org).
 
 
+## [6.40.1] - 2026-07-24
+
+### Bug Fixes
+- **blocks**: Guard informative-text contrast; quaternary is mark-only
+- **docs**: Raise Shiki punctuation to WCAG AA + add contrast guard
+- **docs-app**: Darken Rooms accent + soft text to clear WCAG AA
+- **docs-app**: Sync Rooms palette docs to new accent; harden W1 tests
+
+### Documentation
+- Mark the A2UI DateTimeInput debt entry as shipped, keep Tabs
+- Stamp technical-debt decision-pass verdicts
+- Reconcile technical-debt after W1 (5 resolved, 1 new)
+
 ## [6.40.0] - 2026-07-24
 
 ### Bug Fixes
