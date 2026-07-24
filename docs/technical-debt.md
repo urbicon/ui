@@ -241,67 +241,67 @@ internal TODO instead. Sections are ordered roughly by urgency.
 - **Found:** 2026-07-22, PlaygroundConfigurator helpToggle/dt() pass
   (debt-fix-wave-3).
 
-### Table persistence cannot distinguish "stored empty" from "absent" — cleared state re-seeds
+### Table filter operators: three residual sharp edges around dates and empty values
 
-- **Where:** `packages/table/src/lib/stores/concerns/usePersistence.svelte.ts`
-  (every hydration guard: `value.length > 0`, `value.column`, truthy checks)
-  on top of `createPersistentState`
-  (`packages/blocks/src/lib/utils/persistent-state.svelte.ts`).
-- **What:** Hydration treats a stored *empty* value (`[]`, `''`,
-  `{ column: '' }`) exactly like "nothing stored" and skips it. Combined with
-  the `initial*` seeds — now the whole family (`initialSort` / `initialFilters`
-  / `initialSelectedIds`, debt-fix-wave-4; plus `initialGroupBy` /
-  `initialSummaryConfigs`, moved into the same constructor seed 2026-07-23) —
-  this reanimates cleared state: the user clears the sort (asc→desc→none),
-  removes all filter chips, ungroups, clears every summary, or deselects
-  everything → the sync writes the empty value to storage → on reload nothing
-  hydrates, the seed guard sees an empty axis and applies the seed again.
-  Documented honestly in the props' JSDoc, `TableSeedState` and the
-  sveltekit-utils README caveat. "empty" is simply not a first-class persisted
-  state anywhere in the table's persistence.
-- **Why deferred:** The fix is a stored-empty-vs-absent distinction in the
-  persistence layer (presence marker or envelope per axis) — it affects every
-  axis, every guard, and every consumer's existing storage keys, so it wants
-  its own design decision plus a migration story for already-persisted state.
-- **Found:** 2026-07-23, adversarial review of the `initial*` seed work
-  (debt-fix-wave-4).
+- **Where:** `packages/table/src/lib/stores/concerns/useFiltering.svelte.ts`
+  (the `equals` branch + the numeric path of `greaterThan`/`lessThan`) and
+  `packages/table/src/lib/features/SmartFilterBar/FilterMenu.svelte:~99`
+  (`selectedOperator: 'contains'` default) vs. `:43-60` (`OPERATORS_BY_TYPE`).
+- **What:** Three neighbours of the date-comparator fix (W4, 2026-07-24), each
+  deliberately out of its scope. (a) `equals` — which the UI labels "on date"
+  for `dataType: 'date'` columns — compares lowercased strings, so it only ever
+  matches columns whose accessor returns the exact `YYYY-MM-DD` string; a `Date`
+  instance or a timestamped ISO string never matches. (b) An empty/blank filter
+  value on a numeric column stays on the numeric path (`Number('') === 0`), so
+  `greaterThan ''` silently means "> 0" instead of being inert — reachable via
+  `initialFilters`, restored persistence or programmatic `addFilter` (the menu
+  itself guards on `.trim()`). The date path returns `false` for empty values,
+  so the two paths now disagree. (c) The menu seeds every column's operator with
+  `contains`, which `number`/`date` columns don't even offer — pick a date, press
+  Enter without touching the operator select, and you get a substring match.
+- **Why deferred:** (a) would make the generic text operator type-aware, which
+  changes string behaviour for every column — wants its own decision (dedicated
+  `onDate` operator vs. day-bucket equality gated on `dataType`). (b) is
+  pre-existing numeric semantics that the fix deliberately kept
+  backward-compatible; changing it is a call about seeded/restored filters.
+  (c) is a UI default in a different file, plus a `Select` question (bound value
+  outside the option list).
+- **Found:** 2026-07-24, W4 date-filter fix.
 
-### Table single-select: row click does not select — the checkbox is the only path
+### Table keyboard row navigation is dead inside groups
 
-- **Where:** `packages/table/src/lib/core/TableRow.svelte` (`handleRowClick`
-  only fires `onRowClick`/expansion; selection happens solely in the
-  checkbox's `onCheckedChange`).
-- **What:** In `selectionMode="single"`, clicking a row does not select it —
-  users must hit the small checkbox. Most single-select tables treat the whole
-  row as the click target (and often drop the checkbox column entirely in
-  single mode). The landing caption originally promised "click a row to
-  select" — corrected to "a checkbox" to match reality.
-- **Why deferred:** Row-click selection is a behaviour change with real
-  trade-offs (conflicts with `onRowClick` consumers, text selection, expansion
-  rows), so it needs a deliberate API decision, not a drive-by change.
-- **Found:** 2026-07-09, exercising the landing table specimen with Playwright.
+- **Where:** `packages/table/src/lib/core/TableDesktop.svelte:124`
+  (`querySelectorAll('tbody tr[data-row-index]')`) vs.
+  `packages/table/src/lib/core/GroupedRow.svelte` (its item rows carry neither
+  `data-row-index` nor `tabindex`, unlike `TableRow.svelte:126`).
+- **What:** The roving-tabindex navigation (arrows, Home/End, PageUp/PageDown,
+  `Space` to select, `Enter` to expand) only ever sees flat rows. In a grouped
+  table the row collection is empty, so the whole keyboard path is inert —
+  a keyboard user can still reach the checkboxes via Tab, but not navigate or
+  select rows. Pre-existing; surfaced while wiring row-click selection (W4),
+  which gave the mouse a path the keyboard still lacks in groups.
+- **Why deferred:** Making grouped rows part of the roving sequence means one
+  index space across group headers and item rows (are collapsed groups skipped?
+  is the group header itself a stop?), plus the aria-rowindex bookkeeping —
+  an a11y design pass with SR testing, not an attribute addition.
+- **Found:** 2026-07-24, W4 row-click selection.
 
-### Table grouping silently disables virtualization — grouping a large virtualized table dumps every row into the DOM
+### Mobile renders the `emptyState` snippet — which is table-row markup — inside a `<div>` card list
 
-- **Where:** `packages/table/src/lib/core/TableDesktop.svelte`
-  (`virtualizedActive = virtualized && !tableState.groupByKey`) + the header
-  menu, which still offers "group by" on a virtualized table.
-- **What:** Setting a group key on a `virtualized` table doesn't group the
-  virtual list — it deactivates virtualization entirely and falls back to the
-  normal render path with the **full** item set. For exactly the datasets
-  `virtualized` exists for, that means thousands of rows plus group headers
-  hitting the DOM at once; observed on the landing departures specimen (8,640
-  rows): grouping via the header menu visually broke the board. Sorting is
-  fine (`virtualItems = tableContext.sortedItems`). The guard itself is
-  deliberate — grouped virtualization isn't implemented — but the *silent*
-  fallback is the worst of the available behaviours.
-- **Why deferred:** Needs a product decision, either direction is real work:
-  (a) implement grouped virtualization (group headers become virtual items
-  with their own heights), or (b) suppress the grouping affordances (header-
-  menu "group by", `initialGroupBy`) while `virtualized`, documented as a mode
-  restriction. The landing specimen dropped `virtualized` meanwhile (2026-07-11)
-  and demos the SmartFilterBar + grouping on a day-sized board instead.
-- **Found:** 2026-07-11, exercising the landing departures specimen (Felix).
+- **Where:** `packages/table/src/lib/core/TableMobile.svelte` (the `emptyState`
+  branch) vs. its documented shape (`apps/docs/src/routes/table/customization/+page.svelte`,
+  where the example snippet is `<tr><td colspan="99">…`).
+- **What:** The same `emptyState` snippet feeds the desktop `<tbody>` and the
+  mobile card container. Consumers write row markup (as the docs example does),
+  so on mobile a `<tr>`/`<td>` lands inside a `<div>` — the parser drops the
+  tags and the content renders unstyled at best. W4 dodged the trap for the new
+  loading/error states (mobile renders plain text for those, commented at the
+  site) but left the pre-existing `emptyState` path as is.
+- **Why deferred:** The fix is an API decision: either a second snippet for the
+  card list (`emptyStateMobile`), or a documented "must be phrasing content"
+  contract with a wrapper on the desktop side — both change the public snippet
+  surface, and neither is a drive-by while shipping the state props.
+- **Found:** 2026-07-24, W4 mobile loading/error states.
 
 ### Virtualized body renders in a second `<table>` — column widths drift from the header (and rows are fixed-height tall)
 
@@ -324,60 +324,40 @@ internal TODO instead. Sections are ordered roughly by urgency.
   per-call-site patch.
 - **Found:** 2026-07-11, exercising the landing departures specimen (Felix).
 
-### Table live-update push methods are only reachable through a bridge component in a snippet
+### `createPersistentState` has no migration or GC path, and Input builds it inside an `$effect`
 
-- **Where:** `packages/table/src/lib` — `pushInsert`/`pushUpdate`/`pushDelete`
-  live on the table context (`getTableContext()`), which is only accessible
-  from *inside* the `<Table>` component tree.
-- **What:** A consumer wiring a WebSocket/SSE feed cannot reach the push
-  methods from the page that renders `<Table>` — there is no `bind:` target or
-  ready-callback exposing the context. The working pattern (used by the
-  live-updates docs page, 2026-07-13) is a bridge component mounted in the
-  `toolbar` snippet that captures `getTableContext()` and hands it upward.
-  Functional, but non-obvious DX for the feature's primary use case.
-- **Why deferred:** Wants an API decision — e.g. an `onReady(context)`
-  callback, an exported imperative handle, or documenting the bridge as the
-  blessed pattern — not a drive-by addition. Also interacts with what surface
-  of the context should be public.
-- **Update 2026-07-13, same pass:** `pushUpdate` on a still-pending inserted
-  row is dropped on apply (updates merge before inserts; DEV-only orphan
-  warn). Fix direction: merge updates into the pending-insert buffer. Assess
-  together with the API decision.
-- **Found:** 2026-07-13, building the live-updates docs demo.
+- **Where:** `packages/blocks/src/lib/utils/persistent-state.svelte.ts:~71`
+  (`urbicon_${key}_v${version}`) and
+  `packages/blocks/src/lib/primitives/Input/Input.svelte:~59-90`.
+- **What:** Two neighbours of the stored-empty fix (W4, 2026-07-24). (a) The
+  `version` only namespaces the key: a bump orphans the old entry silently, with
+  neither read-across nor cleanup, so it stays in the user's `localStorage`
+  forever. That matters now — the honest fallback for pre-fix consumers whose
+  storage holds mount-written defaults would be exactly such a key bump.
+  (b) `Input` constructs the persistent state *inside* an `$effect`, so every
+  change of `persistKey`/`persistNamespace`/`persistStorage`/`persistVersion`
+  creates a new instance (with its own inner effect) and never tears the old one
+  down; its hydration also guesses via truthiness (`value` falsy → write), which
+  the new `hasStoredValue` could now answer exactly.
+- **Why deferred:** (a) needs a migration/GC strategy across all consumers
+  (table's 8 axes + Input) plus a call on read-old-versions vs. delete.
+  (b) turns on Input semantics — should a stored empty string override a
+  consumer-provided default value? — an API decision of its own.
+- **Found:** 2026-07-24, W4 persistence work.
 
-### Table's structural `<td>` cells bypass `slotClasses.cell`
+### Table persists a *controlled* `searchTerm`, unlike controlled selection
 
-- **Where:** `packages/table/src/lib/core/TableRow.svelte` (selection/expand
-  cells, ~`:116`/`:130`), `TableHead.svelte` (~`:160`), `GroupedRow.svelte`
-  (~`:133`) — each renders `class="{rowStyles.cell()} w-12"` / `w-10` as a raw
-  concat that never routes `styleConfig.slotClasses.cell`.
-- **What:** A consumer's `slotClasses.cell` styles only the data cells (applied
-  via `TableCell` / the `resolveSlotClass` path), not the structural
-  checkbox/chevron/spacer cells. Harmless today (no bucket conflict with the
-  `w-*` utilities on those cells), but an inconsistency if a consumer expects
-  `slotClasses.cell` to reach every cell.
-- **Why deferred:** Pre-existing; surfaced during the tv()-fold sweep
-  (`dd67420`) but out of its scope. Wants a deliberate call on whether the
-  structural cells are part of the `cell` slot contract, then routing them
-  through `resolveSlotClass` too.
-- **Found:** 2026-07-14, table tv()-fold sweep (Opus debt-sweep).
-
-### Table date filters: `greaterThan`/`lessThan` are dead for string/Date values
-
-- **Where:** `packages/table/src/lib/stores/concerns/useFiltering.svelte.ts:55-58`
-  (compares via `Number(String(raw).toLowerCase())`) vs.
-  `features/SmartFilterBar/FilterMenu.svelte:49-52,301` (offers "after"/
-  "before" with a date input for `dataType: 'date'`).
-- **What:** For ISO strings (`'2021-03-15'`) or `Date` objects the `Number()`
-  coercion yields `NaN`, so the comparison is always false — the date
-  operators the UI actively offers only work when the accessor returns
-  numeric timestamps. The filtering docs (2026-07-13) deliberately describe
-  only the real `Number()` semantics and make no date claim.
-- **Why deferred:** Needs a design decision: date-aware parsing in the
-  comparator (what formats?) vs. documenting a timestamp-accessor requirement
-  vs. dropping the operators for non-numeric date columns. Touches filter
-  semantics consumers may depend on.
-- **Found:** 2026-07-13, table docs API catch-up.
+- **Where:** `packages/table/src/lib/stores/concerns/usePersistence.svelte.ts`
+  (`syncSearch`) vs. `syncSelection`, which checks `state.selectionControlled`;
+  driven by `TableProvider.svelte`'s controlled-search effect.
+- **What:** With a controlled `searchTerm` prop every keystroke is still
+  mirrored into storage, although the prop is the source of truth. Switching
+  that table back to uncontrolled later revives the old term — the exact bug
+  class `selectionControlled` already prevents for selection.
+- **Why deferred:** Wants a `searchControlled` flag in `TableState` mirroring
+  the selection one, plus a test — small, but a behaviour change of its own
+  outside the stored-empty scope.
+- **Found:** 2026-07-24, W4 persistence work.
 
 ### Checkbox now carries a press cue + intent interaction layer its form siblings lack
 
@@ -649,24 +629,6 @@ internal TODO instead. Sections are ordered roughly by urgency.
 - **Found:** 2026-07-05, runtime-constraint documentation work.
 
 ## Dead code / decorative config
-
-### `Table.svelte` hardcodes `loading={false}` — the whole loading-state path is dead for client-mode consumers
-
-- **Where:** `packages/table/src/lib/core/table/Table.svelte:187`
-  (`loading={false}` passed to `<TableProvider>`).
-- **What:** `TableProvider` accepts a `loading?: boolean`
-  (`TableProvider.svelte:21`) and syncs it via `$effect` at `:199-201`, but the
-  public `<Table>` never forwards a boolean — it hardcodes `false`.
-  (`Table.svelte:66`'s `loading` prop is the *snippet*, a different thing.) So
-  `tableState.loading` can only become true through server mode
-  (`setServerLoading`, `useRemoteData.svelte.ts:59`), and for every client-mode
-  table `loadingText` (`Table.svelte:57`), `LoadingState.svelte` and the `{#if
-  tableState.loading}` branches at `TableDesktop.svelte:403-407` are unreachable.
-- **Why deferred:** Needs an API call — should `<Table>` expose a `loading`
-  boolean at all, or should the dead path be removed? Found while tracing where
-  the prerendered "Loading" strings came from (they were CodePanel's, *precisely
-  because* this path is dead).
-- **Found:** 2026-07-14, SSR-gap investigation (publish-m3-finale).
 
 ### docs-gen `@see` extraction stores bare type names as `seeAlso`, which ApiReference can't link
 
