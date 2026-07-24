@@ -47,12 +47,15 @@ export const editorialLight: ThemeRegistrationRaw = {
       settings: { foreground: '#6b5a3e' }
     },
     {
+      // Darkened from #9a968e (2.82:1 — WCAG AA fail) to the lightest ramp stop
+      // that clears 4.5:1 on the #fbfaf6 panel ground (4.81:1) — the quiet
+      // structural glyphs stay quiet but readable. Guarded by shiki-contrast.test.ts.
       scope: ['punctuation', 'meta.brace', 'punctuation.separator', 'punctuation.terminator'],
-      settings: { foreground: '#9a968e' }
+      settings: { foreground: '#726f66' }
     },
     {
       scope: ['meta.tag.start', 'meta.tag.end'],
-      settings: { foreground: '#9a968e' }
+      settings: { foreground: '#726f66' }
     }
   ]
 };
@@ -104,12 +107,15 @@ export const editorialDark: ThemeRegistrationRaw = {
       settings: { foreground: '#c4a872' }
     },
     {
+      // Lightened from #7a776e (3.55:1 — WCAG AA fail) to the darkest ramp stop
+      // that clears 4.5:1 on the #232220 panel ground (4.84:1). Guarded by
+      // shiki-contrast.test.ts.
       scope: ['punctuation', 'meta.brace', 'punctuation.separator', 'punctuation.terminator'],
-      settings: { foreground: '#7a776e' }
+      settings: { foreground: '#918e83' }
     },
     {
       scope: ['meta.tag.start', 'meta.tag.end'],
-      settings: { foreground: '#7a776e' }
+      settings: { foreground: '#918e83' }
     }
   ]
 };
