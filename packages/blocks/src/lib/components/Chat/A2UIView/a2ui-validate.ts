@@ -1,0 +1,1160 @@
+/**
+ * The A2UI processor: incremental, whitelist-only, fail-loud validation that
+ * turns a stream of Server→Client envelopes into per-surface component maps and
+ * data models. Pure TS, no Svelte — deliberately NOT reactive (the house
+ * pattern of the streaming-markdown engine: plain Maps mutated in place; the
+ * Svelte layer bumps a version counter to re-derive the render tree).
+ *
+ * Security posture (untrusted-payload path):
+ * - Whitelist-only: only registry-declared props reach the render layer, so
+ *   handler injection (`onclick`, …) and prop smuggling are structurally
+ *   impossible — there is no payload spread.
+ * - `__proto__`/`constructor`/`prototype` are rejected as component ids, prop
+ *   keys, pointer segments and action-context keys.
+ * - Never merges or spreads payload objects; everything flows through `Map`s.
+ * - `collectGraphIssues` bounds traversal (depth 32, nodes 512) to cap DoS.
+ *
+ * Issue routing: envelope-level faults (bad version, unknown envelope type,
+ * op-before-createSurface) land in `globalIssues`; everything scoped to a known
+ * surface lands in that surface's `issues`. Graph-level faults (cycle, depth,
+ * node count, dangling refs) are computed on demand by `collectGraphIssues`,
+ * because "dangling" is a warning mid-stream and an error once settled.
+ */
+
+import { A2UI_ISSUE_CODES, type A2uiIssueSeverity, type A2uiValidationIssue } from './a2ui.types';
+import { cloneData, deleteAtPointer, getAtPointer, setAtPointer } from './a2ui-data';
+import {
+  A2UI_ICON_NAMES,
+  A2UI_IGNORED_PROPS,
+  A2UI_REGISTRY,
+  A2UI_SUPPORTED_VERSIONS,
+  A2UI_SVG_PATH_RE,
+  type A2uiPropSpec,
+  UNSUPPORTED_A2UI_COMPONENTS
+} from './a2ui-registry';
+
+const PROTO_KEYS: ReadonlySet<string> = new Set(['__proto__', 'constructor', 'prototype']);
+
+// ── Public state shapes ──────────────────────────────────────────────────────
+
+export interface A2uiComponentInstance {
+  id: string;
+  component: string;
+  /** Only registry-declared props; the raw payload values (dynamics resolved at render). */
+  props: ReadonlyMap<string, unknown>;
+  /** Index of the envelope that last defined this component. */
+  sourceIndex: number;
+}
+
+export interface A2uiSurfaceState {
+  surfaceId: string;
+  components: Map<string, A2uiComponentInstance>;
+  /** Root of the surface data model (mutated in place by two-way edits). */
+  dataModel: unknown;
+  issues: A2uiValidationIssue[];
+}
+
+export interface A2uiProcessor {
+  surfaces: Map<string, A2uiSurfaceState>;
+  globalIssues: A2uiValidationIssue[];
+  /** Validate + apply one envelope. `index` positions it as `/messages/<index>` in issue paths. */
+  apply(envelope: unknown, index: number): void;
+}
+
+// ── Helpers ──────────────────────────────────────────────────────────────────
+
+function isPlainObject(value: unknown): value is Record<string, unknown> {
+  return value !== null && typeof value === 'object' && !Array.isArray(value);
+}
+
+function isContainer(value: unknown): value is Record<string, unknown> | unknown[] {
+  return value !== null && typeof value === 'object';
+}
+
+function issue(
+  severity: A2uiIssueSeverity,
+  code: string,
+  message: string,
+  extra?: { surfaceId?: string; path?: string }
+): A2uiValidationIssue {
+  return { severity, code, message, ...extra };
+}
+
+const OP_KEYS = ['createSurface', 'updateComponents', 'updateDataModel', 'deleteSurface'] as const;
+
+// ── Dynamic-value shape guards ───────────────────────────────────────────────
+
+function isDataBinding(value: unknown): boolean {
+  return isPlainObject(value) && typeof value.path === 'string';
+}
+function isFunctionCall(value: unknown): boolean {
+  return isPlainObject(value) && typeof value.call === 'string';
+}
+function isDynamicRef(value: unknown): boolean {
+  return isDataBinding(value) || isFunctionCall(value);
+}
+function isDynamicString(value: unknown): boolean {
+  return typeof value === 'string' || isDynamicRef(value);
+}
+function isDynamicNumber(value: unknown): boolean {
+  return (typeof value === 'number' && Number.isFinite(value)) || isDynamicRef(value);
+}
+function isDynamicBoolean(value: unknown): boolean {
+  return typeof value === 'boolean' || isDynamicRef(value);
+}
+function isDynamicStringList(value: unknown): boolean {
+  return (
+    (Array.isArray(value) && value.every((item) => typeof item === 'string')) || isDynamicRef(value)
+  );
+}
+
+// ── Per-prop validation ──────────────────────────────────────────────────────
+
+interface PropResult {
+  store: boolean;
+  issues: A2uiValidationIssue[];
+}
+
+function validateProp(
+  componentName: string,
+  key: string,
+  spec: A2uiPropSpec,
+  value: unknown,
+  path: string,
+  surfaceId: string
+): PropResult {
+  const issues: A2uiValidationIssue[] = [];
+  const mismatch = (detail: string): PropResult => {
+    issues.push(issue('error', A2UI_ISSUE_CODES.TYPE_MISMATCH, detail, { surfaceId, path }));
+    return { store: false, issues };
+  };
+
+  switch (spec.kind) {
+    case 'string':
+      if (spec.dynamic ? isDynamicString(value) : typeof value === 'string')
+        return { store: true, issues };
+      return mismatch(
+        `"${key}" on ${componentName} must be a string${spec.dynamic ? ' or { path } binding' : ''}`
+      );
+
+    case 'number':
+      if (
+        spec.dynamic ? isDynamicNumber(value) : typeof value === 'number' && Number.isFinite(value)
+      )
+        return { store: true, issues };
+      return mismatch(
+        `"${key}" on ${componentName} must be a finite number${spec.dynamic ? ' or { path } binding' : ''}`
+      );
+
+    case 'boolean':
+      if (spec.dynamic ? isDynamicBoolean(value) : typeof value === 'boolean')
+        return { store: true, issues };
+      return mismatch(
+        `"${key}" on ${componentName} must be a boolean${spec.dynamic ? ' or { path } binding' : ''}`
+      );
+
+    case 'stringList':
+      if (isDynamicStringList(value)) return { store: true, issues };
+      return mismatch(`"${key}" on ${componentName} must be a string array or { path } binding`);
+
+    case 'enum':
+      if (typeof value === 'string' && spec.values?.includes(value)) return { store: true, issues };
+      issues.push(
+        issue(
+          'error',
+          A2UI_ISSUE_CODES.UNKNOWN_ENUM,
+          `"${key}" on ${componentName} must be one of: ${(spec.values ?? []).join(', ')}`,
+          { surfaceId, path }
+        )
+      );
+      return { store: false, issues };
+
+    case 'childId':
+      if (typeof value === 'string') return { store: true, issues };
+      return mismatch(`"${key}" on ${componentName} must be a component id (string)`);
+
+    case 'childList':
+      return validateChildList(componentName, key, value, path, surfaceId);
+
+    case 'action':
+      return validateAction(componentName, key, value, path, surfaceId);
+
+    case 'options':
+      return validateOptions(componentName, key, value, path, surfaceId);
+
+    case 'icon':
+      return validateIcon(value, path, surfaceId);
+
+    case 'accessibility':
+      if (isPlainObject(value)) return { store: true, issues };
+      return mismatch(`"${key}" on ${componentName} must be an object { label?, description? }`);
+  }
+}
+
+function validateChildList(
+  componentName: string,
+  key: string,
+  value: unknown,
+  path: string,
+  surfaceId: string
+): PropResult {
+  if (Array.isArray(value)) {
+    if (value.every((item) => typeof item === 'string')) return { store: true, issues: [] };
+    return {
+      store: false,
+      issues: [
+        issue(
+          'error',
+          A2UI_ISSUE_CODES.TYPE_MISMATCH,
+          `"${key}" on ${componentName} must be an array of component ids`,
+          {
+            surfaceId,
+            path
+          }
+        )
+      ]
+    };
+  }
+  if (
+    isPlainObject(value) &&
+    typeof value.componentId === 'string' &&
+    typeof value.path === 'string'
+  ) {
+    return { store: true, issues: [] };
+  }
+  return {
+    store: false,
+    issues: [
+      issue(
+        'error',
+        A2UI_ISSUE_CODES.TYPE_MISMATCH,
+        `"${key}" on ${componentName} must be an array of ids or a template { componentId, path }`,
+        { surfaceId, path }
+      )
+    ]
+  };
+}
+
+function validateAction(
+  componentName: string,
+  key: string,
+  value: unknown,
+  path: string,
+  surfaceId: string
+): PropResult {
+  const issues: A2uiValidationIssue[] = [];
+  if (!isPlainObject(value)) {
+    issues.push(
+      issue(
+        'error',
+        A2UI_ISSUE_CODES.TYPE_MISMATCH,
+        `"${key}" on ${componentName} must be an action object`,
+        {
+          surfaceId,
+          path
+        }
+      )
+    );
+    return { store: false, issues };
+  }
+  if (isPlainObject(value.event)) {
+    const event = value.event;
+    if (typeof event.name !== 'string') {
+      issues.push(
+        issue(
+          'error',
+          A2UI_ISSUE_CODES.MISSING_FIELD,
+          `action.event.name is required on ${componentName}`,
+          {
+            surfaceId,
+            path: `${path}/event/name`
+          }
+        )
+      );
+      return { store: false, issues };
+    }
+    if ('context' in event) {
+      if (!isPlainObject(event.context)) {
+        issues.push(
+          issue(
+            'error',
+            A2UI_ISSUE_CODES.TYPE_MISMATCH,
+            `action.event.context on ${componentName} must be an object`,
+            {
+              surfaceId,
+              path: `${path}/event/context`
+            }
+          )
+        );
+        return { store: false, issues };
+      }
+      for (const contextKey of Object.keys(event.context)) {
+        if (PROTO_KEYS.has(contextKey)) {
+          issues.push(
+            issue(
+              'error',
+              A2UI_ISSUE_CODES.PROTOTYPE_POLLUTION,
+              `Prohibited action context key "${contextKey}" on ${componentName}`,
+              { surfaceId, path: `${path}/event/context/${contextKey}` }
+            )
+          );
+        }
+      }
+    }
+    // Store even with a context-key error: the renderer builds context on a
+    // null-prototype object, so the flagged key is inert. The error still relays.
+    return { store: issues.every((i) => i.code !== A2UI_ISSUE_CODES.PROTOTYPE_POLLUTION), issues };
+  }
+  if (isPlainObject(value.functionCall)) {
+    if (typeof value.functionCall.call === 'string') return { store: true, issues };
+    issues.push(
+      issue(
+        'error',
+        A2UI_ISSUE_CODES.MISSING_FIELD,
+        `action.functionCall.call is required on ${componentName}`,
+        {
+          surfaceId,
+          path: `${path}/functionCall/call`
+        }
+      )
+    );
+    return { store: false, issues };
+  }
+  issues.push(
+    issue(
+      'error',
+      A2UI_ISSUE_CODES.TYPE_MISMATCH,
+      `"${key}" on ${componentName} must have an "event" or "functionCall"`,
+      {
+        surfaceId,
+        path
+      }
+    )
+  );
+  return { store: false, issues };
+}
+
+function validateOptions(
+  componentName: string,
+  key: string,
+  value: unknown,
+  path: string,
+  surfaceId: string
+): PropResult {
+  const bad = (detail: string): PropResult => ({
+    store: false,
+    issues: [issue('error', A2UI_ISSUE_CODES.TYPE_MISMATCH, detail, { surfaceId, path })]
+  });
+  if (!Array.isArray(value))
+    return bad(`"${key}" on ${componentName} must be an array of { label, value } options`);
+  for (let i = 0; i < value.length; i++) {
+    const option = value[i];
+    if (
+      !isPlainObject(option) ||
+      typeof option.value !== 'string' ||
+      !isDynamicString(option.label)
+    ) {
+      return bad(`option ${i} on ${componentName} must be { label, value:string }`);
+    }
+  }
+  return { store: true, issues: [] };
+}
+
+function validateIcon(value: unknown, path: string, surfaceId: string): PropResult {
+  if (typeof value === 'string') {
+    if (A2UI_ICON_NAMES.includes(value)) return { store: true, issues: [] };
+    return {
+      store: true,
+      issues: [
+        issue(
+          'warning',
+          A2UI_ISSUE_CODES.ICON_UNMAPPED,
+          `Icon "${value}" is not mapped; a fallback glyph is drawn`,
+          {
+            surfaceId,
+            path
+          }
+        )
+      ]
+    };
+  }
+  if (isPlainObject(value)) {
+    if (typeof value.svgPath === 'string') {
+      if (A2UI_SVG_PATH_RE.test(value.svgPath)) return { store: true, issues: [] };
+      return {
+        store: true,
+        issues: [
+          issue(
+            'warning',
+            A2UI_ISSUE_CODES.ICON_INVALID_SVG,
+            'Icon svgPath failed the path grammar guard; a fallback glyph is drawn',
+            {
+              surfaceId,
+              path
+            }
+          )
+        ]
+      };
+    }
+    if (typeof value.path === 'string') return { store: true, issues: [] }; // dynamic binding
+  }
+  return {
+    store: false,
+    issues: [
+      issue(
+        'error',
+        A2UI_ISSUE_CODES.TYPE_MISMATCH,
+        'Icon name must be a mapped name, { svgPath } or { path }',
+        { surfaceId, path }
+      )
+    ]
+  };
+}
+
+// ── Component validation ─────────────────────────────────────────────────────
+
+function validateComponent(
+  surface: A2uiSurfaceState,
+  raw: unknown,
+  envelopeIndex: number,
+  compIndex: number,
+  idsSeen: Set<string>
+): void {
+  const base = `/messages/${envelopeIndex}/updateComponents/components/${compIndex}`;
+  const surfaceId = surface.surfaceId;
+
+  if (!isPlainObject(raw)) {
+    surface.issues.push(
+      issue('error', A2UI_ISSUE_CODES.TYPE_MISMATCH, 'Component entry must be an object', {
+        surfaceId,
+        path: base
+      })
+    );
+    return;
+  }
+  const comp = raw;
+
+  const id = comp.id;
+  if (typeof id !== 'string' || id === '') {
+    surface.issues.push(
+      issue('error', A2UI_ISSUE_CODES.MISSING_ID, 'Component is missing a string "id"', {
+        surfaceId,
+        path: `${base}/id`
+      })
+    );
+    return;
+  }
+  if (PROTO_KEYS.has(id)) {
+    surface.issues.push(
+      issue('error', A2UI_ISSUE_CODES.PROTOTYPE_POLLUTION, `Prohibited component id "${id}"`, {
+        surfaceId,
+        path: `${base}/id`
+      })
+    );
+    return;
+  }
+  if (idsSeen.has(id)) {
+    surface.issues.push(
+      issue(
+        'error',
+        A2UI_ISSUE_CODES.DUPLICATE_ID,
+        `Duplicate component id "${id}" in one updateComponents (last wins)`,
+        {
+          surfaceId,
+          path: `${base}/id`
+        }
+      )
+    );
+  }
+  idsSeen.add(id);
+
+  const componentName = comp.component;
+  if (typeof componentName !== 'string') {
+    surface.issues.push(
+      issue(
+        'error',
+        A2UI_ISSUE_CODES.MISSING_FIELD,
+        `Component "${id}" is missing a string "component"`,
+        { surfaceId, path: `${base}/component` }
+      )
+    );
+    surface.components.set(id, { id, component: '', props: new Map(), sourceIndex: envelopeIndex });
+    return;
+  }
+
+  const spec = A2UI_REGISTRY[componentName];
+  if (!spec) {
+    if (UNSUPPORTED_A2UI_COMPONENTS.has(componentName)) {
+      surface.issues.push(
+        issue(
+          'error',
+          A2UI_ISSUE_CODES.UNSUPPORTED_COMPONENT,
+          `Component "${componentName}" is not part of the rendered subset`,
+          {
+            surfaceId,
+            path: `${base}/component`
+          }
+        )
+      );
+    } else {
+      surface.issues.push(
+        issue('error', A2UI_ISSUE_CODES.UNKNOWN_COMPONENT, `Unknown component "${componentName}"`, {
+          surfaceId,
+          path: `${base}/component`
+        })
+      );
+    }
+    surface.components.set(id, {
+      id,
+      component: componentName,
+      props: new Map(),
+      sourceIndex: envelopeIndex
+    });
+    return;
+  }
+
+  const props = new Map<string, unknown>();
+  for (const key of Object.keys(comp)) {
+    if (key === 'id' || key === 'component') continue;
+    if (PROTO_KEYS.has(key)) {
+      surface.issues.push(
+        issue(
+          'error',
+          A2UI_ISSUE_CODES.PROTOTYPE_POLLUTION,
+          `Prohibited property "${key}" on "${id}"`,
+          { surfaceId, path: `${base}/${key}` }
+        )
+      );
+      continue;
+    }
+    if (A2UI_IGNORED_PROPS.has(key)) {
+      surface.issues.push(
+        issue(
+          'warning',
+          A2UI_ISSUE_CODES.IGNORED_PROP,
+          `Property "${key}" on ${componentName} is not supported and is ignored`,
+          {
+            surfaceId,
+            path: `${base}/${key}`
+          }
+        )
+      );
+      continue;
+    }
+    const propSpec = spec.props[key];
+    if (!propSpec) {
+      surface.issues.push(
+        issue(
+          'error',
+          A2UI_ISSUE_CODES.UNKNOWN_PROP,
+          `Unknown property "${key}" on ${componentName}`,
+          { surfaceId, path: `${base}/${key}` }
+        )
+      );
+      continue;
+    }
+    const result = validateProp(
+      componentName,
+      key,
+      propSpec,
+      comp[key],
+      `${base}/${key}`,
+      surfaceId
+    );
+    for (const propIssue of result.issues) surface.issues.push(propIssue);
+    if (result.store) props.set(key, comp[key]);
+  }
+
+  for (const [key, propSpec] of Object.entries(spec.props)) {
+    if (propSpec.required && !props.has(key)) {
+      surface.issues.push(
+        issue(
+          'error',
+          A2UI_ISSUE_CODES.MISSING_FIELD,
+          `Required property "${key}" is missing on ${componentName} "${id}"`,
+          {
+            surfaceId,
+            path: `${base}/${key}`
+          }
+        )
+      );
+    }
+  }
+
+  if (componentName === 'ChoicePicker') {
+    if (props.get('displayStyle') === 'chips' || props.get('filterable') === true) {
+      surface.issues.push(
+        issue(
+          'warning',
+          A2UI_ISSUE_CODES.CHOICEPICKER_FALLBACK,
+          `ChoicePicker "${id}" chips/filterable are rendered with a fallback`,
+          {
+            surfaceId,
+            path: base
+          }
+        )
+      );
+    }
+  }
+
+  surface.components.set(id, { id, component: componentName, props, sourceIndex: envelopeIndex });
+}
+
+// ── Envelope handlers ────────────────────────────────────────────────────────
+
+function flagExtraKeys(
+  object: Record<string, unknown>,
+  allowed: ReadonlySet<string>,
+  sink: A2uiValidationIssue[],
+  surfaceId: string | undefined,
+  base: string,
+  container: string
+): void {
+  for (const key of Object.keys(object)) {
+    if (allowed.has(key)) continue;
+    const code = PROTO_KEYS.has(key)
+      ? A2UI_ISSUE_CODES.PROTOTYPE_POLLUTION
+      : A2UI_ISSUE_CODES.UNKNOWN_PROP;
+    sink.push(
+      issue('error', code, `Unexpected key "${key}" in ${container}`, {
+        surfaceId,
+        path: `${base}/${key}`
+      })
+    );
+  }
+}
+
+const CREATE_SURFACE_KEYS: ReadonlySet<string> = new Set([
+  'surfaceId',
+  'catalogId',
+  'theme',
+  'sendDataModel'
+]);
+const UPDATE_COMPONENTS_KEYS: ReadonlySet<string> = new Set(['surfaceId', 'components']);
+const UPDATE_DATA_MODEL_KEYS: ReadonlySet<string> = new Set(['surfaceId', 'path', 'value']);
+const DELETE_SURFACE_KEYS: ReadonlySet<string> = new Set(['surfaceId']);
+
+function createProcessor(): A2uiProcessor {
+  const surfaces = new Map<string, A2uiSurfaceState>();
+  const globalIssues: A2uiValidationIssue[] = [];
+
+  function handleCreateSurface(env: Record<string, unknown>, base: string): void {
+    const cs = env.createSurface;
+    if (!isPlainObject(cs)) {
+      globalIssues.push(
+        issue('error', A2UI_ISSUE_CODES.MISSING_FIELD, 'createSurface must be an object', {
+          path: `${base}/createSurface`
+        })
+      );
+      return;
+    }
+    const surfaceId = cs.surfaceId;
+    if (typeof surfaceId !== 'string' || surfaceId === '') {
+      globalIssues.push(
+        issue('error', A2UI_ISSUE_CODES.MISSING_FIELD, 'createSurface.surfaceId is required', {
+          path: `${base}/createSurface/surfaceId`
+        })
+      );
+      return;
+    }
+    const existing = surfaces.get(surfaceId);
+    if (existing) {
+      existing.issues.push(
+        issue(
+          'error',
+          A2UI_ISSUE_CODES.DUPLICATE_SURFACE,
+          `Surface "${surfaceId}" already exists; delete it before recreating`,
+          {
+            surfaceId,
+            path: `${base}/createSurface/surfaceId`
+          }
+        )
+      );
+      return;
+    }
+    const surface: A2uiSurfaceState = {
+      surfaceId,
+      components: new Map(),
+      dataModel: undefined,
+      issues: []
+    };
+    surfaces.set(surfaceId, surface);
+
+    if (typeof cs.catalogId !== 'string') {
+      surface.issues.push(
+        issue('error', A2UI_ISSUE_CODES.MISSING_FIELD, 'createSurface.catalogId is required', {
+          surfaceId,
+          path: `${base}/createSurface/catalogId`
+        })
+      );
+    }
+    if ('theme' in cs) {
+      surface.issues.push(
+        issue('warning', A2UI_ISSUE_CODES.SURFACE_PROP_IGNORED, 'theme is ignored', {
+          surfaceId,
+          path: `${base}/createSurface/theme`
+        })
+      );
+    }
+    if ('sendDataModel' in cs) {
+      surface.issues.push(
+        issue('warning', A2UI_ISSUE_CODES.SURFACE_PROP_IGNORED, 'sendDataModel is ignored', {
+          surfaceId,
+          path: `${base}/createSurface/sendDataModel`
+        })
+      );
+    }
+    flagExtraKeys(
+      cs,
+      CREATE_SURFACE_KEYS,
+      surface.issues,
+      surfaceId,
+      `${base}/createSurface`,
+      'createSurface'
+    );
+  }
+
+  function handleUpdateComponents(env: Record<string, unknown>, base: string, index: number): void {
+    const uc = env.updateComponents;
+    if (!isPlainObject(uc)) {
+      globalIssues.push(
+        issue('error', A2UI_ISSUE_CODES.MISSING_FIELD, 'updateComponents must be an object', {
+          path: `${base}/updateComponents`
+        })
+      );
+      return;
+    }
+    const surfaceId = uc.surfaceId;
+    if (typeof surfaceId !== 'string') {
+      globalIssues.push(
+        issue('error', A2UI_ISSUE_CODES.MISSING_FIELD, 'updateComponents.surfaceId is required', {
+          path: `${base}/updateComponents/surfaceId`
+        })
+      );
+      return;
+    }
+    const surface = surfaces.get(surfaceId);
+    if (!surface) {
+      globalIssues.push(
+        issue(
+          'error',
+          A2UI_ISSUE_CODES.NO_SURFACE,
+          `updateComponents for unknown surface "${surfaceId}" (createSurface must come first)`,
+          {
+            surfaceId,
+            path: `${base}/updateComponents`
+          }
+        )
+      );
+      return;
+    }
+    flagExtraKeys(
+      uc,
+      UPDATE_COMPONENTS_KEYS,
+      surface.issues,
+      surfaceId,
+      `${base}/updateComponents`,
+      'updateComponents'
+    );
+
+    const components = uc.components;
+    if (!Array.isArray(components) || components.length === 0) {
+      surface.issues.push(
+        issue(
+          'error',
+          A2UI_ISSUE_CODES.MISSING_FIELD,
+          'updateComponents.components must be a non-empty array',
+          {
+            surfaceId,
+            path: `${base}/updateComponents/components`
+          }
+        )
+      );
+      return;
+    }
+    const idsSeen = new Set<string>();
+    for (let i = 0; i < components.length; i++) {
+      validateComponent(surface, components[i], index, i, idsSeen);
+    }
+  }
+
+  function handleUpdateDataModel(env: Record<string, unknown>, base: string): void {
+    const udm = env.updateDataModel;
+    if (!isPlainObject(udm)) {
+      globalIssues.push(
+        issue('error', A2UI_ISSUE_CODES.MISSING_FIELD, 'updateDataModel must be an object', {
+          path: `${base}/updateDataModel`
+        })
+      );
+      return;
+    }
+    const surfaceId = udm.surfaceId;
+    if (typeof surfaceId !== 'string') {
+      globalIssues.push(
+        issue('error', A2UI_ISSUE_CODES.MISSING_FIELD, 'updateDataModel.surfaceId is required', {
+          path: `${base}/updateDataModel/surfaceId`
+        })
+      );
+      return;
+    }
+    const surface = surfaces.get(surfaceId);
+    if (!surface) {
+      globalIssues.push(
+        issue(
+          'error',
+          A2UI_ISSUE_CODES.NO_SURFACE,
+          `updateDataModel for unknown surface "${surfaceId}" (createSurface must come first)`,
+          {
+            surfaceId,
+            path: `${base}/updateDataModel`
+          }
+        )
+      );
+      return;
+    }
+    flagExtraKeys(
+      udm,
+      UPDATE_DATA_MODEL_KEYS,
+      surface.issues,
+      surfaceId,
+      `${base}/updateDataModel`,
+      'updateDataModel'
+    );
+
+    const pathValue = udm.path;
+    if (pathValue !== undefined && typeof pathValue !== 'string') {
+      surface.issues.push(
+        issue('error', A2UI_ISSUE_CODES.TYPE_MISMATCH, 'updateDataModel.path must be a string', {
+          surfaceId,
+          path: `${base}/updateDataModel/path`
+        })
+      );
+      return;
+    }
+    const hasValue = 'value' in udm;
+    const whole = pathValue === undefined || pathValue === '' || pathValue === '/';
+
+    if (whole) {
+      surface.dataModel = hasValue ? cloneData(udm.value) : undefined;
+      return;
+    }
+
+    const pointer = pathValue as string;
+    if (!isContainer(surface.dataModel)) {
+      const firstSegment = pointer.replace(/^\//, '').split('/')[0];
+      surface.dataModel = /^(?:0|[1-9]\d*|-)$/.test(firstSegment) ? [] : {};
+    }
+    if (hasValue) {
+      const { issue: setIssue } = setAtPointer(surface.dataModel, pointer, cloneData(udm.value));
+      if (setIssue) surface.issues.push({ ...setIssue, surfaceId });
+    } else {
+      deleteAtPointer(surface.dataModel, pointer);
+    }
+  }
+
+  function handleDeleteSurface(env: Record<string, unknown>, base: string): void {
+    const ds = env.deleteSurface;
+    if (!isPlainObject(ds)) {
+      globalIssues.push(
+        issue('error', A2UI_ISSUE_CODES.MISSING_FIELD, 'deleteSurface must be an object', {
+          path: `${base}/deleteSurface`
+        })
+      );
+      return;
+    }
+    const surfaceId = ds.surfaceId;
+    if (typeof surfaceId !== 'string') {
+      globalIssues.push(
+        issue('error', A2UI_ISSUE_CODES.MISSING_FIELD, 'deleteSurface.surfaceId is required', {
+          path: `${base}/deleteSurface/surfaceId`
+        })
+      );
+      return;
+    }
+    if (!surfaces.has(surfaceId)) {
+      globalIssues.push(
+        issue(
+          'error',
+          A2UI_ISSUE_CODES.NO_SURFACE,
+          `deleteSurface for unknown surface "${surfaceId}"`,
+          { surfaceId, path: `${base}/deleteSurface` }
+        )
+      );
+      return;
+    }
+    flagExtraKeys(
+      ds,
+      DELETE_SURFACE_KEYS,
+      globalIssues,
+      surfaceId,
+      `${base}/deleteSurface`,
+      'deleteSurface'
+    );
+    surfaces.delete(surfaceId);
+  }
+
+  function apply(envelope: unknown, index: number): void {
+    const base = `/messages/${index}`;
+    if (!isPlainObject(envelope)) {
+      globalIssues.push(
+        issue('error', A2UI_ISSUE_CODES.INVALID_ENVELOPE, 'Envelope must be a JSON object', {
+          path: base
+        })
+      );
+      return;
+    }
+    const env = envelope;
+
+    if (typeof env.version !== 'string' || !A2UI_SUPPORTED_VERSIONS.includes(env.version)) {
+      globalIssues.push(
+        issue(
+          'error',
+          A2UI_ISSUE_CODES.INVALID_VERSION,
+          `Unsupported envelope version (expected one of: ${A2UI_SUPPORTED_VERSIONS.join(', ')})`,
+          {
+            path: `${base}/version`
+          }
+        )
+      );
+      return;
+    }
+
+    const present = OP_KEYS.filter((key) => key in env);
+    if (present.length !== 1) {
+      globalIssues.push(
+        issue(
+          'error',
+          A2UI_ISSUE_CODES.UNKNOWN_ENVELOPE_TYPE,
+          `Envelope must contain exactly one of: ${OP_KEYS.join(', ')} (found ${present.length})`,
+          { path: base }
+        )
+      );
+      return;
+    }
+
+    const allowedTop: ReadonlySet<string> = new Set(['version', present[0]]);
+    flagExtraKeys(env, allowedTop, globalIssues, undefined, base, 'envelope');
+
+    switch (present[0]) {
+      case 'createSurface':
+        handleCreateSurface(env, base);
+        break;
+      case 'updateComponents':
+        handleUpdateComponents(env, base, index);
+        break;
+      case 'updateDataModel':
+        handleUpdateDataModel(env, base);
+        break;
+      case 'deleteSurface':
+        handleDeleteSurface(env, base);
+        break;
+    }
+  }
+
+  return { surfaces, globalIssues, apply };
+}
+
+export function createA2uiProcessor(): A2uiProcessor {
+  return createProcessor();
+}
+
+/**
+ * Normalize a render payload into an envelope list. Accepts an envelope array,
+ * a single envelope, or the golden-file `{ messages: [...] }` wrapper. Returns
+ * an `issue` (and no envelopes) only for wholly unusable input.
+ */
+export function normalizeA2uiPayload(payload: unknown): {
+  envelopes: unknown[];
+  issue?: A2uiValidationIssue;
+} {
+  if (Array.isArray(payload)) return { envelopes: payload };
+  if (isPlainObject(payload)) {
+    if (Array.isArray(payload.messages)) return { envelopes: payload.messages };
+    return { envelopes: [payload] };
+  }
+  return {
+    envelopes: [],
+    issue: issue(
+      'error',
+      A2UI_ISSUE_CODES.INVALID_ENVELOPE,
+      'A2UI payload must be an envelope, an array of envelopes, or { messages: [...] }'
+    )
+  };
+}
+
+// ── Graph-level validation (compatible extension, see report) ────────────────
+
+export interface GraphIssueOptions {
+  /** When true, dangling refs are warnings (still streaming); when false, errors. @default false */
+  streaming?: boolean;
+  /** @default 32 */
+  maxDepth?: number;
+  /** @default 512 */
+  maxNodes?: number;
+}
+
+/**
+ * Walk the component graph from `root` and collect structural faults that only
+ * exist once components are assembled: cycles, excessive depth/nodes, dangling
+ * child references, non-array template paths, and mis-placed `weight`.
+ *
+ * NOTE — contract extension. The design's published `a2ui-validate.ts` surface
+ * is `createA2uiProcessor` + `normalizeA2uiPayload`. This function is an
+ * additive export (no existing signature changed): the renderer (WP-B) needs
+ * render-time graph faults whose severity depends on the `streaming` flag, and
+ * the test suite exercises them here. Traversal is bounded by `maxNodes` so a
+ * template over a huge array cannot DoS the walk itself.
+ */
+export function collectGraphIssues(
+  surface: A2uiSurfaceState,
+  options?: GraphIssueOptions
+): A2uiValidationIssue[] {
+  const streaming = options?.streaming ?? false;
+  const maxDepth = options?.maxDepth ?? 32;
+  const maxNodes = options?.maxNodes ?? 512;
+  const surfaceId = surface.surfaceId;
+  const components = surface.components;
+  const issues: A2uiValidationIssue[] = [];
+
+  if (!components.has('root')) {
+    if (!streaming) {
+      issues.push(
+        issue('error', A2UI_ISSUE_CODES.MISSING_ROOT, 'No component with id "root" was defined', {
+          surfaceId
+        })
+      );
+    }
+    return issues;
+  }
+
+  const reportedDangling = new Set<string>();
+  let nodeCount = 0;
+  let overflowReported = false;
+  let aborted = false;
+
+  const childTargets = (
+    comp: A2uiComponentInstance,
+    scopePrefix: string | undefined
+  ): Array<{ id: string; scope: string | undefined }> => {
+    const out: Array<{ id: string; scope: string | undefined }> = [];
+    const single = comp.props.get('child');
+    if (typeof single === 'string') out.push({ id: single, scope: scopePrefix });
+
+    const children = comp.props.get('children');
+    if (Array.isArray(children)) {
+      for (const childId of children)
+        if (typeof childId === 'string') out.push({ id: childId, scope: scopePrefix });
+    } else if (children && typeof children === 'object') {
+      const template = children as { componentId?: unknown; path?: unknown };
+      if (typeof template.componentId === 'string' && typeof template.path === 'string') {
+        const absPath = template.path.startsWith('/')
+          ? template.path
+          : `${scopePrefix ?? ''}/${template.path}`;
+        const list = getAtPointer(surface.dataModel, absPath);
+        if (Array.isArray(list)) {
+          for (let i = 0; i < list.length; i++) {
+            out.push({ id: template.componentId, scope: `${absPath}/${i}` });
+            if (out.length > maxNodes) break; // bound expansion
+          }
+        } else if (list !== undefined) {
+          issues.push(
+            issue(
+              'warning',
+              A2UI_ISSUE_CODES.TEMPLATE_PATH_NOT_ARRAY,
+              `Template path "${absPath}" did not resolve to an array`,
+              {
+                surfaceId
+              }
+            )
+          );
+        }
+        // list === undefined → data not present yet; render nothing (graceful).
+      }
+    }
+    return out;
+  };
+
+  const visit = (
+    id: string,
+    depth: number,
+    stack: Set<string>,
+    parentComponent: string | null,
+    scopePrefix: string | undefined
+  ): void => {
+    if (aborted) return;
+    nodeCount++;
+    if (nodeCount > maxNodes) {
+      if (!overflowReported) {
+        issues.push(
+          issue(
+            'error',
+            A2UI_ISSUE_CODES.MAX_NODES,
+            `Rendered node count exceeds the limit of ${maxNodes}`,
+            { surfaceId }
+          )
+        );
+        overflowReported = true;
+      }
+      aborted = true;
+      return;
+    }
+    if (depth > maxDepth) {
+      issues.push(
+        issue(
+          'error',
+          A2UI_ISSUE_CODES.MAX_DEPTH,
+          `Component tree depth exceeds the limit of ${maxDepth}`,
+          { surfaceId }
+        )
+      );
+      return;
+    }
+
+    const comp = components.get(id);
+    if (!comp) {
+      if (!reportedDangling.has(id)) {
+        reportedDangling.add(id);
+        issues.push(
+          issue(
+            streaming ? 'warning' : 'error',
+            A2UI_ISSUE_CODES.DANGLING_REF,
+            `Reference to undefined component "${id}"`,
+            { surfaceId }
+          )
+        );
+      }
+      return;
+    }
+
+    if (comp.props.has('weight') && parentComponent !== 'Row' && parentComponent !== 'Column') {
+      issues.push(
+        issue(
+          'warning',
+          A2UI_ISSUE_CODES.WEIGHT_CONTEXT,
+          `"weight" on "${id}" is only honored as a direct child of Row or Column`,
+          {
+            surfaceId
+          }
+        )
+      );
+    }
+
+    const nextStack = new Set(stack);
+    nextStack.add(id);
+    for (const target of childTargets(comp, scopePrefix)) {
+      if (aborted) return;
+      if (nextStack.has(target.id)) {
+        issues.push(
+          issue('error', A2UI_ISSUE_CODES.CYCLE, `Cycle detected at component "${target.id}"`, {
+            surfaceId
+          })
+        );
+        continue;
+      }
+      visit(target.id, depth + 1, nextStack, comp.component, target.scope);
+    }
+  };
+
+  visit('root', 0, new Set(), null, undefined);
+  return issues;
+}

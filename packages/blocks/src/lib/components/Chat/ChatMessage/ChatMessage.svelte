@@ -220,7 +220,10 @@
           {@render attachmentChip(part)}
         {/if}
       {:else if part.type === 'a2ui'}
-        <!-- default: render nothing. A2UIView lands in P4 via partRenderers. -->
+        <!-- No default renderer by design: A2UIView is opt-in via
+             `partRenderers.a2ui` so it stays out of the base bundle. Wire it up
+             with `{#snippet a2ui(part)}<A2UIView payload={part.payload} … />{/snippet}`
+             (see A2UIView's JSDoc). Without the snippet, an a2ui part renders nothing. -->
         {#if partRenderers?.a2ui}{@render partRenderers.a2ui(part)}{/if}
       {/if}
       <!-- part.type === 'source' is intentionally skipped: sources render in the

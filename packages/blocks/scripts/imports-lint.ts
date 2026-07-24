@@ -93,7 +93,22 @@ const ALLOWLIST: ReadonlyArray<readonly [edge: string, why: string]> = [
   ['CitationChip -> Popover', 'citation details overlay surface'],
   ['ReasoningDisclosure -> Collapsible', 'expand/collapse mechanics'],
   ['ToolCallCard -> Collapsible', 'expand/collapse mechanics (card variant)'],
-  ['ToolCallCard -> Badge', 'tool status badge — real styled intent variants']
+  ['ToolCallCard -> Badge', 'tool status badge — real styled intent variants'],
+  // A2UIView dispatcher — essential composition, renders the trusted A2UI catalog
+  ['A2UINode -> Button', 'essential composition — renders the trusted catalog (Button)'],
+  ['A2UINode -> Card', 'essential composition — renders the trusted catalog (Card)'],
+  ['A2UINode -> Checkbox', 'essential composition — renders the trusted catalog (CheckBox)'],
+  ['A2UINode -> Input', 'essential composition — renders the trusted catalog (TextField)'],
+  ['A2UINode -> RadioGroup', 'essential composition — renders the trusted catalog (ChoicePicker)'],
+  ['A2UINode -> RadioItem', 'essential composition — renders the trusted catalog (ChoicePicker)'],
+  ['A2UINode -> Separator', 'essential composition — renders the trusted catalog (Divider)'],
+  ['A2UINode -> Skeleton', 'essential composition — streaming placeholder for pending refs'],
+  ['A2UINode -> Slider', 'essential composition — renders the trusted catalog (Slider)'],
+  [
+    'A2UINode -> Textarea',
+    'essential composition — renders the trusted catalog (TextField longText)'
+  ],
+  ['A2UIView -> Alert', 'envelope-level error summary surface']
 ];
 
 const c = {

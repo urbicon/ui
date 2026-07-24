@@ -2,6 +2,8 @@
 // markdown, code display, citations) plus the public pieces of the markdown
 // engine underneath them.
 
+export type { A2UIViewProps } from './A2UIView';
+export * from './A2UIView';
 export type { ChatProps } from './Chat';
 export * from './Chat';
 export type { ChatMessageProps, ChatPartRenderers } from './ChatMessage';
