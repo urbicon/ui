@@ -7,13 +7,21 @@
     ChatMessage,
     ChatMessageList,
     PromptInput,
+    urbiconA2uiCatalog,
     type A2uiActionEvent,
     type A2uiValidationIssue,
     type ChatMessageData,
     type ChatMessagePart
   } from '@urbicon-ui/blocks';
   import { SseRequestError, streamSse } from '@urbicon-ui/sveltekit-utils/sse';
+  import { page } from '$app/state';
   import { A2uiStreamSplitter } from '$lib/a2ui-stream';
+  import { BOOKING_SCHEMA } from '$lib/booking-schema';
+
+  // Catalog A/B toggle: the Urbicon-native catalog (full vocabulary + data
+  // schema) by default; `?catalog=basic` renders the v0.9.1 Basic subset. Both
+  // the client (A2UIView config) and the server (system prompt) read it.
+  const useBasic = $derived(page.url.searchParams.get('catalog') === 'basic');
 
   interface WireMessage {
     role: 'user' | 'assistant';
@@ -127,7 +135,8 @@
     let failed = false;
 
     try {
-      for await (const frame of streamSse('/api/chat', {
+      const endpoint = useBasic ? '/api/chat?catalog=basic' : '/api/chat';
+      for await (const frame of streamSse(endpoint, {
         body: { messages: history },
         signal: controller.signal
       })) {
@@ -263,9 +272,40 @@
         Ask for a form or a chooser — the agent replies with live Urbicon UI.
       </p>
     </div>
-    <Badge intent={busy ? 'primary' : 'neutral'} variant="soft" size="sm">
-      {busy ? 'generating' : 'idle'}
-    </Badge>
+    <div class="flex items-center gap-3">
+      <!-- Catalog A/B toggle (query-driven; switching keeps the conversation). -->
+      <div
+        class="flex items-center gap-0.5 rounded-modify border border-border-subtle p-0.5 text-xs"
+        role="group"
+        aria-label="A2UI catalog"
+      >
+        <a
+          href="/"
+          data-sveltekit-noscroll
+          class={[
+            'rounded-modify px-2 py-1',
+            useBasic ? 'text-text-secondary' : 'bg-primary text-text-on-primary'
+          ]}
+          aria-current={useBasic ? undefined : 'page'}
+        >
+          Urbicon
+        </a>
+        <a
+          href="?catalog=basic"
+          data-sveltekit-noscroll
+          class={[
+            'rounded-modify px-2 py-1',
+            useBasic ? 'bg-primary text-text-on-primary' : 'text-text-secondary'
+          ]}
+          aria-current={useBasic ? 'page' : undefined}
+        >
+          Basic
+        </a>
+      </div>
+      <Badge intent={busy ? 'primary' : 'neutral'} variant="soft" size="sm">
+        {busy ? 'generating' : 'idle'}
+      </Badge>
+    </div>
   </header>
 
   {#if errorBanner}
@@ -291,6 +331,8 @@
             <A2UIView
               payload={part.payload}
               streaming={m.status === 'streaming'}
+              catalogs={useBasic ? undefined : [urbiconA2uiCatalog]}
+              dataSchema={useBasic ? undefined : BOOKING_SCHEMA}
               onAction={handleAction}
               onValidationError={handleValidationError}
             />

@@ -1,12 +1,21 @@
 /**
- * System-prompt generator for the A2UI subset. Renders the agent-facing catalog
- * description straight from `A2UI_REGISTRY`, so the prompt and the validator can
- * never drift (a drift-guard test asserts every component and enum value is
- * covered). Pure TS, no Svelte — a server building the prompt has no DOM.
+ * System-prompt generator for an A2UI catalog. Renders the agent-facing catalog
+ * description straight from the catalog's registry, so the prompt and the
+ * validator can never drift (a drift-guard test asserts every component and enum
+ * value is covered). Pure TS, no Svelte — a server building the prompt has no
+ * DOM, and this module never imports catalog VALUE code from `urbicon/` (the
+ * caller passes the spec), so it stays out of the Basic bundle.
  *
- * Deliberately excludes any TRANSPORT section (how envelopes reach the client):
- * that is app-specific and each app appends it (the chat-demo appends its fenced
- * `a2ui` JSONL protocol).
+ * With no options the output is the Basic-catalog prompt, byte-identical to
+ * before the catalog refactor. Pass `catalog` to render a richer catalog: when
+ * its specs carry categories / shared axes (the Urbicon catalog), the prompt
+ * grows a "Shared axes" section, groups components by category, compresses
+ * shared-axis props, and adds catalog-specific don'ts — all gated on features
+ * the Basic catalog does not have, so the default stays untouched.
+ *
+ * Deliberately excludes any TRANSPORT section (how envelopes reach the client)
+ * and any data-schema section: those are app-specific and each app appends them
+ * (the chat-demo appends its fenced `a2ui` protocol + `a2uiDataSchemaSection`).
  */
 
 import { type A2uiCatalogSpec, basicA2uiCatalogSpec } from './a2ui-catalog';
@@ -15,7 +24,37 @@ import type { A2uiComponentSpec, A2uiPropSpec } from './a2ui-registry';
 /** Props documented once in the shared section rather than per component. */
 const COMMON_PROP_KEYS = new Set(['accessibility', 'weight']);
 
+/** Category order for grouped rendering; unknown categories follow, sorted. */
+const CATEGORY_ORDER = ['Layout', 'Text', 'Form', 'Status', 'Media'];
+
+/** The catalog-enrichment fields the prompt reads structurally (present on the Urbicon registry). */
+type EnrichedPropSpec = A2uiPropSpec & { sharedAxis?: string };
+type EnrichedComponentSpec = A2uiComponentSpec & { category?: string };
+
+function sharedAxisOf(spec: A2uiPropSpec): string | undefined {
+  return (spec as EnrichedPropSpec).sharedAxis;
+}
+function categoryOf(spec: A2uiComponentSpec): string | undefined {
+  return (spec as EnrichedComponentSpec).category;
+}
+
+/** Collect the distinct shared axes (name → value list) referenced across the registry. */
+function collectSharedAxes(
+  registry: Readonly<Record<string, A2uiComponentSpec>>
+): Map<string, readonly string[]> {
+  const axes = new Map<string, readonly string[]>();
+  for (const spec of Object.values(registry)) {
+    for (const propSpec of Object.values(spec.props)) {
+      const shared = sharedAxisOf(propSpec);
+      if (shared && propSpec.values && !axes.has(shared)) axes.set(shared, propSpec.values);
+    }
+  }
+  return axes;
+}
+
 function renderKind(spec: A2uiPropSpec): string {
+  const shared = sharedAxisOf(spec);
+  if (shared) return `shared ${shared} (see Shared axes)`;
   switch (spec.kind) {
     case 'enum':
     case 'icon':
@@ -51,8 +90,8 @@ function renderProp(key: string, spec: A2uiPropSpec): string {
   return `  - ${key} (${flags.join('; ')}): ${spec.description}`;
 }
 
-function renderComponent(name: string, spec: A2uiComponentSpec): string {
-  const lines: string[] = [`### ${name}`, spec.description, 'Props:'];
+function renderComponent(name: string, spec: A2uiComponentSpec, heading: string): string {
+  const lines: string[] = [`${heading} ${name}`, spec.description, 'Props:'];
   for (const [key, propSpec] of Object.entries(spec.props)) {
     if (COMMON_PROP_KEYS.has(key) || propSpec.promptHidden) continue;
     lines.push(renderProp(key, propSpec));
@@ -60,17 +99,65 @@ function renderComponent(name: string, spec: A2uiComponentSpec): string {
   return lines.join('\n');
 }
 
+/** Flat component list — the Basic rendering (byte-identical). */
+function renderFlatComponents(
+  registry: Readonly<Record<string, A2uiComponentSpec>>,
+  names: string[]
+): string {
+  return [
+    '## Components',
+    '',
+    ...names.map((name) => renderComponent(name, registry[name], '###'))
+  ].join('\n\n');
+}
+
+/** Category-grouped component list — the Urbicon rendering. */
+function renderGroupedComponents(
+  registry: Readonly<Record<string, A2uiComponentSpec>>,
+  names: string[]
+): string {
+  const byCategory = new Map<string, string[]>();
+  for (const name of names) {
+    const category = categoryOf(registry[name]) ?? 'Other';
+    let list = byCategory.get(category);
+    if (!list) {
+      list = [];
+      byCategory.set(category, list);
+    }
+    list.push(name);
+  }
+  const known = CATEGORY_ORDER.filter((category) => byCategory.has(category));
+  const extra = [...byCategory.keys()]
+    .filter((category) => !CATEGORY_ORDER.includes(category))
+    .sort();
+  const parts: string[] = ['## Components'];
+  for (const category of [...known, ...extra]) {
+    parts.push(`### ${category}`);
+    for (const name of byCategory.get(category) ?? []) {
+      parts.push(renderComponent(name, registry[name], '####'));
+    }
+  }
+  return parts.join('\n\n');
+}
+
 /**
- * Build the A2UI system prompt for a catalog. Pass `catalogId` to override the
- * default `createSurface` catalog identifier (the value must round-trip
- * unchanged in every envelope). With no options the output is the Basic-catalog
- * prompt, byte-identical to before the catalog refactor.
+ * Build the A2UI system prompt. Pass `catalogId` to override the advertised
+ * `createSurface` catalog id, and `catalog` to render a specific catalog's
+ * components (defaults to the Basic catalog — byte-identical output).
  */
-export function a2uiSystemPrompt(options?: { catalogId?: string }): string {
-  const catalog: A2uiCatalogSpec = basicA2uiCatalogSpec;
+export function a2uiSystemPrompt(options?: {
+  catalogId?: string;
+  catalog?: A2uiCatalogSpec;
+}): string {
+  const catalog: A2uiCatalogSpec = options?.catalog ?? basicA2uiCatalogSpec;
   const catalogId = options?.catalogId ?? catalog.catalogId;
   const registry = catalog.registry;
   const componentNames = Object.keys(registry);
+
+  const sharedAxes = collectSharedAxes(registry);
+  const grouped = componentNames.some((name) => categoryOf(registry[name]) !== undefined);
+  const hasRichText = 'RichText' in registry;
+  const hasSelectArray = 'Select' in registry && registry.Select.props.value?.kind === 'stringList';
 
   const sections: string[] = [];
 
@@ -143,12 +230,27 @@ export function a2uiSystemPrompt(options?: { catalogId?: string }): string {
     ].join('\n')
   );
 
-  sections.push(
-    [
-      '## Components',
+  if (sharedAxes.size > 0) {
+    const lines = [
+      '## Shared axes',
       '',
-      ...componentNames.map((name) => renderComponent(name, registry[name]))
-    ].join('\n\n')
+      'Several components share these value sets. A prop documented as "shared intent"',
+      'or "shared size" accepts exactly the values listed here — pick one:'
+    ];
+    for (const axis of ['intent', 'size']) {
+      const values = sharedAxes.get(axis);
+      if (values) lines.push(`- ${axis}: ${values.join(' | ')}`);
+    }
+    for (const [axis, values] of sharedAxes) {
+      if (axis !== 'intent' && axis !== 'size') lines.push(`- ${axis}: ${values.join(' | ')}`);
+    }
+    sections.push(lines.join('\n'));
+  }
+
+  sections.push(
+    grouped
+      ? renderGroupedComponents(registry, componentNames)
+      : renderFlatComponents(registry, componentNames)
   );
 
   sections.push(
@@ -169,18 +271,35 @@ export function a2uiSystemPrompt(options?: { catalogId?: string }): string {
     ].join('\n')
   );
 
-  sections.push(
-    [
-      "## Don'ts",
-      '',
-      '- Do NOT define children inline; reference them by id.',
-      '- Do NOT use more than one "root".',
-      '- Do NOT use function-call bindings or local function-call actions.',
-      `- Do NOT use unsupported components: ${[...catalog.unsupportedComponents].join(', ')}.`,
-      '- Do NOT put HTML, images or links in Text markdown (inline bold/italic/code only).',
-      '- Images are blocked by default — always give Image a meaningful description.'
-    ].join('\n')
-  );
+  const donts = [
+    "## Don'ts",
+    '',
+    '- Do NOT define children inline; reference them by id.',
+    '- Do NOT use more than one "root".',
+    '- Do NOT use function-call bindings or local function-call actions.',
+    `- Do NOT use unsupported components: ${[...catalog.unsupportedComponents].join(', ')}.`
+  ];
+  if (hasRichText) {
+    donts.push(
+      '- Text renders PLAIN — a literal "**x**" shows the asterisks. For bold/italic/',
+      '  lists/links/code use RichText, never Text.'
+    );
+  } else {
+    donts.push(
+      '- Do NOT put HTML, images or links in Text markdown (inline bold/italic/code only).'
+    );
+  }
+  if (hasSelectArray) {
+    donts.push(
+      '- A Select `value` is ALWAYS a string ARRAY — even single-select writes a',
+      '  one-element array. RadioGroup `value` is a single string.'
+    );
+  }
+  if (hasRichText) {
+    donts.push('- Do NOT set an intent on a form field for errors — use its `error` string prop.');
+  }
+  donts.push('- Images are blocked by default — always give Image a meaningful description.');
+  sections.push(donts.join('\n'));
 
   return sections.join('\n\n');
 }

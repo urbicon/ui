@@ -27,6 +27,7 @@
     blockedImageLabel = 'Image blocked',
     pendingLabel = 'Loading UI',
     catalogs: catalogsProp,
+    dataSchema: dataSchemaProp,
     class: className,
     unstyled: unstyledProp = false,
     slotClasses: slotClassesProp = {},
@@ -59,6 +60,8 @@
   }
   const defaultCatalog = catalogs[0];
   const defaultIcons = iconsByCatalog.get(defaultCatalog.catalogId) ?? defaultCatalog.createIcons();
+  // Init-fixed like the catalogs (validation config, not reactive UI state).
+  const dataSchema = untrack(() => dataSchemaProp);
 
   // ── Processor (plain, non-reactive) + version counter ────────────────────
   // The processor mutates plain Maps in place (the streaming-markdown engine
@@ -66,7 +69,7 @@
   // render tree derives from it, so reading it is a real subscription (unlike a
   // `void messages` proxy read). `processor`/`consumed` are plain lets: their
   // reassignment must NOT itself trigger reactivity — the bump does.
-  let processor: A2uiProcessor = createA2uiProcessor({ catalogs });
+  let processor: A2uiProcessor = createA2uiProcessor({ catalogs, dataSchema });
   let consumed: unknown[] = [];
   let normalizeIssue = $state<A2uiValidationIssue | undefined>(undefined);
   let version = $state(0);
@@ -93,7 +96,7 @@
       const prefixMatches =
         envelopes.length >= consumed.length && consumed.every((env, i) => env === envelopes[i]);
       if (!prefixMatches) {
-        processor = createA2uiProcessor({ catalogs });
+        processor = createA2uiProcessor({ catalogs, dataSchema });
         consumed = [];
         generation++;
       }

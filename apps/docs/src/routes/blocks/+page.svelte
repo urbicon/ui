@@ -21,6 +21,8 @@
   import {
     A2UIView,
     A2UI_CATALOG_ID,
+    URBICON_A2UI_CATALOG_ID,
+    urbiconA2uiCatalog,
     Accordion,
     AccordionItem,
     Alert,
@@ -306,22 +308,30 @@ Tokens switch light and dark automatically:
   };
 
   // A2UIView specimen — a settled, catalog-conformant sign-in surface (the agent
-  // emitted data, not code) rendered from an accumulated envelope array.
+  // emitted data, not code) rendered from an accumulated envelope array, here
+  // against the opt-in Urbicon-native catalog: real intents/variants + Input.
   const a2uiFormDemo: unknown[] = [
-    { version: 'v0.9.1', createSurface: { surfaceId: 'sb', catalogId: A2UI_CATALOG_ID } },
+    { version: 'v0.9.1', createSurface: { surfaceId: 'sb', catalogId: URBICON_A2UI_CATALOG_ID } },
     {
       version: 'v0.9.1',
       updateComponents: {
         surfaceId: 'sb',
         components: [
-          { id: 'root', component: 'Card', child: 'col' },
+          { id: 'root', component: 'Card', variant: 'elevated', child: 'col' },
           { id: 'col', component: 'Column', children: ['title', 'email', 'submit'] },
           { id: 'title', component: 'Text', text: 'Welcome back', variant: 'h4' },
-          { id: 'email', component: 'TextField', label: 'Email', value: { path: '/email' } },
+          {
+            id: 'email',
+            component: 'Input',
+            label: 'Email',
+            inputType: 'email',
+            value: { path: '/email' }
+          },
           { id: 'submit-label', component: 'Text', text: 'Sign in' },
           {
             id: 'submit',
             component: 'Button',
+            intent: 'primary',
             child: 'submit-label',
             action: { event: { name: 'signin', context: {} } }
           }
@@ -1641,7 +1651,7 @@ Tokens switch light and dark automatically:
         <div class={inner} inert>
           {@render heading('A2UIView')}
           <div class="flex min-h-0 flex-1 flex-col justify-center gap-3 overflow-hidden">
-            <A2UIView payload={a2uiFormDemo} />
+            <A2UIView payload={a2uiFormDemo} catalogs={[urbiconA2uiCatalog]} />
             <A2UIView payload={a2uiFaultDemo} />
           </div>
         </div>

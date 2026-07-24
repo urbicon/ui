@@ -1,9 +1,14 @@
 import Anthropic from '@anthropic-ai/sdk';
-import { a2uiSystemPrompt } from '@urbicon-ui/blocks';
+import {
+  a2uiDataSchemaSection,
+  a2uiSystemPrompt,
+  urbiconA2uiCatalogSpec
+} from '@urbicon-ui/blocks';
 // $env/dynamic/private reads the API key at RUNTIME. `$env/static/private`
 // would inline it at build time and fail the build when no .env is present —
 // so the root build (`bun --filter='./apps/*' run build`) stays key-free.
 import { env } from '$env/dynamic/private';
+import { BOOKING_SCHEMA } from '$lib/booking-schema';
 import { executeSalonTool, SALON_TOOLS } from '$lib/salon-tools';
 import type { RequestHandler } from './$types';
 
@@ -61,7 +66,17 @@ const TRANSPORT_SECTION = [
   'offer, say so in prose instead of inventing options.'
 ].join('\n');
 
-function buildSystemPrompt(): string {
+// The demo defaults to the Urbicon catalog (the full vocabulary + a data
+// schema); `?catalog=basic` switches to the v0.9.1 Basic subset for an A/B
+// comparison. The client picks the matching catalog for A2UIView.
+function buildSystemPrompt(useUrbicon: boolean): string {
+  if (useUrbicon) {
+    return [
+      a2uiSystemPrompt({ catalog: urbiconA2uiCatalogSpec }),
+      a2uiDataSchemaSection(BOOKING_SCHEMA),
+      TRANSPORT_SECTION
+    ].join('\n\n');
+  }
   return `${a2uiSystemPrompt()}\n\n${TRANSPORT_SECTION}`;
 }
 
@@ -71,7 +86,8 @@ const sseHeaders = {
   connection: 'keep-alive'
 } as const;
 
-export const POST: RequestHandler = async ({ request }) => {
+export const POST: RequestHandler = async ({ request, url }) => {
+  const useUrbicon = url.searchParams.get('catalog') !== 'basic';
   const apiKey = env.ANTHROPIC_API_KEY;
   if (!apiKey) {
     // Fail loud at runtime with a clear message — never at build time.
@@ -118,7 +134,7 @@ export const POST: RequestHandler = async ({ request }) => {
             {
               model: 'claude-opus-4-8',
               max_tokens: 8192,
-              system: buildSystemPrompt(),
+              system: buildSystemPrompt(useUrbicon),
               messages: turns,
               tools: SALON_TOOLS
             },

@@ -25,6 +25,7 @@ import { A2UI_ISSUE_CODES, type A2uiIssueSeverity, type A2uiValidationIssue } fr
 import { type A2uiCatalogSpec, basicA2uiCatalogSpec, resolveCatalog } from './a2ui-catalog';
 import { cloneData, deleteAtPointer, getAtPointer, setAtPointer } from './a2ui-data';
 import { A2UI_SUPPORTED_VERSIONS, A2UI_SVG_PATH_RE, type A2uiPropSpec } from './a2ui-registry';
+import { type A2uiDataSchema, validateSchemaWrite } from './a2ui-schema';
 
 const PROTO_KEYS: ReadonlySet<string> = new Set(['__proto__', 'constructor', 'prototype']);
 
@@ -80,6 +81,13 @@ export interface A2uiProcessorOptions {
    * (back-compat); an unknown id only warns once there are ≥ 2 catalogs.
    */
   catalogs?: readonly A2uiCatalogSpec[];
+  /**
+   * Optional data schema. When set, every `updateDataModel` write is validated
+   * against it — a type mismatch on a declared pointer is a `SCHEMA_TYPE_MISMATCH`
+   * error, a write to an undeclared top-level branch a `SCHEMA_UNDECLARED_PATH`
+   * warning. Omitting it disables schema validation entirely (back-compat).
+   */
+  dataSchema?: A2uiDataSchema;
 }
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
@@ -755,7 +763,10 @@ const UPDATE_COMPONENTS_KEYS: ReadonlySet<string> = new Set(['surfaceId', 'compo
 const UPDATE_DATA_MODEL_KEYS: ReadonlySet<string> = new Set(['surfaceId', 'path', 'value']);
 const DELETE_SURFACE_KEYS: ReadonlySet<string> = new Set(['surfaceId']);
 
-function createProcessor(catalogs: readonly A2uiCatalogSpec[]): A2uiProcessor {
+function createProcessor(
+  catalogs: readonly A2uiCatalogSpec[],
+  dataSchema: A2uiDataSchema | undefined
+): A2uiProcessor {
   const surfaces = new Map<string, A2uiSurfaceState>();
   const globalIssues: A2uiValidationIssue[] = [];
   const defaultCatalog = catalogs[0];
@@ -994,6 +1005,20 @@ function createProcessor(catalogs: readonly A2uiCatalogSpec[]): A2uiProcessor {
       return;
     }
     const hasValue = 'value' in udm;
+
+    // Schema validation (opt-in): a type mismatch on a declared pointer is an
+    // error, a write to an undeclared top-level branch a warning — both relayed
+    // to the agent. Runs on the raw written value before it enters the model.
+    if (dataSchema) {
+      const schemaIssues = validateSchemaWrite(
+        dataSchema,
+        pathValue,
+        hasValue ? udm.value : undefined,
+        surfaceId
+      );
+      for (const schemaIssue of schemaIssues) surface.issues.push(schemaIssue);
+    }
+
     const whole = pathValue === undefined || pathValue === '' || pathValue === '/';
 
     if (whole) {
@@ -1118,7 +1143,7 @@ function createProcessor(catalogs: readonly A2uiCatalogSpec[]): A2uiProcessor {
 
 export function createA2uiProcessor(options?: A2uiProcessorOptions): A2uiProcessor {
   const catalogs = options?.catalogs?.length ? options.catalogs : [basicA2uiCatalogSpec];
-  return createProcessor(catalogs);
+  return createProcessor(catalogs, options?.dataSchema);
 }
 
 /**

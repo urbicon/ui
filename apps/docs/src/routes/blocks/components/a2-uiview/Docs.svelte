@@ -2,9 +2,11 @@
   import type { SvelteDocsConfig } from '@urbicon-ui/shared-types';
   import { CodeExample, InfoCard, Section } from '@urbicon-ui/docs';
   import LiveDemo from './examples/LiveDemo.svelte';
+  import UrbiconDemo from './examples/UrbiconDemo.svelte';
   import BrokenPayload from './examples/BrokenPayload.svelte';
 
   import liveDemoCode from './examples/LiveDemo.svelte?raw';
+  import urbiconDemoCode from './examples/UrbiconDemo.svelte?raw';
   import brokenPayloadCode from './examples/BrokenPayload.svelte?raw';
 
   export const docsConfig: SvelteDocsConfig = {
@@ -145,6 +147,14 @@ const system = [
       code={liveDemoCode}
     >
       <LiveDemo />
+    </CodeExample>
+
+    <CodeExample
+      title="Urbicon catalog — the full vocabulary"
+      description="The same engine against the opt-in Urbicon-native catalog (pass it via `catalogs`): real intents and variants, a Section structure layer, RichText (markdown) vs plain Text, a Select / RadioGroup / DatePicker form, an Accordion, and a data schema that type-checks every model write. Basic stays the default; Urbicon is tree-shaken out unless imported."
+      code={urbiconDemoCode}
+    >
+      <UrbiconDemo />
     </CodeExample>
 
     <CodeExample

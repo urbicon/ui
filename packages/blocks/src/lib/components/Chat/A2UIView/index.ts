@@ -2,6 +2,7 @@ import type { HTMLAttributes } from 'svelte/elements';
 import type { MarkdownUrlPolicy } from '../markdown/types';
 import type { A2uiActionEvent, A2uiValidationIssue } from './a2ui.types';
 import type { A2uiCatalog } from './a2ui-catalog';
+import type { A2uiDataSchema } from './a2ui-schema';
 import type { A2UIViewSlots } from './a2ui-view.variants';
 
 /**
@@ -88,6 +89,14 @@ export interface A2UIViewProps extends Omit<HTMLAttributes<HTMLDivElement>, 'cla
    * referentially stable.
    */
   catalogs?: readonly A2uiCatalog[];
+  /**
+   * Optional surface data schema. When set, every `updateDataModel` write is
+   * validated against it (type mismatch on a declared pointer → error;
+   * undeclared top-level branch → warning), reported via `onValidationError`.
+   * Document the same schema to the agent with `a2uiDataSchemaSection`. Keep it
+   * referentially stable.
+   */
+  dataSchema?: A2uiDataSchema;
 
   /** Extra classes merged onto the root element. */
   class?: string;
@@ -138,6 +147,13 @@ export {
   type A2uiPropSpec,
   UNSUPPORTED_A2UI_COMPONENTS
 } from './a2ui-registry';
+export {
+  type A2uiDataSchema,
+  type A2uiSchemaField,
+  type A2uiSchemaType,
+  a2uiDataSchemaSection,
+  validateSchemaWrite
+} from './a2ui-schema';
 export {
   type A2uiComponentInstance,
   type A2uiProcessor,
