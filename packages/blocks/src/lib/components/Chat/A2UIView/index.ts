@@ -19,7 +19,10 @@ import type { A2UIViewSlots } from './a2ui-view.variants';
  * renderer — wire it in per surface via `partRenderers.a2ui` to keep it out of
  * the base bundle. Generate the agent-side prompt with the shipped
  * `a2uiSystemPrompt()`; validate a payload without a DOM with
- * `createA2uiProcessor()` — never hand-roll either.
+ * `createA2uiProcessor()` — never hand-roll either. Opt into the richer
+ * Urbicon-native catalog (real intents/variants, Section, RichText, Accordion)
+ * by passing `catalogs={[urbiconA2uiCatalog]}` (tree-shaken out otherwise), and
+ * type-check the data model with an optional `dataSchema`.
  * @tag ai
  * @related ChatMessage
  * @stability experimental
