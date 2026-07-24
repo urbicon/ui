@@ -1164,17 +1164,17 @@ internal TODO instead. Sections are ordered roughly by urgency.
 - **Found:** 2026-07-23, AI-Kit P3 live check of the new chat-message docs
   page.
 
-### A2UI catalog gap: DateTimeInput (and Tabs) not mapped
+### A2UI catalog gap: Tabs not mapped (DateTimeInput shipped in v6.40.0)
 
 - **Where:** `packages/blocks/src/lib/components/Chat/A2UIView/a2ui-registry.ts`
   (`UNSUPPORTED_A2UI_COMPONENTS`: Modal, Tabs, Video, AudioPlayer,
   DateTimeInput).
-- **What:** Agents asked for booking-style forms fall back to a free-text
-  TextField for dates ("Preferred date (e.g. 2024-06-15)"), and users type
-  arbitrary formats ("12.08.26") — the exact gap DateTimeInput would close by
-  mapping onto the shipped DatePicker. Tabs would map onto Tab similarly.
-  Modal/Video/AudioPlayer stay excluded deliberately (agent-driven overlays
-  and media embeds are a UX/security decision, not a missing mapping).
+- **What:** ~~DateTimeInput~~ shipped in v6.40.0 (DatePicker/TimeInput mapping,
+  spec-checked against a2ui-project/a2ui, adversarially reviewed). Remaining:
+  Tabs would map onto Tab the same way ({ title, child } items, client-local
+  selection state per the implementation guide). Modal/Video/AudioPlayer stay
+  excluded deliberately (agent-driven overlays and media embeds are a
+  UX/security decision, not a missing mapping).
 - **Why deferred:** Each new mapping extends the untrusted-payload surface
   (registry spec + prompt text + A2UINode render path + never-throws render
   tests + value normalization for the data model), so it deserves its own
