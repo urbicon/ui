@@ -7,6 +7,7 @@ Currently shipping:
 - **URL-state runes** — reactive `useUrlParam` / `useUrlArrayParam` that keep component state in sync with `?query=` parameters
 - **Table-query URL sync** — opt-in `?q=…&sort=…&page=…` mirroring for `@urbicon-ui/table` server mode, plus the pure serializers behind it
 - **Cron runner** — interval-based background fetcher for scheduled server endpoints
+- **SSE stream reader** — `streamSse`, a spec-correct async-generator client for one-shot POST `text/event-stream` endpoints (LLM relays)
 
 ## Installation
 
@@ -152,6 +153,57 @@ export const POST = async ({ request }) => {
 - Simple `setInterval`-based scheduler. No drift compensation, no distributed locking, no exponential backoff — intended for single-process SvelteKit deployments. For scale-out scenarios use a real scheduler (e.g. BullMQ) and point it at the same HTTP endpoints.
 - Header name defaults to `x-cron-secret`; override via `secretHeader`.
 
+## SSE Stream Reader (`sse`)
+
+Read a POST endpoint that answers `text/event-stream` — the pattern where a SvelteKit API route relays an LLM (or any) stream to the browser. `streamSse` is an async generator: `for await` over it and each `data:`/`event:` frame arrives as a parsed `SseEvent`.
+
+```typescript
+import { streamSse, SseRequestError } from '@urbicon-ui/sveltekit-utils/sse';
+
+const controller = new AbortController();
+
+try {
+  for await (const ev of streamSse('/api/chat', {
+    body: { messages }, // JSON-encoded, content-type set for you
+    signal: controller.signal
+  })) {
+    if (ev.event === 'token') appendToken(JSON.parse(ev.data).text);
+    else if (ev.event === 'error') throw new Error(JSON.parse(ev.data).message);
+  }
+} catch (err) {
+  if (err instanceof SseRequestError) showError(err.body); // raw response body
+  else if ((err as Error).name !== 'AbortError') throw err;
+}
+
+// Cancelling the stream closes the HTTP connection:
+controller.abort();
+```
+
+Emit the matching frames from the endpoint:
+
+```typescript
+// src/routes/api/chat/+server.ts
+export const POST = async ({ request }) => {
+  const stream = new ReadableStream({
+    async start(controller) {
+      const enc = new TextEncoder();
+      const send = (event: string, data: unknown) =>
+        controller.enqueue(enc.encode(`event: ${event}\ndata: ${JSON.stringify(data)}\n\n`));
+      for await (const token of runModel(await request.json())) send('token', { text: token });
+      controller.close();
+    }
+  });
+  return new Response(stream, { headers: { 'content-type': 'text/event-stream' } });
+};
+```
+
+**Design notes**
+
+- **Chunk-decomposition-invariant** — the emitted event sequence is identical no matter how the byte stream splits into network chunks, including a split inside a CRLF pair or in the middle of a multi-byte UTF-8 character. Implements the core of the WHATWG SSE parser: `\r\n`/`\n`/`\r` terminators, multi-`data:` join with `\n`, one-leading-space stripping, `:`-comment lines, `id` persistence (NUL-poisoned ids ignored), leading-BOM strip, no dispatch without a `data` line or a final blank line.
+- **Not an `EventSource`** — it POSTs a body and takes an injectable `fetch` (pass SvelteKit's `load` fetch to stream during SSR). It deliberately does **not** reconnect; `retry:` and unknown fields are parsed and ignored, and a dropped connection surfaces as the underlying `fetch`/read error.
+- **Fail loud** — a non-2xx status, or a 2xx response with no body, throws `SseRequestError` carrying the `status` and a best-effort raw `body`. An abort propagates as an `AbortError` rather than ending the loop silently.
+- **Body shaping** — a string body is sent verbatim (no forced content-type); any other value is JSON-stringified with `content-type: application/json`. `accept: text/event-stream` is always sent; caller `headers` override both defaults.
+
 ## Exports
 
 | Subpath         | Contents                                                                                                           |
@@ -160,6 +212,7 @@ export const POST = async ({ request }) => {
 | `./url.svelte`  | `useUrlParam`, `useUrlArrayParam`, `createUrlParam`, `updateUrlSearchParams`, `createTableQueryUrlSync`, types     |
 | `./table-query` | `tableQueryToSearchParams`, `searchParamsToTableQuery`, `applyTableQueryToSearchParams`, `TableQueryParams`, types |
 | `./cron`        | `createCronRunner`, `CronJob`, `CronRunnerConfig`, `CronRunner`                                                    |
+| `./sse`         | `streamSse`, `SseEvent`, `StreamSseOptions`, `SseRequestError`                                                     |
 
 ## Development
 

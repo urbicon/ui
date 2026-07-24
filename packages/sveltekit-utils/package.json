@@ -1,7 +1,7 @@
 {
   "name": "@urbicon-ui/sveltekit-utils",
   "version": "6.39.0",
-  "description": "SvelteKit helper utilities — createCronRunner and URL-state runes",
+  "description": "SvelteKit helper utilities — createCronRunner, streamSse, and URL-state runes",
   "license": "MIT",
   "repository": {
     "type": "git",
@@ -15,7 +15,8 @@
     "sveltekit",
     "utilities",
     "cron",
-    "url-state"
+    "url-state",
+    "sse"
   ],
   "type": "module",
   "private": false,
@@ -40,6 +41,11 @@
     "./cron": {
       "types": "./dist/cron.d.ts",
       "import": "./dist/cron.js"
+    },
+    "./sse": {
+      "types": "./dist/sse.d.ts",
+      "import": "./dist/sse.js",
+      "default": "./dist/sse.js"
     },
     "./table-query": {
       "types": "./dist/table-query.d.ts",
