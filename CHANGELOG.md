@@ -4,6 +4,14 @@ All notable changes to this project will be documented in this file.
 This changelog is automatically generated from [Conventional Commits](https://www.conventionalcommits.org).
 
 
+## [6.43.1] - 2026-07-24
+
+### Documentation
+- Trim AGENTS.md to gotchas, move procedures into skills
+
+### Refactoring
+- **design**: Slim the consumer context block to an entry point
+
 ## [6.43.0] - 2026-07-24
 
 ### Bug Fixes
