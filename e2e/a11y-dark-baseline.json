@@ -12,7 +12,13 @@
     "removed) in dark mode. After W1 (text-on-primary + warning made mode-aware)",
     "the library clears AA in dark mode, so this list is empty — the gate is a",
     "regression guard, not a deferral ledger. Add an entry only for a deliberate,",
-    "documented dark-mode deferral."
+    "documented dark-mode deferral.",
+    "",
+    "Scope: the 10 static fixture primitives in their default states — no open",
+    "overlays, focus/hover states, or Menu/Tooltip surfaces. A dark-only bug in an",
+    "overlay, focus ring, or the Rooms-skin dark primary-as-foreground (see",
+    "technical-debt) is out of this gate's reach; style/contrast.test.ts guards the",
+    "token math for every intent x mode statically."
   ],
   "exceptions": []
 }
