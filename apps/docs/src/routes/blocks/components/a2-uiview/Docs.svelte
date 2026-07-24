@@ -81,14 +81,14 @@ const system = [
       executable code. The agent never ships components or scripts — it emits JSONL
       <em>envelopes</em> that reference a <strong>trusted catalog</strong> your app already ships.
       A2UIView is the renderer for the Urbicon subset of A2UI <code>v0.9.1</code>
-      <code>basic</code>: it maps the twelve catalog components onto real Urbicon primitives and
-      renders them live and interactive.
+      <code>basic</code>: it maps the catalog components onto real Urbicon primitives and renders
+      them live and interactive.
     </p>
 
     <div class="grid gap-4 sm:grid-cols-3">
       <InfoCard title="Data, not code">
-        Envelopes are inert JSON. Only the twelve mapped components and their declared props ever
-        reach the DOM — nothing the payload says can execute.
+        Envelopes are inert JSON. Only the mapped components and their declared props ever reach the
+        DOM — nothing the payload says can execute.
       </InfoCard>
       <InfoCard title="Whitelist-only">
         Unknown components, unknown props, prototype-pollution keys and function-call bindings are
@@ -178,8 +178,10 @@ const system = [
       <h3 class="text-text-primary mb-2 text-base font-semibold">Generate the agent prompt</h3>
       <p class="text-text-secondary mb-4 max-w-3xl text-sm leading-relaxed">
         Never hand-roll the catalog description. <code>a2uiSystemPrompt()</code> renders the
-        envelope rules, the twelve-component subset (props, required flags, enums), the binding
-        forms (<code>{'{ path }'}</code> only — function calls are explicitly forbidden), the
+        envelope rules, the component subset (props, required flags, enums), the binding forms (<code
+          >{'{ path }'}</code
+        >
+        only — function calls are explicitly forbidden), the
         <code>root</code> rule, <code>child</code>-vs-<code>children</code>, the template form and
         the action rules, straight from the registry that validates the payload. It omits the
         transport — how envelopes reach the client is app-specific, so append that yourself.
@@ -197,8 +199,9 @@ const system = [
         <p class="text-text-secondary text-sm leading-relaxed">
           Each catalog component maps onto a real Urbicon primitive — <code>TextField</code> to
           Input/Textarea, <code>CheckBox</code> to Checkbox, <code>ChoicePicker</code> to
-          RadioGroup, <code>Slider</code> to Slider — so labels, roles and keyboard behaviour come
-          from the library, not from ad-hoc markup. A component's
+          RadioGroup, <code>Slider</code> to Slider, <code>DateTimeInput</code> to
+          DatePicker/TimeInput — so labels, roles and keyboard behaviour come from the library, not
+          from ad-hoc markup. A component's
           <code>accessibility.label</code> becomes an <code>aria-label</code>.
         </p>
       </div>

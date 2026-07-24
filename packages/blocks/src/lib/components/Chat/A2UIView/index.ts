@@ -6,8 +6,8 @@ import type { A2UIViewSlots } from './a2ui-view.variants';
 /**
  * @description Renders a trusted-catalog A2UI (Agent-to-UI, v0.9.1 `basic`
  * subset) payload into live, interactive Urbicon components. Fail-loud and
- * whitelist-only: only the 12 mapped components and their declared props ever
- * reach the DOM — unknown components/props, prototype-pollution keys and
+ * whitelist-only: only the mapped catalog components and their declared props
+ * ever reach the DOM — unknown components/props, prototype-pollution keys and
  * function-call bindings are rejected, never rendered, and surfaced through
  * `onValidationError` (spec-compatible issues a consumer can relay to the agent
  * as a `VALIDATION_FAILED` error). Inputs are two-way (typing writes into the
