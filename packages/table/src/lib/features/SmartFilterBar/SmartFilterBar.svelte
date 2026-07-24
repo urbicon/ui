@@ -105,7 +105,10 @@
     >
       <FilterMenu />
       <SortMenu />
-      <GroupingMenu />
+      <!-- Grouping is unavailable while virtualized (see TableState.virtualized) -->
+      {#if !tableState.virtualized}
+        <GroupingMenu />
+      {/if}
       <SummaryMenu />
       {#if tableState.enableColumnVisibility}
         <ColumnVisibilityMenu />

@@ -13,8 +13,10 @@
     expandable = false,
     expandedRowContent = undefined as Snippet<[item: TableItem]> | undefined,
     cell = undefined as Snippet<[item: TableItem, value: unknown, column: Column]> | undefined,
-    empty = undefined as Snippet | undefined,
+    emptyState = undefined as Snippet | undefined,
     noDataText = '',
+    loadingText = '',
+    errorText = '',
     onRowClick = undefined as ((item: TableItem) => void) | undefined
   } = $props();
 
@@ -26,9 +28,27 @@
 </script>
 
 <div class="mobile-only md:hidden" data-testid="mobile-table">
-  {#if filteredItems.length === 0}
-    {#if empty}
-      {@render empty()}
+  <!--
+    Loading/error render as plain text here, never through the `loadingState` /
+    `errorState` snippets: those are table-row markup (`<tr><td>`), which cannot
+    live inside this card container. Same reason the desktop states are separate.
+  -->
+  {#if tableState.loading}
+    <div
+      class="text-text-secondary py-6 text-center text-sm"
+      role="status"
+      data-testid="loading-state-mobile"
+    >
+      {loadingText}
+    </div>
+  {:else if tableState.error}
+    <div class="text-danger py-6 text-center text-sm" role="alert" data-testid="error-state-mobile">
+      {errorText}
+      <span class="text-text-secondary mt-1 block">{tableState.error}</span>
+    </div>
+  {:else if filteredItems.length === 0}
+    {#if emptyState}
+      {@render emptyState()}
     {:else}
       <div class="text-text-secondary py-6 text-center text-sm" data-testid="empty-state-mobile">
         {noDataText}

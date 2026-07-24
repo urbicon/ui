@@ -69,15 +69,21 @@ Peer dependencies: `svelte` (^5), `@urbicon-ui/blocks`, `@urbicon-ui/i18n`.
 
 ### Live updates
 
+`onReady` hands you the table context from outside the table's tree — the imperative API (`pushInsert` / `pushUpdate` / `pushDelete`, `applyAllUpdates`) plus the reactive `state`:
+
 ```svelte
-<Table {items} {columns} enableLiveUpdates>
-  {#snippet aboveTable({ ctx })}
-    <button onclick={() => ctx.pushInsert({ id: crypto.randomUUID(), name: 'New' })}>
-      + row
-    </button>
-  {/snippet}
-</Table>
+<script lang="ts">
+  import { Table, type TableContext } from '@urbicon-ui/table';
+
+  let table = $state<TableContext | null>(null);
+</script>
+
+<button onclick={() => table?.pushInsert({ id: crypto.randomUUID(), name: 'New' })}> + row </button>
+
+<Table {items} {columns} enableLiveUpdates onReady={(ctx) => (table = ctx)} />
 ```
+
+Inside the table's tree (a `toolbar` snippet, a custom cell) `getTableContext()` returns the same object.
 
 ## State Persistence
 
@@ -101,9 +107,11 @@ Disable individual axes (e.g. always start filter-free, but keep the column layo
 />
 ```
 
-Storage keys are namespaced by `tableId` (`urbicon_table_filters_expenses_v1`, …); pick a stable, unique `tableId` per table — two tables sharing one id will overwrite each other.
+Storage keys are namespaced by `tableId` (`urbicon_table_filters_expenses_v1`, …); pick a stable, unique `tableId` per table — two tables sharing one id will overwrite each other. A key is only written once its axis differs from the default, so a table nobody touched writes nothing at all.
 
-`storage: 'sessionStorage'` limits persistence to the current tab (lost on tab close). The `clearAllPersistentData` and `forceSavePersistentData` methods on the table context let you reset or flush state imperatively.
+**Cleared counts as state.** Restoring keys off "is a value stored", not "is the stored value non-empty" — so clearing the sort, removing every filter chip, ungrouping, dropping all summaries or deselecting everything is persisted as such and survives the reload. Where an axis also has an `initial*` seed (`initialSort`, `initialFilters`, `initialGroupBy`, `initialSummaryConfigs`, `initialSelectedIds`), the stored value wins — the seed only fills an axis storage has nothing for. Disable that axis' persistence if the seed should win on every visit.
+
+`storage: 'sessionStorage'` limits persistence to the current tab (lost on tab close). The `clearAllPersistentData` and `forceSavePersistentData` methods on the table context let you reset or flush state imperatively; after `clearAllPersistentData` the axes are back to "nothing stored", so the seeds apply again on the next load.
 
 ## Subcomponent Styling
 
@@ -121,6 +129,8 @@ Every structural subcomponent (`EmptyState`, `ErrorState`, `LoadingState`, `Grou
   }}
 />
 ```
+
+**`cell` and `headerCell` are the data-column slots.** They reach the `<td>`/`<th>` that render column content — in flat rows, grouped rows and the header alike. The table's own structural cells (selection checkbox, expand chevron, group-indentation spacer, group toggle) are chrome with fixed widths and deliberately stay outside both slots, so a padding or alignment override cannot deform the controls it was never aimed at. Reach those through `row`/`headerRow`, or take over completely with `unstyled`.
 
 ## i18n
 
@@ -144,7 +154,7 @@ Resolves against the request-scoped locale from `<I18nProvider>` (or the base lo
 Deliberate trade-offs of the zero-dependency implementation — documented so they surprise no one:
 
 - **Virtualization assumes fixed row heights.** The row height derives from the `size` prop (`sm`/`md`/`lg` via `ROW_HEIGHTS`); rows with dynamic height (wrapping text, expanded content) are not supported in virtualized mode.
-- **Virtualization and grouping are mutually exclusive.** When `groupByKey` is set, virtualization deactivates automatically (grouping takes precedence) and the full grouped set renders. For large datasets, group server-side via remote mode or keep grouped views paginated instead of virtualized.
+- **Virtualization and grouping are mutually exclusive — virtualization wins.** Grouped virtualization is not implemented, so a `virtualized` table suppresses the grouping affordances (header menu, toolbar grouping menu) and ignores every other route into grouping — `initialGroupBy`, a controlled `groupByKey`, a persisted key — with a dev warning. (Until v6.41 grouping won instead, which silently deactivated virtualization and rendered the full item set — the very failure `virtualized` exists to prevent.) For large datasets, group server-side via remote mode or keep grouped views paginated instead of virtualized.
 - **Virtualized mode bypasses pagination.** All sorted items live in one scrollable container; only ~viewport rows are in the DOM.
 - **Live updates ship no transport.** `enableLiveUpdates` is a push-model pending-buffer — the app supplies WebSocket/SSE/polling and calls `pushInsert`/`pushUpdate`/`pushDelete`.
 
@@ -153,6 +163,7 @@ Deliberate trade-offs of the zero-dependency implementation — documented so th
 Semantics worth stating outright, since they differ from some other table libraries:
 
 - **Select-all covers every filtered row, not just the current page.** In `selectionMode="multi"`, the header checkbox toggles all rows that pass the active search/filters — across every page — and its indeterminate state reflects that same set. (TanStack/shadcn default to a page-scoped select-all.) Selection is keyed by `item.id`, falling back to the row index, so it survives paging and re-sorting.
+- **`greaterThan`/`lessThan` compare numbers first, dates second.** When both the cell value and the filter value convert via `Number()`, they are compared as numbers; otherwise both sides are read as instants (`Date` objects, epoch milliseconds, ISO-8601 strings) — every other string format never matches, so a malformed or empty value filters everything out instead of matching everything. For a bare calendar date (`YYYY-MM-DD`, what a `dataType: 'date'` column's filter input emits) "after"/"before" compare on **UTC day boundaries**, so a row stamped `2021-03-15T09:00Z` matches neither `after 2021-03-15` nor `before 2021-03-15`; a filter value with a time of day compares instants strictly. A `Date` built from local parts (`new Date(2021, 2, 15)`) can land on the neighbouring UTC day — store ISO strings or UTC-constructed dates for day-exact filtering.
 - **A controlled `searchTerm` wins over `persistSearch`.** When you pass `searchTerm`, it drives the search state and takes precedence over a value restored from `persistenceConfig.persistSearch`. Leave it `undefined` to let persistence (or the built-in filter bar) own the term; an empty string is a valid controlled value that clears the search.
 
 ## Development

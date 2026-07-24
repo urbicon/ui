@@ -11,6 +11,7 @@ export { default as MobileCard } from './core/MobileCard.svelte';
 export { default as TableHead } from './core/TableHead.svelte';
 export { default as TableProvider } from './core/TableProvider.svelte';
 export { default as TableRow } from './core/TableRow.svelte';
+export type { TableContext, TableProps } from './core/table/index.js';
 // === CORE COMPONENTS ===
 export { default as Table } from './core/table/Table.svelte';
 // === STYLE CONTEXT ===

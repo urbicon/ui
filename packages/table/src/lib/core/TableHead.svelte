@@ -152,6 +152,9 @@
       styleConfig.unstyled
     )}
   >
+    <!-- Structural header cells (group toggle, select-all, expand spacer) are
+         chrome, not columns: they carry the header cell chrome but not
+         `slotClasses.headerCell` — see TableSlotClasses.headerCell. -->
     {#if tableState.groupByKey}
       <th class="{headerStyles.cell()} w-10 text-center">
         <button
@@ -215,11 +218,19 @@
         style={column.width
           ? `width: ${column.width}; min-width: ${column.minWidth || '4rem'};`
           : ''}
-        class="{columnStyles.cell()} whitespace-nowrap {column.flex
-          ? 'flex-col'
-          : ''} {enableColumnReorder ? 'cursor-grab' : ''} {isDragOver
-          ? 'outline-primary outline outline-2 outline-offset-[-2px]'
-          : ''}"
+        class={resolveSlotClass(
+          columnStyles.cell,
+          styleConfig.slotClasses.headerCell,
+          styleConfig.unstyled,
+          [
+            'whitespace-nowrap',
+            column.flex ? 'flex-col' : '',
+            enableColumnReorder ? 'cursor-grab' : '',
+            isDragOver ? 'outline-primary outline outline-2 outline-offset-[-2px]' : ''
+          ]
+            .filter(Boolean)
+            .join(' ')
+        )}
         aria-sort={isActiveSorted
           ? tableState.sortDirection === 'asc'
             ? 'ascending'

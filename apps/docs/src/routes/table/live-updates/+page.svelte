@@ -11,23 +11,31 @@
   enableLiveUpdates
 />`;
 
-  const codeLiveFeed = `<!-- LiveFeed.svelte — rendered inside the table tree (see below) -->
-${scriptOpen}
-  import { getTableContext } from '@urbicon-ui/table';
+  const codeLiveFeed = `${scriptOpen}
+  import { Table, type TableContext } from '@urbicon-ui/table';
 
-  const table = getTableContext();
+  let table = $state<TableContext | null>(null);
 
   $effect(() => {
+    const ctx = table;
+    if (!ctx) return;
     const socket = new WebSocket('wss://api.example.com/orders');
     socket.onmessage = (event) => {
       const message = JSON.parse(event.data);
-      if (message.type === 'order:created') table.pushInsert(message.order);
-      if (message.type === 'order:updated') table.pushUpdate(message.id, message.changes);
-      if (message.type === 'order:deleted') table.pushDelete(message.id);
+      if (message.type === 'order:created') ctx.pushInsert(message.order);
+      if (message.type === 'order:updated') ctx.pushUpdate(message.id, message.changes);
+      if (message.type === 'order:deleted') ctx.pushDelete(message.id);
     };
     return () => socket.close();
   });
-${scriptClose}`;
+${scriptClose}
+
+<Table
+  {items}
+  {columns}
+  enableLiveUpdates
+  onReady={(context) => (table = context)}
+/>`;
 
   // Display-only specifier. Interpolated (like scriptOpen/scriptClose) so
   // vite's dep-scanner — which regex-extracts imports from the raw script of
@@ -37,6 +45,7 @@ ${scriptClose}`;
   const liveFeedPath = `'./LiveFeed.svelte'`;
 
   const codeMount = `${scriptOpen}
+  // LiveFeed.svelte calls getTableContext() — so it must render inside the table
   import { Table, SmartFilterBar } from '@urbicon-ui/table';
   import LiveFeed from ${liveFeedPath};
 ${scriptClose}
@@ -108,14 +117,14 @@ ${scriptClose}
 
       <CodeExample
         title="Push changes from your data source"
-        description="getTableContext() exposes pushInsert, pushUpdate, and pushDelete. Wire them to whatever delivers your server events — WebSocket, SSE, or polling."
+        description="onReady hands you the table context from outside the table — pushInsert, pushUpdate, and pushDelete. Wire them to whatever delivers your server events: WebSocket, SSE, or polling."
         code={codeLiveFeed}
         preview={false}
       />
 
       <CodeExample
-        title="Mount the feed inside the table tree"
-        description="getTableContext() resolves through component context, so the component calling it must render inside the table — the toolbar snippet is the natural mount point. Re-add SmartFilterBar to keep the default search toolbar."
+        title="Alternative: a feed component inside the table tree"
+        description="If the feed is its own component, it can call getTableContext() instead — that resolves through component context, so it must render inside the table; the toolbar snippet is the natural mount point. Re-add SmartFilterBar to keep the default search toolbar."
         code={codeMount}
         preview={false}
       />
@@ -137,6 +146,11 @@ ${scriptClose}
         <li>
           A <code class="text-text-primary">pushDelete</code> for a row that is still a pending insert
           cancels both — the row never appears
+        </li>
+        <li>
+          A <code class="text-text-primary">pushUpdate</code> for a row that is still a pending insert
+          is folded into that insert, so the row lands already updated (updates apply before inserts,
+          so a separate buffer entry would be dropped as unknown)
         </li>
         <li>On apply, deletes run first, then updates, then inserts</li>
         <li>

@@ -11,6 +11,7 @@
   import { useTableI18n } from '$lib/i18n';
   import { tableRowVariants } from '$lib/variants';
   import { getTableStyleConfig, resolveSlotClass } from './table-style-context';
+  import { resolveRowClickActions } from './row-interaction';
   import TableCell from './TableCell.svelte';
   import { resolveColumnId } from '$lib/utils';
   import type { Column, TableItem } from '$lib/types/tableTypes';
@@ -58,11 +59,20 @@
   });
 
   function handleRowClick() {
-    if (onRowClick) {
-      onRowClick(item);
+    const actions = resolveRowClickActions({
+      hasRowClickHandler: !!onRowClick,
+      expandable,
+      rowClickSelects: tableState.rowClickSelects,
+      selectable
+    });
+    if (actions.fireRowClick) {
+      onRowClick?.(item);
     }
-    if (expandable) {
+    if (actions.toggleExpand) {
       toggleExpand(itemId);
+    }
+    if (actions.toggleSelection) {
+      tableContext.toggleItem(itemId);
     }
   }
 
@@ -94,7 +104,11 @@
     styleConfig.slotClasses.row,
     styleConfig.unstyled,
     [
+      // `select-none` only where the click has no selection meaning — a
+      // row-click-selects row must keep its text selectable (the click handler
+      // skips selection while text is highlighted).
       expandable || onRowClick ? 'cursor-pointer select-none' : '',
+      !expandable && !onRowClick && tableState.rowClickSelects ? 'cursor-pointer' : '',
       isRecentlyUpdated
         ? 'ring-success/30 bg-success-subtle/30 ring-2 transition-[box-shadow,background-color] duration-1000 ring-inset'
         : ''
@@ -112,6 +126,9 @@
   data-row-index={rowIndex}
   data-testid={`table-row-${itemId}`}
 >
+  <!-- Structural cells (selection, expand) carry the row's cell chrome but not
+       `slotClasses.cell` — that slot is scoped to data columns; see
+       TableSlotClasses.cell. -->
   {#if selectable}
     <td class="{rowStyles.cell()} w-12" onclick={handleCheckboxClick}>
       <div class="flex h-full w-full items-center justify-center">

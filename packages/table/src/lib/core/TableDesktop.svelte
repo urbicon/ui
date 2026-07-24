@@ -34,9 +34,9 @@
     cell = undefined as Snippet<[item: TableItem, value: unknown, column: Column]> | undefined,
     header = undefined as Snippet | undefined,
     body = undefined as Snippet | undefined,
-    empty = undefined as Snippet | undefined,
-    loading = undefined as Snippet | undefined,
-    error = undefined as Snippet | undefined,
+    emptyState = undefined as Snippet | undefined,
+    loadingState = undefined as Snippet | undefined,
+    errorState = undefined as Snippet | undefined,
     loadingText = '',
     errorText = '',
     noDataText = '',
@@ -298,8 +298,8 @@
               styleConfig.unstyled
             )}
           >
-            {#if empty}
-              {@render empty()}
+            {#if emptyState}
+              {@render emptyState()}
             {:else}
               <EmptyState message={noDataText} {size} colSpan={totalColSpan} />
             {/if}
@@ -401,14 +401,14 @@
         )}
       >
         {#if tableState.loading}
-          {#if loading}
-            {@render loading()}
+          {#if loadingState}
+            {@render loadingState()}
           {:else}
             <LoadingState text={loadingText} {size} colSpan={totalColSpan} />
           {/if}
         {:else if tableState.error}
-          {#if error}
-            {@render error()}
+          {#if errorState}
+            {@render errorState()}
           {:else}
             <ErrorState
               title={errorText}
@@ -419,8 +419,8 @@
           {/if}
         {:else if tableState.groupByKey}
           {#if filteredItems.length === 0}
-            {#if empty}
-              {@render empty()}
+            {#if emptyState}
+              {@render emptyState()}
             {:else}
               <EmptyState message={noDataText} {size} colSpan={totalColSpan} />
             {/if}
@@ -448,8 +448,8 @@
             {/each}
           {/if}
         {:else if filteredItems.length === 0}
-          {#if empty}
-            {@render empty()}
+          {#if emptyState}
+            {@render emptyState()}
           {:else}
             <EmptyState message={noDataText} {size} colSpan={totalColSpan} />
           {/if}

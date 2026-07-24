@@ -40,8 +40,12 @@
             <code class="text-text-primary">virtualized</code> is true
           </li>
           <li>
-            Grouping takes precedence – virtualization is deactivated when
-            <code class="text-text-primary">initialGroupBy</code> is set
+            Virtualization wins over grouping – grouped virtualization is not implemented, so the
+            grouping affordances (header menu, toolbar menu) are suppressed and an
+            <code class="text-text-primary">initialGroupBy</code>, a controlled
+            <code class="text-text-primary">groupByKey</code> or a persisted grouping is ignored
+            with a dev warning. Group server-side, or drop
+            <code class="text-text-primary">virtualized</code>
           </li>
           <li>
             Row heights are fixed per <code class="text-text-primary">size</code> (sm/md/lg) — rows with

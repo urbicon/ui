@@ -19,7 +19,7 @@
         title="Custom Empty State"
         description="Override the default empty state with a branded illustration or call-to-action."
         code={`<Table {items} {columns}>
-  {#snippet empty()}
+  {#snippet emptyState()}
     <tr>
       <td colspan="99" class="py-12 text-center">
         <div class="text-4xl mb-3">\uD83D\uDD0D</div>
@@ -33,7 +33,7 @@
 </Table>`}
       >
         <Table items={[]} columns={basicColumns} enableSmartFilter={false}>
-          {#snippet empty()}
+          {#snippet emptyState()}
             <tr>
               <td colspan="99" class="py-12 text-center">
                 <div class="mx-auto max-w-xs">
@@ -77,7 +77,7 @@
 
       <CodeExample
         title="State Persistence"
-        description="Pass a single tableId to persist every view-state axis across reloads — filters, search, grouping, summary configs, sort, hidden columns, and column order. Defaults to localStorage. Pagination is intentionally not persisted."
+        description="Pass a single tableId to persist every view-state axis across reloads — filters, search, grouping, summary configs, sort, hidden columns, and column order. Defaults to localStorage. Pagination is intentionally not persisted. Clearing counts as state: an axis the user emptied (no sort, no filters, no grouping) restores empty and wins over the matching initial* seed — the seed only fills an axis nothing is stored for."
         code={`<!-- Opt every axis in with one line -->
 <Table {items} {columns} persistenceConfig={{ tableId: 'team-roster' }} />
 

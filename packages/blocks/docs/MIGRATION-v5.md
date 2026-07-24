@@ -80,6 +80,35 @@ The dead `tableVariants` export is removed (was unused in any consumer).
 <Table data={rows} columns={cols} />
 ```
 
+## 3b. Table state snippets renamed (v6.41)
+
+The Table's three state snippets are renamed to match the slot names they
+already had in `slotClasses` (`emptyState` / `loadingState` / `errorState`).
+That frees `loading` and `error` for the state props they are everywhere else
+in the library — the Table can now be told it is loading or has failed, which
+previously only the managed `queryFn` path could do.
+
+| Before (snippet) | After (snippet) | Freed prop             |
+| ---------------- | --------------- | ---------------------- |
+| `empty`          | `emptyState`    | —                      |
+| `loading`        | `loadingState`  | `loading?: boolean`    |
+| `error`          | `errorState`    | `error?: string\|null` |
+
+```svelte
+<!-- before -->
+<Table {items} {columns}>
+  {#snippet empty()}<tr><td colspan="99">Nothing here</td></tr>{/snippet}
+</Table>
+
+<!-- after — plus the new state props for data you fetch yourself -->
+<Table {items} {columns} loading={pending} error={failure}>
+  {#snippet emptyState()}<tr><td colspan="99">Nothing here</td></tr>{/snippet}
+</Table>
+```
+
+With a managed `queryFn` the table still owns both states and ignores the two
+props (DEV warns).
+
 ## 4. Dialog + Drawer intent
 
 Dialog and Drawer no longer draw a coloured `border-t-[3px]` accent for

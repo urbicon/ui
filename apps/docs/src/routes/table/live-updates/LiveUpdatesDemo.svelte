@@ -1,7 +1,6 @@
 <script lang="ts">
-  import { Table, SmartFilterBar, getTableContext, type Column } from '@urbicon-ui/table';
+  import { Table, SmartFilterBar, type Column, type TableContext } from '@urbicon-ui/table';
   import { Button, Toggle } from '@urbicon-ui/blocks';
-  import TableContextBridge from './TableContextBridge.svelte';
 
   type Order = {
     id: number;
@@ -98,8 +97,8 @@
     { accessor: 'placedAt', title: 'Placed', sortable: true }
   ];
 
-  // The table context, captured via the bridge component in the toolbar snippet.
-  let table = $state<ReturnType<typeof getTableContext> | null>(null);
+  // The table context, handed over by the table's `onReady` callback.
+  let table = $state<TableContext | null>(null);
   let feedRunning = $state(false);
 
   // Continues after the seeded rows; only read inside handlers, so no rune needed.
@@ -191,9 +190,9 @@
     enableLiveUpdates
     autoApplyOnNavigation={false}
     itemsPerPage={8}
+    onReady={(context) => (table = context)}
   >
     {#snippet toolbar()}
-      <TableContextBridge onReady={(context) => (table = context)} />
       <SmartFilterBar placeholder="Search orders..." />
     {/snippet}
   </Table>

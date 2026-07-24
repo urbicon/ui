@@ -13,6 +13,7 @@
   import { tableRowVariants } from '$lib/variants';
   import TableCell from './TableCell.svelte';
   import { getTableStyleConfig, resolveSlotClass } from './table-style-context';
+  import { resolveRowClickActions } from './row-interaction';
   import { getStickyContext } from './sticky-context.svelte';
   import { resolveColumnId } from '$lib/utils';
   import type { Column, TableItem } from '$lib/types/tableTypes';
@@ -87,13 +88,10 @@
   // Tailwind-Variants styling
   const styles = $derived(groupHeaderVariants({ size, sticky: stickyContext.mode.group }));
 
-  // TableRow styles for individual items
-  const rowStyles = $derived(
-    tableRowVariants({
-      state: 'default',
-      size
-    })
-  );
+  // Item-row styles are resolved per row (inside the each), because the
+  // selected/expanded state is per row — this block used to pin `state:
+  // 'default'` for all of them, so a selected row in a group never picked up
+  // the selected tint.
 
   // Event handlers
   function handleToggleGroup() {
@@ -115,6 +113,30 @@
       toggleExpand(candidate);
     }
   }
+
+  // Same click semantics as the flat rows (TableRow) — grouped rows previously
+  // took `onRowClick` as a prop and never wired it, so a click did nothing here.
+  function handleItemRowClick(row: TableItem, rowItemId: string | number) {
+    const actions = resolveRowClickActions({
+      hasRowClickHandler: !!onRowClick,
+      expandable,
+      rowClickSelects: tableState.rowClickSelects,
+      selectable
+    });
+    if (actions.fireRowClick) {
+      onRowClick?.(row);
+    }
+    if (actions.toggleExpand) {
+      toggleExpand(rowItemId);
+    }
+    if (actions.toggleSelection) {
+      tableContext.toggleItem(rowItemId);
+    }
+  }
+
+  const rowIsInteractive = $derived(
+    expandable || !!onRowClick || (tableState.rowClickSelects && selectable)
+  );
 </script>
 
 <!-- Group Header Row -->
@@ -173,14 +195,32 @@
       typeof item.id === 'string' || typeof item.id === 'number' ? item.id : index}
     {@const isRowExpanded = isItemExpanded(rowItemId)}
     {@const isRowSelected = selectable && tableContext.isSelected(rowItemId)}
+    {@const itemStyles = tableRowVariants({
+      state: isRowSelected ? 'selected' : isRowExpanded ? 'expanded' : 'default',
+      size
+    })}
     <tr
-      class={rowStyles.row()}
+      class={resolveSlotClass(
+        itemStyles.row,
+        styleConfig.slotClasses.row,
+        styleConfig.unstyled,
+        [
+          // `select-none` only where the click has no selection meaning — see TableRow.
+          expandable || onRowClick ? 'cursor-pointer select-none' : '',
+          !expandable && !onRowClick && tableState.rowClickSelects && selectable
+            ? 'cursor-pointer'
+            : ''
+        ]
+          .filter(Boolean)
+          .join(' ')
+      )}
+      onclick={() => handleItemRowClick(item, rowItemId)}
       transition:slide={{ duration: 150 }}
       aria-selected={selectable ? isRowSelected : undefined}
       data-testid={`grouped-item-${rowItemId}`}
     >
       {#if selectable}
-        <td class="{rowStyles.cell()} w-12" onclick={(e) => e.stopPropagation()}>
+        <td class="{itemStyles.cell()} w-12" onclick={(e) => e.stopPropagation()}>
           <div class="flex h-full w-full items-center justify-center">
             <Checkbox
               checked={isRowSelected}
@@ -193,11 +233,11 @@
       {/if}
 
       {#if tableState.groupByKey}
-        <td class={rowStyles.cell()} aria-hidden="true"></td>
+        <td class={itemStyles.cell()} aria-hidden="true"></td>
       {/if}
 
       {#if expandable}
-        <td class="{rowStyles.cell()} w-10">
+        <td class="{itemStyles.cell()} w-10">
           <div class="flex h-full w-full items-center justify-center px-2 py-2">
             <button
               class="table-expand-button rounded-modify flex h-6 w-6 items-center justify-center transition-transform duration-(--blocks-duration-fast) {isRowExpanded
@@ -219,7 +259,11 @@
           {column}
           {cell}
           {size}
-          cellClass={rowStyles.cell()}
+          cellClass={resolveSlotClass(
+            itemStyles.cell,
+            styleConfig.slotClasses.cell,
+            styleConfig.unstyled
+          )}
           testIdPrefix="grouped-cell"
         />
       {/each}

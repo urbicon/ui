@@ -52,7 +52,12 @@
   const columnId = $derived(resolveColumnId(column));
   // Synthetic columns (no accessor) cannot participate in derived ops.
   const canSort = $derived(column.accessor !== undefined && column.sortable !== false);
-  const canGroup = $derived(column.accessor !== undefined && column.groupable !== false);
+  // Grouping is not implemented for the virtual list — offering it there used to
+  // silently deactivate virtualization and dump every row into the DOM, which is
+  // exactly what `virtualized` exists to prevent. The mode wins; the affordance goes.
+  const canGroup = $derived(
+    column.accessor !== undefined && column.groupable !== false && !tableState.virtualized
+  );
   // Column visibility can be switched off table-wide, or pinned per column via `hideable: false`.
   const canHide = $derived(tableState.enableColumnVisibility && column.hideable !== false);
 

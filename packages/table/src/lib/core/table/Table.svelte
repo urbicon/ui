@@ -57,6 +57,8 @@
     searchTerm = undefined,
     onSearchTermChange = undefined,
 
+    loading = false,
+    error = null,
     loadingText = tt('data.loading'),
     errorText = tt('error.loadingError'),
     noDataText = tt('data.empty'),
@@ -65,9 +67,9 @@
     header = undefined,
     body = undefined,
     pagination = undefined,
-    empty = undefined,
-    loading = undefined,
-    error = undefined,
+    emptyState = undefined,
+    loadingState = undefined,
+    errorState = undefined,
     groupHeaderContent,
     toolbar = undefined,
     mode = 'client',
@@ -82,6 +84,8 @@
     enableLiveUpdates = false,
     autoApplyOnNavigation = true,
     selectionMode = 'none',
+    rowClickSelects = undefined,
+    onReady = undefined,
     selectedIds = undefined,
     onSelectionChange = undefined,
     sticky = false,
@@ -144,6 +148,13 @@
 
   let expandable = $derived(!!expandedRowContent);
 
+  // Row-click selection defaults on for single-select (one click is the expected
+  // gesture there) but never steals a row click that already means something —
+  // `onRowClick` opts out unless the consumer says otherwise explicitly.
+  const rowClickSelectsResolved = $derived(
+    rowClickSelects ?? (selectionMode === 'single' && !onRowClick)
+  );
+
   let tableContainer = $state<HTMLElement | null>(null);
   let tableDomWidth = $state<string>('100%');
 
@@ -190,7 +201,9 @@
   {initialFilters}
   {initialSelectedIds}
   {multiExpand}
-  loading={false}
+  {virtualized}
+  {loading}
+  {error}
   {persistenceConfig}
   {mode}
   {serverTotalItems}
@@ -200,6 +213,8 @@
   {enableLiveUpdates}
   {autoApplyOnNavigation}
   {selectionMode}
+  rowClickSelects={rowClickSelectsResolved}
+  {onReady}
   {selectedIds}
   onSelectionChange={onSelectionChangeErased}
   {enableColumnVisibility}
@@ -264,9 +279,9 @@
       cell={cellErased}
       {header}
       {body}
-      {empty}
-      {loading}
-      {error}
+      {emptyState}
+      {loadingState}
+      {errorState}
       {loadingText}
       {errorText}
       {noDataText}
@@ -278,17 +293,21 @@
       {enableColumnReorder}
     />
 
-    {#if !tableState.loading && !tableState.error}
-      <TableMobile
-        {size}
-        {expandable}
-        expandedRowContent={expandedRowContentErased}
-        cell={cellErased}
-        {empty}
-        {noDataText}
-        onRowClick={onRowClickErased}
-      />
+    <!-- Mobile renders its own loading/error text (the desktop states are row
+         markup), so it stays mounted; only pagination is gated on data. -->
+    <TableMobile
+      {size}
+      {expandable}
+      expandedRowContent={expandedRowContentErased}
+      cell={cellErased}
+      {emptyState}
+      {noDataText}
+      {loadingText}
+      {errorText}
+      onRowClick={onRowClickErased}
+    />
 
+    {#if !tableState.loading && !tableState.error}
       {#if tableContext.filteredItems.length > 0 && !tableState.groupByKey && !virtualized}
         {#if pagination}
           {@render pagination()}

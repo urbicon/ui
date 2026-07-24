@@ -69,6 +69,20 @@ export function useLiveUpdates(state: TableState) {
   }
 
   function pushUpdate(id: string | number, changes: Partial<TableItem>) {
+    // An update for a row that is still a pending *insert* belongs into that
+    // insert. applyUpdates runs before applyInserts (deletes → updates →
+    // inserts), so a separate pending update would be applied against items
+    // that do not contain the row yet: it would be dropped as orphaned (DEV
+    // warns) and the change lost. Merging keeps the last-writer-wins semantics
+    // of the update buffer.
+    const pendingInsertIdx = inserts.findIndex((i) => pickRowId(i) === id);
+    if (pendingInsertIdx >= 0) {
+      inserts = inserts.map((item, idx) =>
+        idx === pendingInsertIdx ? { ...item, ...changes } : item
+      );
+      return;
+    }
+
     // Merge with existing pending update for the same ID
     const existing = updates.findIndex((u) => u.id === id);
     if (existing >= 0) {

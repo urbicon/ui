@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import type { Column, Filter } from '$lib/types/tableTypes';
+import type { Column, Filter, TableItem } from '$lib/types/tableTypes';
 import type { SummaryConfig } from '../TableStore.svelte';
 import type { TableState } from './types';
 import { useColumnOrder } from './useColumnOrder.svelte.js';
@@ -187,6 +187,43 @@ describe('useGrouping', () => {
     grouping.setGroupByKey(null);
     expect(state.groupByKey).toBe(null);
   });
+
+  it('contract: setGroupByKey is inert while virtualized', () => {
+    const state = {
+      groupByKey: null as string | null,
+      collapsedGroups: new Set<string>(),
+      allGroupsExpanded: true,
+      currentPage: 2,
+      groupOrder: [],
+      virtualized: true
+    } as unknown as TableState;
+
+    const grouping = useGrouping(state, () => []);
+
+    // Grouped virtualization is not implemented — letting the key through
+    // would deactivate virtualization and render the full item set.
+    grouping.setGroupByKey('department');
+    expect(state.groupByKey).toBe(null);
+    expect(state.currentPage).toBe(2);
+  });
+
+  it('contract: clearing grouping stays allowed while virtualized', () => {
+    // A key can already be in place (persistence/seed) when the mode is
+    // switched on — the provider clears it through this same path.
+    const state = {
+      groupByKey: 'department' as string | null,
+      collapsedGroups: new Set<string>(),
+      allGroupsExpanded: true,
+      currentPage: 1,
+      groupOrder: [],
+      virtualized: true
+    } as unknown as TableState;
+
+    const grouping = useGrouping(state, () => []);
+
+    grouping.setGroupByKey(null);
+    expect(state.groupByKey).toBe(null);
+  });
 });
 
 // Regression guard: the v2 column-shape exists so search, sort and group
@@ -329,6 +366,131 @@ describe('useFiltering', () => {
     expect(filtering.hasFilterForColumn('age')).toBe(false);
     expect(filtering.hasFilterForColumn('name', 'contains')).toBe(true);
     expect(filtering.hasFilterForColumn('name', 'equals')).toBe(false);
+  });
+});
+
+// `greaterThan`/`lessThan` are offered by the SmartFilterBar as "after"/"before"
+// for `dataType: 'date'` columns, with an `<input type="date">` that emits
+// `YYYY-MM-DD`. Before the date path existed, `Number('2021-03-15')` was NaN and
+// every such comparison was silently false. These tests pin both paths.
+describe('useFiltering — greaterThan / lessThan', () => {
+  type Row = { id: number; amount: number; iso: string; when: Date; label: string };
+
+  const items: Row[] = [
+    {
+      id: 1,
+      amount: 10,
+      iso: '2021-03-14',
+      when: new Date('2021-03-14T12:00:00Z'),
+      label: 'alpha'
+    },
+    {
+      id: 2,
+      amount: 20,
+      iso: '2021-03-15T09:00:00Z',
+      when: new Date('2021-03-15T09:00:00Z'),
+      label: 'beta'
+    },
+    {
+      id: 3,
+      amount: 30,
+      iso: '2021-03-16',
+      when: new Date('2021-03-16T00:00:00Z'),
+      label: 'gamma'
+    }
+  ];
+
+  const columns: Column<Row>[] = [
+    { accessor: 'amount', title: 'Amount', dataType: 'number' },
+    { accessor: 'iso', title: 'ISO', dataType: 'date' },
+    { accessor: 'when', title: 'When', dataType: 'date' },
+    { accessor: 'label', title: 'Label' }
+  ];
+
+  const filterIds = (activeFilters: Filter[]): number[] => {
+    const state = {
+      mode: 'client',
+      items,
+      columns,
+      searchTerm: '',
+      activeFilters,
+      currentPage: 1
+    } as unknown as TableState;
+
+    return useFiltering(state).filteredItems.map((r) => (r as Row).id);
+  };
+
+  it('numeric comparison is unchanged', () => {
+    expect(filterIds([{ column: 'amount', operator: 'greaterThan', value: '15' }])).toEqual([2, 3]);
+    expect(filterIds([{ column: 'amount', operator: 'lessThan', value: '30' }])).toEqual([1, 2]);
+  });
+
+  it('compares ISO date strings with after/before', () => {
+    expect(filterIds([{ column: 'iso', operator: 'greaterThan', value: '2021-03-14' }])).toEqual([
+      2, 3
+    ]);
+    expect(filterIds([{ column: 'iso', operator: 'lessThan', value: '2021-03-15' }])).toEqual([1]);
+  });
+
+  it('compares Date instances with after/before', () => {
+    expect(filterIds([{ column: 'when', operator: 'greaterThan', value: '2021-03-14' }])).toEqual([
+      2, 3
+    ]);
+    expect(filterIds([{ column: 'when', operator: 'lessThan', value: '2021-03-16' }])).toEqual([
+      1, 2
+    ]);
+  });
+
+  it('a bare filter date compares on UTC day boundaries, not on the instant', () => {
+    // Item 2 sits at 09:00Z on 2021-03-15 — "after 2021-03-15" means the whole
+    // day is excluded, "before 2021-03-15" excludes it as well.
+    expect(filterIds([{ column: 'iso', operator: 'greaterThan', value: '2021-03-15' }])).toEqual([
+      3
+    ]);
+    expect(filterIds([{ column: 'when', operator: 'greaterThan', value: '2021-03-15' }])).toEqual([
+      3
+    ]);
+    expect(filterIds([{ column: 'iso', operator: 'lessThan', value: '2021-03-15' }])).toEqual([1]);
+  });
+
+  it('a filter value with a time of day compares instants strictly', () => {
+    expect(
+      filterIds([{ column: 'when', operator: 'greaterThan', value: '2021-03-15T08:00:00Z' }])
+    ).toEqual([2, 3]);
+    expect(
+      filterIds([{ column: 'when', operator: 'greaterThan', value: '2021-03-15T10:00:00Z' }])
+    ).toEqual([3]);
+  });
+
+  it('an unparseable filter value matches nothing', () => {
+    expect(filterIds([{ column: 'iso', operator: 'greaterThan', value: 'yesterday' }])).toEqual([]);
+    expect(filterIds([{ column: 'when', operator: 'lessThan', value: '2021-13-45' }])).toEqual([]);
+    expect(filterIds([{ column: 'iso', operator: 'greaterThan', value: '15.03.2021' }])).toEqual(
+      []
+    );
+  });
+
+  it('an empty filter value matches nothing on a date column', () => {
+    expect(filterIds([{ column: 'iso', operator: 'greaterThan', value: '' }])).toEqual([]);
+    expect(filterIds([{ column: 'when', operator: 'lessThan', value: '   ' }])).toEqual([]);
+  });
+
+  it('non-date text stays a non-match instead of being date-parsed', () => {
+    expect(filterIds([{ column: 'label', operator: 'greaterThan', value: 'alpha' }])).toEqual([]);
+  });
+
+  it('missing values match nothing', () => {
+    const sparse = [{ id: 1 }, { id: 2, iso: '2021-03-16' }];
+    const state = {
+      mode: 'client',
+      items: sparse,
+      columns: [{ accessor: 'iso', title: 'ISO', dataType: 'date' }] as Column<TableItem>[],
+      searchTerm: '',
+      activeFilters: [{ column: 'iso', operator: 'greaterThan', value: '2021-03-15' }] as Filter[],
+      currentPage: 1
+    } as unknown as TableState;
+
+    expect(useFiltering(state).filteredItems.map((r) => (r as { id: number }).id)).toEqual([2]);
   });
 });
 
@@ -706,6 +868,45 @@ describe('useLiveUpdates', () => {
     live.pushUpdate(1, { age: 31 });
     expect(live.counts.updates).toBe(1);
     expect(live.pendingUpdates[0].changes).toEqual({ name: 'Alice v2', age: 31 });
+  });
+
+  it('contract: pushUpdate for a pending insert folds into that insert', () => {
+    const state = makeLiveState();
+    const live = useLiveUpdates(state);
+
+    live.pushInsert({ id: 4, name: 'Diana', age: 28 });
+    live.pushUpdate(4, { age: 29 });
+
+    // No separate update entry — applyUpdates runs before applyInserts, so it
+    // would be dropped as orphaned and the change lost.
+    expect(live.counts.updates).toBe(0);
+    expect(live.counts.inserts).toBe(1);
+    expect(live.pendingInserts[0]).toEqual({ id: 4, name: 'Diana', age: 29 });
+  });
+
+  it('contract: a folded update reaches state.items on apply', () => {
+    const state = makeLiveState();
+    const live = useLiveUpdates(state);
+
+    live.pushInsert({ id: 4, name: 'Diana', age: 28 });
+    live.pushUpdate(4, { age: 29, name: 'Diana R.' });
+    live.applyAll();
+
+    const inserted = state.items.find((item) => item.id === 4);
+    expect(inserted).toMatchObject({ id: 4, name: 'Diana R.', age: 29 });
+    expect(live.hasPending).toBe(false);
+  });
+
+  it('contract: pushUpdate for an existing row still buffers separately', () => {
+    const state = makeLiveState();
+    const live = useLiveUpdates(state);
+
+    live.pushInsert({ id: 4, name: 'Diana' });
+    live.pushUpdate(1, { name: 'Alice Updated' });
+
+    expect(live.counts.inserts).toBe(1);
+    expect(live.counts.updates).toBe(1);
+    expect(live.pendingInserts[0].name).toBe('Diana');
   });
 
   it('contract: pushDelete adds to pending deletes', () => {

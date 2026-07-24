@@ -54,6 +54,20 @@ export function useGrouping(state: TableState, getSortedItems: () => TableItem[]
   });
 
   function setGroupByKey(key: string | null) {
+    // One gate for every path into grouping (header menu, toolbar menu, the
+    // controlled `groupByKey` prop, the `initialGroupBy` seed, persistence
+    // hydration): grouped virtualization is not implemented, and letting a key
+    // through here used to deactivate virtualization and render the *full* item
+    // set — the failure mode `virtualized` is meant to prevent. Clearing stays
+    // allowed, so a key restored before the mode was known can still be undone.
+    if (key !== null && state.virtualized) {
+      if (import.meta.env?.DEV) {
+        console.warn(
+          `[Table] Grouping is not available on a virtualized table — ignoring groupBy "${key}". Drop \`virtualized\` to group, or group server-side.`
+        );
+      }
+      return;
+    }
     state.groupByKey = key;
     state.collapsedGroups = new SvelteSet();
     state.allGroupsExpanded = true;

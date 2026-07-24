@@ -8,7 +8,18 @@ import type {
   TableQuery,
   TableQueryResult
 } from '$lib';
+import type { createTableState } from '$lib/stores/TableStore.svelte';
 import type { TableSlotClasses } from '../table-style-context';
+
+/**
+ * The table's live context object — the store's public surface: reactive
+ * `state`, the derived collections, and the imperative API (selection,
+ * grouping, pagination, live-update push/apply).
+ *
+ * Handed to {@link TableProps.onReady} for consumers outside the table's
+ * component tree, and returned by `getTableContext()` inside it.
+ */
+export type TableContext = ReturnType<typeof createTableState>;
 
 /**
  * Props interface for Table component
@@ -154,7 +165,10 @@ export interface TableProps<T = TableItem> {
    * Enable virtualization for large datasets.
    * When enabled, only visible rows are rendered for performance with >1000 items.
    * Pagination is bypassed — all filtered/sorted items are virtualized in a scrollable container.
-   * Not compatible with grouping (grouping takes precedence).
+   * Not compatible with grouping — and virtualization wins: the grouping
+   * affordances are suppressed, and `initialGroupBy`, a controlled
+   * `groupByKey` or a persisted grouping is ignored (DEV warns). Storage is not
+   * cleared, so the grouping returns if `virtualized` is dropped.
    * @default false
    */
   virtualized?: boolean;
@@ -178,9 +192,10 @@ export interface TableProps<T = TableItem> {
    * via `persistenceConfig` (`persistGroupByKey`) takes precedence. Later
    * changes to this prop are ignored; users can still group or ungroup. When
    * grouping is active, pagination is disabled — all grouped items are shown at
-   * once. Caveat when combined with `persistenceConfig`: persistence stores
-   * only non-empty values, so a grouping the user *cleared* does not survive a
-   * reload — the seed applies again on the next visit.
+   * once. Precedence when combined with `persistenceConfig` goes by *presence*,
+   * not emptiness: once storage holds a grouping key for this table —
+   * including the `null` written when the user ungrouped — it wins and the
+   * seed no longer applies.
    * @default null
    */
   initialGroupBy?: string | null;
@@ -191,9 +206,10 @@ export interface TableProps<T = TableItem> {
    * defines a column + aggregation type (sum, avg, count, min, max). A set
    * restored via `persistenceConfig` (`persistSummaryConfigs`) takes
    * precedence. Later changes to this prop are ignored; users can still add or
-   * remove summaries. Caveat when combined with `persistenceConfig`:
-   * persistence stores only non-empty values, so summaries the user *cleared*
-   * do not survive a reload — the seed applies again on the next visit.
+   * remove summaries. Precedence when combined with `persistenceConfig` goes
+   * by *presence*, not emptiness: once storage holds a summary set for this
+   * table — including the empty one written when the user removed every
+   * summary — it wins and the seed no longer applies.
    * @default []
    */
   initialSummaryConfigs?: SummaryConfig[];
@@ -205,10 +221,10 @@ export interface TableProps<T = TableItem> {
    * so URL-synced sort params survive the initial emission. A sort restored
    * via `persistenceConfig` (`persistSort`) takes precedence. Later changes
    * to this prop are ignored; users can still change or clear the sort.
-   * `column` must match a column's resolved id. Caveat when combined with
-   * `persistenceConfig`: persistence stores only non-empty values, so a sort
-   * the user *cleared* does not survive a reload — the seed applies again on
-   * the next visit.
+   * `column` must match a column's resolved id. Precedence when combined with
+   * `persistenceConfig` goes by *presence*, not emptiness: once storage holds
+   * a sort for this table — including the "no sort" written when the user
+   * cycled the header past `desc` — it wins and the seed no longer applies.
    * @default undefined
    */
   initialSort?: { column: string; direction: 'asc' | 'desc' };
@@ -219,10 +235,10 @@ export interface TableProps<T = TableItem> {
    * chips show them and, in server mode, the very first emitted query
    * already contains them. Filters restored via `persistenceConfig`
    * (`persistFilters`) take precedence. Later changes to this prop are
-   * ignored; users can still add or remove filters. Caveat when combined
-   * with `persistenceConfig`: persistence stores only non-empty values, so a
-   * filter set the user *cleared* does not survive a reload — the seed
-   * applies again on the next visit.
+   * ignored; users can still add or remove filters. Precedence when combined
+   * with `persistenceConfig` goes by *presence*, not emptiness: once storage
+   * holds a filter set for this table — including the empty one written when
+   * the user cleared every chip — it wins and the seed no longer applies.
    * @default undefined
    */
   initialFilters?: Filter[];
@@ -274,10 +290,34 @@ export interface TableProps<T = TableItem> {
   onSearchTermChange?: (term: string) => void;
 
   /**
+   * Loading state. Renders the loading row (or the {@link loadingState} snippet)
+   * instead of the table body, and suppresses the mobile cards + pagination.
+   *
+   * Use it for data you fetch yourself — in `mode: 'client'` as well as in the
+   * manual server flow driven by {@link onQueryChange}. With a managed
+   * {@link queryFn} the table owns the loading lifecycle, so this prop is
+   * ignored there (a DEV warning points that out).
+   * @default false
+   */
+  loading?: boolean;
+
+  /**
    * Text displayed during loading state
    * @default "Loading data..."
    */
   loadingText?: string;
+
+  /**
+   * Error message. When set (non-empty), the table renders the error row (or the
+   * {@link errorState} snippet) instead of the body, with {@link errorText} as
+   * the heading and this string as the detail — the same shape the managed
+   * {@link queryFn} path produces on a failed fetch.
+   *
+   * Like {@link loading} this is your channel for data you fetch yourself; with
+   * a managed `queryFn` the table owns the error lifecycle and ignores the prop.
+   * @default null
+   */
+  error?: string | null;
 
   /**
    * Text displayed on error
@@ -317,22 +357,26 @@ export interface TableProps<T = TableItem> {
   pagination?: Snippet;
 
   /**
-   * Custom empty state snippet
+   * Custom empty state snippet. Named after its `slotClasses.emptyState` slot
+   * (renamed from `empty` in v6.41 — `loading` is now the boolean state prop).
    * @default undefined
    */
-  empty?: Snippet;
+  emptyState?: Snippet;
 
   /**
-   * Custom loading state snippet
+   * Custom loading state snippet, rendered while {@link loading} is true.
+   * Named after its `slotClasses.loadingState` slot (renamed from `loading` in
+   * v6.41, which now carries the boolean state).
    * @default undefined
    */
-  loading?: Snippet;
+  loadingState?: Snippet;
 
   /**
-   * Custom error state snippet
+   * Custom error state snippet. Named after its `slotClasses.errorState` slot
+   * (renamed from `error` in v6.41, alongside its two siblings).
    * @default undefined
    */
-  error?: Snippet;
+  errorState?: Snippet;
 
   /**
    * Custom content for group headers
@@ -375,8 +419,9 @@ export interface TableProps<T = TableItem> {
 
   /**
    * Callback fired when the table query changes in `mode: 'server'`.
-   * Use this for manual control — fetch data yourself and update `items`,
-   * `serverTotalItems`, `loading`, and `error` props accordingly.
+   * Use this for manual control — fetch data yourself and update the
+   * {@link items}, {@link serverTotalItems}, {@link loading} and {@link error}
+   * props accordingly.
    * Fires after debounce (controlled by `queryDebounceMs`).
    * @default undefined
    */
@@ -391,11 +436,41 @@ export interface TableProps<T = TableItem> {
 
   /**
    * Enable live update support. When enabled, a `LiveUpdateBanner` is shown
-   * when pending inserts/updates/deletes are buffered. Use `getTableContext()`
-   * to access `pushInsert`, `pushUpdate`, `pushDelete` from WebSocket/SSE handlers.
+   * when pending inserts/updates/deletes are buffered. Get hold of
+   * `pushInsert`, `pushUpdate`, `pushDelete` for your WebSocket/SSE handler via
+   * {@link onReady} — or, from inside the table's own tree (a `toolbar`
+   * snippet, a custom cell), via `getTableContext()`.
    * @default false
    */
   enableLiveUpdates?: boolean;
+
+  /**
+   * Called once with the table's context after the table is set up — the
+   * supported way to reach the imperative API from *outside* the table's tree
+   * (`getTableContext()` only resolves inside it).
+   *
+   * The context is a live object: `pushInsert`/`pushUpdate`/`pushDelete` and
+   * `applyAllUpdates` for live feeds, plus the reactive `state`. Hold on to it
+   * for the lifetime of the table; it is not re-created.
+   *
+   * @example Feeding a WebSocket into a live-updating table
+   * ```svelte
+   * <script lang="ts">
+   *   import type { TableContext } from '@urbicon-ui/table';
+   *   let table = $state<TableContext | null>(null);
+   *
+   *   $effect(() => {
+   *     if (!table) return;
+   *     const socket = new WebSocket('wss://example.test/rows');
+   *     socket.onmessage = (e) => table?.pushInsert(JSON.parse(e.data));
+   *     return () => socket.close();
+   *   });
+   * </script>
+   *
+   * <Table {items} {columns} enableLiveUpdates onReady={(ctx) => (table = ctx)} />
+   * ```
+   */
+  onReady?: (context: TableContext) => void;
 
   /**
    * Automatically apply pending live updates when the user navigates
@@ -567,16 +642,36 @@ export interface TableProps<T = TableItem> {
   selectionMode?: 'none' | 'single' | 'multi';
 
   /**
+   * Whether clicking anywhere on a row body toggles that row's selection, in
+   * addition to the always-present checkbox.
+   *
+   * Defaults to `true` in `selectionMode="single"` (where a single click is the
+   * expected gesture and there is no marquee/range interaction to conflict
+   * with), but only while no {@link onRowClick} handler is set — a row click
+   * that already means something else must not silently also select. Set it
+   * explicitly to opt in for `multi`, or to `false` to keep the checkbox as the
+   * only selection target.
+   *
+   * A click that ends a text selection never selects, so cell content stays
+   * copyable. Applies to desktop rows (flat and grouped); mobile cards keep the
+   * checkbox as their only selection control, since a selectable card cannot be
+   * a button without nesting interactive elements.
+   * @default selectionMode === 'single' && !onRowClick
+   */
+  rowClickSelects?: boolean;
+
+  /**
    * Initial selected row ids (if no persisted value exists). Seeds the
    * uncontrolled selection once when the table is created. Ignored entirely
    * when the controlled `selectedIds` prop is set — controlled always wins.
    * A selection restored via `persistenceConfig.persistSelection` takes
    * precedence. Later changes to this prop are ignored; users can still
    * change or clear the selection. Rows are keyed by `item.id` (row-index
-   * fallback). Caveat when combined with
-   * `persistenceConfig.persistSelection`: persistence stores only non-empty
-   * values, so a selection the user *cleared* does not survive a reload —
-   * the seed applies again on the next visit.
+   * fallback). Precedence when combined with
+   * `persistenceConfig.persistSelection` goes by *presence*, not emptiness:
+   * once storage holds a selection for this table — including the empty one
+   * written when the user deselected everything — it wins and the seed no
+   * longer applies.
    * @default undefined
    */
   initialSelectedIds?: Array<string | number>;

@@ -9,14 +9,21 @@
   let items = $state([]);
   let total = $state(0);
   let loading = $state(false);
+  let error = $state(null);
 
   async function handleQuery(query) {
     loading = true;
-    const res = await fetch('/api/users?' + new URLSearchParams(query));
-    const data = await res.json();
-    items = data.results;
-    total = data.total;
-    loading = false;
+    error = null;
+    try {
+      const res = await fetch('/api/users?' + new URLSearchParams(query));
+      const data = await res.json();
+      items = data.results;
+      total = data.total;
+    } catch (e) {
+      error = e.message;
+    } finally {
+      loading = false;
+    }
   }
 ${scriptClose}
 
@@ -25,7 +32,8 @@ ${scriptClose}
   {items}
   {columns}
   serverTotalItems={total}
-  loading={loading}
+  {loading}
+  {error}
   onQueryChange={handleQuery}
 />`;
 </script>
@@ -95,6 +103,13 @@ ${scriptClose}
             fires
           </li>
           <li>Search is debounced (default 300ms) to avoid excessive requests</li>
+          <li>
+            With <code class="text-text-primary">queryFn</code> the table owns the
+            <code class="text-text-primary">loading</code> and
+            <code class="text-text-primary">error</code> states and ignores those props (DEV warns). In
+            the manual flow they are yours to set — they drive the same loading/error rows, in client
+            mode too.
+          </li>
         </ul>
       </div>
     </div>

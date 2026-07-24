@@ -11,6 +11,7 @@
     TableQueryResult
   } from '$lib/types/tableTypes';
   import type { SummaryConfig, TablePersistenceConfig } from '$lib/stores/TableStore.svelte';
+  import type { TableContext } from './table/index';
 
   const tt = useTableI18n();
 
@@ -27,7 +28,9 @@
     initialFilters?: Filter[];
     initialSelectedIds?: Array<string | number>;
     multiExpand?: boolean;
+    virtualized?: boolean;
     loading?: boolean;
+    error?: string | null;
     children?: Snippet;
     persistenceConfig?: TablePersistenceConfig;
     mode?: 'client' | 'server';
@@ -38,11 +41,13 @@
     enableLiveUpdates?: boolean;
     autoApplyOnNavigation?: boolean;
     selectionMode?: 'none' | 'single' | 'multi';
+    rowClickSelects?: boolean;
     selectedIds?: Array<string | number>;
     onSelectionChange?: (selectedItems: TableItem[]) => void;
     enableColumnVisibility?: boolean;
     searchTerm?: string;
     onSearchTermChange?: (term: string) => void;
+    onReady?: (context: TableContext) => void;
   };
 
   let {
@@ -58,7 +63,9 @@
     initialFilters = undefined,
     initialSelectedIds = undefined,
     multiExpand = false,
+    virtualized = false,
     loading = false,
+    error = null,
     children,
     persistenceConfig,
     mode = 'client',
@@ -69,26 +76,30 @@
     enableLiveUpdates = false,
     autoApplyOnNavigation = true,
     selectionMode = 'none',
+    rowClickSelects = false,
     selectedIds = undefined,
     onSelectionChange = undefined,
     enableColumnVisibility = true,
     searchTerm = undefined,
-    onSearchTermChange = undefined
+    onSearchTermChange = undefined,
+    onReady = undefined
   }: TableProviderProps = $props();
 
   // Store is built once from the initial persistence config — not meant to
   // re-create if the prop changes reactively. The initial* seeds are equally
   // construction-time-only (seed-once): later changes to initialSort /
   // initialFilters / initialSelectedIds / initialGroupBy / initialSummaryConfigs
-  // are ignored, and each axis only fills what persistence left empty — a
-  // persisted value wins (see TableSeedState). Controlled props supersede their
-  // seed entirely: `selectedIds` drops `initialSelectedIds`, and a truthy
-  // `groupByKey` drops `initialGroupBy` (both applied by the effects below), so
-  // the prop is the source of truth from the first render (and, per
-  // syncSelection, a controlled selection is never mirrored to storage). The
-  // `groupByKey` gate uses truthiness — matching the effect below and the
-  // pre-migration `if (groupByKey) … else if (initialGroupBy)` — so a falsy
-  // `groupByKey` (its `null` default, or `''`) still lets the seed apply.
+  // are ignored, and each axis only fills what persistence has nothing stored
+  // for — a persisted value wins, including a persisted *empty* one, so a
+  // cleared axis is not re-seeded (see TableSeedState). Controlled props
+  // supersede their seed entirely: `selectedIds` drops `initialSelectedIds`,
+  // and a truthy `groupByKey` drops `initialGroupBy` (both applied by the
+  // effects below), so the prop is the source of truth from the first render
+  // (and, per syncSelection, a controlled selection is never mirrored to
+  // storage). The `groupByKey` gate uses truthiness — matching the effect
+  // below and the pre-migration `if (groupByKey) … else if (initialGroupBy)`
+  // — so a falsy `groupByKey` (its `null` default, or `''`) still lets the
+  // seed apply.
   // svelte-ignore state_referenced_locally
   const tableState = createTableState(persistenceConfig, {
     sort: initialSort,
@@ -110,6 +121,54 @@
     setGroupOrder,
     setError
   } = tableState;
+
+  // Virtualization vs. grouping. The store arrives with persistence hydration
+  // and the seeds already applied, so a persisted or seeded group key can be in
+  // place before the mode is known — set the flag and drop such a key
+  // *synchronously*, before the first render, so a virtualized table never
+  // renders its full item set for a frame. Storage is deliberately left alone:
+  // the grouping comes back if the consumer drops `virtualized`.
+  // svelte-ignore state_referenced_locally
+  if (virtualized) {
+    state.virtualized = true;
+    // svelte-ignore state_referenced_locally
+    if (state.groupByKey) {
+      if (import.meta.env?.DEV) {
+        console.warn(
+          `[Table] Ignoring grouping ("${state.groupByKey}") on a virtualized table — grouped virtualization is not implemented. Drop \`virtualized\` to group, or group server-side.`
+        );
+      }
+      state.groupByKey = null;
+    }
+  }
+
+  // Keep it live for a runtime toggle (the setGroupByKey gate reads this flag).
+  $effect(() => {
+    state.virtualized = virtualized;
+    if (!virtualized) return;
+    const active = untrack(() => state.groupByKey);
+    if (!active) return;
+    if (import.meta.env?.DEV) {
+      console.warn(
+        `[Table] Ignoring grouping ("${active}") on a virtualized table — grouped virtualization is not implemented.`
+      );
+    }
+    untrack(() => {
+      state.groupByKey = null;
+    });
+  });
+
+  // Hand the context to consumers outside the table's tree (getTableContext()
+  // only resolves inside it). Fires once, after mount, so a subscription set up
+  // in the callback sees a table that is fully wired. untrack keeps the callback
+  // itself off the dependency list — an inline arrow prop would otherwise
+  // re-fire this on every parent re-render.
+  let readyFired = false;
+  $effect(() => {
+    if (readyFired || !onReady) return;
+    readyFired = true;
+    untrack(() => onReady(tableState));
+  });
 
   // ── Sync props → store ──
 
@@ -186,6 +245,10 @@
   });
 
   $effect(() => {
+    state.rowClickSelects = rowClickSelects;
+  });
+
+  $effect(() => {
     state.enableColumnVisibility = enableColumnVisibility;
     // Turning the feature off means "all columns visible". Reveal everything and
     // drop any hidden set — including one hydrated from persistence — otherwise
@@ -236,8 +299,25 @@
     }
   });
 
+  // Consumer-driven loading/error. Both slots belong to whoever fetches: in
+  // client mode and in the manual server flow (`onQueryChange`) that is the
+  // consumer, so the props drive the store. A managed `queryFn` owns the same
+  // two slots itself (setServerLoading / setServerResult / setServerError), so
+  // the props are skipped there instead of racing the fetch lifecycle — and DEV
+  // says so rather than swallowing the conflict.
+  const managedFetch = $derived(mode === 'server' && !!queryFn);
+
   $effect(() => {
+    if (managedFetch) {
+      if (import.meta.env?.DEV && (loading || error !== null)) {
+        console.warn(
+          '[Table] `loading`/`error` are ignored while a managed `queryFn` is set — the table drives both. Drop the props or switch to `onQueryChange` for manual control.'
+        );
+      }
+      return;
+    }
     setLoading(loading);
+    setError(error);
   });
 
   // Controlled grouping: an explicit `groupByKey` prop drives the store

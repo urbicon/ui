@@ -40,6 +40,19 @@ export interface TableState {
    * (set by `TableProvider` from the `selectedIds` prop).
    */
   selectionControlled: boolean;
+  /**
+   * Whether a click anywhere on a row body toggles that row's selection (set by
+   * `TableProvider` from the resolved `rowClickSelects` prop). The checkbox path
+   * is unaffected — this only adds the row itself as a selection target.
+   */
+  rowClickSelects: boolean;
+  /**
+   * Whether the table renders virtualized (set by `TableProvider` from the
+   * `virtualized` prop). Grouping is not implemented for the virtual list, so
+   * this mode suppresses the grouping affordances instead of silently falling
+   * back to rendering every row.
+   */
+  virtualized: boolean;
 
   mode: 'client' | 'server';
   serverTotalItems: number;

@@ -22,11 +22,24 @@ export interface TableSlotClasses {
   tbody?: string;
   /** `<tr>` in thead */
   headerRow?: string;
-  /** `<th>` */
+  /**
+   * `<th>` of a **data column**. The table's structural header cells (select-all
+   * checkbox, group toggle, expand spacer) are chrome, not columns, and are
+   * deliberately not part of this slot — see {@link TableSlotClasses.cell}.
+   */
   headerCell?: string;
   /** `<tr>` in tbody */
   row?: string;
-  /** `<td>` */
+  /**
+   * `<td>` of a **data column**.
+   *
+   * Deliberately scoped to the cells that render column content. The table's
+   * own structural cells — selection checkbox, expand chevron, group
+   * indentation spacer — are chrome with fixed widths (`w-10`/`w-12`) and stay
+   * out of this slot, so a `cell` override (padding, alignment, typography)
+   * cannot deform the controls it was never aimed at. Style those through
+   * `row`, or restyle the whole table with `unstyled`.
+   */
   cell?: string;
   /** Group header row */
   groupHeader?: string;
