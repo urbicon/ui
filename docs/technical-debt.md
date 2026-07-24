@@ -478,6 +478,12 @@ internal TODO instead. Sections are ordered roughly by urgency.
   modes" is a deliberate skin decision — and wants a VR pass across the four
   rooms. Not a token tweak. Pairs with the dark-axe gate entry above (a dark
   Playwright project would catch this class).
+- **Update 2026-07-25:** measured worse on the Guide surfaces than the figure
+  above — the panel's GuideRef link and the tour's "Next" fill both render
+  `#006c4a` on `#322f2c` = **2.05:1** (axe: serious). The `guide.spec.ts`
+  dark baselines now bake this in: they were re-generated on 2026-07-25, and the
+  previous ones were the last artefact in the repo still showing the adaptive
+  light green (≈5.15:1). So a fix here is also a Guide re-baseline.
 - **Found:** 2026-07-24, W1 adversarial review (deepened by W1's green nudge).
 
 ### docs-app `lang`: the ⌘K command palette is the one bilingual chrome surface still inheriting `lang="en"`
@@ -692,10 +698,12 @@ internal TODO instead. Sections are ordered roughly by urgency.
   10-primitive × light/dark × library/editorial matrix) — is therefore darwin-only.
   The visual-regression suite is explicitly `test.skip`-gated to darwin so it adds
   no red to the CI e2e job; the pre-existing floating/guide specs are NOT gated
-  (they already fail on Linux). **Local caveat:** baselines must be produced with
-  the full `channel: 'chromium'` build — `headless_shell` renders fonts ~1px
-  differently and flips text-heavy snapshots (seen on `guide.spec.ts` hint
-  shots).
+  (they already fail on Linux). **Former "local caveat", now obsolete and
+  disproven:** this entry used to warn that baselines must be produced with the
+  full `channel: 'chromium'` build because `headless_shell` "flips text-heavy
+  snapshots". The renderer is now pinned in `playwright.config.ts`, so the
+  warning has no addressee — and it was wrong anyway: the shots it blamed
+  (`guide.spec.ts` hints) fail identically under both builds (2026-07-25).
 - **Why deferred:** Making the visual layer CI-green needs per-platform baselines,
   which can't be produced on a macOS box: either (a) generate `-chromium-linux`
   baselines via the official `mcr.microsoft.com/playwright` Docker image and commit
@@ -717,17 +725,27 @@ internal TODO instead. Sections are ordered roughly by urgency.
   wrong move: (a) the failures reproduced **identically** under the full
   `channel: 'chromium'` build, so `headless_shell` was never the cause; (b) the
   "exactly 0.01" ratio was Playwright's rounded console output, not a constant.
-  The baselines were simply **stale by months** — they still showed "Blocks UI"
+  Most baselines were simply **stale by months** — they still showed "Blocks UI"
   as the sidebar brand and a section labelled "Dropdown (open)", i.e. they
-  predate both the Urbicon rename and the Dropdown→Menu rename. Three things
-  landed: the config now pins `channel: 'chromium'` (the renderer was implicit,
-  so a plain local run and the committed baselines could never agree); the
-  `menu`/`combobox` shots scroll their section into view before screenshotting
-  (both sections sit ~1100px down a 720px viewport, so the floating layer
-  correctly flipped *above* its trigger — the old shots froze that state under
-  test names reading "opens below", and depended on the fixture's total height);
-  and both specs were re-generated with `--update-snapshots=all`, verified
-  stable over two consecutive runs.
+  predate both the Urbicon rename and the Dropdown→Menu rename. Not all of them,
+  though: `menu-open` was green (diff ratio 0.00006) and only days old, and the
+  two `hint` shots differ by exactly 1px of intrinsic width with no content
+  delta. `--update-snapshots=all` re-bakes those too, by design — the mode exists
+  precisely because `changed` skips sub-threshold drift and keeps stale files.
+  Three things landed: the config pins `channel: 'chromium'` (a reproducibility
+  pin, not a fix — see the note above); the `menu`/`combobox` shots scroll their
+  section to the viewport centre and **assert the geometry their names claim**
+  (`scrollIntoViewIfNeeded` was not enough — it scrolls the minimum, leaving 64px
+  under the menu trigger for a 134px panel, so the panel still flipped above it
+  and the "opens below" shot still lied); and both specs were re-generated,
+  verified stable over two consecutive runs.
+  **Deliberately frozen with them:** the two dark Guide shots bake in the Rooms
+  dark-mode accent defect (`--color-primary` pinned to the raw accent in both
+  modes → 2.05:1 for the panel link and the "Next" fill). That is the open entry
+  under §Accessibility ("Rooms skin pins `--color-primary`…"); the old baselines
+  were the last artefact in the repo still showing the pre-defect look, and no
+  gate covers it (guide axe runs light-only, the dark-axe project excludes
+  `docs-rooms`).
   **Still open:** the Linux half — this entry's actual subject — is untouched.
   0 `-chromium-linux` baselines exist against 66 darwin ones, so CI remains
   blind to the whole visual layer.
