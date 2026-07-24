@@ -45,9 +45,17 @@
   --color-skeleton-shimmer: light-dark(oklch(1 0 0 / 0.5), oklch(1 0 0 / 0.1));
 
   /* === TEXT ===
-     tertiary/quaternary shifted darker (light) so informative text on
-     surface-base passes WCAG AA 4.5:1. Previous values (neutral-500/400)
-     gave ~3.7/~2.1 respectively. */
+     primary/secondary/tertiary are the informative-text ramp: each clears
+     WCAG AA 4.5:1 on every reading surface (base/quiet/elevated/overlay/subtle)
+     in both modes — measured by style/contrast.test.ts ("informative text on
+     reading surfaces"). tertiary was shifted darker (light) for exactly this.
+
+     quaternary is a MARK-ONLY token — placeholders, dense-grid marks (calendar
+     day cells, kbd hints), disabled glyphs, decoration. It sits at the AA edge
+     on reading surfaces (4.58–4.85:1 light) and drops BELOW AA on interactive/
+     pressed surfaces (4.19/3.49) and hard below it under the docs Rooms skin
+     (docs-softer, 1.96:1). Never use it for body text — reach for tertiary. The
+     contrast test asserts it only against the 3:1 UI-component floor, not 4.5. */
   --color-text-primary: light-dark(var(--color-neutral-900), var(--color-neutral-100));
   --color-text-inverted: light-dark(var(--color-neutral-0), var(--color-neutral-900));
   --color-text-secondary: light-dark(var(--color-neutral-700), var(--color-neutral-300));

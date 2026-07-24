@@ -703,3 +703,100 @@ describe('filled intent surfaces — WCAG contrast', () => {
     });
   });
 });
+
+// ---------------------------------------------------------------------------
+// Informative text on the reading surfaces
+// ---------------------------------------------------------------------------
+
+/**
+ * The second half of the contrast contract: not the filled intent fills above,
+ * but plain informative text on the calm surfaces it sits on. This is the axis
+ * the pre-2026-07-24 suite did NOT cover — the docs Rooms skin's tertiary/
+ * quaternary AA misses lived entirely off it (see docs/technical-debt.md).
+ *
+ * Reading surfaces only — base/quiet/elevated/overlay/subtle, the grounds body
+ * text actually sits on. Interactive/hover/active/selected surfaces are transient
+ * states (a label on a pressed segment is momentary), covered by the 3:1 UI floor
+ * elsewhere, and deliberately excluded from the 4.5 text contract.
+ */
+describe('informative text on reading surfaces — WCAG contrast', () => {
+  const READING_SURFACES = ['base', 'quiet', 'elevated', 'overlay', 'subtle'] as const;
+  const surfaceToken = (s: string) => `--color-surface-${s}`;
+
+  // primary/secondary/tertiary are the informative ramp: each MUST clear AA 4.5
+  // on every reading surface, in both modes, in every theme.
+  const INFORMATIVE = [
+    '--color-text-primary',
+    '--color-text-secondary',
+    '--color-text-tertiary'
+  ] as const;
+
+  const measured: Record<string, number> = {};
+  for (const theme of ['default', ...THEMES] as Theme[]) {
+    const css = stylesheetFor(theme);
+    for (const token of INFORMATIVE) {
+      for (const mode of MODES) {
+        for (const surface of READING_SURFACES) {
+          const id = `${theme}/${token.replace('--color-text-', '')}/${mode}/${surface}`;
+          const fg = resolveToken(css, token, mode);
+          const bg = resolveToken(css, surfaceToken(surface), mode);
+          measured[id] = round2(ratioOf(bg, fg));
+        }
+      }
+    }
+  }
+  const ids = Object.keys(measured);
+
+  it('covers primary/secondary/tertiary × reading surface × mode × theme', () => {
+    expect(ids).toHaveLength(6 * 3 * 2 * 5);
+    expect(ids).toContain('default/tertiary/light/subtle');
+  });
+
+  describe('meets WCAG AA (4.5:1) for normal text', () => {
+    it.each(ids)('%s', (id) => {
+      expect(
+        measured[id],
+        `${id} measures ${measured[id]}:1, below AA ${AA_NORMAL}:1`
+      ).toBeGreaterThanOrEqual(AA_NORMAL);
+    });
+  });
+
+  it('the informative-text ledger stays empty — every combination meets AA', () => {
+    const failing = ids.filter((id) => measured[id] < AA_NORMAL).sort();
+    expect(
+      failing,
+      `Informative-text contrast regressions (below AA ${AA_NORMAL}:1):\n` +
+        failing.map((id) => `  ${id} = ${measured[id]}:1`).join('\n')
+    ).toEqual([]);
+  });
+
+  /**
+   * quaternary is a MARK token, not body text (placeholders, dense-grid marks,
+   * disabled glyphs, decoration — see semantic.css). It is held to the 3:1 UI
+   * floor on reading surfaces, NOT the 4.5 text floor: it sits at the AA edge on
+   * calm surfaces (4.58–4.85 light) and drops below it on interactive/pressed
+   * surfaces and hard below it under the docs Rooms skin. This block pins that
+   * contract — a regression that pushes quaternary below 3:1 (unusable even as a
+   * mark) fails; using it for body text is a review concern, not a token defect.
+   */
+  describe('quaternary is a mark token — clears the 3:1 UI floor, not the 4.5 text floor', () => {
+    const quat: Record<string, number> = {};
+    for (const theme of ['default', ...THEMES] as Theme[]) {
+      const css = stylesheetFor(theme);
+      for (const mode of MODES) {
+        for (const surface of READING_SURFACES) {
+          const id = `${theme}/quaternary/${mode}/${surface}`;
+          quat[id] = round2(
+            ratioOf(
+              resolveToken(css, surfaceToken(surface), mode),
+              resolveToken(css, '--color-text-quaternary', mode)
+            )
+          );
+        }
+      }
+    }
+    it.each(Object.keys(quat))('%s clears 3:1', (id) => {
+      expect(quat[id], `${id} measures ${quat[id]}:1`).toBeGreaterThanOrEqual(AA_LARGE);
+    });
+  });
+});

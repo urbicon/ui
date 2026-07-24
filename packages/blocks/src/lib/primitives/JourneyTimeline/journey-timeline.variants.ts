@@ -61,7 +61,9 @@ export const journeyTimelineVariants = tv({
     ],
     subtitle: 'text-text-tertiary leading-tight mt-0.5',
     // Label for the stretch between two nodes (duration, transport, gap…).
-    segment: 'text-text-quaternary leading-tight',
+    // Body text, so text-tertiary (not -quaternary): quaternary is a mark-only
+    // token that misses AA under the docs Rooms skin (1.96:1) — see semantic.css.
+    segment: 'text-text-tertiary leading-tight',
     // Grid-rows collapse wrapper (0fr → 1fr). Reduced-motion safe: the duration
     // token collapses to 1ms under prefers-reduced-motion (interaction.css).
     detail: [
