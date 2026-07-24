@@ -216,6 +216,7 @@ Reference/API docs are written in English; internal strategy & analysis docs are
 - [docs/COMPONENT-FAMILIES.md](docs/COMPONENT-FAMILIES.md) – Six-family taxonomy (Action/Form/Navigation/Container/Feedback/Identity) — ARIA, tier behaviour, border-token source per family
 - [docs/COMPONENT-DECISION-MATRICES.md](docs/COMPONENT-DECISION-MATRICES.md) – Sidebar/Drawer/Popover/SidebarLayout decision matrix
 - [docs/STICKY-PINNING.md](docs/STICKY-PINNING.md) – Table scroll models: page-relative sticky pinning (toolbar/header/group-header) + contained scroll (`fit="viewport"`), API, CSS vars. **Symlink into `packages/table/docs/`, ships in the table tarball** — keep it public-appropriate.
+- [docs/A2UI.md](docs/A2UI.md) – A2UI (agent-generated UI): surfaces that outlive their reply, the action-only return path, fetched options, and the shipped pieces (`a2uiFencedTransportSection`, `A2uiStreamSplitter`, `A2uiSurfaceRouter` + `routeMessageParts`). **Symlink into `packages/blocks/docs/`, ships in the blocks tarball** — keep it public-appropriate.
 - [docs/GUIDE.md](docs/GUIDE.md) – Guide system (non-modal help panel, contextual hints, UI↔guide linking, opt-in guided tour over one headless engine): architecture, `data-guide` namespace, tokens/z-index, decisions D1–D6, as-built contract. Shipped v5.8.0, stability `beta`. **Symlink into `packages/blocks/docs/`, ships in the blocks tarball** — keep it public-appropriate.
 
 **Auth**

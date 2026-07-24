@@ -41,6 +41,13 @@ const PACKAGE_GUIDES: (PackageGuide & { embedInLlmsFull?: boolean })[] = [
     sourcePath: resolveFromDocsGen('..', 'blocks', 'docs', 'GUIDE.md')
   },
   {
+    slug: 'a2ui',
+    title: 'A2UI — Agent-generated UI',
+    description:
+      'Rendering A2UI in a chat: surfaces that outlive their reply, the action-only return path, fetched options, and the shipped transport/routing pieces',
+    sourcePath: resolveFromDocsGen('..', 'blocks', 'docs', 'A2UI.md')
+  },
+  {
     slug: 'migration-v5',
     title: 'Migration v4 → v5',
     description:

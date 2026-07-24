@@ -187,6 +187,15 @@
       components: ['Chat', 'ChatMessageList', 'PromptInput'],
       category: 'AI',
       difficulty: 'Advanced'
+    },
+    {
+      title: 'Agent-generated UI (A2UI)',
+      description:
+        'The agent answers with live UI, not prose: stream splitter → A2UIView → surface router, so a later turn can patch the form it sent earlier (pick a date → load slots → confirm).',
+      href: '/recipes/a2ui-agent-ui',
+      components: ['A2UIView', 'Chat', 'ChatMessageList', 'PromptInput'],
+      category: 'AI',
+      difficulty: 'Advanced'
     }
   ];
 
