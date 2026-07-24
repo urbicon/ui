@@ -33,11 +33,11 @@
     },
     {
       op: 'greaterThan',
-      desc: 'Numeric comparison — both sides are converted via Number() at compare time. Offered for number columns and as "after" for date columns.'
+      desc: 'Numeric comparison when both sides convert via Number(), otherwise a date comparison. Offered for number columns and as "after" for date columns.'
     },
     {
       op: 'lessThan',
-      desc: 'Numeric comparison — both sides are converted via Number() at compare time. Offered for number columns and as "before" for date columns.'
+      desc: 'Numeric comparison when both sides convert via Number(), otherwise a date comparison. Offered for number columns and as "before" for date columns.'
     }
   ];
 
@@ -100,10 +100,10 @@ ${scriptClose}
         a plain object — <code class="text-text-primary">&#123; column, operator, value &#125;</code
         >
         — and every active filter must match for a row to stay visible (AND semantics).
-        <code class="text-text-primary">value</code> is always a string, even for numeric operators:
-        the comparison converts via <code class="text-text-primary">Number()</code> internally,
-        which keeps filters serializable for persistence. Which operators the menu offers is driven
-        by the column's <code class="text-text-primary">dataType</code>; columns with
+        <code class="text-text-primary">value</code> is always a string, even for the comparing
+        operators — the comparison converts internally, which keeps filters serializable for
+        persistence. Which operators the menu offers is driven by the column's
+        <code class="text-text-primary">dataType</code>; columns with
         <code class="text-text-primary">searchable: false</code> (and synthetic columns without an accessor)
         do not appear in the filter menu at all.
       </p>
@@ -119,6 +119,34 @@ ${scriptClose}
           {/each}
         </div>
       </div>
+
+      <p class="text-text-secondary text-sm">
+        <strong class="text-text-primary">Comparing operators resolve in two steps.</strong>
+        If the cell value and the filter value both convert via
+        <code class="text-text-primary">Number()</code>, they are compared as numbers. Otherwise
+        both sides are read as instants —
+        <code class="text-text-primary">Date</code> objects, numbers (epoch milliseconds) and
+        ISO-8601 strings (<code class="text-text-primary">2021-03-15</code>,
+        <code class="text-text-primary">2021-03-15T09:00</code>,
+        <code class="text-text-primary">2021-03-15T09:00:00Z</code>). Any other string format never
+        matches, so a malformed or empty value filters everything out instead of matching
+        everything.
+      </p>
+
+      <p class="text-text-secondary text-sm">
+        A <code class="text-text-primary">date</code> column's filter input emits a bare calendar
+        date (<code class="text-text-primary">YYYY-MM-DD</code>), and for that shape
+        <em>after</em>/<em>before</em> compare on
+        <strong class="text-text-primary">UTC day boundaries</strong>: "after 2021-03-15" starts at
+        the following midnight UTC and "before 2021-03-15" ends at that day's midnight UTC — a row
+        stamped <code class="text-text-primary">2021-03-15T09:00Z</code> matches neither. A filter
+        value that carries a time of day compares instants strictly. Since a date-only string parses
+        as UTC midnight while a date-time string without an offset parses as local time, a
+        <code class="text-text-primary">Date</code> built from local parts (<code
+          class="text-text-primary">new Date(2021, 2, 15)</code
+        >) can fall into the neighbouring UTC day — store ISO strings or UTC-constructed dates for
+        day-exact filtering.
+      </p>
 
       <p class="text-text-secondary text-sm">
         To start with filters active, pass

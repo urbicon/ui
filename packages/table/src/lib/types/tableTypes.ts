@@ -222,17 +222,39 @@ export type Column<T = TableItem> =
 /**
  * Filter for table rows.
  *
- * `value` is always a string — even for numeric operators (`greaterThan`,
- * `lessThan`). The filtering concern converts via `Number()` at comparison
- * time. This keeps filters serializable for persistence and consistent with
- * the text-input UI.
+ * `value` is always a string — even for the comparing operators (`greaterThan`,
+ * `lessThan`). This keeps filters serializable for persistence and consistent
+ * with the text-input UI.
+ *
+ * The comparing operators resolve in two steps:
+ *
+ * 1. **Numeric** — when both the cell value and `value` convert via `Number()`,
+ *    they are compared as numbers (prices, counts, epoch timestamps).
+ * 2. **Date** — otherwise both sides are read as instants: `Date` instances,
+ *    numbers (epoch millis) and ISO-8601 strings (`2021-03-15`,
+ *    `2021-03-15T09:00`, `2021-03-15T09:00:00Z`). Anything else — and any other
+ *    string format — never matches.
+ *
+ * Date semantics: when `value` is a bare calendar date (`YYYY-MM-DD`, what the
+ * SmartFilterBar's date input emits), both operators compare on **UTC day
+ * boundaries** — `greaterThan` ("after") starts at the following midnight UTC,
+ * `lessThan` ("before") ends at the filter day's midnight UTC, so a cell at
+ * `2021-03-15T09:00Z` matches neither for `2021-03-15`. A `value` *with* a time
+ * of day compares instants strictly. Per the ECMAScript date-time string
+ * format a date-only string is UTC midnight while a date-time string without an
+ * offset is local time, so a `Date` built from local parts
+ * (`new Date(2021, 2, 15)`) can land on the neighbouring UTC day — store ISO
+ * strings or UTC-constructed dates for day-exact filtering.
  */
 export interface Filter {
   /** Column ID the filter applies to (must match a column's resolved id) */
   column: string;
   /** Filter operator */
   operator: FilterOperator;
-  /** Filter value (string — numeric operators convert via Number() internally) */
+  /**
+   * Filter value (string — `greaterThan`/`lessThan` compare it as a number
+   * first, then as a date; see the interface docs)
+   */
   value: string;
 }
 
