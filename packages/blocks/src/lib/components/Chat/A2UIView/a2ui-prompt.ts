@@ -9,13 +9,8 @@
  * `a2ui` JSONL protocol).
  */
 
-import {
-  A2UI_CATALOG_ID,
-  A2UI_ICON_NAMES,
-  A2UI_REGISTRY,
-  type A2uiPropSpec,
-  UNSUPPORTED_A2UI_COMPONENTS
-} from './a2ui-registry';
+import { type A2uiCatalogSpec, basicA2uiCatalogSpec } from './a2ui-catalog';
+import type { A2uiComponentSpec, A2uiPropSpec } from './a2ui-registry';
 
 /** Props documented once in the shared section rather than per component. */
 const COMMON_PROP_KEYS = new Set(['accessibility', 'weight']);
@@ -54,8 +49,7 @@ function renderProp(key: string, spec: A2uiPropSpec): string {
   return `  - ${key} (${flags.join('; ')}): ${spec.description}`;
 }
 
-function renderComponent(name: string): string {
-  const spec = A2UI_REGISTRY[name];
+function renderComponent(name: string, spec: A2uiComponentSpec): string {
   const lines: string[] = [`### ${name}`, spec.description, 'Props:'];
   for (const [key, propSpec] of Object.entries(spec.props)) {
     if (COMMON_PROP_KEYS.has(key) || propSpec.promptHidden) continue;
@@ -65,13 +59,16 @@ function renderComponent(name: string): string {
 }
 
 /**
- * Build the A2UI system prompt for this subset. Pass `catalogId` to override the
+ * Build the A2UI system prompt for a catalog. Pass `catalogId` to override the
  * default `createSurface` catalog identifier (the value must round-trip
- * unchanged in every envelope).
+ * unchanged in every envelope). With no options the output is the Basic-catalog
+ * prompt, byte-identical to before the catalog refactor.
  */
 export function a2uiSystemPrompt(options?: { catalogId?: string }): string {
-  const catalogId = options?.catalogId ?? A2UI_CATALOG_ID;
-  const componentNames = Object.keys(A2UI_REGISTRY);
+  const catalog: A2uiCatalogSpec = basicA2uiCatalogSpec;
+  const catalogId = options?.catalogId ?? catalog.catalogId;
+  const registry = catalog.registry;
+  const componentNames = Object.keys(registry);
 
   const sections: string[] = [];
 
@@ -144,7 +141,13 @@ export function a2uiSystemPrompt(options?: { catalogId?: string }): string {
     ].join('\n')
   );
 
-  sections.push(['## Components', '', ...componentNames.map(renderComponent)].join('\n\n'));
+  sections.push(
+    [
+      '## Components',
+      '',
+      ...componentNames.map((name) => renderComponent(name, registry[name]))
+    ].join('\n\n')
+  );
 
   sections.push(
     [
@@ -159,7 +162,7 @@ export function a2uiSystemPrompt(options?: { catalogId?: string }): string {
     [
       '## Icons',
       '',
-      `Icon.name must be one of: ${A2UI_ICON_NAMES.join(', ')}. Unknown names render a`,
+      `Icon.name must be one of: ${catalog.iconNames.join(', ')}. Unknown names render a`,
       'fallback glyph.'
     ].join('\n')
   );
@@ -171,7 +174,7 @@ export function a2uiSystemPrompt(options?: { catalogId?: string }): string {
       '- Do NOT define children inline; reference them by id.',
       '- Do NOT use more than one "root".',
       '- Do NOT use function-call bindings or local function-call actions.',
-      `- Do NOT use unsupported components: ${[...UNSUPPORTED_A2UI_COMPONENTS].join(', ')}.`,
+      `- Do NOT use unsupported components: ${[...catalog.unsupportedComponents].join(', ')}.`,
       '- Do NOT put HTML, images or links in Text markdown (inline bold/italic/code only).',
       '- Images are blocked by default — always give Image a meaningful description.'
     ].join('\n')

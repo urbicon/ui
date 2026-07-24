@@ -22,16 +22,9 @@
  */
 
 import { A2UI_ISSUE_CODES, type A2uiIssueSeverity, type A2uiValidationIssue } from './a2ui.types';
+import { type A2uiCatalogSpec, basicA2uiCatalogSpec, resolveCatalog } from './a2ui-catalog';
 import { cloneData, deleteAtPointer, getAtPointer, setAtPointer } from './a2ui-data';
-import {
-  A2UI_ICON_NAMES,
-  A2UI_IGNORED_PROPS,
-  A2UI_REGISTRY,
-  A2UI_SUPPORTED_VERSIONS,
-  A2UI_SVG_PATH_RE,
-  type A2uiPropSpec,
-  UNSUPPORTED_A2UI_COMPONENTS
-} from './a2ui-registry';
+import { A2UI_SUPPORTED_VERSIONS, A2UI_SVG_PATH_RE, type A2uiPropSpec } from './a2ui-registry';
 
 const PROTO_KEYS: ReadonlySet<string> = new Set(['__proto__', 'constructor', 'prototype']);
 
@@ -62,6 +55,13 @@ export interface A2uiSurfaceState {
   /** Root of the surface data model (mutated in place by two-way edits). */
   dataModel: unknown;
   issues: A2uiValidationIssue[];
+  /**
+   * The catalog resolved from `createSurface.catalogId` (or the default when the
+   * id names no configured catalog). Every downstream check — registry lookup,
+   * icon set, flex containers, per-component checks — reads it, so surfaces on
+   * different catalogs validate and render independently.
+   */
+  catalog: A2uiCatalogSpec;
 }
 
 export interface A2uiProcessor {
@@ -69,6 +69,17 @@ export interface A2uiProcessor {
   globalIssues: A2uiValidationIssue[];
   /** Validate + apply one envelope. `index` positions it as `/messages/<index>` in issue paths. */
   apply(envelope: unknown, index: number): void;
+}
+
+/** Options for {@link createA2uiProcessor}. Omitting them yields the Basic-only default. */
+export interface A2uiProcessorOptions {
+  /**
+   * The catalogs this processor understands, in priority order. `catalogs[0]`
+   * is the default/fallback. Defaults to `[basicA2uiCatalogSpec]` — a
+   * single-catalog processor accepts any `catalogId` string silently
+   * (back-compat); an unknown id only warns once there are ≥ 2 catalogs.
+   */
+  catalogs?: readonly A2uiCatalogSpec[];
 }
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
@@ -172,7 +183,8 @@ function validateProp(
   spec: A2uiPropSpec,
   value: unknown,
   path: string,
-  surfaceId: string
+  surfaceId: string,
+  iconNames: readonly string[]
 ): PropResult {
   const issues: A2uiValidationIssue[] = [];
   const mismatch = (detail: string): PropResult => {
@@ -235,7 +247,7 @@ function validateProp(
       return validateOptions(componentName, key, value, path, surfaceId);
 
     case 'icon':
-      return validateIcon(value, path, surfaceId);
+      return validateIcon(value, path, surfaceId, iconNames);
 
     case 'accessibility':
       if (isPlainObject(value)) return { store: true, issues };
@@ -431,9 +443,14 @@ function validateOptions(
   return { store: true, issues };
 }
 
-function validateIcon(value: unknown, path: string, surfaceId: string): PropResult {
+function validateIcon(
+  value: unknown,
+  path: string,
+  surfaceId: string,
+  iconNames: readonly string[]
+): PropResult {
   if (typeof value === 'string') {
-    if (A2UI_ICON_NAMES.includes(value)) return { store: true, issues: [] };
+    if (iconNames.includes(value)) return { store: true, issues: [] };
     return {
       store: true,
       issues: [
@@ -554,9 +571,10 @@ function validateComponent(
     return;
   }
 
-  const spec = A2UI_REGISTRY[componentName];
+  const catalog = surface.catalog;
+  const spec = catalog.registry[componentName];
   if (!spec) {
-    if (UNSUPPORTED_A2UI_COMPONENTS.has(componentName)) {
+    if (catalog.unsupportedComponents.has(componentName)) {
       surface.issues.push(
         issue(
           'error',
@@ -599,7 +617,7 @@ function validateComponent(
       );
       continue;
     }
-    if (A2UI_IGNORED_PROPS.has(key)) {
+    if (catalog.ignoredProps.has(key)) {
       surface.issues.push(
         issue(
           'warning',
@@ -631,7 +649,8 @@ function validateComponent(
       propSpec,
       comp[key],
       `${base}/${key}`,
-      surfaceId
+      surfaceId,
+      catalog.iconNames
     );
     for (const propIssue of result.issues) surface.issues.push(propIssue);
     if (result.store) props.set(key, comp[key]);
@@ -653,39 +672,13 @@ function validateComponent(
     }
   }
 
-  if (componentName === 'ChoicePicker') {
-    if (props.get('displayStyle') === 'chips' || props.get('filterable') === true) {
-      surface.issues.push(
-        issue(
-          'warning',
-          A2UI_ISSUE_CODES.CHOICEPICKER_FALLBACK,
-          `ChoicePicker "${id}" chips/filterable are rendered with a fallback`,
-          {
-            surfaceId,
-            path: base
-          }
-        )
-      );
-    }
-  }
-
-  if (componentName === 'DateTimeInput') {
-    // Both flags default to false in the spec — a DateTimeInput without either
-    // would have no input UI at all. We read tolerantly (render a date input)
-    // and report loudly so the agent fixes the payload.
-    if (props.get('enableDate') !== true && props.get('enableTime') !== true) {
-      surface.issues.push(
-        issue(
-          'warning',
-          A2UI_ISSUE_CODES.DATETIME_NO_MODE,
-          `DateTimeInput "${id}" sets neither enableDate nor enableTime; rendering a date input`,
-          {
-            surfaceId,
-            path: base
-          }
-        )
-      );
-    }
+  // Per-component post-validation checks are catalog DATA (the Basic catalog
+  // owns ChoicePicker chips-fallback and DateTimeInput missing-mode); the engine
+  // stays free of catalog-specific branches. Message strings and issue paths are
+  // byte-identical to the pre-refactor hardcoded blocks.
+  const check = catalog.componentChecks?.[componentName];
+  if (check) {
+    for (const checkIssue of check({ id, props, surfaceId, base })) surface.issues.push(checkIssue);
   }
 
   surface.components.set(id, { id, component: componentName, props, sourceIndex: envelopeIndex });
@@ -725,9 +718,10 @@ const UPDATE_COMPONENTS_KEYS: ReadonlySet<string> = new Set(['surfaceId', 'compo
 const UPDATE_DATA_MODEL_KEYS: ReadonlySet<string> = new Set(['surfaceId', 'path', 'value']);
 const DELETE_SURFACE_KEYS: ReadonlySet<string> = new Set(['surfaceId']);
 
-function createProcessor(): A2uiProcessor {
+function createProcessor(catalogs: readonly A2uiCatalogSpec[]): A2uiProcessor {
   const surfaces = new Map<string, A2uiSurfaceState>();
   const globalIssues: A2uiValidationIssue[] = [];
+  const defaultCatalog = catalogs[0];
 
   function handleCreateSurface(env: Record<string, unknown>, base: string): void {
     const cs = env.createSurface;
@@ -778,7 +772,8 @@ function createProcessor(): A2uiProcessor {
       surfaceId,
       components: new Map(),
       dataModel: undefined,
-      issues: []
+      issues: [],
+      catalog: defaultCatalog
     };
     surfaces.set(surfaceId, surface);
 
@@ -789,6 +784,22 @@ function createProcessor(): A2uiProcessor {
           path: `${base}/createSurface/catalogId`
         })
       );
+    } else {
+      const resolved = resolveCatalog(catalogs, cs.catalogId);
+      if (resolved) {
+        surface.catalog = resolved;
+      } else if (catalogs.length >= 2) {
+        // Only a multi-catalog processor can meaningfully reject an id; a single
+        // catalog accepts any string (back-compat) and uses the default silently.
+        surface.issues.push(
+          issue(
+            'warning',
+            A2UI_ISSUE_CODES.UNKNOWN_CATALOG,
+            `Unknown catalogId "${cs.catalogId}"; falling back to "${defaultCatalog.catalogId}"`,
+            { surfaceId, path: `${base}/createSurface/catalogId` }
+          )
+        );
+      }
     }
     if ('theme' in cs) {
       surface.issues.push(
@@ -1068,8 +1079,9 @@ function createProcessor(): A2uiProcessor {
   return { surfaces, globalIssues, apply };
 }
 
-export function createA2uiProcessor(): A2uiProcessor {
-  return createProcessor();
+export function createA2uiProcessor(options?: A2uiProcessorOptions): A2uiProcessor {
+  const catalogs = options?.catalogs?.length ? options.catalogs : [basicA2uiCatalogSpec];
+  return createProcessor(catalogs);
 }
 
 /**
@@ -1146,43 +1158,55 @@ export function collectGraphIssues(
   let overflowReported = false;
   let aborted = false;
 
+  // Child references are discovered by prop KIND (childId / childList) from the
+  // surface catalog's registry, not by fixed `child`/`children` names — so a
+  // catalog may name its child slots freely. Behaviour is unchanged for Basic,
+  // whose only child props ARE `child`/`children`.
+  const registry = surface.catalog.registry;
   const childTargets = (
     comp: A2uiComponentInstance,
     scopePrefix: string | undefined
   ): Array<{ id: string; scope: string | undefined }> => {
     const out: Array<{ id: string; scope: string | undefined }> = [];
-    const single = comp.props.get('child');
-    if (typeof single === 'string') out.push({ id: single, scope: scopePrefix });
+    const spec = registry[comp.component];
+    if (!spec) return out;
 
-    const children = comp.props.get('children');
-    if (Array.isArray(children)) {
-      for (const childId of children)
-        if (typeof childId === 'string') out.push({ id: childId, scope: scopePrefix });
-    } else if (children && typeof children === 'object') {
-      const template = children as { componentId?: unknown; path?: unknown };
-      if (typeof template.componentId === 'string' && typeof template.path === 'string') {
-        const absPath = template.path.startsWith('/')
-          ? template.path
-          : `${scopePrefix ?? ''}/${template.path}`;
-        const list = getAtPointer(surface.dataModel, absPath);
-        if (Array.isArray(list)) {
-          for (let i = 0; i < list.length; i++) {
-            out.push({ id: template.componentId, scope: `${absPath}/${i}` });
-            if (out.length > maxNodes) break; // bound expansion
-          }
-        } else if (list !== undefined) {
-          issues.push(
-            issue(
-              'warning',
-              A2UI_ISSUE_CODES.TEMPLATE_PATH_NOT_ARRAY,
-              `Template path "${absPath}" did not resolve to an array`,
-              {
-                surfaceId
+    for (const [key, propSpec] of Object.entries(spec.props)) {
+      if (propSpec.kind === 'childId') {
+        const single = comp.props.get(key);
+        if (typeof single === 'string') out.push({ id: single, scope: scopePrefix });
+      } else if (propSpec.kind === 'childList') {
+        const children = comp.props.get(key);
+        if (Array.isArray(children)) {
+          for (const childId of children)
+            if (typeof childId === 'string') out.push({ id: childId, scope: scopePrefix });
+        } else if (children && typeof children === 'object') {
+          const template = children as { componentId?: unknown; path?: unknown };
+          if (typeof template.componentId === 'string' && typeof template.path === 'string') {
+            const absPath = template.path.startsWith('/')
+              ? template.path
+              : `${scopePrefix ?? ''}/${template.path}`;
+            const list = getAtPointer(surface.dataModel, absPath);
+            if (Array.isArray(list)) {
+              for (let i = 0; i < list.length; i++) {
+                out.push({ id: template.componentId, scope: `${absPath}/${i}` });
+                if (out.length > maxNodes) break; // bound expansion
               }
-            )
-          );
+            } else if (list !== undefined) {
+              issues.push(
+                issue(
+                  'warning',
+                  A2UI_ISSUE_CODES.TEMPLATE_PATH_NOT_ARRAY,
+                  `Template path "${absPath}" did not resolve to an array`,
+                  {
+                    surfaceId
+                  }
+                )
+              );
+            }
+            // list === undefined → data not present yet; render nothing (graceful).
+          }
         }
-        // list === undefined → data not present yet; render nothing (graceful).
       }
     }
     return out;
@@ -1240,7 +1264,7 @@ export function collectGraphIssues(
       return;
     }
 
-    if (comp.props.has('weight') && parentComponent !== 'Row' && parentComponent !== 'Column') {
+    if (comp.props.has('weight') && !surface.catalog.flexContainers.has(parentComponent ?? '')) {
       issues.push(
         issue(
           'warning',

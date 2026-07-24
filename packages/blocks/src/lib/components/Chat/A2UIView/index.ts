@@ -1,6 +1,7 @@
 import type { HTMLAttributes } from 'svelte/elements';
 import type { MarkdownUrlPolicy } from '../markdown/types';
 import type { A2uiActionEvent, A2uiValidationIssue } from './a2ui.types';
+import type { A2uiCatalog } from './a2ui-catalog';
 import type { A2UIViewSlots } from './a2ui-view.variants';
 
 /**
@@ -78,6 +79,15 @@ export interface A2UIViewProps extends Omit<HTMLAttributes<HTMLDivElement>, 'cla
   blockedImageLabel?: string;
   /** Screen-reader label of the streaming placeholder. @default 'Loading UI' */
   pendingLabel?: string;
+  /**
+   * Additional A2UI catalogs this view can render, beyond the always-present
+   * Basic catalog (which is prepended automatically as the default/fallback). A
+   * surface renders through the catalog whose id its `createSurface.catalogId`
+   * names. Pass the shipped `urbiconA2uiCatalog` to enable the Urbicon-native
+   * catalog. Resolved once at init (icon setup reads context) — keep it
+   * referentially stable.
+   */
+  catalogs?: readonly A2uiCatalog[];
 
   /** Extra classes merged onto the root element. */
   class?: string;
@@ -107,6 +117,16 @@ export {
   type A2uiIssueSeverity,
   type A2uiValidationIssue
 } from './a2ui.types';
+export { basicA2uiCatalog } from './a2ui-basic-catalog';
+// ── Catalog abstraction (the seam for a second, custom catalog) ──────────────
+export {
+  type A2uiCatalog,
+  type A2uiCatalogSpec,
+  type A2uiComponentCheck,
+  type A2uiComponentCheckContext,
+  basicA2uiCatalogSpec,
+  resolveCatalog
+} from './a2ui-catalog';
 export { a2uiSystemPrompt } from './a2ui-prompt';
 export {
   A2UI_CATALOG_ID,
@@ -121,6 +141,7 @@ export {
 export {
   type A2uiComponentInstance,
   type A2uiProcessor,
+  type A2uiProcessorOptions,
   type A2uiSurfaceState,
   collectGraphIssues,
   createA2uiProcessor,

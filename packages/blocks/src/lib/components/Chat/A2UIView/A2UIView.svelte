@@ -2,26 +2,9 @@
   import { Alert } from '$lib/primitives';
   import { untrack } from 'svelte';
   import { getBlocksConfig, resolveSlotClasses } from '$lib/provider';
-  import { type IconComponent, resolveIcon } from '$lib/icons';
-  import PlusIconDefault from '$lib/icons/PlusIcon.svelte';
-  import ArrowLeftIconDefault from '$lib/icons/ArrowLeftIcon.svelte';
-  import CheckIconDefault from '$lib/icons/CheckIcon.svelte';
-  import CloseIconDefault from '$lib/icons/CloseIcon.svelte';
-  import TrashIconDefault from '$lib/icons/TrashIcon.svelte';
-  import EditIconDefault from '$lib/icons/EditIcon.svelte';
-  import DangerCircleIconDefault from '$lib/icons/DangerCircleIcon.svelte';
-  import HomeIconDefault from '$lib/icons/HomeIcon.svelte';
-  import InfoCircleIconDefault from '$lib/icons/InfoCircleIcon.svelte';
-  import MailIconDefault from '$lib/icons/MailIcon.svelte';
-  import MenuIconDefault from '$lib/icons/MenuIcon.svelte';
-  import SearchIconDefault from '$lib/icons/SearchIcon.svelte';
-  import SendIconDefault from '$lib/icons/SendIcon.svelte';
-  import SettingsIconDefault from '$lib/icons/SettingsIcon.svelte';
-  import StarIconDefault from '$lib/icons/StarIcon.svelte';
-  import WarningTriangleIconDefault from '$lib/icons/WarningTriangleIcon.svelte';
-  import CircleHelpIconDefault from '$lib/icons/CircleHelpIcon.svelte';
-  import A2UINode from './A2UINode.svelte';
   import type { A2uiValidationIssue } from './a2ui.types';
+  import { basicA2uiCatalog } from './a2ui-basic-catalog';
+  import type { A2uiCatalog } from './a2ui-catalog';
   import { deleteAtPointer, resolveDynamic, setAtPointer } from './a2ui-data';
   import {
     type A2uiProcessor,
@@ -43,6 +26,7 @@
     unsupportedLabel = 'Unsupported component',
     blockedImageLabel = 'Image blocked',
     pendingLabel = 'Loading UI',
+    catalogs: catalogsProp,
     class: className,
     unstyled: unstyledProp = false,
     slotClasses: slotClassesProp = {},
@@ -53,29 +37,28 @@
   const blocksConfig = getBlocksConfig();
   const unstyled = $derived(unstyledProp || blocksConfig?.unstyled || false);
 
-  // A2UI icon-enum name → resolved Urbicon icon. Resolved ONCE via direct
-  // imports (tree-shakeable — never getIcon()); an IconProvider override still
-  // wins, the direct import is the fallback. Built here (not per node) and
-  // threaded through the render context.
-  const icons: Readonly<Record<string, IconComponent>> = {
-    add: resolveIcon('plus', PlusIconDefault),
-    arrowBack: resolveIcon('arrowLeft', ArrowLeftIconDefault),
-    check: resolveIcon('check', CheckIconDefault),
-    close: resolveIcon('close', CloseIconDefault),
-    delete: resolveIcon('trash', TrashIconDefault),
-    edit: resolveIcon('edit', EditIconDefault),
-    error: resolveIcon('danger', DangerCircleIconDefault),
-    home: resolveIcon('home', HomeIconDefault),
-    info: resolveIcon('info', InfoCircleIconDefault),
-    mail: resolveIcon('mail', MailIconDefault),
-    menu: resolveIcon('menu', MenuIconDefault),
-    search: resolveIcon('search', SearchIconDefault),
-    send: resolveIcon('send', SendIconDefault),
-    settings: resolveIcon('settings', SettingsIconDefault),
-    star: resolveIcon('star', StarIconDefault),
-    warning: resolveIcon('warning', WarningTriangleIconDefault)
-  };
-  const fallbackIcon = resolveIcon('circleHelp', CircleHelpIconDefault);
+  // Effective catalogs: the Basic catalog is always available and FIRST (the
+  // default/fallback), consumer catalogs follow. Resolved ONCE at init —
+  // `createIcons()` reads the IconProvider context, so it must run during
+  // component init and cannot be reactive. Keep `catalogs` referentially stable.
+  // `untrack` captures the initial prop value without a reactive subscription
+  // (the init-only capture is deliberate — silences `state_referenced_locally`).
+  const catalogs: readonly A2uiCatalog[] = [
+    basicA2uiCatalog,
+    ...(untrack(() => catalogsProp) ?? [])
+  ];
+  const catalogById = new Map<string, A2uiCatalog>();
+  const iconsByCatalog = new Map<string, ReturnType<A2uiCatalog['createIcons']>>();
+  for (const catalog of catalogs) {
+    if (catalogById.has(catalog.catalogId)) continue;
+    catalogById.set(catalog.catalogId, catalog);
+    for (const alias of catalog.catalogIdAliases ?? []) {
+      if (!catalogById.has(alias)) catalogById.set(alias, catalog);
+    }
+    iconsByCatalog.set(catalog.catalogId, catalog.createIcons());
+  }
+  const defaultCatalog = catalogs[0];
+  const defaultIcons = iconsByCatalog.get(defaultCatalog.catalogId) ?? defaultCatalog.createIcons();
 
   // ── Processor (plain, non-reactive) + version counter ────────────────────
   // The processor mutates plain Maps in place (the streaming-markdown engine
@@ -83,7 +66,7 @@
   // render tree derives from it, so reading it is a real subscription (unlike a
   // `void messages` proxy read). `processor`/`consumed` are plain lets: their
   // reassignment must NOT itself trigger reactivity — the bump does.
-  let processor: A2uiProcessor = createA2uiProcessor();
+  let processor: A2uiProcessor = createA2uiProcessor({ catalogs });
   let consumed: unknown[] = [];
   let normalizeIssue = $state<A2uiValidationIssue | undefined>(undefined);
   let version = $state(0);
@@ -110,7 +93,7 @@
       const prefixMatches =
         envelopes.length >= consumed.length && consumed.every((env, i) => env === envelopes[i]);
       if (!prefixMatches) {
-        processor = createA2uiProcessor();
+        processor = createA2uiProcessor({ catalogs });
         consumed = [];
         generation++;
       }
@@ -195,6 +178,11 @@
         allIssues.push(graphIssue);
       }
       const root = buildRenderTree(surface);
+      // Resolve the surface's catalog to its Svelte wiring: which dispatcher
+      // renders it and which icon set it draws from. surface.catalog is one of
+      // `catalogs`, so both lookups always hit; the `??` are belt-and-braces.
+      const surfaceCatalog = catalogById.get(surface.catalog.catalogId) ?? defaultCatalog;
+      const surfaceIcons = iconsByCatalog.get(surfaceCatalog.catalogId) ?? defaultIcons;
       const context: A2uiRenderContext = {
         classes: currentClasses,
         urlPolicy,
@@ -205,8 +193,9 @@
         resolve: (value, scope) => resolveDynamic(value, surface.dataModel, scope),
         write: (pointer, value) => writeBinding(surface.surfaceId, pointer, value),
         remove: (pointer) => removeBinding(surface.surfaceId, pointer),
-        icons,
-        fallbackIcon,
+        icons: surfaceIcons.icons,
+        fallbackIcon: surfaceIcons.fallbackIcon,
+        nodeComponent: surfaceCatalog.Node,
         labels: {
           unsupported: unsupportedLabel,
           blockedImage: blockedImageLabel,
@@ -241,12 +230,15 @@
 
 <!--
   The render tree recurses through this self-referencing snippet rather than a
-  self-import inside A2UINode: a snippet that renders A2UINode and passes ITSELF
-  down as `renderChild` gives clean recursion without the circular component-type
-  resolution that self-imports trip in svelte-check.
+  self-import inside the node dispatcher: a snippet that renders the dispatcher
+  and passes ITSELF down as `renderChild` gives clean recursion without the
+  circular component-type resolution that self-imports trip in svelte-check. The
+  dispatcher is the surface catalog's own node component (Basic → A2UINode; a
+  custom catalog → its own), read off the render context per surface.
 -->
 {#snippet renderNode(node: A2uiRenderNode, context: A2uiRenderContext)}
-  <A2UINode {node} {context} renderChild={renderNode} />
+  {@const Node = context.nodeComponent}
+  <Node {node} {context} renderChild={renderNode} />
 {/snippet}
 
 <!--

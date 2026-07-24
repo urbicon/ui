@@ -119,7 +119,13 @@ export const A2UI_ISSUE_CODES = {
   /** `ChoicePicker` `displayStyle: 'chips'` / `filterable` — rendered with a fallback. */
   CHOICEPICKER_FALLBACK: 'CHOICEPICKER_FALLBACK',
   /** A `createSurface`-only prop (`theme`, `sendDataModel`) that the engine ignores. */
-  SURFACE_PROP_IGNORED: 'SURFACE_PROP_IGNORED'
+  SURFACE_PROP_IGNORED: 'SURFACE_PROP_IGNORED',
+  /**
+   * `createSurface.catalogId` names no configured catalog — the surface falls
+   * back to the first (default) catalog. Only emitted in a multi-catalog setup;
+   * a single-catalog processor accepts any id string silently (back-compat).
+   */
+  UNKNOWN_CATALOG: 'UNKNOWN_CATALOG'
 } as const;
 
 export type A2uiIssueCode = (typeof A2UI_ISSUE_CODES)[keyof typeof A2UI_ISSUE_CODES];
