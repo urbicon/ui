@@ -20,7 +20,18 @@ export default defineConfig({
   timeout: 60_000,
   expect: {
     toHaveScreenshot: {
-      maxDiffPixelRatio: 0.01,
+      // Tightened from 0.01: that ratio swallowed a full label colour inversion
+      // (the text-on-primary bug) and a whole added Badge sentinel — both under
+      // 1% of their shot — so a colour-only regression passed unnoticed. 0.002
+      // catches element-level regressions and a stricter per-pixel threshold
+      // catches clearer colour shifts, while tolerating font antialiasing. This
+      // is safe because the fixtures are deterministic (the primitives fixture
+      // sets `transition: none`, killing the mount-frame that made circular
+      // Progress non-deterministic). Re-baseline deliberately with
+      // `--update-snapshots=all` — the default 'changed' mode skips sub-threshold
+      // drift and silently keeps a stale baseline (how the 8 stale shots survived).
+      maxDiffPixelRatio: 0.002,
+      threshold: 0.15,
       animations: 'disabled'
     }
   },

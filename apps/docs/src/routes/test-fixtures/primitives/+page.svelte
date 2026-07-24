@@ -31,12 +31,16 @@
   <title>Primitive Visual-Regression Fixtures</title>
   <style>
     /* Belt-and-braces with Playwright's animations:'disabled' — kill any transition
-       so a snapshot never catches a mid-flight frame. */
+       so a snapshot never catches a mid-flight frame. `transition: none` (not just
+       duration:0) is deliberate: circular Progress animates stroke-dashoffset on
+       mount, and a 0ms transition still fires one frame, which is what made
+       progress-*-rooms non-deterministic between identical runs. `none` removes the
+       property entirely. */
     *,
     *::before,
     *::after {
-      transition-duration: 0ms !important;
-      animation-duration: 0ms !important;
+      transition: none !important;
+      animation: none !important;
     }
   </style>
 </svelte:head>
