@@ -87,7 +87,7 @@ Use `overrides` for **prop-conditional** rules an unconditional `slotClasses` ca
 
 ## Icons
 
-315 hand-rolled SVG icons in `src/lib/icons/`, registered via `IconProvider`. Metadata (`ICON_METADATA`) enables search by name, keyword, or category. See the icon-design rules in [AGENTS.md → Icon Design Rules](../../AGENTS.md#icon-design-rules).
+315 hand-rolled SVG icons in `src/lib/icons/`, registered via `IconProvider`. Metadata (`ICON_METADATA`) enables search by name, keyword, or category. Discover them with `urbicon icons <query>`.
 
 ## i18n
 

@@ -41,39 +41,19 @@ For full details see [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md).
 
 ## Commands
 
-- Install: `bun install`
-- Dev (all): `bun run dev` · Dev (one): `bun --filter='@urbicon-ui/blocks' run dev`
-- Build: `bun run build`
-- Quality: `bun run check` (type/svelte-check), `bun run lint`, `bun run format`, `bun run variants:lint` (dead-token guard over all tv() configs), `bun run imports:lint` (cross-component import guard — see below)
-- Bundle size: `bun run size:blocks` (per-component tree-shaken min+gzip size, net of Svelte; needs built blocks-`dist/`; `--check` gates against `packages/blocks/bundle-size.baseline.json`, `--update-baseline` after intentional growth)
-- Docs generation: `bun run docs:gen:all`
-- Scaffold docs page: `bun run docs:scaffold <ComponentName> --group primitives|components`
-- Changelog: `bun run changelog` (generates `CHANGELOG.md` via git-cliff)
-- Version bump: `bun run bump` (patch), `bun run bump:minor`, `bun run bump:major` — see [Versioning](#versioning)
+`bun run` lists every script. Non-obvious ones:
+
+- Single package: `bun --filter='@urbicon-ui/blocks' run <script>` (bare `bun test` bypasses the config — always `run test`)
+- `size:blocks` — per-component tree-shaken min+gzip size, net of Svelte; needs built blocks-`dist/`. `--check` gates against `packages/blocks/bundle-size.baseline.json`, `--update-baseline` after intentional growth
+- `variants:lint` — dead-token guard over all tv() configs · `imports:lint` — cross-component import guard (see Key Architecture Decisions)
+- `docs:gen:all` — **not** `docs:gen:<target>`; only the `:all` run assembles the MCP catalog
 
 ## Coding Conventions
 
 - Lint/format: **Biome** for `.ts`/`.js`/`.json` (`biome.json` extends `@urbicon/biome-config`); **Prettier** for `.svelte` only (single quotes, width 100, no trailing commas) + `svelte-check`. Biome does not parse `.svelte`.
 - **Dropped on the ESLint→Biome migration** (Biome can't lint `.svelte` markup; `svelte-check` keeps a11y): `svelte/no-at-html-tags` (`{@html}` XSS guard), `svelte/require-each-key`, `svelte/prefer-svelte-reactivity`, `svelte/no-navigation-without-resolve`. Re-add a `.svelte`-only ESLint pass if these regress.
 - Components: PascalCase `.svelte`, props in `index.ts`, variants in `*.variants.ts`
-- **Component metadata via JSDoc**: Every `*Props` interface in `index.ts` MUST have JSDoc tags — this is the single source of truth for the MCP server, `llm.txt`, and documentation site:
-  - `@description` (required) — short, informative description
-  - `@tag` (one or more) — category tags: `form`, `action`, `overlay`, `feedback`, `layout`, `navigation`, `display`, `data`, `ai` (the chat/agent family: conversation surfaces, streaming markdown, agent parts)
-  - `@related` (zero or more) — related component names
-  - `@stability` (optional, default `stable`) — `experimental | beta | stable | deprecated`; drives the Editorial stability badge in the doc-page header
-  - `@standalone` (optional, multi-component `index.ts` only) — opt-in: this export gets its own MCP-catalog entry + `llm.txt` (e.g. the seven Guide surfaces). Without it, additional exports count as compound subcomponents (TabItem, MenuItem) and stay folded into the directory component's entry. Requires a matching `export { default as X } from './X.svelte'` in the same file.
-  ```ts
-  /**
-   * @description Short, informative description of what this component does.
-   * @tag form
-   * @related Input
-   * @related Select
-   * @stability stable
-   */
-  export interface ComboboxProps { ... }
-  ```
-  - **Regeneration is two-step — run `docs:gen:all`, not `docs:gen:<target>`.** `docs:gen:<target>` only writes `apps/docs/static/<group>/_catalog.json` + per-component `llm.txt`; the `MCPCatalogAssembler` (runs only in `docs:gen:all` / `build`) globs every `_catalog.json` into `apps/docs/static/mcp/component-catalog.json` — the file the MCP server actually loads for `find_components`/`suggest_implementation`. Editing `*Props` JSDoc and running only `docs:gen:<target>` leaves that file **stale**. All three artifacts are git-ignored (CI rebuilds them on `build`).
-  - **Name the real server factory.** For a component with a server counterpart (auth handler, SSE/stream endpoint), the `@description` MUST reference the shipped factory (e.g. `createInvitationHandlers`, `createStreamHandler`), cross-checked against the package's `server/index.ts` exports — never "create the CRUD/SSE endpoint yourself", which steers consumers into reimplementing a handler that already ships.
+- **Component metadata via JSDoc**: every `*Props` interface in `index.ts` MUST carry JSDoc tags — the single source of truth for the MCP server, `llm.txt` and the docs site. Tag contract + the `docs:gen:all` regeneration trap: **`component-metadata` skill**.
 - Package scope: `@urbicon-ui/*`
 - Use semantic design tokens over primitive Tailwind classes
 
@@ -131,17 +111,9 @@ Conventional commits are parsed by git-cliff to auto-generate the changelog. Use
 
 ## Testing
 
-- Framework: Vitest (in `blocks`, `i18n`, `docs-gen`, `auth`, `sveltekit-utils`)
-- Type checks: `bun run check` or per-package `svelte-check`
+Vitest (in `blocks`, `i18n`, `docs-gen`, `auth`, `sveltekit-utils`); type checks via `bun run check`.
 
-**Component / DOM tests (`blocks`).** Most tests run in the default `node` environment (variant + logic checks, no DOM). Interaction tests (focus/keyboard/click) that need a real DOM opt into jsdom **per file** with a `// @vitest-environment jsdom` docblock, so the node suite stays fast and untouched. Reference: `Combobox/Combobox.svelte.test.ts` (guards the #19 focus-reopen). Conventions, learned the hard way — do not "modernise" back to the obvious libraries:
-
-- **Mount with Svelte's own `mount`/`unmount`** (from `svelte`), **not** `@testing-library/svelte`. The latter pulls a second svelte instance, which makes svelte-check see two unrelated `Snippet` types across the whole package (spurious errors in unrelated components). Queries + interactions use the svelte-free `@testing-library/dom` (`screen`) + `@testing-library/user-event`.
-- **Assert with vitest's native matchers** (`toBe`, `document.activeElement`, `getAttribute`), **not** `@testing-library/jest-dom` — its expect augmentation does not compose with vitest 4's `Assertion` type.
-- **Overlay content (Combobox/Select/Menu/Tooltip) renders in a native popover.** jsdom has no top layer, so query it with `{ hidden: true }`. These tests assert interaction *logic* (aria, callbacks, state), not visual visibility — that is Playwright's (`e2e/`) job.
-- jsdom polyfills (scrollIntoView, Popover API, Resize/IntersectionObserver) live in `packages/blocks/vitest-setup.ts`, guarded on `window` so node tests skip them.
-- **localStorage in jsdom tests:** Node ≥ 25 ships a broken global `localStorage` stub (without `--localstorage-file`) that shadows jsdom's Storage in vitest — tests that need real storage semantics must install a functional in-memory Storage on `window` themselves (reference: `packages/table/src/lib/stores/TableStore.seed.persistence.svelte.test.ts`).
-- **Compound widgets** (Tab/SegmentGroup/RadioGroup/Accordion/Stepper) whose children register through context can't be driven by a `createRawSnippet` of plain HTML — mount a real composition from a `__fixtures__/<Widget>Harness.svelte` next to the test (reference: `Tab/__fixtures__/TabHarness.svelte`). `__fixtures__/` is already excluded from the published package (package.json `files` → `!dist/**/__fixtures__/**`) and isn't collected as a test (no `.test`/`.spec` in the name). **Declarative** primitives (Toggle/Checkbox/ConfirmDialog/Slider/Collapsible) need no fixture — pass props directly and build any content snippet with `createRawSnippet` (reference: `Dialog.svelte.test.ts`).
+The DOM-test conventions were learned the hard way — **never "modernise" them back to `@testing-library/svelte` or `@testing-library/jest-dom`**, both break svelte-check or vitest 4 types package-wide. Full conventions (node vs jsdom, mounting, popover queries, compound-widget harnesses): **`blocks-testing` skill**.
 
 ## AI-Native DX
 
@@ -152,24 +124,9 @@ Conventional commits are parsed by git-cliff to auto-generate the changelog. Use
 - **Design System Intelligence** (`design-system/`) – Layer 4+5 of the 5-layer design model: `principles.md` (heuristics, paradigm profiles, change decision tree) + `patterns/*.md` (composition patterns: settings-page, dashboard, form-page, tab-navigation, onboarding-guide). Served locally by `urbicon principles` / `urbicon pattern` and remotely by `get_design_principles` / `get_pattern`, both from the `design-content` bundle.
 - **Closed design loop** – Beyond serving knowledge: `urbicon validate` (= remote `validate_design`, same engine) lints generated markup (deterministic rules + token whitelist + heuristics); `data-design-pattern` markers + `design.manifest.md` (maintained consumer-side via the `urbicon` CLI: context / record-decision / sync-manifest) persist design intent per consumer project; `urbicon principles --rubric` serves the 1–5 judge rubric; the design verbs (the full table — onboard, adopt, compose, redesign, polish, critique, fix, retheme, audit, migrate — shipped as the local skill in `@urbicon-ui/design` and as MCP prompts, same text) ship the generate → validate → judge → synthesise process; locally the `urbicon` CLI enforces that loop — a `PostToolUse` hook (`urbicon hook`) and CI (`urbicon validate`; correctness always gates, the slop axis opt-in via `--slop-floor`) turn it from advisory to required (templates ship under `@urbicon-ui/design/templates`).
 
-## Icon Design Rules
+## Icons
 
-Icons live in `packages/blocks/src/lib/icons/` — geometry in `svg/<name>.svg`, a thin `<Name>Icon.svelte` imports it via `?raw`. Contract: **24×24 viewBox, `strokeWidth=2`, round caps/joins, pure stroke** (no `fill`), 0.5px grid, `rx ∈ {0, 0.5, 1.5, 2.5}` or capsule (`short/2`), original geometry only (never copy Lucide/Heroicons paths). Adding one touches **5 spots across 4 files** (the `<Name>Icon.svelte` component, the `IconName` union in `icon-types.ts`, `DEFAULT_ICONS` + `ICON_METADATA` in `icon-registry.ts`, and the `index.ts` export). Run **`bun run icons:lint`** — it enforces the contract + registry integrity (errors) and flags judgement calls (warnings). Full measurement spec, corner-radius scale, canonical motifs, reference icon per shape class + checklist: [docs/ICON-DESIGN.md](docs/ICON-DESIGN.md).
-
-**Resolving icons inside components (tree-shaking):** call `resolveIcon('name', NameIconDefault)` with a **direct** icon import — `import NameIconDefault from '$lib/icons/NameIcon.svelte'` (within blocks) or `import { NameIcon as NameIconDefault } from '@urbicon-ui/blocks'` (from another package, e.g. table). The `IconProvider`/`setIcons` override still wins; the direct import is only the fallback. **Never `getIcon('name')` in a component** — it indexes the full `DEFAULT_ICONS` registry (dynamic key → not tree-shakeable) and drags all 315 icons into the consumer bundle. `getIcon`/`DEFAULT_ICONS` (both in `icon-registry.ts` since the module split) are reserved for the dynamic `<Icon name="…" />` component (the lone exception). Regression grep: `rg "getIcon\(" packages/*/src --glob '!**/icon-registry.ts' --glob '!**/icon.context.ts' --glob '!**/Icon.svelte'`. Rationale + measurements: [docs/ICON-DESIGN.md](docs/ICON-DESIGN.md) → "Icon resolution & tree-shaking".
-
-## Available Components under 'packages'
-
-- packages/blocks/src/lib/primitives:
-  Accordion, Alert, Avatar, Badge, Breadcrumb, Button, ButtonGroup, Card, Checkbox, Collapsible, Combobox, ConfirmDialog, Dialog, Drawer, FormField, Input, JourneyTimeline, Menu, Pagination, Popover, Progress, RadioGroup, SegmentGroup, Select, Separator, Sidebar, Skeleton, Slider, Spinner, Stepper, Tab, Textarea, Toast, Toggle, Toolbar, Tooltip
-- packages/blocks/src/lib/components:
-  AreaChart, BarChart, Calendar, ChartFrame, CommandPalette, CompositionBar, CurrencyInput, DatePicker, DonutChart, EmptyState, FileUpload, Guide (+ GuideProvider, GuidePanel, GuideArticle, GuideMarker, GuideMention, GuideRef, GuideHint, GuideBeacon), LineChart, LocaleSwitcher, Planner, Sankey, SidebarLayout, Sparkline, ThemeSwitcher
-- packages/table/src/lib:
-  Table
-- packages/docs/src/lib/components:
-  ApiReference, CodeExample, CodePanel, DocsLayout, InfoCard, PlaygroundConfigurator, Section, TableOfContents, TypesReference
-- packages/auth/src/lib/client/components:
-  LoginPage, RegisterPage, ForgotPasswordPage, ResetPasswordPage, VerifyEmailPage, InvitationManager, PasskeyManager, AccountSettings, SessionManager, TwoFactorManager, NotificationCenter, NotificationBadge, NotificationListener, PushPermissionPrompt
+Icons live in `packages/blocks/src/lib/icons/`. **Never call `getIcon('name')` inside a component** — the dynamic key defeats tree-shaking and drags all 315 icons into the consumer bundle; use `resolveIcon('name', NameIconDefault)` with a direct import (`<Icon name="…" />` is the lone exception). Geometry contract, the 5-spot registration checklist and `icons:lint`: **`add-icon` skill**.
 
 ## Git Workflow (Agent Notes)
 
@@ -185,13 +142,7 @@ Icons live in `packages/blocks/src/lib/icons/` — geometry in `svg/<name>.svg`,
 
 ## Versioning
 
-**Conventional Commits → git-cliff → Changelog**, one unified version across all packages. Bump proactively after a coherent set of changes (once at the end, not per commit; never on a dirty tree):
-
-- **Patch** `bun run bump` — `fix` / `docs` / `refactor` / `chore` / `style` / `test` / `perf`
-- **Minor** `bun run bump:minor` — `feat` (new component / prop / capability)
-- **Major** `bun run bump:major` — `feat!:` or `BREAKING CHANGE:`
-
-The bump writes a `chore: release vX.Y.Z` commit + an annotated tag on HEAD (the tag triggers the CI publish pipeline). Push with `git push --follow-tags`. **Never edit `CHANGELOG.md` by hand** — it is auto-generated. Full detail — bump-script steps, commit-type→changelog mapping, scoping: [docs/VERSIONING.md](docs/VERSIONING.md).
+One unified version across all packages, bumped once at the end of a coherent set of changes — **never on a dirty tree**, and **never edit `CHANGELOG.md` by hand** (git-cliff generates it). Bump levels, tag/push flow, commit-type → changelog mapping: **`release-bump` skill**.
 
 ## Documentation
 
@@ -235,112 +186,6 @@ Internal working docs (strategy, launch, deployment, design analysis) are kept l
 
 - [docs/MIGRATION-v5.md](docs/MIGRATION-v5.md) – v4 → v5 consumer migration guide. **Symlink into `packages/blocks/docs/`, ships in the blocks tarball** — keep it public-appropriate.
 
-## Recipe Pages
+## Task-scoped skills
 
-Recipe pages in `apps/docs/src/routes/recipes/*/` use structured `meta.ts` files for metadata (title, description, components, features). The `recipeCode` template literal stays in `+page.svelte` for the live preview.
-
-
-<!-- urbicon:start — Urbicon UI agent context. Managed by `urbicon init`: it inserts and
-updates everything between these two markers, so edit *outside* them (or run `init` again
-to refresh). Pasting this by hand? Keep the markers if you want `init` to manage it later;
-delete them if you don't. -->
-
-## Urbicon UI
-
-This project builds its UI with [Urbicon UI](https://ui.urbicon.de) — Svelte 5 + Tailwind 4
-components on a token-based design system. **Compose from the system; don't hand-roll UI or
-invent styles.** The `urbicon` CLI (a devDependency, run as `bunx urbicon <command>`) puts the
-design system's knowledge, linter and memory at your fingertips — **version-matched to the
-library this project installed**, so what it tells you is true of the code you actually have.
-
-### Tools — the `urbicon` CLI
-
-- **Discover & read components** (before you compose):
-  - `urbicon find <query>` — fuzzy-search the catalog, e.g. `urbicon find "date range"`.
-  - `urbicon get-component <slug>` — a component's real API: props, variants, examples
-    (`--section api|examples|variants|slots|full`).
-  - `urbicon icons <query>` — icon discovery (no query: the full reference).
-  - `urbicon recipe [id]` — complete Svelte 5 code recipes (no id: list them).
-  - `urbicon guide [slug]` — the canonical package guides (auth reference, blocks
-    guide system, v5 migration notes, table scroll models); no slug lists them.
-- **Design knowledge** (before and while you compose):
-  - `urbicon principles [--topic <t>] [--rubric]` — the design heuristics;
-    `--topic theming` for paradigms + the change decision tree, `--rubric` for the
-    8-criterion scoring rubric (the judge step).
-  - `urbicon pattern [name]` — composition patterns per page archetype
-    (settings-page, dashboard, form-page, …).
-  - `urbicon css-reference [section]` — the token truth: naming, dark mode,
-    override patterns (sections: surfaces, text, borders, intents, shadows, typography,
-    theming).
-- **Validate** what you generate:
-  - `urbicon validate <path>` — lint markup against the design rules; fix every error.
-  - `urbicon i18n [check]` — audit `@urbicon-ui/i18n` usage (when the project uses it):
-    `parity` (missing/empty/param/plural across locales), `unused` keys, `hardcoded`
-    strings, or `audit` (all). Gates on parity errors + keys used-but-undefined.
-- **Read & record design intent** (the project's memory):
-  - `urbicon context` — the design manifest: paradigm, voice, decisions. Read it first.
-  - `urbicon record-decision …` — log a deliberate design choice so the next session sees it.
-  - `urbicon sync-manifest` — re-index pattern usages from the code.
-- **Whole-task recipes** — `urbicon verbs` / `urbicon verb <name>` (also a `/`-skill,
-  `urbicon-design`, if installed).
-
-The CLI covers the full knowledge surface locally. The hosted knowledge at
-<https://ui.urbicon.de> (and the `urbicon-ui` MCP server, if your client happens to have it
-connected) serves **latest**, not this project's version — so even when both are available,
-**use the CLI**: it matches the installed library, and on any disagreement the CLI is right.
-The MCP tools are for contexts without a local install (e.g. evaluating the library).
-
-### How to work — the design loop
-
-1. **Read the intent** — `urbicon context`. This is what keeps output consistent with *this*
-   product instead of generic.
-2. **Discover** — `urbicon find` / `get-component` for the right component and its real API.
-3. **Compose** from real components + semantic tokens (rules below).
-4. **Validate** — `urbicon validate`; fix every correctness error before shipping. (Slop notes
-   are advisory — raise them when it's cheap.)
-5. **Write the decision back** — `urbicon record-decision` for a deliberate deviation. What the
-   next session can't see, it will silently undo.
-
-For a whole task, pick a **verb** (a recipe over that loop): `compose` (new page) ·
-`redesign` (rework) · `polish` (tighten) · `fix` (repair tokens) · `critique` / `audit` (judge
-without changing) · `retheme` / `migrate` (roll a change out). Prefer the narrowest that fits.
-
-### Hard rules — the linter enforces these
-
-**Import from the package root only** — never a deep/internal path:
-
-```ts
-import { Button, Card, Dialog } from '@urbicon-ui/blocks'; // ✓
-// import Button from '@urbicon-ui/blocks/primitives/Button/Button.svelte'; // ✗
-```
-
-**USE semantic tokens** (the canonical set; `urbicon get-component` shows them in context):
-
-- Surface — `bg-surface-base` / `-elevated` / `-overlay`
-- Text — `text-text-primary` / `-secondary` / `-tertiary`
-- Border — `border-border-subtle` / `-default`
-- Intent — `bg-primary`, `text-primary`, `bg-primary-subtle` (`primary` `secondary` `success` `warning` `danger` `neutral`)
-- Elevation / motion / layer — `shadow-[var(--blocks-shadow-sm)]`, `duration-[var(--blocks-duration-fast)]`, `z-[var(--z-modal)]`
-
-**NEVER:**
-
-- `dark:` — semantic tokens already switch via CSS `light-dark()`.
-- Hardcoded colours (`bg-white`, `text-neutral-900`, `bg-blue-500`) or invented tokens (`bg-card`, `text-*-foreground`).
-- `focus:` — always `focus-visible:` (keyboard-only rings).
-- Hardcoded `z-index`, `cubic-bezier`, or duration values.
-
-**Off-palette looks** (brand colour, glass, translucent overlay) → register a **preset** at the
-app root and reference it by name; never force colours with inline `!` overrides:
-
-```svelte
-<BlocksProvider presets={{ Button: { brand: { slotClasses: { base: 'bg-[var(--brand)] text-white' } } } }}>
-  <Button preset="brand">Go</Button>
-</BlocksProvider>
-```
-
-The full override ladder (weakest → strongest): `class` (root slot only) → instance `slotClasses={{ <slot>: … }}` → `BlocksProvider` `defaults`/`presets` → prop-conditional `overrides` (one variant/intent/state) → `unstyled` + `slotClasses` (strip & rebuild).
-
-**Svelte 5** — `$props()` not `export let`; `{#snippet}` / `{@render}` not `<slot>`; callback props
-(`onValueChange`) not `createEventDispatcher`; lowercase DOM events (`onclick`).
-
-<!-- urbicon:end -->
+Repo procedures live in `.claude/skills/` and load on demand: `blocks-testing` (test conventions), `component-metadata` (JSDoc contract for `index.ts`), `add-icon` (icon contract + registration), `release-bump` (version/release flow), `docs-recipes` (recipe + component doc pages).

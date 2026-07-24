@@ -1,6 +1,6 @@
 # Svelte 5 — Patterns & Anti-Patterns
 
-Mandatory best practices for the Urbicon UI codebase. This file is the detailed reference for the short section in [`AGENTS.md`](../AGENTS.md#svelte-5--verbindliche-patterns).
+Mandatory best practices for the Urbicon UI codebase. This file is the detailed reference for the short section in [`AGENTS.md`](../AGENTS.md#svelte-5--mandatory-patterns).
 
 > **Context:** The review found five recurring anti-patterns (`Math.random()` IDs, `setContext('string')`, `$state(new Map())`, index keys, `class:foo`) in an otherwise fully Svelte-5-migrated codebase. All were fixed — this file prevents regressions. Sources: official Svelte 5 documentation (`mcp__svelte__get-documentation`) + [REVIEW-2026-05.md](archive/2026-05/REVIEW-2026-05.md) phase 5 + appendix A.
 
