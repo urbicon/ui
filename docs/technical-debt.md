@@ -746,6 +746,20 @@ internal TODO instead. Sections are ordered roughly by urgency.
   baselines in the CI env itself — option (c), a one-off bootstrap job; a local
   Docker run is not trusted to match the GitHub-Actions font rendering
   byte-for-byte, which is the whole point of per-platform baselines.
+- **Update 2026-07-24 (W4/W6 full-suite run):** the tightened tolerance was
+  applied globally but only `visual-regression.spec` was re-baselined, so the
+  two older visual specs now fail on darwin as well: **13 shots** (7 in
+  `floating.spec.ts`, 6 in `guide.spec.ts`) are red, each at a measured diff
+  ratio of **exactly 0.01** — the previous threshold, which had been waving
+  them through. Their baselines date from the initial commit and have never
+  been generated under the current tolerance (or the current Playwright browser
+  build: the config sets no `channel`, so a plain run uses `headless_shell`,
+  whose ~1px font rendering is the documented caveat above). The rest of the
+  suite is green (116 passed), including all table specs. Deliberately not
+  re-baselined in passing: doing it from a headless_shell run would bake the
+  wrong renderer into the baselines and break them for everyone else. Whoever
+  picks this up should re-generate both specs from a full `channel: 'chromium'`
+  run and verify the diffs are renderer drift, not content.
 - **Found:** 2026-07-08, adding the primitive visual-regression suite.
 
 ### i18n source scanner: documented analysis limits (strict mode not built)
