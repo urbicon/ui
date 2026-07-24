@@ -4,6 +4,7 @@ import { a2uiSystemPrompt } from '@urbicon-ui/blocks';
 // would inline it at build time and fail the build when no .env is present —
 // so the root build (`bun --filter='./apps/*' run build`) stays key-free.
 import { env } from '$env/dynamic/private';
+import { executeSalonTool, SALON_TOOLS } from '$lib/salon-tools';
 import type { RequestHandler } from './$types';
 
 /** The flat wire history the client posts: text-only per turn. */
@@ -49,7 +50,15 @@ const TRANSPORT_SECTION = [
   '',
   'If a surface you sent failed validation, the next user turn is prefixed with a',
   '`[ui-error] ` line carrying the validation issues as JSON. Read it, correct the',
-  'offending envelopes, and re-emit a valid surface.'
+  'offending envelopes, and re-emit a valid surface.',
+  '',
+  '## Grounding — never invent business data',
+  '',
+  'You have a tool for real salon data (services, stylists, free slots). Before',
+  'you build a booking-related surface or confirm an appointment, CALL the tool',
+  'and build the UI strictly from its data — never invent services, stylists,',
+  'prices, dates or time slots. If the user asks for something the data does not',
+  'offer, say so in prose instead of inventing options.'
 ].join('\n');
 
 function buildSystemPrompt(): string {
@@ -85,18 +94,55 @@ export const POST: RequestHandler = async ({ request }) => {
         controller.enqueue(encoder.encode(`event: ${event}\ndata: ${JSON.stringify(data)}\n\n`));
 
       try {
-        const run = client.messages.stream({
-          model: 'claude-opus-4-8',
-          max_tokens: 8192,
-          system: buildSystemPrompt(),
-          messages
-        });
+        // Agent loop: stream a turn; when the model stops to call a tool,
+        // execute it, append the tool_result and stream the follow-up turn.
+        // Text deltas of every round flow out as `token` events; `tool_start` /
+        // `tool_result` bracket each execution so the client can render a
+        // ToolCallCard. Bounded — a runaway tool loop fails loud.
+        const MAX_TOOL_ROUNDS = 4;
+        let turns: Anthropic.MessageParam[] = [...messages];
 
-        // Forward the client's abort straight through to the model stream.
-        request.signal.addEventListener('abort', () => run.abort());
+        for (let round = 0; ; round++) {
+          const run = client.messages.stream({
+            model: 'claude-opus-4-8',
+            max_tokens: 8192,
+            system: buildSystemPrompt(),
+            messages: turns,
+            tools: SALON_TOOLS
+          });
 
-        run.on('text', (delta) => send('token', { text: delta }));
-        await run.finalMessage();
+          // Forward the client's abort straight through to the model stream.
+          request.signal.addEventListener('abort', () => run.abort());
+
+          run.on('text', (delta) => send('token', { text: delta }));
+          const final = await run.finalMessage();
+
+          if (final.stop_reason !== 'tool_use') break;
+          if (round >= MAX_TOOL_ROUNDS) {
+            send('error', { message: `Tool loop exceeded ${MAX_TOOL_ROUNDS} rounds` });
+            break;
+          }
+
+          const toolUses = final.content.filter(
+            (block): block is Anthropic.ToolUseBlock => block.type === 'tool_use'
+          );
+          const results: Anthropic.ToolResultBlockParam[] = [];
+          for (const toolUse of toolUses) {
+            send('tool_start', { id: toolUse.id, name: toolUse.name, input: toolUse.input });
+            const output = executeSalonTool(toolUse.name, toolUse.input);
+            send('tool_result', { id: toolUse.id, output });
+            results.push({
+              type: 'tool_result',
+              tool_use_id: toolUse.id,
+              content: JSON.stringify(output)
+            });
+          }
+          turns = [
+            ...turns,
+            { role: 'assistant', content: final.content },
+            { role: 'user', content: results }
+          ];
+        }
         send('done', {});
       } catch (err) {
         send('error', { message: err instanceof Error ? err.message : 'stream failed' });
