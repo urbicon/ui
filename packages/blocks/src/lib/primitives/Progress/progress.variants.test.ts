@@ -60,9 +60,10 @@ describe('progressVariants', () => {
     expect(fill).toContain('animate-progress-striped');
   });
 
+  // See Slider: `surface-subtle` collides with `surface-elevated` in both modes.
   it('uses semantic surface token for track background', () => {
     const track = progressVariants({}).track();
-    expect(track).toContain('bg-surface-subtle');
+    expect(track).toContain('bg-surface-interactive');
   });
 
   it('uses tabular-nums for value text', () => {

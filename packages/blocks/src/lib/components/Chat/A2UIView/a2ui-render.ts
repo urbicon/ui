@@ -15,10 +15,12 @@
  * shapes what renders.
  */
 
+import type { Component, Snippet } from 'svelte';
 import type { IconComponent } from '$lib/icons';
 import type { MarkdownUrlPolicy } from '../markdown/types';
 import type { A2uiActionEvent, A2uiValidationIssue } from './a2ui.types';
 import { getAtPointer } from './a2ui-data';
+import type { A2uiComponentSpec } from './a2ui-registry';
 import type { A2uiComponentInstance, A2uiSurfaceState } from './a2ui-validate';
 
 /** Default traversal bounds — mirror `collectGraphIssues` so the tree and the issue list agree. */
@@ -41,6 +43,12 @@ export interface A2uiRenderNode {
   children: A2uiRenderNode[];
   /** flex-grow, present only when this node is a direct Row/Column child with a finite `weight`. */
   weight?: number;
+  /**
+   * The parent prop this child came from (e.g. Card `header`/`footer`/`child`).
+   * Lets a dispatcher with several named childId slots pick the right child by
+   * name instead of position; single-slot / list components ignore it.
+   */
+  slot?: string;
 }
 
 /** Static text labels threaded to the node dispatcher (i18n comes from A2UIView props). */
@@ -66,6 +74,12 @@ export interface A2uiRenderContext {
   inline: boolean;
   surfaceId: string;
   onAction: ((event: A2uiActionEvent) => void) | undefined;
+  /**
+   * The data model to attach to a dispatched action, or `undefined` when the
+   * surface did not ask for it (`createSurface.sendDataModel`). Read as a
+   * function so the action carries the state at CLICK time, not at render time.
+   */
+  actionDataModel: (() => unknown) | undefined;
   /** Resolve a Dynamic value (literal | { path } | function-call) against the model in `scope`. */
   resolve: (
     value: unknown,
@@ -80,6 +94,24 @@ export interface A2uiRenderContext {
   /** Fallback glyph for an unmapped icon name. */
   fallbackIcon: IconComponent;
   labels: A2uiRenderLabels;
+  /**
+   * The catalog's recursive node dispatcher (Basic → `A2UINode`; a custom
+   * catalog → its own dispatcher). A2UIView's `renderNode` snippet renders
+   * THIS rather than importing one dispatcher directly, so each surface renders
+   * through the component that matches its catalog.
+   */
+  nodeComponent: Component<A2uiNodeProps>;
+}
+
+/**
+ * Props of a catalog node dispatcher. Every dispatcher (Basic/Urbicon/…) takes
+ * the same triple: the node, its render context, and the self-referencing
+ * `renderChild` snippet A2UIView threads down for bounded recursion.
+ */
+export interface A2uiNodeProps {
+  node: A2uiRenderNode;
+  context: A2uiRenderContext;
+  renderChild: Snippet<[A2uiRenderNode, A2uiRenderContext]>;
 }
 
 /** Clamp a finite number into `[min, max]`; NaN/∞ collapse to `min`. */
@@ -123,40 +155,72 @@ export function toInputString(value: unknown): string {
 interface WalkState {
   components: Map<string, A2uiComponentInstance>;
   dataModel: unknown;
+  /** The surface catalog's registry — child props are discovered by kind, not by name. */
+  registry: Readonly<Record<string, A2uiComponentSpec>>;
+  /** Component names whose direct children may carry a `weight` (flex-grow). */
+  flexContainers: ReadonlySet<string>;
   maxDepth: number;
   maxNodes: number;
   count: number;
 }
 
+/**
+ * Resolve a component's child references by walking its spec's child-bearing
+ * props (`childId` = one id; `childList` = an id array or a `{ componentId,
+ * path }` template; `labeledChildren` = a `[{ label, child }]` list). Kind-
+ * driven rather than reading fixed `child`/`children` keys, so a catalog may
+ * name its child slots freely (Card header/footer, Section child, Accordion
+ * items, …). Behaviour is unchanged for the Basic catalog, whose only child
+ * props ARE `child`/`children`. One ref is pushed per `labeledChildren` item
+ * (even a dangling one) so the dispatcher can zip labels with resolved children
+ * by index.
+ */
 function childRefs(
   instance: A2uiComponentInstance,
   scopePrefix: string | undefined,
   state: WalkState
-): Array<{ id: string; scope: string | undefined }> {
-  const out: Array<{ id: string; scope: string | undefined }> = [];
+): Array<{ id: string; scope: string | undefined; slot: string }> {
+  const out: Array<{ id: string; scope: string | undefined; slot: string }> = [];
+  const spec = state.registry[instance.component];
+  if (!spec) return out;
 
-  const single = instance.props.get('child');
-  if (typeof single === 'string') out.push({ id: single, scope: scopePrefix });
-
-  const children = instance.props.get('children');
-  if (Array.isArray(children)) {
-    for (const childId of children) {
-      if (typeof childId === 'string') out.push({ id: childId, scope: scopePrefix });
-    }
-  } else if (children !== null && typeof children === 'object') {
-    const template = children as { componentId?: unknown; path?: unknown };
-    if (typeof template.componentId === 'string' && typeof template.path === 'string') {
-      const absPath = template.path.startsWith('/')
-        ? template.path
-        : `${scopePrefix ?? ''}/${template.path}`;
-      const list = getAtPointer(state.dataModel, absPath);
-      if (Array.isArray(list)) {
-        for (let i = 0; i < list.length; i++) {
-          out.push({ id: template.componentId, scope: `${absPath}/${i}` });
-          if (out.length > state.maxNodes) break; // bound the expansion itself
+  for (const [key, propSpec] of Object.entries(spec.props)) {
+    if (propSpec.kind === 'childId') {
+      const single = instance.props.get(key);
+      if (typeof single === 'string') out.push({ id: single, scope: scopePrefix, slot: key });
+    } else if (propSpec.kind === 'labeledChildren') {
+      const items = instance.props.get(key);
+      if (Array.isArray(items)) {
+        for (const item of items) {
+          if (item !== null && typeof item === 'object') {
+            const child = (item as { child?: unknown }).child;
+            if (typeof child === 'string') out.push({ id: child, scope: scopePrefix, slot: key });
+          }
+          if (out.length > state.maxNodes) break;
         }
       }
-      // non-array / undefined → render nothing (issue reported by collectGraphIssues)
+    } else if (propSpec.kind === 'childList') {
+      const children = instance.props.get(key);
+      if (Array.isArray(children)) {
+        for (const childId of children) {
+          if (typeof childId === 'string') out.push({ id: childId, scope: scopePrefix, slot: key });
+        }
+      } else if (children !== null && typeof children === 'object') {
+        const template = children as { componentId?: unknown; path?: unknown };
+        if (typeof template.componentId === 'string' && typeof template.path === 'string') {
+          const absPath = template.path.startsWith('/')
+            ? template.path
+            : `${scopePrefix ?? ''}/${template.path}`;
+          const list = getAtPointer(state.dataModel, absPath);
+          if (Array.isArray(list)) {
+            for (let i = 0; i < list.length; i++) {
+              out.push({ id: template.componentId, scope: `${absPath}/${i}`, slot: key });
+              if (out.length > state.maxNodes) break; // bound the expansion itself
+            }
+          }
+          // non-array / undefined → render nothing (issue reported by collectGraphIssues)
+        }
+      }
     }
   }
   return out;
@@ -188,7 +252,7 @@ function buildNode(
     }
   }
 
-  const isFlex = instance.component === 'Row' || instance.component === 'Column';
+  const isFlex = state.flexContainers.has(instance.component);
   const nextAncestors = new Set(ancestors);
   nextAncestors.add(id);
 
@@ -199,7 +263,10 @@ function buildNode(
     if (nextAncestors.has(ref.id)) continue; // cycle: truncate (issue reported elsewhere)
     const childKey = `${ref.id}@${ref.scope ?? ''}#${i}`;
     const child = buildNode(ref.id, ref.scope, childKey, isFlex, nextAncestors, depth + 1, state);
-    if (child) node.children.push(child);
+    if (child) {
+      child.slot = ref.slot;
+      node.children.push(child);
+    }
   }
 
   return node;
@@ -218,6 +285,8 @@ export function buildRenderTree(
   const state: WalkState = {
     components: surface.components,
     dataModel: surface.dataModel,
+    registry: surface.catalog.registry,
+    flexContainers: surface.catalog.flexContainers,
     maxDepth: options?.maxDepth ?? A2UI_MAX_DEPTH,
     maxNodes: options?.maxNodes ?? A2UI_MAX_NODES,
     count: 0

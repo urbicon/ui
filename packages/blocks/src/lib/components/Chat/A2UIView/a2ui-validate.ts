@@ -22,16 +22,10 @@
  */
 
 import { A2UI_ISSUE_CODES, type A2uiIssueSeverity, type A2uiValidationIssue } from './a2ui.types';
+import { type A2uiCatalogSpec, basicA2uiCatalogSpec, resolveCatalog } from './a2ui-catalog';
 import { cloneData, deleteAtPointer, getAtPointer, setAtPointer } from './a2ui-data';
-import {
-  A2UI_ICON_NAMES,
-  A2UI_IGNORED_PROPS,
-  A2UI_REGISTRY,
-  A2UI_SUPPORTED_VERSIONS,
-  A2UI_SVG_PATH_RE,
-  type A2uiPropSpec,
-  UNSUPPORTED_A2UI_COMPONENTS
-} from './a2ui-registry';
+import { A2UI_SUPPORTED_VERSIONS, A2UI_SVG_PATH_RE, type A2uiPropSpec } from './a2ui-registry';
+import { type A2uiDataSchema, validateSchemaWrite } from './a2ui-schema';
 
 const PROTO_KEYS: ReadonlySet<string> = new Set(['__proto__', 'constructor', 'prototype']);
 
@@ -62,6 +56,19 @@ export interface A2uiSurfaceState {
   /** Root of the surface data model (mutated in place by two-way edits). */
   dataModel: unknown;
   issues: A2uiValidationIssue[];
+  /**
+   * The catalog resolved from `createSurface.catalogId` (or the default when the
+   * id names no configured catalog). Every downstream check — registry lookup,
+   * icon set, flex containers, per-component checks — reads it, so surfaces on
+   * different catalogs validate and render independently.
+   */
+  catalog: A2uiCatalogSpec;
+  /**
+   * `createSurface.sendDataModel` — when true, every action dispatched from this
+   * surface carries the full data model (see `A2uiActionEvent.dataModel`), so
+   * the agent sees the user's input even for fields it left out of `context`.
+   */
+  sendDataModel: boolean;
 }
 
 export interface A2uiProcessor {
@@ -69,6 +76,24 @@ export interface A2uiProcessor {
   globalIssues: A2uiValidationIssue[];
   /** Validate + apply one envelope. `index` positions it as `/messages/<index>` in issue paths. */
   apply(envelope: unknown, index: number): void;
+}
+
+/** Options for {@link createA2uiProcessor}. Omitting them yields the Basic-only default. */
+export interface A2uiProcessorOptions {
+  /**
+   * The catalogs this processor understands, in priority order. `catalogs[0]`
+   * is the default/fallback. Defaults to `[basicA2uiCatalogSpec]` — a
+   * single-catalog processor accepts any `catalogId` string silently
+   * (back-compat); an unknown id only warns once there are ≥ 2 catalogs.
+   */
+  catalogs?: readonly A2uiCatalogSpec[];
+  /**
+   * Optional data schema. When set, every `updateDataModel` write is validated
+   * against it — a type mismatch on a declared pointer is a `SCHEMA_TYPE_MISMATCH`
+   * error, a write to an undeclared top-level branch a `SCHEMA_UNDECLARED_PATH`
+   * warning. Omitting it disables schema validation entirely (back-compat).
+   */
+  dataSchema?: A2uiDataSchema;
 }
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
@@ -172,7 +197,8 @@ function validateProp(
   spec: A2uiPropSpec,
   value: unknown,
   path: string,
-  surfaceId: string
+  surfaceId: string,
+  iconNames: readonly string[]
 ): PropResult {
   const issues: A2uiValidationIssue[] = [];
   const mismatch = (detail: string): PropResult => {
@@ -228,14 +254,23 @@ function validateProp(
     case 'childList':
       return validateChildList(componentName, key, value, path, surfaceId);
 
+    case 'labeledChildren':
+      return validateLabeledChildren(componentName, key, value, path, surfaceId);
+
     case 'action':
       return validateAction(componentName, key, value, path, surfaceId);
 
     case 'options':
-      return validateOptions(componentName, key, value, path, surfaceId);
+      // A dynamic options prop may be a { path } binding to a list the agent
+      // fetched — the shape is checked when it resolves (see collectGraphIssues),
+      // because at envelope time the data model may not carry it yet.
+      if (spec.dynamic && isDynamicRef(value)) {
+        return { store: true, issues: dynamicRefIssues(value, path, surfaceId) };
+      }
+      return validateOptions(componentName, key, value, path, surfaceId, spec.dynamic);
 
     case 'icon':
-      return validateIcon(value, path, surfaceId);
+      return validateIcon(value, path, surfaceId, iconNames);
 
     case 'accessibility':
       if (isPlainObject(value)) return { store: true, issues };
@@ -285,6 +320,40 @@ function validateChildList(
       )
     ]
   };
+}
+
+/**
+ * A `labeledChildren` value is an array of `{ label, child }` items: `label` is
+ * a (dynamic) string, `child` a component id referenced by the labelled slot
+ * (Accordion items, Tabs later). The whole prop is rejected if ANY item is
+ * malformed, so the render/graph layers may assume every stored item is a valid
+ * `{ label, child: string }` — this keeps the item→child index alignment the
+ * dispatcher relies on when zipping labels with resolved child nodes.
+ */
+function validateLabeledChildren(
+  componentName: string,
+  key: string,
+  value: unknown,
+  path: string,
+  surfaceId: string
+): PropResult {
+  const bad = (detail: string): PropResult => ({
+    store: false,
+    issues: [issue('error', A2UI_ISSUE_CODES.TYPE_MISMATCH, detail, { surfaceId, path })]
+  });
+  if (!Array.isArray(value))
+    return bad(`"${key}" on ${componentName} must be an array of { label, child } items`);
+  const issues: A2uiValidationIssue[] = [];
+  for (let i = 0; i < value.length; i++) {
+    const item = value[i];
+    if (!isPlainObject(item) || typeof item.child !== 'string' || !isDynamicString(item.label)) {
+      return bad(`item ${i} on ${componentName} must be { label, child: string }`);
+    }
+    for (const labelIssue of dynamicRefIssues(item.label, `${path}/${i}/label`, surfaceId)) {
+      issues.push(labelIssue);
+    }
+  }
+  return { store: true, issues };
 }
 
 function validateAction(
@@ -391,14 +460,19 @@ function validateOptions(
   key: string,
   value: unknown,
   path: string,
-  surfaceId: string
+  surfaceId: string,
+  dynamic?: boolean
 ): PropResult {
   const bad = (detail: string): PropResult => ({
     store: false,
     issues: [issue('error', A2UI_ISSUE_CODES.TYPE_MISMATCH, detail, { surfaceId, path })]
   });
   if (!Array.isArray(value))
-    return bad(`"${key}" on ${componentName} must be an array of { label, value } options`);
+    return bad(
+      `"${key}" on ${componentName} must be an array of { label, value } options${
+        dynamic ? ' or a { path } binding to one' : ''
+      }`
+    );
   const issues: A2uiValidationIssue[] = [];
   const seenValues = new Set<string>();
   for (let i = 0; i < value.length; i++) {
@@ -431,9 +505,14 @@ function validateOptions(
   return { store: true, issues };
 }
 
-function validateIcon(value: unknown, path: string, surfaceId: string): PropResult {
+function validateIcon(
+  value: unknown,
+  path: string,
+  surfaceId: string,
+  iconNames: readonly string[]
+): PropResult {
   if (typeof value === 'string') {
-    if (A2UI_ICON_NAMES.includes(value)) return { store: true, issues: [] };
+    if (iconNames.includes(value)) return { store: true, issues: [] };
     return {
       store: true,
       issues: [
@@ -554,9 +633,10 @@ function validateComponent(
     return;
   }
 
-  const spec = A2UI_REGISTRY[componentName];
+  const catalog = surface.catalog;
+  const spec = catalog.registry[componentName];
   if (!spec) {
-    if (UNSUPPORTED_A2UI_COMPONENTS.has(componentName)) {
+    if (catalog.unsupportedComponents.has(componentName)) {
       surface.issues.push(
         issue(
           'error',
@@ -599,7 +679,7 @@ function validateComponent(
       );
       continue;
     }
-    if (A2UI_IGNORED_PROPS.has(key)) {
+    if (catalog.ignoredProps.has(key)) {
       surface.issues.push(
         issue(
           'warning',
@@ -631,7 +711,8 @@ function validateComponent(
       propSpec,
       comp[key],
       `${base}/${key}`,
-      surfaceId
+      surfaceId,
+      catalog.iconNames
     );
     for (const propIssue of result.issues) surface.issues.push(propIssue);
     if (result.store) props.set(key, comp[key]);
@@ -653,39 +734,13 @@ function validateComponent(
     }
   }
 
-  if (componentName === 'ChoicePicker') {
-    if (props.get('displayStyle') === 'chips' || props.get('filterable') === true) {
-      surface.issues.push(
-        issue(
-          'warning',
-          A2UI_ISSUE_CODES.CHOICEPICKER_FALLBACK,
-          `ChoicePicker "${id}" chips/filterable are rendered with a fallback`,
-          {
-            surfaceId,
-            path: base
-          }
-        )
-      );
-    }
-  }
-
-  if (componentName === 'DateTimeInput') {
-    // Both flags default to false in the spec — a DateTimeInput without either
-    // would have no input UI at all. We read tolerantly (render a date input)
-    // and report loudly so the agent fixes the payload.
-    if (props.get('enableDate') !== true && props.get('enableTime') !== true) {
-      surface.issues.push(
-        issue(
-          'warning',
-          A2UI_ISSUE_CODES.DATETIME_NO_MODE,
-          `DateTimeInput "${id}" sets neither enableDate nor enableTime; rendering a date input`,
-          {
-            surfaceId,
-            path: base
-          }
-        )
-      );
-    }
+  // Per-component post-validation checks are catalog DATA (the Basic catalog
+  // owns ChoicePicker chips-fallback and DateTimeInput missing-mode); the engine
+  // stays free of catalog-specific branches. Message strings and issue paths are
+  // byte-identical to the pre-refactor hardcoded blocks.
+  const check = catalog.componentChecks?.[componentName];
+  if (check) {
+    for (const checkIssue of check({ id, props, surfaceId, base })) surface.issues.push(checkIssue);
   }
 
   surface.components.set(id, { id, component: componentName, props, sourceIndex: envelopeIndex });
@@ -725,9 +780,13 @@ const UPDATE_COMPONENTS_KEYS: ReadonlySet<string> = new Set(['surfaceId', 'compo
 const UPDATE_DATA_MODEL_KEYS: ReadonlySet<string> = new Set(['surfaceId', 'path', 'value']);
 const DELETE_SURFACE_KEYS: ReadonlySet<string> = new Set(['surfaceId']);
 
-function createProcessor(): A2uiProcessor {
+function createProcessor(
+  catalogs: readonly A2uiCatalogSpec[],
+  dataSchema: A2uiDataSchema | undefined
+): A2uiProcessor {
   const surfaces = new Map<string, A2uiSurfaceState>();
   const globalIssues: A2uiValidationIssue[] = [];
+  const defaultCatalog = catalogs[0];
 
   function handleCreateSurface(env: Record<string, unknown>, base: string): void {
     const cs = env.createSurface;
@@ -778,7 +837,9 @@ function createProcessor(): A2uiProcessor {
       surfaceId,
       components: new Map(),
       dataModel: undefined,
-      issues: []
+      issues: [],
+      catalog: defaultCatalog,
+      sendDataModel: false
     };
     surfaces.set(surfaceId, surface);
 
@@ -789,6 +850,22 @@ function createProcessor(): A2uiProcessor {
           path: `${base}/createSurface/catalogId`
         })
       );
+    } else {
+      const resolved = resolveCatalog(catalogs, cs.catalogId);
+      if (resolved) {
+        surface.catalog = resolved;
+      } else if (catalogs.length >= 2) {
+        // Only a multi-catalog processor can meaningfully reject an id; a single
+        // catalog accepts any string (back-compat) and uses the default silently.
+        surface.issues.push(
+          issue(
+            'warning',
+            A2UI_ISSUE_CODES.UNKNOWN_CATALOG,
+            `Unknown catalogId "${cs.catalogId}"; falling back to "${defaultCatalog.catalogId}"`,
+            { surfaceId, path: `${base}/createSurface/catalogId` }
+          )
+        );
+      }
     }
     if ('theme' in cs) {
       surface.issues.push(
@@ -799,12 +876,16 @@ function createProcessor(): A2uiProcessor {
       );
     }
     if ('sendDataModel' in cs) {
-      surface.issues.push(
-        issue('warning', A2UI_ISSUE_CODES.SURFACE_PROP_IGNORED, 'sendDataModel is ignored', {
-          surfaceId,
-          path: `${base}/createSurface/sendDataModel`
-        })
-      );
+      if (typeof cs.sendDataModel === 'boolean') {
+        surface.sendDataModel = cs.sendDataModel;
+      } else {
+        surface.issues.push(
+          issue('warning', A2UI_ISSUE_CODES.TYPE_MISMATCH, 'sendDataModel must be a boolean', {
+            surfaceId,
+            path: `${base}/createSurface/sendDataModel`
+          })
+        );
+      }
     }
     flagExtraKeys(
       cs,
@@ -946,6 +1027,20 @@ function createProcessor(): A2uiProcessor {
       return;
     }
     const hasValue = 'value' in udm;
+
+    // Schema validation (opt-in): a type mismatch on a declared pointer is an
+    // error, a write to an undeclared top-level branch a warning — both relayed
+    // to the agent. Runs on the raw written value before it enters the model.
+    if (dataSchema) {
+      const schemaIssues = validateSchemaWrite(
+        dataSchema,
+        pathValue,
+        hasValue ? udm.value : undefined,
+        surfaceId
+      );
+      for (const schemaIssue of schemaIssues) surface.issues.push(schemaIssue);
+    }
+
     const whole = pathValue === undefined || pathValue === '' || pathValue === '/';
 
     if (whole) {
@@ -1068,8 +1163,9 @@ function createProcessor(): A2uiProcessor {
   return { surfaces, globalIssues, apply };
 }
 
-export function createA2uiProcessor(): A2uiProcessor {
-  return createProcessor();
+export function createA2uiProcessor(options?: A2uiProcessorOptions): A2uiProcessor {
+  const catalogs = options?.catalogs?.length ? options.catalogs : [basicA2uiCatalogSpec];
+  return createProcessor(catalogs, options?.dataSchema);
 }
 
 /**
@@ -1146,43 +1242,66 @@ export function collectGraphIssues(
   let overflowReported = false;
   let aborted = false;
 
+  // Child references are discovered by prop KIND (childId / childList) from the
+  // surface catalog's registry, not by fixed `child`/`children` names — so a
+  // catalog may name its child slots freely. Behaviour is unchanged for Basic,
+  // whose only child props ARE `child`/`children`.
+  const registry = surface.catalog.registry;
   const childTargets = (
     comp: A2uiComponentInstance,
     scopePrefix: string | undefined
   ): Array<{ id: string; scope: string | undefined }> => {
     const out: Array<{ id: string; scope: string | undefined }> = [];
-    const single = comp.props.get('child');
-    if (typeof single === 'string') out.push({ id: single, scope: scopePrefix });
+    const spec = registry[comp.component];
+    if (!spec) return out;
 
-    const children = comp.props.get('children');
-    if (Array.isArray(children)) {
-      for (const childId of children)
-        if (typeof childId === 'string') out.push({ id: childId, scope: scopePrefix });
-    } else if (children && typeof children === 'object') {
-      const template = children as { componentId?: unknown; path?: unknown };
-      if (typeof template.componentId === 'string' && typeof template.path === 'string') {
-        const absPath = template.path.startsWith('/')
-          ? template.path
-          : `${scopePrefix ?? ''}/${template.path}`;
-        const list = getAtPointer(surface.dataModel, absPath);
-        if (Array.isArray(list)) {
-          for (let i = 0; i < list.length; i++) {
-            out.push({ id: template.componentId, scope: `${absPath}/${i}` });
+    for (const [key, propSpec] of Object.entries(spec.props)) {
+      if (propSpec.kind === 'childId') {
+        const single = comp.props.get(key);
+        if (typeof single === 'string') out.push({ id: single, scope: scopePrefix });
+      } else if (propSpec.kind === 'labeledChildren') {
+        const items = comp.props.get(key);
+        if (Array.isArray(items)) {
+          for (const item of items) {
+            if (item && typeof item === 'object') {
+              const child = (item as { child?: unknown }).child;
+              if (typeof child === 'string') out.push({ id: child, scope: scopePrefix });
+            }
             if (out.length > maxNodes) break; // bound expansion
           }
-        } else if (list !== undefined) {
-          issues.push(
-            issue(
-              'warning',
-              A2UI_ISSUE_CODES.TEMPLATE_PATH_NOT_ARRAY,
-              `Template path "${absPath}" did not resolve to an array`,
-              {
-                surfaceId
-              }
-            )
-          );
         }
-        // list === undefined → data not present yet; render nothing (graceful).
+      } else if (propSpec.kind === 'childList') {
+        const children = comp.props.get(key);
+        if (Array.isArray(children)) {
+          for (const childId of children)
+            if (typeof childId === 'string') out.push({ id: childId, scope: scopePrefix });
+        } else if (children && typeof children === 'object') {
+          const template = children as { componentId?: unknown; path?: unknown };
+          if (typeof template.componentId === 'string' && typeof template.path === 'string') {
+            const absPath = template.path.startsWith('/')
+              ? template.path
+              : `${scopePrefix ?? ''}/${template.path}`;
+            const list = getAtPointer(surface.dataModel, absPath);
+            if (Array.isArray(list)) {
+              for (let i = 0; i < list.length; i++) {
+                out.push({ id: template.componentId, scope: `${absPath}/${i}` });
+                if (out.length > maxNodes) break; // bound expansion
+              }
+            } else if (list !== undefined) {
+              issues.push(
+                issue(
+                  'warning',
+                  A2UI_ISSUE_CODES.TEMPLATE_PATH_NOT_ARRAY,
+                  `Template path "${absPath}" did not resolve to an array`,
+                  {
+                    surfaceId
+                  }
+                )
+              );
+            }
+            // list === undefined → data not present yet; render nothing (graceful).
+          }
+        }
       }
     }
     return out;
@@ -1240,7 +1359,32 @@ export function collectGraphIssues(
       return;
     }
 
-    if (comp.props.has('weight') && parentComponent !== 'Row' && parentComponent !== 'Column') {
+    // A bound `options` list is only checkable once it resolves — the envelope
+    // validator saw a { path }, not a list. Silent while the path is still
+    // undefined (the agent fills it in with a later updateDataModel); a warning
+    // once it holds something that is not an option list, because the control
+    // then renders empty and the user is stuck with no way to choose.
+    for (const [key, propSpec] of Object.entries(registry[comp.component]?.props ?? {})) {
+      if (propSpec.kind !== 'options' || !propSpec.dynamic) continue;
+      const bound = comp.props.get(key);
+      if (!isPlainObject(bound) || typeof bound.path !== 'string') continue;
+      // Same absolute/relative rule as a childList template path.
+      const pointer = bound.path.startsWith('/')
+        ? bound.path
+        : `${scopePrefix ?? ''}/${bound.path}`;
+      const resolvedList = getAtPointer(surface.dataModel, pointer);
+      if (resolvedList === undefined || Array.isArray(resolvedList)) continue;
+      issues.push(
+        issue(
+          'warning',
+          A2UI_ISSUE_CODES.OPTIONS_NOT_A_LIST,
+          `"${key}" on "${id}" is bound to "${pointer}", which is not a list of options`,
+          { surfaceId }
+        )
+      );
+    }
+
+    if (comp.props.has('weight') && !surface.catalog.flexContainers.has(parentComponent ?? '')) {
       issues.push(
         issue(
           'warning',

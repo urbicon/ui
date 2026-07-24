@@ -286,3 +286,48 @@ test.describe('Recipe: unsaved-changes-guard', () => {
     await expect(p.getByText('No changes')).toBeVisible(); // saved: no longer dirty
   });
 });
+
+test.describe('recipe: a2ui-agent-ui', () => {
+  // The whole point of the recipe: an agent's later envelopes patch the surface
+  // it already showed, instead of replacing it. The preview appends the patch
+  // locally, which is the same array-append the router performs in a real chat.
+  test('a surface action patches the rendered surface in place', async ({ page }) => {
+    await gotoRecipe(page, 'a2ui-agent-ui');
+    const p = preview(page);
+
+    // The agent-declared form renders as real components, with no chooser yet.
+    await expect(p.getByLabel('Date')).toBeVisible();
+    await expect(p.getByRole('radiogroup', { name: 'Free times' })).toBeHidden();
+
+    // A value the user set BEFORE the patch — it must survive it. Compare
+    // against what the field actually shows (the DatePicker renders a localized
+    // string), so the assertion holds under any locale.
+    await p.getByLabel('Date').fill('2026-08-01');
+    await p.getByLabel('Date').press('Tab'); // commit: the field formats on blur
+    const beforePatch = await p.getByLabel('Date').inputValue();
+    expect(beforePatch).not.toBe('');
+
+    await p.getByRole('button', { name: 'Show available times' }).click();
+
+    // The patch revealed a chooser bound to the fetched slots…
+    const times = p.getByRole('radiogroup', { name: 'Free times' });
+    await expect(times).toBeVisible();
+    await expect(p.getByRole('radio', { name: '13:45' })).toBeVisible();
+    // …the surface was patched, not rebuilt: the entered date is still there.
+    await expect(p.getByLabel('Date')).toHaveValue(beforePatch);
+    // …and the action reached the consumer with its declared name.
+    await expect(p.getByText('showTimes')).toBeVisible();
+  });
+
+  test('picking a time selects it without a round-trip', async ({ page }) => {
+    await gotoRecipe(page, 'a2ui-agent-ui');
+    const p = preview(page);
+    await p.getByRole('button', { name: 'Show available times' }).click();
+
+    const slot = p.getByRole('radio', { name: '10:30' });
+    await toggleViaLabel(page, slot);
+
+    // Bound choice: the selection is visible immediately, no action dispatched.
+    await expect(slot).toBeChecked();
+  });
+});

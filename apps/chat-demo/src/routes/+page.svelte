@@ -1,19 +1,32 @@
 <script lang="ts">
   import {
     A2UIView,
+    A2uiStreamSplitter,
+    A2uiSurfaceRouter,
     Alert,
     Badge,
     Chat,
     ChatMessage,
     ChatMessageList,
     PromptInput,
+    revokeMessage,
+    routeMessageParts,
+    urbiconA2uiCatalog,
     type A2uiActionEvent,
     type A2uiValidationIssue,
     type ChatMessageData,
-    type ChatMessagePart
+    type ChatMessagePart,
+    type PatchedSurface
   } from '@urbicon-ui/blocks';
   import { SseRequestError, streamSse } from '@urbicon-ui/sveltekit-utils/sse';
-  import { A2uiStreamSplitter } from '$lib/a2ui-stream';
+  import { SvelteSet } from 'svelte/reactivity';
+  import { page } from '$app/state';
+  import { BOOKING_SCHEMA } from '$lib/booking-schema';
+
+  // Catalog A/B toggle: the Urbicon-native catalog (full vocabulary + data
+  // schema) by default; `?catalog=basic` renders the v0.9.1 Basic subset. Both
+  // the client (A2UIView config) and the server (system prompt) read it.
+  const useBasic = $derived(page.url.searchParams.get('catalog') === 'basic');
 
   interface WireMessage {
     role: 'user' | 'assistant';
@@ -58,6 +71,65 @@
 
   const issueSig = (i: A2uiValidationIssue) =>
     `${i.code}|${i.surfaceId ?? ''}|${i.path ?? ''}|${i.message}`;
+
+  // ── Cross-message surface routing ─────────────────────────────────────────
+  // A surface lives in the payload of the message that created it. When a later
+  // turn patches it (updateDataModel/updateComponents for that surfaceId), the
+  // router hands those envelopes to THAT payload, and the card updates where it
+  // stands instead of failing as an unknown surface. The transcript-side wiring
+  // lives in `$lib/surface-routing` (pure, unit-tested).
+  const router = new A2uiSurfaceRouter();
+
+  // Surfaces a message patched elsewhere → drives the jump chip and the marker
+  // on the patched message. This is also the promotion ledger: everything in
+  // here has proven it outlives its own turn. Keyed by the PATCHING message id.
+  let patchesByMessage = $state<Record<string, PatchedSurface[]>>({});
+  // Messages currently receiving patches. They render with `streaming` on, so a
+  // half-arrived patch shows placeholders instead of dangling-reference chips —
+  // the same grace the message got while it was first streaming.
+  const patchTargets = new SvelteSet<string>();
+  const patchedMessageIds = $derived(
+    new Set(
+      Object.values(patchesByMessage).flatMap((entries) => entries.map((e) => e.targetMessageId))
+    )
+  );
+
+  /**
+   * Route a message's parts before storing them: patches are delivered into
+   * earlier payloads here, so the caller must write the returned parts on top of
+   * the updated `messages`.
+   */
+  function routeParts(messageId: string, parts: ChatMessagePart[]): ChatMessagePart[] {
+    const result = routeMessageParts(router, messages, messageId, parts);
+    messages = result.messages;
+    for (const target of result.targets) patchTargets.add(target);
+    // Routing issues go back to the agent regardless of severity: a recreated
+    // surfaceId is a protocol slip it should correct, not a rendering blemish.
+    queueIssues(result.issues);
+    if (result.promoted.length > 0) {
+      const merged = [...(patchesByMessage[messageId] ?? [])];
+      for (const entry of result.promoted) {
+        if (!merged.some((e) => e.surfaceId === entry.surfaceId)) merged.push(entry);
+      }
+      patchesByMessage = { ...patchesByMessage, [messageId]: merged };
+    }
+    return result.parts;
+  }
+
+  /** Forget every source of a message that is leaving the transcript. */
+  function forgetMessage(message: ChatMessageData) {
+    messages = revokeMessage(router, messages, message.id);
+    if (patchesByMessage[message.id]) {
+      const { [message.id]: _dropped, ...rest } = patchesByMessage;
+      patchesByMessage = rest;
+    }
+  }
+
+  function scrollToMessage(messageId: string) {
+    document
+      .getElementById(`a2ui-anchor-${messageId}`)
+      ?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  }
 
   // The assistant turn is assembled from SEGMENTS in stream order: one
   // A2uiStreamSplitter per model round (text + a2ui fences), with a tool-call
@@ -110,7 +182,14 @@
         .map((segment) => ('splitter' in segment ? segment.splitter.raw : ''))
         .filter((raw) => raw !== '')
         .join('\n\n');
-    const patchLive = () => patch(assistantId, { parts: assemble(), metadata: { raw: rawText() } });
+    // Route BEFORE storing: `routeParts` delivers foreign envelopes into earlier
+    // payloads (mutating `messages`), and `patch` then writes this message's own
+    // parts on top of that already-updated list.
+    const patchLive = () =>
+      patch(assistantId, {
+        parts: routeParts(assistantId, assemble()),
+        metadata: { raw: rawText() }
+      });
 
     messages = [
       ...messages,
@@ -127,7 +206,8 @@
     let failed = false;
 
     try {
-      for await (const frame of streamSse('/api/chat', {
+      const endpoint = useBasic ? '/api/chat?catalog=basic' : '/api/chat';
+      for await (const frame of streamSse(endpoint, {
         body: { messages: history },
         signal: controller.signal
       })) {
@@ -175,7 +255,7 @@
 
       splitter.end();
       patch(assistantId, {
-        parts: assemble(),
+        parts: routeParts(assistantId, assemble()),
         metadata: { raw: rawText() },
         status: failed ? 'error' : 'complete'
       });
@@ -197,6 +277,9 @@
     } finally {
       busy = false;
       controller = undefined;
+      // The patch has fully arrived: hand the target back to strict validation,
+      // so a reference that is STILL dangling is now a real fault worth showing.
+      patchTargets.clear();
     }
   }
 
@@ -222,6 +305,10 @@
       .filter((p): p is Extract<ChatMessagePart, { type: 'text' }> => p.type === 'text')
       .map((p) => p.text)
       .join('');
+    // Retract what the dropped turns had patched into earlier messages before
+    // they leave — an orphaned patch would keep editing a surface whose author
+    // is gone.
+    for (const dropped of messages.slice(idx - 1)) forgetMessage(dropped);
     messages = messages.slice(0, idx - 1);
     runTurn(wire, display === wire ? undefined : display);
   }
@@ -233,19 +320,24 @@
     runTurn(`[ui-action] ${JSON.stringify(event)}`, `▸ ${event.name}`);
   }
 
-  // Collect error-severity issues (deduped) to report on the next send.
-  function handleValidationError(issues: A2uiValidationIssue[]) {
-    const errs = issues.filter((i) => i.severity === 'error');
-    if (errs.length === 0) return;
+  /** Queue issues (deduped) to report to the agent on the next send. */
+  function queueIssues(issues: A2uiValidationIssue[]) {
+    if (issues.length === 0) return;
     const seen = new Set(pendingIssues.map(issueSig));
     const next = [...pendingIssues];
-    for (const e of errs) {
-      if (!seen.has(issueSig(e))) {
-        seen.add(issueSig(e));
-        next.push(e);
+    for (const issue of issues) {
+      if (!seen.has(issueSig(issue))) {
+        seen.add(issueSig(issue));
+        next.push(issue);
       }
     }
     pendingIssues = next;
+  }
+
+  // Rendering issues: only errors are worth a round-trip — warnings there are
+  // degradations the surface survived.
+  function handleValidationError(issues: A2uiValidationIssue[]) {
+    queueIssues(issues.filter((i) => i.severity === 'error'));
   }
 
   $effect(() => () => controller?.abort());
@@ -263,9 +355,40 @@
         Ask for a form or a chooser — the agent replies with live Urbicon UI.
       </p>
     </div>
-    <Badge intent={busy ? 'primary' : 'neutral'} variant="soft" size="sm">
-      {busy ? 'generating' : 'idle'}
-    </Badge>
+    <div class="flex items-center gap-3">
+      <!-- Catalog A/B toggle (query-driven; switching keeps the conversation). -->
+      <div
+        class="flex items-center gap-0.5 rounded-modify border border-border-subtle p-0.5 text-xs"
+        role="group"
+        aria-label="A2UI catalog"
+      >
+        <a
+          href="/"
+          data-sveltekit-noscroll
+          class={[
+            'rounded-modify px-2 py-1',
+            useBasic ? 'text-text-secondary' : 'bg-primary text-text-on-primary'
+          ]}
+          aria-current={useBasic ? undefined : 'page'}
+        >
+          Urbicon
+        </a>
+        <a
+          href="?catalog=basic"
+          data-sveltekit-noscroll
+          class={[
+            'rounded-modify px-2 py-1',
+            useBasic ? 'bg-primary text-text-on-primary' : 'text-text-secondary'
+          ]}
+          aria-current={useBasic ? 'page' : undefined}
+        >
+          Basic
+        </a>
+      </div>
+      <Badge intent={busy ? 'primary' : 'neutral'} variant="soft" size="sm">
+        {busy ? 'generating' : 'idle'}
+      </Badge>
+    </div>
   </header>
 
   {#if errorBanner}
@@ -290,21 +413,45 @@
           {#snippet a2uiPart(part: Extract<ChatMessagePart, { type: 'a2ui' }>)}
             <A2UIView
               payload={part.payload}
-              streaming={m.status === 'streaming'}
+              streaming={m.status === 'streaming' || patchTargets.has(m.id)}
+              catalogs={useBasic ? undefined : [urbiconA2uiCatalog]}
+              dataSchema={useBasic ? undefined : BOOKING_SCHEMA}
               onAction={handleAction}
               onValidationError={handleValidationError}
             />
           {/snippet}
-          <ChatMessage
-            message={m}
-            onRegenerate={isLast && m.role === 'assistant' && !busy
-              ? () => regenerate(m)
-              : undefined}
-            onRetry={m.status === 'error' || m.status === 'aborted'
-              ? () => regenerate(m)
-              : undefined}
-            partRenderers={{ a2ui: a2uiPart }}
-          />
+          <!--
+            A surface that a later turn patched is long-lived: it is no longer
+            just a record of one reply. Until it earns a place of its own (a
+            pinned card, an artifact panel), it stays inline and the two ends of
+            the edit are labelled — a marker here, a jump link over there.
+          -->
+          <div id={`a2ui-anchor-${m.id}`}>
+            {#if patchedMessageIds.has(m.id)}
+              <div class="mb-1 flex justify-center">
+                <Badge intent="primary" variant="soft" size="sm">Updated by a later reply</Badge>
+              </div>
+            {/if}
+            <ChatMessage
+              message={m}
+              onRegenerate={isLast && m.role === 'assistant' && !busy
+                ? () => regenerate(m)
+                : undefined}
+              onRetry={m.status === 'error' || m.status === 'aborted'
+                ? () => regenerate(m)
+                : undefined}
+              partRenderers={{ a2ui: a2uiPart }}
+            />
+            {#each patchesByMessage[m.id] ?? [] as entry (entry.surfaceId)}
+              <button
+                type="button"
+                class="mt-1 rounded-modify px-2 py-1 text-xs text-primary hover:bg-surface-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50"
+                onclick={() => scrollToMessage(entry.targetMessageId)}
+              >
+                ↑ Updated the surface above — jump to it
+              </button>
+            {/each}
+          </div>
         {/snippet}
       </ChatMessageList>
 

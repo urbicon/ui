@@ -2,7 +2,8 @@
   import SeoMeta from '$lib/SeoMeta.svelte';
   import {
     A2UIView,
-    A2UI_CATALOG_ID,
+    URBICON_A2UI_CATALOG_ID,
+    urbiconA2uiCatalog,
     type A2uiActionEvent,
     Badge,
     Button,
@@ -101,7 +102,7 @@ Both citations resolve to chips — open one to see the title, snippet, and the 
       a2ui: [
         {
           version: 'v0.9.1',
-          createSurface: { surfaceId: 'chat-form', catalogId: A2UI_CATALOG_ID }
+          createSurface: { surfaceId: 'chat-form', catalogId: URBICON_A2UI_CATALOG_ID }
         },
         {
           version: 'v0.9.1',
@@ -119,7 +120,7 @@ Both citations resolve to chips — open one to see the title, snippet, and the 
             surfaceId: 'chat-form',
             components: [
               { id: 'title', component: 'Text', text: 'Book a demo', variant: 'h4' },
-              { id: 'name', component: 'TextField', label: 'Name', value: { path: '/name' } }
+              { id: 'name', component: 'Input', label: 'Name', value: { path: '/name' } }
             ]
           }
         },
@@ -130,14 +131,16 @@ Both citations resolve to chips — open one to see the title, snippet, and the 
             components: [
               {
                 id: 'email',
-                component: 'TextField',
+                component: 'Input',
                 label: 'Work email',
+                inputType: 'email',
                 value: { path: '/email' }
               },
               { id: 'submit-label', component: 'Text', text: 'Request access' },
               {
                 id: 'submit',
                 component: 'Button',
+                intent: 'primary',
                 child: 'submit-label',
                 action: {
                   event: {
@@ -377,7 +380,12 @@ Both citations resolve to chips — open one to see the title, snippet, and the 
   -->
   {#snippet a2uiPart(part: Extract<ChatMessagePart, { type: 'a2ui' }>)}
     <div class="my-1 max-w-sm">
-      <A2UIView payload={part.payload} streaming={a2uiStreaming} onAction={handleUiAction} />
+      <A2UIView
+        payload={part.payload}
+        streaming={a2uiStreaming}
+        catalogs={[urbiconA2uiCatalog]}
+        onAction={handleUiAction}
+      />
     </div>
   {/snippet}
 

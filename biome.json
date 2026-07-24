@@ -2,7 +2,14 @@
   "$schema": "https://biomejs.dev/schemas/2.5.0/schema.json",
   "extends": ["@urbicon/biome-config/biome-base.json"],
   "files": {
-    "includes": ["!**/*.svelte", "!**/*.svg", "!**/*.css", "!**/CHANGELOG.md", "!**/docs/archive"]
+    "includes": [
+      "!**/*.svelte",
+      "!**/*.svg",
+      "!**/*.css",
+      "!**/*.gen.ts",
+      "!**/CHANGELOG.md",
+      "!**/docs/archive"
+    ]
   },
   "linter": {
     "rules": {

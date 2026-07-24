@@ -32,6 +32,19 @@ export interface A2uiActionEvent {
   /** ISO 8601 timestamp (`new Date().toISOString()`). */
   timestamp: string;
   context: Record<string, unknown>;
+  /**
+   * The surface's complete data model — present only when the surface was
+   * created with `sendDataModel: true`.
+   *
+   * The spec calls this the client data model and has the client append it to
+   * the metadata of every message sent to the agent, but leaves WHERE metadata
+   * travels to the transport binding (A2A `metadata`, HTTP headers, …). This
+   * field is that payload; put it wherever your transport carries metadata.
+   *
+   * It is the antidote to a half-filled `context`: the agent sees everything the
+   * user entered, including fields it forgot to list on the action.
+   */
+  dataModel?: unknown;
 }
 
 /** Severity of a validation issue. `error` renders a fault chip; `warning` degrades. */
@@ -119,7 +132,44 @@ export const A2UI_ISSUE_CODES = {
   /** `ChoicePicker` `displayStyle: 'chips'` / `filterable` — rendered with a fallback. */
   CHOICEPICKER_FALLBACK: 'CHOICEPICKER_FALLBACK',
   /** A `createSurface`-only prop (`theme`, `sendDataModel`) that the engine ignores. */
-  SURFACE_PROP_IGNORED: 'SURFACE_PROP_IGNORED'
+  SURFACE_PROP_IGNORED: 'SURFACE_PROP_IGNORED',
+  /**
+   * `createSurface.catalogId` names no configured catalog — the surface falls
+   * back to the first (default) catalog. Only emitted in a multi-catalog setup;
+   * a single-catalog processor accepts any id string silently (back-compat).
+   */
+  UNKNOWN_CATALOG: 'UNKNOWN_CATALOG',
+  /**
+   * A `Text` value looks like it carries Markdown, but `Text` renders PLAIN.
+   * A heuristic warning steering the agent to `RichText` (Urbicon catalog).
+   */
+  MARKDOWN_IN_TEXT: 'MARKDOWN_IN_TEXT',
+  /**
+   * An `updateDataModel` write's value type contradicts the surface data
+   * schema's declared type at that pointer (opt-in `dataSchema`).
+   */
+  SCHEMA_TYPE_MISMATCH: 'SCHEMA_TYPE_MISMATCH',
+  /**
+   * An `updateDataModel` write targets a top-level path the surface data schema
+   * does not declare (opt-in `dataSchema`; warning).
+   */
+  SCHEMA_UNDECLARED_PATH: 'SCHEMA_UNDECLARED_PATH',
+  /**
+   * `createSurface` re-used a surfaceId that another source (an earlier chat
+   * message) already owns. The spec requires a surfaceId to be unique for the
+   * renderer's lifetime, so this is a protocol violation the agent should hear
+   * about; {@link A2uiSurfaceRouter} still transfers ownership to the newest
+   * source so the fresh surface renders (last writer wins). Router-only —
+   * a single processor reports the same case as `DUPLICATE_SURFACE`.
+   */
+  SURFACE_RECREATED: 'SURFACE_RECREATED',
+  /**
+   * An `options` `{ path }` binding resolved to a value that is not a list of
+   * `{ label, value }` options — the control renders empty. Not emitted while
+   * the path is still `undefined`: the agent is expected to fill it in with a
+   * later `updateDataModel`, and an empty chooser mid-flow is normal.
+   */
+  OPTIONS_NOT_A_LIST: 'OPTIONS_NOT_A_LIST'
 } as const;
 
 export type A2uiIssueCode = (typeof A2UI_ISSUE_CODES)[keyof typeof A2UI_ISSUE_CODES];

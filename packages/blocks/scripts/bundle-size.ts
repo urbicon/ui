@@ -165,6 +165,15 @@ function discoverGroups(): Group[] {
   groups.push({ name: 'BlocksProvider', exports: ['BlocksProvider'], kind: 'system' });
   groups.push({ name: 'Icon', exports: ['Icon'], kind: 'system' });
   groups.push({ name: 'CheckIcon', exports: ['CheckIcon'], kind: 'system' });
+  // A2UIView opted into the Urbicon catalog: the delta over the base A2UIView
+  // group is the opt-in dispatcher + its 27 mapped primitives. Tracking both
+  // guards the tree-shaking boundary — the base A2UIView group must not grow
+  // (no urbicon/ leak into the Basic path).
+  groups.push({
+    name: 'A2UIViewUrbicon',
+    exports: ['A2UIView', 'urbiconA2uiCatalog'],
+    kind: 'system'
+  });
   return groups;
 }
 

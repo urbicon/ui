@@ -21,6 +21,7 @@
   import { checkImageUrl, checkLinkUrl } from '../markdown/url-policy.js';
   import type { A2uiActionEvent } from './a2ui.types';
   import { A2UI_REGISTRY, A2UI_SVG_PATH_RE } from './a2ui-registry';
+  import { dedupeOptions, splitDateTime } from './a2ui-node-common';
   import type { A2uiRenderContext, A2uiRenderNode } from './a2ui-render';
   import { bindingPointer, toInputString, toStringArray } from './a2ui-render';
 
@@ -246,7 +247,11 @@
         ).value;
       }
     }
+    // `sendDataModel` surfaces ship the whole model alongside the context, so a
+    // context the agent under-specified still tells it what the user entered.
+    const dataModel = context.actionDataModel?.();
     const payload: A2uiActionEvent = {
+      ...(dataModel === undefined ? {} : { dataModel }),
       name: event.name as string,
       surfaceId: context.surfaceId,
       sourceComponentId: instance.id,
@@ -306,27 +311,18 @@
     if (pointer) return toStringArray(resolved('value'));
     return localList ?? toStringArray(raw('value'));
   });
-  const choiceOptions = $derived.by(() => {
-    const options = raw('options');
-    if (!Array.isArray(options)) return [] as Array<{ value: string; label: string }>;
-    // Dedupe by value (first wins): the validator warns on duplicates, but the
-    // keyed `{#each}` below is on option.value — two equal keys throw Svelte's
-    // `each_key_duplicate` (a hard crash that would break the "never throw"
-    // contract for an untrusted payload).
-    const seen = new Set<string>();
-    const out: Array<{ value: string; label: string }> = [];
-    for (const option of options) {
-      if (option === null || typeof option !== 'object' || typeof option.value !== 'string')
-        continue;
-      if (seen.has(option.value)) continue;
-      seen.add(option.value);
-      out.push({
-        value: option.value,
-        label: text(context.resolve(option.label, node.scopePrefix).value)
-      });
-    }
-    return out;
-  });
+  // Dedupe by value (first wins): the validator warns on duplicates, but the
+  // keyed `{#each}` below is on option.value — two equal keys throw Svelte's
+  // `each_key_duplicate` (a hard crash that would break the "never throw"
+  // contract for an untrusted payload). Shared with the Urbicon dispatcher.
+  const choiceOptions = $derived(
+    // `options` may itself be a { path } binding — that is how an agent shows a
+    // list it fetched mid-conversation (free slots, search hits) without
+    // rewriting the component. Resolve it first, then the per-option labels.
+    dedupeOptions(resolved('options'), (label) =>
+      text(context.resolve(label, node.scopePrefix).value)
+    )
+  );
   const choiceLabel = $derived(text(resolved('label')));
   function writeChoice(next: string[]) {
     const pointer = valuePointer();
@@ -358,24 +354,6 @@
     // validator already reported DATETIME_NO_MODE).
     return 'date';
   });
-
-  function normalizeTimePart(value: string): string {
-    const match = /^(\d{2}:\d{2}(?::\d{2})?)/.exec(value);
-    return match ? match[1] : '';
-  }
-  function splitDateTime(value: string): { date: string; time: string } {
-    const trimmed = value.trim();
-    if (trimmed === '') return { date: '', time: '' };
-    const tIndex = trimmed.indexOf('T');
-    if (tIndex !== -1) {
-      return {
-        date: trimmed.slice(0, tIndex),
-        time: normalizeTimePart(trimmed.slice(tIndex + 1))
-      };
-    }
-    if (trimmed.includes(':')) return { date: '', time: normalizeTimePart(trimmed) };
-    return { date: trimmed, time: '' };
-  }
 
   const dtParts = $derived(splitDateTime(textValue));
   const dtMinParts = $derived(splitDateTime(text(resolved('min'))));
@@ -638,11 +616,14 @@
     </RadioGroup>
   {/if}
 {:else if component === 'Slider'}
+  <!-- showValue is forced on: a generated surface has no other place to state
+       the current number, and the agent cannot ask for it (not a catalog prop). -->
   <Slider
     label={text(resolved('label')) || undefined}
     value={sliderValue}
     min={sliderMin}
     max={sliderMax}
+    showValue
     onValueChange={onSliderChange}
     style={weightStyle}
     aria-label={ariaLabel}
