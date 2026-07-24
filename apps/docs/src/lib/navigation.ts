@@ -205,6 +205,7 @@ const allNavigationItems: NavItem[] = [
         nameKey: 'nav.groups.ai',
         group: true,
         children: [
+          { name: 'A2UIView', href: '/blocks/components/a2-uiview' },
           { name: 'Chat', href: '/blocks/components/chat' },
           { name: 'ChatMessage', href: '/blocks/components/chat-message' },
           { name: 'ChatMessageList', href: '/blocks/components/chat-message-list' },

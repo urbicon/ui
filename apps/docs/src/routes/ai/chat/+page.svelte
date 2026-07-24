@@ -1,6 +1,9 @@
 <script lang="ts">
   import SeoMeta from '$lib/SeoMeta.svelte';
   import {
+    A2UIView,
+    A2UI_CATALOG_ID,
+    type A2uiActionEvent,
     Badge,
     Button,
     Chat,
@@ -16,6 +19,14 @@
   interface ReplyPlan {
     pre: ChatMessagePart[];
     text: string;
+    /**
+     * Optional A2UI envelope sequence. When present, the reply carries an `a2ui`
+     * part whose payload grows one envelope per few ticks — the same immutable
+     * `[...prev, envelope]` extension a real JSONL stream would do — so the
+     * surface renders progressively (dangling refs are skeletons while
+     * streaming). Rendered via `partRenderers.a2ui` → A2UIView.
+     */
+    a2ui?: unknown[];
   }
 
   const REPLIES: ReplyPlan[] = [
@@ -80,6 +91,69 @@ Both citations resolve to chips — open one to see the title, snippet, and the 
 - [x] Tool calls render as \`ToolCallCard\`, reasoning as \`ReasoningDisclosure\` — override via \`partRenderers\`
 
 > Tip: press **Stop** while I stream to see the aborted state with its Retry action.`
+    },
+    {
+      pre: [],
+      text: `Sure — here's a quick booking form. Fill it in and I'll take it from there:`,
+      // A2UI: the agent emits a UI as data, not code. The envelopes arrive over
+      // several ticks so the surface renders progressively; A2UIView validates
+      // every one against the trusted catalog before anything reaches the DOM.
+      a2ui: [
+        {
+          version: 'v0.9.1',
+          createSurface: { surfaceId: 'chat-form', catalogId: A2UI_CATALOG_ID }
+        },
+        {
+          version: 'v0.9.1',
+          updateComponents: {
+            surfaceId: 'chat-form',
+            components: [
+              { id: 'root', component: 'Card', child: 'col' },
+              { id: 'col', component: 'Column', children: ['title', 'name', 'email', 'submit'] }
+            ]
+          }
+        },
+        {
+          version: 'v0.9.1',
+          updateComponents: {
+            surfaceId: 'chat-form',
+            components: [
+              { id: 'title', component: 'Text', text: 'Book a demo', variant: 'h4' },
+              { id: 'name', component: 'TextField', label: 'Name', value: { path: '/name' } }
+            ]
+          }
+        },
+        {
+          version: 'v0.9.1',
+          updateComponents: {
+            surfaceId: 'chat-form',
+            components: [
+              {
+                id: 'email',
+                component: 'TextField',
+                label: 'Work email',
+                value: { path: '/email' }
+              },
+              { id: 'submit-label', component: 'Text', text: 'Request access' },
+              {
+                id: 'submit',
+                component: 'Button',
+                child: 'submit-label',
+                action: {
+                  event: {
+                    name: 'book_demo',
+                    context: { name: { path: '/name' }, email: { path: '/email' } }
+                  }
+                }
+              }
+            ]
+          }
+        },
+        {
+          version: 'v0.9.1',
+          updateDataModel: { surfaceId: 'chat-form', value: { name: '', email: '' } }
+        }
+      ]
     }
   ];
 
@@ -123,6 +197,12 @@ Both citations resolve to chips — open one to see the title, snippet, and the 
 
   let messages = $state<ChatMessageData[]>([...SEED]);
   let busy = $state(false);
+  // Couples the a2ui part's `streaming` flag to the assistant message's status:
+  // true exactly while the UI-bearing reply is still appending envelopes, so
+  // dangling child references render skeletons rather than fault chips. The part
+  // snippet only receives the part, so this shared flag is how it learns the
+  // owning message is still streaming (only one such reply streams at a time).
+  let a2uiStreaming = $state(false);
   let following = $state(true);
   let layout = $state<'bubble' | 'plain'>('bubble');
   let replyIndex = 0;
@@ -141,15 +221,24 @@ Both citations resolve to chips — open one to see the title, snippet, and the 
   function streamReply(reply: ReplyPlan) {
     const id = nextId();
     const chunks = chunksOf(reply.text);
+    const envelopes = reply.a2ui ?? [];
+    const hasUi = envelopes.length > 0;
     let pos = 0;
+    let uiCount = 0;
     busy = true;
+    a2uiStreaming = hasUi;
     messages = [
       ...messages,
       { id, role: 'assistant', parts: [...reply.pre], createdAt: new Date(), status: 'streaming' }
     ];
     timer = setInterval(() => {
       pos += 1;
-      const done = pos >= chunks.length;
+      // Append one A2UI envelope every 4 ticks — the payload grows immutably,
+      // so A2UIView applies only the new envelope and the surface fills in.
+      if (hasUi && uiCount < envelopes.length && pos % 4 === 0) uiCount += 1;
+      const textDone = pos >= chunks.length;
+      const uiDone = !hasUi || uiCount >= envelopes.length;
+      const done = textDone && uiDone;
       // running tool calls "complete" once the answer text starts flowing
       const pre = reply.pre.map((p) =>
         p.type === 'tool-call' && pos > 4
@@ -157,15 +246,36 @@ Both citations resolve to chips — open one to see the title, snippet, and the 
           : p
       );
       const text = chunks.slice(0, pos).join('');
+      const uiPart: ChatMessagePart[] = hasUi
+        ? [{ type: 'a2ui', payload: envelopes.slice(0, uiCount) }]
+        : [];
       patchMessage(id, {
-        parts: [...pre, { type: 'text', text }],
+        parts: [...pre, { type: 'text', text }, ...uiPart],
         status: done ? 'complete' : 'streaming'
       });
       if (done) {
         stopTimer();
         busy = false;
+        a2uiStreaming = false;
       }
     }, 33);
+  }
+
+  // A Button inside a rendered A2UI surface dispatches a spec-exact action event.
+  // Surface it as a visible user turn (a compact [ui-action] JSON text part), the
+  // way an app would relay it back to the agent, then let the copilot respond.
+  function handleUiAction(event: A2uiActionEvent) {
+    messages = [
+      ...messages,
+      {
+        id: nextId(),
+        role: 'user',
+        parts: [{ type: 'text', text: `[ui-action] ${JSON.stringify(event)}` }],
+        createdAt: new Date(),
+        status: 'complete'
+      }
+    ];
+    setTimeout(() => streamReply(nextReply()), 350);
   }
 
   function nextReply(): ReplyPlan {
@@ -256,6 +366,18 @@ Both citations resolve to chips — open one to see the title, snippet, and the 
     intake chips become attachment parts.
   </p>
 
+  <!--
+    A2UIView is not a default part renderer — it is opted in here per surface so
+    it stays out of the base conversation bundle. Declared at template scope (not
+    inside <Chat>, where it would become a Chat prop) so ChatMessageList can
+    reference it; ChatMessageList forwards partRenderers to every ChatMessage.
+  -->
+  {#snippet a2uiPart(part: Extract<ChatMessagePart, { type: 'a2ui' }>)}
+    <div class="my-1 max-w-sm">
+      <A2UIView payload={part.payload} streaming={a2uiStreaming} onAction={handleUiAction} />
+    </div>
+  {/snippet}
+
   <div class="h-[44rem] overflow-hidden rounded-contain border border-border-default">
     <Chat>
       {#snippet header()}
@@ -286,6 +408,7 @@ Both citations resolve to chips — open one to see the title, snippet, and the 
       <ChatMessageList
         {messages}
         {layout}
+        partRenderers={{ a2ui: a2uiPart }}
         onRegenerate={regenerate}
         onRetry={regenerate}
         onStickChange={(stuck) => (following = stuck)}
