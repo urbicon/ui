@@ -9,8 +9,11 @@ import type { A2uiDataSchema } from '@urbicon-ui/blocks';
  */
 export const BOOKING_SCHEMA: A2uiDataSchema = {
   '/name': { type: 'string', description: 'The guest name' },
-  '/service': { type: 'string', description: 'The chosen service id (from get_salon_info)' },
-  '/stylist': { type: 'string', description: 'The chosen stylist id (from get_salon_info)' },
+  // Service / stylist are chosen with a Select, whose value is a string ARRAY
+  // (single-select writes a one-element array) — declare them as arrays so a
+  // bound write type-checks. Use RadioGroup instead to bind a single string.
+  '/service': { type: 'array', description: 'Chosen service id(s) (from get_salon_info)' },
+  '/stylist': { type: 'array', description: 'Chosen stylist id(s) (from get_salon_info)' },
   '/date': { type: 'string', format: 'date', description: 'Appointment date, YYYY-MM-DD' },
   '/time': { type: 'string', format: 'time', description: 'Appointment time, HH:MM' },
   '/party': { type: 'integer', description: 'Number of guests (1 or more)' },

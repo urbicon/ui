@@ -55,6 +55,16 @@ describe('validateSchemaWrite', () => {
     expect(validateSchemaWrite(SCHEMA, '/party', undefined)).toEqual([]);
   });
 
+  it('does not treat an inherited Object.prototype key as a declared field', () => {
+    // A pointer like /toString must NOT resolve Object.prototype.toString and
+    // mis-report a type mismatch — it is simply an undeclared top-level path.
+    for (const proto of ['toString', 'hasOwnProperty', 'constructor']) {
+      const issues = validateSchemaWrite(SCHEMA, `/${proto}`, 'x');
+      expect(issues.every((i) => i.code !== 'SCHEMA_TYPE_MISMATCH')).toBe(true);
+      expect(issues[0]?.code).toBe('SCHEMA_UNDECLARED_PATH');
+    }
+  });
+
   it('validates a whole-model write field by field', () => {
     const ok = validateSchemaWrite(SCHEMA, '', { name: 'Ada', party: 2, service: 'cut' });
     expect(ok).toEqual([]);

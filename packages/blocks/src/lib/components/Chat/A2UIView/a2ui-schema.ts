@@ -119,7 +119,10 @@ export function validateSchemaWrite(
     return issues;
   }
 
-  const field = schema[pointer];
+  // `Object.hasOwn`, not a bare lookup: a pointer like `/toString` or `/__proto__`
+  // would otherwise resolve an inherited Object.prototype member and mis-report a
+  // type mismatch on a field that was never declared.
+  const field = Object.hasOwn(schema, pointer) ? schema[pointer] : undefined;
   if (field) return fieldIssues(field, pointer, value, surfaceId);
 
   // Undeclared pointer: warn only when its whole top-level branch is unknown, so

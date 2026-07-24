@@ -18,7 +18,8 @@
 
   const SCHEMA: A2uiDataSchema = {
     '/name': { type: 'string', description: 'The guest name' },
-    '/service': { type: 'string', enum: ['haircut', 'colour', 'style'] },
+    // Select writes a string ARRAY (single-select = a one-element array).
+    '/service': { type: 'array', description: 'Chosen service(s)' },
     '/date': { type: 'string', format: 'date' },
     '/time': { type: 'string' }
   };
