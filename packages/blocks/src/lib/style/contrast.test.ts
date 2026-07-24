@@ -795,6 +795,11 @@ describe('informative text on reading surfaces — WCAG contrast', () => {
         }
       }
     }
+    it('covers quaternary × reading surface × mode × theme (loop is not empty)', () => {
+      expect(Object.keys(quat)).toHaveLength(6 * 2 * 5);
+      expect(quat).toHaveProperty('default/quaternary/light/subtle');
+    });
+
     it.each(Object.keys(quat))('%s clears 3:1', (id) => {
       expect(quat[id], `${id} measures ${quat[id]}:1`).toBeGreaterThanOrEqual(AA_LARGE);
     });

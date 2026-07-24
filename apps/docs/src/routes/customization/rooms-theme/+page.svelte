@@ -152,17 +152,17 @@ const room = $derived.by(() => {
           <tr>
             <td class="px-4 py-3">Blocks <span class="text-text-tertiary">(default)</span></td>
             <td class="px-4 py-3"><code>/blocks/**</code></td>
-            <td class="px-4 py-3"><code>#00845c</code> · <code>#f6f3ec</code> — green</td>
+            <td class="px-4 py-3"><code>#006c4a</code> · <code>#f6f3ec</code> — green</td>
           </tr>
           <tr>
             <td class="px-4 py-3">Table</td>
             <td class="px-4 py-3"><code>/table/**</code></td>
-            <td class="px-4 py-3"><code>#7c1f2d</code> · <code>#f6f3ec</code> — wine</td>
+            <td class="px-4 py-3"><code>#e3a31c</code> · <code>#17150f</code> — amber</td>
           </tr>
           <tr>
             <td class="px-4 py-3">Auth</td>
             <td class="px-4 py-3"><code>/auth/**</code></td>
-            <td class="px-4 py-3"><code>#e3a31c</code> · <code>#17150f</code> — amber</td>
+            <td class="px-4 py-3"><code>#7c1f2d</code> · <code>#f6f3ec</code> — wine</td>
           </tr>
           <tr>
             <td class="px-4 py-3">AI &amp; DX</td>

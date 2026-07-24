@@ -447,9 +447,9 @@ Instead of a single fixed primary, Color Rooms **re-derives the entire 11-step `
 
 | Room             | Accent          | Foreground     |
 | ---------------- | --------------- | -------------- |
-| Blocks (default) | `#00845c` green | cream `#f6f3ec` |
-| Table            | `#7c1f2d` wine  | cream `#f6f3ec` |
-| Auth             | `#e3a31c` amber | ink `#17150f`  |
+| Blocks (default) | `#006c4a` green | cream `#f6f3ec` |
+| Table            | `#e3a31c` amber | ink `#17150f`   |
+| Auth             | `#7c1f2d` wine  | cream `#f6f3ec` |
 | AI & DX          | `#e8500f` orange | ink `#17150f`  |
 
 The **intent palette is room-independent** — retuned once (warm) so Success / Warning / Danger / Secondary sit naturally on cream and stay distinct from the room primary. The warm spectrum harmonises with all four warm room accents, so it is not re-tuned per room:

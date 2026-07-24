@@ -57,11 +57,13 @@
    * landing + the design source. Dark: warm cream → warm tan → warm dark-gray.
    *
    * `--docs-soft` carries secondary AND tertiary text (both remap to it below).
-   * It was darkened from #6e6b64/#a5a299 so it clears WCAG AA on the warm-neutral
-   * INTERACTIVE surface (segment tracks, tabs) — #6e6b64 measured 4.18:1 on that
-   * ground (inactive tab label). #635f58 clears it at 4.99:1 while staying clearly
-   * "soft" against the ink primary. `--docs-softer` is decoration only (never body
-   * text — mirrors the mark-only quaternary rule in blocks/semantic.css). */
+   * Both stops were moved AWAY from the warm-neutral INTERACTIVE surface (segment
+   * tracks, tabs) so the label clears WCAG AA on it: the light stop darkened
+   * #6e6b64 -> #635f58 (inactive label was 4.18:1 on that ground, now 4.99:1); the
+   * dark stop lightened #a5a299 -> #aaa79d (4.44:1 -> 4.70:1 on warm-neutral-700).
+   * The light stop still reads clearly "soft" against the ink primary. `--docs-softer`
+   * is decoration only (never body text — mirrors the mark-only quaternary rule in
+   * blocks/semantic.css). */
   --docs-ink: light-dark(#17150f, #f0ede5);
   --docs-soft: light-dark(#635f58, #aaa79d);
   --docs-softer: light-dark(#b8b5ad, #5a574f);
