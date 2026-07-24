@@ -438,3 +438,57 @@ describe('A2UIView validator — hardening (review regressions)', () => {
     expect(codes(allIssues(proc)).has(A2UI_ISSUE_CODES.DUPLICATE_OPTION)).toBe(true);
   });
 });
+
+describe('DateTimeInput validation', () => {
+  const surface = () => ({
+    version: 'v0.9.1',
+    createSurface: { surfaceId: 's', catalogId: 'x' }
+  });
+  const comps = (components: unknown[]) => ({
+    version: 'v0.9.1',
+    updateComponents: { surfaceId: 's', components }
+  });
+  const dt = (props: Record<string, unknown>) =>
+    comps([{ id: 'root', component: 'DateTimeInput', ...props }]);
+
+  it('accepts the spec shape without issues', () => {
+    const proc = applyAll([
+      surface(),
+      dt({
+        value: { path: '/when' },
+        enableDate: true,
+        enableTime: true,
+        label: 'Due',
+        min: '2026-01-01',
+        max: '2026-12-31T18:00'
+      })
+    ]);
+    expect(allIssues(proc)).toEqual([]);
+  });
+
+  it('warns DATETIME_NO_MODE when neither enableDate nor enableTime is set', () => {
+    const proc = applyAll([surface(), dt({ value: { path: '/when' } })]);
+    const issues = allIssues(proc);
+    expect(
+      issues.some((i) => i.code === A2UI_ISSUE_CODES.DATETIME_NO_MODE && i.severity === 'warning')
+    ).toBe(true);
+  });
+
+  it('rejects a non-boolean enableDate with TYPE_MISMATCH', () => {
+    const proc = applyAll([surface(), dt({ value: { path: '/when' }, enableDate: 'yes' })]);
+    expect(codes(allIssues(proc)).has(A2UI_ISSUE_CODES.TYPE_MISMATCH)).toBe(true);
+  });
+
+  it('reports the missing required value', () => {
+    const proc = applyAll([surface(), dt({ enableDate: true })]);
+    expect(codes(allIssues(proc)).has(A2UI_ISSUE_CODES.MISSING_FIELD)).toBe(true);
+  });
+
+  it('ignores the inherited Checkable `checks` prop with a warning', () => {
+    const proc = applyAll([
+      surface(),
+      dt({ value: { path: '/when' }, enableDate: true, checks: [{ rule: 'x' }] })
+    ]);
+    expect(codes(allIssues(proc)).has(A2UI_ISSUE_CODES.IGNORED_PROP)).toBe(true);
+  });
+});

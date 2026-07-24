@@ -98,12 +98,14 @@ const ALLOWLIST: ReadonlyArray<readonly [edge: string, why: string]> = [
   ['A2UINode -> Button', 'essential composition — renders the trusted catalog (Button)'],
   ['A2UINode -> Card', 'essential composition — renders the trusted catalog (Card)'],
   ['A2UINode -> Checkbox', 'essential composition — renders the trusted catalog (CheckBox)'],
+  ['A2UINode -> DatePicker', 'essential composition — renders the trusted catalog (DateTimeInput)'],
   ['A2UINode -> Input', 'essential composition — renders the trusted catalog (TextField)'],
   ['A2UINode -> RadioGroup', 'essential composition — renders the trusted catalog (ChoicePicker)'],
   ['A2UINode -> RadioItem', 'essential composition — renders the trusted catalog (ChoicePicker)'],
   ['A2UINode -> Separator', 'essential composition — renders the trusted catalog (Divider)'],
   ['A2UINode -> Skeleton', 'essential composition — streaming placeholder for pending refs'],
   ['A2UINode -> Slider', 'essential composition — renders the trusted catalog (Slider)'],
+  ['A2UINode -> TimeInput', 'essential composition — renders the trusted catalog (DateTimeInput)'],
   [
     'A2UINode -> Textarea',
     'essential composition — renders the trusted catalog (TextField longText)'

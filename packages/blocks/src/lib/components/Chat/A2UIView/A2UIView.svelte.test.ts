@@ -517,3 +517,106 @@ describe('A2UIView — hardening (review regressions)', () => {
     expect(document.body.textContent).toContain('This action is not supported');
   });
 });
+
+describe('A2UIView — DateTimeInput', () => {
+  const dtSurface = (props: Record<string, unknown>, model: Record<string, unknown>) => [
+    surface(),
+    data(model),
+    comps([
+      { id: 'root', component: 'Column', children: ['dt', 'echo'] },
+      { id: 'dt', component: 'DateTimeInput', value: { path: '/when' }, ...props },
+      { id: 'echo', component: 'Text', text: { path: '/when' } }
+    ])
+  ];
+
+  it('renders a DatePicker in date mode and writes a picked day back as YYYY-MM-DD', async () => {
+    const user = userEvent.setup();
+    render({ payload: dtSurface({ label: 'Date', enableDate: true }, { when: '2026-08-12' }) });
+
+    // Bound value round-trips into the echo Text node.
+    expect(document.body.textContent).toContain('2026-08-12');
+    expect(screen.queryAllByRole('spinbutton', { hidden: true })).toHaveLength(0);
+
+    await user.click(screen.getByRole('button', { name: 'Open calendar' }));
+    flushSync();
+    const day = document.querySelector<HTMLElement>('[data-date="2026-08-20"]');
+    expect(day).toBeTruthy();
+    await user.click(day as HTMLElement);
+    flushSync();
+    expect(document.body.textContent).toContain('2026-08-20');
+  });
+
+  it('renders date + time in datetime mode and combines both into one ISO string', async () => {
+    const user = userEvent.setup();
+    render({
+      payload: dtSurface(
+        { label: 'Due', enableDate: true, enableTime: true },
+        { when: '2026-08-12T14:30' }
+      )
+    });
+
+    // Both halves are on screen: calendar trigger + time segments.
+    expect(screen.getByRole('button', { name: 'Open calendar' })).toBeTruthy();
+    expect(screen.getAllByRole('spinbutton').length).toBeGreaterThan(0);
+
+    await user.click(screen.getByRole('button', { name: 'Open calendar' }));
+    flushSync();
+    await user.click(document.querySelector('[data-date="2026-08-15"]') as HTMLElement);
+    flushSync();
+    // The picked date merges with the untouched time part.
+    expect(document.body.textContent).toContain('2026-08-15T14:30');
+  });
+
+  it('renders a TimeInput in time mode and writes typed segments back as HH:MM', async () => {
+    const user = userEvent.setup();
+    render({ payload: dtSurface({ label: 'Time', enableTime: true }, { when: '' }) });
+
+    const segments = screen.getAllByRole('spinbutton');
+    expect(segments.length).toBeGreaterThan(0);
+    (segments[0] as HTMLElement).focus();
+    await user.keyboard('0930');
+    flushSync();
+    expect(document.body.textContent).toContain('09:30');
+  });
+
+  it('strips a timezone suffix for display instead of shifting the time', () => {
+    render({
+      payload: dtSurface(
+        { label: 'Due', enableDate: true, enableTime: true },
+        { when: '2026-08-12T17:00:00Z' }
+      )
+    });
+    // Timezone-naive by design: 17:00Z renders as 17 hours literal.
+    const values = screen
+      .getAllByRole('spinbutton')
+      .map((el) => el.getAttribute('aria-valuenow') ?? el.textContent);
+    expect(values.join(':')).toContain('17');
+  });
+
+  it('reports DATETIME_NO_MODE but still renders a date input when both flags are missing', () => {
+    const reported: A2uiValidationIssue[][] = [];
+    render({
+      payload: dtSurface({ label: 'When' }, { when: '' }),
+      onValidationError: (issues) => reported.push(issues)
+    });
+    expect(screen.getByRole('button', { name: 'Open calendar' })).toBeTruthy();
+    expect(reported.flat().some((i) => i.code === A2UI_ISSUE_CODES.DATETIME_NO_MODE)).toBe(true);
+  });
+
+  it('never throws on hostile DateTimeInput payloads', () => {
+    const hostile = [
+      { value: { nested: { deep: true } }, enableDate: true },
+      { value: 12345, enableTime: true },
+      { value: { path: '/when' }, enableDate: true, min: 'garbage', max: '9999-99-99' },
+      { value: { path: '/when' }, enableDate: true, enableTime: true, label: { path: '/missing' } }
+    ];
+    for (const props of hostile) {
+      expect(() => {
+        render({ payload: dtSurface(props, { when: 'not-a-date' }) });
+        dispose?.();
+        dispose = undefined;
+      }).not.toThrow();
+      document.body.replaceChildren();
+    }
+  });
+});

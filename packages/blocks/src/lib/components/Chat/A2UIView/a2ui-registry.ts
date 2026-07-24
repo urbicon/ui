@@ -67,8 +67,7 @@ export const UNSUPPORTED_A2UI_COMPONENTS: ReadonlySet<string> = new Set([
   'Modal',
   'Tabs',
   'Video',
-  'AudioPlayer',
-  'DateTimeInput'
+  'AudioPlayer'
 ]);
 
 /**
@@ -429,6 +428,48 @@ export const A2UI_REGISTRY: Readonly<Record<string, A2uiComponentSpec>> = Object
         kind: 'string',
         dynamic: true,
         description: 'An optional label for the slider.'
+      }
+    })
+  },
+
+  DateTimeInput: {
+    description:
+      'A date and/or time input. `value` is an ISO 8601 STRING ("" when unset) — date ' +
+      '(YYYY-MM-DD), time (HH:MM), or both (YYYY-MM-DDTHH:MM). ALWAYS set enableDate and/or ' +
+      'enableTime explicitly (both default to false). Bind `value` to a data-model path for ' +
+      'two-way binding and initialize that path with "".',
+    props: withCommon({
+      value: {
+        kind: 'string',
+        required: true,
+        dynamic: true,
+        description:
+          'The ISO 8601 date/time string ("" when unset). Bind with { path } for two-way binding.'
+      },
+      enableDate: {
+        kind: 'boolean',
+        default: false,
+        description: 'Allow picking a calendar date (the YYYY-MM-DD part).'
+      },
+      enableTime: {
+        kind: 'boolean',
+        default: false,
+        description: 'Allow picking a time of day (the HH:MM part).'
+      },
+      label: {
+        kind: 'string',
+        dynamic: true,
+        description: 'The field label.'
+      },
+      min: {
+        kind: 'string',
+        dynamic: true,
+        description: 'Minimum allowed value, ISO 8601 (date, time, or date-time).'
+      },
+      max: {
+        kind: 'string',
+        dynamic: true,
+        description: 'Maximum allowed value, ISO 8601 (date, time, or date-time).'
       }
     })
   }

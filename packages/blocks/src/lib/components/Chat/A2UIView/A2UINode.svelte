@@ -13,7 +13,10 @@
   } from '$lib/primitives';
   import { resolveIcon } from '$lib/icons';
   import DangerCircleIconDefault from '$lib/icons/DangerCircleIcon.svelte';
+  import { fromDateInputValue, toDateInputValue } from '$lib/utils/date';
   import type { Snippet } from 'svelte';
+  import DatePicker from '../../DatePicker/DatePicker.svelte';
+  import TimeInput from '../../TimeInput/TimeInput.svelte';
   import StreamingMarkdown from '../StreamingMarkdown/StreamingMarkdown.svelte';
   import { checkImageUrl, checkLinkUrl } from '../markdown/url-policy.js';
   import type { A2uiActionEvent } from './a2ui.types';
@@ -340,6 +343,71 @@
   }
 
   const buttonStyle = $derived(BUTTON_STYLE[enumOr('variant', 'default')] ?? BUTTON_STYLE.default);
+
+  // ── DateTimeInput ────────────────────────────────────────────────────────
+  // The spec's value is one ISO 8601 STRING covering date, time, or both. The
+  // renderer treats it as a timezone-NAIVE literal: a trailing offset/Z is
+  // stripped for display and never re-attached on write — timezone semantics
+  // belong to the agent, not to a UI renderer without timezone context.
+  const dtMode = $derived.by<'date' | 'time' | 'datetime'>(() => {
+    const enableDate = raw('enableDate') === true;
+    const enableTime = raw('enableTime') === true;
+    if (enableDate && enableTime) return 'datetime';
+    if (enableTime) return 'time';
+    // Includes the neither-flag payload: read tolerantly as a date input (the
+    // validator already reported DATETIME_NO_MODE).
+    return 'date';
+  });
+
+  function normalizeTimePart(value: string): string {
+    const match = /^(\d{2}:\d{2}(?::\d{2})?)/.exec(value);
+    return match ? match[1] : '';
+  }
+  function splitDateTime(value: string): { date: string; time: string } {
+    const trimmed = value.trim();
+    if (trimmed === '') return { date: '', time: '' };
+    const tIndex = trimmed.indexOf('T');
+    if (tIndex !== -1) {
+      return {
+        date: trimmed.slice(0, tIndex),
+        time: normalizeTimePart(trimmed.slice(tIndex + 1))
+      };
+    }
+    if (trimmed.includes(':')) return { date: '', time: normalizeTimePart(trimmed) };
+    return { date: trimmed, time: '' };
+  }
+
+  const dtParts = $derived(splitDateTime(textValue));
+  const dtMinParts = $derived(splitDateTime(text(resolved('min'))));
+  const dtMaxParts = $derived(splitDateTime(text(resolved('max'))));
+  const dtMinDate = $derived(
+    dtMinParts.date ? (fromDateInputValue(dtMinParts.date) ?? undefined) : undefined
+  );
+  const dtMaxDate = $derived(
+    dtMaxParts.date ? (fromDateInputValue(dtMaxParts.date) ?? undefined) : undefined
+  );
+  // Time bounds apply only when the bound itself is time-only: on a date-time
+  // bound the time limit would depend on the picked date — deliberately out of
+  // scope for this renderer (the date part is still enforced above).
+  const dtMinTime = $derived(dtMinParts.time && !dtMinParts.date ? dtMinParts.time : undefined);
+  const dtMaxTime = $derived(dtMaxParts.time && !dtMaxParts.date ? dtMaxParts.time : undefined);
+
+  function writeDateTime(nextDate: string, nextTime: string): void {
+    // Partial fills stay valid partial ISO: date-only / time-only / "".
+    const next = nextDate && nextTime ? `${nextDate}T${nextTime}` : nextDate || nextTime || '';
+    const pointer = valuePointer();
+    if (pointer) context.write(pointer, next);
+    else localText = next;
+  }
+  function onDtDateChange(picked: Date | undefined): void {
+    writeDateTime(
+      picked ? toDateInputValue(picked) : '',
+      dtMode === 'datetime' ? dtParts.time : ''
+    );
+  }
+  function onDtTimeChange(nextTime: string | null): void {
+    writeDateTime(dtMode === 'datetime' ? dtParts.date : '', nextTime ?? '');
+  }
 </script>
 
 {#snippet faultChip(label: string)}
@@ -579,4 +647,54 @@
     style={weightStyle}
     aria-label={ariaLabel}
   />
+{:else if component === 'DateTimeInput'}
+  {@const label = text(resolved('label'))}
+  {#if dtMode === 'datetime'}
+    <!-- The visible label sits on the date field; the group name gives the
+         time segments their context (TimeInput's segments are self-labelled). -->
+    <div
+      class={[context.classes.row, 'flex-wrap']}
+      style={weightStyle}
+      role="group"
+      aria-label={ariaLabel || label || undefined}
+    >
+      <DatePicker
+        label={label || undefined}
+        value={dtParts.date || null}
+        onValueChange={onDtDateChange}
+        minDate={dtMinDate}
+        maxDate={dtMaxDate}
+      />
+      <TimeInput
+        value={dtParts.time || null}
+        onValueChange={onDtTimeChange}
+        withSeconds={dtParts.time.length > 5}
+        min={dtMinTime}
+        max={dtMaxTime}
+      />
+    </div>
+  {:else if dtMode === 'time'}
+    <!-- TimeInput has no style/aria passthrough — weight + accessibility label
+         live on a wrapper (role=group only when it actually carries a name). -->
+    <div style={weightStyle} role={ariaLabel ? 'group' : undefined} aria-label={ariaLabel}>
+      <TimeInput
+        label={label || undefined}
+        value={dtParts.time || null}
+        onValueChange={onDtTimeChange}
+        withSeconds={dtParts.time.length > 5}
+        min={dtMinTime}
+        max={dtMaxTime}
+      />
+    </div>
+  {:else}
+    <DatePicker
+      label={label || undefined}
+      value={dtParts.date || null}
+      onValueChange={onDtDateChange}
+      minDate={dtMinDate}
+      maxDate={dtMaxDate}
+      style={weightStyle}
+      aria-label={ariaLabel}
+    />
+  {/if}
 {/if}

@@ -669,6 +669,25 @@ function validateComponent(
     }
   }
 
+  if (componentName === 'DateTimeInput') {
+    // Both flags default to false in the spec — a DateTimeInput without either
+    // would have no input UI at all. We read tolerantly (render a date input)
+    // and report loudly so the agent fixes the payload.
+    if (props.get('enableDate') !== true && props.get('enableTime') !== true) {
+      surface.issues.push(
+        issue(
+          'warning',
+          A2UI_ISSUE_CODES.DATETIME_NO_MODE,
+          `DateTimeInput "${id}" sets neither enableDate nor enableTime; rendering a date input`,
+          {
+            surfaceId,
+            path: base
+          }
+        )
+      );
+    }
+  }
+
   surface.components.set(id, { id, component: componentName, props, sourceIndex: envelopeIndex });
 }
 
