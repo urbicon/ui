@@ -15,12 +15,18 @@
 //
 //   • text mode  → append incoming text to the current text part.
 //   • a fenced line ` ```a2ui ` opens UI mode and starts a fresh a2ui part.
-//   • in UI mode, only a COMPLETE line is JSON.parse'd and appended to the
-//     a2ui part's payload array (immutably: `[...prev, env]`, so A2UIView
-//     consumes it incrementally and keeps prior envelope object identity).
+//   • in UI mode, a COMPLETE line that parses as JSON is appended to the a2ui
+//     part's payload array (immutably: `[...prev, env]`, so A2UIView consumes
+//     it incrementally and keeps prior envelope object identity).
+//   • a line that does NOT parse but opens a JSON object (models like to
+//     pretty-print a large updateComponents across lines) starts a multi-line
+//     envelope buffer; a string-aware brace/bracket depth scanner decides when
+//     the object is complete, and only then is the whole buffer parsed.
 //   • a fenced line ` ``` ` closes UI mode, back to text.
-//   • an unparseable complete line falls the rest of the fence back to text
-//     and records an issue.
+//   • a line/buffer that can never become valid JSON falls the rest of the
+//     fence back to text (re-emitted inside a synthetic ``` code block so the
+//     fence's REAL closing ``` closes that block in the rendered Markdown
+//     instead of opening a stray one) and records an issue.
 //
 // The splitter is CHUNK-DECOMPOSITION-INVARIANT: it buffers a partial trailing
 // line and only ever acts on complete lines (plus a final flush at `end()`), so
@@ -134,6 +140,16 @@ export class A2uiStreamSplitter {
   private pending = '';
   private rawText = '';
   private readonly issueList: A2uiStreamIssue[] = [];
+  /**
+   * Raw lines of an in-progress multi-line envelope (a pretty-printed object
+   * spanning several fence lines), plus the depth-scanner state that tracks
+   * whether the object has closed. Empty/zeroed while envelopes arrive as
+   * proper single-line JSONL.
+   */
+  private objLines: string[] = [];
+  private objDepth = 0;
+  private objInString = false;
+  private objEscape = false;
 
   /** Feed the next token / chunk of model output. */
   push(chunk: string): void {
@@ -160,6 +176,13 @@ export class A2uiStreamSplitter {
       // Stream ended inside a fence — settle to text and drop an empty surface.
       this.committed = withoutEmptyTrailingA2ui(this.committed);
       this.mode = 'text';
+      // An envelope still buffered mid-object is re-emitted as text (inside a
+      // synthetic code block) so a truncated stream never swallows it silently.
+      if (this.objLines.length > 0) {
+        this.asText('```', true);
+        for (const buffered of this.objLines) this.asText(buffered, true);
+        this.resetObjBuffer();
+      }
       this.issueList.push({
         code: 'UNTERMINATED_FENCE',
         message: 'The a2ui fenced block was not closed before the stream ended.'
@@ -171,6 +194,63 @@ export class A2uiStreamSplitter {
     this.committed = withAppendedText(this.committed, terminated ? `${line}\n` : line);
   }
 
+  private resetObjBuffer(): void {
+    this.objLines = [];
+    this.objDepth = 0;
+    this.objInString = false;
+    this.objEscape = false;
+  }
+
+  /**
+   * Advance the depth scanner across one line: brace/bracket depth outside of
+   * strings, with `\"`-escape handling inside them. Returns `false` when the
+   * buffer can never become valid JSON — depth underflow, or a string left
+   * open at end-of-line (raw newlines are illegal inside JSON strings).
+   */
+  private scanDepth(line: string): boolean {
+    for (const ch of line) {
+      if (this.objEscape) {
+        this.objEscape = false;
+        continue;
+      }
+      if (this.objInString) {
+        if (ch === '\\') this.objEscape = true;
+        else if (ch === '"') this.objInString = false;
+        continue;
+      }
+      if (ch === '"') this.objInString = true;
+      else if (ch === '{' || ch === '[') this.objDepth++;
+      else if (ch === '}' || ch === ']') {
+        this.objDepth--;
+        if (this.objDepth < 0) return false;
+      }
+    }
+    return !this.objInString;
+  }
+
+  /**
+   * Abandon the current a2ui fence: drop an empty surface, record an issue and
+   * re-emit the buffered lines (plus the offending one, if any) as text inside
+   * a synthetic ``` code block. `codeFence` is armed so the fence's real
+   * closing ``` closes that block instead of opening a stray one downstream.
+   */
+  private fenceFallback(message: string, badLine?: string, terminated = true): void {
+    this.issueList.push({
+      code: 'UNPARSEABLE_LINE',
+      message,
+      line: badLine ?? this.objLines.join('\n')
+    });
+    this.committed = withoutEmptyTrailingA2ui(this.committed);
+    this.mode = 'text';
+    this.codeFence = { char: '`', len: 3 };
+    this.asText('```', true);
+    const lines = badLine === undefined ? this.objLines : [...this.objLines, badLine];
+    for (let i = 0; i < lines.length; i++) {
+      this.asText(lines[i], i < lines.length - 1 ? true : terminated);
+    }
+    this.resetObjBuffer();
+  }
+
   private processLine(rawLine: string, terminated: boolean): void {
     // Normalize CRLF: a trailing \r would otherwise defeat fence detection
     // (the marker regex ends at whitespace, not \r) and leak into JSONL lines.
@@ -179,26 +259,79 @@ export class A2uiStreamSplitter {
 
     if (this.mode === 'fence') {
       // Inside OUR a2ui block (opened by ```a2ui). Only a bare ``` closes it;
-      // every other line is a JSONL envelope.
+      // every other line feeds the JSONL parser (with a multi-line object
+      // buffer for pretty-printed envelopes).
       if (isCloseOf(fence, { char: '`', len: 3 })) {
+        if (this.objLines.length > 0) {
+          // The fence closed on a still-open envelope — fall it back to text,
+          // then re-process this ``` so it closes the synthetic code block.
+          this.fenceFallback(
+            'An a2ui envelope was still incomplete when its fence closed; falling back to text.'
+          );
+          this.processLine(rawLine, terminated);
+          return;
+        }
         this.committed = withoutEmptyTrailingA2ui(this.committed);
         this.mode = 'text';
         return;
       }
-      if (line.trim() === '') return; // ignore blank lines inside the fence
+
+      if (this.objLines.length > 0) {
+        // Continuation of a multi-line envelope.
+        const viable = this.scanDepth(line);
+        this.objLines.push(line);
+        if (!viable) {
+          this.fenceFallback(
+            'An a2ui envelope was not valid JSON; falling back to text.',
+            undefined,
+            terminated
+          );
+          return;
+        }
+        if (this.objDepth === 0) {
+          const joined = this.objLines.join('\n');
+          try {
+            const env = JSON.parse(joined) as unknown;
+            this.committed = withAppendedEnvelope(this.committed, env);
+            this.resetObjBuffer();
+          } catch {
+            this.fenceFallback(
+              'An a2ui envelope was not valid JSON; falling back to text.',
+              undefined,
+              terminated
+            );
+          }
+        }
+        return;
+      }
+
+      if (line.trim() === '') return; // ignore blank lines between envelopes
       try {
         const env = JSON.parse(line) as unknown;
         this.committed = withAppendedEnvelope(this.committed, env);
       } catch {
-        // Unparseable line: fall the rest of the fence back to text.
-        this.issueList.push({
-          code: 'UNPARSEABLE_LINE',
-          message: 'An a2ui line was not valid JSON; falling back to text.',
-          line
-        });
-        this.committed = withoutEmptyTrailingA2ui(this.committed);
-        this.mode = 'text';
-        this.asText(line, terminated);
+        // Not a complete envelope. If the line opens a JSON object, buffer it
+        // as the start of a multi-line envelope; anything else is garbage and
+        // falls the rest of the fence back to text.
+        if (line.trimStart().startsWith('{')) {
+          const viable = this.scanDepth(line);
+          this.objLines.push(line);
+          if (!viable || this.objDepth === 0) {
+            // Underflow, an unterminated string, or a braces-balanced line
+            // that still failed to parse — it can never become valid JSON.
+            this.fenceFallback(
+              'An a2ui line was not valid JSON; falling back to text.',
+              undefined,
+              terminated
+            );
+          }
+          return;
+        }
+        this.fenceFallback(
+          'An a2ui line was not valid JSON; falling back to text.',
+          line,
+          terminated
+        );
       }
       return;
     }

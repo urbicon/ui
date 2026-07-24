@@ -22,6 +22,13 @@ function runChunks(chunks: string[]): A2uiStreamSplitter {
 const ENV_SURFACE = '{"version":"v0.9.1","createSurface":{"surfaceId":"s1","catalogId":"c"}}';
 const ENV_ROOT =
   '{"version":"v0.9.1","updateComponents":{"surfaceId":"s1","components":[{"id":"root","component":"Text","text":"Hi"}]}}';
+// The same updateComponents envelope pretty-printed across lines — the shape
+// models actually emit for large component lists (one component per line).
+const ENV_ROOT_MULTILINE = [
+  '{"version":"v0.9.1","updateComponents":{"surfaceId":"s1","components":[',
+  '{"id":"root","component":"Text","text":"Hi"}',
+  ']}}'
+].join('\n');
 
 describe('A2uiStreamSplitter — basic shaping', () => {
   it('plain text with no fence becomes a single text part', () => {
@@ -62,7 +69,8 @@ describe('A2uiStreamSplitter — chunk-decomposition invariance', () => {
     `\`\`\`a2ui\n${ENV_SURFACE}\n${ENV_ROOT}\n\`\`\``, // no trailing newline
     `a\n\`\`\`a2ui\n${ENV_SURFACE}\n\`\`\`\nb\n\`\`\`a2ui\n${ENV_ROOT}\n\`\`\`\nc`, // two fences
     `trailing incomplete line with no newline`,
-    `text before\n\`\`\`a2ui\n${ENV_SURFACE}` // unterminated fence, no close
+    `text before\n\`\`\`a2ui\n${ENV_SURFACE}`, // unterminated fence, no close
+    `pre\n\`\`\`a2ui\n${ENV_SURFACE}\n${ENV_ROOT_MULTILINE}\n\`\`\`\npost` // pretty-printed envelope
   ];
 
   for (const source of sources) {
@@ -85,6 +93,90 @@ describe('A2uiStreamSplitter — chunk-decomposition invariance', () => {
     expect(parts.map((p) => p.type)).toEqual(['text', 'a2ui', 'text']);
     expect((parts[1] as { payload: unknown[] }).payload).toEqual([JSON.parse(ENV_SURFACE)]);
     expect((parts[2] as { text: string }).text).toBe('done');
+  });
+});
+
+describe('A2uiStreamSplitter — multi-line (pretty-printed) envelopes', () => {
+  it('parses an updateComponents envelope spread across several lines', () => {
+    const source = `Here:\n\`\`\`a2ui\n${ENV_SURFACE}\n${ENV_ROOT_MULTILINE}\n\`\`\`\ndone`;
+    const s = runChunked(source, 7);
+    const parts = s.snapshot();
+    expect(parts.map((p) => p.type)).toEqual(['text', 'a2ui', 'text']);
+    expect((parts[1] as { payload: unknown[] }).payload).toEqual([
+      JSON.parse(ENV_SURFACE),
+      JSON.parse(ENV_ROOT)
+    ]);
+    expect(s.issues).toHaveLength(0);
+  });
+
+  it('keeps earlier envelopes referentially stable while a multi-line one buffers', () => {
+    const s = new A2uiStreamSplitter();
+    s.push(`\`\`\`a2ui\n${ENV_SURFACE}\n`);
+    const first = (s.snapshot()[0] as { payload: unknown[] }).payload[0];
+    s.push('{"version":"v0.9.1","updateComponents":{"surfaceId":"s1","components":[\n');
+    // Mid-object: the buffered lines are not visible anywhere yet.
+    expect((s.snapshot()[0] as { payload: unknown[] }).payload).toHaveLength(1);
+    s.push('{"id":"root","component":"Text","text":"Hi"}\n]}}\n```\n');
+    const payload = (s.snapshot()[0] as { payload: unknown[] }).payload;
+    expect(payload).toHaveLength(2);
+    expect(payload[0]).toBe(first);
+    expect(s.issues).toHaveLength(0);
+  });
+
+  it('tolerates blank lines inside a multi-line envelope', () => {
+    const source = `\`\`\`a2ui\n{"version":"v0.9.1","createSurface":\n\n{"surfaceId":"s1","catalogId":"c"}}\n\`\`\`\n`;
+    const s = runChunked(source, 5);
+    expect((s.snapshot()[0] as { payload: unknown[] }).payload).toEqual([JSON.parse(ENV_SURFACE)]);
+    expect(s.issues).toHaveLength(0);
+  });
+
+  it('falls back to text when the fence closes on a still-open envelope', () => {
+    const source = `\`\`\`a2ui\n${ENV_SURFACE}\n{"version":"v0.9.1","updateComponents":{\n\`\`\`\nafter`;
+    const s = runChunked(source, 6);
+    const parts = s.snapshot();
+    expect((parts[0] as { payload: unknown[] }).payload).toEqual([JSON.parse(ENV_SURFACE)]);
+    expect(s.issues.some((i) => i.code === 'UNPARSEABLE_LINE')).toBe(true);
+    // The buffered line is re-emitted as text and the trailing prose stays prose.
+    const text = parts
+      .filter((p) => p.type === 'text')
+      .map((p) => (p as { text: string }).text)
+      .join('');
+    expect(text).toContain('"updateComponents"');
+    expect(text.endsWith('after')).toBe(true);
+  });
+
+  it('falls back when a braces-balanced buffer still fails to parse', () => {
+    const source = `\`\`\`a2ui\n{"a":[\n1,\n2\n] oops}\n\`\`\`\ntail`;
+    const s = runChunked(source, 4);
+    const parts = s.snapshot();
+    expect(parts.some((p) => p.type === 'a2ui')).toBe(false);
+    expect(s.issues.some((i) => i.code === 'UNPARSEABLE_LINE')).toBe(true);
+    const text = parts.map((p) => (p as { text: string }).text).join('');
+    expect(text).toContain('] oops}');
+    expect(text.endsWith('tail')).toBe(true);
+  });
+
+  it('re-emits a buffered partial envelope when the stream ends mid-object', () => {
+    const source = `\`\`\`a2ui\n${ENV_SURFACE}\n{"version":"v0.9.1","updateComponents":{"surfaceId":"s1",`;
+    const s = runChunked(source, 9);
+    expect(s.issues.some((i) => i.code === 'UNTERMINATED_FENCE')).toBe(true);
+    const parts = s.snapshot();
+    expect((parts[0] as { payload: unknown[] }).payload).toEqual([JSON.parse(ENV_SURFACE)]);
+    expect(parts.some((p) => p.type === 'text' && p.text.includes('"updateComponents"'))).toBe(
+      true
+    );
+  });
+
+  it('renders the real closing fence as the close of the synthetic code block', () => {
+    // After a fallback, the emitted text must read as one balanced ``` block:
+    // synthetic open + bad lines + the fence's own ``` as the close.
+    const s = runChunks(['```a2ui\n', 'garbage\n', '```\n', 'after\n']);
+    const text = s
+      .snapshot()
+      .filter((p) => p.type === 'text')
+      .map((p) => (p as { text: string }).text)
+      .join('');
+    expect(text).toBe('```\ngarbage\n```\nafter\n');
   });
 });
 
