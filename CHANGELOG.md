@@ -4,6 +4,26 @@ All notable changes to this project will be documented in this file.
 This changelog is automatically generated from [Conventional Commits](https://www.conventionalcommits.org).
 
 
+## [6.39.0] - 2026-07-24
+
+### Bug Fixes
+- **blocks**: Harden A2UIView against adversarial review findings
+- **chat-demo**: Make the a2ui fence splitter markdown-aware
+- **docs**: Correct A2UIView urlPolicy example and playground stop
+
+### Documentation
+- **docs-app**: Add A2UIView docs page, specimen and playground reply
+- **docs-app**: Refresh typography usage counts for A2UIView
+
+### Features
+- **docs**: Render prev/next from the layout instead of per page
+- **blocks**: Add A2UIView — trusted-catalog A2UI v0.9.1 renderer
+- **chat-demo**: Local Anthropic A2UI chat demo (prompt-first JSONL)
+
+### Miscellaneous
+- **docs**: Delete the dead docs-theme.css token file
+- **blocks**: Record A2UIView in the bundle-size baseline
+
 ## [6.38.0] - 2026-07-23
 
 ### Documentation
