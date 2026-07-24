@@ -223,9 +223,47 @@ export abstract class TypeScriptBaseExtractor<
       return comment.trim();
     }
     return comment
-      .map((part) => (typeof part === 'string' ? part : part.text || ''))
+      .map((part) => {
+        if (typeof part === 'string') return part;
+        // `{@link Target}` arrives as its own node whose `.text` holds only the
+        // optional display text — the target itself lives in `.name`. Reading
+        // `.text` alone dropped the link without a trace, leaving holes in the
+        // published prose ("debounced by  — on each query change").
+        if (ts.isJSDocLink(part) || ts.isJSDocLinkCode(part) || ts.isJSDocLinkPlain(part)) {
+          return this.formatJSDocLink(part);
+        }
+        return part.text || '';
+      })
       .join('')
       .trim();
+  }
+
+  /** Renders a `{@link …}` node back to readable text (display text, else the target as code). */
+  private formatJSDocLink(link: ts.JSDocLink | ts.JSDocLinkCode | ts.JSDocLinkPlain): string {
+    // The split between `.name` and `.text` is not the split between target and
+    // display text: for `{@link https://example.test/x label}` TypeScript parses
+    // `https` as the name and leaves `://example.test/x label` as the text. Glue
+    // them back together first, then separate on the real delimiter.
+    const target = link.name ? TypeScriptBaseExtractor.entityNameToString(link.name) : '';
+    const raw = `${target}${link.text ?? ''}`.trim();
+    if (!raw) return '';
+
+    const [, destination, display = ''] = raw.match(/^([^\s|]+)\s*\|?\s*([\s\S]*)$/) ?? [];
+    if (!destination) return '';
+    if (display.trim()) return display.trim();
+
+    // A bare URL or path stays as-is; a symbol name reads better as code.
+    return /^(https?:\/\/|\/|#)/.test(destination) ? destination : `\`${destination}\``;
+  }
+
+  /** `Foo`, `Foo.bar`, `Foo#bar` — without touching the source text of synthetic nodes. */
+  private static entityNameToString(name: ts.EntityName | ts.JSDocMemberName): string {
+    if (ts.isIdentifier(name)) return name.text;
+    if (ts.isQualifiedName(name)) {
+      return `${TypeScriptBaseExtractor.entityNameToString(name.left)}.${name.right.text}`;
+    }
+    // JSDocMemberName — `Class#member`
+    return `${TypeScriptBaseExtractor.entityNameToString(name.left)}#${name.right.text}`;
   }
 
   /**
