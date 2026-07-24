@@ -37,9 +37,11 @@ describe('sliderVariants', () => {
     expect(styles.thumb()).toContain('rounded-commit');
   });
 
+  // `surface-interactive`, not `surface-subtle`: the latter resolves to the same
+  // neutral step as `surface-elevated`, so the groove was invisible on a card.
   it('uses semantic surface token for track background', () => {
     const track = sliderVariants({}).track();
-    expect(track).toContain('bg-surface-subtle');
+    expect(track).toContain('bg-surface-interactive');
   });
 
   it('uses shadow token for thumb', () => {

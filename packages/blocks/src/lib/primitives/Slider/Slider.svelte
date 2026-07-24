@@ -160,7 +160,7 @@
       if (status === 'insideValidOnly') return 'var(--color-warning-subtle)';
       if (status === 'outsideValidDanger') return 'var(--color-danger-subtle)';
       if (status === 'outsideValidWarning') return 'var(--color-warning-subtle)';
-      return 'var(--color-surface-subtle)';
+      return 'var(--color-surface-interactive)';
     };
 
     const points = [min, ...zoneBoundaries, max];

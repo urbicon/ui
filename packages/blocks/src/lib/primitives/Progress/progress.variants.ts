@@ -7,8 +7,11 @@ export const progressVariants = tv({
     label: ['text-sm font-medium text-text-secondary'],
     valueText: ['text-sm tabular-nums text-text-tertiary'],
     // tier: commit — progress bar reads as a continuous status pill.
+    // Track fill is `surface-interactive` for the same reason as Slider's:
+    // `surface-subtle` equals `surface-elevated` in both modes, which made the
+    // track disappear on elevated surfaces (cards, popovers, dialogs).
     track: [
-      'relative w-full overflow-hidden rounded-commit bg-surface-subtle',
+      'relative w-full overflow-hidden rounded-commit bg-surface-interactive',
       'transition-[background-color] duration-[var(--blocks-duration-fast)] ease-out'
     ],
     fill: [
@@ -17,7 +20,7 @@ export const progressVariants = tv({
       'transition-[width,background-color] duration-[var(--blocks-duration-normal)] ease-out'
     ],
     circularWrapper: ['relative inline-flex items-center justify-center'],
-    circularTrack: ['stroke-current text-surface-subtle'],
+    circularTrack: ['stroke-current text-surface-interactive'],
     circularFill: [
       'stroke-current transition-[stroke-dashoffset] duration-[var(--blocks-duration-normal)] ease-out'
     ],

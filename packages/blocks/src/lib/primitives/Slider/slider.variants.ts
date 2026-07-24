@@ -8,8 +8,11 @@ export const sliderVariants = tv({
     valueText: ['text-sm tabular-nums text-text-tertiary'],
     base: ['relative flex items-center w-full touch-none select-none cursor-pointer'],
     // tier: commit — slider is a continuous-value pill (track + range + thumb).
+    // Track fill is `surface-interactive`, matching Toggle's unchecked track:
+    // `surface-subtle` resolves to the SAME neutral step as `surface-elevated`
+    // in both modes, so the groove vanished on any elevated card/popover.
     track: [
-      'relative w-full overflow-hidden rounded-commit bg-surface-subtle',
+      'relative w-full overflow-hidden rounded-commit bg-surface-interactive',
       'transition-[background-color] duration-[var(--blocks-duration-fast)]'
     ],
     range: [
