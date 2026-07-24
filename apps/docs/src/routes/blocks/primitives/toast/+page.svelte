@@ -21,11 +21,12 @@
   const navigation = [
     { id: 'playground', title: 'Playground', order: 1 },
     { id: 'examples', title: 'Examples', order: 2 },
-    { id: 'customization', title: 'Customization', order: 3 },
-    { id: 'accessibility', title: 'Accessibility', order: 4 },
-    { id: 'api', title: 'API Reference', order: 5 },
-    { id: 'types', title: 'Types', order: 6 },
-    { id: 'installation', title: 'Installation', order: 7 }
+    { id: 'store-api', title: 'Store API', order: 3 },
+    { id: 'customization', title: 'Customization', order: 4 },
+    { id: 'accessibility', title: 'Accessibility', order: 5 },
+    { id: 'api', title: 'API Reference', order: 6 },
+    { id: 'types', title: 'Types', order: 7 },
+    { id: 'installation', title: 'Installation', order: 8 }
   ];
 
   let placement = $state<
@@ -180,7 +181,7 @@
   <CustomDocs />
 
   <Section
-    marker="04"
+    marker="05"
     id="api"
     title="API Reference"
     intent="secondary"
@@ -189,7 +190,7 @@
     <ApiReference props={componentData?.props ?? []} types={componentData?.types ?? []} />
   </Section>
 
-  <Section marker="05" id="types" title="Types">
+  <Section marker="06" id="types" title="Types">
     <TypesReference
       types={componentData?.types ?? []}
       title="Store & Type Definitions"
@@ -197,7 +198,7 @@
     />
   </Section>
 
-  <Section marker="06" id="installation" title="Installation">
+  <Section marker="07" id="installation" title="Installation">
     <CodeExample
       title="Import"
       code={`import { Toaster, toaster } from '@urbicon-ui/blocks';`}

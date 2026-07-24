@@ -374,7 +374,7 @@ function authenticationVerifyHandler<R extends string>(
           // mid-login (a benign delete-race). Re-query to tell them apart so a SOC
           // doesn't alarm on a routine deletion as a clone attack. One extra read
           // on this rare fail-closed path; the rejection is identical either way.
-          const stillStored = await passkeyRepo.findByCredentialId(credential.id);
+          const stillStored = await passkeyRepo.findByCredentialId(stored.credentialId);
           if (!stillStored) {
             await loginFailed('', 'credential_deleted');
             return authError('passkey_verification_failed', 400, {

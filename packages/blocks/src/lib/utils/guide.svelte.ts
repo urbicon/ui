@@ -296,10 +296,13 @@ const ROUTE_TARGET_TIMEOUT_MS = 4000;
  * `route` is a normalized pathname (leading `/`), so the suffix test lands on a real segment
  * boundary — `/myexpenses` does not end with `/expenses`.
  */
+/** Drop a single trailing slash (except the root) — the one normalization both the
+ *  own-vs-foreign heuristic and the pre-navigation skip agree on. */
+const stripTrailingSlash = (s: string) => (s.length > 1 && s.endsWith('/') ? s.slice(0, -1) : s);
+
 function looksLikeNormalizedRoute(landed: string, route: string): boolean {
-  const stripSlash = (s: string) => (s.length > 1 && s.endsWith('/') ? s.slice(0, -1) : s);
-  const l = stripSlash(landed);
-  const r = stripSlash(route);
+  const l = stripTrailingSlash(landed);
+  const r = stripTrailingSlash(route);
   return l === r || l.endsWith(r);
 }
 
@@ -726,14 +729,17 @@ export class GuideController {
     }
     const route = this.currentStep?.route;
     if (route == null) return;
-    // Already on the (logical) route → nothing to do. Compare via the same
-    // normalization the async own-vs-foreign path uses, not an exact string
-    // match: under a normalizing router the current path can be `/expenses/` or
-    // `/de/expenses` for a step route of `/expenses`. An exact compare would
-    // re-navigate to the same logical route, and a router that no-op's that
-    // `goto` emits no report — leaving a targetless expectation armed until the
-    // next step (a spurious DEV foreign-nav warning).
-    if (looksLikeNormalizedRoute(this.#navSource.current(), route)) return;
+    // Already on the (logical) route → nothing to do. Normalize only a trailing
+    // slash before comparing, NOT the full own-vs-foreign heuristic: under a
+    // normalizing router the current path is `/expenses/` for a step route of
+    // `/expenses`, and an exact compare would re-navigate to the same logical
+    // route — a router that no-op's that `goto` emits no report, leaving a
+    // targetless expectation armed (a spurious DEV foreign-nav warning). The
+    // heuristic's `endsWith` prefix match is deliberately NOT used here: it would
+    // treat a genuine `/reports/summary` → `/summary` advance as "already there"
+    // and silently strand the tour. Prefix/locale forms are still recognized as
+    // OWN *after* navigating, on the async path (where they are DEV-warned).
+    if (stripTrailingSlash(route) === stripTrailingSlash(this.#navSource.current())) return;
     if (!this.#navigate) {
       if (this.#dev) {
         console.warn(
