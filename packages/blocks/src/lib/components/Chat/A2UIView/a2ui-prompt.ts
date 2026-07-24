@@ -91,7 +91,9 @@ export function a2uiSystemPrompt(options?: { catalogId?: string }): string {
     [
       '## Envelopes',
       '',
-      'Emit one JSON envelope per line (JSONL). Every envelope is an object with a',
+      'Emit one JSON envelope per line (JSONL), as COMPACT single-line JSON — never',
+      'pretty-print or wrap one envelope across multiple lines, even a large',
+      'updateComponents. Every envelope is an object with a',
       '"version" of "v0.9.1" and EXACTLY ONE of these operations:',
       '',
       `- createSurface: { surfaceId, catalogId: "${catalogId}" } — send this FIRST.`,
