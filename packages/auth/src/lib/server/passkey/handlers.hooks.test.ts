@@ -179,6 +179,38 @@ describe('passkey login hooks (R10)', () => {
     expect(deps.hooks.onLoginFailed).toHaveBeenCalledWith('', 'counter_regression');
   });
 
+  it("fires onLoginFailed('', 'credential_deleted') when the passkey is deleted mid-login (CAS lost + gone on re-query)", async () => {
+    const deps = makeDeps();
+    const storedCred = {
+      credentialId: 'cred-abc',
+      userId: 'u-1',
+      publicKey: new Uint8Array(0),
+      publicKeyAlg: -7,
+      counter: 0,
+      transports: [],
+      aaguid: 'a',
+      name: 'k',
+      createdAt: new Date(),
+      lastUsedAt: null
+    };
+    // Present on the initial lookup, gone on the post-CAS re-query → a benign
+    // delete-race, not a cloned authenticator.
+    vi.mocked(deps.repos.passkey.findByCredentialId)
+      .mockResolvedValueOnce(storedCred)
+      .mockResolvedValueOnce(null);
+    vi.mocked(verifyAssertion).mockResolvedValue({ credentialId: 'cred-abc', newCounter: 1 });
+    vi.mocked(deps.repos.passkey.updateCounter).mockResolvedValue(false);
+
+    const res = await passkeyHandlers(deps).authenticationVerify.POST(
+      event(credentialBody, makeCookieJar())
+    );
+
+    // Still fail-closed (identical rejection), only the audit reason differs.
+    expect(res.status).toBe(400);
+    expect(deps.hooks.onLoginFailed).toHaveBeenCalledWith('', 'credential_deleted');
+    expect(deps.hooks.onLoginFailed).not.toHaveBeenCalledWith('', 'counter_regression');
+  });
+
   it("fires onLoginFailed('', 'challenge_missing') without a ceremony cookie", async () => {
     const deps = makeDeps();
     const res = await passkeyHandlers(deps).authenticationVerify.POST(

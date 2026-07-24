@@ -368,6 +368,19 @@ function authenticationVerifyHandler<R extends string>(
         // closes the cloned-authenticator window the bare update left open.
         const advanced = await passkeyRepo.updateCounter(credential.id, verified.newCounter);
         if (!advanced) {
+          // A false compare-and-set has two causes: a concurrent request already
+          // advanced the counter — a replay through the read→verify gap, the
+          // genuine cloned-authenticator signal — OR the credential was deleted
+          // mid-login (a benign delete-race). Re-query to tell them apart so a SOC
+          // doesn't alarm on a routine deletion as a clone attack. One extra read
+          // on this rare fail-closed path; the rejection is identical either way.
+          const stillStored = await passkeyRepo.findByCredentialId(credential.id);
+          if (!stillStored) {
+            await loginFailed('', 'credential_deleted');
+            return authError('passkey_verification_failed', 400, {
+              message: 'Credential no longer exists'
+            });
+          }
           await loginFailed('', 'counter_regression');
           return authError('passkey_verification_failed', 400, {
             message: 'Counter did not increase — possible cloned authenticator'
