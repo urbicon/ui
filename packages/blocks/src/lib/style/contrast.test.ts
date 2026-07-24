@@ -809,10 +809,20 @@ describe('informative text on reading surfaces — WCAG contrast', () => {
    * Disabled text is held to the same 3:1 UI floor. WCAG 1.4.3 exempts inactive
    * controls, so this is a house rule rather than a conformance one — but a
    * disabled field's LABEL is the part that still has to say what the field is,
-   * and the token used to sit at 1.45–1.68:1 (light) / 2.01–2.34:1 (dark),
-   * i.e. invisible rather than muted. Nothing caught it: the dark-axe gate only
-   * ever saw it on PinInput, because axe honours the exemption wherever a
+   * and the token used to sit at roughly 1.5:1 (light) / 2:1 (dark), i.e.
+   * invisible rather than muted. Nothing caught it: the dark-axe gate only ever
+   * saw it on PinInput, because axe honours the exemption wherever a
    * `<label for>` points at a disabled control.
+   *
+   * SCOPE, deliberately: the reading surfaces plus the disabled fill — the
+   * backgrounds a disabled control actually renders on. The interaction surfaces
+   * (`interactive`, `interactive-hover`, `hover`, `active`) are excluded because
+   * a disabled control does not reach them; several would fail if measured, so
+   * this is an exclusion to revisit if a disabled element ever paints one.
+   *
+   * And it measures the TOKEN, not the composition. A component that stacks
+   * `opacity-*` on top (Calendar's disabled day does) lands far below what this
+   * asserts — see the technical-debt entry.
    */
   describe('disabled text stays legible — clears the 3:1 UI floor', () => {
     const disabled: Record<string, number> = {};

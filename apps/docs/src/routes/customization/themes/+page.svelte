@@ -157,6 +157,9 @@
     vars.push(`--color-surface-hover: ${activeChassis[100]}`);
     vars.push(`--color-surface-active: ${activeChassis[200]}`);
     vars.push(`--color-surface-interactive: ${activeChassis[100]}`);
+    // The fill's own hover rung — mirrors semantic.css, where `surface-hover`
+    // resolves to the same value as `surface-interactive` itself.
+    vars.push(`--color-surface-interactive-hover: ${activeChassis[200]}`);
     vars.push(`--color-text-primary: ${activeChassis[900]}`);
     vars.push(`--color-text-secondary: ${activeChassis[700]}`);
     vars.push(`--color-text-tertiary: ${activeChassis[600]}`);

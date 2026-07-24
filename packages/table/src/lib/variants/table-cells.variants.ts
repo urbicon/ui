@@ -640,11 +640,9 @@ export const customCellVariants = tv({
       true: {
         container: [
           'cursor-pointer rounded-modify',
-          // `translate` is named because this compound adds `hover:-translate-y-0.5`:
-          // Tailwind 4 emits that as the discrete `translate` property, which the
-          // `transition-colors` shorthand in CELL_BASE does not cover — the lift
-          // would snap. Same fold as tableRowVariants' `scale`.
-          'transition-[color,background-color,translate] duration-[var(--blocks-duration-fast)]',
+          // The transition list that covers this lift lives in the slot base
+          // above (`transition-[color,background-color,translate]`) — this
+          // compound does not need to restate it.
           'hover:bg-surface-hover hover:-translate-y-0.5',
           'active:translate-y-0 active:bg-surface-active',
           'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-primary'

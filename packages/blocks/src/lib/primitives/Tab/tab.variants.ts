@@ -48,7 +48,10 @@ export const tabVariants = tv({
         list: 'p-1 bg-surface-interactive',
         trigger: [
           'px-4 py-2 text-text-tertiary',
-          'hover:text-text-primary hover:bg-surface-hover',
+          // The trigger sits ON the list's `surface-interactive` fill, so its
+          // hover is the fill's own step — `surface-hover` resolves to the same
+          // value as the fill in light mode and was a no-op there.
+          'hover:text-text-primary hover:bg-surface-interactive-hover',
           'data-[state=active]:bg-surface-base data-[state=active]:text-primary',
           'data-[state=active]:shadow-[var(--blocks-shadow-sm)]'
         ]

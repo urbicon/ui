@@ -889,6 +889,47 @@ internal TODO instead. Sections are ordered roughly by urgency.
 
 ## Design tokens
 
+### A contrast floor on a token says nothing about what a component composes on it
+
+- **Where:** `packages/blocks/src/lib/style/contrast.test.ts` (the ramp guards)
+  vs. `packages/blocks/src/lib/components/Calendar/calendar.variants.ts:407-409`
+  (disabled day: `day: 'opacity-40'` + `dayNumber: 'text-text-disabled'`).
+- **What:** The guards measure a text token against a surface token. Calendar's
+  disabled day then wraps that pairing in `opacity-40`, which lands it around
+  1.6:1 — below where the token sat *before* it was hardened, while the guard
+  reports the token's own 3.4–4.9:1 and stays green. Any `opacity-*` on an
+  ancestor has the same effect; Calendar is just the instance that was measured.
+- **Second half of the same gap:** `--color-text-disabled` now resolves to the
+  same value as `--color-text-quaternary` in light mode (both `neutral-500`).
+  That is defensible in general — they are two roles, not two rungs of one ladder
+  — but Calendar puts them side by side: `outsideMonth` (quaternary) and
+  `disabled` (disabled) used to differ (neutral-500 vs -300) and are now
+  identical, so the two states are told apart only by that same `opacity-40`.
+- **Why deferred:** The fix is either a resolved-style assertion (measure the
+  composed result in a browser, which is an e2e/VR job, not a node test) or a
+  house rule against `opacity` on text-bearing elements — plus a Calendar
+  redesign of how "outside month" and "disabled" differ. Both are their own pass.
+- **Found:** 2026-07-25, adversarial review of the interaction-token wave.
+
+### The docs Rooms skins override the semantic ramp and no contrast gate sees them
+
+- **Where:** `apps/docs/src/lib/style/rooms.css` +
+  `rooms-docs.css` (they re-declare `--color-text-*`, `--color-surface-*` and
+  `--color-primary`) vs. `packages/blocks/src/lib/style/contrast.test.ts`, which
+  resolves only the library themes.
+- **What:** Every contrast guarantee the library gates is re-opened by the skins
+  the docs site actually ships, and nothing measures the result. Concretely
+  today: `rooms.css` disabled text clears 3:1 on the reading surfaces but not on
+  `surface-active` (~2.8:1), and each room's `--room-accent` shifts every surface
+  again (with the wine accent, quiet/subtle/disabled land near 2.9:1). The
+  `--color-primary` dark-mode defect under §Accessibility is the same class.
+- **Why deferred:** The guard resolves `light-dark(var(--color-*))` chains; the
+  skins are hex literals and `color-mix()` with a runtime `--room-accent`, so
+  covering them means either a resolver for those forms or measuring in a browser
+  (axe against the rooms, which the dark-axe project currently excludes on
+  purpose). A gate-scope decision, not a value fix.
+- **Found:** 2026-07-25, adversarial review of the interaction-token wave.
+
 ### `surface-subtle` is byte-identical to `surface-elevated`, so `hover:bg-surface-subtle` dies on elevated surfaces
 
 - **Where:** `packages/blocks/src/lib/style/semantic.css`

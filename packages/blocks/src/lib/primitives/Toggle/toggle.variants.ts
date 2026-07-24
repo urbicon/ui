@@ -128,13 +128,15 @@ export const toggleVariants = tv({
         // same destination Checkbox's unchecked `outlined` box reaches, on
         // the border the track already reserves (`border border-transparent`
         // in the slot base, so nothing shifts).
-        // Deliberately NOT a fill step: the off track sits on
-        // `surface-interactive`, which resolves to the SAME value as
-        // `surface-hover` in light mode (both neutral-100) and as
-        // `surface-active` in dark (both neutral-700) — in the library
-        // default *and* under the docs Rooms skin. Either fill token would
-        // therefore be a silent no-op in one of the two modes; the border is
-        // the only step that reads in both.
+        //
+        // A fill step is now possible — `surface-interactive-hover` (added
+        // 2026-07-25) is the rung the filled fields use, and it reads in both
+        // modes. The border step stays anyway, for a Toggle-specific reason:
+        // the `dot` variant hides the thumb, so the track IS the control, and a
+        // boundary change reads there where a fill wash does not. (The original
+        // reason was that no fill token worked at all — `surface-interactive`
+        // resolved to `surface-hover` in light and `surface-active` in dark.
+        // That is fixed; this is now a choice, not a constraint.)
         track: 'bg-surface-interactive group-hover:border-border-emphasis',
         thumb: 'translate-x-0'
       }

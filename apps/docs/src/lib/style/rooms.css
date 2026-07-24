@@ -117,10 +117,16 @@
   --color-text-secondary: #57534a;
   --color-text-tertiary: #6e6a5f;
   --color-text-quaternary: #8a8578;
-  /* Was #b8b3a6 = 1.81–2.09:1 on the room papers — a disabled label has to stay
-     readable enough to say what the control is (see semantic.css). This clears
-     the 3:1 UI floor everywhere (3.18–3.68:1) and lands on the same value as
-     --color-text-quaternary, the same way the library's ramp does in light. */
+  /* Was #b8b3a6 ≈ 2:1 on the room papers — a disabled label has to stay readable
+     enough to say what the control is (see semantic.css). This lands on the same
+     value as --color-text-quaternary, the way the library's ramp does in light.
+
+     Measured against the *accent-less* fallbacks it clears 3:1 on the reading
+     surfaces; it does NOT clear it on every surface (`surface-active` sits at
+     2.8:1) and every room carries a `--room-accent` that shifts all of them —
+     with the wine accent, quiet/subtle/disabled drop to ~2.9:1. No gate covers
+     this file: contrast.test.ts reads the library themes, and these are
+     hex/color-mix values it cannot resolve. Logged in technical-debt. */
   --color-text-disabled: #8a8578;
 
   --color-border-hairline: rgb(31 29 23 / 0.1);

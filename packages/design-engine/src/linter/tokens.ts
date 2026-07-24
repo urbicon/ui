@@ -24,6 +24,7 @@ const SURFACE_CORES = [
   'surface-elevated',
   'surface-overlay',
   'surface-interactive',
+  'surface-interactive-hover',
   'surface-hover',
   'surface-active',
   'surface-disabled',

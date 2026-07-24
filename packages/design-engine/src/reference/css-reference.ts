@@ -67,7 +67,7 @@ Fetch a section with \`urbicon css-reference <section>\` (local CLI) or \`get_cs
 
 const SURFACES = `# Surface Tokens
 
-11 tokens for background colors. All auto-switch in dark mode.
+12 tokens for background colors. All auto-switch in dark mode.
 
 | CSS Variable | Tailwind Utility | Purpose |
 |---|---|---|
@@ -77,6 +77,7 @@ const SURFACES = `# Surface Tokens
 | \`--color-surface-elevated\` | \`bg-surface-elevated\` | Cards, panels (floating with shadow) |
 | \`--color-surface-overlay\` | \`bg-surface-overlay\` | Modals, popovers |
 | \`--color-surface-interactive\` | \`bg-surface-interactive\` | Interactive element backgrounds |
+| \`--color-surface-interactive-hover\` | \`bg-surface-interactive-hover\` | Hover step for an element resting on \`surface-interactive\` (\`surface-hover\` is the step for elements on a reading surface, and resolves to the same value as \`surface-interactive\` itself) |
 | \`--color-surface-hover\` | \`bg-surface-hover\` | Hover state |
 | \`--color-surface-active\` | \`bg-surface-active\` | Active/pressed state |
 | \`--color-surface-disabled\` | \`bg-surface-disabled\` | Disabled elements |
@@ -337,8 +338,8 @@ The library's usage is steep and lopsided — overriding the wrong end of the sc
 
 | Variable | Utility | Default | Reach in the library |
 |---|---|---|---|
-| \`--text-3xs\` | \`text-3xs\` | 0.625rem / 10px | library-added, size-only; the sub-xs floor — chart axis + donut sub-labels, Progress/RadioGroup \`xs\`, CommandPalette, Sankey, Planner, CompositionBar, Calendar year view (8 components) |
-| \`--text-2xs\` | \`text-2xs\` | 0.6875rem / 11px | library-added, size-only; dense chrome — Calendar (the heaviest user, but under half), CommandPalette, JourneyTimeline, Stepper, CompositionBar |
+| \`--text-3xs\` | \`text-3xs\` | 0.625rem / 10px | library-added, size-only; the sub-xs floor — chart axis + donut sub-labels, Progress \`xs\`, Kbd \`sm\`, CommandPalette, Sankey, Planner, CompositionBar, Calendar year view (8 components) |
+| \`--text-2xs\` | \`text-2xs\` | 0.6875rem / 11px | library-added, size-only; dense chrome — Calendar (the heaviest user, but under half), CommandPalette, JourneyTimeline, Kbd, PromptInput, CompositionBar |
 | \`--text-xs\` | \`text-xs\` | 0.75rem / 12px | heavy |
 | \`--text-sm\` | \`text-sm\` | 0.875rem / 14px | **the highest-leverage override** |
 | \`--text-base\` | \`text-base\` | 1rem / 16px | heavy |
