@@ -505,28 +505,22 @@ internal TODO instead. Sections are ordered roughly by urgency.
   on every reading surface × mode × theme. Only this off-system demo remains.
 - **Found:** 2026-07-14, C.1/C.7 pass; narrowed to the off-system demo in W1.
 
-### Playground stages are exempt from the axe gate — and the Combobox playground input is unlabelled
+### The axe gate scans only the PRIMITIVES route list — non-primitive routes are unscanned
 
-- **Where:** `e2e/a11y.spec.ts` (the preview/code passes scan
-  `[data-docs-preview]` and `[data-docs-stage="example"]`; the
-  PlaygroundConfigurator's `data-docs-stage="playground"` is never scanned) +
-  `apps/docs/src/routes/blocks/primitives/combobox/+page.svelte:116-124` (the
-  playground Combobox has neither `label` nor `aria-label`).
-- **What:** The same defect class the wave-3 demo fix closed, one section up —
-  but structurally ungated: no axe pass covers playground stages, so unlabelled
-  playground inputs (and any other playground-only violation) are invisible to
-  the gate on all ~36 primitive pages.
-- **Why deferred:** Two coupled calls: whether the playground stage should be
-  scanned at all (it is chrome + a live specimen; scanning doubles per-page
-  cost), and a sweep over the playground specimens' naming once it is. Surfaced
-  by the wave-3 review as a follow-up, not a regression.
-- **Update 2026-07-23 (debt-fix-wave-4 review):** the route dimension is the
-  bigger half of the same gap — `e2e/a11y.spec.ts` iterates only the
-  `PRIMITIVES` route list, so table/*, recipes and the other non-primitive
-  routes (including the new live `/table/remote-data` demo, which does carry a
-  `[data-docs-preview]` region) are never scanned at all. Widening the route
-  list belongs to the same gate-scope decision.
-- **Found:** 2026-07-22, debt-fix-wave-3 review.
+- **Where:** `e2e/a11y.spec.ts` iterates only the `PRIMITIVES` route list, so
+  `table/*`, recipes, auth, customization and every other non-primitive route
+  (including the live `/table/remote-data` demo, which carries a
+  `[data-docs-preview]` region) are never axe-scanned.
+- **What:** The route dimension of the former "playground + routes" gate gap.
+  Each new route may surface real violations to fix or absorb, so widening the
+  list is a bounded a11y sweep, not a one-line change.
+- **Why deferred:** A gate-scope decision plus the per-route fix/absorb work it
+  uncovers — its own pass, cut deliberately from W2.
+- **Resolved in W2 (2026-07-24):** the playground half shipped —
+  `a11y.spec.ts` now runs a `playground` pass over `[data-docs-stage="playground"]`
+  on every page that has one (all clean; the specimen Combobox gained an
+  `aria-label`). The dark-mode and VR-tolerance sibling entries also shipped in W2.
+- **Found:** 2026-07-22, debt-fix-wave-3 review; narrowed to the route dimension in W2.
 
 ### Rooms skin pins `--color-primary` to the raw accent in both modes — dark-mode accent-as-foreground misses the floor
 
@@ -827,60 +821,6 @@ internal TODO instead. Sections are ordered roughly by urgency.
   wave).
 
 
-### The axe gate never scans dark mode — and the docs skin overrides the token it would catch
-
-- **Where:** `e2e/a11y.spec.ts` (no `colorScheme: 'dark'` context, so every scan
-  runs light) + the docs Rooms skin, which remaps `--color-text-on-primary` to
-  its own `var(--_afg)`.
-- **What:** Two independent blind spots that compound. The 2026-07-14
-  `text-on-primary` bug spanned 125 dark-mode combinations down to 1.51:1 and
-  axe never saw a single one: the harness only emulates light, and even if it
-  emulated dark, the docs pages it scans override that very token. So the
-  entire surface where the worst contrast bug in the system lived is invisible
-  to the a11y gate by construction — `style/contrast.test.ts` is its only
-  guard, and that test reads the CSS rather than the rendered page.
-- **Why deferred:** Adding a dark pass is cheap (a second Playwright project
-  with `colorScheme: 'dark'`), but it doubles the a11y matrix and the baseline
-  ratchet (`42b7fc5`) has to absorb the dark-mode violations deliberately, not
-  by snapshot. The skin-override half is really a question about what the
-  fixtures should be: axe scanning the *docs site* measures the skin, not the
-  library — the token-level truth needs a library-only fixture (the VR suite
-  already has one: `test-fixtures/primitives`).
-- **Found:** 2026-07-14, landing the `text-on-primary` remedy.
-
-### VR tolerance hides colour-only regressions — `maxDiffPixelRatio: 0.01` let a full label inversion pass
-
-- **Where:** `playwright.config.ts:14` (`maxDiffPixelRatio: 0.01`) + the
-  `--update-snapshots` default (updates only what it considers changed).
-- **What:** On small fixtures the ratio is large enough to swallow a *complete
-  colour inversion*: when `text-on-primary` flipped white→dark (2026-07-14),
-  the `badge-dark-library` baseline **passed unchanged** — its label pixels are
-  under 1 % of the shot — so a plain `--update-snapshots` refreshed only
-  `button`, leaving badge's baseline asserting the old, wrong render. Found by
-  running `--update-snapshots=all` and diffing the true blast radius. The same
-  blind spot had already left **8 stale baselines** in the tree
-  (`input-{dark,light}-{library,rooms}`, `checkbox-{dark-rooms,light-library,
-  light-rooms}`), most likely since the Input `id`/label fix (`c8753a4`)
-  without rebaselining; they were reverted rather than swept along, and remain
-  stale. Separately, `progress-light-rooms` is **non-deterministic** — it
-  differs between identical runs.
-- **Why deferred:** Three coupled calls: lowering/removing the tolerance (which
-  demands the flaky `progress` fixture be fixed first, or it goes permanently
-  red), deciding whether `--update-snapshots=all` becomes the documented
-  default, and re-baselining the 8 stale shots deliberately (each needs looking
-  at — that is the point of the suite). Interacts with the darwin-only entry
-  below.
-- **Update 2026-07-23 (core-extraction baseline):** bit again, from the other
-  direction — an *added* element vanished into the ratio: a new
-  `soft`/`primary` removable-Badge sentinel (light-on-light, `text-xs`)
-  rendered fine but stayed under 1 % of the section shot, so
-  `--update-snapshots` silently kept the old baseline (while the loading
-  Buttons re-baselined only because they wrapped the row and forced a size
-  mismatch). Consequence, until the tolerance call is made: **VR sentinel
-  elements must be high-contrast** (the fixture now uses `filled`/`danger`,
-  with a comment pointing here).
-- **Found:** 2026-07-14, landing the `text-on-primary` remedy.
-
 ### e2e visual snapshots are `chromium-darwin`-only — Linux CI can't verify them
 
 - **Where:** `e2e/snapshots/**` (all committed PNGs, incl. the
@@ -903,6 +843,15 @@ internal TODO instead. Sections are ordered roughly by urgency.
   both platforms, (b) add a macOS runner for the e2e job, or (c) a one-off CI bootstrap
   that runs `--update-snapshots` on Linux and commits the result. Each is an infra
   decision spanning all three specs, not a change to the suite in flight.
+- **Update 2026-07-24 (W2):** the suite's other blockers are cleared — fixtures
+  are deterministic (`transition: none` killed the circular-Progress mount frame),
+  the tolerance is calibrated and verified stable (`maxDiffPixelRatio: 0.002` +
+  `threshold: 0.15`, two identical runs), and the darwin baselines are freshly
+  re-generated and drift-free (12 unchanged shots proved the local env matches
+  the baseline env). All that remains is generating the `-chromium-linux`
+  baselines in the CI env itself — option (c), a one-off bootstrap job; a local
+  Docker run is not trusted to match the GitHub-Actions font rendering
+  byte-for-byte, which is the whole point of per-platform baselines.
 - **Found:** 2026-07-08, adding the primitive visual-regression suite.
 
 ### i18n source scanner: documented analysis limits (strict mode not built)
