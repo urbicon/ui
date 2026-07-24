@@ -484,58 +484,26 @@ internal TODO instead. Sections are ordered roughly by urgency.
 
 ## Accessibility
 
-### `text-tertiary` on subtle surfaces measures 4.18:1 — and the off-system demos trip axe
+### Off-system dark-skin SegmentGroup demo trips axe (restyle-vs-exempt)
 
-- **Where:** `packages/blocks/src/lib/style/semantic.css:54`
-  (`--color-text-tertiary: light-dark(neutral-600, neutral-300)`), used for
-  inactive controls such as `segmentgroup.variants.ts:46`; plus the
-  deliberately off-system demos under `apps/docs/src/routes/blocks/**/Docs.svelte`
-  (e.g. `text-orange-950/80` in SegmentGroup's "Unstyled warm").
-- **What:** `#6e6b64` on `#e8e3e1` = **4.18:1**, under the 4.5:1 AA floor for
-  normal text — so every inactive SegmentGroup label, and any tertiary text on
-  a subtle surface, misses AA. Unchanged since the initial commit (not a
-  regression). Separately, the unstyled/brutalist/glass demos hardcode raw
-  palette colours on purpose, and axe scans them because they sit inside
-  `[data-docs-preview]`.
-- **Why deferred:** Two different calls. Darkening `text-tertiary` is a
-  system-wide visual change (it is the muted-metadata token everywhere) and
-  wants the same pass as the `text-on-primary` entry above — ideally
-  extending `contrast.test.ts` from intent×variant to text-on-surface, which
-  it does not yet cover. The demos are a separate question: they exist to
-  show off-system customisation, so either they get axe exemptions, or the
-  a11y baseline absorbs them, or they are restyled to clear AA while still
-  looking off-system.
-- **Update 2026-07-14 (Opus quality wave):** the baseline question is settled
-  for now — the demos are absorbed as **documented, node-level exceptions** in
-  `e2e/a11y-baseline.json` (each names the exact colour pair, so a *different*
-  bad pair still fails), which restores the gate's signal without pre-empting
-  the restyle-vs-exempt call. The token half is untouched and still wants the
-  pass above. Two further demo defects were measured in the same run: the badge
-  demo's `text-white` on `bg-warning` was reclassified as a plain demo bug
-  (hardcoded colour, on-system demo) and **fixed in debt-fix-wave-3
-  (2026-07-22, `text-text-on-warning`)**; SegmentGroup's dark-skin demo
-  (`#17150f` on `#062f26` = **1.25:1**, a near-invisible selected label)
-  remains with the restyle decision.
-- **Found:** 2026-07-14, C.1/C.7 pass (reported) + independently confirmed by
-  the orchestrator (own calculation: 4.18:1); demo facets extended by the
-  widened axe pass (Opus quality wave).
-
-### `text-text-quaternary` measures 1.96:1
-
-- **Where:** the quaternary text token (`packages/blocks/src/lib/style`), seen
-  on `/blocks/primitives/journey-timeline`.
-- **What:** `text-text-quaternary` `#b8b5ad` on `#fbfaf6` = **1.96:1** —
-  far below AA, and the same ramp stop the Shiki comment token was deliberately
-  raised *away from* in `572b738`; if it is a text token it is unusable, so the
-  real question is whether it is one. Held meanwhile by a documented exception
-  in `e2e/a11y-baseline.json`.
-- **Why deferred:** Rides the same ramp decision as the `text-tertiary` /
-  `text-on-primary` entries — settle the ramp once rather than per token.
-  (The entry's former part (b) — seven unlabelled Combobox demos — was fixed
-  in debt-fix-wave-3, 2026-07-22: all demos named, the baseline exception
-  removed.)
-- **Found:** 2026-07-14, widening the e2e axe harness to the code panel (Opus
-  quality wave).
+- **Where:** the deliberately off-system dark-skin SegmentGroup demo under
+  `apps/docs/src/routes/blocks/**/Docs.svelte`, held by two exceptions in
+  `e2e/a11y-baseline.json`.
+- **What:** The near-black brutalist demo renders its selected label `#17150f`
+  on `#062f26` = **1.25:1** and its inactive label `#635f58` (the Rooms
+  `--docs-soft`) on `#070c10` = **3.09:1** — both below the floor. It exists to
+  show off-system (unstyled) customisation, so it hardcodes raw palette colours
+  and axe scans it because it sits inside `[data-docs-preview]`.
+- **Why deferred:** Restyle-vs-exempt call on the off-system demo: restyle it to
+  clear AA while still looking off-system, or keep the two documented
+  node-level exceptions. Not an on-system token defect.
+- **Resolved in W1 (2026-07-24):** the token half of the original entry is done.
+  `text-tertiary` (library) clears AA on every reading surface (measured 6–8:1);
+  the on-system SegmentGroup inactive label was the Rooms `--docs-soft`, darkened
+  `#6e6b64` → `#635f58` (4.18 → 4.99:1 on the warm-neutral track). And the entry's
+  wished-for guard shipped: `style/contrast.test.ts` now covers informative text
+  on every reading surface × mode × theme. Only this off-system demo remains.
+- **Found:** 2026-07-14, C.1/C.7 pass; narrowed to the off-system demo in W1.
 
 ### Playground stages are exempt from the axe gate — and the Combobox playground input is unlabelled
 
@@ -560,76 +528,30 @@ internal TODO instead. Sections are ordered roughly by urgency.
   list belongs to the same gate-scope decision.
 - **Found:** 2026-07-22, debt-fix-wave-3 review.
 
-### The docs Rooms skin remaps `--color-primary` to an accent that misses AA against `text-on-primary`
+### Rooms skin pins `--color-primary` to the raw accent in both modes — dark-mode accent-as-foreground misses the floor
 
-- **Where:** `apps/docs/src/lib/style/rooms-docs.css:77` (`--room-accent:
-  #00845c`, remapped onto `--color-primary`) vs.
-  `packages/blocks/src/lib/style/semantic.css:58` (`--color-text-on-primary:
-  var(--color-neutral-0)`).
-- **What:** On the docs site, every filled primary control renders white
-  `#f6f3ec` on the room green `#00845c` = **4.25:1**, just under the 4.5:1 AA
-  floor — measured by axe across 9 primitive pages (accordion, badge, button,
-  card, popover, tab, toast, toolbar, tooltip). **This is not the library
-  token:** blocks' `--color-primary` is `oklch(0.52 0.15 240)` (blue) and its
-  `contrast.test.ts` passes for the library pairs. The skin is what puts the
-  pair below AA — so the site that demonstrates the design system shows it in
-  a state the system's own contrast test would reject. Distinct from the
-  `text-on-primary` entry above (that one is the library's dark-mode problem)
-  and from the Rooms-skin entry below (that one is *secondary* text at 74%
-  opacity, this one is the solid on-colour).
-- **Why deferred:** It is a skin design call, not a fix: nudge `--room-accent`
-  darker (it is the docs' brand green — every room field, hero and header
-  carries it), or give the skin its own on-colour. Either way wants a VR pass
-  across the four rooms. Held meanwhile by a documented exception in
-  `e2e/a11y-baseline.json`.
-- **Found:** 2026-07-14, widening the e2e axe harness (Opus quality wave); the
-  library/skin split was traced during the merge, when the measurement appeared
-  to contradict the publish-m3 wave's "light mode is fine" finding — both are
-  correct, they measure different layers.
-- **Update 2026-07-22 (debt-fix-wave-3):** the badge demo's two JD avatar
-  circles keep their hardcoded `text-white` on `bg-primary` deliberately —
-  under the Rooms skin white measures ≈ 4.7:1 on `#00845c` (passes), while the
-  "correct" `text-text-on-primary` (`#f6f3ec`) would *drop* the pair to 4.25:1
-  into this entry's exception. Swapping them is coupled to this accent
-  decision, not a drive-by.
-
-### Rooms-skin secondary text on accent fields misses WCAG AA contrast
-
-- **Where:** `apps/docs/src/lib/style/rooms-docs.css` — the shared
-  `[data-docs-sticky-bar] / [data-docs-header] / [data-room-hero]` block (~`:405`)
-  remaps `--color-text-secondary` (and `--docs-soft`, which `meta-marker`/
-  `font-meta` read) to `color-mix(in oklab, var(--room-accent-fg) 74%,
-  transparent)`; the same 74% remap recurs for `[data-room-register]` (~`:477`),
-  so a skin-wide fix has to cover both blocks.
-- **What:** On the blocks-green field the resolved lede/kicker colour measures
-  a 3.01 contrast ratio against `#00845c` (axe `color-contrast`, needs 4.5:1
-  for normal-size text). This hits every hero lede, kicker and prerequisites
-  line on every room field across the skin — all section landings and every
-  component-page header — not any single page.
-- **Why deferred:** The 74%-translucent foreground is a deliberate Rooms
-  design decision (the quiet-on-field hierarchy). Fixing it is a skin-wide
-  design call: raise the mix toward ~88%+, keep the hierarchy via size/weight
-  instead of opacity, or consciously accept AA-large only for the lede. Wants
-  one decision applied to the whole remap block, with a VR pass over the four
-  rooms.
-- **Found:** 2026-07-10, axe over the rebuilt `/getting-started` build guide.
-
-### docs `CodePanel` Shiki punctuation token is below WCAG AA in both themes
-
-- **Where:** `packages/docs/src/lib/utils/shiki-editorial-themes.ts` — the
-  `punctuation` / `meta.brace` / `punctuation.separator|terminator` /
-  `meta.tag.start|end` scopes (light `#9a968e`, dark `#7a776e`).
-- **What:** The comment token was raised to AA (`572b738`), but a full-token
-  audit shows the mid-gray punctuation still fails on the panel grounds: light
-  `#9a968e` = 2.82:1 on `#fbfaf6`, dark `#7a776e` = 3.55:1 on `#232220` (AA
-  needs 4.5:1), so `{ } < > ; .` nodes trip axe `color-contrast` on a full-page
-  scan. Every other token (string/number/keyword/tag/attribute/variable/
-  function/type) clears AA in both themes.
-- **Why deferred:** Comments already sit at the ramp's light limit, so
-  darkening the frequently-used punctuation is a coordinated ramp/aesthetic
-  decision (light needs L≤0.173, dark needs L≥0.247), not a drive-by recolour.
-  The reported debt value (1.96) was uniquely the comment token, now fixed.
-- **Found:** 2026-07-14, CodePanel a11y pass (Opus debt-sweep).
+- **Where:** `apps/docs/src/lib/style/rooms-docs.css` — `--color-primary:
+  var(--_a)` and `--color-interactive-focus: var(--_a)` (the raw room accent, in
+  BOTH modes, unlike the library's mode-aware `light-dark(primary-600,
+  primary-500)`). Consumed as a *foreground* by `SidebarNavigation.svelte`
+  (active nav `text-primary`, the `before:bg-primary` active-marker) + focus rings.
+- **What:** In dark mode the dark accent renders as foreground on the dark Rooms
+  paper (`#232220`): green `#006c4a` = **2.46:1**, below the 3:1 UI floor. W1
+  (green `#00845c` → `#006c4a`, for the light-mode on-fill AA) deepened it from
+  3.37:1 (which just cleared the UI floor); the active nav-link **text** was
+  already under AA (3.37 < 4.5) before W1. Light mode is fine — the dark accent
+  is legible as foreground on cream and clears AA as a fill under cream text. The
+  axe gate is light-only (see the dark-mode entry above), so nothing catches it.
+- **Why deferred:** The fill role wants the accent *dark* (cream-on-fill AA); the
+  foreground role wants it *light* (on dark paper). No single value satisfies both
+  in dark mode — the same reason the library made `text-on-primary` mode-aware
+  (2026-07-14). The real fix is that Material-3 split for the Rooms skin:
+  mode-aware `--color-primary` (a lighter stop in dark) + mode-aware on-primary
+  (ink in dark). That flips the Rooms dark-mode button look — "raw accent in both
+  modes" is a deliberate skin decision — and wants a VR pass across the four
+  rooms. Not a token tweak. Pairs with the dark-axe gate entry above (a dark
+  Playwright project would catch this class).
+- **Found:** 2026-07-24, W1 adversarial review (deepened by W1's green nudge).
 
 ### docs-app hardcodes `lang="en"` while its chrome is bilingual
 

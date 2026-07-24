@@ -41,7 +41,7 @@
       "routes": ["segment-group"],
       "contrast": { "fg": "#17150f", "bg": "#062f26" },
       "reason": "PRE-EXISTING. Dark-skinned SegmentGroup demo: #17150f on #062f26 = 1.25:1 — near-invisible selected label. Off-system demo markup in apps/docs (deliberately shows unstyled/brutalist customisation). Restyle-vs-exempt call, outside e2e scope.",
-      "ref": "docs/technical-debt.md -> '`text-tertiary` on subtle surfaces measures 4.18:1 — and the off-system demos trip axe'"
+      "ref": "docs/technical-debt.md -> 'Off-system dark-skin SegmentGroup demo trips axe (restyle-vs-exempt)'"
     },
     {
       "id": "preview-segment-group-dark-skin-inactive-contrast",
@@ -50,7 +50,7 @@
       "routes": ["segment-group"],
       "contrast": { "fg": "#635f58", "bg": "#070c10" },
       "reason": "Off-system dark-skinned SegmentGroup demo, inactive label: #635f58 on #070c10 = 3.09:1. The inactive label tracks --docs-soft, which W1 darkened #6e6b64 -> #635f58 to clear AA on the on-system warm-neutral track; on this demo's deliberately near-black brutalist skin that same token lands below the floor. Restyle-vs-exempt call on the off-system demo, outside e2e scope.",
-      "ref": "docs/technical-debt.md -> '`text-tertiary` on subtle surfaces measures 4.18:1 — and the off-system demos trip axe'"
+      "ref": "docs/technical-debt.md -> 'Off-system dark-skin SegmentGroup demo trips axe (restyle-vs-exempt)'"
     }
   ]
 }
