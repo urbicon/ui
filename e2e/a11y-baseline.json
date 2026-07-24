@@ -24,72 +24,23 @@
     "  ref           — where the decision / follow-up lives",
     "",
     "When a row gets fixed, delete its entry — the suite reports exceptions",
-    "that no longer match anything at the end of a full run."
+    "that no longer match anything at the end of a full run.",
+    "",
+    "W1 a11y-contrast (2026-07-24) resolved five former entries and deleted them:",
+    "codepanel-punctuation (Shiki punctuation raised to AA), text-on-primary +",
+    "breadcrumb-current (Rooms green accent darkened #00845c -> #006c4a),",
+    "tab-segment-inactive (--docs-soft darkened #6e6b64 -> #635f58), and",
+    "journey-timeline-quaternary (segment moved to text-tertiary). What remains",
+    "is the off-system dark-skin SegmentGroup demo, a separate restyle decision."
   ],
   "exceptions": [
-    {
-      "id": "codepanel-punctuation-contrast",
-      "pass": "code",
-      "rule": "color-contrast",
-      "routes": "*",
-      "contrast": { "fg": "#9a968e", "bg": "#fbfaf6" },
-      "reason": "Shiki `punctuation` / `meta.brace` / `punctuation.separator|terminator` / `meta.tag.start|end` render at #9a968e on the #fbfaf6 panel ground = 2.82:1 (AA needs 4.5:1). Deliberately deferred: comments already sit at the ramp's light limit, so darkening the very frequent punctuation is a coordinated ramp/aesthetic decision (light needs L<=0.173, dark L>=0.247), not a drive-by recolour. The fg colour is unique to those scopes in shiki-editorial-themes.ts, so this pair matches the punctuation tokens and nothing else.",
-      "ref": "docs/technical-debt.md -> 'docs `CodePanel` Shiki punctuation token is below WCAG AA in both themes'"
-    },
-
-    {
-      "id": "preview-text-on-primary-contrast",
-      "pass": "preview",
-      "rule": "color-contrast",
-      "routes": [
-        "accordion",
-        "badge",
-        "button",
-        "card",
-        "popover",
-        "tab",
-        "toast",
-        "toolbar",
-        "tooltip"
-      ],
-      "contrast": { "fg": "#f6f3ec", "bg": "#00845c" },
-      "reason": "PRE-EXISTING, surfaced (not caused) by widening this harness. #00845c is NOT the library's --color-primary (that is oklch(0.52 0.15 240), blue) — it is --room-accent from the docs app's Rooms skin (apps/docs/src/lib/style/rooms-docs.css:77), which remaps --color-primary. So this is the docs site rendering every filled primary control at 4.25:1, not a library token defect: blocks' own contrast.test.ts covers the library pairs and passes. Fixing means re-picking the room accent (or its on-colour) — an apps/docs skin decision.",
-      "ref": "docs/technical-debt.md -> 'The docs Rooms skin remaps `--color-primary` to an accent that misses AA against `text-on-primary`'"
-    },
-    {
-      "id": "preview-tab-segment-inactive-contrast",
-      "pass": "preview",
-      "rule": "color-contrast",
-      "routes": ["segment-group", "tab"],
-      "contrast": { "fg": "#6e6b64", "bg": "#e8e3e1" },
-      "reason": "PRE-EXISTING. Inactive tab/segment label #6e6b64 on the interactive surface #e8e3e1 = 4.17:1. Semantic-token decision, outside e2e scope. Reported for triage.",
-      "ref": "docs/technical-debt.md -> '`text-tertiary` on subtle surfaces measures 4.18:1 — and the off-system demos trip axe'"
-    },
-    {
-      "id": "preview-journey-timeline-quaternary-contrast",
-      "pass": "preview",
-      "rule": "color-contrast",
-      "routes": ["journey-timeline"],
-      "contrast": { "fg": "#b8b5ad", "bg": "#fbfaf6" },
-      "reason": "PRE-EXISTING. text-text-quaternary #b8b5ad on #fbfaf6 = 1.96:1 — the same ramp stop the Shiki comment token was raised away from in 572b738. Semantic-token decision, outside e2e scope. Reported for triage.",
-      "ref": "docs/technical-debt.md -> '`text-text-quaternary` measures 1.96:1, and the Combobox demos have no accessible name'"
-    },
-    {
-      "id": "preview-breadcrumb-current-contrast",
-      "pass": "preview",
-      "rule": "color-contrast",
-      "routes": ["breadcrumb"],
-      "contrast": { "fg": "#00845c", "bg": "#e2eee7" },
-      "reason": "PRE-EXISTING. aria-current crumb: text-primary on bg-primary/10 = 3.95:1. Docs-demo composition over a token pair; outside e2e scope. Reported for triage.",
-      "ref": "docs/technical-debt.md -> 'The docs Rooms skin remaps `--color-primary` to an accent that misses AA against `text-on-primary`'"
-    },
     {
       "id": "preview-segment-group-dark-skin-contrast",
       "pass": "preview",
       "rule": "color-contrast",
       "routes": ["segment-group"],
       "contrast": { "fg": "#17150f", "bg": "#062f26" },
-      "reason": "PRE-EXISTING. Dark-skinned SegmentGroup demo: #17150f on #062f26 = 1.25:1 — near-invisible selected label. Demo markup in apps/docs, another session's tree. Reported for triage.",
+      "reason": "PRE-EXISTING. Dark-skinned SegmentGroup demo: #17150f on #062f26 = 1.25:1 — near-invisible selected label. Off-system demo markup in apps/docs (deliberately shows unstyled/brutalist customisation). Restyle-vs-exempt call, outside e2e scope.",
       "ref": "docs/technical-debt.md -> '`text-tertiary` on subtle surfaces measures 4.18:1 — and the off-system demos trip axe'"
     },
     {
@@ -97,8 +48,8 @@
       "pass": "preview",
       "rule": "color-contrast",
       "routes": ["segment-group"],
-      "contrast": { "fg": "#6e6b64", "bg": "#070c10" },
-      "reason": "PRE-EXISTING. Same dark-skinned SegmentGroup demo, inactive label: #6e6b64 on #070c10 = 3.69:1. Demo markup in apps/docs, another session's tree. Reported for triage.",
+      "contrast": { "fg": "#635f58", "bg": "#070c10" },
+      "reason": "Off-system dark-skinned SegmentGroup demo, inactive label: #635f58 on #070c10 = 3.09:1. The inactive label tracks --docs-soft, which W1 darkened #6e6b64 -> #635f58 to clear AA on the on-system warm-neutral track; on this demo's deliberately near-black brutalist skin that same token lands below the floor. Restyle-vs-exempt call on the off-system demo, outside e2e scope.",
       "ref": "docs/technical-debt.md -> '`text-tertiary` on subtle surfaces measures 4.18:1 — and the off-system demos trip axe'"
     }
   ]

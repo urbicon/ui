@@ -9,8 +9,8 @@
  *
  * "Farbe = Ort": the accent is the ROOM of the current section, not a fixed
  * brand green —
- *   /blocks  → green  #00845C     /auth → amber  #E3A31C
- *   /table   → wine   #7C1F2D     /ai   → orange #E8500F
+ *   /blocks  → green  #006C4A     /table → amber  #E3A31C
+ *   /auth    → wine   #7C1F2D     /ai    → orange #E8500F
  * (everything else falls back to the blocks green). The active room is
  * selected via `data-room="…"` stamped by +layout.svelte — the route → room
  * mapping in this file resolves it to `--room-accent` + `--room-accent-fg`,
@@ -54,9 +54,16 @@
 
   /* Ink hierarchy — three stops: primary text, meta/body-soft, decoration.
    * The rooms ink is the poster's warm near-black (#17150F), matching the
-   * landing + the design source. Dark: warm cream → warm tan → warm dark-gray. */
+   * landing + the design source. Dark: warm cream → warm tan → warm dark-gray.
+   *
+   * `--docs-soft` carries secondary AND tertiary text (both remap to it below).
+   * It was darkened from #6e6b64/#a5a299 so it clears WCAG AA on the warm-neutral
+   * INTERACTIVE surface (segment tracks, tabs) — #6e6b64 measured 4.18:1 on that
+   * ground (inactive tab label). #635f58 clears it at 4.99:1 while staying clearly
+   * "soft" against the ink primary. `--docs-softer` is decoration only (never body
+   * text — mirrors the mark-only quaternary rule in blocks/semantic.css). */
   --docs-ink: light-dark(#17150f, #f0ede5);
-  --docs-soft: light-dark(#6e6b64, #a5a299);
+  --docs-soft: light-dark(#635f58, #aaa79d);
   --docs-softer: light-dark(#b8b5ad, #5a574f);
 
   /* Elevated surfaces — continuation of the cream ladder above paper. */
@@ -74,7 +81,11 @@
    * mapping below. The colour VALUES live only in this file. The
    * primary-derived family is re-resolved from these two vars in the
    * shared block further down. */
-  --room-accent: #00845c;
+  /* Blocks green — darkened from #00845c so the on-colour (#f6f3ec) clears WCAG
+   * AA on the filled field: #00845c measured 4.25:1 (below AA), #006c4a clears it
+   * at 5.84:1 (and the aria-current breadcrumb chip at 5.35:1). The other three
+   * rooms already clear AA (dark ink on light amber/orange, cream on dark wine). */
+  --room-accent: #006c4a;
   --room-accent-fg: #f6f3ec;
 
   /* Accent alias — coupled to the room-derived primary (resolved below). */
@@ -255,7 +266,7 @@
  * ThemeSwitcher keeps working across every room. */
 .docs-rooms,
 .docs-rooms .docs-room-scope {
-  --_a: var(--room-accent, #00845c);
+  --_a: var(--room-accent, #006c4a);
   --_afg: var(--room-accent-fg, #f6f3ec);
   --_cream: #fbfaf6;
   --_ink: #17150f;
@@ -401,11 +412,18 @@
   background: var(--room-accent);
   color: var(--room-accent-fg);
 
+  /* On-field text is the on-colour at reduced opacity. The mix was raised from
+   * 74%/62% so the secondary lede/kicker clears WCAG AA on the fill: 88% clears
+   * 4.5:1 on green(new)/amber/wine; on orange (whose dark ink-on-fill has the
+   * least headroom — solid is only 4.85:1, and darkening orange would lower it
+   * further) the 88% lede lands at 4.3:1 = AA-large, the acceptable outcome the
+   * debt entry names for a hero lede. tertiary 72% clears the 3:1 UI floor on
+   * all four rooms; quaternary/softer stay decoration (never body text). */
   --color-text-primary: var(--room-accent-fg);
-  --color-text-secondary: color-mix(in oklab, var(--room-accent-fg) 74%, transparent);
-  --color-text-tertiary: color-mix(in oklab, var(--room-accent-fg) 62%, transparent);
+  --color-text-secondary: color-mix(in oklab, var(--room-accent-fg) 88%, transparent);
+  --color-text-tertiary: color-mix(in oklab, var(--room-accent-fg) 72%, transparent);
   --color-text-quaternary: color-mix(in oklab, var(--room-accent-fg) 46%, transparent);
-  --docs-soft: color-mix(in oklab, var(--room-accent-fg) 74%, transparent);
+  --docs-soft: color-mix(in oklab, var(--room-accent-fg) 88%, transparent);
   --docs-softer: color-mix(in oklab, var(--room-accent-fg) 60%, transparent);
 }
 
@@ -474,8 +492,8 @@
   border-color: transparent;
 
   --color-text-primary: var(--room-accent-fg);
-  --color-text-secondary: color-mix(in oklab, var(--room-accent-fg) 74%, transparent);
-  --color-text-tertiary: color-mix(in oklab, var(--room-accent-fg) 62%, transparent);
+  --color-text-secondary: color-mix(in oklab, var(--room-accent-fg) 88%, transparent);
+  --color-text-tertiary: color-mix(in oklab, var(--room-accent-fg) 72%, transparent);
   --color-primary: var(--room-accent-fg);
   --color-interactive-focus: var(--room-accent-fg);
 }
