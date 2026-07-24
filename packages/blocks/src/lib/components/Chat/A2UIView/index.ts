@@ -22,7 +22,10 @@ import type { A2UIViewSlots } from './a2ui-view.variants';
  * `createA2uiProcessor()` — never hand-roll either. Opt into the richer
  * Urbicon-native catalog (real intents/variants, Section, RichText, Accordion)
  * by passing `catalogs={[urbiconA2uiCatalog]}` (tree-shaken out otherwise), and
- * type-check the data model with an optional `dataSchema`.
+ * type-check the data model with an optional `dataSchema`. One view owns the
+ * surfaces of ONE payload; to let an agent patch a surface it sent in an earlier
+ * chat turn (multi-step forms), route the later envelopes into that payload with
+ * `A2uiSurfaceRouter` — never give a second view the same surfaceId.
  * @tag ai
  * @related ChatMessage
  * @stability experimental
@@ -150,6 +153,12 @@ export {
   type A2uiPropSpec,
   UNSUPPORTED_A2UI_COMPONENTS
 } from './a2ui-registry';
+// ── Cross-message surface routing (keeps a surface patchable after its turn) ──
+export {
+  type A2uiRoutePatch,
+  type A2uiRouteResult,
+  A2uiSurfaceRouter
+} from './a2ui-router';
 export {
   type A2uiDataSchema,
   type A2uiSchemaField,
@@ -157,6 +166,26 @@ export {
   a2uiDataSchemaSection,
   validateSchemaWrite
 } from './a2ui-schema';
+// ── Fenced-JSONL transport: the token-stream parser and the prompt that feeds it ──
+export {
+  A2UI_FENCE_TAG,
+  type A2uiStreamIssue,
+  type A2uiStreamPart,
+  A2uiStreamSplitter,
+  type A2uiStreamTextPart,
+  type A2uiStreamUiPart,
+  type A2uiTransportSectionOptions,
+  a2uiFencedTransportSection
+} from './a2ui-stream';
+// ── Transcript wiring: deliver routed envelopes into the messages that own them ─
+export {
+  editA2uiPayload,
+  type PatchedSurface,
+  type RouteMessageResult,
+  revokeMessage,
+  routeMessageParts,
+  sourceKey
+} from './a2ui-transcript';
 export {
   type A2uiComponentInstance,
   type A2uiProcessor,

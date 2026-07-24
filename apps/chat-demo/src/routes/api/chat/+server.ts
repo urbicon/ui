@@ -1,6 +1,7 @@
 import Anthropic from '@anthropic-ai/sdk';
 import {
   a2uiDataSchemaSection,
+  a2uiFencedTransportSection,
   a2uiSystemPrompt,
   urbiconA2uiCatalogSpec
 } from '@urbicon-ui/blocks';
@@ -18,45 +19,11 @@ interface WireMessage {
   content: string;
 }
 
-// Transport section: how UI reaches THIS client. a2uiSystemPrompt() deliberately
-// omits transport (it is app-specific); we append the fenced-JSONL protocol plus
-// the interaction / error round-channel this demo uses.
-const FENCE = '```';
-const TRANSPORT_SECTION = [
-  '## Transport — how your UI reaches this client',
-  '',
-  'Write normal Markdown prose. When (and only when) a form, a chooser, or a',
-  'structured surface would genuinely help the user more than prose, emit the UI',
-  `as a fenced code block tagged ${FENCE}a2ui containing A2UI envelopes as JSONL —`,
-  'one complete JSON envelope per line, no blank lines, no trailing commentary',
-  'inside the fence. Example:',
-  '',
-  `${FENCE}a2ui`,
-  '{"version":"v0.9.1","createSurface":{"surfaceId":"form-1","catalogId":"…"}}',
-  '{"version":"v0.9.1","updateComponents":{"surfaceId":"form-1","components":[ … ]}}',
-  FENCE,
-  '',
-  'Rules for the fence:',
-  `- Open the block with a line that is exactly ${FENCE}a2ui and close it with ${FENCE}.`,
-  '- Emit createSurface FIRST, then the updateComponents / updateDataModel',
-  '  envelopes. Every envelope has "version":"v0.9.1".',
-  '- Give each response a fresh, unique surfaceId (e.g. include a short suffix).',
-  '- One envelope per line, as compact single-line JSON — never pretty-print an',
-  '  envelope across multiple lines (a large updateComponents stays on ONE line).',
-  '- You may put prose before and/or after the fence. Do not nest fences.',
-  '',
-  '## Interaction round-channel',
-  '',
-  'When the user interacts with a surface you sent, the client sends you a new',
-  'user turn whose text begins with `[ui-action] ` followed by a compact JSON',
-  'object: { name, surfaceId, sourceComponentId, timestamp, context }. Treat it as',
-  'the user activating a control on your surface — respond with prose and/or a new',
-  'surface as appropriate.',
-  '',
-  'If a surface you sent failed validation, the next user turn is prefixed with a',
-  '`[ui-error] ` line carrying the validation issues as JSON. Read it, correct the',
-  'offending envelopes, and re-emit a valid surface.',
-  '',
+// Transport: the fenced-JSONL contract ships WITH the parser
+// (`a2uiFencedTransportSection` is the prompt half of `A2uiStreamSplitter`), so
+// the format can never drift from what the client reads. Only the domain rule
+// below is ours to write.
+const GROUNDING_SECTION = [
   '## Grounding — never invent business data',
   '',
   'You have a tool for real salon data (services, stylists, free slots). Before',
@@ -70,14 +37,10 @@ const TRANSPORT_SECTION = [
 // schema); `?catalog=basic` switches to the v0.9.1 Basic subset for an A/B
 // comparison. The client picks the matching catalog for A2UIView.
 function buildSystemPrompt(useUrbicon: boolean): string {
-  if (useUrbicon) {
-    return [
-      a2uiSystemPrompt({ catalog: urbiconA2uiCatalogSpec }),
-      a2uiDataSchemaSection(BOOKING_SCHEMA),
-      TRANSPORT_SECTION
-    ].join('\n\n');
-  }
-  return `${a2uiSystemPrompt()}\n\n${TRANSPORT_SECTION}`;
+  const sections = useUrbicon
+    ? [a2uiSystemPrompt({ catalog: urbiconA2uiCatalogSpec }), a2uiDataSchemaSection(BOOKING_SCHEMA)]
+    : [a2uiSystemPrompt()];
+  return [...sections, a2uiFencedTransportSection(), GROUNDING_SECTION].join('\n\n');
 }
 
 const sseHeaders = {

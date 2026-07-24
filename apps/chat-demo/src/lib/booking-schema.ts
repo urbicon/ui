@@ -18,5 +18,12 @@ export const BOOKING_SCHEMA: A2uiDataSchema = {
   '/time': { type: 'string', format: 'time', description: 'Appointment time, HH:MM' },
   '/party': { type: 'integer', description: 'Number of guests (1 or more)' },
   '/notes': { type: 'string', description: 'Optional free-text notes' },
-  '/agreed': { type: 'boolean', description: 'Consent to the cancellation policy' }
+  '/agreed': { type: 'boolean', description: 'Consent to the cancellation policy' },
+  // The multi-step slot: empty until the user asks for times (an action), then
+  // patched with what get_salon_info returned for that date + stylist. Declared
+  // so the fetch-then-patch flow writes to a KNOWN path instead of warning.
+  '/slots': {
+    type: 'array',
+    description: 'Free time slots for the chosen date/stylist, filled in by updateDataModel'
+  }
 };

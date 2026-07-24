@@ -495,8 +495,9 @@ export const URBICON_A2UI_REGISTRY: Readonly<Record<string, UrbiconComponentSpec
       options: {
         kind: 'options',
         required: true,
+        dynamic: true,
         description:
-          'The available options as an array of { label, value } objects. `value` is a stable string.'
+          'The available options as an array of { label, value } objects; `value` is a stable string. Bind it when the options come from data you fetched.'
       },
       value: {
         kind: 'string',
@@ -524,8 +525,9 @@ export const URBICON_A2UI_REGISTRY: Readonly<Record<string, UrbiconComponentSpec
       options: {
         kind: 'options',
         required: true,
+        dynamic: true,
         description:
-          'The options as an array of { label, value } objects. `value` is a stable string.'
+          'The options as an array of { label, value } objects; `value` is a stable string. Bind it when the options come from data you fetched.'
       },
       value: {
         kind: 'stringList',

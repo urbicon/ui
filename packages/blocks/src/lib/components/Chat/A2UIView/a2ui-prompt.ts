@@ -76,7 +76,9 @@ function renderKind(spec: A2uiPropSpec): string {
     case 'action':
       return 'action { event: { name, context } }';
     case 'options':
-      return 'array of { label, value }';
+      return spec.dynamic
+        ? 'array of { label, value }, or { path } binding to such an array'
+        : 'array of { label, value }';
     case 'accessibility':
       return 'object { label?, description? }';
   }
@@ -200,6 +202,49 @@ export function a2uiSystemPrompt(options?: {
       '  components per envelope) so the UI renders progressively while you write.',
       '  The client buffers until "root" exists and shows placeholders for',
       '  children that have not arrived yet.'
+    ].join('\n')
+  );
+
+  sections.push(
+    [
+      '## Surfaces live on, and you only hear from them when the user acts',
+      '',
+      'A surfaceId is unique for as long as the client runs, and a surface stays',
+      'alive and editable after the reply that created it. Send further envelopes',
+      'for the SAME surfaceId later and it updates in place, keeping what the user',
+      'typed. Prefer ONE surface that grows over a chain of near-identical ones.',
+      '',
+      '- updateDataModel to fill in a value you just learned; updateComponents to',
+      '  add or change controls. Re-sending a component id REPLACES it — to append',
+      '  a child, re-send its container with the full children list.',
+      '- Never createSurface twice for one id, and never rebuild an equivalent',
+      "  surface under a new id to change a field: both discard the user's input.",
+      '- deleteSurface when a surface has served its purpose.',
+      '',
+      'But you are NOT watching the form. The client speaks to you in exactly one',
+      'case: the user activates a control carrying an `action`. Typing, picking a',
+      'date, choosing an option — all of it updates the data model LOCALLY and',
+      'tells you nothing.',
+      '',
+      '- Anything you mean to fill in later needs a control the user can press to',
+      '  ask you for it ("Show available times"), with the fields it depends on in',
+      '  its action.context. An empty area with no trigger is a dead end — never',
+      '  write "pick a date and I will show the times" without one.',
+      '- But do NOT route a plain choice through you. A control that only records',
+      '  what the user picked should BIND: a single-choice input with',
+      '  value: { path } highlights the selection instantly, no round-trip. A row',
+      '  of Buttons that each set a value is the wrong shape — buttons show no',
+      '  selected state, so the choice looks lost, and every tap costs a turn.',
+      '  Reach for an action only when YOU must fetch or commit something.',
+      '- Options you fetched belong in the data model: write them with',
+      '  updateDataModel and bind options: { path } (see the prop docs), rather',
+      '  than rewriting the component for every result.',
+      '- Set "sendDataModel": true on createSurface: every action then carries the',
+      "  surface's ENTIRE data model, so you see what the user filled in even for",
+      '  fields you left out of context. Prefer it on any form you will act on.',
+      '- If an action arrives with required fields still empty, do NOT carry it',
+      '  out — patch a short message next to the offending field instead. You are',
+      '  the only validator; the client submits whatever it is given.'
     ].join('\n')
   );
 

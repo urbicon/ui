@@ -368,8 +368,9 @@ export const A2UI_REGISTRY: Readonly<Record<string, A2uiComponentSpec>> = Object
       options: {
         kind: 'options',
         required: true,
+        dynamic: true,
         description:
-          'The available options as an array of { label, value } objects. `value` is a stable string.'
+          'The available options as an array of { label, value } objects; `value` is a stable string. Bind it when the options come from data you fetched.'
       },
       value: {
         kind: 'stringList',

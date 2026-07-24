@@ -247,7 +247,11 @@
         ).value;
       }
     }
+    // `sendDataModel` surfaces ship the whole model alongside the context, so a
+    // context the agent under-specified still tells it what the user entered.
+    const dataModel = context.actionDataModel?.();
     const payload: A2uiActionEvent = {
+      ...(dataModel === undefined ? {} : { dataModel }),
       name: event.name as string,
       surfaceId: context.surfaceId,
       sourceComponentId: instance.id,
@@ -312,7 +316,12 @@
   // `each_key_duplicate` (a hard crash that would break the "never throw"
   // contract for an untrusted payload). Shared with the Urbicon dispatcher.
   const choiceOptions = $derived(
-    dedupeOptions(raw('options'), (label) => text(context.resolve(label, node.scopePrefix).value))
+    // `options` may itself be a { path } binding — that is how an agent shows a
+    // list it fetched mid-conversation (free slots, search hits) without
+    // rewriting the component. Resolve it first, then the per-option labels.
+    dedupeOptions(resolved('options'), (label) =>
+      text(context.resolve(label, node.scopePrefix).value)
+    )
   );
   const choiceLabel = $derived(text(resolved('label')));
   function writeChoice(next: string[]) {
@@ -607,11 +616,14 @@
     </RadioGroup>
   {/if}
 {:else if component === 'Slider'}
+  <!-- showValue is forced on: a generated surface has no other place to state
+       the current number, and the agent cannot ask for it (not a catalog prop). -->
   <Slider
     label={text(resolved('label')) || undefined}
     value={sliderValue}
     min={sliderMin}
     max={sliderMax}
+    showValue
     onValueChange={onSliderChange}
     style={weightStyle}
     aria-label={ariaLabel}

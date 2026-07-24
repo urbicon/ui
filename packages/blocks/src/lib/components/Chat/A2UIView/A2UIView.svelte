@@ -193,6 +193,8 @@
         inline: false,
         surfaceId: surface.surfaceId,
         onAction,
+        // Read lazily: the click, not the render, decides what the agent sees.
+        actionDataModel: surface.sendDataModel ? () => surface.dataModel : undefined,
         resolve: (value, scope) => resolveDynamic(value, surface.dataModel, scope),
         write: (pointer, value) => writeBinding(surface.surfaceId, pointer, value),
         remove: (pointer) => removeBinding(surface.surfaceId, pointer),

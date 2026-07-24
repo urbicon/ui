@@ -101,7 +101,8 @@ const goldenCases: GoldenCase[] = [
         { name: 'Cherry', quantity: 20 }
       ]
     },
-    warningCodes: [A2UI_ISSUE_CODES.SURFACE_PROP_IGNORED]
+    // sendDataModel: true is honoured now, so the fixture warns about nothing.
+    warningCodes: []
   },
   {
     name: 'incremental',
@@ -136,9 +137,9 @@ const goldenCases: GoldenCase[] = [
     surfaceId: 'gallery-login-form',
     rootComponent: 'Card',
     dataModel: { email: '', password: '' },
-    // 1× sendDataModel ignored + 3× checks ignored (email-field, password-field, login-btn)
+    // 3× checks ignored (email-field, password-field, login-btn); the fixture's
+    // sendDataModel: true is applied, not warned about.
     warningCodes: [
-      A2UI_ISSUE_CODES.SURFACE_PROP_IGNORED,
       A2UI_ISSUE_CODES.IGNORED_PROP,
       A2UI_ISSUE_CODES.IGNORED_PROP,
       A2UI_ISSUE_CODES.IGNORED_PROP

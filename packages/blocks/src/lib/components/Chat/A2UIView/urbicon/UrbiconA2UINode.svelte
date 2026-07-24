@@ -230,7 +230,11 @@
         ).value;
       }
     }
+    // `sendDataModel` surfaces ship the whole model alongside the context, so a
+    // context the agent under-specified still tells it what the user entered.
+    const dataModel = context.actionDataModel?.();
     const payload: A2uiActionEvent = {
+      ...(dataModel === undefined ? {} : { dataModel }),
       name: event.name as string,
       surfaceId: context.surfaceId,
       sourceComponentId: instance.id,
@@ -326,7 +330,10 @@
   }
 
   const choiceOptions = $derived(
-    dedupeOptions(raw('options'), (label) =>
+    // `options` may itself be a { path } binding — that is how an agent shows a
+    // list it fetched mid-conversation (free slots, search hits) without
+    // rewriting the component. Resolve it first, then the per-option labels.
+    dedupeOptions(resolved('options'), (label) =>
       coerceText(context.resolve(label, node.scopePrefix).value)
     )
   );
@@ -641,12 +648,15 @@
     />
   {/if}
 {:else if component === 'Slider'}
+  <!-- showValue is forced on: a generated surface has no other place to state
+       the current number, and the agent cannot ask for it (not a catalog prop). -->
   <Slider
     label={resolvedText('label') || undefined}
     value={sliderValue}
     min={sliderMin}
     max={sliderMax}
     step={typeof raw('step') === 'number' ? (raw('step') as number) : undefined}
+    showValue
     onValueChange={onSliderChange}
     style={weightStyle}
     aria-label={ariaLabel}

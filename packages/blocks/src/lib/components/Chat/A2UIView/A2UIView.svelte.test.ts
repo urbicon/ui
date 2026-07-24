@@ -86,6 +86,161 @@ describe('A2UIView — catalog rendering + actions', () => {
     // context binding resolved against the model in scope.
     expect(event.context).toEqual({ who: 'Ada' });
     expect(event.timestamp).toMatch(/^\d{4}-\d{2}-\d{2}T[\d:.]+Z$/);
+    // Without sendDataModel the action carries only what `context` declares.
+    expect(event.dataModel).toBeUndefined();
+  });
+
+  // The protocol gives the agent no way to observe typing — only an action
+  // reaches it. `sendDataModel` is what keeps that one round-trip informative.
+  describe('sendDataModel', () => {
+    const sendingSurface = (): Envelope => ({
+      version: V,
+      createSurface: { surfaceId: 's', catalogId: 'x', sendDataModel: true }
+    });
+    const form = (): unknown[] => [
+      { id: 'root', component: 'Column', children: ['field', 'go'] },
+      { id: 'field', component: 'TextField', label: 'Name', value: { path: '/name' } },
+      {
+        id: 'go',
+        component: 'Button',
+        child: 'go_label',
+        action: { event: { name: 'submit', context: {} } }
+      },
+      { id: 'go_label', component: 'Text', text: 'Go' }
+    ];
+
+    it('attaches the whole data model to a dispatched action', async () => {
+      const user = userEvent.setup();
+      const actions: A2uiActionEvent[] = [];
+      render({
+        payload: [sendingSurface(), data({ name: 'Ada', agreed: true }), comps(form())],
+        onAction: (actionEvent) => actions.push(actionEvent)
+      });
+
+      await user.click(screen.getByRole('button', { name: /Go/ }));
+      flushSync();
+
+      // `context` is empty, yet the agent still learns what the user entered.
+      expect(actions[0].context).toEqual({});
+      expect(actions[0].dataModel).toEqual({ name: 'Ada', agreed: true });
+    });
+
+    it('sends the state at click time, not at render time', async () => {
+      const user = userEvent.setup();
+      const actions: A2uiActionEvent[] = [];
+      render({
+        payload: [sendingSurface(), data({ name: '' }), comps(form())],
+        onAction: (actionEvent) => actions.push(actionEvent)
+      });
+
+      await user.type(screen.getByLabelText('Name'), 'Grace');
+      await user.click(screen.getByRole('button', { name: /Go/ }));
+      flushSync();
+
+      expect(actions[0].dataModel).toEqual({ name: 'Grace' });
+    });
+
+    it('does not warn about the spec property any more', () => {
+      const reported: A2uiValidationIssue[][] = [];
+      render({
+        payload: [sendingSurface(), comps([{ id: 'root', component: 'Text', text: 'hi' }])],
+        onValidationError: (issues) => reported.push(issues)
+      });
+
+      expect(reported.flat().some((i) => i.code === A2UI_ISSUE_CODES.SURFACE_PROP_IGNORED)).toBe(
+        false
+      );
+    });
+  });
+
+  // An agent that fetches a list mid-conversation (free slots, search hits)
+  // writes it into the data model and binds `options` to it — otherwise it would
+  // have to rewrite the component for every result.
+  describe('options bound to the data model', () => {
+    const picker = (options: unknown) =>
+      comps([
+        {
+          id: 'root',
+          component: 'ChoicePicker',
+          label: 'Time',
+          value: { path: '/time' },
+          options
+        }
+      ]);
+
+    it('renders the options a { path } binding resolves to', () => {
+      render({
+        payload: [
+          surface(),
+          data({
+            time: [],
+            slots: [
+              { label: '09:00', value: '9' },
+              { label: '13:45', value: '13' }
+            ]
+          }),
+          picker({ path: '/slots' })
+        ]
+      });
+
+      expect(document.body.textContent).toContain('09:00');
+      expect(document.body.textContent).toContain('13:45');
+    });
+
+    it('picks up options that arrive in a later envelope', () => {
+      const props = render({
+        payload: [surface(), data({ time: [] }), picker({ path: '/slots' })]
+      });
+
+      expect(document.body.textContent).not.toContain('16:00');
+
+      // The patch the agent sends after fetching — same surface, new data.
+      props.payload = [
+        ...(props.payload as unknown[]),
+        data({ time: [], slots: [{ label: '16:00', value: '16' }] })
+      ];
+      flushSync();
+
+      expect(document.body.textContent).toContain('16:00');
+    });
+
+    it('reports a binding that resolves to something other than an option list', () => {
+      const reported: A2uiValidationIssue[][] = [];
+      render({
+        payload: [surface(), data({ slots: 'not-a-list' }), picker({ path: '/slots' })],
+        onValidationError: (issues) => reported.push(issues)
+      });
+
+      const issue = reported.flat().find((i) => i.code === A2UI_ISSUE_CODES.OPTIONS_NOT_A_LIST);
+      expect(issue?.severity).toBe('warning');
+      expect(issue?.message).toContain('/slots');
+    });
+
+    it('stays silent while the bound data has not arrived yet', () => {
+      const reported: A2uiValidationIssue[][] = [];
+      render({
+        payload: [surface(), data({ time: [] }), picker({ path: '/slots' })],
+        onValidationError: (issues) => reported.push(issues)
+      });
+
+      expect(reported.flat().some((i) => i.code === A2UI_ISSUE_CODES.OPTIONS_NOT_A_LIST)).toBe(
+        false
+      );
+    });
+
+    it('still rejects a literal that is not an option array', () => {
+      const reported: A2uiValidationIssue[][] = [];
+      render({
+        payload: [surface(), picker('nope')],
+        onValidationError: (issues) => reported.push(issues)
+      });
+
+      expect(
+        reported
+          .flat()
+          .some((i) => i.code === A2UI_ISSUE_CODES.TYPE_MISMATCH && i.severity === 'error')
+      ).toBe(true);
+    });
   });
 
   it('renders Text body markdown through StreamingMarkdown', () => {

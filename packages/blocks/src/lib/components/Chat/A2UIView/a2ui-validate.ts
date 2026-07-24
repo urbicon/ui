@@ -63,6 +63,12 @@ export interface A2uiSurfaceState {
    * different catalogs validate and render independently.
    */
   catalog: A2uiCatalogSpec;
+  /**
+   * `createSurface.sendDataModel` — when true, every action dispatched from this
+   * surface carries the full data model (see `A2uiActionEvent.dataModel`), so
+   * the agent sees the user's input even for fields it left out of `context`.
+   */
+  sendDataModel: boolean;
 }
 
 export interface A2uiProcessor {
@@ -255,7 +261,13 @@ function validateProp(
       return validateAction(componentName, key, value, path, surfaceId);
 
     case 'options':
-      return validateOptions(componentName, key, value, path, surfaceId);
+      // A dynamic options prop may be a { path } binding to a list the agent
+      // fetched — the shape is checked when it resolves (see collectGraphIssues),
+      // because at envelope time the data model may not carry it yet.
+      if (spec.dynamic && isDynamicRef(value)) {
+        return { store: true, issues: dynamicRefIssues(value, path, surfaceId) };
+      }
+      return validateOptions(componentName, key, value, path, surfaceId, spec.dynamic);
 
     case 'icon':
       return validateIcon(value, path, surfaceId, iconNames);
@@ -448,14 +460,19 @@ function validateOptions(
   key: string,
   value: unknown,
   path: string,
-  surfaceId: string
+  surfaceId: string,
+  dynamic?: boolean
 ): PropResult {
   const bad = (detail: string): PropResult => ({
     store: false,
     issues: [issue('error', A2UI_ISSUE_CODES.TYPE_MISMATCH, detail, { surfaceId, path })]
   });
   if (!Array.isArray(value))
-    return bad(`"${key}" on ${componentName} must be an array of { label, value } options`);
+    return bad(
+      `"${key}" on ${componentName} must be an array of { label, value } options${
+        dynamic ? ' or a { path } binding to one' : ''
+      }`
+    );
   const issues: A2uiValidationIssue[] = [];
   const seenValues = new Set<string>();
   for (let i = 0; i < value.length; i++) {
@@ -821,7 +838,8 @@ function createProcessor(
       components: new Map(),
       dataModel: undefined,
       issues: [],
-      catalog: defaultCatalog
+      catalog: defaultCatalog,
+      sendDataModel: false
     };
     surfaces.set(surfaceId, surface);
 
@@ -858,12 +876,16 @@ function createProcessor(
       );
     }
     if ('sendDataModel' in cs) {
-      surface.issues.push(
-        issue('warning', A2UI_ISSUE_CODES.SURFACE_PROP_IGNORED, 'sendDataModel is ignored', {
-          surfaceId,
-          path: `${base}/createSurface/sendDataModel`
-        })
-      );
+      if (typeof cs.sendDataModel === 'boolean') {
+        surface.sendDataModel = cs.sendDataModel;
+      } else {
+        surface.issues.push(
+          issue('warning', A2UI_ISSUE_CODES.TYPE_MISMATCH, 'sendDataModel must be a boolean', {
+            surfaceId,
+            path: `${base}/createSurface/sendDataModel`
+          })
+        );
+      }
     }
     flagExtraKeys(
       cs,
@@ -1335,6 +1357,31 @@ export function collectGraphIssues(
         );
       }
       return;
+    }
+
+    // A bound `options` list is only checkable once it resolves — the envelope
+    // validator saw a { path }, not a list. Silent while the path is still
+    // undefined (the agent fills it in with a later updateDataModel); a warning
+    // once it holds something that is not an option list, because the control
+    // then renders empty and the user is stuck with no way to choose.
+    for (const [key, propSpec] of Object.entries(registry[comp.component]?.props ?? {})) {
+      if (propSpec.kind !== 'options' || !propSpec.dynamic) continue;
+      const bound = comp.props.get(key);
+      if (!isPlainObject(bound) || typeof bound.path !== 'string') continue;
+      // Same absolute/relative rule as a childList template path.
+      const pointer = bound.path.startsWith('/')
+        ? bound.path
+        : `${scopePrefix ?? ''}/${bound.path}`;
+      const resolvedList = getAtPointer(surface.dataModel, pointer);
+      if (resolvedList === undefined || Array.isArray(resolvedList)) continue;
+      issues.push(
+        issue(
+          'warning',
+          A2UI_ISSUE_CODES.OPTIONS_NOT_A_LIST,
+          `"${key}" on "${id}" is bound to "${pointer}", which is not a list of options`,
+          { surfaceId }
+        )
+      );
     }
 
     if (comp.props.has('weight') && !surface.catalog.flexContainers.has(parentComponent ?? '')) {

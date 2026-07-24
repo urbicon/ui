@@ -74,6 +74,12 @@ export interface A2uiRenderContext {
   inline: boolean;
   surfaceId: string;
   onAction: ((event: A2uiActionEvent) => void) | undefined;
+  /**
+   * The data model to attach to a dispatched action, or `undefined` when the
+   * surface did not ask for it (`createSurface.sendDataModel`). Read as a
+   * function so the action carries the state at CLICK time, not at render time.
+   */
+  actionDataModel: (() => unknown) | undefined;
   /** Resolve a Dynamic value (literal | { path } | function-call) against the model in `scope`. */
   resolve: (
     value: unknown,

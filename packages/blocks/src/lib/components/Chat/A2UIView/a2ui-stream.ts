@@ -1,4 +1,9 @@
-// A2UI stream splitter — the heart of the chat-demo client.
+// A2UI stream splitter — the piece between a model's token stream and A2UIView.
+//
+// Pair it with `a2uiFencedTransportSection()` (below), which tells the agent to
+// emit exactly the format this parses. The two are one contract: change the
+// fence tag here and the prompt changes with it, so a consumer can never end up
+// with a parser and a prompt that disagree.
 //
 // The agent writes ordinary Markdown text and emits UI as a fenced block:
 //
@@ -80,9 +85,17 @@ function parseFence(line: string): FenceMarker | null {
   return { char, len: m[2].length, info, indent: m[1].length };
 }
 
+/**
+ * The info string that marks a fence as A2UI. Shared by the parser and by
+ * `a2uiFencedTransportSection()` so the prompt can never name a different tag
+ * than the splitter accepts.
+ */
+export const A2UI_FENCE_TAG = 'a2ui';
+const FENCE = '```';
+
 /** Our special opener: a column-0 backtick fence whose info string is exactly `a2ui`. */
 function isA2uiOpen(f: FenceMarker | null): boolean {
-  return f !== null && f.char === '`' && f.indent === 0 && f.info === 'a2ui';
+  return f !== null && f.char === '`' && f.indent === 0 && f.info === A2UI_FENCE_TAG;
 }
 /** A bare closing fence that terminates a fence opened with `open`. */
 function isCloseOf(f: FenceMarker | null, open: { char: '`' | '~'; len: number }): boolean {
@@ -93,7 +106,7 @@ function isCloseOf(f: FenceMarker | null, open: { char: '`' | '~'; len: number }
 function couldStartFence(s: string): boolean {
   const t = s.replace(/^[ \t]+/, '');
   if (t === '') return false;
-  return '```a2ui'.startsWith(t) || t.startsWith('```') || t.startsWith('~~~');
+  return `${FENCE}${A2UI_FENCE_TAG}`.startsWith(t) || t.startsWith(FENCE) || t.startsWith('~~~');
 }
 
 // ── Pure, immutable part-array transforms ───────────────────────────────────
@@ -380,4 +393,102 @@ export class A2uiStreamSplitter {
   get issues(): A2uiStreamIssue[] {
     return this.issueList;
   }
+}
+
+/** Options for {@link a2uiFencedTransportSection}. */
+export interface A2uiTransportSectionOptions {
+  /**
+   * Prefix your client puts on a user turn that reports an action, followed by
+   * the JSON `A2uiActionEvent`. Set to `false` if actions reach the agent some
+   * other way (a tool result, a structured field) — the round-channel paragraph
+   * is then omitted. @default '[ui-action]'
+   */
+  actionPrefix?: string | false;
+  /**
+   * Prefix for a turn that reports validation issues as JSON, so the agent can
+   * repair the surface. `false` omits it. @default '[ui-error]'
+   */
+  errorPrefix?: string | false;
+}
+
+/**
+ * The transport half of the fenced-JSONL contract: the prompt section that makes
+ * an agent emit exactly what {@link A2uiStreamSplitter} parses.
+ *
+ * `a2uiSystemPrompt()` deliberately says nothing about transport, because how
+ * envelopes travel is the app's business. This is the transport for apps that
+ * take the model's ordinary text stream and let it open a ` ```a2ui ` fence —
+ * the setup the splitter exists for. Append it after `a2uiSystemPrompt()` (and
+ * after `a2uiDataSchemaSection()`, if you use one).
+ *
+ * Anything domain-specific — which tools to call, what never to invent — stays
+ * yours to append; this covers only the wire format and the return path.
+ *
+ * @example
+ * ```ts
+ * const system = [
+ *   a2uiSystemPrompt({ catalog: urbiconA2uiCatalogSpec }),
+ *   a2uiDataSchemaSection(MY_SCHEMA),
+ *   a2uiFencedTransportSection(),
+ *   MY_DOMAIN_RULES
+ * ].join('\n\n');
+ * ```
+ */
+export function a2uiFencedTransportSection(options?: A2uiTransportSectionOptions): string {
+  const actionPrefix = options?.actionPrefix ?? '[ui-action]';
+  const errorPrefix = options?.errorPrefix ?? '[ui-error]';
+  const open = `${FENCE}${A2UI_FENCE_TAG}`;
+
+  const lines = [
+    '## Transport — how your UI reaches this client',
+    '',
+    'Write normal Markdown prose. When (and only when) a form, a chooser, or a',
+    'structured surface would genuinely help the user more than prose, emit the UI',
+    `as a fenced code block tagged ${open} containing A2UI envelopes as JSONL —`,
+    'one complete JSON envelope per line, no blank lines, no trailing commentary',
+    'inside the fence. Example:',
+    '',
+    open,
+    '{"version":"v0.9.1","createSurface":{"surfaceId":"form-1","catalogId":"…"}}',
+    '{"version":"v0.9.1","updateComponents":{"surfaceId":"form-1","components":[ … ]}}',
+    FENCE,
+    '',
+    'Rules for the fence:',
+    `- Open the block with a line that is exactly ${open} and close it with ${FENCE}.`,
+    '- Emit createSurface FIRST, then the updateComponents / updateDataModel',
+    '  envelopes. Every envelope has "version":"v0.9.1".',
+    '- One envelope per line, as compact single-line JSON — never pretty-print an',
+    '  envelope across multiple lines (a large updateComponents stays on ONE line).',
+    '- You may put prose before and/or after the fence. Do not nest fences.',
+    '- Patching an EARLIER surface works the same way: open a fence and send the',
+    '  updateComponents / updateDataModel envelopes for its surfaceId (no',
+    '  createSurface). The client routes them to the message that shows that',
+    '  surface, so it updates where it already stands — say in prose what you',
+    '  changed, since it may be scrolled out of view.'
+  ];
+
+  if (actionPrefix || errorPrefix) {
+    lines.push('', '## Interaction round-channel', '');
+  }
+  if (actionPrefix) {
+    lines.push(
+      'When the user interacts with a surface you sent, the client sends you a new',
+      `user turn whose text begins with \`${actionPrefix} \` followed by a compact JSON`,
+      'object: { name, surfaceId, sourceComponentId, timestamp, context }, plus',
+      "`dataModel` (the surface's full state) when you created it with",
+      '"sendDataModel": true. Treat it as the user activating a control on your',
+      'surface — usually the right answer is to patch THAT surface, not to send a new',
+      'one.'
+    );
+  }
+  if (errorPrefix) {
+    if (actionPrefix) lines.push('');
+    lines.push(
+      'If a surface you sent failed validation, the next user turn is prefixed with a',
+      `\`${errorPrefix} \` line carrying the validation issues as JSON. Read it, correct`,
+      'the offending envelopes, and re-emit a valid surface.'
+    );
+  }
+
+  return lines.join('\n');
 }
