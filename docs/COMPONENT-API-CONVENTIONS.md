@@ -10,7 +10,11 @@ Controls the semantic color of a component. Use when a component needs to commun
 
 **Standard values:** `primary`, `secondary`, `success`, `warning`, `danger`, `neutral`
 
-**Feedback extension:** Components in the `feedback` category (Alert, Toast) additionally accept `info`. `info` is semantically distinct from `primary` — `primary` is the brand color (which the consumer can rebrand to red/green/violet), `info` is a neutral informational blue that should stay stable. Both are backed by independent token palettes (`--color-primary-*` vs `--color-info-*`) so a brand recolor doesn't accidentally repaint info messages. **Do not** add `info` to action or layout components (Button, Pagination, Toggle, etc.) — `intent="info"` on a button has no semantic meaning.
+**Feedback extension (`+info`, `−secondary`):** Components in the `feedback` category (Alert, Toast) swap one value for another. They **add** `info`: semantically distinct from `primary`, because `primary` is the brand color (which the consumer can rebrand to red/green/violet) while `info` is a neutral informational blue that stays stable — independent token palettes (`--color-primary-*` vs `--color-info-*`) keep a brand recolor from repainting info messages. And they **drop** `secondary`: a violet alert or toast names no status, so the value would be decoration on a component whose whole axis means "what kind of message is this".
+
+**Do not** add `info` outside feedback — `intent="info"` on a button, a tooltip or a form field has no semantic meaning. (Tooltip carried `info` until v6.42; it resolved one hue step from `primary` and implied a distinction it could not show.)
+
+**Form fields carry a narrower axis:** `default | success | warning | danger` — the *tone of the field frame*, not a category. There is no `primary`/`secondary`/`neutral` field: a text input has no brand state. See §Form validation below for how `intent` and `error` divide the work.
 
 **Default value convention:**
 
@@ -19,7 +23,16 @@ Controls the semantic color of a component. Use when a component needs to commun
 - Overlay containers (Dialog, Drawer): default to `neutral`
 - Form elements (Input): default to `default` (no intent coloring)
 
-**Components with intent:** Button, Badge, Checkbox, Toggle, Input, Dialog, Tooltip, Alert (`+info`), Toast (`+info`)
+**Components with intent:**
+
+| Palette | Values | Components |
+| --- | --- | --- |
+| Standard | `primary` `secondary` `success` `warning` `danger` `neutral` | Button, Badge, Avatar, Checkbox, Toggle, RadioGroup, Slider, Progress, Dialog, Drawer, Tooltip, ButtonGroup, Pagination, Menu, ConfirmDialog, CompositionBar, Sankey |
+| Feedback (`+info`, `−secondary`) | `primary` `info` `success` `warning` `danger` `neutral` | Alert, Toast |
+| Form field tone | `default` `success` `warning` `danger` | Input, Textarea, PinInput, TimeInput (and CurrencyInput/NumberInput by inheritance) |
+| Component-specific | see the component | Spinner (`+current`, follows `currentColor`), FileUpload (`primary`/`neutral` only) |
+
+Components with **no** intent axis: Select, Combobox, FormField, SegmentGroup, Accordion, Card, Popover, Tab, Stepper — they carry no colour category of their own.
 
 ### `variant` (Visual Style)
 
@@ -82,6 +95,24 @@ Special cases:
 - The **form family** (Input, Select, Combobox, Textarea) deliberately shares the full `xs`–`xl` scale so dense forms can mix controls at any density.
 
 Avoid introducing new size values unless there's a clear use case.
+
+## Form validation (`error`, `helper`, `intent`)
+
+Three props, three jobs — they do not overlap, and their precedence is a rule, not an accident of declaration order.
+
+| Prop | Type | Job |
+| --- | --- | --- |
+| `error` | `string` | The failure message **and** the invalid state. Non-empty ⇒ the field frame turns danger, the message renders in the error tone with `role="alert"`, and `aria-invalid` is set. |
+| `helper` | `string` | Guidance while the field is valid. **Displaced** by `error` — they never render together. |
+| `intent` | `default \| success \| warning \| danger` | The *tone* of the frame while the field is valid: a positive confirmation, a soft warning. Only on the input-shaped fields (Input, Textarea, PinInput, TimeInput); Select and Combobox have no intent axis. |
+
+**`error` beats `intent`, structurally.** Both paint the same buckets (border colour, focused border + ring), so only one can win. The error frame is therefore emitted from the **compound stage** of the `tv()` config, which the engine folds after every axis — not from the `error` axis, whose win would depend on being declared after `intent`. Reordering axes, or slipping a new one in between, can no longer turn validation feedback back into a green frame. `internal/field-chrome.ts` carries the contract; a component adding an `intent` axis later must move its error frame into a compound at the same time.
+
+**Do not** introduce a second way to say "invalid": no `invalid` boolean next to `error`, no `status` prop, no intent value that means failure on its own. A field is invalid exactly when it has an `error` string.
+
+**Every field frame comes from `internal/field-chrome.ts`** (`fieldErrorFrame`, `fieldIntentFrames`, `fieldFocusRing`, `FIELD_MESSAGE_TONES`, …). Hand-inlining the same strings is how the family drifted apart before — Select's error frame and Combobox's message tones were re-derived by hand, and Combobox had no visual error state at all until v6.42.
+
+**Non-field controls** (Checkbox, RadioGroup, Toggle, Slider) take `error` as a message too, but tint only the message, not a frame — they have no frame to tint. Their `intent` is the standard six-value palette (the control's colour), not a validation tone.
 
 ## Discriminated unions for mutually exclusive props
 
