@@ -68,6 +68,9 @@ function isoWeekday(date: string): number | null {
   if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) return null;
   const parsed = new Date(`${date}T12:00:00Z`);
   if (Number.isNaN(parsed.getTime())) return null;
+  // JS Date rolls non-existent days over (2026-02-30 → March 2) — reject them
+  // instead of silently answering for a different day.
+  if (parsed.toISOString().slice(0, 10) !== date) return null;
   const day = parsed.getUTCDay();
   return day === 0 ? 7 : day;
 }

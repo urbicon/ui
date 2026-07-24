@@ -103,8 +103,13 @@
       segments.flatMap((segment) =>
         'splitter' in segment ? (segment.splitter.snapshot() as ChatMessagePart[]) : [segment.tool]
       );
+    // Rounds are separate model turns — join with a blank line so the wire
+    // history never glues the last word of one round to the first of the next.
     const rawText = () =>
-      segments.map((segment) => ('splitter' in segment ? segment.splitter.raw : '')).join('');
+      segments
+        .map((segment) => ('splitter' in segment ? segment.splitter.raw : ''))
+        .filter((raw) => raw !== '')
+        .join('\n\n');
     const patchLive = () => patch(assistantId, { parts: assemble(), metadata: { raw: rawText() } });
 
     messages = [
@@ -209,7 +214,10 @@
     if (idx < 1) return;
     const prior = messages[idx - 1];
     if (prior?.role !== 'user') return;
-    const wire = toWire(prior).content;
+    // Strip a stale [ui-error] prefix from the replayed wire: those issues
+    // belonged to the failed turn, and runTurn re-prefixes whatever is queued
+    // NOW — keeping both would double-report.
+    const wire = toWire(prior).content.replace(/^\[ui-error\] [^\n]*\n/, '');
     const display = prior.parts
       .filter((p): p is Extract<ChatMessagePart, { type: 'text' }> => p.type === 'text')
       .map((p) => p.text)

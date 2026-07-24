@@ -46,6 +46,15 @@ describe('executeSalonTool', () => {
     expect(executeSalonTool('drop_tables', {}).error).toBeTruthy();
   });
 
+  it('rejects non-existent calendar days instead of letting JS Date roll them over', () => {
+    // new Date('2026-02-30…') silently becomes March 2 — the tool must not
+    // answer for a different day than it was asked about.
+    expect(executeSalonTool('get_salon_info', { date: '2026-02-30' }).error).toBeTruthy();
+    expect(executeSalonTool('get_salon_info', { date: '2026-04-31' }).error).toBeTruthy();
+    // A real leap day stays valid.
+    expect(executeSalonTool('get_salon_info', { date: '2028-02-29' }).error).toBeUndefined();
+  });
+
   it('exposes exactly the tools the relay advertises', () => {
     expect(SALON_TOOLS.map((tool) => tool.name)).toEqual(['get_salon_info']);
   });

@@ -90,8 +90,15 @@ export const POST: RequestHandler = async ({ request }) => {
   const encoder = new TextEncoder();
   const stream = new ReadableStream({
     async start(controller) {
-      const send = (event: string, data: unknown) =>
-        controller.enqueue(encoder.encode(`event: ${event}\ndata: ${JSON.stringify(data)}\n\n`));
+      // Enqueueing after the client cancelled throws — a gone client is not an
+      // error, so every send is a best-effort write.
+      const send = (event: string, data: unknown) => {
+        try {
+          controller.enqueue(encoder.encode(`event: ${event}\ndata: ${JSON.stringify(data)}\n\n`));
+        } catch {
+          /* client disconnected */
+        }
+      };
 
       try {
         // Agent loop: stream a turn; when the model stops to call a tool,
@@ -103,16 +110,20 @@ export const POST: RequestHandler = async ({ request }) => {
         let turns: Anthropic.MessageParam[] = [...messages];
 
         for (let round = 0; ; round++) {
-          const run = client.messages.stream({
-            model: 'claude-opus-4-8',
-            max_tokens: 8192,
-            system: buildSystemPrompt(),
-            messages: turns,
-            tools: SALON_TOOLS
-          });
-
-          // Forward the client's abort straight through to the model stream.
-          request.signal.addEventListener('abort', () => run.abort());
+          // The request signal goes to the SDK as the request option: the SDK
+          // both honors an ALREADY-aborted signal and listens for a later abort
+          // (a bare addEventListener here would miss the former and leak one
+          // listener per round).
+          const run = client.messages.stream(
+            {
+              model: 'claude-opus-4-8',
+              max_tokens: 8192,
+              system: buildSystemPrompt(),
+              messages: turns,
+              tools: SALON_TOOLS
+            },
+            { signal: request.signal }
+          );
 
           run.on('text', (delta) => send('token', { text: delta }));
           const final = await run.finalMessage();
@@ -145,9 +156,16 @@ export const POST: RequestHandler = async ({ request }) => {
         }
         send('done', {});
       } catch (err) {
-        send('error', { message: err instanceof Error ? err.message : 'stream failed' });
+        // A client abort surfaces as an SDK abort error — end quietly.
+        if (!request.signal.aborted) {
+          send('error', { message: err instanceof Error ? err.message : 'stream failed' });
+        }
       } finally {
-        controller.close();
+        try {
+          controller.close();
+        } catch {
+          /* already closed by cancellation */
+        }
       }
     }
   });

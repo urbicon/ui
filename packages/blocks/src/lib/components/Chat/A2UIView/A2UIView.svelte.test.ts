@@ -603,6 +603,29 @@ describe('A2UIView — DateTimeInput', () => {
     expect(reported.flat().some((i) => i.code === A2UI_ISSUE_CODES.DATETIME_NO_MODE)).toBe(true);
   });
 
+  it('routes accessibility.label to the date field name (no aria-label on a generic div)', () => {
+    // DatePicker spreads aria-label onto its role-less root div (AT-ignored),
+    // so the accessibility label must become the field label instead.
+    render({
+      payload: [
+        surface(),
+        data({ when: '' }),
+        comps([
+          {
+            id: 'root',
+            component: 'DateTimeInput',
+            value: { path: '/when' },
+            enableDate: true,
+            accessibility: { label: 'Appointment date' }
+          }
+        ])
+      ]
+    });
+    expect(screen.getByRole('textbox', { name: /Appointment date/ })).toBeTruthy();
+    // The name must NOT sit as aria-label on a role-less div (aria-prohibited-attr).
+    expect(document.querySelector('div[aria-label="Appointment date"]:not([role])')).toBeNull();
+  });
+
   it('never throws on hostile DateTimeInput payloads', () => {
     const hostile = [
       { value: { nested: { deep: true } }, enableDate: true },

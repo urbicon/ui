@@ -687,14 +687,17 @@
       />
     </div>
   {:else}
+    <!-- The accessibility label becomes the field label when no visible label
+         is given: DatePicker spreads an aria-label onto its role-less root div
+         (AT-ignored, axe aria-prohibited-attr), so the name must travel
+         through `label` to reach the actual input. -->
     <DatePicker
-      label={label || undefined}
+      label={label || ariaLabel || undefined}
       value={dtParts.date || null}
       onValueChange={onDtDateChange}
       minDate={dtMinDate}
       maxDate={dtMaxDate}
       style={weightStyle}
-      aria-label={ariaLabel}
     />
   {/if}
 {/if}

@@ -4,9 +4,9 @@
  * (`a2ui-prompt.ts`). No Svelte imports: this module must be importable
  * standalone (a server building the system prompt has no DOM).
  *
- * The subset is 12 of the 18 v0.9.1 `basic` components. The six excluded
- * (Modal, Tabs, Video, AudioPlayer, DateTimeInput — plus any future addition)
- * validate to a visible error chip; see `UNSUPPORTED_A2UI_COMPONENTS`.
+ * The subset covers the v0.9.1 `basic` components except the deliberately
+ * excluded ones (Modal, Tabs, Video, AudioPlayer), which validate to a visible
+ * error chip; see `UNSUPPORTED_A2UI_COMPONENTS`.
  *
  * Prop names, kinds, `required`, defaults and enum sets mirror
  * `catalogs/basic/catalog.json` **case-sensitively**. Every `description` here
@@ -464,12 +464,18 @@ export const A2UI_REGISTRY: Readonly<Record<string, A2uiComponentSpec>> = Object
       min: {
         kind: 'string',
         dynamic: true,
-        description: 'Minimum allowed value, ISO 8601 (date, time, or date-time).'
+        description:
+          'Minimum allowed value, ISO 8601. The DATE part is enforced; a TIME bound is ' +
+          'enforced only when the bound is time-only (the time part of a date-time bound ' +
+          'is not enforced).'
       },
       max: {
         kind: 'string',
         dynamic: true,
-        description: 'Maximum allowed value, ISO 8601 (date, time, or date-time).'
+        description:
+          'Maximum allowed value, ISO 8601. The DATE part is enforced; a TIME bound is ' +
+          'enforced only when the bound is time-only (the time part of a date-time bound ' +
+          'is not enforced).'
       }
     })
   }
