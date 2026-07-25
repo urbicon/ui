@@ -51,12 +51,15 @@ export const chatMessageVariants = tv({
       'transition-opacity duration-[var(--blocks-duration-fast)] ease-out',
       'group-hover/message:opacity-100 group-focus-within/message:opacity-100'
     ],
+    // Renders through CoreIconButton, so this carries only what the core does not
+    // supply — no flex centring, cursor or `focus-visible:outline-none` here (the
+    // core has no variant engine, so a repeat would resolve by stylesheet order).
     actionButton: [
-      'inline-flex items-center justify-center rounded-modify p-1.5',
-      'text-text-tertiary cursor-pointer',
+      'rounded-modify p-1.5',
+      'text-text-tertiary',
       'transition-[color,background-color] duration-[var(--blocks-duration-fast)] ease-out',
       'hover:bg-surface-hover hover:text-text-primary',
-      'focus-visible:outline-none focus-visible:opacity-100 focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-1'
+      'focus-visible:opacity-100 focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-1'
     ],
     metadata: ['text-xs text-text-tertiary']
   },

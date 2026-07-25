@@ -2,6 +2,7 @@
   import { useBlocksI18n } from '$lib/i18n';
   import { getBlocksConfig, resolveSlotClasses } from '$lib/provider';
   import { createCopyState } from '$lib/internal/copy-state.svelte';
+  import CoreIconButton from '$lib/internal/core/CoreIconButton.svelte';
   import { Alert, Avatar, Button, Skeleton, Tooltip } from '$lib/primitives';
   import { resolveIcon } from '$lib/icons';
   import SparklesIconDefault from '$lib/icons/SparklesIcon.svelte';
@@ -255,8 +256,7 @@
          empty string and confirming "Copied" would be a lie (review finding). -->
     {#if messageText}
       <Tooltip label={copyButtonText}>
-        <button
-          type="button"
+        <CoreIconButton
           class={cls('actionButton')}
           onclick={copyMessage}
           aria-label={copyButtonText}
@@ -266,19 +266,18 @@
           {:else}
             <CopyIcon size={16} />
           {/if}
-        </button>
+        </CoreIconButton>
       </Tooltip>
     {/if}
     {#if onRegenerate}
       <Tooltip label={regenerateLabel}>
-        <button
-          type="button"
+        <CoreIconButton
           class={cls('actionButton')}
           onclick={onRegenerate}
           aria-label={regenerateLabel}
         >
           <RefreshIcon size={16} />
-        </button>
+        </CoreIconButton>
       </Tooltip>
     {/if}
   </div>

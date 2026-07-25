@@ -2,6 +2,7 @@
   import { onDestroy, tick } from 'svelte';
   import { useBlocksI18n } from '$lib';
   import { getBlocksConfig, resolveSlotClasses } from '$lib/provider';
+  import CoreIconButton from '$lib/internal/core/CoreIconButton.svelte';
   import { resolveIcon } from '$lib/icons';
   import SendIconDefault from '$lib/icons/SendIcon.svelte';
   import SquareIconDefault from '$lib/icons/SquareIcon.svelte';
@@ -350,15 +351,14 @@
           </span>
           <span class={cls('attachmentName')} title={entry.file.name}>{entry.file.name}</span>
           <span class={cls('attachmentSize')}>{formatFileSize(entry.file.size)}</span>
-          <button
-            type="button"
+          <CoreIconButton
             class={cls('attachmentRemove')}
             data-attachment-remove
             aria-label={removeAttachmentLabel(entry.file.name)}
             onclick={() => removeAttachment(entry, i)}
           >
             <CloseIcon size={14} />
-          </button>
+          </CoreIconButton>
         </li>
       {/each}
     </ul>
@@ -382,15 +382,14 @@
   <div class={cls('actions')}>
     <div class={cls('leading')}>
       {#if allowAttachments}
-        <button
-          type="button"
+        <CoreIconButton
           class={cls('attachButton')}
           aria-label={attachLabel}
           {disabled}
           onclick={openFilePicker}
         >
           <PaperclipIcon size={iconSize} />
-        </button>
+        </CoreIconButton>
       {/if}
       {@render leading?.()}
     </div>
@@ -398,24 +397,18 @@
     <div class={cls('trailing')}>
       {@render trailing?.()}
       {#if busy}
-        <button
-          type="button"
-          class={cls('stopButton')}
-          aria-label={stopLabel}
-          onclick={() => onStop?.()}
-        >
+        <CoreIconButton class={cls('stopButton')} aria-label={stopLabel} onclick={() => onStop?.()}>
           <SquareIcon size={iconSize} />
-        </button>
+        </CoreIconButton>
       {:else}
-        <button
-          type="button"
+        <CoreIconButton
           class={cls('sendButton')}
           aria-label={sendLabel}
           disabled={!canSubmit}
           onclick={submit}
         >
           <SendIcon size={iconSize} />
-        </button>
+        </CoreIconButton>
       {/if}
     </div>
   </div>
