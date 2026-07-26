@@ -1,7 +1,7 @@
 @theme {
   --color-neutral-0: oklch(1 0 0);
-  --color-neutral-25: oklch(0.99 0.002 240);
-  --color-neutral-50: oklch(0.98 0.005 240);
+  --color-neutral-25: oklch(0.985 0.003 240);
+  --color-neutral-50: oklch(0.965 0.006 240);
   --color-neutral-100: oklch(0.95 0.008 240);
   --color-neutral-200: oklch(0.89 0.012 240);
   --color-neutral-300: oklch(0.83 0.014 240);

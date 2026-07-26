@@ -18,7 +18,25 @@
      above the one below — themes can differentiate them by color (e.g.
      cream → lighter cream → near-white → white) or rely on shadows
      alone when the palette ceiling is reached (as in the neutral default
-     where base and overlay are both white). */
+     where base and overlay are both white).
+
+     LIGHT-MODE SPREAD (2026-07). In light mode `base` sits at the white
+     ceiling, so every other rung has to differentiate DOWNWARD — and the
+     ramp gave it almost nothing to work with: quiet/elevated were ΔL 0.01
+     and 0.02 from base, against 0.03 and 0.08 in dark mode. A tinted
+     in-flow surface with no border and no shadow was therefore effectively
+     invisible in light mode, which is why components kept reaching for a
+     border just to make a surface visible at all (the chat bubble, the
+     table-cell progress track). Fixed at the ramp rather than per token —
+     `neutral-25` 0.99 → 0.985 and `neutral-50` 0.98 → 0.965 — so quiet,
+     elevated and subtle all gain spread without any semantic moving and
+     without a new token landing on an occupied value. All five themes share
+     those L values (only the hue differs), so the change reaches every
+     theme at once. Measured: text-tertiary on the new elevated is 11.32:1,
+     far above AA; style/contrast.test.ts is the gate. Guarded below by
+     style/semantic.test.ts, which asserts the reading surfaces stay
+     mutually distinct in BOTH modes — the failure mode here is silent, a
+     collapsed rung looks exactly like a working one in a screenshot. */
   /* L·1 — base: the page itself. Content, cards, and reading surfaces
      sit at this level. */
   --color-surface-base: light-dark(var(--color-neutral-0), var(--color-neutral-900));

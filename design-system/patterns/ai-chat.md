@@ -24,6 +24,16 @@ Conversational surface for an LLM assistant or copilot — a streaming message l
 | Chat + artifact layout | `SplitPane` | Chat in one pane, the live artifact (editor / preview / table) in the other |
 | Empty state | `ChatMessageList` `empty` snippet | Or `emptyTitle` / `emptyDescription` — a prompt to start |
 
+## Visual composition
+
+A conversation nests deeper than any other surface in this library — shell → message → tool call → payload — which makes it the one place where framing mistakes compound. Three rules keep it readable.
+
+- **Only the outermost frame draws an outline.** A block that frames itself *and* is framed by its parent stacks two outlines at the same radius, which reads as depth that is not there. `CodeBlock` has `variant="plain"` (no surface, outline, radius or padding) for exactly this: `ToolCallCard` renders its JSON payloads with it, and any custom `partRenderers` block inside a card should too. The parent owns the frame, the child owns the content.
+- **Differentiate message surfaces by tint, not by border.** `ChatMessage` tints the assistant bubble (`surface-elevated`) and the user's (`primary-subtle`) and draws no outline on either. Adding one per message turns a conversation into a stack of boxes.
+- **One caption per thing.** A section heading above a block whose own header repeats the same fact ("Input" over "json") is one chrome row too many. Pass `label` to the block instead.
+
+Radius follows the tier system rather than per-component values: the bubble rides `bridge` (6 px, it is content), framed blocks ride `contain` (2 px, they are panels), the composer rides `modify`. Retune brand-wide through `--radius-bridge` / `--radius-contain`, never by overriding a single slot — see [principles.md §Semantic Radius Tiers](../principles.md).
+
 ## Streaming states
 
 A message's `status` is the state machine; the consumer owns `ChatMessageData[]` and patches it as tokens arrive (never mutate the array element — replace it by `id`).
@@ -60,6 +70,9 @@ A message's `status` is the state machine; the consumer owns `ChatMessageData[]`
 - Do not force-scroll to the bottom on every token. That fights the reader who scrolled up; rely on the stick-to-bottom engine and its jump-back pill.
 - Do not put `Chat` inside a scrolling `min-h-auto` ancestor. One non-`min-h-0` link breaks the height chain and the log grows the page.
 - Do not hand-roll the message row when `partRenderers` will do — override renderers for tool calls / reasoning, not the whole `message` snippet.
+- Do not put a framed block inside a framed block. A default `CodeBlock` (or your own bordered card) inside a `ToolCallCard` stacks two outlines at the same radius; use `variant="plain"` for the inner one.
+- Do not outline message bubbles. They differentiate by tint; a border per message turns the conversation into a stack of boxes.
+- Do not reach for a raw radius (`rounded-lg`) on a chat surface. Use the tier tokens so a brand can retune the whole family at once.
 - Do not index `messages` position to identify a turn in `{#each}` — key by `message.id`.
 
 ## Related
