@@ -1105,3 +1105,74 @@ internal TODO instead. Sections are ordered roughly by urgency.
 - **Found:** 2026-07-25, chat-family redesign — the bundle-size gate caught the
   regression when CodeBlock was switched to the shared accessibility strings;
   quantified 2026-07-26.
+
+## Design engine
+
+### `token-hallucination` is a warning, so markup that renders unstyled passes an error gate
+
+- **Where:** `packages/design-engine/src/linter/rules.ts:376`
+  (`severity: 'warning'`) vs. `evaluateGate` / `urbicon validate`, which blocks on
+  errors and treats the slop axis as opt-in.
+- **What:** A component whose colour utilities all reference non-existent tokens
+  scores **correctness 25 with zero errors** — measured, not hypothetical. A
+  recorded baseline run (no design grounding in the prompt) first used raw
+  Tailwind colours, and when the linter rejected those, the fix round replaced
+  them with token-*shaped* names that do not exist (`bg-surface-raised`,
+  `text-text-muted`, `text-text-inverse`, `bg-surface-inverse-hover`). The
+  `raw-tailwind-color` errors disappeared, 15 hallucination warnings appeared,
+  and the result renders with no styling at all while looking system-conformant
+  in review.
+- **Why it is not just severity tuning:** a hallucinated token is a dead
+  reference, not a matter of taste — the axis assignment (it already lowers
+  *correctness*, not slop) and the severity disagree. Promoting it to `error`
+  is a gate-breaking change for existing consumers, so it needs a decision:
+  promote, or gate on a correctness floor rather than on error count.
+- **Found:** 2026-07-26, artifact-recorder spike (`prototypes/artifact-frame`).
+
+### ~~The CSS reference teaches no z-index tokens, but the linter requires them~~ — withdrawn 2026-07-27, the reference does teach them
+
+- **The claim was wrong.** `css-reference.ts` ships the full `--z-*` scale (12
+  tokens with their intended layer, plus the `z-[var(--z-modal)]` usage form) in
+  its `shadows` section, and the overview announces it verbatim as
+  "`shadows` — 5 shadow tokens + z-index scale". Asking for the wrong section
+  name already fails loudly and lists the real ones (`urbicon css-reference
+  z-index` → "unknown section … Available: surfaces, text, borders, intents,
+  shadows, typography, theming"), so the discovery path works too.
+- **What actually produced the reproducible `z-10`:** the spike's own injected
+  grounding, which pulled only `surfaces`, `text` and `borders` into the prompt
+  (`prototypes/artifact-frame/recorder/grounding.ts`). The model never saw the
+  z-index scale because the harness never sent it. The recorded run that used
+  the **real CLI** instead of injected context fetched `css-reference shadows`
+  itself (call 26 of 40) and produced zero errors — the same task, the same
+  model, no z-index finding. Fixed in the harness; nothing to fix in the engine.
+- **Kept as a note rather than deleted**, because the wrong diagnosis is the
+  reusable part: a gap in a hand-assembled prompt reads exactly like a gap in
+  the knowledge base. Before filing "the CLI doesn't teach X", check what the
+  harness actually sent — and prefer the measurement where the model serves
+  itself, since that is the consumer path.
+- **Found:** 2026-07-26, artifact-recorder spike; withdrawn 2026-07-27 after
+  re-reading the reference and the recorded CLI transcript.
+
+### ~~The CLI silently ignores unknown flags, so an agent cannot tell a typo from a result~~ — fixed 2026-07-27
+
+- **Resolved:** `packages/design/src/cli/command-flags.ts` declares the flags
+  each command reads, and `index.ts` rejects anything else with a usage error
+  (exit 2) before the command runs — with a did-you-mean suggestion for typos
+  (`--limitt` → `--limit`). `--query` is accepted as an alias for the positional
+  on `find` and `icons`, the two discovery commands agents reached for it on;
+  giving the query twice is an error rather than a precedence rule. The same
+  fail-loud treatment now covers a value flag passed bare (`urbicon icons
+  --limit` used to fall back to the default in silence) — the identical
+  silent-answer failure, found while fixing the first one.
+- **Consumer-visible behaviour change:** a call that used to be quietly ignored
+  now exits 2. `urbicon verbs --json` is the concrete case — `verbs` reads no
+  flags, so it printed plain text and exited 0; it now reports that it takes no
+  flags. That is the point of the fix (the caller wanted JSON and did not get
+  it), but it can break a script that passed a flag the CLI never honoured.
+- **Two documentation drifts fell out of the guard test**, which diffs the flag
+  table against `--help`: `i18n --function-names` and `--runtime-usage` were
+  implemented and undocumented, and `hook` described its gate flags in prose that
+  omitted `--skip-heuristics`. Both corrected.
+- **Found:** 2026-07-26, artifact-recorder spike — the run that used the real
+  CLI as its only knowledge source (`prototypes/artifact-frame`); fixed
+  2026-07-27.
