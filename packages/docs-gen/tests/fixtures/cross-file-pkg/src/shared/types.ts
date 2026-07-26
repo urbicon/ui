@@ -31,7 +31,12 @@ export interface WidgetStepEvent {
   step: WidgetStep;
 }
 
-/** A widget tour definition — references WidgetStep transitively. */
+/**
+ * A widget tour definition — references WidgetStep transitively.
+ *
+ * @see WidgetStep
+ * @see https://example.com/widget-tour
+ */
 export interface WidgetTour {
   /** Unique id. */
   id: string;

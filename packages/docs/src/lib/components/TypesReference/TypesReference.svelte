@@ -131,6 +131,28 @@
                   </div>
                 {/if}
 
+                {#if t.seeAlso || t.seeAlsoRefs?.length}
+                  <!-- `@see` on the type declaration. A navigable target becomes
+                       a link; a bare sibling-type name (`CartesianDatum`) stays
+                       a literal chip, because a link there would have nowhere to
+                       point — the same split ApiReference makes for props. -->
+                  <div class={styles.seeAlsoSection()}>
+                    See
+                    {#if t.seeAlso}
+                      <a
+                        href={t.seeAlso}
+                        class={styles.seeAlsoLink()}
+                        target={t.seeAlso.startsWith('http') ? '_blank' : undefined}
+                        rel={t.seeAlso.startsWith('http') ? 'noopener external' : undefined}
+                        >{t.seeAlso}</a
+                      >
+                    {/if}
+                    {#each t.seeAlsoRefs ?? [] as ref, i (`${ref}-${i}`)}
+                      <code class={styles.seeAlsoRef()}>{ref}</code>
+                    {/each}
+                  </div>
+                {/if}
+
                 {#if usedBy.length > 0}
                   <div class={slot('usedBySection')}>
                     Used by:

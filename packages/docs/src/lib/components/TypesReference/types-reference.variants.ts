@@ -21,6 +21,15 @@ export const typesReferenceVariants = tv({
     ],
     usedBySection: ['text-text-secondary mt-2'],
     usedByLink: ['text-primary hover:text-primary-emphasis', 'hover:underline transition-colors'],
+    // `@see` on the type declaration. Same two roles as in ApiReference: a
+    // navigable target becomes a real link, a bare sibling-type name stays a
+    // quiet footnote chip — a link there would have nowhere to point.
+    seeAlsoSection: ['mt-2 flex flex-wrap items-center gap-1 text-text-tertiary'],
+    seeAlsoRef: [
+      'inline-flex items-center rounded-modify',
+      'bg-surface-quiet px-1.5 py-0.5 font-mono leading-none text-text-secondary'
+    ],
+    seeAlsoLink: ['text-primary underline decoration-primary/40 hover:decoration-primary'],
     highlightRing: ['ring-2 ring-primary/50']
   },
   variants: {
@@ -34,7 +43,9 @@ export const typesReferenceVariants = tv({
         codeBlock: 'p-2 text-xs',
         documentation: 'text-xs',
         literalBadge: 'px-1.5 py-px text-3xs',
-        usedBySection: 'text-xs'
+        usedBySection: 'text-xs',
+        seeAlsoSection: 'text-3xs',
+        seeAlsoRef: 'text-3xs'
       },
       md: {
         title: 'text-2xl',
@@ -45,7 +56,9 @@ export const typesReferenceVariants = tv({
         codeBlock: 'p-3 text-[13px]',
         documentation: 'text-sm',
         literalBadge: 'px-2 py-[2px] text-2xs',
-        usedBySection: 'text-sm'
+        usedBySection: 'text-sm',
+        seeAlsoSection: 'text-2xs',
+        seeAlsoRef: 'text-2xs'
       },
       lg: {
         title: 'text-3xl',
@@ -56,7 +69,9 @@ export const typesReferenceVariants = tv({
         codeBlock: 'p-4 text-sm',
         documentation: 'text-sm',
         literalBadge: 'px-2.5 py-0.5 text-xs',
-        usedBySection: 'text-sm'
+        usedBySection: 'text-sm',
+        seeAlsoSection: 'text-xs',
+        seeAlsoRef: 'text-xs'
       }
     }
   },

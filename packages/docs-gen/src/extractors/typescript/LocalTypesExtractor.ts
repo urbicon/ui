@@ -153,6 +153,7 @@ export class LocalTypesExtractor extends TypeScriptBaseExtractor<
       name,
       package: packageName,
       documentation,
+      ...this.extractSeeTags(decl),
       scope: 'imported' as const,
       sourcePath: this.toRepoRelativePath(declSourceFile.fileName)
     };
@@ -293,6 +294,7 @@ export class LocalTypesExtractor extends TypeScriptBaseExtractor<
           definition: rhs,
           package: packageName,
           documentation: this.extractJSDocComment(node) || '',
+          ...this.extractSeeTags(node),
           sourcePath
         });
         existing.add(name);
@@ -311,6 +313,7 @@ export class LocalTypesExtractor extends TypeScriptBaseExtractor<
           definition: body.trim(),
           package: packageName,
           documentation: this.extractJSDocComment(node) || '',
+          ...this.extractSeeTags(node),
           members: node.members?.length ?? 0,
           sourcePath
         });
