@@ -1,4 +1,4 @@
-import { expect, type Page, test } from '@playwright/test';
+import { expect, type Locator, type Page, test } from '@playwright/test';
 
 /**
  * Visual-regression baseline for the thirteen core primitives, against the dedicated
@@ -140,6 +140,23 @@ test.describe('Primitive visual regression', () => {
               )
           );
 
+        // …and, before those frames, wait for the state to have ARRIVED. Two
+        // committed frames are only enough while the machine is idle: under
+        // `workers: 50%` the pointer move can still be in flight when they run,
+        // and at zero tolerance a shot of a still-resting control fails hard
+        // (~22 % of the image). Polling the state itself — `:hover` actually
+        // matching, focus actually inside the wrapper — is what makes the
+        // settle deterministic; the frames then only cover the style
+        // recalculation, which is the job they were added for.
+        const arrived = async (locator: Locator, state: (el: HTMLElement) => boolean) => {
+          await expect
+            .poll(() => locator.evaluate(state as (el: SVGElement | HTMLElement) => boolean), {
+              timeout: 2000
+            })
+            .toBe(true);
+          await settle();
+        };
+
         // A neutral parking spot for the pointer: without it the mouse keeps
         // sitting on whatever it touched last, so the next control's shot would
         // silently carry a stale hover. Deliberately no click — clicking `body`
@@ -173,12 +190,12 @@ test.describe('Primitive visual regression', () => {
 
           await park();
           await wrapper.hover();
-          await settle();
+          await arrived(wrapper, (el) => el.matches(':hover'));
           await expect(wrapper).toHaveScreenshot(`ix-${name}-hover-${scheme}-${theme}.png`, EXACT);
 
           await park();
           await control.focus();
-          await settle();
+          await arrived(wrapper, (el) => el.contains(document.activeElement));
           await expect(wrapper).toHaveScreenshot(`ix-${name}-focus-${scheme}-${theme}.png`, EXACT);
         }
       });
