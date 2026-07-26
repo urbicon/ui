@@ -9,13 +9,18 @@ export default mergeConfig(
       environment: 'node',
       include: ['src/**/*.{test,spec}.{ts,svelte}'],
       globals: true,
-      setupFiles: ['./vitest-setup.ts'],
-      // The audit-scanner suites load real compilers (`typescript`,
-      // `svelte/compiler`) through the lazy imports the scanner ships with. The
-      // setup file warms them per worker, but the parses themselves are still
-      // heavy enough that Vitest's 5s default is a coin flip under load — it
-      // failed on the 4-core deploy host while passing locally. Budget for the
-      // work these tests actually do; a real hang still fails, just later.
+      // The audit-scanner suites load real compilers — `typescript` in
+      // `ts-walker.ts`, `svelte/compiler` in `svelte-ast.ts` — through the lazy
+      // imports the scanner ships with (both are dev-only and must stay out of
+      // consumer bundles). Vitest isolates modules per file, so each scanning
+      // suite pays that cold start inside its first test's clock. Comfortable on
+      // a laptop, a timeout on the 4-core deploy host.
+      //
+      // A `setupFiles` warm-up was tried first and made it worse: it ran in a
+      // `beforeAll` for all twelve files in the package — including the ones that
+      // never touch the scanner — and `testTimeout` does not cover hooks, so it
+      // simply moved the failure to the 10s hook default. One budget, applied
+      // where the work happens, is both simpler and faster.
       testTimeout: 30_000
     }
   })
