@@ -642,70 +642,42 @@ internal TODO instead. Sections are ordered roughly by urgency.
   is resolved).
 
 
-### e2e visual snapshots are `chromium-darwin`-only — Linux CI can't verify them
+### There is no CI — the only pipeline is the Buny deploy, and it had no test gate
 
-- **Where:** `e2e/snapshots/**` (all committed PNGs, incl. the
-  `visual-regression.spec.ts-snapshots/**`) and `.github/workflows/ci.yml` (the
-  `e2e` job, `runs-on: ubuntu-latest`).
-- **What:** Every committed Playwright screenshot is stamped `-chromium-darwin`.
-  Playwright resolves snapshots per platform, so on Linux (CI) it looks for
-  `-chromium-linux.png`, finds nothing, and hard-fails. The whole e2e-visual layer —
-  `floating.spec.ts`, `guide.spec.ts`, and `visual-regression.spec.ts` (the
-  10-primitive × light/dark × library/editorial matrix) — is therefore darwin-only.
-  The visual-regression suite is explicitly `test.skip`-gated to darwin so it adds
-  no red to the CI e2e job; the pre-existing floating/guide specs are NOT gated
-  (they already fail on Linux). **Former "local caveat", now obsolete and
-  disproven:** this entry used to warn that baselines must be produced with the
-  full `channel: 'chromium'` build because `headless_shell` "flips text-heavy
-  snapshots". The renderer is now pinned in `playwright.config.ts`, so the
-  warning has no addressee — and it was wrong anyway: the shots it blamed
-  (`guide.spec.ts` hints) fail identically under both builds (2026-07-25).
-- **Why deferred:** Making the visual layer CI-green needs per-platform baselines,
-  which can't be produced on a macOS box: either (a) generate `-chromium-linux`
-  baselines via the official `mcr.microsoft.com/playwright` Docker image and commit
-  both platforms, (b) add a macOS runner for the e2e job, or (c) a one-off CI bootstrap
-  that runs `--update-snapshots` on Linux and commits the result. Each is an infra
-  decision spanning all three specs, not a change to the suite in flight.
-- **Update 2026-07-24 (W2):** the suite's other blockers are cleared — fixtures
-  are deterministic (`transition: none` killed the circular-Progress mount frame),
-  the tolerance is calibrated and verified stable (`maxDiffPixelRatio: 0.002` +
-  `threshold: 0.15`, two identical runs), and the darwin baselines are freshly
-  re-generated and drift-free (12 unchanged shots proved the local env matches
-  the baseline env). All that remains is generating the `-chromium-linux`
-  baselines in the CI env itself — option (c), a one-off bootstrap job; a local
-  Docker run is not trusted to match the GitHub-Actions font rendering
-  byte-for-byte, which is the whole point of per-platform baselines.
-- **Resolved on darwin 2026-07-25:** the 13 red shots are green and the full
-  suite passes 131/131. The diagnosis in the previous update was wrong on both
-  counts, which is why re-baselining "as renderer drift" would have been the
-  wrong move: (a) the failures reproduced **identically** under the full
-  `channel: 'chromium'` build, so `headless_shell` was never the cause; (b) the
-  "exactly 0.01" ratio was Playwright's rounded console output, not a constant.
-  Most baselines were simply **stale by months** — they still showed "Blocks UI"
-  as the sidebar brand and a section labelled "Dropdown (open)", i.e. they
-  predate both the Urbicon rename and the Dropdown→Menu rename. Not all of them,
-  though: `menu-open` was green (diff ratio 0.00006) and only days old, and the
-  two `hint` shots differ by exactly 1px of intrinsic width with no content
-  delta. `--update-snapshots=all` re-bakes those too, by design — the mode exists
-  precisely because `changed` skips sub-threshold drift and keeps stale files.
-  Three things landed: the config pins `channel: 'chromium'` (a reproducibility
-  pin, not a fix — see the note above); the `menu`/`combobox` shots scroll their
-  section to the viewport centre and **assert the geometry their names claim**
-  (`scrollIntoViewIfNeeded` was not enough — it scrolls the minimum, leaving 64px
-  under the menu trigger for a 134px panel, so the panel still flipped above it
-  and the "opens below" shot still lied); and both specs were re-generated,
-  verified stable over two consecutive runs.
-  **Deliberately frozen with them:** the two dark Guide shots bake in the Rooms
-  dark-mode accent defect (`--color-primary` pinned to the raw accent in both
-  modes → 2.05:1 for the panel link and the "Next" fill). That is the open entry
-  under §Accessibility ("Rooms skin pins `--color-primary`…"); the old baselines
-  were the last artefact in the repo still showing the pre-defect look, and no
-  gate covers it (guide axe runs light-only, the dark-axe project excludes
-  `docs-rooms`).
-  **Still open:** the Linux half — this entry's actual subject — is untouched.
-  0 `-chromium-linux` baselines exist against 66 darwin ones, so CI remains
-  blind to the whole visual layer.
-- **Found:** 2026-07-08, adding the primitive visual-regression suite.
+- **Where:** `.github/workflows/ci.yml` + `release.yml` (never executed) vs. the
+  real pipeline: a Codeberg webhook → `deploy-ui.service` on the Hetzner host →
+  `@buny/deploy-runtime`, configured in `/etc/buny/ui/deploy.env`.
+- **What:** This entry used to read "Linux CI can't verify them", which framed
+  the problem wrongly for months. There are no GitHub Actions behind this repo at
+  all — `origin` is Codeberg, and the workflow files describe a runner that does
+  not exist. The only automation is the Buny deploy, and it ran
+  `INSTALL_CMD` → `BUILD_CMD` → publish with **no test step**, for all eight
+  projects on the host. For `ui` that meant twelve packages went to
+  registry.npmjs.org on every release tag without a single test having run.
+- **Resolved 2026-07-26 (the gate):** `deploy-runtime` supports an opt-in
+  `TEST_CMD` that runs after the build and *before* the release move and the
+  publish, failing the whole deploy on a non-zero exit (10-minute budget).
+  `/etc/buny/ui/deploy.env` now sets `TEST_CMD=bun run test` — measured at 90s on
+  the host under full load. Verified by running the suite there first, in a
+  throwaway checkout: it surfaced a real flake (four audit-scanner tests timing
+  out at the 5s default, fixed in `85eff5a`) that would otherwise have blocked
+  every deployment the moment the gate went live. A backup of the previous config
+  sits at `/etc/buny/ui/deploy.env.bak-20260726`.
+- **Resolved 2026-07-26 (the baselines):** `-chromium-linux` baselines now exist
+  alongside the darwin ones, generated on the deploy host itself — the machine
+  that would run them — rather than by trying to match some CI renderer
+  byte-for-byte. The `test.skip(process.platform !== 'darwin')` gate on
+  `visual-regression.spec.ts` is gone with its reason. The full Chromium build
+  (not just `headless_shell`) was installed to `/opt/ms-playwright` for this,
+  because `playwright.config.ts` pins `channel: 'chromium'`.
+- **Still open:** the gate runs **unit tests only**. e2e/Playwright is not in
+  `TEST_CMD` — it needs a dev server and roughly five minutes, against a
+  ten-minute budget shared with the build, and a red visual diff blocking a docs
+  deployment is a policy call rather than an obvious win. The Linux baselines are
+  therefore committed and correct but nothing checks them automatically yet;
+  that is the decision this entry now carries.
+- **Found:** 2026-07-08 (as the darwin-only observation); re-framed and largely
+  resolved 2026-07-26 after inspecting the host.
 
 ### i18n source scanner: documented analysis limits (strict mode not built)
 
