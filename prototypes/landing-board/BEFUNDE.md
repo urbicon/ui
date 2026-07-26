@@ -171,6 +171,51 @@ eine Anzeige ohne sichtbare Leiste sagt nicht, dass sie weitergeht.
 - **Animationsstart an Sichtbarkeit koppeln**, nicht an `load` — sonst steht die
   Eingangssequenz, wenn der Tab im Hintergrund geöffnet wurde.
 
+## 7. Portierung nach Svelte — offener Bug
+
+Der HTML-Prototyp ist konsistent (0 Abweichungen über drei Sortierungen). Die
+Svelte-Fassung (`apps/docs/src/lib/landing/FlapBoard.svelte`) hat einen Fehler,
+den der Prototyp nicht hatte:
+
+**Die Engine läuft der Anzeige genau einen Schritt hinterher.** Nach einem Klick
+auf eine Spaltenüberschrift tragen `aria-label` und `data-status` sofort die
+neue Reihenfolge; die Flaps zeigen den Stand, den die Labels *vor* dem Klick
+hatten. Messung an derselben Zelle über einen Klick hinweg:
+
+| Zeitpunkt | `aria-label` | Flaps |
+|---|---|---|
+| vor dem Klick | ConfirmDialog | Button |
+| direkt danach | ConfirmDialog | Button |
+| +300 ms | **A2UIView** | **ConfirmDialog** |
+| +2 300 ms | A2UIView | ConfirmDialog |
+
+Reproduktion: `/test-fixtures/landing-board`, eine Spalte sortieren, dann
+`aria-label` jeder `[role="gridcell"]` gegen den zusammengesetzten Text ihrer
+Kinder vergleichen. Achtung beim Nachmessen: Die Felder starten mit `&nbsp;`
+(U+00A0), das erzeugt ~57 Schein-Abweichungen — vor dem Vergleich
+normalisieren, sonst misst man das eigene Prüfverfahren.
+
+**Kein Timing-Problem:** Auch nach 3 Sekunden und bei einer einzelnen
+Sortierung bleibt der Versatz.
+
+Bereits ausgeschlossen:
+
+1. *Der Effect läuft nicht.* Widerlegt — instrumentiert, er läuft je Klick genau
+   einmal.
+2. *`engine.destroy()` im Effect-Cleanup leert die Registrierung der
+   Zeichenfelder.* War tatsächlich falsch (`{@attach}` meldet sie nicht neu an,
+   weil die Elemente bestehen bleiben) und ist behoben — der Versatz blieb.
+3. *Der `onselect`-Effect schreibt Parent-State während der Effect-Phase und
+   stört deren Reihenfolge.* Umgebaut auf einen direkten Aufruf aus dem
+   Click-Handler — der Versatz blieb.
+4. *Das `sorted`-Derived ist im Effect veraltet.* Der Effect rechnet die
+   Sortierung inzwischen selbst aus `sortKey`/`sortDir` — der Versatz blieb.
+
+Nächster Verdacht, noch ungeprüft: die Reihenfolge von `{@attach}` gegenüber
+`$effect`. Registrieren sich die Zeichenfelder nach dem Effect-Durchlauf neu,
+greift `update()` ins Leere und der sichtbare Stand bleibt der vorherige. Zu
+prüfen mit einem Zähler in `register()`.
+
 ## 5. Datenlücken für die echte Seite
 
 1. **Die `STATUS`-Spalte hat keine Quelle.** Der docs-gen-Katalog führt kein
