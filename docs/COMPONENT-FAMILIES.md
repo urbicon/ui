@@ -18,7 +18,7 @@ Picking the right family up-front avoids the most common categorical bugs: a but
 
 ---
 
-## The six families
+## The seven families
 
 | Family | Members | ARIA role | Tier behaviour | Border source |
 |---|---|---|---|---|
@@ -28,8 +28,9 @@ Picking the right family up-front avoids the most common categorical bugs: a but
 | [Container](#container) | Card · Alert · Accordion · Collapsible · Dialog · Drawer · Popover · Tooltip · Sidebar · Separator · ConfirmDialog | `dialog`, `region`, `tooltip`, etc. | tier-aware (contain default) | **Surface** or **Hairline** |
 | [Feedback / Ambient](#feedback--ambient) | Toast · Spinner · Progress · Skeleton · Badge | `status`, `alert`, `progressbar` | **not tier-aware** — fixed geometry per component | **Intent** (status-tinted) or **none** |
 | [Identity](#identity) | Avatar | `img` or `button` | **not tier-aware** — own shape axis (`circle`/`rounded`/`square`) | none (avatar is its own surface) |
+| [Conversation](#conversation) | Chat · ChatMessageList · ChatMessage · PromptInput · StreamingMarkdown · CodeBlock · ToolCallCard · ReasoningDisclosure · CitationChip · A2UIView | `log`, `article`, `textbox`, `region` | mixed — `bridge` for the bubble, `contain` for the framed blocks, `modify` for the composer | **Surface**, and only on the OUTERMOST frame |
 
-The split between `display`, `overlay`, `layout`, `feedback` etc. JSDoc tags collapses into these six families — the tags drive doc-page generation and MCP filtering, the family decides architecture.
+The split between `display`, `overlay`, `layout`, `feedback` etc. JSDoc tags collapses into these seven families — the tags drive doc-page generation and MCP filtering, the family decides architecture.
 
 ---
 
@@ -151,6 +152,26 @@ Full decision matrix with edge cases (search threshold, multi-select, async sour
 **Border source:** None. Avatar provides its own surface; `ring` (focus / status indicator) is the only border-adjacent affordance.
 
 **Industry analogue:** Radix `Avatar`, Chakra `Avatar`, Material `Avatar`. The key trait: stands in for a person; reads as a visual handle, not as a control.
+
+---
+
+## Conversation
+
+**Members:** `Chat`, `ChatMessageList`, `ChatMessage`, `PromptInput`, `StreamingMarkdown`, `CodeBlock`, `ToolCallCard`, `ReasoningDisclosure`, `CitationChip`, `A2UIView` (the `ai` JSDoc tag).
+
+**ARIA:** `role="log"` with `aria-live="off"` for the conversation (token-by-token live output would flood a screen reader — a separate polite region announces start and completion once each), `<article>` per message, `<textarea>` for the composer, `role="region"` for the scrollable code body.
+
+**Tier:** Mixed, and deliberately so — this family is the one place where three tiers meet inside one component tree. The bubble is `bridge` (6 px): it is *content*, and `contain` at 2 px reads as a rectangle at bubble size, because optical radius scales with the area it turns. The framed blocks (ToolCallCard, a standalone CodeBlock) are `contain` — they are panels. The composer is `modify`, like any other editable surface.
+
+**Border source:** **Surface**, and here the family adds a rule the others do not need: **only the outermost frame draws one.** A conversation nests deeper than any other family — shell → message → tool call → payload — so a component that frames itself *and* is framed by its parent stacks outlines at the same radius, which reads as depth that is not there. Hence `CodeBlock` has a `variant="plain"` that drops surface, outline, radius and padding for exactly this case, and `ToolCallCard` uses it for its payloads. When you nest a block, the parent owns the frame and the child owns the content.
+
+**Also specific to this family:**
+
+- **Tint over outline.** Message surfaces differentiate by tint (`surface-elevated` for the assistant bubble, `primary-subtle` for the user's), never by a border. That only works because the light surface ladder was spread in 2026-07 — see [semantic.css §SURFACE](../packages/blocks/src/lib/style/semantic.css) and the `surface ladder — perceptual separation` guard in `style/contrast.test.ts`.
+- **Alignment lives on the column, not the bubble.** Everything under a message (citations, status alert, footer) shares the bubble's aligned column, so it follows the role side. A row that sits outside it drifts to the opposite margin.
+- **Untrusted content.** Assistant output never reaches the DOM as markup: no `{@html}` anywhere, and every URL is policy-checked before render (images blocked by default). See [A2UI.md](A2UI.md) and the `ai-chat` pattern.
+
+**Industry analogue:** Vercel AI SDK UI, `assistant-ui`, Copilot Kit. The key trait: the content is streamed, partially settled, and not authored by the application — the components have to stay legible mid-stream and safe with hostile input.
 
 ---
 

@@ -54,8 +54,8 @@
    * contrast stays unchanged. surface-*, text-* and border-* pick this up
    * automatically through semantic.css.
    */
-  --color-neutral-25: oklch(0.99 0 0);
-  --color-neutral-50: oklch(0.98 0 0);
+  --color-neutral-25: oklch(0.985 0 0);
+  --color-neutral-50: oklch(0.965 0 0);
   --color-neutral-100: oklch(0.95 0 0);
   --color-neutral-200: oklch(0.89 0 0);
   --color-neutral-300: oklch(0.83 0 0);

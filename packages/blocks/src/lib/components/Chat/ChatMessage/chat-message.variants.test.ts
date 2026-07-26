@@ -7,6 +7,7 @@ const SLOTS = [
   'header',
   'roleName',
   'avatar',
+  'column',
   'bubble',
   'partsFlow',
   'attachment',
@@ -33,7 +34,6 @@ describe('chatMessageVariants', () => {
   it('tints and aligns bubbles per role', () => {
     const user = chatMessageVariants({ layout: 'bubble', role: 'user' });
     expect(user.bubble()).toContain('bg-primary-subtle');
-    expect(user.bubble()).toContain('rounded-contain');
     // User bubble packs to the right edge via row-reverse.
     expect(user.container()).toContain('flex-row-reverse');
 
@@ -46,11 +46,32 @@ describe('chatMessageVariants', () => {
     expect(system.container()).toContain('justify-center');
   });
 
+  /**
+   * A bubble is content, not architecture. `rounded-contain` (2 px) is the
+   * panel radius: correct on a 600 px Card, a plain rectangle on a ~200 px
+   * bubble — optical radius scales with the area it turns. The bubble takes the
+   * middle `bridge` tier instead, and it must stay a TIER (not a raw
+   * `rounded-md`) so a consumer can retune it via `--radius-bridge`.
+   */
+  it('gives every bubble role the bridge tier, never the panel radius', () => {
+    for (const role of ['user', 'assistant', 'system'] as const) {
+      const bubble = chatMessageVariants({ layout: 'bubble', role }).bubble();
+      expect(bubble, `${role} bubble must ride the bridge tier`).toContain('rounded-bridge');
+      expect(bubble, `${role} bubble must not fall back to the panel radius`).not.toContain(
+        'rounded-contain'
+      );
+      // A raw radius would silently opt out of brand theming.
+      expect(bubble, `${role} bubble must not hard-code a physical radius`).not.toMatch(
+        /\brounded-(?:none|xs|sm|md|lg|xl|2xl|3xl|full|\[)/
+      );
+    }
+  });
+
   it('drops the bubble tint and goes full width in plain layout', () => {
     const plain = chatMessageVariants({ layout: 'plain', role: 'assistant' });
     expect(plain.bubble()).toContain('w-full');
     expect(plain.bubble()).not.toContain('bg-surface-elevated');
-    expect(plain.bubble()).not.toContain('rounded-contain');
+    expect(plain.bubble()).not.toContain('rounded-bridge');
   });
 
   it('scales bubble padding with density', () => {
@@ -62,6 +83,69 @@ describe('chatMessageVariants', () => {
     );
     expect(chatMessageVariants({ density: 'comfortable' }).partsFlow()).toContain('gap-2');
     expect(chatMessageVariants({ density: 'compact' }).partsFlow()).toContain('gap-1.5');
+  });
+
+  /**
+   * The width cap belongs on the column, not the bubble: a bubble hugs its text,
+   * while the error alert underneath must span the full column. If the cap sat on
+   * `bubble`, the alert would be free to run wider than the message it belongs to.
+   */
+  it('caps the column width per role and lets the bubble hug its content', () => {
+    for (const [role, cap] of [
+      ['user', 'max-w-[85%]'],
+      ['assistant', 'max-w-[85%]'],
+      ['system', 'max-w-[90%]']
+    ] as const) {
+      const styles = chatMessageVariants({ layout: 'bubble', role });
+      expect(styles.column(), `${role} column carries the cap`).toContain(cap);
+      expect(styles.bubble(), `${role} bubble must not cap itself`).not.toMatch(/max-w-\[\d+%\]/);
+    }
+  });
+
+  /**
+   * A user bubble sits on the right, so its timestamp and citations have to as
+   * well — they hang off the column, and the column is what carries the side.
+   */
+  it('aligns the column to the bubble side per role', () => {
+    expect(chatMessageVariants({ layout: 'bubble', role: 'user' }).column()).toContain('items-end');
+    expect(chatMessageVariants({ layout: 'bubble', role: 'assistant' }).column()).toContain(
+      'items-start'
+    );
+    expect(chatMessageVariants({ layout: 'bubble', role: 'system' }).column()).toContain(
+      'items-center'
+    );
+    // Plain layout is a document flow — every row spans the full width.
+    expect(chatMessageVariants({ layout: 'plain' }).column()).toContain('items-stretch');
+  });
+
+  /**
+   * The action buttons are `opacity-0` until hover/focus. Letting them size the
+   * footer reserved a ~28px blank strip under EVERY message — visible as dead
+   * space between a bubble and its timestamp. The row is sized by the metadata
+   * line instead, and the buttons overhang it via a negative margin.
+   */
+  it('sizes the footer by its metadata line, not by the hidden action buttons', () => {
+    const styles = chatMessageVariants();
+    expect(styles.footer()).toContain('min-h-5');
+    expect(styles.actions()).toContain('-my-1');
+  });
+
+  /**
+   * Metadata is first in the DOM so the timestamp can sit against the bubble's
+   * own edge. For a user message that edge is on the right, so the footer
+   * reverses — otherwise the (invisible until hover) action bar would occupy the
+   * edge and push the timestamp inward, attached to nothing.
+   */
+  it('reverses the footer for a user message so the timestamp keeps the edge', () => {
+    expect(chatMessageVariants({ layout: 'bubble', role: 'user' }).footer()).toContain(
+      'flex-row-reverse'
+    );
+    for (const role of ['assistant', 'system'] as const) {
+      expect(
+        chatMessageVariants({ layout: 'bubble', role }).footer(),
+        `${role} reads left-to-right`
+      ).not.toContain('flex-row-reverse');
+    }
   });
 
   it('reveals the action bar on hover / focus-within and keeps buttons focus-visible', () => {

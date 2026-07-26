@@ -1,7 +1,7 @@
 @theme {
   --color-neutral-0: oklch(1 0 0);
-  --color-neutral-25: oklch(0.99 0.002 240);
-  --color-neutral-50: oklch(0.98 0.005 240);
+  --color-neutral-25: oklch(0.985 0.003 240);
+  --color-neutral-50: oklch(0.965 0.006 240);
   --color-neutral-100: oklch(0.95 0.008 240);
   --color-neutral-200: oklch(0.89 0.012 240);
   --color-neutral-300: oklch(0.83 0.014 240);
@@ -179,13 +179,23 @@
   --radius-commit: 9999px;
   --radius-modify: var(--radius-sm);
   --radius-contain: var(--radius-xs);
-  /* r-bridge — the "between" radius for adjacency cases: a floating
-     panel anchored to a commit-tier (pill) trigger reads disconnected
-     if the panel is r-contain (2 px) and over-sized if it mirrors the
-     pill at r-commit (9999 px). r-bridge sits at r-md (~6 px) to
-     visually pair pill triggers with their dropdown bodies (Menu panel
-     when its trigger Button is commit-tier). Use sparingly — most
-     surfaces should pick one of the three primary tiers above. */
+  /* r-bridge — the MIDDLE tier, at r-md (~6 px). Two cases earn it, both
+     of them "r-contain is too hard here, r-commit is too soft":
+
+       1. Adjacency. A floating panel anchored to a commit-tier (pill)
+          trigger reads disconnected at r-contain (2 px) and over-sized
+          if it mirrors the pill at r-commit. (Menu panel when its
+          trigger Button is commit-tier.)
+       2. Small tinted content surfaces. Optical radius scales with the
+          area it turns: 2 px on a 600 px Card reads as a precise edge,
+          the same 2 px on a ~200 px chat bubble reads as a rectangle.
+          A bubble is content, not architecture — it takes the middle
+          tier. (ChatMessage bubble.)
+
+     Still not a free-for-all: everything that IS a panel, dialog or
+     container belongs on one of the three primary tiers above. Reach
+     for bridge only when the surface is demonstrably too small for
+     r-contain to read as intentional. */
   --radius-bridge: var(--radius-md);
 
   /* Container Query Breakpoints */

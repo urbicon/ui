@@ -472,7 +472,11 @@ export const progressCellVariants = tv({
     label: ['flex justify-between w-full'],
     text: ['text-text-primary'],
     value: ['text-text-secondary text-xs'],
-    track: ['w-full bg-surface-subtle rounded-commit overflow-hidden'],
+    // `surface-interactive`, matching Progress and Slider. `surface-subtle`
+    // resolves to the same neutral step as `surface-elevated`, so the groove
+    // vanished on any tinted row or elevated card — the last cell type still
+    // carrying that bug after the primitives were fixed.
+    track: ['w-full bg-surface-interactive rounded-commit overflow-hidden'],
     bar: [
       'h-full rounded-commit transition-[width,background-color] duration-[var(--blocks-duration-slow)]'
     ]

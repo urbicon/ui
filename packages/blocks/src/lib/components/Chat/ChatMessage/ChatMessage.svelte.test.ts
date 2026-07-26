@@ -60,6 +60,42 @@ describe('ChatMessage', () => {
     expect(document.body.textContent).not.toContain('Assistant');
   });
 
+  /**
+   * Structural, not cosmetic: the timestamp and citations used to be siblings of
+   * `container` — the element that flips to `flex-row-reverse` for a user
+   * message. So the bubble moved right while everything under it stayed pinned
+   * to the left margin. They now share the aligned column with the bubble, which
+   * is the only way the alignment can follow the role at all.
+   */
+  it('keeps the timestamp in the same aligned column as the bubble content', () => {
+    for (const [role, alignment] of [
+      ['user', 'items-end'],
+      ['assistant', 'items-start']
+    ] as const) {
+      render({
+        message: msg({
+          role,
+          parts: [{ type: 'text', text: 'Aligned with me' }],
+          createdAt: new Date('2026-01-01T10:00:00')
+        })
+      });
+      const time = document.querySelector('time');
+      expect(time, `${role}: timestamp rendered`).not.toBeNull();
+
+      const column = time!.closest(`.${alignment}`);
+      expect(column, `${role}: timestamp hangs off a ${alignment} column`).not.toBeNull();
+      // The same column holds the message text — that is what "aligned with the
+      // bubble" means. A column containing only the footer would still match the
+      // class assertion above.
+      expect(column!.textContent, `${role}: that column also holds the bubble`).toContain(
+        'Aligned with me'
+      );
+
+      document.body.replaceChildren();
+      dispose?.();
+    }
+  });
+
   it('collects source parts into a numbered citation footer', () => {
     render({
       message: msg({
@@ -102,7 +138,7 @@ describe('ChatMessage', () => {
         parts: [{ type: 'reasoning', text: 'internal chain of thought' }]
       })
     });
-    expect(screen.queryByRole('button', { name: 'Copy message', hidden: true })).toBeNull();
+    expect(screen.queryByRole('button', { name: 'Copy', hidden: true })).toBeNull();
   });
 
   it('never renders a javascript: attachment url as a link', () => {
@@ -230,7 +266,7 @@ describe('ChatMessage', () => {
         ]
       })
     });
-    screen.getByRole('button', { name: 'Copy message' }).click();
+    screen.getByRole('button', { name: 'Copy' }).click();
     await vi.waitFor(() => expect(writeText).toHaveBeenCalledTimes(1));
     // Only text parts, joined — sources are not part of the copied payload.
     expect(writeText).toHaveBeenCalledWith('First.\n\nSecond.');

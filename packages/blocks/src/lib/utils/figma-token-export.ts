@@ -32,8 +32,8 @@ export interface FigmaTokenGroup {
 const foundationColors: Record<string, Record<string, string>> = {
   neutral: {
     '0': 'oklch(1 0 0)',
-    '25': 'oklch(0.99 0.002 240)',
-    '50': 'oklch(0.98 0.005 240)',
+    '25': 'oklch(0.985 0.003 240)',
+    '50': 'oklch(0.965 0.006 240)',
     '100': 'oklch(0.95 0.008 240)',
     '200': 'oklch(0.89 0.012 240)',
     '300': 'oklch(0.83 0.014 240)',

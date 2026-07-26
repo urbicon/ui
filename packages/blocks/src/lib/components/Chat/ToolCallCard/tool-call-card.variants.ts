@@ -29,10 +29,10 @@ export const toolCallCardVariants = tv({
     ],
     // Default body wrapper (input/output sections + error line).
     body: 'flex flex-col gap-3',
-    // One labelled block (heading + CodeBlock).
-    section: 'flex flex-col gap-1',
-    // Small tertiary heading above each code block.
-    sectionLabel: 'text-xs font-medium text-text-tertiary',
+    // One payload block. The caption lives in the CodeBlock's own header (it is
+    // passed as `label`), so this is a plain positioning wrapper — no heading row
+    // of its own, which is what removed a whole chrome level from the card.
+    section: 'flex flex-col',
     // Error message line shown above the sections.
     errorMessage: 'text-sm text-danger'
   }

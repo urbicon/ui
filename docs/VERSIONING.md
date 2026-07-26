@@ -2,7 +2,7 @@
 
 This repo uses **Conventional Commits → git-cliff → Changelog** as its versioning pipeline. Commits are the source of truth — correct types and scopes drive the changelog automatically. All packages use **unified versioning** — every package shares the same version as root.
 
-Quick reference (when/which-level) lives in [AGENTS.md → Versioning](../AGENTS.md#versioning); this file is the full detail.
+Quick reference (when/which-level) lives in the `release-bump` skill (`.claude/skills/release-bump/`); this file is the full detail.
 
 ## When to bump
 

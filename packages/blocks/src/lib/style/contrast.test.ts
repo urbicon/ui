@@ -851,3 +851,71 @@ describe('informative text on reading surfaces — WCAG contrast', () => {
     });
   });
 });
+
+/**
+ * The surface ladder has to be *visible as a ladder*, not just legible.
+ *
+ * In light mode `base` sits at the white ceiling, so every other reading rung
+ * must differentiate downward — and the ramp barely let it: quiet and elevated
+ * were ΔL 0.01 / 0.02 from base, against 0.03 / 0.08 in dark mode. A tinted
+ * in-flow surface with no border and no shadow was effectively invisible there,
+ * which is why components kept adding a border purely to make a surface show up
+ * (the chat bubble, the table-cell progress track). `neutral-25`/`-50` were
+ * lowered to 0.985/0.965 in 2026-07 to fix it at the ramp.
+ *
+ * Measured in OKLCH ΔL, deliberately NOT in WCAG contrast ratio: the ratio is
+ * defined for text against its background and its +0.05 offset compresses hard
+ * at the dark end (dark base→elevated is a ratio of 1.014 while being a clearly
+ * visible ΔL 0.08). OKLCH L is perceptually uniform, so it is the honest measure
+ * for one surface against another.
+ *
+ * This is exactly the failure class the interaction-fill guard in
+ * semantic.test.ts covers, one level down: that test catches a rung resolving to
+ * the *same token*, this one catches rungs that resolve to distinct tokens whose
+ * values are too close to tell apart.
+ */
+describe('surface ladder — perceptual separation', () => {
+  /** Below this the tint is not reliably visible without a border or shadow. */
+  const MIN_DELTA_L = 0.012;
+
+  const separations: Record<string, number> = {};
+  for (const theme of ['default', ...THEMES] as Theme[]) {
+    const css = stylesheetFor(theme);
+    for (const mode of MODES) {
+      const base = resolveToken(css, '--color-surface-base', mode);
+      for (const surface of ['quiet', 'elevated', 'subtle'] as const) {
+        const rung = resolveToken(css, `--color-surface-${surface}`, mode);
+        separations[`${theme}/${mode}/base-vs-${surface}`] = round2(
+          Math.abs(base.l - rung.l) * 1000
+        );
+      }
+    }
+  }
+  const ids = Object.keys(separations);
+
+  it('covers quiet/elevated/subtle against base × mode × theme', () => {
+    expect(ids).toHaveLength(6 * 2 * 3);
+    expect(ids).toContain('default/light/base-vs-elevated');
+  });
+
+  it.each(ids)('%s is far enough from base to read as its own surface', (id) => {
+    expect(
+      separations[id],
+      `${id} is ΔL ${separations[id] / 1000} from surface-base — below the ${MIN_DELTA_L} ` +
+        `floor, so the tint alone cannot be seen and the component needs a border to show up`
+    ).toBeGreaterThanOrEqual(MIN_DELTA_L * 1000);
+  });
+
+  /**
+   * `overlay` is exempt from the floor above: in the light default it is
+   * deliberately the same white as `base` and relies on its shadow plus the
+   * backdrop dim instead (documented in semantic.css). Pinning that here means
+   * nobody "fixes" it into a tint by accident.
+   */
+  it('overlay is the documented exception — it leans on shadow, not tint', () => {
+    const css = stylesheetFor('default');
+    const base = resolveToken(css, '--color-surface-base', 'light');
+    const overlay = resolveToken(css, '--color-surface-overlay', 'light');
+    expect(overlay.l).toBe(base.l);
+  });
+});

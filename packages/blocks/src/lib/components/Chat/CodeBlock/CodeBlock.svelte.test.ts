@@ -51,7 +51,9 @@ async function flush() {
   flushSync();
 }
 
-const copyButton = () => screen.getByRole('button', { name: /copy code|copied/i });
+// The copy control is icon-only — its accessible name IS its state label, which
+// is why the matcher covers all three phases.
+const copyButton = () => screen.getByRole('button', { name: /^(copy|copied|copy failed)$/i });
 const region = () => screen.getByRole('region');
 
 describe('CodeBlock (component interaction)', () => {
@@ -69,13 +71,13 @@ describe('CodeBlock (component interaction)', () => {
 
     const btn = copyButton();
     const svgBefore = btn.querySelector('svg')?.outerHTML;
-    expect(btn.textContent).toContain('Copy code');
+    // Icon-only: the label lives on the accessible name, not in the text content.
+    expect(btn.getAttribute('aria-label')).toBe('Copy');
+    expect(btn.getAttribute('title')).toBe('Copy');
 
     fireEvent.click(btn);
     await flush();
 
-    // Label swapped (visible text + accessible name).
-    expect(copyButton().textContent).toContain('Copied');
     expect(screen.getByRole('button', { name: 'Copied' })).toBeTruthy();
     // Icon swapped (copy → check) — the rendered svg markup differs.
     const svgAfter = copyButton().querySelector('svg')?.outerHTML;
@@ -86,7 +88,7 @@ describe('CodeBlock (component interaction)', () => {
     vi.advanceTimersByTime(2000);
     await flush();
 
-    expect(copyButton().textContent).toContain('Copy code');
+    expect(copyButton().getAttribute('aria-label')).toBe('Copy');
     expect(screen.getByRole('status').textContent).toBe('');
   });
 
@@ -105,7 +107,14 @@ describe('CodeBlock (component interaction)', () => {
     expect(onCopy).toHaveBeenCalledWith('abc123');
   });
 
-  it('does not crash or confirm when the clipboard write fails', async () => {
+  /**
+   * A failed copy used to be console-only: the button stayed on its idle label,
+   * so a user with a denied clipboard permission saw no difference between
+   * "copied" and "did nothing". It now reports the failure like any other
+   * outcome — and still never falsely confirms.
+   */
+  it('reports a failed clipboard write instead of looking untouched', async () => {
+    vi.useFakeTimers();
     writeText.mockRejectedValueOnce(new Error('denied'));
     const errorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
     const onCopy = vi.fn();
@@ -114,10 +123,32 @@ describe('CodeBlock (component interaction)', () => {
     fireEvent.click(copyButton());
     await flush();
 
-    // State unchanged: still the idle label, no false confirmation, onCopy not fired.
-    expect(copyButton().textContent).toContain('Copy code');
+    expect(screen.getByRole('button', { name: 'Copy failed' })).toBeTruthy();
+    // Announced too — an icon swap alone reaches nobody using a screen reader.
+    expect(screen.getByRole('status').textContent).toBe('Copy failed');
+    // No false confirmation, and the success callback stays untouched.
     expect(onCopy).not.toHaveBeenCalled();
     expect(errorSpy).toHaveBeenCalled();
+
+    // Reverts on the same timer as a success, so the control returns to rest.
+    vi.advanceTimersByTime(2000);
+    await flush();
+    expect(copyButton().getAttribute('aria-label')).toBe('Copy');
+  });
+
+  it('routes a failure to onCopyError instead of the console when handled', async () => {
+    writeText.mockRejectedValueOnce(new Error('denied'));
+    const errorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+    const onCopyError = vi.fn();
+    render({ onCopyError });
+
+    fireEvent.click(copyButton());
+    await flush();
+
+    expect(onCopyError).toHaveBeenCalledTimes(1);
+    expect((onCopyError.mock.calls[0][0] as Error).message).toBe('denied');
+    // A handled failure is not also console noise.
+    expect(errorSpy).not.toHaveBeenCalled();
   });
 
   it('scrolls horizontally by default and soft-wraps when wrap=true', () => {
@@ -154,9 +185,44 @@ describe('CodeBlock (component interaction)', () => {
     expect(region().parentElement?.className).toContain('my-root');
   });
 
-  it('labels the scrollable region by language, falling back to "Code"', () => {
+  /**
+   * `label` is what an embedding parent passes ("Input"). It replaces `lang` in
+   * the header rather than joining it — a header reading "Input" over a block
+   * captioned "json" states the same payload twice, which is exactly the doubled
+   * chrome the embedded variant removes.
+   */
+  it('shows label instead of lang in the header when both are given', () => {
+    render({ lang: 'json', label: 'Input', showCopy: false });
+    const root = region().parentElement!;
+    expect(root.textContent).toContain('Input');
+    expect(root.textContent).not.toContain('json');
+  });
+
+  it('shows the header for a label alone, and omits it when neither is given', () => {
+    render({ label: 'Input', showCopy: false });
+    expect(region().parentElement?.firstElementChild).not.toBe(region());
+    dispose?.();
+    document.body.replaceChildren();
+
+    render({ showCopy: false });
+    expect(region().parentElement?.firstElementChild).toBe(region());
+  });
+
+  it('labels the scrollable region by language, falling back to label then "Code"', () => {
     render({ lang: 'python' });
     expect(region().getAttribute('aria-label')).toBe('python code');
+    dispose?.();
+    document.body.replaceChildren();
+
+    // The language stays the region's name even when the header shows a caption:
+    // "json code" tells a screen-reader user more than "Input code".
+    render({ lang: 'json', label: 'Input' });
+    expect(region().getAttribute('aria-label')).toBe('json code');
+    dispose?.();
+    document.body.replaceChildren();
+
+    render({ label: 'Input' });
+    expect(region().getAttribute('aria-label')).toBe('Input code');
     dispose?.();
     document.body.replaceChildren();
 

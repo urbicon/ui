@@ -1,5 +1,8 @@
 <script lang="ts">
+  import { useBlocksI18n } from '$lib/i18n';
   import { getBlocksConfig, resolveSlotClasses } from '$lib/provider';
+  import { createCopyState } from '$lib/internal/copy-state.svelte';
+  import CoreIconButton from '$lib/internal/core/CoreIconButton.svelte';
   import { Alert, Avatar, Button, Skeleton, Tooltip } from '$lib/primitives';
   import { resolveIcon } from '$lib/icons';
   import SparklesIconDefault from '$lib/icons/SparklesIcon.svelte';
@@ -34,8 +37,9 @@
     layout = 'bubble',
     density = 'comfortable',
     roleLabels,
-    copyLabel = 'Copy message',
-    copiedLabel = 'Copied',
+    copyLabel,
+    copiedLabel,
+    copyFailedLabel,
     regenerateLabel = 'Regenerate',
     retryLabel = 'Retry',
     errorLabel = 'Something went wrong',
@@ -47,8 +51,14 @@
     ...restProps
   }: ChatMessageProps = $props();
 
+  const bt = useBlocksI18n();
   const blocksConfig = getBlocksConfig();
   const unstyled = $derived(unstyledProp || blocksConfig?.unstyled || false);
+
+  // Localised by default instead of hardcoded English in the prop signature.
+  const copyText = $derived(copyLabel ?? bt('accessibility.copy'));
+  const copiedText = $derived(copiedLabel ?? bt('accessibility.copied'));
+  const copyFailedText = $derived(copyFailedLabel ?? bt('accessibility.copyFailed'));
 
   const SparklesIcon = resolveIcon('sparkles', SparklesIconDefault);
   const UserIcon = resolveIcon('user', UserIconDefault);
@@ -93,7 +103,7 @@
   });
 
   // Concatenated text parts — what the copy action writes to the clipboard.
-  const copyText = $derived(
+  const messageText = $derived(
     message.parts.flatMap((p) => (p.type === 'text' ? [p.text] : [])).join('\n\n')
   );
 
@@ -114,27 +124,22 @@
   );
 
   // ── Copy interaction ─────────────────────────────────────────────────────
-  let copied = $state(false);
-  let resetTimer: ReturnType<typeof setTimeout> | undefined;
+  const copyState = createCopyState();
+
+  // Reports all three outcomes. A failed copy used to be console-only, so the
+  // action bar looked identical whether the clipboard write worked or not.
+  const copyButtonText = $derived(
+    copyState.phase === 'copied'
+      ? copiedText
+      : copyState.phase === 'error'
+        ? copyFailedText
+        : copyText
+  );
 
   async function copyMessage() {
-    try {
-      await navigator.clipboard.writeText(copyText);
-      copied = true;
-      if (resetTimer) clearTimeout(resetTimer);
-      resetTimer = setTimeout(() => {
-        copied = false;
-        resetTimer = undefined;
-      }, 2000);
-    } catch (err) {
-      // Never confirm a copy that failed (e.g. denied clipboard permission).
-      console.error('ChatMessage: failed to copy message', err);
-    }
+    const result = await copyState.copy(messageText);
+    if (!result.ok) console.error('ChatMessage: failed to copy message', result.error);
   }
-
-  $effect(() => () => {
-    if (resetTimer) clearTimeout(resetTimer);
-  });
 </script>
 
 {#snippet defaultAvatar(role: ChatRole)}
@@ -249,65 +254,43 @@
   <div class={cls('actions')}>
     <!-- No copy for text-less messages (tool-call/reasoning-only): copying an
          empty string and confirming "Copied" would be a lie (review finding). -->
-    {#if copyText}
-      <Tooltip label={copyLabel}>
-        <button
-          type="button"
+    {#if messageText}
+      <Tooltip label={copyButtonText}>
+        <CoreIconButton
           class={cls('actionButton')}
           onclick={copyMessage}
-          aria-label={copied ? copiedLabel : copyLabel}
+          aria-label={copyButtonText}
         >
-          {#if copied}
+          {#if copyState.phase === 'copied'}
             <CheckIcon size={16} />
           {:else}
             <CopyIcon size={16} />
           {/if}
-        </button>
+        </CoreIconButton>
       </Tooltip>
     {/if}
     {#if onRegenerate}
       <Tooltip label={regenerateLabel}>
-        <button
-          type="button"
+        <CoreIconButton
           class={cls('actionButton')}
           onclick={onRegenerate}
           aria-label={regenerateLabel}
         >
           <RefreshIcon size={16} />
-        </button>
+        </CoreIconButton>
       </Tooltip>
     {/if}
   </div>
 {/snippet}
 
-<div class={cls('root', className)} data-role={message.role} data-status={status} {...restProps}>
-  {#if layout === 'plain'}
-    <div class={cls('header')}>
-      {#if avatar}
-        {@render avatar({ role: message.role })}
-      {:else}
-        {@render defaultAvatar(message.role)}
-      {/if}
-      <span class={cls('roleName')}>{roleLabel}</span>
-    </div>
-    <div class={cls('bubble')}>
-      {@render body()}
-    </div>
-  {:else}
-    <div class={cls('container')}>
-      {#if message.role !== 'user'}
-        {#if avatar}
-          {@render avatar({ role: message.role })}
-        {:else}
-          {@render defaultAvatar(message.role)}
-        {/if}
-      {/if}
-      <div class={cls('bubble')}>
-        {@render body()}
-      </div>
-    </div>
-  {/if}
-
+<!--
+  `column` wraps the bubble together with everything that hangs under it —
+  citations, the status alert, the footer. They must be siblings of the bubble
+  INSIDE the column, not of `container`: the column is what carries the
+  role-dependent side (`items-end` for a user message), so the timestamp ends up
+  under the bubble's own edge instead of at the left margin.
+-->
+{#snippet belowBubble()}
   {#if sources.length}
     <div class={cls('sourcesFooter')}>
       {#each sources as source, i (source.id)}
@@ -326,20 +309,63 @@
     </div>
   {/if}
 
+  <!--
+    Metadata first in the DOM, actions second — and the footer reverses for a
+    user message (see the variants). That ordering is what puts the timestamp
+    against the bubble's own edge on BOTH sides: the action bar is `opacity-0`
+    until hover, so whichever element comes first at the edge is the only one
+    visible there. Actions-first left the timestamp floating one button-width in
+    from the edge, attached to nothing.
+  -->
   <div class={cls('footer')}>
-    {#if actions}
-      {@render actions({ message })}
-    {:else}
-      {@render defaultActions()}
-    {/if}
     {#if metadata}
       {@render metadata({ message })}
     {:else if createdAtTime}
       <time class={cls('metadata')} datetime={createdAtIso}>{createdAtTime}</time>
     {/if}
+    {#if actions}
+      {@render actions({ message })}
+    {:else}
+      {@render defaultActions()}
+    {/if}
   </div>
+{/snippet}
 
-  <!-- Copy confirmation for screen readers — a live status region, present
-       before `copied` flips so it always announces the change. -->
-  <span class="sr-only" role="status">{copied ? copiedLabel : ''}</span>
+<div class={cls('root', className)} data-role={message.role} data-status={status} {...restProps}>
+  {#if layout === 'plain'}
+    <div class={cls('header')}>
+      {#if avatar}
+        {@render avatar({ role: message.role })}
+      {:else}
+        {@render defaultAvatar(message.role)}
+      {/if}
+      <span class={cls('roleName')}>{roleLabel}</span>
+    </div>
+    <div class={cls('column')}>
+      <div class={cls('bubble')}>
+        {@render body()}
+      </div>
+      {@render belowBubble()}
+    </div>
+  {:else}
+    <div class={cls('container')}>
+      {#if message.role !== 'user'}
+        {#if avatar}
+          {@render avatar({ role: message.role })}
+        {:else}
+          {@render defaultAvatar(message.role)}
+        {/if}
+      {/if}
+      <div class={cls('column')}>
+        <div class={cls('bubble')}>
+          {@render body()}
+        </div>
+        {@render belowBubble()}
+      </div>
+    </div>
+  {/if}
+
+  <!-- Copy outcome for screen readers — a live status region, present before the
+       phase flips so it always announces the change. -->
+  <span class="sr-only" role="status">{copyState.phase === 'idle' ? '' : copyButtonText}</span>
 </div>
