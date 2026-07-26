@@ -171,50 +171,67 @@ eine Anzeige ohne sichtbare Leiste sagt nicht, dass sie weitergeht.
 - **Animationsstart an Sichtbarkeit koppeln**, nicht an `load` — sonst steht die
   Eingangssequenz, wenn der Tab im Hintergrund geöffnet wurde.
 
-## 7. Portierung nach Svelte — offener Bug
+## 7. Portierung nach Svelte — und eine Fehldiagnose
 
-Der HTML-Prototyp ist konsistent (0 Abweichungen über drei Sortierungen). Die
-Svelte-Fassung (`apps/docs/src/lib/landing/FlapBoard.svelte`) hat einen Fehler,
-den der Prototyp nicht hatte:
+Die erste Svelte-Fassung führte eine zentrale Engine, die DOM-Felder verwaltete.
+Sie schien der Anzeige einen Sortierschritt hinterherzulaufen. **Das war
+überwiegend ein Messartefakt:** `requestAnimationFrame` ruht in unsichtbaren
+Tabs, und über CDP steht der Tab auf `visibilityState: 'hidden'` — gemessen: 0
+Frames in 400 ms. Der rAF-Loop startete nie, also blieb die Anzeige stehen.
 
-**Die Engine läuft der Anzeige genau einen Schritt hinterher.** Nach einem Klick
-auf eine Spaltenüberschrift tragen `aria-label` und `data-status` sofort die
-neue Reihenfolge; die Flaps zeigen den Stand, den die Labels *vor* dem Klick
-hatten. Messung an derselben Zelle über einen Klick hinweg:
+Dieselbe Falle wie bei der Perf-Messung, ein zweites Mal.
 
-| Zeitpunkt | `aria-label` | Flaps |
-|---|---|---|
-| vor dem Klick | ConfirmDialog | Button |
-| direkt danach | ConfirmDialog | Button |
-| +300 ms | **A2UIView** | **ConfirmDialog** |
-| +2 300 ms | A2UIView | ConfirmDialog |
+**Ein echter Fehler steckte trotzdem darin:** Startet eine Welle, während der
+Tab bereits unsichtbar ist, feuert kein `visibilitychange` mehr — die
+Beschriftungen tragen dann die neue Sortierung, die Flaps die alte. Behoben:
+`flush()` prüft `visibilityState` und stellt die Zeichen sofort, statt zu
+animieren.
 
-Reproduktion: `/test-fixtures/landing-board`, eine Spalte sortieren, dann
-`aria-label` jeder `[role="gridcell"]` gegen den zusammengesetzten Text ihrer
-Kinder vergleichen. Achtung beim Nachmessen: Die Felder starten mit `&nbsp;`
-(U+00A0), das erzeugt ~57 Schein-Abweichungen — vor dem Vergleich
-normalisieren, sonst misst man das eigene Prüfverfahren.
+Weitere echte Funde aus derselben Runde:
 
-**Kein Timing-Problem:** Auch nach 3 Sekunden und bei einer einzelnen
-Sortierung bleibt der Versatz.
+- `engine.destroy()` im Cleanup eines `$effect` leerte die Registrierung der
+  Zeichenfelder; `{@attach}` meldet sie nicht neu an, weil die Elemente
+  bestehen bleiben. Aufräumen war ohnehin unnötig — `register()` gibt sein
+  eigenes Cleanup zurück.
+- `.rolling` wird nur zur Laufzeit gesetzt und kommt im Markup nicht vor:
+  Svelte entfernt solche scoped Regeln als ungenutzt. Nötig ist
+  `.ch:global(.rolling)`.
+- `classList` statt `className`, sonst fliegt Sveltes Scoping-Klasse mit raus.
 
-Bereits ausgeschlossen:
+### Die Architektur, die daraus wurde
 
-1. *Der Effect läuft nicht.* Widerlegt — instrumentiert, er läuft je Klick genau
-   einmal.
-2. *`engine.destroy()` im Effect-Cleanup leert die Registrierung der
-   Zeichenfelder.* War tatsächlich falsch (`{@attach}` meldet sie nicht neu an,
-   weil die Elemente bestehen bleiben) und ist behoben — der Versatz blieb.
-3. *Der `onselect`-Effect schreibt Parent-State während der Effect-Phase und
-   stört deren Reihenfolge.* Umgebaut auf einen direkten Aufruf aus dem
-   Click-Handler — der Versatz blieb.
-4. *Das `sorted`-Derived ist im Effect veraltet.* Der Effect rechnet die
-   Sortierung inzwischen selbst aus `sortKey`/`sortDir` — der Versatz blieb.
+Statt einer zentralen Engine ist **jede Zelle autonom** (`FlapCell.svelte`):
+Sie bekommt ihren Wert als Prop und blättert selbst dorthin. Damit ist ihr egal,
+ob die Tabelle sie verschiebt, neu erzeugt oder stehen lässt — und **die echte
+`Table` lässt sich darunter verwenden**, was für eine Seite, die mit dem eigenen
+Set wirbt, keine Kür ist.
 
-Nächster Verdacht, noch ungeprüft: die Reihenfolge von `{@attach}` gegenüber
-`$effect`. Registrieren sich die Zeichenfelder nach dem Effect-Durchlauf neu,
-greift `update()` ins Leere und der sichtbare Stand bleibt der vorherige. Zu
-prüfen mit einem Zähler in `register()`.
+Der Schlüssel dafür: Die Items tragen bewusst **keine `id`**. `TableDesktop`
+keyt dann nach Index (`item.id ?? i`), die Zeilen bleiben also stehen und nur
+die Werte wechseln — genau was ein Fallblatt braucht. Mit stabilen IDs würde die
+Tabelle die DOM-Knoten verschieben, die Zellwerte blieben unverändert, und es
+gäbe nichts zu blättern.
+
+Der gemeinsame Takt liegt in `flap-scheduler.ts` — ein rAF-Loop für alle, statt
+490 einzelner. Die Zeilenstaffelung entsteht aus der Anmeldereihenfolge: Zellen
+melden sich in DOM-Reihenfolge, also ist die Reihenfolge der erstmals gesehenen
+`<tr>` die Zeilenreihenfolge. Die Zelle muss ihre Position nicht kennen.
+
+**Verifiziert:** 980 Zellen, vier Sortierungen in Folge, 0 Abweichungen zwischen
+`aria-label` und angezeigten Zeichen.
+
+⚠️ Beim Nachmessen normalisieren: Leerzeichen werden als `&nbsp;` (U+00A0)
+gerendert, damit die Felder nicht kollabieren. Ohne `replace(/[\s\u00A0]+/g,' ')`
+meldet der Vergleich ~148 Schein-Abweichungen der Art `"93.8 kB" ≠ "93.8 kB"`.
+
+### Dev-Server: falsche Seite nach HMR
+
+Reproduzierbar liefert der Vite-Dev-Server nach mehreren Dateiänderungen den
+Inhalt einer *anderen* Route (hier `/test-fixtures/auth`) bei korrektem
+`<title>`. Der Server selbst antwortet richtig (per `curl` geprüft) — es ist der
+Client-Modulgraph. Hilft: Server stoppen, `node_modules/.vite` und
+`.svelte-kit` löschen, `svelte-kit sync`, neu starten. Ein Reload mit
+Query-Parameter genügt nicht.
 
 ## 5. Datenlücken für die echte Seite
 
