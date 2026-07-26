@@ -2,6 +2,9 @@ import { describe, expect, it } from 'vitest';
 import { findUnusedKeys } from '../unused';
 import { scanSource, scanSources } from './scanner';
 
+// The scanner's lazily-loaded parsers are warmed per worker in
+// ../../../../vitest-setup.ts — see the note there for why.
+
 describe('scanSource — TypeScript', () => {
   it('captures static keys across aliases, members, and destructuring', async () => {
     const code = `
