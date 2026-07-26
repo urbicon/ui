@@ -1,6 +1,7 @@
 <script lang="ts">
   import { untrack } from 'svelte';
   import { useBlocksI18n } from '$lib';
+  import CoreFieldMessage from '$lib/internal/core/CoreFieldMessage.svelte';
   import { getBlocksConfig, resolveSlotClasses } from '$lib/provider';
   import { getTierContext } from '$lib/utils';
   import type { PinInputProps } from './index';
@@ -299,26 +300,17 @@
     {/each}
   </div>
 
-  {#if error}
-    <div
-      id={messageId}
-      role="alert"
-      class={unstyled
-        ? (slotClasses?.message ?? '')
-        : styles.message({ class: slotClasses?.message })}
-    >
-      {error}
-    </div>
-  {:else if helper}
-    <div
-      id={messageId}
-      class={unstyled
-        ? (slotClasses?.message ?? '')
-        : styles.message({ class: slotClasses?.message })}
-    >
-      {helper}
-    </div>
-  {/if}
+  <!-- Both arms share one id: `describedBy` points at `messageId` regardless of
+       which arm renders, since only one ever does. -->
+  <CoreFieldMessage
+    {error}
+    {helper}
+    errorId={messageId}
+    helperId={messageId}
+    class={unstyled
+      ? (slotClasses?.message ?? '')
+      : styles.message({ class: slotClasses?.message })}
+  />
 
   {#if name}
     <input type="hidden" {name} {value} />

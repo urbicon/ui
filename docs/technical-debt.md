@@ -65,7 +65,7 @@ internal TODO instead. Sections are ordered roughly by urgency.
 
 ## API design
 
-### Field label/helper/error MARKUP is re-implemented per form component (part b)
+### ~~Field label/helper/error MARKUP is re-implemented per form component (part b)~~ — message extracted 2026-07-26, label divergence kept on purpose
 
 - **Where:** the label/message scaffolding in `Input.svelte`, `PinInput.svelte`,
   `TimeInput.svelte` (label span + `aria-labelledby`, `role="alert"` message,
@@ -76,19 +76,34 @@ internal TODO instead. Sections are ordered roughly by urgency.
   `packages/blocks/src/lib/internal/field-chrome.ts` and are composed back into
   `input`/`pin-input`/`time-input.variants.ts`, byte-identical to the old inline
   strings (proven by a 47 872-combination resolved-class matrix diff, 0 diff).
-  What remains is part (b): the label/helper/error **markup** is still hand-
-  re-implemented in each of the three `.svelte` files. Deliberate per-component
-  divergences stay inline in the variants (Input's `xs`/`underline`, PinInput's
-  cell-height scale + `focus-visible:z-10`, TimeInput's `focus-within` +
-  cursor-free readonly) and are commented at each site.
-- **Why deferred:** A shared markup cut (a `FieldShell` snippet/component or a
-  `useFieldScaffold` helper) is a bigger, behaviour-touching change with its own
-  a11y surface (id wiring, `aria-describedby`). **Its stated blocker is gone**
-  (W5, 2026-07-24): PinInput and TimeInput are now in the VR fixture and the
-  dark-axe matrix, so a markup extraction can be proven pixel-identical the way
-  the style extraction was. What remains is the extraction itself.
+  Deliberate per-component divergences stay inline in the variants (Input's
+  `xs`/`underline`, PinInput's cell-height scale + `focus-visible:z-10`,
+  TimeInput's `focus-within` + cursor-free readonly) and are commented at each
+  site.
+- **Resolved 2026-07-26 (the message):** the helper/error block — the part that
+  really was copied three times — now lives in
+  `internal/core/CoreFieldMessage.svelte`, alongside `CoreIconButton` and
+  `CoreSpinner`. It owns the error-beats-helper precedence, `role="alert"` on
+  the error arm only, and the id wiring; the call site keeps the look and passes
+  its resolved `message` slot class, so the core runs no variant engine (the
+  CoreIconButton contract). Proven unchanged by the 52 resting VR shots, which
+  render all three fields in their `error` state — 141/141 e2e green, no shot
+  moved — and the extracted rules gained the test they never had in any of the
+  three components: the helper arm had **no** coverage anywhere, and
+  "error beats helper" was implied by an `{:else if}` rather than asserted.
+  6 tests, negatively verified (making the helper arm a live region and dropping
+  the `else` fails exactly two of them).
+- **Deliberately NOT extracted — the label.** The entry lumped the label in with
+  the message, but the two are not the same kind of duplication. Input renders a
+  real `<label for={fieldId}>` because it has exactly one focusable element;
+  PinInput and TimeInput render a `<span id>` referenced by `aria-labelledby` on
+  a `role="group"`, because they have many focusable segments and no single
+  field a `for` could point at. Unifying those would be an a11y regression, not
+  a de-duplication, so the label stays at the call sites with that reason
+  recorded in the core's docblock. The `required` asterisk and the `messageType`
+  derivation were already shared via `field-chrome.ts` (part a) and the variants.
 - **Found:** 2026-07-24, component-trio review; part (a) closed same day
-  (debt-fix-wave-5).
+  (debt-fix-wave-5), part (b) closed 2026-07-26.
 
 ## Component behaviour
 
