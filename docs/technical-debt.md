@@ -920,27 +920,42 @@ internal TODO instead. Sections are ordered roughly by urgency.
   purpose). A gate-scope decision, not a value fix.
 - **Found:** 2026-07-25, adversarial review of the interaction-token wave.
 
-### `surface-subtle` is byte-identical to `surface-elevated`, so `hover:bg-surface-subtle` dies on elevated surfaces
+### `surface-subtle` still duplicates `surface-elevated` — the hover half is fixed, the token's own role is not
 
 - **Where:** `packages/blocks/src/lib/style/semantic.css`
   (`--color-surface-subtle` vs `--color-surface-elevated` — both
-  `light-dark(neutral-50, neutral-800)`), consumed as a *hover* step by the
-  `ghost` variants of Input/Textarea/Select/Combobox
-  (`internal/field-chrome.ts`), RadioGroup's indicator, Checkbox, Tab and
-  `table-states.variants.ts` — 8+ sites.
-- **What:** Same shape as the `surface-interactive` collapse fixed on
-  2026-07-25, but context-dependent rather than universal. `hover:bg-surface-subtle`
-  reads correctly on `surface-base`, and is invisible on anything already at
-  `surface-elevated` (a Popover, a Menu, a Select dropdown, an elevated Card) —
-  the hover target and its background resolve to the same colour.
-- **Why deferred:** Two different fixes, and picking between them is the
-  decision: give `surface-subtle` its own value (moves every *non*-hover use of
-  it too — auth list rows, docs table headers, readonly fields), or move the
-  hover idiom onto `surface-hover` (8+ sites across 6 components, each a VR
-  baseline). Deliberately not bundled into the interaction-token wave, which
-  already carried three token decisions.
+  `light-dark(neutral-50, neutral-800)`); ~150 remaining *resting* uses across
+  blocks, table, auth and the docs site.
+- **Resolved 2026-07-26 (the hover half):** the decision recorded here was
+  taken in favour of moving the idiom, not the value — following the precedent
+  Progress and Slider had already set for the identical collapse (both moved
+  their track to `surface-interactive` rather than redefining the token). All
+  11 hover sites now use `surface-hover`: the `ghost` variants of
+  Input/Textarea/Select/Combobox (`internal/field-chrome.ts` + three own
+  configs), Checkbox and RadioGroup's `group-hover`, Tab's `enclosed` trigger,
+  table's `detailsToggle`, and three docs demos that were teaching the idiom to
+  consumers. Two guards close the class rather than the instance:
+  `semantic.test.ts` asserts every interaction step (`surface-hover`,
+  `surface-active`) differs from **every** reading surface in both modes — the
+  pair guard added on 2026-07-25 only proved a step differs from *one* resting
+  value, which is why this shipped — and `variants-lint` now errors on any
+  `hover:`/`group-hover:` fill naming a reading surface (negatively verified:
+  exit 1 on a planted violation). Side finding, fixed in passing: FileUpload's
+  `disabled` branch carried `hover:border-border-default hover:bg-surface-base`
+  under a `pointer-events-none` root — unreachable, and it would have
+  *lightened* a disabled dropzone resting on a card.
+- **Still open:** `surface-subtle` has no rung of its own. Its in-page-zone role
+  went to `surface-quiet` in v5 (MIGRATION-v5 "New tokens consumers can use
+  directly" calls `surface-quiet` the "was `bg-surface-subtle`-equivalent"), and
+  its value equals `surface-elevated` exactly — so a `bg-surface-subtle` row or
+  chip resting on an elevated card is invisible unless a border carries it (most
+  current uses do have one, which is why this is a latent smell rather than a
+  live defect). The open decision is whether the token gets a distinct value, or
+  is deprecated and its ~150 resting uses split between `surface-quiet` (tinted
+  zone) and `surface-elevated` (raised) — a sweep across four packages plus the
+  docs site, and a consumer-visible token change either way.
 - **Found:** 2026-07-25, interaction-token wave (while fixing the universal
-  `surface-interactive` sibling).
+  `surface-interactive` sibling); hover half closed 2026-07-26.
 
 ### The VR matrix has no hover, focus or disabled state — the interaction-token wave moved 0 of 52 shots
 
