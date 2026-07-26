@@ -29,6 +29,11 @@
  *            covers none of them and the motion jumps instead of animating.
  *            (The shorthand `transition-transform` expands to all four and is
  *            never flagged.) See "transform transitions" below.
+ *   ✖ ERROR  hover on a resting surface — a `hover:`/`group-hover:` fill that
+ *            names a reading surface (`bg-surface-base|quiet|elevated|overlay|
+ *            subtle`) instead of an interaction step. Invisible wherever the
+ *            element already rests on that surface, which the component cannot
+ *            know. See READING_SURFACE_FILLS below.
  *   ⚠ WARN   partially stripped token — its removal changes some combinations
  *            but not others. Usually intentional (state overrides); the
  *            listing exists so axis-order decisions stay visible.
@@ -374,6 +379,36 @@ const TRANSITION_EXEMPTIONS: { where: string; property: string; why: string }[] 
     why: 'the `placement` axis uses translate as layout — the half-overlap offset is paired with top/left/right/bottom, which cannot transition in step. Animating it would slide the badge *after* its anchor already jumped; both must land at once.'
   }
 ];
+/**
+ * Reading surfaces — the backdrops a component can find itself resting on.
+ * Using one of them as a HOVER fill is a no-op wherever the element already
+ * sits on that same surface, and the component cannot know that it does: the
+ * one class string renders on the page (base), inside a Popover (elevated),
+ * in a Dialog (overlay) and in a tinted zone (quiet).
+ *
+ * This is the third outing of that bug class, hence a rule rather than another
+ * comment: `bg-surface-interactive hover:bg-surface-hover` (identical in light
+ * mode, fixed 2026-07-25), Progress/Slider tracks vanishing on cards, and
+ * `hover:bg-surface-subtle` across 8 components — invisible on every elevated
+ * surface, because `surface-subtle` resolves to `surface-elevated` exactly
+ * (fixed 2026-07-26). All three were invisible to the VR suite, which
+ * screenshots resting states only.
+ *
+ * The fix is always the same: hover belongs on a step token (`surface-hover`,
+ * `surface-active`, `surface-interactive-hover`, or an intent's own
+ * `-hover`/`-active` rung), never on a resting surface. `semantic.test.ts`
+ * guards the other half — that those step tokens differ from every reading
+ * surface in both modes.
+ */
+const READING_SURFACE_FILLS = new Set([
+  'bg-surface-base',
+  'bg-surface-quiet',
+  'bg-surface-elevated',
+  'bg-surface-overlay',
+  'bg-surface-subtle'
+]);
+const HOVER_PREFIXES = new Set(['hover', 'group-hover', 'peer-hover']);
+
 const exemptionKey = (where: string, property: string) => `${where}\0${property}`;
 const exemptions = new Map(
   TRANSITION_EXEMPTIONS.map((e) => [exemptionKey(e.where, e.property), e])
@@ -433,6 +468,8 @@ const unknownTheme: Finding[] = [];
 const unknownThemeSeen = new Set<string>();
 const missingTransition: Finding[] = [];
 const missingTransitionSeen = new Set<string>();
+const readingSurfaceHover: Finding[] = [];
+const readingSurfaceHoverSeen = new Set<string>();
 
 /** Remove every occurrence of `token` from a class value (string or nested array). */
 function removeToken(value: unknown, token: string): unknown {
@@ -623,6 +660,28 @@ for (const { file, name, fn, cfg } of loaded) {
     }
   }
 
+  // Reading-surface hover guard. Also runs over the RENDERED output, so it
+  // catches a hover fill spliced in from a shared fragment table
+  // (`internal/field-chrome.ts`) exactly like an inline one.
+  for (const slot of slotList) {
+    for (const bySlot of baseline) {
+      for (const token of (bySlot.get(slot) as string).split(/\s+/).filter(Boolean)) {
+        const { prefixes, utility } = splitVariants(token);
+        if (!prefixes.some((p) => HOVER_PREFIXES.has(p))) continue;
+        if (!READING_SURFACE_FILLS.has(utility)) continue;
+        const where = `${file} › ${name}${slots ? ` › ${slot}` : ''}`;
+        const seenKey = `${where}\0${token}`;
+        if (readingSurfaceHoverSeen.has(seenKey)) continue;
+        readingSurfaceHoverSeen.add(seenKey);
+        readingSurfaceHover.push({
+          where,
+          token,
+          detail: `'${utility}' is a resting surface, not an interaction step — this hover is invisible wherever the element already rests on it. Use 'bg-surface-hover' (element on a reading surface), 'bg-surface-interactive-hover' (element on a filled control) or the intent's own '-hover' rung`
+        });
+      }
+    }
+  }
+
   for (const [si, src] of sources.entries()) {
     for (const slot of slotList) {
       // Deduplicate per source+slot; leave-one-out removes all occurrences.
@@ -678,7 +737,7 @@ for (const { file, name, fn, cfg } of loaded) {
 // ─── report ──────────────────────────────────────────────────────────────────
 
 console.log(
-  `variants-lint: ${loaded.length} configs in ${files.length} files, ${themeVars.size} @theme keys — ${dead.length} lost, ${unknownTheme.length} unknown-theme, ${missingTransition.length} incomplete transition list(s), ${shadowed.length} shadowed, ${partial.length} partially-stripped token(s)`
+  `variants-lint: ${loaded.length} configs in ${files.length} files, ${themeVars.size} @theme keys — ${dead.length} lost, ${unknownTheme.length} unknown-theme, ${missingTransition.length} incomplete transition list(s), ${readingSurfaceHover.length} reading-surface hover(s), ${shadowed.length} shadowed, ${partial.length} partially-stripped token(s)`
 );
 
 for (const err of fileErrors) console.error(`✖ ${err}`);
@@ -688,6 +747,9 @@ for (const f of unknownTheme) {
 }
 for (const f of missingTransition) {
   console.error(`✖ incomplete transition list '${f.token}' in ${f.where}\n    ${f.detail}`);
+}
+for (const f of readingSurfaceHover) {
+  console.error(`✖ hover on a resting surface '${f.token}' in ${f.where}\n    ${f.detail}`);
 }
 const staleExemptions = [...exemptions.values()].filter(
   (e) => !exemptionsHit.has(exemptionKey(e.where, e.property))
@@ -712,6 +774,7 @@ if (
   dead.length > 0 ||
   unknownTheme.length > 0 ||
   missingTransition.length > 0 ||
+  readingSurfaceHover.length > 0 ||
   staleExemptions.length > 0
 ) {
   process.exit(1);
