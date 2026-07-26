@@ -21,8 +21,8 @@ installed**, so it is true of the code you actually have. If the hosted docs or 
 1. **Read the intent** — `bunx urbicon context`. The design manifest holds this product's
    paradigm, voice and past decisions. This is what keeps output consistent with *this*
    product instead of generic. Do this first.
-2. **Discover** — `bunx urbicon find <query>`, then `get-component <slug>` for the real API.
-   Don't guess props or invent components.
+2. **Discover** — `bunx urbicon find <query>`, then `get-component <slug>` for the real API
+   (`--section api` when you only need the props). Don't guess props or invent components.
 3. **Compose** from real components and semantic tokens. `bunx urbicon css-reference` is the
    token truth; `pattern <name>` gives you the shape of a page archetype.
 4. **Validate** — `bunx urbicon validate <path>`. Fix every correctness error before you

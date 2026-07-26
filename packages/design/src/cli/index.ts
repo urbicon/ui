@@ -15,6 +15,7 @@
 import { readFile } from 'node:fs/promises';
 import { resolve } from 'node:path';
 import { parseArgs } from './args.js';
+import { checkFlags } from './command-flags.js';
 import { runContext } from './commands/context.js';
 import { runCssReference } from './commands/css-reference.js';
 import { runFind } from './commands/find.js';
@@ -50,7 +51,7 @@ async function readVersion(): Promise<string> {
 }
 
 async function main(argv: string[]): Promise<number> {
-  const { command, positionals, flags } = parseArgs(argv);
+  const { command, positionals: rawPositionals, flags } = parseArgs(argv);
 
   if (flags.version === true || command === 'version') {
     console.log(await readVersion());
@@ -60,6 +61,16 @@ async function main(argv: string[]): Promise<number> {
     console.log(HELP);
     return EXIT.OK;
   }
+
+  // Reject flags this command does not read, before it can answer a question
+  // nobody asked (see command-flags.ts). Also folds a `--query` alias into the
+  // positionals, so the commands below never learn about it.
+  const check = checkFlags(command, flags, rawPositionals);
+  if (!check.ok) {
+    printError(check.message);
+    return EXIT.USAGE;
+  }
+  const positionals = check.positionals;
 
   switch (command) {
     case 'init':
