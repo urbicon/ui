@@ -1,5 +1,6 @@
 <script lang="ts">
   import { mintRegistry } from '$lib';
+  import CoreFieldMessage from '$lib/internal/core/CoreFieldMessage.svelte';
   import { getBlocksConfig, resolveSlotClasses } from '$lib/provider';
   import { useFormField, getTierContext } from '$lib/utils';
   import type { TextareaProps } from './index';
@@ -165,26 +166,20 @@
     <div
       class={unstyled ? (slotClasses?.footer ?? '') : styles.footer({ class: slotClasses?.footer })}
     >
-      {#if ff.errorId}
-        <div
-          id={ff.errorId}
-          class={unstyled
-            ? (slotClasses?.message ?? '')
-            : styles.message({ class: slotClasses?.message })}
-          role="alert"
-        >
+      {#if error || helper}
+        <CoreFieldMessage
           {error}
-        </div>
-      {:else if ff.helperId}
-        <div
-          id={ff.helperId}
+          {helper}
+          errorId={ff.errorId}
+          helperId={ff.helperId}
           class={unstyled
             ? (slotClasses?.message ?? '')
             : styles.message({ class: slotClasses?.message })}
-        >
-          {helper}
-        </div>
+        />
       {:else}
+        <!-- The footer is `justify-between`: without a first child the counter
+             would slide to the left edge. Unlike every other field, Textarea's
+             message shares a row, so the empty slot has to stay here. -->
         <span></span>
       {/if}
 

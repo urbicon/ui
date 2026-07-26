@@ -80,6 +80,29 @@ describe('CoreFieldMessage', () => {
     expect(only()?.getAttribute('class')).toBe('text-xs text-text-tertiary');
   });
 
+  it('styles the helper arm through `helperClass` when the call site has a slot for it', () => {
+    // Combobox exposes `slotClasses.helper` beside `slotClasses.message`, so its
+    // two tones are slot constants rather than one `messageType` axis. Without
+    // this prop its helper would inherit the error slot and read red while the
+    // field is invalid — the exact regression combobox.variants.test.ts guards
+    // on the variants side.
+    render({
+      helper: 'Start typing to search',
+      helperId: 'f-helper',
+      class: 'text-danger',
+      helperClass: 'text-text-tertiary'
+    });
+    expect(only()?.getAttribute('class')).toBe('text-text-tertiary');
+  });
+
+  it('falls back to `class` for the helper arm when no `helperClass` is given', () => {
+    // Every other field routes both arms through one `message` slot whose tone
+    // comes from the `messageType` axis, so omitting `helperClass` must not
+    // strip the helper of its class.
+    render({ helper: 'Hint', helperId: 'f-helper', class: 'msg' });
+    expect(only()?.getAttribute('class')).toBe('msg');
+  });
+
   it('accepts the same id on both arms (the shared-messageId call sites)', () => {
     // PinInput and TimeInput point `aria-describedby` at one `messageId` and
     // pass it as BOTH ids, since only one arm can ever render.

@@ -65,11 +65,13 @@ internal TODO instead. Sections are ordered roughly by urgency.
 
 ## API design
 
-### ~~Field label/helper/error MARKUP is re-implemented per form component (part b)~~ — message extracted 2026-07-26, label divergence kept on purpose
+### ~~Field label/helper/error MARKUP is re-implemented per form component (part b)~~ — message extracted across all ten fields (2026-07-26/27), label divergence kept on purpose
 
-- **Where:** the label/message scaffolding in `Input.svelte`, `PinInput.svelte`,
-  `TimeInput.svelte` (label span + `aria-labelledby`, `role="alert"` message,
-  required asterisk, `messageType` derivation).
+- **Where:** the label/message scaffolding across the Form family — the entry
+  first named `Input.svelte`, `PinInput.svelte` and `TimeInput.svelte` (label
+  span + `aria-labelledby`, `role="alert"` message, required asterisk,
+  `messageType` derivation); the message block turned out to be verbatim in
+  Textarea, Select, Combobox, Checkbox, Toggle, RadioGroup and Slider too.
 - **What:** Part (a) — the duplicated tv() **class strings** for the field frame
   — is **resolved** (debt-fix-wave-5, 2026-07-24): the shared frame/focus-ring/
   variant/intent/state/label fragments now live in
@@ -93,17 +95,41 @@ internal TODO instead. Sections are ordered roughly by urgency.
   "error beats helper" was implied by an `{:else if}` rather than asserted.
   6 tests, negatively verified (making the helper arm a live region and dropping
   the `else` fails exactly two of them).
+- **Completed 2026-07-27 (the other seven copies):** the first cut followed this
+  entry's "Where" list, which named three files. The same block was verbatim in
+  seven more — Textarea, Select, Combobox, Checkbox, Toggle, RadioGroup, Slider
+  — so most of the copies were outside the entry. All ten now render through the
+  core. Two call sites keep something of their own, both recorded in the core's
+  docblock: Combobox styles its helper through a `helper` slot of its own (new
+  `helperClass` prop; without it the helper would read red on an invalid field),
+  and Textarea keeps the empty `<span>` that holds its counter right in the
+  `justify-between` footer. Proven markup-neutral by a canonical-DOM diff over
+  110 renders (10 components × 11 label/helper/error/required/disabled/unstyled
+  combinations), 0 diff, negatively verified twice — dropping `role="alert"`
+  moves 80 lines, dropping Combobox's `helperClass` moves 3.
 - **Deliberately NOT extracted — the label.** The entry lumped the label in with
-  the message, but the two are not the same kind of duplication. Input renders a
-  real `<label for={fieldId}>` because it has exactly one focusable element;
-  PinInput and TimeInput render a `<span id>` referenced by `aria-labelledby` on
-  a `role="group"`, because they have many focusable segments and no single
-  field a `for` could point at. Unifying those would be an a11y regression, not
-  a de-duplication, so the label stays at the call sites with that reason
-  recorded in the core's docblock. The `required` asterisk and the `messageType`
-  derivation were already shared via `field-chrome.ts` (part a) and the variants.
+  the message, but the two are not the same kind of duplication: the element is
+  dictated by what the field is. Input, Textarea and Combobox render a real
+  `<label for={fieldId}>` (exactly one focusable element); Select adds an `id` so
+  its trigger button can also be named by `aria-labelledby`; PinInput, TimeInput
+  and RadioGroup render a `<span id>` behind `aria-labelledby` on a
+  `role="group"` (many focusable segments, no single field a `for` could point
+  at); Checkbox and Toggle put the text inside the wrapping `<label>`; Slider's
+  sits in a header row beside the value read-out. Five a11y shapes, so unifying
+  them would be a regression, not a de-duplication. The `required` asterisk and
+  the `messageType` derivation were already shared via `field-chrome.ts` (part a)
+  and the variants.
+- **Cost, measured:** in isolation the core costs each component 92–133 B gz
+  (its own module is 0.5 KB min) — the per-component measurement shows it
+  unshared, so the second form component on a page pays nothing. The baseline
+  refresh also absorbs drift that was never recorded: +117…+129 B on
+  Input/PinInput/TimeInput and on everything embedding them (NumberInput,
+  CurrencyInput, PromptInput, DatePicker, LocaleSwitcher, A2UIView) from the
+  2026-07-26 cut, plus −2…−7 B on ChatMessage/Stepper/Tab/FileUpload from the
+  clipboard-state-machine commit.
 - **Found:** 2026-07-24, component-trio review; part (a) closed same day
-  (debt-fix-wave-5), part (b) closed 2026-07-26.
+  (debt-fix-wave-5), part (b) closed 2026-07-26 and finished across the family
+  2026-07-27.
 
 ## Component behaviour
 

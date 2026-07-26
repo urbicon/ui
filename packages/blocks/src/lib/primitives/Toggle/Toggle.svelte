@@ -1,5 +1,6 @@
 <script lang="ts">
   import { useBlocksI18n, mintRegistry } from '$lib';
+  import CoreFieldMessage from '$lib/internal/core/CoreFieldMessage.svelte';
   import { getBlocksConfig, resolveSlotClasses } from '$lib/provider';
   import { getTierContext, useFormField } from '$lib/utils';
   import { toggleVariants, type ToggleVariants } from './toggle.variants';
@@ -152,24 +153,13 @@
     {/if}
   </label>
 
-  {#if ff.errorId}
-    <div
-      id={ff.errorId}
-      class={unstyled
-        ? (slotClasses?.message ?? '')
-        : styles.message({ class: slotClasses?.message })}
-      role="alert"
-    >
-      {error}
-    </div>
-  {:else if ff.helperId}
-    <div
-      id={ff.helperId}
-      class={unstyled
-        ? (slotClasses?.message ?? '')
-        : styles.message({ class: slotClasses?.message })}
-    >
-      {helper}
-    </div>
-  {/if}
+  <CoreFieldMessage
+    {error}
+    {helper}
+    errorId={ff.errorId}
+    helperId={ff.helperId}
+    class={unstyled
+      ? (slotClasses?.message ?? '')
+      : styles.message({ class: slotClasses?.message })}
+  />
 </div>
