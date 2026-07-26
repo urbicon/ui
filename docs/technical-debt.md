@@ -1094,6 +1094,14 @@ internal TODO instead. Sections are ordered roughly by urgency.
   slice explicitly, and every future component would have to remember to. The
   cost/benefit is therefore much tighter than the entry originally implied, and
   the decision is a real one rather than a formality.
+- **Decision 2026-07-26 (Felix):** ⏸ Hold — do not split. Measured against the
+  real figure the trade is bad: ~1.7 KB gz per component, only for a consumer
+  using exactly one i18n component, paid for with 58 call sites passing their
+  slice explicitly and every future component having to remember. Revisit only
+  if the machinery half (~3.3 KB) is attacked, since that is the larger share
+  and needs no API change — or if a real consumer reports the leaf cost.
+  The CodeBlock/ChatMessage split (plain English defaults vs. translations)
+  therefore stays as it is; it is a documented consequence, not an oversight.
 - **Found:** 2026-07-25, chat-family redesign — the bundle-size gate caught the
   regression when CodeBlock was switched to the shared accessibility strings;
   quantified 2026-07-26.
