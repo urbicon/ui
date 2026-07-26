@@ -1080,5 +1080,20 @@ internal TODO instead. Sections are ordered roughly by urgency.
   the `i18n:check` scanner and every package that registers a locale. It pays off
   across the whole library rather than for this one family, and it is larger than
   the chat wave that surfaced it.
+- **Measured 2026-07-26 — the catalog is the smaller half of that 5.0 KB.**
+  Emptying `en.ts` + `de.ts` to `{}` and rebuilding moves every i18n-carrying
+  component by a flat **−1.7 KB gz** (Toast −11.8 %, Dialog −12 %, Badge
+  −12.9 %, Avatar −14 %), while CodeBlock and Spinner move ±0 — confirming they
+  carry no translations today. So of CodeBlock's measured +5.0 KB, roughly 1.7 KB
+  is the catalog and the remaining ~3.3 KB is the i18n *machinery* (registry,
+  context, factory) that a per-area split does not touch at all. Two
+  consequences for whoever picks this up: the achievable saving is ~1.7 KB gz per
+  component minus its own slice, not 5 KB; and it only materialises for a
+  consumer using **one** i18n component, since any second one shares the same
+  catalog chunk. Against that: 58 `.svelte` call sites would have to pass their
+  slice explicitly, and every future component would have to remember to. The
+  cost/benefit is therefore much tighter than the entry originally implied, and
+  the decision is a real one rather than a formality.
 - **Found:** 2026-07-25, chat-family redesign — the bundle-size gate caught the
-  regression when CodeBlock was switched to the shared accessibility strings.
+  regression when CodeBlock was switched to the shared accessibility strings;
+  quantified 2026-07-26.
