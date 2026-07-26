@@ -41,6 +41,14 @@ export interface TableState {
    */
   selectionControlled: boolean;
   /**
+   * Whether `searchTerm` is driven by a controlled prop. When true, search
+   * persistence is suppressed for the same reason selection's is: the prop is
+   * the source of truth, so a controlled value must never reach storage — it
+   * would resurrect on a later switch back to uncontrolled (set by
+   * `TableProvider` from the `searchTerm` prop).
+   */
+  searchControlled: boolean;
+  /**
    * Whether a click anywhere on a row body toggles that row's selection (set by
    * `TableProvider` from the resolved `rowClickSelects` prop). The checkbox path
    * is unaffected — this only adds the row itself as a selection target.

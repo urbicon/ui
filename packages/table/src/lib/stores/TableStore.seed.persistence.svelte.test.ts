@@ -33,6 +33,7 @@ const FILTERS_KEY = (tableId: string) => `urbicon_table_filters_${tableId}_v1`;
 const SELECTION_KEY = (tableId: string) => `urbicon_table_selection_${tableId}_v1`;
 const GROUP_KEY = (tableId: string) => `urbicon_table_group_by_${tableId}_v1`;
 const SUMMARY_KEY = (tableId: string) => `urbicon_table_summary_configs_${tableId}_v1`;
+const SEARCH_KEY = (tableId: string) => `urbicon_table_search_${tableId}_v1`;
 
 function createMemoryStorage(): Storage {
   const map = new Map<string, string>();
@@ -243,6 +244,43 @@ describe('seed precedence vs persistence: selection', () => {
 
     expect([...ts.state.selectedIds]).toEqual([9]);
     expect(JSON.parse(window.localStorage.getItem(SELECTION_KEY('t8')) ?? 'null')).toEqual([1]);
+  });
+
+  it('a controlled search term never reaches storage — the persisted one survives', () => {
+    // The search twin of the selection rule above. Without `searchControlled`
+    // every keystroke of a controlled table was mirrored into storage, so
+    // switching that table back to uncontrolled later revived the old term —
+    // the bug class `selectionControlled` had already closed for selection.
+    const ts = withRoot(() => createTableState({ tableId: 't8s', persistSearch: true }));
+    ts.setSearchTerm('user typed this');
+    ts.forceSavePersistentData();
+    expect(JSON.parse(window.localStorage.getItem(SEARCH_KEY('t8s')) ?? 'null')).toBe(
+      'user typed this'
+    );
+
+    // Switch to controlled (as TableProvider does when `searchTerm` is set).
+    ts.state.searchControlled = true;
+    ts.setSearchTerm('driven by the prop');
+    ts.forceSavePersistentData();
+
+    // The store still follows the prop…
+    expect(ts.state.searchTerm).toBe('driven by the prop');
+    // …but storage keeps what the user last typed uncontrolled.
+    expect(JSON.parse(window.localStorage.getItem(SEARCH_KEY('t8s')) ?? 'null')).toBe(
+      'user typed this'
+    );
+  });
+
+  it('an uncontrolled search term is still persisted', () => {
+    // Guard against over-correcting: the skip must be keyed on the flag, not
+    // become a blanket "search is never persisted".
+    const ts = withRoot(() => createTableState({ tableId: 't8t', persistSearch: true }));
+    ts.setSearchTerm('still stored');
+    ts.forceSavePersistentData();
+
+    expect(JSON.parse(window.localStorage.getItem(SEARCH_KEY('t8t')) ?? 'null')).toBe(
+      'still stored'
+    );
   });
 
   it('a persisted empty selection beats the seed — deselecting stays deselected', () => {

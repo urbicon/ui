@@ -201,8 +201,14 @@ export function usePersistence(state: TableState, persistenceConfig?: TablePersi
     if (persistentFilters) persistentFilters.value = [...state.activeFilters];
   }
 
+  // Skipped while search is controlled, for the same reason as syncSelection
+  // below: the prop is the source of truth, so a controlled term must never
+  // reach storage — switching that table back to uncontrolled later would
+  // otherwise revive it.
   function syncSearch() {
-    if (persistentSearchTerm) persistentSearchTerm.value = state.searchTerm;
+    if (persistentSearchTerm && !state.searchControlled) {
+      persistentSearchTerm.value = state.searchTerm;
+    }
   }
 
   function syncGroupByKey() {
