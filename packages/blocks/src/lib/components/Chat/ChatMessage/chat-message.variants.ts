@@ -108,7 +108,11 @@ export const chatMessageVariants = tv({
         // as the bubble instead of drifting to the left margin.
         container: 'flex-row-reverse',
         column: 'max-w-[85%] items-end',
-        bubble: 'rounded-bridge bg-primary-subtle'
+        bubble: 'rounded-bridge bg-primary-subtle',
+        // Metadata comes first in the DOM so it can sit against the bubble edge;
+        // reversing here puts that edge on the right for a user message while
+        // keeping the action bar on the inside.
+        footer: 'flex-row-reverse'
       }
     },
     {

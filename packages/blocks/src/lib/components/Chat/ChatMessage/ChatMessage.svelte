@@ -309,16 +309,24 @@
     </div>
   {/if}
 
+  <!--
+    Metadata first in the DOM, actions second — and the footer reverses for a
+    user message (see the variants). That ordering is what puts the timestamp
+    against the bubble's own edge on BOTH sides: the action bar is `opacity-0`
+    until hover, so whichever element comes first at the edge is the only one
+    visible there. Actions-first left the timestamp floating one button-width in
+    from the edge, attached to nothing.
+  -->
   <div class={cls('footer')}>
-    {#if actions}
-      {@render actions({ message })}
-    {:else}
-      {@render defaultActions()}
-    {/if}
     {#if metadata}
       {@render metadata({ message })}
     {:else if createdAtTime}
       <time class={cls('metadata')} datetime={createdAtIso}>{createdAtTime}</time>
+    {/if}
+    {#if actions}
+      {@render actions({ message })}
+    {:else}
+      {@render defaultActions()}
     {/if}
   </div>
 {/snippet}

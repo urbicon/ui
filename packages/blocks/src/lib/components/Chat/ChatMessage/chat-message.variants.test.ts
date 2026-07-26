@@ -130,6 +130,24 @@ describe('chatMessageVariants', () => {
     expect(styles.actions()).toContain('-my-1');
   });
 
+  /**
+   * Metadata is first in the DOM so the timestamp can sit against the bubble's
+   * own edge. For a user message that edge is on the right, so the footer
+   * reverses — otherwise the (invisible until hover) action bar would occupy the
+   * edge and push the timestamp inward, attached to nothing.
+   */
+  it('reverses the footer for a user message so the timestamp keeps the edge', () => {
+    expect(chatMessageVariants({ layout: 'bubble', role: 'user' }).footer()).toContain(
+      'flex-row-reverse'
+    );
+    for (const role of ['assistant', 'system'] as const) {
+      expect(
+        chatMessageVariants({ layout: 'bubble', role }).footer(),
+        `${role} reads left-to-right`
+      ).not.toContain('flex-row-reverse');
+    }
+  });
+
   it('reveals the action bar on hover / focus-within and keeps buttons focus-visible', () => {
     const styles = chatMessageVariants();
     const actions = styles.actions();
