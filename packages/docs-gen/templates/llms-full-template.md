@@ -221,8 +221,8 @@ This is the COMPLETE list of available semantic tokens. Use ONLY these — do no
 
 ```
 bg-surface-base          /* page background */
-bg-surface-quiet         /* softly tinted in-page zone (Lighter default) */
-bg-surface-subtle        /* visible tinted zone */
+bg-surface-quiet         /* softly tinted in-page zone */
+bg-surface-subtle        /* resting tint ONLY — equals surface-elevated, so never `hover:bg-surface-subtle` */
 bg-surface-elevated      /* floating surfaces (paired with shadow) */
 bg-surface-overlay       /* modals, popovers */
 bg-surface-interactive   /* interactive backgrounds */

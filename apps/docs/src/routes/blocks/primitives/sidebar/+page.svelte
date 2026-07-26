@@ -132,7 +132,7 @@
             <nav class="space-y-1 p-4">
               {#each ['Dashboard', 'Projects', 'Team', 'Settings'] as item (item)}
                 <button
-                  class="text-text-secondary hover:bg-surface-subtle hover:text-text-primary w-full rounded-lg px-3 py-2 text-left text-sm transition-colors"
+                  class="text-text-secondary hover:bg-surface-hover hover:text-text-primary w-full rounded-lg px-3 py-2 text-left text-sm transition-colors"
                   onclick={() => (playgroundOpen = false)}
                 >
                   {item}

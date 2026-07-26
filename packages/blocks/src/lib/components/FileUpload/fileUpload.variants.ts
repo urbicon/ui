@@ -140,8 +140,13 @@ export const fileUploadVariants = tv({
 
     disabled: {
       true: {
+        // No `hover:` neutralisers here: `pointer-events-none` on the root
+        // already makes the dropzone unhoverable, so any hover class on it is
+        // unreachable. The two that used to sit here (`hover:border-border-default
+        // hover:bg-surface-base`) were dead, and `bg-surface-base` would have
+        // *lightened* a disabled dropzone resting on an elevated card.
         root: 'opacity-50 pointer-events-none',
-        dropzone: 'cursor-not-allowed hover:border-border-default hover:bg-surface-base'
+        dropzone: 'cursor-not-allowed'
       },
       false: {}
     }

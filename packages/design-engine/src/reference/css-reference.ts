@@ -73,7 +73,7 @@ const SURFACES = `# Surface Tokens
 |---|---|---|
 | \`--color-surface-base\` | \`bg-surface-base\` | Page background |
 | \`--color-surface-quiet\` | \`bg-surface-quiet\` | Softly tinted in-page zone |
-| \`--color-surface-subtle\` | \`bg-surface-subtle\` | Subtle differentiation |
+| \`--color-surface-subtle\` | \`bg-surface-subtle\` | Resting tint only — resolves to \`surface-elevated\`, so never use it as a hover step. Prefer \`surface-quiet\` for a tinted in-page zone |
 | \`--color-surface-elevated\` | \`bg-surface-elevated\` | Cards, panels (floating with shadow) |
 | \`--color-surface-overlay\` | \`bg-surface-overlay\` | Modals, popovers |
 | \`--color-surface-interactive\` | \`bg-surface-interactive\` | Interactive element backgrounds |

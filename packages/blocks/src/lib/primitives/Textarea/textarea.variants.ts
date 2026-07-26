@@ -34,7 +34,7 @@ export const textareaVariants = tv({
         base: 'bg-surface-interactive border-transparent hover:bg-surface-interactive-hover focus-visible:bg-surface-base'
       },
       ghost: {
-        base: 'bg-transparent border-transparent hover:bg-surface-subtle focus-visible:bg-surface-base focus-visible:border-border-subtle'
+        base: 'bg-transparent border-transparent hover:bg-surface-hover focus-visible:bg-surface-base focus-visible:border-border-subtle'
       },
       underline: {
         base: 'bg-transparent border-0 border-b-2 border-border-subtle rounded-none focus-visible:ring-0'

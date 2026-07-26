@@ -65,7 +65,7 @@ internal TODO instead. Sections are ordered roughly by urgency.
 
 ## API design
 
-### Field label/helper/error MARKUP is re-implemented per form component (part b)
+### ~~Field label/helper/error MARKUP is re-implemented per form component (part b)~~ — message extracted 2026-07-26, label divergence kept on purpose
 
 - **Where:** the label/message scaffolding in `Input.svelte`, `PinInput.svelte`,
   `TimeInput.svelte` (label span + `aria-labelledby`, `role="alert"` message,
@@ -76,19 +76,34 @@ internal TODO instead. Sections are ordered roughly by urgency.
   `packages/blocks/src/lib/internal/field-chrome.ts` and are composed back into
   `input`/`pin-input`/`time-input.variants.ts`, byte-identical to the old inline
   strings (proven by a 47 872-combination resolved-class matrix diff, 0 diff).
-  What remains is part (b): the label/helper/error **markup** is still hand-
-  re-implemented in each of the three `.svelte` files. Deliberate per-component
-  divergences stay inline in the variants (Input's `xs`/`underline`, PinInput's
-  cell-height scale + `focus-visible:z-10`, TimeInput's `focus-within` +
-  cursor-free readonly) and are commented at each site.
-- **Why deferred:** A shared markup cut (a `FieldShell` snippet/component or a
-  `useFieldScaffold` helper) is a bigger, behaviour-touching change with its own
-  a11y surface (id wiring, `aria-describedby`). **Its stated blocker is gone**
-  (W5, 2026-07-24): PinInput and TimeInput are now in the VR fixture and the
-  dark-axe matrix, so a markup extraction can be proven pixel-identical the way
-  the style extraction was. What remains is the extraction itself.
+  Deliberate per-component divergences stay inline in the variants (Input's
+  `xs`/`underline`, PinInput's cell-height scale + `focus-visible:z-10`,
+  TimeInput's `focus-within` + cursor-free readonly) and are commented at each
+  site.
+- **Resolved 2026-07-26 (the message):** the helper/error block — the part that
+  really was copied three times — now lives in
+  `internal/core/CoreFieldMessage.svelte`, alongside `CoreIconButton` and
+  `CoreSpinner`. It owns the error-beats-helper precedence, `role="alert"` on
+  the error arm only, and the id wiring; the call site keeps the look and passes
+  its resolved `message` slot class, so the core runs no variant engine (the
+  CoreIconButton contract). Proven unchanged by the 52 resting VR shots, which
+  render all three fields in their `error` state — 141/141 e2e green, no shot
+  moved — and the extracted rules gained the test they never had in any of the
+  three components: the helper arm had **no** coverage anywhere, and
+  "error beats helper" was implied by an `{:else if}` rather than asserted.
+  6 tests, negatively verified (making the helper arm a live region and dropping
+  the `else` fails exactly two of them).
+- **Deliberately NOT extracted — the label.** The entry lumped the label in with
+  the message, but the two are not the same kind of duplication. Input renders a
+  real `<label for={fieldId}>` because it has exactly one focusable element;
+  PinInput and TimeInput render a `<span id>` referenced by `aria-labelledby` on
+  a `role="group"`, because they have many focusable segments and no single
+  field a `for` could point at. Unifying those would be an a11y regression, not
+  a de-duplication, so the label stays at the call sites with that reason
+  recorded in the core's docblock. The `required` asterisk and the `messageType`
+  derivation were already shared via `field-chrome.ts` (part a) and the variants.
 - **Found:** 2026-07-24, component-trio review; part (a) closed same day
-  (debt-fix-wave-5).
+  (debt-fix-wave-5), part (b) closed 2026-07-26.
 
 ## Component behaviour
 
@@ -920,44 +935,88 @@ internal TODO instead. Sections are ordered roughly by urgency.
   purpose). A gate-scope decision, not a value fix.
 - **Found:** 2026-07-25, adversarial review of the interaction-token wave.
 
-### `surface-subtle` is byte-identical to `surface-elevated`, so `hover:bg-surface-subtle` dies on elevated surfaces
+### `surface-subtle` still duplicates `surface-elevated` — the hover half is fixed, the token's own role is not
 
 - **Where:** `packages/blocks/src/lib/style/semantic.css`
   (`--color-surface-subtle` vs `--color-surface-elevated` — both
-  `light-dark(neutral-50, neutral-800)`), consumed as a *hover* step by the
-  `ghost` variants of Input/Textarea/Select/Combobox
-  (`internal/field-chrome.ts`), RadioGroup's indicator, Checkbox, Tab and
-  `table-states.variants.ts` — 8+ sites.
-- **What:** Same shape as the `surface-interactive` collapse fixed on
-  2026-07-25, but context-dependent rather than universal. `hover:bg-surface-subtle`
-  reads correctly on `surface-base`, and is invisible on anything already at
-  `surface-elevated` (a Popover, a Menu, a Select dropdown, an elevated Card) —
-  the hover target and its background resolve to the same colour.
-- **Why deferred:** Two different fixes, and picking between them is the
-  decision: give `surface-subtle` its own value (moves every *non*-hover use of
-  it too — auth list rows, docs table headers, readonly fields), or move the
-  hover idiom onto `surface-hover` (8+ sites across 6 components, each a VR
-  baseline). Deliberately not bundled into the interaction-token wave, which
-  already carried three token decisions.
+  `light-dark(neutral-50, neutral-800)`); ~150 remaining *resting* uses across
+  blocks, table, auth and the docs site.
+- **Resolved 2026-07-26 (the hover half):** the decision recorded here was
+  taken in favour of moving the idiom, not the value — following the precedent
+  Progress and Slider had already set for the identical collapse (both moved
+  their track to `surface-interactive` rather than redefining the token). All
+  11 hover sites now use `surface-hover`: the `ghost` variants of
+  Input/Textarea/Select/Combobox (`internal/field-chrome.ts` + three own
+  configs), Checkbox and RadioGroup's `group-hover`, Tab's `enclosed` trigger,
+  table's `detailsToggle`, and three docs demos that were teaching the idiom to
+  consumers. Two guards close the class rather than the instance:
+  `semantic.test.ts` asserts every interaction step (`surface-hover`,
+  `surface-active`) differs from **every** reading surface in both modes — the
+  pair guard added on 2026-07-25 only proved a step differs from *one* resting
+  value, which is why this shipped — and `variants-lint` now errors on any
+  `hover:`/`group-hover:` fill naming a reading surface (negatively verified:
+  exit 1 on a planted violation). Side finding, fixed in passing: FileUpload's
+  `disabled` branch carried `hover:border-border-default hover:bg-surface-base`
+  under a `pointer-events-none` root — unreachable, and it would have
+  *lightened* a disabled dropzone resting on a card.
+- **Still open:** `surface-subtle` has no rung of its own. Its in-page-zone role
+  went to `surface-quiet` in v5 (MIGRATION-v5 "New tokens consumers can use
+  directly" calls `surface-quiet` the "was `bg-surface-subtle`-equivalent"), and
+  its value equals `surface-elevated` exactly — so a `bg-surface-subtle` row or
+  chip resting on an elevated card is invisible unless a border carries it (most
+  current uses do have one, which is why this is a latent smell rather than a
+  live defect). The open decision is whether the token gets a distinct value, or
+  is deprecated and its ~150 resting uses split between `surface-quiet` (tinted
+  zone) and `surface-elevated` (raised) — a sweep across four packages plus the
+  docs site, and a consumer-visible token change either way.
 - **Found:** 2026-07-25, interaction-token wave (while fixing the universal
-  `surface-interactive` sibling).
+  `surface-interactive` sibling); hover half closed 2026-07-26.
 
-### The VR matrix has no hover, focus or disabled state — the interaction-token wave moved 0 of 52 shots
+### ~~The VR matrix has no hover, focus or disabled state~~ — resolved 2026-07-26, and a pixel suite turned out to be the wrong tool for half of it
 
-- **Where:** `e2e/visual-regression.spec.ts` + `apps/docs/src/routes/test-fixtures/primitives`.
-- **What:** The 2026-07-25 wave changed `--color-text-disabled` (1.45→4.85:1
-  light), Combobox's focus ring (`/50`→`/20`), two `description` sizes and the
-  filled-field hover fill. The full e2e suite stayed **131/131 green and not one
-  of the 52 VR shots moved** — the fixture renders every primitive in its resting
-  state only. So the gate that exists precisely to catch visual change is blind
-  to the entire interaction layer; the wave had to be verified by measuring
-  computed styles in a throwaway probe spec instead.
-- **Why deferred:** Adding hover/focus/disabled columns roughly doubles the
-  matrix (52 → ~100 shots at 2 modes × 2 themes) and needs a decision on how to
-  drive the states deterministically (CSS class vs. real pointer/focus, and
-  whether `:hover` screenshots are stable enough to gate on). That is a gate
-  design pass of its own.
-- **Found:** 2026-07-25, interaction-token wave.
+- **Where:** `e2e/visual-regression-interaction.spec.ts` +
+  `e2e/interaction-tokens.spec.ts` + `e2e/helpers/force-state.ts` +
+  `apps/docs/src/routes/test-fixtures/interaction`.
+- **What it was:** The 2026-07-25 wave changed `--color-text-disabled`,
+  Combobox's focus ring, two `description` sizes and the filled-field hover
+  fill, and the suite stayed 131/131 green with **0 of 52 shots moved** — the
+  fixture renders resting states only.
+- **Resolved:** a second fixture renders four groups (fields, choice, nav,
+  actions) with the `ghost` variants the resting fixture never had, each
+  rendered **twice — on `surface-base` and inside an elevated Card**, because a
+  fill that collapses onto its backdrop is invisible only on the surface it
+  collides with. States are forced via CDP `CSS.forcePseudoState` rather than a
+  real pointer: `group-hover:` compiles to `.group:hover .child` and so must be
+  forced on the ancestor, and `:focus-visible` depends on input-modality
+  heuristics that are awkward to drive. 48 shots (4 groups × 3 states × 2 modes
+  × 2 themes), so the matrix is 100 total.
+- **The part worth remembering — screenshots could not carry this alone.** With
+  the interaction shots in place, reverting the `surface-subtle` fix left **all
+  48 green**: `maxDiffPixelRatio` never got a chance, because the suite's
+  per-pixel `threshold: 0.15` treats neutral-50 and neutral-100 as the same
+  colour. Only dropping it to 0.005 turned them red, which trades this bug class
+  for antialiasing flake across the other 52 baselines. A neighbouring-rung
+  collapse is therefore invisible to a pixel diff **by construction** — the same
+  lesson the chat-family wave hit from the other side (ΔL < 0.04 under
+  `threshold: 0.15`). So `interaction-tokens.spec.ts` carries that half by
+  resolved value, not pixels: for every element with a `hover:bg-*` utility it
+  asserts the hover colour differs from its rest colour **and** from the nearest
+  non-transparent backdrop behind it. The second assertion is the load-bearing
+  one — a `ghost` field rests on `bg-transparent`, so a rest/hover comparison
+  alone passes trivially while the user sees nothing, which is exactly how the
+  bug survived. Negatively verified in both directions.
+- **Two documented exemptions**, both design rather than defect: an element in a
+  selection state (`data-state="active"`, `aria-selected`, `aria-current`) pins
+  its own background on purpose — an active enclosed Tab reads as a
+  continuation of the panel below it — and `hover:bg-transparent` is an explicit
+  "answer hover with colour, not a surface" (Button's `text` variant).
+- **Still open (small):** the gate is hover-only. `focus-visible:bg-surface-base`
+  legitimately matches its backdrop on a base surface, where the affordance is
+  the ring and border rather than the fill, so the same rule would false-positive
+  on focus. Focus rings are high-contrast enough for the pixel suite to hold;
+  a resolved-value gate for *rings* (border-colour + box-shadow rather than
+  background) would close the remainder.
+- **Found:** 2026-07-25, interaction-token wave; resolved 2026-07-26.
 
 ### Popover inside phrasing content breaks SSR paragraphs (CitationChip in `<p>`)
 
@@ -1021,5 +1080,28 @@ internal TODO instead. Sections are ordered roughly by urgency.
   the `i18n:check` scanner and every package that registers a locale. It pays off
   across the whole library rather than for this one family, and it is larger than
   the chat wave that surfaced it.
+- **Measured 2026-07-26 — the catalog is the smaller half of that 5.0 KB.**
+  Emptying `en.ts` + `de.ts` to `{}` and rebuilding moves every i18n-carrying
+  component by a flat **−1.7 KB gz** (Toast −11.8 %, Dialog −12 %, Badge
+  −12.9 %, Avatar −14 %), while CodeBlock and Spinner move ±0 — confirming they
+  carry no translations today. So of CodeBlock's measured +5.0 KB, roughly 1.7 KB
+  is the catalog and the remaining ~3.3 KB is the i18n *machinery* (registry,
+  context, factory) that a per-area split does not touch at all. Two
+  consequences for whoever picks this up: the achievable saving is ~1.7 KB gz per
+  component minus its own slice, not 5 KB; and it only materialises for a
+  consumer using **one** i18n component, since any second one shares the same
+  catalog chunk. Against that: 58 `.svelte` call sites would have to pass their
+  slice explicitly, and every future component would have to remember to. The
+  cost/benefit is therefore much tighter than the entry originally implied, and
+  the decision is a real one rather than a formality.
+- **Decision 2026-07-26 (Felix):** ⏸ Hold — do not split. Measured against the
+  real figure the trade is bad: ~1.7 KB gz per component, only for a consumer
+  using exactly one i18n component, paid for with 58 call sites passing their
+  slice explicitly and every future component having to remember. Revisit only
+  if the machinery half (~3.3 KB) is attacked, since that is the larger share
+  and needs no API change — or if a real consumer reports the leaf cost.
+  The CodeBlock/ChatMessage split (plain English defaults vs. translations)
+  therefore stays as it is; it is a documented consequence, not an oversight.
 - **Found:** 2026-07-25, chat-family redesign — the bundle-size gate caught the
-  regression when CodeBlock was switched to the shared accessibility strings.
+  regression when CodeBlock was switched to the shared accessibility strings;
+  quantified 2026-07-26.
