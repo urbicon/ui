@@ -12,10 +12,25 @@ export default defineConfig({
   testDir: './e2e',
   outputDir: './e2e/test-results',
   snapshotDir: './e2e/snapshots',
-  fullyParallel: false,
+  // Parallel across files AND within them. The dominant cost is `a11y.spec.ts`,
+  // whose 37 route scans live in a single `for` loop — with `fullyParallel:
+  // false` they run one after another no matter how many workers exist, which is
+  // why the suite sat at ~5 min while 15 cores idled.
+  //
+  // Browser-level state is per worker (own context, own storage/cookies) and the
+  // Vite dev server handles concurrent requests fine. The one suite that drives
+  // shared *server* state is `auth.spec.ts`, which resets an in-memory world on
+  // the dev server; it pins `mode: 'serial'` itself rather than being protected
+  // by a low worker count here. Screenshots are load-independent
+  // (`animations: 'disabled'` + deterministic fixtures).
+  fullyParallel: true,
   forbidOnly: !!process.env.CI,
   retries: process.env.CI ? 2 : 0,
-  workers: 1,
+  // Relative, so a 4-core box gets 2 and a 16-core one 8. Measured on 16 cores
+  // (12 P + 4 E), full suite: 1 worker 310s · 4 → 98s · 8 → 66-73s · 12 → 69s ·
+  // 16 → 69-73s. It saturates around half the cores — beyond that the extra
+  // workers only compete for the single dev server.
+  workers: '50%',
   reporter: 'html',
   timeout: 60_000,
   expect: {
