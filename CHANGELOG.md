@@ -4,13 +4,49 @@ All notable changes to this project will be documented in this file.
 This changelog is automatically generated from [Conventional Commits](https://www.conventionalcommits.org).
 
 
+## [6.43.2] - 2026-07-26
+
+### Bug Fixes
+- **blocks**: Put the ChatMessage bubble on the bridge radius tier
+- **blocks**: Hang the ChatMessage footer off the bubble's own column
+- **blocks,table**: Spread the light surface ladder at the ramp
+- **blocks**: Let the message timestamp keep the bubble's edge on both sides
+- **docs**: Reconcile the typography counts after merging the surface-ladder work
+
+### Documentation
+- Record the baseline-hygiene lesson in the CI entry
+
+### Refactoring
+- **blocks**: Stop stacking a framed card inside ToolCallCard
+- **blocks**: Share one clipboard state machine across the copy affordances
+- **blocks**: Render the chat icon controls through CoreIconButton
+
+### Testing
+- **e2e**: Re-baseline darwin after the surface-ladder change
+- **e2e**: Regenerate the Linux baselines from the merged tree
+
 ## [6.43.1] - 2026-07-24
+
+### Bug Fixes
+- **blocks,docs**: Give interaction fills a real hover step and disabled text a legible tone
+- **table**: Wire keyboard navigation through groups, split the mobile state snippets
+- **design-engine,blocks,docs**: Finish rolling out the interaction-fill hover rung
 
 ### Documentation
 - Trim AGENTS.md to gotchas, move procedures into skills
 
 ### Refactoring
 - **design**: Slim the consumer context block to an entry point
+
+### Styling
+- **e2e**: Drop the unused page parameter from the geometry helper
+
+### Testing
+- **e2e**: Pin the Chromium channel and refresh the stale floating/guide baselines
+- **e2e**: Make the "opens below" tests actually assert it, drop the disproven renderer story
+- **i18n**: Stop the audit-scanner suites timing out on loaded hardware
+- **e2e**: Drop the darwin-only gate on the visual-regression suite
+- **e2e**: Add the Linux visual baselines, generated on the deploy host
 
 ## [6.43.0] - 2026-07-24
 
