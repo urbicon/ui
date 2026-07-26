@@ -93,6 +93,10 @@ Commands:
   get-component <slug>  Print a component's API (its llm.txt) from the bundle.
                         --section <s>      overview | examples | variants | api | slots |
                                            full (default: full).
+  primer                The knowledge every task needs, in one call: how to pick a
+                        component + the token reference (surfaces, text, borders,
+                        intents, shadows). Run it first. Patterns, recipes and
+                        component APIs stay on demand — they are task-dependent.
   pattern [name]        Composition patterns (settings-page, dashboard, …). No name
                         lists all; a name prints the full pattern.
                         --json             Machine-readable pattern list.

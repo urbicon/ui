@@ -18,9 +18,11 @@ installed**, so it is true of the code you actually have. If the hosted docs or 
 
 ### How to work — the design loop
 
+0. **Load the primer** — `bunx urbicon primer`. How to pick a component plus the token
+   reference, in one call. It applies to every task, so fetch it once up front.
 1. **Read the intent** — `bunx urbicon context`. The design manifest holds this product's
    paradigm, voice and past decisions. This is what keeps output consistent with *this*
-   product instead of generic. Do this first.
+   product instead of generic.
 2. **Discover** — `bunx urbicon find <query>`, then `get-component <slug>` for the real API
    (`--section api` when you only need the props). Don't guess props or invent components.
 3. **Compose** from real components and semantic tokens. `bunx urbicon css-reference` is the

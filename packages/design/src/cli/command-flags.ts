@@ -31,6 +31,7 @@ export const COMMAND_FLAGS: Readonly<Record<string, readonly string[]>> = {
   hook: ['strict', 'slop-floor', 'skip-heuristics', 'manifest'],
   find: ['json', 'limit', 'tag', 'query'],
   'get-component': ['section'],
+  primer: [],
   pattern: ['json'],
   principles: ['topic', 'rubric'],
   'css-reference': [],

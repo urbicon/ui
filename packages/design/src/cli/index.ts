@@ -26,6 +26,7 @@ import { runI18n } from './commands/i18n.js';
 import { runIcons } from './commands/icons.js';
 import { runInit } from './commands/init.js';
 import { runPattern } from './commands/pattern.js';
+import { runPrimer } from './commands/primer.js';
 import { runPrinciples } from './commands/principles.js';
 import { runRecipe } from './commands/recipe.js';
 import { runRecordDecision } from './commands/record-decision.js';
@@ -83,6 +84,8 @@ async function main(argv: string[]): Promise<number> {
       return runFind(positionals, flags);
     case 'get-component':
       return runGetComponent(positionals, flags);
+    case 'primer':
+      return runPrimer(positionals, flags);
     case 'pattern':
       return runPattern(positionals, flags);
     case 'principles':

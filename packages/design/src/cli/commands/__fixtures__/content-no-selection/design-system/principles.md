@@ -13,10 +13,3 @@ Token hierarchy: foundation → semantic → interaction.
 ## Accessibility
 
 Focus-visible everywhere.
-
-## Component Selection
-
-| Need | Component | Why |
-|---|---|---|
-| 7+ options or needs search | `Combobox` | Searchable, filterable |
-| Boolean on/off setting | `Toggle` | Immediate visual feedback |
