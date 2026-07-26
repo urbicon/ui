@@ -37,6 +37,30 @@ async function warnIfNotInstalled(slug: string): Promise<void> {
   }
 }
 
+/**
+ * Point at `--section` after printing a large full API — on stderr, so a pipe
+ * still gets clean text.
+ *
+ * The flag has always existed and has always been in `--help`; the problem is
+ * that nobody reads the help at the moment it would pay off. A recorded agent run
+ * (`prototypes/artifact-frame`, 2026-07-26) called `get-component` twelve times
+ * and took the full `llm.txt` — up to 11 kB — every single time, because the only
+ * place `--section` was mentioned is a page it never opened. Printing the hint
+ * where the cost is actually incurred is what a help text structurally cannot do.
+ *
+ * Below the threshold the whole file is cheaper than the round-trip a section
+ * would cost, so the note would be noise.
+ */
+const SECTION_HINT_BYTES = 4000;
+
+function noteSectionFlag(slug: string, bytes: number): void {
+  if (bytes < SECTION_HINT_BYTES) return;
+  console.error(
+    `· ${slug}: ${(bytes / 1024).toFixed(1)} kB — for one part only, ` +
+      `\`urbicon get-component ${slug} --section ${SECTIONS.join('|')}\``
+  );
+}
+
 export async function runGetComponent(positionals: string[], flags: Flags): Promise<number> {
   const slug = positionals[0];
   if (!slug) {
@@ -67,7 +91,9 @@ export async function runGetComponent(positionals: string[], flags: Flags): Prom
 
   // Default / explicit `full` → the complete llm.txt.
   if (!section || section === 'full') {
-    console.log(content.trim());
+    const full = content.trim();
+    console.log(full);
+    noteSectionFlag(slug, full.length);
     return EXIT.OK;
   }
 

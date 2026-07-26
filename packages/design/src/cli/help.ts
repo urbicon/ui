@@ -78,9 +78,13 @@ Commands:
                                            (default ./design.manifest.md).
   hook                  Editor-hook adapter: read a Claude Code PostToolUse event on
                         stdin, validate the edited .svelte file, and exit 2 with the
-                        findings on stderr so the agent self-corrects. Takes the same
-                        gate flags as validate (--strict, --slop-floor, --manifest).
+                        findings on stderr so the agent self-corrects.
                         Wire it via .claude/settings.json (see templates/).
+                        --strict           Fail on warnings too, not just errors.
+                        --slop-floor <n>   Also fail below n/100 on the slop axis.
+                        --skip-heuristics  Deterministic rules only.
+                        --manifest <path>  Manifest for token overrides
+                                           (default ./design.manifest.md).
   find [query]          Discover components by fuzzy search over the version-pinned
                         catalog (names, tags, descriptions). No query lists all.
                         --tag <t>          Filter by category tag (form, action, …).
@@ -134,9 +138,15 @@ Commands:
                         --config <path>    i18n.audit.json (default ./i18n.audit.json).
                         --dynamic-keys <g> Key globs built dynamically (errors.*).
                         --ignore-keys <g>  Key globs to skip entirely.
-                        --ignore-strings   Hardcoded-string globs to skip.
+                        --ignore-strings <g> Hardcoded-string globs to skip.
+                        --function-names <n> Translate-function names to scan for,
+                                           comma-separated (default t, dt).
+                        --runtime-usage <p> JSON array of keys observed at runtime;
+                                           they count as used even if no call site
+                                           mentions them literally.
                         --base-locale <l>  Parity base (default en).
-                        --json / --strict  Machine-readable / gate advisory too.
+                        --json             Machine-readable report.
+                        --strict           Gate on advisory findings too.
                         Gates on parity errors + used-but-undefined; unused,
                         hardcoded and parity warnings are advisory.
   verbs                 List the design verbs (recipes over the design loop).

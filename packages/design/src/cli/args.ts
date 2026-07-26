@@ -16,8 +16,13 @@ export interface ParsedArgs {
   flags: Flags;
 }
 
-/** Flags that take no value — never consume the following token. */
-const BOOLEAN_FLAGS = new Set([
+/**
+ * Flags that take no value — never consume the following token. Exported because
+ * `command-flags.ts` needs the complement: a flag *outside* this set that arrives
+ * as bare `--key` was given no value, and silently falling back to the default is
+ * the same class of bug as accepting an unknown flag.
+ */
+export const BOOLEAN_FLAGS = new Set([
   'json',
   'strict',
   'skip-heuristics',
