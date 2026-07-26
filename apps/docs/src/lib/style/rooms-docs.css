@@ -222,6 +222,12 @@
     var(--color-warm-neutral-100),
     var(--color-warm-neutral-700)
   );
+  /* The fill's own hover step — see semantic.css: without it, `filled` fields
+   * inherit the library's cool neutral-200 onto warm paper. */
+  --color-surface-interactive-hover: light-dark(
+    var(--color-warm-neutral-200),
+    var(--color-warm-neutral-600)
+  );
   --color-surface-hover: light-dark(var(--color-warm-neutral-100), var(--color-warm-neutral-800));
   --color-surface-active: light-dark(var(--color-warm-neutral-200), var(--color-warm-neutral-700));
   --color-surface-disabled: light-dark(
@@ -239,7 +245,11 @@
   --color-border-emphasis: light-dark(var(--color-warm-neutral-400), var(--color-warm-neutral-500));
   --color-border-strong: light-dark(var(--color-warm-neutral-500), var(--color-warm-neutral-400));
 
-  --color-text-disabled: light-dark(var(--color-warm-neutral-300), var(--color-warm-neutral-600));
+  /* Was warm-300/-600 = 1.58–2.13:1 — the same too-faint disabled tone the
+     library carried (see semantic.css). Not symmetric like the library's, because
+     the warm ramp is not: -500 clears AA in light (4.73–5.36:1) but only reaches
+     2.44:1 on warm-800 in dark, so dark steps one further to -400 (4.53–5.59:1). */
+  --color-text-disabled: light-dark(var(--color-warm-neutral-500), var(--color-warm-neutral-400));
   --color-interactive-disabled: light-dark(
     var(--color-warm-neutral-200),
     var(--color-warm-neutral-700)

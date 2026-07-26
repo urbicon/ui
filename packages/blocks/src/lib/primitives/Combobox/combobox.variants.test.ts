@@ -16,7 +16,9 @@ describe('comboboxVariants', () => {
   it('uses design tokens', () => {
     const styles = comboboxVariants();
     expect(styles.input()).toContain('duration-[var(--blocks-duration-fast)]');
-    expect(styles.input()).toContain('ring-primary/50');
+    // `/20` is the shared field focus ring (internal/field-chrome.ts) that Input,
+    // Textarea, Select, PinInput and TimeInput use; Combobox used to sit at /50.
+    expect(styles.input()).toContain('ring-primary/20');
     expect(styles.listbox()).toContain('shadow-[var(--blocks-shadow-md)]');
   });
 

@@ -224,7 +224,29 @@ export function createTableState(
   );
   const selection = useSelection(state, () => filtering.filteredItems);
   const columnOrder = useColumnOrder(state);
-  const focus = useFocusManagement(state, () => pagination.paginatedItems.length);
+
+  /**
+   * The item rows in the order they are actually rendered — the one index space
+   * keyboard navigation moves through.
+   *
+   * Ungrouped this is just the current page. Grouped it is NOT: `grouped` buckets
+   * every *sorted* item (grouping bypasses pagination entirely), and a collapsed
+   * group renders no item rows at all. Feeding `paginatedItems.length` to focus
+   * management was therefore wrong in both directions when grouped — it counted a
+   * page's worth of rows against a full, partially-hidden list.
+   *
+   * Group headers are deliberately NOT part of this sequence: they carry their own
+   * `tabindex={0}` and answer Enter/Space by collapsing, so they are reachable by
+   * Tab without competing with the arrow keys for an index.
+   */
+  const navigableItems = $derived.by((): TableItem[] => {
+    if (!state.groupByKey) return pagination.paginatedItems;
+    return Object.entries(grouping.grouped)
+      .filter(([groupName]) => !state.collapsedGroups.has(groupName))
+      .flatMap(([, groupItems]) => groupItems);
+  });
+
+  const focus = useFocusManagement(state, () => navigableItems.length);
   const remoteData = useRemoteData(state);
   const liveUpdates = useLiveUpdates(state);
 
@@ -459,6 +481,11 @@ export function createTableState(
     },
     get grouped() {
       return grouping.grouped;
+    },
+    /** Rendered item rows in visual order (collapsed groups excluded) — the index
+     *  space `focusedRowIndex` addresses. See the derivation above. */
+    get navigableItems() {
+      return navigableItems;
     },
     get summaryData() {
       return summary.summaryData;

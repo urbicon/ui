@@ -106,6 +106,10 @@
   --color-surface-subtle: color-mix(in oklab, var(--room-accent, #f2eee4) 5%, #f2eee4);
   --color-surface-hover: color-mix(in oklab, var(--room-accent, #efe9dd) 5%, #efe9dd);
   --color-surface-interactive: color-mix(in oklab, var(--room-accent, #efeae0) 5%, #efeae0);
+  /* The fill's own hover step — see semantic.css. `surface-hover` (#efe9dd) is
+     one bit away from `surface-interactive` (#efeae0), so a filled field hovering
+     onto it read as nothing at all; this sits between interactive and active. */
+  --color-surface-interactive-hover: color-mix(in oklab, var(--room-accent, #e9e2d6) 5%, #e9e2d6);
   --color-surface-active: color-mix(in oklab, var(--room-accent, #e7e0d1) 5%, #e7e0d1);
   --color-surface-disabled: color-mix(in oklab, var(--room-accent, #f2eee4) 5%, #f2eee4);
 
@@ -113,7 +117,17 @@
   --color-text-secondary: #57534a;
   --color-text-tertiary: #6e6a5f;
   --color-text-quaternary: #8a8578;
-  --color-text-disabled: #b8b3a6;
+  /* Was #b8b3a6 ≈ 2:1 on the room papers — a disabled label has to stay readable
+     enough to say what the control is (see semantic.css). This lands on the same
+     value as --color-text-quaternary, the way the library's ramp does in light.
+
+     Measured against the *accent-less* fallbacks it clears 3:1 on the reading
+     surfaces; it does NOT clear it on every surface (`surface-active` sits at
+     2.8:1) and every room carries a `--room-accent` that shifts all of them —
+     with the wine accent, quiet/subtle/disabled drop to ~2.9:1. No gate covers
+     this file: contrast.test.ts reads the library themes, and these are
+     hex/color-mix values it cannot resolve. Logged in technical-debt. */
+  --color-text-disabled: #8a8578;
 
   --color-border-hairline: rgb(31 29 23 / 0.1);
   --color-border-subtle: rgb(31 29 23 / 0.14);

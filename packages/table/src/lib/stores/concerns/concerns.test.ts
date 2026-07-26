@@ -470,9 +470,19 @@ describe('useFiltering — greaterThan / lessThan', () => {
     );
   });
 
-  it('an empty filter value matches nothing on a date column', () => {
-    expect(filterIds([{ column: 'iso', operator: 'greaterThan', value: '' }])).toEqual([]);
-    expect(filterIds([{ column: 'when', operator: 'lessThan', value: '   ' }])).toEqual([]);
+  // Changed 2026-07-25: an empty value used to mean "match nothing" here and
+  // "> 0" on a numeric column (`Number('')` is 0), while the text operators let
+  // everything through (`''.includes('')`). All three now agree that a filter
+  // without a value is not an assertion.
+  it('an empty filter value is inert on every column type', () => {
+    expect(filterIds([{ column: 'iso', operator: 'greaterThan', value: '' }])).toEqual([1, 2, 3]);
+    expect(filterIds([{ column: 'when', operator: 'lessThan', value: '   ' }])).toEqual([1, 2, 3]);
+    // The numeric path is the one that used to silently filter: every amount
+    // here is > 0, so the old behaviour was invisible until a row hit 0.
+    expect(filterIds([{ column: 'amount', operator: 'greaterThan', value: '' }])).toEqual([
+      1, 2, 3
+    ]);
+    expect(filterIds([{ column: 'label', operator: 'contains', value: '' }])).toEqual([1, 2, 3]);
   });
 
   it('non-date text stays a non-match instead of being date-parsed', () => {
@@ -491,6 +501,42 @@ describe('useFiltering — greaterThan / lessThan', () => {
     } as unknown as TableState;
 
     expect(useFiltering(state).filteredItems.map((r) => (r as { id: number }).id)).toEqual([2]);
+  });
+
+  // `equals` is what the filter menu labels "on date" for a `dataType: 'date'`
+  // column. It used to compare lowercased strings, so it only matched a column
+  // whose accessor returned the exact `YYYY-MM-DD` text.
+  describe('equals on a date column', () => {
+    it('matches a Date instance and a timestamped ISO string by day', () => {
+      // `when` holds Date objects — String(date) is "Mon Mar 15 2021 …", which
+      // could never equal "2021-03-15".
+      expect(filterIds([{ column: 'when', operator: 'equals', value: '2021-03-15' }])).toEqual([2]);
+      // `iso` row 2 is '2021-03-15T09:00:00Z' — a bare calendar filter value
+      // matches the whole UTC day.
+      expect(filterIds([{ column: 'iso', operator: 'equals', value: '2021-03-15' }])).toEqual([2]);
+    });
+
+    it('still matches a plain date-only string column', () => {
+      expect(filterIds([{ column: 'iso', operator: 'equals', value: '2021-03-16' }])).toEqual([3]);
+    });
+
+    it('compares instants when the filter value carries a time', () => {
+      expect(
+        filterIds([{ column: 'when', operator: 'equals', value: '2021-03-15T09:00:00Z' }])
+      ).toEqual([2]);
+      expect(
+        filterIds([{ column: 'when', operator: 'equals', value: '2021-03-15T10:00:00Z' }])
+      ).toEqual([]);
+    });
+
+    it('leaves string columns on byte equality', () => {
+      expect(filterIds([{ column: 'label', operator: 'equals', value: 'beta' }])).toEqual([2]);
+      expect(filterIds([{ column: 'label', operator: 'equals', value: 'bet' }])).toEqual([]);
+    });
+
+    it('matches nothing for an unparseable date value', () => {
+      expect(filterIds([{ column: 'when', operator: 'equals', value: '15.03.2021' }])).toEqual([]);
+    });
   });
 });
 

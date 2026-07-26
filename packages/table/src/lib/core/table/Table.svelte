@@ -294,14 +294,13 @@
       {enableColumnReorder}
     />
 
-    <!-- Mobile renders its own loading/error text (the desktop states are row
-         markup), so it stays mounted; only pagination is gated on data. -->
+    <!-- Mobile renders its own loading/error/empty text (all three desktop states
+         are row markup), so it stays mounted; only pagination is gated on data. -->
     <TableMobile
       {size}
       {expandable}
       expandedRowContent={expandedRowContentErased}
       cell={cellErased}
-      {emptyState}
       {noDataText}
       {loadingText}
       {errorText}

@@ -96,7 +96,12 @@
     filterOptions.forEach((option) => {
       if (!filterStates[option.key]) {
         filterStates[option.key] = {
-          selectedOperator: 'contains',
+          // Seed with the column's own first operator, not a hardcoded
+          // `contains`: number and date columns do not offer `contains` at all
+          // (see OPERATORS_BY_TYPE), so the bound value sat outside its own
+          // option list — pick a date, press Enter without touching the select,
+          // and the filter ran as a substring match.
+          selectedOperator: option.operators[0]?.value ?? 'contains',
           inputValue: '',
           quickValueSearch: '',
           showQuickValues: false

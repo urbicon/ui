@@ -226,7 +226,8 @@ bg-surface-subtle        /* visible tinted zone */
 bg-surface-elevated      /* floating surfaces (paired with shadow) */
 bg-surface-overlay       /* modals, popovers */
 bg-surface-interactive   /* interactive backgrounds */
-bg-surface-hover         /* hover state */
+bg-surface-interactive-hover /* hover step for something resting on surface-interactive */
+bg-surface-hover         /* hover state (for elements on a reading surface) */
 bg-surface-active        /* active/pressed state */
 bg-surface-disabled      /* disabled elements */
 bg-surface-selected      /* selected items (uses primary-50) */

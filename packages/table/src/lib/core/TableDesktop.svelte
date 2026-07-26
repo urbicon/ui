@@ -53,8 +53,27 @@
   const { state: tableState } = tableContext;
   const filteredItems = $derived(tableContext.filteredItems);
   const paginatedItems = $derived(tableContext.paginatedItems);
+  /** Rendered rows in visual order — what the keyboard navigates. Equals
+   *  `paginatedItems` ungrouped; grouped it spans all groups minus collapsed ones. */
+  const navigableItems = $derived(tableContext.navigableItems);
   const grouped = $derived(tableContext.grouped);
   const groupedSummaryData = $derived(tableContext.groupedSummaryData);
+
+  /**
+   * Where each rendered group's item rows start within `navigableItems`. A
+   * collapsed group renders no item rows, so it contributes 0 and the next group
+   * continues at the same offset — which keeps `data-row-index` contiguous over
+   * exactly the rows that exist in the DOM.
+   */
+  const groupRowOffsets = $derived.by(() => {
+    const offsets: number[] = [];
+    let running = 0;
+    for (const [groupName, groupItems] of Object.entries(grouped)) {
+      offsets.push(running);
+      if (!tableState.collapsedGroups.has(groupName)) running += groupItems.length;
+    }
+    return offsets;
+  });
 
   let selectable = $derived(tableState.selectionMode !== 'none');
   let interactive = $derived(selectable || expandable || !!onRowClick);
@@ -122,21 +141,29 @@
     void tableState.sortDirection;
     void tableState.searchTerm;
     void tableState.activeFilters;
+    // Grouping reshapes the index space just as much as paging does: switching
+    // the group key reorders every row, and collapsing a group removes a run of
+    // them, so a held index would land on a different item.
+    void tableState.groupByKey;
+    void tableState.collapsedGroups.size;
     tableContext.resetFocus();
   });
 
   function focusRow(index: number) {
     if (!tableElement) return;
-    const rows = tableElement.querySelectorAll<HTMLElement>('tbody tr[data-row-index]');
-    const targetRow = rows[index];
+    // Address the row by its index attribute rather than by position in the
+    // NodeList: grouped rendering interleaves group headers and summary rows, so
+    // "the Nth matching element" and "the row at index N" are not the same thing.
+    const targetRow = tableElement.querySelector<HTMLElement>(
+      `tbody tr[data-row-index="${index}"]`
+    );
     if (targetRow) {
       targetRow.focus({ preventScroll: false });
     }
   }
 
   function getItemIdAtIndex(index: number): string | number | undefined {
-    const items = Array.isArray(paginatedItems) ? paginatedItems : [];
-    const item = items[index];
+    const item = navigableItems[index];
     if (!item) return undefined;
     const id = item.id ?? item.__index;
     return typeof id === 'string' || typeof id === 'number' ? id : undefined;
@@ -160,7 +187,7 @@
       return;
     }
 
-    const itemCount = Array.isArray(paginatedItems) ? paginatedItems.length : 0;
+    const itemCount = navigableItems.length;
     if (itemCount === 0) return;
 
     switch (e.key) {
@@ -208,8 +235,7 @@
             tableContext.toggleExpand(id);
           } else if (onRowClick) {
             e.preventDefault();
-            const items = Array.isArray(paginatedItems) ? paginatedItems : [];
-            const item = items[tableContext.focusedRowIndex];
+            const item = navigableItems[tableContext.focusedRowIndex];
             if (item) onRowClick(item);
           }
         }
@@ -431,7 +457,7 @@
               <EmptyState message={noDataText} {size} colSpan={totalColSpan} />
             {/if}
           {:else}
-            {#each Object.entries(grouped) as [groupName, groupItems] (groupName)}
+            {#each Object.entries(grouped) as [groupName, groupItems], groupIndex (groupName)}
               <GroupedRow
                 {groupName}
                 items={groupItems}
@@ -441,6 +467,7 @@
                 {size}
                 {groupHeaderContent}
                 {onRowClick}
+                rowIndexOffset={groupRowOffsets[groupIndex]}
               />
 
               {#if tableState.showSummary && tableState.summaryConfigs.length > 0}

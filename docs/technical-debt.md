@@ -222,67 +222,23 @@ internal TODO instead. Sections are ordered roughly by urgency.
 - **Found:** 2026-07-22, PlaygroundConfigurator helpToggle/dt() pass
   (debt-fix-wave-3).
 
-### Table filter operators: three residual sharp edges around dates and empty values
+### Grouped tables: the group header is a Tab stop, not an arrow-key stop
 
-- **Where:** `packages/table/src/lib/stores/concerns/useFiltering.svelte.ts`
-  (the `equals` branch + the numeric path of `greaterThan`/`lessThan`) and
-  `packages/table/src/lib/features/SmartFilterBar/FilterMenu.svelte:~99`
-  (`selectedOperator: 'contains'` default) vs. `:43-60` (`OPERATORS_BY_TYPE`).
-- **What:** Three neighbours of the date-comparator fix (W4, 2026-07-24), each
-  deliberately out of its scope. (a) `equals` — which the UI labels "on date"
-  for `dataType: 'date'` columns — compares lowercased strings, so it only ever
-  matches columns whose accessor returns the exact `YYYY-MM-DD` string; a `Date`
-  instance or a timestamped ISO string never matches. (b) An empty/blank filter
-  value on a numeric column stays on the numeric path (`Number('') === 0`), so
-  `greaterThan ''` silently means "> 0" instead of being inert — reachable via
-  `initialFilters`, restored persistence or programmatic `addFilter` (the menu
-  itself guards on `.trim()`). The date path returns `false` for empty values,
-  so the two paths now disagree. (c) The menu seeds every column's operator with
-  `contains`, which `number`/`date` columns don't even offer — pick a date, press
-  Enter without touching the operator select, and you get a substring match.
-- **Why deferred:** (a) would make the generic text operator type-aware, which
-  changes string behaviour for every column — wants its own decision (dedicated
-  `onDate` operator vs. day-bucket equality gated on `dataType`). (b) is
-  pre-existing numeric semantics that the fix deliberately kept
-  backward-compatible; changing it is a call about seeded/restored filters.
-  (c) is a UI default in a different file, plus a `Select` question (bound value
-  outside the option list).
-- **Found:** 2026-07-24, W4 date-filter fix.
-
-### Table keyboard row navigation is dead inside groups
-
-- **Where:** `packages/table/src/lib/core/TableDesktop.svelte:124`
-  (`querySelectorAll('tbody tr[data-row-index]')`) vs.
-  `packages/table/src/lib/core/GroupedRow.svelte` (its item rows carry neither
-  `data-row-index` nor `tabindex`, unlike `TableRow.svelte:126`).
-- **What:** The roving-tabindex navigation (arrows, Home/End, PageUp/PageDown,
-  `Space` to select, `Enter` to expand) only ever sees flat rows. In a grouped
-  table the row collection is empty, so the whole keyboard path is inert —
-  a keyboard user can still reach the checkboxes via Tab, but not navigate or
-  select rows. Pre-existing; surfaced while wiring row-click selection (W4),
-  which gave the mouse a path the keyboard still lacks in groups.
-- **Why deferred:** Making grouped rows part of the roving sequence means one
-  index space across group headers and item rows (are collapsed groups skipped?
-  is the group header itself a stop?), plus the aria-rowindex bookkeeping —
-  an a11y design pass with SR testing, not an attribute addition.
-- **Found:** 2026-07-24, W4 row-click selection.
-
-### Mobile renders the `emptyState` snippet — which is table-row markup — inside a `<div>` card list
-
-- **Where:** `packages/table/src/lib/core/TableMobile.svelte` (the `emptyState`
-  branch) vs. its documented shape (`apps/docs/src/routes/table/customization/+page.svelte`,
-  where the example snippet is `<tr><td colspan="99">…`).
-- **What:** The same `emptyState` snippet feeds the desktop `<tbody>` and the
-  mobile card container. Consumers write row markup (as the docs example does),
-  so on mobile a `<tr>`/`<td>` lands inside a `<div>` — the parser drops the
-  tags and the content renders unstyled at best. W4 dodged the trap for the new
-  loading/error states (mobile renders plain text for those, commented at the
-  site) but left the pre-existing `emptyState` path as is.
-- **Why deferred:** The fix is an API decision: either a second snippet for the
-  card list (`emptyStateMobile`), or a documented "must be phrasing content"
-  contract with a wrapper on the desktop side — both change the public snippet
-  surface, and neither is a drive-by while shipping the state props.
-- **Found:** 2026-07-24, W4 mobile loading/error states.
+- **Where:** `packages/table/src/lib/core/GroupedRow.svelte` (the header `<td>`
+  carries `role="button"` + `tabindex="0"`) vs. the roving sequence over item
+  rows, wired 2026-07-25.
+- **What:** Making keyboard navigation work inside groups needed a call on
+  whether the group header is part of the arrow-key sequence. It is not: it keeps
+  its own `tabindex={0}` and answers Enter/Space by collapsing, so it is reachable
+  by Tab while the arrows move only between item rows. That is the smaller change
+  and it left the header's existing behaviour untouched, but it means a table with
+  many groups has many Tab stops, and a screen-reader user arrowing through rows
+  is never told they crossed into a new group.
+- **Why deferred:** The alternative — one index space over headers *and* rows —
+  changes what Enter means depending on where focus sits, and wants real SR
+  testing to judge (does announcing the group on crossing beat a dedicated stop?).
+  That is a design pass, not a follow-up to the wiring.
+- **Found:** 2026-07-25, wiring the grouped roving tabindex.
 
 ### Virtualized body renders in a second `<table>` — column widths drift from the header (and rows are fixed-height tall)
 
@@ -478,6 +434,12 @@ internal TODO instead. Sections are ordered roughly by urgency.
   modes" is a deliberate skin decision — and wants a VR pass across the four
   rooms. Not a token tweak. Pairs with the dark-axe gate entry above (a dark
   Playwright project would catch this class).
+- **Update 2026-07-25:** measured worse on the Guide surfaces than the figure
+  above — the panel's GuideRef link and the tour's "Next" fill both render
+  `#006c4a` on `#322f2c` = **2.05:1** (axe: serious). The `guide.spec.ts`
+  dark baselines now bake this in: they were re-generated on 2026-07-25, and the
+  previous ones were the last artefact in the repo still showing the adaptive
+  light green (≈5.15:1). So a fix here is also a Guide re-baseline.
 - **Found:** 2026-07-24, W1 adversarial review (deepened by W1's green nudge).
 
 ### docs-app `lang`: the ⌘K command palette is the one bilingual chrome surface still inheriting `lang="en"`
@@ -692,10 +654,12 @@ internal TODO instead. Sections are ordered roughly by urgency.
   10-primitive × light/dark × library/editorial matrix) — is therefore darwin-only.
   The visual-regression suite is explicitly `test.skip`-gated to darwin so it adds
   no red to the CI e2e job; the pre-existing floating/guide specs are NOT gated
-  (they already fail on Linux). **Local caveat:** baselines must be produced with
-  the full `channel: 'chromium'` build — `headless_shell` renders fonts ~1px
-  differently and flips text-heavy snapshots (seen on `guide.spec.ts` hint
-  shots).
+  (they already fail on Linux). **Former "local caveat", now obsolete and
+  disproven:** this entry used to warn that baselines must be produced with the
+  full `channel: 'chromium'` build because `headless_shell` "flips text-heavy
+  snapshots". The renderer is now pinned in `playwright.config.ts`, so the
+  warning has no addressee — and it was wrong anyway: the shots it blamed
+  (`guide.spec.ts` hints) fail identically under both builds (2026-07-25).
 - **Why deferred:** Making the visual layer CI-green needs per-platform baselines,
   which can't be produced on a macOS box: either (a) generate `-chromium-linux`
   baselines via the official `mcr.microsoft.com/playwright` Docker image and commit
@@ -711,20 +675,36 @@ internal TODO instead. Sections are ordered roughly by urgency.
   baselines in the CI env itself — option (c), a one-off bootstrap job; a local
   Docker run is not trusted to match the GitHub-Actions font rendering
   byte-for-byte, which is the whole point of per-platform baselines.
-- **Update 2026-07-24 (W4/W6 full-suite run):** the tightened tolerance was
-  applied globally but only `visual-regression.spec` was re-baselined, so the
-  two older visual specs now fail on darwin as well: **13 shots** (7 in
-  `floating.spec.ts`, 6 in `guide.spec.ts`) are red, each at a measured diff
-  ratio of **exactly 0.01** — the previous threshold, which had been waving
-  them through. Their baselines date from the initial commit and have never
-  been generated under the current tolerance (or the current Playwright browser
-  build: the config sets no `channel`, so a plain run uses `headless_shell`,
-  whose ~1px font rendering is the documented caveat above). The rest of the
-  suite is green (116 passed), including all table specs. Deliberately not
-  re-baselined in passing: doing it from a headless_shell run would bake the
-  wrong renderer into the baselines and break them for everyone else. Whoever
-  picks this up should re-generate both specs from a full `channel: 'chromium'`
-  run and verify the diffs are renderer drift, not content.
+- **Resolved on darwin 2026-07-25:** the 13 red shots are green and the full
+  suite passes 131/131. The diagnosis in the previous update was wrong on both
+  counts, which is why re-baselining "as renderer drift" would have been the
+  wrong move: (a) the failures reproduced **identically** under the full
+  `channel: 'chromium'` build, so `headless_shell` was never the cause; (b) the
+  "exactly 0.01" ratio was Playwright's rounded console output, not a constant.
+  Most baselines were simply **stale by months** — they still showed "Blocks UI"
+  as the sidebar brand and a section labelled "Dropdown (open)", i.e. they
+  predate both the Urbicon rename and the Dropdown→Menu rename. Not all of them,
+  though: `menu-open` was green (diff ratio 0.00006) and only days old, and the
+  two `hint` shots differ by exactly 1px of intrinsic width with no content
+  delta. `--update-snapshots=all` re-bakes those too, by design — the mode exists
+  precisely because `changed` skips sub-threshold drift and keeps stale files.
+  Three things landed: the config pins `channel: 'chromium'` (a reproducibility
+  pin, not a fix — see the note above); the `menu`/`combobox` shots scroll their
+  section to the viewport centre and **assert the geometry their names claim**
+  (`scrollIntoViewIfNeeded` was not enough — it scrolls the minimum, leaving 64px
+  under the menu trigger for a 134px panel, so the panel still flipped above it
+  and the "opens below" shot still lied); and both specs were re-generated,
+  verified stable over two consecutive runs.
+  **Deliberately frozen with them:** the two dark Guide shots bake in the Rooms
+  dark-mode accent defect (`--color-primary` pinned to the raw accent in both
+  modes → 2.05:1 for the panel link and the "Next" fill). That is the open entry
+  under §Accessibility ("Rooms skin pins `--color-primary`…"); the old baselines
+  were the last artefact in the repo still showing the pre-defect look, and no
+  gate covers it (guide axe runs light-only, the dark-axe project excludes
+  `docs-rooms`).
+  **Still open:** the Linux half — this entry's actual subject — is untouched.
+  0 `-chromium-linux` baselines exist against 66 darwin ones, so CI remains
+  blind to the whole visual layer.
 - **Found:** 2026-07-08, adding the primitive visual-regression suite.
 
 ### i18n source scanner: documented analysis limits (strict mode not built)
@@ -909,98 +889,85 @@ internal TODO instead. Sections are ordered roughly by urgency.
 
 ## Design tokens
 
-### Disabled field labels sit at 2.3:1 in dark mode
+### A contrast floor on a token says nothing about what a component composes on it
 
-- **Where:** `packages/blocks/src/lib/internal/field-chrome.ts`
-  (`FIELD_LABEL_DISABLED = 'text-text-disabled'`), consumed by Input, Textarea,
-  PinInput, TimeInput and (hand-written, same value) Select.
-- **What:** A disabled field's label renders `#454f56` on `#070c10` = **2.34:1**
-  in dark mode. WCAG 1.4.3 exempts inactive components, so this is not a
-  violation — but it is the label, the one part that still has to say what the
-  field *is*. The dark-axe gate only sees it on PinInput, because axe honours the
-  exemption when a `<label for>` points at a disabled control and PinInput labels
-  a `role="group"` via `aria-labelledby` instead; Input and Select pass the
-  identical token in the identical state (exception recorded in
-  `e2e/a11y-dark-baseline.json`).
-- **Why deferred:** Choosing a legible disabled tone (e.g. the W1-hardened
-  `text-text-tertiary`, or a new dedicated stop) is a design call across every
-  field, and it moves VR baselines for input/select/pin-input/time-input — a
-  contrast wave's work, not a validation wave's.
-- **Found:** 2026-07-24, W5 (PinInput entering the dark-axe matrix).
+- **Where:** `packages/blocks/src/lib/style/contrast.test.ts` (the ramp guards)
+  vs. `packages/blocks/src/lib/components/Calendar/calendar.variants.ts:407-409`
+  (disabled day: `day: 'opacity-40'` + `dayNumber: 'text-text-disabled'`).
+- **What:** The guards measure a text token against a surface token. Calendar's
+  disabled day then wraps that pairing in `opacity-40`, which lands it around
+  1.6:1 — below where the token sat *before* it was hardened, while the guard
+  reports the token's own 3.4–4.9:1 and stays green. Any `opacity-*` on an
+  ancestor has the same effect; Calendar is just the instance that was measured.
+- **Second half of the same gap:** `--color-text-disabled` now resolves to the
+  same value as `--color-text-quaternary` in light mode (both `neutral-500`).
+  That is defensible in general — they are two roles, not two rungs of one ladder
+  — but Calendar puts them side by side: `outsideMonth` (quaternary) and
+  `disabled` (disabled) used to differ (neutral-500 vs -300) and are now
+  identical, so the two states are told apart only by that same `opacity-40`.
+- **Why deferred:** The fix is either a resolved-style assertion (measure the
+  composed result in a browser, which is an e2e/VR job, not a node test) or a
+  house rule against `opacity` on text-bearing elements — plus a Calendar
+  redesign of how "outside month" and "disabled" differ. Both are their own pass.
+- **Found:** 2026-07-25, adversarial review of the interaction-token wave.
 
-### `surface-interactive` has no working hover partner
+### The docs Rooms skins override the semantic ramp and no contrast gate sees them
+
+- **Where:** `apps/docs/src/lib/style/rooms.css` +
+  `rooms-docs.css` (they re-declare `--color-text-*`, `--color-surface-*` and
+  `--color-primary`) vs. `packages/blocks/src/lib/style/contrast.test.ts`, which
+  resolves only the library themes.
+- **What:** Every contrast guarantee the library gates is re-opened by the skins
+  the docs site actually ships, and nothing measures the result. Concretely
+  today: `rooms.css` disabled text clears 3:1 on the reading surfaces but not on
+  `surface-active` (~2.8:1), and each room's `--room-accent` shifts every surface
+  again (with the wine accent, quiet/subtle/disabled land near 2.9:1). The
+  `--color-primary` dark-mode defect under §Accessibility is the same class.
+- **Why deferred:** The guard resolves `light-dark(var(--color-*))` chains; the
+  skins are hex literals and `color-mix()` with a runtime `--room-accent`, so
+  covering them means either a resolver for those forms or measuring in a browser
+  (axe against the rooms, which the dark-axe project currently excludes on
+  purpose). A gate-scope decision, not a value fix.
+- **Found:** 2026-07-25, adversarial review of the interaction-token wave.
+
+### `surface-subtle` is byte-identical to `surface-elevated`, so `hover:bg-surface-subtle` dies on elevated surfaces
 
 - **Where:** `packages/blocks/src/lib/style/semantic.css`
-  (`--color-surface-interactive` vs `--color-surface-hover` / `-active`), used by
-  `internal/field-chrome.ts` and the filled variants of Input, Textarea, Select,
-  Combobox, plus Toggle's off track.
-- **What:** `surface-interactive` resolves to the *same value* as `surface-hover`
-  in light mode and as `surface-active` in dark — in the library default and
-  under the Rooms skin. So the established idiom
-  `bg-surface-interactive … hover:bg-surface-hover` is a **silent no-op in light
-  mode** everywhere it appears: those filled fields have no hover feedback at all
-  where most users see them. W5 worked around it for Toggle by using a border
-  step instead of a fill step (commented at the site).
-- **Why deferred:** The fix is a token-level decision — a dedicated
-  `--color-surface-interactive-hover` stop (and its `-active` sibling), chosen
-  against both modes and all six themes — not a per-component patch.
-- **Found:** 2026-07-24, W5 interaction-vocabulary rollout.
+  (`--color-surface-subtle` vs `--color-surface-elevated` — both
+  `light-dark(neutral-50, neutral-800)`), consumed as a *hover* step by the
+  `ghost` variants of Input/Textarea/Select/Combobox
+  (`internal/field-chrome.ts`), RadioGroup's indicator, Checkbox, Tab and
+  `table-states.variants.ts` — 8+ sites.
+- **What:** Same shape as the `surface-interactive` collapse fixed on
+  2026-07-25, but context-dependent rather than universal. `hover:bg-surface-subtle`
+  reads correctly on `surface-base`, and is invisible on anything already at
+  `surface-elevated` (a Popover, a Menu, a Select dropdown, an elevated Card) —
+  the hover target and its background resolve to the same colour.
+- **Why deferred:** Two different fixes, and picking between them is the
+  decision: give `surface-subtle` its own value (moves every *non*-hover use of
+  it too — auth list rows, docs table headers, readonly fields), or move the
+  hover idiom onto `surface-hover` (8+ sites across 6 components, each a VR
+  baseline). Deliberately not bundled into the interaction-token wave, which
+  already carried three token decisions.
+- **Found:** 2026-07-25, interaction-token wave (while fixing the universal
+  `surface-interactive` sibling).
 
-### The press cue snaps wherever the shorthand `transition-colors` carries it
+### The VR matrix has no hover, focus or disabled state — the interaction-token wave moved 0 of 52 shots
 
-- **Where:** `packages/blocks/src/lib/primitives/Badge/badge.variants.ts`
-  (`removeButton`), `packages/table/src/lib/variants/table.variants.ts`
-  (`tableRowVariants.row`), `packages/table/src/lib/variants/table-cells.variants.ts`
-  (`customCellVariants.container`).
-- **What:** Same bug class W5 fixed for arbitrary transition lists, but expressed
-  through the shorthand: `transition-colors` next to `active:scale-[0.98]` /
-  `hover:-translate-y-0.5`. Those cues snap. The new variants-lint rule
-  deliberately does not flag them — `transition-colors` is a *complete*
-  statement ("only colours move"), so the linter cannot tell a deliberate snap
-  from an oversight. Badge's `removeButton` is thereby inconsistent with
-  Dialog/Drawer's `closeButton`, which are the same ghost-Button fold and do
-  animate.
-- **Why deferred:** Needs a design call first — is the press cue animated
-  everywhere, or only where a component already opted into transform motion?
-  Badge additionally carries a documented "byte-identical to the pre-extraction
-  close button" contract that any change has to re-justify.
-- **Found:** 2026-07-24, W5 transition-list sweep.
-
-### Combobox's focus ring is twice as strong as every other field's
-
-- **Where:** `packages/blocks/src/lib/primitives/Combobox/combobox.variants.ts`
-  (`input` + `control` slots, `ring-primary/50`) vs. `fieldFocusRing` in
-  `internal/field-chrome.ts` (`/20`), used by Input, Textarea, Select,
-  PinInput, TimeInput.
-- **What:** Surfaced by W5 giving Combobox the shared error frame: its invalid
-  ring (`ring-danger/20`, from the shared fragment) is now *weaker* than its
-  valid one (`ring-primary/50`, its own). Nothing is broken, but the field is
-  the odd one out in both directions.
-- **Why deferred:** Harmonising to `/20` is a visible change on every focused
-  Combobox and wants a VR baseline refresh — a look decision, not a drive-by
-  inside a validation wave.
-- **Found:** 2026-07-24, W5 form-validation pass.
-
-### Two `description` slots render body copy at 10–11px, below every legibility floor
-
-- **Where:** `packages/blocks/src/lib/primitives/RadioGroup/radioGroup.variants.ts:71`
-  and `packages/blocks/src/lib/primitives/Stepper/stepper.variants.ts:72` (the
-  `description` slot).
-- **What:** Both render `description` — full sentences — at `text-3xs`/`text-2xs`
-  (10–11px), below every practical legibility floor. The tokens page states the
-  rule (2xs/3xs are for marks, hints and dense grids, **never** for body copy);
-  these two contradict it. Tokenising the sub-xs floor merely made them
-  greppable — the underlying size was already `text-[10px]`/`text-[11px]`.
-- **Why deferred:** A deliberate size decision with a VR pass, not a token swap
-  or find/replace — bumping `description` to a legible step changes the visual
-  rhythm of both controls.
-- **Update 2026-07-20 (qa-polish-wave):** the *mechanical* half of the original
-  entry — 54 exact-pixel `text-[11px]`→`text-2xs` / `text-[10px]`→`text-3xs`
-  swaps across `table`, `packages/docs` and `apps/docs` — is **done**
-  (`e714ce2`); `rg` confirms no `text-[10px]`/`text-[11px]` remain outside
-  `blocks`. These two `description` sites (the a11y design call, always the real
-  remainder) are what is left.
-- **Found:** 2026-07-14, tokenising the sub-xs type floor (publish-m3-finale).
+- **Where:** `e2e/visual-regression.spec.ts` + `apps/docs/src/routes/test-fixtures/primitives`.
+- **What:** The 2026-07-25 wave changed `--color-text-disabled` (1.45→4.85:1
+  light), Combobox's focus ring (`/50`→`/20`), two `description` sizes and the
+  filled-field hover fill. The full e2e suite stayed **131/131 green and not one
+  of the 52 VR shots moved** — the fixture renders every primitive in its resting
+  state only. So the gate that exists precisely to catch visual change is blind
+  to the entire interaction layer; the wave had to be verified by measuring
+  computed styles in a throwaway probe spec instead.
+- **Why deferred:** Adding hover/focus/disabled columns roughly doubles the
+  matrix (52 → ~100 shots at 2 modes × 2 themes) and needs a decision on how to
+  drive the states deterministically (CSS class vs. real pointer/focus, and
+  whether `:hover` screenshots are stable enough to gate on). That is a gate
+  design pass of its own.
+- **Found:** 2026-07-25, interaction-token wave.
 
 ### Popover inside phrasing content breaks SSR paragraphs (CitationChip in `<p>`)
 

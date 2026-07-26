@@ -79,7 +79,7 @@
               aria-describedby={ctx.describedBy}
               aria-invalid={ctx.invalid}
               required={ctx.required}
-              class="border-border-subtle bg-surface-base text-text-primary file:bg-surface-interactive file:text-text-primary hover:file:bg-surface-hover w-full rounded-md border px-3 py-2 text-sm file:mr-3 file:rounded file:border-0 file:px-3 file:py-1.5 file:text-sm"
+              class="border-border-subtle bg-surface-base text-text-primary file:bg-surface-interactive file:text-text-primary hover:file:bg-surface-interactive-hover w-full rounded-md border px-3 py-2 text-sm file:mr-3 file:rounded file:border-0 file:px-3 file:py-1.5 file:text-sm"
             />
           {/snippet}
         </FormField>

@@ -640,6 +640,9 @@ export const customCellVariants = tv({
       true: {
         container: [
           'cursor-pointer rounded-modify',
+          // The transition list that covers this lift lives in the slot base
+          // above (`transition-[color,background-color,translate]`) — this
+          // compound does not need to restate it.
           'hover:bg-surface-hover hover:-translate-y-0.5',
           'active:translate-y-0 active:bg-surface-active',
           'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-primary'

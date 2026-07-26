@@ -13,7 +13,6 @@
     expandable = false,
     expandedRowContent = undefined as Snippet<[item: TableItem]> | undefined,
     cell = undefined as Snippet<[item: TableItem, value: unknown, column: Column]> | undefined,
-    emptyState = undefined as Snippet | undefined,
     noDataText = '',
     loadingText = '',
     errorText = '',
@@ -29,9 +28,16 @@
 
 <div class="mobile-only md:hidden" data-testid="mobile-table">
   <!--
-    Loading/error render as plain text here, never through the `loadingState` /
-    `errorState` snippets: those are table-row markup (`<tr><td>`), which cannot
-    live inside this card container. Same reason the desktop states are separate.
+    All three state snippets (`loadingState` / `errorState` / `emptyState`) are
+    table-row markup (`<tr><td colspan>`, as the customization docs show), so none
+    of them can render inside this card container: the HTML parser drops `<tr>`
+    and `<td>` tokens outside a table and the content lands unstyled at best.
+    Mobile therefore renders plain text for all three.
+
+    There is no snippet shape that would work on both sides — phrasing content
+    would be hoisted out of the desktop `<tbody>` just as row markup is dropped
+    here — so this is a structural split, not a missing feature. `emptyState` used
+    to be rendered here anyway; that was the odd one out, not the rule.
   -->
   {#if tableState.loading}
     <div
@@ -47,13 +53,9 @@
       <span class="text-text-secondary mt-1 block">{tableState.error}</span>
     </div>
   {:else if filteredItems.length === 0}
-    {#if emptyState}
-      {@render emptyState()}
-    {:else}
-      <div class="text-text-secondary py-6 text-center text-sm" data-testid="empty-state-mobile">
-        {noDataText}
-      </div>
-    {/if}
+    <div class="text-text-secondary py-6 text-center text-sm" data-testid="empty-state-mobile">
+      {noDataText}
+    </div>
   {:else if tableState.groupByKey}
     {#each Object.entries(grouped) as [groupName, groupItems] (groupName)}
       <div class="mb-6">

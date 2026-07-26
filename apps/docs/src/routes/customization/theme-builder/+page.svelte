@@ -271,6 +271,9 @@
     vars.push(`--color-surface-hover: ${byShade[100]}`);
     vars.push(`--color-surface-active: ${byShade[200]}`);
     vars.push(`--color-surface-interactive: ${byShade[100]}`);
+    // The fill's own hover rung — mirrors semantic.css, where `surface-hover`
+    // resolves to the same value as `surface-interactive` itself.
+    vars.push(`--color-surface-interactive-hover: ${byShade[200]}`);
     vars.push(`--color-text-primary: ${byShade[900]}`);
     vars.push(`--color-text-secondary: ${byShade[700]}`);
     vars.push(`--color-text-tertiary: ${byShade[600]}`);

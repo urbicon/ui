@@ -361,6 +361,11 @@ export interface TableProps<T = TableItem> {
   /**
    * Custom empty state snippet. Named after its `slotClasses.emptyState` slot
    * (renamed from `empty` in v6.41 — `loading` is now the boolean state prop).
+   *
+   * Must be table-row markup (`<tr><td colspan="99">…`) — it renders into the
+   * desktop `<tbody>`. **Desktop only:** the mobile card list renders
+   * {@link noDataText} instead, because row markup cannot live in a `<div>`
+   * (the parser drops the tags). Same contract as the two state snippets below.
    * @default undefined
    */
   emptyState?: Snippet;
@@ -369,6 +374,8 @@ export interface TableProps<T = TableItem> {
    * Custom loading state snippet, rendered while {@link loading} is true.
    * Named after its `slotClasses.loadingState` slot (renamed from `loading` in
    * v6.41, which now carries the boolean state).
+   *
+   * Table-row markup, desktop only — mobile renders {@link loadingText}.
    * @default undefined
    */
   loadingState?: Snippet;
@@ -376,6 +383,8 @@ export interface TableProps<T = TableItem> {
   /**
    * Custom error state snippet. Named after its `slotClasses.errorState` slot
    * (renamed from `error` in v6.41, alongside its two siblings).
+   *
+   * Table-row markup, desktop only — mobile renders {@link errorText}.
    * @default undefined
    */
   errorState?: Snippet;
