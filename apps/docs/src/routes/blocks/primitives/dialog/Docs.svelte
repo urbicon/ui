@@ -142,7 +142,7 @@
         <div class="space-y-1 pt-3">
           {#each ['Create new project', 'Open settings', 'Switch workspace', 'View documentation'] as item (item)}
             <button
-              class="text-text-secondary hover:bg-surface-subtle rounded-modify w-full px-2 py-1.5 text-left text-sm transition-colors"
+              class="text-text-secondary hover:bg-surface-hover rounded-modify w-full px-2 py-1.5 text-left text-sm transition-colors"
               onclick={() => (topOpen = false)}
             >
               {item}

@@ -147,7 +147,7 @@ describe('radioItemVariants', () => {
         'group-hover:border-border-default'
       );
       expect(radioItemVariants({ checked: false, variant: 'ghost' }).indicator()).toContain(
-        'group-hover:bg-surface-subtle'
+        'group-hover:bg-surface-hover'
       );
     });
 
