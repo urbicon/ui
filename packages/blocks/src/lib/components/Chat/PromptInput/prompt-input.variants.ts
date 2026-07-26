@@ -30,13 +30,19 @@ export const promptInputVariants = tv({
     ],
     attachmentName: ['truncate text-xs text-text-primary min-w-0'],
     attachmentSize: ['shrink-0 text-2xs text-text-tertiary tabular-nums'],
+    // The icon-only controls below render through CoreIconButton, so they carry
+    // only what it does NOT supply. Its plumbing is flex centring, cursor/select,
+    // `focus-visible:outline-none` and the disabled trio (opacity, cursor,
+    // pointer-events) — repeating any of those here would be resolved by
+    // stylesheet order rather than the override ladder, since the core runs no
+    // variant engine. `disabled:hover:*` is likewise unnecessary: the core's
+    // `disabled:pointer-events-none` already stops hover from firing.
     attachmentRemove: [
-      'inline-flex items-center justify-center shrink-0',
-      'size-5 rounded-modify',
-      'text-text-tertiary cursor-pointer',
+      'shrink-0 size-5 rounded-modify',
+      'text-text-tertiary',
       'transition-[color,background-color] duration-[var(--blocks-duration-fast)] ease-out',
       'hover:bg-surface-hover hover:text-text-primary',
-      'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary'
+      'focus-visible:ring-2 focus-visible:ring-primary'
     ],
     // Chromeless auto-growing textarea — the composer surface owns the border.
     textarea: [
@@ -51,29 +57,24 @@ export const promptInputVariants = tv({
     trailing: ['flex items-center gap-1 shrink-0'],
     // Icon-only affordance buttons.
     attachButton: [
-      'inline-flex items-center justify-center shrink-0',
-      'rounded-modify text-text-secondary cursor-pointer',
+      'shrink-0 rounded-modify text-text-secondary',
       'transition-[color,background-color] duration-[var(--blocks-duration-fast)] ease-out',
       'hover:bg-surface-hover hover:text-text-primary',
-      'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary',
-      'disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:bg-transparent'
+      'focus-visible:ring-2 focus-visible:ring-primary'
     ],
     sendButton: [
-      'inline-flex items-center justify-center shrink-0',
-      'rounded-modify cursor-pointer',
+      'shrink-0 rounded-modify',
       'bg-primary text-text-on-primary',
       'transition-[color,background-color,opacity] duration-[var(--blocks-duration-fast)] ease-out',
       'hover:bg-primary-hover active:bg-primary-active',
-      'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2',
-      'disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:bg-primary'
+      'focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2'
     ],
     stopButton: [
-      'inline-flex items-center justify-center shrink-0',
-      'rounded-modify cursor-pointer',
+      'shrink-0 rounded-modify',
       'bg-neutral text-text-on-primary',
       'transition-[color,background-color] duration-[var(--blocks-duration-fast)] ease-out',
       'hover:bg-neutral-hover active:bg-neutral-active',
-      'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2'
+      'focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2'
     ],
     // Compact inline validation line (first rejection). role=status is set in
     // the component; the empty state renders no box.
