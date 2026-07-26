@@ -1,3 +1,14 @@
+> **ARCHIVIERT — die Richtung ist verworfen (2026-07-26).**
+>
+> Nicht an der Umsetzung gescheitert, sondern am Konzept: Ein Fallblatt-Board
+> ist nostalgische Mechanik — schwer, laut, physisch. Die These des Produkts ist
+> das Gegenteil: nichts Fremdes drin, kein Ballast. Die Form widersprach der
+> Botschaft. Felix' Bild dafür: *man wirbt nicht mit einer Röhre für ein
+> Notebook.*
+>
+> Was hier trotzdem stehenbleibt, sind die technischen Befunde — sie gelten
+> unabhängig von der verworfenen Form und waren teuer zu erarbeiten.
+
 # Fallblatt-Board — Befunde (2026-07-26)
 
 Prototyp beantwortet eine Frage: **Hält die Fallblatt-Animation 98 Zeilen beim
