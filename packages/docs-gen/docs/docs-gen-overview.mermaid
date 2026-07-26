@@ -1,80 +1,78 @@
+%% docs-gen architecture overview — the four pipeline phases and what the CLI
+%% does around them. Verified against the sources on 2026-07-27; the previous
+%% version still drew SveltePageGenerator, SectionMerger, TemplateEngine,
+%% SectionRenderer, DeploymentManager, CrossReferenceResolver, ExampleValidator,
+%% MetadataEnricher, FileStructureAnalyzer and MetadataExtractor, none of which
+%% exist any more.
 graph TB
 %% CLI Layer
-    CLI[CLI Interface]
-%% Configuration Layer
-    ConfigBuilder[ConfigurationBuilder]
-    ConfigFactory[ConfigurationFactory]
+    CLI["DocsGeneratorCLI<br/>cli/CLI.ts"]
+%% Configuration
+    ConfigFactory["ConfigurationFactory<br/>schema/ConfigurationBuilder.ts"]
 %% Main Pipeline
     Pipeline[PipelineOrchestrator]
     ErrorHandler[ErrorHandler]
-%% Discovery Phase
+%% Phase 1 — Discovery
     ComponentFinder[ComponentFinder]
-    FileAnalyzer[FileStructureAnalyzer]
-    MetadataExtractor[MetadataExtractor]
-%% Extraction Phase
+%% Phase 2 — Extraction
     ExtractionCoord[ExtractionCoordinator]
-    ExtractorFactory[ExtractorFactory]
+    ExtractorFactory["ExtractorFactory<br/>(singleton)"]
+    ProgramCache["ProgramCache<br/>(one ts.Program per tsconfig)"]
     PropsExtractor[PropsExtractor]
     InheritanceExtractor[InheritanceExtractor]
     VariantsExtractor[VariantsExtractor]
-    %% Legacy DocumentationLoader removed
-%% Enrichment Phase
+    LocalTypesExtractor[LocalTypesExtractor]
+    ExamplesExtractor[ExamplesExtractor]
+%% Phase 3 — Enrichment
     APIDataGen[APIDataGenerator]
-    CrossRefResolver[CrossReferenceResolver]
-    ExampleValidator[ExampleValidator]
-    MetadataEnricher[MetadataEnricher]
-%% Generation Phase
+%% Phase 4 — Generation
     GenerationCoord[GenerationCoordinator]
     APIFileGen[APIFileGenerator]
-    SveltePageGen[SveltePageGenerator]
     LLMDocGen[LLMDocumentationGenerator]
-%% Svelte Docs Hybrid
-    SvelteDocsParser[SvelteDocsParser]
-    SectionMerger[SectionMerger]
-%% Support Components
-    TemplateEngine[TemplateEngine]
-    SectionRenderer[SectionRenderer]
-    DeploymentMgr[DeploymentManager]
-%% Flow connections
-    CLI --> ConfigBuilder
+    MCPCatalogGen[MCPCatalogGenerator]
+    SvelteDocsParser["SvelteDocsParser<br/>(reads docs.svelte docsConfig)"]
+%% Post-run assembly, driven by the CLI across all packages
+    LlmsFull[LlmsFullAssembler]
+    MCPAssembler[MCPCatalogAssembler]
+    ContentBundle[ContentBundleEmitter]
+%% CLI wiring
     CLI --> ConfigFactory
     CLI --> Pipeline
-    Pipeline --> ComponentFinder
-    Pipeline --> ExtractionCoord
-    Pipeline --> APIDataGen
-    Pipeline --> GenerationCoord
+    CLI --> LlmsFull
+    CLI --> MCPAssembler
+    CLI --> ContentBundle
+%% Pipeline phases, in order
     Pipeline --> ErrorHandler
-%% Discovery Phase
-    ComponentFinder --> FileAnalyzer
-    ComponentFinder --> MetadataExtractor
-%% Extraction Phase
+    Pipeline -->|Phase 1| ComponentFinder
+    Pipeline -->|Phase 2| ExtractionCoord
+    Pipeline -->|Phase 3| APIDataGen
+    Pipeline -->|Phase 4| GenerationCoord
+%% Extraction
     ExtractionCoord --> ExtractorFactory
+    ExtractionCoord --> ProgramCache
     ExtractorFactory --> PropsExtractor
     ExtractorFactory --> InheritanceExtractor
     ExtractorFactory --> VariantsExtractor
-%% Enrichment Phase
-    APIDataGen --> CrossRefResolver
-    APIDataGen --> ExampleValidator
-    APIDataGen --> MetadataEnricher
-%% Generation Phase
+    ExtractorFactory --> LocalTypesExtractor
+    ExtractorFactory --> ExamplesExtractor
+    PropsExtractor -.->|shared program| ProgramCache
+    InheritanceExtractor -.->|shared program| ProgramCache
+    LocalTypesExtractor -.->|shared program| ProgramCache
+%% Generation
     GenerationCoord --> APIFileGen
-    GenerationCoord --> SveltePageGen
     GenerationCoord --> LLMDocGen
-    SveltePageGen --> SvelteDocsParser
-    SveltePageGen --> SectionMerger
-    SveltePageGen --> TemplateEngine
-    SveltePageGen --> SectionRenderer
-    CLI --> DeploymentMgr
-%% API-First Architecture Highlight
-    APIFileGen -.->|api-props.ts FIRST| SveltePageGen
-    APIFileGen -.->|api-props.ts FIRST| LLMDocGen
+    GenerationCoord --> MCPCatalogGen
+    LLMDocGen --> SvelteDocsParser
+%% API-First
+    APIFileGen -.->|api.ts FIRST| LLMDocGen
+    APIFileGen -.->|api.ts FIRST| MCPCatalogGen
 %% Key Architecture Decision Box
-    subgraph "API-First + Hybrid Docs"
+    subgraph "API-First"
         direction TB
         Note1["1. APIFileGenerator runs FIRST"]
-        Note2["2. Creates api-props.ts with complete data"]
-        Note3["3. Svelte and LLM generators consume this API"]
-        Note4["4. docs.svelte docsConfig applies filters; custom docs included separately"]
+        Note2["2. Writes api.ts with the complete component data"]
+        Note3["3. LLM + MCP output are derived from that same data"]
+        Note4["4. docs.svelte docsConfig filters what reaches llm.txt"]
         Note1 --> Note2
         Note2 --> Note3
         Note3 --> Note4
@@ -91,11 +89,11 @@ graph TB
     classDef support fill: #f5f5f5
     classDef apifirst fill:#ffebee,stroke:#d32f2f,stroke-width:3px
 class CLI cli
-class ConfigBuilder,ConfigFactory config
+class ConfigFactory config
 class Pipeline,ErrorHandler pipeline
-class ComponentFinder,FileAnalyzer,MetadataExtractor discovery
-class ExtractionCoord,ExtractorFactory,PropsExtractor,InheritanceExtractor,VariantsExtractor extraction
-class APIDataGen,CrossRefResolver,ExampleValidator,MetadataEnricher enrichment
-class GenerationCoord,APIFileGen,SveltePageGen,LLMDocGen generation
-class TemplateEngine,SectionRenderer,DeploymentMgr support
+class ComponentFinder discovery
+class ExtractionCoord,ExtractorFactory,ProgramCache,PropsExtractor,InheritanceExtractor,VariantsExtractor,LocalTypesExtractor,ExamplesExtractor extraction
+class APIDataGen enrichment
+class GenerationCoord,APIFileGen,LLMDocGen,MCPCatalogGen,SvelteDocsParser generation
+class LlmsFull,MCPAssembler,ContentBundle support
 class APIFileGen apifirst
