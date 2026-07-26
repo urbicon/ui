@@ -363,19 +363,28 @@ internal TODO instead. Sections are ordered roughly by urgency.
   it wants the documented answer for all axes at once, not a per-case patch.
 - **Found:** 2026-07-24, W4 persistence review.
 
-### Table persists a *controlled* `searchTerm`, unlike controlled selection
+### ~~Table persists a *controlled* `searchTerm`, unlike controlled selection~~ — resolved 2026-07-27
 
 - **Where:** `packages/table/src/lib/stores/concerns/usePersistence.svelte.ts`
   (`syncSearch`) vs. `syncSelection`, which checks `state.selectionControlled`;
   driven by `TableProvider.svelte`'s controlled-search effect.
-- **What:** With a controlled `searchTerm` prop every keystroke is still
+- **What:** With a controlled `searchTerm` prop every keystroke was still
   mirrored into storage, although the prop is the source of truth. Switching
-  that table back to uncontrolled later revives the old term — the exact bug
+  that table back to uncontrolled later revived the old term — the exact bug
   class `selectionControlled` already prevents for selection.
-- **Why deferred:** Wants a `searchControlled` flag in `TableState` mirroring
-  the selection one, plus a test — small, but a behaviour change of its own
-  outside the stored-empty scope.
-- **Found:** 2026-07-24, W4 persistence work.
+- **Resolved 2026-07-27:** a `searchControlled` flag on `TableState`, set by
+  TableProvider from the prop's presence *before* the value is applied so
+  `syncSearch` sees it and skips the write. Deliberately **without** the
+  `untrack` the selection twin carries: that one needs it because
+  `setSelectedIds` reads `state.selectedIds` on its write path even while
+  controlled, whereas this path reads nothing reactive
+  (`useSearch.setSearchTerm` only assigns, `syncSearch` short-circuits on the
+  flag). Copying the sibling verbatim would have meant a comment claiming a
+  mechanism that is not there. Two tests, negatively verified — dropping the
+  flag check fails the controlled one while the "an uncontrolled term is still
+  persisted" guard stays green, so the skip is keyed on the flag rather than
+  being a blanket "search is never persisted".
+- **Found:** 2026-07-24, W4 persistence work; closed 2026-07-27.
 
 ### Combobox `queryFn` failure has no in-component error-row slot
 
@@ -794,7 +803,7 @@ internal TODO instead. Sections are ordered roughly by urgency.
 
 ## docs-gen
 
-### `@see` on a *type* is still swallowed, and a mid-sentence `@see` becomes a real tag
+### ~~`@see` on a *type* is still swallowed~~ — resolved 2026-07-27; the mid-sentence trap stays open
 
 - **Where:** `packages/docs-gen/src/extractors/typescript/LocalTypesExtractor.ts`
   (~`:151`/`:295`/`:313`, `documentation = extractJSDocComment(decl)`), surfacing
@@ -808,12 +817,26 @@ internal TODO instead. Sections are ordered roughly by urgency.
   written mid-sentence in a description — such a description would silently grow
   a reference chip. No prop description does that today (verified: three
   prop-level `@see`, all deliberate).
-- **Why deferred:** The type side needs its own `seeAlsoRefs` counterpart:
-  `TypeDefinition` + three extractor call sites + the emitted interface + the
-  docs `TypeEntry` + two render sites. One real occurrence, and it loses nothing
-  visible (that alias' definition literally *is* the referenced type). The
-  mid-sentence trap wants a JSDoc lint, not a fix.
-- **Found:** 2026-07-24, W6 `@see` split.
+- **Resolved 2026-07-27 (the type side):** the splitting rule moved onto
+  `TypeScriptBaseExtractor` (`extractSeeTags`) so props and types cannot drift
+  apart — a second aligned copy on LocalTypesExtractor was the alternative, and
+  that is exactly how the four `toSlug` copies drifted. Wired through all three
+  construction sites (`toTypeDefinition` plus the two in-file `out.push` sites),
+  `TypeDefinition`, and TypesReference, which renders it the way ApiReference
+  already does. Keys are omitted rather than set to `undefined` — the package
+  compiles under `exactOptionalPropertyTypes`, and an empty `seeAlsoRefs` would
+  render an orphan "See" label. 5 tests over both extraction paths, each
+  negatively verified; a regenerated `bar-chart/api.ts` now carries
+  `"seeAlsoRefs": ["CartesianDatum"]`, the one real occurrence (blast radius
+  measured across every generated `api.ts`).
+- **Still open — the mid-sentence trap.** TypeScript parses **any** `@see` as a
+  `JSDocSeeTag`, including one written inside a description, so such a
+  description silently grows a reference chip. `BarChartDatum` is in fact
+  written that way (`… per series. @see CartesianDatum` on one line) and the
+  outcome there is right, so nothing is broken today — but it is luck, not a
+  rule. Catching a genuinely accidental one wants a JSDoc lint, not a change to
+  the extractor. The caveat is recorded on `extractSeeTags`.
+- **Found:** 2026-07-24, W6 `@see` split; type side closed 2026-07-27.
 
 ### The slug rule lives in two hand-synced copies
 
@@ -830,16 +853,23 @@ internal TODO instead. Sections are ordered roughly by urgency.
   package-shape decision.
 - **Found:** 2026-07-24, W6 slug consolidation.
 
-### docs-gen's vitest never runs `src/**/*.test.ts`
+### ~~docs-gen's vitest never runs `src/**/*.test.ts`~~ — resolved 2026-07-27, both suites are real coverage and now run
 
 - **Where:** `packages/docs-gen/vitest.config.ts` (`include: ['tests/**/*.test.ts']`).
 - **What:** Two suites next to their sources — `src/generators/content/icons.test.ts`
-  and `src/generators/llm/LLMDocumentationGenerator.test.ts` — are silently never
-  executed; the package's reported test count contains none of them.
-- **Why deferred:** Widening `include` may surface real failures in code that
-  has not been exercised for months, and both files may be superseded by
-  same-named suites under `tests/` — triage, not a config tweak.
-- **Found:** 2026-07-24, W6.
+  and `src/generators/llm/LLMDocumentationGenerator.test.ts` — were silently never
+  executed; the package's reported test count contained neither.
+- **Resolved 2026-07-27:** both triage questions answered by measuring rather
+  than assuming. *Superseded?* No — the four `tests/LLMDocumentationGenerator.*`
+  suites cover the index links, docs config, global aggregator and type-size
+  cap; the orphan covers copying `guides:` into the llms.txt scope index, which
+  nothing else touches, and the icons suite has no counterpart at all.
+  *Hidden failures?* None: 25 → 27 files, 198 → 208 tests, all green. The
+  revived tests are not vacuous either — breaking `parseComponentNames`'
+  `DEFAULT_ICONS` lookup and the `## Guides` index heading fails one test in
+  each. Swept the rest of the repo for the same shape: every other package's
+  include roots cover every test file on disk, so docs-gen was the only case.
+- **Found:** 2026-07-24, W6; closed 2026-07-27.
 
 ### What the docs-gen prune deliberately left standing
 
@@ -850,8 +880,7 @@ internal TODO instead. Sections are ordered roughly by urgency.
   `MetadataEnrichmentConfig.addTags`/`autoTierAssignment`, `SchemaConfig.strict`/
   `allowUnknownSections`, `ComponentValidationConfig`);
   `packages/shared-types/src/component.ts` (`ComponentInfo.documentation`);
-  `apps/docs/package.json` + `packages/docs/package.json` (`chokidar`);
-  `packages/docs-gen/docs/*.mermaid`.
+  `apps/docs/package.json` + `packages/docs/package.json` (`chokidar`).
 - **What:** Four leftovers around the W6 prune. (a) A second tier of
   declared-but-never-read config, same shape as the pruned one — two fields are
   even *written* as defaults by `VariantsExtractor` with no reader. (b) The
@@ -859,16 +888,24 @@ internal TODO instead. Sections are ordered roughly by urgency.
   `componentsWithDocumentation` stat) but never written, so that number is
   structurally always 0. (c) `chokidar` is a devDependency of two packages with
   zero imports — residue of the same never-built watch loop whose config W6
-  removed. (d) Both docs-gen architecture diagrams describe classes and types
-  that no longer exist (`SectionMerger`, `DocumentationSectionRenderer`,
-  `SveltePageGenerator`, the deleted `DocumentationSection` family).
+  removed. ~~(d) Both docs-gen architecture diagrams describe classes that no
+  longer exist.~~
+- **(d) resolved 2026-07-27:** measured before rewriting — 18 of the class
+  diagram's 33 classes were gone and 11 real ones were missing, so it was more
+  wrong than right. Both diagrams are now derived from the sources, which
+  corrected three things an eyeball rewrite got wrong (`DocsGeneratorCLI`, not
+  `CLI`; `DocsConfigurationBuilder` *implements* the `GeneratorConfigBuilder`
+  interface; `VariantsExtractor` extends `TypeScriptBaseExtractor`, not
+  `BaseExtractor`). The class diagram now carries only the members that show
+  architecture — phase entry points and the seams between classes — because
+  duplicating full signatures is what made it a second copy that drifts. Both
+  validated with mermaid's own parser, negatively verified.
 - **Why deferred:** (a) pruning it further shrinks `EnrichmentConfig`/
   `ExtractionConfig` to near-empty shells — that is a decision about whether
   docs-gen keeps a configurable-pipeline contract at all. (b) means deciding
   whether to populate the field or drop a whole shared-types subpath. (c) touches
-  `bun.lock`, which should not be rewritten mid-wave. (d) is a docs task of its
-  own — they are the only architecture overview docs-gen has.
-- **Found:** 2026-07-24, W6 prune.
+  `bun.lock`, which should not be rewritten mid-wave.
+- **Found:** 2026-07-24, W6 prune; (d) closed 2026-07-27, (a)–(c) still open.
 
 ## Toolchain / dependencies
 
