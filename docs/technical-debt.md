@@ -671,11 +671,18 @@ internal TODO instead. Sections are ordered roughly by urgency.
   (not just `headless_shell`) was installed to `/opt/ms-playwright` for this,
   because `playwright.config.ts` pins `channel: 'chromium'`.
 - **Still open:** the gate runs **unit tests only**. e2e/Playwright is not in
-  `TEST_CMD` — it needs a dev server and roughly five minutes, against a
+  `TEST_CMD` — it takes **~11 minutes on that host** (5 locally) against a
   ten-minute budget shared with the build, and a red visual diff blocking a docs
   deployment is a policy call rather than an obvious win. The Linux baselines are
   therefore committed and correct but nothing checks them automatically yet;
   that is the decision this entry now carries.
+- **Baseline hygiene, learned twice in one day:** both platform sets had to be
+  regenerated after merging the surface-ladder change (`69b0c5b`), which moved
+  `neutral-25/-50` without touching any snapshot — correct for pass/fail, since
+  `threshold: 0.15` cannot see a ΔL of 0.015, but it leaves the committed images
+  showing surfaces the library no longer has. 24 darwin and 7 Linux shots moved
+  on re-capture. A baseline that passes is not the same as a baseline that is
+  current, and only `--update-snapshots=all` reveals the difference.
 - **Found:** 2026-07-08 (as the darwin-only observation); re-framed and largely
   resolved 2026-07-26 after inspecting the host.
 
