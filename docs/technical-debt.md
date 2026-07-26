@@ -676,6 +676,17 @@ internal TODO instead. Sections are ordered roughly by urgency.
   deployment is a policy call rather than an obvious win. The Linux baselines are
   therefore committed and correct but nothing checks them automatically yet;
   that is the decision this entry now carries.
+- **`deploy.env` is a systemd `EnvironmentFile`, so editing it changes nothing
+  until the unit restarts.** `deploy-ui.service` declares
+  `EnvironmentFile=/etc/buny/ui/deploy.env` and systemd reads that file **at
+  service start**, not per webhook. The daemon had been up since 2026-06-30, so
+  the freshly-added `TEST_CMD` was absent from its process environment and the
+  v6.43.2 deploy still published untested — verified by reading
+  `/proc/<MainPID>/environ`, which listed `BUILD_CMD` but not `TEST_CMD`. Fixed
+  with `systemctl restart deploy-ui.service`; the gate is live from the next
+  deployment. Any future change to a `deploy.env` needs the same restart, and
+  the only honest way to confirm a gate is armed is to read the running
+  process's environment, not the file.
 - **Baseline hygiene, learned twice in one day:** both platform sets had to be
   regenerated after merging the surface-ladder change (`69b0c5b`), which moved
   `neutral-25/-50` without touching any snapshot — correct for pass/fail, since
