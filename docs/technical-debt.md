@@ -957,22 +957,51 @@ internal TODO instead. Sections are ordered roughly by urgency.
 - **Found:** 2026-07-25, interaction-token wave (while fixing the universal
   `surface-interactive` sibling); hover half closed 2026-07-26.
 
-### The VR matrix has no hover, focus or disabled state — the interaction-token wave moved 0 of 52 shots
+### ~~The VR matrix has no hover, focus or disabled state~~ — resolved 2026-07-26, and a pixel suite turned out to be the wrong tool for half of it
 
-- **Where:** `e2e/visual-regression.spec.ts` + `apps/docs/src/routes/test-fixtures/primitives`.
-- **What:** The 2026-07-25 wave changed `--color-text-disabled` (1.45→4.85:1
-  light), Combobox's focus ring (`/50`→`/20`), two `description` sizes and the
-  filled-field hover fill. The full e2e suite stayed **131/131 green and not one
-  of the 52 VR shots moved** — the fixture renders every primitive in its resting
-  state only. So the gate that exists precisely to catch visual change is blind
-  to the entire interaction layer; the wave had to be verified by measuring
-  computed styles in a throwaway probe spec instead.
-- **Why deferred:** Adding hover/focus/disabled columns roughly doubles the
-  matrix (52 → ~100 shots at 2 modes × 2 themes) and needs a decision on how to
-  drive the states deterministically (CSS class vs. real pointer/focus, and
-  whether `:hover` screenshots are stable enough to gate on). That is a gate
-  design pass of its own.
-- **Found:** 2026-07-25, interaction-token wave.
+- **Where:** `e2e/visual-regression-interaction.spec.ts` +
+  `e2e/interaction-tokens.spec.ts` + `e2e/helpers/force-state.ts` +
+  `apps/docs/src/routes/test-fixtures/interaction`.
+- **What it was:** The 2026-07-25 wave changed `--color-text-disabled`,
+  Combobox's focus ring, two `description` sizes and the filled-field hover
+  fill, and the suite stayed 131/131 green with **0 of 52 shots moved** — the
+  fixture renders resting states only.
+- **Resolved:** a second fixture renders four groups (fields, choice, nav,
+  actions) with the `ghost` variants the resting fixture never had, each
+  rendered **twice — on `surface-base` and inside an elevated Card**, because a
+  fill that collapses onto its backdrop is invisible only on the surface it
+  collides with. States are forced via CDP `CSS.forcePseudoState` rather than a
+  real pointer: `group-hover:` compiles to `.group:hover .child` and so must be
+  forced on the ancestor, and `:focus-visible` depends on input-modality
+  heuristics that are awkward to drive. 48 shots (4 groups × 3 states × 2 modes
+  × 2 themes), so the matrix is 100 total.
+- **The part worth remembering — screenshots could not carry this alone.** With
+  the interaction shots in place, reverting the `surface-subtle` fix left **all
+  48 green**: `maxDiffPixelRatio` never got a chance, because the suite's
+  per-pixel `threshold: 0.15` treats neutral-50 and neutral-100 as the same
+  colour. Only dropping it to 0.005 turned them red, which trades this bug class
+  for antialiasing flake across the other 52 baselines. A neighbouring-rung
+  collapse is therefore invisible to a pixel diff **by construction** — the same
+  lesson the chat-family wave hit from the other side (ΔL < 0.04 under
+  `threshold: 0.15`). So `interaction-tokens.spec.ts` carries that half by
+  resolved value, not pixels: for every element with a `hover:bg-*` utility it
+  asserts the hover colour differs from its rest colour **and** from the nearest
+  non-transparent backdrop behind it. The second assertion is the load-bearing
+  one — a `ghost` field rests on `bg-transparent`, so a rest/hover comparison
+  alone passes trivially while the user sees nothing, which is exactly how the
+  bug survived. Negatively verified in both directions.
+- **Two documented exemptions**, both design rather than defect: an element in a
+  selection state (`data-state="active"`, `aria-selected`, `aria-current`) pins
+  its own background on purpose — an active enclosed Tab reads as a
+  continuation of the panel below it — and `hover:bg-transparent` is an explicit
+  "answer hover with colour, not a surface" (Button's `text` variant).
+- **Still open (small):** the gate is hover-only. `focus-visible:bg-surface-base`
+  legitimately matches its backdrop on a base surface, where the affordance is
+  the ring and border rather than the fill, so the same rule would false-positive
+  on focus. Focus rings are high-contrast enough for the pixel suite to hold;
+  a resolved-value gate for *rings* (border-colour + box-shadow rather than
+  background) would close the remainder.
+- **Found:** 2026-07-25, interaction-token wave; resolved 2026-07-26.
 
 ### Popover inside phrasing content breaks SSR paragraphs (CitationChip in `<p>`)
 
