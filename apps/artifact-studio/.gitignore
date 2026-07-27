@@ -1,0 +1,7 @@
+# Sitzungen: Arbeitsdatei, Zustand und gebaute Artefakte. Jederzeit neu
+# erzeugbar, und der Inhalt kommt aus einem Modell-Lauf — nichts davon gehört
+# in die Versionskontrolle.
+.artifacts/
+
+.svelte-kit/
+build/

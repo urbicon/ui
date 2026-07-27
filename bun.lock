@@ -21,6 +21,27 @@
         "typescript": "catalog:",
       },
     },
+    "apps/artifact-studio": {
+      "name": "@urbicon-ui/artifact-studio",
+      "version": "0.0.1",
+      "dependencies": {
+        "@anthropic-ai/sdk": "^0.114.0",
+        "@urbicon-ui/blocks": "workspace:*",
+        "@urbicon-ui/design-engine": "workspace:*",
+      },
+      "devDependencies": {
+        "@sveltejs/adapter-auto": "^7.0.1",
+        "@sveltejs/kit": "catalog:",
+        "@sveltejs/vite-plugin-svelte": "catalog:",
+        "@tailwindcss/vite": "catalog:",
+        "@types/node": "catalog:",
+        "svelte": "catalog:",
+        "svelte-check": "catalog:",
+        "tailwindcss": "catalog:",
+        "typescript": "catalog:",
+        "vite": "catalog:",
+      },
+    },
     "apps/chat-demo": {
       "name": "@urbicon-ui/chat-demo",
       "version": "0.0.1",
@@ -674,6 +695,8 @@
     "@types/unist": ["@types/unist@3.0.3", "", {}, "sha512-ko/gIFJRv177XgZsZcBwnqJN5x/Gien8qNOn0D5bQU/zAzVf9Zt3BlcUiLqhV9y4ARk0GbT3tnUiPNgnTXzc/Q=="],
 
     "@ungap/structured-clone": ["@ungap/structured-clone@1.3.2", "", {}, "sha512-5jsZFwgR5rTdKwidH9Qmat75RKwqfpKlWWB1frDkljN127mwqBu8K0PYo7/hFpF03IEJpfVPpCQDY/eDx3iHvA=="],
+
+    "@urbicon-ui/artifact-studio": ["@urbicon-ui/artifact-studio@workspace:apps/artifact-studio"],
 
     "@urbicon-ui/auth": ["@urbicon-ui/auth@workspace:packages/auth"],
 
