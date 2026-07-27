@@ -42,6 +42,25 @@ import { REPO_ROOT, sessionDir } from './paths';
 
 const APP_ROOT = join(REPO_ROOT, 'apps/artifact-studio');
 
+/**
+ * Die Richtlinie des Frame-Dokuments — default-deny, und alles Weitere einzeln
+ * erlaubt: eigene Skripte und Stile, Bilder und Schriften auch als `data:`
+ * (Svelte inlinet kleine Assets), **kein** Netzwerk (`connect-src 'none'`),
+ * **kein** Formularziel, **keine** `<base>`-Umleitung.
+ *
+ * `style-src` braucht `'unsafe-inline'`: Svelte setzt `style=`-Attribute, und
+ * Tailwind-Utilities landen zwar in Dateien, die Komponenten-Animationen aber
+ * teils inline. Das ist die eine bewusste Lockerung — sie erlaubt Aussehen,
+ * keinen Code.
+ *
+ * Als Konstante und nicht im Template, damit `scripts/csp-check.ts` **genau
+ * diese** Richtlinie prüft statt einer Abschrift, die auseinanderlaufen kann.
+ */
+export const ARTIFACT_CSP =
+  "default-src 'none'; script-src 'self'; style-src 'self' 'unsafe-inline'; " +
+  "img-src 'self' data:; font-src 'self' data:; connect-src 'none'; " +
+  "form-action 'none'; base-uri 'none'";
+
 export interface BuildResult {
   version: number;
   /** Dateiname des Sandbox-Dokuments, relativ zu `dist/`. */
@@ -197,10 +216,7 @@ export async function buildVersion(sessionId: string, version: number): Promise<
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>Artifact v${n}</title>
-    <meta
-      http-equiv="Content-Security-Policy"
-      content="default-src 'none'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self' data:; connect-src 'none'; form-action 'none'; base-uri 'none'"
-    />
+    <meta http-equiv="Content-Security-Policy" content="${ARTIFACT_CSP}" />
     <link rel="stylesheet" href="./${sharedName}" />
 ${vCss.map((f) => `    <link rel="stylesheet" href="./${d}/assets/${f}" />`).join('\n')}
   </head>

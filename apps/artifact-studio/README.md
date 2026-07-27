@@ -43,6 +43,29 @@ blockt dann das eigene Artefakt-Modul. Auf einer **fremden** Origin gewährt
 Beide Ports sind fest (`strictPort`). Ein wanderndes Gegenstück würde die
 Zwei-Origin-Bedingung unbemerkt aushebeln.
 
+Dass die Richtlinie wirklich greift, ist nachgeprüft und nachprüfbar:
+
+```sh
+bun --filter='@urbicon-ui/artifact-studio' run csp:check              # muss grün sein
+bun --filter='@urbicon-ui/artifact-studio' run csp:check --without-csp  # Gegenprobe
+```
+
+Der Lauf baut die echte Konstellation — Host auf `localhost:5212`, Sandbox auf
+`127.0.0.1:5211`, `sandbox="allow-scripts allow-same-origin"` — und lässt ein
+Artefakt acht verbotene Dinge versuchen: `fetch`, WebSocket, `sendBeacon`,
+fremdes Script, Inline-Script, `eval`, externes Bild, Zugriff aufs Host-DOM.
+Alle acht scheitern; der Host sieht keine einzige Anfrage.
+
+**Gemessen wird am Empfänger, nicht am Artefakt.** `navigator.sendBeacon` gibt
+`true` zurück, sobald der Browser den Request eingereiht hat, und blockt ihn
+erst danach — die Sonde meldete „durchgekommen", während die Konsole den
+Verstoß protokollierte. Nur der Host weiß, ob etwas ankam.
+
+Die Gegenprobe (`--without-csp`) ist Teil der Aussage: dieselben Sonden kommen
+ohne Richtlinie durch (der Host sieht alle fünf Pfade), **außer dem Zugriff aufs
+Host-DOM** — der bleibt blockiert, weil dahinter die Origin-Trennung steht und
+nicht die CSP. Genau diese Zeile zeigt, was welche Maßnahme beiträgt.
+
 ## Was wo liegt
 
 | Teil | Datei |
@@ -53,6 +76,7 @@ Zwei-Origin-Bedingung unbemerkt aushebeln.
 | Der Editor (patchen statt neu schreiben) | `src/lib/server/editor-tool.ts` |
 | Vite-Build je Version (eigener Prozess) | `src/lib/server/build-version.ts` |
 | Sandbox-Server (zweite Origin) | `src/lib/server/sandbox.ts` |
+| CSP-Negativtest (acht Sonden + Gegenprobe) | `scripts/csp-check.ts` |
 | Ereignisstrom-Kontrakt | `src/lib/events.ts` |
 | Oberfläche | `src/lib/Studio.svelte` |
 
