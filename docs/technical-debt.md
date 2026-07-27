@@ -1239,3 +1239,34 @@ internal TODO instead. Sections are ordered roughly by urgency.
 - **Found:** 2026-07-26, artifact-recorder spike — the run that used the real
   CLI as its only knowledge source (`prototypes/artifact-frame`); fixed
   2026-07-27.
+
+### The ADR log's `status` field is inert, and the log cannot express supersession
+
+- **What:** `design.manifest.md` records design decisions as an append-only ADR
+  log, and `record-decision --status` accepts `accepted | proposed | superseded`.
+  But **no consumer ever reads the status** — `manifest.ts` only renders it in
+  parentheses, and the type comment calls it "free text". Setting `superseded` is
+  a silent no-op: the entry keeps the same weight in `urbicon context` as an
+  accepted one.
+- **And there is no way to supersede an existing entry.** `--status superseded`
+  applies to the *new* decision; marking the old one, or linking the two, is a
+  manual edit. A project that changes its mind therefore accumulates
+  contradictory `accepted` entries with no machine-readable relation between
+  them — exactly what the ADR convention has a supersedes-link for.
+- **Third defect in the same area:** `appendDecision` always inserts at the top,
+  regardless of `--date`, while its own comment says "newest first". A decision
+  recorded with a back-date lands above newer ones.
+- **Measured impact on the model: none.** Three A/B runs (Sonnet 5, n=3 each)
+  over a five-entry log whose padding decision flip-flopped `sm → lg → sm → md`:
+  the model picked the newest entry 3/3, was unaffected by consolidating the log
+  to two entries, and — with the list deliberately mis-sorted — went by the
+  **date, not the position**, again 3/3. Append-only is not the problem; it is
+  what lets a human see that a stand was already tried and dropped.
+- **Why fix it anyway:** the manifest is also a document for people, and for them
+  the three defects compound — a status that promises meaning and delivers none,
+  a history with no visible chain, and an order that contradicts its own
+  comment. A `--supersedes <title>` (setting both ends, failing loud on an
+  unknown title), date-ordered insertion, and either honouring `superseded` in
+  `context` or dropping the value would settle all three.
+- **Found:** 2026-07-27, while wiring per-session manifests into
+  `apps/artifact-studio` (BEFUNDE §24).
