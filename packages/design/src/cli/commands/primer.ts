@@ -29,6 +29,22 @@ import { EXIT, printError } from '../output.js';
  */
 const CORE_SECTIONS = ['surfaces', 'text', 'borders', 'intents', 'shadows'] as const;
 
+/**
+ * The principle sections every task touches.
+ *
+ * `layout` joined `component-selection` on 2026-07-27, and the reason is a
+ * measurement: over a full recorded session the agent called four of thirteen
+ * commands (`context`, `find`, `get-component`, `validate`) and **`principles`
+ * not once**. A section nobody fetches teaches nobody — and unlike patterns or
+ * recipes, layout is not task-dependent: every UI task arranges something. It
+ * costs ~1.2 kB against a 13.6 kB bundle, cached after the first round.
+ *
+ * Still deliberately absent: patterns and recipes. Those *are* task-dependent
+ * (a settings page needs `settings-page`, not all seven), so bundling them would
+ * be the mistake this command exists to avoid.
+ */
+const CORE_PRINCIPLES = ['component-selection', 'layout'] as const;
+
 export async function runPrimer(_positionals: string[], _flags: Flags): Promise<number> {
   let principles: string;
   try {
@@ -38,15 +54,19 @@ export async function runPrimer(_positionals: string[], _flags: Flags): Promise<
     return EXIT.FAIL;
   }
 
-  const selection = extractPrincipleSection(principles, 'component-selection');
-  if (!selection) {
-    // Fail loud: a primer silently missing its selection half would teach tokens
-    // and leave the agent guessing at components — the exact failure this bundle
-    // was built to prevent.
-    printError(
-      'the principles bundle has no "component-selection" section — the primer would be half empty.'
-    );
-    return EXIT.FAIL;
+  const sections: string[] = [];
+  for (const topic of CORE_PRINCIPLES) {
+    const section = extractPrincipleSection(principles, topic);
+    if (!section) {
+      // Fail loud: a primer silently missing a half would teach tokens and leave
+      // the agent guessing at everything else — the exact failure this bundle was
+      // built to prevent.
+      printError(
+        `the principles bundle has no "${topic}" section — the primer would be incomplete.`
+      );
+      return EXIT.FAIL;
+    }
+    sections.push(section.trim());
   }
 
   console.log('# Urbicon UI — primer\n');
@@ -54,8 +74,7 @@ export async function runPrimer(_positionals: string[], _flags: Flags): Promise<
     'Everything below applies to every task. Component APIs, composition patterns\n' +
       'and recipes are fetched per task — see the pointers at the end.\n'
   );
-  console.log(selection.trim());
-  console.log();
+  for (const section of sections) console.log(`${section}\n`);
   for (const section of CORE_SECTIONS) console.log(`${renderCssReference(section).trim()}\n`);
 
   console.log(

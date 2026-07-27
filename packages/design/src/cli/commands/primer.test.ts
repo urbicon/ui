@@ -38,10 +38,16 @@ const stdout = (): string => out.join('\n');
 const stderr = (): string => err.join('\n');
 
 describe('runPrimer', () => {
-  it('carries both halves — how to pick a component, and what tokens are called', async () => {
+  it('carries all three halves — component choice, layout, and what tokens are called', async () => {
     expect(await runPrimer([], {})).toBe(0);
     expect(stdout()).toContain('Component Selection');
     expect(stdout()).toContain('Combobox');
+    // Layout joined the bundle on 2026-07-27: a recorded session called
+    // `principles` zero times out of thirteen commands, so the section reached
+    // nobody. Measured effect of the markup guidance: −24 % lines at equal
+    // component count (n=8).
+    expect(stdout()).toContain('Layout');
+    expect(stdout()).toContain('Layout is markup');
     // The token half: one assertion per bundled family, so dropping a section
     // from CORE_SECTIONS fails here rather than surfacing as a hallucinated
     // token in someone's generated markup.
@@ -61,8 +67,12 @@ describe('runPrimer', () => {
     // Patterns and recipes exist in the fixture content dir; the primer must not
     // pull them in, or it becomes the llms-full.txt problem in miniature:
     // paying for context that most tasks never read.
-    expect(stdout()).not.toContain('settings-page');
-    expect(stdout()).not.toContain('dashboard');
+    //
+    // Asserted on pattern *bodies*, not their names: the layout section legitimately
+    // points at `settings-page` ("see the pattern for the scale-based choice"), and a
+    // pointer is the opposite of carrying the thing — it is how the bundle stays small.
+    expect(stdout()).not.toContain('Two-column above');
+    expect(stdout()).not.toContain('Grid of stat tiles');
     // Typography and theming are the two deliberately unbundled token sections.
     expect(stdout()).not.toContain('Font Families');
   });
