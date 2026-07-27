@@ -56,6 +56,9 @@ Commands:
                         --ci               Also write .github/workflows/design-gate.yml.
                         --agents-file <p>  Target for the context block (default AGENTS.md).
                         --manifest <path>  Manifest path (default ./design.manifest.md).
+                        --with-primer      Include the "load the primer" step (default on).
+                                           Use --with-primer=false when the block feeds a
+                                           harness that injects the primer itself.
   validate [paths...]   Lint .svelte markup against the Urbicon UI design rules.
                         Paths may be files, directories, or "-" (stdin).
                         Reads ## Token Overrides from the manifest (if any) so your

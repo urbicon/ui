@@ -27,6 +27,9 @@ export const BOOLEAN_FLAGS = new Set([
   'strict',
   'skip-heuristics',
   'record',
+  // Default-on; `--with-primer=false` turns it off. Listed here so the bare form
+  // doesn't swallow the following positional.
+  'with-primer',
   'hook',
   'ci',
   'rubric',

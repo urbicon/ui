@@ -155,3 +155,17 @@ describe('checkFlags', () => {
     });
   });
 });
+
+describe('checkFlags — boolean flags with a value', () => {
+  it('accepts true and false', () => {
+    expect(checkFlags('init', { 'with-primer': 'true' }, []).ok).toBe(true);
+    expect(checkFlags('init', { 'with-primer': 'false' }, []).ok).toBe(true);
+    expect(checkFlags('init', { 'with-primer': true }, []).ok).toBe(true);
+  });
+
+  it('rejects a value that is neither — it would silently read as off', () => {
+    const result = checkFlags('init', { 'with-primer': 'nonsense' }, []);
+    expect(result.ok).toBe(false);
+    expect(result.ok === false && result.message).toContain('takes true or false');
+  });
+});

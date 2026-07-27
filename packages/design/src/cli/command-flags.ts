@@ -26,7 +26,7 @@ export const GLOBAL_FLAGS: readonly string[] = ['help', 'version'];
  * help text: a flag that no code path reads is not accepted, however plausible.
  */
 export const COMMAND_FLAGS: Readonly<Record<string, readonly string[]>> = {
-  init: ['hook', 'ci', 'agents-file', 'manifest'],
+  init: ['hook', 'ci', 'agents-file', 'manifest', 'with-primer'],
   validate: ['json', 'strict', 'slop-floor', 'skip-heuristics', 'record', 'manifest'],
   hook: ['strict', 'slop-floor', 'skip-heuristics', 'manifest'],
   find: ['json', 'limit', 'tag', 'query'],
@@ -120,6 +120,18 @@ function missingValue(command: string, name: string, value: string | boolean): s
 }
 
 /**
+ * A boolean flag given a value that isn't a boolean. `boolFlag` reads anything
+ * other than `true`/`"true"` as false, so `--with-primer=nonsense` silently means
+ * "off" — the same silent-answer failure as an unknown flag, on the one flag
+ * shape that survived the first pass.
+ */
+function badBoolean(name: string, value: string | boolean): string | undefined {
+  if (!BOOLEAN_FLAGS.has(name) || typeof value !== 'string') return undefined;
+  if (value === 'true' || value === 'false') return undefined;
+  return `--${name} takes true or false, not "${value}".`;
+}
+
+/**
  * Reject flags the command does not read, and fold a `--query` alias into the
  * positionals. Returns the positionals the command should actually run with.
  *
@@ -137,7 +149,7 @@ export function checkFlags(
   const accepted = [...own, ...GLOBAL_FLAGS];
   for (const [name, value] of Object.entries(flags)) {
     if (accepted.includes(name)) {
-      const message = missingValue(command, name, value);
+      const message = missingValue(command, name, value) ?? badBoolean(name, value);
       if (message) return { ok: false, message };
       continue;
     }
