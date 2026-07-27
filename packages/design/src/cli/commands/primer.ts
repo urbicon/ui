@@ -71,8 +71,11 @@ export async function runPrimer(_positionals: string[], _flags: Flags): Promise<
 
   console.log('# Urbicon UI — primer\n');
   console.log(
-    'Everything below applies to every task. Component APIs, composition patterns\n' +
-      'and recipes are fetched per task — see the pointers at the end.\n'
+    'Everything below applies to every task: how to pick a component, how to lay it\n' +
+      'out, and what the tokens are called — surfaces, text, borders, intents,\n' +
+      'shadows **and the z-index scale** (it lives in the shadows section). Component\n' +
+      'APIs, composition patterns and recipes are fetched per task — see the pointers\n' +
+      'at the end.\n'
   );
   for (const section of sections) console.log(`${section}\n`);
   for (const section of CORE_SECTIONS) console.log(`${renderCssReference(section).trim()}\n`);
