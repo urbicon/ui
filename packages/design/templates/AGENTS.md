@@ -18,8 +18,8 @@ installed**, so it is true of the code you actually have. If the hosted docs or 
 
 ### How to work — the design loop
 
-0. **Load the primer** — `bunx urbicon primer`. How to pick a component plus the token
-   reference, in one call. It applies to every task, so fetch it once up front.
+0. **Have the primer** — how to pick a component, plus the token reference. It applies to
+   every task. If it isn't already in your context, run `bunx urbicon primer` once up front.
 1. **Read the intent** — `bunx urbicon context`. The design manifest holds this product's
    paradigm, voice and past decisions. This is what keeps output consistent with *this*
    product instead of generic.
