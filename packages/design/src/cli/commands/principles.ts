@@ -17,7 +17,7 @@ import { boolFlag, type Flags, stringFlag } from '../args.js';
 import { loadPrinciplesText } from '../content.js';
 import { EXIT, printError } from '../output.js';
 
-export async function runPrinciples(_positionals: string[], flags: Flags): Promise<number> {
+export async function runPrinciples(positionals: string[], flags: Flags): Promise<number> {
   if (boolFlag(flags, 'rubric')) {
     console.log(renderRubric().trim());
     console.log(
@@ -26,9 +26,24 @@ export async function runPrinciples(_positionals: string[], flags: Flags): Promi
     return EXIT.OK;
   }
 
-  const topic = stringFlag(flags, 'topic');
+  // A positional topic is accepted alongside --topic, because that is what agents
+  // reach for: `urbicon principles separation` used to print the whole 19 kB
+  // bundle and exit 0, so a made-up topic looked like an answer (measured — the
+  // model then grepped the command list to work out what had happened). Same
+  // shape as `--query` on find/icons: one way in, given once.
+  const flagTopic = stringFlag(flags, 'topic');
+  const positionalTopic = positionals[0];
+  if (flagTopic !== undefined && positionalTopic !== undefined) {
+    printError('give the topic once — either positionally or via --topic, not both.');
+    return EXIT.USAGE;
+  }
+  if (positionals.length > 1) {
+    printError(`a topic is one word — got "${positionals.join(' ')}".`);
+    return EXIT.USAGE;
+  }
+  const topic = flagTopic ?? positionalTopic;
   if (topic && !PRINCIPLE_TOPICS.includes(topic as PrincipleTopic)) {
-    printError(`--topic must be one of: ${PRINCIPLE_TOPICS.join(', ')}`);
+    printError(`unknown topic "${topic}". Available: ${PRINCIPLE_TOPICS.join(', ')}`);
     return EXIT.USAGE;
   }
 
@@ -42,7 +57,14 @@ export async function runPrinciples(_positionals: string[], flags: Flags): Promi
 
   if (topic) {
     const section = extractPrincipleSection(principles, topic as PrincipleTopic);
-    console.log((section ?? principles).trim());
+    if (!section) {
+      // Fail loud: a known topic whose section is missing from the bundle is a
+      // packaging fault. Falling back to the full text would answer a question
+      // nobody asked with 10× the bytes — the failure this command just fixed.
+      printError(`the principles bundle has no "${topic}" section.`);
+      return EXIT.FAIL;
+    }
+    console.log(section.trim());
   } else {
     console.log(principles.trim());
   }

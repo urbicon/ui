@@ -33,7 +33,7 @@ import { runRecordDecision } from './commands/record-decision.js';
 import { runSyncManifest } from './commands/sync-manifest.js';
 import { runValidate } from './commands/validate.js';
 import { runVerb, runVerbList } from './commands/verb.js';
-import { HELP } from './help.js';
+import { commandHelp, HELP } from './help.js';
 import { EXIT, printError } from './output.js';
 import { findPackageRoot } from './package-root.js';
 
@@ -56,6 +56,19 @@ async function main(argv: string[]): Promise<number> {
 
   if (flags.version === true || command === 'version') {
     console.log(await readVersion());
+    return EXIT.OK;
+  }
+  // `urbicon <command> --help` answers about that command; the full page is for
+  // `urbicon`, `urbicon help` and `urbicon --help`. An unknown command still fails
+  // loud rather than being consoled with the whole page.
+  if (flags.help === true && command !== undefined && command !== 'help') {
+    const section = commandHelp(command);
+    if (section === undefined) {
+      printError(`unknown command "${command}"`);
+      console.log(`\n${HELP}`);
+      return EXIT.USAGE;
+    }
+    console.log(section);
     return EXIT.OK;
   }
   if (command === undefined || command === 'help' || flags.help === true) {

@@ -80,7 +80,30 @@ describe('runPrinciples', () => {
   it('rejects an unknown topic as a usage error', async () => {
     const code = await runPrinciples([], { topic: 'bogus' });
     expect(code).toBe(2);
-    expect(stderr()).toContain('--topic must be one of');
+    expect(stderr()).toContain('unknown topic "bogus"');
+    expect(stderr()).toContain('visual-hierarchy');
+  });
+
+  it('slices one topic positionally, like an agent would type it', async () => {
+    const code = await runPrinciples(['theming'], {});
+    expect(code).toBe(0);
+    expect(stdout()).toContain('## Theming');
+    expect(stdout()).not.toContain('## Visual Hierarchy');
+  });
+
+  it('rejects an unknown positional topic instead of printing the whole bundle', async () => {
+    // The measured failure: `urbicon principles separation` printed all 19 kB and
+    // exited 0, so a made-up topic was indistinguishable from a real answer.
+    const code = await runPrinciples(['separation'], {});
+    expect(code).toBe(2);
+    expect(stderr()).toContain('unknown topic "separation"');
+    expect(stdout()).not.toContain('## Visual Hierarchy');
+  });
+
+  it('rejects the topic given twice', async () => {
+    const code = await runPrinciples(['layout'], { topic: 'theming' });
+    expect(code).toBe(2);
+    expect(stderr()).toContain('give the topic once');
   });
 
   it('prints the scoring rubric with --rubric (bundle not needed)', async () => {
