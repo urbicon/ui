@@ -26,6 +26,46 @@ const BLOCK_START = '<!-- urbicon:start';
 const BLOCK_END = '<!-- urbicon:end -->';
 
 /**
+ * The primer step, added to the block on the way into a consumer's AGENTS.md —
+ * and deliberately absent from the template itself.
+ *
+ * Two audiences read the same block, and only one of them can act on this step.
+ * An agent inside a tool it does not control (Claude Code, Cursor) has no way to
+ * put the primer in its context except by running the command, so it needs the
+ * instruction. A harness that owns its system prompt (an `ArtifactFrame`, a chat
+ * app) injects the primer's *content* there instead — for it the instruction is
+ * not just noise but wrong, since there is nothing left to fetch.
+ *
+ * Keeping it here rather than in the template means the template stays a clean
+ * prompt base that any harness can take verbatim, and neither side carries a
+ * sentence that does not apply to it. The earlier attempts were worse: appending
+ * "skip step 0" put an instruction and its retraction in one prompt, and phrasing
+ * it conditionally ("if it isn't already in your context") made every reader
+ * evaluate a condition that is decided long before the model sees it.
+ */
+const PRIMER_STEP = `0. **Load the primer** — \`bunx urbicon primer\`. How to pick a component plus the token
+   reference, in one call. It applies to every task, so fetch it once up front.
+`;
+
+/**
+ * Where the primer step goes: immediately before the first numbered step of the
+ * loop. Anchored on the step's own text, and a missing anchor is a hard failure
+ * rather than a silent no-op — a block that quietly lost its primer step would
+ * cost the agent ten calls per session with nothing to point at.
+ */
+const LOOP_FIRST_STEP = '1. **Read the intent**';
+
+function withPrimerStep(block: string): string {
+  const at = block.indexOf(LOOP_FIRST_STEP);
+  if (at === -1) {
+    throw new Error(
+      `the context block template has no "${LOOP_FIRST_STEP}" anchor — cannot place the primer step.`
+    );
+  }
+  return `${block.slice(0, at)}${PRIMER_STEP}${block.slice(at)}`;
+}
+
+/**
  * The Tailwind 4 wiring step for the "next steps" output. Components emit Tailwind
  * utility classes (`bg-surface-base`, …) that need a backing build, so without this a
  * fresh project renders unstyled — and the `@source` on the blocks dist is the
@@ -135,9 +175,16 @@ export async function runInit(_positionals: string[], flags: Flags): Promise<num
   const skipped: string[] = [];
 
   // 1. AGENTS.md context block — idempotent upsert.
+  //
+  // `--with-primer` defaults to ON: an agent that cannot reach its own system
+  // prompt has no other way to get the primer, and that is the common case for
+  // this command. Turn it off (`--with-primer=false`) when the block feeds a
+  // harness that injects the primer content itself.
+  const withPrimer = flags['with-primer'] === undefined ? true : boolFlag(flags, 'with-primer');
   let block: string;
   try {
     block = await readTemplate('AGENTS.md');
+    if (withPrimer) block = withPrimerStep(block);
   } catch (err) {
     printError((err as Error).message);
     return EXIT.FAIL;

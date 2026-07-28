@@ -193,6 +193,7 @@ export function createTableState(
     selectionMode: 'none' as 'none' | 'single' | 'multi',
     selectedIds: new SvelteSet<string | number>(),
     selectionControlled: false,
+    searchControlled: false,
     rowClickSelects: false,
     virtualized: false,
 

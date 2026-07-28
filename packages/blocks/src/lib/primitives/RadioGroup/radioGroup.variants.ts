@@ -162,7 +162,7 @@ export const radioItemVariants = tv({
     {
       checked: false,
       variant: 'ghost',
-      class: { indicator: 'bg-transparent border-transparent group-hover:bg-surface-subtle' }
+      class: { indicator: 'bg-transparent border-transparent group-hover:bg-surface-hover' }
     },
 
     // Checked intent colors

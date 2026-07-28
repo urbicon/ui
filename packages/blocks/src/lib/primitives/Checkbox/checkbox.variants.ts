@@ -116,7 +116,7 @@ export const checkboxVariants = tv({
       checked: false,
       indeterminate: false,
       variant: 'ghost',
-      class: { box: 'bg-transparent border-transparent group-hover:bg-surface-subtle' }
+      class: { box: 'bg-transparent border-transparent group-hover:bg-surface-hover' }
     },
 
     // ── Checked intent colors (identical across all variants) ──

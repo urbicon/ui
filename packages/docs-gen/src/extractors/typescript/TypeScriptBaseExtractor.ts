@@ -391,6 +391,73 @@ export abstract class TypeScriptBaseExtractor<
   }
 
   /**
+   * Split a declaration's `@see` tags into the two jobs the tag actually
+   * serves: navigable link targets and prose references.
+   *
+   * Lives on the base rather than on PropsExtractor because prop members and
+   * *type* declarations need the identical rule — and a second hand-aligned
+   * copy is exactly how the four `toSlug` copies drifted apart.
+   *
+   * `extractJSDocTag(node, 'see')` cannot be used: TypeScript parses `@see`
+   * into a `JSDocSeeTag` whose `name` (a `JSDocNameReference`) swallows an
+   * unpredictable prefix of the value and leaves only the remainder — or the
+   * next line's comment asterisk — in `comment`:
+   *
+   * | JSDoc                                | `tag.name`              | `tag.comment` |
+   * | ------------------------------------ | ----------------------- | ------------- |
+   * | `@see HTMLButtonAttributes.value`    | `HTMLButtonAttributes.value` | *(none)* → tag dropped |
+   * | `@see HTMLButtonAttributes.class`    | `HTMLButtonAttributes.` | `class` (a keyword ends the name) |
+   * | `@see X.disabled` + a following tag  | `X.disabled`            | `*` (leaked comment marker) |
+   * | `@see https://example.com`           | `https`                 | `://example.com` |
+   *
+   * Reading the tag's raw source text and keeping its first line is the only
+   * form that survives all of these. `@see` is single-line by convention here;
+   * a wrapped continuation line would be dropped, which is preferable to
+   * re-importing the mis-parse above.
+   *
+   * CAVEAT: TypeScript parses **any** `@see` as a `JSDocSeeTag`, including one
+   * written mid-sentence inside a description. Such a description would grow a
+   * reference chip it never asked for. No declaration in the repo does that
+   * today; catching it wants a JSDoc lint, not a change here.
+   */
+  protected extractSeeTags(node: ts.Node): { seeAlso?: string; seeAlsoRefs?: string[] } {
+    const values = new Set<string>();
+    for (const tag of ts.getJSDocTags(node)) {
+      if (tag.tagName.text !== 'see') continue;
+      const firstLine = tag.getText().split('\n')[0] ?? '';
+      const value = TypeScriptBaseExtractor.unwrapJSDocLink(
+        firstLine.replace(/^@see\b/, '').trim()
+      );
+      if (value) values.add(value);
+    }
+    const all = [...values];
+    const seeAlso = all.find((value) => TypeScriptBaseExtractor.isSeeLinkTarget(value));
+    const refs = all.filter((value) => !TypeScriptBaseExtractor.isSeeLinkTarget(value));
+    // Absent keys, not keys set to `undefined` — the package compiles under
+    // `exactOptionalPropertyTypes`, and callers spread this straight into a
+    // TypeDefinition where an explicit `undefined` is not the same as omitted.
+    return {
+      ...(seeAlso ? { seeAlso } : {}),
+      ...(refs.length > 0 ? { seeAlsoRefs: refs } : {})
+    };
+  }
+
+  /** Reduce a `{@link target}` / `{@link target text}` payload to its target. */
+  protected static unwrapJSDocLink(value: string): string {
+    return value.match(/^\{@link\s+([^\s|}]+)(?:[\s|][^}]*)?\}$/)?.[1]?.trim() ?? value;
+  }
+
+  /**
+   * Whether a `@see` value is something a doc page can actually navigate to:
+   * an absolute URL, a route-relative path (`/blocks/…#api`) or a bare
+   * fragment (`#type-Foo`). Everything else — `HTMLButtonAttributes.value`,
+   * `CartesianDatum` — is prose and belongs in `seeAlsoRefs`.
+   */
+  protected static isSeeLinkTarget(value: string): boolean {
+    return /^https?:\/\//.test(value) || value.startsWith('/') || value.startsWith('#');
+  }
+
+  /**
    * Whether a source file belongs to the documented package's own sources
    * (under the tsconfig directory, outside node_modules). Always false in
    * single-file mode.

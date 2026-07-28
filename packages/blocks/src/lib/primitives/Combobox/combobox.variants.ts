@@ -150,7 +150,7 @@ export const comboboxVariants = tv({
       },
       ghost: {
         input:
-          'bg-transparent border-transparent hover:bg-surface-subtle focus-visible:bg-surface-base focus-visible:border-border-subtle',
+          'bg-transparent border-transparent hover:bg-surface-hover focus-visible:bg-surface-base focus-visible:border-border-subtle',
         control:
           'bg-transparent border-transparent focus-within:bg-surface-base focus-within:border-border-subtle'
       },

@@ -1,5 +1,6 @@
 <script lang="ts" generics="T extends string | number | boolean = string">
   import { useBlocksI18n, mintRegistry } from '$lib';
+  import CoreFieldMessage from '$lib/internal/core/CoreFieldMessage.svelte';
   import { tick } from 'svelte';
   import { SvelteMap } from 'svelte/reactivity';
   import { comboboxVariants, type ComboboxVariants } from './combobox.variants';
@@ -841,24 +842,21 @@
     </div>
   </div>
 
-  {#if ff.errorId}
-    <div
-      id={ff.errorId}
-      role="alert"
-      class={unstyled
-        ? (slotClasses?.message ?? '')
-        : styles.message({ class: slotClasses?.message })}
-    >
-      {error}
-    </div>
-  {:else if ff.helperId}
-    <div
-      id={ff.helperId}
-      class={unstyled ? (slotClasses?.helper ?? '') : styles.helper({ class: slotClasses?.helper })}
-    >
-      {helper}
-    </div>
-  {/if}
+  <!-- Combobox is the one field whose helper has a slot of its own: the two
+       tones are slot constants here, not a `messageType` axis, so the helper
+       arm keeps reading quiet while the field is invalid. -->
+  <CoreFieldMessage
+    {error}
+    {helper}
+    errorId={ff.errorId}
+    helperId={ff.helperId}
+    class={unstyled
+      ? (slotClasses?.message ?? '')
+      : styles.message({ class: slotClasses?.message })}
+    helperClass={unstyled
+      ? (slotClasses?.helper ?? '')
+      : styles.helper({ class: slotClasses?.helper })}
+  />
 </div>
 
 <!--

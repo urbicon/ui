@@ -207,6 +207,17 @@ export interface TypeDefinition {
    * definition instead of truncating it.
    */
   sourcePath?: string;
+  /**
+   * A `@see` value the docs can navigate to (absolute URL, route-relative
+   * path, or a bare fragment). Same split as `PropInfo.seeAlso` — the rule
+   * lives once, on `TypeScriptBaseExtractor.extractSeeTags`.
+   */
+  seeAlso?: string;
+  /**
+   * `@see` values that are prose references, not link targets — a sibling
+   * type name (`CartesianDatum`) or a member path. Rendered as literal text.
+   */
+  seeAlsoRefs?: string[];
 }
 
 /**

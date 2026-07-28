@@ -36,6 +36,16 @@ async function register(page: Page) {
   expect(res.status()).toBe(201);
 }
 
+// The only suite in this repo that drives shared SERVER state: every test calls
+// `seedWorld`, which POSTs to `/test-fixtures/auth/api/reset` and wipes the
+// in-memory world for the whole dev server. Two of these running at once means
+// one test resets the world the other is mid-way through — which is exactly what
+// happened when the suite was first run fully parallel (logout and
+// wrong-password both failed at `workers: 16`, passing at 8 only by timing
+// luck). Pin the isolation here rather than relying on a low worker count:
+// other spec files still run alongside this one, they just do not touch auth.
+test.describe.configure({ mode: 'serial' });
+
 test.describe('Auth kernel flow', () => {
   test.beforeEach(async ({ page }) => {
     await page.goto('/test-fixtures/auth');

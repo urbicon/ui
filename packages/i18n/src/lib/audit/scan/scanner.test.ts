@@ -2,8 +2,8 @@ import { describe, expect, it } from 'vitest';
 import { findUnusedKeys } from '../unused';
 import { scanSource, scanSources } from './scanner';
 
-// The scanner's lazily-loaded parsers are warmed per worker in
-// ../../../../vitest-setup.ts — see the note there for why.
+// These suites load real compilers through the scanner's lazy imports, which is
+// why the package sets a 30s testTimeout — see vitest.config.ts.
 
 describe('scanSource — TypeScript', () => {
   it('captures static keys across aliases, members, and destructuring', async () => {

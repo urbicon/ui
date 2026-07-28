@@ -29,7 +29,7 @@ describe('inputVariants', () => {
 
     expect(base).toContain('bg-transparent');
     expect(base).toContain('border-transparent');
-    expect(base).toContain('hover:bg-surface-subtle');
+    expect(base).toContain('hover:bg-surface-hover');
   });
 
   it('uses semantic tokens for disabled state', () => {

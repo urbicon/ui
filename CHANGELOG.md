@@ -4,6 +4,40 @@ All notable changes to this project will be documented in this file.
 This changelog is automatically generated from [Conventional Commits](https://www.conventionalcommits.org).
 
 
+## [6.44.0] - 2026-07-26
+
+### Bug Fixes
+- **i18n**: Drop the setup warm-up, keep one timeout where the work happens
+- **blocks,table**: Move the hover idiom off surface-subtle
+- **design**: Reject unknown CLI flags instead of answering a question nobody asked
+- **table**: Stop persisting a controlled searchTerm
+
+### Documentation
+- Note that a deploy.env edit needs a service restart to take effect
+- Narrow the surface-subtle entry to the token's own role
+- Close the VR interaction-state entry with what pixels cannot prove
+- Quantify what the i18n catalog actually costs
+- Record the hold on the i18n catalog split
+- Withdraw the z-index debt entry — the reference does teach them
+- **docs-gen**: Rewrite both architecture diagrams against the sources
+- Close the four debt entries this wave resolved
+
+### Features
+- **docs-gen,docs**: Carry `@see` through type declarations, not just props
+- **design**: Add `urbicon primer` — the always-needed knowledge in one call
+
+### Refactoring
+- **blocks**: Extract the field message into an internal core
+- **blocks**: Finish the field-message extraction across the Form family
+
+### Testing
+- **e2e**: Run the suite in parallel — 310s to 66s
+- **e2e**: Make the visual matrix actually see interaction states and small elements
+- **blocks**: Guard interaction steps against every reading surface
+- **e2e**: Cover interaction states, by pixels and by resolved colour
+- **e2e**: Wait for the interaction state, not for two frames
+- **docs-gen**: Run the two suites that sat outside the include pattern
+
 ## [6.43.2] - 2026-07-26
 
 ### Bug Fixes

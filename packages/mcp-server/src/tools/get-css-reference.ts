@@ -24,7 +24,7 @@ export function registerGetCssReferenceTool(server: McpServer): void {
         .enum(CSS_REFERENCE_SECTION_NAMES)
         .optional()
         .describe(
-          'Token category. Omit for overview with naming conventions and dark mode mechanism.'
+          'Token category — the z-index scale is part of `shadows`. Omit for overview with naming conventions and dark mode mechanism.'
         )
     },
     { readOnlyHint: true },

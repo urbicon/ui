@@ -233,5 +233,40 @@
         <TimeInput label="Locked" value="12:00" disabled />
       </div>
     </section>
+
+    <!-- Interaction states — the layer every section above is blind to.
+         Everything else on this page is a resting state, so hover and focus
+         styling had no coverage at all: the 2026-07-25 wave changed the hover
+         fill of every filled field, the Combobox focus ring and the disabled
+         text tone, and moved zero of the 52 shots.
+
+         Each control sits alone in its own `ix-<name>` wrapper, so the spec can
+         drive one state at a time and the diff points at a single element. The
+         wrapper has padding because a focus ring draws OUTSIDE the control's
+         box — a tight wrapper would clip exactly the thing under test.
+
+         `filled` is deliberate on input/select: that variant carries
+         `surface-interactive` + `surface-interactive-hover`, the pair that
+         silently resolved to the same colour in light mode until it was fixed. -->
+    <section data-testid="vr-interaction" class="space-y-3">
+      <h2 class="text-text-primary text-lg font-semibold">Interaction states</h2>
+      <div class="flex flex-wrap items-start gap-6">
+        <div data-testid="ix-button" class="p-2">
+          <Button variant="filled" intent="primary">Save</Button>
+        </div>
+        <div data-testid="ix-input" class="p-2">
+          <Input label="Filled" value="hover me" variant="filled" />
+        </div>
+        <div data-testid="ix-select" class="p-2">
+          <Select label="Country" options={selectOptions} value="de" variant="filled" />
+        </div>
+        <div data-testid="ix-checkbox" class="p-2">
+          <Checkbox label="Notify me" intent="primary" />
+        </div>
+        <div data-testid="ix-toggle" class="p-2">
+          <Toggle label="Enabled" intent="primary" />
+        </div>
+      </div>
+    </section>
   </div>
 </div>

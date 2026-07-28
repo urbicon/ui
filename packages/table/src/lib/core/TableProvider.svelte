@@ -276,7 +276,16 @@
   // `!== undefined` so an empty string is a valid controlled value ("no
   // search") — and so a controlled term wins over a persisted one. Uncontrolled
   // usage leaves `searchTerm` undefined and this effect is inert.
+  //
+  // The flag is set *before* applying, exactly like selection's: setSearchTerm's
+  // syncSearch has to see it and skip persisting, so a controlled term is never
+  // mirrored to storage. No `untrack` needed here, unlike the selection twin —
+  // that one needs it because setSelectedIds reads `state.selectedIds` on its
+  // write path even while controlled; this path reads nothing reactive
+  // (`useSearch.setSearchTerm` only assigns, and syncSearch short-circuits on
+  // the flag before it would touch `state.searchTerm`).
   $effect(() => {
+    state.searchControlled = searchTerm !== undefined;
     if (searchTerm !== undefined) {
       tableState.setSearchTerm(searchTerm);
     }

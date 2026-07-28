@@ -1,4 +1,5 @@
 <script lang="ts">
+  import CoreFieldMessage from '$lib/internal/core/CoreFieldMessage.svelte';
   import { getBlocksConfig, resolveSlotClasses } from '$lib/provider';
   import { getTierContext, useFormField } from '$lib/utils';
   import type { RadioGroupProps } from './index';
@@ -177,24 +178,13 @@
     {@render children()}
   </div>
 
-  {#if ff.errorId}
-    <div
-      id={ff.errorId}
-      class={unstyled
-        ? (slotClasses?.message ?? '')
-        : styles.message({ class: slotClasses?.message })}
-      role="alert"
-    >
-      {error}
-    </div>
-  {:else if ff.helperId}
-    <div
-      id={ff.helperId}
-      class={unstyled
-        ? (slotClasses?.message ?? '')
-        : styles.message({ class: slotClasses?.message })}
-    >
-      {helper}
-    </div>
-  {/if}
+  <CoreFieldMessage
+    {error}
+    {helper}
+    errorId={ff.errorId}
+    helperId={ff.helperId}
+    class={unstyled
+      ? (slotClasses?.message ?? '')
+      : styles.message({ class: slotClasses?.message })}
+  />
 </div>

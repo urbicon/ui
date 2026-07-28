@@ -61,7 +61,7 @@ export const tabVariants = tv({
         trigger: [
           'px-4 py-2 border border-b-0 -mb-px',
           'text-text-tertiary border-transparent',
-          'hover:text-text-primary hover:bg-surface-subtle',
+          'hover:text-text-primary hover:bg-surface-hover',
           'data-[state=active]:bg-surface-base data-[state=active]:text-primary',
           'data-[state=active]:border-border-subtle data-[state=active]:border-b-surface-base'
         ]

@@ -1,5 +1,6 @@
 <script lang="ts" generics="T extends string | number | boolean = string">
   import { useBlocksI18n, mintRegistry } from '$lib';
+  import CoreFieldMessage from '$lib/internal/core/CoreFieldMessage.svelte';
   import { useFormField, getTierContext, useFloatingPanel, floatingPanelHidden } from '$lib/utils';
   import { getBlocksConfig, resolveSlotClasses } from '$lib/provider';
   import { resolveIcon } from '$lib/icons';
@@ -759,24 +760,13 @@
     {/if}
   {/if}
 
-  {#if ff.errorId}
-    <div
-      id={ff.errorId}
-      class={unstyled
-        ? (slotClasses?.message ?? '')
-        : styles.message({ class: slotClasses?.message })}
-      role="alert"
-    >
-      {error}
-    </div>
-  {:else if ff.helperId}
-    <div
-      id={ff.helperId}
-      class={unstyled
-        ? (slotClasses?.message ?? '')
-        : styles.message({ class: slotClasses?.message })}
-    >
-      {helper}
-    </div>
-  {/if}
+  <CoreFieldMessage
+    {error}
+    {helper}
+    errorId={ff.errorId}
+    helperId={ff.helperId}
+    class={unstyled
+      ? (slotClasses?.message ?? '')
+      : styles.message({ class: slotClasses?.message })}
+  />
 </div>

@@ -9,10 +9,12 @@
 
 export {
   CSS_REFERENCE_OVERVIEW,
+  CSS_REFERENCE_SECTION_ALIASES,
   CSS_REFERENCE_SECTION_NAMES,
   CSS_REFERENCE_SECTIONS,
   type CssReferenceSection,
-  renderCssReference
+  renderCssReference,
+  resolveCssReferenceSection
 } from './css-reference.js';
 export {
   extractPrincipleSection,

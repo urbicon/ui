@@ -48,10 +48,11 @@ bunx urbicon init               # wire the project into the design loop
    with `--ci`, writes the design-gate workflow.
 
 Then run the guided intake — `bunx urbicon verb adopt` (brownfield) or `onboard` (greenfield) —
-to fill the manifest with this project's design intent. From there an agent can `urbicon context`
-to read the intent, `urbicon find` / `get-component` to discover the catalog, `urbicon pattern` /
-`principles` / `css-reference` for the design knowledge, compose, and `urbicon validate` what it
-produced.
+to fill the manifest with this project's design intent. From there an agent can `urbicon primer`
+for the knowledge every task needs (component selection + the token core, one call),
+`urbicon context` to read the intent, `urbicon find` / `get-component` to discover the catalog,
+`urbicon pattern` / `principles` / `css-reference` for the task-specific rest, compose, and
+`urbicon validate` what it produced.
 
 > The component knowledge is **local and version-pinned**: `@urbicon-ui/design` pulls in the
 > [`@urbicon-ui/design-content`](../design-content/) bundle, so `find` / `get-component` match the
@@ -65,6 +66,7 @@ produced.
 | `urbicon validate [paths...]`  | Lint `.svelte` markup against the design rules. The CI gate.                                          | mirror of `validate_design` |
 | `urbicon i18n [check]`         | Audit `@urbicon-ui/i18n`: `parity` / `unused` keys / `hardcoded` strings / `audit` (all).             | — (local only)              |
 | `urbicon hook`                 | PostToolUse adapter — validate the just-edited file, block on failure.                                | — (local only)              |
+| `urbicon primer`               | The always-needed bundle in one call: component selection + the token core. Run it first.             | —                           |
 | `urbicon find [query]`         | Fuzzy component discovery over the version-pinned catalog.                                            | `find_components`           |
 | `urbicon get-component <slug>` | A component's API (its `llm.txt`) from the bundle.                                                    | `get_component`             |
 | `urbicon icons [query]`        | Icon discovery (no query: the full grouped reference).                                                | `find_icons`                |

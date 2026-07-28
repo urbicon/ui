@@ -127,7 +127,7 @@ describe('checkboxVariants', () => {
         'group-hover:border-border-default'
       );
       expect(checkboxVariants({ ...off, variant: 'ghost' }).box()).toContain(
-        'group-hover:bg-surface-subtle'
+        'group-hover:bg-surface-hover'
       );
     });
   });

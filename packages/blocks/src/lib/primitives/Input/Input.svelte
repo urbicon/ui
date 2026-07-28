@@ -1,6 +1,7 @@
 <script lang="ts">
   import { useBlocksI18n, mintRegistry, createPersistentState } from '$lib';
   import { getBlocksConfig, resolveSlotClasses } from '$lib/provider';
+  import CoreFieldMessage from '$lib/internal/core/CoreFieldMessage.svelte';
   import { useFormField, getTierContext } from '$lib/utils';
   import type { InputProps } from '.';
   import { inputVariants, type InputVariants } from './input.variants';
@@ -289,26 +290,15 @@
     {/if}
   </div>
 
-  {#if ff.errorId}
-    <div
-      id={ff.errorId}
-      class={unstyled
-        ? (slotClasses?.message ?? '')
-        : styles.message({ class: slotClasses?.message })}
-      role="alert"
-    >
-      {error}
-    </div>
-  {:else if ff.helperId}
-    <div
-      id={ff.helperId}
-      class={unstyled
-        ? (slotClasses?.message ?? '')
-        : styles.message({ class: slotClasses?.message })}
-    >
-      {helper}
-    </div>
-  {/if}
+  <CoreFieldMessage
+    {error}
+    {helper}
+    errorId={ff.errorId}
+    helperId={ff.helperId}
+    class={unstyled
+      ? (slotClasses?.message ?? '')
+      : styles.message({ class: slotClasses?.message })}
+  />
 
   {#if children}
     <div class="mt-1.5">

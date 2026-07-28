@@ -101,3 +101,55 @@ describe('runInit', () => {
     expect(await read('.claude/settings.json')).toBe('[]'); // left untouched, not rewritten
   });
 });
+
+/**
+ * The primer step lives in `init`, not in the template, so that the template
+ * stays a prompt base a harness can take verbatim. That split only holds if
+ * both halves are asserted: the step must appear on the way into a consumer's
+ * AGENTS.md, and it must be absent from the template that the harness reads.
+ */
+describe('runInit — the primer step', () => {
+  it('adds the primer step by default, inside the loop', async () => {
+    await runInit([], {});
+    const agents = await read('AGENTS.md');
+    expect(agents).toContain('bunx urbicon primer');
+    // Placed as step 0, i.e. before the first numbered step — not appended
+    // somewhere after it, where an agent would read it too late to act on.
+    expect(agents.indexOf('urbicon primer')).toBeLessThan(agents.indexOf('1. **Read the intent**'));
+  });
+
+  it('omits it with --with-primer=false, for a harness that injects the primer itself', async () => {
+    await runInit([], { 'with-primer': 'false' });
+    const agents = await read('AGENTS.md');
+    expect(agents).not.toContain('urbicon primer');
+    // The rest of the block is unaffected — this is a subtraction, not a variant.
+    expect(agents).toContain('1. **Read the intent**');
+    expect(agents).toContain('urbicon:start');
+  });
+
+  it('keeps the step out of the shipped template', async () => {
+    // The harness reads templates/AGENTS.md directly and must not find an
+    // instruction it cannot act on. Guarding it here rather than in the harness
+    // keeps the knowledge on the side that owns the template.
+    const template = await readFile(
+      new URL('../../../templates/AGENTS.md', import.meta.url),
+      'utf-8'
+    );
+    expect(template).not.toContain('urbicon primer');
+    expect(template).toContain('1. **Read the intent**');
+  });
+
+  it('stays idempotent with the step in place', async () => {
+    await runInit([], {});
+    const first = await read('AGENTS.md');
+    await runInit([], {});
+    expect(await read('AGENTS.md')).toBe(first);
+  });
+
+  it('switches an existing block from with-primer to without on re-run', async () => {
+    await runInit([], {});
+    expect(await read('AGENTS.md')).toContain('urbicon primer');
+    await runInit([], { 'with-primer': 'false' });
+    expect(await read('AGENTS.md')).not.toContain('urbicon primer');
+  });
+});

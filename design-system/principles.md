@@ -66,6 +66,13 @@ These heuristics map common UI needs to the right Urbicon UI component:
 - Separator for visual breaks within a surface, not between Cards (Cards have their own boundaries).
 - Use `SidebarLayout` for app shells with persistent navigation. Use standalone `Sidebar` for in-page nav.
 
+### Layout markup
+
+- **Layout is markup, not a component.** There is no `Stack`, `Box` or `Row` in this library: a `<div class="flex …">` that carries a layout decision is the correct tool, not a shortcoming.
+- **Every wrapper earns its place.** A `<div>` without layout utilities, one whose single child could carry the classes itself, or two nested flex containers that could be one — each is noise, not structure.
+- **Use a component only where one genuinely fits.** `Separator` for a break inside a surface; `Toolbar` for a bar of controls. `ButtonGroup` is for buttons that are visually connected or share a selection — two independent actions side by side stay two `Button`s in a flex container.
+- **When changing existing markup, fit the change in rather than wrapping it.** A new row inside a card belongs in the structure that is already there.
+
 ## Accessibility
 
 - Every icon-only `Button` needs `aria-label`.

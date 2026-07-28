@@ -42,6 +42,43 @@ export const CSS_REFERENCE_SECTION_LIST = wrapJoined(
   HELP_WIDTH
 );
 
+/** A line that opens a command entry: two spaces, then the command name. */
+function opensCommand(line: string): boolean {
+  return /^ {2}\S/.test(line);
+}
+
+/** The command name a `Commands:` line opens, or undefined. */
+function commandOn(line: string): string | undefined {
+  if (!opensCommand(line)) return undefined;
+  return line.slice(2).split(/[\s[<]/)[0] || undefined;
+}
+
+/**
+ * The help for a single command — its entry plus the indented flag lines under it.
+ *
+ * `urbicon <command> --help` used to print the whole 9.5 kB page: measured, a model
+ * that wanted `record-decision`'s flags got the full page, learned nothing from it,
+ * and spent a second call grepping the command list to find them. One command's
+ * block is ~300 B and answers the question that was asked.
+ *
+ * Sliced out of HELP rather than authored separately — a second copy of the flag
+ * text is a second thing to keep in sync, which is exactly how the `css-reference`
+ * section list went stale before.
+ */
+export function commandHelp(command: string): string | undefined {
+  const lines = HELP.split('\n');
+  const start = lines.findIndex((line) => commandOn(line) === command);
+  if (start === -1) return undefined;
+  // Runs to the next command entry or the blank line that ends the Commands
+  // section — whichever comes first.
+  let end = start + 1;
+  for (; end < lines.length; end++) {
+    const line = lines[end];
+    if (line === undefined || line === '' || opensCommand(line)) break;
+  }
+  return lines.slice(start, end).join('\n');
+}
+
 export const HELP = `urbicon — design validation & manifest tooling for Urbicon UI projects
 
 Usage:
@@ -56,6 +93,9 @@ Commands:
                         --ci               Also write .github/workflows/design-gate.yml.
                         --agents-file <p>  Target for the context block (default AGENTS.md).
                         --manifest <path>  Manifest path (default ./design.manifest.md).
+                        --with-primer      Include the "load the primer" step (default on).
+                                           Use --with-primer=false when the block feeds a
+                                           harness that injects the primer itself.
   validate [paths...]   Lint .svelte markup against the Urbicon UI design rules.
                         Paths may be files, directories, or "-" (stdin).
                         Reads ## Token Overrides from the manifest (if any) so your
@@ -78,9 +118,13 @@ Commands:
                                            (default ./design.manifest.md).
   hook                  Editor-hook adapter: read a Claude Code PostToolUse event on
                         stdin, validate the edited .svelte file, and exit 2 with the
-                        findings on stderr so the agent self-corrects. Takes the same
-                        gate flags as validate (--strict, --slop-floor, --manifest).
+                        findings on stderr so the agent self-corrects.
                         Wire it via .claude/settings.json (see templates/).
+                        --strict           Fail on warnings too, not just errors.
+                        --slop-floor <n>   Also fail below n/100 on the slop axis.
+                        --skip-heuristics  Deterministic rules only.
+                        --manifest <path>  Manifest for token overrides
+                                           (default ./design.manifest.md).
   find [query]          Discover components by fuzzy search over the version-pinned
                         catalog (names, tags, descriptions). No query lists all.
                         --tag <t>          Filter by category tag (form, action, …).
@@ -89,6 +133,10 @@ Commands:
   get-component <slug>  Print a component's API (its llm.txt) from the bundle.
                         --section <s>      overview | examples | variants | api | slots |
                                            full (default: full).
+  primer                The knowledge every task needs, in one call: how to pick a
+                        component + the token reference (surfaces, text, borders,
+                        intents, shadows). Run it first. Patterns, recipes and
+                        component APIs stay on demand — they are task-dependent.
   pattern [name]        Composition patterns (settings-page, dashboard, …). No name
                         lists all; a name prints the full pattern.
                         --json             Machine-readable pattern list.
@@ -134,14 +182,21 @@ Commands:
                         --config <path>    i18n.audit.json (default ./i18n.audit.json).
                         --dynamic-keys <g> Key globs built dynamically (errors.*).
                         --ignore-keys <g>  Key globs to skip entirely.
-                        --ignore-strings   Hardcoded-string globs to skip.
+                        --ignore-strings <g> Hardcoded-string globs to skip.
+                        --function-names <n> Translate-function names to scan for,
+                                           comma-separated (default t, dt).
+                        --runtime-usage <p> JSON array of keys observed at runtime;
+                                           they count as used even if no call site
+                                           mentions them literally.
                         --base-locale <l>  Parity base (default en).
-                        --json / --strict  Machine-readable / gate advisory too.
+                        --json             Machine-readable report.
+                        --strict           Gate on advisory findings too.
                         Gates on parity errors + used-but-undefined; unused,
                         hardcoded and parity warnings are advisory.
   verbs                 List the design verbs (recipes over the design loop).
   verb <name>           Print one verb recipe, e.g. "urbicon verb compose".
-  help                  Show this help.
+  version               Print the installed @urbicon-ui/design version.
+  help                  Show this help. "urbicon <command> --help" shows one command.
 
 Exit codes:
   0  ok (clean, or only warnings/notes)

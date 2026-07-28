@@ -101,5 +101,9 @@ docs/internal/
 # Internal A/B research artifacts — not build input, not shipped
 experiment/
 
+# Measurement workbench for the artifact track (recorder, fixtures, showcase player)
+# — kept local; the tracked source of the shared tools is apps/artifact-studio/
+prototypes/
+
 # Completed plans & audits (historical working docs) — kept local, not part of the published OSS repo
 docs/archive/

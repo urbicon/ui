@@ -4,9 +4,11 @@ import { fileURLToPath } from 'node:url';
 import { describe, expect, it } from 'vitest';
 import {
   CSS_REFERENCE_OVERVIEW,
+  CSS_REFERENCE_SECTION_ALIASES,
   CSS_REFERENCE_SECTION_NAMES,
   CSS_REFERENCE_SECTIONS,
-  renderCssReference
+  renderCssReference,
+  resolveCssReferenceSection
 } from './css-reference.js';
 
 /**
@@ -131,6 +133,40 @@ describe('renderCssReference', () => {
     for (const name of CSS_REFERENCE_SECTION_NAMES) {
       expect(renderCssReference(name)).toBe(CSS_REFERENCE_SECTIONS[name]);
     }
+  });
+
+  it('resolves an alias to its section', () => {
+    for (const [alias, section] of Object.entries(CSS_REFERENCE_SECTION_ALIASES)) {
+      expect(resolveCssReferenceSection(alias)).toBe(section);
+      expect(renderCssReference(alias)).toBe(CSS_REFERENCE_SECTIONS[section]);
+    }
+  });
+
+  it('keeps aliases out of the canonical section list', () => {
+    // The list drives `--help` and the MCP enum: an alias listed there would read
+    // as a section of its own and promise text that does not exist separately.
+    const leaked = Object.keys(CSS_REFERENCE_SECTION_ALIASES).filter((alias) =>
+      (CSS_REFERENCE_SECTION_NAMES as readonly string[]).includes(alias)
+    );
+    expect(leaked, `Aliases that are also canonical sections: ${leaked.join(', ')}`).toEqual([]);
+  });
+
+  it('points every alias at text that actually covers it', () => {
+    // The alias exists because the content is hard to find, not to redirect
+    // anywhere plausible — if `z-index` moves out of `shadows`, this must fail.
+    // Hyphens are stripped on both sides so `zindex` matches the "Z-Index" heading.
+    const flatten = (s: string) => s.toLowerCase().replace(/-/g, '');
+    const empty = Object.entries(CSS_REFERENCE_SECTION_ALIASES).filter(
+      ([alias, section]) => !flatten(CSS_REFERENCE_SECTIONS[section]).includes(flatten(alias))
+    );
+    expect(
+      empty.map(([alias]) => alias),
+      `Aliases whose target section never mentions them: ${empty.map(([a]) => a).join(', ')}`
+    ).toEqual([]);
+  });
+
+  it('still fails to resolve a genuine typo', () => {
+    expect(resolveCssReferenceSection('bogus')).toBeUndefined();
   });
 
   it('advertises every section in the overview', () => {

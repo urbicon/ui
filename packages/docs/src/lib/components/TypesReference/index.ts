@@ -28,6 +28,16 @@ export interface LocalTypeDef {
   scope?: 'local' | 'external';
   /** Props that reference this type. */
   usedByProps?: TypeUsedByRef[];
+  /**
+   * A `@see` value on the type declaration that the docs can navigate to —
+   * an absolute URL, a route-relative path, or a bare `#fragment`.
+   */
+  seeAlso?: string;
+  /**
+   * `@see` values on the type declaration that name a sibling type or member
+   * rather than a doc target (`CartesianDatum`). Rendered as literal text.
+   */
+  seeAlsoRefs?: string[];
 }
 
 /**

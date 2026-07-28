@@ -152,4 +152,48 @@ describe('semantic.css — surface/border refinement tokens', () => {
       ).not.toEqual(rest!.dark);
     });
   });
+
+  /**
+   * The pair guard above only proves a step differs from ONE resting value.
+   * That is not enough: an element on a reading surface does not know which
+   * one it sits on. A `ghost` Input renders on the page (base), inside a
+   * Popover (elevated), in a Dialog (overlay) or in a tinted zone (quiet) —
+   * the same class string, four different backdrops. `surface-subtle` passed
+   * a pair check against `surface-base` and was still invisible as a hover on
+   * every elevated surface, because it resolves to `surface-elevated` exactly.
+   * That shipped across 8 components until 2026-07-26.
+   *
+   * So the real contract for a hover/press step is: it must differ from
+   * EVERY reading surface, in both modes. A token that fails this is not a
+   * hover token, whatever it is named.
+   */
+  describe('interaction steps differ from every reading surface', () => {
+    const READING_SURFACES = [
+      '--color-surface-base',
+      '--color-surface-quiet',
+      '--color-surface-elevated',
+      '--color-surface-overlay',
+      '--color-surface-subtle'
+    ] as const;
+    const STEPS = ['--color-surface-hover', '--color-surface-active'] as const;
+
+    const CASES = STEPS.flatMap((step) =>
+      READING_SURFACES.map((surface) => [step, surface] as const)
+    );
+
+    it.each(CASES)('%s is distinguishable on %s', (stepToken, surfaceToken) => {
+      const step = findLightDark(themeBlock, stepToken);
+      const surface = findLightDark(themeBlock, surfaceToken);
+      expect(step, `${stepToken} missing or not in light-dark() form`).not.toBeNull();
+      expect(surface, `${surfaceToken} missing or not in light-dark() form`).not.toBeNull();
+
+      for (const mode of ['light', 'dark'] as const) {
+        expect(
+          step![mode],
+          `${stepToken} resolves to ${surfaceToken} in ${mode.toUpperCase()} mode — ` +
+            `any element hovering while resting on ${surfaceToken} shows no feedback at all`
+        ).not.toEqual(surface![mode]);
+      }
+    });
+  });
 });

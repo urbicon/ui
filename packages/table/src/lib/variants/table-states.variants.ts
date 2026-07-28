@@ -156,7 +156,7 @@ export const errorStateVariants = tv({
       'text-xs font-medium text-text-secondary',
       'rounded-modify border border-border-subtle',
       'cursor-pointer transition-[color,background-color,border-color,box-shadow,opacity] duration-[var(--blocks-duration-fast)]',
-      'hover:bg-surface-subtle hover:text-text-primary',
+      'hover:bg-surface-hover hover:text-text-primary',
       'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2'
     ],
     detailsIcon: ['transition-transform duration-[var(--blocks-duration-fast)]'],

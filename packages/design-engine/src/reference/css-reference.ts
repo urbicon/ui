@@ -73,7 +73,7 @@ const SURFACES = `# Surface Tokens
 |---|---|---|
 | \`--color-surface-base\` | \`bg-surface-base\` | Page background |
 | \`--color-surface-quiet\` | \`bg-surface-quiet\` | Softly tinted in-page zone |
-| \`--color-surface-subtle\` | \`bg-surface-subtle\` | Subtle differentiation |
+| \`--color-surface-subtle\` | \`bg-surface-subtle\` | Resting tint only — resolves to \`surface-elevated\`, so never use it as a hover step. Prefer \`surface-quiet\` for a tinted in-page zone |
 | \`--color-surface-elevated\` | \`bg-surface-elevated\` | Cards, panels (floating with shadow) |
 | \`--color-surface-overlay\` | \`bg-surface-overlay\` | Modals, popovers |
 | \`--color-surface-interactive\` | \`bg-surface-interactive\` | Interactive element backgrounds |
@@ -536,6 +536,33 @@ export const CSS_REFERENCE_SECTION_NAMES = [
 
 export type CssReferenceSection = (typeof CSS_REFERENCE_SECTION_NAMES)[number];
 
+/**
+ * Names an agent reaches for before it finds the real section — measured, not
+ * guessed. In a recorded run the model called `css-reference z-index` and
+ * `css-reference shadow` (both failures) before landing on `shadows`, *while the
+ * section was already in its primer*: the z-index scale lives under the
+ * "Shadow & Z-Index Tokens" heading inside `shadows`, and nobody looking for
+ * z-index looks under shadows.
+ *
+ * Aliases deliberately stay out of CSS_REFERENCE_SECTION_NAMES — that list is the
+ * canonical set behind `--help` and the MCP enum, and an alias is a second door to
+ * one room, not a room of its own. Everything not listed here still fails loud.
+ */
+export const CSS_REFERENCE_SECTION_ALIASES: Readonly<Record<string, CssReferenceSection>> = {
+  'z-index': 'shadows',
+  zindex: 'shadows',
+  shadow: 'shadows'
+};
+
+/**
+ * Resolve a user-supplied section name to a canonical one, or `undefined` if it is
+ * neither a section nor an alias — the caller decides how loudly to fail.
+ */
+export function resolveCssReferenceSection(section: string): CssReferenceSection | undefined {
+  if (section in CSS_REFERENCE_SECTIONS) return section as CssReferenceSection;
+  return CSS_REFERENCE_SECTION_ALIASES[section];
+}
+
 export const CSS_REFERENCE_SECTIONS: Record<CssReferenceSection, string> = {
   surfaces: SURFACES,
   text: TEXT,
@@ -546,10 +573,8 @@ export const CSS_REFERENCE_SECTIONS: Record<CssReferenceSection, string> = {
   theming: THEMING
 };
 
-/** Render the reference: a known section's text, or the overview when omitted/unknown. */
+/** Render the reference: a known section's text (aliases included), or the overview when omitted/unknown. */
 export function renderCssReference(section?: string): string {
-  if (section && section in CSS_REFERENCE_SECTIONS) {
-    return CSS_REFERENCE_SECTIONS[section as CssReferenceSection];
-  }
-  return CSS_REFERENCE_OVERVIEW;
+  const resolved = section ? resolveCssReferenceSection(section) : undefined;
+  return resolved ? CSS_REFERENCE_SECTIONS[resolved] : CSS_REFERENCE_OVERVIEW;
 }

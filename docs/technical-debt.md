@@ -65,30 +65,102 @@ internal TODO instead. Sections are ordered roughly by urgency.
 
 ## API design
 
-### Field label/helper/error MARKUP is re-implemented per form component (part b)
+### `--radius-commit` carries two meanings: the pill of a button and the circle of a radio
 
-- **Where:** the label/message scaffolding in `Input.svelte`, `PinInput.svelte`,
-  `TimeInput.svelte` (label span + `aria-labelledby`, `role="alert"` message,
-  required asterisk, `messageType` derivation).
+- **Where:** `style/foundation.css` (`--radius-commit: 9999px`) consumed by
+  `primitives/RadioGroup/radioGroup.variants.ts` (`tier.commit` →
+  `indicator: 'rounded-commit', dot: 'rounded-commit'`) and by every commit-tier
+  button.
+- **What happens:** a consumer who wants square buttons sets `--radius-commit: 0`
+  — the comment at `foundation.css:178` explicitly invites the austere direction
+  — and squares the radio indicators along with them. A square radio is a
+  checkbox to the eye, so the "pick exactly one" affordance is gone. Shape is
+  the only thing carrying that distinction; both controls are otherwise the same
+  box with the same label.
+- **Why it is not just styling:** the pill on a button is taste, the circle on a
+  radio is convention with meaning (Material, HIG and Carbon all hold it). The
+  tier bundles a decorative decision with a semantic one, and the token layer
+  offers no way to take only the first.
+- **Workaround in the wild:** `BlocksProvider` defaults —
+  `RadioItem: { slotClasses: { indicator: 'rounded-full', dot: 'rounded-full' } }`.
+  Shipped as `CIRCULAR_RADIOS` in `apps/chat-demo/src/lib/livery/index.ts`,
+  where **all four** brand liveries need it — including the one that merely
+  softens the tier to `2px` instead of zeroing it, because 2px on a 20px control
+  already reads as a square. The exemption was written into that livery on the
+  assumption that a small radius was harmless, and the rendered form disproved
+  it. So this is not a corner case for austere themes: *any* theme that touches
+  the commit tier at all loses the radio affordance.
+- **Possible fix:** give the radio indicator its own token (e.g.
+  `--radius-control`, defaulting to `--radius-commit`) so a livery can square the
+  buttons without touching the controls. Cheap, but it is a new public token —
+  worth a deliberate decision rather than a drive-by.
+- **Found:** 2026-07-27, while theming the A2UI salon demo across three liveries.
+
+### ~~Field label/helper/error MARKUP is re-implemented per form component (part b)~~ — message extracted across all ten fields (2026-07-26/27), label divergence kept on purpose
+
+- **Where:** the label/message scaffolding across the Form family — the entry
+  first named `Input.svelte`, `PinInput.svelte` and `TimeInput.svelte` (label
+  span + `aria-labelledby`, `role="alert"` message, required asterisk,
+  `messageType` derivation); the message block turned out to be verbatim in
+  Textarea, Select, Combobox, Checkbox, Toggle, RadioGroup and Slider too.
 - **What:** Part (a) — the duplicated tv() **class strings** for the field frame
   — is **resolved** (debt-fix-wave-5, 2026-07-24): the shared frame/focus-ring/
   variant/intent/state/label fragments now live in
   `packages/blocks/src/lib/internal/field-chrome.ts` and are composed back into
   `input`/`pin-input`/`time-input.variants.ts`, byte-identical to the old inline
   strings (proven by a 47 872-combination resolved-class matrix diff, 0 diff).
-  What remains is part (b): the label/helper/error **markup** is still hand-
-  re-implemented in each of the three `.svelte` files. Deliberate per-component
-  divergences stay inline in the variants (Input's `xs`/`underline`, PinInput's
-  cell-height scale + `focus-visible:z-10`, TimeInput's `focus-within` +
-  cursor-free readonly) and are commented at each site.
-- **Why deferred:** A shared markup cut (a `FieldShell` snippet/component or a
-  `useFieldScaffold` helper) is a bigger, behaviour-touching change with its own
-  a11y surface (id wiring, `aria-describedby`). **Its stated blocker is gone**
-  (W5, 2026-07-24): PinInput and TimeInput are now in the VR fixture and the
-  dark-axe matrix, so a markup extraction can be proven pixel-identical the way
-  the style extraction was. What remains is the extraction itself.
+  Deliberate per-component divergences stay inline in the variants (Input's
+  `xs`/`underline`, PinInput's cell-height scale + `focus-visible:z-10`,
+  TimeInput's `focus-within` + cursor-free readonly) and are commented at each
+  site.
+- **Resolved 2026-07-26 (the message):** the helper/error block — the part that
+  really was copied three times — now lives in
+  `internal/core/CoreFieldMessage.svelte`, alongside `CoreIconButton` and
+  `CoreSpinner`. It owns the error-beats-helper precedence, `role="alert"` on
+  the error arm only, and the id wiring; the call site keeps the look and passes
+  its resolved `message` slot class, so the core runs no variant engine (the
+  CoreIconButton contract). Proven unchanged by the 52 resting VR shots, which
+  render all three fields in their `error` state — 141/141 e2e green, no shot
+  moved — and the extracted rules gained the test they never had in any of the
+  three components: the helper arm had **no** coverage anywhere, and
+  "error beats helper" was implied by an `{:else if}` rather than asserted.
+  6 tests, negatively verified (making the helper arm a live region and dropping
+  the `else` fails exactly two of them).
+- **Completed 2026-07-27 (the other seven copies):** the first cut followed this
+  entry's "Where" list, which named three files. The same block was verbatim in
+  seven more — Textarea, Select, Combobox, Checkbox, Toggle, RadioGroup, Slider
+  — so most of the copies were outside the entry. All ten now render through the
+  core. Two call sites keep something of their own, both recorded in the core's
+  docblock: Combobox styles its helper through a `helper` slot of its own (new
+  `helperClass` prop; without it the helper would read red on an invalid field),
+  and Textarea keeps the empty `<span>` that holds its counter right in the
+  `justify-between` footer. Proven markup-neutral by a canonical-DOM diff over
+  110 renders (10 components × 11 label/helper/error/required/disabled/unstyled
+  combinations), 0 diff, negatively verified twice — dropping `role="alert"`
+  moves 80 lines, dropping Combobox's `helperClass` moves 3.
+- **Deliberately NOT extracted — the label.** The entry lumped the label in with
+  the message, but the two are not the same kind of duplication: the element is
+  dictated by what the field is. Input, Textarea and Combobox render a real
+  `<label for={fieldId}>` (exactly one focusable element); Select adds an `id` so
+  its trigger button can also be named by `aria-labelledby`; PinInput, TimeInput
+  and RadioGroup render a `<span id>` behind `aria-labelledby` on a
+  `role="group"` (many focusable segments, no single field a `for` could point
+  at); Checkbox and Toggle put the text inside the wrapping `<label>`; Slider's
+  sits in a header row beside the value read-out. Five a11y shapes, so unifying
+  them would be a regression, not a de-duplication. The `required` asterisk and
+  the `messageType` derivation were already shared via `field-chrome.ts` (part a)
+  and the variants.
+- **Cost, measured:** in isolation the core costs each component 92–133 B gz
+  (its own module is 0.5 KB min) — the per-component measurement shows it
+  unshared, so the second form component on a page pays nothing. The baseline
+  refresh also absorbs drift that was never recorded: +117…+129 B on
+  Input/PinInput/TimeInput and on everything embedding them (NumberInput,
+  CurrencyInput, PromptInput, DatePicker, LocaleSwitcher, A2UIView) from the
+  2026-07-26 cut, plus −2…−7 B on ChatMessage/Stepper/Tab/FileUpload from the
+  clipboard-state-machine commit.
 - **Found:** 2026-07-24, component-trio review; part (a) closed same day
-  (debt-fix-wave-5).
+  (debt-fix-wave-5), part (b) closed 2026-07-26 and finished across the family
+  2026-07-27.
 
 ## Component behaviour
 
@@ -322,19 +394,28 @@ internal TODO instead. Sections are ordered roughly by urgency.
   it wants the documented answer for all axes at once, not a per-case patch.
 - **Found:** 2026-07-24, W4 persistence review.
 
-### Table persists a *controlled* `searchTerm`, unlike controlled selection
+### ~~Table persists a *controlled* `searchTerm`, unlike controlled selection~~ — resolved 2026-07-27
 
 - **Where:** `packages/table/src/lib/stores/concerns/usePersistence.svelte.ts`
   (`syncSearch`) vs. `syncSelection`, which checks `state.selectionControlled`;
   driven by `TableProvider.svelte`'s controlled-search effect.
-- **What:** With a controlled `searchTerm` prop every keystroke is still
+- **What:** With a controlled `searchTerm` prop every keystroke was still
   mirrored into storage, although the prop is the source of truth. Switching
-  that table back to uncontrolled later revives the old term — the exact bug
+  that table back to uncontrolled later revived the old term — the exact bug
   class `selectionControlled` already prevents for selection.
-- **Why deferred:** Wants a `searchControlled` flag in `TableState` mirroring
-  the selection one, plus a test — small, but a behaviour change of its own
-  outside the stored-empty scope.
-- **Found:** 2026-07-24, W4 persistence work.
+- **Resolved 2026-07-27:** a `searchControlled` flag on `TableState`, set by
+  TableProvider from the prop's presence *before* the value is applied so
+  `syncSearch` sees it and skips the write. Deliberately **without** the
+  `untrack` the selection twin carries: that one needs it because
+  `setSelectedIds` reads `state.selectedIds` on its write path even while
+  controlled, whereas this path reads nothing reactive
+  (`useSearch.setSearchTerm` only assigns, `syncSearch` short-circuits on the
+  flag). Copying the sibling verbatim would have meant a comment claiming a
+  mechanism that is not there. Two tests, negatively verified — dropping the
+  flag check fails the controlled one while the "an uncontrolled term is still
+  persisted" guard stays green, so the skip is keyed on the flag rather than
+  being a blanket "search is never persisted".
+- **Found:** 2026-07-24, W4 persistence work; closed 2026-07-27.
 
 ### Combobox `queryFn` failure has no in-component error-row slot
 
@@ -676,6 +757,17 @@ internal TODO instead. Sections are ordered roughly by urgency.
   deployment is a policy call rather than an obvious win. The Linux baselines are
   therefore committed and correct but nothing checks them automatically yet;
   that is the decision this entry now carries.
+- **`deploy.env` is a systemd `EnvironmentFile`, so editing it changes nothing
+  until the unit restarts.** `deploy-ui.service` declares
+  `EnvironmentFile=/etc/buny/ui/deploy.env` and systemd reads that file **at
+  service start**, not per webhook. The daemon had been up since 2026-06-30, so
+  the freshly-added `TEST_CMD` was absent from its process environment and the
+  v6.43.2 deploy still published untested — verified by reading
+  `/proc/<MainPID>/environ`, which listed `BUILD_CMD` but not `TEST_CMD`. Fixed
+  with `systemctl restart deploy-ui.service`; the gate is live from the next
+  deployment. Any future change to a `deploy.env` needs the same restart, and
+  the only honest way to confirm a gate is armed is to read the running
+  process's environment, not the file.
 - **Baseline hygiene, learned twice in one day:** both platform sets had to be
   regenerated after merging the surface-ladder change (`69b0c5b`), which moved
   `neutral-25/-50` without touching any snapshot — correct for pass/fail, since
@@ -742,7 +834,7 @@ internal TODO instead. Sections are ordered roughly by urgency.
 
 ## docs-gen
 
-### `@see` on a *type* is still swallowed, and a mid-sentence `@see` becomes a real tag
+### ~~`@see` on a *type* is still swallowed~~ — resolved 2026-07-27; the mid-sentence trap stays open
 
 - **Where:** `packages/docs-gen/src/extractors/typescript/LocalTypesExtractor.ts`
   (~`:151`/`:295`/`:313`, `documentation = extractJSDocComment(decl)`), surfacing
@@ -756,12 +848,26 @@ internal TODO instead. Sections are ordered roughly by urgency.
   written mid-sentence in a description — such a description would silently grow
   a reference chip. No prop description does that today (verified: three
   prop-level `@see`, all deliberate).
-- **Why deferred:** The type side needs its own `seeAlsoRefs` counterpart:
-  `TypeDefinition` + three extractor call sites + the emitted interface + the
-  docs `TypeEntry` + two render sites. One real occurrence, and it loses nothing
-  visible (that alias' definition literally *is* the referenced type). The
-  mid-sentence trap wants a JSDoc lint, not a fix.
-- **Found:** 2026-07-24, W6 `@see` split.
+- **Resolved 2026-07-27 (the type side):** the splitting rule moved onto
+  `TypeScriptBaseExtractor` (`extractSeeTags`) so props and types cannot drift
+  apart — a second aligned copy on LocalTypesExtractor was the alternative, and
+  that is exactly how the four `toSlug` copies drifted. Wired through all three
+  construction sites (`toTypeDefinition` plus the two in-file `out.push` sites),
+  `TypeDefinition`, and TypesReference, which renders it the way ApiReference
+  already does. Keys are omitted rather than set to `undefined` — the package
+  compiles under `exactOptionalPropertyTypes`, and an empty `seeAlsoRefs` would
+  render an orphan "See" label. 5 tests over both extraction paths, each
+  negatively verified; a regenerated `bar-chart/api.ts` now carries
+  `"seeAlsoRefs": ["CartesianDatum"]`, the one real occurrence (blast radius
+  measured across every generated `api.ts`).
+- **Still open — the mid-sentence trap.** TypeScript parses **any** `@see` as a
+  `JSDocSeeTag`, including one written inside a description, so such a
+  description silently grows a reference chip. `BarChartDatum` is in fact
+  written that way (`… per series. @see CartesianDatum` on one line) and the
+  outcome there is right, so nothing is broken today — but it is luck, not a
+  rule. Catching a genuinely accidental one wants a JSDoc lint, not a change to
+  the extractor. The caveat is recorded on `extractSeeTags`.
+- **Found:** 2026-07-24, W6 `@see` split; type side closed 2026-07-27.
 
 ### The slug rule lives in two hand-synced copies
 
@@ -778,16 +884,23 @@ internal TODO instead. Sections are ordered roughly by urgency.
   package-shape decision.
 - **Found:** 2026-07-24, W6 slug consolidation.
 
-### docs-gen's vitest never runs `src/**/*.test.ts`
+### ~~docs-gen's vitest never runs `src/**/*.test.ts`~~ — resolved 2026-07-27, both suites are real coverage and now run
 
 - **Where:** `packages/docs-gen/vitest.config.ts` (`include: ['tests/**/*.test.ts']`).
 - **What:** Two suites next to their sources — `src/generators/content/icons.test.ts`
-  and `src/generators/llm/LLMDocumentationGenerator.test.ts` — are silently never
-  executed; the package's reported test count contains none of them.
-- **Why deferred:** Widening `include` may surface real failures in code that
-  has not been exercised for months, and both files may be superseded by
-  same-named suites under `tests/` — triage, not a config tweak.
-- **Found:** 2026-07-24, W6.
+  and `src/generators/llm/LLMDocumentationGenerator.test.ts` — were silently never
+  executed; the package's reported test count contained neither.
+- **Resolved 2026-07-27:** both triage questions answered by measuring rather
+  than assuming. *Superseded?* No — the four `tests/LLMDocumentationGenerator.*`
+  suites cover the index links, docs config, global aggregator and type-size
+  cap; the orphan covers copying `guides:` into the llms.txt scope index, which
+  nothing else touches, and the icons suite has no counterpart at all.
+  *Hidden failures?* None: 25 → 27 files, 198 → 208 tests, all green. The
+  revived tests are not vacuous either — breaking `parseComponentNames`'
+  `DEFAULT_ICONS` lookup and the `## Guides` index heading fails one test in
+  each. Swept the rest of the repo for the same shape: every other package's
+  include roots cover every test file on disk, so docs-gen was the only case.
+- **Found:** 2026-07-24, W6; closed 2026-07-27.
 
 ### What the docs-gen prune deliberately left standing
 
@@ -798,8 +911,7 @@ internal TODO instead. Sections are ordered roughly by urgency.
   `MetadataEnrichmentConfig.addTags`/`autoTierAssignment`, `SchemaConfig.strict`/
   `allowUnknownSections`, `ComponentValidationConfig`);
   `packages/shared-types/src/component.ts` (`ComponentInfo.documentation`);
-  `apps/docs/package.json` + `packages/docs/package.json` (`chokidar`);
-  `packages/docs-gen/docs/*.mermaid`.
+  `apps/docs/package.json` + `packages/docs/package.json` (`chokidar`).
 - **What:** Four leftovers around the W6 prune. (a) A second tier of
   declared-but-never-read config, same shape as the pruned one — two fields are
   even *written* as defaults by `VariantsExtractor` with no reader. (b) The
@@ -807,16 +919,24 @@ internal TODO instead. Sections are ordered roughly by urgency.
   `componentsWithDocumentation` stat) but never written, so that number is
   structurally always 0. (c) `chokidar` is a devDependency of two packages with
   zero imports — residue of the same never-built watch loop whose config W6
-  removed. (d) Both docs-gen architecture diagrams describe classes and types
-  that no longer exist (`SectionMerger`, `DocumentationSectionRenderer`,
-  `SveltePageGenerator`, the deleted `DocumentationSection` family).
+  removed. ~~(d) Both docs-gen architecture diagrams describe classes that no
+  longer exist.~~
+- **(d) resolved 2026-07-27:** measured before rewriting — 18 of the class
+  diagram's 33 classes were gone and 11 real ones were missing, so it was more
+  wrong than right. Both diagrams are now derived from the sources, which
+  corrected three things an eyeball rewrite got wrong (`DocsGeneratorCLI`, not
+  `CLI`; `DocsConfigurationBuilder` *implements* the `GeneratorConfigBuilder`
+  interface; `VariantsExtractor` extends `TypeScriptBaseExtractor`, not
+  `BaseExtractor`). The class diagram now carries only the members that show
+  architecture — phase entry points and the seams between classes — because
+  duplicating full signatures is what made it a second copy that drifts. Both
+  validated with mermaid's own parser, negatively verified.
 - **Why deferred:** (a) pruning it further shrinks `EnrichmentConfig`/
   `ExtractionConfig` to near-empty shells — that is a decision about whether
   docs-gen keeps a configurable-pipeline contract at all. (b) means deciding
   whether to populate the field or drop a whole shared-types subpath. (c) touches
-  `bun.lock`, which should not be rewritten mid-wave. (d) is a docs task of its
-  own — they are the only architecture overview docs-gen has.
-- **Found:** 2026-07-24, W6 prune.
+  `bun.lock`, which should not be rewritten mid-wave.
+- **Found:** 2026-07-24, W6 prune; (d) closed 2026-07-27, (a)–(c) still open.
 
 ## Toolchain / dependencies
 
@@ -909,44 +1029,88 @@ internal TODO instead. Sections are ordered roughly by urgency.
   purpose). A gate-scope decision, not a value fix.
 - **Found:** 2026-07-25, adversarial review of the interaction-token wave.
 
-### `surface-subtle` is byte-identical to `surface-elevated`, so `hover:bg-surface-subtle` dies on elevated surfaces
+### `surface-subtle` still duplicates `surface-elevated` — the hover half is fixed, the token's own role is not
 
 - **Where:** `packages/blocks/src/lib/style/semantic.css`
   (`--color-surface-subtle` vs `--color-surface-elevated` — both
-  `light-dark(neutral-50, neutral-800)`), consumed as a *hover* step by the
-  `ghost` variants of Input/Textarea/Select/Combobox
-  (`internal/field-chrome.ts`), RadioGroup's indicator, Checkbox, Tab and
-  `table-states.variants.ts` — 8+ sites.
-- **What:** Same shape as the `surface-interactive` collapse fixed on
-  2026-07-25, but context-dependent rather than universal. `hover:bg-surface-subtle`
-  reads correctly on `surface-base`, and is invisible on anything already at
-  `surface-elevated` (a Popover, a Menu, a Select dropdown, an elevated Card) —
-  the hover target and its background resolve to the same colour.
-- **Why deferred:** Two different fixes, and picking between them is the
-  decision: give `surface-subtle` its own value (moves every *non*-hover use of
-  it too — auth list rows, docs table headers, readonly fields), or move the
-  hover idiom onto `surface-hover` (8+ sites across 6 components, each a VR
-  baseline). Deliberately not bundled into the interaction-token wave, which
-  already carried three token decisions.
+  `light-dark(neutral-50, neutral-800)`); ~150 remaining *resting* uses across
+  blocks, table, auth and the docs site.
+- **Resolved 2026-07-26 (the hover half):** the decision recorded here was
+  taken in favour of moving the idiom, not the value — following the precedent
+  Progress and Slider had already set for the identical collapse (both moved
+  their track to `surface-interactive` rather than redefining the token). All
+  11 hover sites now use `surface-hover`: the `ghost` variants of
+  Input/Textarea/Select/Combobox (`internal/field-chrome.ts` + three own
+  configs), Checkbox and RadioGroup's `group-hover`, Tab's `enclosed` trigger,
+  table's `detailsToggle`, and three docs demos that were teaching the idiom to
+  consumers. Two guards close the class rather than the instance:
+  `semantic.test.ts` asserts every interaction step (`surface-hover`,
+  `surface-active`) differs from **every** reading surface in both modes — the
+  pair guard added on 2026-07-25 only proved a step differs from *one* resting
+  value, which is why this shipped — and `variants-lint` now errors on any
+  `hover:`/`group-hover:` fill naming a reading surface (negatively verified:
+  exit 1 on a planted violation). Side finding, fixed in passing: FileUpload's
+  `disabled` branch carried `hover:border-border-default hover:bg-surface-base`
+  under a `pointer-events-none` root — unreachable, and it would have
+  *lightened* a disabled dropzone resting on a card.
+- **Still open:** `surface-subtle` has no rung of its own. Its in-page-zone role
+  went to `surface-quiet` in v5 (MIGRATION-v5 "New tokens consumers can use
+  directly" calls `surface-quiet` the "was `bg-surface-subtle`-equivalent"), and
+  its value equals `surface-elevated` exactly — so a `bg-surface-subtle` row or
+  chip resting on an elevated card is invisible unless a border carries it (most
+  current uses do have one, which is why this is a latent smell rather than a
+  live defect). The open decision is whether the token gets a distinct value, or
+  is deprecated and its ~150 resting uses split between `surface-quiet` (tinted
+  zone) and `surface-elevated` (raised) — a sweep across four packages plus the
+  docs site, and a consumer-visible token change either way.
 - **Found:** 2026-07-25, interaction-token wave (while fixing the universal
-  `surface-interactive` sibling).
+  `surface-interactive` sibling); hover half closed 2026-07-26.
 
-### The VR matrix has no hover, focus or disabled state — the interaction-token wave moved 0 of 52 shots
+### ~~The VR matrix has no hover, focus or disabled state~~ — resolved 2026-07-26, and a pixel suite turned out to be the wrong tool for half of it
 
-- **Where:** `e2e/visual-regression.spec.ts` + `apps/docs/src/routes/test-fixtures/primitives`.
-- **What:** The 2026-07-25 wave changed `--color-text-disabled` (1.45→4.85:1
-  light), Combobox's focus ring (`/50`→`/20`), two `description` sizes and the
-  filled-field hover fill. The full e2e suite stayed **131/131 green and not one
-  of the 52 VR shots moved** — the fixture renders every primitive in its resting
-  state only. So the gate that exists precisely to catch visual change is blind
-  to the entire interaction layer; the wave had to be verified by measuring
-  computed styles in a throwaway probe spec instead.
-- **Why deferred:** Adding hover/focus/disabled columns roughly doubles the
-  matrix (52 → ~100 shots at 2 modes × 2 themes) and needs a decision on how to
-  drive the states deterministically (CSS class vs. real pointer/focus, and
-  whether `:hover` screenshots are stable enough to gate on). That is a gate
-  design pass of its own.
-- **Found:** 2026-07-25, interaction-token wave.
+- **Where:** `e2e/visual-regression-interaction.spec.ts` +
+  `e2e/interaction-tokens.spec.ts` + `e2e/helpers/force-state.ts` +
+  `apps/docs/src/routes/test-fixtures/interaction`.
+- **What it was:** The 2026-07-25 wave changed `--color-text-disabled`,
+  Combobox's focus ring, two `description` sizes and the filled-field hover
+  fill, and the suite stayed 131/131 green with **0 of 52 shots moved** — the
+  fixture renders resting states only.
+- **Resolved:** a second fixture renders four groups (fields, choice, nav,
+  actions) with the `ghost` variants the resting fixture never had, each
+  rendered **twice — on `surface-base` and inside an elevated Card**, because a
+  fill that collapses onto its backdrop is invisible only on the surface it
+  collides with. States are forced via CDP `CSS.forcePseudoState` rather than a
+  real pointer: `group-hover:` compiles to `.group:hover .child` and so must be
+  forced on the ancestor, and `:focus-visible` depends on input-modality
+  heuristics that are awkward to drive. 48 shots (4 groups × 3 states × 2 modes
+  × 2 themes), so the matrix is 100 total.
+- **The part worth remembering — screenshots could not carry this alone.** With
+  the interaction shots in place, reverting the `surface-subtle` fix left **all
+  48 green**: `maxDiffPixelRatio` never got a chance, because the suite's
+  per-pixel `threshold: 0.15` treats neutral-50 and neutral-100 as the same
+  colour. Only dropping it to 0.005 turned them red, which trades this bug class
+  for antialiasing flake across the other 52 baselines. A neighbouring-rung
+  collapse is therefore invisible to a pixel diff **by construction** — the same
+  lesson the chat-family wave hit from the other side (ΔL < 0.04 under
+  `threshold: 0.15`). So `interaction-tokens.spec.ts` carries that half by
+  resolved value, not pixels: for every element with a `hover:bg-*` utility it
+  asserts the hover colour differs from its rest colour **and** from the nearest
+  non-transparent backdrop behind it. The second assertion is the load-bearing
+  one — a `ghost` field rests on `bg-transparent`, so a rest/hover comparison
+  alone passes trivially while the user sees nothing, which is exactly how the
+  bug survived. Negatively verified in both directions.
+- **Two documented exemptions**, both design rather than defect: an element in a
+  selection state (`data-state="active"`, `aria-selected`, `aria-current`) pins
+  its own background on purpose — an active enclosed Tab reads as a
+  continuation of the panel below it — and `hover:bg-transparent` is an explicit
+  "answer hover with colour, not a surface" (Button's `text` variant).
+- **Still open (small):** the gate is hover-only. `focus-visible:bg-surface-base`
+  legitimately matches its backdrop on a base surface, where the affordance is
+  the ring and border rather than the fill, so the same rule would false-positive
+  on focus. Focus rings are high-contrast enough for the pixel suite to hold;
+  a resolved-value gate for *rings* (border-colour + box-shadow rather than
+  background) would close the remainder.
+- **Found:** 2026-07-25, interaction-token wave; resolved 2026-07-26.
 
 ### Popover inside phrasing content breaks SSR paragraphs (CitationChip in `<p>`)
 
@@ -1010,5 +1174,159 @@ internal TODO instead. Sections are ordered roughly by urgency.
   the `i18n:check` scanner and every package that registers a locale. It pays off
   across the whole library rather than for this one family, and it is larger than
   the chat wave that surfaced it.
+- **Measured 2026-07-26 — the catalog is the smaller half of that 5.0 KB.**
+  Emptying `en.ts` + `de.ts` to `{}` and rebuilding moves every i18n-carrying
+  component by a flat **−1.7 KB gz** (Toast −11.8 %, Dialog −12 %, Badge
+  −12.9 %, Avatar −14 %), while CodeBlock and Spinner move ±0 — confirming they
+  carry no translations today. So of CodeBlock's measured +5.0 KB, roughly 1.7 KB
+  is the catalog and the remaining ~3.3 KB is the i18n *machinery* (registry,
+  context, factory) that a per-area split does not touch at all. Two
+  consequences for whoever picks this up: the achievable saving is ~1.7 KB gz per
+  component minus its own slice, not 5 KB; and it only materialises for a
+  consumer using **one** i18n component, since any second one shares the same
+  catalog chunk. Against that: 58 `.svelte` call sites would have to pass their
+  slice explicitly, and every future component would have to remember to. The
+  cost/benefit is therefore much tighter than the entry originally implied, and
+  the decision is a real one rather than a formality.
+- **Decision 2026-07-26 (Felix):** ⏸ Hold — do not split. Measured against the
+  real figure the trade is bad: ~1.7 KB gz per component, only for a consumer
+  using exactly one i18n component, paid for with 58 call sites passing their
+  slice explicitly and every future component having to remember. Revisit only
+  if the machinery half (~3.3 KB) is attacked, since that is the larger share
+  and needs no API change — or if a real consumer reports the leaf cost.
+  The CodeBlock/ChatMessage split (plain English defaults vs. translations)
+  therefore stays as it is; it is a documented consequence, not an oversight.
 - **Found:** 2026-07-25, chat-family redesign — the bundle-size gate caught the
-  regression when CodeBlock was switched to the shared accessibility strings.
+  regression when CodeBlock was switched to the shared accessibility strings;
+  quantified 2026-07-26.
+
+## Design engine
+
+### `token-hallucination` is a warning, so markup that renders unstyled passes an error gate
+
+- **Where:** `packages/design-engine/src/linter/rules.ts:376`
+  (`severity: 'warning'`) vs. `evaluateGate` / `urbicon validate`, which blocks on
+  errors and treats the slop axis as opt-in.
+- **What:** A component whose colour utilities all reference non-existent tokens
+  scores **correctness 25 with zero errors** — measured, not hypothetical. A
+  recorded baseline run (no design grounding in the prompt) first used raw
+  Tailwind colours, and when the linter rejected those, the fix round replaced
+  them with token-*shaped* names that do not exist (`bg-surface-raised`,
+  `text-text-muted`, `text-text-inverse`, `bg-surface-inverse-hover`). The
+  `raw-tailwind-color` errors disappeared, 15 hallucination warnings appeared,
+  and the result renders with no styling at all while looking system-conformant
+  in review.
+- **Why it is not just severity tuning:** a hallucinated token is a dead
+  reference, not a matter of taste — the axis assignment (it already lowers
+  *correctness*, not slop) and the severity disagree. Promoting it to `error`
+  is a gate-breaking change for existing consumers, so it needs a decision:
+  promote, or gate on a correctness floor rather than on error count.
+- **Found:** 2026-07-26, artifact-recorder spike (`prototypes/artifact-frame`).
+
+### ~~The CSS reference teaches no z-index tokens, but the linter requires them~~ — withdrawn 2026-07-27, the reference does teach them
+
+- **The claim was wrong.** `css-reference.ts` ships the full `--z-*` scale (12
+  tokens with their intended layer, plus the `z-[var(--z-modal)]` usage form) in
+  its `shadows` section, and the overview announces it verbatim as
+  "`shadows` — 5 shadow tokens + z-index scale". Asking for the wrong section
+  name already fails loudly and lists the real ones (`urbicon css-reference
+  z-index` → "unknown section … Available: surfaces, text, borders, intents,
+  shadows, typography, theming"), so the discovery path works too.
+- **What actually produced the reproducible `z-10`:** the spike's own injected
+  grounding, which pulled only `surfaces`, `text` and `borders` into the prompt
+  (`prototypes/artifact-frame/recorder/grounding.ts`). The model never saw the
+  z-index scale because the harness never sent it. The recorded run that used
+  the **real CLI** instead of injected context fetched `css-reference shadows`
+  itself (call 26 of 40) and produced zero errors — the same task, the same
+  model, no z-index finding. Fixed in the harness; nothing to fix in the engine.
+- **Kept as a note rather than deleted**, because the wrong diagnosis is the
+  reusable part: a gap in a hand-assembled prompt reads exactly like a gap in
+  the knowledge base. Before filing "the CLI doesn't teach X", check what the
+  harness actually sent — and prefer the measurement where the model serves
+  itself, since that is the consumer path.
+- **Found:** 2026-07-26, artifact-recorder spike; withdrawn 2026-07-27 after
+  re-reading the reference and the recorded CLI transcript.
+
+### ~~The CLI silently ignores unknown flags, so an agent cannot tell a typo from a result~~ — fixed 2026-07-27
+
+- **Resolved:** `packages/design/src/cli/command-flags.ts` declares the flags
+  each command reads, and `index.ts` rejects anything else with a usage error
+  (exit 2) before the command runs — with a did-you-mean suggestion for typos
+  (`--limitt` → `--limit`). `--query` is accepted as an alias for the positional
+  on `find` and `icons`, the two discovery commands agents reached for it on;
+  giving the query twice is an error rather than a precedence rule. The same
+  fail-loud treatment now covers a value flag passed bare (`urbicon icons
+  --limit` used to fall back to the default in silence) — the identical
+  silent-answer failure, found while fixing the first one.
+- **Consumer-visible behaviour change:** a call that used to be quietly ignored
+  now exits 2. `urbicon verbs --json` is the concrete case — `verbs` reads no
+  flags, so it printed plain text and exited 0; it now reports that it takes no
+  flags. That is the point of the fix (the caller wanted JSON and did not get
+  it), but it can break a script that passed a flag the CLI never honoured.
+- **Two documentation drifts fell out of the guard test**, which diffs the flag
+  table against `--help`: `i18n --function-names` and `--runtime-usage` were
+  implemented and undocumented, and `hook` described its gate flags in prose that
+  omitted `--skip-heuristics`. Both corrected.
+- **Found:** 2026-07-26, artifact-recorder spike — the run that used the real
+  CLI as its only knowledge source (`prototypes/artifact-frame`); fixed
+  2026-07-27.
+
+### The ADR log's `status` field is inert, and the log cannot express supersession
+
+- **What:** `design.manifest.md` records design decisions as an append-only ADR
+  log, and `record-decision --status` accepts `accepted | proposed | superseded`.
+  But **no consumer ever reads the status** — `manifest.ts` only renders it in
+  parentheses, and the type comment calls it "free text". Setting `superseded` is
+  a silent no-op: the entry keeps the same weight in `urbicon context` as an
+  accepted one.
+- **And there is no way to supersede an existing entry.** `--status superseded`
+  applies to the *new* decision; marking the old one, or linking the two, is a
+  manual edit. A project that changes its mind therefore accumulates
+  contradictory `accepted` entries with no machine-readable relation between
+  them — exactly what the ADR convention has a supersedes-link for.
+- **Third defect in the same area:** `appendDecision` always inserts at the top,
+  regardless of `--date`, while its own comment says "newest first". A decision
+  recorded with a back-date lands above newer ones.
+- **Measured impact on the model: none.** Three A/B runs (Sonnet 5, n=3 each)
+  over a five-entry log whose padding decision flip-flopped `sm → lg → sm → md`:
+  the model picked the newest entry 3/3, was unaffected by consolidating the log
+  to two entries, and — with the list deliberately mis-sorted — went by the
+  **date, not the position**, again 3/3. Append-only is not the problem; it is
+  what lets a human see that a stand was already tried and dropped.
+- **Why fix it anyway:** the manifest is also a document for people, and for them
+  the three defects compound — a status that promises meaning and delivers none,
+  a history with no visible chain, and an order that contradicts its own
+  comment. A `--supersedes <title>` (setting both ends, failing loud on an
+  unknown title), date-ordered insertion, and either honouring `superseded` in
+  `context` or dropping the value would settle all three.
+- **Found:** 2026-07-27, while wiring per-session manifests into
+  `apps/artifact-studio` (BEFUNDE §24).
+
+### The CLI has been fixed four times for the same failure — it needs one audit, not a fifth fix
+
+- **The pattern:** an input an agent plausibly types is neither honoured nor
+  rejected — the CLI answers something else, exit 0, and the caller cannot tell
+  the difference. Found and fixed one at a time:
+  1. unknown flags silently ignored (`fix(design)`, 2026-07-27)
+  2. `css-reference z-index` — a real section under a name nobody guesses
+     (`b8a9818`, 2026-07-28)
+  3. `principles <topic>` positionally — printed all 19 kB, exit 0 (`2471851`)
+  4. `<command> --help` — printed the whole 9.5 kB page instead of the command
+     (`2471851`)
+- **All four were found by watching a model use the tool, never by reading the
+  code.** Each cost the agent a wasted call and, in cases 3 and 4, a follow-up
+  `grep` over the command list to work out what had happened. Case 3 is the worst
+  of them: a made-up topic and a real one produced indistinguishable output.
+- **What an audit would cover, per command:** does a positional argument it does
+  not read fail or get dropped? Does an out-of-range enum value fail or fall back?
+  Does a required-but-missing argument fail or produce a default answer? Is there
+  a name for the same content that a caller is more likely to reach for than the
+  canonical one (the z-index case)? The `command-flags.ts` table plus the existing
+  `--help` guard already give the machinery; what is missing is the sweep.
+- **Why it is worth doing as a sweep:** the four fixes took four separate
+  sessions, each triggered by a lucky observation. The remaining cases are not
+  discoverable by reading the CLI, because the code looks correct — the defect is
+  the *absence* of a rejection path, and every one of them reads as a deliberate
+  lenient default until you see a model act on it.
+- **Found:** 2026-07-28, after the fourth instance, in the recorded consumer-path
+  run (`prototypes/artifact-frame/BEFUNDE.md` §26).
