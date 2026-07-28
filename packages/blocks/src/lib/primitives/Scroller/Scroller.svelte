@@ -27,12 +27,14 @@
     children,
     label,
     align = 'start',
-    snap = 'proximity',
+    // Undefaulted: the resting strictness depends on `align` (see `snap` below),
+    // which a plain default value cannot express.
+    snap: snapProp,
     gap = 'md',
     itemBasis = '16rem',
     controls = 'auto',
     indicator = 'none',
-    emphasis = false,
+    emphasis = 'none',
     onActiveChange,
     previousLabel = bt('scroller.previous'),
     nextLabel = bt('scroller.next'),
@@ -45,6 +47,14 @@
 
   const blocksConfig = getBlocksConfig();
   const unstyled = $derived(unstyledProp || blocksConfig?.unstyled || false);
+
+  // Snap strictness follows the alignment, because the two alignments mean
+  // different things. A `start` row is a list you sweep across — `mandatory`
+  // there can strand content between snap points (plan §3.5), and a chip bar
+  // that fights every flick is worse than one that doesn't snap. A `center` row
+  // is a stage: the middle IS the unit, so it has to land on one, and
+  // `proximity` there reads as "snapping is broken" because it rarely engages.
+  const snap = $derived(snapProp ?? (align === 'center' ? 'mandatory' : 'proximity'));
 
   let viewportRef = $state<HTMLDivElement>();
 
@@ -137,8 +147,33 @@
     measure();
   });
 
-  const activeIndex = $derived(activeItemIndex(items, scrollStart, viewportSize, align));
+  // What the container can actually reach. Passing it into the geometry is what
+  // keeps the trailing dots alive: with `align="start"` the last items begin
+  // further right than `scrollLeft` can ever go, so judging them by their raw
+  // anchor left their dots permanently unlit (see scroller.utils).
+  const maxScroll = $derived(Math.max(0, scrollSize - viewportSize));
+  const activeIndex = $derived(activeItemIndex(items, scrollStart, viewportSize, align, maxScroll));
   const edges = $derived(scrollEdges(scrollStart, scrollSize, viewportSize));
+
+  // DEV fail-loud: the lift is scroll-position-driven and only means anything
+  // when an item can arrive somewhere — with `align="start"` there is no middle,
+  // so the variants deliberately do not wire the animation and the prop is a
+  // silent no-op. Surface that once per instance. Plain flag, not `$state`: the
+  // warn must not feed back into the reactive graph.
+  let warnedEmphasisWithoutCenter = false;
+  $effect(() => {
+    if (
+      import.meta.env?.DEV &&
+      !warnedEmphasisWithoutCenter &&
+      emphasis !== 'none' &&
+      align !== 'center'
+    ) {
+      warnedEmphasisWithoutCenter = true;
+      console.warn(
+        '[Scroller] emphasis has no effect with align="start" — the lift marks the item in the MIDDLE of the scrollport, and a start-aligned row has no middle to arrive at. Set align="center", or drop emphasis.'
+      );
+    }
+  });
 
   // Report only real transitions, and never the -1 of an empty row.
   let lastReported = -1;
@@ -167,7 +202,9 @@
   }
 
   function step(direction: 1 | -1) {
-    scrollToPosition(scrollTargetForStep(items, scrollStart, viewportSize, align, direction));
+    scrollToPosition(
+      scrollTargetForStep(items, scrollStart, viewportSize, align, direction, maxScroll)
+    );
   }
 
   function goToItem(index: number) {
@@ -191,7 +228,11 @@
     align,
     snap,
     gap,
-    emphasis: emphasis || undefined
+    emphasis,
+    // Once buttons or dots are on screen they carry "there is more to see", so
+    // the native scrollbar stops being the only promise and starts being a
+    // third indicator stacked on the other two. Without them it stays.
+    scrollbar: showControlBar ? 'hidden' : 'visible'
   });
 
   const styles = $derived(scrollerVariants(variantProps));

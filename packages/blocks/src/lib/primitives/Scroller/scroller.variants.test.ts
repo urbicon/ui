@@ -37,24 +37,16 @@ describe('Scroller variants — the scroll mechanic is CSS', () => {
     expect(base).toContain('py-1');
   });
 
-  it('makes vertical room for the emphasis lift', () => {
-    expect(viewport({ emphasis: true })).toContain('py-3');
-  });
-
-  it('does NOT hide the native scrollbar (non-goal §7)', () => {
-    // On pointer devices the scrollbar is the only standing promise that there
-    // is more to see; touch platforms hide it themselves.
+  it('keeps the native scrollbar by default (plan §3.4/§7)', () => {
+    // A bare row has no other way to promise there is more to see. It is hidden
+    // only where controls or dots take over that job — see the scrollbar axis.
     const base = viewport();
     expect(base).not.toContain('scrollbar-none');
-    expect(base).not.toContain('scrollbar-hide');
     expect(base).not.toContain('[&::-webkit-scrollbar]');
   });
 
-  it('defaults to proximity snapping, never mandatory', () => {
-    // `mandatory` can strand content between snap points; it stays an explicit
-    // opt-in for "exactly one item per screen".
-    expect(viewport()).toContain('snap-proximity');
-    expect(viewport()).not.toContain('snap-mandatory');
+  it('offers every snap strictness', () => {
+    expect(viewport({ snap: 'proximity' })).toContain('snap-proximity');
     expect(viewport({ snap: 'mandatory' })).toContain('snap-mandatory');
     expect(viewport({ snap: 'none' })).toContain('snap-none');
   });
@@ -86,35 +78,74 @@ describe('Scroller variants — align', () => {
 });
 
 describe('Scroller variants — emphasis', () => {
+  const lifted = (emphasis: 'subtle' | 'strong') => viewport({ emphasis, align: 'center' });
+
   it('is off by default', () => {
     expect(viewport()).not.toContain('animation-timeline');
   });
 
   it('drives the lift from scroll POSITION, not from a clock', () => {
-    const lifted = viewport({ emphasis: true });
-    expect(lifted).toContain('[&>*]:[animation:blocks-scroller-emphasis_linear_both]');
     // `view(inline)` ties progress to where the item sits in the scrollport.
     // Where it is unsupported the animation simply never advances — the row
     // stays fully usable, just flat. That is why this technique ships today and
     // the ::scroll-marker one does not.
-    expect(lifted).toContain('[&>*]:[animation-timeline:view(inline)]');
+    expect(lifted('subtle')).toContain('[&>*]:[animation:blocks-scroller-emphasis_linear_both]');
+    expect(lifted('subtle')).toContain('[&>*]:[animation-timeline:view(inline)]');
+  });
+
+  it('is wired ONLY for align="center" — a start-aligned row has no middle', () => {
+    // The lift marks the item that has arrived in the middle of the scrollport.
+    // With `align="start"` nothing ever arrives anywhere, so the same animation
+    // would just make cards breathe at random. The component warns in DEV.
+    for (const strength of ['subtle', 'strong'] as const) {
+      expect(viewport({ emphasis: strength, align: 'start' })).not.toContain('animation-timeline');
+      expect(viewport({ emphasis: strength, align: 'start' })).not.toContain('py-3');
+    }
+  });
+
+  it('scales the lift through custom properties, so strong is visibly stronger', () => {
+    expect(lifted('subtle')).toContain('[--blocks-scroller-emphasis-scale:1.04]');
+    expect(lifted('strong')).toContain('[--blocks-scroller-emphasis-scale:1.08]');
+    // `strong` also steps up the elevation, or the bigger scale reads as a
+    // rendering glitch rather than a lift.
+    expect(lifted('strong')).toContain(
+      '[--blocks-scroller-emphasis-shadow:var(--blocks-shadow-lg)]'
+    );
+  });
+
+  it('makes vertical room for the lift', () => {
+    expect(lifted('subtle')).toContain('py-3');
   });
 
   it('removes the animation entirely under prefers-reduced-motion', () => {
     // Not by clearing the timeline: an animation without a timeline falls back
     // to the document clock and would run on its own, which is the opposite of
     // what reduced motion asks for.
-    const lifted = viewport({ emphasis: true });
-    expect(lifted).toContain('motion-reduce:[&>*]:[animation:none]');
-    expect(lifted).not.toContain('motion-reduce:[&>*]:[animation-timeline:none]');
+    expect(lifted('subtle')).toContain('motion-reduce:[&>*]:[animation:none]');
+    expect(lifted('subtle')).not.toContain('motion-reduce:[&>*]:[animation-timeline:none]');
   });
 
   it('never dims or blurs the neighbours (§3.7 condition 1)', () => {
     // Coverflow's inheritance. Dimming the edges destroys the very thing the
     // centred variant exists for — seeing how many there are.
-    const lifted = viewport({ emphasis: true, align: 'center' });
-    expect(lifted).not.toContain('blur');
-    expect(lifted).not.toMatch(/\[&>\*\]:opacity-/);
+    expect(lifted('strong')).not.toContain('blur');
+    expect(lifted('strong')).not.toMatch(/\[&>\*\]:opacity-/);
+  });
+});
+
+describe('Scroller variants — scrollbar', () => {
+  it('shows the native scrollbar when nothing else promises there is more', () => {
+    const bare = viewport({ scrollbar: 'visible' });
+    expect(bare).not.toContain('[scrollbar-width:none]');
+    expect(bare).not.toContain('[&::-webkit-scrollbar]:hidden');
+  });
+
+  it('hides it once controls or dots carry that promise instead', () => {
+    // Otherwise a scrollbar sits directly above the control bar and the row has
+    // three indicators for one fact.
+    const withControls = viewport({ scrollbar: 'hidden' });
+    expect(withControls).toContain('[scrollbar-width:none]');
+    expect(withControls).toContain('[&::-webkit-scrollbar]:hidden');
   });
 });
 

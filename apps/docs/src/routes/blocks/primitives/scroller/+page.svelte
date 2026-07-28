@@ -37,12 +37,12 @@
   function codeGenerator(vals: Record<string, unknown>): string {
     const defaults: Record<string, unknown> = {
       align: 'start',
-      snap: 'proximity',
+      snap: 'auto',
       gap: 'md',
       controls: 'auto',
       indicator: 'none',
       itemBasis: '16rem',
-      emphasis: false
+      emphasis: 'none'
     };
 
     const props = Object.entries(vals)
@@ -115,12 +115,16 @@
           type: 'dropdown',
           key: 'snap',
           label: 'Snap',
+          // `auto` passes no prop at all, so the contextual default applies
+          // (start → proximity, center → mandatory). Without this the
+          // playground would always override it and the default stays invisible.
           items: [
+            { label: 'auto', value: 'auto' },
             { label: 'proximity', value: 'proximity' },
             { label: 'mandatory', value: 'mandatory' },
             { label: 'none', value: 'none' }
           ],
-          defaultValue: 'proximity'
+          defaultValue: 'auto'
         },
         {
           type: 'dropdown',
@@ -156,16 +160,26 @@
           ],
           defaultValue: 'none'
         },
-        { type: 'checkbox', key: 'emphasis', label: 'Emphasis', defaultValue: false }
+        {
+          type: 'dropdown',
+          key: 'emphasis',
+          label: 'Emphasis',
+          items: [
+            { label: 'none', value: 'none' },
+            { label: 'subtle', value: 'subtle' },
+            { label: 'strong', value: 'strong' }
+          ],
+          defaultValue: 'none'
+        }
       ]}
       values={{
         align: 'start',
         itemBasis: '16rem',
-        snap: 'proximity',
+        snap: 'auto',
         gap: 'md',
         controls: 'auto',
         indicator: 'none',
-        emphasis: false
+        emphasis: 'none'
       }}
       showHeader={false}
     >
@@ -173,12 +187,14 @@
         <Scroller
           label="Main features"
           align={values.align as 'start' | 'center'}
-          snap={values.snap as 'proximity' | 'mandatory' | 'none'}
+          snap={values.snap === 'auto'
+            ? undefined
+            : (values.snap as 'proximity' | 'mandatory' | 'none')}
           gap={values.gap as 'xs' | 'sm' | 'md' | 'lg' | 'xl'}
           itemBasis={values.itemBasis as string}
           controls={values.controls as 'auto' | 'always' | 'none'}
           indicator={values.indicator as 'none' | 'dots'}
-          emphasis={values.emphasis as boolean}
+          emphasis={values.emphasis as 'none' | 'subtle' | 'strong'}
         >
           {#each cards as card (card.id)}
             <article class="border-border-subtle bg-surface-elevated rounded-contain border p-4">

@@ -20,42 +20,85 @@ function row(count = 5, size = 200, gap = 20, offset = 0): ScrollerItemMetrics[]
 }
 
 describe('activeItemIndex', () => {
+  // A 5×200 row with 20px gaps spans 1080; in a 600px viewport that leaves
+  // 480px of travel. Items 4 and 5 begin at 660 and 880 — beyond the end of the
+  // scroll range — which is what the clamping below is about.
+  const START_MAX = 1080 - 600;
+
   it('returns -1 for an empty row rather than pretending the first item is active', () => {
-    expect(activeItemIndex([], 0, 600, 'start')).toBe(-1);
-    expect(activeItemIndex([], 0, 600, 'center')).toBe(-1);
+    expect(activeItemIndex([], 0, 600, 'start', 0)).toBe(-1);
+    expect(activeItemIndex([], 0, 600, 'center', 0)).toBe(-1);
   });
 
   it('start: tracks the item whose leading edge sits closest to the scroll origin', () => {
     const items = row();
-    expect(activeItemIndex(items, 0, 600, 'start')).toBe(0);
-    expect(activeItemIndex(items, 220, 600, 'start')).toBe(1);
-    expect(activeItemIndex(items, 880, 600, 'start')).toBe(4);
+    expect(activeItemIndex(items, 0, 600, 'start', START_MAX)).toBe(0);
+    expect(activeItemIndex(items, 220, 600, 'start', START_MAX)).toBe(1);
   });
 
-  it('start: a scroll position between two items resolves to the nearer one', () => {
+  it('start: the LAST item is active at the end of the row', () => {
+    // The defect this clamping fixes. Item 5 begins at 880 but scrollLeft tops
+    // out at 480, so judging by the raw anchor its dot could never light up —
+    // the row highlighted item 3 while items 4 and 5 were the ones on screen,
+    // and clicking dot 5 visibly landed somewhere else.
     const items = row();
-    // Between item 0 (0) and item 1 (220): 90 is nearer to 0, 130 nearer to 220.
-    expect(activeItemIndex(items, 90, 600, 'start')).toBe(0);
-    expect(activeItemIndex(items, 130, 600, 'start')).toBe(1);
+    expect(activeItemIndex(items, START_MAX, 600, 'start', START_MAX)).toBe(4);
+  });
+
+  it('start: reaches the first and last item, and never moves backwards', () => {
+    // The two guarantees that actually hold for one-dot-per-item on a
+    // start-aligned row.
+    //
+    // What does NOT hold, and cannot: every item having its own turn. Items
+    // whose targets both clamp to `maxScroll` are indistinguishable by scroll
+    // position — with these numbers items 4 and 5 share the end of the row, so
+    // only the later of them is ever reported and dot 4 stays dark. That is
+    // inherent to the pattern, not a defect in this function: a start-aligned
+    // row showing several items at once has fewer distinct resting places than
+    // it has items. `align="center"` has no such collapse, because its edge
+    // padding makes every item's target reachable.
+    const items = row();
+    const seen: number[] = [];
+    for (let s = 0; s <= START_MAX; s += 5) {
+      seen.push(activeItemIndex(items, s, 600, 'start', START_MAX));
+    }
+
+    expect(seen[0]).toBe(0);
+    expect(seen.at(-1)).toBe(items.length - 1);
+    // Monotonic: scrolling forward never lights an earlier dot.
+    expect(seen.every((v, i) => i === 0 || v >= (seen[i - 1] as number))).toBe(true);
+  });
+
+  it('center: every item gets its own turn — no collapse at the end', () => {
+    const items = row(5, 200, 20, 200);
+    const max = 200 * 2 + 5 * 200 + 4 * 20 - 600;
+    const reached = new Set<number>();
+    for (let s = 0; s <= max; s += 5) {
+      reached.add(activeItemIndex(items, s, 600, 'center', max));
+    }
+    expect([...reached].sort((a, b) => a - b)).toEqual([0, 1, 2, 3, 4]);
   });
 
   it('center: tracks the item whose midpoint sits closest to the viewport midpoint', () => {
     // Centred track: 600px viewport, 200px items → 200px of edge padding.
     const items = row(5, 200, 20, 200);
+    const max = 200 * 2 + 5 * 200 + 4 * 20 - 600;
     // Scroll 0 → viewport midpoint 300 → item 0 spans 200–400, midpoint 300.
-    expect(activeItemIndex(items, 0, 600, 'center')).toBe(0);
+    expect(activeItemIndex(items, 0, 600, 'center', max)).toBe(0);
     // One item further along (220px of travel).
-    expect(activeItemIndex(items, 220, 600, 'center')).toBe(1);
-    expect(activeItemIndex(items, 880, 600, 'center')).toBe(4);
+    expect(activeItemIndex(items, 220, 600, 'center', max)).toBe(1);
+    expect(activeItemIndex(items, 880, 600, 'center', max)).toBe(4);
   });
 
-  it('breaks an exact tie towards the leading item, so the indicator cannot flicker', () => {
-    // Two items whose anchors are equidistant from the scroll origin.
+  it('breaks a tie towards the LATER item — the direction of travel', () => {
+    // Two items whose targets are equidistant from the current position. The
+    // one the user has scrolled towards wins; at the end of a row several items
+    // share the clamped target, and there the later one is the one on screen.
     const items: ScrollerItemMetrics[] = [
       { start: 0, size: 100 },
       { start: 200, size: 100 }
     ];
-    expect(activeItemIndex(items, 100, 600, 'start')).toBe(0);
+    expect(activeItemIndex(items, 100, 600, 'start', 200)).toBe(1);
   });
 });
 
@@ -91,27 +134,29 @@ describe('scrollTargetForIndex', () => {
 });
 
 describe('scrollTargetForStep', () => {
+  const CENTRE_MAX = 200 * 2 + 5 * 200 + 4 * 20 - 600;
+
   it('start: travels one viewport per press', () => {
     const items = row();
-    expect(scrollTargetForStep(items, 0, 600, 'start', 1)).toBe(600);
-    expect(scrollTargetForStep(items, 600, 600, 'start', -1)).toBe(0);
+    expect(scrollTargetForStep(items, 0, 600, 'start', 1, 480)).toBe(600);
+    expect(scrollTargetForStep(items, 600, 600, 'start', -1, 480)).toBe(0);
   });
 
   it('center: travels one ITEM per press — a viewport would jump straight past the middle', () => {
     const items = row(5, 200, 20, 200);
-    expect(scrollTargetForStep(items, 0, 600, 'center', 1)).toBe(220);
-    expect(scrollTargetForStep(items, 220, 600, 'center', -1)).toBe(0);
+    expect(scrollTargetForStep(items, 0, 600, 'center', 1, CENTRE_MAX)).toBe(220);
+    expect(scrollTargetForStep(items, 220, 600, 'center', -1, CENTRE_MAX)).toBe(0);
   });
 
   it('center: clamps at both ends instead of walking off the row', () => {
     const items = row(5, 200, 20, 200);
-    expect(scrollTargetForStep(items, 0, 600, 'center', -1)).toBe(0);
+    expect(scrollTargetForStep(items, 0, 600, 'center', -1, CENTRE_MAX)).toBe(0);
     // 880 = last item centred; stepping further must stay there.
-    expect(scrollTargetForStep(items, 880, 600, 'center', 1)).toBe(880);
+    expect(scrollTargetForStep(items, 880, 600, 'center', 1, CENTRE_MAX)).toBe(880);
   });
 
   it('center: an empty row stays put', () => {
-    expect(scrollTargetForStep([], 42, 600, 'center', 1)).toBe(42);
+    expect(scrollTargetForStep([], 42, 600, 'center', 1, 0)).toBe(42);
   });
 });
 
