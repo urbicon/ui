@@ -340,6 +340,28 @@
   }
 }
 
+/* Scroller `emphasis` — lifts whichever item currently sits in the middle of
+   the scrollport. Driven by `animation-timeline: view(inline)` (applied by
+   scroller.variants.ts), so "50%" is a POSITION, not a moment in time: the
+   item is halfway through the scrollport. Nothing here runs on a clock.
+
+   Only the midpoint is declared; 0% and 100% are implicit keyframes taken from
+   the element itself, so an item keeps its own resting scale and shadow at the
+   edges. Both values are retunable per instance without widening the component
+   API (the Tooltip convention).
+
+   Kept small on purpose (plan §3.7 condition 2): anything beyond ~1.05 wobbles
+   while scrolling and pulls attention away from reading. `prefers-reduced-motion`
+   is handled at the utility (`motion-reduce:[&>*]:[animation:none]`) rather than
+   here — dropping only the timeline would hand the animation back to the
+   document clock, which is the opposite of what reduced motion asks for. */
+@keyframes blocks-scroller-emphasis {
+  50% {
+    scale: var(--blocks-scroller-emphasis-scale, 1.04);
+    box-shadow: var(--blocks-scroller-emphasis-shadow, var(--blocks-shadow-md));
+  }
+}
+
 /* === ANIMATION UTILITY CLASSES === */
 .blocks-animate-fade-in {
   animation: blocks-fade-in var(--blocks-duration-normal) var(--blocks-ease-gentle);

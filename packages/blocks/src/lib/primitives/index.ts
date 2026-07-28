@@ -55,6 +55,8 @@ export type { ProgressProps } from './Progress';
 export * from './Progress';
 export type { RadioGroupContext, RadioGroupProps, RadioItemProps } from './RadioGroup';
 export * from './RadioGroup';
+export type { ScrollerProps } from './Scroller';
+export * from './Scroller';
 export type { SegmentGroupContext, SegmentGroupProps, SegmentItemProps } from './SegmentGroup';
 export * from './SegmentGroup';
 export type { SelectGroup, SelectOption, SelectProps } from './Select';

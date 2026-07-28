@@ -66,6 +66,11 @@ export default {
     pageInfo: '{{label}} {{current}} of {{total}}',
     rangeInfo: '{{start}}–{{end}} of {{total}}'
   },
+  scroller: {
+    previous: 'Previous',
+    next: 'Next',
+    item: 'Item {{index}} of {{total}}'
+  },
   calendar: {
     recurring: 'Recurring event',
     previousMonth: 'Previous month',
