@@ -65,6 +65,37 @@ internal TODO instead. Sections are ordered roughly by urgency.
 
 ## API design
 
+### `--radius-commit` carries two meanings: the pill of a button and the circle of a radio
+
+- **Where:** `style/foundation.css` (`--radius-commit: 9999px`) consumed by
+  `primitives/RadioGroup/radioGroup.variants.ts` (`tier.commit` →
+  `indicator: 'rounded-commit', dot: 'rounded-commit'`) and by every commit-tier
+  button.
+- **What happens:** a consumer who wants square buttons sets `--radius-commit: 0`
+  — the comment at `foundation.css:178` explicitly invites the austere direction
+  — and squares the radio indicators along with them. A square radio is a
+  checkbox to the eye, so the "pick exactly one" affordance is gone. Shape is
+  the only thing carrying that distinction; both controls are otherwise the same
+  box with the same label.
+- **Why it is not just styling:** the pill on a button is taste, the circle on a
+  radio is convention with meaning (Material, HIG and Carbon all hold it). The
+  tier bundles a decorative decision with a semantic one, and the token layer
+  offers no way to take only the first.
+- **Workaround in the wild:** `BlocksProvider` defaults —
+  `RadioItem: { slotClasses: { indicator: 'rounded-full', dot: 'rounded-full' } }`.
+  Shipped as `CIRCULAR_RADIOS` in `apps/chat-demo/src/lib/livery/index.ts`,
+  where **all four** brand liveries need it — including the one that merely
+  softens the tier to `2px` instead of zeroing it, because 2px on a 20px control
+  already reads as a square. The exemption was written into that livery on the
+  assumption that a small radius was harmless, and the rendered form disproved
+  it. So this is not a corner case for austere themes: *any* theme that touches
+  the commit tier at all loses the radio affordance.
+- **Possible fix:** give the radio indicator its own token (e.g.
+  `--radius-control`, defaulting to `--radius-commit`) so a livery can square the
+  buttons without touching the controls. Cheap, but it is a new public token —
+  worth a deliberate decision rather than a drive-by.
+- **Found:** 2026-07-27, while theming the A2UI salon demo across three liveries.
+
 ### ~~Field label/helper/error MARKUP is re-implemented per form component (part b)~~ — message extracted across all ten fields (2026-07-26/27), label divergence kept on purpose
 
 - **Where:** the label/message scaffolding across the Form family — the entry
