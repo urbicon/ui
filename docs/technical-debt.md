@@ -1270,3 +1270,32 @@ internal TODO instead. Sections are ordered roughly by urgency.
   `context` or dropping the value would settle all three.
 - **Found:** 2026-07-27, while wiring per-session manifests into
   `apps/artifact-studio` (BEFUNDE §24).
+
+### The CLI has been fixed four times for the same failure — it needs one audit, not a fifth fix
+
+- **The pattern:** an input an agent plausibly types is neither honoured nor
+  rejected — the CLI answers something else, exit 0, and the caller cannot tell
+  the difference. Found and fixed one at a time:
+  1. unknown flags silently ignored (`fix(design)`, 2026-07-27)
+  2. `css-reference z-index` — a real section under a name nobody guesses
+     (`b8a9818`, 2026-07-28)
+  3. `principles <topic>` positionally — printed all 19 kB, exit 0 (`2471851`)
+  4. `<command> --help` — printed the whole 9.5 kB page instead of the command
+     (`2471851`)
+- **All four were found by watching a model use the tool, never by reading the
+  code.** Each cost the agent a wasted call and, in cases 3 and 4, a follow-up
+  `grep` over the command list to work out what had happened. Case 3 is the worst
+  of them: a made-up topic and a real one produced indistinguishable output.
+- **What an audit would cover, per command:** does a positional argument it does
+  not read fail or get dropped? Does an out-of-range enum value fail or fall back?
+  Does a required-but-missing argument fail or produce a default answer? Is there
+  a name for the same content that a caller is more likely to reach for than the
+  canonical one (the z-index case)? The `command-flags.ts` table plus the existing
+  `--help` guard already give the machinery; what is missing is the sweep.
+- **Why it is worth doing as a sweep:** the four fixes took four separate
+  sessions, each triggered by a lucky observation. The remaining cases are not
+  discoverable by reading the CLI, because the code looks correct — the defect is
+  the *absence* of a rejection path, and every one of them reads as a deliberate
+  lenient default until you see a model act on it.
+- **Found:** 2026-07-28, after the fourth instance, in the recorded consumer-path
+  run (`prototypes/artifact-frame/BEFUNDE.md` §26).
