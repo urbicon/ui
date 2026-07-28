@@ -175,6 +175,30 @@
     }
   });
 
+  // DEV fail-loud: a centred row pads its track by half the leftover width so
+  // the first and last item can reach the middle. When the items are nearly as
+  // wide as the viewport that padding is most of the row, and the result reads
+  // as a broken layout — one card adrift in empty space — rather than a stage.
+  // The pattern wants roughly three visible with two peeking (plan §3.7
+  // condition 4); below two-and-a-bit it stops being one.
+  let warnedCentreTooNarrow = false;
+  $effect(() => {
+    const itemWidth = items[0]?.size ?? 0;
+    if (
+      import.meta.env?.DEV &&
+      !warnedCentreTooNarrow &&
+      align === 'center' &&
+      itemWidth > 0 &&
+      viewportSize > 0 &&
+      viewportSize / itemWidth < 2.2
+    ) {
+      warnedCentreTooNarrow = true;
+      console.warn(
+        `[Scroller] align="center" has room for only ${(viewportSize / itemWidth).toFixed(1)} items — the centring padding then takes up most of the row and it reads as a layout bug rather than a stage. Narrow itemBasis (currently rendering ${Math.round(itemWidth)}px in a ${Math.round(viewportSize)}px row) so about three items are visible with two peeking, or use align="start".`
+      );
+    }
+  });
+
   // Report only real transitions, and never the -1 of an empty row.
   let lastReported = -1;
   $effect(() => {

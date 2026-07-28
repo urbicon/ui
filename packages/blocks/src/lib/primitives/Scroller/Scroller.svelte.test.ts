@@ -423,6 +423,32 @@ describe('Scroller — defaults that depend on context', () => {
   });
 });
 
+describe('Scroller — DEV warnings for combinations that silently do nothing', () => {
+  it('warns when emphasis is set without align="center"', () => {
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+    render({ emphasis: 'strong' }, OVERFLOWS);
+    expect(warn.mock.calls.flat().join(' ')).toContain('emphasis has no effect');
+    warn.mockRestore();
+  });
+
+  it('stays quiet for a correctly centred, lifted row', () => {
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+    // 3 items' worth of viewport — comfortably inside the pattern.
+    render({ emphasis: 'strong', align: 'center' }, OVERFLOWS);
+    expect(warn).not.toHaveBeenCalled();
+    warn.mockRestore();
+  });
+
+  it('warns when a centred row is too narrow for the pattern to work', () => {
+    // The centring padding then takes over the row and it reads as a layout
+    // bug — one card adrift in empty space — rather than a stage.
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+    render({ align: 'center' }, { viewportWidth: 400, itemWidth: 340 });
+    expect(warn.mock.calls.flat().join(' ')).toContain('room for only');
+    warn.mockRestore();
+  });
+});
+
 describe('Scroller — re-measuring', () => {
   it('notices items appearing later and re-measures correctly WHILE scrolled', async () => {
     const { viewport } = render({ indicator: 'dots' }, OVERFLOWS);

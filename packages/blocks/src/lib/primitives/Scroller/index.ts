@@ -73,6 +73,11 @@ export interface ScrollerProps
    * Where an item comes to rest when the row snaps. `start` is the ordinary
    * overflow row. `center` is a stage: the middle item is the subject, and the
    * track is padded so the first and last item can reach the middle too.
+   *
+   * `center` needs items narrow enough that roughly three are visible with two
+   * peeking. Make them much wider and the centring padding takes over the row —
+   * one card adrift in empty space, which reads as a layout bug rather than a
+   * stage. The component warns about that in DEV.
    * @default 'start'
    */
   align?: 'start' | 'center';
