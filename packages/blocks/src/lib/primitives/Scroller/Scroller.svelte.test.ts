@@ -324,6 +324,24 @@ describe('Scroller — dots', () => {
     expect(dots()[0]?.getAttribute('aria-current')).toBe(null);
   });
 
+  it('lights the LAST dot at the end of a start-aligned row', async () => {
+    // The defect as it was actually seen: scrolled fully right, items 4 and 5
+    // on screen, and dot 3 lit. The last items start further right than
+    // scrollLeft can ever reach, so judging them by their raw anchor left their
+    // dots permanently dark — and clicking dot 5 visibly landed elsewhere.
+    const user = userEvent.setup();
+    const { viewport } = render({ indicator: 'dots' }, OVERFLOWS);
+
+    scrollViewport(viewport, 480); // 1080 content − 600 viewport = the far end
+    expect(dots()[4]?.getAttribute('aria-current')).toBe('true');
+
+    // And pressing that dot keeps it lit, rather than handing the mark back.
+    scrollViewport(viewport, 0);
+    await user.click(dots()[4] as HTMLElement);
+    flushSync();
+    expect(dots()[4]?.getAttribute('aria-current')).toBe('true');
+  });
+
   it('jumps to the item when a dot is pressed', async () => {
     const user = userEvent.setup();
     const { viewport } = render({ indicator: 'dots' }, OVERFLOWS);
@@ -367,6 +385,67 @@ describe('Scroller — dots', () => {
   it('omits dots on a single-item row, where a position indicator says nothing', () => {
     render({ indicator: 'dots', count: 1 }, { viewportWidth: 200, itemWidth: 400 });
     expect(dots()).toHaveLength(0);
+  });
+});
+
+describe('Scroller — defaults that depend on context', () => {
+  it('snaps loosely when start-aligned and firmly when centred', () => {
+    // A `start` row is a list you sweep across, so `mandatory` would fight every
+    // flick and can strand content between snap points. A `center` row is a
+    // stage — the middle IS the unit, and `proximity` there engages so rarely
+    // that it reads as "snapping is broken".
+    const { viewport } = render({}, OVERFLOWS);
+    expect(viewport.className).toContain('snap-proximity');
+    expect(viewport.className).not.toContain('snap-mandatory');
+
+    dispose?.();
+    document.body.replaceChildren();
+    const centred = render({ align: 'center' }, OVERFLOWS);
+    expect(centred.viewport.className).toContain('snap-mandatory');
+  });
+
+  it('lets an explicit snap prop override the contextual default', () => {
+    const { viewport } = render({ align: 'center', snap: 'none' }, OVERFLOWS);
+    expect(viewport.className).toContain('snap-none');
+    expect(viewport.className).not.toContain('snap-mandatory');
+  });
+
+  it('keeps the native scrollbar while nothing else promises there is more', () => {
+    const { viewport } = render({ controls: 'none', indicator: 'none' }, OVERFLOWS);
+    expect(viewport.className).not.toContain('[scrollbar-width:none]');
+  });
+
+  it('hides the native scrollbar once controls take over that job', () => {
+    // Otherwise the scrollbar sits directly above the control bar and the row
+    // shows three indicators for one fact.
+    const { viewport } = render({ controls: 'auto' }, OVERFLOWS);
+    expect(viewport.className).toContain('[scrollbar-width:none]');
+  });
+});
+
+describe('Scroller — DEV warnings for combinations that silently do nothing', () => {
+  it('warns when emphasis is set without align="center"', () => {
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+    render({ emphasis: 'strong' }, OVERFLOWS);
+    expect(warn.mock.calls.flat().join(' ')).toContain('emphasis has no effect');
+    warn.mockRestore();
+  });
+
+  it('stays quiet for a correctly centred, lifted row', () => {
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+    // 3 items' worth of viewport — comfortably inside the pattern.
+    render({ emphasis: 'strong', align: 'center' }, OVERFLOWS);
+    expect(warn).not.toHaveBeenCalled();
+    warn.mockRestore();
+  });
+
+  it('warns when a centred row is too narrow for the pattern to work', () => {
+    // The centring padding then takes over the row and it reads as a layout
+    // bug — one card adrift in empty space — rather than a stage.
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+    render({ align: 'center' }, { viewportWidth: 400, itemWidth: 340 });
+    expect(warn.mock.calls.flat().join(' ')).toContain('room for only');
+    warn.mockRestore();
   });
 });
 

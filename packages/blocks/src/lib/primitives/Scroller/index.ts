@@ -36,7 +36,13 @@ import type { ScrollerSlots, ScrollerVariants } from './scroller.variants';
  * ```svelte
  * <!-- Centred stage: three visible, two peeking. Card width is chosen so the
  *      row always overflows — that is what gives it a middle to centre. -->
- * <Scroller label="Main features" itemBasis="22rem" align="center" emphasis indicator="dots">
+ * <Scroller
+ *   label="Main features"
+ *   itemBasis="22rem"
+ *   align="center"
+ *   emphasis="strong"
+ *   indicator="dots"
+ * >
  *   {#each features as feature (feature.id)}
  *     <FeatureCard {...feature} />
  *   {/each}
@@ -44,7 +50,10 @@ import type { ScrollerSlots, ScrollerVariants } from './scroller.variants';
  * ```
  */
 export interface ScrollerProps
-  extends Omit<ScrollerVariants, 'emphasis'>,
+  // `emphasis` is re-declared below with its own docs; `snap` too (its default
+  // depends on `align`). `scrollbar` is NOT part of the public API — the
+  // component derives it from whether controls are on screen.
+  extends Omit<ScrollerVariants, 'emphasis' | 'snap' | 'scrollbar'>,
     Omit<HTMLAttributes<HTMLDivElement>, 'children' | 'class'> {
   // === Content ===
   /** The row's items. Each direct child becomes one snap target — width, snap alignment and (with `emphasis`) the lift are applied for you. Required. */
@@ -64,15 +73,24 @@ export interface ScrollerProps
    * Where an item comes to rest when the row snaps. `start` is the ordinary
    * overflow row. `center` is a stage: the middle item is the subject, and the
    * track is padded so the first and last item can reach the middle too.
+   *
+   * `center` needs items narrow enough that roughly three are visible with two
+   * peeking. Make them much wider and the centring padding takes over the row —
+   * one card adrift in empty space, which reads as a layout bug rather than a
+   * stage. The component warns about that in DEV.
    * @default 'start'
    */
   align?: 'start' | 'center';
   /**
    * Snap strictness. `proximity` snaps when you release nearby and otherwise
-   * leaves scrolling alone; `mandatory` always lands on an item and is only
-   * right for "exactly one item per screen" — it can otherwise skip past
-   * content that sits between two snap points. `none` scrolls freely.
-   * @default 'proximity'
+   * leaves scrolling alone; `mandatory` always lands on an item — right when one
+   * item at a time is the unit, but it can skip past content sitting between two
+   * snap points. `none` scrolls freely.
+   *
+   * The default follows `align`, because the two alignments mean different
+   * things: a `start` row is a list you sweep across (`proximity`), a `center`
+   * row is a stage whose middle has to land on something (`mandatory`).
+   * @default 'proximity' — or 'mandatory' when align="center"
    */
   snap?: 'proximity' | 'mandatory' | 'none';
   /** Space between items. @default 'md' */
@@ -99,21 +117,34 @@ export interface ScrollerProps
   /**
    * Position indicator. `dots` renders one button per item — it both shows how
    * many items there are and jumps to them, marking the current one with
-   * `aria-current`. Worth switching on for `align="center"`, where only part of
-   * the row is ever visible; leave it off for long chip bars, where a dot per
-   * chip is noise.
+   * `aria-current`.
+   *
+   * Best paired with `align="center"`, where each item has its own resting
+   * place and every dot therefore has its own turn. On a `start`-aligned row
+   * showing several items at once, the last few share the end of the scroll
+   * range: they remain clickable and the final one still lights up at the end,
+   * but the ones collapsing into it never do — a row has only as many distinct
+   * resting places as it can scroll to. Leave it off for long chip bars, where
+   * a dot per chip is noise either way.
    * @default 'none'
    */
   indicator?: 'none' | 'dots';
   /**
-   * Lift the item in the middle of the scrollport (a small scale + elevation
-   * step, scroll-driven via CSS). Only meaningful with `align="center"`.
-   * Neighbours are never dimmed or blurred: the point is to mark the middle,
-   * not to hide the rest. Respects `prefers-reduced-motion`, and where
-   * `animation-timeline` is unsupported it simply does nothing.
-   * @default false
+   * Lift the item in the middle of the scrollport — a scale plus an elevation
+   * step, driven by scroll position via CSS. `subtle` is a light touch, `strong`
+   * is visible across a room; past roughly `strong` a row wobbles while
+   * scrolling and pulls attention away from reading, which is why this is a
+   * scale and not a free number. Retune per instance with
+   * `--blocks-scroller-emphasis-scale` / `-shadow`.
+   *
+   * **Requires `align="center"`** and is a no-op otherwise (with a DEV warning):
+   * the lift marks the item that has arrived in the middle, and a start-aligned
+   * row has no middle. Neighbours are never dimmed or blurred — the point is to
+   * mark the middle, not to hide the rest. Respects `prefers-reduced-motion`,
+   * and where `animation-timeline` is unsupported it simply does nothing.
+   * @default 'none'
    */
-  emphasis?: boolean;
+  emphasis?: 'none' | 'subtle' | 'strong';
 
   // === Callbacks ===
   /**

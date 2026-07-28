@@ -123,17 +123,51 @@ export const scrollerVariants = tv({
       xl: { viewport: 'gap-8' }
     },
 
-    // Scroll-driven lift of whatever item sits in the middle of the scrollport.
-    // Pure CSS: `animation-timeline: view(inline)` ties progress to the item's
-    // position, so there is no JS to keep in sync and nothing to fall back to —
-    // where the timeline is unsupported the animation simply never advances and
-    // the row is exactly as usable, only flat (plan §3.7).
-    //
-    // The neighbours are NOT dimmed or blurred (plan §3.7 condition 1): the
-    // point is to mark the middle, not to devalue the edges — dimming kills the
-    // "you can see how many there are" that justifies the whole variant.
+    // Strength of the lift. Only the two custom properties differ — the
+    // animation wiring itself is applied by the compound below, because a lift
+    // only means something when there IS a middle (see there).
     emphasis: {
-      true: {
+      none: {},
+      subtle: { viewport: '[--blocks-scroller-emphasis-scale:1.04]' },
+      strong: {
+        viewport: [
+          '[--blocks-scroller-emphasis-scale:1.08]',
+          '[--blocks-scroller-emphasis-shadow:var(--blocks-shadow-lg)]'
+        ]
+      }
+    },
+
+    // Whether the native scrollbar shows. It is the only standing promise that
+    // there is more to see (plan §3.4/§7) — but once jump buttons or dots are on
+    // screen they carry that promise, and stacking a scrollbar directly above a
+    // control bar is three indicators for one fact. The component hides it only
+    // where a replacement is actually visible.
+    scrollbar: {
+      visible: {},
+      hidden: {
+        viewport: ['[scrollbar-width:none]', '[&::-webkit-scrollbar]:hidden']
+      }
+    }
+  },
+
+  compoundVariants: [
+    // Scroll-driven lift, wired ONLY for `align="center"`. Pure CSS:
+    // `animation-timeline: view(inline)` ties progress to where the item sits in
+    // the scrollport, so nothing needs keeping in sync and there is nothing to
+    // fall back to — where the timeline is unsupported the animation never
+    // advances and the row is exactly as usable, only flat (plan §3.7).
+    //
+    // With `align="start"` there is no middle for an item to arrive at, so the
+    // same animation would make cards breathe for no discernible reason. The
+    // component warns about that combination in DEV rather than rendering it.
+    //
+    // Neighbours are never dimmed or blurred (plan §3.7 condition 1): the point
+    // is to mark the middle, not to devalue the edges — dimming destroys the
+    // "you can see how many there are" that justifies the variant at all.
+    ...(['subtle', 'strong'] as const).map((strength) => ({
+      align: 'center' as const,
+      emphasis: strength,
+      class: {
         viewport: [
           '[&>*]:[animation:blocks-scroller-emphasis_linear_both]',
           '[&>*]:[animation-timeline:view(inline)]',
@@ -145,22 +179,22 @@ export const scrollerVariants = tv({
           'py-3'
         ]
       }
-    }
+    }))
+  ],
 
-    // No `overflowing` style axis on purpose. Overflow decides *behaviour* —
-    // the tab stop, the controls, the dots — and changes nothing about the
-    // resting look, so a tv() axis would either be empty or invent a class to
-    // justify itself (`cursor-grab` would be the tempting one, and it would be
-    // a lie: there is no drag-to-scroll here, the browser does the scrolling).
-    // The state is exposed as `data-overflowing` on the root instead, which is
-    // a styling hook without a styling claim.
-  },
-
+  // No `overflowing` style axis on purpose. Overflow decides *behaviour* — the
+  // tab stop, the controls, the dots — and changes nothing about the resting
+  // look, so a tv() axis would either be empty or invent a class to justify
+  // itself (`cursor-grab` would be the tempting one, and it would be a lie:
+  // there is no drag-to-scroll here, the browser does the scrolling). The state
+  // is exposed as `data-overflowing` on the root instead — a styling hook
+  // without a styling claim.
   defaultVariants: {
     align: 'start',
     snap: 'proximity',
     gap: 'md',
-    emphasis: false
+    emphasis: 'none',
+    scrollbar: 'visible'
   }
 });
 

@@ -81,7 +81,7 @@
   label="Main features"
   itemBasis="22rem"
   align="center"
-  emphasis
+  emphasis="strong"
   indicator="dots"
 >
   {#each features as feature (feature.id)}
@@ -93,7 +93,7 @@
         label="Main features, centred"
         itemBasis="22rem"
         align="center"
-        emphasis
+        emphasis="strong"
         indicator="dots"
       >
         {#each features as feature (feature.id)}
@@ -165,8 +165,8 @@
       code={`<Scroller
   label="Main features"
   align="center"
-  emphasis
-  style="--blocks-scroller-emphasis-scale: 1.03;
+  emphasis="strong"
+  style="--blocks-scroller-emphasis-scale: 1.06;
          --blocks-scroller-emphasis-shadow: var(--blocks-shadow-lg);"
 >…</Scroller>`}
     />
@@ -219,8 +219,18 @@
         look clickable are worse than none. Both appear only while the row overflows.
       </p>
       <p class="text-text-secondary text-sm">
-        The native scrollbar is deliberately left visible: on pointer devices it is the only
-        standing promise that there is more to see. Touch platforms hide it themselves.
+        Dots fit <code class="text-text-primary text-xs">align="center"</code> best, because there
+        every item has its own resting place and therefore its own turn. On a start-aligned row
+        showing several items at once, the last few share the end of the scroll range: they stay
+        clickable and the final one still lights up at the end, but the ones collapsing into it
+        never do. A row has only as many distinct resting places as it can scroll to — with more
+        items than that, prefer <code class="text-text-primary text-xs">align="center"</code> or leave
+        the indicator off.
+      </p>
+      <p class="text-text-secondary text-sm">
+        The native scrollbar stays visible while nothing else makes the promise that there is more
+        to see. Once jump buttons or dots are on screen they carry it, and the scrollbar steps aside
+        rather than stacking a third indicator on the other two.
       </p>
     </div>
 

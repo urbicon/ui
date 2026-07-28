@@ -29,21 +29,23 @@ function anchorOf(item: ScrollerItemMetrics, align: ScrollerAlign): number {
 }
 
 /**
- * The point in the viewport an anchor is snapped AT: the content origin for
- * `start`, the viewport midpoint for `center`.
- */
-function viewportAnchor(scrollStart: number, viewportSize: number, align: ScrollerAlign): number {
-  return align === 'center' ? scrollStart + viewportSize / 2 : scrollStart;
-}
-
-/**
- * Index of the item currently sitting closest to the snap anchor — what the
- * dots mark with `aria-current` and what a `center` step navigates from.
+ * Index of the item the row is currently resting on — what the dots mark with
+ * `aria-current` and what a `center` step navigates from.
  *
- * Ties (two items equidistant from the anchor) resolve to the LEADING one:
- * scanning in document order and requiring a strict improvement means the
- * earlier item keeps the win, so the indicator never flickers between two
- * neighbours while a scroll rests exactly between them.
+ * Compares against each item's **reachable** scroll target, not its raw anchor,
+ * and that distinction is the whole point. With `align="start"` the last items
+ * sit further right than `scrollLeft` can ever reach: a five-item row 1344px
+ * wide in a 664px viewport tops out at 680, while item 5 begins at 1088. Judging
+ * by the raw anchor made those items permanently unreachable, so their dots
+ * never lit up — at the right-hand end the row highlighted item 3 while items 4
+ * and 5 were the ones on screen, and clicking dot 5 visibly landed elsewhere.
+ * Clamping each target into `[0, maxScroll]` puts every dot back in play.
+ *
+ * Ties resolve to the LATER item: at the end of the row several items share the
+ * clamped target `maxScroll`, and the one the user has scrolled *to* is the last
+ * of them. (Mid-row ties — resting exactly between two neighbours — likewise
+ * resolve forwards, in the direction of travel.) Deterministic either way, so
+ * the indicator never flickers.
  *
  * Returns `-1` for an empty row so callers cannot mistake "nothing here" for
  * "the first one".
@@ -52,23 +54,29 @@ export function activeItemIndex(
   items: readonly ScrollerItemMetrics[],
   scrollStart: number,
   viewportSize: number,
-  align: ScrollerAlign
+  align: ScrollerAlign,
+  maxScroll: number
 ): number {
   if (items.length === 0) return -1;
 
-  const target = viewportAnchor(scrollStart, viewportSize, align);
   let bestIndex = 0;
   let bestDistance = Number.POSITIVE_INFINITY;
 
-  for (const [index, item] of items.entries()) {
-    const distance = Math.abs(anchorOf(item, align) - target);
-    if (distance < bestDistance) {
+  for (const [index] of items.entries()) {
+    const target = clampScroll(scrollTargetForIndex(items, index, viewportSize, align), maxScroll);
+    const distance = Math.abs(target - scrollStart);
+    if (distance <= bestDistance) {
       bestDistance = distance;
       bestIndex = index;
     }
   }
 
   return bestIndex;
+}
+
+/** Confine a scroll target to what the container can actually reach. */
+function clampScroll(target: number, maxScroll: number): number {
+  return Math.max(0, Math.min(maxScroll, target));
 }
 
 /**
@@ -110,11 +118,12 @@ export function scrollTargetForStep(
   scrollStart: number,
   viewportSize: number,
   align: ScrollerAlign,
-  direction: 1 | -1
+  direction: 1 | -1,
+  maxScroll: number
 ): number {
   if (align === 'start') return scrollStart + direction * viewportSize;
 
-  const current = activeItemIndex(items, scrollStart, viewportSize, align);
+  const current = activeItemIndex(items, scrollStart, viewportSize, align, maxScroll);
   if (current === -1) return scrollStart;
   const next = Math.min(items.length - 1, Math.max(0, current + direction));
   return scrollTargetForIndex(items, next, viewportSize, align);
