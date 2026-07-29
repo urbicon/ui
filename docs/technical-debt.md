@@ -1189,6 +1189,29 @@ internal TODO instead. Sections are ordered roughly by urgency.
 
 ## Design tokens
 
+### `text-on-primary` is used as the on-colour for every solid intent surface
+
+- **Where:** `badge.variants.ts:336-372` (filled success/secondary/danger/neutral
+  all pair their `bg-<intent>` with `text-text-on-primary`; only warning has its
+  own `text-on-warning`), and the same pairing recurs in at least
+  `button.variants.ts`, `checkbox.variants.ts`, `tooltip.variants.ts`,
+  `stepper.variants.ts`, `prompt-input.variants.ts` (single-line grep heuristic —
+  a proper sweep must recount across multi-line class arrays).
+- **What:** `--color-text-on-primary` is semantically "readable on the primary
+  colour", but it is composed onto success/danger/secondary/neutral fills as
+  well. That holds only while on-primary happens to be near-white globally. The
+  moment primary is rethemed — `BlocksProvider` overrides, a consumer theme, or
+  the landing's `.room-accent` channel scoping — every non-primary solid fill
+  inherits the retheme's on-colour: on the journey prototype's orange tile, a
+  `success` filled Badge rendered dark-orange text on dark green (~1.5:1).
+  Themability is a core promise; this couples it to intent colours it must not
+  touch.
+- **Why deferred:** Needs a token design decision, not a local patch: either
+  per-intent on-tokens (`--color-text-on-success` etc. — warning already has
+  one) or one shared `--color-text-on-emphasis` that themes deliberately. Then a
+  sweep over all variants files + contrast tests for the new pairings.
+- **Found:** 2026-07-29, journey-prototype tile livery (channel-scoped primary).
+
 ### A contrast floor on a token says nothing about what a component composes on it
 
 - **Where:** `packages/blocks/src/lib/style/contrast.test.ts` (the ramp guards)
