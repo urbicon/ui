@@ -11,10 +11,22 @@ export { default as DocsLayout, setDocsPageNav } from './DocsLayout';
 export type { InfoCardProps, InfoCardVariantProps } from './InfoCard';
 export { default as InfoCard } from './InfoCard';
 export type {
+  ControlOverride,
+  DerivableComponentData,
+  DeriveControlsOptions,
   PlaygroundConfiguratorProps,
   PlaygroundConfiguratorVariantProps
 } from './PlaygroundConfigurator';
-export { default as PlaygroundConfigurator, extractPlaygroundDocs } from './PlaygroundConfigurator';
+export {
+  default as PlaygroundConfigurator,
+  defaultValuesOf,
+  deriveControls,
+  extractPlaygroundDocs,
+  // For the playgrounds whose snippet is a *shape* the generator cannot build —
+  // ChatMessage prints an `{#each}` over a thread. They still print the very
+  // objects the stage renders instead of a hand-typed copy, which is the point.
+  serializeValue
+} from './PlaygroundConfigurator';
 export { playgroundConfiguratorVariants } from './PlaygroundConfigurator/playground-configurator.variants';
 export type { SectionProps, SectionVariantProps } from './Section';
 export { Section } from './Section';

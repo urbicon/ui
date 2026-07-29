@@ -1,6 +1,6 @@
 <script lang="ts">
   import { CodeExample, Section } from '@urbicon-ui/docs';
-  import { Popover, Button, Badge } from '@urbicon-ui/blocks';
+  import { Popover, Button, Badge, ChevronDownIcon } from '@urbicon-ui/blocks';
   import { r } from '$lib/route';
 
   let controlledOpen = $state(false);
@@ -169,13 +169,7 @@
             class="bg-surface-base border-border-default hover:border-border-emphasis rounded-modify flex w-80 cursor-pointer items-center justify-between border px-3 py-2.5 text-sm transition-colors"
           >
             <span class="text-text-secondary">Select a framework…</span>
-            <svg class="text-text-tertiary h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
-              <path
-                fill-rule="evenodd"
-                d="M5.23 7.21a.75.75 0 011.06.02L10 11.168l3.71-3.938a.75.75 0 111.08 1.04l-4.25 4.5a.75.75 0 01-1.08 0l-4.25-4.5a.75.75 0 01.02-1.06z"
-                clip-rule="evenodd"
-              />
-            </svg>
+            <ChevronDownIcon class="text-text-tertiary h-4 w-4" />
           </button>
         {/snippet}
         <div class="py-1">

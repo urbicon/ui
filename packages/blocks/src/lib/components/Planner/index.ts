@@ -10,6 +10,7 @@ import type {
 import type { PlannerSlots, PlannerVariants } from './planner.variants';
 
 /**
+ * @summary A date grid whose cells hold your content — meals, shifts, bookings, slots.
  * @description Date-indexed planning board — a week, month or custom-range grid
  * whose cells hold YOUR domain content (meals, shifts, bookings, content slots)
  * via a generic `cell` snippet. Buckets `items` by calendar day, then handles

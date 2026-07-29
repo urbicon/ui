@@ -28,7 +28,9 @@ export interface PaginationItemContext {
   disabled: boolean;
   /** Button size forwarded from the Pagination props. */
   size: 'sm' | 'md' | 'lg';
-  /** Button variant forwarded from the Pagination props. */
+  /** Button variant forwarded from the Pagination props.
+   * @summary How much weight the page buttons carry.
+   */
   variant: 'outlined' | 'filled' | 'ghost';
   /** Semantic intent forwarded from the Pagination props. */
   intent: 'primary' | 'secondary' | 'success' | 'warning' | 'danger' | 'neutral';
@@ -41,6 +43,7 @@ export interface PaginationItemContext {
 }
 
 /**
+ * @summary Page through a longer list, in whichever layout fits.
  * @description Navigation control for paged data sets.
  * Supports multiple layouts, intents, button variants, and configurable ellipsis behaviour.
  *
@@ -64,11 +67,19 @@ export interface PaginationProps
   /** Total number of pages in the data set. */
   totalPages: number;
 
-  /** Visual weight of pagination buttons. */
+  /**
+   * Visual weight of pagination buttons. The current page carries its own
+   * encoding regardless (a filled face on `outlined`, a subtle fill plus ring
+   * on `ghost`), so the quiet default keeps a nine-button page window from
+   * reading as a row of equally loud pills.
+   *
+   * @default 'ghost'
+   * @summary Visual weight of the page buttons; the current page is marked either way.
+   */
   variant?: 'outlined' | 'filled' | 'ghost';
-  /** Semantic color applied to every pagination button. */
+  /** Semantic color applied to every pagination button. @default 'primary' */
   intent?: 'primary' | 'secondary' | 'success' | 'warning' | 'danger' | 'neutral';
-  /** Button dimensions. Affects page numbers, prev/next, and first/last. */
+  /** Button dimensions. Affects page numbers, prev/next, and first/last. @default 'md' */
   size?: 'sm' | 'md' | 'lg';
   /** Semantic radius tier forwarded to pagination buttons. */
   tier?: InteractiveTier;
@@ -83,6 +94,7 @@ export interface PaginationProps
    * intentional (a compact prev/next-only bar stays compact), not a bug.
    * Setting `showFirstLast` explicitly while `showNumbers` is `false` warns
    * once per instance in dev. @default true
+   * @summary Adds First / Last buttons when the current page is far from either end.
    */
   showFirstLast?: boolean;
   /** Show "Previous" / "Next" navigation buttons. */
@@ -183,16 +195,21 @@ export interface PaginationItemProps
   extends Omit<HTMLAttributes<HTMLButtonElement>, 'class' | 'type' | 'onclick'> {
   /** The page number this item represents. Rendered as default content when no children are provided. */
   page?: number;
-  /** Marks this item as the currently active page. Sets `aria-current="page"` and pressed styling. */
+  /**
+   * Marks this item as the currently active page. Sets `aria-current="page"`
+   * and drives Button's `active` state encoding (a filled face on `outlined`,
+   * a subtle fill plus ring on `ghost`) — not the momentary press cue, which
+   * is invisible on a transparent surface.
+   */
   active?: boolean;
   /** Prevents interaction and dims the button. */
   disabled?: boolean;
   /** Shows a loading spinner inside the button. */
   loading?: boolean;
 
-  /** Button dimensions. */
+  /** Button dimensions. @default 'md' */
   size?: 'sm' | 'md' | 'lg';
-  /** Visual weight of the button. */
+  /** Visual weight of the button. @default 'ghost' */
   variant?: 'outlined' | 'filled' | 'ghost';
   /** Semantic color of the button. */
   intent?: 'primary' | 'secondary' | 'success' | 'warning' | 'danger' | 'neutral';

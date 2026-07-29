@@ -450,3 +450,126 @@ describe('Dialog (initial focus + no-focusable fallback)', () => {
     expect(document.activeElement).toBe(panel());
   });
 });
+
+// The `intent` axis, asserted through the DOM rather than through
+// `dialogVariants({ intent })`. It used to be six empty objects: the fold was
+// "correct" (it emitted nothing, as configured) while the prop reached no
+// element at all. That is the shape of hero-review point 80 — a green variants
+// test over a prop that is wired nowhere — so the guard has to be the rendered
+// header, not the fold.
+describe('Dialog (intent markers)', () => {
+  const heading = (name: string) => screen.getByRole('heading', { name, hidden: true });
+
+  it('tints the header title with the intent', async () => {
+    renderDialog({ open: true, title: 'Delete project', intent: 'danger' });
+    await tick();
+
+    expect(heading('Delete project').className).toContain('text-danger-emphasis');
+  });
+
+  it('leaves the title neutral on the default intent', async () => {
+    renderDialog({ open: true, title: 'Delete project' });
+    await tick();
+
+    // Negative half of the guard: without it a rule that tints unconditionally
+    // would pass the test above and still be wrong.
+    const className = heading('Delete project').className;
+    expect(className).not.toContain('text-danger-emphasis');
+    expect(className).toContain('text-text-primary');
+  });
+
+  it('never tints the panel surface itself', async () => {
+    renderDialog({ open: true, title: 'Delete project', intent: 'danger' });
+    await tick();
+
+    // The container rule: markers carry the intent, the surface stays neutral,
+    // because arbitrary consumer content sits on it.
+    const panel = screen.getByRole('document', { hidden: true });
+    expect(panel.className).toContain('bg-surface-overlay');
+    expect(panel.className).not.toContain('bg-danger');
+    // …and the value is still exposed for consumer CSS.
+    expect(panel.getAttribute('data-intent')).toBe('danger');
+  });
+
+  it('renders the header icon and hides it from the accessibility tree', async () => {
+    renderDialog({
+      open: true,
+      title: 'Delete project',
+      intent: 'danger',
+      icon: createRawSnippet(() => ({ render: () => `<svg data-testid="dialog-icon"></svg>` }))
+    });
+    await tick();
+
+    const icon = screen.getByTestId('dialog-icon');
+    const wrapper = icon.parentElement as HTMLElement;
+    expect(wrapper.getAttribute('aria-hidden')).toBe('true');
+    // The icon takes its colour from the same axis as the title.
+    expect(wrapper.className).toContain('text-danger');
+  });
+
+  it('drops the icon when there is no title to host it', async () => {
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+    renderDialog({
+      open: true,
+      icon: createRawSnippet(() => ({ render: () => `<svg data-testid="dialog-icon"></svg>` }))
+    });
+    await tick();
+
+    // No structured header exists without a title, so the icon has nowhere to
+    // go — the component says so in DEV rather than dropping it silently.
+    expect(screen.queryByTestId('dialog-icon')).toBeNull();
+    expect(warn).toHaveBeenCalled();
+    warn.mockRestore();
+  });
+});
+
+// A dialog with every exit disabled is a legitimate pattern (a forced choice),
+// so the component must not cry wolf about it — it warns only when there is
+// also no action inside, which is the case where the reader is actually stuck.
+describe('Dialog (dead-end guard)', () => {
+  const sealed = {
+    open: true,
+    title: 'Terms updated',
+    hideCloseButton: true,
+    closeOnEscape: false,
+    closeOnBackdropClick: false
+  } satisfies Partial<DialogProps>;
+
+  /** Only the dead-end line; the init-time "all close paths" note always fires. */
+  const deadEndCalls = (warn: { mock: { calls: unknown[][] } }) =>
+    warn.mock.calls.filter((c) => String(c[0]).includes('Dead end'));
+
+  it('warns when every exit is closed and nothing inside can act', async () => {
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+    renderDialog({ ...sealed, children: body('You must accept to continue.') });
+    await tick();
+    await Promise.resolve();
+
+    expect(deadEndCalls(warn).length).toBe(1);
+    warn.mockRestore();
+  });
+
+  it('stays quiet when the dialog carries its own action', async () => {
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+    renderDialog({
+      ...sealed,
+      children: body('You must accept to continue.'),
+      footer: createRawSnippet(() => ({ render: () => `<button type="button">Accept</button>` }))
+    });
+    await tick();
+    await Promise.resolve();
+
+    expect(deadEndCalls(warn).length).toBe(0);
+    warn.mockRestore();
+  });
+
+  it('stays quiet while any one exit is left open', async () => {
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+    renderDialog({ ...sealed, closeOnEscape: true, children: body('Read this.') });
+    await tick();
+    await Promise.resolve();
+
+    expect(deadEndCalls(warn).length).toBe(0);
+    warn.mockRestore();
+  });
+});

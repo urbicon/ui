@@ -6,6 +6,7 @@ import type { ToolbarSlots, ToolbarVariants } from './toolbar.variants';
 /**
  * Props interface for Toolbar component
  *
+ * @summary A bar of controls that belong together.
  * @description Container for grouping related controls in a horizontal or vertical bar.
  * Renders with role="toolbar" and auto-sets aria-orientation.
  *
@@ -55,6 +56,7 @@ export interface ToolbarProps
    * or hero toolbars with full CTAs.
    *
    * @default 'modify'
+   * @summary Corner-radius tier, passed on to tier-aware children.
    */
   tier?: InteractiveTier;
 

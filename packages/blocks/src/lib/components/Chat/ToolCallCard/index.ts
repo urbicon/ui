@@ -4,6 +4,7 @@ import type { ChatToolCallPart } from '../chat.types';
 import type { ToolCallCardSlots } from './tool-call-card.variants';
 
 /**
+ * @summary What the agent called, and what came back.
  * @description Collapsible card that renders one agent tool-call part (`type: 'tool-call'`)
  * — a status indicator + monospaced tool name in the header, and the JSON input/output (or an
  * error message) in the expandable body. It is the default renderer ChatMessage reaches for on

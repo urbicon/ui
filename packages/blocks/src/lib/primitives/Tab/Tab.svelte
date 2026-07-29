@@ -118,6 +118,9 @@
     get tier() {
       return effectiveTier;
     },
+    get fullWidth() {
+      return fullWidth;
+    },
     get disabled() {
       return disabled;
     },

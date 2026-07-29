@@ -10,8 +10,13 @@ export type ButtonGroupOrientation = 'horizontal' | 'vertical';
 export type ButtonGroupValue = string | string[] | undefined;
 
 /**
+ * @summary Related buttons as one control, optionally with a selected state.
  * @description Groups related buttons with shared styling, layout, and optional selection behaviour.
  * Supports single-select (radio), multi-select (checkbox), or no selection.
+ * Note the default `variant` is `outlined`, not `filled` as on a lone Button: a connected group
+ * with a selected state reads as a segmented control, which needs an outline to sit in and a
+ * filled active segment to stand out — three filled buttons side by side carry no hierarchy.
+ * Pass `variant="filled"` explicitly for a row of equally weighted actions.
  *
  * @tag action
  * @related Button
@@ -58,6 +63,7 @@ export interface ButtonGroupProps extends Omit<HTMLAttributes<HTMLDivElement>, '
    * Semantic radius tier propagated to child Buttons. `commit` (default) →
    * pill caps for the group; `modify` → soft caps. Inherits from a wrapping
    * Toolbar via TierContext when not set explicitly.
+   * @summary Corner rounding for the group: pill caps, or soft ones.
    */
   tier?: InteractiveTier;
   /** Disable the entire group and all child Buttons. */

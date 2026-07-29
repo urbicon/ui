@@ -85,3 +85,44 @@ describe('extractPlaygroundDocs', () => {
     expect(propDocs.error).toBe(description);
   });
 });
+
+// `@summary` on a prop: the knob-side line, distinct from the agent-side
+// contract. Added 2026-07-28 after `CurrencyInput.locale` put nine lines of
+// SSR-hydration prose next to a three-way switch.
+describe('extractPlaygroundDocs — prop summaries', () => {
+  it('prefers a summary over the description', () => {
+    const { propDocs } = extractPlaygroundDocs([
+      {
+        name: 'locale',
+        summary: 'Number and currency formatting.',
+        description:
+          'BCP 47 locale for Intl.NumberFormat. Resolved once on the server and reused on the client so hydration cannot disagree; `currency` is never auto-detected from it.',
+        source: { type: 'direct' }
+      }
+    ]);
+
+    expect(propDocs.locale).toBe('Number and currency formatting.');
+  });
+
+  it('falls back to the description when there is no summary', () => {
+    const { propDocs } = extractPlaygroundDocs([
+      { name: 'disabled', description: 'Disables the element', source: { type: 'direct' } }
+    ]);
+
+    expect(propDocs.disabled).toBe('Disables the element');
+  });
+
+  it('counts a summary-only prop as documented', () => {
+    // A prop may carry only the short line; dropping it would hide the knob's
+    // help entirely rather than falling back to something longer.
+    const { propDocs } = extractPlaygroundDocs([
+      {
+        name: 'wrap',
+        summary: 'Lets the row break onto a second line.',
+        source: { type: 'direct' }
+      }
+    ]);
+
+    expect(propDocs.wrap).toBe('Lets the row break onto a second line.');
+  });
+});

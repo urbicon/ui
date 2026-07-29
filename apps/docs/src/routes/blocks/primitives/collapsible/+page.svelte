@@ -4,17 +4,14 @@
     ApiReference,
     CodeExample,
     DocsLayout as DocsPageLayout,
-    extractPlaygroundDocs,
-    PlaygroundConfigurator,
     Section
   } from '@urbicon-ui/docs';
   import { Collapsible } from '@urbicon-ui/blocks';
   import CustomDocs from './Docs.svelte';
+  import Playground from './Playground.svelte';
   import { componentData } from './api';
   import { buildRelatedLinks } from '$lib/component-links';
   import { asset, resolve } from '$app/paths';
-
-  const { propDocs, variantKeys } = extractPlaygroundDocs(componentData?.props ?? []);
   const relatedLinks = buildRelatedLinks(componentData);
 
   const navigation = [
@@ -76,62 +73,7 @@
   related={relatedLinks}
 >
   <Section id="playground" intent="primary">
-    <PlaygroundConfigurator
-      componentName="Collapsible"
-      {propDocs}
-      {variantKeys}
-      {codeGenerator}
-      controls={[
-        {
-          type: 'dropdown',
-          key: 'variant',
-          label: 'Variant',
-          items: [
-            { label: 'default', value: 'default' },
-            { label: 'card', value: 'card' },
-            { label: 'ghost', value: 'ghost' }
-          ],
-          defaultValue: 'default'
-        },
-        {
-          type: 'dropdown',
-          key: 'size',
-          label: 'Size',
-          items: [
-            { label: 'sm', value: 'sm' },
-            { label: 'md', value: 'md' },
-            { label: 'lg', value: 'lg' }
-          ],
-          defaultValue: 'md'
-        },
-        { type: 'checkbox', key: 'defaultOpen', label: 'Default open', defaultValue: false },
-        { type: 'checkbox', key: 'disabled', label: 'Disabled', defaultValue: false }
-      ]}
-      values={{
-        variant: 'default',
-        size: 'md',
-        defaultOpen: false,
-        disabled: false
-      }}
-      showHeader={false}
-    >
-      {#snippet children(values)}
-        <div class="w-full max-w-lg">
-          <Collapsible
-            variant={values.variant}
-            size={values.size}
-            defaultOpen={values.defaultOpen}
-            disabled={values.disabled}
-            title="What are design tokens?"
-          >
-            <p class="text-text-secondary text-sm">
-              Design tokens are named values — colors, spacing, radii — that form the single source
-              of truth for your design system. They bridge the gap between design tools and code.
-            </p>
-          </Collapsible>
-        </div>
-      {/snippet}
-    </PlaygroundConfigurator>
+    <Playground />
   </Section>
 
   <CustomDocs />

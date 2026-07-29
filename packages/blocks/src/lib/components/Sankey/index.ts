@@ -40,6 +40,7 @@ export type SankeyLaidOutLinkWithMeta = SankeyLaidOutLink & {
 };
 
 /**
+ * @summary Where the volume goes: flows through stages, drawn to scale.
  * @description Flow diagram (Sankey) for visualizing multi-stage data or value
  * pipelines. Nodes are split into layers; paths are rendered as cubic Bezier
  * curves with value-proportional width. The layout algorithm is embedded (no
@@ -86,7 +87,18 @@ export interface SankeyProps
   /** Default intent for nodes without their own `intent`. @default 'neutral' */
   intent?: SankeyIntent;
 
-  /** Layer alignment. @default 'justify' */
+  /**
+   * Where nodes go that the layering leaves short of the last layer.
+   *
+   * Layers come from the **longest** path to a node, so this moves only two
+   * kinds: `right` and `justify` push sinks (no outgoing links) to the last
+   * layer, `center` puts fully isolated nodes (no links at all) in the middle,
+   * `left` moves nothing. On an evenly layered graph — every source-to-sink
+   * path the same length — all four values render identically.
+   *
+   * Not d3-sankey's `nodeAlign`, which positions every node.
+   * @default 'justify'
+   */
   nodeAlign?: 'left' | 'right' | 'center' | 'justify';
 
   /** Pixel width of a node. @default 24 */
@@ -106,6 +118,7 @@ export interface SankeyProps
    * runtime and a fixed pixel value would be too small or too large.
    *
    * @default 400
+   * @summary Diagram height in pixels, or `auto` to scale with the node count.
    */
   height?: number | 'auto';
 

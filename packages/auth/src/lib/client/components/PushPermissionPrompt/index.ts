@@ -2,6 +2,7 @@ import type { PartialAuthLocale } from '../../../i18n/keys.js';
 import type { CsrfClientOptions } from '../../csrf.js';
 
 /**
+ * @summary Asks — once, politely — whether push notifications are welcome.
  * @description Dismissible prompt asking the user to enable push notifications.
  * Handles VAPID subscription and server-side registration.
  *

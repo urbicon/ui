@@ -85,6 +85,7 @@
     autoApplyOnNavigation = true,
     selectionMode = 'none',
     rowClickSelects = undefined,
+    activeRowId = null,
     onReady = undefined,
     selectedIds = undefined,
     onSelectionChange = undefined,
@@ -215,6 +216,7 @@
   {autoApplyOnNavigation}
   {selectionMode}
   rowClickSelects={rowClickSelectsResolved}
+  {activeRowId}
   {onReady}
   {selectedIds}
   onSelectionChange={onSelectionChangeErased}

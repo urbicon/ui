@@ -2,6 +2,7 @@ import type { Snippet } from 'svelte';
 import type { HTMLAttributes } from 'svelte/elements';
 
 /**
+ * @summary Label, helper text and error around any control that has none of its own.
  * @description Layout wrapper for composite form fields that need a label,
  * helper text, and error message but cannot rely on the built-in slots of
  * primitives like {@link InputProps} or {@link SelectProps}. Examples:
@@ -33,12 +34,14 @@ export interface FormFieldProps extends Omit<HTMLAttributes<HTMLDivElement>, 'ch
    * Helper text shown below the control. Hidden when `error` is present.
    * Named `helper` to match the built-in helper prop of the form primitives
    * (Input, Select, Toggle, …) — one vocabulary across the API seam.
+   * @summary Helper text under the control. Hidden while an error is showing.
    */
   helper?: string;
 
   /**
    * Error message shown below the control. Replaces the helper text and
    * propagates `invalid: true` to the slot for ARIA wiring.
+   * @summary Error message under the control; replaces the helper text.
    */
   error?: string;
 
@@ -47,6 +50,7 @@ export interface FormFieldProps extends Omit<HTMLAttributes<HTMLDivElement>, 'ch
    * to the slot. Does **not** apply the native `required` attribute —
    * the slot's control is responsible for that.
    * @default false
+   * @summary Adds the required asterisk to the label and tells the control it is required.
    */
   required?: boolean;
 

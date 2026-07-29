@@ -1,6 +1,7 @@
 import type { QRCodeSlots, QRCodeVariants } from './qr-code.variants';
 
 /**
+ * @summary Any text or link as a code a phone can read.
  * @description Renders any text or URL as a scannable QR code — SVG output, no
  * runtime dependency. The encoder (`encodeQr`, exported alongside) is a from-
  * scratch ISO/IEC 18004 implementation covering numeric / alphanumeric / byte
@@ -30,6 +31,7 @@ export interface QRCodeProps extends QRCodeVariants {
   /**
    * Error-correction level: higher levels survive more damage/occlusion at the
    * cost of a denser (larger) code. L≈7%, M≈15%, Q≈25%, H≈30%. @default 'M'
+   * @summary How much damage the code survives — higher levels cost density.
    */
   errorCorrection?: 'L' | 'M' | 'Q' | 'H';
   /** Rendered edge length in pixels (the code is square). @default 160 */

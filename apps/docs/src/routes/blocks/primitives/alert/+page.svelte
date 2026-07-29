@@ -4,17 +4,14 @@
     ApiReference,
     CodeExample,
     DocsLayout as DocsPageLayout,
-    extractPlaygroundDocs,
-    PlaygroundConfigurator,
     Section
   } from '@urbicon-ui/docs';
   import { Alert } from '@urbicon-ui/blocks';
   import CustomDocs from './Docs.svelte';
+  import Playground from './Playground.svelte';
   import { componentData } from './api';
   import { buildRelatedLinks } from '$lib/component-links';
   import { asset, resolve } from '$app/paths';
-
-  const { propDocs, variantKeys } = extractPlaygroundDocs(componentData?.props ?? []);
   const relatedLinks = buildRelatedLinks(componentData);
 
   const navigation = [
@@ -47,74 +44,7 @@
   related={relatedLinks}
 >
   <Section id="playground" intent="primary">
-    <PlaygroundConfigurator
-      componentName="Alert"
-      {propDocs}
-      {variantKeys}
-      controls={[
-        { type: 'text', key: 'title', label: 'Title', defaultValue: 'Heads up!' },
-        {
-          type: 'text',
-          key: 'description',
-          label: 'Description',
-          defaultValue: 'This is an alert with important information.'
-        },
-        {
-          type: 'dropdown',
-          key: 'variant',
-          label: 'Variant',
-          items: [
-            { label: 'soft', value: 'soft' },
-            { label: 'inline', value: 'inline' },
-            { label: 'filled', value: 'filled' }
-          ],
-          defaultValue: 'soft'
-        },
-        {
-          type: 'dropdown',
-          key: 'intent',
-          label: 'Intent',
-          items: [
-            { label: 'primary', value: 'primary' },
-            { label: 'success', value: 'success' },
-            { label: 'warning', value: 'warning' },
-            { label: 'danger', value: 'danger' },
-            { label: 'neutral', value: 'neutral' }
-          ],
-          defaultValue: 'primary'
-        },
-        {
-          type: 'dropdown',
-          key: 'size',
-          label: 'Size',
-          items: [
-            { label: 'sm', value: 'sm' },
-            { label: 'md', value: 'md' },
-            { label: 'lg', value: 'lg' }
-          ],
-          defaultValue: 'md'
-        },
-        { type: 'checkbox', key: 'dismissible', label: 'Dismissible', defaultValue: false }
-      ]}
-      values={{
-        title: 'Heads up!',
-        description: 'This is an alert with important information.',
-        variant: 'soft',
-        intent: 'primary',
-        size: 'md',
-        dismissible: false
-      }}
-      showHeader={false}
-    >
-      {#snippet children(values)}
-        {@const { title, description, ...props } = values}
-        <div class="w-full max-w-lg">
-          <Alert {...props} {title}>
-            {description}
-          </Alert>
-        </div>
-      {/snippet}
-    </PlaygroundConfigurator>
+    <Playground />
   </Section>
 
   <CustomDocs />

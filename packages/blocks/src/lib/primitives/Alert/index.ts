@@ -5,6 +5,7 @@ import type { AlertSlots, AlertVariants } from './alert.variants';
 /**
  * Props interface for Alert component
  *
+ * @summary An inline notice that stays put — status, warning, error or hint, with an optional action.
  * @description Persistent inline notification for communicating status, warnings, errors,
  * or informational messages. Supports icons, titles, descriptions, actions, and dismissal.
  *

@@ -109,11 +109,15 @@
   const titleColumn = $derived(cardColumns[0]);
   const detailColumns = $derived(cardColumns.slice(1));
 
+  // See TableRow: `!= null` because `0` is a legitimate id.
+  const isActiveRow = $derived(tableState.activeRowId != null && tableState.activeRowId === itemId);
+
   const cardStyles = $derived(
     mobileCardVariants({
       size,
       interactive: !!(expandable || onClick),
       selected: isItemSelected,
+      active: isActiveRow,
       expanded: isExpanded
     })
   );
@@ -142,6 +146,8 @@
     className
   )}
   data-testid={computedTestId}
+  data-active={isActiveRow ? '' : undefined}
+  aria-current={isActiveRow ? 'true' : undefined}
   role={cardActsAsButton ? 'button' : undefined}
   tabindex={cardActsAsButton ? 0 : undefined}
   onclick={cardClickable ? handleClick : undefined}

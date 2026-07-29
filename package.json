@@ -100,7 +100,7 @@
     "i18n:check": "bun --filter='@urbicon-ui/i18n' run build && bun packages/design/src/cli/index.ts i18n audit packages/blocks/src packages/table/src --translations packages/blocks/src/lib/translations,packages/table/src/lib/translations",
     "icons:lint": "bun --bun run packages/blocks/scripts/icons-lint.ts",
     "imports:lint": "bun --bun run packages/blocks/scripts/imports-lint.ts",
-    "size:blocks": "bun --bun run packages/blocks/scripts/bundle-size.ts",
+    "size": "bun --bun run scripts/bundle-size.ts",
     "variants:lint": "bun --bun run packages/blocks/scripts/variants-lint.ts",
     "a2ui:axes": "bun --bun run scripts/a2ui-axes-gen.ts",
     "a2ui:axes:check": "bun --bun run scripts/a2ui-axes-gen.ts --check",
@@ -109,7 +109,9 @@
     "mcp:start:http": "bun run packages/mcp-server/src/index.ts --transport http --port 3001",
     "fix": "biome check --write .",
     "prepare": "lefthook install || true",
-    "chat": "bun --filter='@urbicon-ui/chat-demo' run dev"
+    "chat": "bun --filter='@urbicon-ui/chat-demo' run dev",
+    "playgrounds:lint": "bun --filter='@urbicon-ui/docs-app' run playgrounds:lint",
+    "summary:lint": "bun run packages/docs-gen/scripts/summary-lint.ts"
   },
   "devDependencies": {
     "@axe-core/playwright": "^4.12.1",

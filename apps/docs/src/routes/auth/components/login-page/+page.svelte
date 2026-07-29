@@ -8,7 +8,7 @@
   } from '@urbicon-ui/docs';
   import { asset, resolve } from '$app/paths';
   import { componentData } from './api';
-  import BasicDemo from './examples/BasicDemo.svelte';
+  import Playground from './Playground.svelte';
   import basicCode from './examples/Basic.svelte?raw';
 
   const navigation = [
@@ -35,9 +35,10 @@
   {navigation}
 >
   <Section id="usage" intent="primary">
-    <CodeExample title="Basic" code={basicCode} language="svelte">
-      <BasicDemo />
-    </CodeExample>
+    <Playground />
+    <div class="mt-6">
+      <CodeExample title="Basic" code={basicCode} language="svelte" preview={false} />
+    </div>
   </Section>
 
   <Section id="api" title="API Reference" intent="secondary">

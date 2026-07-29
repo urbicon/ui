@@ -4,6 +4,7 @@ import type { CsrfClientOptions } from '../../csrf.js';
 import type { AuthPageSlotClasses } from '../types.js';
 
 /**
+ * @summary The ready-made page that sends a password reset link.
  * @description Pre-built forgot-password page. Sends POST to `apiPath` (default `/api/auth/forgot-password`).
  * Pair with `createForgotPasswordHandler(authDeps)` on the server. Timing-safe to prevent email enumeration.
  *

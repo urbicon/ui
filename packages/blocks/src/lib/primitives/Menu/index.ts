@@ -82,6 +82,7 @@ export interface MenuSpecificProps<TItem extends MenuItemType = MenuItemType> {
    * Placeholder text shown on the default trigger. Acts as the trigger's
    * accessible name unless `aria-label` is supplied. Typical values: "Actions",
    * "More", "Options". Ignored when `customTrigger` is provided.
+   * @summary Text on the default trigger, which doubles as its accessible name.
    */
   placeholder?: string;
 
@@ -184,6 +185,7 @@ export interface MenuSpecificProps<TItem extends MenuItemType = MenuItemType> {
 }
 
 /**
+ * @summary A list of things you can do, hung off a button.
  * @description Action menu (`role="menu"`) triggered by a button, with nested
  * submenus, sections, icons, and separators. Items are verbs the user can
  * invoke — Edit, Delete, Share, Export — and dispatch an `onSelect` callback

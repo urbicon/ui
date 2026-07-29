@@ -23,6 +23,7 @@ export interface SliderRangeStatusText {
 }
 
 /**
+ * @summary Drag to a value, or to a range between two.
  * @description Slider for selecting a numeric value or range within min/max bounds.
  * Supports single and range modes, step snapping, tick marks, and labels.
  *

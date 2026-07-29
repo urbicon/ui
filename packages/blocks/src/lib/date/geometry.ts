@@ -12,9 +12,19 @@
  * @param year - Full year (e.g. 2026)
  * @param month - Month index (0-11)
  * @param weekStartsOn - Day the week starts on (0=Sun, 1=Mon, ..., 6=Sat)
- * @returns 2D array of Date objects (4-6 rows of 7 days)
+ * @param fixedWeeks - Always emit 6 rows, padding with trailing next-month days.
+ * A month needs 4, 5 or 6 rows depending on where it starts, so a grid that
+ * sizes to its content changes height as the reader pages through the year —
+ * fine embedded in a page, wrong inside a popover, where the cells then move
+ * out from under the pointer.
+ * @returns 2D array of Date objects (4-6 rows of 7 days, or always 6 with `fixedWeeks`)
  */
-export function getMonthGrid(year: number, month: number, weekStartsOn: number = 1): Date[][] {
+export function getMonthGrid(
+  year: number,
+  month: number,
+  weekStartsOn: number = 1,
+  fixedWeeks: boolean = false
+): Date[][] {
   const firstOfMonth = new Date(year, month, 1);
   const firstDayOfWeek = firstOfMonth.getDay();
 
@@ -30,7 +40,12 @@ export function getMonthGrid(year: number, month: number, weekStartsOn: number =
   // Generate enough weeks to cover the entire month
   const lastOfMonth = new Date(year, month + 1, 0);
 
-  while (weeks.length === 0 || current <= lastOfMonth || weeks[weeks.length - 1].length < 7) {
+  while (
+    weeks.length === 0 ||
+    current <= lastOfMonth ||
+    weeks[weeks.length - 1].length < 7 ||
+    (fixedWeeks && weeks.length < 6)
+  ) {
     const week: Date[] = [];
     for (let i = 0; i < 7; i++) {
       week.push(new Date(current));

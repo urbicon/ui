@@ -205,6 +205,16 @@ export const TABLE_STATES = {
     default: '',
     hover: 'hover:bg-surface-hover',
     selected: 'bg-primary-subtle border-primary',
+    // "This row is the one being shown" (master/detail), which is not a
+    // selection: no bulk action follows from it, so it stays below `selected`,
+    // which owns the accent because it carries consequences.
+    //
+    // The inset rail is not decoration: the ground alone is `surface-hover`,
+    // which is exactly what the row under the cursor gets — so while reading
+    // down the list, two rows looked identical and neither said which one the
+    // detail pane was showing. An `inset box-shadow` rather than a border-left,
+    // because a `<tr>` under `border-collapse` drops one.
+    active: 'bg-surface-hover shadow-[inset_2px_0_0_0_var(--color-border-strong)]',
     expanded: 'bg-surface-hover',
     grouped: 'bg-surface-elevated font-semibold',
     disabled: 'opacity-50 pointer-events-none'

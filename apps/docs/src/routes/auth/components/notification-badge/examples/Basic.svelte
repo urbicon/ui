@@ -3,13 +3,21 @@
   import { Button } from '@urbicon-ui/blocks';
 
   let count = $state(3);
+  let lastClick = $state<number | null>(null);
 </script>
 
 <div class="flex items-center gap-6">
   <div class="relative">
     <span class="text-text-secondary text-sm">Notifications</span>
-    <NotificationBadge {count} onclick={() => alert(`${count} unread`)} />
+    <!-- Bewusst kein `alert()`: Das Beispiel läuft auch außerhalb der
+         Doku-Seite (Landing-Hero), und ein Browser-Dialog blockiert dort alles
+         andere. Die Rückmeldung steht daneben. -->
+    <NotificationBadge {count} onclick={() => (lastClick = count)} />
   </div>
+
+  {#if lastClick !== null}
+    <span class="text-text-tertiary text-sm" role="status">{lastClick} unread</span>
+  {/if}
 
   <div class="flex gap-2">
     <Button size="sm" variant="outlined" intent="neutral" onclick={() => count++}>+1</Button>

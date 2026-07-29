@@ -4,19 +4,16 @@
     ApiReference,
     CodeExample,
     DocsLayout as DocsPageLayout,
-    extractPlaygroundDocs,
-    PlaygroundConfigurator,
     Section
   } from '@urbicon-ui/docs';
-  import { A2UIView, A2UI_CATALOG_ID } from '@urbicon-ui/blocks';
+  import { A2UIView } from '@urbicon-ui/blocks';
   import PrevNextNav from '$lib/PrevNextNav.svelte';
   import CustomDocs from './Docs.svelte';
+  import Playground from './Playground.svelte';
   import { componentData } from './api';
   import { buildRelatedLinks } from '$lib/component-links';
   import { asset, resolve } from '$app/paths';
   import { page } from '$app/state';
-
-  const { propDocs, variantKeys } = extractPlaygroundDocs(componentData?.props ?? []);
   const relatedLinks = buildRelatedLinks(componentData);
 
   const navigation = [
@@ -33,79 +30,6 @@
   // agent would emit as JSONL — a `createSurface` header, one `updateComponents`
   // tree of catalog components, and an `updateDataModel` seed. The consumer just
   // hands the accumulated array to A2UIView.
-  const SCENARIOS: Record<string, unknown[]> = {
-    signin: [
-      { version: 'v0.9.1', createSurface: { surfaceId: 'pg', catalogId: A2UI_CATALOG_ID } },
-      {
-        version: 'v0.9.1',
-        updateComponents: {
-          surfaceId: 'pg',
-          components: [
-            { id: 'root', component: 'Card', child: 'col' },
-            { id: 'col', component: 'Column', children: ['title', 'email', 'password', 'submit'] },
-            { id: 'title', component: 'Text', text: 'Welcome back', variant: 'h4' },
-            { id: 'email', component: 'TextField', label: 'Email', value: { path: '/email' } },
-            {
-              id: 'password',
-              component: 'TextField',
-              label: 'Password',
-              variant: 'obscured',
-              value: { path: '/password' }
-            },
-            { id: 'submit-label', component: 'Text', text: 'Sign in' },
-            {
-              id: 'submit',
-              component: 'Button',
-              child: 'submit-label',
-              action: { event: { name: 'signin', context: { email: { path: '/email' } } } }
-            }
-          ]
-        }
-      },
-      {
-        version: 'v0.9.1',
-        updateDataModel: { surfaceId: 'pg', value: { email: '', password: '' } }
-      }
-    ],
-    survey: [
-      { version: 'v0.9.1', createSurface: { surfaceId: 'pg', catalogId: A2UI_CATALOG_ID } },
-      {
-        version: 'v0.9.1',
-        updateComponents: {
-          surfaceId: 'pg',
-          components: [
-            { id: 'root', component: 'Card', child: 'col' },
-            { id: 'col', component: 'Column', children: ['q', 'rating', 'contact', 'submit'] },
-            { id: 'q', component: 'Text', text: 'How was your experience?', variant: 'h4' },
-            {
-              id: 'rating',
-              component: 'Slider',
-              label: 'Rating',
-              value: { path: '/rating' },
-              max: 10
-            },
-            {
-              id: 'contact',
-              component: 'CheckBox',
-              label: 'You may contact me',
-              value: { path: '/contact' }
-            },
-            { id: 'submit-label', component: 'Text', text: 'Submit' },
-            {
-              id: 'submit',
-              component: 'Button',
-              child: 'submit-label',
-              action: { event: { name: 'submit_survey', context: { rating: { path: '/rating' } } } }
-            }
-          ]
-        }
-      },
-      {
-        version: 'v0.9.1',
-        updateDataModel: { surfaceId: 'pg', value: { rating: 5, contact: false } }
-      }
-    ]
-  };
 
   function codeGenerator(vals: Record<string, unknown>): string {
     const streaming = vals.streaming === true;
@@ -144,38 +68,7 @@
   related={relatedLinks}
 >
   <Section id="playground" intent="primary">
-    <PlaygroundConfigurator
-      componentName="A2UIView"
-      {propDocs}
-      {variantKeys}
-      {codeGenerator}
-      controls={[
-        {
-          type: 'dropdown',
-          key: 'scenario',
-          label: 'Scenario',
-          items: [
-            { label: 'Sign-in form', value: 'signin' },
-            { label: 'Feedback survey', value: 'survey' }
-          ],
-          defaultValue: 'signin'
-        },
-        { type: 'boolean', key: 'streaming', label: 'Streaming' }
-      ]}
-      values={{ scenario: 'signin', streaming: false }}
-      showHeader={false}
-    >
-      {#snippet children(values)}
-        <div class="mx-auto max-w-sm">
-          {#key values.scenario}
-            <A2UIView
-              payload={SCENARIOS[(values.scenario as string) ?? 'signin'] ?? SCENARIOS.signin}
-              streaming={values.streaming === true}
-            />
-          {/key}
-        </div>
-      {/snippet}
-    </PlaygroundConfigurator>
+    <Playground />
   </Section>
 
   <CustomDocs />

@@ -7,15 +7,8 @@
     InfoCard,
     Section
   } from '@urbicon-ui/docs';
-  import {
-    GuideArticle,
-    GuideController,
-    GuideMarker,
-    GuideMention,
-    GuidePanel,
-    GuideProvider
-  } from '@urbicon-ui/blocks';
   import CustomDocs from './Docs.svelte';
+  import Playground from './Playground.svelte';
   import { componentData } from './api';
   // Every Guide surface is a `@standalone` catalog component with its own generated
   // api.ts (sibling route dirs without a +page — this system page stays the single
@@ -59,10 +52,6 @@
     { data: hintData, blurb: 'Contextual, waiting hint anchored to a data-guide element.' },
     { data: beaconData, blurb: 'Waiting, pulsing hotspot that starts an opt-in tour.' }
   ];
-
-  // One controller drives the whole headline demo — created once, shared via context.
-  // dev:false keeps the docs console quiet; the demo never persists "seen" state.
-  const demoGuide = new GuideController({ dev: false });
 
   const navigation = [
     { id: 'playground', title: 'Playground', order: 1 },
@@ -253,45 +242,7 @@
     </InfoCard>
 
     <div class="mt-6">
-      <GuideProvider controller={demoGuide}>
-        <div
-          class="border-border-subtle bg-surface-elevated mx-auto max-w-md rounded-2xl border p-6"
-        >
-          <div class="mb-4 flex items-center gap-1.5">
-            <h3 class="text-text-primary text-base font-semibold">Billing</h3>
-            <GuideMarker for="pg-plan" />
-          </div>
-          <dl class="space-y-2.5 text-sm">
-            <div
-              data-guide="pg-plan"
-              class="border-border-subtle flex items-center justify-between rounded-lg border px-3 py-2"
-            >
-              <dt class="text-text-tertiary">Plan</dt>
-              <dd class="text-text-primary font-medium">Pro — $29/mo</dd>
-            </div>
-            <div
-              data-guide="pg-seats"
-              class="border-border-subtle flex items-center justify-between rounded-lg border px-3 py-2"
-            >
-              <dt class="text-text-tertiary">Seats</dt>
-              <dd class="text-text-primary font-medium">5 of 10 used</dd>
-            </div>
-          </dl>
-        </div>
-
-        <GuidePanel title="Help">
-          <GuideArticle id="pg-plan" title="Billing & plans">
-            <p>
-              Your <GuideMention for="pg-plan">current plan</GuideMention> sets your monthly price and
-              feature limits. Upgrade or downgrade at any time.
-            </p>
-            <p>
-              Each <GuideMention for="pg-seats">seat</GuideMention> is one team member who can sign in.
-              You are billed per occupied seat.
-            </p>
-          </GuideArticle>
-        </GuidePanel>
-      </GuideProvider>
+      <Playground />
     </div>
   </Section>
 

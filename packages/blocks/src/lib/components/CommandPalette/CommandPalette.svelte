@@ -300,17 +300,12 @@
                 }}
               >
                 {#if item.icon}
-                  <svg
+                  {@const ItemIcon = item.icon}
+                  <ItemIcon
                     class={unstyled
                       ? (slotClasses?.itemIcon ?? '')
                       : styles.itemIcon({ class: slotClasses?.itemIcon })}
-                    fill="none"
-                    viewBox="0 0 24 24"
-                    stroke="currentColor"
-                    stroke-width="1.5"
-                  >
-                    <path stroke-linecap="round" stroke-linejoin="round" d={item.icon} />
-                  </svg>
+                  />
                 {/if}
                 <span
                   class={unstyled

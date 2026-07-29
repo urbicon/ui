@@ -80,6 +80,20 @@ Full decision matrix with edge cases (search threshold, multi-select, async sour
 
 **Not in this family:** `SegmentGroup` (also holds a value, but lives in Navigation — it's a navigational tab strip cast as a value-picker).
 
+### How `error` shows on the control
+
+Three shapes, picked by what the control's own colour already means. Getting this wrong is not a style slip: on a boolean control a danger *fill* reads as "not selected", which is the opposite of the truth.
+
+| Control shape | `error` renders as | Why |
+| --- | --- | --- |
+| **Text-entry** — `Input`, `Textarea`, `Select`, `Combobox`, `PinInput`, `TimeInput` | Danger **frame**, as its own compound step after every axis (`fieldErrorFrame`) | The border carries no other meaning, so the error can simply own it. The compound step (rather than an axis) keeps precedence independent of the order axes are declared in — see the comment in `input.variants.ts`. |
+| **Boolean** — `Checkbox`, `RadioGroup`, `Toggle` | **Unselected:** danger border, with the hover bucket pinned. **Selected:** danger **ring** on top of the unchanged intent fill. | An error on a boolean usually means "must be switched on", so the off state carries the mark on its boundary. But an error on an *already selected* control is real too ("this option is not available on your plan", "this consent was withdrawn") — there the fill must keep saying *what is selected* while a ring on a separate layer says *this selection is the problem*. |
+| **Continuous** — `Slider` | Danger **ring** on the thumb, unconditionally | A slider always holds a value, so it has no unselected state to paint. Same layering as the selected boolean case. |
+
+The ring is `ring-2 ring-danger/60 ring-offset-1 ring-offset-surface-base`, and it pins the focus bucket to danger as well (`peer-focus-visible:ring-danger/60`, or `focus-visible:` where the control is itself focusable). Without that pin the focus ring repaints the mark primary exactly while the user is on the control — the same trap the hover pin closes on the unselected side.
+
+`intent` stays orthogonal to all of this: it says what a *healthy* control means (a success-green field, a warning-amber one) and it colours the border on text-entry controls and the fill on booleans. `error` is not an intent value and never competes with one.
+
 ---
 
 ## Navigation

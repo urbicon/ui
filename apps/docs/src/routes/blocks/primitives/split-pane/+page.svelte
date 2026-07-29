@@ -4,17 +4,14 @@
     ApiReference,
     CodeExample,
     DocsLayout as DocsPageLayout,
-    extractPlaygroundDocs,
-    PlaygroundConfigurator,
     Section
   } from '@urbicon-ui/docs';
   import { SplitPane } from '@urbicon-ui/blocks';
   import CustomDocs from './Docs.svelte';
+  import Playground from './Playground.svelte';
   import { componentData } from './api';
   import { buildRelatedLinks } from '$lib/component-links';
   import { asset, resolve } from '$app/paths';
-
-  const { propDocs, variantKeys } = extractPlaygroundDocs(componentData?.props ?? []);
   const relatedLinks = buildRelatedLinks(componentData);
 
   const navigation = [
@@ -78,56 +75,7 @@
   related={relatedLinks}
 >
   <Section id="playground" intent="primary">
-    <PlaygroundConfigurator
-      componentName="SplitPane"
-      {propDocs}
-      {variantKeys}
-      {codeGenerator}
-      controls={[
-        {
-          type: 'dropdown',
-          key: 'orientation',
-          label: 'Orientation',
-          items: [
-            { label: 'horizontal', value: 'horizontal' },
-            { label: 'vertical', value: 'vertical' }
-          ],
-          defaultValue: 'horizontal'
-        },
-        { type: 'checkbox', key: 'collapsible', label: 'Collapsible', defaultValue: false },
-        { type: 'checkbox', key: 'disabled', label: 'Disabled', defaultValue: false }
-      ]}
-      values={{
-        orientation: 'horizontal',
-        collapsible: false,
-        disabled: false
-      }}
-      showHeader={false}
-    >
-      {#snippet children(values)}
-        <div class="border-border-subtle h-80 w-full overflow-hidden rounded-xl border">
-          <SplitPane
-            orientation={values.orientation as 'horizontal' | 'vertical'}
-            collapsible={values.collapsible as boolean}
-            disabled={values.disabled as boolean}
-            defaultRatio={0.4}
-            min="20%"
-            max="80%"
-          >
-            {#snippet start()}
-              <div class="bg-surface-elevated flex h-full items-center justify-center p-4">
-                <span class="text-text-secondary text-sm font-medium">Start pane</span>
-              </div>
-            {/snippet}
-            {#snippet end()}
-              <div class="flex h-full items-center justify-center p-4">
-                <span class="text-text-secondary text-sm font-medium">End pane</span>
-              </div>
-            {/snippet}
-          </SplitPane>
-        </div>
-      {/snippet}
-    </PlaygroundConfigurator>
+    <Playground />
   </Section>
 
   <CustomDocs />

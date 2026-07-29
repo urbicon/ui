@@ -50,6 +50,9 @@
   let isExpanded = $derived(isItemExpanded(itemId));
 
   let isRowSelected = $derived(selectable && tableContext.isSelected(itemId));
+  // `!= null` on purpose: `0` is a legitimate id, and an unset `activeRowId`
+  // must not match the row whose index fallback is `-1`.
+  let isActiveRow = $derived(tableState.activeRowId != null && tableState.activeRowId === itemId);
   let isRecentlyUpdated = $derived(tableContext.isRecentlyUpdated(itemId));
 
   const totalColumnsCount = $derived.by(() => {
@@ -93,9 +96,19 @@
     }
   }
 
+  // Selection wins over "currently shown": it is the state a bulk action reads,
+  // so it keeps the accent. `active` sits above `expanded` because a consumer
+  // that sets `activeRowId` is making an explicit statement about this row,
+  // while expansion is a local toggle.
   const rowStyles = $derived(
     tableRowVariants({
-      state: isRowSelected ? 'selected' : isExpanded ? 'expanded' : 'default',
+      state: isRowSelected
+        ? 'selected'
+        : isActiveRow
+          ? 'active'
+          : isExpanded
+            ? 'expanded'
+            : 'default',
       size
     })
   );
@@ -130,7 +143,9 @@
   aria-rowindex={rowIndex + 1}
   aria-expanded={expandable ? isExpanded : undefined}
   aria-selected={selectable ? isRowSelected : undefined}
+  aria-current={isActiveRow ? 'true' : undefined}
   data-row-index={rowIndex}
+  data-active={isActiveRow ? '' : undefined}
   data-testid={`table-row-${itemId}`}
 >
   <!-- Structural cells (selection, expand) carry the row's cell chrome but not

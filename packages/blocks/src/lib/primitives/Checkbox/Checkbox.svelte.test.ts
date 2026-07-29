@@ -214,3 +214,44 @@ describe('Checkbox (internal ARIA wins over restProps)', () => {
     expect(box('Select all').getAttribute('aria-checked')).toBe('mixed');
   });
 });
+
+// The selected-error state (hero-review point 20b). Asserted through the DOM,
+// not through `checkboxVariants({error, checked})`: the fold has been right all
+// along, what was missing is that the rendered box carried nothing at all when
+// an error hit a *checked* control. The guard has to be the element.
+describe('Checkbox (error on a selected control)', () => {
+  const styledBox = () => document.querySelector('label > span') as HTMLElement;
+
+  it('marks a checked box with a danger ring and keeps the intent fill', () => {
+    renderCheckbox({ checked: true, error: 'Not available on your plan', label: 'Notify me' });
+
+    const cls = styledBox().className;
+    expect(cls).toContain('ring-danger/60');
+    // The fill still says WHAT is selected — repainting it danger would read as
+    // "unselected", the opposite of the truth.
+    expect(cls).toContain('bg-primary');
+    expect(cls).not.toContain('bg-danger');
+  });
+
+  it('leaves a checked box unringed without an error', () => {
+    renderCheckbox({ checked: true, label: 'Notify me' });
+
+    // Negative half: without it a rule that rings unconditionally would pass
+    // the assertion above and still be wrong.
+    expect(styledBox().className).not.toContain('ring-danger');
+  });
+
+  it('keeps the danger border (not a ring) while unchecked', () => {
+    renderCheckbox({ checked: false, error: 'Required', label: 'Notify me' });
+
+    const cls = styledBox().className;
+    expect(cls).toContain('border-danger');
+    expect(cls).not.toContain('ring-danger/60');
+  });
+
+  it('marks the indeterminate state too', () => {
+    renderCheckbox({ indeterminate: true, error: 'Partially unavailable', label: 'Notify me' });
+
+    expect(styledBox().className).toContain('ring-danger/60');
+  });
+});

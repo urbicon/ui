@@ -4,17 +4,14 @@
     ApiReference,
     CodeExample,
     DocsLayout as DocsPageLayout,
-    extractPlaygroundDocs,
-    PlaygroundConfigurator,
     Section
   } from '@urbicon-ui/docs';
   import { DatePicker } from '@urbicon-ui/blocks';
   import CustomDocs from './Docs.svelte';
+  import Playground from './Playground.svelte';
   import { componentData } from './api';
   import { buildRelatedLinks } from '$lib/component-links';
   import { asset, resolve } from '$app/paths';
-
-  const { propDocs, variantKeys } = extractPlaygroundDocs(componentData?.props ?? []);
   const relatedLinks = buildRelatedLinks(componentData);
 
   const navigation = [
@@ -79,83 +76,7 @@
   related={relatedLinks}
 >
   <Section id="playground" intent="primary">
-    <PlaygroundConfigurator
-      componentName="DatePicker"
-      {propDocs}
-      {variantKeys}
-      {codeGenerator}
-      controls={[
-        {
-          type: 'dropdown',
-          key: 'size',
-          label: 'Size',
-          items: [
-            { label: 'xs', value: 'xs' },
-            { label: 'sm', value: 'sm' },
-            { label: 'md', value: 'md' },
-            { label: 'lg', value: 'lg' },
-            { label: 'xl', value: 'xl' }
-          ],
-          defaultValue: 'md'
-        },
-        {
-          type: 'dropdown',
-          key: 'inputVariant',
-          label: 'Input Variant',
-          items: [
-            { label: 'outlined', value: 'outlined' },
-            { label: 'filled', value: 'filled' },
-            { label: 'ghost', value: 'ghost' },
-            { label: 'underline', value: 'underline' }
-          ],
-          defaultValue: 'outlined'
-        },
-        {
-          type: 'dropdown',
-          key: 'calendarVariant',
-          label: 'Calendar Variant',
-          items: [
-            { label: 'default', value: 'default' },
-            { label: 'bordered', value: 'bordered' },
-            { label: 'ghost', value: 'ghost' }
-          ],
-          defaultValue: 'default'
-        },
-        { type: 'checkbox', key: 'clearable', label: 'Clearable', defaultValue: true },
-        { type: 'checkbox', key: 'showWeekNumbers', label: 'Week Numbers', defaultValue: false },
-        { type: 'checkbox', key: 'disabled', label: 'Disabled', defaultValue: false },
-        { type: 'checkbox', key: 'required', label: 'Required', defaultValue: false }
-      ]}
-      values={{
-        size: 'md',
-        inputVariant: 'outlined',
-        calendarVariant: 'default',
-        clearable: true,
-        showWeekNumbers: false,
-        disabled: false,
-        required: false
-      }}
-      showHeader={false}
-    >
-      {#snippet children(values)}
-        <div class="mx-auto max-w-xs">
-          <DatePicker
-            size={values.size}
-            inputVariant={values.inputVariant}
-            calendarVariant={values.calendarVariant}
-            clearable={values.clearable}
-            showWeekNumbers={values.showWeekNumbers}
-            disabled={values.disabled}
-            required={values.required}
-            label="Datum"
-            placeholder="Datum auswaehlen"
-            locale="de-DE"
-            defaultMonth={2}
-            defaultYear={2026}
-          />
-        </div>
-      {/snippet}
-    </PlaygroundConfigurator>
+    <Playground />
   </Section>
 
   <CustomDocs />

@@ -4,6 +4,7 @@ import type { CsrfClientOptions } from '../../csrf.js';
 import type { AuthPageSlotClasses } from '../types.js';
 
 /**
+ * @summary Confirms the address from the link in the mail.
  * @description Auto-verifying email confirmation page. Sends POST `{ token }` to `apiPath` (default `/api/auth/verify-email`) on mount.
  * Pair with `createVerifyEmailHandler(authDeps)` on the server.
  *

@@ -330,6 +330,22 @@ export const toggleVariants = tv({
       error: true,
       checked: false,
       class: { track: 'border-danger group-hover:border-danger' }
+    },
+
+    // ── Error on a SWITCHED-ON control: a ring, not a fill ──
+    // Completes the boolean rule rather than replacing it (full rationale in
+    // checkbox.variants.ts): "must be switched on" stays the common reading, so
+    // the off state keeps its danger boundary — but an error on an already-on
+    // switch ("this integration was revoked") had no visual at all. The track
+    // keeps its intent fill, the ring carries the fault. Last in the list so it
+    // folds over the checked-intent steps above.
+    {
+      error: true,
+      checked: true,
+      class: {
+        track:
+          'ring-2 ring-danger/60 ring-offset-1 ring-offset-surface-base peer-focus-visible:ring-danger/60'
+      }
     }
   ],
   defaultVariants: {

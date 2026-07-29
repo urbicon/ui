@@ -44,8 +44,9 @@ For full details see [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md).
 `bun run` lists every script. Non-obvious ones:
 
 - Single package: `bun --filter='@urbicon-ui/blocks' run <script>` (bare `bun test` bypasses the config — always `run test`)
-- `size:blocks` — per-component tree-shaken min+gzip size, net of Svelte; needs built blocks-`dist/`. `--check` gates against `packages/blocks/bundle-size.baseline.json`, `--update-baseline` after intentional growth
+- `size` — per-component tree-shaken min+gzip size across blocks/table/auth, net of Svelte **and** of the shared foundation (`net` column = what the component adds to a project already using the library); needs all three `dist/`. `--check` gates on solo `gz` against `bundle-size.baseline.json`, `--update-baseline` after intentional growth. Reports any catalogue component it never measured
 - `variants:lint` — dead-token guard over all tv() configs · `imports:lint` — cross-component import guard (see Key Architecture Decisions)
+- `summary:lint` — component `@summary` budget · `playgrounds:lint` — playground snippets **and** the knob-hint budget (a knob whose hint runs past 120 chars needs a prop-level `@summary`; see the `component-metadata` skill). Both read the generated catalogs, so run `docs:gen:all` first
 - `docs:gen:all` — **not** `docs:gen:<target>`; only the `:all` run assembles the MCP catalog
 
 ## Coding Conventions

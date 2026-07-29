@@ -2,6 +2,7 @@ import type { Snippet } from 'svelte';
 import type { PartialAuthLocale } from '../../../i18n/keys.js';
 
 /**
+ * @summary The list behind the bell: read it, clear it, or find it empty.
  * @description Menu-ready notification list with mark-as-read, delete, and empty state.
  * Renders each notification as a clickable card with timestamp. Feed it from `createNotificationStore`,
  * whose routes are served by the `createNotificationsHandlers` server factory.

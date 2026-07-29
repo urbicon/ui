@@ -195,6 +195,12 @@ export function createTableState(
     selectionControlled: false,
     searchControlled: false,
     rowClickSelects: false,
+    /**
+     * The row currently being shown elsewhere (master/detail) — distinct from
+     * selection, which implies an action on a set. Marking it needed
+     * `selectionMode` before, which also switches on the checkbox column.
+     */
+    activeRowId: null as string | number | null,
     virtualized: false,
 
     mode: 'client' as 'client' | 'server',

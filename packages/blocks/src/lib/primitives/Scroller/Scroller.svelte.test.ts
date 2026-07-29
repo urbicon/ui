@@ -172,7 +172,7 @@ function scrollViewport(viewport: HTMLElement, left: number) {
   flushSync();
 }
 
-const dots = () => screen.queryAllByRole('button', { name: /^Item \d+ of \d+$/ });
+const dots = () => screen.queryAllByRole('button', { name: /^Items? \d+(–\d+)? of \d+$/ });
 
 describe('Scroller — a row that fits is an ordinary row', () => {
   it('takes no tab stop, no group role and no name when nothing overflows', () => {
@@ -302,13 +302,19 @@ describe('Scroller — jump controls', () => {
 });
 
 describe('Scroller — dots', () => {
-  it('renders one labelled dot per item and marks the current one with aria-current', () => {
+  it('renders one labelled dot per RESTING PLACE and marks the current one with aria-current', () => {
+    // 1080 of content in a 600 viewport → maxScroll 480. Items 4 and 5 begin
+    // beyond it, so they share the end of the scroll range: four places, four
+    // dots — the last one owning both items and saying so in its label. A dot
+    // per item would put five dots on four destinations, and the dot for item
+    // 4 would light up item 5's dot when pressed.
     render({ indicator: 'dots' }, OVERFLOWS);
 
     const all = dots();
-    expect(all).toHaveLength(5);
+    expect(all).toHaveLength(4);
     expect(all[0]?.getAttribute('aria-label')).toBe('Item 1 of 5');
-    expect(all[4]?.getAttribute('aria-label')).toBe('Item 5 of 5');
+    expect(all[2]?.getAttribute('aria-label')).toBe('Item 3 of 5');
+    expect(all[3]?.getAttribute('aria-label')).toBe('Items 4–5 of 5');
 
     // Exactly one is current — the state a screen reader reads and the state the
     // CSS styles are the same attribute, so they cannot drift.
@@ -324,22 +330,22 @@ describe('Scroller — dots', () => {
     expect(dots()[0]?.getAttribute('aria-current')).toBe(null);
   });
 
-  it('lights the LAST dot at the end of a start-aligned row', async () => {
-    // The defect as it was actually seen: scrolled fully right, items 4 and 5
-    // on screen, and dot 3 lit. The last items start further right than
-    // scrollLeft can ever reach, so judging them by their raw anchor left their
-    // dots permanently dark — and clicking dot 5 visibly landed elsewhere.
+  it('lights the dot that was pressed — the collapsed tail is ONE honest dot', async () => {
+    // The counterintuitive behaviour this replaces: with a dot per item, dots
+    // 4 and 5 shared the destination maxScroll, so pressing dot 4 lit dot 5 —
+    // "I click A, B lights up". As one range dot there is nothing to lie about:
+    // the press lands at the end and the pressed dot carries the mark.
     const user = userEvent.setup();
     const { viewport } = render({ indicator: 'dots' }, OVERFLOWS);
 
     scrollViewport(viewport, 480); // 1080 content − 600 viewport = the far end
-    expect(dots()[4]?.getAttribute('aria-current')).toBe('true');
+    expect(dots()[3]?.getAttribute('aria-current')).toBe('true');
 
-    // And pressing that dot keeps it lit, rather than handing the mark back.
     scrollViewport(viewport, 0);
-    await user.click(dots()[4] as HTMLElement);
+    await user.click(dots()[3] as HTMLElement);
     flushSync();
-    expect(dots()[4]?.getAttribute('aria-current')).toBe('true');
+    expect(viewport.scrollLeft).toBe(480);
+    expect(dots()[3]?.getAttribute('aria-current')).toBe('true');
   });
 
   it('jumps to the item when a dot is pressed', async () => {
@@ -453,7 +459,8 @@ describe('Scroller — re-measuring', () => {
   it('notices items appearing later and re-measures correctly WHILE scrolled', async () => {
     const { viewport } = render({ indicator: 'dots' }, OVERFLOWS);
     scrollViewport(viewport, 440);
-    expect(dots()).toHaveLength(5);
+    // Four places for five items — the tail (items 4–5) shares one dot.
+    expect(dots()).toHaveLength(4);
     expect(dots()[2]?.getAttribute('aria-current')).toBe('true');
 
     // A sixth item arrives — the shape of a data load finishing after first
@@ -468,11 +475,15 @@ describe('Scroller — re-measuring', () => {
     await Promise.resolve();
     flushSync();
 
-    expect(dots()).toHaveLength(6);
-    // The re-measure happened at scrollLeft = 440, so the item positions are
-    // only right if the measurement converts viewport-relative rects back into
-    // content coordinates. Drop that conversion and every item reads 440px too
-    // early, putting aria-current on the wrong dot.
+    // 1300 of content in a 600 viewport → maxScroll 700. Items 5 and 6 (at 880
+    // and 1100) collapse onto it: five resting places for six items.
+    expect(dots()).toHaveLength(5);
+    expect(dots()[4]?.getAttribute('aria-label')).toBe('Items 5–6 of 6');
+    // The re-measure happened at scrollLeft = 440. `offsetLeft` is measured
+    // from the offsetParent and is scroll-independent, so the item positions
+    // stay in content coordinates — measure from the visual rect instead
+    // (which the stubs shift by the scroll offset) and every item reads 440px
+    // too early, putting aria-current on the wrong dot.
     expect(dots()[2]?.getAttribute('aria-current')).toBe('true');
     expect(dots()[2]?.getAttribute('aria-label')).toBe('Item 3 of 6');
   });

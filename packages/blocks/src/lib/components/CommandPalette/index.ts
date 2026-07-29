@@ -1,4 +1,5 @@
 import type { Snippet } from 'svelte';
+import type { IconComponent } from '$lib/icons';
 import type { CommandPaletteSlots, CommandPaletteVariants } from './commandPalette.variants';
 
 /**
@@ -29,8 +30,14 @@ export interface CommandPaletteItem {
   category?: string;
   /** Optional keyboard shortcut displayed on the right side. */
   shortcut?: string;
-  /** SVG path data for a leading icon (24x24 viewBox). */
-  icon?: string;
+  /**
+   * Leading icon component. Pass an icon directly (`import { SearchIcon } from
+   * '@urbicon-ui/blocks'`), not an icon *name* — a name would have to be
+   * resolved through the registry at runtime, and that dynamic lookup drags all
+   * 315 icons into the consumer bundle (see docs/ICON-DESIGN.md). Rendered at
+   * the slot's own size, inheriting `currentColor`.
+   */
+  icon?: IconComponent;
   /** Whether the item is non-selectable. @default false */
   disabled?: boolean;
   /** Arbitrary payload forwarded to `onSelect`. */
@@ -40,6 +47,7 @@ export interface CommandPaletteItem {
 /**
  * Props for the CommandPalette component.
  *
+ * @summary Everything the app can do, one keystroke away.
  * @description Keyboard-driven command palette with search, grouped results,
  * and arrow-key navigation. Composes Dialog + search input into a ready-to-use overlay.
  * Open via bind:open or the built-in Cmd+K shortcut.
@@ -108,8 +116,9 @@ export interface CommandPaletteProps {
   query?: string;
 
   /**
-   * Register a global keyboard shortcut that toggles the palette.
-   * Set to `false` to disable. @default 'mod+k' (Cmd+K / Ctrl+K)
+   * Register a global keyboard shortcut that toggles the palette. `mod` is
+   * Cmd on macOS and Ctrl elsewhere. Set to `false` to disable.
+   * @default 'mod+k'
    */
   shortcut?: string | false;
 

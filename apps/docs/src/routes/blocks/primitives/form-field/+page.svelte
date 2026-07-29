@@ -5,16 +5,13 @@
     ApiReference,
     CodeExample,
     DocsLayout as DocsPageLayout,
-    extractPlaygroundDocs,
-    PlaygroundConfigurator,
     Section
   } from '@urbicon-ui/docs';
   import CustomDocs from './Docs.svelte';
+  import Playground from './Playground.svelte';
   import { componentData } from './api';
   import { buildRelatedLinks } from '$lib/component-links';
   import { FormField } from '@urbicon-ui/blocks';
-
-  const { propDocs, variantKeys } = extractPlaygroundDocs(componentData?.props ?? []);
   const relatedLinks = buildRelatedLinks(componentData);
 
   const navigation = [
@@ -47,44 +44,7 @@
   related={relatedLinks}
 >
   <Section id="playground" title="Playground" intent="primary">
-    <PlaygroundConfigurator
-      showHeader={false}
-      {propDocs}
-      {variantKeys}
-      componentName="FormField"
-      controls={[
-        { type: 'text', key: 'label', label: 'Label', defaultValue: 'Document' },
-        {
-          type: 'text',
-          key: 'helper',
-          label: 'Helper',
-          defaultValue: 'PDF, JPG, PNG — max 10 MB'
-        },
-        { type: 'text', key: 'error', label: 'Error', defaultValue: '' },
-        { type: 'checkbox', key: 'required', label: 'Required', defaultValue: false }
-      ]}
-      values={{
-        label: 'Document',
-        helper: 'PDF, JPG, PNG — max 10 MB',
-        error: '',
-        required: false
-      }}
-    >
-      {#snippet children(values)}
-        <FormField {...values}>
-          {#snippet children(ctx)}
-            <input
-              id={ctx.id}
-              type="file"
-              aria-describedby={ctx.describedBy}
-              aria-invalid={ctx.invalid}
-              required={ctx.required}
-              class="border-border-subtle bg-surface-base text-text-primary file:bg-surface-interactive file:text-text-primary hover:file:bg-surface-interactive-hover w-full rounded-md border px-3 py-2 text-sm file:mr-3 file:rounded file:border-0 file:px-3 file:py-1.5 file:text-sm"
-            />
-          {/snippet}
-        </FormField>
-      {/snippet}
-    </PlaygroundConfigurator>
+    <Playground />
   </Section>
 
   <CustomDocs />

@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { CommandPalette } from '@urbicon-ui/blocks';
+  import { ChevronRightIcon, CommandPalette, FileTextIcon } from '@urbicon-ui/blocks';
   import type { CommandPaletteItem } from '@urbicon-ui/blocks';
   import { nav } from '$lib/route';
   import { useAppI18n } from '$lib/i18n';
@@ -8,10 +8,6 @@
 
   const ta = useAppI18n();
   const navLabel = useNavLabel();
-
-  const ARROW_ICON = 'M9 5l7 7-7 7';
-  const DOC_ICON =
-    'M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z';
 
   function flattenNav(items: NavItem[], category = ''): CommandPaletteItem[] {
     const result: CommandPaletteItem[] = [];
@@ -22,7 +18,7 @@
           id: item.href,
           label: navLabel(item),
           category: cat || ta('chrome.pages' as Parameters<typeof ta>[0]),
-          icon: ARROW_ICON,
+          icon: ChevronRightIcon,
           data: { href: item.href }
         });
       }
@@ -95,7 +91,7 @@
         label: hit.record.t || hit.record.p,
         excerpt: hit.excerpt,
         category: hit.record.p,
-        icon: DOC_ICON,
+        icon: FileTextIcon,
         data: { href: hit.href }
       }));
   });

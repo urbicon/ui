@@ -4,17 +4,14 @@
     ApiReference,
     CodeExample,
     DocsLayout as DocsPageLayout,
-    extractPlaygroundDocs,
-    PlaygroundConfigurator,
     Section
   } from '@urbicon-ui/docs';
   import { Avatar } from '@urbicon-ui/blocks';
   import CustomDocs from './Docs.svelte';
+  import Playground from './Playground.svelte';
   import { componentData } from './api';
   import { buildRelatedLinks } from '$lib/component-links';
   import { asset, resolve } from '$app/paths';
-
-  const { propDocs, variantKeys } = extractPlaygroundDocs(componentData?.props ?? []);
   const relatedLinks = buildRelatedLinks(componentData);
 
   const navigation = [
@@ -47,114 +44,7 @@
   related={relatedLinks}
 >
   <Section id="playground" intent="primary">
-    <PlaygroundConfigurator
-      componentName="Avatar"
-      {propDocs}
-      {variantKeys}
-      controls={[
-        { type: 'text', key: 'name', label: 'Name', defaultValue: 'Jane Doe' },
-        {
-          type: 'dropdown',
-          key: 'variant',
-          label: 'Shape',
-          items: [
-            { label: 'circle', value: 'circle' },
-            { label: 'rounded', value: 'rounded' },
-            { label: 'square', value: 'square' }
-          ],
-          defaultValue: 'circle'
-        },
-        {
-          type: 'dropdown',
-          key: 'size',
-          label: 'Size',
-          items: [
-            { label: 'xs', value: 'xs' },
-            { label: 'sm', value: 'sm' },
-            { label: 'md', value: 'md' },
-            { label: 'lg', value: 'lg' },
-            { label: 'xl', value: 'xl' },
-            { label: '2xl', value: '2xl' }
-          ],
-          defaultValue: 'lg'
-        },
-        {
-          type: 'dropdown',
-          key: 'intent',
-          label: 'Intent',
-          items: [
-            { label: 'neutral', value: 'neutral' },
-            { label: 'primary', value: 'primary' },
-            { label: 'secondary', value: 'secondary' },
-            { label: 'success', value: 'success' },
-            { label: 'warning', value: 'warning' },
-            { label: 'danger', value: 'danger' }
-          ],
-          defaultValue: 'neutral'
-        },
-        {
-          type: 'dropdown',
-          key: 'status',
-          label: 'Status',
-          items: [
-            { label: '(none)', value: '' },
-            { label: 'online', value: 'online' },
-            { label: 'offline', value: 'offline' },
-            { label: 'busy', value: 'busy' },
-            { label: 'away', value: 'away' }
-          ],
-          defaultValue: ''
-        },
-        {
-          type: 'dropdown',
-          key: 'statusPosition',
-          label: 'Status Position',
-          items: [
-            { label: 'bottom-right', value: 'bottom-right' },
-            { label: 'top-right', value: 'top-right' },
-            { label: 'bottom-left', value: 'bottom-left' },
-            { label: 'top-left', value: 'top-left' }
-          ],
-          defaultValue: 'bottom-right'
-        },
-        { type: 'checkbox', key: 'pulse', label: 'Pulse', defaultValue: false },
-        { type: 'checkbox', key: 'ring', label: 'Ring', defaultValue: false },
-        {
-          type: 'dropdown',
-          key: 'ringIntent',
-          label: 'Ring Intent',
-          items: [
-            { label: 'primary', value: 'primary' },
-            { label: 'secondary', value: 'secondary' },
-            { label: 'success', value: 'success' },
-            { label: 'warning', value: 'warning' },
-            { label: 'danger', value: 'danger' },
-            { label: 'neutral', value: 'neutral' }
-          ],
-          defaultValue: 'primary'
-        },
-        { type: 'checkbox', key: 'randomColor', label: 'Random Color', defaultValue: false },
-        { type: 'checkbox', key: 'interactive', label: 'Interactive', defaultValue: false }
-      ]}
-      values={{
-        name: 'Jane Doe',
-        variant: 'circle',
-        size: 'lg',
-        intent: 'neutral',
-        status: '',
-        statusPosition: 'bottom-right',
-        pulse: false,
-        ring: false,
-        ringIntent: 'primary',
-        randomColor: false,
-        interactive: false
-      }}
-      showHeader={false}
-    >
-      {#snippet children(values)}
-        <Avatar {...values} status={values.status || undefined} />
-      {/snippet}
-    </PlaygroundConfigurator>
+    <Playground />
   </Section>
 
   <CustomDocs />

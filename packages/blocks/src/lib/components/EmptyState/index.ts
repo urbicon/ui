@@ -4,6 +4,7 @@ import type { IconProps } from '$lib/icons';
 import type { EmptyStateSlots } from './emptyState.variants';
 
 /**
+ * @summary What to show when there is nothing yet — and what to do about it.
  * @description Centered placeholder block for "no data yet" / "no results"
  * states. Pairs an optional icon with a heading, supporting text, and an
  * optional call-to-action slot.

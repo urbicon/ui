@@ -22,6 +22,7 @@
     children,
     footer,
     title,
+    icon,
     size = 'sm',
     placement = 'center',
     intent = 'neutral',
@@ -62,6 +63,36 @@
     );
   }
 
+  /** Warned once per instance: a dead end is a mistake, not a stream of them. */
+  let warnedDeadEnd = false;
+
+  /**
+   * The second half of the check above, and the one that can actually tell a
+   * deliberate forced choice from a trap: with every close path disabled, the
+   * only way out is something the consumer put *inside* the dialog. Whether
+   * they did is not knowable from the props — `footer` and `children` are
+   * snippets — so this looks at the rendered panel once it exists.
+   *
+   * A dialog with no interactive element and no way out leaves the reader stuck
+   * with a page they cannot use; that is worth a loud line in the console, in
+   * the same spirit as the `toaster.add()`-without-`<Toaster />` warning.
+   */
+  function warnOnDeadEnd(): void {
+    if (!import.meta.env?.DEV || warnedDeadEnd) return;
+    if (!hideCloseButton || closeOnEscape !== false || closeOnBackdropClick !== false) return;
+    if (!panelEl) return;
+    const action = panelEl.querySelector(
+      'button, [role="button"], a[href], input[type="submit"], input[type="button"], [tabindex]:not([tabindex="-1"])'
+    );
+    if (action) return;
+    warnedDeadEnd = true;
+    console.warn(
+      '[Dialog] Dead end: every close path is disabled and the dialog renders no action ' +
+        'the reader could take. Give it a button (in `footer` or `children`) that closes it, ' +
+        'or leave one of `closeOnEscape` / `closeOnBackdropClick` / the close button in place.'
+    );
+  }
+
   const motion = $derived(
     getOverlayMotion({
       enterDuration: transitionDuration,
@@ -87,6 +118,13 @@
   if (import.meta.env?.DEV && draggable && !title) {
     console.warn(
       '[Dialog] `draggable` needs a `title` — the header is the drag handle. Without a title no header renders, so dragging is a no-op.'
+    );
+  }
+
+  // svelte-ignore state_referenced_locally
+  if (import.meta.env?.DEV && icon && !title) {
+    console.warn(
+      '[Dialog] `icon` needs a `title` — the icon sits in the structured header. Without a title no header renders, so the icon is dropped.'
     );
   }
 
@@ -234,6 +272,7 @@
       // already run — a lock taken now could never be released.
       tick().then(() => {
         if (dialogEl) releaseScrollLock = showDialogModal(dialogEl, panelEl);
+        warnOnDeadEnd();
       });
     }
   });
@@ -308,14 +347,30 @@
               : styles.header({ class: slotClasses?.header })}
             {@attach draggable ? draggableHandle : undefined}
           >
-            <h2
+            <div
               class={unstyled
-                ? (slotClasses?.title ?? '')
-                : styles.title({ class: slotClasses?.title })}
-              id={titleId}
+                ? (slotClasses?.titleGroup ?? '')
+                : styles.titleGroup({ class: slotClasses?.titleGroup })}
             >
-              {title}
-            </h2>
+              {#if icon}
+                <span
+                  class={unstyled
+                    ? (slotClasses?.icon ?? '')
+                    : styles.icon({ class: slotClasses?.icon })}
+                  aria-hidden="true"
+                >
+                  {@render icon()}
+                </span>
+              {/if}
+              <h2
+                class={unstyled
+                  ? (slotClasses?.title ?? '')
+                  : styles.title({ class: slotClasses?.title })}
+                id={titleId}
+              >
+                {title}
+              </h2>
+            </div>
             {#if !hideCloseButton}
               <CoreIconButton
                 class={unstyled

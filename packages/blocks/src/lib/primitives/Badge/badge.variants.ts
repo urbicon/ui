@@ -169,6 +169,21 @@ export const badgeVariants = tv({
     // dominance-stripped by an EARLIER shorthand — later sources win).
     { removable: true, class: { base: 'pr-2' } },
 
+    // The ✕ is sized against its badge. The `removeButton` slot carries the
+    // frozen fold of a `<Button size="xs">` (see the slot comment), and that
+    // fold's `h-6` hangs on no size axis — so an `xs` badge (h-4 = 16px) shipped
+    // a 24px control, 8px taller than the element containing it. Only the two
+    // sizes where the button actually overflows are corrected: `md` (h-6 in
+    // h-6) and `lg` (h-6 in h-7) fit, and re-scaling them would move pixels in
+    // the removable VR baseline for no defect.
+    {
+      removable: true,
+      size: 'xs',
+      // 12px control, 10px glyph — the icon would otherwise fill the button edge to edge.
+      class: { removeButton: 'h-3 px-0.5', removeIcon: 'w-2.5 h-2.5' }
+    },
+    { removable: true, size: 'sm', class: { removeButton: 'h-4 px-1' } },
+
     // Dot size overrides
     {
       variant: 'dot',

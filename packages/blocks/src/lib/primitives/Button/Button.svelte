@@ -122,7 +122,9 @@
   (pressed/disabled/loading) win when the component has something to say, and
   falls back to the consumer's restProps value when it doesn't. Inside a
   selection group aria-pressed is forced off even against restProps — a selection
-  role announces via aria-checked, and doubling up is an ARIA violation.
+  role announces via aria-checked, and doubling up is an ARIA violation. The same
+  applies to a consumer-set aria-current (Pagination's current page): the
+  location IS the state, so an added aria-pressed would announce it twice.
   `type`/`disabled`/`class`/`onclick` are destructured (never in restProps);
   a consumer onclick is composed inside handleClick.
 -->
@@ -142,7 +144,7 @@
   role={ariaProps.role ?? restProps.role}
   aria-checked={ariaProps['aria-checked'] ?? restProps['aria-checked']}
   data-value={ariaProps['data-value'] ?? restProps['data-value']}
-  aria-pressed={ariaProps.role
+  aria-pressed={ariaProps.role || restProps['aria-current']
     ? undefined
     : effectiveActive || effectivePressed || restProps['aria-pressed']}
   aria-disabled={effectiveDisabled || (restProps['aria-disabled'] ?? false)}

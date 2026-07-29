@@ -4,17 +4,14 @@
     ApiReference,
     CodeExample,
     DocsLayout as DocsPageLayout,
-    extractPlaygroundDocs,
-    PlaygroundConfigurator,
     Section
   } from '@urbicon-ui/docs';
-  import { Tooltip, Button } from '@urbicon-ui/blocks';
+  import { Tooltip } from '@urbicon-ui/blocks';
   import CustomDocs from './Docs.svelte';
+  import Playground from './Playground.svelte';
   import { componentData } from './api';
   import { buildRelatedLinks } from '$lib/component-links';
   import { asset, resolve } from '$app/paths';
-
-  const { propDocs, variantKeys } = extractPlaygroundDocs(componentData?.props ?? []);
   const relatedLinks = buildRelatedLinks(componentData);
 
   const navigation = [
@@ -47,99 +44,7 @@
   related={relatedLinks}
 >
   <Section id="playground" intent="primary">
-    <PlaygroundConfigurator
-      componentName="Tooltip"
-      {propDocs}
-      {variantKeys}
-      controls={[
-        { type: 'text', key: 'label', label: 'Label', defaultValue: 'Helpful hint' },
-        {
-          type: 'dropdown',
-          key: 'placement',
-          label: 'Placement',
-          items: [
-            { label: 'top', value: 'top' },
-            { label: 'top-start', value: 'top-start' },
-            { label: 'top-end', value: 'top-end' },
-            { label: 'bottom', value: 'bottom' },
-            { label: 'left', value: 'left' },
-            { label: 'right', value: 'right' }
-          ],
-          defaultValue: 'top'
-        },
-        {
-          type: 'dropdown',
-          key: 'intent',
-          label: 'Intent',
-          items: [
-            { label: 'neutral', value: 'neutral' },
-            { label: 'primary', value: 'primary' },
-            { label: 'secondary', value: 'secondary' },
-            { label: 'success', value: 'success' },
-            { label: 'warning', value: 'warning' },
-            { label: 'danger', value: 'danger' }
-          ],
-          defaultValue: 'neutral'
-        },
-        {
-          type: 'dropdown',
-          key: 'size',
-          label: 'Size',
-          items: [
-            { label: 'sm', value: 'sm' },
-            { label: 'md', value: 'md' },
-            { label: 'lg', value: 'lg' }
-          ],
-          defaultValue: 'md'
-        },
-        {
-          type: 'slider',
-          key: 'showDelay',
-          label: 'Show Delay (ms)',
-          min: 0,
-          max: 1000,
-          step: 50,
-          defaultValue: 200
-        },
-        {
-          type: 'slider',
-          key: 'hideDelay',
-          label: 'Hide Delay (ms)',
-          min: 0,
-          max: 500,
-          step: 50,
-          defaultValue: 100
-        },
-        { type: 'checkbox', key: 'arrow', label: 'Show Arrow', defaultValue: true },
-        { type: 'checkbox', key: 'disabled', label: 'Disabled', defaultValue: false }
-      ]}
-      values={{
-        label: 'Helpful hint',
-        placement: 'top',
-        intent: 'neutral',
-        size: 'md',
-        showDelay: 200,
-        hideDelay: 100,
-        arrow: true,
-        disabled: false
-      }}
-      showHeader={false}
-    >
-      {#snippet children(values)}
-        <Tooltip
-          label={String(values.label ?? '')}
-          placement={values.placement}
-          intent={values.intent}
-          size={values.size}
-          showDelay={values.showDelay}
-          hideDelay={values.hideDelay}
-          arrow={values.arrow}
-          disabled={values.disabled}
-        >
-          <Button variant="outlined" size="sm">Hover me</Button>
-        </Tooltip>
-      {/snippet}
-    </PlaygroundConfigurator>
+    <Playground />
   </Section>
 
   <CustomDocs />

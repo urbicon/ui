@@ -4,6 +4,7 @@ import type { CsrfClientOptions } from '../../csrf.js';
 import type { AuthPageSlotClasses } from '../types.js';
 
 /**
+ * @summary The ready-made page for choosing a new password.
  * @description Pre-built reset-password page with password confirmation.
  * Sends POST to `apiPath` (default `/api/auth/reset-password`). Pair with `createResetPasswordHandler(authDeps)` on the server.
  *

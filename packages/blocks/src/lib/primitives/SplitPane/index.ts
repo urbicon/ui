@@ -5,6 +5,7 @@ import type { SplitPaneLimit } from './split-pane.utils';
 import type { SplitPaneSlots, SplitPaneVariants } from './split-pane.variants';
 
 /**
+ * @summary Two panes and a divider the user can move.
  * @description Resizable two-pane layout. A draggable divider (ARIA "window
  * splitter", role="separator") splits the container into a `start` and an `end`
  * pane; the first pane's share is controlled by `ratio` (0–1) and supports
@@ -59,7 +60,12 @@ export interface SplitPaneProps
   min?: SplitPaneLimit;
   /** Upper bound for the first pane — px (`number`) or percentage string (`'90%'`). @default '90%' */
   max?: SplitPaneLimit;
-  /** Allow the first pane to collapse to zero: dragging below `collapseThreshold`, or pressing Enter on the divider, snaps it shut. @default false */
+  /**
+   * Allow the first pane to collapse to zero: dragging below
+   * `collapseThreshold`, or pressing Enter on the divider, snaps it shut.
+   * @default false
+   * @summary Let the first pane collapse shut by dragging it small or pressing Enter on the divider.
+   */
   collapsible?: boolean;
   /** Pixel width/height of the first pane below which a drag snaps it collapsed. Only used when `collapsible`. @default 48 */
   collapseThreshold?: number;

@@ -36,7 +36,8 @@
     variant: tabContext.variant,
     orientation: tabContext.orientation,
     size: tabContext.size,
-    tier: tabContext.tier
+    tier: tabContext.tier,
+    fullWidth: tabContext.fullWidth
   });
 
   const styles = $derived(tabVariants(variantProps));

@@ -203,8 +203,15 @@
       typeof item.id === 'string' || typeof item.id === 'number' ? item.id : index}
     {@const isRowExpanded = isItemExpanded(rowItemId)}
     {@const isRowSelected = selectable && tableContext.isSelected(rowItemId)}
+    {@const isActiveRow = tableState.activeRowId != null && tableState.activeRowId === rowItemId}
     {@const itemStyles = tableRowVariants({
-      state: isRowSelected ? 'selected' : isRowExpanded ? 'expanded' : 'default',
+      state: isRowSelected
+        ? 'selected'
+        : isActiveRow
+          ? 'active'
+          : isRowExpanded
+            ? 'expanded'
+            : 'default',
       size
     })}
     <tr
@@ -229,7 +236,9 @@
         : undefined}
       aria-rowindex={rowIndexOffset + index + 1}
       aria-selected={selectable ? isRowSelected : undefined}
+      aria-current={isActiveRow ? 'true' : undefined}
       data-row-index={rowIndexOffset + index}
+      data-active={isActiveRow ? '' : undefined}
       data-testid={`grouped-item-${rowItemId}`}
     >
       {#if selectable}

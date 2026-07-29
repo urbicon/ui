@@ -194,3 +194,32 @@ describe('RadioGroup (consumer aria-labelledby survives without an internal labe
     expect(group.getAttribute('aria-labelledby')).toBe(labelSpan.id);
   });
 });
+
+// Point 20b on the radio: the group's `error` reaches every item through the
+// context, and the SELECTED item gains a ring rather than a danger fill —
+// repainting the dot would read as "not chosen", the opposite of the truth.
+describe('RadioGroup (error on the selected item)', () => {
+  const indicatorOf = (name: string) =>
+    radio(name).closest('label')?.querySelector('span') as HTMLElement;
+
+  it('rings the checked item and keeps its intent fill', () => {
+    renderRadios({ value: 'medium', error: 'Not available on your plan' });
+
+    const cls = indicatorOf('Medium').className;
+    expect(cls).toContain('ring-danger/60');
+    expect(cls).toContain('bg-primary');
+  });
+
+  it('keeps the danger border on the unchecked items', () => {
+    renderRadios({ value: 'medium', error: 'Not available on your plan' });
+
+    const cls = indicatorOf('Small').className;
+    expect(cls).toContain('border-danger');
+    expect(cls).not.toContain('ring-danger/60');
+  });
+
+  it('does not ring the checked item without an error', () => {
+    renderRadios({ value: 'medium' });
+    expect(indicatorOf('Medium').className).not.toContain('ring-danger');
+  });
+});

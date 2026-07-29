@@ -4,6 +4,7 @@ import type { FileIntakeEntry, FileIntakeRejection } from '$lib/utils/file-intak
 import type { PromptInputSlots, PromptInputVariants } from './prompt-input.variants';
 
 /**
+ * @summary The composer: it grows as you type and turns into a stop button while answering.
  * @description The chat composer: an auto-growing textarea in a single bordered
  * surface with a send button that flips to a stop button while a response is
  * streaming. `onSubmit({ text, attachments })` fires with trimmed text when there
@@ -86,6 +87,7 @@ export interface PromptInputProps
    *
    * Submission is always suppressed mid-IME-composition.
    * @default 'enter'
+   * @summary Which key gesture sends the message, and which one inserts a newline.
    */
   submitOn?: 'enter' | 'mod-enter';
 
@@ -130,6 +132,7 @@ export interface PromptInputProps
    * Enable the attachment surface: paperclip picker, clipboard-image paste,
    * drag-and-drop, and the chip strip above the textarea.
    * @default false
+   * @summary Turns on the attachment surface: picker, paste, drag-and-drop, and the chip strip.
    */
   allowAttachments?: boolean;
   /**

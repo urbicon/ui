@@ -222,6 +222,34 @@ export const checkboxVariants = tv({
       class: {
         box: 'border-danger group-hover:border-danger peer-focus-visible:ring-danger/40'
       }
+    },
+
+    // ── Error on a SELECTED control: a ring, not a fill ──
+    // The rule above ("an error on a boolean usually means: must be switched
+    // on") is good, but it leaves one real case unanswered — an error on an
+    // already-checked box ("this option is not available on your plan", "this
+    // consent was withdrawn"), which used to render as red text under an
+    // untouched green box. The mark rides a different layer than the intent
+    // colour: the fill keeps saying *what is selected*, the ring says *this
+    // selection is the problem*. Repainting the fill danger-red would instead
+    // read as "unselected", which is the opposite of the truth.
+    // `ring-offset` lifts the ring off the filled box so the two colours do not
+    // touch; the focus bucket is pinned to danger for the same reason the
+    // unchecked rule pins hover — otherwise the focus ring repaints the mark
+    // primary exactly while the user is on the control.
+    {
+      error: true,
+      checked: true,
+      class: {
+        box: 'ring-2 ring-danger/60 ring-offset-1 ring-offset-surface-base peer-focus-visible:ring-danger/60'
+      }
+    },
+    {
+      error: true,
+      indeterminate: true,
+      class: {
+        box: 'ring-2 ring-danger/60 ring-offset-1 ring-offset-surface-base peer-focus-visible:ring-danger/60'
+      }
     }
   ],
   defaultVariants: {

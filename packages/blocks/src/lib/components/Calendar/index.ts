@@ -96,6 +96,7 @@ export type CalendarSlotName =
 // ─── CalendarProps ────────────────────────────────────────────
 
 /**
+ * @summary Appointments on a real calendar — month, week or day, with multi-day spans and recurrence.
  * @description Flexible calendar component with month, year, week, and day views.
  * Renders timed appointments, multi-day spans and recurrence on a time grid, with
  * event display, date selection and configurable layout. For a headless grid that

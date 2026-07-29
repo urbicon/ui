@@ -221,6 +221,9 @@ export const tableRowVariants = tv({
       selected: {
         row: TABLE_STATES.row.selected
       },
+      active: {
+        row: TABLE_STATES.row.active
+      },
       expanded: {
         row: TABLE_STATES.row.expanded
       },

@@ -69,7 +69,8 @@ export default {
   scroller: {
     previous: 'Previous',
     next: 'Next',
-    item: 'Item {{index}} of {{total}}'
+    item: 'Item {{index}} of {{total}}',
+    items: 'Items {{from}}–{{to}} of {{total}}'
   },
   calendar: {
     recurring: 'Recurring event',

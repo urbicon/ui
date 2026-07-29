@@ -28,8 +28,28 @@ export interface ControlDefinition {
   type: ControlType;
   /** Control options (for select/dropdown) */
   items?: ControlOption[];
-  /** Default value */
+  /** Where this playground starts, and what "reset" returns to. */
   defaultValue?: unknown;
+  /**
+   * What the *component* does when the prop is omitted — which is not always
+   * where the playground starts. A Table playground may open at
+   * `itemsPerPage: 5` while the component defaults to 10; the reset dot follows
+   * the former, the generated code snippet the latter, or it would print a
+   * snippet that does not reproduce the preview above it.
+   *
+   * Set by `deriveControls` from the generated API. Absent means "same as
+   * `defaultValue`".
+   */
+  componentDefault?: unknown;
+  /**
+   * This knob steers the demo, it is not a prop of the component — a scenario
+   * switch that picks a payload, a "show marks" toggle that builds an array.
+   * Such a control must never reach the generated snippet: `scenario="survey"`
+   * would document an attribute that does not exist.
+   *
+   * Set by `deriveControls` for everything passed as `extra`.
+   */
+  demoOnly?: boolean;
   /** Minimum value (for number/range) */
   min?: number;
   /** Maximum value (for number/range) */

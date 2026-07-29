@@ -4,17 +4,14 @@
     ApiReference,
     CodeExample,
     DocsLayout as DocsPageLayout,
-    extractPlaygroundDocs,
-    PlaygroundConfigurator,
     Section
   } from '@urbicon-ui/docs';
   import { SegmentGroup, SegmentItem } from '@urbicon-ui/blocks';
   import CustomDocs from './Docs.svelte';
+  import Playground from './Playground.svelte';
   import { componentData } from './api';
   import { buildRelatedLinks } from '$lib/component-links';
   import { asset, resolve } from '$app/paths';
-
-  const { propDocs, variantKeys } = extractPlaygroundDocs(componentData?.props ?? []);
   const relatedLinks = buildRelatedLinks(componentData);
 
   const navigation = [
@@ -49,65 +46,7 @@
   related={relatedLinks}
 >
   <Section id="playground" intent="primary">
-    <PlaygroundConfigurator
-      componentName="SegmentGroup"
-      {propDocs}
-      {variantKeys}
-      controls={[
-        {
-          type: 'dropdown',
-          key: 'variant',
-          label: 'Variant',
-          items: [
-            { label: 'default', value: 'default' },
-            { label: 'text', value: 'text' }
-          ],
-          defaultValue: 'default'
-        },
-        {
-          type: 'dropdown',
-          key: 'size',
-          label: 'Size',
-          items: [
-            { label: 'sm', value: 'sm' },
-            { label: 'md', value: 'md' },
-            { label: 'lg', value: 'lg' }
-          ],
-          defaultValue: 'md'
-        },
-        {
-          type: 'dropdown',
-          key: 'mint',
-          label: 'Mint',
-          items: [
-            { label: 'none', value: 'none' },
-            { label: 'scale', value: 'scale' },
-            { label: 'glow', value: 'glow' },
-            { label: 'pulse', value: 'pulse' },
-            { label: 'wiggle', value: 'wiggle' }
-          ],
-          defaultValue: 'none'
-        },
-        { type: 'checkbox', key: 'fullWidth', label: 'Full Width', defaultValue: false },
-        { type: 'checkbox', key: 'disabled', label: 'Disabled', defaultValue: false }
-      ]}
-      values={{
-        variant: 'default',
-        size: 'md',
-        mint: 'none',
-        fullWidth: false,
-        disabled: false
-      }}
-      showHeader={false}
-    >
-      {#snippet children(values)}
-        <SegmentGroup {...values} value="list" ariaLabel="View mode">
-          <SegmentItem value="list">List</SegmentItem>
-          <SegmentItem value="grid">Grid</SegmentItem>
-          <SegmentItem value="board">Board</SegmentItem>
-        </SegmentGroup>
-      {/snippet}
-    </PlaygroundConfigurator>
+    <Playground />
   </Section>
 
   <CustomDocs />

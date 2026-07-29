@@ -3,6 +3,7 @@ import type { CsrfClientOptions } from '../../csrf.js';
 import type { RoleOption } from '../types.js';
 
 /**
+ * @summary Admin view for invitation-gated signup: who was invited, and who has not answered.
  * @description Admin panel for managing invitation-gated registration with email toggle.
  * Communicates with `apiPath` (default `/api/invitations`). Pair with `createInvitationHandlers(authDeps, { authorize, roles })` on the server — mount its `POST` + `GET` on `/api/invitations` and `DELETE` on `/api/invitations/[id]`.
  *

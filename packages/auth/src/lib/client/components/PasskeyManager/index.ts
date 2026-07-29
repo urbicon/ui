@@ -2,6 +2,7 @@ import type { PartialAuthLocale } from '../../../i18n/keys.js';
 import type { CsrfClientOptions } from '../../csrf.js';
 
 /**
+ * @summary Add, list and remove the passkeys on an account.
  * @description Self-service panel for managing passkeys (WebAuthn credentials). Register, list and delete passkeys.
  * Communicates with `apiPath` (default `/api/auth/passkey`). Pair with `createPasskeyHandlers` — this panel uses its `registrationOptions`, `registrationVerify`, `list` (GET `${apiPath}/list`) and `item` (DELETE `${apiPath}/[credentialId]`) groups; the login flow additionally uses `authenticationOptions` and `authenticationVerify`.
  *

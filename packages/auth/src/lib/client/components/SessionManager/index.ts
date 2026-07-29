@@ -2,6 +2,7 @@ import type { PartialAuthLocale } from '../../../i18n/keys.js';
 import type { CsrfClientOptions } from '../../csrf.js';
 
 /**
+ * @summary Every device signed in to this account, and the button to sign them out.
  * @description Lists the user's active sessions (refresh-token families) with a
  * device label, last-active time and a "this device" badge, and lets them sign
  * out an individual session or all other devices. Requires refresh-token

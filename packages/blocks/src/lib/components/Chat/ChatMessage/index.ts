@@ -19,6 +19,7 @@ export type ChatPartRenderers = {
 };
 
 /**
+ * @summary One message in a conversation, with its text, reasoning, tool calls and attachments.
  * @description Renders one `ChatMessageData` — its ordered parts (markdown text via
  * StreamingMarkdown, reasoning, tool-call status lines, policy-checked attachment
  * chips) plus a citation footer, streaming placeholder, error/aborted Alert, a

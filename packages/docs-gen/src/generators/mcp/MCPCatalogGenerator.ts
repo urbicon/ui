@@ -9,12 +9,32 @@ export interface ComponentCatalogEntry {
   slug: string;
   package: string;
   group: 'primitives' | 'components' | 'core';
+  /** The long form: the contract an agent reads. */
   description: string;
+  /**
+   * The short form: one sentence for a human, under the component's name.
+   * Absent while a component still has no `@summary` — consumers fall back to
+   * `description`, which is what the landing page did before the split.
+   */
+  summary?: string;
+  /**
+   * Editorial maturity. Extracted per component since forever, but dropped on
+   * the way into this catalog until 2026-07-27 — which is why the landing
+   * page carried a hand-written list of beta components that named four of
+   * the thirty-eight.
+   */
+  stability?: 'experimental' | 'beta' | 'stable' | 'deprecated';
   tags: string[];
   import: string;
   llmTxtPath: string;
   variants: { name: string; values: string[]; default?: string }[];
   keyProps: string[];
+  /**
+   * Size of the component's own API: direct + variant props, inherited HTML
+   * attributes excluded. Mirrors `stats.totalProps`, the number each doc page
+   * prints — distinct from `keyProps.length`, which caps at eight.
+   */
+  propCount: number;
   /** Non-primitive prop types (objects, arrays, unions) — omits string/boolean/number */
   keyPropTypes: Record<string, string>;
   slots: string[];
@@ -134,6 +154,20 @@ export class MCPCatalogGenerator {
     );
     const keyProps = directProps.slice(0, 8).map((p) => p.name);
 
+    /**
+     * How wide this component's own API is — direct + variant props, inherited
+     * HTML attributes excluded. Straight from `stats.totalProps`, **not**
+     * recounted here: every doc page already prints that number as its "N
+     * props" meta line, and a second count would put the landing page and the
+     * component page in visible disagreement (Kbd: 8 against 10, because the
+     * two disagree on whether a `...KbdVariants` spread placeholder is a prop).
+     *
+     * The catalogue needed the field regardless: it is what a surface reads
+     * that has no `api.ts` at hand, and `keyProps.length` caps at eight — it
+     * would have shown the same 8 for Calendar's 56 and Input's 34.
+     */
+    const propCount = compApi.stats.totalProps;
+
     // Non-primitive prop types — helps LLMs understand complex APIs without extra calls
     const PRIMITIVE_TYPES = new Set([
       'string',
@@ -167,11 +201,14 @@ export class MCPCatalogGenerator {
       package: this.packageName,
       group,
       description: component.description || '',
+      ...(component.summary ? { summary: component.summary } : {}),
+      ...(compApi.stability ? { stability: compApi.stability } : {}),
       tags,
       import: `import { ${component.name} } from '${this.packageName}';`,
       llmTxtPath,
       variants,
       keyProps,
+      propCount,
       keyPropTypes,
       slots,
       hasExamples: compApi.examples.length > 0,

@@ -8,9 +8,10 @@
   import type { ScrollerProps } from './index';
   import {
     activeItemIndex,
+    restingPositions,
     type ScrollerItemMetrics,
+    type ScrollerRestingPosition,
     scrollEdges,
-    scrollTargetForIndex,
     scrollTargetForStep
   } from './scroller.utils';
   import { scrollerVariants, type ScrollerVariants } from './scroller.variants';
@@ -231,22 +232,19 @@
     );
   }
 
-  function goToItem(index: number) {
-    scrollToPosition(scrollTargetForIndex(items, index, viewportSize, align));
-  }
-
   const showControls = $derived(controls === 'always' || (controls === 'auto' && overflowing));
+  // A dot stands for a RESTING PLACE, not an item: on a start-aligned row the
+  // trailing items share the end of the scroll range, and a dot per item there
+  // lies — pressing the dot for a collapsed item lands at the shared target and
+  // the mark lights up on a different dot than the one just pressed. Grouping
+  // by resting place (see scroller.utils) makes every dot honest; the collapsed
+  // tail becomes one dot whose label carries the range. On a centred row every
+  // item has its own place and this is one dot per item, as before.
+  const dotPositions = $derived(restingPositions(items, viewportSize, align, maxScroll));
   // Dots earn their place only when part of the row is out of sight; with
   // everything visible they would announce a position nobody needs.
-  const showDots = $derived(indicator === 'dots' && overflowing && items.length > 1);
+  const showDots = $derived(indicator === 'dots' && overflowing && dotPositions.length > 1);
   const showControlBar = $derived(showControls || showDots);
-
-  // A dot's identity IS its ordinal — it stands for "the nth item in this row",
-  // and nothing else about it is stable (the measured metrics change on every
-  // resize). Keying by the ordinal is therefore the domain-correct key here, not
-  // the index-as-key shortcut the house rule warns about: keying by a measured
-  // value would rebuild every dot on resize and drop keyboard focus.
-  const dotOrdinals = $derived(items.map((_, index) => index));
 
   const variantProps: ScrollerVariants = $derived({
     align,
@@ -266,9 +264,17 @@
 
   // Resolved through the typed catalogue rather than a consumer-supplied
   // template (the PinInput convention): the placeholders are checked at compile
-  // time, and rewording is an i18n override, not a prop.
-  function dotLabel(index: number): string {
-    return bt('scroller.item', { index: index + 1, total: items.length });
+  // time, and rewording is an i18n override, not a prop. A collapsed tail dot
+  // names its whole range — "Items 4–5 of 5" — because it IS the destination
+  // for all of them.
+  function dotLabel(position: ScrollerRestingPosition): string {
+    return position.firstIndex === position.lastIndex
+      ? bt('scroller.item', { index: position.firstIndex + 1, total: items.length })
+      : bt('scroller.items', {
+          from: position.firstIndex + 1,
+          to: position.lastIndex + 1,
+          total: items.length
+        });
   }
 </script>
 
@@ -337,12 +343,17 @@
             ? (slotClasses?.indicator ?? '')
             : styles.indicator({ class: slotClasses?.indicator })}
         >
-          {#each dotOrdinals as index (index)}
+          <!-- Keyed by the position ordinal — "the nth resting place" is the
+               dot's identity; the measured targets change on every resize and
+               would rebuild the dots and drop keyboard focus. -->
+          {#each dotPositions as position, ordinal (ordinal)}
             <button
               type="button"
-              aria-label={dotLabel(index)}
-              aria-current={index === activeIndex ? 'true' : undefined}
-              onclick={() => goToItem(index)}
+              aria-label={dotLabel(position)}
+              aria-current={activeIndex >= position.firstIndex && activeIndex <= position.lastIndex
+                ? 'true'
+                : undefined}
+              onclick={() => scrollToPosition(position.target)}
               class={unstyled ? (slotClasses?.dot ?? '') : styles.dot({ class: slotClasses?.dot })}
             ></button>
           {/each}

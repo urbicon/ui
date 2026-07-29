@@ -4,17 +4,14 @@
     ApiReference,
     CodeExample,
     DocsLayout as DocsPageLayout,
-    extractPlaygroundDocs,
-    PlaygroundConfigurator,
     Section
   } from '@urbicon-ui/docs';
   import { Select } from '@urbicon-ui/blocks';
   import CustomDocs from './Docs.svelte';
+  import Playground from './Playground.svelte';
   import { componentData } from './api';
   import { buildRelatedLinks } from '$lib/component-links';
   import { asset, resolve } from '$app/paths';
-
-  const { propDocs, variantKeys } = extractPlaygroundDocs(componentData?.props ?? []);
   const relatedLinks = buildRelatedLinks(componentData);
 
   const navigation = [
@@ -47,78 +44,7 @@
   related={relatedLinks}
 >
   <Section id="playground" intent="primary">
-    <PlaygroundConfigurator
-      componentName="Select"
-      {propDocs}
-      {variantKeys}
-      controls={[
-        {
-          type: 'dropdown',
-          key: 'variant',
-          label: 'Variant',
-          items: [
-            { label: 'outlined', value: 'outlined' },
-            { label: 'filled', value: 'filled' },
-            { label: 'ghost', value: 'ghost' }
-          ],
-          defaultValue: 'outlined'
-        },
-        {
-          type: 'dropdown',
-          key: 'size',
-          label: 'Size',
-          items: [
-            { label: 'sm', value: 'sm' },
-            { label: 'md', value: 'md' },
-            { label: 'lg', value: 'lg' }
-          ],
-          defaultValue: 'md'
-        },
-        {
-          type: 'dropdown',
-          key: 'tier',
-          label: 'Tier',
-          items: [
-            { label: 'modify (soft)', value: 'modify' },
-            { label: 'commit (pill)', value: 'commit' }
-          ],
-          defaultValue: 'modify'
-        },
-        { type: 'checkbox', key: 'clearable', label: 'Clearable', defaultValue: false },
-        { type: 'checkbox', key: 'disabled', label: 'Disabled', defaultValue: false },
-        { type: 'checkbox', key: 'required', label: 'Required', defaultValue: false }
-      ]}
-      values={{
-        variant: 'outlined',
-        size: 'md',
-        tier: 'modify',
-        clearable: false,
-        disabled: false,
-        required: false
-      }}
-      showHeader={false}
-    >
-      {#snippet children(values)}
-        <div class="w-full max-w-xs">
-          <Select
-            label="Framework"
-            placeholder="Choose a framework"
-            options={[
-              { label: 'Svelte', value: 'svelte' },
-              { label: 'React', value: 'react' },
-              { label: 'Vue', value: 'vue' },
-              { label: 'Angular', value: 'angular' }
-            ]}
-            variant={values.variant}
-            size={values.size}
-            tier={values.tier}
-            clearable={values.clearable}
-            disabled={values.disabled}
-            required={values.required}
-          />
-        </div>
-      {/snippet}
-    </PlaygroundConfigurator>
+    <Playground />
   </Section>
 
   <CustomDocs />

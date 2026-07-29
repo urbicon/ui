@@ -233,6 +233,7 @@ export interface ComboboxMultipleProps<T extends SelectValue = string>
 }
 
 /**
+ * @summary Type to filter, then pick — a searchable list for when the options are many.
  * @description Searchable menu (autocomplete) combining a text input with a
  * filterable option list. Implements the ARIA combobox pattern with keyboard
  * navigation, custom filtering, and two-way bindable state. Single-select by

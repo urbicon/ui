@@ -4,6 +4,7 @@ import type { Placement } from '$lib/utils/floating';
 import type { PopoverVariants } from './popover.variants';
 
 /**
+ * @summary A floating panel that hangs off a trigger and closes when you look away.
  * @description Floating panel anchored to a trigger element. Uses the native Popover API
  * for top-layer rendering, light dismiss, and Escape handling. The library's built-in
  * positioning engine provides automatic flip, shift, and optional width syncing.
@@ -51,13 +52,23 @@ export interface PopoverProps
   triggerElement?: HTMLElement;
 
   // ── Positioning ──────────────────────────────────────
-  /** Where the popover appears relative to the trigger. All standard `Placement` values (side plus optional `-start`/`-end` alignment) are supported. */
+  /**
+   * Where the popover appears relative to the trigger. All standard
+   * `Placement` values (side plus optional `-start`/`-end` alignment) are
+   * supported.
+   * @summary Which side of the trigger the popover opens on, and how it aligns there.
+   */
   placement?: Placement;
   /** Gap in px between the trigger edge and the popover. */
   offsetDistance?: number;
   /** Minimum px padding from viewport edges when the popover shifts to stay visible. */
   shiftPadding?: number;
-  /** Match the popover width to the trigger width. Useful for select/autocomplete patterns where the floating panel should align with the input. */
+  /**
+   * Match the popover width to the trigger width. Useful for
+   * select/autocomplete patterns where the floating panel should align with
+   * the input.
+   * @summary Match the panel width to the trigger, as select and autocomplete patterns want.
+   */
   syncWidth?: boolean;
   /** Match the popover's *minimum* width to the trigger width while still letting content grow the panel beyond it. Useful for menu-style overlays where items longer than the trigger should not get truncated. Ignored when `syncWidth` is true (hard width wins). */
   syncMinWidth?: boolean;

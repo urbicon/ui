@@ -20,11 +20,16 @@ export const textareaVariants = tv({
     counter: ['text-xs text-text-tertiary tabular-nums ml-auto shrink-0']
   },
   variants: {
-    // 3-tier semantic radius. Default `modify` (soft). Opt-in `commit`
-    // (pill) is exotic for textareas but kept consistent with Input.
+    // 3-tier semantic radius. Default `modify` (soft). `commit` is capped at
+    // BRIDGE here instead of the full pill: optical radius scales with the area
+    // it turns (same argument as the chat bubble, chat-message.variants.ts).
+    // 9999 px on a single-line Input reads as a pill because the radius is
+    // bounded by the height; on a multi-line textarea the same token turns two
+    // half-circles into the side edges and the field stops reading as a field.
+    // The axis stays for API symmetry with Input — only its extreme is clamped.
     tier: {
       modify: { base: 'rounded-modify' },
-      commit: { base: 'rounded-commit' }
+      commit: { base: 'rounded-bridge' }
     },
     variant: {
       outlined: {

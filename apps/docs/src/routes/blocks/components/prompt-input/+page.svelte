@@ -4,31 +4,15 @@
     ApiReference,
     CodeExample,
     DocsLayout as DocsPageLayout,
-    extractPlaygroundDocs,
-    PlaygroundConfigurator,
     Section
   } from '@urbicon-ui/docs';
   import { PromptInput, type FileIntakeEntry } from '@urbicon-ui/blocks';
   import CustomDocs from './Docs.svelte';
+  import Playground from './Playground.svelte';
   import { componentData } from './api';
   import { buildRelatedLinks } from '$lib/component-links';
   import { asset, resolve } from '$app/paths';
-
-  const { propDocs, variantKeys } = extractPlaygroundDocs(componentData?.props ?? []);
   const relatedLinks = buildRelatedLinks(componentData);
-
-  let draft = $state('');
-  let attachments = $state<FileIntakeEntry[]>([]);
-  let log = $state<{ id: string; text: string }[]>([]);
-
-  function record(payload: { text: string; attachments: FileIntakeEntry[] }) {
-    const files = payload.attachments.map((a) => a.file.name);
-    const suffix = files.length ? ` + [${files.join(', ')}]` : '';
-    log = [
-      { id: crypto.randomUUID(), text: `${payload.text || '(no text)'}${suffix}` },
-      ...log
-    ].slice(0, 5);
-  }
 
   const navigation = [
     { id: 'playground', title: 'Playground', order: 1 },
@@ -89,79 +73,7 @@
   related={relatedLinks}
 >
   <Section id="playground" intent="primary">
-    <PlaygroundConfigurator
-      componentName="PromptInput"
-      {propDocs}
-      {variantKeys}
-      {codeGenerator}
-      controls={[
-        {
-          type: 'dropdown',
-          key: 'submitOn',
-          label: 'Submit on',
-          items: [
-            { label: 'enter', value: 'enter' },
-            { label: 'mod-enter', value: 'mod-enter' }
-          ],
-          defaultValue: 'enter'
-        },
-        { type: 'checkbox', key: 'busy', label: 'Busy', defaultValue: false },
-        {
-          type: 'checkbox',
-          key: 'allowAttachments',
-          label: 'Allow attachments',
-          defaultValue: false
-        },
-        { type: 'checkbox', key: 'disabled', label: 'Disabled', defaultValue: false },
-        {
-          type: 'text',
-          key: 'placeholder',
-          label: 'Placeholder',
-          defaultValue: 'Type a message…'
-        }
-      ]}
-      values={{
-        submitOn: 'enter',
-        busy: false,
-        allowAttachments: false,
-        disabled: false,
-        placeholder: 'Type a message…'
-      }}
-      showHeader={false}
-    >
-      {#snippet children(values)}
-        <div class="mx-auto w-full max-w-xl space-y-4">
-          <PromptInput
-            bind:value={draft}
-            bind:attachments
-            submitOn={values.submitOn as 'enter' | 'mod-enter'}
-            busy={values.busy as boolean}
-            allowAttachments={values.allowAttachments as boolean}
-            disabled={values.disabled as boolean}
-            accept="image/*"
-            placeholder={(values.placeholder as string) || undefined}
-            onSubmit={record}
-          />
-          {#if log.length > 0}
-            <div class="border-border-subtle rounded-xl border p-3">
-              <p class="text-text-tertiary mb-2 text-xs font-semibold tracking-wide uppercase">
-                onSubmit payloads
-              </p>
-              <ul class="space-y-1">
-                {#each log as entry (entry.id)}
-                  <li class="text-text-secondary font-mono text-xs">{entry.text}</li>
-                {/each}
-              </ul>
-            </div>
-          {:else}
-            <p class="text-text-tertiary text-center text-xs">
-              Submitted messages appear here. With <em>Busy</em> on, the send button becomes a stop button
-              and Enter no longer submits.
-            </p>
-          {/if}
-        </div>
-      {/snippet}
-    </PlaygroundConfigurator>
+    <Playground />
   </Section>
 
   <CustomDocs />

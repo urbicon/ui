@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { tableContainerVariants, tableHeaderVariants, tableRowVariants } from './table.variants';
+import { mobileCardVariants } from './table-states.variants';
 
 describe('tableContainerVariants', () => {
   it('produces base container, toolbar, scrollArea, table and body classes', () => {
@@ -65,12 +66,64 @@ describe('tableRowVariants', () => {
     expect(selectedRow).not.toBe(defaultRow);
   });
 
+  it('applies active state, distinct from default and from selected', () => {
+    const defaultRow = tableRowVariants({ state: 'default' }).row();
+    const activeRow = tableRowVariants({ state: 'active' }).row();
+    const selectedRow = tableRowVariants({ state: 'selected' }).row();
+
+    expect(activeRow).not.toBe(defaultRow);
+    // Selection keeps the accent; "currently shown" must not borrow it, or the
+    // two states would be indistinguishable in a table that has both.
+    expect(activeRow).not.toBe(selectedRow);
+    expect(activeRow).not.toMatch(/\bbg-primary-subtle\b/);
+  });
+
+  it('marks the active row with more than the hover ground', () => {
+    // Found in the browser: `active` was `bg-surface-hover` alone, which is
+    // exactly what the row under the cursor gets — so moving the mouse down the
+    // list showed two identical rows and neither said which one was on screen.
+    const activeRow = tableRowVariants({ state: 'active' }).row();
+    const defaultRow = tableRowVariants({ state: 'default' }).row();
+    const hoverGround = defaultRow.match(/hover:(bg-\S+)/)?.[1];
+
+    expect(hoverGround, 'default rows should still tint on hover').toBeTruthy();
+    // Whatever else it does, it must carry a mark hover cannot produce.
+    const withoutGround = activeRow
+      .split(/\s+/)
+      .filter((c) => c !== hoverGround)
+      .join(' ');
+    expect(withoutGround.trim()).not.toBe('');
+  });
+
   it('never outputs dark: overrides', () => {
-    const states = ['default', 'selected', 'expanded', 'disabled'] as const;
+    const states = ['default', 'selected', 'active', 'expanded', 'disabled'] as const;
     for (const state of states) {
       const styles = tableRowVariants({ state });
       expect(styles.row()).not.toMatch(/\bdark:/);
     }
+  });
+});
+
+describe('mobileCardVariants — active card', () => {
+  it('marks the active card without borrowing the selected look', () => {
+    const plain = mobileCardVariants({}).card();
+    const active = mobileCardVariants({ active: true }).card();
+    const selected = mobileCardVariants({ selected: true }).card();
+
+    expect(active).not.toBe(plain);
+    expect(active).not.toBe(selected);
+    expect(active).not.toMatch(/\bbg-primary-subtle\b/);
+  });
+
+  it('lets selection win when a card is both selected and active', () => {
+    // Two grounds on one card would otherwise resolve by declaration order
+    // rather than by meaning — the compound decides it explicitly.
+    const both = mobileCardVariants({ selected: true, active: true }).card();
+    const selected = mobileCardVariants({ selected: true }).card();
+
+    expect(both).toMatch(/\bbg-primary-subtle\b/);
+    expect(both).not.toMatch(/\bbg-surface-hover\b/);
+    expect(both.split(/\s+/).sort()).toEqual(selected.split(/\s+/).sort());
   });
 });
 

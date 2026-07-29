@@ -5,6 +5,7 @@ export type Theme = 'light' | 'dark' | 'system';
 /**
  * Props for the ThemeSwitcher component.
  *
+ * @summary Light, dark, or whatever the system says.
  * @description Cycles between light, dark, and system color schemes. Sets a
  * `light`/`dark` class on the `<html>` element for explicit choices and clears
  * it in system mode (so the CSS `light-dark()` function follows the OS natively).
@@ -34,6 +35,7 @@ export interface ThemeSwitcherProps {
    * - `'cycle'` — single button cycling light → dark → system (default)
    * - `'toggle'` — single button toggling light ↔ dark (no system option)
    * @default 'cycle'
+   * @summary Whether the button cycles through system too, or just toggles light and dark.
    */
   strategy?: 'cycle' | 'toggle';
 

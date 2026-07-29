@@ -133,7 +133,12 @@ export class APIFileGenerator {
       'export interface VariantExample { value: string; label?: string; description?: string; code?: string }'
     );
     lines.push(
-      "export interface InheritanceProp { name: string; type: string; required: boolean; description?: string; source?: { type: 'direct' | 'inherited' | 'variant'; name?: string; package?: string; url?: string }; seeAlso?: string; seeAlsoRefs?: string[]; examples?: PropExample[] }"
+      // `summary` is the prop-level short form (`@summary` on the member): what a
+      // playground shows beside the knob, where `description` is the contract.
+      // It has to be declared here too — these files carry their own structural
+      // type rather than importing `PropInfo`, so a field missing from this line
+      // type-errors at the call site even though the value is emitted.
+      "export interface InheritanceProp { name: string; type: string; required: boolean; description?: string; summary?: string; source?: { type: 'direct' | 'inherited' | 'variant'; name?: string; package?: string; url?: string }; seeAlso?: string; seeAlsoRefs?: string[]; examples?: PropExample[] }"
     );
     lines.push(
       'export interface InheritanceInfo { typeName: string; source: string; url?: string; props: InheritanceProp[] }'
@@ -147,6 +152,8 @@ export class APIFileGenerator {
     lines.push('  type: string;');
     lines.push('  required: boolean;');
     lines.push('  description: string;');
+    // The knob-side short form; see the note on `InheritanceProp` above.
+    lines.push('  summary?: string;');
     lines.push('  defaultValue?: string;');
     lines.push('  examples?: PropExample[];');
     lines.push('  deprecated?: DeprecationInfo;');

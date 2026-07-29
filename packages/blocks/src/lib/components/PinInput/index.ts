@@ -1,6 +1,7 @@
 import type { PinInputSlots, PinInputVariants } from './pin-input.variants';
 
 /**
+ * @summary One cell per digit, for codes that arrive by mail or app.
  * @description Segmented one-time-code / PIN entry — a row of single-character
  * cells with auto-advance, backspace-to-previous, paste-to-fill, and optional
  * masking. Purpose-built for the 2FA/OTP flow the auth package's
@@ -34,6 +35,7 @@ export interface PinInputProps extends Omit<PinInputVariants, 'error'> {
   /**
    * Allowed characters and keyboard hint. `numeric` accepts `0-9` and sets a
    * numeric inputmode; `alphanumeric` also accepts `A-Z`/`a-z`. @default 'numeric'
+   * @summary Which characters the field accepts — digits only, or letters too.
    */
   type?: 'numeric' | 'alphanumeric';
   /** Render each filled cell as a masked dot (password style). @default false */

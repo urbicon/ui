@@ -10,6 +10,7 @@ import type {
 export type BarChartDatum = CartesianDatum;
 
 /**
+ * @summary Bars for comparing categories — single, grouped or stacked.
  * @description Categorical bar chart — single, grouped, or stacked. Zero-
  * dependency SVG rendering on the design-token chart palette, responsive via
  * ResizeObserver, dark-mode aware, with a screen-reader data-table fallback.

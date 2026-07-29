@@ -390,3 +390,32 @@ describe('Calendar day/agenda keyboard navigation is direction-gated at the boun
     expect(onDayChange).not.toHaveBeenCalled();
   });
 });
+
+// `fixedWeeks` was declared as a prop, destructured, and published on the
+// context — and read by nobody. `getMonthGrid` never learned about it, so the
+// month view kept sizing to its content and the DatePicker overlay jumped
+// between 4, 5 and 6 rows while paging. A variants/geometry test cannot catch
+// that shape of bug: the gap sat between configuration and wiring, so this
+// asserts against the rendered DOM.
+describe('fixedWeeks wiring', () => {
+  const weekRows = () =>
+    document.querySelectorAll('[role="grid"] [role="row"]').length -
+    // the weekday header row
+    1;
+
+  it('renders 6 week rows for a short month when set', () => {
+    // February 2026 starts on a Sunday and needs only 5 rows unpadded.
+    renderCalendar({
+      view: 'month',
+      defaultDate: new Date(2026, 1, 15),
+      animated: false,
+      fixedWeeks: true
+    });
+    expect(weekRows()).toBe(6);
+  });
+
+  it('sizes to content when unset', () => {
+    renderCalendar({ view: 'month', defaultDate: new Date(2026, 1, 15), animated: false });
+    expect(weekRows()).toBeLessThan(6);
+  });
+});

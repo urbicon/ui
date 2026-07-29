@@ -217,3 +217,25 @@ describe('Slider (external aria-labelledby)', () => {
     expect(end.hasAttribute('aria-label')).toBe(false);
   });
 });
+
+// Point 20b's third shape: a slider always holds a value, so it has no
+// unselected state to paint danger — the error rides a ring on the thumb.
+// Before this, `error` coloured only the sentence under the control.
+describe('Slider (error marks the control, not just the message)', () => {
+  const thumb = () => screen.getByRole('slider') as HTMLElement;
+
+  it('rings the thumb when the value is in error', () => {
+    renderSlider({ value: 40, error: 'Above your plan limit' });
+    expect(thumb().className).toContain('ring-danger/60');
+  });
+
+  it('leaves the thumb unringed without an error', () => {
+    renderSlider({ value: 40 });
+    expect(thumb().className).not.toContain('ring-danger');
+  });
+
+  it('still colours the message', () => {
+    renderSlider({ value: 40, error: 'Above your plan limit' });
+    expect(screen.getByText('Above your plan limit').className).toContain('text-danger');
+  });
+});

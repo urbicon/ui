@@ -5,6 +5,7 @@ import type { CollapsibleSlots, CollapsibleVariants } from './collapsible.varian
 /**
  * Props interface for the Collapsible component
  *
+ * @summary A single panel that folds away — the simplest way to hide detail until asked.
  * @description A single expand/collapse panel with animated content, trigger button,
  * and full ARIA support. Can be used standalone or as the foundation for compound
  * components like Accordion.

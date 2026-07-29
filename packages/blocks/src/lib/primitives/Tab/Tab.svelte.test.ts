@@ -139,4 +139,24 @@ describe('Tab (component interaction)', () => {
     expect(document.activeElement).toBe(tab('C'));
     expect(onValueChange).toHaveBeenLastCalledWith('c');
   });
+
+  // Wiring, not configuration. `tabVariants({fullWidth:true}).trigger()` has
+  // always returned `flex-1` — the variants test stayed green while TabContext
+  // simply didn't carry the field, so TabItem never asked for it and the prop
+  // was dead end to end. Only a mounted composition sees the difference.
+  it('carries fullWidth through the context onto every trigger', () => {
+    renderTabs({ defaultValue: 'overview', fullWidth: true });
+
+    for (const label of ['Overview', 'Settings', 'Billing']) {
+      expect(tab(label).className).toContain('flex-1');
+    }
+  });
+
+  it('leaves the triggers unstretched without fullWidth', () => {
+    renderTabs({ defaultValue: 'overview' });
+
+    // Negative half of the pair: without it the assertion above would also pass
+    // on a component that hard-codes `flex-1` on every trigger.
+    expect(tab('Overview').className).not.toContain('flex-1');
+  });
 });

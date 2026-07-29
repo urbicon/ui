@@ -4,17 +4,14 @@
     ApiReference,
     CodeExample,
     DocsLayout as DocsPageLayout,
-    extractPlaygroundDocs,
-    PlaygroundConfigurator,
     Section
   } from '@urbicon-ui/docs';
   import { Skeleton } from '@urbicon-ui/blocks';
   import CustomDocs from './Docs.svelte';
+  import Playground from './Playground.svelte';
   import { componentData } from './api';
   import { buildRelatedLinks } from '$lib/component-links';
   import { asset, resolve } from '$app/paths';
-
-  const { propDocs, variantKeys } = extractPlaygroundDocs(componentData?.props ?? []);
   const relatedLinks = buildRelatedLinks(componentData);
 
   const navigation = [
@@ -47,82 +44,7 @@
   related={relatedLinks}
 >
   <Section id="playground" intent="primary">
-    <PlaygroundConfigurator
-      componentName="Skeleton"
-      {propDocs}
-      {variantKeys}
-      controls={[
-        {
-          type: 'dropdown',
-          key: 'variant',
-          label: 'Variant',
-          items: [
-            { label: 'text', value: 'text' },
-            { label: 'circular', value: 'circular' },
-            { label: 'rectangular', value: 'rectangular' },
-            { label: 'rounded', value: 'rounded' }
-          ],
-          defaultValue: 'text'
-        },
-        {
-          type: 'dropdown',
-          key: 'size',
-          label: 'Size',
-          items: [
-            { label: 'xs', value: 'xs' },
-            { label: 'sm', value: 'sm' },
-            { label: 'md', value: 'md' },
-            { label: 'lg', value: 'lg' },
-            { label: 'xl', value: 'xl' }
-          ],
-          defaultValue: 'md'
-        },
-        {
-          type: 'dropdown',
-          key: 'animation',
-          label: 'Animation',
-          items: [
-            { label: 'pulse', value: 'pulse' },
-            { label: 'wave', value: 'wave' },
-            { label: 'none', value: 'none' }
-          ],
-          defaultValue: 'pulse'
-        },
-        { type: 'text', key: 'width', label: 'Width', defaultValue: '' },
-        { type: 'text', key: 'height', label: 'Height', defaultValue: '' },
-        {
-          type: 'dropdown',
-          key: 'count',
-          label: 'Count',
-          items: [
-            { label: '1', value: '1' },
-            { label: '2', value: '2' },
-            { label: '3', value: '3' },
-            { label: '5', value: '5' }
-          ],
-          defaultValue: '1'
-        }
-      ]}
-      values={{
-        variant: 'text',
-        size: 'md',
-        animation: 'pulse',
-        width: '',
-        height: '',
-        count: '1'
-      }}
-      showHeader={false}
-    >
-      {#snippet children(values: Record<string, unknown>)}
-        {@const { width, height, count, ...props } = values}
-        <Skeleton
-          {...props}
-          width={(width as string | undefined) || undefined}
-          height={(height as string | undefined) || undefined}
-          count={Number(count) || 1}
-        />
-      {/snippet}
-    </PlaygroundConfigurator>
+    <Playground />
   </Section>
 
   <CustomDocs />

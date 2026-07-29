@@ -1,7 +1,8 @@
 // @vitest-environment jsdom
 import { fireEvent, screen } from '@testing-library/dom';
-import { flushSync, mount, unmount } from 'svelte';
+import { createRawSnippet, flushSync, mount, unmount } from 'svelte';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import CopyButtonPhaseHarness from './__fixtures__/CopyButtonPhaseHarness.svelte';
 import CopyButton from './CopyButton.svelte';
 import type { CopyButtonProps } from './index';
 
@@ -139,5 +140,46 @@ describe('CopyButton', () => {
   it('lets a consumer override the icon-only accessible name', () => {
     render({ 'aria-label': 'Copy token' });
     expect(button().getAttribute('aria-label')).toBe('Copy token');
+  });
+});
+
+// `children` — the grammar fix from hero-review point 28. `label` stays the
+// string shorthand; the snippet is what makes CopyButton fillable like any
+// other Button (icon + text, a Kbd, …), which was the one place the "inherits
+// the full button styling vocabulary" claim did not hold.
+describe('CopyButton (children)', () => {
+  const content = (text: string) =>
+    createRawSnippet(() => ({ render: () => `<span>${text}</span>` }));
+
+  it('renders children instead of the label shorthand', () => {
+    render({ label: 'Copy key', children: content('Copy API key') });
+
+    expect(screen.getByText('Copy API key')).toBeTruthy();
+    expect(screen.queryByText('Copy key')).toBeNull();
+  });
+
+  it('lets the visible content be the accessible name', () => {
+    render({ children: content('Copy API key') });
+
+    // Icon-only mode imposes aria-label="Copy"; visible content must not, or it
+    // would override what the user can read (WCAG 2.5.3).
+    expect(button().getAttribute('aria-label')).toBeNull();
+  });
+
+  it('hands the copy phase to the snippet and updates it on copy', async () => {
+    // Mounted from a fixture, not `createRawSnippet`: a raw snippet renders its
+    // string once and never reads the argument again, so it reports 'idle'
+    // forever and would pass a weaker assertion while the wiring was dead.
+    const instance = mount(CopyButtonPhaseHarness, { target: document.body });
+    dispose = () => unmount(instance);
+    flushSync();
+
+    const phase = () => screen.getByTestId('phase').textContent;
+    expect(phase()).toBe('idle');
+
+    fireEvent.click(button());
+    await settle();
+
+    expect(phase()).toBe('copied');
   });
 });

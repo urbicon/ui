@@ -199,6 +199,9 @@
     get weekStartsOn() {
       return weekStartsOn;
     },
+    get fixedWeeks() {
+      return fixedWeeks;
+    },
     get locale() {
       return locale;
     },

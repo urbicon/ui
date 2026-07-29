@@ -119,6 +119,30 @@ export class PropsExtractor extends TypeScriptBaseExtractor<PropsExtractionInput
   }
 
   /**
+   * Extract the one-line `@summary` from the *Props declaration JSDoc.
+   *
+   * Distinct from `@description`, and deliberately so: the two serve different
+   * readers. `@description` is the contract an agent reads out of `llm.txt` or
+   * the MCP catalog — it may name edge cases, version subsets and failure
+   * modes, and it usually should. `@summary` is the single sentence a human
+   * sees under a component's name on the landing page and in the index, where
+   * roughly 120 characters fit before it wraps past its stage.
+   *
+   * They were one field until 2026-07-27, which served neither: the median
+   * description ran 259 characters over more than one sentence, so the landing
+   * page truncated it mid-clause.
+   */
+  async extractSummary(input: { filePath: string; componentName: string }): Promise<string | null> {
+    const sourceFile = await this.getSourceFile(input.filePath);
+    if (!sourceFile) return null;
+
+    const declaration = this.findPropsDeclaration(sourceFile, input.componentName);
+    if (!declaration) return null;
+
+    return this.extractJSDocTag(declaration.jsDocHost, 'summary') ?? null;
+  }
+
+  /**
    * Extract all @tag values from the *Props declaration JSDoc.
    */
   async extractTags(input: { filePath: string; componentName: string }): Promise<string[]> {
@@ -514,6 +538,7 @@ export class PropsExtractor extends TypeScriptBaseExtractor<PropsExtractionInput
 
     // Extract JSDoc information
     let description = `${propName} property`;
+    let summary: string | undefined;
     let defaultValue: string | undefined;
     let examples: PropInfo['examples'] = [];
     let deprecated: PropInfo['deprecated'];
@@ -531,6 +556,17 @@ export class PropsExtractor extends TypeScriptBaseExtractor<PropsExtractionInput
       // Extract JSDoc tags
       defaultValue = this.extractJSDocTag(member, 'default');
       since = this.extractJSDocTag(member, 'since');
+
+      // The prop-level twin of the component's `@summary`, for the same reason
+      // and with the same split of readers: `description` is the contract an
+      // agent reads (`llm.txt`, the MCP catalog) and may run to a paragraph;
+      // `@summary` is the line a person reads beside a knob in a playground.
+      // Measured on `CurrencyInput.locale`, whose description explains SSR
+      // hydration, `Intl.NumberFormat` internals and why `currency` is not
+      // auto-detected — nine lines of contract next to a three-way switch.
+      // Optional by design: most props say all they need in one sentence, and
+      // a mandatory second field would mean 700 copies of the first.
+      summary = this.extractJSDocTag(member, 'summary');
 
       // Split `@see` into the two jobs it actually serves: a navigable link
       // target (`seeAlso`, rendered as a link) and a prose reference
@@ -569,6 +605,7 @@ export class PropsExtractor extends TypeScriptBaseExtractor<PropsExtractionInput
     };
 
     // Add optional fields
+    if (summary) prop.summary = summary;
     if (defaultValue) prop.defaultValue = defaultValue;
     if (values && values.length > 0) prop.values = values;
     if (examples && examples.length > 0) prop.examples = examples;

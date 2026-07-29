@@ -4,24 +4,15 @@
     ApiReference,
     CodeExample,
     DocsLayout as DocsPageLayout,
-    extractPlaygroundDocs,
-    PlaygroundConfigurator,
     Section
   } from '@urbicon-ui/docs';
   import { CodeBlock } from '@urbicon-ui/blocks';
   import CustomDocs from './Docs.svelte';
+  import Playground from './Playground.svelte';
   import { componentData } from './api';
   import { buildRelatedLinks } from '$lib/component-links';
   import { asset, resolve } from '$app/paths';
-
-  const { propDocs, variantKeys } = extractPlaygroundDocs(componentData?.props ?? []);
   const relatedLinks = buildRelatedLinks(componentData);
-
-  const SAMPLE = `type Source = { id: string; title: string; url?: string };
-
-function cite(sources: Source[]): string {
-  return sources.map((s, i) => \`[\${i + 1}] \${s.title}\`).join('\\n');
-}`;
 
   const navigation = [
     { id: 'playground', title: 'Playground', order: 1 },
@@ -30,15 +21,6 @@ function cite(sources: Source[]): string {
     { id: 'api', title: 'API Reference', order: 4 },
     { id: 'installation', title: 'Installation', order: 5 }
   ];
-
-  function codeGenerator(vals: Record<string, unknown>): string {
-    const parts: string[] = [];
-    if (vals.lang) parts.push(`lang="${vals.lang}"`);
-    if (vals.wrap) parts.push('wrap');
-    if (vals.showCopy === false) parts.push('showCopy={false}');
-    const attrs = parts.length ? ` ${parts.join(' ')}` : '';
-    return `<CodeBlock${attrs} {code} />`;
-  }
 </script>
 
 <SeoMeta
@@ -61,30 +43,7 @@ function cite(sources: Source[]): string {
   related={relatedLinks}
 >
   <Section id="playground" intent="primary">
-    <PlaygroundConfigurator
-      componentName="CodeBlock"
-      {propDocs}
-      {variantKeys}
-      {codeGenerator}
-      controls={[
-        { type: 'text', key: 'lang', label: 'Language', defaultValue: 'ts' },
-        { type: 'checkbox', key: 'wrap', label: 'Wrap lines', defaultValue: false },
-        { type: 'checkbox', key: 'showCopy', label: 'Copy button', defaultValue: true }
-      ]}
-      values={{ lang: 'ts', wrap: false, showCopy: true }}
-      showHeader={false}
-    >
-      {#snippet children(values)}
-        <div class="mx-auto max-w-xl">
-          <CodeBlock
-            code={SAMPLE}
-            lang={(values.lang as string) || undefined}
-            wrap={values.wrap as boolean}
-            showCopy={values.showCopy as boolean}
-          />
-        </div>
-      {/snippet}
-    </PlaygroundConfigurator>
+    <Playground />
   </Section>
 
   <CustomDocs />

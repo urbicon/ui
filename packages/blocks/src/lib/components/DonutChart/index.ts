@@ -12,6 +12,7 @@ export interface DonutDatum {
 }
 
 /**
+ * @summary Parts of a whole as a ring, with the total in the middle.
  * @description Donut (or pie) chart for part-to-whole composition. Zero-
  * dependency SVG arcs on the design-token palette, dark-mode aware, with an
  * optional center total, legend, and a screen-reader data-table fallback. Set

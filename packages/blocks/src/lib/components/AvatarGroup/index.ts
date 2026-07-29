@@ -3,6 +3,7 @@ import type { AvatarProps } from '$lib/primitives/Avatar';
 import type { AvatarGroupSlots, AvatarGroupVariants } from './avatar-group.variants';
 
 /**
+ * @summary An overlapping row of avatars with a +N chip — who is on this, at a glance.
  * @description Stacks avatars into an overlapping row with an optional "+N" overflow chip —
  * the canonical way to show a set of collaborators, assignees or participants compactly.
  * Data-driven: pass an `items` array of Avatar props; the group propagates a shared `size`
@@ -34,6 +35,7 @@ export interface AvatarGroupProps
    * single "+N" overflow chip — where N is the count of hidden avatars — so the total rendered
    * count is exactly `max`. Unset (or `0`/negative) shows every avatar with no chip; use `≥ 2`
    * so the chip sits alongside at least one visible face.
+   * @summary How many avatars to show before the rest become a +N chip.
    */
   max?: number;
   /** Overlap amount between avatars — tight, normal (default), loose. */

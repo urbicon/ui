@@ -3,6 +3,7 @@ import type { HTMLAttributes } from 'svelte/elements';
 import type { SidebarSlots, SidebarVariants } from './sidebar.variants';
 
 /**
+ * @summary A side panel: permanent on desktop, an overlay on a phone.
  * @description Sidebar primitive — fixed-position panel that is permanent on
  * desktop (≥1024px) and slides in as a backdropped overlay on mobile. Use
  * this directly for right-side detail panels or custom shells. For the
@@ -73,6 +74,7 @@ export interface SidebarProps extends Omit<HTMLAttributes<HTMLElement>, 'childre
    * variables on the `<aside>`. These inherit only inside the sidebar's
    * own subtree — for the main content offset use `<SidebarLayout>`.
    * @default '16rem'
+   * @summary How wide the panel is when open.
    */
   width?: string;
 

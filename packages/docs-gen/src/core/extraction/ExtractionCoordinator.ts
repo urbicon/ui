@@ -129,8 +129,9 @@ export class ExtractionCoordinator {
         const propsResult = await this.extractProps(manifest, variantKeys);
 
         // Extract JSDoc metadata from *Props interface
-        const [description, tags, relatedComponents, stability] = await Promise.all([
+        const [description, summary, tags, relatedComponents, stability] = await Promise.all([
           this.extractDescription(manifest),
+          this.extractSummary(manifest),
           this.extractTags(manifest),
           this.extractRelated(manifest),
           this.extractStability(manifest)
@@ -149,6 +150,7 @@ export class ExtractionCoordinator {
         const richComponent = {
           ...manifest.component,
           ...(description ? { description } : {}),
+          ...(summary ? { summary } : {}),
           ...(tags.length > 0 ? { tags } : {}),
           ...(relatedComponents.length > 0 ? { relatedComponents } : {}),
           ...(stability ? { stability } : {}),
@@ -399,6 +401,18 @@ export class ExtractionCoordinator {
           timestamp: new Date().toISOString()
         }
       } as unknown as ExtractionResult<TypeDefinition[]>;
+    }
+  }
+
+  private async extractSummary(manifest: ComponentManifest): Promise<string | null> {
+    try {
+      const extractor = (await this.extractorFactory.createPropsExtractor()) as PropsExtractor;
+      return await extractor.extractSummary({
+        filePath: manifest.component.filePath,
+        componentName: manifest.component.name
+      });
+    } catch {
+      return null;
     }
   }
 

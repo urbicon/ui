@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import {
   activeItemIndex,
+  restingPositions,
   type ScrollerItemMetrics,
   scrollEdges,
   scrollTargetForIndex,
@@ -157,6 +158,45 @@ describe('scrollTargetForStep', () => {
 
   it('center: an empty row stays put', () => {
     expect(scrollTargetForStep([], 42, 600, 'center', 1, 0)).toBe(42);
+  });
+});
+
+describe('restingPositions', () => {
+  it('start: collapses the trailing items that share the end of the scroll range', () => {
+    // 5×200+gaps = 1080 content in a 600 viewport → maxScroll 480. Items 4 and
+    // 5 begin at 660 and 880, both beyond 480 — one resting place for the two
+    // of them, so the row has 4 places, not 5 dots' worth.
+    const positions = restingPositions(row(), 600, 'start', 480);
+    expect(positions).toEqual([
+      { target: 0, firstIndex: 0, lastIndex: 0 },
+      { target: 220, firstIndex: 1, lastIndex: 1 },
+      { target: 440, firstIndex: 2, lastIndex: 2 },
+      { target: 480, firstIndex: 3, lastIndex: 4 }
+    ]);
+  });
+
+  it('center: is the identity — the edge padding makes every target reachable', () => {
+    const items = row(5, 200, 20, 200);
+    const max = 200 * 2 + 5 * 200 + 4 * 20 - 600;
+    const positions = restingPositions(items, 600, 'center', max);
+    expect(positions).toHaveLength(5);
+    expect(positions.every((p) => p.firstIndex === p.lastIndex)).toBe(true);
+    expect(positions.map((p) => p.target)).toEqual([0, 220, 440, 660, 880]);
+  });
+
+  it('returns nothing for an empty row', () => {
+    expect(restingPositions([], 600, 'start', 0)).toEqual([]);
+  });
+
+  it('absorbs sub-pixel target differences into one place', () => {
+    // Fractional layouts can put two targets a fraction apart; that is still
+    // ONE place to rest, not two dots a hair's width from each other. Only the
+    // anchors matter to this function, so the overlapping fixture is fine.
+    const items: ScrollerItemMetrics[] = [
+      { start: 0, size: 100 },
+      { start: 0.5, size: 100 }
+    ];
+    expect(restingPositions(items, 600, 'start', 480)).toHaveLength(1);
   });
 });
 

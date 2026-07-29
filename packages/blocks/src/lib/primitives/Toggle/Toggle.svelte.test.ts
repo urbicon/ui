@@ -222,3 +222,32 @@ describe('Toggle (consumer aria-label survives without a visible label)', () => 
     expect(toggle('Wireless').getAttribute('aria-label')).toBeNull();
   });
 });
+
+// Selected-error state — hero-review point 20b. See the long rationale in
+// checkbox.variants.ts: the boolean rule ("must be switched on") keeps the off
+// state's danger boundary, and the on state gains a ring so an error on an
+// already-enabled switch is visible at all.
+describe('Toggle (error on a switched-on control)', () => {
+  const track = () => document.querySelector('label > span') as HTMLElement;
+
+  it('rings an on switch and keeps its intent fill', () => {
+    renderToggle({ checked: true, error: 'This integration was revoked', label: 'Sync' });
+
+    const cls = track().className;
+    expect(cls).toContain('ring-danger/60');
+    expect(cls).toContain('bg-primary');
+  });
+
+  it('does not ring an on switch without an error', () => {
+    renderToggle({ checked: true, label: 'Sync' });
+    expect(track().className).not.toContain('ring-danger');
+  });
+
+  it('keeps the danger border on the off state', () => {
+    renderToggle({ checked: false, error: 'Must be enabled', label: 'Sync' });
+
+    const cls = track().className;
+    expect(cls).toContain('border-danger');
+    expect(cls).not.toContain('ring-danger/60');
+  });
+});

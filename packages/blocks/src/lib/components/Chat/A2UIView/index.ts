@@ -6,6 +6,7 @@ import type { A2uiDataSchema } from './a2ui-schema';
 import type { A2UIViewSlots } from './a2ui-view.variants';
 
 /**
+ * @summary Turns a model's UI description into live components — the agent proposes, your design system renders.
  * @description Renders a trusted-catalog A2UI (Agent-to-UI, v0.9.1 `basic`
  * subset) payload into live, interactive Urbicon components. Fail-loud and
  * whitelist-only: only the mapped catalog components and their declared props
@@ -62,6 +63,7 @@ export interface A2UIViewProps extends Omit<HTMLAttributes<HTMLDivElement>, 'cla
    * While true, a reference to a not-yet-defined component renders a placeholder
    * instead of a fault chip (mid-stream tolerance). Flip to false when the
    * stream settles so dangling references become errors. @default false
+   * @summary Whether a reference to a component that has not arrived yet is tolerated or an error.
    */
   streaming?: boolean;
   /**

@@ -20,6 +20,8 @@
     filterVisibleControls,
     sortControlsByType,
     computeComponentDefaults,
+    computeDemoOnlyKeys,
+    computeOmittableDefaults,
     isDefaultValue as isDefaultValueImpl,
     countModified,
     numberFieldValue,
@@ -29,7 +31,9 @@
     resolveSegmentValue,
     resolveSelectValue
   } from './code-gen.js';
+  import { extractChildMarkup } from './extract-markup.js';
   import { decodeShareParams, encodeShareParams } from './share.js';
+  import { getCodeVisibilityContext } from '$lib/stores/code-visibility.svelte';
 
   const dt = useDocsI18n();
 
@@ -37,9 +41,16 @@
     title = dt('interactivePlayground', {}),
     subtitle = dt('playgroundSubtitle', {}),
     controls = [],
-    values = $bindable(),
+    // Defaulted for the same reason as `controls`: a playground without knobs
+    // passes neither, and every read below would otherwise be `| undefined`.
+    // A caller that binds still wins — a bindable's default only applies when
+    // the prop is absent.
+    values = $bindable({} as TValues),
     onValuesChange,
     codeGenerator,
+    codeSetup,
+    source,
+    defaultCodeExpanded,
     componentName = 'Component',
     shareKey,
     showHeader = true,
@@ -76,16 +87,20 @@
   // with the demo itself, which shifts the controls strip + code panel
   // below — the configurator "drifts" away from the pointer. Latch the
   // tallest observed preview height as an inline min-height (high-water
-  // mark) so demo-internal interaction can only grow the stage, never
-  // shrink it. The latch resets when a control changes the demo's props
-  // (the new state legitimately has a different natural size) and when
-  // the stage width changes (a reflow has a new natural height).
+  // mark) so the stage can only grow, never shrink.
+  //
+  // The latch used to reset on every control change, on the theory that a new
+  // state "legitimately has a different natural size". In practice that is the
+  // loudest source of jumping there is: working down a control strip resizes
+  // the stage under the pointer at almost every step, and the controls
+  // themselves move with it. The stage now holds its high-water mark for as
+  // long as the component is on screen.
+  //
+  // Two things still drop it, both because the old mark stops being a
+  // measurement of anything: a width change (a reflow has a new natural
+  // height) and "Reset all", where the reader has explicitly asked for the
+  // starting state back.
   let previewMinHeight = $state(0);
-
-  $effect(() => {
-    void values;
-    previewMinHeight = 0;
-  });
 
   function latchPreviewHeight(node: HTMLElement) {
     let lastWidth = node.offsetWidth;
@@ -100,7 +115,15 @@
         previewMinHeight = 0;
         return;
       }
-      const height = node.offsetHeight;
+      // The mark only remembers what fits on one screen. Without the cap it is
+      // monotonic and remembers outliers forever: Calendar's Agenda view is
+      // 1681 px, so every later view sat in a stage held open to that — going
+      // back to Month left 1208 px of nothing below the calendar. A state that
+      // tall makes the stage grow past the mark anyway (min-height only ever
+      // sets a floor); it just must not become the floor for everything after
+      // it. Below the cap — where the jitter that the latch exists to absorb
+      // actually happens — nothing changes.
+      const height = Math.min(node.offsetHeight, window.innerHeight * 0.7);
       if (height > previewMinHeight) previewMinHeight = height;
     });
     observer.observe(node);
@@ -142,6 +165,10 @@
     sortControlsByType(filterVisibleControls(normalizedControls, values ?? {}))
   );
   const componentDefaults = $derived(computeComponentDefaults(normalizedControls));
+  // Was der Schnipsel weglassen darf, ist nicht dasselbe wie der Startwert des
+  // Playgrounds — siehe `computeOmittableDefaults`.
+  const omittableDefaults = $derived(computeOmittableDefaults(normalizedControls));
+  const demoOnlyKeys = $derived(computeDemoOnlyKeys(normalizedControls));
 
   function isDefaultValue(key: string): boolean {
     return isDefaultValueImpl(key, values, componentDefaults);
@@ -182,6 +209,10 @@
     }
     values = next as TValues;
     onValuesChange?.(values);
+    // The one place the stage may shrink again: the reader asked for the
+    // starting state, and a mark left over from a taller variant would keep
+    // the stage padded out with nothing in it.
+    previewMinHeight = 0;
   }
 
   // Share links: the query string carries only the controls the reader
@@ -238,13 +269,75 @@
     }
   }
 
+  /**
+   * Was die Demo *in* die Komponente stellt — aus dem Quelltext des Playgrounds
+   * gehoben, nicht von Hand nachgeschrieben. Ohne `source` bleibt alles wie
+   * bisher; ein Playground reicht ihn per `?raw`-Import herein.
+   *
+   * Referenziert das Markup Bezeichner, die der Schnipsel nicht deklariert,
+   * wird es verworfen statt halb gedruckt: Ein `<ChatMessageList
+   * messages={playgroundMessages} />` ohne `playgroundMessages` wäre Code, den
+   * niemand ausführen kann. Der Hinweis geht an die Konsole, wo der Autor der
+   * Seite ihn sieht — `playgrounds:lint` prüft es zusätzlich statisch.
+   */
+  const childMarkup = $derived.by(() => {
+    if (!source) return null;
+    const declared = [
+      ...Object.keys(codeSetup?.consts ?? {}),
+      ...Object.keys(codeSetup?.state ?? {}),
+      ...(codeSetup?.bind ?? [])
+    ];
+    const { markup, unresolved } = extractChildMarkup(source, componentName, declared);
+    if (unresolved.length > 0) {
+      console.warn(
+        `[PlaygroundConfigurator] ${componentName}: child markup dropped from the snippet — ` +
+          `it refers to ${unresolved.join(', ')}, which the snippet does not declare. ` +
+          `Add them to \`codeSetup.consts\` to show it.`
+      );
+      return null;
+    }
+    return markup;
+  });
+
   const generatedCode = $derived.by(() => {
     if (!values) return '';
     if (codeGenerator) return codeGenerator(values);
-    return generateDefaultCode(componentName, values, componentDefaults);
+    // Demo-Regler kommen aus den Controls selbst (`extra` ⇒ `demoOnly`), nicht
+    // aus einer zweiten Liste im Playground — sonst driften die beiden.
+    const setup = { ...codeSetup, demoOnly: [...(codeSetup?.demoOnly ?? []), ...demoOnlyKeys] };
+    try {
+      return generateDefaultCode(componentName, values, omittableDefaults, setup, childMarkup);
+    } catch (error) {
+      // A snippet that cannot be built is a bug in this playground's
+      // `codeSetup` — but it must not take the whole docs page down with it.
+      // The message lands where the author will see it: in the code panel.
+      console.error(`[PlaygroundConfigurator] ${componentName}:`, error);
+      return `// ${componentName}: ${error instanceof Error ? error.message : String(error)}`;
+    }
   });
 
-  let codeExpanded = $state(true);
+  // Code panel visibility, mirroring `CodeExample`: the page-wide "hide all code
+  // examples" switch wins, a local toggle overrides it until that switch moves
+  // again. The fallback differs though — a playground with no docs page around
+  // it (the landing hero) starts **collapsed**: there the component is the
+  // point, and an open code panel pushes the controls below the fold.
+  const visibilityStore = getCodeVisibilityContext();
+  let codeOverride = $state<boolean | null>(null);
+
+  const codeExpanded = $derived.by(() => {
+    if (codeOverride !== null) return codeOverride;
+    if (defaultCodeExpanded !== undefined) return defaultCodeExpanded;
+    if (visibilityStore) return visibilityStore.expanded;
+    return false;
+  });
+
+  $effect(() => {
+    if (visibilityStore) {
+      // Touch `.mode` so flipping the global switch clears a stale local override.
+      visibilityStore.mode;
+      codeOverride = null;
+    }
+  });
 </script>
 
 <!--
@@ -295,16 +388,22 @@
       <div
         class={slot('previewContent')}
         style:min-height={previewMinHeight ? `${previewMinHeight}px` : undefined}
+        data-latched={previewMinHeight ? '' : undefined}
         {@attach latchPreviewHeight}
       >
         {@render children?.(values)}
       </div>
     </div>
 
-    <!-- Controls -->
-    <div class={slot('controlsPanel')}>
-      <div class={slot('controlsHeader')}>
-        <!--
+    <!-- Controls. Skipped entirely when there are none: the auth family has no
+         variant axes, only API paths and callbacks, and an empty panel below the
+         stage reads as a playground whose knobs failed to load. Without it the
+         configurator is still worth having — it carries the stage and the code
+         panel, which is what those components were missing. -->
+    {#if visibleControls.length > 0}
+      <div class={slot('controlsPanel')}>
+        <div class={slot('controlsHeader')}>
+          <!--
           The dirty-state count is carried visually by the "Reset all (N)"
           button — but that button only EXISTS once something is modified, and a
           live region that appears together with its text is not announced. So
@@ -312,43 +411,43 @@
           text changes; `polite` (via role=status) queues behind the control's
           own value announcement instead of interrupting it.
         -->
-        <span class="sr-only" role="status">
-          {modifiedCount > 0 ? dt('playgroundModified', { count: modifiedCount }) : ''}
-        </span>
-        {#if modifiedCount > 0}
-          <button type="button" class={slot('helpToggle')} onclick={resetAll}>
-            {dt('resetAll', { count: modifiedCount })}
-          </button>
-        {/if}
-        {#if hasAnyDescription}
-          <!-- helpToggleActive is a state layer, not a slot: it has no
+          <span class="sr-only" role="status">
+            {modifiedCount > 0 ? dt('playgroundModified', { count: modifiedCount }) : ''}
+          </span>
+          {#if modifiedCount > 0}
+            <button type="button" class={slot('helpToggle')} onclick={resetAll}>
+              {dt('resetAll', { count: modifiedCount })}
+            </button>
+          {/if}
+          {#if hasAnyDescription}
+            <!-- helpToggleActive is a state layer, not a slot: it has no
                slotClasses key, so `unstyled` drops it with the rest of the
                default styles — the pressed state is still carried by
                aria-pressed for consumers who restyle from scratch. -->
-          <button
-            type="button"
-            class={[slot('helpToggle'), helpVisible && !unstyled && styles.helpToggleActive()]
-              .filter(Boolean)
-              .join(' ')}
-            aria-pressed={helpVisible}
-            onclick={() => (helpVisible = !helpVisible)}
-          >
-            <span aria-hidden="true">?</span>
-            {helpVisible ? dt('hintsOn') : dt('hints')}
-          </button>
-        {/if}
-      </div>
-      <div class={slot('controlsGrid')}>
-        {#each visibleControls as control (control.key)}
-          {@const description = getControlDescription(control)}
-          <!-- The hint div only exists while helpVisible is on, so the
+            <button
+              type="button"
+              class={[slot('helpToggle'), helpVisible && !unstyled && styles.helpToggleActive()]
+                .filter(Boolean)
+                .join(' ')}
+              aria-pressed={helpVisible}
+              onclick={() => (helpVisible = !helpVisible)}
+            >
+              <span aria-hidden="true">?</span>
+              {helpVisible ? dt('hintsOn') : dt('hints')}
+            </button>
+          {/if}
+        </div>
+        <div class={slot('controlsGrid')}>
+          {#each visibleControls as control (control.key)}
+            {@const description = getControlDescription(control)}
+            <!-- The hint div only exists while helpVisible is on, so the
                aria-describedby reference must appear/disappear with it —
                a dangling idref is an a11y validation error. -->
-          {@const hintId = helpVisible && description ? `${control.key}-hint` : undefined}
-          {@const items = control.items ?? []}
-          {@const isEnum = control.type === 'dropdown' || control.type === 'select'}
-          {@const isSegment = isEnum && items.length <= 4 && items.length > 0}
-          <!-- Which element the caption addresses depends on what the branch
+            {@const hintId = helpVisible && description ? `${control.key}-hint` : undefined}
+            {@const items = control.items ?? []}
+            {@const isEnum = control.type === 'dropdown' || control.type === 'select'}
+            {@const isSegment = isEnum && items.length <= 4 && items.length > 0}
+            <!-- Which element the caption addresses depends on what the branch
                renders. `<label for>` only works against a *labelable* element
                (input / button / select / textarea) — pointing it at a
                `role="radiogroup"` div or a `role="slider"` thumb is a dead
@@ -359,177 +458,177 @@
                  • SegmentGroup / Slider → no labelable element exists; the
                    caption becomes a plain `<div>` carrying `<span id>` and the
                    widget references it via `aria-labelledby`. -->
-          {@const usesGroupLabel =
-            isSegment || control.type === 'slider' || control.type === 'range'}
-          {@const labelId = `${control.key}-label`}
-          {@const labelFor = usesGroupLabel
-            ? undefined
-            : isEnum
-              ? `${control.key}-trigger`
-              : control.key}
-          <div class={slot('controlItem')}>
-            {#if labelFor}
-              <label for={labelFor} class={slot('controlLabel')}>
-                {@render controlCaption(control, undefined)}
-              </label>
-            {:else}
-              <div class={slot('controlLabel')}>
-                {@render controlCaption(control, labelId)}
-              </div>
-            {/if}
+            {@const usesGroupLabel =
+              isSegment || control.type === 'slider' || control.type === 'range'}
+            {@const labelId = `${control.key}-label`}
+            {@const labelFor = usesGroupLabel
+              ? undefined
+              : isEnum
+                ? `${control.key}-trigger`
+                : control.key}
+            <div class={slot('controlItem')}>
+              {#if labelFor}
+                <label for={labelFor} class={slot('controlLabel')}>
+                  {@render controlCaption(control, undefined)}
+                </label>
+              {:else}
+                <div class={slot('controlLabel')}>
+                  {@render controlCaption(control, labelId)}
+                </div>
+              {/if}
 
-            {#if isEnum}
-              {#if isSegment}
-                <!-- Render an enum with <= 4 options as a text SegmentGroup —
+              {#if isEnum}
+                {#if isSegment}
+                  <!-- Render an enum with <= 4 options as a text SegmentGroup —
                      no dropdown click, all options visible inline.
                      SegmentGroup is naturally compact and does not need the
                      controlControl wrapper. -->
-                <SegmentGroup
-                  variant="text"
-                  size="sm"
-                  value={selectDisplayValue(values[control.key]) ?? ''}
-                  onValueChange={(value: string) =>
-                    updateValue(control.key, resolveSegmentValue(items, value))}
-                  aria-labelledby={labelId}
-                  aria-describedby={hintId}
-                >
-                  {#each items as item (item.value)}
-                    <SegmentItem value={String(item.value)}>{item.label}</SegmentItem>
-                  {/each}
-                </SegmentGroup>
-              {:else}
-                {#snippet controlSelectItem(
-                  option: { label: string; value: string },
-                  _isSelected: boolean,
-                  _toggle: () => void
-                )}
-                  <span class="flex w-full items-center gap-2">
-                    <span class="flex-1 truncate text-left">{option.label}</span>
-                    {#if String(option.value) === String(control.defaultValue)}
-                      <span class="text-text-tertiary text-3xs leading-none opacity-50"
-                        >default</span
-                      >
-                    {/if}
-                  </span>
-                {/snippet}
-                <div class={slot('controlControl')}>
-                  <Select
-                    options={items.map((item) => ({
-                      label: item.label,
-                      value: String(item.value)
-                    }))}
-                    variant="ghost"
-                    value={selectDisplayValue(values[control.key])}
-                    onValueChange={(value: string | null) =>
-                      updateValue(control.key, resolveSelectValue(items, value))}
-                    size={fieldSize}
-                    id={control.key}
-                    customItem={controlSelectItem}
-                    selectionIndicator="none"
+                  <SegmentGroup
+                    variant="text"
+                    size="sm"
+                    value={selectDisplayValue(values[control.key]) ?? ''}
+                    onValueChange={(value: string) =>
+                      updateValue(control.key, resolveSegmentValue(items, value))}
+                    aria-labelledby={labelId}
                     aria-describedby={hintId}
-                  />
-                </div>
-              {/if}
-            {:else if control.type === 'checkbox' || control.type === 'boolean'}
-              <!-- `aria-label` looks redundant next to the `<label for>` above,
+                  >
+                    {#each items as item (item.value)}
+                      <SegmentItem value={String(item.value)}>{item.label}</SegmentItem>
+                    {/each}
+                  </SegmentGroup>
+                {:else}
+                  {#snippet controlSelectItem(
+                    option: { label: string; value: string },
+                    _isSelected: boolean,
+                    _toggle: () => void
+                  )}
+                    <span class="flex w-full items-center gap-2">
+                      <span class="flex-1 truncate text-left">{option.label}</span>
+                      {#if String(option.value) === String(control.defaultValue)}
+                        <span class="text-text-tertiary text-3xs leading-none opacity-50"
+                          >default</span
+                        >
+                      {/if}
+                    </span>
+                  {/snippet}
+                  <div class={slot('controlControl')}>
+                    <Select
+                      options={items.map((item) => ({
+                        label: item.label,
+                        value: String(item.value)
+                      }))}
+                      variant="ghost"
+                      value={selectDisplayValue(values[control.key])}
+                      onValueChange={(value: string | null) =>
+                        updateValue(control.key, resolveSelectValue(items, value))}
+                      size={fieldSize}
+                      id={control.key}
+                      customItem={controlSelectItem}
+                      selectionIndicator="none"
+                      aria-describedby={hintId}
+                    />
+                  </div>
+                {/if}
+              {:else if control.type === 'checkbox' || control.type === 'boolean'}
+                <!-- `aria-label` looks redundant next to the `<label for>` above,
                    but it is not: given no `label`/`aria-label` Toggle falls back
                    to a generic aria-label ("Toggle"), and aria-label outranks an
                    associated `<label>` in the accessible-name calculation — every
                    playground switch would announce as "Toggle". The `<label for>`
                    still earns its keep: it is what focuses the switch on click. -->
-              <div class={slot('controlControlCompact')}>
-                <Toggle
-                  variant="dot"
-                  size="sm"
-                  checked={Boolean(values[control.key])}
-                  onCheckedChange={(val) => updateValue(control.key, val)}
-                  id={control.key}
-                  aria-label={control.label}
-                  aria-describedby={hintId}
-                />
-              </div>
-            {:else if control.type === 'text'}
-              <div class={slot('controlControl')}>
-                <Input
-                  id={control.key}
-                  variant="ghost"
-                  size={fieldSize}
-                  value={(values[control.key] as string) ?? ''}
-                  placeholder={control.placeholder}
-                  oninput={(e) => updateValue(control.key, e.currentTarget.value)}
-                  aria-describedby={hintId}
-                />
-              </div>
-            {:else if control.type === 'number'}
-              <div class={slot('controlControl')}>
-                <Input
-                  id={control.key}
-                  type="number"
-                  variant="ghost"
-                  size={fieldSize}
-                  value={numberFieldValue(control, values)}
-                  min={control.min}
-                  max={control.max}
-                  step={control.step}
-                  oninput={(e) => onNumberInput(control, e.currentTarget.value)}
-                  onblur={(e) => onNumberBlur(control, e.currentTarget)}
-                  aria-describedby={hintId}
-                />
-              </div>
-            {:else if control.type === 'color'}
-              <div class={slot('controlControlCompact')}>
-                <input
-                  id={control.key}
-                  type="color"
-                  value={values[control.key] || control.defaultValue || '#000000'}
-                  onchange={(e) => updateValue(control.key, e.currentTarget.value)}
-                  class={styles.colorInput()}
-                  aria-describedby={hintId}
-                />
-              </div>
-            {:else if control.type === 'slider' || control.type === 'range'}
-              <!-- Knob-strip slider uses `variant="rail"` (1px hairline +
+                <div class={slot('controlControlCompact')}>
+                  <Toggle
+                    variant="dot"
+                    size="sm"
+                    checked={Boolean(values[control.key])}
+                    onCheckedChange={(val) => updateValue(control.key, val)}
+                    id={control.key}
+                    aria-label={control.label}
+                    aria-describedby={hintId}
+                  />
+                </div>
+              {:else if control.type === 'text'}
+                <div class={slot('controlControl')}>
+                  <Input
+                    id={control.key}
+                    variant="ghost"
+                    size={fieldSize}
+                    value={(values[control.key] as string) ?? ''}
+                    placeholder={control.placeholder}
+                    oninput={(e) => updateValue(control.key, e.currentTarget.value)}
+                    aria-describedby={hintId}
+                  />
+                </div>
+              {:else if control.type === 'number'}
+                <div class={slot('controlControl')}>
+                  <Input
+                    id={control.key}
+                    type="number"
+                    variant="ghost"
+                    size={fieldSize}
+                    value={numberFieldValue(control, values)}
+                    min={control.min}
+                    max={control.max}
+                    step={control.step}
+                    oninput={(e) => onNumberInput(control, e.currentTarget.value)}
+                    onblur={(e) => onNumberBlur(control, e.currentTarget)}
+                    aria-describedby={hintId}
+                  />
+                </div>
+              {:else if control.type === 'color'}
+                <div class={slot('controlControlCompact')}>
+                  <input
+                    id={control.key}
+                    type="color"
+                    value={values[control.key] || control.defaultValue || '#000000'}
+                    onchange={(e) => updateValue(control.key, e.currentTarget.value)}
+                    class={styles.colorInput()}
+                    aria-describedby={hintId}
+                  />
+                </div>
+              {:else if control.type === 'slider' || control.type === 'range'}
+                <!-- Knob-strip slider uses `variant="rail"` (1px hairline +
                    8px dot) so its loudness matches the SegmentGroup `text`
                    and Toggle `dot` siblings on the same row. The default
                    pill thumb would crowd the strip and re-introduce the
                    "several incompatible UIs glued together" issue called
                    out in the v5 polish notes. -->
-              <div class={slot('controlControl')}>
-                <Slider
-                  id={control.key}
-                  variant="rail"
-                  value={(values[control.key] as number | undefined) ??
-                    (control.defaultValue as number | undefined) ??
-                    control.min ??
-                    0}
-                  min={control.min}
-                  max={control.max}
-                  step={control.step || 1}
-                  showValue
-                  onValueChange={(val) =>
-                    typeof val === 'number' ? updateValue(control.key, val) : undefined}
-                  aria-labelledby={labelId}
-                  aria-describedby={hintId}
-                />
-              </div>
+                <div class={slot('controlControl')}>
+                  <Slider
+                    id={control.key}
+                    variant="rail"
+                    value={(values[control.key] as number | undefined) ??
+                      (control.defaultValue as number | undefined) ??
+                      control.min ??
+                      0}
+                    min={control.min}
+                    max={control.max}
+                    step={control.step || 1}
+                    showValue
+                    onValueChange={(val) =>
+                      typeof val === 'number' ? updateValue(control.key, val) : undefined}
+                    aria-labelledby={labelId}
+                    aria-describedby={hintId}
+                  />
+                </div>
+              {/if}
+            </div>
+            {#if helpVisible && description}
+              <div class={slot('controlHint')} id="{control.key}-hint">{description}</div>
             {/if}
-          </div>
-          {#if helpVisible && description}
-            <div class={slot('controlHint')} id="{control.key}-hint">{description}</div>
-          {/if}
-        {/each}
-      </div>
-      <!--
+          {/each}
+        </div>
+        <!--
         Gated on the same condition as "Reset all (N)" above: with nothing
         modified the share link is just the page URL, so there is nothing worth
         copying and the row stays out of the layout entirely.
       -->
-      {#if modifiedCount > 0}
-        <div class={slot('actionsBar')}>
-          <button type="button" class={slot('helpToggle')} onclick={copyShareLink}>
-            {shareCopied ? dt('linkCopied') : dt('copyLink')}
-          </button>
-          <!--
+        {#if modifiedCount > 0}
+          <div class={slot('actionsBar')}>
+            <button type="button" class={slot('helpToggle')} onclick={copyShareLink}>
+              {shareCopied ? dt('linkCopied') : dt('copyLink')}
+            </button>
+            <!--
             Copy confirmation for screen readers, for the reason CodePanel
             documents: the label flipping on the control the user just pressed is
             not a reliable announcement, a status region is. Unlike CodePanel's,
@@ -538,10 +637,11 @@
             `shareCopied` is provably false at mount: the effect above clears it
             on any value change, and only a value change can bring this row in.
           -->
-          <span class="sr-only" role="status">{shareCopied ? dt('linkCopied') : ''}</span>
-        </div>
-      {/if}
-    </div>
+            <span class="sr-only" role="status">{shareCopied ? dt('linkCopied') : ''}</span>
+          </div>
+        {/if}
+      </div>
+    {/if}
 
     <!-- Collapsible Generated Code -->
     {#if generatedCode}
@@ -550,7 +650,7 @@
         language="svelte"
         {size}
         expanded={codeExpanded}
-        onToggle={() => (codeExpanded = !codeExpanded)}
+        onToggle={() => (codeOverride = codeOverride === null ? !codeExpanded : !codeOverride)}
         {unstyled}
         slotClasses={{
           root: [slot('codePanel'), slotClasses?.codePanel].filter(Boolean).join(' '),

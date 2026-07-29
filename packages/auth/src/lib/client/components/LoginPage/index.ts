@@ -4,6 +4,7 @@ import type { CsrfClientOptions } from '../../csrf.js';
 import type { AuthPageSlotClasses } from '../types.js';
 
 /**
+ * @summary The ready-made sign-in page, with passkeys if you want them.
  * @description Pre-built login page with email/password, optional passkey, and remember-me.
  * Sends POST to `apiPath` (default `/api/auth/login`). Pair with `createLoginHandler(authDeps)` on the server.
  *
@@ -24,7 +25,12 @@ export interface LoginPageProps {
   t?: PartialAuthLocale;
   /** Called after successful login. */
   onSuccess?: () => void;
-  /** Login mode. `'password'` shows only email/password, `'passkey'` shows only passkey button, `'both'` shows both with separator. @default 'both' */
+  /**
+   * Login mode. `'password'` shows only email/password, `'passkey'` shows only
+   * passkey button, `'both'` shows both with separator.
+   * @default 'both'
+   * @summary Which sign-in paths the page offers: password, passkey, or both.
+   */
   mode?: 'password' | 'passkey' | 'both';
   /** Show a "Remember me" checkbox. When checked, sends `rememberMe: true` in the login request body. @default false */
   rememberMe?: boolean;

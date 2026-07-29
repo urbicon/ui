@@ -28,6 +28,7 @@ export interface CompositionItem {
 }
 
 /**
+ * @summary One bar showing what a total is made of, with the legend to read it.
  * @description Stacked bar with legend that breaks an aggregate value down into
  * its components. Suited for budget splits, pool composition, resource
  * allocation, token vesting — anywhere `pool = a + b + c` should be visible

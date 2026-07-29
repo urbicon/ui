@@ -4,17 +4,14 @@
     ApiReference,
     CodeExample,
     DocsLayout as DocsPageLayout,
-    extractPlaygroundDocs,
-    PlaygroundConfigurator,
     Section
   } from '@urbicon-ui/docs';
   import { Spinner } from '@urbicon-ui/blocks';
   import CustomDocs from './Docs.svelte';
+  import Playground from './Playground.svelte';
   import { componentData } from './api';
   import { buildRelatedLinks } from '$lib/component-links';
   import { asset, resolve } from '$app/paths';
-
-  const { propDocs, variantKeys } = extractPlaygroundDocs(componentData?.props ?? []);
   const relatedLinks = buildRelatedLinks(componentData);
 
   const navigation = [
@@ -47,85 +44,7 @@
   related={relatedLinks}
 >
   <Section id="playground" intent="primary">
-    <PlaygroundConfigurator
-      componentName="Spinner"
-      {propDocs}
-      {variantKeys}
-      controls={[
-        {
-          type: 'text',
-          key: 'label',
-          label: 'Label',
-          defaultValue: 'Loading...'
-        },
-        {
-          type: 'dropdown',
-          key: 'variant',
-          label: 'Variant',
-          items: [
-            { label: 'default', value: 'default' },
-            { label: 'ring', value: 'ring' },
-            { label: 'pulse', value: 'pulse' },
-            { label: 'dots', value: 'dots' },
-            { label: 'bars', value: 'bars' }
-          ],
-          defaultValue: 'default'
-        },
-        {
-          type: 'dropdown',
-          key: 'intent',
-          label: 'Intent',
-          items: [
-            { label: 'primary', value: 'primary' },
-            { label: 'secondary', value: 'secondary' },
-            { label: 'success', value: 'success' },
-            { label: 'warning', value: 'warning' },
-            { label: 'danger', value: 'danger' },
-            { label: 'neutral', value: 'neutral' }
-          ],
-          defaultValue: 'primary'
-        },
-        {
-          type: 'dropdown',
-          key: 'size',
-          label: 'Size',
-          items: [
-            { label: 'xs', value: 'xs' },
-            { label: 'sm', value: 'sm' },
-            { label: 'md', value: 'md' },
-            { label: 'lg', value: 'lg' },
-            { label: 'xl', value: 'xl' }
-          ],
-          defaultValue: 'md'
-        },
-        {
-          type: 'dropdown',
-          key: 'speed',
-          label: 'Speed',
-          items: [
-            { label: 'slow', value: 'slow' },
-            { label: 'normal', value: 'normal' },
-            { label: 'fast', value: 'fast' }
-          ],
-          defaultValue: 'normal'
-        },
-        { type: 'checkbox', key: 'visible', label: 'Visible', defaultValue: true }
-      ]}
-      values={{
-        label: 'Loading...',
-        variant: 'default',
-        intent: 'primary',
-        size: 'md',
-        speed: 'normal',
-        visible: true
-      }}
-      showHeader={false}
-    >
-      {#snippet children(values)}
-        {@const { label, ...props } = values}
-        <Spinner {...props} label={label || 'Loading...'} />
-      {/snippet}
-    </PlaygroundConfigurator>
+    <Playground />
   </Section>
 
   <CustomDocs />

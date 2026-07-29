@@ -131,6 +131,7 @@ interface BadgeStandardProps extends BadgeBaseProps {
 }
 
 /**
+ * @summary A small label for a status, a category or a count.
  * @description Compact label for status, categories, counters, and notifications.
  *
  * @tag feedback

@@ -16,7 +16,13 @@
     onPageChange,
     layout = 'default',
     size = 'md',
-    variant = 'outlined',
+    // `ghost`, not `outlined`: a page window is up to nine buttons in a row, and
+    // nine outlined pills are noise the moment ONE of them can stand out. That
+    // became possible only with the `pressed` → `active` fix in PaginationItem —
+    // before it, no entry had a visible state at all, and the outlines were the
+    // only thing giving the bar a shape. Table has always passed `variant="ghost"`
+    // for exactly this reason; the default now matches the practice.
+    variant = 'ghost',
     intent = 'primary',
     tier,
     visiblePages = 7,

@@ -74,6 +74,7 @@
         "@urbicon-ui/docs": "workspace:*",
         "@urbicon-ui/i18n": "workspace:*",
         "@urbicon-ui/shared-types": "workspace:*",
+        "@urbicon-ui/sveltekit-utils": "workspace:*",
         "@urbicon-ui/table": "workspace:*",
       },
       "devDependencies": {
