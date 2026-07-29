@@ -210,6 +210,19 @@
   const specimen = $derived(SPECIMENS[`${selected.pkg}:${selected.slug}`]);
   const sharedNote = $derived(SHARED_PREVIEW_NOTES[selected.slug]);
 
+  // Zeile 2 bleibt federleicht, erbt aber den Kanal der gewählten Komponente —
+  // grob: die Kachel, in deren Register sie auftaucht (ai → A2UI-Kanal,
+  // table → Table-Kanal, auth → Treppe/…and-more, Rest → Blocks). EINE
+  // Farbsemantik über beide Zeilen, keine zweite; getragen wird sie nur von
+  // Selektion, Pfeil und den lebenden Playgrounds (room-accent), nicht von
+  // Flächen.
+  const selectedChannel = $derived.by(() => {
+    if (selected.family === 'ai') return TILES[2];
+    if (selected.pkg === 'table') return TILES[1];
+    if (selected.pkg === 'auth') return TILES[4];
+    return TILES[0];
+  });
+
   // Slot-Eingriffe des Hero, unverändert: äußere Rahmung des Configurators
   // abräumen, linke Kante angleichen, eigener Grund unter der Bühne.
   const PLAYGROUND_SLOTS = {
@@ -332,7 +345,12 @@
     </section>
 
     <!-- ── Zeile 2: erforschen — das Inventar mit Detailansicht ────── -->
-    <section class="row2" aria-label="Component index">
+    <section
+      class="row2 room-accent"
+      aria-label="Component index"
+      style:--room-accent={selectedChannel.solid}
+      style:--room-accent-fg={selectedChannel.deep}
+    >
       <div class="inv-col">
         <div class="inv-head">
           <Input
@@ -713,6 +731,8 @@
     font-size: 0.7em;
     margin-left: 0.2em;
     transition: translate 120ms ease;
+    /* Das eine sichtbare Kanal-Signal im Kopf der Detailansicht. */
+    color: var(--color-primary);
   }
   .meta {
     font-family: 'JetBrains Mono', monospace;
