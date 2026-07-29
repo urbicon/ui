@@ -74,7 +74,11 @@
 
   // The landing page is a full-bleed stage without docs chrome — it brings its
   // own header/footer. The skip-link and ⌘K stay global.
-  const isLanding = $derived(page.url.pathname === '/');
+  const isLanding = $derived(
+    page.url.pathname === '/' ||
+      // Prototyp der neuen Landing (Struktur v2) — gleiche Full-bleed-Regel.
+      page.url.pathname === '/landing-proto'
+  );
 
   // Color Rooms accent per section ("Farbe = Ort"). The top-level route segment
   // selects the room; everything outside the four product areas falls back to
