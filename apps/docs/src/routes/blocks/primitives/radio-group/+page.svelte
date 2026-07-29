@@ -4,17 +4,14 @@
     ApiReference,
     CodeExample,
     DocsLayout as DocsPageLayout,
-    extractPlaygroundDocs,
-    PlaygroundConfigurator,
     Section
   } from '@urbicon-ui/docs';
   import { RadioGroup, RadioItem } from '@urbicon-ui/blocks';
   import CustomDocs from './Docs.svelte';
+  import Playground from './Playground.svelte';
   import { componentData } from './api';
   import { buildRelatedLinks } from '$lib/component-links';
   import { asset, resolve } from '$app/paths';
-
-  const { propDocs, variantKeys } = extractPlaygroundDocs(componentData?.props ?? []);
   const relatedLinks = buildRelatedLinks(componentData);
 
   const navigation = [
@@ -47,87 +44,7 @@
   related={relatedLinks}
 >
   <Section id="playground" intent="primary">
-    <PlaygroundConfigurator
-      componentName="RadioGroup"
-      {propDocs}
-      {variantKeys}
-      controls={[
-        {
-          type: 'dropdown',
-          key: 'variant',
-          label: 'Variant',
-          items: [
-            { label: 'outlined', value: 'outlined' },
-            { label: 'filled', value: 'filled' },
-            { label: 'ghost', value: 'ghost' }
-          ],
-          defaultValue: 'outlined'
-        },
-        {
-          type: 'dropdown',
-          key: 'intent',
-          label: 'Intent',
-          items: [
-            { label: 'primary', value: 'primary' },
-            { label: 'secondary', value: 'secondary' },
-            { label: 'success', value: 'success' },
-            { label: 'warning', value: 'warning' },
-            { label: 'danger', value: 'danger' },
-            { label: 'neutral', value: 'neutral' }
-          ],
-          defaultValue: 'primary'
-        },
-        {
-          type: 'dropdown',
-          key: 'size',
-          label: 'Size',
-          items: [
-            { label: 'xs', value: 'xs' },
-            { label: 'sm', value: 'sm' },
-            { label: 'md', value: 'md' },
-            { label: 'lg', value: 'lg' }
-          ],
-          defaultValue: 'md'
-        },
-        {
-          type: 'dropdown',
-          key: 'orientation',
-          label: 'Orientation',
-          items: [
-            { label: 'vertical', value: 'vertical' },
-            { label: 'horizontal', value: 'horizontal' }
-          ],
-          defaultValue: 'vertical'
-        },
-        { type: 'checkbox', key: 'disabled', label: 'Disabled', defaultValue: false },
-        { type: 'checkbox', key: 'required', label: 'Required', defaultValue: false }
-      ]}
-      values={{
-        variant: 'outlined',
-        intent: 'primary',
-        size: 'md',
-        orientation: 'vertical',
-        disabled: false,
-        required: false
-      }}
-      showHeader={false}
-    >
-      {#snippet children(values)}
-        <RadioGroup
-          label="Notification preference"
-          variant={values.variant}
-          intent={values.intent}
-          size={values.size}
-          orientation={values.orientation}
-          disabled={values.disabled}
-          required={values.required}
-        >
-          <RadioItem value="all" label="All notifications" />
-          <RadioItem value="mentions" label="Mentions only" />
-          <RadioItem value="none" label="None" />
-        </RadioGroup>
-      {/snippet}
-    </PlaygroundConfigurator>
+    <Playground />
   </Section>
 
   <CustomDocs />

@@ -3,6 +3,7 @@ import type { MintProp } from '$lib/mint';
 import type { TextareaSlots, TextareaVariants } from './textarea.variants';
 
 /**
+ * @summary Multi-line text that grows with what you write.
  * @description Multi-line text input with auto-resize, character counter, and validation states.
  * Shares the same variant/intent/size system as Input for visual consistency.
  *
@@ -29,6 +30,7 @@ export interface TextareaProps
    * - `underline` — bottom-line only, no border-box (editorial style)
    *
    * @default 'outlined'
+   * @summary Visual style of the field: bordered, filled, transparent, or a bottom line.
    */
   variant?: TextareaVariants['variant'];
 

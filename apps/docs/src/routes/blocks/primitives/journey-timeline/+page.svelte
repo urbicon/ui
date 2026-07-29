@@ -4,47 +4,17 @@
     ApiReference,
     CodeExample,
     DocsLayout as DocsPageLayout,
-    extractPlaygroundDocs,
-    PlaygroundConfigurator,
     Section
   } from '@urbicon-ui/docs';
   import SeoMeta from '$lib/SeoMeta.svelte';
   import CustomDocs from './Docs.svelte';
+  import Playground from './Playground.svelte';
   import { componentData } from './api';
   import { buildRelatedLinks } from '$lib/component-links';
   import { JourneyTimeline, type JourneyNode } from '@urbicon-ui/blocks';
-
-  const { propDocs, variantKeys } = extractPlaygroundDocs(componentData?.props ?? []);
   const relatedLinks = buildRelatedLinks(componentData);
 
   // A utility-billing run — the issue's driving consumer, as a chronicle.
-  const stages: JourneyNode[] = [
-    {
-      id: 'readings',
-      title: 'Meter readings',
-      status: 'complete',
-      subtitle: 'All units collected',
-      meta: '3 Jun',
-      segmentLabel: '2 days · validation'
-    },
-    {
-      id: 'validate',
-      title: 'Validation',
-      status: 'complete',
-      subtitle: 'Anomalies resolved',
-      meta: '5 Jun',
-      connector: 'dashed',
-      segmentLabel: 'manual review'
-    },
-    {
-      id: 'statements',
-      title: 'Statements',
-      status: 'active',
-      subtitle: 'Generating documents',
-      meta: '6 Jun'
-    },
-    { id: 'dispatch', title: 'Dispatch', status: 'pending', subtitle: 'Email + postal' }
-  ];
 
   const navigation = [
     { id: 'playground', title: 'Playground', order: 1 },
@@ -100,64 +70,7 @@
   related={relatedLinks}
 >
   <Section id="playground" intent="primary">
-    <PlaygroundConfigurator
-      componentName="JourneyTimeline"
-      {propDocs}
-      {variantKeys}
-      {codeGenerator}
-      controls={[
-        {
-          type: 'dropdown',
-          key: 'orientation',
-          label: 'Orientation',
-          items: [
-            { label: 'vertical', value: 'vertical' },
-            { label: 'horizontal', value: 'horizontal' }
-          ],
-          defaultValue: 'vertical'
-        },
-        {
-          type: 'dropdown',
-          key: 'detail',
-          label: 'Detail',
-          items: [
-            { label: 'inline', value: 'inline' },
-            { label: 'panel', value: 'panel' }
-          ],
-          defaultValue: 'inline'
-        },
-        {
-          type: 'dropdown',
-          key: 'size',
-          label: 'Size',
-          items: [
-            { label: 'sm', value: 'sm' },
-            { label: 'md', value: 'md' },
-            { label: 'lg', value: 'lg' }
-          ],
-          defaultValue: 'md'
-        }
-      ]}
-      values={{ orientation: 'vertical', detail: 'inline', size: 'md' }}
-      showHeader={false}
-    >
-      {#snippet children(values)}
-        <div class="w-full max-w-xl">
-          <JourneyTimeline
-            items={stages}
-            orientation={values.orientation}
-            detail={values.detail}
-            size={values.size}
-          >
-            {#snippet node(item)}
-              <p class="text-text-secondary text-sm">
-                Full record for “{item.title}” renders here while the node is in focus.
-              </p>
-            {/snippet}
-          </JourneyTimeline>
-        </div>
-      {/snippet}
-    </PlaygroundConfigurator>
+    <Playground />
   </Section>
 
   <CustomDocs />

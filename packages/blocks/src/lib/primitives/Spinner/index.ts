@@ -3,6 +3,7 @@ import type { HTMLAttributes } from 'svelte/elements';
 import type { SpinnerSlots, SpinnerVariants } from './spinner.variants';
 
 /**
+ * @summary Shows that something is running.
  * @description Animated loading indicator with multiple animation styles and semantic intents.
  *
  * @tag feedback
@@ -30,7 +31,8 @@ export interface SpinnerProps
 
   /** Animation style. `default` is an SVG arc, `dots` bounces three dots,
    *  `pulse` radiates a sonar ping, `ring` spins cascading borders,
-   *  `bars` animates vertical equalizer bars. */
+   *  `bars` animates vertical equalizer bars.
+   *  @summary Which animation the spinner runs — arc, dots, pulse, ring or bars. */
   variant?: SpinnerVariants['variant'];
 
   /** Semantic color applied via `text-*` token. */

@@ -5,16 +5,13 @@
     ApiReference,
     CodeExample,
     DocsLayout as DocsPageLayout,
-    extractPlaygroundDocs,
-    PlaygroundConfigurator,
     Section
   } from '@urbicon-ui/docs';
   import CustomDocs from './Docs.svelte';
+  import Playground from './Playground.svelte';
   import { componentData } from './api';
   import { buildRelatedLinks } from '$lib/component-links';
-  import { CompositionBar, type CompositionItem } from '@urbicon-ui/blocks';
-
-  const { propDocs, variantKeys } = extractPlaygroundDocs(componentData?.props ?? []);
+  import { CompositionBar } from '@urbicon-ui/blocks';
   const relatedLinks = buildRelatedLinks(componentData);
 
   const navigation = [
@@ -24,12 +21,6 @@
     { id: 'accessibility', title: 'Accessibility', order: 4 },
     { id: 'api', title: 'API Reference', order: 10 },
     { id: 'installation', title: 'Installation', order: 11 }
-  ];
-
-  const playgroundItems: CompositionItem[] = [
-    { label: 'Anteil A', value: 60, intent: 'primary' },
-    { label: 'Anteil B', value: 30, intent: 'success' },
-    { label: 'Anteil C', value: 10, intent: 'warning' }
   ];
 </script>
 
@@ -50,68 +41,7 @@
   related={relatedLinks}
 >
   <Section id="playground" title="Playground" intent="primary">
-    <PlaygroundConfigurator
-      showHeader={false}
-      {propDocs}
-      {variantKeys}
-      componentName="CompositionBar"
-      controls={[
-        {
-          type: 'dropdown',
-          key: 'orientation',
-          label: 'Orientation',
-          items: [
-            { label: 'horizontal', value: 'horizontal' },
-            { label: 'vertical', value: 'vertical' }
-          ],
-          defaultValue: 'horizontal'
-        },
-        {
-          type: 'dropdown',
-          key: 'size',
-          label: 'Size',
-          items: [
-            { label: 'sm', value: 'sm' },
-            { label: 'md', value: 'md' },
-            { label: 'lg', value: 'lg' }
-          ],
-          defaultValue: 'md'
-        },
-        {
-          type: 'dropdown',
-          key: 'legendPlacement',
-          label: 'Legend',
-          items: [
-            { label: 'top', value: 'top' },
-            { label: 'right', value: 'right' },
-            { label: 'bottom', value: 'bottom' },
-            { label: 'left', value: 'left' },
-            { label: 'none', value: 'none' }
-          ],
-          defaultValue: 'bottom'
-        },
-        { type: 'boolean', key: 'showLegend', label: 'Show legend', defaultValue: true },
-        { type: 'boolean', key: 'showTotal', label: 'Show total', defaultValue: false },
-        { type: 'boolean', key: 'showPercentages', label: 'Show percentages', defaultValue: true }
-      ]}
-      values={{
-        orientation: 'horizontal',
-        size: 'md',
-        legendPlacement: 'bottom',
-        showLegend: true,
-        showTotal: false,
-        showPercentages: true
-      }}
-    >
-      {#snippet children(values)}
-        <div
-          class="w-full max-w-xl"
-          style={values.orientation === 'vertical' ? 'height: 200px' : ''}
-        >
-          <CompositionBar {...values} items={playgroundItems} />
-        </div>
-      {/snippet}
-    </PlaygroundConfigurator>
+    <Playground />
   </Section>
 
   <CustomDocs />

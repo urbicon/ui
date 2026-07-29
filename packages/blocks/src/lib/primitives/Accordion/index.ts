@@ -14,6 +14,7 @@ export interface AccordionContext {
 /**
  * Props interface for Accordion component
  *
+ * @summary Stacked sections that expand one at a time, or several at once.
  * @description Collapsible content sections with expand/collapse animation.
  * Supports single or multiple open items, keyboard navigation, and ARIA accordion pattern.
  *

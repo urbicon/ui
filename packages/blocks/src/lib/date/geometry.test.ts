@@ -24,6 +24,21 @@ describe('getMonthGrid', () => {
     }
   });
 
+  it('always returns 6 weeks with fixedWeeks, for every month of the year', () => {
+    for (let m = 0; m < 12; m++) {
+      expect(getMonthGrid(2026, m, 1, true), `month ${m}`).toHaveLength(6);
+    }
+  });
+
+  it('keeps every day of the month when padding to 6 weeks', () => {
+    // The padding rows are trailing next-month days — they must not displace
+    // the month's own days.
+    const grid = getMonthGrid(2026, 1, 1, true); // February 2026 — the shortest case
+    const own = grid.flat().filter((d) => d.getMonth() === 1 && d.getFullYear() === 2026);
+    expect(own).toHaveLength(28);
+    expect(grid.every((w) => w.length === 7)).toBe(true);
+  });
+
   it('includes all days of the month', () => {
     const grid = getMonthGrid(2026, 2, 1); // March 2026 has 31 days
     const allDates = grid.flat();

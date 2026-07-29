@@ -5,16 +5,13 @@
     ApiReference,
     CodeExample,
     DocsLayout as DocsPageLayout,
-    extractPlaygroundDocs,
-    PlaygroundConfigurator,
     Section
   } from '@urbicon-ui/docs';
   import CustomDocs from './Docs.svelte';
+  import Playground from './Playground.svelte';
   import { componentData } from './api';
   import { buildRelatedLinks } from '$lib/component-links';
   import { PinInput } from '@urbicon-ui/blocks';
-
-  const { propDocs, variantKeys } = extractPlaygroundDocs(componentData?.props ?? []);
   const relatedLinks = buildRelatedLinks(componentData);
 
   const navigation = [
@@ -48,63 +45,7 @@
   related={relatedLinks}
 >
   <Section id="playground" title="Playground" intent="primary">
-    <PlaygroundConfigurator
-      showHeader={false}
-      {propDocs}
-      {variantKeys}
-      componentName="PinInput"
-      controls={[
-        {
-          type: 'dropdown',
-          key: 'length',
-          label: 'Length',
-          items: [
-            { label: '4', value: 4 },
-            { label: '6', value: 6 },
-            { label: '8', value: 8 }
-          ],
-          defaultValue: 6
-        },
-        {
-          type: 'dropdown',
-          key: 'type',
-          label: 'Type',
-          items: [
-            { label: 'numeric', value: 'numeric' },
-            { label: 'alphanumeric', value: 'alphanumeric' }
-          ],
-          defaultValue: 'numeric'
-        },
-        { type: 'boolean', key: 'mask', label: 'Mask', defaultValue: false },
-        {
-          type: 'dropdown',
-          key: 'size',
-          label: 'Size',
-          items: [
-            { label: 'sm', value: 'sm' },
-            { label: 'md', value: 'md' },
-            { label: 'lg', value: 'lg' }
-          ],
-          defaultValue: 'md'
-        },
-        {
-          type: 'dropdown',
-          key: 'variant',
-          label: 'Variant',
-          items: [
-            { label: 'outlined', value: 'outlined' },
-            { label: 'filled', value: 'filled' },
-            { label: 'ghost', value: 'ghost' }
-          ],
-          defaultValue: 'outlined'
-        }
-      ]}
-      values={{ length: 6, type: 'numeric', mask: false, size: 'md', variant: 'outlined' }}
-    >
-      {#snippet children(values)}
-        <PinInput {...values} />
-      {/snippet}
-    </PlaygroundConfigurator>
+    <Playground />
   </Section>
 
   <CustomDocs />

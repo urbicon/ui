@@ -7,6 +7,7 @@ import type {
 } from '$lib/internal/charts/types';
 
 /**
+ * @summary Lines over an ordered axis, for how something developed.
  * @description Line chart for trends over an ordered category axis. One path
  * per series on the design-token palette; zero-dependency SVG, responsive,
  * dark-mode aware, with optional points, gridlines, legend, and a screen-

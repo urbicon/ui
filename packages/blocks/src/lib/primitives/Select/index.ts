@@ -136,6 +136,7 @@ interface SelectBaseProps<T extends SelectValue = string>
    *   docs playgrounds)
    *
    * @default 'outlined'
+   * @summary How the closed trigger is framed.
    */
   variant?: SelectVariants['variant'];
 
@@ -381,6 +382,12 @@ export interface SelectMultipleProps<T extends SelectValue = string> extends Sel
  * call site and the value type narrows accordingly — `<Select multiple bind:value>`
  * binds to `T[]`, `<Select bind:value>` binds to `T | null`. See
  * `SelectSingleProps` / `SelectMultipleProps` for the per-mode details.
+ *
+ * @summary Choose from a list — one value, or several.
+ * @tag form
+ * @related Combobox
+ * @related Menu
+ * @related Input
  */
 export type SelectProps<T extends SelectValue = string> =
   | SelectSingleProps<T>

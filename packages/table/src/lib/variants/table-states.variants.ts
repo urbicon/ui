@@ -349,6 +349,22 @@ export const mobileCardVariants = tv({
       false: {}
     },
 
+    /**
+     * The card whose record is being shown elsewhere (master/detail). A step
+     * below `selected`, which keeps the accent because it carries consequences;
+     * a compound below drops this whenever both are set.
+     *
+     * A card carries its own border, so the border colour is the distinction
+     * here — the rows' inset rail exists because a `<tr>` has no border to
+     * darken without `border-collapse` eating it.
+     */
+    active: {
+      true: {
+        card: 'border-border-strong bg-surface-hover'
+      },
+      false: {}
+    },
+
     interactive: {
       true: {
         card: 'cursor-pointer active:scale-[0.995]'
@@ -365,9 +381,21 @@ export const mobileCardVariants = tv({
     }
   },
 
+  compoundVariants: [
+    // Both at once: selection owns the look, so the active ground does not
+    // fight the accent. Two backgrounds on one card would resolve by order,
+    // not by meaning.
+    {
+      selected: true,
+      active: true,
+      class: { card: 'border-primary bg-primary-subtle' }
+    }
+  ],
+
   defaultVariants: {
     size: 'md',
     selected: false,
+    active: false,
     interactive: false,
     expanded: false
   }

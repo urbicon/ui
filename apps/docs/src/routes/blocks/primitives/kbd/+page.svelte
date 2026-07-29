@@ -5,16 +5,13 @@
     ApiReference,
     CodeExample,
     DocsLayout as DocsPageLayout,
-    extractPlaygroundDocs,
-    PlaygroundConfigurator,
     Section
   } from '@urbicon-ui/docs';
   import CustomDocs from './Docs.svelte';
+  import Playground from './Playground.svelte';
   import { componentData } from './api';
   import { buildRelatedLinks } from '$lib/component-links';
-  import { Kbd } from '@urbicon-ui/blocks';
 
-  const { propDocs, variantKeys } = extractPlaygroundDocs(componentData?.props ?? []);
   const relatedLinks = buildRelatedLinks(componentData);
 
   const navigation = [
@@ -46,34 +43,7 @@
   related={relatedLinks}
 >
   <Section id="playground" title="Playground" intent="primary">
-    <PlaygroundConfigurator
-      showHeader={false}
-      {propDocs}
-      {variantKeys}
-      componentName="Kbd"
-      controls={[
-        { type: 'text', key: 'keys', label: 'Keys', defaultValue: '⌘K' },
-        {
-          type: 'dropdown',
-          key: 'size',
-          label: 'Size',
-          items: [
-            { label: 'sm', value: 'sm' },
-            { label: 'md', value: 'md' },
-            { label: 'lg', value: 'lg' }
-          ],
-          defaultValue: 'md'
-        }
-      ]}
-      values={{
-        keys: '⌘K',
-        size: 'md'
-      }}
-    >
-      {#snippet children(values)}
-        <Kbd keys={typeof values.keys === 'string' ? values.keys : '⌘K'} size={values.size} />
-      {/snippet}
-    </PlaygroundConfigurator>
+    <Playground />
   </Section>
 
   <CustomDocs />

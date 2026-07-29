@@ -2,6 +2,7 @@ import type { HTMLAttributes } from 'svelte/elements';
 import type { SeparatorVariants } from './separator.variants';
 
 /**
+ * @summary A line marking where one thing ends and the next begins.
  * @description Visual divider for separating content sections. Supports horizontal and
  * vertical orientations with proper ARIA semantics.
  *

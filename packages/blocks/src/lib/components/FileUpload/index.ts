@@ -56,6 +56,7 @@ export type FileUploadSlotName = FileUploadSlots;
 // ── Props ────────────────────────────────────────────────────────────────────
 
 /**
+ * @summary Drop files here: validation, previews and progress included.
  * @description Drag-and-drop file upload with validation, image previews, progress tracking, and animated file list.
  * @tag form
  * @related Input

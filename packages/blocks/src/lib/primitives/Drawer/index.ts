@@ -3,6 +3,7 @@ import type { HTMLDialogAttributes } from 'svelte/elements';
 import type { DrawerSlots, DrawerVariants } from './drawer.variants';
 
 /**
+ * @summary A panel that slides in from an edge and takes focus with it.
  * @description Slide-in panel overlay from any edge of the viewport.
  * Uses native dialog with focus trap, backdrop click dismiss, and Escape key support.
  *
@@ -49,6 +50,7 @@ export interface DrawerProps extends Omit<HTMLDialogAttributes, 'children' | 'op
    * consumers can hook presets, CSS overrides, or icon/title color via their own
    * snippets. Set {@link accentEdge} to also tint the docked edge in this colour.
    * @default 'neutral'
+   * @summary Which colour the accent edge takes; on its own it paints nothing.
    */
   intent?: DrawerVariants['intent'];
 
@@ -59,6 +61,7 @@ export interface DrawerProps extends Omit<HTMLDialogAttributes, 'children' | 'op
    * default, keeping symmetry with Dialog; opt in for a coloured seam that ties
    * the drawer to a semantic purpose (e.g. a `danger` confirm drawer).
    * @default false
+   * @summary Tints the edge that faces the viewport in the intent colour.
    */
   accentEdge?: DrawerVariants['accentEdge'];
 

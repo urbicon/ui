@@ -74,10 +74,13 @@
 
   // The landing page is a full-bleed stage without docs chrome — it brings its
   // own header/footer. The skip-link and ⌘K stay global.
+  //
+  // Landing previews under /test-fixtures/landing-* get the same treatment:
+  // judging a full-bleed hero next to the docs sidebar tells you nothing about
+  // how it will actually read. Those routes are excluded from sitemap and
+  // search (sitemap.xml/+server.ts).
   const isLanding = $derived(
-    page.url.pathname === '/' ||
-      // Prototyp der neuen Landing (Struktur v2) — gleiche Full-bleed-Regel.
-      page.url.pathname === '/landing-proto'
+    page.url.pathname === '/' || page.url.pathname.startsWith('/test-fixtures/landing-')
   );
 
   // Color Rooms accent per section ("Farbe = Ort"). The top-level route segment

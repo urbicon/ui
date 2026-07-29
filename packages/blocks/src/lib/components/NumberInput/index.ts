@@ -2,6 +2,7 @@ import type { Snippet } from 'svelte';
 import type { InputProps } from '$lib/primitives/Input';
 
 /**
+ * @summary A number field with bounds, steppers and arrow-key stepping.
  * @description Generic numeric input with min/max/step bounds, stepper buttons,
  * and Arrow-key / mouse-wheel increment. Built on {@link Input}, so it inherits
  * labels, validation, sizes and variants. Values are plain numbers (not minor
@@ -61,6 +62,7 @@ export interface NumberInputProps
   /**
    * Fixed number of decimal places for display and rounding. When unset, the
    * value is shown as typed and the step's own decimals drive rounding.
+   * @summary Fixed number of decimal places. Unset shows the value as typed.
    */
   precision?: number;
   /** Hide the up/down stepper buttons (Arrow keys + wheel still work). @default false */

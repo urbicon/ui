@@ -35,6 +35,26 @@
     [width ? `width:${width}` : '', height ? `height:${height}` : ''].filter(Boolean).join(';') ||
       undefined
   );
+
+  // `width={200}` is the most natural thing to write and the one thing that
+  // cannot work: `width:200` is invalid CSS, so the browser drops the whole
+  // declaration without a word and the skeleton keeps its default size. Say so
+  // rather than quietly coercing to px — a silent unit guess would be wrong the
+  // first time someone means `200%`.
+  if (import.meta.env?.DEV) {
+    $effect(() => {
+      for (const [prop, value] of [
+        ['width', width],
+        ['height', height]
+      ] as const) {
+        if (typeof value === 'number' || (typeof value === 'string' && /^\d+(\.\d+)?$/.test(value)))
+          console.warn(
+            `[Skeleton] ${prop}="${value}" has no CSS unit, so the browser discards it and the ` +
+              `skeleton keeps its default ${prop}. Write "${value}px", "${value}%" or "${value}rem".`
+          );
+      }
+    });
+  }
 </script>
 
 {#if count > 1}

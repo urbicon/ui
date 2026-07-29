@@ -99,22 +99,31 @@ describe('Scroller variants — emphasis', () => {
     // would just make cards breathe at random. The component warns in DEV.
     for (const strength of ['subtle', 'strong'] as const) {
       expect(viewport({ emphasis: strength, align: 'start' })).not.toContain('animation-timeline');
-      expect(viewport({ emphasis: strength, align: 'start' })).not.toContain('py-3');
+      expect(viewport({ emphasis: strength, align: 'start' })).not.toContain('pt-3');
     }
   });
 
   it('scales the lift through custom properties, so strong is visibly stronger', () => {
     expect(lifted('subtle')).toContain('[--blocks-scroller-emphasis-scale:1.04]');
     expect(lifted('strong')).toContain('[--blocks-scroller-emphasis-scale:1.08]');
-    // `strong` also steps up the elevation, or the bigger scale reads as a
-    // rendering glitch rather than a lift.
-    expect(lifted('strong')).toContain(
-      '[--blocks-scroller-emphasis-shadow:var(--blocks-shadow-lg)]'
-    );
+    // The elevation step between the strengths is carried by the scale alone:
+    // strong deliberately does NOT switch to shadow-lg — it falls ~33px below
+    // the card and reads as clipped even with generous padding. Both strengths
+    // share the keyframe's md fallback; a deeper shadow stays a per-instance
+    // custom-property override.
+    expect(lifted('strong')).not.toContain('--blocks-scroller-emphasis-shadow');
   });
 
-  it('makes vertical room for the lift', () => {
-    expect(lifted('subtle')).toContain('py-3');
+  it('makes vertical room for the lift AND its falling shadow', () => {
+    // A scroll container clips at its padding box, so the padding is the only
+    // room the raised card and its shadow get. Above, only the scale grows;
+    // below, the md shadow's dense part plus the scale growth need ~28px.
+    // Cutting through the dense part of the shadow is a visible hard edge on
+    // the card (the bug this pins); only the faint outer tail may clip.
+    for (const strength of ['subtle', 'strong'] as const) {
+      expect(lifted(strength)).toContain('pt-3');
+      expect(lifted(strength)).toContain('pb-7');
+    }
   });
 
   it('removes the animation entirely under prefers-reduced-motion', () => {

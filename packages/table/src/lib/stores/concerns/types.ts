@@ -55,6 +55,14 @@ export interface TableState {
    */
   rowClickSelects: boolean;
   /**
+   * The row currently being shown elsewhere — master/detail (set by
+   * `TableProvider` from the `activeRowId` prop). Distinct from
+   * {@link selectedIds}: a view state with no action attached, so it brings no
+   * checkbox column and no `aria-selected`, only `aria-current` and a quiet
+   * ground. `null` means no row is current.
+   */
+  activeRowId: string | number | null;
+  /**
    * Whether the table renders virtualized (set by `TableProvider` from the
    * `virtualized` prop). Grouping is not implemented for the virtual list, so
    * this mode suppresses the grouping affordances instead of silently falling

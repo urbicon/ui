@@ -11,6 +11,7 @@ import type { DialogSlots } from '../Dialog/dialog.variants';
 export type ConfirmIntent = Exclude<DialogIntent, 'neutral'>;
 
 /**
+ * @summary The "are you sure" that replaces the browser's own — styleable, focused, dismissible.
  * @description Pre-configured Dialog for confirming a single, often
  * destructive action. Replaces the native `window.confirm()` with a
  * styleable, focus-trapped, keyboard-accessible modal that matches the

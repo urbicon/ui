@@ -3,6 +3,7 @@ import type { HTMLAttributes } from 'svelte/elements';
 import type { CodeBlockSlots, CodeBlockVariants } from './code-block.variants';
 
 /**
+ * @summary Code to read and copy, with a copy button that confirms it worked.
  * @description Read-only code display with a one-click copy interaction: the copy
  * button swaps its icon and label to a confirmation for two seconds and fires `onCopy`.
  * Renders raw text only — no built-in syntax highlighting; a consumer or the
@@ -41,6 +42,7 @@ export interface CodeBlockProps
   /**
    * Soft-wrap long lines. `false` (default) scrolls horizontally inside the
    * block; `true` wraps with `whitespace-pre-wrap` + word breaking.
+   * @summary Whether long lines wrap, or the block scrolls sideways.
    */
   wrap?: boolean;
 

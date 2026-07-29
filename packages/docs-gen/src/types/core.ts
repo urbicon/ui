@@ -147,6 +147,12 @@ export interface ComponentAPIData {
   /** Optional grouping for route placement, e.g., 'components' or 'primitives' */
   group?: string;
   /**
+   * One human-facing sentence — `@summary` JSDoc on the *Props interface.
+   * What the landing page and the component index show under the name.
+   * `description` stays the long form for `llm.txt` and the MCP catalog.
+   */
+  summary?: string;
+  /**
    * Editorial maturity badge — `@stability` JSDoc on the *Props
    * interface. Defaults to `'stable'` if omitted.
    */

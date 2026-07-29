@@ -4,6 +4,7 @@ import type { MintProp } from '$lib/mint';
 import type { CardSlots, CardVariants } from './card.variants';
 
 /**
+ * @summary A container that groups what belongs together, clickable where it should be.
  * @description Flexible container for grouping related content with optional header, footer,
  * and interactive states. Renders as div, button, or anchor depending on the provided props.
  *
@@ -64,6 +65,7 @@ export interface CardProps
    * content — `<a><Card clickable>…</Card></a>` produces nested
    * interactive elements (invalid HTML, a11y violation). Prefer
    * `<Card href={…}>` so the card itself becomes the anchor.
+   * @summary Makes the whole card a button, even without an `onclick`.
    */
   clickable?: boolean;
 

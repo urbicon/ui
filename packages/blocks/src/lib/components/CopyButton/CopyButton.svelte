@@ -15,6 +15,7 @@
   let {
     value,
     label,
+    children,
     copiedLabel,
     timeout = 2000,
     variant = 'ghost',
@@ -93,7 +94,10 @@
   // Icon-only mode carries its accessible name on the button (a stable action
   // name; a consumer override stays supplemental). Labelled mode lets the
   // visible text be the name (WCAG 2.5.3), keeping any consumer aria-label.
-  const ariaLabel = $derived(label ? ariaLabelProp : (ariaLabelProp ?? copyText));
+  // `children` counts as a label here: it renders visible content, so imposing
+  // an aria-label on top would override what the user can actually read.
+  const hasVisibleLabel = $derived(!!children || !!label);
+  const ariaLabel = $derived(hasVisibleLabel ? ariaLabelProp : (ariaLabelProp ?? copyText));
 
   async function handleCopy() {
     const result = await copyState.copy(value);
@@ -123,7 +127,9 @@
         <CopyIcon class={iconClass} aria-hidden="true" />
       {/if}
     {/if}
-    {#if label}<span class={labelClass}>{visibleLabel}</span>{/if}
+    {#if children}
+      {@render children(state)}
+    {:else if label}<span class={labelClass}>{visibleLabel}</span>{/if}
   </Button>
   <span class="sr-only" role="status">{announcement}</span>
 </span>

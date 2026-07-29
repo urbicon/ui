@@ -10,6 +10,7 @@ import type {
 /**
  * Props interface for StreamingMarkdown component
  *
+ * @summary Renders markdown as it arrives, without redrawing what has already settled.
  * @description Streaming-safe markdown renderer for LLM output. Parses a growing
  * `content` string incrementally (settled blocks are never re-rendered) and renders
  * to a real component tree — never through `{@html}`, so raw HTML in the source
@@ -67,6 +68,7 @@ export interface StreamingMarkdownProps
    * clamped at h6). Visual sizing keeps following the author's level. Set to
    * 3 in chat surfaces so message headings stay out of the page outline.
    * @default 1
+   * @summary Which DOM heading level a markdown hash maps to, keeping message headings out of the page outline.
    */
   headingLevelStart?: 1 | 2 | 3 | 4 | 5 | 6;
   /** Target for rendered links; `rel="noopener noreferrer"` is added for `_blank` @default '_blank' */

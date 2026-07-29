@@ -10,6 +10,7 @@ import type { InputProps } from '$lib/primitives/Input';
 export type CurrencySymbolPosition = 'prefix' | 'suffix' | 'none';
 
 /**
+ * @summary Money entry that counts in cents, so nothing is lost to rounding.
  * @description Locale-aware monetary input that stores values in **minor units**
  * (cents for EUR/USD, pennies for GBP, etc.). While focused the user types raw
  * digits with a single decimal separator; on blur the value is reformatted with
@@ -95,6 +96,7 @@ export interface CurrencyInputProps
    * intentionally **not** auto-detected, since it is orthogonal to locale
    * (a `de-CH` user may still bill in EUR).
    * @default 'auto'
+   * @summary Which conventions the number follows — separators, symbol placement, spacing.
    */
   locale?: string;
 
@@ -111,6 +113,7 @@ export interface CurrencyInputProps
    * while focused) — it is never embedded in the editable text. Use `'none'`
    * for headless numeric editing (no symbol shown at all).
    * @default 'suffix'
+   * @summary Which side of the number the currency symbol sits on.
    */
   symbolPosition?: CurrencySymbolPosition;
 

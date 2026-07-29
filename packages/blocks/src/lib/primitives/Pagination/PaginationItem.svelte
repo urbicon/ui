@@ -2,6 +2,12 @@
   import Button from '../Button/Button.svelte';
   import type { PaginationItemProps } from '.';
 
+  // `active`, NOT `pressed`: press is a *moment* (scale-[0.98], brightness-90,
+  // shadow-xs) and cannot express "you are here" — on the transparent surface
+  // of an outlined/ghost pager none of the three is even visible, which left
+  // the current page findable only via `aria-current`. Button's `active` axis
+  // is the state encoding (outlined promotes to filled, ghost gets the subtle
+  // fill + ring + semibold).
   let {
     children,
     page,
@@ -9,7 +15,8 @@
     disabled = false,
     loading = false,
     size = 'md',
-    variant = 'outlined',
+    // Mirrors Pagination's default (see the note there).
+    variant = 'ghost',
     intent = 'primary',
     tier,
     href,
@@ -36,17 +43,7 @@
     aria-disabled={disabled || undefined}
     aria-current={active ? 'page' : undefined}
   >
-    <Button
-      {size}
-      {variant}
-      {intent}
-      {tier}
-      {disabled}
-      {loading}
-      {mint}
-      pressed={active}
-      tabindex={-1}
-    >
+    <Button {size} {variant} {intent} {tier} {disabled} {loading} {mint} {active} tabindex={-1}>
       {#if children}
         {@render children()}
       {:else if page !== undefined}
@@ -64,7 +61,7 @@
     {disabled}
     {loading}
     {mint}
-    pressed={active}
+    {active}
     onclick={handleClick}
     aria-current={active ? 'page' : undefined}
     class={className}

@@ -123,18 +123,18 @@ export const scrollerVariants = tv({
       xl: { viewport: 'gap-8' }
     },
 
-    // Strength of the lift. Only the two custom properties differ — the
-    // animation wiring itself is applied by the compound below, because a lift
-    // only means something when there IS a middle (see there).
+    // Strength of the lift. Only the scale differs — the animation wiring
+    // itself is applied by the compound below, because a lift only means
+    // something when there IS a middle (see there). Both strengths share the
+    // md shadow (the keyframe's fallback): shadow-lg falls ~33px below the
+    // card and read as clipped even with generous padding — the elevation step
+    // between the two strengths is carried by the scale, and a deeper shadow
+    // stays available per instance via `--blocks-scroller-emphasis-shadow`
+    // (with matching `slotClasses.viewport` room).
     emphasis: {
       none: {},
       subtle: { viewport: '[--blocks-scroller-emphasis-scale:1.04]' },
-      strong: {
-        viewport: [
-          '[--blocks-scroller-emphasis-scale:1.08]',
-          '[--blocks-scroller-emphasis-shadow:var(--blocks-shadow-lg)]'
-        ]
-      }
+      strong: { viewport: '[--blocks-scroller-emphasis-scale:1.08]' }
     },
 
     // Whether the native scrollbar shows. It is the only standing promise that
@@ -155,7 +155,9 @@ export const scrollerVariants = tv({
     // `animation-timeline: view(inline)` ties progress to where the item sits in
     // the scrollport, so nothing needs keeping in sync and there is nothing to
     // fall back to — where the timeline is unsupported the animation never
-    // advances and the row is exactly as usable, only flat (plan §3.7).
+    // advances and the row is exactly as usable, only flat (plan §3.7). In
+    // practice that is Firefox < 156 (ships in 156; Chrome 115+/Safari 26+ are
+    // fine) — accepted, see docs/technical-debt.md.
     //
     // With `align="start"` there is no middle for an item to arrive at, so the
     // same animation would make cards breathe for no discernible reason. The
@@ -172,11 +174,16 @@ export const scrollerVariants = tv({
           '[&>*]:[animation:blocks-scroller-emphasis_linear_both]',
           '[&>*]:[animation-timeline:view(inline)]',
           'motion-reduce:[&>*]:[animation:none]',
-          // The lift grows the item past the track's box on BOTH axes. The
-          // vertical growth has nowhere to go (see `overflow-y-clip` above), so
-          // the row makes room for it — otherwise the raised card and its
-          // shadow are shaved off at the top and bottom.
-          'py-3'
+          // The lift grows the item past the track's box on BOTH axes, and a
+          // scroll container clips at its padding box — `overflow-clip-margin`
+          // does not apply — so padding is the only room there is. Above, the
+          // scale is all that grows (the shadow only falls downward): 12px
+          // covers it. Below, the md shadow's dense part reaches offset +
+          // ~half the blur under the card (0 10px 15px ≈ 18px) plus the scale
+          // growth — 28px holds both strengths, and only the faint outer tail
+          // falls past it. A deeper custom shadow needs `slotClasses.viewport`
+          // room to match.
+          'pt-3 pb-7'
         ]
       }
     }))

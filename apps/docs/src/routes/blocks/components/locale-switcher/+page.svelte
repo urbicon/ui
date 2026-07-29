@@ -4,17 +4,15 @@
     ApiReference,
     CodeExample,
     DocsLayout as DocsPageLayout,
-    PlaygroundConfigurator,
     Section
   } from '@urbicon-ui/docs';
   import { LocaleSwitcher } from '@urbicon-ui/blocks';
   import CustomDocs from './Docs.svelte';
+  import Playground from './Playground.svelte';
   import { componentData } from './api';
   import { buildRelatedLinks } from '$lib/component-links';
   import { extractPlaygroundDocs } from '@urbicon-ui/docs';
   import { resolve } from '$app/paths';
-
-  const { propDocs, variantKeys } = extractPlaygroundDocs(componentData?.props ?? []);
   const relatedLinks = buildRelatedLinks(componentData);
 
   const navigation = [
@@ -47,44 +45,7 @@
   {navigation}
 >
   <Section id="playground" intent="primary">
-    <PlaygroundConfigurator
-      componentName="LocaleSwitcher"
-      {propDocs}
-      {variantKeys}
-      controls={[
-        {
-          type: 'dropdown',
-          key: 'variant',
-          label: 'Variant',
-          items: [
-            { label: 'outlined', value: 'outlined' },
-            { label: 'filled', value: 'filled' },
-            { label: 'ghost', value: 'ghost' },
-            { label: 'underline', value: 'underline' }
-          ],
-          defaultValue: 'outlined'
-        },
-        {
-          type: 'dropdown',
-          key: 'size',
-          label: 'Size',
-          items: [
-            { label: 'sm', value: 'sm' },
-            { label: 'md', value: 'md' },
-            { label: 'lg', value: 'lg' }
-          ],
-          defaultValue: 'sm'
-        },
-        { type: 'checkbox', key: 'showFlag', label: 'Show Flag', defaultValue: true },
-        { type: 'checkbox', key: 'disabled', label: 'Disabled', defaultValue: false }
-      ]}
-      values={{ variant: 'outlined', size: 'sm', showFlag: true, disabled: false }}
-      showHeader={false}
-    >
-      {#snippet children(values)}
-        <LocaleSwitcher {...values} />
-      {/snippet}
-    </PlaygroundConfigurator>
+    <Playground />
   </Section>
 
   <CustomDocs />

@@ -49,6 +49,7 @@ export interface JourneyNode {
 }
 
 /**
+ * @summary The record of what happened, in order — shipments, audits, itineraries.
  * @description Retrospective chronicle timeline (focus + context): an ordered
  * record of what happened / where things stand — shipment tracking, audit
  * trails, travel logs, billing runs. Exactly one focusable node is in focus and
@@ -118,6 +119,7 @@ export interface JourneyTimelineProps
    * viewports, docked to the viewport bottom on narrow ones. Horizontal
    * orientation always uses the panel and ignores `inline` (DEV warning).
    * @default 'inline' (vertical) / 'panel' (horizontal)
+   * @summary Whether the focused step opens in place or in a side panel.
    */
   detail?: 'inline' | 'panel';
   /**

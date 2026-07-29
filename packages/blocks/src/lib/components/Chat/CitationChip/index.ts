@@ -19,6 +19,7 @@ export interface CitationSource {
 }
 
 /**
+ * @summary The small source marker behind a claim, linking back to where it came from.
  * @description Compact source marker rendered for a `[id]` citation. StreamingMarkdown wires it up automatically from its `sources` prop — each in-text marker becomes a CitationChip whose click opens a Popover with the source title, snippet, and a policy-checked outbound link. Also usable standalone for source footers / reference lists outside a streamed message.
  * @tag ai
  * @related StreamingMarkdown
@@ -36,6 +37,7 @@ export interface CitationChipProps extends Omit<HTMLButtonAttributes, 'class' | 
    * fallback) as a compact numeric pill; `label` renders the (truncated)
    * `source.title`.
    * @default 'numeric'
+   * @summary What the chip shows — a compact number, or the source title.
    */
   citationStyle?: 'numeric' | 'label';
   /**

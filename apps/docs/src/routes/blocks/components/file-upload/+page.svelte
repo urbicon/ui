@@ -4,20 +4,15 @@
     ApiReference,
     CodeExample,
     DocsLayout as DocsPageLayout,
-    extractPlaygroundDocs,
-    PlaygroundConfigurator,
     Section
   } from '@urbicon-ui/docs';
   import { FileUpload, type FileUploadFile } from '@urbicon-ui/blocks';
   import CustomDocs from './Docs.svelte';
+  import Playground from './Playground.svelte';
   import { componentData } from './api';
   import { buildRelatedLinks } from '$lib/component-links';
   import { asset, resolve } from '$app/paths';
-
-  const { propDocs, variantKeys } = extractPlaygroundDocs(componentData?.props ?? []);
   const relatedLinks = buildRelatedLinks(componentData);
-
-  let playgroundFiles = $state<FileUploadFile[]>([]);
 
   const navigation = [
     { id: 'playground', title: 'Playground', order: 1 },
@@ -83,77 +78,7 @@
   related={relatedLinks}
 >
   <Section id="playground" intent="primary">
-    <PlaygroundConfigurator
-      componentName="FileUpload"
-      {propDocs}
-      {variantKeys}
-      {codeGenerator}
-      controls={[
-        {
-          type: 'dropdown',
-          key: 'size',
-          label: 'Size',
-          items: [
-            { label: 'sm', value: 'sm' },
-            { label: 'md', value: 'md' },
-            { label: 'lg', value: 'lg' }
-          ],
-          defaultValue: 'md'
-        },
-        {
-          type: 'dropdown',
-          key: 'intent',
-          label: 'Intent',
-          items: [
-            { label: 'primary', value: 'primary' },
-            { label: 'neutral', value: 'neutral' }
-          ],
-          defaultValue: 'primary'
-        },
-        { type: 'checkbox', key: 'multiple', label: 'Multiple', defaultValue: false },
-        {
-          type: 'number',
-          key: 'maxFiles',
-          label: 'Max Files',
-          min: 0,
-          max: 20,
-          step: 1,
-          defaultValue: undefined,
-          placeholder: 'Unlimited'
-        },
-        { type: 'checkbox', key: 'allowDrop', label: 'Allow Drop', defaultValue: true },
-        { type: 'checkbox', key: 'allowPaste', label: 'Allow Paste', defaultValue: false },
-        { type: 'checkbox', key: 'disabled', label: 'Disabled', defaultValue: false }
-      ]}
-      values={{
-        size: 'md',
-        intent: 'neutral',
-        multiple: false,
-        maxFiles: undefined,
-        allowDrop: true,
-        allowPaste: false,
-        disabled: false
-      }}
-      showHeader={false}
-    >
-      {#snippet children(values)}
-        <div class="mx-auto max-w-md">
-          <FileUpload
-            bind:files={playgroundFiles}
-            size={values.size}
-            intent={values.intent}
-            multiple={values.multiple}
-            maxFiles={values.maxFiles || undefined}
-            allowDrop={values.allowDrop}
-            allowPaste={values.allowPaste}
-            disabled={values.disabled}
-            title="Dateien hier ablegen oder klicken"
-            description="Beliebiger Dateityp, max. 10 MB"
-            maxFileSize={10 * 1024 * 1024}
-          />
-        </div>
-      {/snippet}
-    </PlaygroundConfigurator>
+    <Playground />
   </Section>
 
   <CustomDocs />

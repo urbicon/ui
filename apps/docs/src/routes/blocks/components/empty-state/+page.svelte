@@ -5,16 +5,13 @@
     ApiReference,
     CodeExample,
     DocsLayout as DocsPageLayout,
-    extractPlaygroundDocs,
-    PlaygroundConfigurator,
     Section
   } from '@urbicon-ui/docs';
   import CustomDocs from './Docs.svelte';
+  import Playground from './Playground.svelte';
   import { componentData } from './api';
   import { buildRelatedLinks } from '$lib/component-links';
-  import { EmptyState, Button, InboxIcon, PlusIcon } from '@urbicon-ui/blocks';
-
-  const { propDocs, variantKeys } = extractPlaygroundDocs(componentData?.props ?? []);
+  import { EmptyState } from '@urbicon-ui/blocks';
   const relatedLinks = buildRelatedLinks(componentData);
 
   const navigation = [
@@ -47,52 +44,7 @@
   related={relatedLinks}
 >
   <Section id="playground" title="Playground" intent="primary">
-    <PlaygroundConfigurator
-      showHeader={false}
-      {propDocs}
-      {variantKeys}
-      componentName="EmptyState"
-      controls={[
-        { type: 'text', key: 'title', label: 'Title', defaultValue: 'No items yet' },
-        {
-          type: 'text',
-          key: 'description',
-          label: 'Description',
-          defaultValue: 'Get started by adding the first item.'
-        },
-        {
-          type: 'dropdown',
-          key: 'density',
-          label: 'Density',
-          items: [
-            { label: 'default', value: 'default' },
-            { label: 'compact', value: 'compact' }
-          ],
-          defaultValue: 'default'
-        }
-      ]}
-      values={{
-        title: 'No items yet',
-        description: 'Get started by adding the first item.',
-        density: 'default'
-      }}
-    >
-      {#snippet children(values)}
-        <EmptyState
-          title={String(values.title ?? '')}
-          description={values.description as string | undefined}
-          density={values.density as 'compact' | 'default' | undefined}
-          icon={InboxIcon}
-        >
-          {#snippet cta()}
-            <Button intent="primary">
-              <PlusIcon />
-              Add item
-            </Button>
-          {/snippet}
-        </EmptyState>
-      {/snippet}
-    </PlaygroundConfigurator>
+    <Playground />
   </Section>
 
   <CustomDocs />

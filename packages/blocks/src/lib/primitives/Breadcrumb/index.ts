@@ -21,6 +21,7 @@ export interface BreadcrumbItem {
 /**
  * Props interface for Breadcrumb component
  *
+ * @summary The trail back up: where this page sits in the hierarchy.
  * @description Navigation aid showing the current page's location in a hierarchy.
  * Renders an accessible nav with structured items and customizable separators.
  *
@@ -61,6 +62,7 @@ export interface BreadcrumbProps
    * single line where the current page truncates and the ancestor links hold
    * their width (`false`). Use `false` for tight single-line bars such as a
    * sticky header or toolbar. @default true
+   * @summary Whether a long trail wraps onto several lines, or stays on one and truncates.
    */
   wrap?: boolean;
   /** Custom separator snippet (default: "/") */
@@ -70,13 +72,18 @@ export interface BreadcrumbProps
    * fold into a single "…" button that expands the full trail on click. The
    * first `itemsBeforeCollapse` and last `itemsAfterCollapse` items stay
    * visible (the current page is always kept). Omit to never collapse.
+   * @summary Folds the middle of a long trail into one ellipsis button.
    */
   maxItems?: number;
   /** Leading items kept visible when collapsed. @default 1 */
   itemsBeforeCollapse?: number;
   /** Trailing items kept visible when collapsed; the current page is always included. @default 1 */
   itemsAfterCollapse?: number;
-  /** Accessible label for the "…" button that expands a collapsed trail. Defaults to the localized `accessibility.breadcrumbExpand`. */
+  /**
+   * Accessible label for the "…" button that expands a collapsed trail.
+   * Defaults to the localized `accessibility.breadcrumbExpand`.
+   * @summary Accessible name for the button that expands a collapsed trail.
+   */
   expandLabel?: string;
   /** Accessible label for the nav element. Defaults to the localized `accessibility.breadcrumb`. */
   'aria-label'?: string;

@@ -6,6 +6,7 @@ import type { ButtonSlots, ButtonVariants } from './button.variants';
 /**
  * Props interface for Button component
  *
+ * @summary The control that commits an action, in every weight an interface needs.
  * @description Versatile button component with multiple variants, sizes, intents, and micro-interaction patterns.
  * Built with Svelte 5 and optimized for performance and accessibility.
  *
@@ -71,6 +72,7 @@ export interface ButtonProps extends ButtonVariants, Omit<HTMLButtonAttributes, 
    * - 'start': spinner appears before the content
    * - 'end': spinner appears after the content
    * @default 'overlay'
+   * @summary Where the spinner sits while loading — over the label, before it, or after it.
    */
   loadingPlacement?: 'overlay' | 'start' | 'end';
 

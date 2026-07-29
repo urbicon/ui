@@ -4,20 +4,15 @@
     ApiReference,
     CodeExample,
     DocsLayout as DocsPageLayout,
-    extractPlaygroundDocs,
-    PlaygroundConfigurator,
     Section
   } from '@urbicon-ui/docs';
-  import { Sidebar, Button, CloseIcon } from '@urbicon-ui/blocks';
+  import { Sidebar } from '@urbicon-ui/blocks';
   import CustomDocs from './Docs.svelte';
+  import Playground from './Playground.svelte';
   import { componentData } from './api';
   import { buildRelatedLinks } from '$lib/component-links';
   import { asset, resolve } from '$app/paths';
-
-  const { propDocs, variantKeys } = extractPlaygroundDocs(componentData?.props ?? []);
   const relatedLinks = buildRelatedLinks(componentData);
-
-  let playgroundOpen = $state(false);
 
   const navigation = [
     { id: 'overview', title: 'Overview', order: 1 },
@@ -68,81 +63,7 @@
     </div>
   </Section>
   <Section id="playground" intent="primary">
-    <PlaygroundConfigurator
-      componentName="Sidebar"
-      {propDocs}
-      {variantKeys}
-      controls={[
-        {
-          type: 'dropdown',
-          key: 'side',
-          label: 'Side',
-          items: [
-            { label: 'left', value: 'left' },
-            { label: 'right', value: 'right' }
-          ],
-          defaultValue: 'left'
-        },
-        {
-          type: 'text',
-          key: 'width',
-          label: 'Width',
-          defaultValue: '16rem'
-        },
-        {
-          type: 'checkbox',
-          key: 'closeOnBackdropClick',
-          label: 'Close on Backdrop',
-          defaultValue: true
-        }
-      ]}
-      values={{
-        side: 'left',
-        width: '16rem',
-        closeOnBackdropClick: true
-      }}
-      showHeader={false}
-    >
-      {#snippet children(values)}
-        <Button onclick={() => (playgroundOpen = true)}>Open Sidebar</Button>
-        {#if playgroundOpen}
-          <Sidebar
-            open={true}
-            side={values.side}
-            width={values.width}
-            closeOnBackdropClick={values.closeOnBackdropClick}
-            onOpenChange={(o) => {
-              if (!o) playgroundOpen = false;
-            }}
-          >
-            {#snippet header()}
-              <div class="flex items-center justify-between py-3">
-                <span class="text-text-primary font-semibold">Navigation</span>
-                <Button
-                  variant="ghost"
-                  intent="neutral"
-                  size="xs"
-                  onclick={() => (playgroundOpen = false)}
-                  aria-label="Close sidebar"
-                >
-                  <CloseIcon class="h-4 w-4" />
-                </Button>
-              </div>
-            {/snippet}
-            <nav class="space-y-1 p-4">
-              {#each ['Dashboard', 'Projects', 'Team', 'Settings'] as item (item)}
-                <button
-                  class="text-text-secondary hover:bg-surface-hover hover:text-text-primary w-full rounded-lg px-3 py-2 text-left text-sm transition-colors"
-                  onclick={() => (playgroundOpen = false)}
-                >
-                  {item}
-                </button>
-              {/each}
-            </nav>
-          </Sidebar>
-        {/if}
-      {/snippet}
-    </PlaygroundConfigurator>
+    <Playground />
   </Section>
 
   <CustomDocs />

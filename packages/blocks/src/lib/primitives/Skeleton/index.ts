@@ -2,6 +2,7 @@ import type { HTMLAttributes } from 'svelte/elements';
 import type { SkeletonSlots, SkeletonVariants } from './skeleton.variants';
 
 /**
+ * @summary The shape of what is loading, so nothing jumps when it arrives.
  * @description Placeholder loading animation that mimics content layout.
  * Use to reduce perceived loading time and prevent layout shift.
  *
@@ -29,16 +30,19 @@ import type { SkeletonSlots, SkeletonVariants } from './skeleton.variants';
  */
 export interface SkeletonProps extends SkeletonVariants, HTMLAttributes<HTMLDivElement> {
   /** Shape preset. `text` is a slim bar, `circular` for avatars/icons,
-   *  `rectangular` for images/cards, `rounded` like rectangular with softer corners. */
+   *  `rectangular` for images/cards, `rounded` like rectangular with softer corners.
+   *  @summary Shape of the placeholder: a text bar, a circle, a rectangle or a rounded one. */
   variant?: SkeletonVariants['variant'];
 
   /** Physical dimensions following the Standard size scale (xs–xl).
    *  Dimensions vary per variant — text heights range from h-3 (xs) to h-6 (xl),
-   *  circular from 24 px to 64 px. */
+   *  circular from 24 px to 64 px.
+   *  @summary Size step of the placeholder; what it measures depends on the shape. */
   size?: SkeletonVariants['size'];
 
   /** Animation style. `pulse` fades opacity, `wave` sweeps a shimmer gradient,
-   *  `none` renders a static placeholder. All animations respect `prefers-reduced-motion`. */
+   *  `none` renders a static placeholder. All animations respect `prefers-reduced-motion`.
+   *  @summary How the placeholder animates while waiting — a fade, a shimmer, or not at all. */
   animation?: SkeletonVariants['animation'];
 
   /** Custom width (CSS value, e.g. `"200px"` or `"100%"`). Overrides the size preset width. */

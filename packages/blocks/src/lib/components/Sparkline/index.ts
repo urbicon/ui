@@ -6,6 +6,7 @@ export type SparklineSlotClasses = Partial<
 >;
 
 /**
+ * @summary A trend small enough to sit inside a table cell.
  * @description Tiny inline trend line — no axes, no labels — sized to flow in
  * table cells, cards, or running text. Zero-dependency SVG, optional area fill
  * and end-point dot. Fixed `width`/`height` by default, or set `fluid` to fill
@@ -39,7 +40,7 @@ export interface SparklineProps extends Omit<HTMLAttributes<HTMLElement>, 'child
   area?: boolean;
   /** Mark the last point with a dot. @default false */
   showEndPoint?: boolean;
-  /** Line + fill color. @default var(--color-chart-1) */
+  /** Line + fill color. @default 'var(--color-chart-1)' */
   color?: string;
   /** Stroke width in px. @default 1.5 */
   strokeWidth?: number;

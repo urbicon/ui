@@ -4,17 +4,14 @@
     ApiReference,
     CodeExample,
     DocsLayout as DocsPageLayout,
-    extractPlaygroundDocs,
-    PlaygroundConfigurator,
     Section
   } from '@urbicon-ui/docs';
   import { Button, Separator, Toolbar } from '@urbicon-ui/blocks';
   import CustomDocs from './Docs.svelte';
+  import Playground from './Playground.svelte';
   import { componentData } from './api';
   import { buildRelatedLinks } from '$lib/component-links';
   import { asset, resolve } from '$app/paths';
-
-  const { propDocs, variantKeys } = extractPlaygroundDocs(componentData?.props ?? []);
   const relatedLinks = buildRelatedLinks(componentData);
 
   const navigation = [
@@ -47,118 +44,7 @@
   related={relatedLinks}
 >
   <Section id="playground" intent="primary">
-    <PlaygroundConfigurator
-      componentName="Toolbar"
-      {propDocs}
-      {variantKeys}
-      controls={[
-        {
-          type: 'text',
-          key: 'aria-label',
-          label: 'ARIA Label',
-          defaultValue: 'Formatting toolbar'
-        },
-        {
-          type: 'dropdown',
-          key: 'variant',
-          label: 'Variant',
-          items: [
-            { label: 'quiet', value: 'quiet' },
-            { label: 'elevated', value: 'elevated' },
-            { label: 'outlined', value: 'outlined' },
-            { label: 'ghost', value: 'ghost' }
-          ],
-          defaultValue: 'quiet'
-        },
-        {
-          type: 'dropdown',
-          key: 'orientation',
-          label: 'Orientation',
-          items: [
-            { label: 'horizontal', value: 'horizontal' },
-            { label: 'vertical', value: 'vertical' }
-          ],
-          defaultValue: 'horizontal'
-        },
-        {
-          type: 'dropdown',
-          key: 'gap',
-          label: 'Gap',
-          items: [
-            { label: 'xs', value: 'xs' },
-            { label: 'sm', value: 'sm' },
-            { label: 'md', value: 'md' },
-            { label: 'lg', value: 'lg' },
-            { label: 'xl', value: 'xl' }
-          ],
-          defaultValue: 'sm'
-        },
-        {
-          type: 'dropdown',
-          key: 'padding',
-          label: 'Padding',
-          items: [
-            { label: 'xs', value: 'xs' },
-            { label: 'sm', value: 'sm' },
-            { label: 'md', value: 'md' },
-            { label: 'lg', value: 'lg' },
-            { label: 'xl', value: 'xl' }
-          ],
-          defaultValue: 'sm'
-        },
-        {
-          type: 'dropdown',
-          key: 'tier',
-          label: 'Tier (propagated)',
-          description:
-            'Propagated radius tier for tier-aware descendants (Button, Badge, Input, …). The toolbar surface itself stays contain.',
-          items: [
-            { label: 'modify (default)', value: 'modify' },
-            { label: 'commit (pill)', value: 'commit' }
-          ],
-          defaultValue: 'modify'
-        },
-        {
-          type: 'checkbox',
-          key: 'unstyled',
-          label: 'Unstyled',
-          defaultValue: false
-        }
-      ]}
-      values={{
-        'aria-label': 'Formatting toolbar',
-        variant: 'quiet',
-        orientation: 'horizontal',
-        gap: 'sm',
-        padding: 'sm',
-        tier: 'modify',
-        unstyled: false
-      }}
-      showHeader={false}
-    >
-      {#snippet children(values)}
-        <Toolbar
-          aria-label={values['aria-label']}
-          variant={values.variant}
-          orientation={values.orientation}
-          gap={values.gap}
-          padding={values.padding}
-          tier={values.tier}
-          unstyled={values.unstyled}
-        >
-          <Button variant="ghost" size="sm" class="font-bold">B</Button>
-          <Button variant="ghost" size="sm" class="italic">I</Button>
-          <Button variant="ghost" size="sm" class="underline">U</Button>
-          <Separator orientation="vertical" size="sm" />
-          <Button variant="ghost" size="sm">⇤</Button>
-          <Button variant="ghost" size="sm">≡</Button>
-          <Button variant="ghost" size="sm">⇥</Button>
-          <Separator orientation="vertical" size="sm" />
-          <Button variant="ghost" size="sm">🔗</Button>
-          <Button variant="ghost" size="sm">📷</Button>
-        </Toolbar>
-      {/snippet}
-    </PlaygroundConfigurator>
+    <Playground />
   </Section>
 
   <CustomDocs />

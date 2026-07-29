@@ -29,21 +29,188 @@ function formatValue(key: string, value: unknown): string {
   return `${key}={${JSON.stringify(value, null, 2)}}`;
 }
 
+/** Wrapper marking a `consts` entry as literal source text, not a value. */
+export interface RawCode {
+  raw: string;
+}
+
+function isRaw(value: unknown): value is RawCode {
+  return typeof value === 'object' && value !== null && typeof (value as RawCode).raw === 'string';
+}
+
+const IDENTIFIER = /^[A-Za-z_$][\w$]*$/;
+/** Line budget before a nested array/object breaks onto several lines. */
+const PRINT_WIDTH = 100;
+
+/** True when every entry is a primitive — the value has no inner structure to unfold. */
+function isLeafContainer(value: object): boolean {
+  const entries = Array.isArray(value) ? value : Object.values(value);
+  return entries.every((v) => v === null || (typeof v !== 'object' && typeof v !== 'function'));
+}
+
+/**
+ * Print a value as the JavaScript source that would produce it.
+ *
+ * Deliberately not `JSON.stringify`: a snippet a reader copies has to look
+ * like the repo's own code — single quotes, unquoted identifier keys, and a
+ * line break only where the one-line form would not fit.
+ *
+ * @throws on functions and symbols. They have no faithful source form here (a
+ * printed arrow function usually closes over identifiers the snippet does not
+ * contain), and silently dropping them would hand the reader code that does
+ * not do what the demo above it does. Pass `{ raw: '…' }` instead and decide
+ * consciously what the snippet should say.
+ */
+export function serializeValue(value: unknown, indent = 2): string {
+  if (isRaw(value)) return value.raw;
+  if (value === null) return 'null';
+  if (value === undefined) return 'undefined';
+  if (typeof value === 'string') {
+    const escaped = value.replace(/\\/g, '\\\\');
+    // A quoted literal cannot hold a line break — printing one produced a
+    // snippet that does not parse, which is worse than an ugly one. Multi-line
+    // strings are exactly what a `CodeBlock`'s `code` or a Markdown demo is, so
+    // this is the common case, not the exotic one: template literal, with the
+    // two sequences that would end or interpolate it escaped.
+    if (escaped.includes('\n')) {
+      return `\`${escaped.replace(/`/g, '\\`').replace(/\$\{/g, '\\${')}\``;
+    }
+    return `'${escaped.replace(/'/g, "\\'")}'`;
+  }
+  if (typeof value === 'number' || typeof value === 'boolean') return String(value);
+  if (typeof value === 'function' || typeof value === 'symbol') {
+    throw new Error(
+      `serializeValue: cannot print a ${typeof value}. Wrap it as \`{ raw: '…' }\` and write the ` +
+        `source the snippet should show — including anything it refers to.`
+    );
+  }
+  if (value instanceof Date) return `new Date('${value.toISOString()}')`;
+
+  const pad = ' '.repeat(indent);
+  const inner = ' '.repeat(indent + 2);
+
+  // Ein Container bricht um, wenn er selbst Container enthält — oder wenn seine
+  // einzeilige Form nicht mehr in die Zeile passt. Ein *flacher* Wert bricht
+  // nie: Ein Datensatz wie `{ id: 1, name: 'Emma Wilson', … }` ist eine Einheit;
+  // über sechs Zeilen verteilt liest er sich schlechter als ein paar Zeichen
+  // Überhang. Deshalb eine Regel statt einer auf einen Datensatz getunten Zahl.
+  if (Array.isArray(value)) {
+    if (value.length === 0) return '[]';
+    const parts = value.map((v) => serializeValue(v, indent + 2));
+    const oneLine = `[${parts.join(', ')}]`;
+    const fits = isLeafContainer(value) || indent + oneLine.length <= PRINT_WIDTH;
+    if (fits && !oneLine.includes('\n')) return oneLine;
+    return `[\n${parts.map((p) => inner + p).join(',\n')}\n${pad}]`;
+  }
+
+  const entries = Object.entries(value as Record<string, unknown>).filter(
+    ([, v]) => v !== undefined
+  );
+  if (entries.length === 0) return '{}';
+  const parts = entries.map(
+    ([k, v]) => `${IDENTIFIER.test(k) ? k : `'${k}'`}: ${serializeValue(v, indent + 2)}`
+  );
+  const oneLine = `{ ${parts.join(', ')} }`;
+  const fits = isLeafContainer(value) || indent + oneLine.length <= PRINT_WIDTH;
+  if (fits && !oneLine.includes('\n')) return oneLine;
+  return `{\n${parts.map((p) => inner + p).join(',\n')}\n${pad}}`;
+}
+
+/**
+ * The half of a snippet the controls know nothing about.
+ *
+ * Some components are fully described by their props — `<Button variant="ghost">`
+ * *is* the usage, and the generated tag alone is the right answer. Others need
+ * data before the tag means anything: a `Table` without `columns` and `items`,
+ * an `A2UIView` without a `payload`. For those the snippet has to carry a
+ * `<script>` block, and this is how a playground supplies it.
+ *
+ * `consts` takes the **actual objects the demo renders**, not a copy of them as
+ * text — so the snippet cannot drift from the preview above it. Live control
+ * values still flow into the tag as before.
+ */
+export interface CodeSetup {
+  /** Import lines, in the order they should appear. */
+  imports?: string[];
+  /**
+   * `const <name> = <value>` per entry, printed from the value itself. Use
+   * `{ raw: '…' }` for anything without a faithful printed form (functions,
+   * snippet references).
+   */
+  consts?: Record<string, unknown>;
+  /**
+   * `let <name> = $state(<value>)` per entry — what a `bind:` needs on the
+   * other side. A `<Dialog bind:open />` snippet without the `let` is not code
+   * anyone can run.
+   */
+  state?: Record<string, unknown>;
+  /** Names passed to the component as the `{name}` shorthand, ahead of the control props. */
+  bind?: string[];
+  /**
+   * Names passed as `bind:name`. Only for props the demo really binds two-way —
+   * a `Progress` that reads a `$state` value still passes it one way, and
+   * printing `bind:value` would document an API it does not have.
+   */
+  twoWay?: string[];
+  /**
+   * Controls that steer the demo but are not props of the component (a
+   * scenario switch, a "show marks" toggle). They drive the preview and must
+   * not show up in the snippet as an attribute that does not exist.
+   */
+  demoOnly?: string[];
+}
+
+/** Renders the `<script>` block of a snippet, or `''` when there is nothing to declare. */
+function generateSetupBlock({ imports = [], consts = {}, state = {} }: CodeSetup): string {
+  const lines: string[] = [];
+  if (imports.length) lines.push(...imports.map((i) => `  ${i}`));
+
+  // Bindable state first: it is what the tag below binds to, and a reader
+  // scanning the script wants the mutable pieces before the fixed data.
+  const stateLines = Object.entries(state).map(
+    ([name, value]) => `  let ${name} = $state(${serializeValue(value, 2)});`
+  );
+  const constLines = Object.entries(consts).map(
+    ([name, value]) => `  const ${name} = ${serializeValue(value, 2)};`
+  );
+  const declarations = [...stateLines, ...constLines];
+  if (declarations.length) {
+    if (lines.length) lines.push('');
+    lines.push(...declarations);
+  }
+  if (!lines.length) return '';
+  return `<script lang="ts">\n${lines.join('\n')}\n</script>\n\n`;
+}
+
 /**
  * Build a Svelte-style JSX snippet from the current playground values.
  * Props are sorted alphabetically; values matching a documented default
  * are dropped so the output mirrors what a consumer would actually type.
+ *
+ * With a `setup`, the result is a complete, copyable file: imports and data
+ * declarations above, the tag below, with the bound names as `{shorthand}`
+ * props ahead of the live control values.
  */
 export function generateDefaultCode(
   name: string,
   vals: Record<string, unknown>,
-  defaults: Record<string, unknown> = {}
+  defaults: Record<string, unknown> = {},
+  setup?: CodeSetup,
+  /**
+   * The demo's own children, lifted from the playground source by
+   * `extractChildMarkup`. Printed verbatim between the tags — it is markup, so
+   * there is no data form it could take, and re-typing it here by hand would be
+   * the drifting second copy `codeSetup` exists to avoid.
+   */
+  childMarkup?: string | null
 ): string {
+  const demoOnly = new Set(setup?.demoOnly ?? []);
   const props = Object.entries(vals)
     .sort(([a], [b]) => a.localeCompare(b))
     .filter(([key, value]) => {
       if (value === null || value === undefined) return false;
       if (key === 'children') return false;
+      if (demoOnly.has(key)) return false;
       if (key in defaults && valuesMatch(value, defaults[key])) return false;
       if (!(key in defaults)) {
         if (value === false) return false;
@@ -54,14 +221,42 @@ export function generateDefaultCode(
     .map(([key, value]) => formatValue(key, value))
     .filter(Boolean);
 
+  // Bound data first: `{columns}` and `{items}` are what makes the tag
+  // meaningful, the control values are the adjustments on top.
+  const twoWay = setup?.twoWay ?? [];
+  const shorthand = (setup?.bind ?? []).filter((n) => !twoWay.includes(n));
+  const allProps = [...twoWay.map((n) => `bind:${n}`), ...shorthand.map((n) => `{${n}}`), ...props];
+  const script = setup ? generateSetupBlock(setup) : '';
+
+  // A `children` control (plain text) and extracted markup are the same slot;
+  // the control wins, because a playground that offers one puts the reader's
+  // own text there and the snippet must show what they typed.
   const childText = vals.children;
-  if (childText && typeof childText === 'string') {
-    if (props.length === 0) return `<${name}>${childText}</${name}>`;
-    return `<${name}\n  ${props.join('\n  ')}\n>\n  ${childText}\n</${name}>`;
+  const children =
+    childText && typeof childText === 'string'
+      ? childText
+      : (childMarkup?.trim() ?? '') !== ''
+        ? (childMarkup as string)
+        : '';
+
+  if (children) {
+    const indented = children
+      .split('\n')
+      .map((line) => (line === '' ? line : `  ${line}`))
+      .join('\n');
+    if (allProps.length === 0) {
+      // One short line stays one line — `<Badge>New</Badge>` reads worse broken
+      // up. Same width rule as `serializeValue`, so both halves of a snippet
+      // wrap at the same place.
+      const oneLine = `<${name}>${children}</${name}>`;
+      if (!children.includes('\n') && oneLine.length <= PRINT_WIDTH) return `${script}${oneLine}`;
+      return `${script}<${name}>\n${indented}\n</${name}>`;
+    }
+    return `${script}<${name}\n  ${allProps.join('\n  ')}\n>\n${indented}\n</${name}>`;
   }
 
-  if (props.length === 0) return `<${name} />`;
-  return `<${name}\n  ${props.join('\n  ')}\n/>`;
+  if (allProps.length === 0) return `${script}<${name} />`;
+  return `${script}<${name}\n  ${allProps.join('\n  ')}\n/>`;
 }
 
 /**
@@ -81,6 +276,17 @@ export function isConditionMet(
     return control.condition.in.includes(values[dependsOn] as string);
   }
   return true;
+}
+
+/**
+ * `'true'`/`'false'` → the actual boolean; anything else passes through.
+ * Only used where a control has just been declared boolean, so a stray
+ * non-booleanish value would be a bug elsewhere, not something to coerce.
+ */
+function booleanish(value: unknown): unknown {
+  if (value === 'true') return true;
+  if (value === 'false') return false;
+  return value;
 }
 
 /**
@@ -107,7 +313,18 @@ export function normalizeControls(
       });
 
     if (allBooleanish) {
-      return { ...control, type: 'boolean', items: undefined } as ControlDefinition;
+      // Changing the control's *type* without changing its *values* is what let
+      // a string `'false'` reach a switch: the Toggle renders
+      // `Boolean(values[key])`, and `Boolean('false')` is `true`. The control
+      // read "on" while the component, handed the same `'false'`, stayed off.
+      // A boolean control must carry booleans, so the defaults come along.
+      return {
+        ...control,
+        type: 'boolean',
+        items: undefined,
+        defaultValue: booleanish(control.defaultValue),
+        componentDefault: booleanish(control.componentDefault)
+      } as ControlDefinition;
     }
     return control;
   });
@@ -262,6 +479,40 @@ export function computeComponentDefaults(
     if (control.defaultValue !== undefined) {
       map[control.key] = control.defaultValue;
     }
+  }
+  return map;
+}
+
+/** Keys of controls that steer the demo and must stay out of the snippet. */
+export function computeDemoOnlyKeys(controls: readonly ControlDefinition[]): string[] {
+  return controls.filter((c) => c.demoOnly).map((c) => c.key);
+}
+
+/**
+ * The values the *component* falls back to when a prop is omitted — the basis
+ * for deciding what the code snippet may leave out.
+ *
+ * Distinct from {@link computeComponentDefaults}, which answers "where does
+ * this playground start" and drives the reset affordance. The two differ
+ * wherever a playground opens on something other than the component default,
+ * and using the wrong one prints a snippet that renders differently from the
+ * preview it sits under.
+ */
+export function computeOmittableDefaults(
+  controls: readonly ControlDefinition[]
+): Record<string, unknown> {
+  const map: Record<string, unknown> = {};
+  for (const control of controls) {
+    // `deriveControls` records what the component does without the prop. When
+    // it recorded *nothing*, the component has no default — omitting the prop
+    // would render something else than the preview does (an Alert without its
+    // `title` has no heading), so such a value is never omittable.
+    if ('componentDefault' in control) {
+      if (control.componentDefault !== undefined) map[control.key] = control.componentDefault;
+      continue;
+    }
+    // Hand-written control lists carry only one notion of "default".
+    if (control.defaultValue !== undefined) map[control.key] = control.defaultValue;
   }
   return map;
 }

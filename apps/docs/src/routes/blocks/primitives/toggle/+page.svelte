@@ -4,17 +4,14 @@
     ApiReference,
     CodeExample,
     DocsLayout as DocsPageLayout,
-    extractPlaygroundDocs,
-    PlaygroundConfigurator,
     Section
   } from '@urbicon-ui/docs';
   import { Toggle } from '@urbicon-ui/blocks';
   import CustomDocs from './Docs.svelte';
+  import Playground from './Playground.svelte';
   import { componentData } from './api';
   import { buildRelatedLinks } from '$lib/component-links';
   import { asset, resolve } from '$app/paths';
-
-  const { propDocs, variantKeys } = extractPlaygroundDocs(componentData?.props ?? []);
   const relatedLinks = buildRelatedLinks(componentData);
 
   const navigation = [
@@ -48,87 +45,7 @@
   related={relatedLinks}
 >
   <Section id="playground" intent="primary">
-    <PlaygroundConfigurator
-      componentName="Toggle"
-      {propDocs}
-      {variantKeys}
-      controls={[
-        { type: 'text', key: 'label', label: 'Label', defaultValue: 'Enable notifications' },
-        {
-          type: 'dropdown',
-          key: 'variant',
-          label: 'Variant',
-          items: [
-            { label: 'default', value: 'default' },
-            { label: 'dot', value: 'dot' }
-          ],
-          defaultValue: 'default'
-        },
-        {
-          type: 'dropdown',
-          key: 'intent',
-          label: 'Intent',
-          items: [
-            { label: 'primary', value: 'primary' },
-            { label: 'secondary', value: 'secondary' },
-            { label: 'success', value: 'success' },
-            { label: 'warning', value: 'warning' },
-            { label: 'danger', value: 'danger' },
-            { label: 'neutral', value: 'neutral' }
-          ],
-          defaultValue: 'primary'
-        },
-        {
-          type: 'dropdown',
-          key: 'size',
-          label: 'Size',
-          items: [
-            { label: 'xs', value: 'xs' },
-            { label: 'sm', value: 'sm' },
-            { label: 'md', value: 'md' },
-            { label: 'lg', value: 'lg' }
-          ],
-          defaultValue: 'md'
-        },
-        {
-          type: 'dropdown',
-          key: 'mint',
-          label: 'Mint',
-          items: [
-            { label: '(none)', value: 'none' },
-            { label: 'scale', value: 'scale' },
-            { label: 'glow', value: 'glow' },
-            { label: 'bounce', value: 'bounce' }
-          ],
-          defaultValue: 'none'
-        },
-        { type: 'checkbox', key: 'checked', label: 'Checked', defaultValue: true },
-        { type: 'checkbox', key: 'withBorder', label: 'With Border', defaultValue: false },
-        { type: 'checkbox', key: 'disabled', label: 'Disabled', defaultValue: false },
-        {
-          type: 'text',
-          key: 'helper',
-          label: 'Helper Text',
-          defaultValue: 'Push updates instantly'
-        }
-      ]}
-      values={{
-        label: 'Enable notifications',
-        variant: 'default',
-        intent: 'primary',
-        size: 'md',
-        mint: 'none',
-        checked: true,
-        withBorder: false,
-        disabled: false,
-        helper: 'Push updates instantly'
-      }}
-      showHeader={false}
-    >
-      {#snippet children(values)}
-        <Toggle {...values} />
-      {/snippet}
-    </PlaygroundConfigurator>
+    <Playground />
   </Section>
 
   <CustomDocs />

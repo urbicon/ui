@@ -4,6 +4,7 @@ import type { Placement } from '$lib/utils/floating';
 import type { TooltipSlots, TooltipVariants } from './tooltip.variants';
 
 /**
+ * @summary A short explanation on hover or focus.
  * @description Contextual overlay that displays brief, supplementary text on hover or focus.
  * Built on the library's own positioning engine for precise placement and accessibility support.
  *

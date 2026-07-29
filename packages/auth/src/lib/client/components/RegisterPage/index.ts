@@ -4,6 +4,7 @@ import type { CsrfClientOptions } from '../../csrf.js';
 import type { AuthPageSlotClasses } from '../types.js';
 
 /**
+ * @summary The ready-made sign-up page, with the password rules shown as you type.
  * @description Pre-built registration page with invitation-gated signup, password requirements checklist, and confirm field.
  * Sends POST to `apiPath` (default `/api/auth/register`). Pair with `createRegisterHandler(authDeps)` on the server.
  *

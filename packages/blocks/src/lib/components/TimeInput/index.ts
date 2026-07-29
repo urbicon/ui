@@ -2,6 +2,7 @@ import type { Snippet } from 'svelte';
 import type { TimeInputSlots, TimeInputVariants } from './time-input.variants';
 
 /**
+ * @summary A time of day, one segment per field.
  * @description Segmented time-of-day field — hour / minute (/ second) cells in a
  * single unified control, with per-segment Arrow-key stepping, digit auto-advance,
  * and 12- or 24-hour display. Fills the last form-family gap (Calendar, DatePicker

@@ -4,17 +4,14 @@
     ApiReference,
     CodeExample,
     DocsLayout as DocsPageLayout,
-    extractPlaygroundDocs,
-    PlaygroundConfigurator,
     Section
   } from '@urbicon-ui/docs';
   import { ToolCallCard, type ChatToolCallPart } from '@urbicon-ui/blocks';
   import CustomDocs from './Docs.svelte';
+  import Playground from './Playground.svelte';
   import { componentData } from './api';
   import { buildRelatedLinks } from '$lib/component-links';
   import { asset, resolve } from '$app/paths';
-
-  const { propDocs, variantKeys } = extractPlaygroundDocs(componentData?.props ?? []);
   const relatedLinks = buildRelatedLinks(componentData);
 
   const navigation = [
@@ -30,21 +27,6 @@
   // Build a representative tool-call part for the chosen lifecycle state — a
   // pending/running call has input only, complete adds output, error adds a
   // message.
-  function partFor(state: ToolState): ChatToolCallPart {
-    const base = {
-      type: 'tool-call' as const,
-      id: 'get_weather-1',
-      name: 'get_weather',
-      input: { city: 'Berlin', unit: 'celsius' }
-    };
-    if (state === 'complete') {
-      return { ...base, state, output: { temperature: 21, condition: 'Partly cloudy' } };
-    }
-    if (state === 'error') {
-      return { ...base, state, errorMessage: 'Upstream timed out after 30s (ETIMEDOUT)' };
-    }
-    return { ...base, state };
-  }
 
   function codeGenerator(vals: Record<string, unknown>): string {
     const state = (vals.state as ToolState) ?? 'running';
@@ -75,36 +57,7 @@
   related={relatedLinks}
 >
   <Section id="playground" intent="primary">
-    <PlaygroundConfigurator
-      componentName="ToolCallCard"
-      {propDocs}
-      {variantKeys}
-      {codeGenerator}
-      controls={[
-        {
-          type: 'dropdown',
-          key: 'state',
-          label: 'State',
-          items: [
-            { label: 'pending', value: 'pending' },
-            { label: 'running', value: 'running' },
-            { label: 'complete', value: 'complete' },
-            { label: 'error', value: 'error' }
-          ],
-          defaultValue: 'running'
-        }
-      ]}
-      values={{ state: 'running' }}
-      showHeader={false}
-    >
-      {#snippet children(values)}
-        <div class="mx-auto max-w-lg">
-          {#key values.state}
-            <ToolCallCard toolCall={partFor(values.state as ToolState)} />
-          {/key}
-        </div>
-      {/snippet}
-    </PlaygroundConfigurator>
+    <Playground />
   </Section>
 
   <CustomDocs />

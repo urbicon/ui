@@ -24,6 +24,7 @@ export type TableContext = ReturnType<typeof createTableState>;
 /**
  * Props interface for Table component
  *
+ * @summary Data in rows: sort, filter, group, select and page through it.
  * @description Advanced data table component with smart filtering, column factories, responsive design,
  * and extensible features for complex data visualization. Supports row selection, keyboard navigation,
  * virtual scrolling, column reorder, server-side data, live updates, and custom cell components.
@@ -126,6 +127,7 @@ export interface TableProps<T = TableItem> {
    * - `surface`: gentle `surface-quiet` tinted zone, no border
    * - `framed`: bordered + rounded + shadowed standalone block
    * @default "flush"
+   * @summary How much chrome the table carries: none, a tinted zone, or a framed block.
    */
   variant?: 'flush' | 'surface' | 'framed';
 
@@ -264,7 +266,7 @@ export interface TableProps<T = TableItem> {
 
   /**
    * Placeholder text for search input
-   * @default "Search..."
+   * @default i18n `search.placeholder`
    */
   searchPlaceholder?: string;
 
@@ -305,7 +307,7 @@ export interface TableProps<T = TableItem> {
 
   /**
    * Text displayed during loading state
-   * @default "Loading data..."
+   * @default i18n `data.loading`
    */
   loadingText?: string;
 
@@ -323,13 +325,13 @@ export interface TableProps<T = TableItem> {
 
   /**
    * Text displayed on error
-   * @default "Error loading data"
+   * @default i18n `error.loadingError`
    */
   errorText?: string;
 
   /**
    * Text displayed when no data is available
-   * @default "No data found."
+   * @default i18n `data.empty`
    */
   noDataText?: string;
 
@@ -649,6 +651,7 @@ export interface TableProps<T = TableItem> {
    * - `'single'`: Only one row can be selected at a time
    * - `'multi'`: Multiple rows can be selected with checkboxes
    * @default "none"
+   * @summary Whether rows can be selected, and one at a time or many.
    */
   selectionMode?: 'none' | 'single' | 'multi';
 
@@ -674,6 +677,31 @@ export interface TableProps<T = TableItem> {
    * @default false
    */
   rowClickSelects?: boolean;
+
+  /**
+   * The row that is currently being shown elsewhere — the master/detail
+   * pattern, where clicking a row renders that record beside or below the
+   * table.
+   *
+   * Deliberately separate from selection: a selection is a set the user has
+   * marked for an action and brings a checkbox column with it, whereas a
+   * current row is a *view* state with no consequence beyond what is on screen.
+   * Marking one used to require `selectionMode`, which switched on that column
+   * as a side effect.
+   *
+   * The matching row gets `aria-current="true"` and a `data-active` attribute
+   * (a hook for consumer CSS, e.g. emphasising a cell in that row), plus a
+   * quiet ground of its own. Ids are matched against `item.id`, with the row
+   * index as the same fallback the rest of the table uses. Pair it with
+   * {@link onRowClick} — this prop only reflects state, it never sets it.
+   *
+   * @default null
+   * @example
+   * ```svelte
+   * <Table {items} {columns} activeRowId={shown?.id ?? null} onRowClick={(row) => (shown = row)} />
+   * ```
+   */
+  activeRowId?: string | number | null;
 
   /**
    * Initial selected row ids (if no persisted value exists). Seeds the

@@ -31,8 +31,7 @@
     "format": "biome format --write . && prettier --write \"**/*.svelte\"",
     "lint": "biome check . && svelte-check --tsconfig ./tsconfig.json",
     "test": "vitest",
-    "test:run": "vitest run",
-    "size": "bun scripts/bundle-size.ts"
+    "test:run": "vitest run"
   },
   "files": [
     "LICENSE",

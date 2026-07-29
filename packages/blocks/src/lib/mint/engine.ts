@@ -1,4 +1,4 @@
-import type { MicroInteractionConfig, Mint, MintFactory } from './types';
+import type { MicroInteractionConfig, Mint, MintFactory, MintSettleSignal } from './types';
 
 /**
  * Micro-interaction engine + the statically-shipped default effect (scale).
@@ -24,11 +24,16 @@ export function prefersReducedMotion(): boolean {
 }
 
 /**
- * Generic micro-interaction factory
+ * Generic micro-interaction factory.
+ *
+ * `settles` names the CSS mechanism the class drives (see MintSettleSignal).
+ * Omitting it leaves the fallback timeout as the only cleanup — always safe,
+ * just less precise than the effect's own end event.
  */
 export function createMicroInteraction(
   className: string,
-  defaultConfig: MicroInteractionConfig = {}
+  defaultConfig: MicroInteractionConfig = {},
+  settles?: MintSettleSignal
 ): Mint<MicroInteractionConfig> {
   return {
     init(el, config = {}) {
@@ -50,6 +55,21 @@ export function createMicroInteraction(
         load: 'load'
       };
       const event = eventMap[trigger] || 'mouseenter';
+      const settleEvent =
+        settles && (settles.via === 'animation' ? 'animationend' : 'transitionend');
+
+      // A click on a <label>'s text toggles the control that label owns, so a
+      // click-triggered mint has to hear it there — the box is what animates,
+      // but it was never the whole click surface (Checkbox/RadioGroup/Toggle
+      // put the mint on the box, the click target is the enclosing label).
+      // Hover and focus deliberately stay on the element itself: `glow` on a
+      // checkbox box must not light up because the pointer is 80 px away on
+      // the label text. No-op for elements without a label ancestor.
+      const listenOn = trigger === 'click' ? (el.closest('label') ?? el) : el;
+
+      // Tracks the in-flight run so destroy() can end it — an element
+      // unmounting mid-animation must not leave its class behind.
+      let endCurrentRun: (() => void) | undefined;
 
       const handler = () => {
         // Skip if this specific animation is already running
@@ -67,19 +87,60 @@ export function createMicroInteraction(
 
           el.classList.add(className);
 
+          let fallbackTimer: ReturnType<typeof setTimeout>;
+
+          // Svelte owns the `class` attribute and rewrites it WHOLE on every
+          // re-render — an imperatively added class does not survive that. The
+          // effect is invisible in the common case and total in the one that
+          // matters: a click-mint on a control whose click changes its own
+          // state (Checkbox, Toggle, RadioGroup) was stripped 0.7 ms in, by the
+          // very render its own click caused. Measured: the class attribute
+          // grew 446 → 461 chars (the checked variant's classes) while the mint
+          // class vanished; the cleanup had not run (`data-animating` was still
+          // set). So for the length of a run the engine puts its class back.
+          // Guarded on absence, so our own re-add can't loop.
+          const classGuard = new MutationObserver(() => {
+            if (!el.classList.contains(className)) el.classList.add(className);
+          });
+          classGuard.observe(el, { attributeFilter: ['class'] });
+
           const cleanup = () => {
+            classGuard.disconnect();
             el.classList.remove(className);
             el.removeAttribute(animatingAttr);
             el.style.removeProperty('--scale-intensity');
-            el.removeEventListener('animationend', cleanup);
-            el.removeEventListener('transitionend', cleanup);
+            clearTimeout(fallbackTimer);
+            if (settleEvent) el.removeEventListener(settleEvent, onSettle);
+            endCurrentRun = undefined;
           };
 
-          el.addEventListener('animationend', cleanup, { once: true });
-          el.addEventListener('transitionend', cleanup, { once: true });
+          // Only OUR class's own end event counts. Both event types bubble, so
+          // without the target guard a child's transition (an icon, a spinner)
+          // ends the parent's mint; without the name/property guard the host's
+          // own transitions do (the ~20 ms kill described on MintSettleSignal).
+          const onSettle = (settleEventObject: Event) => {
+            if (settleEventObject.target !== el) return;
+            if (
+              settles?.via === 'animation' &&
+              (settleEventObject as AnimationEvent).animationName !== className
+            ) {
+              return;
+            }
+            if (
+              settles?.via === 'transition' &&
+              !settles.properties.includes((settleEventObject as TransitionEvent).propertyName)
+            ) {
+              return;
+            }
+            cleanup();
+          };
 
-          // Fallback timeout
-          setTimeout(cleanup, duration + 50);
+          if (settleEvent) el.addEventListener(settleEvent, onSettle);
+
+          // Fallback timeout. Cleared by cleanup() — a stale timer that
+          // outlives its own run would strip the NEXT run's class.
+          fallbackTimer = setTimeout(cleanup, duration + 50);
+          endCurrentRun = cleanup;
         };
 
         if (delay > 0) {
@@ -94,14 +155,15 @@ export function createMicroInteraction(
         // Execute immediately if element is already loaded
         requestAnimationFrame(() => handler());
       } else {
-        el.addEventListener(event, handler, { passive: true });
+        listenOn.addEventListener(event, handler, { passive: true });
       }
 
       // Store cleanup function
       this.destroy = () => {
         if (event !== 'load') {
-          el.removeEventListener(event, handler);
+          listenOn.removeEventListener(event, handler);
         }
+        endCurrentRun?.();
       };
     }
   };
@@ -117,8 +179,12 @@ export function createMicroInteraction(
  * and the fallback path are behaviour-identical.
  */
 export const scaleMint: MintFactory<MicroInteractionConfig> = (config) =>
-  createMicroInteraction('blocks-mint-scale', {
-    trigger: 'hover',
-    duration: 200,
-    ...config
-  });
+  createMicroInteraction(
+    'blocks-mint-scale',
+    {
+      trigger: 'hover',
+      duration: 200,
+      ...config
+    },
+    { via: 'transition', properties: ['transform'] }
+  );

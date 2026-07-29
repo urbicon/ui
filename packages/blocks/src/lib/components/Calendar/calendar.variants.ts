@@ -7,7 +7,11 @@ export const calendarVariants = tv({
 
     // Header
     header: ['flex items-center justify-between', 'border-b border-border-hairline'],
-    title: 'font-semibold text-text-primary select-none',
+    // `tabular-nums` so the year does not re-measure the header on every step:
+    // proportional digits give `2026` and `2031` different widths, and the
+    // header drives the grid width, so the whole calendar twitched sideways
+    // when paging across a year boundary.
+    title: 'font-semibold text-text-primary select-none tabular-nums',
     nav: 'flex items-center gap-1',
     // Rendered on the internal CoreIconButton (behaviour-only base: inline-flex
     // centring, cursor/select affordance, focus-visible reset, disabled

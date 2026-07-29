@@ -5,16 +5,13 @@
     ApiReference,
     CodeExample,
     DocsLayout as DocsPageLayout,
-    extractPlaygroundDocs,
-    PlaygroundConfigurator,
     Section
   } from '@urbicon-ui/docs';
   import CustomDocs from './Docs.svelte';
+  import Playground from './Playground.svelte';
   import { componentData } from './api';
   import { buildRelatedLinks } from '$lib/component-links';
-  import { DonutChart, type DonutDatum } from '@urbicon-ui/blocks';
-
-  const { propDocs, variantKeys } = extractPlaygroundDocs(componentData?.props ?? []);
+  import { DonutChart } from '@urbicon-ui/blocks';
   const relatedLinks = buildRelatedLinks(componentData);
 
   const navigation = [
@@ -24,13 +21,6 @@
     { id: 'accessibility', title: 'Accessibility', order: 4 },
     { id: 'api', title: 'API Reference', order: 10 },
     { id: 'installation', title: 'Installation', order: 11 }
-  ];
-
-  const playgroundData: DonutDatum[] = [
-    { label: 'Direct', value: 45 },
-    { label: 'Referral', value: 30 },
-    { label: 'Organic', value: 18 },
-    { label: 'Social', value: 7 }
   ];
 </script>
 
@@ -51,50 +41,7 @@
   related={relatedLinks}
 >
   <Section id="playground" title="Playground" intent="primary">
-    <PlaygroundConfigurator
-      showHeader={false}
-      {propDocs}
-      {variantKeys}
-      componentName="DonutChart"
-      controls={[
-        { type: 'boolean', key: 'showTotal', label: 'Show total', defaultValue: true },
-        { type: 'boolean', key: 'showLegend', label: 'Show legend', defaultValue: true },
-        {
-          type: 'number',
-          key: 'innerRadiusRatio',
-          label: 'Inner radius',
-          defaultValue: 0.6,
-          min: 0,
-          max: 0.9,
-          step: 0.05
-        },
-        {
-          type: 'number',
-          key: 'padAngle',
-          label: 'Pad angle (°)',
-          defaultValue: 1,
-          min: 0,
-          max: 8,
-          step: 0.5
-        },
-        {
-          type: 'number',
-          key: 'size',
-          label: 'Size (px)',
-          defaultValue: 220,
-          min: 120,
-          max: 320,
-          step: 10
-        }
-      ]}
-      values={{ showTotal: true, showLegend: true, innerRadiusRatio: 0.6, padAngle: 1, size: 220 }}
-    >
-      {#snippet children(values)}
-        <div class="flex w-full justify-center">
-          <DonutChart {...values} data={playgroundData} totalLabel="Visits" />
-        </div>
-      {/snippet}
-    </PlaygroundConfigurator>
+    <Playground />
   </Section>
 
   <CustomDocs />

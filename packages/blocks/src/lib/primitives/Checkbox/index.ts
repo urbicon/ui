@@ -4,6 +4,7 @@ import type { InteractiveTier } from '$lib/utils';
 import type { CheckboxSlots, CheckboxVariants } from './checkbox.variants';
 
 /**
+ * @summary A box you tick, including the half-ticked state for partial selections.
  * @description Accessible checkbox with indeterminate support, semantic intents, and form integration.
  * Uses a hidden native input for correct form behavior and ARIA semantics.
  *
@@ -31,7 +32,12 @@ export interface CheckboxProps
   /** Current checked state. Supports two-way binding via `bind:checked`. */
   checked?: boolean;
 
-  /** Visual-only third state showing a dash icon. Resets to unchecked on next user toggle. Does not affect the submitted form value. Supports `bind:indeterminate`. */
+  /**
+   * Visual-only third state showing a dash icon. Resets to unchecked on next
+   * user toggle. Does not affect the submitted form value. Supports
+   * `bind:indeterminate`.
+   * @summary Visual-only third state showing a dash; the submitted value stays unchecked.
+   */
   indeterminate?: boolean;
 
   /** Text label displayed to the right of the checkbox box. */
@@ -89,6 +95,7 @@ export interface CheckboxProps
    * Semantic radius tier. Default `modify` — checkbox is an input-tap
    * surface. Inherited from TierContext when omitted; falls back to
    * `modify` outside of any tier-aware container.
+   * @summary Corner rounding, inherited from a surrounding container when unset.
    */
   tier?: InteractiveTier;
 }

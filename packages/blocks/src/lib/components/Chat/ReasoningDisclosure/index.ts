@@ -4,6 +4,7 @@ import type { MarkdownUrlPolicy } from '../markdown/types';
 import type { ReasoningDisclosureSlots } from './reasoning-disclosure.variants';
 
 /**
+ * @summary The model's thinking, folded away until someone wants to look.
  * @description Default renderer for `reasoning` parts in ChatMessage. Wraps a
  * model's thinking trace in a collapsed, muted disclosure: the header shows a
  * state label ("Thinking" while streaming, "Thought for Xs" once settled with a
@@ -34,6 +35,7 @@ export interface ReasoningDisclosureProps
    * The reasoning trace is currently growing. Drives the "Thinking" label and
    * its pulse; supplied by the caller (the part itself carries no status).
    * @default false
+   * @summary Whether the trace is still growing, which drives the Thinking label and its pulse.
    */
   streaming?: boolean;
   /**

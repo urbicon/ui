@@ -26,6 +26,15 @@ export const dialogVariants = tv({
       'flex items-center justify-between px-5 py-4',
       'border-b border-border-hairline flex-shrink-0'
     ],
+    // Wraps icon + title so the close button keeps its `justify-between` edge.
+    // `min-w-0` is what lets the title's `truncate` actually shrink inside a
+    // flex row — without it the group's automatic min-width pushes the close
+    // button off the panel on a long title.
+    titleGroup: ['flex items-center gap-2.5 min-w-0'],
+    // Optional header icon. Sized like the Toast's (w-5 h-5, shrink-0); the
+    // colour comes from the `intent` axis below, so a consumer passes a bare
+    // icon component and gets the semantic tint for free.
+    icon: ['shrink-0 w-5 h-5'],
     title: ['text-base font-semibold text-text-primary truncate'],
     // Icon-only header close control (× dismiss). Rendered on the internal
     // CoreIconButton (behaviour-only base: inline-flex centring, cursor/select,
@@ -80,16 +89,23 @@ export const dialogVariants = tv({
       // pt-12 keeps a comfortable top breathing room on mobile; sm:pt-16 covered desktop.
       top: { dialog: 'items-start justify-center pt-12 sm:pt-16 px-4 sm:px-6 lg:px-8' }
     },
-    // Intent is conveyed via icon + title color at the call site, NOT via a
-    // 3px colored top border. The intent variant remains as a type marker but
-    // acts purely semantically (e.g. for aria-tagging by consumers).
+    // Intent colours the MARKERS (header title + optional header icon), never
+    // the panel surface — the same split the Toast makes (toast.variants.ts:7:
+    // "the intent signal comes through the icon color and the progress bar").
+    // The rule across the library: whoever IS the message tints its own surface
+    // (Alert, Badge); whoever is a CONTAINER for arbitrary content only tints
+    // its markers (Toast, Dialog), because a tinted surface under a consumer's
+    // form, table or code block hijacks that content's contrast ratios.
+    // The value is additionally exposed as `data-intent` on the panel.
     intent: {
       neutral: {},
-      primary: {},
-      secondary: {},
-      success: {},
-      warning: {},
-      danger: {}
+      primary: { title: 'text-primary-emphasis', icon: 'text-primary' },
+      secondary: { title: 'text-secondary-emphasis', icon: 'text-secondary' },
+      success: { title: 'text-success-emphasis', icon: 'text-success' },
+      // warning rides -emphasis on both: plain `text-warning` is the fill tone
+      // and drops below contrast on the overlay surface (mirrors the Toast).
+      warning: { title: 'text-warning-emphasis', icon: 'text-warning-emphasis' },
+      danger: { title: 'text-danger-emphasis', icon: 'text-danger' }
     }
   },
   compoundVariants: [

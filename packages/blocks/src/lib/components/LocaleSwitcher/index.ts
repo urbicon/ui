@@ -4,6 +4,7 @@ import type { SelectSingleProps } from '$lib';
 /**
  * Props interface for LocaleSwitcher component
  *
+ * @summary Lets the user pick the interface language.
  * @description Convenience wrapper around Select to switch UI locales.
  * Single-select only — locale is always exactly one value. Options, value,
  * form integration, multi-select, and null-option are all owned internally
@@ -39,7 +40,7 @@ export interface LocaleSwitcherProps
     | 'helper'
     | 'error'
   > {
-  /** Show flag emoji alongside locale name. @default true */
+  /** Show flag emoji alongside locale name. @default false */
   showFlag?: boolean;
 
   /** Restrict the displayed locales. Defaults to all locales registered in i18n. */

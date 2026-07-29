@@ -4,7 +4,6 @@
     ApiReference,
     CodeExample,
     DocsLayout as DocsPageLayout,
-    PlaygroundConfigurator,
     Section
   } from '@urbicon-ui/docs';
   import {
@@ -15,6 +14,7 @@
     type ChatMessageData
   } from '@urbicon-ui/blocks';
   import CustomDocs from './Docs.svelte';
+  import Playground from './Playground.svelte';
   import { componentData } from './api';
   import { buildRelatedLinks } from '$lib/component-links';
   import { asset, resolve } from '$app/paths';
@@ -114,28 +114,7 @@
       streaming stack, open the
       <a class="text-primary hover:underline" href={resolve('/ai/chat')}>live playground</a>.
     </p>
-    <PlaygroundConfigurator
-      showHeader={false}
-      componentName="Chat"
-      controls={[
-        { type: 'checkbox', key: 'showHeader', label: 'Header', defaultValue: true },
-        { type: 'checkbox', key: 'showComposer', label: 'Composer', defaultValue: true }
-      ]}
-      values={{ showHeader: true, showComposer: true }}
-    >
-      {#snippet children(values)}
-        <div
-          class="border-border-default rounded-contain mx-auto h-[26rem] max-w-2xl overflow-hidden border"
-        >
-          <Chat
-            header={values.showHeader ? shellHeader : undefined}
-            composer={values.showComposer ? shellComposer : undefined}
-          >
-            <ChatMessageList messages={playgroundMessages} listLabel="Demo conversation" />
-          </Chat>
-        </div>
-      {/snippet}
-    </PlaygroundConfigurator>
+    <Playground />
   </Section>
 
   <CustomDocs />

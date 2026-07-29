@@ -4,6 +4,7 @@ import type { MintProp } from '$lib/mint';
 import type { InputSlots, InputVariants } from './input.variants';
 
 /**
+ * @summary The single-line text field, with label, validation and icons.
  * @description Text input with labels, validation states, icons, and clearable functionality.
  * Supports outlined, filled, and ghost visual variants with automatic ARIA linking.
  *
@@ -58,6 +59,7 @@ export interface InputProps
    * Show a clear button when the input has a value.
    * Press Escape or click the button to clear. Fires `onClear` after clearing.
    * @default false
+   * @summary Show a clear button once the field has a value.
    */
   clearable?: boolean;
   /** Fired after the value is cleared via the clear button or Escape key. */

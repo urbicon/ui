@@ -10,6 +10,7 @@ import type {
 } from './radioGroup.variants';
 
 /**
+ * @summary Pick exactly one, with all the options in sight.
  * @description Accessible radio group for single-option selection with semantic intents and form integration.
  * Uses native radio inputs for correct form behavior and ARIA semantics with keyboard navigation.
  *

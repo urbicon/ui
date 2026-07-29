@@ -219,13 +219,11 @@
         look clickable are worse than none. Both appear only while the row overflows.
       </p>
       <p class="text-text-secondary text-sm">
-        Dots fit <code class="text-text-primary text-xs">align="center"</code> best, because there
-        every item has its own resting place and therefore its own turn. On a start-aligned row
-        showing several items at once, the last few share the end of the scroll range: they stay
-        clickable and the final one still lights up at the end, but the ones collapsing into it
-        never do. A row has only as many distinct resting places as it can scroll to — with more
-        items than that, prefer <code class="text-text-primary text-xs">align="center"</code> or leave
-        the indicator off.
+        A dot stands for a <em>resting place</em>, not for an item. On a centred row that is the
+        same thing — every item has its own turn. On a start-aligned row the trailing items share
+        the end of the scroll range, so they share one dot, labelled with their range ("Items 4–5 of
+        5"): a row has only as many distinct resting places as it can scroll to, and a dot per item
+        would light up elsewhere than the press. Every dot therefore does exactly what it promises.
       </p>
       <p class="text-text-secondary text-sm">
         The native scrollbar stays visible while nothing else makes the promise that there is more
@@ -240,10 +238,10 @@
         Smooth scrolling and the emphasis lift both collapse under
         <code class="text-text-primary text-xs">prefers-reduced-motion</code>. The lift is driven by
         <code class="text-text-primary text-xs">animation-timeline: view()</code>, so it follows
-        scroll position rather than a clock — where that is unsupported the row behaves identically,
-        just flat. Nothing here moves on its own: there is no auto-rotation, by design. Motion the
-        user did not ask for competes with reading, and the click-through evidence on rotating
-        banners has been unambiguous for over a decade.
+        scroll position rather than a clock — where that is unsupported (Firefox before 156) the row
+        behaves identically, just flat. Nothing here moves on its own: there is no auto-rotation, by
+        design. Motion the user did not ask for competes with reading, and the click-through
+        evidence on rotating banners has been unambiguous for over a decade.
       </p>
     </div>
 

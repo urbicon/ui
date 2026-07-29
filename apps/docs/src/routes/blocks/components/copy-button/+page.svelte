@@ -5,16 +5,13 @@
     ApiReference,
     CodeExample,
     DocsLayout as DocsPageLayout,
-    extractPlaygroundDocs,
-    PlaygroundConfigurator,
     Section
   } from '@urbicon-ui/docs';
   import CustomDocs from './Docs.svelte';
+  import Playground from './Playground.svelte';
   import { componentData } from './api';
   import { buildRelatedLinks } from '$lib/component-links';
   import { CopyButton } from '@urbicon-ui/blocks';
-
-  const { propDocs, variantKeys } = extractPlaygroundDocs(componentData?.props ?? []);
   const relatedLinks = buildRelatedLinks(componentData);
 
   const navigation = [
@@ -47,55 +44,7 @@
   related={relatedLinks}
 >
   <Section id="playground" title="Playground" intent="primary">
-    <PlaygroundConfigurator
-      showHeader={false}
-      {propDocs}
-      {variantKeys}
-      componentName="CopyButton"
-      controls={[
-        { type: 'text', key: 'value', label: 'Value', defaultValue: 'npm i @urbicon-ui/blocks' },
-        { type: 'text', key: 'label', label: 'Label', defaultValue: '' },
-        {
-          type: 'dropdown',
-          key: 'variant',
-          label: 'Variant',
-          items: [
-            { label: 'ghost', value: 'ghost' },
-            { label: 'outlined', value: 'outlined' },
-            { label: 'filled', value: 'filled' },
-            { label: 'text', value: 'text' }
-          ],
-          defaultValue: 'ghost'
-        },
-        {
-          type: 'dropdown',
-          key: 'size',
-          label: 'Size',
-          items: [
-            { label: 'xs', value: 'xs' },
-            { label: 'sm', value: 'sm' },
-            { label: 'md', value: 'md' },
-            { label: 'lg', value: 'lg' }
-          ],
-          defaultValue: 'md'
-        }
-      ]}
-      values={{
-        value: 'npm i @urbicon-ui/blocks',
-        label: '',
-        variant: 'ghost',
-        size: 'md'
-      }}
-    >
-      {#snippet children(values)}
-        <CopyButton
-          value={typeof values.value === 'string' ? values.value : ''}
-          label={values.label || undefined}
-          variant={values.variant}
-          size={values.size}
-        />
-      {/snippet}
-    </PlaygroundConfigurator>
+    <Playground />
   </Section>
 
   <CustomDocs />

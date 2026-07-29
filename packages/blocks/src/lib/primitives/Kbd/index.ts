@@ -3,6 +3,7 @@ import type { HTMLAttributes } from 'svelte/elements';
 import type { KbdSlots, KbdVariants } from './kbd.variants';
 
 /**
+ * @summary A keyboard shortcut, drawn as the key you press.
  * @description Keyboard-key hint. Renders one or more keys as a compact, physical-looking
  * keycap — the canonical way to show shortcuts (⌘K, Ctrl + S) in menus, tooltips, command
  * palettes and docs. Pure display; emits a semantic `<kbd>` element.
@@ -29,6 +30,7 @@ export interface KbdProps
    * The key(s) to display. A single string renders one label; an array renders each
    * entry joined by `separator` (e.g. `['Ctrl', 'K']` → `Ctrl + K`). Ignored when
    * `children` is provided.
+   * @summary The key or keys to show; an array is joined by the separator.
    */
   keys?: string | string[];
   /** Separator rendered between multiple `keys`. @default '+' */

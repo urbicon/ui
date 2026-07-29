@@ -7,6 +7,7 @@ import type {
 } from '$lib/internal/charts/types';
 
 /**
+ * @summary A trend chart with the area under each line filled, for volume that adds up.
  * @description Area chart for trends with volume emphasis — filled regions
  * under each series, optionally stacked. Zero-dependency SVG on the design-
  * token palette, responsive, dark-mode aware, with a screen-reader data-table

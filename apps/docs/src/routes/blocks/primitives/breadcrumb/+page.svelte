@@ -4,17 +4,14 @@
     ApiReference,
     CodeExample,
     DocsLayout as DocsPageLayout,
-    extractPlaygroundDocs,
-    PlaygroundConfigurator,
     Section
   } from '@urbicon-ui/docs';
   import { Breadcrumb } from '@urbicon-ui/blocks';
   import CustomDocs from './Docs.svelte';
+  import Playground from './Playground.svelte';
   import { componentData } from './api';
   import { buildRelatedLinks } from '$lib/component-links';
   import { asset, resolve } from '$app/paths';
-
-  const { propDocs, variantKeys } = extractPlaygroundDocs(componentData?.props ?? []);
   const relatedLinks = buildRelatedLinks(componentData);
 
   const navigation = [
@@ -28,14 +25,6 @@
 
   // Demo-only items don't navigate — `href: '#'` + preventDefault keeps the
   // playground in view. Real consumers pass real hrefs and omit the onclick.
-  const demoNoop = (event: MouseEvent) => event.preventDefault();
-
-  const playgroundItems = [
-    { label: 'Home', href: '#', onclick: demoNoop },
-    { label: 'Products', href: '#', onclick: demoNoop },
-    { label: 'Headphones', href: '#', onclick: demoNoop },
-    { label: 'AirPods Max' }
-  ];
 </script>
 
 <SeoMeta
@@ -58,30 +47,7 @@
   related={relatedLinks}
 >
   <Section id="playground" intent="primary">
-    <PlaygroundConfigurator
-      componentName="Breadcrumb"
-      {propDocs}
-      {variantKeys}
-      controls={[
-        {
-          type: 'dropdown',
-          key: 'size',
-          label: 'Size',
-          items: [
-            { label: 'sm', value: 'sm' },
-            { label: 'md', value: 'md' },
-            { label: 'lg', value: 'lg' }
-          ],
-          defaultValue: 'md'
-        }
-      ]}
-      values={{ size: 'md' }}
-      showHeader={false}
-    >
-      {#snippet children(values)}
-        <Breadcrumb items={playgroundItems} size={values.size} />
-      {/snippet}
-    </PlaygroundConfigurator>
+    <Playground />
   </Section>
 
   <CustomDocs />

@@ -4,6 +4,7 @@ import type { InteractiveTier } from '$lib/utils';
 import type { ToggleSlots, ToggleVariants } from './toggle.variants';
 
 /**
+ * @summary On or off, with the switch to say which.
  * @description Accessible switch control for boolean on/off states.
  * Built on a hidden native input with semantic intents and Mint micro-interactions.
  *
@@ -41,6 +42,7 @@ export interface ToggleProps
    * Error message shown below the control. Replaces `helper`, flags the
    * hidden input `aria-invalid`, and marks the unchecked track with the
    * danger colour — e.g. for a consent toggle that must be switched on.
+   * @summary Error message under the control; also marks the off state with the danger colour.
    */
   error?: string;
 
@@ -98,6 +100,7 @@ export interface ToggleProps
    *
    * Inherited from TierContext when omitted; falls back to `commit` outside
    * of any tier-aware container.
+   * @summary Corner-radius tier — how round the control reads.
    */
   tier?: InteractiveTier;
 
@@ -109,6 +112,7 @@ export interface ToggleProps
    * is visually too loud.
    *
    * @default 'default'
+   * @summary Switch-pill, dot or checkbox-like square.
    */
   variant?: ToggleVariants['variant'];
 }

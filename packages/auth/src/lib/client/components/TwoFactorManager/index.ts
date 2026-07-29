@@ -4,6 +4,7 @@ import type { AuthUser } from '../../../types.js';
 import type { CsrfClientOptions } from '../../csrf.js';
 
 /**
+ * @summary Turn on two-factor, keep the backup codes, turn it off again.
  * @description Self-service two-factor (TOTP) management: enrol with an
  * authenticator app, show one-time backup codes, and disable with a password
  * re-auth. Talks to `apiPath` (default `/api/auth/account/2fa`); pair with

@@ -8,7 +8,11 @@
   } from '@urbicon-ui/docs';
   import { asset, resolve } from '$app/paths';
   import { componentData } from './api';
-  import BasicExample from './examples/Basic.svelte';
+  // Die Vorschau zeigt `BasicDemo`, nicht `Basic`: Letzteres mountet den echten
+  // Listener, der beim Mount einen SSE-Stream gegen einen Endpunkt öffnet, den
+  // diese Seite nicht hat. Gedruckt wird trotzdem `Basic` — der Aufruf, den ein
+  // Leser übernimmt.
+  import BasicExample from './examples/BasicDemo.svelte';
   import basicCode from './examples/Basic.svelte?raw';
 
   const navigation = [

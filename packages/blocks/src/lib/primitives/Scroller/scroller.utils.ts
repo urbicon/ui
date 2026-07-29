@@ -4,9 +4,10 @@
  *
  * All positions are **content coordinates**: the distance from the scroll
  * container's content origin, i.e. what `scrollLeft` addresses. The component
- * derives them from `getBoundingClientRect()` deltas rather than `offsetLeft`,
- * so they stay correct regardless of which ancestor happens to be the
- * `offsetParent`.
+ * measures them with `offsetLeft`/`offsetWidth` — the transform-free layout
+ * API — because `getBoundingClientRect()` reports the *visual* box, which the
+ * `emphasis` lift inflates while it is being measured (see `measure()` in
+ * Scroller.svelte).
  */
 
 /** Where an item comes to rest when the row snaps. */
@@ -77,6 +78,55 @@ export function activeItemIndex(
 /** Confine a scroll target to what the container can actually reach. */
 function clampScroll(target: number, maxScroll: number): number {
   return Math.max(0, Math.min(maxScroll, target));
+}
+
+/**
+ * One place the row can come to rest — what a dot stands for.
+ *
+ * On a start-aligned row the last items begin further right than `scrollLeft`
+ * can reach, so their targets all clamp to `maxScroll`: several items, one
+ * resting place. A dot per ITEM then lies twice over — clicking the dot for a
+ * collapsed item lands at the shared target, and the mark jumps to a different
+ * dot than the one just pressed. A dot per RESTING PLACE cannot lie: every dot
+ * has its own destination, and the collapsed tail becomes one dot that covers
+ * `firstIndex…lastIndex` (its label says so). A centred row pads its track so
+ * every item's target is reachable — there the grouping is the identity and
+ * nothing changes.
+ */
+export interface ScrollerRestingPosition {
+  /** Scroll position this dot travels to, already confined to the reachable range. */
+  target: number;
+  /** Index of the first item resting here. */
+  firstIndex: number;
+  /** Index of the last item resting here — equal to `firstIndex` except for the collapsed tail. */
+  lastIndex: number;
+}
+
+/**
+ * The distinct places the row can rest, in scroll order. Items whose clamped
+ * targets coincide (within `epsilon`, absorbing sub-pixel layout) share one
+ * entry. Targets are monotonically increasing with the item order, so only
+ * neighbouring items can ever share a place — grouping runs over consecutive
+ * items.
+ */
+export function restingPositions(
+  items: readonly ScrollerItemMetrics[],
+  viewportSize: number,
+  align: ScrollerAlign,
+  maxScroll: number,
+  epsilon = 1
+): ScrollerRestingPosition[] {
+  const positions: ScrollerRestingPosition[] = [];
+  for (const [index] of items.entries()) {
+    const target = clampScroll(scrollTargetForIndex(items, index, viewportSize, align), maxScroll);
+    const last = positions.at(-1);
+    if (last && Math.abs(target - last.target) <= epsilon) {
+      last.lastIndex = index;
+    } else {
+      positions.push({ target, firstIndex: index, lastIndex: index });
+    }
+  }
+  return positions;
 }
 
 /**

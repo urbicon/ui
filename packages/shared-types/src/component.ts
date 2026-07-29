@@ -23,8 +23,16 @@ export interface ComponentInfo {
   filePath: string;
   /** Version */
   version?: string;
-  /** Component description */
+  /** Component description — the long form, for `llm.txt` and the MCP catalog. */
   description: string;
+  /**
+   * One human-facing sentence, from `@summary` JSDoc. What the landing page
+   * and the component index show under the name; `description` is the
+   * contract an agent reads. Split apart in 2026-07 because one field for
+   * both readers served neither — the median description ran 259 characters,
+   * so the landing page truncated it mid-clause.
+   */
+  summary?: string;
   /** Deprecation information */
   deprecated?: DeprecationInfo;
   /** Experimental status */
@@ -75,6 +83,18 @@ export interface PropInfo {
   required: boolean;
   /** Property description */
   description: string;
+  /**
+   * One line for a person standing at a control, from a prop-level
+   * `@summary`. The prop-level twin of {@link ComponentInfo.summary} and the
+   * same division of labour: {@link PropInfo.description} is the contract an
+   * agent reads and may run to a paragraph, this is the sentence a playground
+   * shows beside a knob.
+   *
+   * Optional, and meant to stay that way — most props say all they need in one
+   * sentence, and a required second field would mean hundreds of copies of the
+   * first. Read it as `summary ?? description`.
+   */
+  summary?: string;
   /** Default value */
   defaultValue?: string;
   /** Where this prop comes from */

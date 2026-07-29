@@ -4,17 +4,14 @@
     ApiReference,
     CodeExample,
     DocsLayout as DocsPageLayout,
-    extractPlaygroundDocs,
-    PlaygroundConfigurator,
     Section
   } from '@urbicon-ui/docs';
-  import { StreamingMarkdown, Button } from '@urbicon-ui/blocks';
+  import { StreamingMarkdown } from '@urbicon-ui/blocks';
   import CustomDocs from './Docs.svelte';
+  import Playground from './Playground.svelte';
   import { componentData } from './api';
   import { buildRelatedLinks } from '$lib/component-links';
   import { asset, resolve } from '$app/paths';
-
-  const { propDocs, variantKeys } = extractPlaygroundDocs(componentData?.props ?? []);
   const relatedLinks = buildRelatedLinks(componentData);
 
   const navigation = [
@@ -58,12 +55,6 @@ for await (const chunk of stream) render(chunk);
   let playing = $state(false);
   const done = $derived(pos >= chunks.length);
 
-  function replay() {
-    content = '';
-    pos = 0;
-    playing = true;
-  }
-
   $effect(() => {
     if (!playing || done) return;
     const timer = setInterval(() => {
@@ -101,50 +92,7 @@ for await (const chunk of stream) render(chunk);
   related={relatedLinks}
 >
   <Section id="playground" intent="primary">
-    <PlaygroundConfigurator
-      componentName="StreamingMarkdown"
-      {propDocs}
-      {variantKeys}
-      {codeGenerator}
-      controls={[
-        {
-          type: 'dropdown',
-          key: 'size',
-          label: 'Size',
-          items: [
-            { label: 'md', value: 'md' },
-            { label: 'sm', value: 'sm' }
-          ],
-          defaultValue: 'md'
-        },
-        { type: 'checkbox', key: 'streaming', label: 'Streaming cursor', defaultValue: true }
-      ]}
-      values={{ size: 'md', streaming: true }}
-      showHeader={false}
-    >
-      {#snippet children(values)}
-        <div class="space-y-4">
-          <div class="flex items-center gap-2">
-            <Button intent="primary" size="sm" onclick={replay} disabled={playing}>
-              {pos === 0 ? 'Play stream' : 'Replay'}
-            </Button>
-            {#if playing}
-              <span class="text-text-tertiary text-xs">streaming… {pos}/{chunks.length}</span>
-            {:else if done}
-              <span class="text-text-tertiary text-xs">done</span>
-            {/if}
-          </div>
-          <div class="border-border-subtle bg-surface-base rounded-contain min-h-48 border p-5">
-            <StreamingMarkdown
-              content={content || DEMO}
-              streaming={playing || (values.streaming as boolean)}
-              size={values.size as 'sm' | 'md'}
-              headingLevelStart={3}
-            />
-          </div>
-        </div>
-      {/snippet}
-    </PlaygroundConfigurator>
+    <Playground />
   </Section>
 
   <CustomDocs />

@@ -42,6 +42,7 @@
     autoApplyOnNavigation?: boolean;
     selectionMode?: 'none' | 'single' | 'multi';
     rowClickSelects?: boolean;
+    activeRowId?: string | number | null;
     selectedIds?: Array<string | number>;
     onSelectionChange?: (selectedItems: TableItem[]) => void;
     enableColumnVisibility?: boolean;
@@ -77,6 +78,7 @@
     autoApplyOnNavigation = true,
     selectionMode = 'none',
     rowClickSelects = false,
+    activeRowId = null,
     selectedIds = undefined,
     onSelectionChange = undefined,
     enableColumnVisibility = true,
@@ -235,6 +237,10 @@
 
   $effect(() => {
     state.rowClickSelects = rowClickSelects;
+  });
+
+  $effect(() => {
+    state.activeRowId = activeRowId;
   });
 
   $effect(() => {

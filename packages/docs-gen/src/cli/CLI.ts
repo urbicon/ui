@@ -346,17 +346,14 @@ export class DocsGeneratorCLI {
     ApiReference,
     CodeExample,
     DocsLayout as DocsPageLayout,
-    extractPlaygroundDocs,
-    PlaygroundConfigurator,
     Section
   } from '@urbicon-ui/docs';
   import SeoMeta from '$lib/SeoMeta.svelte';
   import CustomDocs from './Docs.svelte';
+  import Playground from './Playground.svelte';
   import { componentData } from './api';
   import { buildRelatedLinks } from '$lib/component-links';
-  import { ${name} } from '@urbicon-ui/blocks';
 
-  const { propDocs, variantKeys } = extractPlaygroundDocs(componentData?.props ?? []);
   const relatedLinks = buildRelatedLinks(componentData);
 
   const navigation = [
@@ -386,21 +383,7 @@ export class DocsGeneratorCLI {
   related={relatedLinks}
 >
   <Section id="playground" title="Playground" intent="primary">
-    <PlaygroundConfigurator
-      showHeader={false}
-      {propDocs}
-      {variantKeys}
-      componentName="${name}"
-      controls={[
-        // TODO: Add playground controls
-      ]}
-    >
-      {#snippet children(values)}
-        <${name} {...values}>
-          <!-- TODO: Add component content -->
-        </${name}>
-      {/snippet}
-    </PlaygroundConfigurator>
+    <Playground />
   </Section>
 
   <CustomDocs />
@@ -431,6 +414,63 @@ export class DocsGeneratorCLI {
 </DocsPageLayout>
 `;
 
+    // Generate Playground.svelte
+    //
+    // Separate file, not inline on the page: the playground has two consumers —
+    // the docs page and the landing hero, which collects every
+    // `Playground.svelte` via `import.meta.glob`. Built inline it would become a
+    // second, drifting example on the landing page.
+    //
+    // Controls come from the generated api.ts (`deriveControls`) rather than a
+    // hand-written list, so a new variant value shows up here the next time
+    // docs-gen runs. Hand-written control literals are how twelve dropdowns fell
+    // behind their components before this was introduced.
+    const playgroundSvelte = `<script lang="ts">
+  import type { PlaygroundHostProps } from '$lib/playground-host';
+  import { ${name} } from '@urbicon-ui/blocks';
+  import {
+    defaultValuesOf,
+    deriveControls,
+    extractPlaygroundDocs,
+    PlaygroundConfigurator
+  } from '@urbicon-ui/docs';
+  import { componentData } from './api';
+
+  let { size, showHeader = false, slotClasses, class: className }: PlaygroundHostProps = $props();
+
+  const { propDocs, variantKeys } = extractPlaygroundDocs(componentData?.props ?? []);
+
+  // \`pick\` lists the props that should become knobs, in display order. What
+  // derivation cannot know goes in \`overrides\` (nicer label, tighter min/max, a
+  // deliberately shorter item list, or a whole definition with its own \`type\`
+  // for props whose type the extractor does not resolve); demo-only toggles go
+  // in \`extra\`. A picked key that is neither derivable nor overridden throws —
+  // a typo should not swallow a control silently.
+  const controls = deriveControls(componentData, {
+    // TODO: pick the props worth a knob
+    pick: []
+  });
+</script>
+
+<PlaygroundConfigurator
+  componentName="${name}"
+  {propDocs}
+  {variantKeys}
+  {size}
+  {showHeader}
+  {slotClasses}
+  class={className}
+  {controls}
+  values={defaultValuesOf(controls)}
+>
+  {#snippet children(values)}
+    <${name}>
+      <!-- TODO: Add component content -->
+    </${name}>
+  {/snippet}
+</PlaygroundConfigurator>
+`;
+
     // Generate Docs.svelte
     const docsSvelte = `<script lang="ts">
   import { CodeExample, Section } from '@urbicon-ui/docs';
@@ -459,13 +499,15 @@ export class DocsGeneratorCLI {
 `;
 
     await fs.writeFile(path.join(docsDir, '+page.svelte'), pageSvelte, 'utf-8');
+    await fs.writeFile(path.join(docsDir, 'Playground.svelte'), playgroundSvelte, 'utf-8');
     await fs.writeFile(path.join(docsDir, 'Docs.svelte'), docsSvelte, 'utf-8');
 
     console.log(`✅ Scaffolded docs page for ${name}:`);
     console.log(`   ${docsDir}/+page.svelte`);
+    console.log(`   ${docsDir}/Playground.svelte`);
     console.log(`   ${docsDir}/Docs.svelte`);
     console.log(`\n📝 Next steps:`);
-    console.log(`   1. Add playground controls to +page.svelte`);
+    console.log(`   1. Fill \`pick\` in Playground.svelte — it also feeds the landing hero`);
     console.log(`   2. Add examples, customization, and accessibility content to Docs.svelte`);
     console.log(`   3. Run \`bun run docs:gen:all\` to generate the api.ts file`);
   }

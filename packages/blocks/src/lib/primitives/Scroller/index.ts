@@ -3,6 +3,7 @@ import type { HTMLAttributes } from 'svelte/elements';
 import type { ScrollerSlots, ScrollerVariants } from './scroller.variants';
 
 /**
+ * @summary A row that scrolls only when it has to — otherwise an ordinary row.
  * @description Horizontal row of equal-rank items that becomes scrollable only
  * when it runs out of room — an overflow behaviour, not a navigation pattern.
  * On a wide viewport it is an ordinary row: no scrolling, no arrows, no dots,
@@ -79,6 +80,7 @@ export interface ScrollerProps
    * one card adrift in empty space, which reads as a layout bug rather than a
    * stage. The component warns about that in DEV.
    * @default 'start'
+   * @summary Where an item comes to rest: an ordinary row, or a centre stage.
    */
   align?: 'start' | 'center';
   /**
@@ -91,6 +93,7 @@ export interface ScrollerProps
    * things: a `start` row is a list you sweep across (`proximity`), a `center`
    * row is a stage whose middle has to land on something (`mandatory`).
    * @default 'proximity' — or 'mandatory' when align="center"
+   * @summary How firmly scrolling lands on an item when you let go.
    */
   snap?: 'proximity' | 'mandatory' | 'none';
   /** Space between items. @default 'md' */
@@ -104,6 +107,7 @@ export interface ScrollerProps
    * padding. Override per-item layout via `slotClasses.viewport` if you need
    * responsive widths.
    * @default '16rem'
+   * @summary Width of each item — what decides when the row starts to overflow.
    */
   itemBasis?: string;
   /**
@@ -112,21 +116,20 @@ export interface ScrollerProps
    * controls for a problem that does not exist are just clutter. `always` keeps
    * them mounted (disabled at the ends); `none` omits them.
    * @default 'auto'
+   * @summary Whether the previous/next buttons show — always, or only while the row overflows.
    */
   controls?: 'auto' | 'always' | 'none';
   /**
-   * Position indicator. `dots` renders one button per item — it both shows how
-   * many items there are and jumps to them, marking the current one with
-   * `aria-current`.
-   *
-   * Best paired with `align="center"`, where each item has its own resting
-   * place and every dot therefore has its own turn. On a `start`-aligned row
-   * showing several items at once, the last few share the end of the scroll
-   * range: they remain clickable and the final one still lights up at the end,
-   * but the ones collapsing into it never do — a row has only as many distinct
-   * resting places as it can scroll to. Leave it off for long chip bars, where
-   * a dot per chip is noise either way.
+   * Position indicator. `dots` renders one button per **resting place** —
+   * every dot jumps to its own destination and the current one carries
+   * `aria-current`. On a centred row that is one dot per item. On a
+   * `start`-aligned row the trailing items that share the end of the scroll
+   * range share one dot, labelled with their range ("Items 4–5 of 5"): a row
+   * has only as many distinct resting places as it can scroll to, and a dot
+   * per item would light up elsewhere than the press. Leave it off for long
+   * chip bars, where a dot per position is noise either way.
    * @default 'none'
+   * @summary A dot per resting place: shows how far the row goes, and jumps there.
    */
   indicator?: 'none' | 'dots';
   /**
@@ -143,6 +146,7 @@ export interface ScrollerProps
    * mark the middle, not to hide the rest. Respects `prefers-reduced-motion`,
    * and where `animation-timeline` is unsupported it simply does nothing.
    * @default 'none'
+   * @summary How strongly the middle item is lifted. Needs the centre alignment.
    */
   emphasis?: 'none' | 'subtle' | 'strong';
 
@@ -160,9 +164,10 @@ export interface ScrollerProps
   previousLabel?: string;
   /** Accessible label for the next button. @default 'Next' (localised) */
   nextLabel?: string;
-  // A dot's label ("Item 3 of 5") takes its position and count from the
-  // component, so it is resolved from the `scroller.item` translation key rather
-  // than passed in — reword it by overriding that key, not with a prop.
+  // A dot's label ("Item 3 of 5", "Items 4–5 of 5" for a collapsed tail) takes
+  // its position and count from the component, so it is resolved from the
+  // `scroller.item` / `scroller.items` translation keys rather than passed in —
+  // reword it by overriding those keys, not with a prop.
 
   // === Styling ===
   /** Extra classes merged onto the root container (the column holding the row and its control bar). */

@@ -121,7 +121,16 @@ export const sliderVariants = tv({
     },
     error: {
       true: {
-        message: 'text-danger'
+        message: 'text-danger',
+        // The control itself carries the fault, not just the sentence under it.
+        // A slider has no unselected state to paint danger — it always holds a
+        // value — so the ring rule for selected boolean controls
+        // (checkbox.variants.ts) applies here unconditionally. It rides `ring`,
+        // a different layer than the thumb's `border-{intent}`, so the intent
+        // keeps saying *where the value sits* while the ring says *this value
+        // is the problem*.
+        thumb:
+          'ring-2 ring-danger/60 ring-offset-1 ring-offset-surface-base focus-visible:ring-danger/60'
       }
     },
     /**

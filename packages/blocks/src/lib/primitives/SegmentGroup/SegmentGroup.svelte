@@ -138,6 +138,35 @@
     requestAnimationFrame(updateIndicator);
   });
 
+  // Everything else that moves the indicator moves an item's BOX, not `value`:
+  // `size`/`variant`/`tier`/`fullWidth` resize the items, and a font load or a
+  // container resize does it without touching any prop at all. Listing the
+  // axes in the effect above would cover today's four and silently miss the
+  // fifth; observing the boxes themselves covers all of them at once. The
+  // collapse check rides along because it needs the same post-layout moment.
+  $effect(() => {
+    const el = containerElement;
+    if (!el) return;
+    // Read the map so the observer re-subscribes when the item set changes —
+    // a newly registered segment brings a box of its own.
+    const items = Array.from(registeredItems.values());
+
+    const remeasure = () => {
+      if (collapseOnOverflow) measureOverflow();
+      updateIndicator();
+    };
+
+    const ro = new ResizeObserver(remeasure);
+    ro.observe(el);
+    for (const item of items) ro.observe(item);
+    // `untrack` so the synchronous first measure doesn't make `collapsed` or
+    // `value` dependencies of this effect — they would tear down and rebuild
+    // the observer on every collapse toggle and every selection.
+    untrack(remeasure);
+
+    return () => ro.disconnect();
+  });
+
   // Detects whether the horizontal track fits its available width. Reads
   // layout, so it runs from the ResizeObserver callback rather than a reactive
   // effect. The +1 tolerance + recorded `naturalWidth` give it hysteresis so it
@@ -176,18 +205,6 @@
       collapsed = false;
     }
   }
-
-  $effect(() => {
-    if (!collapseOnOverflow || !containerElement) return;
-    const el = containerElement;
-    const ro = new ResizeObserver(() => measureOverflow());
-    ro.observe(el);
-    // `untrack` so the synchronous first measure doesn't make `collapsed` a
-    // dependency of this effect (which would tear down + rebuild the observer
-    // on every collapse toggle).
-    untrack(() => measureOverflow());
-    return () => ro.disconnect();
-  });
 
   // A disabled SegmentItem renders a `<button disabled>`, which can't hold focus,
   // so roving navigation must skip it — otherwise selection strands on an

@@ -10,18 +10,14 @@ Build/maintenance scripts for `@urbicon-ui/blocks`:
   script's allowlist (each entry with a one-line justification); stale entries
   error too, so the list can only shrink deliberately, never grow silently.
   `src/lib/internal/**` is always allowed (extraction target).
-- `bundle-size.ts` — per-component minified + tree-shaken bundle size, net of
-  Svelte (`bun run size:blocks`, needs a built `dist/`). Builds one virtual
-  consumer entry per component directory via Vite and measures raw + gzip.
-  `--filter <name>` for a subset, `--dump <dir>` to inspect what a bundle pulls
-  in, `--breakdown` for a per-source-module byte attribution (sourcemap-based —
-  answers "what exactly makes this big?"), `--entry A,B,C` for one combined
-  ad-hoc bundle (the marginal-cost workflow: cost(set∪X) − cost(set); solo rows
-  double-count the shared engine/context floor), `--update-baseline` to record
-  `bundle-size.baseline.json`, `--check` as tree-shaking regression gate (fails
-  when gzip grows > max(256 B, 3 %)).
 - `add-icons.ts`, `fix-icon-components.ts`, `fix-svgs.ts`, `refactor-icons.ts`,
   `wrap-svgs.ts` — one-off icon-pipeline helpers.
+
+## Bundle sizing has moved
+
+`bundle-size.ts` now measures `table` and `auth` alongside `blocks`, so it lives
+at the repo root: [`scripts/bundle-size.ts`](../../../scripts/bundle-size.ts),
+run as `bun run size`, baseline at `bundle-size.baseline.json` (root).
 
 ## i18n auditing has moved
 

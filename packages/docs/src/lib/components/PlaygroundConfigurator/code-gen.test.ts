@@ -3,6 +3,8 @@ import { describe, expect, it } from 'vitest';
 import {
   clampToRange,
   computeComponentDefaults,
+  computeDemoOnlyKeys,
+  computeOmittableDefaults,
   countModified,
   filterVisibleControls,
   generateDefaultCode,
@@ -16,8 +18,10 @@ import {
   resolveSegmentValue,
   resolveSelectValue,
   selectDisplayValue,
+  serializeValue,
   valuesMatch
 } from './code-gen.js';
+import { deriveControls } from './deriveControls';
 
 describe('valuesMatch', () => {
   it('matches identical primitives', () => {
@@ -48,6 +52,70 @@ describe('valuesMatch', () => {
   it('respects property order via JSON.stringify (documented limitation)', () => {
     // Both are structurally equivalent but stringify in insertion order.
     expect(valuesMatch({ a: 1, b: 2 }, { b: 2, a: 1 })).toBe(false);
+  });
+});
+
+describe('generateDefaultCode — extracted child markup', () => {
+  it('prints markup between the tags instead of self-closing', () => {
+    const markup =
+      '<SegmentItem value="list">List</SegmentItem>\n<SegmentItem value="grid">Grid</SegmentItem>';
+    expect(generateDefaultCode('SegmentGroup', {}, {}, undefined, markup)).toBe(
+      [
+        '<SegmentGroup>',
+        '  <SegmentItem value="list">List</SegmentItem>',
+        '  <SegmentItem value="grid">Grid</SegmentItem>',
+        '</SegmentGroup>'
+      ].join('\n')
+    );
+  });
+
+  it('breaks a long one-liner rather than running past the print width', () => {
+    const long = `<Button variant="outlined">${'x'.repeat(90)}</Button>`;
+    const code = generateDefaultCode('Tooltip', {}, {}, undefined, long);
+    expect(code.startsWith('<Tooltip>\n  <Button')).toBe(true);
+  });
+
+  it('indents multi-line markup one level under the tag', () => {
+    const markup = '{#snippet header()}\n  <div>Card Title</div>\n{/snippet}';
+    expect(generateDefaultCode('Card', { variant: 'outlined' }, {}, undefined, markup)).toBe(
+      [
+        '<Card',
+        '  variant="outlined"',
+        '>',
+        '  {#snippet header()}',
+        '    <div>Card Title</div>',
+        '  {/snippet}',
+        '</Card>'
+      ].join('\n')
+    );
+  });
+
+  it('keeps a one-liner on one line', () => {
+    expect(generateDefaultCode('Tooltip', {}, {}, undefined, '<Button>Hover me</Button>')).toBe(
+      '<Tooltip><Button>Hover me</Button></Tooltip>'
+    );
+  });
+
+  it('lets a `children` control win — that is the reader’s own text', () => {
+    const code = generateDefaultCode('Button', { children: 'Click me' }, {}, undefined, '<Icon />');
+    expect(code).toBe('<Button>Click me</Button>');
+  });
+
+  it('falls back to the self-closing tag for blank or absent markup', () => {
+    expect(generateDefaultCode('Card', {}, {}, undefined, null)).toBe('<Card />');
+    expect(generateDefaultCode('Card', {}, {}, undefined, '   \n  ')).toBe('<Card />');
+  });
+
+  it('composes with a codeSetup script block', () => {
+    const code = generateDefaultCode(
+      'Chat',
+      {},
+      {},
+      { consts: { messages: [{ id: '1' }] }, bind: ['messages'] },
+      '<ChatMessageList {messages} />'
+    );
+    expect(code).toContain('const messages = ');
+    expect(code).toContain('<Chat\n  {messages}\n>\n  <ChatMessageList {messages} />\n</Chat>');
   });
 });
 
@@ -188,6 +256,28 @@ describe('normalizeControls', () => {
     ]);
     expect(result[0].type).toBe('boolean');
     expect(result[0].items).toBeUndefined();
+  });
+
+  it('converts the string defaults along with the type', () => {
+    // The type said boolean, the value stayed `'false'` — and `Boolean('false')`
+    // is `true`, so the switch rendered "on" while the component read the
+    // string back as off. A boolean control must carry booleans.
+    const result = normalizeControls([
+      {
+        key: 'accentEdge',
+        label: 'Accent Edge',
+        type: 'dropdown',
+        defaultValue: 'false',
+        componentDefault: 'false',
+        items: [
+          { label: 'false', value: 'false' },
+          { label: 'true', value: 'true' }
+        ]
+      }
+    ]);
+    expect(result[0].type).toBe('boolean');
+    expect(result[0].defaultValue).toBe(false);
+    expect(result[0].componentDefault).toBe(false);
   });
 
   it('keeps non-booleanish selects as-is', () => {
@@ -496,5 +586,259 @@ describe('number field', () => {
         expect(isWithinRange(count, reconcileNumberField(count, raw, 3))).toBe(true);
       }
     });
+  });
+});
+
+describe('serializeValue', () => {
+  it('prints strings in the repo style, not JSON style', () => {
+    expect(serializeValue('Berlin')).toBe("'Berlin'");
+    expect(serializeValue("it's")).toBe("'it\\'s'");
+  });
+
+  // A quoted literal with a line break in it does not parse. `CodeBlock`'s
+  // `code` const shipped exactly that: a snippet whose first line ended in an
+  // unterminated string, under a "copy" button.
+  it('prints a multi-line string as a template literal', () => {
+    expect(serializeValue('line one\nline two')).toBe('`line one\nline two`');
+  });
+
+  it('escapes what would end or interpolate the template literal', () => {
+    expect(serializeValue('a `tick`\nand ${expr}')).toBe('`a \\`tick\\`\nand \\${expr}`');
+  });
+
+  it('leaves a single-line string quoted, backticks and all', () => {
+    expect(serializeValue('a `tick`')).toBe("'a `tick`'");
+  });
+
+  it('leaves identifier keys unquoted', () => {
+    expect(serializeValue({ accessor: 'name', sortable: true })).toBe(
+      "{ accessor: 'name', sortable: true }"
+    );
+  });
+
+  it('quotes a key that is not an identifier', () => {
+    expect(serializeValue({ 'data-id': 1 })).toBe("{ 'data-id': 1 }");
+  });
+
+  it('keeps a short array on one line and breaks one that holds objects', () => {
+    expect(serializeValue([1, 2, 3])).toBe('[1, 2, 3]');
+
+    const rows = Array.from({ length: 3 }, (_, i) => ({
+      id: i,
+      name: `A rather long employee name ${i}`,
+      role: 'Staff Engineer'
+    }));
+    const out = serializeValue(rows);
+    expect(out.startsWith('[\n')).toBe(true);
+    // Each row still fits on its own line — only the outer array breaks.
+    expect(out.split('\n')).toHaveLength(5);
+  });
+
+  it('never splits a flat record, however long it gets', () => {
+    // A data row is one unit. Spread over six lines it reads worse than a few
+    // characters of overflow — and eight of them turn a snippet into a wall.
+    const row = {
+      id: 1,
+      name: 'Emma Wilson',
+      role: 'Staff Engineer',
+      department: 'Platform',
+      location: 'Berlin'
+    };
+    const out = serializeValue([row], 2);
+
+    expect(out.split('\n')).toHaveLength(3);
+    expect(out).toContain(
+      "{ id: 1, name: 'Emma Wilson', role: 'Staff Engineer', department: 'Platform', location: 'Berlin' }"
+    );
+  });
+
+  it('breaks a nested record once it outgrows the line, but not before', () => {
+    // Nesting alone is no reason to unfold — a short tree reads fine inline.
+    expect(serializeValue({ id: 'root', meta: { a: 1 }, children: ['x'] })).toBe(
+      "{ id: 'root', meta: { a: 1 }, children: ['x'] }"
+    );
+
+    const wide = {
+      id: 'root',
+      component: 'Column',
+      children: ['title', 'email', 'password', 'submit', 'footnote', 'disclaimer']
+    };
+    expect(serializeValue(wide).split('\n').length).toBeGreaterThan(1);
+  });
+
+  it('refuses functions rather than dropping them silently', () => {
+    // A printed arrow function usually closes over identifiers the snippet
+    // does not contain, so a copied snippet would not compile.
+    expect(() => serializeValue({ sort: () => 0 })).toThrow(/raw/);
+  });
+
+  it('passes a raw wrapper through untouched', () => {
+    expect(serializeValue({ raw: '(a, b) => a - b' })).toBe('(a, b) => a - b');
+  });
+
+  it('prints a Date as constructible source', () => {
+    expect(serializeValue(new Date('2026-01-01T09:41:00.000Z'))).toBe(
+      "new Date('2026-01-01T09:41:00.000Z')"
+    );
+  });
+});
+
+describe('generateDefaultCode with a codeSetup', () => {
+  const SETUP = {
+    imports: ["import { Table } from '@urbicon-ui/table';"],
+    consts: { columns: [{ accessor: 'name', title: 'Name' }], items: [{ id: 1, name: 'Emma' }] },
+    bind: ['columns', 'items']
+  };
+
+  it('emits a complete file: imports, data, then the tag', () => {
+    const code = generateDefaultCode('Table', { itemsPerPage: 5 }, { itemsPerPage: 10 }, SETUP);
+
+    expect(code).toBe(
+      `<script lang="ts">
+  import { Table } from '@urbicon-ui/table';
+
+  const columns = [{ accessor: 'name', title: 'Name' }];
+  const items = [{ id: 1, name: 'Emma' }];
+</script>
+
+<Table
+  {columns}
+  {items}
+  itemsPerPage={5}
+/>`
+    );
+  });
+
+  it('still drops control values that match the component default', () => {
+    const code = generateDefaultCode('Table', { itemsPerPage: 10 }, { itemsPerPage: 10 }, SETUP);
+
+    expect(code).not.toContain('itemsPerPage');
+    expect(code).toContain('{columns}');
+  });
+
+  it('omits demo-only controls — they are not props of the component', () => {
+    // A2UIView's scenario switch drives the payload; `scenario="survey"` as an
+    // attribute would be an API that does not exist.
+    const code = generateDefaultCode(
+      'A2UIView',
+      { scenario: 'survey', streaming: true },
+      {},
+      { bind: ['payload'], demoOnly: ['scenario'] }
+    );
+
+    expect(code).not.toContain('scenario');
+    expect(code).toContain('streaming');
+  });
+
+  it('is byte-identical to the old output when no setup is given', () => {
+    expect(generateDefaultCode('Button', { variant: 'ghost', children: 'Get started' })).toBe(
+      '<Button\n  variant="ghost"\n>\n  Get started\n</Button>'
+    );
+  });
+});
+
+describe('computeOmittableDefaults', () => {
+  it('prefers the component default over the playground starting point', () => {
+    // Otherwise the snippet omits `itemsPerPage={5}` — and a reader copying it
+    // gets ten rows per page while the preview above shows five.
+    const controls = [
+      {
+        key: 'itemsPerPage',
+        label: 'Items per page',
+        type: 'number' as const,
+        defaultValue: 5,
+        componentDefault: 10
+      }
+    ];
+
+    expect(computeOmittableDefaults(controls)).toEqual({ itemsPerPage: 10 });
+    expect(computeComponentDefaults(controls)).toEqual({ itemsPerPage: 5 });
+  });
+
+  it('falls back to the starting point when no component default is recorded', () => {
+    const controls = [{ key: 'label', label: 'Label', type: 'text' as const, defaultValue: 'Hi' }];
+
+    expect(computeOmittableDefaults(controls)).toEqual({ label: 'Hi' });
+  });
+});
+
+describe('generateDefaultCode with bindable state', () => {
+  it('declares the state and binds it, rather than printing a dead attribute', () => {
+    const code = generateDefaultCode(
+      'Dialog',
+      { title: 'Confirm' },
+      {},
+      {
+        imports: ["import { Dialog } from '@urbicon-ui/blocks';"],
+        state: { open: false },
+        twoWay: ['open']
+      }
+    );
+
+    expect(code).toContain('let open = $state(false);');
+    expect(code).toContain('bind:open');
+    expect(code).not.toContain('{open}');
+  });
+
+  it('keeps `consts` on the shorthand form and `state` on the bind form', () => {
+    const code = generateDefaultCode(
+      'FileUpload',
+      {},
+      {},
+      { consts: { accept: ['image/*'] }, state: { files: [] }, bind: ['accept'], twoWay: ['files'] }
+    );
+
+    expect(code).toContain('{accept}');
+    expect(code).toContain('bind:files');
+  });
+
+  it('drops a control the derivation marked demo-only', () => {
+    // `extra` controls steer the demo; as an attribute they would document an
+    // API that does not exist.
+    const controls = deriveControls(
+      { variants: [{ name: 'size', values: ['sm', 'md'], defaultValue: 'sm' }] },
+      {
+        pick: ['size'],
+        extra: [{ type: 'dropdown', key: 'scenario', label: 'Scenario', defaultValue: 'a' }]
+      }
+    );
+    expect(controls.find((c) => c.key === 'scenario')?.demoOnly).toBe(true);
+    expect(controls.find((c) => c.key === 'size')?.demoOnly).toBeUndefined();
+
+    const code = generateDefaultCode(
+      'A2UIView',
+      { scenario: 'b', size: 'md' },
+      { size: 'sm' },
+      { demoOnly: computeDemoOnlyKeys(controls) }
+    );
+    expect(code).not.toContain('scenario');
+    expect(code).toContain('size="md"');
+  });
+});
+
+describe('computeOmittableDefaults and props without a component default', () => {
+  it('never omits a value the component has no default for', () => {
+    // An Alert whose `title` is dropped from the snippet renders without a
+    // heading — a different component than the preview shows.
+    const controls = deriveControls(
+      { props: [{ name: 'title', type: 'string' }] },
+      { pick: ['title'], overrides: { title: { defaultValue: 'Heads up!' } } }
+    );
+
+    expect(computeOmittableDefaults(controls)).toEqual({});
+    expect(
+      generateDefaultCode('Alert', { title: 'Heads up!' }, computeOmittableDefaults(controls))
+    ).toContain('title="Heads up!"');
+  });
+
+  it('still omits a value that equals a documented component default', () => {
+    const controls = deriveControls(
+      { variants: [{ name: 'size', values: ['sm', 'md'], defaultValue: 'md' }] },
+      { pick: ['size'] }
+    );
+
+    expect(generateDefaultCode('Badge', { size: 'md' }, computeOmittableDefaults(controls))).toBe(
+      '<Badge />'
+    );
   });
 });

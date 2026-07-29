@@ -7,6 +7,7 @@ import type { DateFormatOptions } from './datepicker.engine';
 // ─── DatePickerProps ─────────────────────────────────────────
 
 /**
+ * @summary A date field with a calendar to pick from.
  * @description Date input with calendar popup for selecting a single date. Supports min/max constraints, disabled dates, and format customization.
  *
  * The `value` prop accepts either a `Date` or an ISO timestamp string —
@@ -116,7 +117,11 @@ export interface DatePickerProps extends Omit<HTMLAttributes<HTMLDivElement>, 'c
   showWeekNumbers?: boolean;
   /** Show days from adjacent months. @default true */
   showOutsideDays?: boolean;
-  /** Always show 6 weeks. @default false */
+  /**
+   * Always show 6 week rows, so the overlay keeps its height while paging
+   * months. Set `false` to let it shrink to 4 or 5 rows.
+   * @default true
+   */
   fixedWeeks?: boolean;
   /** Earliest selectable date. */
   minDate?: Date;
@@ -186,6 +191,7 @@ export interface DatePickerProps extends Omit<HTMLAttributes<HTMLDivElement>, 'c
 // ─── DateRangePickerProps ────────────────────────────────────
 
 /**
+ * @summary From and to, in two clicks on one calendar.
  * @description Date range picker with a dual-calendar popup for selecting a start and end date — min/max constraints, disabled dates, and native form submission via paired hidden inputs.
  *
  * @tag form

@@ -248,6 +248,18 @@ export const radioItemVariants = tv({
       class: {
         indicator: 'border-danger group-hover:border-danger peer-focus-visible:ring-danger/40'
       }
+    },
+
+    // Error on the SELECTED radio: a ring, not a fill — see the long rationale
+    // in checkbox.variants.ts. The dot keeps its intent colour (it says *what*
+    // is chosen), the ring says *this choice is the problem*.
+    {
+      error: true,
+      checked: true,
+      class: {
+        indicator:
+          'ring-2 ring-danger/60 ring-offset-1 ring-offset-surface-base peer-focus-visible:ring-danger/60'
+      }
     }
   ],
   defaultVariants: {

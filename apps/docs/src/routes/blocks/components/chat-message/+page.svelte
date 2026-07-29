@@ -4,29 +4,18 @@
     ApiReference,
     CodeExample,
     DocsLayout as DocsPageLayout,
-    PlaygroundConfigurator,
     Section
   } from '@urbicon-ui/docs';
   import { ChatMessage, type ChatMessageData } from '@urbicon-ui/blocks';
   import CustomDocs from './Docs.svelte';
+  import Playground from './Playground.svelte';
   import { componentData } from './api';
   import { buildRelatedLinks } from '$lib/component-links';
   import { asset, resolve } from '$app/paths';
 
   const relatedLinks = buildRelatedLinks(componentData);
 
-  const bodyText =
-    'Here is the plan. The renderer parses the growing string into a **component tree** — no `{@html}` anywhere — so settled blocks stay cached and only the tail re-renders.\n\n1. Text parts flow through StreamingMarkdown\n2. Every link is checked against the URL policy\n3. `[1]` markers resolve to citation chips';
-
-  function playgroundMessage(role: string): ChatMessageData {
-    return {
-      id: 'pg-message',
-      role: role === 'user' || role === 'system' ? role : 'assistant',
-      parts: [{ type: 'text', text: bodyText }],
-      createdAt: new Date('2026-01-01T09:41:00'),
-      status: 'complete'
-    };
-  }
+  ('Here is the plan. The renderer parses the growing string into a **component tree** — no `{@html}` anywhere — so settled blocks stay cached and only the tail re-renders.\n\n1. Text parts flow through StreamingMarkdown\n2. Every link is checked against the URL policy\n3. `[1]` markers resolve to citation chips');
 
   const navigation = [
     { id: 'playground', title: 'Playground', order: 1 },
@@ -66,55 +55,7 @@
       conversation in motion, open the
       <a class="text-primary hover:underline" href={resolve('/ai/chat')}>live playground</a>.
     </p>
-    <PlaygroundConfigurator
-      showHeader={false}
-      componentName="ChatMessage"
-      controls={[
-        {
-          type: 'dropdown',
-          key: 'layout',
-          label: 'Layout',
-          items: [
-            { label: 'bubble', value: 'bubble' },
-            { label: 'plain', value: 'plain' }
-          ],
-          defaultValue: 'bubble'
-        },
-        {
-          type: 'dropdown',
-          key: 'density',
-          label: 'Density',
-          items: [
-            { label: 'comfortable', value: 'comfortable' },
-            { label: 'compact', value: 'compact' }
-          ],
-          defaultValue: 'comfortable'
-        },
-        {
-          type: 'dropdown',
-          key: 'role',
-          label: 'Role',
-          items: [
-            { label: 'assistant', value: 'assistant' },
-            { label: 'user', value: 'user' },
-            { label: 'system', value: 'system' }
-          ],
-          defaultValue: 'assistant'
-        }
-      ]}
-      values={{ layout: 'bubble', density: 'comfortable', role: 'assistant' }}
-    >
-      {#snippet children(values)}
-        <div class="mx-auto w-full max-w-2xl">
-          <ChatMessage
-            message={playgroundMessage(String(values.role ?? 'assistant'))}
-            layout={values.layout as 'bubble' | 'plain'}
-            density={values.density as 'comfortable' | 'compact'}
-            onRegenerate={() => {}}
-          />
-        </div>
-      {/snippet}
-    </PlaygroundConfigurator>
+    <Playground />
   </Section>
 
   <CustomDocs />

@@ -67,6 +67,65 @@ describe('computeSankeyLayout', () => {
     expect(result.nodes.find((n) => n.id === 't2')!.layer).toBe(2);
   });
 
+  // What `nodeAlign` does and does not do. The docs playground carried it as a
+  // four-way knob over a graph where all four values were arithmetically the
+  // same — measured, not guessed: layers come from the LONGEST path to a node,
+  // so on an evenly layered graph every sink already sits on the last layer and
+  // there is nothing left for the option to move. Both cases are pinned here so
+  // the next reader does not have to re-derive it from the layout code.
+  describe('nodeAlign', () => {
+    /** Package → family → maturity: every path from a source to a sink is 2 long. */
+    const evenNodes = [{ id: 'pkg' }, { id: 'family' }, { id: 'stable' }, { id: 'beta' }];
+    const evenLinks = [
+      { source: 'pkg', target: 'family', value: 25 },
+      { source: 'family', target: 'stable', value: 20 },
+      { source: 'family', target: 'beta', value: 5 }
+    ];
+
+    it('changes nothing on an evenly layered graph', () => {
+      const positions = (['left', 'right', 'center', 'justify'] as const).map((nodeAlign) =>
+        computeSankeyLayout(evenNodes, evenLinks, { width: 600, height: 320, nodeAlign })
+          .nodes.map((n) => `${n.id}@${n.x0}`)
+          .join(' ')
+      );
+      expect(new Set(positions).size).toBe(1);
+    });
+
+    it('pushes a sink that sits short of the last layer, for right and justify only', () => {
+      // `solo` is a sink one hop from its source, while the other path is two.
+      const nodes = [{ id: 'pkg' }, { id: 'family' }, { id: 'stable' }, { id: 'solo' }];
+      const links = [
+        { source: 'pkg', target: 'family', value: 20 },
+        { source: 'family', target: 'stable', value: 20 },
+        { source: 'pkg', target: 'solo', value: 1 }
+      ];
+      const layerOf = (nodeAlign: 'left' | 'right' | 'center' | 'justify') =>
+        computeSankeyLayout(nodes, links, { width: 600, height: 320, nodeAlign }).nodes.find(
+          (n) => n.id === 'solo'
+        )!.layer;
+
+      expect(layerOf('left')).toBe(1);
+      expect(layerOf('center')).toBe(1);
+      expect(layerOf('right')).toBe(2);
+      expect(layerOf('justify')).toBe(2);
+    });
+
+    it('centres a node with no links at all', () => {
+      const nodes = [{ id: 'a' }, { id: 'b' }, { id: 'c' }, { id: 'lonely' }];
+      const links = [
+        { source: 'a', target: 'b', value: 10 },
+        { source: 'b', target: 'c', value: 10 }
+      ];
+      const layerOf = (nodeAlign: 'left' | 'center') =>
+        computeSankeyLayout(nodes, links, { width: 600, height: 320, nodeAlign }).nodes.find(
+          (n) => n.id === 'lonely'
+        )!.layer;
+
+      expect(layerOf('left')).toBe(0);
+      expect(layerOf('center')).toBe(1);
+    });
+  });
+
   it('respects nodeWidth and nodePadding options', () => {
     const result = computeSankeyLayout(
       [{ id: 'a' }, { id: 'b' }, { id: 'c' }],

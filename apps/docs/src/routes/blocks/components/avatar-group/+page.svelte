@@ -5,26 +5,14 @@
     ApiReference,
     CodeExample,
     DocsLayout as DocsPageLayout,
-    extractPlaygroundDocs,
-    PlaygroundConfigurator,
     Section
   } from '@urbicon-ui/docs';
   import CustomDocs from './Docs.svelte';
+  import Playground from './Playground.svelte';
   import { componentData } from './api';
   import { buildRelatedLinks } from '$lib/component-links';
   import { AvatarGroup } from '@urbicon-ui/blocks';
-
-  const { propDocs, variantKeys } = extractPlaygroundDocs(componentData?.props ?? []);
   const relatedLinks = buildRelatedLinks(componentData);
-
-  const team = [
-    { name: 'Ada Lovelace' },
-    { name: 'Alan Turing' },
-    { name: 'Grace Hopper', randomColor: true },
-    { name: 'Katherine Johnson', randomColor: true },
-    { name: 'Edsger Dijkstra' },
-    { name: 'Barbara Liskov' }
-  ];
 
   const navigation = [
     { id: 'playground', title: 'Playground', order: 1 },
@@ -56,63 +44,7 @@
   related={relatedLinks}
 >
   <Section id="playground" title="Playground" intent="primary">
-    <PlaygroundConfigurator
-      showHeader={false}
-      {propDocs}
-      {variantKeys}
-      componentName="AvatarGroup"
-      controls={[
-        {
-          type: 'dropdown',
-          key: 'size',
-          label: 'Size',
-          items: [
-            { label: 'sm', value: 'sm' },
-            { label: 'md', value: 'md' },
-            { label: 'lg', value: 'lg' },
-            { label: 'xl', value: 'xl' }
-          ],
-          defaultValue: 'md'
-        },
-        {
-          type: 'dropdown',
-          key: 'max',
-          label: 'Max',
-          items: [
-            { label: '3', value: 3 },
-            { label: '4', value: 4 },
-            { label: '5', value: 5 },
-            { label: 'all', value: 'all' }
-          ],
-          defaultValue: 4
-        },
-        {
-          type: 'dropdown',
-          key: 'spacing',
-          label: 'Spacing',
-          items: [
-            { label: 'tight', value: 'tight' },
-            { label: 'normal', value: 'normal' },
-            { label: 'loose', value: 'loose' }
-          ],
-          defaultValue: 'normal'
-        }
-      ]}
-      values={{
-        size: 'md',
-        max: 4,
-        spacing: 'normal'
-      }}
-    >
-      {#snippet children(values)}
-        <AvatarGroup
-          items={team}
-          size={values.size}
-          max={typeof values.max === 'number' ? values.max : undefined}
-          spacing={values.spacing}
-        />
-      {/snippet}
-    </PlaygroundConfigurator>
+    <Playground />
   </Section>
 
   <CustomDocs />

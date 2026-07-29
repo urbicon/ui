@@ -95,6 +95,7 @@ export type ToastInput = Partial<Omit<ToastData, 'id'>>;
 export type ToastShorthandOpts = Omit<ToastInput, 'intent' | 'title'>;
 
 /**
+ * @summary Brief messages that appear, say their piece and leave.
  * @description Container that renders and manages toast notifications.
  * Place once in your root layout. Use the toaster store to trigger toasts from anywhere.
  *

@@ -272,6 +272,40 @@ test.describe('Table core flows', () => {
     await expect(selection.locator('tr[data-row-index][aria-selected="true"]')).toHaveCount(0);
   });
 
+  test('activeRowId marks the shown row without turning on selection', async ({ page }) => {
+    await setupPage(page);
+
+    const active = page.getByTestId('table-active-row');
+    const rows = active.locator('tr[data-row-index]');
+    const shown = page.getByTestId('active-row-name');
+    // id 0 on purpose: a truthy `activeRowId` guard would never mark this row.
+    const firstRow = active.locator('[data-testid="table-row-0"]');
+    const secondRow = active.locator('[data-testid="table-row-1"]');
+
+    await expect(rows).toHaveCount(6);
+    await expect(shown).toHaveText('none');
+    await expect(active.locator('tr[aria-current="true"]')).toHaveCount(0);
+
+    // The mark follows the click — and lands on the row whose id is 0.
+    await firstRow.click();
+    await expect(shown).toHaveText('Item 0000');
+    await expect(firstRow).toHaveAttribute('aria-current', 'true');
+    await expect(firstRow).toHaveAttribute('data-active', '');
+
+    // Exactly one row is current at a time.
+    await secondRow.click();
+    await expect(shown).toHaveText('Item 0001');
+    await expect(active.locator('tr[aria-current="true"]')).toHaveCount(1);
+    await expect(secondRow).toHaveAttribute('aria-current', 'true');
+    await expect(firstRow).not.toHaveAttribute('aria-current', 'true');
+
+    // The whole point of the prop: no selection column, and no row claims to be
+    // selected. Before it existed, marking a row required `selectionMode`.
+    await expect(active.locator('[data-testid="selection-header"]')).toHaveCount(0);
+    await expect(active.locator('input[type="checkbox"]')).toHaveCount(0);
+    await expect(active.locator('tr[aria-selected]')).toHaveCount(0);
+  });
+
   test('keyboard Shift+Arrow reorders columns and round-trips', async ({ page }) => {
     await setupPage(page);
 

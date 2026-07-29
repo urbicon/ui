@@ -4,12 +4,16 @@
     ApiReference,
     CodeExample,
     DocsLayout as DocsPageLayout,
-    PlaygroundConfigurator,
     Section
   } from '@urbicon-ui/docs';
   import { ThemeSwitcher } from '@urbicon-ui/blocks';
   import CustomDocs from './Docs.svelte';
+  import Playground from './Playground.svelte';
+  import { componentData } from './api';
+  import { buildRelatedLinks } from '$lib/component-links';
   import { resolve } from '$app/paths';
+
+  const relatedLinks = buildRelatedLinks(componentData);
 
   const navigation = [
     { id: 'playground', title: 'Playground', order: 1 },
@@ -18,67 +22,6 @@
     { id: 'accessibility', title: 'Accessibility', order: 4 },
     { id: 'api', title: 'API Reference', order: 5 },
     { id: 'installation', title: 'Installation', order: 6 }
-  ];
-
-  const apiProps = [
-    {
-      name: 'theme',
-      type: "'light' | 'dark' | 'system'",
-      defaultValue: "'system'",
-      description: 'Current theme. Supports bind:theme for two-way binding.'
-    },
-    {
-      name: 'strategy',
-      type: "'cycle' | 'toggle'",
-      defaultValue: "'cycle'",
-      description:
-        "Interaction mode. 'cycle' rotates light → dark → system. 'toggle' switches light ↔ dark."
-    },
-    {
-      name: 'storageKey',
-      type: 'string | false',
-      defaultValue: "'urbicon-theme'",
-      description: 'localStorage key for persistence. Set to false to disable.'
-    },
-    {
-      name: 'onThemeChange',
-      type: '(theme: Theme) => void',
-      description: 'Called after the theme changes.'
-    },
-    {
-      name: 'variant',
-      type: "'ghost' | 'outlined' | 'filled'",
-      defaultValue: "'ghost'",
-      description: 'Visual style of the button.'
-    },
-    {
-      name: 'size',
-      type: "'sm' | 'md' | 'lg'",
-      defaultValue: "'md'",
-      description: 'Button dimensions.'
-    },
-    {
-      name: 'disabled',
-      type: 'boolean',
-      defaultValue: 'false',
-      description: 'Disable the switcher.'
-    },
-    {
-      name: 'unstyled',
-      type: 'boolean',
-      defaultValue: 'false',
-      description: 'Strip all default styles.'
-    },
-    {
-      name: 'slotClasses',
-      type: "Partial<Record<'button' | 'icon', string>>",
-      description: 'Per-slot CSS class overrides for button and icon.'
-    },
-    {
-      name: 'class',
-      type: 'string',
-      description: 'Additional CSS classes on the button element.'
-    }
   ];
 </script>
 
@@ -97,52 +40,12 @@
     { label: 'Components', href: resolve('/blocks/components') }
   ]}
   {navigation}
+  stability={componentData?.stability}
+  sourceHref={componentData?.sourceHref}
+  related={relatedLinks}
 >
   <Section id="playground" intent="primary">
-    <PlaygroundConfigurator
-      componentName="ThemeSwitcher"
-      controls={[
-        {
-          type: 'dropdown',
-          key: 'variant',
-          label: 'Variant',
-          items: [
-            { label: 'ghost', value: 'ghost' },
-            { label: 'outlined', value: 'outlined' },
-            { label: 'filled', value: 'filled' }
-          ],
-          defaultValue: 'ghost'
-        },
-        {
-          type: 'dropdown',
-          key: 'size',
-          label: 'Size',
-          items: [
-            { label: 'sm', value: 'sm' },
-            { label: 'md', value: 'md' },
-            { label: 'lg', value: 'lg' }
-          ],
-          defaultValue: 'md'
-        },
-        {
-          type: 'dropdown',
-          key: 'strategy',
-          label: 'Strategy',
-          items: [
-            { label: 'cycle', value: 'cycle' },
-            { label: 'toggle', value: 'toggle' }
-          ],
-          defaultValue: 'cycle'
-        },
-        { type: 'checkbox', key: 'disabled', label: 'Disabled', defaultValue: false }
-      ]}
-      values={{ variant: 'ghost', size: 'md', strategy: 'cycle', disabled: false }}
-      showHeader={false}
-    >
-      {#snippet children(values)}
-        <ThemeSwitcher {...values} storageKey={false} />
-      {/snippet}
-    </PlaygroundConfigurator>
+    <Playground />
   </Section>
 
   <CustomDocs />
@@ -152,9 +55,9 @@
     id="api"
     title="API Reference"
     intent="secondary"
-    meta={`${apiProps.length} props`}
+    meta={`${componentData?.stats?.totalProps ?? 0} props`}
   >
-    <ApiReference props={apiProps} />
+    <ApiReference props={componentData?.props ?? []} types={componentData?.types ?? []} />
   </Section>
 
   <Section marker="05" id="installation" title="Installation">

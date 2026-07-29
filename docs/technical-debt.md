@@ -46,9 +46,8 @@ internal TODO instead. Sections are ordered roughly by urgency.
 
 ### The blocks Icon component grew ~4.8 KB min against the v6.31 baseline with no source change
 
-- **Where:** `packages/blocks/bundle-size.baseline.json` (the `Icon` entry) vs.
-  the measured bundle; no icon-source change since the baseline commit
-  `973e535`.
+- **Where:** `bundle-size.baseline.json` (the `Icon` entry) vs. the measured
+  bundle; no icon-source change since the baseline commit `973e535`.
 - **What:** Re-baselining during the mint tree-shaking pass (debt-fix-wave-4)
   surfaced a pre-existing drift: `Icon` measures +4,762 B min / +2,110 B gz
   against the committed baseline, with no change to icon sources and no mint
@@ -64,6 +63,47 @@ internal TODO instead. Sections are ordered roughly by urgency.
 - **Found:** 2026-07-23, mint tree-shaking re-baseline (debt-fix-wave-4).
 
 ## API design
+
+### The date components default to `locale = 'de-DE'`, so an English app silently renders German months
+
+- **Where:** `packages/blocks/src/lib/components/Calendar/Calendar.svelte:52`,
+  `Planner/Planner.svelte:38`, `DatePicker`, `DateRangePicker` — and the
+  helpers behind them, `packages/blocks/src/lib/date/format.ts`
+  (`locale: string = 'de-DE'` on `formatWeekday`, `formatMonthYear`,
+  `formatDateFull`, …).
+- **What:** The default is a hard-coded German tag rather than the runtime
+  locale (`undefined`, which makes `Intl` follow the environment) or the
+  locale the app already declares through `<I18nProvider>`. A consumer running
+  `<I18nProvider locale="en">` still gets "Juli 2026" from `Calendar` unless
+  every date component is passed `locale` by hand — the i18n provider governs
+  translated strings but has no connection to `Intl` formatting. Verified in
+  the landing hero: an English-only page with an English provider rendered a
+  German month until `locale` was threaded through explicitly.
+- **Why deferred:** Changing the default is a behaviour change for existing
+  consumers (a German app that relies on the default would start following the
+  browser), and the better fix is bigger than a default swap: teaching the date
+  components to read the i18n context, which couples `blocks` to the i18n
+  package for a value it currently takes as a plain prop. Wants a decision on
+  that coupling — the fallback chain (`prop → i18n context → runtime`) is the
+  candidate.
+- **Found:** 2026-07-27, landing hero prototype (forcing the hero to English).
+
+### Table pagination can only be removed by passing an empty snippet
+
+- **Where:** `packages/table/src/lib/core/table/Table.svelte` (~`:310`, the
+  pagination block).
+- **What:** Pagination renders whenever items exist and aren't grouped, even for
+  a single page; suppressing it means passing an empty `pagination` snippet
+  (`{#snippet pagination()}{/snippet}`) — a workaround that reads like a
+  mistake. Hit while building the landing hero, which shows all 98 rows at once.
+- **Why deferred:** It is a one-line condition (`totalPages > 1`) but changes
+  layout for every existing consumer whose page reserves that footer height.
+- **Resolved half:** the sibling gap — no way to mark a "current row" without
+  `selectionMode` switching on the checkbox column — is **fixed (2026-07-27)**:
+  `activeRowId` sets `aria-current` + `data-active` and its own quiet ground
+  across flat rows, grouped rows and mobile cards. The hero's
+  `tr:has([data-active])` CSS trick is gone.
+- **Found:** 2026-07-26, landing hero prototype (`test-fixtures/landing-hero`).
 
 ### `--radius-commit` carries two meanings: the pill of a button and the circle of a radio
 
@@ -452,6 +492,26 @@ internal TODO instead. Sections are ordered roughly by urgency.
   combo; act only if it shows up in practice.
 - **Found:** 2026-07-14, Sparkline `fluid` review (primitives-debt wave).
 
+### Scroller `emphasis` renders flat in Firefox < 156 — accepted, self-resolving
+
+- **Where:** `packages/blocks/src/lib/primitives/Scroller/scroller.variants.ts`
+  (the `align="center"` + `emphasis` compound), keyframes in
+  `style/interaction.css`.
+- **What:** The centred-stage lift is driven purely by
+  `animation-timeline: view(inline)`. Firefox ships that only from **156**
+  (caniuse, checked 2026-07-29); in 155 and below the animation never starts
+  and the row renders identical minus the lift — which reads as "emphasis is
+  broken" to anyone testing in Firefox (it did, twice, in review). Chrome 115+
+  and Safari 26+ are fine.
+- **Why deferred:** A `@supports not (animation-timeline: view(inline))`
+  JS fallback (discrete pop on the active item via `activeIndex`) was designed
+  but not built: the gap closes by itself as Firefox 156 rolls out, and the
+  row's usability is untouched either way.
+- **Decision 2026-07-29:** ✅ Accept the degradation — no fallback. Revisit
+  only if a consumer reports it before FF 156 adoption makes it moot.
+- **Found:** 2026-07-29, Scroller review session (the "no emphasis" reports
+  turned out to be Firefox 153).
+
 ## Accessibility
 
 ### Off-system dark-skin SegmentGroup demo trips axe (restyle-vs-exempt)
@@ -581,6 +641,119 @@ internal TODO instead. Sections are ordered roughly by urgency.
 - **Found:** 2026-07-14, Toast promise-settle SR review (primitives-debt wave).
 
 ## Docs coverage
+
+### A new docs page has to be hand-registered in two places, and nothing checks it
+
+- **Where:** `apps/docs/src/lib/navigation.ts` (sidebar tree) and
+  `apps/docs/src/lib/component-links.ts` (`componentLinks`, name → route) — vs.
+  the generated catalogs in `apps/docs/static/{blocks,table,auth}/_catalog.json`,
+  which already know every shipped component.
+- **What:** Both registries are hand-written name→href lists. Adding the
+  `NumberInput` and `DateRangePicker` pages meant editing both by hand, and
+  nothing would have complained if either edit had been forgotten: the page
+  would exist and simply never appear in the sidebar, and `@related` links
+  pointing at it would be silently dropped (`buildRelatedLinks` skips unknown
+  names by design). The drift is already visible in the other direction —
+  `componentLinks` has entries for components long before it had `Kbd`,
+  `CodeBlock`, `CopyButton` or `Sankey`, so related-link chips to those pages
+  never render.
+- **Why deferred:** The fix is not "generate the nav" — the sidebar's grouping
+  and ordering are an editorial decision that the catalog does not carry, and
+  the six-family taxonomy is not a nav structure. What is cheap and would have
+  caught this is a **test**, not a generator: assert that every catalog entry
+  with a `+page.svelte` appears in `componentLinks`, and that every
+  `componentLinks` href resolves to an existing route. That belongs in the
+  docs-app test setup, which does not exist yet (see "The `@urbicon-ui/docs`
+  package has no component / DOM test coverage").
+- **Found:** 2026-07-27, giving the last catalog components a shared example.
+
+### The docs-gen class diagram describes an architecture that is ~85 % gone
+
+- **Where:** `packages/docs-gen/docs/docs-gen-class-diagram.mermaid` (header:
+  "UPDATED CLASS DIAGRAM - 2025-08-13").
+- **What:** Of the classes it documents for the generation phase —
+  `SveltePageGenerator`, `PlaygroundRenderer`, `TemplateEngine`,
+  `SectionRenderer`, `SectionMerger`, `DeploymentManager` — **none exist in
+  `packages/docs-gen/src` any more**; only `SvelteDocsParser` is left. The
+  generator today emits `api`, `content`, `llm` and `mcp`, and the docs pages
+  are hand-written. Anyone reading the diagram to find out how a page is built
+  looks for a page generator that isn't there. (A second consequence: the
+  diagram promises `PlaygroundRenderer.generateControls(props, config)` —
+  deriving playground controls from props — which would have saved this
+  session's `deriveControls` had it existed.)
+- **Why deferred:** Redrawing it is only worth doing against the real pipeline,
+  which means walking `PipelineOrchestrator` end to end — a doc task in its own
+  right, not a side effect of touching the docs app. **Note:** a parallel
+  session appears to be working on exactly this (artifact "docs-gen
+  architecture — rewritten diagrams", 2026-07-26) — coordinate before editing
+  the file.
+- **Found:** 2026-07-27, landing hero prototype (checking whether docs pages
+  are generated before extracting their playgrounds).
+
+### `TabProps`' JSDoc examples show an API that does not compile
+
+- **Where:** `packages/blocks/src/lib/primitives/Tab/index.ts` (~`:113`–`:145`,
+  both `@example` blocks) vs. the type right below them (`tabs?: Snippet`).
+- **What:** Both examples pass `tabs` as an array of `{ value, label }` objects;
+  the prop is a `Snippet` holding `TabItem` components (which is what the docs
+  page itself does). A consumer — or an agent — copying the example gets
+  `Type '{ value: string; label: string; }[]' is not assignable to type
+  'Snippet<[]>'`. Because `*Props` JSDoc is the single source for the MCP
+  catalog, `llms.txt` and the docs site, the wrong example is served everywhere
+  at once (verified in `apps/docs/static/blocks/_catalog.json`).
+- **Why deferred:** Rewriting the two blocks is trivial, but the finding is the
+  class, not the instance: nothing checks that `@example` code compiles, so
+  other components may carry the same drift after an API change. Wants a sweep
+  (or a lint that type-checks extracted examples), plus the `docs:gen:all`
+  regeneration that any JSDoc edit needs.
+- **Found:** 2026-07-26, landing hero prototype — hit while writing a Tab
+  specimen from the catalog.
+
+### A playground whose demo data is built *from a control* still prints a static snippet
+
+- **Where:** the `Playground.svelte` files of A2UIView, ChatMessage and
+  ReasoningDisclosure, versus
+  `packages/docs/src/lib/components/PlaygroundConfigurator/code-gen.ts`
+  (`CodeSetup.consts`).
+- **What:** `consts` takes the objects the demo renders, so the snippet cannot
+  drift — but it is evaluated once, and these three derive their data *from a
+  control*: A2UIView's payload follows the scenario switch, ReasoningDisclosure
+  builds its `reasoning` object from a duration slider. Move the control and the
+  preview changes while the printed data does not.
+- **Why deferred:** The fix is not a bigger `consts` — it is making the setup a
+  function of `values`, which changes `CodeSetup` from a declaration into a
+  callback and has to answer what happens to the `imports` and `state` halves.
+  Worth doing against a second use case rather than for these three.
+- **Resolved sibling:** the larger half of this — demos whose content is
+  **markup** (Card's header/footer snippets, SplitPane's panes, SegmentGroup's
+  items), which no data declaration can express — is **fixed (2026-07-27)** by
+  source extraction: `extract-markup.ts` lifts the `{#snippet children}` body
+  out of the playground's own text (`source={playgroundSource}`), 24 playgrounds
+  are wired, and `playgrounds:lint` fails on a demo that has markup but no
+  `source`. Name the import `playgroundSource`, never `self` — `self` is
+  `window.self`, so a missing import type-checks and passes the Window object.
+- **Found:** 2026-07-27, rolling `codeSetup` out across all 76 playgrounds.
+
+### The long `@description`s were never revisited after the `@summary` split
+
+- **Where:** every `*Props` JSDoc — the `@description` tag, now sitting next to
+  a `@summary`.
+- **What:** `@summary` was added as the human-facing sentence and 97 of them
+  were written; `@description` was left byte-identical, on purpose, so the diff
+  stayed reviewable and the shipped agent surfaces (`llm.txt`, the MCP catalog)
+  could not regress. But those texts were written when one field served both
+  readers. Some now open with a sentence the summary already made
+  ("Compact label for status, categories, counters…" under "A small label for a
+  status, a category or a count"), and some carry landing-page voice in a field
+  only agents read. The redundancy is harmless; the missed opportunity is that
+  `@description` may now be *purely* the contract — types, constraints, failure
+  modes, the server factory to pair with — and several are not.
+- **Why deferred:** It is an editorial pass over a **shipped** surface. Judging
+  97 agent-facing texts is a different job from writing 97 human-facing ones,
+  and mixing them into one diff would have made both unreviewable. Worth doing
+  against a concrete question — what does `find_components` actually need to
+  answer? — rather than as a rewrite for its own sake.
+- **Found:** 2026-07-27, splitting `@summary` out of `@description`.
 
 ### The docs search index is English-only, capped at 2000 chars per record, and indexes playground control names
 
@@ -833,6 +1006,34 @@ internal TODO instead. Sections are ordered roughly by urgency.
 - **Found:** 2026-07-13, docs-package section polish; convention documented in W7.
 
 ## docs-gen
+
+### Two type shapes reach `api.ts` unresolved, so their props carry no values
+
+- **Where:** `packages/docs-gen/src/extractors/typescript/PropsExtractor.ts` (the
+  `values` it records per prop) — visible in every generated `api.ts` as props
+  whose `type` is an alias and whose `values` is `null`.
+- **What:** Most named aliases are recoverable downstream, because the
+  definition travels along in `types[]` (`ComponentSize` →
+  `'xs' | 'sm' | 'md' | 'lg' | 'xl'`), and `deriveControls` now resolves those
+  locally. Two shapes stay opaque:
+  1. **Computed unions** — `ComponentIntent` is `(typeof INTENTS)[number]`, so
+     the definition names a runtime array instead of listing values. Affects
+     every `intent` prop that goes through the shared alias.
+  2. **Indexed variant access** — `ButtonVariants['variant']`,
+     `RadioItemVariants['size']`, `AvatarProps['size']`,
+     `ChatMessageProps['layout']`: the referenced type is `VariantProps<typeof
+     xVariants>`, which again holds no literals.
+  Consequence beyond playgrounds: the API tables on those pages show an opaque
+  alias where every other prop shows its options, and an agent reading the
+  catalog cannot tell what `intent` accepts.
+- **Why deferred:** Both need the type checker at extraction time (resolving
+  `typeof INTENTS` to its literal members, and instantiating
+  `VariantProps<typeof buttonVariants>`), not string handling — a real change
+  in `PropsExtractor`, worth doing once, deliberately. Around 20 playground
+  controls across `ButtonGroup`, `Menu`, `RadioGroup`, `Textarea`, `Popover`,
+  `Toolbar`, `AvatarGroup` and `ChatMessageList` currently need a hand-written
+  override for this reason alone.
+- **Found:** 2026-07-27, deriving playground controls from the generated API.
 
 ### ~~`@see` on a *type* is still swallowed~~ — resolved 2026-07-27; the mid-sentence trap stays open
 
@@ -1200,6 +1401,53 @@ internal TODO instead. Sections are ordered roughly by urgency.
   regression when CodeBlock was switched to the shared accessibility strings;
   quantified 2026-07-26.
 
+### The calendar header's month name sets the calendar's width
+
+- **Where:** `packages/blocks/src/lib/components/Calendar/CalendarHeader.svelte`
+  (the title button), measured through `packages/blocks/src/lib/components/DatePicker/DatePicker.svelte`.
+- **What:** The header title is a plain `<button>{ctx.headerTitle}</button>`, and
+  when it is wider than the day grid it drags the grid with it. Measured in the
+  DatePicker overlay (`size="md"`, `de-DE`), paging March → September 2026:
+  212 px (Mai/Juli) up to 268 px (September) — a 56 px step on every month
+  change. The height half of this is fixed (`fixedWeeks` now defaults to `true`
+  on DatePicker and is actually wired through `getMonthGrid`, so the overlay
+  holds 314 px), and `tabular-nums` on the title slot removed the year-boundary
+  twitch. The month *name* remains.
+- **Why deferred:** Every fix that fully removes it is either locale-fragile or
+  wider than this wave. A `min-width` in px/rem is a magic number per `size` ×
+  locale ("September" is not the longest month name everywhere). The correct fix
+  reserves the width of the longest month name of the *active* locale — a grid
+  stack holding all twelve names in one cell, visible one at a time — which
+  changes the header box for **every** Calendar consumer, not just the popover,
+  and therefore needs a VR-baseline pass and a look at the embedded case, where
+  the container already sets the width and the reservation would only add
+  padding.
+- **Found:** 2026-07-28, hero-playground review point 30 (overlay jumps while
+  paging months).
+
+### docs-gen extracts `Pick<X, …>` in an extends clause as one prop named "...Pick"
+
+- **Where:** the props extractor (`packages/docs-gen/src`), visible in any
+  generated `api.ts` of a component that inherits through `Pick<>` —
+  `apps/docs/src/routes/blocks/components/copy-button/api.ts` lists
+  `value, ...HTMLButtonAttributes, ...Pick, children, …`.
+- **What:** `CopyButtonProps extends Pick<ButtonProps, 'variant' | 'intent' |
+  'size' | 'tier' | 'disabled'>` reaches the catalogue as a single prop literally
+  named `...Pick`; the five members never appear. `Omit<…>` is resolved (its
+  members are listed under `inheritance`), so this is specific to `Pick`. The
+  cost is not cosmetic: `deriveControls` is fail-loud by design, so putting any
+  of those names in a playground's `pick` list throws at SSR and the whole doc
+  page 500s — which is how this was found (hero-review point 28, the CopyButton
+  page went down until every member got a hand-written `overrides` entry).
+- **Why deferred:** The fix is in the extractor's type resolution, and the
+  workaround (a full `overrides` entry per member) is cheap and already the
+  established pattern — CopyButton's `variant` knob had been written that way
+  since before this wave. Worth doing when the extractor is next opened: the
+  hand-written option lists duplicate values that the variant configs already
+  own, so they drift silently.
+- **Found:** 2026-07-28, hero-review point 28 (adding the missing
+  intent/tier/disabled knobs to the CopyButton playground).
+
 ## Design engine
 
 ### `token-hallucination` is a warning, so markup that renders unstyled passes an error gate
@@ -1330,3 +1578,30 @@ internal TODO instead. Sections are ordered roughly by urgency.
   lenient default until you see a model act on it.
 - **Found:** 2026-07-28, after the fourth instance, in the recorded consumer-path
   run (`prototypes/artifact-frame/BEFUNDE.md` §26).
+
+### A citation chip inside a markdown paragraph makes SSR emit invalid HTML
+
+- **What:** `MdBlock` renders a paragraph as `<p>…</p>`, `MdInline` renders a
+  `[1]` marker as a `CitationChip`, and the chip is a `Popover` — whose trigger
+  wrapper and panel are both `<div>`. A `<div>` inside a `<p>` is invalid HTML,
+  so the browser closes the paragraph early while repairing it, and the client
+  tree no longer matches the server's.
+- **Measured (2026-07-28, Playwright, dev server):** three docs pages log
+  `[svelte] hydration_mismatch` on load — `/blocks/components/citation-chip`,
+  `/blocks/components/streaming-markdown` and `/blocks/components/chat-message`
+  — each preceded by two `node_invalid_placement_ssr` warnings naming
+  `Popover.svelte:411` (`<div class="inline-flex">`, the trigger wrapper) and
+  `Popover.svelte:463` (the panel) as children of `MdBlock.svelte:23`.
+- **Scope:** every SSR-rendered chat answer that cites a source, which is the
+  headline case of the AI kit. Not a docs-site problem — the docs pages are just
+  where it is visible.
+- **Why it is not a quick fix:** the trigger wrapper could take an element name
+  (`<span class="inline-flex">` when the trigger sits inline), which would settle
+  the first half. The panel is the harder half: it already moves to the top layer
+  at runtime, but SSR emits it in place. Either it renders nothing on the server
+  until mounted — changing first-paint behaviour for every Popover consumer — or
+  the inline case gets its own markup path. Both need a VR pass over the whole
+  overlay family.
+- **Found:** 2026-07-28, while measuring the ChatMessage playground rebuild
+  (review point 18); pre-existing, unrelated to that change — `citation-chip`,
+  which the rebuild did not touch, shows the same warning.

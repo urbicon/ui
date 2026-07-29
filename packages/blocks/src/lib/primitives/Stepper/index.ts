@@ -18,6 +18,7 @@ export interface StepperContext {
 }
 
 /**
+ * @summary Where you are in a multi-step flow, and how much is left.
  * @description Multi-step progress indicator with horizontal/vertical layout,
  * clickable navigation, and per-step state overrides (error, warning).
  *
@@ -68,6 +69,7 @@ export interface StepperProps
    * render a compact soft-rectangle stepper for inline wizards.
    *
    * @default 'commit'
+   * @summary Corner-radius tier, passed on to every StepperStep.
    */
   tier?: InteractiveTier;
   /**

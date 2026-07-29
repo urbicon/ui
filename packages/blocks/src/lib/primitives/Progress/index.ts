@@ -2,6 +2,7 @@ import type { HTMLAttributes } from 'svelte/elements';
 import type { ProgressSlots, ProgressVariants } from './progress.variants';
 
 /**
+ * @summary How far along something is — or that it is running at all.
  * @description Progress indicator for determinate and indeterminate loading states.
  * Supports linear bar and circular ring variants with semantic intents and animation.
  *

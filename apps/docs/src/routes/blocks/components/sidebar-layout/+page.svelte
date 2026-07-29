@@ -8,6 +8,7 @@
     Section
   } from '@urbicon-ui/docs';
   import CustomDocs from './Docs.svelte';
+  import Playground from './Playground.svelte';
   import { componentData } from './api';
   import { buildRelatedLinks } from '$lib/component-links';
 
@@ -15,7 +16,8 @@
 
   const navigation = [
     { id: 'overview', title: 'Overview', order: 1 },
-    { id: 'examples', title: 'Examples', order: 2 },
+    { id: 'playground', title: 'Playground', order: 2 },
+    { id: 'examples', title: 'Examples', order: 3 },
     { id: 'customization', title: 'Customization', order: 3 },
     { id: 'accessibility', title: 'Accessibility', order: 4 },
     { id: 'api', title: 'API Reference', order: 5 },
@@ -55,6 +57,10 @@
         >Sidebar primitive</a
       > directly.
     </p>
+  </Section>
+
+  <Section id="playground" intent="primary">
+    <Playground />
   </Section>
 
   <CustomDocs />

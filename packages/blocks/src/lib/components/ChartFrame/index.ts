@@ -3,6 +3,7 @@ import type { HTMLAttributes } from 'svelte/elements';
 import type { ChartMargin, ChartPlot, ChartSlotClasses } from '$lib/internal/charts/types';
 
 /**
+ * @summary The measured, responsive canvas the other charts draw on — bring your own shapes.
  * @description Responsive SVG chart shell: measures its width via
  * ResizeObserver, applies plot margins, and hands the drawable plot geometry
  * to a child snippet. The building block under every cartesian chart in the

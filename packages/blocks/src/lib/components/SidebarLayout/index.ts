@@ -29,6 +29,7 @@ type SidebarLayoutSlot =
   | 'sidebarFooter';
 
 /**
+ * @summary The app shell — sidebar, content, and the mobile header that opens it.
  * @description App-shell layout that wires a `<Sidebar>` to a main content
  * region and an optional mobile header. Use this whenever you want a
  * permanent sidebar on desktop with a hamburger overlay on mobile — it
@@ -101,6 +102,7 @@ export interface SidebarLayoutProps extends Omit<HTMLAttributes<HTMLDivElement>,
    * - `responsive` (default): permanent on desktop (≥1024px), slide-in overlay on mobile.
    * - `collapsible`: toggleable at all viewports — width animation on desktop, overlay on mobile.
    * @default 'responsive'
+   * @summary Whether the sidebar is permanent on desktop, or toggleable at every width.
    */
   mode?: 'responsive' | 'collapsible';
 
@@ -113,6 +115,7 @@ export interface SidebarLayoutProps extends Omit<HTMLAttributes<HTMLDivElement>,
    * `0` when collapsed) on the layout root, so the main content offset stays
    * in sync automatically.
    * @default '16rem'
+   * @summary How wide the sidebar panel is; the content offset follows it automatically.
    */
   sidebarWidth?: string;
 

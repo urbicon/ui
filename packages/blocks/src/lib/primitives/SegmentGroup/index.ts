@@ -20,6 +20,7 @@ export interface SegmentGroupContext {
 }
 
 /**
+ * @summary A row of choices with the selection sliding between them.
  * @description Segment control with an animated sliding indicator for single selection; collapses to a vertical radio-style stack when its row can't fit the available width.
  * Compact mode/view switcher with smooth animation.
  *
@@ -94,6 +95,7 @@ export interface SegmentGroupProps
    * <SegmentGroup mint={[{ name: 'scale', config: { intensity: 1.02 } }]} />
    * ```
    * @default 'none'
+   * @summary Micro-interaction played on each segment, not on the container.
    */
   mint?: MintProp;
 }

@@ -3,6 +3,7 @@ import type { HTMLAttributes } from 'svelte/elements';
 import type { ChatSlots, ChatVariants } from './chat.variants';
 
 /**
+ * @summary The full-height shell of a chat: pinned header, scrolling conversation, composer at the bottom.
  * @description Thin full-height layout shell for a chat surface: an optional pinned
  * `header` (border-b), the scrollable conversation area as `children` (the consumer
  * drops a ChatMessageList here — the shell itself never scrolls, the body child does),

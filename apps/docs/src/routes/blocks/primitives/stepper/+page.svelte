@@ -4,17 +4,14 @@
     ApiReference,
     CodeExample,
     DocsLayout as DocsPageLayout,
-    extractPlaygroundDocs,
-    PlaygroundConfigurator,
     Section
   } from '@urbicon-ui/docs';
   import { Stepper, StepperStep } from '@urbicon-ui/blocks';
   import CustomDocs from './Docs.svelte';
+  import Playground from './Playground.svelte';
   import { componentData } from './api';
   import { buildRelatedLinks } from '$lib/component-links';
   import { asset, resolve } from '$app/paths';
-
-  const { propDocs, variantKeys } = extractPlaygroundDocs(componentData?.props ?? []);
   const relatedLinks = buildRelatedLinks(componentData);
 
   const navigation = [
@@ -81,76 +78,7 @@
   related={relatedLinks}
 >
   <Section id="playground" intent="primary">
-    <PlaygroundConfigurator
-      componentName="Stepper"
-      {propDocs}
-      {variantKeys}
-      {codeGenerator}
-      controls={[
-        {
-          type: 'dropdown',
-          key: 'orientation',
-          label: 'Orientation',
-          items: [
-            { label: 'horizontal', value: 'horizontal' },
-            { label: 'vertical', value: 'vertical' }
-          ],
-          defaultValue: 'horizontal'
-        },
-        {
-          type: 'dropdown',
-          key: 'variant',
-          label: 'Variant',
-          items: [
-            { label: 'default', value: 'default' },
-            { label: 'outlined', value: 'outlined' },
-            { label: 'minimal', value: 'minimal' }
-          ],
-          defaultValue: 'default'
-        },
-        {
-          type: 'dropdown',
-          key: 'size',
-          label: 'Size',
-          items: [
-            { label: 'sm', value: 'sm' },
-            { label: 'md', value: 'md' },
-            { label: 'lg', value: 'lg' }
-          ],
-          defaultValue: 'md'
-        },
-        { type: 'checkbox', key: 'clickable', label: 'Clickable', defaultValue: false },
-        { type: 'checkbox', key: 'linear', label: 'Linear', defaultValue: false },
-        { type: 'checkbox', key: 'disabled', label: 'Disabled', defaultValue: false }
-      ]}
-      values={{
-        orientation: 'horizontal',
-        variant: 'default',
-        size: 'md',
-        clickable: false,
-        linear: false,
-        disabled: false
-      }}
-      showHeader={false}
-    >
-      {#snippet children(values)}
-        <div class="w-full max-w-xl">
-          <Stepper
-            activeStep={1}
-            orientation={values.orientation}
-            variant={values.variant}
-            size={values.size}
-            clickable={values.clickable}
-            linear={values.linear}
-            disabled={values.disabled}
-          >
-            <StepperStep label="Account" description="Create your account" />
-            <StepperStep label="Profile" description="Set up your profile" />
-            <StepperStep label="Review" description="Review and submit" />
-          </Stepper>
-        </div>
-      {/snippet}
-    </PlaygroundConfigurator>
+    <Playground />
   </Section>
 
   <CustomDocs />

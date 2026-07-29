@@ -54,6 +54,10 @@
   // assert the selected set alongside aria-selected / checkbox state.
   let selectedCount = $state(0);
 
+  // Master/detail fixture: the clicked row is what `activeRowId` reflects, so the
+  // spec can prove the mark follows the click without any selection being made.
+  let shownRow = $state<Row | null>(null);
+
   // Remote (server-mode) fixture: a deterministic in-memory "backend". queryFn
   // applies search / sort / paging to a fixed 40-row set after an artificial
   // latency, and increments a request counter surfaced in the DOM — so the spec
@@ -180,6 +184,25 @@
       enableSmartFilter={false}
       itemsPerPage={10}
       ariaLabel="Selection fixture table"
+    />
+  </section>
+
+  <!-- Master/detail: `activeRowId` marks the row being shown without switching on
+       the selection column. The rows start at id 0 on purpose — an `activeRowId`
+       guard written as a truthy check would skip exactly that row. -->
+  <section data-testid="table-active-row" class="mb-16">
+    <h2 class="text-text-primary mb-4 text-lg font-semibold">Active row (master/detail)</h2>
+    <p class="text-text-secondary mb-4 text-sm">
+      Shown: <span data-testid="active-row-name">{shownRow?.name ?? 'none'}</span>
+    </p>
+    <Table
+      items={selectionRows}
+      {columns}
+      activeRowId={shownRow?.id ?? null}
+      onRowClick={(row) => (shownRow = row as Row)}
+      enableSmartFilter={false}
+      itemsPerPage={10}
+      ariaLabel="Active row fixture table"
     />
   </section>
 

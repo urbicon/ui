@@ -13,6 +13,7 @@ export interface ChatMessageListItemContext {
 }
 
 /**
+ * @summary A conversation log that follows streaming output — and lets go the moment you scroll up.
  * @description Scrollable conversation log with a stick-to-bottom engine: follows
  * streaming content while the reader is at the bottom, breaks off on upward scroll,
  * and offers a floating jump-back button with a new-message counter. Anchors the

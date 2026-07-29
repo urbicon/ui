@@ -3,6 +3,7 @@ import type { AuthUser } from '../../../types.js';
 import type { CsrfClientOptions } from '../../csrf.js';
 
 /**
+ * @summary Self-service panel to change name, email and password, or delete the account.
  * @description Self-service account-settings panel: change name, email and
  * password, and delete the account. Each section talks to `apiPath` (default
  * `/api/auth/account`); pair them with the server handlers

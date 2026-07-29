@@ -58,6 +58,12 @@ export interface DateGridOptions {
   get view(): DateGridView;
   /** Day the week starts on (0=Sun … 6=Sat). */
   get weekStartsOn(): number;
+  /**
+   * Always emit 6 week rows in `view="month"`, so the grid keeps its height.
+   * A plain optional member rather than a getter — TS has no optional-getter
+   * syntax, and a wrapper may still satisfy it with one (Calendar does).
+   */
+  readonly fixedWeeks?: boolean;
   /** BCP 47 locale tag for titles and weekday names. */
   get locale(): string;
   /** Selection cardinality. */
@@ -536,7 +542,12 @@ export class DateGridController {
     const wso = this.#opts.weekStartsOn;
     switch (this.#opts.view) {
       case 'month':
-        return getMonthGrid(reference.getFullYear(), reference.getMonth(), wso);
+        return getMonthGrid(
+          reference.getFullYear(),
+          reference.getMonth(),
+          wso,
+          this.#opts.fixedWeeks ?? false
+        );
       case 'week':
         return [getWeekDates(reference, wso)];
       case 'day':

@@ -5,16 +5,13 @@
     ApiReference,
     CodeExample,
     DocsLayout as DocsPageLayout,
-    extractPlaygroundDocs,
-    PlaygroundConfigurator,
     Section
   } from '@urbicon-ui/docs';
   import CustomDocs from './Docs.svelte';
+  import Playground from './Playground.svelte';
   import { componentData } from './api';
   import { buildRelatedLinks } from '$lib/component-links';
   import { QRCode } from '@urbicon-ui/blocks';
-
-  const { propDocs, variantKeys } = extractPlaygroundDocs(componentData?.props ?? []);
   const relatedLinks = buildRelatedLinks(componentData);
 
   const navigation = [
@@ -48,61 +45,7 @@
   related={relatedLinks}
 >
   <Section id="playground" title="Playground" intent="primary">
-    <PlaygroundConfigurator
-      showHeader={false}
-      {propDocs}
-      {variantKeys}
-      componentName="QRCode"
-      controls={[
-        { type: 'text', key: 'value', label: 'Value', defaultValue: 'https://ui.urbicon.de' },
-        {
-          type: 'dropdown',
-          key: 'errorCorrection',
-          label: 'Error correction',
-          items: [
-            { label: 'L', value: 'L' },
-            { label: 'M', value: 'M' },
-            { label: 'Q', value: 'Q' },
-            { label: 'H', value: 'H' }
-          ],
-          defaultValue: 'M'
-        },
-        {
-          type: 'dropdown',
-          key: 'size',
-          label: 'Size',
-          items: [
-            { label: '120', value: 120 },
-            { label: '160', value: 160 },
-            { label: '200', value: 200 },
-            { label: '240', value: 240 }
-          ],
-          defaultValue: 160
-        },
-        {
-          type: 'dropdown',
-          key: 'frame',
-          label: 'Frame',
-          items: [
-            { label: 'none', value: 'none' },
-            { label: 'card', value: 'card' }
-          ],
-          defaultValue: 'card'
-        }
-      ]}
-      values={{
-        value: 'https://ui.urbicon.de',
-        errorCorrection: 'M',
-        size: 160,
-        frame: 'card'
-      }}
-    >
-      {#snippet children(values)}
-        <!-- `value` is spread from the playground state, but restated explicitly so
-             its required-prop type is satisfied (the spread is an index signature). -->
-        <QRCode {...values} value={typeof values.value === 'string' ? values.value : ''} />
-      {/snippet}
-    </PlaygroundConfigurator>
+    <Playground />
   </Section>
 
   <CustomDocs />

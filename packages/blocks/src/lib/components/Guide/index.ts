@@ -21,6 +21,7 @@ import type {
 } from './guide.variants';
 
 /**
+ * @summary The root that wires every guide surface to one controller.
  * @description Root provider for the Guide help system. Instantiates a `GuideController`
  * and shares it via context with all Guide surfaces (Panel, Marker, Mention, Hint, Tour).
  * Place once near the app root. The context is optional — a surface used without a provider
@@ -67,6 +68,7 @@ export interface GuideProviderProps {
 }
 
 /**
+ * @summary Help that docks to the edge and leaves the app usable behind it.
  * @description Non-modal help panel for the Guide system. Slides in (default from the right)
  * without a backdrop or focus trap, so the app stays interactive behind it — this is what lets
  * a `GuideMention` highlight a UI element while the panel is open (D1). Visibility is driven by
@@ -125,6 +127,7 @@ export interface GuidePanelProps {
 }
 
 /**
+ * @summary One help article inside the guide panel.
  * @description A single help article inside a `GuidePanel`. Registers itself in the panel's
  * list (by `title`) and renders its content only when it is the active article
  * (`controller.activeArticle === id`). Use `GuideMention` inside to link back to UI elements.
@@ -167,6 +170,7 @@ export interface GuideArticleProps {
 }
 
 /**
+ * @summary The discreet marker that opens the help panel at the right article.
  * @description Direction A of the bidirectional link (UI → Guide): a discreet "ⓘ" trigger
  * that sits on a UI element and opens the `GuidePanel` at the matching article. A real
  * `<button>` with `aria-controls`/`aria-expanded` — deliberately *not* a status `Badge`
@@ -219,6 +223,7 @@ export interface GuideMarkerProps {
 }
 
 /**
+ * @summary A phrase in the help text that lights up the element it names.
  * @description Direction B of the bidirectional link (Guide → UI): an inline reference inside a
  * `GuideArticle` that highlights the matching UI element on hover *and* focus (keyboard parity).
  * Additive `outline` ring, no scrim, no layout shift (D5); clicking also scrolls the element into
@@ -263,6 +268,7 @@ export interface GuideMentionProps {
 }
 
 /**
+ * @summary A link from one help article to another.
  * @description An inline article→article link inside a `GuideArticle` body — the
  * help-internal analogue of `GuideMention` (which links out to a UI element). A real
  * `<button>` that navigates the open `GuidePanel` to the target article via the
@@ -299,6 +305,7 @@ export interface GuideRefProps {
 }
 
 /**
+ * @summary A hint that waits beside the element it explains.
  * @description A contextual, non-blocking hint anchored to a `data-guide` element via
  * `floating.ts` (flip/shift/arrow), rendered in the native popover top-layer. Waits at the
  * right element rather than interrupting: shows on mount (or when `open` for `trigger="manual"`),
@@ -371,6 +378,7 @@ export interface GuideHintProps {
 }
 
 /**
+ * @summary The guided tour — opt-in, step by step, and only when the user asks for it.
  * @description The guided-tour renderer — the deliberately opt-in, intrusive Guide surface
  * (§6, low priority). Renders the active tour the controller drives (`startTour`/`next`/`prev`/
  * `skip`/`finish`): a spotlight that dims everything but a cut-out hole over the current step's
@@ -435,6 +443,7 @@ export interface GuideProps {
 }
 
 /**
+ * @summary A quiet pulsing dot that offers a tour instead of starting one.
  * @description A waiting, pulsing hotspot that invites the user into an opt-in guided tour (§6.3)
  * — the gentlest tour entry point, the opposite of an auto-starting tour. A real `<button>` the
  * consumer positions (inline, or absolutely over a feature corner); on activation it starts the

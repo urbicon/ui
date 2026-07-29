@@ -5,16 +5,13 @@
     ApiReference,
     CodeExample,
     DocsLayout as DocsPageLayout,
-    extractPlaygroundDocs,
-    PlaygroundConfigurator,
     Section
   } from '@urbicon-ui/docs';
   import CustomDocs from './Docs.svelte';
+  import Playground from './Playground.svelte';
   import { componentData } from './api';
   import { buildRelatedLinks } from '$lib/component-links';
   import { CurrencyInput } from '@urbicon-ui/blocks';
-
-  const { propDocs, variantKeys } = extractPlaygroundDocs(componentData?.props ?? []);
   const relatedLinks = buildRelatedLinks(componentData);
 
   const navigation = [
@@ -47,54 +44,7 @@
   related={relatedLinks}
 >
   <Section id="playground" title="Playground" intent="primary">
-    <PlaygroundConfigurator
-      showHeader={false}
-      {propDocs}
-      {variantKeys}
-      componentName="CurrencyInput"
-      controls={[
-        { type: 'text', key: 'label', label: 'Label', defaultValue: 'Price' },
-        {
-          type: 'dropdown',
-          key: 'locale',
-          label: 'Locale',
-          items: [
-            { label: 'de-DE', value: 'de-DE' },
-            { label: 'en-US', value: 'en-US' },
-            { label: 'ja-JP', value: 'ja-JP' }
-          ],
-          defaultValue: 'de-DE'
-        },
-        {
-          type: 'dropdown',
-          key: 'currency',
-          label: 'Currency',
-          items: [
-            { label: 'EUR', value: 'EUR' },
-            { label: 'USD', value: 'USD' },
-            { label: 'GBP', value: 'GBP' },
-            { label: 'JPY', value: 'JPY' }
-          ],
-          defaultValue: 'EUR'
-        },
-        {
-          type: 'dropdown',
-          key: 'symbolPosition',
-          label: 'Symbol Position',
-          items: [
-            { label: 'suffix', value: 'suffix' },
-            { label: 'prefix', value: 'prefix' },
-            { label: 'none', value: 'none' }
-          ],
-          defaultValue: 'suffix'
-        }
-      ]}
-      values={{ label: 'Price', locale: 'de-DE', currency: 'EUR', symbolPosition: 'suffix' }}
-    >
-      {#snippet children(values)}
-        <CurrencyInput {...values} value={1234_56} />
-      {/snippet}
-    </PlaygroundConfigurator>
+    <Playground />
   </Section>
 
   <CustomDocs />

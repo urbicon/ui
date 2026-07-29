@@ -22,35 +22,51 @@ export function registerMicroInteractions(registry: typeof mintRegistry): void {
   registry.registerBuiltin('scale', scaleMint);
 
   registry.registerBuiltin('translate', (config?: MicroInteractionConfig) =>
-    createMicroInteraction('blocks-mint-translate', {
-      trigger: 'hover',
-      duration: 200,
-      ...config
-    })
+    createMicroInteraction(
+      'blocks-mint-translate',
+      {
+        trigger: 'hover',
+        duration: 200,
+        ...config
+      },
+      { via: 'transition', properties: ['transform'] }
+    )
   );
 
   registry.registerBuiltin('rotate', (config?: MicroInteractionConfig) =>
-    createMicroInteraction('blocks-mint-rotate', {
-      trigger: 'hover',
-      duration: 200,
-      ...config
-    })
+    createMicroInteraction(
+      'blocks-mint-rotate',
+      {
+        trigger: 'hover',
+        duration: 200,
+        ...config
+      },
+      { via: 'transition', properties: ['transform'] }
+    )
   );
 
   registry.registerBuiltin('glow', (config?: MicroInteractionConfig) =>
-    createMicroInteraction('blocks-mint-glow', {
-      trigger: 'hover',
-      duration: 300,
-      ...config
-    })
+    createMicroInteraction(
+      'blocks-mint-glow',
+      {
+        trigger: 'hover',
+        duration: 300,
+        ...config
+      },
+      { via: 'transition', properties: ['box-shadow'] }
+    )
   );
 
   registry.registerBuiltin('bounce', (config?: MicroInteractionConfig) =>
-    createMicroInteraction('blocks-mint-bounce', {
-      trigger: 'click',
-      duration: 600,
-      ...config
-    })
+    createMicroInteraction(
+      'blocks-mint-bounce',
+      {
+        trigger: 'click',
+        duration: 600,
+        ...config
+      },
+      { via: 'animation' }
+    )
   );
 
   registry.registerBuiltin('pulse', (config?: MicroInteractionConfig) => ({
@@ -87,29 +103,41 @@ export function registerMicroInteractions(registry: typeof mintRegistry): void {
           stopPulse();
         };
       } else {
-        const standardPulse = createMicroInteraction('blocks-mint-pulse', {
-          trigger: trigger as MicroInteractionConfig['trigger'],
-          duration: 1000,
-          ...config
-        });
+        const standardPulse = createMicroInteraction(
+          'blocks-mint-pulse',
+          {
+            trigger: trigger as MicroInteractionConfig['trigger'],
+            duration: 1000,
+            ...config
+          },
+          { via: 'animation' }
+        );
         return standardPulse.init(el, inputConfig);
       }
     }
   }));
 
   registry.registerBuiltin('shake', (config?: MicroInteractionConfig) =>
-    createMicroInteraction('blocks-mint-shake', {
-      trigger: 'click',
-      duration: 500,
-      ...config
-    })
+    createMicroInteraction(
+      'blocks-mint-shake',
+      {
+        trigger: 'click',
+        duration: 500,
+        ...config
+      },
+      { via: 'animation' }
+    )
   );
 
   registry.registerBuiltin('wiggle', (config?: MicroInteractionConfig) =>
-    createMicroInteraction('blocks-mint-wiggle', {
-      trigger: 'hover',
-      duration: 500,
-      ...config
-    })
+    createMicroInteraction(
+      'blocks-mint-wiggle',
+      {
+        trigger: 'hover',
+        duration: 500,
+        ...config
+      },
+      { via: 'animation' }
+    )
   );
 }

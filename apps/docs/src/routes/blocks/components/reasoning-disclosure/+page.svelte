@@ -4,17 +4,14 @@
     ApiReference,
     CodeExample,
     DocsLayout as DocsPageLayout,
-    extractPlaygroundDocs,
-    PlaygroundConfigurator,
     Section
   } from '@urbicon-ui/docs';
   import { ReasoningDisclosure, type ChatReasoningPart } from '@urbicon-ui/blocks';
   import CustomDocs from './Docs.svelte';
+  import Playground from './Playground.svelte';
   import { componentData } from './api';
   import { buildRelatedLinks } from '$lib/component-links';
   import { asset, resolve } from '$app/paths';
-
-  const { propDocs, variantKeys } = extractPlaygroundDocs(componentData?.props ?? []);
   const relatedLinks = buildRelatedLinks(componentData);
 
   const navigation = [
@@ -24,11 +21,6 @@
     { id: 'api', title: 'API Reference', order: 4 },
     { id: 'installation', title: 'Installation', order: 5 }
   ];
-
-  const sampleText = `The user wants a range, not a single date.
-
-- \`DatePicker\` binds one \`Date\`; the range preset keeps one popover for both bounds.
-- I'll point them at \`mode="range"\` and the \`onValueChange\` shape.`;
 
   function codeGenerator(vals: Record<string, unknown>): string {
     const streaming = Boolean(vals.streaming);
@@ -61,41 +53,7 @@
   related={relatedLinks}
 >
   <Section id="playground" intent="primary">
-    <PlaygroundConfigurator
-      componentName="ReasoningDisclosure"
-      {propDocs}
-      {variantKeys}
-      {codeGenerator}
-      controls={[
-        { type: 'checkbox', key: 'streaming', label: 'Streaming', defaultValue: false },
-        {
-          type: 'number',
-          key: 'durationMs',
-          label: 'Duration (ms)',
-          min: 0,
-          max: 60000,
-          step: 100,
-          defaultValue: 4200
-        }
-      ]}
-      values={{ streaming: false, durationMs: 4200 }}
-      showHeader={false}
-    >
-      {#snippet children(values)}
-        {@const streaming = Boolean(values.streaming)}
-        {@const durationMs = Number(values.durationMs ?? 0)}
-        <div class="mx-auto max-w-lg">
-          <ReasoningDisclosure
-            reasoning={{
-              type: 'reasoning',
-              text: sampleText,
-              durationMs: durationMs > 0 ? durationMs : undefined
-            } as ChatReasoningPart}
-            {streaming}
-          />
-        </div>
-      {/snippet}
-    </PlaygroundConfigurator>
+    <Playground />
   </Section>
 
   <CustomDocs />

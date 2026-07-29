@@ -1,4 +1,5 @@
 /**
+ * @summary Keeps the notification stream open and reconnects when it drops.
  * @description Headless SSE listener for real-time notifications. Reconnects with exponential backoff (1–30s).
  * Connects to `apiPath` (default `/api/notifications/stream`). Pair with `createStreamHandler(sse)` on the server — mount its `GET` on the stream route.
  *

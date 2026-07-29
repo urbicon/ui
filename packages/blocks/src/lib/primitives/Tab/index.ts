@@ -12,6 +12,13 @@ export interface TabContext {
   readonly orientation: TabVariants['orientation'];
   readonly size: TabVariants['size'];
   readonly tier: InteractiveTier;
+  /**
+   * Every axis TabItem styles itself with must travel through here — the
+   * trigger is where `fullWidth` becomes `flex-1`, and a variants test on
+   * `tabVariants({fullWidth:true})` stays green while the prop is missing
+   * from the context (the gap this field closes).
+   */
+  readonly fullWidth: boolean;
   readonly disabled: boolean;
   readonly mint: MintProp;
 }
@@ -55,6 +62,7 @@ interface TabBaseProps
    * radius-agnostic.
    *
    * @default 'modify'
+   * @summary Corner-radius tier, passed on to every TabItem.
    */
   tier?: InteractiveTier;
 
@@ -100,6 +108,7 @@ interface TabPropsVertical extends TabBaseProps {
 }
 
 /**
+ * @summary Several views, one at a time, switched by their labels.
  * @description Tab container that manages tab switching and content display.
  * Supports horizontal/vertical orientation, visual variants, and keyboard navigation.
  *
