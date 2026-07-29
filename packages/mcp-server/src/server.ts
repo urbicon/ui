@@ -18,7 +18,8 @@ import { registerValidateDesignTool } from './tools/validate-design.js';
  * read-only tools, and the design-verb prompts. Deliberately stateless — it
  * never reads or writes a consumer's design manifest (that lives in the
  * consumer repo, via the `urbicon` CLI or the agent's own file tools), so a
- * fresh instance can be created per HTTP session. Called by both transports.
+ * fresh instance can be built per HTTP *request* (~0.2 ms; the catalog behind
+ * it is cached module-globally). Called by both transports.
  *
  * @returns A ready-to-connect `McpServer`; the caller attaches a transport
  *   (`startStdioTransport` / `startHttpTransport`).

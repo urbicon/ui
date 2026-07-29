@@ -1,24 +1,36 @@
-import { createServer as createHttpServer } from 'node:http';
+import { createServer as createHttpServer, type ServerResponse } from 'node:http';
 import { StreamableHTTPServerTransport } from '@modelcontextprotocol/sdk/server/streamableHttp.js';
 import { createServer as createMcpServer } from '../server.js';
 
+function respondError(res: ServerResponse, status: number, code: number, message: string): void {
+  res.writeHead(status, { 'Content-Type': 'application/json' });
+  res.end(JSON.stringify({ jsonrpc: '2.0', error: { code, message }, id: null }));
+}
+
 /**
- * Serve the MCP over Streamable HTTP on `/mcp`, multiplexing clients by the
- * `mcp-session-id` header. Each session gets its own server + transport pair:
- * - `POST` **without** a session id opens one (fresh {@link createServer}, a
- *   generated id) and remains registered until the transport closes;
- * - `POST`/`GET`/`DELETE` **with** a known id are routed to that session;
- * - a `POST` carrying an **unknown** id, or a session-less `GET`/`DELETE`, is a
- *   `400` — the stateless server never resurrects a session it did not open.
+ * Serve the MCP over Streamable HTTP on `/mcp`, **session-less**: every request
+ * is self-contained, so each `POST` gets a throw-away {@link createServer} +
+ * transport pair that is closed again when the response ends.
  *
- * Any non-`/mcp` path returns a plain-text banner (a lightweight liveness ping).
- * Runs until the process exits; there is no returned stop handle.
+ * The SDK's session mode (`sessionIdGenerator: () => randomUUID()`) is
+ * deliberately **not** used. It would keep a server instance per session in a
+ * map that only a client's explicit `DELETE` — or a clean transport close —
+ * ever empties, so every client that just goes away (crash, kill, dropped
+ * connection) strands ~0.4 MB of heap forever; on an unauthenticated endpoint a
+ * single anonymous `POST` is enough to do it. That leak reached ~1 GB in
+ * production. Sessions bought nothing here: the server sends no notifications
+ * and holds no per-client state, and rebuilding it per request costs ~0.2 ms.
+ *
+ * Consequently `GET` (the standalone SSE stream) and `DELETE` (session
+ * teardown) answer `405` — both explicitly permitted by the MCP spec for a
+ * server that offers no sessions. Any non-`/mcp` path returns a plain-text
+ * banner (a lightweight liveness ping).
  *
  * @param port - TCP port to listen on (binds `http://localhost:<port>/mcp`).
+ * @returns A stop handle; `index.ts` ignores it and runs until the process
+ *   exits, the transport test uses it to shut the listener down.
  */
-export async function startHttpTransport(port: number): Promise<void> {
-  const sessions = new Map<string, StreamableHTTPServerTransport>();
-
+export async function startHttpTransport(port: number): Promise<{ close: () => Promise<void> }> {
   const httpServer = createHttpServer(async (req, res) => {
     const url = new URL(req.url || '/', `http://localhost:${port}`);
 
@@ -28,69 +40,50 @@ export async function startHttpTransport(port: number): Promise<void> {
       return;
     }
 
-    const sessionId = req.headers['mcp-session-id'] as string | undefined;
-
-    if (req.method === 'POST') {
-      const session = sessionId ? sessions.get(sessionId) : undefined;
-      if (session) {
-        await session.handleRequest(req, res);
-      } else if (!sessionId) {
-        const transport = new StreamableHTTPServerTransport({
-          sessionIdGenerator: () => crypto.randomUUID()
-        });
-        transport.onclose = () => {
-          if (transport.sessionId) sessions.delete(transport.sessionId);
-        };
-        const server = createMcpServer();
-        await server.connect(transport);
-        await transport.handleRequest(req, res);
-        if (transport.sessionId) sessions.set(transport.sessionId, transport);
-      } else {
-        res.writeHead(400, { 'Content-Type': 'application/json' });
-        res.end(
-          JSON.stringify({
-            jsonrpc: '2.0',
-            error: { code: -32600, message: 'Invalid session' },
-            id: null
-          })
-        );
-      }
-    } else if (req.method === 'GET') {
-      const session = sessionId ? sessions.get(sessionId) : undefined;
-      if (session) {
-        await session.handleRequest(req, res);
-      } else {
-        res.writeHead(400, { 'Content-Type': 'application/json' });
-        res.end(
-          JSON.stringify({
-            jsonrpc: '2.0',
-            error: { code: -32600, message: 'Missing or invalid session' },
-            id: null
-          })
-        );
-      }
-    } else if (req.method === 'DELETE') {
-      const session = sessionId ? sessions.get(sessionId) : undefined;
-      if (session && sessionId) {
-        await session.handleRequest(req, res);
-        sessions.delete(sessionId);
-      } else {
-        res.writeHead(204);
-        res.end();
-      }
-    } else {
-      res.writeHead(405, { 'Content-Type': 'application/json' });
-      res.end(
-        JSON.stringify({
-          jsonrpc: '2.0',
-          error: { code: -32600, message: 'Method not allowed' },
-          id: null
-        })
+    if (req.method !== 'POST') {
+      respondError(
+        res,
+        405,
+        -32600,
+        'Method not allowed — this server is session-less; every request must be a self-contained POST'
       );
+      return;
+    }
+
+    const server = createMcpServer();
+    const transport = new StreamableHTTPServerTransport({ sessionIdGenerator: undefined });
+
+    // Tear down when the response ends — whether it completed or the client
+    // hung up. This is the only lifetime the pair has; nothing outlives it.
+    res.on('close', () => {
+      void transport.close();
+      void server.close();
+    });
+
+    try {
+      await server.connect(transport);
+      await transport.handleRequest(req, res);
+    } catch (err) {
+      console.error('MCP request failed:', err);
+      if (res.headersSent) {
+        res.end();
+      } else {
+        respondError(res, 500, -32603, 'Internal server error');
+      }
     }
   });
 
-  httpServer.listen(port, () => {
-    console.error(`Urbicon UI MCP Server listening on http://localhost:${port}/mcp`);
+  await new Promise<void>((resolve) => {
+    httpServer.listen(port, () => {
+      console.error(`Urbicon UI MCP Server listening on http://localhost:${port}/mcp`);
+      resolve();
+    });
   });
+
+  return {
+    close: () =>
+      new Promise<void>((resolve, reject) => {
+        httpServer.close((err) => (err ? reject(err) : resolve()));
+      })
+  };
 }
