@@ -5,7 +5,9 @@
   (`.room-accent` aus rooms.css) — die lebenden Komponenten tragen die Livery
   ihrer Kachel. Zeile 2: das Hero-Inventar (test-fixtures/landing-hero) als
   niedrigere Zeile — gleiche Daten (Loader-Re-Export), gleiche geteilte
-  Playgrounds. Zeile 3 ist noch Dummy.
+  Playgrounds, Familien-Kanal der Auswahl als Farb-Echo. Zeile 3: Getting
+  started in drei fugenlosen Schritten, Schritt 3 (Agents-Grün) übergibt an
+  den Agenten. Alle Farben aus dem generierten Register ($lib/landing/channels).
   Konzept: docs/internal/LANDING-CONCEPT-2026-07.md → "Struktur v2".
   NICHT verlinkt, noindex — reine Testroute.
 -->
@@ -13,6 +15,7 @@
      channel pairs and hand-tuned row heights ARE the experiment; they move into
      the token system once the direction is confirmed -->
 <script lang="ts">
+  import { CHANNELS, channelForFamily, TILE_CHANNEL } from '$lib/landing/channels';
   import HeroSpecimen from '$lib/landing/HeroSpecimen.svelte';
   import { formatKb, type HeroRow, SHARED_PREVIEW_NOTES } from '$lib/landing/hero';
   import {
@@ -39,50 +42,43 @@
 
   let { data }: { data: PageData } = $props();
 
-  // Cusp-Palette: Vollton = Sättigungsmaximum des Hues, Tiefe einheitlich
-  // L 0.32 im selben Hue. Jeder Kanal ist ein light-dark()-Paar (light:
-  // Vollton-Fläche/Tiefe-Text, dark: invertiert). Werte aus der
-  // OKLCH-Analyse vom 2026-07-29 (Variante B).
+  // Alle Kanal-Farben kommen aus dem generierten Register (channels.ts,
+  // Cusp-Formel + gemessene on-Farben) — hier wird nur noch referenziert.
   const TILES = [
     {
       key: 'blocks',
       no: '01',
       title: 'Blocks',
       line: '38 primitives, one grip',
-      solid: 'oklch(0.68 0.209 40)',
-      deep: 'oklch(0.32 0.09 40)'
+      channel: CHANNELS[TILE_CHANNEL.blocks]
     },
     {
       key: 'table',
       no: '02',
       title: 'Table',
       line: 'An enterprise grid, zero deps',
-      solid: 'oklch(0.88 0.147 200)',
-      deep: 'oklch(0.32 0.054 200)'
+      channel: CHANNELS[TILE_CHANNEL.table]
     },
     {
       key: 'a2ui',
       no: '03',
       title: 'A2UI',
       line: 'UI inside the chat, themed',
-      solid: 'oklch(0.7 0.31 330)',
-      deep: 'oklch(0.32 0.09 330)'
+      channel: CHANNELS[TILE_CHANNEL.a2ui]
     },
     {
       key: 'agent',
       no: '04',
       title: 'Agents',
       line: 'It builds — the gate watches',
-      solid: 'oklch(0.87 0.267 145)',
-      deep: 'oklch(0.32 0.09 145)'
+      channel: CHANNELS[TILE_CHANNEL.agents]
     },
     {
       key: 'more',
       no: '05',
       title: '…and more',
       line: 'The rest of the set, one row down',
-      solid: 'oklch(0.91 0.184 100)',
-      deep: 'oklch(0.32 0.067 100)'
+      channel: CHANNELS[TILE_CHANNEL.more]
     }
   ];
 
@@ -210,18 +206,11 @@
   const specimen = $derived(SPECIMENS[`${selected.pkg}:${selected.slug}`]);
   const sharedNote = $derived(SHARED_PREVIEW_NOTES[selected.slug]);
 
-  // Zeile 2 bleibt federleicht, erbt aber den Kanal der gewählten Komponente —
-  // grob: die Kachel, in deren Register sie auftaucht (ai → A2UI-Kanal,
-  // table → Table-Kanal, auth → Treppe/…and-more, Rest → Blocks). EINE
-  // Farbsemantik über beide Zeilen, keine zweite; getragen wird sie nur von
-  // Selektion, Pfeil und den lebenden Playgrounds (room-accent), nicht von
-  // Flächen.
-  const selectedChannel = $derived.by(() => {
-    if (selected.family === 'ai') return TILES[2];
-    if (selected.pkg === 'table') return TILES[1];
-    if (selected.pkg === 'auth') return TILES[4];
-    return TILES[0];
-  });
+  // Zeile 2 bleibt federleicht, erbt aber den Familien-Kanal der gewählten
+  // Komponente (Ebene 2 des Registers). EINE Farbsemantik über beide Zeilen;
+  // getragen nur von Selektion, Pfeil und den lebenden Playgrounds
+  // (room-accent), nicht von Flächen.
+  const selectedChannel = $derived(channelForFamily(selected.family));
 
   // Slot-Eingriffe des Hero, unverändert: äußere Rahmung des Configurators
   // abräumen, linke Kante angleichen, eigener Grund unter der Bühne.
@@ -251,7 +240,9 @@
       <div class="name-tile">
         <div>
           <p class="brand">
-            urbicon{#each TILES as tile (tile.key)}<span class="tick" style:background={tile.solid}
+            urbicon{#each TILES as tile (tile.key)}<span
+                class="tick"
+                style:background={tile.channel.solid}
               ></span>{/each}
           </p>
           <p class="claim">Everything in it was made in it.</p>
@@ -279,8 +270,9 @@
           {#each TILES as tile (tile.key)}
             <article
               class="tile room-accent"
-              style:--tile-solid={tile.solid}
-              style:--tile-deep={tile.deep}
+              style:--tile-solid={tile.channel.solid}
+              style:--tile-deep={tile.channel.deep}
+              style:--tile-on={tile.channel.on}
             >
               <span class="no">{tile.no}</span>
               <div class="tile-body">
@@ -349,7 +341,7 @@
       class="row2 room-accent"
       aria-label="Component index"
       style:--room-accent={selectedChannel.solid}
-      style:--room-accent-fg={selectedChannel.deep}
+      style:--room-accent-fg={selectedChannel.on}
     >
       <div class="inv-col">
         <div class="inv-head">
@@ -473,9 +465,45 @@
       </section>
     </section>
 
-    <!-- ── Zeile 3: handeln (Dummy) ────────────────────────────────── -->
-    <section class="row-dummy row3" aria-label="Getting started (placeholder)">
-      <p class="dummy-label">Zeile 3 — Getting started in 3 Schritten</p>
+    <!-- ── Zeile 3: handeln — drei Schritte, der dritte gehört dem Agenten.
+         Die Zeile endet mit einer Tür (Install + Guide-Link), nicht mit einem
+         Argument. Schritt 3 trägt das Agents-Grün — die Erzählfarbe aus
+         Kachel 04 kehrt als Abschluss-Akkord zurück. ─────────────────── -->
+    <section class="row3" aria-label="Getting started">
+      <div class="step">
+        <span class="no">01</span>
+        <div>
+          <h2 class="step-title">Install</h2>
+          <code class="cmd">bun add @urbicon-ui/blocks</code>
+          <p class="step-line">One package. Your lockfile stays yours.</p>
+        </div>
+      </div>
+      <div class="step">
+        <span class="no">02</span>
+        <div>
+          <h2 class="step-title">Provide</h2>
+          <code class="cmd">&lt;BlocksProvider&gt;&lt;App /&gt;&lt;/BlocksProvider&gt;</code>
+          <p class="step-line">Tokens, dark mode and i18n — on by default.</p>
+        </div>
+      </div>
+      <div
+        class="step step-agent"
+        style:--tile-solid={CHANNELS.green.solid}
+        style:--tile-deep={CHANNELS.green.deep}
+      >
+        <span class="no">03</span>
+        <div>
+          <h2 class="step-title">Hand it over</h2>
+          <code class="cmd">bunx urbicon init</code>
+          <p class="step-line">
+            Scaffolds AGENTS.md and the design gate — your agent builds with the set, and
+            <code>urbicon validate</code> keeps it clean.
+          </p>
+          <a class="step-link" href="/getting-started"
+            >Full guide <span aria-hidden="true">↗</span></a
+          >
+        </div>
+      </div>
     </section>
   </main>
 </I18nProvider>
@@ -570,10 +598,10 @@
     flex-direction: column;
     justify-content: space-between;
     /* Kanal-Livery: `.room-accent` (rooms.css) leitet die komplette
-       primary-Familie aus diesen zwei Vars ab — Vollton als primary,
-       Tiefe als text-on-primary, in beiden Modi. */
+       primary-Familie aus diesen zwei Vars ab — Vollton als primary, die
+       GEMESSENE on-Farbe des Registers als text-on-primary, in beiden Modi. */
     --room-accent: var(--tile-solid);
-    --room-accent-fg: var(--tile-deep);
+    --room-accent-fg: var(--tile-on);
   }
   .no {
     font-family: 'JetBrains Mono', monospace;
@@ -775,18 +803,64 @@
     font-variant-numeric: tabular-nums;
   }
 
-  /* ── Zeilen-Dummy (Zeile 3) ──────────────────────────────────── */
-  .row-dummy {
-    display: grid;
-    place-items: center;
-    border: 1px dashed light-dark(#c9c9c4, #333333);
-    color: light-dark(#77776f, #8a8a84);
-  }
+  /* ── Zeile 3: Getting started — Echo der Kachel-Anatomie (Nummer oben,
+     Inhalt unten), fugenlos; Haarlinien nur zwischen den Paper-Schritten. */
   .row3 {
+    display: grid;
     min-height: 45vh;
+    border-top: 1px solid light-dark(#e3e3df, #2a2a2a);
   }
-  .dummy-label {
+  @media (min-width: 48rem) {
+    .row3 {
+      grid-template-columns: 1fr 1fr 1fr;
+    }
+  }
+  .step {
+    padding: clamp(20px, 2.5vw, 36px);
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    gap: 1.5rem;
+  }
+  .step + .step {
+    border-inline-start: 1px solid light-dark(#e3e3df, #2a2a2a);
+  }
+  .step-agent {
+    background: light-dark(var(--tile-solid), var(--tile-deep));
+    color: light-dark(var(--tile-deep), var(--tile-solid));
+    border-inline-start: none;
+  }
+  .step-title {
+    font-size: clamp(1.3rem, 2vw, 1.8rem);
+    font-weight: 800;
+    letter-spacing: -0.02em;
+    margin-bottom: 0.6rem;
+  }
+  .cmd {
+    display: inline-block;
+    background: #101010;
+    color: #d8d8d2;
     font-family: 'JetBrains Mono', monospace;
     font-size: 0.85rem;
+    padding: 0.55rem 0.9rem;
+    margin-bottom: 0.7rem;
+  }
+  .step-line {
+    font-size: 0.9rem;
+    opacity: 0.85;
+    max-width: 40ch;
+  }
+  .step-line code {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.85em;
+  }
+  .step-link {
+    display: inline-block;
+    margin-top: 0.9rem;
+    font-weight: 700;
+    color: inherit;
+    text-decoration: none;
+    border-bottom: 2px solid currentColor;
+    padding-bottom: 2px;
   }
 </style>
