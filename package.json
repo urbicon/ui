@@ -97,7 +97,7 @@
     "test": "bun --bun --filter='*' run test",
     "test:e2e": "playwright test",
     "test:e2e:update": "playwright test --update-snapshots",
-    "i18n:check": "bun --filter='@urbicon-ui/i18n' run build && bun packages/design/src/cli/index.ts i18n audit packages/blocks/src packages/table/src --translations packages/blocks/src/lib/translations,packages/table/src/lib/translations",
+    "i18n:check": "bun --filter='@urbicon-ui/i18n' run build && bun packages/design/src/cli/index.ts i18n audit packages/blocks/src packages/table/src packages/docs/src --translations packages/blocks/src/lib/translations,packages/table/src/lib/translations,packages/docs/src/lib/translations",
     "icons:lint": "bun --bun run packages/blocks/scripts/icons-lint.ts",
     "imports:lint": "bun --bun run packages/blocks/scripts/imports-lint.ts",
     "size": "bun --bun run scripts/bundle-size.ts",
@@ -110,7 +110,9 @@
     "fix": "biome check --write .",
     "prepare": "lefthook install || true",
     "playgrounds:lint": "bun --filter='@urbicon-ui/docs-app' run playgrounds:lint",
-    "summary:lint": "bun run packages/docs-gen/scripts/summary-lint.ts"
+    "registry:lint": "bun --filter='@urbicon-ui/docs-app' run registry:lint",
+    "summary:lint": "bun run packages/docs-gen/scripts/summary-lint.ts",
+    "examples:lint": "bun run packages/docs-gen/scripts/examples-lint.ts"
   },
   "devDependencies": {
     "@axe-core/playwright": "^4.12.1",

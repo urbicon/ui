@@ -18,6 +18,9 @@ build/
 # Package archives
 *.tgz
 
+# examples-lint scratch dir (removed by the script; only survives an abort)
+__examples-lint__/
+
 # Code Coverage
 coverage/
 *.lcov

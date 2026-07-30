@@ -204,6 +204,40 @@ internal TODO instead. Sections are ordered roughly by urgency.
 
 ## Component behaviour
 
+### AvatarGroup's overlap eats the second initial
+
+- **Where:** `packages/blocks/src/lib/components/AvatarGroup/` (the overlap is
+  the `spacing` axis in `avatar-group.variants.ts`); visible on
+  `/blocks/components/avatar-group` and in the landing's "Chairs today" card.
+- **What:** Each avatar centres its initials, and the next avatar covers the
+  right ~30% of it. With image avatars that is the intended stack; with
+  initials it clips the second letter of every avatar but the last — "Io
+  Nakamura" reads "II", "Ada Lovelace" reads "AI". The docs page shows it in
+  its own default example, so the component demonstrates the defect.
+- **Why deferred:** wants a design decision, not a patch. Options: shift the
+  initials off-centre toward the visible half while overlapped (needs to know
+  which side is covered, i.e. LTR/RTL-aware), fall back to one initial in a
+  group, or reduce overlap when the content is text rather than an image. Each
+  changes how every existing AvatarGroup looks.
+- **Found:** 2026-07-30, landing polish (the stylist row in the Blocks tile).
+
+### The table offers Sum/Avg/Min/Max based on the column's *name*, not its data
+
+- **Where:** `packages/table/src/lib/features/SmartFilterBar/SummaryMenu.svelte:40-47`
+  and `HeaderMenu.svelte:122-134` gate the offer on
+  `/^(age|salary|price|amount|…)$/i` against the column id; the same regex
+  exists a third time in `factories/TableColumns.ts:446-447`.
+- **What:** A column called `price` is offered a sum even when its accessor
+  yields `'$95'` — the menu promises an operation that cannot work on that
+  data, and the result is a dash indistinguishable from "no rows". (The dash
+  now at least warns in DEV — `utils/index.ts`, added 2026-07-30 — but the
+  offer itself is still made on a name.) A numeric column called `throughput`
+  gets no offer at all.
+- **Why deferred:** sampling the actual values is the right check but changes
+  which menus appear for existing consumers, and the triplicated regex should
+  collapse to one exported helper in the same pass.
+- **Found:** 2026-07-30, landing polish (`Σ –` on the bookings tile).
+
 ### Mint demand-load path has no end-to-end coverage
 
 - **Where:** `packages/blocks/src/lib/mint/registry.ts` (`loadBuiltinMints` /
@@ -309,30 +343,56 @@ internal TODO instead. Sections are ordered roughly by urgency.
   silently shipped an index with zero props. PUBLISH-READINESS A.1's "126
   prerendered pages **mit vollem Inhalt**" is corrected there.
 
-### PlaygroundConfigurator: the i18n/slot pass left three smaller gaps — and `i18n:check` never scans `packages/docs` at all
+### PlaygroundConfigurator: (a) + (c) closed 2026-07-30; the slot question (b) stays open
 
 - **Where:** `packages/docs/src/lib/components/PlaygroundConfigurator/PlaygroundConfigurator.svelte`
-  (Tooltip `label="Style variant (tailwind-variants)"`, the modified-dot's
-  `title`/`aria-label` strings in the controlCaption snippet, the literal
-  `default` badge in the Select customItem snippet; plus the internal-only
-  `styles.variantBadge()`/`modifiedDot()`/`colorInput()` calls), and root
-  `package.json:100` (`i18n:check` scan roots).
-- **What:** The 2026-07-22 pass (debt-fix-wave-3) woke `slotClasses.helpToggle`
-  (all three call sites via `slot()`, actionsBar precedent) and localized the
-  two logged strings (`resetAll`/`hints`/`hintsOn`, EN/DE). Left deliberately:
-  (a) the further hardcoded English strings above — same class, outside the
-  logged scope; (b) `variantBadge`/`modifiedDot`/`colorInput` are internal-only
-  styles never declared in the public slotClasses union — exposing them as
-  slots is an open design call, unlike the dead-but-declared helpToggle.
-  (c) Root cause of the "0 findings" mystery: `i18n:check` scans only
-  `packages/blocks/src` and `packages/table/src` — `packages/docs/src`,
-  `packages/auth/src` and `apps/docs/src` all ship translations but are never
-  audited (extending the script also needs their `--translations` paths).
-- **Why deferred:** (a)+(b) want one coherent localization/slot pass over the
-  file; (c) is a script-surface decision (which packages the gate should own)
-  with a real runtime cost per added root.
+  and root `package.json` (`i18n:check` scan roots).
+- **(c) resolved — and the scope question got a measured answer, not a blanket
+  "add every root".** `i18n:check` now also scans `packages/docs/src`. The other
+  two candidates are deliberately out, each for its own reason:
+  **`apps/docs/src` produced 6728 advisory findings** — the site's chrome is
+  bilingual but its *content* is hardcoded English by decision (the open O1
+  call), so adding it would bury the gate in noise it is not allowed to act on;
+  **`packages/auth/src` cannot be scanned at all** — its bundles export
+  `export const en = {…}` and the audit's loader accepts only an object *default*
+  export, so both files fail to load (2 bundle errors, `FAIL`). See the entry
+  below.
+- **What the newly-scanned root found, and what was done with it:** 22 findings
+  → 2. Eight hardcoded strings were localized and three components joined the
+  translation system they were shipping keys for: `ApiReference` (all four column
+  titles were hardcoded while `property`/`type`/`default`/`description` sat
+  unused in both bundles — the columns are `$derived` now, so a language switch
+  rebuilds them), `TypesReference` and `DocsLayout`. Eleven dead keys removed
+  after checking the *consumer* too, not just the package (`apps/docs` calls none
+  of them). The two remaining findings are one deliberately empty value
+  (`playgroundSubtitle`, the default of an optional prop) now carrying a comment
+  saying so.
+- **(a) resolved with the same pass:** the modified-dot's `title`/`aria-label`,
+  the variant Tooltip and the literal `default` badge are localized (EN/DE).
+- **(b) still open:** `variantBadge`/`modifiedDot`/`colorInput` are internal-only
+  styles never declared in the public slotClasses union — exposing them as slots
+  is a design call, unlike the dead-but-declared helpToggle that was woken in
+  2026-07-22.
 - **Found:** 2026-07-22, PlaygroundConfigurator helpToggle/dt() pass
-  (debt-fix-wave-3).
+  (debt-fix-wave-3); (a)+(c) closed 2026-07-30.
+
+### The i18n audit cannot read a bundle that exports its locale under a name
+
+- **Where:** `packages/design/src/cli/commands/i18n.ts` (~`:180`, the bundle
+  loader) vs. `packages/auth/src/lib/i18n/{en,de}.ts` (`export const en = {…}`).
+- **What:** The loader accepts only `mod.default` and reports
+  "has no object default export" otherwise, so `urbicon i18n audit
+  packages/auth/src --translations packages/auth/src/lib/i18n` fails on both
+  bundles and audits nothing. auth ships EN/DE translations and is the one
+  package whose strings a consumer actually sees in production, so it is the
+  most valuable root still missing from `i18n:check`.
+- **Why deferred:** It is the house's read-tolerant/write-strict rule applied to
+  a new shape, but "tolerant" needs a definition: accept any single object export
+  when there is exactly one? Prefer an export named after the locale? Both are
+  fine until a barrel file exports two locales, and the answer decides what
+  `duplicate locale` means. auth's own `translations.parity.test.ts` covers the
+  parity half meanwhile — the unused/hardcoded halves are what is missing.
+- **Found:** 2026-07-30, extending the `i18n:check` scan roots.
 
 ### Grouped tables: the group header is a Tab stop, not an arrow-key stop
 
@@ -693,72 +753,91 @@ internal TODO instead. Sections are ordered roughly by urgency.
 
 ## Docs coverage
 
-### A new docs page has to be hand-registered in two places, and nothing checks it
+### ~~A new docs page has to be hand-registered in two places, and nothing checks it~~ — gated 2026-07-30 (`registry:lint`), and it was three places
 
-- **Where:** `apps/docs/src/lib/navigation.ts` (sidebar tree) and
-  `apps/docs/src/lib/component-links.ts` (`componentLinks`, name → route) — vs.
-  the generated catalogs in `apps/docs/static/{blocks,table,auth}/_catalog.json`,
-  which already know every shipped component.
-- **What:** Both registries are hand-written name→href lists. Adding the
-  `NumberInput` and `DateRangePicker` pages meant editing both by hand, and
-  nothing would have complained if either edit had been forgotten: the page
-  would exist and simply never appear in the sidebar, and `@related` links
-  pointing at it would be silently dropped (`buildRelatedLinks` skips unknown
-  names by design). The drift is already visible in the other direction —
-  `componentLinks` has entries for components long before it had `Kbd`,
-  `CodeBlock`, `CopyButton` or `Sankey`, so related-link chips to those pages
-  never render.
-- **Why deferred:** The fix is not "generate the nav" — the sidebar's grouping
-  and ordering are an editorial decision that the catalog does not carry, and
-  the six-family taxonomy is not a nav structure. What is cheap and would have
-  caught this is a **test**, not a generator: assert that every catalog entry
-  with a `+page.svelte` appears in `componentLinks`, and that every
-  `componentLinks` href resolves to an existing route. That belongs in the
-  docs-app test setup, which does not exist yet (see "The `@urbicon-ui/docs`
-  package has no component / DOM test coverage").
-- **Found:** 2026-07-27, giving the last catalog components a shared example.
+- **Resolved:** `apps/docs/scripts/registry-lint.ts` (`bun run registry:lint`)
+  checks five things: every catalogue component with a `+page.svelte` is in
+  `componentLinks` **and** points at its own page (only page-less names may alias
+  onto a family page); every `componentLinks` href resolves; every page appears
+  in the sidebar; every recipe appears in the cookbook; every component chip on a
+  recipe/showcase card resolves. Deliberately unlisted pages need an `UNLISTED`
+  entry with a reason, and a stale entry is an error too — the `imports-lint`
+  contract. Text-parsed rather than imported (both registries import
+  `$app/paths`, so importing them would need `svelte-kit sync`), with sanity
+  floors against a parser collapse.
+- **What it found on its first run — 26 items, more than the entry assumed.**
+  **23** catalogue components with a page but no `componentLinks` entry (so every
+  `@related` chip pointing at them was dropped without a word) — the entry named
+  four, and the real list is the whole AI/Chat family plus CurrencyInput,
+  ChartFrame, QRCode, Planner, EmptyState, AvatarGroup, PinInput, TimeInput,
+  SplitPane, ConfirmDialog, FormField, CodeBlock and more. **3** published recipe
+  pages (`/recipes/a2ui-agent-ui`, `/recipes/ai-chat`, `/recipes/filter-sidebar`)
+  that were prerendered and listed in the cookbook but in **no** sidebar — the
+  third registry the entry did not know about. Plus two recipe chips
+  (`RadioItem`, `StepperStep`) rendering as `href="#"`. All fixed;
+  `componentLinks` is 76 → 102 entries and alphabetical.
+- **The catalogue-driven nav check the entry proposed would have found nothing** —
+  every catalogue page was already in the sidebar. The useful direction is
+  route-driven (every *page* must be in a navigation surface), and that one needs
+  the 6 justified `UNLISTED` exceptions (test fixtures, imprint/privacy, the
+  salon, two AI harness pages).
+- **Open, editorial:** `/ai/streaming-markdown` has no incoming link anywhere in
+  the repo and is currently exempted as a harness — either link it (the way
+  `/ai/chat` is linked from three chat pages) or delete it.
+- **Found:** 2026-07-27, giving the last catalog components a shared example;
+  closed 2026-07-30.
 
-### The docs-gen class diagram describes an architecture that is ~85 % gone
+### ~~`TabProps`' JSDoc examples show an API that does not compile~~ — gated 2026-07-30 (`examples:lint`)
 
-- **Where:** `packages/docs-gen/docs/docs-gen-class-diagram.mermaid` (header:
-  "UPDATED CLASS DIAGRAM - 2025-08-13").
-- **What:** Of the classes it documents for the generation phase —
-  `SveltePageGenerator`, `PlaygroundRenderer`, `TemplateEngine`,
-  `SectionRenderer`, `SectionMerger`, `DeploymentManager` — **none exist in
-  `packages/docs-gen/src` any more**; only `SvelteDocsParser` is left. The
-  generator today emits `api`, `content`, `llm` and `mcp`, and the docs pages
-  are hand-written. Anyone reading the diagram to find out how a page is built
-  looks for a page generator that isn't there. (A second consequence: the
-  diagram promises `PlaygroundRenderer.generateControls(props, config)` —
-  deriving playground controls from props — which would have saved this
-  session's `deriveControls` had it existed.)
-- **Why deferred:** Redrawing it is only worth doing against the real pipeline,
-  which means walking `PipelineOrchestrator` end to end — a doc task in its own
-  right, not a side effect of touching the docs app. **Note:** a parallel
-  session appears to be working on exactly this (artifact "docs-gen
-  architecture — rewritten diagrams", 2026-07-26) — coordinate before editing
-  the file.
-- **Found:** 2026-07-27, landing hero prototype (checking whether docs pages
-  are generated before extracting their playgrounds).
+- **Resolved as the class, not the instance:** `packages/docs-gen/scripts/examples-lint.ts`
+  (`bun run examples:lint`) writes every ```svelte `@example` block out as a real
+  `.svelte` file and runs `svelte-check` over it — 181 examples across blocks,
+  table, auth and docs. The harness fills in what a *fragment* legitimately
+  leaves out (imports for PascalCase tags, `$state<any>()` slots for free
+  identifiers collected from a first pass, the DOM globals a fragment shadows),
+  and only reports the diagnostics that mean the example is wrong: unknown prop,
+  wrong enum value, missing required prop, mistyped component name. A consumer
+  placeholder (`<SettingsForm>`) needs a `PLACEHOLDERS` entry; stale entries are
+  errors, per the `imports-lint` contract.
+- **What it found besides the logged Tab case (7 examples, 5 components):**
+  Tab's `tabs={[{value,label}]}` for a `Snippet` prop **and** a
+  `variant="underline"` that never existed · `Popover` documented an `arrow` prop
+  it does not have · `Alert` used `<AlertCircle>`, `Breadcrumb` `<ChevronRight>`,
+  `Select` `<FilterIcon>` — none of the three is an export (the icons are
+  `AlertCircleIcon`, `ChevronRightIcon`, `ListFilterIcon`) · `Chat`'s example
+  omitted Toolbar's required `aria-label` · `Badge` and `Select` carried literal
+  `…` / `{...}` ellipses inside code expressions, so the snippet could not
+  compile at all · auth's TwoFactorManager invented `<MyQrCode>` where the house
+  `QRCode` fits.
+- **Known limit, recorded in the script:** every filled-in identifier is `any`,
+  so a type error that only surfaces through such a value stays invisible. The
+  gate covers the classes that actually drifted, not every conceivable one.
+- **Costs two `svelte-check` passes per package**, so it is a pre-merge/pre-bump
+  gate rather than a per-commit one.
+- **Found:** 2026-07-26, landing hero prototype; closed 2026-07-30.
 
-### `TabProps`' JSDoc examples show an API that does not compile
+### ~~A `@related`/`@tag` value swallows the prose that follows the tag block~~ — fixed 2026-07-30
 
-- **Where:** `packages/blocks/src/lib/primitives/Tab/index.ts` (~`:113`–`:145`,
-  both `@example` blocks) vs. the type right below them (`tabs?: Snippet`).
-- **What:** Both examples pass `tabs` as an array of `{ value, label }` objects;
-  the prop is a `Snippet` holding `TabItem` components (which is what the docs
-  page itself does). A consumer — or an agent — copying the example gets
-  `Type '{ value: string; label: string; }[]' is not assignable to type
-  'Snippet<[]>'`. Because `*Props` JSDoc is the single source for the MCP
-  catalog, `llms.txt` and the docs site, the wrong example is served everywhere
-  at once (verified in `apps/docs/static/blocks/_catalog.json`).
-- **Why deferred:** Rewriting the two blocks is trivial, but the finding is the
-  class, not the instance: nothing checks that `@example` code compiles, so
-  other components may carry the same drift after an API change. Wants a sweep
-  (or a lint that type-checks extracted examples), plus the `docs:gen:all`
-  regeneration that any JSDoc edit needs.
-- **Found:** 2026-07-26, landing hero prototype — hit while writing a Tab
-  specimen from the catalog.
+- **Where:** `packages/docs-gen/src/extractors/typescript/TypeScriptBaseExtractor.ts`
+  (`extractJSDocTagAll`), surfacing in `_catalog.json`, `llm.txt` and every
+  related-chip consumer.
+- **What:** TypeScript attaches every line after a JSDoc tag to that tag's
+  comment, so a paragraph written *below* the tag block landed inside the last
+  tag's value. Measured: 2 of 83 blocks components shipped a related component
+  literally named `"Toast\n\nBadge props are a discriminated union…"` (Badge) and
+  `"Stepper\n\nTab props are a discriminated union on `orientation`…"` (Tab) — a
+  chip that can never resolve, in the catalogue, in llms-full.txt and in the MCP
+  payload at once.
+- **Fixed on both ends:** the extractor cuts a repeated single-value tag at its
+  first line and *warns* about the dropped prose instead of folding it in, and
+  the two JSDoc blocks now put their prose above the tags. Four tests, negatively
+  verified (restoring the old `results.push(raw)` fails exactly the two value
+  tests, with the tag-tag case covered by its own fixture where `@tag` closes the
+  block).
+- **Side finding worth keeping:** an `@`-word anywhere in a JSDoc block is parsed
+  as a tag — including inside backticks. Writing `` `@tag` `` in prose added a
+  phantom tag whose value was `.`; the fixture had to be reworded.
+- **Found:** 2026-07-30, while auditing the `@example` blocks.
 
 ### A playground whose demo data is built *from a control* still prints a static snippet
 
@@ -1240,6 +1319,27 @@ internal TODO instead. Sections are ordered roughly by urgency.
 
 ## Design tokens
 
+### The table's own intents (`filter`/`group`/`summary`) never got the WCAG darkening the blocks intents have, and no test looks at them
+
+- **Where:** `packages/table/src/lib/style/table-theme.css:5-56` (raw Tailwind
+  cyan/teal/emerald ramps) vs. `packages/blocks/src/lib/style/foundation.css:55-68`
+  ("Darkened *-500/-600/-700 so text-on-primary passes WCAG AA"); the blind spot
+  is `packages/blocks/src/lib/style/contrast.test.ts:252-263`, whose `INTENTS`
+  list holds only the seven blocks intents — the test globs the table
+  `*.variants.ts` files (`:412-417`) but then never touches these three.
+- **What:** white on `bg-summary` measures 3.67:1, on `bg-filter` 3.60:1, on
+  `bg-group` 3.66:1 — all under AA, in the plain default theme. The pairing
+  guard and the WCAG sweep both walk past them because they are not in the list,
+  so the ramps have quietly been three intents that no gate covers.
+- **Mitigated, not fixed (2026-07-30):** the three call sites that put text on
+  those solid grounds moved to `soft` (state chips, the counter badges, the two
+  active header-menu entries — 8.8–9.2:1), so nothing renders under AA today.
+  The ramps themselves are unchanged and the next solid use re-opens it.
+- **Why deferred:** the fix is to pull `--color-filter/group/summary` to their
+  `-700` stop *and* add the three to `INTENTS` — a token change that moves every
+  existing surface in the table and wants a VR pass, not a same-session edit.
+- **Found:** 2026-07-30, landing polish (the counter badge on the Σ button).
+
 ### `text-on-primary` is used as the on-colour for every solid intent surface
 
 - **Where:** `badge.variants.ts:336-372` (filled success/secondary/danger/neutral
@@ -1499,30 +1599,74 @@ internal TODO instead. Sections are ordered roughly by urgency.
 - **Found:** 2026-07-28, hero-playground review point 30 (overlay jumps while
   paging months).
 
-### docs-gen extracts `Pick<X, …>` in an extends clause as one prop named "...Pick"
+### ~~docs-gen extracts `Pick<X, …>` in an extends clause as one prop named "...Pick"~~ — fixed 2026-07-30
 
-- **Where:** the props extractor (`packages/docs-gen/src`), visible in any
-  generated `api.ts` of a component that inherits through `Pick<>` —
-  `apps/docs/src/routes/blocks/components/copy-button/api.ts` lists
-  `value, ...HTMLButtonAttributes, ...Pick, children, …`.
-- **What:** `CopyButtonProps extends Pick<ButtonProps, 'variant' | 'intent' |
-  'size' | 'tier' | 'disabled'>` reaches the catalogue as a single prop literally
-  named `...Pick`; the five members never appear. `Omit<…>` is resolved (its
-  members are listed under `inheritance`), so this is specific to `Pick`. The
-  cost is not cosmetic: `deriveControls` is fail-loud by design, so putting any
-  of those names in a playground's `pick` list throws at SSR and the whole doc
-  page 500s — which is how this was found (hero-review point 28, the CopyButton
-  page went down until every member got a hand-written `overrides` entry).
-- **Why deferred:** The fix is in the extractor's type resolution, and the
-  workaround (a full `overrides` entry per member) is cheap and already the
-  established pattern — CopyButton's `variant` knob had been written that way
-  since before this wave. Worth doing when the extractor is next opened: the
-  hand-written option lists duplicate values that the variant configs already
-  own, so they drift silently.
-- **Found:** 2026-07-28, hero-review point 28 (adding the missing
-  intent/tier/disabled knobs to the CopyButton playground).
+- **Cause:** the heritage handling knew only `Omit`. `Pick<ButtonProps, …>`
+  matched no branch (no `*Variants` suffix, no `Omit` prefix, and `Pick` itself
+  is a lib type alias, not an interface), so it fell through to the unknown
+  placeholder, which builds `...${typeName}` — hence `...Pick`.
+- **A syntactic fix could not have worked**, which is the reusable part: of
+  CopyButton's five picked members only `disabled` is a `PropertySignature` on
+  `ButtonProps`; `variant`/`intent`/`size`/`tier` arrive through
+  `VariantProps<typeof buttonVariants>` and live as `PropertyAssignment`s in
+  `button.variants.ts`. Only the TypeChecker joins both sources. The fix
+  therefore resolves the clause through the shared `ts.Program`, takes
+  documentation from the declaration but *type and values from the checker* —
+  the symbol of a mapped-type property points at the declaration it was mapped
+  from, so a variant axis' `declaration.type` reports the tv() config object
+  (`{ calm: unknown; loud: unknown }`) instead of `'calm' | 'loud'`.
+- **Class measured, not assumed:** an AST scan over 1165 `.ts` files of all
+  packages and apps found `Omit` 105×, `Pick` 2× (CopyButton, JourneyTimeline),
+  `Partial` 1× and `Record` 1× (neither on a `*Props`), and nothing else. The
+  placeholder path is hardened anyway: an unresolved utility type is now named
+  after its *base* (`...PickLocalBaseProps`), never after itself.
+- **Effect on the generated output, diffed against the same tree state:** 2 of
+  107 components changed, all 105 `Omit` cases byte-identical. CopyButton gains
+  the five members with real literal unions; JourneyTimeline's
+  `Pick<JourneyTimelineVariants, 'orientation' | 'size'>` is now read
+  symmetrically to `Omit`, so six per-node internals (`connectorStyle`,
+  `focused`, `interactive`, `status`, `travelled`, `withMeta`) correctly stop
+  being component props.
+- **The workaround it replaces is gone:** the CopyButton playground dropped its
+  hand-written `tier`/`disabled` overrides and the option lists of
+  `variant`/`intent` entirely; only the two `defaultValue`s stay, because those
+  defaults live in `CopyButton.svelte` rather than as a prop `@default`.
+- **One follow-up defect fell out of it**, caught by the docs-app check rather
+  than docs-gen's own: the resolved members carry `values`, but the emitted
+  one-line `InheritanceProp` interface did not declare it — 4 type errors in the
+  generated `api.ts`. Fixed, and the existing "emitted interface covers the
+  emitted data" guard was extended one level down to `inheritance[].props[]`,
+  which is where it slipped through.
+- **Left open:** the `Omit` path still parses its arguments with a regex over
+  the clause text (`/Omit<([^,]+),\s*([^>]+)>/`), which breaks on a base with a
+  comma in its type arguments. Nothing hits it today; the new
+  `heritageBaseTypeText`/`heritageKeyArgText` helpers would fix it, but the
+  switch wants verification across all 105 sites.
+- **Found:** 2026-07-28, hero-review point 28; closed 2026-07-30.
 
 ## Design engine
+
+### "slop" is the public name of the second score axis, and it is the wrong word to say out loud
+
+- **Where:** `packages/design-engine` (`LintReport.scores.slop`, `SLOP_WEIGHT`,
+  `FindingKind: 'heuristic'` → slop), the `urbicon validate` output and its
+  `--slop-floor N` flag, `validate_design` on the MCP server, the design verbs,
+  and every doc that quotes a score line — including the landing's Agents tile,
+  which prints `correctness 100/100 · slop 100/100` as verbatim recorded output.
+- **What:** The axis measures whether a page reads as generic — a real and
+  useful thing — but "slop" is internal shorthand that ended up in the consumer
+  surface. It is pejorative about the consumer's own code, it does not say what
+  a *good* score means (100/100 slop reads as maximum slop, not minimum), and it
+  is the one word on the landing page that a visitor sees before any
+  explanation. Candidates discussed informally: `craft`, `distinctiveness`,
+  `character` — all of which also fix the polarity.
+- **Why deferred:** it is a rename across the engine's public type, the CLI flag
+  (`--slop-floor` would need an alias and a deprecation), the remote tool's
+  response shape, the verb texts and the recorded ndjson history schema. That is
+  a coherent release of its own, not a landing edit — and the landing line must
+  stay verbatim until the command it quotes actually prints something else.
+- **Found:** 2026-07-30, landing polish (Felix, on the Agents tile); the
+  intent to rename predates it, but was never written down.
 
 ### `token-hallucination` is a warning, so markup that renders unstyled passes an error gate
 
@@ -1593,65 +1737,65 @@ internal TODO instead. Sections are ordered roughly by urgency.
   CLI as its only knowledge source (`prototypes/artifact-frame`); fixed
   2026-07-27.
 
-### The ADR log's `status` field is inert, and the log cannot express supersession
+### ~~The ADR log's `status` field is inert, and the log cannot express supersession~~ — fixed 2026-07-30
 
-- **What:** `design.manifest.md` records design decisions as an append-only ADR
-  log, and `record-decision --status` accepts `accepted | proposed | superseded`.
-  But **no consumer ever reads the status** — `manifest.ts` only renders it in
-  parentheses, and the type comment calls it "free text". Setting `superseded` is
-  a silent no-op: the entry keeps the same weight in `urbicon context` as an
-  accepted one.
-- **And there is no way to supersede an existing entry.** `--status superseded`
-  applies to the *new* decision; marking the old one, or linking the two, is a
-  manual edit. A project that changes its mind therefore accumulates
-  contradictory `accepted` entries with no machine-readable relation between
-  them — exactly what the ADR convention has a supersedes-link for.
-- **Third defect in the same area:** `appendDecision` always inserts at the top,
-  regardless of `--date`, while its own comment says "newest first". A decision
-  recorded with a back-date lands above newer ones.
-- **Measured impact on the model: none.** Three A/B runs (Sonnet 5, n=3 each)
-  over a five-entry log whose padding decision flip-flopped `sm → lg → sm → md`:
-  the model picked the newest entry 3/3, was unaffected by consolidating the log
-  to two entries, and — with the list deliberately mis-sorted — went by the
-  **date, not the position**, again 3/3. Append-only is not the problem; it is
-  what lets a human see that a stand was already tried and dropped.
-- **Why fix it anyway:** the manifest is also a document for people, and for them
-  the three defects compound — a status that promises meaning and delivers none,
-  a history with no visible chain, and an order that contradicts its own
-  comment. A `--supersedes <title>` (setting both ends, failing loud on an
-  unknown title), date-ordered insertion, and either honouring `superseded` in
-  `context` or dropping the value would settle all three.
-- **Found:** 2026-07-27, while wiring per-session manifests into
-  `apps/artifact-studio` (BEFUNDE §24).
+- All three defects settled, in the shape the entry proposed:
+  `record-decision --supersedes <title>` sets **both** ends (the old entry gets
+  `**Status:** superseded` + `**Superseded by:**`, the new one `**Supersedes:**`)
+  and fails with exit 2 on an unknown or ambiguous title *before writing
+  anything* — a test asserts the file is byte-identical after such a call.
+  `appendDecision` now inserts by date instead of always on top. And `superseded`
+  is **honoured rather than dropped**: `urbicon context` moves those entries out
+  of the active list into a "Superseded — the history, not the current stand"
+  block, so the log stays append-only while a reader sees which stands were tried.
+- **Why honour it rather than drop the value**, given the entry's own measurement
+  that the model is unaffected: the manifest is also a document for people, and
+  dropping `superseded` would have thrown away the chain along with the field.
+- **Backwards compatible:** the parser reads tolerantly (missing fields →
+  `undefined`, a hand-written `Superseded by: X (2026-06-20)`, `Status:
+  Superseded` case-insensitively) and writes strictly — the house rule. Two tests
+  cover old manifests.
+- **Found:** 2026-07-27, wiring per-session manifests into `apps/artifact-studio`;
+  closed 2026-07-30.
 
-### The CLI has been fixed four times for the same failure — it needs one audit, not a fifth fix
+### ~~The CLI has been fixed four times for the same failure — it needs one audit, not a fifth fix~~ — swept 2026-07-30
 
-- **The pattern:** an input an agent plausibly types is neither honoured nor
-  rejected — the CLI answers something else, exit 0, and the caller cannot tell
-  the difference. Found and fixed one at a time:
-  1. unknown flags silently ignored (`fix(design)`, 2026-07-27)
-  2. `css-reference z-index` — a real section under a name nobody guesses
-     (`b8a9818`, 2026-07-28)
-  3. `principles <topic>` positionally — printed all 19 kB, exit 0 (`2471851`)
-  4. `<command> --help` — printed the whole 9.5 kB page instead of the command
-     (`2471851`)
-- **All four were found by watching a model use the tool, never by reading the
-  code.** Each cost the agent a wasted call and, in cases 3 and 4, a follow-up
-  `grep` over the command list to work out what had happened. Case 3 is the worst
-  of them: a made-up topic and a real one produced indistinguishable output.
-- **What an audit would cover, per command:** does a positional argument it does
-  not read fail or get dropped? Does an out-of-range enum value fail or fall back?
-  Does a required-but-missing argument fail or produce a default answer? Is there
-  a name for the same content that a caller is more likely to reach for than the
-  canonical one (the z-index case)? The `command-flags.ts` table plus the existing
-  `--help` guard already give the machinery; what is missing is the sweep.
-- **Why it is worth doing as a sweep:** the four fixes took four separate
-  sessions, each triggered by a lucky observation. The remaining cases are not
-  discoverable by reading the CLI, because the code looks correct — the defect is
-  the *absence* of a rejection path, and every one of them reads as a deliberate
-  lenient default until you see a model act on it.
-- **Found:** 2026-07-28, after the fourth instance, in the recorded consumer-path
-  run (`prototypes/artifact-frame/BEFUNDE.md` §26).
+- **The sweep ran over all 18 commands × the four questions** (unread positional,
+  out-of-range enum, missing required argument, a name a caller reaches for
+  before the canonical one), each finding reproduced against the running CLI
+  rather than read out of the source.
+- **The worst find was not on the list:** `urbicon validate` with no path and
+  empty stdin (a CI step, a harness) linted the empty string and reported
+  "✓ no issues", exit 0 — **the gate passed on nothing**. Now exit 2.
+- **Second worst:** `urbicon i18n prity` read the typo as a source directory,
+  found no sources, and therefore reported *every defined key as unused* — exit
+  0. A typo and a real result were indistinguishable.
+- **Generic fix rather than a handful of ifs:** a `COMMAND_POSITIONALS` table
+  beside `COMMAND_FLAGS` declares how many positionals each command reads and
+  where a stray one belongs; `index.ts` checks it, and a test forces an entry per
+  dispatched command. That closed the silent-swallow class across 9 commands
+  (`init`, `hook`, `primer`, `context`, `record-decision`, `sync-manifest`,
+  `verbs`, plus the second positional of `get-component`/`pattern`/`recipe`/
+  `guide`/`css-reference`).
+- **Also fixed:** `find --tag <unknown>` said "no components" instead of failing ·
+  `i18n --runtime-usage` ignored a non-array JSON file completely, silently
+  falsifying the unused report · `--limit` was honoured only together with a
+  query, so `urbicon icons --limit 5` printed all 315 icons · `urbicon help
+  <command>` printed the whole 9.5 kB page (the `--help` case in the other
+  spelling) · `get-component Button` — the name the caller sees in the code *and*
+  in `find`'s own output — failed with "Invalid component slug" and now resolves
+  through the catalogue.
+- **Deliberately no alias inflation:** `principles --topic` already lists all six
+  topics on failure (unlike the z-index case, nothing is hidden), and
+  `guide table` / `sync-manifest <dir>` stay fail-loud with an exact hint.
+- **Consumer-visible:** seven call shapes that used to exit 0 now exit 2 — see
+  the release notes for the list. `urbicon validate` with empty stdin is the one
+  that can turn a currently-green CI red, which is precisely the fix.
+- **Left open (own decision):** `pattern`/`recipe`/`guide` exit **1** on an
+  unknown name while `css-reference`/`principles`/`verb` exit **2**. Both are
+  loud, but the exit-code contract is inconsistent; unifying it is a breaking
+  change of its own.
+- **Found:** 2026-07-28, after the fourth instance; swept 2026-07-30.
 
 ### A citation chip inside a markdown paragraph makes SSR emit invalid HTML
 
