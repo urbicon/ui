@@ -1,0 +1,448 @@
+{
+  "turns": [
+    {
+      "wire": "I'd like to book a cut with Io next Wednesday — the 12th of August.",
+      "frames": [
+        {
+          "event": "token",
+          "data": {
+            "text": "I'll p"
+          }
+        },
+        {
+          "event": "token",
+          "data": {
+            "text": "ull up the salon's services, stylists, and Io's availability for August 12th."
+          }
+        },
+        {
+          "event": "tool_start",
+          "data": {
+            "id": "toolu_01WdRfUCBhqXfVYFbT6YSp4k",
+            "name": "get_salon_info",
+            "input": {
+              "date": "2025-08-12"
+            }
+          }
+        },
+        {
+          "event": "tool_result",
+          "data": {
+            "id": "toolu_01WdRfUCBhqXfVYFbT6YSp4k",
+            "output": {
+              "salon": "Bleecker & Bond",
+              "services": [
+                {
+                  "id": "bleecker",
+                  "label": "The Bleecker Cut",
+                  "minutes": 45,
+                  "price": "$95"
+                },
+                {
+                  "id": "dry",
+                  "label": "Dry Cut & Finish",
+                  "minutes": 30,
+                  "price": "$70"
+                },
+                {
+                  "id": "beard",
+                  "label": "Beard Architecture",
+                  "minutes": 30,
+                  "price": "$55"
+                },
+                {
+                  "id": "colour",
+                  "label": "Colour Consultation",
+                  "minutes": 20,
+                  "price": "$0"
+                }
+              ],
+              "stylists": [
+                {
+                  "id": "io",
+                  "name": "Io"
+                },
+                {
+                  "id": "sable",
+                  "name": "Sable"
+                },
+                {
+                  "id": "ren",
+                  "name": "Ren"
+                }
+              ],
+              "date": "2025-08-12",
+              "availability": [
+                {
+                  "stylistId": "io",
+                  "name": "Io",
+                  "slots": ["09:00", "10:30", "13:00", "13:45", "15:15", "16:00"]
+                },
+                {
+                  "stylistId": "sable",
+                  "name": "Sable",
+                  "slots": ["09:45", "10:30", "14:30", "16:00"]
+                },
+                {
+                  "stylistId": "ren",
+                  "name": "Ren",
+                  "slots": []
+                }
+              ]
+            }
+          }
+        },
+        {
+          "event": "token",
+          "data": {
+            "text": "Great"
+          }
+        },
+        {
+          "event": "token",
+          "data": {
+            "text": " news — Io has openings on Wednesday, August 12th. Here's a booking form. There"
+          }
+        },
+        {
+          "event": "token",
+          "data": {
+            "text": " are two \"cut\" services, so pick the one you want, choose a time, and add"
+          }
+        },
+        {
+          "event": "token",
+          "data": {
+            "text": " your name to confirm.\n\n```a2ui\n{\"version\":\"v0.9.1\",\"createSurface\":{\"surfaceId\":\"boo"
+          }
+        },
+        {
+          "event": "token",
+          "data": {
+            "text": "king-io-0812\",\"catalogId\":\"urbicon-ui/urbicon-catalog/"
+          }
+        },
+        {
+          "event": "token",
+          "data": {
+            "text": "v1\",\"sendDataModel\":true}}\n{\"version\":\"v0.9.1\",\"updateDataModel\":{\"surfaceId\":\"booking-io-0812\",\"value\":{\"name\":\"\",\"service"
+          }
+        },
+        {
+          "event": "token",
+          "data": {
+            "text": "\":[\"bleecker\"],\"stylist\":[\"io\"],\"date\":\"2025-08-12\",\"time\":\"\",\"party\":1,\"notes\":\"\",\"agreed\":false,\"slots\":[{\"label"
+          }
+        },
+        {
+          "event": "token",
+          "data": {
+            "text": "\":\"9:00 AM\",\"value\":\"09:00\"},{\"label\":\"10:30 AM\",\"value\":\"10:30\"},{\"label\":\"1:00 PM\",\"value\":\"13:"
+          }
+        },
+        {
+          "event": "token",
+          "data": {
+            "text": "00\"},{\"label\":\"1:45 PM\",\"value\":\"13:45\"},{\"label\":\"3:15 PM\",\"value\":\"15:15\"},{\"label\":\"4:00 PM\",\"value\":\"16:00\"}]"
+          }
+        },
+        {
+          "event": "token",
+          "data": {
+            "text": "}}}\n{\"version\":\"v0.9.1\",\"updateComponents\":{\"surfaceId\":\"booking-io-0812\",\"components\":[{\"id\":\"root\",\"component\":\""
+          }
+        },
+        {
+          "event": "token",
+          "data": {
+            "text": "Card\",\"variant\":\"elevated\",\"child\":\"body\",\"header\":\"header\"}]}}\n{\"version\":\"v0.9.1\",\"updateComponents\":"
+          }
+        },
+        {
+          "event": "token",
+          "data": {
+            "text": "{\"surfaceId\":\"booking-io-0812\",\"components\":[{\"id\":\"header\",\"component\":\"Row\",\"justify\":\"spaceBetween\",\"children\":[\"headerText"
+          }
+        },
+        {
+          "event": "token",
+          "data": {
+            "text": "\",\"headerBadge\"]},{\"id\":\"headerText\",\"component\":\"Text\",\"text\":\"Book with Io\",\"variant\":\"h3\"},{\"id\":\"headerBadge\",\"component\":\""
+          }
+        },
+        {
+          "event": "token",
+          "data": {
+            "text": "Badge\",\"text\":\"Wed, Aug 12\",\"intent\":\"primary\",\"variant\":\"soft\"}]}}\n{\"version\":\"v0"
+          }
+        },
+        {
+          "event": "token",
+          "data": {
+            "text": ".9.1\",\"updateComponents\":{\"surfaceId\":\"booking-io-0812\",\"components\":[{\"id\":\"body\",\"component\":\"Column\",\"children\":[\"svcSection\",\"timeSection\",\"det"
+          }
+        },
+        {
+          "event": "token",
+          "data": {
+            "text": "ailsSection\",\"policyRow\",\"submitBtn\",\"validationMsg\"]}]}}\n{\"version\":\"v0.9.1\",\"updateComponents\":{\"surfaceId\":\"boo"
+          }
+        },
+        {
+          "event": "token",
+          "data": {
+            "text": "king-io-0812\",\"components\":[{\"id\":\"svcSection\",\"component\":\"Section\",\"title\":\"Service\",\"child\":\"svcRadio\"},{\"id\":\"svcRadio\",\"component\":\"Rad"
+          }
+        },
+        {
+          "event": "token",
+          "data": {
+            "text": "ioGroup\",\"label\":\"Which cut?\",\"value\":{\"path\":\"/service/0\"},\"options\":[{\"label\":\"The Bleecker Cut — 45 min ·"
+          }
+        },
+        {
+          "event": "token",
+          "data": {
+            "text": " $95\",\"value\":\"bleecker\"},{\"label\":\"Dry Cut & Finish — 30 min · $70\",\"value\":\"dry\"}]}]}}\n{\"version\":\"v0.9.1\",\"updateCom"
+          }
+        },
+        {
+          "event": "token",
+          "data": {
+            "text": "ponents\":{\"surfaceId\":\"booking-io-0812\",\"components\":[{\"id\":\"timeSection\",\"component\":\"Section\",\"title\":\"Time\",\"description\":\"Io's open slots on"
+          }
+        },
+        {
+          "event": "token",
+          "data": {
+            "text": " August 12th\",\"child\":\"timeRadio\"},{\"id\":\"timeRadio\",\"component\":\"RadioGroup\",\"label\":\"Available times\",\"value\":{\"path\":\"/time\"},\"options\":{"
+          }
+        },
+        {
+          "event": "token",
+          "data": {
+            "text": "\"path\":\"/slots\"},\"orientation\":\"horizontal\"}]}}\n{\"version\":\"v0.9.1\",\"updateComponents\":{\"surfaceId\":\"booking-io-0812\",\"components\":[{"
+          }
+        },
+        {
+          "event": "token",
+          "data": {
+            "text": "\"id\":\"detailsSection\",\"component\":\"Section\",\"title\":\"Your details\",\"child\":\"detailsCol\"},{\"id\":\"detailsCol\",\"component\":\"Column\",\"children\":[\"nameInput\",\"notesIn"
+          }
+        },
+        {
+          "event": "token",
+          "data": {
+            "text": "put\"]},{\"id\":\"nameInput\",\"component\":\"Input\",\"label\":\"Name\",\"value\":{\"path\":\"/name\"},\"placeholder\":\"Your name\"},{\"id\":\""
+          }
+        },
+        {
+          "event": "token",
+          "data": {
+            "text": "notesInput\",\"component\":\"Textarea\",\"label\":\"Notes (optional)\",\"value\":{\"path\":\"/notes\"},\"rows\":2,\"placeholder\":\"Anything"
+          }
+        },
+        {
+          "event": "token",
+          "data": {
+            "text": " Io should know?\"}]}}\n{\"version\":\"v0.9.1\",\"updateComponents\":{\"surfaceId\":\"booking-io-0812\",\"components\":[{\"id\":\"policyRow\",\"component\":"
+          }
+        },
+        {
+          "event": "token",
+          "data": {
+            "text": "\"Checkbox\",\"label\":\"I agree to the 24-hour cancellation policy.\",\"value\":{\"path\":\"/agreed\"}}]}}\n{\"version\":\"v0.9.1\",\"upd"
+          }
+        },
+        {
+          "event": "token",
+          "data": {
+            "text": "ateComponents\":{\"surfaceId\":\"booking-io-0812\",\"components\":[{\"id\":\"submitBtn\",\"component\":\"Button\",\"intent\":\"primary\",\"child\":\"submitLabel\",\"action"
+          }
+        },
+        {
+          "event": "token",
+          "data": {
+            "text": "\":{\"event\":{\"name\":\"confirm_booking\",\"context\":{}}}},{\"id\":\"submitLabel\",\"component\":\"Text\",\"text\":\"Confirm appointment\"}]}}\n{"
+          }
+        },
+        {
+          "event": "token",
+          "data": {
+            "text": "\"version\":\"v0.9.1\",\"updateComponents\":{\"surfaceId\":\"booking-io-0812\",\"components\":[{\"id\":\"validationMsg\",\"component\":\"Text\",\"text\":\"\",\"variant\":\"caption"
+          }
+        },
+        {
+          "event": "token",
+          "data": {
+            "text": "\"}]}}\n```\n\nI've pre-selected The Bleecker Cut — just switch it to"
+          }
+        },
+        {
+          "event": "token",
+          "data": {
+            "text": " the Dry Cut if that's what you meant. Pick a time, add your name, tick the cancellation policy, and h"
+          }
+        },
+        {
+          "event": "token",
+          "data": {
+            "text": "it **Confirm appointment**."
+          }
+        },
+        {
+          "event": "done",
+          "data": {}
+        }
+      ]
+    },
+    {
+      "wire": "[ui-action] {\"name\":\"confirm_booking\",\"surfaceId\":\"booking-io-0812\",\"sourceComponentId\":\"submitBtn\",\"timestamp\":\"2026-08-05T10:12:00.000Z\",\"context\":{},\"dataModel\":{\"name\":\"Marlowe\",\"service\":[\"bleecker\"],\"stylist\":[\"io\"],\"date\":\"2026-08-12\",\"time\":\"13:45\",\"party\":1,\"notes\":\"\",\"agreed\":true}}",
+      "display": "▸ confirm_booking",
+      "frames": [
+        {
+          "event": "token",
+          "data": {
+            "text": "You"
+          }
+        },
+        {
+          "event": "token",
+          "data": {
+            "text": "'re all set, Marlowe! 🎉\n\n```a2ui\n{\"version\":\"v0.9.1\",\"updateComponents\":{\"surfaceId\":\""
+          }
+        },
+        {
+          "event": "token",
+          "data": {
+            "text": "booking-io-0812\",\"components\":[{\"id\":\"root\",\"component\":\"Card\",\"variant\":\"elevated\",\"child\":\"confirmBody\",\"header\":\"confirmHeader\"}]"
+          }
+        },
+        {
+          "event": "token",
+          "data": {
+            "text": "}}\n{\"version\":\"v0.9.1\",\"updateComponents\":{\"surfaceId\":\"booking-io-0812\",\"components\":[{\"id\":\"confirmHeader\",\"component\":\"Row\",\"justify\":\"sp"
+          }
+        },
+        {
+          "event": "token",
+          "data": {
+            "text": "aceBetween\",\"children\":[\"confirmTitle\",\"confirmBadge\"]},{\"id\":\"confirmTitle\",\"component\":\"Text\",\"text\":\"Appointment confirmed\",\"variant\":\"h3\"},{"
+          }
+        },
+        {
+          "event": "token",
+          "data": {
+            "text": "\"id\":\"confirmBadge\",\"component\":\"Badge\",\"text\":\"Confirmed\",\"intent\":\"success\",\"variant\":\"soft\"}]}}\n{\"version\":\"v0.9.1\",\"updateComponents"
+          }
+        },
+        {
+          "event": "token",
+          "data": {
+            "text": "\":{\"surfaceId\":\"booking-io-0812\",\"components\":[{\"id\":\"confirmBody\",\"component\":\"Column\",\"children\":[\"confirmAlert\",\"detailsList\"]}]}}"
+          }
+        },
+        {
+          "event": "token",
+          "data": {
+            "text": "\n{\"version\":\"v0.9.1\",\"updateComponents\":{\"surfaceId\":\"booking-io-0812\",\"components\":[{\"id\":\"confirmAlert\",\"component\":\"Alert\",\"title"
+          }
+        },
+        {
+          "event": "token",
+          "data": {
+            "text": "\":\"See you soon, Marlowe!\",\"description\":\"A confirmation is on its way. Please arrive a"
+          }
+        },
+        {
+          "event": "token",
+          "data": {
+            "text": " few minutes early.\",\"intent\":\"success\",\"variant\":\"soft\"}]}}\n{\"version\":\"v0.9.1\",\"updateComponents\":{\"surfaceId\":\"booking-io-0"
+          }
+        },
+        {
+          "event": "token",
+          "data": {
+            "text": "812\",\"components\":[{\"id\":\"detailsList\",\"component\":\"Column\",\"children\":[\"rowService\",\"rowStylist\",\"rowDate\",\"rowTime\"]}]}}\n{\"version\":\"v0.9.1\",\"update"
+          }
+        },
+        {
+          "event": "token",
+          "data": {
+            "text": "Components\":{\"surfaceId\":\"booking-io-0812\",\"components\":[{\"id\":\"rowService\",\"component\":\"Row\",\"children\":[\"iconService\",\"tx"
+          }
+        },
+        {
+          "event": "token",
+          "data": {
+            "text": "tService\"]},{\"id\":\"iconService\",\"component\":\"Icon\",\"name\":\"star\"},{\"id\":\"txtService\",\"component\":\"Text\",\"text\":\"The Bleecker Cut — 45 min · $95\"}"
+          }
+        },
+        {
+          "event": "token",
+          "data": {
+            "text": "]}}\n{\"version\":\"v0.9.1\",\"updateComponents\":{\"surfaceId\":\"booking-io-0812\",\"components\":[{\"id\":\"rowStylist\",\"component\":\"Row\",\"children\":[\"icon"
+          }
+        },
+        {
+          "event": "token",
+          "data": {
+            "text": "Stylist\",\"txtStylist\"]},{\"id\":\"iconStylist\",\"component\":\"Icon\",\"name\":\"user\"},{\"id\":\"txtStylist\",\"component\":\"Text\",\"text\":\"With"
+          }
+        },
+        {
+          "event": "token",
+          "data": {
+            "text": " Io\"}]}}\n{\"version\":\"v0.9.1\",\"updateComponents\":{\"surfaceId\":\"booking-io-0812\",\"components\":[{\"id\":\"rowDate\",\"component\":\"Row\",\"children\":"
+          }
+        },
+        {
+          "event": "token",
+          "data": {
+            "text": "[\"iconDate\",\"txtDate\"]},{\"id\":\"iconDate\",\"component\":\"Icon\",\"name\":\"calendar\"},{\"id\":\"txtDate\",\"component\":\"Text\",\"text\":\"Wednesday, August"
+          }
+        },
+        {
+          "event": "token",
+          "data": {
+            "text": " 12, 2026\"}]}}\n{\"version\":\"v0.9.1\",\"updateComponents\":{\"surfaceId\":\"booking-io-0812\",\"components\":[{\"id\":\"rowTime\",\"component\":\""
+          }
+        },
+        {
+          "event": "token",
+          "data": {
+            "text": "Row\",\"children\":[\"iconTime\",\"txtTime\"]},{\"id\":\"iconTime\",\"component\":\"Icon\",\"name\":\"clock\"},{\"id\":\"txtTime\",\"component\":\"Text\",\"text\":\"1:45 "
+          }
+        },
+        {
+          "event": "token",
+          "data": {
+            "text": "PM\"}]}}\n```\n\nHere's your confirmation:\n\n- **Service:** The Bleecker Cut (45 min · $95)\n- **Stylist:** Io\n- **When"
+          }
+        },
+        {
+          "event": "token",
+          "data": {
+            "text": ":** Wednesday, August 12, 2026 at 1:45 PM\n\nJust a heads-up on the 24-hour cancellation policy you ag"
+          }
+        },
+        {
+          "event": "token",
+          "data": {
+            "text": "reed to — if plans change, let us know at least a day ahead. Anything else I can help with, like adding a treatment or booking some"
+          }
+        },
+        {
+          "event": "token",
+          "data": {
+            "text": "one else in?"
+          }
+        },
+        {
+          "event": "done",
+          "data": {}
+        }
+      ]
+    }
+  ]
+}

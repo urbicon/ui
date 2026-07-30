@@ -1,0 +1,484 @@
+/*
+ * Four houses, one component library.
+ *
+ * ── What changed after the first attempt ────────────────────────────────────
+ * The first three liveries (Atelier / Brutalist / Neon) were the three looks
+ * every model reaches for, and they shared a flaw underneath the naming: all
+ * three were a NEUTRAL PAGE WITH AN ACCENT ON IT. Paper plus ink plus a colour.
+ * That is theming by the textbook, and it is why they read as generic.
+ *
+ * Salon sites with a real hand do the opposite — the brand IS the surface:
+ * a saturated field edge to edge, a film tone over everything, black and gold
+ * and nothing else, tinted white with visible grain. Four mechanisms recur:
+ *
+ *   1. The ground carries the identity, not an accent sitting on it.
+ *   2. Tone-on-tone rather than a contrast pair (deliberately quiet).
+ *   3. Violent type jumps with nothing in the middle — 200px wordmark,
+ *      11px body, no comfortable ladder between them.
+ *   4. Texture instead of flat colour — grain, blurred light, duotone.
+ *
+ * ── Why that reaches the agent's UI too ─────────────────────────────────────
+ * Every semantic token in `@urbicon-ui/blocks` resolves through the three
+ * foundation ramps, and `neutral` is the chassis: surfaces, text and borders
+ * all descend from it. Giving that ramp real chroma (0.08–0.14 here, against
+ * the ~0.01 the shipped themes use) tints the entire system at once — page
+ * chrome and generated booking form alike. No component is named anywhere in
+ * this file.
+ *
+ * Scoped to `[data-livery]` rather than `@theme` because the switch happens at
+ * RUNTIME: these are plain custom-property declarations, and being unlayered
+ * they outrank Tailwind's `@layer theme` defaults regardless of order.
+ *
+ * ── The one thing that does NOT follow ──────────────────────────────────────
+ * Tone-on-tone at the reference sites' own values breaks WCAG AA for body
+ * text. Resolved deliberately and in one direction: the DECORATION may be as
+ * quiet as the house wants, the INTERACTIVE text may not. Every ramp below is
+ * built so the tokens the form uses (text-primary / text-secondary on
+ * surface-base) still clear AA, while the flourishes go as soft as they like.
+ * `--color-neutral-0…950` therefore spans a compressed, shifted range instead
+ * of the usual near-white-to-near-black.
+ */
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   IMMERSION — a saturated violet fills the entire viewport. No white anywhere.
+   The one that proves the ground can be the brand.
+   ═══════════════════════════════════════════════════════════════════════════ */
+[data-livery='immersion'] {
+  /* `dark` because the ground is mid-dark and the type sits light on it. The
+     app ships no `dark:` variant — the library's light-dark() pairs do it. */
+  color-scheme: dark;
+
+  /* A violet ramp, not a grey one. Chroma 0.06–0.15 across the whole chassis:
+     there is no neutral left in the system, which is the entire point. */
+  --color-neutral-0: oklch(0.97 0.025 300);
+  --color-neutral-25: oklch(0.95 0.035 300);
+  --color-neutral-50: oklch(0.93 0.045 300);
+  --color-neutral-100: oklch(0.91 0.055 300);
+  --color-neutral-200: oklch(0.86 0.07 300);
+  --color-neutral-300: oklch(0.8 0.085 300);
+  --color-neutral-400: oklch(0.72 0.1 300);
+  --color-neutral-500: oklch(0.64 0.115 300);
+  --color-neutral-600: oklch(0.58 0.13 300);
+  --color-neutral-650: oklch(0.55 0.135 300);
+  --color-neutral-700: oklch(0.52 0.14 300);
+  --color-neutral-750: oklch(0.48 0.145 300);
+  /* surface-elevated in dark = neutral-800; kept just off the base so cards
+     lift by a hair rather than by a step. */
+  --color-neutral-800: oklch(0.45 0.145 300);
+  --color-neutral-850: oklch(0.43 0.15 300);
+  /* surface-base in dark. The house colour. */
+  --color-neutral-900: oklch(0.41 0.15 300);
+  --color-neutral-950: oklch(0.3 0.13 300);
+
+  /* Chalk — the only near-white in the house, and it is still violet. */
+  --color-primary-50: oklch(0.98 0.015 300);
+  --color-primary-100: oklch(0.96 0.02 300);
+  --color-primary-200: oklch(0.94 0.03 300);
+  --color-primary-300: oklch(0.92 0.04 300);
+  --color-primary-400: oklch(0.9 0.05 300);
+  --color-primary-500: oklch(0.93 0.045 300);
+  --color-primary-600: oklch(0.9 0.055 300);
+  --color-primary-700: oklch(0.86 0.07 300);
+  --color-primary-800: oklch(0.8 0.085 300);
+  --color-primary-900: oklch(0.7 0.1 300);
+  --color-primary-950: oklch(0.55 0.12 300);
+
+  /* Second voice: a cold green that only ever appears as a hairline. */
+  --color-secondary-50: oklch(0.96 0.03 165);
+  --color-secondary-100: oklch(0.93 0.05 165);
+  --color-secondary-200: oklch(0.9 0.08 165);
+  --color-secondary-300: oklch(0.87 0.1 165);
+  --color-secondary-400: oklch(0.84 0.11 165);
+  --color-secondary-500: oklch(0.82 0.12 165);
+  --color-secondary-600: oklch(0.76 0.12 165);
+  --color-secondary-700: oklch(0.64 0.11 165);
+  --color-secondary-800: oklch(0.5 0.09 165);
+  --color-secondary-900: oklch(0.38 0.07 165);
+  --color-secondary-950: oklch(0.26 0.05 165);
+
+  --radius-xs: 0px;
+  --radius-sm: 0px;
+  --radius-md: 0px;
+  --radius-lg: 0px;
+  --radius-xl: 0px;
+  --radius-2xl: 0px;
+  --radius-3xl: 0px;
+  --radius-4xl: 0px;
+  --radius-modify: 0px;
+  --radius-commit: 0px;
+  --radius-contain: 0px;
+  --radius-bridge: 0px;
+
+  --livery-display: 'Futura', 'Avenir Next', 'Century Gothic', system-ui, sans-serif;
+  --livery-body: 'Avenir Next', 'Helvetica Neue', system-ui, sans-serif;
+  --livery-display-weight: 500;
+  --livery-display-tracking: 0.02em;
+  --livery-display-transform: uppercase;
+  --livery-label-tracking: 0.2em;
+  --livery-label-transform: uppercase;
+  /* Blurred light, the way a gradient mesh sits under the reference. */
+  --livery-ground:
+    radial-gradient(60% 50% at 20% 15%, oklch(0.52 0.16 310 / 0.9), transparent 70%),
+    radial-gradient(50% 45% at 85% 30%, oklch(0.34 0.14 285 / 0.85), transparent 70%),
+    radial-gradient(70% 60% at 60% 95%, oklch(0.56 0.13 330 / 0.55), transparent 70%);
+  --livery-grain: none;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   GRAIN — tinted off-white, visible noise, everything tiny and tracked out.
+   The one that proves near-zero contrast can still be a system.
+   ═══════════════════════════════════════════════════════════════════════════ */
+[data-livery='grain'] {
+  color-scheme: light;
+
+  /* Barely-there warm grey. The whole ramp lives in a narrow band at the top —
+     nothing in this house is ever black. */
+  --color-neutral-0: oklch(0.935 0.002 100);
+  --color-neutral-25: oklch(0.93 0.002 100);
+  --color-neutral-50: oklch(0.925 0.002 100);
+  --color-neutral-100: oklch(0.915 0.003 100);
+  --color-neutral-200: oklch(0.88 0.003 100);
+  --color-neutral-300: oklch(0.82 0.004 100);
+  --color-neutral-400: oklch(0.68 0.004 100);
+  --color-neutral-500: oklch(0.54 0.005 100);
+  --color-neutral-600: oklch(0.42 0.005 100);
+  --color-neutral-650: oklch(0.38 0.005 100);
+  --color-neutral-700: oklch(0.33 0.005 100);
+  --color-neutral-750: oklch(0.29 0.005 100);
+  --color-neutral-800: oklch(0.25 0.004 100);
+  --color-neutral-850: oklch(0.22 0.004 100);
+  --color-neutral-900: oklch(0.19 0.004 100);
+  --color-neutral-950: oklch(0.12 0.003 100);
+
+  --color-primary-50: oklch(0.93 0.002 100);
+  --color-primary-100: oklch(0.9 0.003 100);
+  --color-primary-200: oklch(0.84 0.004 100);
+  --color-primary-300: oklch(0.66 0.004 100);
+  --color-primary-400: oklch(0.44 0.005 100);
+  --color-primary-500: oklch(0.3 0.005 100);
+  --color-primary-600: oklch(0.19 0.004 100);
+  --color-primary-700: oklch(0.15 0.004 100);
+  --color-primary-800: oklch(0.13 0.003 100);
+  --color-primary-900: oklch(0.11 0.003 100);
+  --color-primary-950: oklch(0.09 0.002 100);
+
+  /* A single dusty rose, used once per screen at most. */
+  --color-secondary-50: oklch(0.95 0.015 20);
+  --color-secondary-100: oklch(0.92 0.025 20);
+  --color-secondary-200: oklch(0.87 0.04 20);
+  --color-secondary-300: oklch(0.79 0.055 20);
+  --color-secondary-400: oklch(0.68 0.07 20);
+  --color-secondary-500: oklch(0.57 0.08 20);
+  --color-secondary-600: oklch(0.48 0.075 20);
+  --color-secondary-700: oklch(0.4 0.065 20);
+  --color-secondary-800: oklch(0.32 0.05 20);
+  --color-secondary-900: oklch(0.25 0.04 20);
+  --color-secondary-950: oklch(0.17 0.025 20);
+
+  --radius-xs: 0px;
+  --radius-sm: 0px;
+  --radius-md: 0px;
+  --radius-lg: 0px;
+  --radius-xl: 0px;
+  --radius-2xl: 0px;
+  --radius-3xl: 0px;
+  --radius-4xl: 0px;
+  --radius-modify: 0px;
+  --radius-commit: 0px;
+  --radius-contain: 0px;
+  --radius-bridge: 0px;
+
+  --livery-display: 'Helvetica Neue', 'Inter', system-ui, sans-serif;
+  --livery-body: 'Helvetica Neue', 'Inter', system-ui, sans-serif;
+  --livery-display-weight: 300;
+  --livery-display-tracking: 0.42em;
+  --livery-display-transform: uppercase;
+  --livery-label-tracking: 0.24em;
+  --livery-label-transform: uppercase;
+  --livery-ground: none;
+  /* Film grain as an inline SVG turbulence — texture without an asset. */
+  --livery-grain: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='140' height='140'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='3'/%3E%3C/filter%3E%3Crect width='140' height='140' filter='url(%23n)' opacity='0.42'/%3E%3C/svg%3E");
+  --livery-grain-blend: multiply;
+  --livery-grain-opacity: 0.22;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   LACQUER — black and gold, a classical serif, everything symmetrical.
+   The one that proves a two-colour house needs no third.
+   ═══════════════════════════════════════════════════════════════════════════ */
+[data-livery='lacquer'] {
+  color-scheme: dark;
+
+  /* Warm black through to warm bone. The chassis carries a trace of the gold
+     so nothing on screen is ever a cold grey. */
+  --color-neutral-0: oklch(0.97 0.015 85);
+  --color-neutral-25: oklch(0.95 0.018 85);
+  --color-neutral-50: oklch(0.93 0.02 85);
+  --color-neutral-100: oklch(0.9 0.025 85);
+  --color-neutral-200: oklch(0.83 0.03 85);
+  --color-neutral-300: oklch(0.75 0.035 85);
+  --color-neutral-400: oklch(0.62 0.04 85);
+  --color-neutral-500: oklch(0.5 0.035 85);
+  --color-neutral-600: oklch(0.4 0.03 85);
+  --color-neutral-650: oklch(0.35 0.028 85);
+  --color-neutral-700: oklch(0.3 0.025 85);
+  --color-neutral-750: oklch(0.24 0.02 85);
+  --color-neutral-800: oklch(0.19 0.016 85);
+  --color-neutral-850: oklch(0.15 0.013 85);
+  --color-neutral-900: oklch(0.115 0.011 85);
+  --color-neutral-950: oklch(0.06 0.008 85);
+
+  /* Gold. In dark mode the library fills with primary-500 and writes
+     neutral-900 on it — so 500 must stay light enough to carry near-black. */
+  --color-primary-50: oklch(0.96 0.04 88);
+  --color-primary-100: oklch(0.93 0.07 88);
+  --color-primary-200: oklch(0.89 0.1 88);
+  --color-primary-300: oklch(0.86 0.12 88);
+  --color-primary-400: oklch(0.83 0.13 88);
+  --color-primary-500: oklch(0.81 0.135 88);
+  --color-primary-600: oklch(0.72 0.13 88);
+  --color-primary-700: oklch(0.6 0.11 88);
+  --color-primary-800: oklch(0.47 0.09 88);
+  --color-primary-900: oklch(0.35 0.07 88);
+  --color-primary-950: oklch(0.22 0.045 88);
+
+  /* There is no third colour. Secondary is the same gold, one step quieter —
+     a house this strict would rather repeat itself than introduce a hue. */
+  --color-secondary-50: oklch(0.95 0.03 80);
+  --color-secondary-100: oklch(0.92 0.05 80);
+  --color-secondary-200: oklch(0.87 0.07 80);
+  --color-secondary-300: oklch(0.82 0.085 80);
+  --color-secondary-400: oklch(0.78 0.095 80);
+  --color-secondary-500: oklch(0.75 0.1 80);
+  --color-secondary-600: oklch(0.66 0.095 80);
+  --color-secondary-700: oklch(0.55 0.085 80);
+  --color-secondary-800: oklch(0.43 0.07 80);
+  --color-secondary-900: oklch(0.32 0.05 80);
+  --color-secondary-950: oklch(0.2 0.035 80);
+
+  /* Not square: this house is old, and old things have a little softness. */
+  --radius-xs: 1px;
+  --radius-sm: 2px;
+  --radius-md: 2px;
+  --radius-lg: 3px;
+  --radius-xl: 3px;
+  --radius-2xl: 4px;
+  --radius-3xl: 4px;
+  --radius-4xl: 4px;
+  --radius-modify: 1px;
+  --radius-commit: 2px;
+  --radius-contain: 2px;
+  --radius-bridge: 2px;
+
+  --livery-display: 'Hoefler Text', 'Baskerville', 'Times New Roman', serif;
+  --livery-body: 'Hoefler Text', 'Baskerville', 'Times New Roman', serif;
+  --livery-display-weight: 400;
+  --livery-display-tracking: 0.06em;
+  --livery-display-transform: none;
+  --livery-label-tracking: 0.18em;
+  --livery-label-transform: uppercase;
+  --livery-ground: radial-gradient(80% 60% at 50% 0%, oklch(0.2 0.03 88 / 0.75), transparent 75%);
+  --livery-grain: none;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   VITRINE — a duotone film tone over everything, display serif at the edge.
+   The one that proves the ground can be an IMAGE rather than a colour.
+   ═══════════════════════════════════════════════════════════════════════════ */
+[data-livery='vitrine'] {
+  color-scheme: dark;
+
+  /* Sepia: the whole chassis pulled towards a single warm hue, as if the page
+     were graded rather than coloured. */
+  --color-neutral-0: oklch(0.97 0.03 75);
+  --color-neutral-25: oklch(0.95 0.035 75);
+  --color-neutral-50: oklch(0.93 0.04 75);
+  --color-neutral-100: oklch(0.91 0.045 75);
+  --color-neutral-200: oklch(0.85 0.055 75);
+  --color-neutral-300: oklch(0.77 0.065 72);
+  --color-neutral-400: oklch(0.64 0.07 70);
+  --color-neutral-500: oklch(0.52 0.07 68);
+  --color-neutral-600: oklch(0.42 0.065 65);
+  --color-neutral-650: oklch(0.37 0.06 65);
+  --color-neutral-700: oklch(0.32 0.055 62);
+  --color-neutral-750: oklch(0.27 0.05 60);
+  --color-neutral-800: oklch(0.23 0.045 58);
+  --color-neutral-850: oklch(0.2 0.04 58);
+  --color-neutral-900: oklch(0.17 0.035 58);
+  --color-neutral-950: oklch(0.1 0.025 58);
+
+  /* Brass, lifted out of the same grade. */
+  --color-primary-50: oklch(0.96 0.03 80);
+  --color-primary-100: oklch(0.93 0.05 80);
+  --color-primary-200: oklch(0.9 0.08 80);
+  --color-primary-300: oklch(0.87 0.1 78);
+  --color-primary-400: oklch(0.84 0.11 78);
+  --color-primary-500: oklch(0.82 0.12 78);
+  --color-primary-600: oklch(0.73 0.115 78);
+  --color-primary-700: oklch(0.61 0.1 76);
+  --color-primary-800: oklch(0.48 0.085 74);
+  --color-primary-900: oklch(0.36 0.065 72);
+  --color-primary-950: oklch(0.23 0.04 70);
+
+  /* Cool counter-tone — the shadow side of the grade. */
+  --color-secondary-50: oklch(0.95 0.02 230);
+  --color-secondary-100: oklch(0.91 0.035 230);
+  --color-secondary-200: oklch(0.86 0.05 230);
+  --color-secondary-300: oklch(0.8 0.065 230);
+  --color-secondary-400: oklch(0.74 0.075 230);
+  --color-secondary-500: oklch(0.7 0.08 230);
+  --color-secondary-600: oklch(0.61 0.08 230);
+  --color-secondary-700: oklch(0.5 0.07 230);
+  --color-secondary-800: oklch(0.39 0.055 230);
+  --color-secondary-900: oklch(0.29 0.04 230);
+  --color-secondary-950: oklch(0.18 0.025 230);
+
+  --radius-xs: 0px;
+  --radius-sm: 0px;
+  --radius-md: 0px;
+  --radius-lg: 0px;
+  --radius-xl: 0px;
+  --radius-2xl: 0px;
+  --radius-3xl: 0px;
+  --radius-4xl: 0px;
+  --radius-modify: 0px;
+  --radius-commit: 0px;
+  --radius-contain: 0px;
+  --radius-bridge: 0px;
+
+  --livery-display: 'Bodoni 72', 'Didot', 'Playfair Display', Georgia, serif;
+  --livery-body: 'Avenir Next', 'Helvetica Neue', system-ui, sans-serif;
+  --livery-display-weight: 400;
+  --livery-display-tracking: -0.02em;
+  --livery-display-transform: uppercase;
+  --livery-label-tracking: 0.16em;
+  --livery-label-transform: uppercase;
+  /* Studio light rather than a photograph: a warm key from the upper left,
+     a cool fill from the right, deep falloff into the corners. */
+  --livery-ground:
+    radial-gradient(55% 45% at 22% 8%, oklch(0.55 0.1 78 / 0.85), transparent 70%),
+    radial-gradient(45% 40% at 88% 35%, oklch(0.3 0.06 230 / 0.7), transparent 72%),
+    radial-gradient(90% 70% at 50% 110%, oklch(0.12 0.03 58 / 0.95), transparent 70%);
+  --livery-grain: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='120'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2'/%3E%3C/filter%3E%3Crect width='120' height='120' filter='url(%23n)' opacity='0.28'/%3E%3C/svg%3E");
+  --livery-grain-blend: overlay;
+  --livery-grain-opacity: 0.5;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   Wiring — the same four hooks for every house.
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+/* ── Where a livery may be applied ──────────────────────────────────────────
+ *
+ * The selectors above are attribute-only (`[data-livery='…']`, not
+ * `:root[data-livery='…']`) so a house can be mounted on the document root OR
+ * on any container. That is what lets one of these live as a tile inside a page
+ * that has a look of its own — a violet dark house sitting in a light landing
+ * page without touching it.
+ *
+ * It works because `light-dark()` resolves against the NEAREST `color-scheme`,
+ * not the root's. Verified in-browser: light root, `color-scheme: dark` on a
+ * container, and the container's value is what the tokens inside it resolve to.
+ * Without that, every one of these houses would repaint the whole document.
+ *
+ * Two scopes, one difference — where the ground is anchored:
+ *   - default (a tile): `absolute`, so the ground fills the container.
+ *   - `data-livery-scope="page"`: `fixed`, so it fills the viewport and stays
+ *     put while the page scrolls.
+ * ─────────────────────────────────────────────────────────────────────────── */
+
+/* A tile is its own stacking and blending context. `isolation` is not optional:
+   the grain layer uses `mix-blend-mode`, which would otherwise blend with
+   whatever sits BEHIND the tile — i.e. the host page. */
+[data-livery]:not([data-livery-scope='page']) {
+  position: relative;
+  isolation: isolate;
+}
+
+/* The ground. Both layers are non-interactive and sit under the content.
+ *
+ * TILE scope: the layers hang off the livery element itself.
+ * PAGE scope: they hang off <body> instead — NOT off <html>, even though that
+ * is where the attribute sits. `<body>` paints its own background box over
+ * anything `<html>`'s pseudo-elements draw, so a ground anchored to the root
+ * is simply invisible under an opaque body. (Found by measuring: the gradient
+ * was present and correctly `position: fixed`, and the page was still flat.)
+ */
+[data-livery]:not([data-livery-scope='page'])::before,
+[data-livery]:not([data-livery-scope='page'])::after,
+[data-livery][data-livery-scope='page'] body::before,
+[data-livery][data-livery-scope='page'] body::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 0;
+}
+/* Fixed so the ground stays put while the page scrolls; a tile's ground scrolls
+   with the tile, which is what you want there. */
+[data-livery][data-livery-scope='page'] body::before,
+[data-livery][data-livery-scope='page'] body::after {
+  position: fixed;
+}
+[data-livery]:not([data-livery-scope='page'])::before,
+[data-livery][data-livery-scope='page'] body::before {
+  background: var(--livery-ground);
+}
+[data-livery]:not([data-livery-scope='page'])::after,
+[data-livery][data-livery-scope='page'] body::after {
+  background-image: var(--livery-grain);
+  /* Tiling a 120px noise tile; `repeat` is the default but stated because the
+     size matters — larger tiles read as blotches, smaller ones as moiré. */
+  background-repeat: repeat;
+  /* The blend mode has to follow the ground, not the other way round: on a
+     dark field `overlay` lifts the grain into view, on a near-white one it
+     does almost nothing (overlay lightens against a light backdrop) and
+     `multiply` is what actually bites. Measured, not guessed — the first pass
+     shipped `overlay` for both and the light house had no visible texture at
+     all. */
+  mix-blend-mode: var(--livery-grain-blend, overlay);
+  opacity: var(--livery-grain-opacity, 0.5);
+}
+/* Content rides above both — the livery element's own children in a tile, the
+   body's children on a page. */
+[data-livery]:not([data-livery-scope='page']) > *,
+[data-livery][data-livery-scope='page'] body > * {
+  position: relative;
+  z-index: 1;
+}
+
+/* Type. The library sets no `font-family` anywhere, so one declaration on the
+   livery root carries through every component inside it — page chrome and
+   generated surface alike. */
+[data-livery] {
+  font-family: var(--livery-body);
+}
+
+[data-livery] :is(h1, h2, h3, h4, h5, .livery-display) {
+  font-family: var(--livery-display);
+  font-weight: var(--livery-display-weight);
+  letter-spacing: var(--livery-display-tracking);
+}
+
+/* The wordmark and section heads take the house's case; body copy never does. */
+[data-livery] .livery-display {
+  text-transform: var(--livery-display-transform);
+}
+
+[data-livery] label {
+  letter-spacing: var(--livery-label-tracking);
+  text-transform: var(--livery-label-transform);
+}
+
+/* The switch is a CUT, not a crossfade.
+ *
+ * A blanket `transition: color/background 260ms` on `body *` was the obvious
+ * first try and it was wrong twice over. Aesthetically, half a second of every
+ * surface sliding between two identities reads as mush — the point is that the
+ * house changes, and a cut says that where a fade blurs it. Technically,
+ * animating thousands of elements across a `color-scheme` flip left parts of
+ * the page painting stale colours for seconds afterwards (nav, links and small
+ * caps lagged behind the headline), because each `light-dark()` pair has to be
+ * re-resolved and interpolated at once.
+ *
+ * Nothing replaces it: an instant switch has neither problem. */

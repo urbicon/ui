@@ -79,8 +79,14 @@
   // judging a full-bleed hero next to the docs sidebar tells you nothing about
   // how it will actually read. Those routes are excluded from sitemap and
   // search (sitemap.xml/+server.ts).
+  //
+  // /salon is the livery showcase (ported from the former chat-demo app): a
+  // fictional salon site that brings its own masthead, footer and livery
+  // switch — docs chrome around it would break the exhibit.
   const isLanding = $derived(
-    page.url.pathname === '/' || page.url.pathname.startsWith('/test-fixtures/landing-')
+    page.url.pathname === '/' ||
+      page.url.pathname === '/salon' ||
+      page.url.pathname.startsWith('/test-fixtures/landing-')
   );
 
   // Color Rooms accent per section ("Farbe = Ort"). The top-level route segment

@@ -1,0 +1,199 @@
+/*
+ * Layout per livery — the part that is NOT a token.
+ *
+ * The reference sites do not differ only in colour and type: one centres
+ * everything in an empty field, one pins fragments to the edges of a wide grid
+ * with nothing in the middle, one is classically symmetrical, one runs its
+ * wordmark straight off the margin. That is page structure, and pretending it
+ * were a design token would be a lie about where the boundary sits.
+ *
+ * So this file is scoped to the salon page's own elements (`[data-salon]`),
+ * driven by `data-layout` on the page root. The agent-generated booking
+ * surface is deliberately NOT addressed here — it re-skins through tokens and
+ * provider defaults alone, which is the claim under test. Where a house's
+ * identity lives mostly in its grid, that claim gets weaker, and the demo
+ * should show that rather than hide it.
+ */
+
+/* Bleed without a scrollbar.
+ *
+ * Two of these houses deliberately push elements past the text column, and one
+ * pushes past the viewport edge. `clip` (not `hidden`) contains that overflow
+ * without turning the page root into a scroll container — `hidden` here would
+ * break the sticky masthead, since a sticky element needs its nearest scroll
+ * container to be the viewport. */
+[data-layout] {
+  overflow-x: clip;
+}
+
+/* ── immersive — one field, content adrift in it ───────────────────────────── */
+[data-layout='immersive'] [data-salon='hero'] {
+  min-height: 82vh;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  text-align: center;
+  gap: 3rem;
+}
+[data-layout='immersive'] [data-salon='wordmark'] {
+  font-size: clamp(3.5rem, 11vw, 10rem);
+  line-height: 0.95;
+}
+[data-layout='immersive'] [data-salon='lede'] {
+  max-width: 28rem;
+}
+[data-layout='immersive'] [data-salon='section-body'] {
+  max-width: 46rem;
+  margin-inline: auto;
+}
+
+/* ── scatter — no centre; fragments pinned across a wide grid ──────────────── */
+[data-layout='scatter'] [data-salon='hero'] {
+  min-height: 88vh;
+  display: grid;
+  grid-template-columns: repeat(12, 1fr);
+  grid-template-rows: repeat(6, auto);
+  align-content: center;
+  gap: 1rem 0;
+}
+[data-layout='scatter'] [data-salon='kicker'] {
+  /* Wide enough for the address on one line — at `span 3` the tracking pushed
+     "NEW YORK" onto a second row, which in a layout this sparse looks like a
+     mistake rather than a break. */
+  grid-column: 1 / span 6;
+  grid-row: 1;
+}
+[data-layout='scatter'] [data-salon='wordmark'] {
+  grid-column: 1 / span 12;
+  grid-row: 3;
+  font-size: clamp(2rem, 5.5vw, 4.5rem);
+  line-height: 1;
+  /* The wordmark is a rule of letters across the full measure, not a word. */
+  display: flex;
+  justify-content: space-between;
+}
+[data-layout='scatter'] [data-salon='lede'] {
+  grid-column: 2 / span 4;
+  grid-row: 5;
+  max-width: none;
+}
+[data-layout='scatter'] [data-salon='cta'] {
+  grid-column: 10 / span 3;
+  grid-row: 5;
+  justify-self: end;
+}
+/* Lists lose their column and spread over the full width, aligned to nothing. */
+[data-layout='scatter'] [data-salon='list'] > * {
+  display: grid;
+  grid-template-columns: repeat(12, 1fr);
+  align-items: baseline;
+}
+[data-layout='scatter'] [data-salon='list'] > * > :first-child {
+  grid-column: 1 / span 5;
+}
+[data-layout='scatter'] [data-salon='list'] > * > :last-child {
+  grid-column: 8 / span 5;
+  justify-self: end;
+}
+
+/* ── symmetric — a classical centred column ───────────────────────────────── */
+[data-layout='symmetric'] [data-salon='hero'] {
+  min-height: 78vh;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  text-align: center;
+  gap: 2rem;
+}
+[data-layout='symmetric'] [data-salon='wordmark'] {
+  font-size: clamp(2.75rem, 7vw, 6rem);
+  line-height: 1.05;
+}
+[data-layout='symmetric'] [data-salon='lede'] {
+  max-width: 34rem;
+}
+[data-layout='symmetric'] [data-salon='section'] {
+  text-align: center;
+}
+[data-layout='symmetric'] [data-salon='section-body'] {
+  max-width: 38rem;
+  margin-inline: auto;
+}
+/* A rule above each section head, centred — the oldest heading device there is. */
+[data-layout='symmetric'] [data-salon='section-head']::before {
+  content: '';
+  display: block;
+  width: 3rem;
+  height: 1px;
+  background: currentColor;
+  opacity: 0.5;
+  margin: 0 auto 1.5rem;
+}
+
+/* ── edge — the wordmark runs past the column and off the margin ───────────── */
+[data-layout='edge'] [data-salon='hero'] {
+  min-height: 92vh;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  padding-bottom: 3rem;
+}
+[data-layout='edge'] [data-salon='wordmark'] {
+  /* Sized to reach the margins and stop there. The first pass ran at 13vw with
+     `nowrap`, which cut "BOND" mid-word — that reads as a bug, not as a
+     decision, and it also blew the document out to 2494px against a 1280px
+     viewport (measured). A wordmark that touches both edges says the same
+     thing without either problem. */
+  font-size: clamp(2.5rem, 9.2vw, 9rem);
+  line-height: 0.86;
+  /* Past the text column but never past the viewport: the letterforms are the
+     picture, so they leave the container — `clip` on the page root (below)
+     keeps them from leaving the document. */
+  margin-inline: -4vw;
+  white-space: nowrap;
+}
+[data-layout='edge'] [data-salon='lede'] {
+  align-self: flex-end;
+  max-width: 24rem;
+  text-align: right;
+  margin-bottom: 2rem;
+}
+[data-layout='edge'] [data-salon='kicker'] {
+  align-self: flex-end;
+  margin-bottom: 0.5rem;
+}
+[data-layout='edge'] [data-salon='cta'] {
+  align-self: flex-start;
+  margin-top: 2rem;
+}
+
+/* Hide the scatter layout's per-letter spread everywhere else: the wordmark is
+   one word in three of the four houses. */
+[data-layout]:not([data-layout='scatter']) [data-salon='wordmark'] [data-letter-gap] {
+  display: none;
+}
+
+@media (max-width: 640px) {
+  /* Every house falls back to a plain stack on a phone. None of these grids
+     survive a 375px viewport, and pretending otherwise would be the kind of
+     detail a demo quietly gets wrong. */
+  [data-layout] [data-salon='hero'] {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    text-align: left;
+    min-height: 70vh;
+  }
+  [data-layout] [data-salon='wordmark'] {
+    margin-inline: 0;
+    white-space: normal;
+    display: block;
+    font-size: clamp(2.25rem, 12vw, 4rem);
+  }
+  [data-layout] [data-salon='lede'] {
+    align-self: flex-start;
+    text-align: left;
+  }
+}
