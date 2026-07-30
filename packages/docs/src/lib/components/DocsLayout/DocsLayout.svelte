@@ -5,10 +5,13 @@
   } from '$lib/stores/code-visibility.svelte';
   import { ScrollSpy } from '$lib/stores/scroll-spy.svelte';
   import { Breadcrumb, ChevronDownIcon } from '@urbicon-ui/blocks';
+  import { useDocsI18n } from '$lib/i18n';
   import TableOfContents from '../TableOfContents/TableOfContents.svelte';
   import { docsLayoutVariants } from './docslayout.variants';
   import { getPageNav } from './page-nav';
   import type { DocsLayoutProps } from './index.js';
+
+  const dt = useDocsI18n();
 
   let {
     title,
@@ -249,7 +252,7 @@
           <Breadcrumb
             items={breadcrumbTrail}
             wrap={false}
-            aria-label="Breadcrumb"
+            aria-label={dt('breadcrumbLabel')}
             slotClasses={{
               nav: 'font-meta min-w-0 lowercase',
               list: `gap-0.5 transition-[font-size] duration-300 ease-out ${scrolledPastHeader ? 'text-xs' : 'text-sm'}`,
@@ -331,7 +334,7 @@
                   onclick={() => (mobileTocOpen = !mobileTocOpen)}
                   aria-expanded={mobileTocOpen}
                 >
-                  <span>On this page</span>
+                  <span>{dt('tocOnThisPage')}</span>
                   <ChevronDownIcon
                     class="h-4 w-4 transition-transform duration-(--blocks-duration-fast) {mobileTocOpen
                       ? 'rotate-180'

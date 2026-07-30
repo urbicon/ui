@@ -350,7 +350,7 @@
 {#snippet controlCaption(control: ControlDefinition, labelId: string | undefined)}
   <span id={labelId}>{control.label}</span>
   {#if variantKeySet.has(control.key)}
-    <Tooltip label="Style variant (tailwind-variants)" placement="top">
+    <Tooltip label={dt('variantAxisTooltip')} placement="top">
       <span class={styles.variantBadge()} aria-hidden="true">V</span>
     </Tooltip>
   {/if}
@@ -366,8 +366,8 @@
       type="button"
       class={styles.modifiedDot()}
       onclick={() => resetToDefault(control.key)}
-      title="Default: {componentDefaults[control.key]}. Click to reset."
-      aria-label="Reset {control.label} to default"
+      title={dt('resetControlTitle', { value: String(componentDefaults[control.key]) })}
+      aria-label={dt('resetControlLabel', { label: control.label })}
     ></button>
   {/if}
 {/snippet}
@@ -506,7 +506,7 @@
                       <span class="flex-1 truncate text-left">{option.label}</span>
                       {#if String(option.value) === String(control.defaultValue)}
                         <span class="text-text-tertiary text-3xs leading-none opacity-50"
-                          >default</span
+                          >{dt('defaultBadge')}</span
                         >
                       {/if}
                     </span>

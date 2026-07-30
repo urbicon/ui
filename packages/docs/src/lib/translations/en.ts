@@ -1,38 +1,38 @@
 export default {
-  // Navigation & Layout
-  contents: 'Contents',
-
   // TableOfContents
   tocOnThisPage: 'On this page',
   tocRelated: 'Related',
   tocCode: 'Code',
 
   // Playground
-  livePreview: 'Live Preview',
-  configuration: 'Configuration',
   interactivePlayground: 'Playground',
+  // Empty on purpose: it is the default for the optional `subtitle` prop, so a
+  // playground shows no subtitle unless a page (or a locale) supplies one.
   playgroundSubtitle: '',
-  generatedCode: 'Generated Code',
-  currentConfiguration: 'Current Configuration',
 
   // API Reference
-  apiReference: 'API Reference',
-  apiDescription: 'Available properties and methods',
-  property: 'Property',
+  property: 'Prop',
   type: 'Type',
   default: 'Default',
   description: 'Description',
   usageNotes: 'Usage Notes',
   required: 'Required',
-  requiredPropsNote:
-    'Properties marked as required must be provided for the component to function correctly.',
+  noApiProperties: 'No API Properties',
+  noApiPropertiesBody: 'No API properties found for this component.',
+
+  // TypesReference
+  seeAlsoLabel: 'See',
+  usedByLabel: 'Used by:',
+  noTypesMatch: 'No types match the current filter.',
+
+  // DocsLayout
+  breadcrumbLabel: 'Breadcrumb',
 
   // CodeExample
   hideCode: 'Hide Code',
   showCode: 'Show Code',
   hideAllCode: 'Hide All Code',
   showAllCode: 'Show All Code',
-  codeAuto: 'Auto',
   copied: 'Copied!',
   copy: 'Copy',
   loadingSyntax: 'Loading syntax highlighting...',
@@ -40,8 +40,10 @@ export default {
   codeExampleLabeled: 'Code example: {{title}}',
 
   // PlaygroundConfigurator
-  selectOption: 'Select {{option}}...',
-  enableOption: 'Enable {{option}}',
+  variantAxisTooltip: 'Style variant (tailwind-variants)',
+  defaultBadge: 'default',
+  resetControlTitle: 'Default: {{value}}. Click to reset.',
+  resetControlLabel: 'Reset {{label}} to default',
   // Phrased so one wording fits any count — the runtime interpolates
   // `{{count}}` but has no plural selection.
   playgroundModified: 'Settings modified: {{count}}',

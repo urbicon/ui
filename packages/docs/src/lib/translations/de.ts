@@ -1,38 +1,38 @@
 export default {
-  // Navigation & Layout
-  contents: 'Inhaltsverzeichnis',
-
   // TableOfContents
   tocOnThisPage: 'Auf dieser Seite',
   tocRelated: 'Siehe auch',
   tocCode: 'Code',
 
   // Playground
-  livePreview: 'Live-Vorschau',
-  configuration: 'Konfiguration',
   interactivePlayground: 'Playground',
+  // Bewusst leer: der Wert ist der Default des optionalen `subtitle`-Props —
+  // ohne Angabe der Seite (oder der Locale) zeigt ein Playground keinen Untertitel.
   playgroundSubtitle: '',
-  generatedCode: 'Generierter Code',
-  currentConfiguration: 'Aktuelle Konfiguration',
 
   // API Reference
-  apiReference: 'API-Referenz',
-  apiDescription: 'Verfügbare Properties und Methoden',
-  property: 'Eigenschaft',
+  property: 'Prop',
   type: 'Typ',
   default: 'Standard',
   description: 'Beschreibung',
   usageNotes: 'Nutzungshinweise',
   required: 'Erforderlich',
-  requiredPropsNote:
-    'Eigenschaften, die als erforderlich markiert sind, müssen angegeben werden, damit die Komponente korrekt funktioniert.',
+  noApiProperties: 'Keine API-Properties',
+  noApiPropertiesBody: 'Für diese Komponente wurden keine API-Properties gefunden.',
+
+  // TypesReference
+  seeAlsoLabel: 'Siehe',
+  usedByLabel: 'Verwendet von:',
+  noTypesMatch: 'Keine Typen passen zum aktuellen Filter.',
+
+  // DocsLayout
+  breadcrumbLabel: 'Brotkrumen-Navigation',
 
   // CodeExample
   hideCode: 'Code verstecken',
   showCode: 'Code anzeigen',
   hideAllCode: 'Alle Code-Beispiele verstecken',
   showAllCode: 'Alle Code-Beispiele anzeigen',
-  codeAuto: 'Auto',
   copied: 'Kopiert!',
   copy: 'Kopieren',
   loadingSyntax: 'Syntax-Highlighting wird geladen...',
@@ -40,8 +40,10 @@ export default {
   codeExampleLabeled: 'Code-Beispiel: {{title}}',
 
   // PlaygroundConfigurator
-  selectOption: 'Wähle {{option}}...',
-  enableOption: '{{option}} aktivieren',
+  variantAxisTooltip: 'Stil-Variante (tailwind-variants)',
+  defaultBadge: 'Standard',
+  resetControlTitle: 'Standard: {{value}}. Klicken zum Zurücksetzen.',
+  resetControlLabel: '{{label}} auf den Standard zurücksetzen',
   playgroundModified: 'Geänderte Einstellungen: {{count}}',
   resetAll: 'Alle zurücksetzen ({{count}})',
   hints: 'Hinweise',

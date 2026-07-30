@@ -2,10 +2,13 @@
   import { Badge } from '@urbicon-ui/blocks';
   import { type Column, Table } from '@urbicon-ui/table';
   import { InfoCard } from '$lib';
+  import { useDocsI18n } from '$lib/i18n';
   import { revealTableRow } from '$lib/utils/cross-reference.js';
   import { tokenizeTypeExpression } from '$lib/utils/type-links.js';
   import { apiReferenceVariants } from './apireference.variants';
   import type { ApiReferenceProps, ApiProp } from './index.js';
+
+  const dt = useDocsI18n();
 
   let {
     props = [],
@@ -107,11 +110,13 @@
   // `column.id`, and `<Table>` hands the snippet the raw column object — an
   // accessor-only column arrives with `id === undefined` and every cell would
   // silently fall through to the plain-text branch.
-  const columns: Column[] = [
+  // `$derived`, not a plain const: the titles come from the locale, so a
+  // language switch has to rebuild the column set.
+  const columns: Column[] = $derived([
     {
       id: 'name',
       accessor: 'name',
-      title: 'Prop',
+      title: dt('property'),
       minWidth: '160px',
       sortable: true,
       searchable: true,
@@ -121,7 +126,7 @@
     {
       id: 'type',
       accessor: 'type',
-      title: 'Type',
+      title: dt('type'),
       minWidth: '140px',
       searchable: true,
       groupable: false,
@@ -130,7 +135,7 @@
     {
       id: 'defaultValue',
       accessor: 'defaultValue',
-      title: 'Default',
+      title: dt('default'),
       minWidth: '80px',
       groupable: false,
       summable: false
@@ -138,17 +143,17 @@
     {
       id: 'description',
       accessor: 'description',
-      title: 'Description',
+      title: dt('description'),
       minWidth: '240px',
       groupable: false,
       summable: false
     }
-  ];
+  ]);
 </script>
 
 {#if sortedProps.length === 0}
-  <InfoCard intent="warning" title="No API Properties">
-    <p>No API properties found for this component.</p>
+  <InfoCard intent="warning" title={dt('noApiProperties')}>
+    <p>{dt('noApiPropertiesBody')}</p>
   </InfoCard>
 {:else}
   <!-- `id` is the anchor TypesReference links back to; a page may override it via restProps. -->
@@ -269,7 +274,7 @@
                      have nowhere to point. Navigable `@see` targets live in
                      `seeAlso` and decorate the Type column instead. -->
                 <span class={unstyled ? '' : styles.seeAlsoRefs()}>
-                  See
+                  {dt('seeAlsoLabel')}
                   {#each item.seeAlsoRefs as ref, i (`${ref}-${i}`)}
                     <code class={unstyled ? '' : styles.seeAlsoRef()}>{ref}</code>
                   {/each}

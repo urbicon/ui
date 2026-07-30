@@ -1,10 +1,13 @@
 <script lang="ts">
   import { Card, Checkbox } from '@urbicon-ui/blocks';
   import { Table, type Column } from '@urbicon-ui/table';
+  import { useDocsI18n } from '$lib/i18n';
   import { revealTableRow } from '$lib/utils/cross-reference.js';
   import { typesReferenceVariants } from './types-reference.variants';
   import { extractLiteralValues } from './index.js';
   import type { TypesReferenceProps } from './index.js';
+
+  const dt = useDocsI18n();
 
   let {
     types = [],
@@ -137,7 +140,7 @@
                        a literal chip, because a link there would have nowhere to
                        point — the same split ApiReference makes for props. -->
                   <div class={styles.seeAlsoSection()}>
-                    See
+                    {dt('seeAlsoLabel')}
                     {#if t.seeAlso}
                       <a
                         href={t.seeAlso}
@@ -155,7 +158,7 @@
 
                 {#if usedBy.length > 0}
                   <div class={slot('usedBySection')}>
-                    Used by:
+                    {dt('usedByLabel')}
                     {#each usedBy as u, i (`${u.component}.${u.propName}`)}
                       <a
                         href="#api-reference"
@@ -174,7 +177,7 @@
         {@render emptyState()}
       {:else}
         <div class="text-text-tertiary p-6 text-center text-sm">
-          No types match the current filter.
+          {dt('noTypesMatch')}
         </div>
       {/if}
     </Card>
