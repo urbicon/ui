@@ -3,6 +3,7 @@
   import { SvelteMap } from 'svelte/reactivity';
   import { getBlocksConfig, resolveSlotClasses } from '$lib/provider';
   import { edgeEnabledIndex, getTierContext, nextEnabledIndex } from '$lib/utils';
+  import { type CollapseMark, hostHasRoomAgain } from './overflow';
   import { segmentGroupVariants, type SegmentGroupVariants } from './segmentgroup.variants';
   import { setSegmentGroupContext } from './segmentGroup.context';
   import type { SegmentGroupContext, SegmentGroupProps } from './index';
@@ -41,11 +42,10 @@
   // available width, collapse to a vertical radio-style stack. `collapsed`
   // drives the `data-collapsed` attribute (CSS does the layout switch).
   let collapsed = $state(false);
-  // Horizontal content width recorded at the moment we collapse, used as the
-  // hysteresis threshold to expand back. Without it the check would oscillate:
-  // once vertical the track no longer overflows horizontally, so a naive
-  // re-measure would immediately switch back to horizontal and overflow again.
-  let naturalWidth = 0;
+  // What the horizontal track measured at the moment we collapsed — the
+  // hysteresis that lets us expand back without oscillating. See overflow.ts
+  // for why the group's own width is unusable as the reference.
+  let collapseMark: CollapseMark | null = null;
   // SvelteMap instead of `$state(new Map())` — `.set()`/`.delete()` must be
   // reactive so the indicator updates when new items register.
   const registeredItems = new SvelteMap<string, HTMLElement>();
@@ -169,8 +169,8 @@
 
   // Detects whether the horizontal track fits its available width. Reads
   // layout, so it runs from the ResizeObserver callback rather than a reactive
-  // effect. The +1 tolerance + recorded `naturalWidth` give it hysteresis so it
-  // settles instead of flip-flopping at the boundary.
+  // effect. The +1 tolerance and the recorded `collapseMark` give it hysteresis
+  // so it settles instead of flip-flopping at the boundary.
   //
   // We measure the items' own geometry rather than `el.scrollWidth`: the track
   // is `overflow-x-clip`, which is NOT a scroll container, and Chromium/WebKit
@@ -195,15 +195,22 @@
       const contentWidth = maxRight - minLeft;
       // Overflow when the items can't fit the content box (clientWidth − padding).
       if (contentWidth > el.clientWidth - padX + 1) {
-        // Min box width that fits the horizontal track again (used as the
-        // expand-back threshold while collapsed, where the items are stacked
-        // and can no longer be measured horizontally).
-        naturalWidth = contentWidth + padX;
+        collapseMark = {
+          naturalWidth: contentWidth + padX,
+          availWidth: el.clientWidth,
+          hostWidth: hostWidth(el)
+        };
         collapsed = true;
       }
-    } else if (naturalWidth > 0 && el.clientWidth >= naturalWidth) {
+    } else if (collapseMark && hostHasRoomAgain(collapseMark, hostWidth(el))) {
       collapsed = false;
+      collapseMark = null;
     }
+  }
+
+  /** The one box the collapse cannot move — see overflow.ts. */
+  function hostWidth(el: HTMLElement): number {
+    return el.parentElement?.clientWidth ?? el.clientWidth;
   }
 
   // A disabled SegmentItem renders a `<button disabled>`, which can't hold focus,
