@@ -235,6 +235,19 @@ export function calculateSummary(
     if (config.type === 'count') {
       result[config.column] = values.length;
     } else if (values.length === 0) {
+      // A dash in the summary row means two very different things: "no rows"
+      // and "not one row held a number". The second one is a data-shape bug —
+      // usually a display string in the data (`'$95'`) where the accessor is
+      // contracted to yield the value that sort, group and summary operate on.
+      // Silently showing the same dash for both hides it; say so once.
+      if (import.meta.env?.DEV && items.length > 0) {
+        const sample = JSON.stringify(getValue(items[0], config.column));
+        console.warn(
+          `[Table] Summary "${config.type}" on column "${config.column}": no numeric values ` +
+            `among ${items.length} row(s) (first value: ${sample}). The accessor must yield ` +
+            `numbers — keep units in \`column.formatter\`, which formats the total too.`
+        );
+      }
       result[config.column] = NaN;
     } else {
       switch (config.type) {
