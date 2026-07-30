@@ -1,8 +1,11 @@
 import { createConfig } from '@urbicon/commitlint-config';
 
 export default createConfig({
-  // Workspace packages (packages/*, apps/*) + `deps` for Renovate.
+  // Workspace packages (packages/*, apps/*) + `deps` for Renovate. The scope is
+  // the package name minus the `@urbicon-ui/` prefix, which is why `apps/docs`
+  // is `docs-app` and not `docs` — that one is `packages/docs`.
   scopes: [
+    // packages/*
     'auth',
     'blocks',
     'table',
@@ -15,6 +18,9 @@ export default createConfig({
     'mcp-server',
     'shared-types',
     'sveltekit-utils',
+    // apps/*
+    'artifact-studio',
+    'docs-app',
     'deps'
   ]
 });
