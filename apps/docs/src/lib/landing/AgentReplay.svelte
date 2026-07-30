@@ -143,6 +143,27 @@
     flex-direction: column;
     gap: 0.9rem;
   }
+  /*
+   * Auf breiten Schirmen steht die Karte NEBEN dem Transkript statt darunter:
+   * das ist ohnehin die ehrlichere Anordnung — der Agent schreibt links, das
+   * Ergebnis erscheint rechts. Schwelle wie auf der Landing (dort begründet).
+   */
+  @media (min-width: 78rem) {
+    .replay {
+      width: min(920px, 100%);
+      flex-direction: row;
+      align-items: start;
+      gap: 1.4rem;
+    }
+    .term {
+      flex: 1 1 0;
+      min-width: 0;
+    }
+    .stage {
+      flex: 0 1 320px;
+      max-height: 100%;
+    }
+  }
 
   /* Terminal ist in beiden Modi dunkel; die Akzente kommen aus der
      Kanal-Livery der Kachel (primary = Vollton-Grün via .room-accent). */
@@ -150,6 +171,7 @@
     flex-shrink: 0;
     background: #101010;
     color: #d8d8d2;
+    border-radius: var(--radius-contain);
     font-family: 'JetBrains Mono', monospace;
     font-size: 12.5px;
     line-height: 1.9;

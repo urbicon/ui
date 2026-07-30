@@ -23,15 +23,20 @@
   import LiveryTile from '$lib/salon/LiveryTile.svelte';
   import {
     AreaChart,
+    type AvatarProps,
+    AvatarGroup,
     Badge,
     type CartesianDatum,
     type ChartSeries,
     CompositionBar,
     type CompositionItem,
+    DonutChart,
     Input,
+    Progress,
     Scroller,
     SegmentGroup,
     SegmentItem,
+    Separator,
     Toggle
   } from '@urbicon-ui/blocks';
   import { I18nProvider } from '@urbicon-ui/i18n';
@@ -63,21 +68,21 @@
       key: 'blocks',
       no: '01',
       title: 'Blocks',
-      line: `${data.counts.primitives} primitives, one grip`,
+      line: `${data.counts.primitives} primitives, ${data.counts.composed} components`,
       channel: CHANNELS[TILE_CHANNEL.blocks]
     },
     {
       key: 'table',
       no: '02',
       title: 'Table',
-      line: 'An enterprise grid, zero deps',
+      line: 'Feature-rich enterprise grid',
       channel: CHANNELS[TILE_CHANNEL.table]
     },
     {
       key: 'a2ui',
       no: '03',
       title: 'A2UI',
-      line: 'UI inside the chat, themed',
+      line: 'AI chat creates new components on the fly. Tool-controlled, safe, custom-themed.',
       channel: CHANNELS[TILE_CHANNEL.a2ui],
       href: '/salon',
       linkLabel: 'Visit the salon'
@@ -86,7 +91,7 @@
       key: 'agent',
       no: '04',
       title: 'Agents',
-      line: 'It builds — the gate watches',
+      line: 'AI harnessing itself',
       channel: CHANNELS[TILE_CHANNEL.agents]
     },
     {
@@ -128,6 +133,27 @@
     { label: 'Beard', value: 17, intent: 'warning' },
     { label: 'Colour', value: 7, intent: 'neutral' }
   ];
+  // Die zweite Dashboard-Karte — sie erscheint erst, wenn die Kachel breit
+  // genug ist (siehe `.dash-aside`), statt das schmale Layout zu belasten.
+  const TEAM: AvatarProps[] = [
+    { name: 'Io Nakamura', status: 'online' },
+    { name: 'Sable Adeyemi', status: 'online' },
+    { name: 'Ren Duval', status: 'busy' },
+    { name: 'Mara Kovač' },
+    { name: 'Tomás Vidal' }
+  ];
+  const CHAIRS = [
+    { name: 'Io', load: 82 },
+    { name: 'Sable', load: 64 },
+    { name: 'Ren', load: 41 }
+  ];
+  // Gästezahlen, keine Prozente: der Donut summiert seine Werte zur Mitte, und
+  // eine Mitte, die „100 %" sagt, weil die Anteile sich zu 100 addieren, wäre
+  // eine Zahl ohne Aussage.
+  const RETURN_MIX = [
+    { label: 'Returning', value: 68 },
+    { label: 'First visit', value: 32 }
+  ];
 
   // ── 02 Table: die Buchungsliste des Salons ─────────────────────────
   // Zeiten aus dem SLOT_GRID, Services/Stylists/Preise aus salon-tools.
@@ -139,7 +165,9 @@
     service: string;
     stylist: string;
     status: 'confirmed' | 'pending' | 'walk-in';
-    price: string;
+    /** Zahl, nicht "$95": Suche, Sortierung UND Summe rechnen auf dem
+        Accessor-Wert. Das Währungszeichen ist Anzeige — `formatter`. */
+    price: number;
   }
   const BOOKINGS: Booking[] = [
     {
@@ -150,7 +178,7 @@
       service: 'The Bleecker Cut',
       stylist: 'Io',
       status: 'confirmed',
-      price: '$95'
+      price: 95
     },
     {
       id: 'b2',
@@ -160,7 +188,7 @@
       service: 'Beard Architecture',
       stylist: 'Sable',
       status: 'confirmed',
-      price: '$55'
+      price: 55
     },
     {
       id: 'b3',
@@ -170,7 +198,7 @@
       service: 'Dry Cut & Finish',
       stylist: 'Ren',
       status: 'walk-in',
-      price: '$70'
+      price: 70
     },
     {
       id: 'b4',
@@ -180,7 +208,7 @@
       service: 'Colour Consultation',
       stylist: 'Io',
       status: 'pending',
-      price: '$0'
+      price: 0
     },
     {
       id: 'b5',
@@ -190,7 +218,7 @@
       service: 'The Bleecker Cut',
       stylist: 'Sable',
       status: 'confirmed',
-      price: '$95'
+      price: 95
     },
     {
       id: 'b6',
@@ -200,7 +228,7 @@
       service: 'Beard Architecture',
       stylist: 'Ren',
       status: 'pending',
-      price: '$55'
+      price: 55
     },
     {
       id: 'b7',
@@ -210,7 +238,7 @@
       service: 'Dry Cut & Finish',
       stylist: 'Io',
       status: 'confirmed',
-      price: '$70'
+      price: 70
     },
     {
       id: 'b8',
@@ -220,7 +248,7 @@
       service: 'The Bleecker Cut',
       stylist: 'Ren',
       status: 'confirmed',
-      price: '$95'
+      price: 95
     }
   ];
 
@@ -229,23 +257,23 @@
 
   // ── 05 Treppe: die restlichen Register — jede Stufe ist eine Tür ───
   const STEPS = $derived([
-    { label: `${data.counts.composed} composites`, href: '/blocks' },
-    { label: `${data.counts.icons} icons`, href: '/icons' },
+    { label: `${data.counts.primitives} primitives`, href: '/blocks' },
+    { label: `${data.counts.composed} composites`, href: '/blocks#display' },
+    { label: 'calendar', href: '/blocks/components/calendar' },
     { label: 'guide', href: '/blocks/components/guide' },
     { label: 'sankey', href: '/blocks/components/sankey' },
+    { label: 'charts', href: '/blocks/components/area-chart' },
     { label: 'toast', href: '/blocks/primitives/toast' },
     { label: 'chat', href: '/blocks/components/chat' },
     { label: 'auth', href: '/auth' },
-    { label: 'i18n · EN & DE', href: '/i18n' },
-    { label: 'theming', href: '/customization' },
-    { label: 'recipes', href: '/recipes' }
+    { label: 'i18n', href: '/i18n' },
+    { label: 'recipes', href: '/recipes' },
+    { label: 'theming', href: '/customization' }
   ]);
 
-  // Die Beweiszeile: build-time gezählt (loader), "0 dependencies" ist
-  // Konstruktionseigenschaft, keine Messung.
-  const PROOF = $derived(
-    `${data.counts.set} components · 0 dependencies · ${data.counts.icons} icons`
-  );
+  // Die Fußzeile der Namens-Kachel: drei Konstruktionseigenschaften, keine
+  // Messungen — die Zahlen stehen in Zeile 2, wo sie aus den Katalogen kommen.
+  const PROOF = 'self-contained · self-organizing · controlled consistency';
 
   // ── Zeile 2: das Hero-Inventar als niedrigere Zeile ────────────────
   // Mechanik 1:1 aus test-fixtures/landing-hero: die Vorschau ist der gepflegte
@@ -317,11 +345,22 @@
   // (room-accent), nicht von Flächen.
   const selectedChannel = $derived(channelForFamily(selected.family));
 
+  // Zeile 2 hat keine Vollton-FLÄCHE, auf der die Kanalfarbe stünde — hier ist
+  // sie nur Text und Linie auf Papier. Die Cusp-Volltöne sind dafür zu hell
+  // (teal/green/yellow liegen bei L 0.87–0.91; „navigation" war auf Weiß kaum
+  // zu lesen). Also dieselbe Umkehr, die die Kacheln für ihren Text schon
+  // machen: im Light Mode die Tiefe des Kanals, im Dark Mode der Vollton.
+  const rowAccent = $derived(`light-dark(${selectedChannel.deep}, ${selectedChannel.solid})`);
+  const rowAccentFg = $derived(`light-dark(#f4f4f2, ${selectedChannel.deep})`);
+
   // Slot-Eingriffe des Hero, unverändert: äußere Rahmung des Configurators
   // abräumen, linke Kante angleichen, eigener Grund unter der Bühne.
   const PLAYGROUND_SLOTS = {
     root: '!border-0 !bg-transparent !p-0 !shadow-none !gap-0',
-    preview: '!bg-surface-elevated !rounded-t-xl !px-5 !py-6',
+    // `rounded-contain` statt `rounded-t-xl`: eine Bühne, die nur oben rund ist,
+    // liest als abgeschnittene Karte — zumal direkt darüber die Haarlinie des
+    // Playgrounds sitzt. Dieselbe Radius-Stufe wie jede andere Fläche im Set.
+    preview: '!bg-surface-elevated !rounded-contain !px-5 !py-6',
     previewContent: '!justify-start',
     controlsPanel: '!bg-transparent !px-5 !pb-5 !pt-0',
     controlsHeader: '!mx-0 !px-0',
@@ -340,14 +379,20 @@
     <!-- ── Zeile 1: erinnern + staunen ─────────────────────────────── -->
     <section class="row1" aria-label="Hero">
       <div class="name-tile">
-        <div>
+        <p class="eyebrow">UI platform for Svelte 5 + Tailwind 4</p>
+        <div class="name-mid">
           <p class="brand">
-            urbicon{#each TILES as tile (tile.key)}<span
-                class="tick"
-                style:background={tile.channel.solid}
-              ></span>{/each}
+            urbicon <span class="brand-suffix">ui</span><span class="ticks"
+              >{#each TILES as tile (tile.key)}<span
+                  class="tick"
+                  style:background={tile.channel.solid}
+                ></span>{/each}</span
+            >
           </p>
-          <p class="claim">Everything in it was made in it.</p>
+          <!-- Der Anspruch trägt die Kachel: „nothing" ist das Wort, das die
+               Aussage macht, also steht der Rest zurück (Helligkeit, nicht Farbe
+               — die Striche bleiben die einzige Buntheit auf dieser Fläche). -->
+          <p class="claim">Depends on <strong>nothing</strong>.</p>
         </div>
         <p class="proof">{PROOF}</p>
       </div>
@@ -380,41 +425,80 @@
               <span class="no">{tile.no}</span>
               <div class="tile-body">
                 {#if tile.key === 'blocks'}
-                  <div class="card dash">
-                    <div class="dash-head">
-                      <div>
-                        <p class="dash-title">Bleecker &amp; Bond</p>
-                        <p class="dash-sub">Front desk</p>
+                  <div class="dash-grid">
+                    <div class="card dash">
+                      <div class="dash-head">
+                        <div>
+                          <p class="dash-title">Bleecker &amp; Bond</p>
+                          <p class="dash-sub">Front desk</p>
+                        </div>
+                        <SegmentGroup bind:value={range} size="sm" ariaLabel="Range">
+                          <SegmentItem value="week">Week</SegmentItem>
+                          <SegmentItem value="month">Month</SegmentItem>
+                        </SegmentGroup>
                       </div>
-                      <SegmentGroup bind:value={range} size="sm" ariaLabel="Range">
-                        <SegmentItem value="week">Week</SegmentItem>
-                        <SegmentItem value="month">Month</SegmentItem>
-                      </SegmentGroup>
+                      <AreaChart
+                        data={bookingsData}
+                        series={BOOKING_SERIES}
+                        height={150}
+                        showLegend={false}
+                        fillOpacity={0.25}
+                      />
+                      <!-- Die Werte SIND Prozente: formatValue macht sie zur
+                         Anzeige, showPercentages bliebe sonst als Doppelung
+                         daneben stehen (Legende druckt Wert immer). -->
+                      <CompositionBar
+                        items={REVENUE_MIX}
+                        size="sm"
+                        showLegend
+                        showPercentages={false}
+                        formatValue={(v) => `${v} %`}
+                        legendPlacement="bottom"
+                      />
+                      <div class="dash-foot">
+                        <Toggle bind:checked={walkIns} label="Accept walk-ins" size="sm" />
+                        <!-- soft, nicht filled: die solide Intent-Fläche trägt text-on-primary,
+                           das im .room-accent-Scope auf den Kanal umgefärbt ist
+                           (docs/technical-debt.md → „Design tokens"). -->
+                        <Badge intent="success" variant="soft">3 chairs free</Badge>
+                      </div>
                     </div>
-                    <AreaChart
-                      data={bookingsData}
-                      series={BOOKING_SERIES}
-                      height={150}
-                      showLegend={false}
-                      fillOpacity={0.25}
-                    />
-                    <!-- Die Werte SIND Prozente: formatValue macht sie zur
-                       Anzeige, showPercentages bliebe sonst als Doppelung
-                       daneben stehen (Legende druckt Wert immer). -->
-                    <CompositionBar
-                      items={REVENUE_MIX}
-                      size="sm"
-                      showLegend
-                      showPercentages={false}
-                      formatValue={(v) => `${v} %`}
-                      legendPlacement="bottom"
-                    />
-                    <div class="dash-foot">
-                      <Toggle bind:checked={walkIns} label="Accept walk-ins" size="sm" />
-                      <!-- soft, nicht filled: die solide Intent-Fläche trägt text-on-primary,
-                         das im .room-accent-Scope auf den Kanal umgefärbt ist
-                         (docs/technical-debt.md → „Design tokens"). -->
-                      <Badge intent="success" variant="soft">3 chairs free</Badge>
+
+                    <!-- Zweite Spalte, nur auf breiten Schirmen: die Kachel ist
+                         dort dreimal so breit wie ihr Inhalt. Komplementär zur
+                         Table-Kachel (Auslastung statt Terminliste). -->
+                    <div class="card dash-aside">
+                      <div class="dash-head">
+                        <div>
+                          <p class="dash-title">Chairs today</p>
+                          <p class="dash-sub">Five stylists on rota</p>
+                        </div>
+                        <AvatarGroup items={TEAM} max={4} size="sm" />
+                      </div>
+                      <div class="chairs">
+                        {#each CHAIRS as chair (chair.name)}
+                          <Progress
+                            value={chair.load}
+                            label={chair.name}
+                            showValue
+                            formatValue={(v) => `${v} %`}
+                          />
+                        {/each}
+                      </div>
+                      <Separator />
+                      <div class="dash-foot">
+                        <DonutChart
+                          data={RETURN_MIX}
+                          size={104}
+                          showLegend={false}
+                          showTotal
+                          totalLabel="guests"
+                          ariaLabel="Returning guests this week"
+                        />
+                        <p class="aside-note">
+                          <strong>68</strong> of them had been in before.
+                        </p>
+                      </div>
                     </div>
                   </div>
                 {:else if tile.key === 'table'}
@@ -427,7 +511,16 @@
                         { accessor: 'service', title: 'Service', searchable: true },
                         { accessor: 'stylist', title: 'Chair', searchable: true, width: '4.5rem' },
                         { accessor: 'status', title: 'Status', cell: statusCell },
-                        { accessor: 'price', title: 'Price', align: 'right', width: '4rem' }
+                        {
+                          accessor: 'price',
+                          title: 'Price',
+                          align: 'right',
+                          width: '4rem',
+                          // Trägt die Währung — für die Zelle UND für die
+                          // Summenzeile (useSummary greift auf denselben
+                          // Formatter zurück).
+                          formatter: (value) => `$${value}`
+                        }
                       ]}
                       initialGroupBy="day"
                       variant="flush"
@@ -447,7 +540,7 @@
                   <AgentReplay />
                 {:else}
                   <ol class="steps">
-                    {#each STEPS as step, i (step.href)}
+                    {#each STEPS as step, i (step.label)}
                       <li style:margin-inline-start={`${i * 0.75}em`}>
                         <a href={step.href}>{step.label}</a>
                       </li>
@@ -476,8 +569,8 @@
     <section
       class="row2 room-accent"
       aria-label="Component index"
-      style:--room-accent={selectedChannel.solid}
-      style:--room-accent-fg={selectedChannel.on}
+      style:--room-accent={rowAccent}
+      style:--room-accent-fg={rowAccentFg}
     >
       <div class="inv-col">
         <div class="inv-head">
@@ -485,6 +578,7 @@
             bind:value={query}
             variant="underline"
             size="sm"
+            clearable
             placeholder="Filter {data.rows.length} components"
             aria-label="Filter components"
           />
@@ -700,27 +794,63 @@
     padding: clamp(20px, 2.5vw, 36px);
     display: flex;
     flex-direction: column;
-    justify-content: space-between;
     gap: 2rem;
   }
+  .eyebrow {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.72rem;
+    text-transform: uppercase;
+    letter-spacing: 0.14em;
+    opacity: 0.6;
+  }
+  /* Name + Anspruch sitzen mittig zwischen Eyebrow und Fußzeile — die Kachel
+     ist eine Titelseite, keine Kopfzeile mit Anhang. */
+  .name-mid {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+  }
+  /* Die Kachel ist 32vw breit, Name plus Signatur brauchen ~9em — mehr als
+     ~2.9vw Schriftgrad passt nicht in eine Zeile, und ein Umbruch würde die
+     fünf Striche vom Namen abreißen. Der große Text dieser Kachel ist ohnehin
+     der Anspruch, nicht die Marke. */
   .brand {
-    font-size: clamp(2.4rem, 5vw, 4rem);
+    font-size: clamp(2rem, 2.9vw, 3.5rem);
     font-weight: 800;
     letter-spacing: -0.03em;
     line-height: 1.05;
+  }
+  /* Die Signatur bleibt in jedem Fall zusammen. */
+  .ticks {
+    white-space: nowrap;
+  }
+  /* Die Marke ist „urbicon"; „ui" ist die Gattung und tritt zurück. */
+  .brand-suffix {
+    opacity: 0.5;
   }
   .tick {
     display: inline-block;
     width: 0.42em;
     height: 0.09em;
     margin-left: 0.06em;
-    vertical-align: 0.1em;
+    /* Ein leerer inline-block sitzt mit seiner Unterkante auf der Baseline —
+       genau die Bündigkeit, die die Striche zur Grundlinie des Namens bringt. */
+    vertical-align: baseline;
   }
   .claim {
-    margin-top: 0.75rem;
-    font-size: clamp(1.1rem, 1.8vw, 1.5rem);
-    max-width: 24ch;
+    margin-top: 1.1rem;
+    font-size: clamp(1.9rem, 3.4vw, 3.1rem);
+    font-weight: 700;
+    line-height: 1.08;
+    letter-spacing: -0.025em;
+    max-width: 14ch;
     text-wrap: balance;
+    color: #8f8f88;
+  }
+  .claim strong {
+    font-weight: inherit;
+    color: #f4f4f2;
   }
   .proof {
     font-family: 'JetBrains Mono', monospace;
@@ -781,13 +911,64 @@
     background: light-dark(#ffffff, #141414);
     padding: 1.25rem;
     width: min(420px, 100%);
+    /* Eine Karte ist eine architektonische Fläche — dieselbe Radius-Stufe, die
+       Card/Dialog/Drawer im Set tragen (docs/ARCHITECTURE.md → „contain"). Die
+       fugenlose Kante gilt den Zeilen, nicht dem, was auf ihnen steht. */
+    border-radius: var(--radius-contain);
+  }
+  /*
+   * Die Kacheln sind auf großen Schirmen weit breiter als ihr Inhalt: bei
+   * 1920px Viewport misst eine Kachel ~1110px, das Dashboard 520px. Ab
+   * ~78rem Viewport ist die Kachel sicher über 700px breit (die Kachel ist
+   * 85% von `Viewport − clamp(24rem, 32vw, 40rem)`; unterhalb des
+   * `row1`-Umbruchs bei 48rem springt der Wert, darüber wächst er monoton),
+   * also darf der Inhalt dort zweispaltig werden. Media-Query statt
+   * `@container`: `container-type` zieht `contain: layout` nach sich und
+   * würde die Kachel zum Bezugsrahmen für die `position: fixed`-Overlays der
+   * Table machen.
+   */
+  .dash-grid {
+    display: grid;
+    gap: clamp(1rem, 1.5vw, 1.6rem);
+    width: min(520px, 100%);
   }
   /* Das Backoffice-Dashboard der Blocks-Kachel. */
-  .dash {
-    width: min(520px, 100%);
+  .dash,
+  .dash-aside {
+    width: 100%;
     display: flex;
     flex-direction: column;
     gap: 1.1rem;
+  }
+  .dash-aside {
+    justify-content: space-between;
+    /* Schmale Kachel: die Nebenkarte bleibt weg, statt das Dashboard in eine
+       Scroll-Säule zu verwandeln. */
+    display: none;
+  }
+  @media (min-width: 78rem) {
+    .dash-grid {
+      grid-template-columns: minmax(0, 1.15fr) minmax(0, 1fr);
+      width: min(940px, 100%);
+    }
+    .dash-aside {
+      display: flex;
+    }
+  }
+  .chairs {
+    display: flex;
+    flex-direction: column;
+    gap: 0.85rem;
+  }
+  .aside-note {
+    font-size: 0.8rem;
+    line-height: 1.45;
+    color: light-dark(#55554e, #a0a099);
+    max-width: 18ch;
+  }
+  .aside-note strong {
+    font-weight: 700;
+    color: inherit;
   }
   .dash-head {
     display: flex;
@@ -817,6 +998,16 @@
     /* Wird es eng, scrollt der Body hinter dem stehenden Kopf — nie abschneiden. */
     overflow-y: auto;
     scrollbar-width: thin;
+  }
+  /* Dieselbe Schwelle wie beim Dashboard: ab hier hat die Kachel Platz, den der
+     Inhalt bisher an die Vollton-Fläche verschenkt hat. */
+  @media (min-width: 78rem) {
+    .card-table {
+      width: min(1000px, 100%);
+    }
+    .salon-host {
+      width: min(620px, 100%);
+    }
   }
   .card-table :global(thead th) {
     position: sticky;
@@ -855,6 +1046,12 @@
     font-size: clamp(1rem, 1.5vw, 1.35rem);
     letter-spacing: -0.01em;
     line-height: 1.55;
+  }
+  /* Die Treppe darf den Platz nehmen, den die Kachel hier hat. */
+  @media (min-width: 78rem) {
+    .steps {
+      font-size: clamp(1.2rem, 1.7vw, 1.7rem);
+    }
   }
   .steps a {
     color: inherit;
