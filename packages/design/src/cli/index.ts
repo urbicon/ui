@@ -15,7 +15,7 @@
 import { readFile } from 'node:fs/promises';
 import { resolve } from 'node:path';
 import { parseArgs } from './args.js';
-import { checkFlags } from './command-flags.js';
+import { checkFlags, checkPositionals } from './command-flags.js';
 import { runContext } from './commands/context.js';
 import { runCssReference } from './commands/css-reference.js';
 import { runFind } from './commands/find.js';
@@ -72,6 +72,19 @@ async function main(argv: string[]): Promise<number> {
     return EXIT.OK;
   }
   if (command === undefined || command === 'help' || flags.help === true) {
+    // `urbicon help <command>` is the same question as `urbicon <command> --help`
+    // and used to get the same wrong answer: the whole 9.5 kB page.
+    const topic = command === 'help' ? rawPositionals[0] : undefined;
+    if (topic !== undefined) {
+      const section = commandHelp(topic);
+      if (section === undefined) {
+        printError(`unknown command "${topic}"`);
+        console.log(`\n${HELP}`);
+        return EXIT.USAGE;
+      }
+      console.log(section);
+      return EXIT.OK;
+    }
     console.log(HELP);
     return EXIT.OK;
   }
@@ -85,6 +98,14 @@ async function main(argv: string[]): Promise<number> {
     return EXIT.USAGE;
   }
   const positionals = check.positionals;
+
+  // Same for positionals a command does not read — `sync-manifest src` used to
+  // scan the default tree and report success.
+  const arity = checkPositionals(command, positionals);
+  if (!arity.ok) {
+    printError(arity.message);
+    return EXIT.USAGE;
+  }
 
   switch (command) {
     case 'init':

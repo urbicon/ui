@@ -73,4 +73,25 @@ describe('runFind', () => {
     expect(code).toBe(2);
     expect(stderr()).toContain('--limit');
   });
+
+  it('rejects a --tag outside the catalog, listing the real ones', async () => {
+    // A tag is a closed set: "No components tagged X" reads exactly like a real
+    // tag that happens to be empty, so a made-up one has to fail.
+    const code = await runFind([], { tag: 'nonsense' });
+    expect(code).toBe(2);
+    expect(stderr()).toContain('unknown --tag "nonsense"');
+    expect(stderr()).toContain('display');
+  });
+
+  it('honours --limit without a query — it used to list everything', async () => {
+    const code = await runFind([], { limit: '1' });
+    expect(code).toBe(0);
+    expect(stdout()).toContain('1 component(s) (--limit 1; 1 more)');
+  });
+
+  it('lists everything when no --limit is passed', async () => {
+    await runFind([], {});
+    expect(stdout()).toContain('2 component(s)');
+    expect(stdout()).not.toContain('--limit');
+  });
 });

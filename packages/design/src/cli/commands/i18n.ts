@@ -225,26 +225,36 @@ function runParity(audit: AuditModule, config: I18nAuditConfig, groups: BundleGr
   return { lines, errors, warnings, json: { findings: allFindings } };
 }
 
+/**
+ * The keys observed at runtime (`--runtime-usage`). Explicitly requested, so an
+ * unreadable or wrongly-shaped file is a usage error rather than a silent
+ * downgrade: without those keys every runtime-only key reports as unused, and the
+ * report reads exactly like a clean one that happens to have findings.
+ */
+async function readRuntimeUsage(path: string): Promise<string[]> {
+  let parsed: unknown;
+  try {
+    parsed = JSON.parse(await readFile(resolve(path), 'utf-8'));
+  } catch (error) {
+    throw new Error(`cannot read --runtime-usage "${path}": ${(error as Error).message}`);
+  }
+  if (!Array.isArray(parsed) || parsed.some((key) => typeof key !== 'string')) {
+    throw new Error(`--runtime-usage "${path}" must be a JSON array of key strings.`);
+  }
+  return parsed as string[];
+}
+
 async function runUnused(
   audit: AuditModule,
   config: I18nAuditConfig,
   groups: BundleGroup[],
-  sources: { file: string; code: string }[]
+  sources: { file: string; code: string }[],
+  runtimeUsedKeys: string[] | undefined
 ): Promise<Outcome> {
   const defined = new Set<string>();
   for (const group of groups) {
     const base = group.bundles.en ?? Object.values(group.bundles)[0];
     if (base) for (const key of audit.collectDeepKeys(base)) defined.add(key);
-  }
-  let runtimeUsedKeys: string[] | undefined;
-  if (config.runtimeUsage) {
-    try {
-      const parsed = JSON.parse(await readFile(resolve(config.runtimeUsage), 'utf-8'));
-      if (Array.isArray(parsed))
-        runtimeUsedKeys = parsed.filter((k): k is string => typeof k === 'string');
-    } catch (error) {
-      printError(`ignoring unreadable runtime-usage file: ${(error as Error).message}`);
-    }
   }
 
   const { scan, errors: scanErrors } = await audit.scanSources(sources, {
@@ -308,12 +318,36 @@ async function runHardcoded(
   return { lines, errors: 0, warnings, json: { findings: all } };
 }
 
+/** Whether `path` is a readable directory (the only thing a source positional may be). */
+async function isDirectory(path: string): Promise<boolean> {
+  try {
+    return (await stat(resolve(path))).isDirectory();
+  } catch {
+    return false;
+  }
+}
+
 export async function runI18n(positionals: string[], flags: Flags): Promise<number> {
   const first = positionals[0];
   const check: Check = first && isCheck(first) ? first : 'audit';
   const dirArgs = (first && isCheck(first) ? positionals.slice(1) : positionals).filter(Boolean);
   const asJson = boolFlag(flags, 'json');
   const strict = boolFlag(flags, 'strict');
+
+  // Anything that is not a check name is taken as a source directory — so a
+  // mistyped check used to run the whole audit over a path that does not exist,
+  // report every defined key as unused, and exit 0 (measured: `urbicon i18n
+  // prity`). A source dir that is not there is the same silent wrong answer, so
+  // both are a usage error.
+  for (const [index, dir] of dirArgs.entries()) {
+    if (await isDirectory(dir)) continue;
+    printError(
+      index === 0 && dir === first
+        ? `unknown check "${dir}" — expected ${CHECKS.join(' | ')}, and there is no directory "${dir}" to scan either.`
+        : `cannot read source directory "${dir}".`
+    );
+    return EXIT.USAGE;
+  }
 
   let audit: AuditModule;
   try {
@@ -336,6 +370,16 @@ export async function runI18n(positionals: string[], flags: Flags): Promise<numb
   const wantsParity = check === 'parity' || check === 'audit';
   const wantsUnused = check === 'unused' || check === 'audit';
   const wantsHardcoded = check === 'hardcoded' || check === 'audit';
+
+  let runtimeUsedKeys: string[] | undefined;
+  if (wantsUnused && config.runtimeUsage) {
+    try {
+      runtimeUsedKeys = await readRuntimeUsage(config.runtimeUsage);
+    } catch (error) {
+      printError((error as Error).message);
+      return EXIT.USAGE;
+    }
+  }
 
   // Sources are needed for unused + hardcoded; load once.
   let sources: { file: string; code: string }[] = [];
@@ -361,7 +405,8 @@ export async function runI18n(positionals: string[], flags: Flags): Promise<numb
 
   const sections: Record<string, Outcome> = {};
   if (wantsParity) sections.parity = runParity(audit, config, groups);
-  if (wantsUnused) sections.unused = await runUnused(audit, config, groups, sources);
+  if (wantsUnused)
+    sections.unused = await runUnused(audit, config, groups, sources, runtimeUsedKeys);
   if (wantsHardcoded) sections.hardcoded = await runHardcoded(audit, config, sources);
 
   const totalErrors = Object.values(sections).reduce((sum, s) => sum + s.errors, 0);

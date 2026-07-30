@@ -39,7 +39,7 @@ export const COMMAND_FLAGS: Readonly<Record<string, readonly string[]>> = {
   recipe: ['json'],
   guide: ['json'],
   context: ['json', 'manifest'],
-  'record-decision': ['title', 'decision', 'rationale', 'status', 'date', 'manifest'],
+  'record-decision': ['title', 'decision', 'rationale', 'status', 'supersedes', 'date', 'manifest'],
   'sync-manifest': ['json', 'manifest', 'src'],
   i18n: [
     'json',
@@ -57,6 +57,70 @@ export const COMMAND_FLAGS: Readonly<Record<string, readonly string[]>> = {
   verb: [],
   help: [],
   version: []
+};
+
+/** How many positional arguments a command reads, and what to type instead of an extra one. */
+export interface PositionalSpec {
+  /** Maximum positionals the command actually reads (`Infinity` = genuinely variadic). */
+  max: number;
+  /** Where the argument really goes — an arity error is only useful if it says that. */
+  hint?: string;
+}
+
+/**
+ * Command → the positionals it reads. The second half of the same defence
+ * `COMMAND_FLAGS` gives the flags.
+ *
+ * Why it exists: a command that takes `_positionals` and never looks at them
+ * answers a question nobody asked and exits 0. Measured on the shipped CLI:
+ * `urbicon sync-manifest src` scanned `./src` and reported success (the scan root
+ * is `--src`), `urbicon verbs compose` listed all the verbs, `urbicon primer
+ * tokens` printed the whole primer, `urbicon context decisions` printed the whole
+ * manifest. Same failure as an unknown flag — neither honoured nor rejected — so
+ * it gets the same treatment, declared in one table rather than a dozen `if`s.
+ *
+ * `help` and `version` are listed for completeness; `index.ts` answers both before
+ * the check runs (`urbicon help <command>` prints that command's block).
+ */
+export const COMMAND_POSITIONALS: Readonly<Record<string, PositionalSpec>> = {
+  init: {
+    max: 0,
+    hint: 'Its targets are flags: --agents-file <path>, --manifest <path>, --hook, --ci.'
+  },
+  validate: { max: Number.POSITIVE_INFINITY },
+  hook: {
+    max: 0,
+    hint: '`hook` reads the edit event on stdin — to lint a file, run `urbicon validate <path>`.'
+  },
+  find: { max: Number.POSITIVE_INFINITY },
+  'get-component': {
+    max: 1,
+    hint: 'One slug per call; for one part of the API use `--section overview|examples|variants|api|slots`.'
+  },
+  primer: {
+    max: 0,
+    hint: 'It is the same bundle every time — `urbicon primer` takes no argument.'
+  },
+  pattern: { max: 1, hint: 'One pattern per call — `urbicon pattern` lists them.' },
+  principles: { max: 1, hint: 'A topic is one word — `urbicon principles` lists them.' },
+  'css-reference': { max: 1, hint: 'One section per call — `urbicon css-reference` lists them.' },
+  icons: { max: Number.POSITIVE_INFINITY },
+  recipe: { max: 1, hint: 'One recipe per call — `urbicon recipe` lists them.' },
+  guide: { max: 1, hint: 'One guide per call — `urbicon guide` lists them.' },
+  context: { max: 0, hint: 'Point it at another file with `--manifest <path>`.' },
+  'record-decision': {
+    max: 0,
+    hint: 'Every field is a flag: --title, --decision, --rationale, --status, --supersedes, --date.'
+  },
+  'sync-manifest': {
+    max: 0,
+    hint: 'The tree to scan is a flag: `urbicon sync-manifest --src <dir>`.'
+  },
+  i18n: { max: Number.POSITIVE_INFINITY },
+  verbs: { max: 0, hint: 'To print one, run `urbicon verb <name>`; `verbs` only lists them.' },
+  verb: { max: 1, hint: 'One verb per call — list them with `urbicon verbs`.' },
+  help: { max: 1 },
+  version: { max: 0 }
 };
 
 /**
@@ -187,4 +251,26 @@ export function checkFlags(
   }
 
   return { ok: true, positionals };
+}
+
+/**
+ * Reject positionals the command does not read (see {@link COMMAND_POSITIONALS}).
+ * Run after {@link checkFlags}, on the positionals it returns, so a folded
+ * `--query` is counted as the argument it stands for.
+ */
+export function checkPositionals(command: string, positionals: string[]): FlagCheck {
+  const spec = COMMAND_POSITIONALS[command];
+  if (spec === undefined || positionals.length <= spec.max) return { ok: true, positionals };
+
+  const takes =
+    spec.max === 0
+      ? 'takes no arguments'
+      : spec.max === 1
+        ? 'takes one argument'
+        : `takes at most ${spec.max} arguments`;
+  const got = positionals.map((p) => `"${p}"`).join(' ');
+  return {
+    ok: false,
+    message: `\`${command}\` ${takes} — got ${got}.${spec.hint ? `\n  ${spec.hint}` : ''}`
+  };
 }

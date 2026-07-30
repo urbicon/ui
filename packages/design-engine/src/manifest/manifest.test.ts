@@ -5,6 +5,7 @@ import {
   formatContext,
   parseFrontmatter,
   parseManifest,
+  supersedeDecision,
   upsertUsagesSection
 } from './manifest.js';
 import type { DesignDecision, ValidationHistoryEntry } from './types.js';
@@ -107,6 +108,99 @@ describe('appendDecision', () => {
     expect(m.usages).toHaveLength(1);
     expect(m.decisions).toHaveLength(1);
   });
+
+  it('orders by date, not by arrival — a back-dated entry lands where it belongs', () => {
+    // The section has always claimed "newest first" while inserting at the top
+    // regardless of --date, so one back-dated ADR put the log out of order.
+    let content = createManifestTemplate({});
+    content = appendDecision(content, dec('newest', '2026-06-20'));
+    content = appendDecision(content, dec('middle', '2026-06-10'));
+    content = appendDecision(content, dec('oldest', '2026-06-01'));
+    expect(parseManifest(content).decisions.map((d) => d.title)).toEqual([
+      'newest',
+      'middle',
+      'oldest'
+    ]);
+  });
+
+  it('keeps the newest of a same-day pair on top, and survives a later section', () => {
+    let content = `${createManifestTemplate({})}\n## Notes\n\nkeep me\n`;
+    content = appendDecision(content, dec('first today', '2026-06-10'));
+    content = appendDecision(content, dec('older', '2026-06-01'));
+    content = appendDecision(content, dec('second today', '2026-06-10'));
+    expect(parseManifest(content).decisions.map((d) => d.title)).toEqual([
+      'second today',
+      'first today',
+      'older'
+    ]);
+    // The section that follows the log must not be swallowed by an end-insert.
+    expect(content).toContain('## Notes');
+    expect(content).toContain('keep me');
+    expect(content.indexOf('older')).toBeLessThan(content.indexOf('## Notes'));
+  });
+});
+
+describe('supersedeDecision', () => {
+  const log = (): string => {
+    let content = createManifestTemplate({});
+    content = appendDecision(content, {
+      date: '2026-06-01',
+      title: 'Card padding sm',
+      status: 'accepted',
+      decision: 'Use p-2'
+    });
+    return content;
+  };
+
+  it('marks the old entry superseded and links both ends', () => {
+    let content = supersedeDecision(log(), 'Card padding sm', 'Card padding lg');
+    content = appendDecision(content, {
+      date: '2026-06-20',
+      title: 'Card padding lg',
+      status: 'accepted',
+      decision: 'Use p-6',
+      supersedes: 'Card padding sm'
+    });
+
+    const decisions = parseManifest(content).decisions;
+    expect(decisions[0]?.title).toBe('Card padding lg');
+    expect(decisions[0]?.supersedes).toBe('Card padding sm');
+    expect(decisions[1]?.status).toBe('superseded');
+    expect(decisions[1]?.supersededBy).toBe('Card padding lg');
+    // The retracted entry stays in the file — the log is the history.
+    expect(decisions).toHaveLength(2);
+    expect(content).toContain('Use p-2');
+  });
+
+  it('matches a title case- and whitespace-insensitively', () => {
+    const content = supersedeDecision(log(), '  card PADDING sm ', 'Card padding lg');
+    expect(parseManifest(content).decisions[0]?.status).toBe('superseded');
+  });
+
+  it('throws on a title that matches nothing — a write never guesses', () => {
+    expect(() => supersedeDecision(log(), 'Nope', 'New')).toThrow('no recorded decision');
+  });
+
+  it('throws on an ambiguous title rather than picking one', () => {
+    const twice = appendDecision(log(), {
+      date: '2026-06-05',
+      title: 'Card padding sm',
+      status: 'accepted',
+      decision: 'Use p-2 again'
+    });
+    expect(() => supersedeDecision(twice, 'Card padding sm', 'New')).toThrow('matches 2');
+  });
+
+  it('marks a hand-written block that has no Status field', () => {
+    const md = ['## Design Decisions', '', '### 2026-06-01 — Hand written', '', 'free prose'].join(
+      '\n'
+    );
+    const updated = supersedeDecision(md, 'Hand written', 'The new one');
+    const decision = parseManifest(updated).decisions[0];
+    expect(decision?.status).toBe('superseded');
+    expect(decision?.supersededBy).toBe('The new one');
+    expect(updated).toContain('free prose');
+  });
 });
 
 describe('formatContext', () => {
@@ -129,6 +223,69 @@ describe('formatContext', () => {
     const out = formatContext(parseManifest(createManifestTemplate({})));
     expect(out).toContain('data-design-pattern');
     expect(out).toContain('urbicon record-decision');
+  });
+
+  it('takes a superseded decision out of the active list instead of listing it as equal', () => {
+    // `superseded` used to be rendered in parentheses like any other status, so a
+    // retracted stand carried the same weight as the one that replaced it.
+    let content = createManifestTemplate({});
+    content = appendDecision(content, {
+      date: '2026-06-01',
+      title: 'Padding sm',
+      status: 'accepted',
+      decision: 'Use p-2'
+    });
+    content = supersedeDecision(content, 'Padding sm', 'Padding lg');
+    content = appendDecision(content, {
+      date: '2026-06-20',
+      title: 'Padding lg',
+      status: 'accepted',
+      decision: 'Use p-6',
+      supersedes: 'Padding sm'
+    });
+
+    const out = formatContext(parseManifest(content));
+    const active = out.slice(out.indexOf('## Design Decisions'), out.indexOf('**Superseded'));
+    expect(active).toContain('- **2026-06-20 — Padding lg**');
+    // Only as the back-reference on the entry that replaced it, never as an entry.
+    expect(active).not.toContain('- **2026-06-01 — Padding sm**');
+    // Still in the record, marked, and pointing at what replaced it.
+    expect(out).toContain('~~**2026-06-01 — Padding sm**~~ → “Padding lg”');
+    expect(out).toContain('_(supersedes “Padding sm”)_');
+  });
+
+  it('tolerates a hand-written status and link (read tolerant)', () => {
+    const md = [
+      '## Design Decisions',
+      '',
+      '### 2026-06-01 — Old stand',
+      '',
+      '**Status:** Superseded',
+      '',
+      '**Superseded by:** New stand (2026-06-20)',
+      '',
+      '**Decision:** do the old thing'
+    ].join('\n');
+    const decision = parseManifest(md).decisions[0];
+    // The date suffix is dropped: the link is the title.
+    expect(decision?.supersededBy).toBe('New stand');
+    expect(formatContext(parseManifest(md))).toContain('~~**2026-06-01 — Old stand**~~');
+  });
+
+  it('reads a manifest written before the link fields existed', () => {
+    const md = [
+      '## Design Decisions',
+      '',
+      '### 2026-06-01 — Legacy',
+      '',
+      '**Status:** accepted',
+      '',
+      '**Decision:** unchanged'
+    ].join('\n');
+    const decision = parseManifest(md).decisions[0];
+    expect(decision?.supersedes).toBeUndefined();
+    expect(decision?.supersededBy).toBeUndefined();
+    expect(formatContext(parseManifest(md))).toContain('- **2026-06-01 — Legacy** (accepted)');
   });
 });
 

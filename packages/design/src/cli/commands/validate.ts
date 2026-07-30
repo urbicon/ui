@@ -78,15 +78,45 @@ async function readStdin(): Promise<string> {
   return Buffer.concat(chunks).toString('utf-8');
 }
 
-/** Resolve positionals into lintable units, or null on an unreadable path. */
+/**
+ * The stdin unit, or null when there is nothing on it.
+ *
+ * Empty stdin used to lint as a clean empty file: `urbicon validate` with no path
+ * in a non-interactive shell (a CI step, a harness that closes stdin) printed
+ * "✓ no issues" and exited 0 — the gate passing on nothing at all, which is the
+ * one failure mode a gate must not have. A caller that meant a path gets told so.
+ */
+async function stdinUnit(): Promise<Unit | null> {
+  const code = await readStdin();
+  if (code.trim() === '') {
+    printError(
+      'nothing to validate — stdin was empty. Pass a path (`urbicon validate src/`) or pipe markup (`cat Page.svelte | urbicon validate -`).'
+    );
+    return null;
+  }
+  return { label: '<stdin>', code };
+}
+
+/** Resolve positionals into lintable units, or null on an unreadable/absent input. */
 async function gather(positionals: string[]): Promise<Unit[] | null> {
   if (positionals.length === 0 || (positionals.length === 1 && positionals[0] === '-')) {
-    return [{ label: '<stdin>', code: await readStdin() }];
+    // An interactive shell has nothing piped in, so reading stdin would just hang
+    // until the user works out they were supposed to type markup.
+    if (positionals.length === 0 && process.stdin.isTTY) {
+      printError(
+        'validate needs something to lint — a path (`urbicon validate src/`) or piped markup (`cat Page.svelte | urbicon validate -`).'
+      );
+      return null;
+    }
+    const unit = await stdinUnit();
+    return unit === null ? null : [unit];
   }
   const units: Unit[] = [];
   for (const p of positionals) {
     if (p === '-') {
-      units.push({ label: '<stdin>', code: await readStdin() });
+      const unit = await stdinUnit();
+      if (unit === null) return null;
+      units.push(unit);
       continue;
     }
     const abs = resolve(p);

@@ -13,7 +13,14 @@
 import { readFile } from 'node:fs/promises';
 import { describe, expect, it } from 'vitest';
 import { BOOLEAN_FLAGS } from './args.js';
-import { COMMAND_FLAGS, checkFlags, GLOBAL_FLAGS, QUERY_ALIAS_COMMANDS } from './command-flags.js';
+import {
+  COMMAND_FLAGS,
+  COMMAND_POSITIONALS,
+  checkFlags,
+  checkPositionals,
+  GLOBAL_FLAGS,
+  QUERY_ALIAS_COMMANDS
+} from './command-flags.js';
 import { HELP } from './help.js';
 
 /**
@@ -153,6 +160,47 @@ describe('checkFlags', () => {
       ok: true,
       positionals: ['x']
     });
+  });
+});
+
+describe('checkPositionals', () => {
+  it('has an entry for every command the flag table knows', () => {
+    // A command missing from the arity table is unchecked — the silent-swallow
+    // default this table exists to remove.
+    const missing = Object.keys(COMMAND_FLAGS).filter((c) => !(c in COMMAND_POSITIONALS));
+    expect(missing, `no positional arity declared for: ${missing.join(', ')}`).toEqual([]);
+  });
+
+  it('rejects an argument a command never reads — the `sync-manifest src` case', () => {
+    // Measured: it scanned ./src (the default) and reported success, so the caller
+    // could not tell its argument had been dropped.
+    const result = checkPositionals('sync-manifest', ['src']);
+    expect(result.ok).toBe(false);
+    expect(result.ok === false && result.message).toContain('takes no arguments');
+    expect(result.ok === false && result.message).toContain('--src <dir>');
+  });
+
+  it('points `verbs <name>` at the singular command it meant', () => {
+    const result = checkPositionals('verbs', ['compose']);
+    expect(result.ok === false && result.message).toContain('urbicon verb <name>');
+  });
+
+  it('rejects a second argument where one is read', () => {
+    const result = checkPositionals('get-component', ['button', 'api']);
+    expect(result.ok).toBe(false);
+    expect(result.ok === false && result.message).toContain('takes one argument');
+    expect(result.ok === false && result.message).toContain('--section');
+  });
+
+  it('leaves variadic commands and in-budget calls alone', () => {
+    expect(checkPositionals('validate', ['a.svelte', 'b.svelte', 'src/']).ok).toBe(true);
+    expect(checkPositionals('icons', ['calendar', 'date']).ok).toBe(true);
+    expect(checkPositionals('guide', ['auth']).ok).toBe(true);
+    expect(checkPositionals('primer', []).ok).toBe(true);
+  });
+
+  it("passes an unknown command through — that is index.ts' error to report", () => {
+    expect(checkPositionals('nonsense', ['x'])).toEqual({ ok: true, positionals: ['x'] });
   });
 });
 

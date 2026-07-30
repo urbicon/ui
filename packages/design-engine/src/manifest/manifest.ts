@@ -82,12 +82,22 @@ function parseDecisions(body: string): DesignDecision[] {
     if (!header) continue;
     const field = (name: string): string | undefined =>
       block.match(new RegExp(`\\*\\*${name}:\\*\\*\\s*(.+)`))?.[1]?.trim();
+    // Read tolerant: a hand-written link may carry the other entry's date
+    // (`Old title (2026-07-01)`) — keep the title, which is what the link is.
+    const link = (name: string): string | undefined => {
+      const raw = field(name)
+        ?.replace(/\s*\(\d{4}-\d{2}-\d{2}\)\s*$/, '')
+        .trim();
+      return raw ? raw : undefined;
+    };
     decisions.push({
       date: header[1] ?? '',
       title: (header[2] ?? '').trim(),
       status: field('Status') ?? 'accepted',
       decision: field('Decision') ?? '',
-      rationale: field('Rationale')
+      rationale: field('Rationale'),
+      supersedes: link('Supersedes'),
+      supersededBy: link('Superseded by')
     });
   }
   return decisions;
@@ -320,31 +330,148 @@ function oneLine(s: string): string {
 
 /** Render one ADR block. */
 export function renderDecision(d: DesignDecision): string {
-  const lines = [
-    `### ${d.date} — ${oneLine(d.title)}`,
-    '',
-    `**Status:** ${oneLine(d.status)}`,
-    '',
-    `**Decision:** ${oneLine(d.decision)}`
-  ];
+  const lines = [`### ${d.date} — ${oneLine(d.title)}`, '', `**Status:** ${oneLine(d.status)}`];
+  if (d.supersededBy) lines.push('', `**Superseded by:** ${oneLine(d.supersededBy)}`);
+  if (d.supersedes) lines.push('', `**Supersedes:** ${oneLine(d.supersedes)}`);
+  lines.push('', `**Decision:** ${oneLine(d.decision)}`);
   if (d.rationale) lines.push('', `**Rationale:** ${oneLine(d.rationale)}`);
   return `${lines.join('\n')}\n`;
 }
 
-/** Insert a new ADR at the top of the Design Decisions section (newest first). Creates the section if absent. */
+/** One `### <date> — <title>` block and where it sits inside the decisions section. */
+interface DecisionBlock {
+  date: string;
+  title: string;
+  start: number;
+  end: number;
+}
+
+/** The decisions section's bounds inside `content`, or null when there is no such section. */
+function decisionsSection(content: string): { start: number; end: number } | null {
+  const m = content.match(/(?:^|\n)## Design Decisions[^\n]*\n/);
+  if (!m || m.index === undefined) return null;
+  const start = m.index + m[0].length;
+  const rest = content.slice(start);
+  const next = rest.search(/^## /m);
+  return { start, end: next === -1 ? content.length : start + next };
+}
+
+/** The ADR blocks inside a decisions section, in document order. */
+function decisionBlocks(section: string): DecisionBlock[] {
+  const heads = [...section.matchAll(/^### (\d{4}-\d{2}-\d{2})\s+—\s+(.+)$/gm)];
+  return heads.map((head, i) => ({
+    date: head[1] ?? '',
+    title: (head[2] ?? '').trim(),
+    start: head.index ?? 0,
+    end: i + 1 < heads.length ? (heads[i + 1]?.index ?? section.length) : section.length
+  }));
+}
+
+/**
+ * Insert a new ADR into the Design Decisions section, newest first — by date, not
+ * by arrival. The section has always claimed "newest first" while inserting at the
+ * top regardless of `--date`, so one back-dated entry put the log in an order that
+ * contradicted its own comment. Creates the section if absent.
+ */
 export function appendDecision(content: string, decision: DesignDecision): string {
   const block = renderDecision(decision);
-  const m = content.match(/(?:^|\n)## Design Decisions[^\n]*\n/);
-  if (m && m.index !== undefined) {
-    let pos = m.index + m[0].length; // just past the heading line's newline
-    let prefix = '';
+  const bounds = decisionsSection(content);
+  if (bounds === null) {
+    const sep = content.endsWith('\n') ? '\n' : '\n\n';
+    return `${content}${sep}${DECISIONS_HEADING}\n\n${block}`;
+  }
+
+  const section = content.slice(bounds.start, bounds.end);
+  const blocks = decisionBlocks(section);
+  // ISO dates compare lexicographically. `<=` puts a same-day entry on top of the
+  // ones already recorded that day — the most recently recorded is the newest.
+  const before = blocks.find((b) => b.date <= decision.date);
+
+  if (blocks.length > 0 && before === undefined) {
+    // Older than everything on record: it belongs at the end of the section.
+    const body = section.replace(/\s+$/, '');
+    const trailing = section.slice(body.length);
+    return `${content.slice(0, bounds.start)}${body}\n\n${block}${trailing.slice(1)}${content.slice(bounds.end)}`;
+  }
+
+  // At the top of the section, or directly above the first entry it outranks.
+  let pos = bounds.start + (before?.start ?? 0);
+  let prefix = '';
+  if (before === undefined) {
     if (content[pos] === '\n')
       pos += 1; // keep an existing blank line, insert after it
     else prefix = '\n'; // no blank line below the heading — add one
-    return `${content.slice(0, pos) + prefix + block}\n${content.slice(pos)}`;
   }
-  const sep = content.endsWith('\n') ? '\n' : '\n\n';
-  return `${content}${sep}${DECISIONS_HEADING}\n\n${block}`;
+  return `${content.slice(0, pos) + prefix + block}\n${content.slice(pos)}`;
+}
+
+/** Fold a title for matching: case- and whitespace-insensitive. */
+function foldTitle(title: string): string {
+  return title.trim().replace(/\s+/g, ' ').toLowerCase();
+}
+
+/**
+ * The recorded titles a `--supersedes <title>` could mean: an exact match if there
+ * is one, otherwise every case/whitespace-insensitive one. Zero or several is the
+ * caller's error to report — a write never guesses which entry was meant.
+ */
+export function matchDecisionTitles(titles: readonly string[], wanted: string): string[] {
+  const exact = titles.filter((t) => t === wanted.trim());
+  if (exact.length > 0) return exact;
+  return titles.filter((t) => foldTitle(t) === foldTitle(wanted));
+}
+
+/** Set `**Status:** superseded` + the `**Superseded by:**` link on one rendered block. */
+function markBlockSuperseded(block: string, by: string): string {
+  const link = `**Superseded by:** ${oneLine(by)}`;
+  const lines = block.split('\n');
+  const existing = lines.findIndex((l) => /^\*\*Superseded by:\*\*/.test(l));
+  const statusAt = lines.findIndex((l) => /^\*\*Status:\*\*/.test(l));
+
+  if (statusAt === -1) {
+    // Hand-written block with no Status field — add both under the heading.
+    lines.splice(1, 0, '', '**Status:** superseded', '', link);
+  } else {
+    lines[statusAt] = '**Status:** superseded';
+    if (existing === -1) lines.splice(statusAt + 1, 0, '', link);
+    else lines[existing] = link;
+  }
+  return lines.join('\n').replace(/\n{3,}/g, '\n\n');
+}
+
+/**
+ * Mark the recorded decision titled `title` as superseded by `by`, in place.
+ *
+ * The other half of `record-decision --supersedes`: without it the log accumulates
+ * contradictory `accepted` entries and the reader cannot tell which stand is
+ * current. Throws when the title matches no entry or more than one — write strict;
+ * the caller has the titles and can say what it should have been.
+ */
+export function supersedeDecision(content: string, title: string, by: string): string {
+  const bounds = decisionsSection(content);
+  const section = bounds === null ? '' : content.slice(bounds.start, bounds.end);
+  const blocks = decisionBlocks(section);
+  const matches = matchDecisionTitles(
+    blocks.map((b) => b.title),
+    title
+  );
+  if (matches.length === 0) throw new Error(`no recorded decision titled "${title}"`);
+  if (matches.length > 1) {
+    throw new Error(
+      `"${title}" matches ${matches.length} recorded decisions — titles must be unique to link them`
+    );
+  }
+  const target = blocks.find((b) => b.title === matches[0]);
+  if (bounds === null || target === undefined) {
+    throw new Error(`no recorded decision titled "${title}"`);
+  }
+
+  const updated = markBlockSuperseded(section.slice(target.start, target.end), by);
+  return (
+    content.slice(0, bounds.start + target.start) +
+    updated +
+    content.slice(bounds.start + target.end)
+  );
 }
 
 /** A starter manifest for a project that has none. */
@@ -411,6 +538,11 @@ export function createManifestTemplate(opts: {
     DECISIONS_HEADING,
     ''
   ].join('\n');
+}
+
+/** Whether a decision has been retracted. Tolerant of hand-written casing/padding. */
+function isSuperseded(d: DesignDecision): boolean {
+  return d.status.trim().toLowerCase() === 'superseded';
 }
 
 /** Whether a product intent carries any content at all. */
@@ -513,8 +645,24 @@ export function formatContext(
     md +=
       '_None recorded._ Use `urbicon record-decision` when you deviate from a pattern or principle.\n';
   } else {
-    for (const d of manifest.decisions) {
-      md += `- **${d.date} — ${d.title}** (${d.status}): ${d.decision}\n`;
+    // `superseded` used to be rendered in parentheses like any other status, which
+    // gave a retracted stand the same weight as a current one. Reading the log top
+    // to bottom is how it is used, so a superseded entry leaves the list it is read
+    // from — and stays in the file, because seeing that a stand was tried and
+    // dropped is the reason the log is append-only.
+    const retired = manifest.decisions.filter((d) => isSuperseded(d));
+    const active = manifest.decisions.filter((d) => !isSuperseded(d));
+    if (active.length === 0) md += '_Every recorded decision has been superseded._\n';
+    for (const d of active) {
+      const link = d.supersedes ? ` _(supersedes “${d.supersedes}”)_` : '';
+      md += `- **${d.date} — ${d.title}** (${d.status}): ${d.decision}${link}\n`;
+    }
+    if (retired.length > 0) {
+      md += '\n**Superseded — the history, not the current stand:**\n\n';
+      for (const d of retired) {
+        const by = d.supersededBy ? ` → “${d.supersededBy}”` : '';
+        md += `- ~~**${d.date} — ${d.title}**~~${by}: ${d.decision}\n`;
+      }
     }
   }
 

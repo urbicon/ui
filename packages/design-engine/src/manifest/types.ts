@@ -28,15 +28,32 @@ export interface PatternUsage {
   file: string;
 }
 
-/** A recorded design decision (ADR). */
+/**
+ * A recorded design decision (ADR).
+ *
+ * `supersedes` / `supersededBy` are the two ends of one link, and `record-decision
+ * --supersedes` always writes both: a log that records only "this replaced
+ * something" leaves the replaced entry looking current. Both name the other
+ * entry's **title** — the linked block carries its own date in its heading, so
+ * repeating it here would be a second copy to keep true.
+ */
 export interface DesignDecision {
   /** ISO date (YYYY-MM-DD). */
   date: string;
   title: string;
-  /** accepted | proposed | superseded — free text, defaults to "accepted". */
+  /**
+   * accepted | proposed | superseded — tolerated as free text when hand-written,
+   * but `superseded` is load-bearing: `formatContext` moves those entries out of
+   * the active list, so an agent reading `urbicon context` follows the decision
+   * that replaced them.
+   */
   status: string;
   decision: string;
   rationale?: string;
+  /** Title of the decision this one replaces (set by `record-decision --supersedes`). */
+  supersedes?: string;
+  /** Title of the decision that replaced this one (set on the other end of the same call). */
+  supersededBy?: string;
 }
 
 /**

@@ -9,7 +9,8 @@
  * catalog is a failure). Pair it with `urbicon get-component <slug>` for the API.
  */
 
-import { type ComponentCatalogEntry, matchComponents } from '@urbicon-ui/design-engine/search';
+import type { ComponentCatalog, ComponentCatalogEntry } from '@urbicon-ui/design-engine/search';
+import { matchComponents } from '@urbicon-ui/design-engine/search';
 import { boolFlag, type Flags, stringFlag } from '../args.js';
 import { loadCatalog } from '../content.js';
 import { type InstallState, installStateFor, readConsumerDependencies } from '../installed.js';
@@ -60,9 +61,9 @@ export async function runFind(positionals: string[], flags: Flags): Promise<numb
     return EXIT.USAGE;
   }
 
-  let components: ComponentCatalogEntry[];
+  let catalog: ComponentCatalog;
   try {
-    components = (await loadCatalog()).components;
+    catalog = await loadCatalog();
   } catch (err) {
     printError(
       `could not read the component catalog (${(err as Error).message}). ` +
@@ -70,10 +71,27 @@ export async function runFind(positionals: string[], flags: Flags): Promise<numb
     );
     return EXIT.FAIL;
   }
+  const components = catalog.components;
 
-  const results = query
+  // A tag is a closed set, unlike the free-text query: a value outside it can only
+  // be a mistake, and answering "no components tagged X" would read exactly like a
+  // real tag that happens to be empty.
+  const knownTags = catalog.tags?.length
+    ? catalog.tags
+    : [...new Set(components.flatMap((c) => c.tags))].sort();
+  if (tag !== undefined && !knownTags.includes(tag)) {
+    printError(`unknown --tag "${tag}". Available: ${knownTags.join(', ')}`);
+    return EXIT.USAGE;
+  }
+
+  const listed = query
     ? matchComponents(components, query, tags, limit)
     : components.filter((c) => !tags || c.tags.some((t) => tags.includes(t)));
+  // `--limit` used to apply to a query only, so `urbicon find --limit 5` silently
+  // listed all 98 components. Honour it in both modes — but only when it was
+  // actually passed, so the documented "no query lists all" default is unchanged.
+  const truncated = !query && limitRaw !== undefined ? Math.max(0, listed.length - limit) : 0;
+  const results = truncated > 0 ? listed.slice(0, limit) : listed;
 
   // Which origin packages are actually installed here (null → no consumer context).
   const deps = readConsumerDependencies();
@@ -101,7 +119,9 @@ export async function runFind(positionals: string[], flags: Flags): Promise<numb
 
   const header = query
     ? `${results.length} component(s) matching "${query}":`
-    : `${results.length} component(s)${tag ? ` tagged "${tag}"` : ''}:`;
+    : `${results.length} component(s)${tag ? ` tagged "${tag}"` : ''}${
+        truncated > 0 ? ` (--limit ${limit}; ${truncated} more)` : ''
+      }:`;
   console.log(`${header}\n`);
   for (const entry of results) {
     console.log(`${formatEntry(entry, stateOf(entry))}\n`);

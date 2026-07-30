@@ -1,6 +1,7 @@
 import { mkdir, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
+import { Readable } from 'node:stream';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { runValidate } from './validate.js';
 
@@ -64,6 +65,28 @@ describe('urbicon validate', () => {
 
   it('reports a usage error for a missing path (exit 2)', async () => {
     expect(await runValidate([join(dir, 'nope.svelte')], {})).toBe(2);
+  });
+
+  it('refuses to pass on nothing — no path and empty stdin is a usage error (exit 2)', async () => {
+    // The gate's worst failure mode: `urbicon validate` with no path in a
+    // non-interactive shell (a CI step, a harness that closes stdin) linted the
+    // empty string and printed "✓ no issues", exit 0.
+    const stdin = vi.spyOn(process, 'stdin', 'get');
+    stdin.mockReturnValue(Readable.from([]) as unknown as typeof process.stdin);
+    expect(await runValidate([], {})).toBe(2);
+
+    // Explicit `-` with nothing piped in is the same nothing.
+    stdin.mockReturnValue(Readable.from([]) as unknown as typeof process.stdin);
+    expect(await runValidate(['-'], {})).toBe(2);
+  });
+
+  it('still lints real markup on stdin', async () => {
+    vi.spyOn(process, 'stdin', 'get').mockReturnValue(
+      Readable.from([
+        Buffer.from('<div class="bg-red-500">x</div>\n')
+      ]) as unknown as typeof process.stdin
+    );
+    expect(await runValidate(['-'], {})).toBe(1);
   });
 
   it('gates the slop axis only when --slop-floor is given (F-S6-3)', async () => {

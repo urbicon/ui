@@ -60,4 +60,19 @@ describe('runGetComponent', () => {
     expect(code).toBe(1);
     expect(stderr()).toContain('not found');
   });
+
+  it('resolves the component name a caller has in their code (`Button` → `button`)', async () => {
+    // The name in the source — and in `urbicon find`'s own output — is PascalCase;
+    // passing it used to fail with "Invalid component slug".
+    const code = await runGetComponent(['Button'], {});
+    expect(code).toBe(0);
+    expect(stdout()).toContain('# Button');
+    // …and says which component it landed on, so the caller learns the slug.
+    expect(stderr()).toContain('is the `button` component');
+  });
+
+  it('still fails for a name that is in no catalog entry', async () => {
+    expect(await runGetComponent(['NotAComponent'], {})).toBe(1);
+    expect(stderr()).toContain('not found');
+  });
 });

@@ -106,6 +106,39 @@ describe('urbicon i18n', () => {
     expect(json.hardcoded?.findings.some((f) => f.text === 'Close the dialog')).toBe(true);
   });
 
+  it('rejects a mistyped check instead of auditing a path that does not exist', async () => {
+    // Measured: `urbicon i18n prity` took "prity" as a source dir, found no
+    // sources, reported every defined key unused — and exited 0.
+    expect(await runI18n(['prity'], {})).toBe(2);
+  });
+
+  it('rejects a source directory that is not there', async () => {
+    expect(await runI18n(['unused', join(dir, 'nope')], {})).toBe(2);
+  });
+
+  it('rejects an unreadable --runtime-usage rather than over-reporting unused keys', async () => {
+    expect(
+      await runI18n(['unused', join(dir, 'src')], {
+        translations: join(dir, 'src', 'lib', 'translations'),
+        'runtime-usage': join(dir, 'nope.json')
+      })
+    ).toBe(2);
+
+    await writeFile(join(dir, 'keys.json'), '{"not":"an array"}');
+    expect(
+      await runI18n(['unused', join(dir, 'src')], {
+        translations: join(dir, 'src', 'lib', 'translations'),
+        'runtime-usage': join(dir, 'keys.json')
+      })
+    ).toBe(2);
+  });
+
+  it('counts runtime-observed keys as used when the file is readable', async () => {
+    await writeFile(join(dir, 'keys.json'), '["unused.deep"]');
+    expect(await run('unused', { 'runtime-usage': join(dir, 'keys.json'), json: true })).toBe(0);
+    expect(lastJson().unused?.unused.some((u) => u.key === 'unused.deep')).toBe(false);
+  });
+
   it('ignores a non-locale file (index.ts barrel), not flagging an invalid locale', async () => {
     await writeFile(
       join(dir, 'src', 'lib', 'translations', 'index.ts'),

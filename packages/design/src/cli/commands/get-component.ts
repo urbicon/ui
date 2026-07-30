@@ -16,6 +16,35 @@ import { EXIT, printError } from '../output.js';
 
 const SECTIONS: LlmTxtSection[] = ['overview', 'examples', 'variants', 'api', 'slots'];
 
+/** The catalog's slug shape. Anything else has to be resolved through the catalog first. */
+const SLUG_SHAPE = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
+
+/** Strip everything but letters and digits, lowercased — `DatePicker` ≡ `date-picker`. */
+function fold(value: string): string {
+  return value.replace(/[^a-z0-9]/gi, '').toLowerCase();
+}
+
+/**
+ * The catalog slug for what the caller typed, when it isn't already one.
+ *
+ * The name in their code is `DatePicker`, not `date-picker` — and that is also how
+ * `urbicon find` prints it (`DatePicker · date-picker`). Passing it used to fail
+ * with "Invalid component slug", costing a round-trip to learn a spelling the
+ * catalog can simply resolve. Best-effort: an unreadable catalog just means no
+ * resolution, never a crash.
+ */
+async function resolveSlug(input: string): Promise<string | undefined> {
+  const wanted = fold(input);
+  if (wanted === '') return undefined;
+  try {
+    return (await loadCatalog()).components.find(
+      (c) => fold(c.name) === wanted || fold(c.slug) === wanted
+    )?.slug;
+  } catch {
+    return undefined;
+  }
+}
+
 /**
  * Warn (on stderr, so piped stdout stays clean) when the component's origin package
  * isn't a dependency here — otherwise the printed API documents an unimportable
@@ -62,8 +91,8 @@ function noteSectionFlag(slug: string, bytes: number): void {
 }
 
 export async function runGetComponent(positionals: string[], flags: Flags): Promise<number> {
-  const slug = positionals[0];
-  if (!slug) {
+  const requested = positionals[0];
+  if (!requested) {
     printError('get-component needs a component slug, e.g. `urbicon get-component button`');
     return EXIT.USAGE;
   }
@@ -74,17 +103,40 @@ export async function runGetComponent(positionals: string[], flags: Flags): Prom
     return EXIT.USAGE;
   }
 
-  let content: string | null;
-  try {
-    content = await loadComponentLlm(slug);
-  } catch (err) {
-    printError(`could not read component "${slug}" (${(err as Error).message}).`);
+  const notFound = (): number => {
+    printError(
+      `component "${requested}" not found. Run \`urbicon find <query>\` to discover the slug.`
+    );
     return EXIT.FAIL;
+  };
+
+  let slug = requested;
+  let content: string | null = null;
+  if (SLUG_SHAPE.test(slug)) {
+    try {
+      content = await loadComponentLlm(slug);
+    } catch (err) {
+      printError(`could not read component "${slug}" (${(err as Error).message}).`);
+      return EXIT.FAIL;
+    }
   }
 
+  // Not a slug (`Button`), or a slug with no file (`datepicker`) — let the catalog
+  // resolve the name the caller actually has in their code.
   if (content === null) {
-    printError(`component "${slug}" not found. Run \`urbicon find <query>\` to discover the slug.`);
-    return EXIT.FAIL;
+    const resolved = await resolveSlug(requested);
+    if (resolved === undefined || resolved === slug) return notFound();
+    slug = resolved;
+    try {
+      content = await loadComponentLlm(slug);
+    } catch (err) {
+      printError(`could not read component "${slug}" (${(err as Error).message}).`);
+      return EXIT.FAIL;
+    }
+    if (content === null) return notFound();
+    // Say which component it landed on — on stderr, so a pipe stays clean.
+    // Answering silently would teach the wrong spelling for next time.
+    console.error(`· "${requested}" is the \`${slug}\` component`);
   }
 
   await warnIfNotInstalled(slug);

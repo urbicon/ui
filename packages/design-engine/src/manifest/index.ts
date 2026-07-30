@@ -11,9 +11,11 @@ export {
   DECISIONS_HEADING,
   emptyManifest,
   formatContext,
+  matchDecisionTitles,
   parseFrontmatter,
   parseManifest,
   renderDecision,
+  supersedeDecision,
   USAGES_HEADING,
   upsertUsagesSection
 } from './manifest.js';

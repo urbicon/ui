@@ -128,7 +128,7 @@ Commands:
   find [query]          Discover components by fuzzy search over the version-pinned
                         catalog (names, tags, descriptions). No query lists all.
                         --tag <t>          Filter by category tag (form, action, …).
-                        --limit <n>        Max results for a query (default 10).
+                        --limit <n>        Max results (default 10; also caps a full list).
                         --json             Machine-readable catalog entries.
   get-component <slug>  Print a component's API (its llm.txt) from the bundle.
                         --section <s>      overview | examples | variants | api | slots |
@@ -152,7 +152,7 @@ Commands:
                         Sections: ${CSS_REFERENCE_SECTION_LIST}
   icons [query]         Icon discovery. A query ranks matches; no query prints the
                         full reference grouped by category.
-                        --limit <n>        Max results for a query (default 20).
+                        --limit <n>        Max results (default 20; also caps the full list).
                         --json             Machine-readable icon entries.
   recipe [id]           Complete Svelte 5 code recipes from the catalog. No id lists
                         all; an id prints the full recipe (incl. code).
@@ -168,8 +168,12 @@ Commands:
                         --title <t>        (required) Short decision title.
                         --decision <d>     (required) What was decided.
                         --rationale <r>    Why — the trade-off.
-                        --status <s>       accepted | proposed | superseded (default accepted).
-                        --date <date>      Decision date, YYYY-MM-DD (default today).
+                        --status <s>       accepted | proposed | superseded (default accepted);
+                                           superseded entries leave "context"'s active list.
+                        --supersedes <t>   Title of the decision this one replaces — marks it
+                                           superseded and links both ends.
+                        --date <date>      Decision date, YYYY-MM-DD (default today; the log
+                                           is ordered by date).
                         --manifest <path>  Manifest file (default ./design.manifest.md).
   sync-manifest         Re-index data-design-pattern markers into the manifest.
                         --src <dir>        Source tree to scan (default ./src).
@@ -196,7 +200,8 @@ Commands:
   verbs                 List the design verbs (recipes over the design loop).
   verb <name>           Print one verb recipe, e.g. "urbicon verb compose".
   version               Print the installed @urbicon-ui/design version.
-  help                  Show this help. "urbicon <command> --help" shows one command.
+  help                  Show this help. "urbicon help <command>" (or "<command> --help")
+                        shows just that command.
 
 Exit codes:
   0  ok (clean, or only warnings/notes)

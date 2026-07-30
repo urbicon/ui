@@ -38,7 +38,13 @@ export async function runIcons(positionals: string[], flags: Flags): Promise<num
     return EXIT.FAIL;
   }
 
-  const results = query ? matchIcons(icons, query, limit) : icons;
+  // `--limit` used to apply to a query only, so `urbicon icons --limit 5` printed
+  // all 315 icons (13.6 kB) as if no flag had been passed. Honour it in both
+  // modes — but only when actually passed, so "no query prints the full
+  // reference" still holds by default.
+  const truncated = !query && limitRaw !== undefined ? Math.max(0, icons.length - limit) : 0;
+  const listed = truncated > 0 ? icons.slice(0, limit) : icons;
+  const results = query ? matchIcons(icons, query, limit) : listed;
 
   if (asJson) {
     console.log(JSON.stringify(results, null, 2));
@@ -60,7 +66,7 @@ export async function runIcons(positionals: string[], flags: Flags): Promise<num
 
   // Full reference, grouped by category (same grouping as the remote `find_icons`).
   const byCategory = new Map<string, IconEntry[]>();
-  for (const icon of icons) {
+  for (const icon of listed) {
     for (const cat of icon.categories) {
       const bucket = byCategory.get(cat);
       if (bucket) bucket.push(icon);
@@ -68,7 +74,9 @@ export async function runIcons(positionals: string[], flags: Flags): Promise<num
     }
   }
 
-  console.log(`${icons.length} icon(s):\n`);
+  console.log(
+    `${listed.length} icon(s)${truncated > 0 ? ` (--limit ${limit}; ${truncated} more)` : ''}:\n`
+  );
   for (const cat of ICON_CATEGORY_ORDER) {
     const catIcons = byCategory.get(cat);
     if (!catIcons || catIcons.length === 0) continue;

@@ -167,6 +167,17 @@ describe('runIcons', () => {
     const parsed = JSON.parse(stdout()) as { name: string }[];
     expect(parsed[0]?.name).toBe('search');
   });
+
+  it('honours --limit without a query — it used to print all 315', async () => {
+    const code = await runIcons([], { limit: '1' });
+    expect(code).toBe(0);
+    expect(stdout()).toContain('1 icon(s) (--limit 1; 1 more)');
+  });
+
+  it('prints the whole reference when no --limit is passed', async () => {
+    await runIcons([], {});
+    expect(stdout()).toContain('2 icon(s):');
+  });
 });
 
 describe('runRecipe', () => {
