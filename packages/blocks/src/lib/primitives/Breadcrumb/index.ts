@@ -41,7 +41,7 @@ export interface BreadcrumbItem {
  * @example
  * ```svelte
  * <Breadcrumb items={breadcrumbs} size="sm">
- *   {#snippet separator()}<ChevronRight size={14} />{/snippet}
+ *   {#snippet separator()}<ChevronRightIcon size={14} />{/snippet}
  * </Breadcrumb>
  * ```
  *

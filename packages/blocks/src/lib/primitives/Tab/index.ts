@@ -112,44 +112,39 @@ interface TabPropsVertical extends TabBaseProps {
  * @description Tab container that manages tab switching and content display.
  * Supports horizontal/vertical orientation, visual variants, and keyboard navigation.
  *
- * @tag navigation
- * @related Stepper
- *
  * Tab props are a discriminated union on `orientation`. `fullWidth` is
  * only available on horizontal tabs — combining it with `orientation="vertical"`
  * fails type-check, since vertical triggers are already full-width by design.
  *
+ * @tag navigation
+ * @related Stepper
+ *
  * @example
  * ```svelte
- * <Tab
- *   tabs={[
- *     { value: 'overview', label: 'Overview' },
- *     { value: 'settings', label: 'Settings' },
- *     { value: 'billing', label: 'Billing' }
- *   ]}
- *   bind:value={activeTab}
- * >
+ * <Tab bind:value={activeTab}>
+ *   {#snippet tabs()}
+ *     <TabItem value="overview">Overview</TabItem>
+ *     <TabItem value="settings">Settings</TabItem>
+ *     <TabItem value="billing">Billing</TabItem>
+ *   {/snippet}
  *   {#snippet panels()}
- *     {#if activeTab === 'overview'}<p>Overview content</p>{/if}
- *     {#if activeTab === 'settings'}<p>Settings content</p>{/if}
- *     {#if activeTab === 'billing'}<p>Billing content</p>{/if}
+ *     <TabPanel value="overview">Overview content</TabPanel>
+ *     <TabPanel value="settings">Settings content</TabPanel>
+ *     <TabPanel value="billing">Billing content</TabPanel>
  *   {/snippet}
  * </Tab>
  * ```
  *
  * @example
  * ```svelte
- * <Tab
- *   tabs={[
- *     { value: 'code', label: 'Code' },
- *     { value: 'preview', label: 'Preview' }
- *   ]}
- *   variant="underline"
- *   size="sm"
- *   defaultValue="code"
- * >
+ * <Tab variant="line" size="sm" defaultValue="code">
+ *   {#snippet tabs()}
+ *     <TabItem value="code">Code</TabItem>
+ *     <TabItem value="preview">Preview</TabItem>
+ *   {/snippet}
  *   {#snippet panels()}
- *     <div>Tab panel content</div>
+ *     <TabPanel value="code">Tab panel content</TabPanel>
+ *     <TabPanel value="preview">Rendered output</TabPanel>
  *   {/snippet}
  * </Tab>
  * ```

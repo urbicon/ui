@@ -134,10 +134,6 @@ interface BadgeStandardProps extends BadgeBaseProps {
  * @summary A small label for a status, a category or a count.
  * @description Compact label for status, categories, counters, and notifications.
  *
- * @tag feedback
- * @related Alert
- * @related Toast
- *
  * Badge props are a discriminated union. The pure-indicator dot — spelled
  * canonically as `purpose="dot"` or via the deprecated `variant="dot"` —
  * forbids `children` / `counter` / `removable` / `interactive` / `onRemove`
@@ -146,11 +142,15 @@ interface BadgeStandardProps extends BadgeBaseProps {
  * An interactive badge (`onclick` or `purpose="chip"`) is announced as a
  * `button`, a static one as `status` (override via `role`).
  *
+ * @tag feedback
+ * @related Alert
+ * @related Toast
+ *
  * @example Purpose-driven (canonical) — the intent reads from `purpose`
  * ```svelte
  * <Badge purpose="status" intent="success">Active</Badge>
  * <Badge purpose="counter" intent="danger">5</Badge>
- * <Badge purpose="chip" removable onRemove={() => …}>React</Badge>
+ * <Badge purpose="chip" removable onRemove={() => removeTag('react')}>React</Badge>
  * <Badge purpose="dot" intent="warning" />
  * ```
  *

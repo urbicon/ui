@@ -27,7 +27,7 @@ import type { PopoverVariants } from './popover.variants';
  *
  * @example
  * ```svelte
- * <Popover placement="top" arrow bind:open={showInfo}>
+ * <Popover placement="top" bind:open={showInfo}>
  *   {#snippet trigger()}
  *     <Button variant="ghost" size="sm">More info</Button>
  *   {/snippet}

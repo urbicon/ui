@@ -22,7 +22,7 @@ import type { CsrfClientOptions } from '../../csrf.js';
  * ```svelte
  * <TwoFactorManager {user} onEnabled={() => auth.checkStatus()}>
  *   {#snippet qr({ uri })}
- *     <MyQrCode value={uri} />
+ *     <QRCode value={uri} errorCorrection="H" />
  *   {/snippet}
  * </TwoFactorManager>
  * ```

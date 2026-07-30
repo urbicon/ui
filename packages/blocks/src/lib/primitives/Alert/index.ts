@@ -23,7 +23,7 @@ import type { AlertSlots, AlertVariants } from './alert.variants';
  * @example
  * ```svelte
  * <Alert intent="danger" variant="inline" dismissible onDismiss={() => (visible = false)}>
- *   {#snippet icon()}<AlertCircle size={20} />{/snippet}
+ *   {#snippet icon()}<AlertCircleIcon size={20} />{/snippet}
  *   Something went wrong. Please try again.
  *   {#snippet actions()}<Button size="sm" variant="ghost">Retry</Button>{/snippet}
  * </Alert>

@@ -20,7 +20,7 @@ import type { ChatSlots, ChatVariants } from './chat.variants';
  * @example
  * ```svelte
  * <Chat>
- *   {#snippet header()}<Toolbar>…</Toolbar>{/snippet}
+ *   {#snippet header()}<Toolbar aria-label="Conversation actions">…</Toolbar>{/snippet}
  *   <ChatMessageList {messages} />
  *   {#snippet composer()}<PromptInput onSubmit={send} />{/snippet}
  * </Chat>

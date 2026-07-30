@@ -86,10 +86,10 @@ export interface NullOptionConfig {
  *
  * @example Custom trigger (icon-only, with counter)
  * ```svelte
- * <Select options={...} multiple bind:value bind:open>
+ * <Select {options} multiple bind:value bind:open>
  *   {#snippet customTrigger(selected, isOpen, clear)}
  *     <Button variant="ghost" size="sm">
- *       <FilterIcon />
+ *       <ListFilterIcon />
  *       {#if selected.length > 0}
  *         <Badge size="xs">{selected.length}</Badge>
  *       {/if}
