@@ -1,4 +1,4 @@
-/* The data-room → accent-pair table, generated from the shared channel register
+/* The data-room → accent-triple table, generated from the shared channel register
  * (apps/docs/scripts/channels-gen.ts). It has to be imported here, not in
  * app.css, so this file stays the one thing a consumer of the theme imports. */
 @import './rooms-channels.gen.css';
@@ -22,11 +22,17 @@
  *
  * The active room is selected via `data-room="<channel>"` stamped by
  * +layout.svelte; `rooms-channels.gen.css` (imported above, generated from the
- * register) resolves it to `--room-accent` + `--room-accent-fg`, and the whole
- * primary-derived token family is re-resolved from them via `color-mix()` — so
- * every real component on the page (segment indicator, slider, toggle,
- * buttons, TOC-active, badges) picks up the channel colour with no
- * per-component override.
+ * register) resolves it to `--room-accent` + `--room-accent-fg` +
+ * `--room-accent-text`, and the whole primary-derived token family is
+ * re-resolved from them via `color-mix()` — so every real component on the page
+ * (segment indicator, slider, toggle, buttons, TOC-active, badges) picks up the
+ * channel colour with no per-component override.
+ *
+ * Two accent steps, because the channel has two jobs with two WCAG thresholds:
+ * `--room-accent` is the fresh 3:1 step that paints the header bands, the
+ * hero fields and every line/mark; `--room-accent-text` is the 4.5:1 step the
+ * same channel needs when it is small body text. Which token takes which is
+ * decided once, in the derivation block further down.
  *
  * Structure mirrors the previous editorial theme it replaces:
  *   - one full light+dark theme via `light-dark()` (the docs keep their
@@ -86,13 +92,14 @@
   --docs-hair: light-dark(rgb(23 21 15 / 0.08), rgb(240 237 229 / 0.08));
   --docs-line: light-dark(rgb(23 21 15 / 0.14), rgb(240 237 229 / 0.14));
 
-  /* `--room-accent` / `--room-accent-fg` are NOT declared here. The active
-   * channel is selected purely via `data-room="…"` (stamped by +layout.svelte
-   * on the `.docs-room-scope` wrapper for SSR-correct content, mirrored onto
-   * <html> after mount for portaled popovers); rooms-channels.gen.css holds
-   * both the per-channel pairs and the un-stamped fallback, generated from the
-   * register so no hex is hand-kept anywhere. The primary-derived family is
-   * re-resolved from those two vars in the shared block further down. */
+  /* `--room-accent` / `--room-accent-fg` / `--room-accent-text` are NOT declared
+   * here. The active channel is selected purely via `data-room="…"` (stamped by
+   * +layout.svelte on the `.docs-room-scope` wrapper for SSR-correct content,
+   * mirrored onto <html> after mount for portaled popovers);
+   * rooms-channels.gen.css holds both the per-channel triples and the un-stamped
+   * fallback, generated from the register so no hex is hand-kept anywhere. The
+   * primary-derived family is re-resolved from those three vars in the shared
+   * block further down. */
 
   /* Accent alias — coupled to the room-derived primary (resolved below). */
   --docs-accent: var(--color-primary);
@@ -282,33 +289,65 @@
  * ThemeSwitcher keeps working across every room. */
 .docs-rooms,
 .docs-rooms .docs-room-scope {
-  /* No hex fallback: the generated sheet declares the pair unconditionally on
-   * `.docs-rooms` itself, so a fallback here could only ever mask its absence
+  /* No hex fallback: the generated sheet declares all three unconditionally on
+   * `.docs-rooms` itself, so a fallback here could only ever mask their absence
    * with a colour nobody chose. */
   --_a: var(--room-accent);
+  --_at: var(--room-accent-text);
   --_afg: var(--room-accent-fg);
   --_cream: #fbfaf6;
   --_ink: #17150f;
 
+  /* Two anchors, because the ramp spans two roles with two WCAG thresholds.
+   *
+   * 50–500 hang off `--_a`, the FRESH accent (≥3:1 on paper). That is the
+   * surface/line half of the ramp: tints, selected surfaces, the raw 500 a
+   * component reaches for when it wants the room colour itself.
+   *
+   * 600–950 hang off `--_at`, the AA TEXT step (≥4.5:1 on paper). That is the
+   * ink half: everything a `text-primary` ends up resolving to in light mode.
+   * They used to hang off `--_a` too, which is what made `--color-primary`
+   * (light) a 3.1:1 colour — fine for the header band it also paints, one full
+   * step short for a link in a paragraph.
+   *
+   * The percentages walk 600 → 950 down toward ink in even lightness steps,
+   * the same shape the `--_a` half has toward cream. */
   --color-primary-50: color-mix(in oklab, var(--_a) 10%, var(--_cream));
   --color-primary-100: color-mix(in oklab, var(--_a) 18%, var(--_cream));
   --color-primary-200: color-mix(in oklab, var(--_a) 32%, var(--_cream));
   --color-primary-300: color-mix(in oklab, var(--_a) 50%, var(--_cream));
   --color-primary-400: color-mix(in oklab, var(--_a) 74%, var(--_cream));
   --color-primary-500: var(--_a);
-  --color-primary-600: color-mix(in oklab, var(--_a) 86%, var(--_ink));
-  --color-primary-700: color-mix(in oklab, var(--_a) 70%, var(--_ink));
-  --color-primary-800: color-mix(in oklab, var(--_a) 54%, var(--_ink));
-  --color-primary-900: color-mix(in oklab, var(--_a) 40%, var(--_ink));
-  --color-primary-950: color-mix(in oklab, var(--_a) 26%, var(--_ink));
+  --color-primary-600: var(--_at);
+  --color-primary-700: color-mix(in oklab, var(--_at) 80%, var(--_ink));
+  --color-primary-800: color-mix(in oklab, var(--_at) 60%, var(--_ink));
+  --color-primary-900: color-mix(in oklab, var(--_at) 40%, var(--_ink));
+  --color-primary-950: color-mix(in oklab, var(--_at) 20%, var(--_ink));
 
-  /* The room colour IS the button fill (raw accent in both modes) so
-   * `--room-accent-fg` stays the correct on-primary text; hover/active shade
-   * toward ink in light and toward the brighter stop in dark. */
-  --color-primary: var(--_a);
-  --color-text-on-primary: var(--_afg);
-  --color-primary-hover: light-dark(var(--color-primary-600), var(--color-primary-400));
-  --color-primary-active: light-dark(var(--color-primary-700), var(--color-primary-300));
+  /* `--color-primary` is a DUAL-ROLE token and there is no splitting it: the
+   * same custom property feeds `bg-primary` (button, toggle, progress fill) and
+   * `text-primary` (body link, active nav entry, Tab label, Menu checkmark) —
+   * in this app AND inside the library components themselves, so no amount of
+   * rewriting call sites here would reach all of it. It therefore has to carry
+   * the SHARPER of the two thresholds, 4.5:1, and its on-colour follows the
+   * fill it actually pairs with:
+   *
+   *   light  fill = the text step (L≈0.55) → `--_cream` reads on it at 4.7:1;
+   *          `--room-accent-fg` (dark ink) would only reach 3.5:1.
+   *   dark   fill = the fresh accent, unchanged → `--room-accent-fg` at 5.5:1.
+   *          `--_at` is not usable here at all (3.2:1 on the night paper), so
+   *          dark mode keeps the accent in BOTH roles, as it always did.
+   *
+   * The fresh accent keeps every role that is a surface or a line and is
+   * reached by its own name: the header bands, the hero fields, the register
+   * rail, the wordmark cursor and the playground tint all paint
+   * `var(--room-accent)` directly and are untouched by this. Below, the focus
+   * ring and the chart series keep it too — both are non-text marks the 3:1
+   * threshold governs, and both would lose their freshness for nothing. */
+  --color-primary: light-dark(var(--color-primary-600), var(--color-primary-500));
+  --color-text-on-primary: light-dark(var(--_cream), var(--_afg));
+  --color-primary-hover: light-dark(var(--color-primary-700), var(--color-primary-400));
+  --color-primary-active: light-dark(var(--color-primary-800), var(--color-primary-300));
   --color-primary-subtle: light-dark(var(--color-primary-50), var(--color-primary-900));
   --color-primary-emphasis: light-dark(var(--color-primary-900), var(--color-primary-200));
 
@@ -324,7 +363,7 @@
   --color-chart-4: color-mix(in oklab, var(--_a) 90%, #ffffff);
 }
 
-/* The `data-room` → accent-pair table used to live here as four hand-kept
+/* The `data-room` → accent table used to live here as four hand-kept
  * hex pairs. It is now rooms-channels.gen.css, imported at the top of this
  * file: the docs and the landing draw the same channel register, so a
  * component's doc page and its row in the landing index cannot drift apart.

@@ -357,6 +357,14 @@
   const rowAccent = $derived(selectedChannel.accent);
   const rowAccentFg = $derived(selectedChannel.accentOn);
 
+  // …aber die 3:1-Stufe trägt nur Linie und Marke. Die Playgrounds hier sind
+  // dieselben wie auf den Doku-Seiten, und mehrere davon malen kleinen Text in
+  // `--color-primary` — der aktive Tab-Reiter etwa stand bei 3.1:1 auf dem
+  // hellen Papier. `.room-accent` (rooms.css) nimmt darum optional die
+  // Text-Stufe des Registers dazu; damit bleibt die Marke frisch und die
+  // Beschriftung AA. Nur im Hellmodus nötig, siehe rooms.css.
+  const rowAccentText = $derived(selectedChannel.accentText);
+
   // Slot-Eingriffe des Hero, unverändert: äußere Rahmung des Configurators
   // abräumen, linke Kante angleichen, eigener Grund unter der Bühne.
   const PLAYGROUND_SLOTS = {
@@ -583,6 +591,8 @@
       aria-label="Component index"
       style:--room-accent={rowAccent}
       style:--room-accent-fg={rowAccentFg}
+      style:--room-accent-text={rowAccentText}
+      style:--room-accent-text-fg="#fbfaf6"
     >
       <div class="inv-col">
         <div class="inv-head">

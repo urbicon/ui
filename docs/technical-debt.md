@@ -663,7 +663,7 @@ internal TODO instead. Sections are ordered roughly by urgency.
   `aria-label`). The dark-mode and VR-tolerance sibling entries also shipped in W2.
 - **Found:** 2026-07-22, debt-fix-wave-3 review; narrowed to the route dimension in W2.
 
-### Rooms skin pins `--color-primary` to the raw accent in both modes — dark-mode accent-as-foreground misses the floor
+### ~~Rooms skin pins `--color-primary` to the raw accent in both modes — dark-mode accent-as-foreground misses the floor~~ — resolved 2026-07-30, by the Material-3 split the entry kept asking for
 
 - **Where:** `apps/docs/src/lib/style/rooms-docs.css` — `--color-primary:
   var(--_a)` and `--color-interactive-focus: var(--_a)` (the raw room accent, in
@@ -705,7 +705,59 @@ internal TODO instead. Sections are ordered roughly by urgency.
   narrowed even as the best case got worse). The Material-3 split named above is
   still the real fix; it is now a **light**-mode split (a darker stop for the
   foreground role) rather than a dark-mode one.
+- **Resolved 2026-07-30:** the split shipped. Each channel gained a fourth,
+  generated step — `accentText`, the lightest step of the same hue clearing
+  **4.5:1** against the darkest light paper in play (L 0.53–0.59, so still a
+  colour, not ink) — emitted as `--room-accent-text` next to the existing pair.
+  In `rooms-docs.css` the primary ramp now has **two anchors**: 50–500 hang off
+  the fresh accent (surfaces, tints, the raw 500), 600–950 off the text step, and
+  `--color-primary` is the library's own `light-dark(600, 500)` shape again with
+  `--color-text-on-primary` following it (`light-dark(cream, room-accent-fg)`).
+  Measured in the browser across six rooms × both modes: body link 3.13 →
+  **4.72–4.76** light, **4.85–4.88** dark (unchanged); on-primary 4.72–4.76 light
+  / 5.48–5.59 dark; header band title 5.48–5.59; active nav entry 10.9–12.3.
+  The fresh accent keeps every non-text role and is untouched — header bands,
+  hero fields, the register rail, the wordmark cursor, the playground tint (all
+  read `var(--room-accent)` directly), plus `--color-interactive-focus` and
+  `--color-chart-*`, both measured at 3.12–3.14 light / 4.85–4.88 dark.
+- **The dual role is real and was not resolved, only re-pointed:** `--color-primary`
+  is `bg-primary` AND `text-primary` — 42 fill sites vs 43 foreground sites inside
+  `packages/blocks` alone, so no amount of rewriting docs-app call sites reaches
+  it. It therefore carries the sharper threshold, and the cost is that light-mode
+  primary FILLS (button, toggle, progress, `fill-primary` marks) sit one step
+  deeper than the header band above them rather than matching it exactly. That is
+  a deliberate trade, not an oversight: it is also what the library's own default
+  theme does (`primary-600` fill under white text). A genuinely separate text
+  token would need a new Tailwind colour utility and ~145 call sites across two
+  packages.
+- **No single colour can be AA on both papers**, which is why the text role is a
+  `light-dark()` pair rather than one new value: 4.5:1 against `#fbfaf6` needs
+  relative luminance ≤ 0.173, 4.5:1 against `#232220` needs ≥ 0.247. The
+  generator's guard therefore measures the *role*, not the colour — the text step
+  against the light paper, the accent step against the dark one.
 - **Found:** 2026-07-24, W1 adversarial review (deepened by W1's green nudge).
+
+### `bg-primary-subtle` + `text-primary` lands at 4.29:1 in the Rooms light mode — a library-wide pairing, not a Rooms defect
+
+- **Where:** `--color-primary-subtle` (light = `--color-primary-50`) under
+  `text-primary`. Used by `CommandPalette` (`itemHighlighted`), `EmptyState`
+  (icon), `Planner` (count badge), `Calendar` (selected day) and, via
+  `--color-surface-selected`, by every selected row.
+- **What:** measured in the browser across six rooms: **4.29–4.30:1** light,
+  3.62–3.69:1 dark. Both short of AA for the small text those components put on
+  it. The light figure is a large improvement — before the 2026-07-30 accent-text
+  split it was **2.83:1** — and the dark figure is already better than the
+  library's own default theme, which measures 4.55 light / **3.46** dark for the
+  identical pairing. So the shortfall is a property of the `subtle`-surface
+  recipe library-wide, not something the Rooms skin introduces.
+- **Why deferred:** closing it in the Rooms skin alone would mean lightening
+  `--color-primary-50` from a 10 % accent tint to roughly 5 %, which washes the
+  subtle surface out to almost nothing — the wrong lever. The right one is a
+  decision about what `*-subtle` + `text-*` is allowed to promise across the
+  library (the same question the `surface-subtle` entry below asks), measured by
+  a gate that can resolve the skins (see the entry above about the Rooms skins
+  being invisible to `contrast.test.ts`).
+- **Found:** 2026-07-30, browser measurement of the accent-text split.
 
 ### docs-app `lang`: the ⌘K command palette is the one bilingual chrome surface still inheriting `lang="en"`
 

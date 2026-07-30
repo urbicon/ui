@@ -7,13 +7,15 @@
  * (Kacheln) und Familien-Kanäle (Katalog-Familien) referenzieren dieselben
  * Einträge. Grün/Gelb sind Erzählfarben und keiner Familie zugeordnet.
  *
- * Drei Stufen pro Hue, weil der Kanal drei Rollen hat:
- *   solid  — die Vollton-FLÄCHE (Kacheln). Auf Papier unlesbar, per Konstruktion.
- *   deep   — Text auf dem Vollton, Fläche im Dark Mode.
- *   accent — der Kanal auf hellem Grund: Linie, Marke, Indikator, große Schrift.
- * Die Akzent-Stufe ist die hellste, die gegen Papier noch 3:1 schafft — jede
- * dunklere lässt die zehn Hues ineinanderlaufen, jede hellere ist nicht mehr
- * lesbar.
+ * Vier Stufen pro Hue, weil der Kanal vier Rollen hat:
+ *   solid      — die Vollton-FLÄCHE (Kacheln). Auf Papier unlesbar, per Konstruktion.
+ *   deep       — Text auf dem Vollton, Fläche im Dark Mode.
+ *   accent     — der Kanal auf hellem Grund als Fläche, Linie, Marke, Indikator,
+ *                große Schrift: die hellste Stufe mit ≥3:1 gegen Papier.
+ *   accentText — derselbe Kanal als kleiner Fließtext: die hellste Stufe mit
+ *                ≥4.5:1 gegen das dunkelste helle Papier.
+ * Zwei Stufen für zwei WCAG-Schwellen. Jede dunklere Stufe lässt die zehn Hues
+ * ineinanderlaufen, jede hellere ist in ihrer Rolle nicht mehr lesbar.
  */
 
 export interface Channel {
@@ -28,14 +30,26 @@ export interface Channel {
   on: string;
   /**
    * Der Kanal auf hellem Grund: die hellste Stufe mit ≥ 3:1 gegen Papier.
-   * Für Linien, Indikatoren, Marken und große Schrift — NICHT für kleinen
-   * Fließtext, der 4.5:1 braucht.
+   * Für Flächen, Linien, Indikatoren, Marken und große Schrift — NICHT für
+   * kleinen Fließtext, der 4.5:1 braucht: dafür ist `accentText` da.
+   *
+   * Auf DUNKLEM Grund ist diese Stufe auch die Textfarbe (4.9:1 gegen das
+   * Doku-Nachtpapier) — dort wäre `accentText` mit 3.2:1 zu dunkel.
    */
   accent: string;
   /** Dunkle on-Farbe für Text auf der Akzent-FLÄCHE (helle trägt dort nicht). */
   accentOn: string;
   /** Gemessener Kontrast der Akzent-Stufe gegen das Papier. */
   accentOnPaper: number;
+  /**
+   * Der Kanal als kleiner Fließtext auf HELLEM Grund: die hellste Stufe mit
+   * ≥ 4.5:1. Rund L 0.53–0.59 — satter als `accent`, aber weit über der
+   * Tiefe, die zehn Hues bleiben unterscheidbar. Als FÜLLUNG trägt sie das
+   * helle Papier als on-Farbe (dieselbe Messung, andere Richtung).
+   */
+  accentText: string;
+  /** Gemessener Kontrast der Text-Stufe gegen das dunkelste helle Papier. */
+  accentTextOnPaper: number;
   /** WCAG-Kontrast Vollton↔Tiefe (0 beim Ink-Kanal). */
   pairContrast: number;
 }
@@ -50,6 +64,8 @@ export const CHANNELS = {
     accent: 'oklch(0.67 0.21 40)',
     accentOn: 'oklch(0.2 0.05 40)',
     accentOnPaper: 3,
+    accentText: 'oklch(0.564 0.177 40)',
+    accentTextOnPaper: 4.5,
     pairContrast: 4.2
   },
   yellow: {
@@ -61,6 +77,8 @@ export const CHANNELS = {
     accent: 'oklch(0.645 0.134 100)',
     accentOn: 'oklch(0.2 0.042 100)',
     accentOnPaper: 3,
+    accentText: 'oklch(0.543 0.113 100)',
+    accentTextOnPaper: 4.5,
     pairContrast: 9.8
   },
   green: {
@@ -72,6 +90,8 @@ export const CHANNELS = {
     accent: 'oklch(0.627 0.197 145)',
     accentOn: 'oklch(0.2 0.05 145)',
     accentOnPaper: 3,
+    accentText: 'oklch(0.528 0.166 145)',
+    accentTextOnPaper: 4.5,
     pairContrast: 9
   },
   teal: {
@@ -83,6 +103,8 @@ export const CHANNELS = {
     accent: 'oklch(0.632 0.119 175)',
     accentOn: 'oklch(0.2 0.038 175)',
     accentOnPaper: 3,
+    accentText: 'oklch(0.532 0.1 175)',
+    accentTextOnPaper: 4.5,
     pairContrast: 9.5
   },
   cyan: {
@@ -94,6 +116,8 @@ export const CHANNELS = {
     accent: 'oklch(0.635 0.108 200)',
     accentOn: 'oklch(0.2 0.034 200)',
     accentOnPaper: 3,
+    accentText: 'oklch(0.535 0.091 200)',
+    accentTextOnPaper: 4.5,
     pairContrast: 9.1
   },
   azure: {
@@ -105,6 +129,8 @@ export const CHANNELS = {
     accent: 'oklch(0.64 0.128 230)',
     accentOn: 'oklch(0.2 0.04 230)',
     accentOnPaper: 3,
+    accentText: 'oklch(0.539 0.107 230)',
+    accentTextOnPaper: 4.5,
     pairContrast: 6
   },
   blue: {
@@ -116,6 +142,8 @@ export const CHANNELS = {
     accent: 'oklch(0.65 0.19 255)',
     accentOn: 'oklch(0.2 0.05 255)',
     accentOnPaper: 3,
+    accentText: 'oklch(0.549 0.181 255)',
+    accentTextOnPaper: 4.5,
     pairContrast: 3.6
   },
   purple: {
@@ -127,6 +155,8 @@ export const CHANNELS = {
     accent: 'oklch(0.675 0.233 310)',
     accentOn: 'oklch(0.2 0.05 310)',
     accentOnPaper: 3,
+    accentText: 'oklch(0.586 0.296 310)',
+    accentTextOnPaper: 4.5,
     pairContrast: 2.8
   },
   magenta: {
@@ -138,6 +168,8 @@ export const CHANNELS = {
     accent: 'oklch(0.69 0.314 330)',
     accentOn: 'oklch(0.2 0.05 330)',
     accentOnPaper: 3,
+    accentText: 'oklch(0.581 0.265 330)',
+    accentTextOnPaper: 4.5,
     pairContrast: 4.2
   },
   red: {
@@ -149,6 +181,8 @@ export const CHANNELS = {
     accent: 'oklch(0.674 0.217 15)',
     accentOn: 'oklch(0.2 0.05 15)',
     accentOnPaper: 3,
+    accentText: 'oklch(0.574 0.23 15)',
+    accentTextOnPaper: 4.5,
     pairContrast: 3.5
   },
   ink: {
@@ -160,6 +194,8 @@ export const CHANNELS = {
     accent: 'oklch(0.35 0.006 100)',
     accentOn: 'oklch(0.97 0.002 100)',
     accentOnPaper: 10.4,
+    accentText: 'oklch(0.35 0.006 100)',
+    accentTextOnPaper: 10.3,
     pairContrast: 0
   }
 } as const satisfies Record<string, Channel>;

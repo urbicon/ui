@@ -152,36 +152,69 @@
 }
 
 /* ── Room accent scope ──────────────────────────────────────────────────
-   Fed two inline custom properties from the active channel:
-     --room-accent      the field colour (the room's primary)
-     --room-accent-fg   its ink/cream foreground (text on the accent fill)
+   Fed inline custom properties from the active channel:
+     --room-accent         the field colour (the room's primary)
+     --room-accent-fg      its ink/cream foreground (text on the accent fill)
+     --room-accent-text    OPTIONAL, see below — the channel's AA text step
+     --room-accent-text-fg its foreground, passed together with it
    Re-declares every primary-derived semantic token so real components pick up
    the room colour and repaint on channel switch. `oklab` mixing keeps the
-   ramp perceptually even. */
+   ramp perceptually even.
+
+   WHY THE OPTIONAL SECOND STEP. `--color-primary` is dual-role: it is the
+   `bg-primary` FILL and the `text-primary` INK of every real component in the
+   scope. Those are two WCAG thresholds (3:1 for a fill or a mark, 4.5:1 for
+   small text), and which one binds depends on what the caller painted:
+
+     A caller that paints a saturated FIELD and sets `--room-accent` to that
+     field's own solid (the landing's row-1 tiles) wants `--color-primary` to
+     ECHO the field. It passes no text step and nothing here changes.
+
+     A caller that puts the channel on PAPER (the landing's row-2 inventory)
+     has no field to echo — there the accent is line, mark and label, and its
+     3:1 step renders a 16px Tab label at 3.1:1. It passes the register's
+     `accentText` step (≥4.5:1 on that paper) plus the foreground that reads on
+     it, and the ink half of the ramp re-anchors on it.
+
+   The two are opt-in TOGETHER: a text step darkens the light-mode fill, so its
+   on-colour has to follow. And they are DECLARED here rather than read through
+   a `var(…, fallback)`: the docs theme sets `--room-accent-text` on <html>, so
+   an unset scope would inherit a foreign room's step instead of falling back.
+   Inline styles on the scope element beat these declarations, as intended. */
 .room-accent {
   --_a: var(--room-accent, #00845c);
   --_afg: var(--room-accent-fg, #f6f3ec);
+  --room-accent-text: var(--_a);
+  --room-accent-text-fg: var(--_afg);
+  --_at: var(--room-accent-text);
+  --_atfg: var(--room-accent-text-fg);
   --_cream: #fbfaf6;
   --_ink: #17150f;
 
+  /* 50–500 hang off the accent (surface/line half), 600–950 off the text step
+     (ink half). Where no text step is passed the two anchors are the same
+     colour and the ramp is byte-identical to the single-anchor one. */
   --color-primary-50: color-mix(in oklab, var(--_a) 10%, var(--_cream));
   --color-primary-100: color-mix(in oklab, var(--_a) 18%, var(--_cream));
   --color-primary-200: color-mix(in oklab, var(--_a) 32%, var(--_cream));
   --color-primary-300: color-mix(in oklab, var(--_a) 50%, var(--_cream));
   --color-primary-400: color-mix(in oklab, var(--_a) 74%, var(--_cream));
   --color-primary-500: var(--_a);
-  --color-primary-600: color-mix(in oklab, var(--_a) 86%, var(--_ink));
-  --color-primary-700: color-mix(in oklab, var(--_a) 70%, var(--_ink));
-  --color-primary-800: color-mix(in oklab, var(--_a) 54%, var(--_ink));
-  --color-primary-900: color-mix(in oklab, var(--_a) 40%, var(--_ink));
-  --color-primary-950: color-mix(in oklab, var(--_a) 26%, var(--_ink));
+  --color-primary-600: color-mix(in oklab, var(--_at) 86%, var(--_ink));
+  --color-primary-700: color-mix(in oklab, var(--_at) 70%, var(--_ink));
+  --color-primary-800: color-mix(in oklab, var(--_at) 54%, var(--_ink));
+  --color-primary-900: color-mix(in oklab, var(--_at) 40%, var(--_ink));
+  --color-primary-950: color-mix(in oklab, var(--_at) 26%, var(--_ink));
 
-  --color-primary: var(--_a);
-  --color-primary-hover: color-mix(in oklab, var(--_a) 84%, var(--_ink));
-  --color-primary-active: color-mix(in oklab, var(--_a) 70%, var(--_ink));
+  /* The landing's paper is `light-dark(#f4f4f2, #0d0d0d)`. On the night paper
+     the accent already measures 5.9:1, so the text step is a LIGHT-mode
+     concern only — the same asymmetry rooms-docs.css carries. */
+  --color-primary: light-dark(var(--_at), var(--_a));
+  --color-primary-hover: color-mix(in oklab, var(--_at) 84%, var(--_ink));
+  --color-primary-active: color-mix(in oklab, var(--_at) 70%, var(--_ink));
   --color-primary-subtle: color-mix(in oklab, var(--_a) 12%, var(--_cream));
-  --color-primary-emphasis: color-mix(in oklab, var(--_a) 88%, var(--_ink));
-  --color-text-on-primary: var(--_afg);
+  --color-primary-emphasis: color-mix(in oklab, var(--_at) 88%, var(--_ink));
+  --color-text-on-primary: light-dark(var(--_atfg), var(--_afg));
 
   --color-surface-selected: color-mix(in oklab, var(--_a) 12%, var(--_cream));
   --color-interactive-focus: var(--_a);
