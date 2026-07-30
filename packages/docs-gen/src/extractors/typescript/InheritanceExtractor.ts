@@ -139,6 +139,10 @@ export class InheritanceExtractor extends TypeScriptBaseExtractor<
       return this.handleOmitPattern(heritageType, sourceFile);
     }
 
+    if (this.isPickPattern(heritageType)) {
+      return this.handlePickPattern(heritageType, sourceFile);
+    }
+
     if (this.isHTMLAttributes(typeName)) {
       return this.handleHTMLAttributes(typeName);
     }
@@ -256,6 +260,68 @@ export class InheritanceExtractor extends TypeScriptBaseExtractor<
     };
   }
 
+  /**
+   * `Pick<Base, 'a' | 'b'>` — the counterpart to `handleOmitPattern`. Before
+   * this existed the clause fell through to `handleExternalType`, which
+   * recorded the *utility type* as the inheritance source: one entry named
+   * `Pick` holding one prop named `...Pick`, with the picked members nowhere.
+   *
+   * Members come from the checker where a program is available (the only route
+   * that sees through a tv() variant alias in the base) and from the base
+   * interface's own members otherwise.
+   */
+  private handlePickPattern(
+    heritageType: ts.ExpressionWithTypeArguments,
+    sourceFile: ts.SourceFile
+  ): InheritanceInfo {
+    const fullType = heritageType.getText();
+    console.log(`🎯 Handling Pick pattern: ${fullType}`);
+
+    const baseType = this.heritageBaseTypeText(heritageType) ?? '';
+    const pickedKeys = new Set(this.parseOmittedKeys(this.heritageKeyArgText(heritageType)));
+    const props: PropInfo[] = [];
+
+    // A tv() variant alias base contributes no *inherited* props: the axes are
+    // reported by the variants pass, and PropsExtractor decides which of them
+    // stay public. `handleOmitPattern` leaves `Omit<XVariants, …>` empty for the
+    // same reason — listing them here would show every picked axis twice.
+    if (/Variants$|VariantProps$/.test(baseType)) {
+      return { typeName: fullType, source: 'pick-pattern', props };
+    }
+
+    const resolved = this.resolveHeritageMembersViaChecker(heritageType);
+    if (resolved) {
+      for (const member of resolved) {
+        // Documentation from the declaration, shape from the checker — see
+        // PropsExtractor.propFromResolvedMember for why the two must not be
+        // taken from the same place.
+        const documented = member.declaration
+          ? this.extractPropFromMember(member.declaration)
+          : null;
+        props.push({
+          ...(documented ?? { description: `Inherited from ${baseType}.` }),
+          name: member.name,
+          type: member.type,
+          required: !member.optional,
+          ...(member.values.length > 0 ? { values: member.values } : {}),
+          source: { type: 'inherited', name: fullType }
+        });
+      }
+    } else {
+      const baseInterface =
+        this.findInterface(sourceFile, baseType) ?? this.resolveOmitBaseInterface(heritageType);
+      for (const member of baseInterface?.members ?? []) {
+        if (!ts.isPropertySignature(member)) continue;
+        const prop = this.extractPropFromMember(member);
+        if (!prop || !pickedKeys.has(prop.name)) continue;
+        prop.source = { type: 'inherited', name: fullType };
+        props.push(prop);
+      }
+    }
+
+    return { typeName: fullType, source: 'pick-pattern', props };
+  }
+
   private handleHTMLAttributes(typeName: string): InheritanceInfo {
     console.log(`🌐 Handling HTML attributes: ${typeName}`);
 
@@ -360,20 +426,26 @@ export class InheritanceExtractor extends TypeScriptBaseExtractor<
 
   private handleExternalType(
     typeName: string,
-    _heritageType: ts.ExpressionWithTypeArguments
+    heritageType: ts.ExpressionWithTypeArguments
   ): InheritanceInfo {
     console.log(`🌍 Handling external type: ${typeName}`);
 
     // Try to resolve common external types
     const packageName = this.getPackageForType(typeName);
     const url = this.getUrlForType(typeName);
+    // A generic utility type describes its base, never itself — `...Partial`
+    // is as useless a prop name as the `...Pick` this class of bug was named
+    // for. Name the placeholder after what is being transformed.
+    const placeholderName = TypeScriptBaseExtractor.isUtilityTypeName(typeName)
+      ? (this.heritageBaseTypeText(heritageType) ?? typeName)
+      : typeName;
 
     const props: PropInfo[] = [
       {
-        name: `...${typeName}`,
+        name: `...${placeholderName}`,
         type: typeName,
         required: false,
-        description: `Properties inherited from ${typeName}`,
+        description: `Properties inherited from ${placeholderName}`,
         source: {
           type: 'inherited',
           name: typeName,
@@ -397,6 +469,10 @@ export class InheritanceExtractor extends TypeScriptBaseExtractor<
 
   private isOmitPattern(heritageType: ts.ExpressionWithTypeArguments): boolean {
     return heritageType.expression.getText().startsWith('Omit');
+  }
+
+  private isPickPattern(heritageType: ts.ExpressionWithTypeArguments): boolean {
+    return heritageType.expression.getText() === 'Pick' && !!heritageType.typeArguments?.length;
   }
 
   private isHTMLAttributes(typeName: string): boolean {

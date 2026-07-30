@@ -75,6 +75,59 @@ describe('APIFileGenerator — emitted interface covers the emitted data', () =>
     }
   });
 
+  // Same gap one level down: `inheritance[].props[]` is emitted against the
+  // one-line `InheritanceProp` interface, and a field that only appears in the
+  // data type-errors in the docs app, never here. `values` slipped through this
+  // way when the Pick<…> resolution started carrying literal unions.
+  it('declares every emitted inheritance prop field on InheritanceProp', async () => {
+    const generator = new APIFileGenerator({ outputPath: dir, format: 'typescript' });
+    const data = fullComponentData();
+    data.inheritance = [
+      {
+        typeName: "Pick<ButtonProps, 'variant'>",
+        source: 'pick-pattern',
+        props: [
+          {
+            name: 'variant',
+            type: "'filled' | 'ghost'",
+            required: false,
+            description: 'Visual variant.',
+            summary: 'Visual variant.',
+            values: ['filled', 'ghost'],
+            source: { type: 'inherited', name: 'ButtonProps' },
+            seeAlso: 'https://example.test/button',
+            seeAlsoRefs: ['ButtonProps'],
+            examples: [{ title: 'ghost', code: '<CopyButton variant="ghost" />' }]
+          }
+        ]
+      }
+    ] as unknown as typeof data.inheritance;
+
+    await generator.generate({
+      metadata: { generated: '2026-07-30T00:00:00.000Z', version: 'test' },
+      components: { Widget: data }
+    } as unknown as APIData);
+
+    const emitted = await fs.readFile(path.join(dir, 'primitives', 'widget', 'api.ts'), 'utf-8');
+    const line = emitted.match(/export interface InheritanceProp \{([^\n]*)\}/);
+    expect(line).not.toBeNull();
+    const declared = new Set(
+      [...(line as RegExpMatchArray)[1].matchAll(/(\w+)\??:/g)].map((m) => m[1])
+    );
+
+    const dataMatch = emitted.match(
+      /export const componentData: ComponentAPIInfo = ([\s\S]*?) as const;/
+    );
+    const parsed = JSON.parse((dataMatch as RegExpMatchArray)[1]) as {
+      inheritance: { props: Record<string, unknown>[] }[];
+    };
+    const emittedFields = Object.keys(parsed.inheritance[0].props[0]);
+    expect(emittedFields).toContain('values');
+    for (const field of emittedFields) {
+      expect(declared, `InheritanceProp is missing "${field}"`).toContain(field);
+    }
+  });
+
   it('no longer emits the dead typeAnchor/typePreview fields (removed 2026-07: nothing read them)', async () => {
     const generator = new APIFileGenerator({ outputPath: dir, format: 'typescript' });
     const apiData: APIData = {

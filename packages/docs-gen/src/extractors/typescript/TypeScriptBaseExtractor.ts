@@ -5,6 +5,27 @@ import { BaseExtractor } from '../BaseExtractor';
 import { getProgramBundle } from './ProgramCache';
 
 /**
+ * One member of a heritage clause resolved through the type checker.
+ *
+ * `declaration` is set only when the member traces back to a real
+ * `PropertySignature` — then the caller can read its JSDoc as usual. Members
+ * that originate in a tv() config have none: `VariantProps<typeof
+ * buttonVariants>` maps `variant` onto a `PropertyAssignment` in
+ * `button.variants.ts`, which carries no prop documentation. For those,
+ * `type` and `values` are everything that is knowable.
+ */
+export interface ResolvedHeritageMember {
+  name: string;
+  declaration: ts.PropertySignature | null;
+  /** Declared with a `?` (or otherwise optional through the mapped type). */
+  optional: boolean;
+  /** Literal union members, `[]` when the type is not a literal union. */
+  values: string[];
+  /** Rendered type, in the same spelling the rest of the pipeline emits. */
+  type: string;
+}
+
+/**
  * TypeScript-specific base extractor with TypeScript program management.
  *
  * With a `configPath` in its config, the extractor is backed by the shared
@@ -121,15 +142,32 @@ export abstract class TypeScriptBaseExtractor<
   }
 
   /**
-   * Extract all values of a repeated JSDoc tag (e.g., multiple @tag or @related)
+   * Extract all values of a repeated JSDoc tag (e.g., multiple @tag or @related).
+   *
+   * Single-value tags only. TypeScript attaches every line that follows a tag to
+   * that tag's comment, so free prose written *after* the tag block lands inside
+   * the last tag's value — `@related Toast` followed by a paragraph shipped
+   * `"Toast\n\nBadge props are a discriminated union…"` as one related component
+   * name into the MCP catalogue, `llm.txt` and the docs site. The value is
+   * therefore the first line; anything beyond it is prose in the wrong place and
+   * says so, rather than being folded in silently.
    */
   protected extractJSDocTagAll(node: ts.Node, tagName: string): string[] {
     const jsDocTags = ts.getJSDocTags(node);
     const results: string[] = [];
     for (const tag of jsDocTags) {
-      if (tag.tagName.text === tagName && tag.comment) {
-        results.push(this.getCommentText(tag.comment));
+      if (tag.tagName.text !== tagName || !tag.comment) continue;
+      const raw = this.getCommentText(tag.comment);
+      const [first, ...rest] = raw.split('\n');
+      const trailing = rest.join('\n').trim();
+      if (trailing) {
+        console.warn(
+          `⚠️  @${tagName} "${first.trim()}" is followed by prose in the same JSDoc block — ` +
+            'move that text above the tags, or it is dropped. ' +
+            `Dropped: "${trailing.slice(0, 60)}${trailing.length > 60 ? '…' : ''}"`
+        );
       }
+      results.push(first.trim());
     }
     return results;
   }
@@ -388,6 +426,128 @@ export abstract class TypeScriptBaseExtractor<
     const baseArg = heritageType.typeArguments?.[0];
     if (!baseArg || !ts.isTypeReferenceNode(baseArg)) return null;
     return this.resolveCrossFileInterface(baseArg.typeName);
+  }
+
+  /**
+   * The base type argument of a generic heritage clause (`Pick<Base, K>`,
+   * `Omit<Base, K>`) as written, or null when the clause takes no arguments.
+   * Reading `typeArguments[0]` instead of regexing `getText()` is what keeps
+   * `Omit<Record<string, number>, 'a'>`-shaped bases from being cut at their
+   * first comma.
+   */
+  protected heritageBaseTypeText(heritageType: ts.ExpressionWithTypeArguments): string | null {
+    const baseArg = heritageType.typeArguments?.[0];
+    return baseArg ? baseArg.getText().trim() : null;
+  }
+
+  /**
+   * The key argument of a key-filtering heritage clause (`Pick<B, K>` /
+   * `Omit<B, K>`) as written — `'a' | 'b'`, `keyof XVariants`, …
+   */
+  protected heritageKeyArgText(heritageType: ts.ExpressionWithTypeArguments): string {
+    return heritageType.typeArguments?.[1]?.getText().trim() ?? '';
+  }
+
+  /**
+   * TypeScript's built-in type transformers. Named individually rather than
+   * detected structurally because the point is narrow: a heritage clause whose
+   * *expression* is one of these describes its base, never itself, so no
+   * fallback may ever name a prop after it.
+   */
+  private static readonly UTILITY_TYPE_NAMES = new Set([
+    'Pick',
+    'Omit',
+    'Partial',
+    'Required',
+    'Readonly',
+    'Record',
+    'Extract',
+    'Exclude',
+    'NonNullable'
+  ]);
+
+  protected static isUtilityTypeName(typeName: string): boolean {
+    return TypeScriptBaseExtractor.UTILITY_TYPE_NAMES.has(typeName);
+  }
+
+  /**
+   * Expand a heritage clause the syntactic paths cannot name — `Pick<X, K>`
+   * above all — into its members, via the shared program's checker.
+   *
+   * This is the only route that sees through a tv() variant alias: the five
+   * members of `Pick<ButtonProps, 'variant' | 'intent' | 'size' | 'tier' |
+   * 'disabled'>` live in three different places (four `PropertyAssignment`s in
+   * `button.variants.ts`, one `PropertySignature` in `Button/index.ts`), and
+   * only the checker joins them. Purely syntactic resolution of the same clause
+   * finds `disabled` and silently loses the other four.
+   *
+   * Returns null in single-file mode (no real program), for clauses the checker
+   * cannot resolve, and for anything that resolves to zero properties — the
+   * caller then falls back to its syntactic path rather than reporting an empty
+   * heritage.
+   */
+  protected resolveHeritageMembersViaChecker(
+    heritageType: ts.ExpressionWithTypeArguments
+  ): ResolvedHeritageMember[] | null {
+    if (!this.packageRoot) return null; // single-file mode: no program, no checker
+    try {
+      const type = this.checker.getTypeAtLocation(heritageType);
+      if (!type) return null;
+      const members: ResolvedHeritageMember[] = [];
+      for (const symbol of this.checker.getPropertiesOfType(type)) {
+        const declaration = symbol.declarations?.find(ts.isPropertySignature) ?? null;
+        const propertyType = this.checker.getTypeOfSymbolAtLocation(symbol, heritageType);
+        const literals = TypeScriptBaseExtractor.literalMembersOfType(propertyType);
+        members.push({
+          name: symbol.name,
+          declaration,
+          optional: (symbol.flags & ts.SymbolFlags.Optional) !== 0,
+          values: literals.map((l) => l.value),
+          // Same spelling the variants pass emits (`'sm' | 'md' | 'lg'`), so a
+          // picked tv() axis and the same axis taken from the tv() config read
+          // identically in the API table.
+          type:
+            literals.length > 0
+              ? literals.map((l) => (l.quoted ? `'${l.value}'` : l.value)).join(' | ')
+              : this.checker
+                  .typeToString(propertyType)
+                  .replace(/\s*\|\s*undefined$/, '')
+                  .trim()
+        });
+      }
+      return members.length > 0 ? members : null;
+    } catch {
+      // Node not part of this program, or an unresolvable type reference.
+      return null;
+    }
+  }
+
+  /**
+   * String / number literal members of a (possibly union) type, minus
+   * `undefined` and `null`.
+   *
+   * `[]` for anything that is not a pure literal union: a `boolean` prop must
+   * not be reported as the enumerable two-value union `true | false`, which is
+   * how TypeScript represents it internally — that would turn every boolean
+   * into a dropdown. tv() axes keyed `{ true: …, false: … }` are unaffected:
+   * `VariantProps` maps them to the *string* literals `'true' | 'false'`.
+   */
+  private static literalMembersOfType(type: ts.Type): Array<{ value: string; quoted: boolean }> {
+    const parts = type.isUnion() ? type.types : [type];
+    const literals: Array<{ value: string; quoted: boolean }> = [];
+    for (const part of parts) {
+      if (part.flags & (ts.TypeFlags.Undefined | ts.TypeFlags.Null)) continue;
+      if (part.isStringLiteral()) {
+        literals.push({ value: part.value, quoted: true });
+        continue;
+      }
+      if (part.isNumberLiteral()) {
+        literals.push({ value: String(part.value), quoted: false });
+        continue;
+      }
+      return [];
+    }
+    return literals;
   }
 
   /**

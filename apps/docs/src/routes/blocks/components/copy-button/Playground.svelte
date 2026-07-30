@@ -22,47 +22,16 @@
   const { propDocs, variantKeys } = extractPlaygroundDocs(componentData?.props ?? []);
 
   const controls = deriveControls(componentData, {
-    // intent/tier/disabled reach the underlying Button through
-    // `Pick<ButtonProps, …>` — they were simply missing from the knob list.
-    // Each needs a full override, exactly like `variant` already did: docs-gen
-    // extracts the whole `Pick<…>` as a single prop named "...Pick" instead of
-    // its members, so none of them is a derivable key (technical-debt).
+    // intent/tier/disabled/variant reach the underlying Button through
+    // `Pick<ButtonProps, …>`; docs-gen resolves the members since 2026-07-30,
+    // so type, label and option list all derive.
     pick: ['value', 'label', 'size', 'variant', 'intent', 'tier', 'disabled'],
     overrides: {
-      intent: {
-        type: 'dropdown',
-        label: 'Intent',
-        items: [
-          { label: 'neutral', value: 'neutral' },
-          { label: 'primary', value: 'primary' },
-          { label: 'secondary', value: 'secondary' },
-          { label: 'success', value: 'success' },
-          { label: 'warning', value: 'warning' },
-          { label: 'danger', value: 'danger' }
-        ],
-        defaultValue: 'neutral'
-      },
-      tier: {
-        type: 'dropdown',
-        label: 'Tier',
-        items: [
-          { label: 'commit', value: 'commit' },
-          { label: 'modify', value: 'modify' }
-        ],
-        defaultValue: 'commit'
-      },
-      disabled: { type: 'checkbox', label: 'Disabled', defaultValue: false },
-      variant: {
-        type: 'dropdown',
-        label: 'Variant',
-        items: [
-          { label: 'ghost', value: 'ghost' },
-          { label: 'outlined', value: 'outlined' },
-          { label: 'filled', value: 'filled' },
-          { label: 'text', value: 'text' }
-        ],
-        defaultValue: 'ghost'
-      },
+      // `variant`/`intent` are set in CopyButton.svelte rather than as a prop
+      // `@default`, so the extractor cannot see them and the derived default
+      // would be `values[0]` (filled / primary).
+      variant: { defaultValue: 'ghost' },
+      intent: { defaultValue: 'neutral' },
       value: { defaultValue: 'npm i @urbicon-ui/blocks' },
       label: { defaultValue: '' }
     }

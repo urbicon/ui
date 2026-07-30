@@ -1,6 +1,6 @@
 import * as ts from 'typescript';
 import type { ExtractionResult, PropInfo, TypeScriptExtractionConfig } from '../../types';
-import { TypeScriptBaseExtractor } from './TypeScriptBaseExtractor';
+import { type ResolvedHeritageMember, TypeScriptBaseExtractor } from './TypeScriptBaseExtractor';
 
 interface PropsExtractionInput {
   filePath: string;
@@ -638,6 +638,10 @@ export class PropsExtractor extends TypeScriptBaseExtractor<PropsExtractionInput
       return this.handleOmitPattern(heritageType, sourceFile);
     }
 
+    if (this.isPickPattern(heritageType)) {
+      return this.handlePickPattern(heritageType, sourceFile);
+    }
+
     if (this.isHTMLAttributes(typeName)) {
       return this.handleHTMLAttributes(typeName);
     }
@@ -657,14 +661,21 @@ export class PropsExtractor extends TypeScriptBaseExtractor<PropsExtractionInput
       return this.extractPropsFromLocalInterface(resolvedInterface, typeName);
     }
 
-    // Create placeholder for unknown inheritance
+    // Create placeholder for unknown inheritance. A generic *utility* type is
+    // named after what it wraps, never after itself: `...Partial` says nothing
+    // and — being a legal-looking prop name — is exactly what made
+    // `Pick<ButtonProps, …>` show up in the catalogue as a prop called
+    // "...Pick" and take the CopyButton doc page down with it.
+    const placeholderName = TypeScriptBaseExtractor.isUtilityTypeName(typeName)
+      ? (this.heritageBaseTypeText(heritageType) ?? typeName)
+      : typeName;
     console.log(`❓ Creating placeholder for unknown inheritance: ${typeName}`);
     return [
       {
-        name: `...${typeName}`,
+        name: `...${placeholderName}`,
         type: 'inherited',
         required: false,
-        description: `Properties inherited from ${typeName}`,
+        description: `Properties inherited from ${placeholderName}`,
         source: {
           type: 'inherited',
           name: typeName,
@@ -775,6 +786,103 @@ export class PropsExtractor extends TypeScriptBaseExtractor<PropsExtractionInput
     return [];
   }
 
+  /**
+   * `interface XProps extends Pick<Base, 'a' | 'b'>` — the mirror image of the
+   * Omit handler, and for a long time the hole next to it: `Pick` matched no
+   * branch at all, so the whole clause fell through to the unknown-inheritance
+   * placeholder and reached the catalogue as a single prop literally named
+   * `...Pick`, with its members nowhere.
+   *
+   * Three routes, in this order:
+   *
+   *   1. A tv() variant alias base (`Pick<XVariants, 'orientation' | 'size'>`)
+   *      is a statement about which axes are public. Treated exactly like
+   *      `Omit<XVariants, …>` but with the key set inverted: the variant
+   *      placeholder plus an omit-marker for every axis *not* picked.
+   *   2. The checker, which is the only route that sees through a variant alias
+   *      *inside* the base (see `resolveHeritageMembersViaChecker`).
+   *   3. Syntactic: the base interface's own members, intersected with the
+   *      picked keys — all that single-file mode (no program) can offer.
+   */
+  private handlePickPattern(
+    heritageType: ts.ExpressionWithTypeArguments,
+    sourceFile: ts.SourceFile
+  ): PropInfo[] {
+    const fullType = heritageType.getText();
+    const baseType = this.heritageBaseTypeText(heritageType);
+    if (!baseType) return [];
+    const pickedKeys = this.extractOmittedLiteralKeys(this.heritageKeyArgText(heritageType));
+
+    // 1. tv() variant alias — invert the picked set into omit markers.
+    if (this.isVariantInterface(baseType)) {
+      const result: PropInfo[] = this.handleVariantInheritance(baseType);
+      const picked = new Set(pickedKeys);
+      for (const key of this.currentVariantKeys) {
+        if (picked.has(key)) continue;
+        result.push({
+          name: `__OMIT_VARIANT__${key}`,
+          type: 'omit-marker',
+          required: false,
+          description: `Suppress variant prop "${key}" from the public API surface (not selected by Pick<${baseType}, ...>).`,
+          source: { type: 'inherited', name: fullType }
+        });
+      }
+      return result;
+    }
+
+    // 2. Checker-resolved members (the real pipeline is always program-backed).
+    const resolved = this.resolveHeritageMembersViaChecker(heritageType);
+    if (resolved) {
+      return resolved
+        .filter((member) => !this.currentVariantKeys.includes(member.name))
+        .map((member) => this.propFromResolvedMember(member, baseType, fullType));
+    }
+
+    // 3. Syntactic fallback: the base interface's own members ∩ picked keys.
+    const baseInterface =
+      this.findInterface(sourceFile, baseType) ?? this.resolveOmitBaseInterface(heritageType);
+    if (baseInterface) {
+      const picked = new Set(pickedKeys);
+      return this.extractPropsFromLocalInterface(baseInterface, baseType)
+        .filter((p) => picked.has(p.name))
+        .map((p) => ({ ...p, source: { type: 'inherited' as const, name: fullType } }));
+    }
+
+    return [];
+  }
+
+  /**
+   * Turn a checker-resolved heritage member into a prop: documentation from the
+   * declaration, shape from the checker.
+   *
+   * The split is not cosmetic. A member backed by a real `PropertySignature`
+   * keeps its own JSDoc — `disabled` arrives with ButtonProps' description,
+   * `@default false` and `@see`. Its *type*, though, must come from the checker:
+   * a mapped type's property symbol points back at the declaration it was
+   * mapped **from**, so reading `declaration.type` for a member that travelled
+   * through `VariantProps<typeof xVariants>` reports the tv() config object
+   * (`{ calm: unknown; loud: unknown }`) instead of the axis' values
+   * (`'calm' | 'loud'`). Members with no property signature at all (a tv()
+   * `PropertyAssignment`) additionally get a one-line provenance note — short on
+   * purpose: that string is what a playground shows beside the knob, under a
+   * 120-character budget.
+   */
+  private propFromResolvedMember(
+    member: ResolvedHeritageMember,
+    baseType: string,
+    fullType: string
+  ): PropInfo {
+    const documented = member.declaration ? this.extractPropFromMember(member.declaration) : null;
+    return {
+      ...(documented ?? { description: `Inherited from ${baseType}.` }),
+      name: member.name,
+      type: member.type,
+      required: !member.optional,
+      ...(member.values.length > 0 ? { values: member.values } : {}),
+      source: { type: 'inherited', name: fullType }
+    };
+  }
+
   private handleHTMLAttributes(typeName: string): PropInfo[] {
     const elementType = this.extractElementType(typeName);
 
@@ -829,8 +937,13 @@ export class PropsExtractor extends TypeScriptBaseExtractor<PropsExtractionInput
     return heritageType.expression.getText().startsWith('Omit');
   }
 
+  private isPickPattern(heritageType: ts.ExpressionWithTypeArguments): boolean {
+    return heritageType.expression.getText() === 'Pick' && !!heritageType.typeArguments?.length;
+  }
+
   /**
-   * Parse the keys argument of `Omit<X, K>` into a flat string-literal list.
+   * Parse the keys argument of `Omit<X, K>` / `Pick<X, K>` into a flat
+   * string-literal list.
    * Handles `'a'`, `'a' | 'b' | 'c'`, double-quoted, and ignores `keyof T`
    * patterns (those are handled separately via `currentVariantKeys`).
    */
