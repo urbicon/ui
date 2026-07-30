@@ -153,7 +153,7 @@
         items={basicItems}
         slotClasses={{
           link: 'rounded-full bg-surface-subtle px-2.5 py-0.5 no-underline hover:bg-surface-hover hover:no-underline',
-          currentPage: 'rounded-full bg-primary/10 text-primary px-2.5 py-0.5'
+          currentPage: 'rounded-full bg-primary/10 text-primary-emphasis px-2.5 py-0.5'
         }}
       >
         {#snippet separator()}
