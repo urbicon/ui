@@ -158,7 +158,10 @@ export abstract class TypeScriptBaseExtractor<
     for (const tag of jsDocTags) {
       if (tag.tagName.text !== tagName || !tag.comment) continue;
       const raw = this.getCommentText(tag.comment);
-      const [first, ...rest] = raw.split('\n');
+      // `split` always yields at least one element, but not to the type
+      // checker under noUncheckedIndexedAccess — and '' is what the empty case
+      // would produce anyway.
+      const [first = '', ...rest] = raw.split('\n');
       const trailing = rest.join('\n').trim();
       if (trailing) {
         console.warn(
