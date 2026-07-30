@@ -512,6 +512,38 @@ internal TODO instead. Sections are ordered roughly by urgency.
 - **Found:** 2026-07-29, Scroller review session (the "no emphasis" reports
   turned out to be Firefox 153).
 
+### Scroller: arrow paging and dots reportedly desync under `snap="mandatory"` — not reproduced
+
+- **Where:** `packages/blocks/src/lib/primitives/Scroller/Scroller.svelte`
+  (`step()` → `scrollTargetForStep`) and `scroller.utils.ts`
+  (`activeItemIndex`) — both derive from the live `scrollStart`. Observed on
+  the landing journey's row 1, which runs `itemBasis="85%"` +
+  `snap="mandatory"` (`apps/docs/src/routes/+page.svelte`).
+- **What:** Two observations from the 2026-07-30 browser round: the arrow
+  appeared to advance only on every second click, and the dots appeared to lag
+  one position behind. **Neither could be reproduced in a follow-up hand
+  test** — logged as an open question, not a confirmed defect.
+- **Plausible mechanism if real:** both the step target and the active dot are
+  computed from the current scroll offset, not from a pending destination. A
+  click landing mid-animation (smooth scroll plus snap settling) therefore
+  computes its next target from an intermediate offset, which can resolve to
+  the position the row is already travelling to; the dots follow that same
+  intermediate offset, so during the animation they show where the row *is*,
+  not where it is going. With `itemBasis="85%"` neighbouring targets sit
+  closer than one viewport width, making the nearest-target match more
+  sensitive to that intermediate state. The 85 % is the landing's item basis —
+  there is **no** 85 % threshold in the anchor derivation (the concept doc
+  guessed one).
+- **Why deferred:** Wants a reproduction before anything changes. Tracking a
+  pending destination (remembering the `scrollTo` target until `scrollend`)
+  would address both symptoms *if* they are real, but it adds state to a
+  primitive that currently derives everything from one observed value — not
+  worth it on an unconfirmed report. When retrying, keep the tab in the
+  foreground: a backgrounded tab runs no scroll animation at all, which looks
+  exactly like a dead arrow.
+- **Found:** 2026-07-30, landing journey browser round; unreproduced in a
+  follow-up hand test.
+
 ### Table: grouping accepts data-field keys the grouping menu cannot represent
 
 - **Where:** `packages/table/src/lib/features/SmartFilterBar/GroupingMenu.svelte`

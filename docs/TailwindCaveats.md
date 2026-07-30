@@ -45,6 +45,19 @@ Svelte scoped styles require `:global()` for Tailwind selectors:
 
 Tailwind 4 requires class names to be known at build time. Dynamic interpolation like `` `bg-${color}-500` `` only works if all possible classes appear in the content scan. For dynamic colors: use CSS custom properties.
 
+## Transitions: `scale`/`translate`/`rotate` are not `transform`
+
+Tailwind 4 emits `scale-105`, `translate-x-1` and `rotate-90` as the **discrete CSS properties** `scale:`, `translate:` and `rotate:` — not as a composed `transform:`. An arbitrary transition list that names `transform` therefore does not animate them at all:
+
+```
+transition-[colors,transform]   /* ✗ scale-* / translate-* / rotate-* jump */
+transition-transform            /* ✓ shorthand expands to all four */
+```
+
+The `transition-transform` shorthand is safe — it expands to `transform, translate, scale, rotate`. Only the arbitrary-value form has to name every property it wants to animate.
+
+This was a silent, library-wide defect: 12 variant slots listed `transform` and animated nothing, **including `Button`** — the canonical press cue had been jumping since it was written. `bun run variants:lint` now errors on an arbitrary transition list that omits a discrete property the same class chain uses (rule documented at the top of `packages/blocks/scripts/variants-lint.ts`). It inspects the *rendered* class chain, so a compound that only adds `scale-*` under one variant is caught too. Verified against compiled output, not inferred from the docs.
+
 ## @source and Monorepo Packages
 
 Tailwind 4 only scans explicitly configured source directories for class names. In a monorepo, packages that use Tailwind utility classes in their templates must be registered as `@source` in the consuming app:
