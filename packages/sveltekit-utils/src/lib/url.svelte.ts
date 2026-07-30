@@ -1,3 +1,4 @@
+import { building } from '$app/environment';
 import { goto } from '$app/navigation';
 import { page } from '$app/state';
 import {
@@ -136,6 +137,12 @@ export function createUrlParam<T>(_key: string, options: UrlParamOptions<T>) {
  * initial render reflects the incoming URL. The setter calls the client-only
  * `goto` and is meant to run from event handlers/effects — never during SSR.
  *
+ * Prerender-safe: SvelteKit forbids reading `url.searchParams` while
+ * prerendering (the emitted HTML must not depend on a query string that will
+ * not exist at request time). During `building` the getter therefore yields
+ * {@link UrlParamOptions.initial} — "absent" is the truth for that render;
+ * after hydration the client re-reads the real URL reactively.
+ *
  * A **getter**, not a store, is returned on purpose: call it lazily inside
  * `$derived`/`$effect` and the read is tracked there.
  *
@@ -161,7 +168,7 @@ export function createUrlParam<T>(_key: string, options: UrlParamOptions<T>) {
  */
 export function useUrlParam<T>(key: string, options: UrlParamOptions<T>) {
   const { get, set } = createUrlParam<T>(key, options);
-  const getBound = () => get(page.url.searchParams);
+  const getBound = building ? () => options.initial : () => get(page.url.searchParams);
   return [getBound, set] as const;
 }
 
@@ -275,7 +282,12 @@ export interface TableQueryUrlSyncOptions extends TableQueryUrlOptions {
  *   (write a query back to the URL).
  */
 export function createTableQueryUrlSync(options: TableQueryUrlSyncOptions = {}) {
-  const initialQuery: TableQueryParams = searchParamsToTableQuery(page.url.searchParams, options);
+  // Same prerender rule as `useUrlParam`: no query string exists while
+  // building, so the seed parses from empty params instead of throwing.
+  const initialQuery: TableQueryParams = searchParamsToTableQuery(
+    building ? new URLSearchParams() : page.url.searchParams,
+    options
+  );
 
   function syncQuery(query: TableQueryParams): void {
     const next = applyTableQueryToSearchParams(page.url.searchParams, query, options);
