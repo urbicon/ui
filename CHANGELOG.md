@@ -4,6 +4,80 @@ All notable changes to this project will be documented in this file.
 This changelog is automatically generated from [Conventional Commits](https://www.conventionalcommits.org).
 
 
+## [6.45.0] - 2026-07-30
+
+### Bug Fixes
+- **design-engine**: Accept `z-index` as an alias for the shadows section
+- **design**: Answer the question that was asked, not the whole manual
+- **blocks**: Make Scroller dots reachable, and scale emphasis
+- **blocks**: Warn when a centred Scroller is too narrow to work
+- **mcp-server**: Stop leaking a server instance per HTTP session
+- **sveltekit-utils**: Make URL-param reads prerender-safe
+- **design**: Sweep the CLI for silent wrong answers, and make the ADR log mean what it says
+- **docs-gen**: Resolve Pick<> in an extends clause, and stop @related from swallowing prose
+- **docs**: Connect ApiReference, TypesReference and DocsLayout to the translations they ship
+- **blocks**: Stop SegmentGroup oscillating between its two layouts
+- **table**: Take the table's own intents off solid grounds
+- **docs-gen**: Destructuring a split() result is not a checked index
+- **docs-app**: Put the stage shadow on the stage
+- **docs-app**: Give the breadcrumb pill the emphasis step, not the text step
+
+### Build
+- Add the two app scopes commitlint never knew about
+
+### Documentation
+- Note the `init --with-primer` split in the CLI overview
+- Log the ADR-log defects, ignore the artifact workbench
+- Log the CLI silent-answer pattern as one audit, not a fifth fix
+- Radius/technical debt
+- Log on-primary-as-universal-on-colour token debt
+- Log table grouping-menu gap for non-column group keys
+- Log the unreproduced Scroller reports and the Tailwind 4 transition caveat
+- **blocks**: Fix the @example blocks that never compiled
+- **docs-app**: Describe the third channel step in the generator header
+
+### Features
+- **artifact-studio**: Add the local artifact studio
+- **design**: Teach layout markup in the primer
+- **blocks**: Add Scroller — a row that scrolls only when it must
+- **docs-app**: Add landing journey-v2 prototype route (stage 1)
+- **docs**: Port the flap board to Svelte with a live specimen panel
+- Landing hero, the playground wave, and the gates that keep them honest
+- **docs-app**: Landing journey stage 2 — livery + live tile content
+- **docs-app**: Landing journey row 2 — the hero inventory, one row tall
+- **docs-app**: Row 2 inherits the selected component's channel
+- **docs-app**: Generated channel register — one wheel, two levels
+- **docs-app**: Landing journey row 3 — getting started, step 3 is the agent
+- **docs-app**: Port the salon livery showcase from chat-demo
+- **docs-app**: Journey row 1 — salon-universe tiles, mandatory snap, agent replay
+- **docs-app**: The journey replaces the landing page
+- **docs-app**: Gate the three docs registries against silent drift
+- **docs-gen**: Type-check every @example block, and widen the i18n audit to packages/docs
+- **table**: Warn when a summary aggregates nothing numeric
+- **docs-app**: Landing polish — name tile, tile widths, row 2 legibility
+- **docs-app**: Give each channel an accent step, and lift the stage
+- **table**: Make the filter bar read as one control surface
+- **docs-app**: Colour the docs rooms by component family
+- **docs-app**: One open group, a rail instead of a staircase
+- **docs-app**: Give each channel a text step, so the accent can stay fresh
+- **docs-app**: Retell the getting-started row, and give the landing a footer
+
+### Miscellaneous
+- Add split-flap board prototype for the landing rework
+- **docs**: Retire the split-flap board direction
+- Retire the chat-demo app — the salon showcase lives in docs-app
+
+### Refactoring
+- **design**: Make the primer step true in both paths, not contradicted in one
+- **design**: Move the primer step out of the template and into `init`
+- **docs**: Make flap cells autonomous so the real Table can drive the board
+- **design**: Rename the second score axis from slop to craft
+
+### Testing
+- **artifact-studio**: Prove the sandbox CSP actually blocks
+- Exclude fixtures
+- **e2e**: Re-baseline the rooms shots the channel wave moved
+
 ## [6.44.0] - 2026-07-26
 
 ### Bug Fixes
