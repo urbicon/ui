@@ -3,10 +3,17 @@
  *
  * Ein Farbrad, eine Formel, zwei Ebenen: Themen-Kanäle (die fünf
  * Landing-Kacheln) und Familien-Kanäle (die neun Katalog-Familien). Jeder
- * Kanal ist ein Hue; Vollton = Cusp (Sättigungsmaximum des Hues, ×0.98
- * Gamut-Puffer), Tiefe = L 0.32 bei gedeckeltem Chroma im selben Hue. Die
- * on-Farbe wird GEMESSEN, nicht gewählt: Tiefe, wenn das Paar ≥ 4:1 schafft
- * (helle Cusps, Gelb→Cyan-Zone), sonst Paper (dunkle Cusps, Blau→Rot-Zone).
+ * Kanal ist ein Hue mit drei Stufen, eine je Rolle:
+ *
+ *   solid  — Cusp (Sättigungsmaximum des Hues, ×0.98 Gamut-Puffer): die FLÄCHE.
+ *   deep   — L 0.32 bei gedeckeltem Chroma: Text auf dieser Fläche.
+ *   accent — der Kanal auf hellem Grund (Linie, Marke, Indikator): die HELLSTE
+ *            Stufe mit ≥ ACCENT_ON_PAPER gegen das Papier.
+ *
+ * Nichts davon ist gewählt, alles gemessen. Die on-Farbe des Volltons: Tiefe,
+ * wenn das Paar ≥ 4:1 schafft (helle Cusps, Gelb→Cyan-Zone), sonst Paper
+ * (dunkle Cusps, Blau→Rot-Zone). Die Wachen unten brechen den Lauf, wenn eine
+ * Stufe ihre Rolle nicht trägt.
  *
  * Aufruf: `bun apps/docs/scripts/channels-gen.ts` (vom Repo-Root).
  * Die emittierte Datei ist eingecheckt — Regeneration nur bei
