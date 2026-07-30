@@ -367,11 +367,12 @@
     //
     // Der Bühnen-Effekt kommt aus der Höhe, nicht aus dem Ton: `surface-elevated`
     // lag zehn Punkte über dem Papier, was als Fläche kaum ankam. Jetzt der
-    // ruhigere `surface-base` plus ein Schatten — die eine Stelle, an der diese
-    // sonst schattenfreie Seite eine Erhebung behauptet, weil hier tatsächlich
-    // etwas auf etwas steht. `.stage` trägt ihn (siehe unten), damit das
-    // Motion-Opt-out der Tokens greift.
-    preview: '!bg-surface-base !rounded-contain !px-5 !py-6',
+    // ruhigere `surface-base` plus der Schatten-Token — die eine Stelle, an der
+    // diese sonst schattenfreie Seite eine Erhebung behauptet, weil hier
+    // tatsächlich etwas auf etwas steht. Der Token statt eines eigenen Werts:
+    // er kennt das Dark-Mode-Paar und das reduced-motion-Opt-out.
+    preview:
+      '!bg-surface-base !rounded-contain !px-5 !py-6 !shadow-[var(--blocks-shadow-md)] !border-0',
     previewContent: '!justify-start',
     controlsPanel: '!bg-transparent !px-5 !pb-5 !pt-0',
     controlsHeader: '!mx-0 !px-0',
@@ -1177,14 +1178,13 @@
   .stage {
     min-height: 0;
   }
-  /* Die Erhebung der Bühne — auf dem Kind, weil der Playground die Fläche
-     selbst rendert (PLAYGROUND_SLOTS.preview) und ein Schatten am Wrapper an
-     der falschen Kante säße. Zwei Lagen: eine harte Haarlinie für die Kante,
-     eine weiche für die Höhe. */
-  .stage :global(> * > *:first-child) {
-    box-shadow:
-      0 1px 2px light-dark(rgb(23 21 15 / 0.07), rgb(0 0 0 / 0.4)),
-      0 4px 14px light-dark(rgb(23 21 15 / 0.05), rgb(0 0 0 / 0.3));
+  /* Der Playground fasst Bühne + Regler + Quelltext in einen Wrapper mit
+     Haarlinie oben und unten. Seit die Bühne ihre Kante selbst mitbringt
+     (Schatten, siehe PLAYGROUND_SLOTS), ist die obere Linie eine zweite Kante
+     an derselben Stelle — und die untere zieht eine Fuge quer durch eine Zeile,
+     die sonst fugenlos ist. */
+  .stage :global(> section > div) {
+    border-block: 0;
   }
   .preview code {
     font-family: 'JetBrains Mono', monospace;
