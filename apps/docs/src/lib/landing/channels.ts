@@ -6,6 +6,14 @@
  * (Cusp-Vollton + Tiefe L 0.32), on-Farbe per Kontrastmessung. Themen-Kanäle
  * (Kacheln) und Familien-Kanäle (Katalog-Familien) referenzieren dieselben
  * Einträge. Grün/Gelb sind Erzählfarben und keiner Familie zugeordnet.
+ *
+ * Drei Stufen pro Hue, weil der Kanal drei Rollen hat:
+ *   solid  — die Vollton-FLÄCHE (Kacheln). Auf Papier unlesbar, per Konstruktion.
+ *   deep   — Text auf dem Vollton, Fläche im Dark Mode.
+ *   accent — der Kanal auf hellem Grund: Linie, Marke, Indikator, große Schrift.
+ * Die Akzent-Stufe ist die hellste, die gegen Papier noch 3:1 schafft — jede
+ * dunklere lässt die zehn Hues ineinanderlaufen, jede hellere ist nicht mehr
+ * lesbar.
  */
 
 export interface Channel {
@@ -18,6 +26,16 @@ export interface Channel {
   deep: string;
   /** Gemessene on-Farbe für Text auf dem Vollton (Tiefe oder Paper). */
   on: string;
+  /**
+   * Der Kanal auf hellem Grund: die hellste Stufe mit ≥ 3:1 gegen Papier.
+   * Für Linien, Indikatoren, Marken und große Schrift — NICHT für kleinen
+   * Fließtext, der 4.5:1 braucht.
+   */
+  accent: string;
+  /** Dunkle on-Farbe für Text auf der Akzent-FLÄCHE (helle trägt dort nicht). */
+  accentOn: string;
+  /** Gemessener Kontrast der Akzent-Stufe gegen das Papier. */
+  accentOnPaper: number;
   /** WCAG-Kontrast Vollton↔Tiefe (0 beim Ink-Kanal). */
   pairContrast: number;
 }
@@ -29,6 +47,9 @@ export const CHANNELS = {
     solid: 'oklch(0.68 0.209 40)',
     deep: 'oklch(0.32 0.09 40)',
     on: 'oklch(0.32 0.09 40)',
+    accent: 'oklch(0.67 0.21 40)',
+    accentOn: 'oklch(0.2 0.05 40)',
+    accentOnPaper: 3,
     pairContrast: 4.2
   },
   yellow: {
@@ -37,6 +58,9 @@ export const CHANNELS = {
     solid: 'oklch(0.91 0.184 100)',
     deep: 'oklch(0.32 0.067 100)',
     on: 'oklch(0.32 0.067 100)',
+    accent: 'oklch(0.645 0.134 100)',
+    accentOn: 'oklch(0.2 0.042 100)',
+    accentOnPaper: 3,
     pairContrast: 9.8
   },
   green: {
@@ -45,6 +69,9 @@ export const CHANNELS = {
     solid: 'oklch(0.87 0.267 145)',
     deep: 'oklch(0.32 0.09 145)',
     on: 'oklch(0.32 0.09 145)',
+    accent: 'oklch(0.627 0.197 145)',
+    accentOn: 'oklch(0.2 0.05 145)',
+    accentOnPaper: 3,
     pairContrast: 9
   },
   teal: {
@@ -53,6 +80,9 @@ export const CHANNELS = {
     solid: 'oklch(0.89 0.164 175)',
     deep: 'oklch(0.32 0.06 175)',
     on: 'oklch(0.32 0.06 175)',
+    accent: 'oklch(0.632 0.119 175)',
+    accentOn: 'oklch(0.2 0.038 175)',
+    accentOnPaper: 3,
     pairContrast: 9.5
   },
   cyan: {
@@ -61,6 +91,9 @@ export const CHANNELS = {
     solid: 'oklch(0.88 0.147 200)',
     deep: 'oklch(0.32 0.054 200)',
     on: 'oklch(0.32 0.054 200)',
+    accent: 'oklch(0.635 0.108 200)',
+    accentOn: 'oklch(0.2 0.034 200)',
+    accentOnPaper: 3,
     pairContrast: 9.1
   },
   azure: {
@@ -69,6 +102,9 @@ export const CHANNELS = {
     solid: 'oklch(0.76 0.148 230)',
     deep: 'oklch(0.32 0.064 230)',
     on: 'oklch(0.32 0.064 230)',
+    accent: 'oklch(0.64 0.128 230)',
+    accentOn: 'oklch(0.2 0.04 230)',
+    accentOnPaper: 3,
     pairContrast: 6
   },
   blue: {
@@ -77,6 +113,9 @@ export const CHANNELS = {
     solid: 'oklch(0.63 0.201 255)',
     deep: 'oklch(0.32 0.09 255)',
     on: 'oklch(0.97 0.002 100)',
+    accent: 'oklch(0.65 0.19 255)',
+    accentOn: 'oklch(0.2 0.05 255)',
+    accentOnPaper: 3,
     pairContrast: 3.6
   },
   purple: {
@@ -85,6 +124,9 @@ export const CHANNELS = {
     solid: 'oklch(0.6 0.295 310)',
     deep: 'oklch(0.32 0.09 310)',
     on: 'oklch(0.97 0.002 100)',
+    accent: 'oklch(0.675 0.233 310)',
+    accentOn: 'oklch(0.2 0.05 310)',
+    accentOnPaper: 3,
     pairContrast: 2.8
   },
   magenta: {
@@ -93,6 +135,9 @@ export const CHANNELS = {
     solid: 'oklch(0.7 0.31 330)',
     deep: 'oklch(0.32 0.09 330)',
     on: 'oklch(0.32 0.09 330)',
+    accent: 'oklch(0.69 0.314 330)',
+    accentOn: 'oklch(0.2 0.05 330)',
+    accentOnPaper: 3,
     pairContrast: 4.2
   },
   red: {
@@ -101,6 +146,9 @@ export const CHANNELS = {
     solid: 'oklch(0.64 0.249 15)',
     deep: 'oklch(0.32 0.09 15)',
     on: 'oklch(0.97 0.002 100)',
+    accent: 'oklch(0.674 0.217 15)',
+    accentOn: 'oklch(0.2 0.05 15)',
+    accentOnPaper: 3,
     pairContrast: 3.5
   },
   ink: {
@@ -109,6 +157,9 @@ export const CHANNELS = {
     solid: 'oklch(0.35 0.006 100)',
     deep: 'oklch(0.2 0.006 100)',
     on: 'oklch(0.97 0.002 100)',
+    accent: 'oklch(0.35 0.006 100)',
+    accentOn: 'oklch(0.97 0.002 100)',
+    accentOnPaper: 10.4,
     pairContrast: 0
   }
 } as const satisfies Record<string, Channel>;

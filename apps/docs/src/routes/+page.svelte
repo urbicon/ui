@@ -259,6 +259,7 @@
   const STEPS = $derived([
     { label: `${data.counts.primitives} primitives`, href: '/blocks' },
     { label: `${data.counts.composed} composites`, href: '/blocks#display' },
+    { label: `${data.counts.icons} icons`, href: '/icons' },
     { label: 'calendar', href: '/blocks/components/calendar' },
     { label: 'guide', href: '/blocks/components/guide' },
     { label: 'sankey', href: '/blocks/components/sankey' },
@@ -346,12 +347,15 @@
   const selectedChannel = $derived(channelForFamily(selected.family));
 
   // Zeile 2 hat keine Vollton-FLÄCHE, auf der die Kanalfarbe stünde — hier ist
-  // sie nur Text und Linie auf Papier. Die Cusp-Volltöne sind dafür zu hell
-  // (teal/green/yellow liegen bei L 0.87–0.91; „navigation" war auf Weiß kaum
-  // zu lesen). Also dieselbe Umkehr, die die Kacheln für ihren Text schon
-  // machen: im Light Mode die Tiefe des Kanals, im Dark Mode der Vollton.
-  const rowAccent = $derived(`light-dark(${selectedChannel.deep}, ${selectedChannel.solid})`);
-  const rowAccentFg = $derived(`light-dark(#f4f4f2, ${selectedChannel.deep})`);
+  // sie Linie, Marke und Beschriftung auf Papier. Dafür gibt es die
+  // Akzent-Stufe des Registers: die hellste, die gegen Papier noch 3:1 schafft
+  // (gemessen im Generator, dort auch die Wache). Der Cusp lag bei 1.2:1, eine
+  // feste tiefe Stufe ließ die zehn Hues ineinanderlaufen.
+  //
+  // Eine Farbe für beide Modi, kein `light-dark()`: die Akzent-Stufe misst
+  // 5.8:1 gegen den Nachtgrund und trägt dort genauso.
+  const rowAccent = $derived(selectedChannel.accent);
+  const rowAccentFg = $derived(selectedChannel.accentOn);
 
   // Slot-Eingriffe des Hero, unverändert: äußere Rahmung des Configurators
   // abräumen, linke Kante angleichen, eigener Grund unter der Bühne.
@@ -360,7 +364,14 @@
     // `rounded-contain` statt `rounded-t-xl`: eine Bühne, die nur oben rund ist,
     // liest als abgeschnittene Karte — zumal direkt darüber die Haarlinie des
     // Playgrounds sitzt. Dieselbe Radius-Stufe wie jede andere Fläche im Set.
-    preview: '!bg-surface-elevated !rounded-contain !px-5 !py-6',
+    //
+    // Der Bühnen-Effekt kommt aus der Höhe, nicht aus dem Ton: `surface-elevated`
+    // lag zehn Punkte über dem Papier, was als Fläche kaum ankam. Jetzt der
+    // ruhigere `surface-base` plus ein Schatten — die eine Stelle, an der diese
+    // sonst schattenfreie Seite eine Erhebung behauptet, weil hier tatsächlich
+    // etwas auf etwas steht. `.stage` trägt ihn (siehe unten), damit das
+    // Motion-Opt-out der Tokens greift.
+    preview: '!bg-surface-base !rounded-contain !px-5 !py-6',
     previewContent: '!justify-start',
     controlsPanel: '!bg-transparent !px-5 !pb-5 !pt-0',
     controlsHeader: '!mx-0 !px-0',
@@ -1165,6 +1176,15 @@
   }
   .stage {
     min-height: 0;
+  }
+  /* Die Erhebung der Bühne — auf dem Kind, weil der Playground die Fläche
+     selbst rendert (PLAYGROUND_SLOTS.preview) und ein Schatten am Wrapper an
+     der falschen Kante säße. Zwei Lagen: eine harte Haarlinie für die Kante,
+     eine weiche für die Höhe. */
+  .stage :global(> * > *:first-child) {
+    box-shadow:
+      0 1px 2px light-dark(rgb(23 21 15 / 0.07), rgb(0 0 0 / 0.4)),
+      0 4px 14px light-dark(rgb(23 21 15 / 0.05), rgb(0 0 0 / 0.3));
   }
   .preview code {
     font-family: 'JetBrains Mono', monospace;

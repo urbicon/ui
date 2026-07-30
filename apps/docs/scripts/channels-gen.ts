@@ -65,6 +65,17 @@ const PAPER = 'oklch(0.97 0.002 100)';
 const PAPER_RGB: RGB = oklchToRgb(0.97, 0.002, 100);
 const ON_PAIR_FLOOR = 4;
 
+/**
+ * Kontrastziel der Akzent-Stufe gegen das Papier. 3:1 ist die WCAG-Schwelle für
+ * Nicht-Text (Linien, Indikatoren, Marken) und für großen Text — genau die
+ * Rollen, in denen der Kanal auf hellem Grund auftritt. Höher zu gehen kostet
+ * genau das, was diese Stufe liefern soll: der Ton würde wieder ins Tiefe
+ * rutschen, wo alle zehn Hues gleich aussehen.
+ */
+const ACCENT_ON_PAPER = 3;
+/** Dunkle Schrift auf der Akzent-Fläche — dieselbe Rolle wie `on` beim Vollton. */
+const ACCENT_INK_L = 0.2;
+
 const round = (x: number, d: number) => Number(x.toFixed(d));
 
 interface RegisterEntry {
@@ -113,6 +124,23 @@ const FAMILY_CHANNEL: Record<string, string> = {
   layout: 'ink'
 };
 
+/**
+ * Die hellste Stufe dieses Hues, die gegen das Papier noch `ACCENT_ON_PAPER`
+ * schafft — bei jeweils maximaler Chroma. Frischer geht es bei diesem Ziel
+ * nicht, und genau darum geht es: der Cusp ist auf Papier unlesbar (1.2:1 bei
+ * Teal), eine feste tiefe Stufe lässt alle zehn Hues gleich aussehen.
+ */
+function accentStep(hue: number): { L: number; C: number } {
+  let lo = 0.1;
+  let hi = 0.95;
+  for (let i = 0; i < 40; i++) {
+    const mid = (lo + hi) / 2;
+    if (contrast(oklchToRgb(mid, maxChroma(mid, hue), hue), PAPER_RGB) >= ACCENT_ON_PAPER) lo = mid;
+    else hi = mid;
+  }
+  return { L: round(lo, 3), C: round(maxChroma(lo, hue), 3) };
+}
+
 function buildChannel({ name, hue }: RegisterEntry) {
   if (hue == null) {
     // Ink: leicht warmes Unbunt, Paar fest — kein Cusp nötig.
@@ -122,6 +150,9 @@ function buildChannel({ name, hue }: RegisterEntry) {
       solid: 'oklch(0.35 0.006 100)',
       deep: 'oklch(0.2 0.006 100)',
       on: PAPER,
+      accent: 'oklch(0.35 0.006 100)',
+      accentOn: PAPER,
+      accentOnPaper: round(contrast(oklchToRgb(0.35, 0.006, 100), PAPER_RGB), 1),
       pairContrast: 0
     };
   }
@@ -138,6 +169,9 @@ function buildChannel({ name, hue }: RegisterEntry) {
   const pairContrast = round(contrast(solidRgb, deepRgb), 1);
   const solid = `oklch(${solidL} ${solidC} ${hue})`;
   const deep = `oklch(0.32 ${deepC} ${hue})`;
+  const acc = accentStep(hue);
+  const accRgb = oklchToRgb(acc.L, acc.C, hue);
+  const accInkC = round(Math.min(0.05, maxChroma(ACCENT_INK_L, hue)), 3);
   return {
     name,
     hue,
@@ -146,6 +180,10 @@ function buildChannel({ name, hue }: RegisterEntry) {
     // Gemessen statt gewählt: dunkle Cusps (Blau→Rot) kontrastieren nicht
     // gegen ihre eigene Tiefe — dort ist Paper die on-Farbe.
     on: pairContrast >= ON_PAIR_FLOOR ? deep : PAPER,
+    accent: `oklch(${acc.L} ${acc.C} ${hue})`,
+    // Auf der Akzent-Fläche trägt dunkle Schrift (≈5.3:1), helle nicht (≈3.4:1).
+    accentOn: `oklch(${ACCENT_INK_L} ${accInkC} ${hue})`,
+    accentOnPaper: round(contrast(accRgb, PAPER_RGB), 1),
     pairContrast
   };
 }
@@ -170,6 +208,21 @@ for (const c of channels) {
   const ratio = contrast(solidRgb, onRgb);
   if (ratio < 3)
     throw new Error(`channel '${c.name}': on-colour only ${ratio.toFixed(1)}:1 on its solid`);
+
+  // Dieselbe Wache für die Akzent-Stufe, in beiden Rollen: gegen das Papier
+  // (Linie, Marke, große Schrift) und gegen ihre eigene on-Farbe (Fläche).
+  const accRgb = oklchToRgb(
+    ...(c.accent.match(/[\d.]+/g)!.map(Number) as [number, number, number])
+  );
+  const accOnRgb = oklchToRgb(
+    ...(c.accentOn.match(/[\d.]+/g)!.map(Number) as [number, number, number])
+  );
+  const accPaper = contrast(accRgb, PAPER_RGB);
+  const accOn = contrast(accRgb, accOnRgb);
+  if (accPaper < ACCENT_ON_PAPER - 0.05)
+    throw new Error(`channel '${c.name}': accent only ${accPaper.toFixed(2)}:1 on paper`);
+  if (accOn < 4.5)
+    throw new Error(`channel '${c.name}': accent-on only ${accOn.toFixed(2)}:1 on the accent`);
 }
 
 const out = `/**
@@ -180,6 +233,14 @@ const out = `/**
  * (Cusp-Vollton + Tiefe L 0.32), on-Farbe per Kontrastmessung. Themen-Kanäle
  * (Kacheln) und Familien-Kanäle (Katalog-Familien) referenzieren dieselben
  * Einträge. Grün/Gelb sind Erzählfarben und keiner Familie zugeordnet.
+ *
+ * Drei Stufen pro Hue, weil der Kanal drei Rollen hat:
+ *   solid  — die Vollton-FLÄCHE (Kacheln). Auf Papier unlesbar, per Konstruktion.
+ *   deep   — Text auf dem Vollton, Fläche im Dark Mode.
+ *   accent — der Kanal auf hellem Grund: Linie, Marke, Indikator, große Schrift.
+ * Die Akzent-Stufe ist die hellste, die gegen Papier noch 3:1 schafft — jede
+ * dunklere lässt die zehn Hues ineinanderlaufen, jede hellere ist nicht mehr
+ * lesbar.
  */
 
 export interface Channel {
@@ -192,6 +253,16 @@ export interface Channel {
   deep: string;
   /** Gemessene on-Farbe für Text auf dem Vollton (Tiefe oder Paper). */
   on: string;
+  /**
+   * Der Kanal auf hellem Grund: die hellste Stufe mit ≥ 3:1 gegen Papier.
+   * Für Linien, Indikatoren, Marken und große Schrift — NICHT für kleinen
+   * Fließtext, der 4.5:1 braucht.
+   */
+  accent: string;
+  /** Dunkle on-Farbe für Text auf der Akzent-FLÄCHE (helle trägt dort nicht). */
+  accentOn: string;
+  /** Gemessener Kontrast der Akzent-Stufe gegen das Papier. */
+  accentOnPaper: number;
   /** WCAG-Kontrast Vollton↔Tiefe (0 beim Ink-Kanal). */
   pairContrast: number;
 }
@@ -200,7 +271,17 @@ export const CHANNELS = {
 ${channels
   .map(
     (c) =>
-      `  ${c.name}: { name: '${c.name}', hue: ${c.hue}, solid: '${c.solid}', deep: '${c.deep}', on: '${c.on}', pairContrast: ${c.pairContrast} }`
+      `  ${c.name}: {\n` +
+      `    name: '${c.name}',\n` +
+      `    hue: ${c.hue},\n` +
+      `    solid: '${c.solid}',\n` +
+      `    deep: '${c.deep}',\n` +
+      `    on: '${c.on}',\n` +
+      `    accent: '${c.accent}',\n` +
+      `    accentOn: '${c.accentOn}',\n` +
+      `    accentOnPaper: ${c.accentOnPaper},\n` +
+      `    pairContrast: ${c.pairContrast}\n` +
+      `  }`
   )
   .join(',\n')}
 } as const satisfies Record<string, Channel>;
