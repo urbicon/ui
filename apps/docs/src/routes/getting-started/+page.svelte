@@ -10,7 +10,8 @@
   .room-accent from $lib/style/rooms.css — imported here too; Vite dedupes):
   a fixed cream+ink artboard (color-scheme: light) whose whole primary-derived
   token family re-resolves from the inline --room-accent, so the real library
-  components repaint live. The four paints are the docs' own room colours.
+  components repaint live. The four paints come from the docs' own channel
+  register — the same colours the component pages wear per family.
 
   Step tracking reuses the shared ScrollSpy from @urbicon-ui/docs (same class
   DocsLayout, TableOfContents and /blocks use). Below lg the card is not
@@ -22,6 +23,7 @@
   import { resolve } from '$app/paths';
   import { ArrowRightIcon, Badge, Button, Input } from '@urbicon-ui/blocks';
   import { CodeExample, ScrollSpy } from '@urbicon-ui/docs';
+  import { CHANNELS, FAMILY_CHANNEL } from '$lib/landing/channels';
   import '$lib/style/rooms.css';
 
   // ── The four steps — ids feed the scrollspy, numerals the poster marks ──
@@ -38,13 +40,19 @@
   // findIndex -1 → clamp to step 1, so the card never shows "step 0".
   const activeStep = $derived(Math.max(1, STEPS.findIndex((step) => step.id === spy.active) + 1));
 
-  // ── Step 04 paints — the docs' four room colours (rooms-docs.css) ──
-  const PAINTS = [
-    { name: 'blocks green', accent: '#00845c', fg: '#f6f3ec' },
-    { name: 'table wine', accent: '#7c1f2d', fg: '#f6f3ec' },
-    { name: 'auth amber', accent: '#e3a31c', fg: '#17150f' },
-    { name: 'ai orange', accent: '#e8500f', fg: '#17150f' }
-  ];
+  // ── Step 04 paints — four of the docs' own room colours ──
+  // Straight from the channel register, so a swatch here and the header field
+  // of the matching component page are literally the same paint. Four of the
+  // eleven, spread across the wheel: this is a demo of repainting, not the
+  // room index (that one lives on /customization/rooms-theme).
+  const FAMILY_OF = Object.fromEntries(
+    Object.entries(FAMILY_CHANNEL).map(([family, channel]) => [channel, family])
+  ) as Record<string, string>;
+  const PAINTS = (['orange', 'teal', 'blue', 'magenta'] as const).map((name) => ({
+    name: `${FAMILY_OF[name]} ${name}`,
+    accent: CHANNELS[name].accent,
+    fg: CHANNELS[name].accentOn
+  }));
   let paint = $state(PAINTS[0]);
 
   // ── Live hello-world state (steps 03/04 in the preview card) ──
@@ -223,8 +231,9 @@ export default {
           <code class="bg-surface-elevated rounded-modify px-1.5 py-0.5 font-mono text-xs"
             >@theme</code
           >
-          — no component needs to know. The preview’s four paints are this site’s own room colours; flip
-          one and watch every component follow. In your codebase, it’s one line:
+          — no component needs to know. The preview’s four paints are this site’s own room colours, one
+          per component family; flip one and watch every component follow. In your codebase, it’s one
+          line:
         </p>
         <div class="mt-6">
           <CodeExample title="Custom theme" code={themeExample} language="css" preview={false} />

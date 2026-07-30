@@ -7,6 +7,7 @@
   import CommandSearch from '$lib/CommandSearch.svelte';
   import DocsThemeToggle from '$lib/DocsThemeToggle.svelte';
   import { navigationItems } from '$lib/navigation';
+  import { channelNameForRoute } from '$lib/landing/route-channel.gen';
   import PrevNextNav from '$lib/PrevNextNav.svelte';
   import DocsPageNavProvider from '$lib/DocsPageNavProvider.svelte';
   import {
@@ -89,16 +90,14 @@
       page.url.pathname.startsWith('/test-fixtures/landing-')
   );
 
-  // Color Rooms accent per section ("Farbe = Ort"). The top-level route segment
-  // selects the room; everything outside the four product areas falls back to
-  // the blocks green (the design source's default room). The layout only
-  // stamps the room NAME — the colour values live solely in rooms-docs.css
-  // (route → room mapping), so a palette change never touches this file.
-  const ROOM_SEGMENTS = new Set(['blocks', 'table', 'auth', 'ai']);
-  const room = $derived.by(() => {
-    const seg = page.url.pathname.split('/')[1] ?? '';
-    return ROOM_SEGMENTS.has(seg) ? seg : 'blocks';
-  });
+  // Color Rooms accent per page ("Farbe = Familie"). A component page wears the
+  // channel of its component FAMILY — the same colour the landing's index row
+  // shows for it; everything else (overviews, /recipes, /icons, …) falls back to
+  // its product AREA. Both tables are generated from the docs-gen catalogues
+  // (channels-gen.ts), so a new component cannot end up in the wrong room by
+  // omission. The layout still only stamps the channel NAME — the colour values
+  // live in rooms-channels.gen.css, so a palette change never touches this file.
+  const room = $derived(channelNameForRoute(page.url.pathname));
 
   // Content reads the room from the .docs-room-scope wrapper (SSR-correct, no
   // flash of the wrong accent). Portaled popovers (Select/Combobox/Menu
@@ -141,12 +140,12 @@
   {@render children()}
 {:else}
   <!--
-    The room scope carries the per-route room as a data attribute;
+    The room scope carries the per-route channel as a data attribute;
     `display:contents` keeps it out of the box tree so SidebarLayout's flex +
-    sticky behave exactly as before. rooms-docs.css maps data-room to the
-    accent pair and derives the whole primary-token family from it, so
-    switching route repaints every real component on the page in the
-    section's room colour.
+    sticky behave exactly as before. rooms-channels.gen.css maps data-room to
+    the accent pair and rooms-docs.css derives the whole primary-token family
+    from it, so switching route repaints every real component on the page in
+    the page's channel colour.
   -->
   <div class="docs-room-scope" style="display:contents" data-room={room}>
     <SidebarLayout

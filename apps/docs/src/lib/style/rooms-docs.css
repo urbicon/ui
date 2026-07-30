@@ -1,3 +1,8 @@
+/* The data-room → accent-pair table, generated from the shared channel register
+ * (apps/docs/scripts/channels-gen.ts). It has to be imported here, not in
+ * app.css, so this file stays the one thing a consumer of the theme imports. */
+@import './rooms-channels.gen.css';
+
 /**
  * Color Rooms — the docs component-page theme (replaces the Editorial skin).
  *
@@ -7,25 +12,30 @@
  * editorial pipe; Schibsted Grotesk replaces the Newsreader/Public-Sans
  * pairing; the `//` meta-markers are dropped for hard, quiet mono kickers.
  *
- * "Farbe = Ort": the accent is the ROOM of the current section, not a fixed
- * brand green —
- *   /blocks  → green  #006C4A     /table → amber  #E3A31C
- *   /auth    → wine   #7C1F2D     /ai    → orange #E8500F
- * (everything else falls back to the blocks green). The active room is
- * selected via `data-room="…"` stamped by +layout.svelte — the route → room
- * mapping in this file resolves it to `--room-accent` + `--room-accent-fg`,
- * and the whole primary-derived token family is re-resolved from them via
- * `color-mix()` — so every real component on the page (segment indicator,
- * slider, toggle, buttons, TOC-active, badges) picks up the room colour with
- * no per-component override.
+ * "Farbe = Familie": the accent is the CHANNEL of what the page documents, not
+ * a fixed brand green and no longer one colour per product area. A component
+ * page wears its component family's channel (action → orange, navigation →
+ * teal, form → blue, …); everything else falls back to its product area. That
+ * is the same register the landing runs on, so a component's doc page and its
+ * row in the landing index carry the same colour — one colour logic across the
+ * site, not two.
+ *
+ * The active room is selected via `data-room="<channel>"` stamped by
+ * +layout.svelte; `rooms-channels.gen.css` (imported above, generated from the
+ * register) resolves it to `--room-accent` + `--room-accent-fg`, and the whole
+ * primary-derived token family is re-resolved from them via `color-mix()` — so
+ * every real component on the page (segment indicator, slider, toggle,
+ * buttons, TOC-active, badges) picks up the channel colour with no
+ * per-component override.
  *
  * Structure mirrors the previous editorial theme it replaces:
  *   - one full light+dark theme via `light-dark()` (the docs keep their
  *     ThemeSwitcher — the room accent is orthogonal to light/dark),
  *   - `--docs-*` tokens carry the paper/ink hierarchy,
  *   - the library semantic tokens are re-pointed at the warm cream palette,
- *   - the warm intent ramps are retained (they harmonise with all four warm
- *     room accents, not just the green).
+ *   - the warm intent ramps are retained; they were tuned against a warm brand
+ *     green and still read naturally next to the channel accents, which all
+ *     sit on one lightness step (L ≈ 0.65) rather than wandering.
  *
  * Activation: <html class="docs-rooms"> (the shipped default in app.html; the
  * sidebar's docs-theme toggle removes it for the bare library skin). The
@@ -76,19 +86,13 @@
   --docs-hair: light-dark(rgb(23 21 15 / 0.08), rgb(240 237 229 / 0.08));
   --docs-line: light-dark(rgb(23 21 15 / 0.14), rgb(240 237 229 / 0.14));
 
-  /* Active room accent — blocks green is the default room. The OTHER rooms
-   * are selected purely via `data-room="…"` (stamped by +layout.svelte on
-   * the `.docs-room-scope` wrapper for SSR-correct content, mirrored onto
-   * <html> after mount for portaled popovers) — see the route → room
-   * mapping below. The colour VALUES live only in this file. The
-   * primary-derived family is re-resolved from these two vars in the
-   * shared block further down. */
-  /* Blocks green — darkened from #00845c so the on-colour (#f6f3ec) clears WCAG
-   * AA on the filled field: #00845c measured 4.25:1 (below AA), #006c4a clears it
-   * at 5.84:1 (and the aria-current breadcrumb chip at 5.35:1). The other three
-   * rooms already clear AA (dark ink on light amber/orange, cream on dark wine). */
-  --room-accent: #006c4a;
-  --room-accent-fg: #f6f3ec;
+  /* `--room-accent` / `--room-accent-fg` are NOT declared here. The active
+   * channel is selected purely via `data-room="…"` (stamped by +layout.svelte
+   * on the `.docs-room-scope` wrapper for SSR-correct content, mirrored onto
+   * <html> after mount for portaled popovers); rooms-channels.gen.css holds
+   * both the per-channel pairs and the un-stamped fallback, generated from the
+   * register so no hex is hand-kept anywhere. The primary-derived family is
+   * re-resolved from those two vars in the shared block further down. */
 
   /* Accent alias — coupled to the room-derived primary (resolved below). */
   --docs-accent: var(--color-primary);
@@ -269,17 +273,20 @@
  * Re-declared on BOTH the theme root (so portaled popovers, which mount at
  * <body> outside the content wrapper, still read the active room after mount)
  * AND the per-route `.docs-room-scope` wrapper (so page content is correct at
- * first paint, SSR, with no flash — the wrapper carries the inline
- * `--room-accent` from +layout). Same re-substitution reasoning as the intent
- * block above: the derived `--color-primary*` are re-declared here so they
- * read the current `--room-accent` rather than a stale :root substitution.
+ * first paint, SSR, with no flash — the wrapper carries the `data-room` stamp
+ * from +layout). Same re-substitution reasoning as the intent block above: the
+ * derived `--color-primary*` are re-declared here so they read the current
+ * `--room-accent` rather than a stale :root substitution.
  * `oklab` mixing keeps the ramp perceptually even; the semantic stops pick a
  * darker step in light / a brighter step in dark via light-dark(), so the
  * ThemeSwitcher keeps working across every room. */
 .docs-rooms,
 .docs-rooms .docs-room-scope {
-  --_a: var(--room-accent, #006c4a);
-  --_afg: var(--room-accent-fg, #f6f3ec);
+  /* No hex fallback: the generated sheet declares the pair unconditionally on
+   * `.docs-rooms` itself, so a fallback here could only ever mask its absence
+   * with a colour nobody chose. */
+  --_a: var(--room-accent);
+  --_afg: var(--room-accent-fg);
   --_cream: #fbfaf6;
   --_ink: #17150f;
 
@@ -317,25 +324,12 @@
   --color-chart-4: color-mix(in oklab, var(--_a) 90%, #ffffff);
 }
 
-/* ── Route → room mapping ("Farbe = Ort") ────────────────────────────────
- * The single source of the four room colours. +layout.svelte only stamps
- * `data-room` (wrapper: SSR-correct first paint; <html>: portaled popovers
- * after mount) — it carries no hex values. blocks green is the default
- * declared on `.docs-rooms` above; the other three rooms override here.
- * (The landing's palette channels are a separate poster system — its
- * Gallery '52 channel quotes these same four colours by design.) */
-:is(.docs-rooms, .docs-room-scope)[data-room='table'] {
-  --room-accent: #e3a31c; /* amber */
-  --room-accent-fg: #17150f;
-}
-:is(.docs-rooms, .docs-room-scope)[data-room='auth'] {
-  --room-accent: #7c1f2d; /* wine */
-  --room-accent-fg: #f6f3ec;
-}
-:is(.docs-rooms, .docs-room-scope)[data-room='ai'] {
-  --room-accent: #e8500f; /* orange */
-  --room-accent-fg: #17150f;
-}
+/* The `data-room` → accent-pair table used to live here as four hand-kept
+ * hex pairs. It is now rooms-channels.gen.css, imported at the top of this
+ * file: the docs and the landing draw the same channel register, so a
+ * component's doc page and its row in the landing index cannot drift apart.
+ * +layout.svelte still only stamps `data-room` (wrapper: SSR-correct first
+ * paint; <html>: portaled popovers after mount) and carries no colour. */
 
 /* Headings wear the display face (Schibsted Grotesk). Body inherits
  * --font-sans. The mono rule below has higher specificity so meta/code/kbd
@@ -424,13 +418,15 @@
   background: var(--room-accent);
   color: var(--room-accent-fg);
 
-  /* On-field text is the on-colour at reduced opacity. The mix was raised from
-   * 74%/62% so the secondary lede/kicker clears WCAG AA on the fill: 88% clears
-   * 4.5:1 on green(new)/amber/wine; on orange (whose dark ink-on-fill has the
-   * least headroom — solid is only 4.85:1, and darkening orange would lower it
-   * further) the 88% lede lands at 4.3:1 = AA-large, the acceptable outcome the
-   * debt entry names for a hero lede. tertiary 72% clears the 3:1 UI floor on
-   * all four rooms; quaternary/softer stay decoration (never body text). */
+  /* This is the accent's SURFACE role — the one the generator guards at ≥4.5:1
+   * against `--room-accent-fg`. On-field text is that on-colour at reduced
+   * opacity: 88% for the lede/kicker, 72% for tertiary. Because every channel
+   * sits on one lightness step, the numbers no longer spread the way the four
+   * hand-picked rooms did — measured across all eleven, the 88% mix lands at
+   * 4.66–4.93:1 (ink 8.4:1) and the 72% mix at 3.56–3.82:1 (ink 6.3:1), so the
+   * lede clears WCAG AA everywhere and tertiary clears the 3:1 UI floor. (The
+   * old orange room's 4.3:1 AA-large lede, which the debt log names, is gone
+   * with the room.) quaternary/softer stay decoration, never body text. */
   --color-text-primary: var(--room-accent-fg);
   --color-text-secondary: color-mix(in oklab, var(--room-accent-fg) 88%, transparent);
   --color-text-tertiary: color-mix(in oklab, var(--room-accent-fg) 72%, transparent);

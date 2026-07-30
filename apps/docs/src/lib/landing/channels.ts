@@ -175,7 +175,7 @@ export const TILE_CHANNEL = {
   more: 'yellow'
 } as const satisfies Record<string, ChannelName>;
 
-/** Ebene 2 — Familie → Kanal (Struktur: Zeile 2, künftig die Docs-Seiten). */
+/** Ebene 2 — Familie → Kanal (Struktur: Zeile 2 der Landing UND die Doku-Räume). */
 export const FAMILY_CHANNEL = {
   action: 'orange',
   data: 'cyan',

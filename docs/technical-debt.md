@@ -692,6 +692,19 @@ internal TODO instead. Sections are ordered roughly by urgency.
   dark baselines now bake this in: they were re-generated on 2026-07-25, and the
   previous ones were the last artefact in the repo still showing the adaptive
   light green (≈5.15:1). So a fix here is also a Guide re-baseline.
+- **Update 2026-07-30 (dark half resolved, light half inverted):** the docs rooms
+  moved from four hand-picked area colours to the landing's channel register
+  (`--room-accent` = a channel's *accent step*, the lightest step still clearing
+  3:1 on paper — see `apps/docs/scripts/channels-gen.ts`). Measured against the
+  dark Rooms paper `#232220` every room now sits at **4.85–4.87:1** (ink 5.1:1),
+  i.e. the dark-mode foreground complaint above is gone, and the Guide's darker
+  `#322f2c` follows. The trade is the light half: on cream every room is now a
+  uniform **3.13:1** as foreground — above the 3:1 UI floor (marker, focus ring,
+  active bar) but below AA for the active nav-link *text* and body links, where
+  the old green sat at 6.20:1 (the old amber room sat at 2.11:1, so the spread
+  narrowed even as the best case got worse). The Material-3 split named above is
+  still the real fix; it is now a **light**-mode split (a darker stop for the
+  foreground role) rather than a dark-mode one.
 - **Found:** 2026-07-24, W1 adversarial review (deepened by W1's green nudge).
 
 ### docs-app `lang`: the ⌘K command palette is the one bilingual chrome surface still inheriting `lang="en"`

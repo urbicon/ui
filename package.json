@@ -79,6 +79,7 @@
     "docs:gen:table": "cd packages/docs-gen && bun src/cli/index.ts generate --target table",
     "docs:gen:auth": "cd packages/docs-gen && bun src/cli/index.ts generate --target auth",
     "docs:gen:all": "cd packages/docs-gen && bun src/cli/index.ts generate --target all",
+    "channels:gen": "bun apps/docs/scripts/channels-gen.ts",
     "docs:scaffold": "cd packages/docs-gen && bun src/cli/index.ts scaffold",
     "build:ts": "bun --bun --filter='./packages/shared-types' run build && bun --bun --filter='./packages/*' run build && bun docs:gen:ci",
     "build": "bun run build:ts && bun --bun --filter='./apps/*' run build",

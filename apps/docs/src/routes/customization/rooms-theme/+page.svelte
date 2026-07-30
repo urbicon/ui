@@ -22,20 +22,24 @@
 @import '@urbicon-ui/blocks/style/index.css';
 @import './lib/style/rooms-docs.css';   /* Schibsted, cream paper, room accent */`;
 
-  const roomAccentExample = `// apps/docs/src/routes/+layout.svelte — "Farbe = Ort"
-// the top-level route segment picks the room (fallback: blocks); the layout
-// only stamps the NAME — colour values live solely in rooms-docs.css
-const ROOM_SEGMENTS = new Set(['blocks', 'table', 'auth', 'ai']);
-const room = $derived.by(() => {
-  const seg = page.url.pathname.split('/')[1] ?? '';
-  return ROOM_SEGMENTS.has(seg) ? seg : 'blocks';
-});
+  const roomAccentExample = `// apps/docs/src/routes/+layout.svelte — "Farbe = Familie"
+// the page's component family picks the channel, the product area is only the
+// fallback; the layout stamps the NAME, never a colour
+const room = $derived(channelNameForRoute(page.url.pathname));
 // <div class="docs-room-scope" data-room={room}> …
 
-/* rooms-docs.css — route → room mapping (single source of the colours) */
-:is(.docs-rooms, .docs-room-scope)[data-room='table'] {
-  --room-accent: #7c1f2d;
-  --room-accent-fg: #f6f3ec;
+/* route-channel.gen.ts — generated from the docs-gen catalogues */
+export const ROUTE_CHANNEL = {
+  '/blocks/primitives/button': 'orange',  // action
+  '/blocks/primitives/tab':    'teal',    // navigation
+  '/auth/components/login-page': 'blue',  // form
+  // … one entry per documented component
+};
+
+/* rooms-channels.gen.css — generated from the channel register */
+:is(.docs-rooms, .docs-room-scope)[data-room='teal'] {
+  --room-accent: oklch(0.632 0.119 175);
+  --room-accent-fg: oklch(0.2 0.038 175);
 }`;
 
   const deriveExample = `/* rooms-docs.css — the whole primary family is re-derived from the room.
@@ -59,9 +63,9 @@ const room = $derived.by(() => {
   /* … */
 }`;
 
-  const overrideExample = `/* Repaint one room (e.g. a warmer table wine) — the whole primary family,
-   every segment/toggle/button/field on /table follows. */
-.docs-room-scope { --room-accent: #8a2433; }
+  const overrideExample = `/* Repaint one room (e.g. a warmer navigation teal) — the whole primary family,
+   every segment/toggle/button/field on a navigation page follows. */
+:is(.docs-rooms, .docs-room-scope)[data-room='teal'] { --room-accent: #1f6f66; }
 
 /* Tighter card geometry / louder lift — same --docs-* handles as before */
 .docs-rooms {
@@ -72,12 +76,12 @@ const room = $derived.by(() => {
 
 <SeoMeta
   title="Color Rooms Theme"
-  description="Color Rooms — the theme that powers the Urbicon UI docs site. Schibsted Grotesk on warm cream paper, a per-section room accent that repaints every real component, and full-width colour-field headers. What it is, its tokens, how to activate or override it, and how Light/Dark works inside it."
+  description="Color Rooms — the theme that powers the Urbicon UI docs site. Schibsted Grotesk on warm cream paper, a per-family room accent that repaints every real component, and full-width colour-field headers. What it is, its tokens, how to activate or override it, and how Light/Dark works inside it."
 />
 
 <DocsPageLayout
   title="Color Rooms"
-  description="A token-only overlay on top of the Urbicon UI library that drives the look of this docs site — Schibsted Grotesk on warm cream paper, with the accent set to the room (section) you are in. Activated via a single root class; everything else is CSS custom properties."
+  description="A token-only overlay on top of the Urbicon UI library that drives the look of this docs site — Schibsted Grotesk on warm cream paper, with the accent set to the component family the page documents. Activated via a single root class; everything else is CSS custom properties."
   {navigation}
   showToc
   breadcrumbs={[{ label: 'Customization', href: resolve('/customization') }]}
@@ -88,11 +92,11 @@ const room = $derived.by(() => {
     <p class="text-text-secondary mb-4 leading-relaxed">
       Color Rooms is the visual identity of this docs site — one grotesk (Schibsted Grotesk) for
       both display and body, JetBrains Mono for meta and code, on warm cream paper. Its signature is
-      that <strong>the accent is the room you are in</strong>: each product area owns a saturated
-      colour, and the component-page and section-landing headers become a full-width colour field
-      that spans everything right of the app sidebar. It is implemented as a single CSS file (<code
-        class="text-text-primary">apps/docs/src/lib/style/rooms-docs.css</code
-      >) that defines a private <code class="text-text-primary">--docs-*</code> token namespace and
+      that <strong>the accent is the room you are in</strong>: each component family owns a
+      saturated colour, and the component-page and section-landing headers become a full-width
+      colour field that spans everything right of the app sidebar. It is implemented as a single CSS
+      file (<code class="text-text-primary">apps/docs/src/lib/style/rooms-docs.css</code>) that
+      defines a private <code class="text-text-primary">--docs-*</code> token namespace and
       re-derives the library's primary-token family from the active room when
       <code class="text-text-primary">.docs-rooms</code> is present on the
       <code class="text-text-primary">&lt;html&gt;</code> root.
@@ -125,16 +129,25 @@ const room = $derived.by(() => {
   <section class="mb-12">
     <h2 class="text-text-primary mb-4 text-2xl font-bold" id="rooms">The Rooms</h2>
     <p class="text-text-secondary mb-6 leading-relaxed">
-      Four rooms, one per product area. The top-level route segment picks the room; everything
-      outside the four areas falls back to the blocks green. The two custom properties (<code
-        class="text-text-primary">--room-accent</code
-      >
+      A room is a <strong>component family</strong>, not a product area. A component's doc page
+      wears the channel of its family — so <code class="text-text-primary">Button</code> and
+      <code class="text-text-primary">Tab</code> are different colours even though both live under
+      <code class="text-text-primary">/blocks</code>, and
+      <code class="text-text-primary">Table</code>
+      and the auth <code class="text-text-primary">NotificationListener</code> share one. Pages that document
+      no single component (the overviews, /recipes, /icons, /getting-started) fall back to the channel
+      of their product area. It is the same register the landing page runs on, so a component's row in
+      the landing index and its doc page carry the same colour.
+    </p>
+    <p class="text-text-secondary mb-6 leading-relaxed">
+      The two custom properties (<code class="text-text-primary">--room-accent</code>
       and its foreground
-      <code class="text-text-primary">--room-accent-fg</code>) are fed in from the layout onto a
+      <code class="text-text-primary">--room-accent-fg</code>) resolve from a
+      <code class="text-text-primary">data-room</code> stamp on the
       <code class="text-text-primary">.docs-room-scope</code> wrapper, and the whole primary-token
       family is re-derived from them via <code class="text-text-primary">color-mix()</code>.
-      Switching route therefore repaints every real component on the page — segment indicator,
-      slider, toggle, buttons, TOC-active, badges — with no per-component override.
+      Navigating therefore repaints every real component on the page — segment indicator, slider,
+      toggle, buttons, TOC-active, badges — with no per-component override.
     </p>
 
     <div class="border-border-subtle bg-surface-base rounded-contain mb-6 overflow-hidden border">
@@ -143,38 +156,71 @@ const room = $derived.by(() => {
           class="border-border-subtle text-text-primary border-b text-xs tracking-wider uppercase"
         >
           <tr>
-            <th class="px-4 py-3 font-semibold">Room</th>
-            <th class="px-4 py-3 font-semibold">Route</th>
-            <th class="px-4 py-3 font-semibold">Accent · Foreground</th>
+            <th class="px-4 py-3 font-semibold">Channel</th>
+            <th class="px-4 py-3 font-semibold">Family</th>
+            <th class="px-4 py-3 font-semibold">Area fallback</th>
           </tr>
         </thead>
         <tbody class="divide-border-subtle divide-y">
           <tr>
-            <td class="px-4 py-3">Blocks <span class="text-text-tertiary">(default)</span></td>
-            <td class="px-4 py-3"><code>/blocks/**</code></td>
-            <td class="px-4 py-3"><code>#006c4a</code> · <code>#f6f3ec</code> — green</td>
+            <td class="px-4 py-3">orange <span class="text-text-tertiary">(default)</span></td>
+            <td class="px-4 py-3"><code>action</code></td>
+            <td class="px-4 py-3"><code>/blocks/**</code> + everything unclaimed</td>
           </tr>
           <tr>
-            <td class="px-4 py-3">Table</td>
+            <td class="px-4 py-3">cyan</td>
+            <td class="px-4 py-3"><code>data</code></td>
             <td class="px-4 py-3"><code>/table/**</code></td>
-            <td class="px-4 py-3"><code>#e3a31c</code> · <code>#17150f</code> — amber</td>
           </tr>
           <tr>
-            <td class="px-4 py-3">Auth</td>
-            <td class="px-4 py-3"><code>/auth/**</code></td>
-            <td class="px-4 py-3"><code>#7c1f2d</code> · <code>#f6f3ec</code> — wine</td>
-          </tr>
-          <tr>
-            <td class="px-4 py-3">AI &amp; DX</td>
+            <td class="px-4 py-3">magenta</td>
+            <td class="px-4 py-3"><code>ai</code></td>
             <td class="px-4 py-3"><code>/ai/**</code></td>
-            <td class="px-4 py-3"><code>#e8500f</code> · <code>#17150f</code> — orange</td>
+          </tr>
+          <tr>
+            <td class="px-4 py-3">blue</td>
+            <td class="px-4 py-3"><code>form</code></td>
+            <td class="px-4 py-3"><code>/auth/**</code> (8 of its 14 are form)</td>
+          </tr>
+          <tr>
+            <td class="px-4 py-3">teal</td>
+            <td class="px-4 py-3"><code>navigation</code></td>
+            <td class="px-4 py-3">—</td>
+          </tr>
+          <tr>
+            <td class="px-4 py-3">azure</td>
+            <td class="px-4 py-3"><code>display</code></td>
+            <td class="px-4 py-3">—</td>
+          </tr>
+          <tr>
+            <td class="px-4 py-3">purple</td>
+            <td class="px-4 py-3"><code>overlay</code></td>
+            <td class="px-4 py-3">—</td>
+          </tr>
+          <tr>
+            <td class="px-4 py-3">red</td>
+            <td class="px-4 py-3"><code>feedback</code></td>
+            <td class="px-4 py-3">—</td>
+          </tr>
+          <tr>
+            <td class="px-4 py-3">ink</td>
+            <td class="px-4 py-3"><code>layout</code></td>
+            <td class="px-4 py-3">—</td>
           </tr>
         </tbody>
       </table>
     </div>
 
+    <p class="text-text-tertiary mb-6 text-xs leading-relaxed">
+      Both tables — route → channel and channel → accent pair — are generated by
+      <code class="text-text-primary">apps/docs/scripts/channels-gen.ts</code> from the docs-gen catalogues
+      and the channel register. No hex is hand-kept: the accent step of each channel is the lightest one
+      that still clears 3:1 against the paper, measured, and the generator refuses to emit a pair whose
+      foreground does not clear 4.5:1 on its own fill in both light and dark.
+    </p>
+
     <CodeExample
-      title="Route → room"
+      title="Route → channel"
       code={roomAccentExample}
       language="typescript"
       preview={false}
@@ -231,12 +277,12 @@ const room = $derived.by(() => {
         <tbody class="divide-border-subtle divide-y">
           <tr>
             <td class="px-4 py-3"><code>--room-accent</code></td>
-            <td class="px-4 py-3"><code>per section</code></td>
+            <td class="px-4 py-3"><code>per channel</code></td>
             <td class="px-4 py-3">The active room colour — source of the whole primary family.</td>
           </tr>
           <tr>
             <td class="px-4 py-3"><code>--room-accent-fg</code></td>
-            <td class="px-4 py-3"><code>per section</code></td>
+            <td class="px-4 py-3"><code>per channel</code></td>
             <td class="px-4 py-3">On-accent ink/cream — text on the field + on primary fills.</td>
           </tr>
           <tr>
