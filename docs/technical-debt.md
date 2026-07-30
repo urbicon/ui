@@ -1143,8 +1143,22 @@ internal TODO instead. Sections are ordered roughly by urgency.
   showing surfaces the library no longer has. 24 darwin and 7 Linux shots moved
   on re-capture. A baseline that passes is not the same as a baseline that is
   current, and only `--update-snapshots=all` reveals the difference.
+- **The Linux set went stale again on 2026-07-31** and this time could not be
+  refreshed here. The channel wave (`7961a55`, `356f08f`) moved the rooms
+  fallback accent from green to the orange channel, which moves every `rooms`
+  shot: 49 darwin baselines were re-captured, and the same change invalidates
+  33 committed Linux ones (26 primitive `rooms` + 6 guide + the full floating
+  fixture). Only the deploy host can produce them — **Playwright's own Docker
+  image cannot stand in for it**, measured rather than assumed: running the
+  suite in `mcr.microsoft.com/playwright:v1.61.1-noble` against the *unchanged*
+  `library` baselines drifts 387px (ratio 0.01), five times `maxDiffPixelRatio`,
+  so a Docker re-capture would write baselines the host would immediately
+  reject. Refresh path stays `--update-snapshots=all` on the host itself. Until
+  then the Linux set is knowingly behind on those 33 shots — a Linux run reads
+  as 33 red diffs that are the channel wave, not a regression.
 - **Found:** 2026-07-08 (as the darwin-only observation); re-framed and largely
-  resolved 2026-07-26 after inspecting the host.
+  resolved 2026-07-26 after inspecting the host; Linux set stale again
+  2026-07-31.
 
 ### i18n source scanner: documented analysis limits (strict mode not built)
 
