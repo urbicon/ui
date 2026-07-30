@@ -15,21 +15,23 @@
      channel pairs and hand-tuned row heights ARE the experiment; they move into
      the token system once the direction is confirmed -->
 <script lang="ts">
-  import { CHANNELS, channelForFamily, TILE_CHANNEL } from '$lib/landing/channels';
+  import { type Channel, CHANNELS, channelForFamily, TILE_CHANNEL } from '$lib/landing/channels';
   import HeroSpecimen from '$lib/landing/HeroSpecimen.svelte';
   import { formatKb, type HeroRow, SHARED_PREVIEW_NOTES } from '$lib/landing/hero';
+  import AgentReplay from '$lib/landing/AgentReplay.svelte';
+  import LiveryTile from '$lib/salon/LiveryTile.svelte';
   import {
-    A2UIView,
-    Avatar,
+    AreaChart,
     Badge,
-    Button,
+    type CartesianDatum,
+    type ChartSeries,
+    CompositionBar,
+    type CompositionItem,
     Input,
-    NumberInput,
     Scroller,
     SegmentGroup,
     SegmentItem,
-    URBICON_A2UI_CATALOG_ID,
-    urbiconA2uiCatalog
+    Toggle
   } from '@urbicon-ui/blocks';
   import { I18nProvider } from '@urbicon-ui/i18n';
   import { useUrlParam } from '@urbicon-ui/sveltekit-utils/url.svelte';
@@ -44,7 +46,17 @@
 
   // Alle Kanal-Farben kommen aus dem generierten Register (channels.ts,
   // Cusp-Formel + gemessene on-Farben) — hier wird nur noch referenziert.
-  const TILES = [
+  interface TileDef {
+    key: string;
+    no: string;
+    title: string;
+    line: string;
+    channel: Channel;
+    /** Optionale Tür aus der Kachel heraus (z. B. das volle Salon-Exponat). */
+    href?: string;
+    linkLabel?: string;
+  }
+  const TILES: TileDef[] = [
     {
       key: 'blocks',
       no: '01',
@@ -64,7 +76,9 @@
       no: '03',
       title: 'A2UI',
       line: 'UI inside the chat, themed',
-      channel: CHANNELS[TILE_CHANNEL.a2ui]
+      channel: CHANNELS[TILE_CHANNEL.a2ui],
+      href: '/salon',
+      linkLabel: 'Visit the salon'
     },
     {
       key: 'agent',
@@ -82,61 +96,147 @@
     }
   ];
 
-  // ── 01 Blocks: Mini-Collage lebender Primitives ────────────────────
-  let view = $state('board');
-  let team = $state(8);
+  // ── Die Kacheln 01–04 teilen sich EIN fiktives Universum: der Salon
+  //    „Bleecker & Bond" (siehe $lib/salon-tools — dieselben Services,
+  //    Stylists und Slot-Zeiten wie das Livery-Exponat und die Vollseite).
+  //    Entscheidung 2026-07-30: kohärente Fiktion statt strenger
+  //    Selbstreferenz; die Beweiszahlen und Zeile 2 bleiben selbstreferenziell.
 
-  // ── 02 Table: der eigene Bestand als Mini-Board (Selbstreferenz) ───
-  // net-gz aus bundle-size.baseline.json, Stand 2026-07-29.
-  // TODO Stufe 3: build-time ableiten statt abschreiben.
-  const BOARD = [
-    { id: 'table', component: 'Table', pkg: 'table', gz: 68.5 },
-    { id: 'datepicker', component: 'DatePicker', pkg: 'blocks', gz: 48.3 },
-    { id: 'sankey', component: 'Sankey', pkg: 'blocks', gz: 10.1 }
+  // ── 01 Blocks: das Salon-Backoffice als Dashboard-Collage ──────────
+  let range = $state('week');
+  let walkIns = $state(true);
+  const WEEK_BOOKINGS: CartesianDatum[] = [
+    { label: 'Tue', values: [9, 3] },
+    { label: 'Wed', values: [11, 4] },
+    { label: 'Thu', values: [8, 6] },
+    { label: 'Fri', values: [13, 5] },
+    { label: 'Sat', values: [15, 2] }
   ];
-  let boardSelected = $state<string[]>(['table']);
+  const MONTH_BOOKINGS: CartesianDatum[] = [
+    { label: 'W1', values: [42, 15] },
+    { label: 'W2', values: [48, 18] },
+    { label: 'W3', values: [39, 21] },
+    { label: 'W4', values: [55, 17] }
+  ];
+  const BOOKING_SERIES: ChartSeries[] = [{ label: 'Booked' }, { label: 'Walk-in' }];
+  const bookingsData = $derived(range === 'week' ? WEEK_BOOKINGS : MONTH_BOOKINGS);
+  const REVENUE_MIX: CompositionItem[] = [
+    { label: 'Bleecker Cut', value: 52, intent: 'primary' },
+    { label: 'Dry Cut', value: 24, intent: 'success' },
+    { label: 'Beard', value: 17, intent: 'warning' },
+    { label: 'Colour', value: 7, intent: 'neutral' }
+  ];
 
-  // ── 03 A2UI: echter Renderer, echter Katalog, statisches Payload ───
-  const A2UI_PAYLOAD = [
+  // ── 02 Table: die Buchungsliste des Salons ─────────────────────────
+  // Zeiten aus dem SLOT_GRID, Services/Stylists/Preise aus salon-tools.
+  interface Booking {
+    id: string;
+    day: 'Today' | 'Tomorrow';
+    time: string;
+    client: string;
+    service: string;
+    stylist: string;
+    status: 'confirmed' | 'pending' | 'walk-in';
+    price: string;
+  }
+  const BOOKINGS: Booking[] = [
     {
-      version: 'v0.9.1',
-      createSurface: { surfaceId: 'tile-booking', catalogId: URBICON_A2UI_CATALOG_ID }
+      id: 'b1',
+      day: 'Today',
+      time: '09:45',
+      client: 'M. Okafor',
+      service: 'The Bleecker Cut',
+      stylist: 'Io',
+      status: 'confirmed',
+      price: '$95'
     },
     {
-      version: 'v0.9.1',
-      updateComponents: {
-        surfaceId: 'tile-booking',
-        components: [
-          { id: 'root', component: 'Card', child: 'col' },
-          { id: 'col', component: 'Column', children: ['title', 'guests', 'submit'] },
-          { id: 'title', component: 'Text', text: 'Book a table', variant: 'h4' },
-          { id: 'guests', component: 'Input', label: 'Guests', value: { path: '/guests' } },
-          { id: 'submit-label', component: 'Text', text: 'Reserve' },
-          {
-            id: 'submit',
-            component: 'Button',
-            intent: 'primary',
-            child: 'submit-label',
-            action: { event: { name: 'reserve', context: { guests: { path: '/guests' } } } }
-          }
-        ]
-      }
+      id: 'b2',
+      day: 'Today',
+      time: '10:30',
+      client: 'J. Laurent',
+      service: 'Beard Architecture',
+      stylist: 'Sable',
+      status: 'confirmed',
+      price: '$55'
     },
     {
-      version: 'v0.9.1',
-      updateDataModel: { surfaceId: 'tile-booking', value: { guests: '4' } }
+      id: 'b3',
+      day: 'Today',
+      time: '13:00',
+      client: 'A. Reyes',
+      service: 'Dry Cut & Finish',
+      stylist: 'Ren',
+      status: 'walk-in',
+      price: '$70'
+    },
+    {
+      id: 'b4',
+      day: 'Today',
+      time: '15:15',
+      client: 'T. Nguyen',
+      service: 'Colour Consultation',
+      stylist: 'Io',
+      status: 'pending',
+      price: '$0'
+    },
+    {
+      id: 'b5',
+      day: 'Tomorrow',
+      time: '09:00',
+      client: 'S. Adeyemi',
+      service: 'The Bleecker Cut',
+      stylist: 'Sable',
+      status: 'confirmed',
+      price: '$95'
+    },
+    {
+      id: 'b6',
+      day: 'Tomorrow',
+      time: '11:15',
+      client: 'R. Duval',
+      service: 'Beard Architecture',
+      stylist: 'Ren',
+      status: 'pending',
+      price: '$55'
+    },
+    {
+      id: 'b7',
+      day: 'Tomorrow',
+      time: '13:45',
+      client: 'K. Marsh',
+      service: 'Dry Cut & Finish',
+      stylist: 'Io',
+      status: 'confirmed',
+      price: '$70'
+    },
+    {
+      id: 'b8',
+      day: 'Tomorrow',
+      time: '16:00',
+      client: 'E. Sato',
+      service: 'The Bleecker Cut',
+      stylist: 'Ren',
+      status: 'confirmed',
+      price: '$95'
     }
   ];
 
-  // ── 05 Treppe: die restlichen Register, Zahlen aus dem Konzept ─────
+  // ── 03 A2UI: das Salon-Exponat (LiveryTile) — echtes aufgezeichnetes
+  //    Modell-Output im Replay, vier Liveries, ein Klick zur Vollseite. ─
+
+  // ── 05 Treppe: die restlichen Register — jede Stufe ist eine Tür ───
   const STEPS = [
-    '44 composites',
-    '315 icons',
-    'i18n · EN & DE',
-    'charts',
-    'chat',
-    'auth',
-    'theming'
+    { label: '44 composites', href: '/blocks' },
+    { label: '315 icons', href: '/icons' },
+    { label: 'guide', href: '/blocks/components/guide' },
+    { label: 'sankey', href: '/blocks/components/sankey' },
+    { label: 'toast', href: '/blocks/primitives/toast' },
+    { label: 'chat', href: '/blocks/components/chat' },
+    { label: 'auth', href: '/auth' },
+    { label: 'i18n · EN & DE', href: '/i18n' },
+    { label: 'theming', href: '/customization' },
+    { label: 'recipes', href: '/recipes' }
   ];
 
   // Platzhalter — final build-time abgeleitet (siehe +page.server.ts der Landing).
@@ -257,6 +357,7 @@
         <Scroller
           label="Highlights"
           itemBasis="85%"
+          snap="mandatory"
           indicator="dots"
           class="relative"
           slotClasses={{
@@ -277,58 +378,87 @@
               <span class="no">{tile.no}</span>
               <div class="tile-body">
                 {#if tile.key === 'blocks'}
-                  <div class="card specimen">
-                    <SegmentGroup bind:value={view} size="sm" ariaLabel="View">
-                      <SegmentItem value="board">Board</SegmentItem>
-                      <SegmentItem value="list">List</SegmentItem>
-                    </SegmentGroup>
-                    <NumberInput label="Team" bind:value={team} min={1} max={48} size="sm" />
-                    <Button intent="primary" size="sm">Save draft</Button>
-                    <Badge intent="success">shipped</Badge>
-                    <Avatar name="Urbicon UI" size="sm" />
+                  <div class="card dash">
+                    <div class="dash-head">
+                      <div>
+                        <p class="dash-title">Bleecker &amp; Bond</p>
+                        <p class="dash-sub">Front desk</p>
+                      </div>
+                      <SegmentGroup bind:value={range} size="sm" ariaLabel="Range">
+                        <SegmentItem value="week">Week</SegmentItem>
+                        <SegmentItem value="month">Month</SegmentItem>
+                      </SegmentGroup>
+                    </div>
+                    <AreaChart
+                      data={bookingsData}
+                      series={BOOKING_SERIES}
+                      height={150}
+                      showLegend={false}
+                      fillOpacity={0.25}
+                    />
+                    <CompositionBar
+                      items={REVENUE_MIX}
+                      size="sm"
+                      showLegend
+                      showValues={false}
+                      legendPlacement="bottom"
+                    />
+                    <div class="dash-foot">
+                      <Toggle bind:checked={walkIns} label="Accept walk-ins" size="sm" />
+                      <!-- soft, nicht filled: die solide Intent-Fläche trägt text-on-primary,
+                         das im .room-accent-Scope auf den Kanal umgefärbt ist
+                         (docs/technical-debt.md → „Design tokens"). -->
+                      <Badge intent="success" variant="soft">3 chairs free</Badge>
+                    </div>
                   </div>
                 {:else if tile.key === 'table'}
                   <div class="card card-table">
                     <Table
-                      items={BOARD}
+                      items={BOOKINGS}
                       columns={[
-                        { accessor: 'component', title: 'Component', sortable: true },
-                        { accessor: 'pkg', title: 'Pkg' },
-                        { accessor: 'gz', title: 'net gz (kB)', sortable: true }
+                        { accessor: 'time', title: 'Time', sortable: true, width: '4.5rem' },
+                        { accessor: 'client', title: 'Client', sortable: true, searchable: true },
+                        { accessor: 'service', title: 'Service', searchable: true },
+                        { accessor: 'stylist', title: 'Chair', searchable: true, width: '4.5rem' },
+                        { accessor: 'status', title: 'Status', cell: statusCell },
+                        { accessor: 'price', title: 'Price', align: 'right', width: '4rem' }
                       ]}
-                      selectionMode="single"
-                      selectedIds={boardSelected}
-                      onSelectionChange={(items) => (boardSelected = items.map((r) => r.id))}
-                      enableSmartFilter={false}
-                      enableColumnVisibility={false}
+                      initialGroupBy="day"
                       variant="flush"
+                      size="sm"
+                      ariaLabel="Bookings at Bleecker & Bond"
                       slotClasses={{ table: '!min-w-0' }}
                     />
                   </div>
                 {:else if tile.key === 'a2ui'}
-                  <div class="a2ui-host">
-                    <A2UIView payload={A2UI_PAYLOAD} catalogs={[urbiconA2uiCatalog]} />
+                  <div class="salon-host">
+                    <LiveryTile />
                   </div>
                 {:else if tile.key === 'agent'}
-                  <!-- Gestalteter Loop-Auszug. Stufe 3 ersetzt ihn durch ein
-                     aufgezeichnetes echtes Transkript im Replay (Echtheitsregel). -->
-                  <div class="term">
-                    <p><span class="dim">$</span> claude "add a pricing section"</p>
-                    <p><span class="ok">✚</span> src/routes/pricing/+page.svelte</p>
-                    <p><span class="dim">▸</span> urbicon validate</p>
-                    <p><span class="ok">✓</span> tokens · focus-visible · no magic numbers</p>
-                  </div>
+                  <!-- Terminal-Replay + materialisierende BookingCard; die
+                     validate-Zeilen sind echte, aufgezeichnete Ausgabe
+                     (siehe AgentReplay.svelte). -->
+                  <AgentReplay />
                 {:else}
                   <ol class="steps">
-                    {#each STEPS as step, i (step)}
-                      <li style:margin-inline-start={`${i * 1.1}em`}>{step}</li>
+                    {#each STEPS as step, i (step.href)}
+                      <li style:margin-inline-start={`${i * 0.75}em`}>
+                        <a href={step.href}>{step.label}</a>
+                      </li>
                     {/each}
                   </ol>
                 {/if}
               </div>
-              <div>
-                <h2 class="tile-title">{tile.title}</h2>
-                <p class="tile-line">{tile.line}</p>
+              <div class="tile-foot">
+                <div>
+                  <h2 class="tile-title">{tile.title}</h2>
+                  <p class="tile-line">{tile.line}</p>
+                </div>
+                {#if tile.href}
+                  <a class="tile-link" href={tile.href}
+                    >{tile.linkLabel} <span aria-hidden="true">↗</span></a
+                  >
+                {/if}
               </div>
             </article>
           {/each}
@@ -526,6 +656,15 @@
   <span class="num">{(item as HeroRow).props}</span>
 {/snippet}
 
+{#snippet statusCell(item: unknown)}
+  {@const s = (item as Booking).status}
+  <Badge
+    size="sm"
+    variant="soft"
+    intent={s === 'confirmed' ? 'success' : s === 'pending' ? 'warning' : 'neutral'}>{s}</Badge
+  >
+{/snippet}
+
 <style>
   .proto {
     --paper: light-dark(#f4f4f2, #0d0d0d);
@@ -543,7 +682,9 @@
   }
   @media (min-width: 48rem) {
     .row1 {
-      grid-template-columns: 1fr 1fr;
+      /* Die Namens-Kachel atmet bis ~40rem und ist dann satt — den Zuwachs
+         großer Schirme bekommt der Scroller (mehr sichtbare Kacheln). */
+      grid-template-columns: clamp(24rem, 32vw, 40rem) minmax(0, 1fr);
     }
   }
 
@@ -589,7 +730,9 @@
   .tile {
     background: light-dark(var(--tile-solid), var(--tile-deep));
     color: light-dark(var(--tile-deep), var(--tile-solid));
-    height: clamp(380px, 52vh, 580px);
+    /* Zeile 1 dominiert den ersten Screen; Zeile 2 bleibt nur angeschnitten —
+       der Anschnitt ist die Scroll-Affordance („anderthalb Zeilen"). */
+    height: clamp(420px, 72vh, 800px);
     padding: clamp(16px, 1.8vw, 26px);
     /* Freie Zone unter der Titelgruppe, in der der Dots-Chip (Overlay, 32px)
        liegt, ohne die Beschreibung zu überlappen. */
@@ -633,48 +776,89 @@
     padding: 1.25rem;
     width: min(420px, 100%);
   }
-  .specimen {
+  /* Das Backoffice-Dashboard der Blocks-Kachel. */
+  .dash {
+    width: min(520px, 100%);
+    display: flex;
+    flex-direction: column;
+    gap: 1.1rem;
+  }
+  .dash-head {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 1rem;
+  }
+  .dash-title {
+    font-weight: 800;
+    font-size: 1.05rem;
+    letter-spacing: -0.01em;
+  }
+  .dash-sub {
+    font-size: 0.75rem;
+    color: light-dark(#77776f, #8a8a84);
+  }
+  .dash-foot {
     display: flex;
     align-items: center;
-    gap: 0.75rem;
-    flex-wrap: wrap;
+    justify-content: space-between;
+    gap: 1rem;
   }
   .card-table {
+    width: min(680px, 100%);
     padding: 0.5rem;
     max-height: 100%;
-    overflow: hidden;
+    /* Wird es eng, scrollt der Body hinter dem stehenden Kopf — nie abschneiden. */
+    overflow-y: auto;
+    scrollbar-width: thin;
   }
-  .a2ui-host {
-    width: min(320px, 100%);
-    max-height: 100%;
-    overflow: hidden;
+  .card-table :global(thead th) {
+    position: sticky;
+    top: 0;
+    z-index: 1;
+    background: light-dark(#ffffff, #141414);
   }
-
-  /* Terminal ist in beiden Modi dunkel; die Akzente kommen aus der
-     Kanal-Livery (primary = Vollton-Grün der Kachel). */
-  .term {
-    background: #101010;
-    color: #d8d8d2;
-    font-family: 'JetBrains Mono', monospace;
-    font-size: 12.5px;
-    line-height: 1.9;
-    padding: 1rem 1.25rem;
-    width: min(400px, 100%);
-  }
-  .term .dim {
-    opacity: 0.55;
-  }
-  .term .ok {
-    color: var(--color-primary);
+  /* Das Salon-Exponat füllt die Kachel-Bühne; die LiveryTile bringt ihren
+     eigenen Grund (data-livery) und Rahmen mit. */
+  .salon-host {
+    width: min(480px, 100%);
+    height: 100%;
+    min-height: 0;
   }
 
-  /* Typo-Treppe der restlichen Register. */
+  .tile-foot {
+    display: flex;
+    align-items: flex-end;
+    justify-content: space-between;
+    gap: 1rem;
+  }
+  .tile-link {
+    flex-shrink: 0;
+    font-weight: 700;
+    font-size: 0.85rem;
+    color: inherit;
+    text-decoration: none;
+    border-bottom: 2px solid currentColor;
+    padding-bottom: 2px;
+  }
+
+  /* Typo-Treppe der restlichen Register — jede Stufe verlinkt ihr Register. */
   .steps {
     list-style: none;
     font-weight: 800;
     font-size: clamp(1rem, 1.5vw, 1.35rem);
     letter-spacing: -0.01em;
     line-height: 1.55;
+  }
+  .steps a {
+    color: inherit;
+    text-decoration: none;
+  }
+  .steps a:hover,
+  .steps a:focus-visible {
+    text-decoration: underline;
+    text-decoration-thickness: 0.09em;
+    text-underline-offset: 0.18em;
   }
 
   /* ── Zeile 2: Inventar + Vorschau — die niedrigere Hero-Fassung ─
