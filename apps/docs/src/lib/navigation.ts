@@ -369,9 +369,12 @@ const allNavigationItems: NavItem[] = [
     href: '/recipes',
     standalone: true,
     children: [
+      { name: 'Agent-generated UI (A2UI)', href: '/recipes/a2ui-agent-ui' },
+      { name: 'AI Chat', href: '/recipes/ai-chat' },
       { name: 'Clickable Card', href: '/recipes/clickable-card' },
       { name: 'Dashboard', nameKey: 'nav.dashboard', href: '/recipes/dashboard' },
       { name: 'Decision Tree Wizard', href: '/recipes/decision-tree-wizard' },
+      { name: 'Filter Sidebar', href: '/recipes/filter-sidebar' },
       { name: 'Help Tooltip', href: '/recipes/help-tooltip' },
       { name: 'Invitation-Gated Registration', href: '/recipes/auth-invitation-register' },
       { name: 'Login Form', nameKey: 'nav.loginForm', href: '/recipes/login' },
