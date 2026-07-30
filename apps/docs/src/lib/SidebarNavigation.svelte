@@ -1,6 +1,6 @@
 <script lang="ts">
   import { page } from '$app/state';
-  import { resolveNav, useNavLabel, type NavHref, type NavItem } from '$lib/navigation';
+  import { resolveNav, useNavLabel, type NavItem } from '$lib/navigation';
 
   let { items }: { items: NavItem[] } = $props();
 
@@ -27,46 +27,75 @@
     return isActive(node.href, path) || hasActiveDescendant(node, path);
   }
 
-  // Flatten the active section's subtree into ONE column: group nodes become
-  // mono kickers, their children (and direct link children, e.g. the Table
-  // section) plain rows. No indent staircase — grouping is carried by the
-  // kickers alone, every label sits on the same left edge.
-  type FlatEntry =
-    { kind: 'kicker'; item: NavItem } | { kind: 'link'; item: NavItem; href: NavHref };
-  function flattenSection(node: NavItem): FlatEntry[] {
-    const entries: FlatEntry[] = [];
-    for (const child of node.children ?? []) {
-      if (child.group) {
-        entries.push({ kind: 'kicker', item: child });
-        for (const leaf of child.children ?? []) {
-          if (leaf.href) entries.push({ kind: 'link', item: leaf, href: leaf.href });
-        }
-      } else if (child.href) {
-        entries.push({ kind: 'link', item: child, href: child.href });
-      }
-    }
-    return entries;
-  }
-
   const path = $derived(page.url.pathname);
 
-  // Shared row anatomy — one label edge (pl-4) for every row; the marker
-  // column (left-1) matches the TOC's active-square geometry.
-  const row = 'relative flex items-center py-1.5 pl-4 pr-2 text-sm transition-colors';
+  /** Groups have no href, so their identity is the section path plus the name. */
+  const groupKey = (section: NavItem, group: NavItem) =>
+    `${section.href ?? section.name}/${group.name}`;
+
+  /**
+   * Which group is open. Only one at a time: the section under Blocks holds 75
+   * leaves across 8 groups, and showing them all is what made the list 3714px
+   * tall — taller than any viewport, so the marked entry sat far below the fold
+   * on every deep link.
+   *
+   * Derived from the route, with a manual override that expires the moment the
+   * route changes. Storing the path alongside the choice keeps this a pure
+   * derivation — no effect has to reach in and reset it after navigation.
+   */
+  const routeGroupKey = $derived.by(() => {
+    for (const section of items) {
+      for (const child of section.children ?? []) {
+        if (!child.group) continue;
+        if (child.children?.some((leaf) => isActive(leaf.href, path)))
+          return groupKey(section, child);
+      }
+    }
+    return null;
+  });
+  let manual = $state<{ path: string; key: string | null } | null>(null);
+  const openKey = $derived(manual?.path === path ? manual.key : routeGroupKey);
+
+  function toggleGroup(key: string) {
+    manual = { path, key: openKey === key ? null : key };
+  }
+
+  /**
+   * Bring the current page into view inside the sidebar's scroll box.
+   *
+   * The box is real — an `overflow-y-auto` container of ~666px inside the fixed
+   * aside — but nothing ever scrolled it, so a deep link left it at the top
+   * while the marked row sat 1600px down. `block: 'nearest'` so an entry that
+   * is already visible does not jolt the list; instant, because this is a
+   * restore, not a gesture the reader made.
+   */
+  function revealSelf(node: HTMLElement) {
+    node.scrollIntoView({ block: 'nearest', behavior: 'instant' });
+  }
+
+  // ── Row anatomy ──────────────────────────────────────────────────
+  // One label edge for the section rows; group rows and leaves share the
+  // second edge, so the tree is two edges deep, never three — the section is
+  // the context (only one is ever open), not a level of its own.
+  const row = 'relative flex items-center gap-2 py-1.5 pr-2 text-sm transition-colors';
+  const sectionRow = `${row} pl-4`;
+  const groupRow = `${row} w-full pl-4 text-left cursor-pointer`;
+  const leafRow = `${row} pl-8`;
+  // The section marker mirrors the TOC's active square.
   const marker =
     "before:absolute before:left-1 before:top-1/2 before:-translate-y-1/2 before:size-1.5 before:bg-primary before:content-['']";
-  // The page the reader is ON gets a room-tinted chip; the section that
-  // CONTAINS it gets the block marker.
+  // The page the reader is ON gets a room-tinted chip.
   const chip = 'bg-surface-selected text-primary-emphasis font-medium rounded-modify';
 </script>
 
 <!--
-  Rooms sidebar — flat two-zone list:
-  - Zone 1: every top-level entry, always visible, single rows.
-  - Zone 2: the active section's content, expanded in place directly below
-    its row — group kickers (`meta-marker`) + rows, no nested indentation.
-  Active page = surface-selected chip; active section = block-cursor square
-  (mirrors the TOC marker); hover = colour shift only.
+  Rooms sidebar — one open group at a time, two edges deep.
+
+  Three questions are open at once, so the marking answers all three: the
+  square says which SECTION, the tinted group row and its rail say which GROUP,
+  the chip says which PAGE. The rail carries the depth so the indent does not
+  have to: leaves step in once, and their belonging is drawn as a line rather
+  than as a third staircase step.
 -->
 <nav class="flex flex-1 flex-col gap-0.5 overflow-y-auto p-3">
   {#each items as item (item.href ?? item.name)}
@@ -78,7 +107,7 @@
           href={resolveNav(item.href)}
           aria-current={exact ? 'page' : undefined}
           class={[
-            row,
+            sectionRow,
             'min-h-11',
             exact
               ? chip
@@ -86,6 +115,7 @@
                 ? `text-primary font-medium ${marker}`
                 : 'text-text-secondary hover:text-text-primary'
           ]}
+          {@attach exact ? revealSelf : () => {}}
         >
           {navLabel(item)}
         </a>
@@ -97,29 +127,83 @@
 
       {#if isExpanded(item, path)}
         <div class="flex flex-col gap-px pb-2">
-          {#each flattenSection(item) as entry (entry.item.href ?? entry.item.name)}
-            {#if entry.kind === 'kicker'}
-              <!-- `meta-marker` only exists under `.docs-rooms` (rooms-docs.css, unlayered —
-                   wins over the utility layer); the utilities carry the library skin, same
-                   pairing as PrevNextNav's kicker and TableOfContents' title slot. -->
-              <div class="mt-3 mb-0.5 pl-4">
+          {#each item.children ?? [] as child (child.href ?? child.name)}
+            {#if child.group}
+              {@const key = groupKey(item, child)}
+              {@const open = openKey === key}
+              {@const holdsPage =
+                child.children?.some((leaf) => isActive(leaf.href, path)) ?? false}
+              <button
+                type="button"
+                aria-expanded={open}
+                onclick={() => toggleGroup(key)}
+                class={[
+                  groupRow,
+                  'min-h-9',
+                  holdsPage
+                    ? 'text-primary font-medium'
+                    : 'text-text-secondary hover:text-text-primary'
+                ]}
+              >
                 <span
-                  class="meta-marker text-text-tertiary text-xs font-medium tracking-wider uppercase"
-                  >{navLabel(entry.item)}</span
+                  class={[
+                    'text-text-quaternary w-2 shrink-0 text-[0.6rem] transition-transform',
+                    open && 'rotate-90'
+                  ]}
+                  aria-hidden="true">▶</span
                 >
-              </div>
-            {:else}
-              {@const leafActive = isActive(entry.href, path)}
+                {navLabel(child)}
+                <span class="font-meta text-text-quaternary ml-auto text-2xs"
+                  >{child.children?.length ?? 0}</span
+                >
+              </button>
+
+              {#if open}
+                <!-- The rail: it runs beside the open group and stops where the
+                     group stops, so belonging is visible without a second
+                     indent. Tinted while this group holds the current page,
+                     quiet when the reader opened a different one. -->
+                <div
+                  class={[
+                    'ml-[1.35rem] flex flex-col gap-px border-l pl-0',
+                    holdsPage ? 'border-primary' : 'border-border-default'
+                  ]}
+                >
+                  {#each child.children ?? [] as leaf (leaf.href ?? leaf.name)}
+                    {#if leaf.href}
+                      {@const leafActive = isActive(leaf.href, path)}
+                      <a
+                        href={resolveNav(leaf.href)}
+                        aria-current={leafActive ? 'page' : undefined}
+                        class={[
+                          row,
+                          'min-h-9 pl-3',
+                          leafActive ? chip : 'text-text-tertiary hover:text-text-primary'
+                        ]}
+                        {@attach leafActive ? revealSelf : () => {}}
+                      >
+                        {navLabel(leaf)}
+                      </a>
+                    {/if}
+                  {/each}
+                </div>
+              {/if}
+            {:else if child.href}
+              <!-- A section can hold plain links next to its groups (Table's
+                   feature pages, Auth's reference). They sit on the group edge,
+                   because that is what they are — siblings of the groups. -->
+              {@const leafActive = isActive(child.href, path)}
               <a
-                href={resolveNav(entry.href)}
+                href={resolveNav(child.href)}
                 aria-current={leafActive ? 'page' : undefined}
                 class={[
-                  row,
+                  leafRow,
                   'min-h-9',
                   leafActive ? chip : 'text-text-tertiary hover:text-text-primary'
                 ]}
+                {@attach leafActive ? revealSelf : () => {}}
               >
-                {navLabel(entry.item)}
+                {navLabel(child)}
               </a>
             {/if}
           {/each}
