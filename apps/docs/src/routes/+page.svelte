@@ -1,1008 +1,1056 @@
 <!--
-  Landing page — "Color Rooms" (ported from the Claude Design project
-  "Direction 3c — Color Rooms v2"). A fixed Mid-Century poster whose accent
-  palette is swapped at runtime by a "channel" switcher. Each product tile is a
-  saturated colour field holding a neutral card of REAL @urbicon-ui components;
-  the room's field colour is scoped as their `--color-primary` family, so
-  switching the channel repaints the whole building — including the live
-  switches, date pickers and table rows — through the token system, not a
-  mockup. See lib/style/rooms.css for the scoping contract.
-
-  The landing brings its own chrome (it is exempt from the SidebarLayout in
-  +layout.svelte); the skip-link and ⌘K stay global.
+  Die Landing — "3-Zeilen-Journey": erinnern → staunen → erforschen → handeln.
+  Zeile 1: Namens-Kachel + Scroller mit fünf Kanal-Kacheln (Cusp-Palette,
+  light-dark()-Paare); die Kacheln 01–04 teilen das Salon-Universum
+  "Bleecker & Bond" ($lib/salon-tools). Jede Kachel scopet die primary-Familie
+  auf ihren Kanal (`.room-accent` aus rooms.css) — die lebenden Komponenten
+  tragen die Livery ihrer Kachel. Zeile 2: das Hero-Inventar — Build-time-Daten
+  aus $lib/server/landing, dieselben geteilten Playgrounds wie die Doku-Seiten,
+  Familien-Kanal der Auswahl als Farb-Echo. Zeile 3: Getting started in drei
+  fugenlosen Schritten, Schritt 3 (Agents-Grün) übergibt an den Agenten.
+  Alle Farben aus dem generierten Register ($lib/landing/channels).
+  Konzept: docs/internal/LANDING-CONCEPT-2026-07.md → "Struktur v2".
 -->
-<!-- urbicon-ignore magic-dimension important-modifier inline-style touch-target-small — deliberate poster scope: fixed 30px swatch grids, ink-on-cream chips and hand-tuned section paint are the landing's identity, not drift -->
+<!-- urbicon-ignore magic-dimension inline-style — deliberate landing scope: the
+     solid-colour channel pairs and hand-tuned row heights ARE the design; they
+     move into the token system if a second consumer appears -->
 <script lang="ts">
   import SeoMeta from '$lib/SeoMeta.svelte';
-  import { asset, resolve } from '$app/paths';
-  import { REPO_URL } from '$lib/seo';
-  import { onMount } from 'svelte';
+  import { type Channel, CHANNELS, channelForFamily, TILE_CHANNEL } from '$lib/landing/channels';
+  import HeroSpecimen from '$lib/landing/HeroSpecimen.svelte';
+  import { formatKb, type HeroRow, SHARED_PREVIEW_NOTES } from '$lib/landing/hero';
+  import AgentReplay from '$lib/landing/AgentReplay.svelte';
+  import LiveryTile from '$lib/salon/LiveryTile.svelte';
   import {
-    Avatar,
+    AreaChart,
     Badge,
-    Button,
-    CheckIcon,
-    Combobox,
-    CopyIcon,
-    CurrencyInput,
-    DateRangePicker,
-    LocaleSwitcher,
-    NumberInput,
-    PasskeyIcon,
+    type CartesianDatum,
+    type ChartSeries,
+    CompositionBar,
+    type CompositionItem,
+    Input,
+    Scroller,
     SegmentGroup,
     SegmentItem,
-    Sparkline,
-    Spinner
+    Toggle
   } from '@urbicon-ui/blocks';
+  import { I18nProvider } from '@urbicon-ui/i18n';
+  import { useUrlParam } from '@urbicon-ui/sveltekit-utils/url.svelte';
   import { Table } from '@urbicon-ui/table';
+  import type { Component } from 'svelte';
   import type { PageData } from './$types';
+  // Nur für `.room-accent` (primary-Familie aus --room-accent/--room-accent-fg
+  // abgeleitet) — der Rest der Rooms-Klassen bleibt ungenutzt.
   import '$lib/style/rooms.css';
 
-  // Build-time counts (catalog + icon registry, see +page.server.ts) — the
-  // poster's numbers are derived, never hand-maintained.
   let { data }: { data: PageData } = $props();
-  const counts = $derived(data.counts);
 
-  // ── Palette channels ──────────────────────────────────────────────
-  // Three Mid-Century palettes; each has four "fields" (a saturated bg + an
-  // ink/cream fg picked for contrast). Switching the channel repaints the page.
-  const INK = '#17150f';
-  const CREAM = '#f6f3ec';
-
-  type ChannelKey = 'gallery' | 'terrazza' | 'motel';
-  type Field = { bg: string; fg: string };
-  interface Channel {
-    label: string;
-    fields: [Field, Field, Field, Field];
-    bright: string;
+  // Alle Kanal-Farben kommen aus dem generierten Register (channels.ts,
+  // Cusp-Formel + gemessene on-Farben) — hier wird nur noch referenziert.
+  // Die Zahlen in den Zeilen kommen build-time aus den Katalogen (loader).
+  interface TileDef {
+    key: string;
+    no: string;
+    title: string;
+    line: string;
+    channel: Channel;
+    /** Optionale Tür aus der Kachel heraus (z. B. das volle Salon-Exponat). */
+    href?: string;
+    linkLabel?: string;
   }
-
-  const CHANNELS: Record<ChannelKey, Channel> = {
-    gallery: {
-      label: "Gallery '52",
-      fields: [
-        { bg: '#e8500f', fg: INK },
-        { bg: '#00845c', fg: CREAM },
-        { bg: '#e3a31c', fg: INK },
-        { bg: '#7c1f2d', fg: CREAM }
-      ],
-      bright: '#ff8a50'
+  const TILES: TileDef[] = $derived([
+    {
+      key: 'blocks',
+      no: '01',
+      title: 'Blocks',
+      line: `${data.counts.primitives} primitives, one grip`,
+      channel: CHANNELS[TILE_CHANNEL.blocks]
     },
-    terrazza: {
-      label: "Terrazza '58",
-      fields: [
-        { bg: '#7c7e4a', fg: CREAM },
-        { bg: '#d2a017', fg: INK },
-        { bg: '#6e2b33', fg: CREAM },
-        { bg: '#b4653f', fg: CREAM }
-      ],
-      bright: '#c9cc7e'
+    {
+      key: 'table',
+      no: '02',
+      title: 'Table',
+      line: 'An enterprise grid, zero deps',
+      channel: CHANNELS[TILE_CHANNEL.table]
     },
-    motel: {
-      label: "Motel '64",
-      fields: [
-        { bg: '#e45a12', fg: INK },
-        { bg: '#1f9e96', fg: INK },
-        { bg: '#6b4423', fg: CREAM },
-        { bg: '#e0b040', fg: INK }
-      ],
-      bright: '#ff9550'
+    {
+      key: 'a2ui',
+      no: '03',
+      title: 'A2UI',
+      line: 'UI inside the chat, themed',
+      channel: CHANNELS[TILE_CHANNEL.a2ui],
+      href: '/salon',
+      linkLabel: 'Visit the salon'
+    },
+    {
+      key: 'agent',
+      no: '04',
+      title: 'Agents',
+      line: 'It builds — the gate watches',
+      channel: CHANNELS[TILE_CHANNEL.agents]
+    },
+    {
+      key: 'more',
+      no: '05',
+      title: '…and more',
+      line: 'The rest of the set, one row down',
+      channel: CHANNELS[TILE_CHANNEL.more]
     }
-  };
-  const CHANNEL_ORDER: ChannelKey[] = ['gallery', 'terrazza', 'motel'];
-
-  let channel = $state<ChannelKey>('gallery');
-  const active = $derived(CHANNELS[channel]);
-  const fields = $derived(active.fields);
-
-  // Room → field mapping (from the mockup). Hero + AI share f[0]; Table + install
-  // share f[2]. Each room repaints with a staggered delay for the room-by-room
-  // "repaint the building" effect. `id` doubles as the hero index-panel anchor.
-  const hero = $derived(fields[0]);
-  const rooms = $derived([
-    { key: 'blocks', id: 'blocks', field: fields[1], delay: '0.04s' },
-    { key: 'table', id: 'table', field: fields[2], delay: '0.08s' },
-    { key: 'auth', id: 'auth', field: fields[3], delay: '0.12s' },
-    { key: 'ai', id: 'machines', field: fields[0], delay: '0.16s' }
-  ] as const);
-  const install = $derived(fields[2]);
-
-  // Hero index panel — the inverted "what's in the set" register. One row per
-  // room, anchored to the tiles below.
-  const PANEL_ITEMS = $derived([
-    { href: '#blocks', name: 'Blocks', sub: `${counts.blocks} components, one grammar` },
-    { href: '#table', name: 'Table', sub: 'live remote mode' },
-    { href: '#auth', name: 'Auth', sub: 'passkeys, Web Crypto only' },
-    { href: '#machines', name: 'For machines', sub: 'your agent gets reviewed' }
-  ] as const);
-
-  // ── Blocks specimen: the studio plans its offsite ─────────────────
-  // A relatable composition instead of a settings form: SegmentGroup swaps the
-  // destination list AND the fare curve, so every control visibly talks to the
-  // others — not a static screenshot.
-  let uiLocale = $state<'en' | 'de'>('en');
-  const dpLocale = $derived(uiLocale === 'de' ? 'de-DE' : 'en-US');
-
-  type Vibe = 'city' | 'coast' | 'alps';
-  const DESTINATIONS: Record<Vibe, { label: string; value: string }[]> = {
-    city: [
-      { label: 'Copenhagen', value: 'cph' },
-      { label: 'Kraków', value: 'krk' },
-      { label: 'Porto', value: 'opo' },
-      { label: 'Vienna', value: 'vie' }
-    ],
-    coast: [
-      { label: 'Lisbon', value: 'lis' },
-      { label: 'Palermo', value: 'pmo' },
-      { label: 'Split', value: 'spu' },
-      { label: 'Biarritz', value: 'biq' }
-    ],
-    alps: [
-      { label: 'Innsbruck', value: 'ibk' },
-      { label: 'Chamonix', value: 'cmx' },
-      { label: 'Bolzano', value: 'bzo' },
-      { label: 'Kranjska Gora', value: 'kgo' }
-    ]
-  };
-  // Deterministic 12-week fare curves per vibe (no Math.random — SSR and
-  // client must agree).
-  const FARES: Record<Vibe, number[]> = {
-    city: [172, 168, 171, 160, 156, 149, 151, 144, 138, 141, 133, 129],
-    coast: [148, 152, 143, 139, 141, 132, 128, 131, 122, 118, 114, 109],
-    alps: [196, 189, 192, 181, 176, 179, 168, 161, 158, 152, 149, 143]
-  };
-  let vibe = $state('coast');
-  let destination = $state<string | null>('lis');
-  // Fixed literals — deterministic across SSR/hydration (no `new Date()` drift).
-  let range = $state({
-    start: new Date('2027-05-03T00:00:00'),
-    end: new Date('2027-05-07T00:00:00')
-  });
-  let budget = $state<number | null>(128000); // minor units: €1,280.00
-  let team = $state<number | null>(12);
-  const vibeKey = $derived((vibe in DESTINATIONS ? vibe : 'coast') as Vibe);
-  const fares = $derived(FARES[vibeKey]);
-  const destinationLabel = $derived(
-    DESTINATIONS[vibeKey].find((d) => d.value === destination)?.label ?? 'anywhere'
-  );
-  function onVibeChange(next: string) {
-    destination = DESTINATIONS[(next in DESTINATIONS ? next : 'coast') as Vibe][0].value;
-  }
-
-  function persistLocale(locale: string) {
-    uiLocale = locale === 'de' ? 'de' : 'en';
-    try {
-      localStorage.setItem('urbicon-locale', locale);
-    } catch {
-      /* SSR / private mode — non-fatal */
-    }
-  }
-
-  // ── Table specimen: today's departures, fully interactive ─────────
-  // The wow is feature richness you can SEE and touch: the SmartFilterBar
-  // (on by default), header menus (sort/group/hide), live status churn.
-  // Deliberately NOT virtualized: grouping silently disables virtualization
-  // and the two-table virtual layout drifts column widths — both logged in
-  // docs/technical-debt.md (2026-07-11).
-  interface Departure {
-    id: string;
-    flight: string;
-    to: string;
-    departs: string;
-    status: 'boarding' | 'on time' | 'departed';
-  }
-  const AIRLINES = ['UB', 'NX', 'TZ', 'GL', 'MO'];
-  const DEST_CITIES = [
-    'Lisbon',
-    'Copenhagen',
-    'Palermo',
-    'Reykjavík',
-    'Kraków',
-    'Porto',
-    'Vienna',
-    'Athens',
-    'Split',
-    'Biarritz',
-    'Tromsø',
-    'Valletta'
-  ];
-  // Today's board, 06:00–23:55 in 5-minute slots (216 rows) — enough for the
-  // pager to show scale while grouping by city stays legible. Generated
-  // deterministically (no Math.random: SSR and client must agree), pre-sorted
-  // by slot (the table has no initial-sort API yet — see
-  // docs/technical-debt.md). "06:35" sorts lexicographically.
-  const DEPARTURES: Departure[] = Array.from({ length: 216 }, (_, i) => {
-    const hh = String(6 + Math.floor(i / 12)).padStart(2, '0');
-    const mm = String((i % 12) * 5).padStart(2, '0');
-    return {
-      id: `dep-${i}`,
-      flight: `${AIRLINES[i % AIRLINES.length]} ${100 + ((i * 37) % 900)}`,
-      to: DEST_CITIES[(i * 7) % DEST_CITIES.length],
-      departs: `${hh}:${mm}`,
-      status: 'on time' as const
-    };
-  });
-  const DEPARTURE_COUNT = DEPARTURES.length.toLocaleString('en-US');
-  // One row preselected so the selected state shows the room accent on load.
-  // Controlled selection is the table's only preselection path, so row clicks
-  // must be synced back via onSelectionChange — a static array would freeze
-  // the selection (the provider re-asserts the prop over internal clicks).
-  let tableSelected = $state<Array<string | number>>(['dep-2']);
-  // Columns live in the template (inline on <Table>) because the status
-  // column renders through the `statusCell` snippet, which only exists there.
-  // Deterministic status churn (no Math.random — no SSR/hydration mismatch).
-  let tick = $state(0);
-  const statusFor = (i: number): Departure['status'] => {
-    const phase = (i * 11 + tick * 3) % 29;
-    return phase < 5 ? 'boarding' : phase < 8 ? 'departed' : 'on time';
-  };
-  const departures = $derived(DEPARTURES.map((d, i) => ({ ...d, status: statusFor(i) })));
-
-  // ── Auth specimen: a real passkey sign-in flow ────────────────────
-  let authState = $state<'idle' | 'pending' | 'ok'>('idle');
-  let authTimers: ReturnType<typeof setTimeout>[] = [];
-  function doAuth() {
-    authTimers.forEach(clearTimeout);
-    authState = 'pending';
-    authTimers = [
-      setTimeout(() => (authState = 'ok'), 900),
-      setTimeout(() => (authState = 'idle'), 3400)
-    ];
-  }
-
-  // ── "View source" flip ────────────────────────────────────────────
-  // Each specimen card can flip to the handful of Svelte lines that render
-  // it — result, code and theming in one screen. The excerpts are honest
-  // abridgements of this very file (state wiring elided, no invented API).
-  let sourceShown = $state({ blocks: false, table: false, auth: false });
-  type SpecimenKey = keyof typeof sourceShown;
-  const SPECIMEN_SOURCE: Record<SpecimenKey, string> = {
-    blocks: `<SegmentGroup bind:value={vibe} size="sm">
-  <SegmentItem value="city">City</SegmentItem>
-  <SegmentItem value="coast">Coast</SegmentItem>
-  <SegmentItem value="alps">Alps</SegmentItem>
-</SegmentGroup>
-
-<Combobox label="Destination" options={destinations[vibe]}
-  bind:value={destination} size="sm" />
-<DateRangePicker label="Dates" bind:value={range} size="sm" />
-<CurrencyInput label="Budget / person" currency="EUR"
-  bind:value={budget} size="sm" />
-<NumberInput label="Team" bind:value={team} min={1} size="sm" />
-
-<Sparkline data={fares[vibe]} area showEndPoint />`,
-    table: `<!-- filter bar, header menus, grouping: on by default -->
-<Table
-  items={departures}
-  columns={[
-    { accessor: 'flight', title: 'Flight', sortable: true },
-    { accessor: 'to', title: 'To', sortable: true },
-    { accessor: 'departs', title: 'Departs', sortable: true },
-    { accessor: 'status', title: 'Status', cell: statusCell }
-  ]}
-  selectionMode="single"
-  selectedIds={selected}
-  itemsPerPage={6}
-/>`,
-    auth: `<Avatar name="Nora Ackermann" size="sm" />
-
-<Button intent="primary" class="w-full" onclick={signIn}>
-  {#if authState === 'ok'}
-    <CheckIcon /> nora@atelier.de
-  {:else if authState === 'pending'}
-    <Spinner size="sm" /> Verifying…
-  {:else}
-    <PasskeyIcon /> Continue with passkey
-  {/if}
-</Button>
-
-<Badge intent="neutral" variant="outlined">
-  WebAuthn
-</Badge>`
-  };
-
-  // ── Feature ticker: the "also in the box" register ────────────────
-  // Counts ride the build (see +page.server.ts); everything else is a claim
-  // the docs actually back. Rendered twice for the seamless marquee loop.
-  const TICKER_ITEMS = $derived([
-    `${counts.set} components`,
-    `${counts.icons} original icons`,
-    'Svelte 5 + Tailwind 4',
-    'zero runtime dependencies',
-    'i18n with usage audit',
-    'virtualized table',
-    'passkeys + web push',
-    'command palette',
-    'charts · calendar · planner',
-    'dark mode = one token',
-    'MIT'
   ]);
 
-  // ── Install specimen: copy-to-clipboard ───────────────────────────
-  const INSTALL_COMMAND = 'bun add @urbicon-ui/blocks';
-  let copied = $state(false);
-  let copyTimer: ReturnType<typeof setTimeout> | undefined;
-  async function copyInstall() {
-    try {
-      await navigator.clipboard.writeText(INSTALL_COMMAND);
-      copied = true;
-      clearTimeout(copyTimer);
-      copyTimer = setTimeout(() => (copied = false), 2000);
-    } catch (err) {
-      console.warn('Clipboard unavailable:', err);
+  // ── Die Kacheln 01–04 teilen sich EIN fiktives Universum: der Salon
+  //    „Bleecker & Bond" (siehe $lib/salon-tools — dieselben Services,
+  //    Stylists und Slot-Zeiten wie das Livery-Exponat und die Vollseite).
+  //    Entscheidung 2026-07-30: kohärente Fiktion statt strenger
+  //    Selbstreferenz; die Beweiszahlen und Zeile 2 bleiben selbstreferenziell.
+
+  // ── 01 Blocks: das Salon-Backoffice als Dashboard-Collage ──────────
+  let range = $state('week');
+  let walkIns = $state(true);
+  const WEEK_BOOKINGS: CartesianDatum[] = [
+    { label: 'Tue', values: [9, 3] },
+    { label: 'Wed', values: [11, 4] },
+    { label: 'Thu', values: [8, 6] },
+    { label: 'Fri', values: [13, 5] },
+    { label: 'Sat', values: [15, 2] }
+  ];
+  const MONTH_BOOKINGS: CartesianDatum[] = [
+    { label: 'W1', values: [42, 15] },
+    { label: 'W2', values: [48, 18] },
+    { label: 'W3', values: [39, 21] },
+    { label: 'W4', values: [55, 17] }
+  ];
+  const BOOKING_SERIES: ChartSeries[] = [{ label: 'Booked' }, { label: 'Walk-in' }];
+  const bookingsData = $derived(range === 'week' ? WEEK_BOOKINGS : MONTH_BOOKINGS);
+  const REVENUE_MIX: CompositionItem[] = [
+    { label: 'Bleecker Cut', value: 52, intent: 'primary' },
+    { label: 'Dry Cut', value: 24, intent: 'success' },
+    { label: 'Beard', value: 17, intent: 'warning' },
+    { label: 'Colour', value: 7, intent: 'neutral' }
+  ];
+
+  // ── 02 Table: die Buchungsliste des Salons ─────────────────────────
+  // Zeiten aus dem SLOT_GRID, Services/Stylists/Preise aus salon-tools.
+  interface Booking {
+    id: string;
+    day: 'Today' | 'Tomorrow';
+    time: string;
+    client: string;
+    service: string;
+    stylist: string;
+    status: 'confirmed' | 'pending' | 'walk-in';
+    price: string;
+  }
+  const BOOKINGS: Booking[] = [
+    {
+      id: 'b1',
+      day: 'Today',
+      time: '09:45',
+      client: 'M. Okafor',
+      service: 'The Bleecker Cut',
+      stylist: 'Io',
+      status: 'confirmed',
+      price: '$95'
+    },
+    {
+      id: 'b2',
+      day: 'Today',
+      time: '10:30',
+      client: 'J. Laurent',
+      service: 'Beard Architecture',
+      stylist: 'Sable',
+      status: 'confirmed',
+      price: '$55'
+    },
+    {
+      id: 'b3',
+      day: 'Today',
+      time: '13:00',
+      client: 'A. Reyes',
+      service: 'Dry Cut & Finish',
+      stylist: 'Ren',
+      status: 'walk-in',
+      price: '$70'
+    },
+    {
+      id: 'b4',
+      day: 'Today',
+      time: '15:15',
+      client: 'T. Nguyen',
+      service: 'Colour Consultation',
+      stylist: 'Io',
+      status: 'pending',
+      price: '$0'
+    },
+    {
+      id: 'b5',
+      day: 'Tomorrow',
+      time: '09:00',
+      client: 'S. Adeyemi',
+      service: 'The Bleecker Cut',
+      stylist: 'Sable',
+      status: 'confirmed',
+      price: '$95'
+    },
+    {
+      id: 'b6',
+      day: 'Tomorrow',
+      time: '11:15',
+      client: 'R. Duval',
+      service: 'Beard Architecture',
+      stylist: 'Ren',
+      status: 'pending',
+      price: '$55'
+    },
+    {
+      id: 'b7',
+      day: 'Tomorrow',
+      time: '13:45',
+      client: 'K. Marsh',
+      service: 'Dry Cut & Finish',
+      stylist: 'Io',
+      status: 'confirmed',
+      price: '$70'
+    },
+    {
+      id: 'b8',
+      day: 'Tomorrow',
+      time: '16:00',
+      client: 'E. Sato',
+      service: 'The Bleecker Cut',
+      stylist: 'Ren',
+      status: 'confirmed',
+      price: '$95'
+    }
+  ];
+
+  // ── 03 A2UI: das Salon-Exponat (LiveryTile) — echtes aufgezeichnetes
+  //    Modell-Output im Replay, vier Liveries, ein Klick zur Vollseite. ─
+
+  // ── 05 Treppe: die restlichen Register — jede Stufe ist eine Tür ───
+  const STEPS = $derived([
+    { label: `${data.counts.composed} composites`, href: '/blocks' },
+    { label: `${data.counts.icons} icons`, href: '/icons' },
+    { label: 'guide', href: '/blocks/components/guide' },
+    { label: 'sankey', href: '/blocks/components/sankey' },
+    { label: 'toast', href: '/blocks/primitives/toast' },
+    { label: 'chat', href: '/blocks/components/chat' },
+    { label: 'auth', href: '/auth' },
+    { label: 'i18n · EN & DE', href: '/i18n' },
+    { label: 'theming', href: '/customization' },
+    { label: 'recipes', href: '/recipes' }
+  ]);
+
+  // Die Beweiszeile: build-time gezählt (loader), "0 dependencies" ist
+  // Konstruktionseigenschaft, keine Messung.
+  const PROOF = $derived(
+    `${data.counts.set} components · 0 dependencies · ${data.counts.icons} icons`
+  );
+
+  // ── Zeile 2: das Hero-Inventar als niedrigere Zeile ────────────────
+  // Mechanik 1:1 aus test-fixtures/landing-hero: die Vorschau ist der gepflegte
+  // Playground der Doku-Seite (zwei Konsumenten, eine Wahrheit), lazy geladen.
+  const MODULES = import.meta.glob([
+    '/src/routes/blocks/**/Playground.svelte',
+    '/src/routes/table/**/Playground.svelte',
+    '/src/routes/auth/**/Playground.svelte',
+    '/src/routes/auth/**/examples/BasicDemo.svelte',
+    '/src/routes/auth/**/examples/Basic.svelte'
+  ]) as Record<string, () => Promise<{ default: Component }>>;
+
+  function keyOf(path: string): string {
+    const segments = path.split('/');
+    const slug = segments[segments.indexOf('examples') - 1] ?? segments[segments.length - 2];
+    return `${segments[3]}:${slug}`;
+  }
+
+  interface Specimen {
+    load: () => Promise<{ default: Component }>;
+    interactive: boolean;
+    docsHref: string;
+    rank: number;
+  }
+
+  function docsHrefOf(path: string): string {
+    const route = path.replace('/src/routes', '').replace(/\/(examples\/)?[^/]+\.svelte$/, '');
+    return route.startsWith('/blocks/components/guide-') ? '/blocks/components/guide' : route;
+  }
+
+  function rankOf(path: string): number {
+    if (path.endsWith('/Playground.svelte')) return 0;
+    if (path.endsWith('/BasicDemo.svelte')) return 1;
+    return 2;
+  }
+
+  const SPECIMENS: Partial<Record<string, Specimen>> = {};
+  for (const [path, load] of Object.entries(MODULES)) {
+    const key = keyOf(path);
+    const rank = rankOf(path);
+    const current = SPECIMENS[key];
+    if (!current || rank < current.rank) {
+      SPECIMENS[key] = { load, interactive: rank === 0, docsHref: docsHrefOf(path), rank };
     }
   }
 
-  // Entrance + live-latency timer.
-  let ready = $state(false);
-  onMount(() => {
-    const raf = setTimeout(() => (ready = true), 60);
-    const iv = setInterval(() => (tick += 1), 2400);
-    return () => {
-      clearTimeout(raf);
-      clearInterval(iv);
-      authTimers.forEach(clearTimeout);
-      clearTimeout(copyTimer);
-    };
+  let query = $state('');
+
+  // Auswahl in der URL (teilbar, überlebt den Zurück-Knopf) — wie im Hero.
+  const [selectedSlug, setSelectedSlug] = useUrlParam<string | null>('c', {
+    parse: (sp) => sp.get('c'),
+    serialize: (value) => new URLSearchParams(value ? { c: value } : {}),
+    initial: null,
+    replaceState: false
   });
 
-  const footerYear = 2026;
+  const selected = $derived<HeroRow>(
+    data.rows.find((r) => r.slug === selectedSlug()) ??
+      data.rows.find((r) => r.name === 'Sankey') ??
+      data.rows[0]
+  );
+
+  const specimen = $derived(SPECIMENS[`${selected.pkg}:${selected.slug}`]);
+  const sharedNote = $derived(SHARED_PREVIEW_NOTES[selected.slug]);
+
+  // Zeile 2 bleibt federleicht, erbt aber den Familien-Kanal der gewählten
+  // Komponente (Ebene 2 des Registers). EINE Farbsemantik über beide Zeilen;
+  // getragen nur von Selektion, Pfeil und den lebenden Playgrounds
+  // (room-accent), nicht von Flächen.
+  const selectedChannel = $derived(channelForFamily(selected.family));
+
+  // Slot-Eingriffe des Hero, unverändert: äußere Rahmung des Configurators
+  // abräumen, linke Kante angleichen, eigener Grund unter der Bühne.
+  const PLAYGROUND_SLOTS = {
+    root: '!border-0 !bg-transparent !p-0 !shadow-none !gap-0',
+    preview: '!bg-surface-elevated !rounded-t-xl !px-5 !py-6',
+    previewContent: '!justify-start',
+    controlsPanel: '!bg-transparent !px-5 !pb-5 !pt-0',
+    controlsHeader: '!mx-0 !px-0',
+    controlsGrid: '!mx-0 !px-0',
+    codePanel: '!bg-transparent !px-0',
+    codeToolbar: '!px-0'
+  };
 </script>
 
 <SeoMeta />
 
-{#snippet statusCell(_item: Departure, value: unknown)}
-  <!-- Palette-true status: `primary` rides the room accent, `neutral` stays
-       warm grey — no foreign intent hues inside a room (same rule as the
-       chart tokens in rooms.css). -->
-  <Badge
-    intent={value === 'boarding' ? 'primary' : 'neutral'}
-    variant={value === 'on time' ? 'outlined' : 'soft'}
-    class="font-mono text-3xs whitespace-nowrap">{String(value)}</Badge
-  >
-{/snippet}
-
-<!-- Source flip — the ink chip on each specimen card's corner and the dark
-     code pane it toggles to. Result, code and theming share one screen. -->
-{#snippet sourceFlip(key: SpecimenKey)}
-  <button
-    type="button"
-    class="absolute -top-3 -right-3 flex h-7 items-center border px-2 font-mono text-2xs font-bold transition-opacity hover:opacity-85 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-current"
-    style="background: {INK}; color: {CREAM}; border-color: rgb(246 243 236 / 0.25)"
-    aria-pressed={sourceShown[key]}
-    aria-label={sourceShown[key] ? 'Show the rendered result' : 'Show the source code'}
-    onclick={() => (sourceShown[key] = !sourceShown[key])}
-  >
-    {sourceShown[key] ? 'UI' : '</>'}
-  </button>
-{/snippet}
-
-{#snippet sourcePane(code: string)}
-  <div class="poster-term p-5 font-mono text-[12px] leading-[1.75]">
-    <p class="mb-3 opacity-55"># this card, verbatim</p>
-    <pre class="overflow-x-auto whitespace-pre">{code}</pre>
-  </div>
-{/snippet}
-
-<!-- Palette channel switcher — reused in the hero (compact) and the repaint
-     section (with labels). Real control: repaints the whole page. -->
-{#snippet paletteSwitcher(withLabel: boolean, onField: boolean)}
-  <div class="flex flex-wrap gap-3">
-    {#each CHANNEL_ORDER as key (key)}
-      {@const c = CHANNELS[key]}
-      {@const isActive = key === channel}
-      <button
-        type="button"
-        onclick={() => (channel = key)}
-        aria-pressed={isActive}
-        title={c.label}
-        class={[
-          'flex flex-col gap-2 p-2 transition-opacity',
-          withLabel ? 'items-start' : 'items-center',
-          !isActive && 'opacity-80 hover:opacity-100'
-        ]}
-        style="border: {isActive
-          ? '2px solid currentColor'
-          : onField
-            ? '1px solid color-mix(in srgb, currentColor 32%, transparent)'
-            : '1px solid rgb(246 243 236 / 0.3)'}"
-      >
-        <span class="flex" aria-hidden="true">
-          {#each c.fields as field (field.bg)}
-            <span
-              class={withLabel ? 'h-[30px] w-[30px]' : 'h-4 w-4'}
-              style="background: {field.bg}; transition: background 0.5s ease"
-            ></span>
-          {/each}
-        </span>
-        {#if withLabel}
-          <span class="text-[13.5px] font-medium">{c.label}</span>
-        {/if}
-      </button>
-    {/each}
-  </div>
-{/snippet}
-
-<div class="rooms-landing min-h-screen">
-  <main id="main-content">
-    <!-- ─────────────────────────── Hero ─────────────────────────── -->
-    <section
-      class="rooms-field flex min-h-[70svh] flex-col justify-between px-[var(--rooms-gutter)] pt-7 pb-10 lg:min-h-[72vh]"
-      style="background: {hero.bg}; color: {hero.fg}"
-    >
-      <div class="flex items-center justify-between gap-4">
-        <span class="text-[17px] font-bold tracking-[-0.01em]">Urbicon UI</span>
-        <nav
-          aria-label="Landing"
-          class="flex items-center gap-5 text-[14.5px] font-medium sm:gap-8"
-        >
-          <a href={resolve('/blocks')} class="transition-opacity hover:opacity-70">Docs</a>
-          <a href="#set" class="hidden transition-opacity hover:opacity-70 sm:inline">The set</a>
-          <a href="#repaint" class="hidden transition-opacity hover:opacity-70 sm:inline">Palette</a
-          >
-          <a href="#machines" class="hidden transition-opacity hover:opacity-70 sm:inline"
-            >For machines</a
-          >
-          <a
-            href={REPO_URL}
-            target="_blank"
-            rel="noopener"
-            class="transition-opacity hover:opacity-70">Codeberg ↗</a
-          >
-        </nav>
-      </div>
-
-      <div
-        class="flex flex-1 flex-col justify-center gap-12 py-10 lg:flex-row lg:items-center lg:justify-between lg:gap-16"
-      >
-        <div
-          class={[
-            'max-w-[600px] transition-[transform,opacity] duration-700',
-            ready ? 'translate-y-0 opacity-100' : 'translate-y-3 opacity-0'
-          ]}
-        >
-          <!-- The eyebrow names the what + the stack; the H1 keeps the claim
-               deadpan (no "0 dependencies" here — that would tell the joke
-               before the punchline). -->
-          <p class="font-mono text-2xs tracking-[0.14em] text-balance uppercase opacity-70">
-            The component set for Svelte 5 + Tailwind 4
-          </p>
-          <h1 class="mt-4 text-[clamp(2.75rem,6.5vw,5.25rem)]">Depends on nothing.</h1>
-        </div>
-
-        <!-- Inverted index panel — answers "what's in it?" without a scroll.
-             The arrows carry the hero field colour, so the panel repaints with
-             the channel like everything else. -->
-        <nav
-          aria-label="The set"
-          class={[
-            'w-full max-w-[440px] shrink-0 p-6 transition-[transform,opacity] delay-100 duration-700 sm:p-7',
-            ready ? 'translate-y-0 opacity-100' : 'translate-y-3 opacity-0'
-          ]}
-          style="background: {INK}; color: {CREAM}"
-        >
-          <p class="font-mono text-2xs tracking-[0.14em] uppercase opacity-60">The set</p>
-          <ul class="mt-1.5">
-            {#each PANEL_ITEMS as item, i (item.href)}
-              <li style={i > 0 ? 'border-top: 1px solid rgb(246 243 236 / 0.18)' : ''}>
-                <a
-                  href={item.href}
-                  class="group flex items-baseline gap-4 py-3.5 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-current"
-                >
-                  <span class="text-[clamp(1.1rem,1.5vw,1.35rem)] font-semibold tracking-[-0.01em]"
-                    >{item.name}</span
-                  >
-                  <span class="flex-1 text-right text-[12.5px] opacity-65">{item.sub}</span>
-                  <span
-                    aria-hidden="true"
-                    class="font-bold group-hover:translate-x-1"
-                    style="color: {hero.bg}; transition: color 0.5s ease, transform 0.15s ease"
-                    >→</span
-                  >
-                </a>
-              </li>
-            {/each}
-          </ul>
-        </nav>
-      </div>
-
-      <div
-        class={[
-          'flex flex-wrap items-end justify-between gap-x-10 gap-y-8 transition-[transform,opacity] delay-150 duration-700',
-          ready ? 'translate-y-0 opacity-100' : 'translate-y-3 opacity-0'
-        ]}
-      >
+<!-- Englisch gepinnt wie im Hero: sonst rutschen Playground-Labels und
+     Calendar-Monatsnamen in die Browser-Sprache, mitten in eine englische Seite. -->
+<I18nProvider locale="en">
+  <main class="proto" lang="en">
+    <!-- ── Zeile 1: erinnern + staunen ─────────────────────────────── -->
+    <section class="row1" aria-label="Hero">
+      <div class="name-tile">
         <div>
-          <div class="flex items-baseline gap-3">
-            <span
-              class="text-[clamp(1.75rem,4vw,2.5rem)] font-medium tracking-[-0.03em] line-through opacity-50 [text-decoration-thickness:3px]"
-              >1,000</span
+          <p class="brand">
+            urbicon{#each TILES as tile (tile.key)}<span
+                class="tick"
+                style:background={tile.channel.solid}
+              ></span>{/each}
+          </p>
+          <p class="claim">Everything in it was made in it.</p>
+        </div>
+        <p class="proof">{PROOF}</p>
+      </div>
+
+      <div class="attractions">
+        <!-- Overlay-Steuerung als slotClasses-Experiment (keine Komponentenänderung):
+           Pfeile links/rechts mittig, Dots als Chip unten mittig. Bewährt sich das,
+           wird es eine echte Achse (controlsPlacement) am Scroller. -->
+        <Scroller
+          label="Highlights"
+          itemBasis="85%"
+          snap="mandatory"
+          indicator="dots"
+          class="relative"
+          slotClasses={{
+            viewport: '!gap-0 !py-0',
+            controls: '!absolute inset-0 !pt-0 !justify-between px-4 pointer-events-none',
+            control: 'pointer-events-auto shadow-md',
+            indicator:
+              '!absolute bottom-3 left-1/2 -translate-x-1/2 pointer-events-auto rounded-full bg-surface-base/85 px-2 py-1'
+          }}
+        >
+          {#each TILES as tile (tile.key)}
+            <article
+              class="tile room-accent"
+              style:--tile-solid={tile.channel.solid}
+              style:--tile-deep={tile.channel.deep}
+              style:--tile-on={tile.channel.on}
             >
-            <span class="text-[clamp(1.75rem,4vw,2.5rem)] font-bold tracking-[-0.03em]">1</span>
-          </div>
-          <p class="mt-2 max-w-[280px] text-[12.5px] opacity-80">
-            Replace an endless supply chain with 1 package
-          </p>
-        </div>
-
-        <div>
-          {@render paletteSwitcher(false, true)}
-          <p class="mt-2 text-[12.5px] opacity-80">
-            {active.label}
-          </p>
-        </div>
-
-        <a
-          href={resolve('/getting-started')}
-          class="border-b-2 border-current pb-[3px] text-[17px] font-bold transition-opacity hover:opacity-70"
-          >Get the set →</a
-        >
-      </div>
-    </section>
-
-    <!-- ────────────────────── Product rooms ─────────────────────── -->
-    <h2 class="sr-only" id="set">The set</h2>
-    <section class="grid grid-cols-1 md:grid-cols-2">
-      {#each rooms as room, i (room.key)}
-        <div
-          class={[
-            'rooms-field flex min-h-[560px] flex-col px-[var(--rooms-gutter)] py-10',
-            // Wide screens: the outer edge keeps the growing gutter, the edge
-            // toward the grid's center falls back to the fixed poster margin.
-            i % 2 === 0 ? 'md:pr-12' : 'md:pl-12'
-          ]}
-          id={room.id}
-          style="background: {room.field.bg}; color: {room.field.fg}; --room-delay: {room.delay}"
-        >
-          {#if room.key === 'blocks'}
-            <!-- Blocks — the studio plans its offsite -->
-            <div class="flex items-baseline justify-between gap-5">
-              <h3 class="text-[clamp(2rem,4vw,2.5rem)]">Blocks</h3>
-              <span class="text-[13.5px] opacity-80"
-                >{counts.primitives} primitives + {counts.composed} composed</span
-              >
-            </div>
-            <p class="mt-2.5 max-w-[420px] text-[15.5px] leading-relaxed opacity-90">
-              Forms, overlays, navigation, charts — themable down to the slot. Flip the vibe and
-              watch every control follow.
-            </p>
-
-            <div class="my-7 flex-1">
-              <div class="relative max-w-[540px]">
-                {#if sourceShown.blocks}
-                  {@render sourcePane(SPECIMEN_SOURCE.blocks)}
-                {:else}
-                  <div
-                    class="poster-card room-accent p-5"
-                    style="--room-accent: {room.field.bg}; --room-accent-fg: {room.field.fg}"
-                  >
-                    <div class="flex flex-wrap items-center justify-between gap-3">
-                      <span class="text-[13px] font-bold text-text-primary">Offsite '27</span>
-                      <SegmentGroup
-                        bind:value={vibe}
-                        size="sm"
-                        ariaLabel="Trip vibe"
-                        onValueChange={onVibeChange}
-                      >
-                        <SegmentItem value="city">City</SegmentItem>
-                        <SegmentItem value="coast">Coast</SegmentItem>
-                        <SegmentItem value="alps">Alps</SegmentItem>
+              <span class="no">{tile.no}</span>
+              <div class="tile-body">
+                {#if tile.key === 'blocks'}
+                  <div class="card dash">
+                    <div class="dash-head">
+                      <div>
+                        <p class="dash-title">Bleecker &amp; Bond</p>
+                        <p class="dash-sub">Front desk</p>
+                      </div>
+                      <SegmentGroup bind:value={range} size="sm" ariaLabel="Range">
+                        <SegmentItem value="week">Week</SegmentItem>
+                        <SegmentItem value="month">Month</SegmentItem>
                       </SegmentGroup>
                     </div>
-
-                    <div class="mt-4 grid gap-4 sm:grid-cols-2">
-                      <Combobox
-                        label="Destination"
-                        options={DESTINATIONS[vibeKey]}
-                        bind:value={destination}
-                        size="sm"
-                        placeholder="Search…"
-                      />
-                      <DateRangePicker
-                        label="Dates"
-                        bind:value={range}
-                        locale={dpLocale}
-                        size="sm"
-                        clearable={false}
-                      />
-                      <CurrencyInput
-                        label="Budget / person"
-                        bind:value={budget}
-                        currency="EUR"
-                        locale={dpLocale}
-                        size="sm"
-                      />
-                      <NumberInput label="Team" bind:value={team} min={1} max={48} size="sm" />
-                    </div>
-
-                    <div class="mt-4">
-                      <div class="flex items-baseline justify-between gap-4">
-                        <span class="text-[12px] font-semibold text-text-secondary"
-                          >Fares to {destinationLabel}</span
-                        >
-                        <span class="font-mono text-2xs text-text-tertiary">12-week trend</span>
-                      </div>
-                      <!-- `width` is only the viewBox coordinate space: the svg slot
-                           gets CSS w-full so the curve scales to the card (the bare
-                           `class` lands on the wrapper — a fixed 460px svg would
-                           overflow the ~330px mobile card). -->
-                      <Sparkline
-                        data={fares}
-                        area
-                        showEndPoint
-                        width={460}
-                        height={44}
-                        ariaLabel="Fare trend to {destinationLabel}, 12 weeks"
-                        class="mt-1 block w-full"
-                        slotClasses={{ svg: 'w-full' }}
-                      />
-                    </div>
-
-                    <div class="mt-5 flex justify-end gap-2.5">
-                      <Button variant="outlined" size="sm">Share draft</Button>
-                      <Button intent="primary" size="sm">Book the week</Button>
+                    <AreaChart
+                      data={bookingsData}
+                      series={BOOKING_SERIES}
+                      height={150}
+                      showLegend={false}
+                      fillOpacity={0.25}
+                    />
+                    <!-- Die Werte SIND Prozente: formatValue macht sie zur
+                       Anzeige, showPercentages bliebe sonst als Doppelung
+                       daneben stehen (Legende druckt Wert immer). -->
+                    <CompositionBar
+                      items={REVENUE_MIX}
+                      size="sm"
+                      showLegend
+                      showPercentages={false}
+                      formatValue={(v) => `${v} %`}
+                      legendPlacement="bottom"
+                    />
+                    <div class="dash-foot">
+                      <Toggle bind:checked={walkIns} label="Accept walk-ins" size="sm" />
+                      <!-- soft, nicht filled: die solide Intent-Fläche trägt text-on-primary,
+                         das im .room-accent-Scope auf den Kanal umgefärbt ist
+                         (docs/technical-debt.md → „Design tokens"). -->
+                      <Badge intent="success" variant="soft">3 chairs free</Badge>
                     </div>
                   </div>
-                {/if}
-                {@render sourceFlip('blocks')}
-              </div>
-            </div>
-
-            <div class="mt-auto flex items-baseline justify-between gap-5">
-              <span class="text-[13px] opacity-75"
-                >SegmentGroup · Combobox · DateRangePicker · CurrencyInput · NumberInput · Sparkline</span
-              >
-              <a
-                href={resolve('/blocks')}
-                class="border-b-2 border-current pb-0.5 text-[15px] font-bold whitespace-nowrap transition-opacity hover:opacity-70"
-                >Browse →</a
-              >
-            </div>
-          {:else if room.key === 'table'}
-            <!-- Table — today's departures board, fully interactive -->
-            <div class="flex items-baseline justify-between gap-5">
-              <h3 class="text-[clamp(2rem,4vw,2.5rem)]">Table</h3>
-              <span class="text-[13.5px] opacity-80">Filter · group · live</span>
-            </div>
-            <p class="mt-2.5 max-w-[420px] text-[15.5px] leading-relaxed opacity-90">
-              Smart filter, header menus, grouping, selection, remote mode — try them all on today's
-              board.
-            </p>
-
-            <div class="my-7 flex-1">
-              <div class="relative max-w-[540px]">
-                {#if sourceShown.table}
-                  {@render sourcePane(SPECIMEN_SOURCE.table)}
-                {:else}
-                  <div
-                    class="poster-card room-accent p-4"
-                    style="--room-accent: {room.field.bg}; --room-accent-fg: {room.field.fg}"
-                  >
-                    <div
-                      class="mb-2 flex items-center justify-between px-1 font-mono text-2xs tracking-[0.04em] text-text-secondary"
-                    >
-                      <span>departures.board — {DEPARTURE_COUNT} flights today</span>
-                      <span class="inline-flex items-center gap-1.5">
-                        <span class="pulse-dot inline-block h-1.5 w-1.5 rounded-full bg-primary"
-                        ></span>
-                        live
-                      </span>
-                    </div>
+                {:else if tile.key === 'table'}
+                  <div class="card card-table">
                     <Table
-                      items={departures}
+                      items={BOOKINGS}
                       columns={[
-                        { accessor: 'flight', title: 'Flight', sortable: true },
-                        { accessor: 'to', title: 'To', sortable: true },
-                        { accessor: 'departs', title: 'Departs', sortable: true },
-                        { accessor: 'status', title: 'Status', sortable: true, cell: statusCell }
+                        { accessor: 'time', title: 'Time', sortable: true, width: '4.5rem' },
+                        { accessor: 'client', title: 'Client', sortable: true, searchable: true },
+                        { accessor: 'service', title: 'Service', searchable: true },
+                        { accessor: 'stylist', title: 'Chair', searchable: true, width: '4.5rem' },
+                        { accessor: 'status', title: 'Status', cell: statusCell },
+                        { accessor: 'price', title: 'Price', align: 'right', width: '4rem' }
                       ]}
-                      selectionMode="single"
-                      selectedIds={tableSelected}
-                      onSelectionChange={(items) => (tableSelected = items.map((r) => r.id))}
-                      itemsPerPage={6}
+                      initialGroupBy="day"
+                      variant="flush"
+                      size="sm"
+                      ariaLabel="Bookings at Bleecker & Bond"
                       slotClasses={{ table: '!min-w-0' }}
                     />
                   </div>
-                {/if}
-                {@render sourceFlip('table')}
-              </div>
-            </div>
-
-            <div class="mt-auto flex items-baseline justify-between gap-5">
-              <span class="text-[13px] opacity-75"
-                >Type a city in the filter, group via a header menu — it's all real</span
-              >
-              <a
-                href={resolve('/table/table')}
-                class="border-b-2 border-current pb-0.5 text-[15px] font-bold transition-opacity hover:opacity-70"
-                >Explore →</a
-              >
-            </div>
-          {:else if room.key === 'auth'}
-            <!-- Auth — a real passkey sign-in flow -->
-            <div class="flex items-baseline justify-between gap-5">
-              <h3 class="text-[clamp(2rem,4vw,2.5rem)]">Auth</h3>
-              <span class="text-[13.5px] opacity-80">Passkeys + Web Crypto</span>
-            </div>
-            <p class="mt-2.5 max-w-[420px] text-[15.5px] leading-relaxed opacity-90">
-              Passkeys, JWT rotation, web push — on the Web Crypto API alone.
-            </p>
-
-            <div class="my-7 flex flex-1 items-start">
-              <div class={['relative max-w-full', sourceShown.auth ? 'w-[460px]' : 'w-[340px]']}>
-                {#if sourceShown.auth}
-                  {@render sourcePane(SPECIMEN_SOURCE.auth)}
-                {:else}
-                  <div
-                    class="poster-card room-accent w-[340px] max-w-full p-6"
-                    style="--room-accent: {room.field.bg}; --room-accent-fg: {room.field.fg}"
-                  >
-                    <div class="flex items-center gap-3">
-                      <Avatar name="Nora Ackermann" size="sm" />
-                      <div>
-                        <p class="text-[15px] font-bold text-text-primary">
-                          Sign in to Atelier Nord
-                        </p>
-                        <p class="text-[12.5px] text-text-secondary">
-                          No passwords stored, nothing to leak.
-                        </p>
-                      </div>
-                    </div>
-
-                    <div class="mt-5">
-                      <Button
-                        intent="primary"
-                        class="w-full"
-                        onclick={doAuth}
-                        disabled={authState === 'pending'}
-                      >
-                        {#if authState === 'ok'}
-                          <CheckIcon class="h-4 w-4" /> nora@atelier.de
-                        {:else if authState === 'pending'}
-                          <Spinner size="sm" /> Verifying…
-                        {:else}
-                          <PasskeyIcon class="h-4 w-4" /> Continue with passkey
-                        {/if}
-                      </Button>
-                    </div>
-
-                    <div class="mt-4 flex items-center justify-between">
-                      {#if authState === 'ok'}
-                        <span class="text-[12.5px] text-text-secondary"
-                          >passkey verified · session started</span
-                        >
-                      {:else}
-                        <a
-                          href={resolve('/auth')}
-                          class="text-[12.5px] text-text-secondary underline"
-                          >or email a magic link</a
-                        >
-                      {/if}
-                      <Badge intent="neutral" variant="outlined" class="font-mono text-3xs"
-                        >WebAuthn</Badge
-                      >
-                    </div>
+                {:else if tile.key === 'a2ui'}
+                  <div class="salon-host">
+                    <LiveryTile />
                   </div>
+                {:else if tile.key === 'agent'}
+                  <!-- Terminal-Replay + materialisierende BookingCard; die
+                     validate-Zeilen sind echte, aufgezeichnete Ausgabe
+                     (siehe AgentReplay.svelte). -->
+                  <AgentReplay />
+                {:else}
+                  <ol class="steps">
+                    {#each STEPS as step, i (step.href)}
+                      <li style:margin-inline-start={`${i * 0.75}em`}>
+                        <a href={step.href}>{step.label}</a>
+                      </li>
+                    {/each}
+                  </ol>
                 {/if}
-                {@render sourceFlip('auth')}
               </div>
-            </div>
+              <div class="tile-foot">
+                <div>
+                  <h2 class="tile-title">{tile.title}</h2>
+                  <p class="tile-line">{tile.line}</p>
+                </div>
+                {#if tile.href}
+                  <a class="tile-link" href={tile.href}
+                    >{tile.linkLabel} <span aria-hidden="true">↗</span></a
+                  >
+                {/if}
+              </div>
+            </article>
+          {/each}
+        </Scroller>
+      </div>
+    </section>
 
-            <div class="mt-auto flex items-baseline justify-between gap-5">
-              <span class="text-[13px] opacity-75">Try it — the passkey flow is real UI</span>
-              <a
-                href={resolve('/auth')}
-                class="border-b-2 border-current pb-0.5 text-[15px] font-bold transition-opacity hover:opacity-70"
-                >Read the docs →</a
-              >
-            </div>
-          {:else}
-            <!-- Design — the closed loop: an agent generates, `urbicon validate`
-                 reviews, the fix ships. The CLI + llms.txt are the serving channels. -->
-            <div class="flex items-baseline justify-between gap-5">
-              <h3 class="text-[clamp(2rem,4vw,2.5rem)]">For machines</h3>
-              <span class="text-[13.5px] opacity-80">urbicon CLI · Hook & CI · llms.txt</span>
-            </div>
-            <p class="mt-2.5 max-w-[420px] text-[15.5px] leading-relaxed opacity-90">
-              Hook the library into your AI workflow to give your model a deep understanding of all
-              its aspects. You wire it once; the agent runs the loop.
+    <!-- ── Zeile 2: erforschen — das Inventar mit Detailansicht ────── -->
+    <section
+      class="row2 room-accent"
+      aria-label="Component index"
+      style:--room-accent={selectedChannel.solid}
+      style:--room-accent-fg={selectedChannel.on}
+    >
+      <div class="inv-col">
+        <div class="inv-head">
+          <Input
+            bind:value={query}
+            variant="underline"
+            size="sm"
+            placeholder="Filter {data.rows.length} components"
+            aria-label="Filter components"
+          />
+        </div>
+        <!-- Alle Zeilen auf einmal, die Spalte scrollt selbst; der leere
+           pagination-Snippet nimmt dem Fuß das Chrom (wie im Hero). -->
+        <div class="inventory">
+          <Table
+            items={data.rows}
+            searchTerm={query}
+            enableSmartFilter={false}
+            variant="flush"
+            size="sm"
+            ariaLabel="Every component in the set"
+            itemsPerPage={data.rows.length}
+            onRowClick={(row) => setSelectedSlug((row as HeroRow).slug)}
+            activeRowId={selected.id}
+            initialSort={{ column: 'name', direction: 'asc' }}
+            slotClasses={{
+              headerCell: '!py-2 !text-[0.6875rem] !font-medium !uppercase !tracking-[0.14em]',
+              row: '!border-b-0',
+              cell: '!py-[0.3rem] !align-middle',
+              table: '!min-w-0'
+            }}
+            columns={[
+              {
+                accessor: 'name',
+                title: 'Component',
+                sortable: true,
+                searchable: true,
+                width: '15rem',
+                cell: nameCell
+              },
+              {
+                accessor: 'family',
+                title: 'Family',
+                sortable: true,
+                searchable: true,
+                width: '6rem',
+                cell: quietCell
+              },
+              {
+                id: 'kb',
+                accessor: (row) => (row as HeroRow).net ?? -1,
+                title: 'kB',
+                sortable: true,
+                align: 'right',
+                width: '4rem',
+                cell: sizeCell
+              },
+              {
+                accessor: 'props',
+                title: 'Props',
+                sortable: true,
+                align: 'right',
+                width: '4rem',
+                cell: propsCell
+              }
+            ]}
+          >
+            {#snippet pagination()}{/snippet}
+          </Table>
+        </div>
+        <p class="fineprint">
+          kB is gzipped, net of the {formatKb(data.foundationGz)} kB foundation and the Svelte runtime
+          your app bundles anyway.
+        </p>
+      </div>
+
+      <section class="preview" aria-label="Component preview">
+        <div class="preview-head" aria-live="polite">
+          <div class="title-row">
+            <h2>
+              {#if specimen}
+                <a href={specimen.docsHref}>
+                  {selected.name}<span class="arrow" aria-hidden="true">↗</span>
+                </a>
+              {:else}
+                {selected.name}
+              {/if}
+            </h2>
+            <p class="meta">
+              {selected.family} · {selected.pkg}{selected.net == null
+                ? ''
+                : ` · ${formatKb(selected.net)} kB`}
             </p>
-
-            <div class="my-7 flex-1">
-              <div
-                class="poster-term room-accent max-w-[540px] p-5 font-mono text-[12.5px] leading-[1.9]"
-                style="--room-accent: {room.field.bg}; --room-accent-fg: {room.field.fg}"
-              >
-                <p class="opacity-55"># the design gate — in CI, or as an agent hook</p>
-                <p>
-                  <span class="opacity-55">$</span> urbicon validate routes/pricing/+page.svelte
-                </p>
-                <p class="pl-4">✗ [raw-tailwind-color] `bg-green-500`</p>
-                <p class="pl-8 opacity-75">↳ use intent="success" — tokens, not raw palette</p>
-                <p class="pl-4">! [focus-not-visible] `focus:ring-2`</p>
-                <p class="pl-8 opacity-75">↳ use focus-visible: — keyboard-only rings</p>
-                <p class="mt-3 opacity-55"># your agent fixes, re-runs —</p>
-                <p>
-                  <span class="text-primary">✓ no issues</span><span
-                    class="term-caret ml-1 inline-block h-3 w-[7px] translate-y-[2px] bg-primary"
-                  ></span>
-                </p>
-              </div>
-            </div>
-
-            <div class="mt-auto flex items-baseline justify-between gap-5">
-              <span class="text-[13px] opacity-75"
-                >Agents don’t just read the manual — they get a review</span
-              >
-              <a
-                href={resolve('/ai')}
-                class="border-b-2 border-current pb-0.5 text-[15px] font-bold transition-opacity hover:opacity-70"
-                >Set up →</a
-              >
-            </div>
+          </div>
+          <p class="desc">{selected.description}</p>
+          {#if sharedNote}
+            <p class="shared-note">{sharedNote}</p>
           {/if}
         </div>
-      {/each}
+
+        {#key selected.id}
+          <div class="stage">
+            {#if specimen}
+              {#await specimen.load() then module}
+                {@const Specimen = module.default}
+                {#if specimen.interactive}
+                  <Specimen size="sm" slotClasses={PLAYGROUND_SLOTS} />
+                {:else}
+                  <Specimen />
+                {/if}
+              {/await}
+            {:else}
+              <HeroSpecimen row={selected} />
+            {/if}
+          </div>
+        {/key}
+
+        {#if !specimen?.interactive}
+          <code>{selected.importLine}</code>
+        {/if}
+      </section>
     </section>
 
-    <!-- ─────────────────────── Feature ticker ────────────────────── -->
-    <!-- The "also in the box" register — full-bleed marquee. The separator
-         squares ride the hero field colour, so the band repaints with the
-         channel like everything else. -->
-    <section
-      aria-label="Also in the box"
-      class="rooms-ticker py-4"
-      style="background: {INK}; color: {CREAM}"
-    >
-      <div class="rooms-ticker-track">
-        {#each [0, 1] as copy (copy)}
-          <ul class="flex shrink-0 items-center" aria-hidden={copy === 1}>
-            {#each TICKER_ITEMS as item (item)}
-              <li
-                class="flex items-center gap-7 pr-7 text-[clamp(1rem,1.6vw,1.35rem)] font-bold tracking-[-0.01em] whitespace-nowrap uppercase"
-              >
-                <span>{item}</span>
-                <span
-                  class="h-2.5 w-2.5"
-                  style="background: {hero.bg}; transition: background 0.5s ease"
-                  aria-hidden="true"
-                ></span>
-              </li>
-            {/each}
-          </ul>
-        {/each}
-      </div>
-    </section>
-
-    <!-- ──────────────────── Repaint the building ─────────────────── -->
-    <section
-      id="repaint"
-      class="px-[var(--rooms-gutter)] py-20"
-      style="background: #17150f; color: #f6f3ec"
-    >
-      <div class="grid grid-cols-1 items-start gap-12 lg:grid-cols-2 lg:gap-[72px]">
+    <!-- ── Zeile 3: handeln — drei Schritte, der dritte gehört dem Agenten.
+         Die Zeile endet mit einer Tür (Install + Guide-Link), nicht mit einem
+         Argument. Schritt 3 trägt das Agents-Grün — die Erzählfarbe aus
+         Kachel 04 kehrt als Abschluss-Akkord zurück. ─────────────────── -->
+    <section class="row3" aria-label="Getting started">
+      <div class="step">
+        <span class="no">01</span>
         <div>
-          <h2 class="text-[clamp(2.5rem,5vw,3.9rem)] !leading-[1.02]">Repaint the building.</h2>
-          <p class="mt-6 max-w-[460px] text-[17px] leading-relaxed opacity-90">
-            One token ramp — foundation, semantic, interaction. Pick a palette and every room on
-            this page re-renders, down to the switches and table rows above. Dark mode is one more
-            token, not a rewrite.
-          </p>
-          <div class="mt-9">
-            {@render paletteSwitcher(true, false)}
-          </div>
+          <h2 class="step-title">Install</h2>
+          <code class="cmd">bun add @urbicon-ui/blocks</code>
+          <p class="step-line">One package. Your lockfile stays yours.</p>
         </div>
-
+      </div>
+      <div class="step">
+        <span class="no">02</span>
         <div>
-          <div
-            class="room-accent border p-6 font-mono text-[13px] leading-loose"
-            style="border-color: rgb(246 243 236 / 0.3); --room-accent: {active.bright}; --room-accent-fg: {INK}"
-          >
-            <p class="opacity-50"># the whole system is also plain text</p>
-            <p><span class="opacity-50">$</span> bun add -d @urbicon-ui/design</p>
-            <p style="color: {active.bright}; transition: color 0.5s ease">
-              ✓ installed — design intelligence, pinned to your version
-            </p>
-            <p class="mt-3"><span class="opacity-50">$</span> urbicon find "pricing table"</p>
-            <p class="opacity-85">→ Table + Badge + Button · recipe: pricing-grid</p>
-            <p class="mt-3"><span class="opacity-50">$</span> curl ui.urbicon.de/llms.txt</p>
-            <p class="opacity-85">→ {counts.set} components, plain text, no auth</p>
-          </div>
-          <p class="mt-4 text-[14.5px] opacity-70">
-            Agents read the same manual you do —
-            <a href={asset('/llms.txt')} class="underline hover:opacity-70">llms.txt</a>,
-            <a href={asset('/llms-full.txt')} class="underline hover:opacity-70">llms-full.txt</a>,
-            <a href={resolve('/ai')} class="underline hover:opacity-70">.cursorrules</a>.
-          </p>
+          <h2 class="step-title">Provide</h2>
+          <code class="cmd">&lt;BlocksProvider&gt;&lt;App /&gt;&lt;/BlocksProvider&gt;</code>
+          <p class="step-line">Tokens, dark mode and i18n — on by default.</p>
         </div>
       </div>
-    </section>
-
-    <!-- ─────────────────────────── Install ───────────────────────── -->
-    <section
-      class="rooms-field room-accent px-[var(--rooms-gutter)] pt-24 pb-10"
-      style="background: {install.bg}; color: {install.fg}; --room-accent: {install.fg}; --room-accent-fg: {install.bg}"
-    >
-      <div class="text-center">
-        <h2 class="text-[clamp(3rem,8vw,6rem)] !leading-none">One package.</h2>
-        <div class="mt-10 flex flex-wrap items-center justify-center gap-4">
-          <a href={resolve('/getting-started')}>
-            <Button intent="primary" size="lg" class="!h-[54px] !px-8 !text-[17px]"
-              >Get the set</Button
-            >
-          </a>
-          <div
-            class="flex items-center gap-3 border-[1.5px] border-current px-5 py-3.5 font-mono text-[14px]"
-          >
-            <code>{INSTALL_COMMAND}</code>
-            <button
-              type="button"
-              onclick={copyInstall}
-              aria-label={copied ? 'Copied' : 'Copy install command'}
-              class="transition-opacity hover:opacity-70"
-            >
-              {#if copied}
-                <CheckIcon class="h-4 w-4" />
-              {:else}
-                <CopyIcon class="h-4 w-4" />
-              {/if}
-            </button>
-          </div>
-        </div>
-        <p class="mt-6 text-[14px] opacity-80">No subscription · no telemetry · no dependencies</p>
-      </div>
-
-      <footer
-        class="on-field mt-24 flex flex-col gap-4 text-[13px] opacity-80 sm:flex-row sm:items-center sm:justify-between"
+      <div
+        class="step step-agent"
+        style:--tile-solid={CHANNELS.green.solid}
+        style:--tile-deep={CHANNELS.green.deep}
       >
-        <nav aria-label="Footer" class="flex flex-wrap items-center gap-x-2 gap-y-1">
-          <a href={REPO_URL} target="_blank" rel="noopener" class="hover:opacity-70">Codeberg</a>·
-          <a href={resolve('/changelog')} class="hover:opacity-70">Changelog</a>·
-          <a href={asset('/llms.txt')} class="hover:opacity-70">llms.txt</a>·
-          <a href={resolve('/imprint')} class="hover:opacity-70">Imprint</a>·
-          <a href={resolve('/privacy')} class="hover:opacity-70">Privacy</a>
-        </nav>
-        <div class="flex items-center gap-4">
-          <span>© {footerYear} Urbicon · MIT · v{__APP_VERSION__}</span>
-          <LocaleSwitcher variant="ghost" size="sm" onLocaleChange={persistLocale} />
+        <span class="no">03</span>
+        <div>
+          <h2 class="step-title">Hand it over</h2>
+          <code class="cmd">bunx urbicon init</code>
+          <p class="step-line">
+            Scaffolds AGENTS.md and the design gate — your agent builds with the set, and
+            <code>urbicon validate</code> keeps it clean.
+          </p>
+          <a class="step-link" href="/getting-started"
+            >Full guide <span aria-hidden="true">↗</span></a
+          >
         </div>
-      </footer>
+      </div>
     </section>
   </main>
-</div>
+</I18nProvider>
+
+{#snippet nameCell(item: unknown, value: unknown)}
+  {@const status = (item as HeroRow).status}
+  <span class="name">{value}</span>{#if status !== 'shipped'}<span class="status">{status}</span
+    >{/if}
+{/snippet}
+
+{#snippet quietCell(_item: unknown, value: unknown)}
+  <span class="quiet">{value}</span>
+{/snippet}
+
+{#snippet sizeCell(item: unknown)}
+  <span class="num">{formatKb((item as HeroRow).net)}</span>
+{/snippet}
+
+{#snippet propsCell(item: unknown)}
+  <span class="num">{(item as HeroRow).props}</span>
+{/snippet}
+
+{#snippet statusCell(item: unknown)}
+  {@const s = (item as Booking).status}
+  <Badge
+    size="sm"
+    variant="soft"
+    intent={s === 'confirmed' ? 'success' : s === 'pending' ? 'warning' : 'neutral'}>{s}</Badge
+  >
+{/snippet}
 
 <style>
-  /* Live-feed pulse (Table specimen) + terminal caret (AI specimen). Both
-     honour reduced-motion. `currentColor`/`bg-primary` inherit the room accent. */
-  .pulse-dot {
-    animation: rooms-pulse 2s ease-in-out infinite;
+  .proto {
+    --paper: light-dark(#f4f4f2, #0d0d0d);
+    --ink: light-dark(#111111, #f4f4f2);
+    background: var(--paper);
+    color: var(--ink);
+    /* Fugenlos (Asphalt-Logik): Flächen stoßen aneinander, die Kante ist der
+       Farbwechsel. Kein Außenrand — full-bleed. */
+    display: grid;
   }
-  .term-caret {
-    animation: rooms-blink 1.1s step-end infinite;
+
+  /* ── Zeile 1 ─────────────────────────────────────────────────── */
+  .row1 {
+    display: grid;
   }
-  @keyframes rooms-pulse {
-    0%,
-    100% {
-      opacity: 1;
-    }
-    50% {
-      opacity: 0.2;
-    }
-  }
-  @keyframes rooms-blink {
-    0%,
-    49% {
-      opacity: 1;
-    }
-    50%,
-    100% {
-      opacity: 0;
+  @media (min-width: 48rem) {
+    .row1 {
+      /* Die Namens-Kachel atmet bis ~40rem und ist dann satt — den Zuwachs
+         großer Schirme bekommt der Scroller (mehr sichtbare Kacheln). */
+      grid-template-columns: clamp(24rem, 32vw, 40rem) minmax(0, 1fr);
     }
   }
-  @media (prefers-reduced-motion: reduce) {
-    .pulse-dot,
-    .term-caret {
-      animation: none;
+
+  .name-tile {
+    background: light-dark(#141414, #191919);
+    color: #f4f4f2;
+    padding: clamp(20px, 2.5vw, 36px);
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    gap: 2rem;
+  }
+  .brand {
+    font-size: clamp(2.4rem, 5vw, 4rem);
+    font-weight: 800;
+    letter-spacing: -0.03em;
+    line-height: 1.05;
+  }
+  .tick {
+    display: inline-block;
+    width: 0.42em;
+    height: 0.09em;
+    margin-left: 0.06em;
+    vertical-align: 0.1em;
+  }
+  .claim {
+    margin-top: 0.75rem;
+    font-size: clamp(1.1rem, 1.8vw, 1.5rem);
+    max-width: 24ch;
+    text-wrap: balance;
+  }
+  .proof {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.8rem;
+    opacity: 0.65;
+  }
+
+  .attractions {
+    min-width: 0;
+  }
+
+  /* ── Kanal-Kacheln ───────────────────────────────────────────── */
+  .tile {
+    background: light-dark(var(--tile-solid), var(--tile-deep));
+    color: light-dark(var(--tile-deep), var(--tile-solid));
+    /* Zeile 1 dominiert den ersten Screen; Zeile 2 bleibt nur angeschnitten —
+       der Anschnitt ist die Scroll-Affordance („anderthalb Zeilen"). */
+    height: clamp(420px, 72vh, 800px);
+    padding: clamp(16px, 1.8vw, 26px);
+    /* Freie Zone unter der Titelgruppe, in der der Dots-Chip (Overlay, 32px)
+       liegt, ohne die Beschreibung zu überlappen. */
+    padding-bottom: calc(clamp(16px, 1.8vw, 26px) + 44px);
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    /* Kanal-Livery: `.room-accent` (rooms.css) leitet die komplette
+       primary-Familie aus diesen zwei Vars ab — Vollton als primary, die
+       GEMESSENE on-Farbe des Registers als text-on-primary, in beiden Modi. */
+    --room-accent: var(--tile-solid);
+    --room-accent-fg: var(--tile-on);
+  }
+  .no {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.8rem;
+    opacity: 0.8;
+  }
+  .tile-body {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 1rem 0;
+    min-height: 0;
+  }
+  .tile-title {
+    font-size: clamp(1.5rem, 2.4vw, 2.2rem);
+    font-weight: 800;
+    letter-spacing: -0.02em;
+  }
+  .tile-line {
+    font-size: 0.9rem;
+    opacity: 0.85;
+  }
+
+  /* Neutrale Karte für lebende Komponenten auf der Vollton-Fläche —
+     das Muster der alten Landing (Farbfeld hält eine neutrale Bühne). */
+  .card {
+    background: light-dark(#ffffff, #141414);
+    padding: 1.25rem;
+    width: min(420px, 100%);
+  }
+  /* Das Backoffice-Dashboard der Blocks-Kachel. */
+  .dash {
+    width: min(520px, 100%);
+    display: flex;
+    flex-direction: column;
+    gap: 1.1rem;
+  }
+  .dash-head {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 1rem;
+  }
+  .dash-title {
+    font-weight: 800;
+    font-size: 1.05rem;
+    letter-spacing: -0.01em;
+  }
+  .dash-sub {
+    font-size: 0.75rem;
+    color: light-dark(#77776f, #8a8a84);
+  }
+  .dash-foot {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+  }
+  .card-table {
+    width: min(680px, 100%);
+    padding: 0.5rem;
+    max-height: 100%;
+    /* Wird es eng, scrollt der Body hinter dem stehenden Kopf — nie abschneiden. */
+    overflow-y: auto;
+    scrollbar-width: thin;
+  }
+  .card-table :global(thead th) {
+    position: sticky;
+    top: 0;
+    z-index: 1;
+    background: light-dark(#ffffff, #141414);
+  }
+  /* Das Salon-Exponat füllt die Kachel-Bühne; die LiveryTile bringt ihren
+     eigenen Grund (data-livery) und Rahmen mit. */
+  .salon-host {
+    width: min(480px, 100%);
+    height: 100%;
+    min-height: 0;
+  }
+
+  .tile-foot {
+    display: flex;
+    align-items: flex-end;
+    justify-content: space-between;
+    gap: 1rem;
+  }
+  .tile-link {
+    flex-shrink: 0;
+    font-weight: 700;
+    font-size: 0.85rem;
+    color: inherit;
+    text-decoration: none;
+    border-bottom: 2px solid currentColor;
+    padding-bottom: 2px;
+  }
+
+  /* Typo-Treppe der restlichen Register — jede Stufe verlinkt ihr Register. */
+  .steps {
+    list-style: none;
+    font-weight: 800;
+    font-size: clamp(1rem, 1.5vw, 1.35rem);
+    letter-spacing: -0.01em;
+    line-height: 1.55;
+  }
+  .steps a {
+    color: inherit;
+    text-decoration: none;
+  }
+  .steps a:hover,
+  .steps a:focus-visible {
+    text-decoration: underline;
+    text-decoration-thickness: 0.09em;
+    text-underline-offset: 0.18em;
+  }
+
+  /* ── Zeile 2: Inventar + Vorschau — die niedrigere Hero-Fassung ─
+     Feste Zeilenhöhe statt 100dvh: beide Spalten scrollen intern, die
+     Seite läuft normal weiter. */
+  .row2 {
+    height: clamp(560px, 82vh, 860px);
+    display: grid;
+    grid-template-columns: clamp(26rem, 36vw, 34rem) minmax(0, 1fr);
+    gap: clamp(1.5rem, 4vw, 4rem);
+    padding: clamp(16px, 2vw, 32px);
+    min-height: 0;
+    overflow: hidden;
+  }
+  @media (max-width: 48rem) {
+    .row2 {
+      height: auto;
+      grid-template-columns: 1fr;
     }
+  }
+
+  .inv-col {
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+    gap: 0.5rem;
+  }
+  .inv-head {
+    max-width: 18rem;
+  }
+  .inventory {
+    min-height: 0;
+    flex: 1;
+    overflow-y: auto;
+    scrollbar-width: thin;
+  }
+  @media (max-width: 48rem) {
+    .inventory {
+      max-height: 45vh;
+    }
+  }
+  .inventory :global(thead th) {
+    position: sticky;
+    top: 0;
+    z-index: 1;
+    background: var(--paper);
+  }
+  .fineprint {
+    font-size: 0.72rem;
+    color: light-dark(#77776f, #8a8a84);
+    max-width: 46ch;
+  }
+
+  .preview {
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+    overflow-y: auto;
+    scrollbar-width: thin;
+    gap: 1rem;
+  }
+  .title-row {
+    display: flex;
+    align-items: baseline;
+    gap: 0.75rem;
+    flex-wrap: wrap;
+  }
+  .preview h2 {
+    font-size: clamp(1.4rem, 2vw, 1.9rem);
+    font-weight: 800;
+    letter-spacing: -0.02em;
+  }
+  .preview h2 a {
+    color: inherit;
+    text-decoration: none;
+  }
+  .preview h2 a:hover .arrow {
+    translate: 0.1em -0.1em;
+  }
+  .arrow {
+    display: inline-block;
+    font-size: 0.7em;
+    margin-left: 0.2em;
+    transition: translate 120ms ease;
+    /* Das eine sichtbare Kanal-Signal im Kopf der Detailansicht. */
+    color: var(--color-primary);
+  }
+  .meta {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.75rem;
+    color: light-dark(#77776f, #8a8a84);
+  }
+  .desc {
+    font-size: 0.9rem;
+    max-width: 60ch;
+  }
+  .shared-note {
+    font-size: 0.8rem;
+    color: light-dark(#77776f, #8a8a84);
+    max-width: 60ch;
+  }
+  .stage {
+    min-height: 0;
+  }
+  .preview code {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.78rem;
+    color: light-dark(#55554e, #a0a099);
+  }
+  .name {
+    font-weight: 500;
+  }
+  .status {
+    margin-left: 0.5em;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.65rem;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: light-dark(#8a6d00, #d4b106);
+  }
+  .quiet,
+  .num {
+    color: light-dark(#77776f, #8a8a84);
+  }
+  .num {
+    font-variant-numeric: tabular-nums;
+  }
+
+  /* ── Zeile 3: Getting started — Echo der Kachel-Anatomie (Nummer oben,
+     Inhalt unten), fugenlos; Haarlinien nur zwischen den Paper-Schritten. */
+  .row3 {
+    display: grid;
+    min-height: 45vh;
+    border-top: 1px solid light-dark(#e3e3df, #2a2a2a);
+  }
+  @media (min-width: 48rem) {
+    .row3 {
+      grid-template-columns: 1fr 1fr 1fr;
+    }
+  }
+  .step {
+    padding: clamp(20px, 2.5vw, 36px);
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    gap: 1.5rem;
+  }
+  .step + .step {
+    border-inline-start: 1px solid light-dark(#e3e3df, #2a2a2a);
+  }
+  .step-agent {
+    background: light-dark(var(--tile-solid), var(--tile-deep));
+    color: light-dark(var(--tile-deep), var(--tile-solid));
+    border-inline-start: none;
+  }
+  .step-title {
+    font-size: clamp(1.3rem, 2vw, 1.8rem);
+    font-weight: 800;
+    letter-spacing: -0.02em;
+    margin-bottom: 0.6rem;
+  }
+  .cmd {
+    display: inline-block;
+    background: #101010;
+    color: #d8d8d2;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.85rem;
+    padding: 0.55rem 0.9rem;
+    margin-bottom: 0.7rem;
+  }
+  .step-line {
+    font-size: 0.9rem;
+    opacity: 0.85;
+    max-width: 40ch;
+  }
+  .step-line code {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.85em;
+  }
+  .step-link {
+    display: inline-block;
+    margin-top: 0.9rem;
+    font-weight: 700;
+    color: inherit;
+    text-decoration: none;
+    border-bottom: 2px solid currentColor;
+    padding-bottom: 2px;
   }
 </style>
