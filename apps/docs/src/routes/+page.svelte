@@ -6,9 +6,12 @@
   auf ihren Kanal (`.room-accent` aus rooms.css) — die lebenden Komponenten
   tragen die Livery ihrer Kachel. Zeile 2: das Hero-Inventar — Build-time-Daten
   aus $lib/server/landing, dieselben geteilten Playgrounds wie die Doku-Seiten,
-  Familien-Kanal der Auswahl als Farb-Echo. Zeile 3: Getting started in drei
-  fugenlosen Schritten, Schritt 3 (Agents-Grün) übergibt an den Agenten.
-  Alle Farben aus dem generierten Register ($lib/landing/channels).
+  Familien-Kanal der Auswahl als Farb-Echo. Zeile 3: ein Befehl, ein Satz, ein
+  Ergebnis — drei Vollton-Schritte (Ink → Agents-Grün → Magenta), von denen der
+  dritte die im zweiten bestellte Farbe trägt und eine echte BookingCard darauf
+  zeigt. Fußzeile auf Ink: die Türen nach draußen, die die Zeilen darüber
+  bewusst nicht haben. Alle Farben aus dem generierten Register
+  ($lib/landing/channels).
   Konzept: docs/internal/LANDING-CONCEPT-2026-07.md → "Struktur v2".
 -->
 <!-- urbicon-ignore magic-dimension inline-style — deliberate landing scope: the
@@ -16,10 +19,13 @@
      move into the token system if a second consumer appears -->
 <script lang="ts">
   import SeoMeta from '$lib/SeoMeta.svelte';
+  import { VALIDATE_OK, VALIDATE_SCORE } from '$lib/landing/agent-output';
   import { type Channel, CHANNELS, channelForFamily, TILE_CHANNEL } from '$lib/landing/channels';
   import HeroSpecimen from '$lib/landing/HeroSpecimen.svelte';
   import { formatKb, type HeroRow, SHARED_PREVIEW_NOTES } from '$lib/landing/hero';
   import AgentReplay from '$lib/landing/AgentReplay.svelte';
+  import { REPO_URL } from '$lib/seo';
+  import BookingCard from '$lib/salon/BookingCard.svelte';
   import LiveryTile from '$lib/salon/LiveryTile.svelte';
   import {
     AreaChart,
@@ -717,39 +723,85 @@
       </section>
     </section>
 
-    <!-- ── Zeile 3: handeln — drei Schritte, der dritte gehört dem Agenten.
-         Die Zeile endet mit einer Tür (Install + Guide-Link), nicht mit einem
-         Argument. Schritt 3 trägt das Agents-Grün — die Erzählfarbe aus
-         Kachel 04 kehrt als Abschluss-Akkord zurück. ─────────────────── -->
+    <!-- ── Zeile 3: handeln — ein Befehl, ein Satz, ein Ergebnis.
+         Nicht „so richtest du eine Bibliothek ein" (das steht im Guide),
+         sondern die These der Seite in drei Bildern: du sagst einen Satz, und
+         danach steht die Seite. Deshalb bestellt Schritt 02 wörtlich eine
+         Farbe — und Schritt 03 IST diese Farbe, mit der echten BookingCard
+         darauf. Die Farbe im Text ist die Farbe der Fläche; das ist der
+         Theming-Beweis ohne ein Wort über Theming.
+
+         Dreiklang Ink → Agents-Grün → Magenta: Schritt 01 echot die
+         Namens-Kachel (die Bibliothek selbst), 02 den Agenten-Kanal aus
+         Kachel 04, 03 den A2UI-Kanal aus Kachel 03. Die Zeile liest damit als
+         Reprise von Zeile 1 — dieselbe Kachel-Anatomie (Nummer oben, Titel
+         unten), aber statisch nebeneinander statt gescrollt. ────────────── -->
     <section class="row3" aria-label="Getting started">
-      <div class="step">
+      <div class="step step-ink" style:--ink-solid={CHANNELS.ink.solid}>
         <span class="no">01</span>
-        <div>
+        <div class="step-body">
           <h2 class="step-title">Install</h2>
           <code class="cmd">bun add @urbicon-ui/blocks</code>
-          <p class="step-line">One package. Your lockfile stays yours.</p>
-        </div>
-      </div>
-      <div class="step">
-        <span class="no">02</span>
-        <div>
-          <h2 class="step-title">Provide</h2>
-          <code class="cmd">&lt;BlocksProvider&gt;&lt;App /&gt;&lt;/BlocksProvider&gt;</code>
-          <p class="step-line">Tokens, dark mode and i18n — on by default.</p>
-        </div>
-      </div>
-      <div
-        class="step step-agent"
-        style:--tile-solid={CHANNELS.green.solid}
-        style:--tile-deep={CHANNELS.green.deep}
-      >
-        <span class="no">03</span>
-        <div>
-          <h2 class="step-title">Hand it over</h2>
           <code class="cmd">bunx urbicon init</code>
           <p class="step-line">
-            Scaffolds AGENTS.md and the design gate — your agent builds with the set, and
-            <code>urbicon validate</code> keeps it clean.
+            Two commands. The second writes AGENTS.md and installs the design gate.
+          </p>
+        </div>
+      </div>
+
+      <div
+        class="step step-channel"
+        style:--step-solid={CHANNELS.green.solid}
+        style:--step-deep={CHANNELS.green.deep}
+        style:--cmd-fg={CHANNELS.green.solid}
+      >
+        <span class="no">02</span>
+        <div class="step-body">
+          <h2 class="step-title">Ask</h2>
+          <!-- Die Farbe im Prompt ist der Kanalname aus dem Register, nicht
+               ein hübscheres Wort dafür: die Fläche rechts IST hue 330. Sagt
+               der Prompt „violet" und liefert die Kachel Magenta, bricht genau
+               der Beweis, für den dieser Satz hier steht. -->
+          <code class="cmd"
+            >claude "a neon-magenta booking page for the salon — service, chair, time"</code
+          >
+          <p class="step-line">In your words. No component names, no token names.</p>
+        </div>
+      </div>
+
+      <!-- Der Schritt trägt die bestellte Farbe UND scopet die primary-Familie
+           darauf (`.room-accent`, wie die Kacheln in Zeile 1): die Karte ist
+           eine echte BookingCard — dieselbe Datei, gegen die die
+           validate-Zeilen aufgezeichnet sind — und ihr Reserve-Knopf ist
+           magenta, weil der Prompt magenta bestellt hat. -->
+      <div
+        class="step step-channel step-ship room-accent"
+        style:--step-solid={CHANNELS.magenta.solid}
+        style:--step-deep={CHANNELS.magenta.deep}
+        style:--room-accent={CHANNELS.magenta.solid}
+        style:--room-accent-fg={CHANNELS.magenta.on}
+        style:--gate-ok={CHANNELS.green.solid}
+      >
+        <!-- Der Magenta-Kanal ist das schwächste Paar im Register
+             (`pairContrast` 4.2) — der Vollton trägt auf der Tiefe zwar eine
+             Überschrift, aber keine 12-px-Mono-Ausgabe. Der Kasten bekommt
+             deshalb Papier als Tinte statt des Kanals; die zwei anderen
+             Schritte (Ink, Grün bei 9.0) behalten die Inversion. -->
+        <span class="no">03</span>
+        <div class="ship-card">
+          <BookingCard />
+        </div>
+        <div class="step-body">
+          <h2 class="step-title">Ship</h2>
+          <!-- Kein Befehl, sondern seine Ausgabe: derselbe Mono-Kasten wie in
+               01/02, damit die drei Schritte als Befehl · Befehl · Antwort
+               zusammenliegen. Wortlaut zitiert (siehe agent-output). -->
+          <div class="cmd gate">
+            <p>{VALIDATE_SCORE}</p>
+            <p class="gate-ok">{VALIDATE_OK}</p>
+          </div>
+          <p class="step-line">
+            Built with the set — the gate ran on every file the agent touched.
           </p>
           <a class="step-link" href="/getting-started"
             >Full guide <span aria-hidden="true">↗</span></a
@@ -757,6 +809,33 @@
         </div>
       </div>
     </section>
+
+    <!-- Die Seite endet, wo sie angefangen hat: derselbe Ink-Grund wie die
+         Namens-Kachel und wie Schritt 01, dieselbe Signatur. Bis hierher war
+         die Landing ohne jedes Chrom — die Türen nach draußen (Register,
+         Repo, Rechtliches) gehören genau hierher und nirgends höher. -->
+    <footer class="foot">
+      <div class="foot-brand">
+        <p class="brand-sm">
+          urbicon <span class="brand-suffix">ui</span><span class="ticks"
+            >{#each TILES as tile (tile.key)}<span
+                class="tick"
+                style:background={tile.channel.solid}
+              ></span>{/each}</span
+          >
+        </p>
+        <p class="foot-meta">© 2026 Urbicon · Felix Urban · v{__APP_VERSION__}</p>
+      </div>
+      <nav class="foot-nav" aria-label="Footer">
+        <a href="/blocks">Components</a>
+        <a href="/recipes">Recipes</a>
+        <a href="/getting-started">Getting started</a>
+        <a href="/changelog">Changelog</a>
+        <a href={REPO_URL} target="_blank" rel="noopener">Codeberg</a>
+        <a href="/imprint">Imprint</a>
+        <a href="/privacy">Privacy</a>
+      </nav>
+    </footer>
   </main>
 </I18nProvider>
 
@@ -1221,31 +1300,53 @@
   }
 
   /* ── Zeile 3: Getting started — Echo der Kachel-Anatomie (Nummer oben,
-     Inhalt unten), fugenlos; Haarlinien nur zwischen den Paper-Schritten. */
+     Inhalt unten), fugenlos. Alle drei Schritte tragen jetzt eine Fläche, es
+     gibt also keine Papier-Nachbarn und keine Haarlinien mehr: die Kante IST
+     der Farbwechsel, wie in Zeile 1. Höher als die alte Zeile, weil Schritt 03
+     eine echte Komponente zeigt statt einer Textzeile. */
   .row3 {
     display: grid;
-    min-height: 45vh;
-    border-top: 1px solid light-dark(#e3e3df, #2a2a2a);
+    min-height: clamp(460px, 62vh, 680px);
   }
   @media (min-width: 48rem) {
     .row3 {
-      grid-template-columns: 1fr 1fr 1fr;
+      /* Schritt 03 trägt Karte UND Textgruppe und bekommt den Zuschlag. */
+      grid-template-columns: 1fr 1fr 1.25fr;
     }
   }
   .step {
     padding: clamp(20px, 2.5vw, 36px);
     display: flex;
     flex-direction: column;
-    justify-content: space-between;
     gap: 1.5rem;
   }
-  .step + .step {
-    border-inline-start: 1px solid light-dark(#e3e3df, #2a2a2a);
+  /* Die Schritte 01/02 haben keinen Kachel-Body, den man in die Mitte stellen
+     könnte — die Titelgruppe IST ihr Inhalt. Sie an die Unterkante zu binden
+     (wie die Kacheln in Zeile 1 ihre Titel) reißt bei der Höhe, die Schritt 03
+     der Zeile vorgibt, ein halbes Kachelloch darüber auf. Also: Nummer oben,
+     Inhalt in der Mitte des Rests — dieselbe Anatomie wie die Kacheln, nur mit
+     der Titelgruppe in der Rolle des Bodys. */
+  .step-body {
+    margin-block: auto;
   }
-  .step-agent {
-    background: light-dark(var(--tile-solid), var(--tile-deep));
-    color: light-dark(var(--tile-deep), var(--tile-solid));
-    border-inline-start: none;
+  /* Schritt 03 füllt seinen Raum mit der Karte und braucht die Zentrierung
+     nicht — sie würde die Titelgruppe von der Karte wegschieben. */
+  .step-ship .step-body {
+    margin-block: 0;
+  }
+  /* Die farbigen Schritte tragen die Kachel-Anatomie aus Zeile 1: Vollton als
+     Fläche, Tiefe als Text, im Dark Mode getauscht. */
+  .step-channel {
+    background: light-dark(var(--step-solid), var(--step-deep));
+    color: light-dark(var(--step-deep), var(--step-solid));
+  }
+  /* Schritt 01 ist unbunt und echot die Namens-Kachel — derselbe Grund,
+     dieselbe Tinte. Der Ink-Kanal hat kein Vollton/Tiefe-Paar (pairContrast 0
+     im Register), trägt die Inversion unten also nicht: sein Befehlskasten
+     hebt sich über die HELLERE Ink-Stufe ab statt über die dunklere. */
+  .step-ink {
+    background: light-dark(#141414, #191919);
+    color: #f4f4f2;
   }
   .step-title {
     font-size: clamp(1.3rem, 2vw, 1.8rem);
@@ -1253,23 +1354,67 @@
     letter-spacing: -0.02em;
     margin-bottom: 0.6rem;
   }
+  /* Der Befehlskasten ist das Negativ seines Schrittes — in beiden Modi. Ein
+     fester Ink-Block wäre auf drei verschiedenen Vollton-Gründen dreimal
+     dasselbe schwarze Rechteck, und die Farbe wäre nur noch Rahmen statt
+     Träger. */
   .cmd {
-    display: inline-block;
-    background: #101010;
-    color: #d8d8d2;
+    display: block;
+    width: fit-content;
+    max-width: 100%;
+    background: light-dark(var(--step-deep), var(--step-solid));
+    color: light-dark(var(--cmd-fg, var(--step-solid)), var(--step-deep));
     font-family: 'JetBrains Mono', monospace;
     font-size: 0.85rem;
+    line-height: 1.6;
     padding: 0.55rem 0.9rem;
+    margin-bottom: 0.5rem;
+    /* Der Prompt in Schritt 02 ist ein ganzer Satz und darf umbrechen, statt
+       die Spalte zu sprengen. */
+    overflow-wrap: anywhere;
+  }
+  .step-ink .cmd {
+    background: var(--ink-solid);
+    color: #f4f4f2;
+  }
+
+  /* Schritt 03 hat drei Kinder statt zwei — Nummer, Karte, Titelgruppe —, also
+     verteilt `space-between` sie nicht mehr an zwei Kanten, sondern reißt eine
+     Lücke in die Mitte. Hier stapeln sie mit fester Fuge, und die Karte nimmt
+     den Rest. */
+  .step-ship {
+    justify-content: flex-start;
+    gap: 1.1rem;
+  }
+  .ship-card {
+    flex: 1 1 auto;
+    min-height: 0;
+    overflow-y: auto;
+    scrollbar-width: thin;
+  }
+  /*
+   * Keine Eingabe, sondern Ausgabe — und damit derselbe Kasten wie das Terminal
+   * der Agents-Kachel: in beiden Modi dunkel, mit denselben Werten wie dort
+   * (AgentReplay `.term`). Das ist nicht nur Wiedererkennung, es löst auch den
+   * Kontrast: der Magenta-Kanal ist mit `pairContrast` 4.2 das schwächste Paar
+   * im Register und trägt bei 12 px Mono in KEINER Richtung — im Light Mode
+   * nicht Vollton auf Tiefe, im Dark Mode nicht Tiefe auf Vollton. Die
+   * Inversion bleibt den Befehlen (01/02) vorbehalten, die ihre Kanäle tragen.
+   */
+  .gate {
+    font-size: 0.76rem;
+    background: #101010;
+    color: #d8d8d2;
     margin-bottom: 0.7rem;
+  }
+  .gate-ok {
+    /* Das Grün des Agenten quittiert in der Kachel, die er gebaut hat. */
+    color: var(--gate-ok);
   }
   .step-line {
     font-size: 0.9rem;
     opacity: 0.85;
     max-width: 40ch;
-  }
-  .step-line code {
-    font-family: 'JetBrains Mono', monospace;
-    font-size: 0.85em;
   }
   .step-link {
     display: inline-block;
@@ -1279,5 +1424,47 @@
     text-decoration: none;
     border-bottom: 2px solid currentColor;
     padding-bottom: 2px;
+  }
+
+  /* ── Fußzeile: derselbe Ink-Grund wie Namens-Kachel und Schritt 01, damit
+     die Seite dort endet, wo sie angefangen hat. Bewusst niedrig — sie ist
+     eine Türleiste, kein sechster Inhalt. */
+  .foot {
+    background: light-dark(#141414, #191919);
+    color: #f4f4f2;
+    padding: clamp(20px, 2.5vw, 36px);
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 1rem 2rem;
+  }
+  .brand-sm {
+    font-size: 1.15rem;
+    font-weight: 800;
+    letter-spacing: -0.02em;
+  }
+  .foot-meta {
+    margin-top: 0.35rem;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.72rem;
+    opacity: 0.55;
+  }
+  .foot-nav {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.4rem 1.4rem;
+    font-size: 0.85rem;
+  }
+  .foot-nav a {
+    color: inherit;
+    text-decoration: none;
+    opacity: 0.75;
+  }
+  .foot-nav a:hover,
+  .foot-nav a:focus-visible {
+    opacity: 1;
+    text-decoration: underline;
+    text-underline-offset: 0.2em;
   }
 </style>
