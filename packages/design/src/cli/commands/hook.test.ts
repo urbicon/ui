@@ -3,6 +3,7 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { Readable } from 'node:stream';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { applyFlagAliases } from '../command-flags.js';
 import { runHook } from './hook.js';
 
 /** The real stdin descriptor, restored after each test. */
@@ -84,7 +85,7 @@ describe('urbicon hook (PostToolUse adapter)', () => {
     expect(await runHook([], {})).toBe(0);
   });
 
-  it('gates the slop axis only when --slop-floor is given', async () => {
+  it('gates the craft axis only when --craft-floor is given', async () => {
     const file = join(dir, 'Generic.svelte');
     await writeFile(
       file,
@@ -95,16 +96,35 @@ describe('urbicon hook (PostToolUse adapter)', () => {
     // Token-correct: without a floor the generic page passes the hook.
     feedStdin(event(file));
     expect(await runHook([], {})).toBe(0);
-    // With a floor, the low slop score blocks.
+    // With a floor, the low craft score blocks.
     feedStdin(event(file));
-    expect(await runHook([], { 'slop-floor': '90' })).toBe(2);
-    expect(stderr()).toContain('slop floor');
+    expect(await runHook([], { 'craft-floor': '90' })).toBe(2);
+    expect(stderr()).toContain('craft floor');
   });
 
-  it('surfaces a misconfigured --slop-floor as a usage error (exit 2)', async () => {
+  it('blocks the same way under the pre-rename --slop-floor spelling', async () => {
+    // A hook command lives in a checked-in `.claude/settings.json`; the rename must
+    // not turn every edit into an "unknown flag" exit 2.
+    const file = join(dir, 'Generic.svelte');
+    await writeFile(
+      file,
+      '<div style="font-family: Arial; color: #888">\n' +
+        '  <p style="text-align: center">Lorem ipsum dolor sit amet</p>\n' +
+        '</div>\n'
+    );
+    const legacy: Record<string, string | boolean> = { 'slop-floor': '90' };
+    const notices = applyFlagAliases('hook', legacy);
+    expect(notices).toHaveLength(1);
+
+    feedStdin(event(file));
+    expect(await runHook([], legacy)).toBe(2);
+    expect(stderr()).toContain('craft floor');
+  });
+
+  it('surfaces a misconfigured --craft-floor as a usage error (exit 2)', async () => {
     feedStdin(event(join(dir, 'whatever.svelte')));
-    expect(await runHook([], { 'slop-floor': 'oops' })).toBe(2);
-    expect(stderr()).toContain('--slop-floor');
+    expect(await runHook([], { 'craft-floor': 'oops' })).toBe(2);
+    expect(stderr()).toContain('--craft-floor');
   });
 
   it('respects manifest token overrides when linting the edited file', async () => {

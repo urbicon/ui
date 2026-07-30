@@ -15,7 +15,7 @@
 import { readFile } from 'node:fs/promises';
 import { resolve } from 'node:path';
 import { parseArgs } from './args.js';
-import { checkFlags, checkPositionals } from './command-flags.js';
+import { applyFlagAliases, checkFlags, checkPositionals } from './command-flags.js';
 import { runContext } from './commands/context.js';
 import { runCssReference } from './commands/css-reference.js';
 import { runFind } from './commands/find.js';
@@ -88,6 +88,11 @@ async function main(argv: string[]): Promise<number> {
     console.log(HELP);
     return EXIT.OK;
   }
+
+  // Renamed flags first, so a pre-rename `--slop-floor` is folded into
+  // `--craft-floor` before the unknown-flag check can reject it. The notice goes to
+  // stderr — `validate --json` owns stdout.
+  for (const notice of applyFlagAliases(command, flags)) printError(notice);
 
   // Reject flags this command does not read, before it can answer a question
   // nobody asked (see command-flags.ts). Also folds a `--query` alias into the

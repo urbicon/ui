@@ -22,7 +22,7 @@ export interface LintFinding {
 export interface LintReport {
   findings: LintFinding[];
   counts: { error: number; warning: number; info: number };
-  scores: { correctness: number; slop: number };
+  scores: { correctness: number; craft: number };
 }
 
 /** Eine fertige Version — das, was der Player als Chip zeigt. */

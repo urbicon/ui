@@ -20,7 +20,7 @@ jobs:
       - uses: oven-sh/setup-bun@v2
       - run: bun install --frozen-lockfile
       # Correctness is the blocking gate — deterministic, false-positive free.
-      # Add --slop-floor 40 to also gate the slop axis (a generic-looking page
+      # Add --craft-floor 40 to also gate the craft axis (a generic-looking page
       # fails below the floor); add --record to append a drift point to the
       # design.manifest.history.ndjson sidecar.
       - run: bunx urbicon validate src/ --json

@@ -37,14 +37,14 @@ describe('urbicon-ignore pragma (file-scoped exemption)', () => {
     ]);
   });
 
-  it('can suppress slop heuristics (poster surfaces)', () => {
+  it('can suppress craft heuristics (poster surfaces)', () => {
     const code =
       '<!-- urbicon-ignore magic-dimension — poster swatch grid -->\n' +
       '<div class="h-[30px] w-[30px]">x</div>';
     const report = lintDesign(code);
     expect(has(report.findings, 'magic-dimension')).toBe(false);
     expect(report.suppressed?.[0]?.ruleId).toBe('magic-dimension');
-    expect(report.scores.slop).toBe(100);
+    expect(report.scores.craft).toBe(100);
   });
 
   it('accepts multiple ids and an em-dash reason; the reason is never parsed as ids', () => {

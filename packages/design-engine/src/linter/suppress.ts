@@ -29,7 +29,7 @@ import type { Finding, SuppressedRule } from './types.js';
 /** The rule id under which suppression misuse itself is reported. */
 export const INVALID_SUPPRESSION_ID = 'invalid-suppression';
 
-/** Every id a suppression may name: deterministic rules + slop heuristics. */
+/** Every id a suppression may name: deterministic rules + craft heuristics. */
 export function knownRuleIds(): ReadonlySet<string> {
   return new Set([...RULES.map((r) => r.id), ...HEURISTIC_RULE_IDS]);
 }

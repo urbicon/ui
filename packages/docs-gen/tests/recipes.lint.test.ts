@@ -17,7 +17,7 @@ const pages = globSync('*/+page.svelte', { cwd: recipesDir, absolute: true }).so
 /**
  * The official recipes are the code LLMs copy verbatim via `get_recipe` /
  * `suggest_implementation`, so they must pass the project's own design linter —
- * both correctness (errors) and the slop axis (warnings: heading-skip,
+ * both correctness (errors) and the craft axis (warnings: heading-skip,
  * transition-all, hand-rolled components in place of real ones, …). This guards
  * against a recipe drifting from the very rules it is meant to model.
  */

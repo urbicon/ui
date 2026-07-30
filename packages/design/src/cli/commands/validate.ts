@@ -17,7 +17,7 @@ import { lintDesign } from '@urbicon-ui/design-engine/linter';
 import type { ValidationHistoryEntry } from '@urbicon-ui/design-engine/manifest';
 import { serializeHistoryEntry } from '@urbicon-ui/design-engine/manifest';
 import { boolFlag, type Flags, stringFlag } from '../args.js';
-import { evaluateGate, parseSlopFloor } from '../gate.js';
+import { evaluateGate, parseCraftFloor } from '../gate.js';
 import {
   appendHistory,
   exemptRulesFor,
@@ -151,7 +151,7 @@ function buildHistoryEntry(reports: LintReport[]): ValidationHistoryEntry {
     warnings: sum((r) => r.counts.warning),
     infos: sum((r) => r.counts.info),
     correctness: mean((r) => r.scores.correctness),
-    slop: mean((r) => r.scores.slop)
+    craft: mean((r) => r.scores.craft)
   };
 }
 
@@ -161,12 +161,12 @@ export async function runValidate(positionals: string[], flags: Flags): Promise<
   const skipHeuristics = boolFlag(flags, 'skip-heuristics');
   const record = boolFlag(flags, 'record');
 
-  // F-S6-3: the slop axis is advisory by default and only gates when the caller
-  // opts in with a floor (slop heuristics are FP-prone). A malformed floor is a
+  // F-S6-3: the craft axis is advisory by default and only gates when the caller
+  // opts in with a floor (craft heuristics are FP-prone). A malformed floor is a
   // usage error, never a silently skipped gate.
-  const slopFloor = parseSlopFloor(flags['slop-floor']);
-  if (slopFloor === 'invalid') {
-    printError('--slop-floor needs an integer between 0 and 100, e.g. --slop-floor 40');
+  const craftFloor = parseCraftFloor(flags['craft-floor']);
+  if (craftFloor === 'invalid') {
+    printError('--craft-floor needs an integer between 0 and 100, e.g. --craft-floor 40');
     return EXIT.USAGE;
   }
 
@@ -196,7 +196,7 @@ export async function runValidate(positionals: string[], flags: Flags): Promise<
     })
   );
 
-  const gate = evaluateGate(reports, { strict, slopFloor });
+  const gate = evaluateGate(reports, { strict, craftFloor });
   const { totals, failed } = gate;
 
   // Append a drift data point when asked. A write failure is loud (stderr) but does
@@ -215,7 +215,7 @@ export async function runValidate(positionals: string[], flags: Flags): Promise<
 
   if (asJson) {
     console.log(
-      JSON.stringify({ ok: !failed, strict, slopFloor, extraTokens, results: reports }, null, 2)
+      JSON.stringify({ ok: !failed, strict, craftFloor, extraTokens, results: reports }, null, 2)
     );
     return failed ? EXIT.FAIL : EXIT.OK;
   }
@@ -232,16 +232,16 @@ export async function runValidate(positionals: string[], flags: Flags): Promise<
       `\n${extraTokens.length} project token override(s) applied from ${relative(process.cwd(), manifestPath).split(sep).join('/')}.`
     );
   }
-  if (gate.slopBreaches.length > 0) {
-    console.log(`\n${gate.slopBreaches.length} file(s) below the slop floor (${slopFloor}):`);
-    for (const b of gate.slopBreaches) console.log(`  · ${b.label} — slop ${b.slop}/100`);
+  if (gate.craftBreaches.length > 0) {
+    console.log(`\n${gate.craftBreaches.length} file(s) below the craft floor (${craftFloor}):`);
+    for (const b of gate.craftBreaches) console.log(`  · ${b.label} — craft ${b.craft}/100`);
   }
   if (failed) {
     const reason = gate.correctnessFailed
       ? strict
         ? 'errors or warnings present (--strict)'
         : 'fix the errors above'
-      : 'slop floor not met';
+      : 'craft floor not met';
     console.log(`\nFAIL — ${reason}.`);
   }
   return failed ? EXIT.FAIL : EXIT.OK;

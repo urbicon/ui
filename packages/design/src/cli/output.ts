@@ -35,8 +35,8 @@ export function formatReport(report: LintReport): string {
   const { scores, counts, findings, filename, suppressed } = report;
   const suppressedTotal = (suppressed ?? []).reduce((a, s) => a + s.count, 0);
   const head =
-    `${filename ?? '<stdin>'} — correctness ${scores.correctness}/100 · slop ${scores.slop}/100 · ` +
-    `${counts.error} error(s), ${counts.warning} warning(s), ${counts.info} slop note(s)` +
+    `${filename ?? '<stdin>'} — correctness ${scores.correctness}/100 · craft ${scores.craft}/100 · ` +
+    `${counts.error} error(s), ${counts.warning} warning(s), ${counts.info} craft note(s)` +
     (suppressed ? `, ${suppressedTotal} suppressed` : '');
   const suppressedLines = (suppressed ?? []).map(formatSuppressed);
   const body = [...findings.map(formatFinding), ...suppressedLines];

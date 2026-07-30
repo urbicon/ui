@@ -66,13 +66,13 @@ const VERBS: VerbSpec[] = [
   {
     name: 'polish',
     summary:
-      'Tighten a near-final page: small token-level fixes that raise the slop-floor score without restructuring.',
+      'Tighten a near-final page: small token-level fixes that raise the craft score without restructuring.',
     args: ['brief', 'code']
   },
   {
     name: 'critique',
     summary:
-      'Judge a page without changing it: correctness + slop-floor + rubric → a prioritised fix-list, each item tagged with the verb that repairs it.',
+      'Judge a page without changing it: correctness + craft + rubric → a prioritised fix-list, each item tagged with the verb that repairs it.',
     args: ['brief', 'code']
   },
   {

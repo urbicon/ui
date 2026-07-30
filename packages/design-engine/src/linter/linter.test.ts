@@ -252,7 +252,7 @@ describe('heuristics', () => {
   });
 });
 
-describe('slop-floor rules', () => {
+describe('craft-floor rules', () => {
   it('generic-font: flags hardcoded stacks, not family tokens', () => {
     expect(has(lintDesign('<div class="font-[\'Arial\']">x</div>').findings, 'generic-font')).toBe(
       true
@@ -433,16 +433,16 @@ describe('slop-floor rules', () => {
     );
   });
 
-  it('scores slop, never correctness — and fires at most once per repeated sin', () => {
-    // Three inline paint styles are one slop verdict (flat SLOP_WEIGHT), not three.
+  it('scores craft, never correctness — and fires at most once per repeated sin', () => {
+    // Three inline paint styles are one craft note (flat CRAFT_PENALTY), not three.
     const code =
       '<div style="color: red">a</div><div style="color: blue">b</div><div style="background: green">c</div>';
     const { findings, scores } = lintDesign(code);
     const inline = findings.filter((f) => f.ruleId === 'inline-style');
     expect(inline).toHaveLength(1);
     expect(inline[0]?.kind).toBe('heuristic');
-    expect(scores.correctness).toBe(100); // pure slop, correctness untouched
-    expect(scores.slop).toBe(90); // one −10, not −30
+    expect(scores.correctness).toBe(100); // pure craft, correctness untouched
+    expect(scores.craft).toBe(90); // one −10, not −30
   });
 });
 
@@ -486,7 +486,7 @@ describe('heading-skip — component-rendered headings', () => {
 });
 
 describe('teaching-code masking (heuristic path)', () => {
-  it('slop inside code={`…`} does not fire, but the same pattern in real markup does', () => {
+  it('a craft note inside code={`…`} does not fire, but the same pattern in real markup does', () => {
     expect(
       has(lintDesign('code={`<div class="transition-all">x</div>`}').findings, 'transition-all')
     ).toBe(false);
@@ -507,7 +507,7 @@ describe('teaching-code masking (heuristic path)', () => {
     ).toBe(false);
   });
   it('masks across a `</scr` + `ipt>` concatenation split (both chained literals)', () => {
-    // The corpus splits </script> to survive the Svelte parser; the slop lives in the
+    // The corpus splits </script> to survive the Svelte parser; the craft note lives in the
     // second literal, so a single-literal mask would leak it.
     expect(
       has(
@@ -525,7 +525,7 @@ describe('teaching-code masking (heuristic path)', () => {
   });
   it('honours backslash-escaped backticks inside example code (mask not cut short)', () => {
     // `code={`… class={\`transition-all\`} …`}` — the escaped inner backticks must
-    // not be read as the terminator, or the tail (with the slop) would leak.
+    // not be read as the terminator, or the tail (with the craft note) would leak.
     expect(
       has(
         lintDesign('code={`<span class={\\`transition-all\\`}>x</span>`}').findings,
@@ -539,8 +539,8 @@ describe('teaching-code masking (heuristic path)', () => {
     expect(has(lintDesign(code).findings, 'transition-all')).toBe(true);
   });
   it('leaves the deterministic rules scanning example code (separate, open debt)', () => {
-    // Only the slop axis is masked. `focus:` (deterministic) still fires inside the
-    // example; `transition-all` (slop) does not — documenting the scope boundary.
+    // Only the craft axis is masked. `focus:` (deterministic) still fires inside the
+    // example; `transition-all` (craft) does not — documenting the scope boundary.
     const { findings } = lintDesign(
       'code={`<button class="focus:ring-2 transition-all">x</button>`}'
     );
@@ -554,7 +554,7 @@ describe('teaching-code masking (heuristic path)', () => {
       '<h1>A</h1>', // 3  masked (would be a skip with the h4 below)
       '<h4>B</h4>', // 4  masked
       '`}', // 5  teaching ends
-      '<div class="transition-all">real</div>' // 6  real slop
+      '<div class="transition-all">real</div>' // 6  real craft note
     ].join('\n');
     const f = lintDesign(code).findings.find((x) => x.ruleId === 'transition-all');
     expect(f?.line).toBe(6);
@@ -587,7 +587,7 @@ describe('scoring (two axes)', () => {
   it('scores clean code 100/100 on both axes', () => {
     const { scores } = lintDesign('<div class="bg-surface-base text-text-primary">clean</div>');
     expect(scores.correctness).toBe(100);
-    expect(scores.slop).toBe(100);
+    expect(scores.craft).toBe(100);
   });
   it('deducts correctness per finding and floors at 0', () => {
     const oneError = lintDesign('<div class="bg-blue-500">');
@@ -598,18 +598,18 @@ describe('scoring (two axes)', () => {
     );
     expect(many.scores.correctness).toBe(0);
   });
-  it('scores slop on its own axis, leaving correctness untouched', () => {
-    // An intent rainbow is pure slop — the tokens are all valid, so correctness stays 100.
+  it('scores craft on its own axis, leaving correctness untouched', () => {
+    // An intent rainbow is a pure craft note — the tokens are all valid, so correctness stays 100.
     const code =
       '<div class="bg-primary"></div><div class="bg-success"></div><div class="bg-warning"></div><div class="bg-danger"></div>';
     const { scores } = lintDesign(code);
     expect(scores.correctness).toBe(100);
-    expect(scores.slop).toBeLessThan(100);
+    expect(scores.craft).toBeLessThan(100);
   });
-  it('does not let a clean slop axis hide a correctness defect (never mixed)', () => {
+  it('does not let a clean craft axis hide a correctness defect (never mixed)', () => {
     const { scores } = lintDesign('<div class="bg-blue-500">solo defect</div>');
     expect(scores.correctness).toBeLessThan(100);
-    expect(scores.slop).toBe(100);
+    expect(scores.craft).toBe(100);
   });
   it('reports severity counts', () => {
     const { counts } = lintDesign('<div class="bg-blue-500 bg-status-x">');

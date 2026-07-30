@@ -30,9 +30,9 @@ as an MCP prompt with identical body text — pick whichever your harness expose
 | --- | --- | --- |
 | Start a greenfield project, set its design identity | `onboard` | — |
 | Bring an existing codebase under the design system | `adopt` | — |
-| Build a new page or component from a brief | `compose` | correctness + slop + rubric |
-| Rework an existing page that feels wrong | `redesign` | correctness + slop + rubric |
-| Tighten a page that is already close | `polish` | slop-floor |
+| Build a new page or component from a brief | `compose` | correctness + craft + rubric |
+| Rework an existing page that feels wrong | `redesign` | correctness + craft + rubric |
+| Tighten a page that is already close | `polish` | craft floor |
 | Judge a page without changing it | `critique` | (assessment only) |
 | Repair broken tokens / `dark:` / `focus:` / z-index | `fix` | correctness |
 | Rebrand the system (colour, type, density) | `retheme` | correctness over affected files |
@@ -52,7 +52,7 @@ command list with flags; the MCP server exposes the same surface as tools.
   reference, the design principles (`--rubric` for the 8-criterion scorer, `--topic theming`
   for a paradigm's token profile).
 - **Judgment** — `urbicon validate` / remote `validate_design`: two axes either way,
-  correctness (the blocking gate) + slop-floor (advisory). It reads the project's
+  correctness (the blocking gate) + craft (advisory). It reads the project's
   `## Token Overrides` itself, so project tokens are not flagged as hallucinated. Also runs
   as the PostToolUse hook and the CI gate.
 - **Memory** — `urbicon context` / `record-decision` / `sync-manifest`, or your own file tools

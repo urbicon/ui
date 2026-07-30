@@ -2,11 +2,15 @@
   The Agents exhibit: a terminal replay of the agent building BookingCard,
   while the real card materialises beneath it — live components, not a video.
 
-  Honesty contract: the two ✓/score lines are REAL output, recorded 2026-07-30
+  Honesty contract: the two ✓/score lines are REAL output, re-recorded 2026-07-30
   against the exact file this tile renders —
-  `bunx urbicon validate src/lib/salon/BookingCard.svelte` (urbicon 6.44.0) —
-  quoted verbatim, minus the repeated file path. When BookingCard changes,
-  re-run the command and update the two lines.
+  `bunx urbicon validate src/lib/salon/BookingCard.svelte` — quoted verbatim,
+  minus the repeated file path. When BookingCard changes, re-run the command and
+  update the two lines.
+
+  Recorded against the working-tree build of the CLI at version 6.44.0, right
+  after the second score axis was renamed `slop` → `craft` (2026-07-30). A
+  published 6.44.0 still prints `slop`; the next release carries the new wording.
 -->
 <script lang="ts">
   import { MediaQuery } from 'svelte/reactivity';
@@ -37,7 +41,7 @@
       pause: 1000
     },
     {
-      text: 'correctness 100/100 · slop 100/100 · 0 error(s), 0 warning(s), 0 slop note(s)',
+      text: 'correctness 100/100 · craft 100/100 · 0 error(s), 0 warning(s), 0 craft note(s)',
       kind: 'ok',
       pause: 300
     },

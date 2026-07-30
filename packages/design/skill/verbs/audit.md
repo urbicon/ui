@@ -9,7 +9,7 @@ manifest usage-index, which no single-page or system-agnostic tool can do.
    `urbicon sync-manifest` so the Pattern Usages index reflects the current tree.
 2. **Validate the tree.** `urbicon validate src/ --json --record` over the whole app.
    `--record` appends a drift entry to the history sidecar; `urbicon context` then
-   shows the correctness/slop trend over time — the measure of whether the app is
+   shows the correctness/craft trend over time — the measure of whether the app is
    getting more or less generic.
 3. **Check each pattern cohort.** For every pattern in the usage-index, read the files
    listed under it and confirm they actually follow that pattern's rules
@@ -19,7 +19,7 @@ manifest usage-index, which no single-page or system-agnostic tool can do.
    and score them with `urbicon principles --rubric` (MCP:
    `get_design_principles(as="rubric")`). Look for *spread* — wide
    variance across pages is the consistency problem, even if each page passes alone.
-5. **Report drift, don't fix it.** Produce: the app-wide correctness/slop scores and
+5. **Report drift, don't fix it.** Produce: the app-wide correctness/craft scores and
    their trend; per-pattern conformance; the rubric spread; and a ranked list of the
    worst offenders, each tagged with the verb that repairs it (`fix`, `polish`,
    `redesign`, `retheme`).

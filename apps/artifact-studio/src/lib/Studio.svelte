@@ -125,7 +125,7 @@
           clean: counts.error === 0 && !event.compileError,
           text: event.compileError
             ? `kompiliert nicht: ${event.compileError}`
-            : `${counts.error} E / ${counts.warning} W · correctness ${scores.correctness} · slop ${scores.slop}`
+            : `${counts.error} E / ${counts.warning} W · correctness ${scores.correctness} · craft ${scores.craft}`
         });
         break;
       }
@@ -308,7 +308,7 @@
           {#if current}
             <span class="ml-2 font-mono text-xs text-text-tertiary">
               {current.lint.counts.error} E / {current.lint.counts.warning} W · correctness {current
-                .lint.scores.correctness} · slop {current.lint.scores.slop} ·
+                .lint.scores.correctness} · craft {current.lint.scores.craft} ·
               {(current.durationMs / 1000).toFixed(0)} s + {(current.buildMs / 1000).toFixed(1)} s Build
             </span>
           {/if}

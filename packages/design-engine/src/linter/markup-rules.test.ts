@@ -14,7 +14,7 @@ describe('api-hallucination (F-J)', () => {
     const f = apiFindings('<Button tone="primary">Go</Button>');
     expect(f).toHaveLength(1);
     expect(f[0]!.severity).toBe('warning');
-    expect(f[0]!.kind).toBe('deterministic'); // scores against correctness, not slop
+    expect(f[0]!.kind).toBe('deterministic'); // scores against correctness, not craft
     expect(f[0]!.match).toBe('tone');
     expect(f[0]!.fix).toContain('intent');
     expect(f[0]!.line).toBe(1);

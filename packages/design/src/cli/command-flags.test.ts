@@ -14,10 +14,12 @@ import { readFile } from 'node:fs/promises';
 import { describe, expect, it } from 'vitest';
 import { BOOLEAN_FLAGS } from './args.js';
 import {
+  applyFlagAliases,
   COMMAND_FLAGS,
   COMMAND_POSITIONALS,
   checkFlags,
   checkPositionals,
+  DEPRECATED_FLAG_ALIASES,
   GLOBAL_FLAGS,
   QUERY_ALIAS_COMMANDS
 } from './command-flags.js';
@@ -40,7 +42,7 @@ function flagsDocumentedInHelp(): Map<string, Set<string>> {
     }
     if (!current) continue;
     // Only flags introduced as their own entry (`--flag <v>  description`);
-    // prose mentions like "(--strict, --slop-floor)" restate, they don't declare.
+    // prose mentions like "(--strict, --craft-floor)" restate, they don't declare.
     const declared = /^\s{20,}(--[a-z-]+)/.exec(line);
     if (declared?.[1]) documented.get(current)?.add(declared[1].slice(2));
   }
@@ -201,6 +203,57 @@ describe('checkPositionals', () => {
 
   it("passes an unknown command through — that is index.ts' error to report", () => {
     expect(checkPositionals('nonsense', ['x'])).toEqual({ ok: true, positionals: ['x'] });
+  });
+});
+
+describe('applyFlagAliases', () => {
+  it('folds the pre-rename --slop-floor into --craft-floor, keeping the value', () => {
+    const flags: Record<string, string | boolean> = { 'slop-floor': '40', json: true };
+    const notices = applyFlagAliases('validate', flags);
+
+    expect(flags).toEqual({ 'craft-floor': '40', json: true });
+    expect(notices).toHaveLength(1);
+    expect(notices[0]).toContain('--slop-floor');
+    expect(notices[0]).toContain('--craft-floor');
+    // …and the folded flag then passes the unknown-flag check, which is the point:
+    // without the alias this is exit 2 with a hint the Levenshtein guard cannot give.
+    expect(checkFlags('validate', flags, []).ok).toBe(true);
+  });
+
+  it('accepts the current spelling silently — no notice, no rewrite', () => {
+    const flags: Record<string, string | boolean> = { 'craft-floor': '40' };
+    expect(applyFlagAliases('validate', flags)).toEqual([]);
+    expect(flags).toEqual({ 'craft-floor': '40' });
+    expect(checkFlags('validate', flags, []).ok).toBe(true);
+  });
+
+  it('applies to `hook` as well — the wiring most likely to be pinned in a config', () => {
+    const flags: Record<string, string | boolean> = { 'slop-floor': '60' };
+    expect(applyFlagAliases('hook', flags)).toHaveLength(1);
+    expect(flags['craft-floor']).toBe('60');
+  });
+
+  it('lets an explicit --craft-floor win rather than fighting over the value', () => {
+    const flags: Record<string, string | boolean> = { 'slop-floor': '10', 'craft-floor': '90' };
+    const notices = applyFlagAliases('validate', flags);
+    expect(flags).toEqual({ 'craft-floor': '90' });
+    expect(notices[0]).toContain('wins');
+  });
+
+  it('leaves commands that never had the flag alone, so the error names what was typed', () => {
+    const flags: Record<string, string | boolean> = { 'slop-floor': '40' };
+    expect(applyFlagAliases('find', flags)).toEqual([]);
+    expect(checkFlags('find', flags, []).ok === false).toBe(true);
+  });
+
+  it('stays out of HELP and COMMAND_FLAGS — accepted, never advertised', () => {
+    for (const [old, current] of Object.entries(DEPRECATED_FLAG_ALIASES)) {
+      for (const flags of Object.values(COMMAND_FLAGS)) {
+        expect(flags, `${old} must not be an advertised flag`).not.toContain(old);
+      }
+      expect(HELP, `${old} must not be taught in HELP`).not.toContain(`--${old}`);
+      expect(HELP, `${current} is the name to teach`).toContain(`--${current}`);
+    }
   });
 });
 

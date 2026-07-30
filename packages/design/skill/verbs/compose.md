@@ -2,7 +2,7 @@
 
 **When:** building something new. Runs the full generate → validate → judge →
 synthesise loop so a single-shot answer can't regress to a generic template.
-**Gate:** correctness (blocking) + slop-floor (advisory) + the rubric.
+**Gate:** correctness (blocking) + craft floor (advisory) + the rubric.
 
 Do not skip steps. The value is in the loop, not any one generation.
 
@@ -24,8 +24,8 @@ Do not skip steps. The value is in the loop, not any one generation.
    invented names); if the project defines its own, they're in `## Token Overrides`.
 4. **Validate.** Run `urbicon validate` (or the `validate_design` MCP tool) on every
    variant. Fix each error and warning. A variant that can't reach a clean
-   correctness score is disqualified. Note each one's slop-floor score — lower is
-   more generic.
+   correctness score is disqualified. Note each one's craft score — the lower it is,
+   the more the variant reads as generic defaults.
 5. **Judge.** `urbicon principles --rubric` (MCP: `get_design_principles(as="rubric")`)
    and score each survivor /40. Prefer a panel: judge correctness, hierarchy,
    paradigm-fidelity, and distinctiveness as separate lenses, not one gut number.

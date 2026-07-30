@@ -3,6 +3,8 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { Readable } from 'node:stream';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { applyFlagAliases } from '../command-flags.js';
+import { printError } from '../output.js';
 import { runValidate } from './validate.js';
 
 describe('urbicon validate', () => {
@@ -89,8 +91,8 @@ describe('urbicon validate', () => {
     expect(await runValidate(['-'], {})).toBe(1);
   });
 
-  it('gates the slop axis only when --slop-floor is given (F-S6-3)', async () => {
-    // A token-correct but generic page: many slop notes, zero correctness errors.
+  it('gates the craft axis only when --craft-floor is given (F-S6-3)', async () => {
+    // A token-correct but generic page: many craft notes, zero correctness errors.
     const file = join(dir, 'Generic.svelte');
     await writeFile(
       file,
@@ -98,29 +100,66 @@ describe('urbicon validate', () => {
         '  <p style="text-align: center">Lorem ipsum dolor sit amet</p>\n' +
         '</div>\n'
     );
-    // Advisory by default: slop notes never fail the gate.
+    // Advisory by default: craft notes never fail the gate.
     expect(await runValidate([file], {})).toBe(0);
-    // With a floor, a low slop score fails — opt-in enforcement.
-    expect(await runValidate([file], { 'slop-floor': '90' })).toBe(1);
+    // With a floor, a low craft score fails — opt-in enforcement.
+    expect(await runValidate([file], { 'craft-floor': '90' })).toBe(1);
     // A floor the page clears passes.
-    expect(await runValidate([file], { 'slop-floor': '0' })).toBe(0);
+    expect(await runValidate([file], { 'craft-floor': '0' })).toBe(0);
   });
 
-  it('rejects a malformed --slop-floor as a usage error (exit 2)', async () => {
+  it('rejects a malformed --craft-floor as a usage error (exit 2)', async () => {
     const file = join(dir, 'Clean.svelte');
     await writeFile(file, '<button class="px-4 py-2">Save</button>\n');
-    expect(await runValidate([file], { 'slop-floor': '101' })).toBe(2);
-    expect(await runValidate([file], { 'slop-floor': 'abc' })).toBe(2);
-    expect(await runValidate([file], { 'slop-floor': true })).toBe(2); // bare flag, no number
+    expect(await runValidate([file], { 'craft-floor': '101' })).toBe(2);
+    expect(await runValidate([file], { 'craft-floor': 'abc' })).toBe(2);
+    expect(await runValidate([file], { 'craft-floor': true })).toBe(2); // bare flag, no number
   });
 
-  it('carries slopFloor in the --json envelope', async () => {
+  it('gates identically under the pre-rename --slop-floor spelling', async () => {
+    // Both spellings, one verdict: `index.ts` folds the deprecated flag before
+    // dispatch, so a CI step pinned to the old name keeps gating instead of
+    // exiting 2 with "unknown flag".
+    const file = join(dir, 'Generic.svelte');
+    await writeFile(
+      file,
+      '<div style="font-family: Arial; color: #888">\n' +
+        '  <p style="text-align: center">Lorem ipsum dolor sit amet</p>\n' +
+        '</div>\n'
+    );
+    const legacy: Record<string, string | boolean> = { 'slop-floor': '90' };
+    applyFlagAliases('validate', legacy);
+    expect(await runValidate([file], legacy)).toBe(1);
+    expect(await runValidate([file], { 'craft-floor': '90' })).toBe(1);
+  });
+
+  it('keeps the deprecation notice off stdout, so --json stays parseable', async () => {
     const file = join(dir, 'Clean.svelte');
     await writeFile(file, '<button class="px-4 py-2">Save</button>\n');
-    await runValidate([file], { json: true, 'slop-floor': '40' });
+
+    const flags: Record<string, string | boolean> = { json: true, 'slop-floor': '40' };
+    for (const notice of applyFlagAliases('validate', flags)) printError(notice);
+    await runValidate([file], flags);
+
     const out = log.mock.calls.map((call: unknown[]) => call[0]).join('\n');
-    const parsed = JSON.parse(out) as { slopFloor: number | null; ok: boolean };
-    expect(parsed.slopFloor).toBe(40);
+    expect(() => JSON.parse(out)).not.toThrow(); // the notice went to stderr
+    expect(out).not.toContain('deprecated');
+    expect((JSON.parse(out) as { craftFloor: number | null }).craftFloor).toBe(40);
+
+    const err = (console.error as unknown as ReturnType<typeof vi.fn>).mock.calls
+      .map((call: unknown[]) => String(call[0]))
+      .join('\n');
+    expect(err).toContain('--slop-floor');
+    expect(err).toContain('--craft-floor');
+  });
+
+  it('carries craftFloor in the --json envelope', async () => {
+    const file = join(dir, 'Clean.svelte');
+    await writeFile(file, '<button class="px-4 py-2">Save</button>\n');
+    await runValidate([file], { json: true, 'craft-floor': '40' });
+    const out = log.mock.calls.map((call: unknown[]) => call[0]).join('\n');
+    const parsed = JSON.parse(out) as { craftFloor: number | null; ok: boolean };
+    expect(parsed.craftFloor).toBe(40);
     expect(parsed.ok).toBe(true);
   });
 

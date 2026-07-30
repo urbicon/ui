@@ -562,11 +562,11 @@ function formatDrift(history: ValidationHistoryEntry[]): string {
   if (!last) return '';
   let md = '## Validation Drift\n\n';
   md +=
-    `Last run (${last.date}): correctness ${last.correctness}/100 · slop ${last.slop}/100 — ` +
+    `Last run (${last.date}): correctness ${last.correctness}/100 · craft ${last.craft}/100 — ` +
     `${last.files} file(s), ${last.errors} error(s), ${last.warnings} warning(s).\n`;
   if (recent.length > 1) {
     md += `\nRecent correctness: ${recent.map((e) => e.correctness).join(' → ')}\n`;
-    md += `Recent slop-floor:  ${recent.map((e) => e.slop).join(' → ')}\n`;
+    md += `Recent craft:       ${recent.map((e) => e.craft).join(' → ')}\n`;
   }
   return md;
 }

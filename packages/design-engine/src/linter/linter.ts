@@ -31,14 +31,15 @@ export const SCORE_WEIGHTS: Record<Severity, number> = {
 };
 
 /**
- * Flat deduction per slop-floor heuristic on the **slop** axis. Unlike correctness
- * defects (counted per occurrence — every raw colour is its own bug), each slop
+ * Flat deduction per craft heuristic on the **craft** axis. Unlike correctness
+ * defects (counted per occurrence — every raw colour is its own bug), each craft
  * heuristic fires at most once and is one holistic judgement about the page, so
- * one flat weight regardless of repetition. Tuned so a page tripping ~5 distinct
- * slop signals lands mid-scale (≈50). Kept separate from SCORE_WEIGHTS so the two
- * axes can be tuned independently.
+ * one flat penalty regardless of repetition. Tuned so a page tripping ~5 distinct
+ * craft notes lands mid-scale (≈50). Kept separate from SCORE_WEIGHTS so the two
+ * axes can be tuned independently. A deduction, not a virtue — the name says which
+ * direction it moves the score.
  */
-export const SLOP_WEIGHT = 10;
+export const CRAFT_PENALTY = 10;
 
 /**
  * Blank out comment bodies while preserving newlines (so line numbers stay
@@ -103,22 +104,22 @@ export function lintDesign(code: string, opts: LintOptions = {}): LintReport {
   });
 
   // Two axes, never mixed (§6): deterministic findings deduct from correctness
-  // (per occurrence, weighted by severity), heuristic findings from slop (flat per
+  // (per occurrence, weighted by severity), heuristic findings from craft (flat per
   // finding). `kind`, not `severity`, decides the axis — so a future deterministic
   // `info` would still score against correctness, where it belongs. Suppressed
   // findings are already partitioned out: they neither count nor score, but stay
   // visible in `report.suppressed`.
   const counts = { error: 0, warning: 0, info: 0 };
   let correctnessDeduction = 0;
-  let slopDeduction = 0;
+  let craftDeduction = 0;
   for (const f of kept) {
     counts[f.severity]++;
-    if (f.kind === 'heuristic') slopDeduction += SLOP_WEIGHT;
+    if (f.kind === 'heuristic') craftDeduction += CRAFT_PENALTY;
     else correctnessDeduction += SCORE_WEIGHTS[f.severity];
   }
   const scores: LintScores = {
     correctness: Math.max(0, 100 - correctnessDeduction),
-    slop: Math.max(0, 100 - slopDeduction)
+    craft: Math.max(0, 100 - craftDeduction)
   };
 
   const report: LintReport = { findings: kept, scores, counts, filename: opts.filename };

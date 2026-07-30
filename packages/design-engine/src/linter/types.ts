@@ -86,7 +86,7 @@ export interface Rule {
 
 /**
  * Two-axis design score (DESIGN-MCP-V2 §6: "two tracks, never mixed"). Each axis
- * is an independent 0–100 so a correctness defect never hides behind a clean slop
+ * is an independent 0–100 so a correctness defect never hides behind a clean craft
  * axis, and a generic-looking page never passes just because its tokens are valid.
  */
 export interface LintScores {
@@ -98,12 +98,12 @@ export interface LintScores {
    */
   correctness: number;
   /**
-   * Stage 2 — "does it look generic?". Deducts the system-agnostic slop-floor
+   * Stage 2 — "does it look considered?". Deducts the system-agnostic craft
    * heuristics (the `heuristic`-kind findings). Each heuristic is one holistic
-   * judgement about the page, so it costs a flat weight once, regardless of how
+   * judgement about the page, so it costs a flat penalty once, regardless of how
    * many times the pattern repeats.
    */
-  slop: number;
+  craft: number;
 }
 
 /**

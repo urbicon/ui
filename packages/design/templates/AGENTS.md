@@ -26,7 +26,7 @@ installed**, so it is true of the code you actually have. If the hosted docs or 
 3. **Compose** from real components and semantic tokens. `bunx urbicon css-reference` is the
    token truth; `pattern <name>` gives you the shape of a page archetype.
 4. **Validate** — `bunx urbicon validate <path>`. Fix every correctness error before you
-   ship. (Slop notes are advisory — take them when they're cheap.)
+   ship. (Craft notes are advisory — take them when they're cheap.)
 5. **Write the decision back** — `bunx urbicon record-decision` for a deliberate deviation.
    What the next session can't see, it will silently undo.
 

@@ -217,8 +217,8 @@ describe('code-view scoping — specificity (quoting is not violating)', () => {
     expect(has(lintDesign(code).findings, 'raw-tailwind-color')).toBe(true);
   });
 
-  it('heuristics keep their whole-file view (style attrs still count for slop)', () => {
-    // The slop axis is advisory and deliberately unscoped — generic-font on an
+  it('heuristics keep their whole-file view (style attrs still count for craft)', () => {
+    // The craft axis is advisory and deliberately unscoped — generic-font on an
     // inline style attribute must keep firing.
     const code = '<div style="font-family: Helvetica, sans-serif">x</div>';
     expect(has(lintDesign(code).findings, 'generic-font')).toBe(true);

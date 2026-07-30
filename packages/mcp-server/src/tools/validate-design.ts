@@ -6,7 +6,7 @@ import { z } from 'zod';
 const SEVERITY_LABEL: Record<Severity, string> = {
   error: '🔴 Errors',
   warning: '🟠 Warnings',
-  info: '🔵 Slop-floor'
+  info: '🔵 Craft'
 };
 
 function renderFindings(findings: Finding[], severity: Severity): string {
@@ -43,13 +43,13 @@ function renderReport(report: LintReport): string {
 
   let md = `# Design Validation — ${verdict}\n\n`;
   if (filename) md += `> \`${filename}\`\n\n`;
-  md += `**Correctness ${scores.correctness}/100 · Slop-floor ${scores.slop}/100** · ${counts.error} error(s), ${counts.warning} warning(s), ${counts.info} slop note(s)\n\n`;
+  md += `**Correctness ${scores.correctness}/100 · Craft ${scores.craft}/100** · ${counts.error} error(s), ${counts.warning} warning(s), ${counts.info} craft note(s)\n\n`;
   md +=
-    'Two axes, never mixed: **correctness** is the blocking gate (fix every error/warning to pass); **slop-floor** is advisory — system-agnostic "looks generic" signals to raise distinctiveness.\n\n';
+    'Two axes, never mixed: **correctness** is the blocking gate (fix every error/warning to pass); **craft** is advisory — system-agnostic "looks generic" signals to raise distinctiveness.\n\n';
 
   if (findings.length === 0) {
     md +=
-      'No issues found. Tokens are valid, no `dark:`/`focus:`/hardcoded z-index, and the slop-floor heuristics are satisfied.\n';
+      'No issues found. Tokens are valid, no `dark:`/`focus:`/hardcoded z-index, and the craft heuristics are satisfied.\n';
     md += renderSuppressed(report);
     return md;
   }
@@ -81,7 +81,7 @@ function renderReport(report: LintReport): string {
 export function registerValidateDesignTool(server: McpServer): void {
   server.tool(
     'validate_design',
-    'Lint generated Svelte/HTML markup against the Urbicon UI design rules. Two axes, never mixed: (1) **correctness** — deterministic defects (raw Tailwind colours, `dark:`/`focus:` misuse, hardcoded z-index, broken dynamic classes, hallucinated tokens, foreign-library component APIs like `tone=`/`variant="outline"`, icon-only buttons with no accessible name), the blocking gate; (2) **slop-floor** — system-agnostic "looks generic" heuristics (generic fonts, animated width/height, magic-number sizes, low-contrast text on colour, inline styles, `!important`, placeholder copy, emoji-as-icon, heading-level skips, small touch targets, intent-colour rainbow, uniform spacing/weights, identical Cards), advisory. Returns a correctness score and a slop-floor score (both 0–100; correctness −10/error, −5/warning; slop −10 per signal; floored) plus per-finding fixes. Run in a generate → validate → fix loop after producing UI code. Pass `extraTokens` to whitelist semantic tokens your project defines on top of Urbicon’s so they are not flagged as hallucinated. Class rules scan class attributes, slotClasses and tv()/script literals — prose that merely *quotes* an anti-pattern (docs, before/after examples) is not flagged. A deliberately off-system surface can exempt specific rules in-file via `<!-- urbicon-ignore rule-id … — reason -->`; suppressions are always reported, never silent.',
+    'Lint generated Svelte/HTML markup against the Urbicon UI design rules. Two axes, never mixed: (1) **correctness** — deterministic defects (raw Tailwind colours, `dark:`/`focus:` misuse, hardcoded z-index, broken dynamic classes, hallucinated tokens, foreign-library component APIs like `tone=`/`variant="outline"`, icon-only buttons with no accessible name), the blocking gate; (2) **craft** — system-agnostic "looks generic" heuristics (generic fonts, animated width/height, magic-number sizes, low-contrast text on colour, inline styles, `!important`, placeholder copy, emoji-as-icon, heading-level skips, small touch targets, intent-colour rainbow, uniform spacing/weights, identical Cards), advisory. Returns a correctness score and a craft score (both 0–100; correctness −10/error, −5/warning; craft −10 per signal; floored) plus per-finding fixes. Run in a generate → validate → fix loop after producing UI code. Pass `extraTokens` to whitelist semantic tokens your project defines on top of Urbicon’s so they are not flagged as hallucinated. Class rules scan class attributes, slotClasses and tv()/script literals — prose that merely *quotes* an anti-pattern (docs, before/after examples) is not flagged. A deliberately off-system surface can exempt specific rules in-file via `<!-- urbicon-ignore rule-id … — reason -->`; suppressions are always reported, never silent.',
     {
       code: z
         .string()

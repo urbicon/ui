@@ -171,15 +171,15 @@ describe('urbicon manifest commands', () => {
         warnings: 0,
         infos: 1,
         correctness: 100,
-        slop: 80
+        craft: 80
       })}\n`
     );
 
     log.mockClear();
     await runContext([], { manifest, json: true });
     const out = log.mock.calls.map((call: unknown[]) => call[0]).join('\n');
-    const parsed = JSON.parse(out) as { history: { slop: number }[] };
-    expect(parsed.history[0]?.slop).toBe(80);
+    const parsed = JSON.parse(out) as { history: { craft: number }[] };
+    expect(parsed.history[0]?.craft).toBe(80);
   });
 
   it('sync-manifest indexes data-design-pattern markers', async () => {

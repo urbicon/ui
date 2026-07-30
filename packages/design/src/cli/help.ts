@@ -108,10 +108,10 @@ Commands:
                         manifest ## Exempt bullet ("path" — "rule-id" — reason).
                         Suppressions are always reported ("n suppressed"), never
                         silent; unknown rule ids warn (invalid-suppression).
-                        --json             Machine-readable report ({ ok, slopFloor, results }).
+                        --json             Machine-readable report ({ ok, craftFloor, results }).
                         --strict           Fail on warnings too, not just errors.
-                        --slop-floor <n>   Also fail any file scoring below n/100 on the
-                                           slop axis (0–100; off by default — slop is advisory).
+                        --craft-floor <n>  Also fail any file scoring below n/100 on the
+                                           craft axis (0–100; off by default — craft is advisory).
                         --skip-heuristics  Deterministic rules only (no distribution notes).
                         --record           Append a drift entry to the sidecar history (CI).
                         --manifest <path>  Manifest for token overrides + history
@@ -121,7 +121,7 @@ Commands:
                         findings on stderr so the agent self-corrects.
                         Wire it via .claude/settings.json (see templates/).
                         --strict           Fail on warnings too, not just errors.
-                        --slop-floor <n>   Also fail below n/100 on the slop axis.
+                        --craft-floor <n>  Also fail below n/100 on the craft axis.
                         --skip-heuristics  Deterministic rules only.
                         --manifest <path>  Manifest for token overrides
                                            (default ./design.manifest.md).
@@ -210,7 +210,7 @@ Exit codes:
 
 Examples:
   urbicon validate src/                          # CI: lint a whole tree
-  urbicon validate src/ --slop-floor 40 --json   # CI: gate correctness + slop
+  urbicon validate src/ --craft-floor 40 --json  # CI: gate correctness + craft
   urbicon validate App.svelte --strict           # fail on warnings too
   cat Page.svelte | urbicon validate -           # lint stdin
   urbicon record-decision --title "Tabs for settings" --decision "Use Tab over Sidebar"

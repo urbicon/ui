@@ -96,9 +96,9 @@ on the consumer side (this CLI, or the agent's own write tools). See
 ```bash
 urbicon validate src/                    # lint a whole tree (CI)
 urbicon validate App.svelte --strict     # fail on warnings too, not just errors
-urbicon validate src/ --slop-floor 40    # also fail files scoring < 40/100 on slop
+urbicon validate src/ --craft-floor 40   # also fail files scoring < 40/100 on craft
 cat Page.svelte | urbicon validate -     # lint stdin
-urbicon validate src/ --json             # machine-readable: { ok, slopFloor, results }
+urbicon validate src/ --json             # machine-readable: { ok, craftFloor, results }
 urbicon validate src/ --record           # also append a drift entry to the history (CI)
 ```
 
@@ -138,10 +138,10 @@ nothing is marked stale, and an unknown rule id raises an
 
 The linter scores two independent axes (DESIGN-MCP-V2 §6): **correctness** (raw
 colours, `dark:`/`focus:`, hallucinated tokens — deterministic, always the
-blocking gate) and **slop** (20 "looks generic" heuristics — advisory by default,
-because they are FP-prone). `--slop-floor <n>` opts the slop axis into the gate:
+blocking gate) and **craft** (20 "looks generic" heuristics — advisory by default,
+because they are FP-prone). `--craft-floor <n>` opts the craft axis into the gate:
 any file scoring below `n` fails, checked per file so one generic page cannot hide
-behind clean ones. Leave it off and slop stays informational.
+behind clean ones. Leave it off and craft stays informational.
 
 Exit codes — designed for hooks and CI:
 
@@ -277,7 +277,7 @@ findings are fed back to the agent to fix; a clean edit is silent. Merge
 }
 ```
 
-Add `--slop-floor 40` to the command to gate the slop axis too. (`urbicon hook`
+Add `--craft-floor 40` to the command to gate the craft axis too. (`urbicon hook`
 reads the edited path from the hook event on stdin — it does not take path
 arguments.)
 
@@ -287,7 +287,7 @@ to an existing workflow:
 
 ```bash
 bunx urbicon validate src/ --json              # correctness gate (blocking)
-# add --slop-floor 40 to also gate the slop axis — one run, correctness is always on
+# add --craft-floor 40 to also gate the craft axis — one run, correctness is always on
 ```
 
 ## Notes

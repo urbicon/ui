@@ -8,7 +8,7 @@
  * It reads that event, pulls the edited file out of `tool_input.file_path`, and —
  * when the edit touched a `.svelte` file — lints it with the same engine `validate`
  * uses (so hook and CI verdicts agree). Accepts the same gate flags as `validate`
- * (`--strict`, `--slop-floor`, `--skip-heuristics`, `--manifest`).
+ * (`--strict`, `--craft-floor`, `--skip-heuristics`, `--manifest`).
  *
  * Exit codes follow the Claude Code hook protocol, NOT the CLI's: a gate failure
  * exits **2**, the one code that makes Claude Code feed this process's stderr back
@@ -29,7 +29,7 @@ import { resolve } from 'node:path';
 import type { LintReport } from '@urbicon-ui/design-engine/linter';
 import { lintDesign } from '@urbicon-ui/design-engine/linter';
 import { boolFlag, type Flags, stringFlag } from '../args.js';
-import { evaluateGate, parseSlopFloor } from '../gate.js';
+import { evaluateGate, parseCraftFloor } from '../gate.js';
 import {
   exemptRulesFor,
   readExempts,
@@ -62,11 +62,11 @@ function editedPaths(event: unknown): string[] {
 }
 
 export async function runHook(_positionals: string[], flags: Flags): Promise<number> {
-  const slopFloor = parseSlopFloor(flags['slop-floor']);
-  if (slopFloor === 'invalid') {
+  const craftFloor = parseCraftFloor(flags['craft-floor']);
+  if (craftFloor === 'invalid') {
     // A misconfigured hook command — surface it loudly (it fails on the first edit,
     // so the consumer fixes the wiring immediately) rather than gating on nothing.
-    printError('--slop-floor needs an integer between 0 and 100, e.g. --slop-floor 40');
+    printError('--craft-floor needs an integer between 0 and 100, e.g. --craft-floor 40');
     return EXIT.USAGE;
   }
 
@@ -106,7 +106,7 @@ export async function runHook(_positionals: string[], flags: Flags): Promise<num
   }
   if (reports.length === 0) return EXIT.OK;
 
-  const gate = evaluateGate(reports, { strict, slopFloor });
+  const gate = evaluateGate(reports, { strict, craftFloor });
   if (!gate.failed) return EXIT.OK; // silent on success — no noise on every clean edit
 
   // Block: write only the failing files' findings to stderr (a PostToolUse event
@@ -115,12 +115,12 @@ export async function runHook(_positionals: string[], flags: Flags): Promise<num
   const blocking = (r: LintReport): boolean =>
     r.counts.error > 0 ||
     (strict && r.counts.warning > 0) ||
-    (slopFloor !== null && r.scores.slop < slopFloor);
+    (craftFloor !== null && r.scores.craft < craftFloor);
   for (const report of reports.filter(blocking)) console.error(formatReport(report));
-  if (gate.slopBreaches.length > 0) {
+  if (gate.craftBreaches.length > 0) {
     console.error(
-      `\nBelow the slop floor (${slopFloor}): ` +
-        gate.slopBreaches.map((b) => `${b.label} (${b.slop}/100)`).join(', ')
+      `\nBelow the craft floor (${craftFloor}): ` +
+        gate.craftBreaches.map((b) => `${b.label} (${b.craft}/100)`).join(', ')
     );
   }
   console.error('\nFix the issues above and re-save. — urbicon design gate');

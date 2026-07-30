@@ -18,23 +18,43 @@ export function serializeHistoryEntry(entry: ValidationHistoryEntry): string {
 }
 
 /**
- * True when a parsed value has the full shape of a history entry. Strict on the
- * numeric fields (not just date/correctness/slop) so a hand-corrupted line —
- * `files: "NaN"` — is skipped rather than rendered verbatim into the drift summary;
- * the sidecar is machine-written, so a real entry always carries every field.
+ * Normalise a parsed value into a history entry, or `null` when it lacks the shape.
+ * Strict on the numeric fields (not just date/correctness/craft) so a hand-corrupted
+ * line — `files: "NaN"` — is skipped rather than rendered verbatim into the drift
+ * summary; the sidecar is machine-written, so a real entry always carries every field.
+ *
+ * Read tolerant, write strict: the second axis shipped as `slop` before it was
+ * renamed to `craft` (2026-07-30), so an entry written by an older CLI is accepted
+ * under either key and returned as `craft`. Without this the shape check would fail
+ * on every pre-rename line and `parseHistory` would drop them **silently** — a
+ * consumer's whole drift history vanishing on a version bump, with nothing to see.
+ * Only the reader is tolerant; {@link serializeHistoryEntry} writes `craft` alone,
+ * so a file converges on the current key as soon as it is appended to.
  */
-function isEntry(value: unknown): value is ValidationHistoryEntry {
-  if (typeof value !== 'object' || value === null) return false;
+function toEntry(value: unknown): ValidationHistoryEntry | null {
+  if (typeof value !== 'object' || value === null) return null;
   const e = value as Record<string, unknown>;
-  return (
-    typeof e.date === 'string' &&
-    typeof e.files === 'number' &&
-    typeof e.errors === 'number' &&
-    typeof e.warnings === 'number' &&
-    typeof e.infos === 'number' &&
-    typeof e.correctness === 'number' &&
-    typeof e.slop === 'number'
-  );
+  const craft = e.craft ?? e.slop;
+  if (
+    typeof e.date !== 'string' ||
+    typeof e.files !== 'number' ||
+    typeof e.errors !== 'number' ||
+    typeof e.warnings !== 'number' ||
+    typeof e.infos !== 'number' ||
+    typeof e.correctness !== 'number' ||
+    typeof craft !== 'number'
+  ) {
+    return null;
+  }
+  return {
+    date: e.date,
+    files: e.files,
+    errors: e.errors,
+    warnings: e.warnings,
+    infos: e.infos,
+    correctness: e.correctness,
+    craft
+  };
 }
 
 /**
@@ -47,8 +67,8 @@ export function parseHistory(ndjson: string): ValidationHistoryEntry[] {
     const trimmed = line.trim();
     if (!trimmed) continue;
     try {
-      const parsed: unknown = JSON.parse(trimmed);
-      if (isEntry(parsed)) entries.push(parsed);
+      const entry = toEntry(JSON.parse(trimmed));
+      if (entry) entries.push(entry);
     } catch {
       // malformed/partial line — read tolerant, skip it
     }

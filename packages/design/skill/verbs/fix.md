@@ -11,7 +11,7 @@ hallucinated tokens. Mechanical, behaviour-preserving corrections.
    `validate_design` needs them passed as `extraTokens`.
 2. **Enumerate.** Run `urbicon validate` (or the `validate_design` MCP tool) and list
    every **error** and **warning** with its rule id and location. Ignore the
-   slop-floor notes here — that's `polish`.
+   craft notes here — that's `polish`.
 3. **Map each to its correct token.** `urbicon css-reference` for the real names:
    - raw palette (`bg-red-500`) → the semantic intent (`bg-danger`, `text-on-primary`).
    - `dark:` override → delete it; semantic tokens handle dark mode via `light-dark()`.

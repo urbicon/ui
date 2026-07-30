@@ -88,12 +88,12 @@ export interface ValidationHistoryEntry {
   errors: number;
   /** Summed `warning`-severity findings. */
   warnings: number;
-  /** Summed `info`-severity (slop-floor) findings. */
+  /** Summed `info`-severity (craft) findings. */
   infos: number;
   /** Mean correctness score across files (0–100, rounded). The drift signal. */
   correctness: number;
-  /** Mean slop-floor score across files (0–100, rounded). */
-  slop: number;
+  /** Mean craft score across files (0–100, rounded). */
+  craft: number;
 }
 
 /**

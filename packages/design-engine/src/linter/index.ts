@@ -8,7 +8,7 @@
  */
 
 export { HEURISTIC_RULE_IDS, HEURISTIC_THRESHOLDS } from './heuristics.js';
-export { lintDesign, maskComments, SCORE_WEIGHTS, SLOP_WEIGHT } from './linter.js';
+export { CRAFT_PENALTY, lintDesign, maskComments, SCORE_WEIGHTS } from './linter.js';
 export { RULES } from './rules.js';
 export { buildCodeView } from './scope.js';
 export { INVALID_SUPPRESSION_ID, knownRuleIds } from './suppress.js';

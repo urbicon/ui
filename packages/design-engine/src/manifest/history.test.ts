@@ -9,7 +9,7 @@ const entry = (over: Partial<ValidationHistoryEntry> = {}): ValidationHistoryEnt
   warnings: 1,
   infos: 2,
   correctness: 95,
-  slop: 60,
+  craft: 60,
   ...over
 });
 
@@ -25,10 +25,10 @@ describe('history serialize ⇆ parse', () => {
   });
 
   it('parses multiple lines newest-last, preserving order', () => {
-    const a = entry({ date: '2026-06-19T00:00:00.000Z', slop: 40 });
-    const b = entry({ date: '2026-06-20T00:00:00.000Z', slop: 50 });
+    const a = entry({ date: '2026-06-19T00:00:00.000Z', craft: 40 });
+    const b = entry({ date: '2026-06-20T00:00:00.000Z', craft: 50 });
     const blob = `${serializeHistoryEntry(a)}\n${serializeHistoryEntry(b)}\n`;
-    expect(parseHistory(blob).map((e) => e.slop)).toEqual([40, 50]);
+    expect(parseHistory(blob).map((e) => e.craft)).toEqual([40, 50]);
   });
 });
 
@@ -53,9 +53,46 @@ describe('history parse tolerance', () => {
       warnings: 0,
       infos: 0,
       correctness: 100,
-      slop: 50
+      craft: 50
     });
     expect(parseHistory(bad)).toEqual([]);
+  });
+
+  it('reads a pre-rename line written with `slop` and returns it as `craft`', () => {
+    // Read tolerant, write strict. Before the guard existed, the shape check
+    // required a numeric `slop`, so renaming the axis would have made every
+    // existing consumer history parse as [] — silently, since malformed lines are
+    // skipped by design. This is the regression test for that silence.
+    const legacy = JSON.stringify({
+      date: '2026-06-21T10:00:00.000Z',
+      files: 3,
+      errors: 0,
+      warnings: 1,
+      infos: 2,
+      correctness: 95,
+      slop: 70
+    });
+    const parsed = parseHistory(legacy);
+    expect(parsed).toHaveLength(1);
+    expect(parsed[0]!.craft).toBe(70);
+    // Strict on the way out: the legacy key does not survive a re-serialisation.
+    const rewritten = serializeHistoryEntry(parsed[0]!);
+    expect(rewritten).toContain('"craft":70');
+    expect(rewritten).not.toContain('slop');
+  });
+
+  it('prefers `craft` over a stale `slop` when a line carries both', () => {
+    const both = JSON.stringify({
+      date: '2026-06-21T10:00:00.000Z',
+      files: 1,
+      errors: 0,
+      warnings: 0,
+      infos: 0,
+      correctness: 100,
+      craft: 80,
+      slop: 20
+    });
+    expect(parseHistory(both)[0]!.craft).toBe(80);
   });
 
   it('returns [] for an empty blob', () => {

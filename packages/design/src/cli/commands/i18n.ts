@@ -13,7 +13,7 @@
  * Gate (exit 1): translation-parity ERRORS + used-but-undefined keys — the
  * correctness failures. Unused keys, hardcoded strings and parity warnings are
  * advisory (reported, gate only under `--strict`), mirroring `validate`'s
- * correctness-gates / slop-is-advisory split.
+ * correctness-gates / craft-is-advisory split.
  *
  * The bundle loader uses dynamic `import()`, so run it under Bun (or point at
  * compiled `.js` bundles) — Node cannot import a consumer's `.ts` translations.

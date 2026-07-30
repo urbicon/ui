@@ -1646,33 +1646,46 @@ internal TODO instead. Sections are ordered roughly by urgency.
 
 ## Design engine
 
-### "slop" is the public name of the second score axis, and it is the wrong word to say out loud
+### ~~"slop" is the public name of the second score axis, and it is the wrong word to say out loud~~ — renamed 2026-07-30
 
-- **Where:** `packages/design-engine` (`LintReport.scores.slop`, `SLOP_WEIGHT`,
-  `FindingKind: 'heuristic'` → slop), the `urbicon validate` output and its
-  `--slop-floor N` flag, `validate_design` on the MCP server, the design verbs,
-  and every doc that quotes a score line — including the landing's Agents tile,
-  which prints `correctness 100/100 · slop 100/100` as verbatim recorded output.
-- **What:** The axis measures whether a page reads as generic — a real and
-  useful thing — but "slop" is internal shorthand that ended up in the consumer
-  surface. It is pejorative about the consumer's own code, it does not say what
-  a *good* score means (100/100 slop reads as maximum slop, not minimum), and it
-  is the one word on the landing page that a visitor sees before any
-  explanation. Candidates discussed informally: `craft`, `distinctiveness`,
-  `character` — all of which also fix the polarity.
-- **Why deferred:** it is a rename across the engine's public type, the CLI flag
-  (`--slop-floor` would need an alias and a deprecation), the remote tool's
-  response shape, the verb texts and the recorded ndjson history schema. That is
-  a coherent release of its own, not a landing edit — and the landing line must
-  stay verbatim until the command it quotes actually prints something else.
+- **Resolved:** the axis is `craft`, a single finding is a **craft note**, and the
+  flag is `--craft-floor`. `SLOP_WEIGHT` became `CRAFT_PENALTY` (it is a deduction,
+  not a virtue — the name now says which direction it moves the score); the local
+  finding factory in `heuristics.ts` is `craftNote()`. Polarity was already right
+  (100 = good) and stayed untouched — no operator flipped, no `100 - x` inverted.
+- **Two spots were not mechanical**, and both were resolved with the house maxim
+  *read tolerant, write strict*:
+  - **Stored consumer histories.** `manifest/history.ts` validated
+    `typeof e.slop === 'number'` and skipped invalid lines **silently**, so a bare
+    rename would have made every existing `design.manifest.history.ndjson` parse as
+    `[]` with nothing to see. The reader now accepts `e.craft ?? e.slop` and
+    normalises to `craft`; the writer emits `craft` alone, so a file converges on
+    the current key the first time it is appended to. Regression-tested both ways
+    (a `"slop": 70` line reads back as `craft: 70`; a re-serialised entry contains
+    no `slop`).
+  - **The CLI flag.** `checkFlags` rejects an unknown flag with exit 2, and the
+    Levenshtein hint cannot rescue this one (`slop-floor` → `craft-floor` is 5
+    edits; the length-scaled threshold is 3). `--slop-floor` survives as an
+    unadvertised alias in `DEPRECATED_FLAG_ALIASES` — absent from `COMMAND_FLAGS`
+    and from `--help`, so nothing teaches the dead name — folded to `--craft-floor`
+    before dispatch, with a deprecation notice on **stderr** so the `--json`
+    envelope on stdout stays parseable.
+- **Prose that inverted, not just renamed:** `adopt.md` ("the slop-floor score is
+  how generic it reads today") and `compose.md` ("lower is more generic") both read
+  exactly backwards under `craft` and were rewritten rather than substituted.
+- **Left standing on purpose:** `rubric.ts` ("Penalise AI-slop sameness") — there
+  "slop" names the failure being judged, not the axis. Fixtures under
+  `prototypes/**` (not a workspace member) still carry `"slop"` keys; the tolerant
+  reader covers them.
 - **Found:** 2026-07-30, landing polish (Felix, on the Agents tile); the
-  intent to rename predates it, but was never written down.
+  intent to rename predates it, but was never written down. Renamed the same day,
+  with the landing's Agents tile re-recorded from the real command afterwards.
 
 ### `token-hallucination` is a warning, so markup that renders unstyled passes an error gate
 
 - **Where:** `packages/design-engine/src/linter/rules.ts:376`
   (`severity: 'warning'`) vs. `evaluateGate` / `urbicon validate`, which blocks on
-  errors and treats the slop axis as opt-in.
+  errors and treats the craft axis as opt-in.
 - **What:** A component whose colour utilities all reference non-existent tokens
   scores **correctness 25 with zero errors** — measured, not hypothetical. A
   recorded baseline run (no design grounding in the prompt) first used raw
@@ -1684,7 +1697,7 @@ internal TODO instead. Sections are ordered roughly by urgency.
   in review.
 - **Why it is not just severity tuning:** a hallucinated token is a dead
   reference, not a matter of taste — the axis assignment (it already lowers
-  *correctness*, not slop) and the severity disagree. Promoting it to `error`
+  *correctness*, not craft) and the severity disagree. Promoting it to `error`
   is a gate-breaking change for existing consumers, so it needs a decision:
   promote, or gate on a correctness floor rather than on error count.
 - **Found:** 2026-07-26, artifact-recorder spike (`prototypes/artifact-frame`).

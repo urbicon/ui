@@ -27,8 +27,8 @@ export const GLOBAL_FLAGS: readonly string[] = ['help', 'version'];
  */
 export const COMMAND_FLAGS: Readonly<Record<string, readonly string[]>> = {
   init: ['hook', 'ci', 'agents-file', 'manifest', 'with-primer'],
-  validate: ['json', 'strict', 'slop-floor', 'skip-heuristics', 'record', 'manifest'],
-  hook: ['strict', 'slop-floor', 'skip-heuristics', 'manifest'],
+  validate: ['json', 'strict', 'craft-floor', 'skip-heuristics', 'record', 'manifest'],
+  hook: ['strict', 'craft-floor', 'skip-heuristics', 'manifest'],
   find: ['json', 'limit', 'tag', 'query'],
   'get-component': ['section'],
   primer: [],
@@ -58,6 +58,54 @@ export const COMMAND_FLAGS: Readonly<Record<string, readonly string[]>> = {
   help: [],
   version: []
 };
+
+/**
+ * Old flag spellings still accepted, mapped to their current name.
+ *
+ * Silent in the sense of *unadvertised*: deliberately absent from `COMMAND_FLAGS`
+ * and from `help.ts`, so nothing teaches the dead name — but accepted, because
+ * `checkFlags` rejects an unknown flag with exit 2, and the `nearest()` hint cannot
+ * rescue this one (`slop-floor` → `craft-floor` is 5 edits apart, well past the
+ * length-scaled typo threshold). A pinned CI step or a `.claude/settings.json` hook
+ * command written before the 2026-07-30 rename would otherwise fail with "unknown
+ * flag" and no way to guess the new name.
+ */
+export const DEPRECATED_FLAG_ALIASES: Readonly<Record<string, string>> = {
+  'slop-floor': 'craft-floor'
+};
+
+/**
+ * Rewrite deprecated flag spellings to their current names **in place**, returning
+ * one notice per rewrite for the caller to print.
+ *
+ * The notices go to stderr, never stdout: `validate --json` writes a machine-read
+ * envelope there, and a deprecation line in it would break the parse — the exact
+ * silent-answer failure this module exists to prevent, inverted.
+ *
+ * Only rewrites where the command actually accepts the target flag, so
+ * `urbicon find --slop-floor 50` still reports the flag the caller typed rather
+ * than a `--craft-floor` they have never heard of. An explicit current-name flag
+ * wins; the old one is then dropped rather than fighting over the value.
+ */
+export function applyFlagAliases(
+  command: string,
+  flags: Record<string, string | boolean>
+): string[] {
+  const notices: string[] = [];
+  for (const [old, current] of Object.entries(DEPRECATED_FLAG_ALIASES)) {
+    if (!(old in flags)) continue;
+    if (!COMMAND_FLAGS[command]?.includes(current)) continue;
+    const value = flags[old];
+    delete flags[old];
+    if (current in flags) {
+      notices.push(`--${old} is deprecated; --${current} was also given and wins.`);
+      continue;
+    }
+    if (value !== undefined) flags[current] = value;
+    notices.push(`--${old} has been renamed to --${current}; the old name still works for now.`);
+  }
+  return notices;
+}
 
 /** How many positional arguments a command reads, and what to type instead of an extra one. */
 export interface PositionalSpec {

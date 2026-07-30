@@ -21,13 +21,13 @@ between what the code does and what Urbicon expects.
    user — inference seeds it, the user ratifies it. Don't invent an audience the
    code doesn't evidence.
 5. **Measure the drift.** Run `urbicon validate src/ --record` over the tree. The
-   correctness score is the gap to close; the slop-floor score is how generic it
-   reads today. `--record` writes the first history entry so future runs show the
-   trend.
+   correctness score is the gap to close; the craft score is how considered it
+   reads today — a low one means the page is coasting on defaults. `--record` writes
+   the first history entry so future runs show the trend.
 6. **Seed the manifest.** Write the inferred `## Product Intent`, the confirmed
    `## Token Overrides`, and the synced `## Pattern Usages`. Append an ADR recording
    that the manifest was *adopted from existing code* on this date (so later readers
    know it's inferred, not designed-first).
 7. **Report.** Summarise: paradigm, intent, N project tokens, M patterns in use, and
-   the top correctness/slop offenders — with `fix` / `retheme` / `audit` as the
+   the top correctness/craft offenders — with `fix` / `retheme` / `audit` as the
    suggested follow-ups.

@@ -154,7 +154,7 @@ const report = findUnusedKeys(collectDeepKeys(enBundle), scan, {
     <p class="text-text-secondary mt-4 mb-4">
       It gates (exit 1) on parity errors and used-but-undefined keys — the correctness failures.
       Unused keys and hardcoded strings are advisory (add <code>--strict</code> to gate them too), mirroring
-      the design gate's correctness-vs-slop split. The same scanning core is importable for programmatic
+      the design gate's correctness-vs-craft split. The same scanning core is importable for programmatic
       use:
     </p>
     <CodeExample code={scannerCode} language="typescript" preview={false} />

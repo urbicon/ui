@@ -13,12 +13,12 @@ import { MAX_RUBRIC_SCORE, RUBRIC_CRITERIA } from '@urbicon-ui/design-engine/rub
 export interface LinterScore {
   /**
    * Stage-1 correctness axis, 0–100 (deterministic defects only). The stable A/B
-   * headline metric: unaffected by the slop-floor heuristics, so it stays directly
-   * comparable to the pre-slop-floor baseline (the +33.8% measurement).
+   * headline metric: unaffected by the craft heuristics, so it stays directly
+   * comparable to the pre-craft-axis baseline (the +33.8% measurement).
    */
   correctness: number;
-  /** Stage-2 slop-floor axis, 0–100 (system-agnostic "looks generic" heuristics). */
-  slop: number;
+  /** Stage-2 craft axis, 0–100 (system-agnostic "looks generic" heuristics). */
+  craft: number;
   errors: number;
   warnings: number;
   infos: number;
@@ -42,7 +42,7 @@ export function scoreImplementation(code: string): LinterScore {
   const r = lintDesign(code);
   return {
     correctness: r.scores.correctness,
-    slop: r.scores.slop,
+    craft: r.scores.craft,
     errors: r.counts.error,
     warnings: r.counts.warning,
     infos: r.counts.info
@@ -88,8 +88,8 @@ export function formatAbReport(entries: EvalEntry[], baseline: string, treatment
 
   const baseLint: number[] = [];
   const treatLint: number[] = [];
-  const baseSlop: number[] = [];
-  const treatSlop: number[] = [];
+  const baseCraft: number[] = [];
+  const treatCraft: number[] = [];
   const baseRub: number[] = [];
   const treatRub: number[] = [];
 
@@ -98,11 +98,11 @@ export function formatAbReport(entries: EvalEntry[], baseline: string, treatment
     const t = pick(id, treatment);
     if (b) {
       baseLint.push(b.linter.correctness);
-      baseSlop.push(b.linter.slop);
+      baseCraft.push(b.linter.craft);
     }
     if (t) {
       treatLint.push(t.linter.correctness);
-      treatSlop.push(t.linter.slop);
+      treatCraft.push(t.linter.craft);
     }
     if (b?.rubricTotal !== undefined) baseRub.push(b.rubricTotal);
     if (t?.rubricTotal !== undefined) treatRub.push(t.rubricTotal);
@@ -114,7 +114,7 @@ export function formatAbReport(entries: EvalEntry[], baseline: string, treatment
   md += '\n## Aggregate\n\n';
   md += `| Metric | ${baseline} | ${treatment} | Δ |\n|---|---|---|---|\n`;
   md += `| Mean correctness | ${mean(baseLint).toFixed(1)} | ${mean(treatLint).toFixed(1)} | ${pct(mean(baseLint), mean(treatLint))} |\n`;
-  md += `| Mean slop-floor | ${mean(baseSlop).toFixed(1)} | ${mean(treatSlop).toFixed(1)} | ${pct(mean(baseSlop), mean(treatSlop))} |\n`;
+  md += `| Mean craft | ${mean(baseCraft).toFixed(1)} | ${mean(treatCraft).toFixed(1)} | ${pct(mean(baseCraft), mean(treatCraft))} |\n`;
   if (baseRub.length && treatRub.length) {
     md += `| Mean rubric /${MAX_RUBRIC_SCORE} | ${mean(baseRub).toFixed(1)} | ${mean(treatRub).toFixed(1)} | ${pct(mean(baseRub), mean(treatRub))} |\n`;
   }

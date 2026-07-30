@@ -462,7 +462,7 @@ describe('formatContext — intent, overrides, drift', () => {
     warnings: 0,
     infos: 3,
     correctness: 100,
-    slop: 70,
+    craft: 70,
     ...over
   });
 
@@ -484,13 +484,13 @@ describe('formatContext — intent, overrides, drift', () => {
 
   it('appends a drift block with the score trend when history is supplied', () => {
     const out = formatContext(parseManifest(createManifestTemplate({})), [
-      history({ date: '2026-06-19T00:00:00.000Z', slop: 50 }),
-      history({ date: '2026-06-20T00:00:00.000Z', slop: 60 }),
-      history({ date: '2026-06-21T00:00:00.000Z', slop: 70 })
+      history({ date: '2026-06-19T00:00:00.000Z', craft: 50 }),
+      history({ date: '2026-06-20T00:00:00.000Z', craft: 60 }),
+      history({ date: '2026-06-21T00:00:00.000Z', craft: 70 })
     ]);
     expect(out).toContain('## Validation Drift');
-    expect(out).toContain('correctness 100/100 · slop 70/100');
-    expect(out).toContain('50 → 60 → 70'); // recent slop trend
+    expect(out).toContain('correctness 100/100 · craft 70/100');
+    expect(out).toContain('50 → 60 → 70'); // recent craft trend
   });
 
   it('omits the drift block when no history is supplied', () => {

@@ -1,18 +1,18 @@
 /**
- * The slop-floor — stage 2 of the validator (DESIGN-MCP-V2 §6). Unlike the
+ * The craft floor — stage 2 of the validator (DESIGN-MCP-V2 §6). Unlike the
  * deterministic correctness rules (which are Urbicon-specific: token whitelist,
  * `dark:`/`focus:`), these are **system-agnostic** judgements about whether the
  * markup *looks generic* — the faceless, default-everything output that reads as
  * "an AI made this". They operationalise the Design-Quality guidance ("Color =
  * meaning", "Spacing = hierarchy", "Vary visual weight", "Commit to a radius")
- * plus the impeccable slop-floor signals (generic fonts, animated dimensions,
+ * plus the impeccable craft-floor signals (generic fonts, animated dimensions,
  * grey-on-colour, touch targets, line length, heading jumps).
  *
- * All findings are `info`/`heuristic`, so they score on the **slop** axis (never
+ * All findings are `info`/`heuristic`, so they score on the **craft** axis (never
  * the correctness gate) and are advisory: a judgement can have false positives,
  * and these never block. Each heuristic fires **at most once** — it is one
  * holistic verdict about the page, carrying the first occurrence's line plus a
- * count, so a repeated sin costs one flat slop weight, not N.
+ * count, so a repeated sin costs one flat craft penalty, not N.
  *
  * Thresholds are named constants so the eval-suite (§9) can tune them with data
  * instead of guesswork.
@@ -21,7 +21,7 @@
 import type { Finding } from './types.js';
 
 /**
- * Every slop-heuristic rule id, in report order — the heuristic half of the id
+ * Every craft-heuristic rule id, in report order — the heuristic half of the id
  * universe a suppression (`urbicon-ignore` pragma / manifest `## Exempt`) may
  * name. Kept next to the checks so adding one is a two-line change; the
  * "ids stay in sync with runHeuristics" invariant is regression-tested.
@@ -94,7 +94,7 @@ function collectAtoms(code: string): string[] {
   return atoms;
 }
 
-/** A located occurrence of a slop pattern. */
+/** A located occurrence of a craft-note pattern. */
 interface Hit {
   line: number;
   match: string;
@@ -128,13 +128,13 @@ function classValues(text: string): string[] {
 }
 
 /**
- * Reduce N occurrences to a single slop finding: the first occurrence anchors the
+ * Reduce N occurrences to a single craft note: the first occurrence anchors the
  * line/match. `message` is a plain string, or a factory `(count, first) => string`
  * for rules that fold the total count / first match into the text — the factory is
  * called only when there is ≥1 hit, so it never reaches for `hits[0]` defensively.
  * Empty hits → no finding.
  */
-function slop(
+function craftNote(
   ruleId: string,
   hits: Hit[],
   message: string | ((count: number, first: Hit) => string),
@@ -300,7 +300,7 @@ const GENERIC_FONT_RE = new RegExp(
 );
 
 function checkGenericFont(lines: string[]): Finding[] {
-  return slop(
+  return craftNote(
     'generic-font',
     collectHits(lines, GENERIC_FONT_RE),
     'Hardcoded generic font stack (Arial/Helvetica/system-ui…). Defaults look like an unstyled draft, not a brand.',
@@ -313,7 +313,7 @@ const ARBITRARY_COLOR_RE =
   /\b(?:bg|text|border|ring|fill|stroke|from|via|to|outline|decoration|shadow|divide|accent|caret|placeholder)-\[(?:#[0-9a-f]{3,8}|(?:rgb|rgba|hsl|hsla|oklch|oklab|lab|lch|color|hwb)\()/gi;
 
 function checkArbitraryColor(lines: string[]): Finding[] {
-  return slop(
+  return craftNote(
     'arbitrary-color',
     collectHits(lines, ARBITRARY_COLOR_RE),
     'Arbitrary colour literal in a utility — outside the token system, so no dark-mode adaptation, no theming, no cohesion.',
@@ -325,7 +325,7 @@ function checkArbitraryColor(lines: string[]): Finding[] {
 const TRANSITION_ALL_RE = /\btransition-all\b/g;
 
 function checkTransitionAll(lines: string[]): Finding[] {
-  return slop(
+  return craftNote(
     'transition-all',
     collectHits(lines, TRANSITION_ALL_RE),
     '`transition-all` animates every property that changes — including layout — which is janky and rarely intended.',
@@ -350,7 +350,7 @@ function checkAnimatedDimensions(lines: string[]): Finding[] {
       if (ANIMATED_DIM_KEYWORD_RE.test(m[1] ?? '')) hits.push({ line: i + 1, match: m[0] });
     }
   });
-  return slop(
+  return craftNote(
     'animated-dimensions',
     hits,
     'Transitioning a layout dimension (width/height/inset). These trigger layout on every frame and stutter.',
@@ -376,7 +376,7 @@ function checkMagicDimensions(lines: string[]): Finding[] {
       }
     }
   });
-  return slop(
+  return craftNote(
     'magic-dimension',
     hits,
     (count, first) =>
@@ -394,7 +394,7 @@ function checkMagicDimensions(lines: string[]): Finding[] {
 const IMPORTANT_RE = /(?<=[\s"'`])![a-z][a-z0-9]*-[a-z0-9[]/g;
 
 function checkImportant(lines: string[]): Finding[] {
-  return slop(
+  return craftNote(
     'important-modifier',
     collectHits(lines, IMPORTANT_RE),
     (count, first) =>
@@ -427,7 +427,7 @@ function checkInlineStyle(lines: string[]): Finding[] {
       if (INLINE_PAINT_RE.test(body)) hits.push({ line: i + 1, match: 'style=…' });
     }
   });
-  return slop(
+  return craftNote(
     'inline-style',
     hits,
     (count) =>
@@ -440,7 +440,7 @@ function checkInlineStyle(lines: string[]): Finding[] {
 const GRADIENT_TEXT_RE = /\bbg-clip-text\b/g;
 
 function checkGradientText(lines: string[]): Finding[] {
-  return slop(
+  return craftNote(
     'gradient-text',
     collectHits(lines, GRADIENT_TEXT_RE),
     'Gradient-clipped text (`bg-clip-text` + transparent fill) — a stock flourish that reads as generic and often fails contrast.',
@@ -449,7 +449,7 @@ function checkGradientText(lines: string[]): Finding[] {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Group 3 — Contrast & content slop
+// Group 3 — Contrast & content heuristics
 // ─────────────────────────────────────────────────────────────────────────────
 
 /** A solid/emphasis chromatic intent background (not the light `-subtle` or scale tints). */
@@ -468,7 +468,7 @@ function checkGreyOnIntent(lines: string[]): Finding[] {
       }
     }
   });
-  return slop(
+  return craftNote(
     'grey-on-intent',
     hits,
     'Muted/grey text on a saturated intent background. Low contrast and muddy — the colour stops carrying meaning.',
@@ -493,7 +493,7 @@ function checkCenteredBodyText(code: string): Finding[] {
       hits.push({ line: lineOf(code, m.index ?? 0), match: '<p … text-center>' });
     }
   }
-  return slop(
+  return craftNote(
     'centered-bodytext',
     hits,
     'Centred paragraph text. Ragged left edges make multi-line copy hard to scan.',
@@ -505,7 +505,7 @@ function checkCenteredBodyText(code: string): Finding[] {
 const JUSTIFIED_RE = /\btext-justify\b/g;
 
 function checkJustifiedText(lines: string[]): Finding[] {
-  return slop(
+  return craftNote(
     'justified-text',
     collectHits(lines, JUSTIFIED_RE),
     'Justified text. Without hyphenation the browser stretches word spacing into uneven "rivers" that hurt readability.',
@@ -518,7 +518,7 @@ const PLACEHOLDER_RE =
   /\b(?:lorem ipsum|dolor sit amet|consectetur adipiscing|sed do eiusmod|the quick brown fox)\b/gi;
 
 function checkPlaceholderContent(lines: string[]): Finding[] {
-  return slop(
+  return craftNote(
     'placeholder-content',
     collectHits(lines, PLACEHOLDER_RE),
     'Lorem-ipsum / filler copy in the output. Placeholder text ships as "unfinished".',
@@ -552,7 +552,7 @@ function checkEmojiAsIcon(lines: string[]): Finding[] {
   const hits = [...collectHits(lines, EMOJI_GLYPH_RE), ...collectHits(lines, EMOJI_VS16_RE)].sort(
     (a, b) => a.line - b.line
   );
-  return slop(
+  return craftNote(
     'emoji-as-icon',
     hits,
     'Emoji in the markup as iconography. They render inconsistently across platforms and clash with a real icon set.',
@@ -561,7 +561,7 @@ function checkEmojiAsIcon(lines: string[]): Finding[] {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Group 4 — Structural slop (need cross-element context)
+// Group 4 — Structural heuristics (need cross-element context)
 // ─────────────────────────────────────────────────────────────────────────────
 
 /**
@@ -648,7 +648,7 @@ function checkTouchTarget(code: string): Finding[] {
   for (const m of code.matchAll(SMALL_TOUCH_RE)) {
     hits.push({ line: lineOf(code, m.index ?? 0), match: m[0].replace(/\s+/g, ' ').slice(0, 40) });
   }
-  return slop(
+  return craftNote(
     'touch-target-small',
     hits,
     'Interactive element with a fixed sub-44px height. Hard to tap; fails the 44×44 touch-target guideline.',
@@ -710,7 +710,7 @@ function teachingChainEnd(code: string, start: number): number {
  * `recipeCode = `…`` declarations (docs example source; see CLAUDE.md → Recipe
  * Pages) — preserving newlines so finding line numbers stay accurate (mirrors
  * maskComments in linter.ts). A `transition-all` or an `<h1>…<h4>` shown *inside* an
- * example is not the page's own markup and must not score on the slop axis.
+ * example is not the page's own markup and must not score on the craft axis.
  *
  * Deliberately heuristic-path only: the deterministic correctness rules still scan
  * teaching code — an example a consumer copies must itself be token-correct (the
@@ -741,9 +741,9 @@ export function maskTeachingCode(code: string): string {
 // ─────────────────────────────────────────────────────────────────────────────
 
 /**
- * Run all slop-floor heuristics over the (comment-masked) code. Teaching-code
+ * Run all craft-floor heuristics over the (comment-masked) code. Teaching-code
  * example literals are additionally blanked first (see maskTeachingCode), so example
- * source shown on the page never scores on the slop axis.
+ * source shown on the page never scores on the craft axis.
  */
 export function runHeuristics(code: string): Finding[] {
   const scanned = maskTeachingCode(code);

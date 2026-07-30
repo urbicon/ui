@@ -2,7 +2,7 @@
 
 **When:** a page exists but underperforms — flat, generic, off-identity. Diagnoses
 first, then fixes exactly what the diagnosis flags, preserving behaviour.
-**Gate:** correctness (blocking) + slop-floor (advisory) + the rubric.
+**Gate:** correctness (blocking) + craft floor (advisory) + the rubric.
 
 A diagnosis-first loop — resist the urge to rebuild from scratch.
 
@@ -12,7 +12,7 @@ A diagnosis-first loop — resist the urge to rebuild from scratch.
 2. **Diagnose.** Run `urbicon validate` (or the `validate_design` MCP tool) on the
    current code, then `urbicon principles --rubric` (MCP:
    `get_design_principles(as="rubric")`) and score the page /40. Your revision
-   targets are **every linter finding** (correctness *and* slop-floor) plus the
+   targets are **every linter finding** (correctness *and* craft) plus the
    **two lowest-scoring rubric criteria** — nothing else. Write the targets down.
 3. **Generate variants.** Produce a few options (2–5; default 3) that fix exactly
    those weaknesses. Preserve the page's behaviour, data flow, and overall structure;
