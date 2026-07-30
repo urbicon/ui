@@ -1,6 +1,0 @@
-{
-  "extends": ["./.svelte-kit/tsconfig.json", "../../tsconfig.base.json"]
-  // Path aliases ($lib etc.) come from the generated .svelte-kit/tsconfig.json.
-  // If you override includes/excludes, copy the relevant ones from there —
-  // TypeScript does not merge them across extends.
-}

@@ -42,28 +42,6 @@
         "vite": "catalog:",
       },
     },
-    "apps/chat-demo": {
-      "name": "@urbicon-ui/chat-demo",
-      "version": "0.0.1",
-      "dependencies": {
-        "@anthropic-ai/sdk": "^0.114.0",
-        "@urbicon-ui/blocks": "workspace:*",
-        "@urbicon-ui/sveltekit-utils": "workspace:*",
-      },
-      "devDependencies": {
-        "@sveltejs/adapter-auto": "^7.0.1",
-        "@sveltejs/kit": "catalog:",
-        "@sveltejs/vite-plugin-svelte": "catalog:",
-        "@tailwindcss/vite": "catalog:",
-        "@types/node": "catalog:",
-        "svelte": "catalog:",
-        "svelte-check": "catalog:",
-        "tailwindcss": "catalog:",
-        "typescript": "catalog:",
-        "vite": "catalog:",
-        "vitest": "catalog:",
-      },
-    },
     "apps/docs": {
       "name": "@urbicon-ui/docs-app",
       "version": "0.0.1",
@@ -702,8 +680,6 @@
     "@urbicon-ui/auth": ["@urbicon-ui/auth@workspace:packages/auth"],
 
     "@urbicon-ui/blocks": ["@urbicon-ui/blocks@workspace:packages/blocks"],
-
-    "@urbicon-ui/chat-demo": ["@urbicon-ui/chat-demo@workspace:apps/chat-demo"],
 
     "@urbicon-ui/design": ["@urbicon-ui/design@workspace:packages/design"],
 

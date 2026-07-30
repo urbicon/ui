@@ -123,7 +123,7 @@ internal TODO instead. Sections are ordered roughly by urgency.
   offers no way to take only the first.
 - **Workaround in the wild:** `BlocksProvider` defaults —
   `RadioItem: { slotClasses: { indicator: 'rounded-full', dot: 'rounded-full' } }`.
-  Shipped as `CIRCULAR_RADIOS` in `apps/chat-demo/src/lib/livery/index.ts`,
+  Shipped as `CIRCULAR_RADIOS` in `apps/docs/src/lib/livery/index.ts`,
   where **all four** brand liveries need it — including the one that merely
   softens the tier to `2px` instead of zeroing it, because 2px on a 20px control
   already reads as a square. The exemption was written into that livery on the
