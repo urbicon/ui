@@ -512,6 +512,25 @@ internal TODO instead. Sections are ordered roughly by urgency.
 - **Found:** 2026-07-29, Scroller review session (the "no emphasis" reports
   turned out to be Firefox 153).
 
+### Table: grouping accepts data-field keys the grouping menu cannot represent
+
+- **Where:** `packages/table/src/lib/features/SmartFilterBar/GroupingMenu.svelte`
+  (options = groupable **columns** only) vs. `initialGroupBy` /
+  `setGroupByKey`, which happily group by any item field.
+- **What:** Grouping by a field that is not a column (e.g. the landing
+  journey's booking list groups by `day` while showing no Day column) works —
+  group headers render, the toolbar button shows active — but the menu's
+  `Select` holds a value with no matching option: DEV logs
+  `[Select] value "day" has no matching option`, the menu cannot display the
+  active grouping, and once a user ungroups there is no way back to it.
+- **Why deferred:** Needs a design decision: either the menu appends the
+  active non-column key as a labelled option (grouping stays a superset of
+  the menu), or `initialGroupBy` validates against columns and warns
+  (menu stays the single source of truth). Both are small; picking one is
+  API semantics, not a bugfix.
+- **Found:** 2026-07-30, landing journey table tile (booking list grouped by
+  `day`).
+
 ## Accessibility
 
 ### Off-system dark-skin SegmentGroup demo trips axe (restyle-vs-exempt)
