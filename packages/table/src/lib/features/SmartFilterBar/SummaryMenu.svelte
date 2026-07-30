@@ -102,7 +102,17 @@
     >
       <SquareSigmaIcon class="h-4 w-4" />
       {#if isActive}
-        <Badge variant="filled" size="xs" counter class="bg-summary text-text-on-primary ml-1">
+        <!-- `soft`, not `filled` + a class override: the override only replaced
+             `bg-*`/`text-*`, so the filled/primary compound's `border-primary`
+             survived the fold and drew a stray light ring — visible on every
+             route that rescopes `--color-primary`. `soft` also drops the
+             `text-on-primary` coupling, which measured 3.7:1 on the solid green. -->
+        <Badge
+          variant="soft"
+          size="xs"
+          counter
+          class="bg-summary-subtle text-summary-emphasis ml-1"
+        >
           {summaryConfigs.length}
         </Badge>
       {/if}

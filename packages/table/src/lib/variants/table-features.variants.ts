@@ -453,17 +453,24 @@ export const headerMenuItemVariants = tv({
       false: ''
     }
   },
+  // All three active states carry the same weight — subtle ground, emphasis
+  // text. `group` and `summary` used to go solid, which made two menu entries
+  // shout over every other one, and put `text-on-primary` on a solid feature
+  // colour: 3.7:1 in the default theme, and near-black-on-dark wherever a room
+  // scope rehangs that token (docs/technical-debt.md → "on-primary as the
+  // universal on-colour").
   compoundVariants: [
     { intent: 'default', active: true, class: 'bg-primary-subtle text-primary-emphasis' },
     {
       intent: 'group',
       active: true,
-      class: 'bg-group text-text-on-primary hover:bg-group-hover hover:text-text-on-primary'
+      class: 'bg-group-subtle text-group-emphasis hover:bg-group-subtle hover:text-group-emphasis'
     },
     {
       intent: 'summary',
       active: true,
-      class: 'bg-summary text-text-on-primary hover:bg-summary-hover hover:text-text-on-primary'
+      class:
+        'bg-summary-subtle text-summary-emphasis hover:bg-summary-subtle hover:text-summary-emphasis'
     }
   ],
   defaultVariants: { intent: 'default', active: false }

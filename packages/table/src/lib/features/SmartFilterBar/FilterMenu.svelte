@@ -198,7 +198,10 @@
     >
       <FunnelIcon class="h-4 w-4" />
       {#if activeFilters.length > 0}
-        <Badge variant="filled" size="xs" counter class="bg-filter text-text-on-primary ml-1">
+        <!-- `soft` for the same reason as SummaryMenu: `filled` leaks
+             `border-primary` past the class override, and `text-on-primary` on
+             the solid feature colour is under AA. -->
+        <Badge variant="soft" size="xs" counter class="bg-filter-subtle text-filter-emphasis ml-1">
           {activeFilters.length}
         </Badge>
       {/if}

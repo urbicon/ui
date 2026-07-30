@@ -79,10 +79,16 @@
 
   const hasChips = $derived(allChips.length > 0);
 
+  // `soft` is the shape the six built-in Badge intents already use for state
+  // chips: `-emphasis` text on a `-subtle` ground, no border. The table intents
+  // used to render `outlined` (border-2, transparent ground) and then paint a
+  // ground back on — a two-pixel accent ring around a fill, a hybrid the system
+  // has nowhere else. The `-emphasis` step also fixes the text: plain
+  // `text-summary` on `bg-summary-subtle` measured 3.5:1, under AA.
   const CHIP_COLORS: Record<string, string> = {
-    filter: 'bg-filter-subtle text-filter border-filter/30',
-    group: 'bg-group-subtle text-group border-group/30',
-    summary: 'bg-summary-subtle text-summary border-summary/30'
+    filter: 'bg-filter-subtle text-filter-emphasis',
+    group: 'bg-group-subtle text-group-emphasis',
+    summary: 'bg-summary-subtle text-summary-emphasis'
   };
 </script>
 
@@ -92,7 +98,7 @@
       <Badge
         removable={true}
         onRemove={chip.onRemove}
-        variant="outlined"
+        variant="soft"
         size="sm"
         class={CHIP_COLORS[chip.type] ?? ''}
         aria-label={tt('aria.removeItem', { content: chip.content })}
