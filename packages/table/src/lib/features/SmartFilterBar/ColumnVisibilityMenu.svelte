@@ -1,6 +1,7 @@
 <script lang="ts">
   import { getTableContext, useTableI18n } from '$lib';
   import { resolveColumnId, resolveColumnLabel } from '$lib/utils';
+  import { smartFilterBarTriggerVariants } from '$lib/variants';
   import {
     Badge,
     Button,
@@ -20,6 +21,12 @@
   let menuOpen = $state(false);
 
   const hiddenCount = $derived(tableContext.hiddenColumnKeys.size);
+
+  // Hiding columns leaves no artefact in the grid to borrow a hue from, so this
+  // one keeps `primary` — the colour its own counter already spoke in.
+  const triggerClass = $derived(
+    hiddenCount > 0 ? smartFilterBarTriggerVariants({ intent: 'primary' }) : undefined
+  );
 
   // Columns pinned with `hideable: false` are excluded from the toggle list so
   // they can never be hidden — and so they are not silently hidden the first
@@ -62,13 +69,18 @@
       intent="neutral"
       size="sm"
       active={hiddenCount > 0}
+      class={triggerClass}
       aria-expanded={menuOpen}
       aria-haspopup="listbox"
       onclick={() => (menuOpen = !menuOpen)}
     >
       <EyeIcon class="h-4 w-4" />
       {#if hiddenCount > 0}
-        <Badge variant="filled" intent="primary" size="xs" counter class="ml-1">
+        <!-- Same shape as the filter and summary counters: a `soft` chip on the
+             neutral surface, its number in the trigger's own hue. `filled` would
+             have been the only solid swatch in the bar, and it sat on the lit
+             ground with `text-on-primary` — the pairing measured under AA. -->
+        <Badge variant="soft" size="xs" counter class="bg-surface-base text-primary-emphasis ml-1">
           {hiddenCount}
         </Badge>
       {/if}
@@ -76,6 +88,7 @@
   </Tooltip>
 {/snippet}
 
+<!-- `w-auto`: see SortMenu — the Select wrapper defaults to `w-full`. -->
 <Select
   options={columnItems}
   multiple
@@ -85,5 +98,6 @@
   size="sm"
   syncWidth={false}
   selectionIndicator="checkmark"
+  class="w-auto"
   {customTrigger}
 />

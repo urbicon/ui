@@ -3,7 +3,7 @@
   import { getTableContext } from '$lib/stores/TableStore.svelte';
   import type { FilterOperator } from '$lib/types/tableTypes';
   import { resolveColumnId, resolveColumnLabel, resolveValueById } from '$lib/utils';
-  import { filterMenuVariants } from '$lib/variants';
+  import { filterMenuVariants, smartFilterBarTriggerVariants } from '$lib/variants';
   import {
     Badge,
     Button,
@@ -184,6 +184,11 @@
       size: 'md'
     })
   );
+
+  const isActive = $derived(activeFilters.length > 0);
+  const triggerClass = $derived(
+    isActive ? smartFilterBarTriggerVariants({ intent: 'filter' }) : undefined
+  );
 </script>
 
 {#snippet triggerContent()}
@@ -192,16 +197,19 @@
       variant="ghost"
       intent="neutral"
       size="sm"
-      active={activeFilters.length > 0}
+      active={isActive}
+      class={triggerClass}
       aria-expanded={isOpen}
       aria-haspopup="true"
     >
       <FunnelIcon class="h-4 w-4" />
-      {#if activeFilters.length > 0}
+      {#if isActive}
         <!-- `soft` for the same reason as SummaryMenu: `filled` leaks
              `border-primary` past the class override, and `text-on-primary` on
-             the solid feature colour is under AA. -->
-        <Badge variant="soft" size="xs" counter class="bg-filter-subtle text-filter-emphasis ml-1">
+             the solid feature colour is under AA. The ground is the neutral
+             surface rather than `filter-subtle`, which is what the lit trigger
+             behind it now wears — same-on-same would have erased the counter. -->
+        <Badge variant="soft" size="xs" counter class="bg-surface-base text-filter-emphasis ml-1">
           {activeFilters.length}
         </Badge>
       {/if}

@@ -1,25 +1,32 @@
 <script lang="ts">
   import { getTableContext, useTableI18n } from '$lib';
   import { resolveColumnId, resolveColumnLabel } from '$lib/utils';
+  import { smartFilterBarTriggerVariants } from '$lib/variants';
   import {
     Button,
     Select,
     Tooltip,
     resolveIcon,
-    LayersIcon as LayersIconDefault,
-    CheckIcon as CheckIconDefault
+    LayersIcon as LayersIconDefault
   } from '@urbicon-ui/blocks';
 
   const tt = useTableI18n();
 
   const LayersIcon = resolveIcon('layers', LayersIconDefault);
-  const CheckIcon = resolveIcon('check', CheckIconDefault);
 
   const tableContext = getTableContext();
   const { state: tableState, setGroupByKey } = tableContext;
 
   const currentValue = $derived(tableState.groupByKey || '');
   const isActive = $derived(!!currentValue);
+
+  // The check glyph that used to sit next to the icon is gone: it was a third
+  // way of saying "on" in a bar that also had counters and nothing at all.
+  // Grouping is single-level in the store, so there is no count to show either —
+  // the group-tinted ground says it, in the same teal as the chip below the bar.
+  const triggerClass = $derived(
+    isActive ? smartFilterBarTriggerVariants({ intent: 'group' }) : undefined
+  );
 
   const groupableColumns = $derived.by(() => {
     return tableState.columns.filter((col) => {
@@ -59,18 +66,17 @@
       intent="neutral"
       size="sm"
       active={isActive}
+      class={triggerClass}
       aria-expanded={menuOpen}
       aria-haspopup="listbox"
       onclick={() => (menuOpen = !menuOpen)}
     >
       <LayersIcon class="h-4 w-4" />
-      {#if isActive}
-        <CheckIcon class="h-3 w-3" />
-      {/if}
     </Button>
   </Tooltip>
 {/snippet}
 
+<!-- `w-auto`: see SortMenu — the Select wrapper defaults to `w-full`. -->
 <Select
   options={groupingOptions}
   value={currentValue}
@@ -78,5 +84,6 @@
   onValueChange={(v: string | null) => handleValueChange(v ?? '')}
   size="sm"
   syncWidth={false}
+  class="w-auto"
   {customTrigger}
 />

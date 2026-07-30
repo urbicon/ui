@@ -74,7 +74,11 @@ export const smartFilterBarVariants = tv({
       // Stack while the bar is narrow; switch to a row at ~28rem container width.
       responsive: {
         controls: 'flex-col @md:flex-row @md:items-center',
-        actionsSection: '@md:ml-auto @md:shrink-0'
+        // `w-fit` while stacked: the toolbar carries a ground of its own now, and
+        // a stretched flex item would draw that ground across the full bar with
+        // the triggers huddled at its left edge. Shrink-wrapping keeps it a
+        // capsule in both layouts.
+        actionsSection: 'w-fit @md:ml-auto @md:shrink-0'
       }
     },
 
@@ -102,6 +106,40 @@ export const smartFilterBarVariants = tv({
     elevated: false,
     variant: 'framed'
   }
+});
+
+/**
+ * SMART FILTER BAR TRIGGER VARIANTS
+ *
+ * The lit state of the five toolbar triggers, layered ON TOP of Button's own
+ * `active` compound. That compound paints a neutral ground plus an inset ring —
+ * the ring exists because a `-subtle` tone alone is too close to `surface-base`,
+ * but these triggers sit on the toolbar's `surface-quiet` capsule and carry a
+ * hue, so the ring is redundant chrome. The engine's fold strips the earlier
+ * source per conflict bucket, hence one token per bucket the compound owns
+ * (`bg-`, `text-`, `hover:bg-`, ring width).
+ *
+ * The hue names the artefact the control produces, so a lit trigger and what it
+ * did to the grid read as one thing: filter/group/summary wear their feature
+ * ramps — the same swatch as their chips below the bar and their group/summary
+ * rows — and sort wears `primary`, which is what a sorted column header already
+ * shows (table.system.ts → column.sorted). Same pairing as the header menu's
+ * active entries (headerMenuItemVariants below).
+ */
+export const smartFilterBarTriggerVariants = tv({
+  // `ring-0` wins the ring-width bucket; the colour token left behind paints
+  // nothing at zero width.
+  base: ['ring-0'],
+  variants: {
+    intent: {
+      filter: 'bg-filter-subtle text-filter-emphasis hover:bg-filter-subtle',
+      group: 'bg-group-subtle text-group-emphasis hover:bg-group-subtle',
+      summary: 'bg-summary-subtle text-summary-emphasis hover:bg-summary-subtle',
+      // Sort and column visibility have no feature ramp of their own.
+      primary: 'bg-primary-subtle text-primary-emphasis hover:bg-primary-subtle'
+    }
+  },
+  defaultVariants: { intent: 'primary' }
 });
 
 /**
@@ -480,6 +518,7 @@ export type FilterMenuVariantProps = VariantProps<typeof filterMenuVariants>;
 export type HeaderMenuVariantProps = VariantProps<typeof headerMenuVariants>;
 export type HeaderMenuItemVariantProps = VariantProps<typeof headerMenuItemVariants>;
 export type SmartFilterBarVariantProps = VariantProps<typeof smartFilterBarVariants>;
+export type SmartFilterBarTriggerVariantProps = VariantProps<typeof smartFilterBarTriggerVariants>;
 export type FilterChipVariantProps = VariantProps<typeof filterChipVariants>;
 export type GroupHeaderVariantProps = VariantProps<typeof groupHeaderVariants>;
 export type SummaryRowVariantProps = VariantProps<typeof summaryRowVariants>;

@@ -1,6 +1,7 @@
 <script lang="ts">
   import { getTableContext, useTableI18n } from '$lib';
   import { resolveColumnId, resolveColumnLabel } from '$lib/utils';
+  import { smartFilterBarTriggerVariants } from '$lib/variants';
   import {
     Badge,
     Button,
@@ -25,6 +26,9 @@
 
   const summaryConfigs = $derived(tableState.summaryConfigs);
   const isActive = $derived(summaryConfigs.length > 0);
+  const triggerClass = $derived(
+    isActive ? smartFilterBarTriggerVariants({ intent: 'summary' }) : undefined
+  );
 
   // Select models "no selection" as `null` — an empty string is an ordinary
   // value that matches no option and trips Select's DEV orphan warning on every
@@ -95,6 +99,7 @@
       intent="neutral"
       size="sm"
       active={isActive}
+      class={triggerClass}
       aria-expanded={menuOpen}
       aria-haspopup="listbox"
       disabled={summableColumns.length === 0}
@@ -106,13 +111,10 @@
              `bg-*`/`text-*`, so the filled/primary compound's `border-primary`
              survived the fold and drew a stray light ring — visible on every
              route that rescopes `--color-primary`. `soft` also drops the
-             `text-on-primary` coupling, which measured 3.7:1 on the solid green. -->
-        <Badge
-          variant="soft"
-          size="xs"
-          counter
-          class="bg-summary-subtle text-summary-emphasis ml-1"
-        >
+             `text-on-primary` coupling, which measured 3.7:1 on the solid green.
+             The ground is the neutral surface because the lit trigger behind it
+             now carries `summary-subtle` itself. -->
+        <Badge variant="soft" size="xs" counter class="bg-surface-base text-summary-emphasis ml-1">
           {summaryConfigs.length}
         </Badge>
       {/if}
@@ -120,6 +122,7 @@
   </Tooltip>
 {/snippet}
 
+<!-- `w-auto`: see SortMenu — the Select wrapper defaults to `w-full`. -->
 <Select
   groups={menuGroups}
   bind:value={selectedValue}
@@ -128,5 +131,6 @@
   disabled={summableColumns.length === 0}
   size="sm"
   syncWidth={false}
+  class="w-auto"
   {customTrigger}
 />

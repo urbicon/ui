@@ -1,7 +1,13 @@
 <script lang="ts">
   import { untrack } from 'svelte';
   import { getTableContext, useTableI18n } from '$lib';
-  import { Input, Toolbar, resolveIcon, SearchIcon as SearchIconDefault } from '@urbicon-ui/blocks';
+  import {
+    Input,
+    Separator,
+    Toolbar,
+    resolveIcon,
+    SearchIcon as SearchIconDefault
+  } from '@urbicon-ui/blocks';
 
   const SearchIcon = resolveIcon('search', SearchIconDefault);
   import { smartFilterBarVariants, type SmartFilterBarVariantProps } from '$lib/variants';
@@ -96,9 +102,13 @@
       />
     </div>
 
+    <!--
+      `quiet` (the Toolbar default), not `ghost`: the five icon triggers are one
+      control surface, and without a ground of their own they read as loose
+      glyphs floating beside the search field.
+    -->
     <Toolbar
       aria-label={tt('aria.filterBar')}
-      variant="ghost"
       gap="xs"
       padding="xs"
       class={filterBarStyles.actionsSection()}
@@ -111,6 +121,13 @@
       {/if}
       <SummaryMenu />
       {#if tableState.enableColumnVisibility}
+        <!--
+          The rule splits the two jobs in the capsule: everything left of it
+          changes WHICH rows/values the grid shows, the eye changes only what is
+          on screen. Explicit height because Separator's own `h-full` resolves
+          against an auto-height flex row — i.e. to nothing.
+        -->
+        <Separator orientation="vertical" class="mx-0.5 !h-5" />
         <ColumnVisibilityMenu />
       {/if}
     </Toolbar>
