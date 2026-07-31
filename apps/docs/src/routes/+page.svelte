@@ -2,7 +2,10 @@
   Die Landing — "3-Zeilen-Journey": erinnern → staunen → erforschen → handeln.
   Zeile 1: Namens-Kachel + Scroller mit fünf Kanal-Kacheln (Cusp-Palette,
   light-dark()-Paare); die ersten vier Kacheln teilen das Salon-Universum
-  "Bleecker & Bond" ($lib/salon-tools). Jede Kachel scopet die primary-Familie
+  "Bleecker & Bond" ($lib/salon-tools) — seit 2026-07-31 als GRUPPE erzählt:
+  vier Häuser (Bleecker/New York, Bond/London, Turenne/Paris, Neubau/Wien),
+  damit Dashboard und Grid Betriebs-Maßstab zeigen statt Terminzettel-Idylle.
+  Jede Kachel scopet die primary-Familie
   auf ihren Kanal (`.room-accent` aus rooms.css) — die lebenden Komponenten
   tragen die Livery ihrer Kachel. Zeile 2: das Hero-Inventar — Build-time-Daten
   aus $lib/server/landing, dieselben geteilten Playgrounds wie die Doku-Seiten,
@@ -105,27 +108,34 @@
     }
   ]);
 
-  // ── Die Kacheln Blocks–Agents teilen sich EIN fiktives Universum: der Salon
-  //    „Bleecker & Bond" (siehe $lib/salon-tools — dieselben Services,
-  //    Stylists und Slot-Zeiten wie das Livery-Exponat und die Vollseite).
-  //    Entscheidung 2026-07-30: kohärente Fiktion statt strenger
-  //    Selbstreferenz; die Beweiszahlen und Zeile 2 bleiben selbstreferenziell.
+  // ── Die Kacheln Blocks–Agents teilen sich EIN fiktives Universum: die
+  //    Salon-GRUPPE „Bleecker & Bond" — vier Häuser: Bleecker (New York),
+  //    Bond (London), Turenne (Paris), Neubau (Wien). Entscheidung
+  //    2026-07-30: kohärente Fiktion statt strenger Selbstreferenz;
+  //    2026-07-31: die Gruppe statt des Einzel-Salons, damit die Kacheln
+  //    unter „Enterprise grid" keine Spielzeugdaten tragen. Maßstabs-Schnitt:
+  //    Dashboard + Grid zeigen die GRUPPE; das Tool (`get_salon_info`), das
+  //    aufgezeichnete Gespräch und die /salon-Vollseite bleiben das Stammhaus
+  //    in der Bleecker Street — die Aufnahme ist eine Konserve und darf
+  //    nicht von ihrer Datenbasis driften (Services/Slot-Zeiten weiter aus
+  //    $lib/salon-tools; die Teams der drei anderen Häuser erweitern nur die
+  //    Fiktion, das Tool kennt sie nicht).
 
-  // ── Blocks: das Salon-Backoffice als Dashboard-Collage ──────────
+  // ── Blocks: das Gruppen-Backoffice als Dashboard-Collage ──────────
   let range = $state('week');
   let walkIns = $state(true);
   const WEEK_BOOKINGS: CartesianDatum[] = [
-    { label: 'Tue', values: [9, 3] },
-    { label: 'Wed', values: [11, 4] },
-    { label: 'Thu', values: [8, 6] },
-    { label: 'Fri', values: [13, 5] },
-    { label: 'Sat', values: [15, 2] }
+    { label: 'Tue', values: [38, 9] },
+    { label: 'Wed', values: [43, 12] },
+    { label: 'Thu', values: [35, 16] },
+    { label: 'Fri', values: [52, 14] },
+    { label: 'Sat', values: [61, 11] }
   ];
   const MONTH_BOOKINGS: CartesianDatum[] = [
-    { label: 'W1', values: [42, 15] },
-    { label: 'W2', values: [48, 18] },
-    { label: 'W3', values: [39, 21] },
-    { label: 'W4', values: [55, 17] }
+    { label: 'W1', values: [172, 48] },
+    { label: 'W2', values: [189, 55] },
+    { label: 'W3', values: [161, 63] },
+    { label: 'W4', values: [214, 49] }
   ];
   const BOOKING_SERIES: ChartSeries[] = [{ label: 'Booked' }, { label: 'Walk-in' }];
   const bookingsData = $derived(range === 'week' ? WEEK_BOOKINGS : MONTH_BOOKINGS);
@@ -135,33 +145,44 @@
     { label: 'Beard', value: 17, intent: 'warning' },
     { label: 'Colour', value: 7, intent: 'neutral' }
   ];
-  // Die Auslastungs-Spalte des Dashboards (Team, Stühle, Wiederkehrer) —
+  // Die Auslastungs-Spalte des Dashboards (Team, Häuser, Wiederkehrer) —
   // schmal gestapelt unter dem Chart-Block, breit daneben (siehe `.dash2`).
+  // Acht von 21 Cuttern der Gruppe — mehr als `max`, damit die AvatarGroup
+  // ihren Overflow („+4") zeigt statt wie früher alle fünf auszubreiten.
   const TEAM: AvatarProps[] = [
     { name: 'Io Nakamura', status: 'online' },
     { name: 'Sable Adeyemi', status: 'online' },
     { name: 'Ren Duval', status: 'busy' },
     { name: 'Mara Kovač' },
-    { name: 'Tomás Vidal' }
+    { name: 'Tomás Vidal' },
+    { name: 'Priya Ellis', status: 'online' },
+    { name: 'Jules Marchetti' },
+    { name: 'Wren Okoye', status: 'busy' }
   ];
-  const CHAIRS = [
-    { name: 'Io', load: 82 },
-    { name: 'Sable', load: 64 },
-    { name: 'Ren', load: 41 }
+  // Auslastung je HAUS, nicht je Stuhl — die Gruppen-Sicht ist der Punkt der
+  // Kachel; die Stuhl-Sicht gehört dem einzelnen Front desk (/salon).
+  const HOUSES = [
+    { name: 'Bleecker', load: 82 },
+    { name: 'Bond', load: 64 },
+    { name: 'Turenne', load: 47 },
+    { name: 'Neubau', load: 71 }
   ];
-  // Gästezahlen, keine Prozente: der Donut summiert seine Werte zur Mitte, und
-  // eine Mitte, die „100 %" sagt, weil die Anteile sich zu 100 addieren, wäre
-  // eine Zahl ohne Aussage.
+  // Gästezahlen, keine Prozente: der Donut summiert seine Werte zur Mitte.
+  // Auf Gruppen-Maßstab (412 guests) liest die Mitte auch nicht mehr
+  // versehentlich als „100 %", wie es die alte 68/32-Summe tat.
   const RETURN_MIX = [
-    { label: 'Returning', value: 68 },
-    { label: 'First visit', value: 32 }
+    { label: 'Returning', value: 284 },
+    { label: 'First visit', value: 128 }
   ];
 
-  // ── Table: die Buchungsliste des Salons ─────────────────────────
-  // Zeiten aus dem SLOT_GRID, Services/Stylists/Preise aus salon-tools.
+  // ── Table: die heutige Buchungsliste der GRUPPE, gruppiert nach Haus ──
+  // Zeiten aus dem SLOT_GRID, Services/Preise aus salon-tools. Die Cutter des
+  // Stammhauses (Io/Sable/Ren) sind die des Tools; die der drei anderen
+  // Häuser sind Fiktions-Erweiterung — `get_salon_info` kennt sie nicht,
+  // und die Aufnahme (booking-fixture) bleibt davon unberührt.
   interface Booking {
     id: string;
-    day: 'Today' | 'Tomorrow';
+    house: 'Bleecker' | 'Bond' | 'Turenne' | 'Neubau';
     time: string;
     client: string;
     service: string;
@@ -171,10 +192,11 @@
         Accessor-Wert. Das Währungszeichen ist Anzeige — `formatter`. */
     price: number;
   }
+  // Je Haus chronologisch — die Gruppenreihenfolge ist die Array-Reihenfolge.
   const BOOKINGS: Booking[] = [
     {
       id: 'b1',
-      day: 'Today',
+      house: 'Bleecker',
       time: '09:45',
       client: 'M. Okafor',
       service: 'The Bleecker Cut',
@@ -184,7 +206,7 @@
     },
     {
       id: 'b2',
-      day: 'Today',
+      house: 'Bleecker',
       time: '10:30',
       client: 'J. Laurent',
       service: 'Beard Architecture',
@@ -194,7 +216,7 @@
     },
     {
       id: 'b3',
-      day: 'Today',
+      house: 'Bleecker',
       time: '13:00',
       client: 'A. Reyes',
       service: 'Dry Cut & Finish',
@@ -204,7 +226,7 @@
     },
     {
       id: 'b4',
-      day: 'Today',
+      house: 'Bleecker',
       time: '15:15',
       client: 'T. Nguyen',
       service: 'Colour Consultation',
@@ -214,43 +236,163 @@
     },
     {
       id: 'b5',
-      day: 'Tomorrow',
-      time: '09:00',
-      client: 'S. Adeyemi',
-      service: 'The Bleecker Cut',
-      stylist: 'Sable',
-      status: 'confirmed',
-      price: 95
-    },
-    {
-      id: 'b6',
-      day: 'Tomorrow',
-      time: '11:15',
-      client: 'R. Duval',
-      service: 'Beard Architecture',
-      stylist: 'Ren',
-      status: 'pending',
-      price: 55
-    },
-    {
-      id: 'b7',
-      day: 'Tomorrow',
-      time: '13:45',
-      client: 'K. Marsh',
-      service: 'Dry Cut & Finish',
-      stylist: 'Io',
-      status: 'confirmed',
-      price: 70
-    },
-    {
-      id: 'b8',
-      day: 'Tomorrow',
+      house: 'Bleecker',
       time: '16:00',
       client: 'E. Sato',
       service: 'The Bleecker Cut',
       stylist: 'Ren',
       status: 'confirmed',
       price: 95
+    },
+    {
+      id: 'b6',
+      house: 'Bond',
+      time: '09:00',
+      client: 'P. Whitfield',
+      service: 'The Bleecker Cut',
+      stylist: 'Fen',
+      status: 'confirmed',
+      price: 95
+    },
+    {
+      id: 'b7',
+      house: 'Bond',
+      time: '10:30',
+      client: 'G. Halloran',
+      service: 'Dry Cut & Finish',
+      stylist: 'Alba',
+      status: 'confirmed',
+      price: 70
+    },
+    {
+      id: 'b8',
+      house: 'Bond',
+      time: '11:15',
+      client: 'S. Duran',
+      service: 'Beard Architecture',
+      stylist: 'Noor',
+      status: 'pending',
+      price: 55
+    },
+    {
+      id: 'b9',
+      house: 'Bond',
+      time: '13:45',
+      client: 'R. Lindqvist',
+      service: 'The Bleecker Cut',
+      stylist: 'Fen',
+      status: 'confirmed',
+      price: 95
+    },
+    {
+      id: 'b10',
+      house: 'Bond',
+      time: '15:15',
+      client: 'K. Marsh',
+      service: 'Dry Cut & Finish',
+      stylist: 'Alba',
+      status: 'walk-in',
+      price: 70
+    },
+    {
+      id: 'b11',
+      house: 'Turenne',
+      time: '09:45',
+      client: 'N. Petit',
+      service: 'The Bleecker Cut',
+      stylist: 'Odile',
+      status: 'confirmed',
+      price: 95
+    },
+    {
+      id: 'b12',
+      house: 'Turenne',
+      time: '11:15',
+      client: 'L. Beaumont',
+      service: 'Colour Consultation',
+      stylist: 'Marius',
+      status: 'pending',
+      price: 0
+    },
+    {
+      id: 'b13',
+      house: 'Turenne',
+      time: '13:00',
+      client: 'Y. Tanaka',
+      service: 'Dry Cut & Finish',
+      stylist: 'Odile',
+      status: 'confirmed',
+      price: 70
+    },
+    {
+      id: 'b14',
+      house: 'Turenne',
+      time: '14:30',
+      client: 'F. Abadi',
+      service: 'Beard Architecture',
+      stylist: 'Marius',
+      status: 'confirmed',
+      price: 55
+    },
+    {
+      id: 'b15',
+      house: 'Turenne',
+      time: '16:00',
+      client: 'C. Waweru',
+      service: 'The Bleecker Cut',
+      stylist: 'Odile',
+      status: 'walk-in',
+      price: 95
+    },
+    {
+      id: 'b16',
+      house: 'Neubau',
+      time: '09:00',
+      client: 'H. Sørensen',
+      service: 'Dry Cut & Finish',
+      stylist: 'Willa',
+      status: 'confirmed',
+      price: 70
+    },
+    {
+      id: 'b17',
+      house: 'Neubau',
+      time: '10:30',
+      client: 'A. Beck',
+      service: 'The Bleecker Cut',
+      stylist: 'Emil',
+      status: 'confirmed',
+      price: 95
+    },
+    {
+      id: 'b18',
+      house: 'Neubau',
+      time: '13:45',
+      client: 'T. Csorba',
+      service: 'Beard Architecture',
+      stylist: 'Willa',
+      status: 'pending',
+      price: 55
+    },
+    {
+      id: 'b19',
+      house: 'Neubau',
+      time: '15:15',
+      client: 'J. Kovács',
+      service: 'The Bleecker Cut',
+      stylist: 'Emil',
+      status: 'confirmed',
+      price: 95
+    },
+    {
+      id: 'b20',
+      house: 'Neubau',
+      time: '16:00',
+      client: 'O. Adebayo',
+      service: 'Dry Cut & Finish',
+      stylist: 'Willa',
+      status: 'confirmed',
+      price: 70
     }
   ];
 
@@ -464,7 +606,7 @@
                     <div class="dash-head">
                       <div>
                         <p class="dash-title">Bleecker &amp; Bond</p>
-                        <p class="dash-sub">Front desk</p>
+                        <p class="dash-sub">All four houses</p>
                       </div>
                       <SegmentGroup bind:value={range} size="sm" ariaLabel="Range">
                         <SegmentItem value="week">Week</SegmentItem>
@@ -494,14 +636,14 @@
                       </div>
                       <div class="dash-side">
                         <div class="dash-head">
-                          <p class="dash-sub">Chairs today</p>
+                          <p class="dash-sub">Houses today</p>
                           <AvatarGroup items={TEAM} max={4} size="sm" />
                         </div>
-                        <div class="chairs">
-                          {#each CHAIRS as chair (chair.name)}
+                        <div class="houses">
+                          {#each HOUSES as house (house.name)}
                             <Progress
-                              value={chair.load}
-                              label={chair.name}
+                              value={house.load}
+                              label={house.name}
                               showValue
                               formatValue={(v) => `${v} %`}
                             />
@@ -515,10 +657,10 @@
                             showLegend={false}
                             showTotal
                             totalLabel="guests"
-                            ariaLabel="Returning guests this week"
+                            ariaLabel="Returning guests this week across the group"
                           />
                           <p class="aside-note">
-                            <strong>68</strong> of them had been in before.
+                            <strong>284</strong> of them had been in before.
                           </p>
                         </div>
                       </div>
@@ -528,7 +670,7 @@
                       <!-- soft, nicht filled: die solide Intent-Fläche trägt text-on-primary,
                          das im .room-accent-Scope auf den Kanal umgefärbt ist
                          (docs/technical-debt.md → „Design tokens"). -->
-                      <Badge intent="success" variant="soft">3 chairs free</Badge>
+                      <Badge intent="success" variant="soft">9 chairs free</Badge>
                     </div>
                   </div>
                 {:else if tile.key === 'table'}
@@ -552,10 +694,10 @@
                           formatter: (value) => `$${value}`
                         }
                       ]}
-                      initialGroupBy="day"
+                      initialGroupBy="house"
                       variant="flush"
                       size="sm"
-                      ariaLabel="Bookings at Bleecker & Bond"
+                      ariaLabel="Today's bookings across the four houses of Bleecker & Bond"
                       slotClasses={{ table: '!min-w-0' }}
                     />
                   </div>
@@ -1080,7 +1222,7 @@
       width: min(940px, 100%);
     }
   }
-  .chairs {
+  .houses {
     display: flex;
     flex-direction: column;
     gap: 0.85rem;

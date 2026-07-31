@@ -3,6 +3,13 @@
 // (services, stylists, free slots) before building a booking surface, instead
 // of hallucinating options. Pure TS — the SSE relay calls `executeSalonTool`,
 // the unit tests call it directly.
+//
+// Scope note (2026-07-31): the landing tells "Bleecker & Bond" as a FOUR-house
+// group (Bleecker/Bond/Turenne/Neubau) — but this tool, the recorded
+// conversation (booking-fixture) and the /salon full page stay at house level:
+// the flagship on Bleecker St. The fixture is a recording; changing the data it
+// was recorded against would make the replay lie. The other houses exist only
+// in the landing's dashboard/table fiction.
 
 /** Anthropic tool definitions the relay passes to `messages.stream`. */
 export const SALON_TOOLS = [

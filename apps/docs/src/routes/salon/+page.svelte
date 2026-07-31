@@ -204,7 +204,10 @@
       <div
         class="mx-auto flex max-w-6xl flex-wrap items-baseline justify-between gap-4 px-6 py-10 text-2xs uppercase tracking-[0.2em] text-text-tertiary"
       >
-        <span>{SALON_NAME} · 233 Bleecker St</span>
+        <!-- Der eine Gruppen-Marker der Vollseite: die Seite selbst IST das
+             Stammhaus (Kicker: 233 Bleecker St), die Landing erzählt die
+             Gruppe — der Footer schlägt die Brücke, mehr nicht. -->
+        <span>{SALON_NAME} · New York · London · Paris · Vienna</span>
         <span>Built with @urbicon-ui/blocks</span>
       </div>
     </footer>
