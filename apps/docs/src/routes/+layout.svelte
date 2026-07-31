@@ -208,7 +208,7 @@
                 href={REPO_URL}
                 target="_blank"
                 rel="noopener"
-                class="hover:text-text-secondary transition-colors">Codeberg</a
+                class="hover:text-text-secondary transition-colors">GitHub</a
               >
               &middot;
               <a href={resolve('/changelog')} class="hover:text-text-secondary transition-colors"

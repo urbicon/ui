@@ -831,7 +831,7 @@
         <a href="/recipes">Recipes</a>
         <a href="/getting-started">Getting started</a>
         <a href="/changelog">Changelog</a>
-        <a href={REPO_URL} target="_blank" rel="noopener">Codeberg</a>
+        <a href={REPO_URL} target="_blank" rel="noopener">GitHub</a>
         <a href="/imprint">Imprint</a>
         <a href="/privacy">Privacy</a>
       </nav>

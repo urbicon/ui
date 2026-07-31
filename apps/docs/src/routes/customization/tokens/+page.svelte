@@ -460,7 +460,7 @@
           compilation — yours — and it wins. If your tooling introduces a second one, typography
           overrides silently revert, exactly like color overrides do. See
           <a
-            href="https://codeberg.org/urbicon/ui/src/branch/main/docs/TailwindCaveats.md"
+            href="https://github.com/urbicon/ui/blob/main/docs/TailwindCaveats.md"
             class="text-primary hover:underline"
             target="_blank"
             rel="noreferrer">docs/TailwindCaveats.md</a

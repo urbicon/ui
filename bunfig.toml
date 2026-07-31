@@ -9,5 +9,11 @@ linker = "hoisted"
 
 # @urbicon dev tooling (biome-config, commitlint-config, udx) from Codeberg's
 # public package registry — anonymous read, no token required.
+#
+# Deliberately still Codeberg after the 2026-07-31 move of this repo to GitHub:
+# those three packages live in their own repo and are not part of this move.
+# Anonymous read is verified, so an external contributor's `bun install` works
+# without a token or an account. Note the scope: `@urbicon` is the dev tooling,
+# `@urbicon-ui` (the published packages) resolves from npm as normal.
 [install.scopes]
 "@urbicon" = { url = "https://codeberg.org/api/packages/urbicon/npm/" }

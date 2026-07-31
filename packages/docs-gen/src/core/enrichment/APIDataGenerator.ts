@@ -15,22 +15,21 @@ import { toSlug } from '../../utils/slug';
  */
 export class APIDataGenerator {
   /**
-   * Codeberg (Gitea) source base URL for `sourceHref` construction.
+   * GitHub source base URL for `sourceHref` construction.
    * Hardcoded rather than derived from a `package.json` repository
-   * field because the root-level package has no `repository` entry
-   * and only two sub-packages do (`shared-types`, `docs-gen`);
-   * deriving from those would couple the link to whichever package
-   * happened to be checked first.
+   * field: every package now carries the same `repository` entry, so
+   * deriving it would add a lookup that can only ever return this
+   * value — and would silently follow a single package's typo.
    *
-   * Gitea/Codeberg URL pattern is `<repo>/src/branch/<branch>/<path>`
-   * for source view. We pin to `main` rather than `HEAD` because
-   * Codeberg's path resolver does not currently accept `HEAD` as a
-   * branch placeholder — if the default branch is ever renamed, this
-   * constant has to move with it.
+   * GitHub's source-view pattern is `<repo>/blob/<branch>/<path>`
+   * (Gitea/Codeberg used `<repo>/src/branch/<branch>/<path>` — the
+   * shape changed with the 2026-07-31 move, not just the host). We pin
+   * to `main` rather than `HEAD`, so a renamed default branch has to
+   * move this constant with it.
    *
    * If the repo ever moves, change this constant.
    */
-  private static readonly SOURCE_BASE_URL = 'https://codeberg.org/urbicon/ui/src/branch/main';
+  private static readonly SOURCE_BASE_URL = 'https://github.com/urbicon/ui/blob/main';
 
   private generatedTypes = new Set<string>();
   private typeDefinitions: TypeDefinition[] = [];

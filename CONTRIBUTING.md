@@ -40,7 +40,7 @@ Commit messages drive the auto-generated changelog (git-cliff) — correct types
 
 ## Pull Requests
 
-Development happens on [Codeberg](https://codeberg.org/urbicon/ui). Open pull requests against the `main` branch. Keep PRs focused — one coherent change per PR. If you spot an unrelated issue while working, note it in [docs/technical-debt.md](docs/technical-debt.md) rather than widening the PR's scope.
+Development happens on [GitHub](https://github.com/urbicon/ui). Open pull requests against the `main` branch. Keep PRs focused — one coherent change per PR. If you spot an unrelated issue while working, note it in [docs/technical-debt.md](docs/technical-debt.md) rather than widening the PR's scope.
 
 ## Conventions
 

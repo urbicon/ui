@@ -3,7 +3,7 @@
 Vertically integrated, zero-runtime-dependency Svelte 5 + Tailwind CSS 4 platform: UI primitives, data tables, auth, i18n, docs and AI-native DX — all under unified versioning. Built with Bun workspaces.
 
 - **Documentation:** [ui.urbicon.de](https://ui.urbicon.de)
-- **Source:** [codeberg.org/urbicon/ui](https://codeberg.org/urbicon/ui)
+- **Source:** [github.com/urbicon/ui](https://github.com/urbicon/ui)
 
 ## Using the Packages
 

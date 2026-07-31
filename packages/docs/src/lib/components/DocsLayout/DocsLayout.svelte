@@ -157,11 +157,11 @@
   Source-Link: occupies the
   slot the global code-toggle previously held (right edge of the
   sticky bar / pageToolbar). The code-toggle now lives in the TOC.
-  External link to Codeberg blob — the href is not a SvelteKit route.
+  External link to the GitHub blob — the href is not a SvelteKit route.
 -->
 {#snippet sourceLink()}
   {#if sourceHref}
-    <!-- external Codeberg URL, not a SvelteKit route -->
+    <!-- external GitHub URL, not a SvelteKit route -->
     <a
       href={sourceHref}
       target="_blank"

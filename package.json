@@ -4,7 +4,7 @@
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "git+https://codeberg.org/urbicon/ui.git"
+    "url": "git+https://github.com/urbicon/ui.git"
   },
   "homepage": "https://ui.urbicon.de",
   "private": true,

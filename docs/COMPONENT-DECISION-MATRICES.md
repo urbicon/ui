@@ -186,11 +186,11 @@ the right abstraction only when no scrim exists.
 
 ### Reference patterns
 
-- **Tooltip top-layer migration** ([commit `1d9720c`](https://codeberg.org/urbicon/ui/commit/1d9720c)) — the
+- **Tooltip top-layer migration** (`packages/blocks/src/lib/primitives/Tooltip/Tooltip.svelte`) — the
   canonical example of switching a floating component from inline `position: absolute` to native popover
   top-layer rendering, including the UA-stylesheet pitfalls (overflow:auto clipping the arrow, restProps
   reordering for load-bearing attributes, `Number.isFinite` guards on Floating UI output).
-- **Popover dismiss-API** ([commit `9443787`](https://codeberg.org/urbicon/ui/commit/9443787)) — derived
+- **Popover dismiss-API** (`packages/blocks/src/lib/primitives/Popover/Popover.svelte`) — derived
   `popoverMode` (auto/manual) with re-cycle on mode flip, capture-phase pointerdown listener but
   bubble-phase Escape listener so inner widgets can preventDefault.
 
