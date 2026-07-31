@@ -5,6 +5,25 @@ import type { APIData, APIOutputConfig, ComponentAPIData, GeneratedOutput } from
 import { toSlug } from '../../utils/slug';
 
 /**
+ * One double-quoted YAML scalar.
+ *
+ * Backslash goes first: escaping the quote before the backslash would turn a
+ * `\` immediately followed by a `"` into `\\"` — an escaped backslash and then a
+ * bare quote, which ends the scalar mid-value and shifts every following line of
+ * the document. Descriptions come from JSDoc, where a `\` is one regex example
+ * away, so this is reachable rather than theoretical.
+ */
+function yamlString(value: string): string {
+  const escaped = value
+    .replace(/\\/g, '\\\\')
+    .replace(/"/g, '\\"')
+    .replace(/\r/g, '\\r')
+    .replace(/\n/g, '\\n')
+    .replace(/\t/g, '\\t');
+  return `"${escaped}"`;
+}
+
+/**
  * Generates the per-component api.ts files that other phases can consume
  * (directory mode; single-file JSON/YAML aggregates are also supported).
  * This is the critical output that enables the API-first architecture.
@@ -239,33 +258,35 @@ export class APIFileGenerator {
     lines.push('');
 
     lines.push('metadata:');
-    lines.push(`  generated: "${apiData.metadata.generated}"`);
-    lines.push(`  version: "${apiData.metadata.version}"`);
+    lines.push(`  generated: ${yamlString(apiData.metadata.generated)}`);
+    lines.push(`  version: ${yamlString(apiData.metadata.version)}`);
     lines.push(`  totalComponents: ${apiData.metadata.totalComponents}`);
     lines.push(`  totalProps: ${apiData.metadata.totalProps}`);
-    lines.push(`  generator: "${apiData.metadata.generator}"`);
+    lines.push(`  generator: ${yamlString(apiData.metadata.generator)}`);
     lines.push('');
 
     lines.push('components:');
     for (const [componentName, componentData] of Object.entries(apiData.components)) {
       lines.push(`  ${componentName}:`);
-      lines.push(`    name: "${componentData.name}"`);
+      lines.push(`    name: ${yamlString(componentData.name)}`);
       lines.push(`    props:`);
 
       for (const prop of componentData.props) {
-        lines.push(`      - name: "${prop.name}"`);
-        lines.push(`        type: "${prop.type}"`);
+        lines.push(`      - name: ${yamlString(prop.name)}`);
+        lines.push(`        type: ${yamlString(prop.type)}`);
         lines.push(`        required: ${prop.required}`);
-        lines.push(`        description: "${(prop.description || '').replace(/"/g, '\\"')}"`);
+        lines.push(`        description: ${yamlString(prop.description || '')}`);
       }
 
       lines.push(`    variants:`);
       for (const variant of componentData.variants) {
-        lines.push(`      - name: "${variant.name}"`);
-        lines.push(`        values: [${variant.values.map((v: string) => `"${v}"`).join(', ')}]`);
-        lines.push(`        defaultValue: "${variant.defaultValue || ''}"`);
+        lines.push(`      - name: ${yamlString(variant.name)}`);
+        lines.push(`        values: [${variant.values.map(yamlString).join(', ')}]`);
+        lines.push(`        defaultValue: ${yamlString(variant.defaultValue || '')}`);
         lines.push(
-          `        description: "${(variant as VariantInfo & { description?: string }).description || ''}"`
+          `        description: ${yamlString(
+            (variant as VariantInfo & { description?: string }).description || ''
+          )}`
         );
       }
 

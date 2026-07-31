@@ -173,8 +173,12 @@ function generate(pkg: string, extraDecls: Record<string, string[]>): Example[] 
             : '');
         const declLines = decls.map((d) => `\tlet ${d} = $state<any>();\n`).join('');
 
-        const body = /<script/.test(code)
-          ? code.replace(/<script([^>]*)>/, (_m, attrs: string) => {
+        // `\b` so a component named `<Scripted …>` is not mistaken for the
+        // snippet's script block. Case-sensitive on purpose: Svelte only treats
+        // lower-case `<script>` as a script block — `<SCRIPT>` would be a
+        // component, and matching it here would splice imports into markup.
+        const body = /<script\b/.test(code)
+          ? code.replace(/<script\b([^>]*)>/, (_m, attrs: string) => {
               const withLang = /lang=/.test(attrs) ? attrs : `${attrs} lang="ts"`;
               return `<script${withLang}>\n${importLine}${declLines}`;
             })

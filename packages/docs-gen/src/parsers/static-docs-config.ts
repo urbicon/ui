@@ -33,10 +33,14 @@ export class StaticDocsConfigError extends Error {
   }
 }
 
-/** `<script>` / `<script lang="ts">` … `</script>` blocks. */
-const SCRIPT_BLOCK = /<script\b[^>]*>([\s\S]*?)<\/script>/gi;
-
-const CLOSING_SCRIPT_TAG = '</script>';
+/**
+ * `<script>` / `<script lang="ts">` … `</script>` blocks.
+ *
+ * The closing tag allows the whitespace HTML permits before the `>` (`</script >`)
+ * and is captured rather than assumed, so the body offset below stays right
+ * whatever its length turns out to be.
+ */
+const SCRIPT_BLOCK = /<script\b[^>]*>([\s\S]*?)(<\/script\s*>)/gi;
 
 /**
  * Blank out everything that is not inside a `<script>` body, preserving the
@@ -50,9 +54,10 @@ function maskToScriptBodies(content: string): string {
 
   for (const match of content.matchAll(SCRIPT_BLOCK)) {
     const body = match[1];
-    if (body === undefined || match.index === undefined) continue;
+    const closing = match[2];
+    if (body === undefined || closing === undefined || match.index === undefined) continue;
     // Body sits directly before the closing tag inside the full match.
-    const bodyStart = match.index + match[0].length - CLOSING_SCRIPT_TAG.length - body.length;
+    const bodyStart = match.index + match[0].length - closing.length - body.length;
     for (let i = 0; i < body.length; i++) {
       masked[bodyStart + i] = body[i] as string;
     }
