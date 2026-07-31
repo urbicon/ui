@@ -40,6 +40,15 @@ internal TODO instead. Sections are ordered roughly by urgency.
   a few minutes should alert, not pass unnoticed.
 - **Decision 2026-07-24:** ⏸ Hold — ops decision in the Buny project, to be made
   with the hosting call; not resolvable in this repo.
+- **Half-settled 2026-07-31 (the GitHub move):** the ownership question is
+  answered — Buny publishes, `release.yml` is the gate. That is no longer an
+  accident of which pipeline happens to win a race: the publish steps are
+  guarded by `if: env.NPM_REGISTRY_URL != ''` and the secrets are deliberately
+  unset, with the reasoning written at the top of the workflow. What this entry
+  still carries is the *other* half, unchanged and still Buny-side: it publishes
+  without the LICENSE assert and the specifier assert that `release.yml` runs
+  before its own publish, and a tag whose webhook is lost still fails silently
+  (v6.27.1). One owner is now settled; that owner having the gates is not.
 - **Found:** 2026-07-20, v6.26.1/v6.26.2 publish verification.
 
 ## Bundle size
