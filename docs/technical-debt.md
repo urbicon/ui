@@ -1071,6 +1071,28 @@ internal TODO instead. Sections are ordered roughly by urgency.
 
 ## Testing / CI gates
 
+### Every CI run, every fresh clone and every contributor depends on Codeberg being up
+
+- **Where:** `bunfig.toml` — `[install.scopes]` points `@urbicon` at
+  `codeberg.org/api/packages/urbicon/npm/`, for `biome-config`,
+  `commitlint-config` and `udx`.
+- **What:** Those three are dev tooling in their own repo, so the scope survived
+  the 2026-07-31 move to GitHub by design. What the move made visible is the
+  cost: on 2026-07-31 Codeberg returned 503 for about an hour, and **every job
+  of every CI run died at `bun install`** — not at a gate, at dependency
+  resolution. The same 503 blocks a first-time contributor's `bun install`
+  entirely, with an error naming a host that has nothing to do with the library
+  they are trying to build. The published `@urbicon-ui/*` packages are
+  unaffected (they resolve from npm); this is strictly a build-time coupling.
+- **Why deferred:** The fix is not in this repo. Either the three packages get
+  published to npm as well (one registry for everything, no code change here
+  beyond dropping the scope), or they get vendored — both are decisions about
+  the *tooling* repo, and the second trades an availability risk for a
+  duplication one. A CI-side retry would only paper over short outages and would
+  still leave contributors stuck during long ones.
+- **Found:** 2026-07-31, first CI runs after the GitHub move — three consecutive
+  runs red, all at `bun install`, none of them about the code.
+
 ### docs-gen strictness: the barrier only fails on *collected* errors — discovery partial-failures aren't collected, and there's no orchestrator-level test
 
 - **Where:** `packages/docs-gen/src/core/pipeline/PipelineOrchestrator.ts`
