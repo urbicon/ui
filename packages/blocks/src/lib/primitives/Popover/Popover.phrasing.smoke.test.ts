@@ -16,10 +16,37 @@
  * whole subject here. What the client does after mounting is Playwright's job.
  */
 
+import { readFileSync } from 'node:fs';
+import { createRequire } from 'node:module';
+import { dirname, resolve } from 'node:path';
 import { createRawSnippet } from 'svelte';
 import { render } from 'svelte/server';
 import { describe, expect, it } from 'vitest';
 import Popover from './Popover.svelte';
+
+/**
+ * Every element whose start tag implicitly closes an open `<p>`, read from the
+ * table Svelte itself consults when it emits `node_invalid_placement_ssr`
+ * (`svelte/src/html-tree-validation.js`). Read rather than copied, so this test
+ * and the compiler warning can never disagree about what the rule is — the
+ * first version of this file listed thirteen tags by hand and called them "the
+ * rule", missing `hr` and `h2`-`h6` among others.
+ *
+ * The file is not exported from the package, so it is read off disk. That is
+ * also why the count is asserted below: if Svelte moves or reshapes it, the
+ * regex yields an empty list and the loop would pass vacuously.
+ */
+const CLOSES_A_PARAGRAPH: string[] = (() => {
+  const src = readFileSync(
+    resolve(
+      dirname(createRequire(import.meta.url).resolve('svelte/package.json')),
+      'src/html-tree-validation.js'
+    ),
+    'utf8'
+  );
+  const block = /\bp:\s*\{\s*descendant:\s*\[([^\]]*)\]/s.exec(src);
+  return [...(block?.[1] ?? '').matchAll(/'([a-z0-9]+)'/g)].map((m) => m[1]);
+})();
 
 const trigger = createRawSnippet(() => ({ render: () => '<button>cite</button>' }));
 const children = createRawSnippet(() => ({ render: () => '<span>source</span>' }));
@@ -68,26 +95,22 @@ describe('Popover — phrasing-content mode', () => {
   });
 
   it('a paragraph containing an inline popover survives with its <p> intact', () => {
-    // The end-to-end shape of the bug, spelled out: wrap the server output the
-    // way MdBlock does, then check the paragraph body against the elements whose
-    // start tag *implicitly closes* an open <p> per the HTML parsing spec. That
-    // list — not "is it a div" — is the actual rule being obeyed here.
-    const CLOSES_A_PARAGRAPH = [
-      'div',
-      'p',
-      'ul',
-      'ol',
-      'li',
-      'table',
-      'section',
-      'article',
-      'header',
-      'footer',
-      'blockquote',
-      'form',
-      'h1'
-    ];
+    // The end-to-end shape of the bug: wrap the server output the way MdBlock
+    // does, then check the paragraph body against every element whose start tag
+    // implicitly closes an open <p>.
+    //
+    // The list is READ FROM SVELTE, not written out here. A hand-picked subset
+    // is how this assertion quietly stops covering things — the first version of
+    // this test listed thirteen tags and called them "the rule"; Svelte's own
+    // table has 28, including `hr` and `h2`–`h6`, which is exactly the shape a
+    // consumer's popover content might hold. Reading the source that Svelte uses
+    // to emit `node_invalid_placement_ssr` means this test and the compiler
+    // warning can never disagree about what the rule is.
     const body = `See ${renderPopover({ inline: true })} for details.`;
+    expect(
+      CLOSES_A_PARAGRAPH.length,
+      "Svelte's p-descendant list could not be read — the loop below would pass vacuously"
+    ).toBeGreaterThan(20);
     for (const tag of CLOSES_A_PARAGRAPH) {
       expect(body, `<${tag}> inside a paragraph terminates it`).not.toMatch(
         new RegExp(`<${tag}[\\s/>]`)

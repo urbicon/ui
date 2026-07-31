@@ -37,6 +37,22 @@
       <a href={r('/blocks/primitives/dialog')} class="text-primary hover:underline">Dialog</a>.
     </li>
   </ul>
+
+  <h3 class="text-text-primary mt-6 text-sm font-semibold">Inside a paragraph</h3>
+  <p class="text-text-secondary mt-2 text-sm leading-relaxed">
+    A popover whose trigger sits in flowing text — a citation marker in a sentence, a term with a
+    definition — needs <code>inline</code>. By default the trigger wrapper and the panel are both
+    <code>&lt;div&gt;</code>s, and a <code>&lt;div&gt;</code> start tag closes an open
+    <code>&lt;p&gt;</code> however deeply it is nested. On a server-rendered page the browser repairs
+    that by ending the paragraph early, so the DOM it builds no longer matches the component tree and
+    hydration reports a mismatch.
+  </p>
+  <p class="text-text-secondary mt-2 text-sm leading-relaxed">
+    <code>inline</code> makes the wrapper a <code>&lt;span&gt;</code> and withholds the panel from the
+    server render, adding it on mount. The cost is that the panel's content is absent from the prerendered
+    HTML, so a non-rendering crawler never sees it — which is why it is opt-in rather than the default.
+    There is nothing to see in the playground: the difference is entirely in the server output.
+  </p>
 </Section>
 
 <!-- ─── Examples ─── -->

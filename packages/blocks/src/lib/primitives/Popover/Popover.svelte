@@ -424,6 +424,12 @@
 </script>
 
 {#if trigger}
+  <!-- The a11y suppression is kept for the record, not because it fires: the
+       compiler cannot know a `<svelte:element>`'s tag, so it emits no
+       `a11y_no_static_element_interactions` here at all (verified — svelte-check
+       reports the same six warnings with and without it, none in this file).
+       The handlers below still sit on a non-interactive wrapper, which is the
+       thing the rule is about; the trigger snippet supplies the real control. -->
   <!-- svelte-ignore a11y_no_static_element_interactions -->
   <svelte:element
     this={inline ? 'span' : 'div'}

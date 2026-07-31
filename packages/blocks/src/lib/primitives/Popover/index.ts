@@ -92,15 +92,23 @@ export interface PopoverProps
   autoTrigger?: boolean;
 
   /**
-   * Render in a way that is legal inside **phrasing content** — a paragraph, a
-   * heading, a `<label>`. Set this when the trigger sits in flowing text, as a
-   * citation chip does inside a markdown paragraph.
+   * Render in a way that is legal inside **phrasing content** — a paragraph or a
+   * heading. Set this when the trigger sits in flowing text, as a citation chip
+   * does inside a markdown paragraph.
+   *
+   * A `<label>` is phrasing content too, but think twice there: after mount the
+   * panel is a DOM descendant of the label, so a click on non-interactive panel
+   * content forwards activation to the labelled control. Top-layer promotion
+   * changes where the panel *paints*, not where it sits in the tree.
    *
    * Two things change. The trigger wrapper becomes a `<span>` instead of a
    * `<div>`, and the panel is not rendered on the server at all — it appears
    * after mount. Both are needed together: a `<div>` start tag closes an open
    * `<p>` regardless of how deeply it is nested, so wrapping the trigger alone
    * leaves the panel to break the paragraph instead.
+   *
+   * Withholding the panel costs nothing the server render was providing: it is
+   * hidden and `inert` until opened, and opening requires the client anyway.
    *
    * Without it, an SSR'd page with a popover in a paragraph emits invalid HTML.
    * The parser repairs it by closing the `<p>` early, which makes the server DOM
