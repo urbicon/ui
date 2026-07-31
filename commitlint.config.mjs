@@ -1,4 +1,4 @@
-import { createConfig } from '@urbicon/commitlint-config';
+import { createConfig } from '@urbicon-ui/commitlint-config';
 
 export default createConfig({
   // Workspace packages (packages/*, apps/*) + `deps` for Renovate. The scope is

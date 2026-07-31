@@ -11,8 +11,8 @@
         "@playwright/test": "^1.61.1",
         "@types/bun": "catalog:",
         "@types/node": "catalog:",
-        "@urbicon/biome-config": "^0.2.9",
-        "@urbicon/commitlint-config": "^0.2.9",
+        "@urbicon-ui/biome-config": "^0.3.1",
+        "@urbicon-ui/commitlint-config": "^0.3.1",
         "git-cliff": "catalog:",
         "lefthook": "catalog:",
         "prettier": "^3.8.4",
@@ -679,7 +679,11 @@
 
     "@urbicon-ui/auth": ["@urbicon-ui/auth@workspace:packages/auth"],
 
+    "@urbicon-ui/biome-config": ["@urbicon-ui/biome-config@0.3.1", "", {}, "sha512-FoNtBhBPkZ+U7PA2Sey6Mx8yH8Eaa0M70ER2Sz45Umn78typbGJqfEvQDdQ303tn3irOc15NSiKirhEze2J0Mw=="],
+
     "@urbicon-ui/blocks": ["@urbicon-ui/blocks@workspace:packages/blocks"],
+
+    "@urbicon-ui/commitlint-config": ["@urbicon-ui/commitlint-config@0.3.1", "", { "dependencies": { "@commitlint/config-conventional": "^21.0.2", "@commitlint/types": "^21.0.1" } }, "sha512-vrvyLOIyZtOt2Hht7Pz5z4z8toA3JL/mkVetbD5TyXj9LKE7oEx5lxNixrl+ngsoNrp52vdTkCBWzb0b3EAbuQ=="],
 
     "@urbicon-ui/design": ["@urbicon-ui/design@workspace:packages/design"],
 
@@ -702,10 +706,6 @@
     "@urbicon-ui/sveltekit-utils": ["@urbicon-ui/sveltekit-utils@workspace:packages/sveltekit-utils"],
 
     "@urbicon-ui/table": ["@urbicon-ui/table@workspace:packages/table"],
-
-    "@urbicon/biome-config": ["@urbicon/biome-config@0.2.9", "https://codeberg.org/api/packages/urbicon/npm/%40urbicon%2Fbiome-config/-/0.2.9/biome-config-0.2.9.tgz", {}, "sha512-ZUoinNCDyS0rvrVijlLWjCuBqGIop6KPuva//+2OE1y0ZSUH/hVIx1kJECQzfTdBFhNkFKJBUS40JuoElhkyFg=="],
-
-    "@urbicon/commitlint-config": ["@urbicon/commitlint-config@0.2.9", "https://codeberg.org/api/packages/urbicon/npm/%40urbicon%2Fcommitlint-config/-/0.2.9/commitlint-config-0.2.9.tgz", { "dependencies": { "@commitlint/config-conventional": "^21.0.2", "@commitlint/types": "^21.0.1" } }, "sha512-WfLa5uf54pWuD0/FMIYWRlvYkZfF2O8cg23PsBcajhiZnrOa7OisE3lMemkMXq4jo1wRjZe6DmBVqtb7PPig1A=="],
 
     "@vitest/expect": ["@vitest/expect@4.1.10", "", { "dependencies": { "@standard-schema/spec": "^1.1.0", "@types/chai": "^5.2.2", "@vitest/spy": "4.1.10", "@vitest/utils": "4.1.10", "chai": "^6.2.2", "tinyrainbow": "^3.1.0" } }, "sha512-YsCn+qAk1GWjQOWFEsEcL2gNQ0zmVmQu3T03qP6UyjhtmdtwtbuI+DASn/7iQB3HGTXkdBwGddzxPlmiql5vlA=="],
 

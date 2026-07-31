@@ -7,13 +7,7 @@
 # ("env: node: No such file or directory"). hoisted keeps the binary top-level.
 linker = "hoisted"
 
-# @urbicon dev tooling (biome-config, commitlint-config, udx) from Codeberg's
-# public package registry — anonymous read, no token required.
-#
-# Deliberately still Codeberg after the 2026-07-31 move of this repo to GitHub:
-# those three packages live in their own repo and are not part of this move.
-# Anonymous read is verified, so an external contributor's `bun install` works
-# without a token or an account. Note the scope: `@urbicon` is the dev tooling,
-# `@urbicon-ui` (the published packages) resolves from npm as normal.
-[install.scopes]
-"@urbicon" = { url = "https://codeberg.org/api/packages/urbicon/npm/" }
+# No [install.scopes] needed: the dev tooling moved from Codeberg to the public npm
+# registry on 2026-07-31 and is scoped @urbicon-ui/* as well (biome-config,
+# commitlint-config, tsconfig, udx) — `urbicon` was taken on npm. Both the tooling and
+# the packages published from this repo now resolve from npm without a token.
