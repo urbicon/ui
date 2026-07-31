@@ -27,9 +27,9 @@
     AccordionItem,
     Alert,
     AreaChart,
-    ArrowRightIcon,
     ArrowUpRightIcon,
     Avatar,
+    AvatarGroup,
     Badge,
     BarChart,
     Breadcrumb,
@@ -50,8 +50,10 @@
     Collapsible,
     Combobox,
     CompositionBar,
+    CopyButton,
     CurrencyInput,
     DatePicker,
+    DateRangePicker,
     DonutChart,
     EmptyState,
     FileUpload,
@@ -62,16 +64,21 @@
     InboxIcon,
     Input,
     JourneyTimeline,
+    Kbd,
     LineChart,
     LocaleSwitcher,
     Menu,
+    NumberInput,
     Pagination,
+    PinInput,
     Progress,
     PromptInput,
+    QRCode,
     RadioGroup,
     RadioItem,
     ReasoningDisclosure,
     Sankey,
+    Scroller,
     SearchIcon,
     SegmentGroup,
     SegmentItem,
@@ -90,6 +97,7 @@
     TabPanel,
     Textarea,
     ThemeSwitcher,
+    TimeInput,
     Toggle,
     Toolbar,
     ToolCallCard
@@ -183,6 +191,21 @@
 
   // ── Specimen data — one small studio universe, deterministic ──────
   const kickoff = new Date('2026-07-09T00:00:00');
+  const reviewRange = {
+    start: new Date('2026-07-09T00:00:00'),
+    end: new Date('2026-07-14T00:00:00')
+  };
+
+  // Scroller specimen — enough token-layer chips that the row has to scroll
+  // even at the wide cell width (6 × 7.5rem > the 2-column cell).
+  const scrollerItems = [
+    { id: 'foundation', label: 'Foundation', note: 'OKLCH ramps' },
+    { id: 'semantic', label: 'Semantic', note: 'light-dark()' },
+    { id: 'interaction', label: 'Interaction', note: 'hover & focus' },
+    { id: 'motion', label: 'Motion', note: 'mint presets' },
+    { id: 'elevation', label: 'Elevation', note: 'shadow scale' },
+    { id: 'zindex', label: 'Z-index', note: 'layer tokens' }
+  ];
 
   const calendarValue = new Date('2026-07-09T00:00:00');
   const calendarEvents = [
@@ -395,12 +418,19 @@ Tokens switch light and dark automatically:
   aria-label="Component chapters"
   class="bg-surface-base border-border-hairline sticky top-(--sidebar-layout-header-h) z-[var(--z-sticky)] border-b"
 >
-  <div class="mx-auto flex max-w-7xl items-baseline gap-x-6 overflow-x-auto px-4 sm:px-6 lg:px-8">
+  <!-- overflow-x-auto forces overflow-y to auto as well, so the strip must not
+       overflow vertically by even 1px — classic-scrollbar systems would render
+       a vertical bar for it. The links therefore carry no -mb-px overhang (a
+       scroll container clips it anyway, it can never overlap the nav hairline
+       below); the active border-b-2 sits fully inside, flush on the hairline. -->
+  <div
+    class="mx-auto flex max-w-7xl items-baseline gap-x-6 overflow-x-auto overflow-y-hidden px-4 sm:px-6 lg:px-8"
+  >
     {#each chapters as chapter (chapter.slug)}
       <a
         href="#{chapter.slug}"
         aria-current={activeChapter === chapter.slug ? 'true' : undefined}
-        class="text-text-secondary hover:text-text-primary aria-[current]:border-primary aria-[current]:text-primary -mb-px border-b-2 border-transparent py-2.5 font-mono text-[11.5px] font-medium tracking-[0.08em] whitespace-nowrap uppercase transition-colors"
+        class="text-text-secondary hover:text-text-primary aria-[current]:border-primary aria-[current]:text-primary border-b-2 border-transparent py-2.5 font-mono text-[11.5px] font-medium tracking-[0.08em] whitespace-nowrap uppercase transition-colors"
       >
         {chapter.name}
         <span class="text-text-tertiary ml-0.5">{chapter.count}</span>
@@ -516,6 +546,26 @@ Tokens switch light and dark automatically:
         </div>
       </div>
 
+      <!-- DateRangePicker ── 2×1 -->
+      <div class={cellWd} data-specimen="DateRangePicker">
+        <a
+          href={resolve('/blocks/components/date-range-picker')}
+          class={cellLink}
+          aria-label="DateRangePicker docs"
+        ></a>
+        <div class={inner} inert>
+          {@render heading('DateRangePicker')}
+          <div class="flex flex-1 flex-col justify-center">
+            <DateRangePicker
+              value={reviewRange}
+              label="Review window"
+              size="sm"
+              clearable={false}
+            />
+          </div>
+        </div>
+      </div>
+
       <!-- Combobox ── 2×1 -->
       <div class={cellWd} data-specimen="Combobox">
         <a href={resolve('/blocks/primitives/combobox')} class={cellLink} aria-label="Combobox docs"
@@ -548,6 +598,36 @@ Tokens switch light and dark automatically:
           {@render heading('CurrencyInput')}
           <div class="flex flex-1 flex-col justify-center">
             <CurrencyInput label="Budget" value={123456} currency="EUR" size="sm" />
+          </div>
+        </div>
+      </div>
+
+      <!-- NumberInput ── 2×1 -->
+      <div class={cellWd} data-specimen="NumberInput">
+        <a
+          href={resolve('/blocks/components/number-input')}
+          class={cellLink}
+          aria-label="NumberInput docs"
+        ></a>
+        <div class={inner} inert>
+          {@render heading('NumberInput')}
+          <div class="flex flex-1 flex-col justify-center">
+            <NumberInput label="Seats" value={12} min={1} max={64} size="sm" />
+          </div>
+        </div>
+      </div>
+
+      <!-- TimeInput ── 2×1 -->
+      <div class={cellWd} data-specimen="TimeInput">
+        <a
+          href={resolve('/blocks/components/time-input')}
+          class={cellLink}
+          aria-label="TimeInput docs"
+        ></a>
+        <div class={inner} inert>
+          {@render heading('TimeInput')}
+          <div class="flex flex-1 flex-col justify-center">
+            <TimeInput label="Stand-up" value="09:30" size="sm" />
           </div>
         </div>
       </div>
@@ -624,6 +704,21 @@ Tokens switch light and dark automatically:
               <RadioItem value="pro" label="Pro" />
               <RadioItem value="team" label="Team" />
             </RadioGroup>
+          </div>
+        </div>
+      </div>
+
+      <!-- PinInput ── 2×1 · mid-entry, four of six cells filled -->
+      <div class={cellWd} data-specimen="PinInput">
+        <a
+          href={resolve('/blocks/components/pin-input')}
+          class={cellLink}
+          aria-label="PinInput docs"
+        ></a>
+        <div class={inner} inert>
+          {@render heading('PinInput')}
+          <div class="flex flex-1 flex-col justify-center">
+            <PinInput label="Verification code" value="4921" size="sm" />
           </div>
         </div>
       </div>
@@ -773,6 +868,26 @@ Tokens switch light and dark automatically:
               <Button size="sm" intent="primary" variant="outlined">Center</Button>
               <Button size="sm" intent="primary" variant="outlined">Right</Button>
             </ButtonGroup>
+          </div>
+        </div>
+      </div>
+
+      <!-- CopyButton ── 2×1 · beside the string it copies -->
+      <div class={cellWd} data-specimen="CopyButton">
+        <a
+          href={resolve('/blocks/components/copy-button')}
+          class={cellLink}
+          aria-label="CopyButton docs"
+        ></a>
+        <div class={inner} inert>
+          {@render heading('CopyButton')}
+          <div class={demo}>
+            <div
+              class="border-border-subtle bg-surface-elevated flex items-center gap-2 rounded-lg border py-1 pr-1 pl-3"
+            >
+              <code class="text-text-secondary font-mono text-xs">bun add @urbicon-ui/blocks</code>
+              <CopyButton value="bun add @urbicon-ui/blocks" size="xs" variant="ghost" />
+            </div>
           </div>
         </div>
       </div>
@@ -1224,6 +1339,25 @@ Tokens switch light and dark automatically:
         </div>
       </div>
 
+      <!-- Scroller ── 2×1 · sized so the row genuinely overflows here -->
+      <div class={cellWd} data-specimen="Scroller">
+        <a href={resolve('/blocks/primitives/scroller')} class={cellLink} aria-label="Scroller docs"
+        ></a>
+        <div class={inner} inert>
+          {@render heading('Scroller')}
+          <div class="flex flex-1 flex-col justify-center">
+            <Scroller label="Token layers" itemBasis="7.5rem" gap="sm">
+              {#each scrollerItems as item (item.id)}
+                <div class="border-border-subtle bg-surface-elevated rounded-lg border px-3 py-2">
+                  <p class="text-text-primary text-xs font-medium">{item.label}</p>
+                  <p class="text-text-tertiary text-2xs">{item.note}</p>
+                </div>
+              {/each}
+            </Scroller>
+          </div>
+        </div>
+      </div>
+
       <!-- Sidebar ── 1×1 · fixed-position, token-built sketch -->
       <div class={cell} data-specimen="Sidebar">
         <a href={resolve('/blocks/primitives/sidebar')} class={cellLink} aria-label="Sidebar docs"
@@ -1485,14 +1619,15 @@ Tokens switch light and dark automatically:
         </div>
       </div>
 
-      <!-- Sankey ── 2×1 -->
-      <div class={cellWd} data-specimen="Sankey">
+      <!-- Sankey ── 2×2 (flows and node labels need real room; width tracks
+           the cell via the component's own ResizeObserver) -->
+      <div class={cellLg} data-specimen="Sankey">
         <a href={resolve('/blocks/components/sankey')} class={cellLink} aria-label="Sankey docs"
         ></a>
         <div class={inner} inert>
           {@render heading('Sankey')}
-          <div class={demo}>
-            <Sankey width={260} height={92} nodes={sankeyNodes} links={sankeyLinks} />
+          <div class="flex flex-1 flex-col justify-center">
+            <Sankey height={220} nodes={sankeyNodes} links={sankeyLinks} />
           </div>
         </div>
       </div>
@@ -1610,6 +1745,30 @@ Tokens switch light and dark automatically:
         </div>
       </div>
 
+      <!-- AvatarGroup ── 2×1 · the salon crew from the landing -->
+      <div class={cellWd} data-specimen="AvatarGroup">
+        <a
+          href={resolve('/blocks/components/avatar-group')}
+          class={cellLink}
+          aria-label="AvatarGroup docs"
+        ></a>
+        <div class={inner} inert>
+          {@render heading('AvatarGroup')}
+          <div class={demo}>
+            <AvatarGroup
+              items={[
+                { name: 'Io Nakamura' },
+                { name: 'Sable Adeyemi' },
+                { name: 'Ren Duval' },
+                { name: 'Mara Kovač' },
+                { name: 'Tomás Vidal' }
+              ]}
+              max={4}
+            />
+          </div>
+        </div>
+      </div>
+
       <!-- Tooltip ── 2×1 · top-layer, token-built sketch -->
       <div class={cellWd} data-specimen="Tooltip">
         <a href={resolve('/blocks/primitives/tooltip')} class={cellLink} aria-label="Tooltip docs"
@@ -1626,6 +1785,34 @@ Tokens switch light and dark automatically:
               ><path fill="currentColor" d="M6 8 0 0h12z" /></svg
             >
             <Button variant="outlined" size="xs">Copy</Button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Kbd ── 1×1 -->
+      <div class={cellWd} data-specimen="Kbd">
+        <a href={resolve('/blocks/primitives/kbd')} class={cellLink} aria-label="Kbd docs"></a>
+        <div class={inner} inert>
+          {@render heading('Kbd')}
+          <div class="flex flex-1 flex-col items-center justify-center gap-3">
+            <span class="text-text-secondary inline-flex items-center gap-2 text-xs">
+              Palette <Kbd keys="⌘K" size="sm" />
+            </span>
+            <span class="text-text-secondary inline-flex items-center gap-2 text-xs">
+              Send <Kbd keys={['⇧', '⏎']} size="sm" />
+            </span>
+          </div>
+        </div>
+      </div>
+
+      <!-- QRCode ── 1×1 -->
+      <div class={cellWd} data-specimen="QRCode">
+        <a href={resolve('/blocks/components/qr-code')} class={cellLink} aria-label="QRCode docs"
+        ></a>
+        <div class={inner} inert>
+          {@render heading('QRCode')}
+          <div class={demo}>
+            <QRCode value="https://ui.urbicon.de" size={88} />
           </div>
         </div>
       </div>
@@ -1803,128 +1990,6 @@ Tokens switch light and dark automatically:
         </div>
       </div>
     </div>
-  </section>
-
-  <!-- ─── Customization island ───────────────────────────────── -->
-  <section class="mt-20" aria-labelledby="customization-island-title">
-    <p class="meta-marker text-text-tertiary text-xs font-medium tracking-wider uppercase">
-      Unstyled in action
-    </p>
-    <h2
-      id="customization-island-title"
-      class="text-text-primary mt-4 text-2xl font-bold tracking-tight sm:text-3xl"
-    >
-      The default is one voice — and this is how far you can take it
-    </h2>
-    <p class="text-text-secondary mt-4 max-w-2xl text-sm leading-relaxed">
-      Every component accepts
-      <code class="bg-surface-elevated rounded-modify px-1.5 py-0.5 font-mono text-xs"
-        >unstyled</code
-      >
-      to drop the shipped skin entirely and
-      <code class="bg-surface-elevated rounded-modify px-1.5 py-0.5 font-mono text-xs"
-        >slotClasses</code
-      >
-      to restyle single slots. The two showpieces below are the same Button and Tab from the grid — pushed
-      to the opposite end of the spectrum.
-    </p>
-
-    <!-- Dark board: fixed warm poster ink (like the landing's terminal card),
-         not a cool neutral — the neon content inside is deliberately foreign,
-         the frame is not. -->
-    <div class="border-border-subtle mt-8 border bg-[#14120d] p-8">
-      <div class="grid grid-cols-1 gap-10 md:grid-cols-2">
-        <div class="flex flex-col items-start justify-center gap-3">
-          <span
-            class="font-mono text-2xs font-medium tracking-[0.08em] text-[#f6f3ec]/55 uppercase"
-          >
-            Button · unstyled + slotClasses
-          </span>
-          <Button
-            size="sm"
-            mint={['scale', 'ripple']}
-            slotClasses={{
-              base: 'bg-linear-to-r from-violet-600 to-fuchsia-500 border-none shadow-lg shadow-violet-500/30'
-            }}>Launch Project</Button
-          >
-          <Button
-            unstyled
-            class="rounded-lg border border-emerald-400 px-4 py-2 text-sm font-medium text-emerald-400 shadow-[0_0_15px_rgba(52,211,153,0.3)] transition-all hover:bg-emerald-400/10 hover:shadow-[0_0_25px_rgba(52,211,153,0.5)]"
-            >Neon Outline</Button
-          >
-          <Button
-            unstyled
-            mint="scale"
-            class="inline-flex items-center gap-2 rounded-none border-2 border-current px-5 py-2 font-mono text-xs font-bold tracking-widest text-neutral-300 uppercase transition-all hover:bg-white hover:text-neutral-950"
-            >Brutalist</Button
-          >
-        </div>
-
-        <div>
-          <span
-            class="font-mono text-2xs font-medium tracking-[0.08em] text-[#f6f3ec]/55 uppercase"
-          >
-            Tab · unstyled on gradient
-          </span>
-          <div
-            class="mt-3 rounded-xl bg-linear-to-br from-indigo-500 via-purple-500 to-pink-500 p-4"
-          >
-            <Tab unstyled defaultValue="home" class="w-full">
-              {#snippet tabs()}
-                <div class="flex gap-1 rounded-xl bg-white/10 p-1 backdrop-blur-md">
-                  <TabItem
-                    unstyled
-                    value="home"
-                    class="flex-1 rounded-lg px-4 py-2 text-center text-sm font-medium text-white/60 transition-all data-[state=active]:bg-white/20 data-[state=active]:text-white data-[state=active]:shadow-lg"
-                    >Home</TabItem
-                  >
-                  <TabItem
-                    unstyled
-                    value="explore"
-                    class="flex-1 rounded-lg px-4 py-2 text-center text-sm font-medium text-white/60 transition-all data-[state=active]:bg-white/20 data-[state=active]:text-white data-[state=active]:shadow-lg"
-                    >Explore</TabItem
-                  >
-                  <TabItem
-                    unstyled
-                    value="library"
-                    class="flex-1 rounded-lg px-4 py-2 text-center text-sm font-medium text-white/60 transition-all data-[state=active]:bg-white/20 data-[state=active]:text-white data-[state=active]:shadow-lg"
-                    >Library</TabItem
-                  >
-                </div>
-              {/snippet}
-              {#snippet panels()}
-                <TabPanel
-                  unstyled
-                  value="home"
-                  class="mt-3 rounded-xl bg-white/10 p-4 text-sm text-white/80 backdrop-blur-md"
-                  >Frosted glass panels with gradient backdrop</TabPanel
-                >
-                <TabPanel
-                  unstyled
-                  value="explore"
-                  class="mt-3 rounded-xl bg-white/10 p-4 text-sm text-white/80 backdrop-blur-md"
-                  >Discover components, patterns, tokens</TabPanel
-                >
-                <TabPanel
-                  unstyled
-                  value="library"
-                  class="mt-3 rounded-xl bg-white/10 p-4 text-sm text-white/80 backdrop-blur-md"
-                  >Your saved components and presets</TabPanel
-                >
-              {/snippet}
-            </Tab>
-          </div>
-        </div>
-      </div>
-    </div>
-
-    <a
-      href={resolve('/customization')}
-      class="text-text-tertiary hover:text-primary mt-6 inline-flex items-center gap-1.5 text-sm font-medium transition-colors"
-    >
-      Read the customization guide
-      <ArrowRightIcon class="h-4 w-4 transition-transform group-hover:translate-x-0.5" />
-    </a>
   </section>
 
   <div class="mt-14 text-center">
