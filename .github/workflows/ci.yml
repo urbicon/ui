@@ -6,6 +6,14 @@ on:
   pull_request:
     branches: [main]
 
+# Every job here only ever reads the tree — checkout, install, build, test. The
+# default token is read/write on a push event, so scoping it once at the top
+# means no job can write to the repo even by accident. A job that ever needs
+# more (a comment, a status) gets its own `permissions:` block, which overrides
+# this one rather than adding to it.
+permissions:
+  contents: read
+
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
