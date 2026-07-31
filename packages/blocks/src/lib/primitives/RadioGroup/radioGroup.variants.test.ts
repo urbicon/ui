@@ -122,9 +122,18 @@ describe('radioItemVariants', () => {
       // state-dependent colour; asserting the absence keeps it that way.
       for (const intent of INTENTS) {
         const dot = radioItemVariants({ checked: true, intent }).dot();
-        expect(dot, intent).toContain(
-          intent === 'warning' ? 'bg-text-on-warning' : 'bg-text-on-primary'
-        );
+        const expected =
+          intent === 'warning'
+            ? 'bg-text-on-warning'
+            : intent === 'primary'
+              ? 'bg-text-on-primary'
+              : 'bg-text-on-fill';
+        // Exact token, not `toContain`: `'bg-text-on-fillx'.includes('bg-text-on-fill')`
+        // is true, and `variants:lint` does not guard the `bg-` namespace (only
+        // text-/rounded-/shadow-/blur-/tracking-/leading-/ease- — see
+        // scripts/theme-tokens.ts), so a typo here would render with no colour
+        // and pass both gates.
+        expect(dot.split(/\s+/), intent).toContain(expected);
         expect(dot, intent).not.toMatch(/group-(hover|active):bg-/);
       }
     });
@@ -197,9 +206,12 @@ describe('radioItemVariants', () => {
     expect(indicator).toContain('peer-focus-visible:ring-offset-surface-base');
   });
 
-  it('uses commit tier (rounded-commit) for radio indicator', () => {
+  it('uses the control radius for the radio indicator', () => {
     const indicator = radioItemVariants({}).indicator();
-    expect(indicator).toContain('rounded-commit');
+    // `rounded-control`, not `rounded-commit`: since 2026-07-31 the circle is
+    // independent of the pill, so a theme squaring its buttons keeps the "pick
+    // exactly one" affordance. See style/control-radius.test.ts.
+    expect(indicator).toContain('rounded-control');
   });
 
   it('differentiates all sizes', () => {
@@ -246,16 +258,16 @@ describe('radioItemVariants', () => {
   describe('tier', () => {
     it('defaults to commit (circle indicator)', () => {
       const styles = radioItemVariants({});
-      expect(styles.indicator()).toContain('rounded-commit');
-      expect(styles.dot()).toContain('rounded-commit');
+      expect(styles.indicator()).toContain('rounded-control');
+      expect(styles.dot()).toContain('rounded-control');
     });
 
     it('switches to modify on tier=modify (soft-rectangle indicator)', () => {
       const styles = radioItemVariants({ tier: 'modify' });
       expect(styles.indicator()).toContain('rounded-modify');
       expect(styles.dot()).toContain('rounded-modify');
-      expect(styles.indicator()).not.toContain('rounded-commit');
-      expect(styles.dot()).not.toContain('rounded-commit');
+      expect(styles.indicator()).not.toContain('rounded-control');
+      expect(styles.dot()).not.toContain('rounded-control');
     });
   });
 });

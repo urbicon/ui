@@ -667,9 +667,13 @@
                     </div>
                     <div class="dash-foot">
                       <Toggle bind:checked={walkIns} label="Accept walk-ins" size="sm" />
-                      <!-- soft, nicht filled: die solide Intent-Fläche trägt text-on-primary,
-                         das im .room-accent-Scope auf den Kanal umgefärbt ist
-                         (docs/technical-debt.md → „Design tokens"). -->
+                      <!-- soft ist hier Geschmack, nicht mehr Notwehr: die solide
+                         Intent-Fläche trug text-on-primary, das im
+                         .room-accent-Scope auf den Kanal umgefärbt wurde — ein
+                         success-Badge bekam also die Schriftfarbe des Raums auf
+                         grünem Grund. Seit 2026-07-31 tragen die nicht-primary
+                         Füllungen text-on-fill, das kein Raum überschreibt
+                         (#47). filled wäre jetzt gefahrlos. -->
                       <Badge intent="success" variant="soft">9 chairs free</Badge>
                     </div>
                   </div>
@@ -686,6 +690,12 @@
                         {
                           accessor: 'price',
                           title: 'Price',
+                          // `dataType` ist ab 2026-07-31 das, was die Spalte
+                          // summierbar macht — vorher reichte der Name "price",
+                          // was für Spalten in anderen Sprachen nie funktioniert
+                          // hat. Ohne diese Zeile bleibt der Σ-Knopf dauerhaft
+                          // deaktiviert.
+                          dataType: 'number',
                           align: 'right',
                           width: '4rem',
                           // Trägt die Währung — für die Zelle UND für die

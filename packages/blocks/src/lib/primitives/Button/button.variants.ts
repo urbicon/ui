@@ -165,14 +165,14 @@ export const buttonVariants = tv({
       intent: 'secondary',
       variant: 'filled',
       class: {
-        base: 'bg-secondary text-text-on-primary border-secondary hover:bg-secondary-hover active:bg-secondary-active'
+        base: 'bg-secondary text-text-on-fill border-secondary hover:bg-secondary-hover active:bg-secondary-active'
       }
     },
     {
       intent: 'success',
       variant: 'filled',
       class: {
-        base: 'bg-success text-text-on-primary border-success hover:bg-success-hover active:bg-success-active'
+        base: 'bg-success text-text-on-fill border-success hover:bg-success-hover active:bg-success-active'
       }
     },
     {
@@ -186,14 +186,14 @@ export const buttonVariants = tv({
       intent: 'danger',
       variant: 'filled',
       class: {
-        base: 'bg-danger text-text-on-primary border-danger hover:bg-danger-hover active:bg-danger-active'
+        base: 'bg-danger text-text-on-fill border-danger hover:bg-danger-hover active:bg-danger-active'
       }
     },
     {
       intent: 'neutral',
       variant: 'filled',
       class: {
-        base: 'bg-neutral text-text-on-primary border-neutral hover:bg-neutral-hover active:bg-neutral-active'
+        base: 'bg-neutral text-text-on-fill border-neutral hover:bg-neutral-hover active:bg-neutral-active'
       }
     },
     // Loading placement behaviors
@@ -361,13 +361,13 @@ export const buttonVariants = tv({
       active: true,
       variant: 'outlined',
       intent: 'secondary',
-      class: { base: 'bg-secondary text-text-on-primary border-secondary hover:bg-secondary-hover' }
+      class: { base: 'bg-secondary text-text-on-fill border-secondary hover:bg-secondary-hover' }
     },
     {
       active: true,
       variant: 'outlined',
       intent: 'success',
-      class: { base: 'bg-success text-text-on-primary border-success hover:bg-success-hover' }
+      class: { base: 'bg-success text-text-on-fill border-success hover:bg-success-hover' }
     },
     {
       active: true,
@@ -379,13 +379,13 @@ export const buttonVariants = tv({
       active: true,
       variant: 'outlined',
       intent: 'danger',
-      class: { base: 'bg-danger text-text-on-primary border-danger hover:bg-danger-hover' }
+      class: { base: 'bg-danger text-text-on-fill border-danger hover:bg-danger-hover' }
     },
     {
       active: true,
       variant: 'outlined',
       intent: 'neutral',
-      class: { base: 'bg-neutral text-text-on-primary border-neutral hover:bg-neutral-hover' }
+      class: { base: 'bg-neutral text-text-on-fill border-neutral hover:bg-neutral-hover' }
     },
     // Active + Ghost: subtle intent background + ring outline + bolder text;
     // the subtle-tone alone is too close to surface-base on light pages —

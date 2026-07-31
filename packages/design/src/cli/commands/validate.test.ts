@@ -58,11 +58,28 @@ describe('urbicon validate', () => {
   });
 
   it('treats warnings as passing by default but failing under --strict', async () => {
-    // `bg-status-danger` looks semantic but is not a real token → warning severity.
+    // An icon-only button with no accessible name → warning severity.
+    //
+    // This case used `bg-status-danger` until 2026-07-31, when
+    // `token-hallucination` was promoted from `warning` to `error` — a
+    // hallucinated token renders completely unstyled, so it belongs behind the
+    // error gate rather than behind `--strict`. That made this case assert the
+    // opposite of the rule it was testing, which is why it needs a source of
+    // warnings that is genuinely advisory.
     const file = join(dir, 'Warn.svelte');
-    await writeFile(file, '<div class="bg-status-danger">x</div>\n');
+    await writeFile(file, '<button class="p-2"><svg /></button>\n');
     expect(await runValidate([file], {})).toBe(0);
     expect(await runValidate([file], { strict: true })).toBe(1);
+  });
+
+  it('fails the default gate on a hallucinated token, without --strict', async () => {
+    // The promotion, pinned from the CLI side: `bg-status-danger` looks
+    // semantic but names no token, so the element renders with no background at
+    // all. Measured on the artifact-recorder spike as "correctness 25 with zero
+    // errors" — passing a gate while rendering unstyled.
+    const file = join(dir, 'Hallucinated.svelte');
+    await writeFile(file, '<div class="bg-status-danger">x</div>\n');
+    expect(await runValidate([file], {})).toBe(1);
   });
 
   it('reports a usage error for a missing path (exit 2)', async () => {

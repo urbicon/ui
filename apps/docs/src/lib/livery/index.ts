@@ -42,27 +42,24 @@ export interface Livery {
 export type LiveryLayout = 'immersive' | 'scatter' | 'symmetric' | 'edge';
 
 /**
- * Radio indicators must stay circular even when a livery squares everything
- * else off.
+ * Nothing to do here any more — kept as a note because the absence is the point.
  *
- * `rounded-commit` drives BOTH the pill of a commit-tier button and the circle
- * of a radio indicator (`radioGroup.variants.ts`), so a livery that sets
- * `--radius-commit: 0` for square buttons also squares its radios — and a
- * square radio is a checkbox to the eye. Shape carries the "exactly one of
- * these" meaning; that is semantics, not style.
+ * Until 2026-07-31 every livery below carried a `CIRCULAR_RADIOS` provider
+ * override, because `--radius-commit` drove BOTH the pill of a commit-tier
+ * button and the circle of a radio indicator. A livery that squared its buttons
+ * squared its radios with them, and a square radio is a checkbox to the eye —
+ * shape is what carries "exactly one of these".
  *
- * The token layer cannot separate the two. The provider can. ALL FOUR houses
- * below need it — including the one that only softens the tier to 2px rather
- * than zeroing it, because 2px on a 20px control is already a square. Any
- * theme that touches this tier at all loses the affordance, which is the
- * strongest argument yet that the radio indicator wants a token of its own
- * (logged in docs/technical-debt.md).
+ * ALL FOUR houses needed the workaround, including the one that only softens the
+ * tier to 2px rather than zeroing it (2px on a 20px control already reads as a
+ * square). That is what made it a token problem rather than a livery quirk: any
+ * theme touching the tier at all lost the affordance.
+ *
+ * The controls now have their own tokens (`--radius-control`,
+ * `--radius-checkbox` in foundation.css), so squaring the pill leaves them
+ * alone. If a livery ever needs to override a radio's shape again, that is a
+ * deliberate choice rather than damage control.
  */
-const CIRCULAR_RADIOS: Record<string, ComponentDefaults> = {
-  RadioItem: {
-    slotClasses: { indicator: 'rounded-full', dot: 'rounded-full' }
-  }
-};
 
 const IMMERSION: Livery = {
   id: 'immersion',
@@ -71,7 +68,6 @@ const IMMERSION: Livery = {
   mechanism: 'The ground is the brand — the neutral ramp itself carries chroma.',
   layout: 'immersive',
   defaults: {
-    ...CIRCULAR_RADIOS,
     // Cards must not read as panels floating on the field — they are the same
     // violet, one shade apart, held by a hairline.
     Card: {
@@ -108,14 +104,11 @@ const GRAIN: Livery = {
   mechanism: 'Near-zero contrast and violent type jumps — no comfortable middle.',
   layout: 'scatter',
   defaults: {
-    ...CIRCULAR_RADIOS,
     // The type jump has to reach the generated form too, or the house stops at
     // the page edge: labels drop to the smallest step the scale has, while the
     // wordmark runs at 8xl. Nothing sits in between anywhere.
     RadioItem: {
-      ...CIRCULAR_RADIOS.RadioItem,
       slotClasses: {
-        ...CIRCULAR_RADIOS.RadioItem?.slotClasses,
         label: 'text-2xs tracking-[0.18em] uppercase',
         description: 'text-2xs'
       }
@@ -163,11 +156,11 @@ const LACQUER: Livery = {
     // on a 20px control is a square, and the rendered form showed six square
     // "radios" that were indistinguishable from checkboxes.
     //
-    // So all FOUR houses need the override, not three — the radio circle does
-    // not survive any deviation from the pill default, however small. That is
-    // the strongest form of the argument in docs/technical-debt.md: this is not
-    // an edge case for austere themes, it is every theme that touches the tier.
-    ...CIRCULAR_RADIOS,
+    // So all FOUR houses needed the override, not three — the radio circle did
+    // not survive any deviation from the pill default, however small. That was
+    // the strongest form of the argument for giving the indicator its own token,
+    // which it has since 2026-07-31 (`--radius-control`): this was never an edge
+    // case for austere themes, it was every theme that touched the tier.
     Card: {
       slotClasses: { base: 'border border-primary-900 shadow-none' }
     },
@@ -194,7 +187,6 @@ const VITRINE: Livery = {
   mechanism: 'The ground is an image, not a colour — the page is graded, not painted.',
   layout: 'edge',
   defaults: {
-    ...CIRCULAR_RADIOS,
     // Everything is glass over the grade: surfaces stay translucent so the
     // light behind them keeps coming through.
     Card: {

@@ -119,14 +119,16 @@
     blocked: '▲',
     skipped: '—'
   };
-  // Filled dots take the on-primary tone (light, like filled buttons); hollow
-  // ones echo their border hue.
+  // Filled dots take the on-fill tone (light, like filled buttons); hollow ones
+  // echo their border hue. `on-fill`, not `on-primary`: these dots sit on
+  // success/danger grounds as well, and `on-primary` is scoped to the primary
+  // fill so a theme can retune it alone.
   const glyphTone: Record<JourneyStatus, string> = {
-    complete: 'text-text-on-primary',
-    active: 'text-text-on-primary',
+    complete: 'text-text-on-fill',
+    active: 'text-text-on-fill',
     pending: 'text-text-tertiary',
     attention: 'text-warning-emphasis',
-    blocked: 'text-text-on-primary',
+    blocked: 'text-text-on-fill',
     skipped: 'text-text-tertiary'
   };
   let lastHelp = $state<string | undefined>(undefined);

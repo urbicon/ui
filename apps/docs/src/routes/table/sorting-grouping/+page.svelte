@@ -35,7 +35,7 @@
   const menuActions = [
     { action: 'Sort ascending / descending', gate: 'sortable: true' },
     { action: 'Group by column / Remove grouping', gate: 'groupable: true' },
-    { action: 'Add summary / Remove summary', gate: 'summable: true (or auto-detected)' },
+    { action: 'Add summary / Remove summary', gate: "summable: true, or dataType: 'number'" },
     { action: 'Hide column', gate: 'hideable ≠ false and enableColumnVisibility' },
     { action: 'Show "Column"', gate: 'listed for every currently hidden column' }
   ];

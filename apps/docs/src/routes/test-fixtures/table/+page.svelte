@@ -27,7 +27,7 @@
   const columns: Column<Row>[] = [
     { accessor: 'name', title: 'Name', sortable: true },
     { accessor: 'category', title: 'Category', sortable: true },
-    { accessor: 'score', title: 'Score', sortable: true }
+    { accessor: 'score', title: 'Score', sortable: true, dataType: 'number' }
   ];
 
   // Grouping fixture: six rows across three regions with distinct counts
@@ -46,7 +46,7 @@
   const groupColumns: Column<GroupRow>[] = [
     { accessor: 'name', title: 'Name', sortable: true },
     { accessor: 'region', title: 'Region', sortable: true, groupable: true },
-    { accessor: 'score', title: 'Score', sortable: true }
+    { accessor: 'score', title: 'Score', sortable: true, dataType: 'number' }
   ];
   const groupOrder = ['east', 'north', 'south'];
 

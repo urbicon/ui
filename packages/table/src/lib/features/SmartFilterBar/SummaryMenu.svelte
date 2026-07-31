@@ -1,5 +1,6 @@
 <script lang="ts">
   import { getTableContext, useTableI18n } from '$lib';
+  import { isColumnSummable } from '$lib/utils/summable';
   import { resolveColumnId, resolveColumnLabel } from '$lib/utils';
   import { smartFilterBarTriggerVariants } from '$lib/variants';
   import {
@@ -37,19 +38,9 @@
   let selectedValue = $state<string | null>(null);
   let menuOpen = $state(false);
 
-  const summableColumns = $derived.by(() => {
-    return tableState.columns.filter((col) => {
-      // Synthetic columns cannot be summed.
-      if (col.accessor === undefined) return false;
-      if (col.summable !== undefined) return col.summable === true;
-      return (
-        col.dataType === 'number' ||
-        /^(age|salary|price|amount|count|number|projectsCompleted|rating|score)$/i.test(
-          resolveColumnId(col)
-        )
-      );
-    });
-  });
+  // Capability follows configuration, never the column's name — see
+  // utils/summable.ts for what that replaced and why.
+  const summableColumns = $derived.by(() => tableState.columns.filter(isColumnSummable));
 
   const summaryTypes = [
     { value: 'sum', label: tt('summary.types.sum'), icon: '∑' },

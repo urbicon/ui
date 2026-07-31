@@ -47,7 +47,7 @@
     },
     {
       prop: 'groupable',
-      desc: 'Allow group-by via SmartFilterBar or header menu — auto-detected when unset'
+      desc: 'Allow group-by via SmartFilterBar or header menu — follows `sortable` when unset'
     },
     {
       prop: 'summable',

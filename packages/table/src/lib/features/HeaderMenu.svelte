@@ -1,5 +1,6 @@
 <script lang="ts">
   import { getTableContext } from '$lib/stores/TableStore.svelte';
+  import { isColumnSummable } from '$lib/utils/summable';
   import { headerMenuItemVariants, headerMenuVariants } from '$lib/variants';
   import {
     Button,
@@ -117,20 +118,6 @@
     active = false
   ) {
     return headerMenuItemVariants({ intent, active });
-  }
-
-  function isColumnSummable(col: Column): boolean {
-    // Synthetic columns have no source value — they cannot be summed regardless of name.
-    if (col.accessor === undefined) return false;
-    // After the accessor check, TS narrows `col` to the derivable shapes.
-    const dataCol = col as Exclude<Column, { accessor?: never }>;
-    if (dataCol.summable !== undefined) return dataCol.summable === true;
-    return (
-      dataCol.dataType === 'number' ||
-      /^(age|salary|price|amount|count|number|projectsCompleted|rating|score)$/i.test(
-        resolveColumnId(col)
-      )
-    );
   }
 
   let isSorted = $derived(tableState.sortColumn === columnId);

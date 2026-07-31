@@ -15,20 +15,12 @@
     extractPlaygroundDocs,
     PlaygroundConfigurator
   } from '@urbicon-ui/docs';
-  import { useI18n } from '@urbicon-ui/i18n';
   import { componentData } from './api';
   import playgroundSource from './Playground.svelte?raw';
 
   let { size, showHeader = false, slotClasses, class: className }: PlaygroundHostProps = $props();
 
   const { propDocs, variantKeys } = extractPlaygroundDocs(componentData?.props ?? []);
-
-  // Die Datumsformatierung folgt der Sprache der Seite, nicht einem festen Tag:
-  // `Calendar`, `Planner` und `DatePicker` haben `locale = 'de-DE'` als Default
-  // und kennen den i18n-Provider nicht (siehe docs/technical-debt.md). Ohne das
-  // hier stünde im englischsprachigen Landing-Hero "März 2026".
-  const i18n = useI18n();
-  const dateLocale = $derived(i18n.locale === 'de' ? 'de-DE' : 'en-GB');
 
   type MealType = 'breakfast' | 'lunch' | 'dinner';
 
@@ -120,7 +112,6 @@
         getDate={(m) => m.date}
         sort={(a, b) => MEAL_ORDER[a.type] - MEAL_ORDER[b.type]}
         value={anchor}
-        locale={dateLocale}
       >
         {#snippet cell({ items })}
           {#each items as meal (meal.id)}

@@ -56,10 +56,10 @@ export const tooltipVariants = tv({
     // distinguishable while implying a distinction that wasn't there.
     intent: {
       primary: { base: 'bg-primary text-text-on-primary' },
-      secondary: { base: 'bg-secondary text-text-on-primary' },
-      success: { base: 'bg-success text-text-on-primary' },
+      secondary: { base: 'bg-secondary text-text-on-fill' },
+      success: { base: 'bg-success text-text-on-fill' },
       warning: { base: 'bg-warning text-text-on-warning' },
-      danger: { base: 'bg-danger text-text-on-primary' },
+      danger: { base: 'bg-danger text-text-on-fill' },
       neutral: { base: 'bg-surface-inverted text-text-inverted' }
     },
     size: {

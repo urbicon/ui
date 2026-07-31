@@ -113,6 +113,17 @@ jobs:
       - name: Test mcp-server
         working-directory: packages/mcp-server
         run: bunx --bun vitest run
+      # design + design-engine were missing until 2026-07-31, which is how a
+      # severity change in design-engine's linter shipped a red `design` suite
+      # past a green CI run: `urbicon validate`'s own gate tests live in `design`
+      # and nothing here executed them. These two carry the design loop the
+      # project sells, so they belong in the same list as the rest.
+      - name: Test design-engine
+        working-directory: packages/design-engine
+        run: bunx --bun vitest run
+      - name: Test design
+        working-directory: packages/design
+        run: bunx --bun vitest run
       - name: Test docs
         working-directory: packages/docs
         run: bunx --bun vitest run

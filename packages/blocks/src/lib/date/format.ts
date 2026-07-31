@@ -6,6 +6,25 @@
 
 import { getWeekDates, getWeekNumber } from './geometry';
 
+/**
+ * Locale used when a caller passes none.
+ *
+ * Mirrors `BASE_LOCALE` from `@urbicon-ui/i18n` **by value, not by import** —
+ * this module is the zero-dependency `./date` subpath and must not pull the i18n
+ * package in for one string. If the base locale ever moves, this moves with it.
+ *
+ * It is a constant rather than `undefined` on purpose: `Intl` with `undefined`
+ * follows the *runtime* locale, which differs between a Node server and the
+ * user's browser — the same date would then render one way in the prerendered
+ * HTML and another after hydration. A fixed tag renders identically on both
+ * sides; the components layer the actual locale on top (see `Calendar.svelte`,
+ * which reads `useI18n().locale`).
+ *
+ * Was `'de-DE'` until 2026-07-31, which made every app that did not pass
+ * `locale` render German month names regardless of its own language.
+ */
+const DEFAULT_LOCALE = 'en';
+
 /** Localized week-number labels for the `formatWeekTitle` prefix (e.g. "KW"). */
 const WEEK_LABELS: Record<string, string> = {
   de: 'KW',
@@ -26,7 +45,7 @@ const WEEK_LABELS: Record<string, string> = {
  * @returns Array of 7 weekday name strings, ordered from `weekStartsOn`
  */
 export function getWeekdayNames(
-  locale: string = 'de-DE',
+  locale: string = DEFAULT_LOCALE,
   weekStartsOn: number = 1,
   format: 'narrow' | 'short' | 'long' = 'short'
 ): string[] {
@@ -52,7 +71,11 @@ export function getWeekdayNames(
 }
 
 /** Format month and year for header display, e.g. "März 2026", "March 2026". */
-export function formatMonthYear(year: number, month: number, locale: string = 'de-DE'): string {
+export function formatMonthYear(
+  year: number,
+  month: number,
+  locale: string = DEFAULT_LOCALE
+): string {
   const date = new Date(year, month, 1);
   return new Intl.DateTimeFormat(locale, { month: 'long', year: 'numeric' }).format(date);
 }
@@ -60,7 +83,7 @@ export function formatMonthYear(year: number, month: number, locale: string = 'd
 /** Format a date for a detail header, e.g. "Do, 12. März", "Thu, March 12". */
 export function formatDate(
   date: Date,
-  locale: string = 'de-DE',
+  locale: string = DEFAULT_LOCALE,
   options?: Intl.DateTimeFormatOptions
 ): string {
   const defaultOptions: Intl.DateTimeFormatOptions = {
@@ -72,7 +95,7 @@ export function formatDate(
 }
 
 /** Format a date for a screen-reader label, e.g. "Donnerstag, 12. März 2026". */
-export function formatDateFull(date: Date, locale: string = 'de-DE'): string {
+export function formatDateFull(date: Date, locale: string = DEFAULT_LOCALE): string {
   return new Intl.DateTimeFormat(locale, {
     weekday: 'long',
     day: 'numeric',
@@ -89,7 +112,7 @@ export function formatDateFull(date: Date, locale: string = 'de-DE'): string {
 export function formatWeekTitle(
   date: Date,
   weekStartsOn: number = 1,
-  locale: string = 'de-DE'
+  locale: string = DEFAULT_LOCALE
 ): string {
   const weekDates = getWeekDates(date, weekStartsOn);
   // ISO convention: Thursday decides the month/year the week belongs to.
@@ -114,7 +137,7 @@ export function formatWeekTitle(
  */
 export function formatWeekRange(
   date: Date,
-  locale: string = 'de-DE',
+  locale: string = DEFAULT_LOCALE,
   weekStartsOn: number = 1
 ): string {
   const weekDates = getWeekDates(date, weekStartsOn);
@@ -128,7 +151,7 @@ export function formatWeekRange(
  * `Intl.DateTimeFormat.formatRange`. Suited to a multi-week range-view title;
  * for a single ISO week prefer {@link formatWeekRange}.
  */
-export function formatDateRange(start: Date, end: Date, locale: string = 'de-DE'): string {
+export function formatDateRange(start: Date, end: Date, locale: string = DEFAULT_LOCALE): string {
   const formatter = new Intl.DateTimeFormat(locale, {
     day: 'numeric',
     month: 'short',
@@ -141,7 +164,7 @@ export function formatDateRange(start: Date, end: Date, locale: string = 'de-DE'
  * Format a day-view header, e.g. "Do, 19. März 2026" (de-DE) or
  * "Thu, March 19, 2026" (en-US).
  */
-export function formatDayTitle(date: Date, locale: string = 'de-DE'): string {
+export function formatDayTitle(date: Date, locale: string = DEFAULT_LOCALE): string {
   return new Intl.DateTimeFormat(locale, {
     weekday: 'short',
     day: 'numeric',
@@ -157,7 +180,7 @@ export function formatDayTitle(date: Date, locale: string = 'de-DE'): string {
  * @param month - Month index (0-11)
  * @param locale - BCP 47 locale tag
  */
-export function formatMonthShort(month: number, locale: string = 'de-DE'): string {
+export function formatMonthShort(month: number, locale: string = DEFAULT_LOCALE): string {
   const date = new Date(2026, month, 1);
   return new Intl.DateTimeFormat(locale, { month: 'short' }).format(date);
 }

@@ -183,6 +183,24 @@ export function createTableState(
     multiExpand: false,
 
     groupByKey: null as string | null,
+    /**
+     * The grouping key the consumer *declared* via `initialGroupBy`, kept for
+     * the lifetime of the table and never written again.
+     *
+     * Grouping accepts any item field, not only the ones that have a column —
+     * a table can group by `day` while showing no Day column, because the day
+     * belongs in the group header and would be redundant in every row. The
+     * grouping menu lists columns, so such a key has no option: the Select held
+     * a value it could not display, DEV-logged `[Select] value "day" has no
+     * matching option`, and once the user ungrouped there was no way back.
+     *
+     * Deriving the missing option from the *active* `groupByKey` fixes only the
+     * display half — it disappears the moment you ungroup, which is precisely
+     * the reported symptom. The declaration is the right source: the consumer
+     * asked for this grouping, so it belongs in the menu whether or not it is
+     * currently applied.
+     */
+    declaredGroupByKey: null as string | null,
     collapsedGroups: new SvelteSet<string>(),
     allGroupsExpanded: true,
     groupOrder: [] as string[],
@@ -298,6 +316,12 @@ export function createTableState(
     !persistence.hydratedSelection
   ) {
     setSelectedIds(seed.selectedIds);
+  }
+  if (seed?.groupBy) {
+    // Recorded even when the seed is not applied (a persisted key wins), because
+    // it is a declaration about what the menu should offer, not about what is
+    // currently grouped.
+    state.declaredGroupByKey = seed.groupBy;
   }
   if (seed?.groupBy && !state.groupByKey && !persistence.hydratedGroupByKey) {
     setGroupByKey(seed.groupBy);

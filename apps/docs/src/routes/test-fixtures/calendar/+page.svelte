@@ -2,7 +2,9 @@
   // E2E fixture for Calendar interactions (e2e/calendar.spec.ts). Anchored to a
   // FIXED month (June 2026), never the wall clock, so day selectors and header
   // labels are deterministic across runs and years. `locale="en-US"` pins the
-  // header text against the component's 'de-DE' default. The probes mirror
+  // header text explicitly rather than leaning on the component default — which
+  // follows the page's i18n provider since 2026-07-31, and was a hardcoded
+  // 'de-DE' before that. Either way the fixture must not depend on it. The probes mirror
   // bound state + callbacks so the spec asserts the model, not just rendered
   // text — plain <span>s, not <output>: output's implicit role="status"
   // collides with the calendar's own sr-only month live region in role

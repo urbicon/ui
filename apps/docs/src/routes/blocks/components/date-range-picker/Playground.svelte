@@ -23,12 +23,10 @@
 
   const { propDocs, variantKeys } = extractPlaygroundDocs(componentData?.props ?? []);
 
-  // Die Datumsformatierung folgt der Sprache der Seite, nicht einem festen Tag:
-  // Die Datums-Komponenten haben `locale = 'de-DE'` als Default und kennen den
-  // i18n-Provider nicht (siehe docs/technical-debt.md). Ohne das hier stünde im
-  // englischsprachigen Landing-Hero "März 2026".
+  // The picker resolves its own locale from the provider now; this is the demo's
+  // OWN formatting of the selected range — consumer code, so it reads the same
+  // source explicitly rather than inheriting anything.
   const i18n = useI18n();
-  const dateLocale = $derived(i18n.locale === 'de' ? 'de-DE' : 'en-GB');
 
   let value = $state<{ start: Date; end: Date } | undefined>(undefined);
 
@@ -81,7 +79,6 @@
         showWeekNumbers={values.showWeekNumbers}
         showOutsideDays={values.showOutsideDays}
         disabled={values.disabled}
-        locale={dateLocale}
         defaultMonth={2}
         defaultYear={2026}
       />
@@ -90,7 +87,7 @@
         <div class="bg-surface-elevated border-border-subtle mt-3 rounded-lg border p-3">
           <p class="text-text-secondary text-sm">
             <span class="text-text-primary font-medium">From:</span>
-            {value.start.toLocaleDateString(dateLocale, {
+            {value.start.toLocaleDateString(i18n.locale, {
               day: 'numeric',
               month: 'long',
               year: 'numeric'
@@ -98,7 +95,7 @@
           </p>
           <p class="text-text-secondary text-sm">
             <span class="text-text-primary font-medium">To:</span>
-            {value.end.toLocaleDateString(dateLocale, {
+            {value.end.toLocaleDateString(i18n.locale, {
               day: 'numeric',
               month: 'long',
               year: 'numeric'

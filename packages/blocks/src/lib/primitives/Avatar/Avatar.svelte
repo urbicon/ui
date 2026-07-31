@@ -199,7 +199,13 @@
     {:else if children}
       {@render children()}
     {:else}
+      <!-- `data-avatar-fallback` marks the initials specifically — not an image,
+           not a consumer's `children`. AvatarGroup needs to reach exactly this
+           node to shift it out from under the next avatar; a selector on the
+           frame would move an image too, which is the one case where the overlap
+           is the intended effect. -->
       <span
+        data-avatar-fallback
         class={unstyled
           ? (slotClasses?.fallback ?? '')
           : styles.fallback({ class: slotClasses?.fallback })}

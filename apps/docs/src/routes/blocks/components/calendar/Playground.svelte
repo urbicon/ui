@@ -16,19 +16,11 @@
     extractPlaygroundDocs,
     PlaygroundConfigurator
   } from '@urbicon-ui/docs';
-  import { useI18n } from '@urbicon-ui/i18n';
   import { componentData } from './api';
 
   let { size, showHeader = false, slotClasses, class: className }: PlaygroundHostProps = $props();
 
   const { propDocs, variantKeys } = extractPlaygroundDocs(componentData?.props ?? []);
-
-  // Die Datumsformatierung folgt der Sprache der Seite, nicht einem festen Tag:
-  // `Calendar`, `Planner` und `DatePicker` haben `locale = 'de-DE'` als Default
-  // und kennen den i18n-Provider nicht (siehe docs/technical-debt.md). Ohne das
-  // hier stünde im englischsprachigen Landing-Hero "März 2026".
-  const i18n = useI18n();
-  const dateLocale = $derived(i18n.locale === 'de' ? 'de-DE' : 'en-GB');
 
   const demoCategories: CalendarEventCategory[] = [
     { id: 'meeting', label: 'Meeting', color: '#8b5cf6' },
@@ -158,7 +150,6 @@
         onEventClick={handleEventClick}
         showLegend
         showEventList
-        locale={dateLocale}
         defaultDate={new Date(2026, 2, 9)}
       />
     </div>

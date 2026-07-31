@@ -22,7 +22,11 @@ describe('alertVariants', () => {
   it('applies correct filled intent classes', () => {
     const success = alertVariants({ intent: 'success', variant: 'filled' });
     expect(success.base()).toContain('bg-success');
-    expect(success.base()).toContain('text-text-on-primary');
+    // Non-primary solid fills pair with the shared `--color-text-on-fill`; only
+    // primary keeps `text-on-primary`, so a primary retheme cannot repaint this.
+    expect(success.base()).toContain('text-text-on-fill');
+    const primary = alertVariants({ intent: 'primary', variant: 'filled' });
+    expect(primary.base()).toContain('text-text-on-primary');
   });
 
   it('applies correct inline intent classes (left accent border)', () => {

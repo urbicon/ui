@@ -34,10 +34,20 @@ function extractBlock(css: string, selector: string): string {
   return css.slice(openBraceIdx + 1, i - 1);
 }
 
-/** All `--custom-property: value;` declarations in a block, whitespace-collapsed. */
+/**
+ * All `--custom-property: value;` declarations in a block, whitespace-collapsed.
+ *
+ * Comments are stripped first. These CSS files carry long prose blocks that
+ * discuss the tokens by name, and a sentence like "setting `--radius-commit: 0`
+ * squared the radio" parses as a declaration otherwise — the parser then reports
+ * the *prose* as the token's value and the diff is unreadable. Hit for real on
+ * 2026-07-31; stripping is cheaper than asking every future comment to avoid a
+ * colon.
+ */
 function parseDeclarations(block: string): Map<string, string> {
+  const withoutComments = block.replace(/\/\*[\s\S]*?\*\//g, '');
   const decls = new Map<string, string>();
-  for (const match of block.matchAll(/--([\w-]+)\s*:\s*([^;]+);/g)) {
+  for (const match of withoutComments.matchAll(/--([\w-]+)\s*:\s*([^;]+);/g)) {
     decls.set(match[1], match[2].replace(/\s+/g, ' ').trim());
   }
   return decls;
@@ -64,11 +74,22 @@ function lightValue(value: string): string {
   return lightDarkArgs(value)?.[0] ?? value;
 }
 
-/** `var(--color-warm-neutral-500)` → `{color.warm-neutral.500}`; null for non-palette values. */
+/**
+ * `var(--color-warm-neutral-500)` → `{color.warm-neutral.500}`; null for
+ * non-palette values.
+ *
+ * Also resolves a semantic-to-semantic alias: `--color-text-on-primary` is
+ * defined as `var(--color-text-on-fill)`, and the token format expresses that
+ * as a reference (`{semantic.text.on-fill}`) rather than by duplicating the
+ * value — so a theme that moves on-fill moves its aliases with it, which is the
+ * entire point of the alias.
+ */
 function foundationVarToFigmaRef(value: string): string | null {
-  const match = /^var\(--color-([\w-]+)-(\d+)\)$/.exec(value);
-  if (!match) return null;
-  return `{color.${match[1]}.${match[2]}}`;
+  const palette = /^var\(--color-([\w-]+)-(\d+)\)$/.exec(value);
+  if (palette) return `{color.${palette[1]}.${palette[2]}}`;
+  const semanticAlias = /^var\(--color-(surface|text|border)-([\w-]+)\)$/.exec(value);
+  if (semanticAlias) return `{semantic.${semanticAlias[1]}.${semanticAlias[2]}}`;
+  return null;
 }
 
 function isToken(node: FigmaToken | FigmaTokenGroup): node is FigmaToken {

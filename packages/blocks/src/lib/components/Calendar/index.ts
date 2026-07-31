@@ -177,7 +177,22 @@ export interface CalendarProps
   defaultYear?: number;
 
   // === Locale & Formatting ===
-  /** BCP 47 locale tag for date formatting. @default 'de-DE' */
+  /**
+   * BCP 47 locale tag for date formatting — month names, weekday names and the
+   * header title. Defaults to `'auto'`, which follows the active
+   * `<I18nProvider>` locale, so an app that already declares its language does
+   * not have to repeat it here. SSR-safe: the locale comes from context, so the
+   * server and the client resolve the same tag (`Intl` with `undefined` would
+   * follow the runtime and disagree across hydration). Falls back to the base
+   * locale (`en`) when no provider is mounted. Pass an explicit tag
+   * (e.g. `'de-DE'`, `'ja-JP'`) to override.
+   *
+   * Until 2026-07-31 this defaulted to the literal `'de-DE'`, so an
+   * English app rendered German month names unless every date component was
+   * passed `locale` by hand.
+   * @default 'auto'
+   * @summary Which language the month and weekday names are rendered in.
+   */
   locale?: string;
   /** First day of the week. 0 = Sunday, 1 = Monday. @default 1 */
   weekStartsOn?: 0 | 1 | 2 | 3 | 4 | 5 | 6;

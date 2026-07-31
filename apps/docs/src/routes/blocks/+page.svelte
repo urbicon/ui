@@ -953,7 +953,7 @@ Tokens switch light and dark automatically:
                   class="border-border-default text-text-secondary rounded-md border px-2.5 py-1 text-2xs"
                   >Cancel</span
                 >
-                <span class="bg-danger text-text-on-primary rounded-md px-2.5 py-1 text-2xs"
+                <span class="bg-danger text-text-on-fill rounded-md px-2.5 py-1 text-2xs"
                   >Delete</span
                 >
               </div>
@@ -1730,12 +1730,24 @@ Tokens switch light and dark automatically:
         <div class={inner} inert>
           {@render heading('Avatar')}
           <div class="flex flex-1 items-center justify-center gap-8">
-            <div class="flex -space-x-3">
-              <Avatar name="Ada Lovelace" randomColor class="ring-surface-base ring-2" />
-              <Avatar name="Anna Keller" randomColor class="ring-surface-base ring-2" />
-              <Avatar name="Samir Tahir" randomColor class="ring-surface-base ring-2" />
-              <Avatar class="ring-surface-base ring-2">+5</Avatar>
-            </div>
+            <!-- AvatarGroup, not a hand-rolled `-space-x-3`: the overlap hides the
+                 second initial ("AL" reads "AI"), and the counter-shift that fixes
+                 it lives in AvatarGroup's variants. A hand-built row reproduces the
+                 defect on the specimen page that is supposed to demonstrate the
+                 component. -->
+            <AvatarGroup
+              items={[
+                { name: 'Ada Lovelace', randomColor: true },
+                { name: 'Anna Keller', randomColor: true },
+                { name: 'Samir Tahir', randomColor: true },
+                { name: 'Io Nakamura', randomColor: true },
+                { name: 'Grace Hopper', randomColor: true },
+                { name: 'Alan Turing', randomColor: true },
+                { name: 'Rina Osei', randomColor: true },
+                { name: 'Bo Lindqvist', randomColor: true }
+              ]}
+              max={4}
+            />
             <div class="flex items-center gap-3">
               <Avatar name="Grace Hopper" status="online" />
               <Avatar name="Grace Hopper" variant="rounded" />

@@ -569,7 +569,7 @@
             class="border-border-default text-text-secondary rounded border px-1.5 py-px text-[7px]"
             >Stay</span
           >
-          <span class="bg-danger text-text-on-primary rounded px-1.5 py-px text-[7px] font-semibold"
+          <span class="bg-danger text-text-on-fill rounded px-1.5 py-px text-[7px] font-semibold"
             >Discard</span
           >
         </div>

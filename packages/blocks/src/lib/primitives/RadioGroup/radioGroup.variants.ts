@@ -78,7 +78,10 @@ export const radioItemVariants = tv({
     // the circle would feel oversized — usually inherited from the
     // wrapping RadioGroup's `tier`-prop / TierContext.
     tier: {
-      commit: { indicator: 'rounded-commit', dot: 'rounded-commit' },
+      // `rounded-control`, not `rounded-commit`: a squared radio is a checkbox
+      // to the eye, and shape is the only thing carrying "pick exactly one".
+      // See the --radius-control note in foundation.css.
+      commit: { indicator: 'rounded-control', dot: 'rounded-control' },
       modify: { indicator: 'rounded-modify', dot: 'rounded-modify' }
     },
     size: {
@@ -174,7 +177,7 @@ export const radioItemVariants = tv({
     // The dot keeps ONE colour across all three stops: it is the intent's
     // paired on-colour, and `style/contrast.test.ts` measures exactly that
     // pairing (`--color-<intent>` / `-hover` / `-active` against
-    // `--color-text-on-primary` / `-on-warning`) across every theme × mode ×
+    // `--color-text-on-fill` / `-on-warning`) across every theme × mode ×
     // state — 126 combinations, all ≥ AA 4.5:1, and all ≥ the 3:1
     // UI-component floor that actually binds a non-text mark. That includes
     // the one adverse direction, `warning/light/active`, where the fill
@@ -196,7 +199,7 @@ export const radioItemVariants = tv({
       class: {
         indicator:
           'bg-secondary border-secondary group-hover:bg-secondary-hover group-active:bg-secondary-active',
-        dot: 'bg-text-on-primary'
+        dot: 'bg-text-on-fill'
       }
     },
     {
@@ -205,7 +208,7 @@ export const radioItemVariants = tv({
       class: {
         indicator:
           'bg-success border-success group-hover:bg-success-hover group-active:bg-success-active',
-        dot: 'bg-text-on-primary'
+        dot: 'bg-text-on-fill'
       }
     },
     {
@@ -223,7 +226,7 @@ export const radioItemVariants = tv({
       class: {
         indicator:
           'bg-danger border-danger group-hover:bg-danger-hover group-active:bg-danger-active',
-        dot: 'bg-text-on-primary'
+        dot: 'bg-text-on-fill'
       }
     },
     {
@@ -232,7 +235,7 @@ export const radioItemVariants = tv({
       class: {
         indicator:
           'bg-neutral border-neutral group-hover:bg-neutral-hover group-active:bg-neutral-active',
-        dot: 'bg-text-on-primary'
+        dot: 'bg-text-on-fill'
       }
     },
 

@@ -1,4 +1,5 @@
 import { readdirSync, readFileSync } from 'node:fs';
+import { createRequire } from 'node:module';
 import { resolve } from 'node:path';
 import { describe, expect, it } from 'vitest';
 
@@ -219,9 +220,14 @@ function resolveColor(css: string, expr: string, mode: 'light' | 'dark'): Oklch 
     };
   }
 
-  const literal = /^oklch\(\s*([\d.]+)\s+([\d.]+)\s+([\d.]+)\s*\)$/.exec(value);
+  // Lightness may be a fraction (`0.52`, how this repo writes it) or a
+  // percentage (`52%`, how Tailwind's own palette writes it). CSS treats them as
+  // the same value, so the parser has to as well — a table intent resolving
+  // through `--color-cyan-700` reaches the percent form.
+  const literal = /^oklch\(\s*([\d.]+)(%?)\s+([\d.]+)\s+([\d.]+)\s*\)$/.exec(value);
   if (literal) {
-    return { l: +literal[1], c: +literal[2], h: +literal[3] };
+    const l = +literal[1];
+    return { l: literal[2] === '%' ? l / 100 : l, c: +literal[3], h: +literal[4] };
   }
 
   const varRef = /^var\((--[\w-]+)\)$/.exec(value);
@@ -250,13 +256,18 @@ function resolveToken(css: string, token: string, mode: 'light' | 'dark'): Oklch
  * component variants so the table can never silently drift from the markup.
  */
 const INTENT_FOREGROUND = {
+  // `primary` keeps its own token so a theme can repaint the primary label alone;
+  // every other solid fill pairs with the shared `--color-text-on-fill`. Both
+  // resolve to the same value by default (on-primary is defined as var(on-fill)),
+  // so the measured ratios are identical — the split is about which lever moves
+  // what, not about two different colours. See semantic.css.
   primary: '--color-text-on-primary',
-  secondary: '--color-text-on-primary',
-  neutral: '--color-text-on-primary',
-  success: '--color-text-on-primary',
+  secondary: '--color-text-on-fill',
+  neutral: '--color-text-on-fill',
+  success: '--color-text-on-fill',
   warning: '--color-text-on-warning',
-  danger: '--color-text-on-primary',
-  info: '--color-text-on-primary'
+  danger: '--color-text-on-fill',
+  info: '--color-text-on-fill'
 } as const;
 
 type Intent = keyof typeof INTENT_FOREGROUND;
@@ -442,7 +453,7 @@ describe('foreground pairing matches the component variants', () => {
     // a literal backtick inside a single-quoted string.)
     const notQuote = `[^'"${String.fromCharCode(96)}]`;
     const re = new RegExp(
-      `bg-${intent}(?![\\w-])${notQuote}*?text-text-(on-primary|on-surface|on-warning)`,
+      `bg-${intent}(?![\\w-])${notQuote}*?text-text-(on-fill|on-primary|on-surface|on-warning)`,
       'g'
     );
     const found = new Set([...variantSources.matchAll(re)].map((m) => `--color-text-${m[1]}`));
@@ -567,9 +578,13 @@ describe('filled intent surfaces — WCAG contrast', () => {
         const css = stylesheetFor(theme);
         const white = resolveToken(css, '--color-neutral-0', 'light');
         for (const intent of INTENTS) {
-          // Only the intents text-on-primary actually governs; warning pairs
-          // with its own text-on-warning and was never affected either way.
-          if (INTENT_FOREGROUND[intent] !== '--color-text-on-primary') continue;
+          // Only the intents the mode-aware on-color governs. Since 2026-07-31
+          // that is two token names for one value — `--color-text-on-fill` (the
+          // shared one) and `--color-text-on-primary` (defined as var(on-fill),
+          // kept so a theme can move the primary label alone). `warning` pairs
+          // with its own non-mode-aware text-on-warning and was never affected.
+          const fg = INTENT_FOREGROUND[intent];
+          if (fg !== '--color-text-on-fill' && fg !== '--color-text-on-primary') continue;
           for (const state of STATE_NAMES) {
             const bg = resolveToken(css, STATES[state](intent), 'dark');
             out[key(theme, intent, 'dark', state)] = round2(ratioOf(bg, white));
@@ -918,4 +933,208 @@ describe('surface ladder — perceptual separation', () => {
     const overlay = resolveToken(css, '--color-surface-overlay', 'light');
     expect(overlay.l).toBe(base.l);
   });
+});
+
+// ---------------------------------------------------------------------------
+// The on-fill / on-primary split
+// ---------------------------------------------------------------------------
+
+/**
+ * Why two token names for one value.
+ *
+ * `--color-text-on-primary` reads as "the label colour for the primary fill",
+ * but until 2026-07-31 it was composed onto *every* solid intent — success,
+ * danger, neutral, secondary, info. The name promised something narrower than
+ * the job, and that mismatch handed consumers the wrong lever: retheming
+ * primary invites you to retune "the on-primary colour", which silently
+ * repainted the labels of every other intent too. Measured in the wild on a
+ * channel-scoped orange primary, where a `success` filled Badge rendered
+ * dark-orange text on dark green at roughly 1.5:1.
+ *
+ * The fix is naming, not colour: `--color-text-on-fill` carries the shared role,
+ * `--color-text-on-primary` is defined as `var(--color-text-on-fill)` and now
+ * governs the primary fills alone. Nothing moves by default — these tests exist
+ * because "nothing moves by default" is exactly what makes a regression here
+ * invisible.
+ */
+describe('the on-fill / on-primary split', () => {
+  /** A dark orange, standing in for a consumer whose primary went orange. */
+  const RETHEMED = 'oklch(0.35 0.12 60)';
+  const overridden = (token: string) =>
+    `${stylesheetFor('default')}\n:root { ${token}: ${RETHEMED}; }`;
+
+  it('the two resolve to the same value by default, in both modes', () => {
+    const css = stylesheetFor('default');
+    for (const mode of MODES) {
+      const onFill = resolveToken(css, '--color-text-on-fill', mode);
+      const onPrimary = resolveToken(css, '--color-text-on-primary', mode);
+      // All three channels: lightness alone would accept an alias that silently
+      // re-hued the label.
+      expect(
+        [onPrimary.l, onPrimary.c, onPrimary.h],
+        `on-primary must alias on-fill in ${mode} mode`
+      ).toEqual([onFill.l, onFill.c, onFill.h]);
+    }
+  });
+
+  it('overriding on-primary moves the primary label', () => {
+    const css = overridden('--color-text-on-primary');
+    const before = resolveToken(stylesheetFor('default'), '--color-text-on-primary', 'light');
+    const after = resolveToken(css, '--color-text-on-primary', 'light');
+    expect(after.l).not.toBe(before.l);
+  });
+
+  it('…and leaves every other intent readable — the regression this split prevents', () => {
+    const css = overridden('--color-text-on-primary');
+    for (const intent of INTENTS) {
+      if (intent === 'primary') continue;
+      const bg = resolveToken(css, STATES.base(intent), 'light');
+      const fg = resolveToken(css, INTENT_FOREGROUND[intent], 'light');
+      expect(
+        round2(ratioOf(bg, fg)),
+        `${intent} must not follow a primary retheme — it pairs with ` +
+          `${INTENT_FOREGROUND[intent]}, not with the overridden on-primary`
+      ).toBeGreaterThanOrEqual(AA_NORMAL);
+    }
+  });
+
+  it('the old coupling would have broken them — counterfactual', () => {
+    // Same override, but read through on-primary for every intent, i.e. what the
+    // pre-split markup did. If this ever stops failing AA, the override above is
+    // too gentle to prove anything and the test has quietly stopped testing.
+    const css = overridden('--color-text-on-primary');
+    const fg = resolveToken(css, '--color-text-on-primary', 'light');
+    const broken = INTENTS.filter((intent) => {
+      if (intent === 'primary' || intent === 'warning') return false;
+      return ratioOf(resolveToken(css, STATES.base(intent), 'light'), fg) < AA_NORMAL;
+    });
+    // Named, not counted `> 0`: with five non-primary non-warning intents, a
+    // threshold of "at least one" stays green while four of them quietly stop
+    // breaking — i.e. while the counterfactual stops being one.
+    expect(
+      [...broken].sort(),
+      'every non-warning intent must break under the old coupling, or this proves nothing'
+    ).toEqual(['danger', 'info', 'neutral', 'secondary', 'success']);
+  });
+
+  it('overriding on-fill moves every solid label at once — the wholesale lever', () => {
+    const css = overridden('--color-text-on-fill');
+    // `primary` is the only load-bearing case. success/danger read
+    // `--color-text-on-fill` directly, so asserting they moved is asserting the
+    // override took — tautological. primary reads `--color-text-on-primary`, and
+    // moves only because that token is *defined as* `var(on-fill)`; replace the
+    // alias with a same-valued literal and this is the case that goes red.
+    const primary = resolveToken(css, '--color-text-on-primary', 'light');
+    expect(primary.l, 'primary must follow an on-fill override through the alias').toBeCloseTo(
+      0.35,
+      2
+    );
+    for (const intent of ['success', 'danger'] as const) {
+      expect(resolveToken(css, INTENT_FOREGROUND[intent], 'light').l).toBeCloseTo(0.35, 2);
+    }
+  });
+});
+
+// ---------------------------------------------------------------------------
+// The table package's own intents
+// ---------------------------------------------------------------------------
+
+/**
+ * `filter` / `group` / `summary` are declared by `@urbicon-ui/table`, not by
+ * blocks, and they wire the same on-color vocabulary. This suite already globs
+ * the table variant files for the pairing check above — but until 2026-07-31 the
+ * `INTENTS` list held only the seven blocks intents, so the WCAG sweep walked
+ * straight past these three. They had been three intents no gate covered, and
+ * they measured 3.60–3.67:1 with white on the solid fill: under AA, in the plain
+ * default theme.
+ *
+ * The cause is that they ride Tailwind's stock cyan/teal/emerald ramps. The
+ * blocks intent ramps were hand-darkened precisely so white would clear AA on
+ * them (foundation.css); Tailwind's were not. Hence the -700 stop in light mode
+ * where blocks uses -600.
+ *
+ * Reading Tailwind's palette from `node_modules` rather than copying the six
+ * values in is deliberate: a copy would keep passing after an upstream palette
+ * change, which is the one event this test exists to catch.
+ */
+describe('table intents — WCAG contrast', () => {
+  const TABLE_INTENTS = ['filter', 'group', 'summary'] as const;
+
+  const tableStylesheet = () => {
+    const require_ = createRequire(import.meta.url);
+    const tailwindTheme = readFileSync(require_.resolve('tailwindcss/theme.css'), 'utf8');
+    const tableTheme = readFileSync(
+      resolve(STYLE_DIR, '../../../../table/src/lib/style/table-theme.css'),
+      'utf8'
+    );
+    return stripMediaBlocks(
+      `${tailwindTheme}\n${read('./foundation.css')}\n${read('./semantic.css')}\n${tableTheme}`
+    );
+  };
+
+  const css = tableStylesheet();
+
+  it('resolves the table tokens at all (guards the node_modules read)', () => {
+    // If Tailwind drops `theme.css` or renames the cyan ramp, `resolveToken`
+    // throws (`Token … not declared` / `Cannot resolve color expression`), so
+    // the failure is loud either way. What this case adds is a *named* place for
+    // that failure: without it, an upstream rename surfaces as eighteen
+    // identical-looking AA failures with no hint that the cause is the read.
+    const filter = resolveToken(css, '--color-filter', 'light');
+    expect(filter.l).toBeGreaterThan(0);
+    expect(filter.l).toBeLessThan(1);
+  });
+
+  /**
+   * The same rule `semantic.test.ts` enforces for the surface ladder, applied to
+   * these three: *"a hover token that resolves to its own resting value is not a
+   * subtle bug — it is no hover."* That suite's PAIRS list covers only
+   * `--color-surface-*`, and no table-side token test existed, so the table
+   * intents had no such guard.
+   *
+   * They needed one immediately. Moving the base from -600 to -700 for AA landed
+   * it on the stop `-hover` already used, making the light-mode hover a no-op on
+   * all three — invisible to the AA cases above, which measure each state
+   * against text and are perfectly happy for two states to be the same colour.
+   * The whole ladder moved instead (-700/-800/-900); this is what says so.
+   */
+  for (const intent of TABLE_INTENTS) {
+    for (const [rest, step] of [
+      ['', '-hover'],
+      ['-hover', '-active']
+    ] as const) {
+      it(`${intent}${step} steps away from ${intent}${rest || ' (resting)'}`, () => {
+        for (const mode of MODES) {
+          const a = resolveToken(css, `--color-${intent}${rest}`, mode);
+          const b = resolveToken(css, `--color-${intent}${step}`, mode);
+          expect(
+            [b.l, b.c, b.h],
+            `--color-${intent}${step} resolves to the same value as ` +
+              `--color-${intent}${rest || ''} in ${mode} mode — any hover/press built ` +
+              `on this pair is a silent no-op there`
+          ).not.toEqual([a.l, a.c, a.h]);
+        }
+      });
+    }
+  }
+
+  for (const intent of TABLE_INTENTS) {
+    for (const state of STATE_NAMES) {
+      it(`${intent}/${state} — light mode clears AA against text-on-fill`, () => {
+        const bg = resolveToken(css, STATES[state](intent as never), 'light');
+        const fg = resolveToken(css, '--color-text-on-fill', 'light');
+        expect(
+          round2(ratioOf(bg, fg)),
+          `--color-${intent} (light) rides a Tailwind ramp that is not darkened for AA; ` +
+            `it must sit at the -700 stop, not -600`
+        ).toBeGreaterThanOrEqual(AA_NORMAL);
+      });
+
+      it(`${intent}/${state} — dark mode clears AA against text-on-fill`, () => {
+        const bg = resolveToken(css, STATES[state](intent as never), 'dark');
+        const fg = resolveToken(css, '--color-text-on-fill', 'dark');
+        expect(round2(ratioOf(bg, fg))).toBeGreaterThanOrEqual(AA_NORMAL);
+      });
+    }
+  }
 });
