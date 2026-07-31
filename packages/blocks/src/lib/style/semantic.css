@@ -120,16 +120,16 @@
      composes on top of it (an `opacity-*` wrapper can undo it). */
   --color-text-disabled: light-dark(var(--color-neutral-500), var(--color-neutral-500));
   /* The on-colors below pair text with a *fill* rather than a surface.
-     text-on-dark and text-on-primary answer fills that are dark in light
+     text-on-dark and text-on-fill answer fills that are dark in light
      mode and light in dark mode, so the label has to travel the opposite
      way — white, then near-black. They are deliberately NOT aliased to one
-     another (`text-on-primary: var(--color-text-on-dark)`), even though
+     another (`text-on-fill: var(--color-text-on-dark)`), even though
      they carry the same value today — they answer to different fills and
      must stay independently overridable:
 
        - text-on-dark is the partner of the avatar identity palette, whose 12
          slots hold ONE lightness per mode (0.45 / 0.72) by construction.
-       - text-on-primary is the partner of the intent fills, whose ramps every
+       - text-on-fill is the partner of the intent fills, whose ramps every
          theme re-tunes, and which move again on hover/active.
 
      Aliasing would couple them asymmetrically: a consumer re-tuning the avatar
@@ -137,14 +137,34 @@
      Their equality is a consequence of both fill families straddling the same
      lightness midpoint — not a definition. */
   --color-text-on-dark: light-dark(var(--color-neutral-0), var(--color-neutral-900));
-  /* Dark mode pairs the *lighter* -400/-500 intent fills with dark text (the
+  /* The label colour for ANY solid intent fill — primary, secondary, success,
+     danger, info, neutral. Named for the *role* (a fill) rather than for one
+     intent, because that is what it does: it is composed onto all of them.
+
+     Until 2026-07-31 this role was carried by `--color-text-on-primary`, whose
+     name promised something narrower than its job. That mismatch was not
+     cosmetic — it handed consumers the wrong lever. Retheming primary invites
+     you to retune "the on-primary colour", and doing so silently repainted the
+     labels of every other intent too: on a channel-scoped orange primary, a
+     `success` filled Badge rendered dark-orange text on dark green (~1.5:1).
+
+     `--color-text-on-primary` still exists and still works — it now defaults to
+     this token and governs the primary fills alone, so overriding it does what
+     its name says. Themes that want to move every solid label at once override
+     this one instead.
+
+     Dark mode pairs the *lighter* -400/-500 intent fills with dark text (the
      Material-3 `onPrimary` pattern). White here was unconditional until
      2026-07-14, which put 125 of the 126 dark-mode intent fills under WCAG AA
      — down to 1.51:1, and getting *worse* on press. The mode-aware branch
      clears all 108 fills this token governs; `warning` is not one of them —
      its fill is light in BOTH modes, so it carries its own non-mode-aware
      on-color below (`--color-text-on-warning`). */
-  --color-text-on-primary: light-dark(var(--color-neutral-0), var(--color-neutral-900));
+  --color-text-on-fill: light-dark(var(--color-neutral-0), var(--color-neutral-900));
+  /* The primary fill's own label colour. Defaults to the shared on-fill value,
+     so nothing moves unless a theme says so; override it to repaint the primary
+     fills WITHOUT touching success/danger/neutral/secondary/info. */
+  --color-text-on-primary: var(--color-text-on-fill);
   /* Warning's own on-color. Warning is the one intent whose fill stays a
      light amber in BOTH modes (base/hover/active ride L 0.59–0.82), so unlike
      text-on-primary this token is deliberately NOT mode-aware — the label is

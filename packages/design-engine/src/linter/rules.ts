@@ -447,7 +447,7 @@ function suggestForBadCore(core: string): string {
     core === 'fg' ||
     core.endsWith('-fg')
   ) {
-    return 'Use `text-on-primary` / `text-on-surface` for foreground-on-intent text, or `text-text-primary`/`-secondary` for general text.';
+    return 'Use `text-on-fill` / `text-on-surface` for foreground-on-intent text, or `text-text-primary`/`-secondary` for general text.';
   }
   if (isForeignVocab(core)) return SHADCN_FIX;
   for (const [bad, hint] of Object.entries(KNOWN_BAD_NAMESPACES)) {

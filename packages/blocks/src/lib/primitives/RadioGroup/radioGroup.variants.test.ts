@@ -122,9 +122,13 @@ describe('radioItemVariants', () => {
       // state-dependent colour; asserting the absence keeps it that way.
       for (const intent of INTENTS) {
         const dot = radioItemVariants({ checked: true, intent }).dot();
-        expect(dot, intent).toContain(
-          intent === 'warning' ? 'bg-text-on-warning' : 'bg-text-on-primary'
-        );
+        const expected =
+          intent === 'warning'
+            ? 'bg-text-on-warning'
+            : intent === 'primary'
+              ? 'bg-text-on-primary'
+              : 'bg-text-on-fill';
+        expect(dot, intent).toContain(expected);
         expect(dot, intent).not.toMatch(/group-(hover|active):bg-/);
       }
     });

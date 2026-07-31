@@ -340,14 +340,14 @@ export const badgeVariants = tv({
       intent: 'secondary',
       variant: 'filled',
       class: {
-        base: 'bg-secondary text-text-on-primary border-secondary'
+        base: 'bg-secondary text-text-on-fill border-secondary'
       }
     },
     {
       intent: 'success',
       variant: 'filled',
       class: {
-        base: 'bg-success text-text-on-primary border-success'
+        base: 'bg-success text-text-on-fill border-success'
       }
     },
     {
@@ -361,14 +361,14 @@ export const badgeVariants = tv({
       intent: 'danger',
       variant: 'filled',
       class: {
-        base: 'bg-danger text-text-on-primary border-danger'
+        base: 'bg-danger text-text-on-fill border-danger'
       }
     },
     {
       intent: 'neutral',
       variant: 'filled',
       class: {
-        base: 'bg-neutral text-text-on-primary border-neutral'
+        base: 'bg-neutral text-text-on-fill border-neutral'
       }
     },
     // Dot color per intent

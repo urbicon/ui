@@ -64,11 +64,22 @@ function lightValue(value: string): string {
   return lightDarkArgs(value)?.[0] ?? value;
 }
 
-/** `var(--color-warm-neutral-500)` → `{color.warm-neutral.500}`; null for non-palette values. */
+/**
+ * `var(--color-warm-neutral-500)` → `{color.warm-neutral.500}`; null for
+ * non-palette values.
+ *
+ * Also resolves a semantic-to-semantic alias: `--color-text-on-primary` is
+ * defined as `var(--color-text-on-fill)`, and the token format expresses that
+ * as a reference (`{semantic.text.on-fill}`) rather than by duplicating the
+ * value — so a theme that moves on-fill moves its aliases with it, which is the
+ * entire point of the alias.
+ */
 function foundationVarToFigmaRef(value: string): string | null {
-  const match = /^var\(--color-([\w-]+)-(\d+)\)$/.exec(value);
-  if (!match) return null;
-  return `{color.${match[1]}.${match[2]}}`;
+  const palette = /^var\(--color-([\w-]+)-(\d+)\)$/.exec(value);
+  if (palette) return `{color.${palette[1]}.${palette[2]}}`;
+  const semanticAlias = /^var\(--color-(surface|text|border)-([\w-]+)\)$/.exec(value);
+  if (semanticAlias) return `{semantic.${semanticAlias[1]}.${semanticAlias[2]}}`;
+  return null;
 }
 
 function isToken(node: FigmaToken | FigmaTokenGroup): node is FigmaToken {

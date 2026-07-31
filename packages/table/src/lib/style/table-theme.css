@@ -1,6 +1,22 @@
 @theme {
-  /* === TABLE-SPECIFIC INTENTS === */
-  /* Extend the blocks foundation with table-specific colors */
+  /* === TABLE-SPECIFIC INTENTS ===
+     Extend the blocks foundation with table-specific colors.
+
+     These three ride Tailwind's stock cyan/teal/emerald ramps, which is why
+     they need the -700 stop in light mode where the blocks intents use -600.
+     The blocks ramps were hand-darkened for exactly this reason (see the
+     "Darkened *-500 / *-600 / *-700" note in blocks/style/foundation.css);
+     Tailwind's were not, so their -600 sits at L≈0.60 and puts white at
+     3.60–3.67:1 — under AA. The -700 stops (L≈0.51–0.52) measure 5.28–5.39:1.
+
+     Do NOT move the dark-mode branch: the -400 stops pair with the dark half of
+     `--color-text-on-fill` and already measure 10.2–10.9:1. Lightening or
+     darkening them to "match" the light fix would break that.
+
+     Until 2026-07-31 all three sat at -600 and no gate looked at them — the
+     WCAG sweep in blocks/style/contrast.test.ts globbed the table variant files
+     but its INTENTS list held only the seven blocks intents. All three are in
+     that list now. */
   /* Filter Intent (Cyan-based) */
   --color-filter-50: var(--color-cyan-50);
   --color-filter-100: var(--color-cyan-100);
@@ -13,7 +29,7 @@
   --color-filter-800: var(--color-cyan-800);
   --color-filter-900: var(--color-cyan-900);
 
-  --color-filter: light-dark(var(--color-filter-600), var(--color-filter-400));
+  --color-filter: light-dark(var(--color-filter-700), var(--color-filter-400));
   --color-filter-hover: light-dark(var(--color-filter-700), var(--color-filter-300));
   --color-filter-active: light-dark(var(--color-filter-800), var(--color-filter-200));
   --color-filter-subtle: light-dark(var(--color-filter-50), var(--color-filter-900));
@@ -31,7 +47,7 @@
   --color-group-800: var(--color-teal-800);
   --color-group-900: var(--color-teal-900);
 
-  --color-group: light-dark(var(--color-group-600), var(--color-group-400));
+  --color-group: light-dark(var(--color-group-700), var(--color-group-400));
   --color-group-hover: light-dark(var(--color-group-700), var(--color-group-300));
   --color-group-active: light-dark(var(--color-group-800), var(--color-group-200));
   --color-group-subtle: light-dark(var(--color-group-50), var(--color-group-900));
@@ -49,7 +65,7 @@
   --color-summary-800: var(--color-emerald-800);
   --color-summary-900: var(--color-emerald-900);
 
-  --color-summary: light-dark(var(--color-summary-600), var(--color-summary-400));
+  --color-summary: light-dark(var(--color-summary-700), var(--color-summary-400));
   --color-summary-hover: light-dark(var(--color-summary-700), var(--color-summary-300));
   --color-summary-active: light-dark(var(--color-summary-800), var(--color-summary-200));
   --color-summary-subtle: light-dark(var(--color-summary-50), var(--color-summary-900));

@@ -112,7 +112,7 @@ export const calendarVariants = tv({
 
     // Multi-day bar
     multiDayBar: [
-      'flex items-center text-text-on-primary text-xs px-1 truncate select-none',
+      'flex items-center text-text-on-fill text-xs px-1 truncate select-none',
       'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50'
     ],
     multiDayBarContainer: 'grid w-full',
@@ -137,7 +137,7 @@ export const calendarVariants = tv({
     timeDayColumn: ['relative flex-1', 'border-l border-border-hairline'],
     timeEvent: [
       'absolute rounded-md overflow-hidden',
-      'text-text-on-primary px-1.5 py-0.5',
+      'text-text-on-fill px-1.5 py-0.5',
       'select-none',
       'transition-[box-shadow] duration-[var(--blocks-duration-fast)]',
       'hover:shadow-[var(--blocks-shadow-sm)] hover:brightness-110',
