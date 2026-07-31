@@ -331,9 +331,13 @@
     <p class="text-text-secondary mb-4">
       Six intent ramps — primary, secondary, success, warning, danger, info — each a full 50–950
       ladder. The 500/600/700 stops are tuned dark enough that white
+      <code class="bg-surface-subtle rounded-modify px-1.5 py-0.5 text-sm">text-on-fill</code>
+      passes WCAG AA on the solid fills — that is the label colour for
+      <em>every</em> solid intent, which is why it is not named after one of them.
       <code class="bg-surface-subtle rounded-modify px-1.5 py-0.5 text-sm">text-on-primary</code>
-      passes WCAG AA on the solid fills; warning is the deliberate exception (its fill stays light in
-      both modes and pairs with its own warm-dark
+      still exists, resolves to the same value and governs the primary fill alone, so retuning it cannot
+      repaint success or danger along with it. Warning is the deliberate exception (its fill stays light
+      in both modes and pairs with its own warm-dark
       <code class="bg-surface-subtle rounded-modify px-1.5 py-0.5 text-sm">text-on-warning</code>).
       A separate
       <code class="bg-surface-subtle rounded-modify px-1.5 py-0.5 text-sm">warm-neutral</code>
