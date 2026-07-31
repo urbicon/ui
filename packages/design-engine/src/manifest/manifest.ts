@@ -36,7 +36,12 @@ export function parseFrontmatter(content: string): { data: Record<string, string
   if (!match) return { data, body: content };
 
   for (const line of (match[1] ?? '').split(/\r?\n/)) {
-    const kv = line.match(/^([a-zA-Z][\w-]*)\s*:\s*(.*)$/);
+    // Any whitespace except a line break. The input is already split into lines,
+    // so `\s` only ever added the newline the split just removed — and with it the
+    // ambiguity CodeQL flags as polynomial (js/polynomial-redos, alert 24). It is
+    // a tightening on principle rather than a fix for a measured stall: on one
+    // line the old form is linear, 640 kB of tabs in 0.3 ms.
+    const kv = line.match(/^([a-zA-Z][\w-]*)[^\S\r\n]*:[^\S\r\n]*(.*)$/);
     if (kv) {
       const value = (kv[2] ?? '').trim().replace(/^["']|["']$/g, '');
       if (value) data[kv[1] ?? ''] = value;

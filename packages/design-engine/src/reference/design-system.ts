@@ -62,14 +62,32 @@ export function parsePatternEntry(name: string, content: string): PatternEntry {
   };
 }
 
+/**
+ * The gap after `#` is any whitespace *except* a line break.
+ *
+ * `\s` includes the newline, which made a lone `#` on its own line swallow the
+ * break and take the next line's heading as its title: `"#\n# Real Title"` parsed
+ * as `"# Real Title"`, hash included. It also lets `\s+` and the `(.+)` after it
+ * both claim the same run — the shape CodeQL flags as polynomial (js/polynomial-redos,
+ * alert 25). Measured, the old form stayed linear even on 600 kB of tabs, so the
+ * reason to change it is the parse, not the clock.
+ *
+ * `[^\S\r\n]` rather than `[ \t]` so a non-breaking space after the `#` still reads
+ * as a gap — narrowing the class is what fixes the bug, dropping Unicode spaces
+ * from it would only trade one silent mis-parse for another.
+ */
+const HEADING_GAP = '[^\\S\\r\\n]';
+const TITLE_LINE_RE = new RegExp(`^#${HEADING_GAP}+(.+)$`, 'm');
+const TITLE_PREFIX_RE = new RegExp(`^#${HEADING_GAP}+`);
+
 function extractTitle(content: string): string {
-  const match = content.match(/^#\s+(.+)$/m);
+  const match = content.match(TITLE_LINE_RE);
   return match?.[1]?.trim() ?? '';
 }
 
 function extractDescription(content: string): string {
   const lines = content.split('\n');
-  const titleIdx = lines.findIndex((l) => /^#\s+/.test(l));
+  const titleIdx = lines.findIndex((l) => TITLE_PREFIX_RE.test(l));
   if (titleIdx === -1) return '';
 
   for (let i = titleIdx + 1; i < lines.length; i++) {
