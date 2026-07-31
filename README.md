@@ -1,105 +1,152 @@
-# Urbicon UI
+<p align="center">
+  <a href="https://ui.urbicon.de">
+    <img src="apps/docs/static/og.png" alt="urbicon ui — Depends on nothing." width="720" />
+  </a>
+</p>
 
-[![CI](https://github.com/urbicon/ui/actions/workflows/ci.yml/badge.svg)](https://github.com/urbicon/ui/actions/workflows/ci.yml)
-[![npm](https://img.shields.io/npm/v/@urbicon-ui/blocks?label=%40urbicon-ui%2Fblocks)](https://www.npmjs.com/package/@urbicon-ui/blocks)
-[![License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
+<p align="center">
+  <a href="https://github.com/urbicon/ui/actions/workflows/ci.yml"><img src="https://github.com/urbicon/ui/actions/workflows/ci.yml/badge.svg" alt="CI" /></a>
+  <a href="https://www.npmjs.com/package/@urbicon-ui/blocks"><img src="https://img.shields.io/npm/v/@urbicon-ui/blocks?label=%40urbicon-ui%2Fblocks" alt="npm" /></a>
+  <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-blue.svg" alt="MIT" /></a>
+</p>
 
-Vertically integrated, zero-runtime-dependency Svelte 5 + Tailwind CSS 4 platform: UI primitives, data tables, auth, i18n, docs and AI-native DX — all under unified versioning. Built with Bun workspaces.
+<p align="center">
+  <a href="https://ui.urbicon.de">Documentation</a> ·
+  <a href="https://ui.urbicon.de/blocks">Components</a> ·
+  <a href="https://ui.urbicon.de/getting-started">Getting started</a> ·
+  <a href="https://ui.urbicon.de/changelog">Changelog</a>
+</p>
 
-- **Documentation:** [ui.urbicon.de](https://ui.urbicon.de)
-- **Source:** [github.com/urbicon/ui](https://github.com/urbicon/ui) — development happens here; [codeberg.org/urbicon/ui](https://codeberg.org/urbicon/ui) stays as a read-only mirror, which is what the `Codeberg #NN` markers in the source refer to
+---
 
-## Using the Packages
+**Urbicon UI** is a Svelte 5 + Tailwind CSS 4 component platform with **zero runtime
+dependencies** — UI primitives, data grid, auth, i18n and an AI-native toolchain, versioned and
+shipped as one coherent set. Nothing in your `node_modules` graph but the library itself: JWT,
+passkeys and web push run on the Web Crypto API, the variant engine and the QR encoder are our
+own, and dark mode is native CSS `light-dark()`.
 
-Packages are published under the `@urbicon-ui/*` scope. See the [Getting Started guide](https://ui.urbicon.de/getting-started) for registry setup and installation:
+The short version: **one package · one grammar · one gate.**
+
+- **One package** — components, OKLCH design tokens, icons, docs and the design knowledge all
+  ship in the set. Install it and you have the whole system, not a starting point.
+- **One grammar** — every component speaks the same API: `intent` / `size` / `variant` axes, and
+  `unstyled` + `slotClasses` + `preset` everywhere when you need to take over the styling.
+- **One gate** — `urbicon validate` scores generated markup on two axes (correctness and craft)
+  before it ships, as a local CLI, a PostToolUse hook, or CI. Agents build with the set; the gate
+  keeps them honest.
+
+## See it
+
+Every pixel of the [documentation site](https://ui.urbicon.de) — landing included — is built
+from the library itself.
+
+| | |
+| --- | --- |
+| <img src=".github/assets/landing.png" alt="Landing page: name tile beside a live dashboard composed from blocks" /> | <img src=".github/assets/specimen-book.png" alt="Specimen book: every cell renders the live component" /> |
+| The landing: a back-office dashboard composed from charts, controls and tokens — one card, container-adaptive. | The [specimen book](https://ui.urbicon.de/blocks): 75 living specimens, every cell the real component, linked to props, variants and playground. |
+| <img src=".github/assets/agents-tile.png" alt="Agents exhibit: terminal replay beside the actual component source" /> | <img src=".github/assets/install-ask-ship.png" alt="Install, Ask, Ship — the ordered neon-magenta booking page, delivered" /> |
+| An agent writes a component, the gate scores it — and the source view shows the very file, verbatim. Readable code is the point. | Install · Ask · Ship: the prompt orders *neon-magenta*, and the shipped page **is** that magenta. Theming proven, not promised. |
+
+## Quick start
 
 ```bash
-bun add @urbicon-ui/blocks
+bun add @urbicon-ui/blocks   # or npm/pnpm — the library doesn't care
 ```
 
-## Prerequisites
+```css
+/* app.css */
+@import '@urbicon-ui/blocks/style/index.css';
+```
 
-- [Bun](https://bun.sh) v1.1+
-- Node.js 18+
+```svelte
+<script>
+  import { Badge, Button, Input } from '@urbicon-ui/blocks';
 
-## Quick Start
+  let name = $state('');
+  let greeted = $state(false);
+</script>
+
+<Input label="Your name" bind:value={name} placeholder="Ada" />
+<Button intent="primary" onclick={() => (greeted = true)} disabled={!name}>Say hello</Button>
+
+{#if greeted && name}
+  <Badge intent="success">Hello {name}!</Badge>
+{/if}
+```
+
+The [getting-started guide](https://ui.urbicon.de/getting-started) walks through the Tailwind 4
+setup and the first real page.
+
+## What's in the box
+
+| Package | What it gives you |
+| --- | --- |
+| [`@urbicon-ui/blocks`](https://ui.urbicon.de/blocks) | 80+ primitives & components — forms, overlays, charts, chat/AI surfaces — plus OKLCH tokens, the `tv()` variant engine and 300+ icons |
+| [`@urbicon-ui/table`](https://ui.urbicon.de/table) | The enterprise grid: sorting, grouping, selection, keyboard nav, virtual rows, remote data, live updates |
+| [`@urbicon-ui/auth`](https://ui.urbicon.de/auth) | Sessions, refresh rotation, passkeys/WebAuthn, notifications, email — Web Crypto only, adapter-based |
+| [`@urbicon-ui/i18n`](https://ui.urbicon.de/i18n) | Runes-based localisation with a data-level translation audit |
+| [`@urbicon-ui/design`](https://ui.urbicon.de/ai) | The `urbicon` CLI: design knowledge, the validate gate, `urbicon init` onboarding |
+| `@urbicon-ui/sveltekit-utils` | URL-state runes, cron runner and other SvelteKit helpers |
+
+One version across all packages; supporting packages (`design-engine`, `docs-gen`, …) live in the
+same repo and release in lockstep.
+
+## Built for agents — readable by humans
+
+The library treats AI coding agents as first-class consumers without giving up on the people who
+review their work. `bunx urbicon init` writes the AGENTS.md block and installs the gate; from
+then on the loop closes itself:
+
+```mermaid
+flowchart LR
+    P[your prompt] --> A[agent builds with the set]
+    A --> V["urbicon validate — correctness · craft"]
+    V -- "✓ no issues" --> S[ship]
+    V -- notes --> A
+```
+
+Because components carry their design knowledge with them — per-component `llms.txt`, machine-readable
+catalogs, a version-pinned CLI serving tokens, patterns and recipes — the agent composes from the
+system instead of improvising against it. The result stays small and legible: semantic tokens
+instead of pixel soup, one API grammar instead of per-component dialects.
+
+## Theming
+
+The whole chassis re-tints from one `@theme` block — colour *and* typography:
+
+```css
+/* app.css */
+@import '@urbicon-ui/blocks/style/index.css';
+
+@theme {
+  --color-primary-500: oklch(0.7 0.31 330); /* every component follows */
+}
+```
+
+Dark mode is `light-dark()` + `color-scheme` — no `dark:` variants, no flash, follows the OS.
+See [customization](https://ui.urbicon.de/customization).
+
+## Developing this repo
+
+Bun 1.1+ workspace; Node 18+ for tooling.
 
 ```bash
 bun install
-bun run dev
+bun run dev        # all packages in watch mode
+bun run build      # build packages and apps
+bun run test       # unit tests · bun run test:e2e for Playwright
+bun run check      # svelte-check across the tree
 ```
 
-## Workspace Structure
+Start with [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) (§1 package map & build order, §2 the
+token → markup path); [docs/README.md](docs/README.md) indexes the rest — component families,
+API conventions, Svelte 5 patterns, conscious trade-offs. Repository guidelines for agents and
+contributors live in [AGENTS.md](AGENTS.md), the merge workflow in
+[CONTRIBUTING.md](CONTRIBUTING.md).
 
-```
-urbicon-ui/
-├── packages/
-│   ├── blocks            40 primitives + 27 components, tokens, tv() engine, 315 icons
-│   ├── table             Data table (selection, keyboard, virtual, remote, live updates)
-│   ├── auth              Auth + passkeys + notifications + email (Web Crypto only)
-│   ├── docs              Reusable documentation UI components
-│   ├── docs-gen          Documentation generator CLI (TypeScript AST extraction)
-│   ├── mcp-server        Model Context Protocol server (AI-native DX)
-│   ├── i18n              Localization (Svelte 5 runes-based)
-│   ├── shared-types      Shared TypeScript type definitions
-│   ├── sveltekit-utils   SvelteKit helper utilities (createCronRunner, URL-state runes)
-│   ├── design            urbicon CLI (@urbicon-ui/design): local design-loop enforcement + skill/templates
-│   ├── design-content    Versioned design-knowledge bundle for the remote MCP + CLI
-│   └── design-engine     Zero-dep design linter / manifest parser / rubric
-├── apps/
-│   └── docs              Documentation site (SvelteKit)
-├── e2e/                  Playwright suites (auth flow, a11y axe scan)
-└── docs/                 Architecture, conventions, component reference
-```
-
-A diagram of how the packages depend on each other, plus the build order, is in
-[docs/ARCHITECTURE.md § 1](docs/ARCHITECTURE.md#1--the-monorepo-at-a-glance).
-
-## Commands
-
-| Command | Description |
-|---------|-------------|
-| `bun install` | Install all workspace dependencies |
-| `bun run dev` | Start all packages in watch mode |
-| `bun run build` | Build all packages and apps |
-| `bun run check` | Run type checks (svelte-check) |
-| `bun run lint` | Lint all packages |
-| `bun run format` | Format with Biome across the tree (`.svelte` via per-package `format`) |
-| `bun run docs:gen:all` | Generate API docs for all components |
-| `bun run test` | Run unit tests across packages |
-| `bun run test:e2e` | Run Playwright end-to-end tests |
-| `bun run bump` / `bump:minor` / `bump:major` | Release: bump version, regenerate changelog, tag HEAD |
-
-## Tech Stack
-
-- **Framework**: [Svelte 5](https://svelte.dev) with runes (`$state`, `$derived`, `$effect`)
-- **Styling**: [Tailwind CSS 4](https://tailwindcss.com) + custom `tv()` variant engine (zero-dep replacement for `tailwind-variants`)
-- **Design Tokens**: OKLCH color system with 3-layer architecture (foundation → semantic → interaction) — themed (colour *and* typography) via one Tailwind `@theme` block; the neutral chassis re-tints with the accent, see `urbicon css-reference theming`
-- **Build**: [Bun](https://bun.sh) workspaces, `@sveltejs/package`
-- **Testing**: [Vitest](https://vitest.dev) (unit) + [Playwright](https://playwright.dev/) (e2e + a11y axe)
-- **Commits**: [Conventional Commits](https://www.conventionalcommits.org) enforced via commitlint + lefthook
-- **Changelog**: [git-cliff](https://git-cliff.org/) — parses commits, generates `CHANGELOG.md` on bump
-
-## Documentation
-
-Start with [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) — §1 is the package map and build
-order, §2 the path from a design token to rendered markup. [docs/README.md](docs/README.md)
-indexes everything else and suggests a reading order.
-
-| Document | Content |
-|----------|---------|
-| [Architecture Overview](docs/ARCHITECTURE.md) | Package map, token → markup path, cross-cutting systems, tooling |
-| [Component Families](docs/COMPONENT-FAMILIES.md) | The seven-family taxonomy: ARIA, tier behaviour, border source |
-| [Component API Conventions](docs/COMPONENT-API-CONVENTIONS.md) | Props, callbacks, styling patterns, design tokens |
-| [Component Structure Standard](docs/ComponentStructureStandard.md) | File structure, index.ts, variants.ts patterns |
-| [Svelte 5 Patterns](docs/SVELTE5-PATTERNS.md) | Required patterns and the anti-patterns they replace |
-| [Variant Contract](docs/VARIANT-CONTRACT.md) | What each `variant` value means across the library |
-| [Conscious Trade-offs](docs/DECISIONS.md) | Decisions that look like oversights and are not |
-| [Tailwind Caveats](docs/TailwindCaveats.md) | Tailwind 4 specifics, @theme, Svelte integration |
-| [Responsive Guidelines](docs/ResponsiveGuidelines.md) | Breakpoints, touch targets, overlay patterns |
-| [Auth Package](docs/AUTH.md) | Architecture, exports, consumer integration |
-
-See [AGENTS.md](AGENTS.md) for the full set of repository guidelines used by agents and contributors, and [CONTRIBUTING.md](CONTRIBUTING.md) for how to get a change merged.
+Development happens on [GitHub](https://github.com/urbicon/ui);
+[codeberg.org/urbicon/ui](https://codeberg.org/urbicon/ui) is a read-only mirror, which is what
+the `Codeberg #NN` markers in the source refer to.
 
 ## License
 
