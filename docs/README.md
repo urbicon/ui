@@ -54,7 +54,7 @@ Then reach for the rest as you need it.
 
 ## Project tracking
 
-- [technical-debt.md](technical-debt.md) — log for small, non-blocking findings that need a design decision or a broader sweep
+- [technical-debt.md](technical-debt.md) — pointer: open findings live as GitHub issues (`debt:*` labels) since 2026-07-31; the file keeps the entry format and the resolved-entry trace
 
 ---
 

@@ -56,7 +56,8 @@ synthesis, and the standing rule:
 | Package quickstart | `packages/<pkg>/README.md` | consumers | tarball, npmjs page (deep links go absolute to the rendered site route — npmjs does not resolve relative links into the repo, so they 404 there regardless of repo visibility; `./docs/…` stays as the shipped-copy pointer) |
 | Monorepo conventions (SVELTE5-PATTERNS, ICON-DESIGN, …) | `docs/*.md` | repo developers + agents | repo only — deliberately not shipped |
 | Design knowledge (principles, patterns, tokens) | `design-system/`, `css-reference.ts` | consumers + agents | `design-content` bundle → `urbicon` CLI, MCP, docs site |
-| Planning / strategy / review bookkeeping | `docs/internal/` (gitignored), `docs/technical-debt.md` | maintainers | repo only |
+| Planning / strategy / review bookkeeping | `docs/internal/` (gitignored) | maintainers | repo only |
+| Deferred findings (technical debt) | GitHub issues, `debt:*` labels | maintainers + contributors | issue tracker |
 | Site-only prose (Docs.svelte pages, recipes) | `apps/docs/src/**` | site readers | docs site |
 
 Everything under `apps/docs/static/<scope>/` and `dist/` is a **generated

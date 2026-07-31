@@ -186,7 +186,7 @@ Internal working docs (strategy, launch, deployment, design analysis) are kept l
 
 **Project tracking**
 
-- [docs/technical-debt.md](docs/technical-debt.md) – versioned log for small, non-blocking findings hit in passing that need a design decision or a broader sweep, not an on-the-fly fix. Add an entry rather than dropping such a finding silently; keep it to genuine deferrals (don't log what the code, git history, or planned TODO work already covers). Actively planned work lives in the internal TODO (docs/internal/) instead.
+- **Small, non-blocking findings hit in passing** — the ones that need a design decision or a broader sweep, not an on-the-fly fix — go to **GitHub issues** with a `debt:<area>` label (`gh issue list --search "label:debt:*"`). Open one rather than dropping the finding silently, and state Where / What / Why deferred / Found explicitly; keep it to genuine deferrals (don't log what the code, git history, or planned TODO work already covers). [docs/technical-debt.md](docs/technical-debt.md) is now only a pointer plus the resolved-entry trace — the 56 open entries moved to issues on 2026-07-31, so **do not add new entries to that file**. Actively planned work lives in the internal TODO (docs/internal/) instead.
 
 ## Task-scoped skills
 
