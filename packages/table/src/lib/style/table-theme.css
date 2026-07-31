@@ -30,8 +30,8 @@
   --color-filter-900: var(--color-cyan-900);
 
   --color-filter: light-dark(var(--color-filter-700), var(--color-filter-400));
-  --color-filter-hover: light-dark(var(--color-filter-700), var(--color-filter-300));
-  --color-filter-active: light-dark(var(--color-filter-800), var(--color-filter-200));
+  --color-filter-hover: light-dark(var(--color-filter-800), var(--color-filter-300));
+  --color-filter-active: light-dark(var(--color-filter-900), var(--color-filter-200));
   --color-filter-subtle: light-dark(var(--color-filter-50), var(--color-filter-900));
   --color-filter-emphasis: light-dark(var(--color-filter-900), var(--color-filter-100));
 
@@ -48,8 +48,8 @@
   --color-group-900: var(--color-teal-900);
 
   --color-group: light-dark(var(--color-group-700), var(--color-group-400));
-  --color-group-hover: light-dark(var(--color-group-700), var(--color-group-300));
-  --color-group-active: light-dark(var(--color-group-800), var(--color-group-200));
+  --color-group-hover: light-dark(var(--color-group-800), var(--color-group-300));
+  --color-group-active: light-dark(var(--color-group-900), var(--color-group-200));
   --color-group-subtle: light-dark(var(--color-group-50), var(--color-group-900));
   --color-group-emphasis: light-dark(var(--color-group-900), var(--color-group-100));
 
@@ -66,8 +66,8 @@
   --color-summary-900: var(--color-emerald-900);
 
   --color-summary: light-dark(var(--color-summary-700), var(--color-summary-400));
-  --color-summary-hover: light-dark(var(--color-summary-700), var(--color-summary-300));
-  --color-summary-active: light-dark(var(--color-summary-800), var(--color-summary-200));
+  --color-summary-hover: light-dark(var(--color-summary-800), var(--color-summary-300));
+  --color-summary-active: light-dark(var(--color-summary-900), var(--color-summary-200));
   --color-summary-subtle: light-dark(var(--color-summary-50), var(--color-summary-900));
   --color-summary-emphasis: light-dark(var(--color-summary-900), var(--color-summary-100));
 

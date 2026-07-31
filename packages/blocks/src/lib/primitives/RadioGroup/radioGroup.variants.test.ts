@@ -128,7 +128,12 @@ describe('radioItemVariants', () => {
             : intent === 'primary'
               ? 'bg-text-on-primary'
               : 'bg-text-on-fill';
-        expect(dot, intent).toContain(expected);
+        // Exact token, not `toContain`: `'bg-text-on-fillx'.includes('bg-text-on-fill')`
+        // is true, and `variants:lint` does not guard the `bg-` namespace (only
+        // text-/rounded-/shadow-/blur-/tracking-/leading-/ease- — see
+        // scripts/theme-tokens.ts), so a typo here would render with no colour
+        // and pass both gates.
+        expect(dot.split(/\s+/), intent).toContain(expected);
         expect(dot, intent).not.toMatch(/group-(hover|active):bg-/);
       }
     });

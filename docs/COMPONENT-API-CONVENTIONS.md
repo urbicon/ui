@@ -212,7 +212,8 @@ Always use semantic tokens over primitive Tailwind classes:
 | `text-neutral-500 dark:text-neutral-400`     | `text-text-tertiary`    |
 | `border-neutral-200 dark:border-neutral-700` | `border-border-subtle`  |
 | `border-neutral-300 dark:border-neutral-600` | `border-border-default` |
-| `text-white` (on intent bg)                  | `text-text-on-primary`  |
+| `text-white` (on any solid intent fill)      | `text-text-on-fill`     |
+| `text-white` (on the primary fill only)      | `text-text-on-primary`  |
 | `text-neutral-900` (on warning bg)           | `text-text-on-warning`  |
 
 ### Z-Index

@@ -968,7 +968,12 @@ describe('the on-fill / on-primary split', () => {
     for (const mode of MODES) {
       const onFill = resolveToken(css, '--color-text-on-fill', mode);
       const onPrimary = resolveToken(css, '--color-text-on-primary', mode);
-      expect(onPrimary.l, `on-primary must alias on-fill in ${mode} mode`).toBe(onFill.l);
+      // All three channels: lightness alone would accept an alias that silently
+      // re-hued the label.
+      expect(
+        [onPrimary.l, onPrimary.c, onPrimary.h],
+        `on-primary must alias on-fill in ${mode} mode`
+      ).toEqual([onFill.l, onFill.c, onFill.h]);
     }
   });
 
@@ -1003,18 +1008,29 @@ describe('the on-fill / on-primary split', () => {
       if (intent === 'primary' || intent === 'warning') return false;
       return ratioOf(resolveToken(css, STATES.base(intent), 'light'), fg) < AA_NORMAL;
     });
+    // Named, not counted `> 0`: with five non-primary non-warning intents, a
+    // threshold of "at least one" stays green while four of them quietly stop
+    // breaking — i.e. while the counterfactual stops being one.
     expect(
-      broken.length,
-      'the counterfactual must actually break, or it proves nothing'
-    ).toBeGreaterThan(0);
+      [...broken].sort(),
+      'every non-warning intent must break under the old coupling, or this proves nothing'
+    ).toEqual(['danger', 'info', 'neutral', 'secondary', 'success']);
   });
 
   it('overriding on-fill moves every solid label at once — the wholesale lever', () => {
     const css = overridden('--color-text-on-fill');
-    // primary follows too, since on-primary is defined as var(on-fill).
-    for (const intent of ['primary', 'success', 'danger'] as const) {
-      const fg = resolveToken(css, INTENT_FOREGROUND[intent], 'light');
-      expect(fg.l, `${intent} must follow an on-fill override`).toBeCloseTo(0.35, 2);
+    // `primary` is the only load-bearing case. success/danger read
+    // `--color-text-on-fill` directly, so asserting they moved is asserting the
+    // override took — tautological. primary reads `--color-text-on-primary`, and
+    // moves only because that token is *defined as* `var(on-fill)`; replace the
+    // alias with a same-valued literal and this is the case that goes red.
+    const primary = resolveToken(css, '--color-text-on-primary', 'light');
+    expect(primary.l, 'primary must follow an on-fill override through the alias').toBeCloseTo(
+      0.35,
+      2
+    );
+    for (const intent of ['success', 'danger'] as const) {
+      expect(resolveToken(css, INTENT_FOREGROUND[intent], 'light').l).toBeCloseTo(0.35, 2);
     }
   });
 });
@@ -1059,12 +1075,48 @@ describe('table intents — WCAG contrast', () => {
   const css = tableStylesheet();
 
   it('resolves the table tokens at all (guards the node_modules read)', () => {
-    // If Tailwind ever drops `theme.css` or renames the cyan ramp, this fails
-    // loudly instead of the suite silently measuring a black-on-black default.
+    // If Tailwind drops `theme.css` or renames the cyan ramp, `resolveToken`
+    // throws (`Token … not declared` / `Cannot resolve color expression`), so
+    // the failure is loud either way. What this case adds is a *named* place for
+    // that failure: without it, an upstream rename surfaces as eighteen
+    // identical-looking AA failures with no hint that the cause is the read.
     const filter = resolveToken(css, '--color-filter', 'light');
     expect(filter.l).toBeGreaterThan(0);
     expect(filter.l).toBeLessThan(1);
   });
+
+  /**
+   * The same rule `semantic.test.ts` enforces for the surface ladder, applied to
+   * these three: *"a hover token that resolves to its own resting value is not a
+   * subtle bug — it is no hover."* That suite's PAIRS list covers only
+   * `--color-surface-*`, and no table-side token test existed, so the table
+   * intents had no such guard.
+   *
+   * They needed one immediately. Moving the base from -600 to -700 for AA landed
+   * it on the stop `-hover` already used, making the light-mode hover a no-op on
+   * all three — invisible to the AA cases above, which measure each state
+   * against text and are perfectly happy for two states to be the same colour.
+   * The whole ladder moved instead (-700/-800/-900); this is what says so.
+   */
+  for (const intent of TABLE_INTENTS) {
+    for (const [rest, step] of [
+      ['', '-hover'],
+      ['-hover', '-active']
+    ] as const) {
+      it(`${intent}${step} steps away from ${intent}${rest || ' (resting)'}`, () => {
+        for (const mode of MODES) {
+          const a = resolveToken(css, `--color-${intent}${rest}`, mode);
+          const b = resolveToken(css, `--color-${intent}${step}`, mode);
+          expect(
+            [b.l, b.c, b.h],
+            `--color-${intent}${step} resolves to the same value as ` +
+              `--color-${intent}${rest || ''} in ${mode} mode — any hover/press built ` +
+              `on this pair is a silent no-op there`
+          ).not.toEqual([a.l, a.c, a.h]);
+        }
+      });
+    }
+  }
 
   for (const intent of TABLE_INTENTS) {
     for (const state of STATE_NAMES) {
