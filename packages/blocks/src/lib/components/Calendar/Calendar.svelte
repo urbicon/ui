@@ -1,5 +1,7 @@
 <script lang="ts">
   import { SvelteMap, MediaQuery } from 'svelte/reactivity';
+  import { useI18n } from '@urbicon-ui/i18n';
+  import { resolveDateLocale } from '$lib/internal/resolve-date-locale';
   import { getBlocksConfig, resolveSlotClasses } from '$lib/provider';
   import { calendarVariants, type CalendarVariants } from './calendar.variants';
   import { setCalendarContext, type CalendarContext } from './calendar.context';
@@ -49,7 +51,7 @@
     defaultMonth,
     defaultYear,
     // Locale
-    locale = 'de-DE',
+    locale = 'auto',
     weekStartsOn = 1,
     showWeekNumbers = false,
     // Grid
@@ -111,6 +113,19 @@
     preset,
     ...restProps
   }: CalendarProps = $props();
+
+  // --- Locale resolution ---
+  // `'auto'` follows the active `<I18nProvider>` (CurrencyInput/Sankey/
+  // CompositionBar use the same idiom). SSR-safe: `useI18n()` reads context, so
+  // server and client resolve the same tag — unlike `Intl` with `undefined`,
+  // which follows the runtime and would render a different month name on each
+  // side. Without a provider it is the base locale (`en`), a constant.
+  //
+  // The helper verifies the *context* value before it reaches `Intl` — the
+  // provider does not validate its own input, and an unsupported tag either
+  // throws or silently follows the runtime. See resolve-date-locale.ts.
+  const i18n = useI18n();
+  const resolvedLocale = $derived(resolveDateLocale(locale, i18n.locale));
 
   // --- BlocksConfig integration ---
   const blocksConfig = getBlocksConfig();
@@ -203,7 +218,7 @@
       return fixedWeeks;
     },
     get locale() {
-      return locale;
+      return resolvedLocale;
     },
     get selectionMode() {
       return selectionMode;
@@ -285,7 +300,7 @@
   // --- Derived: view-aware header title (year/agenda are Calendar-specific) ---
   const headerTitle = $derived.by(() => {
     if (view === 'year') return String(displayedYear);
-    if (view === 'agenda') return formatMonthYear(displayedYear, displayedMonth, locale);
+    if (view === 'agenda') return formatMonthYear(displayedYear, displayedMonth, resolvedLocale);
     return controller.title; // month / week / day
   });
 
@@ -525,7 +540,7 @@
       return variant;
     },
     get locale() {
-      return locale;
+      return resolvedLocale;
     },
     get weekStartsOn() {
       return weekStartsOn;

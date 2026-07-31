@@ -38,8 +38,16 @@ afterEach(() => {
   document.body.replaceChildren();
 });
 
+// These tests assert German display masks (DD.MM.YYYY) and month names, so they pass `locale`
+// explicitly. Until 2026-07-31 they relied on the component default being the literal `'de-DE'`;
+// that default now follows the i18n provider and falls back to `en`, so the expectation has to be
+// stated rather than inherited. Pinning it here also keeps these tests about what they are for
+// (mask parsing / anchor logic), independent of whatever the default becomes next.
 function renderPicker(props: Partial<ComponentProps<typeof DateRangePickerHarness>> = {}) {
-  const instance = mount(DateRangePickerHarness, { target: document.body, props });
+  const instance = mount(DateRangePickerHarness, {
+    target: document.body,
+    props: { locale: 'de-DE', ...props }
+  });
   dispose = () => unmount(instance);
   flushSync();
 }

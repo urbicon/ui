@@ -34,7 +34,6 @@
     "@sveltejs/vite-plugin-svelte": "catalog:",
     "@tailwindcss/vite": "catalog:",
     "@types/node": "catalog:",
-    "chokidar": "catalog:",
     "glob": "catalog:",
     "marked": "^18.0.7",
     "prettier": "catalog:",
