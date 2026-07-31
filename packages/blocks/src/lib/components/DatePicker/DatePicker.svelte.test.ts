@@ -11,7 +11,7 @@ import DatePicker from './DatePicker.svelte';
 // typing + blur commits through the engine, an invalid/out-of-range draft surfaces an error without
 // committing, the keyboard opens the popover, a calendar day click sets the value and closes, and
 // clear resets. useBlocksI18n is read-tolerant (no provider needed — labels resolve to the base
-// locale, en), and locale defaults to 'de-DE' so the display mask is DD.MM.YYYY. Same stack as the
+// locale, en); `renderPicker` pins locale='de-DE' so the display mask is DD.MM.YYYY. Same stack as the
 // Combobox pilot: svelte's own mount/unmount, @testing-library/dom + user-event, native matchers.
 //
 // jsdom note: the calendar renders inside a native popover with no top layer, so its day buttons are
@@ -25,8 +25,16 @@ afterEach(() => {
   document.body.replaceChildren();
 });
 
+// These tests assert German display masks (DD.MM.YYYY) and month names, so they pass `locale`
+// explicitly. Until 2026-07-31 they relied on the component default being the literal `'de-DE'`;
+// that default now follows the i18n provider and falls back to `en`, so the expectation has to be
+// stated rather than inherited. Pinning it here also keeps these tests about what they are for
+// (mask parsing / anchor logic), independent of whatever the default becomes next.
 function renderPicker(props: ComponentProps<typeof DatePicker> = {}) {
-  const instance = mount(DatePicker, { target: document.body, props });
+  const instance = mount(DatePicker, {
+    target: document.body,
+    props: { locale: 'de-DE', ...props }
+  });
   dispose = () => unmount(instance);
   flushSync();
 }

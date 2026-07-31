@@ -1,4 +1,5 @@
 <script lang="ts" generics="T = unknown">
+  import { useI18n } from '@urbicon-ui/i18n';
   import { useBlocksI18n } from '$lib';
   import { getBlocksConfig, resolveSlotClasses } from '$lib/provider';
   import { stripTime } from '$lib/date';
@@ -35,7 +36,7 @@
     rangeStart = $bindable(undefined),
     rangeEnd = $bindable(undefined),
     weekStartsOn = 1,
-    locale = 'de-DE',
+    locale = 'auto',
     showWeekNumber = false,
     // State
     value = $bindable(undefined),
@@ -64,6 +65,13 @@
     preset,
     ...restProps
   }: PlannerProps<T> = $props();
+
+  // --- Locale resolution ---
+  // `'auto'` follows the active `<I18nProvider>`, matching CurrencyInput. Reading
+  // the locale from context (not `Intl` with `undefined`) keeps SSR and hydration
+  // on the same tag; without a provider it is the base locale (`en`).
+  const i18nLocale = useI18n();
+  const resolvedLocale = $derived(locale === 'auto' ? i18nLocale.locale : locale);
 
   const bt = useBlocksI18n();
 
@@ -107,7 +115,7 @@
       return weekStartsOn;
     },
     get locale() {
-      return locale;
+      return resolvedLocale;
     },
     get selectionMode() {
       return 'single' as const;
@@ -192,7 +200,7 @@
   }
 
   // Short weekday name for a date (for stacked week cells), via the locale.
-  const weekdayFormatter = $derived(new Intl.DateTimeFormat(locale, { weekday: 'short' }));
+  const weekdayFormatter = $derived(new Intl.DateTimeFormat(resolvedLocale, { weekday: 'short' }));
   function weekdayName(date: Date): string {
     return weekdayFormatter.format(date);
   }
@@ -254,7 +262,7 @@
       return controller.canGoToToday;
     },
     get locale() {
-      return locale;
+      return resolvedLocale;
     },
     get disabled() {
       return disabled;

@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { useI18n } from '@urbicon-ui/i18n';
   // ⚠ Mirror non-trivial changes to DatePicker.svelte (or vice versa)
   // — these two pickers share ~90% of state-machine logic.
   import { Input } from '$lib/primitives/Input';
@@ -32,7 +33,7 @@
     closeOnClickOutside = true,
     onEscape,
     onClickOutside,
-    locale = 'de-DE',
+    locale = 'auto',
     weekStartsOn = 1,
     showWeekNumbers = false,
     showOutsideDays = true,
@@ -56,6 +57,13 @@
     ...restProps
   }: DateRangePickerProps = $props();
 
+  // --- Locale resolution ---
+  // `'auto'` follows the active `<I18nProvider>`, matching CurrencyInput. Reading
+  // the locale from context (not `Intl` with `undefined`) keeps SSR and hydration
+  // on the same tag; without a provider it is the base locale (`en`).
+  const i18nLocale = useI18n();
+  const resolvedLocale = $derived(locale === 'auto' ? i18nLocale.locale : locale);
+
   const propsId = $props.id();
   const popoverId = `daterangepicker-${propsId}-popover`;
 
@@ -66,7 +74,7 @@
   let parseError = $state<string | undefined>();
 
   const formattedValue = $derived(
-    value ? formatDateRangeInput(value.start, value.end, locale, displayFormat) : ''
+    value ? formatDateRangeInput(value.start, value.end, resolvedLocale, displayFormat) : ''
   );
 
   const inputValue = $derived(
@@ -154,7 +162,7 @@
       userDraft = null;
       return;
     }
-    const parsed = parseDateRangeInput(trimmed, locale, displayFormat);
+    const parsed = parseDateRangeInput(trimmed, resolvedLocale, displayFormat);
     if (!parsed) {
       parseError = bt('datepicker.invalidRange');
       return;
@@ -360,7 +368,7 @@
         animated={false}
         variant={calendarVariant}
         size={calendarSize}
-        {locale}
+        locale={resolvedLocale}
         {weekStartsOn}
         {showWeekNumbers}
         {showOutsideDays}
