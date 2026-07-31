@@ -5,11 +5,24 @@ name: Release
 # Runs the full CI gate (lint, typecheck, unit, e2e) before publishing, so a
 # broken tag cannot ship to npm.
 #
-# Required repository secrets:
+# PUBLISHING IS DELIBERATELY OFF HERE (decided 2026-07-31, with the move to
+# GitHub). The effective npm publisher is the Buny deploy on the Hetzner host,
+# triggered by the same tag; it owns the token and the package order. This
+# workflow is the *gate* in front of that: build, typecheck, unit tests and e2e
+# on a tag, so a broken tag is visible before Buny ships it.
+#
+# The publish steps below stay in the file rather than being deleted, because
+# they are guarded by `if: env.NPM_REGISTRY_URL != ''` and are the ready-made
+# path back if publishing should ever move here. Leaving the two secrets unset
+# is what keeps them dormant — so do NOT add NPM_REGISTRY_URL / NPM_TOKEN as
+# repository secrets unless you intend to take publishing away from Buny.
+# Setting them would make both systems publish the same tag; both skip an
+# already-published name@version, so the likely outcome is a confusing race
+# rather than a corrupt release — but it is still two sources of truth.
+#
+# Optional repository secrets (unset on purpose, see above):
 #   NPM_REGISTRY_URL  — base URL of the registry (e.g. https://registry.npmjs.org)
 #   NPM_TOKEN         — auth token with publish rights for the @urbicon-ui scope
-#
-# Without these the publish step is a no-op (we still build + verify).
 
 on:
   push:
@@ -66,9 +79,13 @@ jobs:
           (cd packages/sveltekit-utils && bunx --bun vitest run)
 
       - name: Playwright e2e
+        # `--grep-invert @pixel` for the same reason as in ci.yml: the linux
+        # screenshot baselines are bound to the Hetzner deploy host, not to a
+        # GitHub runner. Excluding them here means a release tag is gated on
+        # behaviour, not on font rendering.
         run: |
           bunx playwright install --with-deps chromium
-          bunx playwright test
+          bunx playwright test --grep-invert @pixel
 
       - name: Configure registry
         if: env.NPM_REGISTRY_URL != ''

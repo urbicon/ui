@@ -87,7 +87,7 @@ async function setup(page: Page, scheme: (typeof SCHEMES)[number], theme: (typeo
   await page.waitForTimeout(300);
 }
 
-test.describe('Interaction-state visual regression', () => {
+test.describe('Interaction-state visual regression', { tag: '@pixel' }, () => {
   for (const scheme of SCHEMES) {
     for (const theme of THEMES) {
       test(`${scheme} · ${theme}`, async ({ page }) => {

@@ -12,7 +12,7 @@ async function setupPage(page: Page) {
   await page.waitForTimeout(2000);
 }
 
-test.describe('Floating positioning – Visual Regression', () => {
+test.describe('Floating positioning – Visual Regression', { tag: '@pixel' }, () => {
   // ─── Popover section: all cardinal placements at once ──────────────────
 
   test('popovers open at all cardinal placements', async ({ page }) => {

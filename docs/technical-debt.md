@@ -1091,18 +1091,33 @@ internal TODO instead. Sections are ordered roughly by urgency.
   is resolved).
 
 
-### There is no CI — the only pipeline is the Buny deploy, and it had no test gate
+### CI runs since the GitHub move; the pixel suite is the one part still ungated
 
-- **Where:** `.github/workflows/ci.yml` + `release.yml` (never executed) vs. the
-  real pipeline: a Codeberg webhook → `deploy-ui.service` on the Hetzner host →
-  `@buny/deploy-runtime`, configured in `/etc/buny/ui/deploy.env`.
+- **Where:** `.github/workflows/ci.yml` + `release.yml` vs. the deploy pipeline:
+  a webhook → `deploy-ui.service` on the Hetzner host → `@buny/deploy-runtime`,
+  configured in `/etc/buny/ui/deploy.env`.
 - **What:** This entry used to read "Linux CI can't verify them", which framed
-  the problem wrongly for months. There are no GitHub Actions behind this repo at
-  all — `origin` is Codeberg, and the workflow files describe a runner that does
-  not exist. The only automation is the Buny deploy, and it ran
-  `INSTALL_CMD` → `BUILD_CMD` → publish with **no test step**, for all eight
-  projects on the host. For `ui` that meant twelve packages went to
-  registry.npmjs.org on every release tag without a single test having run.
+  the problem wrongly for months, and then "there is no CI at all", which was
+  true for as long as `origin` was Codeberg: the workflow files described a
+  runner that did not exist. Before that, the only automation was the Buny
+  deploy, running `INSTALL_CMD` → `BUILD_CMD` → publish with **no test step**,
+  for all eight projects on the host — for `ui` that meant twelve packages went
+  to registry.npmjs.org on every release tag without a single test having run.
+- **Resolved 2026-07-31 (the runner):** with the move to github.com/urbicon/ui
+  the workflows execute for the first time. `ci.yml` gained the nine gates that
+  had grown up since it was written (imports/icons/summary/registry/playgrounds/
+  examples lint, `a2ui:axes:check`, `i18n:check`, `size --check`) — each one
+  verified green locally first, so the first public run was not a fishing trip.
+  Publishing stays with Buny: `release.yml`'s publish steps are guarded by
+  `if: env.NPM_REGISTRY_URL != ''` and the secrets are deliberately unset, which
+  makes that workflow a tag gate rather than a second publisher.
+- **Still open after that, and the reason this entry survives:** CI runs
+  `playwright test --grep-invert @pixel`, so the 26 screenshot tests are the one
+  suite no automatic gate covers. Excluding them is not a preference — the
+  Docker measurement below proves a foreign renderer cannot host these
+  baselines, and a GitHub runner is exactly that. The pixel suite therefore
+  still runs only where its baselines were made: locally (darwin) and on the
+  deploy host (linux), both by hand.
 - **Resolved 2026-07-26 (the gate):** `deploy-runtime` supports an opt-in
   `TEST_CMD` that runs after the build and *before* the release move and the
   publish, failing the whole deploy on a non-zero exit (10-minute budget).
@@ -1119,12 +1134,15 @@ internal TODO instead. Sections are ordered roughly by urgency.
   `visual-regression.spec.ts` is gone with its reason. The full Chromium build
   (not just `headless_shell`) was installed to `/opt/ms-playwright` for this,
   because `playwright.config.ts` pins `channel: 'chromium'`.
-- **Still open:** the gate runs **unit tests only**. e2e/Playwright is not in
-  `TEST_CMD` — it takes **~11 minutes on that host** (5 locally) against a
-  ten-minute budget shared with the build, and a red visual diff blocking a docs
-  deployment is a policy call rather than an obvious win. The Linux baselines are
-  therefore committed and correct but nothing checks them automatically yet;
-  that is the decision this entry now carries.
+- **The deploy gate runs unit tests only.** e2e/Playwright is not in `TEST_CMD`
+  — it takes **~11 minutes on that host** (5 locally) against a ten-minute
+  budget shared with the build, and a red visual diff blocking a docs deployment
+  is a policy call rather than an obvious win. Since 2026-07-31 this matters
+  less for the behavioural half: GitHub Actions runs the full e2e suite minus
+  `@pixel` on every push and PR, so the deploy gate is no longer the only thing
+  between a change and production. It stays the only place the **pixel** half
+  could run automatically — which is why the host, not the runner, is where
+  that decision still sits.
 - **`deploy.env` is a systemd `EnvironmentFile`, so editing it changes nothing
   until the unit restarts.** `deploy-ui.service` declares
   `EnvironmentFile=/etc/buny/ui/deploy.env` and systemd reads that file **at

@@ -106,7 +106,7 @@ async function setup(page: Page, scheme: (typeof SCHEMES)[number], theme: (typeo
   await page.waitForTimeout(300);
 }
 
-test.describe('Primitive visual regression', () => {
+test.describe('Primitive visual regression', { tag: '@pixel' }, () => {
   // Both platforms now have baselines (`…-chromium-darwin.png` +
   // `…-chromium-linux.png`), generated 2026-07-26 — the Linux set on the deploy
   // host itself, which is the machine that will run them. The darwin-only skip

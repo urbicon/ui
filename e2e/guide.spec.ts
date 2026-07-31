@@ -304,7 +304,7 @@ test.describe('Guide — axe scan', () => {
 
 // ─── Visual regression (light / dark) ───────────────────────────────────────
 
-test.describe('Guide — visual', () => {
+test.describe('Guide — visual', { tag: '@pixel' }, () => {
   for (const scheme of ['light', 'dark'] as const) {
     test(`panel — ${scheme}`, async ({ page }) => {
       await page.emulateMedia({ colorScheme: scheme });

@@ -23,6 +23,19 @@ jobs:
       # for the fold semantics ("axis order is semantic"), where a
       # mis-ordered axis strips classes without any runtime error.
       - run: bun run variants:lint
+      # Cross-component import guard: public blocks components must reach for
+      # the behaviour-only cores in src/lib/internal/core instead of importing
+      # each other. Unknown edges AND stale allowlist entries both fail.
+      - run: bun run imports:lint
+      # Icon geometry contract + the 5-spot registration checklist. An icon
+      # registered in four of five places renders nothing, silently.
+      - run: bun run icons:lint
+      # The generated A2UI axes file vs. its source of truth. Drift here means
+      # the A2UI catalog advertises props the components no longer take.
+      - run: bun run a2ui:axes:check
+      # Source-level i18n audit: unused keys, used-but-undefined keys,
+      # hardcoded strings. Advisory findings do not fail; errors do.
+      - run: bun run i18n:check
 
   typecheck:
     name: Type Check
@@ -44,6 +57,34 @@ jobs:
       # guard entirely, in exactly the case it exists for.
       - run: bun run types:guard
       - run: bun run check
+
+  gates:
+    # Separate from `typecheck` although both start with `build:ts`: these four
+    # gates are the slow half (examples:lint alone runs two svelte-check passes
+    # per package), and a type error should surface without waiting behind
+    # them. Duplicating the build across jobs is the established trade-off here
+    # — see the note on the e2e job.
+    name: Docs & catalog gates
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: oven-sh/setup-bun@v2
+      - run: bun install --frozen-lockfile
+      # All four read the generated catalogues, which `build:ts` produces in its
+      # closing `docs:gen:ci` step — they cannot run before it.
+      - run: bun run build:ts
+      # Component @summary budget.
+      - run: bun run summary:lint
+      # A docs page is hand-registered in three places (sidebar, componentLinks,
+      # recipes cookbook); forgetting one is silent — the page vanishes from the
+      # sidebar and @related chips to it are dropped without a word.
+      - run: bun run registry:lint
+      # Playground snippets + the knob-hint budget.
+      - run: bun run playgrounds:lint
+      # Type-checks every @example block in every *Props JSDoc. Those snippets
+      # are served to the MCP catalogue, llm.txt and the docs site at once, so a
+      # wrong one is wrong in three places.
+      - run: bun run examples:lint
 
   test:
     name: Test
@@ -83,7 +124,23 @@ jobs:
       - run: bun install --frozen-lockfile
       - run: bun run build
       - run: bunx playwright install --with-deps chromium
-      - run: bunx playwright test
+      # `--grep-invert @pixel` drops the 26 screenshot-comparing tests (of 146)
+      # across visual-regression, visual-regression-interaction, floating and
+      # the `Guide — visual` block. NOT because pixel tests do not belong in CI,
+      # but because these baselines are host-bound: the -chromium-linux set was
+      # generated on the Hetzner deploy host on purpose — the machine that would
+      # run them — rather than matched to some CI renderer. A GitHub runner is a
+      # different machine, so every shot would drift on font rendering alone and
+      # the suite would be red for a reason that says nothing about the code.
+      # visual-regression-interaction has no linux baselines at all and would
+      # write them on first run.
+      #
+      # Tagging (rather than excluding whole files) keeps guide.spec.ts's 15
+      # functional tests in CI; only its 3 screenshot tests sit out.
+      #
+      # Locally and on the deploy host, a bare `bunx playwright test` still runs
+      # everything — the tag only ever subtracts here.
+      - run: bunx playwright test --grep-invert @pixel
 
   build:
     name: Build
@@ -94,3 +151,7 @@ jobs:
       - uses: oven-sh/setup-bun@v2
       - run: bun install --frozen-lockfile
       - run: bun run build
+      # Per-component tree-shaken gzip against bundle-size.baseline.json.
+      # Needs the blocks/table/auth dist that `build` just produced. Tolerance
+      # is max(256 B, 3 %), so it measures intent, not machine noise.
+      - run: bun run size --check
