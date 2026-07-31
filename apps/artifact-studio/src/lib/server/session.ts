@@ -23,6 +23,7 @@
  */
 
 import { spawn } from 'node:child_process';
+import { randomBytes } from 'node:crypto';
 import { existsSync, mkdirSync, readdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import Anthropic from '@anthropic-ai/sdk';
@@ -170,7 +171,11 @@ export class StudioSession {
     model?: string;
     effort?: string;
   }): Promise<StudioSession> {
-    const id = `${new Date().toISOString().slice(0, 10)}-${Math.random().toString(36).slice(2, 8)}`;
+    // Die ID ist eine Pfadkomponente (`sessionDir`) und damit die einzige Hürde
+    // zwischen einer fremden Sitzung und dem, der sie errät — `Math.random()`
+    // wäre aus ein paar bekannten IDs vorhersagbar. Das Datum vorn bleibt, weil
+    // es den Ordner für einen Menschen sortierbar macht.
+    const id = `${new Date().toISOString().slice(0, 10)}-${randomBytes(6).toString('hex')}`;
     mkdirSync(join(sessionDir(id), 'versions'), { recursive: true });
 
     const { text, call } = await runUrbicon(['primer']);
