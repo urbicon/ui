@@ -81,7 +81,7 @@
     "docs:gen:all": "cd packages/docs-gen && bun src/cli/index.ts generate --target all",
     "channels:gen": "bun apps/docs/scripts/channels-gen.ts",
     "docs:scaffold": "cd packages/docs-gen && bun src/cli/index.ts scaffold",
-    "build:ts": "bun --bun --filter='./packages/shared-types' run build && bun --bun --filter='./packages/*' run build && bun docs:gen:ci",
+    "build:ts": "bun --bun run scripts/build-packages.ts && bun docs:gen:ci",
     "build": "bun run build:ts && bun --bun --filter='./apps/*' run build",
     "build:packages": "bun --bun --filter='./packages/*' run build",
     "build:docs": "bun --bun --filter='./packages/docs' run build",

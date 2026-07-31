@@ -1,0 +1,1 @@
+../packages/blocks/docs/VARIANT-CONTRACT.md

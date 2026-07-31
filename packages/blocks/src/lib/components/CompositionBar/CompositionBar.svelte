@@ -385,33 +385,40 @@
       {/if}
     </div>
 
-    <!-- Screen-reader table as a backup -->
-    <table class="sr-only">
-      <caption>{ariaSummary}</caption>
-      <thead>
-        <tr>
-          <th scope="col">{bt('compositionBar.share')}</th>
-          <th scope="col">{bt('compositionBar.value')}</th>
-          <th scope="col">{bt('compositionBar.percent')}</th>
-        </tr>
-      </thead>
-      <tbody>
-        {#each items as item, index (itemKey(item, index))}
+    <!-- Screen-reader table as a backup. `sr-only` lives on a wrapper div,
+         never on the table itself: a table treats `width: 1px` as a minimum,
+         and `sr-only`'s `white-space: nowrap` stretches it thousands of pixels
+         wide — absolutely positioned, that turns every scroll container above
+         it into a horizontal phantom scroller. The div clamps to 1px and
+         clips. -->
+    <div class="sr-only">
+      <table>
+        <caption>{ariaSummary}</caption>
+        <thead>
           <tr>
-            <td>{item.label}</td>
-            <td>{fmtValue(item.value)}</td>
-            <td>{fmtPercent(rawPercents[index])}</td>
+            <th scope="col">{bt('compositionBar.share')}</th>
+            <th scope="col">{bt('compositionBar.value')}</th>
+            <th scope="col">{bt('compositionBar.percent')}</th>
           </tr>
-        {/each}
-        {#if restValue > 0}
-          <tr>
-            <td>{resolvedTotalLabel} ({bt('compositionBar.remaining')})</td>
-            <td>{fmtValue(restValue)}</td>
-            <td>{fmtPercent(restPercent)}</td>
-          </tr>
-        {/if}
-      </tbody>
-    </table>
+        </thead>
+        <tbody>
+          {#each items as item, index (itemKey(item, index))}
+            <tr>
+              <td>{item.label}</td>
+              <td>{fmtValue(item.value)}</td>
+              <td>{fmtPercent(rawPercents[index])}</td>
+            </tr>
+          {/each}
+          {#if restValue > 0}
+            <tr>
+              <td>{resolvedTotalLabel} ({bt('compositionBar.remaining')})</td>
+              <td>{fmtValue(restValue)}</td>
+              <td>{fmtPercent(restPercent)}</td>
+            </tr>
+          {/if}
+        </tbody>
+      </table>
+    </div>
   </div>
 
   <!-- Legend -->

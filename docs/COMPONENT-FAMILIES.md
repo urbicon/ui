@@ -8,7 +8,7 @@
 
 ## Why families exist
 
-The library exposes ~35 primitives. Without a shared mental model, choosing between `Menu` and `Select`, or between `Sidebar` and `Drawer`, becomes a memorisation task. Families give every component a position on three axes:
+The library exposes 40 primitives and 27 components. Without a shared mental model, choosing between `Menu` and `Select`, or between `Sidebar` and `Drawer`, becomes a memorisation task. Families give every component a position on three axes:
 
 1. **ARIA role** — what assistive technology calls it.
 2. **Tier membership** — does its radius react to a wrapping `tier`-aware context (commit/modify/contain), is it hardcoded to one tier, or does it sit outside the tier system entirely?
@@ -52,7 +52,7 @@ The split between `display`, `overlay`, `layout`, `feedback` etc. JSDoc tags col
 - "Group several action triggers" → `ButtonGroup` (single/multi-select segmentation) or `Toolbar` (free-form toolbar).
 - "Two complementary states (bold/italic, mute/unmute)" → `Toggle` with `pressed`. Persistent selection (a sort column, the current tool) uses `active`.
 
-**Bridge token (Menu only).** Menu's panel container is the canonical adjacency case: the trigger is a pill (`commit`-tier) but the panel sits between the pill edge and the `contain`-tier surface beneath. The library exposes `--radius-bridge` to keep that radius tunable — a fourth *adjacency* token, not a fourth tier. No other component uses it as a primary surface radius. See [ARCHITECTURE.md §Tier System](ARCHITECTURE.md#tier-system) for the token and the [tier-system doc page §Bridge Token](../apps/docs/src/routes/customization/tier-system/+page.svelte) for the live demo. Historical rationale: [archive/2026-05/LIGHTER-CONSOLIDATION.md §B.2](archive/2026-05/LIGHTER-CONSOLIDATION.md#b2--menu-bridge-radius-tokenisiert).
+**Bridge token (Menu only).** Menu's panel container is the canonical adjacency case: the trigger is a pill (`commit`-tier) but the panel sits between the pill edge and the `contain`-tier surface beneath. The library exposes `--radius-bridge` to keep that radius tunable — a fourth *adjacency* token, not a fourth tier. No other component uses it as a primary surface radius. It was tokenised rather than hard-coded so a brand that flattens `--radius-commit` keeps the panel visually attached to its trigger. See [ARCHITECTURE.md § The tier system](ARCHITECTURE.md#the-tier-system) for the token and the [tier-system doc page §Bridge Token](../apps/docs/src/routes/customization/tier-system/+page.svelte) for the live demo.
 
 **Not in this family:** `SegmentGroup` (looks like ButtonGroup, but holds a value — see Navigation).
 
@@ -76,7 +76,7 @@ The split between `display`, `overlay`, `layout`, `feedback` etc. JSDoc tags col
 - Pick multiple values → `Select multiple` (not `Menu multiple`).
 - One-off action list → `Menu` (Action family).
 
-Full decision matrix with edge cases (search threshold, multi-select, async sources, the CommandPalette boundary, what a screen reader hears): [COMPONENT-DECISION-MATRICES.md §Form-input layer](COMPONENT-DECISION-MATRICES.md#form-input-layer--select-vs-combobox-vs-menu-xc-7).
+Full decision matrix with edge cases (search threshold, multi-select, async sources, the CommandPalette boundary, what a screen reader hears): [COMPONENT-DECISION-MATRICES.md §Form-input layer](COMPONENT-DECISION-MATRICES.md#form-input-layer--select-vs-combobox-vs-menu).
 
 **Not in this family:** `SegmentGroup` (also holds a value, but lives in Navigation — it's a navigational tab strip cast as a value-picker).
 
@@ -161,7 +161,7 @@ The ring is `ring-2 ring-danger/60 ring-offset-1 ring-offset-surface-base`, and 
 
 **ARIA:** `<img>` (decorative or labelled by `name`) or `<button>` when `clickable`/`onclick` is set.
 
-**Tier:** **Not tier-aware.** Avatar has its own `variant` axis (`circle` / `rounded` / `square`) that is an identity-shape concern, not a layout-tier concern. Brands that flatten `--radius-commit` (squared pill buttons) keep circular avatars — the two axes are orthogonal. See [foundation.css §3-tier-system](../packages/blocks/src/lib/style/foundation.css) and [archive/2026-05/LIGHTER-CONSOLIDATION.md §F.2](archive/2026-05/LIGHTER-CONSOLIDATION.md#f2--avatar-aus-dem-tier-system-nehmen).
+**Tier:** **Not tier-aware.** Avatar has its own `variant` axis (`circle` / `rounded` / `square`) that is an identity-shape concern, not a layout-tier concern. Brands that flatten `--radius-commit` (squared pill buttons) keep circular avatars — the two axes are orthogonal, which is why Avatar was taken out of the tier system rather than given a tier default. See [foundation.css §3-tier-system](../packages/blocks/src/lib/style/foundation.css).
 
 **Border source:** None. Avatar provides its own surface; `ring` (focus / status indicator) is the only border-adjacent affordance.
 
@@ -200,11 +200,11 @@ Some surfaces sit close to each other and consumers regularly ask "which one". T
 | `Sidebar` vs `Drawer` | Sidebar for persistent layout, Drawer for transient modal | See [COMPONENT-DECISION-MATRICES.md §Overlay & Layout Surfaces](COMPONENT-DECISION-MATRICES.md#overlay--layout-surfaces). |
 | `Popover` vs `Tooltip` | Popover for click-interactions, Tooltip for hover-descriptions | Tooltip is non-focusable; Popover hosts a focus-trapped panel. |
 | `Alert` vs `Toast` | Alert for in-page banners, Toast for ephemeral notifications | Alert is `role="alert"` + in-page; Toast is system-level + stacking. |
-| `Badge` vs `Chip` (v6) | Badge today does both via `purpose` patterns | Future: a dedicated `Chip` for filter/removable use cases (tracked as BDG-1). |
+| `Badge` vs `Chip` | Badge today does both via `purpose` patterns | A dedicated `Chip` for filter/removable use cases is possible but not planned. |
 
 ---
 
-## Listbox item rhythm (XC-9)
+## Listbox item rhythm
 
 Four surfaces render option/item rows inside a floating panel: `Select` and `Combobox` (Form, `role="listbox"`), `Menu` (Action, `role="menu"`), and `CommandPalette` (a filtered `role="listbox"` command surface). They share **one structural rhythm**; only the *voice* differs by family. A fifth listbox-shaped surface must adopt the shared rhythm and pick its family voice deliberately.
 
@@ -245,9 +245,9 @@ When the tag and the family disagree (Toggle, Tooltip), the family rules — JSD
 
 ---
 
-## Querverweise
+## Cross-references
 
-- [ARCHITECTURE.md](ARCHITECTURE.md) — Token system (foundation → semantic → interaction).
-- [COMPONENT-API-CONVENTIONS.md](COMPONENT-API-CONVENTIONS.md) — Props, callbacks, styling patterns.
-- [COMPONENT-DECISION-MATRICES.md](COMPONENT-DECISION-MATRICES.md) — Use-case-driven picker tables.
-- [archive/2026-05/LIGHTER-CONSOLIDATION.md §F](archive/2026-05/LIGHTER-CONSOLIDATION.md#8--cluster-f--edge-cases) — historical rationale for Badge `purpose` axis and Avatar tier-exit.
+- [ARCHITECTURE.md](ARCHITECTURE.md) — token system (foundation → semantic → interaction), tier model, `tv()` engine.
+- [COMPONENT-API-CONVENTIONS.md](COMPONENT-API-CONVENTIONS.md) — props, callbacks, styling patterns.
+- [COMPONENT-DECISION-MATRICES.md](COMPONENT-DECISION-MATRICES.md) — use-case-driven picker tables.
+- [VARIANT-CONTRACT.md](../packages/blocks/docs/VARIANT-CONTRACT.md) — what each `variant` value means across the families.

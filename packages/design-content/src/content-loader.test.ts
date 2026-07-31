@@ -54,7 +54,9 @@ describe('content-loader paths', () => {
 
     it('resolves a valid slug to guides/<slug>.md', () => {
       expect(getGuidePath('auth')).toBe('/bundle/guides/auth.md');
-      expect(getGuidePath('migration-v5')).toBe('/bundle/guides/migration-v5.md');
+      expect(getGuidePath('variant-contract')).toBe('/bundle/guides/variant-contract.md');
+      // digits are legal in a segment — `a2ui` is the in-tree case
+      expect(getGuidePath('a2ui')).toBe('/bundle/guides/a2ui.md');
     });
 
     it('rejects unsafe slugs', () => {

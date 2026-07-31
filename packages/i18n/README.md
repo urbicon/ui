@@ -372,7 +372,7 @@ bun --filter='@urbicon-ui/i18n' run test:run   # vitest
 - [`@urbicon-ui/blocks`](../blocks/) — consumes this package; exports `useBlocksI18n`, `<LocaleSwitcher>`
 - [`@urbicon-ui/table`](../table/) — ships its own namespace (`table.*`), exports `useTableI18n`
 - [`@urbicon-ui/auth`](../auth/) — ships EN/DE bundles; exports `useAuthLocale`
-- [Architecture Overview](../../docs/ARCHITECTURE.md#i18n-system)
+- [Architecture Overview](../../docs/ARCHITECTURE.md#i18n)
 
 ```
 

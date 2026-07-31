@@ -1,0 +1,124 @@
+<!doctype html>
+<!--
+  Source of truth for static/og.png — the share card is the landing's name
+  tile, restaged at OG proportions (1200x630). Colours are the five tile
+  channels from $lib/landing/channels (TILE_CHANNEL order), the ink ground and
+  type treatment mirror +page.svelte's `.name-tile`.
+
+  Regenerate after changing the wordmark, claim, proof line or channel palette:
+
+    node_modules/.bin/playwright screenshot --viewport-size=1200,630 \
+      apps/docs/scripts/og.html apps/docs/static/og.png
+
+  Fonts load from the workspace node_modules (relative path), so this file
+  only renders correctly from its checked-in location.
+-->
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <style>
+      @font-face {
+        font-family: 'Schibsted Grotesk Variable';
+        src: url('../../../node_modules/@fontsource-variable/schibsted-grotesk/files/schibsted-grotesk-latin-wght-normal.woff2')
+          format('woff2-variations');
+        font-weight: 400 900;
+      }
+      @font-face {
+        font-family: 'JetBrains Mono';
+        src: url('../../../node_modules/@fontsource/jetbrains-mono/files/jetbrains-mono-latin-400-normal.woff2')
+          format('woff2');
+        font-weight: 400;
+      }
+
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+
+      body {
+        width: 1200px;
+        height: 630px;
+        background: #141414;
+        color: #f4f4f2;
+        font-family: 'Schibsted Grotesk Variable', sans-serif;
+        display: flex;
+        flex-direction: column;
+        justify-content: space-between;
+        padding: 64px 72px;
+      }
+
+      .eyebrow {
+        font-family: 'JetBrains Mono', monospace;
+        font-size: 22px;
+        text-transform: uppercase;
+        letter-spacing: 0.14em;
+        opacity: 0.6;
+      }
+
+      .brand {
+        font-size: 92px;
+        font-weight: 800;
+        letter-spacing: -0.03em;
+        line-height: 1.05;
+      }
+      .brand-suffix {
+        opacity: 0.5;
+      }
+      .tick {
+        display: inline-block;
+        width: 0.42em;
+        height: 0.09em;
+        margin-left: 0.06em;
+        vertical-align: baseline;
+      }
+
+      .claim {
+        margin-top: 28px;
+        font-size: 76px;
+        font-weight: 700;
+        line-height: 1.08;
+        letter-spacing: -0.025em;
+        color: #8f8f88;
+      }
+      .claim strong {
+        font-weight: inherit;
+        color: #f4f4f2;
+      }
+
+      .foot {
+        display: flex;
+        justify-content: space-between;
+        align-items: baseline;
+        font-family: 'JetBrains Mono', monospace;
+        font-size: 24px;
+      }
+      .proof {
+        opacity: 0.65;
+      }
+      .domain {
+        opacity: 0.45;
+      }
+    </style>
+  </head>
+  <body>
+    <p class="eyebrow">UI platform for Svelte 5 + Tailwind 4</p>
+
+    <div>
+      <p class="brand">
+        urbicon <span class="brand-suffix">ui</span
+        ><span class="tick" style="background: oklch(0.68 0.209 40)"></span
+        ><span class="tick" style="background: oklch(0.88 0.147 200)"></span
+        ><span class="tick" style="background: oklch(0.7 0.31 330)"></span
+        ><span class="tick" style="background: oklch(0.87 0.267 145)"></span
+        ><span class="tick" style="background: oklch(0.91 0.184 100)"></span>
+      </p>
+      <p class="claim">Depends on <strong>nothing</strong>.</p>
+    </div>
+
+    <div class="foot">
+      <span class="proof">one package · one grammar · one gate</span>
+      <span class="domain">ui.urbicon.de</span>
+    </div>
+  </body>
+</html>

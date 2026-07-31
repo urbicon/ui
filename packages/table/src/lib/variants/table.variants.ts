@@ -1,7 +1,7 @@
 /**
  * TABLE VARIANTS
- * Variant definitions for the table component (see docs/MIGRATION-v5.md §3
- * for the v4 → v5 chrome-variant API).
+ * Variant definitions for the table component (see the shipped variant contract,
+ * packages/blocks/docs/VARIANT-CONTRACT.md § Table chrome, for what each value means).
  */
 
 import { tv, type VariantProps } from '@urbicon-ui/blocks';
@@ -324,7 +324,7 @@ export const tableContainerVariants = tv({
     table: ['w-full border-collapse'],
     body: []
   },
-  // Variant contract (see docs/MIGRATION-v5.md §3):
+  // Variant contract (see packages/blocks/docs/VARIANT-CONTRACT.md § Table chrome):
   //   flush   → no frame, sits inline in the reading flow (Docs, Inline)
   //   surface → bg-surface-quiet, gentle in-page tinted zone
   //   framed  → border + rounded-contain + shadow, standalone block

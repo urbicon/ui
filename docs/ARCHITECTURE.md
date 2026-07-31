@@ -1,86 +1,316 @@
-# Urbicon UI – Architecture Overview
+# Architecture
 
-Technical architecture of the Urbicon UI monorepo. For API conventions see [COMPONENT-API-CONVENTIONS.md](COMPONENT-API-CONVENTIONS.md), for component file structure see [ComponentStructureStandard.md](ComponentStructureStandard.md), for the six-family taxonomy that drives ARIA / tier / border decisions see [COMPONENT-FAMILIES.md](COMPONENT-FAMILIES.md).
+How the Urbicon UI monorepo is put together: which packages exist, how a component gets
+from a design token to rendered markup, and which decisions are load-bearing.
 
-> **Strategic context (2026-04):** Urbicon is a vertically integrated zero-dependency platform covering UI primitives, data tables, auth, i18n, docs, and AI-native DX — all packages share unified versioning and zero external runtime dependencies. Current focus is **consolidation for v1.0** ("harden before extend").
+**New here?** Read §1 for the map, then §2 for the one path that runs through everything
+else. §3–§5 are reference — come back to them when you need them.
 
-## Design Token System
+Deeper references this document links into rather than duplicating:
+[COMPONENT-FAMILIES.md](COMPONENT-FAMILIES.md) (the taxonomy that drives ARIA, tier and
+border decisions) · [COMPONENT-API-CONVENTIONS.md](COMPONENT-API-CONVENTIONS.md) (props and
+callbacks) · [ComponentStructureStandard.md](ComponentStructureStandard.md) (file layout) ·
+[DECISIONS.md](DECISIONS.md) (conscious trade-offs).
 
-Three-layer CSS custom property architecture in `packages/blocks/src/lib/style/`:
+---
 
-| Layer       | File              | Purpose                                                                                                                                                                                                                             |
-| ----------- | ----------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Foundation  | `foundation.css`  | OKLCH color palette, spacing, radii, z-index scale, breakpoints                                                                                                                                                                     |
-| Semantic    | `semantic.css`    | Context-aware tokens (`surface-*`, `text-*`, `border-*`) with automatic dark mode via the CSS `light-dark()` function                                                                                                               |
-| Interaction | `interaction.css` | Hover/focus/active states, duration tokens (`--blocks-duration-fast`, `--blocks-duration-normal`), easing tokens (`--blocks-ease-confident`, `--blocks-ease-springy`), shadow tokens (`--blocks-shadow-sm` .. `--blocks-shadow-lg`) |
+## 1 · The monorepo at a glance
 
-Foundation tokens define raw OKLCH values. Semantic tokens map those to UI purposes and handle light/dark switching automatically. Interaction tokens define motion and visual feedback.
+Urbicon UI is a vertically integrated platform: UI primitives, a data table, auth, i18n,
+documentation tooling and an AI-native developer surface, all under one version and with
+**zero runtime dependencies** in every published package.
 
-All tokens are registered in Tailwind 4 `@theme` blocks so they generate utility classes automatically (e.g. `bg-surface-base`, `text-text-primary`). See [TailwindCaveats.md](TailwindCaveats.md) for Tailwind 4 integration details.
+### The package map
 
-## Tier System
+Every arrow is a `peerDependency`, not a runtime dependency — each package's
+`dependencies` field is literally `{}`. Consumers install what they use; the workspace
+wires the same edges as `workspace:*` devDependencies for local development.
 
-Radius semantics across the library follow a three-tier model. Each tier maps to a foundation token; a component picks the tier whose semantics match its purpose, not a fixed pixel value. Brands can re-tune the physical radius of a tier without touching component code.
+```mermaid
+graph TD
+    ST[shared-types<br/><i>TS types only</i>]
+    I18N[i18n<br/><i>runes-based l10n</i>]
+    BL[blocks<br/><i>primitives + components</i>]
+    TB[table<br/><i>data table</i>]
+    AU[auth<br/><i>sessions, passkeys, push</i>]
+    SKU[sveltekit-utils]
+    DOCS[docs<br/><i>doc-site UI kit</i>]
+    DG[docs-gen<br/><i>AST doc generator</i>]
+    DE[design-engine<br/><i>linter, manifest, rubric</i>]
+    DC[design-content<br/><i>knowledge bundle</i>]
+    DES[design<br/><i>urbicon CLI</i>]
+    MCP[mcp-server<br/><i>remote adapter</i>]
 
-| Tier      | Token              | Purpose                                                                                                 | Default geometry                 |
-| --------- | ------------------ | ------------------------------------------------------------------------------------------------------- | -------------------------------- |
-| `commit`  | `--radius-commit`  | Action surfaces — buttons, menu triggers, toolbar items, toggle tracks. Declares identity ("press me"). | Pill (`9999px` at brand default) |
-| `modify`  | `--radius-modify`  | Tap surfaces — inputs, selects, checkboxes, tabs. Reads as editable, not as a commit-decision.          | Soft (`var(--radius-sm)`)        |
-| `contain` | `--radius-contain` | Architectural surfaces — cards, dialogs, drawers, popovers, sidebars. Reads as a frame holding content. | Subtle (`var(--radius-xs)`)      |
+    ST --> I18N
+    ST --> BL
+    I18N --> BL
+    BL --> TB
+    ST --> TB
+    SKU --> TB
+    BL --> AU
+    I18N --> AU
+    BL --> DOCS
+    TB --> DOCS
+    ST --> DG
+    DE --> DG
+    DE --> DES
+    DC --> DES
+    DE --> MCP
+    DC --> MCP
 
-**Tier-aware components** (commit-default): `Button`, `ButtonGroup`, `Menu`, `Toolbar`, `Toggle`, `Stepper`, `SegmentGroup`, `RadioGroup`. **Modify-default**: `Checkbox`, `Tab`. **Contain-default**: `Card`, `Dialog`, `Drawer`, `Popover`, `Accordion`, `Collapsible`. Other primitives are not tier-aware — Feedback / Ambient (Toast, Spinner, Progress, Skeleton, Badge) have fixed per-component geometry; Identity (Avatar) lives on a separate `shape` axis. See [COMPONENT-FAMILIES.md](COMPONENT-FAMILIES.md) for the full family taxonomy.
+    classDef found fill:#e8f0fe,stroke:#5b7fb9,color:#1a3a5c
+    classDef lib fill:#fff3e0,stroke:#c9884a,color:#5c3a10
+    classDef tool fill:#f0f0f0,stroke:#999,color:#333
+    class ST,I18N found
+    class BL,TB,AU,SKU,DOCS lib
+    class DG,DE,DC,DES,MCP tool
+```
 
-**Context propagation.** Tier-aware primitives read their effective tier from `<TierContext>` (`packages/blocks/src/lib/utils/tier-context.ts`). A wrapping container can set the tier for all descendants:
+### What lives where
+
+| Package | Does | Start reading at |
+| --- | --- | --- |
+| `shared-types` | Shared TypeScript types, no runtime code | `src/index.ts` |
+| `i18n` | Runes-based localization + translation audit | `src/lib/i18n/registry.svelte.ts` |
+| `blocks` | 40 primitives + 27 components, the token system, the `tv()` engine | `src/lib/index.ts` |
+| `table` | Data table: sorting, filtering, grouping, selection, keyboard nav, virtualization, remote mode | `src/lib/stores/TableStore.svelte.ts` |
+| `auth` | JWT sessions, refresh rotation, passkeys, Web Push, notifications | `src/lib/server/index.ts` |
+| `sveltekit-utils` | SvelteKit helpers (`createCronRunner`, URL-state runes) | `src/lib/index.ts` |
+| `docs` | Reusable documentation UI components | `src/lib/index.ts` |
+| `docs-gen` | AST-based documentation generator (CLI) | `src/cli/index.ts` |
+| `design-engine` | Zero-dep design linter, manifest parser, rubric | `src/linter/index.ts` |
+| `design-content` | Versioned design-knowledge bundle (`content/` is a build artifact) | `src/content-loader.ts` |
+| `design` | The `urbicon` CLI — the primary consumer-facing surface | `src/cli/index.ts` |
+| `mcp-server` | Thin remote adapter over engine + content | `src/index.ts` |
+
+Applications live in `apps/`: [`apps/docs`](../apps/docs/README.md) is the documentation
+site. End-to-end suites live in `e2e/`.
+
+### Build order
+
+`bun run build:ts` builds `shared-types` first and then everything else in parallel,
+because only `shared-types` has to exist before any other package's type emit:
+
+```mermaid
+graph LR
+    A[shared-types] --> B["all other packages<br/>(parallel)"]
+    B --> C["docs:gen:ci<br/><i>api.ts, catalogs, llms-full</i>"]
+    C --> D["apps/* build"]
+```
+
+Two things bite in a fresh worktree:
+
+- Run `bunx --bun svelte-kit sync` in `blocks` and `apps/docs` before `svelte-check` or
+  `dev`.
+- `apps/docs` needs both the built packages **and** a `docs:gen:all` run — every page
+  imports a generated, git-ignored `./api.ts`.
+
+---
+
+## 2 · From token to markup
+
+This is the single path every visible component in the library follows. Understanding it
+once explains how all of them are styled.
+
+```mermaid
+graph LR
+    F["foundation.css<br/><i>OKLCH palette,<br/>spacing, radii, z-index</i>"]
+    S["semantic.css<br/><i>surface-*, text-*, border-*<br/>light-dark()</i>"]
+    I["interaction.css<br/><i>hover/focus, durations,<br/>easings, shadows</i>"]
+    T["@theme<br/><i>Tailwind utilities</i>"]
+    V["*.variants.ts<br/><i>tv() config</i>"]
+    R["resolveSlotClasses<br/><i>override cascade</i>"]
+    D["rendered element"]
+
+    F --> S --> I --> T --> V --> R --> D
+```
+
+### The three token layers
+
+All in `packages/blocks/src/lib/style/`:
+
+| Layer | File | Purpose |
+| --- | --- | --- |
+| Foundation | `foundation.css` | OKLCH colour palette, spacing, radii, z-index scale, breakpoints |
+| Semantic | `semantic.css` | Context-aware tokens (`surface-*`, `text-*`, `border-*`) with automatic dark mode via the CSS `light-dark()` function |
+| Interaction | `interaction.css` | Hover/focus/active states, duration tokens, easing tokens, shadow tokens |
+
+Foundation defines raw values. Semantic maps them to UI purposes and handles light/dark
+switching. Interaction defines motion and visual feedback.
+
+All tokens are registered in Tailwind 4 `@theme` blocks, so they generate utility classes
+automatically (`bg-surface-base`, `text-text-primary`). Dark mode needs **no `dark:`
+overrides anywhere** — `light-dark()` follows `color-scheme`. Tailwind 4 specifics:
+[TailwindCaveats.md](TailwindCaveats.md).
+
+The surface ladder (`base` / `quiet` / `subtle` / `elevated` / `overlay`) and what each
+container variant means is documented in the shipped
+[variant contract](../packages/blocks/docs/VARIANT-CONTRACT.md).
+
+### The tier system
+
+Radius semantics follow a three-tier model. A component picks the tier whose *semantics*
+match its purpose, never a fixed pixel value — so a brand can re-tune a tier's physical
+radius without touching component code.
+
+| Tier | Token | Purpose | Default geometry |
+| --- | --- | --- | --- |
+| `commit` | `--radius-commit` | Action surfaces — buttons, menu triggers, toolbar items, toggle tracks. Declares identity ("press me"). | Pill (`9999px`) |
+| `modify` | `--radius-modify` | Tap surfaces — inputs, selects, checkboxes, tabs. Reads as editable, not as a commit-decision. | Soft (`var(--radius-sm)`) |
+| `contain` | `--radius-contain` | Architectural surfaces — cards, dialogs, drawers, popovers, sidebars. Reads as a frame holding content. | Subtle (`var(--radius-xs)`) |
+
+**Defaults by family:** Action `commit` · Form `modify` · Container `contain` ·
+Navigation per component. Feedback/Ambient (Toast, Spinner, Progress, Skeleton) and
+Identity (Avatar) are **not** tier-aware — fixed geometry by design. Badge is the lone
+Feedback exception. Full taxonomy: [COMPONENT-FAMILIES.md](COMPONENT-FAMILIES.md).
+
+**Context propagation.** Tier-aware primitives read their effective tier from
+`<TierContext>` (`utils/tier-context.ts`); a wrapping container sets it for all descendants:
 
 ```svelte
 <Toolbar tier="modify">
-  <Button />
-  <!-- now `rounded-modify` instead of the commit pill -->
+  <Button />   <!-- now rounded-modify instead of the commit pill -->
   <Toggle />
-  <!-- same -->
 </Toolbar>
 ```
-
-Standard pattern inside a tier-aware component:
 
 ```ts
 const tierCtx = getTierContext();
 const effectiveTier = $derived(tier ?? tierCtx?.tier ?? 'commit'); // or 'modify'
 ```
 
-The per-instance `tier` prop wins over context; context wins over the family default.
+Per-instance `tier` beats context; context beats the family default.
 
-**Bridge token (`--radius-bridge`).** A fourth _adjacency_ token (not a tier) used solely by the `Menu` panel container: the trigger is a pill (`commit`) but the panel sits between the pill edge and the `contain`-tier surface beneath. `--radius-bridge` lives in `foundation.css` and defaults to `var(--radius-md)`. No other component uses it as a primary surface radius. Live demo: `apps/docs/src/routes/customization/tier-system/+page.svelte`.
+**The bridge token.** `--radius-bridge` is a fourth *adjacency* token, not a tier, used
+solely by the `Menu` panel: the trigger is a pill (`commit`) but the panel sits between the
+pill edge and the `contain`-tier surface beneath. It lives in `foundation.css` and defaults
+to `var(--radius-md)`. No other component uses it as a primary surface radius.
 
-## Component Styling
+### The tv() variant engine
 
-Components use a **custom `tv()` variant engine** (in `packages/blocks/src/lib/utils/variants.ts`, ~600 LoC, zero-dependency replacement for `tailwind-variants`) for all variant logic. Each component has a `*.variants.ts` file defining slots, variants, sizes, intents, compound variants, and default values.
+All variant logic runs through a **custom `tv()` engine**
+(`packages/blocks/src/lib/utils/variants.ts`, ~600 LoC, zero-dependency replacement for
+`tailwind-variants`). Each component has a `*.variants.ts` defining slots, variants, sizes,
+intents, compound variants and defaults.
 
-Key patterns:
+**The conflict resolver.** The pipeline is an ordered list of sources —
+`slot-base → each variant axis in declaration order → each matching compoundVariant in
+array order → call-site class` — folded sequentially: every later source **strips**
+conflicting Tailwind utilities from everything before it.
 
-- **Semantic tokens only** – no `dark:` overrides anywhere in primitives (dark mode via the CSS `light-dark()` function in `semantic.css`, driven by `color-scheme`)
-- **Surface tier semantics** (XC-13, Lighter v5). Four tints sit on top of `surface-base` (= the page background). Every container-shaped primitive should pick the tier whose semantics match its purpose:
+So `slotClasses={{ box: 'rounded-full' }}` deterministically defeats a base `rounded-sm`,
+and an active-state compound's `bg-neutral` defeats an outlined variant's `bg-transparent`.
+**Axis and compound order are therefore semantic**: declare the axis that must win a shared
+bucket later.
 
-  | Token              | Purpose                                                                                                                                                                                                                     | Lift relative to base                       |
-  | ------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------- |
-  | `surface-base`     | Page background                                                                                                                                                                                                             | —                                           |
-  | `surface-quiet`    | Softly tinted in-page zones that signal "own zone" without border or shadow (Card `quiet`, Toolbar `quiet`, Accordion items, Table `striped` row alternation and `surface` variant). The Lighter default.                    | ~1 % darker in light, ~3 % lighter in dark  |
-  | `surface-subtle`   | Visible tinted zones for grouped content (Stepper indicators, Auth list items with a border).                                                                                                                               | ~2 % darker in light, ~5 % lighter in dark  |
-  | `surface-elevated` | Floating overlays that sit _above_ the page with their own stacking context (Popover, Menu, Tooltip, Toast, Combobox listbox, Card `elevated`, Toolbar `elevated`). Pair with `shadow-md`/`shadow-lg` and a real `z-index`. | Same lift as `subtle` plus shadow + z-index |
-  | `surface-overlay`  | Backdrop layer for modals — translucent, draws focus from page content.                                                                                                                                                     | n/a (translucency)                          |
+The resolver works on **bucket equality** — two classes conflict only if they normalize to
+the same key (`bg-color`, `border-t-width`, `text-size`, `opacity`, …). Modifier prefixes
+(`hover:`, `focus-visible:`, `md:`, `!`, negative sign) are part of the bucket key, so they
+isolate naturally: `hover:bg-red` and `bg-blue` coexist. The modifier/base split is
+bracket-aware, and arbitrary properties bucket per CSS property name (`[gap:inherit]` shares
+the `gap` bucket; `[--spinner-speed:1s]` conflicts only with the same custom property).
+Within a *single* class string nothing is stripped, so intentional pairings like
+`rounded-md rounded-t-none` survive.
 
-  The v5 variant contract follows this hierarchy: `quiet` consumes `surface-quiet` (Lighter default — no border, no shadow), `outlined` is `bg-transparent border-default` (in-page chrome), `elevated` is `surface-elevated + shadow-md` (lifted via shadow alone, no border), `floating` is `surface-elevated + shadow-lg` (popover-weight). The `filled` and `glass` Card variants were removed in v5 — `quiet` replaces `filled` semantically, `glass` can be rebuilt via `unstyled`.
+**Directional shorthand dominance** (a subset of `twMerge`'s map): a later shorthand strips
+the longhands it fully covers — `p-0` defeats an earlier `px-4`/`pl-10`, `rounded-none`
+defeats `rounded-t-*`, `inset-0` defeats `top-*`, `size-8` defeats `w-*`/`h-*`. The reverse
+never strips: a later `pl-2` *refines* an earlier `p-4`.
 
-- **Duration tokens** for transitions (`duration-[var(--blocks-duration-fast)]`)
-- **Easing tokens** for animations (`var(--blocks-ease-confident)`, `var(--blocks-ease-springy)`)
-- **Shadow tokens** for elevation (`shadow-[var(--blocks-shadow-sm)]`)
-- **Z-index tokens** for layering (`z-[var(--z-modal)]`, `z-[var(--z-popover)]`)
-- **`unstyled` + `slotClasses` + `preset`** props on every component for full style override control
-- **`focus-visible:`** exclusively (not `focus:`) for keyboard-only focus rings
+**Fail-loud configs.** Slot-map keys are compile-checked against declared slots (a
+`wrapeer` typo is a type error), and every config is validated once at module init —
+unknown slot keys, unknown compound axes, undeclared `defaultVariants`, `base` + `slots`
+together all **throw** with precise messages rather than degrading silently. Every resolver
+exposes its config as `.config`, which is what `bun run variants:lint` replays over the
+pairwise variant matrix to find dead tokens.
 
-### Form field wiring — `useFormField()`
+Coverage limits and why they are deliberate: [DECISIONS.md](DECISIONS.md#the-tv-engine-is-narrower-than-tailwind-variants).
 
-Every form primitive (Input, Textarea, Select, Combobox, Checkbox, Toggle, RadioGroup, Slider) routes its ARIA wiring through a single hook in `packages/blocks/src/lib/utils/use-form-field.svelte.ts`:
+### The override cascade
+
+Consumers restyle components through one ordered chain, conflict-resolved per Tailwind
+bucket so a later source always wins:
+
+```mermaid
+graph LR
+    A["defaults<br/>.slotClasses"] --> B["defaults<br/>.overrides[match]"]
+    B --> C["preset<br/>.slotClasses"]
+    C --> D["preset<br/>.overrides[match]"]
+    D --> E["instance<br/>.slotClasses"]
+    E --> F["instance<br/>.class"]
+```
+
+`slotClasses` (unconditional) and `presets` (opt-in, named) are registered on
+`BlocksProvider`; a preset is consumed via the `preset` prop on any component:
+
+```svelte
+<BlocksProvider
+  presets={{ Button: { overlay: { slotClasses: { base: 'bg-black/20 text-white' } } } }}
+>
+  <Button preset="overlay">Weiter</Button>
+</BlocksProvider>
+```
+
+**Conditional `overrides`** target a specific variant/intent/state — what unconditional
+`slotClasses` cannot express. Each entry is a `compoundVariant`-shaped matcher; on a match
+its classes join the cascade and the resolver strips the library's conflicting class:
+
+```svelte
+<BlocksProvider defaults={{ Badge: { overrides: [{ variant: 'outlined', class: { base: 'border' } }] } }}>
+  <!-- every outlined Badge gets a 1px border; filled / soft / dot untouched -->
+</BlocksProvider>
+```
+
+Entries match active **prop values** (via `matchesCompound`), not the library's internal
+variant structure — so it is irrelevant whether `border-2` lives in a `variant` or a
+`compoundVariant`. `string` matches by equality, `string[]` as "one of"; multiple matching
+entries merge additively.
+
+Every component family resolves through the shared
+`resolveSlotClasses(config, name, preset, activeProps, instanceSlotClasses)`, each feeding
+its active `variantProps` as the match input — so `overrides` applies library-wide.
+
+Key files: `provider/BlocksProvider.svelte`, `provider/blocks-context.ts`,
+`utils/variants.ts`. The consumer-facing override ladder ("reach for the lowest rung"):
+[COMPONENT-API-CONVENTIONS.md § slotClasses](COMPONENT-API-CONVENTIONS.md#slotclasses).
+
+### The internal core layer
+
+Public components never import each other for trivial embedded controls — that made every
+Badge ship Button's full variants matrix and every Button ship the whole Spinner (measured:
+Badge −29 %, Dialog/Drawer −30 % gz after the extraction). Shared behaviour lives in
+`src/lib/internal/core/` instead:
+
+- **`CoreSpinner`** — the spinner arc (geometry shared with the public `Spinner` via
+  `spinner-geometry.ts`) plus spin animation. No role/aria: the embedding context carries
+  the semantics, and a `role="status"` here would nest live regions inside Toast.
+- **`CoreIconButton`** — a behaviour-only native `<button>` (required `aria-label`, disabled
+  inertness, focus-visible reset). Visual identity comes entirely from the call site's
+  variants slot (`removeButton`, `closeButton`, `navButton`, …); the core runs no tv()/mint
+  pass, so it stays a few hundred bytes.
+- **`CoreFieldMessage`** — the helper/error line under a form field, shared by all ten
+  Form-family components. It owns error-beats-helper precedence, `role="alert"` on the error
+  arm only, and putting the right id on the right arm. The **label** is deliberately not
+  extracted alongside it: `<label for>` vs `<span id>` behind `aria-labelledby` vs a nested
+  label are dictated by how many focusable elements the field has, so unifying them would be
+  an a11y regression.
+
+Genuine compositions (ConfirmDialog = Dialog + Buttons, Menu → Popover, DatePicker →
+Calendar, PaginationItem *is a* Button) remain public-to-public — the rule targets
+fixed-configuration utility embeds, not essence. `bun run imports:lint` enforces the
+boundary: every cross-component edge needs a justified allowlist entry, and stale entries
+error too, so the list only shrinks deliberately. Nothing under `internal/` is exported or
+documented.
+
+---
+
+## 3 · Cross-cutting systems
+
+### Form-field wiring
+
+Every form primitive (Input, Textarea, Select, Combobox, Checkbox, Toggle, RadioGroup,
+Slider) routes its ARIA wiring through one hook in
+`packages/blocks/src/lib/utils/use-form-field.svelte.ts`:
 
 ```ts
 const propsId = $props.id();
@@ -91,401 +321,317 @@ const ff = useFormField(() => ({
   required,
   disabled
 }));
+```
 
-// In markup:
-<input
-  id={ff.fieldId}
-  aria-invalid={ff.invalid ? 'true' : undefined}
-  aria-describedby={ff.describedBy}
-/>
+```svelte
+<input id={ff.fieldId} aria-invalid={ff.invalid ? 'true' : undefined} aria-describedby={ff.describedBy} />
 {#if ff.errorId}<div id={ff.errorId} role="alert">{error}</div>
-{:else if ff.hintId}<div id={ff.hintId}>{helper}</div>
-{/if}
+{:else if ff.hintId}<div id={ff.hintId}>{helper}</div>{/if}
 ```
 
-The hook derives `errorId`, `hintId`, `describedBy` (error-first), `invalid`, plus pass-through `required` / `disabled`. Hint and error are mutually exclusive — when an error is set the hint is suppressed (Material / Carbon / Polaris convention). `fieldId` is supplied by the caller because Svelte's `$props.id()` rune is only valid at component top-level; routing it through the hook input keeps the hook itself runable from tests and non-Svelte contexts.
+The hook derives `errorId`, `hintId`, `describedBy` (error-first), `invalid`, plus
+pass-through `required`/`disabled`. Hint and error are mutually exclusive — an error
+suppresses the hint (Material / Carbon / Polaris convention). `fieldId` is supplied by the
+caller because `$props.id()` is only valid at component top level; routing it through the
+hook input keeps the hook runnable from tests.
 
-Pure logic lives in `computeFormFieldAria()` and is unit-tested directly. The reactive wrapper is one line of `$derived` glue. The standalone `<FormField>` component uses the same hook internally — its public API is unchanged.
+Pure logic lives in `computeFormFieldAria()` and is unit-tested directly; the reactive
+wrapper is one line of `$derived` glue. The standalone `<FormField>` uses the same hook.
 
-### `tv()` engine — explicit trade-offs
+### Mint (micro-interactions)
 
-The zero-dependency replacement is intentionally narrower than `tailwind-variants`:
+`packages/blocks/src/lib/mint/` provides opt-in micro-interactions.
 
-- **Built-in conflict resolver** (since v0.31.0 XC-3; per-source fold + dominance since v6.19.x XC-10). The pipeline is an ordered list of sources — `slot-base → each variant axis in declaration order → each matching compoundVariant in array order → call-site class` — folded sequentially: every later source **strips** conflicting Tailwind utilities from everything accumulated before it. `slotClasses={{ box: 'rounded-full' }}` deterministically defeats a base `rounded-sm`; an active-state compound's `bg-neutral` defeats an outlined-variant's `bg-transparent`; and two axes or two compounds that touch the same bucket resolve deterministically too — **axis and compound order are semantic**: declare the axis that must win a shared bucket later (e.g. `variant.underline`'s `rounded-none` after the `tier` radius axis). Within a single source (one class string), ordering is preserved and same-bucket pairs fall through to the CSS cascade, so intentional pairings like `rounded-md rounded-t-none` stay intact. The resolver works on **bucket equality**: two classes conflict only if they normalize to the same key (`bg-color`, `border-t-width`, `text-size`, `opacity`, …). Modifier prefixes (`hover:`, `focus-visible:`, `md:`, `dark:`, `!`-important, negative-sign) are part of the bucket key, so they isolate naturally — `hover:bg-red` and `bg-blue` coexist. The modifier/base split is bracket-aware (colons inside `[]`/`()` don't split), and **arbitrary properties** bucket per CSS property name: `[gap:inherit]` shares the `gap` utility bucket (alias table), `[--spinner-speed:1s]` conflicts only with the same custom property. Unknown classes (e.g. component-internal hooks like `blocks-menu--open`) return no bucket and never participate in stripping. Catalogued utility families live in `BUCKET_PATTERNS` in `packages/blocks/src/lib/utils/variants.ts`; uncatalogued utilities pass through untouched. Add new buckets when audits surface real conflicts, not preemptively.
-- **Directional shorthand dominance** (subset of `twMerge`'s conflict map). A later shorthand strips the longhands it fully covers — `p-0` defeats an earlier `px-4`/`pl-10`, `rounded-none` defeats `rounded-t-*`, `inset-0` defeats `top-*`, `size-8` defeats `w-*`/`h-*`, `gap` defeats `gap-x/y`, border width/color their per-side forms, `translate`/`scale` their axes. The reverse never strips: a later `pl-2` refines an earlier `p-4` (Tailwind's cascade resolves the left side), matching what override authors mean in both directions. Deliberately absent: `text-size` → `line-height` — the library pairs slot-base `leading-*` with axis-supplied text sizes across sources by design, and `leading-*` wins Tailwind's own cascade (a pinned negative test documents this).
-- **Type-safe, fail-loud configs** (since the v7 API tightening). Slot-map keys in variant values and compound classes are compile-checked against the declared slots (`ValidSlotVariants` — a `wrapeer` typo is a type error at that key), and every config is validated once at module init: unknown slot keys, unknown compound axes/values, undeclared `defaultVariants` values, a no-slot slot-map and `base`+`slots` together all **throw** with precise messages instead of degrading silently. Half-declared boolean axes (`loading: { true: … }` matched with `loading: false`) stay idiomatic. `className` is gone (Svelte has one class prop); slot-mode resolve calls take no top-level `class` (overrides belong to the slot functions). Call-site `class` inputs and `cx()` accept Svelte 5's full `ClassValue` shape including `{ class: condition }` records; config-side an object is always a slot map. Every resolver exposes its config as `.config` — `bun run variants:lint` replays all configs through the engine over the pairwise variant matrix and fails on dead tokens (classes a reachable source contributes that never survive the fold).
+- **Effects:** `scale`, `translate`, `rotate`, `glow`, `bounce`, `pulse`, `shake`, `ripple`
+  — composable via array; `composite` bundles several
+- **Opt-in:** call `registerDefaultMints()` at app startup
+- **Accessibility:** respects `prefers-reduced-motion` automatically
+- **Usage:** `<Button mint="scale">` or `<Card mint={['scale', 'ripple']}>`
 
-**Coverage caveats for the conflict resolver:**
+All effects share one stylesheet (`mint/styles.css`, imported once by `style/index.css`).
+Components apply the `blocks-mint-*` class on the affected element and never inline the
+keyframes, which keeps specificity uniform: a single `.blocks-mint-scale` rule wins in
+source order and consumer overrides don't have to fight per-component duplicates.
 
-- Classes outside `BUCKET_PATTERNS` (component-internal hooks like `blocks-menu--open`, ad-hoc data-attribute selectors, project-specific utilities) return no bucket and **never participate in stripping** — they always pass through.
-- `decoration-*` is split across three orthogonal buckets (`text-decoration-style`, `text-decoration-thickness`, `text-decoration-color`). Overriding the color does not strip thickness or style — that mirrors how the underlying CSS properties relate. The same property-orthogonality drives the `text-overflow` vs `text-wrap` split, `divide-*` width/style/color, `border-collapse`/`border-spacing` (table properties, not colors), `bg-image`/`bg-size`/`bg-position` vs `bg-color` (a gradient overlay never strips the color underneath), and `transition-behavior` vs `transition-property`.
-- Longhand-after-shorthand pairs (`p-4` default, `pl-2` override) both survive; the cascade settles the shared side by Tailwind's own source order. Only the shorthand-after-longhand direction strips (see dominance above).
-- Compounds strip earlier compounds and all variant axes; axes strip earlier axes and the base. Order both intentionally — later definitions win in the fold, no longer via stylesheet luck.
+The `glow` effect reads its colour from `--blocks-mint-glow-color`, set by **intent hooks**
+on the root element:
 
-If a future change needs full `twMerge` semantics or slot typing, extend `variants.ts` rather than re-introducing `tailwind-variants`.
-
-## Internal Core Layer (layer 0)
-
-Public components never import each other for trivial embedded controls — that made every Badge ship Button's full variants matrix and every Button ship the whole Spinner (measured: Badge −29 %, Dialog/Drawer −30 % gz after the extraction). Shared behaviour lives in `src/lib/internal/core/` instead:
-
-- **`CoreSpinner`** — the spinner arc (geometry shared with the public `Spinner` via `spinner-geometry.ts`, single source) + spin animation. No role/aria: the embedding context carries the semantics (Button's wrapper is `aria-hidden` + `aria-busy`; a `role="status"` here would nest live regions inside Toast).
-- **`CoreIconButton`** — a behaviour-only native `<button>` (required `aria-label`, disabled inertness, focus-visible reset). Visual identity comes entirely from the call-site's `*.variants.ts` slot (`removeButton`, `closeButton`, `navButton`, …); the core deliberately runs no tv()/mint pass, so it stays a few hundred bytes. Its base classes are structural plumbing and not an override surface — consumer overrides target the variants slot, which merges bucket-by-bucket as usual.
-- **`CoreFieldMessage`** — the helper/error line under a form field, shared by all ten Form-family components (Input, Textarea, Select, Combobox, Checkbox, Toggle, RadioGroup, Slider, PinInput, TimeInput). It owns error-beats-helper precedence, `role="alert"` on the error arm only (helper text is static description already reachable via `aria-describedby`), and putting the right id on the right arm; the call site resolves its own `message` slot and passes the finished class. The **label** is deliberately not extracted alongside it: `<label for>` vs `<span id>` behind `aria-labelledby` vs a label nested in the control's own `<label>` are dictated by how many focusable elements the field has, so unifying them would be an a11y regression — see the core's docblock and the closed part-(b) entry in [technical-debt.md](technical-debt.md).
-
-Genuine compositions (ConfirmDialog = Dialog + Buttons, Menu → Popover, DatePicker → Calendar, PaginationItem *is a* Button) remain public-to-public imports — the rule targets fixed-configuration utility embeds, not essence. `bun run imports:lint` enforces the boundary: every cross-component edge must sit on an in-script allowlist with a justification, and stale entries error, so the list only shrinks deliberately. Same internal-only convention as `internal/date-grid` and `internal/charts`: nothing under `internal/` is exported or documented.
-
-## Preset System (since v0.8.0)
-
-Project-defined, named style presets registered through `BlocksProvider`, plus prop-conditional `overrides`. The full override hierarchy, conflict-resolved per Tailwind bucket so a later source wins:
-
-```
-defaults.slotClasses → defaults.overrides[match] → preset.slotClasses → preset.overrides[match] → instance.slotClasses → instance.class
-```
-
-`slotClasses` (unconditional) and `presets` (opt-in, named) are registered via `BlocksProvider`; a preset is consumed via the `preset` prop on any component:
-
-```svelte
-<BlocksProvider
-  presets={{
-    Button: {
-      overlay: {
-        slotClasses: { base: 'bg-black/20 hover:bg-black/30 text-white' }
-      }
-    }
-  }}
->
-  <Button preset="overlay">Weiter</Button>
-</BlocksProvider>
-```
-
-### Conditional `overrides` (since v6.2.0)
-
-Unconditional `slotClasses` apply to every instance regardless of variant. For a rule that must target a specific variant/intent/state — e.g. "give the `outlined` Badge a 1 px border instead of 2 px" — add `overrides` to `defaults.<Component>` or `presets.<Component>.<name>`. Each entry is a `compoundVariant`-shaped matcher (prop conditions → per-slot classes); on a match its classes join the cascade, where the tv() conflict resolver then strips the library's conflicting class (`border-2`):
-
-```svelte
-<BlocksProvider defaults={{ Badge: { overrides: [{ variant: 'outlined', class: { base: 'border' } }] } }}>
-  <!-- every outlined Badge gets a 1px border; filled / soft / dot untouched -->
-</BlocksProvider>
-```
-
-Entries match active **prop values** (via `matchesCompound`), not the library's internal variant/compound structure — so it is irrelevant whether `border-2` lives in a `variant` or a `compoundVariant`. `string` conditions match by equality, `string[]` as "one of"; multiple matching entries merge additively. Unconditional-vs-conditional conflicts in the same bucket resolve deterministically (later source wins) via `resolveClassChain` — not left to stylesheet order.
-
-Key files: `packages/blocks/src/lib/provider/BlocksProvider.svelte`, `blocks-context.ts` (`resolveSlotClasses`, `resolveOverrideSlotClasses`, `resolvePresetSlotClasses`), `utils/variants.ts` (`matchesCompound`, `resolveClassChain`). Dev-only `console.warn()` on unregistered preset names. The preset system reaches all primitives and components (rolled out v0.8.0); as of v6.3.0 every component family resolves its slot classes through the shared `resolveSlotClasses(config, name, preset, activeProps, instanceSlotClasses)` helper — each feeding its active `variantProps` as the match input — so `overrides` applies library-wide, not just to Badge.
-
-## Mint System (Micro-Interactions)
-
-The Mint system (`packages/blocks/src/lib/mint/`) provides opt-in micro-interactions.
-
-- **Effects**: `scale`, `translate`, `rotate`, `glow`, `bounce`, `pulse`, `shake`, `ripple` (composable via array; `composite` bundles several)
-- **Opt-in**: Call `registerDefaultMints()` explicitly at app startup
-- **Accessibility**: Automatically respects `prefers-reduced-motion`
-- **Usage**: `<Button mint="scale">` or `<Card mint={['scale', 'ripple']}>`
-
-Key files: `compose.ts` (effect composition), `presets.ts` (default effects), `ripple.ts` (ripple effect), `micro-interactions.ts` (CSS-based effects).
-
-### Mint stylesheet + intent-aware tokens (XC-12)
-
-Mint effects share a single stylesheet (`packages/blocks/src/lib/mint/styles.css`, imported once by `style/index.css`). Components that use a mint apply the `blocks-mint-*` class on the affected element — they never inline the keyframes themselves. This keeps mint specificity uniform across the library: a single `.blocks-mint-scale` rule wins in source order, and consumer overrides don't need to fight per-component duplicates.
-
-The `glow` effect reads its color from `--blocks-mint-glow-color`. The token is set by **intent hooks** on the root element:
-
-| Hook class                 | Resolves `--blocks-mint-glow-color` to               |
-| -------------------------- | ---------------------------------------------------- |
-| `.blocks-intent-primary`   | `color-mix(var(--color-primary) 50%, transparent)`   |
+| Hook class | Resolves to |
+| --- | --- |
+| `.blocks-intent-primary` | `color-mix(var(--color-primary) 50%, transparent)` |
 | `.blocks-intent-secondary` | `color-mix(var(--color-secondary) 50%, transparent)` |
-| `.blocks-intent-success`   | `color-mix(var(--color-success) 50%, transparent)`   |
-| `.blocks-intent-warning`   | `color-mix(var(--color-warning) 50%, transparent)`   |
-| `.blocks-intent-danger`    | `color-mix(var(--color-danger) 50%, transparent)`    |
-| `.blocks-intent-neutral`   | `color-mix(var(--color-neutral) 40%, transparent)`   |
-| _no hook_                  | primary (the `:root` default)                        |
+| `.blocks-intent-success` | `color-mix(var(--color-success) 50%, transparent)` |
+| `.blocks-intent-warning` | `color-mix(var(--color-warning) 50%, transparent)` |
+| `.blocks-intent-danger` | `color-mix(var(--color-danger) 50%, transparent)` |
+| `.blocks-intent-neutral` | `color-mix(var(--color-neutral) 40%, transparent)` |
+| *no hook* | primary (the `:root` default) |
 
-Components that propagate `intent` to their root (e.g. Button, Avatar, Badge) attach the matching `.blocks-intent-{name}` class — the glow then picks up the correct color via the cascade with no per-component `box-shadow` definitions. **Do not** redefine `--blocks-mint-glow-color` in component-local variants; that re-introduces the pre-XC-12 duplication (Button/Avatar/Badge each owning a private definition) that the central tokens replaced.
+Components that propagate `intent` to their root attach the matching class; the glow picks
+up the right colour via the cascade with no per-component `box-shadow`. **Do not** redefine
+`--blocks-mint-glow-color` in component-local variants — that re-introduces the duplication
+these central tokens replaced.
 
-## Overlay motion tokens (XC-11)
+### Overlay motion
 
-The **modal / panel overlays** (Dialog, Drawer, ConfirmDialog, Toast) share a single Svelte-transition-driven motion contract. The tokens live in `packages/blocks/src/lib/style/interaction.css` and are mirrored as JS constants in `packages/blocks/src/lib/utils/overlay-tokens.ts`:
+The **modal/panel overlays** (Dialog, Drawer, ConfirmDialog, Toast) share one
+Svelte-transition-driven contract. Tokens live in `style/interaction.css`, mirrored as JS
+constants in `utils/overlay-tokens.ts`:
 
-| CSS custom property                        | Default                                     | Purpose                                 |
-| ------------------------------------------ | ------------------------------------------- | --------------------------------------- |
-| `--blocks-overlay-enter-duration`          | `200ms`                                     | Panel enter                             |
-| `--blocks-overlay-exit-duration`           | `180ms`                                     | Panel exit                              |
-| `--blocks-overlay-backdrop-enter-duration` | `200ms`                                     | Backdrop fade-in                        |
-| `--blocks-overlay-backdrop-exit-duration`  | `180ms`                                     | Backdrop fade-out                       |
-| `--blocks-overlay-easing`                  | `cubic-bezier(0.83, 0, 0.17, 1)` (quintOut) | Shared easing                           |
-| `--blocks-overlay-panel-scale-start`       | `0.96`                                      | Scale-in start value (1 disables scale) |
-| `--blocks-overlay-panel-fly-distance`      | `320px`                                     | Fly-in distance along placement axis    |
-| `--blocks-overlay-backdrop-blur`           | `4px`                                       | Backdrop `backdrop-filter`              |
+| Custom property | Default | Purpose |
+| --- | --- | --- |
+| `--blocks-overlay-enter-duration` | `200ms` | Panel enter |
+| `--blocks-overlay-exit-duration` | `180ms` | Panel exit |
+| `--blocks-overlay-backdrop-enter-duration` | `200ms` | Backdrop fade-in |
+| `--blocks-overlay-backdrop-exit-duration` | `180ms` | Backdrop fade-out |
+| `--blocks-overlay-easing` | `cubic-bezier(0.83, 0, 0.17, 1)` | Shared easing |
+| `--blocks-overlay-panel-scale-start` | `0.96` | Scale-in start (1 disables) |
+| `--blocks-overlay-panel-fly-distance` | `320px` | Fly-in distance along the placement axis |
+| `--blocks-overlay-backdrop-blur` | `4px` | Backdrop `backdrop-filter` |
 
-`prefers-reduced-motion: reduce` collapses every duration to `1ms`, scale to `1`, and fly-distance to `0px` in a single media-query block — components never check the media query themselves.
+`prefers-reduced-motion: reduce` collapses every duration to `1ms`, scale to `1` and
+fly-distance to `0px` in a single media-query block — components never check the query
+themselves.
 
-Svelte transitions need numeric inputs at the call site, so components call `getOverlayMotion(override?)` from `utils/overlay-tokens.ts` instead of hard-coding numbers. The reader resolves the live CSS values via `getComputedStyle`, parses ms/s/px, and falls back to the JS defaults on the server. The optional `override` argument carries the component's per-instance `transitionDuration` / `transitionEasing` props through — Dialog and Drawer expose this surface today; other overlays can opt in by accepting the same props and forwarding them.
+Svelte transitions need numeric inputs, so components call `getOverlayMotion(override?)`
+rather than hard-coding numbers. It resolves the live CSS values via `getComputedStyle`,
+parses ms/s/px, and falls back to the JS defaults on the server.
 
-The **anchored, native-popover surfaces** deliberately do NOT run Svelte transitions — their show/hide is owned by `showPopover()`/`hidePopover()` (and native light dismiss, which no JS transition can animate). They run **CSS-native motion** on their own faster token pairs, both defaulting through `--blocks-duration-fast` so reduced motion collapses them for free:
+The **anchored, native-popover surfaces** deliberately do *not* run Svelte transitions —
+their show/hide is owned by `showPopover()`/`hidePopover()` and native light dismiss, which
+no JS transition can animate. They run CSS-native motion on faster token pairs, both
+defaulting through `--blocks-duration-fast`:
 
-- **Tooltip** — `--blocks-tooltip-duration` / `--blocks-tooltip-easing`, opacity fade.
-- **Popover (and Menu / DatePicker through it)** — `--blocks-popover-duration` / `--blocks-popover-easing`, fade + scale. Mechanism: `@starting-style` supplies the enter before-state, `transition-behavior: allow-discrete` on `display`/`overlay` keeps the exit painted through the native hide, and the component lags its children-teardown to the computed transition duration (`maxTransitionDurationMs`). The panel stamps `data-state="open" | "closed"` as the styling hook; `popoverMotion` (popover.variants.ts) is the reference fragment — Menu re-applies it verbatim on its unstyled inner Popover.
+- **Tooltip** — `--blocks-tooltip-duration` / `-easing`, opacity fade.
+- **Popover** (and Menu / DatePicker through it) — `--blocks-popover-duration` / `-easing`,
+  fade + scale. `@starting-style` supplies the enter before-state,
+  `transition-behavior: allow-discrete` on `display`/`overlay` keeps the exit painted
+  through the native hide, and the component lags its children-teardown to the computed
+  duration. The panel stamps `data-state="open" | "closed"` as the styling hook.
 
-**Don't** hard-code 200/250ms or panel-scale numbers in new overlay components. Use the tokens (or `getOverlayMotion()` when you need numbers in JS). Adding a new modal overlay means picking up the `--blocks-overlay-*` tokens; a new anchored native-popover surface follows the Popover mechanism instead — in both cases, don't mint parallel tokens.
+**Don't** hard-code 200/250 ms or panel-scale numbers in a new overlay. A new modal overlay
+picks up the `--blocks-overlay-*` tokens; a new anchored surface follows the Popover
+mechanism. In neither case mint parallel tokens.
 
-## i18n System
+### i18n
 
-Runes-based internationalization in `packages/i18n/`, re-exported through `packages/blocks/`.
+Runes-based internationalization in `packages/i18n/`, re-exported through `blocks`.
 
-- **SSR-correct**: The active locale lives in a request-scoped **context** (`<I18nProvider>` / `provideI18n`), not a module-global singleton — concurrent SSR requests with different locales don't leak. Static translation data stays module-global (request-identical).
-- **Package-based**: Each package (blocks, table, auth) registers its own namespaced keys via `createPackageI18n` and exports a `use<Package>I18n()` hook.
-- **Read-tolerant, write-strict**: Reading without a provider resolves the base locale (`en`, SSR-safe); `setLocale` without a provider throws.
-- **Type-safe**: Literal key + param inference through the generic factory (key autocomplete, typos are compile errors).
-- **Reactive**: Svelte 5 runes (`$state`, `$derived`); in-place locale switch, no reload.
-- **Components**: `<T key="..." />` for inline translations, `<LocaleSwitcher />` for language switching.
-- **Code-splitting**: non-base locales register as dynamic-import loaders (`createPackageI18n(name, { en }, { loaders })`). **blocks ships this way** — `en` eager, `de` lazy — so English-only apps don't bundle the `de` catalog. Before the chunk loads, `de` keys resolve to the English fallback. Because the provider loads lazy chunks in a client-only `$effect`, a server-rendered non-base app renders the fallback until hydration; register the bundle eagerly once at server start (`registerLocale` / `registerBlocksLocale` + `@urbicon-ui/blocks/i18n/de`) to make it SSR-present — additive (keeps the eager base) and safe on the module-global registry (static, request-identical data).
-- **Authored as TS `as const`** (not JSON): literal key/param types flow straight into the generic factory's inference — no codegen step.
-- **Plurals via `Intl.PluralRules`** (per-locale CLDR categories, cached), not a bundled ICU runtime.
-- **Translation audit**: data-level `auditTranslations` (missing/unused-key report; `onMissingKey` / `createMissingKeyCollector`) plus a dev-only `@urbicon-ui/i18n/audit` source scanner (unused / used-but-undefined keys, hardcoded strings), fronted by the `urbicon i18n` CLI command and `bun run i18n:check`.
+- **SSR-correct:** the active locale lives in a request-scoped **context**
+  (`<I18nProvider>` / `provideI18n`), not a module-global singleton — concurrent SSR
+  requests with different locales don't leak. Static translation data stays module-global.
+- **Package-based:** each package registers its own namespaced keys via `createPackageI18n`
+  and exports a `use<Package>I18n()` hook.
+- **Read-tolerant, write-strict:** reading without a provider resolves the base locale
+  (`en`, SSR-safe); `setLocale` without a provider throws.
+- **Type-safe:** literal key + param inference through the generic factory — typos are
+  compile errors.
+- **Authored as TS `as const`**, not JSON, so literal types flow into inference with no
+  codegen step.
+- **Plurals via `Intl.PluralRules`** (per-locale CLDR categories, cached), not a bundled
+  ICU runtime.
+- **Code-splitting:** non-base locales register as dynamic-import loaders. **blocks ships
+  this way** — `en` eager, `de` lazy — so English-only apps don't bundle the `de` catalog.
+  Because the provider loads lazy chunks in a client-only `$effect`, a server-rendered
+  non-base app renders the fallback until hydration; register the bundle eagerly at server
+  start to make it SSR-present.
+- **Translation audit:** data-level `auditTranslations` plus a dev-only
+  `@urbicon-ui/i18n/audit` source scanner, fronted by `urbicon i18n` and `bun run i18n:check`.
 
-The deliberate trade-off behind these: a **runtime registry** (not a Paraglide-style compiler) keeps translations reactive and SSR-context-scoped at the cost of full tree-shaking — acceptable for a component library where locale data is small.
+The deliberate trade-off: a **runtime registry** (not a Paraglide-style compiler) keeps
+translations reactive and SSR-context-scoped at the cost of full tree-shaking — acceptable
+for a component library where locale data is small.
 
-Supported locales: `en`, `de` (data); `fr`/`es`/`it`/`nl` declared. Server-side initial-locale resolution via `resolveLocale(request)`. Full reference: [`packages/i18n/README.md`](../packages/i18n/README.md) · design rationale: [archive/2026-06/I18N-ARCHITECTURE-ROADMAP.md](archive/2026-06/I18N-ARCHITECTURE-ROADMAP.md).
+Locales: `en`, `de` (data); `fr`/`es`/`it`/`nl` declared. Server-side resolution via
+`resolveLocale(request)`. Full reference: [`packages/i18n/README.md`](../packages/i18n/README.md).
 
-## Documentation Generation (docs-gen)
+### Date & planning infrastructure
 
-AST-based pipeline that extracts component metadata and generates documentation. See the [docs-gen README](../packages/docs-gen/README.md) for CLI usage, configuration, and module details.
+Calendar and `Planner<T>` share a headless date-grid core.
+`packages/blocks/src/lib/internal/date-grid/` holds the `DateGridController`, its context,
+the keyboard model and `DateGridScaffold` — deliberately **not** exported: two in-repo
+consumers don't yet justify the API-stability cost, and a re-export is a one-line
+`package.json` change if that ever shifts.
 
-Pipeline: **Discovery -> Extraction -> Enrichment -> Generation**
+Pure date math lives in `packages/blocks/src/lib/date/` (`geometry`, `range`, `compare`,
+`format`) and **is** public via the `./date` subpath export.
 
-1. **Discovery**: Scans configured packages for component files (`.svelte`, `.ts`)
-2. **Extraction**: Parses TypeScript AST for props/JSDoc, the in-house `tv()` variant definitions for variant options, interface inheritance chains
-3. **Enrichment**: Merges extracted data, generates cross-references (`seeAlso` links) and statistics
-4. **Generation**: Writes per-component `api.ts` first (API-first architecture), then Svelte pages and LLM Markdown in parallel
+`Planner<T>` is the generic planning-board component built on that core — event type is
+caller-supplied (`T`, not a fixed `CalendarEvent`), view-parametrised. Calendar keeps its
+own month-view rendering by design: the scaffold owns time-grid mechanics, not month-grid
+layout.
 
-**Program-backed extraction (2026-07):** every `ConfigurationFactory` preset carries `input.typescript.configPath` (the package tsconfig); a shared `ts.Program` per package (`ProgramCache`) resolves imported props bases (`extends Omit<InputProps, …>`), type-only imports and their transitive references from the **sources** (never `dist/`, never `node_modules`). A set-but-broken `configPath` aborts the run (fail-loud — run `svelte-kit sync` first in a fresh tree); an unset one is the documented single-file fallback for tests/ad-hoc use. `llm.txt` gains a `### Types` section (helper types; `*Slots`/`*Variants` excluded); types over 40 rendered lines emit a member-count summary with source path instead of their body (`api.ts` and the TypesReference docs surface keep full definitions). `TypeDefinition` knows a `class` kind (public signature only) and `scope: local | imported`.
+---
 
-Components can provide a `docs.svelte` with custom content and a `docsConfig` export for generation settings (hybrid auto + custom approach). See `packages/docs-gen/docs/component-structure-guidelines.md` for conventions.
+## 4 · The packages in profile
 
-**Targets & artifacts:** `docs:gen:all` (not a per-package `docs:gen:<target>`) runs the final assembly that rebuilds `llms-full.txt` + `apps/docs/static/mcp/component-catalog.json`; a per-target run only writes that scope's `apps/docs/static/<scope>/*` and `routes/<scope>/.../api.ts`. The generated outputs — `**/api.ts`, `llms-full.txt`, `static/**/_catalog.json`, `static/mcp/` — are **git-ignored** and rebuilt by `bun run build`; only the curated `llms.txt` (+ `apps/docs/static/llms.txt`) index is tracked. MCP serves auth components from the merged main catalog via the `auth` tag (not a `group`).
+Each package's own README is the authoritative reference; these are orientation notes.
 
-## AI-Native DX
+### `blocks`
 
-The library is optimized for LLM-assisted development with several machine-readable artifacts:
+40 primitives and 27 components, the token system, the `tv()` engine, the Mint system, the
+icon set (315 icons) and the provider. Everything in §2 lives here.
 
-| File             | Purpose                                                                         |
-| ---------------- | ------------------------------------------------------------------------------- |
-| `/llms.txt`      | Brief library overview following the llms.txt standard                          |
-| `/llms-full.txt` | Complete API reference with examples, tokens, and patterns                      |
-| `/.cursorrules`  | Cursor IDE rules for correct imports, API grammar, token usage, common mistakes |
+Icons are tree-shaking-sensitive: **never call `getIcon('name')` inside a component** — the
+dynamic key drags all 315 into the consumer bundle. Use `resolveIcon('name', NameIconDefault)`
+with a direct import (`<Icon name="…" />` is the lone exception). See
+[ICON-DESIGN.md](ICON-DESIGN.md).
 
-The `docs-gen` pipeline generates per-component LLM documentation with import statements, design token context, slot information, and combination patterns.
+### `table`
 
-## Figma Token Export
+Feature-rich data table: smart filtering, grouping, summaries, search highlighting, column
+visibility and reordering, persistence, virtualization, live updates, and responsive
+desktop/mobile views.
 
-The utility `generateFigmaTokensJSON()` in `packages/blocks/src/lib/utils/figma-token-export.ts` exports the full design token system as Tokens Studio-compatible JSON. Categories: `color` (6 OKLCH palettes), `semantic` (surface/text/border), `spacing`, `borderRadius`, `shadow`. The export is available both programmatically and via the `/customization/figma-tokens` docs page (download/copy).
-
-## UI Recipes
-
-The docs app ships **20 production-ready UI recipes** under `apps/docs/src/routes/recipes/`. The canonical, always-current list is the navigation map in `apps/docs/src/lib/navigation.ts`; categorically (illustrative):
-
-| Category            | Recipes                                                                                       |
-| ------------------- | --------------------------------------------------------------------------------------------- |
-| Authentication      | Login, Invitation Register, Passkey Login, Password Reset                                      |
-| Layout / Dashboards | Dashboard, Stat Tile, Page Header, Trace Drawer                                                |
-| Planning            | Meal Planner (Planner component)                                                               |
-| Forms / Wizards     | Settings, Wizard, Decision Tree Wizard, Range Hint Input, Unsaved Changes Guard, Onboarding Flow |
-| Marketing           | Pricing                                                                                        |
-| Display             | Profile Card, Clickable Card, Help Tooltip                                                     |
-| Notifications       | Notification Center                                                                            |
-| Trace / Diagnostics | Trace Drawer                                                                    |
-
-Each recipe lives in its own folder with `+page.svelte` (live preview), `meta.ts` (structured metadata), and a `recipeCode` template literal for the side-by-side code view. The recipes are addressable by the MCP `get_recipe` tool.
-
-## Theme Builder
-
-The `/customization/theme-builder` page provides a visual OKLCH-based theme generator with hue, chroma, and lightness sliders, 8 color presets, a matched **neutral chassis** control (hue + tint strength, auto-following the brand hue), live component preview, and CSS `@theme` export. The chassis control re-tints `--color-neutral-*` so generated themes keep surfaces/text/borders in the accent's temperature family instead of a fixed cool grey. It demonstrates the token system's flexibility for brand customization.
-
-## Showcase
-
-The `/showcase` page is a realistic project management interface that demonstrates many components working together (Card, Button, Badge, Avatar, Input, Checkbox, Toggle, Menu, Tooltip, Spinner, Tab, Separator, Alert, Breadcrumb, Skeleton, Pagination, Accordion, and more).
-
-## Auth Package
-
-The `@urbicon-ui/auth` package is a zero-runtime-dependency authentication, user-management, and notification system for SvelteKit. It is part of the vertical Urbicon stack.
-
-**Server side** (`import from '@urbicon-ui/auth/server'`):
-
-- Core crypto via Web Crypto API: JWT (HMAC-SHA256), PBKDF2 password hashing, CSRF, rate-limiting, security headers
-- Handler factories for login, logout, register, forgot/reset-password, verify-email, refresh
-- `createAuthHandle()` SvelteKit handle hook for session hydration, route guards, transparent refresh-token rotation
-- Refresh-token rotation (opt-in, v0.11.0+): 15-min access + 30-day rotating refresh cookies, token families, reuse-detection
-- WebAuthn/Passkeys: CBOR decoder, ECDSA P-256 + RSA verification, FIDO2 Level 2, optional UV enforcement
-- Web Push: ECDH + HKDF + AES-128-GCM (RFC 8291/8292/8188), VAPID JWT signing, opt-in per-endpoint rate limit
-- Adapter pattern for Repositories (`UserRepository`, `PasskeyRepository`, `InvitationRepository`, `RefreshTokenRepository`); Prisma adapter shipped
-- Pluggable stores for challenges, rate-limits, and refresh-tokens (in-memory defaults; Redis/Prisma/Upstash via interface)
-
-**Client side** (`import from '@urbicon-ui/auth'`):
-
-- 14 blocks-based UI components (LoginPage, RegisterPage, PasskeyManager, AccountSettings, SessionManager, TwoFactorManager, NotificationCenter, etc.)
-- All components honor `unstyled` + `slotClasses` conventions
-- Svelte 5 runes stores: `createAuthStore()`, `createNotificationStore()`
-- Service-worker helpers for push handling
-
-**i18n** (`@urbicon-ui/auth/i18n/en` or `/de`): extensible locale bundles.
-
-Full details, exports, consumer-integration walkthrough, and known security limitations: see [AUTH.md](AUTH.md).
-
-## Table Package
-
-The `@urbicon-ui/table` package provides a feature-rich data table with smart filtering, grouping, summaries, search highlighting, column visibility, persistence, and responsive desktop/mobile views.
-
-### Data Pipeline
-
-All data processing runs as a reactive `$derived` chain in `TableStore.svelte.ts`:
+All data processing is a reactive `$derived` chain in `TableStore.svelte.ts`:
 
 ```
 items → filteredItems → sortedItems → grouped → paginatedItems
 ```
 
-Each stage is a `$derived` computation that depends on the previous stage and relevant state (search term, active filters, sort column, group key, current page).
+Each stage depends on the previous one plus the relevant state (search term, active
+filters, sort column, group key, page).
 
-### Remote Data Architecture (planned)
+**Client and server mode.** `mode: 'client' | 'server'` selects who does the work. In server
+mode the derived chain passes `state.items` through unchanged, `totalPages` comes from the
+`totalItems` prop instead of the local array length, and `onQueryChange` fires on every
+sort/filter/page/search change with the full `TableQuery`
+(`{ page, itemsPerPage, sortColumn, sortDirection, searchTerm, activeFilters, groupByKey }`).
+A managed `queryFn` path handles fetching, loading and error states for you.
 
-The current `apiRoute` prop fetches all data client-side and processes it locally. For large datasets, the table needs to support server-side filtering, sorting, and pagination.
+Scroll models (page-relative sticky pinning vs. contained scroll):
+[STICKY-PINNING.md](STICKY-PINNING.md).
 
-**Recommended approach: `onQueryChange` callback + `totalItems` prop**
+### `auth`
 
-| Prop            | Type                          | Purpose                                                                      |
-| --------------- | ----------------------------- | ---------------------------------------------------------------------------- |
-| `mode`          | `'client' \| 'server'`        | Controls whether the table processes data locally or delegates to the server |
-| `totalItems`    | `number`                      | Server-side total count for pagination calculation in server mode            |
-| `onQueryChange` | `(query: TableQuery) => void` | Fires on every sort/filter/page/search change with the full query state      |
+Zero-runtime-dependency authentication, user management and notifications for SvelteKit —
+all crypto via the Web Crypto API.
 
-The `TableQuery` object contains `{ page, itemsPerPage, sortColumn, sortDirection, searchTerm, activeFilters, groupByKey }`. In server mode, the derived chain (`filteredItems`, `sortedItems`, `paginatedItems`) passes `state.items` through unchanged; `totalPages` is computed from `totalItems` instead of the local array length.
+**Server** (`@urbicon-ui/auth/server`): JWT (HMAC-SHA256), PBKDF2 hashing, CSRF,
+rate-limiting, security headers; handler factories for login/logout/register/
+forgot-reset-password/verify-email/refresh; `createAuthHandle()` for session hydration,
+route guards and transparent refresh-token rotation (15-min access + 30-day rotating
+refresh cookies, token families, reuse detection); WebAuthn/passkeys (CBOR decoder, ECDSA
+P-256 + RSA, FIDO2 Level 2); Web Push (ECDH + HKDF + AES-128-GCM, RFC 8291/8292/8188, VAPID
+signing); an adapter pattern for repositories with a Prisma adapter shipped; pluggable
+stores for challenges, rate limits and refresh tokens.
 
-This pattern is minimal (3 new props), follows the Svelte 5 callback convention, and stays agnostic to the data source (REST, GraphQL, SvelteKit `load`).
+**Client** (`@urbicon-ui/auth`): 14 blocks-based UI components, Svelte 5 runes stores
+(`createAuthStore()`, `createNotificationStore()`), service-worker helpers.
 
-## Date & Planning Infrastructure
+Full reference incl. consumer integration and known security limitations:
+[AUTH.md](AUTH.md).
 
-Calendar and `Planner<T>` share a headless date-grid core. `packages/blocks/src/lib/internal/date-grid/` holds the `DateGridController` + context + keyboard model + `DateGridScaffold` — deliberately **not** exported from the package: two in-repo consumers (Calendar + Planner) don't yet justify the API-stability cost, and a re-export is a one-line `package.json` change if a consumer later needs the bare core. Pure date math lives in `packages/blocks/src/lib/date/` (`geometry`, `range`, `compare`, `format`) and **is** public via the `./date` subpath export.
+### `docs-gen`
 
-`Planner<T>` (`packages/blocks/src/lib/components/Planner/`) is the generic planning-board component built on that core — event type is caller-supplied (`T`, not a fixed `CalendarEvent`), view-parametrised. See the `planning-board` design pattern and the `meal-planner` recipe. Calendar keeps its own month-view rendering by design rather than routing every view through the scaffold — the scaffold owns the time-grid mechanics, not month-grid layout.
+See §5.
 
-## Conscious Trade-offs
+### `design`, `design-content`, `design-engine`
 
-Deliberate decisions documented here so they are not repeatedly questioned or accidentally "corrected". The `tv()` engine trade-offs (no `twMerge`, no slot-name type safety) are covered above under [Component Styling](#component-styling).
+The `urbicon` CLI is the **primary consumer-facing surface** — one dev-dependency with
+version-pinned knowledge. Knowledge commands: `primer` (run first), `find`, `get-component`,
+`icons`, `recipe`, `guide`, `pattern`, `principles`, `css-reference`. Judgment: `validate`
+(+ `hook`/CI). Memory: `context`, `record-decision`, `sync-manifest`. Process: `verbs` and
+the `urbicon-design` skill. Onboarding: `init`.
 
-### Biome is not type-aware
+`design-engine` is the zero-dep linter, manifest parser and rubric; `design-content` is the
+versioned knowledge bundle both the CLI and the MCP server read. `mcp-server` is a thin
+remote adapter over the same two — [deliberately unhosted](DECISIONS.md#the-mcp-server-is-built-green-and-not-hosted).
 
-Linting uses **Biome**, which does not consult the TypeScript type checker. Rules that need type information (e.g. no-floating-promises, await-thenable) therefore do not apply. This is a deliberate performance decision — Biome lints the whole repo in milliseconds, where type-aware linting would make every `lint` run and the pre-commit hook several times slower. Floating promises and similar issues are instead caught in review and by TypeScript itself (`strict` mode, `noImplicitAny`, `strictNullChecks`).
+---
 
-### Pre-commit without `bun run check` and without tests
+## 5 · Tooling & pipelines
 
-The lefthook pre-commit hook only runs `biome check --write` (on staged `.ts`/`.js`/`.json`) and `prettier --write` (on staged `.svelte`) — **no** `svelte-check`, **no** `vitest`. `svelte-check` across all packages takes 30–60 s and would noticeably block commits; tests are CI's job. The consequence: `svelte-check` errors only surface in CI — an acceptable trade-off, because CI failures reproduce locally in seconds.
+### The docs-gen pipeline
 
-### `mcp-server` without a build step (`main: "./src/index.ts"`)
+AST-based extraction of component metadata into every documentation channel. The `*Props`
+JSDoc in each `index.ts` is the single source of truth.
 
-`packages/mcp-server` ships TypeScript sources directly, without a `dist/` build. This works because the MCP server is always started via Bun (a dev tool, not an npm-consumed runtime). The `README` makes this explicit — anyone expecting Node would otherwise trip over the `.ts` entrypoint. The upside: no build pipeline and no extra sync step for a purely dev-time tool.
-
-### Stricter TS flags not in `tsconfig.base.json`
-
-The root `tsconfig.base.json` holds the shared compiler baseline (`target`, `module`, `lib`, `strict`, `esModuleInterop`). Stronger flags like `noUncheckedIndexedAccess`, `verbatimModuleSyntax`, `exactOptionalPropertyTypes` are active **only** in the `tsc`-built packages (`docs-gen`, `mcp-server`, `shared-types`) and deliberately not raised centrally — the migration effort for the SvelteKit packages is not yet justified.
-
-## Versioning & Changelog
-
-The monorepo uses synchronized versioning: all packages share the root version (in `package.json`). The `bun run bump` script patches all packages simultaneously, creates a git tag, and regenerates the changelog.
-
-Changelog generation uses [git-cliff](https://git-cliff.org/) configured in `cliff.toml`. It parses conventional commits, groups changes by type (Features, Bug Fixes, etc.), and includes the package scope. Version bump commits (`chore: version bump`) are excluded automatically.
-
-The docs site displays:
-
-- **Current version** in the sidebar footer (injected via Vite `define` at build time from root `package.json`)
-- **Full changelog** at `/changelog` (loaded from `CHANGELOG.md` via a Vite virtual module `virtual:changelog`)
-
-## Documentation Site
-
-For the complete documentation page guide (file structure, section order, design philosophy, typography, playground controls, checklists), see [DocsPageGuide.md](DocsPageGuide.md).
-
-## Color Rooms Theme (docs-only)
-
-The Urbicon documentation site at `apps/docs/` opts into the **Color Rooms theme** — Schibsted Grotesk on a warm cream-paper palette whose accent is the **room you are in**, and a room is a component **family**: a component's doc page wears its family's channel (`action` orange, `navigation` teal, `form` blue, `display` azure, `overlay` purple, `data` cyan, `feedback` red, `ai` magenta, `layout` ink). Pages that document no single component fall back to their product area (`/blocks` orange, `/table` cyan, `/ai` magenta, `/auth` blue, everything else orange). It is the same channel register the landing page runs on, so a component's row in the landing index and its doc page carry the same colour. Component-page and section-landing headers become a full-width colour field in the room colour, flush to the app sidebar. On a component page the header is a full-width band spanning everything right of the app sidebar — breadcrumb + `source` sit in the band and the on-this-page TOC drops below it; on scroll the title collapses under the pinned breadcrumb strip, leaving a low ribbon in the room colour. Library consumers (consumer apps and third-party apps) keep the library defaults; Color Rooms is private to the docs site. (It replaced the earlier fixed-green "Editorial" theme.)
-
-Color Rooms is implemented as a **pure token-override layer** rather than a parallel component tree. Activation:
-
-```html
-<html lang="en" class="docs-rooms"></html>
+```mermaid
+graph LR
+    SRC["index.ts<br/><i>*Props JSDoc</i>"] --> DISC[Discovery]
+    VAR["*.variants.ts<br/><i>tv() config</i>"] --> DISC
+    DISC --> EXT[Extraction<br/><i>TS AST</i>]
+    EXT --> ENR[Enrichment<br/><i>cross-refs, stats</i>]
+    ENR --> GEN[Generation]
+    GEN --> A["api.ts<br/>per component"]
+    GEN --> B["llm.txt tree<br/>llms-full.txt"]
+    GEN --> C["MCP catalog<br/>design-content"]
+    GEN --> D["docs site pages"]
 ```
 
-The class sits on `<html>` (not `<body>`) so the `app.html` head script can flip it before first paint; the per-route room is then stamped as `data-room="<channel>"` on a `.docs-room-scope` wrapper in `+layout.svelte` (and mirrored onto `<html>` after mount for portaled popovers). Both halves of the mapping are generated by `apps/docs/scripts/channels-gen.ts`: route → channel into `src/lib/landing/route-channel.gen.ts` (read from the docs-gen catalogues), channel → accent triple into `src/lib/style/rooms-channels.gen.css` (read from the channel register). Everything below applies only within that scope. Library defaults stay intact outside it.
+**Program-backed extraction.** Every `ConfigurationFactory` preset carries
+`input.typescript.configPath`; a shared `ts.Program` per package resolves imported props
+bases (`extends Omit<InputProps, …>`), type-only imports and their transitive references
+from the **sources** — never `dist/`, never `node_modules`. A set-but-broken `configPath`
+aborts the run (fail-loud; run `svelte-kit sync` first in a fresh tree); an unset one is the
+documented single-file fallback for tests.
 
-### Private tokens (`--docs-*`, `--room-*`)
+**The `:all` trap.** Run `bun run docs:gen:all`, **not** a per-target `docs:gen:<target>` —
+only the `:all` run performs the final assembly that rebuilds `llms-full.txt` and the MCP
+component catalog. A per-target run writes only that scope's outputs.
 
-`apps/docs/src/lib/style/rooms-docs.css` defines a private token namespace for docs-specific concerns that don't belong in the library:
+Generated outputs (`**/api.ts`, `llms-full.txt`, `static/**/_catalog.json`, `static/mcp/`)
+are **git-ignored** and rebuilt by `bun run build`. Only the curated `llms.txt` index is
+tracked.
 
-| Token | Purpose |
-| ----- | ------- |
-| `--room-accent`, `--room-accent-fg`, `--room-accent-text` | Active room colour, its on-accent ink, and the same channel one step deeper. Selected per-route via `data-room` (stamped by `+layout.svelte`; the colour values live only in the generated `rooms-channels.gen.css`); source of the whole primary family and the header field. Two colour steps because there are two WCAG thresholds: `--room-accent` clears 3:1 (fills, lines, marks, the header field), `--room-accent-text` clears 4.5:1 (small body text). |
-| `--docs-bg`, `--docs-paper` | Page ground (cream) and content surface (lighter cream). Inverts to warm dark in dark mode. |
-| `--docs-lifted`, `--docs-floating` | L·2 (dropdowns, popovers, selects) and L·3 (modals, sheets, command menus) — continuation of the cream ladder above paper. |
-| `--docs-ink`, `--docs-soft`, `--docs-softer` | Three-stop ink hierarchy (primary text `#17150f`, meta/body-soft, decoration). |
-| `--docs-hair`, `--docs-line` | Hairline (8 % alpha) and line (14 % alpha) — ink-on-paper in light, cream-on-paper in dark. |
-| `--docs-accent` | Docs accent (active markers, links, sidebar logo mark). Couples to `--color-primary` so the room colour re-uses it. |
-| `--docs-radius-pill`, `--docs-radius-card`, `--docs-shadow-page` | Docs geometry — TOC crumbs, Bento cards (`--radius-contain`, tight for the hard-edge poster), Recipe-stage lift. |
-| `--font-display`, `--font-sans` | Schibsted Grotesk — one grotesk for display + body. |
-| `--font-mono` | JetBrains Mono for meta (`01` section marker, mono kickers, prop labels). |
+Components may provide a `docs.svelte` with custom content and a `docsConfig` export.
+Conventions: `packages/docs-gen/docs/component-structure-guidelines.md`.
 
-All `--docs-*` tokens use `light-dark()` so the canvas is **first-class light + dark** — the cream-paper / warm-ink shape inverts to warm-dark-paper / cream-ink without losing identity. The room accent is orthogonal to the mode (it repaints primary, not the paper).
+### The lint gates
 
-### Library-token overrides
+Beyond Biome and `svelte-check`, the repo runs purpose-built gates. Each exists because the
+failure it catches was silent:
 
-Inside `.docs-rooms`, the scope re-binds the most consumed library tokens to the cream palette + the room accent:
+| Gate | Catches |
+| --- | --- |
+| `variants:lint` | Dead tokens — classes a reachable source contributes that never survive the fold. Also arbitrary transition lists omitting a discrete property (`scale`/`translate`/`rotate` are not `transform` in Tailwind 4). |
+| `imports:lint` | Cross-component imports outside the allowlist — and stale allowlist entries |
+| `icons:lint` | Icon geometry contract, 0.5-grid, radius scale, registry integrity |
+| `summary:lint` | Component `@summary` budget |
+| `playgrounds:lint` | Playground snippets and the knob-hint budget |
+| `registry:lint` | A docs page missing from any of its three hand-maintained registration points |
+| `examples:lint` | Every `@example` block type-checked as a real `.svelte` file |
+| `i18n:check` | Unused / used-but-undefined keys, hardcoded strings |
+| `size --check` | Per-component bundle growth against the baseline |
 
-- Primary: `--color-primary` → `light-dark(var(--room-accent-text), var(--room-accent))`, `--color-text-on-primary` → `light-dark(#fbfaf6, var(--room-accent-fg))` (see the room derivation below).
-- Surface ladder: `--color-surface-base/-quiet/-elevated/-overlay` → `--docs-paper/-bg/-lifted/-floating`.
-- Borders: `--color-border-hairline` → `--docs-hair`. The architectural borders (`-subtle/-default/-emphasis/-strong`) get routed through the library's existing `--color-warm-neutral-*` ramp (Hue 45) so they shed the cool-grey bias against cream.
-- Text: `--color-text-primary/-secondary/-tertiary/-quaternary` → ink hierarchy.
-- Surface mid-states (`-hover/-active/-disabled/-interactive/-subtle/-inverted`) and `--color-text-disabled` / `--color-interactive-disabled` also route through `warm-neutral`.
-- `--blocks-shadow-tint` shifts to `oklch(0.22 0.04 70)` so shadows blend with cream instead of reading as cool smudges.
+`registry:lint`, `playgrounds:lint` and `summary:lint` read the generated catalogs — run
+`docs:gen:all` first. `examples:lint` is slow (two `svelte-check` passes per package) and is
+a pre-merge gate, not a per-commit one.
 
-### Room accent + intent retuning
+### Bundle size
 
-Instead of a single fixed primary, Color Rooms **re-derives the entire 11-step `--color-primary-*` ramp from the room** via `color-mix(in oklab, …)`, off **two anchors**: stops 50–500 hang off `--room-accent` and mix toward cream (the surface/line half), stops 600–950 hang off `--room-accent-text` and mix toward ink (the text half). The eleven rooms are the channels of the shared register (`apps/docs/src/lib/landing/channels.ts`); each room contributes a channel's **accent step** (the lightest step that still clears 3:1 against the paper), its dark on-colour, and its **text step** (the lightest step that clears 4.5:1). Nine of them are reached by a component family, the rest only by an area fallback:
+`bun run size` reports per-component tree-shaken min+gzip size across blocks/table/auth, net
+of Svelte **and** of the shared foundation — the `net` column is what a component adds to a
+project already using the library. It needs all three `dist/` directories. `--check` gates
+solo `gz` against `bundle-size.baseline.json`; `--update-baseline` after intentional growth.
+It reports any catalogue component it never measured.
 
-| Family       | Channel | Family      | Channel |
-| ------------ | ------- | ----------- | ------- |
-| `action`     | orange  | `overlay`   | purple  |
-| `data`       | cyan    | `feedback`  | red     |
-| `ai`         | magenta | `layout`    | ink     |
-| `form`       | blue    | `display`   | azure   |
-| `navigation` | teal    |             |         |
+### Versioning
 
-Because every accent step sits on one lightness step (L ≈ 0.65), the on-field numbers no longer spread the way four hand-picked rooms did: the title clears 5.5–5.6:1 on its own fill, the 88 % lede 4.7–4.9:1, the 72 % tertiary 3.6–3.8:1. The achromatic `ink` channel is the one exception the generator handles explicitly — its register accent *is* its near-black solid, which would vanish on the dark docs paper (1.4:1), so the docs room uses a neutral step computed by the same rule (3.0:1 light / 5.1:1 dark); it gets a text step by the same exception.
+All packages share the root version. `bun run bump` patches every package, regenerates the
+changelog via [git-cliff](https://git-cliff.org/) from conventional commits, creates one
+release commit and an annotated tag. Details, bump levels and the commit-type → changelog
+mapping: [VERSIONING.md](VERSIONING.md).
 
-**Why two steps and not one.** `--color-primary` is a dual-role token — it is both `bg-primary` (button, toggle, progress) and `text-primary` (body link, active nav entry, Tab label, Menu checkmark), inside the library components as much as in the docs app — so it has to carry the sharper of the two thresholds, 4.5:1. A 3:1 accent renders a 16 px link at 3.13:1. What the split buys is that only the *token* takes the deeper step: the header bands, hero fields, register rail, wordmark cursor and playground tint read `var(--room-accent)` directly and stay fresh, as do `--color-interactive-focus` and `--color-chart-*` (both non-text marks the 3:1 rule governs). The cost is that a light-mode primary fill sits one step deeper than the band above it — which is also what the library's default theme does (`primary-600` under white text). The text role is itself a `light-dark()` pair because no single colour can be AA on both papers: 4.5:1 against `#fbfaf6` needs relative luminance ≤ 0.173, against `#232220` ≥ 0.247. So the generator guards the *role* — the text step against the light paper, the accent step (4.85–4.87:1 there) against the dark one.
+The docs site shows the current version in the sidebar footer (injected via Vite `define`
+at build time) and the full changelog at `/changelog` (via the `virtual:changelog` module).
 
-The **intent palette is room-independent** — retuned once (warm) so Success / Warning / Danger / Secondary sit naturally on cream and stay distinct from the room primary. The warm spectrum still reads next to the channel accents, so it is not re-tuned per room:
+### AI-native developer surface
 
-| Intent    | Hue                        | Why                                                                                                                                                    |
-| --------- | -------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| Secondary | 15 (burgundy/mahogany)     | Warm complementary; the library default Hue 280 (violet) reads cool on cream.                                                                          |
-| Success   | 150, darker / lower chroma | Library Hue 140 sits next to the register's green — would read as a second room button. Sage reads as "completed/verified".                                               |
-| Warning   | 55 (amber)                 | Library Hue 80 is yellow-green-adjacent; amber harmonises with cream.                                                                                   |
-| Danger    | 22 (maroon)                | Library Hue 25 vivid red sits aggressively on cream; maroon at Hue 22 keeps the alert reading. Hues 12 and 18 rolled into magenta on the dark 400 stop. |
-| Info      | 220 (teal)                 | **Unchanged.** Cool blue against the warm palette is a deliberate contrast — info banners read as informational chrome.                                 |
+| Artifact | Purpose |
+| --- | --- |
+| `/llms.txt` | Brief library overview (llms.txt standard) — curated, tracked |
+| `/llms-full.txt` | Complete API reference with examples, tokens and patterns — generated |
+| `/.cursorrules` | Cursor IDE rules: imports, API grammar, tokens, common mistakes |
+| `urbicon` CLI | The primary surface — see §4 |
+| `design-system/` | Design principles and composition patterns, served by CLI and MCP |
 
-### Why semantic tokens are re-declared in the docs scope
+---
 
-A subtle CSS detail: when a custom property is defined as `--color-primary: light-dark(var(--color-primary-600), var(--color-primary-500))` at `:root`, the `var()` resolves **at the cascade level where the property is defined**. Overriding the ramp later in `.docs-rooms` does _not_ re-trigger that substitution — the inherited value is the already-resolved library string.
+## 6 · Conscious trade-offs
 
-Color Rooms therefore re-declares all derived semantic tokens (`--color-primary`, `-hover`, `-active`, `-subtle`, `-emphasis`, `--color-surface-selected`, `--color-interactive-hover/-active/-focus`) inside the scope, one-to-one mirroring the library shapes in `semantic.css`. The re-declarations look redundant but they're load-bearing: without them the room ramp stops at the raw stops and the consuming components still pick up the library blue. Because portaled popovers mount **outside** the `.docs-room-scope` wrapper, the derivation is declared on both the wrapper (content — SSR-correct, no flash) and `.docs-rooms` on `<html>` (portals — mirrored after mount).
+Decisions that look like oversights and are not — Biome's lack of type-awareness, the
+pre-commit scope, `mcp-server` shipping without a build, the `import.meta.env` advisory, the
+narrow `tv()` engine, the unhosted MCP server, and where publishing actually happens:
 
-### Docs hooks on shared components
-
-Components in `packages/docs` carry small `data-docs-*` hooks that the docs scope styles — keeps the library API unchanged for non-docs consumers while giving the Color Rooms CSS a stable anchor. The `data-docs-*` namespace is the docs package's **published theming contract**: skins target these attributes (never internal class names or test ids), and renames are breaking changes for skins:
-
-- `[data-docs-header]` on the `DocsLayout` hero header — becomes the room colour field (both the collapsing-hero and legacy headers). It is a **full-width band**: a direct child of the layout container (not the body column), so it spans everything right of the app sidebar and the on-this-page TOC drops below it. Alignment with the body column is re-imposed by an inner wrapper that shares `main`'s `maxWidth`.
-- `[data-docs-sticky-bar]` on the sticky breadcrumb strip — shares the header's accent fill; on scroll the title collapses under it, leaving a low breadcrumb-height ribbon. Inside it, `[data-docs-sticky-hairline]` is hidden (colour edge is the separator) and `[data-docs-scrollspy]` (the active-section badge) flips to a translucent-foreground inlay.
-- `[data-room-hero]` on hand-rolled section-landing heroes (`/blocks`, `/ai`, `/getting-started`, `/recipes`, `/showcase`) — the same full-width band, flush to the app sidebar: the hero element spans the content area and the page nests an inner `max-w-* mx-auto px-*` wrapper (matching its body column) to align the hero content. `[data-room-chip]` flips a room-tinted chip so it reads on the fill.
-- `[data-docs-stage="example|playground"]` / `[data-docs-stage-frame]` on `CodeExample` / `PlaygroundConfigurator`.
-- `[data-docs-subtitle]` on the page-title sub-headline rendered by `DocsLayout`.
-
-The scope paints the header field, flattens the stage backgrounds to transparent, and hides the DocsLayout subtitle on component pages (the field is title-first). See [COMPONENT-API-CONVENTIONS.md](COMPONENT-API-CONVENTIONS.md#docs-theme-hooks) for the consumer-facing summary.
-
-### Doc page
-
-The full Color Rooms token catalogue, the room table, activation steps, light/dark modes, and override recipes live at `/customization/rooms-theme` (`apps/docs/src/routes/customization/rooms-theme/+page.svelte`).
+→ **[DECISIONS.md](DECISIONS.md)**

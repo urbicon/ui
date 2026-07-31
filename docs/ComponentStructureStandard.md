@@ -19,7 +19,7 @@ behaviour-only cores in `src/lib/internal/core/` (`CoreIconButton`,
 (`closeButton`, `removeButton`, …). Essential compositions (ConfirmDialog →
 Dialog, DatePicker → Calendar) stay public-to-public but need an allowlist
 entry in `scripts/imports-lint.ts` (`bun run imports:lint`). See
-[ARCHITECTURE.md → Internal Core Layer](ARCHITECTURE.md#internal-core-layer-layer-0).
+[ARCHITECTURE.md → The internal core layer](ARCHITECTURE.md#the-internal-core-layer).
 
 ## index.ts
 

@@ -34,7 +34,7 @@ bun run dev
 ```
 urbicon-ui/
 ├── packages/
-│   ├── blocks            36 primitives + 19 components (zero runtime deps)
+│   ├── blocks            40 primitives + 27 components, tokens, tv() engine, 315 icons
 │   ├── table             Data table (selection, keyboard, virtual, remote, live updates)
 │   ├── auth              Auth + passkeys + notifications + email (Web Crypto only)
 │   ├── docs              Reusable documentation UI components
@@ -49,8 +49,11 @@ urbicon-ui/
 ├── apps/
 │   └── docs              Documentation site (SvelteKit)
 ├── e2e/                  Playwright suites (auth flow, a11y axe scan)
-└── docs/                 Architecture docs, conventions, roadmap
+└── docs/                 Architecture, conventions, component reference
 ```
+
+A diagram of how the packages depend on each other, plus the build order, is in
+[docs/ARCHITECTURE.md § 1](docs/ARCHITECTURE.md#1--the-monorepo-at-a-glance).
 
 ## Commands
 
@@ -79,12 +82,19 @@ urbicon-ui/
 
 ## Documentation
 
+Start with [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) — §1 is the package map and build
+order, §2 the path from a design token to rendered markup. [docs/README.md](docs/README.md)
+indexes everything else and suggests a reading order.
+
 | Document | Content |
 |----------|---------|
-| [Architecture Overview](docs/ARCHITECTURE.md) | Token system, Mint, Preset-System, i18n, docs-gen pipeline |
+| [Architecture Overview](docs/ARCHITECTURE.md) | Package map, token → markup path, cross-cutting systems, tooling |
+| [Component Families](docs/COMPONENT-FAMILIES.md) | The seven-family taxonomy: ARIA, tier behaviour, border source |
 | [Component API Conventions](docs/COMPONENT-API-CONVENTIONS.md) | Props, callbacks, styling patterns, design tokens |
 | [Component Structure Standard](docs/ComponentStructureStandard.md) | File structure, index.ts, variants.ts patterns |
-| [Documentation Page Guide](docs/DocsPageGuide.md) | Building component docs pages |
+| [Svelte 5 Patterns](docs/SVELTE5-PATTERNS.md) | Required patterns and the anti-patterns they replace |
+| [Variant Contract](docs/VARIANT-CONTRACT.md) | What each `variant` value means across the library |
+| [Conscious Trade-offs](docs/DECISIONS.md) | Decisions that look like oversights and are not |
 | [Tailwind Caveats](docs/TailwindCaveats.md) | Tailwind 4 specifics, @theme, Svelte integration |
 | [Responsive Guidelines](docs/ResponsiveGuidelines.md) | Breakpoints, touch targets, overlay patterns |
 | [Auth Package](docs/AUTH.md) | Architecture, exports, consumer integration |

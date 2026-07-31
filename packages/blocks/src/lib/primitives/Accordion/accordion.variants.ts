@@ -27,7 +27,7 @@ export const accordionVariants = tv({
     ],
     contentInner: 'pb-4 text-text-secondary'
   },
-  // Variant contract (see docs/MIGRATION-v5.md §2):
+  // Variant contract (see docs/VARIANT-CONTRACT.md § Accordion & Collapsible):
   //   default → hairlines between items (divide-y)
   //   card    → items as standalone card blocks with spacing, no borders
   //   ghost   → no separators, hover-tint per item

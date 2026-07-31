@@ -29,7 +29,9 @@ Bump **after pushing a coherent set of changes**. Bump proactively — don't wai
 4. Creates a single release commit: `chore: release vX.Y.Z`
 5. Creates annotated git tag `vX.Y.Z` on HEAD
 
-Result: one release commit + one annotated tag on HEAD. The tag on HEAD is critical — it triggers the CI publish pipeline. Push with `git push --follow-tags`. **Never edit `CHANGELOG.md` manually** — it is fully auto-generated.
+Result: one release commit + one annotated tag on HEAD. The tag on HEAD is critical — pushing it is what starts the release. Push with `git push --follow-tags`. **Never edit `CHANGELOG.md` manually** — it is fully auto-generated.
+
+**Where publishing actually happens.** The tag triggers `.github/workflows/release.yml`, but that workflow is a **gate**, not a publisher: it runs lint, typecheck, unit tests and e2e against the tagged commit. The effective npm publisher is the deploy host, triggered by the same tag. The workflow's publish steps stay in the file but are dormant behind `if: env.NPM_REGISTRY_URL != ''` — do **not** add `NPM_REGISTRY_URL` / `NPM_TOKEN` as repository secrets unless you intend to move publishing there, or the same tag gets two publishers. See [DECISIONS.md](DECISIONS.md#publishing-does-not-happen-in-releaseyml).
 
 **`apps/*` are intentionally out of scope.** The bump only scans `packages/`, and the version write is additionally guarded to non-private packages. `apps/docs` is a private, never-published app, so it keeps its own `package.json` version (currently `0.0.1`) rather than tracking the library version — a private app sharing the public library version would be misleading. This is by design, not a drift to fix.
 

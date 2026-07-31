@@ -69,7 +69,7 @@ Two components lay things out on dates, and the MCP used to steer day-content bo
 
 ---
 
-## Form-input layer — Select vs. Combobox vs. Menu (XC-7)
+## Form-input layer — Select vs. Combobox vs. Menu
 
 Three components open an anchored floating panel from a trigger and look deceptively
 interchangeable. They are not: **Select** and **Combobox** are Form-family *value holders*
@@ -140,11 +140,11 @@ Tooltip and Toast almost never collide with the four above — Tooltip is descri
 
 ---
 
-## Related cross-cutting clusters
+## Related cross-cutting topics
 
-- **XC-14** in [archive/2026-05/V1-HARDENING-AUDIT.md](archive/2026-05/V1-HARDENING-AUDIT.md) — origin of this matrix.
-- **XC-7** — Combobox / Select / Menu disambiguation → [§ Form-input layer](#form-input-layer--select-vs-combobox-vs-menu-xc-7) above.
-- **XC-11** — Cross-overlay animation tokens (Dialog/Drawer/Popover/Tooltip/Toast).
+- [§ Form-input layer](#form-input-layer--select-vs-combobox-vs-menu) above — Combobox / Select / Menu disambiguation.
+- [ARCHITECTURE.md § Overlay motion](ARCHITECTURE.md#overlay-motion) — the shared animation tokens across Dialog / Drawer / Popover / Tooltip / Toast.
+- [COMPONENT-FAMILIES.md](COMPONENT-FAMILIES.md) — the taxonomy these matrices disambiguate within.
 
 ---
 

@@ -30,9 +30,6 @@ jobs:
       # Icon geometry contract + the 5-spot registration checklist. An icon
       # registered in four of five places renders nothing, silently.
       - run: bun run icons:lint
-      # The generated A2UI axes file vs. its source of truth. Drift here means
-      # the A2UI catalog advertises props the components no longer take.
-      - run: bun run a2ui:axes:check
       # Source-level i18n audit: unused keys, used-but-undefined keys,
       # hardcoded strings. Advisory findings do not fail; errors do.
       - run: bun run i18n:check
@@ -70,9 +67,14 @@ jobs:
       - uses: actions/checkout@v4
       - uses: oven-sh/setup-bun@v2
       - run: bun install --frozen-lockfile
-      # All four read the generated catalogues, which `build:ts` produces in its
+      # All of these read generated output, which `build:ts` produces in its
       # closing `docs:gen:ci` step — they cannot run before it.
       - run: bun run build:ts
+      # The generated A2UI axes file vs. its source of truth. Drift here means
+      # the A2UI catalog advertises props the components no longer take. Lives
+      # here rather than in `lint` because it reads the design-content catalogue,
+      # which is a build artefact.
+      - run: bun run a2ui:axes:check
       # Component @summary budget.
       - run: bun run summary:lint
       # A docs page is hand-registered in three places (sidebar, componentLinks,
@@ -93,6 +95,12 @@ jobs:
       - uses: actions/checkout@v4
       - uses: oven-sh/setup-bun@v2
       - run: bun install --frozen-lockfile
+      # The unit suites import across workspace boundaries, so they need the
+      # dependencies built — without this, blocks' tests fail to resolve
+      # @urbicon-ui/i18n and the job is red for a reason that has nothing to do
+      # with the code under test. This job ran without it for as long as the
+      # workflow existed; it simply never executed, because origin was Codeberg.
+      - run: bun run build:ts
       - run: bun --filter='@urbicon-ui/blocks' run test:run
       - run: bun --filter='@urbicon-ui/i18n' run test:run
       - run: bun --filter='@urbicon-ui/docs-gen' run test

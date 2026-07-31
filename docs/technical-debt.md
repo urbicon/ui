@@ -6,8 +6,7 @@ sweep. Logged here so they aren't lost. Actively planned work lives in the
 internal TODO instead. Sections are ordered roughly by urgency.
 
 > **Decision pass 2026-07-24:** the decision-blocked entries here were triaged and
-> resolved — verdict + wave assignment per entry in
-> [internal/DEBT-DECISIONS-2026-07-24.md](internal/DEBT-DECISIONS-2026-07-24.md)
+> resolved — verdict and scheduling per entry recorded in the maintainers' notes
 > (7 waves W1–W7). Scheduled entries stay here until their wave lands (the wave
 > then updates/removes them); entries decided **not to act on** carry an inline
 > `Decision 2026-07-24` line below so they aren't re-litigated.

@@ -377,11 +377,11 @@ export class ConfigurationFactory {
                 'Non-modal help panel, contextual hints, UI↔guide linking, opt-in guided tour — architecture + as-built contract'
             },
             {
-              title: 'Migration v4 → v5',
-              sourcePath: '../blocks/docs/MIGRATION-v5.md',
-              outputName: 'MIGRATION-v5.md',
+              title: 'Variant Contract',
+              sourcePath: '../blocks/docs/VARIANT-CONTRACT.md',
+              outputName: 'VARIANT-CONTRACT.md',
               description:
-                'Consumer migration guide for the v5 "lighter design" refactor — variant renames, table chrome, new tokens'
+                'What each variant value means across the library — the surface ladder, Card/Alert/Accordion/Table variants, border tokens, and the naming history'
             }
           ]
         })

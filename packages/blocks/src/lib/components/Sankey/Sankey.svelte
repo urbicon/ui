@@ -461,24 +461,30 @@
     {/if}
   </div>
 
-  <!-- Screen-reader table -->
-  <table class="sr-only">
-    <caption>{ariaSummary}</caption>
-    <thead>
-      <tr>
-        <th scope="col">{bt('sankey.source')}</th>
-        <th scope="col">{bt('sankey.target')}</th>
-        <th scope="col">{bt('sankey.value')}</th>
-      </tr>
-    </thead>
-    <tbody>
-      {#each links as link (`${link.source}-${link.target}`)}
+  <!-- Screen-reader table. `sr-only` lives on a wrapper div, never on the
+       table itself: a table treats `width: 1px` as a minimum, and `sr-only`'s
+       `white-space: nowrap` stretches it thousands of pixels wide — absolutely
+       positioned, that turns every scroll container above it into a horizontal
+       phantom scroller. The div clamps to 1px and clips. -->
+  <div class="sr-only">
+    <table>
+      <caption>{ariaSummary}</caption>
+      <thead>
         <tr>
-          <td>{nodeLabelById(link.source)}</td>
-          <td>{nodeLabelById(link.target)}</td>
-          <td>{fmtValue(link.value)}</td>
+          <th scope="col">{bt('sankey.source')}</th>
+          <th scope="col">{bt('sankey.target')}</th>
+          <th scope="col">{bt('sankey.value')}</th>
         </tr>
-      {/each}
-    </tbody>
-  </table>
+      </thead>
+      <tbody>
+        {#each links as link (`${link.source}-${link.target}`)}
+          <tr>
+            <td>{nodeLabelById(link.source)}</td>
+            <td>{nodeLabelById(link.target)}</td>
+            <td>{fmtValue(link.value)}</td>
+          </tr>
+        {/each}
+      </tbody>
+    </table>
+  </div>
 </div>

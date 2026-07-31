@@ -35,8 +35,9 @@
   },
   "files": [
     "LICENSE",
+    "docs/A2UI.md",
     "docs/GUIDE.md",
-    "docs/MIGRATION-v5.md",
+    "docs/VARIANT-CONTRACT.md",
     "dist",
     "!dist/**/*.test.*",
     "!dist/**/*.spec.*",

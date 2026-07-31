@@ -237,7 +237,7 @@ focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50 fo
 
 ### Border Radius
 
-Components map to **tier tokens**, not raw Tailwind sizes. The tier expresses semantics ("this is an action" vs. "this is a container"); the actual pixel value is set in `foundation.css` and can be re-tuned by a brand without touching component code. See [ARCHITECTURE.md §Tier System](ARCHITECTURE.md#tier-system) for the model.
+Components map to **tier tokens**, not raw Tailwind sizes. The tier expresses semantics ("this is an action" vs. "this is a container"); the actual pixel value is set in `foundation.css` and can be re-tuned by a brand without touching component code. See [ARCHITECTURE.md § The tier system](ARCHITECTURE.md#the-tier-system) for the model.
 
 | Family / Element | Tier | Class |
 | --- | --- | --- |
@@ -327,7 +327,7 @@ When `unstyled` is `false`, `slotClasses` values are merged with the default tv(
 
 Conflicts are resolved per Tailwind bucket (the later source wins for a given property; non-conflicting classes accumulate) — so an instance `rounded-none` deterministically defeats a provider-default `rounded-full` instead of leaving the winner to stylesheet order.
 
-For **project-wide** overrides, register them on `BlocksProvider` rather than repeating `slotClasses` at each call site: `defaults` (unconditional, every instance), `presets` (opt-in, named), or `overrides` (prop-conditional — e.g. only `variant="outlined"`). See [ARCHITECTURE.md → Preset System](./ARCHITECTURE.md#preset-system-since-v080).
+For **project-wide** overrides, register them on `BlocksProvider` rather than repeating `slotClasses` at each call site: `defaults` (unconditional, every instance), `presets` (opt-in, named), or `overrides` (prop-conditional — e.g. only `variant="outlined"`). See [ARCHITECTURE.md → The override cascade](./ARCHITECTURE.md#the-override-cascade).
 
 To restyle an embedded component (e.g. make an Input look borderless inside a custom container), override the visual boundary slot:
 
@@ -423,7 +423,7 @@ Tier-aware primitives accept an optional `tier` prop that selects the radius sem
 </Toolbar>
 ```
 
-**Default-Tier by family:** Action `commit` · Form `modify` · Navigation per component (SegmentGroup `commit`, Tab `modify`, Stepper `commit`) · Container `contain`. Full table in [ARCHITECTURE.md §Tier System](ARCHITECTURE.md#tier-system).
+**Default-Tier by family:** Action `commit` · Form `modify` · Navigation per component (SegmentGroup `commit`, Tab `modify`, Stepper `commit`) · Container `contain`. Full table in [ARCHITECTURE.md § The tier system](ARCHITECTURE.md#the-tier-system).
 
 **Standard implementation pattern** (in `ComponentName.svelte`):
 
@@ -451,7 +451,7 @@ Feedback / Ambient components (Toast, Spinner, Progress, Skeleton) and Identity 
 | `data-docs-subtitle` | `description` paragraph in `DocsLayout` | `display: none` in the docs scope (field is title-first) |
 | `data-room-hero` | hand-rolled section-landing heroes | Full-width colour-field band flush to the app sidebar (the page nests an inner `max-w` wrapper for alignment); `data-room-chip` flips a room-tinted chip to read on the fill |
 
-Consumers writing their own theme can hook the same attributes. The library defaults remain unchanged. See [ARCHITECTURE.md §Color Rooms Theme](ARCHITECTURE.md#color-rooms-theme-docs-only) for the full theme architecture.
+Consumers writing their own theme can hook the same attributes. The library defaults remain unchanged. See [the docs-site README § The Color Rooms theme](../apps/docs/README.md#the-color-rooms-theme) for the full theme architecture.
 
 ## Common Props
 

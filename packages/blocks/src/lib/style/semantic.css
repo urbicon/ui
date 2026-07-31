@@ -75,7 +75,7 @@
      shipped across 8 components until 2026-07-26; the hover idiom moved to
      `surface-hover`, and variants-lint now errors on any hover fill naming a
      reading surface. Its in-page-zone role was superseded by `surface-quiet`
-     in v5 (MIGRATION-v5 "New tokens"), which is why it has no rung of its own
+     (see docs/VARIANT-CONTRACT.md "The surface ladder"), which is why it has no rung of its own
      left — prefer `surface-quiet` for a tinted zone and `surface-elevated`
      for a raised one. Kept for the resting uses that read correctly against
      a border (readonly/disabled fields, list rows, code chips). */

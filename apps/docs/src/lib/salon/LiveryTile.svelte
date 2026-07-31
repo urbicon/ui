@@ -90,21 +90,28 @@
   <!--
     Stage.
 
-    `stage` turns the message list's own scrolling OFF (see the style block):
-    a tile is a CROP, not a scrollable chat. The first attempt kept the list
-    scrollable and tried to scroll it back to the top after settling — the
-    list's auto-scroll-to-newest ran after that and won every time, so the tile
-    opened on the last line of the form. Letting the list take its natural
-    height and clipping it here removes the race instead of timing against it.
+    `stage` turns the message list's own scrolling OFF (see the style block)
+    and scrolls ITSELF instead. The distinction matters: the list's
+    auto-scroll-to-newest drives its own viewport (`el.scrollTo`, never
+    `scrollIntoView`), so with the list at natural height there is nothing it
+    can scroll — the tile always opens on the first frame, and the visitor can
+    still scroll down to the booking form the crop would otherwise cut off.
+    (The first attempt kept the LIST scrollable and lost the timing race
+    against auto-scroll every time.)
+
+    `pb-16` matches the fade height, so the end of the conversation can scroll
+    clear of the fade.
   -->
-  <div class="stage relative min-h-0 flex-1 overflow-hidden">
-    {#if mounted}
-      <BlocksProvider defaults={livery.defaults}>
-        <SalonBooking instant autoStart composer={false} />
-      </BlocksProvider>
-    {/if}
-    <!-- The stage fades at the bottom edge so the cropped surface reads as
-         "continues" rather than "cut off". -->
+  <div class="relative min-h-0 flex-1">
+    <div class="stage h-full overflow-y-auto overflow-x-hidden pb-16">
+      {#if mounted}
+        <BlocksProvider defaults={livery.defaults}>
+          <SalonBooking instant autoStart composer={false} />
+        </BlocksProvider>
+      {/if}
+    </div>
+    <!-- Outside the scroller, so it stays put at the visual bottom edge: the
+         faded surface reads as "continues" — and now it actually does. -->
     <div
       class="pointer-events-none absolute inset-x-0 bottom-0 h-16 bg-gradient-to-t from-surface-base to-transparent"
       aria-hidden="true"
@@ -145,5 +152,9 @@
    */
   .stage :global([class*='overflow-y-auto']) {
     overflow: visible;
+  }
+
+  .stage {
+    scrollbar-width: thin;
   }
 </style>

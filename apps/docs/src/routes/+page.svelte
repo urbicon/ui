@@ -81,7 +81,7 @@
       key: 'table',
       no: '02',
       title: 'Table',
-      line: 'Feature-rich enterprise grid',
+      line: 'The whole grid — sorting, grouping, selection, virtual rows, remote data, live updates',
       channel: CHANNELS[TILE_CHANNEL.table]
     },
     {
@@ -97,7 +97,7 @@
       key: 'agent',
       no: '04',
       title: 'Agents',
-      line: 'AI harnessing itself',
+      line: 'Agents write code you can still read — the gate keeps it that way.',
       channel: CHANNELS[TILE_CHANNEL.agents]
     },
     {
@@ -264,7 +264,7 @@
   // ── 05 Treppe: die restlichen Register — jede Stufe ist eine Tür ───
   const STEPS = $derived([
     { label: `${data.counts.primitives} primitives`, href: '/blocks' },
-    { label: `${data.counts.composed} composites`, href: '/blocks#display' },
+    { label: `${data.counts.composed} components`, href: '/blocks#display' },
     { label: `${data.counts.icons} icons`, href: '/icons' },
     { label: 'calendar', href: '/blocks/components/calendar' },
     { label: 'guide', href: '/blocks/components/guide' },
@@ -280,7 +280,7 @@
 
   // Die Fußzeile der Namens-Kachel: drei Konstruktionseigenschaften, keine
   // Messungen — die Zahlen stehen in Zeile 2, wo sie aus den Katalogen kommen.
-  const PROOF = 'self-contained · self-organizing · controlled consistency';
+  const PROOF = 'one package · one grammar · one gate';
 
   // ── Zeile 2: das Hero-Inventar als niedrigere Zeile ────────────────
   // Mechanik 1:1 aus test-fixtures/landing-hero: die Vorschau ist der gepflegte
@@ -339,7 +339,7 @@
 
   const selected = $derived<HeroRow>(
     data.rows.find((r) => r.slug === selectedSlug()) ??
-      data.rows.find((r) => r.name === 'Sankey') ??
+      data.rows.find((r) => r.name === 'A2UIView') ??
       data.rows[0]
   );
 

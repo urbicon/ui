@@ -88,8 +88,7 @@ version this project installed.
 
 The three manifest commands move off the remote server deliberately: a public
 remote server has no access to your repo's filesystem, so manifest upkeep belongs
-on the consumer side (this CLI, or the agent's own write tools). See
-[docs/internal/DESIGN-MCP-V2.md](../../docs/internal/DESIGN-MCP-V2.md).
+on the consumer side (this CLI, or the agent's own write tools).
 
 ### validate
 
@@ -136,7 +135,7 @@ counts (`--json` carries `results[].suppressed`), a suppression that matched
 nothing is marked stale, and an unknown rule id raises an
 `invalid-suppression` warning instead of silently suppressing nothing.
 
-The linter scores two independent axes (DESIGN-MCP-V2 §6): **correctness** (raw
+The linter scores two independent axes: **correctness** (raw
 colours, `dark:`/`focus:`, hallucinated tokens — deterministic, always the
 blocking gate) and **craft** (20 "looks generic" heuristics — advisory by default,
 because they are FP-prone). `--craft-floor <n>` opts the craft axis into the gate:
@@ -233,7 +232,7 @@ ambiguous title fails loud rather than recording a dangling link.
 ## Design verbs
 
 Ten recipes that string the knowledge, the linter, and the manifest into one loop —
-the same single source served remotely as MCP prompts (DESIGN-MCP-V2 §8). They ship
+the same single source that is served remotely as MCP prompts. They ship
 in this package under `skill/`, so they run offline and version-locked.
 
 ```bash

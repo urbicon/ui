@@ -2,7 +2,7 @@
 
 Mandatory best practices for the Urbicon UI codebase. This file is the detailed reference for the short section in [`AGENTS.md`](../AGENTS.md#svelte-5--mandatory-patterns).
 
-> **Context:** The review found five recurring anti-patterns (`Math.random()` IDs, `setContext('string')`, `$state(new Map())`, index keys, `class:foo`) in an otherwise fully Svelte-5-migrated codebase. All were fixed — this file prevents regressions. Sources: official Svelte 5 documentation (`mcp__svelte__get-documentation`) + [REVIEW-2026-05.md](archive/2026-05/REVIEW-2026-05.md) phase 5 + appendix A.
+> **Context:** A 2026-05 review found five recurring anti-patterns (`Math.random()` IDs, `setContext('string')`, `$state(new Map())`, index keys, `class:foo`) in an otherwise fully Svelte-5-migrated codebase. All were fixed — this file prevents regressions. Source for the rules themselves: the official Svelte 5 documentation.
 
 ## Anti-Patterns (do NOT do)
 
@@ -131,7 +131,7 @@ Rule of thumb: **if the parent's existence already follows from the DOM structur
 A module-global reactive singleton is **fine in itself** — `export const overlayStack = new OverlayStack()`, `toaster`, `mintRegistry` are role models. **One specific combination** becomes dangerous: a late-init singleton (`export const x = new ReactiveClass()`, often at the end of the module) that **another** module dereferences **during its own module eval** — typically an eager registration side effect required for SSR correctness:
 
 ```ts
-// Dangerous form — i18n had exactly this before WP2 (now solved via getRegistry()):
+// Dangerous form — i18n had exactly this before v6 (now solved via getRegistry()):
 // my-service.svelte.ts
 export const svc = new ReactiveService(); // at end of module → late init
 
@@ -146,7 +146,7 @@ Under **Vite 8 / Rolldown** the bundler may split statically and dynamically imp
 
 **The nuance:** singletons consumed **lazily only** (in component scripts, `$derived`, event handlers — i.e. at render time, after module eval) are safe. `overlayStack`/`toaster` are used exactly this way → not a concern. The trigger is solely **eval-time access from a foreign module**.
 
-**Fix — the core is part 1, the hoisted lazy getter** (role model `packages/i18n/src/lib/i18n/registry.svelte.ts`, `getRegistry()`). **Part 2 (the proxy facade) is optional** — only needed when a value-import API (`import { x }`) must be preserved; i18n removed it in WP2 along with the public singleton, and the registry is now purely internal (only `getRegistry()`):
+**Fix — the core is part 1, the hoisted lazy getter** (role model `packages/i18n/src/lib/i18n/registry.svelte.ts`, `getRegistry()`). **Part 2 (the proxy facade) is optional** — only needed when a value-import API (`import { x }`) must be preserved; i18n removed it along with the public singleton, and the registry is now purely internal (only `getRegistry()`):
 
 ```ts
 // 1. Lazy getter as a HOISTED function declaration — defers the `new` (including

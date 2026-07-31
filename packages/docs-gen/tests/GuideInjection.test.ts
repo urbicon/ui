@@ -17,7 +17,9 @@ describe('guide-injection', () => {
   describe('assertGuideSlug', () => {
     it('accepts lowercase-hyphen slugs', () => {
       expect(() => assertGuideSlug('auth')).not.toThrow();
-      expect(() => assertGuideSlug('migration-v5')).not.toThrow();
+      expect(() => assertGuideSlug('variant-contract')).not.toThrow();
+      // digits are legal in a segment — `a2ui` is the in-tree case
+      expect(() => assertGuideSlug('a2ui')).not.toThrow();
     });
 
     it('rejects uppercase, path separators, and empty slugs', () => {

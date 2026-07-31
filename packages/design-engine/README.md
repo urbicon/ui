@@ -32,5 +32,6 @@ import { RUBRIC_CRITERIA, renderRubric } from '@urbicon-ui/design-engine/rubric'
 - The linter's token whitelist is drift-guarded against the real CSS sources via a
   test; keep it in sync when foundation/semantic tokens change.
 
-See [docs/internal/DESIGN-MCP.md](../../docs/internal/DESIGN-MCP.md) (as-built design loop)
-and [DESIGN-MCP-V2.md](../../docs/internal/DESIGN-MCP-V2.md) (package-centric architecture).
+The engine is consumed by [`@urbicon-ui/design`](https://www.npmjs.com/package/@urbicon-ui/design)
+(the `urbicon` CLI) and by the MCP server — both are thin surfaces over it, so the linter,
+the manifest parser and the rubric behave identically whichever way they are reached.

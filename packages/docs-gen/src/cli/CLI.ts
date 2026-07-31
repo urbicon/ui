@@ -48,11 +48,11 @@ const PACKAGE_GUIDES: (PackageGuide & { embedInLlmsFull?: boolean })[] = [
     sourcePath: resolveFromDocsGen('..', 'blocks', 'docs', 'A2UI.md')
   },
   {
-    slug: 'migration-v5',
-    title: 'Migration v4 → v5',
+    slug: 'variant-contract',
+    title: 'Variant Contract',
     description:
-      'Consumer migration guide for the v5 "lighter design" refactor — variant renames, table chrome, new tokens',
-    sourcePath: resolveFromDocsGen('..', 'blocks', 'docs', 'MIGRATION-v5.md')
+      'What each variant value means across the library — the surface ladder, Card/Alert/Accordion/Table variants, border tokens, and the naming history',
+    sourcePath: resolveFromDocsGen('..', 'blocks', 'docs', 'VARIANT-CONTRACT.md')
   },
   {
     slug: 'table-sticky',

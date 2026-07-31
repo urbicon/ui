@@ -19,7 +19,7 @@ export const alertVariants = tv({
       'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-current/50'
     ]
   },
-  // Variant contract (see docs/MIGRATION-v5.md §2):
+  // Variant contract (see docs/VARIANT-CONTRACT.md § Alert):
   //   soft   → bg-{intent}-subtle, no border — quiet default, reading-flow
   //   inline → border-l-2 only, transparent bg — memo-style, leisest
   //   filled → bg-{intent}, white text — strong emphasis

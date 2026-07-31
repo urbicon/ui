@@ -44,11 +44,24 @@ const IGNORED_DIRS = new Set(['__fixtures__', '.svelte-kit', 'node_modules']);
 const RE_TEST_FILE = /\.(?:test|spec)\./;
 
 type Finding = { pkg: string; file: string; expected: string; foundAs?: string };
+/** A declaration that exists but resolved to `any` — see the degraded-types pass. */
+type Degraded = { pkg: string; file: string; symbol: string };
 
 const errors: Finding[] = [];
+const degraded: Degraded[] = [];
 let checkedPackages = 0;
 let checkedModules = 0;
+let checkedVariantFiles = 0;
 const skipped: string[] = [];
+
+/**
+ * `export declare const fooVariants: any;` — the shape a `*.variants.d.ts` takes
+ * when TypeScript could not resolve the tv() return type and fell back to `any`
+ * instead of erroring. Anchored to the variants export specifically: `any`
+ * elsewhere in a declaration can be deliberate, but a variants object typed
+ * `any` always means every variant prop silently vanished from the public API.
+ */
+const RE_DEGRADED_VARIANTS = /export declare const (\w+)\s*:\s*any\s*;/;
 
 // ── package.json helpers ─────────────────────────────────────────────────────
 
@@ -195,6 +208,19 @@ for (const dir of [...packageDirs].sort()) {
       const foundAs = [...entries].find((e) => e.toLowerCase() === base.toLowerCase());
       errors.push({ pkg: name, file: rel, expected, foundAs });
     }
+
+    // Second pass — a declaration that exists but says nothing. The check above
+    // proves the file is there; it cannot see that its contents collapsed to
+    // `any`, which is the same loss of public API by a different route.
+    for (const rel of new Bun.Glob(`${root}/**/*.variants.d.ts`).scanSync({
+      cwd: pkgDir,
+      onlyFiles: true
+    })) {
+      if (isExcluded(rel, exclusions) || RE_TEST_FILE.test(rel)) continue;
+      checkedVariantFiles++;
+      const match = RE_DEGRADED_VARIANTS.exec(await Bun.file(join(pkgDir, rel)).text());
+      if (match) degraded.push({ pkg: name, file: rel, symbol: match[1] as string });
+    }
   }
 
   if (sawRoot) checkedPackages++;
@@ -204,7 +230,7 @@ for (const dir of [...packageDirs].sort()) {
 // ── Report ───────────────────────────────────────────────────────────────────
 
 console.log(
-  `\n${c.bold}types-guard${c.reset} ${c.gray}· ${checkedPackages} package(s) · ${checkedModules} published module(s)${c.reset}`
+  `\n${c.bold}types-guard${c.reset} ${c.gray}· ${checkedPackages} package(s) · ${checkedModules} published module(s) · ${checkedVariantFiles} variants declaration(s)${c.reset}`
 );
 if (skipped.length) {
   console.log(`${c.gray}  skipped (ship no declarations): ${skipped.join(', ')}${c.reset}`);
@@ -250,6 +276,37 @@ if (errors.length) {
     );
   }
   console.log(`\n${c.red}✖ ${errors.length} module(s) shipped without declarations${c.reset}\n`);
+  process.exit(1);
+}
+
+if (degraded.length) {
+  console.log(
+    `${c.red}${c.bold}Degraded variant declarations (${degraded.length})${c.reset} ${c.gray}— present, but typed \`any\`${c.reset}`
+  );
+  const byPkg = new Map<string, Degraded[]>();
+  for (const d of degraded) {
+    const bucket = byPkg.get(d.pkg);
+    if (bucket) bucket.push(d);
+    else byPkg.set(d.pkg, [d]);
+  }
+  for (const [pkg, ds] of byPkg) {
+    console.log(`  ${c.red}${pkg}${c.reset}`);
+    for (const d of ds) console.log(`    ${d.file} ${c.gray}→ ${d.symbol}: any${c.reset}`);
+  }
+  console.log(
+    `\n${c.yellow}What this means:${c.reset} every variant prop of those components is gone from the\n` +
+      `${c.gray}published API. A consumer writing <DocsLayout maxWidth="lg"> gets no completion and no\n` +
+      `error — and \`svelte-check\` in the docs app reports the prop as unknown.\n\n` +
+      `${c.yellow}Cause:${c.reset} ${c.gray}TypeScript could not resolve the tv() return type and fell back to \`any\`\n` +
+      `instead of failing. In practice that means the package was built before a package it types\n` +
+      `against (usually @urbicon-ui/blocks) had finished emitting its dist — the concurrent-build\n` +
+      `race that \`scripts/build-packages.ts\` exists to prevent.\n\n` +
+      `${c.yellow}Fix:${c.reset} ${c.gray}rebuild in dependency order — bun run build:ts. If it survives that, the\n` +
+      `type genuinely does not resolve and wants an explicit annotation or an exported type.${c.reset}`
+  );
+  console.log(
+    `\n${c.red}✖ ${degraded.length} variants declaration(s) shipped as \`any\`${c.reset}\n`
+  );
   process.exit(1);
 }
 

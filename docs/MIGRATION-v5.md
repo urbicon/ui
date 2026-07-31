@@ -1,1 +1,0 @@
-../packages/blocks/docs/MIGRATION-v5.md

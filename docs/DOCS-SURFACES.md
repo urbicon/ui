@@ -9,9 +9,9 @@ from this file as bugs, not as taste.
 
 Package docs were once centralised from `packages/auth` into `docs/` (one place
 for repo developers), then moved back into the package on 2026-07-20 (npm
-consumers could not reach `docs/` at all — the repo is private and README links
-into it were dead). Both moves optimised for a single audience. The synthesis,
-and the standing rule:
+consumers could not reach `docs/` at all — the repo was private at the time, so
+README links into it were dead). Both moves optimised for a single audience. The
+synthesis, and the standing rule:
 
 > **The source of truth lives with the versioned artifact it documents; the
 > monorepo keeps a symlink so central navigation still works.** Moving files
@@ -53,7 +53,7 @@ and the standing rule:
 | --- | --- | --- | --- |
 | Component API | `*Props` JSDoc in the package source | consumers + agents | docs-gen → `api.ts`, `llm.txt` tree, MCP catalog, `design-content` (CLI) |
 | Package guide (integration, security, limitations) | `packages/<pkg>/docs/*.md` | consumers + agents | tarball (`files`), docs-gen `guides` → `static/<scope>/` + scope `llms.txt`, `design-content` bundle → `urbicon guide` + MCP resource, llms-full extraction (`embedInLlmsFull`), site route (`/auth/guide`) |
-| Package quickstart | `packages/<pkg>/README.md` | consumers | tarball, npmjs page (deep links go absolute to the rendered site route — relative links 404 on npmjs against the private repo; `./docs/…` stays as the shipped-copy pointer) |
+| Package quickstart | `packages/<pkg>/README.md` | consumers | tarball, npmjs page (deep links go absolute to the rendered site route — npmjs does not resolve relative links into the repo, so they 404 there regardless of repo visibility; `./docs/…` stays as the shipped-copy pointer) |
 | Monorepo conventions (SVELTE5-PATTERNS, ICON-DESIGN, …) | `docs/*.md` | repo developers + agents | repo only — deliberately not shipped |
 | Design knowledge (principles, patterns, tokens) | `design-system/`, `css-reference.ts` | consumers + agents | `design-content` bundle → `urbicon` CLI, MCP, docs site |
 | Planning / strategy / review bookkeeping | `docs/internal/` (gitignored), `docs/technical-debt.md` | maintainers | repo only |
@@ -83,7 +83,7 @@ never link to it as a source.
     extraction from AUTH.md; the kernel-CSRF prose in `handle.ts`/`csrf.ts`
     shrank to pointers (principle 3). The scope `llms.txt` stays an index —
     security notes live in the indexed guide, not inline (decided 2026-07-21).
-  - The `docs/*.md` audit moved GUIDE.md + MIGRATION-v5.md into
+  - The `docs/*.md` audit moved GUIDE.md + the blocks migration guide into
     `packages/blocks/docs/` and STICKY-PINNING.md into
     `packages/table/docs/` — each tarball-shipped with a root symlink,
     scope-`llms.txt` indexed, and in the guide bundle.
