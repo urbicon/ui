@@ -71,7 +71,7 @@ export const promptInputVariants = tv({
     ],
     stopButton: [
       'shrink-0 rounded-modify',
-      'bg-neutral text-text-on-primary',
+      'bg-neutral text-text-on-fill',
       'transition-[color,background-color] duration-[var(--blocks-duration-fast)] ease-out',
       'hover:bg-neutral-hover active:bg-neutral-active',
       'focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2'

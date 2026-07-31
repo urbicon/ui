@@ -655,7 +655,11 @@ describe('tv – tailwind conflict resolver', () => {
       expect(tokens).not.toContain('bg-transparent');
       expect(tokens).toContain('bg-neutral');
       expect(tokens).toContain('border-neutral');
-      expect(tokens).toContain('text-text-on-primary');
+      // `neutral` is a non-primary solid fill, so its label rides the shared
+      // `--color-text-on-fill` (2026-07-31). What this case is actually about is
+      // the compound-vs-variant cascade, not which on-colour — but pinning the
+      // real token keeps it honest if the pairing moves again.
+      expect(tokens).toContain('text-text-on-fill');
       // `border-1` (width) and `border-neutral` (color) are orthogonal CSS
       // properties — both should survive. Pre-bucket-split they shared a
       // bucket and `border-1` was wrongly stripped.

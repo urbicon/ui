@@ -40,6 +40,10 @@ const TEXT_CORES = [
   'text-quaternary',
   'text-disabled',
   'text-inverted',
+  // The label colour for any solid intent fill. `text-on-primary` is its alias
+  // and governs the primary fills alone — both are valid, on-fill is the one to
+  // reach for on success/danger/neutral/secondary/info.
+  'text-on-fill',
   'text-on-primary',
   'text-on-dark',
   'text-on-surface',
@@ -257,8 +261,8 @@ export const KNOWN_BAD_NAMESPACES: Record<string, string> = {
   // `status-*` is the most frequent invention observed. Map to feedback/intents.
   'status-':
     'Use a `feedback-*` token (feedback-success, feedback-error, …) or a bare intent (`success`, `danger`).',
-  // `-fg` / `-foreground` suffixes are invented; the system uses `text-on-primary` etc.
-  '-fg': 'Use `text-on-primary` for foreground-on-intent text (`text-on-warning` on warning fills).'
+  // `-fg` / `-foreground` suffixes are invented; the system uses `text-on-fill` etc.
+  '-fg': 'Use `text-on-fill` for foreground-on-intent text (`text-on-warning` on warning fills).'
 };
 
 /**

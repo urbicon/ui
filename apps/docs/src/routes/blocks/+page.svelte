@@ -953,7 +953,7 @@ Tokens switch light and dark automatically:
                   class="border-border-default text-text-secondary rounded-md border px-2.5 py-1 text-2xs"
                   >Cancel</span
                 >
-                <span class="bg-danger text-text-on-primary rounded-md px-2.5 py-1 text-2xs"
+                <span class="bg-danger text-text-on-fill rounded-md px-2.5 py-1 text-2xs"
                   >Delete</span
                 >
               </div>

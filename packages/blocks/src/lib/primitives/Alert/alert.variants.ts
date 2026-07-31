@@ -149,12 +149,12 @@ export const alertVariants = tv({
     {
       intent: 'info',
       variant: 'filled',
-      class: { base: 'bg-info text-text-on-primary', dismissButton: 'text-text-on-primary' }
+      class: { base: 'bg-info text-text-on-fill', dismissButton: 'text-text-on-fill' }
     },
     {
       intent: 'success',
       variant: 'filled',
-      class: { base: 'bg-success text-text-on-primary', dismissButton: 'text-text-on-primary' }
+      class: { base: 'bg-success text-text-on-fill', dismissButton: 'text-text-on-fill' }
     },
     {
       intent: 'warning',
@@ -164,12 +164,12 @@ export const alertVariants = tv({
     {
       intent: 'danger',
       variant: 'filled',
-      class: { base: 'bg-danger text-text-on-primary', dismissButton: 'text-text-on-primary' }
+      class: { base: 'bg-danger text-text-on-fill', dismissButton: 'text-text-on-fill' }
     },
     {
       intent: 'neutral',
       variant: 'filled',
-      class: { base: 'bg-neutral text-text-on-primary', dismissButton: 'text-text-on-primary' }
+      class: { base: 'bg-neutral text-text-on-fill', dismissButton: 'text-text-on-fill' }
     }
   ],
   defaultVariants: {

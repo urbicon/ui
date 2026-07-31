@@ -145,11 +145,11 @@
   // Readable text color on the segment background (for showValues)
   const onColorClass: Record<CompositionBarIntent, string> = {
     primary: 'text-text-on-primary',
-    secondary: 'text-text-on-primary',
-    success: 'text-text-on-primary',
+    secondary: 'text-text-on-fill',
+    success: 'text-text-on-fill',
     warning: 'text-text-on-warning',
-    danger: 'text-text-on-primary',
-    neutral: 'text-text-on-primary'
+    danger: 'text-text-on-fill',
+    neutral: 'text-text-on-fill'
   };
   const intentRingClass: Record<CompositionBarIntent, string> = {
     primary: 'focus-visible:ring-primary/50',

@@ -170,7 +170,17 @@ const semanticTokens = {
     quaternary: { value: '{color.neutral.500}', description: 'Quaternary text (lowest emphasis)' },
     disabled: { value: '{color.neutral.500}', description: 'Disabled text' },
     'on-dark': { value: '{color.neutral.0}', description: 'Text on dark surfaces' },
-    'on-primary': { value: '{color.neutral.0}', description: 'Text on primary color bg' },
+    'on-fill': {
+      value: '{color.neutral.0}',
+      description: 'Text on any solid intent fill (success, danger, neutral, …)'
+    },
+    // A reference, not a copy: `--color-text-on-primary` is defined as
+    // `var(--color-text-on-fill)`, so a theme that moves on-fill must move this
+    // with it. Copying `{color.neutral.0}` here would silently decouple them.
+    'on-primary': {
+      value: '{semantic.text.on-fill}',
+      description: 'Text on the primary fill specifically — an alias of on-fill'
+    },
     'on-warning': {
       value: '{color.warning.950}',
       description: 'Text on the warning fill (warm dark in both modes)'

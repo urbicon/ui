@@ -134,14 +134,14 @@ export const checkboxVariants = tv({
       checked: true,
       intent: 'secondary',
       class: {
-        box: 'bg-secondary border-secondary text-text-on-primary group-hover:bg-secondary-hover group-active:bg-secondary-active'
+        box: 'bg-secondary border-secondary text-text-on-fill group-hover:bg-secondary-hover group-active:bg-secondary-active'
       }
     },
     {
       checked: true,
       intent: 'success',
       class: {
-        box: 'bg-success border-success text-text-on-primary group-hover:bg-success-hover group-active:bg-success-active'
+        box: 'bg-success border-success text-text-on-fill group-hover:bg-success-hover group-active:bg-success-active'
       }
     },
     {
@@ -155,14 +155,14 @@ export const checkboxVariants = tv({
       checked: true,
       intent: 'danger',
       class: {
-        box: 'bg-danger border-danger text-text-on-primary group-hover:bg-danger-hover group-active:bg-danger-active'
+        box: 'bg-danger border-danger text-text-on-fill group-hover:bg-danger-hover group-active:bg-danger-active'
       }
     },
     {
       checked: true,
       intent: 'neutral',
       class: {
-        box: 'bg-neutral border-neutral text-text-on-primary group-hover:bg-neutral-hover group-active:bg-neutral-active'
+        box: 'bg-neutral border-neutral text-text-on-fill group-hover:bg-neutral-hover group-active:bg-neutral-active'
       }
     },
 
@@ -178,14 +178,14 @@ export const checkboxVariants = tv({
       indeterminate: true,
       intent: 'secondary',
       class: {
-        box: 'bg-secondary border-secondary text-text-on-primary group-hover:bg-secondary-hover group-active:bg-secondary-active'
+        box: 'bg-secondary border-secondary text-text-on-fill group-hover:bg-secondary-hover group-active:bg-secondary-active'
       }
     },
     {
       indeterminate: true,
       intent: 'success',
       class: {
-        box: 'bg-success border-success text-text-on-primary group-hover:bg-success-hover group-active:bg-success-active'
+        box: 'bg-success border-success text-text-on-fill group-hover:bg-success-hover group-active:bg-success-active'
       }
     },
     {
@@ -199,14 +199,14 @@ export const checkboxVariants = tv({
       indeterminate: true,
       intent: 'danger',
       class: {
-        box: 'bg-danger border-danger text-text-on-primary group-hover:bg-danger-hover group-active:bg-danger-active'
+        box: 'bg-danger border-danger text-text-on-fill group-hover:bg-danger-hover group-active:bg-danger-active'
       }
     },
     {
       indeterminate: true,
       intent: 'neutral',
       class: {
-        box: 'bg-neutral border-neutral text-text-on-primary group-hover:bg-neutral-hover group-active:bg-neutral-active'
+        box: 'bg-neutral border-neutral text-text-on-fill group-hover:bg-neutral-hover group-active:bg-neutral-active'
       }
     },
 
