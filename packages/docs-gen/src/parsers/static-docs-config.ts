@@ -36,11 +36,13 @@ export class StaticDocsConfigError extends Error {
 /**
  * `<script>` / `<script lang="ts">` … `</script>` blocks.
  *
- * The closing tag allows the whitespace HTML permits before the `>` (`</script >`)
- * and is captured rather than assumed, so the body offset below stays right
- * whatever its length turns out to be.
+ * The closing tag takes what an HTML parser takes: after `</script`, whitespace
+ * turns the rest into attribute junk that is parsed and discarded, so `</script >`
+ * and `</script foo>` both end the block while `</scriptx>` does not. It is
+ * captured rather than assumed, so the body offset below stays right whatever its
+ * length turns out to be.
  */
-const SCRIPT_BLOCK = /<script\b[^>]*>([\s\S]*?)(<\/script\s*>)/gi;
+const SCRIPT_BLOCK = /<script\b[^>]*>([\s\S]*?)(<\/script(?:\s[^>]*)?>)/gi;
 
 /**
  * Blank out everything that is not inside a `<script>` body, preserving the

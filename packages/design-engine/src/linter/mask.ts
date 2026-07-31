@@ -39,18 +39,24 @@ interface Delimiters {
   readonly close: RegExp;
 }
 
-const HTML_COMMENT: Delimiters = { open: /<!--/g, close: /-->/g };
+/** `--!>` closes a comment too (HTML's "comment end bang" state), so the mask honours it. */
+const HTML_COMMENT: Delimiters = { open: /<!--/g, close: /--!?>/g };
 const BLOCK_COMMENT: Delimiters = { open: /\/\*/g, close: /\*\//g };
 
 /**
- * `\b` so a `<scripted>` component is not read as a script block, and `\s*` before
- * the `>` because HTML allows `</script >`. Case-insensitive: unlike Svelte's own
- * parser this is a "what should the scanner not look at" mask, and `<SCRIPT>` is
- * markup nobody should be scanning either way.
+ * `\b` so a `<scripted>` component is not read as a script block. The closer takes
+ * what an HTML parser takes: once `</script` is followed by whitespace, everything
+ * up to the next `>` is attribute junk the parser discards — `</script >` and
+ * `</script foo>` both end the block, `</scriptx>` does not. Case-insensitive:
+ * unlike Svelte's own parser this is a "what should the scanner not look at" mask,
+ * and `<SCRIPT>` is markup nobody should be scanning either way.
+ *
+ * `(?:\s[^>]*)?` and not `\s*[^>]*`: the single `\s` cannot share characters with
+ * the run after it, so there is nothing for a backtracking engine to redistribute.
  */
 const scriptLike = (tag: string): Delimiters => ({
   open: new RegExp(`<${tag}\\b`, 'gi'),
-  close: new RegExp(`</${tag}\\s*>`, 'gi')
+  close: new RegExp(`</${tag}(?:\\s[^>]*)?>`, 'gi')
 });
 
 const SCRIPT_BLOCK = scriptLike('script');

@@ -423,7 +423,13 @@ function checkInlineStyle(lines: string[]): Finding[] {
       // Any interpolation marks the *whole* declaration set dynamic and skips it.
       // Trade-off: a mixed `color: red; width: {w}%` escapes the static `color` too —
       // accepted, because suppressing the FP on dynamic styles matters more than that edge.
-      if (/\{[^}]*\}|\$\{/.test(body)) continue;
+      //
+      // Index scans rather than `/\{[^}]*\}|\$\{/`: on a run of `{` with no closer
+      // that expression retries from every one of them, which is quadratic on
+      // attribute text a model wrote (js/polynomial-redos, alert 29). Same answer —
+      // if any `}` follows a `{`, the first such pair has no `}` between them.
+      const brace = body.indexOf('{');
+      if ((brace !== -1 && body.indexOf('}', brace + 1) !== -1) || body.includes('${')) continue;
       if (INLINE_PAINT_RE.test(body)) hits.push({ line: i + 1, match: 'style=…' });
     }
   });

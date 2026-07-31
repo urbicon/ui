@@ -46,6 +46,10 @@ describe('maskHtmlComments', () => {
     expect(maskHtmlComments('<!-->')).toBe('<!-->');
   });
 
+  it('closes on `--!>`, which HTML accepts as a comment end', () => {
+    expect(maskHtmlComments('<!--x--!>tail')).toBe(`${' '.repeat(9)}tail`);
+  });
+
   it('treats `<!---->` as an empty one', () => {
     expect(maskHtmlComments('<!---->')).toBe('       ');
   });
@@ -71,6 +75,16 @@ describe('maskScriptAndStyle', () => {
   it('closes on `</script >`, which HTML allows', () => {
     const src = '<script>x</script >tail';
     expect(maskScriptAndStyle(src)).toBe(`${' '.repeat(19)}tail`);
+  });
+
+  it('closes on a closing tag carrying junk, as an HTML parser does', () => {
+    const src = '<script>x</script foo>tail';
+    expect(maskScriptAndStyle(src)).toBe(`${' '.repeat(22)}tail`);
+  });
+
+  it('does not close on `</scriptx>`', () => {
+    const src = '<script>x</scriptx>';
+    expect(maskScriptAndStyle(src)).toBe(src);
   });
 
   it('does not open a region on a component whose name starts with the tag', () => {
