@@ -4,6 +4,20 @@ All notable changes to this project will be documented in this file.
 This changelog is automatically generated from [Conventional Commits](https://www.conventionalcommits.org).
 
 
+## [6.47.1] - 2026-07-31
+
+### Bug Fixes
+- **artifact-studio**: Derive session ids from a CSPRNG
+- **docs-gen**: Escape YAML scalars fully, match script tags exactly
+- **design-engine**: Scan masked regions linearly, fix two silent mis-masks
+- **design-engine**: Keep the heading and frontmatter gap on one line
+
+### CI/CD
+- Scope the GITHUB_TOKEN to contents: read
+
+### Testing
+- Escape regex metacharacters, tighten the URL assertion
+
 ## [6.47.0] - 2026-07-31
 
 ### Bug Fixes
