@@ -193,7 +193,11 @@ describe('checkboxVariants', () => {
 
     it('switches to commit on tier=commit (pill-style checklist)', () => {
       const styles = checkboxVariants({ tier: 'commit' });
-      expect(styles.box()).toContain('rounded-commit');
+      // `rounded-checkbox`, not `rounded-commit`: the commit tier used to round
+      // the box fully, which reads as a radio — the mirror of the squared-radio
+      // defect. The tier still changes the box; it no longer changes what the
+      // control appears to BE.
+      expect(styles.box()).toContain('rounded-checkbox');
       expect(styles.box()).not.toContain('rounded-modify');
     });
 

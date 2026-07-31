@@ -612,9 +612,27 @@ describe('scoring (two axes)', () => {
     expect(scores.craft).toBe(100);
   });
   it('reports severity counts', () => {
-    const { counts } = lintDesign('<div class="bg-blue-500 bg-status-x">');
-    expect(counts.error).toBeGreaterThanOrEqual(1);
-    expect(counts.warning).toBeGreaterThanOrEqual(1);
+    // Both of these are errors since 2026-07-31 — `bg-status-x` used to supply
+    // the warning half of this case, before `token-hallucination` was promoted.
+    const errors = lintDesign('<div class="bg-blue-500 bg-status-x">');
+    expect(errors.counts.error).toBeGreaterThanOrEqual(2);
+    // A real warning still has to be counted as one, or the promotion would have
+    // quietly emptied that bucket.
+    const warnings = lintDesign('<button class="p-2"><svg /></button>');
+    expect(warnings.counts.warning).toBeGreaterThanOrEqual(1);
+  });
+
+  it('fails the error gate on a hallucinated token', () => {
+    // The regression this guards, measured on the artifact-recorder spike: a
+    // component whose colour utilities all reference non-existent tokens scored
+    // correctness 25 with ZERO errors, so it passed a gate that blocks on
+    // errors — while rendering with no styling at all, because a Tailwind 4
+    // utility whose theme variable is missing emits no CSS.
+    const { counts, scores } = lintDesign(
+      '<div class="bg-surface-raised text-text-muted"><span class="bg-surface-inverse-hover">x</span></div>'
+    );
+    expect(counts.error, 'a dead token reference must block, not advise').toBeGreaterThanOrEqual(1);
+    expect(scores.correctness).toBeLessThan(100);
   });
 });
 

@@ -197,9 +197,12 @@ describe('radioItemVariants', () => {
     expect(indicator).toContain('peer-focus-visible:ring-offset-surface-base');
   });
 
-  it('uses commit tier (rounded-commit) for radio indicator', () => {
+  it('uses the control radius for the radio indicator', () => {
     const indicator = radioItemVariants({}).indicator();
-    expect(indicator).toContain('rounded-commit');
+    // `rounded-control`, not `rounded-commit`: since 2026-07-31 the circle is
+    // independent of the pill, so a theme squaring its buttons keeps the "pick
+    // exactly one" affordance. See style/control-radius.test.ts.
+    expect(indicator).toContain('rounded-control');
   });
 
   it('differentiates all sizes', () => {
@@ -246,16 +249,16 @@ describe('radioItemVariants', () => {
   describe('tier', () => {
     it('defaults to commit (circle indicator)', () => {
       const styles = radioItemVariants({});
-      expect(styles.indicator()).toContain('rounded-commit');
-      expect(styles.dot()).toContain('rounded-commit');
+      expect(styles.indicator()).toContain('rounded-control');
+      expect(styles.dot()).toContain('rounded-control');
     });
 
     it('switches to modify on tier=modify (soft-rectangle indicator)', () => {
       const styles = radioItemVariants({ tier: 'modify' });
       expect(styles.indicator()).toContain('rounded-modify');
       expect(styles.dot()).toContain('rounded-modify');
-      expect(styles.indicator()).not.toContain('rounded-commit');
-      expect(styles.dot()).not.toContain('rounded-commit');
+      expect(styles.indicator()).not.toContain('rounded-control');
+      expect(styles.dot()).not.toContain('rounded-control');
     });
   });
 });

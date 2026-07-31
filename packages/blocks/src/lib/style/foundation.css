@@ -179,6 +179,25 @@
   --radius-commit: 9999px;
   --radius-modify: var(--radius-sm);
   --radius-contain: var(--radius-xs);
+  /* The two selection controls take their shape from their OWN tokens, not from
+     the tier's. Shape is the only thing telling a radio from a checkbox — both
+     are otherwise the same small box with the same label — and unlike the pill
+     on a button, the circle on a radio is convention with meaning (Material,
+     HIG and Carbon all hold it).
+
+     Before 2026-07-31 both rode `--radius-commit`, so the invitation two lines
+     up ("a more austere one can drop r-modify to 0") cut both ways and took the
+     affordance with it: setting `--radius-commit: 0` squared the radio into a
+     checkbox, and the commit tier rounded the checkbox into a radio. That is not
+     a corner case for austere themes — ALL FOUR docs liveries needed a
+     `CIRCULAR_RADIOS` provider override, including the one that merely softens
+     the tier to 2px, because 2px on a 20px control already reads as square.
+
+     Both still default to their tier values, so nothing moves until a theme
+     touches them; the point is that a theme touching the pill no longer moves
+     them by accident. */
+  --radius-control: 9999px;
+  --radius-checkbox: var(--radius-sm);
   /* r-bridge — the MIDDLE tier, at r-md (~6 px). Two cases earn it, both
      of them "r-contain is too hard here, r-commit is too soft":
 

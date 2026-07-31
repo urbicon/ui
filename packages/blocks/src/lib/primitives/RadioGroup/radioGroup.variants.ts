@@ -78,7 +78,10 @@ export const radioItemVariants = tv({
     // the circle would feel oversized — usually inherited from the
     // wrapping RadioGroup's `tier`-prop / TierContext.
     tier: {
-      commit: { indicator: 'rounded-commit', dot: 'rounded-commit' },
+      // `rounded-control`, not `rounded-commit`: a squared radio is a checkbox
+      // to the eye, and shape is the only thing carrying "pick exactly one".
+      // See the --radius-control note in foundation.css.
+      commit: { indicator: 'rounded-control', dot: 'rounded-control' },
       modify: { indicator: 'rounded-modify', dot: 'rounded-modify' }
     },
     size: {

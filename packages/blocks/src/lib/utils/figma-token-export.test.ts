@@ -34,10 +34,20 @@ function extractBlock(css: string, selector: string): string {
   return css.slice(openBraceIdx + 1, i - 1);
 }
 
-/** All `--custom-property: value;` declarations in a block, whitespace-collapsed. */
+/**
+ * All `--custom-property: value;` declarations in a block, whitespace-collapsed.
+ *
+ * Comments are stripped first. These CSS files carry long prose blocks that
+ * discuss the tokens by name, and a sentence like "setting `--radius-commit: 0`
+ * squared the radio" parses as a declaration otherwise — the parser then reports
+ * the *prose* as the token's value and the diff is unreadable. Hit for real on
+ * 2026-07-31; stripping is cheaper than asking every future comment to avoid a
+ * colon.
+ */
 function parseDeclarations(block: string): Map<string, string> {
+  const withoutComments = block.replace(/\/\*[\s\S]*?\*\//g, '');
   const decls = new Map<string, string>();
-  for (const match of block.matchAll(/--([\w-]+)\s*:\s*([^;]+);/g)) {
+  for (const match of withoutComments.matchAll(/--([\w-]+)\s*:\s*([^;]+);/g)) {
     decls.set(match[1], match[2].replace(/\s+/g, ' ').trim());
   }
   return decls;
