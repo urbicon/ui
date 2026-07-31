@@ -1094,8 +1094,9 @@ internal TODO instead. Sections are ordered roughly by urgency.
 ### CI runs since the GitHub move; the pixel suite is the one part still ungated
 
 - **Where:** `.github/workflows/ci.yml` + `release.yml` vs. the deploy pipeline:
-  a webhook → `deploy-ui.service` on the Hetzner host → `@buny/deploy-runtime`,
-  configured in `/etc/buny/ui/deploy.env`.
+  a webhook → a systemd unit on the deploy host → `@buny/deploy-runtime`, driven
+  by an environment file there. Host-side paths and unit names are deliberately
+  not repeated in this public file; they live in the internal deployment doc.
 - **What:** This entry used to read "Linux CI can't verify them", which framed
   the problem wrongly for months, and then "there is no CI at all", which was
   true for as long as `origin` was Codeberg: the workflow files described a
@@ -1120,20 +1121,20 @@ internal TODO instead. Sections are ordered roughly by urgency.
   deploy host (linux), both by hand.
 - **Resolved 2026-07-26 (the gate):** `deploy-runtime` supports an opt-in
   `TEST_CMD` that runs after the build and *before* the release move and the
-  publish, failing the whole deploy on a non-zero exit (10-minute budget).
-  `/etc/buny/ui/deploy.env` now sets `TEST_CMD=bun run test` — measured at 90s on
-  the host under full load. Verified by running the suite there first, in a
+  publish, failing the whole deploy on a non-zero exit (10-minute budget). The
+  host's environment file now sets `TEST_CMD=bun run test` — measured at 90s
+  there under full load. Verified by running the suite on the host first, in a
   throwaway checkout: it surfaced a real flake (four audit-scanner tests timing
   out at the 5s default, fixed in `badd9983`) that would otherwise have blocked
-  every deployment the moment the gate went live. A backup of the previous config
-  sits at `/etc/buny/ui/deploy.env.bak-20260726`.
+  every deployment the moment the gate went live. The previous config was backed
+  up alongside it.
 - **Resolved 2026-07-26 (the baselines):** `-chromium-linux` baselines now exist
   alongside the darwin ones, generated on the deploy host itself — the machine
   that would run them — rather than by trying to match some CI renderer
   byte-for-byte. The `test.skip(process.platform !== 'darwin')` gate on
   `visual-regression.spec.ts` is gone with its reason. The full Chromium build
-  (not just `headless_shell`) was installed to `/opt/ms-playwright` for this,
-  because `playwright.config.ts` pins `channel: 'chromium'`.
+  (not just `headless_shell`) had to be installed on the host for this, because
+  `playwright.config.ts` pins `channel: 'chromium'`.
 - **The deploy gate runs unit tests only.** e2e/Playwright is not in `TEST_CMD`
   — it takes **~11 minutes on that host** (5 locally) against a ten-minute
   budget shared with the build, and a red visual diff blocking a docs deployment
@@ -1143,17 +1144,15 @@ internal TODO instead. Sections are ordered roughly by urgency.
   between a change and production. It stays the only place the **pixel** half
   could run automatically — which is why the host, not the runner, is where
   that decision still sits.
-- **`deploy.env` is a systemd `EnvironmentFile`, so editing it changes nothing
-  until the unit restarts.** `deploy-ui.service` declares
-  `EnvironmentFile=/etc/buny/ui/deploy.env` and systemd reads that file **at
-  service start**, not per webhook. The daemon had been up since 2026-06-30, so
-  the freshly-added `TEST_CMD` was absent from its process environment and the
-  v6.43.2 deploy still published untested — verified by reading
-  `/proc/<MainPID>/environ`, which listed `BUILD_CMD` but not `TEST_CMD`. Fixed
-  with `systemctl restart deploy-ui.service`; the gate is live from the next
-  deployment. Any future change to a `deploy.env` needs the same restart, and
-  the only honest way to confirm a gate is armed is to read the running
-  process's environment, not the file.
+- **A systemd `EnvironmentFile` is read at service start, not per request — so
+  editing it changes nothing until the unit restarts.** The deploy daemon had
+  been up since 2026-06-30, so the freshly-added `TEST_CMD` was absent from its
+  process environment and the v6.43.2 deploy still published untested. Verified
+  by reading the running process's environment, which listed `BUILD_CMD` but not
+  `TEST_CMD`; fixed by restarting the unit. The general lesson outlives this
+  incident: any change to such a file needs a restart, and the only honest way
+  to confirm a gate is armed is to read the running process's environment rather
+  than the file it was supposed to come from.
 - **Baseline hygiene, learned twice in one day:** both platform sets had to be
   regenerated after merging the surface-ladder change (`162bac47`), which moved
   `neutral-25/-50` without touching any snapshot — correct for pass/fail, since

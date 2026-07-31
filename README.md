@@ -1,9 +1,13 @@
 # Urbicon UI
 
+[![CI](https://github.com/urbicon/ui/actions/workflows/ci.yml/badge.svg)](https://github.com/urbicon/ui/actions/workflows/ci.yml)
+[![npm](https://img.shields.io/npm/v/@urbicon-ui/blocks?label=%40urbicon-ui%2Fblocks)](https://www.npmjs.com/package/@urbicon-ui/blocks)
+[![License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
+
 Vertically integrated, zero-runtime-dependency Svelte 5 + Tailwind CSS 4 platform: UI primitives, data tables, auth, i18n, docs and AI-native DX — all under unified versioning. Built with Bun workspaces.
 
 - **Documentation:** [ui.urbicon.de](https://ui.urbicon.de)
-- **Source:** [github.com/urbicon/ui](https://github.com/urbicon/ui)
+- **Source:** [github.com/urbicon/ui](https://github.com/urbicon/ui) — development happens here; [codeberg.org/urbicon/ui](https://codeberg.org/urbicon/ui) stays as a read-only mirror, which is what the `Codeberg #NN` markers in the source refer to
 
 ## Using the Packages
 

@@ -128,8 +128,8 @@ jobs:
       # across visual-regression, visual-regression-interaction, floating and
       # the `Guide — visual` block. NOT because pixel tests do not belong in CI,
       # but because these baselines are host-bound: the -chromium-linux set was
-      # generated on the Hetzner deploy host on purpose — the machine that would
-      # run them — rather than matched to some CI renderer. A GitHub runner is a
+      # generated on the deploy host on purpose — the machine that would run
+      # them — rather than matched to some CI renderer. A GitHub runner is a
       # different machine, so every shot would drift on font rendering alone and
       # the suite would be red for a reason that says nothing about the code.
       # visual-regression-interaction has no linux baselines at all and would

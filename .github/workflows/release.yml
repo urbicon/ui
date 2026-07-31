@@ -2,11 +2,10 @@ name: Release
 
 # Triggered when a `vX.Y.Z` tag lands on main (created by
 # `bun run bump:{patch,minor,major}` followed by `git push --follow-tags`).
-# Runs the full CI gate (lint, typecheck, unit, e2e) before publishing, so a
-# broken tag cannot ship to npm.
+# Runs the full gate (lint, typecheck, unit, e2e) on the tagged commit.
 #
 # PUBLISHING IS DELIBERATELY OFF HERE (decided 2026-07-31, with the move to
-# GitHub). The effective npm publisher is the Buny deploy on the Hetzner host,
+# GitHub). The effective npm publisher is the Buny deploy on the deploy host,
 # triggered by the same tag; it owns the token and the package order. This
 # workflow is the *gate* in front of that: build, typecheck, unit tests and e2e
 # on a tag, so a broken tag is visible before Buny ships it.
@@ -80,7 +79,7 @@ jobs:
 
       - name: Playwright e2e
         # `--grep-invert @pixel` for the same reason as in ci.yml: the linux
-        # screenshot baselines are bound to the Hetzner deploy host, not to a
+        # screenshot baselines are bound to the deploy host, not to a
         # GitHub runner. Excluding them here means a release tag is gated on
         # behaviour, not on font rendering.
         run: |
