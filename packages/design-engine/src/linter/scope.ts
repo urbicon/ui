@@ -35,12 +35,11 @@
  */
 
 import { readBraced, scanMarkup } from './markup.js';
+import { blankRegion, maskHtmlComments } from './mask.js';
 import type { LintMode } from './types.js';
 
 /** A kept [start, end) span of the source. */
 type Span = readonly [number, number];
-
-const blankRegion = (s: string): string => s.replace(/[^\n]/g, ' ');
 
 /** Attribute names whose string values carry classes. */
 function isClassAttrName(name: string): boolean {
@@ -187,9 +186,17 @@ export function collectLiteralSpans(src: string, start: number, end: number, out
   }
 }
 
-/** Body spans of every `<script>`/`<style>` block (comments already blanked upstream). */
+/**
+ * Body spans of every `<script>`/`<style>` block (comments already blanked upstream).
+ *
+ * The closing tag allows the whitespace HTML permits (`</script >`) so this agrees
+ * with {@link maskHtmlComments}' neighbour in markup.ts about where a block ends.
+ * While the two disagreed, a `</script >` made markup.ts blank the region and this
+ * reader miss it — and a class literal inside that body silently stopped being
+ * linted, which is a finding lost rather than one invented.
+ */
 function blockBodySpans(src: string, tag: 'script' | 'style'): Span[] {
-  const re = new RegExp(`(<${tag}\\b[^>]*>)([\\s\\S]*?)</${tag}>`, 'gi');
+  const re = new RegExp(`(<${tag}\\b[^>]*>)([\\s\\S]*?)</${tag}\\s*>`, 'gi');
   const spans: Span[] = [];
   for (const m of src.matchAll(re)) {
     const bodyStart = (m.index ?? 0) + (m[1] ?? '').length;
@@ -224,7 +231,7 @@ export function buildCodeView(source: string, mode: LintMode): string {
 
   // Structure discovery on a comment-blanked copy so a commented-out `<script>`
   // or a `{` inside `<!-- … -->` never opens a phantom region.
-  const noComments = source.replace(/<!--[\s\S]*?-->/g, blankRegion);
+  const noComments = maskHtmlComments(source);
   const scriptBodies = blockBodySpans(noComments, 'script');
   const styleBodies = blockBodySpans(noComments, 'style');
 

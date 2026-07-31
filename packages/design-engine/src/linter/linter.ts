@@ -6,6 +6,7 @@
  */
 
 import { runHeuristics } from './heuristics.js';
+import { maskBlockComments, maskHtmlComments } from './mask.js';
 import { RULES } from './rules.js';
 import { buildCodeView } from './scope.js';
 import { applySuppressions, collectSuppressions } from './suppress.js';
@@ -48,10 +49,7 @@ export const CRAFT_PENALTY = 10;
  * safely (without eating `https://`) is not worth the complexity for v1.
  */
 export function maskComments(code: string): string {
-  const blankKeepNewlines = (s: string) => s.replace(/[^\n]/g, ' ');
-  return code
-    .replace(/<!--[\s\S]*?-->/g, blankKeepNewlines)
-    .replace(/\/\*[\s\S]*?\*\//g, blankKeepNewlines);
+  return maskBlockComments(maskHtmlComments(code));
 }
 
 const SEVERITY_ORDER: Record<Severity, number> = { error: 0, warning: 1, info: 2 };

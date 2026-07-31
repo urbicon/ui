@@ -13,6 +13,8 @@
  * a false positive, which is the contract the correctness gate depends on.
  */
 
+import { maskHtmlComments, maskScriptAndStyle } from './mask.js';
+
 /** How an attribute carries its value. */
 export type AttrKind =
   | 'string' // attr="literal" / attr='literal' / attr=bare
@@ -52,25 +54,27 @@ export interface Element {
   openEnd: number;
 }
 
-const blankRegion = (s: string): string => s.replace(/[^\n]/g, ' ');
-
 /**
  * Blank HTML comments and `<script>`/`<style>` blocks (keeping newlines so line
  * numbers hold) — their bodies are comments/JS/CSS, not markup, and would feed the
  * tag scanner garbage. Comments are blanked here too (not relying on an upstream
  * mask) so {@link scanMarkup} and {@link innerContent} are correct on raw input.
  *
- * Caveat: the `<script>` match is non-greedy, so a `</script>` literal inside a JS
- * string ends the blank early and the trailing JS is then scanned as markup. This
- * is narrower than the line-based rules (which don't blank scripts at all); no real
- * file hits it, and any mis-scan only ever yields a skipped tag, never a wrong
- * finding from the curated rules.
+ * Caveat: the `<script>` region ends at the first `</script>`, so such a literal
+ * inside a JS string ends the blank early and the trailing JS is then scanned as
+ * markup. This is narrower than the line-based rules (which don't blank scripts at
+ * all); no real file hits it, and any mis-scan only ever yields a skipped tag,
+ * never a wrong finding from the curated rules.
+ *
+ * Two deliberate differences from the older non-greedy regexes this replaced:
+ * the opener requires a word boundary, so a `<ScriptEditor …>` component no longer
+ * opens a script region and blanks the markup after it (it did, case-insensitively,
+ * and every rule went quiet until the next `</script>`); and the closer allows
+ * `</script >`, which HTML permits and which previously left the region open to
+ * the end of the file.
  */
 function blankNonMarkup(src: string): string {
-  return src
-    .replace(/<!--[\s\S]*?-->/g, blankRegion)
-    .replace(/<script[\s\S]*?<\/script>/gi, blankRegion)
-    .replace(/<style[\s\S]*?<\/style>/gi, blankRegion);
+  return maskScriptAndStyle(maskHtmlComments(src));
 }
 
 const isNameStart = (c: string | undefined): boolean => c !== undefined && /[A-Za-z]/.test(c);
