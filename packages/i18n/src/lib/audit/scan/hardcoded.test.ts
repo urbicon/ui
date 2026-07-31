@@ -29,8 +29,10 @@ describe('findHardcodedStrings', () => {
     expect(texts).not.toContain('dialog.title'); // <T> key attribute
     expect(texts).not.toContain('user.profile.name'); // dotted key shape
     expect(texts).not.toContain('search-input'); // unchecked attribute (class)
-    expect(texts.some((t) => t.includes('example.com'))).toBe(false); // URL
-    expect(texts.some((t) => t.includes('button.save'))).toBe(false); // already a t() key
+    // No URL at all, not just this one — a substring check on 'example.com'
+    // would also pass for a text that merely mentions the host.
+    expect(texts.filter((t) => t.startsWith('https://'))).toEqual([]);
+    expect(texts).not.toContain('button.save'); // already a t() key
   });
 
   it('skips short, numeric, and code-shaped strings', async () => {

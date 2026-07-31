@@ -119,9 +119,12 @@ function splitArgs(input: string): string[] {
   return out;
 }
 
+/** Every regex metacharacter, not just the `-` a token name happens to contain. */
+const escapeRegExp = (s: string): string => s.replace(/[.*+?^${}()|[\]\\/-]/g, '\\$&');
+
 /** Grab a custom property's raw value, paren-aware. Last declaration wins. */
 function readDecl(css: string, name: string): string | null {
-  const re = new RegExp(`${name.replace(/-/g, '\\-')}\\s*:\\s*`, 'g');
+  const re = new RegExp(`${escapeRegExp(name)}\\s*:\\s*`, 'g');
   let value: string | null = null;
   let match: RegExpExecArray | null;
   // biome-ignore lint/suspicious/noAssignInExpressions: idiomatic exec loop

@@ -47,8 +47,11 @@ function extractBlock(css: string, selector: string): string {
   return css.slice(openBraceIdx + 1, i - 1);
 }
 
+/** Every regex metacharacter, not just the `-` a token name happens to contain. */
+const escapeRegExp = (s: string): string => s.replace(/[.*+?^${}()|[\]\\/-]/g, '\\$&');
+
 function findLightDark(block: string, tokenName: string): { light: string; dark: string } | null {
-  const escaped = tokenName.replace(/-/g, '\\-');
+  const escaped = escapeRegExp(tokenName);
   const re = new RegExp(`${escaped}\\s*:\\s*light-dark\\(([^,]+),\\s*([^)]+)\\)`, 'm');
   const match = re.exec(block);
   if (!match) return null;

@@ -41,8 +41,11 @@ function sourceFilesIn(dir: string): string[] {
 
 const sources = sourceFilesIn(BLOCKS_LIB).map((f) => readFileSync(f, 'utf-8'));
 
+/** Every regex metacharacter, not just the `-` a utility name happens to contain. */
+const escapeRegExp = (s: string): string => s.replace(/[.*+?^${}()|[\]\\/-]/g, '\\$&');
+
 function countUses(utility: string): number {
-  const pattern = new RegExp(`\\b${utility.replace(/[-]/g, '\\-')}\\b`, 'g');
+  const pattern = new RegExp(`\\b${escapeRegExp(utility)}\\b`, 'g');
   return sources.reduce((total, src) => total + (src.match(pattern)?.length ?? 0), 0);
 }
 
