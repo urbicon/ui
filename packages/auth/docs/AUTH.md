@@ -68,6 +68,7 @@ Node-compatibility layer that polyfills `Buffer` (e.g. Cloudflare's
 | `@urbicon-ui/auth/server`                      | Server only         | Handlers, auth core, adapters                               |
 | `@urbicon-ui/auth/server/adapters/prisma`      | Server only         | Prisma adapter factory (`createPrismaRepos`)                |
 | `@urbicon-ui/auth/server/adapters/in-memory`   | Server only         | In-memory adapter (`createInMemoryRepos`) — dev/test        |
+| `@urbicon-ui/auth/server/adapters/conformance-core` | Server (tests) | The suite without a runner import — pass your own `describe`/`it`/`expect` |
 | `@urbicon-ui/auth/server/adapters/conformance` | Server only (tests) | Adapter conformance suite (`describeRepositoryConformance`) |
 | `@urbicon-ui/auth/server/email/lettermint`     | Server only         | Lettermint email transport                                  |
 | `@urbicon-ui/auth/server/email/console`        | Server only         | Console email transport (dev)                               |
@@ -294,7 +295,7 @@ Persistence is behind a repository interface (`Repositories` in `packages/auth/s
 | --------------------- | -------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------- |
 | **Prisma**            | `@urbicon-ui/auth/server/adapters/prisma` (`createPrismaRepos`)                  | Production reference. Copy the models from `prisma/auth-schema.prisma`.                                       |
 | **In-memory**         | `@urbicon-ui/auth/server/adapters/in-memory` (`createInMemoryRepos`)             | Dev/test only — heap Maps, single-process, wiped on restart. The five-minute quickstart and the test fixture. |
-| **Conformance suite** | `@urbicon-ui/auth/server/adapters/conformance` (`describeRepositoryConformance`) | Not an adapter — the executable contract every adapter validates itself against.                              |
+| **Conformance suite** | `@urbicon-ui/auth/server/adapters/conformance` (`describeRepositoryConformance`) | Not an adapter — the executable contract every adapter validates itself against. Wired to vitest; under another runner import `…/conformance-core` and pass `{ runner: { describe, it, expect } }`. |
 
 We deliberately **do not** ship one official adapter per ORM (Drizzle, Kysely, …). Each interface change would then have to be maintained × N adapters. Instead the interface **is** the contract and the conformance suite makes a third-party adapter _provably_ safe rather than hopefully-safe. A Drizzle worked example is below; ship it in your own app, validate it with the suite.
 
