@@ -1,10 +1,19 @@
 <!--
-  Getting started — the "build guide". Four real steps (install → tokens →
-  first component → theme) with big poster numerals on the left; on the right
-  a sticky "Your app so far" specimen card that grows as the reader scrolls:
-  empty after 01, token swatches after 02, the live hello-world after 03, and
-  at 04 the reader repaints the preview themselves via four paint switches —
-  the landing promises "repaint the building", this page lets you do it.
+  Getting started — the "build guide". Five real steps (install → tokens →
+  first component → theme → agent) with big poster numerals on the left; on
+  the right a sticky "Your app so far" specimen card that grows as the reader
+  scrolls: empty after 01, token swatches after 02, the live Bleecker & Bond
+  mini-booking after 03 (the salon fiction the landing established — not
+  another hello world), at 04 the reader repaints the preview themselves via
+  four paint switches — the landing promises "repaint the building", this page
+  lets you do it — and 05 mirrors the landing's second install command
+  (`bunx urbicon init`), so both entry points tell the same story.
+
+  The card follows a MONOTONIC step latch (reachedStep), not the raw
+  scrollspy: the app you've built must not un-build when you scroll back up to
+  re-read — or when focusing the card's input jiggles the viewport out of
+  section 04 and would otherwise dissolve the repaint buttons mid-click (the
+  same latch pattern the landing hero uses for its height).
 
   The preview card reuses the landing's poster grammar (.poster-card +
   .room-accent from $lib/style/rooms.css — imported here too; Vite dedupes):
@@ -21,17 +30,18 @@
 <script lang="ts">
   import SeoMeta from '$lib/SeoMeta.svelte';
   import { resolve } from '$app/paths';
-  import { ArrowRightIcon, Badge, Button, Input } from '@urbicon-ui/blocks';
+  import { ArrowRightIcon, Badge, Button, Input, Select } from '@urbicon-ui/blocks';
   import { CodeExample, ScrollSpy } from '@urbicon-ui/docs';
   import { CHANNELS, FAMILY_CHANNEL } from '$lib/landing/channels';
   import '$lib/style/rooms.css';
 
-  // ── The four steps — ids feed the scrollspy, numerals the poster marks ──
+  // ── The five steps — ids feed the scrollspy, numerals the poster marks ──
   const STEPS = [
     { id: 'install', n: '01', title: 'Install' },
     { id: 'tokens', n: '02', title: 'Import the tokens' },
     { id: 'first-component', n: '03', title: 'Your first component' },
-    { id: 'theme', n: '04', title: 'Make it yours' }
+    { id: 'theme', n: '04', title: 'Make it yours' },
+    { id: 'agent', n: '05', title: 'Bring your agent' }
   ] as const;
 
   const spy = new ScrollSpy(() => STEPS.map((step) => step.id));
@@ -39,6 +49,12 @@
   // Before the first section crosses the trigger line spy.active is '' →
   // findIndex -1 → clamp to step 1, so the card never shows "step 0".
   const activeStep = $derived(Math.max(1, STEPS.findIndex((step) => step.id === spy.active) + 1));
+  // Monotonic latch for the card (see head comment): scrolling back up — or
+  // the focus jiggle from clicking INTO the card — must never un-build the app.
+  let reachedStep = $state(1);
+  $effect(() => {
+    if (activeStep > reachedStep) reachedStep = activeStep;
+  });
 
   // ── Step 04 paints — four of the docs' own room colours ──
   // Straight from the channel register, so a swatch here and the header field
@@ -55,9 +71,17 @@
   }));
   let paint = $state(PAINTS[0]);
 
-  // ── Live hello-world state (steps 03/04 in the preview card) ──
+  // ── Live mini-booking state (steps 03/04 in the preview card) ──
+  // Same fiction as the landing tiles: Bleecker & Bond, the salon. The card
+  // runs EXACTLY the code shown in step 03 — the options live here once so
+  // the snippet and the live demo cannot drift apart in content.
+  const DEMO_SERVICES = [
+    { label: 'The Bleecker Cut — $95', value: 'bleecker' },
+    { label: 'Beard Architecture — $55', value: 'beard' }
+  ];
   let demoName = $state('');
-  let demoGreeted = $state(false);
+  let demoService = $state<string | null>('bleecker');
+  let demoBooked = $state(false);
 
   const installExample = `bun add @urbicon-ui/blocks`;
 
@@ -76,22 +100,34 @@ export default {
 
   const firstComponentExample =
     `<script>
-  import { Badge, Button, Input } from '@urbicon-ui/blocks';
+  import { Badge, Button, Input, Select } from '@urbicon-ui/blocks';
 
   let name = $state('');
-  let greeted = $state(false);
+  let service = $state('bleecker');
+  let booked = $state(false);
 </scr` +
     `ipt>
 
 <Input label="Your name" bind:value={name} placeholder="Ada" />
 
-<Button intent="primary" onclick={() => (greeted = true)} disabled={!name}>
-  Say hello
+<Select
+  label="Service"
+  options={[
+    { label: 'The Bleecker Cut — $95', value: 'bleecker' },
+    { label: 'Beard Architecture — $55', value: 'beard' }
+  ]}
+  bind:value={service}
+/>
+
+<Button intent="primary" onclick={() => (booked = true)} disabled={!name}>
+  Reserve
 </Button>
 
-{#if greeted && name}
-  <Badge intent="success">Hello {name}!</Badge>
+{#if booked && name}
+  <Badge intent="success">Booked — see you soon, {name}.</Badge>
 {/if}`;
+
+  const agentExample = `bunx urbicon init`;
 
   const themeExample = `/* app.css */
 @import '@urbicon-ui/blocks/style/index.css';
@@ -104,7 +140,7 @@ export default {
 
 <SeoMeta
   title="Getting Started"
-  description="Install Urbicon UI, import the design tokens, render your first component and theme it — four steps with a live preview that grows as you go. Svelte 5 + Tailwind 4."
+  description="Install Urbicon UI, import the design tokens, render your first component, theme it and onboard your AI agent — five steps with a live preview that grows as you go. Svelte 5 + Tailwind 4."
 />
 
 {#snippet rampStrip(heightClass: string)}
@@ -123,14 +159,14 @@ export default {
 <div data-room-hero>
   <div class="mx-auto max-w-6xl px-4 sm:px-6 lg:px-8">
     <p class="meta-marker text-text-tertiary text-xs font-medium tracking-wider uppercase">
-      Getting started — install · tokens · component · theme
+      Getting started — install · tokens · component · theme · agent
     </p>
     <h1 class="text-text-primary mt-4 text-4xl font-bold tracking-tight sm:text-5xl">
       Getting started
     </h1>
     <p class="text-text-secondary mt-4 max-w-2xl text-lg">
-      Four steps from an empty file to a themed app. The “Your app so far” preview grows with every
-      step — by the last one, you repaint it yourself.
+      Five steps from an empty file to a themed app your agent can keep building. The “Your app so
+      far” preview grows with every step — by step 04, you repaint it yourself.
     </p>
     <p class="font-meta mt-6">
       requires svelte 5 · tailwind css 4 · node 18+ or bun 1+ · typescript recommended
@@ -173,28 +209,36 @@ export default {
           {STEPS[1].title}
         </h2>
         <p class="text-text-secondary mt-4 max-w-2xl leading-relaxed">
-          The design system arrives as CSS. One import wires up the OKLCH color ramps, semantic
-          tokens, typography and spacing — dark mode included via
-          <code class="bg-surface-elevated rounded-modify px-1.5 py-0.5 font-mono text-xs"
-            >light-dark()</code
-          >, no configuration.
+          The design system arrives as CSS, and Tailwind 4 does the plumbing — so if Tailwind isn’t
+          part of your project yet, add the Vite plugin first (already there? skip ahead):
         </p>
         <div class="mt-6">
-          <CodeExample
-            title="Import CSS tokens"
-            code={basicSetupExample}
-            language="css"
-            preview={false}
-          />
-        </div>
-        <p class="text-text-secondary mt-6 max-w-2xl leading-relaxed">
-          If Tailwind 4 isn’t part of your project yet, add the Vite plugin:
-        </p>
-        <div class="mt-4">
           <CodeExample
             title="Vite config"
             code={viteConfigExample}
             language="javascript"
+            preview={false}
+          />
+        </div>
+        <p class="text-text-secondary mt-6 max-w-2xl leading-relaxed">
+          Then one import wires up the OKLCH color ramps, semantic tokens, typography and spacing —
+          dark mode included via
+          <code class="bg-surface-elevated rounded-modify px-1.5 py-0.5 font-mono text-xs"
+            >light-dark()</code
+          >, no configuration. Load the file once from your root layout (in SvelteKit:
+          <code class="bg-surface-elevated rounded-modify px-1.5 py-0.5 font-mono text-xs"
+            >import './app.css'</code
+          >
+          in
+          <code class="bg-surface-elevated rounded-modify px-1.5 py-0.5 font-mono text-xs"
+            >+layout.svelte</code
+          >):
+        </p>
+        <div class="mt-4">
+          <CodeExample
+            title="Import CSS tokens"
+            code={basicSetupExample}
+            language="css"
             preview={false}
           />
         </div>
@@ -209,16 +253,29 @@ export default {
           {STEPS[2].title}
         </h2>
         <p class="text-text-secondary mt-4 max-w-2xl leading-relaxed">
-          Import and render — no provider, no context setup. This exact code is what runs in the
-          “Your app so far” preview: type your name there and say hello.
+          Import and render — no provider, no context setup. This is the booking widget from
+          Bleecker &amp; Bond, the salon every demo on this site runs on, and it’s three components
+          speaking one grammar:
+          <code class="bg-surface-elevated rounded-modify px-1.5 py-0.5 font-mono text-xs"
+            >label</code
+          >,
+          <code class="bg-surface-elevated rounded-modify px-1.5 py-0.5 font-mono text-xs"
+            >bind:value</code
+          >
+          and
+          <code class="bg-surface-elevated rounded-modify px-1.5 py-0.5 font-mono text-xs"
+            >intent</code
+          >
+          mean the same thing everywhere. The exact same code runs live in the “Your app so far” preview
+          — book yourself a chair.
         </p>
         <div class="mt-6">
-          <CodeExample title="Hello world" code={firstComponentExample} preview={false} />
+          <CodeExample title="Book a chair" code={firstComponentExample} preview={false} />
         </div>
       </section>
 
       <!-- 04 · Make it yours -->
-      <section id={STEPS[3].id} class="border-border-subtle border-t pt-12">
+      <section id={STEPS[3].id} class="border-border-subtle border-t py-12">
         <h2 class="text-text-primary flex items-baseline gap-4 text-2xl font-bold tracking-tight">
           <span class="text-primary text-5xl font-medium leading-none" aria-hidden="true">
             {STEPS[3].n}
@@ -239,6 +296,41 @@ export default {
           <CodeExample title="Custom theme" code={themeExample} language="css" preview={false} />
         </div>
       </section>
+
+      <!-- 05 · Bring your agent — the landing's second install command,
+           mirrored here so both entry points tell the same story. -->
+      <section id={STEPS[4].id} class="border-border-subtle border-t pt-12">
+        <h2 class="text-text-primary flex items-baseline gap-4 text-2xl font-bold tracking-tight">
+          <span class="text-primary text-5xl font-medium leading-none" aria-hidden="true">
+            {STEPS[4].n}
+          </span>
+          {STEPS[4].title}
+        </h2>
+        <p class="text-text-secondary mt-4 max-w-2xl leading-relaxed">
+          Agents are first-class consumers of this library. One command writes the AGENTS.md block —
+          the component grammar, the token rules, where to look things up — and installs the design
+          gate: every file your agent touches gets scored on correctness and craft before it ships.
+        </p>
+        <div class="mt-6">
+          <CodeExample
+            title="Onboard your agent"
+            code={agentExample}
+            language="bash"
+            preview={false}
+          />
+        </div>
+        <p class="text-text-secondary mt-6 max-w-2xl leading-relaxed">
+          What the gate checks, and the rest of the toolchain — per-component
+          <code class="bg-surface-elevated rounded-modify px-1.5 py-0.5 font-mono text-xs"
+            >llms.txt</code
+          >, the
+          <code class="bg-surface-elevated rounded-modify px-1.5 py-0.5 font-mono text-xs"
+            >urbicon</code
+          >
+          CLI — lives on
+          <a href={resolve('/ai')} class="text-primary font-medium hover:underline">AI &amp; DX</a>.
+        </p>
+      </section>
     </div>
 
     <!-- ── "Your app so far" — the growing preview ────────────────────────
@@ -258,11 +350,11 @@ export default {
           class="font-meta border-border-hairline flex items-baseline justify-between border-b pb-3"
         >
           <span class="text-text-primary">Your app so far</span>
-          <span>step {activeStep} / 4</span>
+          <span>step {reachedStep} / 5</span>
         </p>
 
         <div class="flex min-h-[17rem] flex-col">
-          {#if activeStep === 1}
+          {#if reachedStep === 1}
             <!-- 01 — installed, nothing rendered -->
             <div
               class="border-border-default mt-5 grid flex-1 place-items-center border border-dashed p-6"
@@ -271,9 +363,10 @@ export default {
                 <p class="text-text-primary">+ @urbicon-ui/blocks</p>
                 <p class="mt-3">installed — nothing on screen yet.</p>
                 <p>that’s the point.</p>
+                <p class="mt-3">(by step 04 you’ll repaint this card.)</p>
               </div>
             </div>
-          {:else if activeStep === 2}
+          {:else if reachedStep === 2}
             <!-- 02 — tokens loaded, still no components -->
             <div class="mt-5 flex flex-1 flex-col justify-between gap-5">
               <div>
@@ -301,26 +394,27 @@ export default {
               <p class="font-meta">tokens loaded — still no components.</p>
             </div>
           {:else}
-            <!-- 03/04 — the live hello-world; the ramp shrinks to a strip:
+            <!-- 03+ — the live mini-booking; the ramp shrinks to a strip:
                  the tokens now sit under the app -->
             <div class="mt-5">
               {@render rampStrip('h-1.5')}
             </div>
             <div class="mt-5 flex flex-1 flex-col gap-4">
               <Input label="Your name" bind:value={demoName} placeholder="Ada" />
+              <Select label="Service" options={DEMO_SERVICES} bind:value={demoService} />
               <div>
-                <Button intent="primary" onclick={() => (demoGreeted = true)} disabled={!demoName}>
-                  Say hello
+                <Button intent="primary" onclick={() => (demoBooked = true)} disabled={!demoName}>
+                  Reserve
                 </Button>
               </div>
-              {#if demoGreeted && demoName}
+              {#if demoBooked && demoName}
                 <div>
-                  <Badge intent="success">Hello {demoName}!</Badge>
+                  <Badge intent="success">Booked — see you soon, {demoName}.</Badge>
                 </div>
               {/if}
             </div>
 
-            {#if activeStep === 4}
+            {#if reachedStep >= 4}
               <!-- 04 — the reader repaints the preview -->
               <div class="border-border-hairline mt-6 border-t pt-4">
                 <p class="font-meta flex items-baseline justify-between">
@@ -342,6 +436,16 @@ export default {
                   {/each}
                 </div>
                 <p class="font-meta mt-3">one decision — every component follows.</p>
+              </div>
+            {/if}
+
+            {#if reachedStep >= 5}
+              <!-- 05 — the gate is armed; quiet, mono, a receipt not a banner -->
+              <div class="border-border-hairline mt-4 border-t pt-3">
+                <p class="font-meta flex items-baseline justify-between">
+                  <span>agent</span>
+                  <span>AGENTS.md written · gate armed ✓</span>
+                </p>
               </div>
             {/if}
           {/if}
