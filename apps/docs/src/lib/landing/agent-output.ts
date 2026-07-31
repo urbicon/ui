@@ -10,10 +10,10 @@
  *
  *   bunx urbicon validate src/lib/salon/BookingCard.svelte
  *
- * minus dem wiederholten Dateipfad. Aufgezeichnet 2026-07-30 gegen den
- * Arbeitsstand der CLI bei Version 6.44.0 — direkt nach der Umbenennung der
- * zweiten Score-Achse `slop` → `craft`; ein veröffentlichtes 6.44.0 druckt noch
- * `slop`, die nächste Veröffentlichung trägt die neue Wortwahl.
+ * minus dem wiederholten Dateipfad. Aufgezeichnet 2026-07-31 bei Version
+ * 6.45.0 gegen die BEREINIGTE BookingCard (ohne `step`-Demo-Gerüst — die Datei
+ * wird seitdem wörtlich in der Source-Ansicht der Agents-Kachel gezeigt); die
+ * Ausgabe ist byte-identisch zur Aufzeichnung vom 2026-07-30.
  *
  * Ändert sich BookingCard, wird der Befehl neu ausgeführt und werden diese
  * beiden Zeilen ERSETZT — nicht umformuliert, nicht gekürzt, nicht

@@ -1,7 +1,7 @@
 <!--
   Die Landing — "3-Zeilen-Journey": erinnern → staunen → erforschen → handeln.
   Zeile 1: Namens-Kachel + Scroller mit fünf Kanal-Kacheln (Cusp-Palette,
-  light-dark()-Paare); die Kacheln 01–04 teilen das Salon-Universum
+  light-dark()-Paare); die ersten vier Kacheln teilen das Salon-Universum
   "Bleecker & Bond" ($lib/salon-tools). Jede Kachel scopet die primary-Familie
   auf ihren Kanal (`.room-accent` aus rooms.css) — die lebenden Komponenten
   tragen die Livery ihrer Kachel. Zeile 2: das Hero-Inventar — Build-time-Daten
@@ -24,6 +24,7 @@
   import HeroSpecimen from '$lib/landing/HeroSpecimen.svelte';
   import { formatKb, type HeroRow, SHARED_PREVIEW_NOTES } from '$lib/landing/hero';
   import AgentReplay from '$lib/landing/AgentReplay.svelte';
+  import { asset } from '$app/paths';
   import { REPO_URL } from '$lib/seo';
   import BookingCard from '$lib/salon/BookingCard.svelte';
   import LiveryTile from '$lib/salon/LiveryTile.svelte';
@@ -43,6 +44,7 @@
     SegmentGroup,
     SegmentItem,
     Separator,
+    ThemeSwitcher,
     Toggle
   } from '@urbicon-ui/blocks';
   import { I18nProvider } from '@urbicon-ui/i18n';
@@ -61,7 +63,6 @@
   // Die Zahlen in den Zeilen kommen build-time aus den Katalogen (loader).
   interface TileDef {
     key: string;
-    no: string;
     title: string;
     line: string;
     channel: Channel;
@@ -72,50 +73,45 @@
   const TILES: TileDef[] = $derived([
     {
       key: 'blocks',
-      no: '01',
       title: 'Blocks',
-      line: `${data.counts.primitives} primitives, ${data.counts.composed} components`,
+      line: `${data.counts.primitives} primitives, ${data.counts.composed} components, 0 dependencies`,
       channel: CHANNELS[TILE_CHANNEL.blocks]
     },
     {
       key: 'table',
-      no: '02',
       title: 'Table',
-      line: 'The whole grid — sorting, grouping, selection, virtual rows, remote data, live updates',
+      line: 'Enterprise grid: sorting, grouping, selection, virtual rows, remote data, live updates',
       channel: CHANNELS[TILE_CHANNEL.table]
     },
     {
       key: 'a2ui',
-      no: '03',
       title: 'A2UI',
-      line: 'AI chat creates new components on the fly. Tool-controlled, safe, custom-themed.',
+      line: 'AI chat creates interactive components on the fly. Tool-controlled, safe, custom-themed.',
       channel: CHANNELS[TILE_CHANNEL.a2ui],
       href: '/salon',
       linkLabel: 'Visit the salon'
     },
     {
       key: 'agent',
-      no: '04',
       title: 'Agents',
-      line: 'Agents write code you can still read — the gate keeps it that way.',
+      line: 'Let agents write and maintain clean and consistent, readable code.',
       channel: CHANNELS[TILE_CHANNEL.agents]
     },
     {
       key: 'more',
-      no: '05',
       title: '…and more',
-      line: 'The rest of the set, one row down',
+      line: 'The rest of the set, one click away',
       channel: CHANNELS[TILE_CHANNEL.more]
     }
   ]);
 
-  // ── Die Kacheln 01–04 teilen sich EIN fiktives Universum: der Salon
+  // ── Die Kacheln Blocks–Agents teilen sich EIN fiktives Universum: der Salon
   //    „Bleecker & Bond" (siehe $lib/salon-tools — dieselben Services,
   //    Stylists und Slot-Zeiten wie das Livery-Exponat und die Vollseite).
   //    Entscheidung 2026-07-30: kohärente Fiktion statt strenger
   //    Selbstreferenz; die Beweiszahlen und Zeile 2 bleiben selbstreferenziell.
 
-  // ── 01 Blocks: das Salon-Backoffice als Dashboard-Collage ──────────
+  // ── Blocks: das Salon-Backoffice als Dashboard-Collage ──────────
   let range = $state('week');
   let walkIns = $state(true);
   const WEEK_BOOKINGS: CartesianDatum[] = [
@@ -139,8 +135,8 @@
     { label: 'Beard', value: 17, intent: 'warning' },
     { label: 'Colour', value: 7, intent: 'neutral' }
   ];
-  // Die zweite Dashboard-Karte — sie erscheint erst, wenn die Kachel breit
-  // genug ist (siehe `.dash-aside`), statt das schmale Layout zu belasten.
+  // Die Auslastungs-Spalte des Dashboards (Team, Stühle, Wiederkehrer) —
+  // schmal gestapelt unter dem Chart-Block, breit daneben (siehe `.dash2`).
   const TEAM: AvatarProps[] = [
     { name: 'Io Nakamura', status: 'online' },
     { name: 'Sable Adeyemi', status: 'online' },
@@ -161,7 +157,7 @@
     { label: 'First visit', value: 32 }
   ];
 
-  // ── 02 Table: die Buchungsliste des Salons ─────────────────────────
+  // ── Table: die Buchungsliste des Salons ─────────────────────────
   // Zeiten aus dem SLOT_GRID, Services/Stylists/Preise aus salon-tools.
   interface Booking {
     id: string;
@@ -258,10 +254,10 @@
     }
   ];
 
-  // ── 03 A2UI: das Salon-Exponat (LiveryTile) — echtes aufgezeichnetes
+  // ── A2UI: das Salon-Exponat (LiveryTile) — echtes aufgezeichnetes
   //    Modell-Output im Replay, vier Liveries, ein Klick zur Vollseite. ─
 
-  // ── 05 Treppe: die restlichen Register — jede Stufe ist eine Tür ───
+  // ── Treppe: die restlichen Register — jede Stufe ist eine Tür ───
   const STEPS = $derived([
     { label: `${data.counts.primitives} primitives`, href: '/blocks' },
     { label: `${data.counts.composed} components`, href: '/blocks#display' },
@@ -405,7 +401,16 @@
     <!-- ── Zeile 1: erinnern + staunen ─────────────────────────────── -->
     <section class="row1" aria-label="Hero">
       <div class="name-tile">
-        <p class="eyebrow">UI platform for Svelte 5 + Tailwind 4</p>
+        <div class="tile-head">
+          <p class="eyebrow">UI platform for Svelte 5 + Tailwind 4</p>
+          <!-- Die Kachel ist in beiden Modi Ink; der `color-scheme: dark`-Scope
+               lässt die Tokens des Switchers dunkel auflösen (helles Icon auf
+               dunklem Grund), wie bei der LiveryTile. Persistenz + <html>-Klasse
+               teilen sich Landing und Doku-Chrome (gleicher localStorage-Key). -->
+          <div style="color-scheme: dark">
+            <ThemeSwitcher size="sm" />
+          </div>
+        </div>
         <div class="name-mid">
           <p class="brand">
             urbicon <span class="brand-suffix">ui</span><span class="ticks"
@@ -448,83 +453,82 @@
               style:--tile-deep={tile.channel.deep}
               style:--tile-on={tile.channel.on}
             >
-              <span class="no">{tile.no}</span>
               <div class="tile-body">
                 {#if tile.key === 'blocks'}
-                  <div class="dash-grid">
-                    <div class="card dash">
-                      <div class="dash-head">
-                        <div>
-                          <p class="dash-title">Bleecker &amp; Bond</p>
-                          <p class="dash-sub">Front desk</p>
-                        </div>
-                        <SegmentGroup bind:value={range} size="sm" ariaLabel="Range">
-                          <SegmentItem value="week">Week</SegmentItem>
-                          <SegmentItem value="month">Month</SegmentItem>
-                        </SegmentGroup>
+                  <!-- EIN Dashboard, EINE Karte: die Karte ist ihr eigener
+                       Container und baut sich per @container um — schmal
+                       gestapelt, breit zweispaltig. Kein versteckter Inhalt
+                       mehr (die alte Nebenkarte verschwand unter 78rem);
+                       Mobile bekommt dasselbe Backoffice, nur gestapelt. -->
+                  <div class="card dash2">
+                    <div class="dash-head">
+                      <div>
+                        <p class="dash-title">Bleecker &amp; Bond</p>
+                        <p class="dash-sub">Front desk</p>
                       </div>
-                      <AreaChart
-                        data={bookingsData}
-                        series={BOOKING_SERIES}
-                        height={150}
-                        showLegend={false}
-                        fillOpacity={0.25}
-                      />
-                      <!-- Die Werte SIND Prozente: formatValue macht sie zur
-                         Anzeige, showPercentages bliebe sonst als Doppelung
-                         daneben stehen (Legende druckt Wert immer). -->
-                      <CompositionBar
-                        items={REVENUE_MIX}
-                        size="sm"
-                        showLegend
-                        showPercentages={false}
-                        formatValue={(v) => `${v} %`}
-                        legendPlacement="bottom"
-                      />
-                      <div class="dash-foot">
-                        <Toggle bind:checked={walkIns} label="Accept walk-ins" size="sm" />
-                        <!-- soft, nicht filled: die solide Intent-Fläche trägt text-on-primary,
-                           das im .room-accent-Scope auf den Kanal umgefärbt ist
-                           (docs/technical-debt.md → „Design tokens"). -->
-                        <Badge intent="success" variant="soft">3 chairs free</Badge>
+                      <SegmentGroup bind:value={range} size="sm" ariaLabel="Range">
+                        <SegmentItem value="week">Week</SegmentItem>
+                        <SegmentItem value="month">Month</SegmentItem>
+                      </SegmentGroup>
+                    </div>
+                    <div class="dash-body">
+                      <div class="dash-main">
+                        <AreaChart
+                          data={bookingsData}
+                          series={BOOKING_SERIES}
+                          height={132}
+                          showLegend={false}
+                          fillOpacity={0.25}
+                        />
+                        <!-- Die Werte SIND Prozente: formatValue macht sie zur
+                           Anzeige, showPercentages bliebe sonst als Doppelung
+                           daneben stehen (Legende druckt Wert immer). -->
+                        <CompositionBar
+                          items={REVENUE_MIX}
+                          size="sm"
+                          showLegend
+                          showPercentages={false}
+                          formatValue={(v) => `${v} %`}
+                          legendPlacement="bottom"
+                        />
+                      </div>
+                      <div class="dash-side">
+                        <div class="dash-head">
+                          <p class="dash-sub">Chairs today</p>
+                          <AvatarGroup items={TEAM} max={4} size="sm" />
+                        </div>
+                        <div class="chairs">
+                          {#each CHAIRS as chair (chair.name)}
+                            <Progress
+                              value={chair.load}
+                              label={chair.name}
+                              showValue
+                              formatValue={(v) => `${v} %`}
+                            />
+                          {/each}
+                        </div>
+                        <Separator />
+                        <div class="dash-foot">
+                          <DonutChart
+                            data={RETURN_MIX}
+                            size={88}
+                            showLegend={false}
+                            showTotal
+                            totalLabel="guests"
+                            ariaLabel="Returning guests this week"
+                          />
+                          <p class="aside-note">
+                            <strong>68</strong> of them had been in before.
+                          </p>
+                        </div>
                       </div>
                     </div>
-
-                    <!-- Zweite Spalte, nur auf breiten Schirmen: die Kachel ist
-                         dort dreimal so breit wie ihr Inhalt. Komplementär zur
-                         Table-Kachel (Auslastung statt Terminliste). -->
-                    <div class="card dash-aside">
-                      <div class="dash-head">
-                        <div>
-                          <p class="dash-title">Chairs today</p>
-                          <p class="dash-sub">Five stylists on rota</p>
-                        </div>
-                        <AvatarGroup items={TEAM} max={4} size="sm" />
-                      </div>
-                      <div class="chairs">
-                        {#each CHAIRS as chair (chair.name)}
-                          <Progress
-                            value={chair.load}
-                            label={chair.name}
-                            showValue
-                            formatValue={(v) => `${v} %`}
-                          />
-                        {/each}
-                      </div>
-                      <Separator />
-                      <div class="dash-foot">
-                        <DonutChart
-                          data={RETURN_MIX}
-                          size={104}
-                          showLegend={false}
-                          showTotal
-                          totalLabel="guests"
-                          ariaLabel="Returning guests this week"
-                        />
-                        <p class="aside-note">
-                          <strong>68</strong> of them had been in before.
-                        </p>
-                      </div>
+                    <div class="dash-foot">
+                      <Toggle bind:checked={walkIns} label="Accept walk-ins" size="sm" />
+                      <!-- soft, nicht filled: die solide Intent-Fläche trägt text-on-primary,
+                         das im .room-accent-Scope auf den Kanal umgefärbt ist
+                         (docs/technical-debt.md → „Design tokens"). -->
+                      <Badge intent="success" variant="soft">3 chairs free</Badge>
                     </div>
                   </div>
                 {:else if tile.key === 'table'}
@@ -732,13 +736,12 @@
          Theming-Beweis ohne ein Wort über Theming.
 
          Dreiklang Ink → Agents-Grün → Magenta: Schritt 01 echot die
-         Namens-Kachel (die Bibliothek selbst), 02 den Agenten-Kanal aus
-         Kachel 04, 03 den A2UI-Kanal aus Kachel 03. Die Zeile liest damit als
-         Reprise von Zeile 1 — dieselbe Kachel-Anatomie (Nummer oben, Titel
-         unten), aber statisch nebeneinander statt gescrollt. ────────────── -->
+         Namens-Kachel (die Bibliothek selbst), Ask den Kanal der
+         Agents-Kachel, Ship den A2UI-Kanal. Die Zeile liest damit als
+         Reprise von Zeile 1 — dieselbe Kachel-Anatomie (Inhalt mittig, Titel
+         zuoberst der Gruppe), aber statisch nebeneinander statt gescrollt. ── -->
     <section class="row3" aria-label="Getting started">
       <div class="step step-ink" style:--ink-solid={CHANNELS.ink.solid}>
-        <span class="no">01</span>
         <div class="step-body">
           <h2 class="step-title">Install</h2>
           <code class="cmd">bun add @urbicon-ui/blocks</code>
@@ -755,7 +758,6 @@
         style:--step-deep={CHANNELS.green.deep}
         style:--cmd-fg={CHANNELS.green.solid}
       >
-        <span class="no">02</span>
         <div class="step-body">
           <h2 class="step-title">Ask</h2>
           <!-- Die Farbe im Prompt ist der Kanalname aus dem Register, nicht
@@ -787,7 +789,6 @@
              Überschrift, aber keine 12-px-Mono-Ausgabe. Der Kasten bekommt
              deshalb Papier als Tinte statt des Kanals; die zwei anderen
              Schritte (Ink, Grün bei 9.0) behalten die Inversion. -->
-        <span class="no">03</span>
         <div class="ship-card">
           <BookingCard />
         </div>
@@ -831,6 +832,12 @@
         <a href="/recipes">Recipes</a>
         <a href="/getting-started">Getting started</a>
         <a href="/changelog">Changelog</a>
+        <a href="/ai">AI &amp; DX</a>
+        <!-- Die Seite behauptet AI-native — die maschinenlesbaren Artefakte
+             gehören darum als Türen hierher, wie im Sidebar-Chrome. `asset()`
+             statt Route: das sind statische Dateien, kein Client-Routing. -->
+        <a href={asset('/llms.txt')}>llms.txt</a>
+        <a href={asset('/llms-full.txt')}>llms-full.txt</a>
         <a href={REPO_URL} target="_blank" rel="noopener">GitHub</a>
         <a href="/imprint">Imprint</a>
         <a href="/privacy">Privacy</a>
@@ -896,6 +903,12 @@
     display: flex;
     flex-direction: column;
     gap: 2rem;
+  }
+  .tile-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
   }
   .eyebrow {
     font-family: 'JetBrains Mono', monospace;
@@ -983,11 +996,6 @@
     --room-accent: var(--tile-solid);
     --room-accent-fg: var(--tile-on);
   }
-  .no {
-    font-family: 'JetBrains Mono', monospace;
-    font-size: 0.8rem;
-    opacity: 0.8;
-  }
   .tile-body {
     flex: 1;
     display: flex;
@@ -1018,42 +1026,58 @@
     border-radius: var(--radius-contain);
   }
   /*
-   * Die Kacheln sind auf großen Schirmen weit breiter als ihr Inhalt: bei
-   * 1920px Viewport misst eine Kachel ~1110px, das Dashboard 520px. Ab
-   * ~78rem Viewport ist die Kachel sicher über 700px breit (die Kachel ist
-   * 85% von `Viewport − clamp(24rem, 32vw, 40rem)`; unterhalb des
-   * `row1`-Umbruchs bei 48rem springt der Wert, darüber wächst er monoton),
-   * also darf der Inhalt dort zweispaltig werden. Media-Query statt
-   * `@container`: `container-type` zieht `contain: layout` nach sich und
-   * würde die Kachel zum Bezugsrahmen für die `position: fixed`-Overlays der
-   * Table machen.
+   * EIN Dashboard, EINE Karte: `.dash2` ist ihr eigener @container und baut
+   * sich nach der EIGENEN Breite um, nicht nach dem Viewport — schmal alles
+   * gestapelt (Mobile sieht das ganze Backoffice, statt wie früher die
+   * Nebenkarte zu verlieren), ab ~30rem Kartenbreite rückt die
+   * Auslastungs-Spalte neben den Chart-Block. Der alte Vorbehalt gegen
+   * `container-type` galt der KACHEL (sie würde zum Bezugsrahmen für die
+   * `position: fixed`-Overlays der Table) — auf der Karte selbst gibt es nur
+   * Chart-Tooltips, absolut im eigenen Wrapper. Läuft der Stapel auf kleinen
+   * Schirmen doch über die Kachel hinaus, scrollt die Karte innen
+   * (card-table-Muster), statt abzuschneiden.
    */
-  .dash-grid {
-    display: grid;
-    gap: clamp(1rem, 1.5vw, 1.6rem);
+  .dash2 {
+    container-type: inline-size;
     width: min(520px, 100%);
-  }
-  /* Das Backoffice-Dashboard der Blocks-Kachel. */
-  .dash,
-  .dash-aside {
-    width: 100%;
+    max-height: 100%;
+    overflow-y: auto;
+    scrollbar-width: thin;
     display: flex;
     flex-direction: column;
     gap: 1.1rem;
   }
-  .dash-aside {
-    justify-content: space-between;
-    /* Schmale Kachel: die Nebenkarte bleibt weg, statt das Dashboard in eine
-       Scroll-Säule zu verwandeln. */
-    display: none;
+  /* Kinder einer SCROLLENDEN Flex-Spalte dürfen nicht schrumpfen: sonst
+     quetscht flex-shrink Kopf- und Fußzeile über den Grid-Inhalt (Badge über
+     der Donut-Notiz), statt dass die Karte scrollt. */
+  .dash2 > * {
+    flex-shrink: 0;
+  }
+  .dash-body {
+    display: grid;
+    gap: 1.1rem;
+    min-height: 0;
+  }
+  .dash-main,
+  .dash-side {
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 1.1rem;
+  }
+  @container (min-width: 30rem) {
+    .dash-body {
+      grid-template-columns: minmax(0, 1.15fr) minmax(0, 1fr);
+      gap: 1.6rem;
+      align-items: stretch;
+    }
+    .dash-side {
+      justify-content: space-between;
+    }
   }
   @media (min-width: 78rem) {
-    .dash-grid {
-      grid-template-columns: minmax(0, 1.15fr) minmax(0, 1fr);
+    .dash2 {
       width: min(940px, 100%);
-    }
-    .dash-aside {
-      display: flex;
     }
   }
   .chairs {
@@ -1299,8 +1323,8 @@
     font-variant-numeric: tabular-nums;
   }
 
-  /* ── Zeile 3: Getting started — Echo der Kachel-Anatomie (Nummer oben,
-     Inhalt unten), fugenlos. Alle drei Schritte tragen jetzt eine Fläche, es
+  /* ── Zeile 3: Getting started — Echo der Kachel-Anatomie, fugenlos.
+     Alle drei Schritte tragen jetzt eine Fläche, es
      gibt also keine Papier-Nachbarn und keine Haarlinien mehr: die Kante IST
      der Farbwechsel, wie in Zeile 1. Höher als die alte Zeile, weil Schritt 03
      eine echte Komponente zeigt statt einer Textzeile. */
@@ -1320,17 +1344,17 @@
     flex-direction: column;
     gap: 1.5rem;
   }
-  /* Die Schritte 01/02 haben keinen Kachel-Body, den man in die Mitte stellen
-     könnte — die Titelgruppe IST ihr Inhalt. Sie an die Unterkante zu binden
-     (wie die Kacheln in Zeile 1 ihre Titel) reißt bei der Höhe, die Schritt 03
-     der Zeile vorgibt, ein halbes Kachelloch darüber auf. Also: Nummer oben,
-     Inhalt in der Mitte des Rests — dieselbe Anatomie wie die Kacheln, nur mit
-     der Titelgruppe in der Rolle des Bodys. */
+  /* Die Schritte Install/Ask haben keinen Kachel-Body, den man in die Mitte
+     stellen könnte — die Titelgruppe IST ihr Inhalt. Sie an die Unterkante zu
+     binden (wie die Kacheln in Zeile 1 ihre Titel) reißt bei der Höhe, die der
+     Ship-Schritt der Zeile vorgibt, ein halbes Kachelloch darüber auf. Also:
+     Inhalt in der Mitte — dieselbe Anatomie wie die Kacheln, nur mit der
+     Titelgruppe in der Rolle des Bodys. */
   .step-body {
     margin-block: auto;
   }
-  /* Schritt 03 füllt seinen Raum mit der Karte und braucht die Zentrierung
-     nicht — sie würde die Titelgruppe von der Karte wegschieben. */
+  /* Der Ship-Schritt füllt seinen Raum mit der Karte und braucht die
+     Zentrierung nicht — sie würde die Titelgruppe von der Karte wegschieben. */
   .step-ship .step-body {
     margin-block: 0;
   }
@@ -1378,10 +1402,8 @@
     color: #f4f4f2;
   }
 
-  /* Schritt 03 hat drei Kinder statt zwei — Nummer, Karte, Titelgruppe —, also
-     verteilt `space-between` sie nicht mehr an zwei Kanten, sondern reißt eine
-     Lücke in die Mitte. Hier stapeln sie mit fester Fuge, und die Karte nimmt
-     den Rest. */
+  /* Der Ship-Schritt stapelt Karte und Titelgruppe mit fester Fuge statt
+     `space-between`, und die Karte nimmt den Rest. */
   .step-ship {
     justify-content: flex-start;
     gap: 1.1rem;
