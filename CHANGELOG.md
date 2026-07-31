@@ -4,6 +4,36 @@ All notable changes to this project will be documented in this file.
 This changelog is automatically generated from [Conventional Commits](https://www.conventionalcommits.org).
 
 
+## [6.46.0] - 2026-07-31
+
+### Bug Fixes
+- **build**: Build packages in dependency order, and catch `any`-typed variants
+- **docs-app**: Let room-accent subtle surfaces flip with the scheme
+
+### CI/CD
+- Arm the workflows for GitHub and keep the pixel suite out of them
+
+### Documentation
+- Prepare the repo surface for a public audience
+- Record the settled half of the publisher-ownership entry
+- Move the review plan into the local archive
+- **technical-debt**: Log the Codeberg build-time dependency the move exposed
+- Move the debt log to GitHub issues and leave a pointer
+- Make the README sell the library, not the monorepo
+
+### Features
+- **docs-app**: Polish the landing tiles for launch
+- **docs-app**: Complete the specimen book, drop the styling island
+- **docs-app**: Retell getting started in five steps, latched
+- **docs-app**: Scale the salon fiction to a four-house group
+
+### Miscellaneous
+- Strip agent-session trailers from the history before the GitHub move
+- Point every repo reference at GitHub
+- Untrack prototypes/_archiv, so the ignore rule actually holds
+- Move dev harness to the @urbicon-ui scope on npm
+- Drop the unused chokidar devDependency from both docs packages
+
 ## [6.45.0] - 2026-07-30
 
 ### Bug Fixes
