@@ -212,11 +212,23 @@
   --color-primary: light-dark(var(--_at), var(--_a));
   --color-primary-hover: color-mix(in oklab, var(--_at) 84%, var(--_ink));
   --color-primary-active: color-mix(in oklab, var(--_at) 70%, var(--_ink));
-  --color-primary-subtle: color-mix(in oklab, var(--_a) 12%, var(--_cream));
+  /* Subtle/selected are SURFACES that carry the ambient text tokens, and those
+     flip with the scheme — so these must flip too (rooms-docs.css does the
+     same via primary-50/900). A cream-pinned subtle under night text was
+     white-on-white: the A2UI chat bubble in the row-2 preview vanished. The
+     dark branch tints the accent into ink with the anchor that reads in dark
+     (--_a, not --_at — see --color-primary above). */
+  --color-primary-subtle: light-dark(
+    color-mix(in oklab, var(--_a) 12%, var(--_cream)),
+    color-mix(in oklab, var(--_a) 24%, var(--_ink))
+  );
   --color-primary-emphasis: color-mix(in oklab, var(--_at) 88%, var(--_ink));
   --color-text-on-primary: light-dark(var(--_atfg), var(--_afg));
 
-  --color-surface-selected: color-mix(in oklab, var(--_a) 12%, var(--_cream));
+  --color-surface-selected: light-dark(
+    color-mix(in oklab, var(--_a) 12%, var(--_cream)),
+    color-mix(in oklab, var(--_a) 24%, var(--_ink))
+  );
   --color-interactive-focus: var(--_a);
   --color-interactive-hover: color-mix(in oklab, var(--_a) 10%, transparent);
   --color-interactive-active: color-mix(in oklab, var(--_a) 20%, transparent);
