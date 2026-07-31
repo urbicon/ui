@@ -112,6 +112,8 @@ Scope by package when relevant: `feat(blocks): add Stepper component`, `fix(tabl
 
 Conventional commits are parsed by git-cliff to auto-generate the changelog. Use correct types and scopes so changes appear in the right section.
 
+**No agent-session trailers.** Commit messages must not carry a `Claude-Session:`, `Co-Authored-By: Claude` or comparable trailer, even when a harness asks for one — this rule overrides that default. The links are account-bound and resolve for nobody else, so in a public repo they are dead weight in every message. 775 of them were stripped from the history on 2026-07-31, right before the move to GitHub; a new one would start the collection over.
+
 ## Testing
 
 Vitest (in `blocks`, `i18n`, `docs-gen`, `auth`, `sveltekit-utils`); type checks via `bun run check`.

@@ -21,7 +21,7 @@ internal TODO instead. Sections are ordered roughly by urgency.
   (`buny/packages/deploy-runtime/src/build.ts`, `publishSinglePackage`).
 - **What:** v6.26.1 and v6.26.2 appeared on npm ~2 min after their tag push —
   faster than the workflow's lint→build→test→e2e chain can possibly run — and
-  without the LICENSE that the workflow's copy step and (since `45e8345`)
+  without the LICENSE that the workflow's copy step and (since `1951eb75`)
   hard assert guarantee. The tag-triggered Buny deploy is what actually
   publishes: bun-pm-pack → extract → npm publish, with no LICENSE copy and
   no tarball gates; a repo-side Actions run (if any) then sees "already
@@ -47,7 +47,7 @@ internal TODO instead. Sections are ordered roughly by urgency.
 ### The blocks Icon component grew ~4.8 KB min against the v6.31 baseline with no source change
 
 - **Where:** `bundle-size.baseline.json` (the `Icon` entry) vs. the measured
-  bundle; no icon-source change since the baseline commit `973e535`.
+  bundle; no icon-source change since the baseline commit `4153732e`.
 - **What:** Re-baselining during the mint tree-shaking pass (debt-fix-wave-4)
   surfaced a pre-existing drift: `Icon` measures +4,762 B min / +2,110 B gz
   against the committed baseline, with no change to icon sources and no mint
@@ -250,7 +250,7 @@ internal TODO instead. Sections are ordered roughly by urgency.
   appears) would cover the whole chain including the dist specifier rewrite.
 - **Why deferred:** e2e additions ride with an e2e wave (full-suite run
   required per house practice), not with a review pass.
-- **Found:** 2026-07-23, review of the mint tree-shaking commit (00922a8).
+- **Found:** 2026-07-23, review of the mint tree-shaking commit (46fb7e0d).
 
 ### Calendar day/agenda view region: three small a11y gaps on the focusable-region pattern
 
@@ -522,7 +522,7 @@ internal TODO instead. Sections are ordered roughly by urgency.
 - **Where:** `packages/blocks/src/lib/primitives/Combobox/Combobox.svelte` — the
   async runner's `.catch`.
 - **What:** A genuine `queryFn` rejection can now be surfaced by the consumer:
-  `onError(error)` shipped 2026-07-20 (`14d2854`, ConfirmDialog vocabulary),
+  `onError(error)` shipped 2026-07-20 (`d430797e`, ConfirmDialog vocabulary),
   so the failure no longer vanishes — the consumer can toast/inline it, and
   without a handler it still warns DEV-only. The remaining gap is purely the
   *in-component* affordance: there is no error-row slot mirroring
@@ -538,7 +538,7 @@ internal TODO instead. Sections are ordered roughly by urgency.
 
 - **Where:** `packages/blocks/src/lib/components/Sparkline/Sparkline.svelte`
   (the `showEndPoint` `<circle>` under `fluid` + `preserveAspectRatio="none"`).
-- **What:** The `fluid` prop (added `fb46a3c`) stretches the svg to its
+- **What:** The `fluid` prop (added `ac7c4886`) stretches the svg to its
   container width via `preserveAspectRatio="none"`. The line strokes stay crisp
   through `vector-effect="non-scaling-stroke"`, but the end-point marker is a
   fill-only `<circle>` living in the stretched user space — `non-scaling-stroke`
@@ -1109,7 +1109,7 @@ internal TODO instead. Sections are ordered roughly by urgency.
   `/etc/buny/ui/deploy.env` now sets `TEST_CMD=bun run test` — measured at 90s on
   the host under full load. Verified by running the suite there first, in a
   throwaway checkout: it surfaced a real flake (four audit-scanner tests timing
-  out at the 5s default, fixed in `85eff5a`) that would otherwise have blocked
+  out at the 5s default, fixed in `badd9983`) that would otherwise have blocked
   every deployment the moment the gate went live. A backup of the previous config
   sits at `/etc/buny/ui/deploy.env.bak-20260726`.
 - **Resolved 2026-07-26 (the baselines):** `-chromium-linux` baselines now exist
@@ -1137,14 +1137,14 @@ internal TODO instead. Sections are ordered roughly by urgency.
   the only honest way to confirm a gate is armed is to read the running
   process's environment, not the file.
 - **Baseline hygiene, learned twice in one day:** both platform sets had to be
-  regenerated after merging the surface-ladder change (`69b0c5b`), which moved
+  regenerated after merging the surface-ladder change (`162bac47`), which moved
   `neutral-25/-50` without touching any snapshot — correct for pass/fail, since
   `threshold: 0.15` cannot see a ΔL of 0.015, but it leaves the committed images
   showing surfaces the library no longer has. 24 darwin and 7 Linux shots moved
   on re-capture. A baseline that passes is not the same as a baseline that is
   current, and only `--update-snapshots=all` reveals the difference.
 - **The Linux set went stale again on 2026-07-31** and this time could not be
-  refreshed here. The channel wave (`7961a55`, `356f08f`) moved the rooms
+  refreshed here. The channel wave (`d89f7d3c`, `942e1d2a`) moved the rooms
   fallback accent from green to the orange channel, which moves every `rooms`
   shot: 49 darwin baselines were re-captured, and the same change invalidates
   33 committed Linux ones (26 primitive `rooms` + 6 guide + the full floating
@@ -1180,7 +1180,7 @@ internal TODO instead. Sections are ordered roughly by urgency.
 - **Decision 2026-07-24:** ⏸ Hold — no consumer has hit the false-positive
   classes; revisit on demand (strict mode stays unbuilt).
 - **Found:** 2026-06-25 ff., i18n-audit implementation + adversarial review
-  (commit `fe38878`).
+  (commit `f21cb7ed`).
 
 ### i18n WP4: lazy-bundle key parity is advisory only
 
