@@ -39,9 +39,7 @@ export const checkboxVariants = tv({
     // checklists where the box should read as identity rather than
     // selection. Inherited from TierContext when omitted.
     tier: {
-      // `rounded-checkbox`, not `rounded-commit`: the mirror of the radio case.
-      // A fully rounded checkbox reads as a radio, i.e. as "pick exactly one".
-      commit: { box: 'rounded-checkbox' },
+      commit: { box: 'rounded-commit' },
       modify: { box: 'rounded-modify' }
     },
     size: {

@@ -152,11 +152,15 @@ describe('AvatarGroup — initials under the overlap', () => {
       expect(base('normal')).toContain('[data-avatar-fallback]');
     });
 
-    it('shifts by half the overlap, per spacing', () => {
-      // -space-x-4 hides 16px → shift 8; -3 hides 12 → 6; -2 hides 8 → 4.
-      expect(base('tight')).toContain('-translate-x-[8px]');
-      expect(base('normal')).toContain('-translate-x-[6px]');
-      expect(base('loose')).toContain('-translate-x-[4px]');
+    it('shifts by half the COVERED width — margin plus ring — per spacing', () => {
+      // The ring counts: AvatarGroup renders every avatar with `ring-2
+      // ring-offset-2`, a 4px opaque annulus outside the border box that the
+      // later sibling paints over. So -space-x-4 covers 16+4 → shift 10 (2.5),
+      // -3 covers 12+4 → 8 (2), -2 covers 8+4 → 6 (1.5). Scale steps rather than
+      // arbitrary px, so the shift tracks a --spacing override.
+      expect(base('tight')).toContain('-translate-x-2.5');
+      expect(base('normal')).toContain('-translate-x-2');
+      expect(base('loose')).toContain('-translate-x-1.5');
     });
 
     it('flips the direction in RTL', () => {

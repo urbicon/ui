@@ -177,6 +177,12 @@
       usage: 'Pill/round — actions, identity, status (Button, Badge, Toggle)'
     },
     {
+      name: '--radius-control',
+      value: '9999px',
+      usage:
+        'Radio indicator only. Defaults to the same pill as --radius-commit but is not tied to it, so squaring your buttons keeps the "pick exactly one" circle. Set it to 0 if you want square radios too.'
+    },
+    {
       name: '--radius-modify',
       value: 'var(--radius-sm) · 4px',
       usage: 'Editable surfaces, navigation (Input, Select, Tab, Menu)'
