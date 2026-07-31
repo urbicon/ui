@@ -26,7 +26,6 @@
     "@urbicon-ui/i18n": "workspace:*",
     "@urbicon-ui/shared-types": "workspace:*",
     "@urbicon-ui/table": "workspace:*",
-    "chokidar": "catalog:",
     "prettier": "catalog:",
     "prettier-plugin-svelte": "catalog:",
     "prettier-plugin-tailwindcss": "catalog:",
