@@ -369,11 +369,32 @@ const hardcodedMotion: Rule = {
  * semantic token (right namespace / intent prefix) but is not in the validated
  * whitelist. Narrow by construction — only fires on our own namespaces, so it
  * never flags `bg-transparent`, `bg-cover`, or arbitrary `bg-[#fff]`.
+ *
+ * **`error`, not `warning`, since 2026-07-31.** A hallucinated token is a dead
+ * reference, not a matter of taste: in Tailwind 4 a utility in a theme-driven
+ * namespace emits no CSS at all when its variable does not exist, so the element
+ * renders with no colour whatsoever.
+ *
+ * The old severity let exactly that pass a gate that blocks on errors. Measured,
+ * not hypothetical: a recorded baseline run first used raw Tailwind colours;
+ * when the linter rejected those, the fix round replaced them with token-*shaped*
+ * names that do not exist (`bg-surface-raised`, `text-text-muted`,
+ * `text-text-inverse`, `bg-surface-inverse-hover`). The `raw-tailwind-color`
+ * errors disappeared, fifteen hallucination warnings appeared, and the result
+ * scored **correctness 25 with zero errors** while rendering completely
+ * unstyled — and looking system-conformant in review.
+ *
+ * The axis assignment already said as much: this rule lowers *correctness*, not
+ * craft. Severity and axis simply disagreed. They agree now.
+ *
+ * This is a gate-breaking change for a consumer whose generated markup contains
+ * an invented token — which is the point, and the finding names the real token
+ * to use.
  */
 const tokenHallucination: Rule = {
   id: 'token-hallucination',
   scope: 'code',
-  severity: 'warning',
+  severity: 'error',
   description:
     'Colour utility referencing a non-existent semantic token (e.g. `bg-status-danger`).',
   check(lines, _raw, ctx) {

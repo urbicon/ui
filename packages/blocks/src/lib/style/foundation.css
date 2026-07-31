@@ -179,6 +179,31 @@
   --radius-commit: 9999px;
   --radius-modify: var(--radius-sm);
   --radius-contain: var(--radius-xs);
+  /* The radio indicator takes its shape from its OWN token, not from the tier's.
+     Shape is the only thing telling a radio from a checkbox — both are otherwise
+     the same small box with the same label — and unlike the pill on a button,
+     the circle on a radio is convention with meaning (Material, HIG and Carbon
+     all hold it).
+
+     Before 2026-07-31 it rode `--radius-commit`, so the invitation two lines up
+     ("a more austere one can drop r-modify to 0") took the affordance with it:
+     zeroing the pill squared the radio into something that reads as a checkbox.
+     Not a corner case for austere themes — ALL FOUR docs liveries needed a
+     `CIRCULAR_RADIOS` provider override, including the one that merely softens
+     the tier to 2px, because 2px on a 20px control already reads as square.
+
+     Defaults to the same 9999px, so nothing moves until a theme touches it; the
+     point is that a theme touching the pill no longer moves it by accident.
+
+     The CHECKBOX deliberately keeps riding `--radius-commit`. It looks like the
+     mirror case and is not: a squared radio is damage a theme inflicts on a
+     control it was not aiming at, whereas a pill-shaped checkbox is what a
+     consumer asked for by writing `tier="commit"` — the status-chip look
+     documented in checkbox.variants.ts. Giving it its own token made the tier a
+     no-op there (the natural value, `--radius-sm`, is what `modify` already
+     resolves to), i.e. it removed a feature to fix a symmetry that does not
+     exist. */
+  --radius-control: 9999px;
   /* r-bridge — the MIDDLE tier, at r-md (~6 px). Two cases earn it, both
      of them "r-contain is too hard here, r-commit is too soft":
 

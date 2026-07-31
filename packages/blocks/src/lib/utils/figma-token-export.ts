@@ -228,6 +228,10 @@ const borderRadiusTokens: Record<string, string | { value: string; description: 
   '3xl': '24px',
   '4xl': '32px',
   commit: { value: '9999px', description: 'Tier: actions, identity, status (pill)' },
+  // The radio indicator owns its shape rather than inheriting the tier's —
+  // squaring the pill must not turn a radio into something that reads as a
+  // checkbox. See the --radius-control note in foundation.css.
+  control: { value: '9999px', description: 'Radio indicator — convention, not a tier choice' },
   modify: { value: '{borderRadius.sm}', description: 'Tier: editable surfaces, navigation' },
   contain: { value: '{borderRadius.xs}', description: 'Tier: containers, panels, layout' },
   bridge: { value: '{borderRadius.md}', description: 'Adjacency radius: panel anchored to a pill' }

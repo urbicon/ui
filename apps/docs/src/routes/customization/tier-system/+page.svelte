@@ -113,6 +113,16 @@
       >
       and applies <code class="text-text-primary">rounded-commit</code> — the contract is symmetric.
     </p>
+    <p class="text-text-secondary mt-3 text-sm leading-relaxed">
+      One deliberate exception: the <strong>radio indicator</strong> reads
+      <code class="text-text-primary">--radius-control</code>, not the tier's radius. Its circle is
+      the only thing distinguishing it from a checkbox, so squaring the commit tier for austere
+      buttons used to square the radios along with them. The token defaults to the same
+      <code class="text-text-primary">9999px</code>, so nothing changes until you say so — set
+      <code class="text-text-primary">--radius-control</code> if you want square radios too. The
+      checkbox keeps following the tier: a pill-shaped box there is a look you asked for by writing
+      <code class="text-text-primary">tier="commit"</code>, not one a button theme imposed on you.
+    </p>
   </section>
 
   <!-- Tier-aware components ────────────────────────────────── -->

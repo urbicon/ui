@@ -104,8 +104,11 @@ urbicon validate src/ --record           # also append a drift entry to the hist
 `validate` reads `## Token Overrides` from your `design.manifest.md` (if present)
 and treats those token cores as valid, so a token your project defines on top of
 Urbicon's is not flagged as hallucinated — the local, manifest-sourced counterpart
-to the remote `validate_design(extraTokens)`. It only relaxes the
-token-hallucination warning, never the error gates. `--record` appends one
+to the remote `validate_design(extraTokens)`. Since v6.44 that is a genuine gate
+release rather than a warning tweak: `token-hallucination` is an **error**
+(a token that names nothing renders with no styling at all), so a manifest that
+declares your token is what keeps `validate` at exit 0. Nothing else is relaxed —
+the other error rules are unaffected. `--record` appends one
 `ValidationHistoryEntry` per run to the sidecar `design.manifest.history.ndjson`
 so drift is measurable over time (CI opts in; the editor hook stays silent).
 
