@@ -61,7 +61,7 @@ export function resolveColumnLabel<T>(column: Column<T>): string {
  * kebab-case, snake_case and dot-paths into words and capitalizes each
  * (`quickActions` / `quick-actions` / `quick_actions` → "Quick Actions").
  */
-function humanizeColumnId(id: string): string {
+export function humanizeColumnId(id: string): string {
   return id
     .replace(/([a-z\d])([A-Z])/g, '$1 $2')
     .split(/[-_.\s]+/)

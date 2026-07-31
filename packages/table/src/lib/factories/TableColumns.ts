@@ -429,9 +429,19 @@ export const TableColumns = {
   },
 
   /**
-   * Creates a plain text column with optional formatter. Auto-detects
-   * numeric-named accessors (e.g. `salary`, `amount`) and adjusts
-   * alignment/summability.
+   * Creates a plain text column with optional formatter.
+   *
+   * Everything the column can do follows from what you configure, never from
+   * what it is called. Until 2026-07-31 an accessor named `price`, `age`,
+   * `amount`, `score` (and five more) was silently treated as numeric — right
+   * aligned, offered Sum/Avg/Min/Max — while a genuinely numeric `throughput`
+   * got none of it. A `price` column yielding `'$95'` was offered a sum that
+   * cannot work, and the result was a dash indistinguishable from "no rows".
+   *
+   * For a numeric column say so: {@link TableColumns.number}, or
+   * `dataType: 'number'` here. Alignment and summability then follow from the
+   * declared type, which is a derivation from configuration rather than a guess
+   * about a name.
    */
   text: <Item>(
     accessor: DataAccessor<Item>,
@@ -441,10 +451,8 @@ export const TableColumns = {
     } = {}
   ): Column<Item> => {
     const { formatter, ...columnProps } = options;
-
-    const accessorStr = String(accessor);
-    const isNumericKey =
-      /^(age|salary|price|amount|count|number|projectsCompleted|rating|score)$/i.test(accessorStr);
+    const dataType = columnProps.dataType ?? 'text';
+    const isNumeric = dataType === 'number';
 
     return {
       accessor,
@@ -452,11 +460,11 @@ export const TableColumns = {
       formatter,
       sortable: columnProps.sortable ?? true,
       searchable: columnProps.searchable ?? true,
-      summable: columnProps.summable ?? (columnProps.dataType === 'number' || isNumericKey),
-      dataType: columnProps.dataType ?? (isNumericKey ? 'number' : 'text'),
+      summable: columnProps.summable ?? isNumeric,
+      dataType,
       groupable: columnProps.groupable ?? true,
       priority: columnProps.priority,
-      align: columnProps.align ?? (isNumericKey ? 'right' : 'left'),
+      align: columnProps.align ?? (isNumeric ? 'right' : 'left'),
       width: columnProps.width,
       minWidth: columnProps.minWidth,
       flex: columnProps.flex,

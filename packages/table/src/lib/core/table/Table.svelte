@@ -314,6 +314,15 @@
         {#if pagination}
           {@render pagination()}
         {:else}
+          <!-- On a single page the arrows are two permanently disabled buttons,
+               and removing them used to mean passing an empty `pagination`
+               snippet — a workaround that reads like a mistake. Only the
+               NAVIGATION is gated, never the footer: `layout="table"` renders
+               `rangeInfo` ("1–7 of 7"), which is the table's only visible row
+               count anywhere in its chrome (`aria-rowcount` serves assistive
+               tech, not the eye). Hiding the whole footer would delete that
+               count exactly when a filter narrows the table and a reader most
+               wants it. -->
           <Pagination
             currentPage={tableState.currentPage}
             totalPages={tableContext.totalPages}
@@ -324,6 +333,7 @@
             intent="neutral"
             tier="modify"
             showInfo={true}
+            showPreviousNext={tableContext.totalPages > 1}
             itemsPerPage={tableState.itemsPerPage}
             totalItems={tableContext.totalItems}
             previousIcon={prevIcon}

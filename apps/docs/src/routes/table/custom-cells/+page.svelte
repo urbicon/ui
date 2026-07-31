@@ -155,7 +155,7 @@
           columns={[
             { accessor: 'name', title: 'Employee', cell: employeeCell },
             { accessor: 'department', title: 'Department', sortable: true },
-            { accessor: 'salary', title: 'Salary', cell: salaryCell, align: 'right' },
+            { accessor: 'salary', title: 'Salary', cell: salaryCell, dataType: 'number' },
             { accessor: 'status', title: 'Status', cell: statusCell }
           ] as Column<Employee>[]}
           enableSmartFilter={false}
