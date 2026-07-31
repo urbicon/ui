@@ -91,6 +91,32 @@ export interface PopoverProps
   /** When true (default), the trigger wrapper handles click and keyboard to toggle the popover. Set to `false` to manage `open` yourself. */
   autoTrigger?: boolean;
 
+  /**
+   * Render in a way that is legal inside **phrasing content** — a paragraph, a
+   * heading, a `<label>`. Set this when the trigger sits in flowing text, as a
+   * citation chip does inside a markdown paragraph.
+   *
+   * Two things change. The trigger wrapper becomes a `<span>` instead of a
+   * `<div>`, and the panel is not rendered on the server at all — it appears
+   * after mount. Both are needed together: a `<div>` start tag closes an open
+   * `<p>` regardless of how deeply it is nested, so wrapping the trigger alone
+   * leaves the panel to break the paragraph instead.
+   *
+   * Without it, an SSR'd page with a popover in a paragraph emits invalid HTML.
+   * The parser repairs it by closing the `<p>` early, which makes the server DOM
+   * differ from the component tree — Svelte logs `node_invalid_placement_ssr`
+   * and then `hydration_mismatch`, and the layout visibly shifts on hydration.
+   *
+   * **Cost:** the panel is absent from the prerendered HTML, so a non-rendering
+   * crawler never sees its content and the first paint has nothing to show if
+   * the popover is meant to open immediately. Leave it off for popovers in
+   * block context, where the default markup is already valid.
+   *
+   * @default false
+   * @summary Renders legally inside a paragraph — for triggers that sit in flowing text.
+   */
+  inline?: boolean;
+
   // ── Motion ───────────────────────────────────────────
   /**
    * Override the enter/exit fade duration in ms. Defaults to the shared token

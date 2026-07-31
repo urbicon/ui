@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { untrack } from 'svelte';
+  import { onMount, untrack } from 'svelte';
   import { getBlocksConfig, resolveSlotClasses } from '$lib/provider';
   import { useFloatingPanel, floatingPanelHidden, maxTransitionDurationMs } from '$lib/utils';
   import { popoverVariants } from './popover.variants';
@@ -19,6 +19,7 @@
 
     open = $bindable(false),
     autoTrigger = true,
+    inline = false,
     size = 'md',
 
     transitionDuration,
@@ -59,6 +60,22 @@
 
   let internalTriggerElement = $state<HTMLElement | null>(null);
   let popoverElement = $state<HTMLElement | null>(null);
+
+  // `inline` mode keeps the panel out of the server render entirely — a `<div>`
+  // start tag closes an open `<p>`, and the panel is a `<div>` whose children are
+  // the consumer's, so no wrapper element can make it phrasing-safe.
+  //
+  // This is NOT a hydration hazard, it is the cure for one: the flag starts false
+  // on the client too, so the first client render matches the server output, and
+  // the panel is appended only afterwards. `onMount` (rather than an `$effect`
+  // assigning state) is what pins that ordering — it is the one hook that means
+  // "after the first client render, and never on the server", which is exactly
+  // the condition being expressed.
+  let hydrated = $state(false);
+  onMount(() => {
+    hydrated = true;
+  });
+  const panelRendered = $derived(!inline || hydrated);
 
   const effectiveTriggerElement = $derived(triggerElement || internalTriggerElement);
 
@@ -408,7 +425,8 @@
 
 {#if trigger}
   <!-- svelte-ignore a11y_no_static_element_interactions -->
-  <div
+  <svelte:element
+    this={inline ? 'span' : 'div'}
     bind:this={internalTriggerElement}
     class="inline-flex"
     onclick={autoTrigger ? handleTriggerClick : undefined}
@@ -416,7 +434,7 @@
     onpointerdown={autoTrigger ? handleTriggerPointerDown : undefined}
   >
     {@render trigger()}
-  </div>
+  </svelte:element>
 {/if}
 
 <!--
@@ -460,25 +478,27 @@
   action; pointer-events-none (popoverMotion) only covers mouse/touch. Also
   drops the fading subtree from the a11y tree immediately.
 -->
-<div
-  bind:this={popoverElement}
-  class={popoverClasses}
-  {...restProps}
-  popover={panel.topLayer ? popoverMode : null}
-  style={style || null}
-  style:position={panel.strategy}
-  style:inset="auto"
-  style:margin="0"
-  style:display={floatingPanelHidden(panel, panelVisible) ? 'none' : null}
-  style:--blocks-popover-duration={popoverDurationInline}
-  style:--blocks-popover-easing={transitionEasing}
-  data-state={open ? 'open' : 'closed'}
-  inert={!open || undefined}
-  {role}
-  aria-modal={ariaModal || undefined}
-  {id}
->
-  {#if panelVisible}
-    {@render children()}
-  {/if}
-</div>
+{#if panelRendered}
+  <div
+    bind:this={popoverElement}
+    class={popoverClasses}
+    {...restProps}
+    popover={panel.topLayer ? popoverMode : null}
+    style={style || null}
+    style:position={panel.strategy}
+    style:inset="auto"
+    style:margin="0"
+    style:display={floatingPanelHidden(panel, panelVisible) ? 'none' : null}
+    style:--blocks-popover-duration={popoverDurationInline}
+    style:--blocks-popover-easing={transitionEasing}
+    data-state={open ? 'open' : 'closed'}
+    inert={!open || undefined}
+    {role}
+    aria-modal={ariaModal || undefined}
+    {id}
+  >
+    {#if panelVisible}
+      {@render children()}
+    {/if}
+  </div>
+{/if}

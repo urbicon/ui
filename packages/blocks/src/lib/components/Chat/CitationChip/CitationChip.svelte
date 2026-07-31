@@ -53,7 +53,13 @@
 
 <!-- The aria-label on Popover lands on the panel via its restProps spread, so
      the opened popover is not an unnamed dialog (axe: aria-dialog-name). -->
-<Popover placement="bottom-start" aria-label={ariaLabel}>
+<!-- `inline`: a citation chip's home is the middle of a sentence — `MdInline`
+     renders it inside `MdBlock`'s `<p>`. Without it the Popover's `<div>`
+     trigger wrapper and `<div>` panel each close that paragraph in the SSR
+     output, so the prerendered DOM no longer matches the component tree
+     (`node_invalid_placement_ssr` → `hydration_mismatch`, measured on three
+     docs pages 2026-07-28). -->
+<Popover inline placement="bottom-start" aria-label={ariaLabel}>
   {#snippet trigger()}
     <button
       type="button"
