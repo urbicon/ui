@@ -117,6 +117,30 @@ async function seedUser(repos: Repositories, role: string, label = 'u') {
   });
 }
 
+/**
+ * Seed one user per label and return their ids, in order.
+ *
+ * Every dependent row a check inserts — a refresh token, a passkey, a
+ * notification — must point at a user that actually exists. A synthetic literal
+ * (`'owner'`) works only against a store with no referential integrity, which
+ * is what the shipped in-memory adapter and the Prisma fake are; against a real
+ * relational schema (`prisma/auth-schema.prisma` puts `onDelete: Cascade` on
+ * all seven dependent models) the insert fails with a foreign-key violation,
+ * and the check reports an adapter bug that is not there.
+ *
+ * Ids that a check only reads, deletes or updates through — the non-owner in an
+ * ownership-scope assertion — need no row and stay literal; only inserts do.
+ */
+async function seedUserIds(
+  repos: Repositories,
+  role: string,
+  ...labels: string[]
+): Promise<string[]> {
+  const ids: string[] = [];
+  for (const label of labels) ids.push((await seedUser(repos, role, label)).id);
+  return ids;
+}
+
 const futureDate = () => new Date(Date.now() + 60 * 60_000);
 const pastDate = () => new Date(Date.now() - 60 * 60_000);
 
@@ -466,10 +490,11 @@ export const conformanceChecks: readonly ConformanceCheck[] = [
   check(
     'refreshToken.revoke is a single-winner compare-and-set',
     ['refreshToken'],
-    async (repos) => {
+    async (repos, h) => {
       const repo = need(repos.refreshToken, 'refreshToken');
+      const [owner] = await seedUserIds(repos, h.role, 'rt');
       const record = await repo.create({
-        userId: 'user-rt',
+        userId: owner,
         tokenHash: 'rt-hash',
         family: 'fam',
         expiresAt: futureDate()
@@ -505,20 +530,21 @@ export const conformanceChecks: readonly ConformanceCheck[] = [
   check(
     'refreshToken.revokeFamily / revokeAllForUser are correctly scoped',
     ['refreshToken'],
-    async (repos) => {
+    async (repos, h) => {
       const repo = need(repos.refreshToken, 'refreshToken');
-      // Two families for user-x, one for user-y; the rows are looked up by hash.
+      const [userX, userY] = await seedUserIds(repos, h.role, 'rt-x', 'rt-y');
+      // Two families for userX, one for userY; the rows are looked up by hash.
       const tok = (userId: string, tokenHash: string, family: string) =>
         repo.create({ userId, tokenHash, family, expiresAt: futureDate() });
-      await tok('user-x', 'h-a', 'fam-a');
-      await tok('user-x', 'h-b', 'fam-b');
-      await tok('user-y', 'h-c', 'fam-c');
+      await tok(userX, 'h-a', 'fam-a');
+      await tok(userX, 'h-b', 'fam-b');
+      await tok(userY, 'h-c', 'fam-c');
 
       await repo.revokeFamily('fam-a');
       expect((await repo.findByHash('h-a'))?.revokedAt, 'family-a revoked').toBeInstanceOf(Date);
       expect((await repo.findByHash('h-b'))?.revokedAt ?? null, 'family-b untouched').toBeNull();
 
-      await repo.revokeAllForUser('user-x');
+      await repo.revokeAllForUser(userX);
       expect((await repo.findByHash('h-b'))?.revokedAt, 'user-x fully revoked').toBeInstanceOf(
         Date
       );
@@ -529,16 +555,17 @@ export const conformanceChecks: readonly ConformanceCheck[] = [
   check(
     'refreshToken.deleteExpired removes only expired tokens',
     ['refreshToken'],
-    async (repos) => {
+    async (repos, h) => {
       const repo = need(repos.refreshToken, 'refreshToken');
+      const [owner] = await seedUserIds(repos, h.role, 'rt-exp');
       await repo.create({
-        userId: 'user-x',
+        userId: owner,
         tokenHash: 'expired',
         family: 'fam',
         expiresAt: pastDate()
       });
       await repo.create({
-        userId: 'user-x',
+        userId: owner,
         tokenHash: 'live',
         family: 'fam',
         expiresAt: futureDate()
@@ -555,26 +582,27 @@ export const conformanceChecks: readonly ConformanceCheck[] = [
   check(
     'refreshToken.listActiveByUser returns only the caller’s live tokens',
     ['refreshToken'],
-    async (repos) => {
+    async (repos, h) => {
       const repo = need(repos.refreshToken, 'refreshToken');
+      const [userX, userY] = await seedUserIds(repos, h.role, 'rt-list-x', 'rt-list-y');
       await repo.create({
-        userId: 'u-x',
+        userId: userX,
         tokenHash: 'live',
         family: 'f1',
         expiresAt: futureDate()
       });
       const revoked = await repo.create({
-        userId: 'u-x',
+        userId: userX,
         tokenHash: 'rev',
         family: 'f2',
         expiresAt: futureDate()
       });
       await repo.revoke(revoked.id);
-      await repo.create({ userId: 'u-x', tokenHash: 'exp', family: 'f3', expiresAt: pastDate() });
-      await repo.create({ userId: 'u-y', tokenHash: 'oth', family: 'f4', expiresAt: futureDate() });
+      await repo.create({ userId: userX, tokenHash: 'exp', family: 'f3', expiresAt: pastDate() });
+      await repo.create({ userId: userY, tokenHash: 'oth', family: 'f4', expiresAt: futureDate() });
 
-      const active = await repo.listActiveByUser('u-x');
-      // Only the non-revoked, unexpired token belonging to u-x.
+      const active = await repo.listActiveByUser(userX);
+      // Only the non-revoked, unexpired token belonging to userX.
       expect(active.map((r) => r.tokenHash)).toEqual(['live']);
       expect(active[0]?.family).toBe('f1');
     }
@@ -583,10 +611,11 @@ export const conformanceChecks: readonly ConformanceCheck[] = [
   check(
     'refreshToken.revokeFamilyForUser is ownership-scoped (IDOR-safe)',
     ['refreshToken'],
-    async (repos) => {
+    async (repos, h) => {
       const repo = need(repos.refreshToken, 'refreshToken');
+      const [owner] = await seedUserIds(repos, h.role, 'rt-fam');
       await repo.create({
-        userId: 'owner',
+        userId: owner,
         tokenHash: 'h1',
         family: 'fam',
         expiresAt: futureDate()
@@ -596,38 +625,39 @@ export const conformanceChecks: readonly ConformanceCheck[] = [
       expect(await repo.revokeFamilyForUser('attacker', 'fam'), 'non-owner → false').toBe(false);
       expect((await repo.findByHash('h1'))?.revokedAt ?? null, 'still live').toBeNull();
 
-      expect(await repo.revokeFamilyForUser('owner', 'fam'), 'owner → true').toBe(true);
+      expect(await repo.revokeFamilyForUser(owner, 'fam'), 'owner → true').toBe(true);
       expect((await repo.findByHash('h1'))?.revokedAt, 'now revoked').toBeInstanceOf(Date);
 
-      expect(await repo.revokeFamilyForUser('owner', 'fam'), 'already revoked → false').toBe(false);
+      expect(await repo.revokeFamilyForUser(owner, 'fam'), 'already revoked → false').toBe(false);
     }
   ),
 
   check(
     'refreshToken.revokeOtherFamiliesForUser keeps one family and is user-scoped',
     ['refreshToken'],
-    async (repos) => {
+    async (repos, h) => {
       const repo = need(repos.refreshToken, 'refreshToken');
+      const [owner, bystander] = await seedUserIds(repos, h.role, 'rt-keep', 'rt-bystander');
       await repo.create({
-        userId: 'owner',
+        userId: owner,
         tokenHash: 'keep',
         family: 'current',
         expiresAt: futureDate()
       });
       await repo.create({
-        userId: 'owner',
+        userId: owner,
         tokenHash: 'gone',
         family: 'other',
         expiresAt: futureDate()
       });
       await repo.create({
-        userId: 'bystander',
+        userId: bystander,
         tokenHash: 'safe',
         family: 'bystander-fam',
         expiresAt: futureDate()
       });
 
-      await repo.revokeOtherFamiliesForUser('owner', 'current');
+      await repo.revokeOtherFamiliesForUser(owner, 'current');
 
       expect((await repo.findByHash('keep'))?.revokedAt ?? null, 'current kept').toBeNull();
       expect((await repo.findByHash('gone'))?.revokedAt, 'other family revoked').toBeInstanceOf(
@@ -644,9 +674,10 @@ export const conformanceChecks: readonly ConformanceCheck[] = [
   check(
     'passkey.updateCounter is a CAS that closes the clone window',
     ['passkey'],
-    async (repos) => {
+    async (repos, h) => {
       const repo = need(repos.passkey, 'passkey');
-      await repo.create('user-x', {
+      const [owner] = await seedUserIds(repos, h.role, 'pk-cas');
+      await repo.create(owner, {
         credentialId: 'cred-1',
         publicKey: new Uint8Array([1, 2, 3]),
         publicKeyAlg: -7,
@@ -673,7 +704,7 @@ export const conformanceChecks: readonly ConformanceCheck[] = [
       // no-op → false (the caller rejects it), never a store-level throw. Both
       // the CAS (counter > 0) and the counterless (counter 0) paths must honour
       // this so a concurrent delete can't 500 a passkey login.
-      await repo.delete('user-x', 'cred-1');
+      await repo.delete(owner, 'cred-1');
       expect(await repo.updateCounter('cred-1', 12), 'CAS on a deleted credential → false').toBe(
         false
       );
@@ -684,9 +715,10 @@ export const conformanceChecks: readonly ConformanceCheck[] = [
     }
   ),
 
-  check('passkey.delete is scoped to the owner', ['passkey'], async (repos) => {
+  check('passkey.delete is scoped to the owner', ['passkey'], async (repos, h) => {
     const repo = need(repos.passkey, 'passkey');
-    await repo.create('owner', {
+    const [owner] = await seedUserIds(repos, h.role, 'pk-del');
+    await repo.create(owner, {
       credentialId: 'cred-1',
       publicKey: new Uint8Array([1]),
       publicKeyAlg: -7,
@@ -697,13 +729,14 @@ export const conformanceChecks: readonly ConformanceCheck[] = [
     await tolerate(() => repo.delete('attacker', 'cred-1'));
     expect(await repo.findByCredentialId('cred-1'), 'non-owner cannot delete').not.toBeNull();
 
-    await repo.delete('owner', 'cred-1');
+    await repo.delete(owner, 'cred-1');
     expect(await repo.findByCredentialId('cred-1'), 'owner can delete').toBeNull();
   }),
 
-  check('passkey.rename is scoped to the owner', ['passkey'], async (repos) => {
+  check('passkey.rename is scoped to the owner', ['passkey'], async (repos, h) => {
     const repo = need(repos.passkey, 'passkey');
-    await repo.create('owner', {
+    const [owner] = await seedUserIds(repos, h.role, 'pk-rename');
+    await repo.create(owner, {
       credentialId: 'cred-1',
       publicKey: new Uint8Array([1]),
       publicKeyAlg: -7,
@@ -719,7 +752,7 @@ export const conformanceChecks: readonly ConformanceCheck[] = [
       'Original'
     );
 
-    await repo.rename('owner', 'cred-1', 'My laptop');
+    await repo.rename(owner, 'cred-1', 'My laptop');
     expect((await repo.findByCredentialId('cred-1'))?.name, 'owner can rename').toBe('My laptop');
   }),
 
@@ -727,45 +760,44 @@ export const conformanceChecks: readonly ConformanceCheck[] = [
   check(
     'notification.markAsRead / delete are scoped to the owner',
     ['notification'],
-    async (repos) => {
+    async (repos, h) => {
       const repo = need(repos.notification, 'notification');
-      const n = await repo.create({ userId: 'owner', typeKey: 'security', title: 'New login' });
+      const [owner] = await seedUserIds(repos, h.role, 'nt-scope');
+      const n = await repo.create({ userId: owner, typeKey: 'security', title: 'New login' });
 
       await tolerate(() => repo.markAsRead('attacker', n.id));
-      expect(
-        (await repo.findByUser('owner'))[0]?.readAt ?? null,
-        'non-owner cannot read'
-      ).toBeNull();
+      expect((await repo.findByUser(owner))[0]?.readAt ?? null, 'non-owner cannot read').toBeNull();
 
       await tolerate(() => repo.delete('attacker', n.id));
-      expect(await repo.findByUser('owner'), 'non-owner cannot delete').toHaveLength(1);
+      expect(await repo.findByUser(owner), 'non-owner cannot delete').toHaveLength(1);
 
-      await repo.markAsRead('owner', n.id);
-      expect((await repo.findByUser('owner'))[0]?.readAt, 'owner can read').toBeInstanceOf(Date);
+      await repo.markAsRead(owner, n.id);
+      expect((await repo.findByUser(owner))[0]?.readAt, 'owner can read').toBeInstanceOf(Date);
     }
   ),
 
   check(
     'notification.markAllAsRead and getUnreadCount are scoped to the user',
     ['notification'],
-    async (repos) => {
+    async (repos, h) => {
       const repo = need(repos.notification, 'notification');
-      await repo.create({ userId: 'owner', typeKey: 'security', title: 'one' });
-      await repo.create({ userId: 'owner', typeKey: 'security', title: 'two' });
-      const bystander = await repo.create({ userId: 'bystander', typeKey: 'security', title: 'b' });
+      const [owner, other] = await seedUserIds(repos, h.role, 'nt-owner', 'nt-bystander');
+      await repo.create({ userId: owner, typeKey: 'security', title: 'one' });
+      await repo.create({ userId: owner, typeKey: 'security', title: 'two' });
+      const bystander = await repo.create({ userId: other, typeKey: 'security', title: 'b' });
 
-      expect(await repo.getUnreadCount('owner'), 'both rows start unread').toBe(2);
+      expect(await repo.getUnreadCount(owner), 'both rows start unread').toBe(2);
 
-      await repo.markAllAsRead('owner');
-      expect(await repo.getUnreadCount('owner'), 'all of the owner’s rows read').toBe(0);
+      await repo.markAllAsRead(owner);
+      expect(await repo.getUnreadCount(owner), 'all of the owner’s rows read').toBe(0);
       expect(
-        (await repo.findByUser('owner')).every((n) => n.readAt instanceof Date),
+        (await repo.findByUser(owner)).every((n) => n.readAt instanceof Date),
         'each row carries a read stamp'
       ).toBe(true);
 
       // The bulk write must not cross the user boundary.
-      expect(await repo.getUnreadCount('bystander'), 'bystander still unread').toBe(1);
-      expect((await repo.findByUser('bystander'))[0]?.id).toBe(bystander.id);
+      expect(await repo.getUnreadCount(other), 'bystander still unread').toBe(1);
+      expect((await repo.findByUser(other))[0]?.id).toBe(bystander.id);
     }
   ),
 
@@ -795,49 +827,66 @@ export const conformanceChecks: readonly ConformanceCheck[] = [
   }),
 
   // -- Notification: list filters ------------------------------------------
-  check('notification.findByUser honors unreadOnly and limit', ['notification'], async (repos) => {
-    const repo = need(repos.notification, 'notification');
-    const a = await repo.create({ userId: 'owner', typeKey: 'security', title: 'first' });
-    const b = await repo.create({ userId: 'owner', typeKey: 'security', title: 'second' });
-    const c = await repo.create({ userId: 'owner', typeKey: 'security', title: 'third' });
-    await repo.markAsRead('owner', b.id);
+  check(
+    'notification.findByUser honors unreadOnly and limit',
+    ['notification'],
+    async (repos, h) => {
+      const repo = need(repos.notification, 'notification');
+      const [owner] = await seedUserIds(repos, h.role, 'nt-filter');
+      const a = await repo.create({ userId: owner, typeKey: 'security', title: 'first' });
+      const b = await repo.create({ userId: owner, typeKey: 'security', title: 'second' });
+      const c = await repo.create({ userId: owner, typeKey: 'security', title: 'third' });
+      await repo.markAsRead(owner, b.id);
 
-    // The client store's `unreadOnly` toggle rides on this translation
-    // (`readAt: null` in SQL adapters) — a wrong filter shows read rows in
-    // an "unread" view. Order is deliberately not asserted: it is not part
-    // of the documented contract.
-    const unread = await repo.findByUser('owner', { unreadOnly: true });
-    expect(unread.map((n) => n.id).sort(), 'unreadOnly returns exactly the unread rows').toEqual(
-      [a.id, c.id].sort()
-    );
+      // The client store's `unreadOnly` toggle rides on this translation
+      // (`readAt: null` in SQL adapters) — a wrong filter shows read rows in
+      // an "unread" view. Order is deliberately not asserted: it is not part
+      // of the documented contract.
+      const unread = await repo.findByUser(owner, { unreadOnly: true });
+      expect(unread.map((n) => n.id).sort(), 'unreadOnly returns exactly the unread rows').toEqual(
+        [a.id, c.id].sort()
+      );
 
-    const limited = await repo.findByUser('owner', { limit: 2 });
-    expect(limited, 'limit caps the result count').toHaveLength(2);
+      const limited = await repo.findByUser(owner, { limit: 2 });
+      expect(limited, 'limit caps the result count').toHaveLength(2);
 
-    const all = await repo.findByUser('owner');
-    expect(all, 'no options returns everything').toHaveLength(3);
-  }),
+      const all = await repo.findByUser(owner);
+      expect(all, 'no options returns everything').toHaveLength(3);
+    }
+  ),
 
   // -- Push subscription: ownership scope ---------------------------------
-  check('pushSubscription.delete is scoped to the owner', ['pushSubscription'], async (repos) => {
-    const repo = need(repos.pushSubscription, 'pushSubscription');
-    const endpoint = 'https://push.test/endpoint-1';
-    await repo.create('owner', { endpoint, keys: { p256dh: 'p', auth: 'a' } });
+  check(
+    'pushSubscription.delete is scoped to the owner',
+    ['pushSubscription'],
+    async (repos, h) => {
+      const repo = need(repos.pushSubscription, 'pushSubscription');
+      const [owner] = await seedUserIds(repos, h.role, 'ps-del');
+      const endpoint = 'https://push.test/endpoint-1';
+      await repo.create(owner, { endpoint, keys: { p256dh: 'p', auth: 'a' } });
 
-    // An attacker who knows the endpoint URL must not delete the owner's row.
-    await tolerate(() => repo.delete('attacker', endpoint));
-    expect(await repo.findByUser('owner'), 'non-owner cannot delete').toHaveLength(1);
+      // An attacker who knows the endpoint URL must not delete the owner's row.
+      await tolerate(() => repo.delete('attacker', endpoint));
+      expect(await repo.findByUser(owner), 'non-owner cannot delete').toHaveLength(1);
 
-    await repo.delete('owner', endpoint);
-    expect(await repo.findByUser('owner'), 'owner can delete').toHaveLength(0);
-  }),
+      await repo.delete(owner, endpoint);
+      expect(await repo.findByUser(owner), 'owner can delete').toHaveLength(0);
+    }
+  ),
 
   // -- Push subscription: upsert-by-endpoint, key-gated reassign -----------
   check(
     'pushSubscription.create upserts by endpoint and gates the reassign on key match',
     ['pushSubscription'],
-    async (repos) => {
+    async (repos, h) => {
       const repo = need(repos.pushSubscription, 'pushSubscription');
+      const [owner, other, attacker] = await seedUserIds(
+        repos,
+        h.role,
+        'ps-owner',
+        'ps-other',
+        'ps-attacker'
+      );
       const endpoint = 'https://push.test/endpoint-upsert';
       // Decodable base64url so adapters comparing decoded bytes get real input.
       const KEYS_A = { p256dh: 'cDE', auth: 'YTE' };
@@ -847,36 +896,36 @@ export const conformanceChecks: readonly ConformanceCheck[] = [
       // The browser re-sends its *existing* subscription on every re-enable,
       // so the duplicate POST is the normal case — it must update in place,
       // not throw on the unique endpoint (works-in-dev/500-in-prod class).
-      expect(await repo.create('owner', { endpoint, keys: KEYS_A }), 'new row').toBe('created');
+      expect(await repo.create(owner, { endpoint, keys: KEYS_A }), 'new row').toBe('created');
       expect(
-        await repo.create('owner', { endpoint, keys: KEYS_B }),
+        await repo.create(owner, { endpoint, keys: KEYS_B }),
         'same owner may rotate keys'
       ).toBe('updated');
 
-      const owned = await repo.findByUser('owner');
+      const owned = await repo.findByUser(owner);
       expect(owned, 're-subscribe keeps a single row').toHaveLength(1);
       expect(owned[0].keys.p256dh, 'keys are updated in place').toBe(KEYS_B.p256dh);
 
       // After a user switch in the same browser profile, the browser re-sends
       // the SAME subscription (endpoint + keys): key possession proves the
       // device, so the endpoint follows the newly subscribed account.
-      expect(await repo.create('other', { endpoint, keys: KEYS_B }), 'matching keys reassign').toBe(
+      expect(await repo.create(other, { endpoint, keys: KEYS_B }), 'matching keys reassign').toBe(
         'reassigned'
       );
-      expect(await repo.findByUser('owner'), 'previous owner released').toHaveLength(0);
-      const reassigned = await repo.findByUser('other');
+      expect(await repo.findByUser(owner), 'previous owner released').toHaveLength(0);
+      const reassigned = await repo.findByUser(other);
       expect(reassigned, 'latest subscriber owns the row').toHaveLength(1);
 
       // Merely knowing the endpoint URL (say, from a log) must NOT take the
       // row over: without the matching keys the write is refused untouched.
       expect(
-        await repo.create('attacker', { endpoint, keys: KEYS_ATTACKER }),
+        await repo.create(attacker, { endpoint, keys: KEYS_ATTACKER }),
         'mismatching keys are rejected'
       ).toBe('rejected');
-      const kept = await repo.findByUser('other');
+      const kept = await repo.findByUser(other);
       expect(kept, 'row still belongs to the previous owner').toHaveLength(1);
       expect(kept[0].keys.p256dh, 'keys untouched by the rejected write').toBe(KEYS_B.p256dh);
-      expect(await repo.findByUser('attacker'), 'attacker gained nothing').toHaveLength(0);
+      expect(await repo.findByUser(attacker), 'attacker gained nothing').toHaveLength(0);
     }
   ),
 
@@ -884,22 +933,23 @@ export const conformanceChecks: readonly ConformanceCheck[] = [
   check(
     'notificationPreference.upsert is per-(user,type) and merges',
     ['notificationPreference'],
-    async (repos) => {
+    async (repos, h) => {
       const repo = need(repos.notificationPreference, 'notificationPreference');
-      await repo.upsert('owner', 'security', { push: false });
-      expect(await repo.findByUser('owner')).toEqual([
+      const [owner, other] = await seedUserIds(repos, h.role, 'np-owner', 'np-other');
+      await repo.upsert(owner, 'security', { push: false });
+      expect(await repo.findByUser(owner)).toEqual([
         { typeKey: 'security', sse: true, push: false, email: true }
       ]);
 
       // A second upsert merges rather than replacing the whole row.
-      await repo.upsert('owner', 'security', { email: false });
-      expect(await repo.findByUser('owner')).toEqual([
+      await repo.upsert(owner, 'security', { email: false });
+      expect(await repo.findByUser(owner)).toEqual([
         { typeKey: 'security', sse: true, push: false, email: false }
       ]);
 
       // A different user's preferences are independent.
-      await repo.upsert('other', 'security', { sse: false });
-      expect(await repo.findByUser('owner'), 'owner row untouched').toHaveLength(1);
+      await repo.upsert(other, 'security', { sse: false });
+      expect(await repo.findByUser(owner), 'owner row untouched').toHaveLength(1);
     }
   ),
 
@@ -907,54 +957,61 @@ export const conformanceChecks: readonly ConformanceCheck[] = [
   check(
     'backupCode.consumeIfUnused is single-use under concurrency and owner-scoped',
     ['backupCode'],
-    async (repos) => {
+    async (repos, h) => {
       const repo = need(repos.backupCode, 'backupCode');
-      await repo.createMany('owner', ['hash-a', 'hash-b']);
+      const [owner] = await seedUserIds(repos, h.role, 'bc-owner');
+      await repo.createMany(owner, ['hash-a', 'hash-b']);
 
       // Exactly one of N concurrent redemptions of the same code may win.
-      const results = await parallel(5, () => repo.consumeIfUnused('owner', 'hash-a'));
+      const results = await parallel(5, () => repo.consumeIfUnused(owner, 'hash-a'));
       expect(results.filter(Boolean), 'one code, one winner').toHaveLength(1);
       // A later redemption of the same (now used) code finds nothing.
-      expect(await repo.consumeIfUnused('owner', 'hash-a'), 'already used → false').toBe(false);
+      expect(await repo.consumeIfUnused(owner, 'hash-a'), 'already used → false').toBe(false);
       // The other code is still redeemable.
-      expect(await repo.consumeIfUnused('owner', 'hash-b'), 'unused code → true').toBe(true);
+      expect(await repo.consumeIfUnused(owner, 'hash-b'), 'unused code → true').toBe(true);
 
       // A non-owner cannot redeem the owner's codes (IDOR), and an unknown code
       // is rejected.
-      await repo.createMany('owner', ['hash-c']);
+      await repo.createMany(owner, ['hash-c']);
       expect(await repo.consumeIfUnused('attacker', 'hash-c'), 'non-owner → false').toBe(false);
-      expect(await repo.consumeIfUnused('owner', 'unknown-hash'), 'unknown → false').toBe(false);
-      expect(await repo.consumeIfUnused('owner', 'hash-c'), 'owner can still redeem').toBe(true);
+      expect(await repo.consumeIfUnused(owner, 'unknown-hash'), 'unknown → false').toBe(false);
+      expect(await repo.consumeIfUnused(owner, 'hash-c'), 'owner can still redeem').toBe(true);
     }
   ),
 
-  check('backupCode.deleteAll removes only the caller’s codes', ['backupCode'], async (repos) => {
-    const repo = need(repos.backupCode, 'backupCode');
-    await repo.createMany('owner', ['h1', 'h2']);
-    await repo.createMany('bystander', ['h3']);
+  check(
+    'backupCode.deleteAll removes only the caller’s codes',
+    ['backupCode'],
+    async (repos, h) => {
+      const repo = need(repos.backupCode, 'backupCode');
+      const [owner, bystander] = await seedUserIds(repos, h.role, 'bc-del', 'bc-bystander');
+      await repo.createMany(owner, ['h1', 'h2']);
+      await repo.createMany(bystander, ['h3']);
 
-    await repo.deleteAll('owner');
-    expect(await repo.consumeIfUnused('owner', 'h1'), 'owner codes gone').toBe(false);
-    expect(await repo.consumeIfUnused('owner', 'h2'), 'owner codes gone').toBe(false);
-    // Another user's codes are untouched.
-    expect(await repo.consumeIfUnused('bystander', 'h3'), 'bystander untouched').toBe(true);
-  }),
+      await repo.deleteAll(owner);
+      expect(await repo.consumeIfUnused(owner, 'h1'), 'owner codes gone').toBe(false);
+      expect(await repo.consumeIfUnused(owner, 'h2'), 'owner codes gone').toBe(false);
+      // Another user's codes are untouched.
+      expect(await repo.consumeIfUnused(bystander, 'h3'), 'bystander untouched').toBe(true);
+    }
+  ),
 
   check(
     'federatedAccount link + findByFederatedId round-trip (and unknown → null)',
     ['federatedAccount'],
-    async (repos) => {
+    async (repos, h) => {
       const repo = need(repos.federatedAccount, 'federatedAccount');
+      const [local1] = await seedUserIds(repos, h.role, 'fa-local1');
       const ISSUER = 'https://auth.conformance.test';
 
       expect(await repo.findByFederatedId(ISSUER, 'idp-1'), 'unlinked → null').toBeNull();
 
-      const link = await repo.linkFederatedAccount('local-1', { issuer: ISSUER, subject: 'idp-1' });
-      expect(link).toMatchObject({ issuer: ISSUER, subject: 'idp-1', userId: 'local-1' });
+      const link = await repo.linkFederatedAccount(local1, { issuer: ISSUER, subject: 'idp-1' });
+      expect(link).toMatchObject({ issuer: ISSUER, subject: 'idp-1', userId: local1 });
       expect(link.createdAt).toBeInstanceOf(Date);
 
       const found = await repo.findByFederatedId(ISSUER, 'idp-1');
-      expect(found?.userId, 'link resolves to the local user').toBe('local-1');
+      expect(found?.userId, 'link resolves to the local user').toBe(local1);
       // The composite key is (issuer, subject) — the same subject under
       // another issuer label is a different identity.
       expect(await repo.findByFederatedId('https://other.test', 'idp-1')).toBeNull();
@@ -964,88 +1021,89 @@ export const conformanceChecks: readonly ConformanceCheck[] = [
   check(
     'federatedAccount.linkFederatedAccount is idempotent for the same user and refuses a re-link to another',
     ['federatedAccount'],
-    async (repos) => {
+    async (repos, h) => {
       const repo = need(repos.federatedAccount, 'federatedAccount');
+      const [local1, local2] = await seedUserIds(repos, h.role, 'fa-idem1', 'fa-idem2');
       const ISSUER = 'https://auth.conformance.test';
-      await repo.linkFederatedAccount('local-1', { issuer: ISSUER, subject: 'idp-1' });
+      await repo.linkFederatedAccount(local1, { issuer: ISSUER, subject: 'idp-1' });
 
       // Idempotent re-link for the identical triple.
-      const again = await repo.linkFederatedAccount('local-1', {
+      const again = await repo.linkFederatedAccount(local1, {
         issuer: ISSUER,
         subject: 'idp-1'
       });
-      expect(again.userId).toBe('local-1');
+      expect(again.userId).toBe(local1);
 
       // A different local user must NOT silently take the identity over
       // (account-takeover primitive) — the contract demands a throw …
       await expect(
-        repo.linkFederatedAccount('local-2', { issuer: ISSUER, subject: 'idp-1' })
+        repo.linkFederatedAccount(local2, { issuer: ISSUER, subject: 'idp-1' })
       ).rejects.toThrow();
       // … and the original link must survive intact.
-      expect((await repo.findByFederatedId(ISSUER, 'idp-1'))?.userId).toBe('local-1');
+      expect((await repo.findByFederatedId(ISSUER, 'idp-1'))?.userId).toBe(local1);
     }
   ),
 
   check(
     'federatedAccount link is single-winner under concurrency',
     ['federatedAccount'],
-    async (repos) => {
+    async (repos, h) => {
       const repo = need(repos.federatedAccount, 'federatedAccount');
+      const [localA, localB] = await seedUserIds(repos, h.role, 'fa-race-a', 'fa-race-b');
       const ISSUER = 'https://auth.conformance.test';
 
       // Two users racing to claim the same federated identity: exactly one
       // may hold the link afterwards; the loser throws (tolerated here — the
       // end state is what the contract pins).
       await Promise.all([
-        tolerate(() => repo.linkFederatedAccount('local-a', { issuer: ISSUER, subject: 'race' })),
-        tolerate(() => repo.linkFederatedAccount('local-b', { issuer: ISSUER, subject: 'race' }))
+        tolerate(() => repo.linkFederatedAccount(localA, { issuer: ISSUER, subject: 'race' })),
+        tolerate(() => repo.linkFederatedAccount(localB, { issuer: ISSUER, subject: 'race' }))
       ]);
 
       const winner = await repo.findByFederatedId(ISSUER, 'race');
       expect(winner, 'exactly one link exists').not.toBeNull();
-      expect(['local-a', 'local-b']).toContain(winner?.userId);
+      expect([localA, localB]).toContain(winner?.userId);
     }
   ),
 
   check(
     'federatedAccount.unlinkFederatedAccount is owner-scoped and enables the explicit re-link',
     ['federatedAccount'],
-    async (repos) => {
+    async (repos, h) => {
       const repo = need(repos.federatedAccount, 'federatedAccount');
+      const [local1, local2] = await seedUserIds(repos, h.role, 'fa-unlink1', 'fa-unlink2');
       const ISSUER = 'https://auth.conformance.test';
-      await repo.linkFederatedAccount('local-1', { issuer: ISSUER, subject: 'idp-1' });
+      await repo.linkFederatedAccount(local1, { issuer: ISSUER, subject: 'idp-1' });
 
       // A non-owner cannot free the identity — unlink→re-link would otherwise
       // be the account-takeover primitive laundered through two steps.
       expect(
-        await repo.unlinkFederatedAccount('local-2', { issuer: ISSUER, subject: 'idp-1' }),
+        await repo.unlinkFederatedAccount(local2, { issuer: ISSUER, subject: 'idp-1' }),
         'non-owner → false'
       ).toBe(false);
-      expect((await repo.findByFederatedId(ISSUER, 'idp-1'))?.userId, 'link survives').toBe(
-        'local-1'
-      );
+      expect((await repo.findByFederatedId(ISSUER, 'idp-1'))?.userId, 'link survives').toBe(local1);
       // An unknown pair reports false, not an error.
-      expect(
-        await repo.unlinkFederatedAccount('local-1', { issuer: ISSUER, subject: 'ghost' })
-      ).toBe(false);
+      expect(await repo.unlinkFederatedAccount(local1, { issuer: ISSUER, subject: 'ghost' })).toBe(
+        false
+      );
 
       // The owner's unlink removes the link exactly once …
-      expect(
-        await repo.unlinkFederatedAccount('local-1', { issuer: ISSUER, subject: 'idp-1' })
-      ).toBe(true);
+      expect(await repo.unlinkFederatedAccount(local1, { issuer: ISSUER, subject: 'idp-1' })).toBe(
+        true
+      );
       expect(await repo.findByFederatedId(ISSUER, 'idp-1')).toBeNull();
       expect(
-        await repo.unlinkFederatedAccount('local-1', { issuer: ISSUER, subject: 'idp-1' }),
+        await repo.unlinkFederatedAccount(local1, { issuer: ISSUER, subject: 'idp-1' }),
         'second unlink → false'
       ).toBe(false);
 
       // … and the freed identity can be linked to another user — the
       // "unlink it explicitly first" flow the link-conflict error points to.
-      const relinked = await repo.linkFederatedAccount('local-2', {
+      const relinked = await repo.linkFederatedAccount(local2, {
         issuer: ISSUER,
         subject: 'idp-1'
       });
-      expect(relinked.userId).toBe('local-2');
+      expect(relinked.userId).toBe(local2);
     }
   )
 ];
