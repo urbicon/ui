@@ -62,8 +62,16 @@ const ACCEPTED_EXTRAS = new Set<string>([]);
 /** Attributes that belong to the docs page, not to the component's API. */
 const SCAFFOLD = /^(class|style|slotClasses|aria-[\w-]+|data-[\w-]+)$/;
 
-/** Identifiers that are docs-site plumbing and must not reach a snippet. */
-const SITE_ONLY = new Set(['dateLocale', 'CONTAINED']);
+/**
+ * Identifiers that are docs-site plumbing and must not reach a snippet.
+ *
+ * `dateLocale` was here until 2026-07-31: the date playgrounds each derived a
+ * BCP 47 tag from the page locale and passed it, because the components
+ * defaulted to a hardcoded `'de-DE'` and could not see the provider. They follow
+ * it themselves now, so the workaround is gone and the entry with it — a stale
+ * name here would quietly excuse the next one.
+ */
+const SITE_ONLY = new Set(['CONTAINED']);
 
 const problems: string[] = [];
 let checked = 0;

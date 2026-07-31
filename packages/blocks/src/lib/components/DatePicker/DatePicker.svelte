@@ -1,5 +1,6 @@
 <script lang="ts">
   import { useI18n } from '@urbicon-ui/i18n';
+  import { resolveDateLocale } from '$lib/internal/resolve-date-locale';
   // ⚠ Mirror non-trivial changes to DateRangePicker.svelte (or vice
   // versa) — these two pickers share ~90% of state-machine logic.
   import { Input } from '$lib/primitives/Input';
@@ -63,9 +64,11 @@
   // --- Locale resolution ---
   // `'auto'` follows the active `<I18nProvider>`, matching CurrencyInput. Reading
   // the locale from context (not `Intl` with `undefined`) keeps SSR and hydration
-  // on the same tag; without a provider it is the base locale (`en`).
+  // on the same tag; without a provider it is the base locale (`en`). The helper
+  // verifies the context value before it reaches `Intl` — see
+  // resolve-date-locale.ts for why the prop is trusted and the context is not.
   const i18nLocale = useI18n();
-  const resolvedLocale = $derived(locale === 'auto' ? i18nLocale.locale : locale);
+  const resolvedLocale = $derived(resolveDateLocale(locale, i18nLocale.locale));
 
   const propsId = $props.id();
   const popoverId = `datepicker-${propsId}-popover`;
