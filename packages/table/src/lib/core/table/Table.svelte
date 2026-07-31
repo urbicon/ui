@@ -310,10 +310,17 @@
     />
 
     {#if !tableState.loading && !tableState.error}
+      <!-- `totalPages > 1` gates only the DEFAULT pagination: a control reading
+           "Page 1 of 1" is noise, and suppressing it used to require passing an
+           empty snippet (`{#snippet pagination()}{/snippet}`) — a workaround that
+           reads like a mistake. A consumer-supplied snippet is not gated: it may
+           legitimately show a total count or a page-size picker that stays
+           meaningful on a single page. Consumers whose layout reserved the
+           footer height for a one-page table will see it collapse. -->
       {#if tableContext.filteredItems.length > 0 && !tableState.groupByKey && !virtualized}
         {#if pagination}
           {@render pagination()}
-        {:else}
+        {:else if tableContext.totalPages > 1}
           <Pagination
             currentPage={tableState.currentPage}
             totalPages={tableContext.totalPages}

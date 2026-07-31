@@ -34,8 +34,13 @@
       // derivable flags — exclude before reading them.
       if (col.accessor === undefined) return false;
       if (col.groupable !== undefined) return col.groupable === true;
-      const id = resolveColumnId(col);
-      return col.sortable === true && id !== 'actions' && !id.includes('action');
+      // Derived from what the column declares, not from what it is called. This
+      // read `id !== 'actions' && !id.includes('action')` until 2026-07-31 —
+      // the same name-guessing as the summary heuristic, and equally wrong in
+      // both directions: a legitimate `transaction` or `actionType` column was
+      // silently ungroupable, while the synthetic-column check above already
+      // covers the case the name was standing in for.
+      return col.sortable === true;
     });
   });
 
@@ -48,6 +53,22 @@
         value: resolveColumnId(column)
       });
     });
+
+    // Grouping is a superset of this menu: `initialGroupBy` / `setGroupByKey`
+    // accept any item field, so a table can legitimately group by something it
+    // shows no column for (the landing journey groups bookings by `day` while
+    // displaying no Day column). Without this the Select holds a value with no
+    // matching option — DEV-logs `[Select] value "day" has no matching option`,
+    // cannot display the active grouping, and once a user ungroups there is no
+    // way back to it.
+    //
+    // Appending it keeps the menu a faithful view of the state rather than
+    // making the menu the authority over it. The label falls back to the raw key
+    // because that is genuinely all we know about a field with no column.
+    const active = tableState.groupByKey;
+    if (active && !options.some((o) => o.value === active)) {
+      options.push({ label: active, value: active });
+    }
 
     return options;
   });

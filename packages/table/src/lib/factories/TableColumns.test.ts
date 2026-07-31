@@ -12,6 +12,23 @@ type TestItem = {
   url: string;
 };
 
+/**
+ * A second shape for the "capability follows configuration" cases, kept apart so
+ * the fixtures above stay as they were. `price` is a **string** on purpose — it
+ * is the reported failure (a column named `price` whose accessor yields `'$95'`)
+ * — while `throughput` and `umsatz` are numbers whose names the old regex did
+ * not know, in English and in German.
+ */
+type PricedItem = { price: string; throughput: number; umsatz: number };
+
+/**
+ * `Column<Item>` is a union and only its data-carrying arm has `dataType` /
+ * `summable` / `align`. `TableColumns.text` always produces that arm, so these
+ * tests narrow once here rather than casting at every assertion.
+ */
+const asData = <Item>(col: ReturnType<typeof TableColumns.text<Item>>) =>
+  col as Exclude<ReturnType<typeof TableColumns.text<Item>>, { accessor?: never }>;
+
 describe('TableColumns factory', () => {
   describe('common column shape', () => {
     it('userAvatar produces a column with component and componentProps', () => {
@@ -63,6 +80,52 @@ describe('TableColumns factory', () => {
       const col = TableColumns.link<TestItem>('url', 'Link');
       expect(resolveColumnId(col)).toBe('url');
       expect(col.component).toBeDefined();
+    });
+  });
+
+  describe('text: capability follows configuration, not the accessor name', () => {
+    /**
+     * Until 2026-07-31 this factory read the accessor against
+     * `/^(age|salary|price|amount|count|number|projectsCompleted|rating|score)$/i`
+     * and, on a match, silently set `dataType: 'number'`, `align: 'right'` and
+     * `summable: true`. Three consequences worth pinning, because "the regex is
+     * gone" is not visible in the current code:
+     */
+
+    it('leaves a numerically-named column plain text', () => {
+      const col = asData(TableColumns.text<PricedItem>('price', 'Price'));
+      expect(col.dataType).toBe('text');
+      expect(col.align).toBe('left');
+      expect(col.summable).toBe(false);
+    });
+
+    it('derives alignment and summability from a declared number type', () => {
+      // Not a guess about a name — a derivation from what the consumer declared.
+      const col = asData(
+        TableColumns.text<PricedItem>('throughput', 'Throughput', { dataType: 'number' })
+      );
+      expect(col.align).toBe('right');
+      expect(col.summable).toBe(true);
+    });
+
+    it('still lets explicit options win over the derivation', () => {
+      const col = asData(
+        TableColumns.text<TestItem>('amount', 'Amount', {
+          dataType: 'number',
+          align: 'left',
+          summable: false
+        })
+      );
+      expect(col.align).toBe('left');
+      expect(col.summable).toBe(false);
+    });
+
+    it('treats a non-English numeric name the same as an English one', () => {
+      // The old list held nine English nouns, so the behaviour depended on the
+      // language the consumer names their columns in. Both are plain text now.
+      for (const name of ['umsatz', 'price'] as const) {
+        expect(asData(TableColumns.text<PricedItem>(name, name)).dataType, name).toBe('text');
+      }
     });
   });
 
