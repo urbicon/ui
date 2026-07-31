@@ -4,6 +4,26 @@ All notable changes to this project will be documented in this file.
 This changelog is automatically generated from [Conventional Commits](https://www.conventionalcommits.org).
 
 
+## [6.47.0] - 2026-07-31
+
+### Bug Fixes
+- **blocks**: Let the date components follow the app's locale
+- **blocks**: Verify the provider locale before it reaches Intl
+- **blocks**: Give the intent fills their own on-colour token
+- **table**: Move the whole intent ladder, not just its base
+- **blocks**: Give Popover a phrasing-content mode so citation chips stop breaking SSR
+- **table**: Let a column's capabilities follow its configuration, not its name
+- **table**: Keep the row count, and make the declared grouping key stay in the menu
+- **blocks**: Give the selection controls their own radius, and read initials under the overlap
+- **blocks**: Keep the checkbox on its tier, and gate the packages that carry the design loop
+
+### Documentation
+- Catch the surfaces the five fixes left behind
+
+### Testing
+- **e2e**: Re-capture the four rooms baselines the on-fill split moves (darwin)
+- **blocks**: Prove the inline panel comes back, and read the paragraph rule from Svelte
+
 ## [6.46.0] - 2026-07-31
 
 ### Bug Fixes
