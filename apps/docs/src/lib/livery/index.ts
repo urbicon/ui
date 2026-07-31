@@ -156,10 +156,11 @@ const LACQUER: Livery = {
     // on a 20px control is a square, and the rendered form showed six square
     // "radios" that were indistinguishable from checkboxes.
     //
-    // So all FOUR houses need the override, not three — the radio circle does
-    // not survive any deviation from the pill default, however small. That is
-    // the strongest form of the argument in docs/technical-debt.md: this is not
-    // an edge case for austere themes, it is every theme that touches the tier.
+    // So all FOUR houses needed the override, not three — the radio circle did
+    // not survive any deviation from the pill default, however small. That was
+    // the strongest form of the argument for giving the indicator its own token,
+    // which it has since 2026-07-31 (`--radius-control`): this was never an edge
+    // case for austere themes, it was every theme that touched the tier.
     Card: {
       slotClasses: { base: 'border border-primary-900 shadow-none' }
     },

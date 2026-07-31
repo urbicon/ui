@@ -56,7 +56,7 @@
       {#snippet children(values)}
         <div class="flex flex-col items-center gap-3">
           <div
-            class="text-text-on-primary flex h-20 w-20 items-center justify-center rounded-xl text-xl font-bold"
+            class="text-text-on-fill flex h-20 w-20 items-center justify-center rounded-xl text-xl font-bold"
             style="background: {values.accent}; opacity: {values.opacity / 100}"
           >
             {values.count}

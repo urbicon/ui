@@ -164,6 +164,21 @@ Navigation per component. Feedback/Ambient (Toast, Spinner, Progress, Skeleton) 
 Identity (Avatar) are **not** tier-aware — fixed geometry by design. Badge is the lone
 Feedback exception. Full taxonomy: [COMPONENT-FAMILIES.md](COMPONENT-FAMILIES.md).
 
+**One shape sits outside the tiers: `--radius-control`, the radio indicator.** It
+defaults to the same pill as `commit` but is not tied to it, because the circle is the
+only thing distinguishing a radio from a checkbox — both are otherwise the same small box
+with the same label, and unlike a button's pill the circle is convention with meaning
+(Material, HIG and Carbon all hold it). While the two shared a token, a brand taking this
+section's own invitation to flatten `--radius-commit` squared its radios into things that
+read as checkboxes; all four docs liveries needed a provider override to undo it, including
+the one that only softens the tier to 2px. Set `--radius-control` if you want square radios
+too — that is now a decision rather than a side effect.
+
+The **checkbox** deliberately still follows the tier. It looks like the mirror case and is
+not: a squared radio is damage a theme inflicts on a control it was not aiming at, whereas
+a pill-shaped checkbox is what a consumer asked for by writing `tier="commit"` — the
+status-chip look for checklists.
+
 **Context propagation.** Tier-aware primitives read their effective tier from
 `<TierContext>` (`utils/tier-context.ts`); a wrapping container sets it for all descendants:
 

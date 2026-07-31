@@ -140,11 +140,24 @@ interface DerivableMixin {
   sortable?: boolean;
   /** Whether this column is searchable */
   searchable?: boolean;
-  /** Whether this column is groupable (auto-detected if undefined) */
+  /** Whether this column is groupable. Falls back to `sortable === true`. */
   groupable?: boolean;
-  /** Whether this column is summable (auto-detected from data type if undefined) */
+  /**
+   * Whether this column offers Sum / Avg / Min / Max. Falls back to
+   * `dataType === 'number'`.
+   *
+   * Never inferred from the column's **name**. Until 2026-07-31 an accessor
+   * called `price`, `age`, `amount`, `score` (and five more English nouns) was
+   * treated as numeric — so a `price` column yielding strings was offered a sum
+   * that could not work, a numeric `throughput` was offered none, and the
+   * feature did not exist at all for columns named in another language.
+   */
   summable?: boolean;
-  /** Column data type for smart detection */
+  /**
+   * The column's data type. Drives alignment, the filter operators the menu
+   * offers, the quick-values list and summability — so declaring it is how a
+   * numeric column becomes numeric. `TableColumns.number()` sets it for you.
+   */
   dataType?: 'text' | 'number' | 'date' | 'boolean' | 'email' | 'url';
 }
 
