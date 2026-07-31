@@ -1,6 +1,11 @@
 <script lang="ts">
   import { getTableContext, useTableI18n } from '$lib';
-  import { resolveColumnId, resolveColumnLabel } from '$lib/utils';
+  import {
+    findColumnById,
+    humanizeColumnId,
+    resolveColumnId,
+    resolveColumnLabel
+  } from '$lib/utils';
   import { smartFilterBarTriggerVariants } from '$lib/variants';
   import {
     Button,
@@ -56,18 +61,35 @@
 
     // Grouping is a superset of this menu: `initialGroupBy` / `setGroupByKey`
     // accept any item field, so a table can legitimately group by something it
-    // shows no column for (the landing journey groups bookings by `day` while
-    // displaying no Day column). Without this the Select holds a value with no
-    // matching option — DEV-logs `[Select] value "day" has no matching option`,
-    // cannot display the active grouping, and once a user ungroups there is no
-    // way back to it.
+    // shows no column for — the landing journey groups bookings by `day` while
+    // displaying no Day column, because the day belongs in the group header and
+    // would be redundant in every row.
     //
-    // Appending it keeps the menu a faithful view of the state rather than
-    // making the menu the authority over it. The label falls back to the raw key
-    // because that is genuinely all we know about a field with no column.
-    const active = tableState.groupByKey;
-    if (active && !options.some((o) => o.value === active)) {
-      options.push({ label: active, value: active });
+    // Two keys can therefore be missing from the list above, and they need
+    // different treatment:
+    //
+    //   • the DECLARED key (`initialGroupBy`). The consumer asked for this
+    //     grouping, so it belongs in the menu permanently — including after the
+    //     user ungroups, which is the whole point. Deriving it from the *active*
+    //     key instead would make the option vanish on ungroup, i.e. leave the
+    //     reported symptom ("no way back to it") exactly as it was.
+    //
+    //   • the ACTIVE key, when it is neither a listed column nor the declared
+    //     one — reachable through a programmatic `setGroupByKey`, or through a
+    //     column the header menu offers but this list filters out (`groupable`
+    //     unset, `sortable` not true). Without it the Select holds a value it
+    //     cannot display and DEV-logs `value "…" has no matching option`.
+    //
+    // Labels go through `humanizeColumnId`, the same helper the rest of the
+    // package uses, so the option reads "Day" rather than the raw field name —
+    // and matches the grouping chip, which resolves its label the same way.
+    for (const key of [tableState.declaredGroupByKey, tableState.groupByKey]) {
+      if (!key || options.some((o) => o.value === key)) continue;
+      const column = findColumnById(tableState.columns, key);
+      options.push({
+        label: column ? resolveColumnLabel(column) : humanizeColumnId(key),
+        value: key
+      });
     }
 
     return options;

@@ -544,6 +544,12 @@
                         {
                           accessor: 'price',
                           title: 'Price',
+                          // `dataType` ist ab 2026-07-31 das, was die Spalte
+                          // summierbar macht — vorher reichte der Name "price",
+                          // was für Spalten in anderen Sprachen nie funktioniert
+                          // hat. Ohne diese Zeile bleibt der Σ-Knopf dauerhaft
+                          // deaktiviert.
+                          dataType: 'number',
                           align: 'right',
                           width: '4rem',
                           // Trägt die Währung — für die Zelle UND für die
