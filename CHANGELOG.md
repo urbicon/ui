@@ -4,6 +4,11 @@ All notable changes to this project will be documented in this file.
 This changelog is automatically generated from [Conventional Commits](https://www.conventionalcommits.org).
 
 
+## [6.47.2] - 2026-07-31
+
+### Bug Fixes
+- **design-engine,docs-gen**: Close masked regions the way a parser does
+
 ## [6.47.1] - 2026-07-31
 
 ### Bug Fixes
