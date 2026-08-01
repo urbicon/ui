@@ -136,15 +136,41 @@ function isMissingRowError(err: unknown): boolean {
 }
 
 /**
- * An id the column cannot hold. Prisma reports its own client-side type
- * mismatch (`P2023`, "Inconsistent column data"); a driver that lets the value
- * reach Postgres gets `22P02` back instead. Both mean the same thing: this id
- * could never identify a row here.
+ * An id the column cannot hold — Postgres' `22P02` (`invalid_text_representation`),
+ * reached through whichever layer the consumer runs.
+ *
+ * The shapes are measured, not assumed (Prisma 7.9.1 + `@prisma/adapter-pg`
+ * against a live Postgres):
+ *
+ * - **Driver adapter** (Prisma 7's default): the top-level code is `P2007`,
+ *   and Postgres' own code sits in `meta.driverAdapterError.cause.originalCode`.
+ *   Matching `P2023` alone — as the first version of this did — never fires here.
+ * - **Raw driver** (a Drizzle/Kysely/pg adapter): `22P02` as the code itself.
+ * - **Prisma's Rust engine** (v5/v6, no driver adapter): its own `P2023`.
+ *
+ * Every branch additionally requires the message to be the *input syntax* one.
+ * That is what keeps this narrow, and it matters most for `P2023`: Prisma also
+ * raises that code for **stored** data that no longer fits its column — a
+ * half-migrated table, a value written out of band — and those must keep
+ * failing loudly instead of quietly reading as "nothing here". Postgres words
+ * the neighbouring enum failure differently ("invalid input *value* for enum"),
+ * so it does not match either.
+ *
+ * Nothing is logged: what this identifies is a caller sending an id no row
+ * could ever have — a client-input case, not an operational fault.
  */
+const ID_SYNTAX_MESSAGE = /invalid input syntax for type|malformed uuid|error creating uuid/i;
+
 function isUnrepresentableIdError(err: unknown): boolean {
-  if (typeof err !== 'object' || err === null || !('code' in err)) return false;
-  const code = (err as { code?: unknown }).code;
-  return code === 'P2023' || code === '22P02';
+  if (typeof err !== 'object' || err === null) return false;
+  const { code, meta, message } = err as { code?: unknown; meta?: unknown; message?: unknown };
+
+  const cause = (meta as { driverAdapterError?: { cause?: { originalCode?: unknown } } })
+    ?.driverAdapterError?.cause;
+  const text = `${String(message ?? '')} ${JSON.stringify(cause ?? '')}`;
+  if (!ID_SYNTAX_MESSAGE.test(text)) return false;
+
+  return code === '22P02' || cause?.originalCode === '22P02' || code === 'P2023';
 }
 
 /**
@@ -168,20 +194,31 @@ const ID_MISS: Record<string, () => unknown> = {
  * that never happens — `String @id` is `text`, which holds any string — but a
  * consumer whose users table has a native `uuid` (or integer) key gets the
  * type error instead of an empty result, on reads as much as on writes. Since
- * these ids arrive from URL segments, that would turn the documented 404 into
- * a 500 and hand out a way to fail those endpoints on demand.
+ * these ids arrive from URL segments, that hands out a way to make those
+ * endpoints 500 on demand.
  *
  * Only the query and `…Many` operations are wrapped. `create`, `upsert`,
  * `update` and `delete` keep throwing: an *insert* carrying an id the column
  * cannot hold is a real defect, and the single-row `update`/`delete` are used
  * where a returned row is needed, so a silent miss would be wrong there too.
  */
+/**
+ * A proxy may not substitute the value of a frozen (non-writable,
+ * non-configurable) own property — doing so is a TypeError, not a silent
+ * difference. Consumers do freeze test doubles, so hand those through
+ * untouched: the guard is a courtesy, a crash would not be.
+ */
+function isFrozenProperty(target: object, prop: string | symbol): boolean {
+  const descriptor = Reflect.getOwnPropertyDescriptor(target, prop);
+  return !!descriptor && descriptor.configurable === false && descriptor.writable === false;
+}
+
 function idSafeDelegate<D extends object>(delegate: D): D {
   return new Proxy(delegate, {
     get(target, prop, receiver) {
       const value = Reflect.get(target, prop, receiver);
       const miss = typeof prop === 'string' ? ID_MISS[prop] : undefined;
-      if (!miss || typeof value !== 'function') return value;
+      if (!miss || typeof value !== 'function' || isFrozenProperty(target, prop)) return value;
       return async (...args: unknown[]) => {
         try {
           return await (value as (...a: unknown[]) => Promise<unknown>).apply(target, args);
@@ -194,13 +231,25 @@ function idSafeDelegate<D extends object>(delegate: D): D {
   });
 }
 
-/** A model delegate is anything exposing the operations we would guard. */
-function isModelDelegate(value: unknown): value is object {
-  if (!value || typeof value !== 'object') return false;
-  return Object.keys(ID_MISS).some(
-    (op) => typeof (value as Record<string, unknown>)[op] === 'function'
-  );
-}
+/**
+ * The models this adapter touches — exactly the keys of {@link PrismaLike}.
+ * Naming them beats sniffing for method names: the delegates differ in which
+ * operations they carry (`twoFactorBackupCode` has no `findMany`,
+ * `notificationPreference` no `create`), and anything else on the client —
+ * `$transaction`, the engine internals, a consumer's own property — is left
+ * alone by construction rather than by luck.
+ */
+const GUARDED_MODELS: ReadonlySet<string> = new Set([
+  'user',
+  'invitation',
+  'notification',
+  'pushSubscription',
+  'notificationPreference',
+  'passkey',
+  'refreshToken',
+  'twoFactorBackupCode',
+  'federatedAccount'
+]);
 
 /**
  * Guard every model delegate on the client, leaving everything else alone.
@@ -215,16 +264,25 @@ function isModelDelegate(value: unknown): value is object {
  * only the guarded operations are intercepted, on the way through.
  */
 function idSafeClient(client: PrismaLike): PrismaLike {
-  const delegates = new Map<string | symbol, unknown>();
+  // Keyed by the delegate itself, so a client that hands out a fresh delegate
+  // per access still gets a wrapper around the object it actually returned.
+  const wrappers = new WeakMap<object, unknown>();
   return new Proxy(client, {
     get(target, prop, receiver) {
       const value = Reflect.get(target, prop, receiver);
-      if (!isModelDelegate(value)) return value;
-      // Cached so repeated access yields the same wrapper, not a new one.
-      const seen = delegates.get(prop);
+      if (
+        typeof prop !== 'string' ||
+        !GUARDED_MODELS.has(prop) ||
+        !value ||
+        typeof value !== 'object' ||
+        isFrozenProperty(target, prop)
+      ) {
+        return value;
+      }
+      const seen = wrappers.get(value);
       if (seen) return seen;
-      const wrapped = idSafeDelegate(value);
-      delegates.set(prop, wrapped);
+      const wrapped = idSafeDelegate(value as object);
+      wrappers.set(value, wrapped);
       return wrapped;
     }
   }) as PrismaLike;
@@ -379,7 +437,11 @@ export function createPrismaUserRepository<R extends string>(
           data: { failedLoginAttempts: { increment: 1 }, lastFailedLogin: new Date() }
         });
       } catch (err) {
-        if (isMissingRowError(err)) return; // user deleted concurrently — no-op
+        // Deleted concurrently, or an id this store cannot represent: both mean
+        // there is no row to count against. `update` is not covered by the
+        // delegate guard (it needs the returned row), so the id case is mapped
+        // here as well.
+        if (isMissingRowError(err) || isUnrepresentableIdError(err)) return;
         throw err;
       }
       // Lock only when explicitly opted in and the threshold is crossed. The
@@ -616,7 +678,8 @@ export function createPrismaNotificationRepository(
 
     async markAsRead(userId, id) {
       // updateMany: a row that is not the caller's — or no longer there — must
-      // no-op, not throw P2025. The handler turns the miss into a 404.
+      // no-op, not throw P2025. The handler answers 200 either way (the delete
+      // routes are deliberately idempotent), so a throw here is a 500.
       await notif.updateMany({
         where: { id, userId },
         data: { readAt: new Date() }

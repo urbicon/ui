@@ -141,4 +141,30 @@ describe('createSessionsHandlers — revokeOthers', () => {
     expect(await revokedAt(refreshToken, current.token), 'current kept').toBeNull();
     expect(await revokedAt(refreshToken, other.token), 'other revoked').toBeInstanceOf(Date);
   });
+
+  it('revokes everything when the request carries no refresh cookie', async () => {
+    // No live cookie means there is no current family to keep, so "all others"
+    // is all of them. The handler says that outright rather than passing an
+    // empty family as a value that matches nothing.
+    const { deps, refreshToken } = setup();
+    const a = await issueRefreshToken(refreshToken, 'user-1', {});
+    const b = await issueRefreshToken(refreshToken, 'user-1', {});
+    const ev = await authed(deps, {});
+
+    const res = await createSessionsHandlers(deps).revokeOthers.POST(ev as unknown as RequestEvent);
+    expect(res.status).toBe(200);
+    expect(await revokedAt(refreshToken, a.token), 'first revoked').toBeInstanceOf(Date);
+    expect(await revokedAt(refreshToken, b.token), 'second revoked').toBeInstanceOf(Date);
+  });
+
+  it('leaves another user’s sessions alone when revoking all', async () => {
+    const { deps, refreshToken } = setup();
+    const mine = await issueRefreshToken(refreshToken, 'user-1', {});
+    const theirs = await issueRefreshToken(refreshToken, 'user-2', {});
+    const ev = await authed(deps, {});
+
+    await createSessionsHandlers(deps).revokeOthers.POST(ev as unknown as RequestEvent);
+    expect(await revokedAt(refreshToken, mine.token), 'own revoked').toBeInstanceOf(Date);
+    expect(await revokedAt(refreshToken, theirs.token), 'other user untouched').toBeNull();
+  });
 });

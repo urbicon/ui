@@ -5,11 +5,12 @@
 //
 // Ids: `String @id` maps to `text`, which holds any id scheme. Mapping them to
 // a native type instead is supported and needs no interface change — add
-// `@db.Uuid` throughout, or keep an existing integer key. The package treats
-// ids as opaque strings either way. What a native type does change: an id that
-// does not parse raises an error instead of matching nothing, so an adapter
-// over such a column must report that as a miss (the shipped Prisma adapter
-// does). See "Ids: opaque strings" in docs/AUTH.md.
+// `@db.Uuid` throughout. The package treats ids as opaque strings either way.
+// What a native type does change: an id that does not parse raises an error
+// instead of matching nothing, so an adapter over such a column must report
+// that as a miss (the shipped Prisma adapter does). A numeric key needs an
+// adapter that converts at the boundary. See "Ids: opaque strings" in
+// docs/AUTH.md.
 //
 // Eight models below hang off User via `onDelete: Cascade` — seven through
 // `userId`, plus Invitation through `invitedById`.
