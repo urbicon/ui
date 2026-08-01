@@ -439,6 +439,14 @@ for (const [key, target] of [...Object.entries(AREA_CHANNEL), ['<default>', DEFA
   if (!names.has(target)) throw new Error(`area '${key}' → unknown channel '${target}'`);
 }
 
+// The loop above already proved this channel exists, but the type does not carry
+// that — and the CSS below wanted it three times, which was three `!` assertions
+// on the same lookup and three places for a future rename to slip an `undefined`
+// through. Resolved once, loudly, and reused.
+const defaultChannel = channels.find((c) => c.name === DEFAULT_AREA);
+if (!defaultChannel) throw new Error(`default area '${DEFAULT_AREA}' → unknown channel`);
+const defaultRoom = roomPair(defaultChannel);
+
 function loadCatalog(pkg: 'blocks' | 'table' | 'auth'): CatalogEntry[] {
   const file = join(here, `../static/${pkg}/_catalog.json`);
   if (!existsSync(file))
@@ -650,9 +658,9 @@ const cssOut = `/*
 
 /* Rückfall, solange kein Raum gestempelt ist (Landing, bare library skin). */
 .docs-rooms {
-  --room-accent: ${roomPair(channels.find((c) => c.name === DEFAULT_AREA)!).accent};
-  --room-accent-fg: ${roomPair(channels.find((c) => c.name === DEFAULT_AREA)!).fg};
-  --room-accent-text: ${roomPair(channels.find((c) => c.name === DEFAULT_AREA)!).text};
+  --room-accent: ${defaultRoom.accent};
+  --room-accent-fg: ${defaultRoom.fg};
+  --room-accent-text: ${defaultRoom.text};
 }
 
 ${channels

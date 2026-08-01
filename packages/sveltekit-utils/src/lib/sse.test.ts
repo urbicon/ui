@@ -97,21 +97,23 @@ describe('streamSse — parsing', () => {
     ]);
   });
 
-  it.each(
-    CHUNK_SIZES
-  )('is chunk-invariant with a multi-byte emoji in data (chunk=%i)', async (size) => {
-    // 🎉 is 4 UTF-8 bytes; chunk sizes 1/2/3 split it mid-character.
-    const text = 'data: hi 🎉 there\n\n';
-    expect(await collect(text, size)).toEqual([{ event: 'message', data: 'hi 🎉 there' }]);
-  });
+  it.each(CHUNK_SIZES)(
+    'is chunk-invariant with a multi-byte emoji in data (chunk=%i)',
+    async (size) => {
+      // 🎉 is 4 UTF-8 bytes; chunk sizes 1/2/3 split it mid-character.
+      const text = 'data: hi 🎉 there\n\n';
+      expect(await collect(text, size)).toEqual([{ event: 'message', data: 'hi 🎉 there' }]);
+    }
+  );
 
-  it.each(
-    CHUNK_SIZES
-  )('treats a CRLF split across the chunk boundary as one line break (chunk=%i)', async (size) => {
-    const text = 'data: line1\r\ndata: line2\r\n\r\n';
-    // If \r\n were mis-read as two terminators, line1 would dispatch alone.
-    expect(await collect(text, size)).toEqual([{ event: 'message', data: 'line1\nline2' }]);
-  });
+  it.each(CHUNK_SIZES)(
+    'treats a CRLF split across the chunk boundary as one line break (chunk=%i)',
+    async (size) => {
+      const text = 'data: line1\r\ndata: line2\r\n\r\n';
+      // If \r\n were mis-read as two terminators, line1 would dispatch alone.
+      expect(await collect(text, size)).toEqual([{ event: 'message', data: 'line1\nline2' }]);
+    }
+  );
 
   it('joins multiple data lines with \\n', async () => {
     expect(await collect('data: a\ndata: b\ndata: c\n\n', 1_000_000)).toEqual([
