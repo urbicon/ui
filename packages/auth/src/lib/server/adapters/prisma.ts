@@ -176,38 +176,58 @@ const ID_MISS: Record<string, () => unknown> = {
  * cannot hold is a real defect, and the single-row `update`/`delete` are used
  * where a returned row is needed, so a silent miss would be wrong there too.
  */
-function idSafeDelegate<D>(delegate: D): D {
-  if (!delegate || typeof delegate !== 'object') return delegate;
-  const source = delegate as Record<string, unknown>;
-  const guarded: Record<string, unknown> = { ...source };
+function idSafeDelegate<D extends object>(delegate: D): D {
+  return new Proxy(delegate, {
+    get(target, prop, receiver) {
+      const value = Reflect.get(target, prop, receiver);
+      const miss = typeof prop === 'string' ? ID_MISS[prop] : undefined;
+      if (!miss || typeof value !== 'function') return value;
+      return async (...args: unknown[]) => {
+        try {
+          return await (value as (...a: unknown[]) => Promise<unknown>).apply(target, args);
+        } catch (err) {
+          if (isUnrepresentableIdError(err)) return miss();
+          throw err;
+        }
+      };
+    }
+  });
+}
 
-  for (const [op, miss] of Object.entries(ID_MISS)) {
-    const fn = source[op];
-    if (typeof fn !== 'function') continue;
-    guarded[op] = async (...args: unknown[]) => {
-      try {
-        return await (fn as (...a: unknown[]) => Promise<unknown>).apply(source, args);
-      } catch (err) {
-        if (isUnrepresentableIdError(err)) return miss();
-        throw err;
-      }
-    };
-  }
-  return guarded as D;
+/** A model delegate is anything exposing the operations we would guard. */
+function isModelDelegate(value: unknown): value is object {
+  if (!value || typeof value !== 'object') return false;
+  return Object.keys(ID_MISS).some(
+    (op) => typeof (value as Record<string, unknown>)[op] === 'function'
+  );
 }
 
 /**
- * Apply {@link idSafeDelegate} to every model on the client. Each repository
- * factory runs its argument through this, so the guard holds no matter which
- * factory a consumer calls.
+ * Guard every model delegate on the client, leaving everything else alone.
+ * Each repository factory runs its argument through this, so the guard holds
+ * whichever factory a consumer calls.
+ *
+ * A proxy rather than a copy, for two reasons. A real client carries its whole
+ * engine on the same object (`_engine`, `_requestHandler`, …), and cloning
+ * those flattens class instances into plain objects. And a delegate's
+ * operations need not be own, enumerable properties — that holds for the
+ * clients we checked, but a proxy does not depend on it. Nothing is copied;
+ * only the guarded operations are intercepted, on the way through.
  */
 function idSafeClient(client: PrismaLike): PrismaLike {
-  const source = client as unknown as Record<string, unknown>;
-  const guarded: Record<string, unknown> = {};
-  for (const [model, delegate] of Object.entries(source)) {
-    guarded[model] = delegate && typeof delegate === 'object' ? idSafeDelegate(delegate) : delegate;
-  }
-  return guarded as unknown as PrismaLike;
+  const delegates = new Map<string | symbol, unknown>();
+  return new Proxy(client, {
+    get(target, prop, receiver) {
+      const value = Reflect.get(target, prop, receiver);
+      if (!isModelDelegate(value)) return value;
+      // Cached so repeated access yields the same wrapper, not a new one.
+      const seen = delegates.get(prop);
+      if (seen) return seen;
+      const wrapped = idSafeDelegate(value);
+      delegates.set(prop, wrapped);
+      return wrapped;
+    }
+  }) as PrismaLike;
 }
 
 export function createPrismaUserRepository<R extends string>(
