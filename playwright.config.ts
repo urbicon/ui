@@ -30,7 +30,17 @@ export default defineConfig({
   // (12 P + 4 E), full suite: 1 worker 310s · 4 → 98s · 8 → 66-73s · 12 → 69s ·
   // 16 → 69-73s. It saturates around half the cores — beyond that the extra
   // workers only compete for the single dev server.
-  workers: '50%',
+  //
+  // CI gets 100% instead. A GitHub runner has 4 vCPU, so the relative setting
+  // buys 2 workers — and the release gate spent 6m51s of its 13m33s there
+  // (v6.48.1, 120 tests). The saturation point above was ~8 concurrent
+  // requests against the dev server, an absolute ceiling rather than a
+  // fraction of the cores, so 4 on a 4-vCPU runner is still below it; these
+  // tests spend most of their time waiting on the server, not on CPU.
+  //
+  // Revert to '50%' everywhere if this shows up as flakiness rather than
+  // speed — `retries: 2` below would otherwise hide it as a slow green.
+  workers: process.env.CI ? '100%' : '50%',
   reporter: 'html',
   timeout: 60_000,
   expect: {
