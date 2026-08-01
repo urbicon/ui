@@ -42,10 +42,21 @@ function mountCalendar(props: Record<string, unknown>) {
   return target;
 }
 
-/** The header title is a button; return its text regardless of surrounding chrome. */
+/**
+ * The VISIBLE header title.
+ *
+ * Reading the button's whole `textContent` stopped proving anything once the
+ * header started reserving its width: it holds all twelve month names of the
+ * active locale, hidden, so `/März/` would match on the reservation alone even
+ * if the shown title were English. The visible one is the single cell in the
+ * reservation stack that is not `.invisible`.
+ */
 function headerTitle(): string {
   const heading = screen.getByRole('button', { name: /2026/ });
-  return heading.textContent ?? '';
+  const stack = heading.querySelector('span.grid');
+  if (!stack) return heading.textContent ?? '';
+  const visible = [...stack.children].find((el) => !el.classList.contains('invisible'));
+  return visible?.textContent ?? '';
 }
 
 describe('Calendar locale resolution', () => {

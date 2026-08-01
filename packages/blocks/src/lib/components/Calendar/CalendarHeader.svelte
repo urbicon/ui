@@ -10,7 +10,7 @@
   import ChevronDownIcon from '$lib/icons/ChevronDownIcon.svelte';
   import CalendarIcon from '$lib/icons/CalendarIcon.svelte';
   import { getCalendarContext } from './calendar.context';
-  import { formatMonthShort } from '$lib/date';
+  import { formatMonthShort, formatMonthYear } from '$lib/date';
   import type { CalendarHeaderProps, CalendarSlotName, CalendarViewMode } from './index';
 
   const bt = useBlocksI18n();
@@ -119,6 +119,29 @@
     if (ctx.view === 'year') ctx.setView('month');
     monthPickerOpen = false;
   }
+
+  // The month name used to set the calendar's width: the title is the widest
+  // thing in the header, and paging March → September dragged the whole grid
+  // with it (measured 212 → 268 px in de-DE, a 56 px step per month change).
+  //
+  // The reservation below holds the width of the longest title the ACTIVE
+  // locale can produce, by laying all twelve months in the same grid cell and
+  // showing one. A `min-width` in px/rem would be a magic number per size ×
+  // language — "September" is not the longest month name everywhere — and this
+  // reads the same Intl formatter the title itself comes from.
+  //
+  // Month-based views only. `week`/`day` titles carry day numbers that vary in
+  // width on their own, so there is no fixed set to reserve for; `year` is a
+  // bare number and never moved.
+  const reservesMonthWidth = $derived(ctx.view === 'month' || ctx.view === 'agenda');
+  const monthTitleVariants = $derived(
+    reservesMonthWidth
+      ? Array.from({ length: 12 }, (_, month) => ({
+          month,
+          label: formatMonthYear(ctx.displayedYear, month, ctx.locale)
+        }))
+      : []
+  );
 </script>
 
 {#if children}
@@ -160,11 +183,55 @@
             aria-haspopup="dialog"
             disabled={ctx.disabled}
           >
-            {ctx.headerTitle}
-            <ChevronDownIcon
-              size={pickerIconSize}
-              class="transition-transform {monthPickerOpen ? 'rotate-180' : ''}"
-            />
+            {#if reservesMonthWidth}
+              <!--
+                The eleven other months sit in the same grid cell as the title,
+                hidden, so the cell holds the width of the longest and the title
+                stops moving the grid.
+
+                The caret rides INSIDE the visible cell, not beside the stack: as
+                a sibling it would be pushed out to the reserved width and float
+                in dead space next to a short month ("Mai 2026" with the caret
+                placed for "September 2026"). In the cell it tracks the text
+                while the reservation keeps holding the box open.
+
+                `aria-hidden` on the reservations is belt and braces —
+                `visibility: hidden` already takes them out of the a11y tree, but
+                that depends on the consumer's build emitting `.invisible`, and
+                the failure mode without it is the button announcing twelve month
+                names.
+
+                Deliberately NO `whitespace-nowrap`: measured, it changes nothing
+                about the reservation (the cell still holds the longest title, 0
+                px of travel across twelve months) and it would raise the
+                header's min-content from 103 px to 148 px — turning a title that
+                used to wrap in a 280 px sidebar into permanent overflow.
+              -->
+              <span class="grid">
+                {#each monthTitleVariants as variant (variant.month)}
+                  <span
+                    class="invisible col-start-1 row-start-1 flex items-center gap-1"
+                    aria-hidden="true"
+                  >
+                    {variant.label}
+                    <ChevronDownIcon size={pickerIconSize} />
+                  </span>
+                {/each}
+                <span class="col-start-1 row-start-1 flex items-center gap-1">
+                  {ctx.headerTitle}
+                  <ChevronDownIcon
+                    size={pickerIconSize}
+                    class="transition-transform {monthPickerOpen ? 'rotate-180' : ''}"
+                  />
+                </span>
+              </span>
+            {:else}
+              {ctx.headerTitle}
+              <ChevronDownIcon
+                size={pickerIconSize}
+                class="transition-transform {monthPickerOpen ? 'rotate-180' : ''}"
+              />
+            {/if}
           </button>
         {/snippet}
         <div class="min-w-48 p-3">
