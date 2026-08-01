@@ -60,6 +60,9 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: read
+      # Reads this SHA's CI runs to decide whether the e2e suite has to run
+      # again. Read-only, and the fallback on any failure is to run the tests.
+      actions: read
     steps:
       - uses: actions/checkout@v7
 
@@ -101,16 +104,45 @@ jobs:
           (cd packages/sveltekit-utils && bunx --bun vitest run)
           (cd packages/sv && bunx --bun vitest run)
 
+      # A tag always points at a commit that already went through CI — through
+      # its PR, or through `push: main`. Running the same 120 tests again on the
+      # same tree proves nothing the first run did not, and it was 7 of this
+      # gate's 13 minutes.
+      #
+      # The skip needs a PROVEN green: no CI run for this SHA, one still in
+      # flight, or a red one all fall through to running the tests. The only
+      # thing that buys the skip is a completed, successful CI run on this exact
+      # commit — which, because CI shards the same suite, is the same evidence.
+      - name: Did this commit already pass CI?
+        id: ci_status
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+          SHA: ${{ github.sha }}
+        run: |
+          set -euo pipefail
+          green=$(gh api "repos/$REPO/actions/runs?head_sha=$SHA&per_page=100" \
+            --jq '[.workflow_runs[] | select(.name == "CI" and .status == "completed" and .conclusion == "success")] | length')
+          if [ "$green" -gt 0 ]; then
+            echo "green=true" >> "$GITHUB_OUTPUT"
+            echo "::notice::CI already passed on $SHA — skipping the e2e re-run"
+          else
+            echo "green=false" >> "$GITHUB_OUTPUT"
+            echo "::notice::No completed, successful CI run for $SHA — running e2e here"
+          fi
+
       # The browser is ~120 MB and identical for every run of a given Playwright
       # version — downloading it took 41s of the 13m33s on v6.48.1. Keyed on the
       # resolved version so a Playwright bump misses the cache and re-downloads
       # instead of running the tests against a stale binary.
       - name: Resolve Playwright version
         id: pw
+        if: steps.ci_status.outputs.green != 'true'
         run: echo "version=$(node -p "require('./node_modules/@playwright/test/package.json').version")" >> "$GITHUB_OUTPUT"
 
       - uses: actions/cache@v6
         id: pw-cache
+        if: steps.ci_status.outputs.green != 'true'
         with:
           path: ~/.cache/ms-playwright
           key: playwright-${{ runner.os }}-${{ steps.pw.outputs.version }}
@@ -118,9 +150,11 @@ jobs:
       # `--with-deps` still runs on a hit: the cache holds the browser, not the
       # apt libraries it links against, and those live outside the cached path.
       - name: Install Playwright browser
+        if: steps.ci_status.outputs.green != 'true'
         run: bunx playwright install --with-deps chromium
 
       - name: Playwright e2e
+        if: steps.ci_status.outputs.green != 'true'
         # `--grep-invert @pixel` for the same reason as in ci.yml: the linux
         # screenshot baselines are bound to the deploy host, not to a
         # GitHub runner. Excluding them here means a release tag is gated on

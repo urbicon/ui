@@ -146,13 +146,49 @@ jobs:
     # Independent of `build` — each job installs + builds its own workspace, so
     # gating would just serialise two identical installs without sharing the
     # build artefact. Keeping the job parallel cuts ~3 min off CI.
+    #
+    # SHARDED across four runners. Measured on this repo: the suite was the
+    # slowest job in CI at 9m07s, and raising the worker count inside ONE runner
+    # made it worse — 4 workers on a 4-vCPU box went to 8m0s with 4 failed and 2
+    # flaky, because the single dev server starves (see playwright.config.ts).
+    # More runners means more dev servers, which is the parallelism the workers
+    # could not buy.
+    #
+    # Four rather than three because `--shard` splits by test COUNT, not by
+    # duration: at three the counts came out even (43/37/40) and the times did
+    # not (294s/110s/110s). `a11y.spec.ts` is the reason — its route scans are
+    # the ten slowest tests in the suite (24.7s for `tab` alone, 118s for the
+    # top ten, 28% of 426s total) and they sort together into one slice. A
+    # fourth cut splits that block instead of isolating it.
+    #
+    # A bonus that matters here: `auth.spec.ts` drives shared in-memory state on
+    # the dev server and pins `mode: 'serial'` for it. Sharding gives each shard
+    # its own server, so that isolation gets stronger, not weaker.
     name: E2E (Playwright)
     runs-on: ubuntu-latest
+    strategy:
+      # One red shard must not cancel the others: knowing whether a failure is
+      # local to one slice or spread across all of them is most of the diagnosis.
+      fail-fast: false
+      matrix:
+        shard: [1, 2, 3, 4]
     steps:
       - uses: actions/checkout@v7
       - uses: oven-sh/setup-bun@v2
       - run: bun install --frozen-lockfile
       - run: bun run build
+      # ~120 MB per shard, three shards, every push. Keyed on the resolved
+      # Playwright version so a bump re-downloads instead of testing against a
+      # stale binary.
+      - name: Resolve Playwright version
+        id: pw
+        run: echo "version=$(node -p "require('./node_modules/@playwright/test/package.json').version")" >> "$GITHUB_OUTPUT"
+      - uses: actions/cache@v6
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-${{ runner.os }}-${{ steps.pw.outputs.version }}
+      # `--with-deps` still runs on a cache hit: the apt libraries the browser
+      # links against live outside the cached path.
       - run: bunx playwright install --with-deps chromium
       # `--grep-invert @pixel` drops the 26 screenshot-comparing tests (of 146)
       # across visual-regression, visual-regression-interaction, floating and
@@ -170,12 +206,55 @@ jobs:
       #
       # Locally and on the deploy host, a bare `bunx playwright test` still runs
       # everything — the tag only ever subtracts here.
-      - run: bunx playwright test --grep-invert @pixel
+      - run: bunx playwright test --grep-invert @pixel --shard=${{ matrix.shard }}/4
+        env:
+          # Switches the reporter to `blob`, the only format `merge-reports`
+          # can recombine. See playwright.config.ts.
+          PLAYWRIGHT_BLOB_REPORT: '1'
+
+      - uses: actions/upload-artifact@v7
+        # `!cancelled()` rather than `always()`: a failed shard is exactly the
+        # one whose report is worth having, but a cancelled run has nothing to
+        # say.
+        if: ${{ !cancelled() }}
+        with:
+          name: blob-report-${{ matrix.shard }}
+          path: blob-report/
+          retention-days: 1
+
+  # Three shards produce three partial reports, which are unreadable separately.
+  # This stitches them into the single HTML report the suite used to emit.
+  e2e-report:
+    name: E2E report
+    needs: e2e
+    if: ${{ !cancelled() }}
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: oven-sh/setup-bun@v2
+      - run: bun install --frozen-lockfile
+      - uses: actions/download-artifact@v8
+        with:
+          path: all-blob-reports
+          pattern: blob-report-*
+          merge-multiple: true
+      - run: bunx playwright merge-reports --reporter html ./all-blob-reports
+      - uses: actions/upload-artifact@v7
+        with:
+          name: playwright-report
+          path: playwright-report/
+          retention-days: 7
 
   build:
     name: Build
     runs-on: ubuntu-latest
-    needs: [lint, typecheck, test]
+    # Deliberately NOT gated on lint/typecheck/test any more. That `needs:`
+    # existed to avoid spending runner minutes on a build behind a red suite —
+    # but standard runners are free on public repositories, and it put this job
+    # at the END of a serial chain: `test` 4m28s, then `build` 6m32s, and CI
+    # took 11m12s while every other job sat idle. Unchained it runs beside them
+    # and the whole workflow is bounded by its slowest job instead of by a
+    # queue. The cost of a build that turns out to be moot is nothing here.
     steps:
       - uses: actions/checkout@v7
       - uses: oven-sh/setup-bun@v2

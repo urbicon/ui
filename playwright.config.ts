@@ -39,7 +39,12 @@ export default defineConfig({
   // dev server starving. Slower AND less reliable; the relative setting is
   // right, and on a 4-vCPU runner 2 workers is what it should buy.
   workers: '50%',
-  reporter: 'html',
+  // `blob` is the only format `merge-reports` can recombine, and CI sets
+  // PLAYWRIGHT_BLOB_REPORT in the sharded e2e job for exactly that. Elsewhere
+  // in CI (the release gate, which runs unsharded) `github` puts failures
+  // inline in the run summary; an HTML report nobody uploads is dead weight
+  // there. Locally, unchanged: the browsable HTML report.
+  reporter: process.env.PLAYWRIGHT_BLOB_REPORT ? 'blob' : process.env.CI ? 'github' : 'html',
   timeout: 60_000,
   expect: {
     toHaveScreenshot: {
