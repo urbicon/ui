@@ -227,6 +227,7 @@
           disabled={disabled || loading || !hasPreviousPage}
           onPageClick={goToPrevious}
           {mint}
+          aria-label={previousIcon ? previousLabel : undefined}
         >
           {#if previousIcon}
             {@render previousIcon()}
@@ -243,6 +244,7 @@
           disabled={disabled || loading || !hasNextPage}
           onPageClick={goToNext}
           {mint}
+          aria-label={nextIcon ? nextLabel : undefined}
         >
           {#if nextIcon}
             {@render nextIcon()}
@@ -274,6 +276,7 @@
           disabled={disabled || loading || !hasPreviousPage}
           onPageClick={goToPrevious}
           {mint}
+          aria-label={previousIcon ? previousLabel : undefined}
         >
           {#if previousIcon}
             {@render previousIcon()}
@@ -290,6 +293,7 @@
           disabled={disabled || loading || !hasNextPage}
           onPageClick={goToNext}
           {mint}
+          aria-label={nextIcon ? nextLabel : undefined}
         >
           {#if nextIcon}
             {@render nextIcon()}
@@ -329,6 +333,7 @@
           disabled={disabled || loading}
           onPageClick={goToFirst}
           {mint}
+          aria-label={firstIcon ? firstLabel : undefined}
         >
           {#if firstIcon}
             {@render firstIcon()}
@@ -347,6 +352,7 @@
           disabled={disabled || loading || !hasPreviousPage}
           onPageClick={goToPrevious}
           {mint}
+          aria-label={previousIcon ? previousLabel : undefined}
         >
           {#if previousIcon}
             {@render previousIcon()}
@@ -417,6 +423,7 @@
           disabled={disabled || loading || !hasNextPage}
           onPageClick={goToNext}
           {mint}
+          aria-label={nextIcon ? nextLabel : undefined}
         >
           {#if nextIcon}
             {@render nextIcon()}
@@ -436,6 +443,7 @@
           disabled={disabled || loading}
           onPageClick={goToLast}
           {mint}
+          aria-label={lastIcon ? lastLabel : undefined}
         >
           {#if lastIcon}
             {@render lastIcon()}
