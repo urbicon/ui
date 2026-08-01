@@ -49,16 +49,14 @@ export interface PrismaLike {
     create: (args: unknown) => Promise<PrismaRow>;
     update: (args: unknown) => Promise<PrismaRow>;
     updateMany: (args: unknown) => Promise<{ count: number }>;
-    delete: (args: unknown) => Promise<PrismaRow>;
     deleteMany: (args: unknown) => Promise<{ count: number }>;
   };
   notification?: {
     findUnique: (args: unknown) => Promise<PrismaRow>;
     findMany: (args?: unknown) => Promise<PrismaRow>;
     create: (args: unknown) => Promise<PrismaRow>;
-    update: (args: unknown) => Promise<PrismaRow>;
     updateMany: (args: unknown) => Promise<{ count: number }>;
-    delete: (args: unknown) => Promise<PrismaRow>;
+    deleteMany: (args: unknown) => Promise<{ count: number }>;
     count: (args?: unknown) => Promise<number>;
   };
   pushSubscription?: {
@@ -76,9 +74,8 @@ export interface PrismaLike {
     findMany: (args?: unknown) => Promise<PrismaRow>;
     findUnique: (args: unknown) => Promise<PrismaRow>;
     create: (args: unknown) => Promise<PrismaRow>;
-    update: (args: unknown) => Promise<PrismaRow>;
     updateMany: (args: unknown) => Promise<{ count: number }>;
-    delete: (args: unknown) => Promise<PrismaRow>;
+    deleteMany: (args: unknown) => Promise<{ count: number }>;
   };
   refreshToken?: {
     findUnique: (args: unknown) => Promise<PrismaRow>;
@@ -138,9 +135,85 @@ function isMissingRowError(err: unknown): boolean {
   );
 }
 
+/**
+ * An id the column cannot hold. Prisma reports its own client-side type
+ * mismatch (`P2023`, "Inconsistent column data"); a driver that lets the value
+ * reach Postgres gets `22P02` back instead. Both mean the same thing: this id
+ * could never identify a row here.
+ */
+function isUnrepresentableIdError(err: unknown): boolean {
+  if (typeof err !== 'object' || err === null || !('code' in err)) return false;
+  const code = (err as { code?: unknown }).code;
+  return code === 'P2023' || code === '22P02';
+}
+
+/**
+ * What each Prisma operation returns when nothing matched. Factories, not
+ * shared values — a caller must never be handed an array it could mutate.
+ */
+const ID_MISS: Record<string, () => unknown> = {
+  findUnique: () => null,
+  findFirst: () => null,
+  findMany: () => [],
+  updateMany: () => ({ count: 0 }),
+  deleteMany: () => ({ count: 0 }),
+  count: () => 0
+};
+
+/**
+ * Wrap one delegate so an unrepresentable id reads as "nothing matched".
+ *
+ * The contract (see the id note in `types.ts`) says an id value the store
+ * cannot represent must behave like an absent one. Against the shipped schema
+ * that never happens — `String @id` is `text`, which holds any string — but a
+ * consumer whose users table has a native `uuid` (or integer) key gets the
+ * type error instead of an empty result, on reads as much as on writes. Since
+ * these ids arrive from URL segments, that would turn the documented 404 into
+ * a 500 and hand out a way to fail those endpoints on demand.
+ *
+ * Only the query and `…Many` operations are wrapped. `create`, `upsert`,
+ * `update` and `delete` keep throwing: an *insert* carrying an id the column
+ * cannot hold is a real defect, and the single-row `update`/`delete` are used
+ * where a returned row is needed, so a silent miss would be wrong there too.
+ */
+function idSafeDelegate<D>(delegate: D): D {
+  if (!delegate || typeof delegate !== 'object') return delegate;
+  const source = delegate as Record<string, unknown>;
+  const guarded: Record<string, unknown> = { ...source };
+
+  for (const [op, miss] of Object.entries(ID_MISS)) {
+    const fn = source[op];
+    if (typeof fn !== 'function') continue;
+    guarded[op] = async (...args: unknown[]) => {
+      try {
+        return await (fn as (...a: unknown[]) => Promise<unknown>).apply(source, args);
+      } catch (err) {
+        if (isUnrepresentableIdError(err)) return miss();
+        throw err;
+      }
+    };
+  }
+  return guarded as D;
+}
+
+/**
+ * Apply {@link idSafeDelegate} to every model on the client. Each repository
+ * factory runs its argument through this, so the guard holds no matter which
+ * factory a consumer calls.
+ */
+function idSafeClient(client: PrismaLike): PrismaLike {
+  const source = client as unknown as Record<string, unknown>;
+  const guarded: Record<string, unknown> = {};
+  for (const [model, delegate] of Object.entries(source)) {
+    guarded[model] = delegate && typeof delegate === 'object' ? idSafeDelegate(delegate) : delegate;
+  }
+  return guarded as unknown as PrismaLike;
+}
+
 export function createPrismaUserRepository<R extends string>(
-  prisma: PrismaLike
+  client: PrismaLike
 ): UserRepository<R> {
+  const prisma = idSafeClient(client);
   return {
     async findById(id) {
       const row = await prisma.user.findUnique({ where: { id } });
@@ -410,10 +483,22 @@ export function createPrismaUserRepository<R extends string>(
       // (passkeys, refresh tokens, notifications, push subscriptions,
       // preferences) are removed by the schema's `onDelete: Cascade`. deleteMany
       // (not delete) keeps it idempotent — a concurrent double-delete no-ops.
-      await prisma.$transaction([
-        prisma.invitation.deleteMany({ where: { invitedById: id } }),
-        prisma.user.deleteMany({ where: { id } })
-      ]);
+      //
+      // Built from the RAW client on purpose: `$transaction` takes Prisma's own
+      // lazy PrismaPromises, and the id guard would await them into ordinary
+      // promises — which both breaks the transaction and runs the two deletes
+      // outside it. The guard is applied to the awaited whole instead.
+      try {
+        await client.$transaction([
+          client.invitation.deleteMany({ where: { invitedById: id } }),
+          client.user.deleteMany({ where: { id } })
+        ]);
+      } catch (err) {
+        // An id this store cannot represent identifies no row, so there is
+        // nothing to erase (types.ts, id contract).
+        if (isUnrepresentableIdError(err)) return;
+        throw err;
+      }
     },
 
     async setTotpSecret(id, encryptedSecret) {
@@ -443,7 +528,8 @@ export function createPrismaUserRepository<R extends string>(
   };
 }
 
-export function createPrismaInvitationRepository(prisma: PrismaLike): InvitationRepository {
+export function createPrismaInvitationRepository(client: PrismaLike): InvitationRepository {
+  const prisma = idSafeClient(client);
   return {
     async findByEmail(email) {
       const row = await prisma.invitation.findUnique({ where: { email } });
@@ -476,14 +562,17 @@ export function createPrismaInvitationRepository(prisma: PrismaLike): Invitation
     },
 
     async delete(id) {
-      await prisma.invitation.delete({ where: { id } });
+      // deleteMany, so an already-deleted invitation is a no-op rather than
+      // Prisma's P2025 — see the id contract in types.ts.
+      await prisma.invitation.deleteMany({ where: { id } });
     }
   };
 }
 
 export function createPrismaNotificationRepository(
-  prisma: PrismaLike
+  client: PrismaLike
 ): NotificationRepository | undefined {
+  const prisma = idSafeClient(client);
   if (!prisma.notification) return undefined;
   const notif = prisma.notification;
 
@@ -506,7 +595,9 @@ export function createPrismaNotificationRepository(
     },
 
     async markAsRead(userId, id) {
-      await notif.update({
+      // updateMany: a row that is not the caller's — or no longer there — must
+      // no-op, not throw P2025. The handler turns the miss into a 404.
+      await notif.updateMany({
         where: { id, userId },
         data: { readAt: new Date() }
       });
@@ -520,7 +611,7 @@ export function createPrismaNotificationRepository(
     },
 
     async delete(userId, id) {
-      await notif.delete({ where: { id, userId } });
+      await notif.deleteMany({ where: { id, userId } });
     },
 
     async getUnreadCount(userId) {
@@ -530,8 +621,9 @@ export function createPrismaNotificationRepository(
 }
 
 export function createPrismaPushSubscriptionRepository(
-  prisma: PrismaLike
+  client: PrismaLike
 ): PushSubscriptionRepository | undefined {
+  const prisma = idSafeClient(client);
   if (!prisma.pushSubscription) return undefined;
   const ps = prisma.pushSubscription;
 
@@ -596,8 +688,9 @@ export function createPrismaPushSubscriptionRepository(
 }
 
 export function createPrismaNotificationPreferenceRepository(
-  prisma: PrismaLike
+  client: PrismaLike
 ): NotificationPreferenceRepository | undefined {
+  const prisma = idSafeClient(client);
   if (!prisma.notificationPreference) return undefined;
   const np = prisma.notificationPreference;
 
@@ -623,7 +716,8 @@ export function createPrismaNotificationPreferenceRepository(
   };
 }
 
-export function createPrismaPasskeyRepository(prisma: PrismaLike): PasskeyRepository | undefined {
+export function createPrismaPasskeyRepository(client: PrismaLike): PasskeyRepository | undefined {
+  const prisma = idSafeClient(client);
   if (!prisma.passkey) return undefined;
   const pk = prisma.passkey;
 
@@ -678,18 +772,21 @@ export function createPrismaPasskeyRepository(prisma: PrismaLike): PasskeyReposi
     },
 
     async delete(userId, credentialId) {
-      await pk.delete({ where: { credentialId, userId } });
+      // Scoped by owner, so a foreign credentialId matches nothing. That is a
+      // miss and must stay silent (types.ts, id contract).
+      await pk.deleteMany({ where: { credentialId, userId } });
     },
 
     async rename(userId, credentialId, name) {
-      await pk.update({ where: { credentialId, userId }, data: { name } });
+      await pk.updateMany({ where: { credentialId, userId }, data: { name } });
     }
   };
 }
 
 export function createPrismaRefreshTokenRepository(
-  prisma: PrismaLike
+  client: PrismaLike
 ): RefreshTokenRepository | undefined {
+  const prisma = idSafeClient(client);
   if (!prisma.refreshToken) return undefined;
   const rt = prisma.refreshToken;
 
@@ -780,8 +877,9 @@ export function createPrismaRefreshTokenRepository(
  * as optional (wires it only when the model exists).
  */
 export function createPrismaFederatedAccountRepository(
-  prisma: PrismaLike
+  client: PrismaLike
 ): FederatedAccountRepository {
+  const prisma = idSafeClient(client);
   const fa = prisma.federatedAccount;
   if (!fa) {
     throw new Error(
@@ -833,8 +931,9 @@ export function createPrismaFederatedAccountRepository(
 }
 
 export function createPrismaBackupCodeRepository(
-  prisma: PrismaLike
+  client: PrismaLike
 ): BackupCodeRepository | undefined {
+  const prisma = idSafeClient(client);
   if (!prisma.twoFactorBackupCode) return undefined;
   const bc = prisma.twoFactorBackupCode;
 
