@@ -28,7 +28,21 @@ cd "$(dirname "$0")/.."
 REPO="${REPO:-urbicon/ui}"
 WORKFLOW="${WORKFLOW:-release.yml}"
 APPLY="${APPLY:-}"
-NPM="${NPM:-npx -y npm@latest}"
+
+# Prefer the installed npm when it is new enough. `npx npm@latest` was the
+# fallback for older setups, but it pulls whatever is newest — which warned
+# about not supporting the local Node — where the system npm is both compatible
+# and already there.
+MIN_NPM="11.15.0"
+if [ -z "${NPM:-}" ]; then
+  LOCAL_NPM="$(npm --version 2>/dev/null || echo 0.0.0)"
+  if [ "$(printf '%s\n%s\n' "$MIN_NPM" "$LOCAL_NPM" | sort -V | head -1)" = "$MIN_NPM" ]; then
+    NPM="npm"
+  else
+    echo "==> local npm $LOCAL_NPM is below $MIN_NPM, falling back to npx npm@latest"
+    NPM="npx -y npm@latest"
+  fi
+fi
 
 PACKAGES=()
 while IFS= read -r pkg; do
@@ -57,22 +71,30 @@ for dir in "${PACKAGES[@]}"; do
     continue
   fi
 
-  if $NPM trust list "$name" 2>/dev/null | grep -q "$REPO"; then
+  # The "is it already configured?" check is off by default: `npm trust list`
+  # needs the same one-time password as the write, so asking first would double
+  # the auth rounds for a run that is idempotent anyway — re-registering the
+  # same repo/workflow just restates it. `CHECK_EXISTING=1` turns it back on.
+  if [ -n "${CHECK_EXISTING:-}" ] && $NPM trust list "$name" 2>/dev/null | grep -q "$REPO"; then
     echo "··  $name — already trusts $REPO"
     skipped=$((skipped + 1))
     continue
   fi
 
+  # `--allow-publish` is not optional despite the docs listing it in brackets:
+  # npm rejects the call with "At least one permission flag is required". It is
+  # the one we want — `--allow-stage-publish` grants staged publishes only.
   if [ -z "$APPLY" ]; then
     echo "→   $name — would trust $REPO ($WORKFLOW)"
   else
     echo "==> $name"
-    $NPM trust github "$name" --repo "$REPO" --file "$WORKFLOW"
+    $NPM trust github "$name" --repo "$REPO" --file "$WORKFLOW" --allow-publish
   fi
   configured=$((configured + 1))
 done
 
 echo
-echo "==> ${APPLY:+configured }${APPLY:-would configure }$configured, already set $skipped, unpublished $missing"
+if [ -n "$APPLY" ]; then verb="configured"; else verb="would configure"; fi
+echo "==> $verb $configured, already set $skipped, unpublished $missing"
 [ "$missing" -gt 0 ] && echo "    Unpublished packages need one release the old way before they can be trusted."
 exit 0
