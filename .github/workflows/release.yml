@@ -76,6 +76,7 @@ jobs:
           (cd packages/mcp-server && bunx --bun vitest run)
           (cd packages/docs && bunx --bun vitest run)
           (cd packages/sveltekit-utils && bunx --bun vitest run)
+          (cd packages/sv && bunx --bun vitest run)
 
       - name: Playwright e2e
         # `--grep-invert @pixel` for the same reason as in ci.yml: the linux
@@ -118,6 +119,9 @@ jobs:
           # KEEP IN SYNC with scripts/publish.sh (same packages, same order).
           # design-engine/-content/design MUST precede mcp-server, which depends
           # on them — otherwise mcp-server ships with unresolvable npm deps.
+          # sv LAST: its add-on writes blocks/design ranges into consumer
+          # package.jsons — an edge npm can't see (add-ons must not declare
+          # dependencies), so only this ordering keeps the invariant.
           for dir in packages/shared-types \
                      packages/sveltekit-utils \
                      packages/design-engine \
@@ -129,7 +133,8 @@ jobs:
                      packages/blocks \
                      packages/table \
                      packages/auth \
-                     packages/docs; do
+                     packages/docs \
+                     packages/sv; do
             if [ ! -f "$dir/package.json" ]; then
               echo "::warning::$dir/package.json not found, skipping"
               continue

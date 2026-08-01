@@ -40,6 +40,11 @@ PACKAGES=(
   packages/table
   packages/auth
   packages/docs
+  # sv LAST: its add-on code writes `@urbicon-ui/blocks@^<version>` and
+  # `@urbicon-ui/design@^<version>` into consumer package.jsons — a dependency
+  # edge npm can't see (community add-ons must not declare `dependencies`), so
+  # the ordering here is the only thing keeping the topological invariant.
+  packages/sv
 )
 
 cd "$(dirname "$0")/.."

@@ -38,6 +38,10 @@ bun add -d @urbicon-ui/design   # then:
 bunx urbicon init               # wire the project into the design loop
 ```
 
+> Starting from scratch? The [`@urbicon-ui/sv`](../sv/) add-on (beta) does the mechanical
+> setup in one line — `bunx sv create my-app --add @urbicon-ui` installs blocks + this CLI and
+> wires the Tailwind stylesheet — and then hands over to `urbicon init --hook` below.
+
 `urbicon init` is idempotent and non-destructive. It:
 
 1. **Gives the agent context** — inserts a managed `<!-- urbicon:start … -->` block into
@@ -46,6 +50,14 @@ bunx urbicon init               # wire the project into the design loop
 2. **Seeds the design memory** — scaffolds `design.manifest.md` (never overwriting an existing one).
 3. With `--hook`, merges the PostToolUse [gate](#enforcement--hook--ci) into `.claude/settings.json`;
    with `--ci`, writes the design-gate workflow.
+
+**After upgrading the library, re-run `bunx urbicon init`.** The block is stamped with the CLI
+version that wrote it, and `urbicon context` — step 1 of the design loop — warns when the block's
+content no longer matches the installed CLI's template, so an agent sees the drift and can fix it
+itself. (The check is content-based: a release that doesn't change the template stays quiet, and
+a verbatim hand-paste of the current template counts as current.) A re-run refreshes the block in
+place wherever it lives (`AGENTS.md` or `CLAUDE.md`, in your casing); a hook entry or CI workflow
+you have customised is kept and reported, never overwritten.
 
 Then run the guided intake — `bunx urbicon verb adopt` (brownfield) or `onboard` (greenfield) —
 to fill the manifest with this project's design intent. From there an agent can `urbicon primer`
@@ -182,7 +194,7 @@ Vitest assertion without the CLI.
 
 ```bash
 urbicon context                       # summarise ./design.manifest.md
-urbicon context --json                # the parsed manifest (+ history) as JSON
+urbicon context --json                # the parsed manifest (+ history + contextBlock) as JSON
 
 urbicon record-decision \
   --title "Tabs for settings" \

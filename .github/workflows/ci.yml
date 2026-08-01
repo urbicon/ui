@@ -132,6 +132,9 @@ jobs:
       - name: Test design
         working-directory: packages/design
         run: bunx --bun vitest run
+      - name: Test sv add-on
+        working-directory: packages/sv
+        run: bunx --bun vitest run
       - name: Test docs
         working-directory: packages/docs
         run: bunx --bun vitest run

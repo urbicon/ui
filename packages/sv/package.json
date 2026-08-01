@@ -1,0 +1,52 @@
+{
+  "name": "@urbicon-ui/sv",
+  "version": "6.47.2",
+  "description": "Svelte CLI (sv) community add-on for Urbicon UI — installs the blocks library and the urbicon CLI, wires the Tailwind 4 stylesheet, and hands over to the design-loop onboarding.",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/urbicon/ui.git",
+    "directory": "packages/sv"
+  },
+  "homepage": "https://ui.urbicon.de",
+  "bugs": "https://github.com/urbicon/ui/issues",
+  "keywords": [
+    "sv-add",
+    "svelte",
+    "sveltekit",
+    "urbicon-ui",
+    "design-system",
+    "tailwindcss"
+  ],
+  "type": "module",
+  "exports": {
+    ".": {
+      "default": "./dist/index.mjs"
+    }
+  },
+  "files": [
+    "LICENSE",
+    "dist",
+    "README.md"
+  ],
+  "sideEffects": false,
+  "publishConfig": {
+    "access": "public"
+  },
+  "scripts": {
+    "build": "bun build ./src/index.ts --target node --format esm --external sv --outfile dist/index.mjs",
+    "check": "tsc --noEmit",
+    "test": "vitest",
+    "test:run": "vitest run"
+  },
+  "peerDependencies": {
+    "sv": "^0.17.0"
+  },
+  "devDependencies": {
+    "sv": "^0.17.0",
+    "typescript": "catalog:",
+    "@types/node": "catalog:",
+    "vitest": "catalog:"
+  },
+  "author": "Urbicon UI Team"
+}
