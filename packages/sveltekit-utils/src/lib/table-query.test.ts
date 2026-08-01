@@ -93,15 +93,12 @@ describe('tableQueryToSearchParams', () => {
   });
 
   describe('write strictness', () => {
-    it.each([
-      0,
-      -1,
-      1.5,
-      Number.NaN,
-      Number.POSITIVE_INFINITY
-    ])('throws for invalid page %p', (page) => {
-      expect(() => tableQueryToSearchParams(query({ page }))).toThrow(TypeError);
-    });
+    it.each([0, -1, 1.5, Number.NaN, Number.POSITIVE_INFINITY])(
+      'throws for invalid page %p',
+      (page) => {
+        expect(() => tableQueryToSearchParams(query({ page }))).toThrow(TypeError);
+      }
+    );
 
     it('throws for a non-positive itemsPerPage', () => {
       expect(() => tableQueryToSearchParams(query({ itemsPerPage: 0 }))).toThrow(TypeError);
@@ -159,17 +156,13 @@ describe('searchParamsToTableQuery', () => {
   });
 
   describe('read tolerance', () => {
-    it.each([
-      'abc',
-      '0',
-      '-2',
-      '2.5',
-      '1e3',
-      ''
-    ])('falls back to the default page for page=%s', (raw) => {
-      const parsed = searchParamsToTableQuery(new URLSearchParams(`page=${raw}`));
-      expect(parsed.page).toBe(1);
-    });
+    it.each(['abc', '0', '-2', '2.5', '1e3', ''])(
+      'falls back to the default page for page=%s',
+      (raw) => {
+        const parsed = searchParamsToTableQuery(new URLSearchParams(`page=${raw}`));
+        expect(parsed.page).toBe(1);
+      }
+    );
 
     it('falls back to the default size for a non-numeric size', () => {
       expect(searchParamsToTableQuery(new URLSearchParams('size=lots')).itemsPerPage).toBe(10);
