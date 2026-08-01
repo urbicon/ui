@@ -2,6 +2,17 @@
 // Copy the relevant models into your own schema.prisma.
 // Consumer-specific fields (e.g. 'apartment') belong in a separate
 // UserProfile model — NOT here.
+//
+// Ids: `String @id` maps to `text`, which holds any id scheme. Mapping them to
+// a native type instead is supported and needs no interface change — add
+// `@db.Uuid` throughout, or keep an existing integer key. The package treats
+// ids as opaque strings either way. What a native type does change: an id that
+// does not parse raises an error instead of matching nothing, so an adapter
+// over such a column must report that as a miss (the shipped Prisma adapter
+// does). See "Ids: opaque strings" in docs/AUTH.md.
+//
+// Eight models below hang off User via `onDelete: Cascade` — seven through
+// `userId`, plus Invitation through `invitedById`.
 
 model User {
   id                     String    @id @default(uuid())
@@ -119,11 +130,13 @@ model Passkey {
   lastUsedAt    DateTime?
 }
 
-// Refresh tokens are stored as SHA-256 hashes (never raw). Each login
-// creates a new `family` UUID; every successful rotation replaces the
-// token inside the same family. If a *revoked* token in a family is ever
-// presented again, the full family is invalidated as a reuse-detection
-// countermeasure (stolen-token-scenario). Opt-in via
+// Refresh tokens are stored as SHA-256 hashes (never raw). Each login starts a
+// new `family` — an opaque grouping label the package fills with a random UUID,
+// but a plain `String` column, NOT an id: do not give it `@db.Uuid`, or a
+// consumer-supplied family value stops being storable. Every successful
+// rotation replaces the token inside the same family. If a *revoked* token in a
+// family is ever presented again, the full family is invalidated as a
+// reuse-detection countermeasure (stolen-token-scenario). Opt-in via
 // `AuthConfig.refreshToken`.
 model RefreshToken {
   id            String    @id @default(uuid())

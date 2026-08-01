@@ -320,7 +320,24 @@ The interface JSDoc (`types.ts`) is authoritative; these are the invariants that
 
 The CAS/claim operations are why the interface returns `Promise<boolean>` (or the claimed entity) rather than `void`: the business logic in the core (`rotateRefreshToken`, the register/reset/verify handlers) reads that return value to detect a lost race. Implement each as a **single conditional statement** (`UPDATE … WHERE <still-claimable> RETURNING …`), never `SELECT` then `UPDATE` across an `await` — that gap is the race.
 
-Three cross-cutting conventions round the contract off. **Owner-first parameters:** every owner-scoped mutation takes `(userId, id, …)` — `markAsRead(userId, id)`, `passkey.delete(userId, credentialId)`, `pushSubscription.delete(userId, endpoint)`, `backupCode.consumeIfUnused(userId, codeHash)`. With two plain strings a swapped call still compiles, so the single fixed order is what keeps a swap greppable. **Pre-normalized emails:** every email reaching a repository (lookups and create data) was already trimmed + lowercased by the package's validation — match and store verbatim, never re-normalize. **Feature tiers:** `UserRepository` is sectioned by feature (core · email verification · password reset · email change · TOTP); an adapter for an app that will never mount a feature may stub that section with throwing methods, since nothing calls a section whose feature is not wired — the shipped adapters implement everything (see the section comments in `adapters/types.ts`).
+#### Ids: opaque strings, and a miss is never an error
+
+The package never generates or parses an id. It stores what your adapter returned and hands it back verbatim, so any id scheme works — `uuid`, cuid2, ULID, or an integer key rendered as a string. The shipped schema writes `String @id @default(uuid())`, which Prisma maps to `text`; **you may map ids to a native type instead** (`String @id @default(uuid()) @db.Uuid`, or keep an existing integer key), and you do not need to change the interface for it, because `id: string` describes the wire value, not the column.
+
+What a native id type does change is what happens to a value that does not fit it. Ids arrive from outside — a URL segment, a request body — and a `uuid` or `bigint` column rejects an unparsable value with SQLSTATE 22P02 (Prisma: `P2023`) rather than simply matching nothing, on **reads** as much as on writes:
+
+```sql
+SELECT … WHERE id = 'not-an-id'   -- text: 0 rows · uuid: ERROR 22P02
+```
+
+So the contract has two rules about misses, and both are pinned by the conformance suite:
+
+1. **An id your store cannot represent behaves exactly like an id that is absent** — return `null`, return `false`, no-op. Never throw. Catch that one error on that one argument and turn it into the miss; every other database error must keep propagating. The shipped Prisma adapter does this for you (`idSafeClient` in `adapters/prisma.ts`).
+2. **A scoped mutation that matches no row is a no-op, not a throw.** "Not yours" and "not there" are the same answer. In Prisma terms: `updateMany`/`deleteMany`, whose zero-match result is a count, not the `P2025` that `update`/`delete` raise.
+
+Both exist because the layer above turns a miss into a `404`. An adapter that throws instead turns the documented IDOR answer into a `500`, and a malformed id becomes a way to fail those endpoints on demand.
+
+Three further cross-cutting conventions round the contract off. **Owner-first parameters:** every owner-scoped mutation takes `(userId, id, …)` — `markAsRead(userId, id)`, `passkey.delete(userId, credentialId)`, `pushSubscription.delete(userId, endpoint)`, `backupCode.consumeIfUnused(userId, codeHash)`. With two plain strings a swapped call still compiles, so the single fixed order is what keeps a swap greppable. **Pre-normalized emails:** every email reaching a repository (lookups and create data) was already trimmed + lowercased by the package's validation — match and store verbatim, never re-normalize. **Feature tiers:** `UserRepository` is sectioned by feature (core · email verification · password reset · email change · TOTP); an adapter for an app that will never mount a feature may stub that section with throwing methods, since nothing calls a section whose feature is not wired — the shipped adapters implement everything (see the section comments in `adapters/types.ts`).
 
 ### Structural boundary — the `XLike` pattern
 
