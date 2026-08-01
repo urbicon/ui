@@ -15,10 +15,21 @@
  *   - `NPM_TRUSTED_PUBLISHING` must be `true`, or nothing is uploaded. Until
  *     that repository variable is set, Buny remains the publisher and this job
  *     is a rehearsal; two publishers for one tag would be two sources of truth.
- *   - `DRY_RUN` stops before the upload but still exercises auth and npm's own
- *     tarball validation.
+ *   - `NPM_PUBLISH_ONLY` narrows the run to a comma-separated list of package
+ *     names. This is what makes the handover from Buny gradual: move ONE
+ *     package out of Buny's list, name it here, and the two publishers cannot
+ *     touch the same package even while both are live. Empty = all packages,
+ *     which is only correct once Buny publishes none.
+ *   - `DRY_RUN` stops before the upload but still exercises npm's own tarball
+ *     validation.
  *   - An already-published name@version is skipped, so re-running a flaky tag
- *     is idempotent.
+ *     is idempotent — and so a package Buny already shipped is left alone.
+ *
+ * On the race that remains: if both publishers run for the same tag and the
+ * same package, both see "not published" and both upload. npm refuses to
+ * overwrite a version, so one gets a 403 and the release goes red — no
+ * corruption, but no ambiguity either about which one won. `NPM_PUBLISH_ONLY`
+ * exists so that window never opens.
  */
 import { execFileSync } from 'node:child_process';
 import { existsSync, readFileSync } from 'node:fs';
@@ -44,10 +55,31 @@ const hasToken = !!process.env.NODE_AUTH_TOKEN;
 // and a tag push is the real thing.
 const dryRun = process.env.DRY_RUN === 'true';
 
+/** Names this workflow owns. Empty = all — see the handover note in the header. */
+const only = (process.env.PUBLISH_ONLY ?? '')
+  .split(',')
+  .map((s) => s.trim())
+  .filter(Boolean);
+
+const selected = only.length > 0 ? manifest.filter((m) => only.includes(m.name)) : manifest;
+
 console.log(`trusted publishing: ${trusted ? 'on' : 'off'}`);
 console.log(`token fallback:     ${hasToken ? 'available' : 'none'}`);
 console.log(`dry run:            ${dryRun}`);
-console.log(`packages:           ${manifest.map((m) => `${m.name}@${m.version}`).join(', ')}\n`);
+console.log(`owned packages:     ${only.length > 0 ? only.join(', ') : 'all'}`);
+console.log(`in this artifact:   ${manifest.map((m) => `${m.name}@${m.version}`).join(', ')}\n`);
+
+if (only.length > 0) {
+  const unknown = only.filter((name) => !manifest.some((m) => m.name === name));
+  if (unknown.length > 0) {
+    console.error(`::error::NPM_PUBLISH_ONLY names packages not in the manifest: ${unknown}`);
+    process.exit(1);
+  }
+  const handled = manifest.filter((m) => !only.includes(m.name)).map((m) => m.name);
+  if (handled.length > 0) {
+    console.log(`leaving to the other publisher: ${handled.join(', ')}\n`);
+  }
+}
 
 if (!trusted && !hasToken) {
   console.log(
@@ -63,7 +95,7 @@ const npm = (args, opts = {}) =>
 let published = 0;
 let skipped = 0;
 
-for (const { name, version, file } of manifest) {
+for (const { name, version, file } of selected) {
   const tgz = resolve(dir, file);
   if (!existsSync(tgz)) {
     console.error(`::error::${file} listed in the manifest but missing from the artifact`);
@@ -97,5 +129,6 @@ for (const { name, version, file } of manifest) {
 }
 
 console.log(
-  `\n${dryRun ? 'would publish' : 'published'} ${published}, skipped ${skipped} already-published`
+  `\n${dryRun ? 'would publish' : 'published'} ${published}, skipped ${skipped} already-published` +
+    (only.length > 0 ? `, left ${manifest.length - selected.length} to the other publisher` : '')
 );

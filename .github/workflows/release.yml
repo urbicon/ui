@@ -138,6 +138,11 @@ jobs:
     env:
       NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
       TRUSTED: ${{ vars.NPM_TRUSTED_PUBLISHING }}
+      # Comma-separated package names this workflow owns while Buny still
+      # publishes the rest. Empty = all, which is only correct once Buny
+      # publishes none. This is what keeps the handover from racing: a package
+      # belongs to exactly one publisher at a time.
+      PUBLISH_ONLY: ${{ vars.NPM_PUBLISH_ONLY }}
       DRY_RUN: ${{ inputs.dry_run }}
     steps:
       # Sparse checkout of the one script this job runs, and nothing else. A
