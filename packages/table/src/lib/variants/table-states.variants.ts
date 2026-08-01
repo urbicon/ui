@@ -304,9 +304,27 @@ export const mobileCardVariants = tv({
       'hover:border-border-default hover:shadow-[var(--blocks-shadow-sm)]'
     ],
     // Title region — the primary identifier, emphasized and label-less. Lays out
-    // the optional selection checkbox next to the title.
+    // the optional selection checkbox and the detail toggle next to the title.
     header: ['flex items-center gap-3', 'px-4 pt-4 pb-1'],
-    title: ['min-w-0 flex-1 text-base font-semibold text-text-primary leading-snug break-words'],
+    // Title + subtitle share one shrinking column between checkbox and chevron.
+    headline: ['min-w-0 flex-1 text-left'],
+    // The headline as a control (row click, or opening the card's own details).
+    // Touch-sized and full-width: on a phone this IS the card's tap area.
+    headlineButton: [
+      'flex min-h-11 min-w-0 flex-1 items-center gap-2 text-left',
+      'rounded-modify focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50'
+    ],
+    title: ['text-base font-semibold text-text-primary leading-snug break-words'],
+    // The second card column, label-less, directly under the title: enough to
+    // tell two records apart without opening either. Everything from the third
+    // column on lives in the collapsed detail grid.
+    subtitle: ['text-sm text-text-secondary leading-snug break-words'],
+    // Own toggle button — used whenever the card itself already has a job
+    // (selection checkbox or row click), so it cannot be one big button.
+    toggle: [
+      'flex h-11 w-11 shrink-0 items-center justify-center rounded-modify',
+      'hover:bg-surface-hover transition-colors duration-[var(--blocks-duration-fast)]'
+    ],
     content: ['px-4 pb-4 pt-2'],
     // Detail fields in a compact 2-column grid (was a tall single-column stack,
     // which made a 4-field card ~266px tall — only ~2 fit per phone screen).
@@ -316,7 +334,6 @@ export const mobileCardVariants = tv({
     // Wrap instead of truncate — a full-width card has room, and truncation
     // hides data with no tooltip on touch.
     value: ['text-sm text-text-primary break-words'],
-    actions: ['flex items-center justify-end gap-2', 'px-4 pb-3 pt-0'],
     expandIcon: ['transition-transform duration-[var(--blocks-duration-fast)]'],
     expandedContent: ['px-4 pb-4', 'border-t border-border-subtle pt-4']
   },
@@ -327,7 +344,8 @@ export const mobileCardVariants = tv({
         header: 'px-3 pt-3 pb-1',
         content: 'px-3 pb-3 pt-1.5',
         grid: 'gap-x-3 gap-y-2',
-        title: 'text-sm'
+        title: 'text-sm',
+        subtitle: 'text-xs'
       },
       md: {
         header: 'px-4 pt-4 pb-1',
@@ -338,8 +356,21 @@ export const mobileCardVariants = tv({
         header: 'px-5 pt-5 pb-1.5',
         content: 'px-5 pb-5 pt-2.5',
         grid: 'gap-x-5 gap-y-4',
-        title: 'text-lg'
+        title: 'text-lg',
+        subtitle: 'text-base'
       }
+    },
+
+    /**
+     * A collapsed card carries its whole story in the header, so the header's
+     * bottom padding has to match its top one — the open card's tight `pb-1`
+     * exists only to close the gap to the detail grid below it. The concrete
+     * value is per size, so it lives in compoundVariants (same reason as the
+     * Toggle's thumb travel: the size stage runs first and would otherwise win).
+     */
+    collapsed: {
+      true: {},
+      false: {}
     },
 
     selected: {
@@ -365,9 +396,13 @@ export const mobileCardVariants = tv({
       false: {}
     },
 
+    // The press cue rides the headline button, not the card: the card stopped
+    // being a control (see mobile-card-shape.ts), and a card-wide
+    // `cursor-pointer` on a surface where only the headline responds promises a
+    // click the detail grid never delivers.
     interactive: {
       true: {
-        card: 'cursor-pointer active:scale-[0.995]'
+        headlineButton: 'cursor-pointer active:scale-[0.995]'
       },
       false: {}
     },
@@ -389,7 +424,12 @@ export const mobileCardVariants = tv({
       selected: true,
       active: true,
       class: { card: 'border-primary bg-primary-subtle' }
-    }
+    },
+
+    // ── Closed card: symmetric header padding per size ──
+    { collapsed: true, size: 'sm', class: { header: 'pb-3' } },
+    { collapsed: true, size: 'md', class: { header: 'pb-4' } },
+    { collapsed: true, size: 'lg', class: { header: 'pb-5' } }
   ],
 
   defaultVariants: {
@@ -397,7 +437,8 @@ export const mobileCardVariants = tv({
     selected: false,
     active: false,
     interactive: false,
-    expanded: false
+    expanded: false,
+    collapsed: false
   }
 });
 

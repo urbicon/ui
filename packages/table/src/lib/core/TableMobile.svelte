@@ -11,6 +11,7 @@
   let {
     size = 'md' as 'sm' | 'md' | 'lg',
     expandable = false,
+    details = 'collapsed' as 'collapsed' | 'expanded',
     expandedRowContent = undefined as Snippet<[item: TableItem]> | undefined,
     cell = undefined as Snippet<[item: TableItem, value: unknown, column: Column]> | undefined,
     noDataText = '',
@@ -69,7 +70,15 @@
           </span>
         </h3>
         {#each groupItems as item, i (item.id ?? i)}
-          <MobileCard {item} {expandable} {expandedRowContent} {cell} {size} onClick={onRowClick} />
+          <MobileCard
+            {item}
+            {expandable}
+            {details}
+            {expandedRowContent}
+            {cell}
+            {size}
+            onClick={onRowClick}
+          />
         {/each}
 
         {#if tableState.showSummary && tableState.summaryConfigs.length > 0}
@@ -102,7 +111,15 @@
     {/each}
   {:else}
     {#each Array.isArray(paginatedItems) ? paginatedItems : [] as item, i (item.id ?? i)}
-      <MobileCard {item} {expandable} {expandedRowContent} {cell} {size} onClick={onRowClick} />
+      <MobileCard
+        {item}
+        {expandable}
+        {details}
+        {expandedRowContent}
+        {cell}
+        {size}
+        onClick={onRowClick}
+      />
     {/each}
 
     {#if tableState.showSummary && tableState.summaryConfigs.length > 0}

@@ -5,12 +5,14 @@
   import { smartFilterBarTriggerVariants } from '$lib/variants';
   import {
     Badge,
-    Button,
     Select,
-    Tooltip,
     resolveIcon,
     SquareSigmaIcon as SquareSigmaIconDefault
   } from '@urbicon-ui/blocks';
+  import MenuTrigger from './MenuTrigger.svelte';
+
+  /** Full-width labelled row instead of a tooltipped icon — see MenuTrigger. */
+  let { stacked = false }: { stacked?: boolean } = $props();
 
   const tt = useTableI18n();
 
@@ -83,37 +85,46 @@
   }
 </script>
 
+{#snippet triggerIcon()}
+  <SquareSigmaIcon class="h-4 w-4" />
+{/snippet}
+
+{#snippet triggerCounter()}
+  {#if isActive}
+    <!-- `soft`, not `filled` + a class override: the override only replaced
+         `bg-*`/`text-*`, so the filled/primary compound's `border-primary`
+         survived the fold and drew a stray light ring — visible on every
+         route that rescopes `--color-primary`. `soft` also drops the
+         `text-on-primary` coupling, which measured 3.7:1 on the solid green.
+         The ground is the neutral surface because the lit trigger behind it
+         now carries `summary-subtle` itself. -->
+    <Badge variant="soft" size="xs" counter class="bg-surface-base text-summary-emphasis ml-1">
+      {summaryConfigs.length}
+    </Badge>
+  {/if}
+{/snippet}
+
 {#snippet customTrigger(_selected: unknown[], _open: boolean, _clear: () => void)}
-  <Tooltip label={tt('summary.button.title')}>
-    <Button
-      variant="ghost"
-      intent="neutral"
-      size="sm"
-      active={isActive}
-      class={triggerClass}
-      aria-expanded={menuOpen}
-      aria-haspopup="listbox"
-      disabled={summableColumns.length === 0}
-      onclick={() => (menuOpen = !menuOpen)}
-    >
-      <SquareSigmaIcon class="h-4 w-4" />
-      {#if isActive}
-        <!-- `soft`, not `filled` + a class override: the override only replaced
-             `bg-*`/`text-*`, so the filled/primary compound's `border-primary`
-             survived the fold and drew a stray light ring — visible on every
-             route that rescopes `--color-primary`. `soft` also drops the
-             `text-on-primary` coupling, which measured 3.7:1 on the solid green.
-             The ground is the neutral surface because the lit trigger behind it
-             now carries `summary-subtle` itself. -->
-        <Badge variant="soft" size="xs" counter class="bg-surface-base text-summary-emphasis ml-1">
-          {summaryConfigs.length}
-        </Badge>
-      {/if}
-    </Button>
-  </Tooltip>
+  <MenuTrigger
+    label={tt('summary.button.title')}
+    {stacked}
+    active={isActive}
+    {triggerClass}
+    expanded={menuOpen}
+    disabled={summableColumns.length === 0}
+    icon={triggerIcon}
+    counter={triggerCounter}
+    onclick={() => (menuOpen = !menuOpen)}
+  />
 {/snippet}
 
 <!-- `w-auto`: see SortMenu — the Select wrapper defaults to `w-full`. -->
+<!--
+  `usePortal={!stacked}`: stacked means this Select lives inside the tool
+  popover, and Popover's own contract (see Popover.svelte) puts a nested panel on
+  `position: absolute` instead of promoting a second top layer — that is where
+  the focus and z-index quirks live. FilterMenu's operator Select already does it.
+-->
 <Select
   groups={menuGroups}
   bind:value={selectedValue}
@@ -122,6 +133,7 @@
   disabled={summableColumns.length === 0}
   size="sm"
   syncWidth={false}
+  usePortal={!stacked}
   class="w-auto"
   {customTrigger}
 />

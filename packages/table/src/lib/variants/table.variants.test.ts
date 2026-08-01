@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { tableContainerVariants, tableHeaderVariants, tableRowVariants } from './table.variants';
+import { smartFilterBarVariants } from './table-features.variants';
 import { mobileCardVariants } from './table-states.variants';
 
 describe('tableContainerVariants', () => {
@@ -124,6 +125,98 @@ describe('mobileCardVariants — active card', () => {
     expect(both).toMatch(/\bbg-primary-subtle\b/);
     expect(both).not.toMatch(/\bbg-surface-hover\b/);
     expect(both.split(/\s+/).sort()).toEqual(selected.split(/\s+/).sort());
+  });
+});
+
+describe('mobileCardVariants — closed card', () => {
+  // A closed card is a header and nothing else, so its bottom padding has to
+  // match its top one — the open card's tight `pb-1` only exists to close the
+  // gap to the detail grid underneath it.
+  it('balances the header padding per size', () => {
+    const pairs = [
+      { size: 'sm', top: 'pt-3', bottom: 'pb-3' },
+      { size: 'md', top: 'pt-4', bottom: 'pb-4' },
+      { size: 'lg', top: 'pt-5', bottom: 'pb-5' }
+    ] as const;
+    for (const { size, top, bottom } of pairs) {
+      const header = mobileCardVariants({ size, collapsed: true }).header();
+      expect(header).toMatch(new RegExp(`\\b${top}\\b`));
+      expect(header).toMatch(new RegExp(`\\b${bottom}\\b`));
+      // The size stage runs first, so its `pb-1` must not survive the compound.
+      expect(header).not.toMatch(/\bpb-1\b/);
+    }
+  });
+
+  it('keeps the tight bottom padding while the card is open', () => {
+    expect(mobileCardVariants({ collapsed: false }).header()).toMatch(/\bpb-1\b/);
+  });
+
+  it('offers the subtitle and toggle slots the collapsed header needs', () => {
+    const styles = mobileCardVariants({});
+    expect(typeof styles.headline).toBe('function');
+    expect(typeof styles.subtitle).toBe('function');
+    // Touch target: the chevron is the only way into a selectable card's details.
+    expect(styles.toggle()).toMatch(/\bh-11\b/);
+    expect(styles.toggle()).toMatch(/\bw-11\b/);
+  });
+
+  // The headline is the card's control — the card itself is not one, because its
+  // detail grid renders consumer markup (see mobile-card-shape.ts).
+  it('makes the headline button a touch target with a visible focus ring', () => {
+    const button = mobileCardVariants({}).headlineButton();
+    expect(button).toMatch(/\bmin-h-11\b/);
+    // Keyboard-only focus, per the repo-wide rule.
+    expect(button).toMatch(/focus-visible:ring-2/);
+    expect(button).not.toMatch(/(?<![a-z-])focus:/);
+  });
+
+  it('puts the press cue on the headline, not on the card', () => {
+    // A card-wide `cursor-pointer` would promise a click the detail grid never
+    // delivers — only the headline responds.
+    const styles = mobileCardVariants({ interactive: true });
+    expect(styles.headlineButton()).toMatch(/\bcursor-pointer\b/);
+    expect(styles.card()).not.toMatch(/\bcursor-pointer\b/);
+  });
+});
+
+describe('smartFilterBarVariants — compact bar', () => {
+  // Compact means the five triggers moved into a popover on one button, so the
+  // search field and that button share a row instead of stacking.
+  it('puts the search field and the tool button on one row', () => {
+    const controls = smartFilterBarVariants({ compact: true }).controls();
+    expect(controls).toMatch(/\bflex-row\b/);
+    expect(controls).toMatch(/\bitems-center\b/);
+  });
+
+  it('turns the rule with the tools', () => {
+    // Upright between two icons in the capsule; lying across the stacked panel.
+    expect(smartFilterBarVariants({ compact: false }).rule()).toMatch(/!h-5/);
+    expect(smartFilterBarVariants({ compact: true }).rule()).not.toMatch(/!h-5/);
+  });
+
+  it('gives the tool button a touch-sized target', () => {
+    const trigger = smartFilterBarVariants({ compact: true }).toolsTrigger();
+    expect(trigger).toMatch(/\bmin-h-11\b/);
+    expect(trigger).toMatch(/\bmin-w-11\b/);
+    // It sits next to a field that may shrink to nothing; the button may not.
+    expect(trigger).toMatch(/\bshrink-0\b/);
+  });
+
+  // The rows INSIDE the panel need their own touch height: `actionsSection`
+  // carries the capsule's, and the compact branch does not render that slot at
+  // all — its selector even excludes `[popover]` descendants, which is exactly
+  // what these rows are. Asserting it on the trigger alone suggested a coverage
+  // that did not exist.
+  it('gives every row in the tool panel a touch-sized target', () => {
+    const panel = smartFilterBarVariants({ compact: true }).toolsPanel();
+    expect(panel).toMatch(/\[&_button\]:min-h-11/);
+    expect(panel).toMatch(/\[&>\*\]:min-h-11/);
+  });
+
+  it('stays uncompacted by default', () => {
+    expect(smartFilterBarVariants({}).controls()).toBe(
+      smartFilterBarVariants({ compact: false }).controls()
+    );
   });
 });
 

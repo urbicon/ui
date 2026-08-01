@@ -40,6 +40,7 @@
     initialPage = 1,
     expandedRowContent = undefined,
     multiExpand = false,
+    mobileCardDetails = 'collapsed',
     onRowClick = undefined,
     virtualized = false,
     virtualHeight = '600px',
@@ -301,6 +302,7 @@
     <TableMobile
       {size}
       {expandable}
+      details={mobileCardDetails}
       expandedRowContent={expandedRowContentErased}
       cell={cellErased}
       {noDataText}

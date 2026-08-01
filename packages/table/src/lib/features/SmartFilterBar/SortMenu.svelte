@@ -3,12 +3,14 @@
   import { resolveColumnId, resolveColumnLabel } from '$lib/utils';
   import { smartFilterBarTriggerVariants } from '$lib/variants';
   import {
-    Button,
     Select,
-    Tooltip,
     resolveIcon,
     ArrowUpDownIcon as ArrowUpDownIconDefault
   } from '@urbicon-ui/blocks';
+  import MenuTrigger from './MenuTrigger.svelte';
+
+  /** Full-width labelled row instead of a tooltipped icon — see MenuTrigger. */
+  let { stacked = false }: { stacked?: boolean } = $props();
 
   const tt = useTableI18n();
 
@@ -67,28 +69,33 @@
   }
 </script>
 
+{#snippet triggerIcon()}
+  <ArrowUpDownIcon class="h-4 w-4" />
+{/snippet}
+
 {#snippet customTrigger(_selected: unknown[], _open: boolean, _clear: () => void)}
-  <Tooltip label={tt('sort.button')}>
-    <Button
-      variant="ghost"
-      intent="neutral"
-      size="sm"
-      active={isActive}
-      class={triggerClass}
-      aria-expanded={menuOpen}
-      aria-haspopup="listbox"
-      disabled={sortableColumns.length === 0}
-      onclick={() => (menuOpen = !menuOpen)}
-    >
-      <ArrowUpDownIcon class="h-4 w-4" />
-    </Button>
-  </Tooltip>
+  <MenuTrigger
+    label={tt('sort.button')}
+    {stacked}
+    active={isActive}
+    {triggerClass}
+    expanded={menuOpen}
+    disabled={sortableColumns.length === 0}
+    icon={triggerIcon}
+    onclick={() => (menuOpen = !menuOpen)}
+  />
 {/snippet}
 
 <!--
   `w-auto` on the Select wrapper: its default `w-full` makes the wrapper a
   stretching flex item in the toolbar row, which padded every menu trigger with
   dead space and left the icons unevenly spaced.
+-->
+<!--
+  `usePortal={!stacked}`: stacked means this Select lives inside the tool
+  popover, and Popover's own contract (see Popover.svelte) puts a nested panel on
+  `position: absolute` instead of promoting a second top layer — that is where
+  the focus and z-index quirks live. FilterMenu's operator Select already does it.
 -->
 <Select
   options={sortOptions}
@@ -98,6 +105,7 @@
   disabled={sortableColumns.length === 0}
   size="sm"
   syncWidth={false}
+  usePortal={!stacked}
   class="w-auto"
   {customTrigger}
 />

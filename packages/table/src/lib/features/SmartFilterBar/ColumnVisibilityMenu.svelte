@@ -2,14 +2,11 @@
   import { getTableContext, useTableI18n } from '$lib';
   import { resolveColumnId, resolveColumnLabel } from '$lib/utils';
   import { smartFilterBarTriggerVariants } from '$lib/variants';
-  import {
-    Badge,
-    Button,
-    Select,
-    Tooltip,
-    resolveIcon,
-    EyeIcon as EyeIconDefault
-  } from '@urbicon-ui/blocks';
+  import { Badge, Select, resolveIcon, EyeIcon as EyeIconDefault } from '@urbicon-ui/blocks';
+  import MenuTrigger from './MenuTrigger.svelte';
+
+  /** Full-width labelled row instead of a tooltipped icon — see MenuTrigger. */
+  let { stacked = false }: { stacked?: boolean } = $props();
 
   const tt = useTableI18n();
 
@@ -62,33 +59,42 @@
   }
 </script>
 
+{#snippet triggerIcon()}
+  <EyeIcon class="h-4 w-4" />
+{/snippet}
+
+{#snippet triggerCounter()}
+  {#if hiddenCount > 0}
+    <!-- Same shape as the filter and summary counters: a `soft` chip on the
+         neutral surface, its number in the trigger's own hue. `filled` would
+         have been the only solid swatch in the bar, and it sat on the lit
+         ground with `text-on-primary` — the pairing measured under AA. -->
+    <Badge variant="soft" size="xs" counter class="bg-surface-base text-primary-emphasis ml-1">
+      {hiddenCount}
+    </Badge>
+  {/if}
+{/snippet}
+
 {#snippet customTrigger(_selected: unknown[], _open: boolean, _clear: () => void)}
-  <Tooltip label={tt('columns.visibility')}>
-    <Button
-      variant="ghost"
-      intent="neutral"
-      size="sm"
-      active={hiddenCount > 0}
-      class={triggerClass}
-      aria-expanded={menuOpen}
-      aria-haspopup="listbox"
-      onclick={() => (menuOpen = !menuOpen)}
-    >
-      <EyeIcon class="h-4 w-4" />
-      {#if hiddenCount > 0}
-        <!-- Same shape as the filter and summary counters: a `soft` chip on the
-             neutral surface, its number in the trigger's own hue. `filled` would
-             have been the only solid swatch in the bar, and it sat on the lit
-             ground with `text-on-primary` — the pairing measured under AA. -->
-        <Badge variant="soft" size="xs" counter class="bg-surface-base text-primary-emphasis ml-1">
-          {hiddenCount}
-        </Badge>
-      {/if}
-    </Button>
-  </Tooltip>
+  <MenuTrigger
+    label={tt('columns.visibility')}
+    {stacked}
+    active={hiddenCount > 0}
+    {triggerClass}
+    expanded={menuOpen}
+    icon={triggerIcon}
+    counter={triggerCounter}
+    onclick={() => (menuOpen = !menuOpen)}
+  />
 {/snippet}
 
 <!-- `w-auto`: see SortMenu — the Select wrapper defaults to `w-full`. -->
+<!--
+  `usePortal={!stacked}`: stacked means this Select lives inside the tool
+  popover, and Popover's own contract (see Popover.svelte) puts a nested panel on
+  `position: absolute` instead of promoting a second top layer — that is where
+  the focus and z-index quirks live. FilterMenu's operator Select already does it.
+-->
 <Select
   options={columnItems}
   multiple
@@ -97,6 +103,7 @@
   onValueChange={handleValueChange}
   size="sm"
   syncWidth={false}
+  usePortal={!stacked}
   selectionIndicator="checkmark"
   class="w-auto"
   {customTrigger}
