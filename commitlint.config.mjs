@@ -17,6 +17,7 @@ export default createConfig({
     'i18n',
     'mcp-server',
     'shared-types',
+    'sv',
     'sveltekit-utils',
     // apps/*
     'artifact-studio',
