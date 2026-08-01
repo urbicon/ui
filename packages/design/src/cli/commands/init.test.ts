@@ -67,6 +67,96 @@ describe('runInit', () => {
     expect(await read('.claude/settings.json')).toContain('urbicon hook');
   });
 
+  // The bare command exits 127 in a hook shell (no node_modules/.bin on PATH), so the
+  // gate silently blocks nothing. Nothing about that is visible to the agent — the run
+  // looks like "produced no violations". The runner prefix is what makes it resolve.
+  it('--hook writes a command that resolves from a hook shell, not the bare binary', async () => {
+    await runInit([], { hook: true });
+    const settings = JSON.parse(await read('.claude/settings.json'));
+    const command = settings.hooks.PostToolUse[0].hooks[0].command;
+    expect(command).toBe('bunx urbicon hook');
+    expect(command).not.toBe('urbicon hook');
+  });
+
+  it('repairs the dead bare hook an older init wrote', async () => {
+    await mkdir(join(dir, '.claude'), { recursive: true });
+    await writeFile(
+      join(dir, '.claude/settings.json'),
+      JSON.stringify(
+        {
+          model: 'opus',
+          hooks: {
+            PostToolUse: [
+              {
+                matcher: 'Edit|MultiEdit|Write',
+                hooks: [{ type: 'command', command: 'urbicon hook' }]
+              }
+            ]
+          }
+        },
+        null,
+        2
+      )
+    );
+    await runInit([], { hook: true });
+    const settings = JSON.parse(await read('.claude/settings.json'));
+    expect(settings.hooks.PostToolUse).toHaveLength(1); // repaired in place, not appended
+    expect(settings.hooks.PostToolUse[0].hooks[0].command).toBe('bunx urbicon hook');
+    expect(settings.model).toBe('opus'); // unrelated keys untouched
+    expect(logged()).toContain('repaired');
+    expect(logged()).not.toContain('customised'); // our own defect is not a customisation
+  });
+
+  it('repairing is idempotent — a second run reports it as present', async () => {
+    await mkdir(join(dir, '.claude'), { recursive: true });
+    await writeFile(
+      join(dir, '.claude/settings.json'),
+      JSON.stringify(
+        {
+          hooks: {
+            PostToolUse: [
+              {
+                matcher: 'Edit|MultiEdit|Write',
+                hooks: [{ type: 'command', command: 'urbicon hook' }]
+              }
+            ]
+          }
+        },
+        null,
+        2
+      )
+    );
+    await runInit([], { hook: true });
+    log.mockClear();
+    await runInit([], { hook: true });
+    expect(logged()).toContain('already has');
+    expect(logged()).not.toContain('repaired');
+  });
+
+  // The repair is scoped to the exact shape init itself wrote. A user who deliberately
+  // customised the command still gets the keep-and-report treatment.
+  it('does not repair a customised gate command', async () => {
+    await mkdir(join(dir, '.claude'), { recursive: true });
+    await writeFile(
+      join(dir, '.claude/settings.json'),
+      JSON.stringify(
+        {
+          hooks: {
+            PostToolUse: [
+              { matcher: 'Write', hooks: [{ type: 'command', command: 'urbicon hook --strict' }] }
+            ]
+          }
+        },
+        null,
+        2
+      )
+    );
+    await runInit([], { hook: true });
+    const settings = JSON.parse(await read('.claude/settings.json'));
+    expect(settings.hooks.PostToolUse[0].hooks[0].command).toBe('urbicon hook --strict'); // kept
+    expect(logged()).toContain('customised');
+  });
+
   it('--hook preserves existing settings and merges exactly once', async () => {
     await mkdir(join(dir, '.claude'), { recursive: true });
     await writeFile(
@@ -80,6 +170,50 @@ describe('runInit', () => {
     expect(settings.hooks.PreToolUse).toHaveLength(1); // existing hook preserved
     expect(settings.hooks.PostToolUse).toHaveLength(1); // merged once, not twice
     expect(JSON.stringify(settings.hooks.PostToolUse)).toContain('urbicon hook');
+  });
+
+  // Naming a stylesheet the project does not have is worse than naming none: the
+  // consumer creates it, nothing imports it, every token silently resolves to nothing.
+  describe('Tailwind next-step', () => {
+    const withTailwind = async (): Promise<void> => {
+      await writeFile(
+        join(dir, 'package.json'),
+        JSON.stringify({ name: 'x', devDependencies: { tailwindcss: '^4' } })
+      );
+    };
+
+    it('points at the stylesheet the project actually has, not at app.css', async () => {
+      await withTailwind();
+      await mkdir(join(dir, 'src/routes'), { recursive: true });
+      await writeFile(join(dir, 'src/routes/layout.css'), "@import 'tailwindcss';\n");
+      await runInit([], {});
+      expect(logged()).toContain('src/routes/layout.css');
+      expect(logged()).not.toContain('your `app.css`');
+    });
+
+    it('finds a double-quoted import too', async () => {
+      await withTailwind();
+      await mkdir(join(dir, 'src'), { recursive: true });
+      await writeFile(join(dir, 'src/app.css'), '@import "tailwindcss";\n');
+      await runInit([], {});
+      expect(logged()).toContain('src/app.css');
+    });
+
+    it('describes the file instead of naming one when none matches', async () => {
+      await withTailwind();
+      await mkdir(join(dir, 'src'), { recursive: true });
+      await writeFile(join(dir, 'src/other.css'), '.a { color: red }\n');
+      await runInit([], {});
+      expect(logged()).toContain("the file with `@import 'tailwindcss'`");
+    });
+
+    it('ignores node_modules when searching', async () => {
+      await withTailwind();
+      await mkdir(join(dir, 'src/node_modules/pkg'), { recursive: true });
+      await writeFile(join(dir, 'src/node_modules/pkg/x.css'), "@import 'tailwindcss';\n");
+      await runInit([], {});
+      expect(logged()).not.toContain('node_modules');
+    });
   });
 
   it('--ci writes the design-gate workflow', async () => {
@@ -277,7 +411,10 @@ describe('runInit — hook & ci divergence', () => {
     const reordered = {
       hooks: {
         PostToolUse: [
-          { hooks: [{ command: 'urbicon hook', type: 'command' }], matcher: 'Edit|MultiEdit|Write' }
+          {
+            hooks: [{ command: 'bunx urbicon hook', type: 'command' }],
+            matcher: 'Edit|MultiEdit|Write'
+          }
         ]
       }
     };

@@ -284,7 +284,7 @@ findings are fed back to the agent to fix; a clean edit is silent. Merge
     "PostToolUse": [
       {
         "matcher": "Edit|MultiEdit|Write",
-        "hooks": [{ "type": "command", "command": "urbicon hook" }]
+        "hooks": [{ "type": "command", "command": "bunx urbicon hook" }]
       }
     ]
   }
@@ -294,6 +294,12 @@ findings are fed back to the agent to fix; a clean edit is silent. Merge
 Add `--craft-floor 40` to the command to gate the craft axis too. (`urbicon hook`
 reads the edited path from the hook event on stdin — it does not take path
 arguments.)
+
+Keep the `bunx` prefix. A hook command runs in a plain shell whose PATH does not
+include your `node_modules/.bin`, so a bare `urbicon hook` exits 127 and gates
+nothing — and it fails silently, because the agent only ever sees exit 2. If your
+project was scaffolded before this was fixed, re-run `urbicon init --hook`: it
+repairs that exact entry in place.
 
 **CI.** Run `urbicon validate` over your source tree; a non-zero exit fails the
 build. Copy [`templates/ci-github.yml`](./templates/ci-github.yml), or add one step

@@ -18,7 +18,8 @@
  * deliberate customisation from an outdated template, so we never overwrite either.
  */
 
-import { mkdir, readFile, stat, writeFile } from 'node:fs/promises';
+import type { Dirent } from 'node:fs';
+import { mkdir, readdir, readFile, stat, writeFile } from 'node:fs/promises';
 import { basename, dirname, relative, resolve } from 'node:path';
 import { createManifestTemplate } from '@urbicon-ui/design-engine/manifest';
 import {
@@ -47,12 +48,69 @@ import { readPackageVersion, readTemplate } from '../package-root.js';
  * (it never edits `vite.config.ts`), so this is documented rather than auto-wired; we
  * tailor it to what's already installed.
  */
-function tailwindSteps(deps: Set<string> | null): string[] {
+/** Matches the Tailwind 4 entry import in either quote style. */
+const TAILWIND_IMPORT = /^\s*@import\s+['"]tailwindcss['"]/m;
+
+/**
+ * Find the project's Tailwind stylesheet by its *content* rather than its name, so the
+ * next-steps output can point at the real file. Naming conventions differ across
+ * scaffolds (`src/app.css` for `sv create --template demo`, `src/routes/layout.css` for
+ * `minimal`), and a wrong path here is worse than no path: it sends the consumer to
+ * create a stylesheet nothing imports.
+ *
+ * Returns a project-relative path, or `null` when nothing matches — callers then
+ * describe the file instead of naming it. Bounded to `src/` and three levels deep:
+ * this runs on every `init` and must not walk a whole repository.
+ */
+async function findTailwindStylesheet(cwd: string): Promise<string | null> {
+  // Absent or unreadable is not an error here, just no answer.
+  const entriesOf = async (dir: string): Promise<Dirent[]> => {
+    try {
+      return await readdir(dir, { withFileTypes: true });
+    } catch {
+      return [];
+    }
+  };
+  const walk = async (dir: string, depth: number): Promise<string | null> => {
+    if (depth > 3) return null;
+    const entries = await entriesOf(dir);
+    const dirs: string[] = [];
+    for (const e of entries) {
+      const full = resolve(dir, e.name);
+      if (e.isDirectory()) {
+        if (e.name !== 'node_modules' && !e.name.startsWith('.')) dirs.push(full);
+      } else if (e.isFile() && e.name.endsWith('.css')) {
+        try {
+          if (TAILWIND_IMPORT.test(await readFile(full, 'utf-8'))) return relative(cwd, full);
+        } catch {
+          // unreadable file — keep looking
+        }
+      }
+    }
+    for (const d of dirs) {
+      const hit = await walk(d, depth + 1);
+      if (hit) return hit;
+    }
+    return null;
+  };
+  return walk(resolve(cwd, 'src'), 0);
+}
+
+function tailwindSteps(deps: Set<string> | null, stylesheet: string | null): string[] {
   const has = (p: string): boolean => deps?.has(p) ?? false;
   const tailwindWired = has('@tailwindcss/vite') || has('tailwindcss');
   if (tailwindWired) {
+    // Name the file we actually found. Telling everyone "your app.css" is wrong for
+    // any project whose stylesheet lives elsewhere — `sv create --template minimal`
+    // puts it in `src/routes/layout.css` — and following that advice creates a second
+    // stylesheet the bundler never loads: every token silently resolves to nothing,
+    // with no error anywhere. The obvious self-help from there is raw Tailwind colours,
+    // i.e. exactly what the system exists to prevent.
+    const where = stylesheet
+      ? `\`${stylesheet}\``
+      : "your Tailwind stylesheet (the file with `@import 'tailwindcss'`)";
     return [
-      '  • Tailwind is installed — ensure your `app.css` has both imports, Tailwind first:',
+      `  • Tailwind is installed — ensure ${where} has both imports, Tailwind first:`,
       "      @import 'tailwindcss';",
       "      @import '@urbicon-ui/blocks/style/index.css';   /* tokens + the component @source directives */"
     ];
@@ -128,8 +186,36 @@ function upsertBlock(existing: string, block: string): { content: string; replac
   return { content: `${existing}${sep}${block.trim()}\n`, replaced: false };
 }
 
-/** The canonical PostToolUse entry `--hook` installs. */
+/**
+ * The canonical PostToolUse entry `--hook` installs.
+ *
+ * The `bunx` prefix is load-bearing, not decoration. A hook command runs in a plain
+ * `/bin/sh` whose PATH does not contain the project's `node_modules/.bin`, so the bare
+ * `urbicon hook` exits 127 (`command not found`) and — because a non-zero exit that
+ * isn't 2 is treated as a non-blocking hook error — lets every violation through while
+ * the project looks gated. That failure is silent exactly where it matters: the agent
+ * receives no exit-2 feedback, so the run is indistinguishable from "produced no
+ * violations". Measured in the wild before this was fixed; the CI template has always
+ * used `bunx` for the same reason. `hookCommandRuns` below accepts either form, so an
+ * existing bare entry from an older `init` is repaired in place (see `LEGACY_HOOK_ENTRY`).
+ */
 const HOOK_ENTRY = {
+  matcher: 'Edit|MultiEdit|Write',
+  hooks: [{ type: 'command', command: 'bunx urbicon hook' }]
+};
+
+/**
+ * The entry older versions of `init --hook` wrote, byte for byte. It exits 127 in a hook
+ * shell and gates nothing, so every project scaffolded before the fix believes it is
+ * gated and is not.
+ *
+ * This one shape is the single case where re-running `--hook` *rewrites* an existing
+ * entry instead of keeping it. That is safe precisely because `init` wrote it: an exact
+ * match is not a user customisation, it is our own defect. Anything else that runs the
+ * gate some other way is still kept and reported — we genuinely cannot tell a deliberate
+ * customisation from an outdated template there.
+ */
+const LEGACY_HOOK_ENTRY = {
   matcher: 'Edit|MultiEdit|Write',
   hooks: [{ type: 'command', command: 'urbicon hook' }]
 };
@@ -182,13 +268,14 @@ function runsUrbiconHook(entry: unknown): boolean {
 
 /**
  * Merge the PostToolUse `urbicon hook` into a settings.json — once, preserving the
- * rest. The canonical entry (in any key order) is `'present'`; an entry that runs
- * the gate some other way is `'kept'` — it is either the user's deliberate
- * customisation or an older template, and we cannot tell which, so we never
- * overwrite it and instead report how to adopt the current default. Entries that
- * do not run the gate at all are ignored, not mistaken for it.
+ * rest. The canonical entry (in any key order) is `'present'`; the exact entry an older
+ * `init` wrote is `'repaired'` (rewritten to the working command — see
+ * `LEGACY_HOOK_ENTRY`); an entry that runs the gate some other way is `'kept'` — it is
+ * either the user's deliberate customisation or an older template, and we cannot tell
+ * which, so we never overwrite it and instead report how to adopt the current default.
+ * Entries that do not run the gate at all are ignored, not mistaken for it.
  */
-async function mergeHook(settingsPath: string): Promise<'added' | 'present' | 'kept'> {
+async function mergeHook(settingsPath: string): Promise<'added' | 'present' | 'kept' | 'repaired'> {
   const existing = await readOrNull(settingsPath);
   let settings: { hooks?: { PostToolUse?: unknown[] } };
   try {
@@ -207,11 +294,17 @@ async function mergeHook(settingsPath: string): Promise<'added' | 'present' | 'k
   settings.hooks.PostToolUse ??= [];
   const entries = settings.hooks.PostToolUse;
   if (entries.some((e) => sameJson(e, HOOK_ENTRY))) return 'present';
-  if (entries.some(runsUrbiconHook)) return 'kept';
-  entries.push(HOOK_ENTRY);
+  const legacyAt = entries.findIndex((e) => sameJson(e, LEGACY_HOOK_ENTRY));
+  const outcome: 'added' | 'repaired' = legacyAt === -1 ? 'added' : 'repaired';
+  if (outcome === 'repaired') {
+    entries[legacyAt] = HOOK_ENTRY;
+  } else {
+    if (entries.some(runsUrbiconHook)) return 'kept';
+    entries.push(HOOK_ENTRY);
+  }
   await mkdir(dirname(settingsPath), { recursive: true });
   await writeFile(settingsPath, `${JSON.stringify(settings, null, 2)}\n`, 'utf-8');
-  return 'added';
+  return outcome;
 }
 
 export async function runInit(_positionals: string[], flags: Flags): Promise<number> {
@@ -325,6 +418,13 @@ export async function runInit(_positionals: string[], flags: Flags): Promise<num
       const result = await mergeHook(settingsPath);
       if (result === 'added') {
         done.push(`${rel(settingsPath)} — wired the PostToolUse \`urbicon hook\``);
+      } else if (result === 'repaired') {
+        // Say what was wrong, not just that something changed: the consumer has been
+        // running an ungated project believing otherwise, and that is worth a sentence.
+        done.push(
+          `${rel(settingsPath)} — repaired the PostToolUse hook (it ran bare \`urbicon hook\`, ` +
+            'which exits 127 in a hook shell and gated nothing; now `bunx urbicon hook`)'
+        );
       } else if (result === 'present') {
         skipped.push(`${rel(settingsPath)} — already has the PostToolUse \`urbicon hook\``);
       } else {
@@ -368,7 +468,8 @@ export async function runInit(_positionals: string[], flags: Flags): Promise<num
   for (const d of done) console.log(`  ✓ ${d}`);
   for (const s of skipped) console.log(`  · ${s}`);
   console.log('\nNext steps:');
-  for (const line of tailwindSteps(readConsumerDependencies())) console.log(line);
+  for (const line of tailwindSteps(readConsumerDependencies(), await findTailwindStylesheet(cwd)))
+    console.log(line);
   const pasteTargets = ['CLAUDE.md', '.cursorrules']
     .filter((n) => n.toLowerCase() !== targetName.toLowerCase())
     .join(' / ');
