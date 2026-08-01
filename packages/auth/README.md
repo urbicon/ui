@@ -44,7 +44,8 @@ Runtime dependencies: **none**.
 | `@urbicon-ui/auth/server`                      | Server         | Handlers, auth core, adapters, i18n                         |
 | `@urbicon-ui/auth/server/adapters/prisma`      | Server         | Prisma adapter factory (`createPrismaRepos`)                |
 | `@urbicon-ui/auth/server/adapters/in-memory`   | Server         | In-memory adapter (`createInMemoryRepos`) — dev/test        |
-| `@urbicon-ui/auth/server/adapters/conformance` | Server (tests) | Adapter conformance suite (`describeRepositoryConformance`) |
+| `@urbicon-ui/auth/server/adapters/conformance` | Server (tests) | Adapter conformance suite (`describeRepositoryConformance`), wired to vitest |
+| `@urbicon-ui/auth/server/adapters/conformance-core` | Server (tests) | The same suite without a runner import — pass `{ runner: { describe, it, expect } }` (bun:test as-is; jest needs `expect: (a) => expect(a)`) |
 | `@urbicon-ui/auth/server/email/lettermint`     | Server         | Lettermint email transport                                  |
 | `@urbicon-ui/auth/server/email/console`        | Server         | Console email transport (dev only)                          |
 | `@urbicon-ui/auth/sw`                          | Service worker | Push + notification-click handlers                          |

@@ -21,7 +21,7 @@
   },
   "overrides": [
     {
-      "includes": ["**/*.test.ts", "**/*.spec.ts", "**/conformance.ts", "**/tests/**"],
+      "includes": ["**/*.test.ts", "**/*.spec.ts", "**/conformance*.ts", "**/tests/**"],
       "linter": {
         "rules": {
           "style": { "noNonNullAssertion": "off" },
