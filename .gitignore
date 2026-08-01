@@ -112,3 +112,7 @@ prototypes/
 docs/archive/
 # Packed tarballs from scripts/pack-release.ts — a release artefact, never committed
 release-tarballs/
+
+# Playwright shard reports — merged in CI, never committed
+blob-report/
+all-blob-reports/
