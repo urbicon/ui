@@ -12,8 +12,6 @@
  * no Bun. In the monorepo, run the TypeScript source directly via `bun run`.
  */
 
-import { readFile } from 'node:fs/promises';
-import { resolve } from 'node:path';
 import { parseArgs } from './args.js';
 import { applyFlagAliases, checkFlags, checkPositionals } from './command-flags.js';
 import { runContext } from './commands/context.js';
@@ -35,27 +33,13 @@ import { runValidate } from './commands/validate.js';
 import { runVerb, runVerbList } from './commands/verb.js';
 import { commandHelp, HELP } from './help.js';
 import { EXIT, printError } from './output.js';
-import { findPackageRoot } from './package-root.js';
-
-/** Read this package's own version from its package.json (works from src/ and dist/). */
-async function readVersion(): Promise<string> {
-  const root = await findPackageRoot();
-  if (!root) return 'unknown';
-  try {
-    const pkg = JSON.parse(await readFile(resolve(root, 'package.json'), 'utf-8')) as {
-      version?: string;
-    };
-    return pkg.version ?? 'unknown';
-  } catch {
-    return 'unknown';
-  }
-}
+import { readPackageVersion } from './package-root.js';
 
 async function main(argv: string[]): Promise<number> {
   const { command, positionals: rawPositionals, flags } = parseArgs(argv);
 
   if (flags.version === true || command === 'version') {
-    console.log(await readVersion());
+    console.log(await readPackageVersion());
     return EXIT.OK;
   }
   // `urbicon <command> --help` answers about that command; the full page is for

@@ -87,7 +87,10 @@ Usage:
 Commands:
   init                  Wire this project into the design loop: insert the AGENTS.md
                         context block + scaffold design.manifest.md, then print next
-                        steps. Idempotent and non-destructive.
+                        steps. Idempotent and non-destructive: re-runs refresh the
+                        block in place (wherever it lives — AGENTS.md or CLAUDE.md)
+                        and stamp it with the CLI version; customised hook/CI files
+                        are kept and reported, never overwritten.
                         --hook             Also merge the PostToolUse gate into
                                            .claude/settings.json.
                         --ci               Also write .github/workflows/design-gate.yml.
@@ -161,9 +164,12 @@ Commands:
                         reference, blocks guide system, migration notes, table
                         scroll models). No slug lists all; a slug prints the guide.
                         --json             Machine-readable guide list.
-  context               Print the project's design.manifest.md summary.
+  context               Print the project's design.manifest.md summary. Warns when
+                        the init context block no longer matches the installed
+                        CLI's template.
                         --manifest <path>  Manifest file (default ./design.manifest.md).
-                        --json             Emit the parsed manifest as JSON.
+                        --json             Emit the parsed manifest as JSON (incl.
+                                           contextBlock staleness).
   record-decision       Append an ADR to the manifest.
                         --title <t>        (required) Short decision title.
                         --decision <d>     (required) What was decided.
