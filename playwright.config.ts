@@ -30,6 +30,14 @@ export default defineConfig({
   // (12 P + 4 E), full suite: 1 worker 310s · 4 → 98s · 8 → 66-73s · 12 → 69s ·
   // 16 → 69-73s. It saturates around half the cores — beyond that the extra
   // workers only compete for the single dev server.
+  //
+  // Do NOT raise this for CI. Tried on a GitHub runner (4 vCPU) on 2026-08-01,
+  // reasoning that these tests wait on the dev server rather than on CPU and
+  // that the saturation point above is an absolute ceiling: '100%' gave 4
+  // workers, and the suite went from 6m51s / 120 passed to 8m0s with 4 failed
+  // and 2 flaky — `frame.evaluate` and `waitForSelector` timeouts, i.e. the
+  // dev server starving. Slower AND less reliable; the relative setting is
+  // right, and on a 4-vCPU runner 2 workers is what it should buy.
   workers: '50%',
   reporter: 'html',
   timeout: 60_000,

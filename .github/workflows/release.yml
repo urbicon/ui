@@ -25,17 +25,16 @@ name: Release
 # publisher configured per package on npmjs.com. Provenance attestations are
 # published automatically; the `--provenance` flag is not needed.
 #
-# MIGRATION STATE (2026-08-01): the effective publisher today is still the Buny
-# deploy on the deploy host, triggered by the same tag. This workflow does not
-# publish until `NPM_TRUSTED_PUBLISHING` is set to `true` as a repository
-# variable — that switch is what hands publishing from Buny to here, and it
-# should be flipped only after the canary run described in the PR has proven
-# OIDC works for our tarball path. Running both would mean two sources of truth
-# for the same tag.
+# DONE (2026-08-01, v6.48.1): this workflow is the publisher. All thirteen
+# packages went out over OIDC with no token in the run — `trusted publishing:
+# on, token fallback: none`. Buny's `PUBLISH_PACKAGES` is empty on the deploy
+# host; it still deploys the docs site, nothing else. Publishing here is gated
+# on the repository variable `NPM_TRUSTED_PUBLISHING=true`; clearing it turns
+# this job back into a rehearsal, which is the way back if it is ever needed.
 #
-# The `NPM_TOKEN` fallback remains for the transition, guarded by its own
-# secret being set. It is deliberately scoped to the publish job only, so even
-# the fallback never sits in the same process as `bun install`.
+# The `NPM_TOKEN` fallback is dead weight now and stays only as an escape
+# hatch. It is scoped to the publish job's single step, so even the fallback
+# never sits in the same process as `bun install`.
 
 on:
   push:
@@ -62,7 +61,7 @@ jobs:
     permissions:
       contents: read
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       - uses: oven-sh/setup-bun@v2
 
@@ -102,14 +101,31 @@ jobs:
           (cd packages/sveltekit-utils && bunx --bun vitest run)
           (cd packages/sv && bunx --bun vitest run)
 
+      # The browser is ~120 MB and identical for every run of a given Playwright
+      # version — downloading it took 41s of the 13m33s on v6.48.1. Keyed on the
+      # resolved version so a Playwright bump misses the cache and re-downloads
+      # instead of running the tests against a stale binary.
+      - name: Resolve Playwright version
+        id: pw
+        run: echo "version=$(node -p "require('./node_modules/@playwright/test/package.json').version")" >> "$GITHUB_OUTPUT"
+
+      - uses: actions/cache@v6
+        id: pw-cache
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-${{ runner.os }}-${{ steps.pw.outputs.version }}
+
+      # `--with-deps` still runs on a hit: the cache holds the browser, not the
+      # apt libraries it links against, and those live outside the cached path.
+      - name: Install Playwright browser
+        run: bunx playwright install --with-deps chromium
+
       - name: Playwright e2e
         # `--grep-invert @pixel` for the same reason as in ci.yml: the linux
         # screenshot baselines are bound to the deploy host, not to a
         # GitHub runner. Excluding them here means a release tag is gated on
         # behaviour, not on font rendering.
-        run: |
-          bunx playwright install --with-deps chromium
-          bunx playwright test --grep-invert @pixel
+        run: bunx playwright test --grep-invert @pixel
 
       # Everything the publish job needs, produced here where the workspace
       # exists: the tarballs, and a manifest naming them in publish order. The
@@ -119,7 +135,7 @@ jobs:
           ONLY: ${{ inputs.only }}
         run: bun run scripts/pack-release.ts
 
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with:
           name: release-tarballs
           path: release-tarballs/
@@ -148,12 +164,12 @@ jobs:
       # Sparse checkout of the one script this job runs, and nothing else. A
       # full checkout would be harmless, but the narrower the tree in the
       # credential-bearing job, the smaller the claim it has to make.
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
         with:
           sparse-checkout: scripts/publish-tarballs.mjs
           sparse-checkout-cone-mode: false
 
-      - uses: actions/download-artifact@v4
+      - uses: actions/download-artifact@v8
         with:
           name: release-tarballs
           path: release-tarballs
@@ -162,7 +178,7 @@ jobs:
       # feature and needs >= 11.5.1 on Node >= 22.14. A runner whose preinstalled
       # npm is older would silently fall back to token auth — and with no token
       # set, to no auth at all — so the version is asserted rather than assumed.
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v7
         with:
           node-version: '24'
           registry-url: 'https://registry.npmjs.org'
