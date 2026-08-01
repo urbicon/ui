@@ -39,7 +39,7 @@ import type { Repositories } from './types.js';
  *
  * This module is runner-agnostic: it takes `describe`/`it`/`expect` from the
  * caller instead of importing them, so it works under any runner whose
- * assertion API matches — vitest, `bun:test`, jest.
+ * assertion API matches — vitest and `bun:test` do as they are.
  *
  * `@urbicon-ui/auth/server/adapters/conformance` is the vitest-wired entry and
  * needs nothing extra. Under another runner, import this module and hand it the
@@ -51,19 +51,24 @@ import type { Repositories } from './types.js';
  *
  * describeRepositoryConformance('my-adapter', harness, { runner: { describe, it, expect } });
  * ```
+ *
+ * jest needs one adapter line: its `expect` throws on the second (message)
+ * argument the checks pass, so drop it — `expect: (actual) => expect(actual)`.
+ * The checks still assert the same thing; only the failure message is thinner.
  */
 
 /**
  * The slice of a test runner the suite uses: `describe`, `it` (with `.skip`)
- * and a chai/jest-style `expect(actual, message)`. Every mainstream runner
- * satisfies this.
+ * and a chai-style `expect(actual, message)`. vitest and `bun:test` satisfy it
+ * directly; jest's `expect` rejects a second argument and needs a one-line
+ * wrapper that drops the message.
  */
 export interface ConformanceRunner {
   describe: (name: string, fn: () => void) => void;
   it: ((name: string, fn: () => Promise<void> | void) => void) & {
     skip: (name: string, fn?: () => Promise<void> | void) => void;
   };
-  // biome-ignore lint/suspicious/noExplicitAny: the matcher chain is the runner's; typing it here would pin one runner's surface.
+  /** The matcher chain is the runner's; typing it here would pin one runner's surface. */
   expect: (actual: any, message?: string) => any;
 }
 
@@ -97,7 +102,6 @@ const it = Object.assign(
   (name: string, fn: () => Promise<void> | void) => currentRunner().it(name, fn),
   { skip: (name: string, fn?: () => Promise<void> | void) => currentRunner().it.skip(name, fn) }
 );
-// biome-ignore lint/suspicious/noExplicitAny: see ConformanceRunner.expect.
 const expect = (actual: any, message?: string): any => currentRunner().expect(actual, message);
 
 /** Optional repositories an adapter may implement; gates the matching checks. */
@@ -186,8 +190,9 @@ async function seedUser(repos: Repositories, role: string, label = 'u') {
  * (`'owner'`) works only against a store with no referential integrity, which
  * is what the shipped in-memory adapter and the Prisma fake are; against a real
  * relational schema (`prisma/auth-schema.prisma` puts `onDelete: Cascade` on
- * all seven dependent models) the insert fails with a foreign-key violation,
- * and the check reports an adapter bug that is not there.
+ * all eight dependent models — the seven `userId` ones plus `Invitation`, whose
+ * FK is `invitedById`) the insert fails with a foreign-key violation, and the
+ * check reports an adapter bug that is not there.
  *
  * Ids that a check only reads, deletes or updates through — the non-owner in an
  * ownership-scope assertion — need no row and stay literal; only inserts do.
@@ -501,11 +506,12 @@ export const conformanceChecks: readonly ConformanceCheck[] = [
   }),
 
   // -- Invitation: single claim -------------------------------------------
-  check('invitation.markUsedIfUnused yields exactly one winner', [], async (repos) => {
+  check('invitation.markUsedIfUnused yields exactly one winner', [], async (repos, h) => {
+    const [inviter] = await seedUserIds(repos, h.role, 'inv-winner');
     const inv = await repos.invitation.create({
       email: `inv-${nextSeed()}@conformance.test`,
-      role: 'USER',
-      invitedById: 'admin'
+      role: h.role,
+      invitedById: inviter
     });
 
     const results = await parallel(5, () => repos.invitation.markUsedIfUnused(inv.id));
@@ -518,14 +524,15 @@ export const conformanceChecks: readonly ConformanceCheck[] = [
   }),
 
   // -- Invitation: contract-field projection --------------------------------
-  check('invitation results carry exactly the contract fields', [], async (repos) => {
+  check('invitation results carry exactly the contract fields', [], async (repos, h) => {
     // Invitation results are serialized straight into the admin HTTP response
     // by createInvitationHandlers, so an adapter that passes raw rows through
     // leaks invitedById (and any consumer extra column) to the client. The
     // fake-Prisma harness stores invitedById on the row, giving this teeth.
     const CONTRACT_FIELDS = ['createdAt', 'email', 'id', 'role', 'usedAt'];
     const email = `inv-shape-${nextSeed()}@conformance.test`;
-    const created = await repos.invitation.create({ email, role: 'USER', invitedById: 'admin' });
+    const [inviter] = await seedUserIds(repos, h.role, 'inv-shape');
+    const created = await repos.invitation.create({ email, role: h.role, invitedById: inviter });
     expect(Object.keys(created).sort(), 'create projects to the contract').toEqual(CONTRACT_FIELDS);
 
     const listed = (await repos.invitation.list()).find((i) => i.email === email);

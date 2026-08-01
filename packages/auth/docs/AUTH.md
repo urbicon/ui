@@ -68,7 +68,7 @@ Node-compatibility layer that polyfills `Buffer` (e.g. Cloudflare's
 | `@urbicon-ui/auth/server`                      | Server only         | Handlers, auth core, adapters                               |
 | `@urbicon-ui/auth/server/adapters/prisma`      | Server only         | Prisma adapter factory (`createPrismaRepos`)                |
 | `@urbicon-ui/auth/server/adapters/in-memory`   | Server only         | In-memory adapter (`createInMemoryRepos`) — dev/test        |
-| `@urbicon-ui/auth/server/adapters/conformance-core` | Server (tests) | The suite without a runner import — pass your own `describe`/`it`/`expect` |
+| `@urbicon-ui/auth/server/adapters/conformance-core` | Server (tests) | The suite without a runner import — pass your own `describe`/`it`/`expect` (bun:test as-is; jest needs `expect: (a) => expect(a)`) |
 | `@urbicon-ui/auth/server/adapters/conformance` | Server only (tests) | Adapter conformance suite (`describeRepositoryConformance`) |
 | `@urbicon-ui/auth/server/email/lettermint`     | Server only         | Lettermint email transport                                  |
 | `@urbicon-ui/auth/server/email/console`        | Server only         | Console email transport (dev)                               |
