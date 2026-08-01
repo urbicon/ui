@@ -1,6 +1,6 @@
 {
   "name": "@urbicon-ui/mcp-server",
-  "version": "6.47.2",
+  "version": "6.48.0",
   "description": "Model Context Protocol server exposing the Urbicon UI component catalog, recipes and design intelligence to LLM agents",
   "license": "MIT",
   "repository": {
@@ -38,7 +38,7 @@
     "test:run": "vitest run"
   },
   "dependencies": {
-    "@modelcontextprotocol/sdk": "^1.29.0",
+    "@modelcontextprotocol/sdk": "^1.30.0",
     "@urbicon-ui/design-content": "workspace:*",
     "@urbicon-ui/design-engine": "workspace:*",
     "zod": "^4.3.6"

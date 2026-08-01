@@ -18,7 +18,7 @@
     "registry:lint": "bun run scripts/registry-lint.ts"
   },
   "dependencies": {
-    "@fontsource-variable/schibsted-grotesk": "^5.2.8",
+    "@fontsource-variable/schibsted-grotesk": "^5.3.0",
     "@urbicon-ui/auth": "workspace:*",
     "@urbicon-ui/blocks": "workspace:*",
     "@urbicon-ui/docs": "workspace:*",
@@ -28,7 +28,7 @@
     "@urbicon-ui/table": "workspace:*"
   },
   "devDependencies": {
-    "@fontsource/jetbrains-mono": "^5.2.8",
+    "@fontsource/jetbrains-mono": "^5.3.0",
     "@sveltejs/adapter-static": "catalog:",
     "@sveltejs/kit": "catalog:",
     "@sveltejs/vite-plugin-svelte": "catalog:",

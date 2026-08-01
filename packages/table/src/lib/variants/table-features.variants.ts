@@ -40,7 +40,21 @@ export const smartFilterBarVariants = tv({
       '@md:[&_button[aria-haspopup]:not(:where([popover]_*))]:min-h-0',
       '@md:[&_button[aria-haspopup]:not(:where([popover]_*))]:min-w-0'
     ],
-    chipsSection: ['w-full']
+    chipsSection: ['w-full'],
+    // The rule between "changes which rows/values" and "changes what is on
+    // screen". It turns with the tools — see the `compact` axis below.
+    rule: [],
+    // The narrow bar's single tool button — see the switch in SmartFilterBar.
+    toolsTrigger: ['min-h-11 min-w-11 shrink-0 gap-1.5'],
+    // The five triggers, stacked. The touch height is set HERE and not inherited
+    // from `actionsSection`: that slot is the capsule branch, which the compact
+    // mode does not render at all, and its selector excludes `[popover]`
+    // descendants anyway — which is precisely what these rows are.
+    toolsPanel: [
+      'flex min-w-44 flex-col items-stretch gap-1 p-1',
+      '[&>*]:min-h-11',
+      '[&_button]:min-h-11 [&_button]:justify-start'
+    ]
   },
 
   variants: {
@@ -89,6 +103,26 @@ export const smartFilterBarVariants = tv({
       false: {}
     },
 
+    /**
+     * The bar ran out of room and moved its five triggers into a popover on one
+     * button (SmartFilterBar measures this; it is not a consumer prop). Only the
+     * pieces whose geometry turns with them live here.
+     */
+    compact: {
+      true: {
+        // Stacked panel → the rule lies across it.
+        rule: 'my-1',
+        // The button sits beside the search field, so the row must not stack.
+        controls: 'flex-row items-center',
+        searchSection: 'flex-1'
+      },
+      false: {
+        // Upright in the capsule. Explicit height because Separator's own
+        // `h-full` resolves against an auto-height flex row — i.e. to nothing.
+        rule: 'mx-0.5 !h-5'
+      }
+    },
+
     variant: {
       flush: {
         container: ['border-transparent bg-transparent shadow-none']
@@ -104,7 +138,8 @@ export const smartFilterBarVariants = tv({
     size: 'md',
     layout: 'responsive',
     elevated: false,
-    variant: 'framed'
+    variant: 'framed',
+    compact: false
   }
 });
 

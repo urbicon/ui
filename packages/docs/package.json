@@ -1,6 +1,6 @@
 {
   "name": "@urbicon-ui/docs",
-  "version": "6.47.2",
+  "version": "6.48.0",
   "description": "Reusable documentation UI components for Urbicon UI docs sites",
   "license": "MIT",
   "repository": {
@@ -61,7 +61,7 @@
   "peerDependencies": {
     "@sveltejs/kit": "catalog:",
     "svelte": "catalog:",
-    "shiki": "^4.2.0",
+    "shiki": "^4.4.1",
     "@urbicon-ui/blocks": "^6.0.0",
     "@urbicon-ui/table": "^6.0.0",
     "@urbicon-ui/i18n": "^6.0.0",

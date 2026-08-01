@@ -62,7 +62,12 @@ export default {
     removeItem: 'Remove {{content}}',
     scrollLeft: 'Scroll left',
     scrollRight: 'Scroll right',
-    interactiveCell: 'Interactive cell'
+    interactiveCell: 'Interactive cell',
+    // The narrow bar's single tool button. Carries the count of what is
+    // currently acting on the grid, because the lit triggers that would
+    // otherwise say it are behind a closed panel.
+    tools: 'Table tools',
+    toolsActive: 'Table tools, {{count}} active'
   },
   copy: {
     button: 'Copy',

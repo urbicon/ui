@@ -8,7 +8,13 @@ export const toggleVariants = tv({
     // the same tier — commit yields the classic Switch-Pill, modify a soft-
     // rectangle switch that reads as inline-toolbar control.
     track: [
-      'relative inline-flex items-center',
+      // `shrink-0`: the track is a flex item next to the label, and the thumb
+      // travels by a per-size `translate-x-*` measured against the track's
+      // NOMINAL width. Let flex shrink the track (long label, narrow card) and
+      // the translation no longer lands inside it — the knob slides out past
+      // the right edge. Measured on a 393px viewport: track 36.4px instead of
+      // 40px, thumb overhanging by 2.6px.
+      'relative inline-flex shrink-0 items-center',
       'transition-[color,background-color,border-color,box-shadow,scale] duration-[var(--blocks-duration-fast)] ease-out',
       // Press feedback on the control surface — the same small-element press
       // cue Checkbox took from Badge/Avatar (`scale-95`), with `group-active`

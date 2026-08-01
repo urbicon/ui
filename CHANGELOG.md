@@ -4,6 +4,26 @@ All notable changes to this project will be documented in this file.
 This changelog is automatically generated from [Conventional Commits](https://www.conventionalcommits.org).
 
 
+## [6.48.0] - 2026-08-01
+
+### Bug Fixes
+- **blocks**: Keep the Toggle track at its nominal width
+- **blocks**: Stop the month name from setting the calendar's width
+- **docs-app**: Hide the tile scroller arrows on touch, not by width
+
+### Documentation
+- Add a step 00 and align the app.css story across surfaces
+
+### Features
+- **design**: Version-stamp the context block, content-based staleness
+- **sv**: Add the @urbicon-ui/sv Svelte-CLI community add-on (beta)
+- **auth**: Make the adapter conformance suite runnable for third-party adapters (#71)
+- **table**: Collapse mobile cards, fold the filter tools into one menu
+
+### Miscellaneous
+- Add the sv scope to the commitlint enum
+- Upgrade dependencies
+
 ## [6.47.2] - 2026-07-31
 
 ### Bug Fixes

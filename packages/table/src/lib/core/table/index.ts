@@ -157,6 +157,23 @@ export interface TableProps<T = TableItem> {
   multiExpand?: boolean;
 
   /**
+   * How much of a record a mobile card shows before it is opened. Below the
+   * `md` breakpoint the table renders one card per row instead of a grid.
+   * - `collapsed` (default): the card shows the first two card columns —
+   *   title and label-less subtitle — and opens the rest on tap. A record
+   *   costs roughly a third of the height, so a phone screen holds three
+   *   instead of one.
+   * - `expanded`: title on top, every other card column in the grid below it,
+   *   nothing hidden. The shape before v6.48.
+   *
+   * Independent of `expandedRowContent`, which stays behind the chevron in
+   * both modes.
+   * @default "collapsed"
+   * @summary Whether a mobile card opens its detail fields on tap or shows them all.
+   */
+  mobileCardDetails?: 'collapsed' | 'expanded';
+
+  /**
    * Callback fired when a row is clicked.
    * Receives the clicked row's data item.
    * @default undefined

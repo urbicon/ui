@@ -38,6 +38,15 @@ describe('toggleVariants', () => {
     expect(lg.thumb()).toContain('w-6');
   });
 
+  // The thumb travel below is measured against the track's NOMINAL width, so
+  // the track must never be shrunk by the flex row it shares with the label —
+  // a squeezed track leaves the knob hanging past its right edge.
+  it('keeps the track at its nominal width inside a flex row', () => {
+    for (const size of ['xs', 'sm', 'md', 'lg'] as const) {
+      expect(toggleVariants({ size }).track()).toContain('shrink-0');
+    }
+  });
+
   it('translates thumb on checked per size (default variant only)', () => {
     expect(toggleVariants({ checked: true, size: 'xs' }).thumb()).toContain('translate-x-4');
     expect(toggleVariants({ checked: true, size: 'sm' }).thumb()).toContain('translate-x-5');

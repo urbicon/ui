@@ -85,8 +85,12 @@ interface BaseColumn<T> {
    * - `2`: secondary — rendered as a normal detail field.
    * - `3`: desktop-only — omitted from the mobile card (kept in the desktop table).
    *
-   * The first card column (priority 1/unset/2, in source order — normally a
-   * primary) becomes the label-less card title.
+   * Of the card columns (priority 1/unset/2, in source order) the first becomes
+   * the label-less card title and the second the label-less subtitle under it;
+   * everything from the third on fills the detail grid, which the card hides
+   * until it is opened. `Table`'s `mobileCardDetails="expanded"` turns the
+   * collapse off — then only the first column is special and every other card
+   * column shows as a labelled field.
    */
   priority?: 1 | 2 | 3;
   /** Text alignment within the column */

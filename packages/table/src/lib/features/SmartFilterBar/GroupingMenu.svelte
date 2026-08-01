@@ -7,13 +7,11 @@
     resolveColumnLabel
   } from '$lib/utils';
   import { smartFilterBarTriggerVariants } from '$lib/variants';
-  import {
-    Button,
-    Select,
-    Tooltip,
-    resolveIcon,
-    LayersIcon as LayersIconDefault
-  } from '@urbicon-ui/blocks';
+  import { Select, resolveIcon, LayersIcon as LayersIconDefault } from '@urbicon-ui/blocks';
+  import MenuTrigger from './MenuTrigger.svelte';
+
+  /** Full-width labelled row instead of a tooltipped icon — see MenuTrigger. */
+  let { stacked = false }: { stacked?: boolean } = $props();
 
   const tt = useTableI18n();
 
@@ -102,24 +100,29 @@
   }
 </script>
 
+{#snippet triggerIcon()}
+  <LayersIcon class="h-4 w-4" />
+{/snippet}
+
 {#snippet customTrigger(_selected: unknown[], _open: boolean, _clear: () => void)}
-  <Tooltip label={tt('grouping.button')}>
-    <Button
-      variant="ghost"
-      intent="neutral"
-      size="sm"
-      active={isActive}
-      class={triggerClass}
-      aria-expanded={menuOpen}
-      aria-haspopup="listbox"
-      onclick={() => (menuOpen = !menuOpen)}
-    >
-      <LayersIcon class="h-4 w-4" />
-    </Button>
-  </Tooltip>
+  <MenuTrigger
+    label={tt('grouping.button')}
+    {stacked}
+    active={isActive}
+    {triggerClass}
+    expanded={menuOpen}
+    icon={triggerIcon}
+    onclick={() => (menuOpen = !menuOpen)}
+  />
 {/snippet}
 
 <!-- `w-auto`: see SortMenu — the Select wrapper defaults to `w-full`. -->
+<!--
+  `usePortal={!stacked}`: stacked means this Select lives inside the tool
+  popover, and Popover's own contract (see Popover.svelte) puts a nested panel on
+  `position: absolute` instead of promoting a second top layer — that is where
+  the focus and z-index quirks live. FilterMenu's operator Select already does it.
+-->
 <Select
   options={groupingOptions}
   value={currentValue}
@@ -127,6 +130,7 @@
   onValueChange={(v: string | null) => handleValueChange(v ?? '')}
   size="sm"
   syncWidth={false}
+  usePortal={!stacked}
   class="w-auto"
   {customTrigger}
 />

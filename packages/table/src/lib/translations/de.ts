@@ -62,7 +62,9 @@ export default {
     removeItem: '{{content}} entfernen',
     scrollLeft: 'Nach links scrollen',
     scrollRight: 'Nach rechts scrollen',
-    interactiveCell: 'Interaktive Zelle'
+    interactiveCell: 'Interaktive Zelle',
+    tools: 'Tabellenwerkzeuge',
+    toolsActive: 'Tabellenwerkzeuge, {{count}} aktiv'
   },
   copy: {
     button: 'Kopieren',

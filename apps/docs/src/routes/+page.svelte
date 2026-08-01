@@ -583,13 +583,19 @@
           slotClasses={{
             viewport: '!gap-0 !py-0',
             controls: '!absolute inset-0 !pt-0 !justify-between px-4 pointer-events-none',
-            // `max-sm:hidden`: die Pfeile liegen als Overlay ÜBER der Karte und
-            // deckten dort Inhalt zu (die Uhrzeit der ersten Buchungszeile
-            // stand hinter dem linken Knopf). Auf einem Schirm, der gewischt
-            // wird, sind sie ohnehin die zweite Bedienung — die Dots bleiben,
-            // sie sitzen in der freien Zone unter der Karte. Beide Slots sind
-            // absolut positioniert, das Ausblenden verschiebt also nichts.
-            control: 'pointer-events-auto shadow-md max-sm:hidden',
+            // Die Pfeile liegen als Overlay ÜBER der Karte und deckten dort
+            // Inhalt zu (die Uhrzeit der ersten Buchungszeile stand hinter dem
+            // linken Knopf). Wo gewischt wird, sind sie ohnehin die zweite
+            // Bedienung — also blenden sie sich per `pointer: coarse` aus, nicht
+            // per Breite: ein schmales Desktop-Fenster ist kein Touchscreen und
+            // hätte mit einer Breiten-Regel BEIDE Zeiger-Bedienungen verloren
+            // (der Scroller blendet seine Scrollleiste aus, solange er eine
+            // Steuerleiste zeigt). Was bleibt, bleibt in jedem Fall: der
+            // Viewport ist ein Tab-Stop mit Pfeil-/Pos1-/Ende-Navigation, und
+            // die Dots sind echte Knöpfe in der freien Zone unter der Karte.
+            // Beide Slots sind absolut positioniert — Ausblenden verschiebt
+            // nichts.
+            control: 'pointer-events-auto shadow-md [@media(pointer:coarse)]:hidden',
             indicator:
               '!absolute bottom-3 left-1/2 -translate-x-1/2 pointer-events-auto rounded-full bg-surface-base/85 px-2 py-1'
           }}

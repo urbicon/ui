@@ -10,13 +10,16 @@
     Select,
     Input,
     Popover,
-    Tooltip,
     useBlocksI18n,
     resolveIcon,
     CheckIcon as CheckIconDefault,
     FunnelIcon as FunnelIconDefault,
     CloseIcon as CloseIconDefault
   } from '@urbicon-ui/blocks';
+  import MenuTrigger from './MenuTrigger.svelte';
+
+  /** Full-width labelled row instead of a tooltipped icon — see MenuTrigger. */
+  let { stacked = false }: { stacked?: boolean } = $props();
 
   const tt = useTableI18n();
   const bt = useBlocksI18n();
@@ -191,30 +194,34 @@
   );
 </script>
 
+{#snippet triggerIcon()}
+  <FunnelIcon class="h-4 w-4" />
+{/snippet}
+
+{#snippet triggerCounter()}
+  {#if isActive}
+    <!-- `soft` for the same reason as SummaryMenu: `filled` leaks
+         `border-primary` past the class override, and `text-on-primary` on
+         the solid feature colour is under AA. The ground is the neutral
+         surface rather than `filter-subtle`, which is what the lit trigger
+         behind it now wears — same-on-same would have erased the counter. -->
+    <Badge variant="soft" size="xs" counter class="bg-surface-base text-filter-emphasis ml-1">
+      {activeFilters.length}
+    </Badge>
+  {/if}
+{/snippet}
+
 {#snippet triggerContent()}
-  <Tooltip label={tt('filter.button.add')}>
-    <Button
-      variant="ghost"
-      intent="neutral"
-      size="sm"
-      active={isActive}
-      class={triggerClass}
-      aria-expanded={isOpen}
-      aria-haspopup="true"
-    >
-      <FunnelIcon class="h-4 w-4" />
-      {#if isActive}
-        <!-- `soft` for the same reason as SummaryMenu: `filled` leaks
-             `border-primary` past the class override, and `text-on-primary` on
-             the solid feature colour is under AA. The ground is the neutral
-             surface rather than `filter-subtle`, which is what the lit trigger
-             behind it now wears — same-on-same would have erased the counter. -->
-        <Badge variant="soft" size="xs" counter class="bg-surface-base text-filter-emphasis ml-1">
-          {activeFilters.length}
-        </Badge>
-      {/if}
-    </Button>
-  </Tooltip>
+  <MenuTrigger
+    label={tt('filter.button.add')}
+    {stacked}
+    active={isActive}
+    {triggerClass}
+    expanded={isOpen}
+    haspopup="true"
+    icon={triggerIcon}
+    counter={triggerCounter}
+  />
 {/snippet}
 
 <Popover

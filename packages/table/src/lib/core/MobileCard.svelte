@@ -9,6 +9,7 @@
 
   const ChevronDownIcon = resolveIcon('chevronDown', ChevronDownIconDefault);
   import { formatCellValue, resolveColumnId, resolveColumnValue } from '../utils';
+  import { resolveMobileCardShape } from './mobile-card-shape';
   import type { Column, TableItem } from '$lib/types/tableTypes';
   import { mobileCardVariants } from '$lib/variants';
   import { getTableStyleConfig, resolveSlotClass } from './table-style-context';
@@ -21,6 +22,8 @@
     cell?: Snippet<[item: TableItem, value: unknown, column: Column]>;
     onClick?: (item: TableItem) => void;
     size?: 'sm' | 'md' | 'lg';
+    /** See `Table`'s `mobileCardDetails`. */
+    details?: 'collapsed' | 'expanded';
     class?: string;
     testId?: string;
   };
@@ -32,6 +35,7 @@
     cell = undefined,
     onClick = undefined,
     size = 'md',
+    details = 'collapsed',
     class: className = '',
     testId = undefined
   }: MobileCardProps = $props();
@@ -51,49 +55,13 @@
     const candidate = item.id ?? item.__index;
     return typeof candidate === 'string' || typeof candidate === 'number' ? candidate : -1;
   });
-  let isExpanded = $derived(checkExpanded(itemId));
-
   const selectable = $derived(tableState.selectionMode !== 'none');
   const isItemSelected = $derived(selectable && checkSelected(itemId));
-
-  // The whole card may act as one button only when it has no focusable child —
-  // a selection checkbox inside a role="button" is a nested-interactive a11y
-  // violation. Selectable cards therefore use dedicated controls (the checkbox
-  // for selection, a chevron button for expand) instead of a card-wide button.
-  const cardActsAsButton = $derived(!selectable && (expandable || !!onClick));
-  // A selectable card still forwards a pointer click to onClick, but not expand
-  // (that's the chevron button's job) — so only bind onclick when it does something.
-  const cardClickable = $derived(cardActsAsButton || (selectable && !!onClick));
-
-  // Keep checkbox / expand-button interaction from also triggering the card click.
-  function stopSelectionBubble(event: Event) {
-    event.stopPropagation();
-  }
 
   const computedTestId = $derived.by(() => {
     if (testId) return testId;
     return `mobile-card-${itemId}`;
   });
-
-  function handleClick() {
-    if (onClick) {
-      onClick(item);
-    } else if (cardActsAsButton && expandable) {
-      toggleExpand(itemId);
-    }
-  }
-
-  function handleKeyDown(event: KeyboardEvent) {
-    if (event.key === 'Enter' || event.key === ' ') {
-      event.preventDefault();
-      handleClick();
-    }
-  }
-
-  function handleExpandClick(event: MouseEvent) {
-    event.stopPropagation();
-    toggleExpand(itemId);
-  }
 
   function getComponentProps(column: Column, row: TableItem) {
     const baseProps = column.componentProps ? column.componentProps(row) : {};
@@ -101,13 +69,60 @@
   }
 
   // The card shows priority 1/unset (primary) + 2 (secondary) columns in their
-  // natural order; priority 3 is desktop-only and omitted. The first such column
-  // becomes the emphasized, label-less title; the rest fill a compact grid.
+  // natural order; priority 3 is desktop-only and omitted. How those columns
+  // split into title / subtitle / detail grid — and who owns which gesture —
+  // is resolved in mobile-card-shape.ts.
   const cardColumns = $derived(
     tableState.columns.filter((col) => !col.priority || col.priority <= 2)
   );
-  const titleColumn = $derived(cardColumns[0]);
-  const detailColumns = $derived(cardColumns.slice(1));
+  const collapsible = $derived(details === 'collapsed');
+  const hasCustomBlock = $derived(expandable && !!expandedRowContent);
+  const shape = $derived(
+    resolveMobileCardShape({
+      cardColumns,
+      details,
+      expandable: hasCustomBlock,
+      hasRowClick: !!onClick
+    })
+  );
+  const titleColumn = $derived(shape.titleColumn);
+  const subtitleColumn = $derived(shape.subtitleColumn);
+  const detailColumns = $derived(shape.detailColumns);
+  const hasToggle = $derived(shape.hasToggle);
+  const needsOwnToggle = $derived(shape.needsOwnToggle);
+
+  // Which expansion state the chevron drives.
+  //
+  // A table with `expandedRowContent` keeps the store's: that block is the
+  // consumer's opt-in row expansion, `multiExpand` governs it, and the desktop
+  // rows share the same state — one truth for one disclosure.
+  //
+  // Without it, opening a card only reveals fields the card itself is hiding.
+  // That is per-card display, not table state, so each card holds its own —
+  // otherwise the store's single-expand default (useExpansion) would turn every
+  // mobile table into an accordion where reading record B closes record A, and
+  // the only cure would be `multiExpand`, a prop whose whole documentation is
+  // about `expandedRowContent` rows the consumer never asked for.
+  let localOpen = $state(false);
+  const isExpanded = $derived(hasCustomBlock ? checkExpanded(itemId) : localOpen);
+
+  function toggleDetail() {
+    if (hasCustomBlock) toggleExpand(itemId);
+    else localOpen = !localOpen;
+  }
+
+  function handleHeadline() {
+    if (shape.headlineAction === 'open') onClick?.(item);
+    else if (shape.headlineAction === 'toggle') toggleDetail();
+  }
+
+  // Only the parts a closed card actually hides are gated on `isExpanded`; in
+  // `expanded` mode the grid is always out.
+  const showDetailGrid = $derived(detailColumns.length > 0 && (!collapsible || isExpanded));
+  const showExpandedContent = $derived(hasCustomBlock && isExpanded);
+  // `aria-controls` needs a target id, and two cards may not share one.
+  const propsId = $props.id();
+  const detailId = $derived(`mobile-card-detail-${propsId}`);
 
   // See TableRow: `!= null` because `0` is a legitimate id.
   const isActiveRow = $derived(tableState.activeRowId != null && tableState.activeRowId === itemId);
@@ -115,10 +130,13 @@
   const cardStyles = $derived(
     mobileCardVariants({
       size,
-      interactive: !!(expandable || onClick),
+      // Only claim the press cue where a press actually lands — the card is no
+      // longer a control, so this rides the headline button.
+      interactive: shape.headlineAction !== 'none',
       selected: isItemSelected,
       active: isActiveRow,
-      expanded: isExpanded
+      expanded: isExpanded,
+      collapsed: collapsible && !showDetailGrid && !showExpandedContent
     })
   );
 </script>
@@ -137,7 +155,24 @@
   {/if}
 {/snippet}
 
-<!-- svelte-ignore a11y_no_noninteractive_tabindex a11y_no_static_element_interactions a11y_click_events_have_key_events -->
+{#snippet headlineContent()}
+  <div class={cardStyles.title()}>
+    {@render renderCellContent(titleColumn as Column)}
+  </div>
+  {#if subtitleColumn}
+    <div class={cardStyles.subtitle()}>
+      {@render renderCellContent(subtitleColumn)}
+    </div>
+  {/if}
+{/snippet}
+
+<!--
+  The card is a container, never a control: its detail grid renders consumer
+  markup (`column.cell` / `column.component`), so a card-wide `role="button"`
+  would nest the consumer's own links and buttons inside a control AND make one
+  tap fire both. The headline carries the gesture instead — as a real `<button>`,
+  so Enter/Space work without a hand-rolled keydown handler.
+-->
 <div
   class={resolveSlotClass(
     cardStyles.card,
@@ -148,20 +183,14 @@
   data-testid={computedTestId}
   data-active={isActiveRow ? '' : undefined}
   aria-current={isActiveRow ? 'true' : undefined}
-  role={cardActsAsButton ? 'button' : undefined}
-  tabindex={cardActsAsButton ? 0 : undefined}
-  onclick={cardClickable ? handleClick : undefined}
-  onkeydown={cardActsAsButton ? handleKeyDown : undefined}
 >
-  {#if titleColumn || selectable}
+  <!-- `hasToggle` is in the condition because a table whose every column is
+       desktop-only — or whose columns the reader hid down to nothing — still
+       has to offer the way into `expandedRowContent`. -->
+  {#if titleColumn || selectable || hasToggle}
     <div class={cardStyles.header()}>
       {#if selectable}
-        <!-- svelte-ignore a11y_no_static_element_interactions -->
-        <div
-          class="flex shrink-0 items-center"
-          onclick={stopSelectionBubble}
-          onkeydown={stopSelectionBubble}
-        >
+        <div class="flex shrink-0 items-center">
           <Checkbox
             checked={isItemSelected}
             onCheckedChange={() => toggleItem(itemId)}
@@ -171,16 +200,51 @@
           />
         </div>
       {/if}
+
       {#if titleColumn}
-        <div class={cardStyles.title()}>
-          {@render renderCellContent(titleColumn)}
-        </div>
+        {#if shape.headlineAction === 'none'}
+          <div class={cardStyles.headline()}>{@render headlineContent()}</div>
+        {:else}
+          <button
+            type="button"
+            class={cardStyles.headlineButton()}
+            onclick={handleHeadline}
+            aria-expanded={shape.headlineAction === 'toggle' ? isExpanded : undefined}
+            aria-controls={shape.headlineAction === 'toggle' && showDetailGrid
+              ? detailId
+              : undefined}
+            data-testid={`mobile-card-headline-${itemId}`}
+          >
+            <span class={cardStyles.headline()}>{@render headlineContent()}</span>
+            {#if hasToggle && !needsOwnToggle}
+              <!-- Inside the button it presses with it; no control of its own. -->
+              <ChevronDownIcon class="{cardStyles.expandIcon()} h-5 w-5 shrink-0" />
+            {/if}
+          </button>
+        {/if}
+      {/if}
+
+      <!-- The chevron rides in the header, not in a row of its own: a closed
+           card is a header and nothing else, and a trailing actions strip would
+           add back the height the collapse just saved. -->
+      {#if needsOwnToggle}
+        <button
+          type="button"
+          class={cardStyles.toggle()}
+          onclick={toggleDetail}
+          aria-label={isExpanded ? tt('actions.hideDetails') : tt('actions.showDetails')}
+          aria-expanded={isExpanded}
+          aria-controls={showDetailGrid ? detailId : undefined}
+          data-testid={`mobile-card-expand-${itemId}`}
+        >
+          <ChevronDownIcon class="{cardStyles.expandIcon()} h-5 w-5" />
+        </button>
       {/if}
     </div>
   {/if}
 
-  {#if detailColumns.length > 0}
-    <div class={cardStyles.content()}>
+  {#if showDetailGrid}
+    <div id={detailId} class={cardStyles.content()}>
       <div class={cardStyles.grid()}>
         {#each detailColumns as column (resolveColumnId(column))}
           <div class={cardStyles.field()}>
@@ -194,30 +258,9 @@
     </div>
   {/if}
 
-  {#if expandable}
-    <div class={cardStyles.actions()}>
-      {#if cardActsAsButton}
-        <!-- The whole card is the button; the chevron is a visual affordance. -->
-        <ChevronDownIcon class="{cardStyles.expandIcon()} h-5 w-5" />
-      {:else}
-        <!-- Selectable card → the card can't be a button, so expand has its own. -->
-        <button
-          type="button"
-          class="rounded-modify hover:bg-surface-hover flex h-11 w-11 items-center justify-center transition-colors duration-[var(--blocks-duration-fast)]"
-          onclick={handleExpandClick}
-          aria-label={isExpanded ? tt('actions.hideDetails') : tt('actions.showDetails')}
-          aria-expanded={isExpanded}
-          data-testid={`mobile-card-expand-${itemId}`}
-        >
-          <ChevronDownIcon class="{cardStyles.expandIcon()} h-5 w-5" />
-        </button>
-      {/if}
-    </div>
-  {/if}
-
-  {#if isExpanded && expandedRowContent}
+  {#if showExpandedContent}
     <div class={cardStyles.expandedContent()}>
-      {@render expandedRowContent(item)}
+      {@render expandedRowContent?.(item)}
     </div>
   {/if}
 </div>
