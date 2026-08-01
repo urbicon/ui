@@ -38,16 +38,6 @@ import { resolveManifestPath } from '../manifest-io.js';
 import { EXIT, printError } from '../output.js';
 import { readPackageVersion, readTemplate } from '../package-root.js';
 
-/**
- * The Tailwind 4 wiring step for the "next steps" output. Components emit Tailwind
- * utility classes (`bg-surface-base`, …) that need a backing build, so without this a
- * fresh project renders unstyled. The blocks `style/index.css` ships its own `@source`
- * directives for the packaged dist, so importing it (rather than the
- * foundation/semantic/interaction subfiles) is what makes Tailwind scan the component
- * classes — no consumer-side `@source` needed. `init` only scaffolds the design loop
- * (it never edits `vite.config.ts`), so this is documented rather than auto-wired; we
- * tailor it to what's already installed.
- */
 /** Matches the Tailwind 4 entry import in either quote style. */
 const TAILWIND_IMPORT = /^\s*@import\s+['"]tailwindcss['"]/m;
 
@@ -96,6 +86,16 @@ async function findTailwindStylesheet(cwd: string): Promise<string | null> {
   return walk(resolve(cwd, 'src'), 0);
 }
 
+/**
+ * The Tailwind 4 wiring step for the "next steps" output. Components emit Tailwind
+ * utility classes (`bg-surface-base`, …) that need a backing build, so without this a
+ * fresh project renders unstyled. The blocks `style/index.css` ships its own `@source`
+ * directives for the packaged dist, so importing it (rather than the
+ * foundation/semantic/interaction subfiles) is what makes Tailwind scan the component
+ * classes — no consumer-side `@source` needed. `init` only scaffolds the design loop
+ * (it never edits `vite.config.ts`), so this is documented rather than auto-wired; we
+ * tailor it to what's already installed.
+ */
 function tailwindSteps(deps: Set<string> | null, stylesheet: string | null): string[] {
   const has = (p: string): boolean => deps?.has(p) ?? false;
   const tailwindWired = has('@tailwindcss/vite') || has('tailwindcss');
