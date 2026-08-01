@@ -2,41 +2,65 @@ name: Release
 
 # Triggered when a `vX.Y.Z` tag lands on main (created by
 # `bun run bump:{patch,minor,major}` followed by `git push --follow-tags`).
-# Runs the full gate (lint, typecheck, unit, e2e) on the tagged commit.
 #
-# PUBLISHING IS DELIBERATELY OFF HERE (decided 2026-07-31, with the move to
-# GitHub). The effective npm publisher is the Buny deploy on the deploy host,
-# triggered by the same tag; it owns the token and the package order. This
-# workflow is the *gate* in front of that: build, typecheck, unit tests and e2e
-# on a tag, so a broken tag is visible before Buny ships it.
+# TWO JOBS, ON PURPOSE.
 #
-# The publish steps below stay in the file rather than being deleted, because
-# they are guarded by `if: env.NPM_REGISTRY_URL != ''` and are the ready-made
-# path back if publishing should ever move here. Leaving the two secrets unset
-# is what keeps them dormant — so do NOT add NPM_REGISTRY_URL / NPM_TOKEN as
-# repository secrets unless you intend to take publishing away from Buny.
-# Setting them would make both systems publish the same tag; both skip an
-# already-published name@version, so the likely outcome is a confusing race
-# rather than a corrupt release — but it is still two sources of truth.
+#   gate     runs the full suite (lint, typecheck, unit, e2e) and PACKS the
+#            tarballs. It installs the workspace, so third-party install
+#            scripts run here — and it holds no publishing credential of any
+#            kind.
+#   publish  takes the packed tarballs as an artifact and uploads them. It does
+#            not check out the repo and never runs `bun install`, so no
+#            dependency code is in the process that can publish.
 #
-# Optional repository secrets (unset on purpose, see above):
-#   NPM_REGISTRY_URL  — base URL of the registry (e.g. https://registry.npmjs.org)
-#   NPM_TOKEN         — auth token with publish rights for the @urbicon-ui scope
+# That split is the point: before, a single job had `NPM_TOKEN` in its job-level
+# `env`, which put it in scope for `bun install` and every `postinstall` script
+# of every transitive dependency. Now the credential-bearing job runs three
+# commands over files it did not build.
+#
+# AUTHENTICATION: npm trusted publishing (OIDC). No long-lived token — the job
+# mints a short-lived, cryptographically signed credential bound to this
+# repository AND this workflow file, which is useless anywhere else. Requires
+# `id-token: write` (below), npm >= 11.5.1 and Node >= 22.14, and a trusted
+# publisher configured per package on npmjs.com. Provenance attestations are
+# published automatically; the `--provenance` flag is not needed.
+#
+# MIGRATION STATE (2026-08-01): the effective publisher today is still the Buny
+# deploy on the deploy host, triggered by the same tag. This workflow does not
+# publish until `NPM_TRUSTED_PUBLISHING` is set to `true` as a repository
+# variable — that switch is what hands publishing from Buny to here, and it
+# should be flipped only after the canary run described in the PR has proven
+# OIDC works for our tarball path. Running both would mean two sources of truth
+# for the same tag.
+#
+# The `NPM_TOKEN` fallback remains for the transition, guarded by its own
+# secret being set. It is deliberately scoped to the publish job only, so even
+# the fallback never sits in the same process as `bun install`.
 
 on:
   push:
     tags:
       - 'v*'
+  # Canary path: run the whole gate and pack, then stop before uploading.
+  # `dry_run: true` (the default) proves the OIDC credential can be minted and
+  # that npm accepts the tarball, without publishing anything.
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: 'Pack and authenticate, but do not publish'
+        type: boolean
+        default: true
+      only:
+        description: 'Limit to one package dir (e.g. packages/shared-types). Empty = all.'
+        type: string
+        default: ''
 
 jobs:
-  publish:
-    name: Build & publish
+  gate:
+    name: Build, test & pack
     runs-on: ubuntu-latest
     permissions:
       contents: read
-    env:
-      NPM_REGISTRY_URL: ${{ secrets.NPM_REGISTRY_URL }}
-      NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
     steps:
       - uses: actions/checkout@v4
 
@@ -87,89 +111,108 @@ jobs:
           bunx playwright install --with-deps chromium
           bunx playwright test --grep-invert @pixel
 
-      - name: Configure registry
-        if: env.NPM_REGISTRY_URL != ''
-        run: |
-          # Write to $HOME/.npmrc so credentials never land in the repo
-          # workspace (protects against accidental artifact upload / commit).
-          REGISTRY_HOST=$(echo "$NPM_REGISTRY_URL" | sed -E 's|^https?://||')
-          {
-            echo "@urbicon-ui:registry=$NPM_REGISTRY_URL"
-            echo "//$REGISTRY_HOST/:_authToken=$NPM_TOKEN"
-          } > "$HOME/.npmrc"
+      # Everything the publish job needs, produced here where the workspace
+      # exists: the tarballs, and a manifest naming them in publish order. The
+      # publish job then needs neither a checkout nor node_modules.
+      - name: Pack
+        env:
+          ONLY: ${{ inputs.only }}
+        run: bun run scripts/pack-release.ts
 
-      - name: Publish packages
-        if: env.NPM_REGISTRY_URL != ''
-        run: |
-          set -e
-          # Each tarball must carry the license text. The file is copied into
-          # every package dir (it is listed in each `files` whitelist) and its
-          # presence is ASSERTED on the packed tarball below — v6.26.1 shipped
-          # without it because an unasserted publish silently dropped it.
-          for dir in packages/*/; do
-            if [ -f "$dir/package.json" ]; then
-              cp LICENSE "$dir/LICENSE"
-            fi
-          done
-          TARBALL_DIR="$RUNNER_TEMP/tarballs"
-          mkdir -p "$TARBALL_DIR"
-          # Topological order: dependents come after their dependencies so a
-          # consumer installing `@urbicon-ui/blocks` mid-publish never sees a
-          # range pointing at a not-yet-published `@urbicon-ui/i18n`.
-          # KEEP IN SYNC with scripts/publish.sh (same packages, same order).
-          # design-engine/-content/design MUST precede mcp-server, which depends
-          # on them — otherwise mcp-server ships with unresolvable npm deps.
-          # sv LAST: its add-on writes blocks/design ranges into consumer
-          # package.jsons — an edge npm can't see (add-ons must not declare
-          # dependencies), so only this ordering keeps the invariant.
-          for dir in packages/shared-types \
-                     packages/sveltekit-utils \
-                     packages/design-engine \
-                     packages/design-content \
-                     packages/design \
-                     packages/mcp-server \
-                     packages/i18n \
-                     packages/docs-gen \
-                     packages/blocks \
-                     packages/table \
-                     packages/auth \
-                     packages/docs \
-                     packages/sv; do
-            if [ ! -f "$dir/package.json" ]; then
-              echo "::warning::$dir/package.json not found, skipping"
-              continue
-            fi
-            NAME=$(node -p "require('./$dir/package.json').name")
-            VERSION=$(node -p "require('./$dir/package.json').version")
-            echo "::group::Publishing $NAME@$VERSION"
-            # Skip if the exact name@version is already published (re-running
-            # the workflow on a flaky tag should be idempotent).
-            if npm view "$NAME@$VERSION" version --registry "$NPM_REGISTRY_URL" >/dev/null 2>&1; then
-              echo "$NAME@$VERSION already published — skipping"
-            else
-              # bun pm pack (not npm pack): it resolves `workspace:`/`catalog:`
-              # specifiers to concrete versions at pack time, which npm leaves
-              # verbatim — shipping unresolvable ranges to consumers. The
-              # tarball is then gated BEFORE the irreversible publish and
-              # pushed with npm (publishing a pre-built tarball changes
-              # nothing in the manifest; auth comes from $HOME/.npmrc).
-              (cd "$dir" && bun pm pack --destination "$TARBALL_DIR")
-              TGZ="$TARBALL_DIR/$(echo "$NAME" | tr -d '@' | tr '/' '-')-$VERSION.tgz"
-              if [ ! -f "$TGZ" ]; then
-                echo "::error::expected tarball $TGZ not found"; exit 1
-              fi
-              if ! tar -tzf "$TGZ" | grep -q '^package/LICENSE$'; then
-                echo "::error::$NAME tarball is missing LICENSE"; exit 1
-              fi
-              if tar -xzOf "$TGZ" package/package.json | grep -Eq '"(workspace|catalog):'; then
-                echo "::error::$NAME manifest still contains workspace:/catalog: specifiers"; exit 1
-              fi
-              npm publish "$TGZ" --access public --registry "$NPM_REGISTRY_URL"
-            fi
-            echo "::endgroup::"
-          done
+      - uses: actions/upload-artifact@v4
+        with:
+          name: release-tarballs
+          path: release-tarballs/
+          retention-days: 7
+          if-no-files-found: error
 
-      - name: Skip publish notice
-        if: env.NPM_REGISTRY_URL == ''
+  publish:
+    name: Publish to npm
+    needs: gate
+    runs-on: ubuntu-latest
+    permissions:
+      # Mints the OIDC credential. Without it npm falls back to token auth and,
+      # with no token set, refuses to publish.
+      id-token: write
+      contents: read
+    env:
+      NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
+      TRUSTED: ${{ vars.NPM_TRUSTED_PUBLISHING }}
+      # Comma-separated package names this workflow owns while Buny still
+      # publishes the rest. Empty = all, which is only correct once Buny
+      # publishes none. This is what keeps the handover from racing: a package
+      # belongs to exactly one publisher at a time.
+      PUBLISH_ONLY: ${{ vars.NPM_PUBLISH_ONLY }}
+      DRY_RUN: ${{ inputs.dry_run }}
+    steps:
+      # Sparse checkout of the one script this job runs, and nothing else. A
+      # full checkout would be harmless, but the narrower the tree in the
+      # credential-bearing job, the smaller the claim it has to make.
+      - uses: actions/checkout@v4
+        with:
+          sparse-checkout: scripts/publish-tarballs.mjs
+          sparse-checkout-cone-mode: false
+
+      - uses: actions/download-artifact@v4
+        with:
+          name: release-tarballs
+          path: release-tarballs
+
+      # Node from setup-node, not from bun: trusted publishing is an npm CLI
+      # feature and needs >= 11.5.1 on Node >= 22.14. A runner whose preinstalled
+      # npm is older would silently fall back to token auth — and with no token
+      # set, to no auth at all — so the version is asserted rather than assumed.
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          registry-url: 'https://registry.npmjs.org'
+
+      - name: Assert npm supports trusted publishing
         run: |
-          echo "::notice::NPM_REGISTRY_URL secret is not set — packages were built and tested but not published."
+          set -euo pipefail
+          echo "npm $(npm --version) on node $(node --version)"
+          npm --version | awk -F. '
+            ($1 > 11) || ($1 == 11 && ($2 > 5 || ($2 == 5 && $3 >= 1))) { exit 0 }
+            { print "npm >= 11.5.1 required for OIDC trusted publishing"; exit 1 }
+          '
+
+      # The one part of OIDC that IS testable without publishing: whether the
+      # job can mint a credential at all. `id-token: write` is what puts these
+      # two variables in the environment; without the permission they are unset
+      # and npm would silently fall back to token auth. Checked before the
+      # publish step so a missing permission fails with its own name on it.
+      #
+      # What this does NOT prove is that npmjs.com accepts the credential —
+      # that needs a trusted publisher configured for the package, and it only
+      # shows on a real publish. See the rollout order in the PR description.
+      - name: Verify the OIDC credential can be minted
+        run: |
+          set -euo pipefail
+          if [ -z "${ACTIONS_ID_TOKEN_REQUEST_URL:-}" ] || [ -z "${ACTIONS_ID_TOKEN_REQUEST_TOKEN:-}" ]; then
+            echo "::error::No OIDC environment — the job is missing 'permissions: id-token: write'"
+            exit 1
+          fi
+          AUD='npm:registry.npmjs.org'
+          CODE=$(curl -sS -o /tmp/oidc.json -w '%{http_code}' \
+            -H "Authorization: bearer $ACTIONS_ID_TOKEN_REQUEST_TOKEN" \
+            "${ACTIONS_ID_TOKEN_REQUEST_URL}&audience=${AUD}")
+          if [ "$CODE" != "200" ]; then
+            echo "::error::OIDC token request returned HTTP $CODE"
+            exit 1
+          fi
+          # Print the claims that decide the trust match, never the token.
+          node -e '
+            const { value } = require("/tmp/oidc.json");
+            const c = JSON.parse(Buffer.from(value.split(".")[1], "base64url").toString());
+            console.log("OIDC ok — repository:", c.repository);
+            console.log("             workflow_ref:", c.workflow_ref);
+            console.log("             ref:", c.ref, "| event:", c.event_name);
+          '
+          rm -f /tmp/oidc.json
+
+      - name: Publish
+        run: node scripts/publish-tarballs.mjs
+        env:
+          # Only consulted when trusted publishing is off or unavailable — see
+          # the fallback note in the header. Scoped to this step, not the job.
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}

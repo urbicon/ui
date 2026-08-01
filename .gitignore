@@ -110,3 +110,5 @@ prototypes/
 
 # Completed plans & audits (historical working docs) — kept local, not part of the published OSS repo
 docs/archive/
+# Packed tarballs from scripts/pack-release.ts — a release artefact, never committed
+release-tarballs/

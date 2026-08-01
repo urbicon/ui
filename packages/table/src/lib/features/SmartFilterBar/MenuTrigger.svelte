@@ -52,6 +52,7 @@
       undefined}
     aria-expanded={expanded}
     aria-haspopup={haspopup}
+    aria-label={stacked ? undefined : label}
     {onclick}
     data-testid={testId}
   >
@@ -66,6 +67,14 @@
 {#if stacked}
   {@render button()}
 {:else}
+  <!--
+    Der Tooltip liefert KEINEN zugänglichen Namen: er setzt `aria-describedby`, und das
+    auch nur solange er offen ist. Eine Beschreibung ist kein Name — im eingeklappten
+    Zweig trägt der Button nur ein `aria-hidden`-SVG, und axe meldete hier bis 6.48.0
+    fünf `button-name`-Verstöße pro Tabelle (WCAG 2.1 A / 4.1.2). Deshalb oben zusätzlich
+    `aria-label`; im `stacked`-Zweig entfällt es, weil dort der sichtbare Text den Namen
+    bereits trägt und ein doppelter Name den Screenreader-Text verdoppeln würde.
+  -->
   <Tooltip {label}>
     {@render button()}
   </Tooltip>

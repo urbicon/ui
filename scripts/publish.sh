@@ -24,31 +24,22 @@ set -euo pipefail
 REGISTRY="${NPM_REGISTRY_URL:-https://registry.npmjs.org}"
 DRY_RUN="${DRY_RUN:-}"
 
-# Topological order: a package is published only after everything it depends on,
-# so a consumer installing mid-publish never sees a range pointing at a
-# not-yet-published dependency.
-PACKAGES=(
-  packages/shared-types
-  packages/sveltekit-utils
-  packages/design-engine
-  packages/design-content
-  packages/design
-  packages/mcp-server
-  packages/i18n
-  packages/docs-gen
-  packages/blocks
-  packages/table
-  packages/auth
-  packages/docs
-  # sv LAST: its add-on code writes `@urbicon-ui/blocks@^<version>` and
-  # `@urbicon-ui/design@^<version>` into consumer package.jsons — a dependency
-  # edge npm can't see (community add-ons must not declare `dependencies`), so
-  # the ordering here is the only thing keeping the topological invariant.
-  packages/sv
-)
-
 cd "$(dirname "$0")/.."
 ROOT="$(pwd)"
+
+# The publish order lives in scripts/release-packages.mjs — one list, read by
+# this script and by the release workflow's pack step. It used to be duplicated
+# here and in the workflow, under a "KEEP IN SYNC" comment on both.
+#
+# `while read` rather than `mapfile`: this script runs on macOS, whose /bin/bash
+# is 3.2 and has no `mapfile`.
+PACKAGES=()
+while IFS= read -r pkg; do
+  [ -n "$pkg" ] && PACKAGES+=("$pkg")
+done < <(
+  node -e "import('./scripts/release-packages.mjs').then(m => console.log(m.RELEASE_PACKAGES.join('\n')))"
+)
+[ ${#PACKAGES[@]} -gt 0 ] || { echo "could not read the publish order" >&2; exit 1; }
 
 echo "==> Registry: $REGISTRY"
 [ -n "$DRY_RUN" ] && echo "==> DRY RUN — nothing will be published"

@@ -6,7 +6,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "urbicon hook"
+            "command": "bunx urbicon hook"
           }
         ]
       }
