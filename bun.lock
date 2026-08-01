@@ -78,7 +78,7 @@
     },
     "packages/auth": {
       "name": "@urbicon-ui/auth",
-      "version": "6.47.2",
+      "version": "6.48.0",
       "devDependencies": {
         "@sveltejs/kit": "catalog:",
         "@sveltejs/package": "catalog:",
@@ -103,7 +103,7 @@
     },
     "packages/blocks": {
       "name": "@urbicon-ui/blocks",
-      "version": "6.47.2",
+      "version": "6.48.0",
       "devDependencies": {
         "@sveltejs/kit": "catalog:",
         "@sveltejs/package": "catalog:",
@@ -133,7 +133,7 @@
     },
     "packages/design": {
       "name": "@urbicon-ui/design",
-      "version": "6.47.2",
+      "version": "6.48.0",
       "bin": {
         "urbicon": "./dist/cli.js",
       },
@@ -150,7 +150,7 @@
     },
     "packages/design-content": {
       "name": "@urbicon-ui/design-content",
-      "version": "6.47.2",
+      "version": "6.48.0",
       "devDependencies": {
         "@types/node": "catalog:",
         "typescript": "catalog:",
@@ -159,7 +159,7 @@
     },
     "packages/design-engine": {
       "name": "@urbicon-ui/design-engine",
-      "version": "6.47.2",
+      "version": "6.48.0",
       "devDependencies": {
         "@types/node": "catalog:",
         "typescript": "catalog:",
@@ -168,7 +168,7 @@
     },
     "packages/docs": {
       "name": "@urbicon-ui/docs",
-      "version": "6.47.2",
+      "version": "6.48.0",
       "devDependencies": {
         "@sveltejs/kit": "catalog:",
         "@sveltejs/package": "catalog:",
@@ -203,7 +203,7 @@
     },
     "packages/docs-gen": {
       "name": "@urbicon-ui/docs-gen",
-      "version": "6.47.2",
+      "version": "6.48.0",
       "bin": {
         "docs-gen": "./dist/cli/CLI.js",
       },
@@ -221,7 +221,7 @@
     },
     "packages/i18n": {
       "name": "@urbicon-ui/i18n",
-      "version": "6.47.2",
+      "version": "6.48.0",
       "devDependencies": {
         "@sveltejs/kit": "catalog:",
         "@sveltejs/package": "catalog:",
@@ -249,7 +249,7 @@
     },
     "packages/mcp-server": {
       "name": "@urbicon-ui/mcp-server",
-      "version": "6.47.2",
+      "version": "6.48.0",
       "dependencies": {
         "@modelcontextprotocol/sdk": "^1.30.0",
         "@urbicon-ui/design-content": "workspace:*",
@@ -264,14 +264,14 @@
     },
     "packages/shared-types": {
       "name": "@urbicon-ui/shared-types",
-      "version": "6.47.2",
+      "version": "6.48.0",
       "devDependencies": {
         "typescript": "catalog:",
       },
     },
     "packages/sv": {
       "name": "@urbicon-ui/sv",
-      "version": "6.47.2",
+      "version": "6.48.0",
       "devDependencies": {
         "@types/node": "catalog:",
         "sv": "^0.17.0",
@@ -284,7 +284,7 @@
     },
     "packages/sveltekit-utils": {
       "name": "@urbicon-ui/sveltekit-utils",
-      "version": "6.47.2",
+      "version": "6.48.0",
       "devDependencies": {
         "@sveltejs/kit": "catalog:",
         "@sveltejs/package": "catalog:",
@@ -305,7 +305,7 @@
     },
     "packages/table": {
       "name": "@urbicon-ui/table",
-      "version": "6.47.2",
+      "version": "6.48.0",
       "devDependencies": {
         "@sveltejs/kit": "catalog:",
         "@sveltejs/package": "catalog:",
@@ -1145,7 +1145,7 @@
 
     "playwright": ["playwright@1.62.1", "", { "dependencies": { "playwright-core": "1.62.1" }, "optionalDependencies": { "fsevents": "2.3.2" }, "bin": { "playwright": "cli.js" } }, "sha512-0M+L3LAD8/nm554LOla9Ayx0j0tmFZ0FBcoQ7F1VuVHpM/XpiC8RcDzBQB8W5+hA8L22THxELzeF+2WcUzvcLg=="],
 
-    "playwright-core": ["playwright-core@1.61.1", "", { "bin": { "playwright-core": "cli.js" } }, "sha512-h7Qlt6m4REp25qvIdvbDtVmD4LqVXfpRxhORv9L0jzETM05p4fuPJ3dKyuSXQxDSbXnmS79HAgi9589lGSpLkg=="],
+    "playwright-core": ["playwright-core@1.62.1", "", { "bin": { "playwright-core": "cli.js" } }, "sha512-wPYSwEBJY9GHraISXqyqtx0na0LpO3XEX7jNDhntbex7tzUS7kLnZsOlFruFJB4Hi/rhDMjXGqHewDZ68nYZVw=="],
 
     "postcss": ["postcss@8.5.25", "", { "dependencies": { "nanoid": "^3.3.16", "picocolors": "^1.1.1", "source-map-js": "^1.2.1" } }, "sha512-DTPx3RWSSnWyzLxQnlH0rJP+EW5ekl16ZU4/psbIhA0e53kJfdgaN5vKM+xP7yJtXVu+nfdVFmlgFDEKAe4Pyw=="],
 
@@ -1400,8 +1400,6 @@
     "path-scurry/lru-cache": ["lru-cache@11.5.1", "", {}, "sha512-RPimw/7aMdv2oqRrxKwvZXcPfwBrn/JZ2xYcY9Hus/6LaS3VOAKVWKWgNLCFSiOm1ESXinjsDlidVU7JlnCN2A=="],
 
     "playwright/fsevents": ["fsevents@2.3.2", "", { "os": "darwin" }, "sha512-xiqMQR4xAeHTuB9uWm+fFRcIOgKBMiOBP+eXiyT7jsgVCq1bkVygt00oASowB7EdtpOHaaPgKt812P9ab+DDKA=="],
-
-    "playwright/playwright-core": ["playwright-core@1.62.1", "", { "bin": { "playwright-core": "cli.js" } }, "sha512-wPYSwEBJY9GHraISXqyqtx0na0LpO3XEX7jNDhntbex7tzUS7kLnZsOlFruFJB4Hi/rhDMjXGqHewDZ68nYZVw=="],
 
     "strip-ansi/ansi-regex": ["ansi-regex@6.2.2", "", {}, "sha512-Bq3SmSpyFHaWjPk8If9yc6svM8c56dB5BAtW4Qbw5jHTwwXXcTLoRMkpDJp6VL0XzlWaCHTXrkFURMYmD0sLqg=="],
 
