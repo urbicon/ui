@@ -583,7 +583,13 @@
           slotClasses={{
             viewport: '!gap-0 !py-0',
             controls: '!absolute inset-0 !pt-0 !justify-between px-4 pointer-events-none',
-            control: 'pointer-events-auto shadow-md',
+            // `max-sm:hidden`: die Pfeile liegen als Overlay ÜBER der Karte und
+            // deckten dort Inhalt zu (die Uhrzeit der ersten Buchungszeile
+            // stand hinter dem linken Knopf). Auf einem Schirm, der gewischt
+            // wird, sind sie ohnehin die zweite Bedienung — die Dots bleiben,
+            // sie sitzen in der freien Zone unter der Karte. Beide Slots sind
+            // absolut positioniert, das Ausblenden verschiebt also nichts.
+            control: 'pointer-events-auto shadow-md max-sm:hidden',
             indicator:
               '!absolute bottom-3 left-1/2 -translate-x-1/2 pointer-events-auto rounded-full bg-surface-base/85 px-2 py-1'
           }}
@@ -899,7 +905,7 @@
           <code class="cmd">bun add @urbicon-ui/blocks</code>
           <code class="cmd">bunx urbicon init</code>
           <p class="step-line">
-            Two commands. The second writes AGENTS.md and installs the design gate.
+            Two commands. The second writes AGENTS.md and wires your agent into the design loop.
           </p>
         </div>
       </div>
@@ -1148,6 +1154,15 @@
     --room-accent: var(--tile-solid);
     --room-accent-fg: var(--tile-on);
   }
+  /* Auf schmalen Schirmen ist die Bühne der knappe Faktor, nicht die
+     Komposition: von 72vh Kachel bleiben der Karte nach Titelgruppe, Dots-Zone
+     und Polstern ~415 px, in denen ein ganzes Backoffice oder ein Grid steht.
+     Der Anschnitt der zweiten Zeile braucht weniger Luft als das Exponat. */
+  @media (max-width: 40rem) {
+    .tile {
+      height: clamp(460px, 84vh, 760px);
+    }
+  }
   .tile-body {
     flex: 1;
     display: flex;
@@ -1169,7 +1184,8 @@
   /* Neutrale Karte für lebende Komponenten auf der Vollton-Fläche —
      das Muster der alten Landing (Farbfeld hält eine neutrale Bühne). */
   .card {
-    background: light-dark(#ffffff, #141414);
+    --card-bg: light-dark(#ffffff, #141414);
+    background: var(--card-bg);
     padding: 1.25rem;
     width: min(420px, 100%);
     /* Eine Karte ist eine architektonische Fläche — dieselbe Radius-Stufe, die
@@ -1189,6 +1205,26 @@
    * Schirmen doch über die Kachel hinaus, scrollt die Karte innen
    * (card-table-Muster), statt abzuschneiden.
    */
+  /* Innen scrollende Karten müssen zeigen, DASS es weitergeht. Auf Touch gibt
+     es keine dauerhaft sichtbare Scrollleiste, also endete die Karte optisch
+     mitten im Satz — sie sah abgeschnitten aus, nicht scrollbar. Der klassische
+     background-attachment-Trick erledigt das deklarativ: zwei Deckflächen in
+     Kartenfarbe hängen am Inhalt (`local`) und fahren mit ihm aus dem Bild,
+     zwei Schatten darunter am Rahmen (`scroll`) bleiben stehen — an beiden
+     Enden löscht die Deckfläche genau ihren Schatten. Kein JS und kein
+     `animation-timeline: scroll()`, das iOS Safari noch nicht kennt. */
+  .card.dash2,
+  .card.card-table {
+    --card-shade: light-dark(rgb(0 0 0 / 0.16), rgb(255 255 255 / 0.14));
+    background:
+      linear-gradient(var(--card-bg) 30%, transparent) center top / 100% 1.75rem no-repeat local,
+      linear-gradient(transparent, var(--card-bg) 70%) center bottom / 100% 1.75rem no-repeat local,
+      radial-gradient(farthest-side at 50% 0, var(--card-shade), transparent) center top / 100%
+        0.6rem no-repeat scroll,
+      radial-gradient(farthest-side at 50% 100%, var(--card-shade), transparent) center bottom /
+        100% 0.6rem no-repeat scroll,
+      var(--card-bg);
+  }
   .dash2 {
     container-type: inline-size;
     width: min(520px, 100%);
@@ -1253,6 +1289,25 @@
     justify-content: space-between;
     gap: 1rem;
   }
+  /* Der KARTENKOPF (nicht der Kopf der Auslastungs-Spalte, der bleibt einzeilig):
+     Titel und Bereichswahl teilen sich eine Zeile erst, wenn die Karte breit
+     genug für beide ist. Darunter quetschte die Zeile beides gleichzeitig — der
+     Titel brach zweizeilig um UND die SegmentGroup fiel in ihre
+     Überlauf-Degradation (vertikaler Stapel, korrekt für ein Formular, im Kopf
+     einer Karte aber wie ein Fehler aussehend). Gestapelt hat die Gruppe die
+     131 px, die ihr Track waagerecht braucht. */
+  .dash2 > .dash-head {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.75rem;
+  }
+  @container (min-width: 24rem) {
+    .dash2 > .dash-head {
+      flex-direction: row;
+      align-items: flex-start;
+      gap: 1rem;
+    }
+  }
   .dash-title {
     font-weight: 800;
     font-size: 1.05rem;
@@ -1290,7 +1345,7 @@
     position: sticky;
     top: 0;
     z-index: 1;
-    background: light-dark(#ffffff, #141414);
+    background: var(--card-bg);
   }
   /* Das Salon-Exponat füllt die Kachel-Bühne; die LiveryTile bringt ihren
      eigenen Grund (data-livery) und Rahmen mit. */

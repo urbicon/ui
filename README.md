@@ -55,6 +55,7 @@ bun add @urbicon-ui/blocks   # or npm/pnpm — the library doesn't care
 
 ```css
 /* app.css */
+@import 'tailwindcss';
 @import '@urbicon-ui/blocks/style/index.css';
 ```
 
@@ -116,6 +117,7 @@ The whole chassis re-tints from one `@theme` block — colour *and* typography:
 
 ```css
 /* app.css */
+@import 'tailwindcss';
 @import '@urbicon-ui/blocks/style/index.css';
 
 @theme {

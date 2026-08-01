@@ -7,7 +7,10 @@
   another hello world), at 04 the reader repaints the preview themselves via
   four paint switches — the landing promises "repaint the building", this page
   lets you do it — and 05 mirrors the landing's second install command
-  (`bunx urbicon init`), so both entry points tell the same story.
+  (`bunx urbicon init`), so both entry points tell the same story. A numeral-00
+  pre-step (create the app via `sv create`) sits above 01 but deliberately
+  OUTSIDE the STEPS scrollspy: at 00 there is no app to preview yet, and
+  readers already inside a SvelteKit project skip it.
 
   The card follows a MONOTONIC step latch (reachedStep), not the raw
   scrollspy: the app you've built must not un-build when you scroll back up to
@@ -83,12 +86,13 @@
   let demoService = $state<string | null>('bleecker');
   let demoBooked = $state(false);
 
+  const createProjectExample = `bunx sv create my-app --add tailwindcss`;
+
   const installExample = `bun add @urbicon-ui/blocks`;
 
   const basicSetupExample = `/* app.css */
-@import '@urbicon-ui/blocks/style/index.css';
-
-/* Your custom styles here */`;
+@import 'tailwindcss';
+@import '@urbicon-ui/blocks/style/index.css';`;
 
   const viteConfigExample = `// vite.config.js
 import { sveltekit } from '@sveltejs/kit/vite';
@@ -130,6 +134,7 @@ export default {
   const agentExample = `bunx urbicon init`;
 
   const themeExample = `/* app.css */
+@import 'tailwindcss';
 @import '@urbicon-ui/blocks/style/index.css';
 
 @theme {
@@ -178,8 +183,35 @@ export default {
   <div class="grid grid-cols-1 gap-12 lg:grid-cols-[minmax(0,1fr)_23rem] lg:items-start lg:gap-14">
     <!-- ── The four steps ─────────────────────────────────────────────── -->
     <div>
+      <!-- 00 · No project yet? — optional pre-step, outside STEPS (see head
+           comment): no scrollspy id, no effect on the preview card. -->
+      <section class="pb-12">
+        <h2 class="text-text-primary flex items-baseline gap-4 text-2xl font-bold tracking-tight">
+          <span class="text-primary text-5xl font-medium leading-none" aria-hidden="true">00</span>
+          No project yet?
+        </h2>
+        <p class="text-text-secondary mt-4 max-w-2xl leading-relaxed">
+          Urbicon UI plugs into any SvelteKit app. Starting from an empty directory, the official
+          <code class="bg-surface-elevated rounded-modify px-1.5 py-0.5 font-mono text-xs">sv</code>
+          CLI scaffolds one — it asks its own questions (TypeScript, Prettier, …), and picking the
+          <code class="bg-surface-elevated rounded-modify px-1.5 py-0.5 font-mono text-xs"
+            >tailwindcss</code
+          >
+          add-on right here already does the plumbing that step 02 walks you through. Inside an existing
+          project? Skip ahead to 01.
+        </p>
+        <div class="mt-6">
+          <CodeExample
+            title="Create a SvelteKit project"
+            code={createProjectExample}
+            language="bash"
+            preview={false}
+          />
+        </div>
+      </section>
+
       <!-- 01 · Install -->
-      <section id={STEPS[0].id} class="pb-12">
+      <section id={STEPS[0].id} class="border-border-subtle border-t py-12">
         <h2 class="text-text-primary flex items-baseline gap-4 text-2xl font-bold tracking-tight">
           <span class="text-primary text-5xl font-medium leading-none" aria-hidden="true">
             {STEPS[0].n}
@@ -221,11 +253,16 @@ export default {
           />
         </div>
         <p class="text-text-secondary mt-6 max-w-2xl leading-relaxed">
-          Then one import wires up the OKLCH color ramps, semantic tokens, typography and spacing —
-          dark mode included via
+          Then two imports wire everything up — Tailwind itself, and the token sheet: OKLCH color
+          ramps, semantic tokens, typography and spacing, dark mode included via
           <code class="bg-surface-elevated rounded-modify px-1.5 py-0.5 font-mono text-xs"
             >light-dark()</code
-          >, no configuration. Load the file once from your root layout (in SvelteKit:
+          >, no configuration. The blocks stylesheet also carries its own
+          <code class="bg-surface-elevated rounded-modify px-1.5 py-0.5 font-mono text-xs"
+            >@source</code
+          >
+          directives, so Tailwind generates the components&rsquo; classes without any extra setup. Load
+          the file once from your root layout (in SvelteKit:
           <code class="bg-surface-elevated rounded-modify px-1.5 py-0.5 font-mono text-xs"
             >import './app.css'</code
           >
@@ -308,8 +345,16 @@ export default {
         </h2>
         <p class="text-text-secondary mt-4 max-w-2xl leading-relaxed">
           Agents are first-class consumers of this library. One command writes the AGENTS.md block —
-          the component grammar, the token rules, where to look things up — and installs the design
-          gate: every file your agent touches gets scored on correctness and craft before it ships.
+          the component grammar, the token rules, where to look things up. Add
+          <code class="bg-surface-elevated rounded-modify px-1.5 py-0.5 font-mono text-xs"
+            >--hook</code
+          >
+          /
+          <code class="bg-surface-elevated rounded-modify px-1.5 py-0.5 font-mono text-xs"
+            >--ci</code
+          >
+          and the design gate arms too: every file your agent touches gets scored on correctness and craft
+          before it ships.
         </p>
         <div class="mt-6">
           <CodeExample
@@ -440,11 +485,11 @@ export default {
             {/if}
 
             {#if reachedStep >= 5}
-              <!-- 05 — the gate is armed; quiet, mono, a receipt not a banner -->
+              <!-- 05 — the agent is onboarded; quiet, mono, a receipt not a banner -->
               <div class="border-border-hairline mt-4 border-t pt-3">
                 <p class="font-meta flex items-baseline justify-between">
                   <span>agent</span>
-                  <span>AGENTS.md written · gate armed ✓</span>
+                  <span>AGENTS.md written · agent onboarded ✓</span>
                 </p>
               </div>
             {/if}
