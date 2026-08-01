@@ -4,6 +4,25 @@ All notable changes to this project will be documented in this file.
 This changelog is automatically generated from [Conventional Commits](https://www.conventionalcommits.org).
 
 
+## [6.48.1] - 2026-08-01
+
+### Bug Fixes
+- **deps**: Unblock the release lint gate after the Biome 2.5.6 upgrade
+- **design**: Make the installed hook actually run, and name the real stylesheet
+- **blocks,table**: Give the table toolbar and pagination arrows accessible names
+- **deps**: Make trust-publishers.sh actually run
+
+### CI/CD
+- **deps**: Split the release into gate + publish, on OIDC instead of a token
+- **deps**: Hand packages over to OIDC one at a time, not all at once
+- **deps**: Add a script to register the trusted publishers
+
+### Styling
+- **design**: Keep the tailwindSteps doc comment on tailwindSteps
+
+### Testing
+- **blocks**: Refresh the Toggle pixel baselines after the shrink-0 fix
+
 ## [6.48.0] - 2026-08-01
 
 ### Bug Fixes
