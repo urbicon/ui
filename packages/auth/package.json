@@ -51,6 +51,10 @@
       "types": "./dist/server/adapters/conformance.d.ts",
       "import": "./dist/server/adapters/conformance.js"
     },
+    "./server/adapters/conformance-core": {
+      "types": "./dist/server/adapters/conformance-core.d.ts",
+      "import": "./dist/server/adapters/conformance-core.js"
+    },
     "./server/email/lettermint": {
       "types": "./dist/server/email/lettermint.d.ts",
       "import": "./dist/server/email/lettermint.js"
