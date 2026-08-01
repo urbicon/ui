@@ -429,15 +429,15 @@ describe('prisma adapter — the id guard is narrow', () => {
   };
 
   const swallowed = [
-    ['driver adapter (Prisma 7): P2007 + 22P02 in meta', malformedIdError('id', 'not-an-id')],
+    ['driver adapter (Prisma 7): P2007, with 22P02 in meta', malformedIdError('id', 'not-an-id')],
     [
-      'raw driver (Drizzle/Kysely/pg): 22P02 as the code',
+      '22P02 surfaced as the code itself',
       Object.assign(new Error('invalid input syntax for type uuid: "not-an-id"'), { code: '22P02' })
     ],
     [
-      'Rust engine (Prisma 5/6): P2023 naming the malformed id',
-      Object.assign(new Error('Inconsistent column data: Malformed UUID: "not-an-id"'), {
-        code: 'P2023'
+      'a bigint key, not just uuid',
+      Object.assign(new Error('invalid input syntax for type bigint: "not-an-id"'), {
+        code: '22P02'
       })
     ]
   ] as const;
@@ -450,13 +450,65 @@ describe('prisma adapter — the id guard is narrow', () => {
     });
   }
 
+  const circularCause = (): unknown => {
+    const cause: Record<string, unknown> = {
+      kind: 'InvalidInputValue',
+      originalCode: '22P02',
+      originalMessage: 'invalid input syntax for type uuid: "not-an-id"'
+    };
+    // A driver's error cause is a third-party payload and routinely holds a
+    // back-reference to its connection. Classifying must not choke on it.
+    cause.connection = { cause };
+    return Object.assign(new Error('Invalid input value'), {
+      code: 'P2007',
+      meta: { driverAdapterError: { cause } }
+    });
+  };
+
+  it('classifies a circular driver cause without throwing from the catch block', async () => {
+    const repos = createPrismaRepos(failingClient(circularCause()));
+    await expect(repos.user.findById('not-an-id')).resolves.toBeNull();
+  });
+
+  it('never replaces the database error with one of its own', async () => {
+    // defineProperty, not Object.assign — assign would invoke the getter here.
+    const hostile = Object.assign(new Error('boom'), { code: 'P2007' });
+    Object.defineProperty(hostile, 'meta', {
+      get(): never {
+        throw new Error('classification must not surface this');
+      }
+    });
+    await expect(createPrismaRepos(failingClient(hostile)).user.findById('x')).rejects.toThrow(
+      'boom'
+    );
+  });
+
   const propagated = [
+    [
+      // The headline reason P2023 is not accepted: Prisma raises it from the
+      // same conversion layer for a stored row as for an argument, so it cannot
+      // tell a broken migration from a malformed id.
+      'P2023 naming a malformed UUID — which a half-migrated column produces too',
+      Object.assign(new Error('Inconsistent column data: Malformed UUID: "legacy-cuid"'), {
+        code: 'P2023'
+      })
+    ],
     [
       'P2023 from a corrupt stored row (a broken migration)',
       Object.assign(
         new Error("Inconsistent column data: Value 'superadmin' not found in enum 'Role'"),
         { code: 'P2023' }
       )
+    ],
+    [
+      '22P02 on a column an id is never stored in',
+      Object.assign(new Error('invalid input syntax for type json: "not json"'), { code: '22P02' })
+    ],
+    [
+      '22P02 on a timestamp argument',
+      Object.assign(new Error('invalid input syntax for type timestamp: "yesterday"'), {
+        code: '22P02'
+      })
     ],
     [
       'P2023 from an out-of-range stored integer',

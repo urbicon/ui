@@ -136,41 +136,60 @@ function isMissingRowError(err: unknown): boolean {
 }
 
 /**
- * An id the column cannot hold — Postgres' `22P02` (`invalid_text_representation`),
- * reached through whichever layer the consumer runs.
+ * An id the column cannot hold: Postgres' `22P02` (`invalid_text_representation`)
+ * on one of the types an id is stored as.
  *
- * The shapes are measured, not assumed (Prisma 7.9.1 + `@prisma/adapter-pg`
- * against a live Postgres):
+ * **Direction is the whole point.** `22P02` is raised while parsing a *literal
+ * in the query* — the argument this call passed in — so treating it as "no such
+ * row" is sound. The tempting neighbour, Prisma's `P2023`, is deliberately not
+ * accepted: it comes out of the same value-conversion layer in **both**
+ * directions, and "Error creating UUID" is equally what a half-migrated column
+ * produces when a *stored row* fails to convert. Swallowing that would turn a
+ * broken migration into an empty screen — a passkey list that reads as "none
+ * registered" and locks the user out, silently. An adapter on Prisma's older
+ * Rust engine (v5/v6, no driver adapter) therefore gets no translation here and
+ * has to satisfy the id contract itself.
  *
- * - **Driver adapter** (Prisma 7's default): the top-level code is `P2007`,
- *   and Postgres' own code sits in `meta.driverAdapterError.cause.originalCode`.
- *   Matching `P2023` alone — as the first version of this did — never fires here.
- * - **Raw driver** (a Drizzle/Kysely/pg adapter): `22P02` as the code itself.
- * - **Prisma's Rust engine** (v5/v6, no driver adapter): its own `P2023`.
+ * Where the code sits was measured, not assumed (Prisma 7.9.1 +
+ * `@prisma/adapter-pg` against a live Postgres): with a driver adapter the
+ * top-level code is `P2007` and Postgres' own code is down in
+ * `meta.driverAdapterError.cause.originalCode`. Matching `P2023` alone — as the
+ * first draft of this did — never fires there at all.
  *
- * Every branch additionally requires the message to be the *input syntax* one.
- * That is what keeps this narrow, and it matters most for `P2023`: Prisma also
- * raises that code for **stored** data that no longer fits its column — a
- * half-migrated table, a value written out of band — and those must keep
- * failing loudly instead of quietly reading as "nothing here". Postgres words
- * the neighbouring enum failure differently ("invalid input *value* for enum"),
- * so it does not match either.
+ * The type list keeps it to columns an id is plausibly stored in. A `22P02` on
+ * a `json` or `timestamp` argument is a different bug and must keep throwing.
+ *
+ * Scope: Postgres wording, which covers the Postgres/PGlite/Neon path this
+ * package documents. CockroachDB, MSSQL, MySQL and MongoDB word it differently
+ * and are not translated — an adapter for those implements the rule itself.
  *
  * Nothing is logged: what this identifies is a caller sending an id no row
  * could ever have — a client-input case, not an operational fault.
  */
-const ID_SYNTAX_MESSAGE = /invalid input syntax for type|malformed uuid|error creating uuid/i;
+const ID_TYPE_SYNTAX_ERROR =
+  /invalid input syntax for type (uuid|bigint|integer|smallint|numeric)\b/i;
 
 function isUnrepresentableIdError(err: unknown): boolean {
-  if (typeof err !== 'object' || err === null) return false;
-  const { code, meta, message } = err as { code?: unknown; meta?: unknown; message?: unknown };
+  // Classification runs inside a catch block and inspects a third-party payload
+  // (a driver's error cause can be circular, hold BigInts, or throw from a
+  // getter). If reading it fails at all, this is not an error we recognise —
+  // never replace the database's error with one from here.
+  try {
+    if (typeof err !== 'object' || err === null) return false;
+    const { code, meta, message } = err as { code?: unknown; meta?: unknown; message?: unknown };
 
-  const cause = (meta as { driverAdapterError?: { cause?: { originalCode?: unknown } } })
-    ?.driverAdapterError?.cause;
-  const text = `${String(message ?? '')} ${JSON.stringify(cause ?? '')}`;
-  if (!ID_SYNTAX_MESSAGE.test(text)) return false;
+    const cause = (
+      meta as {
+        driverAdapterError?: { cause?: { originalCode?: unknown; originalMessage?: unknown } };
+      }
+    )?.driverAdapterError?.cause;
+    if (code !== '22P02' && cause?.originalCode !== '22P02') return false;
 
-  return code === '22P02' || cause?.originalCode === '22P02' || code === 'P2023';
+    const detail = typeof cause?.originalMessage === 'string' ? cause.originalMessage : '';
+    return ID_TYPE_SYNTAX_ERROR.test(`${String(message ?? '')} ${detail}`);
+  } catch {
+    return false;
+  }
 }
 
 /**
@@ -179,7 +198,6 @@ function isUnrepresentableIdError(err: unknown): boolean {
  */
 const ID_MISS: Record<string, () => unknown> = {
   findUnique: () => null,
-  findFirst: () => null,
   findMany: () => [],
   updateMany: () => ({ count: 0 }),
   deleteMany: () => ({ count: 0 }),

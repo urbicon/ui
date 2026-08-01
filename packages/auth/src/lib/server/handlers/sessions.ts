@@ -151,9 +151,8 @@ function revokeOtherSessionsHandler<R extends string>(deps: AuthDeps<R>): { POST
 
       // With no live refresh cookie there is no family to keep, and "all
       // others" is simply all. Saying that outright beats passing '' as a
-      // family that matches nothing: the empty string is a value the column
-      // may not even accept (a uuid-typed family column rejects it outright),
-      // and it made the intent readable only via the comment.
+      // family nothing matches: that relied on no row ever holding an empty
+      // family, and put the intent in a comment instead of in the call.
       const keep = await currentFamily(event, deps);
       if (keep) await repo.revokeOtherFamiliesForUser(user.id, keep);
       else await repo.revokeAllForUser(user.id);

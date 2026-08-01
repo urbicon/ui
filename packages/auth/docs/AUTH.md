@@ -326,7 +326,7 @@ The package never generates or parses an id. It stores what your adapter returne
 
 One limit on the shipped Prisma adapter specifically: it passes ids through as the strings the interface gives it, so the column has to be string-shaped (`text`, `uuid`, `citext`). A numeric key needs an adapter that converts at the boundary — the interface still fits (render the number as a string), the shipped adapter does not do the conversion for you.
 
-What a native id type does change is what happens to a value that does not fit it. Ids arrive from outside — a URL segment, a request body — and a `uuid` or `bigint` column rejects an unparsable value with SQLSTATE 22P02 (Prisma: `P2023`) rather than simply matching nothing, on **reads** as much as on writes:
+What a native id type does change is what happens to a value that does not fit it. Ids arrive from outside — a URL segment, a request body — and a `uuid` or `bigint` column rejects an unparsable value with SQLSTATE 22P02 rather than simply matching nothing, on **reads** as much as on writes:
 
 ```sql
 SELECT … WHERE id = 'not-an-id'   -- text: 0 rows · uuid: ERROR 22P02
@@ -345,7 +345,7 @@ Three further cross-cutting conventions round the contract off. **Owner-first pa
 
 `createPrismaRepos<AppRole>(prisma)` accepts the consumer's generated client through a structural interface (`PrismaLike`). Every method returns `Promise<PrismaRow>` where `PrismaRow = any` — a single, intentional `eslint-disable` at the module boundary.
 
-`PrismaLike` lists what the adapter actually calls, so it moves when the adapter does. It now asks for `deleteMany` on `notification` and `passkey`, and no longer asks for the single-row `update`/`delete` on `notification`, `passkey` and `invitation` — the scoped writes moved to the `…Many` operations (see the id contract above). A generated client satisfies both versions; only a hand-written stand-in needs the two new methods. It buys wider version coverage in exchange: the old calls needed Prisma's extended `WhereUniqueInput` (`update({ where: { credentialId, userId } })`, GA in 5.0), while `updateMany`/`deleteMany` take an ordinary filter.
+`PrismaLike` lists what the adapter actually calls, so it moves when the adapter does. It now asks for `deleteMany` on `notification` and `passkey`, and no longer asks for the single-row `delete` on `notification`, `passkey` and `invitation`, nor `update` on `notification` and `passkey` — those scoped writes moved to the `…Many` operations (see the id contract above). A generated client satisfies both versions; only a hand-written stand-in needs the two new methods. It buys wider version coverage in exchange: the old calls needed Prisma's extended `WhereUniqueInput` (`update({ where: { credentialId, userId } })`, GA in 5.0), while `updateMany`/`deleteMany` take an ordinary filter.
 
 The reason is concrete: every consumer generates its **own** row shapes from its **own** schema (extra columns, RLS-only fields, soft-delete flags). Typing `PrismaLike.user.findUnique` against our internal `User`/`Passkey` shapes would either reject the consumer's wider rows or force a per-method generic. Both leak the adapter's internal type model into the consumer signature.
 

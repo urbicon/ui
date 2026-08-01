@@ -964,26 +964,59 @@ export const conformanceChecks: readonly ConformanceCheck[] = [
   // One check per repository rather than one big one, so a harness that does
   // not declare a capability gets the documented skip instead of a failure.
   check('an unrepresentable id reads as a miss (user, invitation)', [], async (repos, h) => {
-    const [owner] = await seedUserIds(repos, h.role, 'unrep');
+    const [owner, inviter] = await seedUserIds(repos, h.role, 'unrep', 'unrep-inviter');
 
     expect(await repos.user.findById(UNREPRESENTABLE_ID), 'user.findById → null').toBeNull();
     await repos.user.delete(UNREPRESENTABLE_ID);
     expect(await repos.user.findById(owner), 'no other user was deleted').not.toBeNull();
 
+    // Both invitation ids come straight off a URL segment in the admin routes.
     expect(
       await repos.invitation.markUsedIfUnused(UNREPRESENTABLE_ID),
       'invitation.markUsedIfUnused → false'
     ).toBe(false);
+
+    const kept = await repos.invitation.create({
+      email: `unrep-keep-${nextSeed()}@conformance.test`,
+      role: h.role,
+      invitedById: inviter as string
+    });
+    await repos.invitation.delete(UNREPRESENTABLE_ID);
+    expect(
+      (await repos.invitation.list()).some((i) => i.id === kept.id),
+      'invitation.delete removed nothing'
+    ).toBe(true);
   }),
 
-  check('an unrepresentable id reads as a miss (refreshToken)', ['refreshToken'], async (repos) => {
-    const repo = need(repos.refreshToken, 'refreshToken');
-    expect(
-      await repo.revokeFamilyForUser(UNREPRESENTABLE_ID, 'fam'),
-      'revokeFamilyForUser → false'
-    ).toBe(false);
-    expect(await repo.listActiveByUser(UNREPRESENTABLE_ID), 'listActiveByUser → []').toEqual([]);
-  }),
+  check(
+    'an unrepresentable id reads as a miss (refreshToken)',
+    ['refreshToken'],
+    async (repos, h) => {
+      const repo = need(repos.refreshToken, 'refreshToken');
+      const [owner] = await seedUserIds(repos, h.role, 'unrep-rt');
+      await repo.create({
+        userId: owner,
+        tokenHash: 'unrep-keep',
+        family: 'fam',
+        expiresAt: futureDate()
+      });
+
+      // The family is the argument the revoke route takes from the request
+      // body, so it is the one an attacker picks. A store that types it as an
+      // id column has to answer the same way as one that does not.
+      expect(
+        await repo.revokeFamilyForUser(owner, UNREPRESENTABLE_ID),
+        'unknown family → false'
+      ).toBe(false);
+      expect(
+        await repo.revokeFamilyForUser(UNREPRESENTABLE_ID, 'fam'),
+        'unknown user → false'
+      ).toBe(false);
+      expect((await repo.findByHash('unrep-keep'))?.revokedAt ?? null, 'still live').toBeNull();
+
+      expect(await repo.listActiveByUser(UNREPRESENTABLE_ID), 'listActiveByUser → []').toEqual([]);
+    }
+  ),
 
   check(
     'an unrepresentable id reads as a miss (notification)',
