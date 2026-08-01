@@ -319,6 +319,224 @@ describeRepositoryConformance('prisma (in-memory fake)', {
   setup: () => createPrismaRepos(createFakePrisma())
 });
 
+// === 1b. The same adapter against typed id columns =========================
+//
+// The fake above models `String @id` — a `text` column, which holds any string,
+// so it can never produce the error a native `uuid` (or integer) key raises for
+// a malformed id. That is the one thing the id contract in `types.ts` is about,
+// and without this run the adapter's guard would ship untested: the suite would
+// stay green whether or not it exists.
+//
+// This wrapper adds exactly the missing behaviour and runs the whole suite
+// again through it. The error it raises is the shape measured against a live
+// Postgres with Prisma 7.9.1 + @prisma/adapter-pg: top-level `P2007`, with
+// Postgres' own `22P02` down in `meta.driverAdapterError.cause`. (Matching
+// `P2023` alone — which an earlier draft of the adapter did — never fires
+// there; that code belongs to Prisma's older Rust engine.)
+
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+/** The columns `auth-schema.prisma` declares as ids or FKs to one. */
+const ID_COLUMNS = new Set(['id', 'userId', 'invitedById', 'replacedById']);
+
+/** The driver-adapter shape: `prisma.user.findUnique({ where: { id: 'x' } })`. */
+function malformedIdError(column: string, value: string): Error {
+  const detail = `invalid input syntax for type uuid: "${value}"`;
+  return Object.assign(new Error(`Invalid input value: ${detail} (column ${column})`), {
+    code: 'P2007',
+    meta: {
+      driverAdapterError: {
+        name: 'DriverAdapterError',
+        cause: { kind: 'InvalidInputValue', originalCode: '22P02', originalMessage: detail }
+      }
+    }
+  });
+}
+
+function assertRepresentableIds(node: unknown, column = ''): void {
+  if (node === null || node === undefined || node instanceof Date) return;
+  if (Array.isArray(node)) {
+    // Inside `{ id: { in: [...] } }` the entries belong to the column named one
+    // level up, so the name is carried down rather than re-read from the entry.
+    for (const entry of node) assertRepresentableIds(entry, column);
+    return;
+  }
+  if (typeof node === 'string') {
+    if (ID_COLUMNS.has(column) && !UUID_RE.test(node)) throw malformedIdError(column, node);
+    return;
+  }
+  if (typeof node !== 'object') return;
+
+  for (const [key, value] of Object.entries(node as Record<string, unknown>)) {
+    // A filter wrapper (`{ not: … }`, `{ in: [...] }`) is not a column name, so
+    // keep the one we already have; anything else names the column itself.
+    assertRepresentableIds(value, ID_COLUMNS.has(key) ? key : FILTER_KEYS.has(key) ? column : '');
+  }
+}
+
+/** Prisma filter operators — these nest, they do not rename the column. */
+const FILTER_KEYS = new Set(['not', 'in', 'notIn', 'equals', 'AND', 'OR', 'NOT']);
+
+function createUuidTypedFakePrisma(): PrismaLike {
+  const base = createFakePrisma() as unknown as Record<string, any>;
+  const guarded: Record<string, any> = {};
+
+  for (const [model, delegate] of Object.entries(base)) {
+    if (typeof delegate !== 'object' || delegate === null) {
+      guarded[model] = delegate;
+      continue;
+    }
+    const table: Record<string, any> = {};
+    for (const [op, fn] of Object.entries(delegate as Record<string, any>)) {
+      table[op] =
+        typeof fn === 'function'
+          ? (args?: unknown) => {
+              assertRepresentableIds(args);
+              return fn(args);
+            }
+          : fn;
+    }
+    guarded[model] = table;
+  }
+  return guarded as unknown as PrismaLike;
+}
+
+describeRepositoryConformance('prisma (uuid-typed id columns)', {
+  role: 'USER',
+  capabilities: ALL_CAPS,
+  setup: () => createPrismaRepos(createUuidTypedFakePrisma())
+});
+
+// === 1c. What the id guard must NOT swallow ================================
+//
+// The guard turns one error into "nothing matched". Everything hinges on it
+// recognising only that one: `P2023` in particular is Prisma's code for *stored*
+// data that no longer fits its column — a half-migrated table, a value written
+// out of band — and reading that as an empty result would hide a broken
+// database behind an empty screen. These pin both directions.
+
+describe('prisma adapter — the id guard is narrow', () => {
+  const failingClient = (error: unknown): PrismaLike => {
+    const base = createFakePrisma() as unknown as Record<string, any>;
+    return {
+      ...base,
+      user: {
+        ...base.user,
+        findUnique: () => Promise.reject(error),
+        updateMany: () => Promise.reject(error)
+      }
+    } as unknown as PrismaLike;
+  };
+
+  const swallowed = [
+    ['driver adapter (Prisma 7): P2007, with 22P02 in meta', malformedIdError('id', 'not-an-id')],
+    [
+      '22P02 surfaced as the code itself',
+      Object.assign(new Error('invalid input syntax for type uuid: "not-an-id"'), { code: '22P02' })
+    ],
+    [
+      'a bigint key, not just uuid',
+      Object.assign(new Error('invalid input syntax for type bigint: "not-an-id"'), {
+        code: '22P02'
+      })
+    ]
+  ] as const;
+
+  for (const [label, error] of swallowed) {
+    it(`reads as a miss — ${label}`, async () => {
+      const repos = createPrismaRepos(failingClient(error));
+      await expect(repos.user.findById('not-an-id')).resolves.toBeNull();
+      await expect(repos.user.updatePassword('not-an-id', 'hash')).resolves.toBeUndefined();
+    });
+  }
+
+  const circularCause = (): unknown => {
+    const cause: Record<string, unknown> = {
+      kind: 'InvalidInputValue',
+      originalCode: '22P02',
+      originalMessage: 'invalid input syntax for type uuid: "not-an-id"'
+    };
+    // A driver's error cause is a third-party payload and routinely holds a
+    // back-reference to its connection. Classifying must not choke on it.
+    cause.connection = { cause };
+    return Object.assign(new Error('Invalid input value'), {
+      code: 'P2007',
+      meta: { driverAdapterError: { cause } }
+    });
+  };
+
+  it('classifies a circular driver cause without throwing from the catch block', async () => {
+    const repos = createPrismaRepos(failingClient(circularCause()));
+    await expect(repos.user.findById('not-an-id')).resolves.toBeNull();
+  });
+
+  it('never replaces the database error with one of its own', async () => {
+    // defineProperty, not Object.assign — assign would invoke the getter here.
+    const hostile = Object.assign(new Error('boom'), { code: 'P2007' });
+    Object.defineProperty(hostile, 'meta', {
+      get(): never {
+        throw new Error('classification must not surface this');
+      }
+    });
+    await expect(createPrismaRepos(failingClient(hostile)).user.findById('x')).rejects.toThrow(
+      'boom'
+    );
+  });
+
+  const propagated = [
+    [
+      // The headline reason P2023 is not accepted: Prisma raises it from the
+      // same conversion layer for a stored row as for an argument, so it cannot
+      // tell a broken migration from a malformed id.
+      'P2023 naming a malformed UUID — which a half-migrated column produces too',
+      Object.assign(new Error('Inconsistent column data: Malformed UUID: "legacy-cuid"'), {
+        code: 'P2023'
+      })
+    ],
+    [
+      'P2023 from a corrupt stored row (a broken migration)',
+      Object.assign(
+        new Error("Inconsistent column data: Value 'superadmin' not found in enum 'Role'"),
+        { code: 'P2023' }
+      )
+    ],
+    [
+      '22P02 on a column an id is never stored in',
+      Object.assign(new Error('invalid input syntax for type json: "not json"'), { code: '22P02' })
+    ],
+    [
+      '22P02 on a timestamp argument',
+      Object.assign(new Error('invalid input syntax for type timestamp: "yesterday"'), {
+        code: '22P02'
+      })
+    ],
+    [
+      'P2023 from an out-of-range stored integer',
+      Object.assign(
+        new Error("Inconsistent column data: Integer value in column 'counter' is too large"),
+        { code: 'P2023' }
+      )
+    ],
+    [
+      'a Postgres enum-value error, which is 22P02 but not an id',
+      Object.assign(new Error('invalid input value for enum role: "wizard"'), { code: '22P02' })
+    ],
+    [
+      'a connection failure',
+      Object.assign(new Error("Can't reach database server"), { code: 'P1001' })
+    ],
+    ['an error with no code at all', new Error('socket hang up')]
+  ] as const;
+
+  for (const [label, error] of propagated) {
+    it(`keeps failing loudly — ${label}`, async () => {
+      const repos = createPrismaRepos(failingClient(error));
+      await expect(repos.user.findById('some-id')).rejects.toThrow();
+      await expect(repos.user.updatePassword('some-id', 'hash')).rejects.toThrow();
+    });
+  }
+});
+
 // === 2a. Prisma-specific: federated-account wiring ==========================
 //
 // The federated repo has NO downstream wiring check (nothing in the package's

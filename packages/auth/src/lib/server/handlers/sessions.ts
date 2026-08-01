@@ -149,10 +149,13 @@ function revokeOtherSessionsHandler<R extends string>(deps: AuthDeps<R>): { POST
         });
       }
 
-      // Keep the current family; '' keeps nothing if the request has no live
-      // refresh cookie (then "all others" is effectively all).
-      const keep = (await currentFamily(event, deps)) ?? '';
-      await repo.revokeOtherFamiliesForUser(user.id, keep);
+      // With no live refresh cookie there is no family to keep, and "all
+      // others" is simply all. Saying that outright beats passing '' as a
+      // family nothing matches: that relied on no row ever holding an empty
+      // family, and put the intent in a comment instead of in the call.
+      const keep = await currentFamily(event, deps);
+      if (keep) await repo.revokeOtherFamiliesForUser(user.id, keep);
+      else await repo.revokeAllForUser(user.id);
       return json({ success: true });
     }
   };

@@ -1,3 +1,62 @@
+/**
+ * The persistence contract every adapter implements.
+ *
+ * ## Ids are opaque strings, and a value your store cannot represent is a miss
+ *
+ * The package never generates or parses an id — it stores what an adapter
+ * returned and hands it back verbatim. That keeps every id scheme usable:
+ * `uuid`, cuid2, ULID, an integer key rendered as a string.
+ *
+ * The consequence is that ids arrive from outside — a URL segment, a request
+ * body — and they are **not** guaranteed to fit the column. A native Postgres
+ * `uuid` (or `bigint`) column rejects a value it cannot parse with SQLSTATE
+ * 22P02, and it does so on the **read** as much as on the write, where a `text`
+ * column would simply match nothing:
+ *
+ * ```sql
+ * SELECT … WHERE id = 'not-an-id'   -- text: 0 rows · uuid: ERROR 22P02
+ * ```
+ *
+ * So: **on any method that can express a miss, an id value your store cannot
+ * represent MUST behave exactly like an id that is merely absent** — return
+ * `null`, return `false`, no-op. An adapter over a typed id column has to catch
+ * that error and turn it into the miss. Otherwise a malformed id — which any
+ * caller can send — becomes a way to make those endpoints 500 on demand.
+ *
+ * "Can express a miss" is the whole scope: lookups, and mutations scoped to an
+ * owner. It does **not** cover inserts (`create`, `createMany`,
+ * `linkFederatedAccount`), which return the created row and have no miss value
+ * to give — an insert carrying an id the column cannot hold is a real defect
+ * and must throw. Nor does it override a method whose own documentation
+ * requires a throw; `linkFederatedAccount` refusing a re-link is a conflict,
+ * not a miss.
+ *
+ * Narrow in the other direction too: catch *that* error, on *that* argument.
+ * Every other database error must keep propagating — most of all the one that
+ * says stored data no longer fits its column, which is a broken migration
+ * announcing itself and must never read as "nothing here".
+ *
+ * ## Scoped mutations are no-ops, not throws
+ *
+ * A mutation scoped to an owner (`markAsRead(userId, id)`, `delete(userId, …)`)
+ * that matches no row MUST no-op or return `false` — never throw. This is the
+ * same rule seen from the other side: "not yours" and "not there" are both
+ * misses. What the layer above does with a miss varies — the session revoke
+ * answers 404 because `revokeFamilyForUser` returns a boolean; the notification
+ * and invitation routes are idempotent and answer 200 either way — but none of
+ * them can turn a throw into anything but a 500. In Prisma terms: use
+ * `updateMany`/`deleteMany`, whose zero-match result is a count, not the
+ * P2025 that `update`/`delete` raise.
+ *
+ * Both rules are executable — see the conformance suite in `conformance.ts`.
+ *
+ * ## Other cross-cutting conventions
+ *
+ * - **Owner-first parameters**: the owning user id is the first argument of
+ *   every scoped method.
+ * - **Pre-normalized emails**: emails arrive trimmed and lowercased; match and
+ *   store them verbatim.
+ */
 import type { AuthUser, LockoutConfig } from '../../types.js';
 
 export interface FullAuthUser<R extends string = string> extends AuthUser<R> {
@@ -385,8 +444,8 @@ export interface PushSubscriptionRepository {
    * Delete a subscription scoped to a specific user. Scoping by user-id
    * prevents an authenticated attacker from deleting another user's
    * subscription (and thereby silencing security notifications) just by
-   * knowing the endpoint URL. Should no-op (or throw a not-found that the
-   * handler swallows) when no row matches.
+   * knowing the endpoint URL. MUST no-op when no row matches — the handler
+   * (`push-subscription.ts`) does not catch, so a throw is a 500.
    */
   delete(userId: string, endpoint: string): Promise<void>;
 }
