@@ -319,6 +319,75 @@ describeRepositoryConformance('prisma (in-memory fake)', {
   setup: () => createPrismaRepos(createFakePrisma())
 });
 
+// === 1b. The same adapter against typed id columns =========================
+//
+// The fake above models `String @id` — a `text` column, which holds any string,
+// so it can never produce the error a native `uuid` (or integer) key raises for
+// a malformed id. That is the one thing the id contract in `types.ts` is about,
+// and without this run the adapter's guard would ship untested: the suite would
+// stay green whether or not it exists.
+//
+// This wrapper adds exactly the missing behaviour — an id-column argument that
+// is not a UUID fails the way Prisma reports it (`P2023`) — and runs the whole
+// suite again through it.
+
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+/** The columns `auth-schema.prisma` declares as ids or FKs to one. */
+const ID_COLUMNS = new Set(['id', 'userId', 'invitedById', 'replacedById']);
+
+function assertRepresentableIds(node: unknown, path = ''): void {
+  if (node === null || node === undefined || node instanceof Date) return;
+  if (Array.isArray(node)) {
+    for (const entry of node) assertRepresentableIds(entry, path);
+    return;
+  }
+  if (typeof node !== 'object') return;
+
+  for (const [key, value] of Object.entries(node as Record<string, unknown>)) {
+    // Prisma filter wrappers (`{ not: … }`, `{ in: [...] }`) keep the column
+    // name one level up, so carry it down rather than treating it as a column.
+    const column = ID_COLUMNS.has(key) ? key : path;
+    if (ID_COLUMNS.has(key) && typeof value === 'string' && !UUID_RE.test(value)) {
+      throw Object.assign(
+        new Error(`Inconsistent column data: Malformed UUID for column ${key}: "${value}"`),
+        { code: 'P2023' }
+      );
+    }
+    assertRepresentableIds(value, column);
+  }
+}
+
+function createUuidTypedFakePrisma(): PrismaLike {
+  const base = createFakePrisma() as unknown as Record<string, any>;
+  const guarded: Record<string, any> = {};
+
+  for (const [model, delegate] of Object.entries(base)) {
+    if (typeof delegate !== 'object' || delegate === null) {
+      guarded[model] = delegate;
+      continue;
+    }
+    const table: Record<string, any> = {};
+    for (const [op, fn] of Object.entries(delegate as Record<string, any>)) {
+      table[op] =
+        typeof fn === 'function'
+          ? (args?: unknown) => {
+              assertRepresentableIds(args);
+              return fn(args);
+            }
+          : fn;
+    }
+    guarded[model] = table;
+  }
+  return guarded as unknown as PrismaLike;
+}
+
+describeRepositoryConformance('prisma (uuid-typed id columns)', {
+  role: 'USER',
+  capabilities: ALL_CAPS,
+  setup: () => createPrismaRepos(createUuidTypedFakePrisma())
+});
+
 // === 2a. Prisma-specific: federated-account wiring ==========================
 //
 // The federated repo has NO downstream wiring check (nothing in the package's

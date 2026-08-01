@@ -148,9 +148,13 @@ function parallel<T>(n: number, fn: () => Promise<T>): Promise<T[]> {
 }
 
 /**
- * A scope guard may signal "not yours" by either throwing (Prisma's P2025) or
- * no-op'ing — both satisfy the contract. The check asserts the *end state*, so
- * the call itself is allowed to throw.
+ * For calls whose *loser* is allowed to throw: two writers racing for one
+ * uniquely-constrained row. The check asserts the end state, and which of the
+ * two callers threw is not part of the contract.
+ *
+ * NOT for ownership scope. "Not yours" is a miss, and a miss is a no-op or a
+ * `false` — never a throw (see the id contract in `types.ts`). Those checks
+ * call the repository directly, so a throwing scope guard fails them.
  */
 async function tolerate(fn: () => Promise<unknown>): Promise<void> {
   try {
@@ -194,8 +198,12 @@ async function seedUser(repos: Repositories, role: string, label = 'u') {
  * FK is `invitedById`) the insert fails with a foreign-key violation, and the
  * check reports an adapter bug that is not there.
  *
- * Ids that a check only reads, deletes or updates through — the non-owner in an
- * ownership-scope assertion — need no row and stay literal; only inserts do.
+ * This applies to the non-owner of an ownership-scope assertion too. A literal
+ * (`'attacker'`) is not merely unnecessary there, it weakens the check twice
+ * over: an adapter that gates on *existence* rather than ownership passes when
+ * the attacker cannot exist, and against a typed id column the call fails on
+ * the id's syntax before the scope guard is ever reached — so the assertion
+ * that follows holds vacuously. The attacker is a real, seeded user.
  */
 async function seedUserIds(
   repos: Repositories,
@@ -205,6 +213,38 @@ async function seedUserIds(
   const ids: string[] = [];
   for (const label of labels) ids.push((await seedUser(repos, role, label)).id);
   return ids;
+}
+
+/**
+ * An id that is well-formed for this store but belongs to no row: seed a user,
+ * then delete it.
+ *
+ * A check that needs "an id nothing is stored under" cannot invent one — the
+ * suite does not know the adapter's id format, and a made-up literal
+ * (`'no-such-user-id'`) is unrepresentable in a `uuid` or integer key column.
+ * Round-tripping through the store yields an id in whatever shape the adapter
+ * actually uses.
+ */
+async function retiredUserId(repos: Repositories, role: string, label: string): Promise<string> {
+  const { id } = await seedUser(repos, role, label);
+  await repos.user.delete(id);
+  return id;
+}
+
+/** The invitation counterpart of {@link retiredUserId}: created, then deleted. */
+async function retiredInvitationId(
+  repos: Repositories,
+  role: string,
+  label: string
+): Promise<string> {
+  const [inviter] = await seedUserIds(repos, role, label);
+  const inv = await repos.invitation.create({
+    email: `${label}-retired-${nextSeed()}@conformance.test`,
+    role,
+    invitedById: inviter as string
+  });
+  await repos.invitation.delete(inv.id);
+  return inv.id;
 }
 
 const futureDate = () => new Date(Date.now() + 60 * 60_000);
@@ -518,9 +558,9 @@ export const conformanceChecks: readonly ConformanceCheck[] = [
     expect(results.filter(Boolean), 'one invitation, one winner').toHaveLength(1);
 
     expect(await repos.invitation.markUsedIfUnused(inv.id), 'already used → false').toBe(false);
-    expect(await repos.invitation.markUsedIfUnused('does-not-exist'), 'unknown → false').toBe(
-      false
-    );
+
+    const gone = await retiredInvitationId(repos, h.role, 'inv-gone');
+    expect(await repos.invitation.markUsedIfUnused(gone), 'unknown → false').toBe(false);
   }),
 
   // -- Invitation: contract-field projection --------------------------------
@@ -681,7 +721,7 @@ export const conformanceChecks: readonly ConformanceCheck[] = [
     ['refreshToken'],
     async (repos, h) => {
       const repo = need(repos.refreshToken, 'refreshToken');
-      const [owner] = await seedUserIds(repos, h.role, 'rt-fam');
+      const [owner, attacker] = await seedUserIds(repos, h.role, 'rt-fam', 'rt-attacker');
       await repo.create({
         userId: owner,
         tokenHash: 'h1',
@@ -689,8 +729,10 @@ export const conformanceChecks: readonly ConformanceCheck[] = [
         expiresAt: futureDate()
       });
 
-      // A non-owner must not be able to revoke another user's family.
-      expect(await repo.revokeFamilyForUser('attacker', 'fam'), 'non-owner → false').toBe(false);
+      // A non-owner must not be able to revoke another user's family. The
+      // attacker is a real user, so an adapter that gates on existence rather
+      // than ownership fails here.
+      expect(await repo.revokeFamilyForUser(attacker, 'fam'), 'non-owner → false').toBe(false);
       expect((await repo.findByHash('h1'))?.revokedAt ?? null, 'still live').toBeNull();
 
       expect(await repo.revokeFamilyForUser(owner, 'fam'), 'owner → true').toBe(true);
@@ -785,7 +827,7 @@ export const conformanceChecks: readonly ConformanceCheck[] = [
 
   check('passkey.delete is scoped to the owner', ['passkey'], async (repos, h) => {
     const repo = need(repos.passkey, 'passkey');
-    const [owner] = await seedUserIds(repos, h.role, 'pk-del');
+    const [owner, attacker] = await seedUserIds(repos, h.role, 'pk-del', 'pk-attacker');
     await repo.create(owner, {
       credentialId: 'cred-1',
       publicKey: new Uint8Array([1]),
@@ -794,7 +836,8 @@ export const conformanceChecks: readonly ConformanceCheck[] = [
       aaguid: 'aaguid'
     });
 
-    await tolerate(() => repo.delete('attacker', 'cred-1'));
+    // A miss is a no-op, so this must return normally rather than throw.
+    await repo.delete(attacker, 'cred-1');
     expect(await repo.findByCredentialId('cred-1'), 'non-owner cannot delete').not.toBeNull();
 
     await repo.delete(owner, 'cred-1');
@@ -803,7 +846,7 @@ export const conformanceChecks: readonly ConformanceCheck[] = [
 
   check('passkey.rename is scoped to the owner', ['passkey'], async (repos, h) => {
     const repo = need(repos.passkey, 'passkey');
-    const [owner] = await seedUserIds(repos, h.role, 'pk-rename');
+    const [owner, attacker] = await seedUserIds(repos, h.role, 'pk-rename', 'pk-rename-attacker');
     await repo.create(owner, {
       credentialId: 'cred-1',
       publicKey: new Uint8Array([1]),
@@ -815,7 +858,7 @@ export const conformanceChecks: readonly ConformanceCheck[] = [
 
     // Same IDOR family as delete: knowing a credentialId must not let another
     // user relabel it (rename was the one unpinned member of that family).
-    await tolerate(() => repo.rename('attacker', 'cred-1', 'Hijacked'));
+    await repo.rename(attacker, 'cred-1', 'Hijacked');
     expect((await repo.findByCredentialId('cred-1'))?.name, 'non-owner cannot rename').toBe(
       'Original'
     );
@@ -830,13 +873,16 @@ export const conformanceChecks: readonly ConformanceCheck[] = [
     ['notification'],
     async (repos, h) => {
       const repo = need(repos.notification, 'notification');
-      const [owner] = await seedUserIds(repos, h.role, 'nt-scope');
+      const [owner, attacker] = await seedUserIds(repos, h.role, 'nt-scope', 'nt-attacker');
       const n = await repo.create({ userId: owner, typeKey: 'security', title: 'New login' });
 
-      await tolerate(() => repo.markAsRead('attacker', n.id));
+      // Both calls address a row that exists but is not the caller's. That is a
+      // miss, and a miss is a silent no-op — the HTTP layer turns it into a 404,
+      // so a throw here would surface as a 500 (see the id contract in types.ts).
+      await repo.markAsRead(attacker, n.id);
       expect((await repo.findByUser(owner))[0]?.readAt ?? null, 'non-owner cannot read').toBeNull();
 
-      await tolerate(() => repo.delete('attacker', n.id));
+      await repo.delete(attacker, n.id);
       expect(await repo.findByUser(owner), 'non-owner cannot delete').toHaveLength(1);
 
       await repo.markAsRead(owner, n.id);
@@ -870,12 +916,16 @@ export const conformanceChecks: readonly ConformanceCheck[] = [
   ),
 
   // -- User: missing-target writes are no-ops ------------------------------
-  check('user write methods no-op on a missing user (TOCTOU safety)', [], async (repos) => {
+  check('user write methods no-op on a missing user (TOCTOU safety)', [], async (repos, h) => {
     // The account can be deleted between a handler's session check and its
     // write; the contract demands a silent no-op, not a P2025-style throw
     // that surfaces as a 500. The reference Prisma adapter violated this on
     // ~10 methods before the conformance pin (review R7).
-    const ghost = 'no-such-user-id';
+    //
+    // The id is a real one that has been deleted, not an invented literal —
+    // this is exactly the race the check describes, and it is the only form
+    // that also works against a typed id column.
+    const ghost = await retiredUserId(repos, h.role, 'ghost');
 
     await repos.user.updatePassword(ghost, 'hash');
     await repos.user.setEmailVerified(ghost);
@@ -892,6 +942,72 @@ export const conformanceChecks: readonly ConformanceCheck[] = [
 
     // None of the writes may have materialized a row.
     expect(await repos.user.findById(ghost), 'no row was created').toBeNull();
+  }),
+
+  // -- Ids: a value the store cannot represent is a miss --------------------
+  check('an id the store cannot represent reads as a miss, not an error', [], async (repos, h) => {
+    // Every argument below arrives from outside — a URL segment, a request
+    // body — so none of them is guaranteed to fit the column. Against `text`
+    // any string fits and this check is trivially true; against a native
+    // `uuid` or integer key the database rejects the *syntax* (Postgres 22P02,
+    // Prisma P2023) on reads as much as on writes, and the adapter has to
+    // translate that into the miss. Without it the 404 these endpoints
+    // document becomes a 500, and a malformed id is a way to fail them.
+    const UNREPRESENTABLE = 'not-an-id';
+    const [owner] = await seedUserIds(repos, h.role, 'unrep');
+
+    expect(await repos.user.findById(UNREPRESENTABLE), 'user.findById → null').toBeNull();
+    await repos.user.delete(UNREPRESENTABLE);
+    expect(await repos.invitation.markUsedIfUnused(UNREPRESENTABLE), 'invitation → false').toBe(
+      false
+    );
+
+    // The optional repositories are exercised when the harness declares them —
+    // the rule is about the id argument, not about any one repository, and
+    // gating the whole check on a capability would leave it untested.
+    if (repos.refreshToken) {
+      expect(
+        await repos.refreshToken.revokeFamilyForUser(UNREPRESENTABLE, 'fam'),
+        'refreshToken.revokeFamilyForUser → false'
+      ).toBe(false);
+      expect(
+        await repos.refreshToken.listActiveByUser(UNREPRESENTABLE),
+        'refreshToken.listActiveByUser → []'
+      ).toEqual([]);
+    }
+
+    if (repos.notification) {
+      const n = await repos.notification.create({
+        userId: owner,
+        typeKey: 'security',
+        title: 'untouched'
+      });
+      // Unrepresentable in the owner position …
+      await repos.notification.markAsRead(UNREPRESENTABLE, n.id);
+      await repos.notification.delete(UNREPRESENTABLE, n.id);
+      // … and in the row position.
+      await repos.notification.markAsRead(owner, UNREPRESENTABLE);
+      await repos.notification.delete(owner, UNREPRESENTABLE);
+      expect(await repos.notification.getUnreadCount(owner), 'the owner row is untouched').toBe(1);
+    }
+
+    if (repos.backupCode) {
+      expect(
+        await repos.backupCode.consumeIfUnused(UNREPRESENTABLE, 'code-hash'),
+        'backupCode.consumeIfUnused → false'
+      ).toBe(false);
+    }
+
+    if (repos.passkey) await repos.passkey.delete(UNREPRESENTABLE, 'cred-unrep');
+    if (repos.pushSubscription) {
+      await repos.pushSubscription.delete(UNREPRESENTABLE, 'https://push.test/unrep');
+    }
+    if (repos.notificationPreference) {
+      expect(
+        await repos.notificationPreference.findByUser(UNREPRESENTABLE),
+        'notificationPreference.findByUser → []'
+      ).toEqual([]);
+    }
   }),
 
   // -- Notification: list filters ------------------------------------------
@@ -929,12 +1045,12 @@ export const conformanceChecks: readonly ConformanceCheck[] = [
     ['pushSubscription'],
     async (repos, h) => {
       const repo = need(repos.pushSubscription, 'pushSubscription');
-      const [owner] = await seedUserIds(repos, h.role, 'ps-del');
+      const [owner, attacker] = await seedUserIds(repos, h.role, 'ps-del', 'ps-del-attacker');
       const endpoint = 'https://push.test/endpoint-1';
       await repo.create(owner, { endpoint, keys: { p256dh: 'p', auth: 'a' } });
 
       // An attacker who knows the endpoint URL must not delete the owner's row.
-      await tolerate(() => repo.delete('attacker', endpoint));
+      await repo.delete(attacker, endpoint);
       expect(await repo.findByUser(owner), 'non-owner cannot delete').toHaveLength(1);
 
       await repo.delete(owner, endpoint);
@@ -1027,7 +1143,7 @@ export const conformanceChecks: readonly ConformanceCheck[] = [
     ['backupCode'],
     async (repos, h) => {
       const repo = need(repos.backupCode, 'backupCode');
-      const [owner] = await seedUserIds(repos, h.role, 'bc-owner');
+      const [owner, attacker] = await seedUserIds(repos, h.role, 'bc-owner', 'bc-attacker');
       await repo.createMany(owner, ['hash-a', 'hash-b']);
 
       // Exactly one of N concurrent redemptions of the same code may win.
@@ -1041,7 +1157,7 @@ export const conformanceChecks: readonly ConformanceCheck[] = [
       // A non-owner cannot redeem the owner's codes (IDOR), and an unknown code
       // is rejected.
       await repo.createMany(owner, ['hash-c']);
-      expect(await repo.consumeIfUnused('attacker', 'hash-c'), 'non-owner → false').toBe(false);
+      expect(await repo.consumeIfUnused(attacker, 'hash-c'), 'non-owner → false').toBe(false);
       expect(await repo.consumeIfUnused(owner, 'unknown-hash'), 'unknown → false').toBe(false);
       expect(await repo.consumeIfUnused(owner, 'hash-c'), 'owner can still redeem').toBe(true);
     }

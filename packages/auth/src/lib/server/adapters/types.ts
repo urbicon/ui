@@ -1,3 +1,50 @@
+/**
+ * The persistence contract every adapter implements.
+ *
+ * ## Ids are opaque strings, and a value your store cannot represent is a miss
+ *
+ * The package never generates or parses an id — it stores what an adapter
+ * returned and hands it back verbatim. That keeps every id scheme usable:
+ * `uuid`, cuid2, ULID, an integer key rendered as a string.
+ *
+ * The consequence is that ids arrive from outside — a URL segment, a request
+ * body — and they are **not** guaranteed to fit the column. A native Postgres
+ * `uuid` (or `bigint`) column rejects a value it cannot parse with SQLSTATE
+ * 22P02, and it does so on the **read** as much as on the write, where a `text`
+ * column would simply match nothing:
+ *
+ * ```sql
+ * SELECT … WHERE id = 'not-an-id'   -- text: 0 rows · uuid: ERROR 22P02
+ * ```
+ *
+ * So: **an id value your store cannot represent MUST behave exactly like an id
+ * that is merely absent** — return `null`, return `false`, no-op — and MUST NOT
+ * throw. An adapter over a typed id column has to catch that error and turn it
+ * into the miss (Prisma raises P2023 "Inconsistent column data" for the same
+ * case). Otherwise the ownership checks that are documented to answer 404
+ * answer 500 instead, and a malformed id becomes a way to make endpoints fail.
+ *
+ * This is narrow on purpose: catch *that* error, on *that* argument. Every
+ * other database error must keep propagating.
+ *
+ * ## Scoped mutations are no-ops, not throws
+ *
+ * A mutation scoped to an owner (`markAsRead(userId, id)`, `delete(userId, …)`)
+ * that matches no row MUST no-op or return `false` — never throw. This is the
+ * same rule seen from the other side: "not yours" and "not there" are both
+ * misses, and the handler above turns a miss into 404. In Prisma terms: use
+ * `updateMany`/`deleteMany`, whose zero-match result is a count, not the
+ * P2025 that `update`/`delete` raise.
+ *
+ * Both rules are executable — see the conformance suite in `conformance.ts`.
+ *
+ * ## Other cross-cutting conventions
+ *
+ * - **Owner-first parameters**: the owning user id is the first argument of
+ *   every scoped method.
+ * - **Pre-normalized emails**: emails arrive trimmed and lowercased; match and
+ *   store them verbatim.
+ */
 import type { AuthUser, LockoutConfig } from '../../types.js';
 
 export interface FullAuthUser<R extends string = string> extends AuthUser<R> {
