@@ -25,7 +25,7 @@
  */
 
 import { readFile } from 'node:fs/promises';
-import { resolve } from 'node:path';
+import { dirname, resolve } from 'node:path';
 import type { LintReport } from '@urbicon-ui/design-engine/linter';
 import { lintDesign } from '@urbicon-ui/design-engine/linter';
 import { boolFlag, type Flags, stringFlag } from '../args.js';
@@ -37,6 +37,7 @@ import {
   resolveManifestPath
 } from '../manifest-io.js';
 import { EXIT, formatReport, printError } from '../output.js';
+import { findShapeDecision } from '../shape-decision.js';
 
 /** The code that makes Claude Code surface this process's stderr to the agent. */
 const HOOK_BLOCK = 2;
@@ -85,6 +86,12 @@ export async function runHook(_positionals: string[], flags: Flags): Promise<num
   const exempts = await readExempts(manifestPath);
   const strict = boolFlag(flags, 'strict');
   const skipHeuristics = boolFlag(flags, 'skip-heuristics');
+  // Same project-side resolution as `validate`: a shape decision taken at the tier
+  // level lives in a stylesheet, and the edited `.svelte` file cannot see it. This
+  // is the path that runs on *every* edit, so a false nudge here is the loudest one.
+  const shapeDecided = skipHeuristics
+    ? false
+    : (await findShapeDecision(dirname(manifestPath))) !== null;
 
   const reports = [];
   for (const p of paths) {
@@ -100,6 +107,7 @@ export async function runHook(_positionals: string[], flags: Flags): Promise<num
         filename: p,
         skipHeuristics,
         extraTokens,
+        shapeDecided,
         suppressRules: exemptRulesFor(abs, manifestPath, exempts)
       })
     );

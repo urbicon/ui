@@ -183,4 +183,17 @@ export interface LintOptions {
    * semantic; raw-palette and `dark:`/`focus:` gates are unaffected.
    */
   extraTokens?: readonly string[];
+  /**
+   * The project has already decided shape at the tier level (`--radius-commit` /
+   * `-modify` / `-contain` / `-bridge` declared in a theme or app stylesheet) —
+   * the same "context as parameter" channel as {@link extraTokens}, resolved by
+   * the caller because a single linted unit cannot see the project's CSS.
+   *
+   * Suppresses `no-radius-strategy` only. Without it, the note fires against
+   * exactly the projects that took the mechanism the design system sanctions
+   * (`principles.md`, "Semantic Radius Tiers") — a false positive that pushes
+   * them toward the per-element override the anti-pattern forbids. A unit that
+   * declares the tokens itself is recognised without this flag.
+   */
+  shapeDecided?: boolean;
 }

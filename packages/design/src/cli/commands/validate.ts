@@ -27,18 +27,7 @@ import {
   resolveManifestPath
 } from '../manifest-io.js';
 import { EXIT, formatReport, printError } from '../output.js';
-
-const SKIP_DIRS = new Set([
-  'node_modules',
-  '.svelte-kit',
-  '.git',
-  'dist',
-  'build',
-  '.next',
-  '.turbo',
-  'coverage'
-]);
-const MAX_DEPTH = 24;
+import { findShapeDecisionForRun, MAX_DEPTH, SKIP_DIRS } from '../shape-decision.js';
 
 interface Unit {
   label: string;
@@ -190,11 +179,22 @@ export async function runValidate(positionals: string[], flags: Flags): Promise<
     return EXIT.USAGE;
   }
 
+  // Project-level shape decision (a tier token retuned in a theme file). No linted
+  // `.svelte` unit can see it, so it is scanned once per run — from the manifest's
+  // directory (the project root by convention, which is what the hook and CI use)
+  // *and* from any directory that was passed in, so validating a tree somewhere
+  // else than the cwd finds that tree's stylesheets too.
+  const shapeDecisionAt = skipHeuristics
+    ? null
+    : await findShapeDecisionForRun(positionals, manifestPath);
+  const shapeDecided = shapeDecisionAt !== null;
+
   const reports: LintReport[] = units.map((unit) =>
     lintDesign(unit.code, {
       filename: unit.label,
       skipHeuristics,
       extraTokens,
+      shapeDecided,
       suppressRules: unit.abs ? exemptRulesFor(unit.abs, manifestPath, exempts) : undefined
     })
   );
@@ -218,7 +218,18 @@ export async function runValidate(positionals: string[], flags: Flags): Promise<
 
   if (asJson) {
     console.log(
-      JSON.stringify({ ok: !failed, strict, craftFloor, extraTokens, results: reports }, null, 2)
+      JSON.stringify(
+        {
+          ok: !failed,
+          strict,
+          craftFloor,
+          extraTokens,
+          shapeDecisionAt: shapeDecisionAt && label(shapeDecisionAt),
+          results: reports
+        },
+        null,
+        2
+      )
     );
     return failed ? EXIT.FAIL : EXIT.OK;
   }
@@ -233,6 +244,14 @@ export async function runValidate(positionals: string[], flags: Flags): Promise<
   if (extraTokens.length > 0) {
     console.log(
       `\n${extraTokens.length} project token override(s) applied from ${relative(process.cwd(), manifestPath).split(sep).join('/')}.`
+    );
+  }
+  // Say which file switched the shape nudge off. A suppression nobody can see is
+  // indistinguishable from a rule that stopped working — and one stray
+  // `--radius-contain:` in any stylesheet is enough to trigger it.
+  if (shapeDecisionAt !== null) {
+    console.log(
+      `\nShape decided at the tier in ${label(shapeDecisionAt)} — radius nudge answered.`
     );
   }
   if (gate.craftBreaches.length > 0) {

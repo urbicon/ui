@@ -238,7 +238,7 @@ function checkCardMonotony(code: string): Finding[] {
   return [];
 }
 
-/** "Commit to a radius": nudge when structural surfaces exist but no radius override does. */
+/** "Decide the shape": nudge when structural surfaces exist but no shape decision does. */
 function checkRadiusStrategy(code: string, atoms: string[]): Finding[] {
   // Only count genuine container surfaces. A bare `border`/`border-b` atom is far
   // more often a table row, list divider, or input frame than a Card-like surface,
@@ -246,15 +246,25 @@ function checkRadiusStrategy(code: string, atoms: string[]): Finding[] {
   const surfaceCount =
     (code.match(/<Card\b/g)?.length ?? 0) +
     (code.match(/<(?:Dialog|Drawer|Popover)\b/g)?.length ?? 0);
+  // A shape decision counts whichever way the system sanctions it. The tier token is
+  // the primary one and the note must not fire against it: a project that retunes
+  // `--radius-contain` in its theme has decided shape for every container at once,
+  // and telling it to add `rounded-*` classes would push it into the anti-pattern
+  // this rule exists to prevent (measured: run B9b did it right and got nudged anyway).
+  const hasTierDecision = /--radius-(?:commit|modify|contain|bridge)\s*:/.test(code);
   const hasRadiusOverride = atoms.some((a) => /^rounded(?:-|$)/.test(a));
-  if (surfaceCount >= HEURISTIC_THRESHOLDS.minSurfacesForRadius && !hasRadiusOverride) {
+  if (
+    surfaceCount >= HEURISTIC_THRESHOLDS.minSurfacesForRadius &&
+    !hasRadiusOverride &&
+    !hasTierDecision
+  ) {
     return [
       {
         ruleId: 'no-radius-strategy',
         severity: 'info',
         kind: 'heuristic',
-        message: 'Multiple surfaces but no explicit radius — relying solely on component defaults.',
-        fix: 'If the default tier radii do not match your design identity, commit to one philosophy (`rounded-lg`/`rounded-xl`/`rounded-2xl`) applied consistently via `class`/`slotClasses`.'
+        message: 'Multiple surfaces but no shape decision — relying solely on component defaults.',
+        fix: 'If the default tier radii do not match your design identity, retune the family tokens together in your theme (`--radius-commit`/`-modify`/`-contain`) — moving one alone leaves rounder controls inside squarer containers. Per-component: `BlocksProvider` `defaults`. A `class="rounded-*"` on a single element is the last resort. If the decision already lives in a theme file this file cannot see, this note is answered.'
       }
     ];
   }
@@ -751,7 +761,7 @@ export function maskTeachingCode(code: string): string {
  * example literals are additionally blanked first (see maskTeachingCode), so example
  * source shown on the page never scores on the craft axis.
  */
-export function runHeuristics(code: string): Finding[] {
+export function runHeuristics(code: string, shapeDecided = false): Finding[] {
   const scanned = maskTeachingCode(code);
   const atoms = collectAtoms(scanned);
   const lines = scanned.split('\n');
@@ -760,7 +770,7 @@ export function runHeuristics(code: string): Finding[] {
     ...checkIntentRainbow(atoms),
     ...checkSpacingUniformity(atoms),
     ...checkCardMonotony(scanned),
-    ...checkRadiusStrategy(scanned, atoms),
+    ...(shapeDecided ? [] : checkRadiusStrategy(scanned, atoms)),
     ...checkFontWeightUniformity(atoms),
     // Group 2 — token-bypass & generic defaults
     ...checkGenericFont(lines),

@@ -280,4 +280,77 @@ describe('urbicon validate', () => {
     await runValidate([file], { manifest: join(dir, 'design.manifest.md') });
     await expect(readFile(join(dir, 'design.manifest.history.ndjson'), 'utf-8')).rejects.toThrow();
   });
+
+  // A shape decision taken at the tier level lives in a stylesheet no linted
+  // `.svelte` unit can see, so `validate` resolves it project-side and hands it to
+  // the engine. Without this the note fires against exactly the projects that used
+  // the mechanism the design system sanctions.
+  describe('project-level shape decision', () => {
+    const cards = '<Card>a</Card><Card>b</Card><Card>c</Card>\n';
+    const notes = (): string => log.mock.calls.map((call: unknown[]) => String(call[0])).join('\n');
+
+    it('nudges when nothing decides shape', async () => {
+      await mkdir(join(dir, 'src'), { recursive: true });
+      await writeFile(join(dir, 'src', 'Page.svelte'), cards);
+      await runValidate([join(dir, 'src')], { manifest: join(dir, 'design.manifest.md') });
+      expect(notes()).toContain('no-radius-strategy');
+    });
+
+    it('stays quiet when a stylesheet retunes a tier token', async () => {
+      await mkdir(join(dir, 'src'), { recursive: true });
+      await writeFile(join(dir, 'src', 'Page.svelte'), cards);
+      await writeFile(
+        join(dir, 'src', 'app.css'),
+        '@theme {\n  --radius-contain: var(--radius-xl);\n}\n'
+      );
+      await runValidate([join(dir, 'src')], { manifest: join(dir, 'design.manifest.md') });
+      expect(notes()).not.toContain('no-radius-strategy');
+    });
+
+    it('finds the stylesheet from the manifest root when a single file is linted', async () => {
+      // The hook case: one edited file, theme two directories away.
+      await mkdir(join(dir, 'src', 'routes', 'settings'), { recursive: true });
+      const file = join(dir, 'src', 'routes', 'settings', '+page.svelte');
+      await writeFile(file, cards);
+      await writeFile(
+        join(dir, 'src', 'routes', 'layout.css'),
+        '@theme { --radius-contain: 0; }\n'
+      );
+      await runValidate([file], { manifest: join(dir, 'design.manifest.md') });
+      expect(notes()).not.toContain('no-radius-strategy');
+    });
+
+    it('does not accept a commented-out tier token as a decision', async () => {
+      // The expensive direction: a false negative here disables the nudge
+      // project-wide and silently.
+      await mkdir(join(dir, 'src'), { recursive: true });
+      await writeFile(join(dir, 'src', 'Page.svelte'), cards);
+      await writeFile(
+        join(dir, 'src', 'app.css'),
+        '/* --radius-contain: var(--radius-md); TODO: decide later */\n'
+      );
+      await runValidate([join(dir, 'src')], { manifest: join(dir, 'design.manifest.md') });
+      expect(notes()).toContain('no-radius-strategy');
+    });
+
+    it('names the file that answered the nudge, so the suppression is visible', async () => {
+      await mkdir(join(dir, 'src'), { recursive: true });
+      await writeFile(join(dir, 'src', 'Page.svelte'), cards);
+      await writeFile(join(dir, 'src', 'app.css'), '@theme { --radius-contain: 0; }\n');
+      await runValidate([join(dir, 'src')], { manifest: join(dir, 'design.manifest.md') });
+      expect(notes()).toContain('Shape decided at the tier in');
+      expect(notes()).toContain('app.css');
+    });
+
+    it('does not accept a mere reference to a tier token as a decision', async () => {
+      await mkdir(join(dir, 'src'), { recursive: true });
+      await writeFile(join(dir, 'src', 'Page.svelte'), cards);
+      await writeFile(
+        join(dir, 'src', 'app.css'),
+        '.tile { border-radius: var(--radius-contain); }\n'
+      );
+      await runValidate([join(dir, 'src')], { manifest: join(dir, 'design.manifest.md') });
+      expect(notes()).toContain('no-radius-strategy');
+    });
+  });
 });

@@ -89,7 +89,7 @@ export function lintDesign(code: string, opts: LintOptions = {}): LintReport {
     findings.push(...rule.check(scoped ? codeViewLines : lines, scoped ? codeView : masked, ctx));
   }
   if (!opts.skipHeuristics) {
-    findings.push(...runHeuristics(masked));
+    findings.push(...runHeuristics(masked, opts.shapeDecided ?? false));
   }
   findings.push(...suppression.findings);
 

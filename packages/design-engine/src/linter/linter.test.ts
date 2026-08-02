@@ -232,6 +232,36 @@ describe('heuristics', () => {
       '<Card class="rounded-xl">a</Card><Card class="rounded-xl">b</Card><Card class="rounded-xl">c</Card>';
     expect(has(lintDesign(code).findings, 'no-radius-strategy')).toBe(false);
   });
+  // The tier token is the mechanism the design system sanctions (principles.md,
+  // "Semantic Radius Tiers"); nudging a project that already decided shape there
+  // would push it toward the per-element override the anti-pattern forbids.
+  it('does NOT nudge when the shape decision lives in the tier tokens', () => {
+    const code =
+      '<Card>a</Card><Card>b</Card><Card>c</Card>\n' +
+      '<style>@theme { --radius-contain: var(--radius-md); --radius-commit: var(--radius-xl); }</style>';
+    expect(has(lintDesign(code).findings, 'no-radius-strategy')).toBe(false);
+  });
+  it('nudges when a tier token is only read, never declared', () => {
+    const code =
+      '<Card style="border-radius: var(--radius-contain)">a</Card><Card>b</Card><Card>c</Card>';
+    expect(has(lintDesign(code).findings, 'no-radius-strategy')).toBe(true);
+  });
+  // The caller-side half: a decision in a theme file the unit cannot see.
+  it('does NOT nudge when the caller reports a project-level shape decision', () => {
+    const code = '<Card>a</Card><Card>b</Card><Card>c</Card>';
+    expect(has(lintDesign(code, { shapeDecided: true }).findings, 'no-radius-strategy')).toBe(
+      false
+    );
+    expect(has(lintDesign(code, { shapeDecided: false }).findings, 'no-radius-strategy')).toBe(
+      true
+    );
+  });
+  it('shapeDecided suppresses only the radius nudge, not the other heuristics', () => {
+    const code = '<Card variant="quiet" padding="md">x</Card>'.repeat(4);
+    const findings = lintDesign(code, { shapeDecided: true }).findings;
+    expect(has(findings, 'no-radius-strategy')).toBe(false);
+    expect(has(findings, 'card-monotony')).toBe(true);
+  });
   it('does NOT treat bordered table rows / dividers as surfaces (no false radius nudge)', () => {
     const code =
       '<table><tr class="border-b"><td>a</td></tr><tr class="border-b"><td>b</td></tr><tr class="border-b"><td>c</td></tr></table>';
