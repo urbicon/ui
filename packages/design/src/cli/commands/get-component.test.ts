@@ -49,6 +49,34 @@ describe('runGetComponent', () => {
     expect(stderr()).toContain('slug');
   });
 
+  it('prints several components in one call, each under its own heading', async () => {
+    const code = await runGetComponent(['button', 'card'], { section: 'api' });
+    expect(code).toBe(0);
+    // Without the heading a sliced batch is four identical "### API" blocks.
+    expect(stdout()).toContain('## button');
+    expect(stdout()).toContain('## card');
+    expect(stdout()).toContain('Surface treatment.');
+  });
+
+  it('keeps a single call free of the batch heading', async () => {
+    await runGetComponent(['button'], { section: 'api' });
+    expect(stdout()).not.toContain('## button');
+  });
+
+  it('drops repeats instead of printing a component twice', async () => {
+    await runGetComponent(['button', 'Button', 'button'], { section: 'api' });
+    expect(stdout().match(/### API/g)).toHaveLength(1);
+  });
+
+  it('prints the components it can find even when one slug is wrong', async () => {
+    // A failed round-trip costs more than the error is worth, so the good ones
+    // still print — but the exit code stays non-zero.
+    const code = await runGetComponent(['button', 'nosuchthing'], { section: 'api' });
+    expect(code).toBe(1);
+    expect(stdout()).toContain('## button');
+    expect(stderr()).toContain('not found');
+  });
+
   it('rejects an unknown section as a usage error', async () => {
     const code = await runGetComponent(['button'], { section: 'bogus' });
     expect(code).toBe(2);

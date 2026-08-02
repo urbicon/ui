@@ -1,0 +1,15 @@
+# Card
+
+A surface that groups related content.
+
+### Examples
+
+```svelte
+<Card variant="outlined">Content</Card>
+```
+
+### API
+
+| Prop | Type | Default | Description |
+| --- | --- | --- | --- |
+| variant | string | outlined | Surface treatment. |

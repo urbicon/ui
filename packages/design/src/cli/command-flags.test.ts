@@ -188,10 +188,14 @@ describe('checkPositionals', () => {
   });
 
   it('rejects a second argument where one is read', () => {
-    const result = checkPositionals('get-component', ['button', 'api']);
+    const result = checkPositionals('pattern', ['settings-page', 'form-page']);
     expect(result.ok).toBe(false);
     expect(result.ok === false && result.message).toContain('takes one argument');
-    expect(result.ok === false && result.message).toContain('--section');
+    expect(result.ok === false && result.message).toContain('lists them');
+  });
+
+  it('lets get-component take a batch of slugs', () => {
+    expect(checkPositionals('get-component', ['card', 'avatar', 'badge']).ok).toBe(true);
   });
 
   it('leaves variadic commands and in-budget calls alone', () => {

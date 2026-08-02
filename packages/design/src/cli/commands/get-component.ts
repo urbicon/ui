@@ -91,8 +91,7 @@ function noteSectionFlag(slug: string, bytes: number): void {
 }
 
 export async function runGetComponent(positionals: string[], flags: Flags): Promise<number> {
-  const requested = positionals[0];
-  if (!requested) {
+  if (positionals.length === 0) {
     printError('get-component needs a component slug, e.g. `urbicon get-component button`');
     return EXIT.USAGE;
   }
@@ -103,6 +102,40 @@ export async function runGetComponent(positionals: string[], flags: Flags): Prom
     return EXIT.USAGE;
   }
 
+  // Composing a screen needs four or five APIs, and asking for them one call at a
+  // time is the single most common thing anyone does with this CLI (198 of the
+  // calls in the 2026-08 eval, more than twice the next command). Agents already
+  // worked around the gap by writing their own `for c in card avatar dialog; do
+  // …; done` — when the caller builds the batch loop themselves, the batch
+  // belongs in the tool.
+  //
+  // Duplicates are dropped rather than printed twice; one bad slug reports itself
+  // and the rest still print, because a failed round-trip costs more than the
+  // error is worth.
+  const seen = new Set<string>();
+  const wanted = positionals.filter((p) => {
+    const key = fold(p);
+    if (key === '' || seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  });
+  let worst: number = EXIT.OK;
+  for (const [i, requested] of wanted.entries()) {
+    if (i > 0) console.log(`\n${'─'.repeat(60)}\n`);
+    // Only in a batch, and on stdout because it *is* the content: a sliced
+    // `--section api` prints just "### Api", so four of them in a row are
+    // unattributable without this. A single call keeps its clean pipe.
+    const code = await printComponent(requested, section, wanted.length > 1);
+    if (code !== EXIT.OK) worst = code;
+  }
+  return worst;
+}
+
+async function printComponent(
+  requested: string,
+  section: string | undefined,
+  withHeading: boolean
+): Promise<number> {
   const notFound = (): number => {
     printError(
       `component "${requested}" not found. Run \`urbicon find <query>\` to discover the slug.`
@@ -140,6 +173,7 @@ export async function runGetComponent(positionals: string[], flags: Flags): Prom
   }
 
   await warnIfNotInstalled(slug);
+  if (withHeading) console.log(`## ${slug}\n`);
 
   // Default / explicit `full` → the complete llm.txt.
   if (!section || section === 'full') {

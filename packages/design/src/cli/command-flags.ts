@@ -26,7 +26,7 @@ export const GLOBAL_FLAGS: readonly string[] = ['help', 'version'];
  * help text: a flag that no code path reads is not accepted, however plausible.
  */
 export const COMMAND_FLAGS: Readonly<Record<string, readonly string[]>> = {
-  init: ['hook', 'ci', 'agents-file', 'manifest', 'with-primer'],
+  init: ['hook', 'ci', 'agents-file', 'manifest', 'with-primer', 'claude-md'],
   validate: ['json', 'strict', 'craft-floor', 'skip-heuristics', 'record', 'manifest'],
   hook: ['strict', 'craft-floor', 'skip-heuristics', 'manifest'],
   find: ['json', 'limit', 'tag', 'query'],
@@ -141,10 +141,9 @@ export const COMMAND_POSITIONALS: Readonly<Record<string, PositionalSpec>> = {
     hint: '`hook` reads the edit event on stdin — to lint a file, run `urbicon validate <path>`.'
   },
   find: { max: Number.POSITIVE_INFINITY },
-  'get-component': {
-    max: 1,
-    hint: 'One slug per call; for one part of the API use `--section overview|examples|variants|api|slots`.'
-  },
+  // Several slugs per call: composing one screen needs four or five APIs, and
+  // `--section` then applies to all of them.
+  'get-component': { max: Number.POSITIVE_INFINITY },
   primer: {
     max: 0,
     hint: 'It is the same bundle every time — `urbicon primer` takes no argument.'
