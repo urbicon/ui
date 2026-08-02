@@ -9,6 +9,30 @@
  * SINGLE SOURCE for the criteria: the
  * `get_design_principles(as="rubric")` tool renders it to Markdown, and the
  * eval-suite (WP5) imports the same constants to score programmatically.
+ *
+ * REVISED 2026-08-02 (`radius`, `ux`, plus the linter reference). Scores taken
+ * before and after that date are NOT comparable on those two axes — any delta
+ * has to have both of its sides judged under one version. The revision came out
+ * of reading the rubric against the library it judges (docs/internal,
+ * DESIGN-EVAL-2026-08/RUBRIK-AUDIT.md):
+ *
+ * - `radius` rewarded a per-element ladder ("hero > standard > compact" via
+ *   `class`) — which is what the design system's own anti-pattern forbids, since
+ *   the library decides shape by component *family* (`--radius-commit`/`-modify`/
+ *   `-contain`). A page that used the system correctly could not score above 2.
+ *   The anchors now measure whether shape *reads* as decided, and treat the
+ *   mechanism as what it is: the tier for the decision, a per-surface class only
+ *   for the optical exception.
+ *
+ *   Two drafts of that anchor smuggled in concentric-corner logic ("the outer box
+ *   must not be the tighter"), which condemns the library's own default — a pill
+ *   Button inside a 2px Card — and with it every quieter voicing of the same
+ *   ranking (`commit: lg` over `contain: sm`). The tiers rank *roles*, not
+ *   nesting: actions softest, fields between, containers tightest. What the
+ *   anchor asks now is only whether a reader can state the rule.
+ * - `ux` was named "Pattern Originality" but was, in practice, scored on whether
+ *   the patterns work (an action with no handler capped runs far more often than
+ *   a lack of invention did). The name and anchors now say that.
  */
 
 export interface RubricCriterion {
@@ -55,21 +79,21 @@ export const RUBRIC_CRITERIA: readonly RubricCriterion[] = [
   {
     id: 'radius',
     name: 'Radius & Shape Language',
-    measures: 'Whether shape is a deliberate choice.',
+    measures: 'Whether shape reads as decided — across component families, not per element.',
     anchors: {
-      1: 'Zero radius intent — component defaults only, no shape strategy.',
-      3: 'Some radius use, but inconsistent (mixed methods, no hierarchy).',
-      5: 'A deliberate radius hierarchy (e.g. hero > standard > compact) applied consistently via `class`/`slotClasses`.'
+      1: 'Shape reads as accident: the family defaults are left where they fell and their tension is never resolved — pill controls against near-square containers, on surfaces too small for a hairline edge to read as an edge at all.',
+      3: 'A decision exists but you cannot state its rule — one family retuned while the others keep values that no longer relate to it, or one-off `rounded-*` on individual elements that disagree with the components beside them.',
+      5: 'One legible shape system across the page: actions, fields and containers each read as themselves, and the ranking between them is one a reader could state. Reached either by composing the defaults so the contrast is intentional, or by retuning the tier tokens (`--radius-commit`/`-modify`/`-contain`) together. Note that in this system the inner element is normally the rounder one — a pill control inside a hairline-edged container is the design, not an inversion; a project may re-order that deliberately, but then carries it everywhere. A per-surface radius appears only for the optical exception (a small tinted tile, a panel under a pill trigger) and is obvious as such.'
     }
   },
   {
     id: 'ux',
-    name: 'UX Pattern Originality',
-    measures: 'Whether interaction patterns go beyond the textbook.',
+    name: 'UX Pattern Quality',
+    measures: 'Whether interaction patterns go beyond the textbook — and whether they work.',
     anchors: {
-      1: 'Textbook only — divider lists, stacked buttons, defaults throughout.',
-      3: 'A few genuine UX touches (a thoughtful empty state, a useful affordance).',
-      5: 'Creative, effective patterns that serve the content — original compositions, state-driven layout.'
+      1: 'Textbook only — divider lists, stacked buttons, defaults throughout — or patterns that exist in the markup but do not function (an action with no handler, a link that goes nowhere, a callback never passed down).',
+      3: 'A few genuine UX touches (a thoughtful empty state, a useful affordance), with the primary paths wired and working.',
+      5: 'Creative, effective patterns that serve the content — original compositions, state-driven layout — and every affordance the page offers does what it promises.'
     }
   },
   {
@@ -99,7 +123,7 @@ export const RUBRIC_CRITERIA: readonly RubricCriterion[] = [
     anchors: {
       1: 'Hallucinated tokens, broken dynamic classes, or wrong component APIs — would not render as intended.',
       3: 'Largely correct with a few token or API slips.',
-      5: 'Valid semantic tokens, correct Svelte 5 and component APIs, no broken classes. Anchor this with `validate_design` — a passing linter (0 errors/warnings) puts this at 4–5.'
+      5: 'Valid semantic tokens, correct Svelte 5 and component APIs, no broken classes. Anchor this with the design linter (`urbicon validate`, or the `validate_design` tool) — a passing linter (0 errors/warnings) puts this at 4–5.'
     }
   }
 ];
@@ -112,7 +136,8 @@ export function renderRubric(): string {
   md += `Score a generated UI on each of the ${RUBRIC_CRITERIA.length} criteria from **1 to 5**, then sum to **/${MAX_RUBRIC_SCORE}**. `;
   md +=
     'For every score, cite specific evidence from the code (a class, a component, a layout choice) — a number without a reason is not a judgement.\n\n';
-  md += '**Before scoring, run `validate_design` on the code.** It deterministically catches the ';
+  md +=
+    '**Before scoring, run the design linter on the code** (`urbicon validate`, or the `validate_design` tool). It deterministically catches the ';
   md +=
     'correctness failures (hallucinated tokens, broken dynamic classes) that a judge tends to miss, and it anchors the *Technical Correctness* criterion.\n\n';
 
@@ -133,8 +158,10 @@ export function renderRubric(): string {
   md +=
     '- **As a panel (recommended for variant selection):** run one judge per *lens* — correctness, hierarchy, paradigm-fidelity, distinctiveness — rather than N identical judges. Diversity of lens catches failures redundancy cannot.\n';
   md +=
-    '- **For N variants:** score each, pick the winner, then graft the best ideas from the runners-up before a final `validate_design` pass.\n';
+    '- **For N variants:** score each, pick the winner, then graft the best ideas from the runners-up before a final linter pass.\n';
   md +=
-    '- **Reward deviation within the rules.** A safe, generic page should not outscore a distinctive one that stays inside the paradigm. Penalise AI-slop sameness on *Distinctiveness* and *UX Pattern Originality*.\n';
+    "- **Judge the surfaces the author designed.** A route that is a shipped block used as intended (an auth screen rendered by the library's own `LoginPage`, a settings composite) is correct use of the system, not an identity failure — name it in the rationale and score *Distinctiveness* on what the author actually composed.\n";
+  md +=
+    '- **Reward deviation within the rules.** A safe, generic page should not outscore a distinctive one that stays inside the paradigm. Penalise AI-slop sameness on *Distinctiveness* and *UX Pattern Quality*.\n';
   return md;
 }
