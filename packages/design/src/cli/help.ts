@@ -84,21 +84,46 @@ export const HELP = `urbicon — design validation & manifest tooling for Urbico
 Usage:
   urbicon <command> [options]
 
-Commands:
-  init                  Wire this project into the design loop: insert the AGENTS.md
-                        context block + scaffold design.manifest.md, then print next
-                        steps. Idempotent and non-destructive: re-runs refresh the
-                        block in place (wherever it lives — AGENTS.md or CLAUDE.md)
-                        and stamp it with the CLI version; customised hook/CI files
-                        are kept and reported, never overwritten.
-                        --hook             Also merge the PostToolUse gate into
-                                           .claude/settings.json.
-                        --ci               Also write .github/workflows/design-gate.yml.
-                        --agents-file <p>  Target for the context block (default AGENTS.md).
-                        --manifest <path>  Manifest path (default ./design.manifest.md).
-                        --with-primer      Include the "load the primer" step (default on).
-                                           Use --with-primer=false when the block feeds a
-                                           harness that injects the primer itself.
+Commands — knowledge (what to build with):
+  primer                The knowledge every task needs, in one call: how to pick a
+                        component + the token reference (surfaces, text, borders,
+                        intents, shadows). Run it first. Patterns, recipes and
+                        component APIs stay on demand — they are task-dependent.
+  find [query]          Discover components by fuzzy search over the version-pinned
+                        catalog (names, tags, descriptions). No query lists all.
+                        --tag <t>          Filter by category tag (form, action, …).
+                        --limit <n>        Max results (default 10; also caps a full list).
+                        --json             Machine-readable catalog entries.
+  get-component <slug…> Print a component's API (its llm.txt) from the bundle.
+                        Takes several slugs — one call for a whole screen's worth.
+                        --section <s>      overview | examples | variants | api | slots |
+                                           full (default: full). Applies to every slug.
+  pattern [name]        Composition patterns (settings-page, dashboard, …). No name
+                        lists all; a name prints the full pattern.
+                        --json             Machine-readable pattern list.
+  recipe [id]           Complete Svelte 5 code recipes from the catalog. No id lists
+                        all; an id prints the full recipe (incl. code).
+                        --json             Machine-readable recipe (or list).
+  icons [query]         Icon discovery. A query ranks matches; no query prints the
+                        full reference grouped by category.
+                        --limit <n>        Max results (default 20; also caps the full list).
+                        --json             Machine-readable icon entries.
+  css-reference [sect]  CSS token reference: naming, dark mode, override patterns.
+                        No section prints the overview.
+                        Sections: ${CSS_REFERENCE_SECTION_LIST}
+  principles            The design heuristics (visual hierarchy, interaction, layout,
+                        theming, …) from the version-pinned bundle.
+                        --topic <t>        visual-hierarchy | interaction |
+                                           component-selection | layout | accessibility |
+                                           theming.
+                        --rubric           Print the 8-criterion 1–5 scoring rubric
+                                           instead (the judge step; ignores --topic).
+  guide [slug]          Package guides from the version-pinned bundle (auth
+                        reference, blocks guide system, migration notes, table
+                        scroll models). No slug lists all; a slug prints the guide.
+                        --json             Machine-readable guide list.
+
+Commands — judgment (is what you built right):
   validate [paths...]   Lint .svelte markup against the Urbicon UI design rules.
                         Paths may be files, directories, or "-" (stdin).
                         Reads ## Token Overrides from the manifest (if any) so your
@@ -128,42 +153,26 @@ Commands:
                         --skip-heuristics  Deterministic rules only.
                         --manifest <path>  Manifest for token overrides
                                            (default ./design.manifest.md).
-  find [query]          Discover components by fuzzy search over the version-pinned
-                        catalog (names, tags, descriptions). No query lists all.
-                        --tag <t>          Filter by category tag (form, action, …).
-                        --limit <n>        Max results (default 10; also caps a full list).
-                        --json             Machine-readable catalog entries.
-  get-component <slug>  Print a component's API (its llm.txt) from the bundle.
-                        --section <s>      overview | examples | variants | api | slots |
-                                           full (default: full).
-  primer                The knowledge every task needs, in one call: how to pick a
-                        component + the token reference (surfaces, text, borders,
-                        intents, shadows). Run it first. Patterns, recipes and
-                        component APIs stay on demand — they are task-dependent.
-  pattern [name]        Composition patterns (settings-page, dashboard, …). No name
-                        lists all; a name prints the full pattern.
-                        --json             Machine-readable pattern list.
-  principles            The design heuristics (visual hierarchy, interaction, layout,
-                        theming, …) from the version-pinned bundle.
-                        --topic <t>        visual-hierarchy | interaction |
-                                           component-selection | layout | accessibility |
-                                           theming.
-                        --rubric           Print the 8-criterion 1–5 scoring rubric
-                                           instead (the judge step; ignores --topic).
-  css-reference [sect]  CSS token reference: naming, dark mode, override patterns.
-                        No section prints the overview.
-                        Sections: ${CSS_REFERENCE_SECTION_LIST}
-  icons [query]         Icon discovery. A query ranks matches; no query prints the
-                        full reference grouped by category.
-                        --limit <n>        Max results (default 20; also caps the full list).
-                        --json             Machine-readable icon entries.
-  recipe [id]           Complete Svelte 5 code recipes from the catalog. No id lists
-                        all; an id prints the full recipe (incl. code).
-                        --json             Machine-readable recipe (or list).
-  guide [slug]          Package guides from the version-pinned bundle (auth
-                        reference, blocks guide system, migration notes, table
-                        scroll models). No slug lists all; a slug prints the guide.
-                        --json             Machine-readable guide list.
+  i18n [check] [dirs…]  Audit @urbicon-ui/i18n usage. check = parity | unused |
+                        hardcoded | audit (all, default). Run under Bun.
+                        --translations <d> Locale-bundle dir(s), comma-separated
+                                           (default src/lib/translations).
+                        --config <path>    i18n.audit.json (default ./i18n.audit.json).
+                        --dynamic-keys <g> Key globs built dynamically (errors.*).
+                        --ignore-keys <g>  Key globs to skip entirely.
+                        --ignore-strings <g> Hardcoded-string globs to skip.
+                        --function-names <n> Translate-function names to scan for,
+                                           comma-separated (default t, dt).
+                        --runtime-usage <p> JSON array of keys observed at runtime;
+                                           they count as used even if no call site
+                                           mentions them literally.
+                        --base-locale <l>  Parity base (default en).
+                        --json             Machine-readable report.
+                        --strict           Gate on advisory findings too.
+                        Gates on parity errors + used-but-undefined; unused,
+                        hardcoded and parity warnings are advisory.
+
+Commands — memory (what this project already decided):
   context               Print the project's design.manifest.md summary. Warns when
                         the init context block no longer matches the installed
                         CLI's template.
@@ -185,26 +194,30 @@ Commands:
                         --src <dir>        Source tree to scan (default ./src).
                         --manifest <path>  Manifest file (default ./design.manifest.md).
                         --json             Emit the scan result as JSON.
-  i18n [check] [dirs…]  Audit @urbicon-ui/i18n usage. check = parity | unused |
-                        hardcoded | audit (all, default). Run under Bun.
-                        --translations <d> Locale-bundle dir(s), comma-separated
-                                           (default src/lib/translations).
-                        --config <path>    i18n.audit.json (default ./i18n.audit.json).
-                        --dynamic-keys <g> Key globs built dynamically (errors.*).
-                        --ignore-keys <g>  Key globs to skip entirely.
-                        --ignore-strings <g> Hardcoded-string globs to skip.
-                        --function-names <n> Translate-function names to scan for,
-                                           comma-separated (default t, dt).
-                        --runtime-usage <p> JSON array of keys observed at runtime;
-                                           they count as used even if no call site
-                                           mentions them literally.
-                        --base-locale <l>  Parity base (default en).
-                        --json             Machine-readable report.
-                        --strict           Gate on advisory findings too.
-                        Gates on parity errors + used-but-undefined; unused,
-                        hardcoded and parity warnings are advisory.
+
+Commands — process & setup:
   verbs                 List the design verbs (recipes over the design loop).
   verb <name>           Print one verb recipe, e.g. "urbicon verb compose".
+  init                  Wire this project into the design loop: insert the AGENTS.md
+                        context block + scaffold design.manifest.md, wire CLAUDE.md to
+                        import it, then print next steps. Idempotent and
+                        non-destructive: re-runs refresh the block in place (wherever
+                        it lives — AGENTS.md or CLAUDE.md) and stamp it with the CLI
+                        version; customised hook/CI files are kept and reported,
+                        never overwritten.
+                        --hook             Also merge the PostToolUse gate into
+                                           .claude/settings.json.
+                        --ci               Also write .github/workflows/design-gate.yml.
+                        --agents-file <p>  Target for the context block (default AGENTS.md).
+                        --manifest <path>  Manifest path (default ./design.manifest.md).
+                        --claude-md        Wire CLAUDE.md to "@AGENTS.md" so Claude Code
+                                           loads the block (default on). Claude Code does
+                                           not read AGENTS.md on its own — without this the
+                                           block only reaches the agent by accident. Use
+                                           --claude-md=false when your harness delivers it.
+                        --with-primer      Include the "load the primer" step (default on).
+                                           Use --with-primer=false when the block feeds a
+                                           harness that injects the primer itself.
   version               Print the installed @urbicon-ui/design version.
   help                  Show this help. "urbicon help <command>" (or "<command> --help")
                         shows just that command.
