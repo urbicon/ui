@@ -1,4 +1,5 @@
 <script lang="ts" generics="Item">
+  import { resolveDateLocale, useI18n } from '@urbicon-ui/i18n';
   import { dateCellVariants, type DateCellVariantProps } from '$lib/variants';
 
   export type DateCellProps<Item> = {
@@ -6,6 +7,15 @@
     dateKey?: keyof Item;
     format?: 'short' | 'medium' | 'long' | 'relative' | 'datetime';
     customFormat?: (date: Date) => string;
+    /**
+     * BCP 47 tag to format with, or `'auto'` (the default) to follow the active
+     * `<I18nProvider>` locale.
+     *
+     * Was `undefined` until 2026-08-02, which handed `Intl` the *runtime*
+     * locale: the Node/Bun process on the server, the user's browser after
+     * hydration. The same cell rendered `3/12/2026` in the prerendered HTML and
+     * `12.03.2026` in the client tree.
+     */
     locale?: string;
     showTime?: boolean;
     timezone?: string;
@@ -21,7 +31,7 @@
     dateKey = undefined,
     format = 'medium',
     customFormat = undefined,
-    locale = undefined as string | undefined,
+    locale = 'auto',
     showTime = false,
     timezone = undefined,
     fallback = '—',
@@ -30,6 +40,13 @@
     testId = undefined,
     size = 'md'
   }: DateCellProps<Item> = $props();
+
+  // `explicit prop → provider → base locale`. Never `undefined`: that follows
+  // the runtime, which differs across the SSR boundary. See
+  // @urbicon-ui/i18n's resolve-date-locale.ts for why the prop is trusted and
+  // the context value is not.
+  const i18n = useI18n();
+  const resolvedLocale = $derived(resolveDateLocale(locale, i18n.locale));
 
   // Extract date value from item
   const extractDate = (item: Item, key?: keyof Item): Date | null => {
@@ -90,7 +107,7 @@
         options.timeZone = timezone;
       }
 
-      return new Intl.DateTimeFormat(locale, options).format(date);
+      return new Intl.DateTimeFormat(resolvedLocale, options).format(date);
     } catch (error) {
       console.warn('DateCell: Error formatting date', error);
       return fallback;
@@ -105,10 +122,10 @@
     const diffMinutes = Math.floor(diffMs / (1000 * 60));
 
     if (Math.abs(diffDays) > 7) {
-      return new Intl.DateTimeFormat(locale, { dateStyle: 'short' }).format(date);
+      return new Intl.DateTimeFormat(resolvedLocale, { dateStyle: 'short' }).format(date);
     }
 
-    const rtf = new Intl.RelativeTimeFormat(locale, { numeric: 'auto' });
+    const rtf = new Intl.RelativeTimeFormat(resolvedLocale, { numeric: 'auto' });
 
     if (diffMs < 0) {
       const futureDays = Math.abs(diffDays);
@@ -135,7 +152,7 @@
     const date = dateValue;
     if (!date) return undefined;
 
-    const fullFormat = new Intl.DateTimeFormat(locale, {
+    const fullFormat = new Intl.DateTimeFormat(resolvedLocale, {
       dateStyle: 'full',
       timeStyle: 'medium',
       timeZone: timezone
