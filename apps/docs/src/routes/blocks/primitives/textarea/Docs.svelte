@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { CodeExample, Section } from '@urbicon-ui/docs';
+  import { CodeExample, Note, NoteList, Section } from '@urbicon-ui/docs';
   import { Textarea } from '@urbicon-ui/blocks';
   import { resolve } from '$app/paths';
 
@@ -139,43 +139,37 @@
 <!-- ─── Accessibility ─── -->
 
 <Section marker="03" id="accessibility" title="Accessibility">
-  <div class="border-border-subtle bg-surface-elevated rounded-2xl border p-6">
-    <div class="divide-border-subtle divide-y">
-      <div class="pb-4">
-        <h4 class="text-text-primary mb-1.5 text-sm font-semibold">Labels & Descriptions</h4>
-        <p class="text-text-secondary text-sm leading-relaxed">
-          The <code class="text-text-primary">label</code> prop creates an associated
-          <code class="text-text-primary">&lt;label&gt;</code> element linked via
-          <code class="text-text-primary">for</code>/<code class="text-text-primary">id</code>.
-          Helper and error text are linked via
-          <code class="text-text-primary">aria-describedby</code>, and errors set
-          <code class="text-text-primary">aria-invalid</code>.
-        </p>
-      </div>
-      <div class="py-4">
-        <h4 class="text-text-primary mb-1.5 text-sm font-semibold">Character Counter</h4>
-        <p class="text-text-secondary text-sm leading-relaxed">
-          The character counter uses
-          <code class="text-text-primary">aria-live="polite"</code> to announce remaining characters to
-          screen readers. Color changes at warning/over thresholds are paired with text for non-color-dependent
-          feedback.
-        </p>
-      </div>
-      <div class="py-4">
-        <h4 class="text-text-primary mb-1.5 text-sm font-semibold">Keyboard</h4>
-        <p class="text-text-secondary text-sm leading-relaxed">
-          Standard textarea keyboard behavior. Focus rings use
-          <code class="text-text-primary">focus-visible:</code> for keyboard-only visibility. Auto-resize
-          does not interfere with keyboard interaction or scroll position.
-        </p>
-      </div>
-      <div class="pt-4">
-        <h4 class="text-text-primary mb-1.5 text-sm font-semibold">Reduced Motion</h4>
-        <p class="text-text-secondary text-sm leading-relaxed">
-          Mint effects respect <code class="text-text-primary">prefers-reduced-motion</code>. The
-          auto-resize height adjustment is instantaneous and does not animate.
-        </p>
-      </div>
-    </div>
-  </div>
+  <NoteList>
+    <Note title="Labels & Descriptions">
+      <p>
+        The <code class="text-text-primary">label</code> prop creates an associated
+        <code class="text-text-primary">&lt;label&gt;</code> element linked via
+        <code class="text-text-primary">for</code>/<code class="text-text-primary">id</code>. Helper
+        and error text are linked via
+        <code class="text-text-primary">aria-describedby</code>, and errors set
+        <code class="text-text-primary">aria-invalid</code>.
+      </p>
+    </Note>
+    <Note title="Character Counter">
+      <p>
+        The character counter uses
+        <code class="text-text-primary">aria-live="polite"</code> to announce remaining characters to
+        screen readers. Color changes at warning/over thresholds are paired with text for non-color-dependent
+        feedback.
+      </p>
+    </Note>
+    <Note title="Keyboard">
+      <p>
+        Standard textarea keyboard behavior. Focus rings use
+        <code class="text-text-primary">focus-visible:</code> for keyboard-only visibility. Auto-resize
+        does not interfere with keyboard interaction or scroll position.
+      </p>
+    </Note>
+    <Note title="Reduced Motion">
+      <p>
+        Mint effects respect <code class="text-text-primary">prefers-reduced-motion</code>. The
+        auto-resize height adjustment is instantaneous and does not animate.
+      </p>
+    </Note>
+  </NoteList>
 </Section>

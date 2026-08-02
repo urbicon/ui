@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { CodeExample, Section } from '@urbicon-ui/docs';
+  import { CodeExample, Note, NoteList, Section } from '@urbicon-ui/docs';
   import { Button, Drawer, Input, Separator, Toggle } from '@urbicon-ui/blocks';
   import { r } from '$lib/route';
 
@@ -238,49 +238,42 @@ overlayStack.topId;   // string | null`}</code
 <!-- ─── Accessibility ─── -->
 
 <Section marker="05" id="accessibility" title="Accessibility">
-  <div class="border-border-subtle bg-surface-elevated rounded-2xl border p-6">
-    <div class="divide-border-subtle divide-y">
-      <div class="pb-4">
-        <h4 class="text-text-primary mb-1.5 text-sm font-semibold">Focus Trap</h4>
-        <p class="text-text-secondary text-sm leading-relaxed">
-          When open, focus is trapped inside the drawer panel.
-          <kbd
-            class="bg-surface-base border-border-subtle rounded-modify border px-1.5 py-0.5 text-xs font-medium"
-            >Tab</kbd
-          >
-          cycles through focusable elements. On close, focus returns to the element that triggered the
-          drawer.
-        </p>
-      </div>
-      <div class="py-4">
-        <h4 class="text-text-primary mb-1.5 text-sm font-semibold">ARIA</h4>
-        <p class="text-text-secondary text-sm leading-relaxed">
-          Uses native <code class="text-text-primary">&lt;dialog&gt;</code> with
-          <code class="text-text-primary">aria-labelledby</code> linked to the title and
-          <code class="text-text-primary">aria-describedby</code> linked to the body content. The
-          close button has an <code class="text-text-primary">aria-label</code>.
-        </p>
-      </div>
-      <div class="py-4">
-        <h4 class="text-text-primary mb-1.5 text-sm font-semibold">Keyboard</h4>
-        <p class="text-text-secondary text-sm leading-relaxed">
-          <kbd
-            class="bg-surface-base border-border-subtle rounded-modify border px-1.5 py-0.5 text-xs font-medium"
-            >Escape</kbd
-          >
-          closes the drawer (configurable via
-          <code class="text-text-primary">closeOnEscape</code>). Backdrop click dismiss is also
-          configurable.
-        </p>
-      </div>
-      <div class="pt-4">
-        <h4 class="text-text-primary mb-1.5 text-sm font-semibold">Reduced Motion</h4>
-        <p class="text-text-secondary text-sm leading-relaxed">
-          Slide and fade transitions respect
-          <code class="text-text-primary">prefers-reduced-motion</code>. The drawer appears and
-          disappears instantly without animation.
-        </p>
-      </div>
-    </div>
-  </div>
+  <NoteList>
+    <Note title="Focus Trap">
+      <p>
+        When open, focus is trapped inside the drawer panel.
+        <kbd
+          class="bg-surface-base border-border-subtle rounded-modify border px-1.5 py-0.5 text-xs font-medium"
+          >Tab</kbd
+        >
+        cycles through focusable elements. On close, focus returns to the element that triggered the drawer.
+      </p>
+    </Note>
+    <Note title="ARIA">
+      <p>
+        Uses native <code class="text-text-primary">&lt;dialog&gt;</code> with
+        <code class="text-text-primary">aria-labelledby</code> linked to the title and
+        <code class="text-text-primary">aria-describedby</code> linked to the body content. The
+        close button has an <code class="text-text-primary">aria-label</code>.
+      </p>
+    </Note>
+    <Note title="Keyboard">
+      <p>
+        <kbd
+          class="bg-surface-base border-border-subtle rounded-modify border px-1.5 py-0.5 text-xs font-medium"
+          >Escape</kbd
+        >
+        closes the drawer (configurable via
+        <code class="text-text-primary">closeOnEscape</code>). Backdrop click dismiss is also
+        configurable.
+      </p>
+    </Note>
+    <Note title="Reduced Motion">
+      <p>
+        Slide and fade transitions respect
+        <code class="text-text-primary">prefers-reduced-motion</code>. The drawer appears and
+        disappears instantly without animation.
+      </p>
+    </Note>
+  </NoteList>
 </Section>

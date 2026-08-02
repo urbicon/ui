@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { CodeExample, Section } from '@urbicon-ui/docs';
+  import { CodeExample, Note, NoteList, Section } from '@urbicon-ui/docs';
   import { asset } from '$app/paths';
   import { SourceFooter, CitationStyles, FromStreamingMarkdown } from './examples';
 
@@ -37,39 +37,34 @@
 </Section>
 
 <Section marker="02" id="accessibility" title="Accessibility">
-  <div class="border-border-subtle bg-surface-elevated rounded-2xl border p-6">
-    <div class="divide-border-subtle divide-y">
-      <div class="pb-4">
-        <h4 class="text-text-primary mb-1.5 text-sm font-semibold">Descriptive trigger label</h4>
-        <p class="text-text-secondary text-sm leading-relaxed">
-          A bare "[1]" tells a screen reader nothing, so the trigger's
-          <code class="text-text-primary">aria-label</code> defaults to
-          <code class="text-text-primary">Source {'{index}'}: {'{title}'}</code> (or
-          <code class="text-text-primary">Source: {'{title}'}</code> with no index). Override it
-          with the <code class="text-text-primary">label</code> prop when you need different wording.
-        </p>
-      </div>
-      <div class="py-4">
-        <h4 class="text-text-primary mb-1.5 text-sm font-semibold">Named popover</h4>
-        <p class="text-text-secondary text-sm leading-relaxed">
-          The chip opens a <code class="text-text-primary">Popover</code>; the same
-          <code class="text-text-primary">aria-label</code> lands on the panel, so the opened dialog
-          is named rather than anonymous. Keyboard and focus behaviour (open, close on
-          <code class="text-text-primary">Escape</code>, focus return) come from the underlying
-          Popover primitive.
-        </p>
-      </div>
-      <div class="pt-4">
-        <h4 class="text-text-primary mb-1.5 text-sm font-semibold">Policy-checked link</h4>
-        <p class="text-text-secondary text-sm leading-relaxed">
-          The outbound link runs the same strict
-          <code class="text-text-primary">urlPolicy</code> as the streaming-markdown engine. A blocked
-          or absent URL yields no link at all — only the title and snippet — so untrusted source URLs
-          can never smuggle a dangerous scheme into the popover.
-        </p>
-      </div>
-    </div>
-  </div>
+  <NoteList>
+    <Note title="Descriptive trigger label">
+      <p>
+        A bare "[1]" tells a screen reader nothing, so the trigger's
+        <code class="text-text-primary">aria-label</code> defaults to
+        <code class="text-text-primary">Source {'{index}'}: {'{title}'}</code> (or
+        <code class="text-text-primary">Source: {'{title}'}</code> with no index). Override it with
+        the <code class="text-text-primary">label</code> prop when you need different wording.
+      </p>
+    </Note>
+    <Note title="Named popover">
+      <p>
+        The chip opens a <code class="text-text-primary">Popover</code>; the same
+        <code class="text-text-primary">aria-label</code> lands on the panel, so the opened dialog
+        is named rather than anonymous. Keyboard and focus behaviour (open, close on
+        <code class="text-text-primary">Escape</code>, focus return) come from the underlying
+        Popover primitive.
+      </p>
+    </Note>
+    <Note title="Policy-checked link">
+      <p>
+        The outbound link runs the same strict
+        <code class="text-text-primary">urlPolicy</code> as the streaming-markdown engine. A blocked or
+        absent URL yields no link at all — only the title and snippet — so untrusted source URLs can never
+        smuggle a dangerous scheme into the popover.
+      </p>
+    </Note>
+  </NoteList>
 </Section>
 
 <Section marker="03" id="related" title="Related">

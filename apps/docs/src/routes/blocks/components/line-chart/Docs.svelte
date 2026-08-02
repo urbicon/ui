@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { CodeExample, Section } from '@urbicon-ui/docs';
+  import { CodeExample, Note, NoteList, Section } from '@urbicon-ui/docs';
   import { LineChart, type CartesianDatum, type ChartSeries } from '@urbicon-ui/blocks';
 
   const single: CartesianDatum[] = [
@@ -83,30 +83,28 @@
 
 <!-- ─── Accessibility ─── -->
 <Section marker="03" id="accessibility" title="Accessibility">
-  <div class="border-border-subtle bg-surface-elevated rounded-2xl border p-6">
-    <div class="divide-border-subtle divide-y">
-      <div class="pb-4">
-        <h4 class="text-text-primary mb-1.5 text-sm font-semibold">SVG with role="img"</h4>
-        <p class="text-text-secondary text-sm leading-relaxed">
-          The SVG carries <code class="text-text-primary">role="img"</code> with a generated
-          <code class="text-text-primary">aria-label</code>; pass
-          <code class="text-text-primary">ariaLabel</code> to describe the trend in domain terms.
-        </p>
-      </div>
-      <div class="py-4">
-        <h4 class="text-text-primary mb-1.5 text-sm font-semibold">Data-table fallback</h4>
-        <p class="text-text-secondary text-sm leading-relaxed">
-          A visually hidden table mirrors every point per series, so screen-reader users read exact
-          values rather than an inaccessible path.
-        </p>
-      </div>
-      <div class="pt-4">
-        <h4 class="text-text-primary mb-1.5 text-sm font-semibold">Per-point tooltips</h4>
-        <p class="text-text-secondary text-sm leading-relaxed">
-          Each point dot includes a native <code class="text-text-primary">&lt;title&gt;</code> with its
-          series, category, and value.
-        </p>
-      </div>
-    </div>
-  </div>
+  <NoteList>
+    <Note>
+      {#snippet titleSnippet()}
+        SVG with role="img"
+      {/snippet}
+      <p>
+        The SVG carries <code class="text-text-primary">role="img"</code> with a generated
+        <code class="text-text-primary">aria-label</code>; pass
+        <code class="text-text-primary">ariaLabel</code> to describe the trend in domain terms.
+      </p>
+    </Note>
+    <Note title="Data-table fallback">
+      <p>
+        A visually hidden table mirrors every point per series, so screen-reader users read exact
+        values rather than an inaccessible path.
+      </p>
+    </Note>
+    <Note title="Per-point tooltips">
+      <p>
+        Each point dot includes a native <code class="text-text-primary">&lt;title&gt;</code> with its
+        series, category, and value.
+      </p>
+    </Note>
+  </NoteList>
 </Section>

@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { CodeExample, Section } from '@urbicon-ui/docs';
+  import { CodeExample, Note, NoteList, Section } from '@urbicon-ui/docs';
   import { Combobox, Badge, Avatar } from '@urbicon-ui/blocks';
   import type { ComboboxOption } from '@urbicon-ui/blocks';
   import { resolve } from '$app/paths';
@@ -415,64 +415,59 @@ ${asyncScriptClose}
 <!-- ─── Accessibility ─── -->
 
 <Section marker="04" id="accessibility" title="Accessibility">
-  <div class="border-border-subtle bg-surface-elevated rounded-2xl border p-6">
-    <div class="divide-border-subtle divide-y">
-      <div class="pb-4">
-        <h4 class="text-text-primary mb-1.5 text-sm font-semibold">Built-in ARIA</h4>
-        <p class="text-text-secondary text-sm leading-relaxed">
-          The input uses <code class="text-text-primary">role="combobox"</code> with
-          <code class="text-text-primary">aria-expanded</code>,
-          <code class="text-text-primary">aria-controls</code>, and
-          <code class="text-text-primary">aria-autocomplete="list"</code>. The listbox uses
-          <code class="text-text-primary">role="listbox"</code>
-          and each option uses
-          <code class="text-text-primary">role="option"</code> with
-          <code class="text-text-primary">aria-selected</code>.
-        </p>
-      </div>
-      <div class="py-4">
-        <h4 class="text-text-primary mb-1.5 text-sm font-semibold">Keyboard</h4>
-        <p class="text-text-secondary text-sm leading-relaxed">
-          <kbd
-            class="bg-surface-base border-border-subtle rounded-modify border px-1.5 py-0.5 text-xs font-medium"
-            >↓</kbd
-          >
-          /
-          <kbd
-            class="bg-surface-base border-border-subtle rounded-modify border px-1.5 py-0.5 text-xs font-medium"
-            >↑</kbd
-          >
-          to navigate options.
-          <kbd
-            class="bg-surface-base border-border-subtle rounded-modify border px-1.5 py-0.5 text-xs font-medium"
-            >Enter</kbd
-          >
-          to select.
-          <kbd
-            class="bg-surface-base border-border-subtle rounded-modify border px-1.5 py-0.5 text-xs font-medium"
-            >Escape</kbd
-          >
-          to close.
-          <kbd
-            class="bg-surface-base border-border-subtle rounded-modify border px-1.5 py-0.5 text-xs font-medium"
-            >Home</kbd
-          >
-          /
-          <kbd
-            class="bg-surface-base border-border-subtle rounded-modify border px-1.5 py-0.5 text-xs font-medium"
-            >End</kbd
-          >
-          to jump to first / last option. Disabled options are skipped during navigation.
-        </p>
-      </div>
-      <div class="pt-4">
-        <h4 class="text-text-primary mb-1.5 text-sm font-semibold">Active Descendant</h4>
-        <p class="text-text-secondary text-sm leading-relaxed">
-          Focus stays on the input at all times. The visually highlighted option is communicated via
-          <code class="text-text-primary">aria-activedescendant</code>, keeping screen readers
-          synchronized without moving DOM focus.
-        </p>
-      </div>
-    </div>
-  </div>
+  <NoteList>
+    <Note title="Built-in ARIA">
+      <p>
+        The input uses <code class="text-text-primary">role="combobox"</code> with
+        <code class="text-text-primary">aria-expanded</code>,
+        <code class="text-text-primary">aria-controls</code>, and
+        <code class="text-text-primary">aria-autocomplete="list"</code>. The listbox uses
+        <code class="text-text-primary">role="listbox"</code>
+        and each option uses
+        <code class="text-text-primary">role="option"</code> with
+        <code class="text-text-primary">aria-selected</code>.
+      </p>
+    </Note>
+    <Note title="Keyboard">
+      <p>
+        <kbd
+          class="bg-surface-base border-border-subtle rounded-modify border px-1.5 py-0.5 text-xs font-medium"
+          >↓</kbd
+        >
+        /
+        <kbd
+          class="bg-surface-base border-border-subtle rounded-modify border px-1.5 py-0.5 text-xs font-medium"
+          >↑</kbd
+        >
+        to navigate options.
+        <kbd
+          class="bg-surface-base border-border-subtle rounded-modify border px-1.5 py-0.5 text-xs font-medium"
+          >Enter</kbd
+        >
+        to select.
+        <kbd
+          class="bg-surface-base border-border-subtle rounded-modify border px-1.5 py-0.5 text-xs font-medium"
+          >Escape</kbd
+        >
+        to close.
+        <kbd
+          class="bg-surface-base border-border-subtle rounded-modify border px-1.5 py-0.5 text-xs font-medium"
+          >Home</kbd
+        >
+        /
+        <kbd
+          class="bg-surface-base border-border-subtle rounded-modify border px-1.5 py-0.5 text-xs font-medium"
+          >End</kbd
+        >
+        to jump to first / last option. Disabled options are skipped during navigation.
+      </p>
+    </Note>
+    <Note title="Active Descendant">
+      <p>
+        Focus stays on the input at all times. The visually highlighted option is communicated via
+        <code class="text-text-primary">aria-activedescendant</code>, keeping screen readers
+        synchronized without moving DOM focus.
+      </p>
+    </Note>
+  </NoteList>
 </Section>

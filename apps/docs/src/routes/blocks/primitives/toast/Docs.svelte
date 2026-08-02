@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { CodeExample, Section } from '@urbicon-ui/docs';
+  import { CodeExample, Note, NoteList, Section } from '@urbicon-ui/docs';
   import { Button, toaster } from '@urbicon-ui/blocks';
   import { resolve } from '$app/paths';
 
@@ -330,62 +330,54 @@ toaster.clear();      // remove all`}
 <!-- ─── Accessibility ─── -->
 
 <Section marker="04" id="accessibility" title="Accessibility">
-  <div class="border-border-subtle bg-surface-elevated rounded-2xl border p-6">
-    <div class="divide-border-subtle divide-y">
-      <div class="pb-4">
-        <h4 class="text-text-primary mb-1.5 text-sm font-semibold">Live Region</h4>
-        <p class="text-text-secondary text-sm leading-relaxed">
-          The Toaster container uses
-          <code class="text-text-primary">aria-live="polite"</code> with
-          <code class="text-text-primary">aria-relevant="additions removals"</code>. Screen readers
-          announce new toasts without interrupting the current task.
-        </p>
-      </div>
-      <div class="py-4">
-        <h4 class="text-text-primary mb-1.5 text-sm font-semibold">Alert Role</h4>
-        <p class="text-text-secondary text-sm leading-relaxed">
-          Each individual toast is rendered with
-          <code class="text-text-primary">role="alert"</code>, ensuring assistive technologies
-          surface the notification promptly.
-        </p>
-      </div>
-      <div class="py-4">
-        <h4 class="text-text-primary mb-1.5 text-sm font-semibold">Keyboard</h4>
-        <p class="text-text-secondary text-sm leading-relaxed">
-          Dismiss buttons are focusable via
-          <kbd
-            class="bg-surface-base border-border-subtle rounded border px-1.5 py-0.5 text-xs font-medium"
-            >Tab</kbd
-          >
-          and activate with
-          <kbd
-            class="bg-surface-base border-border-subtle rounded border px-1.5 py-0.5 text-xs font-medium"
-            >Enter</kbd
-          >
-          /
-          <kbd
-            class="bg-surface-base border-border-subtle rounded border px-1.5 py-0.5 text-xs font-medium"
-            >Space</kbd
-          >. The dismiss button has an
-          <code class="text-text-primary">aria-label="Dismiss"</code>.
-        </p>
-      </div>
-      <div class="py-4">
-        <h4 class="text-text-primary mb-1.5 text-sm font-semibold">Focus Management</h4>
-        <p class="text-text-secondary text-sm leading-relaxed">
-          Toasts use <code class="text-text-primary">pointer-events-none</code> on the container so they
-          never block interaction with the underlying page. Only the dismiss button within each toast
-          captures pointer events.
-        </p>
-      </div>
-      <div class="pt-4">
-        <h4 class="text-text-primary mb-1.5 text-sm font-semibold">Reduced Motion</h4>
-        <p class="text-text-secondary text-sm leading-relaxed">
-          Fly transitions use the system's <code class="text-text-primary">duration</code> tokens. The
-          progress bar animation uses a linear timing function that remains functional under reduced motion
-          preferences.
-        </p>
-      </div>
-    </div>
-  </div>
+  <NoteList>
+    <Note title="Live Region">
+      <p>
+        The Toaster container uses
+        <code class="text-text-primary">aria-live="polite"</code> with
+        <code class="text-text-primary">aria-relevant="additions removals"</code>. Screen readers
+        announce new toasts without interrupting the current task.
+      </p>
+    </Note>
+    <Note title="Alert Role">
+      <p>
+        Each individual toast is rendered with
+        <code class="text-text-primary">role="alert"</code>, ensuring assistive technologies surface
+        the notification promptly.
+      </p>
+    </Note>
+    <Note title="Keyboard">
+      <p>
+        Dismiss buttons are focusable via
+        <kbd
+          class="bg-surface-base border-border-subtle rounded border px-1.5 py-0.5 text-xs font-medium"
+          >Tab</kbd
+        >
+        and activate with
+        <kbd
+          class="bg-surface-base border-border-subtle rounded border px-1.5 py-0.5 text-xs font-medium"
+          >Enter</kbd
+        >
+        /
+        <kbd
+          class="bg-surface-base border-border-subtle rounded border px-1.5 py-0.5 text-xs font-medium"
+          >Space</kbd
+        >. The dismiss button has an
+        <code class="text-text-primary">aria-label="Dismiss"</code>.
+      </p>
+    </Note>
+    <Note title="Focus Management">
+      <p>
+        Toasts use <code class="text-text-primary">pointer-events-none</code> on the container so they
+        never block interaction with the underlying page. Only the dismiss button within each toast captures
+        pointer events.
+      </p>
+    </Note>
+    <Note title="Reduced Motion">
+      <p>
+        Fly transitions use the system's <code class="text-text-primary">duration</code> tokens. The progress
+        bar animation uses a linear timing function that remains functional under reduced motion preferences.
+      </p>
+    </Note>
+  </NoteList>
 </Section>

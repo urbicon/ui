@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { CodeExample, Section } from '@urbicon-ui/docs';
+  import { CodeExample, Note, NoteList, Section } from '@urbicon-ui/docs';
   import {
     Alert,
     Button,
@@ -258,44 +258,39 @@
 <!-- ─── Accessibility ─── -->
 
 <Section marker="03" id="accessibility" title="Accessibility">
-  <div class="border-border-subtle bg-surface-elevated rounded-2xl border p-6">
-    <div class="divide-border-subtle divide-y">
-      <div class="pb-4">
-        <h4 class="text-text-primary mb-1.5 text-sm font-semibold">Built-in ARIA</h4>
-        <p class="text-text-secondary text-sm leading-relaxed">
-          Renders with <code class="text-text-primary">role="alert"</code>, ensuring screen readers
-          announce the content as a live region. Dismissible alerts include a close button with
-          <code class="text-text-primary">aria-label="Dismiss"</code>.
-        </p>
-      </div>
-      <div class="py-4">
-        <h4 class="text-text-primary mb-1.5 text-sm font-semibold">Keyboard</h4>
-        <p class="text-text-secondary text-sm leading-relaxed">
-          The dismiss button is focusable via
-          <kbd
-            class="bg-surface-base border-border-subtle rounded-modify border px-1.5 py-0.5 text-xs font-medium"
-            >Tab</kbd
-          >
-          and activates with
-          <kbd
-            class="bg-surface-base border-border-subtle rounded-modify border px-1.5 py-0.5 text-xs font-medium"
-            >Enter</kbd
-          >
-          /
-          <kbd
-            class="bg-surface-base border-border-subtle rounded-modify border px-1.5 py-0.5 text-xs font-medium"
-            >Space</kbd
-          >. Focus-visible ring follows the component's intent color for clear contrast.
-        </p>
-      </div>
-      <div class="pt-4">
-        <h4 class="text-text-primary mb-1.5 text-sm font-semibold">Reduced Motion</h4>
-        <p class="text-text-secondary text-sm leading-relaxed">
-          Transition durations use the <code class="text-text-primary">--blocks-duration-fast</code>
-          token, which is automatically shortened when
-          <code class="text-text-primary">prefers-reduced-motion</code> is enabled.
-        </p>
-      </div>
-    </div>
-  </div>
+  <NoteList>
+    <Note title="Built-in ARIA">
+      <p>
+        Renders with <code class="text-text-primary">role="alert"</code>, ensuring screen readers
+        announce the content as a live region. Dismissible alerts include a close button with
+        <code class="text-text-primary">aria-label="Dismiss"</code>.
+      </p>
+    </Note>
+    <Note title="Keyboard">
+      <p>
+        The dismiss button is focusable via
+        <kbd
+          class="bg-surface-base border-border-subtle rounded-modify border px-1.5 py-0.5 text-xs font-medium"
+          >Tab</kbd
+        >
+        and activates with
+        <kbd
+          class="bg-surface-base border-border-subtle rounded-modify border px-1.5 py-0.5 text-xs font-medium"
+          >Enter</kbd
+        >
+        /
+        <kbd
+          class="bg-surface-base border-border-subtle rounded-modify border px-1.5 py-0.5 text-xs font-medium"
+          >Space</kbd
+        >. Focus-visible ring follows the component's intent color for clear contrast.
+      </p>
+    </Note>
+    <Note title="Reduced Motion">
+      <p>
+        Transition durations use the <code class="text-text-primary">--blocks-duration-fast</code>
+        token, which is automatically shortened when
+        <code class="text-text-primary">prefers-reduced-motion</code> is enabled.
+      </p>
+    </Note>
+  </NoteList>
 </Section>

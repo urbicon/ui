@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { CodeExample, Section } from '@urbicon-ui/docs';
+  import { CodeExample, Note, NoteList, Section } from '@urbicon-ui/docs';
   import { SegmentGroup, SegmentItem } from '@urbicon-ui/blocks';
   import { resolve } from '$app/paths';
 
@@ -106,43 +106,38 @@
 <!-- ─── Comparison ─── -->
 
 <Section marker="03" id="comparison" title="Choosing the Right Component">
-  <div class="border-border-subtle bg-surface-elevated rounded-2xl border p-6">
-    <div class="divide-border-subtle divide-y">
-      <div class="pb-4">
-        <h4 class="text-text-primary mb-1.5 text-sm font-semibold">SegmentGroup</h4>
-        <p class="text-text-secondary text-sm leading-relaxed">
-          Compact mode/view switcher with animated sliding indicator. Best for 2-5 mutually
-          exclusive options that don't control content panels. Minimal API, single neutral style.
-        </p>
-      </div>
-      <div class="py-4">
-        <h4 class="text-text-primary mb-1.5 text-sm font-semibold">
-          ButtonGroup
-          <code class="text-text-tertiary font-normal">selection="single"</code>
-        </h4>
-        <p class="text-text-secondary text-sm leading-relaxed">
-          Toolbar-style toggle with full button styling (variants, intents, connected borders).
-          Choose this when you need visual customization, multi-select, or connected button layouts.
-        </p>
-      </div>
-      <div class="py-4">
-        <h4 class="text-text-primary mb-1.5 text-sm font-semibold">RadioGroup</h4>
-        <p class="text-text-secondary text-sm leading-relaxed">
-          Form input with labels, descriptions, helper/error text, and native
-          <code class="text-text-primary">&lt;input type="radio"&gt;</code>. Choose this when
-          collecting data in forms or when options need descriptions.
-        </p>
-      </div>
-      <div class="pt-4">
-        <h4 class="text-text-primary mb-1.5 text-sm font-semibold">Tab</h4>
-        <p class="text-text-secondary text-sm leading-relaxed">
-          Content panel navigation where each option reveals a different panel. Uses
-          <code class="text-text-primary">role="tablist"</code> semantics. Choose this when switching
-          between content sections, not selecting a value.
-        </p>
-      </div>
-    </div>
-  </div>
+  <NoteList>
+    <Note title="SegmentGroup">
+      <p>
+        Compact mode/view switcher with animated sliding indicator. Best for 2-5 mutually exclusive
+        options that don't control content panels. Minimal API, single neutral style.
+      </p>
+    </Note>
+    <Note>
+      {#snippet titleSnippet()}
+        ButtonGroup
+        <code class="text-text-tertiary font-normal">selection="single"</code>
+      {/snippet}
+      <p>
+        Toolbar-style toggle with full button styling (variants, intents, connected borders). Choose
+        this when you need visual customization, multi-select, or connected button layouts.
+      </p>
+    </Note>
+    <Note title="RadioGroup">
+      <p>
+        Form input with labels, descriptions, helper/error text, and native
+        <code class="text-text-primary">&lt;input type="radio"&gt;</code>. Choose this when
+        collecting data in forms or when options need descriptions.
+      </p>
+    </Note>
+    <Note title="Tab">
+      <p>
+        Content panel navigation where each option reveals a different panel. Uses
+        <code class="text-text-primary">role="tablist"</code> semantics. Choose this when switching between
+        content sections, not selecting a value.
+      </p>
+    </Note>
+  </NoteList>
 </Section>
 
 <!-- ─── Customization ─── -->
@@ -269,48 +264,43 @@
 <!-- ─── Accessibility ─── -->
 
 <Section marker="05" id="accessibility" title="Accessibility">
-  <div class="border-border-subtle bg-surface-elevated rounded-2xl border p-6">
-    <div class="divide-border-subtle divide-y">
-      <div class="pb-4">
-        <h4 class="text-text-primary mb-1.5 text-sm font-semibold">ARIA</h4>
-        <p class="text-text-secondary text-sm leading-relaxed">
-          The container uses <code class="text-text-primary">role="radiogroup"</code> with each item
-          as <code class="text-text-primary">role="radio"</code> +
-          <code class="text-text-primary">aria-checked</code>. Provide
-          <code class="text-text-primary">ariaLabel</code> to describe the group's purpose.
-        </p>
-      </div>
-      <div class="py-4">
-        <h4 class="text-text-primary mb-1.5 text-sm font-semibold">Keyboard</h4>
-        <p class="text-text-secondary text-sm leading-relaxed">
-          <kbd
-            class="bg-surface-base border-border-subtle rounded-modify border px-1.5 py-0.5 text-xs font-medium"
-            >Arrow</kbd
-          >
-          keys move between options and select immediately.
-          <kbd
-            class="bg-surface-base border-border-subtle rounded-modify border px-1.5 py-0.5 text-xs font-medium"
-            >Home</kbd
-          >
-          /
-          <kbd
-            class="bg-surface-base border-border-subtle rounded-modify border px-1.5 py-0.5 text-xs font-medium"
-            >End</kbd
-          >
-          jump to first/last option. Only the active item is in the tab order (roving tabindex).
-        </p>
-      </div>
-      <div class="pt-4">
-        <h4 class="text-text-primary mb-1.5 text-sm font-semibold">Visual States</h4>
-        <p class="text-text-secondary text-sm leading-relaxed">
-          Active items expose
-          <code class="text-text-primary">data-state="active"</code> for CSS-only styling in
-          <code class="text-text-primary">unstyled</code> mode. The sliding indicator uses
-          <code class="text-text-primary">aria-hidden="true"</code> since it is purely decorative.
-          Focus rings use
-          <code class="text-text-primary">focus-visible:</code> for keyboard-only visibility.
-        </p>
-      </div>
-    </div>
-  </div>
+  <NoteList>
+    <Note title="ARIA">
+      <p>
+        The container uses <code class="text-text-primary">role="radiogroup"</code> with each item
+        as <code class="text-text-primary">role="radio"</code> +
+        <code class="text-text-primary">aria-checked</code>. Provide
+        <code class="text-text-primary">ariaLabel</code> to describe the group's purpose.
+      </p>
+    </Note>
+    <Note title="Keyboard">
+      <p>
+        <kbd
+          class="bg-surface-base border-border-subtle rounded-modify border px-1.5 py-0.5 text-xs font-medium"
+          >Arrow</kbd
+        >
+        keys move between options and select immediately.
+        <kbd
+          class="bg-surface-base border-border-subtle rounded-modify border px-1.5 py-0.5 text-xs font-medium"
+          >Home</kbd
+        >
+        /
+        <kbd
+          class="bg-surface-base border-border-subtle rounded-modify border px-1.5 py-0.5 text-xs font-medium"
+          >End</kbd
+        >
+        jump to first/last option. Only the active item is in the tab order (roving tabindex).
+      </p>
+    </Note>
+    <Note title="Visual States">
+      <p>
+        Active items expose
+        <code class="text-text-primary">data-state="active"</code> for CSS-only styling in
+        <code class="text-text-primary">unstyled</code> mode. The sliding indicator uses
+        <code class="text-text-primary">aria-hidden="true"</code> since it is purely decorative.
+        Focus rings use
+        <code class="text-text-primary">focus-visible:</code> for keyboard-only visibility.
+      </p>
+    </Note>
+  </NoteList>
 </Section>

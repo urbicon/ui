@@ -12,7 +12,7 @@
   import customTriggerContentCode from './examples/CustomTriggerContent.svelte?raw';
   import declarativeChildrenCode from './examples/DeclarativeChildren.svelte?raw';
 
-  import { CodeExample, InfoCard, Section } from '@urbicon-ui/docs';
+  import { CodeExample, InfoCard, Note, NoteList, Section } from '@urbicon-ui/docs';
   import { Menu } from '@urbicon-ui/blocks';
   import { resolve } from '$app/paths';
 </script>
@@ -113,71 +113,66 @@
 <!-- ─── Accessibility ─── -->
 
 <Section marker="04" id="accessibility" title="Accessibility">
-  <div class="border-border-subtle bg-surface-elevated rounded-2xl border p-6">
-    <div class="divide-border-subtle divide-y">
-      <div class="pb-4">
-        <h4 class="text-text-primary mb-1.5 text-sm font-semibold">Built-in ARIA</h4>
-        <p class="text-text-secondary text-sm leading-relaxed">
-          Uses <code class="text-text-primary">role="menu"</code> on the panel and
-          <code class="text-text-primary">role="menuitem"</code> on each item, with
-          <code class="text-text-primary">aria-haspopup="menu"</code> +
-          <code class="text-text-primary">aria-expanded</code> on the trigger. Sub-menus add
-          <code class="text-text-primary">aria-haspopup="menu"</code> on the submenu trigger.
-        </p>
-      </div>
-      <div class="py-4">
-        <h4 class="text-text-primary mb-1.5 text-sm font-semibold">Keyboard</h4>
-        <p class="text-text-secondary text-sm leading-relaxed">
-          <kbd
-            class="bg-surface-base border-border-subtle rounded border px-1.5 py-0.5 text-xs font-medium"
-            >Enter</kbd
-          >
-          /
-          <kbd
-            class="bg-surface-base border-border-subtle rounded border px-1.5 py-0.5 text-xs font-medium"
-            >Space</kbd
-          >
-          on the trigger to open. Arrow keys move focus between items (roving tabindex),
-          <kbd
-            class="bg-surface-base border-border-subtle rounded border px-1.5 py-0.5 text-xs font-medium"
-            >Home</kbd
-          >
-          /
-          <kbd
-            class="bg-surface-base border-border-subtle rounded border px-1.5 py-0.5 text-xs font-medium"
-            >End</kbd
-          >
-          jump to the first/last item, and
-          <kbd
-            class="bg-surface-base border-border-subtle rounded border px-1.5 py-0.5 text-xs font-medium"
-            >Tab</kbd
-          >
-          moves focus out and closes the menu (W3C menu pattern);
-          <kbd
-            class="bg-surface-base border-border-subtle rounded border px-1.5 py-0.5 text-xs font-medium"
-            >Enter</kbd
-          >
-          /
-          <kbd
-            class="bg-surface-base border-border-subtle rounded border px-1.5 py-0.5 text-xs font-medium"
-            >Space</kbd
-          >
-          activates an item.
-          <kbd
-            class="bg-surface-base border-border-subtle rounded border px-1.5 py-0.5 text-xs font-medium"
-            >Escape</kbd
-          >
-          closes the menu and restores focus to the trigger.
-        </p>
-      </div>
-      <div class="pt-4">
-        <h4 class="text-text-primary mb-1.5 text-sm font-semibold">Focus Management</h4>
-        <p class="text-text-secondary text-sm leading-relaxed">
-          On activation the menu closes and focus returns to the trigger. Items with
-          <code class="text-text-primary">keepOpen</code> dispatch their action without closing — useful
-          for repeated actions like "Add tag".
-        </p>
-      </div>
-    </div>
-  </div>
+  <NoteList>
+    <Note title="Built-in ARIA">
+      <p>
+        Uses <code class="text-text-primary">role="menu"</code> on the panel and
+        <code class="text-text-primary">role="menuitem"</code> on each item, with
+        <code class="text-text-primary">aria-haspopup="menu"</code> +
+        <code class="text-text-primary">aria-expanded</code> on the trigger. Sub-menus add
+        <code class="text-text-primary">aria-haspopup="menu"</code> on the submenu trigger.
+      </p>
+    </Note>
+    <Note title="Keyboard">
+      <p>
+        <kbd
+          class="bg-surface-base border-border-subtle rounded border px-1.5 py-0.5 text-xs font-medium"
+          >Enter</kbd
+        >
+        /
+        <kbd
+          class="bg-surface-base border-border-subtle rounded border px-1.5 py-0.5 text-xs font-medium"
+          >Space</kbd
+        >
+        on the trigger to open. Arrow keys move focus between items (roving tabindex),
+        <kbd
+          class="bg-surface-base border-border-subtle rounded border px-1.5 py-0.5 text-xs font-medium"
+          >Home</kbd
+        >
+        /
+        <kbd
+          class="bg-surface-base border-border-subtle rounded border px-1.5 py-0.5 text-xs font-medium"
+          >End</kbd
+        >
+        jump to the first/last item, and
+        <kbd
+          class="bg-surface-base border-border-subtle rounded border px-1.5 py-0.5 text-xs font-medium"
+          >Tab</kbd
+        >
+        moves focus out and closes the menu (W3C menu pattern);
+        <kbd
+          class="bg-surface-base border-border-subtle rounded border px-1.5 py-0.5 text-xs font-medium"
+          >Enter</kbd
+        >
+        /
+        <kbd
+          class="bg-surface-base border-border-subtle rounded border px-1.5 py-0.5 text-xs font-medium"
+          >Space</kbd
+        >
+        activates an item.
+        <kbd
+          class="bg-surface-base border-border-subtle rounded border px-1.5 py-0.5 text-xs font-medium"
+          >Escape</kbd
+        >
+        closes the menu and restores focus to the trigger.
+      </p>
+    </Note>
+    <Note title="Focus Management">
+      <p>
+        On activation the menu closes and focus returns to the trigger. Items with
+        <code class="text-text-primary">keepOpen</code> dispatch their action without closing — useful
+        for repeated actions like "Add tag".
+      </p>
+    </Note>
+  </NoteList>
 </Section>

@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { CodeExample, Section } from '@urbicon-ui/docs';
+  import { CodeExample, Note, NoteList, Section } from '@urbicon-ui/docs';
   import { BarChart, type BarChartDatum, type ChartSeries } from '@urbicon-ui/blocks';
 
   const quarterly: BarChartDatum[] = [
@@ -84,33 +84,30 @@
 
 <!-- ─── Accessibility ─── -->
 <Section marker="03" id="accessibility" title="Accessibility">
-  <div class="border-border-subtle bg-surface-elevated rounded-2xl border p-6">
-    <div class="divide-border-subtle divide-y">
-      <div class="pb-4">
-        <h4 class="text-text-primary mb-1.5 text-sm font-semibold">SVG with role="img"</h4>
-        <p class="text-text-secondary text-sm leading-relaxed">
-          The chart SVG carries <code class="text-text-primary">role="img"</code> and a generated
-          <code class="text-text-primary">aria-label</code> summarising the category and series
-          count. Pass <code class="text-text-primary">ariaLabel</code> to override it with a domain-specific
-          description.
-        </p>
-      </div>
-      <div class="py-4">
-        <h4 class="text-text-primary mb-1.5 text-sm font-semibold">Data-table fallback</h4>
-        <p class="text-text-secondary text-sm leading-relaxed">
-          A visually hidden (<code class="text-text-primary">sr-only</code>) table mirrors the data
-          — one row per category, one column per series — so screen-reader users get the exact
-          values, not just the visual summary.
-        </p>
-      </div>
-      <div class="pt-4">
-        <h4 class="text-text-primary mb-1.5 text-sm font-semibold">Per-bar tooltips</h4>
-        <p class="text-text-secondary text-sm leading-relaxed">
-          Each bar includes a native SVG <code class="text-text-primary">&lt;title&gt;</code> ("series
-          — category: value"), giving a zero-JavaScript hover tooltip that the browser also exposes to
-          assistive tech.
-        </p>
-      </div>
-    </div>
-  </div>
+  <NoteList>
+    <Note>
+      {#snippet titleSnippet()}
+        SVG with role="img"
+      {/snippet}
+      <p>
+        The chart SVG carries <code class="text-text-primary">role="img"</code> and a generated
+        <code class="text-text-primary">aria-label</code> summarising the category and series count.
+        Pass <code class="text-text-primary">ariaLabel</code> to override it with a domain-specific description.
+      </p>
+    </Note>
+    <Note title="Data-table fallback">
+      <p>
+        A visually hidden (<code class="text-text-primary">sr-only</code>) table mirrors the data —
+        one row per category, one column per series — so screen-reader users get the exact values,
+        not just the visual summary.
+      </p>
+    </Note>
+    <Note title="Per-bar tooltips">
+      <p>
+        Each bar includes a native SVG <code class="text-text-primary">&lt;title&gt;</code> ("series —
+        category: value"), giving a zero-JavaScript hover tooltip that the browser also exposes to assistive
+        tech.
+      </p>
+    </Note>
+  </NoteList>
 </Section>

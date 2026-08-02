@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { CodeExample, Section } from '@urbicon-ui/docs';
+  import { CodeExample, Note, NoteList, Section } from '@urbicon-ui/docs';
   import { Dialog, Button, Input } from '@urbicon-ui/blocks';
   import { resolve } from '$app/paths';
 
@@ -329,47 +329,38 @@
 <!-- Accessibility -->
 
 <Section marker="03" id="accessibility" title="Accessibility">
-  <div class="border-border-subtle bg-surface-elevated rounded-2xl border p-6">
-    <div class="divide-border-subtle divide-y">
-      <div class="pb-4">
-        <h4 class="text-text-primary mb-1.5 text-sm font-semibold">Native Dialog</h4>
-        <p class="text-text-secondary text-sm leading-relaxed">
-          Built on <code class="text-text-primary">&lt;dialog&gt;</code> with
-          <code class="text-text-primary">showModal()</code> for native inertness and stacking
-          context. Screen readers announce it automatically via
-          <code class="text-text-primary">aria-modal="true"</code>. When a
-          <code class="text-text-primary">title</code> is set, it is linked via
-          <code class="text-text-primary">aria-labelledby</code>.
-        </p>
-      </div>
-      <div class="py-4">
-        <h4 class="text-text-primary mb-1.5 text-sm font-semibold">Focus Trap</h4>
-        <p class="text-text-secondary text-sm leading-relaxed">
-          When open, focus is trapped inside the dialog.
-          <kbd
-            class="bg-surface-base border-border-subtle rounded-modify border px-1.5 py-0.5 text-xs font-medium"
-            >Tab</kbd
-          >
-          cycles through interactive elements. On close, focus returns to the element that opened the
-          dialog.
-        </p>
-      </div>
-      <div class="py-4">
-        <h4 class="text-text-primary mb-1.5 text-sm font-semibold">Keyboard</h4>
-        <p class="text-text-secondary text-sm leading-relaxed">
-          <kbd
-            class="bg-surface-base border-border-subtle rounded-modify border px-1.5 py-0.5 text-xs font-medium"
-            >Escape</kbd
-          >
-          closes the dialog (configurable via <code class="text-text-primary">closeOnEscape</code>).
-        </p>
-      </div>
-      <div class="pt-4">
-        <h4 class="text-text-primary mb-1.5 text-sm font-semibold">Scroll Lock</h4>
-        <p class="text-text-secondary text-sm leading-relaxed">
-          While open, body scroll is locked. Long dialog content scrolls within the panel itself.
-        </p>
-      </div>
-    </div>
-  </div>
+  <NoteList>
+    <Note title="Native Dialog">
+      <p>
+        Built on <code class="text-text-primary">&lt;dialog&gt;</code> with
+        <code class="text-text-primary">showModal()</code> for native inertness and stacking
+        context. Screen readers announce it automatically via
+        <code class="text-text-primary">aria-modal="true"</code>. When a
+        <code class="text-text-primary">title</code> is set, it is linked via
+        <code class="text-text-primary">aria-labelledby</code>.
+      </p>
+    </Note>
+    <Note title="Focus Trap">
+      <p>
+        When open, focus is trapped inside the dialog.
+        <kbd
+          class="bg-surface-base border-border-subtle rounded-modify border px-1.5 py-0.5 text-xs font-medium"
+          >Tab</kbd
+        >
+        cycles through interactive elements. On close, focus returns to the element that opened the dialog.
+      </p>
+    </Note>
+    <Note title="Keyboard">
+      <p>
+        <kbd
+          class="bg-surface-base border-border-subtle rounded-modify border px-1.5 py-0.5 text-xs font-medium"
+          >Escape</kbd
+        >
+        closes the dialog (configurable via <code class="text-text-primary">closeOnEscape</code>).
+      </p>
+    </Note>
+    <Note title="Scroll Lock">
+      <p>While open, body scroll is locked. Long dialog content scrolls within the panel itself.</p>
+    </Note>
+  </NoteList>
 </Section>

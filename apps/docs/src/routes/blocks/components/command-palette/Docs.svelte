@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { CodeExample, Section } from '@urbicon-ui/docs';
+  import { CodeExample, Note, NoteList, Section } from '@urbicon-ui/docs';
   import {
     CommandPalette,
     Badge,
@@ -132,7 +132,7 @@
         </svg>
         Search commands...
         <Badge variant="outlined" intent="neutral" size="sm" class="ml-8">
-          <kbd class="font-mono text-3xs">Ctrl+K</kbd>
+          <kbd class="text-3xs font-mono">Ctrl+K</kbd>
         </Badge>
       </button>
       <CommandPalette
@@ -192,63 +192,58 @@
 <!-- ─── Accessibility ─── -->
 
 <Section marker="03" id="accessibility" title="Accessibility">
-  <div class="border-border-subtle bg-surface-elevated rounded-2xl border p-6">
-    <div class="divide-border-subtle divide-y">
-      <div class="pb-4">
-        <h4 class="text-text-primary mb-1.5 text-sm font-semibold">ARIA Combobox Pattern</h4>
-        <p class="text-text-secondary text-sm leading-relaxed">
-          The search input uses <code class="text-text-primary">role="combobox"</code> with
-          <code class="text-text-primary">aria-expanded</code>,
-          <code class="text-text-primary">aria-controls</code>, and
-          <code class="text-text-primary">aria-activedescendant</code> linking to the highlighted
-          option. Results use
-          <code class="text-text-primary">role="listbox"</code> with
-          <code class="text-text-primary">role="option"</code> on each item.
-        </p>
-      </div>
-      <div class="py-4">
-        <h4 class="text-text-primary mb-1.5 text-sm font-semibold">Keyboard</h4>
-        <p class="text-text-secondary text-sm leading-relaxed">
-          <kbd
-            class="bg-surface-base border-border-subtle rounded-modify border px-1.5 py-0.5 text-xs font-medium"
-            >Cmd+K</kbd
-          >
-          /
-          <kbd
-            class="bg-surface-base border-border-subtle rounded-modify border px-1.5 py-0.5 text-xs font-medium"
-            >Ctrl+K</kbd
-          >
-          to open (configurable).
-          <kbd
-            class="bg-surface-base border-border-subtle rounded-modify border px-1.5 py-0.5 text-xs font-medium"
-            >&#8593;</kbd
-          >
-          <kbd
-            class="bg-surface-base border-border-subtle rounded-modify border px-1.5 py-0.5 text-xs font-medium"
-            >&#8595;</kbd
-          >
-          to navigate,
-          <kbd
-            class="bg-surface-base border-border-subtle rounded-modify border px-1.5 py-0.5 text-xs font-medium"
-            >Enter</kbd
-          >
-          to select,
-          <kbd
-            class="bg-surface-base border-border-subtle rounded-modify border px-1.5 py-0.5 text-xs font-medium"
-            >Escape</kbd
-          >
-          to close. The highlighted item scrolls into view automatically.
-        </p>
-      </div>
-      <div class="pt-4">
-        <h4 class="text-text-primary mb-1.5 text-sm font-semibold">Focus Management</h4>
-        <p class="text-text-secondary text-sm leading-relaxed">
-          Inherits focus trap from Dialog. The search input receives focus automatically when the
-          palette opens. Disabled items are skipped during keyboard navigation and have <code
-            class="text-text-primary">aria-disabled="true"</code
-          >.
-        </p>
-      </div>
-    </div>
-  </div>
+  <NoteList>
+    <Note title="ARIA Combobox Pattern">
+      <p>
+        The search input uses <code class="text-text-primary">role="combobox"</code> with
+        <code class="text-text-primary">aria-expanded</code>,
+        <code class="text-text-primary">aria-controls</code>, and
+        <code class="text-text-primary">aria-activedescendant</code> linking to the highlighted
+        option. Results use
+        <code class="text-text-primary">role="listbox"</code> with
+        <code class="text-text-primary">role="option"</code> on each item.
+      </p>
+    </Note>
+    <Note title="Keyboard">
+      <p>
+        <kbd
+          class="bg-surface-base border-border-subtle rounded-modify border px-1.5 py-0.5 text-xs font-medium"
+          >Cmd+K</kbd
+        >
+        /
+        <kbd
+          class="bg-surface-base border-border-subtle rounded-modify border px-1.5 py-0.5 text-xs font-medium"
+          >Ctrl+K</kbd
+        >
+        to open (configurable).
+        <kbd
+          class="bg-surface-base border-border-subtle rounded-modify border px-1.5 py-0.5 text-xs font-medium"
+          >&#8593;</kbd
+        >
+        <kbd
+          class="bg-surface-base border-border-subtle rounded-modify border px-1.5 py-0.5 text-xs font-medium"
+          >&#8595;</kbd
+        >
+        to navigate,
+        <kbd
+          class="bg-surface-base border-border-subtle rounded-modify border px-1.5 py-0.5 text-xs font-medium"
+          >Enter</kbd
+        >
+        to select,
+        <kbd
+          class="bg-surface-base border-border-subtle rounded-modify border px-1.5 py-0.5 text-xs font-medium"
+          >Escape</kbd
+        >
+        to close. The highlighted item scrolls into view automatically.
+      </p>
+    </Note>
+    <Note title="Focus Management">
+      <p>
+        Inherits focus trap from Dialog. The search input receives focus automatically when the
+        palette opens. Disabled items are skipped during keyboard navigation and have <code
+          class="text-text-primary">aria-disabled="true"</code
+        >.
+      </p>
+    </Note>
+  </NoteList>
 </Section>

@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { CodeExample, Section } from '@urbicon-ui/docs';
+  import { CodeExample, Note, NoteList, Section } from '@urbicon-ui/docs';
   import { r } from '$lib/route';
 </script>
 
@@ -248,48 +248,42 @@
 <!-- ─── Accessibility ─── -->
 
 <Section marker="04" id="accessibility" title="Accessibility">
-  <div class="border-border-subtle bg-surface-elevated rounded-2xl border p-6">
-    <div class="divide-border-subtle divide-y">
-      <div class="pb-4">
-        <h4 class="text-text-primary mb-1.5 text-sm font-semibold">Skip-link target</h4>
-        <p class="text-text-secondary text-sm leading-relaxed">
-          The main column is rendered as <code class="text-text-primary"
-            >&lt;main id="main-content"&gt;</code
-          >, so a global skip-link with
-          <code class="text-text-primary">href="#main-content"</code> jumps straight to the page content.
-        </p>
-      </div>
-      <div class="py-4">
-        <h4 class="text-text-primary mb-1.5 text-sm font-semibold">Sidebar landmark</h4>
-        <p class="text-text-secondary text-sm leading-relaxed">
-          Inherits the <code class="text-text-primary">Sidebar</code> primitive's behavior: rendered
-          as <code class="text-text-primary">&lt;aside&gt;</code> and marked
-          <code class="text-text-primary">aria-hidden="true"</code> while the mobile overlay is closed.
-        </p>
-      </div>
-      <div class="py-4">
-        <h4 class="text-text-primary mb-1.5 text-sm font-semibold">Mobile overlay</h4>
-        <p class="text-text-secondary text-sm leading-relaxed">
-          Body scroll is locked while the overlay is open. Pressing
-          <kbd
-            class="bg-surface-base border-border-subtle rounded-modify border px-1.5 py-0.5 text-xs font-medium"
-            >Escape</kbd
-          >
-          closes the overlay (configurable via
-          <code class="text-text-primary">closeOnEscape</code>), and a backdrop click also dismisses
-          it (configurable via
-          <code class="text-text-primary">closeOnBackdropClick</code>).
-        </p>
-      </div>
-      <div class="pt-4">
-        <h4 class="text-text-primary mb-1.5 text-sm font-semibold">Reduced motion</h4>
-        <p class="text-text-secondary text-sm leading-relaxed">
-          The padding-transition on the main column uses the design system's
-          <code class="text-text-primary">--blocks-duration-normal</code> and
-          <code class="text-text-primary">--blocks-ease-confident</code> tokens, which respect
-          <code class="text-text-primary">prefers-reduced-motion</code>.
-        </p>
-      </div>
-    </div>
-  </div>
+  <NoteList>
+    <Note title="Skip-link target">
+      <p>
+        The main column is rendered as <code class="text-text-primary"
+          >&lt;main id="main-content"&gt;</code
+        >, so a global skip-link with
+        <code class="text-text-primary">href="#main-content"</code> jumps straight to the page content.
+      </p>
+    </Note>
+    <Note title="Sidebar landmark">
+      <p>
+        Inherits the <code class="text-text-primary">Sidebar</code> primitive's behavior: rendered
+        as <code class="text-text-primary">&lt;aside&gt;</code> and marked
+        <code class="text-text-primary">aria-hidden="true"</code> while the mobile overlay is closed.
+      </p>
+    </Note>
+    <Note title="Mobile overlay">
+      <p>
+        Body scroll is locked while the overlay is open. Pressing
+        <kbd
+          class="bg-surface-base border-border-subtle rounded-modify border px-1.5 py-0.5 text-xs font-medium"
+          >Escape</kbd
+        >
+        closes the overlay (configurable via
+        <code class="text-text-primary">closeOnEscape</code>), and a backdrop click also dismisses
+        it (configurable via
+        <code class="text-text-primary">closeOnBackdropClick</code>).
+      </p>
+    </Note>
+    <Note title="Reduced motion">
+      <p>
+        The padding-transition on the main column uses the design system's
+        <code class="text-text-primary">--blocks-duration-normal</code> and
+        <code class="text-text-primary">--blocks-ease-confident</code> tokens, which respect
+        <code class="text-text-primary">prefers-reduced-motion</code>.
+      </p>
+    </Note>
+  </NoteList>
 </Section>

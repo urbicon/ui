@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { CodeExample, Section } from '@urbicon-ui/docs';
+  import { CodeExample, Note, NoteList, Section } from '@urbicon-ui/docs';
   import { Stepper, StepperStep, Button, Badge } from '@urbicon-ui/blocks';
   import { resolve } from '$app/paths';
 
@@ -281,60 +281,54 @@
 <!-- ─── Accessibility ─── -->
 
 <Section marker="04" id="accessibility" title="Accessibility">
-  <div class="border-border-subtle bg-surface-elevated rounded-2xl border p-6">
-    <div class="divide-border-subtle divide-y">
-      <div class="pb-4">
-        <h4 class="text-text-primary mb-1.5 text-sm font-semibold">Built-in ARIA</h4>
-        <p class="text-text-secondary text-sm leading-relaxed">
-          The stepper renders as an <code class="text-text-primary">&lt;ol&gt;</code> with
-          <code class="text-text-primary">aria-label="Progress"</code>. The active step is marked
-          with <code class="text-text-primary">aria-current="step"</code>. Clickable steps get
-          <code class="text-text-primary">role="button"</code> for screen reader identification. The
-          <code class="text-text-primary">data-orientation</code> attribute exposes the layout direction.
-        </p>
-      </div>
-      <div class="py-4">
-        <h4 class="text-text-primary mb-1.5 text-sm font-semibold">Keyboard Navigation</h4>
-        <p class="text-text-secondary text-sm leading-relaxed">
-          <kbd
-            class="bg-surface-base border-border-subtle rounded border px-1.5 py-0.5 text-xs font-medium"
-            >Tab</kbd
-          >
-          moves focus between clickable steps.
-          <kbd
-            class="bg-surface-base border-border-subtle rounded border px-1.5 py-0.5 text-xs font-medium"
-            >Enter</kbd
-          >
-          /
-          <kbd
-            class="bg-surface-base border-border-subtle rounded border px-1.5 py-0.5 text-xs font-medium"
-            >Space</kbd
-          >
-          activates the focused step. Focus rings use
-          <code class="text-text-primary">focus-visible:</code> for keyboard-only visibility.
-        </p>
-      </div>
-      <div class="py-4">
-        <h4 class="text-text-primary mb-1.5 text-sm font-semibold">Step States</h4>
-        <p class="text-text-secondary text-sm leading-relaxed">
-          Completed, error, and warning steps use distinct icons (checkmark, X, warning triangle) in
-          addition to color, ensuring status is never conveyed by color alone. Disabled steps are
-          removed from the tab order via
-          <code class="text-text-primary">pointer-events-none</code> and visual
-          <code class="text-text-primary">opacity-50</code>.
-        </p>
-      </div>
-      <div class="pt-4">
-        <h4 class="text-text-primary mb-1.5 text-sm font-semibold">Reduced Motion</h4>
-        <p class="text-text-secondary text-sm leading-relaxed">
-          All transitions use design token durations (<code class="text-text-primary"
-            >--blocks-duration-fast</code
-          >,
-          <code class="text-text-primary">--blocks-duration-normal</code>) which are reduced
-          automatically when
-          <code class="text-text-primary">prefers-reduced-motion</code> is active.
-        </p>
-      </div>
-    </div>
-  </div>
+  <NoteList>
+    <Note title="Built-in ARIA">
+      <p>
+        The stepper renders as an <code class="text-text-primary">&lt;ol&gt;</code> with
+        <code class="text-text-primary">aria-label="Progress"</code>. The active step is marked with
+        <code class="text-text-primary">aria-current="step"</code>. Clickable steps get
+        <code class="text-text-primary">role="button"</code> for screen reader identification. The
+        <code class="text-text-primary">data-orientation</code> attribute exposes the layout direction.
+      </p>
+    </Note>
+    <Note title="Keyboard Navigation">
+      <p>
+        <kbd
+          class="bg-surface-base border-border-subtle rounded border px-1.5 py-0.5 text-xs font-medium"
+          >Tab</kbd
+        >
+        moves focus between clickable steps.
+        <kbd
+          class="bg-surface-base border-border-subtle rounded border px-1.5 py-0.5 text-xs font-medium"
+          >Enter</kbd
+        >
+        /
+        <kbd
+          class="bg-surface-base border-border-subtle rounded border px-1.5 py-0.5 text-xs font-medium"
+          >Space</kbd
+        >
+        activates the focused step. Focus rings use
+        <code class="text-text-primary">focus-visible:</code> for keyboard-only visibility.
+      </p>
+    </Note>
+    <Note title="Step States">
+      <p>
+        Completed, error, and warning steps use distinct icons (checkmark, X, warning triangle) in
+        addition to color, ensuring status is never conveyed by color alone. Disabled steps are
+        removed from the tab order via
+        <code class="text-text-primary">pointer-events-none</code> and visual
+        <code class="text-text-primary">opacity-50</code>.
+      </p>
+    </Note>
+    <Note title="Reduced Motion">
+      <p>
+        All transitions use design token durations (<code class="text-text-primary"
+          >--blocks-duration-fast</code
+        >,
+        <code class="text-text-primary">--blocks-duration-normal</code>) which are reduced
+        automatically when
+        <code class="text-text-primary">prefers-reduced-motion</code> is active.
+      </p>
+    </Note>
+  </NoteList>
 </Section>

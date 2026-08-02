@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { CodeExample, Section } from '@urbicon-ui/docs';
+  import { CodeExample, Note, NoteList, Section } from '@urbicon-ui/docs';
   import { SplitPane, Badge, FileIcon, FolderOpenIcon, SparklesIcon } from '@urbicon-ui/blocks';
   import { resolve } from '$app/paths';
 
@@ -49,7 +49,7 @@
               <p class="text-text-tertiary">// main.ts</p>
               <p class="text-text-secondary">import App from './App.svelte';</p>
               <p class="text-text-secondary">import './styles.css';</p>
-              <p class="mt-2 text-text-secondary">export default new App(options);</p>
+              <p class="text-text-secondary mt-2">export default new App(options);</p>
             </main>
           {/snippet}
         </SplitPane>
@@ -195,112 +195,107 @@
 <!-- ─── Accessibility ─── -->
 
 <Section marker="02" id="accessibility" title="Accessibility">
-  <div class="border-border-subtle bg-surface-elevated rounded-2xl border p-6">
-    <div class="divide-border-subtle divide-y">
-      <div class="pb-4">
-        <h4 class="text-text-primary mb-1.5 text-sm font-semibold">
-          The "window splitter" pattern
-        </h4>
-        <p class="text-text-secondary text-sm leading-relaxed">
-          The divider follows the WAI-ARIA <em>window splitter</em> pattern. It renders as
-          <code class="text-text-primary">role="separator"</code>
-          made focusable (<code class="text-text-primary">tabindex="0"</code>), carries
-          <code class="text-text-primary">aria-controls</code>
-          pointing at the first pane, and exposes its position as
-          <code class="text-text-primary">aria-valuenow</code>
-          /
-          <code class="text-text-primary">aria-valuemin</code>
-          /
-          <code class="text-text-primary">aria-valuemax</code>
-          (percentages, clamped into the configured
-          <code class="text-text-primary">min</code>/<code class="text-text-primary">max</code>).
-          Its
-          <code class="text-text-primary">aria-orientation</code>
-          is the axis of movement — <code class="text-text-primary">vertical</code> for a horizontal
-          layout, <code class="text-text-primary">horizontal</code> for a vertical one. Give it a
-          meaningful name via <code class="text-text-primary">handleLabel</code> (default "Resize
-          panes"). When <code class="text-text-primary">disabled</code>, the divider drops out of
-          the tab order and reports <code class="text-text-primary">aria-disabled</code>.
+  <NoteList>
+    <Note>
+      {#snippet titleSnippet()}
+        The "window splitter" pattern
+      {/snippet}
+      <p>
+        The divider follows the WAI-ARIA <em>window splitter</em> pattern. It renders as
+        <code class="text-text-primary">role="separator"</code>
+        made focusable (<code class="text-text-primary">tabindex="0"</code>), carries
+        <code class="text-text-primary">aria-controls</code>
+        pointing at the first pane, and exposes its position as
+        <code class="text-text-primary">aria-valuenow</code>
+        /
+        <code class="text-text-primary">aria-valuemin</code>
+        /
+        <code class="text-text-primary">aria-valuemax</code>
+        (percentages, clamped into the configured
+        <code class="text-text-primary">min</code>/<code class="text-text-primary">max</code>). Its
+        <code class="text-text-primary">aria-orientation</code>
+        is the axis of movement — <code class="text-text-primary">vertical</code> for a horizontal
+        layout, <code class="text-text-primary">horizontal</code> for a vertical one. Give it a
+        meaningful name via <code class="text-text-primary">handleLabel</code> (default "Resize
+        panes"). When <code class="text-text-primary">disabled</code>, the divider drops out of the
+        tab order and reports <code class="text-text-primary">aria-disabled</code>.
+      </p>
+    </Note>
+    <Note title="Keyboard">
+      <div class="text-text-secondary space-y-2 text-sm leading-relaxed">
+        <p>
+          <kbd
+            class="bg-surface-base border-border-subtle rounded border px-1.5 py-0.5 text-xs font-medium"
+            >Tab</kbd
+          >
+          moves focus to the divider. The arrow keys follow the layout axis:
         </p>
-      </div>
-      <div class="py-4">
-        <h4 class="text-text-primary mb-1.5 text-sm font-semibold">Keyboard</h4>
-        <div class="text-text-secondary space-y-2 text-sm leading-relaxed">
-          <p>
+        <ul class="ml-1 space-y-1.5">
+          <li>
             <kbd
               class="bg-surface-base border-border-subtle rounded border px-1.5 py-0.5 text-xs font-medium"
-              >Tab</kbd
+              >←</kbd
             >
-            moves focus to the divider. The arrow keys follow the layout axis:
-          </p>
-          <ul class="ml-1 space-y-1.5">
-            <li>
-              <kbd
-                class="bg-surface-base border-border-subtle rounded border px-1.5 py-0.5 text-xs font-medium"
-                >←</kbd
-              >
-              /
-              <kbd
-                class="bg-surface-base border-border-subtle rounded border px-1.5 py-0.5 text-xs font-medium"
-                >→</kbd
-              >
-              (horizontal) or
-              <kbd
-                class="bg-surface-base border-border-subtle rounded border px-1.5 py-0.5 text-xs font-medium"
-                >↑</kbd
-              >
-              /
-              <kbd
-                class="bg-surface-base border-border-subtle rounded border px-1.5 py-0.5 text-xs font-medium"
-                >↓</kbd
-              >
-              (vertical) resize by ±2%.
-            </li>
-            <li>
-              Hold
-              <kbd
-                class="bg-surface-base border-border-subtle rounded border px-1.5 py-0.5 text-xs font-medium"
-                >Shift</kbd
-              >
-              with an arrow for a ±10% step.
-            </li>
-            <li>
-              <kbd
-                class="bg-surface-base border-border-subtle rounded border px-1.5 py-0.5 text-xs font-medium"
-                >Home</kbd
-              >
-              /
-              <kbd
-                class="bg-surface-base border-border-subtle rounded border px-1.5 py-0.5 text-xs font-medium"
-                >End</kbd
-              >
-              jump to the <code class="text-text-primary">min</code> /
-              <code class="text-text-primary">max</code> limit.
-            </li>
-            <li>
-              <kbd
-                class="bg-surface-base border-border-subtle rounded border px-1.5 py-0.5 text-xs font-medium"
-                >Enter</kbd
-              >
-              toggles collapse when <code class="text-text-primary">collapsible</code> is set;
-              otherwise it resets to <code class="text-text-primary">defaultRatio</code> — the keyboard
-              equivalent of the double-click reset.
-            </li>
-          </ul>
-        </div>
+            /
+            <kbd
+              class="bg-surface-base border-border-subtle rounded border px-1.5 py-0.5 text-xs font-medium"
+              >→</kbd
+            >
+            (horizontal) or
+            <kbd
+              class="bg-surface-base border-border-subtle rounded border px-1.5 py-0.5 text-xs font-medium"
+              >↑</kbd
+            >
+            /
+            <kbd
+              class="bg-surface-base border-border-subtle rounded border px-1.5 py-0.5 text-xs font-medium"
+              >↓</kbd
+            >
+            (vertical) resize by ±2%.
+          </li>
+          <li>
+            Hold
+            <kbd
+              class="bg-surface-base border-border-subtle rounded border px-1.5 py-0.5 text-xs font-medium"
+              >Shift</kbd
+            >
+            with an arrow for a ±10% step.
+          </li>
+          <li>
+            <kbd
+              class="bg-surface-base border-border-subtle rounded border px-1.5 py-0.5 text-xs font-medium"
+              >Home</kbd
+            >
+            /
+            <kbd
+              class="bg-surface-base border-border-subtle rounded border px-1.5 py-0.5 text-xs font-medium"
+              >End</kbd
+            >
+            jump to the <code class="text-text-primary">min</code> /
+            <code class="text-text-primary">max</code> limit.
+          </li>
+          <li>
+            <kbd
+              class="bg-surface-base border-border-subtle rounded border px-1.5 py-0.5 text-xs font-medium"
+              >Enter</kbd
+            >
+            toggles collapse when <code class="text-text-primary">collapsible</code> is set;
+            otherwise it resets to <code class="text-text-primary">defaultRatio</code> — the keyboard
+            equivalent of the double-click reset.
+          </li>
+        </ul>
       </div>
-      <div class="pt-4">
-        <h4 class="text-text-primary mb-1.5 text-sm font-semibold">Pointer & touch target</h4>
-        <p class="text-text-secondary text-sm leading-relaxed">
-          Drag uses <code class="text-text-primary">setPointerCapture</code>, so a resize keeps
-          tracking even if the pointer leaves the divider — no stray window listeners to leak. The
-          divider is a comfortable, full-length hit area along the split axis rather than a
-          hairline, keeping it reachable for touch and coarse pointers. The
-          <code class="text-text-primary">data-dragging</code>
-          and <code class="text-text-primary">data-collapsed</code> attributes on the root expose the
-          live state for CSS-only styling.
-        </p>
-      </div>
-    </div>
-  </div>
+    </Note>
+    <Note title="Pointer & touch target">
+      <p>
+        Drag uses <code class="text-text-primary">setPointerCapture</code>, so a resize keeps
+        tracking even if the pointer leaves the divider — no stray window listeners to leak. The
+        divider is a comfortable, full-length hit area along the split axis rather than a hairline,
+        keeping it reachable for touch and coarse pointers. The
+        <code class="text-text-primary">data-dragging</code>
+        and <code class="text-text-primary">data-collapsed</code> attributes on the root expose the live
+        state for CSS-only styling.
+      </p>
+    </Note>
+  </NoteList>
 </Section>

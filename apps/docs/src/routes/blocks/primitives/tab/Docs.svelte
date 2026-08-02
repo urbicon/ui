@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { CodeExample, Section } from '@urbicon-ui/docs';
+  import { CodeExample, Note, NoteList, Section } from '@urbicon-ui/docs';
   import { Tab, TabItem, TabPanel, Badge } from '@urbicon-ui/blocks';
   import { resolve } from '$app/paths';
 
@@ -200,7 +200,7 @@
           {#snippet tabs()}
             <div class="w-48 shrink-0 p-3">
               <p
-                class="text-text-tertiary mb-3 px-2 text-3xs font-semibold tracking-widest uppercase"
+                class="text-text-tertiary text-3xs mb-3 px-2 font-semibold tracking-widest uppercase"
               >
                 Settings
               </p>
@@ -735,76 +735,70 @@
 <!-- ─── Accessibility ─── -->
 
 <Section marker="04" id="accessibility" title="Accessibility">
-  <div class="border-border-subtle bg-surface-elevated rounded-2xl border p-6">
-    <div class="divide-border-subtle divide-y">
-      <div class="pb-4">
-        <h4 class="text-text-primary mb-1.5 text-sm font-semibold">Built-in ARIA</h4>
-        <p class="text-text-secondary text-sm leading-relaxed">
-          Uses <code class="text-text-primary">role="tablist"</code> on the tab strip,
-          <code class="text-text-primary">role="tab"</code> on each trigger, and
-          <code class="text-text-primary">role="tabpanel"</code> on content panels.
-          <code class="text-text-primary">aria-selected</code> and
-          <code class="text-text-primary">aria-controls</code> /
-          <code class="text-text-primary">aria-labelledby</code>
-          link tabs to their panels.
-        </p>
-      </div>
-      <div class="py-4">
-        <h4 class="text-text-primary mb-1.5 text-sm font-semibold">Keyboard Navigation</h4>
-        <p class="text-text-secondary text-sm leading-relaxed">
-          <kbd
-            class="bg-surface-base border-border-subtle rounded-modify border px-1.5 py-0.5 text-xs font-medium"
-            >Arrow Left</kbd
-          >
-          /
-          <kbd
-            class="bg-surface-base border-border-subtle rounded-modify border px-1.5 py-0.5 text-xs font-medium"
-            >Arrow Right</kbd
-          >
-          cycle through horizontal tabs.
-          <kbd
-            class="bg-surface-base border-border-subtle rounded-modify border px-1.5 py-0.5 text-xs font-medium"
-            >Arrow Up</kbd
-          >
-          /
-          <kbd
-            class="bg-surface-base border-border-subtle rounded-modify border px-1.5 py-0.5 text-xs font-medium"
-            >Arrow Down</kbd
-          >
-          for vertical orientation.
-          <kbd
-            class="bg-surface-base border-border-subtle rounded-modify border px-1.5 py-0.5 text-xs font-medium"
-            >Home</kbd
-          >
-          /
-          <kbd
-            class="bg-surface-base border-border-subtle rounded-modify border px-1.5 py-0.5 text-xs font-medium"
-            >End</kbd
-          >
-          jump to first/last tab.
-          <kbd
-            class="bg-surface-base border-border-subtle rounded-modify border px-1.5 py-0.5 text-xs font-medium"
-            >Tab</kbd
-          >
-          moves focus into and out of the tab strip.
-        </p>
-      </div>
-      <div class="py-4">
-        <h4 class="text-text-primary mb-1.5 text-sm font-semibold">Focus Management</h4>
-        <p class="text-text-secondary text-sm leading-relaxed">
-          Only the active tab has <code class="text-text-primary">tabindex="0"</code>. Arrow keys
-          move focus <em>and</em> activate the tab (automatic activation pattern). Focus rings use
-          <code class="text-text-primary">focus-visible:</code> so they never show on mouse clicks.
-        </p>
-      </div>
-      <div class="pt-4">
-        <h4 class="text-text-primary mb-1.5 text-sm font-semibold">Reduced Motion</h4>
-        <p class="text-text-secondary text-sm leading-relaxed">
-          The sliding indicator and Mint effects respect
-          <code class="text-text-primary">prefers-reduced-motion</code>. Transitions are shortened
-          or removed when the user has requested less motion.
-        </p>
-      </div>
-    </div>
-  </div>
+  <NoteList>
+    <Note title="Built-in ARIA">
+      <p>
+        Uses <code class="text-text-primary">role="tablist"</code> on the tab strip,
+        <code class="text-text-primary">role="tab"</code> on each trigger, and
+        <code class="text-text-primary">role="tabpanel"</code> on content panels.
+        <code class="text-text-primary">aria-selected</code> and
+        <code class="text-text-primary">aria-controls</code> /
+        <code class="text-text-primary">aria-labelledby</code>
+        link tabs to their panels.
+      </p>
+    </Note>
+    <Note title="Keyboard Navigation">
+      <p>
+        <kbd
+          class="bg-surface-base border-border-subtle rounded-modify border px-1.5 py-0.5 text-xs font-medium"
+          >Arrow Left</kbd
+        >
+        /
+        <kbd
+          class="bg-surface-base border-border-subtle rounded-modify border px-1.5 py-0.5 text-xs font-medium"
+          >Arrow Right</kbd
+        >
+        cycle through horizontal tabs.
+        <kbd
+          class="bg-surface-base border-border-subtle rounded-modify border px-1.5 py-0.5 text-xs font-medium"
+          >Arrow Up</kbd
+        >
+        /
+        <kbd
+          class="bg-surface-base border-border-subtle rounded-modify border px-1.5 py-0.5 text-xs font-medium"
+          >Arrow Down</kbd
+        >
+        for vertical orientation.
+        <kbd
+          class="bg-surface-base border-border-subtle rounded-modify border px-1.5 py-0.5 text-xs font-medium"
+          >Home</kbd
+        >
+        /
+        <kbd
+          class="bg-surface-base border-border-subtle rounded-modify border px-1.5 py-0.5 text-xs font-medium"
+          >End</kbd
+        >
+        jump to first/last tab.
+        <kbd
+          class="bg-surface-base border-border-subtle rounded-modify border px-1.5 py-0.5 text-xs font-medium"
+          >Tab</kbd
+        >
+        moves focus into and out of the tab strip.
+      </p>
+    </Note>
+    <Note title="Focus Management">
+      <p>
+        Only the active tab has <code class="text-text-primary">tabindex="0"</code>. Arrow keys move
+        focus <em>and</em> activate the tab (automatic activation pattern). Focus rings use
+        <code class="text-text-primary">focus-visible:</code> so they never show on mouse clicks.
+      </p>
+    </Note>
+    <Note title="Reduced Motion">
+      <p>
+        The sliding indicator and Mint effects respect
+        <code class="text-text-primary">prefers-reduced-motion</code>. Transitions are shortened or
+        removed when the user has requested less motion.
+      </p>
+    </Note>
+  </NoteList>
 </Section>

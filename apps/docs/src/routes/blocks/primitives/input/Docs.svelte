@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { CodeExample, Section } from '@urbicon-ui/docs';
+  import { CodeExample, Note, NoteList, Section } from '@urbicon-ui/docs';
   import { Input, SearchIcon, EyeIcon, EyeOffIcon, MailIcon, LockIcon } from '@urbicon-ui/blocks';
   import { resolve } from '$app/paths';
 
@@ -158,40 +158,35 @@
 <!-- ─── Accessibility ─── -->
 
 <Section marker="03" id="accessibility" title="Accessibility">
-  <div class="border-border-subtle bg-surface-elevated rounded-2xl border p-6">
-    <div class="divide-border-subtle divide-y">
-      <div class="pb-4">
-        <h4 class="text-text-primary mb-1.5 text-sm font-semibold">Built-in ARIA</h4>
-        <p class="text-text-secondary text-sm leading-relaxed">
-          Labels are automatically associated via <code class="text-text-primary">for</code> and
-          <code class="text-text-primary">id</code>. Error and helper messages are linked through
-          <code class="text-text-primary">aria-describedby</code>. Validation states set
-          <code class="text-text-primary">aria-invalid</code> automatically.
-        </p>
-      </div>
-      <div class="py-4">
-        <h4 class="text-text-primary mb-1.5 text-sm font-semibold">Keyboard</h4>
-        <p class="text-text-secondary text-sm leading-relaxed">
-          <kbd
-            class="bg-surface-base border-border-subtle rounded border px-1.5 py-0.5 text-xs font-medium"
-            >Tab</kbd
-          >
-          to focus. Native text input behavior for all key combinations. Clearable inputs respond to
-          <kbd
-            class="bg-surface-base border-border-subtle rounded border px-1.5 py-0.5 text-xs font-medium"
-            >Escape</kbd
-          >
-          to clear the value. Focus indication uses
-          <code class="text-text-primary">focus-visible:</code> for keyboard-only visibility.
-        </p>
-      </div>
-      <div class="pt-4">
-        <h4 class="text-text-primary mb-1.5 text-sm font-semibold">Color Contrast</h4>
-        <p class="text-text-secondary text-sm leading-relaxed">
-          Error, warning, and success states use both color and text to convey status – never color
-          alone. Helper and error messages meet WCAG AA contrast ratios against all surface tokens.
-        </p>
-      </div>
-    </div>
-  </div>
+  <NoteList>
+    <Note title="Built-in ARIA">
+      <p>
+        Labels are automatically associated via <code class="text-text-primary">for</code> and
+        <code class="text-text-primary">id</code>. Error and helper messages are linked through
+        <code class="text-text-primary">aria-describedby</code>. Validation states set
+        <code class="text-text-primary">aria-invalid</code> automatically.
+      </p>
+    </Note>
+    <Note title="Keyboard">
+      <p>
+        <kbd
+          class="bg-surface-base border-border-subtle rounded border px-1.5 py-0.5 text-xs font-medium"
+          >Tab</kbd
+        >
+        to focus. Native text input behavior for all key combinations. Clearable inputs respond to
+        <kbd
+          class="bg-surface-base border-border-subtle rounded border px-1.5 py-0.5 text-xs font-medium"
+          >Escape</kbd
+        >
+        to clear the value. Focus indication uses
+        <code class="text-text-primary">focus-visible:</code> for keyboard-only visibility.
+      </p>
+    </Note>
+    <Note title="Color Contrast">
+      <p>
+        Error, warning, and success states use both color and text to convey status – never color
+        alone. Helper and error messages meet WCAG AA contrast ratios against all surface tokens.
+      </p>
+    </Note>
+  </NoteList>
 </Section>

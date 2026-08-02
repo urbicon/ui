@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { CodeExample, Section } from '@urbicon-ui/docs';
+  import { CodeExample, Note, NoteList, Section } from '@urbicon-ui/docs';
   import { Spinner, Button, Card, Badge } from '@urbicon-ui/blocks';
   import { resolve } from '$app/paths';
 </script>
@@ -227,41 +227,35 @@
 <!-- ─── Accessibility ─── -->
 
 <Section marker="03" id="accessibility" title="Accessibility">
-  <div class="border-border-subtle bg-surface-elevated rounded-2xl border p-6">
-    <div class="divide-border-subtle divide-y">
-      <div class="pb-4">
-        <h4 class="text-text-primary mb-1.5 text-sm font-semibold">Screen Reader</h4>
-        <p class="text-text-secondary text-sm leading-relaxed">
-          Uses <code class="text-text-primary">role="status"</code> with
-          <code class="text-text-primary">aria-label</code> from the
-          <code class="text-text-primary">label</code> prop (defaults to "Loading…"). The
-          <code class="text-text-primary">aria-live="polite"</code> region announces loading state without
-          interrupting the user.
-        </p>
-      </div>
-      <div class="py-4">
-        <h4 class="text-text-primary mb-1.5 text-sm font-semibold">Visibility</h4>
-        <p class="text-text-secondary text-sm leading-relaxed">
-          When <code class="text-text-primary">visible={'{'}false}</code>, the spinner is removed
-          from the DOM entirely — no visual output and no accessibility tree entry.
-        </p>
-      </div>
-      <div class="py-4">
-        <h4 class="text-text-primary mb-1.5 text-sm font-semibold">Reduced Motion</h4>
-        <p class="text-text-secondary text-sm leading-relaxed">
-          All animations (spin, bounce, pulse, bars) respect
-          <code class="text-text-primary">prefers-reduced-motion: reduce</code> via Tailwind's
-          <code class="text-text-primary">motion-reduce:</code> variant. In reduced-motion mode the spinner
-          still renders statically to indicate loading.
-        </p>
-      </div>
-      <div class="pt-4">
-        <h4 class="text-text-primary mb-1.5 text-sm font-semibold">Print</h4>
-        <p class="text-text-secondary text-sm leading-relaxed">
-          Spinners are hidden from print output via a
-          <code class="text-text-primary">@media print</code> rule.
-        </p>
-      </div>
-    </div>
-  </div>
+  <NoteList>
+    <Note title="Screen Reader">
+      <p>
+        Uses <code class="text-text-primary">role="status"</code> with
+        <code class="text-text-primary">aria-label</code> from the
+        <code class="text-text-primary">label</code> prop (defaults to "Loading…"). The
+        <code class="text-text-primary">aria-live="polite"</code> region announces loading state without
+        interrupting the user.
+      </p>
+    </Note>
+    <Note title="Visibility">
+      <p>
+        When <code class="text-text-primary">visible={'{'}false}</code>, the spinner is removed from
+        the DOM entirely — no visual output and no accessibility tree entry.
+      </p>
+    </Note>
+    <Note title="Reduced Motion">
+      <p>
+        All animations (spin, bounce, pulse, bars) respect
+        <code class="text-text-primary">prefers-reduced-motion: reduce</code> via Tailwind's
+        <code class="text-text-primary">motion-reduce:</code> variant. In reduced-motion mode the spinner
+        still renders statically to indicate loading.
+      </p>
+    </Note>
+    <Note title="Print">
+      <p>
+        Spinners are hidden from print output via a
+        <code class="text-text-primary">@media print</code> rule.
+      </p>
+    </Note>
+  </NoteList>
 </Section>

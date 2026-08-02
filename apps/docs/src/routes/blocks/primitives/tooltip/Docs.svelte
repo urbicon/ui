@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { CodeExample, Section } from '@urbicon-ui/docs';
+  import { CodeExample, Note, NoteList, Section } from '@urbicon-ui/docs';
   import { Tooltip, Button, Badge } from '@urbicon-ui/blocks';
   import { resolve } from '$app/paths';
 </script>
@@ -153,49 +153,43 @@
 <!-- ─── Accessibility ─── -->
 
 <Section marker="03" id="accessibility" title="Accessibility">
-  <div class="border-border-subtle bg-surface-elevated rounded-2xl border p-6">
-    <div class="divide-border-subtle divide-y">
-      <div class="pb-4">
-        <h4 class="text-text-primary mb-1.5 text-sm font-semibold">Built-in ARIA</h4>
-        <p class="text-text-secondary text-sm leading-relaxed">
-          Uses <code class="text-text-primary">role="tooltip"</code> with
-          <code class="text-text-primary">aria-describedby</code> linking the trigger to the tooltip content.
-          A unique ID is generated automatically for each instance.
-        </p>
-      </div>
-      <div class="py-4">
-        <h4 class="text-text-primary mb-1.5 text-sm font-semibold">Keyboard</h4>
-        <p class="text-text-secondary text-sm leading-relaxed">
-          Tooltips appear on
-          <kbd
-            class="bg-surface-base border-border-subtle rounded-modify border px-1.5 py-0.5 text-xs font-medium"
-            >Focus</kbd
-          >
-          and dismiss with
-          <kbd
-            class="bg-surface-base border-border-subtle rounded-modify border px-1.5 py-0.5 text-xs font-medium"
-            >Escape</kbd
-          >. The tooltip itself is never focusable – it supplements the trigger's accessible
-          description.
-        </p>
-      </div>
-      <div class="py-4">
-        <h4 class="text-text-primary mb-1.5 text-sm font-semibold">Timing</h4>
-        <p class="text-text-secondary text-sm leading-relaxed">
-          A configurable <code class="text-text-primary">showDelay</code> (default 200 ms) prevents
-          accidental activation during mouse movement. The
-          <code class="text-text-primary">hideDelay</code> (default 100 ms) allows users to briefly move
-          away without the tooltip disappearing.
-        </p>
-      </div>
-      <div class="pt-4">
-        <h4 class="text-text-primary mb-1.5 text-sm font-semibold">Reduced Motion</h4>
-        <p class="text-text-secondary text-sm leading-relaxed">
-          The tooltip uses <code class="text-text-primary">opacity</code> transitions with the
-          system's <code class="text-text-primary">--blocks-duration-fast</code> token. In reduced motion
-          mode, the transition duration is automatically shortened.
-        </p>
-      </div>
-    </div>
-  </div>
+  <NoteList>
+    <Note title="Built-in ARIA">
+      <p>
+        Uses <code class="text-text-primary">role="tooltip"</code> with
+        <code class="text-text-primary">aria-describedby</code> linking the trigger to the tooltip content.
+        A unique ID is generated automatically for each instance.
+      </p>
+    </Note>
+    <Note title="Keyboard">
+      <p>
+        Tooltips appear on
+        <kbd
+          class="bg-surface-base border-border-subtle rounded-modify border px-1.5 py-0.5 text-xs font-medium"
+          >Focus</kbd
+        >
+        and dismiss with
+        <kbd
+          class="bg-surface-base border-border-subtle rounded-modify border px-1.5 py-0.5 text-xs font-medium"
+          >Escape</kbd
+        >. The tooltip itself is never focusable – it supplements the trigger's accessible
+        description.
+      </p>
+    </Note>
+    <Note title="Timing">
+      <p>
+        A configurable <code class="text-text-primary">showDelay</code> (default 200 ms) prevents
+        accidental activation during mouse movement. The
+        <code class="text-text-primary">hideDelay</code> (default 100 ms) allows users to briefly move
+        away without the tooltip disappearing.
+      </p>
+    </Note>
+    <Note title="Reduced Motion">
+      <p>
+        The tooltip uses <code class="text-text-primary">opacity</code> transitions with the
+        system's <code class="text-text-primary">--blocks-duration-fast</code> token. In reduced motion
+        mode, the transition duration is automatically shortened.
+      </p>
+    </Note>
+  </NoteList>
 </Section>

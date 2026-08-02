@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { CodeExample, Section } from '@urbicon-ui/docs';
+  import { CodeExample, Note, NoteList, Section } from '@urbicon-ui/docs';
   import { Sparkline } from '@urbicon-ui/blocks';
 
   const up = [4, 6, 5, 8, 7, 10, 9, 12, 14];
@@ -80,25 +80,21 @@
 
 <!-- ─── Accessibility ─── -->
 <Section marker="02" id="accessibility" title="Accessibility">
-  <div class="border-border-subtle bg-surface-elevated rounded-2xl border p-6">
-    <div class="divide-border-subtle divide-y">
-      <div class="pb-4">
-        <h4 class="text-text-primary mb-1.5 text-sm font-semibold">Decorative by default</h4>
-        <p class="text-text-secondary text-sm leading-relaxed">
-          A sparkline usually accompanies a number that already conveys the value, so it is
-          <code class="text-text-primary">aria-hidden</code> by default to avoid redundant screen-reader
-          noise.
-        </p>
-      </div>
-      <div class="pt-4">
-        <h4 class="text-text-primary mb-1.5 text-sm font-semibold">Opt-in labelling</h4>
-        <p class="text-text-secondary text-sm leading-relaxed">
-          When the trend is the only information present, pass
-          <code class="text-text-primary">ariaLabel</code> — the sparkline then exposes
-          <code class="text-text-primary">role="img"</code> with that label (e.g. "Revenue trending up
-          over 7 days").
-        </p>
-      </div>
-    </div>
-  </div>
+  <NoteList>
+    <Note title="Decorative by default">
+      <p>
+        A sparkline usually accompanies a number that already conveys the value, so it is
+        <code class="text-text-primary">aria-hidden</code> by default to avoid redundant screen-reader
+        noise.
+      </p>
+    </Note>
+    <Note title="Opt-in labelling">
+      <p>
+        When the trend is the only information present, pass
+        <code class="text-text-primary">ariaLabel</code> — the sparkline then exposes
+        <code class="text-text-primary">role="img"</code> with that label (e.g. "Revenue trending up over
+        7 days").
+      </p>
+    </Note>
+  </NoteList>
 </Section>

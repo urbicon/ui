@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { CodeExample, Section } from '@urbicon-ui/docs';
+  import { CodeExample, Note, NoteList, Section } from '@urbicon-ui/docs';
   import { r } from '$lib/route';
 </script>
 
@@ -113,58 +113,54 @@
 <!-- ─── Accessibility ─── -->
 
 <Section marker="03" id="accessibility" title="Accessibility">
-  <div class="border-border-subtle bg-surface-elevated rounded-2xl border p-6">
-    <div class="divide-border-subtle divide-y">
-      <div class="pb-4">
-        <h4 class="text-text-primary mb-1.5 text-sm font-semibold">
-          Why the log is <code class="text-text-primary">aria-live="off"</code>
-        </h4>
-        <p class="text-text-secondary text-sm leading-relaxed">
-          The messages render inside a <code class="text-text-primary">role="log"</code> region, but
-          its live channel is deliberately <strong>off</strong>. A streaming answer changes the DOM
-          dozens of times a second; a polite/assertive log would fire an announcement on every token
-          and drown the user in fragments. So the log itself stays silent.
-        </p>
-      </div>
-      <div class="py-4">
-        <h4 class="text-text-primary mb-1.5 text-sm font-semibold">The separate status region</h4>
-        <p class="text-text-secondary text-sm leading-relaxed">
-          Announcements come instead from a visually hidden
-          <code class="text-text-primary">role="status"</code> region that speaks only the
-          meaningful transitions: <code class="text-text-primary">generatingLabel</code> once when
-          an assistant message starts streaming, and the settled answer once when it completes (or
-          <code class="text-text-primary">errorLabel</code> /
-          <code class="text-text-primary">abortedLabel</code> for a failed stream). Screen-reader users
-          hear "generating…" then the final answer — never the token-by-token churn.
-        </p>
-      </div>
-      <div class="py-4">
-        <h4 class="text-text-primary mb-1.5 text-sm font-semibold">
-          Scrollable region is focusable
-        </h4>
-        <p class="text-text-secondary text-sm leading-relaxed">
-          The viewport is a labelled <code class="text-text-primary">role="region"</code>
-          (<code class="text-text-primary">listLabel</code>) with
-          <code class="text-text-primary">tabindex="0"</code>, so keyboard users can focus the
-          conversation and scroll it with the arrow /
-          <kbd
-            class="bg-surface-base border-border-subtle rounded-modify border px-1.5 py-0.5 text-xs font-medium"
-            >Page</kbd
-          >
-          keys. Its focus ring uses <code class="text-text-primary">focus-visible:</code> (keyboard-only).
-        </p>
-      </div>
-      <div class="pt-4">
-        <h4 class="text-text-primary mb-1.5 text-sm font-semibold">The jump-back button</h4>
-        <p class="text-text-secondary text-sm leading-relaxed">
-          The floating pill is a real <code class="text-text-primary">&lt;button&gt;</code> whose
-          <code class="text-text-primary">aria-label</code> carries the pending count (<code
-            class="text-text-primary">newMessagesLabel</code
-          >) or falls back to
-          <code class="text-text-primary">scrollToBottomLabel</code> when nothing is pending — so its
-          purpose is announced, not implied by an icon.
-        </p>
-      </div>
-    </div>
-  </div>
+  <NoteList>
+    <Note>
+      {#snippet titleSnippet()}
+        Why the log is <code class="text-text-primary">aria-live="off"</code>
+      {/snippet}
+      <p>
+        The messages render inside a <code class="text-text-primary">role="log"</code> region, but
+        its live channel is deliberately <strong>off</strong>. A streaming answer changes the DOM
+        dozens of times a second; a polite/assertive log would fire an announcement on every token
+        and drown the user in fragments. So the log itself stays silent.
+      </p>
+    </Note>
+    <Note title="The separate status region">
+      <p>
+        Announcements come instead from a visually hidden
+        <code class="text-text-primary">role="status"</code> region that speaks only the meaningful
+        transitions: <code class="text-text-primary">generatingLabel</code> once when an assistant
+        message starts streaming, and the settled answer once when it completes (or
+        <code class="text-text-primary">errorLabel</code> /
+        <code class="text-text-primary">abortedLabel</code> for a failed stream). Screen-reader users
+        hear "generating…" then the final answer — never the token-by-token churn.
+      </p>
+    </Note>
+    <Note>
+      {#snippet titleSnippet()}
+        Scrollable region is focusable
+      {/snippet}
+      <p>
+        The viewport is a labelled <code class="text-text-primary">role="region"</code>
+        (<code class="text-text-primary">listLabel</code>) with
+        <code class="text-text-primary">tabindex="0"</code>, so keyboard users can focus the
+        conversation and scroll it with the arrow /
+        <kbd
+          class="bg-surface-base border-border-subtle rounded-modify border px-1.5 py-0.5 text-xs font-medium"
+          >Page</kbd
+        >
+        keys. Its focus ring uses <code class="text-text-primary">focus-visible:</code> (keyboard-only).
+      </p>
+    </Note>
+    <Note title="The jump-back button">
+      <p>
+        The floating pill is a real <code class="text-text-primary">&lt;button&gt;</code> whose
+        <code class="text-text-primary">aria-label</code> carries the pending count (<code
+          class="text-text-primary">newMessagesLabel</code
+        >) or falls back to
+        <code class="text-text-primary">scrollToBottomLabel</code> when nothing is pending — so its purpose
+        is announced, not implied by an icon.
+      </p>
+    </Note>
+  </NoteList>
 </Section>

@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { CodeExample, Section } from '@urbicon-ui/docs';
+  import { CodeExample, Note, NoteList, Section } from '@urbicon-ui/docs';
   import { CompositionBar, type CompositionItem } from '@urbicon-ui/blocks';
 
   const formatEur = (cents: number) =>
@@ -190,11 +190,11 @@
         <CompositionBar items={heatingItems} formatValue={formatEur} size="lg">
           {#snippet tooltip(item, percent)}
             <span class="block font-medium">{item.label}</span>
-            <span class="text-text-tertiary block text-2xs tabular-nums">
+            <span class="text-text-tertiary text-2xs block tabular-nums">
               {formatEur(item.value)} · {Math.round(percent)} %
             </span>
             {#if item.intent === 'warning'}
-              <span class="text-warning mt-1 block text-3xs tracking-wide uppercase">
+              <span class="text-warning text-3xs mt-1 block tracking-wide uppercase">
                 statutory levy
               </span>
             {/if}
@@ -228,63 +228,57 @@
 
 <!-- ─── Accessibility ─── -->
 <Section marker="03" id="accessibility" title="Accessibility">
-  <div class="border-border-subtle bg-surface-elevated rounded-2xl border p-6">
-    <div class="divide-border-subtle divide-y">
-      <div class="pb-4">
-        <h4 class="text-text-primary mb-1.5 text-sm font-semibold">ARIA Image Role + Summary</h4>
-        <p class="text-text-secondary text-sm leading-relaxed">
-          The bar container has <code class="text-text-primary">role="img"</code> with a combined
-          <code class="text-text-primary">aria-label</code> summary (total plus each share with value
-          and percent), so screen readers can grasp the bar as a whole.
-        </p>
-      </div>
-      <div class="py-4">
-        <h4 class="text-text-primary mb-1.5 text-sm font-semibold">Table Fallback</h4>
-        <p class="text-text-secondary text-sm leading-relaxed">
-          An sr-only table duplicates the data in tabular form (share / value / percent) for screen
-          readers that prefer tables over images.
-        </p>
-      </div>
-      <div class="py-4">
-        <h4 class="text-text-primary mb-1.5 text-sm font-semibold">Keyboard Navigation</h4>
-        <p class="text-text-secondary text-sm leading-relaxed">
-          <kbd
-            class="bg-surface-base border-border-subtle rounded-modify border px-1.5 py-0.5 text-xs"
-            >Tab</kbd
-          >
-          focuses the next segment,
-          <kbd
-            class="bg-surface-base border-border-subtle rounded-modify border px-1.5 py-0.5 text-xs"
-            >Arrow keys</kbd
-          >
-          move between segments,
-          <kbd
-            class="bg-surface-base border-border-subtle rounded-modify border px-1.5 py-0.5 text-xs"
-            >Home</kbd
-          >
-          /<kbd
-            class="bg-surface-base border-border-subtle rounded-modify border px-1.5 py-0.5 text-xs"
-            >End</kbd
-          >
-          jump to the first/last,
-          <kbd
-            class="bg-surface-base border-border-subtle rounded-modify border px-1.5 py-0.5 text-xs"
-            >Enter</kbd
-          >/<kbd
-            class="bg-surface-base border-border-subtle rounded-modify border px-1.5 py-0.5 text-xs"
-            >Space</kbd
-          > triggers onItemSelect.
-        </p>
-      </div>
-      <div class="pt-4">
-        <h4 class="text-text-primary mb-1.5 text-sm font-semibold">Bidirectional Highlight</h4>
-        <p class="text-text-secondary text-sm leading-relaxed">
-          Hovering or focusing a bar segment dims all other segments AND highlights the matching
-          legend entry (and vice versa) — the link runs through the shared
-          <code class="text-text-primary">item.id</code>
-          (fallback: index).
-        </p>
-      </div>
-    </div>
-  </div>
+  <NoteList>
+    <Note title="ARIA Image Role + Summary">
+      <p>
+        The bar container has <code class="text-text-primary">role="img"</code> with a combined
+        <code class="text-text-primary">aria-label</code> summary (total plus each share with value and
+        percent), so screen readers can grasp the bar as a whole.
+      </p>
+    </Note>
+    <Note title="Table Fallback">
+      <p>
+        An sr-only table duplicates the data in tabular form (share / value / percent) for screen
+        readers that prefer tables over images.
+      </p>
+    </Note>
+    <Note title="Keyboard Navigation">
+      <p>
+        <kbd
+          class="bg-surface-base border-border-subtle rounded-modify border px-1.5 py-0.5 text-xs"
+          >Tab</kbd
+        >
+        focuses the next segment,
+        <kbd
+          class="bg-surface-base border-border-subtle rounded-modify border px-1.5 py-0.5 text-xs"
+          >Arrow keys</kbd
+        >
+        move between segments,
+        <kbd
+          class="bg-surface-base border-border-subtle rounded-modify border px-1.5 py-0.5 text-xs"
+          >Home</kbd
+        >
+        /<kbd
+          class="bg-surface-base border-border-subtle rounded-modify border px-1.5 py-0.5 text-xs"
+          >End</kbd
+        >
+        jump to the first/last,
+        <kbd
+          class="bg-surface-base border-border-subtle rounded-modify border px-1.5 py-0.5 text-xs"
+          >Enter</kbd
+        >/<kbd
+          class="bg-surface-base border-border-subtle rounded-modify border px-1.5 py-0.5 text-xs"
+          >Space</kbd
+        > triggers onItemSelect.
+      </p>
+    </Note>
+    <Note title="Bidirectional Highlight">
+      <p>
+        Hovering or focusing a bar segment dims all other segments AND highlights the matching
+        legend entry (and vice versa) — the link runs through the shared
+        <code class="text-text-primary">item.id</code>
+        (fallback: index).
+      </p>
+    </Note>
+  </NoteList>
 </Section>

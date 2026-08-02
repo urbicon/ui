@@ -19,7 +19,7 @@
     BedIcon,
     MapPinIcon
   } from '@urbicon-ui/blocks';
-  import { CodeExample, Section } from '@urbicon-ui/docs';
+  import { CodeExample, Note, NoteList, Section } from '@urbicon-ui/docs';
   import { recipeMeta } from './meta';
 
   const { components: usedComponents, features } = recipeMeta;
@@ -633,52 +633,46 @@
   </Section>
 
   <Section id="why-sidebar" title="Why Sidebar, not Drawer" headingLevel={3}>
-    <div class="border-border-subtle bg-surface-elevated rounded-2xl border p-6">
-      <div class="divide-border-subtle divide-y">
-        <div class="pb-4">
-          <h4 class="text-text-primary mb-1.5 text-sm font-semibold">The panel is page shell</h4>
-          <p class="text-text-secondary text-sm leading-relaxed">
-            On desktop the filters are always present and the results reflow beside them — there is
-            no backdrop, no focus-trap, and nothing to dismiss. That is a
-            <code class="text-text-primary">Sidebar</code>. A
-            <code class="text-text-primary">Drawer</code> is a modal
-            <code class="text-text-primary">&lt;dialog&gt;</code>: backdrop and focus-trap are
-            non-optional, which is wrong for a panel you want visible while you scan results.
-          </p>
-        </div>
-        <div class="py-4">
-          <h4 class="text-text-primary mb-1.5 text-sm font-semibold">One panel, two lifecycles</h4>
-          <p class="text-text-secondary text-sm leading-relaxed">
-            <code class="text-text-primary">mode="responsive"</code> keeps the same markup for both:
-            persistent above 1024px, a backdropped slide-in overlay below it. The
-            <code class="text-text-primary">open</code> prop only governs the mobile overlay — on desktop
-            the rail ignores it and stays visible.
-          </p>
-        </div>
-        <div class="py-4">
-          <h4 class="text-text-primary mb-1.5 text-sm font-semibold">No Apply on desktop</h4>
-          <p class="text-text-secondary text-sm leading-relaxed">
-            Because the rail is not modal, filtering is live — a single
-            <code class="text-text-primary">$derived</code> recomputes the grid as you toggle
-            controls. The mobile overlay adds a <em>Show N results</em> button purely as a "done" affordance
-            to close the sheet; it commits nothing that was not already applied.
-          </p>
-        </div>
-        <div class="pt-4">
-          <h4 class="text-text-primary mb-1.5 text-sm font-semibold">Offset the main content</h4>
-          <p class="text-text-secondary text-sm leading-relaxed">
-            The <code class="text-text-primary">Sidebar</code> is
-            <code class="text-text-primary">position: fixed</code>, so its
-            <code class="text-text-primary">--sidebar-width</code>
-            CSS var inherits only inside its own subtree. Offset the sibling main region by hand —
-            <code class="text-text-primary">lg:pl-72</code> matches
-            <code class="text-text-primary">width="18rem"</code>. For a ready-made app shell that
-            wires the offset and mobile header for you, reach for
-            <code class="text-text-primary">SidebarLayout</code> instead.
-          </p>
-        </div>
-      </div>
-    </div>
+    <NoteList>
+      <Note title="The panel is page shell">
+        <p>
+          On desktop the filters are always present and the results reflow beside them — there is no
+          backdrop, no focus-trap, and nothing to dismiss. That is a
+          <code class="text-text-primary">Sidebar</code>. A
+          <code class="text-text-primary">Drawer</code> is a modal
+          <code class="text-text-primary">&lt;dialog&gt;</code>: backdrop and focus-trap are
+          non-optional, which is wrong for a panel you want visible while you scan results.
+        </p>
+      </Note>
+      <Note title="One panel, two lifecycles">
+        <p>
+          <code class="text-text-primary">mode="responsive"</code> keeps the same markup for both:
+          persistent above 1024px, a backdropped slide-in overlay below it. The
+          <code class="text-text-primary">open</code> prop only governs the mobile overlay — on desktop
+          the rail ignores it and stays visible.
+        </p>
+      </Note>
+      <Note title="No Apply on desktop">
+        <p>
+          Because the rail is not modal, filtering is live — a single
+          <code class="text-text-primary">$derived</code> recomputes the grid as you toggle
+          controls. The mobile overlay adds a <em>Show N results</em> button purely as a "done" affordance
+          to close the sheet; it commits nothing that was not already applied.
+        </p>
+      </Note>
+      <Note title="Offset the main content">
+        <p>
+          The <code class="text-text-primary">Sidebar</code> is
+          <code class="text-text-primary">position: fixed</code>, so its
+          <code class="text-text-primary">--sidebar-width</code>
+          CSS var inherits only inside its own subtree. Offset the sibling main region by hand —
+          <code class="text-text-primary">lg:pl-72</code> matches
+          <code class="text-text-primary">width="18rem"</code>. For a ready-made app shell that
+          wires the offset and mobile header for you, reach for
+          <code class="text-text-primary">SidebarLayout</code> instead.
+        </p>
+      </Note>
+    </NoteList>
   </Section>
 
   <div class="mt-12">

@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { CodeExample, Section } from '@urbicon-ui/docs';
+  import { CodeExample, Note, NoteList, Section } from '@urbicon-ui/docs';
   import { r } from '$lib/route';
 </script>
 
@@ -120,46 +120,41 @@
 <!-- ─── Accessibility ─── -->
 
 <Section marker="03" id="accessibility" title="Accessibility">
-  <div class="border-border-subtle bg-surface-elevated rounded-2xl border p-6">
-    <div class="divide-border-subtle divide-y">
-      <div class="pb-4">
-        <h4 class="text-text-primary mb-1.5 text-sm font-semibold">Structure, not a landmark</h4>
-        <p class="text-text-secondary text-sm leading-relaxed">
-          Chat renders plain <code class="text-text-primary">&lt;div&gt;</code> regions — it does
-          not impose <code class="text-text-primary">role="banner"</code>,
-          <code class="text-text-primary">&lt;main&gt;</code> or
-          <code class="text-text-primary">&lt;form&gt;</code> semantics, because those belong to the
-          page around it and the children within it. Rest attributes land on the root, so if the
-          conversation is a standalone view, name it — pass
-          <code class="text-text-primary">aria-label</code> or wrap it in a labelled
-          <code class="text-text-primary">&lt;section&gt;</code>.
-        </p>
-      </div>
-      <div class="py-4">
-        <h4 class="text-text-primary mb-1.5 text-sm font-semibold">Meaning comes from children</h4>
-        <p class="text-text-secondary text-sm leading-relaxed">
-          The accessible semantics are supplied by what you place inside:
-          <code class="text-text-primary">ChatMessageList</code> exposes the scrollable
-          <code class="text-text-primary">role="log"</code> region plus a screen-reader status
-          channel, and <code class="text-text-primary">PromptInput</code> ships the labelled textarea
-          and send/stop buttons. Chat only guarantees they stack in the right order.
-        </p>
-      </div>
-      <div class="pt-4">
-        <h4 class="text-text-primary mb-1.5 text-sm font-semibold">Scroll ownership</h4>
-        <p class="text-text-secondary text-sm leading-relaxed">
-          Because only the body scrolls, keyboard scrolling (<kbd
-            class="bg-surface-base border-border-subtle rounded-modify border px-1.5 py-0.5 text-xs font-medium"
-            >Page&nbsp;Up</kbd
-          >
-          /
-          <kbd
-            class="bg-surface-base border-border-subtle rounded-modify border px-1.5 py-0.5 text-xs font-medium"
-            >Page&nbsp;Down</kbd
-          >) lands on the focusable list region, never on the page — while the header and composer
-          stay reachable and in view.
-        </p>
-      </div>
-    </div>
-  </div>
+  <NoteList>
+    <Note title="Structure, not a landmark">
+      <p>
+        Chat renders plain <code class="text-text-primary">&lt;div&gt;</code> regions — it does not
+        impose <code class="text-text-primary">role="banner"</code>,
+        <code class="text-text-primary">&lt;main&gt;</code> or
+        <code class="text-text-primary">&lt;form&gt;</code> semantics, because those belong to the
+        page around it and the children within it. Rest attributes land on the root, so if the
+        conversation is a standalone view, name it — pass
+        <code class="text-text-primary">aria-label</code> or wrap it in a labelled
+        <code class="text-text-primary">&lt;section&gt;</code>.
+      </p>
+    </Note>
+    <Note title="Meaning comes from children">
+      <p>
+        The accessible semantics are supplied by what you place inside:
+        <code class="text-text-primary">ChatMessageList</code> exposes the scrollable
+        <code class="text-text-primary">role="log"</code> region plus a screen-reader status
+        channel, and <code class="text-text-primary">PromptInput</code> ships the labelled textarea and
+        send/stop buttons. Chat only guarantees they stack in the right order.
+      </p>
+    </Note>
+    <Note title="Scroll ownership">
+      <p>
+        Because only the body scrolls, keyboard scrolling (<kbd
+          class="bg-surface-base border-border-subtle rounded-modify border px-1.5 py-0.5 text-xs font-medium"
+          >Page&nbsp;Up</kbd
+        >
+        /
+        <kbd
+          class="bg-surface-base border-border-subtle rounded-modify border px-1.5 py-0.5 text-xs font-medium"
+          >Page&nbsp;Down</kbd
+        >) lands on the focusable list region, never on the page — while the header and composer
+        stay reachable and in view.
+      </p>
+    </Note>
+  </NoteList>
 </Section>

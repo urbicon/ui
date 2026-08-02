@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { CodeExample, Section } from '@urbicon-ui/docs';
+  import { CodeExample, Note, NoteList, Section } from '@urbicon-ui/docs';
   import { BasicUsage, TrackCopy, HeaderActions } from './examples';
 
   import basicUsageCode from './examples/BasicUsage.svelte?raw';
@@ -36,38 +36,34 @@
 </Section>
 
 <Section marker="02" id="accessibility" title="Accessibility">
-  <div class="border-border-subtle bg-surface-elevated rounded-2xl border p-6">
-    <div class="divide-border-subtle divide-y">
-      <div class="pb-4">
-        <h4 class="text-text-primary mb-1.5 text-sm font-semibold">Copy button label</h4>
-        <p class="text-text-secondary text-sm leading-relaxed">
-          The copy button carries an <code class="text-text-primary">aria-label</code> that swaps
-          from <code class="text-text-primary">copyLabel</code> ("Copy code") to
-          <code class="text-text-primary">copiedLabel</code> ("Copied") for two seconds after a successful
-          copy, so its accessible name always matches what the user sees. A denied or failed clipboard
-          write leaves the label untouched — the UI never falsely confirms a copy that did not happen.
-        </p>
-      </div>
-      <div class="py-4">
-        <h4 class="text-text-primary mb-1.5 text-sm font-semibold">Status announcement</h4>
-        <p class="text-text-secondary text-sm leading-relaxed">
-          A visually hidden <code class="text-text-primary">role="status"</code> region announces "Copied"
-          to screen readers. A label change on the button the user just pressed is not a reliable announcement;
-          a dedicated live region is, so the region ships in the DOM up front and only its text content
-          changes.
-        </p>
-      </div>
-      <div class="pt-4">
-        <h4 class="text-text-primary mb-1.5 text-sm font-semibold">Scrollable region</h4>
-        <p class="text-text-secondary text-sm leading-relaxed">
-          The code body is a focusable
-          <code class="text-text-primary">role="region"</code> (<code class="text-text-primary"
-            >tabindex="0"</code
-          >) labelled by the language, so keyboard users can reach and scroll horizontally
-          overflowing code (WCAG 2.1.1). Focus rings use
-          <code class="text-text-primary">focus-visible:</code> for keyboard-only visibility.
-        </p>
-      </div>
-    </div>
-  </div>
+  <NoteList>
+    <Note title="Copy button label">
+      <p>
+        The copy button carries an <code class="text-text-primary">aria-label</code> that swaps from
+        <code class="text-text-primary">copyLabel</code>
+        ("Copy code") to
+        <code class="text-text-primary">copiedLabel</code> ("Copied") for two seconds after a successful
+        copy, so its accessible name always matches what the user sees. A denied or failed clipboard write
+        leaves the label untouched — the UI never falsely confirms a copy that did not happen.
+      </p>
+    </Note>
+    <Note title="Status announcement">
+      <p>
+        A visually hidden <code class="text-text-primary">role="status"</code> region announces "Copied"
+        to screen readers. A label change on the button the user just pressed is not a reliable announcement;
+        a dedicated live region is, so the region ships in the DOM up front and only its text content
+        changes.
+      </p>
+    </Note>
+    <Note title="Scrollable region">
+      <p>
+        The code body is a focusable
+        <code class="text-text-primary">role="region"</code> (<code class="text-text-primary"
+          >tabindex="0"</code
+        >) labelled by the language, so keyboard users can reach and scroll horizontally overflowing
+        code (WCAG 2.1.1). Focus rings use
+        <code class="text-text-primary">focus-visible:</code> for keyboard-only visibility.
+      </p>
+    </Note>
+  </NoteList>
 </Section>

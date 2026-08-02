@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { CodeExample, Section } from '@urbicon-ui/docs';
+  import { CodeExample, Note, NoteList, Section } from '@urbicon-ui/docs';
   import { Badge, Button } from '@urbicon-ui/blocks';
   import { resolve } from '$app/paths';
 
@@ -364,53 +364,48 @@
 <!-- ─── Accessibility ─── -->
 
 <Section marker="04" id="accessibility" title="Accessibility">
-  <div class="border-border-subtle bg-surface-elevated rounded-2xl border p-6">
-    <div class="divide-border-subtle divide-y">
-      <div class="pb-4">
-        <h4 class="text-text-primary mb-1.5 text-sm font-semibold">Built-in ARIA</h4>
-        <p class="text-text-secondary text-sm leading-relaxed">
-          Badges render with <code class="text-text-primary">role="status"</code> by default,
-          announcing content changes to screen readers. Removable badges include an accessible label
-          for the remove button. Set <code class="text-text-primary">role="alert"</code> for time-sensitive
-          notifications.
-        </p>
-      </div>
-      <div class="py-4">
-        <h4 class="text-text-primary mb-1.5 text-sm font-semibold">Keyboard</h4>
-        <p class="text-text-secondary text-sm leading-relaxed">
-          Interactive badges are focusable via
-          <kbd
-            class="bg-surface-base border-border-subtle rounded-modify border px-1.5 py-0.5 text-xs font-medium"
-            >Tab</kbd
-          >
-          and activate with
-          <kbd
-            class="bg-surface-base border-border-subtle rounded-modify border px-1.5 py-0.5 text-xs font-medium"
-            >Enter</kbd
-          >
-          /
-          <kbd
-            class="bg-surface-base border-border-subtle rounded-modify border px-1.5 py-0.5 text-xs font-medium"
-            >Space</kbd
-          >. Removable badges also respond to
-          <kbd
-            class="bg-surface-base border-border-subtle rounded-modify border px-1.5 py-0.5 text-xs font-medium"
-            >Delete</kbd
-          >
-          /
-          <kbd
-            class="bg-surface-base border-border-subtle rounded-modify border px-1.5 py-0.5 text-xs font-medium"
-            >Backspace</kbd
-          >.
-        </p>
-      </div>
-      <div class="pt-4">
-        <h4 class="text-text-primary mb-1.5 text-sm font-semibold">Reduced Motion</h4>
-        <p class="text-text-secondary text-sm leading-relaxed">
-          Pulse animations and Mint effects are suppressed when
-          <code class="text-text-primary">prefers-reduced-motion</code> is enabled.
-        </p>
-      </div>
-    </div>
-  </div>
+  <NoteList>
+    <Note title="Built-in ARIA">
+      <p>
+        Badges render with <code class="text-text-primary">role="status"</code> by default,
+        announcing content changes to screen readers. Removable badges include an accessible label
+        for the remove button. Set <code class="text-text-primary">role="alert"</code> for time-sensitive
+        notifications.
+      </p>
+    </Note>
+    <Note title="Keyboard">
+      <p>
+        Interactive badges are focusable via
+        <kbd
+          class="bg-surface-base border-border-subtle rounded-modify border px-1.5 py-0.5 text-xs font-medium"
+          >Tab</kbd
+        >
+        and activate with
+        <kbd
+          class="bg-surface-base border-border-subtle rounded-modify border px-1.5 py-0.5 text-xs font-medium"
+          >Enter</kbd
+        >
+        /
+        <kbd
+          class="bg-surface-base border-border-subtle rounded-modify border px-1.5 py-0.5 text-xs font-medium"
+          >Space</kbd
+        >. Removable badges also respond to
+        <kbd
+          class="bg-surface-base border-border-subtle rounded-modify border px-1.5 py-0.5 text-xs font-medium"
+          >Delete</kbd
+        >
+        /
+        <kbd
+          class="bg-surface-base border-border-subtle rounded-modify border px-1.5 py-0.5 text-xs font-medium"
+          >Backspace</kbd
+        >.
+      </p>
+    </Note>
+    <Note title="Reduced Motion">
+      <p>
+        Pulse animations and Mint effects are suppressed when
+        <code class="text-text-primary">prefers-reduced-motion</code> is enabled.
+      </p>
+    </Note>
+  </NoteList>
 </Section>

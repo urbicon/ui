@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { CodeExample, Section } from '@urbicon-ui/docs';
+  import { CodeExample, Note, NoteList, Section } from '@urbicon-ui/docs';
   import { Slider } from '@urbicon-ui/blocks';
   import { resolve } from '$app/paths';
 
@@ -220,60 +220,54 @@
 <!-- ─── Accessibility ─── -->
 
 <Section marker="03" id="accessibility" title="Accessibility">
-  <div class="border-border-subtle bg-surface-elevated rounded-2xl border p-6">
-    <div class="divide-border-subtle divide-y">
-      <div class="pb-4">
-        <h4 class="text-text-primary mb-1.5 text-sm font-semibold">ARIA Slider</h4>
-        <p class="text-text-secondary text-sm leading-relaxed">
-          Each thumb uses <code class="text-text-primary">role="slider"</code> with
-          <code class="text-text-primary">aria-valuemin</code>,
-          <code class="text-text-primary">aria-valuemax</code>,
-          <code class="text-text-primary">aria-valuenow</code>, and
-          <code class="text-text-primary">aria-label</code>. In range mode, thumbs are labelled
-          "minimum" and "maximum" for clear identification.
-        </p>
-      </div>
-      <div class="py-4">
-        <h4 class="text-text-primary mb-1.5 text-sm font-semibold">Keyboard</h4>
-        <p class="text-text-secondary text-sm leading-relaxed">
-          <kbd
-            class="bg-surface-base border-border-subtle rounded border px-1.5 py-0.5 text-xs font-medium"
-            >Arrow Right/Up</kbd
-          >
-          increases by step,
-          <kbd
-            class="bg-surface-base border-border-subtle rounded border px-1.5 py-0.5 text-xs font-medium"
-            >Arrow Left/Down</kbd
-          >
-          decreases.
-          <kbd
-            class="bg-surface-base border-border-subtle rounded border px-1.5 py-0.5 text-xs font-medium"
-            >Page Up/Down</kbd
-          >
-          moves by 10x step.
-          <kbd
-            class="bg-surface-base border-border-subtle rounded border px-1.5 py-0.5 text-xs font-medium"
-            >Home/End</kbd
-          >
-          jump to min/max.
-        </p>
-      </div>
-      <div class="py-4">
-        <h4 class="text-text-primary mb-1.5 text-sm font-semibold">Touch Support</h4>
-        <p class="text-text-secondary text-sm leading-relaxed">
-          Uses Pointer Events for unified mouse, touch, and pen support. The
-          <code class="text-text-primary">touch-none</code> CSS property prevents browser scroll interference
-          during thumb dragging.
-        </p>
-      </div>
-      <div class="pt-4">
-        <h4 class="text-text-primary mb-1.5 text-sm font-semibold">Focus & Color</h4>
-        <p class="text-text-secondary text-sm leading-relaxed">
-          Focus rings use <code class="text-text-primary">focus-visible:</code> for keyboard-only visibility.
-          Intent colors are paired with shape (filled track vs. outlined thumb) so the control remains
-          usable without color perception.
-        </p>
-      </div>
-    </div>
-  </div>
+  <NoteList>
+    <Note title="ARIA Slider">
+      <p>
+        Each thumb uses <code class="text-text-primary">role="slider"</code> with
+        <code class="text-text-primary">aria-valuemin</code>,
+        <code class="text-text-primary">aria-valuemax</code>,
+        <code class="text-text-primary">aria-valuenow</code>, and
+        <code class="text-text-primary">aria-label</code>. In range mode, thumbs are labelled
+        "minimum" and "maximum" for clear identification.
+      </p>
+    </Note>
+    <Note title="Keyboard">
+      <p>
+        <kbd
+          class="bg-surface-base border-border-subtle rounded border px-1.5 py-0.5 text-xs font-medium"
+          >Arrow Right/Up</kbd
+        >
+        increases by step,
+        <kbd
+          class="bg-surface-base border-border-subtle rounded border px-1.5 py-0.5 text-xs font-medium"
+          >Arrow Left/Down</kbd
+        >
+        decreases.
+        <kbd
+          class="bg-surface-base border-border-subtle rounded border px-1.5 py-0.5 text-xs font-medium"
+          >Page Up/Down</kbd
+        >
+        moves by 10x step.
+        <kbd
+          class="bg-surface-base border-border-subtle rounded border px-1.5 py-0.5 text-xs font-medium"
+          >Home/End</kbd
+        >
+        jump to min/max.
+      </p>
+    </Note>
+    <Note title="Touch Support">
+      <p>
+        Uses Pointer Events for unified mouse, touch, and pen support. The
+        <code class="text-text-primary">touch-none</code> CSS property prevents browser scroll interference
+        during thumb dragging.
+      </p>
+    </Note>
+    <Note title="Focus & Color">
+      <p>
+        Focus rings use <code class="text-text-primary">focus-visible:</code> for keyboard-only visibility.
+        Intent colors are paired with shape (filled track vs. outlined thumb) so the control remains usable
+        without color perception.
+      </p>
+    </Note>
+  </NoteList>
 </Section>

@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { CodeExample, Section } from '@urbicon-ui/docs';
+  import { CodeExample, Note, NoteList, Section } from '@urbicon-ui/docs';
   import {
     BasicMonth,
     YearView,
@@ -104,96 +104,89 @@
 <!-- ─── Accessibility ─── -->
 
 <Section marker="02" id="accessibility" title="Accessibility">
-  <div class="border-border-subtle bg-surface-elevated rounded-2xl border p-6">
-    <div class="divide-border-subtle divide-y">
-      <div class="pb-4">
-        <h4 class="text-text-primary mb-1.5 text-sm font-semibold">ARIA Roles</h4>
-        <p class="text-text-secondary text-sm leading-relaxed">
-          The month grid uses <code class="text-text-primary">role="grid"</code> with
-          <code class="text-text-primary">role="row"</code> for weeks and
-          <code class="text-text-primary">role="gridcell"</code> for days. Each cell carries
-          <code class="text-text-primary">aria-selected</code>,
-          <code class="text-text-primary">aria-disabled</code>, and
-          <code class="text-text-primary">aria-current="date"</code> for today.
-        </p>
-      </div>
-      <div class="py-4">
-        <h4 class="text-text-primary mb-1.5 text-sm font-semibold">Keyboard Navigation</h4>
-        <p class="text-text-secondary text-sm leading-relaxed">
-          <kbd
-            class="bg-surface-base border-border-subtle rounded-modify border px-1.5 py-0.5 text-xs font-medium"
-            >←</kbd
-          >
-          <kbd
-            class="bg-surface-base border-border-subtle rounded-modify border px-1.5 py-0.5 text-xs font-medium"
-            >→</kbd
-          >
-          move focus between days,
-          <kbd
-            class="bg-surface-base border-border-subtle rounded-modify border px-1.5 py-0.5 text-xs font-medium"
-            >↑</kbd
-          >
-          <kbd
-            class="bg-surface-base border-border-subtle rounded-modify border px-1.5 py-0.5 text-xs font-medium"
-            >↓</kbd
-          >
-          between weeks.
-          <kbd
-            class="bg-surface-base border-border-subtle rounded-modify border px-1.5 py-0.5 text-xs font-medium"
-            >Home</kbd
-          >/<kbd
-            class="bg-surface-base border-border-subtle rounded-modify border px-1.5 py-0.5 text-xs font-medium"
-            >End</kbd
-          >
-          jump to the start/end of the week.
-          <kbd
-            class="bg-surface-base border-border-subtle rounded-modify border px-1.5 py-0.5 text-xs font-medium"
-            >PageUp</kbd
-          >/<kbd
-            class="bg-surface-base border-border-subtle rounded-modify border px-1.5 py-0.5 text-xs font-medium"
-            >PageDown</kbd
-          >
-          navigate between months.
-          <kbd
-            class="bg-surface-base border-border-subtle rounded-modify border px-1.5 py-0.5 text-xs font-medium"
-            >Enter</kbd
-          >/<kbd
-            class="bg-surface-base border-border-subtle rounded-modify border px-1.5 py-0.5 text-xs font-medium"
-            >Space</kbd
-          >
-          select the focused day. Focus rings use
-          <code class="text-text-primary">focus-visible:</code> for keyboard-only visibility.
-        </p>
-      </div>
-      <div class="py-4">
-        <h4 class="text-text-primary mb-1.5 text-sm font-semibold">Screen Reader Labels</h4>
-        <p class="text-text-secondary text-sm leading-relaxed">
-          Every day cell has an <code class="text-text-primary">aria-label</code> with the full date
-          (e.g. "Thursday, March 12, 2026"). Navigation buttons have descriptive labels. Event dots
-          are
-          <code class="text-text-primary">aria-hidden</code>; event details remain accessible
-          through the event list.
-        </p>
-      </div>
-      <div class="py-4">
-        <h4 class="text-text-primary mb-1.5 text-sm font-semibold">Touch & Gestures</h4>
-        <p class="text-text-secondary text-sm leading-relaxed">
-          Horizontal swiping navigates between months/weeks/days. Touch input is handled through the
-          Pointer Events API. Swipe gestures can be disabled via
-          <code class="text-text-primary">swipeable={'{false}'}</code>. Animations respect
-          <code class="text-text-primary">prefers-reduced-motion</code>.
-        </p>
-      </div>
-      <div class="pt-4">
-        <h4 class="text-text-primary mb-1.5 text-sm font-semibold">Internationalization</h4>
-        <p class="text-text-secondary text-sm leading-relaxed">
-          All visible text and ARIA labels use i18n keys via
-          <code class="text-text-primary">bt()</code>. Date formatting relies on the native
-          <code class="text-text-primary">Intl.DateTimeFormat</code> with the configured
-          <code class="text-text-primary">locale</code>. Weekday names, month names, and date
-          formats adapt automatically.
-        </p>
-      </div>
-    </div>
-  </div>
+  <NoteList>
+    <Note title="ARIA Roles">
+      <p>
+        The month grid uses <code class="text-text-primary">role="grid"</code> with
+        <code class="text-text-primary">role="row"</code> for weeks and
+        <code class="text-text-primary">role="gridcell"</code> for days. Each cell carries
+        <code class="text-text-primary">aria-selected</code>,
+        <code class="text-text-primary">aria-disabled</code>, and
+        <code class="text-text-primary">aria-current="date"</code> for today.
+      </p>
+    </Note>
+    <Note title="Keyboard Navigation">
+      <p>
+        <kbd
+          class="bg-surface-base border-border-subtle rounded-modify border px-1.5 py-0.5 text-xs font-medium"
+          >←</kbd
+        >
+        <kbd
+          class="bg-surface-base border-border-subtle rounded-modify border px-1.5 py-0.5 text-xs font-medium"
+          >→</kbd
+        >
+        move focus between days,
+        <kbd
+          class="bg-surface-base border-border-subtle rounded-modify border px-1.5 py-0.5 text-xs font-medium"
+          >↑</kbd
+        >
+        <kbd
+          class="bg-surface-base border-border-subtle rounded-modify border px-1.5 py-0.5 text-xs font-medium"
+          >↓</kbd
+        >
+        between weeks.
+        <kbd
+          class="bg-surface-base border-border-subtle rounded-modify border px-1.5 py-0.5 text-xs font-medium"
+          >Home</kbd
+        >/<kbd
+          class="bg-surface-base border-border-subtle rounded-modify border px-1.5 py-0.5 text-xs font-medium"
+          >End</kbd
+        >
+        jump to the start/end of the week.
+        <kbd
+          class="bg-surface-base border-border-subtle rounded-modify border px-1.5 py-0.5 text-xs font-medium"
+          >PageUp</kbd
+        >/<kbd
+          class="bg-surface-base border-border-subtle rounded-modify border px-1.5 py-0.5 text-xs font-medium"
+          >PageDown</kbd
+        >
+        navigate between months.
+        <kbd
+          class="bg-surface-base border-border-subtle rounded-modify border px-1.5 py-0.5 text-xs font-medium"
+          >Enter</kbd
+        >/<kbd
+          class="bg-surface-base border-border-subtle rounded-modify border px-1.5 py-0.5 text-xs font-medium"
+          >Space</kbd
+        >
+        select the focused day. Focus rings use
+        <code class="text-text-primary">focus-visible:</code> for keyboard-only visibility.
+      </p>
+    </Note>
+    <Note title="Screen Reader Labels">
+      <p>
+        Every day cell has an <code class="text-text-primary">aria-label</code> with the full date
+        (e.g. "Thursday, March 12, 2026"). Navigation buttons have descriptive labels. Event dots
+        are
+        <code class="text-text-primary">aria-hidden</code>; event details remain accessible through
+        the event list.
+      </p>
+    </Note>
+    <Note title="Touch & Gestures">
+      <p>
+        Horizontal swiping navigates between months/weeks/days. Touch input is handled through the
+        Pointer Events API. Swipe gestures can be disabled via
+        <code class="text-text-primary">swipeable={'{false}'}</code>. Animations respect
+        <code class="text-text-primary">prefers-reduced-motion</code>.
+      </p>
+    </Note>
+    <Note title="Internationalization">
+      <p>
+        All visible text and ARIA labels use i18n keys via
+        <code class="text-text-primary">bt()</code>. Date formatting relies on the native
+        <code class="text-text-primary">Intl.DateTimeFormat</code> with the configured
+        <code class="text-text-primary">locale</code>. Weekday names, month names, and date formats
+        adapt automatically.
+      </p>
+    </Note>
+  </NoteList>
 </Section>

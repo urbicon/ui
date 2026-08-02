@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { CodeExample, Section } from '@urbicon-ui/docs';
+  import { CodeExample, Note, NoteList, Section } from '@urbicon-ui/docs';
   import {
     BoldIcon,
     Button,
@@ -197,57 +197,51 @@
 <!-- ─── Accessibility ─── -->
 
 <Section marker="03" id="accessibility" title="Accessibility">
-  <div class="border-border-subtle bg-surface-elevated rounded-2xl border p-6">
-    <div class="divide-border-subtle divide-y">
-      <div class="pb-4">
-        <h4 class="text-text-primary mb-1.5 text-sm font-semibold">ARIA</h4>
-        <p class="text-text-secondary text-sm leading-relaxed">
-          Single-selection groups use
-          <code class="text-text-primary">role="radiogroup"</code> with
-          <code class="text-text-primary">role="radio"</code> +
-          <code class="text-text-primary">aria-checked</code> on each button. Multiple-selection
-          groups use
-          <code class="text-text-primary">role="group"</code> with
-          <code class="text-text-primary">role="checkbox"</code> +
-          <code class="text-text-primary">aria-checked</code>. Provide
-          <code class="text-text-primary">ariaLabel</code> when the group's purpose is not clear
-          from context, and an <code class="text-text-primary">aria-label</code> on every icon-only child
-          Button.
-        </p>
-      </div>
-      <div class="py-4">
-        <h4 class="text-text-primary mb-1.5 text-sm font-semibold">Keyboard</h4>
-        <p class="text-text-secondary text-sm leading-relaxed">
-          <kbd
-            class="bg-surface-base border-border-subtle rounded border px-1.5 py-0.5 text-xs font-medium"
-            >Tab</kbd
-          >
-          moves focus between buttons.
-          <kbd
-            class="bg-surface-base border-border-subtle rounded border px-1.5 py-0.5 text-xs font-medium"
-            >Enter</kbd
-          >
-          /
-          <kbd
-            class="bg-surface-base border-border-subtle rounded border px-1.5 py-0.5 text-xs font-medium"
-            >Space</kbd
-          >
-          toggles selection.
-        </p>
-      </div>
-      <div class="pt-4">
-        <h4 class="text-text-primary mb-1.5 text-sm font-semibold">Prop Inheritance</h4>
-        <p class="text-text-secondary text-sm leading-relaxed">
-          <code class="text-text-primary">size</code>,
-          <code class="text-text-primary">intent</code>,
-          <code class="text-text-primary">variant</code>, and
-          <code class="text-text-primary">mint</code> propagate to child Buttons via context, and
-          the group wins — the same prop set on an individual Button inside a group is ignored, so
-          configure these once on the group. <code class="text-text-primary">disabled</code>
-          combines: a disabled group disables every child, and a child can additionally disable itself.
-          Only <code class="text-text-primary">tier</code> can be overridden per Button.
-        </p>
-      </div>
-    </div>
-  </div>
+  <NoteList>
+    <Note title="ARIA">
+      <p>
+        Single-selection groups use
+        <code class="text-text-primary">role="radiogroup"</code> with
+        <code class="text-text-primary">role="radio"</code> +
+        <code class="text-text-primary">aria-checked</code> on each button. Multiple-selection
+        groups use
+        <code class="text-text-primary">role="group"</code> with
+        <code class="text-text-primary">role="checkbox"</code> +
+        <code class="text-text-primary">aria-checked</code>. Provide
+        <code class="text-text-primary">ariaLabel</code> when the group's purpose is not clear from
+        context, and an <code class="text-text-primary">aria-label</code> on every icon-only child Button.
+      </p>
+    </Note>
+    <Note title="Keyboard">
+      <p>
+        <kbd
+          class="bg-surface-base border-border-subtle rounded border px-1.5 py-0.5 text-xs font-medium"
+          >Tab</kbd
+        >
+        moves focus between buttons.
+        <kbd
+          class="bg-surface-base border-border-subtle rounded border px-1.5 py-0.5 text-xs font-medium"
+          >Enter</kbd
+        >
+        /
+        <kbd
+          class="bg-surface-base border-border-subtle rounded border px-1.5 py-0.5 text-xs font-medium"
+          >Space</kbd
+        >
+        toggles selection.
+      </p>
+    </Note>
+    <Note title="Prop Inheritance">
+      <p>
+        <code class="text-text-primary">size</code>,
+        <code class="text-text-primary">intent</code>,
+        <code class="text-text-primary">variant</code>, and
+        <code class="text-text-primary">mint</code> propagate to child Buttons via context, and the
+        group wins — the same prop set on an individual Button inside a group is ignored, so
+        configure these once on the group. <code class="text-text-primary">disabled</code>
+        combines: a disabled group disables every child, and a child can additionally disable itself.
+        Only <code class="text-text-primary">tier</code> can be overridden per Button.
+      </p>
+    </Note>
+  </NoteList>
 </Section>

@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { CodeExample, Section } from '@urbicon-ui/docs';
+  import { CodeExample, Note, NoteList, Section } from '@urbicon-ui/docs';
   import {
     BasicDatePicker,
     DateRangeExample,
@@ -84,69 +84,62 @@
 <!-- ─── Accessibility ─── -->
 
 <Section marker="02" id="accessibility" title="Accessibility">
-  <div class="border-border-subtle bg-surface-elevated rounded-2xl border p-6">
-    <div class="divide-border-subtle divide-y">
-      <div class="pb-4">
-        <h4 class="text-text-primary mb-1.5 text-sm font-semibold">ARIA Roles</h4>
-        <p class="text-text-secondary text-sm leading-relaxed">
-          Das Trigger-Input hat <code class="text-text-primary">aria-haspopup="dialog"</code> und
-          <code class="text-text-primary">aria-expanded</code>, um den Popover-Status zu
-          kommunizieren. Der eingebettete Kalender nutzt
-          <code class="text-text-primary">role="grid"</code> mit vollstaendiger ARIA-Unterstuetzung.
-        </p>
-      </div>
-      <div class="py-4">
-        <h4 class="text-text-primary mb-1.5 text-sm font-semibold">Keyboard Navigation</h4>
-        <p class="text-text-secondary text-sm leading-relaxed">
-          <kbd
-            class="bg-surface-base border-border-subtle rounded-modify border px-1.5 py-0.5 text-xs font-medium"
-            >Enter</kbd
-          >,
-          <kbd
-            class="bg-surface-base border-border-subtle rounded-modify border px-1.5 py-0.5 text-xs font-medium"
-            >Space</kbd
-          >
-          oder
-          <kbd
-            class="bg-surface-base border-border-subtle rounded-modify border px-1.5 py-0.5 text-xs font-medium"
-            >ArrowDown</kbd
-          >
-          oeffnen den Kalender.
-          <kbd
-            class="bg-surface-base border-border-subtle rounded-modify border px-1.5 py-0.5 text-xs font-medium"
-            >Escape</kbd
-          >
-          schliesst ihn. Im Kalender navigieren Pfeiltasten zwischen Tagen/Wochen,
-          <kbd
-            class="bg-surface-base border-border-subtle rounded-modify border px-1.5 py-0.5 text-xs font-medium"
-            >PageUp</kbd
-          >/<kbd
-            class="bg-surface-base border-border-subtle rounded-modify border px-1.5 py-0.5 text-xs font-medium"
-            >PageDown</kbd
-          >
-          zwischen Monaten. Fokus-Ringe nutzen
-          <code class="text-text-primary">focus-visible:</code> fuer reine Keyboard-Sichtbarkeit.
-        </p>
-      </div>
-      <div class="py-4">
-        <h4 class="text-text-primary mb-1.5 text-sm font-semibold">Screen Reader Labels</h4>
-        <p class="text-text-secondary text-sm leading-relaxed">
-          Das Label wird ueber das Input an den Screen Reader weitergegeben. Alle Tageszellen im
-          Kalender haben ein <code class="text-text-primary">aria-label</code> mit dem
-          vollstaendigen Datum (z.B. "Donnerstag, 12. Maerz 2026"). Fehler- und Hilfstexte werden
-          via
-          <code class="text-text-primary">aria-describedby</code> verknuepft.
-        </p>
-      </div>
-      <div class="pt-4">
-        <h4 class="text-text-primary mb-1.5 text-sm font-semibold">Internationalisierung</h4>
-        <p class="text-text-secondary text-sm leading-relaxed">
-          Datumsformatierung nutzt natives
-          <code class="text-text-primary">Intl.DateTimeFormat</code> mit der konfigurierten
-          <code class="text-text-primary">locale</code>. Wochentage, Monatsnamen und das
-          Eingabeformat passen sich automatisch an die Sprache an.
-        </p>
-      </div>
-    </div>
-  </div>
+  <NoteList>
+    <Note title="ARIA Roles">
+      <p>
+        Das Trigger-Input hat <code class="text-text-primary">aria-haspopup="dialog"</code> und
+        <code class="text-text-primary">aria-expanded</code>, um den Popover-Status zu
+        kommunizieren. Der eingebettete Kalender nutzt
+        <code class="text-text-primary">role="grid"</code> mit vollstaendiger ARIA-Unterstuetzung.
+      </p>
+    </Note>
+    <Note title="Keyboard Navigation">
+      <p>
+        <kbd
+          class="bg-surface-base border-border-subtle rounded-modify border px-1.5 py-0.5 text-xs font-medium"
+          >Enter</kbd
+        >,
+        <kbd
+          class="bg-surface-base border-border-subtle rounded-modify border px-1.5 py-0.5 text-xs font-medium"
+          >Space</kbd
+        >
+        oder
+        <kbd
+          class="bg-surface-base border-border-subtle rounded-modify border px-1.5 py-0.5 text-xs font-medium"
+          >ArrowDown</kbd
+        >
+        oeffnen den Kalender.
+        <kbd
+          class="bg-surface-base border-border-subtle rounded-modify border px-1.5 py-0.5 text-xs font-medium"
+          >Escape</kbd
+        >
+        schliesst ihn. Im Kalender navigieren Pfeiltasten zwischen Tagen/Wochen,
+        <kbd
+          class="bg-surface-base border-border-subtle rounded-modify border px-1.5 py-0.5 text-xs font-medium"
+          >PageUp</kbd
+        >/<kbd
+          class="bg-surface-base border-border-subtle rounded-modify border px-1.5 py-0.5 text-xs font-medium"
+          >PageDown</kbd
+        >
+        zwischen Monaten. Fokus-Ringe nutzen
+        <code class="text-text-primary">focus-visible:</code> fuer reine Keyboard-Sichtbarkeit.
+      </p>
+    </Note>
+    <Note title="Screen Reader Labels">
+      <p>
+        Das Label wird ueber das Input an den Screen Reader weitergegeben. Alle Tageszellen im
+        Kalender haben ein <code class="text-text-primary">aria-label</code> mit dem vollstaendigen
+        Datum (z.B. "Donnerstag, 12. Maerz 2026"). Fehler- und Hilfstexte werden via
+        <code class="text-text-primary">aria-describedby</code> verknuepft.
+      </p>
+    </Note>
+    <Note title="Internationalisierung">
+      <p>
+        Datumsformatierung nutzt natives
+        <code class="text-text-primary">Intl.DateTimeFormat</code> mit der konfigurierten
+        <code class="text-text-primary">locale</code>. Wochentage, Monatsnamen und das Eingabeformat
+        passen sich automatisch an die Sprache an.
+      </p>
+    </Note>
+  </NoteList>
 </Section>

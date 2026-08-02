@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { CodeExample, Section } from '@urbicon-ui/docs';
+  import { CodeExample, Note, NoteList, Section } from '@urbicon-ui/docs';
   import { DonutChart, type DonutDatum } from '@urbicon-ui/blocks';
 
   const sources: DonutDatum[] = [
@@ -74,29 +74,27 @@
 
 <!-- ─── Accessibility ─── -->
 <Section marker="03" id="accessibility" title="Accessibility">
-  <div class="border-border-subtle bg-surface-elevated rounded-2xl border p-6">
-    <div class="divide-border-subtle divide-y">
-      <div class="pb-4">
-        <h4 class="text-text-primary mb-1.5 text-sm font-semibold">SVG with role="img"</h4>
-        <p class="text-text-secondary text-sm leading-relaxed">
-          The SVG carries <code class="text-text-primary">role="img"</code> with a generated
-          <code class="text-text-primary">aria-label</code> noting the segment count and total.
-        </p>
-      </div>
-      <div class="py-4">
-        <h4 class="text-text-primary mb-1.5 text-sm font-semibold">Data-table fallback</h4>
-        <p class="text-text-secondary text-sm leading-relaxed">
-          A visually hidden table lists each segment with its value and computed share, so the
-          composition is fully available to screen readers.
-        </p>
-      </div>
-      <div class="pt-4">
-        <h4 class="text-text-primary mb-1.5 text-sm font-semibold">Per-segment tooltips</h4>
-        <p class="text-text-secondary text-sm leading-relaxed">
-          Each arc includes a native <code class="text-text-primary">&lt;title&gt;</code> with its label,
-          value, and percentage share.
-        </p>
-      </div>
-    </div>
-  </div>
+  <NoteList>
+    <Note>
+      {#snippet titleSnippet()}
+        SVG with role="img"
+      {/snippet}
+      <p>
+        The SVG carries <code class="text-text-primary">role="img"</code> with a generated
+        <code class="text-text-primary">aria-label</code> noting the segment count and total.
+      </p>
+    </Note>
+    <Note title="Data-table fallback">
+      <p>
+        A visually hidden table lists each segment with its value and computed share, so the
+        composition is fully available to screen readers.
+      </p>
+    </Note>
+    <Note title="Per-segment tooltips">
+      <p>
+        Each arc includes a native <code class="text-text-primary">&lt;title&gt;</code> with its label,
+        value, and percentage share.
+      </p>
+    </Note>
+  </NoteList>
 </Section>

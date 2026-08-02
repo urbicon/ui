@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { CodeExample, Section } from '@urbicon-ui/docs';
+  import { CodeExample, Note, NoteList, Section } from '@urbicon-ui/docs';
   import {
     BasicUpload,
     MultipleFiles,
@@ -100,63 +100,57 @@
 <!-- ─── Accessibility ─── -->
 
 <Section marker="03" id="accessibility" title="Accessibility">
-  <div class="border-border-subtle bg-surface-elevated rounded-2xl border p-6">
-    <div class="divide-border-subtle divide-y">
-      <div class="pb-4">
-        <h4 class="text-text-primary mb-1.5 text-sm font-semibold">ARIA & Rollen</h4>
-        <p class="text-text-secondary text-sm leading-relaxed">
-          Die Dropzone hat <code class="text-text-primary">role="button"</code> und
-          <code class="text-text-primary">tabindex="0"</code>. Die Dateiliste nutzt
-          <code class="text-text-primary">role="list"</code> mit
-          <code class="text-text-primary">aria-live="polite"</code>, sodass Screenreader Aenderungen
-          automatisch ankuendigen. Jedes Datei-Item ist ein
-          <code class="text-text-primary">role="listitem"</code>. Der natuerliche
-          <code class="text-text-primary">&lt;input type="file"&gt;</code> bleibt im DOM (visuell verborgen)
-          fuer maximale Kompatibilitaet.
-        </p>
-      </div>
-      <div class="py-4">
-        <h4 class="text-text-primary mb-1.5 text-sm font-semibold">Keyboard</h4>
-        <p class="text-text-secondary text-sm leading-relaxed">
-          <kbd
-            class="bg-surface-base border-border-subtle rounded-modify border px-1.5 py-0.5 text-xs font-medium"
-            >Enter</kbd
-          >
-          oder
-          <kbd
-            class="bg-surface-base border-border-subtle rounded-modify border px-1.5 py-0.5 text-xs font-medium"
-            >Space</kbd
-          >
-          auf der Dropzone oeffnet den nativen Dateidialog.
-          <kbd
-            class="bg-surface-base border-border-subtle rounded-modify border px-1.5 py-0.5 text-xs font-medium"
-            >Tab</kbd
-          >
-          navigiert zwischen Dropzone, Datei-Items und Entfernen-Buttons. Fokus-Ringe nutzen
-          <code class="text-text-primary">focus-visible:</code> fuer reine Keyboard-Sichtbarkeit.
-        </p>
-      </div>
-      <div class="py-4">
-        <h4 class="text-text-primary mb-1.5 text-sm font-semibold">Drag-Zustaende</h4>
-        <p class="text-text-secondary text-sm leading-relaxed">
-          Das <code class="text-text-primary">data-state</code>-Attribut auf der Dropzone wechselt
-          zwischen
-          <code class="text-text-primary">idle</code>,
-          <code class="text-text-primary">accept</code> und
-          <code class="text-text-primary">reject</code> — fuer CSS-only Styling im
-          <code class="text-text-primary">unstyled</code>-Modus. Visuelles Feedback (Farbe, Scale,
-          Schatten) signalisiert gueltiges vs. ungueltiges Drag-Material.
-        </p>
-      </div>
-      <div class="pt-4">
-        <h4 class="text-text-primary mb-1.5 text-sm font-semibold">Document Drop Prevention</h4>
-        <p class="text-text-secondary text-sm leading-relaxed">
-          Standardmaessig aktiv via
-          <code class="text-text-primary">preventDocumentDrop</code>: Dateien, die ausserhalb der
-          Dropzone fallen gelassen werden, oeffnen nicht den Browser. Das schuetzt vor
-          versehentlicher Navigation und Datenverlust.
-        </p>
-      </div>
-    </div>
-  </div>
+  <NoteList>
+    <Note title="ARIA & Rollen">
+      <p>
+        Die Dropzone hat <code class="text-text-primary">role="button"</code> und
+        <code class="text-text-primary">tabindex="0"</code>. Die Dateiliste nutzt
+        <code class="text-text-primary">role="list"</code> mit
+        <code class="text-text-primary">aria-live="polite"</code>, sodass Screenreader Aenderungen
+        automatisch ankuendigen. Jedes Datei-Item ist ein
+        <code class="text-text-primary">role="listitem"</code>. Der natuerliche
+        <code class="text-text-primary">&lt;input type="file"&gt;</code> bleibt im DOM (visuell verborgen)
+        fuer maximale Kompatibilitaet.
+      </p>
+    </Note>
+    <Note title="Keyboard">
+      <p>
+        <kbd
+          class="bg-surface-base border-border-subtle rounded-modify border px-1.5 py-0.5 text-xs font-medium"
+          >Enter</kbd
+        >
+        oder
+        <kbd
+          class="bg-surface-base border-border-subtle rounded-modify border px-1.5 py-0.5 text-xs font-medium"
+          >Space</kbd
+        >
+        auf der Dropzone oeffnet den nativen Dateidialog.
+        <kbd
+          class="bg-surface-base border-border-subtle rounded-modify border px-1.5 py-0.5 text-xs font-medium"
+          >Tab</kbd
+        >
+        navigiert zwischen Dropzone, Datei-Items und Entfernen-Buttons. Fokus-Ringe nutzen
+        <code class="text-text-primary">focus-visible:</code> fuer reine Keyboard-Sichtbarkeit.
+      </p>
+    </Note>
+    <Note title="Drag-Zustaende">
+      <p>
+        Das <code class="text-text-primary">data-state</code>-Attribut auf der Dropzone wechselt
+        zwischen
+        <code class="text-text-primary">idle</code>,
+        <code class="text-text-primary">accept</code> und
+        <code class="text-text-primary">reject</code> — fuer CSS-only Styling im
+        <code class="text-text-primary">unstyled</code>-Modus. Visuelles Feedback (Farbe, Scale,
+        Schatten) signalisiert gueltiges vs. ungueltiges Drag-Material.
+      </p>
+    </Note>
+    <Note title="Document Drop Prevention">
+      <p>
+        Standardmaessig aktiv via
+        <code class="text-text-primary">preventDocumentDrop</code>: Dateien, die ausserhalb der
+        Dropzone fallen gelassen werden, oeffnen nicht den Browser. Das schuetzt vor versehentlicher
+        Navigation und Datenverlust.
+      </p>
+    </Note>
+  </NoteList>
 </Section>

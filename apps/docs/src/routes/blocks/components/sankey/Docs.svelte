@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { CodeExample, Section } from '@urbicon-ui/docs';
+  import { CodeExample, Note, NoteList, Section } from '@urbicon-ui/docs';
   import { Sankey, type SankeyNode, type SankeyLink } from '@urbicon-ui/blocks';
 
   const formatEur = (cents: number) =>
@@ -170,7 +170,7 @@
             {#if kind === 'node'}
               {@const node = datum as { id: string; value: number }}
               <span class="block font-medium">{node.id}</span>
-              <span class="text-text-tertiary block text-2xs tabular-nums">
+              <span class="text-text-tertiary text-2xs block tabular-nums">
                 {formatEur(node.value)}
               </span>
             {:else}
@@ -182,7 +182,7 @@
               <span class="block font-medium">
                 {link.source.id} → {link.target.id}
               </span>
-              <span class="text-primary block text-2xs font-semibold tabular-nums">
+              <span class="text-primary text-2xs block font-semibold tabular-nums">
                 {formatEur(link.value)}
               </span>
             {/if}
@@ -195,48 +195,45 @@
 
 <!-- ─── Accessibility ─── -->
 <Section marker="03" id="accessibility" title="Accessibility">
-  <div class="border-border-subtle bg-surface-elevated rounded-2xl border p-6">
-    <div class="divide-border-subtle divide-y">
-      <div class="pb-4">
-        <h4 class="text-text-primary mb-1.5 text-sm font-semibold">SVG with role="img"</h4>
-        <p class="text-text-secondary text-sm leading-relaxed">
-          The SVG has <code class="text-text-primary">role="img"</code> with an
-          <code class="text-text-primary">aria-label</code> that lists every connection ("Source → Target:
-          value"). A screen reader announces the diagram in a single block.
-        </p>
-      </div>
-      <div class="py-4">
-        <h4 class="text-text-primary mb-1.5 text-sm font-semibold">Table Fallback</h4>
-        <p class="text-text-secondary text-sm leading-relaxed">
-          An sr-only table (source / target / value) is rendered in addition — screen readers that
-          prefer tables can query the data row by row.
-        </p>
-      </div>
-      <div class="py-4">
-        <h4 class="text-text-primary mb-1.5 text-sm font-semibold">Keyboard Navigation</h4>
-        <p class="text-text-secondary text-sm leading-relaxed">
-          <kbd
-            class="bg-surface-base border-border-subtle rounded-modify border px-1.5 py-0.5 text-xs"
-            >Tab</kbd
-          >
-          focuses every node and link in sequence. On a focused element,
-          <kbd
-            class="bg-surface-base border-border-subtle rounded-modify border px-1.5 py-0.5 text-xs"
-            >Enter</kbd
-          >/<kbd
-            class="bg-surface-base border-border-subtle rounded-modify border px-1.5 py-0.5 text-xs"
-            >Space</kbd
-          >
-          triggers the click handler (onNodeClick / onLinkClick).
-        </p>
-      </div>
-      <div class="pt-4">
-        <h4 class="text-text-primary mb-1.5 text-sm font-semibold">Hover + Focus Highlight</h4>
-        <p class="text-text-secondary text-sm leading-relaxed">
-          Hovering or focusing a node dims all unconnected paths and nodes and highlights its direct
-          connections.
-        </p>
-      </div>
-    </div>
-  </div>
+  <NoteList>
+    <Note>
+      {#snippet titleSnippet()}
+        SVG with role="img"
+      {/snippet}
+      <p>
+        The SVG has <code class="text-text-primary">role="img"</code> with an
+        <code class="text-text-primary">aria-label</code> that lists every connection ("Source → Target:
+        value"). A screen reader announces the diagram in a single block.
+      </p>
+    </Note>
+    <Note title="Table Fallback">
+      <p>
+        An sr-only table (source / target / value) is rendered in addition — screen readers that
+        prefer tables can query the data row by row.
+      </p>
+    </Note>
+    <Note title="Keyboard Navigation">
+      <p>
+        <kbd
+          class="bg-surface-base border-border-subtle rounded-modify border px-1.5 py-0.5 text-xs"
+          >Tab</kbd
+        >
+        focuses every node and link in sequence. On a focused element,
+        <kbd
+          class="bg-surface-base border-border-subtle rounded-modify border px-1.5 py-0.5 text-xs"
+          >Enter</kbd
+        >/<kbd
+          class="bg-surface-base border-border-subtle rounded-modify border px-1.5 py-0.5 text-xs"
+          >Space</kbd
+        >
+        triggers the click handler (onNodeClick / onLinkClick).
+      </p>
+    </Note>
+    <Note title="Hover + Focus Highlight">
+      <p>
+        Hovering or focusing a node dims all unconnected paths and nodes and highlights its direct
+        connections.
+      </p>
+    </Note>
+  </NoteList>
 </Section>

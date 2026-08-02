@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { CodeExample, Section } from '@urbicon-ui/docs';
+  import { CodeExample, Note, NoteList, Section } from '@urbicon-ui/docs';
   import { Sidebar, Button, Separator, Badge, Avatar, CloseIcon } from '@urbicon-ui/blocks';
   import { r } from '$lib/route';
 
@@ -222,54 +222,48 @@
 <!-- ─── Accessibility ─── -->
 
 <Section marker="04" id="accessibility" title="Accessibility">
-  <div class="border-border-subtle bg-surface-elevated rounded-2xl border p-6">
-    <div class="divide-border-subtle divide-y">
-      <div class="pb-4">
-        <h4 class="text-text-primary mb-1.5 text-sm font-semibold">Semantic Landmark</h4>
-        <p class="text-text-secondary text-sm leading-relaxed">
-          Renders as an <code class="text-text-primary">&lt;aside&gt;</code> element, which screen
-          readers announce as a complementary landmark. When the sidebar is closed (mobile overlay
-          dismissed, or collapsible mode closed),
-          <code class="text-text-primary">aria-hidden="true"</code> is applied to remove it from the accessibility
-          tree.
-        </p>
-      </div>
-      <div class="py-4">
-        <h4 class="text-text-primary mb-1.5 text-sm font-semibold">Keyboard</h4>
-        <p class="text-text-secondary text-sm leading-relaxed">
-          <kbd
-            class="bg-surface-base border-border-subtle rounded border px-1.5 py-0.5 text-xs font-medium"
-            >Escape</kbd
-          >
-          closes the mobile overlay (configurable via
-          <code class="text-text-primary">closeOnEscape</code>). Backdrop click dismiss is
-          configurable via <code class="text-text-primary">closeOnBackdropClick</code>.
-        </p>
-      </div>
-      <div class="py-4">
-        <h4 class="text-text-primary mb-1.5 text-sm font-semibold">Responsive Behavior</h4>
-        <p class="text-text-secondary text-sm leading-relaxed">
-          In <code class="text-text-primary">responsive</code> mode (default): on desktop (≥1024px)
-          the sidebar is always visible as a fixed panel — the
-          <code class="text-text-primary">open</code> prop only controls the mobile overlay. Below 1024px
-          it slides in as an overlay with backdrop and body scroll lock.
-        </p>
-        <p class="text-text-secondary mt-2 text-sm leading-relaxed">
-          In <code class="text-text-primary">collapsible</code> mode: the
-          <code class="text-text-primary">open</code> prop controls the sidebar at all viewports. On
-          desktop it animates its width (no backdrop or scroll lock). On mobile it behaves as an
-          overlay like responsive mode. Use
-          <code class="text-text-primary">--sidebar-effective-width</code> (0px when closed, full width
-          when open) to transition your main content offset.
-        </p>
-      </div>
-      <div class="pt-4">
-        <h4 class="text-text-primary mb-1.5 text-sm font-semibold">Reduced Motion</h4>
-        <p class="text-text-secondary text-sm leading-relaxed">
-          Slide and width transitions use CSS custom property durations that respect
-          <code class="text-text-primary">prefers-reduced-motion</code> via the design token system.
-        </p>
-      </div>
-    </div>
-  </div>
+  <NoteList>
+    <Note title="Semantic Landmark">
+      <p>
+        Renders as an <code class="text-text-primary">&lt;aside&gt;</code> element, which screen
+        readers announce as a complementary landmark. When the sidebar is closed (mobile overlay
+        dismissed, or collapsible mode closed),
+        <code class="text-text-primary">aria-hidden="true"</code> is applied to remove it from the accessibility
+        tree.
+      </p>
+    </Note>
+    <Note title="Keyboard">
+      <p>
+        <kbd
+          class="bg-surface-base border-border-subtle rounded border px-1.5 py-0.5 text-xs font-medium"
+          >Escape</kbd
+        >
+        closes the mobile overlay (configurable via
+        <code class="text-text-primary">closeOnEscape</code>). Backdrop click dismiss is
+        configurable via <code class="text-text-primary">closeOnBackdropClick</code>.
+      </p>
+    </Note>
+    <Note title="Responsive Behavior">
+      <p>
+        In <code class="text-text-primary">responsive</code> mode (default): on desktop (≥1024px)
+        the sidebar is always visible as a fixed panel — the
+        <code class="text-text-primary">open</code> prop only controls the mobile overlay. Below 1024px
+        it slides in as an overlay with backdrop and body scroll lock.
+      </p>
+      <p class="text-text-secondary mt-2 text-sm leading-relaxed">
+        In <code class="text-text-primary">collapsible</code> mode: the
+        <code class="text-text-primary">open</code> prop controls the sidebar at all viewports. On
+        desktop it animates its width (no backdrop or scroll lock). On mobile it behaves as an
+        overlay like responsive mode. Use
+        <code class="text-text-primary">--sidebar-effective-width</code> (0px when closed, full width
+        when open) to transition your main content offset.
+      </p>
+    </Note>
+    <Note title="Reduced Motion">
+      <p>
+        Slide and width transitions use CSS custom property durations that respect
+        <code class="text-text-primary">prefers-reduced-motion</code> via the design token system.
+      </p>
+    </Note>
+  </NoteList>
 </Section>

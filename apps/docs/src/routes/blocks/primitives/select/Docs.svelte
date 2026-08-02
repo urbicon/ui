@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { CodeExample, Section } from '@urbicon-ui/docs';
+  import { CodeExample, Note, NoteList, Section } from '@urbicon-ui/docs';
   import { Select } from '@urbicon-ui/blocks';
   import { resolve } from '$app/paths';
 
@@ -159,64 +159,59 @@
 <!-- ─── Accessibility ─── -->
 
 <Section marker="03" id="accessibility" title="Accessibility">
-  <div class="border-border-subtle bg-surface-elevated rounded-2xl border p-6">
-    <div class="divide-border-subtle divide-y">
-      <div class="pb-4">
-        <h4 class="text-text-primary mb-1.5 text-sm font-semibold">ARIA Combobox</h4>
-        <p class="text-text-secondary text-sm leading-relaxed">
-          The trigger uses <code class="text-text-primary">role="combobox"</code> with
-          <code class="text-text-primary">aria-expanded</code>,
-          <code class="text-text-primary">aria-haspopup="listbox"</code>, and
-          <code class="text-text-primary">aria-controls</code>. Options use
-          <code class="text-text-primary">role="option"</code> with
-          <code class="text-text-primary">aria-selected</code>. Label, error, and helper text are
-          linked via <code class="text-text-primary">aria-labelledby</code> and
-          <code class="text-text-primary">aria-describedby</code>.
-        </p>
-      </div>
-      <div class="py-4">
-        <h4 class="text-text-primary mb-1.5 text-sm font-semibold">Keyboard</h4>
-        <p class="text-text-secondary text-sm leading-relaxed">
-          <kbd
-            class="bg-surface-base border-border-subtle rounded border px-1.5 py-0.5 text-xs font-medium"
-            >Enter</kbd
-          >
-          /
-          <kbd
-            class="bg-surface-base border-border-subtle rounded border px-1.5 py-0.5 text-xs font-medium"
-            >Space</kbd
-          >
-          /
-          <kbd
-            class="bg-surface-base border-border-subtle rounded border px-1.5 py-0.5 text-xs font-medium"
-            >Arrow Down</kbd
-          >
-          opens the dropdown.
-          <kbd
-            class="bg-surface-base border-border-subtle rounded border px-1.5 py-0.5 text-xs font-medium"
-            >Arrow Up/Down</kbd
-          >
-          navigates options.
-          <kbd
-            class="bg-surface-base border-border-subtle rounded border px-1.5 py-0.5 text-xs font-medium"
-            >Home/End</kbd
-          >
-          jump to first/last.
-          <kbd
-            class="bg-surface-base border-border-subtle rounded border px-1.5 py-0.5 text-xs font-medium"
-            >Escape</kbd
-          >
-          closes and returns focus.
-        </p>
-      </div>
-      <div class="pt-4">
-        <h4 class="text-text-primary mb-1.5 text-sm font-semibold">Form Submission</h4>
-        <p class="text-text-secondary text-sm leading-relaxed">
-          When the <code class="text-text-primary">name</code> prop is set, a hidden
-          <code class="text-text-primary">&lt;input&gt;</code> element carries the selected value for
-          native form submission without JavaScript.
-        </p>
-      </div>
-    </div>
-  </div>
+  <NoteList>
+    <Note title="ARIA Combobox">
+      <p>
+        The trigger uses <code class="text-text-primary">role="combobox"</code> with
+        <code class="text-text-primary">aria-expanded</code>,
+        <code class="text-text-primary">aria-haspopup="listbox"</code>, and
+        <code class="text-text-primary">aria-controls</code>. Options use
+        <code class="text-text-primary">role="option"</code> with
+        <code class="text-text-primary">aria-selected</code>. Label, error, and helper text are
+        linked via <code class="text-text-primary">aria-labelledby</code> and
+        <code class="text-text-primary">aria-describedby</code>.
+      </p>
+    </Note>
+    <Note title="Keyboard">
+      <p>
+        <kbd
+          class="bg-surface-base border-border-subtle rounded border px-1.5 py-0.5 text-xs font-medium"
+          >Enter</kbd
+        >
+        /
+        <kbd
+          class="bg-surface-base border-border-subtle rounded border px-1.5 py-0.5 text-xs font-medium"
+          >Space</kbd
+        >
+        /
+        <kbd
+          class="bg-surface-base border-border-subtle rounded border px-1.5 py-0.5 text-xs font-medium"
+          >Arrow Down</kbd
+        >
+        opens the dropdown.
+        <kbd
+          class="bg-surface-base border-border-subtle rounded border px-1.5 py-0.5 text-xs font-medium"
+          >Arrow Up/Down</kbd
+        >
+        navigates options.
+        <kbd
+          class="bg-surface-base border-border-subtle rounded border px-1.5 py-0.5 text-xs font-medium"
+          >Home/End</kbd
+        >
+        jump to first/last.
+        <kbd
+          class="bg-surface-base border-border-subtle rounded border px-1.5 py-0.5 text-xs font-medium"
+          >Escape</kbd
+        >
+        closes and returns focus.
+      </p>
+    </Note>
+    <Note title="Form Submission">
+      <p>
+        When the <code class="text-text-primary">name</code> prop is set, a hidden
+        <code class="text-text-primary">&lt;input&gt;</code> element carries the selected value for native
+        form submission without JavaScript.
+      </p>
+    </Note>
+  </NoteList>
 </Section>

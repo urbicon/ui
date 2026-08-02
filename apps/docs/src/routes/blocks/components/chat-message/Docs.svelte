@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { CodeExample, Section } from '@urbicon-ui/docs';
+  import { CodeExample, Note, NoteList, Section } from '@urbicon-ui/docs';
   import { r } from '$lib/route';
   import AgenticMessage from './examples/AgenticMessage.svelte';
   import CustomToolRenderer from './examples/CustomToolRenderer.svelte';
@@ -88,47 +88,41 @@
 <!-- ─── Accessibility ─── -->
 
 <Section marker="03" id="accessibility" title="Accessibility">
-  <div class="border-border-subtle bg-surface-elevated rounded-2xl border p-6">
-    <div class="divide-border-subtle divide-y">
-      <div class="pb-4">
-        <h4 class="text-text-primary mb-1.5 text-sm font-semibold">Labelled actions</h4>
-        <p class="text-text-secondary text-sm leading-relaxed">
-          The copy and regenerate buttons carry <code class="text-text-primary">aria-label</code>s (<code
-            class="text-text-primary">copyLabel</code
-          >,
-          <code class="text-text-primary">regenerateLabel</code>) and are wrapped in tooltips. They
-          live in a bar revealed on <code class="text-text-primary">hover</code> /
-          <code class="text-text-primary">focus-within</code>, so keyboard users reach them by
-          tabbing — the reveal is presentational, not a focus trap.
-        </p>
-      </div>
-      <div class="py-4">
-        <h4 class="text-text-primary mb-1.5 text-sm font-semibold">Copy feedback</h4>
-        <p class="text-text-secondary text-sm leading-relaxed">
-          A successful copy is announced through a visually hidden
-          <code class="text-text-primary">role="status"</code> region (the
-          <code class="text-text-primary">copiedLabel</code> text), so screen-reader users hear the confirmation
-          without a visible toast.
-        </p>
-      </div>
-      <div class="py-4">
-        <h4 class="text-text-primary mb-1.5 text-sm font-semibold">Error &amp; aborted alerts</h4>
-        <p class="text-text-secondary text-sm leading-relaxed">
-          <code class="text-text-primary">status: 'error'</code> and
-          <code class="text-text-primary">'aborted'</code> render through the
-          <a href={r('/blocks/primitives/alert')} class="text-primary hover:underline">Alert</a>
-          primitive, so the failure is exposed with the correct alert semantics rather than styled text
-          alone.
-        </p>
-      </div>
-      <div class="pt-4">
-        <h4 class="text-text-primary mb-1.5 text-sm font-semibold">Decorative avatar &amp; time</h4>
-        <p class="text-text-secondary text-sm leading-relaxed">
-          The role avatar is decorative and hidden from assistive tech; the timestamp renders as a
-          semantic <code class="text-text-primary">&lt;time datetime&gt;</code> element so the machine-readable
-          instant travels with the visible label.
-        </p>
-      </div>
-    </div>
-  </div>
+  <NoteList>
+    <Note title="Labelled actions">
+      <p>
+        The copy and regenerate buttons carry <code class="text-text-primary">aria-label</code>s (<code
+          class="text-text-primary">copyLabel</code
+        >,
+        <code class="text-text-primary">regenerateLabel</code>) and are wrapped in tooltips. They
+        live in a bar revealed on <code class="text-text-primary">hover</code> /
+        <code class="text-text-primary">focus-within</code>, so keyboard users reach them by tabbing
+        — the reveal is presentational, not a focus trap.
+      </p>
+    </Note>
+    <Note title="Copy feedback">
+      <p>
+        A successful copy is announced through a visually hidden
+        <code class="text-text-primary">role="status"</code> region (the
+        <code class="text-text-primary">copiedLabel</code> text), so screen-reader users hear the confirmation
+        without a visible toast.
+      </p>
+    </Note>
+    <Note title="Error &amp; aborted alerts">
+      <p>
+        <code class="text-text-primary">status: 'error'</code> and
+        <code class="text-text-primary">'aborted'</code> render through the
+        <a href={r('/blocks/primitives/alert')} class="text-primary hover:underline">Alert</a>
+        primitive, so the failure is exposed with the correct alert semantics rather than styled text
+        alone.
+      </p>
+    </Note>
+    <Note title="Decorative avatar &amp; time">
+      <p>
+        The role avatar is decorative and hidden from assistive tech; the timestamp renders as a
+        semantic <code class="text-text-primary">&lt;time datetime&gt;</code> element so the machine-readable
+        instant travels with the visible label.
+      </p>
+    </Note>
+  </NoteList>
 </Section>

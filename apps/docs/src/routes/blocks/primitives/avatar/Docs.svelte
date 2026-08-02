@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { CodeExample, Section } from '@urbicon-ui/docs';
+  import { CodeExample, Note, NoteList, Section } from '@urbicon-ui/docs';
   import { Avatar } from '@urbicon-ui/blocks';
   import { resolve } from '$app/paths';
 </script>
@@ -112,46 +112,41 @@
 <!-- ─── Accessibility ─── -->
 
 <Section marker="03" id="accessibility" title="Accessibility">
-  <div class="border-border-subtle bg-surface-elevated rounded-2xl border p-6">
-    <div class="divide-border-subtle divide-y">
-      <div class="pb-4">
-        <h4 class="text-text-primary mb-1.5 text-sm font-semibold">ARIA</h4>
-        <p class="text-text-secondary text-sm leading-relaxed">
-          The <code class="text-text-primary">aria-label</code> is derived from
-          <code class="text-text-primary">alt</code> or
-          <code class="text-text-primary">name</code>. Interactive avatars receive
-          <code class="text-text-primary">role="button"</code>. Purely decorative avatars can be
-          hidden via <code class="text-text-primary">aria-hidden</code>.
-        </p>
-      </div>
-      <div class="py-4">
-        <h4 class="text-text-primary mb-1.5 text-sm font-semibold">Keyboard</h4>
-        <p class="text-text-secondary text-sm leading-relaxed">
-          Interactive avatars are focusable via
-          <kbd
-            class="bg-surface-base border-border-subtle rounded border px-1.5 py-0.5 text-xs font-medium"
-            >Tab</kbd
-          >
-          and activate with
-          <kbd
-            class="bg-surface-base border-border-subtle rounded border px-1.5 py-0.5 text-xs font-medium"
-            >Enter</kbd
-          >
-          /
-          <kbd
-            class="bg-surface-base border-border-subtle rounded border px-1.5 py-0.5 text-xs font-medium"
-            >Space</kbd
-          >. Non-interactive avatars are skipped in the tab order.
-        </p>
-      </div>
-      <div class="pt-4">
-        <h4 class="text-text-primary mb-1.5 text-sm font-semibold">Image Fallback</h4>
-        <p class="text-text-secondary text-sm leading-relaxed">
-          When the image fails to load, the component falls back to
-          <code class="text-text-primary">children</code> (if provided) or initials generated from
-          <code class="text-text-primary">name</code>, ensuring content is always visible.
-        </p>
-      </div>
-    </div>
-  </div>
+  <NoteList>
+    <Note title="ARIA">
+      <p>
+        The <code class="text-text-primary">aria-label</code> is derived from
+        <code class="text-text-primary">alt</code> or
+        <code class="text-text-primary">name</code>. Interactive avatars receive
+        <code class="text-text-primary">role="button"</code>. Purely decorative avatars can be
+        hidden via <code class="text-text-primary">aria-hidden</code>.
+      </p>
+    </Note>
+    <Note title="Keyboard">
+      <p>
+        Interactive avatars are focusable via
+        <kbd
+          class="bg-surface-base border-border-subtle rounded border px-1.5 py-0.5 text-xs font-medium"
+          >Tab</kbd
+        >
+        and activate with
+        <kbd
+          class="bg-surface-base border-border-subtle rounded border px-1.5 py-0.5 text-xs font-medium"
+          >Enter</kbd
+        >
+        /
+        <kbd
+          class="bg-surface-base border-border-subtle rounded border px-1.5 py-0.5 text-xs font-medium"
+          >Space</kbd
+        >. Non-interactive avatars are skipped in the tab order.
+      </p>
+    </Note>
+    <Note title="Image Fallback">
+      <p>
+        When the image fails to load, the component falls back to
+        <code class="text-text-primary">children</code> (if provided) or initials generated from
+        <code class="text-text-primary">name</code>, ensuring content is always visible.
+      </p>
+    </Note>
+  </NoteList>
 </Section>

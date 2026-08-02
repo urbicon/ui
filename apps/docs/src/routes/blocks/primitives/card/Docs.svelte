@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { CodeExample, Section } from '@urbicon-ui/docs';
+  import { CodeExample, Note, NoteList, Section } from '@urbicon-ui/docs';
   import { Card, Badge, Button } from '@urbicon-ui/blocks';
   import { resolve } from '$app/paths';
 </script>
@@ -204,48 +204,43 @@
 <!-- ─── Accessibility ─── -->
 
 <Section marker="03" id="accessibility" title="Accessibility">
-  <div class="border-border-subtle bg-surface-elevated rounded-2xl border p-6">
-    <div class="divide-border-subtle divide-y">
-      <div class="pb-4">
-        <h4 class="text-text-primary mb-1.5 text-sm font-semibold">Built-in ARIA</h4>
-        <p class="text-text-secondary text-sm leading-relaxed">
-          Cards render as <code class="text-text-primary">&lt;div&gt;</code> by default. When
-          <code class="text-text-primary">clickable</code>
-          or
-          <code class="text-text-primary">onclick</code> is set, the card renders as
-          <code class="text-text-primary">&lt;button&gt;</code>. When
-          <code class="text-text-primary">href</code> is provided, it becomes an
-          <code class="text-text-primary">&lt;a&gt;</code>. Disabled cards set
-          <code class="text-text-primary">aria-disabled</code>.
-        </p>
-      </div>
-      <div class="py-4">
-        <h4 class="text-text-primary mb-1.5 text-sm font-semibold">Keyboard</h4>
-        <p class="text-text-secondary text-sm leading-relaxed">
-          Interactive cards are focusable via
-          <kbd
-            class="bg-surface-base border-border-subtle rounded-modify border px-1.5 py-0.5 text-xs font-medium"
-            >Tab</kbd
-          >
-          and activate with
-          <kbd
-            class="bg-surface-base border-border-subtle rounded-modify border px-1.5 py-0.5 text-xs font-medium"
-            >Enter</kbd
-          >
-          /
-          <kbd
-            class="bg-surface-base border-border-subtle rounded-modify border px-1.5 py-0.5 text-xs font-medium"
-            >Space</kbd
-          >. Non-interactive cards are skipped in the tab order.
-        </p>
-      </div>
-      <div class="pt-4">
-        <h4 class="text-text-primary mb-1.5 text-sm font-semibold">Structure</h4>
-        <p class="text-text-secondary text-sm leading-relaxed">
-          Header and footer snippets are rendered in semantically appropriate positions. Use
-          headings inside headers to create a scannable document outline for screen readers.
-        </p>
-      </div>
-    </div>
-  </div>
+  <NoteList>
+    <Note title="Built-in ARIA">
+      <p>
+        Cards render as <code class="text-text-primary">&lt;div&gt;</code> by default. When
+        <code class="text-text-primary">clickable</code>
+        or
+        <code class="text-text-primary">onclick</code> is set, the card renders as
+        <code class="text-text-primary">&lt;button&gt;</code>. When
+        <code class="text-text-primary">href</code> is provided, it becomes an
+        <code class="text-text-primary">&lt;a&gt;</code>. Disabled cards set
+        <code class="text-text-primary">aria-disabled</code>.
+      </p>
+    </Note>
+    <Note title="Keyboard">
+      <p>
+        Interactive cards are focusable via
+        <kbd
+          class="bg-surface-base border-border-subtle rounded-modify border px-1.5 py-0.5 text-xs font-medium"
+          >Tab</kbd
+        >
+        and activate with
+        <kbd
+          class="bg-surface-base border-border-subtle rounded-modify border px-1.5 py-0.5 text-xs font-medium"
+          >Enter</kbd
+        >
+        /
+        <kbd
+          class="bg-surface-base border-border-subtle rounded-modify border px-1.5 py-0.5 text-xs font-medium"
+          >Space</kbd
+        >. Non-interactive cards are skipped in the tab order.
+      </p>
+    </Note>
+    <Note title="Structure">
+      <p>
+        Header and footer snippets are rendered in semantically appropriate positions. Use headings
+        inside headers to create a scannable document outline for screen readers.
+      </p>
+    </Note>
+  </NoteList>
 </Section>

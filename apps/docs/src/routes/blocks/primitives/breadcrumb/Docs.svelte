@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { CodeExample, Section } from '@urbicon-ui/docs';
+  import { CodeExample, Note, NoteList, Section } from '@urbicon-ui/docs';
   import { Breadcrumb, Badge } from '@urbicon-ui/blocks';
   import { resolve } from '$app/paths';
 
@@ -260,56 +260,50 @@
 <!-- ─── Accessibility ─── -->
 
 <Section marker="03" id="accessibility" title="Accessibility">
-  <div class="border-border-subtle bg-surface-elevated rounded-2xl border p-6">
-    <div class="divide-border-subtle divide-y">
-      <div class="pb-4">
-        <h4 class="text-text-primary mb-1.5 text-sm font-semibold">Built-in ARIA</h4>
-        <p class="text-text-secondary text-sm leading-relaxed">
-          Renders as a <code class="text-text-primary">&lt;nav&gt;</code> with
-          <code class="text-text-primary">aria-label="Breadcrumb"</code> (customizable via prop).
-          The last item carries
-          <code class="text-text-primary">aria-current="page"</code> to announce the current page.
-          Individual items support
-          <code class="text-text-primary">aria-label</code> for accessible name overrides (e.g. icon-only
-          items).
-        </p>
-      </div>
-      <div class="py-4">
-        <h4 class="text-text-primary mb-1.5 text-sm font-semibold">Keyboard</h4>
-        <p class="text-text-secondary text-sm leading-relaxed">
-          All breadcrumb links are standard
-          <code class="text-text-primary">&lt;a&gt;</code> elements, fully focusable via
-          <kbd
-            class="bg-surface-base border-border-subtle rounded-modify border px-1.5 py-0.5 text-xs font-medium"
-            >Tab</kbd
-          >. Focus indicators use
-          <code class="text-text-primary">focus-visible:</code> to only show on keyboard navigation.
-        </p>
-      </div>
-      <div class="py-4">
-        <h4 class="text-text-primary mb-1.5 text-sm font-semibold">Semantic Markup</h4>
-        <p class="text-text-secondary text-sm leading-relaxed">
-          Uses an ordered list (<code class="text-text-primary">&lt;ol&gt;</code>) inside the
-          <code class="text-text-primary">&lt;nav&gt;</code> landmark, following the
-          <a
-            href="https://www.w3.org/WAI/ARIA/apg/patterns/breadcrumb/"
-            class="text-primary hover:underline"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            WAI-ARIA Breadcrumb pattern</a
-          >. Separators are marked
-          <code class="text-text-primary">aria-hidden="true"</code> to avoid screen reader clutter.
-        </p>
-      </div>
-      <div class="pt-4">
-        <h4 class="text-text-primary mb-1.5 text-sm font-semibold">Reduced Motion</h4>
-        <p class="text-text-secondary text-sm leading-relaxed">
-          Hover transitions on links respect
-          <code class="text-text-primary">prefers-reduced-motion</code> via the design-token-based transition
-          duration.
-        </p>
-      </div>
-    </div>
-  </div>
+  <NoteList>
+    <Note title="Built-in ARIA">
+      <p>
+        Renders as a <code class="text-text-primary">&lt;nav&gt;</code> with
+        <code class="text-text-primary">aria-label="Breadcrumb"</code> (customizable via prop). The
+        last item carries
+        <code class="text-text-primary">aria-current="page"</code> to announce the current page.
+        Individual items support
+        <code class="text-text-primary">aria-label</code> for accessible name overrides (e.g. icon-only
+        items).
+      </p>
+    </Note>
+    <Note title="Keyboard">
+      <p>
+        All breadcrumb links are standard
+        <code class="text-text-primary">&lt;a&gt;</code> elements, fully focusable via
+        <kbd
+          class="bg-surface-base border-border-subtle rounded-modify border px-1.5 py-0.5 text-xs font-medium"
+          >Tab</kbd
+        >. Focus indicators use
+        <code class="text-text-primary">focus-visible:</code> to only show on keyboard navigation.
+      </p>
+    </Note>
+    <Note title="Semantic Markup">
+      <p>
+        Uses an ordered list (<code class="text-text-primary">&lt;ol&gt;</code>) inside the
+        <code class="text-text-primary">&lt;nav&gt;</code> landmark, following the
+        <a
+          href="https://www.w3.org/WAI/ARIA/apg/patterns/breadcrumb/"
+          class="text-primary hover:underline"
+          target="_blank"
+          rel="noopener noreferrer"
+        >
+          WAI-ARIA Breadcrumb pattern</a
+        >. Separators are marked
+        <code class="text-text-primary">aria-hidden="true"</code> to avoid screen reader clutter.
+      </p>
+    </Note>
+    <Note title="Reduced Motion">
+      <p>
+        Hover transitions on links respect
+        <code class="text-text-primary">prefers-reduced-motion</code> via the design-token-based transition
+        duration.
+      </p>
+    </Note>
+  </NoteList>
 </Section>

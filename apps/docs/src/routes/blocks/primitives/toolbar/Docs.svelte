@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { CodeExample, Section } from '@urbicon-ui/docs';
+  import { CodeExample, Note, NoteList, Section } from '@urbicon-ui/docs';
   import { Badge, Button, Separator, Toolbar } from '@urbicon-ui/blocks';
   import { resolve } from '$app/paths';
 
@@ -244,46 +244,41 @@
 <!-- ─── Accessibility ─── -->
 
 <Section marker="03" id="accessibility" title="Accessibility">
-  <div class="border-border-subtle bg-surface-elevated rounded-2xl border p-6">
-    <div class="divide-border-subtle divide-y">
-      <div class="pb-4">
-        <h4 class="text-text-primary mb-1.5 text-sm font-semibold">Built-in ARIA</h4>
-        <p class="text-text-secondary text-sm leading-relaxed">
-          Renders with <code class="text-text-primary">role="toolbar"</code>.
-          <code class="text-text-primary">aria-label</code> is required to identify the toolbar's
-          purpose. <code class="text-text-primary">aria-orientation</code> is set automatically from
-          the <code class="text-text-primary">orientation</code> prop.
-        </p>
-      </div>
-      <div class="py-4">
-        <h4 class="text-text-primary mb-1.5 text-sm font-semibold">Keyboard</h4>
-        <p class="text-text-secondary text-sm leading-relaxed">
-          <kbd
-            class="bg-surface-base border-border-subtle rounded-modify border px-1.5 py-0.5 text-xs font-medium"
-            >Tab</kbd
-          >
-          moves focus into and out of the toolbar. Individual items inside the toolbar follow their own
-          keyboard semantics (e.g. Buttons activate via
-          <kbd
-            class="bg-surface-base border-border-subtle rounded-modify border px-1.5 py-0.5 text-xs font-medium"
-            >Enter</kbd
-          >
-          /
-          <kbd
-            class="bg-surface-base border-border-subtle rounded-modify border px-1.5 py-0.5 text-xs font-medium"
-            >Space</kbd
-          >).
-        </p>
-      </div>
-      <div class="pt-4">
-        <h4 class="text-text-primary mb-1.5 text-sm font-semibold">Best Practices</h4>
-        <p class="text-text-secondary text-sm leading-relaxed">
-          Use descriptive <code class="text-text-primary">aria-label</code> values that communicate
-          the toolbar's function (e.g. "Text formatting", "File actions"). Group related controls
-          using <code class="text-text-primary">Separator</code> for visual clarity. Avoid nesting toolbars
-          inside each other.
-        </p>
-      </div>
-    </div>
-  </div>
+  <NoteList>
+    <Note title="Built-in ARIA">
+      <p>
+        Renders with <code class="text-text-primary">role="toolbar"</code>.
+        <code class="text-text-primary">aria-label</code> is required to identify the toolbar's
+        purpose. <code class="text-text-primary">aria-orientation</code> is set automatically from
+        the <code class="text-text-primary">orientation</code> prop.
+      </p>
+    </Note>
+    <Note title="Keyboard">
+      <p>
+        <kbd
+          class="bg-surface-base border-border-subtle rounded-modify border px-1.5 py-0.5 text-xs font-medium"
+          >Tab</kbd
+        >
+        moves focus into and out of the toolbar. Individual items inside the toolbar follow their own
+        keyboard semantics (e.g. Buttons activate via
+        <kbd
+          class="bg-surface-base border-border-subtle rounded-modify border px-1.5 py-0.5 text-xs font-medium"
+          >Enter</kbd
+        >
+        /
+        <kbd
+          class="bg-surface-base border-border-subtle rounded-modify border px-1.5 py-0.5 text-xs font-medium"
+          >Space</kbd
+        >).
+      </p>
+    </Note>
+    <Note title="Best Practices">
+      <p>
+        Use descriptive <code class="text-text-primary">aria-label</code> values that communicate
+        the toolbar's function (e.g. "Text formatting", "File actions"). Group related controls
+        using <code class="text-text-primary">Separator</code> for visual clarity. Avoid nesting toolbars
+        inside each other.
+      </p>
+    </Note>
+  </NoteList>
 </Section>

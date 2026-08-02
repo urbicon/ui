@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { CodeExample, Section } from '@urbicon-ui/docs';
+  import { CodeExample, Note, NoteList, Section } from '@urbicon-ui/docs';
   import { Toggle } from '@urbicon-ui/blocks';
   import { resolve } from '$app/paths';
 
@@ -182,77 +182,69 @@
 <!-- ─── Accessibility ─── -->
 
 <Section marker="04" id="accessibility" title="Accessibility">
-  <div class="border-border-subtle bg-surface-elevated rounded-2xl border p-6">
-    <div class="divide-border-subtle divide-y">
-      <div class="pb-4">
-        <h4 class="text-text-primary mb-1.5 text-sm font-semibold">Built-in ARIA</h4>
-        <p class="text-text-secondary text-sm leading-relaxed">
-          Renders with <code class="text-text-primary">role="switch"</code> and
-          <code class="text-text-primary">aria-checked</code> that updates automatically. Labels are
-          associated via <code class="text-text-primary">id</code>, and helper text is linked
-          through
-          <code class="text-text-primary">aria-describedby</code>.
-        </p>
-      </div>
-      <div class="py-4">
-        <h4 class="text-text-primary mb-1.5 text-sm font-semibold">Keyboard</h4>
-        <p class="text-text-secondary text-sm leading-relaxed">
-          <kbd
-            class="bg-surface-base border-border-subtle rounded border px-1.5 py-0.5 text-xs font-medium"
-            >Tab</kbd
-          >
-          to focus,
-          <kbd
-            class="bg-surface-base border-border-subtle rounded border px-1.5 py-0.5 text-xs font-medium"
-            >Space</kbd
-          >
-          to toggle. The focus ring uses
-          <code class="text-text-primary">peer-focus-visible:</code> to relay the hidden input's focus
-          state onto the visible track.
-        </p>
-      </div>
-      <div class="py-4">
-        <h4 class="text-text-primary mb-1.5 text-sm font-semibold">Reduced Motion</h4>
-        <p class="text-text-secondary text-sm leading-relaxed">
-          The thumb slide animation and all Mint effects are suppressed when
-          <code class="text-text-primary">prefers-reduced-motion</code> is enabled.
-        </p>
-      </div>
-      <div class="pt-4">
-        <h4 class="text-text-primary mb-1.5 text-sm font-semibold">
-          Don't wrap with <code>&lt;label&gt;</code>
-        </h4>
-        <p class="text-text-secondary text-sm leading-relaxed">
-          Toggle already renders a correctly associated <code class="text-text-primary"
-            >&lt;label&gt;</code
-          >
-          internally. Wrapping it in another <code class="text-text-primary">&lt;label&gt;</code> creates
-          nested label semantics — clicks on the outer label may not toggle the switch reliably across
-          browsers, and screen readers can announce the label twice.
-        </p>
-        <div class="mt-3 grid gap-2 sm:grid-cols-2">
-          <div class="border-danger/30 bg-danger-subtle rounded-lg border p-3">
-            <p class="text-danger-emphasis mb-1 text-xs font-semibold tracking-wide uppercase">
-              Don't
-            </p>
-            <pre class="text-text-primary text-xs"><code
-                >&lt;label&gt;
+  <NoteList>
+    <Note title="Built-in ARIA">
+      <p>
+        Renders with <code class="text-text-primary">role="switch"</code> and
+        <code class="text-text-primary">aria-checked</code> that updates automatically. Labels are
+        associated via <code class="text-text-primary">id</code>, and helper text is linked through
+        <code class="text-text-primary">aria-describedby</code>.
+      </p>
+    </Note>
+    <Note title="Keyboard">
+      <p>
+        <kbd
+          class="bg-surface-base border-border-subtle rounded border px-1.5 py-0.5 text-xs font-medium"
+          >Tab</kbd
+        >
+        to focus,
+        <kbd
+          class="bg-surface-base border-border-subtle rounded border px-1.5 py-0.5 text-xs font-medium"
+          >Space</kbd
+        >
+        to toggle. The focus ring uses
+        <code class="text-text-primary">peer-focus-visible:</code> to relay the hidden input's focus state
+        onto the visible track.
+      </p>
+    </Note>
+    <Note title="Reduced Motion">
+      <p>
+        The thumb slide animation and all Mint effects are suppressed when
+        <code class="text-text-primary">prefers-reduced-motion</code> is enabled.
+      </p>
+    </Note>
+    <Note>
+      {#snippet titleSnippet()}
+        Don't wrap with <code>&lt;label&gt;</code>
+      {/snippet}
+      <p>
+        Toggle already renders a correctly associated <code class="text-text-primary"
+          >&lt;label&gt;</code
+        >
+        internally. Wrapping it in another <code class="text-text-primary">&lt;label&gt;</code> creates
+        nested label semantics — clicks on the outer label may not toggle the switch reliably across browsers,
+        and screen readers can announce the label twice.
+      </p>
+      <div class="mt-3 grid gap-2 sm:grid-cols-2">
+        <div class="border-danger/30 bg-danger-subtle rounded-lg border p-3">
+          <p class="text-danger-emphasis mb-1 text-xs font-semibold tracking-wide uppercase">
+            Don't
+          </p>
+          <pre class="text-text-primary text-xs"><code
+              >&lt;label&gt;
   Notifications
   &lt;Toggle /&gt;
 &lt;/label&gt;</code
-              ></pre>
-          </div>
-          <div class="border-success/30 bg-success-subtle rounded-lg border p-3">
-            <p class="text-success-emphasis mb-1 text-xs font-semibold tracking-wide uppercase">
-              Do
-            </p>
-            <pre class="text-text-primary text-xs"><code
-                >&lt;Toggle label="Notifications"
+            ></pre>
+        </div>
+        <div class="border-success/30 bg-success-subtle rounded-lg border p-3">
+          <p class="text-success-emphasis mb-1 text-xs font-semibold tracking-wide uppercase">Do</p>
+          <pre class="text-text-primary text-xs"><code
+              >&lt;Toggle label="Notifications"
         helper="Email + push" /&gt;</code
-              ></pre>
-          </div>
+            ></pre>
         </div>
       </div>
-    </div>
-  </div>
+    </Note>
+  </NoteList>
 </Section>

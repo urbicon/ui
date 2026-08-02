@@ -1,6 +1,6 @@
 <script lang="ts">
   import { resolve } from '$app/paths';
-  import { CodeExample, Section } from '@urbicon-ui/docs';
+  import { CodeExample, Note, NoteList, Section } from '@urbicon-ui/docs';
   import { Accordion, AccordionItem, Collapsible, Badge } from '@urbicon-ui/blocks';
 
   let faqValue = $state<string>('what-is');
@@ -363,63 +363,57 @@
 <!-- ─── Accessibility ─── -->
 
 <Section marker="04" id="accessibility" title="Accessibility">
-  <div class="border-border-subtle bg-surface-elevated rounded-2xl border p-6">
-    <div class="divide-border-subtle divide-y">
-      <div class="pb-4">
-        <h4 class="text-text-primary mb-1.5 text-sm font-semibold">Built-in ARIA</h4>
-        <p class="text-text-secondary text-sm leading-relaxed">
-          Each trigger uses <code class="text-text-primary">aria-expanded</code> and
-          <code class="text-text-primary">aria-controls</code> to link to its content panel. Content
-          panels have <code class="text-text-primary">role="region"</code> with
-          <code class="text-text-primary">aria-labelledby</code> pointing back to the trigger. The
-          <code class="text-text-primary">data-state</code>
-          attribute exposes
-          <code class="text-text-primary">open</code> /
-          <code class="text-text-primary">closed</code>
-          for CSS-only styling.
-        </p>
-      </div>
-      <div class="py-4">
-        <h4 class="text-text-primary mb-1.5 text-sm font-semibold">Keyboard Navigation</h4>
-        <p class="text-text-secondary text-sm leading-relaxed">
-          <kbd
-            class="bg-surface-base border-border-subtle rounded border px-1.5 py-0.5 text-xs font-medium"
-            >Tab</kbd
-          >
-          moves focus between triggers.
-          <kbd
-            class="bg-surface-base border-border-subtle rounded border px-1.5 py-0.5 text-xs font-medium"
-            >Enter</kbd
-          >
-          /
-          <kbd
-            class="bg-surface-base border-border-subtle rounded border px-1.5 py-0.5 text-xs font-medium"
-            >Space</kbd
-          >
-          toggle the focused item. Focus rings use
-          <code class="text-text-primary">focus-visible:</code> so they only appear on keyboard navigation,
-          never on mouse clicks.
-        </p>
-      </div>
-      <div class="py-4">
-        <h4 class="text-text-primary mb-1.5 text-sm font-semibold">Disabled State</h4>
-        <p class="text-text-secondary text-sm leading-relaxed">
-          Disabled triggers get the native
-          <code class="text-text-primary">disabled</code> attribute, removing them from the tab
-          order and preventing activation. Visual feedback via
-          <code class="text-text-primary">opacity-50</code> and
-          <code class="text-text-primary">cursor-not-allowed</code>.
-        </p>
-      </div>
-      <div class="pt-4">
-        <h4 class="text-text-primary mb-1.5 text-sm font-semibold">Reduced Motion</h4>
-        <p class="text-text-secondary text-sm leading-relaxed">
-          The expand/collapse animation uses CSS
-          <code class="text-text-primary">grid-template-rows</code> transitions. When
-          <code class="text-text-primary">prefers-reduced-motion</code> is enabled, transition durations
-          are reduced via the design token system.
-        </p>
-      </div>
-    </div>
-  </div>
+  <NoteList>
+    <Note title="Built-in ARIA">
+      <p>
+        Each trigger uses <code class="text-text-primary">aria-expanded</code> and
+        <code class="text-text-primary">aria-controls</code> to link to its content panel. Content
+        panels have <code class="text-text-primary">role="region"</code> with
+        <code class="text-text-primary">aria-labelledby</code> pointing back to the trigger. The
+        <code class="text-text-primary">data-state</code>
+        attribute exposes
+        <code class="text-text-primary">open</code> /
+        <code class="text-text-primary">closed</code>
+        for CSS-only styling.
+      </p>
+    </Note>
+    <Note title="Keyboard Navigation">
+      <p>
+        <kbd
+          class="bg-surface-base border-border-subtle rounded border px-1.5 py-0.5 text-xs font-medium"
+          >Tab</kbd
+        >
+        moves focus between triggers.
+        <kbd
+          class="bg-surface-base border-border-subtle rounded border px-1.5 py-0.5 text-xs font-medium"
+          >Enter</kbd
+        >
+        /
+        <kbd
+          class="bg-surface-base border-border-subtle rounded border px-1.5 py-0.5 text-xs font-medium"
+          >Space</kbd
+        >
+        toggle the focused item. Focus rings use
+        <code class="text-text-primary">focus-visible:</code> so they only appear on keyboard navigation,
+        never on mouse clicks.
+      </p>
+    </Note>
+    <Note title="Disabled State">
+      <p>
+        Disabled triggers get the native
+        <code class="text-text-primary">disabled</code> attribute, removing them from the tab order
+        and preventing activation. Visual feedback via
+        <code class="text-text-primary">opacity-50</code> and
+        <code class="text-text-primary">cursor-not-allowed</code>.
+      </p>
+    </Note>
+    <Note title="Reduced Motion">
+      <p>
+        The expand/collapse animation uses CSS
+        <code class="text-text-primary">grid-template-rows</code> transitions. When
+        <code class="text-text-primary">prefers-reduced-motion</code> is enabled, transition durations
+        are reduced via the design token system.
+      </p>
+    </Note>
+  </NoteList>
 </Section>

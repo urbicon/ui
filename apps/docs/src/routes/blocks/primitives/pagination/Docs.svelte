@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { CodeExample, Section } from '@urbicon-ui/docs';
+  import { CodeExample, Note, NoteList, Section } from '@urbicon-ui/docs';
   import { Pagination } from '@urbicon-ui/blocks';
   import { resolve } from '$app/paths';
 
@@ -158,50 +158,44 @@
 <!-- ─── Accessibility ─── -->
 
 <Section marker="03" id="accessibility" title="Accessibility">
-  <div class="border-border-subtle bg-surface-elevated rounded-2xl border p-6">
-    <div class="divide-border-subtle divide-y">
-      <div class="pb-4">
-        <h4 class="text-text-primary mb-1.5 text-sm font-semibold">Built-in ARIA</h4>
-        <p class="text-text-secondary text-sm leading-relaxed">
-          The root <code class="text-text-primary">&lt;nav&gt;</code> carries
-          <code class="text-text-primary">role="navigation"</code> and an
-          <code class="text-text-primary">aria-label</code>. The active page button sets
-          <code class="text-text-primary">aria-current="page"</code>. Disabled boundary buttons
-          expose <code class="text-text-primary">aria-disabled</code> so screen readers can announce their
-          state.
-        </p>
-      </div>
-      <div class="py-4">
-        <h4 class="text-text-primary mb-1.5 text-sm font-semibold">Keyboard</h4>
-        <p class="text-text-secondary text-sm leading-relaxed">
-          <kbd
-            class="bg-surface-base border-border-subtle rounded border px-1.5 py-0.5 text-xs font-medium"
-            >Tab</kbd
-          >
-          moves focus between pagination buttons in DOM order.
-          <kbd
-            class="bg-surface-base border-border-subtle rounded border px-1.5 py-0.5 text-xs font-medium"
-            >Enter</kbd
-          >
-          /
-          <kbd
-            class="bg-surface-base border-border-subtle rounded border px-1.5 py-0.5 text-xs font-medium"
-            >Space</kbd
-          >
-          activates the focused button. First/last, prev/next, and numbered buttons are all focusable
-          in natural tab order.
-        </p>
-      </div>
-      <div class="pt-4">
-        <h4 class="text-text-primary mb-1.5 text-sm font-semibold">Reduced Motion</h4>
-        <p class="text-text-secondary text-sm leading-relaxed">
-          Mint effects respect
-          <code class="text-text-primary">prefers-reduced-motion</code>. Transitions and
-          hover/active feedback are reduced or removed when the user has requested less motion.
-        </p>
-      </div>
-    </div>
-  </div>
+  <NoteList>
+    <Note title="Built-in ARIA">
+      <p>
+        The root <code class="text-text-primary">&lt;nav&gt;</code> carries
+        <code class="text-text-primary">role="navigation"</code> and an
+        <code class="text-text-primary">aria-label</code>. The active page button sets
+        <code class="text-text-primary">aria-current="page"</code>. Disabled boundary buttons expose
+        <code class="text-text-primary">aria-disabled</code> so screen readers can announce their state.
+      </p>
+    </Note>
+    <Note title="Keyboard">
+      <p>
+        <kbd
+          class="bg-surface-base border-border-subtle rounded border px-1.5 py-0.5 text-xs font-medium"
+          >Tab</kbd
+        >
+        moves focus between pagination buttons in DOM order.
+        <kbd
+          class="bg-surface-base border-border-subtle rounded border px-1.5 py-0.5 text-xs font-medium"
+          >Enter</kbd
+        >
+        /
+        <kbd
+          class="bg-surface-base border-border-subtle rounded border px-1.5 py-0.5 text-xs font-medium"
+          >Space</kbd
+        >
+        activates the focused button. First/last, prev/next, and numbered buttons are all focusable in
+        natural tab order.
+      </p>
+    </Note>
+    <Note title="Reduced Motion">
+      <p>
+        Mint effects respect
+        <code class="text-text-primary">prefers-reduced-motion</code>. Transitions and hover/active
+        feedback are reduced or removed when the user has requested less motion.
+      </p>
+    </Note>
+  </NoteList>
 </Section>
 
 <style>

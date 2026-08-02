@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { CodeExample, Section } from '@urbicon-ui/docs';
+  import { CodeExample, Note, NoteList, Section } from '@urbicon-ui/docs';
   import { RadioGroup, RadioItem } from '@urbicon-ui/blocks';
   import { resolve } from '$app/paths';
 
@@ -157,58 +157,54 @@
 <!-- ─── Accessibility ─── -->
 
 <Section marker="03" id="accessibility" title="Accessibility">
-  <div class="border-border-subtle bg-surface-elevated rounded-2xl border p-6">
-    <div class="divide-border-subtle divide-y">
-      <div class="pb-4">
-        <h4 class="text-text-primary mb-1.5 text-sm font-semibold">Native Semantics</h4>
-        <p class="text-text-secondary text-sm leading-relaxed">
-          Built on native <code class="text-text-primary">&lt;input type="radio"&gt;</code>
-          elements inside a <code class="text-text-primary">role="radiogroup"</code> container for
-          correct form behavior and assistive technology support. The group label is linked via
-          <code class="text-text-primary">aria-labelledby</code>, and error/helper text via
-          <code class="text-text-primary">aria-describedby</code>.
-        </p>
-      </div>
-      <div class="py-4">
-        <h4 class="text-text-primary mb-1.5 text-sm font-semibold">Keyboard</h4>
-        <p class="text-text-secondary text-sm leading-relaxed">
-          <kbd
-            class="bg-surface-base border-border-subtle rounded border px-1.5 py-0.5 text-xs font-medium"
-            >Tab</kbd
-          >
-          into the group focuses the selected (or first) item.
-          <kbd
-            class="bg-surface-base border-border-subtle rounded border px-1.5 py-0.5 text-xs font-medium"
-            >Arrow</kbd
-          >
-          keys move between options and select automatically. Vertical groups use
-          <kbd
-            class="bg-surface-base border-border-subtle rounded border px-1.5 py-0.5 text-xs font-medium"
-            >Up/Down</kbd
-          >, horizontal groups use
-          <kbd
-            class="bg-surface-base border-border-subtle rounded border px-1.5 py-0.5 text-xs font-medium"
-            >Left/Right</kbd
-          >. Navigation wraps around at both ends.
-        </p>
-      </div>
-      <div class="py-4">
-        <h4 class="text-text-primary mb-1.5 text-sm font-semibold">Focus Management</h4>
-        <p class="text-text-secondary text-sm leading-relaxed">
-          Uses roving tabindex: only the selected item (or the first item when nothing is selected)
-          is in the tab order. Disabled items are skipped during arrow key navigation. Focus rings
-          use <code class="text-text-primary">focus-visible:</code> via the
-          <code class="text-text-primary">peer</code> pattern for keyboard-only visibility.
-        </p>
-      </div>
-      <div class="pt-4">
-        <h4 class="text-text-primary mb-1.5 text-sm font-semibold">Reduced Motion</h4>
-        <p class="text-text-secondary text-sm leading-relaxed">
-          All Mint effects and transitions respect
-          <code class="text-text-primary">prefers-reduced-motion</code>. The dot transition is
-          purely visual and does not affect interaction.
-        </p>
-      </div>
-    </div>
-  </div>
+  <NoteList>
+    <Note title="Native Semantics">
+      <p>
+        Built on native <code class="text-text-primary">&lt;input type="radio"&gt;</code>
+        elements inside a <code class="text-text-primary">role="radiogroup"</code> container for
+        correct form behavior and assistive technology support. The group label is linked via
+        <code class="text-text-primary">aria-labelledby</code>, and error/helper text via
+        <code class="text-text-primary">aria-describedby</code>.
+      </p>
+    </Note>
+    <Note title="Keyboard">
+      <p>
+        <kbd
+          class="bg-surface-base border-border-subtle rounded border px-1.5 py-0.5 text-xs font-medium"
+          >Tab</kbd
+        >
+        into the group focuses the selected (or first) item.
+        <kbd
+          class="bg-surface-base border-border-subtle rounded border px-1.5 py-0.5 text-xs font-medium"
+          >Arrow</kbd
+        >
+        keys move between options and select automatically. Vertical groups use
+        <kbd
+          class="bg-surface-base border-border-subtle rounded border px-1.5 py-0.5 text-xs font-medium"
+          >Up/Down</kbd
+        >, horizontal groups use
+        <kbd
+          class="bg-surface-base border-border-subtle rounded border px-1.5 py-0.5 text-xs font-medium"
+          >Left/Right</kbd
+        >. Navigation wraps around at both ends.
+      </p>
+    </Note>
+    <Note title="Focus Management">
+      <p>
+        Uses roving tabindex: only the selected item (or the first item when nothing is selected) is
+        in the tab order. Disabled items are skipped during arrow key navigation. Focus rings use <code
+          class="text-text-primary">focus-visible:</code
+        >
+        via the
+        <code class="text-text-primary">peer</code> pattern for keyboard-only visibility.
+      </p>
+    </Note>
+    <Note title="Reduced Motion">
+      <p>
+        All Mint effects and transitions respect
+        <code class="text-text-primary">prefers-reduced-motion</code>. The dot transition is purely
+        visual and does not affect interaction.
+      </p>
+    </Note>
+  </NoteList>
 </Section>

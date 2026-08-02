@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { CodeExample, InfoCard, Section } from '@urbicon-ui/docs';
+  import { CodeExample, InfoCard, Note, NoteList, Section } from '@urbicon-ui/docs';
   import {
     Button,
     Guide,
@@ -430,49 +430,43 @@
 <!-- ─── Accessibility ─── -->
 
 <Section marker="07" id="accessibility" title="Accessibility">
-  <div class="border-border-subtle bg-surface-elevated rounded-2xl border p-6">
-    <div class="divide-border-subtle divide-y">
-      <div class="pb-4">
-        <h4 class="text-text-primary mb-1.5 text-sm font-semibold">Keyboard parity</h4>
-        <p class="text-text-secondary text-sm leading-relaxed">
-          Markers and mentions are real <code>&lt;button&gt;</code>s. A mention highlights its
-          target on
-          <strong>focus</strong> as well as hover, so the bidirectional link works without a mouse.
-          The tour bubble takes focus on open;
-          <kbd class="bg-surface-base border-border-subtle rounded border px-1.5 py-0.5 text-xs"
-            >&#8594;</kbd
-          >
-          /
-          <kbd class="bg-surface-base border-border-subtle rounded border px-1.5 py-0.5 text-xs"
-            >&#8592;</kbd
-          >
-          step,
-          <kbd class="bg-surface-base border-border-subtle rounded border px-1.5 py-0.5 text-xs"
-            >Esc</kbd
-          >
-          skips. An interactive step joins its spotlit target to the bubble in one Tab cycle.
-        </p>
-      </div>
-      <div class="py-4">
-        <h4 class="text-text-primary mb-1.5 text-sm font-semibold">Announcements & focus</h4>
-        <p class="text-text-secondary text-sm leading-relaxed">
-          The tour announces each step through a polite <code>aria-live</code> region (so the
-          arrow-key path is never silent), and the hint announces itself with
-          <code>role="status"</code>. The tour returns focus to wherever it was when the tour ends.
-        </p>
-      </div>
-      <div class="pt-4">
-        <h4 class="text-text-primary mb-1.5 text-sm font-semibold">Non-modal by design</h4>
-        <p class="text-text-secondary text-sm leading-relaxed">
-          The help panel has no focus trap and no backdrop — it coexists with the app (that is what
-          lets a mention highlight a field behind it). Escape only closes it while focus is inside,
-          so a foreground dialog keeps priority. Motion (panel slide, beacon pulse, step fade)
-          honors
-          <code>prefers-reduced-motion</code>.
-        </p>
-      </div>
-    </div>
-  </div>
+  <NoteList>
+    <Note title="Keyboard parity">
+      <p>
+        Markers and mentions are real <code>&lt;button&gt;</code>s. A mention highlights its target
+        on
+        <strong>focus</strong> as well as hover, so the bidirectional link works without a mouse.
+        The tour bubble takes focus on open;
+        <kbd class="bg-surface-base border-border-subtle rounded border px-1.5 py-0.5 text-xs"
+          >&#8594;</kbd
+        >
+        /
+        <kbd class="bg-surface-base border-border-subtle rounded border px-1.5 py-0.5 text-xs"
+          >&#8592;</kbd
+        >
+        step,
+        <kbd class="bg-surface-base border-border-subtle rounded border px-1.5 py-0.5 text-xs"
+          >Esc</kbd
+        >
+        skips. An interactive step joins its spotlit target to the bubble in one Tab cycle.
+      </p>
+    </Note>
+    <Note title="Announcements & focus">
+      <p>
+        The tour announces each step through a polite <code>aria-live</code> region (so the
+        arrow-key path is never silent), and the hint announces itself with
+        <code>role="status"</code>. The tour returns focus to wherever it was when the tour ends.
+      </p>
+    </Note>
+    <Note title="Non-modal by design">
+      <p>
+        The help panel has no focus trap and no backdrop — it coexists with the app (that is what
+        lets a mention highlight a field behind it). Escape only closes it while focus is inside, so
+        a foreground dialog keeps priority. Motion (panel slide, beacon pulse, step fade) honors
+        <code>prefers-reduced-motion</code>.
+      </p>
+    </Note>
+  </NoteList>
 </Section>
 
 <!-- ─── Customization ─── -->

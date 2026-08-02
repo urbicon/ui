@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { CodeExample, InfoCard, Section } from '@urbicon-ui/docs';
+  import { CodeExample, InfoCard, Note, NoteList, Section } from '@urbicon-ui/docs';
   import LiveDemo from './examples/LiveDemo.svelte';
   import UrbiconDemo from './examples/UrbiconDemo.svelte';
   import BrokenPayload from './examples/BrokenPayload.svelte';
@@ -83,40 +83,35 @@ const system = [
       </InfoCard>
     </div>
 
-    <div class="border-border-subtle bg-surface-elevated rounded-2xl border p-6">
-      <div class="divide-border-subtle divide-y">
-        <div class="pb-4">
-          <h4 class="text-text-primary mb-1.5 text-sm font-semibold">The enforcement thesis</h4>
-          <p class="text-text-secondary text-sm leading-relaxed">
-            An agent is untrusted. If it could emit arbitrary markup or handlers, the surface would
-            be an injection vector. A2UIView removes that class of risk by construction: the payload
-            is a reference into a catalog <em>you</em> control. A component name the registry does
-            not know is a fault chip, not a mystery element; a prop the registry does not declare
-            never reaches a Svelte component; a <code>{'{ call }'}</code> function binding resolves
-            to nothing. There is no <code>{'{@html}'}</code>, no dynamic import, no
-            <code>restProps</code> spread from the payload anywhere in the path.
-          </p>
-        </div>
-        <div class="py-4">
-          <h4 class="text-text-primary mb-1.5 text-sm font-semibold">Incremental & two-way</h4>
-          <p class="text-text-secondary text-sm leading-relaxed">
-            The payload is the <em>accumulated</em> envelope array — stream by extending it
-            immutably (<code>{'[...prev, envelope]'}</code>). A2UIView applies only the newly
-            appended envelopes, so local input edits survive a mid-stream update. Inputs write
-            straight into the surface data model; bound text updates live; the model syncs to the
-            agent only on an action.
-          </p>
-        </div>
-        <div class="pt-4">
-          <h4 class="text-text-primary mb-1.5 text-sm font-semibold">Policy-gated media</h4>
-          <p class="text-text-secondary text-sm leading-relaxed">
-            <code>Image</code> sources and <code>Text</code> markdown links pass the same
-            strict-by-default <code>urlPolicy</code> as StreamingMarkdown. Every external image is blocked
-            unless its prefix is allowlisted; a blocked image renders an alt chip instead.
-          </p>
-        </div>
-      </div>
-    </div>
+    <NoteList>
+      <Note title="The enforcement thesis">
+        <p>
+          An agent is untrusted. If it could emit arbitrary markup or handlers, the surface would be
+          an injection vector. A2UIView removes that class of risk by construction: the payload is a
+          reference into a catalog <em>you</em> control. A component name the registry does not know
+          is a fault chip, not a mystery element; a prop the registry does not declare never reaches
+          a Svelte component; a <code>{'{ call }'}</code> function binding resolves to nothing.
+          There is no <code>{'{@html}'}</code>, no dynamic import, no
+          <code>restProps</code> spread from the payload anywhere in the path.
+        </p>
+      </Note>
+      <Note title="Incremental & two-way">
+        <p>
+          The payload is the <em>accumulated</em> envelope array — stream by extending it immutably
+          (<code>{'[...prev, envelope]'}</code>). A2UIView applies only the newly appended
+          envelopes, so local input edits survive a mid-stream update. Inputs write straight into
+          the surface data model; bound text updates live; the model syncs to the agent only on an
+          action.
+        </p>
+      </Note>
+      <Note title="Policy-gated media">
+        <p>
+          <code>Image</code> sources and <code>Text</code> markdown links pass the same
+          strict-by-default <code>urlPolicy</code> as StreamingMarkdown. Every external image is blocked
+          unless its prefix is allowlisted; a blocked image renders an alt chip instead.
+        </p>
+      </Note>
+    </NoteList>
   </div>
 </Section>
 
@@ -183,37 +178,32 @@ const system = [
 </Section>
 
 <Section marker="04" id="accessibility" title="Accessibility">
-  <div class="border-border-subtle bg-surface-elevated rounded-2xl border p-6">
-    <div class="divide-border-subtle divide-y">
-      <div class="pb-4">
-        <h4 class="text-text-primary mb-1.5 text-sm font-semibold">Real controls, real labels</h4>
-        <p class="text-text-secondary text-sm leading-relaxed">
-          Each catalog component maps onto a real Urbicon primitive — <code>TextField</code> to
-          Input/Textarea, <code>CheckBox</code> to Checkbox, <code>ChoicePicker</code> to
-          RadioGroup, <code>Slider</code> to Slider, <code>DateTimeInput</code> to
-          DatePicker/TimeInput — so labels, roles and keyboard behaviour come from the library, not
-          from ad-hoc markup. A component's
-          <code>accessibility.label</code> becomes an <code>aria-label</code>.
-        </p>
-      </div>
-      <div class="py-4">
-        <h4 class="text-text-primary mb-1.5 text-sm font-semibold">Streaming placeholders</h4>
-        <p class="text-text-secondary text-sm leading-relaxed">
-          While <code>streaming</code>, a not-yet-defined reference renders a
-          <code>Skeleton</code> with an <code>sr-only</code> label (<code>pendingLabel</code>), so
-          assistive tech announces a loading state rather than an empty gap.
-        </p>
-      </div>
-      <div class="pt-4">
-        <h4 class="text-text-primary mb-1.5 text-sm font-semibold">Faults are text</h4>
-        <p class="text-text-secondary text-sm leading-relaxed">
-          A rejected component renders a fault chip with a readable label (<code
-            >unsupportedLabel</code
-          >) alongside its danger icon — the reason is text, not colour alone. Envelope-level faults
-          render in a danger <code>Alert</code> with its
-          <code>errorTitle</code>.
-        </p>
-      </div>
-    </div>
-  </div>
+  <NoteList>
+    <Note title="Real controls, real labels">
+      <p>
+        Each catalog component maps onto a real Urbicon primitive — <code>TextField</code> to
+        Input/Textarea, <code>CheckBox</code> to Checkbox, <code>ChoicePicker</code> to RadioGroup,
+        <code>Slider</code>
+        to Slider, <code>DateTimeInput</code> to DatePicker/TimeInput — so labels, roles and
+        keyboard behaviour come from the library, not from ad-hoc markup. A component's
+        <code>accessibility.label</code> becomes an <code>aria-label</code>.
+      </p>
+    </Note>
+    <Note title="Streaming placeholders">
+      <p>
+        While <code>streaming</code>, a not-yet-defined reference renders a
+        <code>Skeleton</code> with an <code>sr-only</code> label (<code>pendingLabel</code>), so
+        assistive tech announces a loading state rather than an empty gap.
+      </p>
+    </Note>
+    <Note title="Faults are text">
+      <p>
+        A rejected component renders a fault chip with a readable label (<code
+          >unsupportedLabel</code
+        >) alongside its danger icon — the reason is text, not colour alone. Envelope-level faults
+        render in a danger <code>Alert</code> with its
+        <code>errorTitle</code>.
+      </p>
+    </Note>
+  </NoteList>
 </Section>

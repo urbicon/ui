@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { CodeExample, Section } from '@urbicon-ui/docs';
+  import { CodeExample, Note, NoteList, Section } from '@urbicon-ui/docs';
   import Settled from './examples/Settled.svelte';
   import StreamingSim from './examples/StreamingSim.svelte';
   import Localized from './examples/Localized.svelte';
@@ -38,49 +38,44 @@
 </Section>
 
 <Section marker="02" id="accessibility" title="Accessibility">
-  <div class="border-border-subtle bg-surface-elevated rounded-2xl border p-6">
-    <div class="divide-border-subtle divide-y">
-      <div class="pb-4">
-        <h4 class="text-text-primary mb-1.5 text-sm font-semibold">Disclosure semantics</h4>
-        <p class="text-text-secondary text-sm leading-relaxed">
-          The header is a real <code class="text-text-primary">&lt;button&gt;</code> carrying
-          <code class="text-text-primary">aria-expanded</code> and
-          <code class="text-text-primary">aria-controls</code> for the trace region — the standard
-          Collapsible contract.
-          <kbd
-            class="bg-surface-base border-border-subtle rounded border px-1.5 py-0.5 text-xs font-medium"
-            >Tab</kbd
-          >
-          to reach it,
-          <kbd
-            class="bg-surface-base border-border-subtle rounded border px-1.5 py-0.5 text-xs font-medium"
-            >Enter</kbd
-          >
-          or
-          <kbd
-            class="bg-surface-base border-border-subtle rounded border px-1.5 py-0.5 text-xs font-medium"
-            >Space</kbd
-          >
-          to toggle. Focus rings use <code class="text-text-primary">focus-visible:</code>.
-        </p>
-      </div>
-      <div class="py-4">
-        <h4 class="text-text-primary mb-1.5 text-sm font-semibold">Reduced motion</h4>
-        <p class="text-text-secondary text-sm leading-relaxed">
-          The "Thinking" pulse is guarded by
-          <code class="text-text-primary">motion-reduce:animate-none</code> — readers who set
-          <code class="text-text-primary">prefers-reduced-motion</code> get the same label without the
-          animation. The label change itself is enough of a status cue.
-        </p>
-      </div>
-      <div class="pt-4">
-        <h4 class="text-text-primary mb-1.5 text-sm font-semibold">Untrusted output</h4>
-        <p class="text-text-secondary text-sm leading-relaxed">
-          The trace is model output, so it renders through StreamingMarkdown — never
-          <code class="text-text-primary">{'{@html}'}</code> — and any links inherit the same strict
-          <code class="text-text-primary">urlPolicy</code> as the rest of the chat surface.
-        </p>
-      </div>
-    </div>
-  </div>
+  <NoteList>
+    <Note title="Disclosure semantics">
+      <p>
+        The header is a real <code class="text-text-primary">&lt;button&gt;</code> carrying
+        <code class="text-text-primary">aria-expanded</code> and
+        <code class="text-text-primary">aria-controls</code> for the trace region — the standard
+        Collapsible contract.
+        <kbd
+          class="bg-surface-base border-border-subtle rounded border px-1.5 py-0.5 text-xs font-medium"
+          >Tab</kbd
+        >
+        to reach it,
+        <kbd
+          class="bg-surface-base border-border-subtle rounded border px-1.5 py-0.5 text-xs font-medium"
+          >Enter</kbd
+        >
+        or
+        <kbd
+          class="bg-surface-base border-border-subtle rounded border px-1.5 py-0.5 text-xs font-medium"
+          >Space</kbd
+        >
+        to toggle. Focus rings use <code class="text-text-primary">focus-visible:</code>.
+      </p>
+    </Note>
+    <Note title="Reduced motion">
+      <p>
+        The "Thinking" pulse is guarded by
+        <code class="text-text-primary">motion-reduce:animate-none</code> — readers who set
+        <code class="text-text-primary">prefers-reduced-motion</code> get the same label without the animation.
+        The label change itself is enough of a status cue.
+      </p>
+    </Note>
+    <Note title="Untrusted output">
+      <p>
+        The trace is model output, so it renders through StreamingMarkdown — never
+        <code class="text-text-primary">{'{@html}'}</code> — and any links inherit the same strict
+        <code class="text-text-primary">urlPolicy</code> as the rest of the chat surface.
+      </p>
+    </Note>
+  </NoteList>
 </Section>

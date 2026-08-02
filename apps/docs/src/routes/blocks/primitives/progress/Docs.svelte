@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { CodeExample, Section } from '@urbicon-ui/docs';
+  import { CodeExample, Note, NoteList, Section } from '@urbicon-ui/docs';
   import { Progress } from '@urbicon-ui/blocks';
   import { resolve } from '$app/paths';
 </script>
@@ -111,34 +111,29 @@
 <!-- ─── Accessibility ─── -->
 
 <Section marker="03" id="accessibility" title="Accessibility">
-  <div class="border-border-subtle bg-surface-elevated rounded-2xl border p-6">
-    <div class="divide-border-subtle divide-y">
-      <div class="pb-4">
-        <h4 class="text-text-primary mb-1.5 text-sm font-semibold">ARIA Progressbar</h4>
-        <p class="text-text-secondary text-sm leading-relaxed">
-          Uses <code class="text-text-primary">role="progressbar"</code> with
-          <code class="text-text-primary">aria-valuenow</code>,
-          <code class="text-text-primary">aria-valuemin</code>, and
-          <code class="text-text-primary">aria-valuemax</code>. In indeterminate mode,
-          <code class="text-text-primary">aria-valuenow</code> is omitted to signal unknown progress.
-        </p>
-      </div>
-      <div class="py-4">
-        <h4 class="text-text-primary mb-1.5 text-sm font-semibold">Label</h4>
-        <p class="text-text-secondary text-sm leading-relaxed">
-          The <code class="text-text-primary">label</code> prop is set as
-          <code class="text-text-primary">aria-label</code> on the progressbar element so screen readers
-          announce the purpose of the indicator.
-        </p>
-      </div>
-      <div class="pt-4">
-        <h4 class="text-text-primary mb-1.5 text-sm font-semibold">Reduced Motion</h4>
-        <p class="text-text-secondary text-sm leading-relaxed">
-          Indeterminate animation, striped animation, and circular spin are all suppressed when
-          <code class="text-text-primary">prefers-reduced-motion</code> is enabled. The progress indicator
-          remains visible in a static state.
-        </p>
-      </div>
-    </div>
-  </div>
+  <NoteList>
+    <Note title="ARIA Progressbar">
+      <p>
+        Uses <code class="text-text-primary">role="progressbar"</code> with
+        <code class="text-text-primary">aria-valuenow</code>,
+        <code class="text-text-primary">aria-valuemin</code>, and
+        <code class="text-text-primary">aria-valuemax</code>. In indeterminate mode,
+        <code class="text-text-primary">aria-valuenow</code> is omitted to signal unknown progress.
+      </p>
+    </Note>
+    <Note title="Label">
+      <p>
+        The <code class="text-text-primary">label</code> prop is set as
+        <code class="text-text-primary">aria-label</code> on the progressbar element so screen readers
+        announce the purpose of the indicator.
+      </p>
+    </Note>
+    <Note title="Reduced Motion">
+      <p>
+        Indeterminate animation, striped animation, and circular spin are all suppressed when
+        <code class="text-text-primary">prefers-reduced-motion</code> is enabled. The progress indicator
+        remains visible in a static state.
+      </p>
+    </Note>
+  </NoteList>
 </Section>

@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { CodeExample, Section } from '@urbicon-ui/docs';
+  import { CodeExample, Note, NoteList, Section } from '@urbicon-ui/docs';
   import { Separator, Button, Avatar, Card } from '@urbicon-ui/blocks';
   import { resolve } from '$app/paths';
 </script>
@@ -120,38 +120,33 @@
 <!-- ─── Accessibility ─── -->
 
 <Section marker="03" id="accessibility" title="Accessibility">
-  <div class="border-border-subtle bg-surface-elevated rounded-2xl border p-6">
-    <div class="divide-border-subtle divide-y">
-      <div class="pb-4">
-        <h4 class="text-text-primary mb-1.5 text-sm font-semibold">ARIA Roles</h4>
-        <p class="text-text-secondary text-sm leading-relaxed">
-          By default, <code class="text-text-primary">decorative={'{'}true}</code> renders
-          <code class="text-text-primary">role="none"</code> so screen readers skip the element
-          entirely. Set <code class="text-text-primary">decorative={'{'}false}</code> to use
-          <code class="text-text-primary">role="separator"</code> with
-          <code class="text-text-primary">aria-orientation</code>, announcing it as a meaningful
-          content boundary.
-        </p>
-      </div>
-      <div class="py-4">
-        <h4 class="text-text-primary mb-1.5 text-sm font-semibold">When to use semantic mode</h4>
-        <p class="text-text-secondary text-sm leading-relaxed">
-          Use <code class="text-text-primary">decorative={'{'}false}</code> when the separator marks a
-          thematic shift — e.g. between unrelated content sections. Keep the default for purely visual
-          spacing between related items.
-        </p>
-      </div>
-      <div class="pt-4">
-        <h4 class="text-text-primary mb-1.5 text-sm font-semibold">HTML Semantics</h4>
-        <p class="text-text-secondary text-sm leading-relaxed">
-          Renders as a <code class="text-text-primary">&lt;div&gt;</code> rather than
-          <code class="text-text-primary">&lt;hr&gt;</code> for full ARIA control. The
-          <code class="text-text-primary">role</code> and
-          <code class="text-text-primary">aria-orientation</code> attributes are set automatically
-          based on the <code class="text-text-primary">decorative</code> and
-          <code class="text-text-primary">orientation</code> props.
-        </p>
-      </div>
-    </div>
-  </div>
+  <NoteList>
+    <Note title="ARIA Roles">
+      <p>
+        By default, <code class="text-text-primary">decorative={'{'}true}</code> renders
+        <code class="text-text-primary">role="none"</code> so screen readers skip the element
+        entirely. Set <code class="text-text-primary">decorative={'{'}false}</code> to use
+        <code class="text-text-primary">role="separator"</code> with
+        <code class="text-text-primary">aria-orientation</code>, announcing it as a meaningful
+        content boundary.
+      </p>
+    </Note>
+    <Note title="When to use semantic mode">
+      <p>
+        Use <code class="text-text-primary">decorative={'{'}false}</code> when the separator marks a thematic
+        shift — e.g. between unrelated content sections. Keep the default for purely visual spacing between
+        related items.
+      </p>
+    </Note>
+    <Note title="HTML Semantics">
+      <p>
+        Renders as a <code class="text-text-primary">&lt;div&gt;</code> rather than
+        <code class="text-text-primary">&lt;hr&gt;</code> for full ARIA control. The
+        <code class="text-text-primary">role</code> and
+        <code class="text-text-primary">aria-orientation</code> attributes are set automatically
+        based on the <code class="text-text-primary">decorative</code> and
+        <code class="text-text-primary">orientation</code> props.
+      </p>
+    </Note>
+  </NoteList>
 </Section>

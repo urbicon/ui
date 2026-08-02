@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { CodeExample, Section } from '@urbicon-ui/docs';
+  import { CodeExample, Note, NoteList, Section } from '@urbicon-ui/docs';
   import { Checkbox } from '@urbicon-ui/blocks';
   import { resolve } from '$app/paths';
 </script>
@@ -107,52 +107,46 @@
 <!-- ─── Accessibility ─── -->
 
 <Section marker="04" id="accessibility" title="Accessibility">
-  <div class="border-border-subtle bg-surface-elevated rounded-2xl border p-6">
-    <div class="divide-border-subtle divide-y">
-      <div class="pb-4">
-        <h4 class="text-text-primary mb-1.5 text-sm font-semibold">Native Semantics</h4>
-        <p class="text-text-secondary text-sm leading-relaxed">
-          Built on a native <code class="text-text-primary">&lt;input type="checkbox"&gt;</code>
-          for correct form behavior and assistive technology support. The
-          <code class="text-text-primary">indeterminate</code> property automatically conveys the
-          mixed state, and <code class="text-text-primary">aria-checked="mixed"</code> is set explicitly
-          for maximum screen reader compatibility.
-        </p>
-      </div>
-      <div class="py-4">
-        <h4 class="text-text-primary mb-1.5 text-sm font-semibold">Labels &amp; Descriptions</h4>
-        <p class="text-text-secondary text-sm leading-relaxed">
-          The <code class="text-text-primary">label</code> prop creates an associated
-          <code class="text-text-primary">&lt;label&gt;</code>. Helper and error text are linked via
-          <code class="text-text-primary">aria-describedby</code>, and errors set
-          <code class="text-text-primary">aria-invalid</code>.
-        </p>
-      </div>
-      <div class="py-4">
-        <h4 class="text-text-primary mb-1.5 text-sm font-semibold">Keyboard</h4>
-        <p class="text-text-secondary text-sm leading-relaxed">
-          <kbd
-            class="bg-surface-base border-border-subtle rounded border px-1.5 py-0.5 text-xs font-medium"
-            >Tab</kbd
-          >
-          to focus,
-          <kbd
-            class="bg-surface-base border-border-subtle rounded border px-1.5 py-0.5 text-xs font-medium"
-            >Space</kbd
-          >
-          to toggle. The focus ring uses
-          <code class="text-text-primary">focus-visible:</code> for keyboard-only visibility and
-          appears on the checkbox box via the
-          <code class="text-text-primary">peer</code> pattern.
-        </p>
-      </div>
-      <div class="pt-4">
-        <h4 class="text-text-primary mb-1.5 text-sm font-semibold">Color Contrast</h4>
-        <p class="text-text-secondary text-sm leading-relaxed">
-          Error and helper messages use text alongside color to convey state. The checkbox icon
-          (check / minus) meets WCAG AA contrast against all intent backgrounds.
-        </p>
-      </div>
-    </div>
-  </div>
+  <NoteList>
+    <Note title="Native Semantics">
+      <p>
+        Built on a native <code class="text-text-primary">&lt;input type="checkbox"&gt;</code>
+        for correct form behavior and assistive technology support. The
+        <code class="text-text-primary">indeterminate</code> property automatically conveys the
+        mixed state, and <code class="text-text-primary">aria-checked="mixed"</code> is set explicitly
+        for maximum screen reader compatibility.
+      </p>
+    </Note>
+    <Note title="Labels &amp; Descriptions">
+      <p>
+        The <code class="text-text-primary">label</code> prop creates an associated
+        <code class="text-text-primary">&lt;label&gt;</code>. Helper and error text are linked via
+        <code class="text-text-primary">aria-describedby</code>, and errors set
+        <code class="text-text-primary">aria-invalid</code>.
+      </p>
+    </Note>
+    <Note title="Keyboard">
+      <p>
+        <kbd
+          class="bg-surface-base border-border-subtle rounded border px-1.5 py-0.5 text-xs font-medium"
+          >Tab</kbd
+        >
+        to focus,
+        <kbd
+          class="bg-surface-base border-border-subtle rounded border px-1.5 py-0.5 text-xs font-medium"
+          >Space</kbd
+        >
+        to toggle. The focus ring uses
+        <code class="text-text-primary">focus-visible:</code> for keyboard-only visibility and
+        appears on the checkbox box via the
+        <code class="text-text-primary">peer</code> pattern.
+      </p>
+    </Note>
+    <Note title="Color Contrast">
+      <p>
+        Error and helper messages use text alongside color to convey state. The checkbox icon (check
+        / minus) meets WCAG AA contrast against all intent backgrounds.
+      </p>
+    </Note>
+  </NoteList>
 </Section>

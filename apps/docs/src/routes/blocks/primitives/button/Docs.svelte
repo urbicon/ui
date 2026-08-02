@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { CodeExample, Section } from '@urbicon-ui/docs';
+  import { CodeExample, Note, NoteList, Section } from '@urbicon-ui/docs';
   import { Button, CheckIcon, CloseIcon } from '@urbicon-ui/blocks';
   import { resolve } from '$app/paths';
 </script>
@@ -207,57 +207,51 @@
 <!-- ─── Accessibility ─── -->
 
 <Section marker="04" id="accessibility" title="Accessibility">
-  <div class="border-border-subtle bg-surface-elevated rounded-2xl border p-6">
-    <div class="divide-border-subtle divide-y">
-      <div class="pb-4">
-        <h4 class="text-text-primary mb-1.5 text-sm font-semibold">Built-in ARIA</h4>
-        <p class="text-text-secondary text-sm leading-relaxed">
-          Automatically manages <code class="text-text-primary">aria-pressed</code> for toggle
-          buttons,
-          <code class="text-text-primary">aria-busy</code> during loading, and
-          <code class="text-text-primary">aria-disabled</code> when disabled. Focus indication uses
-          <code class="text-text-primary">focus-visible:</code> so mouse users see no ring.
-        </p>
-      </div>
-      <div class="py-4">
-        <h4 class="text-text-primary mb-1.5 text-sm font-semibold">State Semantics</h4>
-        <p class="text-text-secondary text-sm leading-relaxed">
-          <code class="text-text-primary">active</code> = persistent selection (a radio-style
-          segment, the current sort column, the selected tool). Set this when the button represents
-          an enduring chosen state.
-          <code class="text-text-primary">pressed</code> = transient toggle (bold/italic in a
-          toolbar, mute/unmute). Set this on a button that flips between two complementary states.
-          <code class="text-text-primary">loading</code> = busy; suppresses interaction without removing
-          focus.
-        </p>
-      </div>
-      <div class="py-4">
-        <h4 class="text-text-primary mb-1.5 text-sm font-semibold">Keyboard</h4>
-        <p class="text-text-secondary text-sm leading-relaxed">
-          <kbd
-            class="bg-surface-base border-border-subtle rounded-modify border px-1.5 py-0.5 text-xs font-medium"
-            >Tab</kbd
-          >
-          to focus,
-          <kbd
-            class="bg-surface-base border-border-subtle rounded-modify border px-1.5 py-0.5 text-xs font-medium"
-            >Enter</kbd
-          >
-          /
-          <kbd
-            class="bg-surface-base border-border-subtle rounded-modify border px-1.5 py-0.5 text-xs font-medium"
-            >Space</kbd
-          > to activate. Loading state disables interaction automatically while keeping the button focusable.
-        </p>
-      </div>
-      <div class="pt-4">
-        <h4 class="text-text-primary mb-1.5 text-sm font-semibold">Reduced Motion</h4>
-        <p class="text-text-secondary text-sm leading-relaxed">
-          All Mint effects are suppressed when the user enables
-          <code class="text-text-primary">prefers-reduced-motion</code>. Transitions, transforms,
-          and ripple animations are removed entirely.
-        </p>
-      </div>
-    </div>
-  </div>
+  <NoteList>
+    <Note title="Built-in ARIA">
+      <p>
+        Automatically manages <code class="text-text-primary">aria-pressed</code> for toggle
+        buttons,
+        <code class="text-text-primary">aria-busy</code> during loading, and
+        <code class="text-text-primary">aria-disabled</code> when disabled. Focus indication uses
+        <code class="text-text-primary">focus-visible:</code> so mouse users see no ring.
+      </p>
+    </Note>
+    <Note title="State Semantics">
+      <p>
+        <code class="text-text-primary">active</code> = persistent selection (a radio-style segment,
+        the current sort column, the selected tool). Set this when the button represents an enduring
+        chosen state.
+        <code class="text-text-primary">pressed</code> = transient toggle (bold/italic in a toolbar,
+        mute/unmute). Set this on a button that flips between two complementary states.
+        <code class="text-text-primary">loading</code> = busy; suppresses interaction without removing
+        focus.
+      </p>
+    </Note>
+    <Note title="Keyboard">
+      <p>
+        <kbd
+          class="bg-surface-base border-border-subtle rounded-modify border px-1.5 py-0.5 text-xs font-medium"
+          >Tab</kbd
+        >
+        to focus,
+        <kbd
+          class="bg-surface-base border-border-subtle rounded-modify border px-1.5 py-0.5 text-xs font-medium"
+          >Enter</kbd
+        >
+        /
+        <kbd
+          class="bg-surface-base border-border-subtle rounded-modify border px-1.5 py-0.5 text-xs font-medium"
+          >Space</kbd
+        > to activate. Loading state disables interaction automatically while keeping the button focusable.
+      </p>
+    </Note>
+    <Note title="Reduced Motion">
+      <p>
+        All Mint effects are suppressed when the user enables
+        <code class="text-text-primary">prefers-reduced-motion</code>. Transitions, transforms, and
+        ripple animations are removed entirely.
+      </p>
+    </Note>
+  </NoteList>
 </Section>

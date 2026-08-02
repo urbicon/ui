@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { CodeExample, Section } from '@urbicon-ui/docs';
+  import { CodeExample, Note, NoteList, Section } from '@urbicon-ui/docs';
   import ChatComposer from './examples/ChatComposer.svelte';
   import WithAttachments from './examples/WithAttachments.svelte';
   import WithModelSelect from './examples/WithModelSelect.svelte';
@@ -42,73 +42,67 @@
 <!-- ─── Accessibility ─── -->
 
 <Section marker="02" id="accessibility" title="Accessibility">
-  <div class="border-border-subtle bg-surface-elevated rounded-2xl border p-6">
-    <div class="divide-border-subtle divide-y">
-      <div class="pb-4">
-        <h4 class="text-text-primary mb-1.5 text-sm font-semibold">Built-in ARIA</h4>
-        <p class="text-text-secondary text-sm leading-relaxed">
-          The textarea carries an <code class="text-text-primary">aria-label</code> (the
-          <code class="text-text-primary">label</code>
-          prop, default "Message") and
-          <code class="text-text-primary">aria-keyshortcuts</code>
-          that reflects the active submit gesture — <code class="text-text-primary">Enter</code> for
-          <code class="text-text-primary">submitOn="enter"</code>, or
-          <code class="text-text-primary">Meta+Enter Control+Enter</code>
-          for <code class="text-text-primary">mod-enter</code> — so assistive tech announces the
-          real keystroke. The send, stop, and attach buttons each have their own
-          <code class="text-text-primary">aria-label</code>
-          (<code class="text-text-primary">sendLabel</code> /
-          <code class="text-text-primary">stopLabel</code> /
-          <code class="text-text-primary">attachLabel</code>). Attachment thumbnails are decorative
-          and hidden from screen readers.
-        </p>
-      </div>
-      <div class="py-4">
-        <h4 class="text-text-primary mb-1.5 text-sm font-semibold">Error status region</h4>
-        <p class="text-text-secondary text-sm leading-relaxed">
-          The inline error (first attachment rejection) lives in a
-          <code class="text-text-primary">role="status"</code>
-          region that the textarea references via
-          <code class="text-text-primary">aria-describedby</code>. It stays
-          <code class="text-text-primary">sr-only</code>
-          while empty, so the message is announced when it appears and the region never leaves a visual
-          gap. It clears on the next successful add.
-        </p>
-      </div>
-      <div class="py-4">
-        <h4 class="text-text-primary mb-1.5 text-sm font-semibold">Chip removal & focus</h4>
-        <p class="text-text-secondary text-sm leading-relaxed">
-          Each attachment chip's remove button is labelled via
-          <code class="text-text-primary">removeAttachmentLabel(name)</code>. Removing a chip moves
-          focus deterministically — to the chip that shifted into its place, else the last remaining
-          chip, else back to the textarea when the strip empties — so keyboard users are never
-          dropped to <code class="text-text-primary">&lt;body&gt;</code>. Removing a chip through
-          the UI also revokes its preview object-URL for you.
-        </p>
-      </div>
-      <div class="pt-4">
-        <h4 class="text-text-primary mb-1.5 text-sm font-semibold">Keyboard & IME</h4>
-        <p class="text-text-secondary text-sm leading-relaxed">
-          <kbd
-            class="bg-surface-base border-border-subtle rounded border px-1.5 py-0.5 text-xs font-medium"
-            >Enter</kbd
-          >
-          sends (or inserts a newline under
-          <code class="text-text-primary">submitOn="mod-enter"</code>);
-          <kbd
-            class="bg-surface-base border-border-subtle rounded border px-1.5 py-0.5 text-xs font-medium"
-            >Shift</kbd
-          >
-          +
-          <kbd
-            class="bg-surface-base border-border-subtle rounded border px-1.5 py-0.5 text-xs font-medium"
-            >Enter</kbd
-          >
-          always inserts a newline. Submission is suppressed mid-IME-composition, so composing Japanese,
-          Chinese, or Korean text never fires a stray send. Focus rings use
-          <code class="text-text-primary">focus-visible:</code> for keyboard-only visibility.
-        </p>
-      </div>
-    </div>
-  </div>
+  <NoteList>
+    <Note title="Built-in ARIA">
+      <p>
+        The textarea carries an <code class="text-text-primary">aria-label</code> (the
+        <code class="text-text-primary">label</code>
+        prop, default "Message") and
+        <code class="text-text-primary">aria-keyshortcuts</code>
+        that reflects the active submit gesture — <code class="text-text-primary">Enter</code> for
+        <code class="text-text-primary">submitOn="enter"</code>, or
+        <code class="text-text-primary">Meta+Enter Control+Enter</code>
+        for <code class="text-text-primary">mod-enter</code> — so assistive tech announces the real
+        keystroke. The send, stop, and attach buttons each have their own
+        <code class="text-text-primary">aria-label</code>
+        (<code class="text-text-primary">sendLabel</code> /
+        <code class="text-text-primary">stopLabel</code> /
+        <code class="text-text-primary">attachLabel</code>). Attachment thumbnails are decorative
+        and hidden from screen readers.
+      </p>
+    </Note>
+    <Note title="Error status region">
+      <p>
+        The inline error (first attachment rejection) lives in a
+        <code class="text-text-primary">role="status"</code>
+        region that the textarea references via
+        <code class="text-text-primary">aria-describedby</code>. It stays
+        <code class="text-text-primary">sr-only</code>
+        while empty, so the message is announced when it appears and the region never leaves a visual
+        gap. It clears on the next successful add.
+      </p>
+    </Note>
+    <Note title="Chip removal & focus">
+      <p>
+        Each attachment chip's remove button is labelled via
+        <code class="text-text-primary">removeAttachmentLabel(name)</code>. Removing a chip moves
+        focus deterministically — to the chip that shifted into its place, else the last remaining
+        chip, else back to the textarea when the strip empties — so keyboard users are never dropped
+        to <code class="text-text-primary">&lt;body&gt;</code>. Removing a chip through the UI also
+        revokes its preview object-URL for you.
+      </p>
+    </Note>
+    <Note title="Keyboard & IME">
+      <p>
+        <kbd
+          class="bg-surface-base border-border-subtle rounded border px-1.5 py-0.5 text-xs font-medium"
+          >Enter</kbd
+        >
+        sends (or inserts a newline under
+        <code class="text-text-primary">submitOn="mod-enter"</code>);
+        <kbd
+          class="bg-surface-base border-border-subtle rounded border px-1.5 py-0.5 text-xs font-medium"
+          >Shift</kbd
+        >
+        +
+        <kbd
+          class="bg-surface-base border-border-subtle rounded border px-1.5 py-0.5 text-xs font-medium"
+          >Enter</kbd
+        >
+        always inserts a newline. Submission is suppressed mid-IME-composition, so composing Japanese,
+        Chinese, or Korean text never fires a stray send. Focus rings use
+        <code class="text-text-primary">focus-visible:</code> for keyboard-only visibility.
+      </p>
+    </Note>
+  </NoteList>
 </Section>

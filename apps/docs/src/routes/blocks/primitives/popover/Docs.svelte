@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { CodeExample, Section } from '@urbicon-ui/docs';
+  import { CodeExample, Note, NoteList, Section } from '@urbicon-ui/docs';
   import { Popover, Button, Badge, ChevronDownIcon } from '@urbicon-ui/blocks';
   import { r } from '$lib/route';
 
@@ -330,82 +330,75 @@
 <!-- ─── Accessibility ─── -->
 
 <Section marker="04" id="accessibility" title="Accessibility">
-  <div class="border-border-subtle bg-surface-elevated rounded-2xl border p-6">
-    <div class="divide-border-subtle divide-y">
-      <div class="pb-4">
-        <h4 class="text-text-primary mb-1.5 text-sm font-semibold">ARIA Attributes</h4>
-        <p class="text-text-secondary text-sm leading-relaxed">
-          The trigger wrapper sets
-          <code class="text-text-primary">aria-haspopup="dialog"</code> and
-          <code class="text-text-primary">aria-expanded</code> reflecting the current open state.
-          The floating panel receives
-          <code class="text-text-primary">role="dialog"</code> by default.
-          <code class="text-text-primary">aria-modal</code> is passed through as an attribute only —
-          the popover never traps focus, so leave it unset and reach for
-          <code class="text-text-primary">Dialog</code> when a flow is genuinely modal.
-        </p>
-      </div>
-      <div class="py-4">
-        <h4 class="text-text-primary mb-1.5 text-sm font-semibold">Keyboard</h4>
-        <p class="text-text-secondary text-sm leading-relaxed">
-          <kbd
-            class="bg-surface-base border-border-subtle rounded border px-1.5 py-0.5 text-xs font-medium"
-            >Enter</kbd
-          >
-          /
-          <kbd
-            class="bg-surface-base border-border-subtle rounded border px-1.5 py-0.5 text-xs font-medium"
-            >Space</kbd
-          >
-          toggle the popover when the trigger is focused.
-          <kbd
-            class="bg-surface-base border-border-subtle rounded border px-1.5 py-0.5 text-xs font-medium"
-            >Escape</kbd
-          >
-          closes the popover and returns focus to the trigger.
-          <kbd
-            class="bg-surface-base border-border-subtle rounded border px-1.5 py-0.5 text-xs font-medium"
-            >Tab</kbd
-          >
-          moves through focusable content inside the popover.
-        </p>
-      </div>
-      <div class="py-4">
-        <h4 class="text-text-primary mb-1.5 text-sm font-semibold">Click Outside</h4>
-        <p class="text-text-secondary text-sm leading-relaxed">
-          Clicking outside the popover or its trigger closes it automatically. Set
-          <code class="text-text-primary">closeOnClickOutside</code> to
-          <code class="text-text-primary">false</code> to pin the popover open until you toggle
-          <code class="text-text-primary">open</code> yourself; the
-          <code class="text-text-primary">onClickOutside</code> callback fires after an outside click
-          has dismissed it.
-        </p>
-      </div>
-      <div class="py-4">
-        <h4 class="text-text-primary mb-1.5 text-sm font-semibold">Focus Management</h4>
-        <p class="text-text-secondary text-sm leading-relaxed">
-          The popover never traps focus — it is a non-modal surface, and Tab moves on past its
-          content. Closing with Escape returns focus to the trigger. For forms or critical actions
-          that must hold focus until dismissed, use
-          <code class="text-text-primary">Dialog</code> or
-          <code class="text-text-primary">ConfirmDialog</code> instead.
-        </p>
-      </div>
-      <div class="pt-4">
-        <h4 class="text-text-primary mb-1.5 text-sm font-semibold">Motion &amp; Reduced Motion</h4>
-        <p class="text-text-secondary text-sm leading-relaxed">
-          The panel fades and scales in over the
-          <code class="text-text-primary">--blocks-popover-duration</code> /
-          <code class="text-text-primary">--blocks-popover-easing</code> tokens (150 ms by default,
-          CSS-native via <code class="text-text-primary">@starting-style</code> and discrete
-          transitions — Menu inherits it). Override per instance with
-          <code class="text-text-primary">transitionDuration</code> /
-          <code class="text-text-primary">transitionEasing</code>; under
-          <code class="text-text-primary">prefers-reduced-motion</code> both collapse to
-          near-instant automatically. With <code class="text-text-primary">unstyled</code>, rebuild
-          motion on the panel's <code class="text-text-primary">data-state</code> attribute.
-        </p>
-      </div>
-    </div>
-  </div>
+  <NoteList>
+    <Note title="ARIA Attributes">
+      <p>
+        The trigger wrapper sets
+        <code class="text-text-primary">aria-haspopup="dialog"</code> and
+        <code class="text-text-primary">aria-expanded</code> reflecting the current open state. The
+        floating panel receives
+        <code class="text-text-primary">role="dialog"</code> by default.
+        <code class="text-text-primary">aria-modal</code> is passed through as an attribute only —
+        the popover never traps focus, so leave it unset and reach for
+        <code class="text-text-primary">Dialog</code> when a flow is genuinely modal.
+      </p>
+    </Note>
+    <Note title="Keyboard">
+      <p>
+        <kbd
+          class="bg-surface-base border-border-subtle rounded border px-1.5 py-0.5 text-xs font-medium"
+          >Enter</kbd
+        >
+        /
+        <kbd
+          class="bg-surface-base border-border-subtle rounded border px-1.5 py-0.5 text-xs font-medium"
+          >Space</kbd
+        >
+        toggle the popover when the trigger is focused.
+        <kbd
+          class="bg-surface-base border-border-subtle rounded border px-1.5 py-0.5 text-xs font-medium"
+          >Escape</kbd
+        >
+        closes the popover and returns focus to the trigger.
+        <kbd
+          class="bg-surface-base border-border-subtle rounded border px-1.5 py-0.5 text-xs font-medium"
+          >Tab</kbd
+        >
+        moves through focusable content inside the popover.
+      </p>
+    </Note>
+    <Note title="Click Outside">
+      <p>
+        Clicking outside the popover or its trigger closes it automatically. Set
+        <code class="text-text-primary">closeOnClickOutside</code> to
+        <code class="text-text-primary">false</code> to pin the popover open until you toggle
+        <code class="text-text-primary">open</code> yourself; the
+        <code class="text-text-primary">onClickOutside</code> callback fires after an outside click has
+        dismissed it.
+      </p>
+    </Note>
+    <Note title="Focus Management">
+      <p>
+        The popover never traps focus — it is a non-modal surface, and Tab moves on past its
+        content. Closing with Escape returns focus to the trigger. For forms or critical actions
+        that must hold focus until dismissed, use
+        <code class="text-text-primary">Dialog</code> or
+        <code class="text-text-primary">ConfirmDialog</code> instead.
+      </p>
+    </Note>
+    <Note title="Motion &amp; Reduced Motion">
+      <p>
+        The panel fades and scales in over the
+        <code class="text-text-primary">--blocks-popover-duration</code> /
+        <code class="text-text-primary">--blocks-popover-easing</code> tokens (150 ms by default,
+        CSS-native via <code class="text-text-primary">@starting-style</code> and discrete
+        transitions — Menu inherits it). Override per instance with
+        <code class="text-text-primary">transitionDuration</code> /
+        <code class="text-text-primary">transitionEasing</code>; under
+        <code class="text-text-primary">prefers-reduced-motion</code> both collapse to near-instant
+        automatically. With <code class="text-text-primary">unstyled</code>, rebuild motion on the
+        panel's <code class="text-text-primary">data-state</code> attribute.
+      </p>
+    </Note>
+  </NoteList>
 </Section>

@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { CodeExample, Section } from '@urbicon-ui/docs';
+  import { CodeExample, Note, NoteList, Section } from '@urbicon-ui/docs';
   import { Skeleton, Card } from '@urbicon-ui/blocks';
   import { resolve } from '$app/paths';
 </script>
@@ -146,36 +146,31 @@
 <!-- ─── Accessibility ─── -->
 
 <Section marker="03" id="accessibility" title="Accessibility">
-  <div class="border-border-subtle bg-surface-elevated rounded-2xl border p-6">
-    <div class="divide-border-subtle divide-y">
-      <div class="pb-4">
-        <h4 class="text-text-primary mb-1.5 text-sm font-semibold">Screen Reader</h4>
-        <p class="text-text-secondary text-sm leading-relaxed">
-          Uses <code class="text-text-primary">role="status"</code> with
-          <code class="text-text-primary">aria-label="Loading"</code>. A visually hidden "Loading…"
-          text ensures screen readers announce the placeholder's purpose. When
-          <code class="text-text-primary">count &gt; 1</code>, individual items are marked
-          <code class="text-text-primary">aria-hidden="true"</code> so only the wrapper is announced.
-        </p>
-      </div>
-      <div class="py-4">
-        <h4 class="text-text-primary mb-1.5 text-sm font-semibold">Reduced Motion</h4>
-        <p class="text-text-secondary text-sm leading-relaxed">
-          Both <code class="text-text-primary">pulse</code> and
-          <code class="text-text-primary">wave</code> animations respect
-          <code class="text-text-primary">prefers-reduced-motion: reduce</code> via Tailwind's
-          <code class="text-text-primary">motion-reduce:</code> variant. The skeleton still renders as
-          a static colored block to indicate loading.
-        </p>
-      </div>
-      <div class="pt-4">
-        <h4 class="text-text-primary mb-1.5 text-sm font-semibold">Semantic Role</h4>
-        <p class="text-text-secondary text-sm leading-relaxed">
-          The <code class="text-text-primary">role="status"</code> attribute identifies the skeleton as
-          a live region, allowing assistive technology to announce when loading completes and content
-          replaces the placeholder.
-        </p>
-      </div>
-    </div>
-  </div>
+  <NoteList>
+    <Note title="Screen Reader">
+      <p>
+        Uses <code class="text-text-primary">role="status"</code> with
+        <code class="text-text-primary">aria-label="Loading"</code>. A visually hidden "Loading…"
+        text ensures screen readers announce the placeholder's purpose. When
+        <code class="text-text-primary">count &gt; 1</code>, individual items are marked
+        <code class="text-text-primary">aria-hidden="true"</code> so only the wrapper is announced.
+      </p>
+    </Note>
+    <Note title="Reduced Motion">
+      <p>
+        Both <code class="text-text-primary">pulse</code> and
+        <code class="text-text-primary">wave</code> animations respect
+        <code class="text-text-primary">prefers-reduced-motion: reduce</code> via Tailwind's
+        <code class="text-text-primary">motion-reduce:</code> variant. The skeleton still renders as a
+        static colored block to indicate loading.
+      </p>
+    </Note>
+    <Note title="Semantic Role">
+      <p>
+        The <code class="text-text-primary">role="status"</code> attribute identifies the skeleton as
+        a live region, allowing assistive technology to announce when loading completes and content replaces
+        the placeholder.
+      </p>
+    </Note>
+  </NoteList>
 </Section>

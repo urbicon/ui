@@ -5,6 +5,8 @@
     CodePanel,
     DocsLayout as DocsPageLayout,
     InfoCard,
+    Note,
+    NoteList,
     PlaygroundConfigurator,
     Section
   } from '@urbicon-ui/docs';
@@ -123,34 +125,29 @@
   </Section>
 
   <Section marker="04" id="accessibility" title="Accessibility">
-    <div class="border-border-subtle bg-surface-elevated rounded-2xl border p-6">
-      <div class="divide-border-subtle divide-y">
-        <div class="pb-4">
-          <h4 class="text-text-primary mb-1.5 text-sm font-semibold">Built-in ARIA</h4>
-          <p class="text-text-secondary text-sm leading-relaxed">
-            The code region is a <code>role="textbox"</code> with <code>aria-readonly</code> and a
-            name composed from <code>label</code>, so a screen reader announces which example it is
-            reading. The toggle carries <code>aria-expanded</code>; the copy button announces its
-            result through a polite status region rather than only changing its icon.
-          </p>
-        </div>
-        <div class="py-4">
-          <h4 class="text-text-primary mb-1.5 text-sm font-semibold">Keyboard</h4>
-          <p class="text-text-secondary text-sm leading-relaxed">
-            The code region is focusable (<code>tabindex="0"</code>) so it can be scrolled without a
-            pointer. Toggle and copy are ordinary buttons in the tab order, both with a visible
-            focus ring.
-          </p>
-        </div>
-        <div class="pt-4">
-          <h4 class="text-text-primary mb-1.5 text-sm font-semibold">While highlighting loads</h4>
-          <p class="text-text-secondary text-sm leading-relaxed">
-            Shiki is loaded lazily. The placeholder is an <code>aria-live="polite"</code> region, so the
-            swap to highlighted code is announced instead of happening silently.
-          </p>
-        </div>
-      </div>
-    </div>
+    <NoteList>
+      <Note title="Built-in ARIA">
+        <p>
+          The code region is a <code>role="textbox"</code> with <code>aria-readonly</code> and a
+          name composed from <code>label</code>, so a screen reader announces which example it is
+          reading. The toggle carries <code>aria-expanded</code>; the copy button announces its
+          result through a polite status region rather than only changing its icon.
+        </p>
+      </Note>
+      <Note title="Keyboard">
+        <p>
+          The code region is focusable (<code>tabindex="0"</code>) so it can be scrolled without a
+          pointer. Toggle and copy are ordinary buttons in the tab order, both with a visible focus
+          ring.
+        </p>
+      </Note>
+      <Note title="While highlighting loads">
+        <p>
+          Shiki is loaded lazily. The placeholder is an <code>aria-live="polite"</code> region, so the
+          swap to highlighted code is announced instead of happening silently.
+        </p>
+      </Note>
+    </NoteList>
   </Section>
 
   <Section

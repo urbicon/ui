@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { CodeExample, Section } from '@urbicon-ui/docs';
+  import { CodeExample, Note, NoteList, Section } from '@urbicon-ui/docs';
   import { AreaChart, type CartesianDatum, type ChartSeries } from '@urbicon-ui/blocks';
 
   const single: CartesianDatum[] = [
@@ -84,22 +84,21 @@
 
 <!-- ─── Accessibility ─── -->
 <Section marker="03" id="accessibility" title="Accessibility">
-  <div class="border-border-subtle bg-surface-elevated rounded-2xl border p-6">
-    <div class="divide-border-subtle divide-y">
-      <div class="pb-4">
-        <h4 class="text-text-primary mb-1.5 text-sm font-semibold">SVG with role="img"</h4>
-        <p class="text-text-secondary text-sm leading-relaxed">
-          The SVG carries <code class="text-text-primary">role="img"</code> with a generated
-          <code class="text-text-primary">aria-label</code> that also notes when the chart is stacked.
-        </p>
-      </div>
-      <div class="pt-4">
-        <h4 class="text-text-primary mb-1.5 text-sm font-semibold">Data-table fallback</h4>
-        <p class="text-text-secondary text-sm leading-relaxed">
-          A visually hidden table mirrors every value per series so the filled regions are never the
-          only way to read the data.
-        </p>
-      </div>
-    </div>
-  </div>
+  <NoteList>
+    <Note>
+      {#snippet titleSnippet()}
+        SVG with role="img"
+      {/snippet}
+      <p>
+        The SVG carries <code class="text-text-primary">role="img"</code> with a generated
+        <code class="text-text-primary">aria-label</code> that also notes when the chart is stacked.
+      </p>
+    </Note>
+    <Note title="Data-table fallback">
+      <p>
+        A visually hidden table mirrors every value per series so the filled regions are never the
+        only way to read the data.
+      </p>
+    </Note>
+  </NoteList>
 </Section>
