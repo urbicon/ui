@@ -9,7 +9,9 @@ Model Context Protocol server for the Urbicon UI design system. Gives LLMs first
 > bundle (`@urbicon-ui/design-content`), kept for the launch decision of hosting a public
 > endpoint (evaluation/reach: "point your agent at Urbicon without installing anything").
 > It is deliberately absent from the public docs until that endpoint exists, and a local
-> install is **not** a supported consumer path (see docs/internal/DESIGN-MCP-V2.md §11).
+> install is **not** a supported consumer path: manifest read/write is a working-directory
+> concern and lives in the CLI, so a locally installed copy of this stateless server would
+> offer strictly less than the dev-dependency it duplicates.
 
 **Transports:** stdio (default, for in-repo development) and streamable HTTP (the intended remote deployment).
 

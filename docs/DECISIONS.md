@@ -77,6 +77,33 @@ If a future change genuinely needs full `twMerge` semantics, extend `variants.ts
 re-introduce `tailwind-variants`. See
 [ARCHITECTURE.md § The tv() variant engine](ARCHITECTURE.md#the-tv-variant-engine).
 
+## A theme is a token file, or it is not a theme
+
+A theme rebinds custom properties in the three token layers (foundation → semantic →
+interaction) and reaches the docs chrome through the declared `data-docs-*` hooks. If a look
+needs component code, a new variant, or an `if (theme === …)` branch, it is not a theme and
+does not ship as one.
+
+This is why there is no `glass` or `filled` Card variant — both existed and were removed in v5.
+Aesthetics that cannot be expressed as tokens stay reachable through `unstyled` /
+`slotClasses`, which makes them the consumer's call rather than a maintained surface.
+
+Two consequences, because both look like gaps from the outside:
+
+- **Structural aesthetics need a generic token, never a theme-specific branch.** A resting glow
+  or a backdrop blur would take one bounded token set that primitives opt into generically.
+  Exactly one component hardcodes a blur today (`CompositionBar.svelte`) — the known exception,
+  not the pattern.
+- **Brand themes are unbounded; full aesthetic identities are not.** Palette, accent hue, radius
+  and density cost one file each under `style/themes/`, so there can be any number. A complete
+  visual identity is a larger one-time token investment, and those stay a small curated set —
+  never an open "any aesthetic" engine.
+
+The proof that the boundary holds is in the repo: the Color Rooms skin
+(`apps/docs/src/lib/style/rooms*.css`) carries a complete identity — own paper, ink, intent
+ramps, typography, first-class light and dark via `light-dark()` — as a scoped token override
+with no parallel component tree.
+
 ## The MCP server is built, green, and not hosted
 
 `packages/mcp-server` is a thin remote adapter over the same engine and content the
@@ -87,15 +114,32 @@ than an engineering one.
 It stays in the repo and stays green. No local-install path is documented anywhere, and
 manifest read/write lives in the CLI, never on the stateless server.
 
-## Publishing does not happen in `release.yml`
+## The publishing job holds a credential and nothing else
 
-The tag pushed by `bun run bump` triggers `.github/workflows/release.yml`, but that workflow
-is a **gate**, not a publisher: it runs lint, typecheck, unit tests and e2e on the tagged
-commit. The effective npm publisher is the deploy host, triggered by the same tag.
+The tag pushed by `bun run bump` triggers `.github/workflows/release.yml`, and that workflow
+both gates and publishes. It is split into two jobs, which looks like ceremony and is not:
 
-The publish steps remain in the workflow file, dormant behind
-`if: env.NPM_REGISTRY_URL != ''`, as the ready-made path back. Leaving the two secrets unset
-is what keeps them dormant — setting them would give the same tag two publishers.
+- **`gate`** runs lint, typecheck, unit tests and e2e, and packs the tarballs. It installs the
+  workspace — so every third-party `postinstall` script runs here — and it holds no publishing
+  credential of any kind.
+- **`publish`** takes the packed tarballs as an artifact. It does not check out the repo and
+  never runs `bun install`, so no dependency code shares a process with the credential.
 
-See [VERSIONING.md](VERSIONING.md) and the corresponding entry in
-[technical-debt.md](technical-debt.md).
+Before the split, a single job carried `NPM_TOKEN` in its job-level `env`, which put it in
+scope for `bun install` and every transitive `postinstall`.
+
+Authentication is npm **trusted publishing** (OIDC), so there is no long-lived token: the job
+mints a short-lived credential bound to this repository *and* this workflow file, useless
+anywhere else. It needs `id-token: write`, npm ≥ 11.5.1, Node ≥ 22.14, and a trusted publisher
+configured per package on npmjs.com. Provenance attestations are automatic — the
+`--provenance` flag is not needed. The surviving `NPM_TOKEN` fallback is dead weight kept as
+an escape hatch, scoped to the publish job's single step.
+
+**This reverses the earlier arrangement.** Until 2026-08-01 the effective publisher was the
+deploy host and both this file and `VERSIONING.md` said so. Since v6.48.1 all thirteen packages
+go out from here over OIDC. Publishing is gated on the repository variable
+`NPM_TRUSTED_PUBLISHING=true`; clearing it turns the job back into a rehearsal, which is the
+way back if it is ever needed.
+
+The docs site is a separate path — `.github/workflows/deploy.yml`, triggered by a green
+pipeline rather than by the tag itself. See [VERSIONING.md](VERSIONING.md).
