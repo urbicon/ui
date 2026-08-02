@@ -853,8 +853,24 @@ const missingNamespaces = NAMESPACE_CANARIES.filter(
 // unreported. Prefixed classes are a third of what this guard reads and the
 // case its own docs advertise catching, so their arrival is asserted too.
 const prefixedArrived = candidateSplits.some(({ prefixes }) => prefixes.length > 0);
-if (missingNamespaces.length > 0 || !prefixedArrived) {
-  const missing = [...missingNamespaces, ...(prefixedArrived ? [] : ['variant-prefixed'])];
+
+// And that every GLOB root is represented. The namespace canaries all pass
+// on blocks alone, so dropping the table or docs configs from the candidate
+// set is invisible to them — measured: losing table's 97 classes hid the
+// `from-surface-2` finding this PR is built on, with all five canaries green.
+// The blocks-only version of that failure is caught today only because the
+// stale-HAND_WRITTEN_CSS check happens to have entries in `packages/docs`,
+// which is coverage by accident. One assertion covers both by design.
+const candidateOrigins = [...emitCandidates.values()].flat();
+const rootsMissing = [...new Set(GLOBS.map((g) => g.split('/src/')[0]))].filter(
+  (root) => !candidateOrigins.some((where) => where.startsWith(root))
+);
+if (missingNamespaces.length > 0 || !prefixedArrived || rootsMissing.length > 0) {
+  const missing = [
+    ...missingNamespaces,
+    ...(prefixedArrived ? [] : ['variant-prefixed']),
+    ...rootsMissing.map((r) => `${r}/*`)
+  ];
   console.error(
     `✖ variants-lint: no ${missing.join(' / ')} class reached the emitted-CSS guard — the collection walk is not seeing the configs it claims to check.`
   );
