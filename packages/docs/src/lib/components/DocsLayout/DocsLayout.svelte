@@ -290,6 +290,11 @@
   {/if}
 
   <div class={slot('wrapper')}>
+    <!-- Deliberately a <div>, not <main>: the host app supplies the main
+         landmark. The docs site wraps every page in blocks' SidebarLayout,
+         which renders `<main id="main-content">` — a <main> here would be a
+         second one on every page, which is worse than none. A consumer using
+         DocsLayout without such a shell owns the landmark. -->
     <div class={slot('main')}>
       <div class={slot('content')}>
         {#if !useCollapsingHeader && showToolbar}

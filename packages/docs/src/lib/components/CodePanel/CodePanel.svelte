@@ -192,16 +192,6 @@
     background-color: transparent !important;
   }
 
-  :global(.shiki pre) {
-    padding: 1rem;
-    overflow-x: auto;
-    margin: 0;
-    background-color: transparent !important;
-    font-size: 0.875rem;
-    font-family:
-      ui-monospace, SFMono-Regular, 'SF Mono', Consolas, 'Liberation Mono', Menlo, monospace;
-  }
-
   /*
    * Dark syntax colours.
    *
@@ -242,20 +232,18 @@
     }
   }
 
-  :global(.shiki pre::-webkit-scrollbar) {
-    height: 8px;
-  }
-
-  :global(.shiki pre::-webkit-scrollbar-track) {
-    background: var(--color-surface-interactive);
-  }
-
-  :global(.shiki pre::-webkit-scrollbar-thumb) {
-    background: var(--color-border-default);
-    border-radius: var(--radius-sm);
-  }
-
-  :global(.shiki pre::-webkit-scrollbar-thumb:hover) {
-    background: var(--color-border-emphasis);
-  }
+  /*
+   * Removed here: a `:global(.shiki pre)` rule (padding/overflow/font) and four
+   * `:global(.shiki pre::-webkit-scrollbar*)` rules. Both selectors target a
+   * `<pre>` INSIDE `.shiki`, and Shiki 4 emits `<pre class="shiki">` itself —
+   * verified in the browser: `document.querySelector('.shiki').tagName` is
+   * `PRE` and it contains zero `<pre>` descendants. So none of them ever
+   * matched, and what actually styles the block is `pre.shiki { @apply p-2 }`
+   * in the package stylesheet.
+   *
+   * They are deleted rather than re-pointed at `.shiki`: re-pointing would
+   * newly apply `padding: 1rem` over today's `p-2` and change every code block
+   * on the site. The scrollbar rules are moot anyway — `pre.shiki` sets
+   * `white-space: pre-wrap`, so the block never scrolls horizontally.
+   */
 </style>

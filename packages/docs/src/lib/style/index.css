@@ -10,26 +10,30 @@
 /* Foundation Layer - Base design tokens from blocks package */
 @import '@urbicon-ui/blocks/style/index.css';
 
-@source '../variants';
+/*
+ * The class strings live in the component folders (`components/x/x.variants.ts`),
+ * not in `../variants` — that folder only re-exports. Pointing `@source` at it
+ * scanned nothing, and the docs app only rendered correctly because its own
+ * app.css adds `@source '../../../packages/docs/src/lib'` on top.
+ */
+@source '../components';
 
 pre.shiki {
   white-space: pre-wrap;
-  /* max-width: 100%; */
-  /* overflow-x: scroll; */
   @apply p-2;
 }
 
-.shiki code {
-  counter-reset: step;
-  counter-increment: step 0;
-}
-
-.shiki code .line::before {
-  content: counter(step);
-  counter-increment: step;
-  width: 1rem;
-  margin-right: 1.5rem;
-  display: inline-block;
-  text-align: right;
-  color: var(--color-text-quaternary);
-}
+/*
+ * Line numbers are NOT set here.
+ *
+ * They used to be, unconditionally, for every `.shiki code .line` on the page —
+ * while CodePanel numbers the same lines a second time under `.has-line-numbers`.
+ * Two rules, two counters (`step` here, `code-line` there), same elements. The
+ * effect was that `lineNumbers={false}` / the `'auto'` threshold could not turn
+ * numbering off at all: dropping the class only handed the job back to this
+ * global rule. Measured on /blocks/primitives/button: 11 code blocks, 3 of them
+ * deliberately without `.has-line-numbers` (1–3 lines each) — all three still
+ * rendered numbers, via `counter(step)`.
+ *
+ * CodePanel owns the gutter now; see its scoped `<style>` block.
+ */

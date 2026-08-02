@@ -14,7 +14,11 @@ export const tableOfContentsVariants = tv({
     // rendered via ::before on the active link: the rooms block-cursor
     // signature (favicon, sidebar wordmark), not the editorial pipe.
     nav: ['flex flex-col'],
-    link: ['relative py-1.5 pl-4 text-sm', 'transition-colors duration-(--blocks-duration-fast)'],
+    link: [
+      'relative py-1.5 pl-4 text-sm',
+      'transition-colors duration-(--blocks-duration-fast)',
+      'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 focus-visible:rounded-modify'
+    ],
     // The square sits at left-1 (4 px from the element edge) so it reads
     // as part of the indent column rather than glued to the container;
     // top-1/2 + -translate centers it against the link's line-height.
@@ -26,7 +30,8 @@ export const tableOfContentsVariants = tv({
     linkInactive: ['text-text-tertiary hover:text-text-secondary'],
     childLink: [
       'relative py-1 pl-8 text-xs',
-      'transition-colors duration-(--blocks-duration-fast)'
+      'transition-colors duration-(--blocks-duration-fast)',
+      'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 focus-visible:rounded-modify'
     ],
     // Child square sits at left-5 (20 px), one step smaller to match the
     // xs child text, indenting under the parent marker.
@@ -47,7 +52,8 @@ export const tableOfContentsVariants = tv({
       'py-1.5 text-sm text-text-tertiary',
       'underline underline-offset-4 decoration-text-quaternary',
       'transition-colors duration-(--blocks-duration-fast)',
-      'hover:text-text-secondary hover:decoration-current'
+      'hover:text-text-secondary hover:decoration-current',
+      'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 focus-visible:rounded-modify'
     ],
     // `CODE` kicker — hosts the global show/hide-all-code toggle. Same
     // kicker spacing as RELATED; the toggle itself is a muted text-link
@@ -57,8 +63,11 @@ export const tableOfContentsVariants = tv({
       'group relative flex items-center gap-2 py-1.5 text-sm text-text-tertiary',
       'transition-colors duration-(--blocks-duration-fast)',
       'hover:text-text-primary',
-      'focus-visible:outline-none focus-visible:text-text-primary',
-      'cursor-pointer w-full text-left'
+      // The colour shift alone was the whole focus affordance here, with the
+      // native outline removed on top of it — a keyboard user had a tint to
+      // find the control by. It carries the same ring as every other link now.
+      'cursor-pointer w-full text-left',
+      'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 focus-visible:rounded-modify'
     ],
     // Underline lives on the label span — text-decoration does not
     // propagate into flex items, so the flex button itself can't carry it.

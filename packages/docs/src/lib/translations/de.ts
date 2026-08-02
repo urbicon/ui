@@ -1,5 +1,6 @@
 export default {
   // TableOfContents
+  tocLandmarkLabel: 'Seiteninhalt',
   tocOnThisPage: 'Auf dieser Seite',
   tocRelated: 'Siehe auch',
   tocCode: 'Code',

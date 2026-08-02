@@ -90,7 +90,9 @@
   }
 </script>
 
-<aside class={[slot('aside'), className]}>
+<!-- Named landmark: a docs page carries several <aside>s (every InfoCard is
+     one), and ARIA needs same-type landmarks to be tellable apart. -->
+<aside class={[slot('aside'), className]} aria-label={dt('tocLandmarkLabel')}>
   <p class={slot('title')}>
     <!-- `meta-marker` renders a mono kicker (Color Rooms drops the editorial
          `//` prefix) — only styled when the host page sets `.docs-rooms`. The
@@ -98,7 +100,7 @@
          is of unknown language, so it stays untagged (inherits the page lang). -->
     <span class="meta-marker" lang={title == null ? tocLocale : undefined}>{tocTitle}</span>
   </p>
-  <nav class={slot('nav')}>
+  <nav class={slot('nav')} aria-label={tocTitle}>
     {#each navigationItems as item (item.id)}
       {@const isActive = active === item.id}
       {@const showChildren = shouldShowChildren(item)}
@@ -141,7 +143,7 @@
     <p class={slot('relatedTitle')}>
       <span class="meta-marker" lang={tocLocale}>{dt('tocRelated')}</span>
     </p>
-    <nav class={slot('relatedNav')}>
+    <nav class={slot('relatedNav')} aria-label={dt('tocRelated')}>
       {#each related as link (link.href)}
         <!-- hrefs are pre-resolved by the consumer -->
         <a href={link.href} class={slot('relatedLink')}>

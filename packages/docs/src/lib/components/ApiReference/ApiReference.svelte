@@ -199,7 +199,8 @@
         {:else if column.id === 'type'}
           {#if item.values?.length}
             <div class={slot('typeChips')}>
-              {#each item.values as val (val)}
+              <!-- Keyed on value+index: a literal union may legitimately repeat a value. -->
+              {#each item.values as val, i (`${val}-${i}`)}
                 <span class={slot('typeChip')}>{val}</span>
               {/each}
             </div>

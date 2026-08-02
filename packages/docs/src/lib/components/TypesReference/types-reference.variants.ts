@@ -20,7 +20,11 @@ export const typesReferenceVariants = tv({
       'inline-flex items-center rounded-modify font-medium'
     ],
     usedBySection: ['text-text-secondary mt-2'],
-    usedByLink: ['text-primary hover:text-primary-emphasis', 'hover:underline transition-colors'],
+    usedByLink: [
+      'text-primary hover:text-primary-emphasis',
+      'hover:underline transition-colors',
+      'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 focus-visible:rounded-modify'
+    ],
     // `@see` on the type declaration. Same two roles as in ApiReference: a
     // navigable target becomes a real link, a bare sibling-type name stays a
     // quiet footnote chip — a link there would have nowhere to point.
@@ -29,7 +33,10 @@ export const typesReferenceVariants = tv({
       'inline-flex items-center rounded-modify',
       'bg-surface-quiet px-1.5 py-0.5 font-mono leading-none text-text-secondary'
     ],
-    seeAlsoLink: ['text-primary underline decoration-primary/40 hover:decoration-primary'],
+    seeAlsoLink: [
+      'text-primary underline decoration-primary/40 hover:decoration-primary',
+      'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 focus-visible:rounded-modify'
+    ],
     highlightRing: ['ring-2 ring-primary/50']
   },
   variants: {

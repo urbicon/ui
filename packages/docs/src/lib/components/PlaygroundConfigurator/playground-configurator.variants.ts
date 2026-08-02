@@ -67,7 +67,8 @@ export const playgroundConfiguratorVariants = tv({
     controlControlCompact: ['pl-3'],
     modifiedDot: [
       'bg-primary h-1.5 w-1.5 shrink-0 rounded-commit',
-      'opacity-60 transition-opacity hover:opacity-100'
+      'opacity-60 transition-opacity hover:opacity-100',
+      'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 focus-visible:rounded-modify'
     ],
     variantBadge: [
       'border-current ml-auto inline-flex items-center justify-center rounded-modify border',

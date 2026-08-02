@@ -42,13 +42,15 @@ export const docsLayoutVariants = tv({
       'border border-border-subtle px-4 py-2.5',
       'text-sm text-text-secondary',
       'transition-colors duration-(--blocks-duration-fast)',
-      'hover:border-border-default'
+      'hover:border-border-default',
+      'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 focus-visible:rounded-modify'
     ],
     mobileTocNav: ['mt-2 flex flex-col rounded-contain border border-border-subtle py-2'],
     mobileTocLink: [
       'px-4 py-1.5 text-sm text-text-tertiary',
       'transition-colors duration-(--blocks-duration-fast)',
-      'hover:text-text-primary'
+      'hover:text-text-primary',
+      'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 focus-visible:rounded-modify'
     ]
   },
   variants: {

@@ -123,7 +123,8 @@
 
                 {#if values.length > 0}
                   <div class={slot('literalValues')}>
-                    {#each values.slice(0, 12) as val (val)}
+                    <!-- Keyed on value+index: a literal union may legitimately repeat a value. -->
+                    {#each values.slice(0, 12) as val, i (`${val}-${i}`)}
                       <span class={slot('literalBadge')}>{val}</span>
                     {/each}
                     {#if values.length > 12}
