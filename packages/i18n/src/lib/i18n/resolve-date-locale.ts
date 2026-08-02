@@ -42,6 +42,13 @@ export function resolveDateLocale(prop: string | undefined, contextLocale: strin
   if (prop !== undefined && prop !== 'auto') return prop;
   if (isLocaleSupported(contextLocale)) return contextLocale;
 
+  // First `import.meta.env` in this package, so the `@sveltejs/package` build
+  // advisory ("Avoid usage of `import.meta.env`") now fires here too. Same
+  // deliberate trade as in `blocks`: optional-chained so a non-Vite consumer
+  // gets `undefined` rather than a throw, and `esm-env` is not an option
+  // because it would be a runtime dependency in the published dist. The
+  // advisory is a plain string match, so `?.` does not quiet it. See the
+  // zero-dependency note in AGENTS.md — do not "fix" it by adding a dep.
   if (import.meta.env?.DEV) {
     console.warn(
       `[i18n] <I18nProvider locale="${contextLocale}"> is not a supported locale, so date and ` +

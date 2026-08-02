@@ -4,8 +4,14 @@
     Checkbox,
     ChevronDownIcon as ChevronDownIconDefault
   } from '@urbicon-ui/blocks';
+  import { resolveDateLocale, useI18n } from '@urbicon-ui/i18n';
   import { getTableContext } from '$lib/stores/TableStore.svelte.js';
   import { useTableI18n } from '$lib/i18n';
+
+  // See TableCell: the default `Date` branch must not reach `Intl` with
+  // `undefined`, which follows the runtime and diverges across SSR.
+  const i18n = useI18n();
+  const cellLocale = $derived(resolveDateLocale('auto', i18n.locale));
 
   const ChevronDownIcon = resolveIcon('chevronDown', ChevronDownIconDefault);
   import { formatCellValue, resolveColumnId, resolveColumnValue } from '../utils';
@@ -151,7 +157,7 @@
     {@const CellComponent = column.component}
     <CellComponent {...getComponentProps(column, item)} />
   {:else if cellValue !== undefined}
-    {formatCellValue(item, column)}
+    {formatCellValue(item, column, cellLocale)}
   {/if}
 {/snippet}
 

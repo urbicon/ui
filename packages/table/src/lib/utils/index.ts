@@ -123,8 +123,21 @@ export function resolveValueById<T extends TableItem>(
  * Formats a cell value based on the column definition. The displayed value
  * starts from the accessor's output — `formatter` then has a chance to
  * transform it into a presentation string.
+ *
+ * `locale` is a BCP 47 tag the caller has already resolved (see
+ * `resolveDateLocale` in `@urbicon-ui/i18n`). It is required for the `Date`
+ * branch and has no other use: passing `undefined` there hands `Intl` the
+ * *runtime* locale, which is the Node/Bun process on the server and the user's
+ * browser after hydration, so the same cell renders `3/12/2026` in the
+ * prerendered HTML and `12.03.2026` in the client tree. This is the DEFAULT
+ * path for a plain `Date` column — `DateCell` is opt-in — so it mattered more
+ * than the cells, not less.
  */
-export function formatCellValue<T extends TableItem>(item: T, column: Column<T>): string {
+export function formatCellValue<T extends TableItem>(
+  item: T,
+  column: Column<T>,
+  locale: string
+): string {
   const value = resolveColumnValue(column, item);
 
   // Use custom formatter when available
@@ -146,7 +159,7 @@ export function formatCellValue<T extends TableItem>(item: T, column: Column<T>)
 
   if (value instanceof Date) {
     if (Number.isNaN(value.getTime())) return 'Invalid Date';
-    return value.toLocaleDateString();
+    return value.toLocaleDateString(locale);
   }
 
   return String(value);
