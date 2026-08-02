@@ -1003,6 +1003,9 @@
         <a href={asset('/llms.txt')}>llms.txt</a>
         <a href={asset('/llms-full.txt')}>llms-full.txt</a>
         <a href={REPO_URL} target="_blank" rel="noopener">GitHub</a>
+        <!-- Wer hinter der Bibliothek steht: die Tür zurück zur Firmenseite.
+             Extern wie GitHub, darum dieselbe Behandlung. -->
+        <a href="https://urbicon.de" target="_blank" rel="noopener">Urbicon</a>
         <a href="/imprint">Imprint</a>
         <a href="/privacy">Privacy</a>
       </nav>

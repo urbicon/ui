@@ -83,6 +83,10 @@ describe('resolveDateLocale', () => {
       resolveDateLocale(undefined, 'klingon');
       expect(warn).toHaveBeenCalledTimes(1);
       const message = String(warn.mock.calls[0]?.[0]);
+      // The prefix names the package the warning comes from — it moved here
+      // from `blocks` on 2026-08-02, and a message still claiming `[blocks]`
+      // would send a reader hunting in the wrong package.
+      expect(message).toMatch(/^\[i18n\]/);
       expect(message).toContain('klingon');
       // The remedy has to be in the message: a consumer wanting a locale the
       // library does not translate into should pass it as a prop, not fight the

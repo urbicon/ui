@@ -1,6 +1,7 @@
 <script lang="ts">
   import { untrack, type Snippet } from 'svelte';
-  import { attachTableContext, createTableState, findColumnById } from '$lib';
+  import { resolveDateLocale, useI18n } from '@urbicon-ui/i18n';
+  import { attachTableContext, attachCellLocale, createTableState, findColumnById } from '$lib';
   import { useTableI18n } from '$lib/i18n';
   import { ColumnValidation } from '$lib/factories/ColumnValidation';
   import type {
@@ -14,6 +15,11 @@
   import type { TableContext } from './table/index';
 
   const tt = useTableI18n();
+
+  // Resolved once per table and published on the context, not read per cell —
+  // see `attachCellLocale`. A getter, so a locale switch re-renders the cells.
+  const i18n = useI18n();
+  attachCellLocale(() => resolveDateLocale('auto', i18n.locale));
 
   export type TableProviderProps = {
     items: TableItem[];

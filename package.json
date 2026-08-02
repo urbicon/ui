@@ -19,6 +19,7 @@
       "@sveltejs/kit": "^2.70.2",
       "@sveltejs/package": "^2.5.8",
       "@sveltejs/vite-plugin-svelte": "^7.0.0",
+      "@tailwindcss/node": "^4.3.3",
       "@tailwindcss/vite": "^4.3.3",
       "@types/node": "^26.1.2",
       "estree-walker": "^3.0.3",

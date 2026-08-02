@@ -49,6 +49,7 @@ export const load = ({ request }) => ({ locale: resolveLocale(request) });`;
   useI18n,           // { locale, setLocale, availableLocales, isLoading, t, plural, exists, formatNumber, … }
   configureI18n,     // app-global error sink (onError)
   resolveLocale,     // server-side initial-locale resolution
+  resolveDateLocale, // 'explicit prop → provider → base locale' for an Intl tag
   T,                 // <T key params? fallback? package? />
   BASE_LOCALE,       // 'en'
   SUPPORTED_LOCALES,

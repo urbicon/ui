@@ -117,9 +117,21 @@ describe('textareaVariants', () => {
     expect(base).not.toMatch(/(?<![a-z-])focus:/);
   });
 
-  it('includes resize-vertical by default', () => {
-    const base = textareaVariants({}).base();
-    expect(base).toContain('resize-vertical');
+  it('names the resize axis with a utility Tailwind actually emits', () => {
+    // Was `toContain('resize-vertical')` — not a Tailwind utility, so it
+    // emitted no CSS and the assertion was checking that a string the
+    // compiler ignores is present in a string. It passed for as long as it
+    // existed.
+    //
+    // No rendering depended on it either way: preflight ships
+    // `textarea { resize: vertical }`, so both spellings measure
+    // `resize: vertical` in a browser. That is the honest scope of this fix —
+    // the config no longer claims something it does not do. Exact token match
+    // rather than `toContain`, because substring assertions are how the typo
+    // survived (#61).
+    const base = textareaVariants({}).base().split(/\s+/);
+    expect(base).toContain('resize-y');
+    expect(base).not.toContain('resize-vertical');
   });
 
   it('never outputs dark: overrides', () => {
