@@ -49,22 +49,29 @@ export const drawerVariants = tv({
     ]
   },
   variants: {
+    // Only the inner edge is rounded — the other three meet the viewport. The
+    // radius comes from the CONTAIN tier, exactly as Dialog's panel does: a Drawer
+    // is architecture in the same family, so a theme that retunes
+    // `--radius-contain` must move both. It rode a hardcoded `--radius-xl` (12px)
+    // until 2026-08-02, which meant a project setting `--radius-contain: 0` got a
+    // square Dialog next to a 12px Drawer with nothing documenting the exception.
+    // For a softer sheet, raise the tier (and the Dialog follows, which is the point).
     placement: {
       left: {
         dialog: 'justify-start',
-        panel: 'h-full max-w-[100dvw] rounded-r-xl border-l-0'
+        panel: 'h-full max-w-[100dvw] rounded-r-contain border-l-0'
       },
       right: {
         dialog: 'justify-end',
-        panel: 'h-full max-w-[100dvw] rounded-l-xl border-r-0'
+        panel: 'h-full max-w-[100dvw] rounded-l-contain border-r-0'
       },
       top: {
         dialog: 'items-start',
-        panel: 'w-full max-h-[100dvh] rounded-b-xl border-t-0'
+        panel: 'w-full max-h-[100dvh] rounded-b-contain border-t-0'
       },
       bottom: {
         dialog: 'items-end',
-        panel: 'w-full max-h-[100dvh] rounded-t-xl border-b-0'
+        panel: 'w-full max-h-[100dvh] rounded-t-contain border-b-0'
       }
     },
     size: {

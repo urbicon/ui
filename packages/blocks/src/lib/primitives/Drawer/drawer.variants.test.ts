@@ -21,27 +21,40 @@ describe('drawerVariants', () => {
   it('applies right placement by default', () => {
     const styles = drawerVariants({});
     expect(styles.dialog()).toContain('justify-end');
-    expect(styles.panel()).toContain('rounded-l-xl');
+    expect(styles.panel()).toContain('rounded-l-contain');
+  });
+
+  // A Drawer is architecture in the same family as Dialog, so its panel rides the
+  // contain tier rather than a hardcoded radius — otherwise a theme that squares
+  // the containers leaves the Drawer behind (and nothing says why).
+  it('takes its radius from the contain tier on every placement, never a raw scale step', () => {
+    for (const placement of ['left', 'right', 'top', 'bottom'] as const) {
+      const panel = drawerVariants({ placement }).panel();
+      expect(panel, placement).toMatch(/rounded-[lrtb]-contain/);
+      expect(panel, placement).not.toMatch(
+        /rounded-[lrtb]?-?(?:xs|sm|md|lg|xl|2xl|3xl|4xl|full)\b/
+      );
+    }
   });
 
   it('applies left placement', () => {
     const styles = drawerVariants({ placement: 'left' });
     expect(styles.dialog()).toContain('justify-start');
-    expect(styles.panel()).toContain('rounded-r-xl');
+    expect(styles.panel()).toContain('rounded-r-contain');
     expect(styles.panel()).toContain('h-full');
   });
 
   it('applies top placement', () => {
     const styles = drawerVariants({ placement: 'top' });
     expect(styles.dialog()).toContain('items-start');
-    expect(styles.panel()).toContain('rounded-b-xl');
+    expect(styles.panel()).toContain('rounded-b-contain');
     expect(styles.panel()).toContain('w-full');
   });
 
   it('applies bottom placement', () => {
     const styles = drawerVariants({ placement: 'bottom' });
     expect(styles.dialog()).toContain('items-end');
-    expect(styles.panel()).toContain('rounded-t-xl');
+    expect(styles.panel()).toContain('rounded-t-contain');
     expect(styles.panel()).toContain('w-full');
   });
 
