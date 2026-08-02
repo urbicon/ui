@@ -16,7 +16,7 @@
 
   let {
     tier,
-    intent = 'primary',
+    intent: intentProp,
     purpose,
     variant = 'filled',
     size = 'md',
@@ -52,6 +52,15 @@
   // visual props so the tv() config stays as-is. When set it wins over the
   // deprecated `variant="dot"` / `counter` boolean; when unset those apply
   // directly (back-compat).
+  //
+  // `tag` is the one purpose that also picks the intent, because its whole
+  // meaning is "this label carries no severity": a category, a version, a type.
+  // Until 2026-08-02 it inherited the `primary` default and rendered a
+  // brand-coloured pill — the documented contract ("a neutral inline label")
+  // and the behaviour disagreed, and the measured failure it invites is exactly
+  // categories painted as statuses. An explicit `intent` still wins, so a
+  // consumer who deliberately tints a tag keeps their colour.
+  const intent = $derived(intentProp ?? (purpose === 'tag' ? 'neutral' : 'primary'));
   const effVariant = $derived(purpose === 'dot' ? 'dot' : variant);
   const effCounter = $derived(purpose === 'counter' || counter);
   const isDot = $derived(effVariant === 'dot');

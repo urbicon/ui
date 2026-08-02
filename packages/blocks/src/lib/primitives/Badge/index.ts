@@ -103,7 +103,10 @@ interface BadgeStandardProps extends BadgeBaseProps {
    * badge *is*, since a bare Badge served overlapping roles. Orchestrates the
    * low-level visual props so you rarely set them directly:
    * - `status` — a state marker (Active, Failed); pairs with `intent`.
-   * - `tag` — a neutral inline label (category, version).
+   * - `tag` — a neutral inline label (category, version). The one purpose that
+   *   also picks the intent: it defaults to `neutral`, because a category carries
+   *   no severity and painting it as one is the most common colour defect there
+   *   is. Pass `intent` explicitly to override.
    * - `counter` — a compact numeric pill (replaces the `counter` boolean).
    * - `chip` — a removable, interactive filter chip; pair with `removable`.
    *

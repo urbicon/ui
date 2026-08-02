@@ -54,6 +54,26 @@ describe('Badge — purpose axis (BDG-1)', () => {
     expect(badge().className).toContain('tabular-nums');
   });
 
+  // A `tag` names a category (a stage, a type, a version), and a category carries
+  // no severity — painting one as a status is the measured colour defect this
+  // purpose exists to prevent. It inherited the `primary` default until
+  // 2026-08-02, i.e. it promised "neutral inline label" and rendered brand colour.
+  it('purpose="tag" defaults to the neutral intent, not the brand primary', () => {
+    render({ purpose: 'tag', children: label('Roasting') });
+    expect(badge().className).toContain('blocks-intent-neutral');
+    expect(badge().className).not.toContain('blocks-intent-primary');
+  });
+
+  it('an explicit intent still wins over the tag default', () => {
+    render({ purpose: 'tag', intent: 'success', children: label('Shipped') });
+    expect(badge().className).toContain('blocks-intent-success');
+  });
+
+  it('leaves every other purpose on the primary default', () => {
+    render({ purpose: 'status', children: label('Active') });
+    expect(badge().className).toContain('blocks-intent-primary');
+  });
+
   it('purpose="chip" makes the badge interactive (focusable)', () => {
     render({ purpose: 'chip', children: label('React') });
     // A chip is now announced as a button (see the a11y-role suite) and stays
