@@ -59,7 +59,6 @@
   ],
   "main": "./dist/index.js",
   "peerDependencies": {
-    "@sveltejs/kit": "catalog:",
     "svelte": "catalog:",
     "shiki": "^4.4.1",
     "@urbicon-ui/blocks": "^6.0.0",

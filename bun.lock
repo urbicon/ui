@@ -125,7 +125,6 @@
         "vitest": "catalog:",
       },
       "peerDependencies": {
-        "@sveltejs/kit": "catalog:",
         "@urbicon-ui/i18n": "^6.0.0",
         "@urbicon-ui/shared-types": "^6.0.0",
         "svelte": "catalog:",
@@ -192,7 +191,6 @@
         "vitest": "catalog:",
       },
       "peerDependencies": {
-        "@sveltejs/kit": "catalog:",
         "@urbicon-ui/blocks": "^6.0.0",
         "@urbicon-ui/i18n": "^6.0.0",
         "@urbicon-ui/shared-types": "^6.0.0",
@@ -238,7 +236,6 @@
         "vitest": "catalog:",
       },
       "peerDependencies": {
-        "@sveltejs/kit": "catalog:",
         "@urbicon-ui/shared-types": "^6.0.0",
         "svelte": "catalog:",
         "typescript": "catalog:",
@@ -326,7 +323,6 @@
         "vitest": "catalog:",
       },
       "peerDependencies": {
-        "@sveltejs/kit": "catalog:",
         "@urbicon-ui/blocks": "^6.0.0",
         "@urbicon-ui/i18n": "^6.0.0",
         "@urbicon-ui/shared-types": "^6.0.0",

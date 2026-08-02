@@ -56,7 +56,6 @@
   "main": "dist/index.js",
   "sideEffects": false,
   "peerDependencies": {
-    "@sveltejs/kit": "catalog:",
     "svelte": "catalog:",
     "typescript": "catalog:",
     "@urbicon-ui/shared-types": "^6.0.0"

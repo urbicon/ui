@@ -83,7 +83,6 @@
   ],
   "peerDependencies": {
     "svelte": "catalog:",
-    "@sveltejs/kit": "catalog:",
     "@urbicon-ui/i18n": "^6.0.0",
     "@urbicon-ui/shared-types": "^6.0.0"
   },
