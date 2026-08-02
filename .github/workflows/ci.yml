@@ -284,3 +284,25 @@ jobs:
       # Needs the blocks/table/auth dist that `build` just produced. Tolerance
       # is max(256 B, 3 %), so it measures intent, not machine noise.
       - run: bun run size --check
+
+      # Bundles the MCP server into a self-contained mcp-dist/ (server.js plus
+      # the content it reads at runtime). Needs the docs:gen output that
+      # `build` produced — the script asserts that rather than assuming it.
+      - run: bun run build:mcp-dist
+
+      # THE DEPLOY ARTEFACTS. deploy.yml pulls these from this run by id
+      # instead of rebuilding, so a push that reaches production is byte-for-byte
+      # the tree CI went green on. Three days is well past any useful re-run.
+      - uses: actions/upload-artifact@v7
+        with:
+          name: site-dist
+          path: apps/docs/dist/
+          retention-days: 3
+          if-no-files-found: error
+
+      - uses: actions/upload-artifact@v7
+        with:
+          name: mcp-dist
+          path: mcp-dist/
+          retention-days: 3
+          if-no-files-found: error

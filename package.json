@@ -89,6 +89,7 @@
     "build:i18n": "bun --bun --filter='./packages/i18n' run build",
     "build:shared-types": "bun --bun --filter='./packages/shared-types' run build",
     "build:apps": "bun --bun --filter='./apps/*' run build",
+    "build:mcp-dist": "bun --bun run scripts/bundle-mcp.ts",
     "check": "bun --bun --filter='*' run check",
     "clean": "bun --bun --filter='*' run clean",
     "clean-all": "bun --bun --filter='*' run clean-all && rm -rf node_modules && rm bun.lock",

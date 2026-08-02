@@ -1,0 +1,286 @@
+name: Deploy
+
+# Ships the docs site and the MCP server to the host — but only behind a green
+# pipeline. Until 2026-08-02 this was a GitHub webhook straight to buny on the
+# host: it fired the moment a push was accepted, built the whole workspace
+# there, and had no idea whether CI passed. A red main deployed exactly like a
+# green one.
+#
+# WHAT TRIGGERS IT. `workflow_run` on both pipelines, because a commit reaches
+# production by two different routes:
+#
+#   CI       every push to main. The normal path.
+#   Release  a `v*` tag. Runs INSTEAD of CI (ci.yml has no tag trigger), and
+#            publishes to npm before this workflow gets its turn.
+#
+# `bump` pushes the commit and the tag together, so both pipelines start at
+# once on the same SHA. If this workflow simply followed CI, the docs site
+# would go live while `npm publish` was still running — and a failed publish
+# would leave the site advertising a version that does not exist. So on a CI
+# trigger it first asks whether a Release run exists for this SHA and, if one
+# does, steps aside for it. See the `decide` step.
+#
+# WHAT IT SHIPS. Artefacts built by the run that just went green, downloaded by
+# id — never a rebuild. What reaches the server is byte-for-byte the tree the
+# tests passed on.
+#
+# HOW IT SWITCHES. Each deploy lands in its own `releases/<ts>-<sha>` directory
+# and a symlink is moved afterwards, so the cutover is atomic and a rollback is
+# one `ln -sfn` with no rebuild. The verification step does exactly that if the
+# site or the MCP endpoint fails to answer afterwards.
+
+on:
+  workflow_run:
+    workflows: [CI, Release]
+    types: [completed]
+  # The manual path, and deliberately so: dismantling buny removed
+  # `sudo buny deploy ui`, which was the way to push the site without a code
+  # change. This replaces it — it redeploys the newest green CI run on main.
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  # Reads the triggering run's artefacts and queries sibling runs for the tag
+  # check. Read-only.
+  actions: read
+
+# Deploys must not overlap: two rsyncs into the same tree, or a symlink moved
+# out from under a verification, would interleave. `cancel-in-progress: false`
+# because a half-finished deploy is worse than a queued one.
+concurrency:
+  group: deploy-production
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    name: Deploy to production
+    runs-on: ubuntu-latest
+    # A manual run is always allowed. An automatic one must come from a green
+    # pipeline and a real push — this skips the `dry_run: true` canary of
+    # release.yml, which passes without publishing anything.
+    if: >-
+      github.event_name == 'workflow_dispatch' ||
+      (github.event.workflow_run.conclusion == 'success' &&
+       github.event.workflow_run.event == 'push')
+
+    steps:
+      # Which run holds the artefacts, and is this workflow the one that should
+      # act on it? Both answers land in outputs; every later step reads them.
+      - name: Decide what to deploy
+        id: decide
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+          EVENT: ${{ github.event_name }}
+          # Quoted into the environment rather than interpolated into the shell:
+          # these come off the event payload, and a branch or tag name is
+          # attacker-shaped input in the general case.
+          SRC_WORKFLOW: ${{ github.event.workflow_run.name }}
+          SRC_RUN_ID: ${{ github.event.workflow_run.id }}
+          SRC_SHA: ${{ github.event.workflow_run.head_sha }}
+          SRC_BRANCH: ${{ github.event.workflow_run.head_branch }}
+        run: |
+          set -euo pipefail
+
+          if [ "$EVENT" = "workflow_dispatch" ]; then
+            # Newest completed, successful CI run on main.
+            read -r SRC_RUN_ID SRC_SHA <<< "$(gh api \
+              "repos/$REPO/actions/runs?branch=main&status=success&per_page=50" \
+              --jq '[.workflow_runs[] | select(.name == "CI")] | sort_by(.run_started_at) | last | "\(.id) \(.head_sha)"')"
+            if [ -z "${SRC_RUN_ID:-}" ] || [ "$SRC_RUN_ID" = "null" ]; then
+              echo "::error::No successful CI run on main to deploy."
+              exit 1
+            fi
+            echo "::notice::Manual deploy of CI run $SRC_RUN_ID ($SRC_SHA)"
+            SRC_WORKFLOW="CI"
+          fi
+
+          # A SHA is hex; anything else means the payload is not what we think
+          # it is, and it is about to be pasted into a remote path.
+          if ! printf '%s' "$SRC_SHA" | grep -qE '^[0-9a-f]{40}$'; then
+            echo "::error::head_sha is not a commit SHA: '$SRC_SHA'"
+            exit 1
+          fi
+
+          # A CI run on a commit that also has a Release run must stand down:
+          # the tag path publishes to npm first and deploys afterwards. Asking
+          # for the sibling run (rather than listing tags) is the same evidence
+          # release.yml already uses, and it is one request.
+          #
+          # The race this could have — CI finishing before the Release run is
+          # registered — cannot happen in practice: `git push --follow-tags`
+          # creates both runs in the same instant, and CI takes minutes.
+          if [ "$SRC_WORKFLOW" = "CI" ]; then
+            releases=$(gh api "repos/$REPO/actions/runs?head_sha=$SRC_SHA&per_page=100" \
+              --jq '[.workflow_runs[] | select(.name == "Release")] | length')
+            if [ "$releases" -gt 0 ]; then
+              echo "::notice::$SRC_SHA carries a release tag — leaving the deploy to the Release run."
+              echo "proceed=false" >> "$GITHUB_OUTPUT"
+              exit 0
+            fi
+          fi
+
+          echo "proceed=true" >> "$GITHUB_OUTPUT"
+          echo "run_id=$SRC_RUN_ID" >> "$GITHUB_OUTPUT"
+          echo "sha=$SRC_SHA" >> "$GITHUB_OUTPUT"
+          echo "release=$(date -u +%Y%m%d%H%M%S)-${SRC_SHA:0:8}" >> "$GITHUB_OUTPUT"
+          echo "::notice::Deploying $SRC_SHA from $SRC_WORKFLOW run $SRC_RUN_ID"
+
+      - name: Download site artefact
+        if: steps.decide.outputs.proceed == 'true'
+        uses: actions/download-artifact@v8
+        with:
+          name: site-dist
+          path: site-dist
+          run-id: ${{ steps.decide.outputs.run_id }}
+          github-token: ${{ github.token }}
+
+      - name: Download MCP artefact
+        if: steps.decide.outputs.proceed == 'true'
+        uses: actions/download-artifact@v8
+        with:
+          name: mcp-dist
+          path: mcp-dist
+          run-id: ${{ steps.decide.outputs.run_id }}
+          github-token: ${{ github.token }}
+
+      # An artefact that unpacked empty would otherwise be rsynced over the live
+      # tree as an empty directory — `--delete` would then take the site down.
+      - name: Sanity-check the artefacts
+        if: steps.decide.outputs.proceed == 'true'
+        run: |
+          set -euo pipefail
+          pages=$(find site-dist -name '*.html' | wc -l)
+          [ "$pages" -ge 100 ] || { echo "::error::site-dist holds only $pages HTML pages"; exit 1; }
+          [ -s site-dist/index.html ] || { echo "::error::site-dist/index.html is missing or empty"; exit 1; }
+          [ -s site-dist/404.html ] || { echo "::error::site-dist/404.html is missing or empty"; exit 1; }
+          [ -s mcp-dist/server.js ] || { echo "::error::mcp-dist/server.js is missing or empty"; exit 1; }
+          [ -s mcp-dist/bundle.sha256 ] || { echo "::error::mcp-dist/bundle.sha256 is missing"; exit 1; }
+          [ -d mcp-dist/content ] || { echo "::error::mcp-dist/content is missing"; exit 1; }
+          echo "site-dist: $pages HTML pages · mcp-dist: $(du -sh mcp-dist | cut -f1)"
+
+      - name: Configure SSH
+        if: steps.decide.outputs.proceed == 'true'
+        env:
+          KEY: ${{ secrets.DEPLOY_SSH_KEY }}
+          KNOWN_HOSTS: ${{ vars.DEPLOY_KNOWN_HOSTS }}
+        run: |
+          set -euo pipefail
+          if [ -z "$KEY" ]; then echo "::error::secret DEPLOY_SSH_KEY is not set"; exit 1; fi
+          if [ -z "$KNOWN_HOSTS" ]; then echo "::error::variable DEPLOY_KNOWN_HOSTS is not set"; exit 1; fi
+          mkdir -p ~/.ssh
+          printf '%s\n' "$KEY" > ~/.ssh/deploy_key
+          chmod 600 ~/.ssh/deploy_key
+          # Pinned host key — never StrictHostKeyChecking=no, which would accept
+          # whatever answers on that address.
+          printf '%s\n' "$KNOWN_HOSTS" > ~/.ssh/known_hosts
+          chmod 644 ~/.ssh/known_hosts
+
+      - name: Deploy docs site
+        if: steps.decide.outputs.proceed == 'true'
+        env:
+          DEPLOY_HOST: ${{ vars.DEPLOY_HOST }}
+          DEPLOY_USER: ${{ vars.DEPLOY_USER }}
+          REL: ${{ steps.decide.outputs.release }}
+        run: |
+          set -euo pipefail
+          SSH="ssh -i $HOME/.ssh/deploy_key -o BatchMode=yes -o ConnectTimeout=15"
+          BASE=/var/www/hosts/ui-site
+
+          # Remembered before the switch so verification can put it back.
+          PREV=$($SSH "$DEPLOY_USER@$DEPLOY_HOST" "readlink $BASE/current || true")
+          echo "previous=$PREV" >> "$GITHUB_ENV"
+
+          $SSH "$DEPLOY_USER@$DEPLOY_HOST" "mkdir -p $BASE/releases/$REL"
+          rsync -a --delete -e "$SSH" site-dist/ "$DEPLOY_USER@$DEPLOY_HOST:$BASE/releases/$REL/"
+          # Switch and prune in one round trip. Five releases is four rollbacks
+          # deep at ~37 MB each.
+          $SSH "$DEPLOY_USER@$DEPLOY_HOST" "set -euo pipefail
+            ln -sfn $BASE/releases/$REL $BASE/current
+            cd $BASE/releases
+            ls -1dt */ | tail -n +6 | xargs -r rm -rf
+            echo \"site now: \$(readlink $BASE/current)\""
+
+      # Most pushes change neither the server's code nor the catalogue, and a
+      # restart drops every open MCP session. The hash the bundle ships decides.
+      - name: Deploy MCP server
+        if: steps.decide.outputs.proceed == 'true'
+        id: mcp
+        env:
+          DEPLOY_HOST: ${{ vars.DEPLOY_HOST }}
+          DEPLOY_USER: ${{ vars.DEPLOY_USER }}
+          REL: ${{ steps.decide.outputs.release }}
+        run: |
+          set -euo pipefail
+          SSH="ssh -i $HOME/.ssh/deploy_key -o BatchMode=yes -o ConnectTimeout=15"
+          BASE=/var/www/hosts/ui-mcp
+
+          NEW=$(cat mcp-dist/bundle.sha256)
+          OLD=$($SSH "$DEPLOY_USER@$DEPLOY_HOST" "cat $BASE/current/bundle.sha256 2>/dev/null || echo none")
+
+          if [ "$NEW" = "$OLD" ]; then
+            echo "::notice::MCP bundle unchanged (${NEW:0:16}…) — skipping restart, sessions stay up."
+            echo "restarted=false" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          echo "MCP bundle changed: ${OLD:0:16}… -> ${NEW:0:16}…"
+          $SSH "$DEPLOY_USER@$DEPLOY_HOST" "mkdir -p $BASE/releases/$REL"
+          rsync -a --delete -e "$SSH" mcp-dist/ "$DEPLOY_USER@$DEPLOY_HOST:$BASE/releases/$REL/"
+          $SSH "$DEPLOY_USER@$DEPLOY_HOST" "set -euo pipefail
+            ln -sfn $BASE/releases/$REL $BASE/current
+            sudo -n /usr/bin/systemctl restart bunapp-ui-mcp.service
+            cd $BASE/releases
+            ls -1dt */ | tail -n +6 | xargs -r rm -rf"
+          echo "restarted=true" >> "$GITHUB_OUTPUT"
+
+      # The point of the symlink scheme: if production does not answer, put the
+      # previous release back rather than leaving a broken site up.
+      - name: Verify, and roll back if broken
+        if: steps.decide.outputs.proceed == 'true'
+        env:
+          DEPLOY_HOST: ${{ vars.DEPLOY_HOST }}
+          DEPLOY_USER: ${{ vars.DEPLOY_USER }}
+          MCP_RESTARTED: ${{ steps.mcp.outputs.restarted }}
+        run: |
+          set -uo pipefail
+          SSH="ssh -i $HOME/.ssh/deploy_key -o BatchMode=yes -o ConnectTimeout=15"
+          failed=""
+
+          # The service needs a moment to bind after a restart.
+          if [ "$MCP_RESTARTED" = "true" ]; then sleep 5; fi
+
+          for path in / /blocks /sitemap.xml; do
+            code=$(curl -s -o /dev/null -w '%{http_code}' --max-time 20 "https://ui.urbicon.de$path")
+            echo "  https://ui.urbicon.de$path -> $code"
+            [ "$code" = "200" ] || failed="$failed site:$path($code)"
+          done
+
+          code=$(curl -s -o /dev/null -w '%{http_code}' --max-time 20 https://ui.urbicon.de/does-not-exist)
+          echo "  404 handling -> $code"
+          [ "$code" = "404" ] || failed="$failed site:404($code)"
+
+          mcp=$(curl -s --max-time 20 -X POST https://mcp.ui.urbicon.de/mcp \
+            -H 'Content-Type: application/json' \
+            -H 'Accept: application/json, text/event-stream' \
+            -d '{"jsonrpc":"2.0","id":1,"method":"initialize","params":{"protocolVersion":"2025-06-18","capabilities":{},"clientInfo":{"name":"deploy-verify","version":"1"}}}')
+          if printf '%s' "$mcp" | grep -q '"serverInfo"'; then
+            echo "  mcp initialize -> ok"
+          else
+            echo "  mcp initialize -> FAILED"
+            failed="$failed mcp:initialize"
+          fi
+
+          if [ -n "$failed" ]; then
+            echo "::error::Verification failed:$failed"
+            if [ -n "${previous:-}" ]; then
+              echo "::warning::Rolling the site back to $previous"
+              $SSH "$DEPLOY_USER@$DEPLOY_HOST" "ln -sfn $previous /var/www/hosts/ui-site/current"
+              curl -s -o /dev/null -w 'after rollback: %{http_code}\n' --max-time 20 https://ui.urbicon.de/
+            else
+              echo "::warning::No previous release recorded — nothing to roll back to."
+            fi
+            exit 1
+          fi
+
+          echo "Deployment verified."
