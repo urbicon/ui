@@ -1,9 +1,16 @@
-import { tv, type VariantProps } from '@urbicon-ui/blocks';
+import { type SlotNames, tv, type VariantProps } from '@urbicon-ui/blocks';
 
 export const apiReferenceVariants = tv({
   slots: {
     base: ['flex flex-col gap-3'],
     stats: ['flex flex-wrap items-center gap-3 text-xs text-text-tertiary'],
+    // The "N required" half of the stats line — the only part that carries an
+    // intent colour, so it is its own slot rather than a literal in the markup.
+    requiredCount: ['text-danger'],
+    // Wrapper around the prop name and its badges (variant/inherited/required).
+    nameCell: ['flex flex-wrap items-center gap-1.5'],
+    // Wrapper around the literal-value chips in the Type column.
+    typeChips: ['flex flex-wrap gap-1'],
     nameCode: ['font-mono text-xs font-semibold text-text-primary'],
     spreadCode: ['font-mono text-xs text-text-tertiary'],
     typeCode: ['font-mono text-xs text-text-secondary'],
@@ -39,9 +46,9 @@ export const apiReferenceVariants = tv({
     highlightRing: ['ring-2 ring-primary/50'],
     // usageNotes as an inline note (left accent instead of a card wrapper).
     usageNotes: ['border-l-2 border-l-border-default pl-4 py-2 text-sm text-text-secondary']
-  },
-  variants: {},
-  defaultVariants: {}
+  }
 });
 
 export type ApiReferenceVariantProps = VariantProps<typeof apiReferenceVariants>;
+/** Slot names derived from the `tv()` config above — single source of truth for `slotClasses`. */
+export type ApiReferenceSlots = SlotNames<typeof apiReferenceVariants>;

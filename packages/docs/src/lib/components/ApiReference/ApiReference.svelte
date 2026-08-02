@@ -5,7 +5,7 @@
   import { useDocsI18n } from '$lib/i18n';
   import { revealTableRow } from '$lib/utils/cross-reference.js';
   import { tokenizeTypeExpression } from '$lib/utils/type-links.js';
-  import { apiReferenceVariants } from './apireference.variants';
+  import { type ApiReferenceSlots, apiReferenceVariants } from './apireference.variants';
   import type { ApiReferenceProps, ApiProp } from './index.js';
 
   const dt = useDocsI18n();
@@ -60,6 +60,10 @@
 
   const requiredCount = $derived(sortedProps.filter((p) => p.required).length);
   const styles = $derived(apiReferenceVariants());
+
+  // `unstyled` drops the tv defaults; slotClasses always apply on top.
+  const slot = (name: ApiReferenceSlots): string =>
+    [unstyled ? '' : styles[name](), slotClasses[name] ?? ''].filter(Boolean).join(' ');
 
   // Pre-hydration the Table body is empty — TableProvider seeds its rows in a
   // client-only $effect — so the prerendered artifact renders the empty state
@@ -157,20 +161,12 @@
   </InfoCard>
 {:else}
   <!-- `id` is the anchor TypesReference links back to; a page may override it via restProps. -->
-  <section
-    id="api-reference"
-    class={unstyled
-      ? [slotClasses?.base, className].filter(Boolean).join(' ')
-      : styles.base({ class: [slotClasses?.base, className] })}
-    {...restProps}
-  >
-    <div
-      class={unstyled ? (slotClasses?.stats ?? '') : styles.stats({ class: slotClasses?.stats })}
-    >
+  <section {...restProps} id="api-reference" class={[slot('base'), className]}>
+    <div class={slot('stats')}>
       <span>{sortedProps.length} props</span>
       {#if requiredCount > 0}
         <span aria-hidden="true">·</span>
-        <span class="text-danger">{requiredCount} required</span>
+        <span class={slot('requiredCount')}>{requiredCount} required</span>
       {/if}
     </div>
 
@@ -187,14 +183,8 @@
       {#snippet cell(rawItem, value, column)}
         {@const item = rawItem as unknown as ApiProp}
         {#if column.id === 'name'}
-          <div class="flex flex-wrap items-center gap-1.5">
-            <code
-              class={unstyled
-                ? ''
-                : item.name.startsWith('...')
-                  ? styles.spreadCode()
-                  : styles.nameCode()}
-            >
+          <div class={slot('nameCell')}>
+            <code class={slot(item.name.startsWith('...') ? 'spreadCode' : 'nameCode')}>
               {item.name}
             </code>
             {#if (item.source?.type ?? 'direct') === 'variant'}
@@ -208,22 +198,17 @@
           </div>
         {:else if column.id === 'type'}
           {#if item.values?.length}
-            <div class="flex flex-wrap gap-1">
+            <div class={slot('typeChips')}>
               {#each item.values as val (val)}
-                <span class={unstyled ? '' : styles.typeChip()}>{val}</span>
+                <span class={slot('typeChip')}>{val}</span>
               {/each}
             </div>
           {:else if item.type}
             {#if item.seeAlso?.startsWith('http')}
               <!-- External documentation link; `resolve()` only applies to
                    internal SvelteKit routes. -->
-              <a
-                href={item.seeAlso}
-                class={unstyled ? '' : styles.link()}
-                target="_blank"
-                rel="noopener external"
-              >
-                <code class={unstyled ? '' : styles.typeCode()}>{item.type}</code>
+              <a href={item.seeAlso} class={slot('link')} target="_blank" rel="noopener external">
+                <code class={slot('typeCode')}>{item.type}</code>
               </a>
             {:else if item.seeAlso?.startsWith('/') || item.seeAlso?.startsWith('#')}
               <!-- Internal documentation target — a route-relative path
@@ -236,36 +221,36 @@
                    `HTMLButtonAttributes.value`) is neither `/` nor `#`, so it
                    falls through to the type-segment branch instead of becoming a
                    broken link. -->
-              <a href={item.seeAlso} class={unstyled ? '' : styles.link()}>
-                <code class={unstyled ? '' : styles.typeCode()}>{item.type}</code>
+              <a href={item.seeAlso} class={slot('link')}>
+                <code class={slot('typeCode')}>{item.type}</code>
               </a>
             {:else}
               <!-- Type names documented by a TypesReference on this page become in-page
                    links; every other token stays plain text. Written tight (no newlines
                    between segments) so the expression renders without stray whitespace. -->
               {@const segments = typeSegments(item.type)}
-              <code class={unstyled ? '' : styles.typeCode()}
-                >{#each segments as segment, i (i)}{#if segment.linked}<a
+              <code class={slot('typeCode')}
+                >{#each segments as segment, i (`${segment.text}-${i}`)}{#if segment.linked}<a
                       href="#type-{segment.text}"
-                      class={unstyled ? '' : styles.typeLink()}
+                      class={slot('typeLink')}
                       onclick={(e) => handleTypeLinkClick(e, segment.text)}>{segment.text}</a
                     >{:else}{segment.text}{/if}{/each}</code
               >
             {/if}
           {:else}
-            <span class={unstyled ? '' : styles.placeholder()}>—</span>
+            <span class={slot('placeholder')}>—</span>
           {/if}
         {:else if column.id === 'defaultValue'}
           {#if value != null && value !== ''}
-            <code class={unstyled ? '' : styles.defaultCode()}>{value}</code>
+            <code class={slot('defaultCode')}>{value}</code>
           {:else}
-            <span class={unstyled ? '' : styles.placeholder()}>—</span>
+            <span class={slot('placeholder')}>—</span>
           {/if}
         {:else if column.id === 'description'}
           {#if value || item.seeAlsoRefs?.length}
-            <div class={unstyled ? '' : styles.descriptionCell()}>
+            <div class={slot('descriptionCell')}>
               {#if value}
-                <span class={unstyled ? '' : styles.description()}>{value}</span>
+                <span class={slot('description')}>{value}</span>
               {/if}
               {#if item.seeAlsoRefs?.length}
                 <!-- Prose `@see` values (`HTMLButtonAttributes.value`,
@@ -273,32 +258,28 @@
                      doc URL, so they render as literal text — a link here would
                      have nowhere to point. Navigable `@see` targets live in
                      `seeAlso` and decorate the Type column instead. -->
-                <span class={unstyled ? '' : styles.seeAlsoRefs()}>
+                <span class={slot('seeAlsoRefs')}>
                   {dt('seeAlsoLabel')}
                   {#each item.seeAlsoRefs as ref, i (`${ref}-${i}`)}
-                    <code class={unstyled ? '' : styles.seeAlsoRef()}>{ref}</code>
+                    <code class={slot('seeAlsoRef')}>{ref}</code>
                   {/each}
                 </span>
               {/if}
             </div>
           {:else}
-            <span class={unstyled ? '' : styles.placeholder()}>—</span>
+            <span class={slot('placeholder')}>—</span>
           {/if}
         {:else if value}
-          <span class={unstyled ? '' : styles.description()}>{value}</span>
+          <span class={slot('description')}>{value}</span>
         {:else}
-          <span class={unstyled ? '' : styles.placeholder()}>—</span>
+          <span class={slot('placeholder')}>—</span>
         {/if}
       {/snippet}
       {#snippet pagination()}{/snippet}
     </Table>
 
     {#if usageNotes}
-      <div
-        class={unstyled
-          ? (slotClasses?.usageNotes ?? '')
-          : styles.usageNotes({ class: slotClasses?.usageNotes })}
-      >
+      <div class={slot('usageNotes')}>
         {@render usageNotes()}
       </div>
     {/if}

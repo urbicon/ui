@@ -2,11 +2,14 @@ import { describe, expect, it } from 'vitest';
 import { apiReferenceVariants } from './apireference.variants';
 
 describe('apiReferenceVariants', () => {
-  it('returns all expected slot functions', () => {
+  it('exposes exactly the expected slots', () => {
     const styles = apiReferenceVariants();
     const expectedSlots = [
       'base',
       'stats',
+      'requiredCount',
+      'nameCell',
+      'typeChips',
       'nameCode',
       'spreadCode',
       'typeCode',
@@ -26,6 +29,12 @@ describe('apiReferenceVariants', () => {
     for (const slot of expectedSlots) {
       expect(typeof (styles as Record<string, unknown>)[slot]).toBe('function');
     }
+
+    // Both directions: a one-sided check lets a slot that no longer appears in
+    // the markup linger in the config forever (TypesReference carried a dead
+    // `expandedRow` slot exactly this way). Every slot the config exposes must
+    // be an intentional, listed one.
+    expect(Object.keys(styles).sort()).toEqual([...expectedSlots].sort());
   });
 
   it('uses semantic design tokens in base classes', () => {

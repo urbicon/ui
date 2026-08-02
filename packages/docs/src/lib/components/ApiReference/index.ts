@@ -1,6 +1,6 @@
 import type { Snippet } from 'svelte';
 import type { HTMLAttributes } from 'svelte/elements';
-import type { ApiReferenceVariantProps } from './apireference.variants';
+import type { ApiReferenceSlots, ApiReferenceVariantProps } from './apireference.variants';
 
 /** Single prop entry in the API reference table. */
 export interface ApiProp {
@@ -61,8 +61,12 @@ export interface ApiReferenceProps
   /** Remove all default tv styles from the wrapper and cell content. */
   unstyled?: boolean;
   /** Per-slot class overrides for the wrapper elements. */
-  slotClasses?: Partial<Record<'base' | 'stats' | 'usageNotes', string>>;
+  slotClasses?: Partial<Record<ApiReferenceSlots, string>>;
 }
 
 export { default } from './ApiReference.svelte';
-export { type ApiReferenceVariantProps, apiReferenceVariants } from './apireference.variants';
+export {
+  type ApiReferenceSlots,
+  type ApiReferenceVariantProps,
+  apiReferenceVariants
+} from './apireference.variants';
