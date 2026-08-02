@@ -223,14 +223,16 @@ export default {
             preview={false}
           />
         </div>
-        <!-- Bewusst KEIN `#first-component`-Anker: In-Page-Hash-Navigation
-             scrollt in dieser App nicht (auch nicht die Anker des
-             Inhaltsverzeichnisses auf den Komponentenseiten — vorbestehend,
-             siehe Issue). Ein Link, der nur die URL ändert, ist eine kaputte
-             Zusage; die Schrittnummer trägt den Hinweis genauso. -->
+        <!-- Der Sprung setzt die Karten-Latch (reachedStep) direkt auf 3 —
+             gewollt: wer 01/02 überspringt, hat die zwei Schritte ja hinter
+             sich, und die Latch geht ohnehin nie zurück (siehe Kopfkommentar).
+             Danach 01 nachzulesen zeigt die Karte auf „step 3 / 5"; das ist
+             die bewusste Abwägung der Latch, kein Fehler des Links. -->
         <p class="text-text-secondary mt-6 max-w-2xl leading-relaxed">
-          That covers steps 01 and 02 — skip ahead to 03, or read on to see what the add-on did.
-          Inside an existing project, start at 01.
+          That covers steps 01 and 02 — jump straight to
+          <a href="#first-component" class="text-primary font-medium hover:underline"
+            >your first component</a
+          >, or read on to see what the add-on did. Inside an existing project, start at 01.
         </p>
       </section>
 
