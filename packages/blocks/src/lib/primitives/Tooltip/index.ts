@@ -43,7 +43,10 @@ import type { TooltipSlots, TooltipVariants } from './tooltip.variants';
  */
 export interface TooltipProps
   extends TooltipVariants,
-    Omit<HTMLAttributes<HTMLDivElement>, 'children'> {
+    // `HTMLSpanElement`, because that is what `restProps` is spread onto. The
+    // panel is a `<span>` so a tooltip is legal inside a paragraph — the
+    // position it is documented for. See the markup comment in Tooltip.svelte.
+    Omit<HTMLAttributes<HTMLSpanElement>, 'children'> {
   /** Text displayed inside the tooltip bubble. */
   label: string;
 
