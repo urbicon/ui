@@ -27,11 +27,25 @@
  *            does not: `bg-` and its colour-capable siblings (`border-`,
  *            `ring-`, `outline-`, `divide-`, `fill-`, `stroke-`, `accent-`,
  *            `caret-`, `decoration-`), variant-prefixed classes, and whatever
- *            Tailwind adds next. See scripts/tailwind-emit.ts. Its first run
- *            found `resize-vertical` on Textarea (no such utility — the field
- *            kept the UA default `resize: both`) and three dead gradient stops
- *            on the table skeleton (`surface-2`/`surface-3` are not tokens, so
- *            the shimmer was fully transparent).
+ *            Tailwind adds next. See scripts/tailwind-emit.ts.
+ *
+ *            Its first run found two inert classes — `resize-vertical` on
+ *            Textarea and three dead gradient stops on the table skeleton
+ *            (`surface-2`/`surface-3` are not tokens here). Neither changed a
+ *            pixel: preflight already sets `textarea { resize: vertical }`,
+ *            and the skeleton slots have no consumer. Worth stating plainly,
+ *            because it is what this guard is for — a class that emits nothing
+ *            is a claim the code does not keep, whether or not a user can see
+ *            the difference today. The case that IS visible is the typo it was
+ *            built for: a mistyped colour renders unstyled.
+ *
+ *            **Reach is the real limit, not the namespace model.** This lint
+ *            reads `*.variants.ts` only (see GLOBS). Classes in `.svelte`
+ *            markup, in `packages/auth` entirely, and in `*.system.ts` tables
+ *            no config imports are invisible to it — and running the same
+ *            probe over those sources on 2026-08-02 found live instances of
+ *            exactly this bug class (issues filed). Widening the input is its
+ *            own pass.
  *   ✖ ERROR  transform property missing from an arbitrary transition list —
  *            Tailwind 4 emits `scale-*` / `translate-*` / `rotate-*` as the
  *            DISCRETE CSS properties `scale:` / `translate:` / `rotate:`, not
@@ -792,16 +806,49 @@ const HAND_WRITTEN_CSS: Record<string, string> = {
     'keyframes + class in Progress.svelte (component-local :global) — the animation is bound to that component, not a theme token',
   'animate-progress-striped': 'keyframes + class in Progress.svelte (component-local :global)',
   'blocks-avatar-status-pulse': 'keyframes + class in Avatar.svelte (component-local :global)',
-  'blocks-menu--open': 'state hook class set by Menu.svelte, styled in its own :global block',
-  'font-meta':
-    'docs-app font family, defined in the docs app @theme (apps/docs) — the packages this lint reads cannot see it, and consumer-supplied font keys are out of scope by design (see theme-tokens.ts)',
-  'meta-marker': 'docs-app decorative class, defined in the docs app stylesheet'
+  // Deliberately styles nothing. It is a state marker for consumers and tests
+  // to target — `utils/variants.ts` names it as the example of a semantic hook
+  // the conflict resolver passes through untouched, and `variants.test.ts`
+  // asserts that. "Emits no CSS" is the point, not a defect.
+  'blocks-menu--open': 'consumer-facing state hook, styled by nobody on purpose (menu.variants.ts)',
+  // NOT a `@theme` font key — there is no `--font-meta` anywhere. It is the
+  // class rule `.docs-rooms .font-meta` in the docs app's rooms stylesheet, so
+  // it applies only under that opt-in theme. Call sites must carry their own
+  // mono + size utilities and treat it as a refinement; `Section`'s `meta`
+  // slot did not, which this guard surfaced and that file now fixes.
+  'font-meta': 'theme-scoped class rule in the docs app (.docs-rooms .font-meta), not a theme key',
+  'meta-marker': 'docs-app decorative class, defined in the docs app stylesheet (rooms-docs.css)'
 };
 
 const tailwindCss = [
   "@import 'tailwindcss';",
   ...(await Promise.all(THEME_CSS.slice(1).map((p) => Bun.file(p).text())))
 ].join('\n');
+
+// Canaries on the INPUT, not just on the compiler. The two above are appended
+// to the candidate list, so they prove the compiler and the theme load — they
+// say nothing about whether the walk collected anything. Measured: a
+// regression dropping `bg-` and `border-` from `emitCandidates` still left
+// 1201 of 1322 classes and both compiler canaries green, so a plain size
+// floor would not catch it either.
+//
+// Per-namespace instead, on the four that cannot plausibly go to zero in this
+// library (measured: bg- 128, border- 85, text- 80, ring- 64). Reaching zero
+// means either the walk broke or the namespace genuinely emptied — both worth
+// stopping for. `accent-`/`caret-` get no canary: the repo uses neither today,
+// so they are covered by the compiler like everything else but not asserted to
+// arrive.
+const NAMESPACE_CANARIES = ['bg-', 'border-', 'text-', 'ring-'];
+const candidateUtilities = [...emitCandidates.keys()].map((t) => t.slice(t.lastIndexOf(':') + 1));
+const missingNamespaces = NAMESPACE_CANARIES.filter(
+  (ns) => !candidateUtilities.some((u) => u.startsWith(ns))
+);
+if (missingNamespaces.length > 0) {
+  console.error(
+    `✖ variants-lint: no ${missingNamespaces.join(' / ')} class reached the emitted-CSS guard — the collection walk is not seeing the configs it claims to check.`
+  );
+  process.exit(1);
+}
 
 const probe = await findNonEmittingClasses(
   [...emitCandidates.keys(), EMIT_CANARY_ALIVE, EMIT_CANARY_DEAD],

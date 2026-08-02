@@ -6,8 +6,11 @@ export const textareaVariants = tv({
     wrapper: ['flex flex-col w-full gap-1.5'],
     base: [
       // `resize-y`, not `resize-vertical` — the latter is not a Tailwind
-      // utility and emitted nothing, so the textarea kept the UA default
-      // `resize: both` and could be dragged sideways out of its layout.
+      // utility and emitted nothing. **No rendering changed**: Tailwind's
+      // preflight already ships `textarea { resize: vertical }`, so the class
+      // had been inert since it was written, and both spellings measure
+      // `resize: vertical` in a browser. What it cost was honesty — the config
+      // and a unit test both claimed a behaviour neither of them produced.
       // Found by the emitted-CSS guard in variants-lint, 2026-08-02.
       'w-full box-border resize-y',
       'transition-[color,background-color,border-color,box-shadow] duration-[var(--blocks-duration-fast)] ease-out',

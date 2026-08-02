@@ -26,12 +26,20 @@
 import { compile } from '@tailwindcss/node';
 
 /**
- * Escape a class name for use in a CSS selector, the way Tailwind does when
- * it writes the rule. `bg-primary/70` becomes `bg-primary\/70`,
+ * Escape a class name for use in a CSS selector, the way Tailwind does when it
+ * writes the rule. `bg-primary/70` becomes `bg-primary\/70`,
  * `z-[var(--z-tooltip)]` becomes `z-\[var\(--z-tooltip\)\]`.
+ *
+ * A **leading digit** is the exception, and getting it wrong is the expensive
+ * direction: CSS cannot escape an identifier's first digit with a backslash,
+ * so Tailwind emits a hex escape plus a terminating space — `2xl:px-4` is
+ * written `.\32 xl\:px-4` (measured). A probe that looks for `.2xl\:px-4`
+ * finds nothing and reports a perfectly good responsive class as dead, which
+ * fails CI on correct code and offers no fix but a wrong allowlist entry.
  */
 function escapeClass(cls: string): string {
-  return cls.replace(/([^\w-])/g, '\\$1');
+  const escaped = cls.replace(/([^\w-])/g, '\\$1');
+  return /^\d/.test(escaped) ? `\\3${escaped[0]} ${escaped.slice(1)}` : escaped;
 }
 
 /**

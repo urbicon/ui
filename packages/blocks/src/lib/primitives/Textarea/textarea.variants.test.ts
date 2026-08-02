@@ -117,14 +117,18 @@ describe('textareaVariants', () => {
     expect(base).not.toMatch(/(?<![a-z-])focus:/);
   });
 
-  it('resizes vertically only, with a utility Tailwind actually emits', () => {
-    // This test used to assert `resize-vertical`, which is not a Tailwind
-    // utility — it emitted no CSS at all, so the field kept the UA default
-    // `resize: both` and could be dragged sideways out of its layout. The
-    // assertion passed the whole time, because a string the compiler ignores
-    // is still a string in the class list. Exact match, not `toContain`:
-    // `resize-y` is a substring of nothing here, but the previous phrasing is
-    // exactly how a typo survives a unit test (#61).
+  it('names the resize axis with a utility Tailwind actually emits', () => {
+    // Was `toContain('resize-vertical')` — not a Tailwind utility, so it
+    // emitted no CSS and the assertion was checking that a string the
+    // compiler ignores is present in a string. It passed for as long as it
+    // existed.
+    //
+    // No rendering depended on it either way: preflight ships
+    // `textarea { resize: vertical }`, so both spellings measure
+    // `resize: vertical` in a browser. That is the honest scope of this fix —
+    // the config no longer claims something it does not do. Exact token match
+    // rather than `toContain`, because substring assertions are how the typo
+    // survived (#61).
     const base = textareaVariants({}).base().split(/\s+/);
     expect(base).toContain('resize-y');
     expect(base).not.toContain('resize-vertical');

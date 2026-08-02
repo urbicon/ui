@@ -126,6 +126,16 @@ describe('findNonEmittingClasses — the colour-capable namespaces (#61)', () =>
     expect(dead).toEqual(new Set(['resize-vertical', 'from-surface-2', 'via-surface-3']));
   });
 
+  it('handles a leading digit, which CSS escapes as hex rather than a backslash', async () => {
+    // `2xl:px-4` is written `.\32 xl\:px-4` — a backslash cannot escape an
+    // identifier's first digit, so CSS uses a hex escape plus a terminating
+    // space. A probe that misses this reports a valid responsive class as
+    // dead: a false positive that fails CI on correct code, whose only escape
+    // hatch would be a wrong HAND_WRITTEN_CSS entry.
+    const dead = await deadOf(['2xl:px-4', '2xl:bg-primary', '2xl:bg-primaryx', 'md:px-4']);
+    expect(dead).toEqual(new Set(['2xl:bg-primaryx']));
+  });
+
   it('counts what it compiled, so a caller can tell an empty run from a clean one', async () => {
     const probe = await findNonEmittingClasses(['bg-primary', 'bg-primary', 'text-sm'], {
       css,
