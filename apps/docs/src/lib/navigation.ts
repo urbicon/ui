@@ -411,6 +411,7 @@ const allNavigationItems: NavItem[] = [
         href: '/docs/components/api-reference'
       },
       { name: 'Code Example', nameKey: 'nav.codeExample', href: '/docs/components/code-example' },
+      { name: 'Code Panel', nameKey: 'nav.codePanel', href: '/docs/components/code-panel' },
       { name: 'Docs Layout', nameKey: 'nav.docsLayout', href: '/docs/components/docs-layout' },
       { name: 'Info Card', nameKey: 'nav.infoCard', href: '/docs/components/info-card' },
       {

@@ -71,7 +71,11 @@ const CATALOGS: ReadonlyArray<{
   { dir: 'blocks', route: (e) => `/blocks/${e.group}/${e.slug}` },
   // The table package documents one component at the root of its section.
   { dir: 'table', route: (e) => `/table/${e.slug}` },
-  { dir: 'auth', route: (e) => `/auth/${e.group}/${e.slug}` }
+  { dir: 'auth', route: (e) => `/auth/${e.group}/${e.slug}` },
+  // The docs package's own components. Its catalogue was empty until the
+  // internal-component filter moved to the MCP assembler, so these nine pages
+  // were never checked against anything.
+  { dir: 'docs', route: (e) => `/docs/components/${e.slug}` }
 ];
 
 interface CatalogEntry {

@@ -198,6 +198,7 @@ export default {
     docs: 'Dokumentation',
     apiReference: 'API-Referenz',
     codeExample: 'Code-Beispiel',
+    codePanel: 'Code Panel',
     docsLayout: 'Docs-Layout',
     infoCard: 'Info-Karte',
     playgroundConfigurator: 'Playground-Konfigurator',
