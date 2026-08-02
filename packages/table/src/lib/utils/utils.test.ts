@@ -96,21 +96,21 @@ describe('getNestedValue', () => {
 describe('formatCellValue', () => {
   it('returns string representation of primitive values', () => {
     const col: Column = { accessor: 'name', title: 'Name' };
-    expect(formatCellValue({ name: 'Alice' }, col)).toBe('Alice');
-    expect(formatCellValue({ name: 42 }, col)).toBe('42');
+    expect(formatCellValue({ name: 'Alice' }, col, 'en')).toBe('Alice');
+    expect(formatCellValue({ name: 42 }, col, 'en')).toBe('42');
   });
 
   it('returns empty string for null/undefined values', () => {
     const col: Column = { accessor: 'name', title: 'Name' };
-    expect(formatCellValue({ name: null }, col)).toBe('');
-    expect(formatCellValue({ name: undefined }, col)).toBe('');
-    expect(formatCellValue({}, col)).toBe('');
+    expect(formatCellValue({ name: null }, col, 'en')).toBe('');
+    expect(formatCellValue({ name: undefined }, col, 'en')).toBe('');
+    expect(formatCellValue({}, col, 'en')).toBe('');
   });
 
   it('formats booleans as Yes/No', () => {
     const col: Column = { accessor: 'active', title: 'Active' };
-    expect(formatCellValue({ active: true }, col)).toBe('Yes');
-    expect(formatCellValue({ active: false }, col)).toBe('No');
+    expect(formatCellValue({ active: true }, col, 'en')).toBe('Yes');
+    expect(formatCellValue({ active: false }, col, 'en')).toBe('No');
   });
 
   it('uses custom formatter when provided', () => {
@@ -119,7 +119,26 @@ describe('formatCellValue', () => {
       title: 'Price',
       formatter: (v) => `$${Number(v).toFixed(2)}`
     };
-    expect(formatCellValue({ price: 9.5 }, col)).toBe('$9.50');
+    expect(formatCellValue({ price: 9.5 }, col, 'en')).toBe('$9.50');
+  });
+
+  it('formats a Date in the locale it is given, not the host locale', () => {
+    // The default path for a plain `Date` column — no `component: DateCell`
+    // needed, so this is what most tables actually render. It used to call
+    // `toLocaleDateString()` with no argument, which follows the *runtime*
+    // locale: the server process on one side of hydration, the browser on the
+    // other. Two locales, asserted against each other, so the test cannot pass
+    // by accident on a host that happens to match.
+    const col: Column = { accessor: 'created', title: 'Created' };
+    const item = { created: new Date('2026-03-12T10:30:00Z') };
+
+    expect(formatCellValue(item, col, 'de-DE')).toBe('12.3.2026');
+    expect(formatCellValue(item, col, 'en-US')).toBe('3/12/2026');
+  });
+
+  it('still reports an unparseable Date rather than formatting it', () => {
+    const col: Column = { accessor: 'created', title: 'Created' };
+    expect(formatCellValue({ created: new Date('nonsense') }, col, 'en')).toBe('Invalid Date');
   });
 
   it('falls back to default when formatter returns null', () => {
@@ -128,7 +147,7 @@ describe('formatCellValue', () => {
       title: 'Name',
       formatter: () => null
     };
-    expect(formatCellValue({ name: 'Alice' }, col)).toBe('Alice');
+    expect(formatCellValue({ name: 'Alice' }, col, 'en')).toBe('Alice');
   });
 
   it('uses a function accessor when defined', () => {
@@ -137,7 +156,7 @@ describe('formatCellValue', () => {
       accessor: (item) => item.user.name,
       title: 'Name'
     };
-    expect(formatCellValue({ user: { name: 'Alice' } }, col)).toBe('Alice');
+    expect(formatCellValue({ user: { name: 'Alice' } }, col, 'en')).toBe('Alice');
   });
 });
 

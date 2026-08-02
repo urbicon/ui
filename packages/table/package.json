@@ -36,7 +36,8 @@
     "docs/STICKY-PINNING.md",
     "dist",
     "!dist/**/*.test.*",
-    "!dist/**/*.spec.*"
+    "!dist/**/*.spec.*",
+    "!dist/**/__fixtures__/**"
   ],
   "types": "./dist/index.d.ts",
   "type": "module",

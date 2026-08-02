@@ -36,6 +36,10 @@ export {
   registerTranslationLoaders,
   validatePackageTranslations
 } from '$lib/i18n/package-integration';
+// The `explicit prop → provider → base locale` chain a component resolves an
+// `Intl` tag through. Distinct from `resolveLocale` below: this one answers
+// "what do I format with", not "what locale is this request in".
+export { resolveDateLocale } from '$lib/i18n/resolve-date-locale';
 export type { LocaleSource, ResolveLocaleOptions } from '$lib/i18n/resolve-locale';
 // Server-side initial-locale resolution (cookie + Accept-Language) for the
 // provider's `locale` prop. SSR/hydration-stable.
