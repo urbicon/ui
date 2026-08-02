@@ -167,14 +167,17 @@
         <h4 class="text-text-primary mb-1.5 text-sm font-semibold">Valid inside a paragraph</h4>
         <p class="text-text-secondary text-sm leading-relaxed">
           Trigger, panel and arrow are all <code class="text-text-primary">&lt;span&gt;</code>, so a
-          tooltip is legal in the middle of flowing text — the position it exists for. A
+          tooltip is valid inside a paragraph — the position it exists for. A
           <code class="text-text-primary">&lt;div&gt;</code>
           would close the enclosing <code class="text-text-primary">&lt;p&gt;</code> as the parser
           repairs the document, and the server-rendered HTML would then stop matching the client
           tree.
           <code class="text-text-primary">Popover</code>
-          needs its <code class="text-text-primary">inline</code> prop for the same reason; Tooltip needs
-          no opt-in. What you put in the trigger is still yours to keep phrasing-level.
+          needs its <code class="text-text-primary">inline</code> prop for the same reason; Tooltip
+          needs no opt-in. Two things stay yours: what you put in the trigger has to be
+          phrasing-level too, and the trigger wrapper is
+          <code class="text-text-primary">inline-flex</code> — atomic, so a multi-word trigger will not
+          wrap across lines the way surrounding text does.
         </p>
       </div>
       <div class="py-4">

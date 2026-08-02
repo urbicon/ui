@@ -7,10 +7,11 @@ import type { TooltipSlots, TooltipVariants } from './tooltip.variants';
  * @summary A short explanation on hover or focus.
  * @description Contextual overlay that displays brief, supplementary text on hover or focus.
  * Built on the library's own positioning engine for precise placement and accessibility support.
- * Renders as phrasing content — trigger, panel and arrow are all `<span>` — so it is legal in the
- * middle of a paragraph, which is the position it is meant for. `Popover` needs its `inline` prop
- * for that; `Tooltip` needs no opt-in, because `label` is a string and cannot carry block content.
- * Its trigger children are yours, though: wrapping a `<div>` closes the paragraph again.
+ * Renders as phrasing content — trigger, panel and arrow are all `<span>` — so it is valid inside a
+ * paragraph, the position it is meant for. `Popover` needs its `inline` prop for that; `Tooltip`
+ * needs no opt-in, because `label` is a string and cannot carry block content. Two caveats: the
+ * trigger children are yours, and a `<div>` there closes the paragraph again; and the trigger
+ * wrapper is `inline-flex`, so it is atomic — a multi-word trigger will not break across lines.
  *
  * @tag display
  * @related Popover
@@ -132,8 +133,9 @@ export interface TooltipProps
    * `display` also beats the UA rule `[popover]:not(:popover-open) { display:
    * none }` — the closed tooltip then keeps a laid-out box, invisible but
    * present in the a11y tree and to find-in-page. The same applies to
-   * `slotClasses.base`, a `preset`, and `BlocksProvider` overrides; a lint
-   * covers the library's own variants, but nothing can check yours.
+   * `slotClasses.base`, a `preset`, and `BlocksProvider` overrides. A unit
+   * test holds this component's own variants to the rule; nothing checks
+   * what you pass in.
    */
   class?: string;
 }

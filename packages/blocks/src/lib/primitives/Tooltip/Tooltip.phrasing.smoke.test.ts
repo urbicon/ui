@@ -89,6 +89,18 @@ const compileClass = await (async () => {
   return (cls: string) => compiler.build([cls]);
 })();
 
+/**
+ * Classes the compiler cannot answer for, because they are hand-written CSS
+ * rather than Tailwind utilities. `blocks-menu--open`, Progress' keyframe
+ * classes and Avatar's pulse are the established examples of the pattern, so
+ * the tooltip slot could grow one too — and `declaresDisplay` would have no
+ * rule to inspect.
+ *
+ * Each needs a reason and the file that defines it, the same contract
+ * `variants-lint.ts` uses. An entry that stops being needed is an error.
+ */
+const HAND_WRITTEN_CSS: Record<string, string> = {};
+
 function declaresDisplay(cls: string): boolean {
   // Two escape levels, and skipping the second is silent: Tailwind writes
   // `md:block` as the selector `.md\:block`, and a pattern built from that
@@ -100,7 +112,24 @@ function declaresDisplay(cls: string): boolean {
   const rule = new RegExp(`\\.${inPattern}(?![\\w\\\\-])[^{]*\\{([^}]*)\\}`).exec(
     compileClass(cls)
   );
-  return rule != null && /(?:^|;)\s*display\s*:/.test(rule[1]);
+
+  // No rule at all is NOT an answer, and treating it as "declares no display"
+  // is how the whole check fails open one class at a time. The assembly above
+  // is `@import 'tailwindcss'` plus two theme files — it does not carry
+  // `index.css`, `interaction.css`, `mint/styles.css` or any component-local
+  // `:global` block. Measured: adding `blocks-tooltip-panel` to the base slot
+  // with `:global(.blocks-tooltip-panel){display:block}` in Tooltip.svelte
+  // left this file 16/16 green while the closed popover computed
+  // `display: block` and kept a 90×32 box in Chromium and WebKit.
+  if (rule == null) {
+    if (cls in HAND_WRITTEN_CSS) return false;
+    throw new Error(
+      `\`${cls}\` compiles to no rule, so this check cannot tell whether it sets ` +
+        'display. If it is hand-written CSS, add it to HAND_WRITTEN_CSS in this ' +
+        'file with the file that defines it — do not let it pass silently.'
+    );
+  }
+  return /(?:^|;)\s*display\s*:/.test(rule[1]);
 }
 
 /**
@@ -165,9 +194,12 @@ describe('Tooltip — phrasing content', () => {
   });
 
   it('keeps the panel in the server render, with its id and role', () => {
-    // The half Popover's `inline` mode gives up. `aria-describedby` names this
-    // id, so an SSR'd page must carry the element it points at: dropping it
-    // would make the description resolve to nothing until hydration.
+    // The half Popover's `inline` mode gives up. Not for `aria-describedby`'s
+    // sake — that is gated on `open`, so a hover tooltip never carries it in
+    // the server output at all (a claim this file made in an earlier round and
+    // had already retracted elsewhere). The panel stays because it is mounted
+    // for `bind:this` stability and the arrow middleware, and because a
+    // `<span>` costs nothing to keep.
     const html = renderTooltip();
     expect(html).toContain('role="tooltip"');
     expect(html).toMatch(/id="tooltip-[^"]+"/);
@@ -216,6 +248,19 @@ describe('Tooltip — phrasing content', () => {
       declaresDisplay('block'),
       'the compiler probe cannot see `display: block` — the stylesheet assembly above is broken, so every class below would read as harmless'
     ).toBe(true);
+    // `md:block`, not just `block`: a bare class needs no escaping, so it
+    // exercises the assembly and nothing else. The two-level selector escape
+    // is the part this file calls silent when skipped, and it is the part
+    // that has actually regressed — dropping the second level while planting
+    // a real `md:block` left all five assertions green.
+    expect(
+      declaresDisplay('md:block'),
+      'the probe cannot see display behind a variant prefix — the selector escaping is broken'
+    ).toBe(true);
+    expect(
+      declaresDisplay('[display:block]'),
+      'the probe cannot see an arbitrary display property — the selector escaping is broken'
+    ).toBe(true);
     expect(declaresDisplay('opacity-0'), 'the probe reports display for a class without it').toBe(
       false
     );
@@ -223,7 +268,7 @@ describe('Tooltip — phrasing content', () => {
     const classes = everyPanelClass();
     // Vacuity guard on the input, same reason as the paragraph list below: if
     // tv()'s config shape drifts, `everyPanelClass()` quietly degrades to a
-    // handful of entries. Measured 43 tokens from 12 sources.
+    // handful of entries. Measured 39 tokens from 12 sources.
     expect(classes.length, 'no panel classes read from the config').toBeGreaterThan(20);
     expect(new Set(classes.map(([where]) => where)).size).toBeGreaterThan(5);
 
