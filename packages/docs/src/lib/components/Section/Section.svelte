@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { sectionVariants } from './section.variants';
+  import { type SectionSlots, sectionVariants } from './section.variants';
   import type { SectionProps } from './index.js';
   import { Badge } from '@urbicon-ui/blocks';
 
@@ -17,16 +17,29 @@
     footerSnippet,
     titleSnippet,
     subtitleSnippet,
-    children
+    children,
+    class: className,
+    unstyled = false,
+    slotClasses = {},
+    ...restProps
   }: SectionProps = $props();
 
   // Generate TV classes
   const styles = $derived(sectionVariants({ size, intent, centered }));
 
+  // `unstyled` drops the tv defaults; slotClasses always apply on top.
+  const slot = (name: SectionSlots): string =>
+    [unstyled ? '' : styles[name](), slotClasses[name] ?? ''].filter(Boolean).join(' ');
+
   // Determine whether to show header section
   const hasHeader = $derived(
     !!(title || titleSnippet || subtitle || subtitleSnippet || badges.length > 0 || meta)
   );
+
+  // Only a title actually renders an element carrying `headingId`. A section
+  // with just a subtitle/meta/badges has a header but no heading — pointing
+  // `aria-labelledby` at it would be a dangling IDREF.
+  const hasHeading = $derived(!!(title || titleSnippet));
 
   const HEADING_TAGS = ['h1', 'h2', 'h3', 'h4', 'h5', 'h6'] as const;
   type HeadingTag = (typeof HEADING_TAGS)[number];
@@ -39,20 +52,25 @@
   const headingId = $derived.by(() => `${id}-title`);
 </script>
 
-<section {id} class={styles.root()} aria-labelledby={hasHeader ? headingId : undefined}>
+<section
+  {...restProps}
+  {id}
+  class={[slot('root'), className]}
+  aria-labelledby={hasHeading ? headingId : undefined}
+>
   <!-- Header Section (only rendered if there's content) -->
   {#if hasHeader}
-    <header class={styles.header()}>
-      <div class={styles.headerRow()}>
+    <header class={slot('header')}>
+      <div class={slot('headerRow')}>
         <!-- Title: Snippet takes precedence over prop -->
         {#if titleSnippet}
-          <svelte:element this={headingTag} id={headingId} class={styles.title()}>
-            {#if marker}<span class={styles.marker()}>{marker}</span>{/if}
+          <svelte:element this={headingTag} id={headingId} class={slot('title')}>
+            {#if marker}<span class={slot('marker')}>{marker}</span>{/if}
             {@render titleSnippet()}
           </svelte:element>
         {:else if title}
-          <svelte:element this={headingTag} id={headingId} class={styles.title()}>
-            {#if marker}<span class={styles.marker()}>{marker}</span>{/if}
+          <svelte:element this={headingTag} id={headingId} class={slot('title')}>
+            {#if marker}<span class={slot('marker')}>{marker}</span>{/if}
             {title}
           </svelte:element>
         {/if}
@@ -61,13 +79,15 @@
              via `ml-auto`; if badges are also set, they hang in the
              gap-4 slot directly after. -->
         {#if meta}
-          <span class={styles.meta()}>{meta}</span>
+          <span class={slot('meta')}>{meta}</span>
         {/if}
 
         <!-- Badges -->
         {#if badges.length > 0}
-          <div class={styles.badges()}>
-            {#each badges as badge (badge.text)}
+          <div class={slot('badges')}>
+            <!-- Keyed on text+index: two badges may legitimately carry the
+                 same label, and a bare `badge.text` key would collide. -->
+            {#each badges as badge, i (`${badge.text}-${i}`)}
               <Badge intent={badge.intent} variant={badge.variant} size="sm">
                 {badge.text}
               </Badge>
@@ -78,11 +98,11 @@
 
       <!-- Subtitle: Snippet takes precedence over prop -->
       {#if subtitleSnippet}
-        <div class={styles.subtitle()}>
+        <div class={slot('subtitle')}>
           {@render subtitleSnippet()}
         </div>
       {:else if subtitle}
-        <p class={styles.subtitle()}>
+        <p class={slot('subtitle')}>
           {subtitle}
         </p>
       {/if}
@@ -91,14 +111,14 @@
 
   <!-- Content Section -->
   {#if children}
-    <div class={styles.body()}>
+    <div class={slot('body')}>
       {@render children()}
     </div>
   {/if}
 
   <!-- Footer Section -->
   {#if footerSnippet}
-    <footer class={styles.footer()}>
+    <footer class={slot('footer')}>
       {@render footerSnippet()}
     </footer>
   {/if}

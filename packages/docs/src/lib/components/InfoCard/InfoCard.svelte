@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { infoCardVariants } from './infocard.variants';
+  import { type InfoCardSlots, infoCardVariants } from './infocard.variants';
   import type { InfoCardProps } from './index.js';
 
   let {
@@ -9,22 +9,32 @@
     icon,
     href,
     children,
-    class: className = ''
+    class: className = '',
+    unstyled = false,
+    slotClasses = {},
+    ...restProps
   }: InfoCardProps = $props();
 
   const styles = $derived(infoCardVariants({ intent, size }));
+
+  // `unstyled` drops the tv defaults; slotClasses always apply on top.
+  const slot = (name: InfoCardSlots): string =>
+    [unstyled ? '' : styles[name](), slotClasses[name] ?? ''].filter(Boolean).join(' ');
 </script>
 
 {#snippet body()}
   {#if title || icon}
-    <div class={styles.header()}>
+    <div class={slot('header')}>
       {#if icon}
-        <span class={styles.icon()} role="img" aria-hidden="true">
+        <!-- Decorative only: the title carries the meaning. `aria-hidden` alone
+             is the whole contract — a `role="img"` on a hidden element names
+             nothing and just adds a second, contradictory signal. -->
+        <span class={slot('icon')} aria-hidden="true">
           {icon}
         </span>
       {/if}
       {#if title}
-        <h4 class={styles.title()}>
+        <h4 class={slot('title')}>
           {title}
         </h4>
       {/if}
@@ -32,7 +42,7 @@
   {/if}
 
   {#if children}
-    <div class={styles.content()}>
+    <div class={slot('content')}>
       {@render children()}
     </div>
   {/if}
@@ -41,7 +51,7 @@
 {#if href}
   <!-- The href is provided by the consumer; this component does not own the
        SvelteKit routing layer, so resolve() is the caller's responsibility. -->
-  <a {href} class="{styles.container()} block {className}" aria-label={title}>
+  <a {...restProps} {href} class={[slot('container'), 'block', className]} aria-label={title}>
     {@render body()}
   </a>
 {:else}
@@ -51,7 +61,7 @@
        per page), so a label sourced from the title prop disambiguates them
        for assistive tech. Falls back to a generic "Note" when no title is
        provided. -->
-  <aside class="{styles.container()} {className}" aria-label={title ?? 'Note'}>
+  <aside {...restProps} class={[slot('container'), className]} aria-label={title ?? 'Note'}>
     {@render body()}
   </aside>
 {/if}

@@ -1,4 +1,4 @@
-import { tv, type VariantProps } from '@urbicon-ui/blocks';
+import { type SlotNames, tv, type VariantProps } from '@urbicon-ui/blocks';
 
 /**
  * InfoCard renders as an inline note: no surrounding border and no
@@ -10,7 +10,7 @@ export const infoCardVariants = tv({
   slots: {
     container: ['border-l-2 pl-4 py-2 my-4'],
     header: ['flex items-center gap-2 mb-1'],
-    icon: ['text-base flex-shrink-0 opacity-70'],
+    icon: ['text-base shrink-0 opacity-70'],
     title: ['font-semibold text-text-primary'],
     content: ['leading-relaxed text-text-secondary']
   },
@@ -40,3 +40,5 @@ export const infoCardVariants = tv({
 });
 
 export type InfoCardVariantProps = VariantProps<typeof infoCardVariants>;
+/** Slot names derived from the `tv()` config above — single source of truth for `slotClasses`. */
+export type InfoCardSlots = SlotNames<typeof infoCardVariants>;

@@ -3,7 +3,7 @@
   import { useDocsI18n } from '$lib/i18n';
   import { getCodeVisibilityContext } from '$lib/stores/code-visibility.svelte';
   import CodePanel from '../CodePanel/CodePanel.svelte';
-  import { codeExampleVariants } from './codeexample.variants';
+  import { type CodeExampleSlots, codeExampleVariants } from './codeexample.variants';
   import type { CodeExampleProps } from './index.js';
 
   const dt = useDocsI18n();
@@ -21,7 +21,8 @@
     children,
     class: className,
     unstyled = false,
-    slotClasses = {}
+    slotClasses = {},
+    ...restProps
   }: CodeExampleProps = $props();
 
   const DEFAULT_PREVIEW_CLASS = 'flex flex-wrap items-center gap-4';
@@ -29,7 +30,14 @@
     previewClassProp ?? (isolate ? DEFAULT_PREVIEW_CLASS : '')
   );
 
+  // `hasPreview` is a tv-internal axis driven by the public `preview` prop —
+  // it is deliberately not part of CodeExampleProps, so the two can never
+  // contradict each other.
   const styles = $derived(codeExampleVariants({ size, hasPreview: preview }));
+
+  // `unstyled` drops the tv defaults; slotClasses always apply on top.
+  const slot = (name: CodeExampleSlots): string =>
+    [unstyled ? '' : styles[name](), slotClasses[name] ?? ''].filter(Boolean).join(' ');
 
   const visibilityStore = getCodeVisibilityContext();
 
@@ -69,41 +77,22 @@
   // precedent).
 </script>
 
-<div
-  class={unstyled
-    ? [slotClasses?.container, className].filter(Boolean).join(' ')
-    : styles.container({ class: [slotClasses?.container, className] })}
-  data-docs-stage="example"
->
+<div {...restProps} class={[slot('container'), className]} data-docs-stage="example">
   {#if title}
-    <h3 class={unstyled ? (slotClasses?.title ?? '') : styles.title({ class: slotClasses?.title })}>
+    <h3 class={slot('title')}>
       {title}
     </h3>
   {/if}
 
   {#if description}
-    <div
-      class={unstyled
-        ? (slotClasses?.description ?? '')
-        : styles.description({ class: slotClasses?.description })}
-    >
+    <div class={slot('description')}>
       {description}
     </div>
   {/if}
 
   {#if preview}
-    <div
-      class={unstyled
-        ? (slotClasses?.preview ?? '')
-        : styles.preview({ class: slotClasses?.preview })}
-      data-docs-stage-frame
-    >
-      <div
-        data-docs-preview
-        class={unstyled
-          ? (slotClasses?.previewContent ?? '')
-          : styles.previewContent({ class: slotClasses?.previewContent })}
-      >
+    <div class={slot('preview')} data-docs-stage-frame>
+      <div data-docs-preview class={slot('previewContent')}>
         {#if children}
           {#if effectivePreviewClass}
             <div class={effectivePreviewClass}>

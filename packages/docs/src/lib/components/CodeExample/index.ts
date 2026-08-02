@@ -1,5 +1,19 @@
 import type { Snippet } from 'svelte';
-import type { CodeExampleVariantProps } from './codeexample.variants';
+import type { HTMLAttributes } from 'svelte/elements';
+import type { CodePanelSlotName } from '../CodePanel/index.js';
+import type { CodeExampleSlots, CodeExampleVariantProps } from './codeexample.variants';
+
+/**
+ * CodeExample's own slots, plus the {@link CodePanelSlotName} slots it forwards
+ * to the embedded panel. `codeSection` is the alias for the panel's `root`.
+ */
+export type CodeExampleSlotName =
+  | CodeExampleSlots
+  | 'codeSection'
+  | Extract<
+      CodePanelSlotName,
+      'toolbar' | 'codeToggle' | 'codeChevron' | 'languageTag' | 'copyButton' | 'codeCollapse'
+    >;
 
 /**
  * Code example with optional live preview, syntax highlighting, and copy-to-clipboard.
@@ -12,7 +26,9 @@ import type { CodeExampleVariantProps } from './codeexample.variants';
  * </CodeExample>
  * ```
  */
-export interface CodeExampleProps extends CodeExampleVariantProps {
+export interface CodeExampleProps
+  extends Omit<CodeExampleVariantProps, 'hasPreview'>,
+    Omit<HTMLAttributes<HTMLDivElement>, 'children' | 'title'> {
   /** Title displayed in the card header. */
   title?: string;
   /** Source code string to display with syntax highlighting. */
@@ -36,24 +52,12 @@ export interface CodeExampleProps extends CodeExampleVariantProps {
   /** Remove all default tv styles from internal slots. */
   unstyled?: boolean;
   /** Per-slot class overrides for internal elements. */
-  slotClasses?: Partial<
-    Record<
-      | 'container'
-      | 'title'
-      | 'description'
-      | 'preview'
-      | 'previewContent'
-      | 'toolbar'
-      | 'codeSection'
-      | 'codeToggle'
-      | 'codeChevron'
-      | 'languageTag'
-      | 'copyButton'
-      | 'codeCollapse',
-      string
-    >
-  >;
+  slotClasses?: Partial<Record<CodeExampleSlotName, string>>;
 }
 
 export { default } from './CodeExample.svelte';
-export { type CodeExampleVariantProps, codeExampleVariants } from './codeexample.variants';
+export {
+  type CodeExampleSlots,
+  type CodeExampleVariantProps,
+  codeExampleVariants
+} from './codeexample.variants';

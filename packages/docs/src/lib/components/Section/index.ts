@@ -1,5 +1,6 @@
 import type { Snippet } from 'svelte';
-import type { SectionVariantProps } from './section.variants';
+import type { HTMLAttributes } from 'svelte/elements';
+import type { SectionSlots, SectionVariantProps } from './section.variants';
 
 /**
  * Props interface for Section component
@@ -17,14 +18,18 @@ import type { SectionVariantProps } from './section.variants';
  * </Section>
  * ```
  */
-export interface SectionProps extends SectionVariantProps {
+export interface SectionProps
+  extends SectionVariantProps,
+    Omit<HTMLAttributes<HTMLElement>, 'children' | 'title'> {
   /**
    * Section ID for navigation anchors
    */
   id: string;
 
   /**
-   * Title text (property)
+   * Title text. Renders as the section heading — this is deliberately **not**
+   * the native `title` tooltip attribute, which is why it is omitted from the
+   * inherited `HTMLAttributes`.
    */
   title?: string;
 
@@ -57,15 +62,20 @@ export interface SectionProps extends SectionVariantProps {
   }>;
 
   /**
-   * Custom CSS class for the section element
-   */
-  class?: string;
-
-  /**
    * Heading level for the section title, clamped to 1..6
    * @default 2
    */
   headingLevel?: 1 | 2 | 3 | 4 | 5 | 6;
+
+  // === STYLING ===
+  /** Extra classes merged onto the root element. */
+  class?: string;
+
+  /** Strip all default styles; combine with `slotClasses` to rebuild from scratch. */
+  unstyled?: boolean;
+
+  /** Per-slot class overrides for internal elements. */
+  slotClasses?: Partial<Record<SectionSlots, string>>;
 
   // === SNIPPETS ===
   /**
@@ -92,4 +102,8 @@ export interface SectionProps extends SectionVariantProps {
 // Export Section component
 export { default as Section } from './Section.svelte';
 // Export variants
-export { type SectionVariantProps, sectionVariants } from './section.variants';
+export {
+  type SectionSlots,
+  type SectionVariantProps,
+  sectionVariants
+} from './section.variants';

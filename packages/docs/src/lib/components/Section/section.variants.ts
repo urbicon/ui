@@ -1,4 +1,4 @@
-import { tv, type VariantProps } from '@urbicon-ui/blocks';
+import { type SlotNames, tv, type VariantProps } from '@urbicon-ui/blocks';
 
 export const sectionVariants = tv({
   slots: {
@@ -74,3 +74,5 @@ export const sectionVariants = tv({
 });
 
 export type SectionVariantProps = VariantProps<typeof sectionVariants>;
+/** Slot names derived from the `tv()` config above — single source of truth for `slotClasses`. */
+export type SectionSlots = SlotNames<typeof sectionVariants>;
