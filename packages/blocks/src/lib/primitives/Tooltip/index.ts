@@ -7,6 +7,9 @@ import type { TooltipSlots, TooltipVariants } from './tooltip.variants';
  * @summary A short explanation on hover or focus.
  * @description Contextual overlay that displays brief, supplementary text on hover or focus.
  * Built on the library's own positioning engine for precise placement and accessibility support.
+ * Renders as phrasing content — trigger, panel and arrow are all `<span>` — so it is legal in the
+ * middle of a paragraph, which is the position it is meant for. `Popover` needs its `inline` prop
+ * for that; `Tooltip` needs no opt-in, because `label` is a string and cannot carry block content.
  *
  * @tag display
  * @related Popover
@@ -46,6 +49,12 @@ export interface TooltipProps
     // `HTMLSpanElement`, because that is what `restProps` is spread onto. The
     // panel is a `<span>` so a tooltip is legal inside a paragraph — the
     // position it is documented for. See the markup comment in Tooltip.svelte.
+    //
+    // Type-level break for anyone who annotated a handler as
+    // `HTMLDivElement` or extended `TooltipProps` with div-typed handlers:
+    // svelte's `HTMLAttributes<T>` feeds `T` to the event `currentTarget`.
+    // Zero call sites in this repo (svelte-check across blocks, table, docs
+    // and the docs app).
     Omit<HTMLAttributes<HTMLSpanElement>, 'children'> {
   /** Text displayed inside the tooltip bubble. */
   label: string;

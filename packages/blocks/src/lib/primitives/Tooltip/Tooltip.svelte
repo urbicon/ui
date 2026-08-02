@@ -270,17 +270,24 @@
   `<span>`, not `<div>` — for the panel and for the arrow. A `<div>` start tag
   closes an open `<p>` while the parser repairs the document, and Tooltip is
   the component the library documents for inline targets, i.e. the middle of a
-  sentence. Popover solved the same problem by withholding its panel from the
-  server render, because its content is the consumer's and can be anything;
-  `label` is typed `string`, so a tooltip's panel content is phrasing by
-  construction and needs no such retreat — the panel stays in the SSR output
-  and `aria-describedby` resolves during first paint.
+  sentence.
+
+  Popover solved the same problem by withholding its panel from the server
+  render: its content is the consumer's and can be any element, so no wrapper
+  can make it phrasing-safe. `label` is typed `string`, so a tooltip's panel
+  content is phrasing by construction and a `<span>` holds it legally. That
+  matters here beyond taste — withholding would have contradicted the reason
+  the panel is mounted at all (see above: stable `bind:this`, a live arrow
+  target for the first `computePosition`), so Popover's fix was not available
+  to this component without unpicking that.
 
   Nothing gives these spans a `display`: the inline `position: fixed` below
-  (and `absolute` on the arrow) blockifies them per CSS. That is deliberate —
-  an explicit `display: block` in author CSS would also beat the UA rule
-  `[popover]:not(:popover-open) { display: none }` and leave every closed
-  tooltip painted.
+  (and `absolute` on the arrow) blockifies them per CSS. Load-bearing, and the
+  reason `display` must not be added to the base slot either: an author-level
+  `display` beats the UA rule `[popover]:not(:popover-open) { display: none }`,
+  and a closed tooltip then keeps a laid-out fixed box — invisible (the closed
+  variant is `opacity-0`) but present in the a11y tree and to find-in-page.
+  Measured in Chromium and WebKit, 2026-08-02.
 
   Load-bearing attributes (`popover`, `style`, `role`, `id`) intentionally
   follow `{...restProps}` so a consumer-supplied `popover="auto"`, custom

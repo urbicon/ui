@@ -12,11 +12,12 @@
  * which a tooltip should emit markup that is illegal where it is meant to go.
  *
  * The panel STAYS in the server render — that is the difference from Popover's
- * `inline` mode and the reason this needed its own call. Popover withholds its
- * panel because the content is the consumer's and can be anything; a tooltip's
- * `label` is typed `string`, so the panel's content is phrasing by
- * construction and a `<span>` holds it legally. Withholding would have meant a
- * tooltip whose `aria-describedby` target does not exist during first paint.
+ * `inline` mode. Popover withholds its panel because the content is the
+ * consumer's and can be any element; a tooltip's `label` is typed `string`, so
+ * the panel's content is phrasing by construction and a `<span>` holds it
+ * legally. Withholding was not merely unnecessary here but awkward: the panel
+ * is mounted so `bind:this` stays stable and Floating UI's arrow middleware
+ * always has a target (Tooltip.svelte, above the panel).
  *
  * These run against `render()` from `svelte/server` — the server output is the
  * whole subject. What the client does after mounting is Playwright's job.
@@ -58,7 +59,11 @@ const renderTooltip = (props: Record<string, unknown> = {}) =>
   render(Tooltip, { props: { children, label: 'Save your changes', ...props } }).body;
 
 describe('Tooltip — phrasing content', () => {
-  it('emits no <div> at all — neither trigger nor panel nor arrow', () => {
+  // Everything the component itself emits. The trigger's *children* are the
+  // consumer's and no component change can constrain them — a `<Tooltip>`
+  // wrapped around a `<div>` still breaks the paragraph, and that is the
+  // consumer's call to make.
+  it('emits no <div> of its own — trigger wrapper, panel and arrow', () => {
     const html = renderTooltip();
     expect(
       html,
@@ -84,16 +89,49 @@ describe('Tooltip — phrasing content', () => {
     expect(html).toContain('rotate-45');
   });
 
-  it('keeps position:fixed on the panel, which is what blockifies the span', () => {
+  it('blockifies the panel through position:fixed, never through a display utility', () => {
     // A <span> is inline-level, and the chip needs block layout for its
     // padding, `max-w-xs` and wrapping. Nothing sets `display` for it: CSS
-    // blockifies an absolutely/fixed-positioned box automatically. That is
-    // load-bearing — an explicit `display: block` would ALSO override the UA
-    // rule `[popover]:not(:popover-open) { display: none }` and leave every
-    // closed tooltip painted.
+    // blockifies a fixed-positioned box automatically.
+    //
+    // The negative half is the load-bearing one. An author-level `display`
+    // also beats the UA rule `[popover]:not(:popover-open) { display: none }`,
+    // and a closed tooltip then keeps a laid-out fixed box — invisible, but in
+    // the a11y tree and findable by find-in-page (measured in Chromium and
+    // WebKit, 2026-08-02). So the check covers BOTH places a `display` could
+    // enter: the inline style, and the tv() base slot — which is where every
+    // other display utility in this library lives, and therefore the only one
+    // a maintainer would realistically reach for. Asserting on the inline
+    // style alone let `base: ['block', …]` through, green.
     const html = renderTooltip();
     expect(html).toMatch(/style="position: fixed;[^"]*"/);
-    expect(html).not.toMatch(/style="[^"]*display:\s*block/);
+    expect(html).not.toMatch(/style="[^"]*display:/);
+
+    const panelClass = /<span[^>]*class="([^"]*)"[^>]*role="tooltip"/.exec(html)?.[1];
+    expect(panelClass, 'panel class attribute not found — the regex above went stale').toBeTypeOf(
+      'string'
+    );
+    const DISPLAY_UTILITIES = [
+      'block',
+      'inline-block',
+      'inline',
+      'flex',
+      'inline-flex',
+      'grid',
+      'inline-grid',
+      'flow-root',
+      'contents',
+      'table',
+      'inline-table',
+      'list-item',
+      'hidden'
+    ];
+    for (const utility of (panelClass ?? '').split(/\s+/).filter(Boolean)) {
+      expect(
+        DISPLAY_UTILITIES,
+        `\`${utility}\` sets display on the panel, which defeats [popover]:not(:popover-open)`
+      ).not.toContain(utility);
+    }
   });
 
   it('a paragraph containing a tooltip survives with its <p> intact', () => {
