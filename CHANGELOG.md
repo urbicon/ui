@@ -4,9 +4,31 @@ All notable changes to this project will be documented in this file.
 This changelog is automatically generated from [Conventional Commits](https://www.conventionalcommits.org).
 
 
+## [6.49.0] - 2026-08-02
+
+### Bug Fixes
+- **design**: Deliver the context block to Claude Code
+
+### CI/CD
+- Silence the Node 20 deprecation, cut the release gate's e2e time
+- Revert the worker bump — measured slower and flaky
+- Shard the e2e suite, and stop re-running it on an already-green tag
+- Unchain the build job, split the slow e2e slice four ways
+- Give every CI job its own permissions block
+- Deploy from Actions once the pipeline is green
+
+### Documentation
+- **design**: Group --help by purpose, knowledge first
+- **design-engine**: Teach landmarks and the text-*-emphasis rung
+
+### Features
+- **mcp-server**: Bind loopback by default, add --host
+- **design**: Get-component takes a batch of slugs
+
 ## [6.48.1] - 2026-08-01
 
 ### Bug Fixes
+- **auth**: Stop accepting P2023, and never let classification throw
 - **deps**: Unblock the release lint gate after the Biome 2.5.6 upgrade
 - **design**: Make the installed hook actually run, and name the real stylesheet
 - **blocks,table**: Give the table toolbar and pagination arrows accessible names
@@ -17,6 +39,9 @@ This changelog is automatically generated from [Conventional Commits](https://ww
 - **deps**: Hand packages over to OIDC one at a time, not all at once
 - **deps**: Add a script to register the trusted publishers
 
+### Miscellaneous
+- Reformat the three files biome 2.5.6 wants differently
+
 ### Styling
 - **design**: Keep the tailwindSteps doc comment on tailwindSteps
 
@@ -26,17 +51,23 @@ This changelog is automatically generated from [Conventional Commits](https://ww
 ## [6.48.0] - 2026-08-01
 
 ### Bug Fixes
+- **auth**: Make the Prisma adapter answer misses instead of throwing
+- **auth**: Say "revoke all" outright instead of keeping an empty family
+- **auth**: Guard the Prisma client through a proxy, not a copy
+- **auth**: Narrow the id guard to the error it claims to catch
 - **blocks**: Keep the Toggle track at its nominal width
 - **blocks**: Stop the month name from setting the calendar's width
 - **docs-app**: Hide the tile scroller arrows on touch, not by width
 
 ### Documentation
 - Add a step 00 and align the app.css story across surfaces
+- **auth**: Say which id column types an adapter may use
 
 ### Features
 - **design**: Version-stamp the context block, content-based staleness
 - **sv**: Add the @urbicon-ui/sv Svelte-CLI community add-on (beta)
 - **auth**: Make the adapter conformance suite runnable for third-party adapters (#71)
+- **auth**: Pin what an adapter does with an id it cannot represent
 - **table**: Collapse mobile cards, fold the filter tools into one menu
 
 ### Miscellaneous
