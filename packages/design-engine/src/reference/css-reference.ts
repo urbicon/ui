@@ -164,9 +164,19 @@ Each intent has these variants (example: \`primary\`):
 | \`--color-primary-hover\` | \`bg-primary-hover\` | Hover state | primary-700 | primary-400 |
 | \`--color-primary-active\` | \`bg-primary-active\` | Pressed state | primary-800 | — |
 | \`--color-primary-subtle\` | \`bg-primary-subtle\` | Soft background | primary-50 | primary-900 |
-| \`--color-primary-emphasis\` | \`bg-primary-emphasis\` | Strong/dark variant | primary-900 | — |
+| \`--color-primary-emphasis\` | \`bg-primary-emphasis\` / \`text-primary-emphasis\` | Intent text on a surface | primary-900 | primary-200 |
 
 Same pattern applies to: \`success-*\`, \`warning-*\`, \`danger-*\`, \`secondary-*\`, \`neutral-*\`.
+
+**Intent text on a surface takes \`-emphasis\`, not the base.** \`text-primary\` is tuned
+as a *fill* colour and only just clears AA as text: measured in dark mode it runs
+4.07:1 on \`surface-elevated\` (fails), 4.54:1 on \`surface-quiet\` and 4.75:1 on
+\`surface-base\` — 0.25 of headroom across the whole surface ladder, so which side of
+the threshold a screen lands on is decided by the card variant it happens to sit in.
+\`text-primary-emphasis\` is the rung meant for this and clears it with room (9.77:1 on
+\`surface-elevated\`); it flips to a light shade in dark mode for exactly that reason.
+Keep \`text-primary\` for what it is good at — a link or a label that carries the brand
+on the base surface. (Not to be confused with \`text-text-primary\`, the body-copy token.)
 
 \`info-*\` has the identical shape (\`--color-info\`, \`-hover\`, \`-active\`, \`-subtle\`, \`-emphasis\` → \`bg-info\`, \`text-info\`, \`bg-info-subtle\`, …) — the status/feedback blue (hue 220) behind Alert and Toast's info state, \`--color-feedback-info\`, and \`--color-chart-5\`. It is NOT in the global \`ComponentIntent\` union above: only the feedback components (Alert, Toast) accept \`intent="info"\`, because only there does "informational" name a status. Everything else — Button, Badge, Tooltip, … — takes the six-value union, so reach for the \`bg-info\`/\`text-info\` utilities rather than \`intent="info"\`. (Tooltip carried \`info\` until v6.42; it rendered one hue step from \`primary\` and implied a distinction it could not show.)
 

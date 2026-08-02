@@ -69,6 +69,7 @@ These heuristics map common UI needs to the right Urbicon UI component:
 ### Layout markup
 
 - **Layout is markup, not a component.** There is no `Stack`, `Box` or `Row` in this library: a `<div class="flex …">` that carries a layout decision is the correct tool, not a shortcoming.
+- **Top-level regions are landmarks, not `<div>`s.** Page content goes in `<main>`, site navigation in `<nav>`, the page banner in `<header>`, and a titled section in `<section>` with an `aria-label` (or a heading it is labelled by). Every node that lands outside one is a screen-reader dead zone — this is the most frequent accessibility failure measured across generated pages, and it scales with page length.
 - **Every wrapper earns its place.** A `<div>` without layout utilities, one whose single child could carry the classes itself, or two nested flex containers that could be one — each is noise, not structure.
 - **Use a component only where one genuinely fits.** `Separator` for a break inside a surface; `Toolbar` for a bar of controls. `ButtonGroup` is for buttons that are visually connected or share a selection — two independent actions side by side stay two `Button`s in a flex container.
 - **When changing existing markup, fit the change in rather than wrapping it.** A new row inside a card belongs in the structure that is already there.
