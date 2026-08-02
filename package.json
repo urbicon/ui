@@ -113,7 +113,8 @@
     "playgrounds:lint": "bun --filter='@urbicon-ui/docs-app' run playgrounds:lint",
     "registry:lint": "bun --filter='@urbicon-ui/docs-app' run registry:lint",
     "summary:lint": "bun run packages/docs-gen/scripts/summary-lint.ts",
-    "examples:lint": "bun run packages/docs-gen/scripts/examples-lint.ts"
+    "examples:lint": "bun run packages/docs-gen/scripts/examples-lint.ts",
+    "sections:lint": "bun --filter='@urbicon-ui/docs-app' run sections:lint"
   },
   "devDependencies": {
     "@axe-core/playwright": "^4.12.1",

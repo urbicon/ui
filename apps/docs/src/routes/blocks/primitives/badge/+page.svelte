@@ -17,6 +17,7 @@
   const navigation = [
     { id: 'playground', title: 'Playground', order: 1 },
     { id: 'examples', title: 'Examples', order: 2 },
+    { id: 'patterns', title: 'Patterns', order: 3 },
     { id: 'customization', title: 'Customization', order: 3 },
     { id: 'accessibility', title: 'Accessibility', order: 4 },
     { id: 'api', title: 'API Reference', order: 5 },
