@@ -124,7 +124,17 @@ export interface TooltipProps
    */
   preset?: string;
 
-  /** Additional CSS class for the tooltip panel. */
+  /**
+   * Additional CSS class for the tooltip panel.
+   *
+   * One class to avoid: anything that sets `display`. The panel is a `<span>`
+   * that CSS blockifies through its `position: fixed`, and an author-level
+   * `display` also beats the UA rule `[popover]:not(:popover-open) { display:
+   * none }` — the closed tooltip then keeps a laid-out box, invisible but
+   * present in the a11y tree and to find-in-page. The same applies to
+   * `slotClasses.base`, a `preset`, and `BlocksProvider` overrides; a lint
+   * covers the library's own variants, but nothing can check yours.
+   */
   class?: string;
 }
 

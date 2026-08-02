@@ -290,7 +290,10 @@
   `display` beats the UA rule `[popover]:not(:popover-open) { display: none }`,
   and a closed tooltip then keeps a laid-out fixed box — invisible (the closed
   variant is `opacity-0`) but present in the a11y tree and to find-in-page.
-  Measured in Chromium and WebKit, 2026-08-02.
+  Measured in Chromium and WebKit, 2026-08-02. A test guards this slot; the
+  consumer-side routes to the same class list (`class`, `slotClasses.base`,
+  a `preset`, provider overrides) cannot be guarded, so the `class` prop's
+  JSDoc says so.
 
   Load-bearing attributes (`popover`, `style`, `role`, `id`) intentionally
   follow `{...restProps}` so a consumer-supplied `popover="auto"`, custom

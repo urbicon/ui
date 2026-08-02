@@ -202,10 +202,28 @@ describe('Tooltip — phrasing content', () => {
     expect(html).toMatch(/style="position: fixed;[^"]*"/);
     expect(html).not.toMatch(/style="[^"]*display:/);
 
+    // Positive control on the ORACLE, not just on the input. `declaresDisplay`
+    // fails open: anything that degrades the stylesheet assembly above — a
+    // moved file, a changed Tailwind entry point, a resolution failure — makes
+    // it answer `false` for every class, and this test reports clean while a
+    // plain `block` sits in the base slot. Verified by blanking the
+    // `@import 'tailwindcss'` line with a real `block` planted: 5 passed,
+    // because both guards below count the class *collection*, which is still
+    // perfectly intact. This is the one half that depends on an external
+    // toolchain rather than on data already in the process, and it was the
+    // one half with no guard.
+    expect(
+      declaresDisplay('block'),
+      'the compiler probe cannot see `display: block` — the stylesheet assembly above is broken, so every class below would read as harmless'
+    ).toBe(true);
+    expect(declaresDisplay('opacity-0'), 'the probe reports display for a class without it').toBe(
+      false
+    );
+
     const classes = everyPanelClass();
-    // Vacuity guard, same reason as the paragraph list below: if tv()'s config
-    // shape drifts, `everyPanelClass()` quietly degrades to a handful of
-    // entries and the loop proves nothing. Measured 43 tokens from 12 sources.
+    // Vacuity guard on the input, same reason as the paragraph list below: if
+    // tv()'s config shape drifts, `everyPanelClass()` quietly degrades to a
+    // handful of entries. Measured 43 tokens from 12 sources.
     expect(classes.length, 'no panel classes read from the config').toBeGreaterThan(20);
     expect(new Set(classes.map(([where]) => where)).size).toBeGreaterThan(5);
 
