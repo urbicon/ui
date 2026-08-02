@@ -43,7 +43,7 @@ import { compile } from '@tailwindcss/node';
  *     false positive that way; seven variant configs already use
  *     `content-[…]`, so a `content-['×']` is one edit from a red CI.
  */
-function escapeClass(cls: string): string {
+export function escapeClass(cls: string): string {
   const escaped = cls.replace(/[^\w-]/gu, (ch) =>
     (ch.codePointAt(0) ?? 0) >= 0x80 ? ch : `\\${ch}`
   );

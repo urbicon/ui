@@ -7,6 +7,11 @@ import type { TooltipSlots, TooltipVariants } from './tooltip.variants';
  * @summary A short explanation on hover or focus.
  * @description Contextual overlay that displays brief, supplementary text on hover or focus.
  * Built on the library's own positioning engine for precise placement and accessibility support.
+ * Renders as phrasing content — trigger, panel and arrow are all `<span>` — so it is valid inside a
+ * paragraph, the position it is meant for. `Popover` needs its `inline` prop for that; `Tooltip`
+ * needs no opt-in, because `label` is a string and cannot carry block content. Two caveats: the
+ * trigger children are yours, and a `<div>` there closes the paragraph again; and the trigger
+ * wrapper is `inline-flex`, so it is atomic — a multi-word trigger will not break across lines.
  *
  * @tag display
  * @related Popover
@@ -43,7 +48,16 @@ import type { TooltipSlots, TooltipVariants } from './tooltip.variants';
  */
 export interface TooltipProps
   extends TooltipVariants,
-    Omit<HTMLAttributes<HTMLDivElement>, 'children'> {
+    // `HTMLSpanElement`, because that is what `restProps` is spread onto. The
+    // panel is a `<span>` so a tooltip is legal inside a paragraph — the
+    // position it is documented for. See the markup comment in Tooltip.svelte.
+    //
+    // Type-level break for anyone who annotated a handler as
+    // `HTMLDivElement` or extended `TooltipProps` with div-typed handlers:
+    // svelte's `HTMLAttributes<T>` feeds `T` to the event `currentTarget`.
+    // Zero call sites in this repo (svelte-check across blocks, table, docs
+    // and the docs app).
+    Omit<HTMLAttributes<HTMLSpanElement>, 'children'> {
   /** Text displayed inside the tooltip bubble. */
   label: string;
 
@@ -111,7 +125,18 @@ export interface TooltipProps
    */
   preset?: string;
 
-  /** Additional CSS class for the tooltip panel. */
+  /**
+   * Additional CSS class for the tooltip panel.
+   *
+   * One class to avoid: anything that sets `display`. The panel is a `<span>`
+   * that CSS blockifies through its `position: fixed`, and an author-level
+   * `display` also beats the UA rule `[popover]:not(:popover-open) { display:
+   * none }` — the closed tooltip then keeps a laid-out box, invisible but
+   * present in the a11y tree and to find-in-page. The same applies to
+   * `slotClasses.base`, a `preset`, and `BlocksProvider` overrides. A unit
+   * test holds this component's own variants to the rule; nothing checks
+   * what you pass in.
+   */
   class?: string;
 }
 
