@@ -163,10 +163,10 @@
   <!-- `id` is the anchor TypesReference links back to; a page may override it via restProps. -->
   <section {...restProps} id="api-reference" class={[slot('base'), className]}>
     <div class={slot('stats')}>
-      <span>{sortedProps.length} props</span>
+      <span>{dt('propsCount', { count: sortedProps.length })}</span>
       {#if requiredCount > 0}
         <span aria-hidden="true">·</span>
-        <span class={slot('requiredCount')}>{requiredCount} required</span>
+        <span class={slot('requiredCount')}>{dt('requiredCount', { count: requiredCount })}</span>
       {/if}
     </div>
 
@@ -175,9 +175,9 @@
       {columns}
       itemsPerPage={999}
       enableSmartFilter={sortedProps.length > 6}
-      searchPlaceholder="Filter properties…"
+      searchPlaceholder={dt('filterProperties')}
       searchDebounceMs={200}
-      noDataText={hydrated ? 'No matching properties' : 'Loading properties…'}
+      noDataText={hydrated ? dt('noMatchingProperties') : dt('loadingProperties')}
       size="sm"
     >
       {#snippet cell(rawItem, value, column)}
@@ -188,12 +188,12 @@
               {item.name}
             </code>
             {#if (item.source?.type ?? 'direct') === 'variant'}
-              <Badge variant="soft" intent="primary" size="xs">variant</Badge>
+              <Badge variant="soft" intent="primary" size="xs">{dt('badgeVariant')}</Badge>
             {:else if (item.source?.type ?? 'direct') === 'inherited'}
-              <Badge variant="soft" intent="warning" size="xs">inherited</Badge>
+              <Badge variant="soft" intent="warning" size="xs">{dt('badgeInherited')}</Badge>
             {/if}
             {#if item.required}
-              <Badge variant="soft" intent="danger" size="xs">required</Badge>
+              <Badge variant="soft" intent="danger" size="xs">{dt('badgeRequired')}</Badge>
             {/if}
           </div>
         {:else if column.id === 'type'}

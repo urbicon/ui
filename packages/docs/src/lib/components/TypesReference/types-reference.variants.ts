@@ -19,6 +19,8 @@ export const typesReferenceVariants = tv({
       'bg-surface-quiet text-text-secondary',
       'inline-flex items-center rounded-modify font-medium'
     ],
+    // "+N more" after the capped literal badges — was an inline class string.
+    moreValues: ['text-text-tertiary text-2xs'],
     usedBySection: ['text-text-secondary mt-2'],
     usedByLink: [
       'text-primary hover:text-primary-emphasis',

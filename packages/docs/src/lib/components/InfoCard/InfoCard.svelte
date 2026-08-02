@@ -1,6 +1,9 @@
 <script lang="ts">
   import { type InfoCardSlots, infoCardVariants } from './infocard.variants';
   import type { InfoCardProps } from './index.js';
+  import { useDocsI18n } from '$lib/i18n';
+
+  const dt = useDocsI18n();
 
   let {
     title,
@@ -61,7 +64,11 @@
        per page), so a label sourced from the title prop disambiguates them
        for assistive tech. Falls back to a generic "Note" when no title is
        provided. -->
-  <aside {...restProps} class={[slot('container'), className]} aria-label={title ?? 'Note'}>
+  <aside
+    {...restProps}
+    class={[slot('container'), className]}
+    aria-label={title ?? dt('noteLabel')}
+  >
     {@render body()}
   </aside>
 {/if}

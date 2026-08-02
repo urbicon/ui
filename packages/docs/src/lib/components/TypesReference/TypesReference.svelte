@@ -11,8 +11,8 @@
 
   let {
     types = [],
-    title = 'Types',
-    description = 'Local type definitions used by this component.',
+    title,
+    description,
     size = 'md',
     class: className,
     unstyled = false,
@@ -23,6 +23,10 @@
 
   const styles = $derived(typesReferenceVariants({ size }));
 
+  // Locale-backed defaults; a consumer prop always wins.
+  const headingTitle = $derived(title ?? dt('typesTitle'));
+  const headingDescription = $derived(description ?? dt('typesDescription'));
+
   type SlotName = keyof NonNullable<TypesReferenceProps['slotClasses']>;
   function slot(name: SlotName) {
     if (unstyled) return slotClasses?.[name] ?? '';
@@ -32,13 +36,21 @@
 
   let onlyReferenced = $state(false);
 
-  const columns: Column[] = [
-    { accessor: 'name', title: 'Name', sortable: true, searchable: true, minWidth: '160px' },
-    { accessor: 'kind', title: 'Kind', sortable: true, minWidth: '100px' },
-    { accessor: 'category', title: 'Category', sortable: true, minWidth: '120px' },
-    { accessor: 'usedBy', title: 'Used by', sortable: true, minWidth: '120px' },
-    { accessor: 'documentation', title: 'Description', searchable: true, minWidth: '280px' }
-  ];
+  // `$derived`, not a plain const: the titles come from the locale, so a
+  // language switch has to rebuild the column set (same reason as ApiReference).
+  const columns: Column[] = $derived([
+    {
+      accessor: 'name',
+      title: dt('typeName'),
+      sortable: true,
+      searchable: true,
+      minWidth: '160px'
+    },
+    { accessor: 'kind', title: dt('typeKind'), sortable: true, minWidth: '100px' },
+    { accessor: 'category', title: dt('typeCategory'), sortable: true, minWidth: '120px' },
+    { accessor: 'usedBy', title: dt('typeUsedBy'), sortable: true, minWidth: '120px' },
+    { accessor: 'documentation', title: dt('description'), searchable: true, minWidth: '280px' }
+  ]);
 
   const tableItems = $derived.by(() =>
     (types || []).map((t, index) => ({
@@ -47,7 +59,11 @@
       kind: t.type,
       category:
         t.category ||
-        (t.name.endsWith('Props') ? 'props' : t.name.match(/Variants?$/) ? 'variant' : 'helper'),
+        (t.name.endsWith('Props')
+          ? dt('categoryProps')
+          : t.name.match(/Variants?$/)
+            ? dt('categoryVariant')
+            : dt('categoryHelper')),
       usedBy: Array.isArray(t.usedByProps) ? String(t.usedByProps.length) : '0',
       documentation: t.documentation || ''
     }))
@@ -77,20 +93,20 @@
 <section id="types" class="{slot('root')} {className ?? ''}" {...restProps}>
   <div class="space-y-6">
     <div class={slot('header')}>
-      <h2 class={slot('title')}>{title}</h2>
-      {#if description}
-        <p class={slot('description')}>{description}</p>
+      <h2 class={slot('title')}>{headingTitle}</h2>
+      {#if headingDescription}
+        <p class={slot('description')}>{headingDescription}</p>
       {/if}
     </div>
 
     <Card variant="elevated" padding="none">
       <div class={slot('toolbar')}>
         <div class={slot('toolbarText')}>
-          {filteredItems.length} type{filteredItems.length !== 1 ? 's' : ''}
+          {dt('typesCount', { count: filteredItems.length })}
         </div>
         <Checkbox
           class={slot('filterLabel')}
-          label="Only referenced"
+          label={dt('onlyReferenced')}
           checked={onlyReferenced}
           onCheckedChange={(val) => (onlyReferenced = val)}
         />
@@ -102,7 +118,7 @@
           {columns}
           itemsPerPage={50}
           enableSmartFilter={false}
-          searchPlaceholder="Search types..."
+          searchPlaceholder={dt('searchTypes')}
         >
           {#snippet expandedRowContent(item)}
             {@const t = (types || []).find((x) => x.name === (item.name as string))}
@@ -128,8 +144,8 @@
                       <span class={slot('literalBadge')}>{val}</span>
                     {/each}
                     {#if values.length > 12}
-                      <span class="text-text-tertiary text-2xs">
-                        +{values.length - 12} more
+                      <span class={slot('moreValues')}>
+                        {dt('moreValues', { count: values.length - 12 })}
                       </span>
                     {/if}
                   </div>

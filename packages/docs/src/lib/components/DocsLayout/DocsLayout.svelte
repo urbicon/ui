@@ -151,7 +151,7 @@
           : 'text-danger border-danger/40'}
     <span
       class="font-meta rounded-modify ml-2 inline-flex items-center border px-1.5 py-0.5 align-middle text-xs tracking-wider uppercase {stabilityIntent}"
-      aria-label={`Stability: ${stability}`}
+      aria-label={dt('stabilityLabel', { stability })}
     >
       {stability}
     </span>
@@ -173,7 +173,7 @@
       rel="noopener noreferrer"
       class="font-meta text-text-tertiary hover:text-text-primary inline-flex shrink-0 items-center gap-1 px-2 py-1.5 text-xs tracking-wider uppercase transition-colors"
     >
-      source <span aria-hidden="true">↗</span>
+      {dt('sourceLink')} <span aria-hidden="true">↗</span>
     </a>
   {/if}
 {/snippet}

@@ -12,21 +12,44 @@ export default {
   playgroundSubtitle: '',
 
   // API Reference
+  // Zählwerte in der Statuszeile. So formuliert, dass eine Fassung für jede
+  // Anzahl passt — die Laufzeit interpoliert, wählt aber keinen Plural.
+  propsCount: '{{count}} Props',
+  requiredCount: '{{count}} erforderlich',
+  filterProperties: 'Properties filtern…',
+  noMatchingProperties: 'Keine passenden Properties',
+  loadingProperties: 'Properties werden geladen…',
+  badgeVariant: 'Variante',
+  badgeInherited: 'geerbt',
+  badgeRequired: 'erforderlich',
   property: 'Prop',
   type: 'Typ',
   default: 'Standard',
   description: 'Beschreibung',
-  usageNotes: 'Nutzungshinweise',
-  required: 'Erforderlich',
   noApiProperties: 'Keine API-Properties',
   noApiPropertiesBody: 'Für diese Komponente wurden keine API-Properties gefunden.',
 
   // TypesReference
+  typesTitle: 'Typen',
+  typesDescription: 'Lokale Typdefinitionen, die diese Komponente verwendet.',
+  typeName: 'Name',
+  typeKind: 'Art',
+  typeCategory: 'Kategorie',
+  typeUsedBy: 'Verwendet von',
+  typesCount: '{{count}} Typen',
+  onlyReferenced: 'Nur referenzierte',
+  searchTypes: 'Typen suchen…',
+  moreValues: '+{{count}} weitere',
+  categoryProps: 'Props',
+  categoryVariant: 'Variante',
+  categoryHelper: 'Hilfstyp',
   seeAlsoLabel: 'Siehe',
   usedByLabel: 'Verwendet von:',
   noTypesMatch: 'Keine Typen passen zum aktuellen Filter.',
 
   // DocsLayout
+  stabilityLabel: 'Stabilität: {{stability}}',
+  sourceLink: 'Quelle',
   breadcrumbLabel: 'Brotkrumen-Navigation',
 
   // CodeExample
@@ -51,6 +74,9 @@ export default {
   hintsOn: 'Hinweise an',
   copyLink: 'Link kopieren',
   linkCopied: 'Link kopiert!',
+
+  // InfoCard
+  noteLabel: 'Hinweis',
 
   // CodeExample fallback
   codeExtractionFallback:

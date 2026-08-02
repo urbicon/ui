@@ -12,21 +12,44 @@ export default {
   playgroundSubtitle: '',
 
   // API Reference
+  // Counts in the stats line. Phrased so one wording fits any count — the
+  // runtime interpolates but has no plural selection.
+  propsCount: '{{count}} props',
+  requiredCount: '{{count}} required',
+  filterProperties: 'Filter properties…',
+  noMatchingProperties: 'No matching properties',
+  loadingProperties: 'Loading properties…',
+  badgeVariant: 'variant',
+  badgeInherited: 'inherited',
+  badgeRequired: 'required',
   property: 'Prop',
   type: 'Type',
   default: 'Default',
   description: 'Description',
-  usageNotes: 'Usage Notes',
-  required: 'Required',
   noApiProperties: 'No API Properties',
   noApiPropertiesBody: 'No API properties found for this component.',
 
   // TypesReference
+  typesTitle: 'Types',
+  typesDescription: 'Local type definitions used by this component.',
+  typeName: 'Name',
+  typeKind: 'Kind',
+  typeCategory: 'Category',
+  typeUsedBy: 'Used by',
+  typesCount: '{{count}} types',
+  onlyReferenced: 'Only referenced',
+  searchTypes: 'Search types…',
+  moreValues: '+{{count}} more',
+  categoryProps: 'props',
+  categoryVariant: 'variant',
+  categoryHelper: 'helper',
   seeAlsoLabel: 'See',
   usedByLabel: 'Used by:',
   noTypesMatch: 'No types match the current filter.',
 
   // DocsLayout
+  stabilityLabel: 'Stability: {{stability}}',
+  sourceLink: 'source',
   breadcrumbLabel: 'Breadcrumb',
 
   // CodeExample
@@ -53,6 +76,9 @@ export default {
   hintsOn: 'Hints on',
   copyLink: 'Copy link',
   linkCopied: 'Link copied!',
+
+  // InfoCard
+  noteLabel: 'Note',
 
   // CodeExample fallback
   codeExtractionFallback:
