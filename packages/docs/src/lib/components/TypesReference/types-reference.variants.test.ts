@@ -13,7 +13,6 @@ describe('typesReferenceVariants', () => {
       'toolbar',
       'toolbarText',
       'filterLabel',
-      'expandedRow',
       'codeBlock',
       'documentation',
       'literalValues',

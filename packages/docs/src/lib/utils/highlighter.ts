@@ -18,6 +18,10 @@ class HighlighterService {
     this.initPromise = this.initializeHighlighter();
     this.highlighter = await this.initPromise;
 
+    // `isInitialized` guards the LISTENER, not the highlighter, and is
+    // deliberately not reset in `dispose()`: the listener is never removed, so
+    // it still calls dispose after a manual one, and resetting the flag would
+    // only register a second copy of it.
     if (!this.isInitialized && typeof window !== 'undefined') {
       window.addEventListener('beforeunload', () => this.dispose());
       this.isInitialized = true;

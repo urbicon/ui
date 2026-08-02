@@ -10,7 +10,6 @@ export const typesReferenceVariants = tv({
     toolbar: ['flex items-center justify-between gap-3'],
     toolbarText: ['text-text-secondary'],
     filterLabel: ['text-text-primary flex items-center gap-2'],
-    expandedRow: [],
     codeBlock: ['bg-surface-quiet text-text-primary', 'overflow-x-auto rounded-contain font-mono'],
     documentation: ['text-text-secondary'],
     literalValues: ['mt-2 flex flex-wrap gap-1'],
