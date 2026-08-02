@@ -26,11 +26,16 @@ function respondError(res: ServerResponse, status: number, code: number, message
  * server that offers no sessions. Any non-`/mcp` path returns a plain-text
  * banner (a lightweight liveness ping).
  *
- * @param port - TCP port to listen on (binds `http://localhost:<port>/mcp`).
+ * @param port - TCP port to listen on (binds `http://<host>:<port>/mcp`).
+ * @param host - Interface to bind. Defaults to loopback: the server has no auth
+ *   of its own and belongs behind a reverse proxy. Pass `0.0.0.0` to widen it.
  * @returns A stop handle; `index.ts` ignores it and runs until the process
  *   exits, the transport test uses it to shut the listener down.
  */
-export async function startHttpTransport(port: number): Promise<{ close: () => Promise<void> }> {
+export async function startHttpTransport(
+  port: number,
+  host = '127.0.0.1'
+): Promise<{ close: () => Promise<void> }> {
   const httpServer = createHttpServer(async (req, res) => {
     const url = new URL(req.url || '/', `http://localhost:${port}`);
 
@@ -74,8 +79,8 @@ export async function startHttpTransport(port: number): Promise<{ close: () => P
   });
 
   await new Promise<void>((resolve) => {
-    httpServer.listen(port, () => {
-      console.error(`Urbicon UI MCP Server listening on http://localhost:${port}/mcp`);
+    httpServer.listen(port, host, () => {
+      console.error(`Urbicon UI MCP Server listening on http://${host}:${port}/mcp`);
       resolve();
     });
   });
