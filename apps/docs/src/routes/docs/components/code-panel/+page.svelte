@@ -13,11 +13,11 @@
   import { asset, resolve } from '$app/paths';
 
   const navigation = [
-    { id: 'playground', title: 'Playground', order: 1 },
-    { id: 'examples', title: 'Examples', order: 2 },
-    { id: 'usage', title: 'Usage Notes', order: 3 },
-    { id: 'accessibility', title: 'Accessibility', order: 4 },
-    { id: 'api', title: 'API Reference', order: 5 }
+    { id: 'playground', title: 'Playground' },
+    { id: 'examples', title: 'Examples' },
+    { id: 'usage', title: 'Usage Notes' },
+    { id: 'accessibility', title: 'Accessibility' },
+    { id: 'api', title: 'API Reference' }
   ];
 
   const SAMPLE = `<script lang="ts">

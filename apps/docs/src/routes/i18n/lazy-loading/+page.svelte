@@ -4,10 +4,10 @@
   import { resolve } from '$app/paths';
 
   const navigation = [
-    { id: 'when', title: 'When to use it', order: 1 },
-    { id: 'loaders', title: 'Registering loaders', order: 2 },
-    { id: 'lifecycle', title: 'Load lifecycle', order: 3 },
-    { id: 'tradeoffs', title: 'Trade-offs', order: 4 }
+    { id: 'when', title: 'When to use it' },
+    { id: 'loaders', title: 'Registering loaders' },
+    { id: 'lifecycle', title: 'Load lifecycle' },
+    { id: 'tradeoffs', title: 'Trade-offs' }
   ];
 
   const loadersCode = `export const blocksI18n = createPackageI18n(

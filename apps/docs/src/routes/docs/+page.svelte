@@ -60,10 +60,10 @@
   ];
 
   const navigation = [
-    { id: 'overview', title: 'Overview', order: 1 },
-    { id: 'anatomy', title: 'Page Anatomy', order: 2 },
-    { id: 'content-blocks', title: 'Content Blocks', order: 3 },
-    { id: 'installation', title: 'Installation', order: 4 }
+    { id: 'overview', title: 'Overview' },
+    { id: 'anatomy', title: 'Page Anatomy' },
+    { id: 'content-blocks', title: 'Content Blocks' },
+    { id: 'installation', title: 'Installation' }
   ];
 
   const usageCode =

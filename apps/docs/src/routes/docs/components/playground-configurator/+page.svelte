@@ -10,14 +10,14 @@
   import { asset, resolve } from '$app/paths';
 
   const navigation = [
-    { id: 'playground', title: 'Playground', order: 1 },
-    { id: 'control-types', title: 'Control Types', order: 2 },
-    { id: 'conditional', title: 'Conditional Controls', order: 3 },
-    { id: 'sizes', title: 'Sizes', order: 4 },
-    { id: 'code-gen', title: 'Code Generation', order: 5 },
-    { id: 'prop-docs', title: 'PropDocs & Variants', order: 6 },
-    { id: 'use-cases', title: 'Use Cases', order: 7 },
-    { id: 'api', title: 'API Reference', order: 8 }
+    { id: 'playground', title: 'Playground' },
+    { id: 'control-types', title: 'Control Types' },
+    { id: 'conditional', title: 'Conditional Controls' },
+    { id: 'sizes', title: 'Sizes' },
+    { id: 'code-gen', title: 'Code Generation' },
+    { id: 'prop-docs', title: 'PropDocs & Variants' },
+    { id: 'use-cases', title: 'Use Cases' },
+    { id: 'api', title: 'API Reference' }
   ];
 
   // Static map — Tailwind only compiles complete class literals, so the

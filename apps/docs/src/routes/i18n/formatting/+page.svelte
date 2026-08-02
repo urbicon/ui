@@ -5,9 +5,9 @@
   import { resolve } from '$app/paths';
 
   const navigation = [
-    { id: 'plurals', title: 'Pluralization', order: 1 },
-    { id: 'formatters', title: 'Formatters', order: 2 },
-    { id: 'demo', title: 'Live demo', order: 3 }
+    { id: 'plurals', title: 'Pluralization' },
+    { id: 'formatters', title: 'Formatters' },
+    { id: 'demo', title: 'Live demo' }
   ];
 
   // Real i18n hook — the docs app mounts a provider at its root, so these

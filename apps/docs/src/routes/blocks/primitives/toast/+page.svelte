@@ -15,14 +15,14 @@
   const relatedLinks = buildRelatedLinks(componentData);
 
   const navigation = [
-    { id: 'playground', title: 'Playground', order: 1 },
-    { id: 'examples', title: 'Examples', order: 2 },
-    { id: 'store-api', title: 'Store API', order: 3 },
-    { id: 'customization', title: 'Customization', order: 4 },
-    { id: 'accessibility', title: 'Accessibility', order: 5 },
-    { id: 'api', title: 'API Reference', order: 6 },
-    { id: 'types', title: 'Types', order: 7 },
-    { id: 'installation', title: 'Installation', order: 8 }
+    { id: 'playground', title: 'Playground' },
+    { id: 'examples', title: 'Examples' },
+    { id: 'store-api', title: 'Store API' },
+    { id: 'customization', title: 'Customization' },
+    { id: 'accessibility', title: 'Accessibility' },
+    { id: 'api', title: 'API Reference' },
+    { id: 'types', title: 'Types' },
+    { id: 'installation', title: 'Installation' }
   ];
 
   // Der `<Toaster />` steht jetzt im Playground (mit dessen `placement`-Regler

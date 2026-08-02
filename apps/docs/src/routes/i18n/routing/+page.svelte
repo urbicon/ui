@@ -5,13 +5,13 @@
   import { page } from '$app/state';
 
   const navigation = [
-    { id: 'overview', title: 'Why routing lives here', order: 1 },
-    { id: 'reroute', title: 'Map URLs → routes', order: 2 },
-    { id: 'resolve', title: 'Read the locale', order: 3 },
-    { id: 'switch', title: 'Switch via the switcher', order: 4 },
-    { id: 'links', title: 'Locale-aware links', order: 5 },
-    { id: 'seo', title: 'hreflang & canonical', order: 6 },
-    { id: 'variants', title: 'Variants', order: 7 }
+    { id: 'overview', title: 'Why routing lives here' },
+    { id: 'reroute', title: 'Map URLs → routes' },
+    { id: 'resolve', title: 'Read the locale' },
+    { id: 'switch', title: 'Switch via the switcher' },
+    { id: 'links', title: 'Locale-aware links' },
+    { id: 'seo', title: 'hreflang & canonical' },
+    { id: 'variants', title: 'Variants' }
   ];
 
   const rerouteCode = `// src/hooks.ts — a universal hook: runs on both server and client, before

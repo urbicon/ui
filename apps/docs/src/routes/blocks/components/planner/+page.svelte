@@ -13,12 +13,12 @@
   import { Planner } from '@urbicon-ui/blocks';
 
   const navigation = [
-    { id: 'playground', title: 'Playground', order: 1 },
-    { id: 'examples', title: 'Examples', order: 2 },
-    { id: 'customization', title: 'Customization', order: 3 },
-    { id: 'accessibility', title: 'Accessibility', order: 4 },
-    { id: 'api', title: 'API Reference', order: 10 },
-    { id: 'installation', title: 'Installation', order: 11 }
+    { id: 'playground', title: 'Playground' },
+    { id: 'examples', title: 'Examples' },
+    { id: 'customization', title: 'Customization' },
+    { id: 'accessibility', title: 'Accessibility' },
+    { id: 'api', title: 'API Reference' },
+    { id: 'installation', title: 'Installation' }
   ];
 
   // --- Demo data: a week of meals, anchored on Mon 15 Jun 2026 ---

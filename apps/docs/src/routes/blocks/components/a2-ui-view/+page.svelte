@@ -17,13 +17,13 @@
   const relatedLinks = buildRelatedLinks(componentData);
 
   const navigation = [
-    { id: 'playground', title: 'Playground', order: 1 },
-    { id: 'concept', title: 'How it works', order: 2 },
-    { id: 'examples', title: 'Examples', order: 3 },
-    { id: 'integration', title: 'Integration', order: 4 },
-    { id: 'accessibility', title: 'Accessibility', order: 5 },
-    { id: 'api', title: 'API Reference', order: 6 },
-    { id: 'installation', title: 'Installation', order: 7 }
+    { id: 'playground', title: 'Playground' },
+    { id: 'concept', title: 'How it works' },
+    { id: 'examples', title: 'Examples' },
+    { id: 'integration', title: 'Integration' },
+    { id: 'accessibility', title: 'Accessibility' },
+    { id: 'api', title: 'API Reference' },
+    { id: 'installation', title: 'Installation' }
   ];
 
   // Two clean catalog-conformant payloads for the playground. Both are what an

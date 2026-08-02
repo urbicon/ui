@@ -12,12 +12,12 @@
   import { asset, resolve } from '$app/paths';
 
   const navigation = [
-    { id: 'playground', title: 'Playground', order: 1 },
-    { id: 'examples', title: 'Examples', order: 2 },
-    { id: 'sizes', title: 'Sizes', order: 3 },
-    { id: 'empty', title: 'Empty State', order: 4 },
-    { id: 'use-cases', title: 'Use Cases', order: 5 },
-    { id: 'api', title: 'API Reference', order: 9 }
+    { id: 'playground', title: 'Playground' },
+    { id: 'examples', title: 'Examples' },
+    { id: 'sizes', title: 'Sizes' },
+    { id: 'empty', title: 'Empty State' },
+    { id: 'use-cases', title: 'Use Cases' },
+    { id: 'api', title: 'API Reference' }
   ];
 
   const playgroundTypes: LocalTypeDef[] = [

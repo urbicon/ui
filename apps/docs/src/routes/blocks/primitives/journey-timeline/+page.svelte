@@ -17,14 +17,14 @@
   // A utility-billing run — the issue's driving consumer, as a chronicle.
 
   const navigation = [
-    { id: 'playground', title: 'Playground', order: 1 },
-    { id: 'examples', title: 'Examples', order: 2 },
-    { id: 'statuses', title: 'Statuses', order: 3 },
-    { id: 'when-to-use', title: 'vs. Stepper / Tab', order: 4 },
-    { id: 'customization', title: 'Customization', order: 5 },
-    { id: 'accessibility', title: 'Accessibility', order: 6 },
-    { id: 'api', title: 'API Reference', order: 10 },
-    { id: 'installation', title: 'Installation', order: 11 }
+    { id: 'playground', title: 'Playground' },
+    { id: 'examples', title: 'Examples' },
+    { id: 'statuses', title: 'Statuses' },
+    { id: 'when-to-use', title: 'vs. Stepper / Tab' },
+    { id: 'customization', title: 'Customization' },
+    { id: 'accessibility', title: 'Accessibility' },
+    { id: 'api', title: 'API Reference' },
+    { id: 'installation', title: 'Installation' }
   ];
 
   function codeGenerator(vals: Record<string, unknown>): string {

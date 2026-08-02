@@ -16,9 +16,9 @@
   import basicCode from './examples/Basic.svelte?raw';
 
   const navigation = [
-    { id: 'usage', title: 'Usage', order: 1 },
-    { id: 'api', title: 'API Reference', order: 2 },
-    { id: 'installation', title: 'Installation', order: 3 }
+    { id: 'usage', title: 'Usage' },
+    { id: 'api', title: 'API Reference' },
+    { id: 'installation', title: 'Installation' }
   ];
 </script>
 

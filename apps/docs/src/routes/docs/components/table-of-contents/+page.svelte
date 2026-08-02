@@ -13,10 +13,10 @@
   import { asset, resolve } from '$app/paths';
 
   const navigation = [
-    { id: 'playground', title: 'Playground', order: 1 },
-    { id: 'examples', title: 'Examples', order: 2 },
-    { id: 'api', title: 'API Reference', order: 9 },
-    { id: 'types', title: 'Type Definitions', order: 12 }
+    { id: 'playground', title: 'Playground' },
+    { id: 'examples', title: 'Examples' },
+    { id: 'api', title: 'API Reference' },
+    { id: 'types', title: 'Type Definitions' }
   ];
 
   const typesForTypesReference = componentData.types ?? [];
@@ -73,9 +73,9 @@
             width={values.width}
             trackScroll={values.trackScroll}
             navigation={[
-              { id: 'intro', title: 'Introduction', order: 1 },
-              { id: 'setup', title: 'Setup', order: 2 },
-              { id: 'usage', title: 'Usage', order: 3 }
+              { id: 'intro', title: 'Introduction' },
+              { id: 'setup', title: 'Setup' },
+              { id: 'usage', title: 'Usage' }
             ]}
           />
         </div>

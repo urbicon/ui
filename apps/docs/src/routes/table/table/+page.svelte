@@ -29,10 +29,10 @@ ${scriptClose}
 <Table {items} columns={cols} />`;
 
   const navigation = [
-    { id: 'playground', title: 'Playground', order: 1 },
-    { id: 'column-factories', title: 'Column Factories', order: 2 },
-    { id: 'api', title: 'API Reference', order: 3 },
-    { id: 'installation', title: 'Installation', order: 4 }
+    { id: 'playground', title: 'Playground' },
+    { id: 'column-factories', title: 'Column Factories' },
+    { id: 'api', title: 'API Reference' },
+    { id: 'installation', title: 'Installation' }
   ];
 </script>
 

@@ -4,13 +4,13 @@
   import { resolve } from '$app/paths';
 
   const navigation = [
-    { id: 'why', title: 'Why namespaces', order: 1 },
-    { id: 'create', title: 'createPackageI18n', order: 2 },
-    { id: 'hook', title: 'The hook pattern', order: 3 },
-    { id: 'resolution', title: 'Resolution order', order: 4 },
-    { id: 't-component', title: 'The <T> component', order: 5 },
-    { id: 'own-package', title: 'Your own package', order: 6 },
-    { id: 'validate', title: 'Parity validation', order: 7 }
+    { id: 'why', title: 'Why namespaces' },
+    { id: 'create', title: 'createPackageI18n' },
+    { id: 'hook', title: 'The hook pattern' },
+    { id: 'resolution', title: 'Resolution order' },
+    { id: 't-component', title: 'The <T> component' },
+    { id: 'own-package', title: 'Your own package' },
+    { id: 'validate', title: 'Parity validation' }
   ];
 
   const returnMembers = [

@@ -4,12 +4,12 @@
   import { resolve } from '$app/paths';
 
   const navigation = [
-    { id: 'overview', title: 'Overview', order: 1 },
-    { id: 'architecture', title: 'Architecture', order: 2 },
-    { id: 'pages', title: 'Auth Pages', order: 3 },
-    { id: 'management', title: 'Management', order: 4 },
-    { id: 'notifications', title: 'Notifications', order: 5 },
-    { id: 'setup', title: 'Setup Guide', order: 6 }
+    { id: 'overview', title: 'Overview' },
+    { id: 'architecture', title: 'Architecture' },
+    { id: 'pages', title: 'Auth Pages' },
+    { id: 'management', title: 'Management' },
+    { id: 'notifications', title: 'Notifications' },
+    { id: 'setup', title: 'Setup Guide' }
   ];
 
   const depsCode = `// src/lib/server/auth.ts

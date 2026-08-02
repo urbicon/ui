@@ -10,12 +10,20 @@ export interface RelatedLink {
  * DocsLayout so both speak the same navigation shape (the layout hands the
  * array through to the TOC).
  */
+/**
+ * A single entry in the table of contents.
+ *
+ * The list renders in array order. There is deliberately no `order` field: one
+ * existed until 2026-08, was never read by anything, and 121 pages maintained
+ * it — the Button reference page had drifted to `api: 7` / `installation: 6`
+ * while rendering them the other way round, and nobody noticed because nothing
+ * sorts. Order the array; that is the order.
+ */
 export interface TocNavigationItem {
   id: string;
   title: string;
-  order?: number;
   href?: string;
-  children?: Array<{ id: string; title: string; order?: number; href?: string }>;
+  children?: Array<{ id: string; title: string; href?: string }>;
 }
 
 /**

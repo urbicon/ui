@@ -14,9 +14,9 @@
   const relatedLinks = buildRelatedLinks(componentData);
 
   const navigation = [
-    { id: 'playground', title: 'Playground', order: 1 },
-    { id: 'api', title: 'API Reference', order: 2 },
-    { id: 'installation', title: 'Installation', order: 3 }
+    { id: 'playground', title: 'Playground' },
+    { id: 'api', title: 'API Reference' },
+    { id: 'installation', title: 'Installation' }
   ];
 
   const DESC =

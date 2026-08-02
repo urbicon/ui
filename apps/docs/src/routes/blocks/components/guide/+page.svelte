@@ -54,17 +54,17 @@
   ];
 
   const navigation = [
-    { id: 'playground', title: 'Playground', order: 1 },
-    { id: 'setup', title: 'Setup', order: 2 },
-    { id: 'panel', title: 'Help panel', order: 3 },
-    { id: 'hint', title: 'Contextual hints', order: 4 },
-    { id: 'tour', title: 'Guided tour', order: 5 },
-    { id: 'analytics', title: 'Analytics', order: 6 },
-    { id: 'namespace', title: 'data-guide namespace', order: 7 },
-    { id: 'accessibility', title: 'Accessibility', order: 8 },
-    { id: 'customization', title: 'Customization', order: 9 },
-    { id: 'api', title: 'API Reference', order: 10 },
-    { id: 'installation', title: 'Installation', order: 11 }
+    { id: 'playground', title: 'Playground' },
+    { id: 'setup', title: 'Setup' },
+    { id: 'panel', title: 'Help panel' },
+    { id: 'hint', title: 'Contextual hints' },
+    { id: 'tour', title: 'Guided tour' },
+    { id: 'analytics', title: 'Analytics' },
+    { id: 'namespace', title: 'data-guide namespace' },
+    { id: 'accessibility', title: 'Accessibility' },
+    { id: 'customization', title: 'Customization' },
+    { id: 'api', title: 'API Reference' },
+    { id: 'installation', title: 'Installation' }
   ];
 
   // ── Hand-authored API tables for the engine + tour-definition surface that docs-gen

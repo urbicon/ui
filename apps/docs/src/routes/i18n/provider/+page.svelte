@@ -4,14 +4,14 @@
   import { resolve } from '$app/paths';
 
   const navigation = [
-    { id: 'provider', title: 'I18nProvider', order: 1 },
-    { id: 'use-i18n', title: 'useI18n()', order: 2 },
-    { id: 'contract', title: 'Read / Write', order: 3 },
-    { id: 'switching', title: 'Switching & Persistence', order: 4 },
-    { id: 'root-layout', title: 'Root-Layout Chrome', order: 5 },
-    { id: 'ssr', title: 'SSR Resolution', order: 6 },
-    { id: 'errors', title: 'Error Handling', order: 7 },
-    { id: 'coexistence', title: 'Coexistence', order: 8 }
+    { id: 'provider', title: 'I18nProvider' },
+    { id: 'use-i18n', title: 'useI18n()' },
+    { id: 'contract', title: 'Read / Write' },
+    { id: 'switching', title: 'Switching & Persistence' },
+    { id: 'root-layout', title: 'Root-Layout Chrome' },
+    { id: 'ssr', title: 'SSR Resolution' },
+    { id: 'errors', title: 'Error Handling' },
+    { id: 'coexistence', title: 'Coexistence' }
   ];
 
   const providerProps = [

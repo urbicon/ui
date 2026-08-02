@@ -5,14 +5,14 @@
   import { CodeExample, DocsLayout as DocsPageLayout } from '@urbicon-ui/docs';
 
   const navigation = [
-    { id: 'architecture', title: 'Token Architecture', order: 1 },
-    { id: 'colors', title: 'Color System', order: 2 },
-    { id: 'spacing', title: 'Spacing', order: 3 },
-    { id: 'typography', title: 'Typography', order: 4 },
-    { id: 'radius', title: 'Border Radius', order: 5 },
-    { id: 'interaction', title: 'Motion & Depth', order: 6 },
-    { id: 'custom-theming', title: 'Custom Theming', order: 7 },
-    { id: 'dark-mode', title: 'Dark Mode', order: 8 }
+    { id: 'architecture', title: 'Token Architecture' },
+    { id: 'colors', title: 'Color System' },
+    { id: 'spacing', title: 'Spacing' },
+    { id: 'typography', title: 'Typography' },
+    { id: 'radius', title: 'Border Radius' },
+    { id: 'interaction', title: 'Motion & Depth' },
+    { id: 'custom-theming', title: 'Custom Theming' },
+    { id: 'dark-mode', title: 'Dark Mode' }
   ];
 
   const colorTokenExample = `@theme {

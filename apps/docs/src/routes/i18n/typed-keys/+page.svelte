@@ -4,11 +4,11 @@
   import { resolve } from '$app/paths';
 
   const navigation = [
-    { id: 'inference', title: 'Key inference', order: 1 },
-    { id: 'params', title: 'Param inference', order: 2 },
-    { id: 'parity', title: 'Eager vs lazy parity', order: 3 },
-    { id: 'utils', title: 'Deep-key utilities', order: 4 },
-    { id: 'deprecated', title: 'Deprecations', order: 5 }
+    { id: 'inference', title: 'Key inference' },
+    { id: 'params', title: 'Param inference' },
+    { id: 'parity', title: 'Eager vs lazy parity' },
+    { id: 'utils', title: 'Deep-key utilities' },
+    { id: 'deprecated', title: 'Deprecations' }
   ];
 
   const inferCode = `const en = {

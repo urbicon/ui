@@ -8,12 +8,12 @@
   import forestThemeSource from '@urbicon-ui/blocks/style/themes/forest.css?raw';
 
   const navigation = [
-    { id: 'ladder', title: 'Which tool do I use?', order: 1 },
-    { id: 'class-trap', title: 'The class Root-Slot Trap', order: 2 },
-    { id: 'themes', title: 'CSS Token Themes', order: 3 },
-    { id: 'defaults', title: 'Global Defaults', order: 4 },
-    { id: 'unstyled', title: 'Unstyled Mode', order: 5 },
-    { id: 'deep-dives', title: 'Deep Dives', order: 6 }
+    { id: 'ladder', title: 'Which tool do I use?' },
+    { id: 'class-trap', title: 'The class Root-Slot Trap' },
+    { id: 'themes', title: 'CSS Token Themes' },
+    { id: 'defaults', title: 'Global Defaults' },
+    { id: 'unstyled', title: 'Unstyled Mode' },
+    { id: 'deep-dives', title: 'Deep Dives' }
   ];
 
   // The canonical override ladder (weak → strong). Each rung answers one

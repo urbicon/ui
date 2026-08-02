@@ -6,9 +6,9 @@
   import { employees, basicColumns, richColumns, type Employee } from '../_data';
 
   const navigation = [
-    { id: 'sorting-grouping', title: 'Sorting & Grouping', order: 1 },
-    { id: 'summaries', title: 'Summaries', order: 2 },
-    { id: 'header-menu', title: 'Header Menu', order: 3 }
+    { id: 'sorting-grouping', title: 'Sorting & Grouping' },
+    { id: 'summaries', title: 'Summaries' },
+    { id: 'header-menu', title: 'Header Menu' }
   ];
 
   const summaryColumns: Column<Employee>[] = [

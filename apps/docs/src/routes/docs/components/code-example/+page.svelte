@@ -15,12 +15,12 @@
   import { asset, resolve } from '$app/paths';
 
   const navigation = [
-    { id: 'playground', title: 'Playground', order: 1 },
-    { id: 'usage', title: 'Usage Notes', order: 8 },
-    { id: 'api', title: 'API Reference', order: 9 },
-    { id: 'types', title: 'Type Definitions', order: 10 },
-    { id: 'examples', title: 'Examples', order: 11 },
-    { id: 'use-cases', title: 'Use Cases', order: 12 }
+    { id: 'playground', title: 'Playground' },
+    { id: 'usage', title: 'Usage Notes' },
+    { id: 'api', title: 'API Reference' },
+    { id: 'types', title: 'Type Definitions' },
+    { id: 'examples', title: 'Examples' },
+    { id: 'use-cases', title: 'Use Cases' }
   ];
 
   const typesForTypesReference = componentData.types ?? [];

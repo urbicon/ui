@@ -15,13 +15,13 @@
   const relatedLinks = buildRelatedLinks(componentData);
 
   const navigation = [
-    { id: 'playground', title: 'Playground', order: 1 },
-    { id: 'when-to-use', title: 'When to use', order: 2 },
-    { id: 'examples', title: 'Examples', order: 3 },
-    { id: 'customization', title: 'Customization', order: 4 },
-    { id: 'accessibility', title: 'Accessibility', order: 5 },
-    { id: 'api', title: 'API Reference', order: 6 },
-    { id: 'installation', title: 'Installation', order: 7 }
+    { id: 'playground', title: 'Playground' },
+    { id: 'when-to-use', title: 'When to use' },
+    { id: 'examples', title: 'Examples' },
+    { id: 'customization', title: 'Customization' },
+    { id: 'accessibility', title: 'Accessibility' },
+    { id: 'api', title: 'API Reference' },
+    { id: 'installation', title: 'Installation' }
   ];
 </script>
 

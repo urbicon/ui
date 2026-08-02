@@ -7,9 +7,9 @@
   import { employees, basicColumns, scriptOpen, scriptClose } from '../_data';
 
   const navigation = [
-    { id: 'filtering', title: 'Smart Filter Bar', order: 1 },
-    { id: 'filter-operators', title: 'Filter Operators', order: 2 },
-    { id: 'controlled-search', title: 'Controlled Search', order: 3 }
+    { id: 'filtering', title: 'Smart Filter Bar' },
+    { id: 'filter-operators', title: 'Filter Operators' },
+    { id: 'controlled-search', title: 'Controlled Search' }
   ];
 
   let searchTerm = $state('');

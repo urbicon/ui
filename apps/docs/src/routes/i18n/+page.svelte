@@ -4,12 +4,12 @@
   import { resolve } from '$app/paths';
 
   const navigation = [
-    { id: 'overview', title: 'Overview', order: 1 },
-    { id: 'architecture', title: 'Architecture', order: 2 },
-    { id: 'quick-start', title: 'Quick Start', order: 3 },
-    { id: 'guides', title: 'Guides', order: 4 },
-    { id: 'api', title: 'API Surface', order: 5 },
-    { id: 'locales', title: 'Supported Locales', order: 6 }
+    { id: 'overview', title: 'Overview' },
+    { id: 'architecture', title: 'Architecture' },
+    { id: 'quick-start', title: 'Quick Start' },
+    { id: 'guides', title: 'Guides' },
+    { id: 'api', title: 'API Surface' },
+    { id: 'locales', title: 'Supported Locales' }
   ];
 
   const providerCode =

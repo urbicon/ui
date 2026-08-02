@@ -7,8 +7,8 @@
   import { employees, basicColumns, scriptOpen, scriptClose } from '../_data';
 
   const navigation = [
-    { id: 'selection', title: 'Selection Modes', order: 1 },
-    { id: 'controlled-selection', title: 'Controlled Selection', order: 2 }
+    { id: 'selection', title: 'Selection Modes' },
+    { id: 'controlled-selection', title: 'Controlled Selection' }
   ];
 
   let controlledIds = $state<Array<string | number>>([1, 3]);

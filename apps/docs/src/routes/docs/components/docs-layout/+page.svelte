@@ -11,9 +11,9 @@
   import { asset, resolve } from '$app/paths';
 
   const navigation = [
-    { id: 'examples', title: 'Examples', order: 1 },
-    { id: 'api', title: 'API Reference', order: 9 },
-    { id: 'types', title: 'Type Definitions', order: 12 }
+    { id: 'examples', title: 'Examples' },
+    { id: 'api', title: 'API Reference' },
+    { id: 'types', title: 'Type Definitions' }
   ];
 
   const typesForTypesReference = componentData.types ?? [];

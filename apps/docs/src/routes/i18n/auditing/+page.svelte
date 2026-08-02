@@ -4,11 +4,11 @@
   import { resolve } from '$app/paths';
 
   const navigation = [
-    { id: 'overview', title: 'Three layers', order: 1 },
-    { id: 'parity', title: 'Parity & quality', order: 2 },
-    { id: 'runtime', title: 'Runtime misses', order: 3 },
-    { id: 'scanning', title: 'Unused & hardcoded', order: 4 },
-    { id: 'ci', title: 'CI integration', order: 5 }
+    { id: 'overview', title: 'Three layers' },
+    { id: 'parity', title: 'Parity & quality' },
+    { id: 'runtime', title: 'Runtime misses' },
+    { id: 'scanning', title: 'Unused & hardcoded' },
+    { id: 'ci', title: 'CI integration' }
   ];
 
   const parityCode = `// translations.test.ts — pure, deterministic, zero false positives.

@@ -5,13 +5,13 @@
   import { CodeExample, DocsLayout as DocsPageLayout } from '@urbicon-ui/docs';
 
   const navigation = [
-    { id: 'props', title: 'Props', order: 1 },
-    { id: 'global-defaults', title: 'Global Defaults', order: 2 },
-    { id: 'merge-behavior', title: 'Merge Behavior', order: 3 },
-    { id: 'presets', title: 'Presets', order: 4 },
-    { id: 'conditional-overrides', title: 'Conditional Defaults', order: 5 },
-    { id: 'unstyled-mode', title: 'Unstyled Mode', order: 6 },
-    { id: 'slot-names', title: 'Slot Names', order: 7 }
+    { id: 'props', title: 'Props' },
+    { id: 'global-defaults', title: 'Global Defaults' },
+    { id: 'merge-behavior', title: 'Merge Behavior' },
+    { id: 'presets', title: 'Presets' },
+    { id: 'conditional-overrides', title: 'Conditional Defaults' },
+    { id: 'unstyled-mode', title: 'Unstyled Mode' },
+    { id: 'slot-names', title: 'Slot Names' }
   ];
 
   const basicExample =

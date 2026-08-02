@@ -4,12 +4,12 @@
   import { CodeExample, DocsLayout as DocsPageLayout } from '@urbicon-ui/docs';
 
   const navigation = [
-    { id: 'what', title: 'What it is', order: 1 },
-    { id: 'rooms', title: 'The Rooms', order: 2 },
-    { id: 'tokens', title: 'Token Catalogue', order: 3 },
-    { id: 'activation', title: 'Activation', order: 4 },
-    { id: 'modes', title: 'Light & Dark', order: 5 },
-    { id: 'override', title: 'Override Recipes', order: 6 }
+    { id: 'what', title: 'What it is' },
+    { id: 'rooms', title: 'The Rooms' },
+    { id: 'tokens', title: 'Token Catalogue' },
+    { id: 'activation', title: 'Activation' },
+    { id: 'modes', title: 'Light & Dark' },
+    { id: 'override', title: 'Override Recipes' }
   ];
 
   const activationExample = `<!-- apps/docs/src/app.html — Color Rooms is the shipped default -->

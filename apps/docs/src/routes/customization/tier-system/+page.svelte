@@ -5,11 +5,11 @@
   import { CodeExample, DocsLayout as DocsPageLayout } from '@urbicon-ui/docs';
 
   const navigation = [
-    { id: 'three-tiers', title: 'Three Tiers', order: 1 },
-    { id: 'tier-aware-components', title: 'Tier-aware Components', order: 2 },
-    { id: 'context-cascade', title: 'Context Cascade', order: 3 },
-    { id: 'override-pathway', title: 'Override Pathway', order: 4 },
-    { id: 'bridge', title: 'Bridge Token', order: 5 }
+    { id: 'three-tiers', title: 'Three Tiers' },
+    { id: 'tier-aware-components', title: 'Tier-aware Components' },
+    { id: 'context-cascade', title: 'Context Cascade' },
+    { id: 'override-pathway', title: 'Override Pathway' },
+    { id: 'bridge', title: 'Bridge Token' }
   ];
 
   let demoTier = $state<'commit' | 'modify'>('commit');

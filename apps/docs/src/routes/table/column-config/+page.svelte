@@ -6,8 +6,8 @@
   import { employees, richColumns, type Employee } from '../_data';
 
   const navigation = [
-    { id: 'column-config', title: 'Column Properties', order: 1 },
-    { id: 'column-visibility', title: 'Column Visibility', order: 2 }
+    { id: 'column-config', title: 'Column Properties' },
+    { id: 'column-visibility', title: 'Column Visibility' }
   ];
 
   const visibilityColumns: Column<Employee>[] = [

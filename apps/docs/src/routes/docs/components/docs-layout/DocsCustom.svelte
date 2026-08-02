@@ -21,8 +21,8 @@
   maxWidth="lg"
   showToc
   navigation={[
-    { id: 'examples', title: 'Examples', order: 1 },
-    { id: 'api', title: 'API Reference', order: 2 }
+    { id: 'examples', title: 'Examples' },
+    { id: 'api', title: 'API Reference' }
   ]}
 >
   <Section id="examples" title="Examples">...</Section>
