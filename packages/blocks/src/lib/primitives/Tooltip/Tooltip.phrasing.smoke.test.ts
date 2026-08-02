@@ -15,9 +15,9 @@
  * `inline` mode. Popover withholds its panel because the content is the
  * consumer's and can be any element; a tooltip's `label` is typed `string`, so
  * the panel's content is phrasing by construction and a `<span>` holds it
- * legally. Withholding was not merely unnecessary here but awkward: the panel
- * is mounted so `bind:this` stays stable and Floating UI's arrow middleware
- * always has a target (Tooltip.svelte, above the panel).
+ * legally. Withholding would have worked here too, but it costs the panel's
+ * absence from the prerendered HTML and buys nothing a legal element does not
+ * already give.
  *
  * These run against `render()` from `svelte/server` — the server output is the
  * whole subject. What the client does after mounting is Playwright's job.
@@ -30,6 +30,7 @@ import { createRawSnippet } from 'svelte';
 import { render } from 'svelte/server';
 import { describe, expect, it } from 'vitest';
 import Tooltip from './Tooltip.svelte';
+import { tooltipVariants } from './tooltip.variants';
 
 /**
  * Every element whose start tag implicitly closes an open `<p>`, read from the
@@ -57,6 +58,78 @@ const children = createRawSnippet(() => ({ render: () => '<button>save</button>'
 
 const renderTooltip = (props: Record<string, unknown> = {}) =>
   render(Tooltip, { props: { children, label: 'Save your changes', ...props } }).body;
+
+/**
+ * Every Tailwind utility that writes `display`, plus the escape hatch
+ * `[display:…]`. Complete as of Tailwind 4 — the `table-*` family is easy to
+ * forget and was missing from the first version of this list.
+ */
+const DISPLAY_UTILITIES = new Set([
+  'block',
+  'inline-block',
+  'inline',
+  'flex',
+  'inline-flex',
+  'grid',
+  'inline-grid',
+  'flow-root',
+  'contents',
+  'list-item',
+  'hidden',
+  'table',
+  'inline-table',
+  'table-caption',
+  'table-cell',
+  'table-column',
+  'table-column-group',
+  'table-footer-group',
+  'table-header-group',
+  'table-row-group',
+  'table-row'
+]);
+
+/**
+ * Does this class token write `display`, whatever it is prefixed or marked
+ * with? `md:block` and `!block` set it just as `block` does — the first only
+ * above a breakpoint, which is worse than never, not better.
+ *
+ * The variant split has to be bracket-aware, the same way `utilityOf` in
+ * `scripts/theme-tokens.ts` is: splitting on the last `:` outright finds the
+ * one *inside* `[display:block]` and reduces the token to `block]`, which
+ * matches nothing. That is not hypothetical — it is how the arbitrary-property
+ * form walked past the first version of this check.
+ */
+function setsDisplay(token: string): boolean {
+  let depth = 0;
+  let lastColon = -1;
+  for (let i = 0; i < token.length; i++) {
+    const ch = token[i];
+    if (ch === '[' || ch === '(') depth++;
+    else if (ch === ']' || ch === ')') depth--;
+    else if (ch === ':' && depth === 0) lastColon = i;
+  }
+  let utility = token.slice(lastColon + 1);
+  if (utility.startsWith('!')) utility = utility.slice(1);
+  if (utility.endsWith('!')) utility = utility.slice(0, -1);
+  return DISPLAY_UTILITIES.has(utility) || /^\[display:/.test(utility);
+}
+
+/**
+ * The panel's class list in every arm of every axis, not just the default
+ * render — `intent`, `size` and `open` each have arms a default render never
+ * emits, and a `display` planted in one of them reaches real consumers.
+ */
+function everyPanelRendering(): [string, string][] {
+  const axes = tooltipVariants.config.variants as Record<string, Record<string, unknown>>;
+  const out: [string, string][] = [['defaults', tooltipVariants({}).base()]];
+  for (const [axis, arms] of Object.entries(axes)) {
+    for (const arm of Object.keys(arms)) {
+      const value = arm === 'true' ? true : arm === 'false' ? false : arm;
+      out.push([`${axis}=${arm}`, tooltipVariants({ [axis]: value }).base()]);
+    }
+  }
+  return out;
+}
 
 describe('Tooltip — phrasing content', () => {
   // Everything the component itself emits. The trigger's *children* are the
@@ -96,41 +169,27 @@ describe('Tooltip — phrasing content', () => {
     //
     // The negative half is the load-bearing one. An author-level `display`
     // also beats the UA rule `[popover]:not(:popover-open) { display: none }`,
-    // and a closed tooltip then keeps a laid-out fixed box — invisible, but in
-    // the a11y tree and findable by find-in-page (measured in Chromium and
-    // WebKit, 2026-08-02). So the check covers BOTH places a `display` could
-    // enter: the inline style, and the tv() base slot — which is where every
-    // other display utility in this library lives, and therefore the only one
-    // a maintainer would realistically reach for. Asserting on the inline
-    // style alone let `base: ['block', …]` through, green.
+    // and a closed tooltip then keeps a laid-out fixed box — invisible (the
+    // closed variant is `opacity-0`), but in the a11y tree and findable by
+    // find-in-page. Measured in Chromium and WebKit, 2026-08-02.
+    //
+    // This walks the tv() CONFIG, not one rendering. Two earlier versions of
+    // this check were walked past: the first read only the inline `style`
+    // attribute, and the second read the default render's class list, which
+    // misses `display` planted in a non-default arm (`intent="primary"`,
+    // `size="lg"`) as well as a prefixed one (`md:block` — and prefixes are
+    // this slot's idiom, it already carries `motion-reduce:` and `starting:`).
     const html = renderTooltip();
     expect(html).toMatch(/style="position: fixed;[^"]*"/);
     expect(html).not.toMatch(/style="[^"]*display:/);
 
-    const panelClass = /<span[^>]*class="([^"]*)"[^>]*role="tooltip"/.exec(html)?.[1];
-    expect(panelClass, 'panel class attribute not found — the regex above went stale').toBeTypeOf(
-      'string'
-    );
-    const DISPLAY_UTILITIES = [
-      'block',
-      'inline-block',
-      'inline',
-      'flex',
-      'inline-flex',
-      'grid',
-      'inline-grid',
-      'flow-root',
-      'contents',
-      'table',
-      'inline-table',
-      'list-item',
-      'hidden'
-    ];
-    for (const utility of (panelClass ?? '').split(/\s+/).filter(Boolean)) {
-      expect(
-        DISPLAY_UTILITIES,
-        `\`${utility}\` sets display on the panel, which defeats [popover]:not(:popover-open)`
-      ).not.toContain(utility);
+    for (const [combo, panelClass] of everyPanelRendering()) {
+      for (const cls of panelClass.split(/\s+/).filter(Boolean)) {
+        expect(
+          setsDisplay(cls),
+          `\`${cls}\` (${combo}) sets display on the panel, which defeats [popover]:not(:popover-open)`
+        ).toBe(false);
+      }
     }
   });
 

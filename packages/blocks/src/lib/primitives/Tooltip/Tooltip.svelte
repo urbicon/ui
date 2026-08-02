@@ -275,11 +275,14 @@
   Popover solved the same problem by withholding its panel from the server
   render: its content is the consumer's and can be any element, so no wrapper
   can make it phrasing-safe. `label` is typed `string`, so a tooltip's panel
-  content is phrasing by construction and a `<span>` holds it legally. That
-  matters here beyond taste — withholding would have contradicted the reason
-  the panel is mounted at all (see above: stable `bind:this`, a live arrow
-  target for the first `computePosition`), so Popover's fix was not available
-  to this component without unpicking that.
+  content is phrasing by construction and a `<span>` holds it legally.
+
+  Popover's gate would have worked here too — it withholds only from the
+  SERVER render, and from `onMount` the panel is mounted permanently, so
+  `bind:this` and the arrow target are as stable as they are now. It is simply
+  the worse trade when a `<span>` is available: withholding costs the panel's
+  absence from the prerendered HTML (the cost Popover's own `inline` JSDoc
+  states) and buys nothing a legal element does not already give.
 
   Nothing gives these spans a `display`: the inline `position: fixed` below
   (and `absolute` on the arrow) blockifies them per CSS. Load-bearing, and the

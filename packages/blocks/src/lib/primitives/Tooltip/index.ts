@@ -10,6 +10,7 @@ import type { TooltipSlots, TooltipVariants } from './tooltip.variants';
  * Renders as phrasing content — trigger, panel and arrow are all `<span>` — so it is legal in the
  * middle of a paragraph, which is the position it is meant for. `Popover` needs its `inline` prop
  * for that; `Tooltip` needs no opt-in, because `label` is a string and cannot carry block content.
+ * Its trigger children are yours, though: wrapping a `<div>` closes the paragraph again.
  *
  * @tag display
  * @related Popover

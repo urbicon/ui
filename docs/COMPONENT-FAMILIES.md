@@ -133,6 +133,8 @@ The ring is `ring-2 ring-danger/60 ring-offset-1 ring-offset-surface-base`, and 
 
 **Decision-matrix for the four overlapping surfaces** (Sidebar, Drawer, Popover, SidebarLayout) — see [COMPONENT-DECISION-MATRICES.md §Overlay & Layout Surfaces](COMPONENT-DECISION-MATRICES.md#overlay--layout-surfaces).
 
+**Two of these render inside a paragraph** — `Tooltip` by design (it is what the library documents for hover-described inline targets) and `Popover` on request (`inline`, as `CitationChip` uses it). A `<div>` start tag closes an open `<p>`, so both had to change; which remedy each one takes is the phrasing-content rule written up under [Conversation](#conversation), the family where it first came up.
+
 ---
 
 ## Feedback / Ambient
@@ -177,7 +179,7 @@ The ring is `ring-2 ring-danger/60 ring-offset-1 ring-offset-surface-base`, and 
 
 **Tier:** Mixed, and deliberately so — this family is the one place where three tiers meet inside one component tree. The bubble is `bridge` (6 px): it is *content*, and `contain` at 2 px reads as a rectangle at bubble size, because optical radius scales with the area it turns. The framed blocks (ToolCallCard, a standalone CodeBlock) are `contain` — they are panels. The composer is `modify`, like any other editable surface.
 
-**Phrasing content.** This is the one family whose components routinely render *inside a paragraph* — `MdInline` puts a `CitationChip` in the middle of `MdBlock`'s `<p>`. A `<div>` start tag closes an open `<p>` while the parser repairs the document, so an SSR'd answer that cites a source used to emit invalid HTML and diverge from the client tree (`node_invalid_placement_ssr` → `hydration_mismatch`). A `<span>` wrapper alone does not suffice, because the rule is about the whole subtree, not the immediate element — and which remedy that leaves you depends on one question: **is the panel's content phrasing by construction?**
+**Phrasing content.** This is the family where the rule first came up — `MdInline` puts a `CitationChip` in the middle of `MdBlock`'s `<p>` — but it is not confined here: `Tooltip` (Container) is documented for inline targets, so the rule below governs it too. A `<div>` start tag closes an open `<p>` while the parser repairs the document, so an SSR'd answer that cites a source used to emit invalid HTML and diverge from the client tree (`node_invalid_placement_ssr` → `hydration_mismatch`). A `<span>` wrapper alone does not suffice, because the rule is about the whole subtree, not the immediate element — and which remedy that leaves you depends on one question: **is the panel's content phrasing by construction?**
 
 - **No — the content is the consumer's.** Then no element can make the subtree legal, and the panel has to leave the server render. `Popover`'s `inline` mode does this: the trigger wrapper becomes a `<span>` and the panel appears on mount. `CitationChip` sets it. The cost is stated in the prop's own JSDoc: a non-rendering crawler never sees the panel, so it is opt-in rather than the default.
 - **Yes — the component's own API constrains it.** Then the panel can simply *be* a `<span>` and stay in the SSR output, with no prop and no cost. `Tooltip` is this case: `label` is typed `string`, so its panel, arrow and trigger are all spans unconditionally (2026-08-02). Note what does the blockifying there — the panel's inline `position: fixed`, never a `display` utility, which would beat `[popover]:not(:popover-open) { display: none }` and leave a closed tooltip laid out.
