@@ -1,4 +1,5 @@
 import { createOptionalContext } from '@urbicon-ui/blocks';
+import { BASE_LOCALE } from '@urbicon-ui/i18n';
 import { SvelteSet } from 'svelte/reactivity';
 import type { Column, Filter, FilterOperator, TableItem } from '$lib';
 import {
@@ -674,6 +675,35 @@ export function createTableState(
 // raw getter must be permissive (returns undefined when unset).
 const [getTableContextRaw, setTableContextRaw] =
   createOptionalContext<ReturnType<typeof createTableState>>();
+
+/**
+ * The BCP 47 tag the formatting cells hand to `Intl`, resolved once per table.
+ *
+ * A getter rather than a value, so a locale switch re-renders: `<TableProvider>`
+ * puts `() => resolveDateLocale('auto', useI18n().locale)` here during its own
+ * init, and the cells read it.
+ *
+ * Per table, not per cell, because every cell and every mobile card is its own
+ * component instance — a virtualized 2000-row table would otherwise build a
+ * fresh `useI18n()` object (eight getters) for each one, thousands of times,
+ * to answer a question with the same answer every time.
+ */
+const [getCellLocaleRaw, setCellLocaleRaw] = createOptionalContext<() => string>();
+
+/** Called by `<TableProvider>` once, alongside {@link attachTableContext}. */
+export function attachCellLocale(resolve: () => string) {
+  setCellLocaleRaw(resolve);
+}
+
+/**
+ * The resolved formatting locale for this table. Falls back to the base locale
+ * when no provider is mounted, matching `useI18n()`'s own read-tolerance — a
+ * cell rendered outside a `<TableProvider>` still formats identically on both
+ * sides of hydration.
+ */
+export function getCellLocale(): string {
+  return getCellLocaleRaw()?.() ?? BASE_LOCALE;
+}
 
 /**
  * Creates and sets the table context.

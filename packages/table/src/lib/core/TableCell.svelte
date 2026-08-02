@@ -1,8 +1,7 @@
 <script lang="ts">
-  import { resolveDateLocale, useI18n } from '@urbicon-ui/i18n';
   import { formatCellValue, resolveColumnId, resolveColumnValue } from '../utils';
   import { customCellVariants } from '$lib/variants';
-  import { getTableContext } from '$lib/stores/TableStore.svelte';
+  import { getCellLocale, getTableContext } from '$lib/stores/TableStore.svelte';
   import SearchHighlight from '$lib/features/SearchHighlight.svelte';
   import type { Column, TableItem } from '$lib/types/tableTypes';
   import type { Snippet } from 'svelte';
@@ -11,10 +10,8 @@
 
   // The default `Date` branch of `formatCellValue` needs a resolved tag —
   // `undefined` there follows the runtime and diverges across the SSR
-  // boundary. Same chain as DateCell/NumberCell, no prop: a plain column has
-  // no place to put one, and the provider is the right source anyway.
-  const i18n = useI18n();
-  const cellLocale = $derived(resolveDateLocale('auto', i18n.locale));
+  // boundary. Resolved once per table by `<TableProvider>`, not per cell.
+  const cellLocale = $derived(getCellLocale());
 
   export type TableCellProps = {
     item: TableItem;
