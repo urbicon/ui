@@ -94,5 +94,9 @@ export interface DocsLayoutProps extends DocsLayoutVariantProps {
 }
 
 export { default } from './DocsLayout.svelte';
-export { type DocsLayoutVariantProps, docsLayoutVariants } from './docslayout.variants';
+export {
+  type DocsLayoutSlots,
+  type DocsLayoutVariantProps,
+  docsLayoutVariants
+} from './docslayout.variants';
 export { setPageNav as setDocsPageNav } from './page-nav';

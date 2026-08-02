@@ -219,6 +219,7 @@ export {
 } from './deriveControls';
 export { default } from './PlaygroundConfigurator.svelte';
 export {
+  type PlaygroundConfiguratorSlots,
   type PlaygroundConfiguratorVariantProps,
   playgroundConfiguratorVariants
 } from './playground-configurator.variants';

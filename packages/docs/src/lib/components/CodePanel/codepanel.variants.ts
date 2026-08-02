@@ -1,4 +1,4 @@
-import { tv, type VariantProps } from '@urbicon-ui/blocks';
+import { type SlotNames, tv, type VariantProps } from '@urbicon-ui/blocks';
 
 export const codePanelVariants = tv({
   slots: {
@@ -57,3 +57,5 @@ export const codePanelVariants = tv({
 });
 
 export type CodePanelVariantProps = VariantProps<typeof codePanelVariants>;
+/** Slot names derived from the `tv()` config above — single source of truth for `slotClasses`. */
+export type CodePanelSlots = SlotNames<typeof codePanelVariants>;

@@ -85,6 +85,7 @@ export interface TableOfContentsProps extends TableOfContentsVariantProps {
 
 export { default } from './TableOfContents.svelte';
 export {
+  type TableOfContentsSlots,
   type TableOfContentsVariantProps,
   tableOfContentsVariants
 } from './tableofcontents.variants.js';

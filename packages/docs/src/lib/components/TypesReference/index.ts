@@ -119,6 +119,7 @@ export function extractLiteralValues(definition: string): string[] {
 
 export { default } from './TypesReference.svelte';
 export {
+  type TypesReferenceSlots,
   type TypesReferenceVariantProps,
   typesReferenceVariants
 } from './types-reference.variants';

@@ -1,4 +1,4 @@
-import { tv, type VariantProps } from '@urbicon-ui/blocks';
+import { type SlotNames, tv, type VariantProps } from '@urbicon-ui/blocks';
 
 export const typesReferenceVariants = tv({
   slots: {
@@ -81,3 +81,5 @@ export const typesReferenceVariants = tv({
 });
 
 export type TypesReferenceVariantProps = VariantProps<typeof typesReferenceVariants>;
+/** Slot names derived from the `tv()` config above — single source of truth for `slotClasses`. */
+export type TypesReferenceSlots = SlotNames<typeof typesReferenceVariants>;

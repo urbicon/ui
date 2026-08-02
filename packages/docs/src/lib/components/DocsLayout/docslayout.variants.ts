@@ -1,4 +1,4 @@
-import { tv, type VariantProps } from '@urbicon-ui/blocks';
+import { type SlotNames, tv, type VariantProps } from '@urbicon-ui/blocks';
 
 export const docsLayoutVariants = tv({
   slots: {
@@ -92,3 +92,5 @@ export const docsLayoutVariants = tv({
 });
 
 export type DocsLayoutVariantProps = VariantProps<typeof docsLayoutVariants>;
+/** Slot names derived from the `tv()` config above — single source of truth for `slotClasses`. */
+export type DocsLayoutSlots = SlotNames<typeof docsLayoutVariants>;

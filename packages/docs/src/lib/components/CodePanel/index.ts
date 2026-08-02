@@ -63,4 +63,8 @@ export interface CodePanelProps extends CodePanelVariantProps {
 }
 
 export { default } from './CodePanel.svelte';
-export { type CodePanelVariantProps, codePanelVariants } from './codepanel.variants';
+export {
+  type CodePanelSlots,
+  type CodePanelVariantProps,
+  codePanelVariants
+} from './codepanel.variants';
