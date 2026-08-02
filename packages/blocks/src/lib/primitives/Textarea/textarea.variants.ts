@@ -5,7 +5,11 @@ export const textareaVariants = tv({
   slots: {
     wrapper: ['flex flex-col w-full gap-1.5'],
     base: [
-      'w-full box-border resize-vertical',
+      // `resize-y`, not `resize-vertical` — the latter is not a Tailwind
+      // utility and emitted nothing, so the textarea kept the UA default
+      // `resize: both` and could be dragged sideways out of its layout.
+      // Found by the emitted-CSS guard in variants-lint, 2026-08-02.
+      'w-full box-border resize-y',
       'transition-[color,background-color,border-color,box-shadow] duration-[var(--blocks-duration-fast)] ease-out',
       // Radius driven by `tier` axis below.
       'focus-visible:outline-none',

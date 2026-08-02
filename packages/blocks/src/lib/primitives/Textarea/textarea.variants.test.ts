@@ -117,9 +117,17 @@ describe('textareaVariants', () => {
     expect(base).not.toMatch(/(?<![a-z-])focus:/);
   });
 
-  it('includes resize-vertical by default', () => {
-    const base = textareaVariants({}).base();
-    expect(base).toContain('resize-vertical');
+  it('resizes vertically only, with a utility Tailwind actually emits', () => {
+    // This test used to assert `resize-vertical`, which is not a Tailwind
+    // utility — it emitted no CSS at all, so the field kept the UA default
+    // `resize: both` and could be dragged sideways out of its layout. The
+    // assertion passed the whole time, because a string the compiler ignores
+    // is still a string in the class list. Exact match, not `toContain`:
+    // `resize-y` is a substring of nothing here, but the previous phrasing is
+    // exactly how a typo survives a unit test (#61).
+    const base = textareaVariants({}).base().split(/\s+/);
+    expect(base).toContain('resize-y');
+    expect(base).not.toContain('resize-vertical');
   });
 
   it('never outputs dark: overrides', () => {

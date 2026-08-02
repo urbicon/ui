@@ -22,6 +22,16 @@
  *            table-theme) nor in Tailwind 4's default theme.
  *            Tailwind emits NO CSS for such a class — the bug class behind
  *            Calendar's dead `text-2xs` (`size="sm"` rendered like `md`).
+ *   ✖ ERROR  no CSS emitted — the same failure, asked of the real compiler
+ *            instead of a model of it, so it covers every namespace the model
+ *            does not: `bg-` and its colour-capable siblings (`border-`,
+ *            `ring-`, `outline-`, `divide-`, `fill-`, `stroke-`, `accent-`,
+ *            `caret-`, `decoration-`), variant-prefixed classes, and whatever
+ *            Tailwind adds next. See scripts/tailwind-emit.ts. Its first run
+ *            found `resize-vertical` on Textarea (no such utility — the field
+ *            kept the UA default `resize: both`) and three dead gradient stops
+ *            on the table skeleton (`surface-2`/`surface-3` are not tokens, so
+ *            the shimmer was fully transparent).
  *   ✖ ERROR  transform property missing from an arbitrary transition list —
  *            Tailwind 4 emits `scale-*` / `translate-*` / `rotate-*` as the
  *            DISCRETE CSS properties `scale:` / `translate:` / `rotate:`, not
@@ -50,6 +60,7 @@
  */
 import { unlink } from 'node:fs/promises';
 import { resolve } from 'node:path';
+import { findNonEmittingClasses } from './tailwind-emit';
 import { checkClassToken, collectThemeVars } from './theme-tokens';
 
 const ENGINE = resolve(import.meta.dir, '../src/lib/utils/variants.ts');
@@ -466,6 +477,14 @@ const shadowed: Finding[] = [];
 const partial: Finding[] = [];
 const unknownTheme: Finding[] = [];
 const unknownThemeSeen = new Set<string>();
+/**
+ * Every class the hand-modelled namespace guard waved through, and where it
+ * came from. Compiled in one batch after the walk — Tailwind knows every
+ * namespace, so this is what covers `bg-` and its nine colour-capable
+ * siblings without a statics list to keep true (#61).
+ */
+const emitCandidates = new Map<string, string[]>();
+const noCss: Finding[] = [];
 const missingTransition: Finding[] = [];
 const missingTransitionSeen = new Set<string>();
 const readingSurfaceHover: Finding[] = [];
@@ -575,9 +594,18 @@ for (const { file, name, fn, cfg } of loaded) {
   for (const src of sources) {
     for (const slot of slotList) {
       for (const token of new Set(src.tokens.get(slot) ?? [])) {
-        const miss = checkClassToken(token, themeVars);
-        if (miss == null) continue;
         const where = `${file} › ${name}${slots ? ` › ${slot}` : ''}`;
+        const miss = checkClassToken(token, themeVars);
+        if (miss == null) {
+          // Out of the hand-modelled namespaces' reach — hand it to the
+          // compiler pass below, which knows every namespace but can only say
+          // "no rule", not which variable was missing.
+          emitCandidates.set(
+            token,
+            (emitCandidates.get(token) ?? []).concat(`${where} (${src.id})`)
+          );
+          continue;
+        }
         const seenKey = `${where}\0${token}`;
         if (unknownThemeSeen.has(seenKey)) continue;
         unknownThemeSeen.add(seenKey);
@@ -734,16 +762,97 @@ for (const { file, name, fn, cfg } of loaded) {
   }
 }
 
+// ─── emitted-CSS guard ───────────────────────────────────────────────────────
+//
+// The namespace model above covers nine namespaces exactly and says which
+// variable was missing. This pass covers the rest — every colour-capable
+// namespace (`bg-`, `border-`, `ring-`, `outline-`, `divide-`, `fill-`,
+// `stroke-`, `accent-`, `caret-`, `decoration-`) plus anything Tailwind gains
+// later — by compiling the classes and reporting the ones that yield no rule.
+// A mistyped colour token emits NO CSS and renders unstyled, which is the
+// whole reason this guard exists; `bg-` held five of the library's on-colour
+// references and was unguarded (#61).
+//
+// Two canaries first, because a compile that silently returns nothing would
+// make this pass vacuously green: a class that must live, and one that must
+// not.
+const EMIT_CANARY_ALIVE = 'bg-text-on-fill';
+const EMIT_CANARY_DEAD = 'bg-text-on-fill-nonexistent-key';
+
+/**
+ * Classes that are hand-written CSS rather than Tailwind utilities, so the
+ * compiler is right to emit nothing for them and this guard would otherwise
+ * report every one. Each needs a reason and the file that defines it.
+ *
+ * Same contract as `imports:lint` and `registry:lint`: an entry that stops
+ * being needed is an error, so the list cannot quietly outlive its cause.
+ */
+const HAND_WRITTEN_CSS: Record<string, string> = {
+  'animate-progress-indeterminate':
+    'keyframes + class in Progress.svelte (component-local :global) — the animation is bound to that component, not a theme token',
+  'animate-progress-striped': 'keyframes + class in Progress.svelte (component-local :global)',
+  'blocks-avatar-status-pulse': 'keyframes + class in Avatar.svelte (component-local :global)',
+  'blocks-menu--open': 'state hook class set by Menu.svelte, styled in its own :global block',
+  'font-meta':
+    'docs-app font family, defined in the docs app @theme (apps/docs) — the packages this lint reads cannot see it, and consumer-supplied font keys are out of scope by design (see theme-tokens.ts)',
+  'meta-marker': 'docs-app decorative class, defined in the docs app stylesheet'
+};
+
+const tailwindCss = [
+  "@import 'tailwindcss';",
+  ...(await Promise.all(THEME_CSS.slice(1).map((p) => Bun.file(p).text())))
+].join('\n');
+
+const probe = await findNonEmittingClasses(
+  [...emitCandidates.keys(), EMIT_CANARY_ALIVE, EMIT_CANARY_DEAD],
+  { css: tailwindCss, base: REPO }
+);
+const deadSet = new Set(probe.dead);
+if (deadSet.has(EMIT_CANARY_ALIVE) || !deadSet.has(EMIT_CANARY_DEAD)) {
+  console.error(
+    `✖ variants-lint: the emitted-CSS canaries failed (alive='${EMIT_CANARY_ALIVE}' reported ${
+      deadSet.has(EMIT_CANARY_ALIVE) ? 'dead' : 'alive'
+    }, dead='${EMIT_CANARY_DEAD}' reported ${deadSet.has(EMIT_CANARY_DEAD) ? 'dead' : 'alive'}) — the compiler probe is not measuring what it claims.`
+  );
+  process.exit(1);
+}
+
+const handWrittenHit = new Set<string>();
+for (const token of probe.dead) {
+  if (token === EMIT_CANARY_DEAD) continue;
+  if (token in HAND_WRITTEN_CSS) {
+    handWrittenHit.add(token);
+    continue;
+  }
+  for (const where of emitCandidates.get(token) ?? []) {
+    noCss.push({
+      where,
+      token,
+      detail:
+        'Tailwind emits no rule for this class, so it renders as if it were not there. Usually a mistyped theme key (a colour, most often) — check it against the tokens in style/semantic.css. If it is hand-written CSS, add it to HAND_WRITTEN_CSS in this script with the file that defines it'
+    });
+  }
+}
+const staleHandWritten = Object.keys(HAND_WRITTEN_CSS).filter((t) => !handWrittenHit.has(t));
+
 // ─── report ──────────────────────────────────────────────────────────────────
 
 console.log(
-  `variants-lint: ${loaded.length} configs in ${files.length} files, ${themeVars.size} @theme keys — ${dead.length} lost, ${unknownTheme.length} unknown-theme, ${missingTransition.length} incomplete transition list(s), ${readingSurfaceHover.length} reading-surface hover(s), ${shadowed.length} shadowed, ${partial.length} partially-stripped token(s)`
+  `variants-lint: ${loaded.length} configs in ${files.length} files, ${themeVars.size} @theme keys, ${probe.checked} classes compiled — ${dead.length} lost, ${unknownTheme.length} unknown-theme, ${noCss.length} no-CSS, ${missingTransition.length} incomplete transition list(s), ${readingSurfaceHover.length} reading-surface hover(s), ${shadowed.length} shadowed, ${partial.length} partially-stripped token(s)`
 );
 
 for (const err of fileErrors) console.error(`✖ ${err}`);
 for (const f of dead) console.error(`✖ lost token '${f.token}' in ${f.where} (${f.detail})`);
 for (const f of unknownTheme) {
   console.error(`✖ unknown theme key for '${f.token}' in ${f.where} (${f.detail})`);
+}
+for (const f of noCss) {
+  console.error(`✖ no CSS emitted for '${f.token}' in ${f.where}\n    ${f.detail}`);
+}
+for (const token of staleHandWritten) {
+  console.error(
+    `✖ stale HAND_WRITTEN_CSS entry '${token}' — no tv() config references it any more; drop the entry from variants-lint.ts.`
+  );
 }
 for (const f of missingTransition) {
   console.error(`✖ incomplete transition list '${f.token}' in ${f.where}\n    ${f.detail}`);
@@ -773,6 +882,8 @@ if (
   fileErrors.length > 0 ||
   dead.length > 0 ||
   unknownTheme.length > 0 ||
+  noCss.length > 0 ||
+  staleHandWritten.length > 0 ||
   missingTransition.length > 0 ||
   readingSurfaceHover.length > 0 ||
   staleExemptions.length > 0

@@ -262,7 +262,13 @@ export const TABLE_ANIMATIONS = {
   loading: {
     pulse: 'animate-pulse',
     spin: 'animate-spin',
-    skeleton: 'animate-pulse bg-gradient-to-r from-surface-2 via-surface-3 to-surface-2'
+    // `surface-2` / `surface-3` are not tokens in this design system and never
+    // were, so all three gradient stops emitted nothing: the skeleton animated
+    // a fully transparent gradient. Matches the blocks `Skeleton` primitive's
+    // shimmer, which is the same effect done with real tokens. Found by the
+    // emitted-CSS guard in variants-lint, 2026-08-02.
+    skeleton:
+      'animate-pulse bg-linear-to-r from-surface-interactive via-skeleton-shimmer to-surface-interactive'
   },
 
   // Row animations
