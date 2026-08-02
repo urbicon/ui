@@ -25,18 +25,14 @@ export interface MCPCatalogAssemblerConfig {
  *
  * Keep them out of the MCP catalog: `find_components` answers "what do I build
  * this UI from", and a PlaygroundConfigurator is never that answer.
+ *
+ * The rule is the package, not a list of names. A hand-kept list of the nine
+ * components was the first version and it lasted one new component: `NoteList`
+ * was added, nobody remembered the list, and it shipped into the public
+ * catalog. Package membership is the actual criterion, so it is the one
+ * encoded here.
  */
-const INTERNAL_COMPONENTS = new Set([
-  'ApiReference',
-  'CodeExample',
-  'CodePanel',
-  'DocsLayout',
-  'InfoCard',
-  'PlaygroundConfigurator',
-  'Section',
-  'TableOfContents',
-  'TypesReference'
-]);
+const INTERNAL_PACKAGE = '@urbicon-ui/docs';
 
 /**
  * Assembles the final component-catalog.json from per-package _catalog.json
@@ -94,7 +90,7 @@ export class MCPCatalogAssembler {
       }
     }
 
-    const publicEntries = allEntries.filter((e) => !INTERNAL_COMPONENTS.has(e.name));
+    const publicEntries = allEntries.filter((e) => e.package !== INTERNAL_PACKAGE);
 
     // Sort alphabetically by name
     publicEntries.sort((a, b) => a.name.localeCompare(b.name));

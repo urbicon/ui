@@ -22,12 +22,23 @@ function makeEntry(
   };
 }
 
+/** A component of the docs package — the thing that must never be offered. */
+function makeDocsEntry(name: string, slug: string): ComponentCatalogEntry {
+  return makeEntry({
+    name,
+    slug,
+    package: '@urbicon-ui/docs',
+    group: 'components',
+    import: `import { ${name} } from '@urbicon-ui/docs';`
+  });
+}
+
 describe('filterInternalComponents', () => {
   it('removes docs-site-internal components from the list', () => {
     const entries = [
       makeEntry({ name: 'Button', slug: 'button' }),
-      makeEntry({ name: 'ApiReference', slug: 'api-reference' }),
-      makeEntry({ name: 'PlaygroundConfigurator', slug: 'playground-configurator' }),
+      makeDocsEntry('ApiReference', 'api-reference'),
+      makeDocsEntry('PlaygroundConfigurator', 'playground-configurator'),
       makeEntry({ name: 'Input', slug: 'input' })
     ];
     const result = filterInternalComponents(entries);
@@ -36,10 +47,30 @@ describe('filterInternalComponents', () => {
 
   it('returns an empty list when all entries are internal', () => {
     const entries = [
-      makeEntry({ name: 'DocsLayout', slug: 'docs-layout' }),
-      makeEntry({ name: 'InfoCard', slug: 'info-card' })
+      makeDocsEntry('DocsLayout', 'docs-layout'),
+      makeDocsEntry('InfoCard', 'info-card')
     ];
     expect(filterInternalComponents(entries)).toEqual([]);
+  });
+
+  it('drops a docs component whose name nobody has ever listed', () => {
+    // The failure this guards is not hypothetical: the filter used to be a
+    // hand-kept set of names, it silently missed `CodePanel`, and adding
+    // `NoteList` shipped a docs-only component into the public catalog. The
+    // criterion is the package, so an unheard-of name must still be dropped.
+    const entries = [
+      makeEntry({ name: 'Button', slug: 'button' }),
+      makeDocsEntry('SomeComponentAddedTomorrow', 'some-component-added-tomorrow')
+    ];
+    expect(filterInternalComponents(entries).map((e) => e.name)).toEqual(['Button']);
+  });
+
+  it('keeps a blocks component that happens to share a docs component name', () => {
+    // The mirror image: `Section` exists in the docs package, but a
+    // consumer-facing component of the same name must not be filtered out by
+    // association.
+    const entries = [makeEntry({ name: 'Section', slug: 'section' })];
+    expect(filterInternalComponents(entries).map((e) => e.name)).toEqual(['Section']);
   });
 });
 

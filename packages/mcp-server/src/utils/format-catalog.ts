@@ -1,15 +1,14 @@
 import type { ComponentCatalogEntry, RecipeEntry } from '../data/catalog-loader.js';
 
-const INTERNAL_COMPONENTS = new Set([
-  'ApiReference',
-  'CodeExample',
-  'DocsLayout',
-  'InfoCard',
-  'PlaygroundConfigurator',
-  'Section',
-  'TableOfContents',
-  'TypesReference'
-]);
+/**
+ * Belt to the assembler's braces: the shipped catalog is already filtered, but
+ * this server also reads catalogs it did not assemble.
+ *
+ * By package, never by a list of names. The list this replaces had already
+ * rotted — it carried eight of the nine docs components, having missed
+ * `CodePanel` when that one was added.
+ */
+const INTERNAL_PACKAGE = '@urbicon-ui/docs';
 
 const TAG_ORDER = ['action', 'form', 'layout', 'feedback', 'navigation', 'display', 'data'];
 
@@ -31,7 +30,7 @@ const TAG_LABELS: Record<string, string> = {
 export function filterInternalComponents(
   components: ComponentCatalogEntry[]
 ): ComponentCatalogEntry[] {
-  return components.filter((c) => !INTERNAL_COMPONENTS.has(c.name));
+  return components.filter((c) => c.package !== INTERNAL_PACKAGE);
 }
 
 /**
