@@ -8,9 +8,17 @@
   four paint switches — the landing promises "repaint the building", this page
   lets you do it — and 05 mirrors the landing's second install command
   (`bunx urbicon init`), so both entry points tell the same story. A numeral-00
-  pre-step (create the app via `sv create`) sits above 01 but deliberately
-  OUTSIDE the STEPS scrollspy: at 00 there is no app to preview yet, and
-  readers already inside a SvelteKit project skip it.
+  pre-step (create the app via `sv create --add @urbicon-ui`) sits above 01 but
+  deliberately OUTSIDE the STEPS scrollspy: at 00 there is no app to preview
+  yet, and readers already inside a SvelteKit project skip it.
+
+  The sv add-on covers 00–02 in one command, so those steps are a FORK, not a
+  sequence: 00 is the greenfield path (`sv create` needs an empty directory),
+  01 opens with the brownfield form (`sv add`) and then gives the manual
+  install, 02 states up front that the add-on already wrote it. The manual
+  steps stay in full — they are what the reader needs in order to understand
+  (and later change) what the add-on did, and the preview card's five-step
+  choreography hangs off them.
 
   The card follows a MONOTONIC step latch (reachedStep), not the raw
   scrollspy: the app you've built must not un-build when you scroll back up to
@@ -86,7 +94,11 @@
   let demoService = $state<string | null>('bleecker');
   let demoBooked = $state(false);
 
-  const createProjectExample = `bunx sv create my-app --add tailwindcss`;
+  const createProjectExample = `bunx sv create my-app --add @urbicon-ui`;
+
+  // Derselbe Add-on-Pfad für ein bestehendes Projekt. Steht in 01 statt in 00,
+  // weil 00 „No project yet?" heißt: `sv create` will ein leeres Verzeichnis.
+  const addAddonExample = `bunx sv add @urbicon-ui`;
 
   const installExample = `bun add @urbicon-ui/blocks`;
 
@@ -179,7 +191,7 @@ export default {
   </div>
 </div>
 
-<div class="mx-auto max-w-6xl px-4 pb-16 pt-10 sm:px-6 lg:px-8">
+<div class="mx-auto max-w-6xl px-4 pt-10 pb-16 sm:px-6 lg:px-8">
   <div class="grid grid-cols-1 gap-12 lg:grid-cols-[minmax(0,1fr)_23rem] lg:items-start lg:gap-14">
     <!-- ── The four steps ─────────────────────────────────────────────── -->
     <div>
@@ -187,18 +199,21 @@ export default {
            comment): no scrollspy id, no effect on the preview card. -->
       <section class="pb-12">
         <h2 class="text-text-primary flex items-baseline gap-4 text-2xl font-bold tracking-tight">
-          <span class="text-primary text-5xl font-medium leading-none" aria-hidden="true">00</span>
+          <span class="text-primary text-5xl leading-none font-medium" aria-hidden="true">00</span>
           No project yet?
         </h2>
         <p class="text-text-secondary mt-4 max-w-2xl leading-relaxed">
           Urbicon UI plugs into any SvelteKit app. Starting from an empty directory, the official
           <code class="bg-surface-elevated rounded-modify px-1.5 py-0.5 font-mono text-xs">sv</code>
-          CLI scaffolds one — it asks its own questions (TypeScript, Prettier, …), and picking the
+          CLI scaffolds one — it asks its own questions (TypeScript, Prettier, …), and
           <code class="bg-surface-elevated rounded-modify px-1.5 py-0.5 font-mono text-xs"
-            >tailwindcss</code
+            >--add @urbicon-ui</code
           >
-          add-on right here already does the plumbing that step 02 walks you through. Inside an existing
-          project? Skip ahead to 01.
+          hands the rest to our add-on: it pulls in Tailwind, installs the library and the
+          <code class="bg-surface-elevated rounded-modify px-1.5 py-0.5 font-mono text-xs"
+            >urbicon</code
+          >
+          CLI, and writes the stylesheet import for you.
         </p>
         <div class="mt-6">
           <CodeExample
@@ -208,21 +223,43 @@ export default {
             preview={false}
           />
         </div>
+        <!-- Bewusst KEIN `#first-component`-Anker: In-Page-Hash-Navigation
+             scrollt in dieser App nicht (auch nicht die Anker des
+             Inhaltsverzeichnisses auf den Komponentenseiten — vorbestehend,
+             siehe Issue). Ein Link, der nur die URL ändert, ist eine kaputte
+             Zusage; die Schrittnummer trägt den Hinweis genauso. -->
+        <p class="text-text-secondary mt-6 max-w-2xl leading-relaxed">
+          That covers steps 01 and 02 — skip ahead to 03, or read on to see what the add-on did.
+          Inside an existing project, start at 01.
+        </p>
       </section>
 
       <!-- 01 · Install -->
       <section id={STEPS[0].id} class="border-border-subtle border-t py-12">
         <h2 class="text-text-primary flex items-baseline gap-4 text-2xl font-bold tracking-tight">
-          <span class="text-primary text-5xl font-medium leading-none" aria-hidden="true">
+          <span class="text-primary text-5xl leading-none font-medium" aria-hidden="true">
             {STEPS[0].n}
           </span>
           {STEPS[0].title}
         </h2>
         <p class="text-text-secondary mt-4 max-w-2xl leading-relaxed">
-          One package, zero runtime dependencies — the components ship as compiled Svelte plus a CSS
-          token ledger, and only what you import ends up in your bundle. Any package manager works.
+          Already inside a SvelteKit project? The same add-on runs there too, and does this step and
+          the next one in one go:
         </p>
         <div class="mt-6">
+          <CodeExample
+            title="Add Urbicon UI to an existing project"
+            code={addAddonExample}
+            language="bash"
+            preview={false}
+          />
+        </div>
+        <p class="text-text-secondary mt-6 max-w-2xl leading-relaxed">
+          By hand it is one package, zero runtime dependencies — the components ship as compiled
+          Svelte plus a CSS token ledger, and only what you import ends up in your bundle. Any
+          package manager works.
+        </p>
+        <div class="mt-4">
           <CodeExample
             title="Install Urbicon UI"
             code={installExample}
@@ -235,14 +272,15 @@ export default {
       <!-- 02 · Import the tokens -->
       <section id={STEPS[1].id} class="border-border-subtle border-t py-12">
         <h2 class="text-text-primary flex items-baseline gap-4 text-2xl font-bold tracking-tight">
-          <span class="text-primary text-5xl font-medium leading-none" aria-hidden="true">
+          <span class="text-primary text-5xl leading-none font-medium" aria-hidden="true">
             {STEPS[1].n}
           </span>
           {STEPS[1].title}
         </h2>
         <p class="text-text-secondary mt-4 max-w-2xl leading-relaxed">
-          The design system arrives as CSS, and Tailwind 4 does the plumbing — so if Tailwind isn’t
-          part of your project yet, add the Vite plugin first (already there? skip ahead):
+          On the add-on path this is already done — read it to know what is in your project. The
+          design system arrives as CSS, and Tailwind 4 does the plumbing, so if Tailwind isn’t part
+          of your project yet, add the Vite plugin first (already there? skip ahead):
         </p>
         <div class="mt-6">
           <CodeExample
@@ -284,7 +322,7 @@ export default {
       <!-- 03 · Your first component -->
       <section id={STEPS[2].id} class="border-border-subtle border-t py-12">
         <h2 class="text-text-primary flex items-baseline gap-4 text-2xl font-bold tracking-tight">
-          <span class="text-primary text-5xl font-medium leading-none" aria-hidden="true">
+          <span class="text-primary text-5xl leading-none font-medium" aria-hidden="true">
             {STEPS[2].n}
           </span>
           {STEPS[2].title}
@@ -314,7 +352,7 @@ export default {
       <!-- 04 · Make it yours -->
       <section id={STEPS[3].id} class="border-border-subtle border-t py-12">
         <h2 class="text-text-primary flex items-baseline gap-4 text-2xl font-bold tracking-tight">
-          <span class="text-primary text-5xl font-medium leading-none" aria-hidden="true">
+          <span class="text-primary text-5xl leading-none font-medium" aria-hidden="true">
             {STEPS[3].n}
           </span>
           {STEPS[3].title}
@@ -338,7 +376,7 @@ export default {
            mirrored here so both entry points tell the same story. -->
       <section id={STEPS[4].id} class="border-border-subtle border-t pt-12">
         <h2 class="text-text-primary flex items-baseline gap-4 text-2xl font-bold tracking-tight">
-          <span class="text-primary text-5xl font-medium leading-none" aria-hidden="true">
+          <span class="text-primary text-5xl leading-none font-medium" aria-hidden="true">
             {STEPS[4].n}
           </span>
           {STEPS[4].title}
@@ -354,7 +392,14 @@ export default {
             >--ci</code
           >
           and the design gate arms too: every file your agent touches gets scored on correctness and craft
-          before it ships.
+          before it ships. On the add-on path
+          <code class="bg-surface-elevated rounded-modify px-1.5 py-0.5 font-mono text-xs"
+            >@urbicon-ui/design</code
+          >
+          is already a devDependency; on the manual path add it once (<code
+            class="bg-surface-elevated rounded-modify px-1.5 py-0.5 font-mono text-xs"
+            >bun add -d @urbicon-ui/design</code
+          >) so the knowledge the CLI serves stays pinned to the library version you installed.
         </p>
         <div class="mt-6">
           <CodeExample

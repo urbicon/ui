@@ -4,7 +4,8 @@
   import { Badge, Card, buttonVariants } from '@urbicon-ui/blocks';
   import { CodeExample } from '@urbicon-ui/docs';
 
-  const cliSetupExample = `# One dev-dependency wires your agent into the design system:
+  const cliSetupExample = `# One dev-dependency wires your agent into the design system
+# (already there if you set the project up with \`sv add @urbicon-ui\`):
 bun add -d @urbicon-ui/design
 
 # Insert the agent context block (AGENTS.md), scaffold design.manifest.md,
@@ -78,7 +79,7 @@ let { variant, intent } = $props();`;
   </div>
 </div>
 
-<div class="mx-auto max-w-4xl px-6 pb-12 pt-10">
+<div class="mx-auto max-w-4xl px-6 pt-10 pb-12">
   <!-- urbicon CLI -->
   <section class="mb-12">
     <h2 class="text-text-primary mb-2 text-2xl font-bold">The urbicon CLI</h2>

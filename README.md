@@ -49,6 +49,16 @@ from the library itself.
 
 ## Quick start
 
+The [`sv` add-on](https://www.npmjs.com/package/@urbicon-ui/sv) (beta) does the whole setup —
+packages, Tailwind, the stylesheet import — from an empty directory or inside an existing app:
+
+```bash
+bunx sv create my-app --add @urbicon-ui   # new project
+bunx sv add @urbicon-ui                   # existing project
+```
+
+By hand it is one install and two imports:
+
 ```bash
 bun add @urbicon-ui/blocks   # or npm/pnpm — the library doesn't care
 ```
@@ -88,6 +98,7 @@ setup and the first real page.
 | [`@urbicon-ui/i18n`](https://ui.urbicon.de/i18n) | Runes-based localisation with a data-level translation audit |
 | [`@urbicon-ui/design`](https://ui.urbicon.de/ai) | The `urbicon` CLI: design knowledge, the validate gate, `urbicon init` onboarding |
 | `@urbicon-ui/sveltekit-utils` | URL-state runes, cron runner and other SvelteKit helpers |
+| [`@urbicon-ui/sv`](https://www.npmjs.com/package/@urbicon-ui/sv) | The Svelte CLI add-on (beta): `sv add @urbicon-ui` installs the library and wires the stylesheet |
 
 One version across all packages; supporting packages (`design-engine`, `docs-gen`, …) live in the
 same repo and release in lockstep.

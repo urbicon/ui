@@ -905,13 +905,24 @@
          Reprise von Zeile 1 — dieselbe Kachel-Anatomie (Inhalt mittig, Titel
          zuoberst der Gruppe), aber statisch nebeneinander statt gescrollt. ── -->
     <section class="row3" aria-label="Getting started">
+      <!-- Der Schritt zeigt den sv-Pfad, nicht `bun add`: das Add-on installiert
+           die Pakete UND schreibt den Stylesheet-Import, womit die zwei Zeilen
+           hier wirklich alles sind. Mit `bun add` schuldete die Kachel still
+           einen dritten Schritt (Tailwind-Plugin + Token-Import) und löste ihn
+           erst im Guide ein. `create` ist der Default, weil die Zeile die
+           Geschichte „aus dem Nichts" erzählt; der Bestandsfall steht als
+           Alternative darunter statt in einer zweiten Kachel. -->
       <div class="step step-ink" style:--ink-solid={CHANNELS.ink.solid}>
         <div class="step-body">
           <h2 class="step-title">Install</h2>
-          <code class="cmd">bun add @urbicon-ui/blocks</code>
-          <code class="cmd">bunx urbicon init</code>
+          <code class="cmd">bunx sv create my-app --add @urbicon-ui</code>
+          <code class="cmd">bunx urbicon init --hook</code>
           <p class="step-line">
-            Two commands. The second writes AGENTS.md and wires your agent into the design loop.
+            From an empty folder to a themed app your agent can build in — the first command
+            installs and wires Tailwind, the second brings the agent into the design loop.
+          </p>
+          <p class="step-alt">
+            Existing SvelteKit app? <code>bunx sv add @urbicon-ui</code>
           </p>
         </div>
       </div>
@@ -1653,6 +1664,21 @@
     font-size: 0.9rem;
     opacity: 0.85;
     max-width: 40ch;
+  }
+  /* Der Bestandsprojekt-Fall — bewusst KEIN `.cmd`-Kasten: als dritte
+     Befehlszeile gelesen wäre er ein dritter Schritt statt einer Abzweigung.
+     Also Fußnoten-Gewicht, mit dem Befehl selbst im Mono der Kästen. */
+  .step-alt {
+    margin-top: 0.9rem;
+    font-size: 0.78rem;
+    opacity: 0.6;
+    max-width: 40ch;
+  }
+  .step-alt code {
+    font-family: 'JetBrains Mono', monospace;
+    /* Der Befehl bricht als Ganzes in die nächste Zeile statt mitten im
+       Paketnamen — ein halber Befehl liest sich wie ein Tippfehler. */
+    white-space: nowrap;
   }
   .step-link {
     display: inline-block;

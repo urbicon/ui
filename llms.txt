@@ -12,7 +12,21 @@ Packages are published on the public npm registry — no registry configuration 
 
 ```bash
 bun add @urbicon-ui/blocks
-# or: npm install @urbicon-ui/blocks
+```
+
+Then two CSS imports — Tailwind first, then the token sheet (it also carries the `@source`
+directives that make the components' classes reachable):
+
+```css
+@import 'tailwindcss';
+@import '@urbicon-ui/blocks/style/index.css';
+```
+
+In a SvelteKit project the `sv` add-on does both steps at once — non-interactive form for CI and
+agents, so Tailwind's plugin prompt never blocks the run:
+
+```bash
+bunx sv add tailwindcss=plugins:none @urbicon-ui
 ```
 
 ```svelte
