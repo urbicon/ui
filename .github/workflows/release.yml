@@ -104,15 +104,29 @@ jobs:
           (cd packages/sveltekit-utils && bunx --bun vitest run)
           (cd packages/sv && bunx --bun vitest run)
 
-      # A tag always points at a commit that already went through CI — through
-      # its PR, or through `push: main`. Running the same 120 tests again on the
-      # same tree proves nothing the first run did not, and it was 7 of this
-      # gate's 13 minutes.
+      # A tag points at a commit that goes through CI as well — through its PR,
+      # or through `push: main`. Running the same 120 tests again on the same
+      # tree proves nothing the first run did not, and it was 7 of this gate's
+      # 13 minutes.
       #
-      # The skip needs a PROVEN green: no CI run for this SHA, one still in
-      # flight, or a red one all fall through to running the tests. The only
-      # thing that buys the skip is a completed, successful CI run on this exact
-      # commit — which, because CI shards the same suite, is the same evidence.
+      # The skip needs a PROVEN green: no CI run for this SHA, or a red one,
+      # fall through to running the tests. The only thing that buys the skip is
+      # a completed, successful CI run on this exact commit — which, because CI
+      # shards the same suite, is the same evidence.
+      #
+      # WHY THIS WAITS. `bun run bump` pushes commit and tag together, so both
+      # pipelines start in the same second and CI is still running when this
+      # step is reached. As a snapshot the check therefore lost every time it
+      # mattered: on v6.49.0 — the first release with the skip — it asked at
+      # 16:38:00 and CI went green at 16:38:50, fifty seconds later. The e2e
+      # suite then ran a second time, unsharded, for nothing.
+      #
+      # So an in-flight CI run is waited out rather than counted as absent.
+      # Everything else still decides immediately: no CI run at all (a tag on an
+      # untested commit) does not wait, and neither does a red one. The deadline
+      # is the backstop for a stuck run — CI takes ~7 minutes, so ten is
+      # generous — and every failure path falls through to running the tests,
+      # which is the safe direction before an irreversible publish.
       - name: Did this commit already pass CI?
         id: ci_status
         env:
@@ -120,12 +134,37 @@ jobs:
           REPO: ${{ github.repository }}
           SHA: ${{ github.sha }}
         run: |
-          set -euo pipefail
-          green=$(gh api "repos/$REPO/actions/runs?head_sha=$SHA&per_page=100" \
-            --jq '[.workflow_runs[] | select(.name == "CI" and .status == "completed" and .conclusion == "success")] | length')
-          if [ "$green" -gt 0 ]; then
+          # No `-e`: a transient API failure must not kill the gate. It is
+          # treated as "unknown", the loop keeps polling, and the deadline ends
+          # it — with the tests running, never skipped on a guess.
+          set -uo pipefail
+          deadline=$((SECONDS + 600))
+          green=false
+          waited=false
+          while :; do
+            counts=$(gh api "repos/$REPO/actions/runs?head_sha=$SHA&per_page=100" \
+              --jq '[.workflow_runs[] | select(.name == "CI")]
+                    | "\([.[] | select(.status == "completed" and .conclusion == "success")] | length) \([.[] | select(.status != "completed")] | length)"' \
+              2>/dev/null) || counts=""
+            if [ -n "$counts" ]; then
+              set -- $counts
+              if [ "$1" -gt 0 ]; then green=true; break; fi
+              # Nothing green and nothing left in flight — decided.
+              if [ "$2" -eq 0 ]; then break; fi
+              if [ "$waited" = false ]; then
+                waited=true
+                echo "::notice::CI is still running on $SHA — waiting for it rather than re-running e2e here"
+              fi
+            fi
+            if [ "$SECONDS" -ge "$deadline" ]; then
+              echo "::warning::CI on $SHA did not finish within 10 min — running e2e here"
+              break
+            fi
+            sleep 15
+          done
+          if [ "$green" = true ]; then
             echo "green=true" >> "$GITHUB_OUTPUT"
-            echo "::notice::CI already passed on $SHA — skipping the e2e re-run"
+            echo "::notice::CI passed on $SHA — skipping the e2e re-run"
           else
             echo "green=false" >> "$GITHUB_OUTPUT"
             echo "::notice::No completed, successful CI run for $SHA — running e2e here"
