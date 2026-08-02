@@ -30,6 +30,7 @@ import { compile } from '@tailwindcss/node';
 import { createRawSnippet } from 'svelte';
 import { render } from 'svelte/server';
 import { describe, expect, it } from 'vitest';
+import { escapeClass } from '../../../../scripts/tailwind-emit';
 import Tooltip from './Tooltip.svelte';
 import { tooltipVariants } from './tooltip.variants';
 
@@ -102,12 +103,15 @@ const compileClass = await (async () => {
 const HAND_WRITTEN_CSS: Record<string, string> = {};
 
 function declaresDisplay(cls: string): boolean {
-  // Two escape levels, and skipping the second is silent: Tailwind writes
-  // `md:block` as the selector `.md\:block`, and a pattern built from that
-  // string reads `\:` as a plain `:` — so it looks for `.md:block`, never
-  // matches, and the class is reported as declaring nothing. Both `md:block`
-  // and `[display:block]` slipped through exactly that way.
-  const cssName = cls.replace(/([^\w-])/g, '\\$1'); // as Tailwind writes it
+  // Two escape levels. The first — class name to CSS selector — is
+  // `escapeClass` from `scripts/tailwind-emit.ts`, not a local copy: that
+  // module documents the two ways a naive `[^\w-]` replace gets it wrong (a
+  // leading digit needs a hex escape, non-ASCII needs none at all), and a
+  // local copy reproducing them turned `2xl:px-4` and `after:content-['✓']`
+  // into false alarms here. The second level escapes that result for a regex,
+  // and skipping it is silent: `.md\:block` read as a pattern means
+  // `.md:block`, which matches nothing.
+  const cssName = escapeClass(cls);
   const inPattern = cssName.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'); // as a regex
   const rule = new RegExp(`\\.${inPattern}(?![\\w\\\\-])[^{]*\\{([^}]*)\\}`).exec(
     compileClass(cls)
@@ -266,6 +270,19 @@ describe('Tooltip — phrasing content', () => {
     );
 
     const classes = everyPanelClass();
+    // The stale half of the HAND_WRITTEN_CSS contract, which the comment on
+    // that list claims and nothing implemented — the same "a mechanism that
+    // does not exist" defect this file's own history is made of. Trivial
+    // while the list is empty; the point is that it stops being trivial the
+    // moment someone adds an entry.
+    const panelClasses = new Set(classes.map(([, cls]) => cls));
+    for (const listed of Object.keys(HAND_WRITTEN_CSS)) {
+      expect(
+        panelClasses.has(listed),
+        `stale HAND_WRITTEN_CSS entry \`${listed}\` — no panel slot references it any more`
+      ).toBe(true);
+    }
+
     // Vacuity guard on the input, same reason as the paragraph list below: if
     // tv()'s config shape drifts, `everyPanelClass()` quietly degrades to a
     // handful of entries. Measured 39 tokens from 12 sources.

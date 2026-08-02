@@ -269,8 +269,10 @@
 
   `<span>`, not `<div>` — for the panel and for the arrow. A `<div>` start tag
   closes an open `<p>` while the parser repairs the document, and Tooltip is
-  the component the library documents for inline targets, i.e. the middle of a
-  sentence.
+  the component the library documents for inline targets, i.e. inside a
+  sentence. (Valid there, not flowing with it: the trigger wrapper is
+  `inline-flex` and therefore atomic, so a multi-word trigger is one
+  unbreakable box. Measured 2026-08-02.)
 
   Popover solved the same problem by withholding its panel from the server
   render: its content is the consumer's and can be any element, so no wrapper
