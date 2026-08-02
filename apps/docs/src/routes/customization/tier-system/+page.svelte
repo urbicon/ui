@@ -20,7 +20,7 @@
   --radius-commit:  9999px;                    /* pill — Button, ButtonGroup, Toolbar */
   --radius-modify:  var(--radius-sm);          /* tap surface — Input, Select, Tab */
   --radius-contain: var(--radius-xs);          /* container — Card, Alert, Dialog */
-  --radius-bridge:  var(--radius-md);          /* adjacency — Menu panel ↔ pill trigger */
+  --radius-bridge:  var(--radius-md);          /* middle rung — adjacency + small content surfaces */
 }`;
 
   const propExample =
@@ -306,19 +306,35 @@
   <section class="mb-12">
     <h2 class="text-text-primary mb-4 text-2xl font-bold" id="bridge">Bridge Token</h2>
     <p class="text-text-secondary mb-6 leading-relaxed">
-      <code class="text-text-primary">--radius-bridge</code> covers a narrow adjacency case: a
-      floating panel anchored to a commit-tier (pill) trigger. The panel itself is container-tier
-      content, but its radius wants to visually pair with the trigger. The bridge token sits between
-      the two — <code class="text-text-primary">var(--radius-md)</code> by default — so a Menu panel under
-      a pill Button reads as connected, not as a stranded contain-surface.
+      <code class="text-text-primary">--radius-bridge</code> is the middle rung —
+      <code class="text-text-primary">var(--radius-md)</code> by default — for the two cases where
+      <code class="text-text-primary">contain</code> is too hard and
+      <code class="text-text-primary">commit</code> too soft. The first is
+      <strong>adjacency</strong>: a floating panel anchored to a commit-tier (pill) trigger is
+      container-tier content, but its radius wants to pair with the trigger, so a Menu panel under a
+      pill Button reads as connected rather than as a stranded contain-surface.
+    </p>
+
+    <p class="text-text-secondary mb-6 leading-relaxed">
+      The second is <strong>optical size</strong>: radius scales with the area it turns, so the 2px
+      edge that reads as precise on a 600px Card reads as a plain rectangle on a ~200px tile. A
+      small tinted surface is <em>content</em>, not architecture, and takes the middle rung — the
+      <code class="text-text-primary">ChatMessage</code> bubble,
+      <code class="text-text-primary">Textarea</code> at
+      <code class="text-text-primary">tier="commit"</code> (a pill would be absurd on a multi-line
+      field), and <code class="text-text-primary">&lt;Card tier="bridge"&gt;</code>, which is how a
+      consumer says "this tile is too small for the container radius" without hand-setting a
+      <code class="text-text-primary">rounded-*</code> class and splitting the contain family.
     </p>
 
     <p class="text-text-secondary leading-relaxed">
-      No component uses bridge as its primary surface radius; it appears only in
-      <code class="text-text-primary">menu.variants.ts</code>. Brands tune via the foundation token
+      Anything that genuinely <em>is</em> a panel, dialog or container stays on
+      <code class="text-text-primary">contain</code>. Brands tune bridge via the foundation token
       like any other tier. See
       <a href={resolve('/blocks/primitives/menu')} class="text-primary hover:underline">Menu</a>
-      for usage.
+      for the adjacency case and
+      <a href={resolve('/blocks/primitives/card')} class="text-primary hover:underline">Card</a>
+      for the optical one.
     </p>
   </section>
 </DocsPageLayout>

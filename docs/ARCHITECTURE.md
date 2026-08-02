@@ -157,7 +157,7 @@ radius without touching component code.
 | --- | --- | --- | --- |
 | `commit` | `--radius-commit` | Action surfaces — buttons, menu triggers, toolbar items, toggle tracks. Declares identity ("press me"). | Pill (`9999px`) |
 | `modify` | `--radius-modify` | Tap surfaces — inputs, selects, checkboxes, tabs. Reads as editable, not as a commit-decision. | Soft (`var(--radius-sm)`) |
-| `contain` | `--radius-contain` | Architectural surfaces — cards, dialogs, drawers, popovers, sidebars. Reads as a frame holding content. | Subtle (`var(--radius-xs)`) |
+| `contain` | `--radius-contain` | Architectural surfaces — cards, dialogs, drawers, alerts, popovers, tooltips. Reads as a frame holding content. (`Sidebar` sits outside: a full-height panel flush to the viewport edge has no corner to turn.) | Subtle (`var(--radius-xs)`) |
 
 **Defaults by family:** Action `commit` · Form `modify` · Container `contain` ·
 Navigation per component. Feedback/Ambient (Toast, Spinner, Progress, Skeleton) and
@@ -196,10 +196,19 @@ const effectiveTier = $derived(tier ?? tierCtx?.tier ?? 'commit'); // or 'modify
 
 Per-instance `tier` beats context; context beats the family default.
 
-**The bridge token.** `--radius-bridge` is a fourth *adjacency* token, not a tier, used
-solely by the `Menu` panel: the trigger is a pill (`commit`) but the panel sits between the
-pill edge and the `contain`-tier surface beneath. It lives in `foundation.css` and defaults
-to `var(--radius-md)`. No other component uses it as a primary surface radius.
+**The bridge token.** `--radius-bridge` is the *middle* rung — 6px by default, living in
+`foundation.css` — for the two cases where `contain` is too hard and `commit` too soft:
+
+1. **Adjacency.** A floating panel anchored to a pill (`commit`) trigger sits between the pill
+   edge and the `contain`-tier surface beneath — the `Menu` panel is the canonical case.
+2. **Optical size.** Radius scales with the area it turns: 2px on a 600px Card reads as a
+   precise edge, the same 2px on a ~200px tile reads as a plain rectangle. A small tinted
+   surface is *content*, not architecture — the `ChatMessage` bubble, `Textarea` at
+   `tier="commit"` (a pill would be absurd on a multi-line field), and `Card tier="bridge"`,
+   which is how a consumer says "this tile is too small for the container radius" without
+   hand-setting a `rounded-*` class and splitting the contain family.
+
+Anything that genuinely *is* a panel, dialog or container stays on `contain`.
 
 ### The tv() variant engine
 

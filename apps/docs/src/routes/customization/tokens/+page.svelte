@@ -190,12 +190,13 @@
     {
       name: '--radius-contain',
       value: 'var(--radius-xs) · 2px',
-      usage: 'Containers, panels (Card, Alert, Dialog, Tooltip)'
+      usage: 'Containers, panels (Card, Alert, Dialog, Drawer, Popover, Tooltip)'
     },
     {
       name: '--radius-bridge',
       value: 'var(--radius-md) · 6px',
-      usage: 'Adjacency only — floating panel anchored to a pill (commit-tier) trigger'
+      usage:
+        'The middle rung, for two cases: adjacency (a floating panel anchored to a pill trigger — the Menu panel) and optical size (a surface too small for the container radius to read as intentional — the ChatMessage bubble, Textarea at tier="commit", Card tier="bridge")'
     }
   ];
 

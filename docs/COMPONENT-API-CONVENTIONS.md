@@ -246,7 +246,7 @@ Components map to **tier tokens**, not raw Tailwind sizes. The tier expresses se
 | Form — Input, Select, Checkbox, Combobox, Textarea, RadioGroup, Slider | modify | `rounded-modify` |
 | Container — Card, Dialog, Drawer, Popover, Accordion, Collapsible | contain | `rounded-contain` |
 | Navigation — SegmentGroup, Stepper, Tab | tier-aware (commit or modify per component) | `rounded-{tier}` |
-| Menu panel (adjacency case) | bridge | `rounded-bridge` |
+| Menu panel (adjacency), ChatMessage bubble + `Card tier="bridge"` (optical size) | bridge | `rounded-bridge` |
 | Avatar.circle, Toggle thumb dot, status indicators | shape | `rounded-full` |
 | Feedback — Toast, Spinner, Progress, Skeleton, Badge | fixed per component | (per-component) |
 
@@ -405,9 +405,14 @@ Prefer the **component** form when:
 
 Each cell component should accept `item: Item` plus any extra props passed through `componentProps`, and stay agnostic of the table's surrounding context.
 
-## `tier` Prop (Action / Form / Navigation / Container families)
+## `tier` Prop
 
 Tier-aware primitives accept an optional `tier` prop that selects the radius semantics of the component. The value comes from the wrapping `<TierContext>` by default; the prop overrides it.
+
+Two different axes share the name, deliberately — the vocabulary is the same, the values are not:
+
+- **Interactive tier** (`'commit' | 'modify'`) — Action, Form and Navigation families. This is the one that cascades through `<TierContext>`.
+- **Container tier** (`'contain' | 'bridge'`) — currently `Card` only. It does **not** read `TierContext` (a Toolbar's `commit` must not reshape a Card inside it) and exists for one decision: `bridge` when a surface is too small for the container radius to read as intentional. Every other container is `contain` by construction.
 
 ```svelte
 <!-- Default: Button is commit-tier (pill) -->
@@ -424,7 +429,7 @@ Tier-aware primitives accept an optional `tier` prop that selects the radius sem
 </Toolbar>
 ```
 
-**Default-Tier by family:** Action `commit` · Form `modify` · Navigation per component (SegmentGroup `commit`, Tab `modify`, Stepper `commit`) · Container `contain`. Full table in [ARCHITECTURE.md § The tier system](ARCHITECTURE.md#the-tier-system).
+**Default-Tier by family:** Action `commit` · Form `modify` · Navigation per component (SegmentGroup `commit`, Tab `modify`, Stepper `commit`) · Container `contain` (only `Card` exposes the prop). Full table in [ARCHITECTURE.md § The tier system](ARCHITECTURE.md#the-tier-system).
 
 **Standard implementation pattern** (in `ComponentName.svelte`):
 

@@ -72,12 +72,16 @@
   <p class="text-text-secondary mb-6 text-sm leading-relaxed">
     Badge serves five distinct use cases that look alike but behave differently. Picking the right
     pattern up-front avoids API-shape regret later — particularly around removable vs interactive,
-    counter sizing, and placement-anchoring. A future <code class="text-text-primary">purpose</code>
-    axis (<code class="text-text-primary">tag</code> /
-    <code class="text-text-primary">counter</code>
-    /
-    <code class="text-text-primary">dot</code> / <code class="text-text-primary">chip</code>) will
-    make this taxonomy first-class; until then, the five patterns below are the canonical reference.
+    counter sizing, and placement-anchoring. The
+    <code class="text-text-primary">purpose</code> axis makes that taxonomy first-class:
+    <code class="text-text-primary">status</code> / <code class="text-text-primary">tag</code> /
+    <code class="text-text-primary">counter</code> / <code class="text-text-primary">dot</code> /
+    <code class="text-text-primary">chip</code> orchestrate the low-level visual props, so you
+    rarely set them by hand. One of them also picks a colour:
+    <code class="text-text-primary">purpose="tag"</code> defaults to
+    <code class="text-text-primary">intent="neutral"</code>, because a category (a stage, a type, a
+    version) carries no severity — painting one as a status is the most common colour defect there
+    is. Pass <code class="text-text-primary">intent</code> explicitly to override.
   </p>
 
   <div class="space-y-8">
