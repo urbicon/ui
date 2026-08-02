@@ -32,6 +32,20 @@ export { default as DocsLayout, docsLayoutVariants, setDocsPageNav } from './Doc
 export type { InfoCardProps, InfoCardSlots, InfoCardVariantProps } from './InfoCard';
 export { default as InfoCard, infoCardVariants } from './InfoCard';
 export type {
+  NoteListProps,
+  NoteListSlots,
+  NoteListVariantProps,
+  NoteProps,
+  NoteSlots,
+  NoteVariantProps
+} from './NoteList';
+export {
+  default as NoteList,
+  Note,
+  noteListVariants,
+  noteVariants
+} from './NoteList';
+export type {
   CodeSetup,
   ControlOverride,
   DerivableComponentData,
