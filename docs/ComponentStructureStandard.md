@@ -279,31 +279,15 @@ Props whose description comes exclusively from `tv()` (no JSDoc in `index.ts`) a
 
 ## Example Quality (Docs.svelte)
 
-Documentation examples serve as the first impression of a component and should follow these guidelines:
+Page content is not this document's subject — see **[DocsPageGuide.md](DocsPageGuide.md)** for
+section order, the examples strategy and the accessibility section.
 
-### Visual Impact
-
-Every example should be visually compelling and modern. Use realistic, well-designed content instead of lorem-ipsum placeholders. Customization examples (slotClasses, unstyled) should show creative design variants (glassmorphism, gradients, terminal look, neon glow, etc.) that go beyond standard configuration.
-
-### Avoid Duplicating Configuration
-
-Examples should not manually rebuild what the component API already offers through props. An intent showcase uses the `intent` prop – it does not manually build colored buttons. Customization examples deliberately show designs that are *not* achievable through standard props.
-
-### Required Example Sections
-
-Each Docs.svelte should cover at least these areas (where applicable):
-
-1. **Variants** – All visual variants side by side
-2. **Intents** – All 6 standard intents, preferably in `filled` for maximum color visibility
-3. **Sizes** – All sizes with labels
-4. **Feature-specific demos** – Special props of the component (layouts, states, boundary controls, etc.)
-5. **Micro-interactions (Mint)** – If supported, with its own section
-6. **Customization** – slotClasses, unstyled, realistic embedding scenarios
-7. **Accessibility** – ARIA behavior, keyboard, reduced motion
-
-### Interactive Examples
-
-Where possible, examples should be interactive (e.g. clickable pagination, toggle state). Use `$state` for local state in `Docs.svelte`.
+> This file used to carry a "Required Example Sections" list demanding a Variants, an Intents and
+> a Sizes section on every page. The DocsPageGuide has told authors to delete exactly those on
+> sight since XC-6, and the pages followed the guide: of 185 pages, **one** has a `variants`
+> section, **two** have `sizes`, **none** has `intents`. The list was contradicted by the
+> codebase and by the other document at the same time, so it is gone rather than reconciled.
+> The Playground is the variant explorer; examples are use-cases.
 
 ## docs-gen Integration
 

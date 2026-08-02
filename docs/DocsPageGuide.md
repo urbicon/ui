@@ -19,16 +19,26 @@ The `+page.svelte` / `Docs.svelte` split is intentional: the page defines the sh
 
 ## Section Order
 
-| #   | Section                                       | Required | Source         |
-| --- | --------------------------------------------- | -------- | -------------- |
-| 1   | Playground                                    | yes      | `+page.svelte` |
-| 2   | Examples                                      | yes      | `Docs.svelte`  |
-| 3+  | Component-specific (e.g. Mint, Customization) | optional | `Docs.svelte`  |
-| N-2 | Accessibility                                 | yes      | `Docs.svelte`  |
-| N-1 | API Reference                                 | yes      | `+page.svelte` |
-| N   | Installation                                  | yes      | `+page.svelte` |
+| #   | Section                                       | Required | Source         | `marker` |
+| --- | --------------------------------------------- | -------- | -------------- | -------- |
+| 1   | Playground                                    | yes      | `+page.svelte` | —        |
+| 2   | Examples                                      | yes      | `Docs.svelte`  | `"01"`   |
+| 3+  | Component-specific (e.g. Mint, Customization) | optional | `Docs.svelte`  | `"02"` … |
+| N-2 | Accessibility                                 | yes      | `Docs.svelte`  | …        |
+| N-1 | API Reference                                 | yes      | `+page.svelte` | …        |
+| N   | Installation                                  | yes      | `+page.svelte` | last     |
 
 Installation always comes last – experienced users rarely need it, and new users will read through anyway.
+
+**Markers number the titled sections, continuously across both files.** The Playground carries no
+title, so it carries no marker and Examples starts at `"01"`; the count then runs through
+`Docs.svelte` and picks up again in `+page.svelte` for API Reference and Installation (Button:
+`01` Examples → `06` Installation). A marker is editorial, not structural — nothing reads it.
+
+**The rendered order is the order you write.** `TocNavigationItem` accepts no `order` field and
+nothing sorts by one; the TOC renders the `navigation` array as given, and the page renders its
+sections as written. The two are checked against each other by `bun run sections:lint`, which
+fails on a nav entry that resolves to nothing and on a section missing from the nav.
 
 ## Examples Strategy (XC-6)
 
@@ -58,6 +68,18 @@ The Playground is the canonical variant/size/intent explorer. Pages should NOT d
 - Mint application examples.
 - Accessibility-relevant patterns (e.g. how to label something correctly).
 
+### Writing the example itself
+
+- **Realistic content, not lorem ipsum.** An example is the component's first impression; the
+  content it carries is part of what is being shown.
+- **Never hand-build what a prop already does.** A colour showcase passes `intent`, it does not
+  assemble coloured buttons out of utility classes. Customization examples are the deliberate
+  exception — they show designs that are *not* reachable through the standard props
+  (glassmorphism, terminal look, neon outline), which is the whole point of `slotClasses` /
+  `unstyled`.
+- **Interactive where the component is interactive.** Clickable pagination, a toggle that actually
+  toggles. Local state with `$state` in `Docs.svelte`.
+
 ### Auditing an existing page
 
 A quick smoke test:
@@ -72,34 +94,32 @@ Track this when sweeping a page: report before-/after-line-count in commit body 
 
 ```svelte
 <script lang="ts">
+  import SeoMeta from '$lib/SeoMeta.svelte';
   import {
     ApiReference,
     CodeExample,
     DocsLayout as DocsPageLayout,
-    PlaygroundConfigurator,
     Section
   } from '@urbicon-ui/docs';
-  import { ComponentName } from '@urbicon-ui/blocks';
   import CustomDocs from './Docs.svelte';
+  import Playground from './Playground.svelte';
   import { componentData } from './api';
+  import { buildRelatedLinks } from '$lib/component-links';
   import { asset, resolve } from '$app/paths';
 
+  const relatedLinks = buildRelatedLinks(componentData);
+
   const navigation = [
-    { id: 'playground', title: 'Playground', order: 1 },
-    { id: 'examples', title: 'Examples', order: 2 },
+    { id: 'playground', title: 'Playground' },
+    { id: 'examples', title: 'Examples' },
     // ...component-specific sections...
-    { id: 'accessibility', title: 'Accessibility', order: N - 2 },
-    { id: 'api', title: 'API Reference', order: N - 1 },
-    { id: 'installation', title: 'Installation', order: N }
+    { id: 'accessibility', title: 'Accessibility' },
+    { id: 'api', title: 'API Reference' },
+    { id: 'installation', title: 'Installation' }
   ];
 </script>
 
-<svelte:head>
-  <title>ComponentName Component - Urbicon UI</title>
-  <meta name="description" content="Short, concise description." />
-  <meta name="robots" content="index,follow" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-</svelte:head>
+<SeoMeta title="ComponentName Component" description="Short, concise description." />
 
 <DocsPageLayout
   title="ComponentName"
@@ -107,37 +127,40 @@ Track this when sweeping a page: report before-/after-line-count in commit body 
   maxWidth="2xl"
   showToc={true}
   {navigation}
+  breadcrumbs={[
+    { label: 'Blocks', href: resolve('/blocks') },
+    { label: 'Primitives', href: resolve('/blocks/primitives') }
+  ]}
+  stability={componentData?.stability}
+  sourceHref={componentData?.sourceHref}
+  related={relatedLinks}
 >
-  {#snippet aboveHeader()}
-    <nav class="text-text-tertiary -mt-6 mb-2 text-sm">
-      <a href={resolve('/blocks')} class="hover:text-text-secondary">Blocks</a>
-      <span class="mx-1">›</span>
-      <a href={resolve('/blocks/primitives')} class="hover:text-text-secondary">Primitives</a>
-      <span class="mx-1">›</span>
-      <span class="text-text-primary">ComponentName</span>
-    </nav>
-  {/snippet}
-
-  <!-- 1. Playground -->
+  <!-- 1. Playground — no title, so no marker -->
   <Section id="playground" intent="primary">
-    <PlaygroundConfigurator ...>...</PlaygroundConfigurator>
+    <Playground />
   </Section>
 
-  <!-- 2–N-2. Custom Docs (Examples, Accessibility, etc.) -->
+  <!-- 2–N-2. Custom Docs (Examples, Accessibility, …) — markers 01… -->
   <CustomDocs />
 
   <!-- N-1. API Reference -->
-  <Section id="api" title="API Reference" intent="secondary">
+  <Section
+    marker="05"
+    id="api"
+    title="API Reference"
+    intent="secondary"
+    meta={`${componentData?.stats?.totalProps ?? 0} props`}
+  >
     <ApiReference props={componentData?.props ?? []} />
   </Section>
 
   <!-- N. Installation -->
-  <Section id="installation" title="Installation">
+  <Section marker="06" id="installation" title="Installation">
     <CodeExample
       title="Import"
       code={`import { ComponentName } from '@urbicon-ui/blocks';`}
       language="svelte"
-      hasPreview={false}
+      preview={false}
     />
   </Section>
 
@@ -160,10 +183,23 @@ Track this when sweeping a page: report before-/after-line-count in commit body 
 
 ### Key Details
 
-- **Breadcrumb**: Always via `aboveHeader` snippet, links use `resolve()` for base path compatibility.
-- **ApiReference**: Directly inside the Section, **no** wrapper div. No `subtitle`, no `showHeader`.
-- **PlaygroundConfigurator**: Set `showHeader={false}`. Pass `propDocs` from `componentData` if available.
-- **Description**: Identical text in `<meta>` and `DocsPageLayout` – single source.
+- **Breadcrumb**: the `breadcrumbs` prop, an array of `{ label, href }` — **not** a snippet. Links
+  use `resolve()` for base-path compatibility, and the trailing crumb (the page itself) is added by
+  the layout. Passing `breadcrumbs` also switches the layout into its collapsing-hero pattern, so a
+  page that hand-rolls a breadcrumb row loses the sticky bar.
+- **`<head>`**: `<SeoMeta title description />` from `$lib/SeoMeta.svelte`, which writes title,
+  description, robots, viewport, canonical and the OG/Twitter pair. A raw `<svelte:head>` is for
+  pages outside the docs chrome (`+error.svelte`, test fixtures) — not for component pages.
+- **ApiReference**: directly inside the Section, **no** wrapper div. No `subtitle`, no `showHeader`.
+- **Playground**: for anything beyond a trivial control set, put the `PlaygroundConfigurator` in a
+  sibling `Playground.svelte` and render `<Playground />` (98 pages do). It keeps the control array
+  — often 40+ lines — out of the page shell. Set `showHeader={false}`; pass `propDocs` from
+  `componentData` when available.
+- **`stability` / `sourceHref` / `related`**: read from `componentData` and `buildRelatedLinks`,
+  not hand-written. They render the stability chip, the "view source" link and the related-component
+  chips. `buildRelatedLinks` silently drops a name that is not in `$lib/component-links` — if a
+  chip does not appear, the component is unregistered, and `bun run registry:lint` says so.
+- **Description**: identical text in `SeoMeta` and `DocsPageLayout` – single source.
 
 ## Docs.svelte – Structure
 
@@ -173,11 +209,14 @@ Track this when sweeping a page: report before-/after-line-count in commit body 
   import { ComponentName } from '@urbicon-ui/blocks';
 </script>
 
-<Section id="examples" title="Examples">
+<Section marker="01" id="examples" title="Examples">
   <div class="space-y-8">
-    <CodeExample title="Variants" isolate>
-      <ComponentName variant="filled">Filled</ComponentName>
-      <ComponentName variant="outlined">Outlined</ComponentName>
+    <CodeExample
+      title="Settings row"
+      description="What the reader is actually building — not a variant grid; the Playground covers those."
+      isolate
+    >
+      <ComponentName variant="outlined">Save changes</ComponentName>
     </CodeExample>
     ...
   </div>
@@ -343,16 +382,20 @@ Semantic tokens automatically adapt between light and dark mode.
 
 ## Checklist for New/Updated Pages
 
-- [ ] `+page.svelte`: Breadcrumb with `resolve()` in `aboveHeader` snippet
-- [ ] `+page.svelte`: Navigation array with correct order
-- [ ] `+page.svelte`: `<svelte:head>` with title and meta description
-- [ ] `+page.svelte`: PlaygroundConfigurator with `showHeader={false}`
+- [ ] `+page.svelte`: `breadcrumbs` prop with `resolve()` links (not a snippet, not a hand-rolled row)
+- [ ] `+page.svelte`: `navigation` array matching the sections — `bun run sections:lint` is green
+- [ ] `+page.svelte`: `<SeoMeta title description />`, description identical to `DocsPageLayout`
+- [ ] `+page.svelte`: `stability` / `sourceHref` / `related` wired from `componentData`
+- [ ] `+page.svelte`: PlaygroundConfigurator with `showHeader={false}`, in `Playground.svelte` if it is more than a handful of controls
 - [ ] `+page.svelte`: ApiReference directly in Section (no wrapper div)
-- [ ] `+page.svelte`: Installation section at the end
+- [ ] `+page.svelte`: Installation section at the end, `preview={false}` on the import example
 - [ ] `+page.svelte`: llm.txt link (prev/next comes from the layout — never add `<PrevNextNav>` per page)
 - [ ] `Docs.svelte`: no `docsConfig` export (route files are not read by docs-gen)
 - [ ] `Docs.svelte`: All CodeExamples with `isolate` (where possible)
 - [ ] `Docs.svelte`: Accessibility section present
 - [ ] `Docs.svelte`: Only semantic tokens, no hardcoded colors
 - [ ] `Docs.svelte`: No `dark:` prefixes
+- [ ] Markers run continuously across both files, starting at `"01"` on Examples
+- [ ] The component is registered in `$lib/component-links` — `bun run registry:lint` is green
+- [ ] `bun packages/design/dist/cli.js validate apps/docs/src/routes/<path>` is clean
 - [ ] Page visually verified in dark mode
