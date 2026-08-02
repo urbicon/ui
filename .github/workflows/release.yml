@@ -176,6 +176,27 @@ jobs:
           retention-days: 7
           if-no-files-found: error
 
+      # The deploy artefacts, same pair as in ci.yml. A tag push runs THIS
+      # workflow and not CI, so without them a release would publish to npm and
+      # leave the docs site on the previous version. deploy.yml waits for this
+      # workflow rather than for CI on tagged commits, precisely so the site
+      # never moves ahead of a publish that then fails.
+      - run: bun run build:mcp-dist
+
+      - uses: actions/upload-artifact@v7
+        with:
+          name: site-dist
+          path: apps/docs/dist/
+          retention-days: 3
+          if-no-files-found: error
+
+      - uses: actions/upload-artifact@v7
+        with:
+          name: mcp-dist
+          path: mcp-dist/
+          retention-days: 3
+          if-no-files-found: error
+
   publish:
     name: Publish to npm
     needs: gate
