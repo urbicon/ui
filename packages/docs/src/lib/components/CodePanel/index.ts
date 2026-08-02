@@ -1,4 +1,4 @@
-import type { CodePanelVariantProps } from './codepanel.variants';
+import type { CodePanelSlots, CodePanelVariantProps } from './codepanel.variants';
 
 /**
  * Line count from which `lineNumbers="auto"` starts numbering. Below this a snippet
@@ -6,19 +6,11 @@ import type { CodePanelVariantProps } from './codepanel.variants';
  */
 export const LINE_NUMBER_AUTO_THRESHOLD = 6;
 
-export type CodePanelSlotName =
-  | 'root'
-  | 'toolbar'
-  | 'codeToggle'
-  | 'codeChevron'
-  | 'languageTag'
-  | 'copyButton'
-  | 'copySeparator'
-  | 'codeCollapse'
-  | 'codeDisplay'
-  | 'codeContent'
-  | 'loadingContainer'
-  | 'loadingText';
+/**
+ * Public name for the panel's slots. Derived from the tv config rather than
+ * hand-listed, so the union and the config cannot drift apart.
+ */
+export type CodePanelSlotName = CodePanelSlots;
 
 /**
  * @description Shared code display primitive with Shiki syntax highlighting, collapsible panel, and copy-to-clipboard.

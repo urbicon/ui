@@ -1,6 +1,6 @@
 import type { Snippet } from 'svelte';
 import type { RelatedLink, TocNavigationItem } from '../TableOfContents/index.js';
-import type { DocsLayoutVariantProps } from './docslayout.variants';
+import type { DocsLayoutSlots, DocsLayoutVariantProps } from './docslayout.variants';
 
 export type { RelatedLink, TocNavigationItem };
 
@@ -75,22 +75,7 @@ export interface DocsLayoutProps extends DocsLayoutVariantProps {
   /** Show the global code-visibility toggle for collapsing all code examples. Default: true. */
   showCodeToggle?: boolean;
   /** Per-slot class overrides. */
-  slotClasses?: Partial<
-    Record<
-      | 'container'
-      | 'wrapper'
-      | 'main'
-      | 'header'
-      | 'headerInner'
-      | 'title'
-      | 'subtitle'
-      | 'content'
-      | 'stickyBar'
-      | 'stickyBarInner'
-      | 'pageToolbar',
-      string
-    >
-  >;
+  slotClasses?: Partial<Record<DocsLayoutSlots, string>>;
 }
 
 export { default } from './DocsLayout.svelte';

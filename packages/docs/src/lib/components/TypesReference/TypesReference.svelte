@@ -68,7 +68,7 @@
     event.stopPropagation();
     revealTableRow({
       rowId: propRowId,
-      highlightClasses: styles.highlightRing(),
+      highlightClasses: slot('highlightRing'),
       fallbackSectionId: 'api-reference'
     });
   }
@@ -85,11 +85,11 @@
 
     <Card variant="elevated" padding="none">
       <div class={slot('toolbar')}>
-        <div class={styles.toolbarText()}>
+        <div class={slot('toolbarText')}>
           {filteredItems.length} type{filteredItems.length !== 1 ? 's' : ''}
         </div>
         <Checkbox
-          class={styles.filterLabel()}
+          class={slot('filterLabel')}
           label="Only referenced"
           checked={onlyReferenced}
           onCheckedChange={(val) => (onlyReferenced = val)}
@@ -118,7 +118,7 @@
                 <pre class={slot('codeBlock')}><code>{code}</code></pre>
 
                 {#if t.documentation}
-                  <p class={styles.documentation()}>{t.documentation}</p>
+                  <p class={slot('documentation')}>{t.documentation}</p>
                 {/if}
 
                 {#if values.length > 0}
@@ -139,19 +139,19 @@
                        a link; a bare sibling-type name (`CartesianDatum`) stays
                        a literal chip, because a link there would have nowhere to
                        point — the same split ApiReference makes for props. -->
-                  <div class={styles.seeAlsoSection()}>
+                  <div class={slot('seeAlsoSection')}>
                     {dt('seeAlsoLabel')}
                     {#if t.seeAlso}
                       <a
                         href={t.seeAlso}
-                        class={styles.seeAlsoLink()}
+                        class={slot('seeAlsoLink')}
                         target={t.seeAlso.startsWith('http') ? '_blank' : undefined}
                         rel={t.seeAlso.startsWith('http') ? 'noopener external' : undefined}
                         >{t.seeAlso}</a
                       >
                     {/if}
                     {#each t.seeAlsoRefs ?? [] as ref, i (`${ref}-${i}`)}
-                      <code class={styles.seeAlsoRef()}>{ref}</code>
+                      <code class={slot('seeAlsoRef')}>{ref}</code>
                     {/each}
                   </div>
                 {/if}
@@ -162,7 +162,7 @@
                     {#each usedBy as u, i (`${u.component}.${u.propName}`)}
                       <a
                         href="#api-reference"
-                        class={styles.usedByLink()}
+                        class={slot('usedByLink')}
                         onclick={(e) => scrollToApiProp(e, `prop-${u.propName}`)}
                         >{u.component}.{u.propName}</a
                       >{i < usedBy.length - 1 ? ', ' : ''}

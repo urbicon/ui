@@ -1,6 +1,6 @@
 import type { Snippet } from 'svelte';
 import type { HTMLAttributes } from 'svelte/elements';
-import type { TypesReferenceVariantProps } from './types-reference.variants';
+import type { TypesReferenceSlots, TypesReferenceVariantProps } from './types-reference.variants';
 
 /** Reference to a prop that uses this type. */
 export interface TypeUsedByRef {
@@ -75,22 +75,7 @@ export interface TypesReferenceProps
   unstyled?: boolean;
 
   /** Per-slot class overrides for internal elements. */
-  slotClasses?: Partial<
-    Record<
-      | 'root'
-      | 'header'
-      | 'title'
-      | 'description'
-      | 'card'
-      | 'toolbar'
-      | 'codeBlock'
-      | 'literalValues'
-      | 'literalBadge'
-      | 'usedBySection'
-      | 'usedByLink',
-      string
-    >
-  >;
+  slotClasses?: Partial<Record<TypesReferenceSlots, string>>;
 
   /** Optional snippet rendered below the table when no types match the filter. */
   emptyState?: Snippet;

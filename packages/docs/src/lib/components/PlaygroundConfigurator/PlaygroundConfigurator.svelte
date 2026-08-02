@@ -12,7 +12,10 @@
   import { onMount } from 'svelte';
   import CodePanel from '../CodePanel/CodePanel.svelte';
   import type { ControlDefinition } from '@urbicon-ui/shared-types/playground';
-  import { playgroundConfiguratorVariants } from './playground-configurator.variants';
+  import {
+    type PlaygroundConfiguratorSlots,
+    playgroundConfiguratorVariants
+  } from './playground-configurator.variants';
   import type { PlaygroundConfiguratorProps } from './index.js';
   import {
     generateDefaultCode,
@@ -130,8 +133,10 @@
     return () => observer.disconnect();
   }
 
-  type SlotName = keyof NonNullable<PlaygroundConfiguratorProps<TValues>['slotClasses']>;
-  function slot(name: SlotName) {
+  // Typed on the tv slots, NOT on `keyof slotClasses`: the latter also carries
+  // `codeToolbar`/`codeDisplay`, which are forwarded to CodePanel and have no
+  // slot function here — `slot('codeToolbar')` would call undefined.
+  function slot(name: PlaygroundConfiguratorSlots) {
     if (unstyled) return slotClasses?.[name] ?? '';
     const slotFns = styles as Record<string, (args: { class?: string }) => string>;
     return slotFns[name]({ class: slotClasses?.[name] });
@@ -351,7 +356,7 @@
   <span id={labelId}>{control.label}</span>
   {#if variantKeySet.has(control.key)}
     <Tooltip label={dt('variantAxisTooltip')} placement="top">
-      <span class={styles.variantBadge()} aria-hidden="true">V</span>
+      <span class={slot('variantBadge')} aria-hidden="true">V</span>
     </Tooltip>
   {/if}
   <!--
@@ -364,7 +369,7 @@
   {#if !isDefaultValue(control.key)}
     <button
       type="button"
-      class={styles.modifiedDot()}
+      class={slot('modifiedDot')}
       onclick={() => resetToDefault(control.key)}
       title={dt('resetControlTitle', { value: String(componentDefaults[control.key]) })}
       aria-label={dt('resetControlLabel', { label: control.label })}
@@ -372,7 +377,10 @@
   {/if}
 {/snippet}
 
-<section class={slot('root')} {...restProps}>
+<!-- `class` belongs on the root, as the prop's JSDoc says; it used to land on the
+     inner container, so a consumer positioning the playground from the outside
+     was styling the wrong box. -->
+<section {...restProps} class={[slot('root'), className]}>
   {#if showHeader}
     <div class={slot('header')}>
       <h2 class={slot('title')}>{title}</h2>
@@ -382,7 +390,7 @@
     </div>
   {/if}
 
-  <div class="{slot('container')} {className ?? ''}" data-docs-stage="playground">
+  <div class={slot('container')} data-docs-stage="playground">
     <!-- Preview -->
     <div class={slot('preview')} data-docs-stage-frame>
       <div
@@ -582,7 +590,7 @@
                     type="color"
                     value={values[control.key] || control.defaultValue || '#000000'}
                     onchange={(e) => updateValue(control.key, e.currentTarget.value)}
-                    class={styles.colorInput()}
+                    class={slot('colorInput')}
                     aria-describedby={hintId}
                   />
                 </div>

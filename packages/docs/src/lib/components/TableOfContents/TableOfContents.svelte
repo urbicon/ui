@@ -44,6 +44,11 @@
 
   const styles = $derived(tableOfContentsVariants({ position, width }));
 
+  // `unstyled` drops the tv defaults; slotClasses always apply on top.
+  type SlotName = keyof NonNullable<TableOfContentsProps['slotClasses']>;
+  const slot = (name: SlotName): string =>
+    [unstyled ? '' : styles[name](), slotClasses[name] ?? ''].filter(Boolean).join(' ');
+
   // Kickers resolve through the docs i18n unless the consumer overrides
   // `title` explicitly (the RELATED/CODE kickers are always localized).
   const tocTitle = $derived(title ?? dt('tocOnThisPage'));
@@ -85,19 +90,15 @@
   }
 </script>
 
-<aside
-  class={unstyled
-    ? [slotClasses?.aside, className].filter(Boolean).join(' ')
-    : styles.aside({ class: [slotClasses?.aside, className] })}
->
-  <p class={unstyled ? (slotClasses?.title ?? '') : styles.title({ class: slotClasses?.title })}>
+<aside class={[slot('aside'), className]}>
+  <p class={slot('title')}>
     <!-- `meta-marker` renders a mono kicker (Color Rooms drops the editorial
          `//` prefix) — only styled when the host page sets `.docs-rooms`. The
          `lang` marks the DEFAULT kicker (via `dt`); a consumer-supplied `title`
          is of unknown language, so it stays untagged (inherits the page lang). -->
     <span class="meta-marker" lang={title == null ? tocLocale : undefined}>{tocTitle}</span>
   </p>
-  <nav class={unstyled ? (slotClasses?.nav ?? '') : styles.nav({ class: slotClasses?.nav })}>
+  <nav class={slot('nav')}>
     {#each navigationItems as item (item.id)}
       {@const isActive = active === item.id}
       {@const showChildren = shouldShowChildren(item)}
@@ -107,11 +108,7 @@
       <a
         href={item.href}
         aria-current={isActive ? 'location' : undefined}
-        class="{unstyled ? '' : styles.link()} {unstyled
-          ? ''
-          : isActive
-            ? styles.linkActive()
-            : styles.linkInactive()}"
+        class={[slot('link'), slot(isActive ? 'linkActive' : 'linkInactive')]}
       >
         {item.label}
       </a>
@@ -122,11 +119,10 @@
           <a
             href={child.href}
             aria-current={childIsActive ? 'location' : undefined}
-            class="{unstyled ? '' : styles.childLink()} {unstyled
-              ? ''
-              : childIsActive
-                ? styles.childLinkActive()
-                : styles.childLinkInactive()}"
+            class={[
+              slot('childLink'),
+              slot(childIsActive ? 'childLinkActive' : 'childLinkInactive')
+            ]}
           >
             {child.label}
           </a>
@@ -142,26 +138,13 @@
       kicker matches the `ON THIS PAGE` title. Hrefs are pre-resolved
       by the consumer, mirroring the existing TOC behaviour.
     -->
-    <p
-      class={unstyled
-        ? (slotClasses?.relatedTitle ?? '')
-        : styles.relatedTitle({ class: slotClasses?.relatedTitle })}
-    >
+    <p class={slot('relatedTitle')}>
       <span class="meta-marker" lang={tocLocale}>{dt('tocRelated')}</span>
     </p>
-    <nav
-      class={unstyled
-        ? (slotClasses?.relatedNav ?? '')
-        : styles.relatedNav({ class: slotClasses?.relatedNav })}
-    >
+    <nav class={slot('relatedNav')}>
       {#each related as link (link.href)}
         <!-- hrefs are pre-resolved by the consumer -->
-        <a
-          href={link.href}
-          class={unstyled
-            ? (slotClasses?.relatedLink ?? '')
-            : styles.relatedLink({ class: slotClasses?.relatedLink })}
-        >
+        <a href={link.href} class={slot('relatedLink')}>
           {link.label}
         </a>
       {/each}
@@ -177,18 +160,12 @@
       the host page is wrapped by DocsLayout, which is the only consumer
       that opts the user into the global toggle.
     -->
-    <p
-      class={unstyled
-        ? (slotClasses?.codeTitle ?? '')
-        : styles.codeTitle({ class: slotClasses?.codeTitle })}
-    >
+    <p class={slot('codeTitle')}>
       <span class="meta-marker" lang={tocLocale}>{dt('tocCode')}</span>
     </p>
     <button
       type="button"
-      class={unstyled
-        ? (slotClasses?.codeToggle ?? '')
-        : styles.codeToggle({ class: slotClasses?.codeToggle })}
+      class={slot('codeToggle')}
       onclick={() => codeVisibility.toggle()}
       aria-pressed={codeVisibility.expanded}
     >
@@ -197,12 +174,7 @@
       {:else}
         <CodeIcon class="h-3.5 w-3.5 shrink-0" aria-hidden="true" />
       {/if}
-      <span
-        class={unstyled
-          ? (slotClasses?.codeToggleLabel ?? '')
-          : styles.codeToggleLabel({ class: slotClasses?.codeToggleLabel })}
-        lang={tocLocale}
-      >
+      <span class={slot('codeToggleLabel')} lang={tocLocale}>
         {codeToggleLabel}
       </span>
     </button>

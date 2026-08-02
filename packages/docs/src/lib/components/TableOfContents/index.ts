@@ -1,4 +1,4 @@
-import type { TableOfContentsVariantProps } from './tableofcontents.variants';
+import type { TableOfContentsSlots, TableOfContentsVariantProps } from './tableofcontents.variants';
 
 /**
  * Sticky sidebar navigation that tracks scroll position and highlights the active section.
@@ -67,20 +67,7 @@ export interface TableOfContentsProps extends TableOfContentsVariantProps {
   /** Remove all default tv styles. */
   unstyled?: boolean;
   /** Per-slot class overrides. */
-  slotClasses?: Partial<
-    Record<
-      | 'aside'
-      | 'title'
-      | 'nav'
-      | 'relatedTitle'
-      | 'relatedNav'
-      | 'relatedLink'
-      | 'codeTitle'
-      | 'codeToggle'
-      | 'codeToggleLabel',
-      string
-    >
-  >;
+  slotClasses?: Partial<Record<TableOfContentsSlots, string>>;
 }
 
 export { default } from './TableOfContents.svelte';

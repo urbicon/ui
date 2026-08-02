@@ -40,6 +40,11 @@
     })
   );
 
+  // `unstyled` drops the tv defaults; slotClasses always apply on top.
+  type SlotName = keyof NonNullable<DocsLayoutProps['slotClasses']>;
+  const slot = (name: SlotName): string =>
+    [unstyled ? '' : styles[name](), slotClasses[name] ?? ''].filter(Boolean).join(' ');
+
   // Optional end-of-page slot (prev/next reading nav). The app sets one snippet
   // site-wide via setPageNav; every DocsLayout page renders it below the content
   // — no per-page repetition, and the published layout stays router-agnostic.
@@ -182,28 +187,15 @@
   `useCollapsingHeader`).
 -->
 {#snippet heroHeader()}
-  <header
-    bind:this={headerEl}
-    class={unstyled ? (slotClasses?.header ?? '') : styles.header({ class: slotClasses?.header })}
-    data-docs-header
-  >
-    <div class={unstyled ? '' : styles.headerInner()}>
+  <header bind:this={headerEl} class={slot('header')} data-docs-header>
+    <div class={slot('headerInner')}>
       {#if title}
-        <h1
-          class={unstyled
-            ? (slotClasses?.title ?? '')
-            : styles.title({ class: slotClasses?.title })}
-        >
+        <h1 class={slot('title')}>
           {title}{@render stabilityStamp()}
         </h1>
       {/if}
       {#if description}
-        <p
-          class={unstyled
-            ? (slotClasses?.subtitle ?? '')
-            : styles.subtitle({ class: slotClasses?.subtitle })}
-          data-docs-subtitle
-        >
+        <p class={slot('subtitle')} data-docs-subtitle>
           {description}
         </p>
       {/if}
@@ -211,11 +203,7 @@
   </header>
 {/snippet}
 
-<div
-  class={unstyled
-    ? [slotClasses?.container, className].filter(Boolean).join(' ')
-    : styles.container({ class: [slotClasses?.container, className] })}
->
+<div class={[slot('container'), className]}>
   {#if useCollapsingHeader}
     <!-- ═══ COLLAPSING HERO — full-width header band ═══ -->
     <!--
@@ -225,17 +213,8 @@
       is the full-height page, the strip stays pinned for the whole scroll —
       its containing block is the page, not a short header box.
     -->
-    <div
-      class={unstyled
-        ? (slotClasses?.stickyBar ?? '')
-        : styles.stickyBar({ class: slotClasses?.stickyBar })}
-      data-docs-sticky-bar
-    >
-      <div
-        class={unstyled
-          ? (slotClasses?.stickyBarInner ?? '')
-          : styles.stickyBarInner({ class: slotClasses?.stickyBarInner })}
-      >
+    <div class={slot('stickyBar')} data-docs-sticky-bar>
+      <div class={slot('stickyBarInner')}>
         <div class="flex items-center py-2.5">
           <!--
             Dogfood the Breadcrumb primitive. `wrap={false}` keeps the trail on
@@ -310,27 +289,15 @@
     {@render heroHeader()}
   {/if}
 
-  <div
-    class={unstyled
-      ? (slotClasses?.wrapper ?? '')
-      : styles.wrapper({ class: slotClasses?.wrapper })}
-  >
-    <div class={unstyled ? (slotClasses?.main ?? '') : styles.main({ class: slotClasses?.main })}>
-      <div
-        class={unstyled
-          ? (slotClasses?.content ?? '')
-          : styles.content({ class: slotClasses?.content })}
-      >
+  <div class={slot('wrapper')}>
+    <div class={slot('main')}>
+      <div class={slot('content')}>
         {#if !useCollapsingHeader && showToolbar}
-          <div
-            class={unstyled
-              ? (slotClasses?.pageToolbar ?? '')
-              : styles.pageToolbar({ class: slotClasses?.pageToolbar })}
-          >
+          <div class={slot('pageToolbar')}>
             {#if showToc && navigation.length > 0}
-              <div class={unstyled ? '' : styles.mobileToc()}>
+              <div class={slot('mobileToc')}>
                 <button
-                  class={unstyled ? '' : styles.mobileTocButton()}
+                  class={slot('mobileTocButton')}
                   onclick={() => (mobileTocOpen = !mobileTocOpen)}
                   aria-expanded={mobileTocOpen}
                 >
@@ -343,11 +310,11 @@
                   />
                 </button>
                 {#if mobileTocOpen}
-                  <nav class={unstyled ? '' : styles.mobileTocNav()}>
+                  <nav class={slot('mobileTocNav')}>
                     {#each navigation as item (item.id)}
                       <a
                         href={`#${item.id}`}
-                        class={unstyled ? '' : styles.mobileTocLink()}
+                        class={slot('mobileTocLink')}
                         onclick={() => (mobileTocOpen = false)}
                       >
                         {item.title}

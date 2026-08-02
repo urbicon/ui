@@ -92,11 +92,7 @@
   );
 </script>
 
-<div
-  class={unstyled
-    ? [slotClasses?.root, className].filter(Boolean).join(' ')
-    : styles.root({ class: [slotClasses?.root, className] })}
->
+<div class={[slot('root'), className]}>
   <div class={slot('toolbar')}>
     <button
       type="button"

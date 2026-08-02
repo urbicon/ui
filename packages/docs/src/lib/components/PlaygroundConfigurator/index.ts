@@ -2,7 +2,20 @@ import type { ControlDefinition } from '@urbicon-ui/shared-types/playground';
 import type { Snippet } from 'svelte';
 import type { HTMLAttributes } from 'svelte/elements';
 import type { CodeSetup } from './code-gen';
-import type { PlaygroundConfiguratorVariantProps } from './playground-configurator.variants';
+import type {
+  PlaygroundConfiguratorSlots,
+  PlaygroundConfiguratorVariantProps
+} from './playground-configurator.variants';
+
+/**
+ * The configurator's own slots, plus the two CodePanel slots it forwards to the
+ * embedded panel (`codeToolbar` → the panel's `toolbar`, `codeDisplay` → its
+ * `codeDisplay`). The panel's `root` is reached through the own `codePanel` slot.
+ */
+export type PlaygroundConfiguratorSlotName =
+  | PlaygroundConfiguratorSlots
+  | 'codeToolbar'
+  | 'codeDisplay';
 
 /**
  * Splits generated component props into hand-written descriptions (for tooltips)
@@ -182,31 +195,7 @@ export interface PlaygroundConfiguratorProps<
   unstyled?: boolean;
 
   /** Per-slot class overrides for internal elements. */
-  slotClasses?: Partial<
-    Record<
-      | 'root'
-      | 'header'
-      | 'title'
-      | 'subtitle'
-      | 'container'
-      | 'preview'
-      | 'previewContent'
-      | 'controlsPanel'
-      | 'controlsHeader'
-      | 'controlsGrid'
-      | 'controlItem'
-      | 'controlLabel'
-      | 'controlControl'
-      | 'controlControlCompact'
-      | 'controlHint'
-      | 'actionsBar'
-      | 'helpToggle'
-      | 'codePanel'
-      | 'codeToolbar'
-      | 'codeDisplay',
-      string
-    >
-  >;
+  slotClasses?: Partial<Record<PlaygroundConfiguratorSlotName, string>>;
 }
 
 export { type CodeSetup, generateDefaultCode, type RawCode, serializeValue } from './code-gen';
