@@ -148,6 +148,32 @@ export async function scanAgentsFiles(cwd: string): Promise<AgentsFile[]> {
 }
 
 /**
+ * The one line that actually delivers the block to Claude Code.
+ *
+ * Measured, not assumed (CLI 2.1.220, a codeword in each file and a prompt that
+ * uses no tools): a project holding only `AGENTS.md` gets **nothing** into the
+ * model's context — the file is never read unless the agent happens to open it
+ * while looking around. `CLAUDE.md` is loaded, and so is `@AGENTS.md` inside it,
+ * whose content arrives inlined with no tool call at all. A prose pointer
+ * ("the context lives in AGENTS.md") does *not* work: the model has no reason to
+ * follow it before it starts working.
+ *
+ * So the import is the delivery mechanism, and it beats the two alternatives:
+ * a second copy of the block would drift the moment one side is refreshed, and a
+ * `CLAUDE.md → AGENTS.md` symlink does not survive Windows checkouts. AGENTS.md
+ * stays the single source every other tool reads.
+ */
+export function claudeImportLine(agentsName: string): string {
+  return `@${agentsName}`;
+}
+
+/** Whether `content` already imports `agentsName` (the delivery, not a mention). */
+export function hasClaudeImport(content: string, agentsName: string): boolean {
+  const name = agentsName.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  return new RegExp(String.raw`^\s*@(?:\./)?${name}\s*$`, 'im').test(content);
+}
+
+/**
  * Whether two paths resolve to the same file (so a `CLAUDE.md → AGENTS.md`
  * symlink does not read as two competing copies). False when either side is
  * unresolvable.

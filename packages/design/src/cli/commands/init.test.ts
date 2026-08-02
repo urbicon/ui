@@ -335,16 +335,44 @@ describe('runInit — version stamp & block location', () => {
     expect(logged()).toContain('also carries an urbicon block');
   });
 
-  it('hints when a separate CLAUDE.md never mentions the agents file', async () => {
-    await writeFile(join(dir, 'CLAUDE.md'), '# Project rules\n');
+  it('wires a fresh project so Claude Code actually loads the block', async () => {
     await runInit([], {});
-    expect(logged()).toContain('never mentions AGENTS.md');
+    expect(await read('CLAUDE.md')).toContain('@AGENTS.md');
   });
 
-  it('stays quiet when CLAUDE.md already points at the agents file', async () => {
+  it('adds the import to an existing CLAUDE.md and keeps what was there', async () => {
+    await writeFile(join(dir, 'CLAUDE.md'), '# Project rules\n');
+    await runInit([], {});
+    const claude = await read('CLAUDE.md');
+    expect(claude).toContain('@AGENTS.md');
+    expect(claude).toContain('# Project rules');
+  });
+
+  it('imports even when CLAUDE.md only mentions the agents file in prose', async () => {
+    // A prose pointer was measured NOT to deliver: the model has no reason to
+    // follow it before it starts working. Only the import inlines the block.
     await writeFile(join(dir, 'CLAUDE.md'), '# Rules\n\nSee AGENTS.md for the design loop.\n');
     await runInit([], {});
-    expect(logged()).not.toContain('never mentions');
+    expect(await read('CLAUDE.md')).toContain('@AGENTS.md');
+  });
+
+  it('does not stack a second import on re-run', async () => {
+    await runInit([], {});
+    await runInit([], {});
+    expect((await read('CLAUDE.md')).match(/@AGENTS\.md/g)).toHaveLength(1);
+  });
+
+  it('leaves CLAUDE.md alone under --claude-md=false', async () => {
+    // For a harness that owns its system prompt and delivers the block itself.
+    await runInit([], { 'claude-md': 'false' });
+    expect(await readdir(dir)).not.toContain('CLAUDE.md');
+  });
+
+  it('does not import into a CLAUDE.md that carries the block itself', async () => {
+    await runInit([], { 'agents-file': 'CLAUDE.md' });
+    const claude = await read('CLAUDE.md');
+    expect(claude).not.toContain('@CLAUDE.md');
+    expect(claude.match(/urbicon:start/g)).toHaveLength(1);
   });
 
   it('hints in the reverse direction too — AGENTS.md beside a CLAUDE.md carrier', async () => {
@@ -362,6 +390,9 @@ describe('runInit — version stamp & block location', () => {
 
   it('does not mistake a CLAUDE.md → AGENTS.md symlink for a second copy', async () => {
     await runInit([], {});
+    // The symlink is the older way to deliver the block and still works, so a
+    // project that chose it must not be rewritten into the import form.
+    await rm(join(dir, 'CLAUDE.md'));
     await symlink('AGENTS.md', join(dir, 'CLAUDE.md'));
     await runInit([], {});
     expect(logged()).not.toContain('also carries');

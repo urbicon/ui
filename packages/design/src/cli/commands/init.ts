@@ -27,6 +27,8 @@ import {
   BLOCK_END,
   BLOCK_START,
   CLAUDE_NAME,
+  claudeImportLine,
+  hasClaudeImport,
   sameFile,
   scanAgentsFiles,
   stampBlockVersion,
@@ -386,19 +388,68 @@ export async function runInit(_positionals: string[], flags: Flags): Promise<num
       skipped.push(
         `${rel(f.path)} — also carries an urbicon block; remove it (the managed one lives in ${rel(agentsPath)})`
       );
+    } else if (AGENTS_NAME.test(targetName) && CLAUDE_NAME.test(f.name)) {
+      // Handled by the delivery step below, which imports instead of hinting.
     } else if (!f.content.toLowerCase().includes(targetName.toLowerCase())) {
-      // A context file that never mentions the block's file, in either direction
-      // (CLAUDE.md beside an AGENTS.md carrier, or AGENTS.md beside a CLAUDE.md
-      // carrier): an agent that reads only that file misses the block, and
-      // nothing else would ever say so.
-      const moveTip =
-        CLAUDE_NAME.test(f.name) && AGENTS_NAME.test(targetName)
-          ? `, or re-run with \`--agents-file ${f.name}\``
-          : '';
+      // A context file that never mentions the block's file — an agent that reads
+      // only that file misses the block, and nothing else would ever say so. The
+      // CLAUDE.md-beside-an-AGENTS.md-carrier direction is wired below; what is
+      // left here is the reverse (AGENTS.md beside a CLAUDE.md carrier), where the
+      // reader we cannot identify is some other tool, so a hint is all we have.
       hints.push(
         `  • ${f.name} never mentions ${targetName} — an agent that reads only ${f.name} ` +
-          `will miss the block. Add a pointer there${moveTip}.`
+          `will miss the block. Add a pointer there.`
       );
+    }
+  }
+
+  // 1b. Delivery. Writing the block is not the same as getting it read: Claude
+  // Code auto-loads CLAUDE.md and does *not* load AGENTS.md, so a project wired
+  // the canonical way starts every session with the design loop out of context.
+  // The whole scaffold then rests on the agent happening to open the file while
+  // looking around — which strong models mostly do and cheap ones mostly don't.
+  //
+  // Measured (Haiku, identical projects and task, this line the only difference):
+  // without the import, zero CLI calls, raw Tailwind colours, `validate` FAIL;
+  // with it, the documented loop end to end — primer → context → find →
+  // get-component → validate — and 100/100 · 100/100, for less money.
+  //
+  // `--claude-md=false` opts out: a harness that owns its system prompt delivers
+  // the block itself, and a second copy in the context window is pure noise.
+  const wireClaude = flags['claude-md'] === undefined ? true : boolFlag(flags, 'claude-md');
+  if (wireClaude && AGENTS_NAME.test(targetName)) {
+    let claudeFile: { name: string; path: string; content: string } | null = null;
+    for (const f of scanned) {
+      if (!CLAUDE_NAME.test(f.name) || f.hasBlock) continue;
+      if (await sameFile(f.path, agentsPath)) {
+        // A CLAUDE.md → AGENTS.md symlink already delivers; leave it alone.
+        claudeFile = null;
+        break;
+      }
+      claudeFile = f;
+      break;
+    }
+    const importLine = claudeImportLine(targetName);
+    const banner =
+      `<!-- Claude Code loads this file automatically; ${targetName} it does not. The\n` +
+      `     import below pulls the project context in. Edit ${targetName}, not this line. -->`;
+    if (claudeFile === null && !scanned.some((f) => CLAUDE_NAME.test(f.name))) {
+      const claudePath = resolve('CLAUDE.md');
+      await writeFile(claudePath, `${banner}\n${importLine}\n`, 'utf-8');
+      done.push(`${rel(claudePath)} — imports ${targetName} so Claude Code loads the block`);
+    } else if (claudeFile && !hasClaudeImport(claudeFile.content, targetName)) {
+      // Prepend rather than append: an import buried under a long file still
+      // works, but the reason for it belongs where a human will see it. A prose
+      // mention is deliberately not treated as delivery — it was measured not to
+      // reach the model before it starts working.
+      await writeFile(
+        claudeFile.path,
+        `${banner}\n${importLine}\n\n${claudeFile.content}`,
+        'utf-8'
+      );
+      done.push(`${rel(claudeFile.path)} — added the \`${importLine}\` import`);
+    } else if (claudeFile) {
+      skipped.push(`${rel(claudeFile.path)} — already imports ${targetName}`);
     }
   }
 
@@ -470,11 +521,16 @@ export async function runInit(_positionals: string[], flags: Flags): Promise<num
   console.log('\nNext steps:');
   for (const line of tailwindSteps(readConsumerDependencies(), await findTailwindStylesheet(cwd)))
     console.log(line);
+  // Claude Code is wired above; what remains is every other tool, which we cannot
+  // detect and whose context file we will not guess at.
   const pasteTargets = ['CLAUDE.md', '.cursorrules']
     .filter((n) => n.toLowerCase() !== targetName.toLowerCase())
+    .filter((n) => !(wireClaude && CLAUDE_NAME.test(n)))
     .join(' / ');
   console.log(
-    `  • Make sure your agent reads ${targetName} (or paste the block into ${pasteTargets}).`
+    pasteTargets
+      ? `  • Other agents than Claude Code: make sure yours reads ${targetName} (or paste the block into ${pasteTargets}).`
+      : `  • Other agents than Claude Code: make sure yours reads ${targetName}.`
   );
   for (const h of hints) console.log(h);
   console.log(
