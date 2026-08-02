@@ -14,6 +14,10 @@
  *
  *   - LICENSE present. v6.26.1 shipped without it, because the copy step was
  *     never asserted on the packed result.
+ *   - No build-cache artefacts. A `files: ["dist"]` whitelist ships whatever
+ *     else lands in `dist/` — `tsc`'s incremental `.tsbuildinfo` did, until
+ *     the type-check configs dropped `composite` (2026-08-02). The cache is
+ *     machine-dependent, so a tarball carrying it is not reproducible.
  *   - No `workspace:` / `catalog:` specifiers left in the manifest. `bun pm
  *     pack` resolves them; npm would leave them verbatim and ship ranges no
  *     consumer can install.
@@ -80,8 +84,17 @@ for (const dir of packages) {
   }
 
   const listing = await sh(['tar', '-tzf', tgz], root);
-  if (!listing.split('\n').includes('package/LICENSE')) {
+  const entries = listing.split('\n').filter(Boolean);
+  if (!entries.includes('package/LICENSE')) {
     console.error(`::error::${name} tarball is missing LICENSE`);
+    process.exit(1);
+  }
+
+  const junk = entries.filter((e) => /\.tsbuildinfo$|(^|\/)\.DS_Store$/.test(e));
+  if (junk.length > 0) {
+    console.error(
+      `::error::${name} tarball carries build-cache artefacts:\n  ${junk.join('\n  ')}`
+    );
     process.exit(1);
   }
 
