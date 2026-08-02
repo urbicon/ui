@@ -72,13 +72,37 @@
     }
   });
 
-  // View switcher config — filtered by ctx.views
+  // View switcher config — filtered by ctx.views. Both label forms come from
+  // the dictionary: the short ones used to be hardcoded German initials
+  // ('T' for Tag, 'J' for Jahr), which read as nonsense in every other
+  // language — and they are on screen far more often now that the narrow
+  // header falls back to them.
   const allViewButtons = [
-    { view: 'month' as const, label: () => bt('calendar.viewMonth'), shortLabel: 'M' },
-    { view: 'week' as const, label: () => bt('calendar.viewWeek'), shortLabel: 'W' },
-    { view: 'day' as const, label: () => bt('calendar.viewDay'), shortLabel: 'T' },
-    { view: 'year' as const, label: () => bt('calendar.viewYear'), shortLabel: 'J' },
-    { view: 'agenda' as const, label: () => bt('calendar.viewAgenda'), shortLabel: 'A' }
+    {
+      view: 'month' as const,
+      label: () => bt('calendar.viewMonth'),
+      shortLabel: () => bt('calendar.viewMonthShort')
+    },
+    {
+      view: 'week' as const,
+      label: () => bt('calendar.viewWeek'),
+      shortLabel: () => bt('calendar.viewWeekShort')
+    },
+    {
+      view: 'day' as const,
+      label: () => bt('calendar.viewDay'),
+      shortLabel: () => bt('calendar.viewDayShort')
+    },
+    {
+      view: 'year' as const,
+      label: () => bt('calendar.viewYear'),
+      shortLabel: () => bt('calendar.viewYearShort')
+    },
+    {
+      view: 'agenda' as const,
+      label: () => bt('calendar.viewAgenda'),
+      shortLabel: () => bt('calendar.viewAgendaShort')
+    }
   ];
   const viewButtons = $derived(allViewButtons.filter((vb) => ctx.views.includes(vb.view)));
 
@@ -169,7 +193,16 @@
       </CoreIconButton>
     </div>
 
-    <div class="flex items-center gap-2">
+    <!--
+      `flex-auto` (grow, but hypothetical size = max-content), NOT `flex-1`:
+      the flex line-breaking algorithm places items by their hypothetical size,
+      so a `flex-1` title (basis 0) would read as ~0 wide, keep the switcher on
+      line 1 and squeeze it until it collapsed. With `flex-auto` the title is
+      measured at its real width, the switcher wraps instead — and on one line
+      the grown title still centres its content in the slack, which is exactly
+      where `justify-between` used to put it.
+    -->
+    <div class="flex flex-auto items-center justify-center gap-2">
       <Popover bind:open={monthPickerOpen} placement="bottom">
         {#snippet trigger()}
           <button
@@ -279,27 +312,65 @@
       </Popover>
     </div>
 
-    <div class="flex items-center gap-1">
-      {#if showViewSwitcher}
-        <SegmentGroup
-          value={ctx.view}
-          size={viewSwitcherSize}
-          disabled={ctx.disabled}
-          onValueChange={(v) => ctx.setView(v as CalendarViewMode)}
-          ariaLabel={bt('calendar.viewSwitcher')}
-        >
-          {#each viewButtons as vb (vb.view)}
-            <SegmentItem value={vb.view}>
-              {ctx.size === 'sm' ? vb.shortLabel : vb.label()}
-            </SegmentItem>
-          {/each}
-        </SegmentGroup>
-      {/if}
+    <!--
+      Switcher and actions are SEPARATE header children, not one cluster: each
+      is then its own wrap unit, so a header too narrow for
+      `switcher + today + next` on one line drops the actions to a line of
+      their own instead of squeezing the switcher into its collapsed (vertical)
+      fallback. On a wide header they still sit flush — the header's `gap-x-2`
+      is exactly the 4 px gap + 4 px margin that used to separate them.
+    -->
+    {#if showViewSwitcher}
+      <SegmentGroup
+        value={ctx.view}
+        size={viewSwitcherSize}
+        disabled={ctx.disabled}
+        onValueChange={(v) => ctx.setView(v as CalendarViewMode)}
+        ariaLabel={bt('calendar.viewSwitcher')}
+      >
+        {#each viewButtons as vb (vb.view)}
+          <!--
+            Below `sm` the five labels condense to their short form — without
+            it the switcher alone wants 296 px on a 254 px phone header, which
+            is the one case `flex-wrap` cannot solve (a lone item on its own
+            line has nothing left to wrap) and SegmentGroup would degrade to
+            its vertical stack. `aria-label` pins the accessible name to the
+            full label, so the visual short form never reaches a screen reader.
+            The swap is pure CSS — no JS, no resize observer.
 
+            A VIEWPORT breakpoint, deliberately not a container query, even
+            though the calendar's own width is the more precise signal:
+            `container-type: inline-size` also drops the element's intrinsic
+            width contribution, and this calendar's width comes from exactly
+            this header — the DatePicker's shrink-to-fit popover collapsed
+            from 310 px to 192 px (day cells 39 → 22 px, under the 24 px touch
+            minimum) when the root became a container. A narrow calendar on a
+            wide screen keeps the full labels and re-flows instead.
+          -->
+          <SegmentItem value={vb.view} aria-label={vb.label()} class="max-sm:px-2">
+            {#if ctx.size === 'sm'}
+              {vb.shortLabel()}
+            {:else}
+              <span class="max-sm:hidden">{vb.label()}</span>
+              <span class="hidden max-sm:inline" aria-hidden="true">{vb.shortLabel()}</span>
+            {/if}
+          </SegmentItem>
+        {/each}
+      </SegmentGroup>
+    {/if}
+
+    <!--
+      `ml-auto` only bites once the actions have wrapped onto a line of their
+      own: on a full line the `flex-auto` title has already eaten the slack, so
+      there is nothing left for the margin to take and the desktop row is
+      untouched. Alone on a wrapped line it keeps them at the header's trailing
+      edge, where they sit on a wide screen, instead of dropping to the left.
+    -->
+    <div class="ml-auto flex shrink-0 items-center gap-1">
       {#if showToday}
         <Tooltip label={bt('calendar.today')}>
           <CoreIconButton
-            class="{slot('navButton')} ml-1"
+            class={slot('navButton')}
             onclick={() => ctx.goToToday()}
             disabled={!ctx.canGoToToday || ctx.disabled}
             aria-label={bt('calendar.today')}

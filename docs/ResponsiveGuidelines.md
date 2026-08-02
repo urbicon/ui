@@ -101,7 +101,7 @@ Size constraints (`sm:max-w-sm`, `sm:max-w-md`, etc.) apply from `sm:` upward.
 | Pattern | Use for | Implementation |
 |---------|---------|----------------|
 | **Horizontal scroll** | Tab lists, Toolbar | `overflow-x-auto` with hidden scrollbar |
-| **Wrap** | Button groups, filter chips | `flex-wrap gap-2` |
+| **Wrap** | Button groups, filter chips, Calendar header | `flex-wrap gap-2` |
 | **Stack** | Side-by-side → vertical | `flex-col sm:flex-row` |
 | **Truncate** | Long text in constrained space | `truncate max-w-48` + Tooltip |
 

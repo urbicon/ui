@@ -99,7 +99,15 @@ export default {
     multiDayLabel: 'Day {{current}} of {{total}}',
     agendaView: 'Agenda view',
     viewAgenda: 'Agenda',
-    viewSwitcher: 'View mode'
+    viewSwitcher: 'View mode',
+    // Condensed view labels — shown in the header's view switcher when space
+    // is short (`size="sm"`, or any viewport below `sm`). The full label stays
+    // the button's accessible name, so these are visual only.
+    viewMonthShort: 'M',
+    viewYearShort: 'Y',
+    viewWeekShort: 'W',
+    viewDayShort: 'D',
+    viewAgendaShort: 'A'
   },
   planner: {
     previousWeek: 'Previous week',
