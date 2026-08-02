@@ -32,6 +32,12 @@ describe('playgroundConfiguratorVariants', () => {
     for (const slot of expectedSlots) {
       expect(typeof (styles as Record<string, unknown>)[slot]).toBe('function');
     }
+
+    // Both directions: a one-sided check lets a slot that no longer appears in
+    // the markup linger in the config forever (this file listed a dead
+    // `expandedRow` for exactly that reason). Every slot the config exposes
+    // must be an intentional, listed one.
+    expect(Object.keys(styles).sort()).toEqual([...expectedSlots].sort());
   });
 
   it('uses semantic design tokens in base classes', () => {
