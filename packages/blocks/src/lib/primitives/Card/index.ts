@@ -8,6 +8,14 @@ import type { CardSlots, CardVariants } from './card.variants';
  * @description Flexible container for grouping related content with optional header, footer,
  * and interactive states. Renders as div, button, or anchor depending on the provided props.
  *
+ * Shape follows the container tier (`--radius-contain`), so retuning that token moves every
+ * Card along with Dialog, Alert and Popover. `tier="bridge"` is the one sanctioned deviation
+ * and it is optical, not decorative: radius scales with the area it turns, so the hairline
+ * edge that reads as precise on a wide panel reads as an untouched rectangle on a small
+ * tinted tile. Reach for it when a Card is a content chip rather than architecture — and not
+ * to give one card a different look, which splits the family (see the `variant` axis for
+ * weight, and `BlocksProvider` `defaults` for a project-wide Card treatment).
+ *
  * @tag layout
  * @related Accordion
  * @related Collapsible

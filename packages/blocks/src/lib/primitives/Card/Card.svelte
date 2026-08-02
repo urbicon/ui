@@ -6,6 +6,7 @@
 
   let {
     variant = 'quiet',
+    tier = 'contain',
     padding = 'md',
     dividers = false,
     disabled = false,
@@ -43,6 +44,7 @@
 
   const variantProps: CardVariants = $derived({
     variant,
+    tier,
     padding,
     dividers: dividers || undefined,
     interactive: isInteractive || undefined,

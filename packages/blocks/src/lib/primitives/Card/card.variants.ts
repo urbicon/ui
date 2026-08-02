@@ -6,9 +6,8 @@ export const cardVariants = tv({
       // `translate`, NOT `transform`: Tailwind 4 emits `-translate-y-*` as the
       // discrete CSS `translate:` property, so a list naming only `transform`
       // never animates the `interactive` hover lift — it would jump.
-      'relative block w-full transition-[color,background-color,border-color,box-shadow,opacity,translate] duration-[var(--blocks-duration-fast)] ease-out box-border',
-      // Structure radius — cards are architectural surfaces, not human/CTA.
-      'rounded-contain'
+      'relative block w-full transition-[color,background-color,border-color,box-shadow,opacity,translate] duration-[var(--blocks-duration-fast)] ease-out box-border'
+      // Radius comes from the `tier` variant below — `contain` by default.
     ],
     header: ['flex items-center justify-between'],
     content: ['flex-1'],
@@ -37,6 +36,25 @@ export const cardVariants = tv({
       floating: {
         base: ['bg-surface-elevated shadow-[var(--blocks-shadow-lg)]']
       }
+    },
+    // Shape tier. `contain` is what a Card is: an architectural surface, and the
+    // whole family (Dialog, Alert, Popover, …) moves with `--radius-contain`.
+    //
+    // `bridge` is the one deviation the design system sanctions, and it is optical
+    // rather than decorative: radius scales with the area it turns, so the hairline
+    // edge that reads as precise on a 600px panel reads as an untouched rectangle
+    // on a ~200px tile. A small tinted surface is *content*, not architecture, and
+    // takes the middle tier — the same reasoning that gives ChatMessage its bubble
+    // radius. See `principles.md` → "Semantic Radius Tiers".
+    //
+    // This exists so that deviation has a name. Before it, the only way to say
+    // "this tile is too small for the container radius" was `class="rounded-md"`,
+    // which sets one pixel value on one element, splits the contain family, and is
+    // exactly what the anti-pattern warns against. A `tier` follows the theme: a
+    // project that retunes `--radius-bridge` moves every bridge surface with it.
+    tier: {
+      contain: { base: 'rounded-contain' },
+      bridge: { base: 'rounded-bridge' }
     },
     padding: {
       none: {
@@ -144,6 +162,7 @@ export const cardVariants = tv({
   ],
   defaultVariants: {
     variant: 'quiet',
+    tier: 'contain',
     padding: 'md',
     dividers: false,
     interactive: false,

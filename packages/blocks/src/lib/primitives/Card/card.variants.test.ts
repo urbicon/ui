@@ -10,8 +10,23 @@ describe('cardVariants', () => {
     expect(typeof styles.footer).toBe('function');
   });
 
-  it('uses contain-tier radius (cards are architectural surfaces, not CTAs)', () => {
+  it('uses contain-tier radius by default (cards are architectural surfaces, not CTAs)', () => {
     expect(cardVariants().base()).toContain('rounded-contain');
+  });
+
+  // The optical exception, in the system's own vocabulary rather than a hand-set
+  // `class="rounded-md"`: a small tinted tile is content, not architecture, and a
+  // project retuning `--radius-bridge` moves every such surface with it.
+  it('tier="bridge" swaps the contain radius for the middle tier, nothing else', () => {
+    const contain = cardVariants({ tier: 'contain' }).base().split(' ');
+    const bridge = cardVariants({ tier: 'bridge' }).base().split(' ');
+    expect(bridge).toContain('rounded-bridge');
+    expect(bridge).not.toContain('rounded-contain');
+    expect(contain).toContain('rounded-contain');
+    // Only the radius atom differs — the tier is not a second styling axis.
+    expect(bridge.filter((c) => !c.startsWith('rounded-'))).toEqual(
+      contain.filter((c) => !c.startsWith('rounded-'))
+    );
   });
 
   it('defaults to quiet variant — reading-flow surface', () => {

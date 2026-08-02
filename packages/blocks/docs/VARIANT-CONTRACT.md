@@ -53,6 +53,27 @@ card that animates on hover falsely signals interactivity (WCAG 3.2).
 `dividers` defaults to **false**. Set `dividers` to get hairlines between header, body and
 footer — the traditional card-with-header look.
 
+### Card shape: `tier`
+
+`variant` picks the card's weight; `tier` picks its **shape family**, and it has exactly two
+values because there are exactly two answers:
+
+| `tier` | Radius | Reach for it when |
+| --- | --- | --- |
+| `contain` *(default)* | `--radius-contain` | The card is architecture — a panel, a section, a page-level surface |
+| `bridge` | `--radius-bridge` | The card is a small tinted **content** tile — a chip, a stat cell, a compact list card |
+
+The distinction is optical, not decorative. Radius scales with the area it turns: the hairline
+edge that reads as *precise* on a 600 px panel reads as an untouched rectangle on a 200 px tile.
+That is the same reasoning behind ChatMessage's bubble and a Menu panel under a pill trigger —
+`bridge` simply gives it a name on the component a consumer composes at any size.
+
+It is **not** a way to give one card a different look. Card weight is `variant`; a project-wide
+Card treatment is `BlocksProvider` `defaults`; a project-wide shape change is the tier token
+(`--radius-contain`), which moves Card, Dialog, Alert and Popover together. Reaching for
+`class="rounded-xl"` on individual cards splits the family and is the anti-pattern the design
+principles name — see `principles.md` → "Semantic Radius Tiers".
+
 ---
 
 ## 3 · Alert
