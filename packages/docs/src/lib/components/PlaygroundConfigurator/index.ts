@@ -73,6 +73,9 @@ export function extractPlaygroundDocs(
  *   {/snippet}
  * </PlaygroundConfigurator>
  * ```
+ * @summary Live component playground pairing a preview stage with prop controls and a generated snippet.
+ * @tag display
+ *
  */
 export interface PlaygroundConfiguratorProps<
   TValues extends Record<string, unknown> = Record<string, unknown>

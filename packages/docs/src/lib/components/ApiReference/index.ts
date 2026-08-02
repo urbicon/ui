@@ -39,6 +39,9 @@ export interface ApiProp {
  * ```svelte
  * <ApiReference props={componentData.props} />
  * ```
+ * @summary Sortable, filterable table of a component API with type cross-links and source badges.
+ * @tag display
+ *
  */
 export interface ApiReferenceProps
   extends ApiReferenceVariantProps,

@@ -16,6 +16,29 @@ export interface MCPCatalogAssemblerConfig {
 }
 
 /**
+ * The `@urbicon-ui/docs` components: the furniture documentation pages are
+ * built FROM, not building blocks for a consumer's UI. They are filtered out
+ * here, at assembly, rather than when the per-package `_catalog.json` is
+ * written — that file is also what `summary:lint` and the docs site read, and
+ * filtering upstream left the docs target with an empty catalog (2 bytes) and
+ * therefore no metadata gate at all.
+ *
+ * Keep them out of the MCP catalog: `find_components` answers "what do I build
+ * this UI from", and a PlaygroundConfigurator is never that answer.
+ */
+const INTERNAL_COMPONENTS = new Set([
+  'ApiReference',
+  'CodeExample',
+  'CodePanel',
+  'DocsLayout',
+  'InfoCard',
+  'PlaygroundConfigurator',
+  'Section',
+  'TableOfContents',
+  'TypesReference'
+]);
+
+/**
  * Assembles the final component-catalog.json from per-package _catalog.json
  * files and extracted recipe data.
  */
@@ -71,10 +94,12 @@ export class MCPCatalogAssembler {
       }
     }
 
-    // Sort alphabetically by name
-    allEntries.sort((a, b) => a.name.localeCompare(b.name));
+    const publicEntries = allEntries.filter((e) => !INTERNAL_COMPONENTS.has(e.name));
 
-    return allEntries;
+    // Sort alphabetically by name
+    publicEntries.sort((a, b) => a.name.localeCompare(b.name));
+
+    return publicEntries;
   }
 
   private async extractRecipes(): Promise<RecipeEntry[]> {

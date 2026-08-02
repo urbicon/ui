@@ -16,7 +16,7 @@
  * pipeline — a `@summary` the extractor drops is as broken as a missing one.
  */
 
-const CATALOGS = ['blocks', 'table', 'auth'];
+const CATALOGS = ['blocks', 'table', 'auth', 'docs'];
 const ROOT = new URL('../../../apps/docs/static/', import.meta.url).pathname;
 
 const MAX_CHARS = 120;

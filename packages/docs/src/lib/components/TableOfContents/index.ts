@@ -1,19 +1,5 @@
 import type { TableOfContentsSlots, TableOfContentsVariantProps } from './tableofcontents.variants';
 
-/**
- * Sticky sidebar navigation that tracks scroll position and highlights the active section.
- * Hidden on mobile (DocsLayout provides a collapsible mobile alternative).
- *
- * @example
- * ```svelte
- * <TableOfContents
- *   navigation={[
- *     { id: 'usage', title: 'Usage' },
- *     { id: 'api', title: 'API', children: [{ id: 'props', title: 'Props' }] }
- *   ]}
- * />
- * ```
- */
 export interface RelatedLink {
   label: string;
   href: string;
@@ -32,6 +18,22 @@ export interface TocNavigationItem {
   children?: Array<{ id: string; title: string; order?: number; href?: string }>;
 }
 
+/**
+ * Sticky sidebar navigation that tracks scroll position and highlights the active section.
+ * Hidden on mobile (DocsLayout provides a collapsible mobile alternative).
+ *
+ * @example
+ * ```svelte
+ * <TableOfContents
+ *   navigation={[
+ *     { id: 'usage', title: 'Usage' },
+ *     { id: 'api', title: 'API', children: [{ id: 'props', title: 'Props' }] }
+ *   ]}
+ * />
+ * ```
+ * @summary Sticky page navigation that tracks scroll position and links on to related pages.
+ * @tag navigation
+ */
 export interface TableOfContentsProps extends TableOfContentsVariantProps {
   /** Heading rendered above the nav links. Defaults to the localized "On this page". */
   title?: string;

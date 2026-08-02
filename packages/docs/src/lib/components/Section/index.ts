@@ -5,6 +5,7 @@ import type { SectionSlots, SectionVariantProps } from './section.variants';
 /**
  * Props interface for Section component
  *
+ * @summary Anchored content section with an editorial marker, title, subtitle and badges.
  * @description Content section with title/subtitle, badges, and semantic footer.
  *
  * @tag layout

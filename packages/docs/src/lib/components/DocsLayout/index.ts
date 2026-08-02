@@ -33,6 +33,9 @@ export interface BreadcrumbItem {
  *   <Section id="examples">...</Section>
  * </DocsLayout>
  * ```
+ * @summary Page shell for documentation, with a hero header, breadcrumb strip, table of contents and content column.
+ * @tag layout
+ *
  */
 export interface DocsLayoutProps extends DocsLayoutVariantProps {
   /** Page title rendered as an h1 in the header area. */

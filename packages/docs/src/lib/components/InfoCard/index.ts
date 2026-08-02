@@ -5,6 +5,7 @@ import type { InfoCardSlots, InfoCardVariantProps } from './infocard.variants';
 /**
  * Props interface for InfoCard component
  *
+ * @summary Inline callout for notes, tips and warnings inside documentation prose.
  * @description Simple memo-style card for inline callouts or notes within docs content.
  *
  * @tag display

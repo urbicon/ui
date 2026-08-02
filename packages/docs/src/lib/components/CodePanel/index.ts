@@ -13,6 +13,7 @@ export const LINE_NUMBER_AUTO_THRESHOLD = 6;
 export type CodePanelSlotName = CodePanelSlots;
 
 /**
+ * @summary Collapsible code block with syntax highlighting and copy-to-clipboard.
  * @description Shared code display primitive with Shiki syntax highlighting, collapsible panel, and copy-to-clipboard.
  * @tag display
  * @related CodeExample

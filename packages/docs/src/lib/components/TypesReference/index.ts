@@ -52,6 +52,9 @@ export interface LocalTypeDef {
  *   description="Local types used by this component."
  * />
  * ```
+ * @summary Expandable table of the local type definitions a component API refers to.
+ * @tag display
+ *
  */
 export interface TypesReferenceProps
   extends Omit<TypesReferenceVariantProps, 'size'>,

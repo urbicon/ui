@@ -25,6 +25,9 @@ export type CodeExampleSlotName =
  *   <Button>Click me</Button>
  * </CodeExample>
  * ```
+ * @summary A titled code snippet with an optional live preview rendered above it.
+ * @tag display
+ *
  */
 export interface CodeExampleProps
   extends Omit<CodeExampleVariantProps, 'hasPreview'>,

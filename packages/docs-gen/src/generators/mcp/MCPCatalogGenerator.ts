@@ -61,18 +61,9 @@ export interface ComponentCatalog {
   tags: string[];
 }
 
-/** Internal docs-infrastructure components — excluded from the public catalog */
-const INTERNAL_COMPONENTS = new Set([
-  'ApiReference',
-  'CodeExample',
-  'CodePanel',
-  'DocsLayout',
-  'InfoCard',
-  'PlaygroundConfigurator',
-  'Section',
-  'TableOfContents',
-  'TypesReference'
-]);
+// The docs-infrastructure exclusion lives in MCPCatalogAssembler now — see
+// INTERNAL_COMPONENTS there. Filtering here emptied `_catalog.json` for the
+// docs target, which is also what `summary:lint` and the docs site read.
 
 /**
  * Package → origin tag. Components from these packages carry an extra discovery
@@ -105,8 +96,6 @@ export class MCPCatalogGenerator {
     const entries: ComponentCatalogEntry[] = [];
 
     for (const component of enrichedComponents) {
-      if (INTERNAL_COMPONENTS.has(component.name)) continue;
-
       const compApi = apiData.components[component.name];
       if (!compApi) continue;
 
