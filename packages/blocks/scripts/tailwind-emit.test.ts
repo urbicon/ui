@@ -136,6 +136,22 @@ describe('findNonEmittingClasses — the colour-capable namespaces (#61)', () =>
     expect(dead).toEqual(new Set(['2xl:bg-primaryx']));
   });
 
+  it('leaves non-ASCII characters unescaped, including astral ones', async () => {
+    // `\w` is ASCII-only, so a naive `[^\w-]` backslashes every codepoint
+    // ≥ U+0080 — and without the `u` flag, one before each surrogate half of
+    // an emoji. Tailwind writes `.content-\[\'✓\'\]` with the character
+    // bare, so the probe found nothing and reported valid classes as dead.
+    // Seven variant configs already use `content-[…]`.
+    const dead = await deadOf([
+      "content-['✓']",
+      "before:content-['→']",
+      "content-['🎉']",
+      "content-['*']",
+      'text-primaryx'
+    ]);
+    expect(dead).toEqual(new Set(['text-primaryx']));
+  });
+
   it('counts what it compiled, so a caller can tell an empty run from a clean one', async () => {
     const probe = await findNonEmittingClasses(['bg-primary', 'bg-primary', 'text-sm'], {
       css,

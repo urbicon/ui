@@ -833,19 +833,30 @@ const tailwindCss = [
 // floor would not catch it either.
 //
 // Per-namespace instead, on the four that cannot plausibly go to zero in this
-// library (measured: bg- 128, border- 85, text- 80, ring- 64). Reaching zero
+// library (measured: bg- 128, border- 84, text- 80, ring- 64). Reaching zero
 // means either the walk broke or the namespace genuinely emptied — both worth
 // stopping for. `accent-`/`caret-` get no canary: the repo uses neither today,
 // so they are covered by the compiler like everything else but not asserted to
 // arrive.
 const NAMESPACE_CANARIES = ['bg-', 'border-', 'text-', 'ring-'];
-const candidateUtilities = [...emitCandidates.keys()].map((t) => t.slice(t.lastIndexOf(':') + 1));
+// `splitVariants` rather than a fourth hand-rolled `lastIndexOf(':')` in this
+// file — that one mangles bracketed values (`[color:red]` → `red]`).
+const candidateSplits = [...emitCandidates.keys()].map((t) => splitVariants(t));
 const missingNamespaces = NAMESPACE_CANARIES.filter(
-  (ns) => !candidateUtilities.some((u) => u.startsWith(ns))
+  (ns) => !candidateSplits.some(({ utility }) => utility.startsWith(ns))
 );
-if (missingNamespaces.length > 0) {
+// The namespace check deliberately looks past the prefix, which leaves it
+// blind along that axis: a regression dropping variant-PREFIXED tokens keeps
+// every namespace alive through the unprefixed ones. Measured — filtering them
+// out lost 422 of 1322 classes (32 %) with all four namespace canaries green,
+// all six allowlist entries still hit, and a planted `hover:bg-primaryx`
+// unreported. Prefixed classes are a third of what this guard reads and the
+// case its own docs advertise catching, so their arrival is asserted too.
+const prefixedArrived = candidateSplits.some(({ prefixes }) => prefixes.length > 0);
+if (missingNamespaces.length > 0 || !prefixedArrived) {
+  const missing = [...missingNamespaces, ...(prefixedArrived ? [] : ['variant-prefixed'])];
   console.error(
-    `✖ variants-lint: no ${missingNamespaces.join(' / ')} class reached the emitted-CSS guard — the collection walk is not seeing the configs it claims to check.`
+    `✖ variants-lint: no ${missing.join(' / ')} class reached the emitted-CSS guard — the collection walk is not seeing the configs it claims to check.`
   );
   process.exit(1);
 }

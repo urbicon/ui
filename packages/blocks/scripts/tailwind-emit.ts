@@ -30,15 +30,23 @@ import { compile } from '@tailwindcss/node';
  * writes the rule. `bg-primary/70` becomes `bg-primary\/70`,
  * `z-[var(--z-tooltip)]` becomes `z-\[var\(--z-tooltip\)\]`.
  *
- * A **leading digit** is the exception, and getting it wrong is the expensive
- * direction: CSS cannot escape an identifier's first digit with a backslash,
- * so Tailwind emits a hex escape plus a terminating space — `2xl:px-4` is
- * written `.\32 xl\:px-4` (measured). A probe that looks for `.2xl\:px-4`
- * finds nothing and reports a perfectly good responsive class as dead, which
- * fails CI on correct code and offers no fix but a wrong allowlist entry.
+ * Two exceptions, and both fail in the expensive direction — a valid class
+ * reported dead, failing CI with no fix available but a wrong allowlist entry:
+ *
+ *   - A **leading digit** cannot be backslash-escaped in a CSS identifier, so
+ *     Tailwind emits a hex escape plus a terminating space: `2xl:px-4` is
+ *     written `.\32 xl\:px-4` (measured).
+ *   - **Non-ASCII** characters are not escaped at all. `\w` is ASCII-only, so
+ *     a naive `[^\w-]` backslashes every codepoint ≥ U+0080 — and without the
+ *     `u` flag, one before *each surrogate half* of an astral character.
+ *     `content-['✓']` and `content-['🎉']` both reproduced the leading-digit
+ *     false positive that way; seven variant configs already use
+ *     `content-[…]`, so a `content-['×']` is one edit from a red CI.
  */
 function escapeClass(cls: string): string {
-  const escaped = cls.replace(/([^\w-])/g, '\\$1');
+  const escaped = cls.replace(/[^\w-]/gu, (ch) =>
+    (ch.codePointAt(0) ?? 0) >= 0x80 ? ch : `\\${ch}`
+  );
   return /^\d/.test(escaped) ? `\\3${escaped[0]} ${escaped.slice(1)}` : escaped;
 }
 
