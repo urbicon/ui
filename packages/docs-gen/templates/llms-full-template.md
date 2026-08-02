@@ -4,23 +4,22 @@
 
 ## Installation
 
-Urbicon UI packages are published to a private registry. Create a `bunfig.toml` in your project root:
-
-```toml
-# bunfig.toml
-[install.scopes]
-"@urbicon-ui" = { url = "https://npm.urbicon.de/" }
-```
-
-Then install the packages:
+Urbicon UI packages are published on the public npm registry — no registry configuration needed:
 
 ```bash
 bun add @urbicon-ui/blocks @urbicon-ui/i18n
 ```
 
-CSS setup (in your app's root layout or entry CSS). Your app owns the Tailwind
-import and it MUST come first; the Urbicon UI CSS that follows depends on it and
-overrides its defaults:
+In a SvelteKit project the `sv` add-on does the packages **and** the CSS wiring below in one step
+(non-interactive form — pre-answer Tailwind's plugin prompt so the run never blocks):
+
+```bash
+bunx sv add tailwindcss=plugins:none @urbicon-ui
+```
+
+CSS setup (in your app's root layout or entry CSS) — already done for you on the add-on path. Your
+app owns the Tailwind import and it MUST come first; the Urbicon UI CSS that follows depends on it
+and overrides its defaults:
 ```css
 @import 'tailwindcss';
 @import '@urbicon-ui/blocks/style/index.css'; /* tokens + @source directives */
