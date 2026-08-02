@@ -126,12 +126,17 @@ export function resolveValueById<T extends TableItem>(
  *
  * `locale` is a BCP 47 tag the caller has already resolved (see
  * `resolveDateLocale` in `@urbicon-ui/i18n`). It is required for the `Date`
- * branch and has no other use: passing `undefined` there hands `Intl` the
- * *runtime* locale, which is the Node/Bun process on the server and the user's
- * browser after hydration, so the same cell renders `3/12/2026` in the
- * prerendered HTML and `12.03.2026` in the client tree. This is the DEFAULT
- * path for a plain `Date` column — `DateCell` is opt-in — so it mattered more
- * than the cells, not less.
+ * branch and has no other use: `undefined` there hands `Intl` the **runtime**
+ * locale, so an app that declares `en` renders `12.3.2026` for a German
+ * user's browser and `3/12/2026` for an American one — the date follows the
+ * reader's machine instead of the app's language.
+ *
+ * Not an SSR-divergence on this path, which an earlier version of this comment
+ * claimed: `<TableProvider>` syncs `items` into the store from an `$effect`,
+ * and effects do not run during SSR, so a server render emits "No data
+ * available" and no cell payload at all. Measured 2026-08-02. The client-side
+ * half above is the whole bug here, and it is enough — this is the DEFAULT
+ * path for a plain `Date` column, while `DateCell` is opt-in.
  */
 export function formatCellValue<T extends TableItem>(
   item: T,

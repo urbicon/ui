@@ -690,7 +690,14 @@ const [getTableContextRaw, setTableContextRaw] =
  */
 const [getCellLocaleRaw, setCellLocaleRaw] = createOptionalContext<() => string>();
 
-/** Called by `<TableProvider>` once, alongside {@link attachTableContext}. */
+/**
+ * Called by `<TableProvider>` once, alongside {@link attachTableContext}.
+ *
+ * Exported for the provider, not for consumers: it is pure wiring, and a
+ * consumer calling it would silently re-point the formatting locale for a
+ * subtree. `getCellLocale()` is the half worth reaching for — a custom
+ * `column.component` cell wants the table's resolved tag.
+ */
 export function attachCellLocale(resolve: () => string) {
   setCellLocaleRaw(resolve);
 }
