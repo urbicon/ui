@@ -1,8 +1,10 @@
 <script lang="ts" generics="Item">
+  import { resolveDateLocale, useI18n } from '@urbicon-ui/i18n';
   import { useTableI18n } from '$lib/i18n';
   import { numberCellVariants, type NumberCellVariantProps } from '$lib/variants';
 
   const tt = useTableI18n();
+  const i18n = useI18n();
 
   export type NumberCellProps<Item> = {
     item: Item;
@@ -10,6 +12,14 @@
     value?: number | ((item: Item) => number);
     format?: 'integer' | 'decimal' | 'currency' | 'percentage' | 'custom';
     currency?: string;
+    /**
+     * BCP 47 tag to format with, or `'auto'` (the default) to follow the active
+     * `<I18nProvider>` locale.
+     *
+     * Was the literal `'de-DE'` until 2026-08-02, so an English app rendered
+     * `1.234,56` unless every number cell was passed `locale` by hand — the
+     * same default the blocks date components dropped on 2026-07-31.
+     */
     locale?: string;
     decimals?: number;
     customFormatter?: (value: number) => string;
@@ -34,7 +44,7 @@
     value = undefined,
     format = 'decimal',
     currency = 'EUR',
-    locale = 'de-DE',
+    locale = 'auto',
     decimals = 2,
     customFormatter = undefined,
     prefix = '',
@@ -49,6 +59,12 @@
     align = 'right',
     variant = 'default'
   }: NumberCellProps<Item> = $props();
+
+  // `explicit prop → provider → base locale`, the same chain DateCell and the
+  // blocks date components resolve through. Never `undefined` (that follows the
+  // runtime, which differs across the SSR boundary) and no longer a hardcoded
+  // language. See @urbicon-ui/i18n's resolve-date-locale.ts.
+  const resolvedLocale = $derived(resolveDateLocale(locale, i18n.locale));
 
   // Extract numeric value from item or prop
   const extractValue = (item: Item): number | null => {
@@ -89,20 +105,20 @@
 
       switch (format) {
         case 'integer':
-          formatted = new Intl.NumberFormat(locale, {
+          formatted = new Intl.NumberFormat(resolvedLocale, {
             maximumFractionDigits: 0
           }).format(num);
           break;
 
         case 'decimal':
-          formatted = new Intl.NumberFormat(locale, {
+          formatted = new Intl.NumberFormat(resolvedLocale, {
             minimumFractionDigits: decimals,
             maximumFractionDigits: decimals
           }).format(num);
           break;
 
         case 'currency':
-          formatted = new Intl.NumberFormat(locale, {
+          formatted = new Intl.NumberFormat(resolvedLocale, {
             style: 'currency',
             currency: currency,
             minimumFractionDigits: decimals,
@@ -111,7 +127,7 @@
           break;
 
         case 'percentage':
-          formatted = new Intl.NumberFormat(locale, {
+          formatted = new Intl.NumberFormat(resolvedLocale, {
             style: 'percent',
             minimumFractionDigits: decimals,
             maximumFractionDigits: decimals
@@ -119,7 +135,7 @@
           break;
 
         default:
-          formatted = new Intl.NumberFormat(locale).format(num);
+          formatted = new Intl.NumberFormat(resolvedLocale).format(num);
       }
 
       return prefix + formatted + suffix;

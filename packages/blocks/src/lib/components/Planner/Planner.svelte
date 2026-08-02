@@ -1,6 +1,5 @@
 <script lang="ts" generics="T = unknown">
-  import { useI18n } from '@urbicon-ui/i18n';
-  import { resolveDateLocale } from '$lib/internal/resolve-date-locale';
+  import { resolveDateLocale, useI18n } from '@urbicon-ui/i18n';
   import { useBlocksI18n } from '$lib';
   import { getBlocksConfig, resolveSlotClasses } from '$lib/provider';
   import { stripTime } from '$lib/date';
@@ -72,7 +71,7 @@
   // the locale from context (not `Intl` with `undefined`) keeps SSR and hydration
   // on the same tag; without a provider it is the base locale (`en`). The helper
   // verifies the context value before it reaches `Intl` — see
-  // resolve-date-locale.ts for why the prop is trusted and the context is not.
+  // @urbicon-ui/i18n's resolve-date-locale.ts for why the prop is trusted and the context is not.
   const i18nLocale = useI18n();
   const resolvedLocale = $derived(resolveDateLocale(locale, i18nLocale.locale));
 
@@ -288,7 +287,7 @@
   {/if}
 
   <DateGridScaffold
-    class={slot('grid', !isWeek ? 'border-r border-b border-border-subtle' : '')}
+    class={slot('grid', !isWeek ? 'border-border-subtle border-r border-b' : '')}
     {showWeekNumber}
     swipeable={swipeableProp && !disabled}
     {animated}

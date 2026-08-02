@@ -262,7 +262,20 @@ export const TABLE_ANIMATIONS = {
   loading: {
     pulse: 'animate-pulse',
     spin: 'animate-spin',
-    skeleton: 'animate-pulse bg-gradient-to-r from-surface-2 via-surface-3 to-surface-2'
+    // `surface-2` / `surface-3` are not tokens in this design system and never
+    // were, so all three gradient stops emitted nothing. Found by the
+    // emitted-CSS guard in variants-lint, 2026-08-02.
+    //
+    // Two things this is NOT. It is not a visible fix: nothing renders either
+    // slot that uses it (`LoadingState.svelte` uses container/content/text/
+    // description, and `skeletonRowVariants` has no consumer at all), so this
+    // is a dead-code correction. And it is not the blocks `Skeleton` wave,
+    // which needs `bg-size-[200%_100%]` plus its own keyframe to sweep — the
+    // gradient here is static under `animate-pulse`, i.e. tokens that resolve
+    // rather than an effect that moves. Wire the wave properly if either slot
+    // ever gains a consumer.
+    skeleton:
+      'animate-pulse bg-linear-to-r from-surface-interactive via-skeleton-shimmer to-surface-interactive'
   },
 
   // Row animations

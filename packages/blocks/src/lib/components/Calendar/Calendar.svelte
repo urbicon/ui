@@ -1,7 +1,6 @@
 <script lang="ts">
   import { SvelteMap, MediaQuery } from 'svelte/reactivity';
-  import { useI18n } from '@urbicon-ui/i18n';
-  import { resolveDateLocale } from '$lib/internal/resolve-date-locale';
+  import { resolveDateLocale, useI18n } from '@urbicon-ui/i18n';
   import { getBlocksConfig, resolveSlotClasses } from '$lib/provider';
   import { calendarVariants, type CalendarVariants } from './calendar.variants';
   import { setCalendarContext, type CalendarContext } from './calendar.context';
@@ -123,7 +122,7 @@
   //
   // The helper verifies the *context* value before it reaches `Intl` — the
   // provider does not validate its own input, and an unsupported tag either
-  // throws or silently follows the runtime. See resolve-date-locale.ts.
+  // throws or silently follows the runtime. See @urbicon-ui/i18n's resolve-date-locale.ts.
   const i18n = useI18n();
   const resolvedLocale = $derived(resolveDateLocale(locale, i18n.locale));
 

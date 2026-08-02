@@ -267,12 +267,42 @@
   modal dialog (`topLayer === false`) the attribute is dropped and the
   `open` opacity variant drives visibility instead (Codeberg #23).
 
+  `<span>`, not `<div>` — for the panel and for the arrow. A `<div>` start tag
+  closes an open `<p>` while the parser repairs the document, and Tooltip is
+  the component the library documents for inline targets, i.e. inside a
+  sentence. (Valid there, not flowing with it: the trigger wrapper is
+  `inline-flex` and therefore atomic, so a multi-word trigger is one
+  unbreakable box. Measured 2026-08-02.)
+
+  Popover solved the same problem by withholding its panel from the server
+  render: its content is the consumer's and can be any element, so no wrapper
+  can make it phrasing-safe. `label` is typed `string`, so a tooltip's panel
+  content is phrasing by construction and a `<span>` holds it legally.
+
+  Popover's gate would have worked here too — it withholds only from the
+  SERVER render, and from `onMount` the panel is mounted permanently, so
+  `bind:this` and the arrow target are as stable as they are now. It is simply
+  the worse trade when a `<span>` is available: withholding costs the panel's
+  absence from the prerendered HTML (the cost Popover's own `inline` JSDoc
+  states) and buys nothing a legal element does not already give.
+
+  Nothing gives these spans a `display`: the inline `position: fixed` below
+  (and `absolute` on the arrow) blockifies them per CSS. Load-bearing, and the
+  reason `display` must not be added to the base slot either: an author-level
+  `display` beats the UA rule `[popover]:not(:popover-open) { display: none }`,
+  and a closed tooltip then keeps a laid-out fixed box — invisible (the closed
+  variant is `opacity-0`) but present in the a11y tree and to find-in-page.
+  Measured in Chromium and WebKit, 2026-08-02. A test guards this slot; the
+  consumer-side routes to the same class list (`class`, `slotClasses.base`,
+  a `preset`, provider overrides) cannot be guarded, so the `class` prop's
+  JSDoc says so.
+
   Load-bearing attributes (`popover`, `style`, `role`, `id`) intentionally
   follow `{...restProps}` so a consumer-supplied `popover="auto"`, custom
   `style`, or override of `id`/`role` cannot silently break the show/hide
   flow or aria-describedby pairing.
 -->
-<div
+<span
   bind:this={tooltipElement}
   class={unstyled
     ? [slotClasses?.base, className].filter(Boolean).join(' ')
@@ -288,11 +318,11 @@
   {#if !disabled && label}
     {label}
     {#if arrow}
-      <div
+      <span
         class={unstyled ? (slotClasses?.arrow ?? '') : styles.arrow({ class: slotClasses?.arrow })}
         bind:this={arrowElement}
         style={arrowStyleString}
-      ></div>
+      ></span>
     {/if}
   {/if}
-</div>
+</span>
