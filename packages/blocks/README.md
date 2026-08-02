@@ -11,7 +11,7 @@ bunx sv create my-app --add @urbicon-ui   # new project
 bunx sv add @urbicon-ui                   # existing project
 ```
 
-By hand it is one install plus two CSS imports. Tailwind must come first — the token sheet depends on it and overrides its defaults:
+The components themselves need no SvelteKit — they import neither `$app/*` nor `@sveltejs/kit`, so any Svelte 5 project with Vite and Tailwind 4 works (the add-on is the SvelteKit-only part). By hand it is one install plus two CSS imports. Tailwind must come first — the token sheet depends on it and overrides its defaults:
 
 ```bash
 bun add @urbicon-ui/blocks
@@ -25,7 +25,7 @@ bun add @urbicon-ui/blocks
 
 That one import carries the design tokens **and** the Tailwind `@source` directives that make the components' classes reachable — no consumer-side `@source` needed. Import `style/index.css`, never the `foundation`/`semantic`/`interaction` subfiles: they omit those directives, which is the usual cause of responsive utilities going missing in production.
 
-Peer dependencies: `svelte` (^5), `@sveltejs/kit`, `@urbicon-ui/i18n`.
+Peer dependencies: `svelte` (^5), `@urbicon-ui/i18n`. Load the stylesheet wherever your app loads CSS — `+layout.svelte` in SvelteKit, `main.js` in a plain Vite + Svelte app.
 
 Agents get the component grammar, the token rules and an edit-time design gate from `bunx urbicon init --hook` ([`@urbicon-ui/design`](https://ui.urbicon.de/ai)).
 

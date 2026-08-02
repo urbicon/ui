@@ -10,13 +10,11 @@ The locale lives in **context**, not a module-global singleton — so concurrent
 
 ## Installation
 
-This package ships inside the Urbicon UI monorepo. Install from repo root:
-
 ```bash
-bun install
+bun add @urbicon-ui/i18n
 ```
 
-Peer dependencies: `svelte` (^5.40 — uses runes + `createContext`-era context), `@sveltejs/kit`.
+Peer dependencies: `svelte` (^5.40 — uses runes + `createContext`-era context). No SvelteKit needed: the package imports neither `$app/*` nor `@sveltejs/kit`, so it works in any Svelte 5 project — the request-scoped locale below is what keeps it SSR-correct wherever you render.
 
 ## Quick Start
 

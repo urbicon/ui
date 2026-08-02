@@ -10,8 +10,13 @@ Urbicon UI packages are published on the public npm registry — no registry con
 bun add @urbicon-ui/blocks @urbicon-ui/i18n
 ```
 
+Requirements: Svelte 5, Vite and Tailwind 4. SvelteKit is **not** required — `blocks`, `table` and
+`i18n` import neither `$app/*` nor `@sveltejs/kit`, so a plain Vite + Svelte project runs them
+(`@urbicon-ui/auth` and `@urbicon-ui/sveltekit-utils` are the SvelteKit-bound packages).
+
 In a SvelteKit project the `sv` add-on does the packages **and** the CSS wiring below in one step
-(non-interactive form — pre-answer Tailwind's plugin prompt so the run never blocks):
+(non-interactive form — pre-answer Tailwind's plugin prompt so the run never blocks). The add-on is
+SvelteKit-only; elsewhere use the install plus the CSS setup below:
 
 ```bash
 bunx sv add tailwindcss=plugins:none @urbicon-ui

@@ -41,7 +41,18 @@ export default defineAddon({
   options: {},
 
   setup: ({ isKit, unsupported, dependsOn }) => {
-    // blocks lists @sveltejs/kit as a peer (link handling, $app imports).
+    // The library itself is Kit-agnostic: blocks imports neither `$app/*` nor
+    // `@sveltejs/kit`, so a plain Vite + Svelte 5 + Tailwind 4 project runs it
+    // (verified 2026-08-02: build, SSR render and browser interaction).
+    //
+    // This ADD-ON stays Kit-only anyway, and not for a technical reason —
+    // `file.stylesheet` resolves outside Kit too (sv falls back to
+    // `src/app.css`). The gap is who imports that file: in Kit it is the root
+    // layout, which sv's own tailwindcss add-on wires up, while a non-Kit
+    // project owns its entry (`main.js`) and no add-on touches it. Writing an
+    // `@import` into a stylesheet nobody loads fails silently — worse than
+    // declining. Beta scope; lifting this needs a non-Kit template test, not
+    // just deleting the guard. The manual path is documented instead.
     if (!isKit) unsupported('Requires SvelteKit');
     dependsOn('tailwindcss');
   },

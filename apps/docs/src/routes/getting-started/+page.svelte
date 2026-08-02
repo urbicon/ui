@@ -20,6 +20,11 @@
   (and later change) what the add-on did, and the preview card's five-step
   choreography hangs off them.
 
+  The add-on is also the only SvelteKit-bound piece (`sv` add-ons run on Kit
+  projects; the library imports neither `$app/*` nor `@sveltejs/kit`), so 00
+  closes by pointing non-Kit readers at the manual fork rather than leaving
+  them to infer that a Kit-shaped page excludes them.
+
   The card follows a MONOTONIC step latch (reachedStep), not the raw
   scrollspy: the app you've built must not un-build when you scroll back up to
   re-read — or when focusing the card's input jiggles the viewport out of
@@ -106,8 +111,13 @@
 @import 'tailwindcss';
 @import '@urbicon-ui/blocks/style/index.css';`;
 
+  // Kit-Form, weil die Seite mit `sv create` einsteigt. Ohne SvelteKit ist es
+  // dieselbe Datei mit svelte() statt sveltekit() — die Zeile steht im Snippet,
+  // damit ein Nicht-Kit-Leser sie nicht falsch abschreibt.
   const viteConfigExample = `// vite.config.js
 import { sveltekit } from '@sveltejs/kit/vite';
+// no SvelteKit? swap it for svelte()
+// from '@sveltejs/vite-plugin-svelte'
 import tailwindcss from '@tailwindcss/vite';
 
 export default {
@@ -203,9 +213,9 @@ export default {
           No project yet?
         </h2>
         <p class="text-text-secondary mt-4 max-w-2xl leading-relaxed">
-          Urbicon UI plugs into any SvelteKit app. Starting from an empty directory, the official
+          Starting from an empty directory, the official
           <code class="bg-surface-elevated rounded-modify px-1.5 py-0.5 font-mono text-xs">sv</code>
-          CLI scaffolds one — it asks its own questions (TypeScript, Prettier, …), and
+          CLI scaffolds a SvelteKit app — it asks its own questions (TypeScript, Prettier, …), and
           <code class="bg-surface-elevated rounded-modify px-1.5 py-0.5 font-mono text-xs"
             >--add @urbicon-ui</code
           >
@@ -233,6 +243,17 @@ export default {
           <a href="#first-component" class="text-primary font-medium hover:underline"
             >your first component</a
           >, or read on to see what the add-on did. Inside an existing project, start at 01.
+        </p>
+        <p class="text-text-secondary mt-4 max-w-2xl leading-relaxed">
+          Not a SvelteKit project? The components don&rsquo;t need one — they import neither
+          <code class="bg-surface-elevated rounded-modify px-1.5 py-0.5 font-mono text-xs"
+            >$app/*</code
+          >
+          nor
+          <code class="bg-surface-elevated rounded-modify px-1.5 py-0.5 font-mono text-xs"
+            >@sveltejs/kit</code
+          >, so any Svelte 5 project with Vite and Tailwind 4 works. The add-on is the
+          SvelteKit-only piece; steps 01 and 02 below are the whole setup by hand.
         </p>
       </section>
 
@@ -302,14 +323,17 @@ export default {
             >@source</code
           >
           directives, so Tailwind generates the components&rsquo; classes without any extra setup. Load
-          the file once from your root layout (in SvelteKit:
+          the file once, wherever your app loads CSS — in SvelteKit that is
           <code class="bg-surface-elevated rounded-modify px-1.5 py-0.5 font-mono text-xs"
             >import './app.css'</code
           >
           in
           <code class="bg-surface-elevated rounded-modify px-1.5 py-0.5 font-mono text-xs"
             >+layout.svelte</code
-          >):
+          >, in a plain Vite + Svelte app your entry module
+          <code class="bg-surface-elevated rounded-modify px-1.5 py-0.5 font-mono text-xs"
+            >src/main.js</code
+          >:
         </p>
         <div class="mt-4">
           <CodeExample

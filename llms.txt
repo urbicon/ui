@@ -22,8 +22,13 @@ directives that make the components' classes reachable):
 @import '@urbicon-ui/blocks/style/index.css';
 ```
 
+Requirements: Svelte 5, Vite and Tailwind 4. SvelteKit is **not** required — `blocks`, `table` and
+`i18n` import neither `$app/*` nor `@sveltejs/kit`. Import the stylesheet where your app loads CSS
+(`+layout.svelte` under SvelteKit, `main.js` in a plain Vite + Svelte app).
+
 In a SvelteKit project the `sv` add-on does both steps at once — non-interactive form for CI and
-agents, so Tailwind's plugin prompt never blocks the run:
+agents, so Tailwind's plugin prompt never blocks the run. It is the one SvelteKit-only piece; in a
+non-Kit project use the two steps above:
 
 ```bash
 bunx sv add tailwindcss=plugins:none @urbicon-ui
