@@ -226,7 +226,7 @@
   </div>
 </div>
 
-<div class="mx-auto max-w-6xl px-6 pb-12 pt-10">
+<div class="mx-auto max-w-6xl px-6 pt-10 pb-12">
   <!-- Hero stats -->
   <div class="mb-12">
     <!-- Stats Row -->

@@ -32,8 +32,8 @@
 
 <div class="mx-auto flex min-h-dvh w-full max-w-6xl flex-col gap-8 px-6 py-10">
   <header>
-    <h1 class="text-lg font-semibold text-text-primary">Livery tile — preview harness</h1>
-    <p class="mt-1 max-w-2xl text-sm text-text-secondary">
+    <h1 class="text-text-primary text-lg font-semibold">Livery tile — preview harness</h1>
+    <p class="text-text-secondary mt-1 max-w-2xl text-sm">
       This page is plain library chrome on purpose. If the tile's house leaks past its own box,
       these words and the borders below change with it — that is the test. Scroll down to make the
       tile mount.
@@ -43,36 +43,36 @@
   <!-- Deliberately tall, so the row starts below the fold and the visibility
        gate has something to do. -->
   <div
-    class="flex h-[70vh] items-center justify-center rounded-contain border border-dashed border-border-default text-sm text-text-tertiary"
+    class="rounded-contain border-border-default text-text-tertiary flex h-[70vh] items-center justify-center border border-dashed text-sm"
   >
     (spacer — the row is below)
   </div>
 
   <section class="flex flex-col gap-3">
-    <h2 class="text-sm font-medium text-text-primary">In a Scroller, beside stand-ins</h2>
+    <h2 class="text-text-primary text-sm font-medium">In a Scroller, beside stand-ins</h2>
     <Scroller label="Exhibits" itemBasis="26rem">
       <div class="h-[30rem]">
         <LiveryTile />
       </div>
       {#each STANDINS as tile (tile.id)}
         <div
-          class="flex h-[30rem] flex-col justify-end rounded-contain border border-border-default bg-surface-subtle p-5"
+          class="rounded-contain border-border-default bg-surface-subtle flex h-[30rem] flex-col justify-end border p-5"
         >
-          <span class="text-base font-medium text-text-primary">{tile.title}</span>
-          <span class="mt-1 text-xs text-text-tertiary">{tile.note}</span>
+          <span class="text-text-primary text-base font-medium">{tile.title}</span>
+          <span class="text-text-tertiary mt-1 text-xs">{tile.note}</span>
         </div>
       {/each}
     </Scroller>
   </section>
 
   <section class="flex flex-col gap-3">
-    <h2 class="text-sm font-medium text-text-primary">Alone, at tile size</h2>
+    <h2 class="text-text-primary text-sm font-medium">Alone, at tile size</h2>
     <div class="h-[30rem] max-w-[26rem]">
       <LiveryTile initial="lacquer" eager />
     </div>
   </section>
 
-  <p class="pb-16 text-xs text-text-tertiary">
+  <p class="text-text-tertiary pb-16 text-xs">
     Chrome above and below is unstyled library default. Both tiles carry their own house.
   </p>
 </div>

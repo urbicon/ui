@@ -317,7 +317,7 @@
             <Avatar name="Mara Cohen" size="sm" />
             <div class="min-w-0">
               <div class="text-text-primary truncate text-xs font-medium">Mara C</div>
-              <div class="text-text-tertiary truncate text-3xs">Admin</div>
+              <div class="text-text-tertiary text-3xs truncate">Admin</div>
             </div>
           </div>
         {/snippet}

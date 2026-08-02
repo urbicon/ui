@@ -266,7 +266,7 @@
             <IconComp size={24} />
           </div>
           <span
-            class="text-text-secondary group-hover:text-text-primary w-full truncate text-center text-3xs"
+            class="text-text-secondary group-hover:text-text-primary text-3xs w-full truncate text-center"
           >
             {#if copiedIcon === name}
               Copied!

@@ -135,10 +135,10 @@
 
 <div class="mx-auto max-w-6xl px-4 py-10">
   <div class="mb-6 flex items-center gap-3">
-    <h1 class="text-2xl font-semibold text-text-primary">StreamingMarkdown Playground</h1>
+    <h1 class="text-text-primary text-2xl font-semibold">StreamingMarkdown Playground</h1>
     <Badge intent="primary" variant="soft">experimental</Badge>
   </div>
-  <p class="mb-8 max-w-3xl text-text-secondary">
+  <p class="text-text-secondary mb-8 max-w-3xl">
     Replays the engine's own test fixtures — real LLM output shapes — through
     <code class="font-mono text-sm">StreamingMarkdown</code>. The right pane renders from the
     growing string exactly as a chat surface would; settled blocks never re-render. Try the hostile
@@ -183,19 +183,19 @@
     </div>
   </div>
 
-  <div class="h-[36rem] overflow-hidden rounded-contain border border-border-default">
+  <div class="rounded-contain border-border-default h-[36rem] overflow-hidden border">
     <SplitPane defaultRatio={0.45} min="25%" max="75%">
       {#snippet start()}
-        <div class="h-full overflow-y-auto bg-surface-elevated p-4">
-          <div class="mb-2 text-xs font-medium uppercase tracking-wide text-text-tertiary">
+        <div class="bg-surface-elevated h-full overflow-y-auto p-4">
+          <div class="text-text-tertiary mb-2 text-xs font-medium tracking-wide uppercase">
             Raw stream ({position}/{chunks.length} chunks)
           </div>
           <pre
-            class="whitespace-pre-wrap break-words font-mono text-xs text-text-secondary">{content}</pre>
+            class="text-text-secondary font-mono text-xs break-words whitespace-pre-wrap">{content}</pre>
         </div>
       {/snippet}
       {#snippet end()}
-        <div class="h-full overflow-y-auto bg-surface-base p-6">
+        <div class="bg-surface-base h-full overflow-y-auto p-6">
           <StreamingMarkdown
             {content}
             streaming={playing}

@@ -56,7 +56,7 @@
         <!-- min-w-0 on the wrapper, not on the Scroller: a grid/flex item
              defaults to min-width:auto and refuses to shrink below its content,
              so without it the row pushes its column wide instead of scrolling. -->
-        <div class="min-w-0 max-w-[22rem]">
+        <div class="max-w-[22rem] min-w-0">
           <p class="text-text-tertiary mb-2 text-xs font-medium tracking-wide uppercase">
             Same markup, out of room — now a scroll region
           </p>

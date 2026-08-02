@@ -449,7 +449,7 @@ Tokens switch light and dark automatically:
   {#snippet heading(name: string)}
     <div class="mb-3 flex items-center justify-between">
       <span
-        class="text-text-tertiary group-hover:text-text-secondary font-mono text-2xs font-medium tracking-[0.08em] uppercase transition-colors duration-200"
+        class="text-text-tertiary group-hover:text-text-secondary text-2xs font-mono font-medium tracking-[0.08em] uppercase transition-colors duration-200"
         >{name}</span
       >
       {@render arrow()}
@@ -465,7 +465,7 @@ Tokens switch light and dark automatically:
       >
         {chapter.name}
       </h2>
-      <p class="text-text-tertiary font-mono text-2xs tracking-[0.08em] uppercase">
+      <p class="text-text-tertiary text-2xs font-mono tracking-[0.08em] uppercase">
         {chapter.count} components · {chapter.traits}
       </p>
     </div>
@@ -791,22 +791,22 @@ Tokens switch light and dark automatically:
               <div class="border-border-hairline flex items-center gap-2 border-b px-3 py-2.5">
                 <SearchIcon class="text-text-tertiary h-3.5 w-3.5" />
                 <span class="text-text-tertiary flex-1 text-xs">Search commands…</span>
-                <kbd class="text-text-quaternary font-mono text-3xs">⌘K</kbd>
+                <kbd class="text-text-quaternary text-3xs font-mono">⌘K</kbd>
               </div>
               <div class="p-1.5 text-xs">
                 <div
                   class="bg-surface-selected text-text-primary flex items-center justify-between rounded-md px-2.5 py-1.5"
                 >
                   <span>New file</span>
-                  <kbd class="text-text-quaternary font-mono text-3xs">⌘N</kbd>
+                  <kbd class="text-text-quaternary text-3xs font-mono">⌘N</kbd>
                 </div>
                 <div class="text-text-secondary flex items-center justify-between px-2.5 py-1.5">
                   <span>Toggle theme</span>
-                  <kbd class="text-text-quaternary font-mono text-3xs">⌘T</kbd>
+                  <kbd class="text-text-quaternary text-3xs font-mono">⌘T</kbd>
                 </div>
                 <div class="text-text-secondary flex items-center justify-between px-2.5 py-1.5">
                   <span>Open settings</span>
-                  <kbd class="text-text-quaternary font-mono text-3xs">⌘,</kbd>
+                  <kbd class="text-text-quaternary text-3xs font-mono">⌘,</kbd>
                 </div>
               </div>
             </div>
@@ -947,13 +947,13 @@ Tokens switch light and dark automatically:
               class="border-border-subtle bg-surface-overlay w-full max-w-[240px] rounded-lg border p-3.5 shadow-(--blocks-shadow-sm)"
             >
               <p class="text-text-primary text-xs font-bold">Delete project?</p>
-              <p class="text-text-secondary mt-1 text-2xs">This can't be undone.</p>
+              <p class="text-text-secondary text-2xs mt-1">This can't be undone.</p>
               <div class="mt-3 flex justify-end gap-1.5">
                 <span
-                  class="border-border-default text-text-secondary rounded-md border px-2.5 py-1 text-2xs"
+                  class="border-border-default text-text-secondary text-2xs rounded-md border px-2.5 py-1"
                   >Cancel</span
                 >
-                <span class="bg-danger text-text-on-fill rounded-md px-2.5 py-1 text-2xs"
+                <span class="bg-danger text-text-on-fill text-2xs rounded-md px-2.5 py-1"
                   >Delete</span
                 >
               </div>
@@ -1789,7 +1789,7 @@ Tokens switch light and dark automatically:
           {@render heading('Tooltip')}
           <div class="flex flex-1 flex-col items-center justify-center gap-1.5">
             <div
-              class="bg-surface-inverted text-text-inverted rounded-md px-2.5 py-1 text-2xs font-medium shadow-(--blocks-shadow-sm)"
+              class="bg-surface-inverted text-text-inverted text-2xs rounded-md px-2.5 py-1 font-medium shadow-(--blocks-shadow-sm)"
             >
               Copy to clipboard
             </div>

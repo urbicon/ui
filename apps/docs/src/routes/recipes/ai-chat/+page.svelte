@@ -313,12 +313,12 @@ export const POST: RequestHandler = async ({ request }) => {
   <header class="mb-10">
     <a
       href={resolve('/recipes')}
-      class="mb-4 inline-flex items-center gap-1 text-sm text-text-tertiary transition-colors hover:text-text-primary"
+      class="text-text-tertiary hover:text-text-primary mb-4 inline-flex items-center gap-1 text-sm transition-colors"
     >
       ← Back to Recipes
     </a>
-    <h1 class="mb-3 text-4xl font-bold text-text-primary">{recipeMeta.title}</h1>
-    <p class="text-lg text-text-secondary">{recipeMeta.description}</p>
+    <h1 class="text-text-primary mb-3 text-4xl font-bold">{recipeMeta.title}</h1>
+    <p class="text-text-secondary text-lg">{recipeMeta.description}</p>
   </header>
 
   <div class="mb-8 flex flex-wrap gap-2">
@@ -328,7 +328,7 @@ export const POST: RequestHandler = async ({ request }) => {
   </div>
 
   <Section id="preview" title="Live Preview">
-    <p class="mb-4 text-sm text-text-secondary">
+    <p class="text-text-secondary mb-4 text-sm">
       This preview replays canned answers on a timer — no network — so it is reproducible offline.
       The <a href={resolve('/recipes/ai-chat')} class="text-primary underline">code below</a>
       streams from a real SSE endpoint, but drives the same surface and the same append/abort state machine.
@@ -336,11 +336,11 @@ export const POST: RequestHandler = async ({ request }) => {
     </p>
     <Card variant="outlined">
       <div class="p-4">
-        <div class="h-[34rem] overflow-hidden rounded-contain border border-border-default">
+        <div class="rounded-contain border-border-default h-[34rem] overflow-hidden border">
           <Chat>
             {#snippet header()}
               <div class="flex items-center gap-2 px-4 py-2.5">
-                <span class="text-sm font-medium text-text-primary">AI Assistant</span>
+                <span class="text-text-primary text-sm font-medium">AI Assistant</span>
                 <Badge intent={busy ? 'primary' : 'neutral'} variant="soft" size="sm">
                   {busy ? 'streaming' : 'idle'}
                 </Badge>
@@ -373,16 +373,16 @@ export const POST: RequestHandler = async ({ request }) => {
 
   <Section id="features" title="Features">
     <Card variant="outlined">
-      <ul class="divide-y divide-border-subtle">
+      <ul class="divide-border-subtle divide-y">
         {#each features as feature (feature)}
-          <li class="px-4 py-3 text-sm text-text-secondary">{feature}</li>
+          <li class="text-text-secondary px-4 py-3 text-sm">{feature}</li>
         {/each}
       </ul>
     </Card>
   </Section>
 
   <Section id="server" title="Server — the SSE endpoint">
-    <p class="mb-4 text-sm text-text-secondary">
+    <p class="text-text-secondary mb-4 text-sm">
       A plain SvelteKit <code class="font-mono text-xs">+server.ts</code> that relays the model
       stream as <code class="font-mono text-xs">text/event-stream</code>. (The
       <code class="font-mono text-xs">@urbicon-ui/auth</code> package ships

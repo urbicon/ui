@@ -383,7 +383,7 @@
               <div class="flex items-center gap-2">
                 <span class="text-text-tertiary font-mono text-xs">{secondaryHue}°</span>
                 <button
-                  class="rounded-modify border px-2 py-0.5 text-3xs font-medium transition-all {secondaryAuto
+                  class="rounded-modify text-3xs border px-2 py-0.5 font-medium transition-all {secondaryAuto
                     ? 'border-primary bg-primary-subtle text-primary'
                     : 'border-border-subtle text-text-tertiary hover:border-border-default'}"
                   onclick={() => {
@@ -459,7 +459,7 @@
               <div class="flex items-center gap-2">
                 <span class="text-text-tertiary font-mono text-xs">{chassisHue}°</span>
                 <button
-                  class="rounded-modify border px-2 py-0.5 text-3xs font-medium transition-all {chassisAuto
+                  class="rounded-modify text-3xs border px-2 py-0.5 font-medium transition-all {chassisAuto
                     ? 'border-primary bg-primary-subtle text-primary'
                     : 'border-border-subtle text-text-tertiary hover:border-border-default'}"
                   onclick={() => {

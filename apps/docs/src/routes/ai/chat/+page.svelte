@@ -361,10 +361,10 @@ Both citations resolve to chips — open one to see the title, snippet, and the 
 
 <div class="mx-auto max-w-5xl px-4 py-10">
   <div class="mb-6 flex items-center gap-3">
-    <h1 class="text-2xl font-semibold text-text-primary">Chat Playground</h1>
+    <h1 class="text-text-primary text-2xl font-semibold">Chat Playground</h1>
     <Badge intent="primary" variant="soft">experimental</Badge>
   </div>
-  <p class="mb-8 max-w-3xl text-text-secondary">
+  <p class="text-text-secondary mb-8 max-w-3xl">
     The whole P2 conversation stack, live: send a message and a simulated model reply streams
     through <code class="font-mono text-sm">StreamingMarkdown</code>. Scroll up mid-stream to break
     the follow behaviour and get the jump-back pill; load older history to watch the scroll anchor
@@ -389,11 +389,11 @@ Both citations resolve to chips — open one to see the title, snippet, and the 
     </div>
   {/snippet}
 
-  <div class="h-[44rem] overflow-hidden rounded-contain border border-border-default">
+  <div class="rounded-contain border-border-default h-[44rem] overflow-hidden border">
     <Chat>
       {#snippet header()}
         <div class="flex flex-wrap items-center gap-3 px-4 py-2.5">
-          <span class="text-sm font-medium text-text-primary">Support copilot</span>
+          <span class="text-text-primary text-sm font-medium">Support copilot</span>
           <Badge intent={following ? 'success' : 'neutral'} variant="soft" size="sm">
             {following ? 'following' : 'paused'}
           </Badge>

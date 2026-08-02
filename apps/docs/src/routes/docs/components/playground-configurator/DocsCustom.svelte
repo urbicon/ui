@@ -124,7 +124,7 @@
               <button
                 type="button"
                 aria-label="Dismiss"
-                class="rounded-xs opacity-50 transition-opacity duration-[var(--blocks-duration-fast)] hover:opacity-100 focus-visible:opacity-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-current/50"
+                class="rounded-xs opacity-50 transition-opacity duration-[var(--blocks-duration-fast)] hover:opacity-100 focus-visible:opacity-100 focus-visible:ring-2 focus-visible:ring-current/50 focus-visible:outline-none"
               >
                 <CloseIcon size={14} />
               </button>

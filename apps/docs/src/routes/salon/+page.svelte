@@ -68,10 +68,10 @@
 <BlocksProvider defaults={livery.defaults}>
   <div data-layout={livery.layout} class="min-h-dvh pb-28">
     <!-- ── Masthead ─────────────────────────────────────────────────────── -->
-    <header class="sticky top-0 z-[var(--z-sticky)] bg-surface-base/80 backdrop-blur">
+    <header class="bg-surface-base/80 sticky top-0 z-[var(--z-sticky)] backdrop-blur">
       <div class="mx-auto flex max-w-6xl items-baseline justify-between px-6 py-4">
         <span class="livery-display text-base">{SALON_NAME}</span>
-        <nav class="flex gap-6 text-2xs uppercase tracking-[0.2em] text-text-secondary">
+        <nav class="text-2xs text-text-secondary flex gap-6 tracking-[0.2em] uppercase">
           <a class="hover:text-text-primary" href="#services">Services</a>
           <a class="hover:text-text-primary" href="#room">The Room</a>
           <a class="hover:text-text-primary" href="#booking">Book</a>
@@ -81,7 +81,7 @@
 
     <!-- ── Hero ─────────────────────────────────────────────────────────── -->
     <section data-salon="hero" class="mx-auto max-w-6xl px-6">
-      <p data-salon="kicker" class="text-2xs uppercase tracking-[0.32em] text-text-tertiary">
+      <p data-salon="kicker" class="text-2xs text-text-tertiary tracking-[0.32em] uppercase">
         233 Bleecker Street · New York
       </p>
 
@@ -95,7 +95,7 @@
         {/if}
       </h1>
 
-      <p data-salon="lede" class="text-base leading-relaxed text-text-secondary">
+      <p data-salon="lede" class="text-text-secondary text-base leading-relaxed">
         Six chairs, three cutters, no music you'd recognise. Booking runs about five months out —
         the assistant finds what's actually free.
       </p>
@@ -103,27 +103,27 @@
       <a
         data-salon="cta"
         href="#booking"
-        class="inline-block border-b border-current pb-1 text-2xs uppercase tracking-[0.22em] text-text-primary hover:text-text-secondary"
+        class="text-2xs text-text-primary hover:text-text-secondary inline-block border-b border-current pb-1 tracking-[0.22em] uppercase"
       >
         Find a chair ↓
       </a>
     </section>
 
     <!-- ── Services ─────────────────────────────────────────────────────── -->
-    <section data-salon="section" id="services" class="border-t border-border-subtle">
+    <section data-salon="section" id="services" class="border-border-subtle border-t">
       <div data-salon="section-body" class="mx-auto max-w-6xl px-6 py-20">
         <h2 data-salon="section-head" class="livery-display mb-12 text-2xl">Services</h2>
         <ul data-salon="list" class="flex flex-col">
           {#each SERVICES as service (service.id)}
             <li
-              class="flex items-baseline justify-between gap-6 border-b border-border-subtle py-5"
+              class="border-border-subtle flex items-baseline justify-between gap-6 border-b py-5"
             >
               <span class="text-base">{service.label}</span>
               <span class="flex shrink-0 items-baseline gap-6">
-                <span class="text-2xs uppercase tracking-[0.18em] text-text-tertiary">
+                <span class="text-2xs text-text-tertiary tracking-[0.18em] uppercase">
                   {service.minutes} min
                 </span>
-                <span class="livery-display text-base text-text-primary">{service.price}</span>
+                <span class="livery-display text-text-primary text-base">{service.price}</span>
               </span>
             </li>
           {/each}
@@ -132,7 +132,7 @@
     </section>
 
     <!-- ── The room ─────────────────────────────────────────────────────── -->
-    <section data-salon="section" id="room" class="border-t border-border-subtle">
+    <section data-salon="section" id="room" class="border-border-subtle border-t">
       <div data-salon="section-body" class="mx-auto max-w-6xl px-6 py-20">
         <div class="grid gap-16 sm:grid-cols-2">
           <div>
@@ -141,7 +141,7 @@
               {#each STYLISTS as stylist (stylist.id)}
                 <li class="flex items-baseline justify-between gap-4">
                   <span class="livery-display text-xl">{stylist.name}</span>
-                  <span class="text-2xs uppercase tracking-[0.18em] text-text-tertiary">
+                  <span class="text-2xs text-text-tertiary tracking-[0.18em] uppercase">
                     {workdaysOf(stylist.workdays)}
                   </span>
                 </li>
@@ -153,10 +153,10 @@
             <ul data-salon="list" class="flex flex-col gap-6">
               {#each HOURS as entry (entry.day)}
                 <li class="flex items-baseline justify-between gap-4">
-                  <span class="text-2xs uppercase tracking-[0.18em] text-text-tertiary">
+                  <span class="text-2xs text-text-tertiary tracking-[0.18em] uppercase">
                     {entry.day}
                   </span>
-                  <span class="livery-display text-lg text-text-primary">{entry.time}</span>
+                  <span class="livery-display text-text-primary text-lg">{entry.time}</span>
                 </li>
               {/each}
             </ul>
@@ -166,22 +166,22 @@
     </section>
 
     <!-- ── Booking — the agent surface lives INSIDE the page ─────────────── -->
-    <section id="booking" class="border-t border-border-subtle">
+    <section id="booking" class="border-border-subtle border-t">
       <div class="mx-auto max-w-3xl px-6 py-20">
         <h2 class="livery-display mb-4 text-2xl">Book a chair</h2>
-        <p class="mb-10 max-w-lg text-sm text-text-secondary">
+        <p class="text-text-secondary mb-10 max-w-lg text-sm">
           Tell the assistant what you want. It builds whatever form the answer needs — and the form
           belongs to this house, not to the model.
         </p>
 
-        <div class="flex min-h-[36rem] flex-col rounded-contain border border-border-default">
+        <div class="rounded-contain border-border-default flex min-h-[36rem] flex-col border">
           <div
-            class="flex items-center justify-between border-b border-border-subtle px-4 py-3 text-2xs uppercase tracking-[0.2em] text-text-secondary"
+            class="border-border-subtle text-2xs text-text-secondary flex items-center justify-between border-b px-4 py-3 tracking-[0.2em] uppercase"
           >
             <span>Front desk</span>
             <button
               type="button"
-              class="cursor-pointer tracking-[0.2em] hover:text-text-primary"
+              class="hover:text-text-primary cursor-pointer tracking-[0.2em]"
               onclick={() => booking?.reset()}
             >
               Reset
@@ -192,7 +192,7 @@
 
         <button
           type="button"
-          class="mt-4 cursor-pointer text-2xs uppercase tracking-[0.2em] text-text-tertiary underline underline-offset-4 hover:text-text-primary"
+          class="text-2xs text-text-tertiary hover:text-text-primary mt-4 cursor-pointer tracking-[0.2em] uppercase underline underline-offset-4"
           onclick={() => booking?.start()}
         >
           Play the recorded conversation
@@ -200,9 +200,9 @@
       </div>
     </section>
 
-    <footer class="border-t border-border-subtle">
+    <footer class="border-border-subtle border-t">
       <div
-        class="mx-auto flex max-w-6xl flex-wrap items-baseline justify-between gap-4 px-6 py-10 text-2xs uppercase tracking-[0.2em] text-text-tertiary"
+        class="text-2xs text-text-tertiary mx-auto flex max-w-6xl flex-wrap items-baseline justify-between gap-4 px-6 py-10 tracking-[0.2em] uppercase"
       >
         <!-- Der eine Gruppen-Marker der Vollseite: die Seite selbst IST das
              Stammhaus (Kicker: 233 Bleecker St), die Landing erzählt die
@@ -217,19 +217,19 @@
        Deliberately outside the page's own visual language: this is the demo
        apparatus, not part of the salon. -->
   <div
-    class="fixed inset-x-0 bottom-0 z-[var(--z-sticky)] border-t border-border-default bg-surface-elevated"
+    class="border-border-default bg-surface-elevated fixed inset-x-0 bottom-0 z-[var(--z-sticky)] border-t"
   >
     <div class="mx-auto flex max-w-6xl flex-wrap items-center gap-x-6 gap-y-2 px-6 py-3">
       <div class="flex min-w-0 shrink-0 flex-col">
-        <span class="text-2xs uppercase tracking-[0.2em] text-text-secondary">Livery</span>
-        <span class="truncate text-2xs text-text-tertiary">{livery.tagline}</span>
+        <span class="text-2xs text-text-secondary tracking-[0.2em] uppercase">Livery</span>
+        <span class="text-2xs text-text-tertiary truncate">{livery.tagline}</span>
       </div>
       <div class="flex flex-wrap gap-2" role="group" aria-label="Livery">
         {#each LIVERIES as option (option.id)}
           <button
             type="button"
             class={[
-              'cursor-pointer rounded-modify border px-3 py-1.5 text-2xs uppercase tracking-[0.16em]',
+              'rounded-modify text-2xs cursor-pointer border px-3 py-1.5 tracking-[0.16em] uppercase',
               option.id === liveryId
                 ? 'border-primary bg-primary text-text-on-primary'
                 : 'border-border-default text-text-secondary hover:text-text-primary'
@@ -241,7 +241,7 @@
           </button>
         {/each}
       </div>
-      <p class="ml-auto hidden max-w-sm text-right text-2xs text-text-tertiary lg:block">
+      <p class="text-2xs text-text-tertiary ml-auto hidden max-w-sm text-right lg:block">
         {livery.mechanism}
       </p>
     </div>

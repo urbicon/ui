@@ -81,7 +81,7 @@
         <div class="bg-primary mx-auto flex h-5 w-5 items-center justify-center rounded-md">
           <LockIcon class="text-text-on-primary h-3 w-3" />
         </div>
-        <div class="text-text-primary text-center text-3xs font-semibold">Sign in</div>
+        <div class="text-text-primary text-3xs text-center font-semibold">Sign in</div>
         {@render field('you@example.com')}
         {@render field('••••••••')}
         {@render cta('Log in')}
@@ -391,7 +391,7 @@
              marker stack by DOM order — no z-index needed (and none is invented). -->
         <div class="bg-surface-subtle relative h-1 w-full rounded-full">
           <div
-            class="bg-success-subtle absolute inset-y-0 left-[15%] right-[35%] rounded-full"
+            class="bg-success-subtle absolute inset-y-0 right-[35%] left-[15%] rounded-full"
           ></div>
           <div
             class="bg-warning absolute top-1/2 left-[78%] h-2 w-2 -translate-y-1/2 rounded-full"

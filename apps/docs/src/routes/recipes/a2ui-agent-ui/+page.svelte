@@ -266,8 +266,8 @@ const system = [
 
 <div class="mx-auto max-w-4xl px-4 py-10">
   <header class="mb-6">
-    <h1 class="mb-3 text-4xl font-bold text-text-primary">{recipeMeta.title}</h1>
-    <p class="text-lg text-text-secondary">{recipeMeta.description}</p>
+    <h1 class="text-text-primary mb-3 text-4xl font-bold">{recipeMeta.title}</h1>
+    <p class="text-text-secondary text-lg">{recipeMeta.description}</p>
   </header>
 
   <div class="mb-8 flex flex-wrap gap-2">
@@ -277,7 +277,7 @@ const system = [
   </div>
 
   <Section id="preview" title="Live Preview">
-    <p class="mb-4 text-sm text-text-secondary">
+    <p class="text-text-secondary mb-4 text-sm">
       Real envelopes, no network. Pressing <strong>Show available times</strong> appends the patch an
       agent would send after calling its tool: the slots go into the data model and one re-sent container
       reveals a chooser bound to them. Nothing is rebuilt — a value you already picked survives the patch.
@@ -285,11 +285,11 @@ const system = [
     <Card variant="outlined">
       <div class="flex flex-col gap-4 p-4">
         <A2UIView {payload} catalogs={[urbiconA2uiCatalog]} onAction={handleAction} />
-        <div class="flex items-center gap-3 border-t border-border-subtle pt-3">
+        <div class="border-border-subtle flex items-center gap-3 border-t pt-3">
           <Button size="sm" variant="outlined" intent="neutral" onclick={reset} disabled={!patched}>
             Reset
           </Button>
-          <span class="text-xs text-text-tertiary">
+          <span class="text-text-tertiary text-xs">
             {#if lastAction}
               Last action dispatched: <code class="font-mono">{lastAction}</code>
             {:else}
@@ -303,16 +303,16 @@ const system = [
 
   <Section id="features" title="Features">
     <Card variant="outlined">
-      <ul class="divide-y divide-border-subtle">
+      <ul class="divide-border-subtle divide-y">
         {#each features as feature (feature)}
-          <li class="px-4 py-3 text-sm text-text-secondary">{feature}</li>
+          <li class="text-text-secondary px-4 py-3 text-sm">{feature}</li>
         {/each}
       </ul>
     </Card>
   </Section>
 
   <Section id="server" title="Server — assembling the system prompt">
-    <p class="mb-4 text-sm text-text-secondary">
+    <p class="text-text-secondary mb-4 text-sm">
       Three shipped sections plus your domain rules. The transport section is the prompt half of
       <code class="font-mono text-xs">A2uiStreamSplitter</code>, so the format the agent is told to
       write is by construction the format the client parses.
@@ -326,7 +326,7 @@ const system = [
   </Section>
 
   <Section id="client" title="Client — splitter, router, view">
-    <p class="mb-4 text-sm text-text-secondary">
+    <p class="text-text-secondary mb-4 text-sm">
       The three pieces in order: the splitter turns tokens into parts, the router delivers envelopes
       to the message that owns their surface, and <code class="font-mono text-xs">A2UIView</code>
       renders one payload. See the

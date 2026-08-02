@@ -103,40 +103,40 @@
     <button
       type="button"
       data-testid="append-one"
-      class="rounded-modify border border-border-default px-3 py-1.5 text-sm"
+      class="rounded-modify border-border-default border px-3 py-1.5 text-sm"
       onclick={() => append(1)}>Append one</button
     >
     <button
       type="button"
       data-testid="append-burst"
-      class="rounded-modify border border-border-default px-3 py-1.5 text-sm"
+      class="rounded-modify border-border-default border px-3 py-1.5 text-sm"
       onclick={() => append(3)}>Append burst</button
     >
     <button
       type="button"
       data-testid="prepend-history"
-      class="rounded-modify border border-border-default px-3 py-1.5 text-sm"
+      class="rounded-modify border-border-default border px-3 py-1.5 text-sm"
       onclick={prependHistory}>Prepend history</button
     >
     <button
       type="button"
       data-testid="start-stream"
-      class="rounded-modify border border-border-default px-3 py-1.5 text-sm"
+      class="rounded-modify border-border-default border px-3 py-1.5 text-sm"
       onclick={startStream}>Start stream</button
     >
-    <span data-testid="stick-state" class="text-sm text-text-secondary"
+    <span data-testid="stick-state" class="text-text-secondary text-sm"
       >{stuck ? 'stuck' : 'unstuck'}</span
     >
   </div>
 
-  <div class="h-[24rem] overflow-hidden rounded-contain border border-border-default">
+  <div class="rounded-contain border-border-default h-[24rem] overflow-hidden border">
     <ChatMessageList {messages} onStickChange={(s) => (stuck = s)}>
       {#snippet message({ message: msg })}
         <div
           data-fixture-id={msg.id}
-          class="rounded-contain border border-border-subtle bg-surface-elevated p-3 text-sm text-text-primary"
+          class="rounded-contain border-border-subtle bg-surface-elevated text-text-primary border p-3 text-sm"
         >
-          <span class="font-mono text-xs text-text-tertiary">{msg.id}</span>
+          <span class="text-text-tertiary font-mono text-xs">{msg.id}</span>
           <p>{msg.parts[0]?.type === 'text' ? msg.parts[0].text : ''}</p>
         </div>
       {/snippet}
