@@ -58,7 +58,7 @@ The \`@theme\` block sets the Tailwind utility value. The \`:root\` rule overrid
 - \`text\` — 9 text *color* tokens (for fonts/sizes/weights see \`typography\`)
 - \`borders\` — 5 border color tokens
 - \`intents\` — 6 component intents + the \`info\` status colour, feedback + interactive tokens + the \`live\` ("now") accent
-- \`shadows\` — 5 shadow tokens + z-index scale
+- \`shadows\` — 5 shadow tokens + z-index scale + the **radius tiers** (\`radius\` resolves here)
 - \`typography\` — Font families, size scale, weights, leading/tracking, and how to override them
 - \`theming\` — How to create custom themes, available presets
 
@@ -184,6 +184,31 @@ on the base surface. (Not to be confused with \`text-text-primary\`, the body-co
 
 Text sitting ON a solid intent fill takes \`text-text-on-fill\` — mode-aware (white in light mode, near-black in dark mode, where the fills resolve to their lighter stops). The one exception is \`warning\`: its fill stays light amber in BOTH modes, so its label is \`text-text-on-warning\` — a warm dark (the ramp's own 950 stop) that deliberately does NOT switch with the mode and follows theme re-hues. Never use \`text-text-on-surface\` on an intent fill — it tracks the page background, not the fill. \`text-text-on-primary\` still exists and resolves to the same value; it is scoped to the primary fill so that a theme retuning the primary label does not repaint success/danger/neutral along with it.
 
+## Categories are not statuses — the chart ramp
+
+An intent says *how severe*, not *which kind*. Workflow stages, types, priorities, owners and
+tags carry no severity, so mapping them onto intents (\`roasting\` → warning, \`normal\` → info)
+paints an interface that shouts about a problem that does not exist — measured repeatedly on
+generated pages, and the most common colour defect there is.
+
+- One category, no ranking → a neutral label: \`<Badge purpose="tag" intent="neutral">\`.
+- Several categories that must be told apart at a glance → the chart ramp, built for exactly
+  this and re-tinted by every theme:
+
+| CSS Variable | Tailwind | Derived from |
+|---|---|---|
+| \`--color-chart-1\` | \`bg-chart-1\` / \`text-chart-1\` | primary |
+| \`--color-chart-2\` | \`bg-chart-2\` | success |
+| \`--color-chart-3\` | \`bg-chart-3\` | warning |
+| \`--color-chart-4\` | \`bg-chart-4\` | secondary |
+| \`--color-chart-5\` | \`bg-chart-5\` | info |
+| \`--color-chart-6\` | \`bg-chart-6\` | danger |
+
+The ramp borrows the intent *hues* (so a theme retint carries through) but names a **series
+position**, not a meaning — \`chart-3\` is "the third series", never "warning". Charts consume it
+in order; reuse it for categorical fills, legends and category dots. Anything with a genuine
+severity keeps its intent.
+
 ## Foundation Intent Scales
 
 Each intent has 11 numbered steps (50–950) for granular control:
@@ -283,7 +308,53 @@ Shadows automatically increase opacity in dark mode (0.05 → 0.2 for xs, etc.).
 
 Usage: \`z-[var(--z-modal)]\`
 
-## Border Radius Scale
+## Border Radius — decide it at the tier, not per element
+
+Shape is a property of what a component *does*, not of where it sits. Every component already
+sits in the right tier and rounds itself correctly; you change the look of a whole family by
+overriding its token — never by rounding one component out of step with its peers.
+
+| Tier | Token | Default | The family | Utility |
+|---|---|---|---|---|
+| Commit | \`--radius-commit\` | \`9999px\` (pill) | Button, ButtonGroup, Badge, Toggle, SegmentGroup | \`rounded-commit\` |
+| Modify | \`--radius-modify\` | \`--radius-sm\` (4px) | Input, Textarea, Select, Combobox, Tab, Menu item | \`rounded-modify\` |
+| Contain | \`--radius-contain\` | \`--radius-xs\` (2px) | Card, Dialog, Drawer, Alert, Popover, Tooltip, Toolbar surface | \`rounded-contain\` |
+| Bridge | \`--radius-bridge\` | \`--radius-md\` (6px) | small tinted content surfaces — see below | \`rounded-bridge\` |
+
+\`\`\`css
+/* app-theme.css — ONE project-wide shape decision; every component of the family follows */
+@theme {
+  --radius-commit: var(--radius-xl);   /* less playful actions */
+  --radius-contain: var(--radius-md);  /* friendlier containers */
+}
+\`\`\`
+
+The tiers rank **roles, not nesting**: actions softest (committing should feel inviting), fields
+in between (they read as tap areas), containers tightest (architecture should read as precise). A
+pill Button inside a hairline-edged Card is the point of the system, not a defect — and
+\`--radius-commit: var(--radius-lg)\` with \`--radius-contain: var(--radius-sm)\` is the same ranking
+in a quieter voice. Move the families **together** so a reader can state the rule; re-ordering them
+deliberately (containers softer than actions) is allowed, but then carry it everywhere.
+
+**Bridge — the sanctioned exception, in two cases.** (1) *Optical size*: radius scales with the
+area it turns, so 2px on a 600px Card reads as a precise edge while the same 2px on a ~200px tile
+reads as a plain rectangle — a small tinted surface is *content*, not architecture, and takes the
+middle tier (\`<Card tier="bridge">\`, the ChatMessage bubble). (2) *Adjacency*: a floating panel
+anchored to a pill trigger reads disconnected at 2px and over-sized at pill radius, which is why
+a Menu panel under a commit-tier trigger is bridge by default. Anything that genuinely is a panel,
+dialog or container stays on \`contain\`.
+
+A 2px edge only reads as a decision when the surface is big enough to show its edge — and when
+something else on the page (a pill action, a circular avatar) carries the contrast.
+
+Project-wide but only for one component? \`BlocksProvider\` \`defaults\`
+(\`Card: { slotClasses: { base: 'rounded-bridge' } }\`) moves every instance at once. A hand-set
+\`border-radius\` (\`class="rounded-*"\`) on a single element is the last resort, for a surface
+that genuinely falls out of its family — and it should be obvious from the markup why.
+
+### The raw scale the tiers are built from
+
+Use it for your own markup (an icon chip, a hand-built tile) — not to overrule a component tier.
 
 | CSS Variable | Tailwind | Value |
 |---|---|---|
@@ -562,7 +633,14 @@ export type CssReferenceSection = (typeof CSS_REFERENCE_SECTION_NAMES)[number];
 export const CSS_REFERENCE_SECTION_ALIASES: Readonly<Record<string, CssReferenceSection>> = {
   'z-index': 'shadows',
   zindex: 'shadows',
-  shadow: 'shadows'
+  shadow: 'shadows',
+  // Same trap as z-index, one section later: the radius tiers live under
+  // "Shadow & Z-Index Tokens", and nobody looking for radius looks under shadows.
+  radius: 'shadows',
+  'border-radius': 'shadows',
+  rounded: 'shadows',
+  shape: 'shadows',
+  tier: 'shadows'
 };
 
 /**

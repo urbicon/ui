@@ -347,7 +347,34 @@ var(--blocks-ease-smooth)     /* gentle animations */
 var(--blocks-ease-snappy)     /* quick, decisive */
 ```
 
-### Border Radius Scale
+### Border Radius — semantic tiers first
+
+Shape is decided by component *family*, not per element, and the tiers rank **roles**: actions
+softest, fields in between, containers tightest. A pill Button inside a hairline-edged Card is the
+system working as intended. Retune a whole family at once through its token, and move the families
+together so the ranking stays legible.
+
+```
+--radius-commit   9999px (pill)  Button, ButtonGroup, Badge, Toggle, SegmentGroup   rounded-commit
+--radius-modify   4px            Input, Textarea, Select, Combobox, Tab, Menu item  rounded-modify
+--radius-contain  2px            Card, Dialog, Drawer, Alert, Popover, Tooltip      rounded-contain
+--radius-bridge   6px            small tinted content surfaces (see below)          rounded-bridge
+```
+
+```css
+@theme {
+  --radius-contain: var(--radius-md); /* friendlier containers, whole family at once */
+}
+```
+
+`bridge` is the one sanctioned exception, and it is optical: radius scales with the area it
+turns, so 2px on a 600px Card reads as a precise edge while the same 2px on a ~200px tile reads
+as a plain rectangle. Small tinted surfaces are content, not architecture. Anything that
+genuinely is a panel, dialog or container stays on `contain`.
+
+### The raw radius scale
+
+The physical steps the tiers are built from — for your own markup, not to overrule a tier.
 
 ```
 rounded-xs    /* 0.125rem */    rounded-sm    /* 0.25rem */
@@ -400,10 +427,27 @@ their semantic meaning — status, severity, actions — never as visual flair.
 <Badge intent="danger" variant="filled">Critical</Badge>  <!-- red = critical -->
 ```
 
+An intent says *how severe*, not *which kind*. Workflow stages, types, priorities and owners are
+**categories** and carry no severity — mapping them onto intents makes the page shout about a
+problem that does not exist:
+
+```
+/* AVOID — a stage painted as a severity */
+<Badge purpose="status" intent="warning">Roasting</Badge>   <!-- nothing is wrong -->
+<Badge purpose="status" intent="info">Normal priority</Badge>
+
+/* INSTEAD — a category is a tag; the chart ramp when several must be told apart */
+<Badge purpose="tag" intent="neutral">Roasting</Badge>
+<span class="bg-chart-1 size-2 rounded-commit"></span>  <!-- series position, not meaning -->
+```
+
 ### Spacing Signals Relationships
 
 Don't use the same gap everywhere. Tight spacing groups related items; generous spacing
-separates distinct sections.
+separates distinct sections. The two-tier rhythm (`gap-8`/`gap-10` between, `gap-4`/`gap-6`
+within) is the **floor, not the ceiling**: let the rhythm follow the content, so a warning that
+belongs to the metric above it sits closer than the next section does, and `padding` varies with
+a card's density (`lg` for the one carrying the page, `md`/`sm` for the reference blocks).
 
 ```
 /* AVOID — uniform spacing */
@@ -421,27 +465,32 @@ separates distinct sections.
 
 ### Commit to a Shape Language
 
-Choose a border-radius philosophy and apply it consistently. Override component defaults
-with `class` or `slotClasses` when your design requires it.
+Choose a shape philosophy and apply it **at the tier**, so a whole component family moves at
+once (see "Border Radius — semantic tiers first" above for the tokens):
 
-| Strategy | Radius | Personality |
+| Strategy | Tokens | Personality |
 |----------|--------|-------------|
-| Sharp | `rounded-sm` / `rounded` | Technical precision, data-dense |
-| Soft | `rounded-lg` / `rounded-xl` | Professional, approachable |
-| Round | `rounded-2xl` / `rounded-3xl` | Friendly, modern |
+| Sharp | `--radius-contain: 0` · `--radius-modify: 0` · `--radius-commit: var(--radius-sm)` | Technical precision, data-dense |
+| Soft *(default)* | library defaults: 2px containers, 4px fields, pill actions | Professional, precise |
+| Round | `--radius-contain: var(--radius-xl)` · `--radius-modify: var(--radius-lg)` · `--radius-commit: 9999px` | Friendly, modern |
 
-Use larger radii for hero/prominent elements, smaller radii for compact/data-dense elements.
-Don't rely on component defaults alone — make a deliberate choice:
+Move the families **together** so the ranking stays legible. The defect to avoid is not "inner
+rounder than outer" — in this system it usually is, by design — but values with no stateable rule:
+one family retuned while the others keep numbers that no longer relate to it.
 
-```svelte
-<!-- Override Card radius for a softer design -->
-<Card class="rounded-2xl" padding="lg">...</Card>
-
-<!-- Or set globally via BlocksProvider -->
-<BlocksProvider defaults={{
-  Card: { slotClasses: { base: 'rounded-2xl' } }
-}}>
+```css
+/* app-theme.css — one decision, every component of the family follows */
+@theme {
+  --radius-contain: var(--radius-xl);
+  --radius-modify: var(--radius-lg);
+}
 ```
+
+**Do not** reach for `<Card class="rounded-2xl">`: that rounds one element out of its family
+while Dialog, Alert and Popover stay behind, and it is the shape defect judges name most often.
+For a project-wide treatment of one component use `BlocksProvider` `defaults`; for a surface
+that is genuinely too small for the container radius, use the tier that exists for it
+(`<Card tier="bridge">`).
 
 ### Data-Driven Styling
 

@@ -592,7 +592,13 @@ export class APIDataGenerator {
       variant: `Controls the visual style and presentation of the ${component.name}. Determines the component's visual treatment.`,
       size: `Controls the dimensions, padding, and text size of the ${component.name}. Affects the component's physical footprint.`,
       placement: `Controls the positioning and alignment of the ${component.name} relative to its container or trigger element.`,
-      state: `Controls the visual state representation of the ${component.name} to communicate status to users.`
+      state: `Controls the visual state representation of the ${component.name} to communicate status to users.`,
+      // `tier` is the library's semantic radius axis, shared by the interactive
+      // families (`commit`/`modify`) and the container families (`contain`/`bridge`).
+      // Without this entry every tier-aware component — a dozen of them — described
+      // it as "controls the tier behavior", which names the prop back at the reader
+      // and says nothing about the one thing it does.
+      tier: `Selects the semantic radius tier of the ${component.name} — the shape family it belongs to (\`--radius-commit\`/\`-modify\`/\`-contain\`/\`-bridge\`). Shape is retuned per family in your theme, so this picks the family rather than a pixel value.`
     };
 
     const baseDescription =

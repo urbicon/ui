@@ -93,7 +93,7 @@ export function registerGetChecklistTool(server: McpServer): void {
       md +=
         '- [ ] Spacing varies: tight (`gap-2`/`gap-3`) within related items, generous (`gap-8`/`gap-10`) between sections — not uniform everywhere\n';
       md +=
-        "- [ ] Border-radius follows a deliberate strategy — overridden via `class` or `slotClasses` where component defaults don't match the design identity\n";
+        '- [ ] Shape is decided at the tier, not per element — if the default family radii don\'t match the design identity, retune `--radius-commit`/`-modify`/`-contain` together in the theme (containers never tighter than what sits inside them). A `class="rounded-*"` on a single component splits its family\n';
       md +=
         '- [ ] Data-driven styling: different states/severities are visually distinct through padding, font-weight, Badge `variant`, and text color — not just labels\n';
       md +=

@@ -11,6 +11,7 @@ Design heuristics for building UIs with Urbicon UI. These principles guide the L
 - Vary visual weight across Cards — not every Card needs `variant="outlined"` and `padding="lg"`. Mix quiet (no border, bg-surface-quiet) with prominent (outlined, elevated).
 - Text hierarchy: primary for key info, secondary for supporting, tertiary for metadata, quaternary for subtle labels. Never skip more than one level.
 - Use `intent` colors only for semantic meaning (success/danger/warning/info), never for decoration.
+- **A category is not a status.** Workflow stages, types, priorities and owners are *categories*: they carry no severity, so mapping them onto intents ("roasting" → warning, "normal" → info) makes the interface shout about a problem that does not exist. Use `Badge purpose="tag" intent="neutral"` for a category label, and reach for the `--color-chart-1…6` ramp (`bg-chart-1`, `text-chart-3`, …) when several categories genuinely need to be told apart at a glance — chart tokens are built for exactly that and re-tint with the theme. Keep the intents for what has a severity: success, warning, danger, info.
 
 ## Interaction
 
@@ -62,7 +63,7 @@ These heuristics map common UI needs to the right Urbicon UI component:
 - Group related content in `Card`s. Cards represent conceptual units, not individual items.
 - Sticky action bars (`Save`/`Cancel`) when forms exceed the viewport.
 - Empty states: always provide an action. "No results" alone is a dead end.
-- Page spacing rhythm: `gap-8` or `gap-10` between sections, `gap-4` or `gap-6` within sections.
+- Page spacing rhythm: `gap-8` or `gap-10` between sections, `gap-4` or `gap-6` within sections. **That two-tier rule is the floor, not the ceiling:** it stops a page from running on one uniform gap, it does not ask every section to sit at the same distance. Let the rhythm follow the content — a warning that belongs to the metric above it sits closer than the next section does, a dense list needs less air than a hero, and `padding` varies with a card's density (`lg` for the one that carries the page, `md` or `sm` for the reference blocks beside it).
 - Separator for visual breaks within a surface, not between Cards (Cards have their own boundaries).
 - Use `SidebarLayout` for app shells with persistent navigation. Use standalone `Sidebar` for in-page nav.
 
@@ -196,7 +197,7 @@ Radius tiers map to component families — override these, not individual compon
 |---|---|---|---|---|
 | Commit | `--radius-commit` | `9999px` (pill) | Button, Badge, Toggle, SegmentGroup | Lower for less playful (e.g., `--radius-xl`) |
 | Modify | `--radius-modify` | `var(--radius-sm)` (4px) | Input, Textarea, Select, Combobox, Tab | Raise for softer (e.g., `--radius-md`) |
-| Contain | `--radius-contain` | `var(--radius-xs)` (2px) | Card, Dialog, Drawer, Alert, Tooltip | Raise for friendlier (e.g., `--radius-md`) |
+| Contain | `--radius-contain` | `var(--radius-xs)` (2px) | Card, Dialog, Drawer, Alert, Tooltip, Popover, Toolbar surface | Raise for friendlier (e.g., `--radius-md`) |
 | Bridge | `--radius-bridge` | `var(--radius-md)` (6px) | Menu panel under a pill trigger, ChatMessage bubble | Follows `contain` if you raise that |
 
 The first three are the primary tiers — pick one of them. **Bridge** is the middle
@@ -206,6 +207,35 @@ tier for the two cases where `contain` is too hard and `commit` too soft:
 2. **Small tinted content surfaces** — optical radius scales with the area it turns. 2px on a 600px Card reads as a precise edge; the same 2px on a ~200px chat bubble reads as a rectangle. A bubble is *content*, not architecture.
 
 Anything that genuinely *is* a panel, dialog or container stays on `contain`.
+
+**The tiers rank roles, not nesting.** Radius here is a semantic marker: actions are the softest
+because committing should feel inviting, fields sit in between because they read as tap areas,
+containers are the tightest because architecture should read as precise. That a pill Button sits
+*inside* a hairline-edged Card is not a contradiction — it is the whole point, and it stays the
+point at any scale. `--radius-commit: var(--radius-lg)` with `--radius-contain: var(--radius-sm)`
+is simply a quieter voicing of the same ranking, and it is as correct as the shipped default.
+
+So the question to ask is never "is the inner element rounder than the outer one" (in this system
+it usually is, by design) but: **can a reader state the rule?** Retune the tiers *together*, keep
+the three families distinguishable, and if you deliberately re-order them — containers softer than
+actions, say — carry that everywhere rather than in one token.
+
+What actually fails, measured across the eval runs: one family moved while the others keep values
+that no longer relate to it, hand-set `rounded-*` on individual elements that disagree with the
+components beside them, and small stacked surfaces where the default hairline edge never reads as
+an edge at all (that last one is what `bridge` exists for).
+
+**When the 2px default reads as intent — and when it does not.** A hairline-precise container
+edge is a deliberate identity: it makes the surface read as a plane rather than as a box, and
+it is what keeps the library out of the uniformly-rounded look. It only carries that meaning
+under two conditions: the surface is large enough that its edge is visible as an edge, and
+something else on the page (a pill action, a circular avatar) supplies the contrast that makes
+the flatness legible as a choice. On a small stacked tile with nothing round beside it, the
+same 2px is indistinguishable from "nobody decided" — that is the case `bridge` exists for.
+
+One more token to know before you flatten a tier: `--radius-control` (default `9999px`) owns
+the radio indicator's circle. Shape is the only thing distinguishing a radio from a checkbox,
+so it deliberately does *not* follow `--radius-commit` when a theme squares the pill.
 
 ### Interaction Tuning
 
@@ -256,7 +286,7 @@ Professional, data-dense, efficient. Neutral palette, compact layout.
 
 ### Playful / Friendly
 Fun, engaging, vibrant. Bold colors, bouncy motion.
-- **Foundation:** vivid hue with high chroma (0.16+), commit radii for everything (`--radius-modify: 9999px; --radius-contain: var(--radius-xl)`)
+- **Foundation:** vivid hue with high chroma (0.16+), commit radii for everything (`--radius-modify: 9999px; --radius-contain: var(--radius-xl)`) — pilling the fields is a *category* change, not an inversion, so it stays coherent against the 12px containers
 - **Semantic:** colorful intent-subtle backgrounds, softer borders
 - **Interaction:** bouncy easing, all mint effects, generous durations (300ms+)
 - **Composition:** visual variety, Cards with color accents, generous spacing, illustrations over icons
@@ -274,5 +304,5 @@ Translucent, layered, modern. Blurred backgrounds, glass surfaces.
 - Never add `dark:` overrides. Dark mode resolves automatically via `light-dark()`.
 - Never override individual component CSS. Use `slotClasses`, `presets`, prop-conditional `overrides`, or `BlocksProvider` `defaults`.
 - Never hardcode z-index values. Use token variables (`z-[var(--z-modal)]`).
-- Never set `border-radius` to break one component out of its tier's rhythm. A consistent, project-wide radius choice is *good* — make it by overriding the semantic tier token (`--radius-commit`/`-modify`/`-contain`), which moves the whole family together, not by rounding a lone component out of step with its peers.
+- Never set `border-radius` to break one component out of its tier's rhythm. A consistent, project-wide radius choice is *good* — make it by overriding the semantic tier tokens (`--radius-commit`/`-modify`/`-contain`) together, which moves the whole families at once, not by rounding a lone component out of step with its peers. The one legitimate per-surface deviation is the optical one (`bridge`: a small tinted content surface, a panel under a pill trigger) — and `BlocksProvider` `defaults` is how you apply it to every instance of a component instead of repeating a class.
 - Never mix paradigms within a single app. Pick one and apply it consistently across all layers.
