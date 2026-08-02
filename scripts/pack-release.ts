@@ -25,12 +25,13 @@
  *     tree — the manifest is what consumers get.
  */
 import { existsSync } from 'node:fs';
-import { copyFile, mkdir, rm, writeFile } from 'node:fs/promises';
+import { mkdir, rm, writeFile } from 'node:fs/promises';
 import { join, resolve } from 'node:path';
 import { RELEASE_PACKAGES } from './release-packages.mjs';
 
 const root = resolve(import.meta.dirname, '..');
 const outDir = join(root, 'release-tarballs');
+const rootLicense = await Bun.file(join(root, 'LICENSE')).text();
 
 /** `ONLY=packages/shared-types` limits the run to one package (canary path). */
 const only = process.env.ONLY?.trim();
@@ -65,8 +66,21 @@ for (const dir of packages) {
   }
 
   // The license text ships in every tarball; each package lists LICENSE in its
-  // `files` whitelist, so it has to exist on disk at pack time.
-  await copyFile(join(root, 'LICENSE'), join(abs, 'LICENSE'));
+  // `files` whitelist and tracks its own copy of the root file. This used to
+  // copy the root LICENSE in at pack time, from when those copies were
+  // transient — assert what that copy guaranteed rather than writing into a
+  // tracked tree.
+  const licensePath = join(abs, 'LICENSE');
+  if (!existsSync(licensePath)) {
+    console.error(
+      `::error::${dir}/LICENSE not found — every published package tracks its own copy`
+    );
+    process.exit(1);
+  }
+  if ((await Bun.file(licensePath).text()) !== rootLicense) {
+    console.error(`::error::${dir}/LICENSE has drifted from the root LICENSE`);
+    process.exit(1);
+  }
 
   // `bun pm pack`, not `npm pack`: it resolves `workspace:` / `catalog:`
   // specifiers to concrete versions at pack time.

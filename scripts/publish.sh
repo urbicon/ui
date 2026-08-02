@@ -49,6 +49,19 @@ BRANCH="$(git rev-parse --abbrev-ref HEAD)"
 [ "$BRANCH" = "main" ] || echo "!!  Warning: not on 'main' (on '$BRANCH')"
 [ -z "$(git status --porcelain)" ] || echo "!!  Warning: working tree is not clean"
 
+# npm only bundles a LICENSE that sits in the package directory, so every
+# published package tracks its own copy of the root file. This used to be a
+# `cp` here plus an EXIT-trap `rm`, from when those copies were transient —
+# once they were tracked, the trap deleted 13 tracked files out of the working
+# tree on every local run. Assert what the copy used to guarantee instead.
+for dir in "${PACKAGES[@]}"; do
+  [ -f "$ROOT/$dir/package.json" ] || continue
+  [ -f "$ROOT/$dir/LICENSE" ] \
+    || { echo "✗  $dir/LICENSE is missing — it is tracked, restore it (git checkout $dir/LICENSE)"; exit 1; }
+  cmp -s "$ROOT/LICENSE" "$ROOT/$dir/LICENSE" \
+    || { echo "✗  $dir/LICENSE differs from the root LICENSE"; exit 1; }
+done
+
 if WHO="$(npm whoami --registry "$REGISTRY" 2>/dev/null)"; then
   echo "==> Authenticated as: $WHO"
 elif [ -n "$DRY_RUN" ]; then
@@ -72,17 +85,6 @@ else
   # can't be taken back for a given version, so gate before it, not after.
   echo "==> Declaration guard (bun run types:guard)"
   bun run types:guard
-
-  # --- LICENSE into each package (npm only bundles a LICENSE from the package dir)
-  cleanup() {
-    for dir in "${PACKAGES[@]}"; do
-      [ -f "$ROOT/$dir/LICENSE" ] && rm -f "$ROOT/$dir/LICENSE"
-    done
-  }
-  trap cleanup EXIT
-  for dir in "${PACKAGES[@]}"; do
-    [ -f "$ROOT/$dir/package.json" ] && cp "$ROOT/LICENSE" "$ROOT/$dir/LICENSE"
-  done
 fi
 
 # --- Publish -----------------------------------------------------------------
