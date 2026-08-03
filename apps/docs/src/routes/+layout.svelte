@@ -199,9 +199,15 @@
           -->
           <!-- Boxed select, matching the boxed search trigger above (design source). -->
           <LocaleSwitcher variant="outlined" size="sm" onLocaleChange={persistLocale} />
+          <!-- `text-tertiary`, not `quaternary`: these are links a reader has to
+               read and click. The docs skin binds quaternary to `--docs-softer`,
+               which its own comment calls "decoration only (never body text)" —
+               measured on this footer it was #b8b5ad on #f7f5f0 at 12px, a
+               contrast ratio of 1.88:1 where AA asks 4.5. Tertiary is 5.83:1 and
+               still reads as the quiet end of the ink hierarchy. -->
           <nav
             aria-label={ta('chrome.footerNav' as Parameters<typeof ta>[0])}
-            class="text-text-quaternary mt-3 space-y-1 text-xs"
+            class="text-text-tertiary mt-3 space-y-1 text-xs"
           >
             <div>
               <a
@@ -238,8 +244,8 @@
               >
             </div>
           </nav>
-          <div class="text-text-quaternary mt-2 text-xs">© 2026 Urbicon &middot; Felix Urban</div>
-          <div class="text-text-quaternary mt-1 text-xs">
+          <div class="text-text-tertiary mt-2 text-xs">© 2026 Urbicon &middot; Felix Urban</div>
+          <div class="text-text-tertiary mt-1 text-xs">
             v{__APP_VERSION__} &middot; {ta('chrome.footerTagline' as Parameters<typeof ta>[0])}
           </div>
         </div>

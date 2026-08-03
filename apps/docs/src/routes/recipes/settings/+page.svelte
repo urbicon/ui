@@ -123,7 +123,7 @@
             <Avatar name={fullName} size="xl" />
             <div>
               <Button size="sm" variant="outlined" intent="neutral">Change Photo</Button>
-              <p class="mt-1 text-xs text-text-quaternary">JPG, PNG or GIF. Max 2MB.</p>
+              <p class="mt-1 text-xs text-text-tertiary">JPG, PNG or GIF. Max 2MB.</p>
             </div>
           </div>
 
@@ -276,7 +276,7 @@
                       <Avatar name={fullName} size="xl" />
                       <div>
                         <Button size="sm" variant="outlined" intent="neutral">Change Photo</Button>
-                        <p class="text-text-quaternary mt-1 text-xs">JPG, PNG or GIF. Max 2MB.</p>
+                        <p class="text-text-tertiary mt-1 text-xs">JPG, PNG or GIF. Max 2MB.</p>
                       </div>
                     </div>
 

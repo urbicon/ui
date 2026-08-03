@@ -248,8 +248,14 @@
             <Breadcrumb items={breadcrumbItems} size="sm" />
           </div>
           <div class="flex items-center gap-3">
+            <!-- The Tooltip sets `aria-describedby`, and only while it is open —
+                 a tooltip describes, it does not name. An icon-only trigger
+                 still needs its own label, or a screen reader announces
+                 "button". Found by axe, 2026-08. -->
             <Tooltip label="Toggle notifications" placement="bottom">
               <button
+                aria-label="Toggle notifications"
+                aria-pressed={notifications}
                 class="text-text-tertiary hover:bg-surface-hover hover:text-text-primary rounded-modify relative p-2 transition-colors"
                 onclick={() => (notifications = !notifications)}
               >

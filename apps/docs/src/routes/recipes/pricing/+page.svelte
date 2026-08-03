@@ -152,7 +152,7 @@
           </span>
           <span class="text-sm text-text-tertiary">/month</span>
           {#if annual}
-            <p class="text-xs text-text-quaternary mt-1">Billed \${plan.priceAnnual * 12}/year</p>
+            <p class="text-xs text-text-tertiary mt-1">Billed \${plan.priceAnnual * 12}/year</p>
           {/if}
         </div>
         <Button intent={plan.highlighted ? 'primary' : 'neutral'}
@@ -239,7 +239,7 @@
                       <span class="text-text-tertiary text-sm">/month</span>
                     </div>
                     {#if annual}
-                      <p class="text-text-quaternary mt-1 text-xs">
+                      <p class="text-text-tertiary mt-1 text-xs">
                         Billed ${plan.priceAnnual * 12}/year
                       </p>
                     {/if}
