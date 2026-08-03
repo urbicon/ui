@@ -99,7 +99,15 @@ export default {
     multiDayLabel: 'Tag {{current}} von {{total}}',
     agendaView: 'Listenansicht',
     viewAgenda: 'Liste',
-    viewSwitcher: 'Ansichtsmodus'
+    viewSwitcher: 'Ansichtsmodus',
+    // Kurzform der Ansichts-Labels — im Umschalter, sobald der Platz knapp ist
+    // (`size="sm"` oder Viewport unter `sm`). Der zugängliche Name der Buttons
+    // bleibt das volle Label, die Kurzform ist rein visuell.
+    viewMonthShort: 'M',
+    viewYearShort: 'J',
+    viewWeekShort: 'W',
+    viewDayShort: 'T',
+    viewAgendaShort: 'L'
   },
   planner: {
     previousWeek: 'Vorherige Woche',

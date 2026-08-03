@@ -72,15 +72,58 @@
     }
   });
 
-  // View switcher config — filtered by ctx.views
+  // View switcher config — filtered by ctx.views. Both label forms come from
+  // the dictionary: the short ones used to be hardcoded German initials
+  // ('T' for Tag, 'J' for Jahr), which read as nonsense in every other
+  // language — and they are on screen far more often now that the narrow
+  // header falls back to them.
   const allViewButtons = [
-    { view: 'month' as const, label: () => bt('calendar.viewMonth'), shortLabel: 'M' },
-    { view: 'week' as const, label: () => bt('calendar.viewWeek'), shortLabel: 'W' },
-    { view: 'day' as const, label: () => bt('calendar.viewDay'), shortLabel: 'T' },
-    { view: 'year' as const, label: () => bt('calendar.viewYear'), shortLabel: 'J' },
-    { view: 'agenda' as const, label: () => bt('calendar.viewAgenda'), shortLabel: 'A' }
+    {
+      view: 'month' as const,
+      label: () => bt('calendar.viewMonth'),
+      shortLabel: () => bt('calendar.viewMonthShort')
+    },
+    {
+      view: 'week' as const,
+      label: () => bt('calendar.viewWeek'),
+      shortLabel: () => bt('calendar.viewWeekShort')
+    },
+    {
+      view: 'day' as const,
+      label: () => bt('calendar.viewDay'),
+      shortLabel: () => bt('calendar.viewDayShort')
+    },
+    {
+      view: 'year' as const,
+      label: () => bt('calendar.viewYear'),
+      shortLabel: () => bt('calendar.viewYearShort')
+    },
+    {
+      view: 'agenda' as const,
+      label: () => bt('calendar.viewAgenda'),
+      shortLabel: () => bt('calendar.viewAgendaShort')
+    }
   ];
   const viewButtons = $derived(allViewButtons.filter((vb) => ctx.views.includes(vb.view)));
+
+  // Below `sm` the header stops being a wrapping row and becomes a three-column
+  // grid: `‹ · title · ›` on the first line, view switcher + today on the
+  // second. Wrapping alone decided the line break by width, which split the two
+  // chevrons across lines — `‹` stayed with the title, `›` travelled with the
+  // today button — and at 320 px (a 184 px header) it broke into four lines,
+  // one control each. The columns are `auto 1fr auto`, so the nav buttons keep
+  // their width and the title column takes the rest: the chevrons flank the
+  // title at every narrow width instead of only where the arithmetic works out.
+  //
+  // Only with a switcher. Without one (DatePicker, DateRangePicker) the four
+  // remaining controls wrap on their own, and the grid would raise the header's
+  // min-content — which is exactly what the popover's shrink-to-fit width
+  // measures itself against.
+  const stacksOnNarrow = $derived(showViewSwitcher);
+  // Grid placement below `sm`; inert in the flex path, where `grid-column` /
+  // `grid-row` on a flex item does nothing — so only `contents` on the actions
+  // wrapper has to be switched on and off.
+  const narrowGrid = $derived(stacksOnNarrow ? 'max-sm:grid max-sm:grid-cols-[auto_1fr_auto]' : '');
 
   // Map calendar size to SegmentGroup size
   const viewSwitcherSize = $derived(
@@ -157,8 +200,8 @@
     the core, stripped from the slot); the deliberate deltas it introduces are
     documented on the slot in calendar.variants.ts.
   -->
-  <div class={slot('header', className)} {...restProps}>
-    <div class={slot('nav')}>
+  <div class={slot('header', [className, narrowGrid].filter(Boolean).join(' '))} {...restProps}>
+    <div class={slot('nav', 'max-sm:col-start-1 max-sm:row-start-1')}>
       <CoreIconButton
         class={slot('navButton')}
         onclick={() => ctx.navigate(-1)}
@@ -169,7 +212,18 @@
       </CoreIconButton>
     </div>
 
-    <div class="flex items-center gap-2">
+    <!--
+      `flex-auto` (grow, but hypothetical size = max-content), NOT `flex-1`:
+      the flex line-breaking algorithm places items by their hypothetical size,
+      so a `flex-1` title (basis 0) would read as ~0 wide, keep the switcher on
+      line 1 and squeeze it until it collapsed. With `flex-auto` the title is
+      measured at its real width, the switcher wraps instead — and on one line
+      the grown title still centres its content in the slack, which is exactly
+      where `justify-between` used to put it.
+    -->
+    <div
+      class="flex flex-auto items-center justify-center gap-2 max-sm:col-start-2 max-sm:row-start-1"
+    >
       <Popover bind:open={monthPickerOpen} placement="bottom">
         {#snippet trigger()}
           <button
@@ -206,11 +260,21 @@
                 px of travel across twelve months) and it would raise the
                 header's min-content from 103 px to 148 px — turning a title that
                 used to wrap in a 280 px sidebar into permanent overflow.
+
+                Dropped inside the narrow grid, where it has no job left: the
+                title sits in a `1fr` column whose width comes from the header,
+                not from the title, so paging cannot move anything. Holding 148
+                px open there only costs the visible title room — at 320 px the
+                column is 104 px wide and "March 2026" wrapped to two lines
+                against a reservation nothing was measuring.
               -->
               <span class="grid">
                 {#each monthTitleVariants as variant (variant.month)}
                   <span
-                    class="invisible col-start-1 row-start-1 flex items-center gap-1"
+                    class={[
+                      'invisible col-start-1 row-start-1 flex items-center gap-1',
+                      stacksOnNarrow && 'max-sm:hidden'
+                    ]}
                     aria-hidden="true"
                   >
                     {variant.label}
@@ -279,27 +343,89 @@
       </Popover>
     </div>
 
-    <div class="flex items-center gap-1">
-      {#if showViewSwitcher}
-        <SegmentGroup
-          value={ctx.view}
-          size={viewSwitcherSize}
-          disabled={ctx.disabled}
-          onValueChange={(v) => ctx.setView(v as CalendarViewMode)}
-          ariaLabel={bt('calendar.viewSwitcher')}
-        >
-          {#each viewButtons as vb (vb.view)}
-            <SegmentItem value={vb.view}>
-              {ctx.size === 'sm' ? vb.shortLabel : vb.label()}
-            </SegmentItem>
-          {/each}
-        </SegmentGroup>
-      {/if}
+    <!--
+      Switcher and actions are SEPARATE header children, not one cluster: each
+      is then its own wrap unit, so a header too narrow for
+      `switcher + today + next` on one line drops the actions to a line of
+      their own instead of squeezing the switcher into its collapsed (vertical)
+      fallback. That is the path a narrow container takes from `sm` up — below
+      `sm` the grid above places both explicitly. On a wide header they still
+      sit flush: the header's `gap-x-2` is exactly the 4 px gap + 4 px margin
+      that used to separate them.
 
+      In the grid the switcher takes the second line from the left edge across
+      the title column, up to the today button — or across all three columns
+      when there is no today button to leave room for.
+    -->
+    {#if showViewSwitcher}
+      <SegmentGroup
+        value={ctx.view}
+        size={viewSwitcherSize}
+        disabled={ctx.disabled}
+        onValueChange={(v) => ctx.setView(v as CalendarViewMode)}
+        ariaLabel={bt('calendar.viewSwitcher')}
+        class="max-sm:col-start-1 max-sm:row-start-2 max-sm:justify-self-start {showToday
+          ? 'max-sm:col-span-2'
+          : 'max-sm:col-span-3'}"
+      >
+        {#each viewButtons as vb (vb.view)}
+          <!--
+            Below `sm` the five labels condense to their short form — without
+            it the switcher alone wants 308 px on a 254 px phone header, which
+            is the one case `flex-wrap` cannot solve (a lone item on its own
+            line has nothing left to wrap) and SegmentGroup would degrade to
+            its vertical stack. `aria-label` pins the accessible name to the
+            full label, so the visual short form never reaches a screen reader.
+            The swap is pure CSS — no JS, no resize observer.
+
+            A VIEWPORT breakpoint, deliberately not a container query, even
+            though the calendar's own width is the more precise signal:
+            `container-type: inline-size` also drops the element's intrinsic
+            width contribution, and this calendar's width comes from exactly
+            this header — the DatePicker's shrink-to-fit popover collapsed
+            from 310 px to 192 px (day cells 39 → 22 px, under the 24 px touch
+            minimum) when the root became a container. A narrow calendar on a
+            wide screen keeps the full labels and re-flows instead.
+          -->
+          <SegmentItem value={vb.view} aria-label={vb.label()} class="max-sm:px-2">
+            {#if ctx.size === 'sm'}
+              {vb.shortLabel()}
+            {:else}
+              <span class="max-sm:hidden">{vb.label()}</span>
+              <span class="hidden max-sm:inline" aria-hidden="true">{vb.shortLabel()}</span>
+            {/if}
+          </SegmentItem>
+        {/each}
+      </SegmentGroup>
+    {/if}
+
+    <!--
+      `ml-auto` only bites once the actions have wrapped onto a line of their
+      own: on a full line the `flex-auto` title has already eaten the slack, so
+      there is nothing left for the margin to take and the desktop row is
+      untouched. Alone on a wrapped line it keeps them at the header's trailing
+      edge, where they sit on a wide screen, instead of dropping to the left.
+
+      `contents` in the grid path: the two buttons belong to different lines
+      there — next flanks the title, today sits beside the switcher — so the
+      wrapper has to stop being a box and let them place themselves. Its
+      `ml-auto`/`gap-1` go with it; the grid's third column and `gap-x-2` take
+      over. It stays a real box wherever the grid is off, so DatePicker's
+      header keeps the cluster it wraps as one unit.
+    -->
+    <div class={['ml-auto flex shrink-0 items-center gap-1', stacksOnNarrow && 'max-sm:contents']}>
       {#if showToday}
+        <!--
+          No explicit cell for this one: the grid item is Tooltip's own trigger
+          wrapper, not the button inside it, and Tooltip's `class` prop styles
+          the panel. Auto-placement gets it right without help — the four
+          explicit items fill (1,1) (1,2) (1,3) and (2,1–2), so the only free
+          cell left for it is (2,3), beside the switcher. The switcher spans all
+          three columns only when there is no today button to place.
+        -->
         <Tooltip label={bt('calendar.today')}>
           <CoreIconButton
-            class="{slot('navButton')} ml-1"
+            class={slot('navButton')}
             onclick={() => ctx.goToToday()}
             disabled={!ctx.canGoToToday || ctx.disabled}
             aria-label={bt('calendar.today')}
@@ -310,7 +436,7 @@
       {/if}
 
       <CoreIconButton
-        class={slot('navButton')}
+        class={slot('navButton', 'max-sm:col-start-3 max-sm:row-start-1')}
         onclick={() => ctx.navigate(1)}
         disabled={!ctx.canGoForward || ctx.disabled}
         aria-label={nextLabel}
