@@ -99,6 +99,80 @@ describe('Planner navigation constraints (mirrored from Calendar)', () => {
   });
 });
 
+describe('Planner renders the constraints, not just announces them', () => {
+  // Without this the props were screen-reader-only: a blocked day carried
+  // `aria-disabled` and otherwise looked exactly like a bookable one — same
+  // surface, same border, same date colour, same cursor.
+  const cellBody = (body: string, isoDate: string) =>
+    body.split(`data-date="${isoDate}"`)[1]?.split('data-date=')[0] ?? '';
+
+  it('dims and re-cursors a day outside minDate', () => {
+    const { body } = renderPlanner({ view: 'week', value: anchor, minDate: new Date(2026, 5, 17) });
+    expect(cellBody(body, '2026-06-16')).toContain('opacity-40 cursor-not-allowed');
+    expect(cellBody(body, '2026-06-17')).not.toContain('cursor-not-allowed');
+  });
+
+  it('greys the date number of a disabled day', () => {
+    // The number lives in Planner's own cellHeader, out of reach of the
+    // consumer's `cell` snippet — so `PlannerCellContext.isDisabled` alone
+    // would have left it at full contrast.
+    const { body } = renderPlanner({
+      view: 'week',
+      value: anchor,
+      disabledDates: [new Date(2026, 5, 17)]
+    });
+    expect(cellBody(body, '2026-06-17')).toContain('text-text-disabled');
+    expect(cellBody(body, '2026-06-18')).toContain('text-text-secondary');
+  });
+
+  it('lets disabled outrank the today marker, like CalendardayState', () => {
+    const NOW = new Date(2026, 5, 15, 9, 0);
+    vi.useFakeTimers();
+    vi.setSystemTime(NOW);
+    try {
+      // Today itself blocked (minDate tomorrow): the ladder puts `disabled`
+      // above `today`, so no primary pill.
+      const { body } = renderPlanner({ view: 'week', minDate: new Date(2026, 5, 16) });
+      expect(cellBody(body, '2026-06-15')).toContain('text-text-disabled');
+      expect(cellBody(body, '2026-06-15')).not.toContain('bg-primary text-text-on-primary');
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it('dims every cell when the whole grid is disabled, as Calendar does', () => {
+    const { body } = renderPlanner({ view: 'week', value: anchor, disabled: true });
+    expect(cellBody(body, '2026-06-17')).toContain('opacity-40 cursor-not-allowed');
+  });
+});
+
+describe('Planner marks today for screen readers', () => {
+  // Planner had no `aria-current` at all — the largest a11y asymmetry left
+  // between the two components, and the exact thing defended for Calendar.
+  const NOW = new Date(2026, 5, 15, 9, 0);
+
+  beforeAll(() => {
+    vi.useFakeTimers();
+    vi.setSystemTime(NOW);
+  });
+  afterAll(() => {
+    vi.useRealTimers();
+  });
+
+  it('sets aria-current="date" on today', () => {
+    const { body } = renderPlanner({ view: 'week' });
+    expect(cellTag(body, '2026-06-15')).toContain('aria-current="date"');
+    expect(cellTag(body, '2026-06-16')).not.toContain('aria-current');
+  });
+
+  it('keeps it when highlightToday is off', () => {
+    // The same rule as Calendar: the visual preference must not cost the
+    // semantic pointer.
+    const { body } = renderPlanner({ view: 'week', highlightToday: false });
+    expect(cellTag(body, '2026-06-15')).toContain('aria-current="date"');
+  });
+});
+
 describe('Planner fixedWeeks (mirrored from Calendar)', () => {
   // June 2026 starts on a Monday and has 30 days → exactly 5 Monday-weeks.
   const rowsIn = (body: string) => body.match(/role="row"/g)?.length ?? 0;
@@ -134,6 +208,29 @@ describe('Planner showWeekNumbers (renamed from showWeekNumber)', () => {
     expect(renderPlanner({ view: 'week', value: anchor, showWeekNumber: true }).body).toMatch(
       weekNumberColumn
     );
+  });
+
+  it('lets an explicit new-name false beat the deprecated name', () => {
+    // The mid-migration combination. Resolved with `??` on an undefined-default
+    // sentinel, so "passed at all" beats "passed truthy" — with `||` the old
+    // name would have overridden the new one's explicit `false`.
+    const { body } = renderPlanner({
+      view: 'week',
+      value: anchor,
+      showWeekNumbers: false,
+      showWeekNumber: true
+    });
+    expect(body).not.toMatch(weekNumberColumn);
+  });
+
+  it('lets an explicit new-name true win over a deprecated false', () => {
+    const { body } = renderPlanner({
+      view: 'week',
+      value: anchor,
+      showWeekNumbers: true,
+      showWeekNumber: false
+    });
+    expect(body).toMatch(weekNumberColumn);
   });
 });
 

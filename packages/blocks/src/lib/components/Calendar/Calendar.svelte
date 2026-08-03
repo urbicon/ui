@@ -254,6 +254,13 @@
   // computes exactly that per view (recurrence expansion relies on it), so
   // onNavigate reports it rather than the controller's argument. Read after the
   // `referenceDate` assignment, so the $derived has already been invalidated.
+  //
+  // INVARIANT: every path that moves `referenceDate` must end here. Paths that
+  // go through the controller are covered by `handleNavigate`; the ones that
+  // assign it directly — `goToClampedMonth`, `navigateWeek`, `navigateDay` and
+  // the month-view spill-day jump — call it themselves. Those four are not an
+  // exotic API corner: they are what the header's month picker, the year grid,
+  // the mini calendar and the year-view arrows are wired to.
   function emitNavigate(next: Date) {
     onNavigate?.(next, { start: visibleRange.start, end: visibleRange.end });
   }
@@ -313,9 +320,34 @@
   // unreachable from the outside (issue #97). Resolved here rather than in
   // CalendarTimeGrid so the grid reads one number and both its callers (week +
   // day view) get the same one.
-  const resolvedHourHeight = $derived(
-    timeGridHourHeight ?? (size === 'sm' ? 40 : size === 'lg' ? 64 : 48)
+  // A non-positive or non-finite height degrades silently and unrecognisably:
+  // `0` collapses every row to `height: 0px` (the grid vanishes and the
+  // percentage-positioned events with it), negatives and NaN emit declarations
+  // the browser discards, leaving overlapping layout debris. Warn and fall back
+  // to the size default rather than render garbage — the same "no throw: a
+  // degraded grid still renders" reasoning as DateGridController's inverted-
+  // bounds and window-too-wide warnings.
+  const sizeHourHeight = $derived(size === 'sm' ? 40 : size === 'lg' ? 64 : 48);
+  const hourHeightIsUsable = $derived(
+    timeGridHourHeight !== undefined &&
+      Number.isFinite(timeGridHourHeight) &&
+      timeGridHourHeight > 0
   );
+  const resolvedHourHeight = $derived(
+    hourHeightIsUsable ? (timeGridHourHeight as number) : sizeHourHeight
+  );
+  // Warned at setup, not inside the derived: a `$derived` must stay
+  // side-effect-free, and setup also runs during SSR — where a `$effect` would
+  // never fire, so a server-rendered calendar would collapse in silence. Same
+  // shape as Planner's deprecated-prop warning in this change.
+  // svelte-ignore state_referenced_locally
+  if (import.meta.env?.DEV && timeGridHourHeight !== undefined && !hourHeightIsUsable) {
+    console.warn(
+      `[Calendar] timeGridHourHeight must be a positive, finite number, got ` +
+        `${timeGridHourHeight} — falling back to the size default. A non-positive height ` +
+        `collapses the time grid and takes every timed event with it.`
+    );
+  }
 
   // --- Time grid: week/day always show it; month/year/agenda respect the prop ---
   const showTimeGrid = $derived.by(() => {
@@ -426,17 +458,26 @@
     }
   }
 
-  // Move `referenceDate` to a bounded month/year and return the clamped result.
+  // Move `referenceDate` to a bounded month/year, then report the landing.
   // clampMonth keeps the month within [minDate, maxDate]; the day-of-month is
   // preserved (so a later switch to week/day view anchors on a real in-month
   // day, not the 1st's possibly-prior-month week) and then `clampDate` keeps a
   // boundary month from landing before minDate / after maxDate. Shared by every
   // programmatic month/year jump so none can escape the navigable range.
-  function setReferenceMonth(month: number, year: number): { month: number; year: number } {
+  //
+  // Reporting is folded IN rather than left to the three callers: each of them
+  // used to emit `onMonthChange` by hand, and when `onNavigate` arrived it was
+  // added to the two controller-driven paths only — so the header's month
+  // picker, the year grid's month tile and the mini calendar's neighbouring-
+  // month day all moved the grid silently. A caller that cannot forget is the
+  // only version of this that stays fixed. Order matches `handleNavigate`:
+  // the view-specific callback first, then `onNavigate`.
+  function goToClampedMonth(month: number, year: number) {
     const clamped = clampMonth(month, year, minDate, maxDate);
     const day = Math.min(referenceDate.getDate(), daysInMonth(clamped.year, clamped.month));
     referenceDate = clampDate(new Date(clamped.year, clamped.month, day), minDate, maxDate);
-    return clamped;
+    onMonthChange?.(clamped.month, clamped.year);
+    emitNavigate(referenceDate);
   }
 
   function navigateMonth(delta: number) {
@@ -444,30 +485,31 @@
     const targetYear = Math.floor(total / 12);
     const targetMonth = ((total % 12) + 12) % 12;
     controller.navDirection = delta > 0 ? 'forward' : 'backward';
-    const clamped = setReferenceMonth(targetMonth, targetYear);
-    onMonthChange?.(clamped.month, clamped.year);
+    goToClampedMonth(targetMonth, targetYear);
   }
 
   // These named navigators mutate referenceDate directly (the custom-header /
   // mini-calendar surface), bypassing controller.navigate — so they clamp to
   // [minDate, maxDate] themselves, mirroring the clamp the controller now applies
-  // to the main swipe / keyboard / header-arrow path.
+  // to the main swipe / keyboard / header-arrow path, and emit `onNavigate`
+  // themselves for the same reason (nothing downstream will do it for them).
   function navigateWeek(delta: number) {
     controller.navDirection = delta > 0 ? 'forward' : 'backward';
     referenceDate = clampDate(addDays(referenceDate, delta * 7), minDate, maxDate);
     onWeekChange?.(referenceDate);
+    emitNavigate(referenceDate);
   }
 
   function navigateDay(delta: number) {
     controller.navDirection = delta > 0 ? 'forward' : 'backward';
     referenceDate = clampDate(addDays(referenceDate, delta), minDate, maxDate);
     onDayChange?.(referenceDate);
+    emitNavigate(referenceDate);
   }
 
   function navigateYear(delta: number) {
     controller.navDirection = delta > 0 ? 'forward' : 'backward';
-    const clamped = setReferenceMonth(displayedMonth, displayedYear + delta);
-    onMonthChange?.(clamped.month, clamped.year);
+    goToClampedMonth(displayedMonth, displayedYear + delta);
   }
 
   function goToToday() {
@@ -478,8 +520,7 @@
   // mini-calendar) reports the landed month like the arrow navigators do — the
   // clamped result, so a bounds-corrected pick still notifies the consumer.
   function goToMonth(month: number, year: number) {
-    const clamped = setReferenceMonth(month, year);
-    onMonthChange?.(clamped.month, clamped.year);
+    goToClampedMonth(month, year);
   }
 
   // Jump the reference date to a concrete day (mini-calendar drill-down into

@@ -37,7 +37,9 @@
     rangeEnd = $bindable(undefined),
     weekStartsOn = 1,
     locale = 'auto',
-    showWeekNumbers = false,
+    // No default here on purpose — `undefined` is the sentinel that lets the
+    // resolution below tell "not passed" from an explicit `false`.
+    showWeekNumbers,
     showWeekNumber: showWeekNumberDeprecated,
     // Constraints
     minDate,
@@ -90,7 +92,12 @@
   // week-number column that just stops appearing, with nothing to grep for.
   // Same `import.meta.env?.DEV && console.warn` idiom as DateGridController's
   // inverted-bounds warning.
-  const effectiveShowWeekNumbers = $derived(showWeekNumbers || showWeekNumberDeprecated === true);
+  // `??`, not `||`: the new name wins whenever it was passed at all, so
+  // `showWeekNumbers={false} showWeekNumber={true}` resolves to `false`. With
+  // `||` the deprecated name would have overridden an explicit new-name `false`
+  // — the one combination where a consumer is mid-migration and most deserves
+  // the new name to be authoritative.
+  const effectiveShowWeekNumbers = $derived(showWeekNumbers ?? showWeekNumberDeprecated ?? false);
   // Checked once at setup rather than in an $effect: the realistic mistake is a
   // statically-passed prop, and setup also runs during SSR, where an $effect
   // would stay silent.
@@ -252,7 +259,14 @@
     return [
       p.isSelected && 'ring-2 ring-primary ring-inset relative z-10',
       highlightWeekend && p.isWeekend && 'bg-surface-subtle',
-      p.isOutsideRange && 'opacity-40'
+      p.isOutsideRange && 'opacity-40',
+      // Shipping minDate/maxDate/disabledDates without this left a blocked day
+      // looking exactly like a bookable one — same surface, same border, same
+      // date colour, same cursor — with `aria-disabled` the only difference, so
+      // the constraint existed for screen readers and nobody else. Mirrors the
+      // `disabled` rung of Calendar's dayState (`opacity-40 cursor-not-allowed`),
+      // which is also what a whole-grid `disabled` renders as there.
+      p.isDisabled && 'opacity-40 cursor-not-allowed'
     ];
   }
 
@@ -368,10 +382,18 @@
       {#if isWeek}
         <span class={slot('cellWeekday')}>{p.weekday}</span>
       {/if}
+      <!-- The date number lives here, in Planner's own cell header — NOT in the
+           consumer's `cell` snippet — so `PlannerCellContext.isDisabled` cannot
+           reach it. It needs its own branch, ordered like Calendar's exclusive
+           dayState ladder: disabled outranks today. -->
       <span
         class={[
           slot('cellDate'),
-          highlightToday && p.isToday ? todayDateMark : 'text-text-secondary'
+          p.isDisabled
+            ? 'text-text-disabled'
+            : highlightToday && p.isToday
+              ? todayDateMark
+              : 'text-text-secondary'
         ]}
       >
         {info.date.getDate()}

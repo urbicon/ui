@@ -47,10 +47,19 @@ const events: CalendarEvent[] = [
   { id: 'timed', title: 'Timed', start: new Date(2026, 5, 15, 9), end: new Date(2026, 5, 15, 10) }
 ];
 
-/** The opening tag of the first element carrying `attr`, e.g. `data-date="…"`. */
+/**
+ * The opening tag of the first element carrying `attr`, e.g. `data-date="…"`.
+ *
+ * Throws when nothing matches instead of returning `''`. Every negative
+ * assertion in this file is a `not.toContain` against this result, and an empty
+ * string satisfies all of them — so a selector that silently stopped matching
+ * would turn the whole "switched off" half of the suite green while testing
+ * nothing.
+ */
 function tagWith(body: string, attr: string): string {
   const match = body.match(new RegExp(`<[a-zA-Z]+[^>]*${attr}[^>]*>`));
-  return match?.[0] ?? '';
+  if (!match) throw new Error(`no element matching \`${attr}\` in the rendered output`);
+  return match[0];
 }
 
 function renderCalendar(props: Record<string, unknown>): string {
@@ -190,5 +199,36 @@ describe('Calendar timeGridHourHeight', () => {
   it('halves per slot at a 30-minute interval, like the size-derived default', () => {
     const body = renderCalendar({ view: 'week', timeGridHourHeight: 30, timeGridInterval: 30 });
     expect(body).toContain('height: 15px;');
+  });
+
+  describe('rejects a height that would collapse the grid', () => {
+    // A `0` renders every row at `height: 0px` — the grid vanishes and the
+    // percentage-positioned events with it — and negatives/NaN emit
+    // declarations the browser discards. Both degrade to unrecognisable
+    // layout debris, so they warn and fall back rather than render it.
+    for (const bad of [0, -20, Number.NaN, Number.POSITIVE_INFINITY]) {
+      it(`falls back to the size default for ${bad}`, () => {
+        const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+        try {
+          const body = renderCalendar({ view: 'week', timeGridHourHeight: bad });
+          expect(body).toContain('height: 48px;'); // the md default
+          expect(body).not.toContain('height: 0px;');
+          expect(warn).toHaveBeenCalledOnce();
+          expect(warn.mock.calls[0][0]).toContain('timeGridHourHeight');
+        } finally {
+          warn.mockRestore();
+        }
+      });
+    }
+
+    it('stays quiet for a valid height', () => {
+      const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+      try {
+        renderCalendar({ view: 'week', timeGridHourHeight: 24 });
+        expect(warn).not.toHaveBeenCalled();
+      } finally {
+        warn.mockRestore();
+      }
+    });
   });
 });
