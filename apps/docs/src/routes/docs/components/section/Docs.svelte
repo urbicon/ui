@@ -2,6 +2,14 @@
   import { CodeExample, Section } from '@urbicon-ui/docs';
 </script>
 
+<!-- `headingLevel={4}` on the demos below: the enclosing Examples section is an
+     h2 and a CodeExample title is an h3, so a demo rendered at the default h2
+     would put a same-level heading inside a heading's content. The middle demo
+     is the exception — its subject IS the level.
+
+     This note lives outside the CodeExample on purpose: `isolate` extracts the
+     children markup verbatim as the shown snippet, comments included, so an
+     authoring note placed inside becomes four lines of the reader's example. -->
 <Section marker="01" id="examples" title="Examples" subtitle="Structuring a page">
   <div class="flex flex-col gap-6">
     <CodeExample
@@ -9,10 +17,6 @@
       description="The everyday shape: an editorial marker, a title, a subtitle, and an id the table of contents can point at."
       isolate
     >
-      <!-- headingLevel={4} on the demos below: the enclosing Examples section is
-           an h2 and a CodeExample title is an h3, so a demo rendered at the
-           default h2 would put a same-level heading inside a heading's content.
-           The middle demo is the exception — its subject IS the level. -->
       <Section
         id="demo-basic"
         marker="02"
