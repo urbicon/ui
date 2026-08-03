@@ -47,7 +47,13 @@ const EXEMPT: Record<string, string> = {};
 
 interface Finding {
   page: string;
-  kind: 'dead-nav-entry' | 'unlisted-section' | 'duplicate-id' | 'wrong-order' | 'stale-exemption';
+  kind:
+    | 'dead-nav-entry'
+    | 'unlisted-section'
+    | 'duplicate-id'
+    | 'wrong-order'
+    | 'stale-exemption'
+    | 'unreadable-nav';
   detail: string;
 }
 
@@ -60,7 +66,19 @@ interface Finding {
  * `intro`/`setup`/`usage`.
  */
 function blankDemoStages(src: string): string {
+  // Self-closing first, and this is not a nicety. `<CodeExample … />` has no
+  // closing tag, so the paired pattern below would run from it to the next
+  // `</CodeExample>` ANYWHERE and blank everything in between. That is the
+  // standard shape of a docs page — `+page.svelte` ends with a self-closing
+  // installation example, `Docs.svelte` opens with a paired one — and because
+  // this used to run over the two files concatenated, the window reached
+  // across the file boundary. Measured 2026-08 before the fix: 93 sections on
+  // 80 of the 122 checked pages never reached the comparison, while the lint
+  // reported them as checked. Blanking is now per file (see `readMarkup`) AND
+  // self-closing-aware; either alone leaves half the hole open.
+  const selfClosing = /<(?:CodeExample|PlaygroundConfigurator)\b(?:[^<>]|\{[^{}]*\})*?\/>/g;
   return src
+    .replace(selfClosing, (m) => ' '.repeat(m.length))
     .replace(/<PlaygroundConfigurator\b[\s\S]*?<\/PlaygroundConfigurator>/g, (m) =>
       ' '.repeat(m.length)
     )
@@ -145,12 +163,42 @@ function sectionIds(src: string, tags: readonly string[]): string[] {
     .filter((id): id is string => id !== undefined);
 }
 
-/** `id` fields of the page's `navigation` array. */
+/**
+ * `id` fields of the page's `navigation` array.
+ *
+ * The opening is matched, then the array is walked to its own closing bracket.
+ * The previous version anchored on `\n\s*];`, which made three ordinary
+ * spellings invisible — and an invisible array is a SKIPPED PAGE, not a
+ * reported one:
+ *
+ *   const navigation = [ … ] as const;   ← the reflex on a literal array
+ *   const navigation = [{ … }, { … }];   ← what Prettier leaves on two entries
+ *   let navigation = [ … ];
+ *
+ * Measured 2026-08: each of the three dropped the page from the run silently
+ * while its defects stayed in place, and `MIN_PAGES` (90) has enough slack to
+ * hide a quarter of the corpus going missing.
+ */
 function navIds(src: string): string[] | null {
   const clean = blankQuotedMarkup(src);
-  const block = clean.match(/const navigation(?::[^=]+)?\s*=\s*\[([\s\S]*?)\n\s*\];/);
-  if (!block) return null;
-  return [...block[1].matchAll(/\bid:\s*['"]([^'"]+)['"]/g)].map((m) => m[1]);
+  const open = clean.match(/\b(?:const|let|var)\s+navigation\b(?::[^=]+)?\s*=\s*\[/);
+  if (!open || open.index === undefined) return null;
+  const start = open.index + open[0].length;
+  let depth = 1;
+  let end = -1;
+  for (let i = start; i < clean.length; i++) {
+    const c = clean[i];
+    if (c === '[') depth++;
+    else if (c === ']') {
+      depth--;
+      if (depth === 0) {
+        end = i;
+        break;
+      }
+    }
+  }
+  if (end === -1) return null;
+  return [...clean.slice(start, end).matchAll(/\bid:\s*['"]([^'"]+)['"]/g)].map((m) => m[1]);
 }
 
 /**
@@ -199,8 +247,23 @@ for (const dir of pageDirs) {
 
   const pageSrc = readFileSync(join(dir, '+page.svelte'), 'utf8');
   const nav = navIds(pageSrc);
-  // No navigation array → the page does not claim a TOC; nothing to compare.
-  if (nav === null) continue;
+  if (nav === null) {
+    // A page with no `navigation` at all claims no TOC — nothing to compare,
+    // and skipping is right. But a page that PASSES one and whose array this
+    // script could not read is a page dropping out of the run unnoticed, which
+    // is the failure mode this whole script exists to prevent. Say so.
+    if (/\bnavigation=\{/.test(blankQuotedMarkup(pageSrc))) {
+      findings.push({
+        page: rel === '/' ? '/' : `/${rel}`,
+        kind: 'unreadable-nav',
+        detail:
+          'the page passes a `navigation` prop but no `navigation` array could be read from it — ' +
+          'the page is being skipped entirely. Declare it as `const navigation = [ … ]` in ' +
+          '`+page.svelte`, or teach `navIds` the spelling it uses.'
+      });
+    }
+    continue;
+  }
 
   checked++;
 
@@ -209,17 +272,23 @@ for (const dir of pageDirs) {
   // the sibling spliced in at its call site instead, which is what `ordered`
   // below does — appending it would report a wrong order for the 100-odd pages
   // that render `<Docs />` before their API section.
+  //
+  // Each file is staged on its own and only then joined: a demo-stage window
+  // opened in one file must not swallow markup in the next. Joining first and
+  // blanking after is what hid 93 sections (see `blankDemoStages`).
   let markup = pageSrc;
+  let stagedMarkup = blankDemoStages(pageSrc);
   const tags = new Set(sectionTags(pageSrc));
   for (const sibling of readdirSync(dir)) {
     if (sibling.endsWith('.svelte') && sibling !== '+page.svelte') {
       const siblingSrc = readFileSync(join(dir, sibling), 'utf8');
       for (const t of sectionTags(siblingSrc)) tags.add(t);
       markup += `\n${siblingSrc}`;
+      stagedMarkup += `\n${blankDemoStages(siblingSrc)}`;
     }
   }
   const tagList = [...tags];
-  const staged = blankDemoStages(markup);
+  const staged = stagedMarkup;
   const ids = sectionIds(staged, tagList);
   // Anchors keep the full markup: a nav entry may legitimately point at an id
   // that lives inside a demo (a page documenting anchors would do exactly that).
