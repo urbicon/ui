@@ -26,6 +26,10 @@
  * What it checks:
  *   1. every catalogue entry with a `+page.svelte` is in `componentLinks`, and
  *      points at its own page
+ *   1b. every catalogue entry WITHOUT one is in PAGELESS below with a reason.
+ *      This used to be a bare `continue`, and that is how `NoteList` shipped
+ *      exported, catalogued, with a generated api.ts in a route directory and
+ *      no page — for a whole release, with this lint green.
  *   2. every `componentLinks` href resolves to an existing page
  *   3. every page under `src/routes` appears in the sidebar, unless it is in
  *      UNLISTED below with a reason
@@ -62,6 +66,23 @@ const UNLISTED: ReadonlyArray<readonly [route: string, why: string]> = [
   ['/ai/chat', 'live playground, deep-linked from the Chat / ChatMessage / ChatMessageList pages'],
   ['/ai/streaming-markdown', 'renderer harness over the markdown fixture corpus, not a doc page']
 ];
+
+/**
+ * Catalogue entries that deliberately have no page of their own, each with the
+ * reason. Same contract as UNLISTED: a page-less entry missing from here is an
+ * error, and so is an entry here that has since gained a page or left the
+ * catalogue.
+ */
+const PAGELESS: Record<string, string> = {
+  GuideArticle: 'guide surface — documented as a family on /blocks/components/guide',
+  GuideBeacon: 'guide surface — documented as a family on /blocks/components/guide',
+  GuideHint: 'guide surface — documented as a family on /blocks/components/guide',
+  GuideMarker: 'guide surface — documented as a family on /blocks/components/guide',
+  GuideMention: 'guide surface — documented as a family on /blocks/components/guide',
+  GuidePanel: 'guide surface — documented as a family on /blocks/components/guide',
+  GuideProvider: 'guide surface — documented as a family on /blocks/components/guide',
+  GuideRef: 'guide surface — documented as a family on /blocks/components/guide'
+};
 
 /** Where a catalogue entry's page lives, per package. */
 const CATALOGS: ReadonlyArray<{
@@ -193,6 +214,7 @@ const cookbookHrefs = new Set(
 // ── 1. catalogue → componentLinks ────────────────────────────────────────────
 let catalogEntries = 0;
 let documented = 0;
+const pagelessSeen = new Set<string>();
 
 for (const { dir, route } of CATALOGS) {
   const file = join(STATIC, dir, '_catalog.json');
@@ -206,10 +228,26 @@ for (const { dir, route } of CATALOGS) {
   for (const entry of JSON.parse(readFileSync(file, 'utf8')) as CatalogEntry[]) {
     catalogEntries++;
     const href = route(entry);
-    // A component without its own page (the Guide surfaces) is free to alias
-    // onto its family page, or to carry no link at all — nothing breaks that a
-    // reader would see.
-    if (!pages.has(href)) continue;
+    if (!pages.has(href)) {
+      // Aliasing onto a family page is legitimate, but it is a decision, not a
+      // default — an entry that lands here without one is a component nobody
+      // wrote a page for.
+      if (entry.name in PAGELESS) pagelessSeen.add(entry.name);
+      else
+        errors.push({
+          where: `static/${dir}/_catalog.json`,
+          detail:
+            `${entry.name} is in the catalogue but has no page at ${href}. Either write one, ` +
+            `or add it to PAGELESS in this script with the reason it documents elsewhere.`
+        });
+      continue;
+    }
+    if (entry.name in PAGELESS) {
+      errors.push({
+        where: 'PAGELESS',
+        detail: `${entry.name} now has a page at ${href} — remove the PAGELESS entry.`
+      });
+    }
     documented++;
     const linked = componentLinks.get(entry.name);
     if (!linked) {
@@ -228,6 +266,17 @@ for (const { dir, route } of CATALOGS) {
           `page of its own must link to it (only a page-less name may alias onto a family page).`
       });
     }
+  }
+}
+
+// A PAGELESS name that no catalogue entry carries is stale — the component was
+// renamed or removed and the exemption outlived it.
+for (const name of Object.keys(PAGELESS)) {
+  if (!pagelessSeen.has(name)) {
+    errors.push({
+      where: 'PAGELESS',
+      detail: `${name} is not in any catalogue — remove the entry.`
+    });
   }
 }
 
@@ -404,5 +453,6 @@ if (errors.length) {
 console.log(
   `${c.green}✓ every documented component is in componentLinks, every link and every recipe chip ` +
     `resolves; every page is in the sidebar (${UNLISTED.length} justified exceptions) and every ` +
-    `recipe in the cookbook.${c.reset}\n`
+    `recipe in the cookbook; every catalogue entry has a page or a reason ` +
+    `(${Object.keys(PAGELESS).length} justified).${c.reset}\n`
 );
