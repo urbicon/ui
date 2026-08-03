@@ -7,6 +7,7 @@
     Section
   } from '@urbicon-ui/docs';
   import { asset, resolve } from '$app/paths';
+  import { buildRelatedLinks } from '$lib/component-links';
   import { componentData } from './api';
   // Die Vorschau zeigt `BasicDemo`, nicht `Basic`: Letzteres mountet den echten
   // Listener, der beim Mount einen SSE-Stream gegen einen Endpunkt öffnet, den
@@ -14,6 +15,8 @@
   // Leser übernimmt.
   import BasicExample from './examples/BasicDemo.svelte';
   import basicCode from './examples/Basic.svelte?raw';
+
+  const relatedLinks = buildRelatedLinks(componentData);
 
   const navigation = [
     { id: 'usage', title: 'Usage' },
@@ -37,18 +40,21 @@
     { label: 'Components', href: resolve('/auth') }
   ]}
   {navigation}
+  stability={componentData?.stability}
+  sourceHref={componentData?.sourceHref}
+  related={relatedLinks}
 >
-  <Section id="usage" intent="primary">
+  <Section marker="01" id="usage" title="Usage" intent="primary">
     <CodeExample title="Basic" code={basicCode} language="svelte">
       <BasicExample />
     </CodeExample>
   </Section>
 
-  <Section id="api" title="API Reference" intent="secondary">
+  <Section marker="02" id="api" title="API Reference" intent="secondary">
     <ApiReference props={componentData?.props ?? []} />
   </Section>
 
-  <Section id="installation" title="Installation">
+  <Section marker="03" id="installation" title="Installation">
     <CodeExample
       title="Import"
       code={`import { NotificationListener } from '@urbicon-ui/auth';`}

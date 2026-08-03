@@ -114,7 +114,7 @@
           <span class="text-text-primary text-sm font-semibold">Acme</span>
         {/snippet}
 
-        <h1 class="text-text-primary text-lg font-semibold">Dashboard</h1>
+        <p class="text-text-primary text-lg font-semibold">Dashboard</p>
         <p class="text-text-secondary mt-2 text-sm leading-relaxed">
           The main column offsets itself against <code>--sidebar-effective-width</code>, so the
           content never sits underneath the rail. Below 1024px the rail becomes an overlay and this

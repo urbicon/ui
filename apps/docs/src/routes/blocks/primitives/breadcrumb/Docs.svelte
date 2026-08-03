@@ -120,7 +120,7 @@
           {/snippet}
         </Breadcrumb>
         <div class="flex items-center gap-3">
-          <h1 class="text-text-primary text-2xl font-bold">Settings</h1>
+          <p class="text-text-primary text-2xl font-bold">Settings</p>
           <Badge intent="warning" size="xs" variant="soft">Beta</Badge>
         </div>
         <p class="text-text-secondary text-sm">
