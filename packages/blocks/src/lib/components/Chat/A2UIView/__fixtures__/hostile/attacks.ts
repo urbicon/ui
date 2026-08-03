@@ -206,6 +206,54 @@ export const danglingRef: unknown[] = [
   }
 ];
 
+/**
+ * `Tabs` items in every malformed shape a model can emit — non-objects, a
+ * missing `child`, a non-string `title`, the wrong label key (`label`, which is
+ * the Urbicon Accordion's key, not the Basic spec's), a cyclic `child`, and a
+ * duplicate `child`. One bad item rejects the WHOLE prop, so `tabs` never
+ * reaches the render layer half-valid.
+ */
+export const tabsMalformedItems: unknown[] = [
+  cs('tb'),
+  {
+    version: 'v0.9.1',
+    updateComponents: {
+      surfaceId: 'tb',
+      components: [
+        {
+          id: 'root',
+          component: 'Tabs',
+          tabs: [
+            null,
+            42,
+            'nope',
+            { title: 'no child' },
+            { child: 'p1' },
+            { label: 'wrong key', child: 'p1' },
+            { title: { deep: { deeper: true } }, child: 'p1' },
+            { title: 'Cycle', child: 'root' },
+            { title: 'Dup', child: 'p1' },
+            { title: 'Dup too', child: 'p1' }
+          ]
+        },
+        { id: 'p1', component: 'Text', text: 'body' }
+      ]
+    }
+  }
+];
+
+/** `Tabs` with an empty items array — well-formed, but the spec requires one. */
+export const tabsEmpty: unknown[] = [
+  cs('te'),
+  {
+    version: 'v0.9.1',
+    updateComponents: {
+      surfaceId: 'te',
+      components: [{ id: 'root', component: 'Tabs', tabs: [] }]
+    }
+  }
+];
+
 /** A List template whose path resolves to a non-array. */
 export const templatePathNotArray: unknown[] = [
   cs('tp'),

@@ -334,6 +334,22 @@ describe('hostile fixtures never throw and produce the expected issues', () => {
     expect(codes(allIssues(proc))).toContain(A2UI_ISSUE_CODES.TEMPLATE_PATH_NOT_ARRAY);
   });
 
+  it('malformed Tabs items → TYPE_MISMATCH, and the whole prop is dropped', () => {
+    const proc = applyAll(attacks.tabsMalformedItems);
+    expect(codes(allIssues(proc))).toContain(A2UI_ISSUE_CODES.TYPE_MISMATCH);
+    // One bad item rejects the entire prop — the render layer never sees a
+    // half-valid list it would have to index-align against resolved children.
+    expect(proc.surfaces.get('tb')?.components.get('root')?.props.has('tabs')).toBe(false);
+  });
+
+  it('empty Tabs array → TABS_EMPTY warning, prop still stored', () => {
+    const proc = applyAll(attacks.tabsEmpty);
+    const issues = allIssues(proc);
+    expect(codes(issues)).toContain(A2UI_ISSUE_CODES.TABS_EMPTY);
+    expect(issues.find((i) => i.code === A2UI_ISSUE_CODES.TABS_EMPTY)?.severity).toBe('warning');
+    expect(proc.surfaces.get('te')?.components.get('root')?.props.get('tabs')).toEqual([]);
+  });
+
   it('updateDataModel delete semantics (value omitted removes the key)', () => {
     const proc = applyAll(attacks.deleteSemantics);
     expect(proc.surfaces.get('del')?.dataModel).toEqual({ b: 2 });

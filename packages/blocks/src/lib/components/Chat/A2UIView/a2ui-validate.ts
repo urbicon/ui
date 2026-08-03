@@ -255,7 +255,14 @@ function validateProp(
       return validateChildList(componentName, key, value, path, surfaceId);
 
     case 'labeledChildren':
-      return validateLabeledChildren(componentName, key, value, path, surfaceId);
+      return validateLabeledChildren(
+        componentName,
+        key,
+        value,
+        path,
+        surfaceId,
+        spec.labelKey ?? 'label'
+      );
 
     case 'action':
       return validateAction(componentName, key, value, path, surfaceId);
@@ -323,33 +330,44 @@ function validateChildList(
 }
 
 /**
- * A `labeledChildren` value is an array of `{ label, child }` items: `label` is
- * a (dynamic) string, `child` a component id referenced by the labelled slot
- * (Accordion items, Tabs later). The whole prop is rejected if ANY item is
+ * A `labeledChildren` value is an array of `{ <labelKey>, child }` items: the
+ * label is a (dynamic) string, `child` a component id referenced by the
+ * labelled slot. `labelKey` comes from the prop spec because the catalogs
+ * disagree on it (Basic `Tabs` uses `title`, Urbicon `Accordion` uses `label`);
+ * the child key is always `child`. The whole prop is rejected if ANY item is
  * malformed, so the render/graph layers may assume every stored item is a valid
- * `{ label, child: string }` — this keeps the item→child index alignment the
- * dispatcher relies on when zipping labels with resolved child nodes.
+ * `{ <labelKey>, child: string }` — this keeps the item→child index alignment
+ * the dispatcher relies on when pairing labels with resolved child nodes.
  */
 function validateLabeledChildren(
   componentName: string,
   key: string,
   value: unknown,
   path: string,
-  surfaceId: string
+  surfaceId: string,
+  labelKey: string
 ): PropResult {
   const bad = (detail: string): PropResult => ({
     store: false,
     issues: [issue('error', A2UI_ISSUE_CODES.TYPE_MISMATCH, detail, { surfaceId, path })]
   });
   if (!Array.isArray(value))
-    return bad(`"${key}" on ${componentName} must be an array of { label, child } items`);
+    return bad(`"${key}" on ${componentName} must be an array of { ${labelKey}, child } items`);
   const issues: A2uiValidationIssue[] = [];
   for (let i = 0; i < value.length; i++) {
     const item = value[i];
-    if (!isPlainObject(item) || typeof item.child !== 'string' || !isDynamicString(item.label)) {
-      return bad(`item ${i} on ${componentName} must be { label, child: string }`);
+    if (
+      !isPlainObject(item) ||
+      typeof item.child !== 'string' ||
+      !isDynamicString(item[labelKey])
+    ) {
+      return bad(`item ${i} on ${componentName} must be { ${labelKey}, child: string }`);
     }
-    for (const labelIssue of dynamicRefIssues(item.label, `${path}/${i}/label`, surfaceId)) {
+    for (const labelIssue of dynamicRefIssues(
+      item[labelKey],
+      `${path}/${i}/${labelKey}`,
+      surfaceId
+    )) {
       issues.push(labelIssue);
     }
   }
