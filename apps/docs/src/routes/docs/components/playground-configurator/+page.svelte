@@ -10,7 +10,7 @@
     Section
   } from '@urbicon-ui/docs';
   import { Button } from '@urbicon-ui/blocks';
-  import Docs from './Docs.svelte';
+  import CustomDocs from './Docs.svelte';
   import { componentData } from './api';
   import { buildRelatedLinks } from '$lib/component-links';
   import { asset, resolve } from '$app/paths';
@@ -134,7 +134,7 @@
     </PlaygroundConfigurator>
   </Section>
 
-  <Docs />
+  <CustomDocs />
 
   <Section marker="05" id="accessibility" title="Accessibility">
     <NoteList>

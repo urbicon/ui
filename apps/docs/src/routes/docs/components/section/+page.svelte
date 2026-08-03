@@ -11,7 +11,7 @@
     TypesReference,
     InfoCard
   } from '@urbicon-ui/docs';
-  import Docs from './Docs.svelte';
+  import CustomDocs from './Docs.svelte';
   import { componentData, type ComponentAPIInfo } from './api';
   import { buildRelatedLinks } from '$lib/component-links';
   import { asset, resolve } from '$app/paths';
@@ -119,7 +119,7 @@
     </PlaygroundConfigurator>
   </SectionComponent>
 
-  <Docs />
+  <CustomDocs />
 
   <SectionComponent marker="03" id="accessibility" title="Accessibility">
     <NoteList>

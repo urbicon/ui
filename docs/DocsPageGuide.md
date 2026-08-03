@@ -31,14 +31,27 @@ The `+page.svelte` / `Docs.svelte` split is intentional: the page defines the sh
 Installation always comes last – experienced users rarely need it, and new users will read through anyway.
 
 **Markers number the titled sections, continuously across both files.** The Playground carries no
-title, so it carries no marker and Examples starts at `"01"`; the count then runs through
-`Docs.svelte` and picks up again in `+page.svelte` for API Reference and Installation (Button:
-`01` Examples → `06` Installation). A marker is editorial, not structural — nothing reads it.
+marker, so Examples starts at `"01"`; the count then runs through `Docs.svelte` and picks up again
+in `+page.svelte` for API Reference and Installation (Button: `01` Examples → `06` Installation).
+A marker is editorial, not structural — nothing reads it.
+
+The Playground does carry a **title**, though — `<Section id="playground" title="Playground">` on
+all 87 pages that have one. 58 of them add `titleHidden`, which keeps the heading in the outline
+and in the screen-reader layer while the stage speaks for itself visually; the rest show it. Either
+is fine. What is not fine is dropping the title: the TOC entry then points at a section with no
+heading, which is what 57 pages did until 2026-08.
+
+**Intent is set on two sections and left off the rest** (measured across the site, 2026-08):
+`playground` takes `intent="primary"` (76 of 82) and `api` takes `intent="secondary"` (97 of 98).
+Examples, Customization, Accessibility and Installation pass no intent at all — unanimously, 91 /
+83 / 79 / 55 sections. Adding one there makes the page's headings step out of line with every
+other page.
 
 **The rendered order is the order you write.** `TocNavigationItem` accepts no `order` field and
 nothing sorts by one; the TOC renders the `navigation` array as given, and the page renders its
 sections as written. The two are checked against each other by `bun run sections:lint`, which
-fails on a nav entry that resolves to nothing and on a section missing from the nav.
+fails on a nav entry that resolves to nothing, on a section missing from the nav, and on the two
+being in different sequences.
 
 ## Examples Strategy (XC-6)
 
@@ -337,13 +350,22 @@ Core principles:
 
 Docs pages use a consistent 3-level heading scale:
 
-| Level | Element       | Tailwind                  | Size | Usage                           |
-| ----- | ------------- | ------------------------- | ---- | ------------------------------- |
-| h1    | Page title    | `text-3xl font-extrabold` | 30px | Set by DocsPageLayout           |
-| h2    | Section title | `text-2xl font-bold`      | 24px | Section with `intent="primary"` |
-| h3    | Subsection    | `text-base font-semibold` | 16px | CodeExample titles              |
+| Level | Element       | Tailwind                  | Size | Usage                            |
+| ----- | ------------- | ------------------------- | ---- | -------------------------------- |
+| h1    | Page title    | `text-3xl font-extrabold` | 30px | Set by DocsPageLayout            |
+| h2    | Section title | `text-lg font-medium`     | 18px | Section with no `intent`         |
+| h2    | Section title | `text-2xl font-bold`      | 24px | Section with `intent="primary"`  |
+| h2    | Section title | `text-xl font-semibold`   | 20px | Section with `intent="secondary"`|
+| h3    | Subsection    | `text-base font-semibold` | 16px | CodeExample titles               |
 
-All main content sections (Examples, Customization, Best Practices, Accessibility, Installation) use `<Section intent="primary">` for h2 headings at 24px. The API Reference uses `intent="secondary"` (20px) to visually distinguish reference content from guide content.
+The heading **level** is `headingLevel`, the heading **size** is `intent` — the two are separate,
+so a subsection can keep `h3` semantics at the primary type scale without breaking the outline.
+
+Which intent goes where is settled by what the pages do, not by preference: the Playground takes
+`primary` and the API Reference takes `secondary`; Examples, Customization, Accessibility and
+Installation take none, and so render at 18px. (Counted 2026-08 — `primary` on 76 of 82
+playgrounds, `secondary` on 97 of 98 API sections, no intent on 91 / 83 / 79 / 55 of the rest.
+This paragraph previously claimed the opposite for the content sections; the pages never did it.)
 
 ## Table of Contents
 
