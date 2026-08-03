@@ -282,7 +282,10 @@ export interface CalendarProps
   miniCalendarPosition?: 'left' | 'right';
 
   // === Header ===
-  /** Show the view switcher in the header. @default true */
+  /**
+   * Show the view switcher in the header. Below `sm` its labels condense to
+   * their short form; the full label stays the accessible name. @default true
+   */
   showViewSwitcher?: boolean;
 
   // === Animation ===

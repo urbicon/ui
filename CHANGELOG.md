@@ -4,6 +4,58 @@ All notable changes to this project will be documented in this file.
 This changelog is automatically generated from [Conventional Commits](https://www.conventionalcommits.org).
 
 
+## [6.50.0] - 2026-08-02
+
+### Bug Fixes
+- **design**: Stop nudging projects that decided shape at the tier
+- **blocks**: Move the Drawer panel onto the contain tier
+- **blocks**: Default purpose="tag" badges to the neutral intent
+- **docs-gen**: Point the llms-full install at the public npm registry
+- Drop the unfounded @sveltejs/kit peer dependency
+- **blocks**: Render the tooltip panel as a span so it is legal inline
+- **blocks,docs**: Answer the adversarial review of the tooltip span fix
+- **blocks,docs**: Close the three ways past the display guard
+- **blocks,docs**: The guard promised a lint that does not cover this
+- **table,i18n**: Let the table cells follow the app's locale, not the host's
+- **table,i18n**: Format the default Date column through the app's locale too
+- **blocks,docs**: Correct the emitted-CSS guard's false positive and two false claims
+- **blocks**: Close the two escaping and canary holes the re-review found
+
+### Build
+- Keep the incremental type-check cache out of the tarballs
+- Stop the publish scripts writing into the tracked LICENSE files
+
+### CI/CD
+- Wait for CI instead of losing the e2e skip by seconds
+
+### Documentation
+- Correct the publishing facts, record the token-only theme contract
+- Link back to urbicon.de from the landing footer
+- Correct the bridge contract, the tier prop and two false family claims
+- **blocks**: Give the package README a consumer install path
+- Lead the install path with the sv add-on
+- **docs-app**: Let the add-on path skip ahead to step 03
+- Draw the SvelteKit boundary where it actually runs
+- **table**: Correct two claims the round-3 review measured as wrong
+
+### Features
+- **design-engine**: Rank radius by role in the rubric, rename the ux axis
+- **design-engine**: Ship the radius tiers and the category-vs-status rule
+- **blocks**: Give Card a container tier for small content surfaces
+- **blocks**: Guard every namespace by asking the compiler, not a model
+
+### Miscellaneous
+- Re-baseline bundle sizes for the Svelte 5.56.8 / Vite 8.2.0 bump
+
+### Performance
+- **table**: Resolve the cell locale once per table, not once per cell
+
+### Testing
+- **blocks**: Read the config and ask the compiler, not a list
+- **blocks**: Give the display probe a positive control
+- **blocks**: Assert every GLOB root reaches the emitted-CSS guard
+- **blocks**: Reuse the escaper that already knows the two hard cases
+
 ## [6.49.0] - 2026-08-02
 
 ### Bug Fixes

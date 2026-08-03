@@ -1,18 +1,15 @@
 <script lang="ts">
   import { getTableContext, useTableI18n } from '$lib';
-  import {
-    findColumnById,
-    humanizeColumnId,
-    resolveColumnId,
-    resolveColumnLabel
-  } from '$lib/utils';
   import { smartFilterBarTriggerVariants } from '$lib/variants';
   import { Select, resolveIcon, LayersIcon as LayersIconDefault } from '@urbicon-ui/blocks';
   import MenuTrigger from './MenuTrigger.svelte';
+  import { buildGroupingEntries } from './tool-columns';
 
-  /** Full-width labelled row instead of a tooltipped icon — see MenuTrigger. */
-  let { stacked = false }: { stacked?: boolean } = $props();
-
+  /**
+   * The wide bar's grouping tool. Which columns it may offer — including the
+   * declared and active keys that are not columns at all — is decided in
+   * `tool-columns.ts`, because GroupingPanel has to offer exactly the same set.
+   */
   const tt = useTableI18n();
 
   const LayersIcon = resolveIcon('layers', LayersIconDefault);
@@ -31,67 +28,14 @@
     isActive ? smartFilterBarTriggerVariants({ intent: 'group' }) : undefined
   );
 
-  const groupableColumns = $derived.by(() => {
-    return tableState.columns.filter((col) => {
-      // Synthetic columns have no accessor and structurally lack the
-      // derivable flags — exclude before reading them.
-      if (col.accessor === undefined) return false;
-      if (col.groupable !== undefined) return col.groupable === true;
-      // Derived from what the column declares, not from what it is called. This
-      // read `id !== 'actions' && !id.includes('action')` until 2026-07-31 —
-      // the same name-guessing as the summary heuristic, and equally wrong in
-      // both directions: a legitimate `transaction` or `actionType` column was
-      // silently ungroupable, while the synthetic-column check above already
-      // covers the case the name was standing in for.
-      return col.sortable === true;
-    });
-  });
-
-  const groupingOptions = $derived.by(() => {
-    const options = [{ label: tt('grouping.none'), value: '' }];
-
-    groupableColumns.forEach((column) => {
-      options.push({
-        label: resolveColumnLabel(column),
-        value: resolveColumnId(column)
-      });
-    });
-
-    // Grouping is a superset of this menu: `initialGroupBy` / `setGroupByKey`
-    // accept any item field, so a table can legitimately group by something it
-    // shows no column for — the landing journey groups bookings by `day` while
-    // displaying no Day column, because the day belongs in the group header and
-    // would be redundant in every row.
-    //
-    // Two keys can therefore be missing from the list above, and they need
-    // different treatment:
-    //
-    //   • the DECLARED key (`initialGroupBy`). The consumer asked for this
-    //     grouping, so it belongs in the menu permanently — including after the
-    //     user ungroups, which is the whole point. Deriving it from the *active*
-    //     key instead would make the option vanish on ungroup, i.e. leave the
-    //     reported symptom ("no way back to it") exactly as it was.
-    //
-    //   • the ACTIVE key, when it is neither a listed column nor the declared
-    //     one — reachable through a programmatic `setGroupByKey`, or through a
-    //     column the header menu offers but this list filters out (`groupable`
-    //     unset, `sortable` not true). Without it the Select holds a value it
-    //     cannot display and DEV-logs `value "…" has no matching option`.
-    //
-    // Labels go through `humanizeColumnId`, the same helper the rest of the
-    // package uses, so the option reads "Day" rather than the raw field name —
-    // and matches the grouping chip, which resolves its label the same way.
-    for (const key of [tableState.declaredGroupByKey, tableState.groupByKey]) {
-      if (!key || options.some((o) => o.value === key)) continue;
-      const column = findColumnById(tableState.columns, key);
-      options.push({
-        label: column ? resolveColumnLabel(column) : humanizeColumnId(key),
-        value: key
-      });
-    }
-
-    return options;
-  });
+  const groupingOptions = $derived.by(() => [
+    { label: tt('grouping.none'), value: '' },
+    ...buildGroupingEntries(
+      tableState.columns,
+      tableState.declaredGroupByKey,
+      tableState.groupByKey
+    ).map((entry) => ({ label: entry.label, value: entry.id }))
+  ]);
 
   let menuOpen = $state(false);
 
@@ -107,7 +51,6 @@
 {#snippet customTrigger(_selected: unknown[], _open: boolean, _clear: () => void)}
   <MenuTrigger
     label={tt('grouping.button')}
-    {stacked}
     active={isActive}
     {triggerClass}
     expanded={menuOpen}
@@ -117,12 +60,6 @@
 {/snippet}
 
 <!-- `w-auto`: see SortMenu — the Select wrapper defaults to `w-full`. -->
-<!--
-  `usePortal={!stacked}`: stacked means this Select lives inside the tool
-  popover, and Popover's own contract (see Popover.svelte) puts a nested panel on
-  `position: absolute` instead of promoting a second top layer — that is where
-  the focus and z-index quirks live. FilterMenu's operator Select already does it.
--->
 <Select
   options={groupingOptions}
   value={currentValue}
@@ -130,7 +67,6 @@
   onValueChange={(v: string | null) => handleValueChange(v ?? '')}
   size="sm"
   syncWidth={false}
-  usePortal={!stacked}
   class="w-auto"
   {customTrigger}
 />

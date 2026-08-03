@@ -1,6 +1,6 @@
 {
   "name": "@urbicon-ui/table",
-  "version": "6.49.0",
+  "version": "6.50.0",
   "description": "Data table for Svelte 5 — sorting, filtering, grouping, selection, keyboard navigation, virtualization and live updates",
   "license": "MIT",
   "repository": {
@@ -36,7 +36,8 @@
     "docs/STICKY-PINNING.md",
     "dist",
     "!dist/**/*.test.*",
-    "!dist/**/*.spec.*"
+    "!dist/**/*.spec.*",
+    "!dist/**/__fixtures__/**"
   ],
   "types": "./dist/index.d.ts",
   "type": "module",
@@ -69,7 +70,6 @@
   ],
   "peerDependencies": {
     "svelte": "catalog:",
-    "@sveltejs/kit": "catalog:",
     "@urbicon-ui/blocks": "^6.0.0",
     "@urbicon-ui/i18n": "^6.0.0",
     "@urbicon-ui/shared-types": "^6.0.0"

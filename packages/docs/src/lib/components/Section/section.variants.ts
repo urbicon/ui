@@ -8,10 +8,16 @@ export const sectionVariants = tv({
     marker: ['inline-block font-mono text-text-tertiary mr-2 select-none'],
     title: ['font-bold text-text-primary'],
     // Mono meta counter in the header row (e.g. "20 props"); casing stays
-    // as passed — `font-meta` sets mono + size, not caps. `ml-auto` pushes
-    // the counter to the right of the title; if badges are also set, they
-    // sit directly after it (gap-4 from headerRow).
-    meta: ['font-meta text-text-tertiary ml-auto'],
+    // as passed — no caps. `ml-auto` pushes the counter to the right of the
+    // title; if badges are also set, they sit directly after it (gap-4 from
+    // headerRow).
+    //
+    // `font-meta` is NOT a theme font key: it is `.docs-rooms .font-meta` in
+    // the docs app's rooms stylesheet, so it applies only under that opt-in
+    // theme. It refines mono + size there; the base utilities have to be here
+    // or the counter renders in the body font everywhere else — which it did
+    // until 2026-08-02. CodePanel and PrevNextNav already paired it this way.
+    meta: ['font-meta font-mono text-xs text-text-tertiary ml-auto'],
     badges: ['flex gap-2 flex-wrap'],
     subtitle: ['leading-relaxed text-text-secondary mb-8'],
     body: ['relative'],

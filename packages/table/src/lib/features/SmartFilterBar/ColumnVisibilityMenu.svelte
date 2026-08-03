@@ -1,13 +1,15 @@
 <script lang="ts">
   import { getTableContext, useTableI18n } from '$lib';
-  import { resolveColumnId, resolveColumnLabel } from '$lib/utils';
   import { smartFilterBarTriggerVariants } from '$lib/variants';
   import { Badge, Select, resolveIcon, EyeIcon as EyeIconDefault } from '@urbicon-ui/blocks';
   import MenuTrigger from './MenuTrigger.svelte';
+  import { buildColumnVisibilityEntries } from './tool-columns';
 
-  /** Full-width labelled row instead of a tooltipped icon — see MenuTrigger. */
-  let { stacked = false }: { stacked?: boolean } = $props();
-
+  /**
+   * The wide bar's column-visibility tool. The narrow bar uses
+   * ColumnVisibilityPanel, which toggles each column directly instead of
+   * diffing a selection array.
+   */
   const tt = useTableI18n();
 
   const EyeIcon = resolveIcon('eye', EyeIconDefault);
@@ -25,35 +27,26 @@
     hiddenCount > 0 ? smartFilterBarTriggerVariants({ intent: 'primary' }) : undefined
   );
 
-  // Columns pinned with `hideable: false` are excluded from the toggle list so
-  // they can never be hidden — and so they are not silently hidden the first
-  // time the selection changes (they would otherwise count as "deselected").
-  const hideableColumns = $derived(tableContext.allColumns.filter((col) => col.hideable !== false));
+  // Columns pinned with `hideable: false` never reach this list — see
+  // tool-columns.ts for why that matters to a multi-select in particular.
+  const entries = $derived(buildColumnVisibilityEntries(tableContext.allColumns));
 
-  const columnItems = $derived.by(() =>
-    hideableColumns.map((col) => ({
-      label: resolveColumnLabel(col),
-      value: resolveColumnId(col)
-    }))
-  );
+  const columnItems = $derived(entries.map((entry) => ({ label: entry.label, value: entry.id })));
 
-  const visibleValues = $derived.by(() =>
-    hideableColumns
-      .filter((col) => !tableContext.hiddenColumnKeys.has(resolveColumnId(col)))
-      .map((col) => resolveColumnId(col))
+  const visibleValues = $derived(
+    entries.filter((entry) => !tableContext.hiddenColumnKeys.has(entry.id)).map((entry) => entry.id)
   );
 
   function handleValueChange(values: string | string[] | null) {
     if (!Array.isArray(values)) return;
     const newVisible = new Set(values);
-    for (const col of hideableColumns) {
-      const id = resolveColumnId(col);
-      const isCurrentlyHidden = tableContext.hiddenColumnKeys.has(id);
-      const shouldBeVisible = newVisible.has(id);
+    for (const entry of entries) {
+      const isCurrentlyHidden = tableContext.hiddenColumnKeys.has(entry.id);
+      const shouldBeVisible = newVisible.has(entry.id);
       if (isCurrentlyHidden && shouldBeVisible) {
-        toggleColumnVisibility(id);
+        toggleColumnVisibility(entry.id);
       } else if (!isCurrentlyHidden && !shouldBeVisible) {
-        toggleColumnVisibility(id);
+        toggleColumnVisibility(entry.id);
       }
     }
   }
@@ -78,7 +71,6 @@
 {#snippet customTrigger(_selected: unknown[], _open: boolean, _clear: () => void)}
   <MenuTrigger
     label={tt('columns.visibility')}
-    {stacked}
     active={hiddenCount > 0}
     {triggerClass}
     expanded={menuOpen}
@@ -89,12 +81,6 @@
 {/snippet}
 
 <!-- `w-auto`: see SortMenu — the Select wrapper defaults to `w-full`. -->
-<!--
-  `usePortal={!stacked}`: stacked means this Select lives inside the tool
-  popover, and Popover's own contract (see Popover.svelte) puts a nested panel on
-  `position: absolute` instead of promoting a second top layer — that is where
-  the focus and z-index quirks live. FilterMenu's operator Select already does it.
--->
 <Select
   options={columnItems}
   multiple
@@ -103,7 +89,6 @@
   onValueChange={handleValueChange}
   size="sm"
   syncWidth={false}
-  usePortal={!stacked}
   selectionIndicator="checkmark"
   class="w-auto"
   {customTrigger}

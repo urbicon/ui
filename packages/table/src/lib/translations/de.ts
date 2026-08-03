@@ -32,6 +32,10 @@ export default {
     },
     quickValues: {
       title: 'Schnellwerte'
+    },
+    aria: {
+      operatorFor: 'Filteroperator für {{column}}',
+      valueFor: 'Filterwert für {{column}}'
     }
   },
   search: {
@@ -41,6 +45,8 @@ export default {
     button: {
       title: 'Zusammenfassung'
     },
+    none: 'Keine',
+    empty: 'Keine Spalte lässt sich zusammenfassen',
     types: {
       average: 'Durchschnitt',
       count: 'Anzahl',
@@ -78,7 +84,8 @@ export default {
     fetchFailed: 'Daten konnten nicht geladen werden'
   },
   columns: {
-    visibility: 'Spaltensichtbarkeit'
+    visibility: 'Spaltensichtbarkeit',
+    empty: 'Alle Spalten sind fixiert'
   },
   grouping: {
     button: 'Gruppierung',
@@ -88,7 +95,15 @@ export default {
     button: 'Sortierung',
     none: 'Keine Sortierung',
     ascending: 'Aufsteigend',
-    descending: 'Absteigend'
+    descending: 'Absteigend',
+    direction: 'Sortierrichtung'
+  },
+  tools: {
+    title: 'Tabellenwerkzeuge',
+    done: 'Fertig',
+    // Names the column list inside the sort/grouping sections. The section
+    // heading already says which tool it is, so the list says what it picks.
+    column: 'Spalte'
   },
   header: {
     activeFilter: 'Aktiver Filter',

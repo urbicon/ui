@@ -10,13 +10,11 @@ The locale lives in **context**, not a module-global singleton — so concurrent
 
 ## Installation
 
-This package ships inside the Urbicon UI monorepo. Install from repo root:
-
 ```bash
-bun install
+bun add @urbicon-ui/i18n
 ```
 
-Peer dependencies: `svelte` (^5.40 — uses runes + `createContext`-era context), `@sveltejs/kit`.
+Peer dependencies: `svelte` (^5.40 — uses runes + `createContext`-era context). No SvelteKit needed: the package imports neither `$app/*` nor `@sveltejs/kit`, so it works in any Svelte 5 project — the request-scoped locale below is what keeps it SSR-correct wherever you render.
 
 ## Quick Start
 
@@ -190,6 +188,23 @@ resolveLocale(request, {
 `supportedLocales` defaults to the locales the registry actually has data for. Feed the result to `<I18nProvider locale={…}>` so SSR and the first client render agree (no hydration mismatch, no `navigator.language` guess).
 
 > Fully **prerendered** (static) sites have no per-request server, so resolve the locale on the client after mount instead (read a cookie/`localStorage`, then `setLocale`). The provider's base-locale-first render keeps hydration stable.
+
+## Formatting with `Intl` — `resolveDateLocale`
+
+Building your own date or number component? Never hand `Intl` an `undefined` locale: it follows the *runtime*, which is your server process during SSR and the user's browser after hydration, so the same value renders two ways across the boundary. `resolveDateLocale` is the chain the library's own components use:
+
+```ts
+import { resolveDateLocale, useI18n } from '@urbicon-ui/i18n';
+
+const i18n = useI18n();
+// `explicit prop → provider locale → BASE_LOCALE`
+const locale = $derived(resolveDateLocale(localeProp, i18n.locale));
+new Intl.DateTimeFormat(locale, { dateStyle: 'medium' }).format(value);
+```
+
+The two rungs are treated differently on purpose. An explicit prop is **trusted** — any BCP 47 tag is fair game, including ones this package ships no translations for (`'ja-JP'`), and a malformed one throws from `Intl` at the call site that caused it. A provider value is **verified**, because `<I18nProvider locale={x}>` does not validate `x`: `'de_DE'` and `''` would throw at render time (an SSR 500 in a component that never saw the value), while `'xx'` and `'english'` do not throw at all — `Intl` silently resolves them to the runtime default, reintroducing the divergence through the back door. Unsupported values therefore fall back to `BASE_LOCALE` and say so in DEV.
+
+Pass `'auto'` (or `undefined`) as the prop to mean "no explicit choice".
 
 ## Locale code-splitting (opt-in)
 

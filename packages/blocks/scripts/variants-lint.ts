@@ -22,6 +22,30 @@
  *            table-theme) nor in Tailwind 4's default theme.
  *            Tailwind emits NO CSS for such a class — the bug class behind
  *            Calendar's dead `text-2xs` (`size="sm"` rendered like `md`).
+ *   ✖ ERROR  no CSS emitted — the same failure, asked of the real compiler
+ *            instead of a model of it, so it covers every namespace the model
+ *            does not: `bg-` and its colour-capable siblings (`border-`,
+ *            `ring-`, `outline-`, `divide-`, `fill-`, `stroke-`, `accent-`,
+ *            `caret-`, `decoration-`), variant-prefixed classes, and whatever
+ *            Tailwind adds next. See scripts/tailwind-emit.ts.
+ *
+ *            Its first run found two inert classes — `resize-vertical` on
+ *            Textarea and three dead gradient stops on the table skeleton
+ *            (`surface-2`/`surface-3` are not tokens here). Neither changed a
+ *            pixel: preflight already sets `textarea { resize: vertical }`,
+ *            and the skeleton slots have no consumer. Worth stating plainly,
+ *            because it is what this guard is for — a class that emits nothing
+ *            is a claim the code does not keep, whether or not a user can see
+ *            the difference today. The case that IS visible is the typo it was
+ *            built for: a mistyped colour renders unstyled.
+ *
+ *            **Reach is the real limit, not the namespace model.** This lint
+ *            reads `*.variants.ts` only (see GLOBS). Classes in `.svelte`
+ *            markup, in `packages/auth` entirely, and in `*.system.ts` tables
+ *            no config imports are invisible to it — and running the same
+ *            probe over those sources on 2026-08-02 found live instances of
+ *            exactly this bug class (issues filed). Widening the input is its
+ *            own pass.
  *   ✖ ERROR  transform property missing from an arbitrary transition list —
  *            Tailwind 4 emits `scale-*` / `translate-*` / `rotate-*` as the
  *            DISCRETE CSS properties `scale:` / `translate:` / `rotate:`, not
@@ -50,6 +74,7 @@
  */
 import { unlink } from 'node:fs/promises';
 import { resolve } from 'node:path';
+import { findNonEmittingClasses } from './tailwind-emit';
 import { checkClassToken, collectThemeVars } from './theme-tokens';
 
 const ENGINE = resolve(import.meta.dir, '../src/lib/utils/variants.ts');
@@ -466,6 +491,14 @@ const shadowed: Finding[] = [];
 const partial: Finding[] = [];
 const unknownTheme: Finding[] = [];
 const unknownThemeSeen = new Set<string>();
+/**
+ * Every class the hand-modelled namespace guard waved through, and where it
+ * came from. Compiled in one batch after the walk — Tailwind knows every
+ * namespace, so this is what covers `bg-` and its nine colour-capable
+ * siblings without a statics list to keep true (#61).
+ */
+const emitCandidates = new Map<string, string[]>();
+const noCss: Finding[] = [];
 const missingTransition: Finding[] = [];
 const missingTransitionSeen = new Set<string>();
 const readingSurfaceHover: Finding[] = [];
@@ -575,9 +608,18 @@ for (const { file, name, fn, cfg } of loaded) {
   for (const src of sources) {
     for (const slot of slotList) {
       for (const token of new Set(src.tokens.get(slot) ?? [])) {
-        const miss = checkClassToken(token, themeVars);
-        if (miss == null) continue;
         const where = `${file} › ${name}${slots ? ` › ${slot}` : ''}`;
+        const miss = checkClassToken(token, themeVars);
+        if (miss == null) {
+          // Out of the hand-modelled namespaces' reach — hand it to the
+          // compiler pass below, which knows every namespace but can only say
+          // "no rule", not which variable was missing.
+          emitCandidates.set(
+            token,
+            (emitCandidates.get(token) ?? []).concat(`${where} (${src.id})`)
+          );
+          continue;
+        }
         const seenKey = `${where}\0${token}`;
         if (unknownThemeSeen.has(seenKey)) continue;
         unknownThemeSeen.add(seenKey);
@@ -734,16 +776,157 @@ for (const { file, name, fn, cfg } of loaded) {
   }
 }
 
+// ─── emitted-CSS guard ───────────────────────────────────────────────────────
+//
+// The namespace model above covers nine namespaces exactly and says which
+// variable was missing. This pass covers the rest — every colour-capable
+// namespace (`bg-`, `border-`, `ring-`, `outline-`, `divide-`, `fill-`,
+// `stroke-`, `accent-`, `caret-`, `decoration-`) plus anything Tailwind gains
+// later — by compiling the classes and reporting the ones that yield no rule.
+// A mistyped colour token emits NO CSS and renders unstyled, which is the
+// whole reason this guard exists; `bg-` held five of the library's on-colour
+// references and was unguarded (#61).
+//
+// Two canaries first, because a compile that silently returns nothing would
+// make this pass vacuously green: a class that must live, and one that must
+// not.
+const EMIT_CANARY_ALIVE = 'bg-text-on-fill';
+const EMIT_CANARY_DEAD = 'bg-text-on-fill-nonexistent-key';
+
+/**
+ * Classes that are hand-written CSS rather than Tailwind utilities, so the
+ * compiler is right to emit nothing for them and this guard would otherwise
+ * report every one. Each needs a reason and the file that defines it.
+ *
+ * Same contract as `imports:lint` and `registry:lint`: an entry that stops
+ * being needed is an error, so the list cannot quietly outlive its cause.
+ */
+const HAND_WRITTEN_CSS: Record<string, string> = {
+  'animate-progress-indeterminate':
+    'keyframes + class in Progress.svelte (component-local :global) — the animation is bound to that component, not a theme token',
+  'animate-progress-striped': 'keyframes + class in Progress.svelte (component-local :global)',
+  'blocks-avatar-status-pulse': 'keyframes + class in Avatar.svelte (component-local :global)',
+  // Deliberately styles nothing. It is a state marker for consumers and tests
+  // to target — `utils/variants.ts` names it as the example of a semantic hook
+  // the conflict resolver passes through untouched, and `variants.test.ts`
+  // asserts that. "Emits no CSS" is the point, not a defect.
+  'blocks-menu--open': 'consumer-facing state hook, styled by nobody on purpose (menu.variants.ts)',
+  // NOT a `@theme` font key — there is no `--font-meta` anywhere. It is the
+  // class rule `.docs-rooms .font-meta` in the docs app's rooms stylesheet, so
+  // it applies only under that opt-in theme. Call sites must carry their own
+  // mono + size utilities and treat it as a refinement; `Section`'s `meta`
+  // slot did not, which this guard surfaced and that file now fixes.
+  'font-meta': 'theme-scoped class rule in the docs app (.docs-rooms .font-meta), not a theme key',
+  'meta-marker': 'docs-app decorative class, defined in the docs app stylesheet (rooms-docs.css)'
+};
+
+const tailwindCss = [
+  "@import 'tailwindcss';",
+  ...(await Promise.all(THEME_CSS.slice(1).map((p) => Bun.file(p).text())))
+].join('\n');
+
+// Canaries on the INPUT, not just on the compiler. The two above are appended
+// to the candidate list, so they prove the compiler and the theme load — they
+// say nothing about whether the walk collected anything. Measured: a
+// regression dropping `bg-` and `border-` from `emitCandidates` still left
+// 1201 of 1322 classes and both compiler canaries green, so a plain size
+// floor would not catch it either.
+//
+// Per-namespace instead, on the four that cannot plausibly go to zero in this
+// library (measured: bg- 128, border- 84, text- 80, ring- 64). Reaching zero
+// means either the walk broke or the namespace genuinely emptied — both worth
+// stopping for. `accent-`/`caret-` get no canary: the repo uses neither today,
+// so they are covered by the compiler like everything else but not asserted to
+// arrive.
+const NAMESPACE_CANARIES = ['bg-', 'border-', 'text-', 'ring-'];
+// `splitVariants` rather than a fourth hand-rolled `lastIndexOf(':')` in this
+// file — that one mangles bracketed values (`[color:red]` → `red]`).
+const candidateSplits = [...emitCandidates.keys()].map((t) => splitVariants(t));
+const missingNamespaces = NAMESPACE_CANARIES.filter(
+  (ns) => !candidateSplits.some(({ utility }) => utility.startsWith(ns))
+);
+// The namespace check deliberately looks past the prefix, which leaves it
+// blind along that axis: a regression dropping variant-PREFIXED tokens keeps
+// every namespace alive through the unprefixed ones. Measured — filtering them
+// out lost 422 of 1322 classes (32 %) with all four namespace canaries green,
+// all six allowlist entries still hit, and a planted `hover:bg-primaryx`
+// unreported. Prefixed classes are a third of what this guard reads and the
+// case its own docs advertise catching, so their arrival is asserted too.
+const prefixedArrived = candidateSplits.some(({ prefixes }) => prefixes.length > 0);
+
+// And that every GLOB root is represented. The namespace canaries all pass
+// on blocks alone, so dropping the table or docs configs from the candidate
+// set is invisible to them — measured: losing table's 97 classes hid the
+// `from-surface-2` finding this PR is built on, with all five canaries green.
+// The blocks-only version of that failure is caught today only because the
+// stale-HAND_WRITTEN_CSS check happens to have entries in `packages/docs`,
+// which is coverage by accident. One assertion covers both by design.
+const candidateOrigins = [...emitCandidates.values()].flat();
+const rootsMissing = [...new Set(GLOBS.map((g) => g.split('/src/')[0]))].filter(
+  (root) => !candidateOrigins.some((where) => where.startsWith(root))
+);
+if (missingNamespaces.length > 0 || !prefixedArrived || rootsMissing.length > 0) {
+  const missing = [
+    ...missingNamespaces,
+    ...(prefixedArrived ? [] : ['variant-prefixed']),
+    ...rootsMissing.map((r) => `${r}/*`)
+  ];
+  console.error(
+    `✖ variants-lint: no ${missing.join(' / ')} class reached the emitted-CSS guard — the collection walk is not seeing the configs it claims to check.`
+  );
+  process.exit(1);
+}
+
+const probe = await findNonEmittingClasses(
+  [...emitCandidates.keys(), EMIT_CANARY_ALIVE, EMIT_CANARY_DEAD],
+  { css: tailwindCss, base: REPO }
+);
+const deadSet = new Set(probe.dead);
+if (deadSet.has(EMIT_CANARY_ALIVE) || !deadSet.has(EMIT_CANARY_DEAD)) {
+  console.error(
+    `✖ variants-lint: the emitted-CSS canaries failed (alive='${EMIT_CANARY_ALIVE}' reported ${
+      deadSet.has(EMIT_CANARY_ALIVE) ? 'dead' : 'alive'
+    }, dead='${EMIT_CANARY_DEAD}' reported ${deadSet.has(EMIT_CANARY_DEAD) ? 'dead' : 'alive'}) — the compiler probe is not measuring what it claims.`
+  );
+  process.exit(1);
+}
+
+const handWrittenHit = new Set<string>();
+for (const token of probe.dead) {
+  if (token === EMIT_CANARY_DEAD) continue;
+  if (token in HAND_WRITTEN_CSS) {
+    handWrittenHit.add(token);
+    continue;
+  }
+  for (const where of emitCandidates.get(token) ?? []) {
+    noCss.push({
+      where,
+      token,
+      detail:
+        'Tailwind emits no rule for this class, so it renders as if it were not there. Usually a mistyped theme key (a colour, most often) — check it against the tokens in style/semantic.css. If it is hand-written CSS, add it to HAND_WRITTEN_CSS in this script with the file that defines it'
+    });
+  }
+}
+const staleHandWritten = Object.keys(HAND_WRITTEN_CSS).filter((t) => !handWrittenHit.has(t));
+
 // ─── report ──────────────────────────────────────────────────────────────────
 
 console.log(
-  `variants-lint: ${loaded.length} configs in ${files.length} files, ${themeVars.size} @theme keys — ${dead.length} lost, ${unknownTheme.length} unknown-theme, ${missingTransition.length} incomplete transition list(s), ${readingSurfaceHover.length} reading-surface hover(s), ${shadowed.length} shadowed, ${partial.length} partially-stripped token(s)`
+  `variants-lint: ${loaded.length} configs in ${files.length} files, ${themeVars.size} @theme keys, ${probe.checked} classes compiled — ${dead.length} lost, ${unknownTheme.length} unknown-theme, ${noCss.length} no-CSS, ${missingTransition.length} incomplete transition list(s), ${readingSurfaceHover.length} reading-surface hover(s), ${shadowed.length} shadowed, ${partial.length} partially-stripped token(s)`
 );
 
 for (const err of fileErrors) console.error(`✖ ${err}`);
 for (const f of dead) console.error(`✖ lost token '${f.token}' in ${f.where} (${f.detail})`);
 for (const f of unknownTheme) {
   console.error(`✖ unknown theme key for '${f.token}' in ${f.where} (${f.detail})`);
+}
+for (const f of noCss) {
+  console.error(`✖ no CSS emitted for '${f.token}' in ${f.where}\n    ${f.detail}`);
+}
+for (const token of staleHandWritten) {
+  console.error(
+    `✖ stale HAND_WRITTEN_CSS entry '${token}' — no tv() config references it any more; drop the entry from variants-lint.ts.`
+  );
 }
 for (const f of missingTransition) {
   console.error(`✖ incomplete transition list '${f.token}' in ${f.where}\n    ${f.detail}`);
@@ -773,6 +956,8 @@ if (
   fileErrors.length > 0 ||
   dead.length > 0 ||
   unknownTheme.length > 0 ||
+  noCss.length > 0 ||
+  staleHandWritten.length > 0 ||
   missingTransition.length > 0 ||
   readingSurfaceHover.length > 0 ||
   staleExemptions.length > 0

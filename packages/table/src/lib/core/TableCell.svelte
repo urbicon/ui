@@ -1,12 +1,17 @@
 <script lang="ts">
   import { formatCellValue, resolveColumnId, resolveColumnValue } from '../utils';
   import { customCellVariants } from '$lib/variants';
-  import { getTableContext } from '$lib/stores/TableStore.svelte';
+  import { getCellLocale, getTableContext } from '$lib/stores/TableStore.svelte';
   import SearchHighlight from '$lib/features/SearchHighlight.svelte';
   import type { Column, TableItem } from '$lib/types/tableTypes';
   import type { Snippet } from 'svelte';
 
   const { state: tableState } = getTableContext();
+
+  // The default `Date` branch of `formatCellValue` needs a resolved tag —
+  // `undefined` there follows the runtime and diverges across the SSR
+  // boundary. Resolved once per table by `<TableProvider>`, not per cell.
+  const cellLocale = $derived(getCellLocale());
 
   export type TableCellProps = {
     item: TableItem;
@@ -77,11 +82,11 @@
         >
           {#if tableState.searchTerm}
             <SearchHighlight
-              text={formatCellValue(item, column)}
+              text={formatCellValue(item, column, cellLocale)}
               searchTerm={tableState.searchTerm}
             />
           {:else}
-            {formatCellValue(item, column)}
+            {formatCellValue(item, column, cellLocale)}
           {/if}
         </span>
       </div>

@@ -18,7 +18,7 @@ Svelte 5 + Tailwind CSS 4 UI component library monorepo. Uses Bun workspaces.
   - `shared-types`: Shared TypeScript types
   - `sveltekit-utils`: SvelteKit helper utilities (`createCronRunner`, URL-state runes)
   - `design`: the `urbicon` CLI (`@urbicon-ui/design`) — local design-loop enforcement (validate/hook/context/record-decision/sync-manifest/i18n/verb), ships the design skill + templates
-  - `sv`: Svelte-CLI community add-on (`@urbicon-ui/sv`, npm-keyword `sv-add`, beta) — `sv add @urbicon-ui` / `sv create --add @urbicon-ui` installs blocks + design, wires the Tailwind stylesheet (`file.stylesheet`, after Tailwind), then hands over to `urbicon init --hook`; peer `sv`, single-file bundle, no dependencies
+  - `sv`: Svelte-CLI community add-on (`@urbicon-ui/sv`, npm-keyword `sv-add`, beta) — `sv add @urbicon-ui` / `sv create --add @urbicon-ui` installs blocks + design, wires the Tailwind stylesheet (`file.stylesheet`, after Tailwind), then hands over to `urbicon init --hook`; peer `sv`, single-file bundle, no dependencies. **The only SvelteKit-bound consumer path** (`unsupported('Requires SvelteKit')`) — not a library limit but a wiring one, see the comment in `src/index.ts`
   - `design-content`: versioned design knowledge bundle (`@urbicon-ui/design-content`) consumed by the remote MCP server + the `urbicon` CLI; `content/` is a git-ignored build artifact emitted by docs-gen
   - `design-engine`: zero-dep design linter / manifest parser / rubric (`@urbicon-ui/design-engine`), subpath exports `./linter` `./manifest` `./rubric`
   - `auth`: Authentication & user management (JWT sessions, refresh-token rotation, passkeys/WebAuthn, notifications, email)

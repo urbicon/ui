@@ -6,13 +6,17 @@ Feature-complete data table for Svelte 5 — zero runtime dependencies, part of 
 
 ## Installation
 
-This package ships inside the Urbicon UI monorepo. Install from repo root:
-
 ```bash
-bun install
+bun add @urbicon-ui/table @urbicon-ui/blocks
 ```
 
-Peer dependencies: `svelte` (^5), `@urbicon-ui/blocks`, `@urbicon-ui/i18n`.
+```css
+/* app.css — after Tailwind */
+@import '@urbicon-ui/blocks/style/index.css';
+@import '@urbicon-ui/table/style/index.css';
+```
+
+Peer dependencies: `svelte` (^5), `@urbicon-ui/blocks`, `@urbicon-ui/i18n`. No SvelteKit needed — the package imports neither `$app/*` nor `@sveltejs/kit`.
 
 ## Capability Overview
 

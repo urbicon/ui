@@ -65,6 +65,35 @@ describe('RadioGroup (component interaction)', () => {
     expect(radio('Large').getAttribute('tabindex')).toBe('-1');
   });
 
+  it('treats an empty-string value as a real selection, not as "nothing checked"', () => {
+    // A group whose "none" option carries `value=""` — the shape the table's
+    // sort and grouping lists use. `''` is falsy, so the "nothing is checked,
+    // keep the group reachable" branch used to fire and hand a tab stop to
+    // every row: 21 tab stops for 20 sortable columns instead of one.
+    renderRadios({
+      value: '',
+      items: [
+        { value: '', label: 'None' },
+        { value: 'small', label: 'Small' },
+        { value: 'medium', label: 'Medium' }
+      ]
+    });
+
+    expect(radio('None').getAttribute('tabindex')).toBe('0');
+    expect(radio('Small').getAttribute('tabindex')).toBe('-1');
+    expect(radio('Medium').getAttribute('tabindex')).toBe('-1');
+  });
+
+  it('keeps every enabled radio reachable while genuinely nothing is checked', () => {
+    // The other side of the same branch: with no `value` at all the group must
+    // not fall out of the tab order.
+    renderRadios();
+
+    expect(radio('Small').getAttribute('tabindex')).toBe('0');
+    expect(radio('Medium').getAttribute('tabindex')).toBe('0');
+    expect(radio('Large').getAttribute('tabindex')).toBe('0');
+  });
+
   it('ArrowDown moves focus and checks the next radio (selection follows focus), wrapping', async () => {
     const user = userEvent.setup();
     const onValueChange = vi.fn();

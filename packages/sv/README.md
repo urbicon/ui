@@ -22,6 +22,13 @@ Any package manager works (`npx sv …` likewise); non-interactive runs (CI,
 agents) should pre-answer Tailwind's plugin prompt:
 `bunx sv add tailwindcss=plugins:none @urbicon-ui`.
 
+**Requires SvelteKit** — the add-on declines a non-Kit project. The library does
+not: `@urbicon-ui/blocks` imports neither `$app/*` nor `@sveltejs/kit` and runs
+in any Svelte 5 project with Vite and Tailwind 4. What is missing outside Kit is
+the wiring, not the compatibility — a non-Kit project owns its entry module, so
+no add-on can know where the stylesheet gets loaded. Do those two steps by hand:
+see the [getting-started guide](https://ui.urbicon.de/getting-started).
+
 `@urbicon-ui` resolves to this package; the `tailwindcss` add-on is pulled in
 automatically as a dependency.
 

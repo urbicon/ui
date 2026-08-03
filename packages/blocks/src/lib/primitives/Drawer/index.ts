@@ -74,7 +74,19 @@ export interface DrawerProps extends Omit<HTMLDialogAttributes, 'children' | 'op
   /** Whether clicking the backdrop closes the drawer. @default true */
   closeOnBackdropClick?: boolean;
 
-  /** Whether pressing Escape closes the drawer. @default true */
+  /**
+   * Whether pressing Escape closes the drawer.
+   *
+   * Escape is dismissed one layer at a time: a control INSIDE the drawer that
+   * handles Escape itself — an open `Select`/`Combobox`/`Menu` panel, a
+   * `clearable` `Input` with text in it — consumes the key, and the drawer stays
+   * up. The second Escape closes the drawer. This is about controls in the
+   * content; it does not apply to a consumer `onkeydown` on the Drawer itself,
+   * which cannot veto the dismiss (see utils/compose-handlers.ts) — use this
+   * prop for that.
+   * @default true
+   * @summary Whether the Escape key dismisses the drawer.
+   */
   closeOnEscape?: boolean;
 
   /**

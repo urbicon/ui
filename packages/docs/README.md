@@ -8,7 +8,7 @@ Reusable documentation UI components — the pieces the [Urbicon UI docs site](h
 bun add @urbicon-ui/docs @urbicon-ui/blocks @urbicon-ui/table @urbicon-ui/i18n @urbicon-ui/shared-types shiki
 ```
 
-All of these (plus `svelte` ^5 and `@sveltejs/kit`, which a SvelteKit app already has) are **peer dependencies** — the package bundles none of them:
+All of these (plus `svelte` ^5) are **peer dependencies** — the package bundles none of them:
 
 - **`shiki`** (^4.2.0) — syntax highlighting. `CodePanel` / `CodeExample` highlight through a shared, lazily-created highlighter (`highlighterService`) with the package's editorial light/dark themes. It is a peer so your app controls the version and Shiki's grammars are not double-bundled next to an app-level install.
 - **`@urbicon-ui/blocks`** — the components compose blocks primitives (Card, Badge, Button, …) and the semantic token layer.

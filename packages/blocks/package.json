@@ -1,6 +1,6 @@
 {
   "name": "@urbicon-ui/blocks",
-  "version": "6.49.0",
+  "version": "6.50.0",
   "description": "Svelte 5 UI component library with Tailwind CSS 4, OKLCH design tokens and zero runtime dependencies",
   "license": "MIT",
   "repository": {
@@ -83,7 +83,6 @@
   ],
   "peerDependencies": {
     "svelte": "catalog:",
-    "@sveltejs/kit": "catalog:",
     "@urbicon-ui/i18n": "^6.0.0",
     "@urbicon-ui/shared-types": "^6.0.0"
   },
@@ -92,9 +91,13 @@
     "@sveltejs/kit": "catalog:",
     "@sveltejs/package": "catalog:",
     "@sveltejs/vite-plugin-svelte": "catalog:",
+    "@tailwindcss/node": "catalog:",
     "@tailwindcss/vite": "catalog:",
+    "@testing-library/dom": "catalog:",
+    "@testing-library/user-event": "catalog:",
     "@urbicon-ui/i18n": "workspace:*",
     "@urbicon-ui/shared-types": "workspace:*",
+    "jsdom": "catalog:",
     "prettier": "catalog:",
     "prettier-plugin-svelte": "catalog:",
     "prettier-plugin-tailwindcss": "catalog:",
@@ -103,9 +106,6 @@
     "tailwindcss": "catalog:",
     "typescript": "catalog:",
     "vite": "catalog:",
-    "vitest": "catalog:",
-    "jsdom": "catalog:",
-    "@testing-library/dom": "catalog:",
-    "@testing-library/user-event": "catalog:"
+    "vitest": "catalog:"
   }
 }
