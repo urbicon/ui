@@ -5,8 +5,9 @@
   import { CodeExample, Section } from '@urbicon-ui/docs';
   import { recipeMeta } from './meta';
   import RecipeHeader from '../RecipeHeader.svelte';
+  import RecipeFeatures from '../RecipeFeatures.svelte';
 
-  const { components: usedComponents, features } = recipeMeta;
+  const { features } = recipeMeta;
 
   let originalName = $state('Sunset Heights');
   let name = $state('Sunset Heights');
@@ -104,13 +105,7 @@
   </Section>
 
   <Section id="features" title="Features">
-    <Card variant="outlined">
-      <ul class="divide-border-subtle divide-y">
-        {#each features as feature (feature)}
-          <li class="text-text-secondary px-4 py-3 text-sm">{feature}</li>
-        {/each}
-      </ul>
-    </Card>
+    <RecipeFeatures {features} />
   </Section>
 
   <Section id="code" title="Code">

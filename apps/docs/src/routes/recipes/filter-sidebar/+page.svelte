@@ -21,6 +21,7 @@
   import { CodeExample, Note, NoteList, Section } from '@urbicon-ui/docs';
   import { recipeMeta } from './meta';
   import RecipeHeader from '../RecipeHeader.svelte';
+  import RecipeFeatures from '../RecipeFeatures.svelte';
 
   const { components: usedComponents, features } = recipeMeta;
 
@@ -609,15 +610,11 @@
     </div>
   </Section>
 
-  <Section id="features" title="Key Features" headingLevel={3}>
-    <ul class="text-text-secondary list-disc space-y-2 pl-5">
-      {#each features as feature (feature)}
-        <li>{feature}</li>
-      {/each}
-    </ul>
+  <Section id="features" title="Key Features">
+    <RecipeFeatures {features} />
   </Section>
 
-  <Section id="why-sidebar" title="Why Sidebar, not Drawer" headingLevel={3}>
+  <Section id="why-sidebar" title="Why Sidebar, not Drawer">
     <NoteList>
       <Note title="The panel is page shell">
         <p>
@@ -660,12 +657,12 @@
     </NoteList>
   </Section>
 
-  <div class="mt-12">
+  <Section id="code" title="Code" class="mt-12">
     <CodeExample
       title="Filter Sidebar Recipe"
       code={recipeCode}
       language="svelte"
       preview={false}
     />
-  </div>
+  </Section>
 </div>

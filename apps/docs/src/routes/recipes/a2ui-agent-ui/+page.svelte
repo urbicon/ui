@@ -2,7 +2,6 @@
   import SeoMeta from '$lib/SeoMeta.svelte';
   import {
     A2UIView,
-    Badge,
     Button,
     Card,
     urbiconA2uiCatalog,
@@ -10,8 +9,10 @@
   } from '@urbicon-ui/blocks';
   import { CodeExample, Section } from '@urbicon-ui/docs';
   import { recipeMeta } from './meta';
+  import RecipeHeader from '../RecipeHeader.svelte';
+  import RecipeFeatures from '../RecipeFeatures.svelte';
 
-  const { components: usedComponents, features } = recipeMeta;
+  const { features } = recipeMeta;
 
   // ── Live preview ───────────────────────────────────────────────────────────
   // Real envelopes, no network: the payload below is exactly what an agent
@@ -265,16 +266,7 @@ const system = [
 <SeoMeta title={recipeMeta.title} description={recipeMeta.description} />
 
 <div class="mx-auto max-w-4xl px-4 py-10">
-  <header class="mb-6">
-    <h1 class="text-text-primary mb-3 text-4xl font-bold">{recipeMeta.title}</h1>
-    <p class="text-text-secondary text-lg">{recipeMeta.description}</p>
-  </header>
-
-  <div class="mb-8 flex flex-wrap gap-2">
-    {#each usedComponents as comp (comp)}
-      <Badge variant="soft" intent="primary">{comp}</Badge>
-    {/each}
-  </div>
+  <RecipeHeader meta={recipeMeta} />
 
   <Section id="preview" title="Live Preview">
     <p class="text-text-secondary mb-4 text-sm">
@@ -302,13 +294,7 @@ const system = [
   </Section>
 
   <Section id="features" title="Features">
-    <Card variant="outlined">
-      <ul class="divide-border-subtle divide-y">
-        {#each features as feature (feature)}
-          <li class="text-text-secondary px-4 py-3 text-sm">{feature}</li>
-        {/each}
-      </ul>
-    </Card>
+    <RecipeFeatures {features} />
   </Section>
 
   <Section id="server" title="Server — assembling the system prompt">

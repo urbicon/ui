@@ -1,6 +1,5 @@
 <script lang="ts">
   import SeoMeta from '$lib/SeoMeta.svelte';
-  import { r } from '$lib/route';
   import {
     Stepper,
     StepperStep,
@@ -16,11 +15,11 @@
     Alert
   } from '@urbicon-ui/blocks';
   import { CodeExample, Section } from '@urbicon-ui/docs';
-  import { componentLinks } from '$lib/component-links';
   import { recipeMeta } from './meta';
   import RecipeHeader from '../RecipeHeader.svelte';
+  import RecipeFeatures from '../RecipeFeatures.svelte';
 
-  const { components: usedComponents, features } = recipeMeta;
+  const { features } = recipeMeta;
 
   // --- Wizard state ---
   let step = $state(0);
@@ -351,62 +350,19 @@
 
     <!-- Sidebar -->
     <div class="space-y-8">
-      <Section id="features" title="Key Features" headingLevel={3}>
-        <ul class="space-y-2">
-          {#each features as feature (feature)}
-            <li class="text-text-secondary flex items-start gap-2 text-sm">
-              <svg
-                class="text-success mt-0.5 h-4 w-4 shrink-0"
-                fill="none"
-                viewBox="0 0 24 24"
-                stroke="currentColor"
-                ><path
-                  stroke-linecap="round"
-                  stroke-linejoin="round"
-                  stroke-width="2"
-                  d="M5 13l4 4L19 7"
-                /></svg
-              >
-              {feature}
-            </li>
-          {/each}
-        </ul>
-      </Section>
-
-      <Section id="components" title="Components Used" headingLevel={3}>
-        <div class="space-y-2">
-          {#each usedComponents as comp (comp)}
-            <a
-              href={r(componentLinks[comp] ?? '#')}
-              class="text-text-secondary hover:bg-surface-hover hover:text-primary flex items-center gap-2 rounded-lg px-3 py-2 text-sm transition-colors"
-            >
-              <svg
-                class="text-primary h-4 w-4"
-                fill="none"
-                viewBox="0 0 24 24"
-                stroke="currentColor"
-                ><path
-                  stroke-linecap="round"
-                  stroke-linejoin="round"
-                  stroke-width="2"
-                  d="M13 7l5 5-5 5M6 12h12"
-                /></svg
-              >
-              {comp}
-            </a>
-          {/each}
-        </div>
+      <Section id="features" title="Key Features">
+        <RecipeFeatures {features} />
       </Section>
     </div>
   </div>
 
   <!-- Source Code -->
-  <div class="mt-12">
+  <Section id="code" title="Code" class="mt-12">
     <CodeExample
       title="Multi-Step Wizard Recipe"
       code={recipeCode}
       language="svelte"
       preview={false}
     />
-  </div>
+  </Section>
 </div>

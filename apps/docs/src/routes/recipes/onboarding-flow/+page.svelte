@@ -20,8 +20,7 @@
   import { CodeExample, Section } from '@urbicon-ui/docs';
   import { recipeMeta } from './meta';
   import RecipeHeader from '../RecipeHeader.svelte';
-
-  const { components: usedComponents } = recipeMeta;
+  import RecipeFeatures from '../RecipeFeatures.svelte';
 
   // One controller drives every surface. dev:false keeps the docs console quiet.
   const guide = new GuideController({ dev: false });
@@ -246,12 +245,16 @@
   </Section>
 
   <!-- Source Code -->
-  <div class="mt-12">
+  <Section id="features" title="Key Features" class="mt-12">
+    <RecipeFeatures features={recipeMeta.features} />
+  </Section>
+
+  <Section id="code" title="Code" class="mt-12">
     <CodeExample
       title="Onboarding Flow Recipe"
       code={recipeCode}
       language="svelte"
       preview={false}
     />
-  </div>
+  </Section>
 </div>

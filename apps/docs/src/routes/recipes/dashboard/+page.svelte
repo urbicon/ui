@@ -19,8 +19,7 @@
   import { CodeExample, Section } from '@urbicon-ui/docs';
   import { recipeMeta } from './meta';
   import RecipeHeader from '../RecipeHeader.svelte';
-
-  const { components: usedComponents } = recipeMeta;
+  import RecipeFeatures from '../RecipeFeatures.svelte';
 
   let sidebarOpen = $state(false);
   let activeRoute = $state('dashboard');
@@ -241,7 +240,7 @@
   <!-- Live Preview — full width -->
   <Section id="preview" title="Live Preview">
     <div
-      class="border-border-default relative mt-4 h-[640px] overflow-hidden rounded-xl border shadow-[var(--blocks-shadow-md)]"
+      class="border-border-default relative mt-4 h-160 overflow-hidden rounded-xl border shadow-[var(--blocks-shadow-md)]"
     >
       <SidebarLayout
         bind:open={sidebarOpen}
@@ -365,12 +364,16 @@
   </Section>
 
   <!-- Source Code -->
-  <div class="mt-12">
+  <Section id="features" title="Key Features" class="mt-12">
+    <RecipeFeatures features={recipeMeta.features} />
+  </Section>
+
+  <Section id="code" title="Code" class="mt-12">
     <CodeExample
       title="Dashboard Layout Recipe"
       code={recipeCode}
       language="svelte"
       preview={false}
     />
-  </div>
+  </Section>
 </div>

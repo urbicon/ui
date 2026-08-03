@@ -29,6 +29,11 @@
   let { href }: { href: string } = $props();
 </script>
 
+<!-- urbicon-ignore magic-dimension — the 19 arbitrary px are a miniature: this
+     component draws a 3-px-tall mock toolbar and 18-px cards so the cookbook
+     card can show the shape of a recipe. Snapping them to the spacing scale
+     would round a 3-px bar to 4 and lose the proportion the drawing depends on. -->
+
 <!--
   Recipe card mini-preview.
 

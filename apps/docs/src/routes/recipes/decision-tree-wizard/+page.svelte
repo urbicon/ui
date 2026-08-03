@@ -12,8 +12,9 @@
   import { CodeExample, Section } from '@urbicon-ui/docs';
   import { recipeMeta } from './meta';
   import RecipeHeader from '../RecipeHeader.svelte';
+  import RecipeFeatures from '../RecipeFeatures.svelte';
 
-  const { components: usedComponents, features } = recipeMeta;
+  const { features } = recipeMeta;
 
   // Example: system setup for heating-cost billing software
   // — Question A: fuel configuration
@@ -112,6 +113,13 @@
   }
 </script>
 
+<!-- urbicon-ignore font-weight-uniform — every one of them sits on a level-3
+     heading: one treatment applied consistently, not a flat page. The hierarchy
+     is carried by size (text-base for the step headings, text-sm for the notes)
+     and by the section heading above them, neither of which the weight
+     heuristic sees. (No angle brackets in this reason on purpose — the pragma
+     parser's id list stops at the first one; see issue #106.) -->
+
 <SeoMeta
   title="Decision Tree Wizard Recipe"
   description="Stepper wizard with dynamically changing steps and an auto-recommendation."
@@ -164,6 +172,8 @@
               <summary class="text-text-tertiary cursor-pointer text-xs">
                 Show answer path
               </summary>
+              <!-- A raw <pre>, not a CodeExample: this is the demo's live state
+                   serialised on each render, not a snippet anyone should copy. -->
               <pre
                 class="bg-surface-subtle text-text-secondary mt-2 overflow-x-auto rounded-md p-3 text-xs">{JSON.stringify(
                   answers,
@@ -189,13 +199,7 @@
   </Section>
 
   <Section id="features" title="Features">
-    <Card variant="outlined">
-      <ul class="divide-border-subtle divide-y">
-        {#each features as feature (feature)}
-          <li class="text-text-secondary px-4 py-3 text-sm">{feature}</li>
-        {/each}
-      </ul>
-    </Card>
+    <RecipeFeatures {features} />
   </Section>
 
   <Section id="code" title="Code skeleton">

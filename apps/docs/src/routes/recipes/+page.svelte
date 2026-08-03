@@ -2,7 +2,16 @@
   import SeoMeta from '$lib/SeoMeta.svelte';
   import { resolve } from '$app/paths';
   import { r } from '$lib/route';
-  import { Card, Badge, Button, buttonVariants } from '@urbicon-ui/blocks';
+  import {
+    ArrowRightIcon,
+    Badge,
+    BookOpenIcon,
+    Button,
+    buttonVariants,
+    Card,
+    CopyIcon,
+    LayersIcon
+  } from '@urbicon-ui/blocks';
   import RecipePreview from './RecipePreview.svelte';
   import { RECIPE_ORDER, type RecipeMeta } from './recipe-meta';
 
@@ -55,14 +64,7 @@
     <div class="mb-8 flex flex-wrap gap-6">
       <div class="flex items-center gap-2">
         <div class="bg-primary-subtle rounded-modify flex h-8 w-8 items-center justify-center">
-          <svg class="text-primary h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"
-            ><path
-              stroke-linecap="round"
-              stroke-linejoin="round"
-              stroke-width="2"
-              d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"
-            /></svg
-          >
+          <BookOpenIcon size={16} class="text-primary" />
         </div>
         <div>
           <div class="text-text-primary text-lg font-bold">{recipes.length}</div>
@@ -71,14 +73,7 @@
       </div>
       <div class="flex items-center gap-2">
         <div class="bg-success-subtle rounded-modify flex h-8 w-8 items-center justify-center">
-          <svg class="text-success h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"
-            ><path
-              stroke-linecap="round"
-              stroke-linejoin="round"
-              stroke-width="2"
-              d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z"
-            /></svg
-          >
+          <LayersIcon size={16} class="text-success" />
         </div>
         <div>
           <div class="text-text-primary text-lg font-bold">{totalComponents}</div>
@@ -87,14 +82,7 @@
       </div>
       <div class="flex items-center gap-2">
         <div class="bg-warning-subtle rounded-modify flex h-8 w-8 items-center justify-center">
-          <svg class="text-warning h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"
-            ><path
-              stroke-linecap="round"
-              stroke-linejoin="round"
-              stroke-width="2"
-              d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"
-            /></svg
-          >
+          <CopyIcon size={16} class="text-warning" />
         </div>
         <div>
           <div class="text-text-primary text-lg font-bold">100%</div>
@@ -123,7 +111,7 @@
     {#each filtered as recipe (recipe.href)}
       <Card
         href={r(recipe.href)}
-        class="group border-border-subtle hover:border-primary h-full overflow-hidden transition-all duration-[var(--blocks-duration-fast)] hover:shadow-[var(--blocks-shadow-lg)]"
+        class="group border-border-subtle hover:border-primary h-full overflow-hidden transition-[border-color,box-shadow] duration-[var(--blocks-duration-fast)] hover:shadow-[var(--blocks-shadow-lg)]"
       >
         <!-- Mini Preview -->
         <div class="border-border-subtle bg-surface-subtle border-b p-4">
@@ -178,14 +166,7 @@
     </p>
     <a href={resolve('/showcase')} class={buttonVariants({ intent: 'primary', size: 'lg' }).base()}>
       View Showcase
-      <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-        <path
-          stroke-linecap="round"
-          stroke-linejoin="round"
-          stroke-width="2"
-          d="M13 7l5 5-5 5M6 12h12"
-        />
-      </svg>
+      <ArrowRightIcon size={16} />
     </a>
   </div>
 </div>

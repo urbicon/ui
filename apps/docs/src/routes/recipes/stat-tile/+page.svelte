@@ -13,8 +13,9 @@
   import { CodeExample, Section } from '@urbicon-ui/docs';
   import { recipeMeta } from './meta';
   import RecipeHeader from '../RecipeHeader.svelte';
+  import RecipeFeatures from '../RecipeFeatures.svelte';
 
-  const { components: usedComponents, features } = recipeMeta;
+  const { features } = recipeMeta;
 
   type Intent = 'primary' | 'success' | 'warning' | 'danger' | 'neutral';
 
@@ -65,6 +66,11 @@
     }
   ];
 </script>
+
+<!-- urbicon-ignore intent-rainbow — the four hues ARE the subject. A stat tile
+     exists to signal how a number is doing, so this page has to show success,
+     warning and danger side by side; showing only neutral ones would document
+     nothing. -->
 
 <SeoMeta
   title="Stat Tile Recipe"
@@ -167,13 +173,7 @@
   </Section>
 
   <Section id="features" title="Features">
-    <Card variant="outlined">
-      <ul class="divide-border-subtle divide-y">
-        {#each features as feature (feature)}
-          <li class="text-text-secondary px-4 py-3 text-sm">{feature}</li>
-        {/each}
-      </ul>
-    </Card>
+    <RecipeFeatures {features} />
   </Section>
 
   <Section id="code" title="Code">

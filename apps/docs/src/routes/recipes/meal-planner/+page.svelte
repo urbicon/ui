@@ -4,6 +4,7 @@
   import { CodeExample, Section } from '@urbicon-ui/docs';
   import { recipeMeta } from './meta';
   import RecipeHeader from '../RecipeHeader.svelte';
+  import RecipeFeatures from '../RecipeFeatures.svelte';
 
   const { components: usedComponents, features } = recipeMeta;
 
@@ -94,6 +95,10 @@
 </Planner>`;
 </script>
 
+<!-- urbicon-ignore emoji-as-icon — the emoji are the recipe's DATA, not its
+     iconography: a meal planner's entries carry whatever glyph the user picked
+     for that dish. The icon set has no 'overnight oats' and should not. -->
+
 <SeoMeta
   title="Meal Planner Recipe"
   description="Weekly meal plan built on Planner — bucketed meals, intra-day sorting, and an add affordance on every day."
@@ -132,15 +137,11 @@
     </Planner>
   </Section>
 
-  <Section id="features" title="Key Features" headingLevel={3}>
-    <ul class="text-text-secondary list-disc space-y-2 pl-5">
-      {#each features as feature (feature)}
-        <li>{feature}</li>
-      {/each}
-    </ul>
+  <Section id="features" title="Key Features">
+    <RecipeFeatures {features} />
   </Section>
 
-  <div class="mt-12">
+  <Section id="code" title="Code" class="mt-12">
     <CodeExample title="Meal Planner Recipe" code={recipeCode} language="svelte" preview={false} />
-  </div>
+  </Section>
 </div>

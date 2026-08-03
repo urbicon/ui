@@ -4,8 +4,9 @@
   import { CodeExample, Section } from '@urbicon-ui/docs';
   import { recipeMeta } from './meta';
   import RecipeHeader from '../RecipeHeader.svelte';
+  import RecipeFeatures from '../RecipeFeatures.svelte';
 
-  const { components: usedComponents, features } = recipeMeta;
+  const { features } = recipeMeta;
 
   let lastClickedUser = $state<string | null>(null);
 
@@ -15,6 +16,10 @@
     { id: '3', name: 'Cara Lentz', role: 'Caretaker' }
   ];
 </script>
+
+<!-- urbicon-ignore intent-rainbow — danger and success are the Don't/Do panels,
+     which is meaning, not decoration; a reader has to be able to tell the two
+     halves apart at a glance. -->
 
 <SeoMeta
   title="Clickable Card Recipe"
@@ -129,13 +134,7 @@
   </Section>
 
   <Section id="features" title="Features">
-    <Card variant="outlined">
-      <ul class="divide-border-subtle divide-y">
-        {#each features as feature (feature)}
-          <li class="text-text-secondary px-4 py-3 text-sm">{feature}</li>
-        {/each}
-      </ul>
-    </Card>
+    <RecipeFeatures {features} />
   </Section>
 
   <Section id="code" title="Code">
@@ -191,6 +190,13 @@
     </div>
   </Section>
 
+  <!--
+    Raw <pre> in both panels, not CodeExample. The two snippets are one
+    comparison read side by side, and a CodeExample brings a title bar, a
+    language tag and a copy button each — three chrome elements per panel in a
+    grid cell, and a copy button on the "Don't" half that invites exactly the
+    thing this section warns against.
+  -->
   <Section id="anti-pattern" title="Anti-pattern: wrapping Card in <a>">
     <div class="grid gap-4 sm:grid-cols-2">
       <div class="border-danger/30 bg-danger-subtle rounded-lg border p-4">

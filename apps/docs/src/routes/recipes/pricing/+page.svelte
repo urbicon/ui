@@ -1,21 +1,22 @@
 <script lang="ts">
   import SeoMeta from '$lib/SeoMeta.svelte';
-  import { r } from '$lib/route';
   import {
-    Card,
     Badge,
     Button,
-    Separator,
+    Card,
+    CheckIcon,
+    CloseIcon,
     SegmentGroup,
     SegmentItem,
+    Separator,
     Tooltip
   } from '@urbicon-ui/blocks';
   import { CodeExample, Section } from '@urbicon-ui/docs';
-  import { componentLinks } from '$lib/component-links';
   import { recipeMeta } from './meta';
   import RecipeHeader from '../RecipeHeader.svelte';
+  import RecipeFeatures from '../RecipeFeatures.svelte';
 
-  const { components: usedComponents, features } = recipeMeta;
+  const { features } = recipeMeta;
 
   let billing = $state<'monthly' | 'annual'>('annual');
   let annual = $derived(billing === 'annual');
@@ -164,18 +165,10 @@
             <li class="flex items-start gap-2 text-sm {feature.included
               ? 'text-text-secondary' : 'text-text-disabled'}">
               {#if feature.included}
-                <svg class="text-success mt-0.5 h-4 w-4 shrink-0" fill="none" viewBox="0 0 24 24"
-                  stroke="currentColor">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                    d="M5 13l4 4L19 7" />
-                </svg>
+                <CheckIcon size={16} class="text-success mt-0.5" />
                 {feature.text}
               {:else}
-                <svg class="mt-0.5 h-4 w-4 shrink-0" fill="none" viewBox="0 0 24 24"
-                  stroke="currentColor">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                    d="M6 18L18 6M6 6l12 12" />
-                </svg>
+                <CloseIcon size={16} class="mt-0.5" />
                 <Tooltip label="Available on higher-tier plans">
                   <span>{feature.text}</span>
                 </Tooltip>
@@ -270,34 +263,10 @@
                           : 'text-text-disabled'}"
                       >
                         {#if feature.included}
-                          <svg
-                            class="text-success mt-0.5 h-4 w-4 shrink-0"
-                            fill="none"
-                            viewBox="0 0 24 24"
-                            stroke="currentColor"
-                          >
-                            <path
-                              stroke-linecap="round"
-                              stroke-linejoin="round"
-                              stroke-width="2"
-                              d="M5 13l4 4L19 7"
-                            />
-                          </svg>
+                          <CheckIcon size={16} class="text-success mt-0.5" />
                           {feature.text}
                         {:else}
-                          <svg
-                            class="mt-0.5 h-4 w-4 shrink-0"
-                            fill="none"
-                            viewBox="0 0 24 24"
-                            stroke="currentColor"
-                          >
-                            <path
-                              stroke-linecap="round"
-                              stroke-linejoin="round"
-                              stroke-width="2"
-                              d="M6 18L18 6M6 6l12 12"
-                            />
-                          </svg>
+                          <CloseIcon size={16} class="mt-0.5" />
                           <Tooltip label="Available on higher-tier plans">
                             <span>{feature.text}</span>
                           </Tooltip>
@@ -315,57 +284,14 @@
 
     <!-- Sidebar -->
     <div class="space-y-8">
-      <Section id="features" title="Key Features" headingLevel={3}>
-        <ul class="space-y-2">
-          {#each features as feature (feature)}
-            <li class="text-text-secondary flex items-start gap-2 text-sm">
-              <svg
-                class="text-success mt-0.5 h-4 w-4 shrink-0"
-                fill="none"
-                viewBox="0 0 24 24"
-                stroke="currentColor"
-                ><path
-                  stroke-linecap="round"
-                  stroke-linejoin="round"
-                  stroke-width="2"
-                  d="M5 13l4 4L19 7"
-                /></svg
-              >
-              {feature}
-            </li>
-          {/each}
-        </ul>
-      </Section>
-
-      <Section id="components" title="Components Used" headingLevel={3}>
-        <div class="space-y-2">
-          {#each usedComponents as comp (comp)}
-            <a
-              href={r(componentLinks[comp] ?? '#')}
-              class="text-text-secondary hover:bg-surface-hover hover:text-primary flex items-center gap-2 rounded-lg px-3 py-2 text-sm transition-colors"
-            >
-              <svg
-                class="text-primary h-4 w-4"
-                fill="none"
-                viewBox="0 0 24 24"
-                stroke="currentColor"
-                ><path
-                  stroke-linecap="round"
-                  stroke-linejoin="round"
-                  stroke-width="2"
-                  d="M13 7l5 5-5 5M6 12h12"
-                /></svg
-              >
-              {comp}
-            </a>
-          {/each}
-        </div>
+      <Section id="features" title="Key Features">
+        <RecipeFeatures {features} />
       </Section>
     </div>
   </div>
 
   <!-- Source Code -->
-  <div class="mt-12">
+  <Section id="code" title="Code" class="mt-12">
     <CodeExample title="Pricing Cards Recipe" code={recipeCode} language="svelte" preview={false} />
-  </div>
+  </Section>
 </div>

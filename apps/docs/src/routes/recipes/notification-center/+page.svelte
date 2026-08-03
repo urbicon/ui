@@ -1,22 +1,24 @@
 <script lang="ts">
   import SeoMeta from '$lib/SeoMeta.svelte';
-  import { r } from '$lib/route';
   import {
+    ArchiveIcon,
+    Avatar,
+    Badge,
+    BellIcon,
+    Button,
+    CheckIcon,
     Drawer,
     Tab,
     TabItem,
     TabPanel,
-    Badge,
-    Avatar,
-    Button,
     Tooltip
   } from '@urbicon-ui/blocks';
   import { CodeExample, Section } from '@urbicon-ui/docs';
-  import { componentLinks } from '$lib/component-links';
   import { recipeMeta } from './meta';
   import RecipeHeader from '../RecipeHeader.svelte';
+  import RecipeFeatures from '../RecipeFeatures.svelte';
 
-  const { components: usedComponents, features } = recipeMeta;
+  const { features } = recipeMeta;
 
   interface Notification {
     id: string;
@@ -196,10 +198,7 @@
 <!-- Trigger Button -->
 <Button variant="outlined" intent="neutral" onclick={() => (drawerOpen = true)}>
   <span class="relative inline-flex items-center gap-2">
-    <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-      <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9" />
-      <path d="M13.73 21a2 2 0 0 1-3.46 0" />
-    </svg>
+    <BellIcon size={20} />
     Notifications
     {#if unreadCount > 0}
       <Badge variant="soft" intent="danger" size="sm">{unreadCount}</Badge>
@@ -235,13 +234,13 @@
                   {#if !notification.read}
                     <Tooltip label="Mark as read">
                       <button class="rounded p-1 text-text-tertiary transition-colors hover:bg-surface-hover hover:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50" aria-label="Mark as read" onclick={() => markAsRead(notification.id)}>
-                        <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5" /></svg>
+                        <CheckIcon size={16} />
                       </button>
                     </Tooltip>
                   {/if}
                   <Tooltip label="Archive">
                     <button class="rounded p-1 text-text-tertiary transition-colors hover:bg-surface-hover hover:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50" aria-label="Archive" onclick={() => archiveNotification(notification.id)}>
-                      <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="4" width="20" height="5" rx="1" /><path d="M4 9v9a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9" /><line x1="10" y1="13" x2="14" y2="13" /></svg>
+                      <ArchiveIcon size={16} />
                     </button>
                   </Tooltip>
                 </div>
@@ -272,22 +271,11 @@
     <div class="xl:col-span-2">
       <Section id="preview" title="Live Preview">
         <div
-          class="border-border-subtle bg-surface-subtle mt-4 flex min-h-[480px] items-center justify-center rounded-xl border p-8"
+          class="border-border-subtle bg-surface-subtle mt-4 flex min-h-120 items-center justify-center rounded-xl border p-8"
         >
           <Button variant="outlined" intent="neutral" onclick={() => (drawerOpen = true)}>
             <span class="relative inline-flex items-center gap-2">
-              <svg
-                class="h-5 w-5"
-                fill="none"
-                viewBox="0 0 24 24"
-                stroke="currentColor"
-                stroke-width="2"
-                stroke-linecap="round"
-                stroke-linejoin="round"
-              >
-                <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9" />
-                <path d="M13.73 21a2 2 0 0 1-3.46 0" />
-              </svg>
+              <BellIcon size={20} />
               Notifications
               {#if unreadCount > 0}
                 <Badge variant="soft" intent="danger" size="sm">{unreadCount}</Badge>
@@ -300,64 +288,21 @@
 
     <!-- Sidebar -->
     <div class="space-y-8">
-      <Section id="features" title="Key Features" headingLevel={3}>
-        <ul class="space-y-2">
-          {#each features as feature (feature)}
-            <li class="text-text-secondary flex items-start gap-2 text-sm">
-              <svg
-                class="text-success mt-0.5 h-4 w-4 shrink-0"
-                fill="none"
-                viewBox="0 0 24 24"
-                stroke="currentColor"
-                ><path
-                  stroke-linecap="round"
-                  stroke-linejoin="round"
-                  stroke-width="2"
-                  d="M5 13l4 4L19 7"
-                /></svg
-              >
-              {feature}
-            </li>
-          {/each}
-        </ul>
-      </Section>
-
-      <Section id="components" title="Components Used" headingLevel={3}>
-        <div class="space-y-2">
-          {#each usedComponents as comp (comp)}
-            <a
-              href={r(componentLinks[comp] ?? '#')}
-              class="text-text-secondary hover:bg-surface-hover hover:text-primary flex items-center gap-2 rounded-lg px-3 py-2 text-sm transition-colors"
-            >
-              <svg
-                class="text-primary h-4 w-4"
-                fill="none"
-                viewBox="0 0 24 24"
-                stroke="currentColor"
-                ><path
-                  stroke-linecap="round"
-                  stroke-linejoin="round"
-                  stroke-width="2"
-                  d="M13 7l5 5-5 5M6 12h12"
-                /></svg
-              >
-              {comp}
-            </a>
-          {/each}
-        </div>
+      <Section id="features" title="Key Features">
+        <RecipeFeatures {features} />
       </Section>
     </div>
   </div>
 
   <!-- Source Code -->
-  <div class="mt-12">
+  <Section id="code" title="Code" class="mt-12">
     <CodeExample
       title="Notification Center Recipe"
       code={recipeCode}
       language="svelte"
       preview={false}
     />
-  </div>
+  </Section>
 </div>
 
 <!-- Drawer renders at page level, outside the preview box -->
@@ -417,15 +362,7 @@
                       onclick={() => markAsRead(notification.id)}
                       aria-label="Mark as read"
                     >
-                      <svg
-                        class="h-4 w-4"
-                        fill="none"
-                        viewBox="0 0 24 24"
-                        stroke="currentColor"
-                        stroke-width="2"
-                        stroke-linecap="round"
-                        stroke-linejoin="round"><path d="M20 6 9 17l-5-5" /></svg
-                      >
+                      <CheckIcon size={16} />
                     </button>
                   </Tooltip>
                 {/if}
@@ -435,18 +372,7 @@
                     onclick={() => archiveNotification(notification.id)}
                     aria-label="Archive"
                   >
-                    <svg
-                      class="h-4 w-4"
-                      fill="none"
-                      viewBox="0 0 24 24"
-                      stroke="currentColor"
-                      stroke-width="2"
-                      stroke-linecap="round"
-                      stroke-linejoin="round"
-                      ><rect x="2" y="4" width="20" height="5" rx="1" /><path
-                        d="M4 9v9a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9"
-                      /><line x1="10" y1="13" x2="14" y2="13" /></svg
-                    >
+                    <ArchiveIcon size={16} />
                   </button>
                 </Tooltip>
               </div>
@@ -458,19 +384,7 @@
       <TabPanel value="unread">
         {#if unreadNotifications.length === 0}
           <div class="flex flex-col items-center justify-center py-12 text-center">
-            <svg
-              class="text-text-quaternary mb-3 h-10 w-10"
-              fill="none"
-              viewBox="0 0 24 24"
-              stroke="currentColor"
-              stroke-width="1.5"
-              stroke-linecap="round"
-              stroke-linejoin="round"
-            >
-              <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9" />
-              <path d="M13.73 21a2 2 0 0 1-3.46 0" />
-              <line x1="1" y1="1" x2="23" y2="23" />
-            </svg>
+            <BellIcon size={40} class="text-text-quaternary mb-3" />
             <p class="text-text-secondary text-sm font-medium">All caught up</p>
             <p class="text-text-quaternary mt-1 text-xs">No unread notifications.</p>
           </div>
@@ -501,15 +415,7 @@
                       onclick={() => markAsRead(notification.id)}
                       aria-label="Mark as read"
                     >
-                      <svg
-                        class="h-4 w-4"
-                        fill="none"
-                        viewBox="0 0 24 24"
-                        stroke="currentColor"
-                        stroke-width="2"
-                        stroke-linecap="round"
-                        stroke-linejoin="round"><path d="M20 6 9 17l-5-5" /></svg
-                      >
+                      <CheckIcon size={16} />
                     </button>
                   </Tooltip>
                   <Tooltip label="Archive">
@@ -518,18 +424,7 @@
                       onclick={() => archiveNotification(notification.id)}
                       aria-label="Archive"
                     >
-                      <svg
-                        class="h-4 w-4"
-                        fill="none"
-                        viewBox="0 0 24 24"
-                        stroke="currentColor"
-                        stroke-width="2"
-                        stroke-linecap="round"
-                        stroke-linejoin="round"
-                        ><rect x="2" y="4" width="20" height="5" rx="1" /><path
-                          d="M4 9v9a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9"
-                        /><line x1="10" y1="13" x2="14" y2="13" /></svg
-                      >
+                      <ArchiveIcon size={16} />
                     </button>
                   </Tooltip>
                 </div>

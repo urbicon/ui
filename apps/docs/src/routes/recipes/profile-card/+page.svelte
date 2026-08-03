@@ -1,12 +1,10 @@
 <script lang="ts">
   import SeoMeta from '$lib/SeoMeta.svelte';
-  import { r } from '$lib/route';
   import { Card, Avatar, Badge, Button, Separator, Tooltip, Progress } from '@urbicon-ui/blocks';
   import { CodeExample, Section } from '@urbicon-ui/docs';
   import { recipeMeta } from './meta';
   import RecipeHeader from '../RecipeHeader.svelte';
-
-  const { components: usedComponents } = recipeMeta;
+  import RecipeFeatures from '../RecipeFeatures.svelte';
 
   const user = {
     name: 'Sarah Chen',
@@ -235,7 +233,11 @@
   </Section>
 
   <!-- Source Code -->
-  <div class="mt-12">
+  <Section id="features" title="Key Features" class="mt-12">
+    <RecipeFeatures features={recipeMeta.features} />
+  </Section>
+
+  <Section id="code" title="Code" class="mt-12">
     <CodeExample title="Profile Card Recipe" code={recipeCode} language="svelte" preview={false} />
-  </div>
+  </Section>
 </div>

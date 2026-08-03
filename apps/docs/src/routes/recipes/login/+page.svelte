@@ -1,13 +1,21 @@
 <script lang="ts">
   import SeoMeta from '$lib/SeoMeta.svelte';
-  import { r } from '$lib/route';
-  import { Button, Input, Checkbox, Card, Alert, Separator } from '@urbicon-ui/blocks';
+  import {
+    Alert,
+    Button,
+    Card,
+    Checkbox,
+    EyeOffIcon,
+    Input,
+    LockIcon,
+    Separator
+  } from '@urbicon-ui/blocks';
   import { CodeExample, InfoCard, Section } from '@urbicon-ui/docs';
-  import { componentLinks } from '$lib/component-links';
   import { recipeMeta } from './meta';
   import RecipeHeader from '../RecipeHeader.svelte';
+  import RecipeFeatures from '../RecipeFeatures.svelte';
 
-  const { components: usedComponents, features } = recipeMeta;
+  const { features } = recipeMeta;
 
   let email = $state('');
   let password = $state('');
@@ -119,14 +127,7 @@
                   <div
                     class="bg-primary text-text-on-primary mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-xl"
                   >
-                    <svg class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"
-                      ><path
-                        stroke-linecap="round"
-                        stroke-linejoin="round"
-                        stroke-width="2"
-                        d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"
-                      /></svg
-                    >
+                    <LockIcon size={24} />
                   </div>
                   <p class="text-text-primary text-xl font-bold">Welcome back</p>
                   <p class="text-text-tertiary mt-1 text-sm">Sign in to your account</p>
@@ -180,29 +181,7 @@
                         class="text-text-tertiary hover:text-text-primary absolute top-8 right-3"
                         onclick={() => (showPassword = !showPassword)}
                       >
-                        <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                          {#if showPassword}
-                            <path
-                              stroke-linecap="round"
-                              stroke-linejoin="round"
-                              stroke-width="2"
-                              d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l3.59 3.59m0 0A9.953 9.953 0 0112 5c4.478 0 8.268 2.943 9.543 7a10.025 10.025 0 01-4.132 5.411m0 0L21 21"
-                            />
-                          {:else}
-                            <path
-                              stroke-linecap="round"
-                              stroke-linejoin="round"
-                              stroke-width="2"
-                              d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"
-                            />
-                            <path
-                              stroke-linecap="round"
-                              stroke-linejoin="round"
-                              stroke-width="2"
-                              d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"
-                            />
-                          {/if}
-                        </svg>
+                        <EyeOffIcon size={16} />
                       </button>
                     </div>
                     <div class="flex items-center justify-between">
@@ -238,57 +217,14 @@
 
     <!-- Sidebar -->
     <div class="space-y-8">
-      <Section id="features" title="Key Features" headingLevel={3}>
-        <ul class="space-y-2">
-          {#each features as feature (feature)}
-            <li class="text-text-secondary flex items-start gap-2 text-sm">
-              <svg
-                class="text-success mt-0.5 h-4 w-4 shrink-0"
-                fill="none"
-                viewBox="0 0 24 24"
-                stroke="currentColor"
-                ><path
-                  stroke-linecap="round"
-                  stroke-linejoin="round"
-                  stroke-width="2"
-                  d="M5 13l4 4L19 7"
-                /></svg
-              >
-              {feature}
-            </li>
-          {/each}
-        </ul>
-      </Section>
-
-      <Section id="components" title="Components Used" headingLevel={3}>
-        <div class="space-y-2">
-          {#each usedComponents as comp (comp)}
-            <a
-              href={r(componentLinks[comp] ?? '#')}
-              class="text-text-secondary hover:bg-surface-hover hover:text-primary flex items-center gap-2 rounded-lg px-3 py-2 text-sm transition-colors"
-            >
-              <svg
-                class="text-primary h-4 w-4"
-                fill="none"
-                viewBox="0 0 24 24"
-                stroke="currentColor"
-                ><path
-                  stroke-linecap="round"
-                  stroke-linejoin="round"
-                  stroke-width="2"
-                  d="M13 7l5 5-5 5M6 12h12"
-                /></svg
-              >
-              {comp}
-            </a>
-          {/each}
-        </div>
+      <Section id="features" title="Key Features">
+        <RecipeFeatures {features} />
       </Section>
     </div>
   </div>
 
   <!-- Source Code -->
-  <div class="mt-12">
+  <Section id="code" title="Code" class="mt-12">
     <CodeExample title="Login Form Recipe" code={recipeCode} language="svelte" preview={false} />
-  </div>
+  </Section>
 </div>
