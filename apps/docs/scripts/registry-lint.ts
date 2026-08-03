@@ -142,9 +142,22 @@ function collectPages(dir: string, prefix: string, out: Set<string>): void {
     const p = join(dir, entry);
     if (statSync(p).isDirectory()) {
       // Route groups `(name)` and param dirs contribute no literal segment we
-      // could compare against a hand-written href — the docs app has neither
-      // today, so they are skipped loudly rather than guessed at.
-      if (entry.startsWith('(') || entry.startsWith('[')) continue;
+      // could compare against a hand-written href, so this script cannot check
+      // what is inside them. It used to say "skipped loudly" and then skip
+      // silently — which means the first route group anyone adds takes its
+      // whole subtree out of the guard without a word. Now it is loud: the app
+      // has neither today, so this is a "teach me first" error, not a ban.
+      if (entry.startsWith('(') || entry.startsWith('[')) {
+        errors.push({
+          where: `src/routes${prefix}/${entry}`,
+          detail:
+            `${entry} is a route group or param directory, and this script cannot derive the ` +
+            `URLs inside it — everything below it would go unchecked. Teach collectPages how to ` +
+            `resolve it (a group contributes no segment; a param needs the concrete values), or ` +
+            `move the pages out.`
+        });
+        continue;
+      }
       collectPages(p, `${prefix}/${entry}`, out);
     } else if (entry === '+page.svelte') {
       out.add(prefix === '' ? '/' : prefix);
@@ -160,7 +173,24 @@ collectPages(ROUTES, '', pages);
 // navigation.ts `$lib/i18n`), which only resolve inside Vite — a lint that
 // needed `svelte-kit sync` to run would be a lint nobody runs.
 const linksSrc = readFileSync(join(APP, 'src/lib/component-links.ts'), 'utf8');
-const navSrc = readFileSync(join(APP, 'src/lib/navigation.ts'), 'utf8');
+/**
+ * Blank out comments, keeping offsets, before any regex reads the file.
+ *
+ * Every list below is parsed out of raw source with a `'…'` pattern, and a
+ * comment is source. So commenting an entry out — the everyday way to hide a
+ * page for a while — left it counted as registered, and this script then
+ * reported "every page is in the sidebar" about a page that was in none.
+ * Measured 2026-08: with `{ name: 'Badge', href: '/blocks/primitives/badge' }`
+ * commented out, the nav href count stayed at 163 and the run stayed green;
+ * deleting the same line drops it to 162 and raises the error.
+ */
+function blankComments(src: string): string {
+  return src
+    .replace(/\/\*[\s\S]*?\*\//g, (m) => ' '.repeat(m.length))
+    .replace(/(^|[^:])\/\/[^\n]*/g, (m, lead: string) => lead + ' '.repeat(m.length - lead.length));
+}
+
+const navSrc = blankComments(readFileSync(join(APP, 'src/lib/navigation.ts'), 'utf8'));
 
 const linksAt = linksSrc.indexOf('export const componentLinks');
 const linksOpen = linksSrc.indexOf('{', linksAt);
@@ -199,7 +229,7 @@ const draftRoutes = new Set([...(draftBlock?.[1] ?? '').matchAll(/'([^']+)'/g)].
  * that is hand-kept. A missing slug means the recipe appears nowhere, which is
  * what check 4 below is for.
  */
-const orderSrc = readFileSync(join(ROUTES, 'recipes/recipe-meta.ts'), 'utf8');
+const orderSrc = blankComments(readFileSync(join(ROUTES, 'recipes/recipe-meta.ts'), 'utf8'));
 const orderBlock = orderSrc.match(/RECIPE_ORDER\s*=\s*\[([\s\S]*?)\]\s*as const;/);
 if (!orderBlock) {
   errors.push({
@@ -232,8 +262,26 @@ for (const { dir, route } of CATALOGS) {
       // Aliasing onto a family page is legitimate, but it is a decision, not a
       // default — an entry that lands here without one is a component nobody
       // wrote a page for.
-      if (entry.name in PAGELESS) pagelessSeen.add(entry.name);
-      else
+      if (entry.name in PAGELESS) {
+        pagelessSeen.add(entry.name);
+        // The exemption says the component "documents elsewhere". That claim
+        // was never checked: the `continue` below skipped the componentLinks
+        // check, so the second damage this script exists to prevent — an
+        // `@related` chip silently dropped because `buildRelatedLinks` cannot
+        // resolve the name — was unguarded for exactly the exempted names.
+        // Measured 2026-08: removing `GuideArticle` from component-links.ts
+        // left the run green, while doing the same to any name WITH a page was
+        // loud. So a page-less name must point somewhere too.
+        if (!componentLinks.has(entry.name)) {
+          errors.push({
+            where: 'src/lib/component-links.ts',
+            detail:
+              `${entry.name} is exempted in PAGELESS as "${PAGELESS[entry.name]}", but has no ` +
+              `\`componentLinks\` entry — so every \`@related\` chip pointing at it is dropped ` +
+              `without a word. The exemption says it documents elsewhere; name that page here.`
+          });
+        }
+      } else
         errors.push({
           where: `static/${dir}/_catalog.json`,
           detail:
