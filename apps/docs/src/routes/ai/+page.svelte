@@ -81,8 +81,10 @@ let { variant, intent } = $props();`;
 
 <div class="mx-auto max-w-4xl px-6 pt-10 pb-12">
   <!-- urbicon CLI -->
-  <section class="mb-12">
-    <h2 class="text-text-primary mb-2 text-2xl font-bold">The urbicon CLI</h2>
+  <section class="mb-12" aria-labelledby="the-urbicon-cli-title">
+    <h2 id="the-urbicon-cli-title" class="text-text-primary mb-2 text-2xl font-bold">
+      The urbicon CLI
+    </h2>
     <p class="text-text-secondary mb-6">
       One dev-dependency, <code class="bg-surface-elevated rounded px-1.5 py-0.5 font-mono text-xs"
         >@urbicon-ui/design</code
@@ -146,8 +148,8 @@ let { variant, intent } = $props();`;
   </section>
 
   <!-- llms.txt -->
-  <section class="mb-12">
-    <h2 class="text-text-primary mb-2 text-2xl font-bold">llms.txt</h2>
+  <section class="mb-12" aria-labelledby="llms-txt-title">
+    <h2 id="llms-txt-title" class="text-text-primary mb-2 text-2xl font-bold">llms.txt</h2>
     <p class="text-text-secondary mb-6">
       Every component has its own <code
         class="bg-surface-elevated rounded px-1.5 py-0.5 font-mono text-xs">llm.txt</code
@@ -177,8 +179,8 @@ let { variant, intent } = $props();`;
   </section>
 
   <!-- .cursorrules -->
-  <section class="mb-12">
-    <h2 class="text-text-primary mb-2 text-2xl font-bold">.cursorrules</h2>
+  <section class="mb-12" aria-labelledby="cursorrules-title">
+    <h2 id="cursorrules-title" class="text-text-primary mb-2 text-2xl font-bold">.cursorrules</h2>
     <p class="text-text-secondary mb-6">
       IDE-specific guidance for AI code generation. Ensures generated code follows project
       conventions: barrel imports, semantic tokens, Svelte 5 runes, focus-visible, and more.
@@ -193,8 +195,8 @@ let { variant, intent } = $props();`;
   </section>
 
   <!-- Architecture -->
-  <section class="mb-12">
-    <h2 class="text-text-primary mb-2 text-2xl font-bold">How It Works</h2>
+  <section class="mb-12" aria-labelledby="how-it-works-title">
+    <h2 id="how-it-works-title" class="text-text-primary mb-2 text-2xl font-bold">How It Works</h2>
     <p class="text-text-secondary mb-6">
       JSDoc annotations in component source files are the single source of truth. One edit
       automatically updates the documentation site, llms.txt files, and the version-pinned knowledge

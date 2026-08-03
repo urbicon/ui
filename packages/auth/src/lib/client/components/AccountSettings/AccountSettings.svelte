@@ -24,6 +24,13 @@
   const t = $derived(mergeAuthLocale(authLocale(), tProp));
   const currentEmail = $derived(user?.email ?? '');
 
+  // The danger zone is the one part rendered as its own `<section>`, so it is a
+  // landmark; without a name a screen reader announces it as nothing, which is
+  // a poor place for that to happen. Two steps because `$props.id()` is only
+  // valid as a top-level initializer.
+  const propsId = $props.id();
+  const dangerTitleId = `account-danger-title-${propsId}`;
+
   // Editable draft of the name, seeded once from the initial user. If you
   // resolve `user` after mount (async load / switching users), remount with
   // `{#key user?.id}<AccountSettings {user} />{/key}` to re-seed it.
@@ -276,12 +283,16 @@
 
     <!-- Danger zone -->
     <section
+      aria-labelledby={dangerTitleId}
       class={cls(
         'flex flex-col gap-3',
         [slotClasses.section, slotClasses.danger].filter(Boolean).join(' ')
       )}
     >
-      <h3 class={cls('text-danger text-sm font-semibold', slotClasses.sectionTitle)}>
+      <h3
+        id={dangerTitleId}
+        class={cls('text-danger text-sm font-semibold', slotClasses.sectionTitle)}
+      >
         {t.account.delete.title}
       </h3>
       <p class={cls('text-text-tertiary text-sm', undefined)}>

@@ -72,7 +72,7 @@
       <div class="border-border-subtle h-96 w-full overflow-hidden rounded-xl border">
         <SplitPane orientation="vertical" defaultRatio={0.55} min="20%" max="85%">
           {#snippet start()}
-            <section class="bg-surface-elevated h-full overflow-auto p-4">
+            <section aria-label="Preview" class="bg-surface-elevated h-full overflow-auto p-4">
               <p class="text-text-primary mb-1 text-sm font-semibold">Preview</p>
               <p class="text-text-secondary text-sm leading-relaxed">
                 Rendered output goes here. Resize the divider below to give the log more room when
@@ -81,7 +81,7 @@
             </section>
           {/snippet}
           {#snippet end()}
-            <section class="h-full overflow-auto p-4 font-mono text-xs">
+            <section aria-label="Build log" class="h-full overflow-auto p-4 font-mono text-xs">
               <p class="text-success">✓ build succeeded in 412ms</p>
               <p class="text-text-tertiary">→ 24 modules transformed</p>
               <p class="text-text-tertiary">→ dist/index.js 12.4 kB</p>
@@ -169,7 +169,7 @@
             </div>
           {/snippet}
           {#snippet end()}
-            <section class="bg-surface-elevated h-full overflow-auto p-6">
+            <section aria-label="Preview" class="bg-surface-elevated h-full overflow-auto p-6">
               <p class="text-text-primary mb-4 text-sm font-semibold">Artifact preview</p>
               <div class="border-border-subtle grid grid-cols-3 gap-3">
                 {#each ['Starter', 'Pro', 'Team'] as tier (tier)}

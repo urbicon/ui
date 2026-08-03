@@ -61,8 +61,16 @@
     .split('');
 </script>
 
+<!-- Not `SeoMeta`: it appends " – Urbicon UI" to every title, and this page is
+     a fiction — the salon the landing and the getting-started guide build their
+     examples around. The suffix would break it. The description says what the
+     page actually is, which the title deliberately does not. -->
 <svelte:head>
   <title>{SALON_NAME} — Bleecker Street</title>
+  <meta
+    name="description"
+    content="A fictional salon site built entirely from Urbicon UI — the livery demo behind the examples on the landing page and in the getting-started guide."
+  />
 </svelte:head>
 
 <BlocksProvider defaults={livery.defaults}>
@@ -83,7 +91,7 @@
     </header>
 
     <!-- ── Hero ─────────────────────────────────────────────────────────── -->
-    <section data-salon="hero" class="mx-auto max-w-6xl px-6">
+    <section data-salon="hero" aria-label={SALON_NAME} class="mx-auto max-w-6xl px-6">
       <p data-salon="kicker" class="text-2xs text-text-tertiary tracking-[0.32em] uppercase">
         233 Bleecker Street · New York
       </p>
@@ -113,9 +121,16 @@
     </section>
 
     <!-- ── Services ─────────────────────────────────────────────────────── -->
-    <section data-salon="section" id="services" class="border-border-subtle border-t">
+    <section
+      data-salon="section"
+      id="services"
+      aria-labelledby="services-title"
+      class="border-border-subtle border-t"
+    >
       <div data-salon="section-body" class="mx-auto max-w-6xl px-6 py-20">
-        <h2 data-salon="section-head" class="livery-display mb-12 text-2xl">Services</h2>
+        <h2 id="services-title" data-salon="section-head" class="livery-display mb-12 text-2xl">
+          Services
+        </h2>
         <ul data-salon="list" class="flex flex-col">
           {#each SERVICES as service (service.id)}
             <li
@@ -135,11 +150,18 @@
     </section>
 
     <!-- ── The room ─────────────────────────────────────────────────────── -->
-    <section data-salon="section" id="room" class="border-border-subtle border-t">
+    <section
+      data-salon="section"
+      id="room"
+      aria-labelledby="room-title"
+      class="border-border-subtle border-t"
+    >
       <div data-salon="section-body" class="mx-auto max-w-6xl px-6 py-20">
         <div class="grid gap-16 sm:grid-cols-2">
           <div>
-            <h2 data-salon="section-head" class="livery-display mb-10 text-2xl">The room</h2>
+            <h2 id="room-title" data-salon="section-head" class="livery-display mb-10 text-2xl">
+              The room
+            </h2>
             <ul data-salon="list" class="flex flex-col gap-6">
               {#each STYLISTS as stylist (stylist.id)}
                 <li class="flex items-baseline justify-between gap-4">
@@ -169,9 +191,9 @@
     </section>
 
     <!-- ── Booking — the agent surface lives INSIDE the page ─────────────── -->
-    <section id="booking" class="border-border-subtle border-t">
+    <section id="booking" aria-labelledby="booking-title" class="border-border-subtle border-t">
       <div class="mx-auto max-w-3xl px-6 py-20">
-        <h2 class="livery-display mb-4 text-2xl">Book a chair</h2>
+        <h2 id="booking-title" class="livery-display mb-4 text-2xl">Book a chair</h2>
         <p class="text-text-secondary mb-10 max-w-lg text-sm">
           Tell the assistant what you want. It builds whatever form the answer needs — and the form
           belongs to this house, not to the model.

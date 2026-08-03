@@ -114,6 +114,10 @@
   }
 </script>
 
+<!-- urbicon-ignore centered-bodytext — the one centred paragraph is a
+     one-line count under a centred icon grid: a caption for it, not copy
+     anyone scans line by line. -->
+
 <SeoMeta
   title="Icons"
   description="Browse all {allNames.length} icons in the Urbicon UI icon library. Search, filter by category, and copy import statements."
@@ -127,7 +131,7 @@
     </p>
   </header>
 
-  <Section id="playground" intent="primary">
+  <Section id="playground" title="Playground" titleHidden intent="primary">
     <PlaygroundConfigurator
       componentName={currentComponentName}
       controls={[
@@ -252,7 +256,7 @@
         {@const IconComp = DEFAULT_ICONS[name] as IconComponent}
         {@const meta = ICON_METADATA[name]}
         <button
-          class="group flex flex-col items-center gap-2 rounded-xl border p-3.5 transition-all
+          class="group flex flex-col items-center gap-2 rounded-xl border p-3.5 transition-[border-color,background-color,box-shadow]
             {selectedIcon === name
             ? 'border-primary bg-primary/5 ring-primary/20 ring-2'
             : copiedIcon === name

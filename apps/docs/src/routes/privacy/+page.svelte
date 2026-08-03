@@ -19,8 +19,11 @@
     preference locally in your browser.
   </p>
 
-  <section class="mt-12">
-    <h2 class="text-text-tertiary font-mono text-xs tracking-[0.2em] uppercase">
+  <section class="mt-12" aria-labelledby="01-verantwortlicher-title">
+    <h2
+      id="01-verantwortlicher-title"
+      class="text-text-tertiary font-mono text-xs tracking-[0.2em] uppercase"
+    >
       // 01 — Verantwortlicher
     </h2>
     <p class="text-text-secondary mt-4 leading-relaxed">
@@ -33,8 +36,11 @@
     </p>
   </section>
 
-  <section class="mt-10">
-    <h2 class="text-text-tertiary font-mono text-xs tracking-[0.2em] uppercase">
+  <section class="mt-10" aria-labelledby="02-hosting-und-server-logfiles-title">
+    <h2
+      id="02-hosting-und-server-logfiles-title"
+      class="text-text-tertiary font-mono text-xs tracking-[0.2em] uppercase"
+    >
       // 02 — Hosting und Server-Logfiles
     </h2>
     <p class="text-text-secondary mt-4 leading-relaxed">
@@ -48,8 +54,11 @@
     </p>
   </section>
 
-  <section class="mt-10">
-    <h2 class="text-text-tertiary font-mono text-xs tracking-[0.2em] uppercase">
+  <section class="mt-10" aria-labelledby="03-keine-cookies-kein-tracking-title">
+    <h2
+      id="03-keine-cookies-kein-tracking-title"
+      class="text-text-tertiary font-mono text-xs tracking-[0.2em] uppercase"
+    >
       // 03 — Keine Cookies, kein Tracking
     </h2>
     <p class="text-text-secondary mt-4 leading-relaxed">
@@ -59,8 +68,11 @@
     </p>
   </section>
 
-  <section class="mt-10">
-    <h2 class="text-text-tertiary font-mono text-xs tracking-[0.2em] uppercase">
+  <section class="mt-10" aria-labelledby="04-lokale-speicherung-im-browser-title">
+    <h2
+      id="04-lokale-speicherung-im-browser-title"
+      class="text-text-tertiary font-mono text-xs tracking-[0.2em] uppercase"
+    >
       // 04 — Lokale Speicherung im Browser
     </h2>
     <p class="text-text-secondary mt-4 leading-relaxed">
@@ -78,8 +90,11 @@
     </p>
   </section>
 
-  <section class="mt-10">
-    <h2 class="text-text-tertiary font-mono text-xs tracking-[0.2em] uppercase">
+  <section class="mt-10" aria-labelledby="05-ihre-rechte-title">
+    <h2
+      id="05-ihre-rechte-title"
+      class="text-text-tertiary font-mono text-xs tracking-[0.2em] uppercase"
+    >
       // 05 — Ihre Rechte
     </h2>
     <p class="text-text-secondary mt-4 leading-relaxed">

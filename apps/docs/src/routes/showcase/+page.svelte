@@ -8,19 +8,23 @@
     Alert,
     Avatar,
     Badge,
+    BellIcon,
+    BookOpenIcon,
     Breadcrumb,
     Button,
     Card,
     Checkbox,
     Input,
-    Select,
+    LayersIcon,
     Pagination,
+    Select,
     Separator,
     Skeleton,
     Tab,
     TabItem,
     Toggle,
-    Tooltip
+    Tooltip,
+    ZapIcon
   } from '@urbicon-ui/blocks';
   import { Section } from '@urbicon-ui/docs';
   import { componentLinks } from '$lib/component-links';
@@ -139,6 +143,12 @@
   const allComponents = [...new Set(sections.flatMap((s) => s.components))];
 </script>
 
+<!-- urbicon-ignore animated-dimensions intent-rainbow card-monotony — a
+     progress bar animates its width; that is the animation, not a side
+     effect, and it runs on one 8px-tall element. The four hues and the nine
+     equal cards are what a showcase is: the page exists to put the library
+     side by side with itself, so flattening either would remove the page. -->
+
 <SeoMeta
   title="Showcase"
   description="Interactive showcase demonstrating Urbicon UI components working together in a realistic project management application."
@@ -243,14 +253,7 @@
                 class="text-text-tertiary hover:bg-surface-hover hover:text-text-primary rounded-modify relative p-2 transition-colors"
                 onclick={() => (notifications = !notifications)}
               >
-                <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"
-                  ><path
-                    stroke-linecap="round"
-                    stroke-linejoin="round"
-                    stroke-width="1.5"
-                    d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"
-                  /></svg
-                >
+                <BellIcon size={20} />
                 {#if notifications}<span
                     class="bg-danger absolute top-1.5 right-1.5 h-2 w-2 rounded-full"
                   ></span>{/if}
@@ -313,7 +316,7 @@
                     </div>
                     <div class="bg-surface-subtle h-2 overflow-hidden rounded-full">
                       <div
-                        class="bg-primary h-full rounded-full transition-all duration-[var(--blocks-duration-slow)]"
+                        class="bg-primary h-full rounded-full transition-[width] duration-[var(--blocks-duration-slow)]"
                         style="width: 75%"
                       ></div>
                     </div>
@@ -501,20 +504,13 @@
   <div class="mt-12 grid grid-cols-1 gap-6 md:grid-cols-3">
     <Card
       href={resolve('/recipes')}
-      class="group border-border-subtle hover:border-primary h-full transition-all hover:shadow-[var(--blocks-shadow-md)]"
+      class="group border-border-subtle hover:border-primary h-full transition-[border-color,box-shadow] hover:shadow-[var(--blocks-shadow-md)]"
     >
       <div class="p-6 text-center">
         <div
           class="bg-primary-subtle rounded-modify mx-auto mb-3 flex h-10 w-10 items-center justify-center"
         >
-          <svg class="text-primary h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"
-            ><path
-              stroke-linecap="round"
-              stroke-linejoin="round"
-              stroke-width="2"
-              d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"
-            /></svg
-          >
+          <BookOpenIcon size={20} class="text-primary" />
         </div>
         <h3 class="text-text-primary group-hover:text-primary mb-1 font-semibold">UI Recipes</h3>
         <p class="text-text-tertiary text-sm">Copy-paste ready patterns</p>
@@ -522,20 +518,13 @@
     </Card>
     <Card
       href={resolve('/blocks')}
-      class="group border-border-subtle hover:border-primary h-full transition-all hover:shadow-[var(--blocks-shadow-md)]"
+      class="group border-border-subtle hover:border-primary h-full transition-[border-color,box-shadow] hover:shadow-[var(--blocks-shadow-md)]"
     >
       <div class="p-6 text-center">
         <div
           class="bg-success-subtle rounded-modify mx-auto mb-3 flex h-10 w-10 items-center justify-center"
         >
-          <svg class="text-success h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"
-            ><path
-              stroke-linecap="round"
-              stroke-linejoin="round"
-              stroke-width="2"
-              d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z"
-            /></svg
-          >
+          <LayersIcon size={20} class="text-success" />
         </div>
         <h3 class="text-text-primary group-hover:text-primary mb-1 font-semibold">
           All Components
@@ -545,20 +534,13 @@
     </Card>
     <Card
       href={resolve('/getting-started')}
-      class="group border-border-subtle hover:border-primary h-full transition-all hover:shadow-[var(--blocks-shadow-md)]"
+      class="group border-border-subtle hover:border-primary h-full transition-[border-color,box-shadow] hover:shadow-[var(--blocks-shadow-md)]"
     >
       <div class="p-6 text-center">
         <div
           class="bg-warning-subtle rounded-modify mx-auto mb-3 flex h-10 w-10 items-center justify-center"
         >
-          <svg class="text-warning h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"
-            ><path
-              stroke-linecap="round"
-              stroke-linejoin="round"
-              stroke-width="2"
-              d="M13 10V3L4 14h7v7l9-11h-7z"
-            /></svg
-          >
+          <ZapIcon size={20} class="text-warning" />
         </div>
         <h3 class="text-text-primary group-hover:text-primary mb-1 font-semibold">
           Getting Started

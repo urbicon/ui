@@ -17,9 +17,15 @@
   ($lib/landing/channels).
   Konzept: docs/internal/LANDING-CONCEPT-2026-07.md → "Struktur v2".
 -->
-<!-- urbicon-ignore magic-dimension inline-style — deliberate landing scope: the
-     solid-colour channel pairs and hand-tuned row heights ARE the design; they
-     move into the token system if a second consumer appears -->
+<!-- urbicon-ignore magic-dimension inline-style important-modifier — deliberate
+     landing scope: the solid-colour channel pairs and hand-tuned row heights ARE
+     the design; they move into the token system if a second consumer appears.
+
+     The `!` modifiers are all slot overrides (PLAYGROUND_SLOTS and the Scroller
+     control map): a slotClasses string and the component's own tv() defaults
+     land on the same element, so without `!` the winner depends on stylesheet
+     order rather than on intent. Counted 2026-08: 35 of 35 sit inside a
+     slotClasses map, none loose in a class attribute. -->
 <script lang="ts">
   import SeoMeta from '$lib/SeoMeta.svelte';
   import { VALIDATE_OK, VALIDATE_SCORE } from '$lib/landing/agent-output';
@@ -554,14 +560,18 @@
           </div>
         </div>
         <div class="name-mid">
-          <p class="brand">
+          <!-- The page h1. It was a `<p>`, so the site's own front page had no
+               top-level heading at all: the outline started at h2 and heading
+               navigation landed mid-page. Tailwind's preflight zeroes h1 margin
+               and font-size, and `.brand` sets both, so nothing moves. -->
+          <h1 class="brand">
             urbicon <span class="brand-suffix">ui</span><span class="ticks"
               >{#each TILES as tile (tile.key)}<span
                   class="tick"
                   style:background={tile.channel.solid}
                 ></span>{/each}</span
             >
-          </p>
+          </h1>
           <!-- Der Anspruch trägt die Kachel: „nothing" ist das Wort, das die
                Aussage macht, also steht der Rest zurück (Helligkeit, nicht Farbe
                — die Striche bleiben die einzige Buntheit auf dieser Fläche). -->
