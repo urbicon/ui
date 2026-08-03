@@ -51,6 +51,12 @@ export type {
   DerivableComponentData,
   DeriveControlsOptions,
   PlaygroundConfiguratorProps,
+  // The type of the `slotClasses` prop, not just the tv slot union: that prop
+  // is `Partial<Record<PlaygroundConfiguratorSlotName, string>>`, which also
+  // covers `codeToolbar`/`codeDisplay` (forwarded to CodePanel). Without this
+  // a consumer cannot name the type of a slot map they build themselves —
+  // CodeExample and CodePanel both export their `*SlotName`.
+  PlaygroundConfiguratorSlotName,
   PlaygroundConfiguratorSlots,
   PlaygroundConfiguratorVariantProps,
   RawCode

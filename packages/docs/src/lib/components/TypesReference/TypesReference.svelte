@@ -21,6 +21,12 @@
     ...restProps
   }: TypesReferenceProps = $props();
 
+  // Instance-local heading id. `$props.id()` may only appear as a top-level
+  // initializer, hence the two steps (see SVELTE5-PATTERNS.md); the same shape
+  // PlaygroundConfigurator already uses for its own title.
+  const propsId = $props.id();
+  const titleId = `types-title-${propsId}`;
+
   const styles = $derived(typesReferenceVariants({ size }));
 
   // Locale-backed defaults; a consumer prop always wins.
@@ -91,16 +97,22 @@
 </script>
 
 <!-- The heading is right there, so the region can name itself; without the
-     reference this is a `<section>` a screen reader announces as nothing. -->
+     reference this is a `<section>` a screen reader announces as nothing.
+     `id="types"` stays fixed on purpose — it is one half of the anchor pair
+     ApiReference jumps to (`fallbackSectionId: 'types'`), and `{...restProps}`
+     comes last so a page rendering more than one can rename it. The heading id
+     has no such contract, so it is instance-local: it was hardcoded, and the
+     types-reference docs page renders three instances, which left the second
+     and third `<section>` named by the FIRST one's heading. -->
 <section
   id="types"
   class="{slot('root')} {className ?? ''}"
-  aria-labelledby="types-title"
+  aria-labelledby={titleId}
   {...restProps}
 >
   <div class="space-y-6">
     <div class={slot('header')}>
-      <h2 id="types-title" class={slot('title')}>{headingTitle}</h2>
+      <h2 id={titleId} class={slot('title')}>{headingTitle}</h2>
       {#if headingDescription}
         <p class={slot('description')}>{headingDescription}</p>
       {/if}

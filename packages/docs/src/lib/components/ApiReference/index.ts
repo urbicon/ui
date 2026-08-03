@@ -61,7 +61,10 @@ export interface ApiReferenceProps
   usageNotes?: Snippet;
   /** Extra classes merged onto the root element. */
   class?: string;
-  /** Remove all default tv styles from the wrapper and cell content. */
+  /**
+   * Remove all default tv styles from the wrapper and cell content.
+   * @default false
+   */
   unstyled?: boolean;
   /** Per-slot class overrides for the wrapper elements. */
   slotClasses?: Partial<Record<ApiReferenceSlots, string>>;

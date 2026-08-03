@@ -81,7 +81,10 @@ export interface PlaygroundConfiguratorProps<
   TValues extends Record<string, unknown> = Record<string, unknown>
 > extends Omit<PlaygroundConfiguratorVariantProps, 'size'>,
     Omit<HTMLAttributes<HTMLElement>, 'children'> {
-  /** Controls the density of the playground layout – padding, grid columns, and text size. */
+  /**
+   * Controls the density of the playground layout – padding, grid columns, and text size.
+   * @default 'md'
+   */
   size?: 'sm' | 'md' | 'lg';
 
   /** Heading text above the playground panel. */
@@ -154,7 +157,10 @@ export interface PlaygroundConfiguratorProps<
    */
   defaultCodeExpanded?: boolean;
 
-  /** Component name used in the auto-generated code output. */
+  /**
+   * Component name used in the auto-generated code output.
+   * @default 'Component'
+   */
   componentName?: string;
 
   /**
@@ -169,7 +175,10 @@ export interface PlaygroundConfiguratorProps<
    */
   shareKey?: string;
 
-  /** Show the title/subtitle header above the playground. */
+  /**
+   * Show the title/subtitle header above the playground.
+   * @default true
+   */
   showHeader?: boolean;
 
   /** Hand-written prop descriptions (from JSDoc). Shown as tooltip behind an info icon. */
@@ -194,7 +203,10 @@ export interface PlaygroundConfiguratorProps<
   /** Extra CSS classes merged onto the root element. */
   class?: string;
 
-  /** Strip all default tv() styles from internal slots. */
+  /**
+   * Strip all default tv() styles from internal slots.
+   * @default false
+   */
   unstyled?: boolean;
 
   /** Per-slot class overrides for internal elements. */

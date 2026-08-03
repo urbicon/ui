@@ -75,6 +75,13 @@
   // `$props.id()` is only valid as a top-level initializer.
   const propsId = $props.id();
   const titleId = `playground-title-${propsId}`;
+  // Every id a control emits is instance-local too. They were the bare
+  // `control.key`, i.e. the prop NAME — so two playgrounds on one page (the
+  // /blocks specimen book, and the configurator's own docs page with four)
+  // emitted `id="variant"` three times and `id="intent"` twice, and the later
+  // SegmentGroups were named by the FIRST instance's label span. Nothing
+  // addresses these from outside; they exist only to tie caption to control.
+  const ctlId = (key: string) => `${key}-${propsId}`;
 
   // Knob-Strip uses a uniform `sm` field size across all playground
   // densities so SegmentGroup/Select/Input/Toggle line up at the same
@@ -469,7 +476,7 @@
             <!-- The hint div only exists while helpVisible is on, so the
                aria-describedby reference must appear/disappear with it —
                a dangling idref is an a11y validation error. -->
-            {@const hintId = helpVisible && description ? `${control.key}-hint` : undefined}
+            {@const hintId = helpVisible && description ? `${ctlId(control.key)}-hint` : undefined}
             {@const items = control.items ?? []}
             {@const isEnum = control.type === 'dropdown' || control.type === 'select'}
             {@const isSegment = isEnum && items.length <= 4 && items.length > 0}
@@ -486,12 +493,12 @@
                    widget references it via `aria-labelledby`. -->
             {@const usesGroupLabel =
               isSegment || control.type === 'slider' || control.type === 'range'}
-            {@const labelId = `${control.key}-label`}
+            {@const labelId = `${ctlId(control.key)}-label`}
             {@const labelFor = usesGroupLabel
               ? undefined
               : isEnum
-                ? `${control.key}-trigger`
-                : control.key}
+                ? `${ctlId(control.key)}-trigger`
+                : ctlId(control.key)}
             <div class={slot('controlItem')}>
               {#if labelFor}
                 <label for={labelFor} class={slot('controlLabel')}>
@@ -548,7 +555,7 @@
                       onValueChange={(value: string | null) =>
                         updateValue(control.key, resolveSelectValue(items, value))}
                       size={fieldSize}
-                      id={control.key}
+                      id={ctlId(control.key)}
                       customItem={controlSelectItem}
                       selectionIndicator="none"
                       aria-describedby={hintId}
@@ -568,7 +575,7 @@
                     size="sm"
                     checked={Boolean(values[control.key])}
                     onCheckedChange={(val) => updateValue(control.key, val)}
-                    id={control.key}
+                    id={ctlId(control.key)}
                     aria-label={control.label}
                     aria-describedby={hintId}
                   />
@@ -576,7 +583,7 @@
               {:else if control.type === 'text'}
                 <div class={slot('controlControl')}>
                   <Input
-                    id={control.key}
+                    id={ctlId(control.key)}
                     variant="ghost"
                     size={fieldSize}
                     value={(values[control.key] as string) ?? ''}
@@ -588,7 +595,7 @@
               {:else if control.type === 'number'}
                 <div class={slot('controlControl')}>
                   <Input
-                    id={control.key}
+                    id={ctlId(control.key)}
                     type="number"
                     variant="ghost"
                     size={fieldSize}
@@ -604,7 +611,7 @@
               {:else if control.type === 'color'}
                 <div class={slot('controlControlCompact')}>
                   <input
-                    id={control.key}
+                    id={ctlId(control.key)}
                     type="color"
                     value={values[control.key] || control.defaultValue || '#000000'}
                     onchange={(e) => updateValue(control.key, e.currentTarget.value)}
@@ -621,7 +628,7 @@
                    out in the v5 polish notes. -->
                 <div class={slot('controlControl')}>
                   <Slider
-                    id={control.key}
+                    id={ctlId(control.key)}
                     variant="rail"
                     value={(values[control.key] as number | undefined) ??
                       (control.defaultValue as number | undefined) ??

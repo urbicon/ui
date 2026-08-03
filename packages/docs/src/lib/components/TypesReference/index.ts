@@ -59,13 +59,19 @@ export interface LocalTypeDef {
 export interface TypesReferenceProps
   extends Omit<TypesReferenceVariantProps, 'size'>,
     Omit<HTMLAttributes<HTMLElement>, 'children'> {
-  /** Controls the density – text size, padding, badge size. */
+  /**
+   * Controls the density – text size, padding, badge size.
+   * @default 'md'
+   */
   size?: 'sm' | 'md' | 'lg';
 
   /** Array of type definitions to display. */
   types: LocalTypeDef[];
 
-  /** Section heading text. */
+  /**
+   * Section heading text. There is no literal default to quote: it falls back
+   * to the localized `typesTitle` — "Types" in English, "Typen" in German.
+   */
   title?: string;
 
   /** Descriptive text below the title. */
@@ -74,7 +80,10 @@ export interface TypesReferenceProps
   /** Extra CSS classes merged onto the root section element. */
   class?: string;
 
-  /** Strip all default tv() styles from internal slots. */
+  /**
+   * Strip all default tv() styles from internal slots.
+   * @default false
+   */
   unstyled?: boolean;
 
   /** Per-slot class overrides for internal elements. */
