@@ -172,9 +172,17 @@ jobs:
       # this job (2026-08). docs-app carries the rules the docs lints are built
       # on — the playground-lint rule table, the translation parity check, the
       # theme-example checks — so its 132 tests guard the guards.
+      # `svelte-kit sync` first: apps/docs/tsconfig.json extends
+      # `./.svelte-kit/tsconfig.json`, which is generated and git-ignored. Vitest's
+      # transform reads that tsconfig, so without the sync every one of the ten
+      # test files dies with `[TSCONFIG_ERROR] Tsconfig not found` before a single
+      # assertion runs. It passes locally only because a previous dev/build run
+      # left `.svelte-kit/` lying around — a clean checkout has none.
       - name: Test docs-app
         working-directory: apps/docs
-        run: bunx --bun vitest run
+        run: |
+          bunx --bun svelte-kit sync
+          bunx --bun vitest run
       - name: Test design-content
         working-directory: packages/design-content
         run: bunx --bun vitest run
