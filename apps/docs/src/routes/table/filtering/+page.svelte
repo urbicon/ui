@@ -1,18 +1,128 @@
 <script lang="ts">
   import SeoMeta from '$lib/SeoMeta.svelte';
   import { CodeExample, DocsLayout as DocsPageLayout, Section } from '@urbicon-ui/docs';
-  import { Table } from '@urbicon-ui/table';
-  import { Input } from '@urbicon-ui/blocks';
+  import { Table, type Column } from '@urbicon-ui/table';
+  import { Input, Slider } from '@urbicon-ui/blocks';
   import { resolve } from '$app/paths';
-  import { employees, basicColumns, scriptOpen, scriptClose } from '../_data';
+  import { employees, basicColumns, scriptOpen, scriptClose, type Employee } from '../_data';
 
   const navigation = [
     { id: 'filtering', title: 'Smart Filter Bar' },
+    { id: 'tools-sheet', title: 'Narrow Bar & Tools Sheet' },
     { id: 'filter-operators', title: 'Filter Operators' },
     { id: 'controlled-search', title: 'Controlled Search' }
   ];
 
   let searchTerm = $state('');
+
+  // ── Narrow-bar demo ────────────────────────────────────────────────────────
+  //
+  // Two summable columns so the sheet's Summary section has more than one row —
+  // `salary` says so explicitly, `projects` inherits it from `dataType: 'number'`
+  // (both routes into isColumnSummable). `department` carries the grouping, and
+  // every column here has an accessor, so all four appear in filter and sort.
+  const toolsColumns: Column<Employee>[] = [
+    { accessor: 'name', title: 'Name', sortable: true, searchable: true },
+    { accessor: 'department', title: 'Department', sortable: true, groupable: true },
+    {
+      accessor: 'salary',
+      title: 'Salary',
+      sortable: true,
+      summable: true,
+      dataType: 'number',
+      align: 'right'
+    },
+    { accessor: 'projects', title: 'Projects', sortable: true, dataType: 'number', align: 'right' }
+  ];
+
+  /**
+   * The bar's own switch, copied from `COMPACT_MAX_WIDTH` in
+   * `packages/table/src/lib/features/SmartFilterBar/SmartFilterBar.svelte` —
+   * a hardcoded `28 * 16` there, so a hardcoded 448 here. Nothing links the two;
+   * if the library ever moves that number, the `switch` mark below and the three
+   * figures in the prose move with it by hand.
+   *
+   * The bar's own padding and border are deliberately NOT copied — they are
+   * measured off the live element instead (see `measured`), because that is the
+   * part most likely to drift and the part this whole section is about.
+   */
+  const COMPACT_MAX_WIDTH = 448;
+
+  let demoWidth = $state(360);
+
+  /**
+   * The bar's real geometry, read off the DOM rather than derived from the
+   * slider.
+   *
+   * The slider says what was asked for; the box below caps itself with
+   * `max-width`, so it shrinks to whatever the column really has and the two
+   * part ways on a narrow screen — ask for 640px inside a 342px column and you
+   * get 342. Printing the slider value there would have the readout claim a
+   * width the bar never had, on exactly the phone-sized layouts this mode
+   * exists for.
+   */
+  let measured = $state<{ container: number; contentBox: number } | null>(null);
+
+  /** Measures the demo's bar for the readout. Attached to the width wrapper. */
+  function measureBar(host: HTMLElement) {
+    const read = () => {
+      // The SmartFilterBar root — the same element its own ResizeObserver
+      // watches. Measuring the wrapper instead would reproduce the very mistake
+      // this section documents.
+      const bar = host.querySelector('[data-table-toolbar] > *');
+      if (!(bar instanceof HTMLElement)) {
+        measured = null;
+        return;
+      }
+      const cs = getComputedStyle(bar);
+      const padX = (parseFloat(cs.paddingLeft) || 0) + (parseFloat(cs.paddingRight) || 0);
+      const next = {
+        container: Math.round(host.getBoundingClientRect().width),
+        contentBox: Math.round(bar.clientWidth - padX)
+      };
+      // The query above reaches into Table's own markup. If a wrapper ever lands
+      // between the toolbar slot and the bar, it resolves to the wrapper instead
+      // — which has no padding, so the chrome silently reads 0 and the switch
+      // mark drifts onto the threshold itself. Bound it: `p-3` plus a border is
+      // 26px at `md`, and nothing in the size scale gets near 64.
+      const chrome = next.container - next.contentBox;
+      measured = chrome > 0 && chrome <= 64 ? next : null;
+    };
+
+    const ro = new ResizeObserver(read);
+    ro.observe(host);
+    read();
+    // The table renders its toolbar as a child of this host, so on the very
+    // first pass the query above can run before it exists.
+    const raf = requestAnimationFrame(read);
+
+    return () => {
+      cancelAnimationFrame(raf);
+      ro.disconnect();
+    };
+  }
+
+  /** Chrome measured off the live bar, not assumed: padding + border. */
+  const barChrome = $derived(measured ? measured.container - measured.contentBox : null);
+
+  /** The container width at which the content box is exactly at the threshold. */
+  const tippingPoint = $derived(barChrome === null ? null : COMPACT_MAX_WIDTH + barChrome);
+
+  const readout = $derived.by(() => {
+    if (!measured) return 'Measuring the bar…';
+    const base = `${measured.container}px container · ${measured.contentBox}px bar content box`;
+    return measured.container < demoWidth
+      ? `${base} — clamped by the page, so the slider cannot reach ${demoWidth}px here`
+      : base;
+  });
+
+  const codeNarrowBar = `<!-- The bar measures its own CONTENT box, so the wrapper has to be
+     narrower than 28rem plus the bar's padding and border (~474px at
+     size="md") — max-w-md is exactly 28rem and still trips the switch.
+     Nothing is opted into here; the bar decides by itself. -->
+<div class="max-w-sm">
+  <Table {items} {columns} enableSmartFilter />
+</div>`;
 
   const operators = [
     {
@@ -93,6 +203,133 @@ ${scriptClose}
           itemsPerPage={6}
         />
       </CodeExample>
+    </div>
+  </Section>
+
+  <Section id="tools-sheet" title="Narrow Bar &amp; Tools Sheet">
+    <div class="space-y-8">
+      <p class="text-text-secondary text-sm">
+        The bar's tools — filters, sort, grouping, summaries and column visibility — normally sit in
+        a capsule beside the search field. Below
+        <strong class="text-text-primary">28rem (448px) of bar content box</strong> that capsule is gone:
+        the tools move into a bottom sheet reached from a single button. Nothing is taken away, only relocated
+        — each tool becomes a section of the sheet, rebuilt as a form instead of a menu. Sort, for instance,
+        splits into a column list plus a separate direction control rather than offering every column×direction
+        pair; summaries become one aggregation choice per summable column, which is why this demo declares
+        two numeric columns.
+      </p>
+
+      <p class="text-text-secondary text-sm">
+        There are <strong class="text-text-primary">up to five</strong> of them, not always five,
+        and the sheet mirrors the capsule exactly: grouping drops out while the table is
+        <code class="text-text-primary">virtualized</code>, column visibility when
+        <code class="text-text-primary">enableColumnVisibility</code> is off. Three is the floor. The
+        demo below has all five.
+      </p>
+
+      <p class="text-text-secondary text-sm">
+        Drag the slider to squeeze the container past the threshold, then open the sheet. The switch
+        is automatic — there is no prop for it. The readout is measured off the live bar rather than
+        computed from the slider, so if the page is too narrow to give the demo the width it asks
+        for, it says so instead of printing a number the bar never had. Note also that the sheet is
+        a bottom
+        <a href={resolve('/blocks/primitives/drawer')} class="text-primary hover:underline"
+          >Drawer</a
+        >, so it spans the
+        <em>window</em>, not the bar: here a 360px table opens a full-width sheet. That gap closes
+        when the bar is roughly the width of the window, which is the common phone case — but a bar
+        inside a card is narrower than the sheet on a phone too.
+      </p>
+
+      <div class="space-y-4">
+        <Slider
+          bind:value={demoWidth}
+          min={320}
+          max={640}
+          step={2}
+          label="Container width"
+          helper={readout}
+          marks={tippingPoint === null ? [] : [{ value: tippingPoint, label: 'switch' }]}
+        />
+
+        <!--
+          `max-width`, not `width`. A fixed `width` makes this box's min-content
+          contribution 640px, which the `flex-1` main column (min-width: auto)
+          honours by growing past the viewport — at 390px the whole page picked
+          up a horizontal scrollbar and `max-width: 100%` never bit, because the
+          parent had grown too. Capping instead lets the box shrink to whatever
+          the column really has, which is what the readout then reports.
+        -->
+        <div {@attach measureBar} class="w-full" style="max-width: {demoWidth}px">
+          <Table
+            items={employees}
+            columns={toolsColumns}
+            enableSmartFilter={true}
+            searchPlaceholder="Search employees..."
+            initialSort={{ column: 'salary', direction: 'desc' }}
+            itemsPerPage={5}
+          />
+        </div>
+      </div>
+
+      <p class="text-text-secondary text-sm">
+        <strong class="text-text-primary"
+          >The width is measured on the bar, not on the window.</strong
+        >
+        A filter bar can sit in a card, a drawer, a split pane or a dashboard tile, so a viewport media
+        query would happily leave a 400px bar in the wide layout it has no room for. The bar observes
+        its own
+        <strong class="text-text-primary">content box</strong> with a
+        <code class="text-text-primary">ResizeObserver</code> instead — the box a
+        <code class="text-text-primary">@container</code> query measures. Reading
+        <code class="text-text-primary">clientWidth</code> would include the bar's own padding and
+        leave a dead band (24px at <code class="text-text-primary">size="md"</code>) where neither
+        this switch nor the row/stack one fires.
+      </p>
+
+      <p class="text-text-secondary text-sm">
+        The threshold is meant to line up with the <code class="text-text-primary">28rem</code> step
+        the bar's own <code class="text-text-primary">@container</code> rules use for the
+        stacked/row switch, so that the capsule is not left standing in a layout too narrow to hold
+        it. The two line up <strong class="text-text-primary">at a 16px root font size</strong>,
+        which is the default and the common case — but only there: the tool switch compares a
+        hardcoded 448px, while <code class="text-text-primary">@container</code> resolves
+        <code class="text-text-primary">28rem</code> against the root. Raise the browser's text size
+        and a band opens between them in which the capsule is back under the search field. Tracked
+        as
+        <a
+          href="https://github.com/urbicon/ui/issues/133"
+          class="text-primary hover:underline"
+          rel="noreferrer">#133</a
+        >.
+      </p>
+
+      <p class="text-text-secondary text-sm">
+        Only <code class="text-text-primary">layout="responsive"</code> — the default — switches.
+        <code class="text-text-primary">horizontal</code> and
+        <code class="text-text-primary">vertical</code> are explicit instructions from the consumer and
+        are left alone at any width. Growing back past the threshold closes the sheet, so a bar that is
+        narrowed again does not re-open it unprompted.
+      </p>
+
+      <p class="text-text-secondary text-sm">
+        <strong class="text-text-primary">The badge on the button counts tools, not results.</strong
+        >
+        With the sheet shut, the lit triggers inside it are invisible, so the button carries the number
+        of things currently acting on the grid: one each for active filters (however many), a sort column,
+        a grouping, a summary row that is switched on, and hidden columns — at most five. The demo starts
+        at 1 because it seeds
+        <code class="text-text-primary">initialSort</code>; add a filter or a grouping in the sheet
+        and watch it climb. Hidden columns count too — a column that is not on screen changes what
+        the reader sees just as much as a filter does.
+      </p>
+
+      <CodeExample
+        title="Reproducing It"
+        description="Any container narrower than the threshold trips the switch — no prop, no media query, no viewport resize needed."
+        code={codeNarrowBar}
+        preview={false}
+      />
     </div>
   </Section>
 
