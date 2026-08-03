@@ -24,7 +24,10 @@
   ];
 </script>
 
-<SeoMeta title="DonutChart Component" />
+<SeoMeta
+  title="DonutChart Component"
+  description="Donut or pie chart for part-to-whole composition, with an optional center total."
+/>
 
 <DocsPageLayout
   maxWidth="2xl"

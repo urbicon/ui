@@ -55,7 +55,10 @@ ${scriptClose}
 />`;
 </script>
 
-<SeoMeta title="Filtering & Search - Table" />
+<SeoMeta
+  title="Filtering & Search - Table"
+  description="Built-in search, column filters, summary controls, and column visibility via the SmartFilterBar — plus a controlled search term for external search UIs."
+/>
 
 <DocsPageLayout
   title="Filtering & Search"

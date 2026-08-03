@@ -23,7 +23,10 @@
   ];
 </script>
 
-<SeoMeta title="Sparkline Component" />
+<SeoMeta
+  title="Sparkline Component"
+  description="Tiny inline trend line — no axes — sized to flow in table cells, cards, or text."
+/>
 
 <DocsPageLayout
   maxWidth="2xl"

@@ -6,7 +6,10 @@
   import { basicColumns } from '../_data';
 </script>
 
-<SeoMeta title="Customization - Table" />
+<SeoMeta
+  title="Customization - Table"
+  description="Empty states, style slot overrides, and state persistence."
+/>
 
 <DocsPageLayout
   title="Customization"

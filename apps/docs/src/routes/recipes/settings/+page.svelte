@@ -237,7 +237,7 @@
 </div>`;
 </script>
 
-<SeoMeta title="Settings Page Recipe" />
+<SeoMeta title="Settings Page Recipe" description={recipeMeta.description} />
 
 <div class="mx-auto max-w-6xl px-6 py-12">
   <RecipeHeader meta={recipeMeta} />

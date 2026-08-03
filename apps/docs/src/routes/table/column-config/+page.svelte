@@ -87,7 +87,10 @@
   ];
 </script>
 
-<SeoMeta title="Column Configuration - Table" />
+<SeoMeta
+  title="Column Configuration - Table"
+  description="Rich column properties to control sorting, filtering, grouping, summaries, visibility, responsive priority, and custom cell rendering."
+/>
 
 <DocsPageLayout
   title="Column Configuration"

@@ -73,7 +73,11 @@
   };
 </script>
 
-<SeoMeta title="Changelog" />
+<SeoMeta
+  title="Changelog"
+  description="All notable changes to Urbicon UI, organized by version."
+  ogType="article"
+/>
 
 <div class="mx-auto max-w-3xl px-6 py-12">
   <h1 class="text-text-primary mb-2 text-3xl font-bold tracking-tight">Changelog</h1>

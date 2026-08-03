@@ -65,7 +65,7 @@
   });
 </script>
 
-<SeoMeta title="light-dark() spike" />
+<SeoMeta title="light-dark() spike" noindex />
 
 <div bind:this={scopeEl} data-spike data-mode={mode}>
   <header>

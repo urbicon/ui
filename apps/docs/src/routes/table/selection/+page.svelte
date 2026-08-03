@@ -42,7 +42,10 @@ ${scriptClose}
 <Button onclick={() => (selectedIds = [])}>Clear selection</Button>`;
 </script>
 
-<SeoMeta title="Row Selection - Table" />
+<SeoMeta
+  title="Row Selection - Table"
+  description="Checkbox-based row selection with single and multi modes and a select-all across all filtered pages."
+/>
 
 <DocsPageLayout
   title="Row Selection"

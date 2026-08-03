@@ -99,7 +99,7 @@
 </Card>`;
 </script>
 
-<SeoMeta title="Profile Card Recipe" />
+<SeoMeta title="Profile Card Recipe" description={recipeMeta.description} />
 
 <div class="mx-auto max-w-6xl px-6 py-12">
   <RecipeHeader meta={recipeMeta} />

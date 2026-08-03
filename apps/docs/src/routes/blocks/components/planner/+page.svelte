@@ -24,7 +24,10 @@
   // --- Demo data: a week of meals, anchored on Mon 15 Jun 2026 ---
 </script>
 
-<SeoMeta title="Planner Component" />
+<SeoMeta
+  title="Planner Component"
+  description="Date-indexed planning grid whose cells hold your own domain content via a generic cell snippet — week, month or custom range."
+/>
 
 <DocsPageLayout
   maxWidth="2xl"

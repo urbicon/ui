@@ -226,7 +226,7 @@
 </div>`;
 </script>
 
-<SeoMeta title="Multi-Step Wizard Recipe" />
+<SeoMeta title="Multi-Step Wizard Recipe" description={recipeMeta.description} />
 
 <div class="mx-auto max-w-6xl px-6 py-12">
   <RecipeHeader meta={recipeMeta} />

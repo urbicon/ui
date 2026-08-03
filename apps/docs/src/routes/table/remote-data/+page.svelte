@@ -38,7 +38,10 @@ ${scriptClose}
 />`;
 </script>
 
-<SeoMeta title="Remote Data - Table" />
+<SeoMeta
+  title="Remote Data - Table"
+  description="Delegate filtering, sorting, and pagination to your backend with managed or manual integration."
+/>
 
 <DocsPageLayout
   title="Remote Data (Server Mode)"

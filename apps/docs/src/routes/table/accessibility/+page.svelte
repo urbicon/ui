@@ -5,7 +5,10 @@
   import { resolve } from '$app/paths';
 </script>
 
-<SeoMeta title="Accessibility - Table" />
+<SeoMeta
+  title="Accessibility - Table"
+  description="Semantic HTML, keyboard navigation, ARIA attributes, and responsive design for the Table component."
+/>
 
 <DocsPageLayout
   title="Accessibility"

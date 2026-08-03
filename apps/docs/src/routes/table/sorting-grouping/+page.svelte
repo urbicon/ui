@@ -41,7 +41,10 @@
   ];
 </script>
 
-<SeoMeta title="Sorting, Grouping & Summaries - Table" />
+<SeoMeta
+  title="Sorting, Grouping & Summaries - Table"
+  description="Sort by clicking column headers, group rows by any groupable column, and aggregate numeric columns with summary rows."
+/>
 
 <DocsPageLayout
   title="Sorting, Grouping & Summaries"

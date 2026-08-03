@@ -7,7 +7,10 @@
   import { employees, basicColumns } from '../_data';
 </script>
 
-<SeoMeta title="Column Reorder - Table" />
+<SeoMeta
+  title="Column Reorder - Table"
+  description="Drag-and-drop column reordering with keyboard support."
+/>
 
 <DocsPageLayout
   title="Column Reorder"

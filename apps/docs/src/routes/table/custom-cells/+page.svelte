@@ -68,7 +68,10 @@
   </div>
 {/snippet}
 
-<SeoMeta title="Custom Cells - Table" />
+<SeoMeta
+  title="Custom Cells - Table"
+  description="Per-column snippets and global cell overrides for rich, data-driven cell rendering."
+/>
 
 <DocsPageLayout
   title="Custom Cells"

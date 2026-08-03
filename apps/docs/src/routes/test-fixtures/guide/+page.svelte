@@ -94,7 +94,7 @@
   }
 </script>
 
-<SeoMeta title="Guide Test Fixtures" />
+<SeoMeta title="Guide Test Fixtures" noindex />
 
 <GuideProvider controller={guide}>
   <div class="bg-surface-base min-h-screen p-8" data-testid="guide-fixtures">

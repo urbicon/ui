@@ -4,7 +4,10 @@
   import { resolve } from '$app/paths';
 </script>
 
-<SeoMeta title="Virtual Scrolling - Table" />
+<SeoMeta
+  title="Virtual Scrolling - Table"
+  description="Render only visible rows for large datasets with a lightweight zero-dependency virtualizer."
+/>
 
 <DocsPageLayout
   title="Virtual Scrolling"

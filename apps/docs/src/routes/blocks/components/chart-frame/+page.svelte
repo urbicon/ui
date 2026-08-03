@@ -41,7 +41,10 @@
   }
 </script>
 
-<SeoMeta title="ChartFrame Component" />
+<SeoMeta
+  title="ChartFrame Component"
+  description="Responsive SVG chart shell — measures its width, applies plot margins, and hands the drawable plot geometry to a child snippet. The building block under every cartesian chart."
+/>
 
 <DocsPageLayout
   maxWidth="2xl"

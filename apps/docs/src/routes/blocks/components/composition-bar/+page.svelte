@@ -24,7 +24,10 @@
   ];
 </script>
 
-<SeoMeta title="CompositionBar Component" />
+<SeoMeta
+  title="CompositionBar Component"
+  description="Stacked-Bar mit Legend zur Visualisierung von Aggregat-Kompositionen."
+/>
 
 <DocsPageLayout
   maxWidth="2xl"

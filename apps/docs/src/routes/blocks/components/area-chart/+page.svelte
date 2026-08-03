@@ -24,7 +24,10 @@
   ];
 </script>
 
-<SeoMeta title="AreaChart Component" />
+<SeoMeta
+  title="AreaChart Component"
+  description="Area chart for trends with volume emphasis — filled regions, optionally stacked."
+/>
 
 <DocsPageLayout
   maxWidth="2xl"

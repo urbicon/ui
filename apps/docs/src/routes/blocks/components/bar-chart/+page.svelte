@@ -24,7 +24,10 @@
   ];
 </script>
 
-<SeoMeta title="BarChart Component" />
+<SeoMeta
+  title="BarChart Component"
+  description="Categorical bar chart — single, grouped, or stacked — on the design-token palette."
+/>
 
 <DocsPageLayout
   maxWidth="2xl"

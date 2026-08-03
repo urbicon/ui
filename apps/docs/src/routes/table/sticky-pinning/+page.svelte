@@ -20,7 +20,10 @@
   ]);
 </script>
 
-<SeoMeta title="Sticky Pinning - Table" />
+<SeoMeta
+  title="Sticky Pinning - Table"
+  description="Pin the toolbar, column header, and group header to the top of the scroll ancestor on long lists. Keeps context visible while scrolling through hundreds of rows."
+/>
 
 <DocsPageLayout
   title="Sticky Pinning"

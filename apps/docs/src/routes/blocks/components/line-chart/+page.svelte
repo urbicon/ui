@@ -24,7 +24,10 @@
   ];
 </script>
 
-<SeoMeta title="LineChart Component" />
+<SeoMeta
+  title="LineChart Component"
+  description="Line chart for trends over an ordered category axis, one path per series."
+/>
 
 <DocsPageLayout
   maxWidth="2xl"

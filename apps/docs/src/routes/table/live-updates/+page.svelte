@@ -65,7 +65,10 @@ ${scriptClose}
 />`;
 </script>
 
-<SeoMeta title="Live Updates - Table" />
+<SeoMeta
+  title="Live Updates - Table"
+  description="Non-disruptive real-time data updates with buffering and user-controlled application."
+/>
 
 <DocsPageLayout
   title="Live Updates"

@@ -6,7 +6,10 @@
   import { employees, basicColumns } from '../_data';
 </script>
 
-<SeoMeta title="Expandable Rows - Table" />
+<SeoMeta
+  title="Expandable Rows - Table"
+  description="Reveal additional detail for each row via an expand toggle."
+/>
 
 <DocsPageLayout
   title="Expandable Rows"
