@@ -19,9 +19,12 @@
  * Two traps this has to survive, both observed on real pages:
  *
  *   1. Section ids are spread across files. A page is typically `+page.svelte`
- *      (playground / api / installation) plus a `Docs.svelte` or
- *      `DocsCustom.svelte` (examples / accessibility). Reading only the route
- *      file reports half the sections as missing.
+ *      (playground / api / installation) plus a `Docs.svelte` (examples /
+ *      accessibility) — 85 pages have one. Reading only the route file reports
+ *      half the sections as missing. The script reads every sibling `.svelte`,
+ *      not a fixed name list, so `Basic.svelte` / `Sizes.svelte` and the rest
+ *      are covered too. (This paragraph named `DocsCustom.svelte` until
+ *      2026-08; that file no longer exists anywhere in the app.)
  *   2. Docs pages *quote* markup. `<Section id="examples">` inside a code
  *      sample is prose, not a section, and must not count. Anything inside a
  *      template literal or a `code={…}` prop is therefore blanked before the
@@ -101,7 +104,10 @@ function blankQuotedMarkup(src: string): string {
 
 /**
  * Two different questions need two different sets, and conflating them is how a
- * first version of this lint produced 30 false positives on `/customization/*`:
+ * first version of this lint buried `/customization/*` in false positives.
+ * (That version said "30"; reconstructing its rule against the tree of the day
+ * gives 32, and the version itself is gone — so the number is dropped rather
+ * than guessed at. The distinction below is the part that matters.)
  *
  *   - "does this nav entry resolve?" is about ANCHORS. A `#ladder` link works
  *     whether the id sits on `<Section>` or on a bare `<h2 id="ladder">`, and

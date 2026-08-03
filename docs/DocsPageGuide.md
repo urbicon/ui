@@ -36,16 +36,23 @@ in `+page.svelte` for API Reference and Installation (Button: `01` Examples → 
 A marker is editorial, not structural — nothing reads it.
 
 The Playground does carry a **title**, though — `<Section id="playground" title="Playground">` on
-all 87 pages that have one. 58 of them add `titleHidden`, which keeps the heading in the outline
+all 87 pages that have one. 59 of them add `titleHidden`, which keeps the heading in the outline
 and in the screen-reader layer while the stage speaks for itself visually; the rest show it. Either
 is fine. What is not fine is dropping the title: the TOC entry then points at a section with no
 heading, which is what 57 pages did until 2026-08.
 
-**Intent is set on two sections and left off the rest** (measured across the site, 2026-08):
-`playground` takes `intent="primary"` (76 of 82) and `api` takes `intent="secondary"` (97 of 98).
-Examples, Customization, Accessibility and Installation pass no intent at all — unanimously, 91 /
-83 / 79 / 55 sections. Adding one there makes the page's headings step out of line with every
-other page.
+**Intent is set on two sections and left off the rest** — `playground` takes `intent="primary"`
+(86 of 87) and `api` takes `intent="secondary"` (101 of 104). Examples, Customization,
+Accessibility and Installation pass no intent at all: 85 / 57 / 86 / 101 sections, not one of them
+with an intent. Adding one there makes the page's headings step out of line with every other page.
+
+<!-- The six counts above were wrong until 2026-08-03 (76/82, 97/98, 91/83/79/55) and carried a
+     "measured across the site" stamp, which is worse than no number at all: they were taken
+     against a working tree that was never committed, so no state of the repo ever matched them.
+     Re-measure with a parser that resolves the `Section as X` alias and handles multi-line tags —
+     a naive `<Section[^>]*>` regex undercounts, which is how they drifted. The claim they support
+     held under every reading: 0 of the 329 sections in the second group carry an intent. -->
+
 
 **The rendered order is the order you write.** `TocNavigationItem` accepts no `order` field and
 nothing sorts by one; the TOC renders the `navigation` array as given, and the page renders its
@@ -363,9 +370,10 @@ so a subsection can keep `h3` semantics at the primary type scale without breaki
 
 Which intent goes where is settled by what the pages do, not by preference: the Playground takes
 `primary` and the API Reference takes `secondary`; Examples, Customization, Accessibility and
-Installation take none, and so render at 18px. (Counted 2026-08 — `primary` on 76 of 82
-playgrounds, `secondary` on 97 of 98 API sections, no intent on 91 / 83 / 79 / 55 of the rest.
-This paragraph previously claimed the opposite for the content sections; the pages never did it.)
+Installation take none, and so render at 18px. (Counted 2026-08-03 — `primary` on 86 of 87
+playgrounds, `secondary` on 101 of 104 API sections, and not one intent across the 329 sections of
+the other four. This paragraph previously claimed the opposite for the content sections; the pages
+never did it.)
 
 ## Table of Contents
 

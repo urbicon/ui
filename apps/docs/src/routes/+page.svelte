@@ -20,8 +20,12 @@
 <!-- urbicon-ignore important-modifier — the `!` modifiers are all slot overrides
      (PLAYGROUND_SLOTS and the Scroller control map): a slotClasses string and the
      component's own tv() defaults land on the same element, so without `!` the
-     winner depends on stylesheet order rather than on intent. Counted 2026-08:
-     35 of 35 sit inside a slotClasses map, none loose in a class attribute.
+     winner depends on stylesheet order rather than on intent. Counted 2026-08-03
+     with the engine's own regex: 37 matches, 36 of them real and every one
+     inside a slotClasses map, none loose in a class attribute. (The 37th is the
+     string `!h-full` quoted in a CSS comment further down — a match, not a
+     modifier. An earlier version of this note said "35 of 35", which no
+     counting method produces.)
 
      `magic-dimension` and `inline-style` were suppressed here too until the
      Blocks tile was rebuilt as a three-view backoffice; that rewrite removed the

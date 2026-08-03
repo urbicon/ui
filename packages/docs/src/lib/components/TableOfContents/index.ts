@@ -14,8 +14,8 @@ export interface RelatedLink {
  * A single entry in the table of contents.
  *
  * The list renders in array order. There is deliberately no `order` field: one
- * existed until 2026-08, was never read by anything, and 121 pages maintained
- * it — the Button reference page had drifted to `api: 7` / `installation: 6`
+ * existed until 2026-08, was never read by anything, and 119 pages maintained
+ * it — 660 entries — the Button reference page had drifted to `api: 7` / `installation: 6`
  * while rendering them the other way round, and nobody noticed because nothing
  * sorts. Order the array; that is the order.
  */

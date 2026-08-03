@@ -3,9 +3,15 @@ import { type SlotNames, tv, type VariantProps } from '@urbicon-ui/blocks';
 /**
  * The card of titled notes that closes almost every documentation page.
  *
- * The markup this replaces was hand-copied into 79 files (223 notes) and the
- * row padding was written positionally — `pb-4` on the first row, `py-4` in
- * the middle, `pt-4` on the last. That is a computed property, so it is
+ * The markup this replaces was hand-copied 101 times across 79 files, and it
+ * carried 223 notes across 60 of them — the two counts have different bases,
+ * because 19 of those files use the divider for something other than a note
+ * (settings rows, recipe lists). An earlier version of this comment read
+ * "79 files (223 notes)", which glues one measurement's file count to the
+ * other's item count.
+ *
+ * The row padding was written positionally — `pb-4` on the first row, `py-4`
+ * in the middle, `pt-4` on the last. That is a computed property, so it is
  * computed here: `py-4 first:pt-0 last:pb-0` produces the identical box on
  * every row without the author having to know where the row sits.
  */
