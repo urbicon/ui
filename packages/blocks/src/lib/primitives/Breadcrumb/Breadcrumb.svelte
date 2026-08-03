@@ -48,6 +48,19 @@
   const before = $derived(Math.max(0, itemsBeforeCollapse));
   const after = $derived(Math.max(1, itemsAfterCollapse));
 
+  // A per-item icon is sized absolutely, never off its wrapper. An <svg> with a
+  // viewBox and no width/height is a replaced box with a ratio but no intrinsic
+  // size, so a percentage size resolves against its containing block — in an
+  // `unstyled` trail, where the `icon` slot is only what the consumer passed
+  // and may be empty, that is the crumb link itself: a `size-full` glyph took
+  // the link's whole width instead of 16px, so the damage grew with the trail
+  // (96×96 measured in the docs app, 338×338 in a wider repro). Hardcoding it
+  // here is what every other
+  // embedded icon in the library does (MenuItem, Dialog, Alert, Drawer,
+  // GuidePanel); the map exists because Breadcrumb has a size axis they lack.
+  const GLYPH_SIZE = { sm: 'size-3.5', md: 'size-4', lg: 'size-5' } as const;
+  const glyphSize = $derived(GLYPH_SIZE[size]);
+
   type BreadcrumbEntry =
     { kind: 'item'; item: BreadcrumbItem; current: boolean } | { kind: 'ellipsis' };
 
@@ -90,6 +103,24 @@
   }
 </script>
 
+<!--
+  Per-item leading icon. Decorative by contract: the wrapper is `aria-hidden`,
+  so the crumb's accessible name stays its `label` and a screen reader does not
+  announce the glyph twice. Menu/Tab lean on the `aria-hidden` that
+  `IconWrapper` puts on its own `<svg>`, which only holds for icons built on it
+  — spelling it out here also covers a consumer-supplied icon component.
+  Ellipsis entries carry no item and are therefore untouched by this.
+-->
+{#snippet crumbIcon(item: BreadcrumbItem)}
+  {#if item.icon}
+    {@const ItemIcon = item.icon}
+    <span
+      class={unstyled ? (slotClasses?.icon ?? '') : styles.icon({ class: slotClasses?.icon })}
+      aria-hidden="true"><ItemIcon class={glyphSize} /></span
+    >
+  {/if}
+{/snippet}
+
 <nav
   bind:this={navEl}
   class={unstyled
@@ -113,11 +144,20 @@
             …
           </button>
         {:else if entry.current}
+          <!--
+            `aria-label` reaches the current page too, not just the links. It
+            used to be read only in the <a> branch, which made an icon-led last
+            crumb (short or empty `label` + an aria-hidden icon) announce as an
+            empty list item. Chrome does expose an author name on this span
+            despite its generic role — checked in the a11y tree, where it reads
+            back as the element's name.
+          -->
           <span
             class={unstyled
               ? (slotClasses?.currentPage ?? '')
               : styles.currentPage({ class: slotClasses?.currentPage })}
-            aria-current="page">{entry.item.label}</span
+            aria-label={entry.item['aria-label']}
+            aria-current="page">{@render crumbIcon(entry.item)}{entry.item.label}</span
           >
         {:else}
           <!-- BreadcrumbItem.href is opaque to the library; resolve() is the consumer's responsibility. -->
@@ -125,10 +165,8 @@
             href={entry.item.href}
             class={unstyled ? (slotClasses?.link ?? '') : styles.link({ class: slotClasses?.link })}
             aria-label={entry.item['aria-label']}
-            onclick={entry.item.onclick}
+            onclick={entry.item.onclick}>{@render crumbIcon(entry.item)}{entry.item.label}</a
           >
-            {entry.item.label}
-          </a>
         {/if}
         {#if i < entries.length - 1}
           <span

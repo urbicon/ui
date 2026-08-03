@@ -7,6 +7,7 @@
 
 import { render } from 'svelte/server';
 import { describe, expect, it } from 'vitest';
+import HomeIcon from '$lib/icons/HomeIcon.svelte';
 import Breadcrumb from './Breadcrumb.svelte';
 import type { BreadcrumbItem } from './index';
 
@@ -77,5 +78,21 @@ describe('Breadcrumb collapse (SSR)', () => {
     });
     expect(body).toContain('Mehr anzeigen');
     expect(body).not.toContain(EXPAND_LABEL);
+  });
+});
+
+describe('Breadcrumb item icons (SSR)', () => {
+  it('renders a per-item icon into the server HTML', () => {
+    const withIcon: BreadcrumbItem[] = [{ ...trail[0], icon: HomeIcon }, ...trail.slice(1)];
+    const { body } = render(Breadcrumb, { props: { items: withIcon } });
+    expect(body).toContain('<svg');
+    // one icon for one icon-bearing item — the label is untouched by it
+    expect(body.match(/<svg/g)?.length).toBe(1);
+    expect(body).toContain('Alpha');
+  });
+
+  it('renders no icon markup when no item declares one', () => {
+    const { body } = render(Breadcrumb, { props: { items: trail } });
+    expect(body).not.toContain('<svg');
   });
 });

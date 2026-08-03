@@ -10,6 +10,48 @@ describe('breadcrumbVariants', () => {
     expect(typeof styles.link).toBe('function');
     expect(typeof styles.currentPage).toBe('function');
     expect(typeof styles.separator).toBe('function');
+    expect(typeof styles.icon).toBe('function');
+  });
+
+  it('scales the icon gap with the trail', () => {
+    // The glyph's own size scales in the component (GLYPH_SIZE), so a fixed
+    // margin here would read wrong at the ends of the range.
+    expect(breadcrumbVariants({ size: 'sm' }).icon()).toContain('mr-1');
+    expect(breadcrumbVariants({ size: 'md' }).icon()).toContain('mr-1.5');
+    expect(breadcrumbVariants({ size: 'lg' }).icon()).toContain('mr-2');
+  });
+
+  it('carries no box size on the icon wrapper — the glyph sizes itself', () => {
+    // An <svg> with a viewBox and no width/height has a ratio but no intrinsic
+    // size, so sizing it off this wrapper breaks the moment `unstyled` empties
+    // the slot: the percentage resolves against the crumb link instead
+    // (measured 338×338 for what should be a 16px glyph). The wrapper is
+    // layout-only; Breadcrumb.svelte gives the glyph an absolute size.
+    for (const size of ['sm', 'md', 'lg'] as const) {
+      expect(breadcrumbVariants({ size }).icon()).not.toMatch(/(?:^|\s)(?:size|h|w)-\d/);
+    }
+  });
+
+  it('never turns link/currentPage into flex containers (truncation would die)', () => {
+    // The icon sits INSIDE `link` / `currentPage`, both of which carry
+    // `truncate`. Making either a flex container strips the ellipsis —
+    // `text-overflow` never reaches the anonymous flex item a bare text child
+    // becomes. This asserts the ABSENCE of flex, not just the presence of the
+    // inline alignment: `link: ['flex items-center', …, 'truncate']` is exactly
+    // the refactor that must fail here, and a presence-only check stays green
+    // through it.
+    const FLEX_DISPLAY = /(?:^|\s)(?:inline-)?flex(?:\s|$)/;
+    for (const size of ['sm', 'md', 'lg'] as const) {
+      for (const wrap of [true, false]) {
+        const styles = breadcrumbVariants({ size, wrap });
+        expect(styles.link()).not.toMatch(FLEX_DISPLAY);
+        expect(styles.currentPage()).not.toMatch(FLEX_DISPLAY);
+        expect(styles.link()).toContain('truncate');
+        expect(styles.currentPage()).toContain('truncate');
+        // …which is only safe because the icon aligns inline instead.
+        expect(styles.icon()).toContain('align-middle');
+      }
+    }
   });
 
   it('uses design tokens for transitions', () => {
