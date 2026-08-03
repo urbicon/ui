@@ -160,13 +160,65 @@ function sectionTags(src: string): string[] {
   return [...names];
 }
 
-/** `id` values of rendered `<Section …>` elements, in document order. */
+/**
+ * Branches of every `{#if}` block, as `[start, end)` offsets.
+ *
+ * A section that appears once per branch of the same `{#if}` renders ONCE —
+ * the branches exclude each other. Without this the script reported such a
+ * page twice over: `duplicate-id` ("the TOC anchor is ambiguous", which it is
+ * not) and `wrong-order` with a message claiming a transposition while showing
+ * two lists that differ only by the repeat. A guard you have to work around to
+ * write a conditional section is a guard that gets switched off.
+ */
+function ifBranches(src: string): number[][][] {
+  const blocks: number[][][] = [];
+  const open: { start: number; cuts: number[] }[] = [];
+  const token = /\{#if\b|\{:else\b[^}]*\}|\{\/if\}/g;
+  for (const m of src.matchAll(token)) {
+    const at = m.index ?? 0;
+    if (m[0].startsWith('{#if')) open.push({ start: at, cuts: [at] });
+    else if (m[0].startsWith('{:else')) open[open.length - 1]?.cuts.push(at);
+    else {
+      const block = open.pop();
+      if (!block || block.cuts.length < 2) continue;
+      const bounds = [...block.cuts, at];
+      blocks.push(bounds.slice(0, -1).map((s, i) => [s, bounds[i + 1]]));
+    }
+  }
+  return blocks;
+}
+
+/** True when every offset sits in a different branch of one `{#if}` block. */
+function mutuallyExclusive(offsets: readonly number[], blocks: number[][][]): boolean {
+  if (offsets.length < 2) return false;
+  return blocks.some((branches) => {
+    const hit = offsets.map((o) => branches.findIndex(([s, e]) => o >= s && o < e));
+    return hit.every((h) => h !== -1) && new Set(hit).size === hit.length;
+  });
+}
+
+/**
+ * `id` values of rendered `<Section …>` elements, in document order.
+ *
+ * Sections that are alternatives of one `{#if}` collapse to their first
+ * occurrence — see `ifBranches`.
+ */
 function sectionIds(src: string, tags: readonly string[]): string[] {
   const clean = blankQuotedMarkup(src);
   const tag = new RegExp(`<(${tags.join('|')})\\b([^>]*)>`, 'g');
-  return [...clean.matchAll(tag)]
-    .map((m) => m[2].match(/\bid=["']([^"']+)["']/)?.[1])
-    .filter((id): id is string => id !== undefined);
+  const found = [...clean.matchAll(tag)]
+    .map((m) => ({ id: m[2].match(/\bid=["']([^"']+)["']/)?.[1], at: m.index ?? 0 }))
+    .filter((e): e is { id: string; at: number } => e.id !== undefined);
+
+  const blocks = ifBranches(clean);
+  const byId = new Map<string, number[]>();
+  for (const e of found) byId.set(e.id, [...(byId.get(e.id) ?? []), e.at]);
+
+  const dropped = new Set<number>();
+  for (const [, offsets] of byId) {
+    if (mutuallyExclusive(offsets, blocks)) for (const o of offsets.slice(1)) dropped.add(o);
+  }
+  return found.filter((e) => !dropped.has(e.at)).map((e) => e.id);
 }
 
 /**
