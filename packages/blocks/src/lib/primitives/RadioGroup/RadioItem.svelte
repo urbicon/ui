@@ -30,6 +30,20 @@
   const isDisabled = $derived(ctx.disabled || disabledProp);
   const dataState = $derived(isChecked ? 'checked' : 'unchecked');
 
+  /**
+   * Roving tabindex: the checked radio is the group's single tab stop, and while
+   * NOTHING is checked every enabled radio stays reachable — otherwise the group
+   * drops out of the tab order entirely.
+   *
+   * "Nothing is checked" is `ctx.value === undefined`, which is what the context
+   * types it for (`string | undefined`). This read `!ctx.value`, which also fired
+   * for the empty string — and an empty string is an ordinary value. A group
+   * whose "none" option is `value=""` therefore handed a tab stop to EVERY row
+   * while resting on that option: the table's sort list with 20 sortable columns
+   * cost 21 tab stops instead of one.
+   */
+  const rovingTabindex = $derived(isChecked || (ctx.value === undefined && !isDisabled) ? 0 : -1);
+
   // Variant props feed both the tv() style computation and the slot-class
   // cascade — extracted into one derived so `resolveSlotClasses` can match
   // conditional `overrides` against the item's active variants.
@@ -79,7 +93,7 @@
     checked={isChecked}
     disabled={isDisabled}
     class="peer sr-only"
-    tabindex={isChecked || (!ctx.value && !isDisabled) ? 0 : -1}
+    tabindex={rovingTabindex}
     onchange={handleChange}
   />
 
