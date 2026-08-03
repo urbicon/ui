@@ -48,7 +48,8 @@ import type { Repositories } from './types.js';
  * integer key — cannot miss on such a value. It fails while parsing the literal,
  * on reads as much as on writes, so the check reports that error rather than the
  * column type behind it. (Postgres raises SQLSTATE 22P02. Other engines word it
- * differently, which is why an adapter cannot just match on the Postgres text.)
+ * differently, which is why an adapter on another engine cannot reuse the
+ * Postgres wording.)
  *
  * A native id type is allowed — the adapter guide says so explicitly — but it
  * moves work onto the adapter: catch that one error, on that one argument, and
