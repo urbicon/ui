@@ -26,6 +26,13 @@
   import { type Channel, CHANNELS, channelForFamily, TILE_CHANNEL } from '$lib/landing/channels';
   import HeroSpecimen from '$lib/landing/HeroSpecimen.svelte';
   import { formatKb, type HeroRow, SHARED_PREVIEW_NOTES } from '$lib/landing/hero';
+  import type { CalendarEvent } from '@urbicon-ui/blocks';
+  import {
+    buildSchedule,
+    SCHEDULE_END_HOUR,
+    SCHEDULE_START_HOUR,
+    SERVICE_CATEGORIES
+  } from '$lib/landing/schedule';
   import AgentReplay from '$lib/landing/AgentReplay.svelte';
   import { asset } from '$app/paths';
   import { REPO_URL } from '$lib/seo';
@@ -36,6 +43,7 @@
     type AvatarProps,
     AvatarGroup,
     Badge,
+    Calendar,
     type CartesianDatum,
     type ChartSeries,
     CompositionBar,
@@ -43,14 +51,15 @@
     DonutChart,
     Input,
     Progress,
+    Sankey,
     Scroller,
     SegmentGroup,
     SegmentItem,
-    Separator,
     ThemeSwitcher,
     Toggle
   } from '@urbicon-ui/blocks';
   import { I18nProvider } from '@urbicon-ui/i18n';
+  import { MediaQuery } from 'svelte/reactivity';
   import { useUrlParam } from '@urbicon-ui/sveltekit-utils/url.svelte';
   import { Table } from '@urbicon-ui/table';
   import type { Component } from 'svelte';
@@ -108,6 +117,26 @@
     }
   ]);
 
+  // ── Die Striche hinter dem Namen sind der Kompass des Scrollers ────
+  // Sie trugen bisher nur die fünf Kanalfarben und waren damit das einzige
+  // Stück Buntheit auf einer sonst stummen Kachel. Jetzt zeigen sie, wo man
+  // im Kachelband steht, und bringen einen hin: die Signatur der Marke IST
+  // das Inhaltsverzeichnis der Zeile daneben. Die Punkte unter der Karte
+  // bleiben — zwei Orte für dieselbe Navigation, wie Inhaltsverzeichnis und
+  // Blätterpfeile.
+  let activeTile = $state(0);
+  let tileEls = $state<HTMLElement[]>([]);
+  const reducedMotion = new MediaQuery('(prefers-reduced-motion: reduce)');
+  function goToTile(i: number) {
+    tileEls[i]?.scrollIntoView({
+      behavior: reducedMotion.current ? 'auto' : 'smooth',
+      // `inline` bewegt das waagerechte Kachelband, `block: 'nearest'` hält die
+      // Seite darunter still — ohne das springt die ganze Landing mit.
+      inline: 'start',
+      block: 'nearest'
+    });
+  }
+
   // ── Die Kacheln Blocks–Agents teilen sich EIN fiktives Universum: die
   //    Salon-GRUPPE „Bleecker & Bond" — vier Häuser: Bleecker (New York),
   //    Bond (London), Turenne (Paris), Neubau (Wien). Entscheidung
@@ -121,9 +150,105 @@
   //    $lib/salon-tools; die Teams der drei anderen Häuser erweitern nur die
   //    Fiktion, das Tool kennt sie nicht).
 
-  // ── Blocks: das Gruppen-Backoffice als Dashboard-Collage ──────────
-  let range = $state('week');
+  // ── Blocks: das Gruppen-Backoffice in DREI Ansichten ───────────────
+  //
+  // Bis 2026-08-03 schaltete die SegmentGroup hier Week/Month — eine Kontrolle,
+  // die nur die x-Achse eines Charts austauschte, während der Toggle daneben
+  // überhaupt nichts tat. Beides auf einer Kachel, deren Aufgabe „Umfang" ist
+  // und die dafür fünf Datenanzeigen zeigte. Jetzt schaltet sie die ANSICHT:
+  // Dashboard · Planner · Sankey — drei verschiedene Schwergewichte aus einem
+  // Set, ein Klick auseinander. Die Schwergewichte kamen auf der ganzen Landing
+  // sonst nur als Wörter in der Typo-Treppe vor.
+  //
+  // Die Zahlen der drei Ansichten sind EINE Wahrheit: die Wochensummen des
+  // Charts (47/55/51/66/72) sind die „+N more"-Zahlen des Planners, der Donut
+  // (412 guests) ist die Gesamtsumme des Sankey-Flusses, und der Umsatzmix
+  // (52/24/17/7 %) ist dessen letzte Ebene. Wer nachrechnet, findet keinen
+  // Widerspruch — das ist der Sinn EINES Universums.
+  type DashView = 'overview' | 'schedule' | 'flow';
+  let dashView = $state<DashView>('overview');
   let walkIns = $state(true);
+  /** Gewähltes Haus (Klick auf eine Auslastungszeile) — `null` = die Gruppe. */
+  let house = $state<string | null>(null);
+  /** Röntgenbild: zeigt, aus welchen Bauteilen die Fläche besteht. */
+  let xray = $state(false);
+
+  interface House {
+    name: string;
+    city: string;
+    /** Auslastung in Prozent. */
+    load: number;
+    /** Gäste diese Woche. */
+    guests: number;
+    /** …davon Wiederkehrer. */
+    returning: number;
+    /** Umsatzmix des Hauses in Prozent — Paris färbt mehr, New York schneidet. */
+    mix: [number, number, number, number];
+    team: AvatarProps[];
+  }
+  // Auslastung je HAUS, nicht je Stuhl — die Gruppen-Sicht ist der Punkt der
+  // Kachel; die Stuhl-Sicht gehört dem einzelnen Front desk (/salon).
+  // Die Cutter des Stammhauses (Io/Sable/Ren) sind die des Tools; die der drei
+  // anderen Häuser sind Fiktions-Erweiterung, `get_salon_info` kennt sie nicht.
+  // Dieselben Vornamen wie in der Buchungsliste der Table-Kachel.
+  const HOUSES: House[] = [
+    {
+      name: 'Bleecker',
+      city: 'New York',
+      load: 82,
+      guests: 124,
+      returning: 88,
+      mix: [58, 22, 15, 5],
+      team: [
+        { name: 'Io Nakamura', status: 'online' },
+        { name: 'Sable Adeyemi', status: 'online' },
+        { name: 'Ren Duval', status: 'busy' }
+      ]
+    },
+    {
+      name: 'Bond',
+      city: 'London',
+      load: 64,
+      guests: 108,
+      returning: 76,
+      mix: [51, 26, 18, 5],
+      team: [
+        { name: 'Fen Whitlock', status: 'online' },
+        { name: 'Alba Ferrán' },
+        { name: 'Noor Haddad', status: 'busy' }
+      ]
+    },
+    {
+      name: 'Turenne',
+      city: 'Paris',
+      load: 47,
+      guests: 88,
+      returning: 58,
+      mix: [44, 22, 16, 18],
+      team: [{ name: 'Odile Brassard', status: 'online' }, { name: 'Marius Lenoir' }]
+    },
+    {
+      name: 'Neubau',
+      city: 'Vienna',
+      load: 71,
+      guests: 92,
+      returning: 62,
+      mix: [55, 25, 15, 5],
+      team: [{ name: 'Willa Berger' }, { name: 'Emil Radler', status: 'busy' }]
+    }
+  ];
+  const GROUP_GUESTS = HOUSES.reduce((n, h) => n + h.guests, 0); // 412
+  /** Die Chip-Zeile über den Ansichten: die Gruppe plus je ein Haus. */
+  const SCOPES: { key: string | null; label: string }[] = [
+    { key: null, label: 'All' },
+    ...HOUSES.map((h) => ({ key: h.name, label: h.name }))
+  ];
+  const activeHouse = $derived(HOUSES.find((h) => h.name === house) ?? null);
+  /** Anteil des gewählten Hauses an der Gruppe — skaliert Chart und Zahlen. */
+  const share = $derived(activeHouse ? activeHouse.guests / GROUP_GUESTS : 1);
+
+  // Buchungen je Wochentag, Gruppe. Mon/Sun fehlen, weil die Häuser dann
+  // geschlossen sind — der Planner sagt das eine Ansicht weiter ausdrücklich.
   const WEEK_BOOKINGS: CartesianDatum[] = [
     { label: 'Tue', values: [38, 9] },
     { label: 'Wed', values: [43, 12] },
@@ -131,49 +256,171 @@
     { label: 'Fri', values: [52, 14] },
     { label: 'Sat', values: [61, 11] }
   ];
-  const MONTH_BOOKINGS: CartesianDatum[] = [
-    { label: 'W1', values: [172, 48] },
-    { label: 'W2', values: [189, 55] },
-    { label: 'W3', values: [161, 63] },
-    { label: 'W4', values: [214, 49] }
-  ];
-  const BOOKING_SERIES: ChartSeries[] = [{ label: 'Booked' }, { label: 'Walk-in' }];
-  const bookingsData = $derived(range === 'week' ? WEEK_BOOKINGS : MONTH_BOOKINGS);
-  const REVENUE_MIX: CompositionItem[] = [
-    { label: 'Bleecker Cut', value: 52, intent: 'primary' },
-    { label: 'Dry Cut', value: 24, intent: 'success' },
-    { label: 'Beard', value: 17, intent: 'warning' },
-    { label: 'Colour', value: 7, intent: 'neutral' }
-  ];
-  // Die Auslastungs-Spalte des Dashboards (Team, Häuser, Wiederkehrer) —
-  // schmal gestapelt unter dem Chart-Block, breit daneben (siehe `.dash2`).
-  // Acht von 21 Cuttern der Gruppe — mehr als `max`, damit die AvatarGroup
-  // ihren Overflow („+4") zeigt statt wie früher alle fünf auszubreiten.
-  const TEAM: AvatarProps[] = [
-    { name: 'Io Nakamura', status: 'online' },
-    { name: 'Sable Adeyemi', status: 'online' },
-    { name: 'Ren Duval', status: 'busy' },
-    { name: 'Mara Kovač' },
-    { name: 'Tomás Vidal' },
-    { name: 'Priya Ellis', status: 'online' },
-    { name: 'Jules Marchetti' },
-    { name: 'Wren Okoye', status: 'busy' }
-  ];
-  // Auslastung je HAUS, nicht je Stuhl — die Gruppen-Sicht ist der Punkt der
-  // Kachel; die Stuhl-Sicht gehört dem einzelnen Front desk (/salon).
-  const HOUSES = [
-    { name: 'Bleecker', load: 82 },
-    { name: 'Bond', load: 64 },
-    { name: 'Turenne', load: 47 },
-    { name: 'Neubau', load: 71 }
-  ];
+  // Der Toggle ist keine Deko: ohne Walk-ins verschwindet die zweite Serie aus
+  // Chart UND Legende, und der Badge in der Fußzeile sagt etwas anderes.
+  const BOOKING_SERIES: ChartSeries[] = $derived(
+    walkIns ? [{ label: 'Booked' }, { label: 'Walk-in' }] : [{ label: 'Booked' }]
+  );
+  const bookingsData = $derived(
+    WEEK_BOOKINGS.map((d) => ({
+      label: d.label,
+      values: (walkIns ? d.values : d.values.slice(0, 1)).map((v) => Math.round(v * share))
+    }))
+  );
+  const MIX_LABELS = ['Bleecker Cut', 'Dry Cut', 'Beard', 'Colour'] as const;
+  const MIX_INTENTS = ['primary', 'success', 'warning', 'neutral'] as const;
+  const GROUP_MIX: [number, number, number, number] = [52, 24, 17, 7];
+  const revenueMix: CompositionItem[] = $derived(
+    (activeHouse?.mix ?? GROUP_MIX).map((value, i) => ({
+      label: MIX_LABELS[i],
+      value,
+      intent: MIX_INTENTS[i]
+    }))
+  );
+  const team = $derived(activeHouse ? activeHouse.team : HOUSES.flatMap((h) => h.team));
   // Gästezahlen, keine Prozente: der Donut summiert seine Werte zur Mitte.
   // Auf Gruppen-Maßstab (412 guests) liest die Mitte auch nicht mehr
   // versehentlich als „100 %", wie es die alte 68/32-Summe tat.
-  const RETURN_MIX = [
-    { label: 'Returning', value: 284 },
-    { label: 'First visit', value: 128 }
+  const returnMix = $derived([
+    { label: 'Returning', value: activeHouse?.returning ?? 284 },
+    {
+      label: 'First visit',
+      value: (activeHouse?.guests ?? GROUP_GUESTS) - (activeHouse?.returning ?? 284)
+    }
+  ]);
+  const freeChairs = $derived(
+    activeHouse ? Math.max(1, Math.round((100 - activeHouse.load) / 9)) : 9
+  );
+
+  // ── Schedule: die Terminwoche EINES Hauses im Calendar ─────────────
+  // Der Calendar ist datumsindiziert, die Seite ist prerendered: ein
+  // `new Date()` im Initialwert stünde als Build-Woche im HTML und würde beim
+  // Hydrieren gegen die echte Woche laufen. Also SSR-stabil mit einem festen
+  // Anker starten und erst NACH der Hydration auf die laufende Woche schwenken
+  // — ein normales Update, kein Mismatch.
+  const WEEK_ANCHOR = new Date(2026, 7, 3); // Montag, 2026-08-03
+  let weekStart = $state(WEEK_ANCHOR);
+  $effect(() => {
+    const now = new Date();
+    const monday = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    monday.setDate(monday.getDate() - ((monday.getDay() + 6) % 7));
+    weekStart = monday;
+  });
+  // Buchungen der GRUPPE je Wochentag (Index 0 = Montag) — dieselben Summen,
+  // die der Chart der Overview zeichnet. Mo und So fehlen, weil die Häuser dann
+  // geschlossen sind.
+  const GROUP_DAY_TOTALS = [0, 47, 55, 51, 66, 72, 0];
+  // Ein Zeitraster zeigt Stühle, keine Gruppen: vier Häuser übereinander wären
+  // Tapete. Die Ansicht zeigt darum EIN Haus — das gewählte, sonst das
+  // Stammhaus — und die Kopfzeile sagt es. Der Umschalter dafür steht schon
+  // da: die Auslastungszeilen der Overview.
+  const scheduleHouse = $derived(activeHouse ?? HOUSES[0]);
+  const scheduleEvents = $derived(
+    buildSchedule({
+      weekStart,
+      // Zwei Stühle im Dienst — die Vornamen, die auch in der Buchungsliste
+      // der Table-Kachel stehen. Nicht das ganze Team: drei parallele Spalten
+      // je Tag lassen von einem Terminblock 70 px Breite übrig, in denen kein
+      // Name mehr steht. Zwei ist auch die ehrlichere Fiktion — ein Salon hat
+      // selten alle Stühle gleichzeitig besetzt. Wer wirklich alle sehen will,
+      // findet das Team eine Ansicht weiter in der AvatarGroup.
+      chairs: scheduleHouse.team.slice(0, 2).map((m) => String(m.name ?? '').split(' ')[0]),
+      // Der Anteil des Hauses an den Tagessummen der Gruppe. Dass der Samstag
+      // im Raster sichtbar voller ist als der Dienstag, ist keine Deko: es ist
+      // dieselbe Kurve, die der Chart eine Ansicht weiter zeichnet.
+      perDay: GROUP_DAY_TOTALS.map((n) => Math.round(n * (scheduleHouse.guests / GROUP_GUESTS)))
+    })
+  );
+  // Das Zeitraster der Wochenansicht degradiert nicht: sieben Spalten bleiben
+  // sieben Spalten, auch auf 390 px, und ein Terminblock ist dort 25 px breit
+  // mit senkrecht stehendem Namen. (Der Planner kann das — sein Wochenraster
+  // stapelt unter `md`.) Schmal zeigt die Kachel darum die Agenda: dieselben
+  // Termine als Liste, die Form, die ein Telefon ohnehin verlangt.
+  const wideEnoughForWeek = new MediaQuery('(min-width: 48rem)', true);
+  const scheduleView = $derived(wideEnoughForWeek.current ? 'week' : 'agenda');
+  // Fest auf `en-GB`, nicht auf die Laufzeit-Locale: die Seite ist auf `en`
+  // gepinnt, und ein 24-Stunden-Format neben einem 24-Stunden-Zeitraster ist
+  // das, was zusammenpasst.
+  const TIME_FMT = new Intl.DateTimeFormat('en-GB', { hour: '2-digit', minute: '2-digit' });
+
+  // Die Unterzeile der Karte. In der Schedule-Ansicht nennt sie IMMER ein Haus,
+  // auch wenn keins gewählt ist — sonst verspräche „All four houses" über einem
+  // Zeitraster, das nur eines zeigt.
+  const cardSubtitle = $derived(
+    dashView === 'schedule'
+      ? `${scheduleHouse.name} · ${scheduleHouse.city}`
+      : activeHouse
+        ? `${activeHouse.name} · ${activeHouse.city}`
+        : 'All four houses'
+  );
+
+  // ── Flow: woher die 412 Gäste kommen und wo sie landen ─────────────
+  // Drei Ebenen, und jede Ebene summiert sich auf dieselben 412 wie der Donut;
+  // die letzte Ebene trägt die Prozente des Umsatzmixes (52/24/17/7).
+  const FLOW_NODES = [
+    { id: 'online', label: 'Online', intent: 'primary' as const },
+    { id: 'walkin', label: 'Walk-in', intent: 'warning' as const },
+    { id: 'phone', label: 'Phone', intent: 'neutral' as const },
+    ...HOUSES.map((h) => ({
+      id: h.name.toLowerCase(),
+      label: h.name,
+      intent: 'secondary' as const
+    })),
+    { id: 'cut', label: 'Bleecker Cut', intent: 'primary' as const },
+    { id: 'dry', label: 'Dry Cut', intent: 'success' as const },
+    { id: 'beard', label: 'Beard', intent: 'warning' as const },
+    { id: 'colour', label: 'Colour', intent: 'neutral' as const }
   ];
+  const FLOW_LINKS = [
+    { source: 'online', target: 'bleecker', value: 66 },
+    { source: 'online', target: 'bond', value: 56 },
+    { source: 'online', target: 'turenne', value: 44 },
+    { source: 'online', target: 'neubau', value: 44 },
+    { source: 'walkin', target: 'bleecker', value: 36 },
+    { source: 'walkin', target: 'bond', value: 30 },
+    { source: 'walkin', target: 'turenne', value: 26 },
+    { source: 'walkin', target: 'neubau', value: 26 },
+    { source: 'phone', target: 'bleecker', value: 22 },
+    { source: 'phone', target: 'bond', value: 22 },
+    { source: 'phone', target: 'turenne', value: 18 },
+    { source: 'phone', target: 'neubau', value: 22 },
+    { source: 'bleecker', target: 'cut', value: 64 },
+    { source: 'bleecker', target: 'dry', value: 30 },
+    { source: 'bleecker', target: 'beard', value: 21 },
+    { source: 'bleecker', target: 'colour', value: 9 },
+    { source: 'bond', target: 'cut', value: 56 },
+    { source: 'bond', target: 'dry', value: 26 },
+    { source: 'bond', target: 'beard', value: 18 },
+    { source: 'bond', target: 'colour', value: 8 },
+    { source: 'turenne', target: 'cut', value: 46 },
+    { source: 'turenne', target: 'dry', value: 21 },
+    { source: 'turenne', target: 'beard', value: 15 },
+    { source: 'turenne', target: 'colour', value: 6 },
+    { source: 'neubau', target: 'cut', value: 48 },
+    { source: 'neubau', target: 'dry', value: 22 },
+    { source: 'neubau', target: 'beard', value: 16 },
+    { source: 'neubau', target: 'colour', value: 6 }
+  ];
+  // Der Fluss bleibt bei einer Hausauswahl vollständig — die Gesamtsumme ist
+  // der Punkt der Ansicht —, aber alles, was nicht durch das gewählte Haus
+  // läuft, fällt auf `neutral` zurück. Man sieht damit den Anteil EINES Hauses
+  // im Bild der ganzen Gruppe, statt die Gruppe zu verlieren.
+  const houseId = $derived(house?.toLowerCase() ?? null);
+  const HOUSE_IDS = HOUSES.map((h) => h.name.toLowerCase());
+  const flowNodes = $derived(
+    FLOW_NODES.map((n) =>
+      houseId && HOUSE_IDS.includes(n.id) && n.id !== houseId
+        ? { ...n, intent: 'neutral' as const }
+        : n
+    )
+  );
+  const flowLinks = $derived(
+    FLOW_LINKS.map((l) =>
+      !houseId || l.source === houseId || l.target === houseId
+        ? l
+        : { ...l, intent: 'neutral' as const }
+    )
+  );
 
   // ── Table: die heutige Buchungsliste der GRUPPE, gruppiert nach Haus ──
   // Zeiten aus dem SLOT_GRID, Services/Preise aus salon-tools. Die Cutter des
@@ -416,9 +663,13 @@
     { label: 'theming', href: '/customization' }
   ]);
 
-  // Die Fußzeile der Namens-Kachel: drei Konstruktionseigenschaften, keine
-  // Messungen — die Zahlen stehen in Zeile 2, wo sie aus den Katalogen kommen.
-  const PROOF = 'one package · one grammar · one gate';
+  // Die Fußzeile der Namens-Kachel. Bis 2026-08-03 stand hier
+  // „one package · one grammar · one gate". Die Dreizahl war nicht das Problem,
+  // die dreifache Anapher war es: `one … one … one …` ist die Figur einer
+  // deutschen Parole, und gesperrte Mono-Versalie auf Ink liefert die Optik
+  // dazu. Der Satz sagt jetzt dasselbe (alles darin wurde darin gemacht) ohne
+  // die Figur — und er ist die These der Seite, nicht ihre Aufzählung.
+  const PROOF = 'Everything in it was made in it.';
 
   // ── Zeile 2: das Hero-Inventar als niedrigere Zeile ────────────────
   // Mechanik 1:1 aus test-fixtures/landing-hero: die Vorschau ist der gepflegte
@@ -555,17 +806,27 @@
         </div>
         <div class="name-mid">
           <p class="brand">
-            urbicon <span class="brand-suffix">ui</span><span class="ticks"
-              >{#each TILES as tile (tile.key)}<span
-                  class="tick"
+            urbicon <span class="brand-suffix">ui</span><span
+              class="ticks"
+              role="group"
+              aria-label="Highlights"
+              >{#each TILES as tile, i (tile.key)}<button
+                  type="button"
+                  class={['tick', activeTile === i && 'on']}
                   style:background={tile.channel.solid}
-                ></span>{/each}</span
+                  aria-label={`Show ${tile.title}`}
+                  aria-current={activeTile === i ? 'true' : undefined}
+                  onclick={() => goToTile(i)}
+                ></button>{/each}</span
             >
           </p>
-          <!-- Der Anspruch trägt die Kachel: „nothing" ist das Wort, das die
-               Aussage macht, also steht der Rest zurück (Helligkeit, nicht Farbe
-               — die Striche bleiben die einzige Buntheit auf dieser Fläche). -->
-          <p class="claim">Depends on <strong>nothing</strong>.</p>
+          <!-- Der Anspruch trägt die Kachel: der zweite Satz ist das, was die
+               Aussage macht, also steht der erste zurück (Helligkeit, nicht
+               Farbe — die Striche bleiben die einzige Buntheit auf dieser
+               Fläche). Die erste Hälfte ist die Eintrittskarte (0 Deps hat
+               nicht nur diese Bibliothek), die zweite ist das Argument: dass
+               der Gate die Verwendung dort hält, wo sie hingehört. -->
+          <p class="claim">Zero dependencies. <strong>No drift.</strong></p>
         </div>
         <p class="proof">{PROOF}</p>
       </div>
@@ -580,6 +841,7 @@
           snap="mandatory"
           indicator="dots"
           class="relative"
+          onActiveChange={(i) => (activeTile = i)}
           slotClasses={{
             viewport: '!gap-0 !py-0',
             controls: '!absolute inset-0 !pt-0 !justify-between px-4 pointer-events-none',
@@ -600,8 +862,9 @@
               '!absolute bottom-3 left-1/2 -translate-x-1/2 pointer-events-auto rounded-full bg-surface-base/85 px-2 py-1'
           }}
         >
-          {#each TILES as tile (tile.key)}
+          {#each TILES as tile, i (tile.key)}
             <article
+              bind:this={tileEls[i]}
               class="tile room-accent"
               style:--tile-solid={tile.channel.solid}
               style:--tile-deep={tile.channel.deep}
@@ -609,84 +872,227 @@
             >
               <div class="tile-body">
                 {#if tile.key === 'blocks'}
-                  <!-- EIN Dashboard, EINE Karte: die Karte ist ihr eigener
-                       Container und baut sich per @container um — schmal
-                       gestapelt, breit zweispaltig. Kein versteckter Inhalt
-                       mehr (die alte Nebenkarte verschwand unter 78rem);
-                       Mobile bekommt dasselbe Backoffice, nur gestapelt. -->
-                  <div class="card dash2">
+                  <!-- EIN Backoffice, EINE Karte, DREI Ansichten: die Karte ist
+                       ihr eigener Container und baut sich per @container um —
+                       schmal gestapelt, breit zweispaltig. Mobile bekommt
+                       dasselbe Backoffice, nur gestapelt.
+                       `xray` legt über jedes Bauteil seinen Namen (siehe
+                       `.xray` im Stilblock) — die Kachel für „Umfang" zeigt
+                       damit auf Wunsch, woraus sie besteht. -->
+                  <div class={['card', 'dash2', xray && 'xray']}>
                     <div class="dash-head">
                       <div>
                         <p class="dash-title">Bleecker &amp; Bond</p>
-                        <p class="dash-sub">All four houses</p>
+                        <p class="dash-sub">{cardSubtitle}</p>
                       </div>
-                      <SegmentGroup bind:value={range} size="sm" ariaLabel="Range">
-                        <SegmentItem value="week">Week</SegmentItem>
-                        <SegmentItem value="month">Month</SegmentItem>
-                      </SegmentGroup>
+                      <div class="blk" data-blk="SegmentGroup">
+                        <SegmentGroup bind:value={dashView} size="sm" ariaLabel="Backoffice view">
+                          <SegmentItem value="overview">Overview</SegmentItem>
+                          <SegmentItem value="schedule">Schedule</SegmentItem>
+                          <SegmentItem value="flow">Flow</SegmentItem>
+                        </SegmentGroup>
+                      </div>
                     </div>
-                    <div class="dash-body">
-                      <div class="dash-main">
-                        <AreaChart
-                          data={bookingsData}
-                          series={BOOKING_SERIES}
-                          height={132}
-                          showLegend={false}
-                          fillOpacity={0.25}
-                        />
-                        <!-- Die Werte SIND Prozente: formatValue macht sie zur
-                           Anzeige, showPercentages bliebe sonst als Doppelung
-                           daneben stehen (Legende druckt Wert immer). -->
-                        <CompositionBar
-                          items={REVENUE_MIX}
-                          size="sm"
-                          showLegend
-                          showPercentages={false}
-                          formatValue={(v) => `${v} %`}
-                          legendPlacement="bottom"
-                        />
-                      </div>
-                      <div class="dash-side">
-                        <div class="dash-head">
-                          <p class="dash-sub">Houses today</p>
-                          <AvatarGroup items={TEAM} max={4} size="sm" />
-                        </div>
-                        <div class="houses">
-                          {#each HOUSES as house (house.name)}
-                            <Progress
-                              value={house.load}
-                              label={house.name}
-                              showValue
-                              formatValue={(v) => `${v} %`}
-                            />
-                          {/each}
-                        </div>
-                        <Separator />
-                        <div class="dash-foot">
-                          <DonutChart
-                            data={RETURN_MIX}
-                            size={88}
+                    <!-- Der Geltungsbereich steht ÜBER den Ansichten, weil er
+                         auf alle drei wirkt. Bis 2026-08-03 war er nur eine
+                         Auslastungszeile im Körper der Overview — also eine
+                         Ebene unter dem, worauf er wirkt, und ausgerechnet in
+                         der Schedule-Ansicht unerreichbar, die per Bauart eine
+                         Ein-Haus-Ansicht ist. Die Zeilen bleiben zusätzlich
+                         klickbar: zwei Wege, ein Zustand, wie Filterleiste und
+                         Zeilenklick in einer Tabelle. -->
+                    <div class="scope" role="group" aria-label="House">
+                      {#each SCOPES as s (s.key)}
+                        <button
+                          type="button"
+                          class="chip"
+                          aria-pressed={house === s.key}
+                          onclick={() => (house = s.key)}
+                        >
+                          <span class="blk" data-blk="Badge">
+                            <Badge
+                              size="sm"
+                              tier="commit"
+                              variant={house === s.key ? 'filled' : 'soft'}
+                              intent={house === s.key ? 'primary' : 'neutral'}>{s.label}</Badge
+                            >
+                          </span>
+                        </button>
+                      {/each}
+                    </div>
+                    {#if dashView === 'overview'}
+                      <div class="dash-body">
+                        <!-- Der Chart nimmt die volle Kartenbreite: darunter
+                             tragen zwei Spalten ähnlich viel Höhe, statt dass
+                             die kürzere (früher links) unten ein Loch lässt. -->
+                        <div class="blk" data-blk="AreaChart">
+                          <AreaChart
+                            data={bookingsData}
+                            series={BOOKING_SERIES}
+                            height={88}
                             showLegend={false}
-                            showTotal
-                            totalLabel="guests"
-                            ariaLabel="Returning guests this week across the group"
+                            fillOpacity={0.25}
                           />
-                          <p class="aside-note">
-                            <strong>284</strong> of them had been in before.
-                          </p>
+                        </div>
+                        <div class="dash-cols">
+                          <div class="dash-main">
+                            <!-- Die Werte SIND Prozente: formatValue macht sie zur
+                               Anzeige, showPercentages bliebe sonst als Doppelung
+                               daneben stehen (Legende druckt Wert immer). -->
+                            <div class="blk" data-blk="CompositionBar">
+                              <CompositionBar
+                                items={revenueMix}
+                                size="sm"
+                                showLegend
+                                showPercentages={false}
+                                formatValue={(v) => `${v} %`}
+                                legendPlacement="bottom"
+                              />
+                            </div>
+                            <div class="dash-donut">
+                              <div class="blk" data-blk="DonutChart">
+                                <DonutChart
+                                  data={returnMix}
+                                  size={66}
+                                  showLegend={false}
+                                  showTotal
+                                  totalLabel="guests"
+                                  ariaLabel="Returning guests this week"
+                                />
+                              </div>
+                              <p class="aside-note">
+                                <strong>{returnMix[0].value}</strong> of them had been in before.
+                              </p>
+                            </div>
+                          </div>
+                          <div class="dash-side">
+                            <div class="dash-head">
+                              <p class="dash-sub">
+                                {activeHouse ? 'On the floor' : 'Houses today'}
+                              </p>
+                              <!-- Die Gesichter sind nicht mehr Deko: sie zeigen
+                                   das Team des gewählten Hauses und wechseln mit
+                                   ihm. -->
+                              <div class="blk" data-blk="AvatarGroup">
+                                <AvatarGroup items={team} max={4} size="sm" />
+                              </div>
+                            </div>
+                            <!-- Eine Zeile je Haus, und jede ist ein Schalter:
+                                 der Klick zieht Chart, Umsatzmix, Donut, Team,
+                                 Kopfzeile und die Terminwoche mit. Progress ist
+                                 eine Anzeige — die Bedienbarkeit gehört dem
+                                 Button darum, nicht der Komponente darin. -->
+                            <div class="houses">
+                              {#each HOUSES as h (h.name)}
+                                <!-- Eigenes `aria-label`: der einzige Inhalt des
+                                     Buttons ist ein `role="progressbar"`, dessen
+                                     Name auf ihm selbst sitzt und nicht nach
+                                     oben durchschlägt — ohne diese Zeile ist es
+                                     ein Knopf ohne Namen. -->
+                                <button
+                                  type="button"
+                                  class={['house', house === h.name && 'on']}
+                                  aria-pressed={house === h.name}
+                                  aria-label={`${h.name}, ${h.city} — ${h.load} % booked`}
+                                  onclick={() => (house = house === h.name ? null : h.name)}
+                                >
+                                  <span class="blk" data-blk="Progress">
+                                    <Progress
+                                      value={h.load}
+                                      label={h.name}
+                                      showValue
+                                      formatValue={(v) => `${v} %`}
+                                    />
+                                  </span>
+                                </button>
+                              {/each}
+                            </div>
+                          </div>
                         </div>
                       </div>
-                    </div>
+                    {:else if dashView === 'schedule'}
+                      <!-- Die Belegung eines Hauses auf dem Zeitraster: wo die
+                           Blöcke dicht liegen, ist voll — die Ansicht ZEIGT die
+                           Auslastung, die die Overview daneben in Prozent
+                           behauptet. Mon/Sun bleiben leer, weil die Häuser dann
+                           geschlossen sind; das erklärt, warum der Chart bei
+                           Tue anfängt.
+                           `{#key}`, weil `defaultDate` laut Vertrag nur beim
+                           Mounten gelesen wird — der Schwenk von der Anker- auf
+                           die laufende Woche nach der Hydration käme sonst nie
+                           an. Kein Wischen: die Kachel liegt in einem
+                           waagerecht wischbaren Band, und dort muss die Geste
+                           die Kachel wechseln, nicht die Woche. -->
+                      <div class="view-host">
+                        <div class="blk" data-blk="Calendar">
+                          {#key `${weekStart.getTime()}-${scheduleView}`}
+                            <Calendar
+                              events={scheduleEvents}
+                              categories={SERVICE_CATEGORIES}
+                              view={scheduleView}
+                              views={[scheduleView]}
+                              agendaDays={7}
+                              showViewSwitcher={false}
+                              defaultDate={weekStart}
+                              size="sm"
+                              showTimeGrid
+                              timeGridStartHour={SCHEDULE_START_HOUR}
+                              timeGridEndHour={SCHEDULE_END_HOUR}
+                              timeGridInterval={60}
+                              showEventList={false}
+                              swipeable={false}
+                              showLegend={false}
+                              slotClasses={{
+                                // Einspaltig scrollt die Woche durch die Karte —
+                                // ohne das Festheften wäre nach zwei Tagen nicht
+                                // mehr zu sehen, um welche Woche es geht.
+                                header: 'sticky top-0 z-[1] bg-[var(--card-bg)]'
+                              }}
+                              eventItem={agendaItem}
+                            />
+                          {/key}
+                        </div>
+                      </div>
+                    {:else}
+                      <!-- Dieselben 412 Gäste wie im Donut, nur von der Seite
+                           gesehen: Kanal → Haus → Leistung. Die letzte Ebene
+                           trägt die Prozente des Umsatzmixes. -->
+                      <div class="view-host">
+                        <div class="blk" data-blk="Sankey">
+                          <Sankey
+                            nodes={flowNodes}
+                            links={flowLinks}
+                            height={292}
+                            nodeWidth={12}
+                            nodePadding={10}
+                            formatValue={(v) => `${v} guests`}
+                          />
+                        </div>
+                      </div>
+                    {/if}
                     <div class="dash-foot">
-                      <Toggle bind:checked={walkIns} label="Accept walk-ins" size="sm" />
-                      <!-- soft ist hier Geschmack, nicht mehr Notwehr: die solide
+                      <div class="blk" data-blk="Toggle">
+                        <Toggle bind:checked={walkIns} label="Accept walk-ins" size="sm" />
+                      </div>
+                      <!-- `modify` statt der Badge-Voreinstellung `commit`: die
+                         Pille sah aus wie ein Knopf und war keiner — auf einer
+                         Fläche, auf der jetzt alles andere wirklich schaltet,
+                         ist genau das die Irreführung. Als Status liest der
+                         kleine Radius richtig.
+                         soft ist Geschmack, nicht mehr Notwehr: die solide
                          Intent-Fläche trug text-on-primary, das im
-                         .room-accent-Scope auf den Kanal umgefärbt wurde — ein
-                         success-Badge bekam also die Schriftfarbe des Raums auf
-                         grünem Grund. Seit 2026-07-31 tragen die nicht-primary
-                         Füllungen text-on-fill, das kein Raum überschreibt
-                         (#47). filled wäre jetzt gefahrlos. -->
-                      <Badge intent="success" variant="soft">9 chairs free</Badge>
+                         .room-accent-Scope auf den Kanal umgefärbt wurde. Seit
+                         2026-07-31 tragen die nicht-primary Füllungen
+                         text-on-fill, das kein Raum überschreibt (#47). -->
+                      <div class="blk" data-blk="Badge">
+                        <Badge
+                          intent={walkIns ? 'success' : 'neutral'}
+                          variant="soft"
+                          tier="modify"
+                        >
+                          {walkIns ? `${freeChairs} chairs free` : 'By appointment only'}
+                        </Badge>
+                      </div>
                     </div>
                   </div>
                 {:else if tile.key === 'table'}
@@ -751,6 +1157,19 @@
                   <a class="tile-link" href={tile.href}
                     >{tile.linkLabel} <span aria-hidden="true">↗</span></a
                   >
+                {:else if tile.key === 'blocks'}
+                  <!-- Der Schalter steht AUF der Kachel, nicht in der Karte: er
+                       spricht über die Fläche, nicht im Salon. Innerhalb der
+                       Karte gilt die Fiktion, hier draußen die Bibliothek. -->
+                  <button
+                    type="button"
+                    class="tile-link"
+                    aria-pressed={xray}
+                    onclick={() => (xray = !xray)}
+                  >
+                    {xray ? 'Hide the parts' : 'Show the parts'}
+                    <span aria-hidden="true">⌗</span>
+                  </button>
                 {/if}
               </div>
             </article>
@@ -1042,6 +1461,21 @@
   <span class="num">{(item as HeroRow).props}</span>
 {/snippet}
 
+<!-- Der Eintrag der Agenda-Ansicht (schmale Viewports). Eigener Snippet, weil
+     der eingebaute Eintrag Titel, Beschreibung und Hilfstext rendert — aber
+     nie die Uhrzeit, auch bei `allDay: false` nicht. Eine Terminliste ohne
+     Uhrzeit ist keine. Das Zeitraster der Wochenansicht ist davon unberührt:
+     dort steht der Block an seiner Uhrzeit, eine zweite wäre Doppelung. -->
+{#snippet agendaItem({ event, category }: { event: CalendarEvent; category?: { color: string } })}
+  <span class="agenda-row">
+    <span class="agenda-bar" style:background={category?.color ?? 'var(--color-border-default)'}
+    ></span>
+    <span class="agenda-time">{TIME_FMT.format(event.start)}</span>
+    <span class="agenda-who">{event.title}</span>
+    <span class="agenda-chair">{event.description}</span>
+  </span>
+{/snippet}
+
 {#snippet statusCell(item: unknown)}
   {@const s = (item as Booking).status}
   <Badge
@@ -1127,8 +1561,44 @@
     height: 0.09em;
     margin-left: 0.06em;
     /* Ein leerer inline-block sitzt mit seiner Unterkante auf der Baseline —
-       genau die Bündigkeit, die die Striche zur Grundlinie des Namens bringt. */
+       genau die Bündigkeit, die die Striche zur Grundlinie des Namens bringt.
+       Der aktive Strich wächst deshalb nach OBEN, ohne die Zeile zu verrücken. */
     vertical-align: baseline;
+  }
+  /* Nur die Striche der Namens-Kachel schalten — die der Fußzeile sind dieselbe
+     Signatur, aber dort führt sie nirgendwohin (unter ihr endet die Seite). */
+  button.tick {
+    position: relative;
+    border: 0;
+    padding: 0;
+    cursor: pointer;
+    opacity: 0.5;
+    transition:
+      opacity 160ms ease,
+      height 160ms ease;
+  }
+  button.tick:hover {
+    opacity: 0.85;
+  }
+  button.tick.on {
+    opacity: 1;
+    height: 0.18em;
+  }
+  button.tick:focus-visible {
+    outline: 2px solid #f4f4f2;
+    outline-offset: 4px;
+  }
+  /* Ein 23 × 5 px großer Strich ist kein Ziel. Die Trefferfläche wächst über
+     ein Pseudo-Element, damit sie das Layout der Signatur nicht anfasst. */
+  button.tick::after {
+    content: '';
+    position: absolute;
+    inset: -0.6em -0.06em;
+  }
+  @media (prefers-reduced-motion: reduce) {
+    button.tick {
+      transition: none;
+    }
   }
   .claim {
     margin-top: 1.1rem;
@@ -1136,7 +1606,9 @@
     font-weight: 700;
     line-height: 1.08;
     letter-spacing: -0.025em;
-    max-width: 14ch;
+    /* Genau breit genug für „Zero dependencies." in einer Zeile — der Umbruch
+       soll zwischen den beiden Sätzen liegen, nicht in einem von ihnen. */
+    max-width: 17ch;
     text-wrap: balance;
     color: #8f8f88;
   }
@@ -1233,7 +1705,8 @@
      zwei Schatten darunter am Rahmen (`scroll`) bleiben stehen — an beiden
      Enden löscht die Deckfläche genau ihren Schatten. Kein JS und kein
      `animation-timeline: scroll()`, das iOS Safari noch nicht kennt. */
-  .card.dash2,
+  .dash2 > .dash-body,
+  .dash2 > .view-host,
   .card.card-table {
     --card-shade: light-dark(rgb(0 0 0 / 0.16), rgb(255 255 255 / 0.14));
     background:
@@ -1245,42 +1718,109 @@
         100% 0.6rem no-repeat scroll,
       var(--card-bg);
   }
+  /* Kopf und Fuß stehen, der Inhalt dazwischen scrollt. Bis 2026-08-03 scrollte
+     die ganze Karte — mit drei Ansichten unterschiedlicher Höhe hieß das, dass
+     die Fußzeile (Toggle + Badge) je nach Ansicht unter die Kante rutschte.
+     Ein Backoffice, dessen Bedienung wegscrollt, ist keins. */
   .dash2 {
     container-type: inline-size;
     width: min(520px, 100%);
-    max-height: 100%;
+    /* Feste Höhe, nicht nur eine Obergrenze: sonst schrumpft die Karte auf den
+       Planner bzw. den Sankey zusammen und der Ansichtswechsel lässt Kopfzeile
+       und SegmentGroup springen. */
+    height: 100%;
+    display: grid;
+    /* Kopf · Geltungsbereich · Ansicht · Fußzeile. */
+    grid-template-rows: auto auto minmax(0, 1fr) auto;
+    gap: 0.9rem;
+  }
+  /* Die Chip-Zeile trennt sich mit einer Haarlinie vom Inhalt darunter — sie
+     gehört zum Rahmen der Karte, nicht zur Ansicht. */
+  .scope {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.35rem;
+    padding-block-end: 0.5rem;
+    border-block-end: 1px solid light-dark(rgb(0 0 0 / 0.08), rgb(255 255 255 / 0.1));
+  }
+  .chip {
+    font: inherit;
+    background: none;
+    border: 0;
+    padding: 0;
+    cursor: pointer;
+    border-radius: var(--radius-commit);
+    transition: opacity 120ms ease;
+  }
+  .chip[aria-pressed='false']:hover {
+    opacity: 0.72;
+  }
+  .chip:focus-visible {
+    outline: 2px solid var(--tile-solid);
+    outline-offset: 2px;
+  }
+  .chip .blk {
+    display: block;
+  }
+  .dash2 > .dash-body,
+  .dash2 > .view-host {
     overflow-y: auto;
+    min-height: 0;
     scrollbar-width: thin;
+  }
+  /* Die Namensschilder des Röntgenbilds sitzen über der Oberkante ihres
+     Bauteils — im scrollenden Body würde das oberste abgeschnitten. Das Polster
+     schafft ihm Platz, das negative Margin nimmt ihn dem Layout wieder ab,
+     damit beim Umschalten nichts springt. Nur im Röntgenbild: ein dauerhaftes
+     Polster ist ein Streifen, durch den Inhalt an der festgehefteten Kopfzeile
+     des Planners vorbeiscrollt. */
+  .dash2.xray > .dash-body,
+  .dash2.xray > .view-host {
+    padding-block-start: 0.7rem;
+    margin-block-start: -0.7rem;
+  }
+  /* Der Chart liegt über der vollen Kartenbreite, die zwei Spalten darunter.
+     Vorher stand er in der linken Spalte, die damit deutlich kürzer war als
+     die rechte — das Loch unten links war die Differenz, nicht Absicht. */
+  .dash-body {
     display: flex;
     flex-direction: column;
-    gap: 1.1rem;
-  }
-  /* Kinder einer SCROLLENDEN Flex-Spalte dürfen nicht schrumpfen: sonst
-     quetscht flex-shrink Kopf- und Fußzeile über den Grid-Inhalt (Badge über
-     der Donut-Notiz), statt dass die Karte scrollt. */
-  .dash2 > * {
-    flex-shrink: 0;
-  }
-  .dash-body {
-    display: grid;
-    gap: 1.1rem;
+    gap: 0.75rem;
     min-height: 0;
+  }
+  .dash-cols {
+    display: grid;
+    gap: 0.75rem;
+    min-width: 0;
+  }
+  /* Einspaltig (schmale Karte) steht die Auslastung der Häuser VOR dem
+     Umsatzmix: sie ist die Aussage der Kachel, und was hier unten steht,
+     erreicht man nur durch Scrollen in der Karte. Zweispaltig hebt die
+     Grid-Zuordnung das wieder auf. */
+  .dash-side {
+    order: -1;
   }
   .dash-main,
   .dash-side {
     min-width: 0;
     display: flex;
     flex-direction: column;
-    gap: 1.1rem;
+    gap: 0.75rem;
   }
   @container (min-width: 30rem) {
-    .dash-body {
-      grid-template-columns: minmax(0, 1.15fr) minmax(0, 1fr);
+    .dash-cols {
+      grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
       gap: 1.6rem;
       align-items: stretch;
     }
+    /* Was an Resthöhe bleibt, verteilt sich zwischen den Blöcken der kürzeren
+       Spalte, statt sich unten zu einem Loch zu sammeln. */
+    .dash-main,
     .dash-side {
       justify-content: space-between;
+    }
+    .dash-side {
+      order: 0;
     }
   }
   @media (min-width: 78rem) {
@@ -1288,10 +1828,109 @@
       width: min(940px, 100%);
     }
   }
+  .dash-donut {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+  }
+  /* Planner und Sankey bekommen die Bühne der Karte allein — und füllen sie:
+     ohne das Strecken stünde ein Wochenraster mit drei Terminen je Spalte oben
+     im Kasten und ließe darunter ein halbes Kartenfeld leer.
+     Der Scroll-Container und das Bauteil sind absichtlich ZWEI Elemente: trug
+     ein Element beide Rollen, schnitt es im Röntgenbild sein eigenes
+     Namensschild ab — das sitzt über der Oberkante, und ein `overflow: auto`
+     clippt dort. */
+  .view-host {
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+  }
+  .view-host > .blk {
+    flex: 1;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+  }
+  /* `1 0 auto`, nicht `1`: wachsen ja, schrumpfen nein. Ein deckelndes
+     `height: 100%` (vorher als `!h-full` am Planner) machte den einspaltigen
+     Fall unscrollbar — das gestapelte Wochenraster ragte sichtbar heraus, aber
+     der Container sah keinen Überlauf, weil sein Kind exakt seine Höhe hatte.
+     So bleibt das Bauteil mindestens so hoch wie sein Inhalt und der Container
+     scrollt, sobald das mehr ist als die Bühne. */
+  .view-host > .blk > :global(*) {
+    flex: 1 0 auto;
+  }
   .houses {
     display: flex;
     flex-direction: column;
-    gap: 0.85rem;
+    gap: 0.15rem;
+  }
+  /* Jede Auslastungszeile ist ein Schalter — Progress bleibt die Anzeige, der
+     Button darum trägt Zustand, Fokusring und Trefferfläche. */
+  .house {
+    display: block;
+    width: 100%;
+    text-align: start;
+    font: inherit;
+    color: inherit;
+    background: none;
+    border: 0;
+    padding: 0.12rem 0.45rem;
+    margin-inline: -0.45rem;
+    border-radius: var(--radius-modify);
+    cursor: pointer;
+    transition: background-color 120ms ease;
+  }
+  .house:hover {
+    background: light-dark(rgb(0 0 0 / 0.05), rgb(255 255 255 / 0.07));
+  }
+  .house.on {
+    background: light-dark(rgb(0 0 0 / 0.09), rgb(255 255 255 / 0.12));
+  }
+  .house:focus-visible {
+    outline: 2px solid var(--tile-solid);
+    outline-offset: 1px;
+  }
+  .house .blk {
+    display: block;
+  }
+
+  /* Eintrag der Agenda-Ansicht: Farbstreifen, Uhrzeit, Gast, Stuhl — eine
+     Zeile, weil das Telefon keine zwei hergibt. Der Snippet ersetzt den
+     GANZEN Eintrag (nicht nur seinen Inhalt), also kommt auch das Layout von
+     hier; statt eines Kastens je Termin trennt eine Haarlinie. */
+  .agenda-row {
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+    padding-block: 0.45rem;
+    border-block-end: 1px solid light-dark(rgb(0 0 0 / 0.07), rgb(255 255 255 / 0.09));
+  }
+  .agenda-bar {
+    width: 3px;
+    align-self: stretch;
+    border-radius: 2px;
+    flex-shrink: 0;
+  }
+  .agenda-time {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.75rem;
+    font-weight: 600;
+    flex-shrink: 0;
+  }
+  .agenda-who {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    font-size: 0.85rem;
+  }
+  .agenda-chair {
+    margin-inline-start: auto;
+    flex-shrink: 0;
+    font-size: 0.75rem;
+    color: light-dark(#77776f, #8a8a84);
   }
   .aside-note {
     font-size: 0.8rem;
@@ -1381,14 +2020,55 @@
     justify-content: space-between;
     gap: 1rem;
   }
+  /* Gilt für die Tür der A2UI-Kachel (<a>) UND für den Röntgen-Schalter der
+     Blocks-Kachel (<button>) — dieselbe Stelle, dieselbe Form. */
   .tile-link {
     flex-shrink: 0;
+    font: inherit;
     font-weight: 700;
     font-size: 0.85rem;
     color: inherit;
     text-decoration: none;
+    background: none;
+    border: 0;
     border-bottom: 2px solid currentColor;
     padding-bottom: 2px;
+    cursor: pointer;
+  }
+
+  /* ── Röntgenbild ─────────────────────────────────────────────────
+     Die Kachel für „Umfang" zeigt auf Wunsch, woraus sie besteht: jedes
+     Bauteil bekommt seinen Umriss und sein Namensschild. Kein zusätzliches
+     Markup — die Namen stehen als `data-blk` schon dort, wo sie hingehören,
+     und `::after` holt sie hervor. */
+  .blk {
+    position: relative;
+  }
+  .xray .blk {
+    outline: 1px dashed color-mix(in oklch, var(--tile-solid) 65%, transparent);
+    outline-offset: 3px;
+  }
+  /* Die Auslastungszeilen stehen dicht — im Röntgenbild säße das Namensschild
+     der einen auf dem Balken der anderen. */
+  .xray .houses {
+    gap: 0.85rem;
+  }
+  .xray .blk::after {
+    content: attr(data-blk);
+    position: absolute;
+    inset-block-start: -0.6rem;
+    inset-inline-start: 0;
+    z-index: 2;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.55rem;
+    font-weight: 600;
+    letter-spacing: 0.04em;
+    line-height: 1.5;
+    padding-inline: 0.25rem;
+    border-radius: 2px;
+    background: var(--tile-solid);
+    color: var(--tile-on);
+    pointer-events: none;
   }
 
   /* Typo-Treppe der restlichen Register — jede Stufe verlinkt ihr Register. */
