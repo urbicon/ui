@@ -11,6 +11,7 @@
   } from '@urbicon-ui/blocks';
   import { CodeExample, Section } from '@urbicon-ui/docs';
   import { recipeMeta } from './meta';
+  import RecipeHeader from '../RecipeHeader.svelte';
 
   const { components: usedComponents, features } = recipeMeta;
 
@@ -310,22 +311,7 @@ export const POST: RequestHandler = async ({ request }) => {
 />
 
 <div class="mx-auto max-w-5xl px-6 py-12">
-  <header class="mb-10">
-    <a
-      href={resolve('/recipes')}
-      class="text-text-tertiary hover:text-text-primary mb-4 inline-flex items-center gap-1 text-sm transition-colors"
-    >
-      ← Back to Recipes
-    </a>
-    <h1 class="text-text-primary mb-3 text-4xl font-bold">{recipeMeta.title}</h1>
-    <p class="text-text-secondary text-lg">{recipeMeta.description}</p>
-  </header>
-
-  <div class="mb-8 flex flex-wrap gap-2">
-    {#each usedComponents as comp (comp)}
-      <Badge variant="soft" intent="primary">{comp}</Badge>
-    {/each}
-  </div>
+  <RecipeHeader meta={recipeMeta} />
 
   <Section id="preview" title="Live Preview">
     <p class="text-text-secondary mb-4 text-sm">

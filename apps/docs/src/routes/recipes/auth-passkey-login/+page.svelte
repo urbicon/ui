@@ -2,11 +2,11 @@
   import SeoMeta from '$lib/SeoMeta.svelte';
   import { resolve } from '$app/paths';
   import { r } from '$lib/route';
-  import { Badge } from '@urbicon-ui/blocks';
   import { CodeExample, InfoCard, Section } from '@urbicon-ui/docs';
   import { LoginPage } from '@urbicon-ui/auth';
   import { componentLinks } from '$lib/component-links';
   import { recipeMeta } from './meta';
+  import RecipeHeader from '../RecipeHeader.svelte';
 
   const { title, description, components: usedComponents, features } = recipeMeta;
 
@@ -65,36 +65,7 @@ export const POST = passkey.authenticationVerify.POST;
 <SeoMeta title={`${title} Recipe`} {description} />
 
 <div class="mx-auto max-w-6xl px-6 py-12">
-  <div class="mb-10">
-    <a
-      href={resolve('/recipes')}
-      class="text-text-tertiary hover:text-primary mb-4 inline-flex items-center gap-1 text-sm transition-colors"
-    >
-      <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"
-        ><path
-          stroke-linecap="round"
-          stroke-linejoin="round"
-          stroke-width="2"
-          d="M15 19l-7-7 7-7"
-        /></svg
-      >
-      Back to Recipes
-    </a>
-    <h1 class="text-text-primary mb-2 text-3xl font-bold">{title}</h1>
-    <p class="text-text-secondary mb-4 text-lg">{description}</p>
-    <div class="flex flex-wrap gap-1.5">
-      {#each usedComponents as comp (comp)}
-        <a href={r(componentLinks[comp] ?? '#')}>
-          <Badge
-            variant="outlined"
-            intent="primary"
-            size="sm"
-            class="hover:bg-primary-subtle transition-colors">{comp}</Badge
-          >
-        </a>
-      {/each}
-    </div>
-  </div>
+  <RecipeHeader meta={recipeMeta} />
 
   <div class="grid grid-cols-1 gap-10 xl:grid-cols-3">
     <div class="xl:col-span-2">

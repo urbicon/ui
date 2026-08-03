@@ -1,9 +1,7 @@
 <script lang="ts">
   import SeoMeta from '$lib/SeoMeta.svelte';
   import { resolve } from '$app/paths';
-  import { r } from '$lib/route';
   import {
-    Badge,
     Button,
     FolderIcon,
     Guide,
@@ -20,8 +18,8 @@
   } from '@urbicon-ui/blocks';
   import type { GuideTour } from '@urbicon-ui/blocks';
   import { CodeExample, Section } from '@urbicon-ui/docs';
-  import { componentLinks } from '$lib/component-links';
   import { recipeMeta } from './meta';
+  import RecipeHeader from '../RecipeHeader.svelte';
 
   const { components: usedComponents } = recipeMeta;
 
@@ -134,41 +132,7 @@
 <SeoMeta title="Onboarding Flow Recipe" />
 
 <div class="mx-auto max-w-6xl px-6 py-12">
-  <!-- Header -->
-  <div class="mb-10">
-    <a
-      href={resolve('/recipes')}
-      class="text-text-tertiary hover:text-primary mb-4 inline-flex items-center gap-1 text-sm transition-colors"
-    >
-      <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"
-        ><path
-          stroke-linecap="round"
-          stroke-linejoin="round"
-          stroke-width="2"
-          d="M15 19l-7-7 7-7"
-        /></svg
-      >
-      Back to Recipes
-    </a>
-    <h1 class="text-text-primary mb-2 text-3xl font-bold">Onboarding Flow</h1>
-    <p class="text-text-secondary mb-4 max-w-3xl text-lg">
-      A first-run onboarding built on the Guide system: a waiting beacon starts an opt-in spotlight
-      tour, a non-modal help panel links back to the UI, a hint flags a new feature, and analytics
-      hooks track the funnel — all over one controller.
-    </p>
-    <div class="flex flex-wrap gap-1.5">
-      {#each usedComponents as comp (comp)}
-        <a href={r(componentLinks[comp] ?? '#')}>
-          <Badge
-            variant="outlined"
-            intent="primary"
-            size="sm"
-            class="hover:bg-primary-subtle transition-colors">{comp}</Badge
-          >
-        </a>
-      {/each}
-    </div>
-  </div>
+  <RecipeHeader meta={recipeMeta} />
 
   <Section id="preview" title="Live Preview">
     <p class="text-text-tertiary mb-4 text-sm">
