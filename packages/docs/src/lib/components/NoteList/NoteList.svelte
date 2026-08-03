@@ -14,8 +14,16 @@
   const styles = $derived(noteListVariants({ variant }));
 
   // `unstyled` drops the tv defaults; slotClasses always apply on top.
-  const slot = (name: NoteListSlots): string =>
-    [unstyled ? '' : styles[name](), slotClasses[name] ?? ''].filter(Boolean).join(' ');
+  // Folds through tv(), like every other component in this package. This file
+  // was the tenth: the fold sweep converted its sibling `Note.svelte` and left
+  // `NoteList.svelte` concatenating, so the claim "one package, one semantics"
+  // was still false by one — `slotClasses={{ root: 'p-0' }}` emitted
+  // `… p-6 p-0` and let stylesheet order decide.
+  const slot = (name: NoteListSlots): string => {
+    if (unstyled) return slotClasses[name] ?? '';
+    const fns = styles as unknown as Record<string, (a: { class?: string }) => string>;
+    return fns[name]({ class: slotClasses[name] });
+  };
 </script>
 
 <!-- No landmark role and no heading of its own: the enclosing <Section> already
