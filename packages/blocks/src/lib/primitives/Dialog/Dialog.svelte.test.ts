@@ -121,6 +121,34 @@ describe('Dialog (component interaction)', () => {
     expect(dialog().getAttribute('data-state')).toBe('open');
   });
 
+  it('stays open when an inner widget already consumed the Escape', async () => {
+    const user = userEvent.setup();
+    const onClose = vi.fn();
+    renderDialog({
+      open: true,
+      onClose,
+      children: createRawSnippet(() => ({
+        render: () => `<button type="button" data-testid="inner">Operator</button>`
+      }))
+    });
+    await tick();
+
+    // Exactly what Select, Combobox and Popover do when Escape dismisses THEM:
+    // handle it and mark it consumed. The dialog's own handler ignored that and
+    // closed anyway, so dismissing an open dropdown tore down the dialog it sat
+    // in — the case Codeberg #23 put a Select into in the first place.
+    const inner = screen.getByTestId('inner');
+    inner.addEventListener('keydown', (event) => {
+      if (event.key === 'Escape') event.preventDefault();
+    });
+    inner.focus();
+
+    await user.keyboard('{Escape}');
+
+    expect(onClose).not.toHaveBeenCalled();
+    expect(dialog().getAttribute('data-state')).toBe('open');
+  });
+
   it('fires onClose when the close button is clicked', async () => {
     const user = userEvent.setup();
     const onClose = vi.fn();

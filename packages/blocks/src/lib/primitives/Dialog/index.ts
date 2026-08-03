@@ -89,6 +89,14 @@ export interface DialogProps extends Omit<HTMLDialogAttributes, 'children' | 'op
    * The ARIA APG recommends Escape and does not forbid disabling it; the same
    * condition as {@link closeOnBackdropClick} applies — with every exit closed,
    * the dialog must carry its own action.
+   *
+   * Escape is dismissed one layer at a time: a control INSIDE the dialog that
+   * handles Escape itself — an open `Select`/`Combobox`/`Menu` panel, a
+   * `clearable` `Input` with text in it — consumes the key, and the dialog stays
+   * up. The second Escape closes the dialog. This is about controls in the
+   * content; it does not apply to a consumer `onkeydown` on the Dialog itself,
+   * which cannot veto the dismiss (see utils/compose-handlers.ts) — use this
+   * prop for that.
    * @default true
    * @summary Whether the Escape key dismisses the dialog.
    */

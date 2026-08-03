@@ -78,6 +78,35 @@ describe('Drawer (component interaction)', () => {
       releaseForeign();
     }
   });
+
+  it('stays open when an inner widget already consumed the Escape', async () => {
+    // Asserted here as well as in Dialog for the reason this file exists: the
+    // keydown handler is a duplicate, not a shared helper, and it carried the
+    // same defect in both copies. A drawer holding any control with a panel
+    // hits it — the table's tools sheet holds the filter form's operator
+    // Select, where dismissing the dropdown used to close the whole sheet.
+    const user = userEvent.setup();
+    const onClose = vi.fn();
+    renderDrawer({
+      open: true,
+      onClose,
+      children: createRawSnippet(() => ({
+        render: () => `<button type="button" data-testid="inner">Operator</button>`
+      }))
+    });
+    await tick();
+
+    const inner = screen.getByTestId('inner');
+    inner.addEventListener('keydown', (event) => {
+      if (event.key === 'Escape') event.preventDefault();
+    });
+    inner.focus();
+
+    await user.keyboard('{Escape}');
+
+    expect(onClose).not.toHaveBeenCalled();
+    expect(drawer().getAttribute('data-state')).toBe('open');
+  });
 });
 
 // restProps contract on the <dialog> (see docs/COMPONENT-API-CONVENTIONS.md).

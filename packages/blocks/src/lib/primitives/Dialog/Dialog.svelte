@@ -206,6 +206,14 @@
 
   function handleKeydown(event: KeyboardEvent) {
     if (event.key === 'Escape') {
+      // Honour an inner widget that already consumed this Escape — the same
+      // rule `handleWindowKeydown` below applies, and it has to hold here too
+      // or the two paths disagree about who owns the key. Select, Combobox and
+      // Popover all `preventDefault()` when Escape dismisses THEM; without this
+      // guard the event went on to close the whole dialog, so dismissing an
+      // open dropdown tore down the surface it was sitting on — and a Select
+      // inside a modal dialog is the case Codeberg #23 was all about.
+      if (event.defaultPrevented) return;
       event.preventDefault();
       if (closeOnEscape) requestClose();
       return;

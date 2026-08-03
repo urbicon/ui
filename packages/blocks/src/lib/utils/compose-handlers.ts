@@ -36,6 +36,19 @@
  * the named, discoverable prop that already exists for it — `closeOnEscape`,
  * `closeOnBackdropClick` — not with a magic event side-effect.
  *
+ * ## What this does NOT cover: controls inside the content
+ *
+ * The rule above is about the handler a consumer passes to THIS component,
+ * which composes after the internal one. It says nothing about a control
+ * further down the tree whose event bubbles up — and there `defaultPrevented`
+ * is honoured, deliberately: Dialog and Drawer both check it before acting on
+ * Escape (their `handleKeydown`), because an open `Select` panel, a `Menu`, or
+ * a `clearable` `Input` handles Escape as its own dismissal and marks it
+ * consumed. Without that check the key closed the panel and the surface it sat
+ * on in one press. Two different questions — "may a consumer veto from
+ * outside" (no) and "did something inside already answer this key" (yes,
+ * respect it) — and the second is layered dismissal, not a silent disable.
+ *
  * @example
  * ```svelte
  * <script lang="ts">
