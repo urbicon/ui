@@ -5,14 +5,24 @@ export const calendarVariants = tv({
     // Root
     base: 'w-full flex flex-col',
 
-    // Header
-    header: ['flex items-center justify-between', 'border-b border-border-hairline'],
+    // Header. `flex-wrap` is the overflow contract: nav + month title + view
+    // switcher + today/next need ~543 px at `md` and nothing in the row could
+    // wrap, so on a phone the header pushed the whole PAGE sideways — measured
+    // on the docs site at a 390 px viewport, a 278 px calendar whose header
+    // laid its children out to 507 px and a document 575 px wide. Wrapping
+    // lets the switcher and the action buttons drop to their own line instead;
+    // nothing is ever clipped, only re-flowed. CalendarHeader.svelte documents
+    // where the line breaks fall.
+    header: [
+      'flex flex-wrap items-center justify-between gap-x-2 gap-y-2',
+      'border-b border-border-hairline'
+    ],
     // `tabular-nums` so the year does not re-measure the header on every step:
     // proportional digits give `2026` and `2031` different widths, and the
     // header drives the grid width, so the whole calendar twitched sideways
     // when paging across a year boundary.
     title: 'font-semibold text-text-primary select-none tabular-nums',
-    nav: 'flex items-center gap-1',
+    nav: 'flex items-center gap-1 shrink-0',
     // Rendered on the internal CoreIconButton (behaviour-only base: inline-flex
     // centring, cursor/select affordance, focus-visible reset, disabled
     // opacity/cursor/inertness), so this slot carries only the visual identity
