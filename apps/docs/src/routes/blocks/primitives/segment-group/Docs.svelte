@@ -9,7 +9,6 @@
   import { resolve } from '$app/paths';
 
   let theme = $state('system');
-  let period = $state('month');
   let pricing = $state('pro');
   let chartType = $state('line');
 </script>
