@@ -46,6 +46,7 @@
 >
   <CodeExample title="Interface & Type Definitions" isolate>
     <TypesReference
+      id="types-button"
       types={sampleTypes}
       title="Button Types"
       description="Types extracted from the Button component source."
@@ -61,6 +62,11 @@
   subtitle="What happens when no types are provided"
 >
   <CodeExample title="No Types" isolate>
-    <TypesReference types={[]} title="Types" description="This component has no local types." />
+    <TypesReference
+      id="types-empty"
+      types={[]}
+      title="Types"
+      description="This component has no local types."
+    />
   </CodeExample>
 </Section>

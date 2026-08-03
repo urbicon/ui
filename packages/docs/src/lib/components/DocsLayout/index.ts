@@ -42,9 +42,15 @@ export interface DocsLayoutProps extends DocsLayoutVariantProps {
   title?: string;
   /** Short description rendered below the title. */
   description?: string;
-  /** Show a sticky table of contents sidebar on desktop and a collapsible one on mobile. */
+  /**
+   * Show a sticky table of contents sidebar on desktop and a collapsible one on mobile.
+   * @default false
+   */
   showToc?: boolean;
-  /** Navigation items for the table of contents (nested children supported). */
+  /**
+   * Navigation items for the table of contents (nested children supported).
+   * @default []
+   */
   navigation?: TocNavigationItem[];
   /**
    * Structured breadcrumb trail (ancestors only, title is appended automatically).
@@ -73,9 +79,15 @@ export interface DocsLayoutProps extends DocsLayoutVariantProps {
   children?: Snippet;
   /** Extra classes merged onto the root container. */
   class?: string;
-  /** Remove all default tv styles. */
+  /**
+   * Remove all default tv styles.
+   * @default false
+   */
   unstyled?: boolean;
-  /** Show the global code-visibility toggle for collapsing all code examples. Default: true. */
+  /**
+   * Show the global code-visibility toggle for collapsing all code examples.
+   * @default true
+   */
   showCodeToggle?: boolean;
   /** Per-slot class overrides. */
   slotClasses?: Partial<Record<DocsLayoutSlots, string>>;

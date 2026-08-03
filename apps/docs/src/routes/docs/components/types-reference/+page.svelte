@@ -112,7 +112,12 @@
       }}
     >
       {#snippet children(values)}
+        <!-- `id` because this page shows three TypesReference at once (this one
+             plus the two examples below), and the component's default `id="types"`
+             is a fixed anchor — the escape hatch is `restProps`, which is exactly
+             what this demonstrates. -->
         <TypesReference
+          id="types-playground"
           types={playgroundTypes}
           title={values.title}
           description={values.description}

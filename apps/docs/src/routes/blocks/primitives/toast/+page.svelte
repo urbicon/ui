@@ -67,7 +67,12 @@
   </Section>
 
   <Section marker="06" id="types" title="Types">
+    <!-- The wrapping Section owns `types` — that is the TOC anchor. The
+         component renders its own `id="types"` by default (it is one half of
+         the anchor pair ApiReference jumps to), so on this page, the only one
+         that nests the two, it needs its own. -->
     <TypesReference
+      id="types-table"
       types={componentData?.types ?? []}
       title="Store & Type Definitions"
       description="Types for the toaster store API. ToastInput defines what you pass to toaster.add(), the shorthand methods accept ToastShorthandOpts."
