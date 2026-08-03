@@ -5,7 +5,7 @@
      stays under the rule. -->
 <script lang="ts">
   import { CodeExample, Note, NoteList, Section } from '@urbicon-ui/docs';
-  import { Kbd, Toggle } from '@urbicon-ui/blocks';
+  import { Kbd, MoonIcon, SunIcon, Toggle } from '@urbicon-ui/blocks';
   import { resolve } from '$app/paths';
 
   let darkMode = $state(true);
@@ -124,7 +124,7 @@
       <div
         class="bg-surface-elevated border-border-subtle inline-flex items-center gap-4 rounded-xl border px-5 py-3"
       >
-        <span class="text-text-secondary text-lg">☀️</span>
+        <SunIcon size={20} class="text-text-secondary" />
         <Toggle
           bind:checked={darkMode}
           intent="neutral"
@@ -135,7 +135,7 @@
               : ''
           }}
         />
-        <span class="text-text-secondary text-lg">🌙</span>
+        <MoonIcon size={20} class="text-text-secondary" />
       </div>
     </CodeExample>
 

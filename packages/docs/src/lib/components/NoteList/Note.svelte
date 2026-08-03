@@ -5,7 +5,7 @@
   let {
     title,
     titleSnippet,
-    headingLevel = 4,
+    headingLevel = 3,
     children,
     class: className = '',
     unstyled = false,

@@ -66,15 +66,20 @@ describe('NoteList', () => {
 });
 
 describe('Note', () => {
-  it('renders the title as an h4 by default', () => {
+  it('renders the title as an h3 by default', () => {
+    // A note sits under a Section (h2) alongside CodeExample titles, which are
+    // h3. h4 here — the level the hand-written markup used before this
+    // component existed — put an h2 → h4 skip on every page with an
+    // accessibility card, and made that card the only sub-block on the page
+    // that was not h3.
     render(Note, { title: 'Built-in ARIA' });
 
-    expect(screen.getByText('Built-in ARIA').tagName).toBe('H4');
+    expect(screen.getByText('Built-in ARIA').tagName).toBe('H3');
   });
 
   it('renders the requested heading level, clamped to 1..6', () => {
-    render(Note, { title: 'Level three', headingLevel: 3 });
-    expect(screen.getByText('Level three').tagName).toBe('H3');
+    render(Note, { title: 'Level four', headingLevel: 4 });
+    expect(screen.getByText('Level four').tagName).toBe('H4');
     cleanup?.();
 
     render(Note, { title: 'Clamped', headingLevel: 99 });

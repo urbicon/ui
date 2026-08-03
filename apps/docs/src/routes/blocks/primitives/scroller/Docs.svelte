@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { CodeExample, Section } from '@urbicon-ui/docs';
+  import { CodeExample, Note, NoteList, Section } from '@urbicon-ui/docs';
   import { Badge, Scroller } from '@urbicon-ui/blocks';
 
   const features = [
@@ -190,10 +190,9 @@
 <!-- ─── Accessibility ─── -->
 
 <Section marker="03" id="accessibility" title="Accessibility">
-  <div class="space-y-6">
-    <div class="space-y-3">
-      <h3 class="text-text-primary text-base font-semibold">Keyboard</h3>
-      <p class="text-text-secondary text-sm">
+  <NoteList>
+    <Note title="Keyboard">
+      <p>
         While the row overflows, the scroll container takes a tab stop and becomes a named
         <code class="text-text-primary text-xs">role="group"</code>. This is the defect in most
         media rows on the web: a scrollable container that is not focusable cannot be scrolled by
@@ -201,40 +200,38 @@
         conditional because the inverse is a defect too: a stop on a row with nothing to scroll
         costs a press and does nothing.
       </p>
-      <p class="text-text-secondary text-sm">
+      <p class="mt-3">
         Arrow keys, Home, End and Page Up/Down scroll the focused container — handled by the
         browser, with the platform's own snapping and inertia. The component adds no key handling of
         its own, so nothing competes with the native behaviour. Items that are themselves focusable
         (links, buttons) stay in the tab order and scroll into view when focused.
       </p>
-    </div>
+    </Note>
 
-    <div class="space-y-3">
-      <h3 class="text-text-primary text-base font-semibold">Controls and indicator</h3>
-      <p class="text-text-secondary text-sm">
+    <Note title="Controls and indicator">
+      <p>
         The jump buttons are real buttons with labels, disabled at the ends rather than hidden — a
         control that disappears takes its width with it and shifts the row. Dots are buttons that
         jump to their item and carry
         <code class="text-text-primary text-xs">aria-current</code>; decorative dots that merely
         look clickable are worse than none. Both appear only while the row overflows.
       </p>
-      <p class="text-text-secondary text-sm">
+      <p class="mt-3">
         A dot stands for a <em>resting place</em>, not for an item. On a centred row that is the
         same thing — every item has its own turn. On a start-aligned row the trailing items share
         the end of the scroll range, so they share one dot, labelled with their range ("Items 4–5 of
         5"): a row has only as many distinct resting places as it can scroll to, and a dot per item
         would light up elsewhere than the press. Every dot therefore does exactly what it promises.
       </p>
-      <p class="text-text-secondary text-sm">
+      <p class="mt-3">
         The native scrollbar stays visible while nothing else makes the promise that there is more
         to see. Once jump buttons or dots are on screen they carry it, and the scrollbar steps aside
         rather than stacking a third indicator on the other two.
       </p>
-    </div>
+    </Note>
 
-    <div class="space-y-3">
-      <h3 class="text-text-primary text-base font-semibold">Motion</h3>
-      <p class="text-text-secondary text-sm">
+    <Note title="Motion">
+      <p>
         Smooth scrolling and the emphasis lift both collapse under
         <code class="text-text-primary text-xs">prefers-reduced-motion</code>. The lift is driven by
         <code class="text-text-primary text-xs">animation-timeline: view()</code>, so it follows
@@ -243,16 +240,15 @@
         design. Motion the user did not ask for competes with reading, and the click-through
         evidence on rotating banners has been unambiguous for over a decade.
       </p>
-    </div>
+    </Note>
 
-    <div class="space-y-3">
-      <h3 class="text-text-primary text-base font-semibold">Choosing this over a tab panel</h3>
-      <p class="text-text-secondary text-sm">
+    <Note title="Choosing this over a tab panel">
+      <p>
         A Scroller fits when the items are comparable and the user should be able to sweep across
         them. When one item at a time should be <em>presented</em> — a screenshot, a live demo — a
         tab panel is the stronger pattern, and
         <code class="text-text-primary text-xs">Tab</code> already provides it with the right semantics.
       </p>
-    </div>
-  </div>
+    </Note>
+  </NoteList>
 </Section>

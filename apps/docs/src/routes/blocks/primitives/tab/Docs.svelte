@@ -5,7 +5,21 @@
      stays under the rule. -->
 <script lang="ts">
   import { CodeExample, Note, NoteList, Section } from '@urbicon-ui/docs';
-  import { Badge, Kbd, Tab, TabItem, TabPanel } from '@urbicon-ui/blocks';
+  import {
+    ArchiveIcon,
+    Badge,
+    BellIcon,
+    CreditCardIcon,
+    EditIcon,
+    InboxIcon,
+    Kbd,
+    LockIcon,
+    SendIcon,
+    Tab,
+    TabItem,
+    TabPanel,
+    UserIcon
+  } from '@urbicon-ui/blocks';
   import { resolve } from '$app/paths';
 
   let activeSettings = $state('profile');
@@ -211,73 +225,25 @@
               </p>
               <TabItem value="profile">
                 {#snippet icon()}
-                  <svg
-                    class="size-4"
-                    fill="none"
-                    viewBox="0 0 24 24"
-                    stroke="currentColor"
-                    stroke-width="2"
-                  >
-                    <path
-                      stroke-linecap="round"
-                      stroke-linejoin="round"
-                      d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"
-                    />
-                  </svg>
+                  <UserIcon size={16} />
                 {/snippet}
                 Profile
               </TabItem>
               <TabItem value="security">
                 {#snippet icon()}
-                  <svg
-                    class="size-4"
-                    fill="none"
-                    viewBox="0 0 24 24"
-                    stroke="currentColor"
-                    stroke-width="2"
-                  >
-                    <path
-                      stroke-linecap="round"
-                      stroke-linejoin="round"
-                      d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"
-                    />
-                  </svg>
+                  <LockIcon size={16} />
                 {/snippet}
                 Security
               </TabItem>
               <TabItem value="notifications">
                 {#snippet icon()}
-                  <svg
-                    class="size-4"
-                    fill="none"
-                    viewBox="0 0 24 24"
-                    stroke="currentColor"
-                    stroke-width="2"
-                  >
-                    <path
-                      stroke-linecap="round"
-                      stroke-linejoin="round"
-                      d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"
-                    />
-                  </svg>
+                  <BellIcon size={16} />
                 {/snippet}
                 Notifications
               </TabItem>
               <TabItem value="billing">
                 {#snippet icon()}
-                  <svg
-                    class="size-4"
-                    fill="none"
-                    viewBox="0 0 24 24"
-                    stroke="currentColor"
-                    stroke-width="2"
-                  >
-                    <path
-                      stroke-linecap="round"
-                      stroke-linejoin="round"
-                      d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z"
-                    />
-                  </svg>
+                  <CreditCardIcon size={16} />
                 {/snippet}
                 Billing
               </TabItem>
@@ -328,19 +294,7 @@
         {#snippet tabs()}
           <TabItem value="inbox">
             {#snippet icon()}
-              <svg
-                class="size-[1em]"
-                fill="none"
-                viewBox="0 0 24 24"
-                stroke="currentColor"
-                stroke-width="2"
-              >
-                <path
-                  stroke-linecap="round"
-                  stroke-linejoin="round"
-                  d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4"
-                />
-              </svg>
+              <InboxIcon size={16} />
             {/snippet}
             Inbox
             {#snippet badge()}
@@ -349,19 +303,7 @@
           </TabItem>
           <TabItem value="drafts">
             {#snippet icon()}
-              <svg
-                class="size-[1em]"
-                fill="none"
-                viewBox="0 0 24 24"
-                stroke="currentColor"
-                stroke-width="2"
-              >
-                <path
-                  stroke-linecap="round"
-                  stroke-linejoin="round"
-                  d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"
-                />
-              </svg>
+              <EditIcon size={16} />
             {/snippet}
             Drafts
             {#snippet badge()}
@@ -370,37 +312,13 @@
           </TabItem>
           <TabItem value="sent">
             {#snippet icon()}
-              <svg
-                class="size-[1em]"
-                fill="none"
-                viewBox="0 0 24 24"
-                stroke="currentColor"
-                stroke-width="2"
-              >
-                <path
-                  stroke-linecap="round"
-                  stroke-linejoin="round"
-                  d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"
-                />
-              </svg>
+              <SendIcon size={16} />
             {/snippet}
             Sent
           </TabItem>
           <TabItem value="archive">
             {#snippet icon()}
-              <svg
-                class="size-[1em]"
-                fill="none"
-                viewBox="0 0 24 24"
-                stroke="currentColor"
-                stroke-width="2"
-              >
-                <path
-                  stroke-linecap="round"
-                  stroke-linejoin="round"
-                  d="M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8m-9 4h4"
-                />
-              </svg>
+              <ArchiveIcon size={16} />
             {/snippet}
             Archive
           </TabItem>

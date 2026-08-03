@@ -5,7 +5,7 @@
      stays under the rule. -->
 <script lang="ts">
   import { CodeExample, Note, NoteList, Section } from '@urbicon-ui/docs';
-  import { Spinner, Button, Card, Badge } from '@urbicon-ui/blocks';
+  import { Badge, Button, Card, CheckIcon, Spinner } from '@urbicon-ui/blocks';
   import { resolve } from '$app/paths';
 </script>
 
@@ -117,15 +117,7 @@
           <div
             class="bg-success/15 text-success flex h-8 w-8 items-center justify-center rounded-full"
           >
-            <svg
-              class="h-4 w-4"
-              fill="none"
-              viewBox="0 0 24 24"
-              stroke="currentColor"
-              stroke-width="3"
-            >
-              <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" />
-            </svg>
+            <CheckIcon size={16} />
           </div>
           <span class="text-text-secondary text-sm">Files uploaded</span>
           <Badge intent="success" size="sm" variant="soft" class="ml-auto">Done</Badge>

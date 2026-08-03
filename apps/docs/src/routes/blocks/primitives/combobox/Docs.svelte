@@ -5,7 +5,7 @@
      stays under the rule. -->
 <script lang="ts">
   import { CodeExample, Note, NoteList, Section } from '@urbicon-ui/docs';
-  import { Avatar, Badge, Combobox, Kbd } from '@urbicon-ui/blocks';
+  import { Avatar, Badge, CheckIcon, Combobox, Kbd } from '@urbicon-ui/blocks';
   import type { ComboboxOption } from '@urbicon-ui/blocks';
   import { resolve } from '$app/paths';
 
@@ -255,7 +255,7 @@ ${asyncScriptClose}
               </Badge>
             </div>
             {#if isSelected}
-              <span class="text-primary text-xs">✓</span>
+              <CheckIcon size={14} class="text-primary" />
             {/if}
           </div>
         {/snippet}

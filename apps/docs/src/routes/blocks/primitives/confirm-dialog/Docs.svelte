@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { CodeExample, Section } from '@urbicon-ui/docs';
+  import { CodeExample, Note, NoteList, Section } from '@urbicon-ui/docs';
   import { ConfirmDialog, Button } from '@urbicon-ui/blocks';
   import { resolve } from '$app/paths';
 
@@ -104,23 +104,29 @@
 </Section>
 
 <Section marker="03" id="accessibility" title="Accessibility">
-  <ul class="text-text-secondary list-inside list-disc space-y-2 text-sm leading-relaxed">
-    <li>
-      Inherits focus trap, Escape-to-cancel, and backdrop-click-to-cancel from the underlying
-      <code class="text-text-primary">Dialog</code>. While an async
-      <code class="text-text-primary">onConfirm</code> is pending all three are disabled so the user cannot
-      navigate away mid-action.
-    </li>
-    <li>
-      The cancel/confirm buttons are real <code class="text-text-primary">&lt;button&gt;</code>
-      elements — keyboard navigation (Tab, Enter, Space) works without extra wiring.
-    </li>
-    <li>
-      Default labels resolve via <code class="text-text-primary">bt('button.confirm')</code> /
-      <code class="text-text-primary">bt('button.cancel')</code> — translate them through the
-      <code class="text-text-primary">i18n</code> package, or override per-call via
-      <code class="text-text-primary">confirmLabel</code> /
-      <code class="text-text-primary">cancelLabel</code>.
-    </li>
-  </ul>
+  <NoteList>
+    <Note title="Inherited from Dialog">
+      <p>
+        Focus trap, Escape-to-cancel and backdrop-click-to-cancel all come from the underlying
+        <code class="text-text-primary">Dialog</code>. While an async
+        <code class="text-text-primary">onConfirm</code> is pending all three are disabled, so the user
+        cannot navigate away mid-action.
+      </p>
+    </Note>
+    <Note title="Real buttons">
+      <p>
+        Cancel and confirm are actual <code class="text-text-primary">&lt;button&gt;</code> elements —
+        keyboard navigation (Tab, Enter, Space) works without extra wiring.
+      </p>
+    </Note>
+    <Note title="Translatable labels">
+      <p>
+        Default labels resolve via <code class="text-text-primary">bt('button.confirm')</code> /
+        <code class="text-text-primary">bt('button.cancel')</code> — translate them through the
+        <code class="text-text-primary">i18n</code> package, or override per call via
+        <code class="text-text-primary">confirmLabel</code> /
+        <code class="text-text-primary">cancelLabel</code>.
+      </p>
+    </Note>
+  </NoteList>
 </Section>

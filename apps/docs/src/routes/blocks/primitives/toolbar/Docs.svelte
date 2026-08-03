@@ -5,7 +5,39 @@
      stays under the rule. -->
 <script lang="ts">
   import { CodeExample, Note, NoteList, Section } from '@urbicon-ui/docs';
-  import { Badge, Button, Kbd, Separator, Toolbar } from '@urbicon-ui/blocks';
+  import {
+    AlignCenterIcon,
+    AlignLeftIcon,
+    AlignRightIcon,
+    Badge,
+    BoldIcon,
+    Button,
+    EditIcon,
+    FolderOpenIcon,
+    HighlighterIcon,
+    ImageIcon,
+    ItalicIcon,
+    Kbd,
+    LinkIcon,
+    MoveIcon,
+    PackageIcon,
+    PauseIcon,
+    PlayIcon,
+    RepeatIcon,
+    SaveIcon,
+    Separator,
+    SettingsIcon,
+    ShuffleIcon,
+    SkipBackIcon,
+    SkipForwardIcon,
+    SparklesIcon,
+    SquareIcon,
+    StrikethroughIcon,
+    Toolbar,
+    TypeIcon,
+    UnderlineIcon,
+    UndoIcon
+  } from '@urbicon-ui/blocks';
   import { resolve } from '$app/paths';
 
   let activeTool = $state('select');
@@ -30,24 +62,32 @@
           variant={bold ? 'filled' : 'ghost'}
           intent={bold ? 'primary' : 'neutral'}
           size="sm"
-          class="min-w-8 font-bold"
-          onclick={() => (bold = !bold)}>B</Button
+          class="min-w-8 justify-center"
+          aria-label="Bold"
+          aria-pressed={bold}
+          onclick={() => (bold = !bold)}><BoldIcon size={16} /></Button
         >
         <Button
           variant={italic ? 'filled' : 'ghost'}
           intent={italic ? 'primary' : 'neutral'}
           size="sm"
-          class="min-w-8 italic"
-          onclick={() => (italic = !italic)}>I</Button
+          class="min-w-8 justify-center"
+          aria-label="Italic"
+          aria-pressed={italic}
+          onclick={() => (italic = !italic)}><ItalicIcon size={16} /></Button
         >
         <Button
           variant={underline ? 'filled' : 'ghost'}
           intent={underline ? 'primary' : 'neutral'}
           size="sm"
-          class="min-w-8 underline"
-          onclick={() => (underline = !underline)}>U</Button
+          class="min-w-8 justify-center"
+          aria-label="Underline"
+          aria-pressed={underline}
+          onclick={() => (underline = !underline)}><UnderlineIcon size={16} /></Button
         >
-        <Button variant="ghost" size="sm" class="min-w-8 line-through">S</Button>
+        <Button variant="ghost" size="sm" class="min-w-8 justify-center" aria-label="Strikethrough"
+          ><StrikethroughIcon size={16} /></Button
+        >
 
         <Separator orientation="vertical" size="sm" />
 
@@ -55,28 +95,38 @@
           variant={alignment === 'left' ? 'filled' : 'ghost'}
           intent={alignment === 'left' ? 'primary' : 'neutral'}
           size="sm"
-          class="min-w-8"
-          onclick={() => (alignment = 'left')}>⇤</Button
+          class="min-w-8 justify-center"
+          aria-label="Align left"
+          aria-pressed={alignment === 'left'}
+          onclick={() => (alignment = 'left')}><AlignLeftIcon size={16} /></Button
         >
         <Button
           variant={alignment === 'center' ? 'filled' : 'ghost'}
           intent={alignment === 'center' ? 'primary' : 'neutral'}
           size="sm"
-          class="min-w-8"
-          onclick={() => (alignment = 'center')}>≡</Button
+          class="min-w-8 justify-center"
+          aria-label="Align centre"
+          aria-pressed={alignment === 'center'}
+          onclick={() => (alignment = 'center')}><AlignCenterIcon size={16} /></Button
         >
         <Button
           variant={alignment === 'right' ? 'filled' : 'ghost'}
           intent={alignment === 'right' ? 'primary' : 'neutral'}
           size="sm"
-          class="min-w-8"
-          onclick={() => (alignment = 'right')}>⇥</Button
+          class="min-w-8 justify-center"
+          aria-label="Align right"
+          aria-pressed={alignment === 'right'}
+          onclick={() => (alignment = 'right')}><AlignRightIcon size={16} /></Button
         >
 
         <Separator orientation="vertical" size="sm" />
 
-        <Button variant="ghost" size="sm" class="min-w-8">🔗</Button>
-        <Button variant="ghost" size="sm" class="min-w-8">📷</Button>
+        <Button variant="ghost" size="sm" class="min-w-8 justify-center" aria-label="Insert link"
+          ><LinkIcon size={16} /></Button
+        >
+        <Button variant="ghost" size="sm" class="min-w-8 justify-center" aria-label="Insert image"
+          ><ImageIcon size={16} /></Button
+        >
       </Toolbar>
 
       <div
@@ -96,6 +146,15 @@
       </div>
     </CodeExample>
 
+    <!--
+      The palette used to carry an "Eraser" drawn as `⌫`. The icon set has no
+      eraser — it is a business/property/energy set, not a drawing one — and a
+      lone glyph among real icons is the mismatch this page should not teach.
+      Undo is the honest substitute: plausible in a drawing palette, and covered.
+      The tool array stays inline so the extracted `isolate` snippet is
+      self-contained; a `const` in <script> would show the reader `{#each tools}`
+      with no way to know what `tools` holds.
+    -->
     <CodeExample
       title="Vertical Tools Palette"
       description="Sidebar-style toolbar with selectable tools and active indicator."
@@ -103,15 +162,18 @@
       previewClass="flex gap-6 items-start"
     >
       <Toolbar aria-label="Drawing tools" orientation="vertical" variant="elevated" gap="xs">
-        {#each [{ id: 'select', icon: '⇱', label: 'Select' }, { id: 'pen', icon: '✎', label: 'Pen' }, { id: 'brush', icon: '🖌', label: 'Brush' }, { id: 'eraser', icon: '⌫', label: 'Eraser' }, { id: 'shape', icon: '◻', label: 'Shape' }, { id: 'text', icon: 'T', label: 'Text' }] as tool (tool.id)}
+        {#each [{ id: 'select', icon: MoveIcon, label: 'Select' }, { id: 'pen', icon: EditIcon, label: 'Pen' }, { id: 'brush', icon: HighlighterIcon, label: 'Brush' }, { id: 'undo', icon: UndoIcon, label: 'Undo' }, { id: 'shape', icon: SquareIcon, label: 'Shape' }, { id: 'text', icon: TypeIcon, label: 'Text' }] as tool (tool.id)}
           <Button
             variant={activeTool === tool.id ? 'filled' : 'ghost'}
             intent={activeTool === tool.id ? 'primary' : 'neutral'}
             size="sm"
             class="min-w-9 justify-center"
             onclick={() => (activeTool = tool.id)}
-            aria-label={tool.label}>{tool.icon}</Button
+            aria-label={tool.label}
+            aria-pressed={activeTool === tool.id}
           >
+            <tool.icon size={16} />
+          </Button>
         {/each}
       </Toolbar>
 
@@ -129,13 +191,26 @@
       previewClass="flex justify-center w-full"
     >
       <Toolbar aria-label="Media player" variant="elevated" gap="sm" padding="md">
-        <Button variant="ghost" size="sm">⏮</Button>
-        <Button variant="filled" intent="primary" size="sm" class="min-w-9 justify-center">▶</Button
+        <Button variant="ghost" size="sm" class="justify-center" aria-label="Previous track"
+          ><SkipBackIcon size={16} /></Button
         >
-        <Button variant="ghost" size="sm">⏭</Button>
+        <Button
+          variant="filled"
+          intent="primary"
+          size="sm"
+          class="min-w-9 justify-center"
+          aria-label="Play"><PlayIcon size={16} /></Button
+        >
+        <Button variant="ghost" size="sm" class="justify-center" aria-label="Next track"
+          ><SkipForwardIcon size={16} /></Button
+        >
         <Separator orientation="vertical" size="sm" />
-        <Button variant="ghost" size="sm">🔀</Button>
-        <Button variant="ghost" size="sm">🔁</Button>
+        <Button variant="ghost" size="sm" class="justify-center" aria-label="Shuffle"
+          ><ShuffleIcon size={16} /></Button
+        >
+        <Button variant="ghost" size="sm" class="justify-center" aria-label="Repeat"
+          ><RepeatIcon size={16} /></Button
+        >
         <Separator orientation="vertical" size="sm" />
         <span class="text-text-tertiary px-2 text-xs tabular-nums">2:34 / 4:12</span>
       </Toolbar>
@@ -163,24 +238,24 @@
       >
         <Button
           unstyled
-          class="rounded-lg bg-emerald-500/15 px-3 py-1.5 text-xs font-semibold text-emerald-400 transition-colors hover:bg-emerald-500/25"
-          >▶ Run</Button
+          class="flex items-center gap-1.5 rounded-lg bg-emerald-500/15 px-3 py-1.5 text-xs font-semibold text-emerald-400 transition-colors hover:bg-emerald-500/25"
+          ><PlayIcon size={14} /> Run</Button
         >
         <Button
           unstyled
-          class="rounded-lg bg-amber-500/15 px-3 py-1.5 text-xs font-semibold text-amber-400 transition-colors hover:bg-amber-500/25"
-          >⏸ Debug</Button
+          class="flex items-center gap-1.5 rounded-lg bg-amber-500/15 px-3 py-1.5 text-xs font-semibold text-amber-400 transition-colors hover:bg-amber-500/25"
+          ><PauseIcon size={14} /> Debug</Button
         >
         <Separator orientation="vertical" size="sm" class="!border-neutral-600" />
         <Button
           unstyled
-          class="rounded-lg px-3 py-1.5 text-xs font-medium text-neutral-400 transition-colors hover:bg-neutral-700/50 hover:text-neutral-200"
-          >⚙ Settings</Button
+          class="flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-medium text-neutral-400 transition-colors hover:bg-neutral-700/50 hover:text-neutral-200"
+          ><SettingsIcon size={14} /> Settings</Button
         >
         <Button
           unstyled
-          class="rounded-lg px-3 py-1.5 text-xs font-medium text-neutral-400 transition-colors hover:bg-neutral-700/50 hover:text-neutral-200"
-          >📦 Build</Button
+          class="flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-medium text-neutral-400 transition-colors hover:bg-neutral-700/50 hover:text-neutral-200"
+          ><PackageIcon size={14} /> Build</Button
         >
       </Toolbar>
     </CodeExample>
@@ -198,19 +273,19 @@
       >
         <Button
           unstyled
-          class="rounded-xl px-3 py-1.5 text-sm font-medium text-white/90 transition-all hover:bg-white/15"
-          >✨ New</Button
+          class="flex items-center gap-1.5 rounded-xl px-3 py-1.5 text-sm font-medium text-white/90 transition-all hover:bg-white/15"
+          ><SparklesIcon size={15} /> New</Button
         >
         <Button
           unstyled
-          class="rounded-xl px-3 py-1.5 text-sm font-medium text-white/90 transition-all hover:bg-white/15"
-          >📁 Open</Button
+          class="flex items-center gap-1.5 rounded-xl px-3 py-1.5 text-sm font-medium text-white/90 transition-all hover:bg-white/15"
+          ><FolderOpenIcon size={15} /> Open</Button
         >
         <div class="mx-1 h-5 w-px bg-white/20"></div>
         <Button
           unstyled
-          class="rounded-xl bg-white/20 px-3 py-1.5 text-sm font-semibold text-white shadow-lg shadow-black/10 backdrop-blur-sm transition-all hover:bg-white/30"
-          >💾 Save</Button
+          class="flex items-center gap-1.5 rounded-xl bg-white/20 px-3 py-1.5 text-sm font-semibold text-white shadow-lg shadow-black/10 backdrop-blur-sm transition-all hover:bg-white/30"
+          ><SaveIcon size={15} /> Save</Button
         >
       </Toolbar>
     </CodeExample>

@@ -5,7 +5,7 @@
      stays under the rule. -->
 <script lang="ts">
   import { CodeExample, Note, NoteList, Section } from '@urbicon-ui/docs';
-  import { Badge, Button, Kbd } from '@urbicon-ui/blocks';
+  import { Badge, Button, Kbd, StarIcon } from '@urbicon-ui/blocks';
   import { resolve } from '$app/paths';
 
   let filters = $state<string[]>(['Active', 'Premium', 'Last 7 days']);
@@ -350,7 +350,7 @@
         unstyled
         class="inline-flex items-center gap-1.5 rounded-2xl bg-linear-to-br from-amber-200 to-orange-300 px-4 py-1.5 text-xs font-bold text-neutral-900 shadow-lg"
       >
-        ★ Editor's Pick
+        <StarIcon size={14} /> Editor's Pick
       </Badge>
     </CodeExample>
 

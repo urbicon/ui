@@ -82,10 +82,17 @@ export interface NoteProps extends NoteVariantProps, Omit<HTMLAttributes<HTMLEle
   titleSnippet?: Snippet;
 
   /**
-   * Heading level for the note title, clamped to 1..6. Documentation pages put
-   * these under a `<Section>` heading (`h2` by default), so `h4` is the
-   * default rather than `h3` — a note is a sub-point, not a sibling section.
-   * @default 4
+   * Heading level for the note title, clamped to 1..6. A note sits under a
+   * `<Section>` heading (`h2` by default) and is a sibling of the other titled
+   * sub-blocks on the page — a `CodeExample` title renders `h3` — so `h3` is
+   * the default.
+   *
+   * It was `h4` until 2026-08, inherited from the hand-written markup this
+   * component replaced. That produced `h2 → h4` on all 59 pages carrying an
+   * accessibility card, while every other sub-block on the same page was `h3`:
+   * a heading skip, and an inconsistent one. The title styling is class-driven,
+   * so correcting the level changed nothing visually.
+   * @default 3
    */
   headingLevel?: 1 | 2 | 3 | 4 | 5 | 6;
 

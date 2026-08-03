@@ -1,6 +1,6 @@
 <script lang="ts">
   import { CodeExample, Note, NoteList, Section } from '@urbicon-ui/docs';
-  import { Kbd, Slider } from '@urbicon-ui/blocks';
+  import { Kbd, Slider, VolumeIcon, VolumeOffIcon } from '@urbicon-ui/blocks';
   import { resolve } from '$app/paths';
 
   let volume = $state(65);
@@ -144,11 +144,11 @@
     >
       <div class="border-border-subtle bg-surface-elevated w-full space-y-4 rounded-2xl border p-5">
         <div class="flex items-center gap-4">
-          <span class="text-text-secondary text-sm">🔈</span>
+          <VolumeOffIcon size={18} class="text-text-secondary" />
           <div class="flex-1">
             <Slider bind:value={volume} intent="primary" size="sm" />
           </div>
-          <span class="text-text-secondary text-sm">🔊</span>
+          <VolumeIcon size={18} class="text-text-secondary" />
         </div>
         <p class="text-text-tertiary text-center text-xs">{volume}%</p>
       </div>

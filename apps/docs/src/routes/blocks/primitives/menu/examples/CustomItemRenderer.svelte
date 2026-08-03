@@ -1,5 +1,11 @@
 <script lang="ts">
-  import { Menu, type MenuObjectOption } from '@urbicon-ui/blocks';
+  import {
+    ArchiveIcon,
+    ArrowUpRightIcon,
+    LinkIcon,
+    Menu,
+    type MenuObjectOption
+  } from '@urbicon-ui/blocks';
 
   let lastAction = $state('—');
 
@@ -9,10 +15,10 @@
     { id: 'archive', label: 'Archive', onSelect: () => (lastAction = 'Archive') }
   ];
 
-  const icons: Record<string, string> = {
-    copy: '🔗',
-    open: '↗',
-    archive: '📦'
+  const icons = {
+    copy: LinkIcon,
+    open: ArrowUpRightIcon,
+    archive: ArchiveIcon
   };
 </script>
 
@@ -24,8 +30,9 @@
         Putting another <button> inside would nest interactive elements and
         fire the item's onSelect twice via event bubbling.
       -->
+      {@const Icon = icons[(item as MenuObjectOption).id as keyof typeof icons]}
       <span class="flex w-full items-center gap-3">
-        <span class="text-lg">{icons[(item as MenuObjectOption).id ?? '']}</span>
+        <Icon size={16} />
         <span class="flex-1 truncate">{(item as MenuObjectOption).label}</span>
       </span>
     {/snippet}

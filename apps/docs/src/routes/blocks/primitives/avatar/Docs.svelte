@@ -5,7 +5,7 @@
      stays under the rule. -->
 <script lang="ts">
   import { CodeExample, Note, NoteList, Section } from '@urbicon-ui/docs';
-  import { Avatar, Kbd } from '@urbicon-ui/blocks';
+  import { Avatar, Kbd, UserIcon } from '@urbicon-ui/blocks';
   import { resolve } from '$app/paths';
 </script>
 
@@ -55,13 +55,7 @@
       isolate
     >
       <Avatar size="xl" intent="primary">
-        <svg class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-          <path
-            stroke-linecap="round"
-            stroke-linejoin="round"
-            d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"
-          />
-        </svg>
+        <UserIcon size={24} />
       </Avatar>
       <Avatar size="xl" intent="success">
         <span class="text-lg">42</span>

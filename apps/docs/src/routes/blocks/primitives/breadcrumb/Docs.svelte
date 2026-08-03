@@ -5,7 +5,7 @@
      stays under the rule. -->
 <script lang="ts">
   import { CodeExample, Note, NoteList, Section } from '@urbicon-ui/docs';
-  import { Badge, Breadcrumb, Kbd } from '@urbicon-ui/blocks';
+  import { Badge, Breadcrumb, ChevronRightIcon, Kbd } from '@urbicon-ui/blocks';
   import { resolve } from '$app/paths';
 
   // Demo-only items don't navigate — they're just to illustrate the
@@ -44,8 +44,10 @@
     { label: 'Breadcrumb' }
   ];
 
-  // The first item carries an icon label plus an `aria-label` for its
-  // accessible name — the leading '🏠' would otherwise be announced as-is.
+  // `BreadcrumbItem.label` is a plain string: the component has no icon field
+  // and no per-item snippet, so a glyph is the only way to get one into a
+  // crumb today. Hence the emoji plus an `aria-label`, without which a screen
+  // reader announces "house". Every other icon on this page is a real one.
   const iconHomeItems = [
     { label: '🏠', href: '#', 'aria-label': 'Home', onclick: demoNoop },
     { label: 'Blog', href: '#', onclick: demoNoop },
@@ -100,15 +102,7 @@
     >
       <Breadcrumb items={iconHomeItems}>
         {#snippet separator()}
-          <svg
-            class="h-3.5 w-3.5"
-            fill="none"
-            viewBox="0 0 24 24"
-            stroke="currentColor"
-            stroke-width="2"
-          >
-            <path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7" />
-          </svg>
+          <ChevronRightIcon size={14} />
         {/snippet}
       </Breadcrumb>
     </CodeExample>
@@ -122,15 +116,7 @@
       <div class="flex flex-col gap-2">
         <Breadcrumb items={projectItems} size="sm">
           {#snippet separator()}
-            <svg
-              class="h-3 w-3"
-              fill="none"
-              viewBox="0 0 24 24"
-              stroke="currentColor"
-              stroke-width="2"
-            >
-              <path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7" />
-            </svg>
+            <ChevronRightIcon size={14} />
           {/snippet}
         </Breadcrumb>
         <div class="flex items-center gap-3">
@@ -162,15 +148,7 @@
         }}
       >
         {#snippet separator()}
-          <svg
-            class="h-3 w-3"
-            fill="none"
-            viewBox="0 0 24 24"
-            stroke="currentColor"
-            stroke-width="2"
-          >
-            <path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7" />
-          </svg>
+          <ChevronRightIcon size={14} />
         {/snippet}
       </Breadcrumb>
     </CodeExample>
@@ -194,15 +172,7 @@
         }}
       >
         {#snippet separator()}
-          <svg
-            class="h-3 w-3"
-            fill="none"
-            viewBox="0 0 24 24"
-            stroke="currentColor"
-            stroke-width="2"
-          >
-            <path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7" />
-          </svg>
+          <ChevronRightIcon size={14} />
         {/snippet}
       </Breadcrumb>
     </CodeExample>

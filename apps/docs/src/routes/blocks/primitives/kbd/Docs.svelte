@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { CodeExample, Section } from '@urbicon-ui/docs';
+  import { CodeExample, Note, NoteList, Section } from '@urbicon-ui/docs';
   import { Kbd } from '@urbicon-ui/blocks';
 
   const sizes = ['sm', 'md', 'lg'] as const;
@@ -77,23 +77,29 @@
 </Section>
 
 <Section marker="02" id="accessibility" title="Accessibility">
-  <div class="prose prose-sm max-w-none">
-    <ul>
-      <li>
-        Renders a semantic <code>&lt;kbd&gt;</code> element, the native HTML tag for keyboard input.
-        It is presentational, so no explicit <code>role</code> is added.
-      </li>
-      <li>
-        Every key is visible text, so screen readers read the shortcut exactly as it is shown.
-      </li>
-      <li>
-        The <code>separator</code> drawn between keys carries <code>aria-hidden="true"</code> —
-        assistive tech reads the keys, not the connective <code>+</code>.
-      </li>
-      <li>
-        <code>Kbd</code> is a hint, not a control — it never receives focus and has no interactive behaviour
+  <NoteList>
+    <Note title="Semantic element">
+      <p>
+        Renders a semantic <code class="text-text-primary">&lt;kbd&gt;</code> element, the native
+        HTML tag for keyboard input. It is presentational, so no explicit
+        <code class="text-text-primary">role</code> is added.
+      </p>
+    </Note>
+    <Note title="Announced as shown">
+      <p>Every key is visible text, so screen readers read the shortcut exactly as it is shown.</p>
+    </Note>
+    <Note title="Decorative separator">
+      <p>
+        The <code class="text-text-primary">separator</code> drawn between keys carries
+        <code class="text-text-primary">aria-hidden="true"</code> — assistive tech reads the keys,
+        not the connective <code class="text-text-primary">+</code>.
+      </p>
+    </Note>
+    <Note title="A hint, not a control">
+      <p>
+        <code class="text-text-primary">Kbd</code> never receives focus and has no interactive behaviour
         of its own. Wire the actual shortcut on the element it describes.
-      </li>
-    </ul>
-  </div>
+      </p>
+    </Note>
+  </NoteList>
 </Section>

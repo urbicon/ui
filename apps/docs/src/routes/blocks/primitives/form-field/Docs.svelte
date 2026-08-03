@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { CodeExample, Section } from '@urbicon-ui/docs';
+  import { CodeExample, Note, NoteList, Section } from '@urbicon-ui/docs';
   import { FormField } from '@urbicon-ui/blocks';
   import { resolve } from '$app/paths';
 </script>
@@ -90,20 +90,26 @@
 </Section>
 
 <Section marker="03" id="accessibility" title="Accessibility">
-  <ul class="text-text-secondary list-inside list-disc space-y-2 text-sm leading-relaxed">
-    <li>
-      The wrapper renders a <code class="text-text-primary">&lt;label for=…&gt;</code> linked to the
-      slot's <code class="text-text-primary">id</code>.
-    </li>
-    <li>
-      Helper text gets an <code class="text-text-primary">id</code> referenced via
-      <code class="text-text-primary">aria-describedby</code>. When an error is present, the error
-      message takes the spot (and the helper is hidden) — this matches WCAG guidance to surface the
-      most actionable message to AT users.
-    </li>
-    <li>
-      The error renders with <code class="text-text-primary">role="alert"</code> so it is announced when
-      the value changes during validation.
-    </li>
-  </ul>
+  <NoteList>
+    <Note title="Label association">
+      <p>
+        The wrapper renders a <code class="text-text-primary">&lt;label for=…&gt;</code> linked to
+        the slot's <code class="text-text-primary">id</code>.
+      </p>
+    </Note>
+    <Note title="Description and error share one slot">
+      <p>
+        Helper text gets an <code class="text-text-primary">id</code> referenced via
+        <code class="text-text-primary">aria-describedby</code>. When an error is present the error
+        message takes the spot and the helper is hidden — this matches WCAG guidance to surface the
+        most actionable message to AT users.
+      </p>
+    </Note>
+    <Note title="Errors are announced">
+      <p>
+        The error renders with <code class="text-text-primary">role="alert"</code>, so it is
+        announced when the value changes during validation.
+      </p>
+    </Note>
+  </NoteList>
 </Section>

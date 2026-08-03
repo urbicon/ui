@@ -5,7 +5,7 @@
      stays under the rule. -->
 <script lang="ts">
   import { CodeExample, Note, NoteList, Section } from '@urbicon-ui/docs';
-  import { Badge, Button, Card, Kbd } from '@urbicon-ui/blocks';
+  import { Badge, Button, Card, CheckIcon, Kbd, ZapIcon } from '@urbicon-ui/blocks';
   import { resolve } from '$app/paths';
 </script>
 
@@ -155,9 +155,9 @@
           $29<span class="text-lg font-normal text-white/60">/mo</span>
         </p>
         <ul class="mt-4 space-y-2 text-sm text-white/80">
-          <li>✓ Unlimited projects</li>
-          <li>✓ Priority support</li>
-          <li>✓ Custom integrations</li>
+          {#each ['Unlimited projects', 'Priority support', 'Custom integrations'] as perk (perk)}
+            <li class="flex items-center gap-2"><CheckIcon size={16} /> {perk}</li>
+          {/each}
         </ul>
         <Button
           unstyled
@@ -180,9 +180,9 @@
       >
         <div class="flex items-start gap-4">
           <div
-            class="bg-primary/20 flex h-10 w-10 shrink-0 items-center justify-center rounded-xl text-lg"
+            class="bg-primary/20 text-primary flex h-10 w-10 shrink-0 items-center justify-center rounded-xl"
           >
-            ⚡
+            <ZapIcon size={20} />
           </div>
           <div>
             <h4 class="font-semibold text-neutral-100">Lightning Fast</h4>

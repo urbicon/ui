@@ -5,7 +5,7 @@
      stays under the rule. -->
 <script lang="ts">
   import { CodeExample, Note, NoteList, Section } from '@urbicon-ui/docs';
-  import { Button, Dialog, Input, Kbd } from '@urbicon-ui/blocks';
+  import { Button, Dialog, Input, Kbd, SearchIcon, TrashIcon } from '@urbicon-ui/blocks';
   import { resolve } from '$app/paths';
 
   let basicOpen = $state(false);
@@ -43,19 +43,7 @@
           <div
             class="bg-danger/10 text-danger flex h-10 w-10 shrink-0 items-center justify-center rounded-full"
           >
-            <svg
-              class="h-5 w-5"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              stroke-width="2"
-              stroke-linecap="round"
-              stroke-linejoin="round"
-            >
-              <path d="M3 6h18" />
-              <path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6" />
-              <path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2" />
-            </svg>
+            <TrashIcon size={20} />
           </div>
           <div>
             <p class="text-text-primary text-sm font-medium">Delete this item?</p>
@@ -121,18 +109,7 @@
       <Button variant="outlined" onclick={() => (topOpen = true)}>Open Search</Button>
       <Dialog bind:open={topOpen} placement="top" size="md">
         <div class="border-border-subtle flex items-center gap-2 border-b pb-3">
-          <svg
-            class="text-text-tertiary h-4 w-4"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            stroke-width="2"
-            stroke-linecap="round"
-            stroke-linejoin="round"
-          >
-            <circle cx="11" cy="11" r="8" />
-            <path d="m21 21-4.3-4.3" />
-          </svg>
+          <SearchIcon size={16} class="text-text-tertiary" />
           <input
             type="text"
             placeholder="Search commands..."

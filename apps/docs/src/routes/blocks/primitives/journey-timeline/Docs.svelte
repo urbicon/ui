@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { CodeExample, Section } from '@urbicon-ui/docs';
+  import { CodeExample, Note, NoteList, Section } from '@urbicon-ui/docs';
   import {
     Badge,
     Button,
@@ -355,23 +355,29 @@
 
 <!-- ─── Accessibility ─── -->
 <Section marker="06" id="accessibility" title="Accessibility">
-  <div class="text-text-secondary space-y-4 text-sm">
-    <p>
-      The rail is an ordered list. Each node carries <code>aria-current="step"</code> while its
-      status is <code>active</code>; the focusable trigger exposes <code>aria-expanded</code> and
-      <code>aria-controls</code> for its detail region (a per-node inline region, or the shared
-      panel in panel/horizontal mode). The status is announced through a visually-hidden label, so
-      the dot markers stay decorative — including any glyphs rendered through the
-      <code>marker</code> snippet.
-    </p>
-    <p>
-      <code>trailing</code> content renders <em>outside</em> the trigger button, as a sibling in the header
-      row: buttons and links inside it are valid HTML, become regular tab stops after the header, and
-      activating them never changes the focused node. Arrow-key roving stays on the node headers only.
-    </p>
-    <div>
-      <p class="text-text-primary mb-2 font-medium">Keyboard</p>
-      <ul class="list-inside list-disc space-y-1">
+  <NoteList>
+    <Note title="Structure and ARIA">
+      <p>
+        The rail is an ordered list. Each node carries
+        <code class="text-text-primary">aria-current="step"</code> while its status is
+        <code class="text-text-primary">active</code>; the focusable trigger exposes
+        <code class="text-text-primary">aria-expanded</code> and
+        <code class="text-text-primary">aria-controls</code> for its detail region (a per-node
+        inline region, or the shared panel in panel/horizontal mode). The status is announced
+        through a visually-hidden label, so the dot markers stay decorative — including any glyphs
+        rendered through the <code class="text-text-primary">marker</code> snippet.
+      </p>
+    </Note>
+    <Note title="Trailing content stays outside the trigger">
+      <p>
+        <code class="text-text-primary">trailing</code> content renders <em>outside</em> the trigger button,
+        as a sibling in the header row: buttons and links inside it are valid HTML, become regular tab
+        stops after the header, and activating them never changes the focused node. Arrow-key roving stays
+        on the node headers only.
+      </p>
+    </Note>
+    <Note title="Keyboard">
+      <ul class="space-y-1">
         <li>
           <Kbd keys="↑" /> / <Kbd keys="↓" /> (vertical) or <Kbd keys="←" /> / <Kbd keys="→" /> (horizontal)
           move the roving focus between node headers without changing the focused node.
@@ -379,12 +385,14 @@
         <li><Kbd keys="Home" /> / <Kbd keys="End" /> jump to the first / last focusable node.</li>
         <li><Kbd keys="Enter" /> / <Kbd keys="Space" /> put the header's node in focus.</li>
       </ul>
-    </div>
-    <p>
-      Motion: expand/collapse runs on the motion-duration tokens, which collapse to 1&nbsp;ms under
-      <code>prefers-reduced-motion: reduce</code>. When activating a node makes another card
-      collapse above it, the component counter-scrolls so the activated header stays visually
-      stationary — real user scrolling cancels this immediately.
-    </p>
-  </div>
+    </Note>
+    <Note title="Motion">
+      <p>
+        Expand/collapse runs on the motion-duration tokens, which collapse to 1&nbsp;ms under
+        <code class="text-text-primary">prefers-reduced-motion: reduce</code>. When activating a
+        node makes another card collapse above it, the component counter-scrolls so the activated
+        header stays visually stationary — real user scrolling cancels this immediately.
+      </p>
+    </Note>
+  </NoteList>
 </Section>

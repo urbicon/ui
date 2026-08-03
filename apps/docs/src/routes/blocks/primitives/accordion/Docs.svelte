@@ -6,7 +6,7 @@
 <script lang="ts">
   import { resolve } from '$app/paths';
   import { CodeExample, Note, NoteList, Section } from '@urbicon-ui/docs';
-  import { Accordion, AccordionItem, Badge, Collapsible, Kbd } from '@urbicon-ui/blocks';
+  import { Accordion, AccordionItem, Badge, Collapsible, Kbd, ZapIcon } from '@urbicon-ui/blocks';
 
   let faqValue = $state<string>('what-is');
 </script>
@@ -126,9 +126,9 @@
           {#snippet trigger({ open: _open })}
             <div class="flex w-full items-center gap-3">
               <div
-                class="bg-primary/10 text-primary rounded-modify flex size-8 items-center justify-center text-sm"
+                class="bg-primary/10 text-primary rounded-modify flex size-8 items-center justify-center"
               >
-                ⚡
+                <ZapIcon size={16} />
               </div>
               <div class="flex-1 text-left">
                 <p class="text-text-primary text-sm font-semibold">Pro Plan</p>

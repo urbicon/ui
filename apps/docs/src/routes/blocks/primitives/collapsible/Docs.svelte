@@ -5,7 +5,7 @@
      stays under the rule. -->
 <script lang="ts">
   import { CodeExample, Note, NoteList, Section } from '@urbicon-ui/docs';
-  import { Badge, Button, Collapsible, Kbd } from '@urbicon-ui/blocks';
+  import { Badge, Button, ClipboardListIcon, Collapsible, Kbd } from '@urbicon-ui/blocks';
   import { resolve } from '$app/paths';
 
   let controlledOpen = $state(false);
@@ -94,9 +94,9 @@
               class="hover:bg-surface-hover flex w-full items-center gap-3 px-4 py-3 text-left transition-colors"
             >
               <div
-                class="bg-primary/10 text-primary flex size-8 items-center justify-center rounded-lg text-sm"
+                class="bg-primary/10 text-primary flex size-8 items-center justify-center rounded-lg"
               >
-                📋
+                <ClipboardListIcon size={16} />
               </div>
               <div class="flex-1">
                 <p class="text-text-primary text-sm font-semibold">Release Notes v3.2</p>
