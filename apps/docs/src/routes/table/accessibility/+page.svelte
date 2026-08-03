@@ -17,7 +17,7 @@
 >
   <Section id="accessibility">
     <NoteList>
-      <Note title="Semantic Structure">
+      <Note headingLevel={2} title="Semantic Structure">
         <p>
           Renders a native <code class="text-text-primary">&lt;table&gt;</code> with
           <code class="text-text-primary">&lt;thead&gt;</code>,
@@ -27,7 +27,7 @@
           <code class="text-text-primary">aria-label</code> for screen reader context.
         </p>
       </Note>
-      <Note title="Keyboard Navigation">
+      <Note headingLevel={2} title="Keyboard Navigation">
         <p class="text-text-secondary mb-3 text-sm leading-relaxed">
           Uses the <strong>Roving Tabindex</strong> pattern (WAI-ARIA Grid). When selection,
           expansion, or row click is enabled, the table uses
@@ -43,7 +43,7 @@
           {/each}
         </div>
       </Note>
-      <Note title="Sort Announcements">
+      <Note headingLevel={2} title="Sort Announcements">
         <p>
           Sortable column headers include
           <code class="text-text-primary">aria-sort</code> attributes (<code
@@ -55,7 +55,7 @@
           readers.
         </p>
       </Note>
-      <Note title="Responsive Design">
+      <Note headingLevel={2} title="Responsive Design">
         <p>
           Below <code class="text-text-primary">768px</code>, the table switches to a card-based
           mobile layout automatically. Column

@@ -26,6 +26,7 @@
       </p>
 
       <CodeExample
+        headingLevel={2}
         title="Drag-and-Drop Column Reorder"
         description="Drag headers to rearrange columns. Uses the shared createDraggable utility (zero dependencies)."
         code={`<Table

@@ -19,6 +19,7 @@
   <Section id="customization">
     <div class="space-y-8">
       <CodeExample
+        headingLevel={2}
         title="Custom Empty State"
         description="Override the default empty state with a branded illustration or call-to-action. The snippet renders into the desktop <tbody>, so it must be table-row markup — on mobile the card list shows the plain noDataText instead, since <tr>/<td> cannot live in a <div>. Same for loadingState and errorState."
         code={`<Table {items} {columns}>
@@ -53,6 +54,7 @@
       </CodeExample>
 
       <CodeExample
+        headingLevel={2}
         title="Style Slot Overrides"
         description="Use slotClasses to add custom classes to specific rendering slots, or unstyled to strip all variant classes for full control."
         code={`<Table
@@ -70,7 +72,7 @@
       />
 
       <div class="border-border-subtle bg-surface-elevated rounded-2xl border p-6">
-        <h4 class="text-text-primary mb-4 text-sm font-semibold">Available Slots</h4>
+        <h3 class="text-text-primary mb-4 text-sm font-semibold">Available Slots</h3>
         <div class="grid grid-cols-2 gap-x-8 gap-y-2 text-sm md:grid-cols-3">
           {#each ['container', 'toolbar', 'scrollArea', 'table', 'thead', 'tbody', 'headerRow', 'headerCell', 'row', 'cell', 'groupHeader', 'summaryRow', 'emptyState', 'loadingState', 'errorState', 'filterBar', 'mobileCard'] as slot (slot)}
             <code class="text-primary text-xs">{slot}</code>
@@ -79,6 +81,7 @@
       </div>
 
       <CodeExample
+        headingLevel={2}
         title="State Persistence"
         description="Pass a single tableId to persist every view-state axis across reloads — filters, search, grouping, summary configs, sort, hidden columns, and column order. Defaults to localStorage. Pagination is intentionally not persisted. Clearing counts as state: an axis the user emptied (no sort, no filters, no grouping) restores empty and wins over the matching initial* seed — the seed only fills an axis nothing is stored for."
         code={`<!-- Opt every axis in with one line -->

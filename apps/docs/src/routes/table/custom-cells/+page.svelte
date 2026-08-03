@@ -88,6 +88,7 @@
       </p>
 
       <CodeExample
+        headingLevel={2}
         title="Status Badges & Progress Bars"
         description="Per-column snippets transform raw values into semantic badges and visual progress indicators."
         code={`{#snippet statusCell(item, value)}
@@ -127,6 +128,7 @@
       </CodeExample>
 
       <CodeExample
+        headingLevel={2}
         title="Rich Multi-Info Cells"
         description="Combine avatar initials, name, subtitle, and inline badges for information-dense rows."
         code={`{#snippet employeeCell(item)}
@@ -167,6 +169,7 @@
       </CodeExample>
 
       <CodeExample
+        headingLevel={2}
         title="Heat Map Cells"
         description="Conditional background coloring to highlight data patterns – great for KPI dashboards."
         code={`{#snippet heatCell(item, value)}
@@ -200,6 +203,7 @@
       </CodeExample>
 
       <CodeExample
+        headingLevel={2}
         title="Global Cell Override"
         description="A table-level cell snippet overrides rendering for every column at once – useful for uniform styling."
         code={`<Table {items} {columns}>

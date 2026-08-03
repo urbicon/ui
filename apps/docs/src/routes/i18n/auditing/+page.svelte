@@ -84,7 +84,7 @@ const report = findUnusedKeys(collectDeepKeys(enBundle), scan, {
       lens.
     </p>
     <div class="border-border-subtle bg-surface-elevated mb-4 rounded-2xl border p-6">
-      <h4 class="text-text-primary mb-3 text-sm font-semibold">Where each layer lives</h4>
+      <h2 class="text-text-primary mb-3 text-sm font-semibold">Where each layer lives</h2>
       <ul class="text-text-secondary space-y-2 text-sm">
         <li>
           <strong>Data-level audit</strong> (<code>auditTranslations</code>) and the

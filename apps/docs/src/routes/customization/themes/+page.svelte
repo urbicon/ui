@@ -248,7 +248,7 @@
   <Card class="border-border-subtle mb-8 shadow-[var(--blocks-shadow-md)]">
     <div class="space-y-6 p-6" style={previewStyle}>
       <div>
-        <h3 class="text-text-tertiary mb-3 text-sm font-medium">Buttons</h3>
+        <h2 class="text-text-tertiary mb-3 text-sm font-medium">Buttons</h2>
         <div class="flex flex-wrap gap-3">
           <Button intent="primary" variant="filled">Primary</Button>
           <Button intent="secondary" variant="filled">Secondary</Button>
@@ -258,7 +258,7 @@
       </div>
       <Separator />
       <div>
-        <h3 class="text-text-tertiary mb-3 text-sm font-medium">Badges</h3>
+        <h2 class="text-text-tertiary mb-3 text-sm font-medium">Badges</h2>
         <div class="flex flex-wrap gap-2">
           <Badge intent="primary" variant="filled">Primary</Badge>
           <Badge intent="secondary" variant="filled">Secondary</Badge>
@@ -268,7 +268,7 @@
       </div>
       <Separator />
       <div>
-        <h3 class="text-text-tertiary mb-3 text-sm font-medium">Form Elements</h3>
+        <h2 class="text-text-tertiary mb-3 text-sm font-medium">Form Elements</h2>
         <div class="flex flex-wrap items-center gap-4">
           <Checkbox label="Checkbox" checked intent="primary" />
           <Toggle checked intent="primary" />

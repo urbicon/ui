@@ -92,7 +92,7 @@ export const DELETE = invitations.DELETE;
     </div>
 
     <div class="space-y-8">
-      <Section id="features" title="Key Features" headingLevel={3}>
+      <Section id="features" title="Key Features" headingLevel={2}>
         <ul class="space-y-2">
           {#each features as feature (feature)}
             <li class="text-text-secondary flex items-start gap-2 text-sm">
@@ -114,7 +114,7 @@ export const DELETE = invitations.DELETE;
         </ul>
       </Section>
 
-      <Section id="components" title="Components Used" headingLevel={3}>
+      <Section id="components" title="Components Used" headingLevel={2}>
         <div class="space-y-2">
           {#each usedComponents as comp (comp)}
             <a

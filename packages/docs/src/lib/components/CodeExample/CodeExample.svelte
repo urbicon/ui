@@ -10,6 +10,7 @@
 
   let {
     title,
+    headingLevel = 3,
     code = '',
     language = 'svelte',
     size = 'md',
@@ -38,6 +39,10 @@
   // `unstyled` drops the tv defaults; slotClasses always apply on top.
   const slot = (name: CodeExampleSlots): string =>
     [unstyled ? '' : styles[name](), slotClasses[name] ?? ''].filter(Boolean).join(' ');
+
+  // Same clamp as Section, Note and InfoCard: an out-of-range level would emit
+  // `<h0>`, which is not a heading at all.
+  const tag = $derived(`h${Math.min(6, Math.max(1, headingLevel))}` as const);
 
   const visibilityStore = getCodeVisibilityContext();
 
@@ -79,9 +84,9 @@
 
 <div {...restProps} class={[slot('container'), className]} data-docs-stage="example">
   {#if title}
-    <h3 class={slot('title')}>
+    <svelte:element this={tag} class={slot('title')}>
       {title}
-    </h3>
+    </svelte:element>
   {/if}
 
   {#if description}

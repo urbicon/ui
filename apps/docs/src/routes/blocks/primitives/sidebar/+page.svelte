@@ -47,7 +47,7 @@
 >
   <Section id="overview">
     <div class="border-border-subtle bg-surface-elevated rounded-2xl border p-5">
-      <h3 class="text-text-primary text-sm font-semibold">Looking for an app shell?</h3>
+      <h2 class="text-text-primary text-sm font-semibold">Looking for an app shell?</h2>
       <p class="text-text-secondary mt-1.5 text-sm leading-relaxed">
         For the common pattern of a permanent left sidebar with a mobile hamburger and an offset
         main content area, prefer

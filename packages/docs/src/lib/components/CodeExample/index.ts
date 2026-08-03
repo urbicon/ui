@@ -34,6 +34,18 @@ export interface CodeExampleProps
     Omit<HTMLAttributes<HTMLDivElement>, 'children' | 'title'> {
   /** Title displayed in the card header. */
   title?: string;
+
+  /**
+   * Heading level for the example title, clamped to 1..6. Examples usually sit
+   * inside a titled `<Section>` (`h2`), so `h3` is the default.
+   *
+   * Pass `2` on a page whose body is a single untitled `<Section>` — the table
+   * feature pages are built that way, and there the fixed `h3` followed the
+   * page `h1` directly. The title styling is class-driven, so the level never
+   * changes how the card looks.
+   * @default 3
+   */
+  headingLevel?: 1 | 2 | 3 | 4 | 5 | 6;
   /** Source code string to display with syntax highlighting. */
   code?: string;
   /** Language for syntax highlighting (e.g. 'svelte', 'typescript', 'css'). */

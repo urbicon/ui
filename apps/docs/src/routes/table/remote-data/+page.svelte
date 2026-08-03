@@ -56,6 +56,7 @@ ${scriptClose}
       </p>
 
       <CodeExample
+        headingLevel={2}
         title="Managed: queryFn"
         description="Provide an async function – the table handles loading, errors, request cancellation (AbortSignal), and debouncing automatically. The live demo runs against a deterministic in-memory mock backend that filters, sorts, and paginates 56 rows server-side after an adjustable artificial latency (no real network requests) — the code shows the real fetch-based consumer pattern."
         code={`<Table
@@ -80,6 +81,7 @@ ${scriptClose}
       </CodeExample>
 
       <CodeExample
+        headingLevel={2}
         title="Manual: onQueryChange"
         description="Full control – fetch data yourself and feed items back. Works with SvelteKit load functions, GraphQL, or any async pattern."
         code={codeOnQueryChange}
@@ -87,7 +89,7 @@ ${scriptClose}
       />
 
       <div class="border-border-subtle bg-surface-elevated rounded-2xl border p-6">
-        <h4 class="text-text-primary mb-4 text-sm font-semibold">How it works</h4>
+        <h3 class="text-text-primary mb-4 text-sm font-semibold">How it works</h3>
         <ul class="text-text-secondary list-inside list-disc space-y-2 text-sm">
           <li>In server mode, filtering, sorting, and pagination pass items through unchanged</li>
           <li>

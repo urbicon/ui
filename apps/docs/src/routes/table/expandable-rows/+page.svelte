@@ -25,6 +25,7 @@
       </p>
 
       <CodeExample
+        headingLevel={2}
         title="Expandable Detail Panel"
         description="Click the expand toggle to reveal additional detail for each row."
         code={`<Table {items} {columns}>

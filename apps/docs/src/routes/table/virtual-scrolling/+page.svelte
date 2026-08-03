@@ -24,6 +24,7 @@
       </p>
 
       <CodeExample
+        headingLevel={2}
         title="10,000 Rows"
         description="Only ~20 rows are in the DOM. Pagination is bypassed – all items are in a scrollable container."
         code={`<Table
@@ -36,7 +37,7 @@
       />
 
       <div class="border-border-subtle bg-surface-elevated rounded-2xl border p-6">
-        <h4 class="text-text-primary mb-4 text-sm font-semibold">Notes</h4>
+        <h3 class="text-text-primary mb-4 text-sm font-semibold">Notes</h3>
         <ul class="text-text-secondary list-inside list-disc space-y-2 text-sm">
           <li>
             Pagination is automatically disabled when

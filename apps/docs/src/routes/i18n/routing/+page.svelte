@@ -148,9 +148,9 @@ export function localizeHref(path, locale) {
       not a component one.
     </p>
     <div class="border-border-subtle bg-surface-elevated mb-4 rounded-2xl border p-6">
-      <h4 class="text-text-primary mb-3 text-sm font-semibold">
+      <h2 class="text-text-primary mb-3 text-sm font-semibold">
         The package owns state, not routes
-      </h4>
+      </h2>
       <p class="text-text-secondary text-sm">
         <code>setLocale</code> mutates the request-scoped locale and fires the provider's
         <code>onLocaleChange</code>. That callback is the seam: it is where <em>your</em> app
