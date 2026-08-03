@@ -53,7 +53,7 @@
     bind:files
     multiple
     maxFiles={4}
-    title="Dateien zum Upload auswaehlen"
+    title="Choose files to upload"
     description="Klicke 'Upload starten' nach der Auswahl"
   />
 

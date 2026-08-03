@@ -27,56 +27,56 @@
 <Section marker="01" id="examples" title="Examples">
   <div class="space-y-10">
     <CodeExample
-      title="Einfacher Upload"
-      description="Einzelne Datei per Drag & Drop oder Klick auswaehlen. Das Ergebnis wird als Dateiliste mit Name, Groesse und Entfernen-Button angezeigt."
+      title="Basic upload"
+      description="One file, by drag-and-drop or click. The result renders as a file list with name, size and a remove button."
       code={basicUploadCode}
     >
       <BasicUpload />
     </CodeExample>
 
     <CodeExample
-      title="Mehrere Dateien mit Limit"
-      description="Mehrfachauswahl mit maxFiles-Begrenzung. Ein Badge zeigt die verbleibenden Slots an. Ueberschuessige Dateien werden per onFileReject-Callback abgelehnt."
+      title="Several files, with a ceiling"
+      description="Multi-select bounded by `maxFiles`. A badge counts the remaining slots; anything over the limit is refused through `onFileReject`."
       code={multipleFilesCode}
     >
       <MultipleFiles />
     </CodeExample>
 
     <CodeExample
-      title="Bild-Upload mit Vorschau"
-      description="Bilder werden automatisch als Thumbnails angezeigt. Unter der Komponente eine eigene Grid-Vorschau mit Overlay-Dateinamen — demonstriert die Kombination aus FileUpload und eigenem Preview-Layout."
+      title="Images with a preview"
+      description="Images become thumbnails on their own. Below the component sits a hand-built grid with overlaid filenames — FileUpload and a preview layout of your own, side by side."
       code={imagePreviewCode}
     >
       <ImagePreview />
     </CodeExample>
 
     <CodeExample
-      title="Validierung mit Feedback"
-      description="Dateityp (.pdf, .docx, .xlsx), maximale Groesse (2 MB) und maximale Anzahl (3) werden validiert. Abgelehnte Dateien erscheinen als Alert mit strukturierten Fehlermeldungen."
+      title="Validation with feedback"
+      description="File type (.pdf, .docx, .xlsx), a 2 MB size ceiling and a count of 3 are all checked. Rejections surface as an alert carrying structured messages."
       code={withValidationCode}
     >
       <WithValidation />
     </CodeExample>
 
     <CodeExample
-      title="Upload-Fortschritt"
-      description="Simulierter Upload mit Fortschrittsbalken pro Datei. Status-Indikatoren zeigen den Lebenszyklus: pending → uploading → complete/error. Der Consumer steuert den Fortschritt extern."
+      title="Upload progress"
+      description="A simulated upload with a bar per file. The indicators walk the lifecycle — pending → uploading → complete/error — and the consumer drives the progress from outside."
       code={uploadProgressCode}
     >
       <UploadProgress />
     </CodeExample>
 
     <CodeExample
-      title="Screenshot einfuegen (Paste)"
-      description="Mit allowPaste koennen Bilder direkt aus der Zwischenablage eingefuegt werden — ideal fuer Screenshots und schnelle Workflows. Ctrl+V / Cmd+V genuegt."
+      title="Paste a screenshot"
+      description="`allowPaste` takes images straight from the clipboard, which is what a screenshot workflow actually wants. Ctrl+V / Cmd+V is the whole interaction."
       code={pasteUploadCode}
     >
       <PasteUpload />
     </CodeExample>
 
     <CodeExample
-      title="Groessen"
-      description="Drei Groessen (sm, md, lg) beeinflussen Dropzone-Padding, Schriftgroesse, Icon-Groesse und Datei-Items gleichermassen."
+      title="Sizes"
+      description="Three sizes (sm, md, lg) move the dropzone padding, the type scale, the icon and the file items together."
       code={sizesCode}
     >
       <Sizes />
@@ -90,7 +90,7 @@
   <div class="space-y-10">
     <CodeExample
       title="Custom Dropzone Design"
-      description="Ueber den children-Snippet kann der gesamte Inhalt der Dropzone ersetzt werden. Hier mit Gradient-Hintergrund, eigenem Icon und Call-to-Action-Button — kombiniert mit slotClasses fuer den Rahmen."
+      description="The `children` snippet replaces the dropzone contents wholesale — here a gradient ground, an icon of its own and a call to action, with `slotClasses` handling the frame."
       code={customDropzoneCode}
     >
       <CustomDropzone />
@@ -102,46 +102,44 @@
 
 <Section marker="03" id="accessibility" title="Accessibility">
   <NoteList>
-    <Note title="ARIA & Rollen">
+    <Note title="ARIA and roles">
       <p>
-        Die Dropzone hat <code class="text-text-primary">role="button"</code> und
-        <code class="text-text-primary">tabindex="0"</code>. Die Dateiliste nutzt
-        <code class="text-text-primary">role="list"</code> mit
-        <code class="text-text-primary">aria-live="polite"</code>, sodass Screenreader Aenderungen
-        automatisch ankuendigen. Jedes Datei-Item ist ein
-        <code class="text-text-primary">role="listitem"</code>. Der natuerliche
-        <code class="text-text-primary">&lt;input type="file"&gt;</code> bleibt im DOM (visuell verborgen)
-        fuer maximale Kompatibilitaet.
+        The dropzone is a <code class="text-text-primary">role="button"</code> with
+        <code class="text-text-primary">tabindex="0"</code>. The file list is a
+        <code class="text-text-primary">role="list"</code> with
+        <code class="text-text-primary">aria-live="polite"</code>, so a screen reader hears every
+        change without being asked; each entry is a
+        <code class="text-text-primary">role="listitem"</code>. The real
+        <code class="text-text-primary">&lt;input type="file"&gt;</code> stays in the DOM, visually hidden,
+        because nothing beats it for compatibility.
       </p>
     </Note>
     <Note title="Keyboard">
       <p>
         <Kbd keys="Enter" />
-        oder
+        or
         <Kbd keys="Space" />
-        auf der Dropzone oeffnet den nativen Dateidialog.
+        on the dropzone opens the native file dialog.
         <Kbd keys="Tab" />
-        navigiert zwischen Dropzone, Datei-Items und Entfernen-Buttons. Fokus-Ringe nutzen
-        <code class="text-text-primary">focus-visible:</code> fuer reine Keyboard-Sichtbarkeit.
+        moves between the dropzone, the file items and their remove buttons. Focus rings use
+        <code class="text-text-primary">focus-visible:</code>, so they appear for the keyboard only.
       </p>
     </Note>
-    <Note title="Drag-Zustaende">
+    <Note title="Drag states">
       <p>
-        Das <code class="text-text-primary">data-state</code>-Attribut auf der Dropzone wechselt
-        zwischen
+        The dropzone's <code class="text-text-primary">data-state</code> moves between
         <code class="text-text-primary">idle</code>,
-        <code class="text-text-primary">accept</code> und
-        <code class="text-text-primary">reject</code> — fuer CSS-only Styling im
-        <code class="text-text-primary">unstyled</code>-Modus. Visuelles Feedback (Farbe, Scale,
-        Schatten) signalisiert gueltiges vs. ungueltiges Drag-Material.
+        <code class="text-text-primary">accept</code> and
+        <code class="text-text-primary">reject</code>, which is enough to style the whole
+        interaction in <code class="text-text-primary">unstyled</code> mode from CSS alone. Colour, scale
+        and shadow tell the reader whether what they are dragging will be taken.
       </p>
     </Note>
     <Note title="Document Drop Prevention">
       <p>
-        Standardmaessig aktiv via
-        <code class="text-text-primary">preventDocumentDrop</code>: Dateien, die ausserhalb der
-        Dropzone fallen gelassen werden, oeffnen nicht den Browser. Das schuetzt vor versehentlicher
-        Navigation und Datenverlust.
+        On by default through <code class="text-text-primary">preventDocumentDrop</code>: a file
+        dropped anywhere but the dropzone does not open in the browser. Without it, a near-miss
+        navigates away from the page and takes unsaved work with it.
       </p>
     </Note>
   </NoteList>

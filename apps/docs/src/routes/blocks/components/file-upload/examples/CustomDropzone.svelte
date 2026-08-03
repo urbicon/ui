@@ -40,7 +40,7 @@
       <div
         class="bg-primary text-text-on-primary mt-1 inline-flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-medium"
       >
-        Dateien auswaehlen
+        Choose files
       </div>
     </div>
   </FileUpload>

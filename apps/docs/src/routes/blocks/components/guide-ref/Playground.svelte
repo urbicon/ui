@@ -1,13 +1,12 @@
 <!--
-  GuideRef teilt sich das Beispiel mit der Guide-Familie.
+  GuideRef shares its example with the Guide family.
 
-  Die neun Guide-Oberflächen sind ein System, kein Baukasten einzeln nutzbarer
-  Teile — deshalb hat die Doku für alle eine Seite (`/blocks/components/guide`)
-  und dieses Verzeichnis nur die generierte `api.ts` für Katalog und llm.txt.
-  Die Datei hier ist der Zeiger, über den der Landing-Hero (der jede
-  `Playground.svelte` per Glob einsammelt) beim Klick auf GuideRef dasselbe
-  Beispiel findet, das die Doku-Seite zeigt — statt einer erfundenen Vorschau
-  oder gar keiner.
+  The nine Guide surfaces are one system, not a box of separately usable parts,
+  so the documentation gives them a single page (`/blocks/components/guide`)
+  and this directory holds only the generated `api.ts` for the catalog and
+  llm.txt. The file you are reading is the pointer the landing hero follows:
+  it globs every `Playground.svelte`, so clicking GuideRef lands on the same
+  example the doc page shows, instead of an invented preview or none at all.
 -->
 <script lang="ts">
   import type { PlaygroundHostProps } from '$lib/playground-host';

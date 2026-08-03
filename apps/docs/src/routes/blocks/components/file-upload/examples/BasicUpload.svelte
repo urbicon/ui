@@ -7,7 +7,7 @@
 <div class="max-w-md">
   <FileUpload
     bind:files
-    title="Datei hier ablegen oder klicken"
+    title="Drop a file here, or click"
     description="Beliebiger Dateityp, max. 10 MB"
     maxFileSize={10 * 1024 * 1024}
   />

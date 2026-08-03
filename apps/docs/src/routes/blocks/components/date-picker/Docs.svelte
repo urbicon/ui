@@ -26,7 +26,7 @@
   <div class="space-y-10">
     <CodeExample
       title="Basic DatePicker"
-      description="Einfache Datumsauswahl mit Label und Kalender-Popover. Klicke auf das Input, um den Kalender zu oeffnen. Das gewaehlte Datum wird formatiert angezeigt."
+      description="A labelled date field with a calendar popover. Clicking the input opens the calendar; the chosen date is written back formatted."
       code={basicDatePickerCode}
     >
       <BasicDatePicker />
@@ -74,7 +74,7 @@
 
     <CodeExample
       title="Clearable"
-      description="Standardmaessig kann das Datum ueber das X-Icon geloescht werden. Mit clearable={'{false}'} wird die Loeschfunktion deaktiviert."
+      description="The date clears through the × by default. Passing clearable as false takes that affordance away."
       code={clearableCode}
     >
       <Clearable />
@@ -88,40 +88,40 @@
   <NoteList>
     <Note title="ARIA Roles">
       <p>
-        Das Trigger-Input hat <code class="text-text-primary">aria-haspopup="dialog"</code> und
-        <code class="text-text-primary">aria-expanded</code>, um den Popover-Status zu
-        kommunizieren. Der eingebettete Kalender nutzt
-        <code class="text-text-primary">role="grid"</code> mit vollstaendiger ARIA-Unterstuetzung.
+        The trigger input carries <code class="text-text-primary">aria-haspopup="dialog"</code> and
+        <code class="text-text-primary">aria-expanded</code>, so the popover's state is announced.
+        The embedded calendar is a <code class="text-text-primary">role="grid"</code> with the full ARIA
+        that implies.
       </p>
     </Note>
     <Note title="Keyboard Navigation">
       <p>
         <Kbd keys="Enter" />,
         <Kbd keys="Space" />
-        oder
+        or
         <Kbd keys="ArrowDown" />
-        oeffnen den Kalender.
+        open the calendar,
         <Kbd keys="Escape" />
-        schliesst ihn. Im Kalender navigieren Pfeiltasten zwischen Tagen/Wochen,
+        closes it. Inside, the arrow keys move between days and weeks and
         <Kbd keys="PageUp" />/<Kbd keys="PageDown" />
-        zwischen Monaten. Fokus-Ringe nutzen
-        <code class="text-text-primary">focus-visible:</code> fuer reine Keyboard-Sichtbarkeit.
+        between months. Focus rings use
+        <code class="text-text-primary">focus-visible:</code>, so they appear for the keyboard only.
       </p>
     </Note>
     <Note title="Screen Reader Labels">
       <p>
-        Das Label wird ueber das Input an den Screen Reader weitergegeben. Alle Tageszellen im
-        Kalender haben ein <code class="text-text-primary">aria-label</code> mit dem vollstaendigen
-        Datum (z.B. "Donnerstag, 12. Maerz 2026"). Fehler- und Hilfstexte werden via
-        <code class="text-text-primary">aria-describedby</code> verknuepft.
+        The label reaches the screen reader through the input. Every day cell carries an
+        <code class="text-text-primary">aria-label</code> with the full date ("Thursday, 12 March
+        2026"), and error and helper text are linked through
+        <code class="text-text-primary">aria-describedby</code>.
       </p>
     </Note>
-    <Note title="Internationalisierung">
+    <Note title="Internationalisation">
       <p>
-        Datumsformatierung nutzt natives
-        <code class="text-text-primary">Intl.DateTimeFormat</code> mit der konfigurierten
-        <code class="text-text-primary">locale</code>. Wochentage, Monatsnamen und das Eingabeformat
-        passen sich automatisch an die Sprache an.
+        Formatting goes through the native
+        <code class="text-text-primary">Intl.DateTimeFormat</code> with the configured
+        <code class="text-text-primary">locale</code>, so weekday names, month names and the input
+        format follow the language without further configuration.
       </p>
     </Note>
   </NoteList>

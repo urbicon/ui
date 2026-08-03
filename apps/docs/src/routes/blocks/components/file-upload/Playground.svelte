@@ -70,7 +70,7 @@
         allowDrop={values.allowDrop}
         allowPaste={values.allowPaste}
         disabled={values.disabled}
-        title="Dateien hier ablegen oder klicken"
+        title="Drop files here, or click"
         description="Beliebiger Dateityp, max. 10 MB"
         maxFileSize={10 * 1024 * 1024}
       />
