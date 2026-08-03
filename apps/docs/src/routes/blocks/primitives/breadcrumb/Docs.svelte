@@ -5,7 +5,7 @@
      stays under the rule. -->
 <script lang="ts">
   import { CodeExample, Note, NoteList, Section } from '@urbicon-ui/docs';
-  import { Badge, Breadcrumb, ChevronRightIcon, Kbd } from '@urbicon-ui/blocks';
+  import { Badge, Breadcrumb, ChevronRightIcon, HomeIcon, Kbd } from '@urbicon-ui/blocks';
   import { resolve } from '$app/paths';
 
   // Demo-only items don't navigate — they're just to illustrate the
@@ -44,12 +44,12 @@
     { label: 'Breadcrumb' }
   ];
 
-  // `BreadcrumbItem.label` is a plain string: the component has no icon field
-  // and no per-item snippet, so a glyph is the only way to get one into a
-  // crumb today. Hence the emoji plus an `aria-label`, without which a screen
-  // reader announces "house". Every other icon on this page is a real one.
+  // `BreadcrumbItem.icon` takes the icon *component*, never a name — a name
+  // would go through the runtime registry and pull all 315 icons into the
+  // bundle. The icon is decorative (the component wraps it in an `aria-hidden`
+  // span), so the crumb announces as its `label` with no `aria-label` needed.
   const iconHomeItems = [
-    { label: '🏠', href: '#', 'aria-label': 'Home', onclick: demoNoop },
+    { label: 'Home', href: '#', icon: HomeIcon, onclick: demoNoop },
     { label: 'Blog', href: '#', onclick: demoNoop },
     { label: 'Architecture', href: '#', onclick: demoNoop },
     { label: 'Monorepo Setup' }
@@ -96,8 +96,8 @@
     </CodeExample>
 
     <CodeExample
-      title="With Icon Home"
-      description="Replace the first label with an icon for compact navigation — `iconHomeItems` pairs the `🏠` label with an `aria-label` so it still announces as “Home”."
+      title="With a Leading Icon"
+      description="Give a crumb an `icon` to anchor the trail visually — pass the icon component itself (`icon: HomeIcon`), not its name. It renders inside the crumb's own link, sized with the trail, and is `aria-hidden`, so the item still announces as its `label`."
       isolate
     >
       <Breadcrumb items={iconHomeItems}>
@@ -241,10 +241,13 @@
         Renders as a <code class="text-text-primary">&lt;nav&gt;</code> with
         <code class="text-text-primary">aria-label="Breadcrumb"</code> (customizable via prop). The
         last item carries
-        <code class="text-text-primary">aria-current="page"</code> to announce the current page.
-        Individual items support
-        <code class="text-text-primary">aria-label</code> for accessible name overrides (e.g. icon-only
-        items).
+        <code class="text-text-primary">aria-current="page"</code> to announce the current page. A
+        per-item
+        <code class="text-text-primary">icon</code> is decorative — it renders inside an
+        <code class="text-text-primary">aria-hidden</code> wrapper, so the crumb announces as its
+        <code class="text-text-primary">label</code>
+        alone. Individual items still support
+        <code class="text-text-primary">aria-label</code> for accessible name overrides.
       </p>
     </Note>
     <Note title="Keyboard">

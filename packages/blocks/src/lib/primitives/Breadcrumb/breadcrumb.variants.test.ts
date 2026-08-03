@@ -10,6 +10,25 @@ describe('breadcrumbVariants', () => {
     expect(typeof styles.link).toBe('function');
     expect(typeof styles.currentPage).toBe('function');
     expect(typeof styles.separator).toBe('function');
+    expect(typeof styles.icon).toBe('function');
+  });
+
+  it('scales the per-item icon with the trail', () => {
+    expect(breadcrumbVariants({ size: 'sm' }).icon()).toContain('size-3.5');
+    expect(breadcrumbVariants({ size: 'md' }).icon()).toContain('size-4');
+    expect(breadcrumbVariants({ size: 'lg' }).icon()).toContain('size-5');
+  });
+
+  it('keeps the icon an inline box so link/currentPage truncation survives', () => {
+    // The icon sits INSIDE `link` / `currentPage`, both of which carry
+    // `truncate`. Turning those into flex containers would strip the ellipsis
+    // (text-overflow never reaches an anonymous flex item), so the icon has to
+    // align inline instead.
+    const icon = breadcrumbVariants().icon();
+    expect(icon).toContain('align-middle');
+    expect(icon).toContain('shrink-0');
+    expect(breadcrumbVariants().link()).toContain('truncate');
+    expect(breadcrumbVariants().currentPage()).toContain('truncate');
   });
 
   it('uses design tokens for transitions', () => {

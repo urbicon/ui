@@ -1,11 +1,22 @@
 import type { Snippet } from 'svelte';
 import type { HTMLAttributes } from 'svelte/elements';
+import type { IconComponent } from '$lib/icons';
 import type { BreadcrumbSlots, BreadcrumbVariants } from './breadcrumb.variants';
 
 /** Single breadcrumb item definition */
 export interface BreadcrumbItem {
   /** Display label */
   label: string;
+  /**
+   * Leading icon rendered before the label, inside the crumb's own link (or
+   * inside the current-page span for the last item). Pass the icon *component*
+   * — `import { HomeIcon } from '@urbicon-ui/blocks'` — never an icon name: a
+   * name has to be resolved through the registry at runtime, and that dynamic
+   * lookup drags all 315 icons into the consumer bundle (see
+   * docs/ICON-DESIGN.md). Decorative by contract — the icon is wrapped in an
+   * `aria-hidden` span, so the crumb still announces as its `label` alone.
+   */
+  icon?: IconComponent;
   /** Navigation URL (omit for current page) */
   href?: string;
   /**
@@ -48,6 +59,14 @@ export interface BreadcrumbItem {
  * @example Collapse a long trail — middle items fold into an expandable "…"
  * ```svelte
  * <Breadcrumb items={deepTrail} maxItems={4} />
+ * ```
+ *
+ * @example Leading icon on a crumb — pass the icon component, never its name
+ * ```svelte
+ * <Breadcrumb items={[
+ *   { label: 'Home', href: '/', icon: HomeIcon },
+ *   { label: 'Settings' }
+ * ]} />
  * ```
  */
 export interface BreadcrumbProps

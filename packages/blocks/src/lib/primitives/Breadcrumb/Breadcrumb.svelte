@@ -90,6 +90,24 @@
   }
 </script>
 
+<!--
+  Per-item leading icon. Decorative by contract: the wrapper is `aria-hidden`,
+  so the crumb's accessible name stays its `label` and a screen reader does not
+  announce the glyph twice. Menu/Tab lean on the `aria-hidden` that
+  `IconWrapper` puts on its own `<svg>`, which only holds for icons built on it
+  — spelling it out here also covers a consumer-supplied icon component.
+  Ellipsis entries carry no item and are therefore untouched by this.
+-->
+{#snippet crumbIcon(item: BreadcrumbItem)}
+  {#if item.icon}
+    {@const ItemIcon = item.icon}
+    <span
+      class={unstyled ? (slotClasses?.icon ?? '') : styles.icon({ class: slotClasses?.icon })}
+      aria-hidden="true"><ItemIcon class="size-full" /></span
+    >
+  {/if}
+{/snippet}
+
 <nav
   bind:this={navEl}
   class={unstyled
@@ -117,7 +135,7 @@
             class={unstyled
               ? (slotClasses?.currentPage ?? '')
               : styles.currentPage({ class: slotClasses?.currentPage })}
-            aria-current="page">{entry.item.label}</span
+            aria-current="page">{@render crumbIcon(entry.item)}{entry.item.label}</span
           >
         {:else}
           <!-- BreadcrumbItem.href is opaque to the library; resolve() is the consumer's responsibility. -->
@@ -125,10 +143,8 @@
             href={entry.item.href}
             class={unstyled ? (slotClasses?.link ?? '') : styles.link({ class: slotClasses?.link })}
             aria-label={entry.item['aria-label']}
-            onclick={entry.item.onclick}
+            onclick={entry.item.onclick}>{@render crumbIcon(entry.item)}{entry.item.label}</a
           >
-            {entry.item.label}
-          </a>
         {/if}
         {#if i < entries.length - 1}
           <span
