@@ -4,6 +4,8 @@
     ApiReference,
     CodeExample,
     DocsLayout as DocsPageLayout,
+    Note,
+    NoteList,
     Section
   } from '@urbicon-ui/docs';
   import { asset, resolve } from '$app/paths';
@@ -16,6 +18,7 @@
 
   const navigation = [
     { id: 'usage', title: 'Usage' },
+    { id: 'accessibility', title: 'Accessibility' },
     { id: 'api', title: 'API Reference' },
     { id: 'installation', title: 'Installation' }
   ];
@@ -51,11 +54,51 @@
     </CodeExample>
   </Section>
 
-  <Section marker="02" id="api" title="API Reference" intent="secondary">
+  <Section marker="02" id="accessibility" title="Accessibility">
+    <NoteList>
+      <Note title="The error region outlives the step it came from">
+        <p>
+          The <code class="text-text-primary">aria-live="polite"</code> region sits directly under the
+          heading, above the idle/setup/backup branch — not inside it. An error raised while confirming
+          a code is therefore still announced after the view changes, which a region nested in the branch
+          would have destroyed before the reader got to it.
+        </p>
+      </Note>
+      <Note title="The secret and the backup codes are real elements">
+        <p>
+          The TOTP secret renders in a <code class="text-text-primary">&lt;code&gt;</code> element
+          and the ten backup codes in a <code class="text-text-primary">&lt;ul&gt;</code> of
+          <code class="text-text-primary">&lt;li&gt;</code>. A reader announces the list with its
+          item count and can step through the codes one at a time — the same content as a styled
+          grid of divs would be an unnavigable run of characters.
+        </p>
+      </Note>
+      <Note title="Autofill hints on both entry paths">
+        <p>
+          Disabling 2FA re-authenticates with an
+          <code class="text-text-primary">autoComplete="current-password"</code> field; the setup
+          code uses
+          <code class="text-text-primary">inputmode="numeric"</code> with
+          <code class="text-text-primary">autoComplete="one-time-code"</code>, which brings up the
+          numeric keypad and lets the OS offer the code directly.
+        </p>
+      </Note>
+      <Note title="Step changes are announced, not focused">
+        <p>
+          Moving from idle to setup to backup codes replaces the content without moving focus — only
+          the live region marks the change. The QR code itself is a consumer-supplied snippet, so
+          its alternative text is yours to provide; the secret is always available as text next to
+          it for anyone who cannot scan.
+        </p>
+      </Note>
+    </NoteList>
+  </Section>
+
+  <Section marker="03" id="api" title="API Reference" intent="secondary">
     <ApiReference props={componentData?.props ?? []} />
   </Section>
 
-  <Section marker="03" id="installation" title="Installation">
+  <Section marker="04" id="installation" title="Installation">
     <CodeExample
       title="Import"
       code={`import { TwoFactorManager } from '@urbicon-ui/auth';`}

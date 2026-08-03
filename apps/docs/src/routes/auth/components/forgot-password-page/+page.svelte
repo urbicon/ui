@@ -4,6 +4,8 @@
     ApiReference,
     CodeExample,
     DocsLayout as DocsPageLayout,
+    Note,
+    NoteList,
     Section
   } from '@urbicon-ui/docs';
   import { asset, resolve } from '$app/paths';
@@ -16,6 +18,7 @@
 
   const navigation = [
     { id: 'usage', title: 'Usage' },
+    { id: 'accessibility', title: 'Accessibility' },
     { id: 'api', title: 'API Reference' },
     { id: 'installation', title: 'Installation' }
   ];
@@ -46,11 +49,47 @@
     </CodeExample>
   </Section>
 
-  <Section marker="02" id="api" title="API Reference" intent="secondary">
+  <Section marker="02" id="accessibility" title="Accessibility">
+    <NoteList>
+      <Note title="Failures are polite, the success interrupts">
+        <p>
+          The error region below the heading is always mounted and
+          <code class="text-text-primary">aria-live="polite"</code>, so a server or network failure
+          is announced without moving focus. The success state is different: it replaces the whole
+          form with an
+          <code class="text-text-primary">Alert</code>, which carries
+          <code class="text-text-primary">role="alert"</code> from blocks — the form disappearing under
+          the user is a large enough change that it should interrupt rather than queue.
+        </p>
+      </Note>
+      <Note title="A single labelled field">
+        <p>
+          The one input is <code class="text-text-primary">type="email"</code>,
+          <code class="text-text-primary">required</code>, and
+          <code class="text-text-primary">autoComplete="email"</code>. The
+          <code class="text-text-primary">Input</code> primitive renders a real
+          <code class="text-text-primary">&lt;label for&gt;</code> tied to the field id, so clicking the
+          label focuses the field and the reader announces the two together.
+        </p>
+      </Note>
+      <Note title="Submit reports its own busy state">
+        <p>
+          While the request is in flight the button is both
+          <code class="text-text-primary">disabled</code> and
+          <code class="text-text-primary">aria-busy</code>
+          (blocks' Button sets the latter from <code class="text-text-primary">loading</code>). A
+          user who hears nothing after pressing Enter can still query the button and learn that the
+          request is running.
+        </p>
+      </Note>
+    </NoteList>
+  </Section>
+
+  <Section marker="03" id="api" title="API Reference" intent="secondary">
     <ApiReference props={componentData?.props ?? []} />
   </Section>
 
-  <Section marker="03" id="installation" title="Installation">
+  <Section marker="04" id="installation" title="Installation">
     <CodeExample
       title="Import"
       code={`import { ForgotPasswordPage } from '@urbicon-ui/auth';`}

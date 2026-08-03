@@ -4,8 +4,11 @@
     ApiReference,
     CodeExample,
     DocsLayout as DocsPageLayout,
+    Note,
+    NoteList,
     Section
   } from '@urbicon-ui/docs';
+  import { Kbd } from '@urbicon-ui/blocks';
   import { asset, resolve } from '$app/paths';
   import { buildRelatedLinks } from '$lib/component-links';
   import { componentData } from './api';
@@ -16,6 +19,7 @@
 
   const navigation = [
     { id: 'usage', title: 'Usage' },
+    { id: 'accessibility', title: 'Accessibility' },
     { id: 'api', title: 'API Reference' },
     { id: 'installation', title: 'Installation' }
   ];
@@ -51,11 +55,53 @@
     </CodeExample>
   </Section>
 
-  <Section marker="02" id="api" title="API Reference" intent="secondary">
+  <Section marker="02" id="accessibility" title="Accessibility">
+    <NoteList>
+      <Note title="One live region per form, not one per page">
+        <p>
+          Profile, email, password and account deletion each own a separate
+          <code class="text-text-primary">aria-live="polite"</code> region placed inside that form. With
+          four save buttons on one page, a single shared region would announce "Saved" with no way to
+          tell which of the four it meant.
+        </p>
+      </Note>
+      <Note title="The danger zone is a named landmark">
+        <p>
+          Account deletion sits in a <code class="text-text-primary">&lt;section&gt;</code> with
+          <code class="text-text-primary">aria-labelledby</code> pointing at its own heading, so it
+          is reachable and distinguishable from the three ordinary save forms above it. The button
+          also stays
+          <code class="text-text-primary">disabled</code> until the password is typed, so it cannot be
+          triggered by a stray keypress while browsing the page.
+        </p>
+      </Note>
+      <Note title="The confirm step is a real modal dialog">
+        <p>
+          Deletion routes through blocks' <code class="text-text-primary">ConfirmDialog</code>,
+          which renders
+          <code class="text-text-primary">aria-modal="true"</code>, takes its accessible name from
+          the dialog title, traps <Kbd keys="Tab" /> inside itself, and returns focus to the trigger on
+          close.
+        </p>
+      </Note>
+      <Note title="Autofill hints, and no focus movement">
+        <p>
+          Every password field is <code class="text-text-primary"
+            >autoComplete="current-password"</code
+          >
+          except the new one (<code class="text-text-primary">new-password</code>), and the name and
+          email fields are hinted too. What the page does not do is move focus: after a save, focus
+          stays on the button and the result is announced by that form's live region.
+        </p>
+      </Note>
+    </NoteList>
+  </Section>
+
+  <Section marker="03" id="api" title="API Reference" intent="secondary">
     <ApiReference props={componentData?.props ?? []} />
   </Section>
 
-  <Section marker="03" id="installation" title="Installation">
+  <Section marker="04" id="installation" title="Installation">
     <CodeExample
       title="Import"
       code={`import { AccountSettings } from '@urbicon-ui/auth';`}

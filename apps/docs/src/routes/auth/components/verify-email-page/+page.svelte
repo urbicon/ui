@@ -4,6 +4,8 @@
     ApiReference,
     CodeExample,
     DocsLayout as DocsPageLayout,
+    Note,
+    NoteList,
     Section
   } from '@urbicon-ui/docs';
   import { asset, resolve } from '$app/paths';
@@ -16,6 +18,7 @@
 
   const navigation = [
     { id: 'usage', title: 'Usage' },
+    { id: 'accessibility', title: 'Accessibility' },
     { id: 'api', title: 'API Reference' },
     { id: 'installation', title: 'Installation' }
   ];
@@ -51,11 +54,39 @@
     </CodeExample>
   </Section>
 
-  <Section marker="02" id="api" title="API Reference" intent="secondary">
+  <Section marker="02" id="accessibility" title="Accessibility">
+    <NoteList>
+      <Note title="One region for a process the user never started">
+        <p>
+          Verification fires on mount from the token in the URL, so the user takes no action and has
+          nothing to watch. All three states — spinner, success, failure — render inside a single
+          <code class="text-text-primary">aria-live="polite"</code> wrapper, so the outcome is announced
+          when it arrives. This is the one page that deliberately does not use the shell's shared error
+          region: it would have given the same page two live regions competing to report the same event.
+        </p>
+      </Note>
+      <Note title="The spinner has words next to it">
+        <p>
+          The loading state is not a bare spinner — it renders the localized "verifying" text inside
+          the live region alongside it. A spinner alone conveys nothing to a screen reader; the text
+          is what actually gets announced.
+        </p>
+      </Note>
+      <Note title="Focus stays where it was">
+        <p>
+          Nothing on this page moves focus when the result arrives. The live region carries the
+          announcement instead, which is the right trade for an automatic process — but it means a
+          user who tabs away mid-verification will not be returned to the result.
+        </p>
+      </Note>
+    </NoteList>
+  </Section>
+
+  <Section marker="03" id="api" title="API Reference" intent="secondary">
     <ApiReference props={componentData?.props ?? []} />
   </Section>
 
-  <Section marker="03" id="installation" title="Installation">
+  <Section marker="04" id="installation" title="Installation">
     <CodeExample
       title="Import"
       code={`import { VerifyEmailPage } from '@urbicon-ui/auth';`}

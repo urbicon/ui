@@ -4,6 +4,8 @@
     ApiReference,
     CodeExample,
     DocsLayout as DocsPageLayout,
+    Note,
+    NoteList,
     Section
   } from '@urbicon-ui/docs';
   import { asset, resolve } from '$app/paths';
@@ -16,6 +18,7 @@
 
   const navigation = [
     { id: 'usage', title: 'Usage' },
+    { id: 'accessibility', title: 'Accessibility' },
     { id: 'api', title: 'API Reference' },
     { id: 'installation', title: 'Installation' }
   ];
@@ -46,11 +49,57 @@
     </CodeExample>
   </Section>
 
-  <Section marker="02" id="api" title="API Reference" intent="secondary">
+  <Section marker="02" id="accessibility" title="Accessibility">
+    <NoteList>
+      <Note title="The requirements list has a name">
+        <p>
+          The password checklist is a real <code class="text-text-primary">&lt;ul&gt;</code>
+          carrying
+          <code class="text-text-primary">aria-label</code>, so a reader announces it as a named
+          list with a known item count instead of four orphaned lines under a text field. It is also
+          the only explanation for why the submit button is disabled — an unlabelled disabled button
+          with no reachable reason is the failure this avoids.
+        </p>
+      </Note>
+      <Note title="Pass/fail is text, not colour">
+        <p>
+          Each requirement is prefixed with a literal <code class="text-text-primary">✓</code> or
+          <code class="text-text-primary">✗</code> character, not an icon and not a colour swap
+          alone, so the state survives both a screen reader and a monochrome display. The
+          <code class="text-text-primary">data-met</code> attribute mirrors it for CSS only. Note the
+          list is not itself a live region: it updates as you type but is not announced on every keystroke,
+          which would make the field unusable with speech output.
+        </p>
+      </Note>
+      <Note title="Mismatch is bound to the field">
+        <p>
+          A confirm-password mismatch is passed to the field as the
+          <code class="text-text-primary">error</code> prop, so
+          <code class="text-text-primary">Input</code>
+          sets
+          <code class="text-text-primary">aria-invalid</code> and links the message through
+          <code class="text-text-primary">aria-describedby</code>. The reader hears the problem
+          while focus is on the field that has it — server-side failures go to the page-level live
+          region instead.
+        </p>
+      </Note>
+      <Note title="Autofill hints">
+        <p>
+          <code class="text-text-primary">autoComplete</code> is set on all four fields —
+          <code class="text-text-primary">name</code>, <code class="text-text-primary">email</code>,
+          and
+          <code class="text-text-primary">new-password</code> on both password fields, which is the signal
+          a password manager needs to offer a generated password rather than the saved one.
+        </p>
+      </Note>
+    </NoteList>
+  </Section>
+
+  <Section marker="03" id="api" title="API Reference" intent="secondary">
     <ApiReference props={componentData?.props ?? []} />
   </Section>
 
-  <Section marker="03" id="installation" title="Installation">
+  <Section marker="04" id="installation" title="Installation">
     <CodeExample
       title="Import"
       code={`import { RegisterPage } from '@urbicon-ui/auth';`}
